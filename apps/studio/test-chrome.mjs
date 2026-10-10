@@ -2258,8 +2258,22 @@ const rowOf = (page, op) => page.evaluate((k) => {
   const ico = n?.querySelector('.p3-ico');
   return n ? { expanded: n.getAttribute('aria-expanded'), chev: ico ? getComputedStyle(ico).transform : null } : null;
 }, op);
-/** Why a case stopped: the error's first line, and the locator it was waiting for. */
-const stopped = (e) => { const lines = String(e?.message ?? e).replace(/\u001b\[[0-9;]*m/g, '').split('\n'); return [lines[0], lines.find((l) => /waiting for/.test(l))?.trim()].filter(Boolean).join(' · '); };
+/** Why a case stopped: the error's first line, the locator it was waiting for, and the reason Playwright's call log
+ *  gives for not acting on it (covered, moving, hidden, disabled, detached, #2460): the log's last such line, else
+ *  the last step it reached. A timeout's first line alone ("locator.click: Timeout 10000ms exceeded.") says none of
+ *  that, and a flake read from it cannot be told apart from a stuck control. Each part is capped, since an
+ *  intercepting element's line carries its markup. */
+const ACTIONABILITY = /intercepts pointer events|element is not (visible|stable|enabled|editable|attached)|not attached to the DOM|detached from the DOM|receive pointer|outside of the viewport/;
+const stopped = (e) => {
+  const lines = String(e?.message ?? e).replace(/\u001b\[[0-9;]*m/g, '').split('\n').map((l) => l.trim()).filter(Boolean);
+  const at = lines.findIndex((l) => /^Call log:?$/.test(l));
+  const log = at < 0 ? [] : lines.slice(at + 1).map((l) => l.replace(/^[-\s]+/, ''));
+  const waiting = lines.slice(1).find((l) => /waiting for/.test(l))?.replace(/^[-\s]+/, '');
+  const reason = [...log].reverse().find((l) => ACTIONABILITY.test(l))
+    ?? [...log].reverse().find((l) => !/^(\d+ × )?(retrying|waiting \d+ms|waiting for locator)/.test(l));
+  const cap = (s) => (s.length > 200 ? `${s.slice(0, 199)}…` : s);
+  return [lines[0], waiting, reason === waiting ? null : reason].filter(Boolean).map(cap).join(' · ');
+};
 const settle = (page) => page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
 const drawerState = (page) => page.evaluate(() => {
   const vis = (n) => { if (!n) return false; const r = n.getBoundingClientRect(); if (r.width < 1 || r.height < 1) return false; for (let x = n; x && x.nodeType === 1; x = x.parentElement) if (getComputedStyle(x).display === 'none') return false; return true; };
@@ -3480,7 +3494,7 @@ for (const host of ['web', 'figma']) {
   ok(true, 'Brand: Continue to Color › Palettes opens Color › Palettes');
   ok(errors.length === 0, `Brand: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `S3 Brand: the case stopped at a step that threw, and the rest of it was skipped — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `S3 Brand: the case stopped at a step that threw, and the rest of it was skipped — ${stopped(e)}`);
   } finally {
     await ctx.close();
   }
@@ -3534,7 +3548,7 @@ for (const { w, h } of WIDTHS) {
     }
     ok(errors.length === 0, `mode control ${w}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `S3 mode control ${w}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `S3 mode control ${w}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 
@@ -4086,7 +4100,7 @@ for (const host of ['web', 'figma']) {
         return { ok: false, why: prev === null ? 'it is not in the page' : `it was still moving after ${frames} frames (last box ${prev})` };
       }, [PAIR_SEL, PAIR_SETTLE_MS]),
       new Promise((r) => setTimeout(() => r({ ok: false, dead: true }), PAIR_SETTLE_MS + 1000)),
-    ]).catch((e) => ({ ok: false, why: String(e?.message ?? e).split('\n')[0] }));
+    ]).catch((e) => ({ ok: false, why: stopped(e) }));
     // A page that rendered no frame within the bound is DEAD (#2231 review): any later evaluate on it waits
     // with no timeout. Close its context, bounded, and end the arm. Its own ctx.close() below then returns at once.
     if (settled.dead) {
@@ -4104,7 +4118,7 @@ for (const host of ['web', 'figma']) {
         await Promise.race([ctx.close().catch(() => {}), new Promise((r) => setTimeout(r, 10000))]);
         return false;
       }
-      ok(false, `#2167 askPair: the click on Pair icons did not land — ${String(e?.message ?? e).split('\n')[0]}`);
+      ok(false, `#2167 askPair: the click on Pair icons did not land — ${stopped(e)}`);
       return false;
     }
     await page.waitForFunction(() => !!document.querySelector('[data-p3="icons-pair-confirm"]'), null, { timeout: 5000 }).catch(() => {});
@@ -4566,7 +4580,7 @@ for (const theme of ['light', 'dark']) {
     }
     ok(errors.length === 0, `#2227: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `#2227: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `#2227: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // #2250 (owner decisions Q67 B, Q69 A, Q70 A): the studio's floor sentences, on the real page. THE ORACLE is literal.
@@ -4624,7 +4638,7 @@ for (const theme of ['light', 'dark']) {
     ok(!(await engineOnScreen()), '#2250: the engine\'s floor sentence is nowhere on the page after the refused paste');
     ok(errors.length === 0, `#2250: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `#2250: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `#2250: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // The step picker, mounted (V9): it opens under its row on the current step, a pick writes the step and keeps
@@ -4801,7 +4815,7 @@ for (const host of ['web', 'figma']) {
         ok(unlisted.length === 0, `specimen ground: interactive ${where}: every section ground drawn is a listed specimen${unlisted.length ? ` — unlisted ${unlisted.join(', ')}` : ''}`);
       }
     } catch (e) {
-      ok(false, `S5.2 specimen grounds ${host} ${theme}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+      ok(false, `S5.2 specimen grounds ${host} ${theme}: the case stopped at a step that threw — ${stopped(e)}`);
     } finally { await ctx.close(); }
   }
 }
@@ -4852,7 +4866,7 @@ for (const host of ['web', 'figma']) {
     ok((await previewView(page)).view === view0, `V1: ${host} following a jump link never moves the preview's home (${view0})`);
     ok(errors.length === 0, `${host} Interactive levers: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `S5.2 represented ${host}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `S5.2 represented ${host}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // The Text row (Q32), on Interactive and on Brand's Style guide, against the emission: per column and state the
@@ -4898,7 +4912,7 @@ for (const host of ['web', 'figma']) {
     }
     ok(errors.length === 0, `${host} text buttons: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `S5.2 text buttons ${host}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `S5.2 text buttons ${host}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // Edits: a row edits the previewed mode (Q34): Light writes the column's own field, Dark writes modeAnchors and
@@ -4979,7 +4993,7 @@ for (const host of ['web', 'figma']) {
     ok((await previewView(page)).view === view0, `V1 edit: Interactive's edits never move the preview's home (${view0})`);
     ok(errors.length === 0, `interactive edits: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `S5.2 Interactive edits: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `S5.2 Interactive edits: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // Owner copy (Q51, Q53, Q58, Q57, APPROVED, literal): the lever sections are the preview's, in its order; the
@@ -5112,7 +5126,7 @@ const chooseAnyMode = async (page, mode) => {
     ok(!back.line && back.sel === false, `Q59: back in Light, the derived line is gone and the levers are editable (${JSON.stringify(back)})`);
     ok(errors.length === 0, `interactive owner copy: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `S5.2 owner copy: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `S5.2 owner copy: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // =============================================================================================
@@ -5291,7 +5305,7 @@ const ratioHex = (a, b) => { const [x, y] = [lumHex(a), lumHex(b)].sort((p, q) =
     }
     ok(errors.length === 0, `S5.3 levers: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `S5.3 levers: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `S5.3 levers: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // QA-I2 on every page lightness: Page swept down prism3's neutral ladder in Light, through the mid-grays where neither
@@ -5341,7 +5355,7 @@ const ratioHex = (a, b) => { const [x, y] = [lumHex(a), lumHex(b)].sort((p, q) =
     console.log(`  QA-I2 sweep: ${points} Page steps, ${grounds.size} grounds, lowest mark ${lowest.toFixed(2)}:1 (${lowestAt}), ${fallbacks} step(s) with a mark on the badge-ink fallback`);
     ok(errors.length === 0, `QA-I2 sweep: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `QA-I2 sweep: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `QA-I2 sweep: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // QA-I1 and QA-I9, as drawn: both hosts, both chrome themes, at 1280 and 800. No treatment label's foot line (its
@@ -5399,7 +5413,7 @@ for (const w of [1280, 800]) {
         }
         ok(errors.length === 0, `S5.3 ${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
       } catch (e) {
-        ok(false, `S5.3 drawn ${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+        ok(false, `S5.3 drawn ${where}: the case stopped at a step that threw — ${stopped(e)}`);
       } finally { await ctx.close(); }
     }
   }
@@ -5440,7 +5454,7 @@ for (const { w, h } of WIDTHS) {
         }
         ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
       } catch (e) {
-        ok(false, `S5.2 chrome ${host} ${theme} ${w}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+        ok(false, `S5.2 chrome ${host} ${theme} ${w}: the case stopped at a step that threw — ${stopped(e)}`);
       } finally { await ctx.close(); }
     }
   }
@@ -5512,7 +5526,7 @@ for (const host of ['web', 'figma']) {
           `Q24 section containers: type ${where}: every section container is the levers panel's gray ${LEVERS_GRAY} (${g.sections.length} read)${offGray.length ? ` — ${offGray.join(', ')}` : ''}`);
       }
     } catch (e) {
-      ok(false, `S6.2 specimen grounds ${host} ${theme}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+      ok(false, `S6.2 specimen grounds ${host} ${theme}: the case stopped at a step that threw — ${stopped(e)}`);
     } finally { await ctx.close(); }
   }
 }
@@ -5612,7 +5626,7 @@ for (const host of ['web', 'figma']) {
     ok(plainWords.length === 0, `Q70 plain words: ${host}: no "rung", "leading", "tracking", "cut", "baseline", "weight role", "category", "column", "band" or "muted" in the Type page's visible copy, levers and preview${plainWords.length ? ` — found ${plainWords.slice(0, 4).map((x) => `"${x}"`).join(', ')}` : ''}`);
     ok(errors.length === 0, `${host} Type levers: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `S6.2 represented ${host}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `S6.2 represented ${host}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // Edits (Q22, Q62 option A): Light writes the brand value; previewing Dark, the same select writes
@@ -5666,7 +5680,7 @@ for (const host of ['web', 'figma']) {
     ok((await previewView(page)).view === view0, `V1 edit: Type's edits never move the preview's home (${view0})`);
     ok(errors.length === 0, `type edits: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `S6.2 Type edits: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `S6.2 Type edits: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // Q59, Q74: in each derived mode every control on Type is disabled, the lent region included, under the derived
@@ -5723,7 +5737,7 @@ for (const host of ['web', 'figma']) {
     ok(!back.line && back.sel === false && back.scale === false && back.weight === false, `Q59: back in Light, Type's derived line is gone and its controls, the advanced ones included, are editable (${JSON.stringify(back)})`);
     ok(errors.length === 0, `type derived: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `S6.2 derived modes: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `S6.2 derived modes: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // The chrome on Type: both hosts, both themes, 1280, 640 and 380 (the Settings pane, then the Preview pane when
@@ -5746,7 +5760,7 @@ for (const { w, h } of WIDTHS) {
         }
         ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
       } catch (e) {
-        ok(false, `S6.2 chrome ${host} ${theme} ${w}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+        ok(false, `S6.2 chrome ${host} ${theme} ${w}: the case stopped at a step that threw — ${stopped(e)}`);
       } finally { await ctx.close(); }
     }
   }
@@ -5835,7 +5849,7 @@ for (const host of ['web', 'figma']) {
     ok(r.names.size?.[0]?.[0] === 'p3-fill-label' && /^type\.title\./.test(r.names.size?.[1]?.[1] ?? ''), `QA-B2: ${host}: a heading size reads its label first and its type.title.* token under it (${JSON.stringify(r.names.size)})`);
     ok(errors.length === 0, `${host} Type S6.3 levers: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `S6.3 represented ${host}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `S6.3 represented ${host}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // The previewed mode (Q22, Q62): previewing Dark, a weight, a heading's desktop size and a line height swap write
@@ -6088,7 +6102,7 @@ for (const host of ['web', 'figma']) {
     ok(JSON.stringify(pEnd) === JSON.stringify(pZero), `type: every edit after the nudge undone, the persisted brand is the one it was${JSON.stringify(pEnd) === JSON.stringify(pZero) ? '' : ` — typography ${JSON.stringify(pEnd?.typography)}, modeLevers ${JSON.stringify(pEnd?.modeLevers)}; was ${JSON.stringify(pZero?.typography)}`}`);
     ok(errors.length === 0, `type S6.3 edits: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `S6.3 Type edits: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `S6.3 Type edits: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // #2194 (owner, N3 A, 2026-10-06): the clash message and Release pinned sizes show only when a pinned size is what
@@ -6125,7 +6139,7 @@ for (const host of ['web', 'figma']) {
         ok(!s.clash && !s.release, `#2194: ${host}: Aurora at Compact, nothing pinned, shows no clash message and no Release pinned sizes (clash ${s.clash}, release ${s.release})`);
         ok(errors.length === 0, `#2194: ${host}: Aurora's Type scale: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
       } catch (e) {
-        ok(false, `#2194 Aurora ${host}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+        ok(false, `#2194 Aurora ${host}: the case stopped at a step that threw — ${stopped(e)}`);
       } finally { await ctx.close(); }
     }
     {
@@ -6202,7 +6216,7 @@ for (const host of ['web', 'figma']) {
     });
     ok(onType === 1 && onLayout.length === 0, `typography.responsive is drawn on Type only${onType !== 1 ? ` — drawn ${onType} time(s) on Type` : ''}${onLayout.length ? ` — also on Layout (${onLayout.join(', ')})` : ''} (${host})`);
   } catch (e) {
-    ok(false, `S6.3 responsive home ${host}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `S6.3 responsive home ${host}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 
@@ -6367,7 +6381,7 @@ const figmaStatusSeen = new Map();   // `${brand} / ${mode} / ${text}` -> { draw
       }
       ok(errors.length === 0, `#2103 (figma) ${brand}: no page errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
     } catch (e) {
-      ok(false, `#2103 (figma) ${brand}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+      ok(false, `#2103 (figma) ${brand}: the case stopped at a step that threw — ${stopped(e)}`);
     } finally { await ctx.close(); }
   }
   for (const lab of FIGMA_FONT_STATUS) {
@@ -6608,7 +6622,7 @@ console.log(`\nQA-B9, B17, I11 — the eased reveal, the jump links, the remembe
     ok(tf.tops.every((t) => t === 0), `QA-B9: opening a value picker on Type does not move the preview (scrollTops ${JSON.stringify([...new Set(tf.tops)])})`);
     ok(errors.length === 0, `QA-B9/B17/I11: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `QA-B9/B17/I11: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `QA-B9/B17/I11: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 
@@ -6807,7 +6821,7 @@ for (const [host, theme] of [['web', 'light'], ['web', 'dark'], ['figma', 'light
       `QA-R1: ${where}: Add custom mode is a dashed add row, the list's full width, unfilled — read ${JSON.stringify(add)}`);
     ok(errors.length === 0, `shared styling: ${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `shared styling ${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `shared styling ${where}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // QA-R1's behavior, on the studio: the add row still adds a mode and moves focus to its name.
@@ -6823,7 +6837,7 @@ for (const [host, theme] of [['web', 'light'], ['web', 'dark'], ['figma', 'light
 
     ok(errors.length === 0, `QA-R1: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `QA-R1: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `QA-R1: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 
@@ -6912,7 +6926,7 @@ for (const host of ['web', 'figma']) {
           `Q24 section containers: depth ${where}: every section container is the levers panel's gray ${LEVERS_GRAY} (${g.sections.length} read)${offGray.length ? ` — ${offGray.join(', ')}` : ''}`);
       }
     } catch (e) {
-      ok(false, `S9.2 specimen grounds ${host} ${theme}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+      ok(false, `S9.2 specimen grounds ${host} ${theme}: the case stopped at a step that threw — ${stopped(e)}`);
     } finally { await ctx.close(); }
   }
 }
@@ -6988,7 +7002,7 @@ for (const host of ['web', 'figma']) {
     ok(place === 'layout', `${host}: Continue to Layout opens the Layout tab (on ${place})`);
     ok(errors.length === 0, `${host} Depth & motion: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `S9.2 represented ${host}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `S9.2 represented ${host}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 
@@ -7059,7 +7073,7 @@ for (const host of ['web', 'figma']) {
       `Q59: previewing HC light, every control on Depth & motion is disabled under the derived line, and the preview is drawn — ${d.n} controls, enabled ${JSON.stringify(d.enabled)}, line ${d.line}, ${d.preview} preview sections`);
     ok(errors.length === 0, `Q22/Q59 Depth & motion: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `S9.2 Q22/Q59: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `S9.2 Q22/Q59: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 
@@ -7097,7 +7111,7 @@ for (const reduced of [false, true]) {
     ok(JSON.stringify(await persisted(page)) === brand0, `#574: ${tag}, Play and Slow motion write nothing to the brand`);
     ok(errors.length === 0, `D9 ${tag}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `S9.2 D9 reduced=${reduced}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `S9.2 D9 reduced=${reduced}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // The chrome probe on Depth & motion: both hosts, both themes, 1280, 640 and 380, Shadow tint and a picker open.
@@ -7115,7 +7129,7 @@ for (const host of ['web', 'figma']) {
         check(m, where, columnOf(host, w), PLACE_FLOOR);
         if (SHOTS) await page.screenshot({ path: join(SHOTS, `s92-${host}-${theme}-${w}-depth.png`) });
       } catch (e) {
-        ok(false, `S9.2 chrome ${host} ${theme} ${w}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+        ok(false, `S9.2 chrome ${host} ${theme} ${w}: the case stopped at a step that threw — ${stopped(e)}`);
       } finally { await ctx.close(); }
     }
   }
@@ -7204,7 +7218,7 @@ for (const host of ['web', 'figma']) {
         ok(inks.length >= 5 && low.length === 0, `D14: layout ${where}: each range's name clears ${TEXT_MIN}:1 on its tint (${inks.map((x) => `${x.bp} ${x.r}`).join(', ')})${low.length ? ` — below: ${low.map((x) => x.bp).join(', ')}` : ''}`);
       }
     } catch (e) {
-      ok(false, `S10 specimen grounds ${host} ${theme}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+      ok(false, `S10 specimen grounds ${host} ${theme}: the case stopped at a step that threw — ${stopped(e)}`);
     } finally { await ctx.close(); }
   }
 }
@@ -7241,7 +7255,7 @@ for (const host of ['web', 'figma']) {
       `T8: ${host}: Continue to Components lands on the Components tab's levers — landed ${JSON.stringify(landed)}`);
     ok(errors.length === 0, `Layout ${host}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `S10 Layout ${host}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `S10 Layout ${host}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // F1 A (owner, 2026-10-05), replacing #2120's dashed edge: the fixed first breakpoint field draws Prism3's own disabled
@@ -7272,7 +7286,7 @@ for (const host of ['web', 'figma']) {
       if (SHOTS) await page.locator('[data-p3="levers-pane"] [data-p3="bp-list"]').screenshot({ path: join(SHOTS, `f1-${host === 'web' ? 'web' : 'plugin'}-${theme}.png`) });
       ok(errors.length === 0, `F1 A Layout ${host} ${theme}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
     } catch (e) {
-      ok(false, `F1 A Layout ${host} ${theme}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+      ok(false, `F1 A Layout ${host} ${theme}: the case stopped at a step that threw — ${stopped(e)}`);
     } finally { await ctx.close(); }
   }
 }
@@ -7315,7 +7329,7 @@ for (const host of ['web', 'figma']) {
       }
       ok(errors.length === 0, `disabled field: ${host} ${theme}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
     } catch (e) {
-      ok(false, `disabled field ${host} ${theme}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+      ok(false, `disabled field ${host} ${theme}: the case stopped at a step that threw — ${stopped(e)}`);
     } finally { await ctx.close(); }
   }
 }
@@ -7399,7 +7413,7 @@ for (const host of ['web', 'figma']) {
     ok(!!L && !('gutterOverrides' in L), `Layout: Return to Auto on the last gutter deletes gutterOverrides, never {} — ${JSON.stringify(L)}`);
     ok(errors.length === 0, `Layout edits: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `S10 Layout edits: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `S10 Layout edits: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // #2047: a column count off the offered list (any whole number 4–24 is legal) is shown as it is, base and per breakpoint.
@@ -7425,7 +7439,7 @@ for (const host of ['web', 'figma']) {
       `#2047: a brand's ${want} grid columns (off the offered list) read ${want} on the base and ${wantMd} on md, as the input says, and the picker lists ${want} as current — ${JSON.stringify(cols)}, ${JSON.stringify(listed)}`);
     ok(errors.length === 0, `#2047: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `#2047: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `#2047: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // Q59: previewing a derived mode, every control on Layout is disabled under the derived line; the preview still draws.
@@ -7456,7 +7470,7 @@ for (const host of ['web', 'figma']) {
     ok(!back.line && back.add === false && back.pick === false, `Q59: back in Light, Layout's derived line is gone and its controls are editable (${JSON.stringify(back)})`);
     ok(errors.length === 0, `Layout derived: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `S10 derived modes: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `S10 derived modes: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 
@@ -7567,7 +7581,7 @@ for (const host of ['web', 'figma']) {
         ok(sw.length >= 14 && off.length === 0, `D2: shape ${where}: every radius sample is filled with the brand's foreground.secondary (${fill}) and edged with border.primary (${edge}) for the mode (${sw.length} read)${off.length ? ` — ${JSON.stringify(off.slice(0, 2))}` : ''}`);
       }
     } catch (e) {
-      ok(false, `S7 specimen grounds ${host} ${theme}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+      ok(false, `S7 specimen grounds ${host} ${theme}: the case stopped at a step that threw — ${stopped(e)}`);
     } finally { await ctx.close(); }
   }
 }
@@ -7648,7 +7662,7 @@ for (const host of ['web', 'figma']) {
     ok(!r.lsec.concat(r.psec).some(([t]) => /corner/i.test(t ?? '')), `E2: ${host}: no Shape heading says "corner" (${JSON.stringify(r.lsec.concat(r.psec).map(([t]) => t))})`);
     ok(errors.length === 0, `${host} Shape levers: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `S7 represented ${host}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `S7 represented ${host}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // Edits (Q22): Light writes the brand value, the default included; previewing Dark, Density and Radius softness write
@@ -7737,7 +7751,7 @@ for (const host of ['web', 'figma']) {
     ok((await previewView(page)).view === view0, `V1 edit: Shape's edits never move the preview's home (${view0})`);
     ok(errors.length === 0, `shape edits: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `S7 Shape edits: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `S7 Shape edits: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // Q59: in each derived mode every control on Shape is disabled, the advanced one included, under the derived line, and
@@ -7774,7 +7788,7 @@ for (const host of ['web', 'figma']) {
     }
     ok(errors.length === 0, `shape derived: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `S7 derived modes: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `S7 derived modes: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // The routes by tab, on both hosts: Continue lands on Depth & motion's page; See Components lands on the Components tab,
@@ -7801,7 +7815,7 @@ for (const host of ['web', 'figma']) {
     ok(s.place === 'components' && s.buttons, `${host}: See Components opens the Components tab, where the Button options are (${JSON.stringify(s)})`);
     ok(errors.length === 0, `${host} Shape routes: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `S7 routes ${host}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `S7 routes ${host}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // QA-B9: an edit on Shape eases the preview to the section its lever section pairs with (Q23): Density to Density,
@@ -7830,7 +7844,7 @@ for (const host of ['web', 'figma']) {
     await page.emulateMedia({ reducedMotion: 'no-preference' });
     ok(errors.length === 0, `shape reveal: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `S7 reveal: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `S7 reveal: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // The chrome on Shape: both hosts, both themes, 1280, 640 and 380 (the Settings pane, then the Preview pane when
@@ -7857,7 +7871,7 @@ for (const { w, h } of WIDTHS) {
         }
         ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
       } catch (e) {
-        ok(false, `S7 chrome ${host} ${theme} ${w}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+        ok(false, `S7 chrome ${host} ${theme} ${w}: the case stopped at a step that threw — ${stopped(e)}`);
       } finally { await ctx.close(); }
     }
   }
@@ -7925,7 +7939,7 @@ for (const host of ['web', 'figma']) {
         ok(b.length === 9 && off.length === 0, `G7: components ${where}: every button is filled with the brand's interactive.primary.fill.rest (${fill}) and labeled in interactive.primary.on-fill (${ink}) for the mode (${b.length} read)${off.length ? ` — ${JSON.stringify(off.slice(0, 2))}` : ''}`);
       }
     } catch (e) {
-      ok(false, `S8.2 specimen grounds ${host} ${theme}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+      ok(false, `S8.2 specimen grounds ${host} ${theme}: the case stopped at a step that threw — ${stopped(e)}`);
     } finally { await ctx.close(); }
   }
 }
@@ -8014,7 +8028,7 @@ for (const host of ['web', 'figma']) {
     ok(words.length === 0, `D16: ${host}: no "face", "band", "rung", "muted" or "column" in Components' visible copy${words.length ? ` — found ${words.slice(0, 4).map((x) => `"${x}"`).join(', ')}` : ''}`);
     ok(errors.length === 0, `${host} Components: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `S8.2 represented ${host}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `S8.2 represented ${host}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // Q59: in each derived mode every control on Components is disabled but the info toggletips and the way to Shape (it only
@@ -8061,7 +8075,7 @@ for (const host of ['web', 'figma']) {
     }
     ok(errors.length === 0, `components derived: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `S8.2 derived modes: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `S8.2 derived modes: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // QA-B9: an edit on Components eases the preview to the Button section, from the preview's far end. Brand-wide (Q54):
@@ -8090,7 +8104,7 @@ for (const host of ['web', 'figma']) {
     await page.emulateMedia({ reducedMotion: 'no-preference' });
     ok(errors.length === 0, `components reveal: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `S8.2 reveal: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `S8.2 reveal: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // C3 A (#2086): the build stamp moved from the foot of the Pages menu to the foot of the Inspect menu, in small text, on
@@ -8127,7 +8141,7 @@ for (const host of ['web', 'figma']) {
     await page.keyboard.press('Escape');
     ok(errors.length === 0, `C3 ${host}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `S8.2 C3 ${host}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `S8.2 C3 ${host}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // C4 A: in the plugin, the build bar ("Build ‹Name›" and its two hints) stays in view at the foot of the preview at any
@@ -8184,7 +8198,7 @@ for (const { w, h } of [{ w: 1280, h: 700 }, { w: 380, h: 700 }]) {
     ok(d.open === 'true' && d.onTop, `C4: figma ${w}: the Activity drawer opens over the build bar, not under it (${JSON.stringify(d)})`);
     ok(errors.length === 0, `C4 figma ${w}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `S8.2 C4 figma ${w}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `S8.2 C4 figma ${w}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // #2180 (owner QA, 2026-10-05): the build bar stands clear of the Activity drawer by the chrome's stacked-card gap,
@@ -8264,7 +8278,7 @@ for (const { w, h } of WIDTHS) {
         }
         ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
       } catch (e) {
-        ok(false, `S8.2 chrome ${host} ${theme} ${w}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+        ok(false, `S8.2 chrome ${host} ${theme} ${w}: the case stopped at a step that threw — ${stopped(e)}`);
       } finally { await ctx.close(); }
     }
   }
@@ -8649,7 +8663,7 @@ for (const { w, h } of WIDTHS) {
 
         ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
       } catch (e) {
-        ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+        ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
       } finally { await ctx.close(); }
     }
   }
@@ -8782,7 +8796,7 @@ for (const host of ['web', 'figma']) {
           await page.evaluate((st) => window.postMessage({ pluginMessage: { type: 'agent-link-state', state: st } }, '*'), { ...AGENT_ON, on: false, since: null });
         }
       } catch (e) {
-        ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+        ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
       } finally { await ctx.close(); }
     }
   }
@@ -8840,7 +8854,7 @@ for (const host of ['web', 'figma']) {
       ok(st.startTracks === 1, `${where}: dialog scope: the start window's body lays its cards out in one column with the export dialog open (${st.startTracks} tracks; ${JSON.stringify(st)})`);
     }
   } catch (e) {
-    ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 
@@ -8942,7 +8956,7 @@ for (const host of ['web', 'figma']) {
       for (const want of FOCUS_SWEEP_NEEDS[host]) ok(reached.has(hooks.role(want)), `${where}: the sweep reaches ${want} and reads its ring`);
       ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
     } catch (e) {
-      ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+      ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
     } finally { await ctx.close(); }
   }
   console.log(`  #2144 ${host}: ${hostTotal} rings read, light and dark`);
@@ -9259,7 +9273,7 @@ for (const { w, h } of START_SIZES) {
         }
         ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
       } catch (e) {
-        ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+        ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
       } finally { await ctx.close(); }
     }
   }
@@ -9327,7 +9341,7 @@ for (const host of ['web', 'figma']) {
       }
       ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
     } catch (e) {
-      ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+      ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
     } finally { await ctx.close(); }
   }
 }
@@ -9445,7 +9459,7 @@ for (const host of ['web', 'figma']) {
         `${where}: every appearance the chrome uses was read disabled: outline, filled (twice, Discard among them) and text — read ${JSON.stringify(seen)}`);
       ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
     } catch (e) {
-      ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+      ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
     } finally { await ctx.close(); }
   }
 }
@@ -9524,7 +9538,7 @@ for (const host of ['web', 'figma']) {
       ok(missing.length === 0, `${where}: every control kind was hovered off and on (${done.size} of ${HOVER_KINDS.length})${missing.length ? ` — not found: ${missing.join(', ')}` : ''}`);
       ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
     } catch (e) {
-      ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+      ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
     } finally { await ctx.close(); }
   }
 }
@@ -9600,7 +9614,7 @@ for (const host of ['web', 'figma']) {
       }
       ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
     } catch (e) {
-      ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+      ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
     } finally { await ctx.close(); }
   }
 }
@@ -9719,7 +9733,7 @@ console.log(`\n#2175 — Pinned, the third neutral source\n${'='.repeat(78)}`);
           if (host === 'web') ok(!('auto' in (s5.stored ?? {})) && !('anchor' in (s5.stored ?? {})) && typeof s5.stored?.hue === 'number', `${where}: the saved neutral is a custom tint with no anchor (${JSON.stringify(s5.stored)})`);
           ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
         } catch (e) {
-          ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+          ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
         } finally { await ctx.close(); }
       }
     }
@@ -9745,7 +9759,7 @@ for (const host of ['web', 'figma']) {
       });
       ok(r.source && r.anchorBlocks === 0, `${where}: unpinned, searching "${q}" reaches the Neutral source group, where Pinned is chosen (${JSON.stringify(r)})`);
     } catch (e) {
-      ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+      ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
     } finally { await ctx.close(); }
   }
 }
@@ -9890,7 +9904,7 @@ console.log('\n29d. #2214: the bar gives way in order, by a measured fit');
         }
         ok(errors.length === 0, `29d ${host} ${theme}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
       } catch (e) {
-        ok(false, `29d ${host} ${theme}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+        ok(false, `29d ${host} ${theme}: the case stopped at a step that threw — ${stopped(e)}`);
       } finally { await cdp.detach().catch(() => {}); await ctx.close(); }
     }
     const idx = (x) => ORDER.indexOf(x);
@@ -10480,7 +10494,7 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) for (const hos
       }
       ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
     } catch (e) {
-      ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+      ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
     } finally { await ctx.close(); }
   }
 }
@@ -10545,7 +10559,7 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) for (const hos
     ok(near(t.gaps.clash, HT['space-150']) && near(t.gaps.unresolved, HT['space-150']), `${where}: each warning group sits space-150 ${HT['space-150']} after the line or group before it — read ${JSON.stringify(t.gaps)}`);
     ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 
@@ -10995,6 +11009,17 @@ for (const theme of ['light', 'dark']) {
 //   · Enter ignored (`chipChoice` prevents Enter's default) → `#2192 web light 1280: KB1 A, Enter on "label"'s both chip
 //     presses it and keeps focus on it — pressed ["upright"], focus on ["label","both"]` and `… saves italics
 //     ["body","label"] and no italicDefault — saved italics ["body"]` (16).
+// #2460 (a CI flake: one chip click timed out, and the label kept only "locator.click: Timeout 10000ms exceeded."). Each
+// press now waits, by name, for its redraw (`drawnPressed`), and a case that throws says why through `stopped`. Run on
+// scratch bundles whose chip handler is edited after the build (never committed):
+//   · the step's wait removed, the pick deferred 400 ms → `#2192 web light 1280: step 1, "caption" both (key) saves italics
+//     ["body","caption"] … — saved italics ["body"], …` (180 in 8 cases). On the real bundle the same mutation passes 120
+//     of 120 cases at 1× and 6× CPU: the race doesn't lose here without help.
+//   · the pick deferred 6 s, past the wait's bound → `#2192 web light 1280: step 1, "caption" both (key), the redraw lands
+//     before the next step: "caption"'s both chip is drawn pressed — aria-pressed false`.
+//   · a pick that leaves a full-page layer over the chips → `#2192 web light 1280: the case stopped at a step that threw —
+//     locator.click: Timeout 10000ms exceeded. · waiting for locator(…"italic-choice-only"…) · <div class="p3-veil"></div>
+//     intercepts pointer events`. Before #2460 that label ended at "exceeded.".
 console.log(`\nItalic styles chips (#2192)\n${'='.repeat(78)}`);
 /** The text types, in order, and the three words (Q6's, unchanged by #2192). Literal. */
 const ITALIC_GROUPS = ['display', 'title', 'body', 'label', 'caption', 'eyebrow', 'code'];
@@ -11068,6 +11093,15 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) for (const hos
     ok(canon(s0) === canon(BOOT_INPUT), `${where}: before any click, the saved brand is prism3 as loaded — ${wireDiff({ input: s0 }, { input: BOOT_INPUT })}`);
     const chipSel = (g, v) => `[data-p3="levers-pane"] [data-p3="italic-row"][data-group="${g}"] ${ITALIC_CHIP[v]}`;
     const chip = (g, v) => page.locator(chipSel(g, v));
+    /** #2460: a press redraws the whole levers pane (the rows are new nodes), and only the redraw draws the pressed
+     *  chip, so `g`'s `v` chip reading pressed is the redraw having landed. Waited for, by name, before anything
+     *  reads the saved brand or presses the next chip: a click that lands mid-redraw is the flake #2460 records.
+     *  Its 5 s bound is the one it always had; a redraw that never lands fails here, as itself. */
+    const drawnPressed = async (g, v, after) => {
+      const drawn = await page.waitForFunction((sel) => document.querySelector(sel)?.getAttribute('aria-pressed') === 'true', chipSel(g, v), { timeout: 5000 }).then(() => true, () => false);
+      const read = drawn ? 'true' : await page.evaluate((sel) => document.querySelector(sel)?.getAttribute('aria-pressed') ?? 'no chip', chipSel(g, v));
+      ok(drawn, `${where}: ${after}, the redraw lands before the next step: "${g}"'s ${v} chip is drawn pressed — aria-pressed ${read}`);
+    };
     let i = 0;
     for (const [g, v, how, italics, italicDefault] of ITALIC_STEPS) {
       i += 1;
@@ -11079,7 +11113,7 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) for (const hos
         ok(JSON.stringify(at) === JSON.stringify([g, v]), `${where}: Tab moves from "${g}"'s first chip to its next chip, ${v} — focus on ${JSON.stringify(at)}`);
         await page.keyboard.press('Space');
       } else await hooks.click(chip(g, v), WAIT);
-      await page.waitForFunction((sel) => document.querySelector(sel)?.getAttribute('aria-pressed') === 'true', chipSel(g, v), { timeout: 5000 }).catch(() => {});
+      await drawnPressed(g, v, `step ${i}, "${g}" ${v} (${how})`);
       if (how === 'key') {
         const kept = await page.evaluate(() => [document.activeElement?.closest('[data-p3="italic-row"]')?.dataset.group ?? null, document.activeElement?.dataset.value ?? null]);
         ok(JSON.stringify(kept) === JSON.stringify([g, v]), `${where}: after Space, focus stays on "${g}"'s ${v} chip through the redraw — focus on ${JSON.stringify(kept)}`);
@@ -11110,7 +11144,7 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) for (const hos
     // KB1 A: Enter presses the focused chip, keeps focus on it, and saves the literal: label joins italics, in text-type order.
     await chip('label', 'both').focus();
     await page.keyboard.press('Enter');
-    await page.waitForFunction((sel) => document.querySelector(sel)?.getAttribute('aria-pressed') === 'true', chipSel('label', 'both'), { timeout: 5000 }).catch(() => {});
+    await drawnPressed('label', 'both', 'KB1 A, Enter on "label"\'s both chip');
     const atEnter = await focusAt();
     const pEnter = await pressedNow();
     const wantEnter = italicBrand(['body', 'label'], undefined);
@@ -11120,7 +11154,7 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) for (const hos
     ok(canon(sEnter) === canon(wantEnter), `${where}: KB1 A, Enter on "label"'s both chip saves italics ["body","label"] and no italicDefault — saved italics ${JSON.stringify(sEnter?.typography?.italics)}, italicDefault ${JSON.stringify(sEnter?.typography?.italicDefault)}; ${wireDiff({ input: sEnter }, { input: wantEnter })}`);
     ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 
@@ -11162,7 +11196,7 @@ for (const host of ['web', 'figma']) {
     ok(t2.inWindow && !t2.onWindow, `${where}: after a click on blank space, Shift+Tab moves focus to a control in the start window (focus is on ${t2.tag})`);
     ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 
@@ -11209,7 +11243,7 @@ for (const { name, patch, keep, why } of NO_HUE_CASES) {
       `${where}: the hue slider is disabled, reads None (not ~90°), says why ("${why}"), and Amount stays enabled (${JSON.stringify(st)})`);
     ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 
@@ -11384,7 +11418,7 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
     ok(near(r1.drawer.h, want, 1) && near(r1.now, want, 1), `${where}: after a reload the kept height comes back when the drawer opens (height ${fx(r1.drawer.h)}, want ${want}; now ${r1.now})`);
     ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // AD2: at 380 the open drawer is the full-pane sheet, with no handle, a kept height or not.
@@ -11404,7 +11438,7 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
     ok(near(s.drawer.bottom, s.vh, 1) && Math.abs(s.drawer.h - 200) > 1, `${where}: a kept height does not size the sheet: it runs to the window's bottom (height ${fx(s.drawer.h)}, bottom ${fx(s.drawer.bottom)} of ${s.vh})`);
     ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 
@@ -11436,7 +11470,7 @@ for (const [form, pin] of [['stored hue 0', { l: 0.3211, c: 1.2e-8, h: 0 }], ['l
       `${where}: the hue readout, the slider's value text and the OKLCH line read None, not a hue (${JSON.stringify(st)})`);
     ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 
@@ -11471,7 +11505,7 @@ for (const [form, pin] of [['stored hue 0', { l: 0.3211, c: 1.2e-8, h: 0 }], ['l
       `${where}: the preview's neutral line reads "Gray, following primary. Text, borders and surfaces draw from it." (got ${JSON.stringify(board)})`);
     ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 
@@ -11536,7 +11570,7 @@ console.log('\n34. #2272: trim and its tooltip follow the name\'s own cut');
         `${where} ${W}: measured ${INFLATE}px too wide, the bar keeps two rows with the name whole and no tooltip, because nothing is cut (#2272) (drew ${after.seen.step}, cut ${after.seen.cut}, rows ${JSON.stringify(after.seen.rows)}, title ${JSON.stringify(after.tip)})`);
       ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
     } catch (e) {
-      ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+      ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
     } finally { await ctx.close(); }
   }
 }
@@ -11792,7 +11826,7 @@ for (const host of ['web', 'figma']) {
           `${where}: every page was read in every mode (${visited} of ${RO_PLACES.length * (RO_DERIVED.length + RO_EDITABLE.length)})`);
         ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
       } catch (e) {
-        ok(false, `${where}: the case stopped at a step that threw (${step}) — ${String(e?.message ?? e).split('\n')[0]}`);
+        ok(false, `${where}: the case stopped at a step that threw (${step}) — ${stopped(e)}`);
       } finally { await ctx.close(); }
     }
   }
@@ -11886,7 +11920,7 @@ for (const host of ['web', 'figma']) {
     }
     ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // #2183 + #2237: ONE SWITCH (SG5 A), AND A DISABLED SWITCH IN PRISM3'S OWN DISABLED SWITCH ROLES (owner Q52 B / DS2 A,
@@ -12007,7 +12041,7 @@ for (const host of ['web', 'figma']) {
       }
       ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
     } catch (e) {
-      ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+      ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
     } finally { await ctx.close(); }
   }
 }
@@ -12146,7 +12180,7 @@ for (const host of ['web', 'figma']) {
         ok(cases === PM_FROM.length + PM_LIVE_PLACES.length, `${where}: every case ran (${cases} of ${PM_FROM.length + PM_LIVE_PLACES.length})`);
         ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
       } catch (e) {
-        ok(false, `${where}: the case stopped at a step that threw (${step}) — ${String(e?.message ?? e).split('\n')[0]}`);
+        ok(false, `${where}: the case stopped at a step that threw (${step}) — ${stopped(e)}`);
       } finally { await ctx.close(); }
     }
   }
@@ -12222,7 +12256,1230 @@ for (const host of ['web', 'figma']) {
       }
       ok(errors.length === 0, `#2212 ${where0}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
     } catch (e) {
-      ok(false, `#2212 ${where0}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+      ok(false, `#2212 ${where0}: the case stopped at a step that threw — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+}
+// =============================================================================================
+// 40. #1821: the current page, the current Color page and the previewed mode, as assistive technology reads them
+// =============================================================================================
+// Both hosts, light chrome, at 1280 and at 380 on every place, at 640 on three (below), and the plugin's Build style guides page. Every state is
+// read from CDP `Accessibility.getPartialAXTree`, one node per control (never an attribute or a class): a tab's
+// `selected`, a radio's `checked`, a select's value. The controls are found by hook, never by role, so a control that
+// lost its role is still read (and then carries no state, and fails).
+//   · the tab row: the tab the tree reports selected (or, at 380, the select's value) is the place's domain, and only it;
+//     at 1280 the row exposes every domain's tab, in order;
+//   · Color's sub-row: on a Color page, the one sub-tab reported selected is the page; off Color, no sub-tab is exposed;
+//   · the preview's mode control: the one radio reported checked (or, where the radios give way, the select's value) is
+//     the mode the test chose, Dark, chosen on Surfaces & fills; on Palettes it is Light (#2321, PM1 B). 640 is here for
+//     the select: the four radios give way to it there, and each host must have read the select at least once. Only
+//     Surfaces & fills, Palettes and Brand are read at 640, places reached by a control the levers column draws whole at
+//     that width (the Color sub-row runs under the preview there, #1975);
+//   · at 1280, ArrowRight moves the selection along the tab row and the sub-row, and the tree follows (the tab pattern's
+//     automatic activation, unchanged here);
+//   · on Build style guides no tab is reported selected and no sub-tab is exposed.
+// Each place is read with nothing focused: Chrome reports a focused tab with no `aria-selected` as selected, so the click
+// that reached the place would otherwise stand in for the state under test.
+// INDEPENDENCE (docs/34). Page names, domain names, the sub-page names, the chosen mode and its label are literals typed
+// here, never read from `pages.ts`, `frame.ts` or `preview.ts`. Every case is counted, so a skipped one fails.
+// Mutations, each in a `wip:` commit, each failing here by name (the PR records the lines): (a) the tab row's selection
+// left out; (b) the sub-row's selection left out; (c) two tabs marked selected.
+const CS_TABS = ['Brand', 'Color', 'Type', 'Shape', 'Depth & motion', 'Layout', 'Components'];
+const CS_SUBS = ['Palettes', 'Surfaces & fills', 'Interactive'];
+/** Each place: the domain the tab row must report, and the Color page the sub-row must report (null: no sub-row). */
+const CS_PLACES = {
+  brand: ['Brand', null], 'color-palettes': ['Color', 'Palettes'], 'color-fills': ['Color', 'Surfaces & fills'],
+  'color-interactive': ['Color', 'Interactive'], type: ['Type', null], shape: ['Shape', null], depth: ['Depth & motion', null],
+  layout: ['Layout', null], components: ['Components', null],
+};
+/** At 640: the places read there (the select's width), each reached by a control drawn whole at that width. */
+const CS_AT_640 = ['color-fills', 'color-palettes', 'brand'];
+const CS_MODE = 'dark';
+const CS_MODE_LABEL = 'Dark';
+/** Palettes always previews Light (#2321, PM1 B), whatever was chosen elsewhere. */
+const CS_PALETTES_LABEL = 'Light';
+/** Every node `selector` matches, as the accessibility tree reports it (ignored ones dropped). */
+const csAx = async (page, selector) => {
+  const cdp = await page.context().newCDPSession(page);
+  try {
+    await cdp.send('DOM.enable');
+    await cdp.send('Accessibility.enable');
+    const { root } = await cdp.send('DOM.getDocument', { depth: 0 });
+    const { nodeIds } = await cdp.send('DOM.querySelectorAll', { nodeId: root.nodeId, selector });
+    const out = [];
+    for (const nodeId of nodeIds) {
+      const n = (await cdp.send('Accessibility.getPartialAXTree', { nodeId, fetchRelatives: false })).nodes[0];
+      if (!n || n.ignored) continue;
+      const prop = (k) => n.properties?.find((p) => p.name === k)?.value?.value;
+      out.push({ role: n.role?.value ?? '', name: (n.name?.value ?? '').trim(), value: String(n.value?.value ?? '').trim(),
+        selected: prop('selected') === true, checked: String(prop('checked')) === 'true' });
+    }
+    return out;
+  } finally { await cdp.detach(); }
+};
+/** What a group reports current: every tab selected, every radio checked, every select's value. */
+const csCurrent = (nodes) => [...nodes.filter((n) => n.selected || n.checked).map((n) => n.name),
+  ...nodes.filter((n) => n.role === 'combobox' && n.value).map((n) => n.value)];
+/** A mode's label, from a radio's name ("Dark, all pairs at or above floor") or the select's ("Dark · all pass"). */
+const csModeLabel = (s) => s.split(/,| · | \(/)[0].trim();
+const CS_TAB_ROW = '[data-p3="tab-row"] [data-p3^="tab-"]';
+const CS_SUB_ROW = '[data-p3="sub-nav"] button';
+const CS_MODES = '[data-p3="mode-option"], [data-p3="mode-select"]';
+console.log(`\nCurrent page and previewed mode, as assistive technology reads them (#1821)\n${'='.repeat(78)}`);
+for (const host of ['web', 'figma']) {
+  let selects = 0;
+  for (const w of [1280, 640, 380]) {
+    const where = `#1821 ${host} ${w}`;
+    const narrow = w <= 560;
+    const { ctx, page, errors } = await open({ host, theme: 'light', w, h: 900 });
+    let cases = 0, step = 'open';
+    try {
+      step = `choose ${CS_MODE} on color-fills`;
+      await goPlace(page, 'color-fills');
+      await roShowMode(page, CS_MODE);
+      const places = Object.entries(CS_PLACES).filter(([p]) => w !== 640 || CS_AT_640.includes(p));
+      for (const [place, [tab, sub]] of places) {
+        step = `read ${place}`;
+        await goPlace(page, place);
+        const at = `${where} / ${place}`;
+        // Read with nothing focused: the tree reports a focused tab that carries no state as selected, so a click's
+        // focus would otherwise hide a selection left out.
+        await page.evaluate(() => document.activeElement?.blur?.());
+        const row = await csAx(page, CS_TAB_ROW);
+        const tabs = row.filter((n) => n.role === 'tab');
+        if (!narrow) ok(JSON.stringify(tabs.map((n) => n.name)) === JSON.stringify(CS_TABS), `${at}: the tab row exposes every domain's tab, in order (read ${JSON.stringify(tabs.map((n) => `${n.role} ${n.name}`))})`);
+        else ok(row.some((n) => n.role === 'combobox'), `${at}: the tab row exposes its select (read ${JSON.stringify(row.map((n) => n.role))})`);
+        const rowCur = csCurrent(row);
+        ok(JSON.stringify(rowCur) === JSON.stringify([tab]), `${at}: the tab row reports ${tab} current, and only it (read ${JSON.stringify(rowCur)})`);
+        const subs = await csAx(page, CS_SUB_ROW);
+        const subCur = csCurrent(subs);
+        if (sub) {
+          ok(JSON.stringify(subs.map((n) => `${n.role} ${n.name}`)) === JSON.stringify(CS_SUBS.map((s) => `tab ${s}`)), `${at}: Color's sub-row exposes every Color page as a tab, in order (read ${JSON.stringify(subs.map((n) => `${n.role} ${n.name}`))})`);
+          ok(JSON.stringify(subCur) === JSON.stringify([sub]), `${at}: Color's sub-row reports ${sub} current, and only it (read ${JSON.stringify(subCur)})`);
+        } else ok(subs.length === 0, `${at}: off Color, no sub-row is exposed (read ${JSON.stringify(subs.map((n) => n.name))})`);
+        if (narrow) await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'));
+        await settle(page);
+        const want = place === 'color-palettes' ? CS_PALETTES_LABEL : CS_MODE_LABEL;
+        const modes = await csAx(page, CS_MODES);
+        const modeCur = csCurrent(modes).map(csModeLabel);
+        if (modes.some((n) => n.role === 'combobox')) selects++;
+        ok(modes.length > 0, `${at}: the preview's mode control is exposed (read ${JSON.stringify(modes.map((n) => n.role))})`);
+        ok(JSON.stringify(modeCur) === JSON.stringify([want]), `${at}: the mode control reports ${want} checked, and only it (read ${JSON.stringify(csCurrent(modes))})`);
+        if (narrow) await hooks.click(page.locator('[data-p3="pane-toggle-settings"]'));
+        cases++;
+      }
+      const due = w === 640 ? CS_AT_640.length : Object.keys(CS_PLACES).length;
+      ok(cases === due && due > 0, `${where}: every place was read (${cases} of ${due})`);
+      if (w === 1280) {
+        step = 'ArrowRight along the tab row';
+        await goPlace(page, 'brand');
+        await page.locator('[data-p3="tab-brand"]').focus();
+        await page.keyboard.press('ArrowRight');
+        await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.place?.startsWith('color'));
+        const k1 = csCurrent(await csAx(page, CS_TAB_ROW));
+        ok(JSON.stringify(k1) === '["Color"]', `${where}: ArrowRight from Brand on the tab row moves the selection to Color, as the tree reports it (read ${JSON.stringify(k1)})`);
+        step = 'ArrowRight along the sub-row';
+        await goPlace(page, 'color-palettes');
+        await page.locator('[data-p3="color-sub-palettes"]').focus();
+        await page.keyboard.press('ArrowRight');
+        await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.place === 'color-fills');
+        const k2 = csCurrent(await csAx(page, CS_SUB_ROW));
+        ok(JSON.stringify(k2) === '["Surfaces & fills"]', `${where}: ArrowRight from Palettes on Color's sub-row moves the selection to Surfaces & fills, as the tree reports it (read ${JSON.stringify(k2)})`);
+      }
+      if (host === 'figma') {
+        step = 'Build style guides';
+        await openStyleGuides(page);
+        const sgCur = csCurrent(await csAx(page, CS_TAB_ROW));
+        const sgSubs = await csAx(page, CS_SUB_ROW);
+        ok(sgCur.length === 0 && sgSubs.length === 0, `${where} / Build style guides: no tab is reported current and no sub-row is exposed (read ${JSON.stringify(sgCur)}, ${sgSubs.length} sub-tab(s))`);
+      }
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at a step that threw (${step}) — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+  ok(selects > 0, `#1821 ${host}: the mode control's select was read at least once (${selects} place(s))`);
+}
+// #2437: THE CONSUME SKILL'S FLUSH HIT AREA, MEASURED IN A BROWSER (WCAG 2.5.8; owner Q154 A, Q174 B; the spacing
+// sentence is DRAFT for the owner). The engine emits no code layout, so this is the one place the rule can be measured:
+// the skill's own CSS sketch and its own stated spacing, both read out of `skills/prism3-consume/SKILL.md`, applied to
+// buttons on a blank page and hit-tested point by point. The floors (44 at medium and large, 24 at small) are typed here
+// from the owner's decision, never read from the skill. At each size and for labels from 1px to just under the floor:
+//   · two flush buttons at the skill's "always enough" gap (twice its per-side bound) and at the exact gap it states (the
+//     two reaches added), then a non-flush neighbor at one reach: every point of each flush button's floor-wide hit area
+//     hits that button, the neighbor's own box hits only the neighbor, and the hit area really reaches the floor;
+//   · CONTROL: the same pair two pixels closer than the two reaches must show the overlap, or the probe sees nothing.
+// The sketch is hit-tested exactly as shipped: the small arms use the classes of its own 24px rule, never a rewrite of it.
+// Mutations, each failing by name: the sketch back to a fixed 44px (no small rule) → `#2437 flush hit area small: two …
+// flush buttons at the skill's 12px bound … overlap`; the skill's 22px bound lowered to 16px → `… two 1px flush buttons at the skill's 16px
+// bound … keep their 44px hit areas apart — overlap …` (and the 6px pair: 16px is enough from a 12px label on); the
+// sketch's 44px raised to 48px → the same arm at the bound AND at the exact gap, the neighbor's own box included.
+{
+  const where = '#2437 flush hit area';
+  const skill = readFileSync(join(REPO, 'skills/prism3-consume/SKILL.md'), 'utf8');
+  const css = /```css\n(\.flush-button[\s\S]*?)```/.exec(skill)?.[1];
+  const para = (/\*\*Keep a flush button's hit area clear of its neighbors\.\*\*([\s\S]*?)\n\n/.exec(skill)?.[1] ?? '').replace(/\s+/g, ' ');
+  const bound = /(\d+)px is always enough at medium and large, and (\d+)px at small/.exec(para);
+  ok(!!css && !!bound, `${where}: the skill carries the CSS sketch and a per-side spacing bound for both sizes (${css ? 'css' : 'no css'}; ${bound ? `${bound[1]}px / ${bound[2]}px` : 'no bound'})`);
+  if (css && bound) {
+    const FLOOR = { medium: 44, small: 24 };
+    const STATED = { medium: Number(bound[1]), small: Number(bound[2]) };
+    const page = await browser.newPage({ viewport: { width: 900, height: 240 } });
+    try {
+      for (const size of ['medium', 'small']) {
+        const F = FLOOR[size];
+        // THE SKETCH AS SHIPPED (Lane D's review of #2453): no text substitution. A small button takes the classes of the
+        // sketch's own rule that sets the 24px hit size, as a consumer applies it; a sketch with no such rule leaves the
+        // small button on the medium extension, and the small arms below fail by name.
+        const smallRule = /^(\.flush-button[^{\n]*?)\s*\{[^}]*--flush-hit:\s*24px/m.exec(css)?.[1]?.trim();
+        const sizeClass = size === 'small' && smallRule ? smallRule.split('.').filter(Boolean).join(' ') : 'flush-button';
+        const sheet = css;
+        const reach = (w) => Math.max(0, (F - w) / 2);
+        const run = async (w1, w2, g1, g2) => {
+          await page.setContent(`<!doctype html><style>body{margin:0}.row{position:absolute;top:100px;left:120px;display:flex;align-items:center}
+            .flush-button{display:block;flex:none;height:${Math.min(16, F - 2)}px;padding:0;margin:0;border:0;background:none}
+            .other{display:block;flex:none;width:${F}px;height:${F}px;padding:0;margin:0;border:0;background:none}
+            .gap{flex:none}${sheet}</style>
+            <div class="row"><button class="${sizeClass}" id="a" style="width:${w1}px"></button><span class="gap" style="width:${g1}px"></span>
+            <button class="${sizeClass}" id="b" style="width:${w2}px"></button><span class="gap" style="width:${g2}px"></span><button class="other" id="c"></button></div>`);
+          return page.evaluate((F) => {
+            // WHOLE PIXELS FULLY INSIDE each area: the browser's hit test rounds a fractional point, so the half pixel two
+            // abutting areas share is no one's, and probing it would read touching areas as overlapping.
+            const hit = (x, y) => document.elementFromPoint(x, y)?.closest('button')?.id ?? null;
+            const bad = [];
+            let reached = true;
+            for (const id of ['a', 'b']) {
+              const r = document.getElementById(id).getBoundingClientRect();
+              const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+              const py = Math.floor(cy), px = Math.floor(cx);
+              for (let x = Math.ceil(cx - F / 2); x + 1 <= cx + F / 2; x++) { const h = hit(x, py); if (h !== id) bad.push(`${id}@x${Math.round(x - cx)} hit ${h}`); }
+              for (let y = Math.ceil(cy - F / 2); y + 1 <= cy + F / 2; y++) { const h = hit(px, y); if (h !== id) { reached = false; bad.push(`${id}@y${Math.round(y - cy)} hit ${h}`); } }
+            }
+            const c = document.getElementById('c').getBoundingClientRect();
+            for (let x = Math.ceil(c.left); x + 1 <= c.right; x++) { const h = hit(x, Math.floor(c.top + c.height / 2)); if (h !== 'c') bad.push(`c@x${Math.round(x - c.left)} hit ${h}`); }
+            return { bad, reached };
+          }, F);
+        };
+        const labels = [1, 6, 12, Math.round(F / 2), F - 2];
+        for (const w of labels) {
+          const atBound = await run(w, w, 2 * STATED[size], STATED[size]);
+          ok(atBound.bad.length === 0,
+            `${where} ${size}: two ${w}px flush buttons at the skill's ${STATED[size]}px bound (${2 * STATED[size]}px apart, a neighbor ${STATED[size]}px on) keep their ${F}px hit areas apart${atBound.bad.length ? ` — overlap: ${atBound.bad.slice(0, 3).join(', ')}` : ''}`);
+          const exact = Math.ceil(2 * reach(w));
+          const atExact = await run(w, w, exact, Math.ceil(reach(w)));
+          ok(atExact.bad.length === 0 && atExact.reached,
+            `${where} ${size}: two ${w}px flush buttons at the exact gap the skill states (the two reaches, ${exact}px) keep their hit areas apart, and each reaches ${F}px${atExact.bad.length ? ` — ${atExact.bad.slice(0, 3).join(', ')}` : ''}`);
+        }
+        // CONTROL: two pixels closer than the two reaches, the areas overlap, so the probe must see it.
+        const w = 10, tooClose = Math.max(0, Math.ceil(2 * reach(w)) - 2);
+        const ctl = await run(w, w, tooClose, F);
+        ok(ctl.bad.some((b) => /^a@x\d+ hit b$|^b@x-\d+ hit a$/.test(b)),
+          `${where} ${size}: control: two ${w}px flush buttons ${tooClose}px apart, closer than their reaches, DO overlap, so the probe sees an overlap (${ctl.bad.slice(0, 2).join(', ') || 'none seen'})`);
+      }
+    } catch (e) {
+      ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
+    } finally { await page.close(); }
+  }
+}
+// =============================================================================================
+// 38. #1975 and #2105: the two panes at the widths between the tiers, and the narrow plugin's bar over its error line
+// =============================================================================================
+// #1975. At 800 and 640 the levers column is 42% of the window (335 and 268px), narrower than the 380 its pages were laid
+// out for. Every Color sub-tab must be reachable by a POINTER: the element at its center is the tab itself (a hit test in
+// the page, the check the keyboard walk could not make), and a click on it there shows its page. And on every moved page,
+// every Show advanced open, the levers' `scrollWidth` must not exceed the pane's `clientWidth`. Both hosts at 640 and 380,
+// the web at 800 too. Expected values are literals here: the sub-tabs by hook, the places, and the geometry rule.
+// Mutations, each failing here by name (the PR records the lines): the sub-nav's `min-width: 0` and wrap removed →
+// `#1975 web light 640: interactive (color-sub-interactive) takes a pointer at its center — is under another element at
+// its center, …`; the segmented choices' wrap removed → `#1975 web light 640: the levers fit their pane on every moved
+// page (9 read) — color-palettes scrollWidth 405 > clientWidth 268 | …`.
+const SUB_TABS_1975 = [['color-palettes', 'color-sub-palettes'], ['color-fills', 'color-sub-fills'], ['color-interactive', 'color-sub-interactive']];
+const MOVED_1975 = ['brand', 'color-palettes', 'color-fills', 'color-interactive', 'type', 'shape', 'depth', 'layout', 'components'];
+console.log(`\nThe two panes between the tiers (#1975) and the narrow plugin's error line (#2105)\n${'='.repeat(78)}`);
+for (const [host, w] of [['web', 800], ['web', 640], ['web', 380], ['figma', 640], ['figma', 380]]) {
+  const where = `#1975 ${host} light ${w}`;
+  const { ctx, page, errors } = await open({ host, theme: 'light', w, h: 900 });
+  try {
+    await goPlace(page, 'color-palettes');
+    for (const [place, hk] of SUB_TABS_1975) {
+      const hit = await page.evaluate((k) => {
+        const b = document.querySelector(`[data-p3="${k}"]`);
+        if (!b) return { found: false };
+        b.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+        const r = b.getBoundingClientRect();
+        const at = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+        return { found: true, own: !!at && b.contains(at), at: at ? `${at.tagName.toLowerCase()}.${[...at.classList].join('.')}` : null, w: Math.round(r.width), left: Math.round(r.left), right: Math.round(r.right) };
+      }, hk);
+      ok(hit.found && hit.own, `${where}: ${place.slice(6)} (${hk}) takes a pointer at its center${hit.own ? '' : ` — is under another element at its center, ${hit.at} (${JSON.stringify(hit)})`}`);
+      if (!hit.own) continue;
+      await hooks.click(page.locator(`[data-p3="${hk}"]`), { timeout: 4000 }).catch(() => {});
+      const now = await page.evaluate(() => document.querySelector('[data-p3="frame"]')?.dataset.place);
+      ok(now === place, `${where}: a pointer click on ${hk} shows ${place} (shows ${now})`);
+    }
+    const over = [];
+    for (const place of MOVED_1975) {
+      await goPlace(page, place);
+      if (place === 'type') await openTypeAdvanced(page).catch(() => {});
+      for (const fold of await page.locator('[data-p3="levers-pane"] [aria-expanded="false"][aria-controls^="p3-advb-"]').all()) await hooks.click(fold);
+      await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+      const m = await page.evaluate(() => { const L = document.querySelector('[data-p3="levers-pane"]'); return L ? { sw: L.scrollWidth, cw: L.clientWidth } : null; });
+      if (!m || m.cw <= 0 || m.sw > m.cw) over.push(`${place} scrollWidth ${m?.sw} > clientWidth ${m?.cw}`);
+    }
+    ok(over.length === 0, `${where}: the levers fit their pane on every moved page (${MOVED_1975.length} read)${over.length ? ` — ${over.join(' | ')}` : ''}`);
+    ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
+  } finally { await ctx.close(); }
+}
+// #2105. The plugin at its narrow size, 380 × 420, both Figma themes: a brand the engine refuses (the `#1989` brand of
+// `apps/plugin/test-build-verdict.mjs`, typed here) opens the error line under the top bar. The bar, on its rows, must
+// end at or above the line's top (no row drawn over its words), the line must scroll to show the rest of its words, and
+// the levers pane must keep at least LEVERS_MIN_2105 of height. Literals.
+// Mutations, each failing here by name: the bar's grid row back to `auto` → `#2105 figma light 380 × 300: the bar ends at
+// or above the error line …`; the narrow line's cap removed → `#2105 … 380 × 420: the error line scrolls …` and `… the
+// levers pane keeps 40px or more …`.
+const LEVERS_MIN_2105 = 40;
+const REFUSED_2105 = { root: 'rf', modes: ['light'], primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.006, auto: true }, id: 'refused-brand',
+  overrides: { light: { 'background.secondary': { palette: 'neutral', step: '200' } } } };
+// A shorter window still, 380 × 300 (the plugin can be resized down), has no room for the levers at all, and holds the bar's
+// half alone: with every row asking for more than the window, the bar's row must still not give way to the line under it.
+for (const [theme, H] of [['light', 420], ['dark', 420], ['light', 300]]) {
+  const where = `#2105 figma ${theme} 380 × ${H}`;
+  const { ctx, page, errors } = await open({ host: 'figma', theme, w: 380, h: H });
+  try {
+    await page.evaluate((input) => window.postMessage({ pluginMessage: { type: 'restore-input', input } }, '*'), REFUSED_2105);
+    await page.waitForFunction(() => /didn't resolve/.test(document.querySelector('[data-p3="error-bar"]')?.textContent ?? ''), null, { timeout: 5000 }).catch(() => {});
+    const g = await page.evaluate(() => {
+      const r = (s) => { const n = document.querySelector(s); if (!n || !n.getClientRects().length) return null; const b = n.getBoundingClientRect(); return { top: b.top, bottom: b.bottom, h: b.height }; };
+      const err = document.querySelector('[data-p3="error-bar"]');
+      const rows = new Set([...document.querySelectorAll('[data-p3="frame"] .p3-bar button')].filter((b) => b.getClientRects().length).map((b) => Math.round(b.getBoundingClientRect().top)));
+      // The bar's box is its grid row's, so a row that gave way still reads as "above"; what the bar DRAWS is its controls,
+      // so its bottom is the lowest drawn control in it.
+      const drawn = [...document.querySelectorAll('[data-p3="frame"] .p3-bar :is(button, select, [role="radio"])')].filter((b) => b.getClientRects().length);
+      const barBottom = drawn.length ? Math.max(...drawn.map((b) => b.getBoundingClientRect().bottom)) : null;
+      return { bar: { bottom: barBottom }, err: r('[data-p3="error-bar"]'), levers: r('[data-p3="levers-pane"]'),
+        text: err?.textContent ?? '', scrolls: !!err && err.scrollHeight > err.clientHeight && getComputedStyle(err).overflowY === 'auto', rows: rows.size };
+    });
+    ok(!!g.err && g.text.includes("This file's saved brand didn't resolve"), `${where}: the refused brand opens the error line (${JSON.stringify(g.text.slice(0, 60))})`);
+    ok(g.rows >= 2, `${where}: the bar is on more than one row here, so the case is the one #2105 found (${g.rows} rows of buttons)`);
+    ok(!!g.bar && !!g.err && g.bar.bottom <= g.err.top + 0.5, `${where}: the bar ends at or above the error line, drawing no row over its words (the bar's lowest control ends at ${g.bar?.bottom}, line top ${g.err?.top})`);
+    ok(!!g.err && g.scrolls, `${where}: the error line scrolls to show the rest of its words (${g.err?.h}px tall, scrolls ${g.scrolls})`);
+    if (H === 420) ok(!!g.levers && g.levers.h >= LEVERS_MIN_2105, `${where}: the levers pane keeps ${LEVERS_MIN_2105}px or more under the error line (${g.levers?.h})`);
+    if (SHOTS) await page.screenshot({ path: join(SHOTS, `2105-plugin-${theme}-380x${H}.png`) });
+  } catch (e) {
+    ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
+  } finally { await ctx.close(); }
+}
+// =============================================================================================
+// 41. #2383: the preview header's mode select shows its whole selected label, and the header never runs sideways
+// =============================================================================================
+// Both hosts, both chrome themes, at 640, 800, 380 and 1280; on Palettes (held to Light, #2321), Interactive and Surfaces &
+// fills; on Interactive and Surfaces & fills in each of the four modes the select can show. In each case:
+//   · when the select is drawn, its chosen option's text, set in the select's own computed font, fits the select's
+//     content box (its width less its borders and padding): the label is never cut, to "Lig" or to nothing;
+//   · the chosen option reads the mode's label, a literal typed here, so a select drawing the wrong mode fails too;
+//   · when the radios are drawn instead, the checked radio's name is not cut (its `scrollWidth` within its
+//     `clientWidth`) and the radio sits wholly inside the group;
+//   · the header has no horizontal overflow, and the title, the mode control and Inspect each sit wholly inside it;
+//   · the title is never cut (its `scrollWidth` within its `clientWidth`).
+// At 640, the width the issue was found at, the select must be the control drawn, on each host and theme, so the check
+// above is not passed vacuously by the radios.
+// INDEPENDENCE (docs/34). The modes and their labels are literals typed here, never read from `preview.ts`'s
+// `MODE_LABEL` or the engine's mode registry; the text's width is measured from a probe span in the select's computed
+// font, never from the select's own width or `data-fit`. Every case is counted, so a skipped one fails.
+// Mutation (in a `wip:` commit): the select's wrap given back `flex: 0 1 auto; min-width: 0` and the select `width:
+// 100%`, so it shrinks below its text → `#2383 web light 640 on color-interactive in light: the mode select shows its
+// whole label …` fails by name.
+console.log(`\n#2383: the preview header's mode select shows its whole label\n${'='.repeat(78)}`);
+/** The select's chosen option reads this, then " · " and the mode's verdict (which this check does not read). Literal. */
+const MS_LABEL = { light: 'Light', dark: 'Dark', 'hc-light': 'HC light (derived)', 'hc-dark': 'HC dark (derived)' };
+/** The checked radio's name, when the radios are drawn. Literal. */
+const MS_RADIO = { light: 'Light', dark: 'Dark', 'hc-light': 'HC light', 'hc-dark': 'HC dark' };
+const MS_PLACES = { 'color-palettes': ['light'], 'color-interactive': Object.keys(MS_LABEL), 'color-fills': Object.keys(MS_LABEL) };
+const MS_WIDTHS = [640, 800, 380, 1280];
+/** The preview header as drawn: which control shows, and every width the checks above compare. Runs in the page. */
+const MS_READ = () => {
+  const head = document.querySelector('[data-p3="preview-head"]');
+  const title = document.querySelector('[data-p3="preview-title"]');
+  const group = document.querySelector('[data-p3="mode-control"]');
+  const sel = document.querySelector('[data-p3="mode-select"]');
+  const insp = document.querySelector('[data-p3="inspect-open"]');
+  const shown = (n) => !!n && n.getClientRects().length > 0 && getComputedStyle(n).visibility !== 'hidden';
+  const hb = head.getBoundingClientRect();
+  const inside = (n) => { const b = n.getBoundingClientRect(); return b.left >= hb.left - 0.5 && b.right <= hb.right + 0.5 && b.top >= hb.top - 0.5 && b.bottom <= hb.bottom + 0.5; };
+  const out = { showing: shown(group) ? 'radios' : shown(sel) ? 'select' : 'none', headOver: head.scrollWidth - head.clientWidth,
+    title: title.textContent, titleCut: title.scrollWidth - title.clientWidth, titleIn: inside(title), inspIn: shown(insp) && inside(insp) };
+  if (out.showing === 'select') {
+    const cs = getComputedStyle(sel);
+    const text = sel.selectedOptions[0]?.textContent ?? '';
+    const probe = document.createElement('span');
+    for (const p of ['fontFamily', 'fontSize', 'fontWeight', 'fontStyle', 'fontStretch', 'letterSpacing', 'wordSpacing', 'textTransform', 'fontKerning', 'fontFeatureSettings', 'fontVariant'])
+      probe.style[p] = cs[p];
+    probe.style.whiteSpace = 'pre';
+    probe.style.position = 'absolute';
+    probe.style.visibility = 'hidden';
+    probe.textContent = text;
+    document.body.append(probe);
+    const textW = probe.getBoundingClientRect().width;
+    probe.remove();
+    const px = (k) => parseFloat(cs[k]) || 0;
+    const box = sel.getBoundingClientRect().width - px('borderLeftWidth') - px('borderRightWidth') - px('paddingLeft') - px('paddingRight');
+    Object.assign(out, { text, value: sel.value, textW: Math.round(textW * 10) / 10, box: Math.round(box * 10) / 10, ctlIn: inside(sel) });
+  } else if (out.showing === 'radios') {
+    const on = group.querySelector('[aria-checked="true"]');
+    const name = on?.querySelector('.p3-mode-name');
+    const g = group.getBoundingClientRect(), b = on?.getBoundingClientRect();
+    Object.assign(out, { text: name?.textContent ?? '', value: on?.dataset.mode ?? null, nameCut: name ? name.scrollWidth - name.clientWidth : null,
+      radioIn: !!b && b.left >= g.left - 0.5 && b.right <= g.right + 0.5, ctlIn: inside(group) });
+  }
+  return out;
+};
+for (const host of ['web', 'figma']) {
+  for (const theme of ['light', 'dark']) {
+    for (const w of MS_WIDTHS) {
+      const where = `#2383 ${host} ${theme} ${w}`;
+      const narrow = w <= 560;
+      const { ctx, page, errors } = await open({ host, theme, w, h: 900 });
+      const toPreview = async () => { if (narrow) await hooks.click(page.locator('[data-p3="pane-toggle-preview"]')); };
+      const toSettings = async () => { if (narrow) await hooks.click(page.locator('[data-p3="pane-toggle-settings"]')); };
+      const settle = () => page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+      let cases = 0, selects = 0, step = 'open';
+      const want = Object.values(MS_PLACES).reduce((a, m) => a + m.length, 0);
+      try {
+        // The select moving to its own row changes the header's height inside its own ResizeObserver's callback; a loop
+        // there is reported as a window error event, which neither \`pageerror\` nor the console catches. Counted here.
+        await page.evaluate(() => { window.__p3RoLoop = []; addEventListener('error', (e) => { if (/ResizeObserver/.test(e.message ?? '')) window.__p3RoLoop.push(e.message); }); });
+        for (const [place, modes] of Object.entries(MS_PLACES)) {
+          for (const mode of modes) {
+            step = `${place} in ${mode}`;
+            if (place === 'color-interactive' && (w === 640 || w === 800)) {
+              // As in section 19b: at 640 and 800 the preview covers the sub-nav's last tab, so the keyboard reaches Interactive.
+              await hooks.click(page.locator('[data-p3="tab-color"]'));
+              await page.locator('[data-p3="color-sub-interactive"]').focus();
+              await page.keyboard.press('Enter');
+              await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.place === 'color-interactive');
+              await page.evaluate(() => document.fonts.ready);
+            } else await goPlace(page, place);
+            if (place !== 'color-palettes') await roShowMode(page, mode);
+            await toPreview();
+            await settle();
+            const at = `${where} on ${place} in ${mode}`;
+            const r = await page.evaluate(MS_READ);
+            if (r.showing === 'select') {
+              selects++;
+              ok(r.value === mode && r.text.startsWith(`${MS_LABEL[mode]} · `), `${at}: the mode select's chosen option reads "${MS_LABEL[mode]} · …" (reads ${JSON.stringify(r.text)}, value ${r.value})`);
+              ok(r.textW <= r.box + 0.5, `${at}: the mode select shows its whole label, ${JSON.stringify(r.text)} (${r.textW}px of text in a ${r.box}px content box)`);
+            } else {
+              ok(r.showing === 'radios' && r.value === mode && r.text === MS_RADIO[mode], `${at}: the checked mode radio reads "${MS_RADIO[mode]}" (shows the ${r.showing}, reading ${JSON.stringify(r.text)}, mode ${r.value})`);
+              ok(r.nameCut !== null && r.nameCut <= 0 && r.radioIn, `${at}: the checked mode radio shows its whole name (cut by ${r.nameCut}px; inside the group ${r.radioIn})`);
+            }
+            ok(r.headOver <= 0 && r.ctlIn && r.titleIn && r.inspIn, `${at}: the preview header has no horizontal overflow and holds the title, the mode control and Inspect (overflow ${r.headOver}px; inside: title ${r.titleIn}, mode control ${r.ctlIn}, Inspect ${r.inspIn})`);
+            ok(r.titleCut <= 0, `${at}: the preview title "${r.title}" is not cut (by ${r.titleCut}px)`);
+            if (SHOTS && (w === 640 || w === 800) && (place === 'color-palettes' || (place === 'color-interactive' && (mode === 'light' || mode === 'hc-light')))) {
+              await page.evaluate(() => document.activeElement?.blur?.());
+              const hb = await page.locator('[data-p3="preview-head"]').boundingBox();
+              await page.screenshot({ path: join(SHOTS, `2383-${host === 'web' ? 'web' : 'plugin'}-${theme}-${w}-${place.slice('color-'.length)}-${mode}.png`),
+                clip: { x: 0, y: 0, width: w, height: Math.ceil(hb.y + hb.height) + 48 } });
+            }
+            await toSettings();
+            cases++;
+          }
+        }
+        ok(cases === want, `${where}: every case ran (${cases} of ${want})`);
+        if (w === 640) ok(selects === want, `${where}: at 640 the mode control is the select in every case, so its label is measured (${selects} of ${want})`);
+        const loop = await page.evaluate(() => window.__p3RoLoop);
+        ok(loop.length === 0, `${where}: no ResizeObserver loop error from the header (${loop.length}${loop.length ? ` — ${loop[0]}` : ''})`);
+        ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+      } catch (e) {
+        ok(false, `${where}: the case stopped at a step that threw (${step}) — ${stopped(e)}`);
+      } finally { await ctx.close(); }
+    }
+  }
+}
+// =============================================================================================
+// 39. #1855: forced colors (Windows High Contrast). Every state the chrome draws by a fill, an edge or an ink alone
+//     survives, in the system's colors; the brand's color specimens keep their real colors; only a selected control
+//     opts out, and only in system colors (owner decision HC1 B, 2026-10-09)
+// =============================================================================================
+// Both hosts, both chrome themes, at 1280, under Chromium's forced-colors emulation (CDP `Emulation.setEmulatedMedia`,
+// `forced-colors: active`), held for the whole case. For each state, its control is read against its unselected
+// neighbor, so a state that draws the same as its neighbor fails by name:
+//   · selected, pressed or checked (the Personality chip, the Color sub-page segment, a live mode radio, Brand's mode
+//     check box, the switch, the step picker's step, the value picker's value, the weights matrix's check): the fill is
+//     `Highlight` and the ink `HighlightText`, its neighbor's fill is not `Highlight`; the switch's knob is drawn in both
+//     states, apart from its track;
+//   · A SELECTED LABEL AS DRAWN (HC1 B): the chip's, the segment's, the mode radio's, the step's and the value's label is
+//     read off a screenshot of its text box, never off computed style. Chromium paints a `Canvas` backplate behind
+//     forced text, so a `HighlightText` label on a `Highlight` fill computes right and draws as a white box (option A, the
+//     owner's review of 2026-10-09). The box must show the fill, `Highlight` over `Canvas`, on at least FC_FILL_MIN of its
+//     pixels and the ink, `HighlightText`, on at least FC_INK_MIN;
+//   · the selected tab's underline in `CanvasText`, its neighbors' hidden in `Canvas`;
+//   · disabled (the held mode control on Palettes, Layout's first breakpoint field, a switch a derived mode holds):
+//     the ink and the edge in `GrayText`, and the held mode that is selected keeps its edge while the others hide theirs;
+//   · the status dots (Agent on; Activity running, which draws green, and failed, which draws red; and the plugin only,
+//     where they are drawn): filled in `CanvasText`, so drawn on the tile's `Canvas`;
+//   · the verdict's mark, the check and then the warning with its count: drawn in its tile's forced ink, never `Canvas`;
+//   · focus rings, on a selected chip (the case a `Highlight` fill makes hard), a chip, the selected segment and the tab:
+//     solid, at least 2px, in `CanvasText`;
+//   · the brand's color specimens (every brand-content node and every specimen root that paints an inline background,
+//     on Palettes and on Surfaces & fills): the same fill and image as outside forced colors, with literal floors on
+//     how many there are and how many are colored;
+//   · only a selected control opts out (HC1 B): every control the frame draws outside a specimen root computes
+//     `forced-color-adjust: auto` unless it is selected (`aria-pressed`, `aria-selected` or `aria-checked` true), and one
+//     that opts out draws every color, its own and its children's, in a system color; only a color specimen that paints
+//     its own inline background is left out, so a value's type or radius sample is read. The sweep runs on Palettes,
+//     Brand and Surfaces & fills, and with every picker open: the step picker, the base radius, columns and weight value
+//     pickers, and the plugin's font type-ahead (the review of #2450: three of the five kinds that opt out were never read).
+//
+// INDEPENDENCE (docs/34). The expected colors are the system-color keywords' own resolved values in this emulation,
+// read off a probe node that sets each keyword inline and nothing else; never `chrome.css`, whose rules are the subject.
+// A specimen's expected color is its own color read before the emulation starts. The controls, states and floors are
+// literals typed here; every case is counted, so a skipped one fails.
+// Mutations, each in a `wip:` commit, each failing by name (the PR records the lines): (a) the selected-chip rule
+// dropped; (b) the opt-out on a control that is not selected; (c) the specimen exemption dropped, so the swatches go
+// white; (d) the opt-out taken off the selected chip, so the backplate hides its label (only the drawn check sees it);
+// (e) the opt-out on every value and step, selected or not; (f) the selected value's sample rule dropped, so the chrome's
+// ink sits on the Highlight fill.
+const FC_KEYS = ['Canvas', 'CanvasText', 'Highlight', 'HighlightText', 'GrayText'];
+/** Each case, by name; every one must run on every host and theme (Agent and Activity on the plugin only). */
+const FC_CASES = ['oracle', 'segment', 'tab', 'held modes', 'palettes specimens', 'controls opt in', 'chip', 'mode check', 'focus rings',
+  'live modes', 'switch', 'step picker', 'fills specimens', 'held switch', 'disabled field', 'value picker', 'weights check', 'verdict',
+  'type value picker', 'layout value picker'];
+/** The plugin only: its tile dots, and the font type-ahead, which lists the host's fonts (the web has none to list). */
+const FC_PLUGIN_CASES = ['agent dot', 'activity dots', 'font list'];
+/** The fonts the type-ahead is handed, as the host would send them. Literal. */
+const FC_FONTS = { type: 'font-list', families: ['Inter', 'Roboto', 'Playfair Display'], styles: [18, 36, 12] };
+/** Floors on the specimens read (prism3: 182 drawn on Palettes, its squares, strips, heroes, role dots and the brand
+ *  swatch; 121 fill swatches, 4 gradient stops and the previews' grounds on Surfaces & fills), and on how many of them are not
+ *  the forced canvas, so the comparison is never one of white against white. */
+const FC_SPEC_FLOOR = { 'color-palettes': [175, 150], 'color-fills': [120, 20] };
+/** A floor on the controls the opt-out sweep reads on each page. */
+const FC_CONTROL_FLOOR = 15;
+/** A selected label's text box, as drawn: the share of its pixels in the fill, and in the ink, each within FC_TOL of a
+ *  channel. Only a glyph's solid core reads as the ink (its antialiased edge is a blend), 2.5 to 4% of a 12 or 14px
+ *  label's box as measured on prism3; under a backplate the fill reads 0%. Literals. */
+const FC_FILL_MIN = 0.4;
+const FC_INK_MIN = 0.015;
+const FC_TOL = 24;
+/** A selected control's text box, the union of its drawn text runs, in page pixels. Runs in the page. */
+const FC_TEXT_BOX = (sel) => {
+  const n = document.querySelector(sel);
+  if (!n) return null;
+  const rs = [];
+  const tw = document.createTreeWalker(n, NodeFilter.SHOW_TEXT);
+  for (let t = tw.nextNode(); t; t = tw.nextNode()) {
+    if (!t.textContent.trim()) continue;
+    const r = document.createRange();
+    r.selectNodeContents(t);
+    for (const b of r.getClientRects()) if (b.width > 0 && b.height > 0) rs.push(b);
+  }
+  if (!rs.length) return null;
+  const x = Math.ceil(Math.min(...rs.map((b) => b.left))), y = Math.ceil(Math.min(...rs.map((b) => b.top)));
+  return { x, y, width: Math.floor(Math.max(...rs.map((b) => b.right))) - x, height: Math.floor(Math.max(...rs.map((b) => b.bottom))) - y };
+};
+/** Count a PNG's pixels near each of two colors (`[r, g, b]`), decoded by the page's own canvas. Runs in the page. */
+const FC_PIXELS = ([png, fill, ink, tol]) => new Promise((done) => {
+  const img = new Image();
+  img.onload = () => {
+    const c = document.createElement('canvas');
+    c.width = img.width; c.height = img.height;
+    const g = c.getContext('2d');
+    g.drawImage(img, 0, 0);
+    const d = g.getImageData(0, 0, c.width, c.height).data;
+    const near = (i, k) => Math.abs(d[i] - k[0]) <= tol && Math.abs(d[i + 1] - k[1]) <= tol && Math.abs(d[i + 2] - k[2]) <= tol;
+    let nFill = 0, nInk = 0;
+    for (let i = 0; i < d.length; i += 4) { if (near(i, fill)) nFill++; else if (near(i, ink)) nInk++; }
+    done({ n: d.length / 4, fill: nFill, ink: nInk });
+  };
+  img.onerror = () => done(null);
+  img.src = `data:image/png;base64,${png}`;
+});
+/** `rgb()`/`rgba()` to numbers. */
+const fcRgba = (s) => { const p = /^rgba?\(([^)]+)\)$/.exec(s ?? '')?.[1].split(/[,\s/]+/).filter(Boolean).map(Number) ?? []; return p.length >= 3 ? [p[0], p[1], p[2], p.length > 3 ? p[3] : 1] : null; };
+/** The resolved system colors, from a probe node that sets each keyword inline. Runs in the page. */
+const FC_SYS = (keys) => {
+  const t = document.createElement('div');
+  document.body.append(t);
+  const out = {};
+  for (const k of keys) { t.style.backgroundColor = k; out[k] = getComputedStyle(t).backgroundColor; }
+  t.remove();
+  return { ...out, active: matchMedia('(forced-colors: active)').matches };
+};
+/** What a node draws, read off its computed style. Runs in the page. */
+const FC_LOOK = (sel) => {
+  const n = document.querySelector(sel);
+  if (!n) return null;
+  const c = getComputedStyle(n);
+  const ico = n.querySelector('.p3-ico');
+  const before = getComputedStyle(n, '::before');
+  return { bg: c.backgroundColor, ink: c.color, edge: c.borderTopColor, under: c.borderBottomColor, ol: c.outlineColor, olStyle: c.outlineStyle,
+    olWidth: parseFloat(c.outlineWidth), ring: before.borderTopColor, ringWidth: parseFloat(before.borderTopWidth), fca: c.forcedColorAdjust,
+    shown: n.getClientRects().length > 0 && c.display !== 'none' && c.visibility !== 'hidden', fv: n.matches(':focus-visible'),
+    off: n.matches(':disabled') || n.getAttribute('aria-disabled') === 'true',
+    glyph: ico && ico.getClientRects().length > 0 && getComputedStyle(ico).visibility !== 'hidden' ? getComputedStyle(ico).color : null,
+    path: ico?.innerHTML ?? null };
+};
+/** Every brand specimen that paints an inline background: brand content, and the specimen roots and what they hold. */
+const FC_SPECIMENS = () => [...document.querySelectorAll('[data-p3="frame"] :is([data-content], [data-p3="specimen"], [data-p3="specimen"] *)')]
+  .filter((n) => /background/.test(n.getAttribute('style') ?? '') && n.getClientRects().length > 0)
+  .map((n) => { const c = getComputedStyle(n); return `${c.backgroundColor} ${c.backgroundImage}`; });
+/** Every control the frame draws outside a specimen root: its forced-color-adjust, whether it is selected, and, when it
+ *  opts out, every color it and its children draw, but a color specimen that paints its own inline background (an ink under text or a glyph, an opaque fill, a
+ *  drawn edge or outline). A color input is left out: Chromium's own stylesheet sets it to `none`, so its swatch shows the
+ *  color it holds, and it is not ours to set. Runs in the page. */
+const FC_CONTROLS = () => [...document.querySelectorAll('[data-p3="frame"] :is(button, input, select, textarea, [role="switch"], [role="tab"], [role="radio"], [role="checkbox"], [role="menuitem"], [role="menuitemradio"], [role="option"])')]
+  .filter((n) => !n.closest('[data-p3="specimen"]') && !(n.tagName === 'INPUT' && n.type === 'color') && n.getClientRects().length > 0)
+  .map((n) => {
+    const fca = getComputedStyle(n).forcedColorAdjust;
+    const colors = new Set();
+    if (fca !== 'auto') {
+      const clear = (v) => /^rgba\(.*,\s*0\)$/.test(v) || v === 'transparent';
+      for (const m of [n, ...n.querySelectorAll('*')]) {
+        // A color specimen paints its own inline background; only that node is left out. Brand content that does not (a
+        // value's type or radius sample) is read like the rest, so its ink must be a system color too.
+        if (/background/.test(m.getAttribute('style') ?? '') || m.getClientRects().length === 0) continue;
+        const c = getComputedStyle(m);
+        if (c.display === 'none' || c.visibility === 'hidden') continue;
+        if (m instanceof SVGElement || [...m.childNodes].some((t) => t.nodeType === 3 && t.textContent.trim())) colors.add(c.color);
+        if (!clear(c.backgroundColor)) colors.add(c.backgroundColor);
+        for (const sd of ['Top', 'Right', 'Bottom', 'Left']) if (c[`border${sd}Style`] !== 'none' && parseFloat(c[`border${sd}Width`]) > 0 && !clear(c[`border${sd}Color`])) colors.add(c[`border${sd}Color`]);
+        if (c.outlineStyle !== 'none' && !clear(c.outlineColor)) colors.add(c.outlineColor);
+      }
+    }
+    return { el: `${n.tagName.toLowerCase()}[${n.getAttribute('data-p3') ?? (n.getAttribute('class') ?? '').split(' ')[0]}]`, fca,
+      selected: ['aria-pressed', 'aria-selected', 'aria-checked'].some((a) => n.getAttribute(a) === 'true'), colors: [...colors] };
+  });
+/** Focus `sel` from the keyboard: focus it, step back and forward again, so the ring is the keyboard's. */
+const fcKeyFocus = async (page, sel) => {
+  await page.locator(sel).first().focus();
+  await page.keyboard.press('Shift+Tab');
+  await page.keyboard.press('Tab');
+  return page.evaluate(FC_LOOK, sel);
+};
+console.log(`\n#1855: forced colors keep every state (Windows High Contrast)\n${'='.repeat(78)}`);
+for (const host of ['web', 'figma']) {
+  for (const theme of ['light', 'dark']) {
+    const w = 1280;
+    const where = `#1855 ${host} ${theme} ${w}`;
+    const { ctx, page, errors } = await open({ host, theme, w, h: 900, query: host === 'web' ? '?p3-test-hooks' : '' });
+    const shot = async (name, clip) => { if (SHOTS) await page.screenshot({ path: join(SHOTS, `1855-${host === 'web' ? 'web' : 'plugin'}-${theme}-${w}-${name}.png`), ...(clip ? { clip } : {}) }); };
+    const ran = new Set();
+    let step = 'open';
+    let cdp = null;
+    try {
+      const S = (k, sys) => sys[k];
+      // Palettes' specimens, read before the emulation starts: the colors forced colors must leave alone.
+      step = 'read the specimens outside forced colors';
+      const specBefore = { 'color-palettes': await page.evaluate(FC_SPECIMENS) };
+      await goPlace(page, 'color-fills');
+      specBefore['color-fills'] = await page.evaluate(FC_SPECIMENS);
+      await goPlace(page, 'color-palettes');
+      step = 'emulate forced colors';
+      cdp = await page.context().newCDPSession(page);
+      await cdp.send('Emulation.setEmulatedMedia', { features: [{ name: 'forced-colors', value: 'active' }] });
+      const sys = await page.evaluate(FC_SYS, FC_KEYS);
+      ok(sys.active && FC_KEYS.every((k) => /^rgba?\(/.test(sys[k])) && sys.Highlight !== sys.Canvas && sys.HighlightText !== sys.Highlight && sys.CanvasText !== sys.Canvas && sys.GrayText !== sys.Canvas,
+        `${where}: the oracle: forced colors are active, and the system colors resolve apart (${JSON.stringify(sys)})`);
+      ran.add('oracle');
+      const H = S('Highlight', sys), HT = S('HighlightText', sys), CT = S('CanvasText', sys), CV = S('Canvas', sys), GT = S('GrayText', sys);
+      const selected = (on, off, what) => {
+        ok(!!on && !!off && on.bg === H && on.ink === HT && off.bg !== H && on.bg !== off.bg,
+          `${where}: ${what}: the selected one fills with Highlight ${H} and inks with HighlightText ${HT}, its neighbor does not fill with Highlight (selected ${JSON.stringify(on && [on.bg, on.ink])}, neighbor ${JSON.stringify(off && [off.bg, off.ink])})`);
+      };
+      const SYSTEM = new Set(FC_KEYS.map((k) => sys[k]));
+      const controlsOptIn = async (place) => {
+        const cs = await page.evaluate(FC_CONTROLS);
+        const outs = cs.filter((c) => c.fca !== 'auto');
+        const unselected = outs.filter((c) => !c.selected).map((c) => `${c.el} ${c.fca}`);
+        const nonSystem = outs.flatMap((c) => c.colors.filter((x) => !SYSTEM.has(x)).map((x) => `${c.el} ${x}`));
+        ok(cs.length >= FC_CONTROL_FLOOR && unselected.length === 0,
+          `${where}: HC1 B on ${place}: only a selected control opts out of forced colors; every other control outside a specimen root computes forced-color-adjust: auto (${cs.length} read, at least ${FC_CONTROL_FLOOR}; ${outs.length} opt out; not selected: ${JSON.stringify(unselected.slice(0, 6))})`);
+        ok(nonSystem.length === 0,
+          `${where}: HC1 B on ${place}: a control that opts out draws only system colors, its own and its children's (${outs.length} opt out; not a system color: ${JSON.stringify(nonSystem.slice(0, 6))})`);
+        ran.add('controls opt in');
+      };
+      /** A selected control's label as drawn: its text box shows the Highlight fill and the HighlightText ink. */
+      const hlRgb = (() => { const h = fcRgba(H), cv = fcRgba(CV); return h && cv ? [0, 1, 2].map((i) => Math.round(h[i] * h[3] + cv[i] * (1 - h[3]))) : null; })();
+      const drawn = async (sel, what) => {
+        await page.locator(sel).first().scrollIntoViewIfNeeded();
+        const box = await page.evaluate(FC_TEXT_BOX, sel);
+        let px = null;
+        if (box && box.width > 0 && box.height > 0) {
+          const png = (await page.screenshot({ clip: box })).toString('base64');
+          px = await page.evaluate(FC_PIXELS, [png, hlRgb, fcRgba(HT).slice(0, 3), FC_TOL]);
+        }
+        const fill = px ? px.fill / px.n : 0, ink = px ? px.ink / px.n : 0;
+        ok(!!px && fill >= FC_FILL_MIN && ink >= FC_INK_MIN,
+          `${where}: ${what}, as drawn: the selected label's text box shows the Highlight fill (rgb ${JSON.stringify(hlRgb)}) on at least ${FC_FILL_MIN * 100}% of its pixels and the HighlightText ink on at least ${FC_INK_MIN * 100}%, never a Canvas backplate (fill ${(fill * 100).toFixed(1)}%, ink ${(ink * 100).toFixed(1)}% of ${px?.n ?? 0} px in ${JSON.stringify(box)})`);
+      };
+      const specimens = async (place) => {
+        const after = await page.evaluate(FC_SPECIMENS);
+        const before = specBefore[place];
+        const [floor, colored] = FC_SPEC_FLOOR[place];
+        const nColored = before.filter((x) => !x.startsWith(`${CV} none`)).length;
+        const diff = before.map((b, i) => [b, after[i]]).filter(([b, a]) => b !== a);
+        ok(before.length >= floor && nColored >= colored && after.length === before.length && diff.length === 0,
+          `${where}: the brand's color specimens on ${place} keep their real colors under forced colors (${before.length} read, at least ${floor}; ${nColored} colored, at least ${colored}; ${diff.length} changed, e.g. ${JSON.stringify(diff.slice(0, 2))})`);
+      };
+
+      // ── Color › Palettes: the segment, the tab, the held mode control, the specimens, the controls ──────────────
+      step = 'Palettes';
+      selected(await page.evaluate(FC_LOOK, '[data-p3="color-sub-palettes"]'), await page.evaluate(FC_LOOK, '[data-p3="color-sub-fills"]'), 'the Color sub-page segment');
+      await drawn('[data-p3="color-sub-palettes"]', 'the Color sub-page segment');
+      ran.add('segment');
+      const tOn = await page.evaluate(FC_LOOK, '[data-p3="tab-color"]'), tOff = await page.evaluate(FC_LOOK, '[data-p3="tab-brand"]');
+      ok(tOn?.under === CT && tOff?.under === CV, `${where}: the selected tab's underline draws in CanvasText ${CT}, a tab not selected hides its own in Canvas ${CV} (selected ${tOn?.under}, other ${tOff?.under})`);
+      ran.add('tab');
+      const hOn = await page.evaluate(FC_LOOK, '[data-p3="mode-option"][aria-checked="true"]'), hOff = await page.evaluate(FC_LOOK, '[data-p3="mode-option"][aria-checked="false"]');
+      ok(!!hOn && !!hOff && hOn.off && hOff.off && hOn.ink === GT && hOff.ink === GT && hOn.edge === GT && hOff.edge === CV && hOn.bg !== H,
+        `${where}: the held mode control on Palettes inks in GrayText ${GT}; the selected mode keeps its edge in GrayText, the others hide theirs in Canvas, and none fills with Highlight (selected ${JSON.stringify(hOn && [hOn.off, hOn.bg, hOn.ink, hOn.edge])}, other ${JSON.stringify(hOff && [hOff.off, hOff.bg, hOff.ink, hOff.edge])})`);
+      ran.add('held modes');
+      await specimens('color-palettes');
+      ran.add('palettes specimens');
+      await controlsOptIn('color-palettes');
+      await page.evaluate(() => document.activeElement?.blur?.());
+      await shot('palettes');
+      await shot('topbar', { x: 0, y: 0, width: w, height: 64 });
+
+      // ── Brand: the chip, the mode check box, focus rings ─────────────────────────────────────────────────────
+      step = 'Brand';
+      await goPlace(page, 'brand');
+      const chipOn = '[data-p3="personality-word"][aria-pressed="true"]', chipOff = '[data-p3="personality-word"][aria-pressed="false"]';
+      // prism3 opens with no word chosen: one is pressed here, so both states are drawn.
+      if (!(await page.locator(chipOn).count())) {
+        await hooks.click(page.locator(chipOff).first());
+        await page.waitForFunction((s) => !!document.querySelector(s), chipOn, { timeout: 5000 }).catch(() => {});
+      }
+      const cOn = await page.evaluate(FC_LOOK, chipOn), cOff = await page.evaluate(FC_LOOK, chipOff);
+      selected(cOn, cOff, 'a Personality chip');
+      await drawn(chipOn, 'a Personality chip');
+      ok(cOn?.glyph === HT, `${where}: a pressed chip's check draws in HighlightText ${HT} (read ${cOn?.glyph})`);
+      ran.add('chip');
+      const modeHooks = ['mode-on-dark', 'mode-on-hc-light', 'mode-on-hc-dark', 'mode-on-wireframe'];
+      const boxes = await page.evaluate((hs) => hs.map((hk) => { const n = document.querySelector(`[data-p3="${hk}"]`); const b = n?.querySelector('.p3-check-box');
+        return n && b ? { hk, on: n.getAttribute('aria-checked'), bg: getComputedStyle(b).backgroundColor, edge: getComputedStyle(b).borderTopColor } : null; }).filter(Boolean), modeHooks);
+      const bOn = boxes.find((b) => b.on === 'true'), bOff = boxes.find((b) => b.on === 'false');
+      ok(!!bOn && !!bOff && bOn.bg === H && bOn.edge === H && bOff.bg !== H,
+        `${where}: a checked mode's box fills with Highlight ${H}, an unchecked one's does not (${JSON.stringify(boxes)})`);
+      ran.add('mode check');
+      const fOn = await fcKeyFocus(page, chipOn), fOff = await fcKeyFocus(page, chipOff);
+      const fSeg = await fcKeyFocus(page, '[data-p3="tab-brand"]');
+      const ringOk = (f) => !!f && f.fv && f.olStyle === 'solid' && f.olWidth >= FOCUS_WIDTH_MIN && f.ol === CT;
+      ok(ringOk(fOn) && ringOk(fOff), `${where}: focus rings: a chip's ring, pressed or not, is solid, at least ${FOCUS_WIDTH_MIN}px, in CanvasText ${CT}, apart from the Highlight fill (pressed ${JSON.stringify(fOn && [fOn.fv, fOn.olStyle, fOn.olWidth, fOn.ol])}, not pressed ${JSON.stringify(fOff && [fOff.fv, fOff.olStyle, fOff.olWidth, fOff.ol])})`);
+      ok(!!fSeg && fSeg.fv && fSeg.ringWidth >= FOCUS_WIDTH_MIN && fSeg.ring === CT, `${where}: focus rings: the selected tab's ring is at least ${FOCUS_WIDTH_MIN}px, in CanvasText ${CT} (${JSON.stringify(fSeg && [fSeg.fv, fSeg.ringWidth, fSeg.ring])})`);
+      await page.evaluate(() => document.activeElement?.blur?.());
+      await controlsOptIn('brand');
+      await shot('brand');
+
+      // ── Color › Surfaces & fills: live mode radios, the switch, the step picker, the specimens, a held switch ──
+      step = 'Surfaces & fills';
+      await goPlace(page, 'color-fills');
+      const segFocus = await fcKeyFocus(page, '[data-p3="color-sub-fills"]');
+      ok(ringOk(segFocus), `${where}: focus rings: the selected segment's ring is solid, at least ${FOCUS_WIDTH_MIN}px, in CanvasText ${CT}, apart from its Highlight fill (${JSON.stringify(segFocus && [segFocus.fv, segFocus.olStyle, segFocus.olWidth, segFocus.ol])})`);
+      ran.add('focus rings');
+      await page.evaluate(() => document.activeElement?.blur?.());
+      selected(await page.evaluate(FC_LOOK, '[data-p3="mode-option"][aria-checked="true"]'), await page.evaluate(FC_LOOK, '[data-p3="mode-option"][aria-checked="false"]'), 'a live mode radio');
+      await drawn('[data-p3="mode-option"][aria-checked="true"]', 'a live mode radio');
+      ran.add('live modes');
+      await specimens('color-fills');
+      ran.add('fills specimens');
+      await controlsOptIn('color-fills');
+      const SW = '[data-p3="gradients-switch"]';
+      const swRead = () => page.evaluate((s) => { const n = document.querySelector(s); const t = n?.querySelector('.p3-switch-track'), k = n?.querySelector('.p3-switch-knob');
+        return n && t && k ? { on: n.getAttribute('aria-checked'), off: n.matches(':disabled') || n.getAttribute('aria-disabled') === 'true', track: getComputedStyle(t).backgroundColor,
+          edge: getComputedStyle(t).borderTopColor, knob: getComputedStyle(k).backgroundColor } : null; }, SW);
+      await hooks.need(page, SW);
+      const s0 = await swRead();
+      await hooks.click(page.locator(SW));
+      await page.waitForFunction(([s, was]) => document.querySelector(s)?.getAttribute('aria-checked') !== was, [SW, s0?.on], { timeout: 5000 }).catch(() => {});
+      const s1 = await swRead();
+      const [sOn, sOff] = s0?.on === 'true' ? [s0, s1] : [s1, s0];
+      ok(sOn?.on === 'true' && sOff?.on === 'false' && sOn.track === H && sOn.knob === HT && sOff.knob === CT && sOff.track !== H && sOn.knob !== sOn.track && sOff.knob !== sOff.track,
+        `${where}: the switch: on, its track fills with Highlight ${H} and its knob with HighlightText ${HT}; off, its knob is CanvasText ${CT} on a track that is not Highlight; the knob is drawn apart from its track in both (on ${JSON.stringify(sOn)}, off ${JSON.stringify(sOff)})`);
+      ran.add('switch');
+      await hooks.click(page.locator(SW));
+      await shot('fills');
+      const PICK = '[data-p3="levers-pane"] [data-p3="fill-pick"]';
+      await hooks.click(page.locator(PICK).first());
+      await hooks.need(page, '[data-p3="step-picker"]');
+      selected(await page.evaluate(FC_LOOK, '[data-p3="step-picker"] [data-p3="step-picker-step"][aria-pressed="true"]'),
+        await page.evaluate(FC_LOOK, '[data-p3="step-picker"] [data-p3="step-picker-step"][aria-pressed="false"]'), 'the step picker\'s step');
+      await drawn('[data-p3="step-picker"] [data-p3="step-picker-step"][aria-pressed="true"]', 'the step picker\'s step');
+      await controlsOptIn('color-fills, the step picker open');
+      ran.add('step picker');
+      await shot('fills-step-picker');
+      await hooks.click(page.locator('[data-p3="step-picker-close"]'));
+      // A derived mode holds the panel's settings (#2284), the switch with them: GrayText, its knob kept on its side.
+      step = 'Surfaces & fills, held';
+      await hooks.click(page.locator('[data-p3="mode-option"][data-mode="hc-light"]'));
+      await page.waitForFunction((s) => { const n = document.querySelector(s); return !!n && (n.disabled || n.getAttribute('aria-disabled') === 'true'); }, SW, { timeout: 5000 }).catch(() => {});
+      const sH = await swRead();
+      ok(!!sH && sH.off && sH.edge === GT && sH.knob === GT && sH.track !== H,
+        `${where}: a held switch draws its track's edge and its knob in GrayText ${GT}, never a Highlight track (${JSON.stringify(sH)})`);
+      ran.add('held switch');
+      await shot('fills-held');
+      await hooks.click(page.locator('[data-p3="mode-option"][data-mode="light"]'));
+
+      // ── Layout: the disabled field ───────────────────────────────────────────────────────────────────────────
+      step = 'Layout';
+      await goPlace(page, 'layout');
+      const dOff = await page.evaluate(FC_LOOK, '[data-p3="bp-input"]:disabled'), dOn = await page.evaluate(FC_LOOK, '[data-p3="bp-input"]:enabled');
+      ok(!!dOff && !!dOn && dOff.ink === GT && dOff.edge === GT && dOn.ink !== GT,
+        `${where}: the disabled breakpoint field inks and edges in GrayText ${GT}, an enabled one does not ink in it (disabled ${JSON.stringify(dOff && [dOff.ink, dOff.edge])}, enabled ${JSON.stringify(dOn && [dOn.ink, dOn.edge])})`);
+      ran.add('disabled field');
+
+      // ── the value pickers: Shape's base radius (a radius sample), Layout's columns (bar samples), Type's weight (a type
+      //    sample). Each is read open: the selected value, its label as drawn, and the opt-out sweep over every control. ─
+      /** Open the value picker behind `pick`, read it, close it. */
+      const valuePick = async (pick, what, place, name) => {
+        await hooks.click(page.locator(pick).first());
+        await hooks.need(page, '[data-p3="value-picker"]');
+        const on = '[data-p3="value-picker"] [data-p3="value-picker-value"][aria-pressed="true"]';
+        selected(await page.evaluate(FC_LOOK, on), await page.evaluate(FC_LOOK, '[data-p3="value-picker"] [data-p3="value-picker-value"][aria-pressed="false"]'), what);
+        await drawn(on, what);
+        await controlsOptIn(`${place}, ${what} open`);
+        await page.locator(on).scrollIntoViewIfNeeded();
+        await shot(name);
+        await hooks.click(page.locator('[data-p3="value-picker-close"]'));
+      };
+      step = 'Shape';
+      await goPlace(page, 'shape');
+      await openShapeAdvanced(page);
+      await valuePick('[data-p3="base-radius-pick"]', 'the base radius picker\'s value', 'shape', 'shape-value-picker');
+      ran.add('value picker');
+      step = 'Layout, the columns picker';
+      await goPlace(page, 'layout');
+      await valuePick('[data-p3="layout-columns-pick"]', 'the columns picker\'s value', 'layout', 'layout-value-picker');
+      ran.add('layout value picker');
+
+      // ── Type: the weights matrix ─────────────────────────────────────────────────────────────────────────────
+      step = 'Type';
+      await goPlace(page, 'type');
+      await shot('type');
+      await openTypeAdvanced(page);
+      selected(await page.evaluate(FC_LOOK, '[data-p3="weights-matrix"] [role="checkbox"][aria-checked="true"]'),
+        await page.evaluate(FC_LOOK, '[data-p3="weights-matrix"] [role="checkbox"][aria-checked="false"]'), 'a weights matrix check');
+      ran.add('weights check');
+      step = 'Type, the weight picker';
+      await valuePick('[data-p3="weight-pick"]', 'the weight picker\'s value', 'type', 'type-value-picker');
+      ran.add('type value picker');
+      // The plugin's font type-ahead: the host's fonts listed, the first option made active by the keyboard.
+      if (host === 'figma') {
+        step = 'Type, the font type-ahead';
+        await page.evaluate((m) => window.postMessage({ pluginMessage: m }, '*'), FC_FONTS);
+        await page.waitForFunction(() => document.querySelector('[data-p3="face-add-input"]')?.getAttribute('role') === 'combobox', null, { timeout: 5000 }).catch(() => {});
+        await page.locator('[data-p3="face-add-input"]').scrollIntoViewIfNeeded();
+        await page.locator('[data-p3="face-add-input"]').focus();
+        await page.keyboard.press('ArrowDown');
+        await page.waitForFunction(() => !!document.querySelector('[data-p3="face-font-option"][aria-selected="true"]'), null, { timeout: 5000 }).catch(() => {});
+        const optOn = '[data-p3="face-font-list"] [data-p3="face-font-option"][aria-selected="true"]';
+        selected(await page.evaluate(FC_LOOK, optOn), await page.evaluate(FC_LOOK, '[data-p3="face-font-list"] [data-p3="face-font-option"][aria-selected="false"]'), 'the font type-ahead\'s option');
+        await drawn(optOn, 'the font type-ahead\'s option');
+        await controlsOptIn('type, the font list open');
+        await shot('type-font-list');
+        await page.keyboard.press('Escape');
+        ran.add('font list');
+      }
+
+      // ── the verdict's mark, the check and then the warning with its count (last: the edit stays) ───────────────
+      step = 'the verdict';
+      const markOf = () => page.evaluate(() => { const b = document.querySelector('[data-p3="verdict"]'), g = b?.querySelector('.p3-tile-mark svg.p3-ico'), n = b?.querySelector('[data-p3="verdict-count"]');
+        return b && g ? { state: b.dataset.state, glyph: getComputedStyle(g).color, ink: getComputedStyle(b).color, shape: g.innerHTML, count: n ? getComputedStyle(n).color : null } : null; });
+      const v0 = await markOf();
+      if (host === 'web') await page.evaluate((o) => window.__prism3TestEdit('overrides', o), LOW_FIXTURE);
+      else await page.evaluate((i) => window.postMessage({ pluginMessage: { type: 'restore-input', input: i } }, '*'), LOW_BRAND);
+      await page.waitForFunction(() => document.querySelector('[data-p3="verdict"]')?.dataset.state === 'fail', null, { timeout: 5000 }).catch(() => {});
+      const v1 = await markOf();
+      ok(v0?.state === 'ok' && v1?.state === 'fail' && v0.glyph === v0.ink && v1.glyph === v1.ink && v0.glyph !== CV && v1.glyph !== CV && v1.count !== null && v1.count !== CV && v0.shape !== v1.shape,
+        `${where}: the verdict's mark draws in its tile's forced ink, never Canvas ${CV}: the check while every pair passes, the warning and its count once pairs fall below (ok ${JSON.stringify(v0 && [v0.glyph, v0.ink])}, fail ${JSON.stringify(v1 && [v1.glyph, v1.ink, v1.count])})`);
+      ran.add('verdict');
+
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+      // ── the plugin's tile dots: Agent on, Activity running (green) and failed (red) ─────────────────────────────
+      const dotOf = (k) => page.evaluate((x) => { const d = document.querySelector(`[data-p3="${x}"] .p3-tile-mark > .p3-dot`), b = d?.closest('button');
+        const cs = d ? getComputedStyle(d) : null; return d ? { state: d.dataset.state ?? null, shown: d.getClientRects().length > 0 && cs.display !== 'none', bg: cs.backgroundColor, tile: getComputedStyle(b).backgroundColor } : null; }, k);
+      // Last, after the console check: a link switched on opens the desktop bridge's socket, which no harness serves.
+      if (host === 'figma') {
+        step = 'Agent';
+        await page.evaluate((st) => window.postMessage({ pluginMessage: { type: 'agent-link-state', state: st } }, '*'), AGENT_ON);
+        await page.waitForFunction(() => document.querySelector('[data-p3="agent-toggle"]')?.getAttribute('aria-pressed') === 'true', null, { timeout: 5000 }).catch(() => {});
+        const a1 = await dotOf('agent-toggle');
+        ok(!!a1 && a1.shown && a1.bg === CT && a1.bg !== CV, `${where}: the pressed Agent tile's dot fills with CanvasText ${CT}, drawn on the forced Canvas ${CV} (${JSON.stringify(a1)})`);
+        ran.add('agent dot');
+        step = 'Activity';
+        await hooks.click(page.locator('[data-p3="apply-to-figma"]'));
+        await page.waitForFunction(() => document.querySelector('[data-p3="activity-open"] .p3-status-dot')?.dataset.state === 'run', null, { timeout: 5000 }).catch(() => {});
+        const run = await dotOf('activity-open');
+        await shot('topbar-dots', { x: 0, y: 0, width: w, height: 64 });
+        await page.evaluate(() => window.postMessage({ pluginMessage: { type: 'apply-result', ok: false, headline: '✗ write failed', summary: 'The write failed.' } }, '*'));
+        await page.waitForFunction(() => document.querySelector('[data-p3="activity-open"] .p3-status-dot')?.dataset.state === 'bad', null, { timeout: 5000 }).catch(() => {});
+        const bad = await dotOf('activity-open');
+        ok(run?.state === 'run' && bad?.state === 'bad' && run.shown && bad.shown && run.bg === CT && bad.bg === CT,
+          `${where}: Activity's dots, running (green outside forced colors) and failed (red), each fill with CanvasText ${CT} on the forced Canvas (running ${JSON.stringify(run)}, failed ${JSON.stringify(bad)})`);
+        ran.add('activity dots');
+        await page.evaluate((st) => window.postMessage({ pluginMessage: { type: 'agent-link-state', state: st } }, '*'), { ...AGENT_ON, on: false, since: null });
+      }
+
+      const want = [...FC_CASES, ...(host === 'figma' ? FC_PLUGIN_CASES : [])];
+      const missed = want.filter((c) => !ran.has(c));
+      ok(missed.length === 0, `${where}: every case ran (${ran.size} of ${want.length}${missed.length ? `; missed ${missed.join(', ')}` : ''})`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at a step that threw (${step}) — ${String(e?.message ?? e).split('\n')[0]}`);
+    } finally {
+      await cdp?.detach().catch(() => {});
+      await ctx.close();
+    }
+  }
+}
+// =============================================================================================
+// 42. #2233: the choice rows' accessibility, on Type › Type scale (the rows `choice()` draws and `stateLine` annotates).
+//     Both hosts, light, 1280. Four arms, one per defect:
+//   · (1) THE REASON REACHES THE KEYBOARD. A disabled chip takes no focus, so its reason, drawn as a line under the chips,
+//     describes the GROUP: Aurora's refused Compact (the title floor's sentence) and prism3's pinned clash (the clash
+//     sentence on Expressive). Read from CDP `Accessibility.getPartialAXTree`, the radiogroup's own `description`, never the
+//     attribute; and the line it comes from is drawn (it has a box), so no new words are said.
+//   · (2) THE WARNING LINES ARE ANNOUNCED, IN PLACE (owner decision Q184 B: warnings only). The row's one polite region
+//     (hook `choice-live`, `data-key` the lever's key) is observed by a MutationObserver installed before display md is
+//     set to 56px: it takes the clash sentence as added text, stays the node it was, and is the one region carrying the
+//     clash, while the pinned count, a hint, is drawn under the chips and carried by no live region. An unrelated edit
+//     (the caption floor) while the clash shows makes no record at all: a line that stays is not said again. Release
+//     removes the clash from that same node and adds nothing. The browser reads it as a polite status (CDP `live`). On
+//     leaving for Shape, Type's rows are dropped with their regions: the rows held (`data-rows` on the holder) are the
+//     regions in the document.
+//   · (3) THE ARROWS PASS OVER A DISABLED CHIP. Real key presses on Aurora (Compact, Default, Expressive; Compact refused):
+//     ArrowRight from Expressive wraps past Compact to Default, and ArrowLeft from Default wraps past Compact to Expressive,
+//     focus and the checked chip moving together. (The chip rows, `chipChoice`, keep KB1 A: no arrows; section 30b.)
+//   · (4) FOCUS AFTER RELEASE PINNED SIZES. The button goes once it has worked; focus lands on Type scale's checked chip
+//     (prism3's Default), the group's Tab stop, never on the page.
+//
+// INDEPENDENCE (docs/34). EXPECTED is typed here: the two approved sentences (S63.scaleTitleFloor and S63.scaleClash),
+// the pinned count's words for one size, the chip order and which chip each press reaches, and the chip focus lands on,
+// each worked out by hand from the issue and the manifest's option order. ACTUAL is the browser's: the accessibility tree,
+// a MutationObserver's records, `document.activeElement` after real key presses and a real click. Nothing is read from
+// `type.ts` or `lever-kit.ts`.
+//
+// Mutations (#2233), each after a `wip:` commit, on both rebuilt bundles, each failing here by name (web shown; figma
+// fails the same lines), none outside this section:
+//   · (a) `aria-describedby` dropped from `refuseOption` → `§42 web light 1280 Aurora: (1) the refused Compact chip's reason
+//     describes the Type scale group, … (read {"role":"radiogroup","description":"",…}, lines [])`, and the pinned clash's (4);
+//   · (b) a new region made on every redraw → `§42 web light 1280 prism3 pinned clash: (2) the row's live region is the node
+//     it was before the edit, updated in place, never replaced (same node false, connected false, 1 for the row)`, the
+//     words arm and the release arm (6);
+//   · (c) the arrows back to the next chip, disabled or not → `§42 web light 1280 Aurora: (3) ArrowRight from Expressive
+//     passes over the disabled Compact to Default, … read {"focus":"type-scale-expressive",…}` and the ArrowLeft arm (4);
+//   · (d) no focus after Release → `§42 web light 1280 prism3: (4) after Release pinned sizes, focus is on Type scale's
+//     checked chip, Default (read {"focus":"BODY","checked":null,"release":false})` (2).
+//   Review of #2458 and Q184 B:
+//   · (M2) `sayLines` never keeps a paragraph → `§42 web light 1280 prism3 pinned clash: (2) a line that stays is not
+//     announced again: an unrelated edit (caption floor 10px) leaves the region untouched (… 2 record(s) …)` (2);
+//   · (e) a hint sent to the region (`.p3-state` for `.p3-state-warn`) → `§42 web light 1280 prism3 pinned clash: (2) a hint
+//     doesn't announce: "1 size is set individually. …" is drawn under the chips and no live region carries it (drawn true,
+//     1 live region(s) carrying it, …)`, the warning arm and the persisting arm (6);
+//   · (f) a row that left the page kept (`LIVE.delete` dropped) → `§42 web light 1280 prism3 on Shape: (2) the rows Type
+//     drew are dropped with their regions, and every row held is a region in the document (read {…"rows":"8","regions":2…})` (2).
+// =============================================================================================
+console.log(`\nChoice rows: reasons, announced state lines, arrows, focus after Release (#2233)\n${'='.repeat(78)}`);
+{
+  const CLASH = 'Some sizes you set would clash at this scale. Release them to switch.';
+  const FLOOR = "Compact can't be used while the title floor is 16px. Raise the title floor to use it.";
+  const PINNED_ONE = '1 size is set individually. They keep their size when the scale moves.';
+  const GROUP = '[data-p3="type-scale"]';
+  const LIVE = '[data-p3="choice-live"][data-key="typography.typeScale"]';
+  const BOUND = { timeout: 10000 };
+  /** The browser's reading of one node: role, description, and live politeness. */
+  const axOf = async (page, sel) => {
+    const cdp = await page.context().newCDPSession(page);
+    try {
+      await cdp.send('DOM.enable');
+      await cdp.send('Accessibility.enable');
+      const { root } = await cdp.send('DOM.getDocument', { depth: 0 });
+      const { nodeId } = await cdp.send('DOM.querySelector', { nodeId: root.nodeId, selector: sel });
+      const node = nodeId ? (await cdp.send('Accessibility.getPartialAXTree', { nodeId, fetchRelatives: false })).nodes[0] : null;
+      const prop = (k) => node?.properties?.find((p) => p.name === k)?.value?.value ?? null;
+      return node ? { role: node.role?.value ?? null, description: node.description?.value ?? '', live: prop('live'), ignored: !!node.ignored } : null;
+    } finally { await cdp.detach(); }
+  };
+  /** The drawn lines the group's description points at: each id's text and whether it has a box. */
+  const describedLines = (page) => page.evaluate((g) => (document.querySelector(g)?.getAttribute('aria-describedby') ?? '').split(' ').filter(Boolean)
+    .map((id) => { const n = document.getElementById(id); const b = n?.getBoundingClientRect(); return { text: n?.textContent?.trim() ?? null, drawn: !!b && b.width > 0 && b.height > 0 }; }), GROUP);
+  for (const host of ['web', 'figma']) {
+    const where0 = `§42 ${host} light 1280`;
+    // ── Aurora: Compact refused for the title floor. Arms 1 and 3. ──
+    {
+      const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900, brand: 'aurora' });
+      let step = 'open Type';
+      try {
+        await goPlace(page, 'type');
+        await hooks.need(page, '[data-p3="type-scale-compact"]');
+        step = 'read the group';
+        const ax = await axOf(page, GROUP);
+        const lines = await describedLines(page);
+        ok(!!ax && ax.role === 'radiogroup' && ax.description === FLOOR && lines.length === 1 && lines[0].text === FLOOR && lines[0].drawn,
+          `${where0} Aurora: (1) the refused Compact chip's reason describes the Type scale group, from the drawn line under the chips (read ${JSON.stringify(ax)}, lines ${JSON.stringify(lines)})`);
+        step = 'arrow keys';
+        const at = () => page.evaluate((g) => ({ focus: document.activeElement?.getAttribute('data-p3') ?? document.activeElement?.tagName ?? null,
+          checked: document.querySelector(`${g} [aria-checked="true"]`)?.getAttribute('data-p3') ?? null,
+          compactOff: document.querySelector('[data-p3="type-scale-compact"]')?.disabled ?? null }), GROUP);
+        await page.locator('[data-p3="type-scale-expressive"]').focus();
+        const s0 = await at();
+        await page.keyboard.press('ArrowRight');
+        await page.waitForFunction((g) => document.querySelector(`${g} [aria-checked="true"]`)?.getAttribute('data-p3') === 'type-scale-default', GROUP, BOUND).catch(() => {});
+        await settle(page);
+        const s1 = await at();
+        ok(s0.focus === 'type-scale-expressive' && s0.compactOff === true && s1.focus === 'type-scale-default' && s1.checked === 'type-scale-default',
+          `${where0} Aurora: (3) ArrowRight from Expressive passes over the disabled Compact to Default, focus and the checked chip together (from ${JSON.stringify(s0)}, read ${JSON.stringify(s1)})`);
+        await page.keyboard.press('ArrowLeft');
+        await page.waitForFunction((g) => document.querySelector(`${g} [aria-checked="true"]`)?.getAttribute('data-p3') === 'type-scale-expressive', GROUP, BOUND).catch(() => {});
+        await settle(page);
+        const s2 = await at();
+        ok(s1.focus === 'type-scale-default' && s1.compactOff === true && s2.focus === 'type-scale-expressive' && s2.checked === 'type-scale-expressive',
+          `${where0} Aurora: (3) ArrowLeft from Default passes over the disabled Compact to Expressive, focus and the checked chip together (from ${JSON.stringify(s1)}, read ${JSON.stringify(s2)})`);
+        ok(errors.length === 0, `${where0} Aurora: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+      } catch (e) {
+        ok(false, `${where0} Aurora: the case stopped at "${step}" — ${stopped(e)}`);
+      } finally { await ctx.close(); }
+    }
+    // ── prism3: a pinned clash, then Release. Arms 1, 2 and 4. ──
+    {
+      const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900 });
+      const BTN = '[data-p3="type-size-desktop"][data-group="display"][data-variant="md"]';
+      const PICK = '[data-p3="value-picker"] [data-p3="value-picker-value"][data-value="56"]';
+      const CLOSE = '[data-p3="value-picker-close"]';
+      const RELEASE = '[data-p3="type-scale-release"]';
+      let step = 'open Type';
+      try {
+        await goPlace(page, 'type');
+        step = 'open Show advanced'; await openTypeAdvanced(page);
+        await settle(page);
+        step = 'watch the live region';
+        const before = await page.evaluate((sel) => {
+          const node = document.querySelector(sel);
+          window.__p3live = { node, recs: [] };
+          if (node) new MutationObserver((rs) => { for (const r of rs) window.__p3live.recs.push({ type: r.type, added: [...r.addedNodes].map((n) => n.textContent), removed: [...r.removedNodes].map((n) => n.textContent) }); })
+            .observe(node, { childList: true, characterData: true, subtree: true });
+          return node ? { text: node.textContent, count: document.querySelectorAll(sel).length } : null;
+        }, LIVE);
+        ok(!!before && before.text === '' && before.count === 1, `${where0} prism3: (2) Type scale has its one live region before any edit, saying nothing (read ${JSON.stringify(before)})`);
+        step = 'open the value picker for display md'; await hooks.click(page.locator(BTN), BOUND);
+        step = 'pick 56px'; await hooks.click(page.locator(PICK), BOUND);
+        await page.waitForFunction((q) => !!document.querySelector(q), RELEASE, BOUND).catch(() => {});
+        step = 'close the value picker';
+        if (await page.locator(CLOSE).count()) await hooks.click(page.locator(CLOSE), BOUND);
+        await page.waitForFunction(() => !document.querySelector('[data-p3="value-picker"]'), null, BOUND).catch(() => {});
+        await settle(page);
+        step = 'read the clash';
+        const ax = await axOf(page, GROUP);
+        const lines = await describedLines(page);
+        ok(!!ax && ax.description === CLASH && lines.length === 1 && lines[0].text === CLASH && lines[0].drawn,
+          `${where0} prism3 pinned clash: (1) the refused Expressive chip's reason describes the Type scale group, from the drawn clash line (read ${JSON.stringify(ax)}, lines ${JSON.stringify(lines)})`);
+        const live = () => page.evaluate((sel) => ({ recs: window.__p3live.recs, paras: [...(window.__p3live.node?.children ?? [])].map((c) => c.textContent),
+          same: document.querySelector(sel) === window.__p3live.node, connected: !!window.__p3live.node?.isConnected, count: document.querySelectorAll(sel).length,
+          carrying: [...document.querySelectorAll('[aria-live], [role="status"], [role="alert"], [role="log"], output')].filter((e) => (e.getAttribute('aria-live') ?? '') !== 'off' && e.textContent.includes('would clash')).length }), LIVE);
+        const l1 = await live();
+        const added1 = l1.recs.flatMap((x) => x.added).filter((t) => (t ?? '').trim());
+        ok(l1.same && l1.connected && l1.count === 1, `${where0} prism3 pinned clash: (2) the row's live region is the node it was before the edit, updated in place, never replaced (same node ${l1.same}, connected ${l1.connected}, ${l1.count} for the row)`);
+        ok(JSON.stringify(l1.paras) === JSON.stringify([CLASH]) && added1.includes(CLASH) && l1.carrying === 1,
+          `${where0} prism3 pinned clash: (2) a warning announces: the live region says the clash, as added text, and is the one live region carrying it (says ${JSON.stringify(l1.paras)}, added ${JSON.stringify(added1)}, ${l1.carrying} carrying it)`);
+        // Q184 B: a hint is drawn and never sent to a live region. The pinned count is on screen, in the row.
+        const hint = await page.evaluate((words) => ({
+          drawn: [...document.querySelectorAll('[data-p3="lever-typography-type-scale"] [data-p3="type-sizes-count"]')].some((n) => n.textContent.trim() === words && n.getBoundingClientRect().height > 0),
+          live: [...document.querySelectorAll('[aria-live], [role="status"], [role="alert"], [role="log"], output')].filter((e) => (e.getAttribute('aria-live') ?? '') !== 'off' && e.textContent.includes(words)).length,
+        }), PINNED_ONE);
+        ok(hint.drawn && hint.live === 0 && !added1.includes(PINNED_ONE),
+          `${where0} prism3 pinned clash: (2) a hint doesn't announce: "${PINNED_ONE}" is drawn under the chips and no live region carries it (drawn ${hint.drawn}, ${hint.live} live region(s) carrying it, added ${JSON.stringify(added1)})`);
+        // A line that stays is not said again: an unrelated edit that redraws the page (the caption floor's unchecked
+        // chip) while the clash shows leaves the region untouched.
+        step = 'an unrelated edit while the clash shows';
+        await page.evaluate(() => { window.__p3live.recs = []; });
+        await hooks.click(page.locator('[data-p3="caption-floor-10"]'), BOUND);
+        await page.waitForFunction(() => document.querySelector('[data-p3="caption-floor-10"]')?.getAttribute('aria-checked') === 'true', null, BOUND).catch(() => {});
+        await settle(page);
+        const lp = await live();
+        const redrew = await page.evaluate(() => document.querySelector('[data-p3="caption-floor-10"]')?.getAttribute('aria-checked') === 'true' && !!document.querySelector('[data-p3="type-scale-release"]'));
+        ok(redrew && lp.same && lp.recs.length === 0 && JSON.stringify(lp.paras) === JSON.stringify([CLASH]),
+          `${where0} prism3 pinned clash: (2) a line that stays is not announced again: an unrelated edit (caption floor 10px) leaves the region untouched (edit landed with the clash still shown ${redrew}, ${lp.recs.length} record(s) ${JSON.stringify(lp.recs)}, says ${JSON.stringify(lp.paras)}, same node ${lp.same})`);
+        const lax = await axOf(page, LIVE);
+        ok(!!lax && lax.live === 'polite' && lax.role === 'status' && !lax.ignored, `${where0}: (2) the accessibility tree reads the row's region as a polite live region, a status (read ${JSON.stringify(lax)})`);
+        step = 'Release pinned sizes holding still';
+        await page.evaluate(() => { window.__p3live.recs = []; });
+        await page.waitForFunction((q) => {
+          const n = document.querySelector(q);
+          const box = n ? JSON.stringify(n.getBoundingClientRect()) : null;
+          const w = (window.__p3Hold ??= { box: null, still: 0 });
+          w.still = box !== null && box === w.box ? w.still + 1 : 0;
+          w.box = box;
+          return w.still >= 2;
+        }, RELEASE, { ...BOUND, polling: 'raf' }).catch(() => {});
+        step = 'click Release pinned sizes'; await hooks.click(page.locator(RELEASE), BOUND);
+        await page.waitForFunction((q) => !document.querySelector(q), RELEASE, BOUND).catch(() => {});
+        await settle(page);
+        const f = await page.evaluate(() => ({ focus: document.activeElement?.getAttribute('data-p3') ?? document.activeElement?.tagName ?? null,
+          checked: document.activeElement?.getAttribute('aria-checked') ?? null, release: !!document.querySelector('[data-p3="type-scale-release"]') }));
+        ok(!f.release && f.focus === 'type-scale-default' && f.checked === 'true',
+          `${where0} prism3: (4) after Release pinned sizes, focus is on Type scale's checked chip, Default (read ${JSON.stringify(f)})`);
+        const l2 = await live();
+        const added2 = l2.recs.flatMap((x) => x.added).filter((t) => (t ?? '').trim());
+        const removed2 = l2.recs.flatMap((x) => x.removed);
+        ok(l2.same && l2.connected && l2.count === 1 && l2.paras.length === 0 && removed2.includes(CLASH) && added2.length === 0,
+          `${where0} prism3 released: (2) the live region is emptied in place, adding nothing (says ${JSON.stringify(l2.paras)}, removed ${JSON.stringify(removed2)}, added ${JSON.stringify(added2)}, same node ${l2.same})`);
+        // A row that leaves the page is dropped with its region: on Shape, Type scale has no region, and every row
+        // held is a region in the document.
+        step = 'leave for Shape';
+        await goPlace(page, 'shape');
+        await settle(page);
+        const gone = await page.evaluate((sel) => {
+          const holder = document.querySelector('[data-p3="choice-live-holder"]');
+          return { typeScale: document.querySelectorAll(sel).length, rows: holder?.dataset.rows ?? null, regions: holder?.querySelectorAll('[data-p3="choice-live"]').length ?? null,
+            stale: [...(holder?.querySelectorAll('[data-p3="choice-live"]') ?? [])].map((r) => r.dataset.key).filter((k) => k.startsWith('typography.')) };
+        }, LIVE);
+        ok(gone.typeScale === 0 && gone.stale.length === 0 && gone.regions > 0 && gone.rows === String(gone.regions),
+          `${where0} prism3 on Shape: (2) the rows Type drew are dropped with their regions, and every row held is a region in the document (read ${JSON.stringify(gone)})`);
+        ok(errors.length === 0, `${where0} prism3: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+      } catch (e) {
+        ok(false, `${where0} prism3: the case stopped at "${step}" — ${stopped(e)}`);
+      } finally { await ctx.close(); }
+    }
+  }
+}
+// =============================================================================================
+// 43. #2451 (owner decision RS1 A, 2026-10-10): the three refusals that said their reason only in `title` draw it as a
+//     hint line under their chips, only while the chip is refused, and that line describes the chips' group, as Type
+//     scale's reasons do (§42 arm 1). Both hosts, light, at 1280 and 380, prism3, Type with Show advanced open. Each case:
+//     the state set up through the UI, then (i) a line under the group's chips, drawn, saying the approved sentence word
+//     for word; (ii) the group's description in the accessibility tree (CDP `Accessibility.getPartialAXTree`, never the
+//     attribute) contains it; (iii) no live region carries it, since a hint is never announced (Q184 B; only warnings
+//     are); (iv) with the refusal lifted, no such line is drawn and the description no longer says it.
+//   · Title floor 16px under Compact (S63.titleFloorCompact): Type scale on Compact; lifted by Type scale Default.
+//   · Title floor 18px while title 2xs is set individually (S63.titleFloorPinned): Expressive, title floor 16px, then
+//     title 2xs's desktop size set to its first free value; lifted by resetting that size.
+//   · Italic only on a text type that pins a font style (S63.italicPinned): body's default weight pinned to "Medium";
+//     lifted by clearing the pin.
+//
+// INDEPENDENCE (docs/34). EXPECTED is typed here: the three approved sentences, copied from the owner-approved strings
+// (S63.titleFloorCompact, S63.titleFloorPinned, S63.italicPinned), and which chip each case refuses, worked out by hand
+// from the issue. ACTUAL is the browser's: the drawn paragraphs and their boxes, the accessibility tree, and every live
+// region in the document. The line is found by its words inside the row, never through `aria-describedby` or an id, so
+// an unlinked line still reads as drawn and fails only the description arm. The live-region arm is read with the line
+// proven drawn in the same state, and the lifted arm through `hooks.absent` with the line proven seen, so neither
+// passes on a line that was never there (shape 4). Nothing is read from `type.ts` or `lever-kit.ts`.
+//
+// Mutations (#2451), each after a `wip:` commit, on both rebuilt bundles, each failing here by name on both hosts at both
+// widths (web 1280 shown), none outside this section:
+//   · (a) the line not drawn → `§43 web light 1280 Title floor 16px under Compact: (i) the reason is drawn as one line under
+//     the chips, … (read {"group":true,"lines":0,"drawn":0,"live":0})`, with (ii), (iii) and (iv) NOT MEASURED, every case (48);
+//   · (b) the line not linked (no `reasonId`) → `§43 web light 1280 Title floor 16px under Compact: (ii) the chips' group is
+//     described by the reason (read {"role":"radiogroup","description":""})`, and each other case's (ii) (12);
+//   · (c) the line sent to the live region (drawn as a warning) → `§43 web light 1280 Title floor 16px under Compact: (iii) a
+//     hint doesn't announce: the drawn reason is in no live region (drawn 1, 1 live region(s) carrying it)`, each case (12).
+// =============================================================================================
+console.log(`\nRefusal reasons drawn as hint lines: Title floor and Italic only (#2451)\n${'='.repeat(78)}`);
+{
+  const COMPACT = 'The Compact scale already places a title at 16px, so the engine refuses 16px with it.';
+  const PINNED18 = 'Leaves out title 2xs, which you set individually.';
+  const ITALIC = 'This text type pins a font style. Clear the pin first: Italic only sets the style from the weight.';
+  const FLOOR_ROW = '[data-p3="lever-typography-title-floor"]';
+  const FLOOR_GROUP = '[data-p3="title-floor"]';
+  const ITALIC_ROW = '[data-p3="italic-row"][data-group="body"]';
+  const ITALIC_GROUP = '[data-p3="italic-row"][data-group="body"] [data-p3="italic-choice"]';
+  const PIN = '[data-p3="pin-cut-row"][data-cat="body"][data-role="default"] [data-p3="pin-cut-input"]';
+  const T2XS = '[data-p3="type-size-desktop"][data-group="title"][data-variant="2xs"]';
+  const BOUND = { timeout: 10000 };
+  /** The group's description as the browser computes it. */
+  const descOf = async (page, sel) => {
+    const cdp = await page.context().newCDPSession(page);
+    try {
+      await cdp.send('DOM.enable');
+      await cdp.send('Accessibility.enable');
+      const { root } = await cdp.send('DOM.getDocument', { depth: 0 });
+      const { nodeId } = await cdp.send('DOM.querySelector', { nodeId: root.nodeId, selector: sel });
+      const node = nodeId ? (await cdp.send('Accessibility.getPartialAXTree', { nodeId, fetchRelatives: false })).nodes[0] : null;
+      return node ? { role: node.role?.value ?? null, description: node.description?.value ?? '' } : null;
+    } finally { await cdp.detach(); }
+  };
+  /** In the row: the paragraphs that say `words` and are drawn under the group's chips; and every live region carrying them. */
+  const lineOf = (page, row, group, words) => page.evaluate(([r, g, w]) => {
+    const grp = document.querySelector(g);
+    const gb = grp?.getBoundingClientRect();
+    const lines = [...(document.querySelector(r)?.querySelectorAll('p') ?? [])].filter((p) => (p.textContent ?? '').trim() === w);
+    const drawn = lines.filter((p) => { const b = p.getBoundingClientRect(); return b.width > 0 && b.height > 0 && !!gb && b.top >= gb.bottom - 0.5; });
+    const live = [...document.querySelectorAll('[aria-live], [role="status"], [role="alert"], [role="log"], output')]
+      .filter((e) => (e.getAttribute('aria-live') ?? '') !== 'off' && (e.textContent ?? '').includes(w)).length;
+    return { group: !!grp, lines: lines.length, drawn: drawn.length, live };
+  }, [row, group, words]);
+  const firstFree = (page) => page.evaluate(() => document.querySelector('[data-p3="value-picker"] [data-p3="value-picker-value"]:not([aria-disabled="true"]):not([aria-pressed="true"])')?.getAttribute('data-value') ?? null);
+  const closePicker = async (page) => {
+    if (await page.locator('[data-p3="value-picker-close"]').count()) await hooks.click(page.locator('[data-p3="value-picker-close"]'), BOUND);
+    await page.waitForFunction(() => !document.querySelector('[data-p3="value-picker"]'), null, BOUND).catch(() => {});
+  };
+  const chipOff = (page, sel, want) => page.waitForFunction(([s, x]) => document.querySelector(s)?.disabled === x, [sel, want], BOUND).catch(() => {});
+  const checked = (page, sel) => page.waitForFunction((s) => document.querySelector(s)?.getAttribute('aria-checked') === 'true', sel, BOUND).catch(() => {});
+  for (const host of ['web', 'figma']) for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 800 }]) {
+    const where = `§43 ${host} light ${w}`;
+    const { ctx, page, errors } = await open({ host, theme: 'light', w, h });
+    let step = 'open Type';
+    /** The four arms for one refusal, read with it showing; then `lift` and the line's absence. */
+    const arms = async (name, row, group, words, lift) => {
+      await settle(page);
+      const on = await lineOf(page, row, group, words);
+      ok(on.drawn === 1, `${where} ${name}: (i) the reason is drawn as one line under the chips, "${words}" (read ${JSON.stringify(on)})`);
+      const ax = await descOf(page, group);
+      ok(!!ax && ax.description.includes(words), `${where} ${name}: (ii) the chips' group is described by the reason (read ${JSON.stringify(ax)})`);
+      ok(on.drawn === 1 && on.live === 0, `${where} ${name}: (iii) a hint doesn't announce: the drawn reason is in no live region (drawn ${on.drawn}, ${on.live} live region(s) carrying it)`);
+      step = `${name}: lift the refusal`;
+      await lift();
+      await settle(page);
+      const off = await lineOf(page, row, group, words);
+      const ax2 = await descOf(page, group);
+      hooks.absent(ok, { seen: on.drawn === 1, state: `the "${name}" reason drawn` }, off.group && off.lines === 0 && !!ax2 && !ax2.description.includes(words),
+        `${where} ${name}: (iv) with the refusal lifted, the line is gone and the group's description no longer says it (read ${JSON.stringify(off)}, ${JSON.stringify(ax2)})`);
+    };
+    try {
+      await goPlace(page, 'type');
+      step = 'open Show advanced'; await openTypeAdvanced(page);
+      await hooks.need(page, FLOOR_GROUP);
+      // Title floor 16px under Compact.
+      step = 'Type scale Compact';
+      await hooks.click(page.locator('[data-p3="type-scale-compact"]'), BOUND);
+      await checked(page, '[data-p3="type-scale-compact"]');
+      await chipOff(page, '[data-p3="title-floor-16"]', true);
+      await arms('Title floor 16px under Compact', FLOOR_ROW, FLOOR_GROUP, COMPACT, async () => {
+        await hooks.click(page.locator('[data-p3="type-scale-default"]'), BOUND);
+        await checked(page, '[data-p3="type-scale-default"]');
+        await chipOff(page, '[data-p3="title-floor-16"]', false);
+      });
+      // Title floor 18px while title 2xs is set individually.
+      step = 'Expressive, title floor 16px';
+      await hooks.click(page.locator('[data-p3="type-scale-expressive"]'), BOUND);
+      await checked(page, '[data-p3="type-scale-expressive"]');
+      await hooks.click(page.locator('[data-p3="title-floor-16"]'), BOUND);
+      await checked(page, '[data-p3="title-floor-16"]');
+      step = 'set title 2xs';
+      await hooks.click(page.locator(T2XS), BOUND);
+      await hooks.need(page, '[data-p3="value-picker"]', BOUND);
+      const to = await firstFree(page);
+      await hooks.click(page.locator(`[data-p3="value-picker"] [data-p3="value-picker-value"][data-value="${to}"]`), BOUND);
+      await closePicker(page);
+      await chipOff(page, '[data-p3="title-floor-18"]', true);
+      await arms(`Title floor 18px with title 2xs set (${to}px)`, FLOOR_ROW, FLOOR_GROUP, PINNED18, async () => {
+        await hooks.click(page.locator(T2XS), BOUND);
+        await hooks.click(page.locator('[data-p3="value-picker"] [data-p3="value-picker-reset"]'), BOUND);
+        await closePicker(page);
+        await chipOff(page, '[data-p3="title-floor-18"]', false);
+      });
+      // Italic only on a text type that pins a font style.
+      step = 'pin body\'s font style';
+      await hooks.need(page, PIN, BOUND);
+      await page.locator(PIN).fill('Medium');
+      await page.locator(PIN).evaluate((e) => e.blur());
+      await chipOff(page, `${ITALIC_ROW} [data-p3="italic-choice-only"]`, true);
+      await arms('Italic only with a pinned font style', ITALIC_ROW, ITALIC_GROUP, ITALIC, async () => {
+        await page.locator(PIN).fill('');
+        await page.locator(PIN).evaluate((e) => e.blur());
+        await chipOff(page, `${ITALIC_ROW} [data-p3="italic-choice-only"]`, false);
+      });
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
     } finally { await ctx.close(); }
   }
 }

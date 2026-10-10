@@ -814,14 +814,25 @@ const memberAxisLists = (set: CompSet): string[][] => {
  */
 export const SET_GAP = 160;
 
-/** A top-level node's box on a page, as `placeNewSet` reads it. */
-export type PageBox = { type?: string; x: number; y: number; width: number; height: number };
+/** A top-level node's box on a page, as `placeNewSet` reads it. `header` marks the page's section header. */
+export type PageBox = { type?: string; x: number; y: number; width: number; height: number; header?: boolean };
+
+/**
+ * THE PAGE HEADER, AS PLACEMENT SEES IT (#2405). `page-header.ts` owns the header; these two restate its set
+ * name and its gap rather than importing them, because a value import from here pulls that module into the
+ * executor's import walk (`lint-executor-revision.ts`) and every later edit to it would then need a bump.
+ * `test-page-header.ts` holds the two copies equal.
+ */
+export const PAGE_HEADER_NAME = '_section-header';
+export const PAGE_HEADER_GAP = 80;
 
 /** The boxes of a page's top-level nodes, VISIBLE OR NOT: a hidden node is still somewhere a set could be
- *  dropped on top of, and showing it again would reveal the overlap. */
+ *  dropped on top of, and showing it again would reveal the overlap. The header is found by name, in any case,
+ *  as an instance or a detached frame: an instance of a variant carries its set's name. */
 const pageBoxes = (page: CompPageTarget): PageBox[] =>
-  ((page.children ?? []) as { type?: string; x?: number; y?: number; width?: number; height?: number }[]).map((n) => ({
+  ((page.children ?? []) as { type?: string; name?: string; x?: number; y?: number; width?: number; height?: number }[]).map((n) => ({
     type: n.type, x: n.x ?? 0, y: n.y ?? 0, width: n.width ?? 0, height: n.height ?? 0,
+    header: (n.type === 'INSTANCE' || n.type === 'FRAME') && typeof n.name === 'string' && n.name.toLowerCase() === PAGE_HEADER_NAME,
   }));
 
 /**
@@ -836,14 +847,29 @@ const pageBoxes = (page: CompPageTarget): PageBox[] =>
  * read left to right in the order they were built — which is the taxonomy's order (`file-taxonomy.ts`)
  * whenever a family is built as one run (dependencies first) or in the order the page lists them.
  *
- * `y` is the top of the existing COMPONENT_SETs, or of all content when the page has no set yet.
+ * `y` is the top of the existing COMPONENT_SETs; on a page with no set yet, the header's bottom plus
+ * `PAGE_HEADER_GAP` when it has a header (below), else the top of all content.
+ *
+ * BELOW THE HEADER WHEN THE PAGE HAS NO SET YET (#2405). A page whose sets were deleted and rebuilt keeps its
+ * header, and the header is not content to sit beside: measured as content, it put the first rebuilt set
+ * `SET_GAP` right of the header, and its siblings beside that. So on a page with a header and no set, the set
+ * goes where the first build put it relative to the header: its top `PAGE_HEADER_GAP` below the header's
+ * bottom, on the header's left edge. Any other node in that band (a stray note, a frame) pushes it right by
+ * the same row rule, but it stays below the header and never takes a stray node's `y`. Its siblings then
+ * top-align with it, as on a fresh page.
  *
  * A SET THAT ALREADY EXISTS IS NEVER PASSED HERE: a rebuild keeps the set a designer may have moved, the
  * "designer's placement wins" rule `page-header.ts` follows for the header.
  */
 export const placeNewSet = (existing: readonly PageBox[], height: number): { x: number; y: number } | null => {
   if (existing.length === 0) return null;
-  const sets = existing.filter((b) => b.type === 'COMPONENT_SET');
+  const sets = existing.filter((b) => !b.header && b.type === 'COMPONENT_SET');
+  const h = existing.find((b) => b.header);
+  if (h && sets.length === 0) {
+    const y = h.y + h.height + PAGE_HEADER_GAP;
+    const band = existing.filter((b) => b.y < y + height && b.y + b.height > y);
+    return { x: Math.max(h.x, ...band.map((b) => b.x + b.width + SET_GAP)), y };
+  }
   const y = Math.min(...(sets.length ? sets : existing).map((b) => b.y));
   const band = existing.filter((b) => b.y < y + height && b.y + b.height > y);
   // An empty band happens only when every node there has zero height; then everything counts.
@@ -963,8 +989,9 @@ const boundGradient = (arr: unknown, stops: number): boolean => {
     && first.gradientStops.every((s) => !!s.boundVariables?.color));
 };
 
-/** The colour a bound gradient stop carries beneath its binding — the gradient twin of the solid path's
- *  `{ r: 0, g: 0, b: 0 }`: required by the host, overridden by the variable, never what renders. */
+/** The colour a bound gradient stop carries beneath its binding where its variable resolves to nothing here — the
+ *  gradient twin of the solid path's black. Not overridden by the variable: the host DRAWS a stop's stored color
+ *  (#2391), so a stop whose variable resolves takes that color instead. */
 const GRADIENT_STOP_PLACEHOLDER: Rgba = { r: 0, g: 0, b: 0, a: 1 };
 
 /** Is `node` INSIDE a nested instance, walking ancestors up to (not including) `stop`? A node whose
@@ -1777,13 +1804,18 @@ const writeComponentSet = async (
       // import's own 24px) and BEFORE the bind loop below (this node binds no dimension, so the resize is
       // never cleared). The outline's SCALE constraints, just set, scale the drawn grid to fill it. Twin of
       // the `figma_execute` payload's own glyph resize (`anatomy-figma.ts`).
-      if (n.glyphPx) node.resize?.(n.glyphPx, n.glyphPx);
     } else {
       node = ex ?? wr(api.createFrame());
       // THREADED FROM THE PLAN (#1316), default false — unchanged for every existing box, which omits the
       // field. Only `image-placeholder`'s frame opts into clipping, so a dropped photo cannot overflow it.
       if (!kept) node.clipsContent = n.clipsContent ?? false;
     }
+    // THE LITERAL GLYPH SIZE (#1340), for a glyph and, since #2380, for the icon INSTANCE an icon-set glyph
+    // builds as (image-placeholder's 180px marker). Neither binds a `size` variable, so each stays at its 24px
+    // artboard unless resized here, BEFORE the bind loop (no dimension is bound, so nothing clears it). A
+    // glyph's outline carries SCALE constraints (set above); an icon component's does too, from its own build,
+    // so the drawn grid fills the resized box either way. Twin of the paste payload's own resize.
+    if (n.glyphPx && !kept) node.resize?.(n.glyphPx, n.glyphPx);
     // LOOSE FROM THE MOMENT IT EXISTS (#913), one line for all six creation branches above. Figma parents
     // a created node to the current page immediately, so a node that exists is a node a designer can see —
     // and every line below this one can throw. A node the file already held is not loose: it is where it was.
@@ -1988,14 +2020,26 @@ const writeComponentSet = async (
         else if (node.type !== 'TEXT') node.fills = [];
       }
       // A GRADIENT FILL (#1318) — the veil's directional washes. Each stop is bound through the Paint Style
-      // executor's own binder, onto the stop (`setBoundVariableForPaint` takes only a solid). The stop colour
-      // is a placeholder the variable overrides, like the solid path's black, so a stop whose variable the
-      // file lacks leaves the node CLEAR rather than half a gradient in placeholder black — #1387's rule for
+      // executor's own binder, onto the stop (`setBoundVariableForPaint` takes only a solid). A stop whose
+      // variable the file lacks leaves the node CLEAR rather than half a gradient in placeholder black — #1387's rule for
       // an unresolvable fill. The miss strings are the paste payload's, byte for byte (the parity gate).
+      // EACH STOP'S BASE IS ITS VARIABLE'S OWN COLOR for this node, alpha included (#2391, #2379's method for the solid
+      // paint): the host draws a stop's STORED color, and in place it kept the placeholder, so the NB master's directional
+      // veils drew solid black under intact bindings. A stop carries its alpha in its color, not as a paint opacity.
+      // The placeholder only where nothing resolves.
+      const stopBase = (name: string | null): Rgba => {
+        const v = name ? byName.get(name) : undefined;
+        try {
+          const rv = (v as { resolveForConsumer?(n: unknown): { value: unknown } } | undefined)?.resolveForConsumer?.(node)?.value as { r?: unknown; g?: unknown; b?: unknown; a?: unknown } | undefined;
+          if (rv && typeof rv.r === 'number' && typeof rv.g === 'number' && typeof rv.b === 'number')
+            return { r: rv.r, g: rv.g, b: rv.b, a: typeof rv.a === 'number' ? rv.a : 1 };
+        } catch { /* unresolvable here: the placeholder */ }
+        return GRADIENT_STOP_PLACEHOLDER;
+      };
       let paintedGradient = false;
       if (n.gradientFill) {
         const res = bindGradientStops(
-          n.gradientFill.stops.map((s) => ({ position: s.position, color: GRADIENT_STOP_PLACEHOLDER, alias: s.variable })),
+          n.gradientFill.stops.map((s) => ({ position: s.position, color: stopBase(s.variable), alias: s.variable })),
           byName,
           (v) => api.variables.createVariableAlias(v),
           (name) => misses.push(`${n.name}.fills -> ${name}`),
@@ -2066,6 +2110,7 @@ const writeComponentSet = async (
     const absolutes: [FigmaNodePlan, Wr][] = [];
     const centered: [FigmaNodePlan, Wr][] = [];
     const pinned: [FigmaNodePlan, Wr][] = [];
+    const insets: [FigmaNodePlan, Wr][] = [];
     // This parent's DIRECT children by part name (#848) — the sibling boxes `absoluteCenterOn` measures
     // against. Sibling-scoped on purpose; see the centering loop for why the wider `parts` map is wrong.
     const byPart = new Map<string, Wr>();
@@ -2112,6 +2157,7 @@ const writeComponentSet = async (
       // A PINNED child (#1667) leaves the flow the moment it is appended, so it never counts in the hug and
       // the width it is placed against below is final. See the pinned pass.
       if (c.pin) { kid.layoutPositioning = 'ABSOLUTE'; pinned.push([c, kid]); }
+      if (c.glyphInset) insets.push([c, kid]);
       // Written straight rather than bound: a brand does not get to theme a label under a spinner to
       // half-visible. `visible:false` would yield the cell and collapse the button.
       if (c.zeroOpacity) kid.opacity = 0;
@@ -2186,7 +2232,10 @@ const writeComponentSet = async (
         kid.x = ((node.width ?? 0) - (kid.width ?? 0)) / 2;
         kid.y = ((node.height ?? 0) - (kid.height ?? 0)) / 2;
       }
-      kid.constraints = { horizontal: 'CENTER', vertical: 'CENTER' };
+      // A glyph that scales with its aspect-locked parent (#2345, `absoluteScale`) takes SCALE, so it keeps its
+      // FRACTION of the frame when an instance is resized. Lockstep with the paste executor.
+      const k = c.absoluteScale ? 'SCALE' : 'CENTER';
+      kid.constraints = { horizontal: k, vertical: k };
       // READ BACK: a centered child that quietly stayed in the flow ADDS a cell, which is the precise
       // defect this mechanism exists to prevent.
       if (kid.layoutPositioning !== 'ABSOLUTE')
@@ -2313,6 +2362,22 @@ const writeComponentSet = async (
     // else was declared. Placed after the child loop rather than beside `createFrame()` so that a value
     // the plan set is never overwritten by a default — the ordering is the whole correctness argument,
     // and putting it at creation time would have neutralized the plan instead of Figma.
+    // THE INSET ICON (#2380, #1346): checkbox's check and dash, an instance of `icon/check` / `icon/minus` at
+    // `glyphInset` of the frame that holds it. Placed after the flow pass, on the frame's own bound box, and
+    // given SCALE constraints so the brand or a mode resizing that box scales the icon with it — the inset
+    // stays a fraction of the box rather than freezing at the px it was built at. Read back against the box,
+    // since a resize an instance refused would leave the icon at its own 24px. Twin of the paste payload's.
+    for (const [c, kid] of insets) {
+      const s = c.glyphInset!;
+      const w = node.width ?? 0;
+      const h = node.height ?? 0;
+      kid.resize?.(w * s, h * s);
+      kid.x = (w * (1 - s)) / 2;
+      kid.y = (h * (1 - s)) / 2;
+      kid.constraints = { horizontal: 'SCALE', vertical: 'SCALE' };
+      if (Math.abs((kid.width ?? 0) - w * s) > 0.01 || Math.abs((kid.height ?? 0) - h * s) > 0.01)
+        misses.push(`${c.name}.glyphInset -> DISCARDED (set ${w * s}x${h * s}, ${s} of the ${w}x${h} box; reads ${String(kid.width)}x${String(kid.height)})`);
+    }
     if (!kept) claimDefaults(node, n, misses, 'created', undefined, !!ex && path === '.');
     // #1567 — RE-APPLY THE TEXT STYLE, BECAUSE `claimDefaults` ABOVE JUST DETACHED IT.
     //

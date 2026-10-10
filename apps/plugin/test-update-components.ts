@@ -54,6 +54,11 @@
  *                  matched over a stamped member on its coordinate (#2283, §10 Q4). Mutations: unstamped members
  *                  counted as drops again → `unstamped/not a drop`; collapse not filtered → `unstamped/no collapse`;
  *                  the stamped member not preferred → `unstamped/stamped wins`.
+ *   converged/…    a set whose only non-current members are not built by Prism3 has no changes (#2464): the
+ *                  headline reads up to date and the set line still counts them; with a real change beside them
+ *                  it still counts. But members Adopt could claim (on planned coordinates) read "no changes", never
+ *                  up to date (owner Q191 2B). Mutations: unstamped left out of `noChanges` → `converged/headline`,
+ *                  `converged/set line`; the adoptable check dropped from `upToDate` → `converged/adoptable`.
  *   adopt/…        the one-time Adopt records and stamps only an unstamped member on a planned coordinate no
  *                  stamped member holds; it then reads update, never current, and its node is the same node.
  *                  Mutations: Adopt stamps with the plan's own stamp → `adopt/reads update`; the stamp written
@@ -104,7 +109,7 @@ import {
   readSetView, dryRunSet, hostPorts, previewUpdate, captureBaselines, previewVerdict, captureVerdictText,
   adoptMembers, adoptVerdictText, ADOPTED,
   previewLine,
-  type HostSetView, type HostMember, type UpdateHost, type SetPreview,
+  type HostSetView, type HostMember, type UpdateHost, type SetPreview, type UpdatePreview,
 } from './src/update-plan';
 
 let failed = 0;
@@ -133,12 +138,13 @@ const planComps = (n: { swapTarget?: string; nestTarget?: string; children?: unk
 /** A fresh file holding one set, built by the executor. Every name the plans reach for is in the file. */
 const build = async (id: string, plans = plansOf(id)): Promise<Built> => {
   const page: Page = { children: [] };
+  const comps = [...new Set([SWAP_TARGET, 'focus-ring', ...plans.flatMap((p) => planComps(p.root))])];
   const shim = makeShim({
     // `space/0` is in no plan: it is the variable the hand edits below bind to.
     vars: [...new Set([...plans.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]), 'space/0'])],
     styles: [...new Set(plans.flatMap((p) => planTextStyles(p.root)))],
     effects: [...new Set(plans.flatMap((p) => planEffectStyles(p.root)))],
-    comps: [...new Set([SWAP_TARGET, 'focus-ring', ...plans.flatMap((p) => planComps(p.root))])],
+    comps,
     page,
     liveRoot: true,
     // Node ids, so Adopt and the capture can be held to writing by id (#2301).
@@ -152,10 +158,17 @@ const build = async (id: string, plans = plansOf(id)): Promise<Built> => {
   const set = page.children.find((n) => n.type === 'COMPONENT_SET') as Node;
   // The shim's criteria search answers the EXECUTOR's lookup with name-only references (#681), which is
   // the question that search is modeled for. The update reads the sets themselves, as Figma returns them,
-  // so this host's search hands back the page's live nodes; the catalogues stay the shim's.
+  // so this host's search hands back the page's live nodes; the catalogues stay the shim's. The components the
+  // build nested (`focus-ring`, the `icon/*` glyphs, #2380) are in the file too, as a COMPONENT search finds them:
+  // the dry run refuses a set whose nested components are absent.
   const host = {
     ...shim,
-    root: { findAllWithCriteria: (c: { types: string[] }) => page.children.filter((n) => c.types.includes(String(n.type))) },
+    root: {
+      findAllWithCriteria: (c: { types: string[] }) => [
+        ...page.children.filter((n) => c.types.includes(String(n.type))),
+        ...(c.types.includes('COMPONENT') ? comps.map((name) => ({ name, type: 'COMPONENT' })) : []),
+      ],
+    },
   };
   // `raw` is the shim as the executor sees it, for a second build into the same file.
   return { shim: host, raw: shim, page, set, plans, ports: await hostPorts(host) };
@@ -652,6 +665,44 @@ section('unstamped — a member Prism3 did not build is skipped, never a drop (#
     `unstamped/stamped wins: on a shared coordinate Prism3's member is the match and the designer's is skipped (${r.counts.current}, ${JSON.stringify(r.drops)}, ${JSON.stringify(r.unstamped)})`);
 }
 
+/* ── converged ─────────────────────────────────────────────────────────────────────────────────────── */
+section('converged — a set whose only non-current members are not built by Prism3 reads up to date (#2464)');
+{
+  // #2464's reproduction: the NB master's `icon` set, after a full apply, held only current Prism3 members and the
+  // owner's own hand-added icons (unstamped), and the headline still read "Would change 1 of 24". Here: TAG as
+  // built (45 current) plus two members Prism3 did not build, off the plan, beside a second set left untouched.
+  const b = await build(TAG);
+  const view = await readSetView(b.set as any);
+  const hand = (from: HostMember, name: string, id: string): HostMember => ({ ...from, id, name, stamp: '', baseline: null });
+  const owned = withMembers(view, (ms) => [...ms, hand(ms[0], setValue(ms[0].name, 'size', 'huge'), 'hand:1'), hand(ms[1], setValue(ms[1].name, 'size', 'giant'), 'hand:2')]);
+  const p = dryRunSet(TAG, b.plans, owned, b.ports);
+  ok(p.counts.current === 45 && p.counts.unstamped === 2 && p.counts.members === 47 && p.changes.length === 0 && !p.blockers.length,
+    `premise: 45 current, 2 not built by Prism3, no change listed (${JSON.stringify(p.counts)}, ${p.changes.length} changes)`);
+  const both: UpdatePreview = { sets: [p, dryRunSet(TAG, b.plans, view, b.ports)], missing: [], refused: [] };
+  const v = previewVerdict(both);
+  // The headline words are the existing ones, typed here; #2464 changes which sets reach them, not the words.
+  ok(v.ok && v.headline === '✓ All sets up to date', `converged/headline: a file whose only non-current members are not built by Prism3 reads "✓ All sets up to date" (got "${v.headline}")`);
+  ok(v.lines[0] === 'tag: up to date (47 members). 2 not built by Prism3, left as they are.',
+    `converged/set line: the set reads up to date and still counts the 2 not built by Prism3 (got "${v.lines[0]}")`);
+  // With a real change beside them, the set still counts: the content gap moved on every member.
+  const next = (b.plans.map((x) => JSON.parse(JSON.stringify(x))) as AnatomyPlan[]);
+  for (const x of next) (planChild(x.root, 'content').bound as Record<string, string>).itemSpacing = 'space/999';
+  const q = dryRunSet(TAG, next, owned, b.ports);
+  const w = previewVerdict({ sets: [q], missing: [], refused: [] });
+  ok(q.counts.update === 45 && q.counts.unstamped === 2 && w.headline === 'Would change 1 of 1' && /2 not built by Prism3/.test(w.lines[0]),
+    `converged/real change: with a real change beside the 2 not built by Prism3, the set still counts (${w.headline}; ${w.lines[0]})`);
+  // ADOPTABLE (owner decision Q191 2B): members not built by Prism3 that sit on PLANNED coordinates are ones Adopt
+  // could claim, so the set reads "no changes" and says so, never up to date. Here two of TAG's own members lose
+  // their stamp and record, so each holds its planned coordinate with no Prism3 member beside it.
+  const claim = withMembers(view, (ms) => ms.map((m, i) => (i === 3 || i === 7 ? { ...m, stamp: '', baseline: null } : m)));
+  const a = dryRunSet(TAG, b.plans, claim, b.ports);
+  ok(a.counts.current === 43 && a.counts.unstamped === 2 && a.adoptable.length === 2 && a.counts.add === 0 && a.changes.length === 0,
+    `premise: 43 current and 2 not built by Prism3 on planned coordinates, both adoptable, nothing to add (${JSON.stringify(a.counts)}, ${a.adoptable.length} adoptable)`);
+  const av = previewVerdict({ sets: [a], missing: [], refused: [] });
+  ok(av.headline === '✓ No changes found' && av.lines[0] === 'tag: no changes (45 members). 2 not built by Prism3, left as they are. Adopt can claim them.',
+    `converged/adoptable: a set whose only other members Adopt could claim reads "no changes" and names them, never up to date (${av.headline}; ${av.lines[0]})`);
+}
+
 /* ── adopt ───────────────────────────────────────────────────────────────────────────────────────────── */
 section('adopt — the one-time claim of members Prism3 did not build (#2283, §10 Q4)');
 {
@@ -794,7 +845,7 @@ section('differ — a member that differs from its plan is reported by part and 
   const b = await build(IMG);
   for (const m of membersOf(b.set)) (m.setSharedPluginData as (ns: string, k: string, v: string) => void)(NS, BASELINE_KEY, '');
   const cap = (await captureBaselines(b.shim, [{ def: IMG, plans: b.plans }])).sets[0];
-  ok(cap.recorded === 3 && cap.skipped.length === 0, `differ/image-placeholder: a fresh build's 3 members are recorded, none read as differing (${cap.recorded}, ${JSON.stringify(cap.skipped).slice(0, 200)})`);
+  ok(cap.recorded === 7 && cap.skipped.length === 0, `differ/image-placeholder: a fresh build's 7 members (#2345) are recorded, none read as differing (${cap.recorded}, ${JSON.stringify(cap.skipped).slice(0, 200)})`);
 }
 {
   const b = await build(TAG);

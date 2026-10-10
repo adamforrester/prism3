@@ -752,9 +752,30 @@ export const previewUpdate = async (host: UpdateHost, targets: readonly UpdateTa
     const v = await locateView(host, t, breathe, ports.drawVars);
     if (v.kind === 'missing') { out.missing.push(t.def); continue; }
     if (v.kind === 'refused') { out.refused.push({ def: t.def, reason: v.reason }); continue; }
-    out.sets.push(dryRunSet(t.def, t.plans, v.view, ports, ledger));
+    const preview = dryRunSet(t.def, t.plans, v.view, ports, ledger);
+    // A NESTED COMPONENT THE FILE DOES NOT HAVE (#2380). Since every icon-set glyph is an instance of
+    // `icon/<glyph>`, an update can need a component the file was built without — an older field-message
+    // drew its glyphs inline. The executor would report a miss for each and leave the old glyph where it
+    // was, so the set is refused here instead, naming what to build first. The build path pre-builds these
+    // (`prebuildDependencies`); an update does not build other components.
+    const absent = absentNests(host, t.plans);
+    if (absent.length) preview.blockers.push(`Not in this file: ${absent.join(', ')}. Build ${[...new Set(absent.map((a) => a.split('/')[0]))].join(', ')} first, then run the update again`);
+    out.sets.push(preview);
   }
   return out;
+};
+
+/** The components the plans nest that no COMPONENT or COMPONENT_SET in the file is named (#2380). */
+const absentNests = (host: UpdateHost, plans: readonly AnatomyPlan[]): string[] => {
+  const want = new Set<string>();
+  const walk = (n: { nestTarget?: string; children?: readonly unknown[] }): void => {
+    if (n.nestTarget) want.add(n.nestTarget);
+    for (const c of (n.children ?? []) as { nestTarget?: string; children?: readonly unknown[] }[]) walk(c);
+  };
+  for (const p of plans) walk(p.root);
+  if (!want.size) return [];
+  const have = new Set(host.root.findAllWithCriteria({ types: ['COMPONENT', 'COMPONENT_SET'] }).map((n) => String((n as { name?: unknown }).name ?? '')));
+  return [...want].filter((w) => !have.has(w)).sort();
 };
 
 export type CaptureResult = { sets: { def: string; set: string; recorded: number; skipped: { member: string; reason: string; differences?: Difference[] }[] }[]; missing: string[]; refused: { def: string; reason: string }[] };
@@ -803,10 +824,15 @@ const propChanges = (p: SetPreview): number => Object.values(p.properties).reduc
 /** Nothing an update would change: every member current or from an earlier plugin, nothing to add, and the
  *  set's properties as planned. A member from an earlier plugin (`revisionUnknown`) matches its plan and has no
  *  hand edit. Its stamp just predates the executor revision, so it can't say which executor wrote it. That is
- *  not a difference (owner decision Q91 B, #2282), and the verdict flags those members on a line of their own. */
-const noChanges = (p: SetPreview): boolean => p.counts.current + p.counts.revisionUnknown === p.counts.members && !p.counts.add && !propChanges(p);
-/** No changes, and every member current. */
-const upToDate = (p: SetPreview): boolean => noChanges(p) && !p.counts.revisionUnknown;
+ *  not a difference (owner decision Q91 B, #2282), and the verdict flags those members on a line of their own.
+ *  Nor is a member NOT BUILT BY PRISM3 (`unstamped`, #2464): the update never touches it and lists no change for it
+ *  (the owner's own icons, #2325), so a set whose only other members are those reads as having no changes, and the
+ *  set's line still counts them. Counted as a change, a file holding them could never read up to date. */
+const noChanges = (p: SetPreview): boolean => p.counts.current + p.counts.revisionUnknown + p.counts.unstamped === p.counts.members && !p.counts.add && !propChanges(p);
+/** No changes, and every member current. A member not built by Prism3 that sits on a PLANNED coordinate is one Adopt
+ *  could claim (`adoptable`, #2283), so a set holding one reads "no changes", never up to date (owner decision Q191
+ *  2B). Off the plan (the owner's own icons, #2464), it doesn't stop a set reading up to date. */
+const upToDate = (p: SetPreview): boolean => noChanges(p) && !p.counts.revisionUnknown && !p.adoptable.length;
 
 /** How many named differences each set's lines carry, so a set that differs everywhere stays a few lines long. */
 export const DIFFERENCE_LINES = 8;
@@ -836,8 +862,13 @@ export const previewLine = (p: SetPreview): string => {
     c.unstamped ? `${c.unstamped} not built by Prism3` : '',
   ].filter(Boolean);
   if (propChanges(p)) parts.push(n(propChanges(p), 'property change'));
-  if (upToDate(p)) return `${p.set}: up to date (${n(c.members, 'member')}).`;
-  if (noChanges(p)) return `${p.set}: no changes (${n(c.members, 'member')}).`;
+  // DRAFT (#2464): the members not built by Prism3 stay counted on a set that reads up to date, as on any other.
+  const own = c.unstamped ? ` ${c.unstamped} not built by Prism3, left as they are.` : '';
+  // DRAFT (#2476, owner decision Q191 2B): on a set with no changes, the members Adopt could claim are named as such.
+  const k = p.adoptable.length;
+  const adopt = k ? ` Adopt can claim ${k === c.unstamped ? (k === 1 ? 'it' : 'them') : `${k} of them`}.` : '';
+  if (upToDate(p)) return `${p.set}: up to date (${n(c.members, 'member')}).${own}`;
+  if (noChanges(p)) return `${p.set}: no changes (${n(c.members, 'member')}).${own}${adopt}`;
   return `${p.set}: ${n(c.members, 'member')}. ${parts.join(', ')}.`;
 };
 
@@ -846,10 +877,13 @@ export const previewLine = (p: SetPreview): string => {
 export const previewVerdict = (r: UpdatePreview): { ok: boolean; headline: string; summary: string; lines: string[] } => {
   const changing = r.sets.filter((p) => !p.blockers.length && !noChanges(p)).length;
   const earlier = r.sets.filter((p) => !p.blockers.length).reduce((k, p) => k + p.counts.revisionUnknown, 0);
+  // A set with members Adopt could claim has no changes but is not up to date (Q191 2B), so the headline is the
+  // "no changes" one, the existing words.
+  const claimable = r.sets.some((p) => !p.blockers.length && p.adoptable.length);
   const blocked = r.sets.filter((p) => p.blockers.length).length + r.refused.length;
   const headline = r.sets.length + r.refused.length === 0 ? 'No sets to check'
     : blocked ? `✗ ${n(blocked, 'set')} can't be checked`
-      : changing ? `Would change ${changing} of ${r.sets.length}` : earlier ? '✓ No changes found' : '✓ All sets up to date';
+      : changing ? `Would change ${changing} of ${r.sets.length}` : earlier || claimable ? '✓ No changes found' : '✓ All sets up to date';
   const lines = [
     // Each set's line, then each field it differs from its plan in, NAMED (#2295): where, what, the plan's value and
     // the file's. `changes` is grouped by part, field and both values, so one engine change over 432 members is one

@@ -323,7 +323,7 @@ export const environmentProblems = async (): Promise<string[]> => {
 /** The artifact-count meta-check, taken from the drift gate's ALREADY-CAPTURED output rather than by
  *  running `regen.ts --check` a second time (it is among the slowest gates here). This is what
  *  buffering per gate buys — point 2 paying for itself. Mirrors `ci.yml`'s own step. */
-const EXPECTED_ARTIFACTS = 175;
+const EXPECTED_ARTIFACTS = 177;
 
 /* #775's window closed 2026-08-20 and the smoke suite gates in both CI and this runner, so the
  * date constant and its clock read are GONE rather than left at a passed date. They existed to stop
@@ -777,6 +777,12 @@ export const GATES: Gate[] = [
     id: 'lint-figma-descriptions',
     ciStep: 'Every Figma description is in the plugin register (#1623)',
     cmd: engine('lint-figma-descriptions.ts'),
+  },
+  {
+    // #2411 — reads the COMMITTED out/ files, so it needs no `after`.
+    id: 'lint-tool-neutral-prose',
+    ciStep: 'Consumer prose names no tool (#2411)',
+    cmd: engine('lint-tool-neutral-prose.ts'),
   },
   {
     // The FIRST gate outside `packages/engine/`, which is why `gateFilePattern` below now admits

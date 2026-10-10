@@ -371,7 +371,9 @@ jobs:
       # that answers the question. It is a CHARACTERIZATION gate: it pins the known #609 defect (three
       # of four modes invisible to a conforming consumer) so the gap cannot silently drift, and it
       # asserts the consumer config declares no custom code, since the cheapest way to make a future
-      # failure vanish is the exact move that would destroy the gate's meaning.
+      # failure vanish is the exact move that would destroy the gate's meaning. The same script then
+      # runs check-platforms.mjs (#2424): that stock config on CSS, SCSS, JS, Swift, Android XML and
+      # Compose, with literal values per brand and the per-platform x type verdicts pinned.
       - name: Consumability gate (a stock Style Dictionary over the emitted DTCG)
         run: npm run -w @prism3/tokens check:consumability
 
@@ -412,8 +414,8 @@ jobs:
           count=$(npx --yes tsx@4 packages/engine/regen.ts --check | grep -oE '[0-9]+ committed artifacts')
           echo "reported: $count"
           case "$count" in
-            "175 committed artifacts") echo "✓ full set covered" ;;
-            *) echo "✗ artifact coverage changed — expected 175. If the set legitimately grew or shrank, update this check in the same PR."; exit 1 ;;
+            "177 committed artifacts") echo "✓ full set covered" ;;
+            *) echo "✗ artifact coverage changed — expected 177. If the set legitimately grew or shrank, update this check in the same PR."; exit 1 ;;
           esac
 
       # The RUNNER's own checks, not a second run of the gates (#789). `verify.ts` is what a contributor
@@ -888,6 +890,16 @@ jobs:
       # Also: no DTCG description names Prism 2 or an issue. Every kind of Figma file is represented.
       - name: Every Figma description is in the plugin register (#1623)
         run: npx --yes tsx@4 packages/engine/lint-figma-descriptions.ts
+
+      # #2411 (owner Q167) — CONSUMER PROSE NAMES NO TOOL. Reads the committed out/ files: every DTCG
+      # $description (token, group, per mode), the decision record, the .ai.json guidance fields and the
+      # component docs and pages, against a word list TYPED in the gate (never imported from an emitter).
+      # Exempt by PATH, never by word: figma.*, out/figma/**, css, responsive.web, generator.*, and the
+      # surface-keyed modifiers.*. Also: no `note` key under any $extensions, and each gradient's
+      # a11y.clears.<ink> matches the worst case recomputed from its stops (#2422). Every promised field
+      # is represented in every brand and file, with floors.
+      - name: Consumer prose names no tool (#2411)
+        run: npx --yes tsx@4 packages/engine/lint-tool-neutral-prose.ts
 
       # THE SECOND DIRECTION (#865). Every write the component executor makes is verified by a read-back
       # — set the value, read it, report a miss if the host did not keep it. Nothing verified what it did

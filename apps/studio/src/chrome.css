@@ -366,10 +366,12 @@
 
 /* ── the two panes (shown from the first moved page, S2) ─────────────────────────────────── */
 /* The tab row and the preview's title row share ONE grid row (Q2), so the two dividers sit at one y
-   whatever either row holds. The sub-pages open the levers column under the line (Q1). */
+   whatever either row holds. The sub-pages open the levers column under the line (Q1). The bar's row is `max-content`
+   (#2105): an `auto` row gives way to the bar's own `min-height` when the window is short, and a bar on two or three
+   rows then drew over the notices under it. */
 .p3-frame[data-layout="panes"] {
   position: fixed; inset: 0; display: grid; grid-template-columns: 42% minmax(0, 1fr);
-  grid-template-rows: auto auto auto auto minmax(0, 1fr) auto;
+  grid-template-rows: max-content auto auto auto minmax(0, 1fr) auto;
   grid-template-areas: "bar bar" "notices notices" "nav phead" "subnav pbody" "levers pbody" "levers drawer";
 }
 .p3-frame[data-layout="panes"] :is(.p3-head, .p3-panes, .p3-preview) { display: contents; }
@@ -381,8 +383,10 @@
    padding to 16px, so all seven fit at 1280; narrower, the row scrolls sideways as before. */
 .p3-frame[data-layout="panes"][data-w="wide"] .p3-nav { padding: 0 var(--p3-space-200); gap: var(--p3-space-150); }
 .p3-frame[data-layout="panes"] .p3-nav .p3-tabs { gap: var(--p3-space-150); }
-.p3-frame[data-layout="panes"] .p3-subnav { grid-area: subnav; border-bottom: 0; }
-.p3-frame[data-layout="panes"] .p3-subnav .p3-seg { display: flex; width: 100%; }
+.p3-frame[data-layout="panes"] .p3-subnav { grid-area: subnav; min-width: 0; border-bottom: 0; }
+/* #1975: in the 42% column at 640 and 800 the three sub-pages do not fit one row. The row keeps to its column (it ran
+   under the preview, where a pointer could not reach Interactive) and a segment that does not fit wraps to a second line. */
+.p3-frame[data-layout="panes"] .p3-subnav .p3-seg { display: flex; flex-wrap: wrap; width: 100%; }
 .p3-levers {
   grid-area: levers; min-width: 0; min-height: 0; overflow: auto; background: var(--p3-levers-bg);
   border-right: var(--p3-bw-hairline) solid var(--p3-line-1);
@@ -414,6 +418,14 @@
 /* More modes than fit (S3 review): the select of the same modes instead, never a clipped radio (concept v6's
    slim preview). */
 .p3-modes-wrap[data-fit="select"] > .p3-modes, .p3-modes-wrap:not([data-fit="select"]) > .p3-modes-select { display: none; }
+/* #2383: the select is never narrower than its longest option, so the chosen mode's name is never cut (at 640 it read
+   "Lig", or nothing). A select at `width: 100%` gives no width of its own to its flex parent, so it shrank to its caret.
+   Where the title, the select and Inspect do not fit one row, the select takes its own row under the title and Inspect
+   stays on the title's row. `fit` in `shell/preview.ts` decides that and sets `data-row`. The title never truncates. */
+.p3-modes-wrap[data-fit="select"], .p3-modes-wrap[data-fit="select"] > .p3-modes-select { flex: none; }
+.p3-modes-select > .p3-select { width: auto; }
+.p3-preview-head:has(> .p3-modes-wrap[data-row="own"]) { flex-wrap: wrap; row-gap: var(--p3-space-100); padding-block: var(--p3-space-100); }
+.p3-modes-wrap[data-row="own"] { order: 1; flex-basis: 100%; }
 .p3-mode { flex: none; gap: var(--p3-space-075); padding: 0 var(--p3-space-150); }
 .p3-mode[data-derived="true"]:not([aria-checked="true"]) {
   background-image: repeating-linear-gradient(135deg, transparent 0 var(--p3-space-050), var(--p3-fill-1) var(--p3-space-050) var(--p3-space-100));
@@ -505,6 +517,9 @@
 .p3-frame[data-w="narrow"] .p3-subnav .p3-seg { display: flex; width: 100%; }
 .p3-frame[data-w="narrow"] .p3-seg-tab { padding: 0 var(--p3-space-150); }
 .p3-frame[data-w="narrow"] .p3-errstrip { padding: var(--p3-space-100) var(--p3-space-150); }
+/* #2105: the plugin's narrow window is 420 tall, and a refused restore's line ran 270px, leaving the levers pane 0px. At
+   the narrow tier the line stops at two bar heights and scrolls inside itself, so the page under it keeps its room. */
+.p3-frame[data-w="narrow"] .p3-errstrip { max-height: calc(2 * var(--p3-bar-h)); overflow-y: auto; }
 .p3-frame[data-w="narrow"] .p3-bardlg-scrim { padding: var(--p3-space-150); }
 .p3-frame[data-w="narrow"] :is(.p3-bardlg-head, .p3-bardlg-col, .p3-bardlg-foot, .p3-bardlg-import) { padding-left: var(--p3-space-150); padding-right: var(--p3-space-150); }
 .p3-frame[data-w="narrow"] .p3-bardlg-body { grid-template-columns: minmax(0, 1fr); overflow-y: auto; }
@@ -514,7 +529,7 @@
    above; at 8px they fit. Scoped to the choice that opts in, so no other segmented control moves. */
 .p3-frame[data-w="narrow"] .p3-seg-snug .p3-seg-tab { padding: 0 var(--p3-space-100); }
 .p3-frame[data-layout="panes"][data-w="narrow"] {
-  grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto auto auto minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr); grid-template-rows: max-content auto auto auto minmax(0, 1fr) auto;
   grid-template-areas: "bar" "notices" "nav" "subnav" "levers" "drawer";
 }
 .p3-frame[data-layout="panes"][data-w="narrow"] .p3-preview-head { grid-area: nav; }
@@ -674,20 +689,37 @@
 .p3-levers > .p3-levers-note { margin: var(--p3-space-300) var(--p3-space-300) 0; font-family: var(--p3-font-ui); }
 .p3-levers-note:focus-visible { outline: var(--p3-focus-width) solid var(--p3-focus-ring); outline-offset: var(--p3-focus-offset); }
 .p3-levers-body {
-  display: grid; gap: var(--p3-space-200); align-content: start; padding: var(--p3-space-300) var(--p3-space-300) var(--p3-space-500);
-  color: var(--p3-text); font-family: var(--p3-font-ui); font-size: var(--p3-fs-14); line-height: var(--p3-lh-normal);
+  display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--p3-space-200); align-content: start;
+  padding: var(--p3-space-300) var(--p3-space-300) var(--p3-space-500); color: var(--p3-text); font-family: var(--p3-font-ui); font-size: var(--p3-fs-14); line-height: var(--p3-lh-normal);
 }
 .p3-intro { margin: 0 0 var(--p3-space-100); color: var(--p3-text-2); line-height: var(--p3-lh-cozy); }
 .p3-lsec {
-  display: grid; gap: var(--p3-space-300); padding: var(--p3-space-300); border-radius: var(--p3-radius-xl);
+  display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--p3-space-300); padding: var(--p3-space-300); border-radius: var(--p3-radius-xl);
   background: var(--p3-bg-page); border: var(--p3-bw-hairline) solid var(--p3-line-1);
 }
 .p3-lsec[hidden], .p3-lever[hidden], .p3-levers-body [hidden] { display: none; }
+/* #1975: the levers fit their pane at every width (the 42% column is 268px at 640). A grid with no columns of its own
+   sizes its one column to its widest child's content, so each one in the panel takes the pane's width instead; a
+   picker may shrink and cut its words (its label already ellipsizes). */
+.p3-levers-body :is(.p3-fillrows, .p3-icols, .p3-icol, .p3-irow-group, .p3-irow-states, .p3-icon-pair, .p3-lsec-head, .p3-field, .p3-list) {
+  grid-template-columns: minmax(0, 1fr);
+}
+/* Narrower than the 380 the panel is laid out for (the two panes at 640 and 800), a row's picker moves under its name
+   rather than squeeze it, and a breakpoint's Remove under its field. `data-fit` is the pane's own width class
+   (`LEVERS_SNUG_MAX` in `shell/frame.ts`), so this follows the column, not the window. */
+/* In a snug pane the panel and its cards take space-200 at the sides, not space-300, so a pair of fields side by side
+   (Brand's name and namespace, v5 answer 4) keeps a usable width. */
+.p3-levers[data-fit="snug"] .p3-levers-body { padding-inline: var(--p3-space-200); }
+.p3-levers[data-fit="snug"] .p3-lsec { padding: var(--p3-space-200); }
+.p3-levers[data-fit="snug"] .p3-fillrow { grid-template-columns: auto minmax(0, 1fr); }
+.p3-levers[data-fit="snug"] .p3-fillrow > :nth-child(n + 3) { grid-column: 1 / -1; justify-self: stretch; }
+.p3-levers[data-fit="snug"] .p3-bprow { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; }
+.p3-levers[data-fit="snug"] .p3-bprow > :nth-child(n + 4) { grid-column: 2 / -1; }
 .p3-lsec-head { display: grid; gap: var(--p3-space-050); }
 .p3-lsec-title { margin: 0; font-size: var(--p3-fs-16); font-weight: var(--p3-fw-strong); letter-spacing: var(--p3-ls-tighter); line-height: var(--p3-lh-compact); }
 .p3-lsec-desc { margin: 0; color: var(--p3-text-2); line-height: var(--p3-lh-cozy); }
 /* One lever: 8px from its label to its control. */
-.p3-lever { display: grid; gap: var(--p3-space-100); min-width: 0; margin: 0; padding: 0; border: 0; }
+.p3-lever { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--p3-space-100); min-width: 0; margin: 0; padding: 0; border: 0; }
 .p3-lever-head { display: flex; align-items: center; gap: var(--p3-space-050); width: 100%; padding: 0; float: none; }
 /* ── the heading rule (TY2 A): three levels, every value an existing chrome variable ─────────────────
    L1 section title (.p3-lsec-title, above): fs-16 / fw-strong / lh-compact / ls-tighter (#2322); its description space-050
@@ -708,6 +740,8 @@ fieldset.p3-lever > legend.p3-lever-head { padding-block-end: var(--p3-space-150
 /* A lever's own one-line description belongs to its head: space-050 under the name, not space-150. */
 .p3-lever-ctl > .p3-sub:first-child { margin-block-start: calc(-1 * var(--p3-space-100)); }
 .p3-readout { margin-left: auto; color: var(--p3-text-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+/* #1975: in a snug pane a long readout (Layout's container max, "1440px · 90rem") wraps under itself, set right. */
+.p3-levers[data-fit="snug"] .p3-readout { white-space: normal; text-align: right; }
 .p3-lever-head .p3-readout, .p3-slider-head > .p3-readout { line-height: var(--p3-lh-compact); }
 /* The ⓘ keeps its target (hit-min wide, at least; the narrow tier's buttons are ctl-h-xs tall) but overhangs the heading's
    line equally above and below, so it never sets the row's height at any tier: equal negative margins of a whole hit-min
@@ -761,7 +795,12 @@ fieldset.p3-lever > legend.p3-lever-head { padding-block-end: var(--p3-space-150
 /* A disabled range takes Prism3's disabled skin (F1 A's family, #2152): the shadow hue slider while the shadow has no hue
    to follow (#2184, owner Q58 B). The accent token is the owner's (Q72 A). */
 .p3-range:disabled { accent-color: var(--p3-disabled-ink); cursor: not-allowed; }
-.p3-choice { display: flex; width: 100%; }
+.p3-choice { display: flex; flex-wrap: wrap; width: 100%; }
+/* #1975: a choice whose options do not fit the levers column (Shape's Density at 640, Type's Scale) wraps onto a second
+   row rather than run past the panel, as Interactive's and Components' did first at 380. Each option is never narrower
+   than its label on one line while the row has room for it (`fit-content`), so the rows wrap where they did; one label
+   longer than the whole row ("Strong (bold near-black/white)" at 640) wraps inside its option. */
+.p3-choice > .p3-seg-tab { min-width: fit-content; white-space: normal; }
 .p3-list { display: grid; gap: var(--p3-space-100); }
 /* L3: a field label over a list (Gradients' Stops) has its first row space-050 after it, as a control would. */
 .p3-list > .p3-field-label { margin-block-end: calc(var(--p3-space-050) - var(--p3-space-100)); }
@@ -951,7 +990,7 @@ h1.p3-sr { margin: 0; font-family: var(--p3-font-ui); font-size: var(--p3-fs-14)
 /* A field that names its token has a two-line label, so the fields share their bottom edge, not their top. */
 .p3-modegroup .p3-fieldgrid { align-items: end; }
 /* QA-B8: rows stand spacing 300 apart, in every row list (fields, fill rows, Interactive's sets, Type's families). */
-.p3-fieldgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(calc(var(--p3-step-w) * 2), 1fr)); gap: var(--p3-space-300) var(--p3-space-200); }
+.p3-fieldgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(calc(var(--p3-step-w) * 2), 100%), 1fr)); gap: var(--p3-space-300) var(--p3-space-200); }
 .p3-field { display: grid; gap: var(--p3-space-050); min-width: 0; align-content: start; }
 .p3-field-wide { grid-column: 1 / -1; }
 .p3-field-label { color: var(--p3-text); font-size: var(--p3-fs-14); font-weight: var(--p3-fw-emphasis); line-height: var(--p3-lh-compact); }
@@ -983,7 +1022,7 @@ h1.p3-sr { margin: 0; font-family: var(--p3-font-ui); font-size: var(--p3-fs-14)
 .p3-fill-name-online > .p3-fill-tok { margin-inline-start: auto; }
 .p3-frame[data-w="narrow"] .p3-fill-name.p3-fill-name-online { display: grid; }
 .p3-frame[data-w="narrow"] .p3-fill-name-online > .p3-fill-tok { margin-inline-start: 0; }
-.p3-btn.p3-pick { min-height: var(--p3-ctl-h); gap: var(--p3-space-100); justify-content: flex-start; padding: 0 var(--p3-space-150) 0 var(--p3-space-200); }
+.p3-btn.p3-pick { min-width: 0; min-height: var(--p3-ctl-h); gap: var(--p3-space-100); justify-content: flex-start; padding: 0 var(--p3-space-150) 0 var(--p3-space-200); }
 /* QA-B5: the step's words take the room and start at the left, so the ratio and the caret sit at the far right. */
 .p3-btn.p3-pick > .p3-btn-label { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; text-align: left; }
 /* QA-B5, QA-B18: every select and step-picker button in the levers pane is one control: the field's height (40),
@@ -1055,10 +1094,6 @@ h1.p3-sr { margin: 0; font-family: var(--p3-font-ui); font-size: var(--p3-fs-14)
 /* Q24: a Color preview's section container on the levers panel's gray. The section keeps `styles.css`'s
    edge, radius and padding; only its ground moves, and its specimens stay on the brand's page. */
 .p3-legacy-card .p3-sgsec { background: var(--p3-levers-bg); }
-/* Long option labels (Outline hover) wrap onto a second row rather than run past the panel. */
-.p3-ilevers .p3-choice { flex-wrap: wrap; }
-/* Components (S8.2): the Button options' labels ("Attached to label", "Match button size") wrap the same way at 380. */
-.p3-clevers .p3-choice { flex-wrap: wrap; }
 /* The Interactive preview (S5.3). QA-I1: a treatment label's foot line (its token and ratio badge) wraps inside the
    label column instead of running under the buttons beside it. QA-I2: a ratio badge's mark takes the chrome's
    status icon colors, a pass in the success icon and a miss in the danger icon; the badge keeps its own ink and
@@ -1105,7 +1140,7 @@ h1.p3-sr { margin: 0; font-family: var(--p3-font-ui); font-size: var(--p3-fs-14)
 .p3-btn.p3-pick[data-set="true"] { border-color: var(--p3-ctl-edge); }
 /* A picker button whose value is long ("Auto: follows Light (160px)") wraps inside its cell rather than run past it. */
 :is(.p3-tsizes-cells, .p3-tweight, .p3-tspace-ctl) > .p3-btn.p3-pick { min-width: 0; white-space: normal; }
-.p3-btn.p3-deplink { justify-self: start; text-decoration: underline; text-underline-offset: var(--p3-space-025); }
+.p3-btn.p3-deplink { justify-self: start; white-space: normal; text-align: left; text-decoration: underline; text-underline-offset: var(--p3-space-025); }
 .p3-vpick-list { display: grid; gap: var(--p3-space-050); max-height: calc(var(--p3-ctl-h) * 9); overflow-y: auto; }
 .p3-vpick {
   display: grid; grid-template-columns: minmax(var(--p3-step-w), auto) minmax(0, 1fr); gap: var(--p3-space-050) var(--p3-space-150);
@@ -1432,3 +1467,78 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
 .p3-switch:is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]) { cursor: not-allowed; }
 .p3-switch:is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]) .p3-switch-track { background: var(--p3-disabled-fill); border-color: var(--p3-disabled-edge); }
 .p3-switch:is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]) .p3-switch-knob { background: var(--p3-disabled-ink); }
+
+/* ── forced colors (#1855): Windows High Contrast keeps every state ─────────────────────────────── */
+/* Under forced colors the browser repaints every fill, edge and ink in the person's system colors, so a state the
+   chrome draws by a fill or an ink alone disappears: a selected chip turned white on black like the rest, a switch
+   lost its knob and the status dots drew nothing. These rules put each state back in system colors, never in the
+   chrome's own: a selected, pressed or checked control fills with `Highlight` and inks with `HighlightText`; a
+   disabled one inks and edges with `GrayText`; an edge that carries the state is drawn, and one that does not is
+   hidden in `Canvas`. A focus ring takes `CanvasText`, so it shows next to a `Highlight` fill too. The brand's color
+   specimens keep their real colors (`forced-color-adjust: none`).
+   ONE CONTROL OPTS OUT, AND ONLY WHILE SELECTED (owner decision HC1 B, 2026-10-09): under forced colors Chromium draws a
+   `Canvas` backplate behind every run of text, whatever the fill under it, so a `HighlightText` label on a `Highlight`
+   fill vanishes into a white box. A selected chip, segment, step, value or type-ahead option therefore takes
+   `forced-color-adjust: none`, and every color it and what it holds draw is a system color, set here. No other control
+   opts out. `test:chrome` section 39 measures each state under Chromium's forced-colors emulation, the selected labels
+   as drawn. */
+@media (forced-colors: active) {
+  /* A glyph takes the forced ink, not the chrome color it names: `HighlightText` on a selected control and `GrayText` on a
+     disabled one, below. */
+  .p3-ico { forced-color-adjust: auto; }
+  /* Selected, pressed and checked: the system's selection. The weights matrix's check draws a glyph and no text, so it
+     needs no opt-out. */
+  .p3-btn.p3-chip[aria-pressed="true"],
+  .p3-seg-tab:is([aria-selected="true"], [aria-pressed="true"], [aria-checked="true"]),
+  .p3-btn.p3-mcheck[aria-checked="true"],
+  :is(.p3-step, .p3-vpick)[aria-pressed="true"],
+  .p3-combo-opt[aria-selected="true"] {
+    background-color: Highlight; border-color: Highlight; color: HighlightText;
+  }
+  /* HC1 B: the selected controls with a label opt out of the backplate; what they hold inks and edges in HighlightText. */
+  .p3-btn.p3-chip[aria-pressed="true"],
+  .p3-seg-tab:is([aria-selected="true"], [aria-pressed="true"], [aria-checked="true"]),
+  :is(.p3-step, .p3-vpick)[aria-pressed="true"],
+  .p3-combo-opt[aria-selected="true"] { forced-color-adjust: none; }
+  :is(.p3-btn.p3-chip[aria-pressed="true"], .p3-seg-tab:is([aria-selected="true"], [aria-pressed="true"], [aria-checked="true"]), .p3-btn.p3-mcheck[aria-checked="true"],
+    :is(.p3-step, .p3-vpick)[aria-pressed="true"], .p3-combo-opt[aria-selected="true"]) :not([data-content], [data-content] *) { color: HighlightText; border-color: HighlightText; }
+  /* A value's sample is brand content for its face, size or radius, never for its ink: on a selected value it inks and edges
+     in HighlightText too, or the chrome's own ink would sit on the Highlight fill. */
+  :is(.p3-step, .p3-vpick)[aria-pressed="true"] :is(.p3-vpick-sample, .p3-radius-sample) { color: HighlightText; border-color: HighlightText; }
+  .p3-check:is([aria-checked="true"], [aria-checked="mixed"]) .p3-check-box { background-color: Highlight; border-color: Highlight; }
+  .p3-check:is([aria-checked="true"], [aria-checked="mixed"]) .p3-check-box > .p3-ico { color: HighlightText; }
+  .p3-switch-knob { background-color: CanvasText; }
+  .p3-switch[aria-checked="true"] .p3-switch-track { background-color: Highlight; border-color: Highlight; }
+  .p3-switch[aria-checked="true"] .p3-switch-knob { background-color: HighlightText; }
+  /* The selected tab's underline is its edge; the others' is hidden, as it is outside forced colors. */
+  .p3-tab { border-bottom-color: Canvas; }
+  .p3-tab[aria-selected="true"] { border-bottom-color: CanvasText; }
+  /* A status dot (Activity, the Agent tile, a mode's verdict, Health) draws in the text color; its words already say
+     which state it is. Activity's running dot in the drawer stays a ring. */
+  .p3-dot, .p3-status-dot[data-state], .p3-tile-mark > .p3-status-dot[data-state] { background-color: CanvasText; }
+  .p3-status-dot[data-state="run"] { background-color: Canvas; }
+  .p3-seg-tab:is([aria-selected="true"], [aria-pressed="true"], [aria-checked="true"]) .p3-dot { background-color: HighlightText; }
+  /* Focus rings. */
+  .p3-frame :focus-visible { outline-color: CanvasText; }
+  .p3-frame .p3-tab:focus-visible::before { border-color: CanvasText; }
+  /* Disabled, last, so it wins over a selected state: no fill, `GrayText`. A held segment that is selected keeps its
+     edge and the others hide theirs, as the disabled skin draws them outside forced colors. */
+  :is(.p3-btn, .p3-vpick, .p3-seg-tab, .p3-step, .p3-menu-item, .p3-text-input, .p3-select):is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]) {
+    background-color: Canvas; border-color: GrayText; color: GrayText;
+  }
+  :is(.p3-btn, .p3-vpick, .p3-seg-tab, .p3-step, .p3-menu-item):is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]) :not([data-content], [data-content] *) { color: GrayText; border-color: GrayText; }
+  :is(.p3-step, .p3-vpick):is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]) :is(.p3-vpick-sample, .p3-radius-sample) { color: GrayText; border-color: GrayText; }
+  .p3-seg-tab:is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]):not([aria-selected="true"], [aria-pressed="true"], [aria-checked="true"]) { border-color: Canvas; }
+  .p3-seg-tab:is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]) .p3-dot { background-color: GrayText; }
+  :is(.p3-check:is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]), .p3-check-fixed) .p3-check-box { background-color: Canvas; border-color: GrayText; }
+  :is(.p3-check:is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]), .p3-check-fixed) .p3-check-box > .p3-ico { color: GrayText; }
+  .p3-switch:is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]) .p3-switch-track { background-color: Canvas; border-color: GrayText; }
+  .p3-switch:is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]) .p3-switch-knob { background-color: GrayText; }
+  /* The brand's color specimens keep their colors: the brand switcher's swatch, Palettes' squares, heroes and role
+     dots, each fill row's swatch (the scrim's checkerboard with it), the step picker's chips, the start window's
+     example dots, Build style guides' swatches, Layout's samples, and the previews' specimen grounds. */
+  .p3-swatch > span, .p3-sg-swatch > span, .p3-hero, .p3-rolechip-dot, .p3-sqs, .p3-fill-sw, .p3-step-chip, .p3-start-dot,
+  .p3-lsamp-bar, .p3-lsamp-gap, .p3-legacy-card .sg-ground {
+    forced-color-adjust: none;
+  }
+}

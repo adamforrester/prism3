@@ -35,8 +35,7 @@
           "$extensions": {
             "prism3": {
               "generated": true,
-              "alpha": 0,
-              "note": "composites over any surface"
+              "alpha": 0
             }
           }
         },
@@ -861,7 +860,8 @@
                 "hex": "#abeeb8",
                 "band": "Quarter",
                 "anchor": false,
-                "contrastOnWhite": 1.34
+                "contrastOnWhite": 1.34,
+                "hueSource": "brand"
               }
             }
           },
@@ -881,7 +881,8 @@
                 "hex": "#8de5a0",
                 "band": "Quarter",
                 "anchor": false,
-                "contrastOnWhite": 1.52
+                "contrastOnWhite": 1.52,
+                "hueSource": "brand"
               }
             }
           },
@@ -901,7 +902,8 @@
                 "hex": "#82d695",
                 "band": "Quarter",
                 "anchor": false,
-                "contrastOnWhite": 1.75
+                "contrastOnWhite": 1.75,
+                "hueSource": "brand"
               }
             }
           },
@@ -921,7 +923,8 @@
                 "hex": "#78c88a",
                 "band": "Quarter",
                 "anchor": false,
-                "contrastOnWhite": 2.01
+                "contrastOnWhite": 2.01,
+                "hueSource": "brand"
               }
             }
           },
@@ -941,7 +944,8 @@
                 "hex": "#6dba7e",
                 "band": "Quarter",
                 "anchor": false,
-                "contrastOnWhite": 2.34
+                "contrastOnWhite": 2.34,
+                "hueSource": "brand"
               }
             }
           },
@@ -961,7 +965,8 @@
                 "hex": "#62ab73",
                 "band": "Quarter",
                 "anchor": false,
-                "contrastOnWhite": 2.77
+                "contrastOnWhite": 2.77,
+                "hueSource": "brand"
               }
             }
           },
@@ -981,7 +986,8 @@
                 "hex": "#589e68",
                 "band": "Mid",
                 "anchor": false,
-                "contrastOnWhite": 3.23
+                "contrastOnWhite": 3.23,
+                "hueSource": "brand"
               }
             }
           },
@@ -1001,7 +1007,8 @@
                 "hex": "#4e905e",
                 "band": "Mid",
                 "anchor": false,
-                "contrastOnWhite": 3.84
+                "contrastOnWhite": 3.84,
+                "hueSource": "brand"
               }
             }
           },
@@ -1021,7 +1028,8 @@
                 "hex": "#448253",
                 "band": "Mid",
                 "anchor": false,
-                "contrastOnWhite": 4.6
+                "contrastOnWhite": 4.6,
+                "hueSource": "brand"
               }
             }
           },
@@ -1041,7 +1049,8 @@
                 "hex": "#3a7548",
                 "band": "Mid",
                 "anchor": false,
-                "contrastOnWhite": 5.5
+                "contrastOnWhite": 5.5,
+                "hueSource": "brand"
               }
             }
           },
@@ -1061,7 +1070,8 @@
                 "hex": "#30673e",
                 "band": "Mid",
                 "anchor": false,
-                "contrastOnWhite": 6.7
+                "contrastOnWhite": 6.7,
+                "hueSource": "brand"
               }
             }
           },
@@ -1081,7 +1091,8 @@
                 "hex": "#265a34",
                 "band": "ThreeQuarter",
                 "anchor": false,
-                "contrastOnWhite": 8.09
+                "contrastOnWhite": 8.09,
+                "hueSource": "brand"
               }
             }
           },
@@ -1101,7 +1112,8 @@
                 "hex": "#1c4e2a",
                 "band": "ThreeQuarter",
                 "anchor": false,
-                "contrastOnWhite": 9.67
+                "contrastOnWhite": 9.67,
+                "hueSource": "brand"
               }
             }
           },
@@ -1121,7 +1133,8 @@
                 "hex": "#124120",
                 "band": "ThreeQuarter",
                 "anchor": false,
-                "contrastOnWhite": 11.65
+                "contrastOnWhite": 11.65,
+                "hueSource": "brand"
               }
             }
           },
@@ -1141,7 +1154,8 @@
                 "hex": "#083517",
                 "band": "ThreeQuarter",
                 "anchor": false,
-                "contrastOnWhite": 13.71
+                "contrastOnWhite": 13.71,
+                "hueSource": "brand"
               }
             }
           },
@@ -1161,7 +1175,8 @@
                 "hex": "#01290e",
                 "band": "ThreeQuarter",
                 "anchor": false,
-                "contrastOnWhite": 15.85
+                "contrastOnWhite": 15.85,
+                "hueSource": "brand"
               }
             }
           },
@@ -1181,7 +1196,8 @@
                 "hex": "#001e08",
                 "band": "ThreeQuarter",
                 "anchor": false,
-                "contrastOnWhite": 17.66
+                "contrastOnWhite": 17.66,
+                "hueSource": "brand"
               }
             }
           },
@@ -1201,7 +1217,8 @@
                 "hex": "#001204",
                 "band": "Shadows",
                 "anchor": false,
-                "contrastOnWhite": 19.3
+                "contrastOnWhite": 19.3,
+                "hueSource": "brand"
               }
             }
           },
@@ -1221,7 +1238,8 @@
                 "hex": "#f4f8f4",
                 "band": "Highlights",
                 "anchor": false,
-                "contrastOnWhite": 1.07
+                "contrastOnWhite": 1.07,
+                "hueSource": "brand"
               }
             }
           },
@@ -1241,7 +1259,8 @@
                 "hex": "#d5f2da",
                 "band": "Highlights",
                 "anchor": false,
-                "contrastOnWhite": 1.2
+                "contrastOnWhite": 1.2,
+                "hueSource": "brand"
               }
             }
           }
@@ -1263,7 +1282,8 @@
                 "hex": "#f5d6b4",
                 "band": "Quarter",
                 "anchor": false,
-                "contrastOnWhite": 1.39
+                "contrastOnWhite": 1.39,
+                "hueSource": "brand"
               }
             }
           },
@@ -1283,7 +1303,8 @@
                 "hex": "#f5c58e",
                 "band": "Quarter",
                 "anchor": false,
-                "contrastOnWhite": 1.58
+                "contrastOnWhite": 1.58,
+                "hueSource": "brand"
               }
             }
           },
@@ -1303,7 +1324,8 @@
                 "hex": "#f6b35f",
                 "band": "Quarter",
                 "anchor": false,
-                "contrastOnWhite": 1.82
+                "contrastOnWhite": 1.82,
+                "hueSource": "brand"
               }
             }
           },
@@ -1323,7 +1345,8 @@
                 "hex": "#f0a238",
                 "band": "Quarter",
                 "anchor": false,
-                "contrastOnWhite": 2.11
+                "contrastOnWhite": 2.11,
+                "hueSource": "brand"
               }
             }
           },
@@ -1343,7 +1366,8 @@
                 "hex": "#e1962f",
                 "band": "Quarter",
                 "anchor": false,
-                "contrastOnWhite": 2.44
+                "contrastOnWhite": 2.44,
+                "hueSource": "brand"
               }
             }
           },
@@ -1363,7 +1387,8 @@
                 "hex": "#d18b27",
                 "band": "Quarter",
                 "anchor": false,
-                "contrastOnWhite": 2.83
+                "contrastOnWhite": 2.83,
+                "hueSource": "brand"
               }
             }
           },
@@ -1383,7 +1408,8 @@
                 "hex": "#c27f1e",
                 "band": "Mid",
                 "anchor": false,
-                "contrastOnWhite": 3.31
+                "contrastOnWhite": 3.31,
+                "hueSource": "brand"
               }
             }
           },
@@ -1403,7 +1429,8 @@
                 "hex": "#b37414",
                 "band": "Mid",
                 "anchor": false,
-                "contrastOnWhite": 3.87
+                "contrastOnWhite": 3.87,
+                "hueSource": "brand"
               }
             }
           },
@@ -1423,7 +1450,8 @@
                 "hex": "#a46808",
                 "band": "Mid",
                 "anchor": false,
-                "contrastOnWhite": 4.6
+                "contrastOnWhite": 4.6,
+                "hueSource": "brand"
               }
             }
           },
@@ -1443,7 +1471,8 @@
                 "hex": "#935c00",
                 "band": "Mid",
                 "anchor": false,
-                "contrastOnWhite": 5.57
+                "contrastOnWhite": 5.57,
+                "hueSource": "brand"
               }
             }
           },
@@ -1463,7 +1492,8 @@
                 "hex": "#825100",
                 "band": "Mid",
                 "anchor": false,
-                "contrastOnWhite": 6.72
+                "contrastOnWhite": 6.72,
+                "hueSource": "brand"
               }
             }
           },
@@ -1483,7 +1513,8 @@
                 "hex": "#714600",
                 "band": "ThreeQuarter",
                 "anchor": false,
-                "contrastOnWhite": 8.15
+                "contrastOnWhite": 8.15,
+                "hueSource": "brand"
               }
             }
           },
@@ -1503,7 +1534,8 @@
                 "hex": "#613b00",
                 "band": "ThreeQuarter",
                 "anchor": false,
-                "contrastOnWhite": 9.84
+                "contrastOnWhite": 9.84,
+                "hueSource": "brand"
               }
             }
           },
@@ -1523,7 +1555,8 @@
                 "hex": "#513000",
                 "band": "ThreeQuarter",
                 "anchor": false,
-                "contrastOnWhite": 11.85
+                "contrastOnWhite": 11.85,
+                "hueSource": "brand"
               }
             }
           },
@@ -1543,7 +1576,8 @@
                 "hex": "#412600",
                 "band": "ThreeQuarter",
                 "anchor": false,
-                "contrastOnWhite": 13.98
+                "contrastOnWhite": 13.98,
+                "hueSource": "brand"
               }
             }
           },
@@ -1563,7 +1597,8 @@
                 "hex": "#321c00",
                 "band": "ThreeQuarter",
                 "anchor": false,
-                "contrastOnWhite": 16.13
+                "contrastOnWhite": 16.13,
+                "hueSource": "brand"
               }
             }
           },
@@ -1583,7 +1618,8 @@
                 "hex": "#241300",
                 "band": "ThreeQuarter",
                 "anchor": false,
-                "contrastOnWhite": 17.98
+                "contrastOnWhite": 17.98,
+                "hueSource": "brand"
               }
             }
           },
@@ -1603,7 +1639,8 @@
                 "hex": "#170a00",
                 "band": "Shadows",
                 "anchor": false,
-                "contrastOnWhite": 19.45
+                "contrastOnWhite": 19.45,
+                "hueSource": "brand"
               }
             }
           },
@@ -1623,7 +1660,8 @@
                 "hex": "#faf6f1",
                 "band": "Highlights",
                 "anchor": false,
-                "contrastOnWhite": 1.08
+                "contrastOnWhite": 1.08,
+                "hueSource": "brand"
               }
             }
           },
@@ -1643,7 +1681,8 @@
                 "hex": "#f6e7d6",
                 "band": "Highlights",
                 "anchor": false,
-                "contrastOnWhite": 1.21
+                "contrastOnWhite": 1.21,
+                "hueSource": "brand"
               }
             }
           }
@@ -1665,7 +1704,8 @@
                 "hex": "#cbdeef",
                 "band": "Quarter",
                 "anchor": false,
-                "contrastOnWhite": 1.38
+                "contrastOnWhite": 1.38,
+                "hueSource": "default"
               }
             }
           },
@@ -1685,7 +1725,8 @@
                 "hex": "#b5d2ec",
                 "band": "Quarter",
                 "anchor": false,
-                "contrastOnWhite": 1.57
+                "contrastOnWhite": 1.57,
+                "hueSource": "default"
               }
             }
           },
@@ -1705,7 +1746,8 @@
                 "hex": "#9dc6ea",
                 "band": "Quarter",
                 "anchor": false,
-                "contrastOnWhite": 1.79
+                "contrastOnWhite": 1.79,
+                "hueSource": "default"
               }
             }
           },
@@ -1725,7 +1767,8 @@
                 "hex": "#84bae8",
                 "band": "Quarter",
                 "anchor": false,
-                "contrastOnWhite": 2.06
+                "contrastOnWhite": 2.06,
+                "hueSource": "default"
               }
             }
           },
@@ -1745,7 +1788,8 @@
                 "hex": "#68aee7",
                 "band": "Quarter",
                 "anchor": false,
-                "contrastOnWhite": 2.39
+                "contrastOnWhite": 2.39,
+                "hueSource": "default"
               }
             }
           },
@@ -1765,7 +1809,8 @@
                 "hex": "#4ba1e4",
                 "band": "Quarter",
                 "anchor": false,
-                "contrastOnWhite": 2.79
+                "contrastOnWhite": 2.79,
+                "hueSource": "default"
               }
             }
           },
@@ -1785,7 +1830,8 @@
                 "hex": "#4294d3",
                 "band": "Mid",
                 "anchor": false,
-                "contrastOnWhite": 3.28
+                "contrastOnWhite": 3.28,
+                "hueSource": "default"
               }
             }
           },
@@ -1805,7 +1851,8 @@
                 "hex": "#3a87c3",
                 "band": "Mid",
                 "anchor": false,
-                "contrastOnWhite": 3.86
+                "contrastOnWhite": 3.86,
+                "hueSource": "default"
               }
             }
           },
@@ -1825,7 +1872,8 @@
                 "hex": "#317bb2",
                 "band": "Mid",
                 "anchor": false,
-                "contrastOnWhite": 4.56
+                "contrastOnWhite": 4.56,
+                "hueSource": "default"
               }
             }
           },
@@ -1845,7 +1893,8 @@
                 "hex": "#286da1",
                 "band": "Mid",
                 "anchor": false,
-                "contrastOnWhite": 5.54
+                "contrastOnWhite": 5.54,
+                "hueSource": "default"
               }
             }
           },
@@ -1865,7 +1914,8 @@
                 "hex": "#1f6090",
                 "band": "Mid",
                 "anchor": false,
-                "contrastOnWhite": 6.7
+                "contrastOnWhite": 6.7,
+                "hueSource": "default"
               }
             }
           },
@@ -1885,7 +1935,8 @@
                 "hex": "#16537f",
                 "band": "ThreeQuarter",
                 "anchor": false,
-                "contrastOnWhite": 8.15
+                "contrastOnWhite": 8.15,
+                "hueSource": "default"
               }
             }
           },
@@ -1905,7 +1956,8 @@
                 "hex": "#0d476f",
                 "band": "ThreeQuarter",
                 "anchor": false,
-                "contrastOnWhite": 9.78
+                "contrastOnWhite": 9.78,
+                "hueSource": "default"
               }
             }
           },
@@ -1925,7 +1977,8 @@
                 "hex": "#033a5f",
                 "band": "ThreeQuarter",
                 "anchor": false,
-                "contrastOnWhite": 11.84
+                "contrastOnWhite": 11.84,
+                "hueSource": "default"
               }
             }
           },
@@ -1945,7 +1998,8 @@
                 "hex": "#002f4e",
                 "band": "ThreeQuarter",
                 "anchor": false,
-                "contrastOnWhite": 13.85
+                "contrastOnWhite": 13.85,
+                "hueSource": "default"
               }
             }
           },
@@ -1965,7 +2019,8 @@
                 "hex": "#00233d",
                 "band": "ThreeQuarter",
                 "anchor": false,
-                "contrastOnWhite": 16.06
+                "contrastOnWhite": 16.06,
+                "hueSource": "default"
               }
             }
           },
@@ -1985,7 +2040,8 @@
                 "hex": "#00192d",
                 "band": "ThreeQuarter",
                 "anchor": false,
-                "contrastOnWhite": 17.84
+                "contrastOnWhite": 17.84,
+                "hueSource": "default"
               }
             }
           },
@@ -2005,7 +2061,8 @@
                 "hex": "#000e1e",
                 "band": "Shadows",
                 "anchor": false,
-                "contrastOnWhite": 19.42
+                "contrastOnWhite": 19.42,
+                "hueSource": "default"
               }
             }
           },
@@ -2025,7 +2082,8 @@
                 "hex": "#f3f7fb",
                 "band": "Highlights",
                 "anchor": false,
-                "contrastOnWhite": 1.08
+                "contrastOnWhite": 1.08,
+                "hueSource": "default"
               }
             }
           },
@@ -2045,7 +2103,8 @@
                 "hex": "#e0ebf4",
                 "band": "Highlights",
                 "anchor": false,
-                "contrastOnWhite": 1.21
+                "contrastOnWhite": 1.21,
+                "hueSource": "default"
               }
             }
           }
@@ -2067,7 +2126,8 @@
                 "hex": "#f3d5d1",
                 "band": "Quarter",
                 "anchor": false,
-                "contrastOnWhite": 1.38
+                "contrastOnWhite": 1.38,
+                "hueSource": "brand"
               }
             }
           },
@@ -2087,7 +2147,8 @@
                 "hex": "#f0c4be",
                 "band": "Quarter",
                 "anchor": false,
-                "contrastOnWhite": 1.57
+                "contrastOnWhite": 1.57,
+                "hueSource": "brand"
               }
             }
           },
@@ -2107,7 +2168,8 @@
                 "hex": "#eeb3ab",
                 "band": "Quarter",
                 "anchor": false,
-                "contrastOnWhite": 1.8
+                "contrastOnWhite": 1.8,
+                "hueSource": "brand"
               }
             }
           },
@@ -2127,7 +2189,8 @@
                 "hex": "#eca198",
                 "band": "Quarter",
                 "anchor": false,
-                "contrastOnWhite": 2.08
+                "contrastOnWhite": 2.08,
+                "hueSource": "brand"
               }
             }
           },
@@ -2147,7 +2210,8 @@
                 "hex": "#e98e84",
                 "band": "Quarter",
                 "anchor": false,
-                "contrastOnWhite": 2.42
+                "contrastOnWhite": 2.42,
+                "hueSource": "brand"
               }
             }
           },
@@ -2167,7 +2231,8 @@
                 "hex": "#e77b70",
                 "band": "Quarter",
                 "anchor": false,
-                "contrastOnWhite": 2.81
+                "contrastOnWhite": 2.81,
+                "hueSource": "brand"
               }
             }
           },
@@ -2187,7 +2252,8 @@
                 "hex": "#e4655b",
                 "band": "Mid",
                 "anchor": false,
-                "contrastOnWhite": 3.33
+                "contrastOnWhite": 3.33,
+                "hueSource": "brand"
               }
             }
           },
@@ -2207,7 +2273,8 @@
                 "hex": "#de5048",
                 "band": "Mid",
                 "anchor": false,
-                "contrastOnWhite": 3.93
+                "contrastOnWhite": 3.93,
+                "hueSource": "brand"
               }
             }
           },
@@ -2227,7 +2294,8 @@
                 "hex": "#cd4840",
                 "band": "Mid",
                 "anchor": false,
-                "contrastOnWhite": 4.57
+                "contrastOnWhite": 4.57,
+                "hueSource": "brand"
               }
             }
           },
@@ -2247,7 +2315,8 @@
                 "hex": "#b83d36",
                 "band": "Mid",
                 "anchor": false,
-                "contrastOnWhite": 5.59
+                "contrastOnWhite": 5.59,
+                "hueSource": "brand"
               }
             }
           },
@@ -2267,7 +2336,8 @@
                 "hex": "#a4332d",
                 "band": "Mid",
                 "anchor": false,
-                "contrastOnWhite": 6.8
+                "contrastOnWhite": 6.8,
+                "hueSource": "brand"
               }
             }
           },
@@ -2287,7 +2357,8 @@
                 "hex": "#912924",
                 "band": "ThreeQuarter",
                 "anchor": false,
-                "contrastOnWhite": 8.25
+                "contrastOnWhite": 8.25,
+                "hueSource": "brand"
               }
             }
           },
@@ -2307,7 +2378,8 @@
                 "hex": "#7e1f1b",
                 "band": "ThreeQuarter",
                 "anchor": false,
-                "contrastOnWhite": 10.01
+                "contrastOnWhite": 10.01,
+                "hueSource": "brand"
               }
             }
           },
@@ -2327,7 +2399,8 @@
                 "hex": "#6b1513",
                 "band": "ThreeQuarter",
                 "anchor": false,
-                "contrastOnWhite": 12.06
+                "contrastOnWhite": 12.06,
+                "hueSource": "brand"
               }
             }
           },
@@ -2347,7 +2420,8 @@
                 "hex": "#590a0a",
                 "band": "ThreeQuarter",
                 "anchor": false,
-                "contrastOnWhite": 14.26
+                "contrastOnWhite": 14.26,
+                "hueSource": "brand"
               }
             }
           },
@@ -2367,7 +2441,8 @@
                 "hex": "#480204",
                 "band": "ThreeQuarter",
                 "anchor": false,
-                "contrastOnWhite": 16.33
+                "contrastOnWhite": 16.33,
+                "hueSource": "brand"
               }
             }
           },
@@ -2387,7 +2462,8 @@
                 "hex": "#350001",
                 "band": "ThreeQuarter",
                 "anchor": false,
-                "contrastOnWhite": 18.23
+                "contrastOnWhite": 18.23,
+                "hueSource": "brand"
               }
             }
           },
@@ -2407,7 +2483,8 @@
                 "hex": "#230001",
                 "band": "Shadows",
                 "anchor": false,
-                "contrastOnWhite": 19.59
+                "contrastOnWhite": 19.59,
+                "hueSource": "brand"
               }
             }
           },
@@ -2427,7 +2504,8 @@
                 "hex": "#fdf5f3",
                 "band": "Highlights",
                 "anchor": false,
-                "contrastOnWhite": 1.08
+                "contrastOnWhite": 1.08,
+                "hueSource": "brand"
               }
             }
           },
@@ -2447,7 +2525,8 @@
                 "hex": "#f6e5e3",
                 "band": "Highlights",
                 "anchor": false,
-                "contrastOnWhite": 1.22
+                "contrastOnWhite": 1.22,
+                "hueSource": "brand"
               }
             }
           }
@@ -2460,8 +2539,7 @@
             "$extensions": {
               "prism3": {
                 "generated": true,
-                "alpha": 0.05,
-                "note": "composites over any surface"
+                "alpha": 0.05
               }
             }
           },
@@ -2472,8 +2550,7 @@
             "$extensions": {
               "prism3": {
                 "generated": true,
-                "alpha": 0.1,
-                "note": "composites over any surface"
+                "alpha": 0.1
               }
             }
           },
@@ -2484,8 +2561,7 @@
             "$extensions": {
               "prism3": {
                 "generated": true,
-                "alpha": 0.2,
-                "note": "composites over any surface"
+                "alpha": 0.2
               }
             }
           },
@@ -2496,8 +2572,7 @@
             "$extensions": {
               "prism3": {
                 "generated": true,
-                "alpha": 0.3,
-                "note": "composites over any surface"
+                "alpha": 0.3
               }
             }
           },
@@ -2508,8 +2583,7 @@
             "$extensions": {
               "prism3": {
                 "generated": true,
-                "alpha": 0.4,
-                "note": "composites over any surface"
+                "alpha": 0.4
               }
             }
           },
@@ -2520,8 +2594,7 @@
             "$extensions": {
               "prism3": {
                 "generated": true,
-                "alpha": 0.5,
-                "note": "composites over any surface"
+                "alpha": 0.5
               }
             }
           },
@@ -2532,8 +2605,7 @@
             "$extensions": {
               "prism3": {
                 "generated": true,
-                "alpha": 0.6,
-                "note": "composites over any surface"
+                "alpha": 0.6
               }
             }
           },
@@ -2544,8 +2616,7 @@
             "$extensions": {
               "prism3": {
                 "generated": true,
-                "alpha": 0.7,
-                "note": "composites over any surface"
+                "alpha": 0.7
               }
             }
           },
@@ -2556,8 +2627,7 @@
             "$extensions": {
               "prism3": {
                 "generated": true,
-                "alpha": 0.8,
-                "note": "composites over any surface"
+                "alpha": 0.8
               }
             }
           },
@@ -2568,8 +2638,7 @@
             "$extensions": {
               "prism3": {
                 "generated": true,
-                "alpha": 0.9,
-                "note": "composites over any surface"
+                "alpha": 0.9
               }
             }
           }
@@ -2582,8 +2651,7 @@
             "$extensions": {
               "prism3": {
                 "generated": true,
-                "alpha": 0,
-                "note": "composites over any surface"
+                "alpha": 0
               }
             }
           },
@@ -2594,8 +2662,7 @@
             "$extensions": {
               "prism3": {
                 "generated": true,
-                "alpha": 0.05,
-                "note": "composites over any surface"
+                "alpha": 0.05
               }
             }
           },
@@ -2606,8 +2673,7 @@
             "$extensions": {
               "prism3": {
                 "generated": true,
-                "alpha": 0.1,
-                "note": "composites over any surface"
+                "alpha": 0.1
               }
             }
           },
@@ -2618,8 +2684,7 @@
             "$extensions": {
               "prism3": {
                 "generated": true,
-                "alpha": 0.2,
-                "note": "composites over any surface"
+                "alpha": 0.2
               }
             }
           },
@@ -2630,8 +2695,7 @@
             "$extensions": {
               "prism3": {
                 "generated": true,
-                "alpha": 0.3,
-                "note": "composites over any surface"
+                "alpha": 0.3
               }
             }
           },
@@ -2642,8 +2706,7 @@
             "$extensions": {
               "prism3": {
                 "generated": true,
-                "alpha": 0.4,
-                "note": "composites over any surface"
+                "alpha": 0.4
               }
             }
           },
@@ -2654,8 +2717,7 @@
             "$extensions": {
               "prism3": {
                 "generated": true,
-                "alpha": 0.5,
-                "note": "composites over any surface"
+                "alpha": 0.5
               }
             }
           },
@@ -2666,8 +2728,7 @@
             "$extensions": {
               "prism3": {
                 "generated": true,
-                "alpha": 0.6,
-                "note": "composites over any surface"
+                "alpha": 0.6
               }
             }
           },
@@ -2678,8 +2739,7 @@
             "$extensions": {
               "prism3": {
                 "generated": true,
-                "alpha": 0.7,
-                "note": "composites over any surface"
+                "alpha": 0.7
               }
             }
           },
@@ -2690,8 +2750,7 @@
             "$extensions": {
               "prism3": {
                 "generated": true,
-                "alpha": 0.8,
-                "note": "composites over any surface"
+                "alpha": 0.8
               }
             }
           },
@@ -2702,8 +2761,7 @@
             "$extensions": {
               "prism3": {
                 "generated": true,
-                "alpha": 0.9,
-                "note": "composites over any surface"
+                "alpha": 0.9
               }
             }
           }
@@ -3914,8 +3972,7 @@
                   "kind": "style-part",
                   "field": "lineHeight",
                   "unit": "PERCENT",
-                  "percent": 105,
-                  "note": "Figma has no unitless line-height variable; the exporter bakes lineHeight as PERCENT (multiplier × 100) — mode/size-independent, so one bake covers desktop + mobile fluid modes"
+                  "percent": 105
                 }
               }
             }
@@ -3932,8 +3989,7 @@
                   "kind": "style-part",
                   "field": "lineHeight",
                   "unit": "PERCENT",
-                  "percent": 115,
-                  "note": "Figma has no unitless line-height variable; the exporter bakes lineHeight as PERCENT (multiplier × 100) — mode/size-independent, so one bake covers desktop + mobile fluid modes"
+                  "percent": 115
                 }
               }
             }
@@ -3950,8 +4006,7 @@
                   "kind": "style-part",
                   "field": "lineHeight",
                   "unit": "PERCENT",
-                  "percent": 125,
-                  "note": "Figma has no unitless line-height variable; the exporter bakes lineHeight as PERCENT (multiplier × 100) — mode/size-independent, so one bake covers desktop + mobile fluid modes"
+                  "percent": 125
                 }
               }
             }
@@ -3968,8 +4023,7 @@
                   "kind": "style-part",
                   "field": "lineHeight",
                   "unit": "PERCENT",
-                  "percent": 140,
-                  "note": "Figma has no unitless line-height variable; the exporter bakes lineHeight as PERCENT (multiplier × 100) — mode/size-independent, so one bake covers desktop + mobile fluid modes"
+                  "percent": 140
                 }
               }
             }
@@ -3986,8 +4040,7 @@
                   "kind": "style-part",
                   "field": "lineHeight",
                   "unit": "PERCENT",
-                  "percent": 150,
-                  "note": "Figma has no unitless line-height variable; the exporter bakes lineHeight as PERCENT (multiplier × 100) — mode/size-independent, so one bake covers desktop + mobile fluid modes"
+                  "percent": 150
                 }
               }
             }
@@ -4004,8 +4057,7 @@
                   "kind": "style-part",
                   "field": "lineHeight",
                   "unit": "PERCENT",
-                  "percent": 165,
-                  "note": "Figma has no unitless line-height variable; the exporter bakes lineHeight as PERCENT (multiplier × 100) — mode/size-independent, so one bake covers desktop + mobile fluid modes"
+                  "percent": 165
                 }
               }
             }
@@ -4022,8 +4074,7 @@
                   "kind": "style-part",
                   "field": "lineHeight",
                   "unit": "PERCENT",
-                  "percent": 175,
-                  "note": "Figma has no unitless line-height variable; the exporter bakes lineHeight as PERCENT (multiplier × 100) — mode/size-independent, so one bake covers desktop + mobile fluid modes"
+                  "percent": 175
                 }
               }
             }
@@ -4121,8 +4172,7 @@
                   "kind": "style-part",
                   "field": "letterSpacing",
                   "unit": "PERCENT",
-                  "percent": 0,
-                  "note": "Figma binds letter-spacing as PERCENT or PIXELS; the exporter bakes as PERCENT (em × 100) — mode/size-independent. A future pass ships FLOAT tracking variables so brands can retune tracking without style edits (§4 fix 3b bindable form)"
+                  "percent": 0
                 }
               }
             }
@@ -4139,8 +4189,7 @@
                   "kind": "style-part",
                   "field": "letterSpacing",
                   "unit": "PERCENT",
-                  "percent": 1,
-                  "note": "Figma binds letter-spacing as PERCENT or PIXELS; the exporter bakes as PERCENT (em × 100) — mode/size-independent. A future pass ships FLOAT tracking variables so brands can retune tracking without style edits (§4 fix 3b bindable form)"
+                  "percent": 1
                 }
               }
             }
@@ -4157,8 +4206,7 @@
                   "kind": "style-part",
                   "field": "letterSpacing",
                   "unit": "PERCENT",
-                  "percent": 2,
-                  "note": "Figma binds letter-spacing as PERCENT or PIXELS; the exporter bakes as PERCENT (em × 100) — mode/size-independent. A future pass ships FLOAT tracking variables so brands can retune tracking without style edits (§4 fix 3b bindable form)"
+                  "percent": 2
                 }
               }
             }
@@ -4175,8 +4223,7 @@
                   "kind": "style-part",
                   "field": "letterSpacing",
                   "unit": "PERCENT",
-                  "percent": 5,
-                  "note": "Figma binds letter-spacing as PERCENT or PIXELS; the exporter bakes as PERCENT (em × 100) — mode/size-independent. A future pass ships FLOAT tracking variables so brands can retune tracking without style edits (§4 fix 3b bindable form)"
+                  "percent": 5
                 }
               }
             }
@@ -4193,8 +4240,7 @@
                   "kind": "style-part",
                   "field": "letterSpacing",
                   "unit": "PERCENT",
-                  "percent": -4,
-                  "note": "Figma binds letter-spacing as PERCENT or PIXELS; the exporter bakes as PERCENT (em × 100) — mode/size-independent. A future pass ships FLOAT tracking variables so brands can retune tracking without style edits (§4 fix 3b bindable form)"
+                  "percent": -4
                 }
               }
             }
@@ -4211,8 +4257,7 @@
                   "kind": "style-part",
                   "field": "letterSpacing",
                   "unit": "PERCENT",
-                  "percent": -3,
-                  "note": "Figma binds letter-spacing as PERCENT or PIXELS; the exporter bakes as PERCENT (em × 100) — mode/size-independent. A future pass ships FLOAT tracking variables so brands can retune tracking without style edits (§4 fix 3b bindable form)"
+                  "percent": -3
                 }
               }
             }
@@ -4229,8 +4274,7 @@
                   "kind": "style-part",
                   "field": "letterSpacing",
                   "unit": "PERCENT",
-                  "percent": -2,
-                  "note": "Figma binds letter-spacing as PERCENT or PIXELS; the exporter bakes as PERCENT (em × 100) — mode/size-independent. A future pass ships FLOAT tracking variables so brands can retune tracking without style edits (§4 fix 3b bindable form)"
+                  "percent": -2
                 }
               }
             }
@@ -4247,8 +4291,7 @@
                   "kind": "style-part",
                   "field": "letterSpacing",
                   "unit": "PERCENT",
-                  "percent": -1.5,
-                  "note": "Figma binds letter-spacing as PERCENT or PIXELS; the exporter bakes as PERCENT (em × 100) — mode/size-independent. A future pass ships FLOAT tracking variables so brands can retune tracking without style edits (§4 fix 3b bindable form)"
+                  "percent": -1.5
                 }
               }
             }
@@ -4265,8 +4308,7 @@
                   "kind": "style-part",
                   "field": "letterSpacing",
                   "unit": "PERCENT",
-                  "percent": -1,
-                  "note": "Figma binds letter-spacing as PERCENT or PIXELS; the exporter bakes as PERCENT (em × 100) — mode/size-independent. A future pass ships FLOAT tracking variables so brands can retune tracking without style edits (§4 fix 3b bindable form)"
+                  "percent": -1
                 }
               }
             }
@@ -4394,8 +4436,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               }
             }
           }
@@ -4417,8 +4458,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               }
             }
           }
@@ -4440,8 +4480,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               }
             }
           }
@@ -4465,8 +4504,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               }
             }
           }
@@ -4488,8 +4526,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               }
             }
           }
@@ -4511,8 +4548,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               }
             }
           }
@@ -4535,8 +4571,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               }
             }
           }
@@ -4559,8 +4594,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               }
             }
           }
@@ -4583,8 +4617,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               }
             }
           }
@@ -4607,8 +4640,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               }
             }
           }
@@ -4630,8 +4662,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               }
             }
           }
@@ -4653,8 +4684,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               }
             }
           }
@@ -4676,8 +4706,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               }
             }
           }
@@ -4699,8 +4728,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               }
             }
           }
@@ -4722,8 +4750,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               }
             }
           }
@@ -4746,8 +4773,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               }
             }
           }
@@ -4772,8 +4798,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               }
             }
           }
@@ -4796,8 +4821,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               }
             }
           }
@@ -4820,8 +4844,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               }
             }
           }
@@ -4844,8 +4867,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               }
             }
           }
@@ -4868,8 +4890,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               }
             }
           }
@@ -4892,8 +4913,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               }
             }
           }
@@ -4916,8 +4936,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               }
             }
           }
@@ -4940,8 +4959,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               }
             }
           }
@@ -4964,8 +4982,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               }
             }
           }
@@ -4988,8 +5005,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               }
             }
           }
@@ -5012,8 +5028,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               }
             }
           }
@@ -5036,8 +5051,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               }
             }
           }
@@ -5060,8 +5074,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               }
             }
           }
@@ -5084,8 +5097,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               }
             }
           }
@@ -5108,8 +5120,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               }
             }
           }
@@ -5132,8 +5143,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               }
             }
           }
@@ -5156,8 +5166,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               }
             }
           }
@@ -5180,8 +5189,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               }
             }
           }
@@ -5205,8 +5213,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -5229,8 +5236,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -5253,8 +5259,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -5277,8 +5282,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -5301,8 +5305,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -5328,8 +5331,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               }
             }
           }
@@ -5352,8 +5354,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               }
             }
           }
@@ -5376,8 +5377,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               }
             }
           }
@@ -5400,8 +5400,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               }
             }
           }
@@ -5424,8 +5423,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               }
             }
           }
@@ -5448,8 +5446,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               }
             }
           }
@@ -5472,8 +5469,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               }
             }
           }
@@ -5496,8 +5492,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               }
             }
           }
@@ -5520,8 +5515,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               }
             }
           }
@@ -5544,8 +5538,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               }
             }
           }
@@ -5568,8 +5561,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               }
             }
           }
@@ -5592,8 +5584,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               }
             }
           }
@@ -5616,8 +5607,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               }
             }
           }
@@ -5640,8 +5630,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               }
             }
           }
@@ -5664,8 +5653,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               }
             }
           }
@@ -5688,8 +5676,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               }
             }
           }
@@ -5712,8 +5699,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               }
             }
           }
@@ -5736,8 +5722,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               }
             }
           }
@@ -5761,8 +5746,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -5785,8 +5769,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -5809,8 +5792,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -5833,8 +5815,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -5857,8 +5838,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -5886,8 +5866,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   }
                 }
               }
@@ -5910,8 +5889,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   }
                 }
               }
@@ -5934,8 +5912,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   }
                 }
               }
@@ -5958,8 +5935,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   }
                 }
               }
@@ -5982,8 +5958,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   }
                 }
               }
@@ -6007,8 +5982,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -6032,8 +6006,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   }
                 }
               }
@@ -6056,8 +6029,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   }
                 }
               }
@@ -6080,8 +6052,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   }
                 }
               }
@@ -6106,8 +6077,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   }
                 }
               }
@@ -6130,8 +6100,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   }
                 }
               }
@@ -6154,8 +6123,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   }
                 }
               }
@@ -6180,8 +6148,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   }
                 }
               }
@@ -6204,8 +6171,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   }
                 }
               }
@@ -6228,8 +6194,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   }
                 }
               }
@@ -6256,8 +6221,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   }
                 }
               }
@@ -6282,8 +6246,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   }
                 }
               }
@@ -6308,8 +6271,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   }
                 }
               }
@@ -6338,8 +6300,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable: in each mode it aliases the fill variable in `tint.color` at the opacity variable in `tint.opacity`"
+                    ]
                   }
                 }
               }
@@ -6366,8 +6327,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   }
                 }
               }
@@ -6390,8 +6350,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   }
                 }
               }
@@ -6414,8 +6373,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   }
                 }
               }
@@ -6438,8 +6396,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   }
                 }
               }
@@ -6462,8 +6419,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   }
                 }
               }
@@ -6487,8 +6443,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -6512,8 +6467,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   }
                 }
               }
@@ -6536,8 +6490,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   }
                 }
               }
@@ -6560,8 +6513,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   }
                 }
               }
@@ -6586,8 +6538,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   }
                 }
               }
@@ -6610,8 +6561,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   }
                 }
               }
@@ -6634,8 +6584,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   }
                 }
               }
@@ -6660,8 +6609,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   }
                 }
               }
@@ -6684,8 +6632,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   }
                 }
               }
@@ -6708,8 +6655,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   }
                 }
               }
@@ -6736,8 +6682,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   }
                 }
               }
@@ -6762,8 +6707,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   }
                 }
               }
@@ -6788,8 +6732,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   }
                 }
               }
@@ -6815,8 +6758,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   }
                 }
               }
@@ -6838,8 +6780,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   }
                 }
               }
@@ -6861,8 +6802,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   }
                 }
               }
@@ -6884,8 +6824,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   }
                 }
               }
@@ -6907,8 +6846,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   }
                 }
               }
@@ -6932,8 +6870,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -6957,8 +6894,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   }
                 }
               }
@@ -6981,8 +6917,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   }
                 }
               }
@@ -7005,8 +6940,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   }
                 }
               }
@@ -7031,8 +6965,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   }
                 }
               }
@@ -7055,8 +6988,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   }
                 }
               }
@@ -7079,8 +7011,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   }
                 }
               }
@@ -7105,8 +7036,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   }
                 }
               }
@@ -7129,8 +7059,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   }
                 }
               }
@@ -7153,8 +7082,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   }
                 }
               }
@@ -7181,8 +7109,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   }
                 }
               }
@@ -7207,8 +7134,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   }
                 }
               }
@@ -7233,8 +7159,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   }
                 }
               }
@@ -7260,8 +7185,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               }
             }
           }
@@ -7284,8 +7208,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               }
             }
           }
@@ -7308,8 +7231,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               }
             }
           }
@@ -7332,8 +7254,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               }
             }
           }
@@ -7355,8 +7276,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               }
             }
           }
@@ -7380,8 +7300,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               }
             }
           }
@@ -7404,8 +7323,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               }
             }
           }
@@ -7427,8 +7345,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               }
             }
           }
@@ -7451,8 +7368,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               }
             }
           }
@@ -7475,8 +7391,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               }
             }
           }
@@ -7499,8 +7414,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               }
             }
           }
@@ -7523,8 +7437,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               }
             }
           }
@@ -7547,8 +7460,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               }
             }
           }
@@ -7571,8 +7483,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               }
             }
           }
@@ -7596,8 +7507,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               }
             }
           }
@@ -7622,8 +7532,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -7645,8 +7554,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -7668,8 +7576,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -7691,8 +7598,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -7716,8 +7622,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -7739,8 +7644,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -7762,8 +7666,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -7785,8 +7688,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -7811,8 +7713,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               }
             }
           }
@@ -7836,8 +7737,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -7860,8 +7760,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -7885,8 +7784,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               }
             }
           }
@@ -7911,8 +7809,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -7934,8 +7831,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -7957,8 +7853,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -7982,8 +7877,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -8005,8 +7899,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -8029,8 +7922,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -8053,8 +7945,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -8077,8 +7968,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -8101,8 +7991,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -8125,8 +8014,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -8149,8 +8037,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -8172,8 +8059,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -8195,8 +8081,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -8218,8 +8103,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -8241,8 +8125,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -8264,8 +8147,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -8292,8 +8174,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     }
                   }
                 }
@@ -8316,8 +8197,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     }
                   }
                 }
@@ -8340,8 +8220,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     }
                   }
                 }
@@ -8366,8 +8245,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     }
                   }
                 }
@@ -8390,8 +8268,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     }
                   }
                 }
@@ -8414,8 +8291,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     }
                   }
                 }
@@ -8440,8 +8316,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     }
                   }
                 }
@@ -8464,8 +8339,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     }
                   }
                 }
@@ -8488,8 +8362,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     }
                   }
                 }
@@ -8512,8 +8385,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     }
                   }
                 }
@@ -8536,8 +8408,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     }
                   }
                 }
@@ -8561,8 +8432,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   }
                 }
               }
@@ -8586,8 +8456,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     }
                   }
                 }
@@ -8610,8 +8479,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     }
                   }
                 }
@@ -8634,8 +8502,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     }
                   }
                 }
@@ -8662,8 +8529,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     }
                   }
                 }
@@ -8688,8 +8554,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     }
                   }
                 }
@@ -8714,8 +8579,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     }
                   }
                 }
@@ -8742,8 +8606,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     }
                   }
                 }
@@ -8766,8 +8629,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     }
                   }
                 }
@@ -8790,8 +8652,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     }
                   }
                 }
@@ -8816,8 +8677,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     }
                   }
                 }
@@ -8840,8 +8700,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     }
                   }
                 }
@@ -8864,8 +8723,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     }
                   }
                 }
@@ -8890,8 +8748,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     }
                   }
                 }
@@ -8914,8 +8771,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     }
                   }
                 }
@@ -8938,8 +8794,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     }
                   }
                 }
@@ -8962,8 +8817,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     }
                   }
                 }
@@ -8986,8 +8840,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     }
                   }
                 }
@@ -9011,8 +8864,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   }
                 }
               }
@@ -9036,8 +8888,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     }
                   }
                 }
@@ -9060,8 +8911,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     }
                   }
                 }
@@ -9084,8 +8934,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     }
                   }
                 }
@@ -9112,8 +8961,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     }
                   }
                 }
@@ -9138,8 +8986,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     }
                   }
                 }
@@ -9164,8 +9011,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     }
                   }
                 }
@@ -9192,8 +9038,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     }
                   }
                 }
@@ -9216,8 +9061,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     }
                   }
                 }
@@ -9240,8 +9084,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     }
                   }
                 }
@@ -9266,8 +9109,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     }
                   }
                 }
@@ -9290,8 +9132,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     }
                   }
                 }
@@ -9314,8 +9155,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     }
                   }
                 }
@@ -9340,8 +9180,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     }
                   }
                 }
@@ -9364,8 +9203,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     }
                   }
                 }
@@ -9388,8 +9226,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     }
                   }
                 }
@@ -9412,8 +9249,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     }
                   }
                 }
@@ -9436,8 +9272,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     }
                   }
                 }
@@ -9461,8 +9296,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   }
                 }
               }
@@ -9486,8 +9320,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     }
                   }
                 }
@@ -9510,8 +9343,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     }
                   }
                 }
@@ -9534,8 +9366,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     }
                   }
                 }
@@ -9562,8 +9393,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     }
                   }
                 }
@@ -9588,8 +9418,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     }
                   }
                 }
@@ -9614,8 +9443,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     }
                   }
                 }
@@ -9641,8 +9469,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -9665,8 +9492,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -9689,8 +9515,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -9713,8 +9538,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -9736,8 +9560,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -9761,8 +9584,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -9786,8 +9608,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   }
                 }
               }
@@ -9810,8 +9631,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   }
                 }
               }
@@ -9835,8 +9655,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -9861,8 +9680,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -9885,8 +9703,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -9909,8 +9726,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -9933,8 +9749,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -9957,8 +9772,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -9981,8 +9795,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -10005,8 +9818,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -10029,8 +9841,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -10053,8 +9864,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -10077,8 +9887,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -10101,8 +9910,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -10125,8 +9933,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -10149,8 +9956,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -10174,8 +9980,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   }
                 }
               }
@@ -10198,8 +10003,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   }
                 }
               }
@@ -10222,8 +10026,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   }
                 }
               }
@@ -10246,8 +10049,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   }
                 }
               }
@@ -10270,8 +10072,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   }
                 }
               }
@@ -10297,8 +10098,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -10321,8 +10121,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -10345,8 +10144,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -10369,8 +10167,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -10393,8 +10190,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -10417,8 +10213,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -10441,8 +10236,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -10465,8 +10259,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -10489,8 +10282,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -10513,8 +10305,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -10537,8 +10328,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -10561,8 +10351,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -10585,8 +10374,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -10610,8 +10398,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   }
                 }
               }
@@ -10634,8 +10421,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   }
                 }
               }
@@ -10658,8 +10444,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   }
                 }
               }
@@ -10682,8 +10467,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   }
                 }
               }
@@ -10706,8 +10490,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   }
                 }
               }
@@ -10732,8 +10515,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -10755,8 +10537,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -10778,8 +10559,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -10802,8 +10582,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -10826,8 +10605,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -10850,8 +10628,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -10874,8 +10651,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -10898,8 +10674,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -10922,8 +10697,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 }
               }
             }
@@ -11600,8 +11374,7 @@
                   "baked": [
                     "lineHeight",
                     "letterSpacing"
-                  ],
-                  "note": "Figma Text Style; fontFamily/fontSize/fontStyle bind their variables (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle binds a STRING cut variable (#1485), the single weight/style control the Text Style has, holding the Figma style name: a facePin (#1368) sets it verbatim (e.g. Light Condensed — the width cut the numeric weight axis cannot reach), else it is the weight-role numeric run through a weight-to-style-name table (the italic named-instance, e.g. Bold Italic, when $value carries fontStyle:italic). The numeric fontWeight stays parallel data ($value.fontWeight aliases the weight-role primitive) but is no longer bound on the style."
+                  ]
                 }
               }
             }
@@ -11658,8 +11431,7 @@
                   "baked": [
                     "lineHeight",
                     "letterSpacing"
-                  ],
-                  "note": "Figma Text Style; fontFamily/fontSize/fontStyle bind their variables (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle binds a STRING cut variable (#1485), the single weight/style control the Text Style has, holding the Figma style name: a facePin (#1368) sets it verbatim (e.g. Light Condensed — the width cut the numeric weight axis cannot reach), else it is the weight-role numeric run through a weight-to-style-name table (the italic named-instance, e.g. Bold Italic, when $value carries fontStyle:italic). The numeric fontWeight stays parallel data ($value.fontWeight aliases the weight-role primitive) but is no longer bound on the style."
+                  ]
                 }
               }
             }
@@ -11716,8 +11488,7 @@
                   "baked": [
                     "lineHeight",
                     "letterSpacing"
-                  ],
-                  "note": "Figma Text Style; fontFamily/fontSize/fontStyle bind their variables (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle binds a STRING cut variable (#1485), the single weight/style control the Text Style has, holding the Figma style name: a facePin (#1368) sets it verbatim (e.g. Light Condensed — the width cut the numeric weight axis cannot reach), else it is the weight-role numeric run through a weight-to-style-name table (the italic named-instance, e.g. Bold Italic, when $value carries fontStyle:italic). The numeric fontWeight stays parallel data ($value.fontWeight aliases the weight-role primitive) but is no longer bound on the style."
+                  ]
                 }
               }
             }
@@ -11774,8 +11545,7 @@
                   "baked": [
                     "lineHeight",
                     "letterSpacing"
-                  ],
-                  "note": "Figma Text Style; fontFamily/fontSize/fontStyle bind their variables (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle binds a STRING cut variable (#1485), the single weight/style control the Text Style has, holding the Figma style name: a facePin (#1368) sets it verbatim (e.g. Light Condensed — the width cut the numeric weight axis cannot reach), else it is the weight-role numeric run through a weight-to-style-name table (the italic named-instance, e.g. Bold Italic, when $value carries fontStyle:italic). The numeric fontWeight stays parallel data ($value.fontWeight aliases the weight-role primitive) but is no longer bound on the style."
+                  ]
                 }
               }
             }
@@ -11832,8 +11602,7 @@
                   "baked": [
                     "lineHeight",
                     "letterSpacing"
-                  ],
-                  "note": "Figma Text Style; fontFamily/fontSize/fontStyle bind their variables (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle binds a STRING cut variable (#1485), the single weight/style control the Text Style has, holding the Figma style name: a facePin (#1368) sets it verbatim (e.g. Light Condensed — the width cut the numeric weight axis cannot reach), else it is the weight-role numeric run through a weight-to-style-name table (the italic named-instance, e.g. Bold Italic, when $value carries fontStyle:italic). The numeric fontWeight stays parallel data ($value.fontWeight aliases the weight-role primitive) but is no longer bound on the style."
+                  ]
                 }
               }
             }
@@ -11890,8 +11659,7 @@
                   "baked": [
                     "lineHeight",
                     "letterSpacing"
-                  ],
-                  "note": "Figma Text Style; fontFamily/fontSize/fontStyle bind their variables (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle binds a STRING cut variable (#1485), the single weight/style control the Text Style has, holding the Figma style name: a facePin (#1368) sets it verbatim (e.g. Light Condensed — the width cut the numeric weight axis cannot reach), else it is the weight-role numeric run through a weight-to-style-name table (the italic named-instance, e.g. Bold Italic, when $value carries fontStyle:italic). The numeric fontWeight stays parallel data ($value.fontWeight aliases the weight-role primitive) but is no longer bound on the style."
+                  ]
                 }
               }
             }
@@ -11932,8 +11700,7 @@
                   "baked": [
                     "lineHeight",
                     "letterSpacing"
-                  ],
-                  "note": "Figma Text Style; fontFamily/fontSize/fontStyle bind their variables (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle binds a STRING cut variable (#1485), the single weight/style control the Text Style has, holding the Figma style name: a facePin (#1368) sets it verbatim (e.g. Light Condensed — the width cut the numeric weight axis cannot reach), else it is the weight-role numeric run through a weight-to-style-name table (the italic named-instance, e.g. Bold Italic, when $value carries fontStyle:italic). The numeric fontWeight stays parallel data ($value.fontWeight aliases the weight-role primitive) but is no longer bound on the style."
+                  ]
                 }
               }
             }
@@ -11972,8 +11739,7 @@
                   "baked": [
                     "lineHeight",
                     "letterSpacing"
-                  ],
-                  "note": "Figma Text Style; fontFamily/fontSize/fontStyle bind their variables (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle binds a STRING cut variable (#1485), the single weight/style control the Text Style has, holding the Figma style name: a facePin (#1368) sets it verbatim (e.g. Light Condensed — the width cut the numeric weight axis cannot reach), else it is the weight-role numeric run through a weight-to-style-name table (the italic named-instance, e.g. Bold Italic, when $value carries fontStyle:italic). The numeric fontWeight stays parallel data ($value.fontWeight aliases the weight-role primitive) but is no longer bound on the style."
+                  ]
                 }
               }
             }
@@ -12012,8 +11778,7 @@
                   "baked": [
                     "lineHeight",
                     "letterSpacing"
-                  ],
-                  "note": "Figma Text Style; fontFamily/fontSize/fontStyle bind their variables (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle binds a STRING cut variable (#1485), the single weight/style control the Text Style has, holding the Figma style name: a facePin (#1368) sets it verbatim (e.g. Light Condensed — the width cut the numeric weight axis cannot reach), else it is the weight-role numeric run through a weight-to-style-name table (the italic named-instance, e.g. Bold Italic, when $value carries fontStyle:italic). The numeric fontWeight stays parallel data ($value.fontWeight aliases the weight-role primitive) but is no longer bound on the style."
+                  ]
                 }
               }
             }
@@ -12070,8 +11835,7 @@
                   "baked": [
                     "lineHeight",
                     "letterSpacing"
-                  ],
-                  "note": "Figma Text Style; fontFamily/fontSize/fontStyle bind their variables (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle binds a STRING cut variable (#1485), the single weight/style control the Text Style has, holding the Figma style name: a facePin (#1368) sets it verbatim (e.g. Light Condensed — the width cut the numeric weight axis cannot reach), else it is the weight-role numeric run through a weight-to-style-name table (the italic named-instance, e.g. Bold Italic, when $value carries fontStyle:italic). The numeric fontWeight stays parallel data ($value.fontWeight aliases the weight-role primitive) but is no longer bound on the style."
+                  ]
                 }
               }
             }
@@ -12128,8 +11892,7 @@
                   "baked": [
                     "lineHeight",
                     "letterSpacing"
-                  ],
-                  "note": "Figma Text Style; fontFamily/fontSize/fontStyle bind their variables (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle binds a STRING cut variable (#1485), the single weight/style control the Text Style has, holding the Figma style name: a facePin (#1368) sets it verbatim (e.g. Light Condensed — the width cut the numeric weight axis cannot reach), else it is the weight-role numeric run through a weight-to-style-name table (the italic named-instance, e.g. Bold Italic, when $value carries fontStyle:italic). The numeric fontWeight stays parallel data ($value.fontWeight aliases the weight-role primitive) but is no longer bound on the style."
+                  ]
                 }
               }
             }
@@ -12186,8 +11949,7 @@
                   "baked": [
                     "lineHeight",
                     "letterSpacing"
-                  ],
-                  "note": "Figma Text Style; fontFamily/fontSize/fontStyle bind their variables (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle binds a STRING cut variable (#1485), the single weight/style control the Text Style has, holding the Figma style name: a facePin (#1368) sets it verbatim (e.g. Light Condensed — the width cut the numeric weight axis cannot reach), else it is the weight-role numeric run through a weight-to-style-name table (the italic named-instance, e.g. Bold Italic, when $value carries fontStyle:italic). The numeric fontWeight stays parallel data ($value.fontWeight aliases the weight-role primitive) but is no longer bound on the style."
+                  ]
                 }
               }
             }
@@ -12228,8 +11990,7 @@
                   "baked": [
                     "lineHeight",
                     "letterSpacing"
-                  ],
-                  "note": "Figma Text Style; fontFamily/fontSize/fontStyle bind their variables (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle binds a STRING cut variable (#1485), the single weight/style control the Text Style has, holding the Figma style name: a facePin (#1368) sets it verbatim (e.g. Light Condensed — the width cut the numeric weight axis cannot reach), else it is the weight-role numeric run through a weight-to-style-name table (the italic named-instance, e.g. Bold Italic, when $value carries fontStyle:italic). The numeric fontWeight stays parallel data ($value.fontWeight aliases the weight-role primitive) but is no longer bound on the style."
+                  ]
                 }
               }
             }
@@ -12269,8 +12030,7 @@
                     "lineHeight",
                     "letterSpacing",
                     "textDecoration"
-                  ],
-                  "note": "Figma Text Style; fontFamily/fontSize/fontStyle bind their variables (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle binds a STRING cut variable (#1485), the single weight/style control the Text Style has, holding the Figma style name: a facePin (#1368) sets it verbatim (e.g. Light Condensed — the width cut the numeric weight axis cannot reach), else it is the weight-role numeric run through a weight-to-style-name table (the italic named-instance, e.g. Bold Italic, when $value carries fontStyle:italic). The numeric fontWeight stays parallel data ($value.fontWeight aliases the weight-role primitive) but is no longer bound on the style."
+                  ]
                 }
               }
             }
@@ -12307,8 +12067,7 @@
                   "baked": [
                     "lineHeight",
                     "letterSpacing"
-                  ],
-                  "note": "Figma Text Style; fontFamily/fontSize/fontStyle bind their variables (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle binds a STRING cut variable (#1485), the single weight/style control the Text Style has, holding the Figma style name: a facePin (#1368) sets it verbatim (e.g. Light Condensed — the width cut the numeric weight axis cannot reach), else it is the weight-role numeric run through a weight-to-style-name table (the italic named-instance, e.g. Bold Italic, when $value carries fontStyle:italic). The numeric fontWeight stays parallel data ($value.fontWeight aliases the weight-role primitive) but is no longer bound on the style."
+                  ]
                 }
               }
             }
@@ -12348,8 +12107,7 @@
                     "lineHeight",
                     "letterSpacing",
                     "textDecoration"
-                  ],
-                  "note": "Figma Text Style; fontFamily/fontSize/fontStyle bind their variables (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle binds a STRING cut variable (#1485), the single weight/style control the Text Style has, holding the Figma style name: a facePin (#1368) sets it verbatim (e.g. Light Condensed — the width cut the numeric weight axis cannot reach), else it is the weight-role numeric run through a weight-to-style-name table (the italic named-instance, e.g. Bold Italic, when $value carries fontStyle:italic). The numeric fontWeight stays parallel data ($value.fontWeight aliases the weight-role primitive) but is no longer bound on the style."
+                  ]
                 }
               }
             }
@@ -12388,8 +12146,7 @@
                   "baked": [
                     "lineHeight",
                     "letterSpacing"
-                  ],
-                  "note": "Figma Text Style; fontFamily/fontSize/fontStyle bind their variables (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle binds a STRING cut variable (#1485), the single weight/style control the Text Style has, holding the Figma style name: a facePin (#1368) sets it verbatim (e.g. Light Condensed — the width cut the numeric weight axis cannot reach), else it is the weight-role numeric run through a weight-to-style-name table (the italic named-instance, e.g. Bold Italic, when $value carries fontStyle:italic). The numeric fontWeight stays parallel data ($value.fontWeight aliases the weight-role primitive) but is no longer bound on the style."
+                  ]
                 }
               }
             }
@@ -12429,8 +12186,7 @@
                     "lineHeight",
                     "letterSpacing",
                     "textDecoration"
-                  ],
-                  "note": "Figma Text Style; fontFamily/fontSize/fontStyle bind their variables (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle binds a STRING cut variable (#1485), the single weight/style control the Text Style has, holding the Figma style name: a facePin (#1368) sets it verbatim (e.g. Light Condensed — the width cut the numeric weight axis cannot reach), else it is the weight-role numeric run through a weight-to-style-name table (the italic named-instance, e.g. Bold Italic, when $value carries fontStyle:italic). The numeric fontWeight stays parallel data ($value.fontWeight aliases the weight-role primitive) but is no longer bound on the style."
+                  ]
                 }
               }
             }
@@ -12467,8 +12223,7 @@
                   "baked": [
                     "lineHeight",
                     "letterSpacing"
-                  ],
-                  "note": "Figma Text Style; fontFamily/fontSize/fontStyle bind their variables (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle binds a STRING cut variable (#1485), the single weight/style control the Text Style has, holding the Figma style name: a facePin (#1368) sets it verbatim (e.g. Light Condensed — the width cut the numeric weight axis cannot reach), else it is the weight-role numeric run through a weight-to-style-name table (the italic named-instance, e.g. Bold Italic, when $value carries fontStyle:italic). The numeric fontWeight stays parallel data ($value.fontWeight aliases the weight-role primitive) but is no longer bound on the style."
+                  ]
                 }
               }
             }
@@ -12508,8 +12263,7 @@
                     "lineHeight",
                     "letterSpacing",
                     "textDecoration"
-                  ],
-                  "note": "Figma Text Style; fontFamily/fontSize/fontStyle bind their variables (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle binds a STRING cut variable (#1485), the single weight/style control the Text Style has, holding the Figma style name: a facePin (#1368) sets it verbatim (e.g. Light Condensed — the width cut the numeric weight axis cannot reach), else it is the weight-role numeric run through a weight-to-style-name table (the italic named-instance, e.g. Bold Italic, when $value carries fontStyle:italic). The numeric fontWeight stays parallel data ($value.fontWeight aliases the weight-role primitive) but is no longer bound on the style."
+                  ]
                 }
               }
             }
@@ -12548,8 +12302,7 @@
                   "baked": [
                     "lineHeight",
                     "letterSpacing"
-                  ],
-                  "note": "Figma Text Style; fontFamily/fontSize/fontStyle bind their variables (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle binds a STRING cut variable (#1485), the single weight/style control the Text Style has, holding the Figma style name: a facePin (#1368) sets it verbatim (e.g. Light Condensed — the width cut the numeric weight axis cannot reach), else it is the weight-role numeric run through a weight-to-style-name table (the italic named-instance, e.g. Bold Italic, when $value carries fontStyle:italic). The numeric fontWeight stays parallel data ($value.fontWeight aliases the weight-role primitive) but is no longer bound on the style."
+                  ]
                 }
               }
             }
@@ -12589,8 +12342,7 @@
                     "lineHeight",
                     "letterSpacing",
                     "textDecoration"
-                  ],
-                  "note": "Figma Text Style; fontFamily/fontSize/fontStyle bind their variables (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle binds a STRING cut variable (#1485), the single weight/style control the Text Style has, holding the Figma style name: a facePin (#1368) sets it verbatim (e.g. Light Condensed — the width cut the numeric weight axis cannot reach), else it is the weight-role numeric run through a weight-to-style-name table (the italic named-instance, e.g. Bold Italic, when $value carries fontStyle:italic). The numeric fontWeight stays parallel data ($value.fontWeight aliases the weight-role primitive) but is no longer bound on the style."
+                  ]
                 }
               }
             }
@@ -12627,8 +12379,7 @@
                   "baked": [
                     "lineHeight",
                     "letterSpacing"
-                  ],
-                  "note": "Figma Text Style; fontFamily/fontSize/fontStyle bind their variables (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle binds a STRING cut variable (#1485), the single weight/style control the Text Style has, holding the Figma style name: a facePin (#1368) sets it verbatim (e.g. Light Condensed — the width cut the numeric weight axis cannot reach), else it is the weight-role numeric run through a weight-to-style-name table (the italic named-instance, e.g. Bold Italic, when $value carries fontStyle:italic). The numeric fontWeight stays parallel data ($value.fontWeight aliases the weight-role primitive) but is no longer bound on the style."
+                  ]
                 }
               }
             }
@@ -12668,8 +12419,7 @@
                     "lineHeight",
                     "letterSpacing",
                     "textDecoration"
-                  ],
-                  "note": "Figma Text Style; fontFamily/fontSize/fontStyle bind their variables (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle binds a STRING cut variable (#1485), the single weight/style control the Text Style has, holding the Figma style name: a facePin (#1368) sets it verbatim (e.g. Light Condensed — the width cut the numeric weight axis cannot reach), else it is the weight-role numeric run through a weight-to-style-name table (the italic named-instance, e.g. Bold Italic, when $value carries fontStyle:italic). The numeric fontWeight stays parallel data ($value.fontWeight aliases the weight-role primitive) but is no longer bound on the style."
+                  ]
                 }
               }
             }
@@ -12708,8 +12458,7 @@
                   "baked": [
                     "lineHeight",
                     "letterSpacing"
-                  ],
-                  "note": "Figma Text Style; fontFamily/fontSize/fontStyle bind their variables (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle binds a STRING cut variable (#1485), the single weight/style control the Text Style has, holding the Figma style name: a facePin (#1368) sets it verbatim (e.g. Light Condensed — the width cut the numeric weight axis cannot reach), else it is the weight-role numeric run through a weight-to-style-name table (the italic named-instance, e.g. Bold Italic, when $value carries fontStyle:italic). The numeric fontWeight stays parallel data ($value.fontWeight aliases the weight-role primitive) but is no longer bound on the style."
+                  ]
                 }
               }
             }
@@ -12749,8 +12498,7 @@
                     "lineHeight",
                     "letterSpacing",
                     "textDecoration"
-                  ],
-                  "note": "Figma Text Style; fontFamily/fontSize/fontStyle bind their variables (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle binds a STRING cut variable (#1485), the single weight/style control the Text Style has, holding the Figma style name: a facePin (#1368) sets it verbatim (e.g. Light Condensed — the width cut the numeric weight axis cannot reach), else it is the weight-role numeric run through a weight-to-style-name table (the italic named-instance, e.g. Bold Italic, when $value carries fontStyle:italic). The numeric fontWeight stays parallel data ($value.fontWeight aliases the weight-role primitive) but is no longer bound on the style."
+                  ]
                 }
               }
             }
@@ -12787,8 +12535,7 @@
                   "baked": [
                     "lineHeight",
                     "letterSpacing"
-                  ],
-                  "note": "Figma Text Style; fontFamily/fontSize/fontStyle bind their variables (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle binds a STRING cut variable (#1485), the single weight/style control the Text Style has, holding the Figma style name: a facePin (#1368) sets it verbatim (e.g. Light Condensed — the width cut the numeric weight axis cannot reach), else it is the weight-role numeric run through a weight-to-style-name table (the italic named-instance, e.g. Bold Italic, when $value carries fontStyle:italic). The numeric fontWeight stays parallel data ($value.fontWeight aliases the weight-role primitive) but is no longer bound on the style."
+                  ]
                 }
               }
             }
@@ -12828,8 +12575,7 @@
                     "lineHeight",
                     "letterSpacing",
                     "textDecoration"
-                  ],
-                  "note": "Figma Text Style; fontFamily/fontSize/fontStyle bind their variables (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle binds a STRING cut variable (#1485), the single weight/style control the Text Style has, holding the Figma style name: a facePin (#1368) sets it verbatim (e.g. Light Condensed — the width cut the numeric weight axis cannot reach), else it is the weight-role numeric run through a weight-to-style-name table (the italic named-instance, e.g. Bold Italic, when $value carries fontStyle:italic). The numeric fontWeight stays parallel data ($value.fontWeight aliases the weight-role primitive) but is no longer bound on the style."
+                  ]
                 }
               }
             }
@@ -12870,8 +12616,7 @@
                   "baked": [
                     "lineHeight",
                     "letterSpacing"
-                  ],
-                  "note": "Figma Text Style; fontFamily/fontSize/fontStyle bind their variables (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle binds a STRING cut variable (#1485), the single weight/style control the Text Style has, holding the Figma style name: a facePin (#1368) sets it verbatim (e.g. Light Condensed — the width cut the numeric weight axis cannot reach), else it is the weight-role numeric run through a weight-to-style-name table (the italic named-instance, e.g. Bold Italic, when $value carries fontStyle:italic). The numeric fontWeight stays parallel data ($value.fontWeight aliases the weight-role primitive) but is no longer bound on the style."
+                  ]
                 }
               }
             }
@@ -12911,8 +12656,7 @@
                     "lineHeight",
                     "letterSpacing",
                     "textDecoration"
-                  ],
-                  "note": "Figma Text Style; fontFamily/fontSize/fontStyle bind their variables (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle binds a STRING cut variable (#1485), the single weight/style control the Text Style has, holding the Figma style name: a facePin (#1368) sets it verbatim (e.g. Light Condensed — the width cut the numeric weight axis cannot reach), else it is the weight-role numeric run through a weight-to-style-name table (the italic named-instance, e.g. Bold Italic, when $value carries fontStyle:italic). The numeric fontWeight stays parallel data ($value.fontWeight aliases the weight-role primitive) but is no longer bound on the style."
+                  ]
                 }
               }
             }
@@ -12951,8 +12695,7 @@
                   "baked": [
                     "lineHeight",
                     "letterSpacing"
-                  ],
-                  "note": "Figma Text Style; fontFamily/fontSize/fontStyle bind their variables (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle binds a STRING cut variable (#1485), the single weight/style control the Text Style has, holding the Figma style name: a facePin (#1368) sets it verbatim (e.g. Light Condensed — the width cut the numeric weight axis cannot reach), else it is the weight-role numeric run through a weight-to-style-name table (the italic named-instance, e.g. Bold Italic, when $value carries fontStyle:italic). The numeric fontWeight stays parallel data ($value.fontWeight aliases the weight-role primitive) but is no longer bound on the style."
+                  ]
                 }
               }
             }
@@ -12992,8 +12735,7 @@
                     "lineHeight",
                     "letterSpacing",
                     "textDecoration"
-                  ],
-                  "note": "Figma Text Style; fontFamily/fontSize/fontStyle bind their variables (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle binds a STRING cut variable (#1485), the single weight/style control the Text Style has, holding the Figma style name: a facePin (#1368) sets it verbatim (e.g. Light Condensed — the width cut the numeric weight axis cannot reach), else it is the weight-role numeric run through a weight-to-style-name table (the italic named-instance, e.g. Bold Italic, when $value carries fontStyle:italic). The numeric fontWeight stays parallel data ($value.fontWeight aliases the weight-role primitive) but is no longer bound on the style."
+                  ]
                 }
               }
             }
@@ -13032,8 +12774,7 @@
                   "baked": [
                     "lineHeight",
                     "letterSpacing"
-                  ],
-                  "note": "Figma Text Style; fontFamily/fontSize/fontStyle bind their variables (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle binds a STRING cut variable (#1485), the single weight/style control the Text Style has, holding the Figma style name: a facePin (#1368) sets it verbatim (e.g. Light Condensed — the width cut the numeric weight axis cannot reach), else it is the weight-role numeric run through a weight-to-style-name table (the italic named-instance, e.g. Bold Italic, when $value carries fontStyle:italic). The numeric fontWeight stays parallel data ($value.fontWeight aliases the weight-role primitive) but is no longer bound on the style."
+                  ]
                 }
               }
             }
@@ -13073,8 +12814,7 @@
                     "lineHeight",
                     "letterSpacing",
                     "textDecoration"
-                  ],
-                  "note": "Figma Text Style; fontFamily/fontSize/fontStyle bind their variables (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle binds a STRING cut variable (#1485), the single weight/style control the Text Style has, holding the Figma style name: a facePin (#1368) sets it verbatim (e.g. Light Condensed — the width cut the numeric weight axis cannot reach), else it is the weight-role numeric run through a weight-to-style-name table (the italic named-instance, e.g. Bold Italic, when $value carries fontStyle:italic). The numeric fontWeight stays parallel data ($value.fontWeight aliases the weight-role primitive) but is no longer bound on the style."
+                  ]
                 }
               }
             }
@@ -13115,8 +12855,7 @@
                   "baked": [
                     "lineHeight",
                     "letterSpacing"
-                  ],
-                  "note": "Figma Text Style; fontFamily/fontSize/fontStyle bind their variables (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle binds a STRING cut variable (#1485), the single weight/style control the Text Style has, holding the Figma style name: a facePin (#1368) sets it verbatim (e.g. Light Condensed — the width cut the numeric weight axis cannot reach), else it is the weight-role numeric run through a weight-to-style-name table (the italic named-instance, e.g. Bold Italic, when $value carries fontStyle:italic). The numeric fontWeight stays parallel data ($value.fontWeight aliases the weight-role primitive) but is no longer bound on the style."
+                  ]
                 }
               }
             }
@@ -13156,8 +12895,7 @@
                     "lineHeight",
                     "letterSpacing",
                     "textDecoration"
-                  ],
-                  "note": "Figma Text Style; fontFamily/fontSize/fontStyle bind their variables (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle binds a STRING cut variable (#1485), the single weight/style control the Text Style has, holding the Figma style name: a facePin (#1368) sets it verbatim (e.g. Light Condensed — the width cut the numeric weight axis cannot reach), else it is the weight-role numeric run through a weight-to-style-name table (the italic named-instance, e.g. Bold Italic, when $value carries fontStyle:italic). The numeric fontWeight stays parallel data ($value.fontWeight aliases the weight-role primitive) but is no longer bound on the style."
+                  ]
                 }
               }
             }
@@ -13194,8 +12932,7 @@
                   "baked": [
                     "lineHeight",
                     "letterSpacing"
-                  ],
-                  "note": "Figma Text Style; fontFamily/fontSize/fontStyle bind their variables (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle binds a STRING cut variable (#1485), the single weight/style control the Text Style has, holding the Figma style name: a facePin (#1368) sets it verbatim (e.g. Light Condensed — the width cut the numeric weight axis cannot reach), else it is the weight-role numeric run through a weight-to-style-name table (the italic named-instance, e.g. Bold Italic, when $value carries fontStyle:italic). The numeric fontWeight stays parallel data ($value.fontWeight aliases the weight-role primitive) but is no longer bound on the style."
+                  ]
                 }
               }
             }
@@ -13235,8 +12972,7 @@
                     "lineHeight",
                     "letterSpacing",
                     "textDecoration"
-                  ],
-                  "note": "Figma Text Style; fontFamily/fontSize/fontStyle bind their variables (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle binds a STRING cut variable (#1485), the single weight/style control the Text Style has, holding the Figma style name: a facePin (#1368) sets it verbatim (e.g. Light Condensed — the width cut the numeric weight axis cannot reach), else it is the weight-role numeric run through a weight-to-style-name table (the italic named-instance, e.g. Bold Italic, when $value carries fontStyle:italic). The numeric fontWeight stays parallel data ($value.fontWeight aliases the weight-role primitive) but is no longer bound on the style."
+                  ]
                 }
               }
             }
@@ -13275,8 +13011,7 @@
                   "baked": [
                     "lineHeight",
                     "letterSpacing"
-                  ],
-                  "note": "Figma Text Style; fontFamily/fontSize/fontStyle bind their variables (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle binds a STRING cut variable (#1485), the single weight/style control the Text Style has, holding the Figma style name: a facePin (#1368) sets it verbatim (e.g. Light Condensed — the width cut the numeric weight axis cannot reach), else it is the weight-role numeric run through a weight-to-style-name table (the italic named-instance, e.g. Bold Italic, when $value carries fontStyle:italic). The numeric fontWeight stays parallel data ($value.fontWeight aliases the weight-role primitive) but is no longer bound on the style."
+                  ]
                 }
               }
             }
@@ -13316,8 +13051,7 @@
                     "lineHeight",
                     "letterSpacing",
                     "textDecoration"
-                  ],
-                  "note": "Figma Text Style; fontFamily/fontSize/fontStyle bind their variables (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle binds a STRING cut variable (#1485), the single weight/style control the Text Style has, holding the Figma style name: a facePin (#1368) sets it verbatim (e.g. Light Condensed — the width cut the numeric weight axis cannot reach), else it is the weight-role numeric run through a weight-to-style-name table (the italic named-instance, e.g. Bold Italic, when $value carries fontStyle:italic). The numeric fontWeight stays parallel data ($value.fontWeight aliases the weight-role primitive) but is no longer bound on the style."
+                  ]
                 }
               }
             }
@@ -13354,8 +13088,7 @@
                   "baked": [
                     "lineHeight",
                     "letterSpacing"
-                  ],
-                  "note": "Figma Text Style; fontFamily/fontSize/fontStyle bind their variables (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle binds a STRING cut variable (#1485), the single weight/style control the Text Style has, holding the Figma style name: a facePin (#1368) sets it verbatim (e.g. Light Condensed — the width cut the numeric weight axis cannot reach), else it is the weight-role numeric run through a weight-to-style-name table (the italic named-instance, e.g. Bold Italic, when $value carries fontStyle:italic). The numeric fontWeight stays parallel data ($value.fontWeight aliases the weight-role primitive) but is no longer bound on the style."
+                  ]
                 }
               }
             }
@@ -13395,8 +13128,7 @@
                     "lineHeight",
                     "letterSpacing",
                     "textDecoration"
-                  ],
-                  "note": "Figma Text Style; fontFamily/fontSize/fontStyle bind their variables (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle binds a STRING cut variable (#1485), the single weight/style control the Text Style has, holding the Figma style name: a facePin (#1368) sets it verbatim (e.g. Light Condensed — the width cut the numeric weight axis cannot reach), else it is the weight-role numeric run through a weight-to-style-name table (the italic named-instance, e.g. Bold Italic, when $value carries fontStyle:italic). The numeric fontWeight stays parallel data ($value.fontWeight aliases the weight-role primitive) but is no longer bound on the style."
+                  ]
                 }
               }
             }
@@ -13440,8 +13172,7 @@
                     "lineHeight",
                     "letterSpacing",
                     "textCase"
-                  ],
-                  "note": "Figma Text Style; fontFamily/fontSize/fontStyle bind their variables (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle binds a STRING cut variable (#1485), the single weight/style control the Text Style has, holding the Figma style name: a facePin (#1368) sets it verbatim (e.g. Light Condensed — the width cut the numeric weight axis cannot reach), else it is the weight-role numeric run through a weight-to-style-name table (the italic named-instance, e.g. Bold Italic, when $value carries fontStyle:italic). The numeric fontWeight stays parallel data ($value.fontWeight aliases the weight-role primitive) but is no longer bound on the style."
+                  ]
                 }
               }
             }
@@ -13483,8 +13214,7 @@
                     "lineHeight",
                     "letterSpacing",
                     "textCase"
-                  ],
-                  "note": "Figma Text Style; fontFamily/fontSize/fontStyle bind their variables (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle binds a STRING cut variable (#1485), the single weight/style control the Text Style has, holding the Figma style name: a facePin (#1368) sets it verbatim (e.g. Light Condensed — the width cut the numeric weight axis cannot reach), else it is the weight-role numeric run through a weight-to-style-name table (the italic named-instance, e.g. Bold Italic, when $value carries fontStyle:italic). The numeric fontWeight stays parallel data ($value.fontWeight aliases the weight-role primitive) but is no longer bound on the style."
+                  ]
                 }
               }
             }
@@ -13544,8 +13274,7 @@
                     "lineHeight",
                     "letterSpacing",
                     "textCase"
-                  ],
-                  "note": "Figma Text Style; fontFamily/fontSize/fontStyle bind their variables (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle binds a STRING cut variable (#1485), the single weight/style control the Text Style has, holding the Figma style name: a facePin (#1368) sets it verbatim (e.g. Light Condensed — the width cut the numeric weight axis cannot reach), else it is the weight-role numeric run through a weight-to-style-name table (the italic named-instance, e.g. Bold Italic, when $value carries fontStyle:italic). The numeric fontWeight stays parallel data ($value.fontWeight aliases the weight-role primitive) but is no longer bound on the style."
+                  ]
                 }
               }
             }
@@ -13586,8 +13315,7 @@
                   "baked": [
                     "lineHeight",
                     "letterSpacing"
-                  ],
-                  "note": "Figma Text Style; fontFamily/fontSize/fontStyle bind their variables (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle binds a STRING cut variable (#1485), the single weight/style control the Text Style has, holding the Figma style name: a facePin (#1368) sets it verbatim (e.g. Light Condensed — the width cut the numeric weight axis cannot reach), else it is the weight-role numeric run through a weight-to-style-name table (the italic named-instance, e.g. Bold Italic, when $value carries fontStyle:italic). The numeric fontWeight stays parallel data ($value.fontWeight aliases the weight-role primitive) but is no longer bound on the style."
+                  ]
                 }
               }
             }
@@ -13629,8 +13357,7 @@
                 "spread",
                 "offsetX",
                 "offsetY"
-              ],
-              "note": "Figma Effect Style (drop-shadow layers); color + numerics bindable per layer; mode-aware — dark shadow is reduced (surface lift carries dark elevation), see modes.dark"
+              ]
             }
           }
         }
@@ -13668,8 +13395,7 @@
                 "spread",
                 "offsetX",
                 "offsetY"
-              ],
-              "note": "Figma Effect Style (drop-shadow layers); color + numerics bindable per layer; mode-aware — dark shadow is reduced (surface lift carries dark elevation), see modes.dark"
+              ]
             }
           }
         }
@@ -13707,8 +13433,7 @@
                 "spread",
                 "offsetX",
                 "offsetY"
-              ],
-              "note": "Figma Effect Style (drop-shadow layers); color + numerics bindable per layer; mode-aware — dark shadow is reduced (surface lift carries dark elevation), see modes.dark"
+              ]
             }
           }
         }
@@ -13746,8 +13471,7 @@
                 "spread",
                 "offsetX",
                 "offsetY"
-              ],
-              "note": "Figma Effect Style (drop-shadow layers); color + numerics bindable per layer; mode-aware — dark shadow is reduced (surface lift carries dark elevation), see modes.dark"
+              ]
             }
           }
         }
@@ -13785,8 +13509,7 @@
                 "spread",
                 "offsetX",
                 "offsetY"
-              ],
-              "note": "Figma Effect Style (drop-shadow layers); color + numerics bindable per layer; mode-aware — dark shadow is reduced (surface lift carries dark elevation), see modes.dark"
+              ]
             }
           }
         }
@@ -13824,8 +13547,7 @@
                 "spread",
                 "offsetX",
                 "offsetY"
-              ],
-              "note": "Figma Effect Style (drop-shadow layers); color + numerics bindable per layer; mode-aware — dark shadow is reduced (surface lift carries dark elevation), see modes.dark"
+              ]
             }
           }
         }
@@ -13856,8 +13578,7 @@
                 "spread",
                 "offsetX",
                 "offsetY"
-              ],
-              "note": "Figma Effect Style (drop-shadow layers); color + numerics bindable per layer; mode-aware — dark shadow is reduced (surface lift carries dark elevation), see modes.dark"
+              ]
             }
           }
         }
@@ -13989,15 +13710,14 @@
         "columns": {
           "$type": "number",
           "$value": 4,
-          "$description": "grid sm — 4 columns (design grid / Figma layout-grid; build with CSS Grid)",
+          "$description": "grid sm — 4 columns",
           "$extensions": {
             "prism3": {
               "generated": true,
               "figma": {
                 "collection": "layout",
                 "mode": "sm",
-                "variable": "grid.columns",
-                "note": "breakpoint = Figma mode"
+                "variable": "grid.columns"
               }
             }
           }
@@ -14014,8 +13734,7 @@
               "figma": {
                 "collection": "layout",
                 "mode": "sm",
-                "variable": "grid.gutter",
-                "note": "breakpoint = Figma mode (separate layout collection; composes with color light/dark)"
+                "variable": "grid.gutter"
               }
             }
           }
@@ -14032,8 +13751,7 @@
               "figma": {
                 "collection": "layout",
                 "mode": "sm",
-                "variable": "grid.margin",
-                "note": "breakpoint = Figma mode (separate layout collection; composes with color light/dark)"
+                "variable": "grid.margin"
               }
             }
           }
@@ -14043,15 +13761,14 @@
         "columns": {
           "$type": "number",
           "$value": 8,
-          "$description": "grid md — 8 columns (design grid / Figma layout-grid; build with CSS Grid)",
+          "$description": "grid md — 8 columns",
           "$extensions": {
             "prism3": {
               "generated": true,
               "figma": {
                 "collection": "layout",
                 "mode": "md",
-                "variable": "grid.columns",
-                "note": "breakpoint = Figma mode"
+                "variable": "grid.columns"
               }
             }
           }
@@ -14068,8 +13785,7 @@
               "figma": {
                 "collection": "layout",
                 "mode": "md",
-                "variable": "grid.gutter",
-                "note": "breakpoint = Figma mode (separate layout collection; composes with color light/dark)"
+                "variable": "grid.gutter"
               }
             }
           }
@@ -14086,8 +13802,7 @@
               "figma": {
                 "collection": "layout",
                 "mode": "md",
-                "variable": "grid.margin",
-                "note": "breakpoint = Figma mode (separate layout collection; composes with color light/dark)"
+                "variable": "grid.margin"
               }
             }
           }
@@ -14097,15 +13812,14 @@
         "columns": {
           "$type": "number",
           "$value": 12,
-          "$description": "grid lg — 12 columns (design grid / Figma layout-grid; build with CSS Grid)",
+          "$description": "grid lg — 12 columns",
           "$extensions": {
             "prism3": {
               "generated": true,
               "figma": {
                 "collection": "layout",
                 "mode": "lg",
-                "variable": "grid.columns",
-                "note": "breakpoint = Figma mode"
+                "variable": "grid.columns"
               }
             }
           }
@@ -14122,8 +13836,7 @@
               "figma": {
                 "collection": "layout",
                 "mode": "lg",
-                "variable": "grid.gutter",
-                "note": "breakpoint = Figma mode (separate layout collection; composes with color light/dark)"
+                "variable": "grid.gutter"
               }
             }
           }
@@ -14140,8 +13853,7 @@
               "figma": {
                 "collection": "layout",
                 "mode": "lg",
-                "variable": "grid.margin",
-                "note": "breakpoint = Figma mode (separate layout collection; composes with color light/dark)"
+                "variable": "grid.margin"
               }
             }
           }
@@ -14151,15 +13863,14 @@
         "columns": {
           "$type": "number",
           "$value": 12,
-          "$description": "grid xl — 12 columns (design grid / Figma layout-grid; build with CSS Grid)",
+          "$description": "grid xl — 12 columns",
           "$extensions": {
             "prism3": {
               "generated": true,
               "figma": {
                 "collection": "layout",
                 "mode": "xl",
-                "variable": "grid.columns",
-                "note": "breakpoint = Figma mode"
+                "variable": "grid.columns"
               }
             }
           }
@@ -14176,8 +13887,7 @@
               "figma": {
                 "collection": "layout",
                 "mode": "xl",
-                "variable": "grid.gutter",
-                "note": "breakpoint = Figma mode (separate layout collection; composes with color light/dark)"
+                "variable": "grid.gutter"
               }
             }
           }
@@ -14194,8 +13904,7 @@
               "figma": {
                 "collection": "layout",
                 "mode": "xl",
-                "variable": "grid.margin",
-                "note": "breakpoint = Figma mode (separate layout collection; composes with color light/dark)"
+                "variable": "grid.margin"
               }
             }
           }
@@ -14205,15 +13914,14 @@
         "columns": {
           "$type": "number",
           "$value": 12,
-          "$description": "grid 2xl — 12 columns (design grid / Figma layout-grid; build with CSS Grid)",
+          "$description": "grid 2xl — 12 columns",
           "$extensions": {
             "prism3": {
               "generated": true,
               "figma": {
                 "collection": "layout",
                 "mode": "2xl",
-                "variable": "grid.columns",
-                "note": "breakpoint = Figma mode"
+                "variable": "grid.columns"
               }
             }
           }
@@ -14230,8 +13938,7 @@
               "figma": {
                 "collection": "layout",
                 "mode": "2xl",
-                "variable": "grid.gutter",
-                "note": "breakpoint = Figma mode (separate layout collection; composes with color light/dark)"
+                "variable": "grid.gutter"
               }
             }
           }
@@ -14248,8 +13955,7 @@
               "figma": {
                 "collection": "layout",
                 "mode": "2xl",
-                "variable": "grid.margin",
-                "note": "breakpoint = Figma mode (separate layout collection; composes with color light/dark)"
+                "variable": "grid.margin"
               }
             }
           }
@@ -15168,7 +14874,7 @@
   "$extensions": {
     "generator": {
       "name": "Prism3 engine",
-      "version": "0.235.0",
+      "version": "0.236.0",
       "method": "OKLCH color + grid-derived dimension generation"
     },
     "prism3": {
@@ -15189,7 +14895,7 @@
         "shadow: 6 steps (xs–2xl) of two layers each, plus a one-layer inset, softness 1; tinted to hue 65 at 0.15. Full shadows in light, reduced in dark, where surface lightness carries elevation.",
         "gradient: none — the brand declares no gradients, and none are added by default.",
         "layout: 5 breakpoints (sm 0, md 768, lg 1024, xl 1440, 2xl 1920); 12-column grid (4/8/12/12/12 by breakpoint); gutters 16/16/24/24/32px and margins 16/24/24/32/48px, from the spacing scale; containers max 1440px, narrow 720px.",
-        "typography: 22-step size ladder (10–160px), a fixed set rather than a ratio; weights subtle/default/emphasis/strong/max → 300/400/600/700/900; families display Inter, title Inter, body Inter, label Inter, caption Inter, eyebrow Inter, code JetBrains Mono; 'compact' type scale. 46 text styles: title and display sizes follow the type scale, display tops out at '3xl' (144px), title.2xs is left out. 10 styles shrink on mobile — body stays fixed, titles drop about one step, display settles near 40–48px — through clamp() from 375 to 1280px and desktop and mobile Figma modes.",
+        "typography: 22-step size ladder (10–160px), a fixed set rather than a ratio; weights subtle/default/emphasis/strong/max → 300/400/600/700/900; families display Inter, title Inter, body Inter, label Inter, caption Inter, eyebrow Inter, code JetBrains Mono; 'compact' type scale. 46 text styles: title and display sizes follow the type scale, display tops out at '3xl' (144px), title.2xs is left out. 10 styles shrink on mobile — body stays fixed, titles drop about one step, display settles near 40–48px — through clamp() from 375 to 1280px and in desktop and mobile modes.",
         "disabled: 'reduced' (default) — disabled text and icons clear 3:1 against the contrast floor: dimmed but legible, never below 3:1, without the WCAG 1.4.3/1.4.11 inactive-component exemption. disabledStrategy 'full' raises them to 4.5:1.",
         "interactive overlays: 'overlay-neutral' (default) — outline and text controls, rows and menus hover with a translucent neutral wash (interactive.<color>.overlay.*), contrast-checked on the blended surface. 'solid-tint' uses the control's own fill at an opacity step instead; 'none' adds no hover.",
         "surfaces: the light page is neutral.50, not the default — the contrast floor moves with it.",

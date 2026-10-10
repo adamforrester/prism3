@@ -281,7 +281,7 @@
     },
     {
       "date": "2026-10-06",
-      "issue": null,
+      "issue": 2259,
       "title": "never detach a Prism3 component to match a design; place it attached and file the differences",
       "doc": "docs/46-never-detach.md",
       "section": null

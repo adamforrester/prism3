@@ -92,7 +92,7 @@ const orderedRoleKeys = (keys: string[]): string[] => {
 type Token = { $type: 'color' | 'dimension' | 'number' | 'strokeStyle' | 'duration' | 'cubicBezier' | 'transition' | 'spring' | 'fontFamily' | 'fontWeight' | 'typography' | 'shadow' | 'gradient'; $value: string | number | number[] | string[] | Record<string, unknown> | Record<string, unknown>[]; $description: string; $extensions: { prism3: Record<string, unknown> } };
 
 // ---- colour leaves ----
-const primitiveLeaf = (theme: Theme, paletteDesc: string, s: Step, isAnchor: boolean, ramp: Step[]): Token => {
+const primitiveLeaf = (theme: Theme, paletteDesc: string, s: Step, isAnchor: boolean, ramp: Step[], hueSource?: 'brand' | 'default'): Token => {
   // The mid-tone pivot claim is MEASURED, never assumed from the step number (#1623 DT/T-2). A 500 that
   // clears 4.5:1 on both extremes says so; one that does not states its measured pair instead, because
   // a brand-supplied or measured-anchor ramp is not carved to the pivot and the claim was false on two.
@@ -108,7 +108,7 @@ const primitiveLeaf = (theme: Theme, paletteDesc: string, s: Step, isAnchor: boo
     // The band is glossed with what it holds and its real step range in THIS ramp (#1623 DT/T-8), so the
     // name is readable without a key: `Quarter-Tone band (light tints, steps 100–350)`.
     $description: `${paletteDesc} ${s.key} — ${bandPhrase(s.band, ramp.filter((x) => x.band === s.band).map((x) => x.key))}${role ? ` — ${role}` : ''}`,
-    $extensions: { prism3: { generated: true, source: 'oklch', oklch: { l: round(s.oklch.l), c: round(s.oklch.c), h: round(s.oklch.h, 2) }, hex: s.hex, band: s.band, anchor: isAnchor, contrastOnWhite: round(contrast(s.rgb, WHITE), 2) } },
+    $extensions: { prism3: { generated: true, source: 'oklch', oklch: { l: round(s.oklch.l), c: round(s.oklch.c), h: round(s.oklch.h, 2) }, hex: s.hex, band: s.band, anchor: isAnchor, contrastOnWhite: round(contrast(s.rgb, WHITE), 2), ...(hueSource ? { hueSource } : {}) } },
   };
 };
 const baseLeaf = (theme: Theme, rgb: RGB, description: string, band: string): Token => ({
@@ -122,7 +122,7 @@ const aliasLeaf = (path: string, description: string, extra: Record<string, unkn
 // Alpha colour (composites over any surface — scrims, overlays, shadows).
 const alphaLeaf = (theme: Theme, rgb: RGB, a: number, description: string): Token => ({
   $type: 'color', $value: alphaColorValue(rgb, a, theme.colorFormat), $description: description,
-  $extensions: { prism3: { generated: true, alpha: a, note: 'composites over any surface' } },
+  $extensions: { prism3: { generated: true, alpha: a } },
 });
 // Dimensionless opacity primitive.
 const numLeaf = (value: number, description: string): Token => ({
@@ -151,7 +151,7 @@ const springLeaf = (p: { damping: number; stiffness: number }, description: stri
   // (unknown types pass through) but needs a custom transform to render it; that
   // is expected, since spring → platform (web linear()/CSS, native
   // stiffness/damping/mass) is inherently a per-platform step.
-  $extensions: { prism3: { generated: true, customType: 'spring', note: 'no DTCG type for springs yet; provide a platform transform downstream' } },
+  $extensions: { prism3: { generated: true, customType: 'spring' } },
 });
 // Composite (DTCG transition): bundles duration + easing by intent.
 const transitionLeaf = (durPath: string, easePath: string, description: string): Token => ({
@@ -199,7 +199,7 @@ const shadowLeaf = (theme: Theme, step: ShadowStep, description: string): Token 
     $description: description,
     $extensions: { prism3: { generated: true, role: 'composite', layers: step.light.length,
       modes,
-      figma: { kind: 'effect-style', styleType: 'EFFECT', binds: ['color', 'radius', 'spread', 'offsetX', 'offsetY'], note: 'Figma Effect Style (drop-shadow layers); color + numerics bindable per layer; mode-aware — dark shadow is reduced (surface lift carries dark elevation), see modes.dark' } } },
+      figma: { kind: 'effect-style', styleType: 'EFFECT', binds: ['color', 'radius', 'spread', 'offsetX', 'offsetY'] } } },
   };
 };
 
@@ -212,6 +212,8 @@ const shadowLeaf = (theme: Theme, step: ShadowStep, description: string): Token 
 // pre-sample of the OKLCH curve (Figma interpolates in sRGB only) and the CSS
 // `in oklch` string. A worst-case-stop contrast pair gates text-on-gradient use.
 const round3 = (n: number) => Math.round(n * 1000) / 1000;
+/** The body-text contrast floor (WCAG 1.4.3) each ink's worst case on a gradient is judged against. */
+const TEXT_ON_GRADIENT_FLOOR = 4.5;
 const gradientCss = (g: ResolvedGradient, fmt: 'rgb' | 'hex'): string => {
   const stopList = g.stops.map((s) => `${colorValueFromHex(s.hex, fmt)} ${round3(s.position * 100)}%`).join(', ');
   const space = g.interpolation === 'oklch' ? ' in oklch' : '';
@@ -221,7 +223,10 @@ const gradientCss = (g: ResolvedGradient, fmt: 'rgb' | 'hex'): string => {
 const gradientLeaf = (g: ResolvedGradient, fmt: 'rgb' | 'hex'): Token => {
   const paintType = g.kind === 'radial' ? 'GRADIENT_RADIAL' : 'GRADIENT_LINEAR';
   const geom = g.kind === 'radial' ? { center: g.center, shape: g.shape } : { angle: g.angle };
-  const aa = Math.min(g.worstOnWhite, g.worstOnBlack);   // raw threshold (CR-01: compare un-rounded)
+  // #2422: each ink is judged on its OWN measured worst case. The old free-text note tested
+  // min(white, black) < 4.5 and so said "neither clears" whenever either side failed — false for white
+  // at 5.36:1. Compared un-rounded (CR-01); the rounded ratios are for display.
+  const clears = { white: g.worstOnWhite >= TEXT_ON_GRADIENT_FLOOR, black: g.worstOnBlack >= TEXT_ON_GRADIENT_FLOOR };
   const wOnW = round(g.worstOnWhite, 2), wOnB = round(g.worstOnBlack, 2); // rounded for display/emit
   return {
     $type: 'gradient',
@@ -229,11 +234,9 @@ const gradientLeaf = (g: ResolvedGradient, fmt: 'rgb' | 'hex'): Token => {
     $description: `gradient ${g.name} — ${g.kind}${g.kind === 'linear' ? ` ${g.angle}°` : ` (${g.shape})`}, ${g.stops.length} stops, ${g.interpolation} interpolation — brand gradient (opt-in)`,
     $extensions: { prism3: { generated: true, role: 'composite', kind: g.kind, ...geom, interpolation: g.interpolation,
       css: gradientCss(g, fmt),
-      a11y: { worstOnWhite: wOnW, worstOnBlack: wOnB,
-        note: `text-on-gradient: white text clears ${wOnW}:1 at the lightest stop, black text ${wOnB}:1 at the darkest — a text overlay must meet its ratio at the worst-case point (constrain the lightness range or add a scrim)${aa < 4.5 ? '; NEITHER plain overlay clears 4.5:1 body text — use a scrim or a solid container' : ''}` },
+      a11y: { worstOnWhite: wOnW, worstOnBlack: wOnB, floor: TEXT_ON_GRADIENT_FLOOR, clears },
       figma: { kind: 'paint-style', styleType: 'PAINT', paintType, binds: ['gradientStops[].color'], baked: ['type', g.kind === 'radial' ? 'center/shape' : 'angle', 'positions'],
-        sampledStops: g.sampled,
-        note: 'Figma Paint Style (gradient fill) — created via the Plugin API only (REST cannot write/read Paint values). Only stop COLORS bind to COLOR variables (Plugin API Update 92); kind, angle/transform and stop positions are baked. Figma interpolates in sRGB only, so bind the canonical stop colors AND lay down sampledStops to approximate the OKLCH curve.' } } },
+        sampledStops: g.sampled, requires: 'plugin-api', interpolation: 'srgb' } } },
   };
 };
 
@@ -303,7 +306,7 @@ const rungRoleAlias = (path: string, value: number, description: string): Token 
 // so a fluid style with two fontSize modes gets one line-height value.
 const lineHeightLeaf = (value: number, description: string): Token => ({
   $type: 'number', $value: value, $description: description,
-  $extensions: { prism3: { generated: true, unitless: true, figma: { kind: 'style-part', field: 'lineHeight', unit: 'PERCENT', percent: Math.round(value * 100), note: 'Figma has no unitless line-height variable; the exporter bakes lineHeight as PERCENT (multiplier × 100) — mode/size-independent, so one bake covers desktop + mobile fluid modes' } } },
+  $extensions: { prism3: { generated: true, unitless: true, figma: { kind: 'style-part', field: 'lineHeight', unit: 'PERCENT', percent: Math.round(value * 100) } } },
 });
 // Letter spacing: em-relative in $value (CSS-correct). Figma binds letter-
 // spacing as either PIXELS or PERCENT; the exporter bakes as PERCENT (em×100)
@@ -311,7 +314,7 @@ const lineHeightLeaf = (value: number, description: string): Token => ({
 // FLOAT collection (per §4 fix 3b — bindable form).
 const letterSpacingLeaf = (em: number, description: string): Token => ({
   $type: 'dimension', $value: `${em}em`, $description: description,
-  $extensions: { prism3: { generated: true, em, figma: { kind: 'style-part', field: 'letterSpacing', unit: 'PERCENT', percent: Math.round(em * 10000) / 100, note: 'Figma binds letter-spacing as PERCENT or PIXELS; the exporter bakes as PERCENT (em × 100) — mode/size-independent. A future pass ships FLOAT tracking variables so brands can retune tracking without style edits (§4 fix 3b bindable form)' } } },
+  $extensions: { prism3: { generated: true, em, figma: { kind: 'style-part', field: 'letterSpacing', unit: 'PERCENT', percent: Math.round(em * 10000) / 100 } } },
 });
 // Composite (DTCG typography): bundles family/size/weight-role/line-height/tracking
 // by intent. Sub-properties alias the primitives (weight via the role → numeric, so
@@ -335,10 +338,6 @@ const fluidClamp = (minPx: number, maxPx: number, minVW: number, maxVW: number):
   const preferred = `${interceptRem}rem + ${slopeVw}vw`;
   return { clamp: `clamp(${round(minPx / 16, 4)}rem, ${preferred}, ${round(maxPx / 16, 4)}rem)`, preferred };
 };
-/** Human label per re-pointable field, for the mode-variant note. `fontFamily` is not among them
- *  since #415: a per-mode face change re-points the `font.family.<category>` SEMANTIC, which every
- *  composite in that category inherits — the same seam leading and tracking use (#377). */
-const RE_POINT_LABEL: Record<string, string> = { fontSize: 'size' };
 const typographyLeaf = (root: string, c: { group: string; variant: string; sizePx: number; sizeMinPx: number; weightRole: string; lineHeight: string; tracking: string; textCase: string; link: boolean; italic: boolean; italicDefault?: true; facePin?: FacePin; lineHeightByMode?: Record<string, string>; trackingByMode?: Record<string, string>; sizeByMode?: Record<string, number>; sizeMinByMode?: Record<string, number> }, face: string, minVW: number, maxVW: number): Token => {
   const a = (seg: string) => `{${root}.${CORE_TIER}.font.${seg}}`;
   const value: Record<string, unknown> = {
@@ -398,12 +397,6 @@ const typographyLeaf = (root: string, c: { group: string; variant: string; sizeP
                   figma: { field: 'fontSize', scope: 'FONT_SIZE', modes: { mobile: c.sizeMinByMode[m], desktop: c.sizeByMode[m] } } }
               : { fluid: false, px: c.sizeByMode[m] } }
           : {}),
-        // Labeled from the fields actually present. The previous expression hardcoded
-        // "size"/"leading/tracking" and its second branch was already dead (#377 moved leading and
-        // tracking onto the semantic role), so adding family would have mislabeled a family re-point
-        // as "leading/tracking". Only fontSize reaches here now (#415 moved family onto the semantic
-        // too), but the label table keeps the note honest if another field ever does.
-        note: `${Object.keys(parts).map((f) => RE_POINT_LABEL[f] ?? f).join(' + ')} re-point — ${m} (${Object.entries(parts).map(([f, v]) => `${f} → ${v}`).join(', ')})`,
       }])) }
     : {};
   return {
@@ -411,7 +404,7 @@ const typographyLeaf = (root: string, c: { group: string; variant: string; sizeP
     // body/xs carries the owner's words instead (#2266, Q101 A): its use is not its group's. Its link variants keep
     // the link guidance every other link variant carries, beside those words (owner Q117 A).
     $description: c.group === 'body' && c.variant === 'xs' ? `${BODY_XS_DESCRIPTION}${c.link ? ' Underlined (link — pair with text.link.* color).' : ''}` : `${c.group}${c.variant ? ' ' + c.variant : ''} ${c.weightRole}${c.italic ? ' italic' : ''}${c.link ? ' link' : ''} — ${isFluid ? `${c.sizeMinPx}→${c.sizePx}px fluid` : `${c.sizePx}px`} ${face}, ${c.lineHeight} line-height, ${c.weightRole} weight${slanted ? ', italic' : ''}, ${c.tracking} tracking${c.textCase !== 'none' ? `, ${c.textCase}` : ''}${c.link ? (c.group === 'label' ? ", underlined (a text button's label)" : ', underlined (link — pair with text.link.* color)') : ''}`,
-    $extensions: { prism3: { role: 'composite', ...modeVariants, group: c.group, variant: c.variant, weightRole: c.weightRole, sizePx: c.sizePx, ...(c.italic ? { italic: true } : {}), ...(c.link ? { link: true } : {}), ...(c.textCase !== 'none' ? { textCase: c.textCase } : {}), ...(c.facePin ? { facePin: c.facePin } : {}), responsive, figma: { kind: 'text-style', styleType: 'TEXT', binds: ['fontFamily', 'fontSize', 'fontStyle'], baked: ['lineHeight', 'letterSpacing', ...(c.textCase !== 'none' ? ['textCase'] : []), ...(c.link ? ['textDecoration'] : [])], note: 'Figma Text Style; fontFamily/fontSize/fontStyle bind their variables (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle binds a STRING cut variable (#1485), the single weight/style control the Text Style has, holding the Figma style name: a facePin (#1368) sets it verbatim (e.g. Light Condensed — the width cut the numeric weight axis cannot reach), else it is the weight-role numeric run through a weight-to-style-name table (the italic named-instance, e.g. Bold Italic, when $value carries fontStyle:italic). The numeric fontWeight stays parallel data ($value.fontWeight aliases the weight-role primitive) but is no longer bound on the style.' } } },
+    $extensions: { prism3: { role: 'composite', ...modeVariants, group: c.group, variant: c.variant, weightRole: c.weightRole, sizePx: c.sizePx, ...(c.italic ? { italic: true } : {}), ...(c.link ? { link: true } : {}), ...(c.textCase !== 'none' ? { textCase: c.textCase } : {}), ...(c.facePin ? { facePin: c.facePin } : {}), responsive, figma: { kind: 'text-style', styleType: 'TEXT', binds: ['fontFamily', 'fontSize', 'fontStyle'], baked: ['lineHeight', 'letterSpacing', ...(c.textCase !== 'none' ? ['textCase'] : []), ...(c.link ? ['textDecoration'] : [])] } } },
   };
 };
 
@@ -452,7 +445,11 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   const brandAnchorStep = theme.roleAnchorStep.brand;
   for (const p of theme.palettes) {
     const node: Record<string, Token> = {};
-    for (const s of p.steps) node[s.key] = primitiveLeaf(theme, p.description, s, p.palette === brandPalette && s.num === brandAnchorStep, p.steps);
+    // #2411 (owner Q167): where a status palette's hue came from is DATA, so `$description` says only what the
+    // ramp is for. It sits on every STEP, not on the group: the studio and plugin exports rebuild the tree from
+    // its leaves (and their flat dotted format has no group to hold it), so a group-level `$extensions` was
+    // dropped from both exports — measured by test:export-parity.
+    for (const s of p.steps) node[s.key] = primitiveLeaf(theme, p.description, s, p.palette === brandPalette && s.num === brandAnchorStep, p.steps, p.hueSource);
     palette[p.palette] = node;
   }
   // alpha colour ramps — black/white at increasing opacity, for scrims/overlays
@@ -547,7 +544,7 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
           role: 'semantic', tint: tintRefs(lr),
           contrast: round(lr.ratio, 2), against: lr.against, ...washFields(lr), ...(lr.min > 0 ? { min: lr.min } : {}),
           modes: modeOverrides,
-          figma: { collection: 'color', modes: ['light', ...OVERRIDE_MODES], note: 'one Figma color variable: in each mode it aliases the fill variable in `tint.color` at the opacity variable in `tint.opacity`' },
+          figma: { collection: 'color', modes: ['light', ...OVERRIDE_MODES] },
         } },
       };
       const parts = roleKey.split('.');
@@ -561,7 +558,7 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
     const leaf = aliasLeaf(lr.path, lr.description, {
       contrast: round(lr.ratio, 2), against: lr.against, ...washFields(lr), ...(lr.min > 0 ? { min: lr.min } : {}),
       modes: modeOverrides,
-      figma: { collection: 'color', modes: ['light', ...OVERRIDE_MODES], note: 'one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*' },
+      figma: { collection: 'color', modes: ['light', ...OVERRIDE_MODES] },
     });
     const parts = roleKey.split('.'); // property-led, may nest (group / variant / state)
     let node = colorRoles;
@@ -595,8 +592,8 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   // A per-mode dimension override leaf: alias the dimension grid step when the px is on-grid (mirrors the
   // light rung), else a literal px. Shared by the per-mode RADIUS rungs and the per-mode size HEIGHT
   // sub-leaf — both re-anchor a grid-aligned dimension per mode.
-  const gridStepOverride = (px: number, note: string): Record<string, unknown> =>
-    gridSet.has(px) ? { $value: `{${root}.${CORE_TIER}.dimension.${px}}`, px, note } : { $value: `${px}px`, px, note };
+  const gridStepOverride = (px: number): Record<string, unknown> =>
+    gridSet.has(px) ? { $value: `{${root}.${CORE_TIER}.dimension.${px}}`, px } : { $value: `${px}px`, px };
   // reference: fine grid primitives
   const dimension: Record<string, Token> = {};
   for (const px of theme.dims.grid) dimension[String(px)] = dimLeaf(px);
@@ -619,11 +616,11 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
       : dimLeaf(r.px, `radius ${r.name} — ${r.px}px (off-grid literal)`);
     const modeOverrides: Record<string, unknown> = {};
     if (wireframe && r.px !== 0)
-      modeOverrides.wireframe = { $value: `{${root}.${CORE_TIER}.dimension.0}`, px: 0, note: 'wireframe zeroes all radius (sharp corners)' };
+      modeOverrides.wireframe = { $value: `{${root}.${CORE_TIER}.dimension.0}`, px: 0 };
     for (const [mode, steps] of Object.entries(radiusByMode)) {
       const rr = steps.find((s) => s.name === r.name);
       if (!rr || rr.px === r.px) continue;   // px equal → no diff → no override
-      modeOverrides[mode] = gridStepOverride(rr.px, `radius lever override — ${mode} (${rr.px}px)`);
+      modeOverrides[mode] = gridStepOverride(rr.px);
     }
     if (Object.keys(modeOverrides).length) leaf.$extensions.prism3.modes = modeOverrides;
     radius[r.name] = leaf;
@@ -638,12 +635,12 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   // mirroring its light branch. Absent maps ⇒ byte-identical.
   const sizesByMode = theme.dims.sizesByMode ?? {};
   // Build the per-mode override map for one size sub-leaf (a rung whose per-mode px differs from light).
-  const sizeModes = (sizeName: string, field: string, ownPx: number, pick: (z: SizeStep) => number, ov: (px: number, note: string) => Record<string, unknown>): Record<string, unknown> | undefined => {
+  const sizeModes = (sizeName: string, field: string, ownPx: number, pick: (z: SizeStep) => number, ov: (px: number) => Record<string, unknown>): Record<string, unknown> | undefined => {
     const modeOverrides: Record<string, unknown> = {};
     for (const [mode, steps] of Object.entries(sizesByMode)) {
       const mz = steps.find((s) => s.name === sizeName);
       if (!mz || pick(mz) === ownPx) continue;   // same px → no diff → no override
-      modeOverrides[mode] = ov(pick(mz), `density lever override — ${mode} (${field} ${pick(mz)}px)`);
+      modeOverrides[mode] = ov(pick(mz));
     }
     return Object.keys(modeOverrides).length ? modeOverrides : undefined;
   };
@@ -682,7 +679,7 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
     if (!mz) continue;
     const px = Math.max(mz.height, AAA_TARGET_PX);
     if (px === targetPx) continue;
-    minHeightMods[mode] = gridStepOverride(px, `density lever override — ${mode} (min-height ${px}px)`);
+    minHeightMods[mode] = gridStepOverride(px);
   }
   if (Object.keys(minHeightMods).length) minHeightLeaf.$extensions.prism3.modes = minHeightMods;
   (size.md as Record<string, unknown>)['min-height'] = minHeightLeaf;
@@ -727,7 +724,7 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
     for (const [mode, steps] of Object.entries(controlsByMode)) {
       const mc = steps.find((c) => c.name === name);
       if (!mc || pick(mc) === ownPx) continue;   // same px → no diff → no override
-      modeOverrides[mode] = gridStepOverride(pick(mc), `density lever override — ${mode} (${field} ${pick(mc)}px)`);
+      modeOverrides[mode] = gridStepOverride(pick(mc));
     }
     return Object.keys(modeOverrides).length ? modeOverrides : undefined;
   };
@@ -789,9 +786,7 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
       const edgePx = controlsByMode[mode]?.find((c) => c.name === rung)?.height ?? edge;
       const px = controlRadius(edgePx, smPx);
       if (px === ownPx) continue;   // same px → no diff → no override
-      modeOverrides[mode] = gridStepOverride(px, mode === 'wireframe'
-        ? 'wireframe zeroes all radius (sharp corners), so the control corner clamps to 0'
-        : `control-radius re-derivation — ${mode} (${px}px: min of radius.sm ${smPx}px and ${edgePx}÷8)`);
+      modeOverrides[mode] = gridStepOverride(px);
     }
     return Object.keys(modeOverrides).length ? modeOverrides : undefined;
   };
@@ -930,7 +925,7 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
     motion['duration-ms'][String(v)] = durLeaf(v, `duration primitive — ${v}ms (literal; the semantic tier names the use)`);
 
   // A semantic duration: aliases the ms primitive, and a per-mode tempo swaps WHICH primitive.
-  const durSemantic = (baseMs: number, description: string, pick: (mm: any) => number | undefined, label: (mode: string, v: number) => string): Token => {
+  const durSemantic = (baseMs: number, description: string, pick: (mm: any) => number | undefined): Token => {
     const leaf: Token = {
       $type: 'duration', $value: `{${msPath(baseMs)}}`, $description: description,
       $extensions: { prism3: { role: 'semantic', aliasOf: msPath(baseMs), ms: baseMs } },
@@ -939,14 +934,14 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
     for (const [mode, mm] of Object.entries(motionByMode)) {
       const v = pick(mm);
       if (v === undefined || v === baseMs) continue;          // same ms → no diff → no override
-      modeOverrides[mode] = { $value: `{${msPath(v)}}`, aliasOf: msPath(v), ms: v, note: label(mode, v) };
+      modeOverrides[mode] = { $value: `{${msPath(v)}}`, aliasOf: msPath(v), ms: v };
     }
     if (Object.keys(modeOverrides).length) (leaf.$extensions.prism3 as Record<string, unknown>).modes = modeOverrides;
     return leaf;
   };
 
-  for (const [k, v] of Object.entries(m.duration)) motion.duration[k] = durSemantic(v as number, k === SPIN_ROLE ? `motion duration spin — ${v}ms per full turn of a spinner, linear, the same at every tempo` : `motion duration ${k} — ${v}ms (tempo: ${m.tempo})`, (mm) => mm.duration[k], (mode, mv) => `motion tempo lever override — ${mode} (duration ${k} → ${mv}ms)`);
-  for (const [k, v] of Object.entries(m.durationReduced)) motion['duration-reduced'][k] = durSemantic(v as number, k === SPIN_ROLE ? `reduce-motion spin — ${v}ms per full turn: a slow turn, kept rather than removed, because the spinner is how a sighted user sees work continuing` : `reduce-motion ${k} — ${v}ms${v === 0 ? ' (eliminated — substitute a cross-fade)' : ''}`, (mm) => mm.durationReduced[k], (mode, mv) => `motion tempo lever override — ${mode} (reduce-motion ${k} → ${mv}ms)`);
+  for (const [k, v] of Object.entries(m.duration)) motion.duration[k] = durSemantic(v as number, k === SPIN_ROLE ? `motion duration spin — ${v}ms per full turn of a spinner, linear, the same at every tempo` : `motion duration ${k} — ${v}ms (tempo: ${m.tempo})`, (mm) => mm.duration[k]);
+  for (const [k, v] of Object.entries(m.durationReduced)) motion['duration-reduced'][k] = durSemantic(v as number, k === SPIN_ROLE ? `reduce-motion spin — ${v}ms per full turn: a slow turn, kept rather than removed, because the spinner is how a sighted user sees work continuing` : `reduce-motion ${k} — ${v}ms${v === 0 ? ' (eliminated — substitute a cross-fade)' : ''}`, (mm) => mm.durationReduced[k]);
   for (const [k, v] of Object.entries(m.easing)) motion.easing[k] = bezierLeaf(v, `easing ${k}${EASING_NOTE[k] ? ` — ${EASING_NOTE[k]}` : ''}`);
   for (const [k, v] of Object.entries(m.spring)) motion.spring[k] = springLeaf(v, `spring ${k} — damping ${v.damping}, stiffness ${v.stiffness}`);
   // The ROLE tier (#522) — `easing-role.<role> → {motion.easing.<curve>}`. It exists so a mode can
@@ -963,7 +958,7 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
     for (const [mode, map] of Object.entries(m.easingRolesByMode ?? {})) {
       const curve = map[r.role];
       if (!curve || curve === r.curve) continue;          // same curve → no diff → no override
-      modeOverrides[mode] = { $value: `{${root}.motion.easing.${curve}}`, aliasOf: `${root}.motion.easing.${curve}`, note: `motion easing re-point — ${mode} (${r.role} → ${curve})` };
+      modeOverrides[mode] = { $value: `{${root}.motion.easing.${curve}}`, aliasOf: `${root}.motion.easing.${curve}` };
     }
     if (Object.keys(modeOverrides).length) (leaf.$extensions.prism3 as Record<string, unknown>).modes = modeOverrides;
     motion['easing-role'][r.role] = leaf;
@@ -975,7 +970,7 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   // saying `standard` named a curve the token does not use. A mode's own re-point is on the easing-role leaf.
   const roleCurve = new Map(m.easingRoles.map((r) => [r.role, r.curve]));
   for (const t of m.transitions) motion.transition[t.name] = transitionLeaf(`${root}.motion.duration.${t.duration}`, `${root}.motion.easing-role.${t.name}`, `motion ${t.name} — ${t.desc} (${t.duration} + ${roleCurve.get(t.name) ?? t.easing})`);
-  motion.stagger = durSemantic(m.stagger, `stagger standard — ${m.stagger}ms between siblings`, (mm) => mm.stagger, (mode, mv) => `motion tempo lever override — ${mode} (stagger → ${mv}ms)`);
+  motion.stagger = durSemantic(m.stagger, `stagger standard — ${m.stagger}ms between siblings`, (mm) => mm.stagger);
 
   // ---- typography axis — primitive tier (Phase 1) ----
   // Curated rem size ladder (brand-invariant, not ratio-derived); numeric weight
@@ -1009,7 +1004,7 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
       const mf = fams.find((x) => x.group === f.group);
       if (!mf || stackKey(mf.stack) === stackKey(f.stack)) continue;   // same stack -> no diff -> no override
       const mslug = typefaceSlug(mf.stack[0]);
-      modeOverrides[mode] = { $value: `{${root}.${CORE_TIER}.font.typeface.${mslug}}`, aliasOf: `${root}.${CORE_TIER}.font.typeface.${mslug}`, face: mf.stack[0], note: `font family override \u2014 ${mode} (\u2192 ${mf.stack[0]})` };
+      modeOverrides[mode] = { $value: `{${root}.${CORE_TIER}.font.typeface.${mslug}}`, aliasOf: `${root}.${CORE_TIER}.font.typeface.${mslug}`, face: mf.stack[0] };
     }
     if (Object.keys(modeOverrides).length) leaf.$extensions.prism3.modes = modeOverrides;
     family[f.group] = leaf;
@@ -1025,7 +1020,7 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
     for (const [mode, roles] of Object.entries(weightRolesByMode)) {
       const mr = roles.find((x) => x.role === r.role);
       if (!mr || mr.value === r.value) continue;   // same numeric → no diff → no override
-      modeOverrides[mode] = { $value: `{${root}.${CORE_TIER}.font.weight.${mr.value}}`, weight: mr.value, note: `font weight-role lever override — ${mode} (${r.role} → ${mr.value})` };
+      modeOverrides[mode] = { $value: `{${root}.${CORE_TIER}.font.weight.${mr.value}}`, weight: mr.value };
     }
     if (Object.keys(modeOverrides).length) leaf.$extensions.prism3.modes = modeOverrides;
     weightRole[r.role] = leaf;
@@ -1137,13 +1132,13 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   for (const b of ly.breakpoints) breakpoint[b.name] = dimLeaf(b.px, `breakpoint ${b.name} — min-width ${b.px}px (mobile-first)`);
   const gridSpaceAlias = (px: number, desc: string, bp: string, variable: string): Token => {
     const key = spaceKeyOf.get(px);
-    const fig = { figma: { collection: 'layout', mode: bp, variable, note: 'breakpoint = Figma mode (separate layout collection; composes with color light/dark)' } };
+    const fig = { figma: { collection: 'layout', mode: bp, variable } };
     return key ? dimAlias(`${root}.space.${key}`, desc, { px, ...fig }) : dimLeaf(px, desc);
   };
   const grid: Record<string, any> = {};
   for (const g of ly.grid) {
     grid[g.bp] = {
-      columns: { $type: 'number', $value: g.columns, $description: `grid ${g.bp} — ${g.columns} columns (design grid / Figma layout-grid; build with CSS Grid)`, $extensions: { prism3: { generated: true, figma: { collection: 'layout', mode: g.bp, variable: 'grid.columns', note: 'breakpoint = Figma mode' } } } },
+      columns: { $type: 'number', $value: g.columns, $description: `grid ${g.bp} — ${g.columns} columns`, $extensions: { prism3: { generated: true, figma: { collection: 'layout', mode: g.bp, variable: 'grid.columns' } } } },
       gutter: gridSpaceAlias(g.gutterPx, `grid ${g.bp} gutter — ${g.gutterPx}px (spacing-scale alias)`, g.bp, 'grid.gutter'),
       margin: gridSpaceAlias(g.marginPx, `grid ${g.bp} margin — ${g.marginPx}px (spacing-scale alias)`, g.bp, 'grid.margin'),
     };

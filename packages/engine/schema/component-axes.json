@@ -371,10 +371,14 @@
       "ratio": [
         "16:9",
         "1:1",
-        "4:3"
+        "2:3",
+        "3:2",
+        "3:4",
+        "4:3",
+        "4:5"
       ]
     },
-    "members": 3
+    "members": 7
   },
   "radio-control": {
     "axes": {
@@ -482,6 +486,37 @@
       ]
     },
     "members": 2
+  },
+  "tab": {
+    "axes": {
+      "selection": [
+        "selected",
+        "unselected"
+      ],
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ],
+      "state": [
+        "disabled",
+        "focus-visible",
+        "hover",
+        "pressed",
+        "rest"
+      ]
+    },
+    "members": 30
+  },
+  "tabs": {
+    "axes": {
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ]
+    },
+    "members": 3
   },
   "tag": {
     "axes": {
