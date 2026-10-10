@@ -2,8 +2,9 @@
 
 Everything here is runnable and committed, but nothing here is wired into `ci.yml` by default. That
 is the organizing idea, and it is worth stating once rather than per-tool: **a tool answers a
-question and exits 0; a gate asserts an answer and fails.** `tools/exporter-comparison/` is the one
-harness with a gate sibling, and it lives in a *separate file* from the measurement for exactly that
+question and exits 0; a gate asserts an answer and fails.** `tools/exporter-comparison/` is the
+first harness with a gate sibling (`tools/sd-version-matrix/` is the second, its gate under
+`packages/tokens/`), and it lives in a *separate file* from the measurement for exactly that
 reason — `compare.ts` (the tool) and `gate.ts` (the gate) import the same analysis but make different
 promises, and conflating them would make the tool's honest "here's what differs" read as the gate's
 "here's what's wrong." The remaining harnesses below have no gate sibling, each for its own stated
@@ -242,6 +243,21 @@ not a measurement, and like `figma-mcp/` its gate lives in the plugin: `apps/plu
 spawns it, speaks MCP to it over stdio, drives the socket with an independently written client, and runs
 the real relay against the real `main.ts`. The port is read from `apps/plugin/src/agent-bridge-relay.ts`
 (`BRIDGE_PORT`), which the manifest's `devAllowedDomains` entry must match — change all three together.
+
+## `tools/sd-version-matrix/`
+
+Runs the stock platform config (`packages/tokens/sd.platforms.mjs`) under several Style Dictionary
+versions and records, per version, platform and DTCG `$type`, whether each token is emitted,
+transformed, broken or lost (#2424). `--write` regenerates `packages/tokens/sd-version-matrix.md`.
+Each version is installed into its own directory under the OS temp dir, never into this repo's
+`node_modules` or lockfile.
+
+**Its gate sibling is `packages/tokens/check-platforms.mjs`**, the `tools/exporter-comparison/` split
+again. Both import the same judging (`packages/tokens/platform-outcomes.mjs`). The gate runs only the
+version the lockfile installs, because the matrix needs the network and a few minutes. So a gate
+failure says the installed version moved, and rerunning the matrix says whether other versions moved
+with it. One run is not stock and is labeled everywhere it prints: 3.x over a copy with the DTCG keys
+renamed, to measure what a preset would and would not fix.
 
 ## `tools/claude-md-freshness/`
 

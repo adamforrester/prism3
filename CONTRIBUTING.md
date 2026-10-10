@@ -1430,7 +1430,13 @@ npm run check:consumability -w @prism3/tokens  # a STOCK Style Dictionary over E
                                           # the spec list not a corruption count, and pins at 2 the
                                           # standard types SD cannot serialize (#635, split by #642);
                                           # asserts the base+overlay projection reads back, and
-                                          # refuses custom preprocessors
+                                          # refuses custom preprocessors. Then check-platforms.mjs
+                                          # (#2424): the same stock SD builds every brand to CSS, SCSS,
+                                          # JS + .d.ts, Swift, Android XML and Compose; every token
+                                          # reaches every platform, literal values per brand match,
+                                          # and the per-platform x type verdicts are pinned (the
+                                          # native gaps tagged with their issues). Which SD versions
+                                          # behave this way: tools/sd-version-matrix/ (a tool)
 npx tsx packages/engine/lint-us-english.ts # run AFTER the web AND plugin builds — its scope is both
                                           # built bundles: apps/studio/dist/*.js and, since #937,
                                           # apps/plugin/dist (main.js + ui.html), where the component

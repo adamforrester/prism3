@@ -5,14 +5,14 @@
  *
  * `src/state/depth-motion-input.ts` holds every edit the legacy Elevation and Motion pages make to the working
  * brand (shadow softness and tint, Light and per mode, with the Auto reset; tempo, Light and per mode; the
- * easing a motion role uses, Light and per mode), and the readers their controls are drawn from. This holds each
+ * easing a motion role uses, Light and per mode; Light at a role's default curve unsets, #2051), and the readers their controls are drawn from. This holds each
  * write where no DOM is needed, so one can fail here by name before the browser suites run.
  *
  * INDEPENDENT OF WHAT IT CHECKS (docs/34). Every expected write is a JSON literal typed here, from the legacy
  * pages' own bytes (measured by the S9.1 equivalence driver against `origin/main`), INCLUDING ITS TRAPS: Light's
  * tint is written one key at a time, so a brand with no tint holds a partial `{ hue }`; a mode's slider that
- * lands exactly on the brand value clears the override and prunes the mode; Light's easing select writes the
- * curve even when it is the default. The example brands' authored values are restated as literals (prism3's
+ * lands exactly on the brand value clears the override and prunes the mode. Light's easing select at a role's
+ * default curve unsets it (#2051; the defaults restated as literals below). The example brands' authored values are restated as literals (prism3's
  * tint is `{ hue: 266.75, amount: 0.35 }` and it authors no softness; harbor authors no shadow), so a corpus
  * change fails here rather than moving the expectation with it. "The engine takes it" is the engine's own
  * `brandTheme`, and "it resolves to the edit" reads the engine's resolved shadow and motion axes. A cleared edit
@@ -115,11 +115,33 @@ ok(pristine(), 'setTempo(dark, Auto) prunes the mode and modeLevers: byte-identi
 D.setTempo('dark', 'relaxed'); D.setTempo('dark', '');
 ok(pristine(), 'setTempo(dark, "") is Auto too');
 
-console.log('\n4. Easing per motion role: Light ALWAYS writes the curve (the default included); a mode writes modeLevers, Auto clears');
+console.log('\n4. Easing per motion role: Light writes a non-default curve and UNSETS the default (#2051); a mode writes modeLevers, Auto clears');
+// The engine's role defaults, restated here as literals so a change to them fails this file by name, not silently.
+ok(D.defaultEasing('default') === 'standard' && D.defaultEasing('enter') === 'decelerate' && D.defaultEasing('exit') === 'accelerate' && D.defaultEasing('emphasized') === 'expressive',
+  `the engine's role defaults are default → standard, enter → decelerate, exit → accelerate, emphasized → expressive`);
 reset('prism3');
 D.setEasingRole('light', 'default', 'standard');
-ok(mp() === '{"tempo":"standard","easingRoles":{"default":"standard"}}' && !pristine() && takes(),
-  `setEasingRole(light, default, standard) writes the default curve rather than unsetting (#2051 changes that) (${mp()})`);
+ok(pristine() && mp() === '{"tempo":"standard"}' && takes(),
+  `setEasingRole(light, default, standard) picks the default and leaves the brand byte-identical to the one loaded (${mp()})`);
+reset('prism3');
+D.setEasingRole('light', 'enter', 'calm'); D.setEasingRole('light', 'enter', 'decelerate');
+ok(pristine() && mp() === '{"tempo":"standard"}',
+  `enter → calm, then back to its default decelerate: the key and the emptied easingRoles are removed, byte-identical (${mp()})`);
+reset('prism3');
+D.setEasingRole('light', 'enter', 'calm'); D.setEasingRole('light', 'exit', 'linear'); D.setEasingRole('light', 'enter', 'decelerate');
+ok(mp() === '{"tempo":"standard","easingRoles":{"exit":"linear"}}',
+  `with two roles set, returning one to its default removes only that key (${mp()})`);
+{ // a brand that never authored motion: picking a default back removes the emptied motionPersonality too
+  const bare = structuredClone(brands.prism3) as BrandInput & { motionPersonality?: unknown };
+  delete bare.motionPersonality;
+  store.initSession(bare, { kind: 'example', id: 'prism3' });
+  loaded = JSON.stringify(store.brandState);
+  const before = JSON.stringify(engine().motion);
+  D.setEasingRole('light', 'emphasized', 'calm'); D.setEasingRole('light', 'emphasized', 'expressive');
+  ok(pristine() && store.brandState.motionPersonality === undefined,
+    `on a brand with no motionPersonality, emphasized → calm → expressive removes motionPersonality itself: byte-identical (${mp()})`);
+  ok(JSON.stringify(engine().motion) === before, 'and the engine resolves the same motion as before the edits (emission unchanged)');
+}
 reset('prism3');
 D.setEasingRole('light', 'enter', 'calm');
 ok(mp() === '{"tempo":"standard","easingRoles":{"enter":"calm"}}' && takes(), `setEasingRole(light, enter, calm) writes motionPersonality.easingRoles.enter (${mp()})`);

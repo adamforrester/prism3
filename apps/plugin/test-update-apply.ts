@@ -64,6 +64,17 @@
  *                  finished (record, stamp last, marker off) as a set member is; an added glyph placed in a free
  *                  slot, never over another; the owner's hand-made icon untouched. Mutations: the emit branch's
  *                  finish skipped → `single/finished`; adds laid out from the origin → `single/add`.
+ *   recordfail/…   a member whose as-built record the host refuses after the update (an icon, and a set member) keeps
+ *                  the stamp it had and its marker, reads out of date in the next dry run, and is named among the
+ *                  outcome's misses (#2373). Mutation: the stamp written before the record → `recordfail/unstamped`,
+ *                  `recordfail/out of date`, `recordfail/set member`. The verdict reading no misses is #2477.
+ *   unrecorded single/…  the icons with no as-built record: updated and named by default, recorded after; under
+ *                  `noBaseline: 'skip'`, left exactly and named (#2373). Mutations: the default skipping →
+ *                  `unrecorded single/updated`; the choice ignored → `unrecorded single/skip`.
+ *   duplicate single/…  the icons and the spinner in a copy of their file (new keys), each given the original's stamp
+ *                  and record: all current, or all built by an earlier plugin, none a hand edit (#2436). These defs
+ *                  build no instance and no styled text (a premise), so `format/duplicate`'s mutations reach nothing
+ *                  here. Mutation: a node's own key hashed → `duplicate single/current`, `duplicate single/earlier`.
  *   nochange/…     a set the dry run reads as "no changes" (every member built by an earlier plugin) takes its stamps and
  *                  nothing else, read by a write log the test installs on the shim's nodes (#2379). Mutation: those
  *                  members sent through the build's pass again → `nochange/writes` (7,575 other writes).
@@ -385,12 +396,13 @@ const dumpSet = (set: Node): string => JSON.stringify(membersOf(set).map((m) => 
 
 /* ── single ──────────────────────────────────────────────────────────────────────────────────────────── */
 section('single — the icons, updated in place as single components (#2296)');
-const singleWorld = async (plans: AnatomyPlan[], extraVars: string[] = []) => {
+const singleWorld = async (plans: AnatomyPlan[], extraVars: string[] = [], o: { keyPrefix?: string; styleIdPrefix?: string } = {}) => {
   const page: Page = { children: [] };
   const api = makeShim({
     vars: [...new Set([...plans.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]), ...extraVars])],
     // #2379: SCALE children follow their frame, as on the host, so a built glyph fits its frame.
     comps: [], page, liveRoot: true, identities: true, liveComponents: true, scaleConstrained: true,
+    keyPrefix: o.keyPrefix, styleIdPrefix: o.styleIdPrefix,
   }) as any;
   const built = await applyComponentPlan(plans, api, { emitAsComponents: true });
   if (built.misses.length) throw new Error(`premise: icons built with ${built.misses.length} miss(es): ${built.misses[0]}`);
@@ -446,6 +458,138 @@ const singleWorld = async (plans: AnatomyPlan[], extraVars: string[] = []) => {
   const res = await applyUpdate(w.host, w.api as any, [t], previewHashOf(await previewUpdate(w.host, [t])));
   ok(applyVerdict(res).ok && dump() === before && res.outcomes[0]?.skipped.some((x) => x.member === 'name=my-logo' && x.reason === 'not built by Prism3'),
     `single/owner: the owner's hand-made icon is left exactly as it is, and named (${JSON.stringify(res.outcomes[0]?.skipped)})`);
+}
+const pdOf = (n: Node, k: string): string => (n.getSharedPluginData as (a: string, b: string) => string)(NS, k);
+const putPd = (n: Node, k: string, v: string): void => (n.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, k, v);
+/** Each icon plan with its ink moved to `color/icon/secondary`, as `single/update` moves it. */
+const reinked = (plans: AnatomyPlan[]): AnatomyPlan[] => plans.map((p) => { const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan; (q.root as unknown as Record<string, unknown>).descendantFills = 'color/icon/secondary'; return q; });
+{
+  // THE RECORD WRITE FAILS AFTER THE UPDATE (#2373): one icon's host refuses its as-built record. The stamp comes last
+  // (§7), so the icon keeps the stamp it had and its in-progress marker, reads out of date in the next dry run, and the
+  // outcome names it among the build's misses. The refusal is the TEST's, installed on the shim's node. Mutation:
+  // `finishUpdated` writing the stamp before the record → `recordfail/unstamped`, `recordfail/out of date`.
+  // NOT asserted: that the verdict fails. `applyVerdict` reads no `misses`, so today this run reads "✓ updated 44 in
+  // place" (#2477).
+  const plans = plansOf('icon');
+  const w = await singleWorld(plans, ['color/icon/secondary']);
+  const t = { def: 'icon', plans: reinked(plans), single: true };
+  const pre = await previewUpdate(w.host, [t]);
+  const hit = w.comps()[3];
+  const [stampWas, recordWas] = [pdOf(hit, STAMP_KEY), pdOf(hit, BASELINE_KEY)];
+  const real = hit.setSharedPluginData as (a: string, b: string, c: string) => void;
+  hit.setSharedPluginData = (ns: string, k: string, v: string): void => {
+    if (ns === NS && k === BASELINE_KEY) throw new Error('the host refused the write');
+    real.call(hit, ns, k, v);
+  };
+  const res = await applyUpdate(w.host, w.api as any, [t], previewHashOf(pre));
+  hit.setSharedPluginData = real;
+  const v = applyVerdict(res);
+  ok(!!stampWas && pdOf(hit, STAMP_KEY) === stampWas && pdOf(hit, BASELINE_KEY) === recordWas,
+    `recordfail/unstamped: an icon whose record could not be written keeps the stamp it had, and its record (stamp ${pdOf(hit, STAMP_KEY) === stampWas ? 'kept' : `now ${pdOf(hit, STAMP_KEY)}`}, record ${pdOf(hit, BASELINE_KEY) === recordWas ? 'kept' : 'changed'})`);
+  ok(pdOf(hit, 'memberUpdating') !== '', `recordfail/marker: it keeps its in-progress marker (${JSON.stringify(pdOf(hit, 'memberUpdating'))})`);
+  // The build names a single component by its coordinate, `name=<glyph>` (#2296).
+  const named = res.outcomes[0]?.misses.filter((x) => x.startsWith(`name=${String(hit.name).split('/').pop()}.asBuilt -> NOT RECORDED`)) ?? [];
+  ok(named.length === 1, `recordfail/named: the outcome names the icon as not recorded (${JSON.stringify(named)}; ${v.headline})`);
+  const post = (await previewUpdate(w.host, [t])).sets[0];
+  ok(post.counts.current === 43 && post.counts.current + (post.counts.update ?? 0) + (post.counts.noBaseline ?? 0) === 44 && !post.handEdits.some((h) => h.member.endsWith(String(hit.name).split('/').pop()!)),
+    `recordfail/out of date: the next dry run reads it out of date, never current, the other 43 current (${JSON.stringify(post.counts)})`);
+}
+{
+  // THE SAME FAILURE ON A SET MEMBER: `finishUpdated` is the set path's finish too, called from its own loop.
+  const w = await world(TAG, plansOf(TAG), { extraVars: ['space/999'] });
+  const next = moveGap(w.plans);
+  const pre = await previewUpdate(w.host, [{ def: TAG, plans: next }]);
+  const hit = membersOf(w.set())[9];
+  const stampWas = pdOf(hit, STAMP_KEY);
+  const real = hit.setSharedPluginData as (a: string, b: string, c: string) => void;
+  hit.setSharedPluginData = (ns: string, k: string, v: string): void => {
+    if (ns === NS && k === BASELINE_KEY) throw new Error('the host refused the write');
+    real.call(hit, ns, k, v);
+  };
+  const res = await applyUpdate(w.host, w.api as any, [{ def: TAG, plans: next }], previewHashOf(pre));
+  hit.setSharedPluginData = real;
+  const post = (await previewUpdate(w.host, [{ def: TAG, plans: next }])).sets[0];
+  const named = res.outcomes[0]?.misses.filter((x) => x.startsWith(`${String(hit.name)}.asBuilt -> NOT RECORDED`)) ?? [];
+  ok(pdOf(hit, STAMP_KEY) === stampWas && post.counts.current === 44 && post.counts.update === 1 && named.length === 1,
+    `recordfail/set member: a set member whose record could not be written keeps its stamp, reads out of date and is named (stamp ${pdOf(hit, STAMP_KEY) === stampWas ? 'kept' : 'moved'}; ${JSON.stringify(post.counts)}; ${JSON.stringify(named)})`);
+}
+{
+  // A RECORD-LESS SINGLE COMPONENT (#2373): the icons with no as-built record, as the NB master's unrecorded sets were.
+  // By default each is updated and named as updated without one, and is recorded after; under `noBaseline: 'skip'` it
+  // is left exactly as it is, and named. Mutations: the default skipping → `unrecorded single/updated`; the skip
+  // choice ignored → `unrecorded single/skip`.
+  const plans = plansOf('icon');
+  const w = await singleWorld(plans, ['color/icon/secondary']);
+  for (const c of w.comps()) putPd(c, BASELINE_KEY, '');
+  const t = { def: 'icon', plans: reinked(plans), single: true };
+  const pre = await previewUpdate(w.host, [t]);
+  ok(pre.sets[0]?.counts.noBaseline === 44, `premise: the dry run reads all 44 icons with no record (${JSON.stringify(pre.sets[0]?.counts)})`);
+  const res = await applyUpdate(w.host, w.api as any, [t], previewHashOf(pre));
+  const o = res.outcomes[0];
+  const v = applyVerdict(res);
+  ok(v.ok && o?.updated.length === 44 && o.unrecorded.length === 44,
+    `unrecorded single/updated: by default every record-less icon is updated and named as updated without a record (${v.headline}; ${o?.updated.length} updated, ${o?.unrecorded.length} unrecorded)`);
+  const sec = await varIdOf(w as unknown as World, 'color/icon/secondary');
+  const inked = w.comps().filter((c) => ((c.children as Node[]) ?? []).filter((k) => k.type === 'VECTOR').every((k) => (k.fills as { boundVariables?: { color?: { id: string } } }[])[0]?.boundVariables?.color?.id === sec)).length;
+  const post = (await previewUpdate(w.host, [t])).sets[0];
+  ok(inked === 44 && post.counts.current === 44 && w.comps().every((c) => !!pdOf(c, BASELINE_KEY)),
+    `unrecorded single/recorded: each takes the plan's ink and a record, and reads current after (${inked} inked; ${JSON.stringify(post.counts)})`);
+}
+{
+  const plans = plansOf('icon');
+  const w = await singleWorld(plans, ['color/icon/secondary']);
+  const hit = w.comps()[7];
+  putPd(hit, BASELINE_KEY, '');
+  const dump = (): string => JSON.stringify([hit.name, [...(hit._pluginData as Map<string, string>)], ...(hit.findAll as () => Node[])().map((k) => [k.name, k.id, k.fills])]);
+  const before = dump();
+  const t = { def: 'icon', plans: reinked(plans), single: true };
+  const pre = await previewUpdate(w.host, [t]);
+  const res = await applyUpdate(w.host, w.api as any, [t], previewHashOf(pre), { choices: { noBaseline: 'skip' } });
+  const o = res.outcomes[0];
+  const post = (await previewUpdate(w.host, [t])).sets[0];
+  ok(o?.updated.length === 43 && dump() === before && JSON.stringify(o.skipped.map((x) => x.reason)) === JSON.stringify(['no as-built record']) && post.counts.noBaseline === 1,
+    `unrecorded single/skip: under noBaseline 'skip' the record-less icon is left exactly as it is and named, the other 43 updated (${o?.updated.length}, ${JSON.stringify(o?.skipped)}, ${dump() === before ? 'untouched' : 'written'}; ${JSON.stringify(post.counts)})`);
+}
+{
+  // A DUPLICATE OF THE FILE, FOR THE SINGLE COMPONENTS (#2436): `format/duplicate` for the icons and the spinner. The
+  // copy gives every component a new key; each copied component takes the original's stamp and record (its own id in
+  // it). Every one reads current, or, under a stamp from an earlier plugin, built by one; never edited by hand.
+  // Why `format/duplicate`'s mutations can't fail here: v3 hashes an instance's main and a style by name, and these defs
+  // build neither (`premise: nothing keyed`). A def that gains a nested instance or a styled label fails that premise,
+  // and is then guarded by the arm below as `format/duplicate` guards `tag`. Mutation: a component's bound paint hashed
+  // with its file's key → `duplicate single/current`.
+  const g = globalThis as { figma?: unknown };
+  const had = g.figma;
+  g.figma = { getStyleByIdAsync: async (id: string) => ({ name: id.replace(/^S:(B:)?/, '') }) };
+  resetStyleNames();
+  try {
+    for (const id of ['icon', 'spinner']) {
+      const plans = plansOf(id);
+      const a = await singleWorld(plans);
+      const b = await singleWorld(plans, [], { keyPrefix: 'KB', styleIdPrefix: 'B:' });
+      const keyed = b.comps().flatMap((c) => (c.findAll as (f: (n: Node) => boolean) => Node[])((n) => n.type === 'INSTANCE' || (n.type === 'TEXT' && !!n.textStyleId))).length;
+      const [ka, kb] = [String(a.comps()[0]?.key ?? ''), String(b.comps()[0]?.key ?? '')];
+      ok(b.comps().length === plans.length && !!ka && !!kb && ka !== kb && keyed === 0,
+        `premise: ${id}: the copy's ${b.comps().length} components carry other keys (${ka} / ${kb}), and nothing keyed: no instance, no styled text (${keyed})`);
+      const byName = new Map(a.comps().map((c) => [String(c.name), c] as const));
+      const copy = (stamp: (s: string) => string): void => {
+        for (const c of b.comps()) {
+          const src = byName.get(String(c.name))!;
+          putPd(c, STAMP_KEY, stamp(pdOf(src, STAMP_KEY)));
+          putPd(c, BASELINE_KEY, JSON.stringify({ ...JSON.parse(pdOf(src, BASELINE_KEY)), id: String(c.id) }));
+        }
+      };
+      const t = { def: id, plans, single: true };
+      copy((s) => s);
+      const p = (await previewUpdate(b.host, [t])).sets[0];
+      ok(p?.counts.current === plans.length && p.counts.handEdited === 0,
+        `duplicate single/current: ${id}: in a copy of the file, every component reads current and none as edited by hand (${JSON.stringify(p?.counts)}; ${p?.handEdits.slice(0, 2).map((h) => `${h.member} ${h.path}`).join(' | ')})`);
+      copy((s) => s.split('|').slice(0, 2).join('|'));
+      const q = (await previewUpdate(b.host, [t])).sets[0];
+      ok(q?.counts.revisionUnknown === plans.length && q.counts.handEdited === 0,
+        `duplicate single/earlier: ${id}: under a stamp from an earlier plugin, every component reads built by one and none as edited by hand (${JSON.stringify(q?.counts)})`);
+    }
+  } finally { g.figma = had; resetStyleNames(); }
 }
 
 /* ── noop ────────────────────────────────────────────────────────────────────────────────────────────── */
