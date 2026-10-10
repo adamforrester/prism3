@@ -728,5 +728,72 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
       "icon",
       "focus-ring"
     ]
+  },
+  {
+    "id": "_accordion-indicator",
+    "name": "Accordion.Indicator",
+    "category": "navigation",
+    "summary": "The open and closed glyph inside an Accordion header. Pick chevron or plus and minus.",
+    "unit": "variants",
+    "spacing": [],
+    "buildable": true,
+    "reason": null,
+    "members": 12,
+    "nests": [
+      "icon"
+    ]
+  },
+  {
+    "id": "accordion",
+    "name": "Accordion",
+    "category": "navigation",
+    "summary": "One section that opens and closes in place. The whole header row is the button.",
+    "unit": "variants",
+    "spacing": [
+      {
+        "key": "size.small.pad-x",
+        "ref": "space.150"
+      },
+      {
+        "key": "size.medium.pad-x",
+        "ref": "space.200"
+      },
+      {
+        "key": "size.large.pad-x",
+        "ref": "space.300"
+      },
+      {
+        "key": "size.small.pad-y",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.medium.pad-y",
+        "ref": "space.150"
+      },
+      {
+        "key": "size.large.pad-y",
+        "ref": "space.200"
+      },
+      {
+        "key": "size.small.gap",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.medium.gap",
+        "ref": "space.150"
+      },
+      {
+        "key": "size.large.gap",
+        "ref": "space.200"
+      }
+    ],
+    "buildable": true,
+    "reason": null,
+    "members": 24,
+    "nests": [
+      "_accordion-indicator",
+      "focus-ring",
+      "icon"
+    ]
   }
 ];
