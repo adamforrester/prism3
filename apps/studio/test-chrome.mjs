@@ -12395,7 +12395,7 @@ for (const host of ['web', 'figma']) {
       }
       ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
     } catch (e) {
-      ok(false, `${where}: the case stopped at a step that threw (${step}) — ${String(e?.message ?? e).split('\n')[0]}`);
+      ok(false, `${where}: the case stopped at a step that threw (${step}) — ${stopped(e)}`);
     } finally { await ctx.close(); }
   }
   ok(selects > 0, `#1821 ${host}: the mode control's select was read at least once (${selects} place(s))`);

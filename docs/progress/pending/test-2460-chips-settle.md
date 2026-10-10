@@ -8,7 +8,7 @@ or detached. Test code only.
 **The labels.** `stopped(e)` in `apps/studio/test-chrome.mjs` now keeps three parts: the error's first line, the locator
 it waited for, and the call log's last actionability line (`intercepts pointer events`, `element is not stable`, `not
 enabled`, `detached`, and so on). With no such line, it keeps the last step the log reached. The regex vocabulary is the
-one the #2194 pinned-clash catch already used. All 85 `String(e?.message ?? e).split('\n')[0]` catches in the file now
+one the #2194 pinned-clash catch already used. All 86 `String(e?.message ?? e).split('\n')[0]` catches in the file now
 call `stopped(e)`. Each part is capped at 200 characters, because an intercepting element's line carries its markup.
 
 **The wait.** §30b already waited for each pressed chip to read pressed, but under `.catch(() => {})`, so a redraw that
