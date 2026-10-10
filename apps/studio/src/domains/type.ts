@@ -767,9 +767,13 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
           onCommit: (v, fld) => {
             const was = String(getPath(brandState, `typography.responsive.${key}`) ?? fallback);
             if (was === v) return;
-            const refused = viewportRefusal(key, Number(v));
+            // A value that is not a width (empty, not a number, below 0) is put back, as Layout's breakpoints do:
+            // `Number('')` is 0, so a cleared field would otherwise store 0px (#2487 A6).
+            const n = Number(v.trim());
+            if (!v.trim() || !Number.isFinite(n) || n < 0) { fld.value = was; return; }
+            const refused = viewportRefusal(key, n);
             if (refused) { fld.value = was; b.setState(hook(stateLine(refused, 'warn'), 'type-viewport-refused')); return; }
-            edit('typography.responsive', () => { setResponsiveViewport(key, Number(v)); });
+            edit('typography.responsive', () => { setResponsiveViewport(key, n); });
           },
         });
         t.el.inputMode = 'numeric';
