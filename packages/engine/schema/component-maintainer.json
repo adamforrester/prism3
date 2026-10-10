@@ -827,6 +827,48 @@
           "A leading icon rung one smaller than the control rung (Button's #1350 offset) would suit a text-bearing tag; it is an owner exception in `lint-rung-names.ts`, so the 1:1 rung ships and the offset is held."
         ]
       }
+    },
+    "tab": {
+      "codeOnly": [
+        "code delivery pending: behavior layer (#2454). The owner built the Figma components first (Q178.3); the entries below are a framework-neutral behavior contract for whichever layer the project's developers choose.",
+        "The tab in code — a <button role=\"tab\"> with aria-selected (true or false, on every tab) and aria-controls naming its panel. The tab list owns roving tabindex: the selected tab is tabindex=\"0\", the rest -1.",
+        "The hover bar — an unselected tab under the pointer or pressed shows a 2px bar in color.border.secondary where the selected bar sits; no background wash. A pointer-only cue: keyboard focus shows the focus ring instead.",
+        "The underline slide — in code the selected underline is one element owned by the tab list that moves and resizes to the selected tab (about 150–200ms). Figma draws it per tab. Under prefers-reduced-motion it snaps.",
+        "The count — read as part of the tab name (\"Reviews, 12 items\") through visually hidden text, never as a lone number.",
+        "RTL — logical properties mirror the row: the leading icon moves to the right of the label and the count to its left.",
+        "text expansion — the label never wraps or truncates in a horizontal list; the list scrolls instead.",
+        "The hit-target expansion — a small tab is 36px tall on comfortable density; reaching 44px there is a code-side hit area larger than the visible box."
+      ],
+      "notes": {
+        "contested": [
+          "Pressed on an unselected tab shows the same neutral bar as hover; only the label ink steps (interactive.neutral.text.pressed). Whether pressed needs a cue of its own is held for the owner (#2416), not invented here.",
+          "The brief asks for a heavier label weight when selected; the owner chose one weight in both states (Q178.1 A) so selecting never moves the neighbors."
+        ],
+        "unverified": [],
+        "evolution": [
+          "2026-10-09 (#2416): owner decisions Q177 (the nested Tab + Tabs shape, line tabs only, its own page), Q178.1 A (primary label plus a 2px primary bar on a 1px border.primary baseline, one weight), Q178.2 B (no hover wash; a 2px neutral bar previews the selected bar), Q179 A (names Tab and Tabs, S/M/L, the count as a nested Badge, automatic activation). The hover bar's role, border.secondary, was the build PR's technical pick: contracted at 3:1 against the page (#1745)."
+        ]
+      }
+    },
+    "tabs": {
+      "codeOnly": [
+        "code delivery pending: behavior layer (#2454). The owner built the Figma components first (Q178.3); the entries below are a framework-neutral behavior contract for whichever layer the project's developers choose.",
+        "The tab list in code — role=\"tablist\" with an accessible name, and aria-orientation when vertical. One tab stop: the selected tab is tabindex=\"0\", the rest -1. Arrow keys move between tabs (Left and Right, or Up and Down when vertical), Home and End go to the first and last, and disabled tabs are skipped.",
+        "The panel — role=\"tabpanel\", aria-labelledby naming its tab and tabindex=\"0\", so Tab after the list lands on the panel. Not drawn in Figma: the panel is the content below the list.",
+        "Panel mounting — the default mounts a panel when it is first shown; keep it mounted when it holds state (a half-filled form), or mount all panels when find-in-page or print must reach them.",
+        "The selected underline in code — one element owned by the list that moves to the selected tab, sitting on the baseline (it overlaps the 1px line).",
+        "Overflow — a horizontal list never wraps. When the tabs do not fit, it scrolls with a fade at the cut edge, or ends in a \"More\" menu.",
+        "RTL — the row mirrors, the first tab sits rightmost, and Left and Right follow reading order: in RTL, Left moves to the next tab.",
+        "A disabled selected tab — if the selected tab becomes disabled, move tabindex=\"0\" to the nearest enabled tab.",
+        "Deep links — a tab can be bound to a hash or query parameter through the History API, with no route change."
+      ],
+      "notes": {
+        "contested": [],
+        "unverified": [],
+        "evolution": [
+          "2026-10-09 (#2416): owner decisions Q177 (Tab nested in Tabs, the radio-group pattern for a variable child count; line tabs only; its own page), Q178 (primary label and 2px primary bar on the 1px border.primary baseline; no hover wash) and Q179 A (names, sizes, the count badge, six tabs at most with three shown, automatic activation, vertical and overflow code-only)."
+        ]
+      }
     }
   }
 }
