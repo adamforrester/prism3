@@ -207,7 +207,7 @@ Subcomponents
   ↳ Image Placeholder · ↳ Focus Ring · ↳ Field Label · ↳ Field Message · ↳ Spinner
 ───
 Sandbox
-  ↳ File Components     (holds _Section-header, _Headings — plugin-only template assets)
+  ↳ File Components     (holds _Section-header, _Headings, _Label, _inverse-backdrop — plugin-only template assets)
 ```
 
 Rules, all enforced in the config + `test-file-setup.ts`:
@@ -242,6 +242,21 @@ header by its main component and adds no second one; it never touches Size, widt
 text only while it still reads the placeholder. A file with no `_Section-header` set skips the header and
 the build result says so. The agent link shares this handler; the `use_figma` paste path
 (`src/mcp-steps.ts`) does not place a header. Gated by `test-page-header.ts`.
+
+**The canvas furniture (pilot, #2406 Q171, #2188 Q172/Q173).** File setup also builds `_Label` (the owner's
+Prism 2 label: `Text` = Top | Left | Right | Bottom, `surface` = default | inverse, a `Show bracket` boolean, #9747FF
+and #E0C7FF as literal colors) and `_inverse-backdrop` (a component whose fill binds the brand's
+`color/inverse/background/primary`) onto `↳ File Components`, each on its own, so a file set up earlier gets them on
+its next setup (`src/furniture-templates.ts`). After a build or an in-place update lands a set of a piloted def,
+`src/canvas-furniture.ts` places `_Label` instances on the set's parent, outside the set: a column label above each
+grid-axis value, nested row brackets to the left for the outer row axes (none for on/off axes), one "Inverse" bracket
+outermost, and an `_inverse-backdrop` instance behind the inverse rows. For a piloted def, the engine's
+`planSetLayout` groups `surface` outermost, so the inverse rows are one band. A set laid out before that reads as moves
+in the update's dry run (`gridMoves` in `src/update-plan.ts`, Q173), and the apply re-lays its grid with every id kept;
+until then it gets no furniture, so it never carries one backdrop per band. Labels and backdrops are tagged
+`prism3`/`furniture`: a rebuild or update clears and redraws them, prune removes those whose set is gone, and they never
+enter the set, so the update's hand-edit check and the as-built record never read them. The switch is
+`CANVAS_FURNITURE_PILOT` (engine), on for Button, Tag and Text field. Gated by `test-canvas-furniture.ts`.
 
 **Not yet wired:** a UI trigger for `file-setup` (the shared-UI button) is a follow-up — the owner deferred UI
 placement, and the message contract + main-thread handler are complete and ready for it.
