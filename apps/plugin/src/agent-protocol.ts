@@ -233,11 +233,12 @@ export const parseCommand = (raw: unknown): ParsedCommand => {
       if (!oneOf(args.fontDisplay, ['auto', 'generic', 'family', 'size', 'weight', 'letterSpacing', 'lineHeight'])) return fail('bad-args', 'style-guide takes args.fontDisplay: auto, generic, family, size, weight, letterSpacing or lineHeight');
       if (!flag(args.rem) || !flag(args.paragraphSpacing) || !flag(args.textDecoration)) return fail('bad-args', 'style-guide takes args.rem, args.paragraphSpacing and args.textDecoration as booleans');
       if (!flag(args.titleCell)) return fail('bad-args', 'style-guide takes args.titleCell as a boolean');
+      if (!oneOf(args.tokenNames, ['full', 'short'])) return fail('bad-args', 'style-guide takes args.tokenNames: full (the whole variable name) or short (the name below the table\'s shared prefix)');
       // An empty list would draw nothing and match nothing, so it is refused rather than read as "every table";
       // so is a name of spaces alone, which the filter's trim would turn into an empty one.
       if (args.tables !== undefined && (!strings(args.tables) || !args.tables.length || args.tables.some((t) => !t.trim()))) return fail('bad-args', "style-guide takes args.tables: a non-empty array of table titles or keys, e.g. ['Primary — nbds']");
       const opts: StyleGuideOptions = {};
-      for (const k of ['collections', 'types', 'valueFormat', 'header', 'display', 'aliases', 'description', 'tables', 'rem', 'dimensionDisplay', 'fontDisplay', 'paragraphSpacing', 'textDecoration', 'titleCell'] as const) {
+      for (const k of ['collections', 'types', 'valueFormat', 'header', 'display', 'aliases', 'description', 'tables', 'rem', 'dimensionDisplay', 'fontDisplay', 'paragraphSpacing', 'textDecoration', 'titleCell', 'tokenNames'] as const) {
         if (args[k] !== undefined) (opts as Record<string, unknown>)[k] = args[k];
       }
       // `pixels` IS RETIRED (owner decision 20): accepted with any value and ignored, so an older caller does not
