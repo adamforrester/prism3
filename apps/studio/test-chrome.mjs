@@ -2796,6 +2796,8 @@ console.log(`\nEdits — the levers write, the preview repaints\n${'='.repeat(78
   await nameField.fill('primary');
   await nameField.press('Enter');
   await nameField.press('Tab');
+  // The field commits one task after `change` (#2487 A2), so the refusal is waited on (bounded) before it is read.
+  await page.waitForFunction((w) => document.querySelector('[data-p3="brand-color-name"]')?.value === w, was, { timeout: 5000 }).catch(() => {});
   ok(await page.locator('[data-p3="brand-color-name"]').first().inputValue() === was, `edit: renaming a brand color to "primary" is refused and the name stays "${was}"`);
   await hooks.click(page.locator('[data-p3="palettes-advanced"]'));
   // The neutral sliders, as the legacy page had them: only a custom tint edits them. Under Follow primary the

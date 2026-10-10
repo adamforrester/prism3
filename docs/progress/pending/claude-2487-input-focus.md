@@ -42,4 +42,6 @@ app, and each of the 14 mutations of a fix fails its arm by name; the list is in
 
 **A trap for whoever re-verifies this.** A committed field's work now lands one task after `change`. A test that types,
 blurs and reads state in the same tick reads the old state. §44 waits a task and two frames (`after`) before it reads.
-The existing checks that type and blur already waited on the result, so none needed changing.
+One existing check did not wait: the Palettes "renaming a brand color to primary is refused" arm read the field right
+after Tab. It passed two full runs on timing alone and failed the third, so it now waits (bounded) for the refusal
+before it reads. The other checks that type into these fields already waited on their result.
