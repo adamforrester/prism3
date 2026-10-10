@@ -35,6 +35,8 @@ import type { ActivityReading, OpReading } from './shell/activity';
 import type { FigmaAction } from './shell/figma';
 import type { BarActions, BarView, ExportBlock, ExportView } from './shell/bar';
 import { errorStrip, type ErrorStrip } from './shell/notices';
+// The error line's one Layout fix (owner Q189 A, #2146). The write stays in the Layout domain: `main.ts` makes none.
+import { firstBreakpointFix } from './domains/layout';
 // The start window (UI redesign S12) and what it shares with the brand menu's import: one check for every paste and
 // every file, with the error naming its line (owner decision S7).
 import { openStart, type StartChoice, type StartWindow } from './shell/start';
@@ -109,7 +111,9 @@ const syncErrorBar = (): void => {
   // A refused RESTORE is not a change that didn't apply, and what is on screen is not the designer's last
   // theme but the boot demo (#1989). So it says whose brand failed, and why the two writes are off.
   if (restoreFailure) globalErr.show(RESTORE_BAR[restoreFailure.kind](restoreFailure.reason));
-  else if (lastError) globalErr.show(`That change didn't apply: ${lastError} — you are seeing the last theme that resolved.`);
+  // Owner Q189 A (#2146): a brand that arrives starting above 0px gets a one-click fix beside the line.
+  else if (lastError) globalErr.show(`That change didn't apply: ${lastError} — you are seeing the last theme that resolved.`,
+    firstBreakpointFix(lastError));
   else globalErr.show(null);
   syncChromeHeight();   // the bar lives in the chrome; showing it moves everything sticky below
 };
