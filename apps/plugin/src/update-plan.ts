@@ -824,8 +824,11 @@ const propChanges = (p: SetPreview): number => Object.values(p.properties).reduc
 /** Nothing an update would change: every member current or from an earlier plugin, nothing to add, and the
  *  set's properties as planned. A member from an earlier plugin (`revisionUnknown`) matches its plan and has no
  *  hand edit. Its stamp just predates the executor revision, so it can't say which executor wrote it. That is
- *  not a difference (owner decision Q91 B, #2282), and the verdict flags those members on a line of their own. */
-const noChanges = (p: SetPreview): boolean => p.counts.current + p.counts.revisionUnknown === p.counts.members && !p.counts.add && !propChanges(p);
+ *  not a difference (owner decision Q91 B, #2282), and the verdict flags those members on a line of their own.
+ *  Nor is a member NOT BUILT BY PRISM3 (`unstamped`, #2464): the update never touches it and lists no change for it
+ *  (the owner's own icons, #2325), so a set whose only other members are those reads as having no changes, and the
+ *  set's line still counts them. Counted as a change, a file holding them could never read up to date. */
+const noChanges = (p: SetPreview): boolean => p.counts.current + p.counts.revisionUnknown + p.counts.unstamped === p.counts.members && !p.counts.add && !propChanges(p);
 /** No changes, and every member current. */
 const upToDate = (p: SetPreview): boolean => noChanges(p) && !p.counts.revisionUnknown;
 
@@ -857,8 +860,10 @@ export const previewLine = (p: SetPreview): string => {
     c.unstamped ? `${c.unstamped} not built by Prism3` : '',
   ].filter(Boolean);
   if (propChanges(p)) parts.push(n(propChanges(p), 'property change'));
-  if (upToDate(p)) return `${p.set}: up to date (${n(c.members, 'member')}).`;
-  if (noChanges(p)) return `${p.set}: no changes (${n(c.members, 'member')}).`;
+  // DRAFT (#2464): the members not built by Prism3 stay counted on a set that reads up to date, as on any other.
+  const own = c.unstamped ? ` ${c.unstamped} not built by Prism3, left as they are.` : '';
+  if (upToDate(p)) return `${p.set}: up to date (${n(c.members, 'member')}).${own}`;
+  if (noChanges(p)) return `${p.set}: no changes (${n(c.members, 'member')}).${own}`;
   return `${p.set}: ${n(c.members, 'member')}. ${parts.join(', ')}.`;
 };
 

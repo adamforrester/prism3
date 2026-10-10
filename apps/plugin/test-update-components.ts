@@ -54,6 +54,10 @@
  *                  matched over a stamped member on its coordinate (#2283, §10 Q4). Mutations: unstamped members
  *                  counted as drops again → `unstamped/not a drop`; collapse not filtered → `unstamped/no collapse`;
  *                  the stamped member not preferred → `unstamped/stamped wins`.
+ *   converged/…    a set whose only non-current members are not built by Prism3 has no changes (#2464): the
+ *                  headline reads up to date and the set line still counts them; with a real change beside them
+ *                  it still counts. Mutation: unstamped left out of `noChanges` → `converged/headline`,
+ *                  `converged/set line`.
  *   adopt/…        the one-time Adopt records and stamps only an unstamped member on a planned coordinate no
  *                  stamped member holds; it then reads update, never current, and its node is the same node.
  *                  Mutations: Adopt stamps with the plan's own stamp → `adopt/reads update`; the stamp written
@@ -104,7 +108,7 @@ import {
   readSetView, dryRunSet, hostPorts, previewUpdate, captureBaselines, previewVerdict, captureVerdictText,
   adoptMembers, adoptVerdictText, ADOPTED,
   previewLine,
-  type HostSetView, type HostMember, type UpdateHost, type SetPreview,
+  type HostSetView, type HostMember, type UpdateHost, type SetPreview, type UpdatePreview,
 } from './src/update-plan';
 
 let failed = 0;
@@ -658,6 +662,34 @@ section('unstamped — a member Prism3 did not build is skipped, never a drop (#
   const r = dryRunSet(TAG, b.plans, shared, b.ports);
   ok(r.counts.current === 45 && r.drops.length === 0 && r.counts.unstamped === 1 && JSON.stringify(r.unstamped) === JSON.stringify([`${view.members[4].name}, extra=a`]),
     `unstamped/stamped wins: on a shared coordinate Prism3's member is the match and the designer's is skipped (${r.counts.current}, ${JSON.stringify(r.drops)}, ${JSON.stringify(r.unstamped)})`);
+}
+
+/* ── converged ─────────────────────────────────────────────────────────────────────────────────────── */
+section('converged — a set whose only non-current members are not built by Prism3 reads up to date (#2464)');
+{
+  // #2464's reproduction: the NB master's `icon` set, after a full apply, held only current Prism3 members and the
+  // owner's own hand-added icons (unstamped), and the headline still read "Would change 1 of 24". Here: TAG as
+  // built (45 current) plus two members Prism3 did not build, off the plan, beside a second set left untouched.
+  const b = await build(TAG);
+  const view = await readSetView(b.set as any);
+  const hand = (from: HostMember, name: string, id: string): HostMember => ({ ...from, id, name, stamp: '', baseline: null });
+  const owned = withMembers(view, (ms) => [...ms, hand(ms[0], setValue(ms[0].name, 'size', 'huge'), 'hand:1'), hand(ms[1], setValue(ms[1].name, 'size', 'giant'), 'hand:2')]);
+  const p = dryRunSet(TAG, b.plans, owned, b.ports);
+  ok(p.counts.current === 45 && p.counts.unstamped === 2 && p.counts.members === 47 && p.changes.length === 0 && !p.blockers.length,
+    `premise: 45 current, 2 not built by Prism3, no change listed (${JSON.stringify(p.counts)}, ${p.changes.length} changes)`);
+  const both: UpdatePreview = { sets: [p, dryRunSet(TAG, b.plans, view, b.ports)], missing: [], refused: [] };
+  const v = previewVerdict(both);
+  // The headline words are the existing ones, typed here; #2464 changes which sets reach them, not the words.
+  ok(v.ok && v.headline === '✓ All sets up to date', `converged/headline: a file whose only non-current members are not built by Prism3 reads "✓ All sets up to date" (got "${v.headline}")`);
+  ok(v.lines[0] === 'tag: up to date (47 members). 2 not built by Prism3, left as they are.',
+    `converged/set line: the set reads up to date and still counts the 2 not built by Prism3 (got "${v.lines[0]}")`);
+  // With a real change beside them, the set still counts: the content gap moved on every member.
+  const next = (b.plans.map((x) => JSON.parse(JSON.stringify(x))) as AnatomyPlan[]);
+  for (const x of next) (planChild(x.root, 'content').bound as Record<string, string>).itemSpacing = 'space/999';
+  const q = dryRunSet(TAG, next, owned, b.ports);
+  const w = previewVerdict({ sets: [q], missing: [], refused: [] });
+  ok(q.counts.update === 45 && q.counts.unstamped === 2 && w.headline === 'Would change 1 of 1' && /2 not built by Prism3/.test(w.lines[0]),
+    `converged/real change: with a real change beside the 2 not built by Prism3, the set still counts (${w.headline}; ${w.lines[0]})`);
 }
 
 /* ── adopt ───────────────────────────────────────────────────────────────────────────────────────────── */
