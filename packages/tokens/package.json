@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "check:consumability": "node check-consumability.mjs",
+    "check:consumability": "node check-consumability.mjs && node check-platforms.mjs",
     "build:consumer": "node sd.consumer.mjs"
   },
   "devDependencies": {

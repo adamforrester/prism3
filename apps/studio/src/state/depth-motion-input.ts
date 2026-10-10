@@ -13,14 +13,20 @@
  * THE MODE A WRITE TARGETS IS AN ARGUMENT, as in `type-input.ts`. `'light'` writes the brand-wide value; any
  * other mode writes `modeLevers[mode]` through the store's pruning helper.
  *
- * THREE BYTE-LEVEL TRAPS, KEPT ON PURPOSE (the S9 scoping report; changing any is a behavior change):
+ * LIGHT'S EASING AT ITS DEFAULT IS UNSET (#2051, #2006's sibling). Picking a role's default curve in Light removes
+ * `motionPersonality.easingRoles.<role>`, then the emptied `easingRoles`, then an emptied `motionPersonality`, so a
+ * brand that picks the default back is byte-identical to one that never touched it. The default is the engine's
+ * own (`EASING_ROLE_DEFAULTS`), read rather than restated. The emitted tokens don't change: the engine fills an
+ * absent role with that same default.
+ *
+ * TWO BYTE-LEVEL TRAPS, KEPT ON PURPOSE (the S9 scoping report; changing either is a behavior change):
  *   · Light's shadow tint is written ONE KEY AT A TIME (`shadow.tint.hue`, then `shadow.tint.amount`), so a
  *     brand can hold a partial `{ hue }` and the engine fills the other key from its default;
  *   · outside Light, a shadow slider that lands EXACTLY on the brand value it was drawn against clears the
- *     mode's override (pruned), so no redundant "equals the brand" override lingers;
- *   · Light's easing select always WRITES the curve, the default included, where a mode's Auto unsets
- *     (`#2051` changes that, not this module). Tempo commits through `applyFull()` at the caller (#800).
+ *     mode's override (pruned), so no redundant "equals the brand" override lingers.
+ * Tempo commits through `applyFull()` at the caller (#800).
  */
+import { EASING_ROLE_DEFAULTS } from '@prism3/engine/theme';
 import { brandState, theme, getPath, setPath, getModeLever, setModeLever } from './store';
 
 /** The tempo choices, in the order the legacy controls list them. */
@@ -77,10 +83,19 @@ export const setTempo = (mode: string, v: string | undefined): void => {
 /** A mode's own curve for `role`, or `undefined` when it follows the brand (Auto). */
 export const easingOverride = (mode: string, role: string): string | undefined =>
   getModeLever(mode, `easings.${role}`) as string | undefined;
-/** The curve a motion role uses. Light ALWAYS writes `motionPersonality.easingRoles.<role>`, the default curve
- *  included (the legacy bytes; #2051). Another mode writes `modeLevers[mode].easings.<role>`, and `undefined`
+/** The engine's default curve for `role`, or `undefined` for a role the engine doesn't define. */
+export const defaultEasing = (role: string): string | undefined => EASING_ROLE_DEFAULTS.find((r) => r.role === role)?.curve;
+/** The curve a motion role uses. Light writes `motionPersonality.easingRoles.<role>`, and a curve equal to the
+ *  engine's default for the role (or `undefined`) UNSETS it instead, pruning an emptied `easingRoles` and an
+ *  emptied `motionPersonality` (#2051). Another mode writes `modeLevers[mode].easings.<role>`, and `undefined`
  *  or `''` (Auto) clears it, pruned. */
 export const setEasingRole = (mode: string, role: string, curve: string | undefined): void => {
-  if (mode === 'light') setPath(brandState, `motionPersonality.easingRoles.${role}`, curve);
-  else setModeLever(mode, `easings.${role}`, curve || undefined);
+  if (mode !== 'light') { setModeLever(mode, `easings.${role}`, curve || undefined); return; }
+  if (curve && curve !== defaultEasing(role)) { setPath(brandState, `motionPersonality.easingRoles.${role}`, curve); return; }
+  const mp = brandState.motionPersonality as Record<string, unknown> | undefined;
+  const roles = mp?.easingRoles as Record<string, unknown> | undefined;
+  if (!roles) return;
+  delete roles[role];
+  if (Object.keys(roles).length === 0) delete mp!.easingRoles;
+  if (mp && Object.keys(mp).length === 0) delete (brandState as Record<string, unknown>).motionPersonality;
 };
