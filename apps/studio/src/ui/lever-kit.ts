@@ -74,6 +74,7 @@ export const leverBlock = (key: string, opts: { label?: string; group?: boolean;
   refused.append(glyph('x'), h('span', undefined, 'Refused. The preview keeps the last valid theme.'));
   refused.hidden = true;
   el.append(head, ...(tip ? [tip] : []), ctl, state, refused);
+  noteBlock(key, el);
   return {
     el, ctl, label,
     setReadout: (t) => { setText(readout, t); if (readout.hidden !== !t) readout.hidden = !t; },
@@ -84,6 +85,87 @@ export const leverBlock = (key: string, opts: { label?: string; group?: boolean;
     said: `${label} ${desc} ${key}${opts.alsoSays ? ` ${opts.alsoSays}` : ''}`.toLowerCase(),
   };
 };
+
+// ── A choice row's state lines, announced (#2233) ─────────────────────────────────────────────────
+/** ONE POLITE REGION PER CHOICE ROW, updated in place. A lever block that holds a choice (`choice` or `chipChoice`) has
+ *  one live region, and it says the block's WARNING lines (`stateLine(…, 'warn')`: a clash, a refusal), each as its own
+ *  paragraph, word for word: a line that appears is announced, one that stays is not said again, and one that goes is
+ *  removed from the region, which a polite region does not announce. Hint lines stay visible and are never sent to
+ *  the region (owner decision Q184 B, 2026-10-10).
+ *
+ *  WHY OUTSIDE THE PANEL. An edit redraws a page's levers whole (`root.replaceChildren`), or, on Palettes and Brand
+ *  while the page keeps its shape, updates its blocks in place. Under a redraw a region inside a block would be a new
+ *  node, or the same node detached and put back, on every edit, and a screen reader cannot be relied on to hear a
+ *  change to either. The regions sync after each redraw (`leverBlock` notes the blocks it makes). No warning line in a
+ *  choice row changes in place today (#2233 checked: Palettes' pinned-neutral line, the one `setState` an in-place
+ *  sync makes in a choice row, is a hint), so an in-place update needs no sync of its own.
+ *  The regions sit in one visually hidden holder on `<body>`, as the style guides' run line does (#2171), and are never
+ *  touched by a redraw. A row that leaves the page is dropped with its region; drawn again, it gets a new region that
+ *  already holds its words when it is put in the document, which is not announced, so a page drawn again says nothing
+ *  until something on it changes.
+ *
+ *  The words are the visible line's own: no new text is announced. A line inside a block's own live region (Brand's
+ *  namespace notes) is left to that region. */
+const LIVE: Map<string, { region: HTMLElement; block: HTMLElement }> = new Map();
+let fresh: [string, HTMLElement][] = [];
+let liveHolder: HTMLElement | null = null;
+const noteBlock = (key: string, el: HTMLElement): void => {
+  if (!fresh.length) queueMicrotask(syncLive);
+  fresh.push([key, el]);
+};
+const linesOf = (block: HTMLElement): string[] =>
+  [...block.querySelectorAll<HTMLElement>('.p3-state-warn')]
+    .filter((n) => !n.closest('[hidden]') && !n.parentElement?.closest('[aria-live]'))
+    .map((n) => (n.textContent ?? '').trim())
+    .filter(Boolean);
+/** The region's paragraphs made to say `lines`, in order, keeping every paragraph that already says one. */
+const sayLines = (region: HTMLElement, lines: readonly string[]): void => {
+  const keep = new Set<Element>();
+  let at: Element | null = null;
+  for (const t of lines) {
+    const old = [...region.children].find((c) => !keep.has(c) && c.textContent === t);
+    const p = old ?? h('p', undefined, t);
+    keep.add(p);
+    if (!old) { if (at) at.after(p); else region.prepend(p); }
+    at = p;
+  }
+  for (const c of [...region.children]) if (!keep.has(c)) c.remove();
+};
+function syncLive(): void {
+  const batch = fresh;
+  fresh = [];
+  const seen = new Map<string, number>();
+  for (const [key, block] of batch) {
+    if (!block.querySelector('.p3-choice, .p3-chips')) continue;
+    // A key drawn twice in one redraw keeps a region per drawing.
+    const n = (seen.get(key) ?? 0) + 1;
+    seen.set(key, n);
+    const k = n > 1 ? `${key}#${n}` : key;
+    const had = LIVE.get(k);
+    let region = had?.region;
+    if (!region) {
+      region = hook(h('div'), 'choice-live');
+      region.dataset.key = k;
+      region.setAttribute('role', 'status');
+      region.setAttribute('aria-live', 'polite');
+      // A status is atomic by default: then a new line would re-read every line beside it.
+      region.setAttribute('aria-atomic', 'false');
+    }
+    LIVE.set(k, { region, block });
+  }
+  for (const [k, { region, block }] of [...LIVE]) {
+    // A row that left the page is dropped, region and all: a page drawn again makes it anew, already holding its words.
+    if (!block.isConnected) { region.remove(); LIVE.delete(k); continue; }
+    sayLines(region, linesOf(block));
+    if (!region.isConnected) {
+      if (!liveHolder) { liveHolder = hook(h('div', 'p3-sr'), 'choice-live-holder'); }
+      if (!liveHolder.isConnected) document.body.append(liveHolder);
+      liveHolder.append(region);
+    }
+  }
+  // The rows held, for `test:chrome` §42 to read against the regions in the document (a dropped row is not kept).
+  if (liveHolder) liveHolder.dataset.rows = String(LIVE.size);
+}
 
 /** BG1 A and HP5 (heading pass 2, owner approval 2026-10-06): a lever named exactly as its section says its name once,
  *  in the section's title. Its head row goes; its ⓘ moves beside the section title, `space-050` after it, and anything
@@ -269,7 +351,11 @@ export const choice = <V extends string>(label: string, role: string, options: r
     const step = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 0;
     if (!step) return;
     e.preventDefault();
-    const to = btns[(i + step + btns.length) % btns.length];
+    // A disabled option is passed over, as a radio group does (#2233); with none other enabled, nothing moves.
+    let j = i;
+    do j = (j + step + btns.length) % btns.length; while (j !== i && btns[j].disabled);
+    if (j === i) return;
+    const to = btns[j];
     to.focus();
     to.click();
   });
@@ -277,6 +363,20 @@ export const choice = <V extends string>(label: string, role: string, options: r
     el,
     set: (v) => { for (const b of btns) { const on = b.dataset.value === v; if (b.getAttribute('aria-checked') !== String(on)) { b.setAttribute('aria-checked', String(on)); b.tabIndex = on ? 0 : -1; } } },
   };
+};
+
+/** One option of a `choice` or `chipChoice` the engine would refuse: disabled, its reason in `title` for a pointer.
+ *  A disabled button takes no focus, so when the reason is also drawn as a line (`reasonId`, that line's id), the line
+ *  describes the GROUP, which a keyboard reaches through its other options (#2233). With no line drawn, `title` is
+ *  the only place the reason is said. */
+export const refuseOption = (group: HTMLElement, value: string, why: string, reasonId?: string): void => {
+  const b = group.querySelector<HTMLButtonElement>(`[data-value="${CSS.escape(value)}"]`);
+  if (!b) return;
+  b.disabled = true;
+  b.title = why;
+  if (!reasonId) return;
+  const ids = (group.getAttribute('aria-describedby') ?? '').split(' ').filter(Boolean);
+  if (!ids.includes(reasonId)) group.setAttribute('aria-describedby', [...ids, reasonId].join(' '));
 };
 
 /** A select in the chrome's style, its options given as value and label. */
