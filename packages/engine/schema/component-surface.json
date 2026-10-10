@@ -276,6 +276,22 @@
     "tag@outline-none": {
       "members": 45,
       "sha256": "dfd52829ac14d48475cfce2d6b4b2b3decef9080f47a348fb16ff2a417f2c81a"
+    },
+    "_accordion-indicator": {
+      "members": 12,
+      "sha256": "ab57c74db9c795dbdc318e937b4e6454855872aadfd1729bc3dcff92ed0abfe1"
+    },
+    "accordion": {
+      "members": 24,
+      "sha256": "9420fb1814f40ef1287930bf389b7644766ec27cd1fcf83ef9b6f0f62b84e593"
+    },
+    "accordion@body-emphasis": {
+      "members": 24,
+      "sha256": "d8b2e65d32d6499f5893f5a459cdecb0ccbbf2742e61c7c0820c054ac5d081f7"
+    },
+    "accordion@body-single": {
+      "members": 24,
+      "sha256": "d715253d0f8b2d00fdc816e755897c9433c9376dcd6b26c667cc3687a2a8aa49"
     }
   }
 }

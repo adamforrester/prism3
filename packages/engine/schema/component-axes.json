@@ -1,4 +1,44 @@
 {
+  "_accordion-indicator": {
+    "axes": {
+      "expansion": [
+        "collapsed",
+        "expanded"
+      ],
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ],
+      "style": [
+        "chevron",
+        "plus-minus"
+      ]
+    },
+    "members": 12
+  },
+  "accordion": {
+    "axes": {
+      "expansion": [
+        "collapsed",
+        "expanded"
+      ],
+      "indicator": [
+        "end",
+        "start"
+      ],
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ],
+      "state": [
+        "focus-visible",
+        "rest"
+      ]
+    },
+    "members": 24
+  },
   "badge": {
     "axes": {
       "emphasis": [

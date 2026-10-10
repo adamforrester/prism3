@@ -312,6 +312,30 @@
         "assignments": 225,
         "sha256": "ffa6940642324f84d002f1debfc434e1ecc6184dad16a27629e22d7b9b15c036"
       }
+    },
+    "_accordion-indicator": {
+      "set": {
+        "members": 12,
+        "assignments": 12,
+        "sha256": "53e9ce18cb9a886dd8e358b6970e8e3ebcb49e59618c1f851d0478899c31d709"
+      },
+      "grid": {
+        "members": 12,
+        "assignments": 12,
+        "sha256": "edd7378532ffd7080f4bb2dfb5d23502de33b9f5f8d76b62588643a0182ecf46"
+      }
+    },
+    "accordion": {
+      "set": {
+        "members": 24,
+        "assignments": 24,
+        "sha256": "3702f53b3458e0b4b6fd39ed79060c276abd7e1fc6ecaad4d91056e4953dbb23"
+      },
+      "grid": {
+        "members": 24,
+        "assignments": 24,
+        "sha256": "dcbac2c6fc60d6a4792146e7c6cf829860e74b69a7ada9bad5df0c4da5f3c997"
+      }
     }
   }
 }
