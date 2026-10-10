@@ -6900,7 +6900,9 @@ const openTint = async (page) => {
   await hooks.need(page, '[data-p3="shadow-tint-hue"]');
 };
 /** Move a slider to `v` the way a drag does: the value, then `input`. */
-const slide = (page, hk, v) => page.evaluate(([h, x]) => { const n = document.querySelector(`[data-p3="${h}"]`); n.value = String(x); n.dispatchEvent(new Event('input', { bubbles: true })); }, [hk, v]);
+// A set as a user's ends: `input`, then the release (`change`). Since #2487 PR 2 a drag stores on its release, so an
+// `input` alone would read the stored brand before the write.
+const slide = (page, hk, v) => page.evaluate(([h, x]) => { const n = document.querySelector(`[data-p3="${h}"]`); n.value = String(x); n.dispatchEvent(new Event('input', { bubbles: true })); n.dispatchEvent(new Event('change', { bubbles: true })); }, [hk, v]);
 /** Every dot the traces draw, and the animation each runs now. */
 const dotAnims = (page) => page.evaluate(() => [...document.querySelectorAll('[data-p3="depth-style-guide"] [data-p3="transition-dot"]')].map((d) => d.style.animation || ''));
 
@@ -8068,6 +8070,9 @@ for (const host of ['web', 'figma']) {
         const v = Number(n.value) === 3.75 ? 3.5 : 3.75;
         n.value = String(v);
         n.dispatchEvent(new Event('input', { bubbles: true }));
+        // The release too (#2487 PR 2): a drag stores on it, so without it a write that got through would land after
+        // this arm had already read the brand, and the arm would pass on nothing.
+        n.dispatchEvent(new Event('change', { bubbles: true }));
         return v;
       });
       await page.waitForTimeout(150);
