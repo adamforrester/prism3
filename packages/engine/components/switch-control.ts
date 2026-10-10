@@ -145,7 +145,7 @@ export const switchControl: ComponentDef = {
   // boolean (`figmaProperties.booleans`), default on to match the code default.
   props: [
     { name: 'checked', type: 'boolean', required: false, description: 'The on/off appearance. Driven by the host row — a bare Switch.Control is styled by the coordinate, not wired to state here. The flip is immediate by the Row\'s contract; this atom only renders the two positions.' },
-    { name: 'showStateLabel', type: 'boolean', required: false, default: true, description: 'The X/checkmark-in-the-thumb affordance — a check when on, an X when off, a cue beyond track color and thumb position. On by default; turn it off where the thumb position and track color are enough. The Figma set carries it as the `State icon` boolean, default on, so both surfaces start from the same default. Never the sole state signal — thumb position carries the state. Not hardcoded "On"/"Off" text, which is rejected outright.' },
+    { name: 'showStateLabel', type: 'boolean', required: false, default: true, description: 'The X/checkmark-in-the-thumb affordance — a check when on, an X when off, a cue beyond track color and thumb position. On by default; turn it off where the thumb position and track color are enough. Never the sole state signal — thumb position carries the state. Not hardcoded "On"/"Off" text, which is rejected outright.' },
     { name: 'size', type: "enum: 'small' | 'medium'", values: ['small', 'medium'], default: 'medium', required: false, description: 'Two rungs, not three: switches rarely warrant a large. Scales the track\'s height and length and the thumb\'s diameter. All read `control.size.*`, which moves a rung with brand density; `icon.size.*` would measure the wrong thing. The host row passes its own size through by `follow`.' },
     { name: 'disabled', type: 'boolean', default: false, required: false, description: 'The disabled skin — a contrast-exempt fill/border/thumb treatment. Set on the host, followed here.' },
     { name: 'aria-label', type: 'string', required: false, description: 'Required only for a genuinely standalone control with no host row to name it — the Row provides the accessible name, so a nested control must NOT double-label.' },
@@ -426,6 +426,10 @@ export const switchControl: ComponentDef = {
   },
 
   notes: {
+    // #2411 (owner Q167 call 3): how a consumer-facing fact is projected into the design file — maintainer-only.
+    projection: [
+      'The Figma set carries `showStateLabel` as the `State icon` boolean, default on, so both surfaces start from the same default. (Moved from props.showStateLabel.description, #2411.)',
+    ],
     contested: [
       'THE ATOM IS A SEPARATE COMPONENT rather than kept inline in the row, and the #1354 precondition made it earn that: the split was built ONLY after confirming the switch Row nests it (the composition check), which it does — the switch was already a row containing a control subtree, the shape checkbox had before #1226. The rejected alternative (keep the track inline and let the family diverge) is exactly the per-def duplication #1011 found had shipped the identical fill/border pairing across three defs.',
       'THE THUMB IS AN `indicator` BOX THAT PARENTS A GLYPH, which #910\'s #864 rule refused until this def widened it. The widening is scoped to a `size`+`radius` disc (a deliberately-shaped filled mark), not a blanket permission — the #864 case was an SVG wrapper frame with no radius, where the fill was an incidental square. The rejected alternative was a transparent wrapper box inside the thumb to make the glyph an indirect child: it passes the literal check while reproducing the exact fill-behind-glyph #864 exists to prevent, which is a gate dodge the house discipline forbids (a false positive is narrowed with a reason, not worked around).',

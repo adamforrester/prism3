@@ -112,7 +112,7 @@ export const projectComponentDocs = (defs: readonly ComponentDef[]) => ({
   engineVersion: ENGINE_VERSION,
   note:
     'Documentation for every registered component, projected from its definition — the same source the ' +
-    'Figma component and a coded component are built from. Brand-independent: a definition binds token ' +
+    'design-file component and a coded component are built from. Brand-independent: a definition binds token ' +
     'names, and each brand\'s `<brand>.ai.json` resolves them. Field names mirror the definition schema. ' +
     '`ai` is the decision surface for choosing a component; the other fields are usage guidance and the ' +
     'code API.',
@@ -126,6 +126,7 @@ export const projectMaintainer = (def: ComponentDef) => ({
     contested: [...(def.notes?.contested ?? [])],
     unverified: [...(def.notes?.unverified ?? [])],
     evolution: [...(def.notes?.evolution ?? [])],
+    projection: [...(def.notes?.projection ?? [])],
   },
 });
 

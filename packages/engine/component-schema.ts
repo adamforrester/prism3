@@ -1617,8 +1617,12 @@ export type ComponentDef = {
    *
    *  `evolution` was authored in `button.ts` and missing here until #483 — invisible because nothing
    *  under a tsconfig imported a component def, and `test.ts` runs through `tsx`, which does not
-   *  typecheck. #483's plugin call site pulled `button.ts` into `tsconfig.main.json` and it surfaced. */
-  notes?: { contested?: string[]; unverified?: string[]; evolution?: string[] };
+   *  typecheck. #483's plugin call site pulled `button.ts` into `tsconfig.main.json` and it surfaced.
+   *
+   *  `projection` (#2411, owner Q167 call 3) holds how a consumer-facing fact is projected into the design file —
+   *  a Figma-only mechanic that used to sit in a shipped prop description or `docs.usage`, where it named a tool
+   *  in consumer prose. Maintainer-only like the other three. */
+  notes?: { contested?: string[]; unverified?: string[]; evolution?: string[]; projection?: string[] };
 };
 
 /**

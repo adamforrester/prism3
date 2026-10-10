@@ -86,7 +86,8 @@ const DOC_FIELDS = ['id', 'name', 'aliases', 'category', 'status', 'summary', 'd
   'variants', 'accessibility', 'content', 'docs', 'ai', 'motion', 'composition'] as const;
 
 /** The maintainer-only fields (#1623): in the maintainer record, and in neither payload form. */
-const MAINTAINER_NOTES = ['contested', 'unverified', 'evolution'] as const;
+/** `projection` joined in #2411 (owner Q167 call 3): how a consumer-facing fact is projected into the design file. */
+const MAINTAINER_NOTES = ['contested', 'unverified', 'evolution', 'projection'] as const;
 
 type Path = (string | number)[];
 /** Where a def value lives on its page. `heading` null is the preamble (above the first `##`). A `table`

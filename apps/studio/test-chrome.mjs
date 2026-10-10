@@ -12906,6 +12906,148 @@ console.log(`\nChoice rows: reasons, announced state lines, arrows, focus after 
     }
   }
 }
+// =============================================================================================
+// 43. #2451 (owner decision RS1 A, 2026-10-10): the three refusals that said their reason only in `title` draw it as a
+//     hint line under their chips, only while the chip is refused, and that line describes the chips' group, as Type
+//     scale's reasons do (§42 arm 1). Both hosts, light, at 1280 and 380, prism3, Type with Show advanced open. Each case:
+//     the state set up through the UI, then (i) a line under the group's chips, drawn, saying the approved sentence word
+//     for word; (ii) the group's description in the accessibility tree (CDP `Accessibility.getPartialAXTree`, never the
+//     attribute) contains it; (iii) no live region carries it, since a hint is never announced (Q184 B; only warnings
+//     are); (iv) with the refusal lifted, no such line is drawn and the description no longer says it.
+//   · Title floor 16px under Compact (S63.titleFloorCompact): Type scale on Compact; lifted by Type scale Default.
+//   · Title floor 18px while title 2xs is set individually (S63.titleFloorPinned): Expressive, title floor 16px, then
+//     title 2xs's desktop size set to its first free value; lifted by resetting that size.
+//   · Italic only on a text type that pins a font style (S63.italicPinned): body's default weight pinned to "Medium";
+//     lifted by clearing the pin.
+//
+// INDEPENDENCE (docs/34). EXPECTED is typed here: the three approved sentences, copied from the owner-approved strings
+// (S63.titleFloorCompact, S63.titleFloorPinned, S63.italicPinned), and which chip each case refuses, worked out by hand
+// from the issue. ACTUAL is the browser's: the drawn paragraphs and their boxes, the accessibility tree, and every live
+// region in the document. The line is found by its words inside the row, never through `aria-describedby` or an id, so
+// an unlinked line still reads as drawn and fails only the description arm. The live-region arm is read with the line
+// proven drawn in the same state, and the lifted arm through `hooks.absent` with the line proven seen, so neither
+// passes on a line that was never there (shape 4). Nothing is read from `type.ts` or `lever-kit.ts`.
+//
+// Mutations (#2451), each after a `wip:` commit, on both rebuilt bundles, each failing here by name on both hosts at both
+// widths (web 1280 shown), none outside this section:
+//   · (a) the line not drawn → `§43 web light 1280 Title floor 16px under Compact: (i) the reason is drawn as one line under
+//     the chips, … (read {"group":true,"lines":0,"drawn":0,"live":0})`, with (ii), (iii) and (iv) NOT MEASURED, every case (48);
+//   · (b) the line not linked (no `reasonId`) → `§43 web light 1280 Title floor 16px under Compact: (ii) the chips' group is
+//     described by the reason (read {"role":"radiogroup","description":""})`, and each other case's (ii) (12);
+//   · (c) the line sent to the live region (drawn as a warning) → `§43 web light 1280 Title floor 16px under Compact: (iii) a
+//     hint doesn't announce: the drawn reason is in no live region (drawn 1, 1 live region(s) carrying it)`, each case (12).
+// =============================================================================================
+console.log(`\nRefusal reasons drawn as hint lines: Title floor and Italic only (#2451)\n${'='.repeat(78)}`);
+{
+  const COMPACT = 'The Compact scale already places a title at 16px, so the engine refuses 16px with it.';
+  const PINNED18 = 'Leaves out title 2xs, which you set individually.';
+  const ITALIC = 'This text type pins a font style. Clear the pin first: Italic only sets the style from the weight.';
+  const FLOOR_ROW = '[data-p3="lever-typography-title-floor"]';
+  const FLOOR_GROUP = '[data-p3="title-floor"]';
+  const ITALIC_ROW = '[data-p3="italic-row"][data-group="body"]';
+  const ITALIC_GROUP = '[data-p3="italic-row"][data-group="body"] [data-p3="italic-choice"]';
+  const PIN = '[data-p3="pin-cut-row"][data-cat="body"][data-role="default"] [data-p3="pin-cut-input"]';
+  const T2XS = '[data-p3="type-size-desktop"][data-group="title"][data-variant="2xs"]';
+  const BOUND = { timeout: 10000 };
+  /** The group's description as the browser computes it. */
+  const descOf = async (page, sel) => {
+    const cdp = await page.context().newCDPSession(page);
+    try {
+      await cdp.send('DOM.enable');
+      await cdp.send('Accessibility.enable');
+      const { root } = await cdp.send('DOM.getDocument', { depth: 0 });
+      const { nodeId } = await cdp.send('DOM.querySelector', { nodeId: root.nodeId, selector: sel });
+      const node = nodeId ? (await cdp.send('Accessibility.getPartialAXTree', { nodeId, fetchRelatives: false })).nodes[0] : null;
+      return node ? { role: node.role?.value ?? null, description: node.description?.value ?? '' } : null;
+    } finally { await cdp.detach(); }
+  };
+  /** In the row: the paragraphs that say `words` and are drawn under the group's chips; and every live region carrying them. */
+  const lineOf = (page, row, group, words) => page.evaluate(([r, g, w]) => {
+    const grp = document.querySelector(g);
+    const gb = grp?.getBoundingClientRect();
+    const lines = [...(document.querySelector(r)?.querySelectorAll('p') ?? [])].filter((p) => (p.textContent ?? '').trim() === w);
+    const drawn = lines.filter((p) => { const b = p.getBoundingClientRect(); return b.width > 0 && b.height > 0 && !!gb && b.top >= gb.bottom - 0.5; });
+    const live = [...document.querySelectorAll('[aria-live], [role="status"], [role="alert"], [role="log"], output')]
+      .filter((e) => (e.getAttribute('aria-live') ?? '') !== 'off' && (e.textContent ?? '').includes(w)).length;
+    return { group: !!grp, lines: lines.length, drawn: drawn.length, live };
+  }, [row, group, words]);
+  const firstFree = (page) => page.evaluate(() => document.querySelector('[data-p3="value-picker"] [data-p3="value-picker-value"]:not([aria-disabled="true"]):not([aria-pressed="true"])')?.getAttribute('data-value') ?? null);
+  const closePicker = async (page) => {
+    if (await page.locator('[data-p3="value-picker-close"]').count()) await hooks.click(page.locator('[data-p3="value-picker-close"]'), BOUND);
+    await page.waitForFunction(() => !document.querySelector('[data-p3="value-picker"]'), null, BOUND).catch(() => {});
+  };
+  const chipOff = (page, sel, want) => page.waitForFunction(([s, x]) => document.querySelector(s)?.disabled === x, [sel, want], BOUND).catch(() => {});
+  const checked = (page, sel) => page.waitForFunction((s) => document.querySelector(s)?.getAttribute('aria-checked') === 'true', sel, BOUND).catch(() => {});
+  for (const host of ['web', 'figma']) for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 800 }]) {
+    const where = `§43 ${host} light ${w}`;
+    const { ctx, page, errors } = await open({ host, theme: 'light', w, h });
+    let step = 'open Type';
+    /** The four arms for one refusal, read with it showing; then `lift` and the line's absence. */
+    const arms = async (name, row, group, words, lift) => {
+      await settle(page);
+      const on = await lineOf(page, row, group, words);
+      ok(on.drawn === 1, `${where} ${name}: (i) the reason is drawn as one line under the chips, "${words}" (read ${JSON.stringify(on)})`);
+      const ax = await descOf(page, group);
+      ok(!!ax && ax.description.includes(words), `${where} ${name}: (ii) the chips' group is described by the reason (read ${JSON.stringify(ax)})`);
+      ok(on.drawn === 1 && on.live === 0, `${where} ${name}: (iii) a hint doesn't announce: the drawn reason is in no live region (drawn ${on.drawn}, ${on.live} live region(s) carrying it)`);
+      step = `${name}: lift the refusal`;
+      await lift();
+      await settle(page);
+      const off = await lineOf(page, row, group, words);
+      const ax2 = await descOf(page, group);
+      hooks.absent(ok, { seen: on.drawn === 1, state: `the "${name}" reason drawn` }, off.group && off.lines === 0 && !!ax2 && !ax2.description.includes(words),
+        `${where} ${name}: (iv) with the refusal lifted, the line is gone and the group's description no longer says it (read ${JSON.stringify(off)}, ${JSON.stringify(ax2)})`);
+    };
+    try {
+      await goPlace(page, 'type');
+      step = 'open Show advanced'; await openTypeAdvanced(page);
+      await hooks.need(page, FLOOR_GROUP);
+      // Title floor 16px under Compact.
+      step = 'Type scale Compact';
+      await hooks.click(page.locator('[data-p3="type-scale-compact"]'), BOUND);
+      await checked(page, '[data-p3="type-scale-compact"]');
+      await chipOff(page, '[data-p3="title-floor-16"]', true);
+      await arms('Title floor 16px under Compact', FLOOR_ROW, FLOOR_GROUP, COMPACT, async () => {
+        await hooks.click(page.locator('[data-p3="type-scale-default"]'), BOUND);
+        await checked(page, '[data-p3="type-scale-default"]');
+        await chipOff(page, '[data-p3="title-floor-16"]', false);
+      });
+      // Title floor 18px while title 2xs is set individually.
+      step = 'Expressive, title floor 16px';
+      await hooks.click(page.locator('[data-p3="type-scale-expressive"]'), BOUND);
+      await checked(page, '[data-p3="type-scale-expressive"]');
+      await hooks.click(page.locator('[data-p3="title-floor-16"]'), BOUND);
+      await checked(page, '[data-p3="title-floor-16"]');
+      step = 'set title 2xs';
+      await hooks.click(page.locator(T2XS), BOUND);
+      await hooks.need(page, '[data-p3="value-picker"]', BOUND);
+      const to = await firstFree(page);
+      await hooks.click(page.locator(`[data-p3="value-picker"] [data-p3="value-picker-value"][data-value="${to}"]`), BOUND);
+      await closePicker(page);
+      await chipOff(page, '[data-p3="title-floor-18"]', true);
+      await arms(`Title floor 18px with title 2xs set (${to}px)`, FLOOR_ROW, FLOOR_GROUP, PINNED18, async () => {
+        await hooks.click(page.locator(T2XS), BOUND);
+        await hooks.click(page.locator('[data-p3="value-picker"] [data-p3="value-picker-reset"]'), BOUND);
+        await closePicker(page);
+        await chipOff(page, '[data-p3="title-floor-18"]', false);
+      });
+      // Italic only on a text type that pins a font style.
+      step = 'pin body\'s font style';
+      await hooks.need(page, PIN, BOUND);
+      await page.locator(PIN).fill('Medium');
+      await page.locator(PIN).evaluate((e) => e.blur());
+      await chipOff(page, `${ITALIC_ROW} [data-p3="italic-choice-only"]`, true);
+      await arms('Italic only with a pinned font style', ITALIC_ROW, ITALIC_GROUP, ITALIC, async () => {
+        await page.locator(PIN).fill('');
+        await page.locator(PIN).evaluate((e) => e.blur());
+        await chipOff(page, `${ITALIC_ROW} [data-p3="italic-choice-only"]`, false);
+      });
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+}
 // #2238: the check box is measured on both hosts, in both chrome themes, somewhere in the sweep.
 for (const [k, n] of Object.entries(BOXES_BY)) ok(n > 0, `#2238 ${k}: the contrast audit measured check boxes in the sweep (${n})`);
 hooks.report(ok);

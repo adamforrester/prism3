@@ -1089,6 +1089,17 @@ npx tsx packages/engine/lint-figma-descriptions.ts  # every Figma variable + sty
                                                     # ref or Prism 2. Committed brands + harbor built in
                                                     # memory; every Figma file kind represented. Also: no
                                                     # DTCG description names Prism 2 or an issue.
+npx tsx packages/engine/lint-tool-neutral-prose.ts  # consumer prose names no tool (#2411, owner Q167):
+                                                    # DTCG $description (token, group, per mode),
+                                                    # decisions[], the .ai.json guidance fields and the
+                                                    # component docs + pages, read from the committed
+                                                    # out/ against a TYPED word list. Exempt by path,
+                                                    # never by word (figma.*, out/figma/**, css,
+                                                    # responsive.web, generator.*, modifiers.*). Also no
+                                                    # `note` under any $extensions, and each gradient's
+                                                    # a11y.clears.<ink> matches its worst case,
+                                                    # recomputed from the stops (#2422). Every promised
+                                                    # field represented per brand and file, with floors.
 npx tsx packages/engine/lint-advisory-expiry.ts     # a stated advisory window, once it closes, fails
                                                     # the build. The one gate here whose ORACLE IS THE
                                                     # CLOCK: no API, no issue state, no network, and

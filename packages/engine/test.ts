@@ -8275,15 +8275,18 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
     const aiType = JSON.parse(readFileSync(resolve(HERE, `out/${b}.ai.json`), 'utf8')).typography ?? {};
     const tree = JSON.parse(readFileSync(resolve(HERE, `out/${b}.tokens.json`), 'utf8'));
     const r = tree[Object.keys(tree).find((k) => !k.startsWith('$'))!];
-    for (const [key, e] of Object.entries(aiType) as [string, { when_to_use?: string; avoid_when?: string }][]) {
+    for (const [key, e] of Object.entries(aiType) as [string, { when_to_use?: string; avoid_when?: string; modifiers?: { strikethrough?: { code?: string; figma?: string } } }][]) {
       if (!key.startsWith('type.')) continue;
       const scoped = /^type\.(body|caption)\./.test(key) && !key.endsWith('-link');
       const when = e.when_to_use ?? '', avoid = e.avoid_when ?? '';
-      const says = when.includes('plus a line-through modifier') && when.includes('`text-decoration-line: line-through`')
-        && when.includes('a strikethrough override on the style in Figma') && when.includes('"Original price:"')
+      // #2411 (owner Q167 call 3): the per-surface half lives in `modifiers.strikethrough.{code,figma}`, and the
+      // prose keeps the rule that holds on every surface.
+      const st = e.modifiers?.strikethrough;
+      const says = when.includes('plus a line-through modifier') && when.includes('its strikethrough modifier field') && when.includes('"Original price:"')
+        && (st?.code ?? '').includes('`text-decoration-line: line-through`') && (st?.figma ?? '').includes('strikethrough override on the applied style')
         && avoid.includes('Do not look for or mint a strikethrough style');
       if (scoped) { carried++; groups.add(key.split('.')[1]); if (!says) bad.push(`${b} ${key}: no strikethrough guidance ("${when}" / "${avoid}")`); }
-      else if (/strikethrough|line-through/.test(`${when} ${avoid}`)) bad.push(`${b} ${key}: carries strikethrough guidance outside body and caption's plain styles`);
+      else if (/strikethrough|line-through/.test(`${when} ${avoid}`) || e.modifiers) bad.push(`${b} ${key}: carries strikethrough guidance outside body and caption's plain styles`);
       if (/strike/i.test(key)) bad.push(`${b} ${key}: a strikethrough style was minted`);
     }
     const walk = (n: any, path: string): void => {
@@ -8716,7 +8719,7 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   ok(notesOf('rv-surf', { surfaces: { light: { base: 100 } } }).includes('surfaces: the light page is neutral.100, not the default — the contrast floor moves with it.'),
     '#1883 review row 42: a non-default page moves the contrast floor');
   // Row 32: gradient text contrast is computed, not gated.
-  ok(notesOf('rv-grad', { gradients: true }).includes('gradient: 1 brand gradient(s) — brand (linear 135°, 2 stops). Stops alias the color ramps and blend in oklch; Figma gets a 5-stop sRGB version. Contrast for text on a gradient is computed at its worst-contrast stop.'),
+  ok(notesOf('rv-grad', { gradients: true }).includes('gradient: 1 brand gradient(s) — brand (linear 135°, 2 stops). Stops alias the color ramps and blend in oklch; a tool that blends only in sRGB gets a 5-stop sRGB version. Contrast for text on a gradient is computed at its worst-contrast stop.'),
     '#1883 review row 32: the gradient note says text contrast is computed, not checked');
 }
 
