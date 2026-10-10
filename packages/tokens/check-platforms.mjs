@@ -11,29 +11,34 @@
  * Four kinds of assertion, each labeled in its output line:
  *
  *   [RULE]    the config (`sd.platforms.mjs`) declares no custom code — read from its source, the
- *             same way `check-consumability.mjs` holds `sd.consumer.mjs`.
+ *             same way `check-consumability.mjs` holds `sd.consumer.mjs` — and the config object it
+ *             builds survives a JSON round trip unchanged, so no option is a function (a `filter`, an
+ *             `action`, a format) whatever it is named.
  *   [READS]   every build writes every platform file, every source token reaches every platform,
  *             and the `.d.ts` declares every export of the module.
  *   [VERDICT] per platform × DTCG `$type`, the worst outcome any token had (emitted, transformed,
  *             broken, lost — `platform-outcomes.mjs`). PINNED: a characterization, like the consumer
  *             gate's CONSUMER-GAP. It fails when a cell moves in EITHER direction, so a Style
  *             Dictionary upgrade that fixes a cell fails too, and whoever upgraded updates the pin.
- *   [VALUE]   literal expected values per brand per platform, typed here by hand and checked against
- *             the engine's input rather than its output: a brand's primary hex, a px and a rem size, a
- *             ms duration, a unitless line height, a font family. Where stock Style Dictionary writes
- *             a wrong or uncompilable value, the literal is that measured value, tagged [GAP #N] with
- *             the issue that tracks it — a memory, not an endorsement.
+ *   [VALUE]   literal expected values per brand per platform, typed here by hand: a brand's primary
+ *             hex, a px and a rem size, a ms duration, a unitless line height, a font family. Where
+ *             stock Style Dictionary writes a wrong or uncompilable value, the literal is that
+ *             measured value, tagged [GAP #N] with the issue that tracks it — a memory, not an
+ *             endorsement.
  *
- * INDEPENDENCE (docs/34). The expected values below are literals, never read from `out/`; the colors'
- * native forms were checked by hand arithmetic (0x3d / 255 = 0.239), and the NB red is the value the
- * hand-built reference carries (`reference/`, core-color red 500). The outputs are read by parsing the
+ * INDEPENDENCE (docs/34). The expected values below are literals, never read from `out/` at run time.
+ * They are snapshots of the engine's output, verified by hand, and the colors' native forms were
+ * checked by hand arithmetic (0x3d / 255 = 0.239). They are not the engine's input, and the NB red is
+ * not the hand-built reference's value: the engine emits `#d53d44` for core-color red 500, while
+ * `reference/` carries `#d83c43` for the same step. The outputs are read by parsing the
  * written files, never by asking Style Dictionary. A literal that moves because the engine moved a
  * brand's value fails here BY NAME, which is the point: re-verify, then update the literal.
  */
 import { readFileSync, existsSync, statSync, readdirSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { buildPlatforms, sourcesFor, PLATFORM_FILES, OUT_ROOT } from './sd.platforms.mjs';
+import { isDeepStrictEqual } from 'node:util';
+import { buildPlatforms, platformsConfig, sourcesFor, PLATFORM_FILES, OUT_ROOT } from './sd.platforms.mjs';
 import { outcomesFor, readPlatform, readDeclarations, norm, worst, PLATFORMS, TYPES } from './platform-outcomes.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -47,6 +52,11 @@ const cfg = readFileSync(resolve(here, 'sd.platforms.mjs'), 'utf8').replace(/\/\
 for (const banned of ['preprocessors', 'hooks', 'transforms:', 'registerTransform', 'registerPreprocessor', 'registerFormat', 'registerTransformGroup', 'registerParser', 'parsers']) {
   ok(!cfg.includes(banned), `[RULE] the platform config declares no \`${banned}\` — built-in transform groups and formats only`);
 }
+// A source scan reads names; a function-valued option needs no banned name (`filter: (t) => true`).
+// JSON drops a function and `undefined` and turns a RegExp into `{}`, so plain data is exactly what
+// survives the round trip.
+const live = platformsConfig(['a.tokens.json'], 'build');
+ok(isDeepStrictEqual(JSON.parse(JSON.stringify(live)), live), '[RULE] the platform config is plain data — it survives a JSON round trip unchanged, so no option is a function');
 
 /**
  * The literals. One row per brand: its token root, a brand color (path under `core.palette`, hex, and
@@ -157,8 +167,8 @@ for (const brand of brands) {
   // ---- [VALUE] literals --------------------------------------------------------------------------
   const out = Object.fromEntries(await Promise.all(PLATFORMS.map(async (p) => [p, await readPlatform(p, dirs.base)])));
   const show = (p, v) => (v === undefined ? 'ABSENT' : p === 'android' ? `<${v.tag}>${v.text}` : typeof v === 'string' ? v : JSON.stringify(v));
-  for (const [path, exp] of Object.entries(expected(BRANDS[brand] ?? {}))) {
-    if (!BRANDS[brand]) break;
+  // A brand with no row has no literals to check; [SCOPE] above has already failed it by name.
+  for (const [path, exp] of BRANDS[brand] ? Object.entries(expected(BRANDS[brand])) : []) {
     for (const p of PLATFORMS) {
       const got = out[p].get(norm(path));
       const tag = exp.gap?.[p] ? ` [GAP #${exp.gap[p]}]` : '';
@@ -171,7 +181,7 @@ for (const brand of brands) {
 
   // ---- the overlay is not inert on any platform -----------------------------------------------------
   const bg = `${BRANDS[brand]?.root}.color.background.primary`;
-  for (const mode of modes.filter((m) => m === 'dark')) {
+  for (const mode of BRANDS[brand] ? modes.filter((m) => m === 'dark') : []) {
     const moved = [];
     for (const p of ['js', 'ios', 'android', 'compose']) {
       const a = show(p, out[p].get(norm(bg)));
