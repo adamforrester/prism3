@@ -124,7 +124,15 @@ export const figmaMenu = (read: FigmaSource, cleanups: (() => void)[]): HTMLElem
       list[(i + (e.key === 'ArrowDown' ? 1 : -1) + list.length) % list.length].focus();
     } else if ((e.key === 'Home' || e.key === 'End') && list.length) { e.preventDefault(); list[e.key === 'Home' ? 0 : list.length - 1].focus(); }
   });
-  cleanups.push(() => document.removeEventListener('mousedown', onDown), subscribe('host', () => { if (isOpen()) fill(); }));
+  // A host update can re-mint the items, or disable the focused one, which would leave focus on BODY with the menu
+  // open and its keys dead (#2487 A11). Focus then moves to the first item that can run, or to the button.
+  const refill = (): void => {
+    if (!isOpen()) return;
+    const had = menu.contains(document.activeElement);
+    fill();
+    if (had && !enabled().includes(document.activeElement as HTMLButtonElement)) (enabled()[0] ?? btn).focus();
+  };
+  cleanups.push(() => document.removeEventListener('mousedown', onDown), subscribe('host', refill));
   wrap.append(btn);
   return wrap;
 };

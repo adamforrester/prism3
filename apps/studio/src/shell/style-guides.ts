@@ -72,6 +72,8 @@ const S = {
   view: null as string | null,
   open: new Set<string>(),
   titles: '',
+  /** "Draw by table title" opened by hand, so a repaint keeps it open while its field is still empty (#2487 A12). */
+  titlesOpen: false,
   opt: { ...DEFAULT_OPTIONS } as PageOptions,
   /** How many tables the page's own run asked for, until the main thread lists them (0 when none is running). */
   pending: 0,
@@ -310,8 +312,11 @@ export const mountStyleGuides = (root: HTMLElement, lend: StyleGuidesLend, narro
 
     // Draw by table title (H8).
     const det = hook(h('details', 'p3-sg-titles'), 'sg-titles');
-    if (S.titles) det.open = true;
+    if (S.titles || S.titlesOpen) det.open = true;
+    det.addEventListener('toggle', () => { S.titlesOpen = det.open; });
     const sum = hook(h('summary', 'p3-sg-titles-sum'), 'sg-titles-summary');
+    // Keyed, so a repaint (a run's progress) puts focus back on it (#2487 A12).
+    sum.dataset.key = 'titles-sum';
     sum.append(glyph('chevr'), h('span', undefined, 'Draw by table title'));
     const ta = hook(h('textarea', 'p3-text-input p3-sg-textarea'), 'sg-titles-input');
     ta.rows = 2; ta.spellcheck = false; ta.placeholder = 'Every table';
