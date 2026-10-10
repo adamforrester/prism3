@@ -298,7 +298,9 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "buildable": true,
     "reason": null,
     "members": 4,
-    "nests": []
+    "nests": [
+      "icon"
+    ]
   },
   {
     "id": "text-field",
@@ -391,6 +393,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "members": 84,
     "nests": [
       "field-label",
+      "icon",
       "field-message",
       "focus-ring"
     ]
@@ -406,7 +409,8 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "reason": null,
     "members": 54,
     "nests": [
-      "focus-ring"
+      "focus-ring",
+      "icon"
     ]
   },
   {
@@ -518,6 +522,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "reason": null,
     "members": 24,
     "nests": [
+      "icon",
       "focus-ring"
     ]
   },
@@ -614,13 +619,15 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "id": "image-placeholder",
     "name": "ImagePlaceholder",
     "category": "foundations",
-    "summary": "Empty media frame locked to 1:1, 4:3 or 16:9. Drop an image fill onto it.",
+    "summary": "Empty media frame locked to a ratio, from 2:3 portrait to 16:9. Drop an image fill onto it.",
     "unit": "variants",
     "spacing": [],
     "buildable": true,
     "reason": null,
-    "members": 3,
-    "nests": []
+    "members": 7,
+    "nests": [
+      "icon"
+    ]
   },
   {
     "id": "spinner",

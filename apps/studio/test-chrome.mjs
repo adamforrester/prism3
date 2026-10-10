@@ -12366,6 +12366,302 @@ for (const host of ['web', 'figma']) {
   }
   ok(selects > 0, `#1821 ${host}: the mode control's select was read at least once (${selects} place(s))`);
 }
+// #2437: THE CONSUME SKILL'S FLUSH HIT AREA, MEASURED IN A BROWSER (WCAG 2.5.8; owner Q154 A, Q174 B; the spacing
+// sentence is DRAFT for the owner). The engine emits no code layout, so this is the one place the rule can be measured:
+// the skill's own CSS sketch and its own stated spacing, both read out of `skills/prism3-consume/SKILL.md`, applied to
+// buttons on a blank page and hit-tested point by point. The floors (44 at medium and large, 24 at small) are typed here
+// from the owner's decision, never read from the skill. At each size and for labels from 1px to just under the floor:
+//   · two flush buttons at the skill's "always enough" gap (twice its per-side bound) and at the exact gap it states (the
+//     two reaches added), then a non-flush neighbor at one reach: every point of each flush button's floor-wide hit area
+//     hits that button, the neighbor's own box hits only the neighbor, and the hit area really reaches the floor;
+//   · CONTROL: the same pair two pixels closer than the two reaches must show the overlap, or the probe sees nothing.
+// The sketch is hit-tested exactly as shipped: the small arms use the classes of its own 24px rule, never a rewrite of it.
+// Mutations, each failing by name: the sketch back to a fixed 44px (no small rule) → `#2437 flush hit area small: two …
+// flush buttons at the skill's 12px bound … overlap`; the skill's 22px bound lowered to 16px → `… two 1px flush buttons at the skill's 16px
+// bound … keep their 44px hit areas apart — overlap …` (and the 6px pair: 16px is enough from a 12px label on); the
+// sketch's 44px raised to 48px → the same arm at the bound AND at the exact gap, the neighbor's own box included.
+{
+  const where = '#2437 flush hit area';
+  const skill = readFileSync(join(REPO, 'skills/prism3-consume/SKILL.md'), 'utf8');
+  const css = /```css\n(\.flush-button[\s\S]*?)```/.exec(skill)?.[1];
+  const para = (/\*\*Keep a flush button's hit area clear of its neighbors\.\*\*([\s\S]*?)\n\n/.exec(skill)?.[1] ?? '').replace(/\s+/g, ' ');
+  const bound = /(\d+)px is always enough at medium and large, and (\d+)px at small/.exec(para);
+  ok(!!css && !!bound, `${where}: the skill carries the CSS sketch and a per-side spacing bound for both sizes (${css ? 'css' : 'no css'}; ${bound ? `${bound[1]}px / ${bound[2]}px` : 'no bound'})`);
+  if (css && bound) {
+    const FLOOR = { medium: 44, small: 24 };
+    const STATED = { medium: Number(bound[1]), small: Number(bound[2]) };
+    const page = await browser.newPage({ viewport: { width: 900, height: 240 } });
+    try {
+      for (const size of ['medium', 'small']) {
+        const F = FLOOR[size];
+        // THE SKETCH AS SHIPPED (Lane D's review of #2453): no text substitution. A small button takes the classes of the
+        // sketch's own rule that sets the 24px hit size, as a consumer applies it; a sketch with no such rule leaves the
+        // small button on the medium extension, and the small arms below fail by name.
+        const smallRule = /^(\.flush-button[^{\n]*?)\s*\{[^}]*--flush-hit:\s*24px/m.exec(css)?.[1]?.trim();
+        const sizeClass = size === 'small' && smallRule ? smallRule.split('.').filter(Boolean).join(' ') : 'flush-button';
+        const sheet = css;
+        const reach = (w) => Math.max(0, (F - w) / 2);
+        const run = async (w1, w2, g1, g2) => {
+          await page.setContent(`<!doctype html><style>body{margin:0}.row{position:absolute;top:100px;left:120px;display:flex;align-items:center}
+            .flush-button{display:block;flex:none;height:${Math.min(16, F - 2)}px;padding:0;margin:0;border:0;background:none}
+            .other{display:block;flex:none;width:${F}px;height:${F}px;padding:0;margin:0;border:0;background:none}
+            .gap{flex:none}${sheet}</style>
+            <div class="row"><button class="${sizeClass}" id="a" style="width:${w1}px"></button><span class="gap" style="width:${g1}px"></span>
+            <button class="${sizeClass}" id="b" style="width:${w2}px"></button><span class="gap" style="width:${g2}px"></span><button class="other" id="c"></button></div>`);
+          return page.evaluate((F) => {
+            // WHOLE PIXELS FULLY INSIDE each area: the browser's hit test rounds a fractional point, so the half pixel two
+            // abutting areas share is no one's, and probing it would read touching areas as overlapping.
+            const hit = (x, y) => document.elementFromPoint(x, y)?.closest('button')?.id ?? null;
+            const bad = [];
+            let reached = true;
+            for (const id of ['a', 'b']) {
+              const r = document.getElementById(id).getBoundingClientRect();
+              const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+              const py = Math.floor(cy), px = Math.floor(cx);
+              for (let x = Math.ceil(cx - F / 2); x + 1 <= cx + F / 2; x++) { const h = hit(x, py); if (h !== id) bad.push(`${id}@x${Math.round(x - cx)} hit ${h}`); }
+              for (let y = Math.ceil(cy - F / 2); y + 1 <= cy + F / 2; y++) { const h = hit(px, y); if (h !== id) { reached = false; bad.push(`${id}@y${Math.round(y - cy)} hit ${h}`); } }
+            }
+            const c = document.getElementById('c').getBoundingClientRect();
+            for (let x = Math.ceil(c.left); x + 1 <= c.right; x++) { const h = hit(x, Math.floor(c.top + c.height / 2)); if (h !== 'c') bad.push(`c@x${Math.round(x - c.left)} hit ${h}`); }
+            return { bad, reached };
+          }, F);
+        };
+        const labels = [1, 6, 12, Math.round(F / 2), F - 2];
+        for (const w of labels) {
+          const atBound = await run(w, w, 2 * STATED[size], STATED[size]);
+          ok(atBound.bad.length === 0,
+            `${where} ${size}: two ${w}px flush buttons at the skill's ${STATED[size]}px bound (${2 * STATED[size]}px apart, a neighbor ${STATED[size]}px on) keep their ${F}px hit areas apart${atBound.bad.length ? ` — overlap: ${atBound.bad.slice(0, 3).join(', ')}` : ''}`);
+          const exact = Math.ceil(2 * reach(w));
+          const atExact = await run(w, w, exact, Math.ceil(reach(w)));
+          ok(atExact.bad.length === 0 && atExact.reached,
+            `${where} ${size}: two ${w}px flush buttons at the exact gap the skill states (the two reaches, ${exact}px) keep their hit areas apart, and each reaches ${F}px${atExact.bad.length ? ` — ${atExact.bad.slice(0, 3).join(', ')}` : ''}`);
+        }
+        // CONTROL: two pixels closer than the two reaches, the areas overlap, so the probe must see it.
+        const w = 10, tooClose = Math.max(0, Math.ceil(2 * reach(w)) - 2);
+        const ctl = await run(w, w, tooClose, F);
+        ok(ctl.bad.some((b) => /^a@x\d+ hit b$|^b@x-\d+ hit a$/.test(b)),
+          `${where} ${size}: control: two ${w}px flush buttons ${tooClose}px apart, closer than their reaches, DO overlap, so the probe sees an overlap (${ctl.bad.slice(0, 2).join(', ') || 'none seen'})`);
+      }
+    } catch (e) {
+      ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    } finally { await page.close(); }
+  }
+}
+// =============================================================================================
+// 38. #1975 and #2105: the two panes at the widths between the tiers, and the narrow plugin's bar over its error line
+// =============================================================================================
+// #1975. At 800 and 640 the levers column is 42% of the window (335 and 268px), narrower than the 380 its pages were laid
+// out for. Every Color sub-tab must be reachable by a POINTER: the element at its center is the tab itself (a hit test in
+// the page, the check the keyboard walk could not make), and a click on it there shows its page. And on every moved page,
+// every Show advanced open, the levers' `scrollWidth` must not exceed the pane's `clientWidth`. Both hosts at 640 and 380,
+// the web at 800 too. Expected values are literals here: the sub-tabs by hook, the places, and the geometry rule.
+// Mutations, each failing here by name (the PR records the lines): the sub-nav's `min-width: 0` and wrap removed →
+// `#1975 web light 640: interactive (color-sub-interactive) takes a pointer at its center — is under another element at
+// its center, …`; the segmented choices' wrap removed → `#1975 web light 640: the levers fit their pane on every moved
+// page (9 read) — color-palettes scrollWidth 405 > clientWidth 268 | …`.
+const SUB_TABS_1975 = [['color-palettes', 'color-sub-palettes'], ['color-fills', 'color-sub-fills'], ['color-interactive', 'color-sub-interactive']];
+const MOVED_1975 = ['brand', 'color-palettes', 'color-fills', 'color-interactive', 'type', 'shape', 'depth', 'layout', 'components'];
+console.log(`\nThe two panes between the tiers (#1975) and the narrow plugin's error line (#2105)\n${'='.repeat(78)}`);
+for (const [host, w] of [['web', 800], ['web', 640], ['web', 380], ['figma', 640], ['figma', 380]]) {
+  const where = `#1975 ${host} light ${w}`;
+  const { ctx, page, errors } = await open({ host, theme: 'light', w, h: 900 });
+  try {
+    await goPlace(page, 'color-palettes');
+    for (const [place, hk] of SUB_TABS_1975) {
+      const hit = await page.evaluate((k) => {
+        const b = document.querySelector(`[data-p3="${k}"]`);
+        if (!b) return { found: false };
+        b.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+        const r = b.getBoundingClientRect();
+        const at = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+        return { found: true, own: !!at && b.contains(at), at: at ? `${at.tagName.toLowerCase()}.${[...at.classList].join('.')}` : null, w: Math.round(r.width), left: Math.round(r.left), right: Math.round(r.right) };
+      }, hk);
+      ok(hit.found && hit.own, `${where}: ${place.slice(6)} (${hk}) takes a pointer at its center${hit.own ? '' : ` — is under another element at its center, ${hit.at} (${JSON.stringify(hit)})`}`);
+      if (!hit.own) continue;
+      await hooks.click(page.locator(`[data-p3="${hk}"]`), { timeout: 4000 }).catch(() => {});
+      const now = await page.evaluate(() => document.querySelector('[data-p3="frame"]')?.dataset.place);
+      ok(now === place, `${where}: a pointer click on ${hk} shows ${place} (shows ${now})`);
+    }
+    const over = [];
+    for (const place of MOVED_1975) {
+      await goPlace(page, place);
+      if (place === 'type') await openTypeAdvanced(page).catch(() => {});
+      for (const fold of await page.locator('[data-p3="levers-pane"] [aria-expanded="false"][aria-controls^="p3-advb-"]').all()) await hooks.click(fold);
+      await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+      const m = await page.evaluate(() => { const L = document.querySelector('[data-p3="levers-pane"]'); return L ? { sw: L.scrollWidth, cw: L.clientWidth } : null; });
+      if (!m || m.cw <= 0 || m.sw > m.cw) over.push(`${place} scrollWidth ${m?.sw} > clientWidth ${m?.cw}`);
+    }
+    ok(over.length === 0, `${where}: the levers fit their pane on every moved page (${MOVED_1975.length} read)${over.length ? ` — ${over.join(' | ')}` : ''}`);
+    ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+  } finally { await ctx.close(); }
+}
+// #2105. The plugin at its narrow size, 380 × 420, both Figma themes: a brand the engine refuses (the `#1989` brand of
+// `apps/plugin/test-build-verdict.mjs`, typed here) opens the error line under the top bar. The bar, on its rows, must
+// end at or above the line's top (no row drawn over its words), the line must scroll to show the rest of its words, and
+// the levers pane must keep at least LEVERS_MIN_2105 of height. Literals.
+// Mutations, each failing here by name: the bar's grid row back to `auto` → `#2105 figma light 380 × 300: the bar ends at
+// or above the error line …`; the narrow line's cap removed → `#2105 … 380 × 420: the error line scrolls …` and `… the
+// levers pane keeps 40px or more …`.
+const LEVERS_MIN_2105 = 40;
+const REFUSED_2105 = { root: 'rf', modes: ['light'], primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.006, auto: true }, id: 'refused-brand',
+  overrides: { light: { 'background.secondary': { palette: 'neutral', step: '200' } } } };
+// A shorter window still, 380 × 300 (the plugin can be resized down), has no room for the levers at all, and holds the bar's
+// half alone: with every row asking for more than the window, the bar's row must still not give way to the line under it.
+for (const [theme, H] of [['light', 420], ['dark', 420], ['light', 300]]) {
+  const where = `#2105 figma ${theme} 380 × ${H}`;
+  const { ctx, page, errors } = await open({ host: 'figma', theme, w: 380, h: H });
+  try {
+    await page.evaluate((input) => window.postMessage({ pluginMessage: { type: 'restore-input', input } }, '*'), REFUSED_2105);
+    await page.waitForFunction(() => /didn't resolve/.test(document.querySelector('[data-p3="error-bar"]')?.textContent ?? ''), null, { timeout: 5000 }).catch(() => {});
+    const g = await page.evaluate(() => {
+      const r = (s) => { const n = document.querySelector(s); if (!n || !n.getClientRects().length) return null; const b = n.getBoundingClientRect(); return { top: b.top, bottom: b.bottom, h: b.height }; };
+      const err = document.querySelector('[data-p3="error-bar"]');
+      const rows = new Set([...document.querySelectorAll('[data-p3="frame"] .p3-bar button')].filter((b) => b.getClientRects().length).map((b) => Math.round(b.getBoundingClientRect().top)));
+      // The bar's box is its grid row's, so a row that gave way still reads as "above"; what the bar DRAWS is its controls,
+      // so its bottom is the lowest drawn control in it.
+      const drawn = [...document.querySelectorAll('[data-p3="frame"] .p3-bar :is(button, select, [role="radio"])')].filter((b) => b.getClientRects().length);
+      const barBottom = drawn.length ? Math.max(...drawn.map((b) => b.getBoundingClientRect().bottom)) : null;
+      return { bar: { bottom: barBottom }, err: r('[data-p3="error-bar"]'), levers: r('[data-p3="levers-pane"]'),
+        text: err?.textContent ?? '', scrolls: !!err && err.scrollHeight > err.clientHeight && getComputedStyle(err).overflowY === 'auto', rows: rows.size };
+    });
+    ok(!!g.err && g.text.includes("This file's saved brand didn't resolve"), `${where}: the refused brand opens the error line (${JSON.stringify(g.text.slice(0, 60))})`);
+    ok(g.rows >= 2, `${where}: the bar is on more than one row here, so the case is the one #2105 found (${g.rows} rows of buttons)`);
+    ok(!!g.bar && !!g.err && g.bar.bottom <= g.err.top + 0.5, `${where}: the bar ends at or above the error line, drawing no row over its words (the bar's lowest control ends at ${g.bar?.bottom}, line top ${g.err?.top})`);
+    ok(!!g.err && g.scrolls, `${where}: the error line scrolls to show the rest of its words (${g.err?.h}px tall, scrolls ${g.scrolls})`);
+    if (H === 420) ok(!!g.levers && g.levers.h >= LEVERS_MIN_2105, `${where}: the levers pane keeps ${LEVERS_MIN_2105}px or more under the error line (${g.levers?.h})`);
+    if (SHOTS) await page.screenshot({ path: join(SHOTS, `2105-plugin-${theme}-380x${H}.png`) });
+  } catch (e) {
+    ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+  } finally { await ctx.close(); }
+}
+// =============================================================================================
+// 41. #2383: the preview header's mode select shows its whole selected label, and the header never runs sideways
+// =============================================================================================
+// Both hosts, both chrome themes, at 640, 800, 380 and 1280; on Palettes (held to Light, #2321), Interactive and Surfaces &
+// fills; on Interactive and Surfaces & fills in each of the four modes the select can show. In each case:
+//   · when the select is drawn, its chosen option's text, set in the select's own computed font, fits the select's
+//     content box (its width less its borders and padding): the label is never cut, to "Lig" or to nothing;
+//   · the chosen option reads the mode's label, a literal typed here, so a select drawing the wrong mode fails too;
+//   · when the radios are drawn instead, the checked radio's name is not cut (its `scrollWidth` within its
+//     `clientWidth`) and the radio sits wholly inside the group;
+//   · the header has no horizontal overflow, and the title, the mode control and Inspect each sit wholly inside it;
+//   · the title is never cut (its `scrollWidth` within its `clientWidth`).
+// At 640, the width the issue was found at, the select must be the control drawn, on each host and theme, so the check
+// above is not passed vacuously by the radios.
+// INDEPENDENCE (docs/34). The modes and their labels are literals typed here, never read from `preview.ts`'s
+// `MODE_LABEL` or the engine's mode registry; the text's width is measured from a probe span in the select's computed
+// font, never from the select's own width or `data-fit`. Every case is counted, so a skipped one fails.
+// Mutation (in a `wip:` commit): the select's wrap given back `flex: 0 1 auto; min-width: 0` and the select `width:
+// 100%`, so it shrinks below its text → `#2383 web light 640 on color-interactive in light: the mode select shows its
+// whole label …` fails by name.
+console.log(`\n#2383: the preview header's mode select shows its whole label\n${'='.repeat(78)}`);
+/** The select's chosen option reads this, then " · " and the mode's verdict (which this check does not read). Literal. */
+const MS_LABEL = { light: 'Light', dark: 'Dark', 'hc-light': 'HC light (derived)', 'hc-dark': 'HC dark (derived)' };
+/** The checked radio's name, when the radios are drawn. Literal. */
+const MS_RADIO = { light: 'Light', dark: 'Dark', 'hc-light': 'HC light', 'hc-dark': 'HC dark' };
+const MS_PLACES = { 'color-palettes': ['light'], 'color-interactive': Object.keys(MS_LABEL), 'color-fills': Object.keys(MS_LABEL) };
+const MS_WIDTHS = [640, 800, 380, 1280];
+/** The preview header as drawn: which control shows, and every width the checks above compare. Runs in the page. */
+const MS_READ = () => {
+  const head = document.querySelector('[data-p3="preview-head"]');
+  const title = document.querySelector('[data-p3="preview-title"]');
+  const group = document.querySelector('[data-p3="mode-control"]');
+  const sel = document.querySelector('[data-p3="mode-select"]');
+  const insp = document.querySelector('[data-p3="inspect-open"]');
+  const shown = (n) => !!n && n.getClientRects().length > 0 && getComputedStyle(n).visibility !== 'hidden';
+  const hb = head.getBoundingClientRect();
+  const inside = (n) => { const b = n.getBoundingClientRect(); return b.left >= hb.left - 0.5 && b.right <= hb.right + 0.5 && b.top >= hb.top - 0.5 && b.bottom <= hb.bottom + 0.5; };
+  const out = { showing: shown(group) ? 'radios' : shown(sel) ? 'select' : 'none', headOver: head.scrollWidth - head.clientWidth,
+    title: title.textContent, titleCut: title.scrollWidth - title.clientWidth, titleIn: inside(title), inspIn: shown(insp) && inside(insp) };
+  if (out.showing === 'select') {
+    const cs = getComputedStyle(sel);
+    const text = sel.selectedOptions[0]?.textContent ?? '';
+    const probe = document.createElement('span');
+    for (const p of ['fontFamily', 'fontSize', 'fontWeight', 'fontStyle', 'fontStretch', 'letterSpacing', 'wordSpacing', 'textTransform', 'fontKerning', 'fontFeatureSettings', 'fontVariant'])
+      probe.style[p] = cs[p];
+    probe.style.whiteSpace = 'pre';
+    probe.style.position = 'absolute';
+    probe.style.visibility = 'hidden';
+    probe.textContent = text;
+    document.body.append(probe);
+    const textW = probe.getBoundingClientRect().width;
+    probe.remove();
+    const px = (k) => parseFloat(cs[k]) || 0;
+    const box = sel.getBoundingClientRect().width - px('borderLeftWidth') - px('borderRightWidth') - px('paddingLeft') - px('paddingRight');
+    Object.assign(out, { text, value: sel.value, textW: Math.round(textW * 10) / 10, box: Math.round(box * 10) / 10, ctlIn: inside(sel) });
+  } else if (out.showing === 'radios') {
+    const on = group.querySelector('[aria-checked="true"]');
+    const name = on?.querySelector('.p3-mode-name');
+    const g = group.getBoundingClientRect(), b = on?.getBoundingClientRect();
+    Object.assign(out, { text: name?.textContent ?? '', value: on?.dataset.mode ?? null, nameCut: name ? name.scrollWidth - name.clientWidth : null,
+      radioIn: !!b && b.left >= g.left - 0.5 && b.right <= g.right + 0.5, ctlIn: inside(group) });
+  }
+  return out;
+};
+for (const host of ['web', 'figma']) {
+  for (const theme of ['light', 'dark']) {
+    for (const w of MS_WIDTHS) {
+      const where = `#2383 ${host} ${theme} ${w}`;
+      const narrow = w <= 560;
+      const { ctx, page, errors } = await open({ host, theme, w, h: 900 });
+      const toPreview = async () => { if (narrow) await hooks.click(page.locator('[data-p3="pane-toggle-preview"]')); };
+      const toSettings = async () => { if (narrow) await hooks.click(page.locator('[data-p3="pane-toggle-settings"]')); };
+      const settle = () => page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+      let cases = 0, selects = 0, step = 'open';
+      const want = Object.values(MS_PLACES).reduce((a, m) => a + m.length, 0);
+      try {
+        // The select moving to its own row changes the header's height inside its own ResizeObserver's callback; a loop
+        // there is reported as a window error event, which neither \`pageerror\` nor the console catches. Counted here.
+        await page.evaluate(() => { window.__p3RoLoop = []; addEventListener('error', (e) => { if (/ResizeObserver/.test(e.message ?? '')) window.__p3RoLoop.push(e.message); }); });
+        for (const [place, modes] of Object.entries(MS_PLACES)) {
+          for (const mode of modes) {
+            step = `${place} in ${mode}`;
+            if (place === 'color-interactive' && (w === 640 || w === 800)) {
+              // As in section 19b: at 640 and 800 the preview covers the sub-nav's last tab, so the keyboard reaches Interactive.
+              await hooks.click(page.locator('[data-p3="tab-color"]'));
+              await page.locator('[data-p3="color-sub-interactive"]').focus();
+              await page.keyboard.press('Enter');
+              await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.place === 'color-interactive');
+              await page.evaluate(() => document.fonts.ready);
+            } else await goPlace(page, place);
+            if (place !== 'color-palettes') await roShowMode(page, mode);
+            await toPreview();
+            await settle();
+            const at = `${where} on ${place} in ${mode}`;
+            const r = await page.evaluate(MS_READ);
+            if (r.showing === 'select') {
+              selects++;
+              ok(r.value === mode && r.text.startsWith(`${MS_LABEL[mode]} · `), `${at}: the mode select's chosen option reads "${MS_LABEL[mode]} · …" (reads ${JSON.stringify(r.text)}, value ${r.value})`);
+              ok(r.textW <= r.box + 0.5, `${at}: the mode select shows its whole label, ${JSON.stringify(r.text)} (${r.textW}px of text in a ${r.box}px content box)`);
+            } else {
+              ok(r.showing === 'radios' && r.value === mode && r.text === MS_RADIO[mode], `${at}: the checked mode radio reads "${MS_RADIO[mode]}" (shows the ${r.showing}, reading ${JSON.stringify(r.text)}, mode ${r.value})`);
+              ok(r.nameCut !== null && r.nameCut <= 0 && r.radioIn, `${at}: the checked mode radio shows its whole name (cut by ${r.nameCut}px; inside the group ${r.radioIn})`);
+            }
+            ok(r.headOver <= 0 && r.ctlIn && r.titleIn && r.inspIn, `${at}: the preview header has no horizontal overflow and holds the title, the mode control and Inspect (overflow ${r.headOver}px; inside: title ${r.titleIn}, mode control ${r.ctlIn}, Inspect ${r.inspIn})`);
+            ok(r.titleCut <= 0, `${at}: the preview title "${r.title}" is not cut (by ${r.titleCut}px)`);
+            if (SHOTS && (w === 640 || w === 800) && (place === 'color-palettes' || (place === 'color-interactive' && (mode === 'light' || mode === 'hc-light')))) {
+              await page.evaluate(() => document.activeElement?.blur?.());
+              const hb = await page.locator('[data-p3="preview-head"]').boundingBox();
+              await page.screenshot({ path: join(SHOTS, `2383-${host === 'web' ? 'web' : 'plugin'}-${theme}-${w}-${place.slice('color-'.length)}-${mode}.png`),
+                clip: { x: 0, y: 0, width: w, height: Math.ceil(hb.y + hb.height) + 48 } });
+            }
+            await toSettings();
+            cases++;
+          }
+        }
+        ok(cases === want, `${where}: every case ran (${cases} of ${want})`);
+        if (w === 640) ok(selects === want, `${where}: at 640 the mode control is the select in every case, so its label is measured (${selects} of ${want})`);
+        const loop = await page.evaluate(() => window.__p3RoLoop);
+        ok(loop.length === 0, `${where}: no ResizeObserver loop error from the header (${loop.length}${loop.length ? ` — ${loop[0]}` : ''})`);
+        ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+      } catch (e) {
+        ok(false, `${where}: the case stopped at a step that threw (${step}) — ${String(e?.message ?? e).split('\n')[0]}`);
+      } finally { await ctx.close(); }
+    }
+  }
+}
 // #2238: the check box is measured on both hosts, in both chrome themes, somewhere in the sweep.
 for (const [k, n] of Object.entries(BOXES_BY)) ok(n > 0, `#2238 ${k}: the contrast audit measured check boxes in the sweep (${n})`);
 hooks.report(ok);
