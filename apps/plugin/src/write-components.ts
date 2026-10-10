@@ -2825,6 +2825,12 @@ const writeComponentSet = async (
       if (!opts.update?.retained?.has(String(c.name))) stray.push(`member ${c.name} -> NOT A GENERATED VARIANT (left in place; it will not follow the grid)`);
       return;
     }
+    // A MEMBER PRISM3 DIDN'T BUILD (no stamp) is never moved, even on a planned coordinate (#2494; #2325, #2464:
+    // Prism3 never touches a member it didn't build). Its size still counts toward its row and column above, as the
+    // dry run's `gridMoves` counts it, so the members around it sit where the dry run said they would. Only for a member
+    // that can carry a stamp: the port makes `getSharedPluginData` optional, and a node without it holds no stamp to
+    // read, so it is laid out as before rather than taken for a member Prism3 didn't build.
+    if (c.getSharedPluginData && !c.getSharedPluginData(NS, STAMP_KEY)) return;
     const m = wr(c);
     // ONLY WHERE IT MOVES (#2379): an update re-lays the grid over members it leaves alone (a member from an earlier
     // plugin takes only its stamp), and a write that puts back the same number is still a write to the host.
