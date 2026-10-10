@@ -13777,7 +13777,8 @@ console.log(`\nInput commit and focus retention (#2487 PR 1)\n${'='.repeat(78)}`
 // Mutations (#2487 PR 2), each failing here by name: Shape's `sliding && dragging.sync()` path removed → `§45 … Shape:
 // a mouse drag moves the softness more than one step`; Layout's in-place path removed → the Maximum width arm; the
 // persist hold removed → both `stores at most one write` arms and the picker arm; the bar's same-value guard removed →
-// the re-measure arm; `onCommitted` reading the field when its task runs → the capture arm.
+// the re-measure arm; `onCommitted` reading the field when its task runs → the capture arm; `perFrame` running every
+// input at once → the picker's re-resolve arm; the export dialog rebuilt on every paint → the A10 arm (figma 1280).
 // =============================================================================================
 console.log(`\nDrag and rebuild speed (#2487 PR 2)\n${'='.repeat(78)}`);
 {
@@ -13892,6 +13893,37 @@ console.log(`\nDrag and rebuild speed (#2487 PR 2)\n${'='.repeat(78)}`);
   } catch (e) {
     ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
   } finally { await ctx.close(); }
+// A10 (figma 1280): a host message while the Export dialog is open repaints the bar but leaves the dialog as it is: the
+// same node, the import text and its caret where they were. A marker set on the node by the TEST says whether it is the
+// same one; the message is the agent link turning on, which changes nothing the dialog shows.
+{
+  const where = '§45 figma light 1280';
+  const { ctx, page, errors } = await open({ host: 'figma', theme: 'light', w: 1280, h: 900 });
+  let step = 'open Export and its import box';
+  try {
+    await hooks.click(page.locator('[data-p3="export-open"]'), BOUND);
+    await hooks.need(page, '[data-p3="export-dialog"]', BOUND);
+    await hooks.click(page.locator('[data-p3="export-import"]'), BOUND);
+    await hooks.need(page, '[data-p3="import-text"]', BOUND);
+    step = 'type into the import box and put the caret mid-text';
+    const ta = page.locator('[data-p3="import-text"]');
+    await ta.fill('---\nname: caret test\n---');
+    await ta.evaluate((n) => { n.focus(); n.setSelectionRange(4, 4); n.closest('[data-p3="export-dialog"]').__p3Mark = 'kept'; });
+    step = 'a host message';
+    await postMsg(page, { type: 'agent-link-state', state: AGENT_ON });
+    await settle(page);
+    const st = await page.evaluate(() => {
+      const d = document.querySelector('[data-p3="export-dialog"]');
+      const t = document.querySelector('[data-p3="import-text"]');
+      return { mark: d?.__p3Mark ?? null, value: t?.value ?? null, caret: t?.selectionStart ?? null, focused: document.activeElement === t };
+    });
+    ok(st.mark === 'kept' && st.value === '---\nname: caret test\n---' && st.caret === 4 && st.focused,
+      `${where} A10: a host message leaves the open Export dialog as it is, the import text and its caret in place (${JSON.stringify(st)})`);
+    ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+  } finally { await ctx.close(); }
+}
 }
 // #2238: the check box is measured on both hosts, in both chrome themes, somewhere in the sweep.
 for (const [k, n] of Object.entries(BOXES_BY)) ok(n > 0, `#2238 ${k}: the contrast audit measured check boxes in the sweep (${n})`);
