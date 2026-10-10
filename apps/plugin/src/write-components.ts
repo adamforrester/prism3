@@ -963,8 +963,9 @@ const boundGradient = (arr: unknown, stops: number): boolean => {
     && first.gradientStops.every((s) => !!s.boundVariables?.color));
 };
 
-/** The colour a bound gradient stop carries beneath its binding — the gradient twin of the solid path's
- *  `{ r: 0, g: 0, b: 0 }`: required by the host, overridden by the variable, never what renders. */
+/** The colour a bound gradient stop carries beneath its binding where its variable resolves to nothing here — the
+ *  gradient twin of the solid path's black. Not overridden by the variable: the host DRAWS a stop's stored color
+ *  (#2391), so a stop whose variable resolves takes that color instead. */
 const GRADIENT_STOP_PLACEHOLDER: Rgba = { r: 0, g: 0, b: 0, a: 1 };
 
 /** Is `node` INSIDE a nested instance, walking ancestors up to (not including) `stop`? A node whose
@@ -1993,14 +1994,26 @@ const writeComponentSet = async (
         else if (node.type !== 'TEXT') node.fills = [];
       }
       // A GRADIENT FILL (#1318) — the veil's directional washes. Each stop is bound through the Paint Style
-      // executor's own binder, onto the stop (`setBoundVariableForPaint` takes only a solid). The stop colour
-      // is a placeholder the variable overrides, like the solid path's black, so a stop whose variable the
-      // file lacks leaves the node CLEAR rather than half a gradient in placeholder black — #1387's rule for
+      // executor's own binder, onto the stop (`setBoundVariableForPaint` takes only a solid). A stop whose
+      // variable the file lacks leaves the node CLEAR rather than half a gradient in placeholder black — #1387's rule for
       // an unresolvable fill. The miss strings are the paste payload's, byte for byte (the parity gate).
+      // EACH STOP'S BASE IS ITS VARIABLE'S OWN COLOR for this node, alpha included (#2391, #2379's method for the solid
+      // paint): the host draws a stop's STORED color, and in place it kept the placeholder, so the NB master's directional
+      // veils drew solid black under intact bindings. A stop carries its alpha in its color, not as a paint opacity.
+      // The placeholder only where nothing resolves.
+      const stopBase = (name: string | null): Rgba => {
+        const v = name ? byName.get(name) : undefined;
+        try {
+          const rv = (v as { resolveForConsumer?(n: unknown): { value: unknown } } | undefined)?.resolveForConsumer?.(node)?.value as { r?: unknown; g?: unknown; b?: unknown; a?: unknown } | undefined;
+          if (rv && typeof rv.r === 'number' && typeof rv.g === 'number' && typeof rv.b === 'number')
+            return { r: rv.r, g: rv.g, b: rv.b, a: typeof rv.a === 'number' ? rv.a : 1 };
+        } catch { /* unresolvable here: the placeholder */ }
+        return GRADIENT_STOP_PLACEHOLDER;
+      };
       let paintedGradient = false;
       if (n.gradientFill) {
         const res = bindGradientStops(
-          n.gradientFill.stops.map((s) => ({ position: s.position, color: GRADIENT_STOP_PLACEHOLDER, alias: s.variable })),
+          n.gradientFill.stops.map((s) => ({ position: s.position, color: stopBase(s.variable), alias: s.variable })),
           byName,
           (v) => api.variables.createVariableAlias(v),
           (name) => misses.push(`${n.name}.fills -> ${name}`),
