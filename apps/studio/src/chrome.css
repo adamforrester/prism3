@@ -1502,6 +1502,9 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
   .p3-combo-opt[aria-selected="true"] { forced-color-adjust: none; }
   :is(.p3-btn.p3-chip[aria-pressed="true"], .p3-seg-tab:is([aria-selected="true"], [aria-pressed="true"], [aria-checked="true"]), .p3-btn.p3-mcheck[aria-checked="true"],
     :is(.p3-step, .p3-vpick)[aria-pressed="true"], .p3-combo-opt[aria-selected="true"]) :not([data-content], [data-content] *) { color: HighlightText; border-color: HighlightText; }
+  /* A value's sample is brand content for its face, size or radius, never for its ink: on a selected value it inks and edges
+     in HighlightText too, or the chrome's own ink would sit on the Highlight fill. */
+  :is(.p3-step, .p3-vpick)[aria-pressed="true"] :is(.p3-vpick-sample, .p3-radius-sample) { color: HighlightText; border-color: HighlightText; }
   .p3-check:is([aria-checked="true"], [aria-checked="mixed"]) .p3-check-box { background-color: Highlight; border-color: Highlight; }
   .p3-check:is([aria-checked="true"], [aria-checked="mixed"]) .p3-check-box > .p3-ico { color: HighlightText; }
   .p3-switch-knob { background-color: CanvasText; }
@@ -1524,6 +1527,7 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
     background-color: Canvas; border-color: GrayText; color: GrayText;
   }
   :is(.p3-btn, .p3-vpick, .p3-seg-tab, .p3-step, .p3-menu-item):is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]) :not([data-content], [data-content] *) { color: GrayText; border-color: GrayText; }
+  :is(.p3-step, .p3-vpick):is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]) :is(.p3-vpick-sample, .p3-radius-sample) { color: GrayText; border-color: GrayText; }
   .p3-seg-tab:is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]):not([aria-selected="true"], [aria-pressed="true"], [aria-checked="true"]) { border-color: Canvas; }
   .p3-seg-tab:is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]) .p3-dot { background-color: GrayText; }
   :is(.p3-check:is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]), .p3-check-fixed) .p3-check-box { background-color: Canvas; border-color: GrayText; }

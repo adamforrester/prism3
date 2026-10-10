@@ -12552,7 +12552,10 @@ for (const host of ['web', 'figma']) {
 //     how many there are and how many are colored;
 //   · only a selected control opts out (HC1 B): every control the frame draws outside a specimen root computes
 //     `forced-color-adjust: auto` unless it is selected (`aria-pressed`, `aria-selected` or `aria-checked` true), and one
-//     that opts out draws every color, its own and its children's outside brand content, in a system color.
+//     that opts out draws every color, its own and its children's, in a system color; only a color specimen that paints
+//     its own inline background is left out, so a value's type or radius sample is read. The sweep runs on Palettes,
+//     Brand and Surfaces & fills, and with every picker open: the step picker, the base radius, columns and weight value
+//     pickers, and the plugin's font type-ahead (the review of #2450: three of the five kinds that opt out were never read).
 //
 // INDEPENDENCE (docs/34). The expected colors are the system-color keywords' own resolved values in this emulation,
 // read off a probe node that sets each keyword inline and nothing else; never `chrome.css`, whose rules are the subject.
@@ -12560,12 +12563,18 @@ for (const host of ['web', 'figma']) {
 // literals typed here; every case is counted, so a skipped one fails.
 // Mutations, each in a `wip:` commit, each failing by name (the PR records the lines): (a) the selected-chip rule
 // dropped; (b) the opt-out on a control that is not selected; (c) the specimen exemption dropped, so the swatches go
-// white; (d) the opt-out taken off the selected chip, so the backplate hides its label (only the drawn check sees it).
+// white; (d) the opt-out taken off the selected chip, so the backplate hides its label (only the drawn check sees it);
+// (e) the opt-out on every value and step, selected or not; (f) the selected value's sample rule dropped, so the chrome's
+// ink sits on the Highlight fill.
 const FC_KEYS = ['Canvas', 'CanvasText', 'Highlight', 'HighlightText', 'GrayText'];
 /** Each case, by name; every one must run on every host and theme (Agent and Activity on the plugin only). */
 const FC_CASES = ['oracle', 'segment', 'tab', 'held modes', 'palettes specimens', 'controls opt in', 'chip', 'mode check', 'focus rings',
-  'live modes', 'switch', 'step picker', 'fills specimens', 'held switch', 'disabled field', 'value picker', 'weights check', 'verdict'];
-const FC_PLUGIN_CASES = ['agent dot', 'activity dots'];
+  'live modes', 'switch', 'step picker', 'fills specimens', 'held switch', 'disabled field', 'value picker', 'weights check', 'verdict',
+  'type value picker', 'layout value picker'];
+/** The plugin only: its tile dots, and the font type-ahead, which lists the host's fonts (the web has none to list). */
+const FC_PLUGIN_CASES = ['agent dot', 'activity dots', 'font list'];
+/** The fonts the type-ahead is handed, as the host would send them. Literal. */
+const FC_FONTS = { type: 'font-list', families: ['Inter', 'Roboto', 'Playfair Display'], styles: [18, 36, 12] };
 /** Floors on the specimens read (prism3: 182 drawn on Palettes, its squares, strips, heroes, role dots and the brand
  *  swatch; 121 fill swatches, 4 gradient stops and the previews' grounds on Surfaces & fills), and on how many of them are not
  *  the forced canvas, so the comparison is never one of white against white. */
@@ -12641,7 +12650,7 @@ const FC_SPECIMENS = () => [...document.querySelectorAll('[data-p3="frame"] :is(
   .filter((n) => /background/.test(n.getAttribute('style') ?? '') && n.getClientRects().length > 0)
   .map((n) => { const c = getComputedStyle(n); return `${c.backgroundColor} ${c.backgroundImage}`; });
 /** Every control the frame draws outside a specimen root: its forced-color-adjust, whether it is selected, and, when it
- *  opts out, every color it and its children outside brand content draw (an ink under text or a glyph, an opaque fill, a
+ *  opts out, every color it and its children draw, but a color specimen that paints its own inline background (an ink under text or a glyph, an opaque fill, a
  *  drawn edge or outline). A color input is left out: Chromium's own stylesheet sets it to `none`, so its swatch shows the
  *  color it holds, and it is not ours to set. Runs in the page. */
 const FC_CONTROLS = () => [...document.querySelectorAll('[data-p3="frame"] :is(button, input, select, textarea, [role="switch"], [role="tab"], [role="radio"], [role="checkbox"], [role="menuitem"], [role="menuitemradio"], [role="option"])')]
@@ -12652,7 +12661,9 @@ const FC_CONTROLS = () => [...document.querySelectorAll('[data-p3="frame"] :is(b
     if (fca !== 'auto') {
       const clear = (v) => /^rgba\(.*,\s*0\)$/.test(v) || v === 'transparent';
       for (const m of [n, ...n.querySelectorAll('*')]) {
-        if (m.closest('[data-content]') || m.getClientRects().length === 0) continue;
+        // A color specimen paints its own inline background; only that node is left out. Brand content that does not (a
+        // value's type or radius sample) is read like the rest, so its ink must be a system color too.
+        if (/background/.test(m.getAttribute('style') ?? '') || m.getClientRects().length === 0) continue;
         const c = getComputedStyle(m);
         if (c.display === 'none' || c.visibility === 'hidden') continue;
         if (m instanceof SVGElement || [...m.childNodes].some((t) => t.nodeType === 3 && t.textContent.trim())) colors.add(c.color);
@@ -12820,6 +12831,7 @@ for (const host of ['web', 'figma']) {
       selected(await page.evaluate(FC_LOOK, '[data-p3="step-picker"] [data-p3="step-picker-step"][aria-pressed="true"]'),
         await page.evaluate(FC_LOOK, '[data-p3="step-picker"] [data-p3="step-picker-step"][aria-pressed="false"]'), 'the step picker\'s step');
       await drawn('[data-p3="step-picker"] [data-p3="step-picker-step"][aria-pressed="true"]', 'the step picker\'s step');
+      await controlsOptIn('color-fills, the step picker open');
       ran.add('step picker');
       await shot('fills-step-picker');
       await hooks.click(page.locator('[data-p3="step-picker-close"]'));
@@ -12842,17 +12854,29 @@ for (const host of ['web', 'figma']) {
         `${where}: the disabled breakpoint field inks and edges in GrayText ${GT}, an enabled one does not ink in it (disabled ${JSON.stringify(dOff && [dOff.ink, dOff.edge])}, enabled ${JSON.stringify(dOn && [dOn.ink, dOn.edge])})`);
       ran.add('disabled field');
 
-      // ── Shape: the value picker ──────────────────────────────────────────────────────────────────────────────
+      // ── the value pickers: Shape's base radius (a radius sample), Layout's columns (bar samples), Type's weight (a type
+      //    sample). Each is read open: the selected value, its label as drawn, and the opt-out sweep over every control. ─
+      /** Open the value picker behind `pick`, read it, close it. */
+      const valuePick = async (pick, what, place, name) => {
+        await hooks.click(page.locator(pick).first());
+        await hooks.need(page, '[data-p3="value-picker"]');
+        const on = '[data-p3="value-picker"] [data-p3="value-picker-value"][aria-pressed="true"]';
+        selected(await page.evaluate(FC_LOOK, on), await page.evaluate(FC_LOOK, '[data-p3="value-picker"] [data-p3="value-picker-value"][aria-pressed="false"]'), what);
+        await drawn(on, what);
+        await controlsOptIn(`${place}, ${what} open`);
+        await page.locator(on).scrollIntoViewIfNeeded();
+        await shot(name);
+        await hooks.click(page.locator('[data-p3="value-picker-close"]'));
+      };
       step = 'Shape';
       await goPlace(page, 'shape');
       await openShapeAdvanced(page);
-      await hooks.click(page.locator('[data-p3="base-radius-pick"]'));
-      await hooks.need(page, '[data-p3="value-picker"]');
-      selected(await page.evaluate(FC_LOOK, '[data-p3="value-picker"] [data-p3="value-picker-value"][aria-pressed="true"]'),
-        await page.evaluate(FC_LOOK, '[data-p3="value-picker"] [data-p3="value-picker-value"][aria-pressed="false"]'), 'the value picker\'s value');
-      await drawn('[data-p3="value-picker"] [data-p3="value-picker-value"][aria-pressed="true"]', 'the value picker\'s value');
+      await valuePick('[data-p3="base-radius-pick"]', 'the base radius picker\'s value', 'shape', 'shape-value-picker');
       ran.add('value picker');
-      await hooks.click(page.locator('[data-p3="value-picker-close"]'));
+      step = 'Layout, the columns picker';
+      await goPlace(page, 'layout');
+      await valuePick('[data-p3="layout-columns-pick"]', 'the columns picker\'s value', 'layout', 'layout-value-picker');
+      ran.add('layout value picker');
 
       // ── Type: the weights matrix ─────────────────────────────────────────────────────────────────────────────
       step = 'Type';
@@ -12862,6 +12886,26 @@ for (const host of ['web', 'figma']) {
       selected(await page.evaluate(FC_LOOK, '[data-p3="weights-matrix"] [role="checkbox"][aria-checked="true"]'),
         await page.evaluate(FC_LOOK, '[data-p3="weights-matrix"] [role="checkbox"][aria-checked="false"]'), 'a weights matrix check');
       ran.add('weights check');
+      step = 'Type, the weight picker';
+      await valuePick('[data-p3="weight-pick"]', 'the weight picker\'s value', 'type', 'type-value-picker');
+      ran.add('type value picker');
+      // The plugin's font type-ahead: the host's fonts listed, the first option made active by the keyboard.
+      if (host === 'figma') {
+        step = 'Type, the font type-ahead';
+        await page.evaluate((m) => window.postMessage({ pluginMessage: m }, '*'), FC_FONTS);
+        await page.waitForFunction(() => document.querySelector('[data-p3="face-add-input"]')?.getAttribute('role') === 'combobox', null, { timeout: 5000 }).catch(() => {});
+        await page.locator('[data-p3="face-add-input"]').scrollIntoViewIfNeeded();
+        await page.locator('[data-p3="face-add-input"]').focus();
+        await page.keyboard.press('ArrowDown');
+        await page.waitForFunction(() => !!document.querySelector('[data-p3="face-font-option"][aria-selected="true"]'), null, { timeout: 5000 }).catch(() => {});
+        const optOn = '[data-p3="face-font-list"] [data-p3="face-font-option"][aria-selected="true"]';
+        selected(await page.evaluate(FC_LOOK, optOn), await page.evaluate(FC_LOOK, '[data-p3="face-font-list"] [data-p3="face-font-option"][aria-selected="false"]'), 'the font type-ahead\'s option');
+        await drawn(optOn, 'the font type-ahead\'s option');
+        await controlsOptIn('type, the font list open');
+        await shot('type-font-list');
+        await page.keyboard.press('Escape');
+        ran.add('font list');
+      }
 
       // ── the verdict's mark, the check and then the warning with its count (last: the edit stays) ───────────────
       step = 'the verdict';
