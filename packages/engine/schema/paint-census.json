@@ -267,14 +267,14 @@
     },
     "image-placeholder": {
       "set": {
-        "members": 3,
-        "assignments": 6,
-        "sha256": "9cc91bd35d2c1c53b6ea017e64b00344897b1dbfee0b879ea702512b5d0fedd4"
+        "members": 7,
+        "assignments": 14,
+        "sha256": "52783e01671441d841e5c2fee50cffd5aa731384e6dad1dddf112196c057b2a2"
       },
       "grid": {
-        "members": 3,
-        "assignments": 6,
-        "sha256": "9ec4e7d38a146614ff17e80c28873e98f12a39fac0597f53ed676a2af5ca44f0"
+        "members": 7,
+        "assignments": 14,
+        "sha256": "704b3e9a5734af1f9a7e9d299b968faca9111ea23b1d2359036749b6bfc07b18"
       }
     },
     "spinner": {
