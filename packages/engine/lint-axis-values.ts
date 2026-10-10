@@ -619,15 +619,28 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
     axis: 'inset',
     values: ['default', 'flush'],
     defs: ['button', 'button-destructive', 'button-neutral'],
-    relation: 'sole',
+    relation: 'canonical',
     reason:
-      'Whether a text button keeps its inline padding (#2350, owner Q143 and Q145 A, name and values DRAFT): '
+      'CANONICAL since the divider took the axis name (#2455): the set its `none | inset | middle-inset` is described against. '
+      + 'Whether a text button keeps its inline padding (#2350, owner Q143 and Q145 A, name and values DRAFT): '
       + 'the button as authored, or with no inline padding on either side, so its label lines up with the '
       + 'content edge above and below whether it starts, ends or centers a row. `default` LEADS because it is '
       + 'the code default and every member before #2350. One value, not one per side: a flush button has no '
       + 'visible box, so the side it is not aligned to shows nothing either way. The text appearance only '
       + '(`excludeCoordinates`). Distinct from `width` (how much of the container it takes) and `offset` (a '
       + 'nested part\'s displacement) — this is whether the control has inline padding, argued in `VARIANT_AXES`.',
+  },
+  {
+    axis: 'inset',
+    values: ['none', 'inset', 'middle-inset'],
+    defs: ['divider'],
+    relation: 'disjoint',
+    reason:
+      'How far a divider\'s rule sits in from its container\'s edges (#2455, owner Q190.2 A, after the KB brief and '
+      + 'Material 3): edge to edge, from the start, or from both ends. The same NAME as button\'s flush control because '
+      + 'both say how far a box sits in from its container\'s edge, and the brief names the prop `inset`. DISJOINT, the '
+      + 'loud kind: no value is shared, so a consumer lining up `default | flush` against these sees at once they are '
+      + 'different ladders. `none` LEADS because it is the code default and the brief\'s default.',
   },
 ];
 

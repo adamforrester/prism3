@@ -286,8 +286,8 @@
       "sha256": "37d9b60643142e9b53f9925a5faa08289b8f7a5f2c91ca520801db0995d02e8d"
     },
     "divider": {
-      "members": 2,
-      "sha256": "cd4540e7ab1e472b1f6fedb099bb790cbef3e0f899b30c40381df59b3699a1d1"
+      "members": 5,
+      "sha256": "a217873d3441b9774592e5cf178f211928036cc585368c52d79a9e00223a54f3"
     }
   }
 }

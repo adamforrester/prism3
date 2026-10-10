@@ -182,12 +182,17 @@
   },
   "divider": {
     "axes": {
+      "inset": [
+        "inset",
+        "middle-inset",
+        "none"
+      ],
       "orientation": [
         "horizontal",
         "vertical"
       ]
     },
-    "members": 2
+    "members": 5
   },
   "field-label": {
     "axes": {

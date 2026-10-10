@@ -16562,7 +16562,7 @@ arm: {
     //     missing from the table fails too: add the row with the brief's category, read from the KB.
     const KB_BRIEF_CATEGORY: Record<string, string> = {
       'badge.md': 'foundations', 'button.md': 'form', 'checkbox.md': 'form', 'icon.md': 'foundations', 'image.md': 'foundations',
-      'inline-message.md': 'feedback', 'radio.md': 'form', 'select.md': 'form', 'spinner.md': 'foundations',
+      'inline-message.md': 'feedback', 'radio.md': 'form', 'select.md': 'form', 'spinner.md': 'foundations', 'divider.md': 'foundations',
       'switch.md': 'form', 'tabs.md': 'navigation', 'tag.md': 'foundations', 'text-field.md': 'form', 'textarea.md': 'form',
     };
     const defDir = resolve(HERE, './components');
@@ -29383,28 +29383,55 @@ arm: {
 }
 
 // ------------------------------------------------------------------- #2455: the divider, a 1px rule
-// Each issue recommendation held against a literal (all DRAFT, owner items in the PR). EXPECTED is the issue's
-// text, typed here; ACTUAL is the projected plan, so a rebind in the def (another color role, another thickness)
-// fails the arm by name rather than agreeing with itself.
+// Each recommendation held against a literal: the issue's visible defaults (owner Q190.3 A), the brief's inset
+// (Q190.2 A) and its decorative-by-default semantics (Q190.1 A). EXPECTED is typed here; ACTUAL is the projected
+// plan or the def's prop, so a rebind in the def (another color role, another inset step, another default) fails
+// the arm by name rather than agreeing with itself.
 {
-  const EXPECT: Record<string, { fills: string; height: string; width: string }> = {
-    horizontal: { fills: 'color/border/secondary', height: 'border-width/hairline', width: 'container/narrow' },
-    vertical: { fills: 'color/border/secondary', height: 'size/md/height', width: 'border-width/hairline' },
+  const FOOT: Record<string, { height: string; width: string }> = {
+    horizontal: { height: 'border-width/hairline', width: 'container/narrow' },
+    vertical: { height: 'size/md/height', width: 'border-width/hairline' },
   };
-  ok(JSON.stringify(divider.variants) === JSON.stringify({ orientation: ['horizontal', 'vertical'] }),
-    `#2455 divider: one axis, orientation = [horizontal, vertical], horizontal first so it is the code default and Figma's default member (got ${JSON.stringify(divider.variants)})`);
+  // [top, right, bottom, left] padding of the root per member — the inset. `vertical × inset` is not a member.
+  const INSET: Record<string, [string, string, string, string]> = {
+    'horizontal/none': ['space/0', 'space/0', 'space/0', 'space/0'],
+    'horizontal/inset': ['space/0', 'space/0', 'space/0', 'space/200'],
+    'horizontal/middle-inset': ['space/0', 'space/200', 'space/0', 'space/200'],
+    'vertical/none': ['space/0', 'space/0', 'space/0', 'space/0'],
+    'vertical/middle-inset': ['space/100', 'space/0', 'space/100', 'space/0'],
+  };
+  ok(JSON.stringify(divider.variants) === JSON.stringify({ orientation: ['horizontal', 'vertical'], inset: ['none', 'inset', 'middle-inset'] }),
+    `#2455 divider: two axes, orientation = [horizontal, vertical] and inset = [none, inset, middle-inset], each default first so it is the code default and Figma's default member (got ${JSON.stringify(divider.variants)})`);
   ok(divider.states.length === 0, `#2455 divider: no states, because it is not interactive (got [${divider.states.join(', ')}])`);
-  for (const [o, want] of Object.entries(EXPECT)) {
-    const root = figmaAnatomyPlan(divider, undefined, { orientation: o } as never).root as any;
-    ok(root.paints?.fills === want.fills,
-      `#2455 divider ${o}: the rule's color is ${want.fills} (got ${root.paints?.fills})`);
-    ok(root.bound?.height === want.height && root.bound?.width === want.width,
-      `#2455 divider ${o}: the rule binds height ${want.height} and width ${want.width} — the hairline is its thickness, the other axis its nominal length (got h ${root.bound?.height} / w ${root.bound?.width})`);
-    ok(root.layoutMode !== undefined && (root.children ?? []).length === 0,
-      `#2455 divider ${o}: one box with a layout (so a host can stretch the nested instance) and no children (got layoutMode ${root.layoutMode}, ${(root.children ?? []).length} children)`);
+  ok(figmaVariantCount(divider) === 5,
+    `#2455 divider inset: the Figma set is five members — vertical takes none and middle-inset only (got ${figmaVariantCount(divider)})`);
+  for (const [coord, pad] of Object.entries(INSET)) {
+    const [o, inset] = coord.split('/');
+    const root = figmaAnatomyPlan(divider, undefined, { orientation: o, inset } as never).root as any;
+    const rule = (root.children ?? [])[0];
+    const got = [root.bound?.paddingTop, root.bound?.paddingRight, root.bound?.paddingBottom, root.bound?.paddingLeft];
+    ok(JSON.stringify(got) === JSON.stringify(pad),
+      `#2455 divider ${o} inset=${inset}: the root pads [top, right, bottom, left] = [${pad.join(', ')}] (got [${got.join(', ')}])`);
+    ok(root.bound?.height === FOOT[o].height && root.bound?.width === FOOT[o].width,
+      `#2455 divider ${o} inset=${inset}: the root binds height ${FOOT[o].height} and width ${FOOT[o].width} — the hairline is its thickness, the other axis its nominal length (got h ${root.bound?.height} / w ${root.bound?.width})`);
+    ok(root.layoutMode === 'HORIZONTAL' && !root.paints?.fills && (root.children ?? []).length === 1 && rule?.name === 'rule',
+      `#2455 divider ${o} inset=${inset}: the root is a row that paints nothing, with one child, the rule (got layoutMode ${root.layoutMode}, fills ${root.paints?.fills}, children [${(root.children ?? []).map((c: any) => c.name).join(', ')}])`);
+    ok(rule?.paints?.fills === 'color/border/secondary' && rule?.layoutGrow === 1 && rule?.layoutAlign === 'STRETCH',
+      `#2455 divider ${o} inset=${inset}: the rule's color is color/border/secondary and it fills the root's content box (grow along, stretch across) (got fills ${rule?.paints?.fills}, grow ${rule?.layoutGrow}, align ${rule?.layoutAlign})`);
   }
-  ok(/^separator\b/.test(divider.accessibility.role) && /aria-hidden="true"/.test(divider.accessibility.role),
-    `#2455 divider: the code role is separator, aria-hidden when decorative (got '${divider.accessibility.role}')`);
+  let threw = false;
+  try { figmaAnatomyPlan(divider, undefined, { orientation: 'vertical', inset: 'inset' } as never); } catch { threw = true; }
+  ok(threw, '#2455 divider inset: vertical × inset is not a member, so it has no plan');
+  const inset = divider.props.find((p) => p.name === 'inset');
+  ok(inset?.default === 'none' && JSON.stringify(inset?.values) === JSON.stringify(['none', 'inset', 'middle-inset']),
+    `#2455 divider inset: the code prop is none | inset | middle-inset, default none (got ${JSON.stringify(inset?.values)} default ${inset?.default})`);
+  const decorative = divider.props.find((p) => p.name === 'decorative');
+  ok(decorative?.type === 'boolean' && decorative?.default === true,
+    `#2455 divider decorative: a boolean code prop, default true — decorative by default, after the brief (got type ${decorative?.type}, default ${JSON.stringify(decorative?.default)})`);
+  ok(!('decorative' in (divider.figmaProperties?.booleans ?? {})) && (divider.anatomy?.codeOnly ?? []).some((c) => c.startsWith('decorative — ')),
+    '#2455 divider decorative: no Figma property (it changes no pixel), and the codeOnly list says so in an entry that leads with it');
+  ok(/^none with aria-hidden="true" by default\b/.test(divider.accessibility.role) && /decorative=false, separator\b/.test(divider.accessibility.role),
+    `#2455 divider decorative: the code role is none with aria-hidden by default, and separator with decorative=false (got '${divider.accessibility.role}')`);
 }
 
 // ------------------------------------------------------------------- report
