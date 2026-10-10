@@ -157,6 +157,8 @@ const INTERACTIVE: Record<string, Binding> = {
   'radio-row': { key: (s) => `size.${s}.min-height`, why: 'the labelled radio row floor' },
   // Owner decision 4 (2026-09-27): a tag's default (medium) target clears 44, on Button's own height rung.
   'tag': { key: (s) => `size.${s}.height`, why: 'the tag box height' },
+  // #2416: a tab's medium target is Button's own height rung, 44 on comfortable and spacious.
+  'tab': { key: (s) => `size.${s}.height`, why: 'the tab box height' },
 };
 
 // ── TARGETS INSIDE A CONTROL (#1741): `<def>.<part>` → the tokens KEY of the part's side at a size ─────────
@@ -192,7 +194,7 @@ const flushRuleGap = (codeOnly: readonly string[]): string[] => {
 /** The defs carved out as a size-level exception: a small button (owner, #1443) and a small tag (owner,
  *  2026-09-27, "as for Button") sit below the floor on purpose. Kept as data so the walk asserts each is
  *  ACTUALLY below the floor. */
-const SMALL_SIZE = new Set(['button', 'button-destructive', 'button-neutral', 'tag']);
+const SMALL_SIZE = new Set(['button', 'button-destructive', 'button-neutral', 'tag', 'tab']);
 
 // ── EXCLUDED: represented, with a stated reason (docs/34 — a hand-enumerated legitimate exclusion) ──
 const EXCLUDED: Record<string, string> = {
@@ -209,6 +211,7 @@ const EXCLUDED: Record<string, string> = {
   'switch-control': 'a nested-only atom — the tap target is the labelled row (switch), gated here; its bare 24–32px track fails SC 2.5.8 in isolation by its own codeOnly',
   'checkbox-group': 'a group container — its interactive tap targets are the nested checkbox-rows, which are gated',
   'radio-group': 'a group container — its interactive tap targets are the nested radio-rows, which are gated',
+  'tabs': 'a tab list container — its interactive tap targets are the nested tabs, which are gated as tab',
   'textarea': 'a multi-line field whose height is rows/auto-grow (fluid); it binds no single-line height, so there is no fixed hit-target dimension to measure',
 };
 
