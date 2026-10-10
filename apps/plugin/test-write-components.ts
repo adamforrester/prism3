@@ -4752,6 +4752,80 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     `#1781 with checkbox-row missing, __old__checkbox-row is not used in its place and the miss names the target (${goneMiss.length} misses, ${goneRows.length} rows from __old__; ${goneMiss[0] ?? 'NO MISS'})`);
 }
 
+// =============================================================================================
+// #2417 — THE ACCORDION'S INDICATOR STYLE SURVIVES AN EXPANSION SWITCH (owner Q183: the premise of the shape)
+// =============================================================================================
+// A designer picks chevron or plus-minus ONCE, on the nested `_accordion-indicator` of an Accordion instance.
+// Switching that instance between collapsed and expanded swaps its main component to another member of the
+// set, and Figma keeps an override on a nested instance across that swap when the nested layer has the same
+// NAME and comes from the same SET in both members, carrying the overridden property and taking every other
+// property from the new member's nested instance. That host rule is checked in a live file, not here. What
+// the shim CAN hold is everything the rule needs from the build, read off the HOST (the shim's
+// `mainComponent`, recorded at `createInstance`, and `isExposedInstance`), never off the plan alone:
+//   1. every member's indicator is an instance from the `_accordion-indicator` SET, exposed;
+//   2. each collapsed member and its expanded twin nest it under the SAME layer name, and the two nested
+//      coordinates differ in `expansion` only, so `style` is never fought by the new main;
+//   3. modelling the swap by that rule (the overridden `style` carried, the rest from the new member), every
+//      collapsed→expanded and expanded→collapsed switch lands on a member of the indicator set that draws the
+//      glyph of the chosen style: plus→minus, minus→plus, chevron-down→chevron-up and back.
+// Mutations by name (the PR records them): stop `follow`ing `expansion`, or `follow` `style`, and arm 2 or 3
+// fails; rename one position's nest per expansion and arm 2 fails.
+{
+  const defOf = (id: string): ComponentDef => componentDefs.find((d) => d.id === id)!;
+  const project = (id: string): AnatomyPlan[] => figmaAnatomySet(defOf(id), { swapTarget: SWAP });
+  const indicatorPlans = project('_accordion-indicator');
+  const accPlans = project('accordion');
+  const f = fullFor(accPlans);
+  const page: Page = { children: [] };
+  const fileNodes: FileNode[] = [{ name: '_accordion-indicator', type: 'COMPONENT_SET', variants: indicatorPlans.map(planComponentName) }];
+  const r = await run(accPlans, { ...f, comps: (f.comps ?? []).filter((c) => c !== '_accordion-indicator'), fileNodes, page });
+  type Ind = { member: string; layer: string; set: string; coord: Record<string, string>; exposed: boolean };
+  const inds: Ind[] = [];
+  for (const m of (page.children[0]?.children as Node[] | undefined) ?? []) {
+    const walk = (n: Node): void => {
+      const main = (n as { mainComponent?: { name: string; parent?: { name: string } } }).mainComponent;
+      if (n.type === 'INSTANCE' && main?.parent?.name === '_accordion-indicator')
+        inds.push({ member: String(m.name), layer: String(n.name), set: main.parent.name, coord: Object.fromEntries(main.name.split(', ').map((kv) => kv.split('=') as [string, string])), exposed: (n as { isExposedInstance?: boolean }).isExposedInstance === true });
+      for (const c of (n.children as Node[] | undefined) ?? []) walk(c);
+    };
+    for (const c of (m.children as Node[] | undefined) ?? []) walk(c);
+  }
+  const indMisses = r.misses.filter((x) => /Indicator\.nest/.test(x));
+  // 1. One exposed indicator per member, from the set, at the literal default style.
+  ok(accPlans.length === 24 && inds.length === 24 && inds.every((i) => i.exposed && i.coord.style === 'chevron') && indMisses.length === 0,
+    `#2417 indicator: all 24 accordion members nest one EXPOSED _accordion-indicator instance at style=chevron (${inds.length} found, ${inds.filter((i) => i.exposed).length} exposed; misses: ${indMisses.slice(0, 2).join(' | ') || 'none'})`);
+  // 2. Twin members: same layer, same set, coordinates differing in `expansion` only.
+  const memberCoord = (name: string): Record<string, string> => Object.fromEntries(name.split(', ').map((kv) => kv.split('=') as [string, string]));
+  const byMember = new Map(inds.map((i) => [i.member, i]));
+  const twinOf = (member: string): string => {
+    const c = memberCoord(member);
+    const want = { ...c, expansion: c.expansion === 'collapsed' ? 'expanded' : 'collapsed' };
+    return [...byMember.keys()].find((k) => JSON.stringify(memberCoord(k)) === JSON.stringify(want)) ?? '';
+  };
+  const twinBad: string[] = [];
+  for (const i of inds) {
+    const t = byMember.get(twinOf(i.member));
+    const diff = t ? Object.keys({ ...i.coord, ...t.coord }).filter((k) => i.coord[k] !== t.coord[k]) : ['no twin'];
+    if (!t || t.layer !== i.layer || t.set !== i.set || diff.join() !== 'expansion') twinBad.push(`${i.member}: ${i.layer} vs ${t?.layer} differ in [${diff.join(', ')}]`);
+  }
+  ok(twinBad.length === 0, `#2417 indicator: each collapsed member and its expanded twin nest the indicator under the same layer, from the same set, differing in expansion only${twinBad.length ? ` — ${twinBad.slice(0, 3).join(' | ')}` : ''}`);
+  // 3. The modelled swap lands on the chosen style's glyph, both ways, for both styles.
+  const glyphOf = (coord: Record<string, string>): string => {
+    const plan = indicatorPlans.find((p) => planComponentName(p) === `style=${coord.style}, expansion=${coord.expansion}, size=${coord.size}`);
+    return plan ? (plan.root.children as { name: string }[]).map((c) => c.name).join('+') : 'NO MEMBER';
+  };
+  const WANT: Record<string, string> = { 'chevron|expanded': 'chevronUp', 'chevron|collapsed': 'chevronDown', 'plus-minus|expanded': 'minus', 'plus-minus|collapsed': 'plus' };
+  const swapBad: string[] = [];
+  let swaps = 0;
+  for (const i of inds) for (const style of ['chevron', 'plus-minus']) {
+    const t = byMember.get(twinOf(i.member))!;
+    const landed = { ...t.coord, style }; // the override carried, the rest from the new member
+    swaps++;
+    if (glyphOf(landed) !== WANT[`${style}|${t.coord.expansion}`]) swapBad.push(`${i.member} → ${t.member} at ${style}: ${glyphOf(landed)}`);
+  }
+  ok(swaps === 48 && swapBad.length === 0, `#2417 indicator: under the override rule, all ${swaps} expansion switches keep the chosen style — plus becomes minus, a chevron turns up, and back${swapBad.length ? ` — ${swapBad.slice(0, 3).join(' | ')}` : ''}`);
+}
+
 // ---- #1750: a new set lands beside the page's content, never on top of it ------------------------------
 // Live: every set built onto `↳ Buttons` landed at (0,0) and covered the one before it. Every position below
 // is a literal. The one number the shim decides — the `button` set's measured box — is pinned first as a

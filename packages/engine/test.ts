@@ -29179,6 +29179,85 @@ arm: {
 }
 
 // ------------------------------------------------------------------- report
+// =============================================================================================
+// #2417 — ACCORDION: THE OWNER'S DECISIONS (Q182, Q183), HELD AS LITERALS
+// =============================================================================================
+// Each arm is one decision, against a literal from the decision record, never read back off the def. The
+// mutations the PR records: a hover or disabled member re-added; the default position set to end; the panel
+// ink following the header; the divider drawn instead of nested. The indicator style surviving an expansion
+// switch is held on the shim (`apps/plugin/test-write-components.ts`, #2417).
+{
+  type PNode = { name: string; type?: string; nestTarget?: string; nestVariant?: Record<string, string>; nestExpose?: string[]; descendantFills?: string; paints?: { fills?: string }; bound?: Record<string, string>; textStyle?: string; children?: PNode[] };
+  const accPlans = figmaAnatomySet(accordion);
+  const find = (n: PNode, name: string): PNode | undefined => n.name === name ? n : (n.children ?? []).map((c) => find(c, name)).find(Boolean);
+  const names = accPlans.map(planComponentName);
+  // Q183: 2 expansion × 2 positions × 3 sizes × 2 states = 24, and the state axis is exactly rest + focus-visible.
+  ok(accPlans.length === 24, `#2417 accordion: projects exactly 24 members (got ${accPlans.length})`);
+  ok(JSON.stringify(accordion.figmaProperties?.stateAxis?.values) === JSON.stringify(['rest', 'focus-visible'])
+    && JSON.stringify(accordion.states) === JSON.stringify(['rest', 'focus-visible'])
+    && !names.some((n) => /state=(hover|pressed|disabled)/.test(n)),
+    `#2417 accordion: no hover, pressed or disabled member (Q182.3, Q183) — states are exactly [rest, focus-visible] (got ${JSON.stringify(accordion.states)}; members with other states: ${names.filter((n) => !/state=(rest|focus-visible)$/.test(n)).length})`);
+  // Q182.2: the indicator position defaults to start — the first axis value (the Figma default member) and the prop default.
+  ok(JSON.stringify(accordion.variants?.indicator) === JSON.stringify(['start', 'end'])
+    && accordion.props.find((p) => p.name === 'indicator')?.default === 'start'
+    && names[0].includes('indicator=start'),
+    `#2417 accordion: the indicator position is [start, end] with start the default and the first member (got ${JSON.stringify(accordion.variants?.indicator)}, first member ${names[0]})`);
+  // Q182.6: expansion [collapsed, expanded], collapsed first.
+  ok(JSON.stringify(accordion.variants?.expansion) === JSON.stringify(['collapsed', 'expanded']),
+    `#2417 accordion: expansion is [collapsed, expanded] (got ${JSON.stringify(accordion.variants?.expansion)})`);
+  // Q183: the glyph is a nested `_accordion-indicator`, style exposed, expansion and size followed — at the
+  // position the member names, and only there.
+  const indBad: string[] = [];
+  for (const p of accPlans) {
+    const c = p.coord as Record<string, string>;
+    const at = find(p.root as PNode, c.indicator === 'start' ? 'startIndicator' : 'endIndicator');
+    const other = find(p.root as PNode, c.indicator === 'start' ? 'endIndicator' : 'startIndicator');
+    const want = { style: 'chevron', expansion: c.expansion, size: p.size };
+    if (!at || at.nestTarget !== '_accordion-indicator' || JSON.stringify(at.nestVariant) !== JSON.stringify(want) || JSON.stringify(at.nestExpose) !== '["style"]' || other)
+      indBad.push(`${planComponentName(p)}: ${at ? `${at.nestTarget} ${JSON.stringify(at.nestVariant)} expose ${JSON.stringify(at.nestExpose)}` : 'no indicator'}${other ? ' + the other position too' : ''}`);
+  }
+  ok(indBad.length === 0, `#2417 accordion: every member nests _accordion-indicator at its own position only, style=chevron exposed, expansion and size followed${indBad.length ? ` — ${indBad.slice(0, 3).join(' | ')}` : ''}`);
+  // The indicator set: 2 styles × 2 expansions × 3 sizes, one glyph each, and no glyph without its pair.
+  const indPlans = figmaAnatomySet(accordionIndicator);
+  const GLYPH: Record<string, string> = { 'chevron|collapsed': 'chevronDown', 'chevron|expanded': 'chevronUp', 'plus-minus|collapsed': 'plus', 'plus-minus|expanded': 'minus' };
+  const glyphBad = indPlans.filter((p) => { const c = p.coord as Record<string, string>; return ((p.root as PNode).children ?? []).map((k) => k.name).join() !== GLYPH[`${c.style}|${c.expansion}`]; }).map(planComponentName);
+  ok(indPlans.length === 12 && glyphBad.length === 0, `#2417 _accordion-indicator: 12 members, each drawing the one glyph its style and expansion name${glyphBad.length ? ` — WRONG: ${glyphBad.slice(0, 3).join(' | ')}` : ''}`);
+  // FIX 1, the panel ink: the header's ink never reaches the panel. The content slot receives NO pushed ink at
+  // any member (its content keeps its own page ink), and the title keeps the interactive neutral ink at both
+  // states. Fails if an `icon` key (or any ink the slot asks for) is bound on the accordion.
+  const inkBad: string[] = [];
+  for (const p of accPlans) {
+    const content = find(p.root as PNode, 'content');
+    const label = find(p.root as PNode, 'label');
+    if ((p.coord as Record<string, string>).expansion === 'expanded' && (!content || content.descendantFills !== undefined || content.paints?.fills !== undefined))
+      inkBad.push(`${planComponentName(p)} content ${content ? content.descendantFills ?? content.paints?.fills : 'missing'}`);
+    if (label?.paints?.fills !== 'color/interactive/neutral/text/rest') inkBad.push(`${planComponentName(p)} label ${label?.paints?.fills}`);
+  }
+  ok(inkBad.length === 0, `#2417 accordion: the panel content takes no ink from the header at any member, and the title is color/interactive/neutral/text/rest at rest and focus-visible${inkBad.length ? ` — ${inkBad.slice(0, 3).join(' | ')}` : ''}`);
+  // FIX 2, the panel inset: 0 at the start, the header's block padding at the end.
+  const PAD_END: Record<string, string> = { small: 'space/100', medium: 'space/150', large: 'space/200' };
+  const padBad = accPlans.filter((p) => (p.coord as Record<string, string>).expansion === 'expanded').filter((p) => {
+    const b = find(p.root as PNode, 'panel')?.bound ?? {};
+    return b.paddingTop !== 'space/0' || b.paddingBottom !== PAD_END[p.size!];
+  }).map(planComponentName);
+  ok(padBad.length === 0, `#2417 accordion: the panel's block inset is 0 at the start and 8/12/16 (space.100/150/200) at the end${padBad.length ? ` — WRONG: ${padBad.slice(0, 3).join(' | ')}` : ''}`);
+  // The panel and the content slot exist only when expanded.
+  const presBad = accPlans.filter((p) => !!find(p.root as PNode, 'panel') !== ((p.coord as Record<string, string>).expansion === 'expanded')).map(planComponentName);
+  ok(presBad.length === 0, `#2417 accordion: the panel is in the tree exactly at expansion=expanded${presBad.length ? ` — WRONG: ${presBad.slice(0, 3).join(' | ')}` : ''}`);
+  // Q182.6: the title is body strong, wrapping; the header floor is size.md.min-height at small and medium and size.lg.height at large.
+  const TYPE: Record<string, string> = { small: 'type.body.sm.strong', medium: 'type.body.md.strong', large: 'type.body.lg.strong' };
+  const FLOOR: Record<string, string> = { small: 'size.md.min-height', medium: 'size.md.min-height', large: 'size.lg.height' };
+  ok(['small', 'medium', 'large'].every((v) => accordion.tokens[`size.${v}.type`] === TYPE[v] && accordion.tokens[`size.${v}.min-height`] === FLOOR[v])
+    && accordion.anatomy?.parts.label.wrap === true && accordion.anatomy?.parts.header.minHeight === 'size.{size}.min-height' && accordion.anatomy?.parts.header.height === undefined,
+    `#2417 accordion: the title is type.body.{sm,md,lg}.strong and wraps; the header is a floor (min-height) of size.md.min-height, size.md.min-height, size.lg.height, never a fixed height`);
+  // Code notes: framework-neutral, the behavior layer pending, reduced motion through the duration tokens.
+  const code = accordion.anatomy!.codeOnly;
+  ok(code.some((c) => c.startsWith('code delivery pending: behavior layer (#2454)'))
+    && code.some((c) => /single or multiple/.test(c) && /key|keys/.test(c)) && code.some((c) => /headingLevel/.test(c))
+    && code.some((c) => /motion\.duration-reduced\.\*/.test(c)) && !code.some((c) => /\bReact\b|\bVue\b|\bAngular\b|\bSvelte\b/.test(c)),
+    '#2417 accordion: codeOnly carries the pending behavior layer, the code-only grouping (single or multiple, key arrays, headingLevel), reduced motion via motion.duration-reduced.*, and names no framework');
+}
+
 console.log(`\nPrism3 engine tests: ${pass} passed, ${fails.length} failed`);
 
 // A FLOOR on the population, not on the outcome (#659). `fails.length === 0` is the outcome, and it is

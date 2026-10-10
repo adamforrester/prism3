@@ -91,6 +91,9 @@ export const TAXONOMY: Taxonomy = {
         // Tag — under Components beside Badge, owner-decided 2026-10-04 (S8 scope, O1). It nests
         // IconButton.Neutral, whose page is earlier in this list, so the nest resolves when the file is built in order.
         { page: 'Tag', defs: ['tag'] },
+        // Accordion (#2417, owner Q182/Q183). It nests `_accordion-indicator` (Subcomponents, below), the focus
+        // ring and the Divider; the build orders nests first (`build-deps.ts`), so page order does not decide it.
+        { page: 'Accordion', defs: ['accordion'] },
       ],
     },
     {
@@ -103,6 +106,9 @@ export const TAXONOMY: Taxonomy = {
         // #1670 — owner-decided 2026-09-26: the spinner sits under Subcomponents, beside the other parts a
         // host swaps or nests in (the button's pending state swaps it into its icon slot).
         { page: 'Spinner', defs: ['spinner'] },
+        // #2417 — owner Q183: the accordion's open/closed glyph is a building block under Subcomponents, like the
+        // focus ring and the field label.
+        { page: 'Accordion Indicator', defs: ['_accordion-indicator'] },
       ],
     },
     {
