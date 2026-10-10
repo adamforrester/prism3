@@ -17,7 +17,7 @@ never landed went unnoticed and the next step read stale state. That wait, and t
 `ok()` that has its own name. The condition really is the redraw: a press redraws the whole levers pane as new nodes,
 and only the redraw draws the pressed chip. No sleep, no retry, no timeout changed.
 
-**What the measurements say, honestly.** The flake didn't reproduce. 568 cases of the unchanged block passed, run alone,
+**What the measurements say, honestly.** The flake didn't reproduce. 632 cases of the unchanged block passed, run alone,
 4-wide, and under 6× CDP CPU throttling. A deliberately deferred redraw (the chip's pick run 400 ms late, in a scratch
 copy of the built bundle) shows the wait matters: with the wait removed, every case fails by name at `step 1 … saves
 italics`. That mutation fails through the step assertions, not through a catch, and that's built in rather than
