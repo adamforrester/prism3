@@ -1759,6 +1759,10 @@ for (const how of ['pointer', 'focus']) {
 //   · the lines joined back into one → `#2177 <kind> <w>: N items show as N lines, in order, in the host's words`
 //   · the last line dropped → the same arm (N-1 lines)
 //   · one line not mono → `#2177 <kind> <w>: every line is set in the chrome's mono font`
+//   · (#2459) the tier wait removed, on a bundle whose tier lands 400 ms after its ResizeObserver callback → `#2177
+//     <kind> 380: every line stays inside the drawer, …; tier wide, body 220.4px wide …` (the CI flake's message)
+//   · (#2459) the tier forced to `wide` in the bundle → `#2177 <kind> 380: the frame reaches the narrow tier before the
+//     drawer is measured — read wide`
 {
   const BUILT = 'Built from tree-a1b2c3d4 at 2026-10-06T09:00:00Z.';
   /** Per run kind: the posted verdict's items, and the separator each item after the first is joined by. */
@@ -1788,14 +1792,35 @@ for (const how of ['pointer', 'focus']) {
     await page.setViewportSize({ width: w, height: w === 380 ? 640 : 900 });
     await post(page, { type: k.type, ok: false, headline: k.headline, summary, ...k.extra, lines: items });
     const sel = `[data-p3="activity-op"][data-op="${k.op}"] [data-p3="op-summary"]`;
-    await page.waitForFunction((s) => document.querySelector(s)?.checkVisibility() === true, sel, { timeout: 5000 }).catch(() => {});
+    // #2459: measure only once the layout under test is the one drawn. The tier (`data-w`) is set by the frame's
+    // ResizeObserver, a rendering step after the resize, so the posted row being visible says nothing about whether
+    // the frame has left the wide grid; at 380 the bad verdict also opens the drawer, which the narrow tier draws as the
+    // full-pane sheet. Each wait is one condition, so the tier is waited on here and nowhere else, and a wait that does
+    // not arrive fails by name instead of letting the wrong layout be measured.
+    const tier = w === 380 ? 'narrow' : 'wide';   // typed here: 380 is under the narrow tier's 560 ceiling, 1280 over it
+    const tierSet = await page.waitForFunction((t) => document.querySelector('[data-p3="frame"]')?.dataset.w === t, tier, { timeout: 5000 }).then(() => true, () => false);
+    ok(tierSet, `#2177 ${k.op} ${w}: the frame reaches the ${tier} tier before the drawer is measured — read ${await page.evaluate(() => document.querySelector('[data-p3="frame"]')?.dataset.w)}`);
+    if (w === 380) {
+      const sheet = await page.waitForFunction(() => !!document.querySelector('[data-p3="frame"] > [data-p3="activity-drawer"][data-open="true"]'), null, { timeout: 5000 }).then(() => true, () => false);
+      ok(sheet, `#2177 ${k.op} ${w}: the bad verdict opens the drawer, the full-pane sheet at this tier — drawer open ${await page.evaluate(() => document.querySelector('[data-p3="activity-drawer"]')?.dataset.open)}`);
+    }
+    const shown = await page.waitForFunction((s) => document.querySelector(s)?.checkVisibility() === true, sel, { timeout: 5000 }).then(() => true, () => false);
+    ok(shown, `#2177 ${k.op} ${w}: the run's details are shown in the drawer`);
     const seen = await page.evaluate((s) => {
       const list = document.querySelector(s);
       const lines = list ? [...list.children] : [];
       const body = document.querySelector('[data-p3="activity-body"]');
       const b = body?.getBoundingClientRect();
       const mono = getComputedStyle(document.documentElement).getPropertyValue('--p3-font-mono').trim();
+      const r1 = (n) => Math.round(n * 10) / 10;
       return {
+        // What the containment check reads, carried into its label so a failure names its own layout (#2459).
+        tier: document.querySelector('[data-p3="frame"]')?.dataset.w ?? null,
+        bodyWidth: b ? r1(b.width) : null,
+        bodyRight: b ? r1(b.right) : null,
+        scrollWidth: body?.scrollWidth ?? null,
+        clientWidth: body?.clientWidth ?? null,
+        widestRight: lines.length ? r1(Math.max(...lines.map((n) => n.getBoundingClientRect().right))) : null,
         texts: lines.map((n) => n.textContent),
         fonts: lines.map((n) => getComputedStyle(n).fontFamily),
         mono,
@@ -1810,7 +1835,9 @@ for (const how of ['pointer', 'focus']) {
     ok(seen.mono !== '' && seen.fonts.length > 0 && seen.fonts.every((f) => f === seen.mono),
       `#2177 ${k.op} ${w}: every line is set in the chrome's mono font (${seen.mono}) — read ${JSON.stringify([...new Set(seen.fonts)])}`);
     ok(seen.inside && seen.noSideScroll,
-      `#2177 ${k.op} ${w}: every line stays inside the drawer, which does not scroll sideways — inside ${seen.inside}, no side scroll ${seen.noSideScroll}`);
+      `#2177 ${k.op} ${w}: every line stays inside the drawer, which does not scroll sideways — inside ${seen.inside}, no side scroll ${seen.noSideScroll}; `
+      + `tier ${seen.tier}, body ${seen.bodyWidth}px wide (right edge ${seen.bodyRight}), scrollWidth ${seen.scrollWidth} of clientWidth ${seen.clientWidth}, `
+      + `widest line's right edge ${seen.widestRight}`);
     // The longest line (the set's, at 380 Apply's styles line too) is longer than the drawer is wide there.
     if (w === 380) ok(seen.wraps, `#2177 ${k.op} ${w}: a line longer than the drawer wraps within it — wrapped ${seen.wraps}`);
     // The browser's own reading: a list whose items are the lines, in order.

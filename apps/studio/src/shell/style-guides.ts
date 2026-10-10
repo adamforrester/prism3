@@ -526,6 +526,8 @@ export const mountStyleGuides = (root: HTMLElement, lend: StyleGuidesLend, narro
       lever('Table header', seg('header', [['dark', 'Dark'], ['light', 'Light']], 'Table header'), 'The header row’s fill.'),
       lever('Aliases', sw('aliases', 'Aliases'), 'Show the variable each value aliases, as a chip beside it.'),
       lever('Description', sw('description', 'Description'), 'Adds each variable’s description to its row.'),
+      // DRAFT for the owner (#2372): the label, the two choices' wording and the placement.
+      lever('Token names', seg('tokenNames', [['full', 'Full path'], ['short', 'Short']], 'Token names'), 'Full path prints each variable’s whole name, as its alias chips do. Short drops the part the table’s title already names.'),
       lever('Name cell', sw('nameCell', 'Name cell'), 'Adds a name you can edit to each row, such as “Text Primary”. A rerun keeps your edits.'),
       ...(hasLengths(k) ? [lever('REM', sw('rem', 'REM'), 'Shows each length in REM too, in its own cell, at a 16px base.')] : []),
     ]));

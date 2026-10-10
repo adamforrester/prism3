@@ -157,8 +157,10 @@ export type SgSpecimen =
 export interface SgRow {
   variableId: string;
   name: string;
-  /** The name as the table prints it — the collection's shared prefix removed. */
+  /** The name below the table's shared prefix: what ramp order sorts on and a miss report names the row by. */
   token: string;
+  /** The Token column's text (#2372): the full name by default, `token` when `tokenNames` is `short`. */
+  tokenCell: string;
   /** The title cell's generated default (#259, owner decision 15): the path humanized, "Text Primary". */
   label: string;
   description: string;
@@ -394,8 +396,8 @@ export const planStyleGuide = (catalog: SgCatalog, contract: SgContract | null, 
     }
     const groupsInRoot = (root: string): number => [...groups.values()].filter((x) => !multiRoot || x.root === root).length;
     for (const [path, { root, prefix, g, members }] of groups) {
-      // The row's first column: a primitive's STEP alone ("025"; the title already names the palette and root),
-      // a role relative to its family ("primary" in Text).
+      // The row's short name, the Token column's text in short mode (#2372): a primitive's STEP alone ("025"; the
+      // title already names the palette and root), a role relative to its family ("primary" in Text).
       const display = (v: SgVariable): string => {
         const segs = v.name.split('/');
         return primitive ? segs[segs.length - 1] : segs.slice(prefix.length + (g ? 1 : 0)).join('/');
@@ -458,6 +460,7 @@ export const planStyleGuide = (catalog: SgCatalog, contract: SgContract | null, 
           variableId: v.id,
           name: v.name,
           token: display(v),
+          tokenCell: tokenCellOf(options, v.name, display(v)),
           description: v.description ?? '',
           display: options.display && options.display !== 'auto' ? options.display : auto,
           label: humanizeName(segs.slice(prefix.length), prefix[prefix.length - 1]),
@@ -598,6 +601,9 @@ export const formatRem = (px: number): string => `${trimNum(px / REM_BASE, 4)}re
 /** Whether a table's lengths get a REM column: the `rem` option, on by default. Every value column prints its base
  *  value; there is no option to leave it out (owner decision 20: the Pixels toggle is removed). */
 const remOn = (o: StyleGuideOptions): boolean => o.rem !== false;
+/** THE TOKEN COLUMN'S TEXT (#2372, owner decision Q135 B): the full variable or style name, the form the alias chips
+ *  print, unless the short names are asked for. */
+const tokenCellOf = (o: StyleGuideOptions, name: string, short: string): string => (o.tokenNames === 'short' ? short : name);
 /** The style name of each numeric weight, the names Figma's font menus use. */
 const WEIGHT_NAME: Record<number, string> = { 100: 'Thin', 200: 'Extra Light', 300: 'Light', 400: 'Regular', 500: 'Medium', 600: 'Semi Bold', 700: 'Bold', 800: 'Extra Bold', 900: 'Black' };
 export const weightName = (w: number): string | undefined => WEIGHT_NAME[Math.round(w / 100) * 100];
@@ -698,7 +704,8 @@ const planVariableTables = (catalog: SgCatalog, ix: Index, options: StyleGuideOp
               const rem = lengths ? (num === null ? '—' : formatRem(num)) : undefined;
               return { modeId: m.modeId, modeName: m.name, value, rem, alias: aliasVar ? aliasVar.name : null, raw: `${first ?? ''}|${lit ?? ''}`, groundId: null, contrast: null, num, str };
             });
-            return { variableId: v.id, name: v.name, token: v.name.split('/').slice(prefix.length).join('/'), label: humanizeName(v.name.split('/').slice(prefix.length), prefix[prefix.length - 1]), description: v.description ?? '', display: 'default' as SwatchType, cells, specimen: specimenOf(type, kind, options) };
+            const token = v.name.split('/').slice(prefix.length).join('/');
+            return { variableId: v.id, name: v.name, token, tokenCell: tokenCellOf(options, v.name, token), label: humanizeName(v.name.split('/').slice(prefix.length), prefix[prefix.length - 1]), description: v.description ?? '', display: 'default' as SwatchType, cells, specimen: specimenOf(type, kind, options) };
           }));
           const n = rows.length;
           const k = mine.filter((m) => referenced.has(m.v.id)).length;
@@ -828,7 +835,8 @@ const planTextStyles = (catalog: SgCatalog, ix: Index, options: StyleGuideOption
         ...(remOn(options) ? [{ value: formatRem(s.paragraphSpacing ?? 0), alias: null }] : [])] : []),
       ...(options.textDecoration ? [{ value: sentence((s.textDecoration ?? 'NONE').toLowerCase()), alias: null }] : []),
     ];
-    return { variableId: s.id, name: s.name, token: s.name.split('/').slice(prefix.length).join('/'), label: humanizeName(s.name.split('/').slice(prefix.length), prefix[prefix.length - 1]), description: s.description ?? '', display: 'default' as SwatchType, cells, specimen: { kind: 'style' }, extra };
+    const token = s.name.split('/').slice(prefix.length).join('/');
+    return { variableId: s.id, name: s.name, token, tokenCell: tokenCellOf(options, s.name, token), label: humanizeName(s.name.split('/').slice(prefix.length), prefix[prefix.length - 1]), description: s.description ?? '', display: 'default' as SwatchType, cells, specimen: { kind: 'style' }, extra };
   });
   const n = rows.length;
   return [{
@@ -1889,7 +1897,7 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
         place(cell, r + 1, c++);
         names[row.variableId] = { auto: row.label, text: shown };
       }
-      place(await textCell('default', 'white', row.token), r + 1, c++);
+      place(await textCell('default', 'white', row.tokenCell), r + 1, c++);
       // PHASE 2 (#259): a dimension, font-variable or text-style row. A specimen and a value per mode, then the values
       // printed once (a text style's family, weight, letter spacing and its toggled columns). No contrast column.
       if (row.specimen) {

@@ -4886,7 +4886,8 @@
         "avoidWhen": "The user can click, toggle or remove it (use a tag), the message is feedback about an action (use a toast or banner), or the color would be the only signal.",
         "commonPartners": [
           "icon-button",
-          "button"
+          "button",
+          "tab"
         ],
         "triggerKeywords": [
           "badge",
@@ -4917,7 +4918,6 @@
         "supersededBy": [],
         "planned": [
           "avatar",
-          "tabs",
           "toast",
           "banner"
         ],
@@ -5153,6 +5153,310 @@
           "a removable token list built as a listbox",
           "a clickable div styled as a pill",
           "a bare × glyph with no accessible name"
+        ]
+      }
+    },
+    "tab": {
+      "id": "tab",
+      "name": "Tab",
+      "aliases": [
+        "tab-trigger",
+        "tab-item"
+      ],
+      "category": "navigation",
+      "status": "draft",
+      "summary": "One trigger in a tab list. Selected, it shows an underline and switches the panel below.",
+      "description": "One trigger in a tab list. Selecting a tab shows its panel in place and hides the others; the page and the address do not change. A selected tab carries a 2px underline and the primary text color, so the state never rests on color alone. The label keeps one weight in both states, so selecting a tab never moves the tabs beside it. At hover, an unselected tab shows a neutral bar where the selected underline would be. A tab can carry a leading icon and a count.",
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "required": true,
+          "description": "The tab text: a short noun, one or two words. One line; a tab list that runs out of room scrolls rather than wrapping."
+        },
+        {
+          "name": "value",
+          "type": "string",
+          "required": true,
+          "description": "The key that ties this tab to its panel. The tab list selects by key, never by position."
+        },
+        {
+          "name": "selected",
+          "type": "boolean",
+          "default": "false",
+          "required": false,
+          "description": "Whether this tab is the selected one. Set by the tab list from its value; do not set it on a tab inside a list."
+        },
+        {
+          "name": "leadingIcon",
+          "type": "slot",
+          "required": false,
+          "description": "An icon before the label. Decorative when a label is present."
+        },
+        {
+          "name": "count",
+          "type": "number",
+          "required": false,
+          "description": "A count after the label, drawn as a count badge and read as part of the tab name, such as \"Reviews, 12\"."
+        },
+        {
+          "name": "size",
+          "type": "enum: 'small' | 'medium' | 'large'",
+          "default": "medium",
+          "required": false,
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ],
+          "description": "Tab height, padding and label type. Medium clears 44px on comfortable and spacious density."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "default": "false",
+          "required": false,
+          "description": "Dims the tab and skips it during arrow-key movement."
+        }
+      ],
+      "states": [
+        "rest",
+        "hover",
+        "pressed",
+        "focus-visible",
+        "disabled"
+      ],
+      "variants": {
+        "selection": {
+          "values": [
+            "unselected",
+            "selected"
+          ],
+          "kind": "runtime"
+        },
+        "size": {
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ],
+          "kind": "authoring"
+        }
+      },
+      "accessibility": {
+        "role": "tab (a <button role=\"tab\">) inside a role=\"tablist\"; aria-selected on every tab and aria-controls naming its panel",
+        "wcag": [
+          "4.1.2 Name, Role, Value (the tab role and its selected state)",
+          "1.4.1 Use of Color (selected is the underline as well as the ink)",
+          "1.4.11 Non-text Contrast (targets 3:1 for the underline against the page)",
+          "2.4.13 Focus Appearance (the shared focus ring)",
+          "2.5.8 Target Size (targets 44px at medium on comfortable and spacious density)"
+        ],
+        "keyboard": "Owned by the tab list: arrow keys move between tabs, Home and End go to the first and last, and Tab moves on into the panel.",
+        "focus": "The focus ring marks the focused tab, which can differ from the selected tab when activation is manual.",
+        "aria": "aria-selected=\"true\" or \"false\" on every tab, and aria-controls pointing at its panel. An icon-only tab needs an aria-label and a tooltip. A count is part of the accessible name."
+      },
+      "content": {
+        "labelPattern": "A short noun, one or two words, parallel with the other tabs (\"Overview\", \"Reviews\", \"Shipping\"). Not a verb phrase."
+      },
+      "docs": {
+        "usage": "Use inside Tabs only. A tab names one panel of related content; selecting it shows that panel in place.",
+        "do": [
+          "Keep labels short, parallel nouns",
+          "Let the tab list set selected from its value"
+        ],
+        "dont": [
+          "Use a tab to go to another page; that is a link in a navigation",
+          "Set selected on a tab inside a list by hand"
+        ],
+        "contentGuidelines": "One or two words, a noun, sentence case."
+      },
+      "ai": {
+        "primaryPurpose": "One trigger inside Tabs that shows its panel in place when selected.",
+        "whenToUse": "Only as a child of Tabs.",
+        "avoidWhen": "Changing the page or the address (a navigation of links), or switching a value within the current view (a segmented control, not built yet).",
+        "commonPartners": [
+          "tabs",
+          "icon",
+          "badge"
+        ],
+        "triggerKeywords": [
+          "tab",
+          "tab trigger",
+          "tab item"
+        ],
+        "generationPriority": 3
+      },
+      "motion": {
+        "enter": "None. On selection the underline slides from the previous tab to this one, about 150–200ms.",
+        "exit": "None.",
+        "reduceMotion": "The underline snaps to the selected tab; the panel swaps with no transition."
+      },
+      "composition": {
+        "composesWith": [
+          "badge",
+          "focus-ring"
+        ],
+        "alternativeTo": [],
+        "supersedes": [],
+        "supersededBy": [],
+        "planned": [
+          "segmented-control"
+        ],
+        "replacesPatterns": [
+          "a styled button that shows and hides a div with no tab semantics"
+        ]
+      }
+    },
+    "tabs": {
+      "id": "tabs",
+      "name": "Tabs",
+      "aliases": [
+        "tab-list",
+        "tab-group",
+        "tab-bar",
+        "tab-panel"
+      ],
+      "category": "navigation",
+      "status": "draft",
+      "summary": "A row of tabs that switches between panels of related content in place.",
+      "description": "A row of tabs above a baseline. Each tab names one panel of related content; selecting a tab shows its panel in place and hides the rest, without changing the page or the address. One tab is always selected. Arrow keys move between tabs, and Tab moves on into the panel.",
+      "props": [
+        {
+          "name": "value",
+          "type": "string",
+          "required": false,
+          "description": "The key of the selected tab. Controlled; pair it with onChange."
+        },
+        {
+          "name": "defaultValue",
+          "type": "string",
+          "required": false,
+          "description": "The key of the tab selected first, when the list manages its own state."
+        },
+        {
+          "name": "onChange",
+          "type": "function",
+          "required": false,
+          "description": "Called with the new key when the selected tab changes."
+        },
+        {
+          "name": "activation",
+          "type": "enum: 'automatic' | 'manual'",
+          "default": "automatic",
+          "required": false,
+          "values": [
+            "automatic",
+            "manual"
+          ],
+          "description": "automatic: moving focus with the arrow keys selects the tab. manual: arrows move focus only, and Enter or Space selects. Use manual when showing a panel is slow."
+        },
+        {
+          "name": "label",
+          "type": "string",
+          "required": false,
+          "description": "The accessible name of the tab list, when nothing on the page already names it."
+        },
+        {
+          "name": "size",
+          "type": "enum: 'small' | 'medium' | 'large'",
+          "default": "medium",
+          "required": false,
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ],
+          "description": "Passed to every tab."
+        }
+      ],
+      "states": [
+        "rest"
+      ],
+      "variants": {
+        "size": {
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ],
+          "kind": "authoring"
+        }
+      },
+      "accessibility": {
+        "role": "tablist containing tabs, each tab controlling one tabpanel",
+        "wcag": [
+          "4.1.2 Name, Role, Value",
+          "2.1.1 Keyboard (arrow keys, Home and End)",
+          "2.4.3 Focus Order (one tab stop for the list, then the panel)",
+          "1.4.11 Non-text Contrast (targets 3:1 for the selected underline)",
+          "1.4.1 Use of Color",
+          "2.4.13 Focus Appearance"
+        ],
+        "keyboard": "Tab moves into the list, landing on the selected tab, and the next Tab moves into the panel. Left and Right move between tabs (Up and Down when vertical), wrapping at the ends; Home and End go to the first and last. With automatic activation, moving focus selects; with manual activation, Enter or Space selects.",
+        "focus": "Focus stays on the tab after it is selected, so arrowing continues. The panel takes focus as a whole (tabindex=\"0\").",
+        "aria": "role=\"tablist\" with an aria-label or aria-labelledby; aria-selected on every tab; aria-controls from each tab to its panel and aria-labelledby back. Never use tabs to change the page: a route change is a navigation of links with aria-current."
+      },
+      "content": {
+        "labelPattern": "Short, parallel nouns, one or two words each. Past six or seven tabs, rethink the grouping."
+      },
+      "docs": {
+        "usage": "Use tabs to switch between peer sections of related content in one place, one at a time, such as a product's description, specifications and reviews. Don't use tabs to go to another page (use links in a navigation), to change a setting or filter the current view (use a segmented control, not built yet, or a select), or for content people need to compare side by side.",
+        "do": [
+          "Keep labels short, parallel nouns",
+          "Keep one tab selected at all times",
+          "Use manual activation when a panel takes time to load",
+          "Give the list a name when nothing on the page already gives it one"
+        ],
+        "dont": [
+          "Use tabs to change the page or the address",
+          "Use tabs to filter or re-sort the current view",
+          "Nest tabs more than two levels deep",
+          "Wrap tabs onto a second line; let the list scroll"
+        ],
+        "contentGuidelines": "One or two words per tab, nouns, sentence case."
+      },
+      "ai": {
+        "primaryPurpose": "Switch between peer panels of related content in place, one at a time.",
+        "whenToUse": "Two to about six peer sections of one subject, viewed one at a time, where switching is quick and the address need not change.",
+        "avoidWhen": "The selection changes the page or the address (a navigation of links), filters or re-sorts the current view (a segmented control, not built yet, or Select), is a required sequence (a stepper, not built yet), or has many independent sections (an accordion, not built yet).",
+        "commonPartners": [
+          "tab",
+          "badge",
+          "icon"
+        ],
+        "triggerKeywords": [
+          "tabs",
+          "tab list",
+          "tab bar",
+          "tabbed panels",
+          "tabbed content",
+          "switch panels"
+        ],
+        "generationPriority": 2
+      },
+      "motion": {
+        "enter": "None. On a change, the underline slides to the new tab and the panel cross-fades, about 150–200ms.",
+        "exit": "The outgoing panel fades out under the incoming one. Panels never slide sideways.",
+        "reduceMotion": "The underline snaps and the panel swaps with no transition."
+      },
+      "composition": {
+        "composesWith": [
+          "tab"
+        ],
+        "alternativeTo": [
+          "select"
+        ],
+        "supersedes": [],
+        "supersededBy": [],
+        "planned": [
+          "segmented-control",
+          "accordion",
+          "link"
+        ],
+        "replacesPatterns": [
+          "show and hide divs with no tab semantics",
+          "role=\"tab\" on links that change the route"
         ]
       }
     }

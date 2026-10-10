@@ -129,6 +129,7 @@ const read = (page) => page.evaluate(() => {
     titlesError: text('[data-p3="sg-titles-error"]'),
     groupsShown: Object.entries({ all: '[data-p3="sg-group-all"]', color: '[data-p3="sg-group-color"]', dimension: '[data-p3="sg-group-dimension"]', font: '[data-p3="sg-group-font"]', text: '[data-p3="sg-group-text"]' }).filter(([, sel]) => q(sel)).map(([g]) => g),
     rem: q('[data-p3="sg-opt-rem"]') ? q('[data-p3="sg-opt-rem"]').getAttribute('aria-checked') === 'true' : null,
+    tokenNames: [...document.querySelectorAll('[data-p3="sg-opt-token-names"] [role="radio"]')].map((b) => `${b.textContent}${b.getAttribute('aria-checked') === 'true' ? '*' : ''}`),
     nameCell: q('[data-p3="sg-opt-name-cell"]') ? q('[data-p3="sg-opt-name-cell"]').getAttribute('aria-checked') === 'true' : null,
     switchRoles: [...document.querySelectorAll('[data-p3="sg-opt-rem"], [data-p3="sg-opt-name-cell"], [data-p3="sg-opt-aliases"]')].map((n) => n.getAttribute('role')),
     focus: document.activeElement?.getAttribute('data-p3') ?? document.activeElement?.tagName.toLowerCase() ?? null,
@@ -296,13 +297,14 @@ console.log('\nselection and options (P2–P5, H4–H9)');
   ok(st.fontSample?.value === 'auto' && JSON.stringify(st.fontSample.options) === JSON.stringify(['From each variable’s kind', 'Generic', 'Family', 'Size', 'Weight', 'Letter spacing', 'Line height']),
     `H7: the font sample list (${JSON.stringify(st.fontSample)})`);
   ok(st.nameCell === false, `H9: the Name cell is off by default (${st.nameCell})`);
+  ok(JSON.stringify(st.tokenNames) === JSON.stringify(['Full path*', 'Short']), `#2372: Token names offers Full path and Short, Full path by default (${JSON.stringify(st.tokenNames)})`);
   ok(JSON.stringify(st.switchRoles) === JSON.stringify(['switch', 'switch', 'switch']), `SG5 A: each option switch is a switch to assistive technology, role="switch" (${JSON.stringify(st.switchRoles)})`);
   // Draw with everything selected sends the defaults and no tables filter.
   await hooks.click(page.locator('[data-p3="sg-draw"]'));
   await posted(page, 'style-guide', 1);
   st = await read(page);
   const first = sentOf(st, 'style-guide')[0]?.options;
-  ok(first && !('tables' in first) && first.rem === false && first.titleCell === false && first.valueFormat === 'hex' && first.display === 'auto' && first.fontDisplay === 'auto',
+  ok(first && !('tables' in first) && first.rem === false && first.titleCell === false && first.valueFormat === 'hex' && first.display === 'auto' && first.fontDisplay === 'auto' && first.tokenNames === 'full',
     `Draw, everything selected: the defaults, and no tables filter, so the run judges superseded tables (${JSON.stringify(first)})`);
   await post(page, { type: 'style-guide-result', ok: true, headline: '✓ style guide: 7 tables', summary: '7 tables created' });
   await until(page, 'the run ended: Draw on again', () => document.querySelector('[data-p3="sg-draw"]')?.disabled === false);
@@ -343,13 +345,15 @@ console.log('\nselection and options (P2–P5, H4–H9)');
   ok(inText.length === 2 && inText.every((l) => !l.boxed), `P3: whole tables: Text's variables show, with no box of their own (${JSON.stringify(inText)})`);
   const palette = st.leaves.filter((l) => /palette\/(white|black)$/.test(l.id));
   ok(palette.length === 2 && palette.every((l) => l.boxed), `P3: white and black sit in a group spanning two tables, so each carries its table's box (${JSON.stringify(palette)})`);
-  // Draw of a part selection sends its tables by key.
+  // Draw of a part selection sends its tables by key; Token names set to Short goes with it (#2372).
+  await hooks.click(page.locator('[data-p3="sg-opt-token-names-short"]'));
   await hooks.click(page.locator('[data-p3="sg-draw"]'));
   await posted(page, 'style-guide', 2);
   st = await read(page);
   const part = sentOf(st, 'style-guide')[1]?.options;
   ok(part && JSON.stringify(part.tables) === JSON.stringify([ALL_KEYS[0], ALL_KEYS[1], ALL_KEYS[2], ALL_KEYS[3], ALL_KEYS[5]]),
     `Draw, part selected: the tables go by key (${JSON.stringify(part?.tables)})`);
+  ok(part?.tokenNames === 'short', `#2372: Token names set to Short sends tokenNames short (${part?.tokenNames})`);
   ok(errors.length === 0, `no console errors (${errors.slice(0, 2).join(' · ')})`);
   await page.close();
 }

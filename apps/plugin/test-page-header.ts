@@ -41,10 +41,10 @@
  *
  * The shim's case-insensitive `headersOn` is its own comparison, written here — not `isTemplateSet`.
  */
-import { ensurePageHeader, pageHeaderCopy, pageHeaderNote, displayName } from './src/page-header';
+import { ensurePageHeader, pageHeaderCopy, pageHeaderNote, displayName, HEADER_GAP, SECTION_HEADER_SET } from './src/page-header';
 import type { HNode, HeaderPage, PageHeaderApi, HeaderCopy } from './src/page-header';
 import { componentDefs } from '@prism3/engine/components/index';
-import { placeNewSet, SET_GAP } from './src/write-components';
+import { placeNewSet, SET_GAP, PAGE_HEADER_NAME, PAGE_HEADER_GAP } from './src/write-components';
 
 let failures = 0;
 const ok = (cond: boolean, label: string): void => {
@@ -255,6 +255,12 @@ console.log('2b. sets side by side, then a third set');
   ok(next?.x === 720 && next?.y === 0 && SET_GAP === 160,
     `2b: a third set goes beside the row at 720,0, not past the wider header above it (got ${next ? `${next.x},${next.y}` : 'null'})`);
 }
+
+// ── 2c. The set placement's copy of the header's name and gap (#2405) ──────────────────────────────────────
+// `write-components.ts` restates both so its import walk stays out of this module; the copies must not drift.
+console.log('2c. placement reads the header by the same name and gap');
+ok(PAGE_HEADER_NAME === SECTION_HEADER_SET.toLowerCase() && PAGE_HEADER_GAP === HEADER_GAP,
+  `2c: write-components places sets against the header's own name and gap (${PAGE_HEADER_NAME} vs ${SECTION_HEADER_SET}, ${PAGE_HEADER_GAP} vs ${HEADER_GAP})`);
 
 // ── 3. A second build ────────────────────────────────────────────────────────────────────────────────
 console.log('3. a second build adds no second header and keeps user text');
