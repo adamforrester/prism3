@@ -422,6 +422,18 @@ export const FIELDS: Record<string, FieldCheck> = {
     show: () => 'ABSOLUTE',
     check: (_p, n) => (n.layoutPositioning === 'ABSOLUTE' ? null : str(n.layoutPositioning)),
   },
+  // A GLYPH THAT SCALES WITH ITS PARENT (#2345): out of flow (its `absoluteCenter` reads that) AND constrained
+  // SCALE/SCALE. One left at CENTER/CENTER keeps its size when the instance shrinks — the cropped 180px marker
+  // in a 64px thumbnail the issue measured — so the constraints are what this checks.
+  absoluteScale: {
+    show: () => 'ABSOLUTE, constraints SCALE/SCALE',
+    check: (_p, n) => {
+      const c = n.constraints as { horizontal?: unknown; vertical?: unknown } | null | undefined;
+      return n.layoutPositioning === 'ABSOLUTE' && c?.horizontal === 'SCALE' && c?.vertical === 'SCALE'
+        ? null
+        : `${str(n.layoutPositioning)}, constraints ${str(c)}`;
+    },
+  },
   // A PINNED icon (#1667): out of flow, constrained to its edge, and `inset` px from it. The edge distance is
   // read off the live parent, so an end pin placed before the parent settled (or measured off the wrong
   // side) reads back as a wrong distance, not as agreement.

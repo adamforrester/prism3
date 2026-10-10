@@ -128,6 +128,9 @@ const PRODUCT_NAME = 'Prism3 Studio';
 
 /** The frame width at or below which it lays out as one narrow column (concept v6's `appNarrow`). */
 export const NARROW_MAX = 560;
+/** #1975: the levers pane width below which it is `data-fit="snug"`: narrower than the 380 its pages are laid out for,
+ *  which the two panes reach at 640 and 800 (the 42% column). A width class for the same reason as narrow mode. */
+export const LEVERS_SNUG_MAX = 360;
 
 export type Frame = {
   /** The sticky region: the bar, the notices and the tab row. */
@@ -781,6 +784,12 @@ export const mountFrame = (app: HTMLElement, opts: {
   ro.observe(head);
   ro.observe(bar);
   cleanups.push(() => ro.disconnect());
+  const leversFit = new ResizeObserver(() => {
+    const fit = levers.clientWidth > 0 && levers.clientWidth < LEVERS_SNUG_MAX ? 'snug' : 'full';
+    if (levers.dataset.fit !== fit) levers.dataset.fit = fit;
+  });
+  leversFit.observe(levers);
+  cleanups.push(() => leversFit.disconnect());
   root.dataset.w = app.getBoundingClientRect().width <= NARROW_MAX ? 'narrow' : 'wide';
 
   render();

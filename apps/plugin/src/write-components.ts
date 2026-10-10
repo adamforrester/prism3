@@ -2219,7 +2219,10 @@ const writeComponentSet = async (
         kid.x = ((node.width ?? 0) - (kid.width ?? 0)) / 2;
         kid.y = ((node.height ?? 0) - (kid.height ?? 0)) / 2;
       }
-      kid.constraints = { horizontal: 'CENTER', vertical: 'CENTER' };
+      // A glyph that scales with its aspect-locked parent (#2345, `absoluteScale`) takes SCALE, so it keeps its
+      // FRACTION of the frame when an instance is resized. Lockstep with the paste executor.
+      const k = c.absoluteScale ? 'SCALE' : 'CENTER';
+      kid.constraints = { horizontal: k, vertical: k };
       // READ BACK: a centered child that quietly stayed in the flow ADDS a cell, which is the precise
       // defect this mechanism exists to prevent.
       if (kid.layoutPositioning !== 'ABSOLUTE')
