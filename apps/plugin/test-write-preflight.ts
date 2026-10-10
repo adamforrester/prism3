@@ -377,7 +377,7 @@ for (const era of ['marked', 'pre-mark'] as const) {
   if (era === 'pre-mark') stripMarks(f);
   const g = await apply(f);
   ok(g.ok && createdOf(g) === 0 && g.result.gs.renamed === 5,
-    `#2467 old names (${era}): re-applies with 0 conflicts, creates 0 and renames 5 grid styles${g.ok ? ` (created ${createdOf(g)}, renamed ${g.result.gs.renamed})` : ` — ${conflictSummary(g.conflicts, 3)}`}`);
+    `#2467 old names (${era}): re-applies with 0 conflicts, creates 0 and renames 5 grid styles${g.ok ? ` (created ${createdOf(g)}, renamed ${g.result.gs.renamed})` : ` — ${'threw' in g ? `threw: ${g.threw}` : conflictSummary(g.conflicts, 3)}`}`);
   ok(objs.every((x, i) => !!x && x.name === GRID_SIZES[i]) && f.styles.grid.length === 5,
     `#2467 old names (${era}): the same five style objects now carry the bare names [${f.styles.grid.map((x) => x.name).join(', ')}]`);
 }
