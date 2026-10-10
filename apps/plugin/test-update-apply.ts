@@ -87,6 +87,8 @@
  *                  verified, then current; and verify names a stop the host leaves black (#2391). Mutations: the stops
  *                  based on the placeholder → `veil/fresh`, `veil/repaired`, `veil/current`, `corpus/in place`; gradient
  *                  stops dropped from the draw check → `veil/dry run`, `veil/repaired`, `veil/verify`; verify's draw check dropped → `veil/verify`.
+ *                  Stops at their color but 100% alpha read "to update" and fail verify; the alpha comparison dropped from
+ *                  the draw check's gradient branch → `veil/alpha dry run`, `veil/alpha verify`.
  *   noop/…         a set already current: no version, no write.
  *   order/…        nested sets are updated first.
  *
@@ -1397,6 +1399,34 @@ section("veil — every directional member's gradient stops store the colors the
     const line = `${MEMBER}/..fills: stored #000000 at 100% (the plan says color/veil/dark/strong, which resolves to #b64d3c at 70%)`;
     ok(!applyVerdict(res).ok && content.includes(line),
       `veil/verify: a stop the host left black under its binding fails verify, named (${applyVerdict(res).headline}; ${content.find((l) => l.startsWith(MEMBER)) ?? content[0] ?? 'no content line'})`);
+  }
+
+  // THE RIGHT COLOR AT THE WRONG ALPHA: every stop keeps its variable's RGB but stores 100% (a solid wash, the same
+  // visible defect as black), records matching and stamps an earlier plugin's, and the host keeps 100% on every stop it
+  // is given. Only the alpha half of the draw check can tell: the dry run reads the 24 "to update", and verify fails.
+  // Mutation: the alpha comparison dropped from `drawn.ts`'s gradient branch → `veil/alpha dry run`, `veil/alpha verify`.
+  {
+    const w = await world('veil');
+    const opaque = (v: unknown): unknown => Array.isArray(v) ? v.map((p: { type?: string; gradientStops?: Stop[] }) => (p?.type === 'GRADIENT_LINEAR' ? { ...p, gradientStops: (p.gradientStops ?? []).map((st) => ({ ...st, color: { ...st.color, a: 1 } })) } : p)) : v;
+    for (const m of gradientMembers(w)) {
+      let held = opaque(m.fills);
+      Object.defineProperty(m, 'fills', { configurable: true, enumerable: true, get: () => held, set: (v: unknown) => { held = opaque(v); } });
+      (m.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, BASELINE_KEY, JSON.stringify({ ...baselineOf(await snapshotMember(m)), id: String(m.id) }));
+    }
+    earlier(w);
+    const pre = await previewUpdate(w.host, [{ def: 'veil', plans: w.plans }]);
+    const st = pre.sets[0];
+    const toUpdate = st.states.filter((x) => x.state === 'update').length;
+    const solid = st.changes.filter((c) => c.field === 'fills' && /^stored #(?!000000)[0-9a-f]{6} at 100%$/.test(String(c.from)));
+    const first = `stored #b64d3c at 100%`;
+    const firstTo = solid.find((c) => c.from === first)?.to;
+    ok(toUpdate === 24 && solid.reduce((n, c) => n + c.members, 0) === 48 && /color\/veil\/dark\/strong, which resolves to #b64d3c at 70%/.test(String(firstTo)) && previewVerdict(pre).headline === 'Would change 1 of 1',
+      `veil/alpha dry run: the 24 members whose stops keep their color at 100% read "to update", each stop named (${toUpdate} to update; ${solid.reduce((n, c) => n + c.members, 0)} stops named, e.g. ${firstTo ? `${first} (the plan says ${firstTo})` : solid[0] ? `${solid[0].from} (the plan says ${solid[0].to})` : 'none'}; ${previewVerdict(pre).headline})`);
+    const res = await applyUpdate(w.host, w.api as any, [{ def: 'veil', plans: w.plans }], previewHashOf(pre));
+    const content = res.outcomes[0]?.content ?? [];
+    const line = `${MEMBER}/..fills: stored #b64d3c at 100% (the plan says color/veil/dark/strong, which resolves to #b64d3c at 70%)`;
+    ok(!applyVerdict(res).ok && content.includes(line),
+      `veil/alpha verify: a stop the host left at 100% under its binding fails verify, named (${applyVerdict(res).headline}; ${content.find((l) => l.startsWith(MEMBER)) ?? content[0] ?? 'no content line'})`);
   }
 }
 

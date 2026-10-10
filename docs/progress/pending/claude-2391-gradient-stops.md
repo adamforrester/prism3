@@ -9,7 +9,9 @@
 
 **Tests** (`test-update-apply.ts`, `veil/…`, expected values authored in the test): built fresh, all 48 stops hold their variable's color and alpha, and one member's two stops are spelled out in hex. With black stops under a matching record and earlier-plugin stamps, the dry run reads the 24 members "to update", naming 48 stops `stored #000000 at 100%`. The apply updates the 24, verified, and the next dry run reads all 30 current. With the host keeping black behind the executor, verify names the stop. Mutations, each failing by name: stops based on the placeholder → `veil/fresh`, `veil/repaired`, `veil/current`, `corpus/in place`; gradient stops dropped from `drawn.ts` → `veil/dry run`, `veil/repaired`, `veil/verify`; verify's draw check dropped → `veil/verify`.
 
-`EXECUTOR_REVISION` 7 → 8.
+**The alpha half, held on its own (review).** Without it, dropping the alpha comparison from the gradient branch of `drawn.ts` left every plugin test green: a stop at the right color but 100% alpha, a solid wash, read current. A new arm keeps every stop at its variable's RGB but at 100%, with the host keeping 100% on every stop it is given. The dry run reads the 24 "to update", naming `stored #b64d3c at 100% (the plan says color/veil/dark/strong, which resolves to #b64d3c at 70%)`, and verify fails on the same line. Mutation: the alpha comparison dropped → `veil/alpha dry run`, `veil/alpha verify`.
+
+`EXECUTOR_REVISION` 8 → 9. This PR first took 8, and #2435 merged with 8 before it, so the merged tree would have stamped two executor changes with one number. `lint-executor-revision.ts` caught that on the merged tree.
 
 **Still owed:** a live check on a scratch file, then a dry run on the master duplicate showing the 24 veil members "to update".
 
