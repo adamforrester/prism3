@@ -88,14 +88,20 @@ export const leverBlock = (key: string, opts: { label?: string; group?: boolean;
 
 // ── A choice row's state lines, announced (#2233) ─────────────────────────────────────────────────
 /** ONE POLITE REGION PER CHOICE ROW, updated in place. A lever block that holds a choice (`choice` or `chipChoice`) has
- *  one live region, and it says the block's state lines (`stateLine`), each as its own paragraph, word for word: a line
- *  that appears is announced, one that goes is removed from the region, which a polite region does not announce.
+ *  one live region, and it says the block's WARNING lines (`stateLine(…, 'warn')`: a clash, a refusal), each as its own
+ *  paragraph, word for word: a line that appears is announced, one that stays is not said again, and one that goes is
+ *  removed from the region, which a polite region does not announce. Hint lines stay visible and are never sent to
+ *  the region (owner decision Q184 B, 2026-10-10).
  *
- *  WHY OUTSIDE THE PANEL. A page redraws its levers whole (`root.replaceChildren`), so a region inside a block would be
- *  a new node, or the same node detached and put back, on every edit, and a screen reader cannot be relied on to hear
- *  a change to either. The regions sit in one visually hidden holder on `<body>`, as the style guides' run line does
- *  (#2171), and are never touched by a redraw. A row that leaves the page takes its region out of the document with
- *  it (no announcement: a region put back already holding its words is not read), so a page drawn again says nothing
+ *  WHY OUTSIDE THE PANEL. An edit redraws a page's levers whole (`root.replaceChildren`), or, on Palettes and Brand
+ *  while the page keeps its shape, updates its blocks in place. Under a redraw a region inside a block would be a new
+ *  node, or the same node detached and put back, on every edit, and a screen reader cannot be relied on to hear a
+ *  change to either. The regions sync after each redraw (`leverBlock` notes the blocks it makes). No warning line in a
+ *  choice row changes in place today (#2233 checked: Palettes' pinned-neutral line, the one `setState` an in-place
+ *  sync makes in a choice row, is a hint), so an in-place update needs no sync of its own.
+ *  The regions sit in one visually hidden holder on `<body>`, as the style guides' run line does (#2171), and are never
+ *  touched by a redraw. A row that leaves the page is dropped with its region; drawn again, it gets a new region that
+ *  already holds its words when it is put in the document, which is not announced, so a page drawn again says nothing
  *  until something on it changes.
  *
  *  The words are the visible line's own: no new text is announced. A line inside a block's own live region (Brand's
@@ -108,7 +114,7 @@ const noteBlock = (key: string, el: HTMLElement): void => {
   fresh.push([key, el]);
 };
 const linesOf = (block: HTMLElement): string[] =>
-  [...block.querySelectorAll<HTMLElement>('.p3-state')]
+  [...block.querySelectorAll<HTMLElement>('.p3-state-warn')]
     .filter((n) => !n.closest('[hidden]') && !n.parentElement?.closest('[aria-live]'))
     .map((n) => (n.textContent ?? '').trim())
     .filter(Boolean);
@@ -147,8 +153,9 @@ function syncLive(): void {
     }
     LIVE.set(k, { region, block });
   }
-  for (const { region, block } of LIVE.values()) {
-    if (!block.isConnected) { region.remove(); continue; }
+  for (const [k, { region, block }] of [...LIVE]) {
+    // A row that left the page is dropped, region and all: a page drawn again makes it anew, already holding its words.
+    if (!block.isConnected) { region.remove(); LIVE.delete(k); continue; }
     sayLines(region, linesOf(block));
     if (!region.isConnected) {
       if (!liveHolder) { liveHolder = hook(h('div', 'p3-sr'), 'choice-live-holder'); }
@@ -156,6 +163,8 @@ function syncLive(): void {
       liveHolder.append(region);
     }
   }
+  // The rows held, for `test:chrome` §42 to read against the regions in the document (a dropped row is not kept).
+  if (liveHolder) liveHolder.dataset.rows = String(LIVE.size);
 }
 
 /** BG1 A and HP5 (heading pass 2, owner approval 2026-10-06): a lever named exactly as its section says its name once,

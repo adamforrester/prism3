@@ -12233,10 +12233,14 @@ for (const host of ['web', 'figma']) {
 //     describes the GROUP: Aurora's refused Compact (the title floor's sentence) and prism3's pinned clash (the clash
 //     sentence on Expressive). Read from CDP `Accessibility.getPartialAXTree`, the radiogroup's own `description`, never the
 //     attribute; and the line it comes from is drawn (it has a box), so no new words are said.
-//   · (2) THE STATE LINES ARE ANNOUNCED, IN PLACE. The row's one polite region (hook `choice-live`, `data-key` the lever's
-//     key) is observed by a MutationObserver installed before display md is set to 56px: it takes the pinned count and the
-//     clash sentence as added text, stays the node it was, and is the one region carrying the clash; Release removes both
-//     lines from that same node and adds nothing. The browser reads it as a polite status (CDP `live`).
+//   · (2) THE WARNING LINES ARE ANNOUNCED, IN PLACE (owner decision Q184 B: warnings only). The row's one polite region
+//     (hook `choice-live`, `data-key` the lever's key) is observed by a MutationObserver installed before display md is
+//     set to 56px: it takes the clash sentence as added text, stays the node it was, and is the one region carrying the
+//     clash, while the pinned count, a hint, is drawn under the chips and carried by no live region. An unrelated edit
+//     (the caption floor) while the clash shows makes no record at all: a line that stays is not said again. Release
+//     removes the clash from that same node and adds nothing. The browser reads it as a polite status (CDP `live`). On
+//     leaving for Shape, Type's rows are dropped with their regions: the rows held (`data-rows` on the holder) are the
+//     regions in the document.
 //   · (3) THE ARROWS PASS OVER A DISABLED CHIP. Real key presses on Aurora (Compact, Default, Expressive; Compact refused):
 //     ArrowRight from Expressive wraps past Compact to Default, and ArrowLeft from Default wraps past Compact to Expressive,
 //     focus and the checked chip moving together. (The chip rows, `chipChoice`, keep KB1 A: no arrows; section 30b.)
@@ -12260,6 +12264,14 @@ for (const host of ['web', 'figma']) {
 //     passes over the disabled Compact to Default, … read {"focus":"type-scale-expressive",…}` and the ArrowLeft arm (4);
 //   · (d) no focus after Release → `§42 web light 1280 prism3: (4) after Release pinned sizes, focus is on Type scale's
 //     checked chip, Default (read {"focus":"BODY","checked":null,"release":false})` (2).
+//   Review of #2458 and Q184 B:
+//   · (M2) `sayLines` never keeps a paragraph → `§42 web light 1280 prism3 pinned clash: (2) a line that stays is not
+//     announced again: an unrelated edit (caption floor 10px) leaves the region untouched (… 2 record(s) …)` (2);
+//   · (e) a hint sent to the region (`.p3-state` for `.p3-state-warn`) → `§42 web light 1280 prism3 pinned clash: (2) a hint
+//     doesn't announce: "1 size is set individually. …" is drawn under the chips and no live region carries it (drawn true,
+//     1 live region(s) carrying it, …)`, the warning arm and the persisting arm (6);
+//   · (f) a row that left the page kept (`LIVE.delete` dropped) → `§42 web light 1280 prism3 on Shape: (2) the rows Type
+//     drew are dropped with their regions, and every row held is a region in the document (read {…"rows":"8","regions":2…})` (2).
 // =============================================================================================
 console.log(`\nChoice rows: reasons, announced state lines, arrows, focus after Release (#2233)\n${'='.repeat(78)}`);
 {
@@ -12361,8 +12373,26 @@ console.log(`\nChoice rows: reasons, announced state lines, arrows, focus after 
         const l1 = await live();
         const added1 = l1.recs.flatMap((x) => x.added).filter((t) => (t ?? '').trim());
         ok(l1.same && l1.connected && l1.count === 1, `${where0} prism3 pinned clash: (2) the row's live region is the node it was before the edit, updated in place, never replaced (same node ${l1.same}, connected ${l1.connected}, ${l1.count} for the row)`);
-        ok(JSON.stringify(l1.paras) === JSON.stringify([PINNED_ONE, CLASH]) && added1.includes(CLASH) && added1.includes(PINNED_ONE) && l1.carrying === 1,
-          `${where0} prism3 pinned clash: (2) the live region says the pinned count and the clash, as added text, and is the one live region carrying the clash (says ${JSON.stringify(l1.paras)}, added ${JSON.stringify(added1)}, ${l1.carrying} carrying it)`);
+        ok(JSON.stringify(l1.paras) === JSON.stringify([CLASH]) && added1.includes(CLASH) && l1.carrying === 1,
+          `${where0} prism3 pinned clash: (2) a warning announces: the live region says the clash, as added text, and is the one live region carrying it (says ${JSON.stringify(l1.paras)}, added ${JSON.stringify(added1)}, ${l1.carrying} carrying it)`);
+        // Q184 B: a hint is drawn and never sent to a live region. The pinned count is on screen, in the row.
+        const hint = await page.evaluate((words) => ({
+          drawn: [...document.querySelectorAll('[data-p3="lever-typography-type-scale"] [data-p3="type-sizes-count"]')].some((n) => n.textContent.trim() === words && n.getBoundingClientRect().height > 0),
+          live: [...document.querySelectorAll('[aria-live], [role="status"], [role="alert"], [role="log"], output')].filter((e) => (e.getAttribute('aria-live') ?? '') !== 'off' && e.textContent.includes(words)).length,
+        }), PINNED_ONE);
+        ok(hint.drawn && hint.live === 0 && !added1.includes(PINNED_ONE),
+          `${where0} prism3 pinned clash: (2) a hint doesn't announce: "${PINNED_ONE}" is drawn under the chips and no live region carries it (drawn ${hint.drawn}, ${hint.live} live region(s) carrying it, added ${JSON.stringify(added1)})`);
+        // A line that stays is not said again: an unrelated edit that redraws the page (the caption floor's unchecked
+        // chip) while the clash shows leaves the region untouched.
+        step = 'an unrelated edit while the clash shows';
+        await page.evaluate(() => { window.__p3live.recs = []; });
+        await hooks.click(page.locator('[data-p3="caption-floor-10"]'), BOUND);
+        await page.waitForFunction(() => document.querySelector('[data-p3="caption-floor-10"]')?.getAttribute('aria-checked') === 'true', null, BOUND).catch(() => {});
+        await settle(page);
+        const lp = await live();
+        const redrew = await page.evaluate(() => document.querySelector('[data-p3="caption-floor-10"]')?.getAttribute('aria-checked') === 'true' && !!document.querySelector('[data-p3="type-scale-release"]'));
+        ok(redrew && lp.same && lp.recs.length === 0 && JSON.stringify(lp.paras) === JSON.stringify([CLASH]),
+          `${where0} prism3 pinned clash: (2) a line that stays is not announced again: an unrelated edit (caption floor 10px) leaves the region untouched (edit landed with the clash still shown ${redrew}, ${lp.recs.length} record(s) ${JSON.stringify(lp.recs)}, says ${JSON.stringify(lp.paras)}, same node ${lp.same})`);
         const lax = await axOf(page, LIVE);
         ok(!!lax && lax.live === 'polite' && lax.role === 'status' && !lax.ignored, `${where0}: (2) the accessibility tree reads the row's region as a polite live region, a status (read ${JSON.stringify(lax)})`);
         step = 'Release pinned sizes holding still';
@@ -12387,6 +12417,18 @@ console.log(`\nChoice rows: reasons, announced state lines, arrows, focus after 
         const removed2 = l2.recs.flatMap((x) => x.removed);
         ok(l2.same && l2.connected && l2.count === 1 && l2.paras.length === 0 && removed2.includes(CLASH) && added2.length === 0,
           `${where0} prism3 released: (2) the live region is emptied in place, adding nothing (says ${JSON.stringify(l2.paras)}, removed ${JSON.stringify(removed2)}, added ${JSON.stringify(added2)}, same node ${l2.same})`);
+        // A row that leaves the page is dropped with its region: on Shape, Type scale has no region, and every row
+        // held is a region in the document.
+        step = 'leave for Shape';
+        await goPlace(page, 'shape');
+        await settle(page);
+        const gone = await page.evaluate((sel) => {
+          const holder = document.querySelector('[data-p3="choice-live-holder"]');
+          return { typeScale: document.querySelectorAll(sel).length, rows: holder?.dataset.rows ?? null, regions: holder?.querySelectorAll('[data-p3="choice-live"]').length ?? null,
+            stale: [...(holder?.querySelectorAll('[data-p3="choice-live"]') ?? [])].map((r) => r.dataset.key).filter((k) => k.startsWith('typography.')) };
+        }, LIVE);
+        ok(gone.typeScale === 0 && gone.stale.length === 0 && gone.regions > 0 && gone.rows === String(gone.regions),
+          `${where0} prism3 on Shape: (2) the rows Type drew are dropped with their regions, and every row held is a region in the document (read ${JSON.stringify(gone)})`);
         ok(errors.length === 0, `${where0} prism3: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
       } catch (e) {
         ok(false, `${where0} prism3: the case stopped at "${step}" — ${stopped(e)}`);
