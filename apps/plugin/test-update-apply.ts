@@ -1283,6 +1283,70 @@ section('corpus — every def, re-applied in place by an executor revision bump,
   ok(bad.length === 0 && ran === defs.length, `corpus/in place: all ${defs.length} defs re-applied with every key and id kept, read back clean, and current after (${ran} clean; ${bad.slice(0, 4).join(' || ')})`);
 }
 
+/* ── image-placeholder (#2345) ───────────────────────────────────────────────────────────────────────── */
+section('image-placeholder — the NB master\'s 3-member set reaches 7 ratios, a scaling marker and the Marker boolean in place (#2345)');
+{
+  // THE FILE AS THE NB MASTER HOLDS IT: built from the def as it was before #2345 — three ratios, the marker in
+  // the flow, no boolean. Reconstructed from today's def by putting those three facts back, so the subject is the
+  // real def's projection on both sides.
+  const IMG = 'image-placeholder';
+  const now = componentDefs.find((x) => x.id === IMG)!;
+  const { optional: _o, scaleWithParent: _s, ...oldMarker } = now.anatomy.parts.marker;
+  void _o; void _s;
+  const before2345 = {
+    ...now,
+    variants: { ratio: ['1:1', '4:3', '16:9'] },
+    anatomy: { ...now.anatomy, parts: { ...now.anatomy.parts, marker: oldMarker } },
+    figmaProperties: { ...now.figmaProperties, booleans: {} },
+  } as typeof now;
+  const oldPlans = figmaAnatomySet(before2345, { swapTarget: SWAP_TARGET });
+  const newPlans = plansOf(IMG);
+  const w = await world(IMG, oldPlans);
+  const NAMES_BEFORE = ['ratio=1:1', 'ratio=4:3', 'ratio=16:9'];
+  ok(JSON.stringify(membersOf(w.set()).map((m) => String(m.name)).sort()) === JSON.stringify([...NAMES_BEFORE].sort()),
+    `premise: the file holds the three pre-#2345 members (${membersOf(w.set()).map((m) => m.name).join(', ')})`);
+  const before = identityOf(w.set());
+  const { pre, res } = await confirm(w, [{ def: IMG, plans: newPlans }]);
+  const p = pre.sets[0];
+  ok(p.counts.update === 3 && p.counts.add === 4 && p.counts.drop === 0 && p.renames.length === 0 && !p.blockers.length,
+    `img/dry run: the three existing members read update, four are added, none dropped or renamed (${JSON.stringify(p.counts)}, ${p.renames.length} renames, ${p.blockers.length} blockers)`);
+  // `absoluteScale` by name: the read-back has to see that the file's marker is not SCALE-constrained, or a marker
+  // the update failed to constrain would read current.
+  ok(p.changes.some((c) => c.part === 'marker' && c.field === 'absoluteScale' && c.members === 3),
+    `img/dry run: the marker's SCALE placement is a named difference on all three (${JSON.stringify(p.changes.map((c) => [c.part, c.field, c.members])).slice(0, 200)})`);
+  const v = applyVerdict(res);
+  ok(v.ok, `img/verdict: ${v.headline} (${v.lines.slice(0, 2).join(' | ').slice(0, 240)})`);
+  const after = identityOf(w.set());
+  // Typed here: the seven names the issue asks for.
+  const NAMES_AFTER = ['ratio=2:3', 'ratio=3:4', 'ratio=4:5', 'ratio=1:1', 'ratio=4:3', 'ratio=3:2', 'ratio=16:9'];
+  ok(JSON.stringify([...after.members.keys()].sort()) === JSON.stringify([...NAMES_AFTER].sort()) && res.outcomes[0].added === 4,
+    `img/added: the set holds the seven ratios, four of them added (${[...after.members.keys()].join(', ')}; added ${res.outcomes[0].added})`);
+  ok(JSON.stringify(after.set) === JSON.stringify(before.set), 'img/set kept: the set keeps its key and id');
+  const moved = [...before.members].filter(([name, b]) => after.members.get(name)?.key !== b.key || after.members.get(name)?.id !== b.id).map(([n]) => n);
+  ok(moved.length === 0, `img/members kept: the three existing members keep their keys and ids (${moved.join(', ') || 'none moved'})`);
+  const markerMoved = [...before.members].filter(([name, b]) => {
+    const was = [...b.kids].find(([path]) => path.startsWith('marker#'))?.[1];
+    return !was || ![...(after.members.get(name)?.kids.values() ?? [])].includes(was);
+  }).map(([n]) => n);
+  ok(markerMoved.length === 0, `img/marker kept: each existing member's marker keeps its node id (${markerMoved.join(', ') || 'none replaced'})`);
+  // Read off the shim's nodes: every member's marker lifted out of the flow and constrained SCALE/SCALE.
+  const placement = membersOf(w.set()).map((m) => {
+    const k = childNamed(m, 'marker');
+    const c = k?.constraints as { horizontal?: string; vertical?: string } | null;
+    return `${String(m.name)}:${String(k?.layoutPositioning)} ${c?.horizontal}/${c?.vertical}`;
+  });
+  ok(placement.every((s) => s.endsWith(':ABSOLUTE SCALE/SCALE')), `img/marker scales: every member's marker is ABSOLUTE, SCALE/SCALE (${placement.filter((s) => !s.endsWith(':ABSOLUTE SCALE/SCALE')).join('; ') || 'all seven'})`);
+  // The Marker boolean: declared on the set, default on, and every member's marker wired to it.
+  const defs = (w.set().componentPropertyDefinitions ?? {}) as Record<string, { type: string; defaultValue: unknown }>;
+  const markerProp = Object.entries(defs).find(([k]) => k.split('#')[0] === 'Marker');
+  ok(!!markerProp && markerProp[1].type === 'BOOLEAN' && markerProp[1].defaultValue === true,
+    `img/property: the set declares the BOOLEAN 'Marker', default on (${JSON.stringify(defs)})`);
+  const unwired = membersOf(w.set()).filter((m) => String(((childNamed(m, 'marker')?.componentPropertyReferences ?? {}) as Record<string, string>).visible ?? '').split('#')[0] !== 'Marker').map((m) => String(m.name));
+  ok(unwired.length === 0, `img/property wired: every member's marker visibility follows 'Marker' (${unwired.join(', ') || 'all seven'})`);
+  const post = (await previewUpdate(w.host, [{ def: IMG, plans: newPlans }])).sets[0];
+  ok(post.counts.current === 7 && post.handEdits.length === 0, `img/current: the next dry run reads all seven current (${JSON.stringify(post.counts)})`);
+}
+
 /* ── inline glyph → icon instance (#2380) ────────────────────────────────────────────────────────────── */
 section('icons — a set built with inline glyphs updates to icon instances, as a named difference (#2380)');
 {
