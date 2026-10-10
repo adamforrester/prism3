@@ -255,6 +255,17 @@ export const JUMP_TO = 'Jump to:';
 export const jumpLabel = (): HTMLElement => hook(h('span', 'p3-jump-label', JUMP_TO), 'jump-label');
 
 const focused = (n: Element): boolean => document.activeElement === n;
+
+/** Commit a text field on `change`, and only there (#2487 A1, A2). The browser already fires `change` on Enter, so a
+ *  second Enter listener committed twice, and the second commit, from the field the first one's redraw had replaced,
+ *  could delete a different breakpoint. And the commit waits one task: Tab's `change` fires before focus moves, so a
+ *  commit made then redraws the page while focus is still on the old field, and the browser's Tab target is gone
+ *  (focus lands on BODY). A microtask runs too early for that; a task runs after focus has moved, so the redraw keeps
+ *  focus where Tab sent it. `textField` uses it, and so does a page's own field that commits on `change` and redraws.
+ *  (`colorField` keeps its Enter: its page repaints it in place, and its `cur` guard drops the second commit.) */
+export const onCommitted = (el: HTMLInputElement, commit: () => void): void => {
+  el.addEventListener('change', () => setTimeout(commit));
+};
 /** Write text only when it changed: a same-value write still replaces the text node and costs a layout. */
 export const setText = (n: Node, t: string): void => { if (n.textContent !== t) n.textContent = t; };
 
@@ -437,11 +448,7 @@ export const textField = (id: string, role: string, opts: { label?: string; mono
   if (opts.label) el.setAttribute('aria-label', opts.label);
   if (opts.describedBy) el.setAttribute('aria-describedby', opts.describedBy);
   if (opts.onInput) { const f = opts.onInput; el.addEventListener('input', () => f(el.value)); }
-  if (opts.onCommit) {
-    const f = opts.onCommit;
-    el.addEventListener('change', () => f(el.value, el));
-    el.addEventListener('keydown', (e) => { if (e.key === 'Enter') f(el.value, el); });
-  }
+  if (opts.onCommit) { const f = opts.onCommit; onCommitted(el, () => f(el.value, el)); }
   return { el, set: (v) => { if (!focused(el) && el.value !== v) el.value = v; } };
 };
 

@@ -689,7 +689,16 @@ export const mountFrame = (app: HTMLElement, opts: {
     const was = place;
     place = placeOfPage(page);
     if (inspecting && (place?.tab !== was?.tab || place?.sub !== was?.sub)) closeInspect(false);
+    // A change no tab started (Layout's Continue, style guides' Close) unmounts the control that had focus, which
+    // would leave it on BODY (#2487 A5). Focus moves to what now says where the user is: the selected sub-tab or
+    // tab, the tab select when narrow hides the row, or the menu page.
+    const wasIn = panes.contains(document.activeElement) || menuPage.contains(document.activeElement);
     render();
+    if (!wasIn || (document.activeElement && document.activeElement !== document.body)) return;
+    if (root.dataset.layout === 'page') { menuPage.focus({ preventScroll: true }); return; }
+    const shown = (n: HTMLElement | undefined): n is HTMLElement => !!n && n.getClientRects().length > 0;
+    const sel = (xs: HTMLElement[]): HTMLElement | undefined => xs.find((t) => t.getAttribute('aria-selected') === 'true');
+    [sel(subTabs), sel(tabs), domSelect].find(shown)?.focus({ preventScroll: true });
   }));
 
   // ── width class and the sticky height ───────────────────────────────────────────────────────────

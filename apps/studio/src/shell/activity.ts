@@ -586,7 +586,13 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
       expanded.add(reveal);
       if (!open) { open = true; auto = false; unread = false; clear(); }
     }
+    const had = document.activeElement;
     paint();
+    // At 380 the open sheet hides the panes, and with them a focused lever, which would leave focus on BODY
+    // (#2487 A8). Focus moves to the sheet's own toggle, the first thing in it.
+    if (open && narrow() && had instanceof HTMLElement && had !== document.body && !drawer.contains(had) && !had.getClientRects().length) {
+      toggle.focus({ preventScroll: true });
+    }
     // The request is answered: clear it, so the same pill asks again next time. `closeDetail` tells `host`
     // and `host:detail`, so `onHost` runs inside it and finds nothing to act on.
     if (cur.detail !== null) closeDetail();
@@ -647,6 +653,14 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
   button.onclick = () => show(!open, true);
   toggle.onclick = () => show(!open, true);
   close.onclick = () => { show(false, true); button.focus(); };
+  // The full-pane sheet at 380 closes on Escape, as its Close does, focus back on the bar's Activity button (#2487 A8).
+  drawer.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape' || !open || !narrow()) return;
+    e.preventDefault();
+    e.stopPropagation();
+    show(false, true);
+    button.focus();
+  });
   cleanups.push(subscribe('host', onHost), subscribe('host:detail', onHost), subscribe('host:progress', onProgress), clear);
   linkWatchers.add(paint);
   cleanups.push(() => linkWatchers.delete(paint));

@@ -13048,6 +13048,272 @@ console.log(`\nRefusal reasons drawn as hint lines: Title floor and Italic only 
     } finally { await ctx.close(); }
   }
 }
+// =============================================================================================
+// 44. #2487 PR 1 (A1, A2, A5, A6, A8, A11, A12): a committed field writes once and keeps focus; a page change, a host
+//     update, a failure sheet or a progress repaint leaves focus on a control, never on BODY. Light, prism3.
+//   · A1 (web 1280, Layout): Enter in the 768 breakpoint field, holding 1025, stores exactly one write, and the stored
+//     breakpoints are the drawn ones, [0, 1024, 1025, 1440, 1920]. Before the fix: two writes, the second from the field
+//     the first redraw replaced, storing [0, 1025, 1440, 1920] (1024 lost).
+//   · A2: Tab out of an edited field lands on the next control, not BODY: a breakpoint (web 1280, Layout; the next
+//     control is that row's Remove), a brand color's name (Palettes), and a gradient's name
+//     (Surfaces & fills).
+//   · A5: Layout's Continue to Components, by keyboard, leaves focus on the selected Components tab (web 1280); Build
+//     style guides' Close, by keyboard, leaves it on the selected tab (figma 1280).
+//   · A6: an emptied Type minimum viewport, gradient stop position or radial gradient center puts its value back and
+//     writes nothing (before: 0px and 0%).
+//   · A8 (figma 380): a failed write opens the Activity sheet over a focused breakpoint field, and focus moves to the
+//     sheet's toggle; Escape closes the sheet and puts focus on the bar's Activity button.
+//   · A11 (figma 1280): with the Figma menu open on Prune stale, an agent's Apply Theme starting disables that item, and
+//     focus moves to an item that can run; Escape then closes the menu onto its button.
+//   · A12 (figma 1280): the open "Draw by table title" disclosure, focused, keeps focus and stays open through a page
+//     repaint.
+//
+// INDEPENDENCE (docs/34). EXPECTED is typed here: the breakpoint list worked out by hand from the defaults
+// [0, 768, 1024, 1440, 1920], the values each field held before it was emptied, and which hook focus must be on. ACTUAL
+// is the browser's: `document.activeElement`, the drawn fields, and every `localStorage` write, counted by a wrapper on
+// `Storage.prototype.setItem` installed once the app is open. Nothing is read from `lever-kit.ts` or the pages.
+//
+// Mutations (#2487), each after a `wip:` commit, on both rebuilt bundles, each failing here by name (the unfixed app fails
+// every arm):
+//   · `textField`'s Enter `keydown` commit re-added → `§44 web light 1280 A1: Enter on a breakpoint stores exactly one
+//     write (2 written)`, and the stored breakpoints `[0,1025,1440,1920]`;
+//   · `onCommitted` committing at once, or in a microtask → `§44 web light 1280 A2: Tab from a breakpoint lands on the
+//     next field, its row's Remove, not BODY (focus {"hook":"BODY",…})`, and the brand color and gradient name arms;
+//   · the brand color's name, or the gradient's name, back on a plain `change` → its own A2 arm;
+//   · each empty-field guard removed (viewport, stop position, center) → its own A6 arm (`field "0", 1 written`);
+//   · `frame.ts`'s refocus removed → both A5 arms; `activity.ts`'s focus move → the A8 toggle arm; its Escape → the A8
+//     Escape arm; `figma.ts`'s refocus → both A11 arms; the summary's `data-key`, or its kept open state → the A12 arm.
+// =============================================================================================
+console.log(`\nInput commit and focus retention (#2487 PR 1)\n${'='.repeat(78)}`);
+{
+  const BOUND = { timeout: 10000 };
+  const COUNT_WRITES = () => {
+    window.__p3Writes = 0;
+    const set = Storage.prototype.setItem;
+    Storage.prototype.setItem = function (k, v) { if (k === 'prism3:brandInput') window.__p3Writes++; return set.call(this, k, v); };
+  };
+  /** The focused element, as its hook (or its tag when it has none), with what identifies it. */
+  const focusOf = (page) => page.evaluate(() => {
+    const a = document.activeElement;
+    return { hook: a?.getAttribute('data-p3') ?? a?.tagName ?? null, selected: a?.getAttribute('aria-selected') ?? null, bp: a?.closest('[data-p3="bp-row"]')?.dataset.bp ?? null };
+  });
+  /** A committed field's work runs one task after `change`; two frames and a task is past it. */
+  const after = (page) => page.evaluate(() => new Promise((r) => setTimeout(() => requestAnimationFrame(() => requestAnimationFrame(r)), 0)));
+  const writes = (page) => page.evaluate(() => window.__p3Writes);
+  const zero = (page) => page.evaluate(() => { window.__p3Writes = 0; });
+  const drawnBps = (page) => page.evaluate(() => [...document.querySelectorAll('[data-p3="bp-input"]')].map((e) => Number(e.value)));
+
+  // ── the web host: Layout, Type, Palettes, Surfaces & fills ──────────────────────────────────────
+  {
+    const where = '§44 web light 1280';
+    const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+    let step = 'open Layout';
+    try {
+      await page.evaluate(COUNT_WRITES);
+      await goPlace(page, 'layout');
+      await hooks.need(page, '[data-p3="bp-input"]', BOUND);
+      // A1: Enter on a breakpoint stores exactly one write.
+      step = 'Enter 1025 in the 768 field';
+      const bp = (i) => page.locator('[data-p3="bp-input"]').nth(i);
+      const start = await drawnBps(page);
+      ok(JSON.stringify(start) === JSON.stringify([0, 768, 1024, 1440, 1920]), `${where} A1: Layout opens on the default breakpoints [0,768,1024,1440,1920] (read ${JSON.stringify(start)})`);
+      await bp(1).fill('1025');
+      await zero(page);
+      await bp(1).press('Enter');
+      await after(page);
+      await page.waitForTimeout(200);
+      const n = await writes(page);
+      const stored = (await persisted(page))?.layout?.breakpoints ?? null;
+      const drawn = await drawnBps(page);
+      ok(n === 1, `${where} A1: Enter on a breakpoint stores exactly one write (${n} written)`);
+      ok(JSON.stringify(stored) === JSON.stringify([0, 1024, 1025, 1440, 1920]) && JSON.stringify(drawn) === JSON.stringify(stored),
+        `${where} A1: the stored breakpoints are [0,1024,1025,1440,1920] and the page draws them (stored ${JSON.stringify(stored)}, drawn ${JSON.stringify(drawn)})`);
+      // A2: Tab out of an edited breakpoint lands on the next control, that row's Remove.
+      step = 'Tab out of the 1025 field';
+      const row = await bp(2).evaluate((e) => e.closest('[data-p3="bp-row"]')?.dataset.bp ?? null);
+      await bp(2).fill('1100');
+      await bp(2).press('Tab');
+      await after(page);
+      const ft = await focusOf(page);
+      ok(ft.hook === 'bp-remove' && ft.bp === row, `${where} A2: Tab from a breakpoint lands on the next field, its row's Remove, not BODY (focus ${JSON.stringify(ft)}, row ${row})`);
+      // A5: Continue to Components, by keyboard.
+      step = 'Continue to Components';
+      await page.locator('[data-p3="layout-continue"]').focus();
+      await page.keyboard.press('Enter');
+      await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.place === 'components', null, BOUND);
+      await after(page);
+      const fc = await focusOf(page);
+      ok(fc.hook === 'tab-components' && fc.selected === 'true', `${where} A5: Continue to Components by keyboard keeps focus off BODY, on the selected Components tab (focus ${JSON.stringify(fc)})`);
+
+      // A6: an emptied minimum viewport puts its value back.
+      step = 'open Type';
+      await goPlace(page, 'type');
+      for (const s of ['[data-p3="type-sections-advanced"]']) if (!(await page.locator('[data-p3="type-min-viewport"]').count()) && (await page.locator(s).count())) await hooks.click(page.locator(s), BOUND);
+      await hooks.need(page, '[data-p3="type-min-viewport"]', BOUND);
+      step = 'empty the minimum viewport';
+      const vp = page.locator('[data-p3="type-min-viewport"]');
+      const vWas = await vp.inputValue();
+      const pWas = JSON.stringify(await persisted(page));
+      await zero(page);
+      await vp.fill('');
+      await vp.press('Tab');
+      await after(page);
+      const vNow = await vp.inputValue();
+      const stMin = (await persisted(page))?.typography?.responsive?.minViewport ?? null;
+      ok(vNow === vWas && vWas !== '' && (await writes(page)) === 0 && JSON.stringify(await persisted(page)) === pWas,
+        `${where} A6: an empty minViewport restores its value (${vWas}) and writes nothing (field "${vNow}", stored minViewport ${stMin}, ${await writes(page)} written)`);
+
+      step = 'open Palettes';
+      await goPlace(page, 'color-palettes');
+      // A2: a brand color's name.
+      if (!(await page.locator('[data-p3="brand-color-name"]').count())) await hooks.click(page.locator('[data-p3="brand-color-add"]'), BOUND);
+      await hooks.need(page, '[data-p3="brand-color-name"]', BOUND);
+      step = 'rename a brand color and Tab';
+      const nm = page.locator('[data-p3="brand-color-name"]').first();
+      await nm.fill('fortyfour');
+      await nm.press('Tab');
+      await after(page);
+      const fn = await focusOf(page);
+      const names = await page.evaluate(() => [...document.querySelectorAll('[data-p3="brand-color-name"]')].map((e) => e.value));
+      ok(names.includes('fortyfour') && fn.hook === 'brand-color-remove', `${where} A2: Tab from a renamed brand color lands on the next field, its Remove, not BODY (focus ${JSON.stringify(fn)}, names ${JSON.stringify(names)})`);
+
+      // A2 and A6 on Surfaces & fills: a gradient's name, and an emptied stop position.
+      step = 'open Surfaces & fills';
+      await goPlace(page, 'color-fills');
+      if (!(await page.locator('[data-p3="gradient-name"]').count())) {
+        if (await page.locator('[data-p3="gradients-switch"]').getAttribute('aria-checked') !== 'true') await hooks.click(page.locator('[data-p3="gradients-switch"]'), BOUND);
+        if (!(await page.locator('[data-p3="gradient-name"]').count())) await hooks.click(page.locator('[data-p3="gradient-add"]'), BOUND);
+      }
+      await hooks.need(page, '[data-p3="gradient-name"]', BOUND);
+      step = 'rename a gradient and Tab';
+      const gn = page.locator('[data-p3="gradient-name"]').first();
+      await gn.fill('fortyfour');
+      await gn.press('Tab');
+      await after(page);
+      const fg = await focusOf(page);
+      const gnames = await page.evaluate(() => [...document.querySelectorAll('[data-p3="gradient-name"]')].map((e) => e.value));
+      ok(gnames.includes('fortyfour') && fg.hook === 'gradient-remove', `${where} A2: Tab from a renamed gradient lands on the next field, its Remove, not BODY (focus ${JSON.stringify(fg)}, names ${JSON.stringify(gnames)})`);
+      step = 'empty a stop position';
+      const pos = page.locator('[data-p3="gradient-stop-position"]').last();
+      const posWas = await pos.inputValue();
+      const gWas = JSON.stringify((await persisted(page))?.gradients ?? null);
+      await zero(page);
+      await pos.fill('');
+      await pos.press('Tab');
+      await after(page);
+      const posNow = await page.locator('[data-p3="gradient-stop-position"]').last().inputValue();
+      const gNow = JSON.stringify((await persisted(page))?.gradients ?? null);
+      ok(posNow === posWas && posWas !== '' && posWas !== '0' && gNow === gWas && (await writes(page)) === 0,
+        `${where} A6: an empty gradient stop position restores its value (${posWas}%) and writes nothing (field "${posNow}", ${await writes(page)} written)`);
+      step = 'empty a radial center';
+      await page.locator('[data-p3="gradient-kind"]').first().selectOption('radial');
+      await hooks.need(page, '[data-p3="gradient-center-x"]', BOUND);
+      const cx = page.locator('[data-p3="gradient-center-x"]').first();
+      const cxWas = await cx.inputValue();
+      const cWas = JSON.stringify((await persisted(page))?.gradients ?? null);
+      await zero(page);
+      await cx.fill('');
+      await cx.press('Tab');
+      await after(page);
+      const cxNow = await page.locator('[data-p3="gradient-center-x"]').first().inputValue();
+      ok(cxNow === cxWas && cxWas !== '' && cxWas !== '0' && JSON.stringify((await persisted(page))?.gradients ?? null) === cWas && (await writes(page)) === 0,
+        `${where} A6: an empty gradient center restores its value (${cxWas}%) and writes nothing (field "${cxNow}", ${await writes(page)} written)`);
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+
+  // ── the plugin at 380: the Activity sheet over a focused lever ──────────────────────────────────
+  {
+    const where = '§44 figma light 380';
+    const { ctx, page, errors } = await open({ host: 'figma', theme: 'light', w: 380, h: 800 });
+    let step = 'open Layout';
+    try {
+      await goPlace(page, 'layout');
+      await hooks.need(page, '[data-p3="bp-input"]', BOUND);
+      await page.locator('[data-p3="bp-input"]').nth(1).focus();
+      step = 'a failed write';
+      await postMsg(page, { type: 'apply-result', ok: false, headline: '✗ write failed', summary: 'The write failed.' });
+      await page.waitForFunction(() => document.querySelector('[data-p3="activity-drawer"]')?.dataset.open === 'true', null, BOUND);
+      await after(page);
+      const f1 = await focusOf(page);
+      ok(f1.hook === 'activity-toggle', `${where} A8: a failed write's sheet keeps focus off BODY, on the sheet's toggle (focus ${JSON.stringify(f1)})`);
+      step = 'Escape';
+      await page.keyboard.press('Escape');
+      await after(page);
+      const f2 = await focusOf(page);
+      const shut = await page.evaluate(() => document.querySelector('[data-p3="activity-drawer"]')?.dataset.open);
+      ok(shut === 'false' && f2.hook === 'activity-open', `${where} A8: Escape closes the sheet and returns focus to the bar's Activity button (open ${shut}, focus ${JSON.stringify(f2)})`);
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+
+  // ── the plugin at 1280: the Figma menu; Build style guides ──────────────────────────────────────
+  {
+    const where = '§44 figma light 1280';
+    const { ctx, page, errors } = await open({ host: 'figma', theme: 'light', w: 1280, h: 900 });
+    let step = 'open the Figma menu';
+    try {
+      // A11: a host update disables the focused item.
+      await openFigma(page);
+      const f0 = await focusOf(page);
+      ok(f0.hook === 'figma-option-prune', `${where} A11: the Figma menu opens on Prune stale (focus ${JSON.stringify(f0)})`);
+      step = 'an agent starts Apply Theme';
+      await postMsg(page, { type: 'agent-started', id: 'p44', cmd: 'apply-theme' });
+      await page.waitForFunction(() => document.querySelector('[data-p3="figma-option-prune"]')?.disabled === true, null, BOUND);
+      await after(page);
+      const f1 = await page.evaluate(() => { const a = document.activeElement; return { hook: a?.getAttribute('data-p3') ?? a?.tagName, inMenu: !!a?.closest('[data-p3="figma-menu"]'), disabled: !!a?.disabled }; });
+      ok(f1.inMenu && !f1.disabled && f1.hook !== 'figma-option-prune', `${where} A11: the Figma menu keeps focus on an item that can run when a host update disables the focused one (focus ${JSON.stringify(f1)})`);
+      step = 'Escape';
+      await page.keyboard.press('Escape');
+      await after(page);
+      const f2 = await focusOf(page);
+      const menuOpen = await page.locator('[data-p3="figma-menu"]').count();
+      ok(menuOpen === 0 && f2.hook === 'figma-open', `${where} A11: Escape still closes the menu onto its button (menu ${menuOpen}, focus ${JSON.stringify(f2)})`);
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+  {
+    const where = '§44 figma light 1280';
+    const { ctx, page, errors } = await open({ host: 'figma', theme: 'light', w: 1280, h: 900 });
+    let step = 'open Build style guides';
+    try {
+      // A12: the titles disclosure through a repaint.
+      await openFigma(page);
+      await hooks.click(page.locator('[data-p3="figma-option-style-guide"]'), BOUND);
+      await hooks.need(page, '[data-p3="style-guides"]', BOUND);
+      await postMsg(page, { type: 'style-guide-catalog', catalog: SG_RING_CATALOG });
+      await hooks.need(page, '[data-p3="sg-titles-summary"]', BOUND);
+      step = 'open "Draw by table title" by keyboard';
+      await page.locator('[data-p3="sg-titles-summary"]').focus();
+      await page.keyboard.press('Enter');
+      await page.waitForFunction(() => document.querySelector('[data-p3="sg-titles"]')?.open === true, null, BOUND);
+      step = 'a repaint';
+      await postMsg(page, { type: 'style-guide-catalog', catalog: SG_RING_CATALOG });
+      await after(page);
+      const f3 = await focusOf(page);
+      const det = await page.evaluate(() => document.querySelector('[data-p3="sg-titles"]')?.open ?? null);
+      ok(f3.hook === 'sg-titles-summary' && det === true, `${where} A12: the "Draw by table title" disclosure keeps focus and stays open through a repaint (focus ${JSON.stringify(f3)}, open ${det})`);
+
+      // A5: Build style guides' Close, by keyboard.
+      step = 'Close Build style guides';
+      await page.locator('[data-p3="sg-close"]').focus();
+      await page.keyboard.press('Enter');
+      await page.waitForFunction(() => !document.querySelector('[data-p3="style-guides"]'), null, BOUND);
+      await after(page);
+      const f4 = await focusOf(page);
+      ok(/^(tab|color-sub)-/.test(f4.hook ?? '') && f4.selected === 'true', `${where} A5: Build style guides' Close by keyboard keeps focus off BODY, on the selected tab (focus ${JSON.stringify(f4)})`);
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+}
 // #2238: the check box is measured on both hosts, in both chrome themes, somewhere in the sweep.
 for (const [k, n] of Object.entries(BOXES_BY)) ok(n > 0, `#2238 ${k}: the contrast audit measured check boxes in the sweep (${n})`);
 hooks.report(ok);
