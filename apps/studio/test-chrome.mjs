@@ -1168,6 +1168,47 @@ const fontsDrawn = async (page) => {
   return out;
 };
 
+/** The focused control's ring, read in the page: `focusRings`' reader, named so a sweep that moves focus by other keys
+ *  (a menu's arrows, #2487 PR 5) reads it the same way. `[all, skipIn, pinned]` as `focusRings` passes them. */
+const FOCUS_RING_READ = ([all, skipIn, pinned]) => {
+  const el = document.activeElement;
+  if (!el || el === document.body) return { done: false, skip: true };
+  if (all) {
+    // Back where the sweep started: every stop was read once.
+    if (el.hasAttribute('data-fring')) return { done: true };
+    el.setAttribute('data-fring', '');
+    if (el.closest(['[data-content]', ...skipIn].join(', '))) return { done: false, skip: true, skipped: true };
+  } else if (el.closest('[data-p3="brand-style-guide"]')) return { done: true };
+  // (Not `all`: Tab has left the chrome for the Style guide lent into Brand's preview (S3), which draws in
+  // `styles.css`.)
+  const parse = (s) => { const m = /^rgba?\(([^)]+)\)$/.exec(s.trim()); if (!m) return null; const p = m[1].split(/[,\s/]+/).filter(Boolean).map(Number); return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 }; };
+  const over = (fg, bg) => ({ r: fg.r * fg.a + bg.r * (1 - fg.a), g: fg.g * fg.a + bg.g * (1 - fg.a), b: fg.b * fg.a + bg.b * (1 - fg.a), a: 1 });
+  const lum = (c) => { const f = (v) => { const x = v / 255; return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b); };
+  const ratio = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+  const groundOf = (n0) => { let acc = null; for (let n = n0; n && n.nodeType === 1; n = n.parentElement) { const c = parse(getComputedStyle(n).backgroundColor); if (c && c.a > 0) { acc = acc ? over(acc, c) : c; if (acc.a >= 0.999) return { ...acc, a: 1 }; } } return acc ? over(acc, { r: 255, g: 255, b: 255, a: 1 }) : { r: 255, g: 255, b: 255, a: 1 }; };
+  const cs = getComputedStyle(el);
+  let width = cs.outlineStyle !== 'none' ? parseFloat(cs.outlineWidth) : 0;
+  let color = width ? cs.outlineColor : null;
+  let kind = width ? 'outline' : null;
+  let offset = width ? parseFloat(cs.outlineOffset) : null;
+  if (!width) {   // a tab draws its ring on ::before, inside the row's scroll box
+    const b = getComputedStyle(el, '::before');
+    if (b.content !== 'none' && b.display !== 'none' && b.visibility !== 'hidden' && parseFloat(b.opacity) > 0 && b.borderTopStyle !== 'none') {
+      width = parseFloat(b.borderTopWidth); color = b.borderTopColor; kind = 'before';
+      // How far the ring reaches past the tab's own box on each side (its inline inset is negative).
+      offset = Math.min(-parseFloat(b.left), -parseFloat(b.right));
+    }
+  }
+  const c = color ? parse(color) : null;
+  const hex = c ? `#${[c.r, c.g, c.b].map((v) => Math.round(v).toString(16).padStart(2, '0')).join('')}${c.a < 1 ? Math.round(c.a * 255).toString(16).padStart(2, '0') : ''}` : null;
+  // A ring drawn inside the control's box (a negative outline offset: the two scrolling panes, S2) is seen
+  // against the control's own ground; every other ring against what is outside it.
+  const g = groundOf(width && kind === 'outline' && offset < 0 ? el : el.parentElement);
+  const box = el.getBoundingClientRect();
+  return { hook: el.getAttribute('data-p3') ?? `${el.tagName.toLowerCase()}.${el.className}`, inFrame: !!el.closest('[data-p3="frame"]'),
+    pinnedLight: !!el.closest(pinned.join(', ')), width, hex, kind, offset, box: { x: box.x, y: box.y, w: box.width, h: box.height }, r: c ? Math.floor(ratio(over(c, g), g) * 100) / 100 : 0 };
+};
+
 /** Tab through the chrome from the top of the page, reading the ring each control draws: its width, its color as
  *  drawn (`hex`, the computed color, never a variable name), where it sits (`offset`: the outline's offset, or for a
  *  tab's `::before` ring how far it reaches past the tab's own box), and its contrast against what is outside it.
@@ -1179,44 +1220,7 @@ const focusRings = async (page, { all = false, max = 30, skipIn = [], onRing = n
   await page.keyboard.press('Tab');
   const seen = [];
   for (let i = 0; i < max; i++) {
-    const r = await page.evaluate(([all, skipIn, pinned]) => {
-      const el = document.activeElement;
-      if (!el || el === document.body) return { done: false, skip: true };
-      if (all) {
-        // Back where the sweep started: every stop was read once.
-        if (el.hasAttribute('data-fring')) return { done: true };
-        el.setAttribute('data-fring', '');
-        if (el.closest(['[data-content]', ...skipIn].join(', '))) return { done: false, skip: true, skipped: true };
-      } else if (el.closest('[data-p3="brand-style-guide"]')) return { done: true };
-      // (Not `all`: Tab has left the chrome for the Style guide lent into Brand's preview (S3), which draws in
-      // `styles.css`.)
-      const parse = (s) => { const m = /^rgba?\(([^)]+)\)$/.exec(s.trim()); if (!m) return null; const p = m[1].split(/[,\s/]+/).filter(Boolean).map(Number); return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 }; };
-      const over = (fg, bg) => ({ r: fg.r * fg.a + bg.r * (1 - fg.a), g: fg.g * fg.a + bg.g * (1 - fg.a), b: fg.b * fg.a + bg.b * (1 - fg.a), a: 1 });
-      const lum = (c) => { const f = (v) => { const x = v / 255; return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b); };
-      const ratio = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
-      const groundOf = (n0) => { let acc = null; for (let n = n0; n && n.nodeType === 1; n = n.parentElement) { const c = parse(getComputedStyle(n).backgroundColor); if (c && c.a > 0) { acc = acc ? over(acc, c) : c; if (acc.a >= 0.999) return { ...acc, a: 1 }; } } return acc ? over(acc, { r: 255, g: 255, b: 255, a: 1 }) : { r: 255, g: 255, b: 255, a: 1 }; };
-      const cs = getComputedStyle(el);
-      let width = cs.outlineStyle !== 'none' ? parseFloat(cs.outlineWidth) : 0;
-      let color = width ? cs.outlineColor : null;
-      let kind = width ? 'outline' : null;
-      let offset = width ? parseFloat(cs.outlineOffset) : null;
-      if (!width) {   // a tab draws its ring on ::before, inside the row's scroll box
-        const b = getComputedStyle(el, '::before');
-        if (b.content !== 'none' && b.display !== 'none' && b.visibility !== 'hidden' && parseFloat(b.opacity) > 0 && b.borderTopStyle !== 'none') {
-          width = parseFloat(b.borderTopWidth); color = b.borderTopColor; kind = 'before';
-          // How far the ring reaches past the tab's own box on each side (its inline inset is negative).
-          offset = Math.min(-parseFloat(b.left), -parseFloat(b.right));
-        }
-      }
-      const c = color ? parse(color) : null;
-      const hex = c ? `#${[c.r, c.g, c.b].map((v) => Math.round(v).toString(16).padStart(2, '0')).join('')}${c.a < 1 ? Math.round(c.a * 255).toString(16).padStart(2, '0') : ''}` : null;
-      // A ring drawn inside the control's box (a negative outline offset: the two scrolling panes, S2) is seen
-      // against the control's own ground; every other ring against what is outside it.
-      const g = groundOf(width && kind === 'outline' && offset < 0 ? el : el.parentElement);
-      const box = el.getBoundingClientRect();
-      return { hook: el.getAttribute('data-p3') ?? `${el.tagName.toLowerCase()}.${el.className}`, inFrame: !!el.closest('[data-p3="frame"]'),
-        pinnedLight: !!el.closest(pinned.join(', ')), width, hex, kind, offset, box: { x: box.x, y: box.y, w: box.width, h: box.height }, r: c ? Math.floor(ratio(over(c, g), g) * 100) / 100 : 0 };
-    }, [all, skipIn, INSPECT_LEGACY]);
+    const r = await page.evaluate(FOCUS_RING_READ, [all, skipIn, INSPECT_LEGACY]);
     if (r.done) break;
     if (r.skipped) seen.skipped = (seen.skipped ?? 0) + 1;
     if (!r.skip && r.inFrame) { seen.push(r); if (onRing) await onRing(r); }
@@ -1626,6 +1630,13 @@ for (const host of ['web', 'figma']) {
   }
 }
 
+/** How many local switches between pages a place draws (D8's, retired in S9.2): a `.p3-switchseg`, or any tab list but
+ *  the frame's own, which are found by HOOK (D12, #2487 PR 5): the tab row's, the Color sub-row (`color-sub-row`) and
+ *  Inspect's. Keyed on hooks, never on a name: the old selector matched an `aria-label` ending " pages", so a switch
+ *  that lost its name went unseen, the very regression M4 makes. Brand content (`[data-content]`) is not chrome. */
+const LOCAL_SWITCHES = () => [...document.querySelectorAll('.p3-switchseg, [role="tablist"]')].filter((n) => n.matches('.p3-switchseg')
+  || !n.closest('[data-p3="tab-row"], [data-p3="color-sub-row"], [data-p3="inspect"], [data-content]')).length;
+
 // =============================================================================================
 // 2. Every place: the legacy map, the layout, and the chrome on each (1280, light and dark)
 // =============================================================================================
@@ -1637,7 +1648,7 @@ for (const host of ['web', 'figma']) {
       await goPlace(page, place);
       const where = `${host} ${theme} 1280 / ${place}`;
       // D8's local switch between two legacy pages went with S9.2 (Depth & motion moved): no place shows one.
-      hooks.absent(ok, { seen: !!(await page.locator('[data-p3="frame"]').count()), state: 'the frame' }, (await page.locator('.p3-switchseg, [role="tablist"][aria-label$=" pages"]:not(.p3-subseg)').count()) === 0,
+      hooks.absent(ok, { seen: !!(await page.locator('[data-p3="frame"]').count()), state: 'the frame' }, (await page.evaluate(LOCAL_SWITCHES)) === 0,
         `${where}: no place draws a local switch between legacy pages (D8's, retired in S9.2)`);
       const m = await measure(page, where, host, 1280);
       check(m, where, columnOf(host, 1280), PLACE_FLOOR);
@@ -3479,8 +3490,10 @@ for (const host of ['web', 'figma']) {
     `Q3: a refused Dark off marks Modes refused and leaves dark on (${JSON.stringify(refusedNow)}, modes ${await modeRadios(page)})`);
   ok(JSON.stringify(await persisted(page)) === savedBefore, 'Q3: a refused Dark off leaves the saved brand exactly as it was');
   await hooks.click(page.locator('[data-p3="custom-mode-remove"]'));
-  await page.waitForFunction(() => !document.querySelector('[data-p3="mode-option"][data-mode="custom-1"]'));
-  ok(true, 'custom modes: removing custom-1 takes it out of the preview\'s modes');
+  // D10 (#2487 PR 5): a bounded wait whose result is the assertion, so a regression fails here by name instead of
+  // timing out into the catch and skipping the rest of the Brand case.
+  const customGone = await page.waitForFunction(() => !document.querySelector('[data-p3="mode-option"][data-mode="custom-1"]'), null, { timeout: 5000 }).then(() => true, () => false);
+  ok(customGone, `custom modes: removing custom-1 takes it out of the preview's modes (modes ${await modeRadios(page)})`);
 
   // The Style guide is lent, and its own control redraws it in place, inside the preview (never a legacy tier).
   const sg = () => page.evaluate(() => ({ ground: document.querySelector('[data-p3="brand-style-guide"] [data-p3="style-guide-ground"]')?.value ?? null, roots: document.querySelectorAll('[data-p3="preview-body"] [data-p3="brand-style-guide"] [data-p3="specimen"]').length }));
@@ -3492,8 +3505,8 @@ for (const host of ['web', 'figma']) {
   ok(view1.view === view0.view && view1.view === 'guide', `V1 edit: Brand's edits never move the preview's home (${view1.view}, was ${view0.view})`);
   // Continue opens Color › Palettes.
   await hooks.click(page.locator('[data-p3="brand-continue"]'));
-  await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.place === 'color-palettes');
-  ok(true, 'Brand: Continue to Color › Palettes opens Color › Palettes');
+  const continued = await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.place === 'color-palettes', null, { timeout: 5000 }).then(() => true, () => false);
+  ok(continued, `Brand: Continue to Color › Palettes opens Color › Palettes (place ${await page.evaluate(() => document.querySelector('[data-p3="frame"]')?.dataset.place ?? null)})`);
   ok(errors.length === 0, `Brand: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
     ok(false, `S3 Brand: the case stopped at a step that threw, and the rest of it was skipped — ${stopped(e)}`);
@@ -13745,6 +13758,289 @@ console.log(`\nInput commit and focus retention (#2487 PR 1)\n${'='.repeat(78)}`
       await after(page);
       const f4 = await focusOf(page);
       ok(/^(tab|color-sub)-/.test(f4.hook ?? '') && f4.selected === 'true', `${where} A5: Build style guides' Close by keyboard keeps focus off BODY, on the selected tab (focus ${JSON.stringify(f4)})`);
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+}
+// =============================================================================================
+// 46. #2487 PR 5 (B3 and A16; Lane D's M2, M4 and M5, Lane A's K2): every control the chrome draws has a computed name,
+//     the pane toggle's pressed state follows the pane shown, a menu's or a dialog's controls draw the ring, and a
+//     hovered control's text holds its contrast floor
+// =============================================================================================
+// The sweeps before this one read computed names on the top bar alone, read rings with every menu and dialog closed,
+// and hovered a control only to see that something changed (the merged review of #2487, B3 and A16). This reads:
+//   · NAMES, from the browser's accessibility tree (CDP `Accessibility.getFullAXTree`, never an attribute): every
+//     control and composite of `PR5_NAMED` under the frame has a non-empty computed name, on every place, both hosts, at
+//     1280 and at 380 (the Settings pane, then the Preview pane), and with Inspect open. Brand content and the lent
+//     legacy views (`INSPECT_LEGACY`, drawn by `styles.css`; the token list's own gaps are #2492) are left out by hook.
+//   · PRESSED, at 380: after each pane switch the tree reports exactly one pane toggle pressed, and it is the pane the
+//     layout shows; the other pane is drawn nowhere.
+//   · RINGS WITH A MENU OR A DIALOG OPEN: each menu opened by keyboard and walked by its own arrows until it comes back
+//     to an item it read, and the export dialog walked by Tab the same way, every ring held to #2144's `ringMisses`.
+//   · HOVER: one control of each kind `HOVER_KINDS` names, plus a tab and a menu item, under the pointer: every text it
+//     draws at `TEXT_MIN` against the ground it is drawn on, read while hovered.
+// INDEPENDENCE (docs/34). The roles, the hooks, the floors and the pane names are literals typed here. Names and pressed
+// states come from the tree; rings and colors from computed style; never from `frame.ts`, `bar.ts` or `chrome.css`.
+// Mutations, each in a `wip:` commit, each failing here by name (the PR records the lines): M2, the pane toggle's
+// `aria-pressed` pinned to Settings; M4, the Color sub-row's `aria-label` removed; M5, Inspect's Back `aria-label`
+// removed (nameless at 380, where its words are hidden); K2, `.p3-menu-item` dropped from the ring rule; and a hover
+// that draws a filled button's hovered fill too light for its ink.
+/** The roles that must carry a name: every control role the tree gives (`RO_AX_CONTROLS`), and the composites. */
+const PR5_NAMED = new Set([...RO_AX_CONTROLS, 'tablist', 'radiogroup', 'menu', 'dialog']);
+/** Left out by hook: the lent legacy views. Brand content (`[data-content]`) is left out too. */
+const PR5_SKIP = new Set(INSPECT_LEGACY.map((s) => hooks.role(s)));
+/** The fewest named nodes one sweep must read (shape 9): under the fewest measured when this landed (12, web at 380). */
+const PR5_NAME_FLOOR = 10;
+/** Every named node under the frame the tree exposes, and the ones whose computed name is empty. */
+const pr5Names = async (page) => {
+  const cdp = await page.context().newCDPSession(page);
+  try {
+    await cdp.send('DOM.enable');
+    await cdp.send('Accessibility.enable');
+    const { root } = await cdp.send('DOM.getDocument', { depth: -1 });
+    const at = new Map();
+    const walk = (n, hook, frame, skip) => {
+      const a = n.attributes ?? [];
+      for (let k = 0; k < a.length; k += 2) {
+        if (a[k] === 'data-p3') { hook = a[k + 1]; if (hook === 'frame') frame = true; if (PR5_SKIP.has(hook)) skip = true; }
+        if (a[k] === 'data-content') skip = true;
+      }
+      at.set(n.backendNodeId, { hook, frame, skip });
+      for (const c of n.children ?? []) walk(c, hook, frame, skip);
+    };
+    walk(root, null, false, false);
+    const { nodes } = await cdp.send('Accessibility.getFullAXTree');
+    let read = 0;
+    const nameless = [];
+    for (const n of nodes) {
+      if (n.ignored || !PR5_NAMED.has(n.role?.value ?? '')) continue;
+      const d = at.get(n.backendDOMNodeId);
+      if (!d || !d.frame || d.skip) continue;
+      read++;
+      if (!(n.name?.value ?? '').trim()) nameless.push(`${n.role.value} ${d.hook ?? '(no hook)'}`);
+    }
+    return { read, nameless };
+  } finally { await cdp.detach(); }
+};
+/** The two pane toggles, by hook. */
+const PR5_TOGGLES = { settings: '[data-p3="pane-toggle-settings"]', preview: '[data-p3="pane-toggle-preview"]' };
+/** Each pane toggle's computed name and pressed state, from the tree, and which pane the layout draws. */
+const pr5Panes = async (page) => {
+  const cdp = await page.context().newCDPSession(page);
+  try {
+    await cdp.send('DOM.enable');
+    await cdp.send('Accessibility.enable');
+    const { root } = await cdp.send('DOM.getDocument', { depth: 0 });
+    const out = {};
+    for (const [p, sel] of Object.entries(PR5_TOGGLES)) {
+      const { nodeId } = await cdp.send('DOM.querySelector', { nodeId: root.nodeId, selector: sel });
+      if (!nodeId) { out[p] = null; continue; }
+      const { nodes } = await cdp.send('Accessibility.getPartialAXTree', { nodeId, fetchRelatives: false });
+      const n = nodes.find((x) => !x.ignored);
+      out[p] = { name: n?.name?.value ?? null, pressed: String(n?.properties?.find((q) => q.name === 'pressed')?.value?.value ?? 'none') };
+    }
+    const shown = await page.evaluate(() => {
+      const drawn = (sel) => { const n = document.querySelector(sel); return !!n && n.getClientRects().length > 0 && getComputedStyle(n).visibility !== 'hidden'; };
+      // The preview pane's own element is `display: contents` at 380, so its body says whether it is drawn.
+      return { settings: drawn('[data-p3="levers-pane"]'), preview: drawn('[data-p3="preview-body"]') };
+    });
+    return { toggles: out, shown };
+  } finally { await cdp.detach(); }
+};
+/** The menus, each opened by keyboard from its trigger: [trigger, the menu, the hosts that draw it]. */
+const PR5_MENUS = [
+  ['[data-p3="brand-switcher"]', '[data-p3="brand-menu"]', ['web', 'figma']],
+  ['[data-p3="theme-toggle"]', '[data-p3="theme-menu"]', ['web', 'figma']],
+  ['[data-p3="inspect-open"]', '[data-p3="inspect-menu"]', ['web', 'figma']],
+  ['[data-p3="figma-open"]', '[data-p3="figma-menu"]', ['figma']],
+];
+/** The fewest items a menu must be walked through, and the fewest controls the export dialog, per host (shape 9). */
+const PR5_MENU_FLOOR = 2;
+const PR5_DIALOG_FLOOR = 3;
+/** Rings this sweep found missing and that are filed, by the reader's name for the control: each must still be reached
+ *  and still miss, so the entry fails once the gap is fixed and is removed then (a memory, not an exemption). */
+const PR5_RING_GAPS = { 'pre.p3-export-pre': 2523 };
+/** Walk focus by `key` from where it is, reading each ring while focus stays inside `within`, until it comes back to a
+ *  control it read (or leaves). Returns the rings read. */
+const pr5Walk = async (page, within, key) => {
+  const rings = [];
+  for (let i = 0; i < 80; i++) {
+    const at = await page.evaluate((w) => {
+      const el = document.activeElement;
+      if (!el || !el.closest(w)) return 'out';
+      if (el.hasAttribute('data-pr5ring')) return 'back';
+      el.setAttribute('data-pr5ring', '');
+      return 'in';
+    }, within);
+    if (at !== 'in') break;
+    rings.push(await page.evaluate(FOCUS_RING_READ, [false, [], INSPECT_LEGACY]));
+    await page.keyboard.press(key);
+  }
+  await page.evaluate(() => { for (const n of document.querySelectorAll('[data-pr5ring]')) n.removeAttribute('data-pr5ring'); });
+  return rings;
+};
+/** Every text a control draws, read while hovered: the lowest contrast against the ground it is drawn on. Runs in the
+ *  page, on the control marked `data-chover`. */
+const PR5_HOVER_TEXT = () => {
+  const n = document.querySelector('[data-chover]');
+  if (!n) return null;
+  const parse = (s) => { const m = /^rgba?\(([^)]+)\)$/.exec(s.trim()); if (!m) return null; const p = m[1].split(/[,\s/]+/).filter(Boolean).map(Number); return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 }; };
+  const over = (fg, bg) => ({ r: fg.r * fg.a + bg.r * (1 - fg.a), g: fg.g * fg.a + bg.g * (1 - fg.a), b: fg.b * fg.a + bg.b * (1 - fg.a), a: 1 });
+  const lum = (c) => { const f = (v) => { const x = v / 255; return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b); };
+  const ratio = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+  const groundOf = (n0) => { let acc = null; for (let e = n0; e && e.nodeType === 1; e = e.parentElement) { const c = parse(getComputedStyle(e).backgroundColor); if (c && c.a > 0) { acc = acc ? over(acc, c) : c; if (acc.a >= 0.999) return { ...acc, a: 1 }; } } return acc ? over(acc, { r: 255, g: 255, b: 255, a: 1 }) : { r: 255, g: 255, b: 255, a: 1 }; };
+  const drawn = (e) => e.getClientRects().length > 0 && getComputedStyle(e).visibility !== 'hidden' && parseFloat(getComputedStyle(e).opacity) > 0;
+  const texts = [n, ...n.querySelectorAll('*')].filter((e) => drawn(e) && !e.closest('svg') && [...e.childNodes].some((t) => t.nodeType === 3 && t.textContent.trim()));
+  let low = null;
+  for (const e of texts) {
+    const ink = parse(getComputedStyle(e).color);
+    if (!ink) continue;
+    const g = groundOf(e);
+    const r = Math.floor(ratio(over(ink, g), g) * 100) / 100;
+    if (low === null || r < low.r) low = { r, text: e.textContent.trim().slice(0, 24) };
+  }
+  return { hook: n.getAttribute('data-p3') ?? n.getAttribute('class'), texts: texts.length, low };
+};
+/** The kinds hovered here: `HOVER_KINDS`, and the two the chrome draws outside the levers, a tab and a menu item. */
+const PR5_HOVER_KINDS = [...HOVER_KINDS.map(([k, sel]) => [k, sel]),
+  ['tab', '[data-p3="tab-row"] .p3-tab:not([aria-selected="true"])'],
+  ['menu item', '[data-p3="brand-menu"] .p3-menu-item:not([aria-current="true"])']];
+/** The fewest kinds whose text must be read hovered, per host and theme (shape 9): 12 were, every host and theme. */
+const PR5_HOVER_FLOOR = 10;
+console.log(`\n#2487 PR 5 — computed names, the pane toggle, rings in menus and dialogs, hover contrast\n${'='.repeat(78)}`);
+for (const host of ['web', 'figma']) {
+  for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 800 }]) {
+    const where = `#2487 PR 5 ${host} light ${w}`;
+    const narrow = w <= 560;
+    const { ctx, page, errors } = await open({ host, theme: 'light', w, h });
+    let step = 'open';
+    try {
+      // NAMES (M4, M5): every place, then (at 380) its Preview pane too, then Inspect open.
+      const bad = [];
+      let fewest = Infinity;
+      const sweep = async (label) => {
+        const r = await pr5Names(page);
+        fewest = Math.min(fewest, r.read);
+        for (const x of r.nameless) bad.push(`${label}: ${x}`);
+      };
+      for (const place of NEW_PAGES) {
+        step = `names on ${place}`;
+        await goPlace(page, place);
+        await sweep(place);
+        if (narrow) {
+          await hooks.click(page.locator(PR5_TOGGLES.preview));
+          await sweep(`${place} preview`);
+          await hooks.click(page.locator(PR5_TOGGLES.settings));
+        }
+      }
+      step = 'names with Inspect open';
+      await goPlace(page, 'color-palettes');
+      if (narrow) await hooks.click(page.locator(PR5_TOGGLES.preview));
+      await hooks.click(page.locator('[data-p3="inspect-open"]'));
+      await hooks.click(page.locator('[data-p3="inspect-option-contrast"]'));
+      await hooks.need(page, '[data-p3="inspect-close"]');
+      await sweep('Inspect');
+      await hooks.click(page.locator('[data-p3="inspect-close"]'));
+      if (narrow) await hooks.click(page.locator(PR5_TOGGLES.settings));
+      console.log(`  ${where}: names read on ${NEW_PAGES.length} places${narrow ? ' (both panes)' : ''} and Inspect, fewest ${fewest} named nodes in one sweep`);
+      ok(bad.length === 0, `${where}: every control and composite under the frame has a computed name, on every place${narrow ? ', both panes,' : ''} and with Inspect open${bad.length ? ` — ${bad.length} nameless: ${bad.slice(0, 6).join('; ')}` : ''}`);
+      ok(fewest >= PR5_NAME_FLOOR, `${where}: each name sweep read at least ${PR5_NAME_FLOOR} named nodes (fewest ${fewest})`);
+
+      // PRESSED (M2), at 380: each switch, the toggle the tree reports pressed is the pane drawn.
+      if (narrow) {
+        step = 'the pane toggle';
+        const reads = [];
+        for (const p of ['preview', 'settings', 'preview', 'settings']) {
+          await hooks.click(page.locator(PR5_TOGGLES[p]));
+          const s = await pr5Panes(page);
+          const pressed = Object.entries(s.toggles).filter(([, t]) => t?.pressed === 'true').map(([k]) => k);
+          const shown = Object.entries(s.shown).filter(([, v]) => v).map(([k]) => k);
+          reads.push(`${p}: pressed ${pressed.join('+') || 'none'}, shown ${shown.join('+') || 'none'}`);
+          ok(JSON.stringify(pressed) === JSON.stringify([p]) && JSON.stringify(shown) === JSON.stringify([p]) && s.toggles.settings?.name === 'Settings' && s.toggles.preview?.name === 'Preview',
+            `${where}: after switching to ${p === 'settings' ? 'Settings' : 'Preview'}, the tree reports only its toggle pressed, and only its pane is drawn (${reads[reads.length - 1]}; names ${s.toggles.settings?.name}/${s.toggles.preview?.name})`);
+        }
+      }
+
+      // RINGS WITH A MENU OR A DIALOG OPEN (K2), at 1280.
+      if (!narrow) {
+        for (const [trigger, menu, hosts] of PR5_MENUS) {
+          if (!hosts.includes(host)) continue;
+          step = `rings in ${menu}`;
+          await goPlace(page, 'color-palettes');
+          await page.locator(trigger).first().focus();
+          await page.keyboard.press('Enter');
+          await hooks.need(page, menu);
+          const inMenu = await page.evaluate((m) => !!document.activeElement?.closest(m), menu);
+          if (!inMenu) await page.keyboard.press('ArrowDown');
+          const rings = await pr5Walk(page, menu, 'ArrowDown');
+          const miss = rings.map((r) => ({ r, m: ringMisses(r, 'light') })).filter((x) => x.m.length);
+          console.log(`  ${where}: ${hooks.role(menu)} ${rings.length} rings (${[...new Set(rings.map((r) => r.hook))].join(', ')})`);
+          ok(rings.length >= PR5_MENU_FLOOR && miss.length === 0,
+            `${where}: with ${hooks.role(menu)} open, each of its ${rings.length} items walked by ArrowDown draws the chrome ring (floor ${PR5_MENU_FLOOR})${miss.length ? ` — ${miss.slice(0, 3).map((x) => `${x.r.hook}: ${x.m.join(', ')}`).join('; ')}` : ''}`);
+          await page.keyboard.press('Escape');
+          await page.evaluate(() => document.activeElement?.blur());
+        }
+        step = 'rings in the export dialog';
+        await page.locator('[data-p3="export-open"]').focus();
+        await page.keyboard.press('Enter');
+        await hooks.need(page, '[data-p3="export-dialog"]');
+        const inDlg = await page.evaluate(() => !!document.activeElement?.closest('[data-p3="export-dialog"]'));
+        if (!inDlg) await page.keyboard.press('Tab');
+        const rings = await pr5Walk(page, '[data-p3="export-dialog"]', 'Tab');
+        const misses = rings.map((r) => ({ r, m: ringMisses(r, 'light') })).filter((x) => x.m.length);
+        const miss = misses.filter((x) => !(x.r.hook in PR5_RING_GAPS));
+        console.log(`  ${where}: export dialog ${rings.length} rings`);
+        ok(rings.length >= PR5_DIALOG_FLOOR && miss.length === 0,
+          `${where}: with the export dialog open, each of its ${rings.length} controls walked by Tab draws the chrome ring (floor ${PR5_DIALOG_FLOOR})${miss.length ? ` — ${miss.slice(0, 3).map((x) => `${x.r.hook}: ${x.m.join(', ')}`).join('; ')}` : ''}`);
+        for (const [hk, issue] of Object.entries(PR5_RING_GAPS)) {
+          ok(misses.some((x) => x.r.hook === hk), `${where}: [GAP #${issue}] ${hk} is reached in the export dialog and still draws no chrome ring (fixed: remove it from PR5_RING_GAPS)`);
+        }
+        await page.keyboard.press('Escape');
+      }
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+}
+// HOVER (A16): both hosts, both chrome themes, 1280, the same tour as Q28 a, and the brand menu opened for its item.
+for (const host of ['web', 'figma']) {
+  for (const theme of ['light', 'dark']) {
+    const where = `#2487 PR 5 ${host} ${theme} 1280 hover`;
+    const { ctx, page, errors } = await open({ host, theme, w: 1280, h: 900 });
+    let step = 'open';
+    try {
+      const done = new Set();
+      const low = [];
+      const hoverOne = async (kind, sel, place) => {
+        if (done.has(kind) || !(await page.evaluate(MARK_KIND, sel))) return;
+        await page.locator('[data-chover]').scrollIntoViewIfNeeded();
+        await page.mouse.move(1, 1);
+        await page.locator('[data-chover]').hover({ force: true, timeout: 3000 });
+        const r = await page.evaluate(PR5_HOVER_TEXT);
+        await page.mouse.move(1, 1);
+        await page.evaluate(() => { for (const n of document.querySelectorAll('[data-chover]')) n.removeAttribute('data-chover'); });
+        if (!r?.texts) return;   // a kind that draws no text (a switch, a check) is held by its edge elsewhere
+        done.add(kind);
+        if (r.low.r < TEXT_MIN) low.push(`${kind} ${r.hook} on ${place}: "${r.low.text}" ${r.low.r}:1`);
+      };
+      for (const [place, reveal] of HOVER_TOUR) {
+        step = `hover on ${place}`;
+        await goPlace(page, place);
+        if (reveal) await reveal(page).catch(() => {});
+        for (const [kind, sel] of PR5_HOVER_KINDS) await hoverOne(kind, sel, place);
+      }
+      step = 'hover in the brand menu';
+      await hooks.click(page.locator('[data-p3="brand-switcher"]').first());
+      await hooks.need(page, '[data-p3="brand-menu"]');
+      await hoverOne('menu item', PR5_HOVER_KINDS.find(([k]) => k === 'menu item')[1], 'the brand menu');
+      await page.keyboard.press('Escape');
+      console.log(`  ${where}: ${done.size} kinds read hovered (${[...done].join(', ')})`);
+      ok(low.length === 0, `${where}: every hovered control's text holds ${TEXT_MIN}:1 against the ground it is drawn on (${done.size} kinds read)${low.length ? ` — ${low.join('; ')}` : ''}`);
+      ok(done.size >= PR5_HOVER_FLOOR && done.has('tab') && done.has('menu item'),
+        `${where}: at least ${PR5_HOVER_FLOOR} kinds were read hovered, a tab and a menu item among them (read ${[...done].join(', ')})`);
       ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
     } catch (e) {
       ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
