@@ -213,6 +213,10 @@ const OUT_FIGMA = join(import.meta.dirname, 'out', 'figma');
 const FIELD_RING =
   "the FIELD offset (`focus.ring.offset-field`, 0 in every brand) is focus-ring's own `offset: 'field'`: the input's border is the separation, and a gap outside it reads as a double border (focus-ring.ts, the `offset` prop). The ring still compensates its own stroke (`strokeInset: 'ring-width'`), so it is drawn outside the border, never across it";
 const ZERO_OK: Record<string, string> = {
+  // #2417: a borderless, full-width header row. Nothing at its edge for the ring to be told apart from, and a
+  // control's 2px gap would push the ring over the rule of the accordion stacked above or below it. The ring
+  // still compensates its own stroke (`strokeInset: 'ring-width'`), so it is drawn outside the row.
+  'accordion.focusRing': "the FIELD offset (`focus.ring.offset-field`, 0 in every brand) on a borderless, full-width header row: nothing sits at the row's edge for the ring to be distinguished from, and a 2px gap would carry the ring over the divider of the accordion stacked beside it. The ring compensates its own stroke (`strokeInset: 'ring-width'`), so it is drawn outside the row",
   'text-field.focusRing': FIELD_RING,
   'select.focusRing': FIELD_RING,
   'textarea.focusRing': FIELD_RING,
@@ -224,7 +228,7 @@ const ZERO_OK: Record<string, string> = {
  * covered — including by being deleted — this file fails rather than reporting clean over a smaller
  * set. A count would read that as a pass.
  */
-const MUST_COVER = ['button.focusRing', 'icon-button.focusRing', 'checkbox-control.focusRing'];
+const MUST_COVER = ['button.focusRing', 'icon-button.focusRing', 'checkbox-control.focusRing', 'accordion.focusRing'];
 
 /**
  * The floor for the COMPENSATION specifically — every part above whose gap must be computed against a
@@ -234,7 +238,7 @@ const MUST_COVER = ['button.focusRing', 'icon-button.focusRing', 'checkbox-contr
  * — the arithmetic degrades to `gap = offset`, every other check here still passes, and the ring goes
  * flush again.
  */
-const MUST_CLEAR_STROKE = ['button.focusRing', 'icon-button.focusRing', 'checkbox-control.focusRing'];
+const MUST_CLEAR_STROKE = ['button.focusRing', 'icon-button.focusRing', 'checkbox-control.focusRing', 'accordion.focusRing'];
 
 /** The naming convention, restated rather than imported from the projector — shortcut 1 above. */
 const nameOf = (ref: string): string => ref.replace(/\./g, '/');

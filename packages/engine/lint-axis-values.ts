@@ -375,7 +375,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'size',
     values: ['small', 'medium', 'large'],
-    defs: ['button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'field-label', 'tag'],
+    defs: ['button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'field-label', 'tag', 'accordion', '_accordion-indicator'],
     relation: 'canonical',
     reason:
       'The three-rung ladder, and canonical on weight of use — every def with a size axis except the two switch defs below, the '
@@ -445,7 +445,8 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
     axis: 'style',
     values: ['outline'],
     defs: ['text-field', 'textarea'],
-    relation: 'sole',
+    // `canonical` since #2417, when the accordion indicator's glyph pair became the axis's second set.
+    relation: 'canonical',
     reason:
       'An axis of ONE, declared rather than dropped: the field substrate has a single treatment today, and '
       + 'the axis exists so that filled and underline have somewhere to land without a later API break. '
@@ -614,6 +615,40 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'visible box, so the side it is not aligned to shows nothing either way. The text appearance only '
       + '(`excludeCoordinates`). Distinct from `width` (how much of the container it takes) and `offset` (a '
       + 'nested part\'s displacement) — this is whether the control has inline padding, argued in `VARIANT_AXES`.',
+  },
+  {
+    axis: 'expansion',
+    values: ['collapsed', 'expanded'],
+    defs: ['accordion', '_accordion-indicator'],
+    relation: 'sole',
+    reason:
+      'Whether a disclosure shows its panel (#2417, owner Q182.6): the accordion and the glyph it nests, which '
+      + 'follows the host\'s value so a closed section shows the closed glyph. `collapsed` LEADS because it is '
+      + 'the code default and the Figma default member. Distinct from `selection` (a value the user picks and '
+      + 'the form submits), argued in `VARIANT_AXES`.',
+  },
+  {
+    axis: 'indicator',
+    values: ['start', 'end'],
+    defs: ['accordion'],
+    relation: 'sole',
+    reason:
+      'Where the accordion header\'s open and closed glyph sits (#2417, owner Q182.2 and Q183, the name a '
+      + 'technical call): at the start, beside the title, or at the end of the row. `start` LEADS because it '
+      + 'is the owner\'s default: a start glyph stays beside the title under zoom and magnification. The '
+      + 'axis is named for the part it moves; `direction` (a veil wash\'s origin) and `offset` (a distance) '
+      + 'would each misname it.',
+  },
+  {
+    axis: 'style',
+    values: ['chevron', 'plus-minus'],
+    defs: ['_accordion-indicator'],
+    relation: 'disjoint',
+    reason:
+      'The accordion indicator\'s glyph pair (#2417, owner Q183): a chevron that points down when closed and '
+      + 'up when open, or a plus that becomes a minus. `chevron` LEADS: the field\'s default and the Figma '
+      + 'default member. It is a treatment over one meaning, which is what `style` names; it shares no value '
+      + 'with the field substrate\'s stroke treatment (`outline`), because a glyph pair is not a stroke.',
   },
 ];
 

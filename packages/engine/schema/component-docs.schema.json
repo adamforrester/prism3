@@ -16,11 +16,11 @@
       "type": "object",
       "description": "One entry per registered component, keyed by its id.",
       "additionalProperties": false,
-      "patternProperties": { "^[a-z][a-z0-9-]*$": { "$ref": "#/$defs/component" } }
+      "patternProperties": { "^_?[a-z][a-z0-9-]*$": { "$ref": "#/$defs/component" } }
     }
   },
   "$defs": {
-    "id": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$", "description": "A component id: kebab-case, as registered." },
+    "id": { "type": "string", "pattern": "^_?[a-z][a-z0-9-]*$", "description": "A component id: kebab-case, as registered. A leading underscore marks a private building block nested by one host." },
     "text": { "type": "string", "minLength": 1, "description": "Prose, one or more sentences." },
     "texts": { "type": "array", "items": { "$ref": "#/$defs/text" }, "description": "A list of prose entries. Empty when the definition carries none." },
     "ids": { "type": "array", "items": { "$ref": "#/$defs/id" }, "uniqueItems": true, "description": "A list of component ids. Empty when the definition carries none." },

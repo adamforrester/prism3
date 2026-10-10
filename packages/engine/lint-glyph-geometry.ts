@@ -133,6 +133,7 @@ const MUST_COVER = [
   'checkbox-control.mark', 'checkbox-control.dash', 'textarea.grip', 'tag.check', 'tag.dismissGlyph',
   'field-message.iconError', 'field-message.iconWarning', 'field-message.iconSuccess',
   'switch-control.onGlyph', 'switch-control.offGlyph', 'select.chevron', 'image-placeholder.marker',
+  '_accordion-indicator.chevronDown', '_accordion-indicator.chevronUp', '_accordion-indicator.plus', '_accordion-indicator.minus',
 ];
 
 /** The component name prefix an icon-set glyph is an instance of (#2380): `icon/<glyph>`, the component the
@@ -238,6 +239,10 @@ const FIXED_GLYPH: Record<string, { glyph: string; at: Record<string, readonly s
     at: {},
     why: "the empty-state \"no image\" marker (#1316's `image` glyph — a mountain-and-sun placeholder). One fixed shape on every ratio member, because the ratio axis varies the frame's proportion and not its content; a designer replaces the whole frame's fill with a photograph rather than swapping this marker.",
   },
+  '_accordion-indicator.chevronDown': { glyph: 'chevron-down', at: { style: ['chevron'], expansion: ['collapsed'] }, why: "closed, chevron style: the accordion indicator's glyphs (#2417, owner Q183). `glyph: '{expansion}'` cannot express the set: the glyph turns on TWO axes, the style and whether the section is open, and the vocabulary holds no `collapsed` or `expanded` glyph. So the four drawn shapes are four parts, each gated to its one (style, expansion) pair" },
+  '_accordion-indicator.chevronUp': { glyph: 'chevron-up', at: { style: ['chevron'], expansion: ['expanded'] }, why: "open, chevron style: the accordion indicator's glyphs (#2417, owner Q183). `glyph: '{expansion}'` cannot express the set: the glyph turns on TWO axes, the style and whether the section is open, and the vocabulary holds no `collapsed` or `expanded` glyph. So the four drawn shapes are four parts, each gated to its one (style, expansion) pair" },
+  '_accordion-indicator.plus': { glyph: 'plus', at: { style: ['plus-minus'], expansion: ['collapsed'] }, why: "closed, plus and minus style: the accordion indicator's glyphs (#2417, owner Q183). `glyph: '{expansion}'` cannot express the set: the glyph turns on TWO axes, the style and whether the section is open, and the vocabulary holds no `collapsed` or `expanded` glyph. So the four drawn shapes are four parts, each gated to its one (style, expansion) pair" },
+  '_accordion-indicator.minus': { glyph: 'minus', at: { style: ['plus-minus'], expansion: ['expanded'] }, why: "open, plus and minus style: the accordion indicator's glyphs (#2417, owner Q183). `glyph: '{expansion}'` cannot express the set: the glyph turns on TWO axes, the style and whether the section is open, and the vocabulary holds no `collapsed` or `expanded` glyph. So the four drawn shapes are four parts, each gated to its one (style, expansion) pair" },
   'select.chevron': {
     glyph: 'chevron-down',
     at: {},

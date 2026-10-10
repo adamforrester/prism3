@@ -118,7 +118,7 @@ export const accordion: ComponentDef = {
     'size.medium.gap': 'space.150',
     'size.medium.type': 'type.body.md.strong',
     'size.medium.line-box': 'control.size.md.line-box',
-    'size.medium.icon': 'icon.size.sm',
+    'size.medium.icon': 'icon.size.md',
     'size.large.min-height': 'size.lg.height',
     'size.large.pad-x': 'space.300',
     'size.large.pad-y': 'space.200',

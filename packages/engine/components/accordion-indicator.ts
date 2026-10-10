@@ -65,9 +65,11 @@ export const accordionIndicator: ComponentDef = {
     // An ICON role (#1471): the glyph is a glyph, so it never binds the header's text ink, even where the two
     // resolve to one value. No state key: the accordion has no hover, pressed or disabled member (Q182/Q183).
     'icon': 'color.interactive.neutral.icon.rest',
-    // The glyph square per size: 20px at small and medium, 24px at large (the proposal's table).
+    // The glyph square per size: 20px at small, 24px at medium and large. The proposal's table had 20px at
+    // medium; the default size resolves the `md` rung (#756, `lint-rung-names`), and 24px fills the medium
+    // header's 24px line box.
     'size.small.icon': 'icon.size.sm',
-    'size.medium.icon': 'icon.size.sm',
+    'size.medium.icon': 'icon.size.md',
     'size.large.icon': 'icon.size.md',
   },
 

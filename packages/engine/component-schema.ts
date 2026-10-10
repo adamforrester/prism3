@@ -2998,7 +2998,7 @@ export type State = (typeof STATES)[number];
  * polarity. None says "the panel is shown". It is a RUNTIME axis: the user opens and closes the section, and
  * the indicator glyph and the panel's presence change together, which is why it is an axis and not a
  * node-visibility boolean (a boolean shows a node; it cannot also swap the glyph). `collapsed` leads: it is the
- * code default and Figma's default member. `lint-axis-values.ts` carries the two values as a `canonical` set,
+ * code default and Figma's default member. `lint-axis-values.ts` carries the two values as a `sole` set,
  * shared by `accordion` and its `accordion-indicator` subcomponent.
  */
 export const VARIANT_AXES = [

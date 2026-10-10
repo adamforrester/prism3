@@ -157,6 +157,8 @@ const INTERACTIVE: Record<string, Binding> = {
   'radio-row': { key: (s) => `size.${s}.min-height`, why: 'the labelled radio row floor' },
   // Owner decision 4 (2026-09-27): a tag's default (medium) target clears 44, on Button's own height rung.
   'tag': { key: (s) => `size.${s}.height`, why: 'the tag box height' },
+  // Owner Q182.6: the whole header row is the target, with a 44px floor at every size.
+  'accordion': { key: (s) => `size.${s}.min-height`, why: 'the accordion header row floor — size.md.min-height at small and medium, the large rung above it (#2417)' },
 };
 
 // ── TARGETS INSIDE A CONTROL (#1741): `<def>.<part>` → the tokens KEY of the part's side at a size ─────────
@@ -209,6 +211,7 @@ const EXCLUDED: Record<string, string> = {
   'switch-control': 'a nested-only atom — the tap target is the labelled row (switch), gated here; its bare 24–32px track fails SC 2.5.8 in isolation by its own codeOnly',
   'checkbox-group': 'a group container — its interactive tap targets are the nested checkbox-rows, which are gated',
   'radio-group': 'a group container — its interactive tap targets are the nested radio-rows, which are gated',
+  '_accordion-indicator': 'a nested-only glyph — the tap target is the accordion header row, gated here (#2417)',
   'textarea': 'a multi-line field whose height is rows/auto-grow (fluid); it binds no single-line height, so there is no fixed hit-target dimension to measure',
 };
 
