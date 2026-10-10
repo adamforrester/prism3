@@ -89,6 +89,10 @@ export const accordion: ComponentDef = {
   },
   axisKinds: { expansion: 'runtime', indicator: 'authoring', size: 'authoring' },
 
+  // The title is bold at every member (owner Q182.6: `type.body.*.strong`). Bound to the default brand's `strong`
+  // and resolved per brand, so a brand that ships body `default` + `emphasis` gets its emphasis role (#1601).
+  weightIntent: { intent: 'bold', group: 'body' },
+
   paintKeys: ['{slot}'],
   densitySpacing: ['size.{size}.pad-x', 'size.{size}.pad-y', 'size.{size}.gap'],
 

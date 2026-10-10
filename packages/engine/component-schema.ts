@@ -1462,7 +1462,10 @@ export type ComponentDef = {
    *  when every intent coincides (a single-weight brand). Present only on a def whose weight varies —
    *  `field-label` is the first. `group` is a `TypeGroup`; `axis` must be a declared `variants` axis
    *  whose values are the intents. Validated in `validateComponentDef`. */
-  weightIntent?: { axis: VariantAxis; group: TypeGroup };
+  weightIntent?: { axis: VariantAxis; group: TypeGroup } | { intent: WeightIntent; group: TypeGroup };
+  // THE FIXED FORM (#2417): `{ intent, group }`, no axis. Every `type.<group>.*` token the def binds is ONE
+  // intent, repointed per brand the same way. The accordion title is bold at every member; a brand shipping
+  // `default` + `emphasis` for body (no `strong`) gets its emphasis role instead of a style it never emits.
 
   /** THE SPACING THAT FOLLOWS DENSITY (the spacing model, 2026-09-29: "size is for size, space is for
    *  space"). The `tokens` keys whose `space.*` step is this def's COMFORTABLE padding or gap. Before
@@ -1783,7 +1786,13 @@ export const validateComponentDef = (
   // checks are RELATIONAL — the axis must be declared, its values must be known intents, and every type
   // token keyed under it must sit in the declared category — so a def that hard-binds a role NB never
   // emits (the #1601 shape) is caught here rather than resolving to nothing at paste time.
-  if (def.weightIntent) {
+  if (def.weightIntent && 'intent' in def.weightIntent) {
+    const { intent, group } = def.weightIntent;
+    if (!(WEIGHT_INTENTS as readonly string[]).includes(intent))
+      errors.push(`weightIntent.intent '${intent}' is not a weight intent [${WEIGHT_INTENTS.join(', ')}]`);
+    if (!Object.values(def.tokens ?? {}).some((ref) => typeof ref === 'string' && ref.startsWith(`type.${group}.`)))
+      errors.push(`weightIntent: no \`type.${group}.*\` token is bound — the fixed intent resolves nothing`);
+  } else if (def.weightIntent) {
     const { axis, group } = def.weightIntent;
     const axisValues = variantsOf(def)[axis];
     if (!axisValues || !axisValues.length) {

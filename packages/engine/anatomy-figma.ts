@@ -2387,6 +2387,17 @@ export const applyWeightIntent = (def: ComponentDef, avail: WeightAvailability):
   const groupAvail = avail[wi.group];
   if (!groupAvail || !groupAvail.length)
     throw new Error(`${def.id}: weightIntent.group '${wi.group}' has no emitted weight roles for this brand — a weight intent cannot resolve against a category the brand does not ship`);
+  // THE FIXED FORM (#2417): one intent for every `type.<group>.*` ref; no axis, so nothing collapses.
+  if ('intent' in wi) {
+    const role = resolveWeightIntent(wi.intent, groupAvail);
+    const tokens = Object.fromEntries(Object.entries(def.tokens).map(([k, ref]) => {
+      if (!ref.startsWith(`type.${wi.group}.`)) return [k, ref];
+      const segs = ref.split('.');
+      segs[segs.length - 1] = role;
+      return [k, segs.join('.')];
+    }));
+    return { ...def, tokens };
+  }
   const axisValues = def.variants?.[wi.axis] ?? [];
   if (!axisValues.length)
     throw new Error(`${def.id}: weightIntent.axis '${wi.axis}' names no values in \`variants\` — the intents to resolve are the axis values`);

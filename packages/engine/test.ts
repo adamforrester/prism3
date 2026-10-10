@@ -70,7 +70,7 @@ import type { AnatomyPlan, ButtonLayout } from './anatomy-figma';
 // ABOUT one component (`button.variants.appearance`, `textField.tokens[...]`), which a find-by-id
 // over the set would only make weaker. Completeness of the set is NOT asserted here — that is
 // `typecheck-components.ts`'s registry arm, whose oracle is git's index.
-import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, checkboxControl, checkboxRow, checkboxGroup, radioGroup, textarea, radioControl, radioRow, switchControl, switchRow, select, spinner, tag } from './components/index';
+import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, checkboxControl, checkboxRow, checkboxGroup, radioGroup, textarea, radioControl, radioRow, switchControl, switchRow, select, spinner, tag, accordion, accordionIndicator } from './components/index';
 // The glyph vocabulary, for #864's geometry assertions. Imported so EXPECTED comes from the set rather
 // than from the projector that read it — the two halves `docs/34` requires.
 import { ICON_NAMES, ICON_PATHS, ICON_FILL_RULES, ICON_VIEWBOX } from './icon-glyphs';
@@ -3590,6 +3590,8 @@ for (const b of brands) {
       'radio-row': { keys: ['gap'], sizes: ['small', 'medium', 'large'] },
       'switch-row': { keys: ['gap'], sizes: ['small', 'medium'] },
       tag: { keys: ['padding-x', 'select.gap', 'dismissible.visible-gap', 'check-gap', 'select.padding-end', 'dismissible.padding-end'], sizes: ['small', 'medium', 'large'] },
+      // #2417: the header's inline and block padding (the panel's end inset reuses `pad-y`) and the glyph gap.
+      accordion: { keys: ['pad-x', 'pad-y', 'gap'], sizes: ['small', 'medium', 'large'] },
     };
     const BTN = { compact: 'small 12/8/4/6 · medium 12/8/6/6 · large 20/12/6/8', comfortable: 'small 16/12/6/8 · medium 16/12/8/8 · large 24/16/8/12', spacious: 'small 20/16/8/12 · medium 20/16/12/12 · large 32/20/12/16' };
     const ROWS = { compact: 'small 6 · medium 6 · large 8', comfortable: 'small 8 · medium 8 · large 12', spacious: 'small 12 · medium 12 · large 16' };
@@ -3603,6 +3605,8 @@ for (const b of brands) {
       // Tag: padding-x / select icon→label / dismissible VISIBLE icon→label (owner, 2026-09-29: 6/8/8) /
       // label→check / select trailing inset / dismissible trailing inset. Compact small's visible 6 steps to 4.
       tag: { compact: 'small 6/4/4/4/6/0 · medium 8/6/6/4/8/0 · large 12/8/6/6/12/0', comfortable: 'small 8/6/6/4/8/0 · medium 12/8/8/6/12/0 · large 16/12/8/8/16/0', spacious: 'small 12/8/8/6/12/0 · medium 16/12/12/8/16/0 · large 20/16/12/12/20/0' },
+      // Accordion (#2417): the proposal's comfortable table, 12/8/8 · 16/12/12 · 24/16/16.
+      accordion: { compact: 'small 8/6/6 · medium 12/8/8 · large 20/12/12', comfortable: 'small 12/8/8 · medium 16/12/12 · large 24/16/16', spacious: 'small 16/12/12 · medium 20/16/16 · large 32/20/20' },
     };
     const wrong: string[] = [];
     for (const [id, spec] of Object.entries(SPECS)) {
@@ -3640,6 +3644,7 @@ for (const b of brands) {
       'checkbox-row': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       'radio-row': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       'switch-row': ['size.small.gap', 'size.medium.gap'],
+      accordion: ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       tag: ['small', 'medium', 'large'].flatMap((v) => [
         `size.${v}.select.gap+size.${v}.select.label-inset`, `size.${v}.dismissible.gap+size.${v}.dismissible.label-inset`, `size.${v}.check-gap`]),
     };
@@ -3671,6 +3676,7 @@ for (const b of brands) {
       button: { prefix: 'sized', lt: P326 }, 'button-destructive': { prefix: 'sized', lt: P326 }, 'button-neutral': { prefix: 'sized', lt: P326 },
       'text-field': { prefix: 'sized', lt: [['gap', 'pad-x']] },
       select: { prefix: 'sized', lt: [['gap', 'pad-x']] },
+      accordion: { prefix: 'sized', lt: [['gap', 'pad-x']] },
       // Tag's icon→label is VISIBLE, the content gap plus the label row's leading inset (owner, 2026-09-29), per
       // type: the sum is what must stay under the padding. A `+` key is summed.
       tag: { prefix: 'sized', lt: [['select.gap+select.label-inset', 'padding-x'], ['dismissible.gap+dismissible.label-inset', 'padding-x'], ['check-gap', 'padding-x']] },
@@ -13724,7 +13730,8 @@ arm: {
     let fieldsRead = 0;
     for (const d of componentDefs) {
       ok(/^[A-Z][A-Za-z0-9]*(?:\.[A-Z][A-Za-z0-9]*)?$/.test(d.name), `component-names: ${d.id} is named '${d.name}' — one convention: PascalCase, or Family.Part for a family`);
-      ok(d.name.replace('.', '').toLowerCase() === d.id.replace(/-/g, ''), `component-names: '${d.name}' does not read as its id '${d.id}' — the name is the id in PascalCase / Family.Part`);
+      // A private building block's leading underscore (#2417) is Figma's publishing prefix, not part of the name.
+      ok(d.name.replace('.', '').toLowerCase() === d.id.replace(/^_/, '').replace(/-/g, ''), `component-names: '${d.name}' does not read as its id '${d.id}' — the name is the id in PascalCase / Family.Part`);
       for (const f of families) {
         if (d.id.startsWith(`${kebab(f)}-`)) ok(d.name.startsWith(`${f}.`), `component-names: ${d.id} is in the ${f} family (${f}.* names exist) but is named '${d.name}' — name it ${f}.<Part>`);
       }
@@ -16378,7 +16385,8 @@ arm: {
     //     def — so a def whose category drifts from its brief's fails here by name. A def that cites a brief
     //     missing from the table fails too: add the row with the brief's category, read from the KB.
     const KB_BRIEF_CATEGORY: Record<string, string> = {
-      'badge.md': 'foundations', 'button.md': 'form', 'checkbox.md': 'form', 'icon.md': 'foundations', 'image.md': 'foundations',
+      // `accordion.md` read 2026-10-10 (#2417): `category: Navigation`.
+      'accordion.md': 'navigation', 'badge.md': 'foundations', 'button.md': 'form', 'checkbox.md': 'form', 'icon.md': 'foundations', 'image.md': 'foundations',
       'inline-message.md': 'feedback', 'radio.md': 'form', 'select.md': 'form', 'spinner.md': 'foundations',
       'switch.md': 'form', 'tag.md': 'foundations', 'text-field.md': 'form', 'textarea.md': 'form',
     };
@@ -16984,6 +16992,8 @@ arm: {
       { def: switchRow, part: 'label', axes: { size: 2 } },
       // `tag` (2026-09-27) binds Button's three label rungs, so three sizes discriminate into three styles.
       { def: tag, part: 'label', axes: { size: 3 } },
+      // `accordion` (#2417) binds body strong at three rungs, one style per size.
+      { def: accordion, part: 'label', axes: { size: 3 } },
       // The two text nodes of `field-label`, the only bindings in the corpus that cross two axes.
       { def: fieldLabel, part: 'text', axes: { size: 3, weight: 2 } },
       { def: fieldLabel, part: 'indicator', axes: { size: 3, weight: 2 } },
@@ -25036,7 +25046,9 @@ arm: {
   // supplies that key as the projected STATE, spelled here as a literal so the oracle is not the schema's
   // own constant.
   // `tag` joins (2026-09-27): its check mark is gated on `selection: ['selected']`, the checkbox mark's shape.
-  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'radio-control', 'switch-control', 'select', 'badge', 'tag'];
+  // `_accordion-indicator` and `accordion` join (#2417): four glyphs on style × expansion, and the panel and the
+  // two indicator positions on single axes.
+  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'radio-control', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion'];
   ok(GATED_EXPECTED.every((n) => gatedDefs.some((d) => d.id === n)) && gatedDefs.length === GATED_EXPECTED.length,
     `#910 the presentWhen projection rule below covers exactly [${GATED_EXPECTED.join(', ')}] — a def gaining a variant-gated part must be represented here, and a def losing one is a stale claim (found: ${gatedDefs.map((d) => d.id).join(', ') || 'none'})`);
   for (const def of gatedDefs) {
@@ -25048,9 +25060,25 @@ arm: {
       // A part gated on TWO axes is AND-composed, so "supply the axis and expect presence" stops being
       // the right question — it needs every gate satisfied at once. None exists today; fail rather than
       // skip, so the arms below cannot go quietly vacuous over one.
-      ok(axes.length === 1,
-        `#910 ${def.id}.${name} gates presence on ${axes.length} axes [${axes.map(([a]) => a).join(', ')}] — the projection arms below supply ONE axis and would report an AND-composed part as spuriously absent. Handle the composition here rather than letting it read as covered`);
-      if (axes.length !== 1) continue;
+      // #2417 — THE FIRST AND-COMPOSED GATE: `_accordion-indicator`'s four glyphs each gate on style × expansion.
+      // Variant axes only (a state gate composes with no other, per `figmaPropertyErrors`): every coordinate of
+      // the gating axes' cross product, the other axes pinned at their first value, must build the part exactly
+      // when EVERY gate is satisfied — present at its one pair, absent at the other three.
+      if (axes.length > 1) {
+        ok(axes.every(([a]) => a !== 'state'), `#910 ${def.id}.${name}: an AND-composed gate names only variant axes`);
+        let coords: Record<string, string>[] = [Object.fromEntries(Object.entries(def.variants ?? {}).filter(([a]) => a !== 'size').map(([a, vs]) => [a, vs[0]]))];
+        if (statesOf(def).includes('rest')) coords = coords.map((c) => ({ ...c, state: 'rest' }));
+        for (const [a] of axes) coords = coords.flatMap((c) => (def.variants?.[a] ?? []).map((v) => ({ ...c, [a]: v })));
+        let present = 0;
+        for (const c of coords) {
+          const want = axes.every(([a, vs]) => vs.includes(c[a]));
+          const got = planPartNames(figmaAnatomyPlan(def, size, c as never).root).includes(name);
+          if (got) present++;
+          ok(got === want, `#910 ${def.id}: '${name}' is ${want ? '' : 'NOT '}in the tree at ${axes.map(([a]) => `${a}=${c[a]}`).join(', ')} — an AND-composed gate builds the part only where every gate holds`);
+        }
+        ok(present > 0 && present < coords.length, `#910 ${def.id}.${name}: the AND-composed gate is present at some and absent at some of ${coords.length} coordinates (present at ${present})`);
+        continue;
+      }
       const [axis, values] = axes[0];
       // Every OTHER variant axis pinned at its first value, so the only thing varying across the three
       // directions is the gated one.
