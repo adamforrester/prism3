@@ -2744,6 +2744,69 @@
 /**
  * ── FOLDED CHANGE NOTES (#1807) — `fold.ts` writes each fold directly below this line, newest first. ──
  *
+ * 0.236.0 — folded 2026-10-10 from 7 change notes, newest merge first.
+ *
+ * [engine-2345-image-placeholder-ratios · minor · 928eba45] #2345 (owner direction 2026-10-07): image-placeholder gains four ratios, portrait 2:3, 3:4 and 4:5 and landscape 3:2,
+ * beside 1:1, 4:3 and 16:9, ordered tallest to widest, so the set builds seven members; the default stays 4:3. Its
+ * "no image" marker now scales with the frame: it leaves the auto-layout flow, sits centered and is constrained
+ * SCALE/SCALE, which the frame's aspect lock keeps uniform, so a 64px thumbnail shows a 16px marker rather than a
+ * cropped 180px one. A new `PartDef.scaleWithParent` carries it, projected as `absoluteCenter` plus a new
+ * `absoluteScale` plan field that both executors honor and the read-back checks. A Figma-only `Marker` boolean,
+ * on by default, hides the marker once an image is supplied. There is no code prop: in code the marker follows
+ * whether an image is supplied. No token name moves (CONTRACT unchanged).
+ *
+ * [claude-2408-flush-hit-area · minor · 7541db76] A medium or large flush text button's hit area is at least 44×44 in code (#2408, owner Q154 A and Q170 B, 2026-10-09), and a small one's at least 24×24, the WCAG 2.5.8 floor (owner Q174 B). Button, Destructive and
+ * Neutral share the rule: `codeOnly` and the `inset=flush` line in `docs.do` now state it, with the technique (a
+ * transparent `::before` inset outward and centered on the label), replacing "at least its default sibling's size".
+ * The box stays label-width so the label still lines up, and Figma is unchanged. Regenerated into
+ * `out/components/button*.md`, `components.ai.json` and `component-maintainer.json`. No token moves, so CONTRACT is unchanged;
+ * the projected plans' `codeOnly` text moves (no member, geometry or binding), so `schema/component-surface.json` is
+ * accepted. `lint-hit-target` gains a FLUSH MEMBERS arm that requires each flush def to state the rule.
+ *
+ * [claude-icon-instances-2380 · minor · dc26854e] Every icon-set glyph inside a component is an instance of its icon component (#2380, owner
+ * decision Q137 A). A vector part whose glyph is in the icon set, in any def but icon itself, projects as a
+ * NESTED_INSTANCE of icon/<glyph> instead of an inline SVG import: field-message's three status glyphs,
+ * checkbox-control's check and dash, switch-control's two thumb glyphs, tag's check and dismiss glyphs, select's
+ * chevron, textarea's resize grip and image-placeholder's marker. Each keeps its size binding (or glyphPx) and
+ * takes its ink as descendantFills; no swap property is added. The spinner's composed glyph and the icon def's
+ * own glyph stay inline. Checkbox's 0.8 inset (#1346) moves from a padded artboard to a new plan field,
+ * glyphInset: the part is a frame bound to the control box holding one instance named glyph, placed at 0.8 of
+ * the frame with SCALE constraints, so the rendered ink is where it was. The padded-artboard path is removed.
+ * Both executors build the inset and size a glyphPx instance; the read-back checks glyphInset against the
+ * parent box. CONTRACT unchanged.
+ *
+ * [engine-q152-row-min-width · minor · df1ec58b] Checkbox-row, radio-row, checkbox-group and radio-group shrink with their column, as the fields do (owner decision Q152.3: Q99 B reaches the
+ * rows). The row's root is built at 320 (`placementWidth`, the fields' #2292 mechanism) and fills its column when a
+ * host places it, down to the fields' 120 floor (Q152.2). Before, the root hugged above a `minWidth: 320` floor, so a
+ * row in a column narrower than 320 held at 320 and overflowed it. An unplaced row still reads at 320, and the label
+ * still fills the row and wraps. Both values are literal projection defaults, so no token name or value moves and
+ * CONTRACT is unchanged. Checkbox-group and radio-group follow their rows (owner decision Q155 A): their container, which floored at 320,
+ * is now built at 320 and fills its column down to the same 120 floor.
+ *
+ * [components-2318-focused-filled · minor · 66368ac5] Text field, select and textarea project the focused field that holds a value, `state=focus-visible-filled` (#2318,
+ * owner decision Q157, 2026-10-09). It is the focus-visible member's focus ring and focus border (each status keeps its
+ * own border) around the filled member's value in `text.primary`, with no placeholder. Each set grows from 72 to 84
+ * members (size 3 × status 4 × state 7), 12 new per field; the 72 existing members project exactly as before, so an in-place
+ * update adds the 12 and renames, moves or replaces nothing. On the new member text field draws its caret at the END of
+ * the value (owner decision Q166 C), in a new `caretEnd` part on a new `caret-end` paint slot; textarea and select draw no
+ * caret there. An absolute part's `when` may now name a list of states, so the one focus ring shows at both focus states;
+ * an overlay's `when` still names one. No token name or value moves, so CONTRACT is unchanged.
+ *
+ * [engine-2344-group-rows · minor · 7582fe27] Checkbox-group and radio-group carry up to eight rows (#2344, owner decision Q156 A), Prism 2's mechanism at eight
+ * rows where it had six. Each group nests eight rows: row 1 is always shown, and rows 2 to 8 each sit behind a
+ * node-visibility boolean, "Option 2" to "Option 8", with rows 1 to 3 shown by default, so a group reads as the three
+ * rows it always did. Booleans don't multiply the set: each group stays at 3 members. The booleans are a new
+ * FIGMA-ONLY form (`figmaProperties.booleans.<key>.figmaOnly: true`): it drives no code prop, because in code the
+ * row count is `children`. A Figma-only key must not be a declared prop, and must carry a `figmaName`. No token name
+ * or value moves, so CONTRACT is unchanged.
+ *
+ * [docs-2340-strikethrough-modifier · minor · b741c76e] Strikethrough is a documented modifier on the existing text styles, not a style of its own (#2340, owner Q150 D,
+ * 2026-10-09). Every body and caption composite's `.ai.json` entry (body/xs included, the `-link` variants not) now
+ * says how to strike text: the same style plus a line-through modifier (`<del>` or `<s>` with
+ * `text-decoration-line: line-through` in code, a strikethrough override on the style in Figma), with visually hidden
+ * text naming it ("Original price:", "Sale price:"), and that Prism3 mints no strikethrough style. No token, style or
+ * value moves, so CONTRACT is unchanged; only the five brands' `.ai.json` guidance changes.
+ *
  * 0.235.0 — folded 2026-10-09 from 5 change notes, newest merge first.
  *
  * [claude-2350-flush-text-buttons · minor · 982f0f58] Flush text buttons in 0.235.0 (#2350 part 1, owner Q143 items 1 and 2, the correction to item 3, and Q145 A).
@@ -4833,7 +4896,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.235.0';
+export const ENGINE_VERSION = '0.236.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

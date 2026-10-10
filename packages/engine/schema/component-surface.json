@@ -254,8 +254,8 @@
       "sha256": "9ec72c8b779ffd29fb811acea3af4005675f3e00a98835125a2061afef57ea5b"
     },
     "image-placeholder": {
-      "members": 3,
-      "sha256": "9db63adef6d202fcf3a59c00b142b11abd30789e9fee9d6ce9a3398b480a2d19"
+      "members": 7,
+      "sha256": "231a95656454741c39c0e4fe8a030fa1e46aa43c2426e2f66d7eb2deb1e8e53c"
     },
     "spinner": {
       "members": 4,
