@@ -5140,6 +5140,311 @@
           "a bare × glyph with no accessible name"
         ]
       }
+    },
+    "_accordion-indicator": {
+      "id": "_accordion-indicator",
+      "name": "Accordion.Indicator",
+      "aliases": [],
+      "category": "navigation",
+      "status": "draft",
+      "summary": "The open and closed glyph inside an Accordion header. Pick chevron or plus and minus.",
+      "description": "The glyph that shows whether an Accordion section is open: a chevron that points down when closed and up when open, or a plus that becomes a minus. The style is picked once on the nested indicator, and the Accordion sets the rest, so switching a section open or closed keeps the style. It is a building block of the Accordion, not a component to place on its own.",
+      "props": [
+        {
+          "name": "style",
+          "type": "enum: 'chevron' | 'plus-minus'",
+          "default": "chevron",
+          "required": false,
+          "values": [
+            "chevron",
+            "plus-minus"
+          ],
+          "description": "The glyph pair: a chevron that points down when closed and up when open, or a plus when closed and a minus when open."
+        },
+        {
+          "name": "expansion",
+          "type": "enum: 'collapsed' | 'expanded'",
+          "default": "collapsed",
+          "required": false,
+          "values": [
+            "collapsed",
+            "expanded"
+          ],
+          "description": "Whether the section is open. Set by the Accordion it sits in."
+        },
+        {
+          "name": "size",
+          "type": "enum: 'small' | 'medium' | 'large'",
+          "default": "medium",
+          "required": false,
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ],
+          "description": "The glyph size. Set by the Accordion it sits in."
+        }
+      ],
+      "states": [],
+      "variants": {
+        "style": {
+          "values": [
+            "chevron",
+            "plus-minus"
+          ],
+          "kind": "authoring"
+        },
+        "expansion": {
+          "values": [
+            "collapsed",
+            "expanded"
+          ],
+          "kind": "runtime"
+        },
+        "size": {
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ],
+          "kind": "authoring"
+        }
+      },
+      "accessibility": {
+        "role": "none — presentational. The Accordion header's button carries the open state; the glyph repeats it visually.",
+        "wcag": [
+          "1.4.1 Use of Color (open and closed differ by glyph shape, never by color)",
+          "1.4.11 Non-text Contrast (the glyph ink clears 3:1 against the page)"
+        ],
+        "aria": "Hide the glyph from assistive technology (aria-hidden=\"true\"). The button's aria-expanded is the state a screen reader announces."
+      },
+      "docs": {
+        "usage": "Leave it inside the Accordion. Pick chevron or plus and minus on the nested indicator of an Accordion instance; the Accordion sets whether it shows the open or the closed glyph, and its size.",
+        "do": [
+          "Pick the style once per set of stacked accordions, so every section in the set matches"
+        ],
+        "dont": [
+          "Place it on its own as an icon. Use the Icon component for a standalone glyph."
+        ]
+      },
+      "ai": {
+        "primaryPurpose": "Show whether an Accordion section is open, as a chevron or a plus and minus glyph.",
+        "whenToUse": "Only inside an Accordion header, which nests it and sets its open state and size.",
+        "avoidWhen": "Anywhere outside an Accordion: a standalone glyph is an Icon, and a control that opens a menu is a Select or a button.",
+        "commonPartners": [
+          "accordion",
+          "icon"
+        ],
+        "triggerKeywords": [
+          "accordion indicator",
+          "accordion chevron",
+          "plus minus toggle glyph"
+        ],
+        "generationPriority": 1
+      },
+      "motion": {
+        "enter": "Opening the section swaps the closed glyph for the open one (motion.transition.enter); a chevron may turn rather than swap.",
+        "exit": "Closing the section swaps it back (motion.transition.exit).",
+        "reduceMotion": "Under prefers-reduced-motion the turn takes the reduced duration (motion.duration-reduced.*), so the glyph changes without visible travel."
+      },
+      "composition": {
+        "composesWith": [],
+        "alternativeTo": [],
+        "supersedes": [],
+        "supersededBy": [],
+        "planned": [],
+        "replacesPatterns": [
+          "a chevron rotated by hand per section"
+        ]
+      }
+    },
+    "accordion": {
+      "id": "accordion",
+      "name": "Accordion",
+      "aliases": [
+        "disclosure",
+        "collapse",
+        "expander",
+        "details",
+        "expansion-panel",
+        "collapsible"
+      ],
+      "category": "navigation",
+      "status": "draft",
+      "summary": "One section that opens and closes in place. The whole header row is the button.",
+      "description": "One section that opens and closes in place: a header that names the content, and a panel that opens below it. The whole header row is the button, and a glyph at its start or end shows whether the section is open. Stack several for a set of sections a user scans and opens on demand. Not one-at-a-time peer panels (tabs, not built yet), not a multi-level hierarchy (a tree, not built yet), and not navigation.",
+      "props": [
+        {
+          "name": "title",
+          "type": "node",
+          "required": true,
+          "description": "The header text: a short noun phrase or a question that says what the panel holds. It wraps rather than truncating."
+        },
+        {
+          "name": "children",
+          "type": "node",
+          "required": true,
+          "description": "The panel content. Hidden from the page, the tab order and assistive technology while the section is closed."
+        },
+        {
+          "name": "value",
+          "type": "string",
+          "required": false,
+          "description": "The key a stack of accordions uses to track which sections are open. A stable key is safer than a position when sections are added or reordered."
+        },
+        {
+          "name": "defaultExpanded",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Opens the section on first render when nothing controls it."
+        },
+        {
+          "name": "headingLevel",
+          "type": "enum: 2 | 3 | 4 | 5 | 6",
+          "default": "3",
+          "required": false,
+          "values": [
+            "2",
+            "3",
+            "4",
+            "5",
+            "6"
+          ],
+          "description": "The level of the heading that wraps the header button. Set it one below the heading the accordion sits under, so the page outline stays intact."
+        },
+        {
+          "name": "indicator",
+          "type": "enum: 'start' | 'end'",
+          "default": "start",
+          "required": false,
+          "values": [
+            "start",
+            "end"
+          ],
+          "description": "Where the open and closed glyph sits in the header. At the start, it stays beside the title when the page is zoomed or magnified."
+        },
+        {
+          "name": "size",
+          "type": "enum: 'small' | 'medium' | 'large'",
+          "default": "medium",
+          "required": false,
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ],
+          "description": "The header's type, padding and glyph size. Every size keeps the header at least 44px tall."
+        }
+      ],
+      "states": [
+        "rest",
+        "focus-visible"
+      ],
+      "variants": {
+        "expansion": {
+          "values": [
+            "collapsed",
+            "expanded"
+          ],
+          "kind": "runtime"
+        },
+        "indicator": {
+          "values": [
+            "start",
+            "end"
+          ],
+          "kind": "authoring"
+        },
+        "size": {
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ],
+          "kind": "authoring"
+        }
+      },
+      "accessibility": {
+        "role": "A native <button> with aria-expanded and aria-controls, inside a heading; the panel is role=\"region\" with aria-labelledby pointing at the button. Native <details> and <summary> are the alternative where their styling and animation support are enough.",
+        "wcag": [
+          "4.1.2 Name, Role, Value (a button that exposes aria-expanded)",
+          "1.3.1 Info and Relationships (each header is a heading at the level the page outline needs)",
+          "2.1.1 Keyboard (Enter and Space open and close; Tab reaches every header)",
+          "2.4.3 Focus Order (each header is its own tab stop; when open, the next Tab moves into the panel)",
+          "2.4.7 Focus Visible and 2.4.13 Focus Appearance (the shared focus ring around the header)",
+          "1.4.1 Use of Color (open and closed differ by glyph, not by color)",
+          "1.4.10 Reflow (at the start, the glyph stays beside the title under zoom and magnification)",
+          "2.5.5 Target Size (Enhanced), as intent (the whole header is the target, at least 44px tall on comfortable and spacious density)"
+        ],
+        "keyboard": "Tab moves from header to header, and into an open panel's content. Enter or Space opens and closes the focused header. There is no roving tab index. Up and Down between headers, and Home and End, are optional extras and must not trap focus.",
+        "focus": "A focus ring around the header row on :focus-visible. Opening a section does not move focus.",
+        "aria": "Hide the glyph from assistive technology (aria-hidden=\"true\"); the button's aria-expanded carries the state. Do not put role=\"tab\" or a tablist on an accordion. The title is translatable text, and the glyph does not mirror in right-to-left layouts."
+      },
+      "content": {
+        "labelPattern": "Short, parallel noun phrases, or questions in an FAQ. The title says what the panel holds. Sentence case, no trailing colon."
+      },
+      "docs": {
+        "usage": "Use an Accordion to compress a set of independent sections into scannable headers: FAQs, settings groups, filter panels, product details. Use one on its own for a single optional block of detail, such as a promo code field or shipping details. Leave several open at once unless space is very tight.",
+        "do": [
+          "Allow several sections open at once by default",
+          "Let every section be closed",
+          "Make the whole header row the button",
+          "Write titles that say what the section holds",
+          "Let a long title wrap"
+        ],
+        "dont": [
+          "Hide content most users need. Show it instead.",
+          "Force one section to stay open. If one view must always show, use tabs.",
+          "Put an accordion inside an accordion. For more than one level, use a tree.",
+          "Truncate a title with an ellipsis"
+        ],
+        "contentGuidelines": "Titles are short, parallel noun phrases or questions, in sentence case, with no trailing colon."
+      },
+      "ai": {
+        "primaryPurpose": "Show a section of content on demand, under a header the user opens and closes in place.",
+        "whenToUse": "A set of independent sections a user scans and opens on demand (FAQs, settings groups, filters, product details), or one optional block of detail on its own.",
+        "avoidWhen": "The user needs the content most of the time (show it), the sections are one-at-a-time peer views (tabs, not built yet), the content nests more than one level (a tree, not built yet), or the header navigates somewhere (a link).",
+        "commonPartners": [
+          "icon",
+          "button",
+          "text-field"
+        ],
+        "triggerKeywords": [
+          "accordion",
+          "disclosure",
+          "collapsible section",
+          "expandable section",
+          "faq",
+          "show more",
+          "details",
+          "expander"
+        ],
+        "generationPriority": 2
+      },
+      "motion": {
+        "enter": "The panel eases open to its content height (motion.transition.enter) and the glyph changes to its open form.",
+        "exit": "The panel eases closed (motion.transition.exit) and the glyph changes back.",
+        "reduceMotion": "Under prefers-reduced-motion the panel opens and closes at the reduced duration (motion.duration-reduced.*): shortened, not removed, since the change is the information and the movement is not."
+      },
+      "composition": {
+        "composesWith": [
+          "_accordion-indicator",
+          "focus-ring"
+        ],
+        "alternativeTo": [],
+        "supersedes": [],
+        "supersededBy": [],
+        "planned": [
+          "tabs",
+          "tree",
+          "link"
+        ],
+        "replacesPatterns": [
+          "a show and hide block with no aria-expanded or heading",
+          "a tablist used for vertical sections that open together"
+        ]
+      }
     }
   }
 }

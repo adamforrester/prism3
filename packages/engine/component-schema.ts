@@ -112,6 +112,12 @@ export type PaddingDef = {
    *  the trailing side; a def that also declares `inlineVisual` is refused (the two rules would both claim
    *  that side). */
   inlineEnd?: string;
+  /** The END block side's key (the bottom), when it is not `block`'s (#2417, owner Q182). `block` then binds the
+   *  START side only. An accordion's panel sits under its header, whose own bottom padding already spaces the
+   *  panel's first line, so the panel's start inset is 0 and its end inset closes the item above the divider. One
+   *  symmetric value cannot say both: the proposal's draft compromised on a small symmetric inset, visibly tight
+   *  above the divider. Absent, `block` binds both sides, as before. */
+  blockEnd?: string;
 };
 
 /**
@@ -1652,7 +1658,11 @@ export const validateComponentDef = (
   const req = (cond: boolean, msg: string) => { if (!cond) errors.push(msg); };
 
   // identity + prose
-  req(!!def.id && /^[a-z][a-z0-9-]*$/.test(def.id), `id must be kebab-case (got '${def.id}')`);
+  // ONE LEADING UNDERSCORE IS ADMITTED (owner Q183, 2026-10-10, #2417): a building block nested only inside
+  // one host (`_accordion-indicator`) carries Figma's private-component prefix, which keeps it out of a
+  // published library's asset list. The id IS the Figma set name and the nest target, so the prefix has to
+  // be the id's rather than a Figma-only rename.
+  req(!!def.id && /^_?[a-z][a-z0-9-]*$/.test(def.id), `id must be kebab-case, with at most one leading underscore for a private building block (got '${def.id}')`);
   req(!!def.name, 'name is required');
   req(!!def.category, 'category is required');
   // #1700 — the KB's seven categories, closed. The type binds a def file; this binds everything that
@@ -2977,12 +2987,26 @@ export type State = (typeof STATES)[number];
  * which names the axis and its flush value, so a def using another value set stays expressible. An AUTHORING
  * axis: a button is flush where it is placed and never changes on screen. `lint-axis-values.ts` carries the two
  * values as a `sole` set.
+ *
+ * ── `expansion`: THE TWENTY-SECOND NAME, FOR AN ACCORDION'S OPEN STATE (owner Q182/Q183, 2026-10-10, #2417) ──
+ *
+ * `expansion` (`collapsed | expanded`) is WHETHER a disclosure shows its panel. It clears this list's bar the
+ * way `inset` did, with the nearest defeated. `selection` is the state a SELECTABLE control shows, a value the
+ * user picks and the form submits; opening a section picks nothing and submits nothing, so naming it
+ * `selection` would claim an open accordion is a chosen one (and `aria-expanded` is not `aria-selected`).
+ * `type` is a fixed kind chosen when the component is placed; this moves on screen. `value` is a veil's
+ * polarity. None says "the panel is shown". It is a RUNTIME axis: the user opens and closes the section, and
+ * the indicator glyph and the panel's presence change together, which is why it is an axis and not a
+ * node-visibility boolean (a boolean shows a node; it cannot also swap the glyph). `collapsed` leads: it is the
+ * code default and Figma's default member. `lint-axis-values.ts` carries the two values as a `canonical` set,
+ * shared by `accordion` and its `accordion-indicator` subcomponent.
  */
 export const VARIANT_AXES = [
   'size', 'intent', 'appearance', 'tone',
   'width', 'style', 'indicator', 'offset', 'selection',
   'name', 'surface', 'weight', 'value', 'intensity', 'ratio',
   'status', 'emphasis', 'shape', 'type', 'direction', 'inset',
+  'expansion',
 ] as const;
 
 /** One member of the closed axis-NAME vocabulary. Values are not constrained — see `VARIANT_AXES`. */
@@ -3617,7 +3641,7 @@ const anatomyErrors = (def: ComponentDef): string[] => {
   // half-filled strings, none of which any def binds, and the failure read as "not a slot in tokens"
   // — a true statement about a key nobody wrote, pointing away from the actual gap (the expansion).
   const bindingKeys = (p: PartDef): string[] =>
-    [p.gap, p.height, p.minHeight, p.minWidthKey, p.radius, p.strokeWidth, p.size, p.width, p.type, p.inset, p.padding?.block, p.padding?.inlineLabel, p.padding?.inlineVisual, p.padding?.inlineEnd, p.paddingTop, p.flush?.key]
+    [p.gap, p.height, p.minHeight, p.minWidthKey, p.radius, p.strokeWidth, p.size, p.width, p.type, p.inset, p.padding?.block, p.padding?.inlineLabel, p.padding?.inlineVisual, p.padding?.inlineEnd, p.padding?.blockEnd, p.paddingTop, p.flush?.key]
       .filter((k): k is string => typeof k === 'string');
   for (const n of names)
     for (const key of bindingKeys(parts[n]))

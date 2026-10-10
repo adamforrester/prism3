@@ -1538,7 +1538,8 @@ export const figmaAnatomyPlan = (
       if (p.paddingTop) bound.paddingTop = varOf(p.paddingTop);
       if (p.padding) {
         bound.paddingTop = varOf(p.padding.block);
-        bound.paddingBottom = varOf(p.padding.block);
+        // A def that names its end side's own key (`blockEnd`, the accordion panel) takes it there (#2417).
+        bound.paddingBottom = varOf(p.padding.blockEnd ?? p.padding.block);
         // The slot-aware rule (#326): a filled visual slot on a side pulls that side's inset in,
         // because the glyph's own bounding box already contributes apparent space. With no slot
         // filled, both sides fall back to the label inset and the button is symmetric again —

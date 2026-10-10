@@ -827,6 +827,51 @@
           "A leading icon rung one smaller than the control rung (Button's #1350 offset) would suit a text-bearing tag; it is an owner exception in `lint-rung-names.ts`, so the 1:1 rung ships and the offset is held."
         ]
       }
+    },
+    "_accordion-indicator": {
+      "codeOnly": [
+        "the glyph turn — in code the chevron may rotate between down and up over motion.transition.enter / exit, and under reduced motion it takes the motion.duration-reduced.* twin. Figma members are static: one glyph per member.",
+        "aria-hidden — the glyph is decorative in code; the header button's aria-expanded carries the state. Figma has no accessibility tree."
+      ],
+      "notes": {
+        "contested": [
+          "Whether Figma keeps the nested style override when an Accordion instance switches expansion. The shim holds the precondition (same layer, same set, `style` exposed and `expansion` followed); the behavior itself is verified in a live file (owner Q183)."
+        ],
+        "unverified": [],
+        "evolution": [
+          "The indicator style was an Accordion variant axis in the proposal (Q182, 96 members). Owner Q183 made it this nested building block, exposed on the Accordion, so the Accordion projects 24 members."
+        ]
+      }
+    },
+    "accordion": {
+      "codeOnly": [
+        "code delivery pending: behavior layer (#2454). The notes below are the contract that layer implements; they name no framework.",
+        "single or multiple open — a stack of accordions is a code-only grouping with no Figma component. It takes `type: \"multiple\" | \"single\"` (default multiple, so a user can compare two sections), with `value` / `defaultValue` / `onValueChange` as arrays of item keys, never indexes, so one shape serves both modes. All sections may be closed at once. Native `<details name=\"…\">` gives single mode with no script.",
+        "heading level — each header button is the only child of an `<hN>`, and `headingLevel` (default 3) picks N; a stack sets it for every section. Figma has no heading level.",
+        "the panel region — the button carries aria-expanded and aria-controls; the panel is role=\"region\" with aria-labelledby pointing at the button. Omit the region role when more than about six panels can be open at once. A closed panel is `hidden`: out of the page, the tab order and assistive technology.",
+        "the panel content — `children` takes any node; Figma draws a swappable placeholder. The panel sets page ink (color.text.primary) for its content, never the header's interactive ink.",
+        "the height animation — the panel eases open with motion.transition.enter and closed with motion.transition.exit. Under prefers-reduced-motion the duration tokens' reduced twins (motion.duration-reduced.*) apply: the motion is shortened, not removed, and no component-level media query is added. Figma variants carry no motion.",
+        "the pointer cursor — the header shows the pointer cursor on hover; there is no hover color change.",
+        "keyboard — each header is its own tab stop (no roving tab index). Enter and Space open and close it. Up, Down, Home and End between headers are optional and must not trap focus.",
+        "RTL — logical properties carry the layout: a start glyph moves to the right edge and the title aligns right. The chevron and the plus and minus are symmetric about the vertical axis, so no glyph mirrors.",
+        "text expansion — the title wraps and never truncates; the header uses a minimum height, never a fixed one, and the glyph holds the first line."
+      ],
+      "notes": {
+        "contested": [
+          "The panel's inline inset matches the header's, so with the glyph at the start the content lines up under the glyph rather than under the title. Held for the owner.",
+          "The panel's end inset reuses the header's block padding (8, 12 and 16px at comfortable density). Held for the owner.",
+          "The content slot is an instance swap holding the file's placeholder; a Figma native slot, whose default could be a real paragraph, waits on an executor revision.",
+          "The contained (boxed card) style from the brief is not built; flush only."
+        ],
+        "unverified": [
+          "That Figma keeps the nested indicator's style override when an instance switches expansion (owner Q183: verify live). Switching the indicator position is expected to reset it, since the two positions are different layers."
+        ],
+        "evolution": [
+          "Proposal (#2417): an item + group pair, 60 + 6 members. Owner Q182: a single def, a start or end position axis, no hover. Owner Q183: the indicator style moved into the nested `_accordion-indicator`, no disabled state, 24 members.",
+          "The expansion axis name: `expansion` was added to the closed vocabulary rather than reusing `selection` (owner Q182.6).",
+          "The divider was a drawn hairline box in the proposal; it nests the Divider component (Q182.5)."
+        ]
+      }
     }
   }
 }

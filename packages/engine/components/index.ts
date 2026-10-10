@@ -66,6 +66,8 @@ import { imagePlaceholder } from './image-placeholder';
 import { spinner } from './spinner';
 import { badge } from './badge';
 import { tag } from './tag';
+import { accordionIndicator } from './accordion-indicator';
+import { accordion } from './accordion';
 
 /** Named access, kept ALONGSIDE the set rather than replaced by it. Most of `test.ts`'s component
  *  assertions are about one def's specific fields (`button.variants.appearance`,
@@ -73,7 +75,7 @@ import { tag } from './tag';
  *  be a worse call site, not a better one — a lookup that can return `undefined` standing in for a
  *  binding that cannot. The set is for iteration; these are for the assertions that are ABOUT one
  *  component. */
-export { button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, textarea, checkboxControl, checkboxRow, checkboxGroup, radioControl, radioRow, radioGroup, switchControl, switchRow, select, veil, imagePlaceholder, spinner, badge, tag };
+export { button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, textarea, checkboxControl, checkboxRow, checkboxGroup, radioControl, radioRow, radioGroup, switchControl, switchRow, select, veil, imagePlaceholder, spinner, badge, tag, accordionIndicator, accordion };
 
 /** Every component def the engine defines. The one thing a projection should iterate. */
 export const componentDefs: readonly ComponentDef[] = [
@@ -167,4 +169,8 @@ export const componentDefs: readonly ComponentDef[] = [
   // `tag` — the interactive counterpart to `badge`. It nests `icon-button-neutral` (its remove button) and
   // `focus-ring`, both above it; nothing reads this array's order (see the header).
   tag,
+  // `_accordion-indicator` (#2417, owner Q183) — the Accordion's open/closed glyph, a private building block
+  // the Accordion nests `nest-exposed`. `accordion` nests it, `focus-ring` and `divider`.
+  accordionIndicator,
+  accordion,
 ];
