@@ -5,7 +5,7 @@ holds the decision and the reasoning.
 
 ---
 
-## Decided (2026-10-06): never detach a Prism3 component to match a design; place it attached and file the differences
+## Decided (2026-10-06, #2259): never detach a Prism3 component to match a design; place it attached and file the differences
 
 When an existing design is rebuilt or rebound onto Prism3, a Prism3 component is **placed attached** and
 matched as closely as its variants, properties, text content and layout overrides allow. It is **not**
