@@ -82,6 +82,13 @@
  *                  every glyph's vectors fit its frame, read by the test off the shim's nodes (#2379). Mutations: the
  *                  paint base left black, or its alpha dropped → `drawn/paints`; the fresh glyph import not scaled to
  *                  its frame → `drawn/glyphs`.
+ *   veil/…         every directional veil member's gradient stops store the colors and alphas their variables resolve
+ *                  to: built fresh; damaged with black stops, read "to update" by the dry run and repaired by the apply,
+ *                  verified, then current; and verify names a stop the host leaves black (#2391). Mutations: the stops
+ *                  based on the placeholder → `veil/fresh`, `veil/repaired`, `veil/current`, `corpus/in place`; gradient
+ *                  stops dropped from the draw check → `veil/dry run`, `veil/repaired`, `veil/verify`; verify's draw check dropped → `veil/verify`.
+ *                  Stops at their color but 100% alpha read "to update" and fail verify; the alpha comparison dropped from
+ *                  the draw check's gradient branch → `veil/alpha dry run`, `veil/alpha verify`.
  *   noop/…         a set already current: no version, no write.
  *   order/…        nested sets are updated first.
  *
@@ -1292,6 +1299,135 @@ section('what the host draws — after an update in place, every bound paint sho
   ok(left.length === 0, `root/cleared: every member root the plan gives no fill is left with none (${left.length} still washed${left.length ? `, e.g. ${left[0]}` : ''})`);
   const v = applyVerdict(res);
   ok(v.ok === (left.length === 0), `root/verified: the verdict fails exactly when a member root keeps a fill the plan does not give it (${v.headline}; ${left.length} washed)`);
+}
+
+/* ── the veil's gradient stops ───────────────────────────────────────────────────────────────────────── */
+section("veil — every directional member's gradient stops store the colors their variables resolve to, fresh and in place (#2391)");
+{
+  // Read by THE TEST off the shim's nodes, against values authored HERE (docs/34): each veil variable's alpha is the
+  // emitted veil's (dark 50/60/70%, light 40/50/60%, clear 0), and one member's two stops are spelled out in full. The
+  // shim keeps a stop's stored color as written, as the host draws it. Mutations: the stops based on the placeholder →
+  // `veil/fresh`, `veil/repaired`, `veil/current`; gradient stops dropped from the draw check → `veil/dry run`,
+  // `veil/repaired`, `veil/verify`;
+  // verify's draw check dropped → `veil/verify`.
+  const ALPHA: Record<string, number> = { 'dark/subtle': 50, 'dark/medium': 60, 'dark/strong': 70, 'dark/clear': 0, 'light/subtle': 40, 'light/medium': 50, 'light/strong': 60, 'light/clear': 0 };
+  const MEMBER = 'value=dark, intensity=strong, direction=from-top';
+  const MEMBER_STOPS = 'color/veil/dark/strong #b64d3c at 70% | color/veil/dark/clear #4229c0 at 0%';
+  const hex = (c: { r: number; g: number; b: number }): string => `#${[c.r, c.g, c.b].map((x) => Math.round(x * 255).toString(16).padStart(2, '0')).join('')}`;
+  type Stop = { color: { r: number; g: number; b: number; a?: number }; boundVariables?: { color?: { id: string } } };
+  const gradientMembers = (w: World): Node[] => membersOf(w.set()).filter((m) => (m.fills as { type?: string }[] | undefined)?.[0]?.type === 'GRADIENT_LINEAR');
+  const stopsOf = (m: Node): Stop[] => ((m.fills as { gradientStops?: Stop[] }[])[0].gradientStops ?? []);
+  /** Each stop as `<variable> <stored hex> at <stored alpha>`, and every stop whose alpha is not its variable's. */
+  const read = async (w: World) => {
+    const names = new Map((await w.api.variables.getLocalVariablesAsync()).map((v: { id: string; name: string }) => [v.id, v.name.slice(v.name.indexOf('/') + 1)] as const));
+    const shown = new Map<string, string>();
+    const wrong: string[] = [];
+    let stops = 0;
+    for (const m of gradientMembers(w)) {
+      const line = stopsOf(m).map((st) => {
+        stops++;
+        const v = String(names.get(st.boundVariables?.color?.id ?? '') ?? 'UNBOUND');
+        const a = Math.round((st.color.a ?? 1) * 100);
+        const at = `${v} ${hex(st.color)} at ${a}%`;
+        if (a !== ALPHA[v.replace(/^color\/veil\//, '')] || hex(st.color) === '#000000') wrong.push(`${String(m.name)}: ${at}`);
+        return at;
+      }).join(' | ');
+      shown.set(String(m.name), line);
+    }
+    return { members: gradientMembers(w).length, stops, shown, wrong };
+  };
+  const earlier = (w: World): void => {
+    for (const m of membersOf(w.set())) {
+      const st = (m.getSharedPluginData as (a: string, b: string) => string)(NS, STAMP_KEY);
+      (m.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, STAMP_KEY, st.split('|').slice(0, 2).join('|'));
+    }
+  };
+
+  // FRESH: built, then read.
+  {
+    const w = await world('veil');
+    const r = await read(w);
+    ok(r.members === 24 && r.stops === 48 && r.wrong.length === 0 && r.shown.get(MEMBER) === MEMBER_STOPS,
+      `veil/fresh: a veil built fresh stores each of its 48 stops at its variable's color and alpha (${r.members} gradient members, ${r.stops} stops; ${r.wrong.length} wrong${r.wrong.length ? `, e.g. ${r.wrong[0]}` : ''}; ${MEMBER}: ${r.shown.get(MEMBER)})`);
+  }
+
+  // DAMAGED: every stop left storing black under its binding (the NB master after an in-place update), records
+  // matching and every stamp an earlier plugin's, so only the draw check can tell.
+  {
+    const w = await world('veil');
+    for (const m of gradientMembers(w)) {
+      const [g] = m.fills as { gradientStops: Stop[] }[];
+      m.fills = [{ ...g, gradientStops: g.gradientStops.map((st) => ({ ...st, color: { r: 0, g: 0, b: 0, a: 1 } })) }];
+      (m.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, BASELINE_KEY, JSON.stringify({ ...baselineOf(await snapshotMember(m)), id: String(m.id) }));
+    }
+    earlier(w);
+    const pre = await previewUpdate(w.host, [{ def: 'veil', plans: w.plans }]);
+    const st = pre.sets[0];
+    const toUpdate = st.states.filter((x) => x.state === 'update').length;
+    const black = st.changes.filter((c) => c.field === 'fills' && c.from === 'stored #000000 at 100%');
+    ok(toUpdate === 24 && black.reduce((n, c) => n + c.members, 0) === 48 && st.counts.revisionUnknown === 6 && previewVerdict(pre).headline === 'Would change 1 of 1',
+      `veil/dry run: the 24 members whose stops store black read "to update", each stop named "stored #000000 at 100%" (${toUpdate} to update; ${black.reduce((n, c) => n + c.members, 0)} stops named, e.g. ${black[0] ? `${black[0].from} (the plan says ${black[0].to})` : 'none'}; ${st.counts.revisionUnknown} from an earlier plugin; ${previewVerdict(pre).headline})`);
+    const res = await applyUpdate(w.host, w.api as any, [{ def: 'veil', plans: w.plans }], previewHashOf(pre));
+    const r = await read(w);
+    ok(applyVerdict(res).ok && res.outcomes[0]?.updated.length === 24 && r.wrong.length === 0 && r.shown.get(MEMBER) === MEMBER_STOPS,
+      `veil/repaired: the apply re-applies the 24, verified, and every stop then stores its variable's color and alpha (${applyVerdict(res).headline}; ${res.outcomes[0]?.updated.length} updated; ${r.wrong.length} wrong${r.wrong.length ? `, e.g. ${r.wrong[0]}` : ''}; ${MEMBER}: ${r.shown.get(MEMBER)})`);
+    const again = await previewUpdate(w.host, [{ def: 'veil', plans: w.plans }]);
+    ok(again.sets[0]?.counts.current === 30 && previewVerdict(again).headline === '✓ All sets up to date',
+      `veil/current: the next dry run reads all 30 members current (${JSON.stringify(again.sets[0]?.counts)}; ${previewVerdict(again).headline})`);
+  }
+
+  // THE HOST BEHIND THE EXECUTOR: re-applied by a revision bump, the host keeps black on every stop it is given (as it
+  // kept the placeholder on the NB master). The executor is unchanged, so only the update's own verify can name it.
+  {
+    const w = await world('veil');
+    for (const m of membersOf(w.set())) {
+      const st = (m.getSharedPluginData as (a: string, b: string) => string)(NS, STAMP_KEY);
+      (m.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, STAMP_KEY, st.replace(/\|[^|]*$/, '|0'));
+    }
+    for (const m of gradientMembers(w)) {
+      let held = m.fills;
+      Object.defineProperty(m, 'fills', {
+        configurable: true, enumerable: true, get: () => held,
+        set: (v: unknown) => {
+          held = Array.isArray(v) ? v.map((p: { type?: string; gradientStops?: Stop[] }) => (p?.type === 'GRADIENT_LINEAR' ? { ...p, gradientStops: (p.gradientStops ?? []).map((st) => ({ ...st, color: { r: 0, g: 0, b: 0, a: 1 } })) } : p)) : v;
+        },
+      });
+    }
+    const pre = await previewUpdate(w.host, [{ def: 'veil', plans: w.plans }]);
+    const res = await applyUpdate(w.host, w.api as any, [{ def: 'veil', plans: w.plans }], previewHashOf(pre));
+    const content = res.outcomes[0]?.content ?? [];
+    const line = `${MEMBER}/..fills: stored #000000 at 100% (the plan says color/veil/dark/strong, which resolves to #b64d3c at 70%)`;
+    ok(!applyVerdict(res).ok && content.includes(line),
+      `veil/verify: a stop the host left black under its binding fails verify, named (${applyVerdict(res).headline}; ${content.find((l) => l.startsWith(MEMBER)) ?? content[0] ?? 'no content line'})`);
+  }
+
+  // THE RIGHT COLOR AT THE WRONG ALPHA: every stop keeps its variable's RGB but stores 100% (a solid wash, the same
+  // visible defect as black), records matching and stamps an earlier plugin's, and the host keeps 100% on every stop it
+  // is given. Only the alpha half of the draw check can tell: the dry run reads the 24 "to update", and verify fails.
+  // Mutation: the alpha comparison dropped from `drawn.ts`'s gradient branch → `veil/alpha dry run`, `veil/alpha verify`.
+  {
+    const w = await world('veil');
+    const opaque = (v: unknown): unknown => Array.isArray(v) ? v.map((p: { type?: string; gradientStops?: Stop[] }) => (p?.type === 'GRADIENT_LINEAR' ? { ...p, gradientStops: (p.gradientStops ?? []).map((st) => ({ ...st, color: { ...st.color, a: 1 } })) } : p)) : v;
+    for (const m of gradientMembers(w)) {
+      let held = opaque(m.fills);
+      Object.defineProperty(m, 'fills', { configurable: true, enumerable: true, get: () => held, set: (v: unknown) => { held = opaque(v); } });
+      (m.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, BASELINE_KEY, JSON.stringify({ ...baselineOf(await snapshotMember(m)), id: String(m.id) }));
+    }
+    earlier(w);
+    const pre = await previewUpdate(w.host, [{ def: 'veil', plans: w.plans }]);
+    const st = pre.sets[0];
+    const toUpdate = st.states.filter((x) => x.state === 'update').length;
+    const solid = st.changes.filter((c) => c.field === 'fills' && /^stored #(?!000000)[0-9a-f]{6} at 100%$/.test(String(c.from)));
+    const first = `stored #b64d3c at 100%`;
+    const firstTo = solid.find((c) => c.from === first)?.to;
+    ok(toUpdate === 24 && solid.reduce((n, c) => n + c.members, 0) === 48 && /color\/veil\/dark\/strong, which resolves to #b64d3c at 70%/.test(String(firstTo)) && previewVerdict(pre).headline === 'Would change 1 of 1',
+      `veil/alpha dry run: the 24 members whose stops keep their color at 100% read "to update", each stop named (${toUpdate} to update; ${solid.reduce((n, c) => n + c.members, 0)} stops named, e.g. ${firstTo ? `${first} (the plan says ${firstTo})` : solid[0] ? `${solid[0].from} (the plan says ${solid[0].to})` : 'none'}; ${previewVerdict(pre).headline})`);
+    const res = await applyUpdate(w.host, w.api as any, [{ def: 'veil', plans: w.plans }], previewHashOf(pre));
+    const content = res.outcomes[0]?.content ?? [];
+    const line = `${MEMBER}/..fills: stored #b64d3c at 100% (the plan says color/veil/dark/strong, which resolves to #b64d3c at 70%)`;
+    ok(!applyVerdict(res).ok && content.includes(line),
+      `veil/alpha verify: a stop the host left at 100% under its binding fails verify, named (${applyVerdict(res).headline}; ${content.find((l) => l.startsWith(MEMBER)) ?? content[0] ?? 'no content line'})`);
+  }
 }
 
 /* ── swap ────────────────────────────────────────────────────────────────────────────────────────────── */
