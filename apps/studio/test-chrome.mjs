@@ -13919,7 +13919,9 @@ console.log(`\nDrag and rebuild speed (#2487 PR 2)\n${'='.repeat(78)}`);
     });
     ok(st.mark === 'kept' && st.value === '---\nname: caret test\n---' && st.caret === 4 && st.focused,
       `${where} A10: a host message leaves the open Export dialog as it is, the import text and its caret in place (${JSON.stringify(st)})`);
-    ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    // The agent link turning on starts its bridge, whose WebSocket has no server here (the S1.4 menu arms filter it too).
+    const bad = errors.filter((e) => !/WebSocket/.test(e));
+    ok(bad.length === 0, `${where}: 0 console errors other than the bridge's WebSocket${bad.length ? ` — ${bad.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
     ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
   } finally { await ctx.close(); }
