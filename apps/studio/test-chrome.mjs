@@ -12697,6 +12697,441 @@ for (const host of ['web', 'figma']) {
   }
 }
 // =============================================================================================
+// 39. #1855: forced colors (Windows High Contrast). Every state the chrome draws by a fill, an edge or an ink alone
+//     survives, in the system's colors; the brand's color specimens keep their real colors; only a selected control
+//     opts out, and only in system colors (owner decision HC1 B, 2026-10-09)
+// =============================================================================================
+// Both hosts, both chrome themes, at 1280, under Chromium's forced-colors emulation (CDP `Emulation.setEmulatedMedia`,
+// `forced-colors: active`), held for the whole case. For each state, its control is read against its unselected
+// neighbor, so a state that draws the same as its neighbor fails by name:
+//   · selected, pressed or checked (the Personality chip, the Color sub-page segment, a live mode radio, Brand's mode
+//     check box, the switch, the step picker's step, the value picker's value, the weights matrix's check): the fill is
+//     `Highlight` and the ink `HighlightText`, its neighbor's fill is not `Highlight`; the switch's knob is drawn in both
+//     states, apart from its track;
+//   · A SELECTED LABEL AS DRAWN (HC1 B): the chip's, the segment's, the mode radio's, the step's and the value's label is
+//     read off a screenshot of its text box, never off computed style. Chromium paints a `Canvas` backplate behind
+//     forced text, so a `HighlightText` label on a `Highlight` fill computes right and draws as a white box (option A, the
+//     owner's review of 2026-10-09). The box must show the fill, `Highlight` over `Canvas`, on at least FC_FILL_MIN of its
+//     pixels and the ink, `HighlightText`, on at least FC_INK_MIN;
+//   · the selected tab's underline in `CanvasText`, its neighbors' hidden in `Canvas`;
+//   · disabled (the held mode control on Palettes, Layout's first breakpoint field, a switch a derived mode holds):
+//     the ink and the edge in `GrayText`, and the held mode that is selected keeps its edge while the others hide theirs;
+//   · the status dots (Agent on; Activity running, which draws green, and failed, which draws red; and the plugin only,
+//     where they are drawn): filled in `CanvasText`, so drawn on the tile's `Canvas`;
+//   · the verdict's mark, the check and then the warning with its count: drawn in its tile's forced ink, never `Canvas`;
+//   · focus rings, on a selected chip (the case a `Highlight` fill makes hard), a chip, the selected segment and the tab:
+//     solid, at least 2px, in `CanvasText`;
+//   · the brand's color specimens (every brand-content node and every specimen root that paints an inline background,
+//     on Palettes and on Surfaces & fills): the same fill and image as outside forced colors, with literal floors on
+//     how many there are and how many are colored;
+//   · only a selected control opts out (HC1 B): every control the frame draws outside a specimen root computes
+//     `forced-color-adjust: auto` unless it is selected (`aria-pressed`, `aria-selected` or `aria-checked` true), and one
+//     that opts out draws every color, its own and its children's, in a system color; only a color specimen that paints
+//     its own inline background is left out, so a value's type or radius sample is read. The sweep runs on Palettes,
+//     Brand and Surfaces & fills, and with every picker open: the step picker, the base radius, columns and weight value
+//     pickers, and the plugin's font type-ahead (the review of #2450: three of the five kinds that opt out were never read).
+//
+// INDEPENDENCE (docs/34). The expected colors are the system-color keywords' own resolved values in this emulation,
+// read off a probe node that sets each keyword inline and nothing else; never `chrome.css`, whose rules are the subject.
+// A specimen's expected color is its own color read before the emulation starts. The controls, states and floors are
+// literals typed here; every case is counted, so a skipped one fails.
+// Mutations, each in a `wip:` commit, each failing by name (the PR records the lines): (a) the selected-chip rule
+// dropped; (b) the opt-out on a control that is not selected; (c) the specimen exemption dropped, so the swatches go
+// white; (d) the opt-out taken off the selected chip, so the backplate hides its label (only the drawn check sees it);
+// (e) the opt-out on every value and step, selected or not; (f) the selected value's sample rule dropped, so the chrome's
+// ink sits on the Highlight fill.
+const FC_KEYS = ['Canvas', 'CanvasText', 'Highlight', 'HighlightText', 'GrayText'];
+/** Each case, by name; every one must run on every host and theme (Agent and Activity on the plugin only). */
+const FC_CASES = ['oracle', 'segment', 'tab', 'held modes', 'palettes specimens', 'controls opt in', 'chip', 'mode check', 'focus rings',
+  'live modes', 'switch', 'step picker', 'fills specimens', 'held switch', 'disabled field', 'value picker', 'weights check', 'verdict',
+  'type value picker', 'layout value picker'];
+/** The plugin only: its tile dots, and the font type-ahead, which lists the host's fonts (the web has none to list). */
+const FC_PLUGIN_CASES = ['agent dot', 'activity dots', 'font list'];
+/** The fonts the type-ahead is handed, as the host would send them. Literal. */
+const FC_FONTS = { type: 'font-list', families: ['Inter', 'Roboto', 'Playfair Display'], styles: [18, 36, 12] };
+/** Floors on the specimens read (prism3: 182 drawn on Palettes, its squares, strips, heroes, role dots and the brand
+ *  swatch; 121 fill swatches, 4 gradient stops and the previews' grounds on Surfaces & fills), and on how many of them are not
+ *  the forced canvas, so the comparison is never one of white against white. */
+const FC_SPEC_FLOOR = { 'color-palettes': [175, 150], 'color-fills': [120, 20] };
+/** A floor on the controls the opt-out sweep reads on each page. */
+const FC_CONTROL_FLOOR = 15;
+/** A selected label's text box, as drawn: the share of its pixels in the fill, and in the ink, each within FC_TOL of a
+ *  channel. Only a glyph's solid core reads as the ink (its antialiased edge is a blend), 2.5 to 4% of a 12 or 14px
+ *  label's box as measured on prism3; under a backplate the fill reads 0%. Literals. */
+const FC_FILL_MIN = 0.4;
+const FC_INK_MIN = 0.015;
+const FC_TOL = 24;
+/** A selected control's text box, the union of its drawn text runs, in page pixels. Runs in the page. */
+const FC_TEXT_BOX = (sel) => {
+  const n = document.querySelector(sel);
+  if (!n) return null;
+  const rs = [];
+  const tw = document.createTreeWalker(n, NodeFilter.SHOW_TEXT);
+  for (let t = tw.nextNode(); t; t = tw.nextNode()) {
+    if (!t.textContent.trim()) continue;
+    const r = document.createRange();
+    r.selectNodeContents(t);
+    for (const b of r.getClientRects()) if (b.width > 0 && b.height > 0) rs.push(b);
+  }
+  if (!rs.length) return null;
+  const x = Math.ceil(Math.min(...rs.map((b) => b.left))), y = Math.ceil(Math.min(...rs.map((b) => b.top)));
+  return { x, y, width: Math.floor(Math.max(...rs.map((b) => b.right))) - x, height: Math.floor(Math.max(...rs.map((b) => b.bottom))) - y };
+};
+/** Count a PNG's pixels near each of two colors (`[r, g, b]`), decoded by the page's own canvas. Runs in the page. */
+const FC_PIXELS = ([png, fill, ink, tol]) => new Promise((done) => {
+  const img = new Image();
+  img.onload = () => {
+    const c = document.createElement('canvas');
+    c.width = img.width; c.height = img.height;
+    const g = c.getContext('2d');
+    g.drawImage(img, 0, 0);
+    const d = g.getImageData(0, 0, c.width, c.height).data;
+    const near = (i, k) => Math.abs(d[i] - k[0]) <= tol && Math.abs(d[i + 1] - k[1]) <= tol && Math.abs(d[i + 2] - k[2]) <= tol;
+    let nFill = 0, nInk = 0;
+    for (let i = 0; i < d.length; i += 4) { if (near(i, fill)) nFill++; else if (near(i, ink)) nInk++; }
+    done({ n: d.length / 4, fill: nFill, ink: nInk });
+  };
+  img.onerror = () => done(null);
+  img.src = `data:image/png;base64,${png}`;
+});
+/** `rgb()`/`rgba()` to numbers. */
+const fcRgba = (s) => { const p = /^rgba?\(([^)]+)\)$/.exec(s ?? '')?.[1].split(/[,\s/]+/).filter(Boolean).map(Number) ?? []; return p.length >= 3 ? [p[0], p[1], p[2], p.length > 3 ? p[3] : 1] : null; };
+/** The resolved system colors, from a probe node that sets each keyword inline. Runs in the page. */
+const FC_SYS = (keys) => {
+  const t = document.createElement('div');
+  document.body.append(t);
+  const out = {};
+  for (const k of keys) { t.style.backgroundColor = k; out[k] = getComputedStyle(t).backgroundColor; }
+  t.remove();
+  return { ...out, active: matchMedia('(forced-colors: active)').matches };
+};
+/** What a node draws, read off its computed style. Runs in the page. */
+const FC_LOOK = (sel) => {
+  const n = document.querySelector(sel);
+  if (!n) return null;
+  const c = getComputedStyle(n);
+  const ico = n.querySelector('.p3-ico');
+  const before = getComputedStyle(n, '::before');
+  return { bg: c.backgroundColor, ink: c.color, edge: c.borderTopColor, under: c.borderBottomColor, ol: c.outlineColor, olStyle: c.outlineStyle,
+    olWidth: parseFloat(c.outlineWidth), ring: before.borderTopColor, ringWidth: parseFloat(before.borderTopWidth), fca: c.forcedColorAdjust,
+    shown: n.getClientRects().length > 0 && c.display !== 'none' && c.visibility !== 'hidden', fv: n.matches(':focus-visible'),
+    off: n.matches(':disabled') || n.getAttribute('aria-disabled') === 'true',
+    glyph: ico && ico.getClientRects().length > 0 && getComputedStyle(ico).visibility !== 'hidden' ? getComputedStyle(ico).color : null,
+    path: ico?.innerHTML ?? null };
+};
+/** Every brand specimen that paints an inline background: brand content, and the specimen roots and what they hold. */
+const FC_SPECIMENS = () => [...document.querySelectorAll('[data-p3="frame"] :is([data-content], [data-p3="specimen"], [data-p3="specimen"] *)')]
+  .filter((n) => /background/.test(n.getAttribute('style') ?? '') && n.getClientRects().length > 0)
+  .map((n) => { const c = getComputedStyle(n); return `${c.backgroundColor} ${c.backgroundImage}`; });
+/** Every control the frame draws outside a specimen root: its forced-color-adjust, whether it is selected, and, when it
+ *  opts out, every color it and its children draw, but a color specimen that paints its own inline background (an ink under text or a glyph, an opaque fill, a
+ *  drawn edge or outline). A color input is left out: Chromium's own stylesheet sets it to `none`, so its swatch shows the
+ *  color it holds, and it is not ours to set. Runs in the page. */
+const FC_CONTROLS = () => [...document.querySelectorAll('[data-p3="frame"] :is(button, input, select, textarea, [role="switch"], [role="tab"], [role="radio"], [role="checkbox"], [role="menuitem"], [role="menuitemradio"], [role="option"])')]
+  .filter((n) => !n.closest('[data-p3="specimen"]') && !(n.tagName === 'INPUT' && n.type === 'color') && n.getClientRects().length > 0)
+  .map((n) => {
+    const fca = getComputedStyle(n).forcedColorAdjust;
+    const colors = new Set();
+    if (fca !== 'auto') {
+      const clear = (v) => /^rgba\(.*,\s*0\)$/.test(v) || v === 'transparent';
+      for (const m of [n, ...n.querySelectorAll('*')]) {
+        // A color specimen paints its own inline background; only that node is left out. Brand content that does not (a
+        // value's type or radius sample) is read like the rest, so its ink must be a system color too.
+        if (/background/.test(m.getAttribute('style') ?? '') || m.getClientRects().length === 0) continue;
+        const c = getComputedStyle(m);
+        if (c.display === 'none' || c.visibility === 'hidden') continue;
+        if (m instanceof SVGElement || [...m.childNodes].some((t) => t.nodeType === 3 && t.textContent.trim())) colors.add(c.color);
+        if (!clear(c.backgroundColor)) colors.add(c.backgroundColor);
+        for (const sd of ['Top', 'Right', 'Bottom', 'Left']) if (c[`border${sd}Style`] !== 'none' && parseFloat(c[`border${sd}Width`]) > 0 && !clear(c[`border${sd}Color`])) colors.add(c[`border${sd}Color`]);
+        if (c.outlineStyle !== 'none' && !clear(c.outlineColor)) colors.add(c.outlineColor);
+      }
+    }
+    return { el: `${n.tagName.toLowerCase()}[${n.getAttribute('data-p3') ?? (n.getAttribute('class') ?? '').split(' ')[0]}]`, fca,
+      selected: ['aria-pressed', 'aria-selected', 'aria-checked'].some((a) => n.getAttribute(a) === 'true'), colors: [...colors] };
+  });
+/** Focus `sel` from the keyboard: focus it, step back and forward again, so the ring is the keyboard's. */
+const fcKeyFocus = async (page, sel) => {
+  await page.locator(sel).first().focus();
+  await page.keyboard.press('Shift+Tab');
+  await page.keyboard.press('Tab');
+  return page.evaluate(FC_LOOK, sel);
+};
+console.log(`\n#1855: forced colors keep every state (Windows High Contrast)\n${'='.repeat(78)}`);
+for (const host of ['web', 'figma']) {
+  for (const theme of ['light', 'dark']) {
+    const w = 1280;
+    const where = `#1855 ${host} ${theme} ${w}`;
+    const { ctx, page, errors } = await open({ host, theme, w, h: 900, query: host === 'web' ? '?p3-test-hooks' : '' });
+    const shot = async (name, clip) => { if (SHOTS) await page.screenshot({ path: join(SHOTS, `1855-${host === 'web' ? 'web' : 'plugin'}-${theme}-${w}-${name}.png`), ...(clip ? { clip } : {}) }); };
+    const ran = new Set();
+    let step = 'open';
+    let cdp = null;
+    try {
+      const S = (k, sys) => sys[k];
+      // Palettes' specimens, read before the emulation starts: the colors forced colors must leave alone.
+      step = 'read the specimens outside forced colors';
+      const specBefore = { 'color-palettes': await page.evaluate(FC_SPECIMENS) };
+      await goPlace(page, 'color-fills');
+      specBefore['color-fills'] = await page.evaluate(FC_SPECIMENS);
+      await goPlace(page, 'color-palettes');
+      step = 'emulate forced colors';
+      cdp = await page.context().newCDPSession(page);
+      await cdp.send('Emulation.setEmulatedMedia', { features: [{ name: 'forced-colors', value: 'active' }] });
+      const sys = await page.evaluate(FC_SYS, FC_KEYS);
+      ok(sys.active && FC_KEYS.every((k) => /^rgba?\(/.test(sys[k])) && sys.Highlight !== sys.Canvas && sys.HighlightText !== sys.Highlight && sys.CanvasText !== sys.Canvas && sys.GrayText !== sys.Canvas,
+        `${where}: the oracle: forced colors are active, and the system colors resolve apart (${JSON.stringify(sys)})`);
+      ran.add('oracle');
+      const H = S('Highlight', sys), HT = S('HighlightText', sys), CT = S('CanvasText', sys), CV = S('Canvas', sys), GT = S('GrayText', sys);
+      const selected = (on, off, what) => {
+        ok(!!on && !!off && on.bg === H && on.ink === HT && off.bg !== H && on.bg !== off.bg,
+          `${where}: ${what}: the selected one fills with Highlight ${H} and inks with HighlightText ${HT}, its neighbor does not fill with Highlight (selected ${JSON.stringify(on && [on.bg, on.ink])}, neighbor ${JSON.stringify(off && [off.bg, off.ink])})`);
+      };
+      const SYSTEM = new Set(FC_KEYS.map((k) => sys[k]));
+      const controlsOptIn = async (place) => {
+        const cs = await page.evaluate(FC_CONTROLS);
+        const outs = cs.filter((c) => c.fca !== 'auto');
+        const unselected = outs.filter((c) => !c.selected).map((c) => `${c.el} ${c.fca}`);
+        const nonSystem = outs.flatMap((c) => c.colors.filter((x) => !SYSTEM.has(x)).map((x) => `${c.el} ${x}`));
+        ok(cs.length >= FC_CONTROL_FLOOR && unselected.length === 0,
+          `${where}: HC1 B on ${place}: only a selected control opts out of forced colors; every other control outside a specimen root computes forced-color-adjust: auto (${cs.length} read, at least ${FC_CONTROL_FLOOR}; ${outs.length} opt out; not selected: ${JSON.stringify(unselected.slice(0, 6))})`);
+        ok(nonSystem.length === 0,
+          `${where}: HC1 B on ${place}: a control that opts out draws only system colors, its own and its children's (${outs.length} opt out; not a system color: ${JSON.stringify(nonSystem.slice(0, 6))})`);
+        ran.add('controls opt in');
+      };
+      /** A selected control's label as drawn: its text box shows the Highlight fill and the HighlightText ink. */
+      const hlRgb = (() => { const h = fcRgba(H), cv = fcRgba(CV); return h && cv ? [0, 1, 2].map((i) => Math.round(h[i] * h[3] + cv[i] * (1 - h[3]))) : null; })();
+      const drawn = async (sel, what) => {
+        await page.locator(sel).first().scrollIntoViewIfNeeded();
+        const box = await page.evaluate(FC_TEXT_BOX, sel);
+        let px = null;
+        if (box && box.width > 0 && box.height > 0) {
+          const png = (await page.screenshot({ clip: box })).toString('base64');
+          px = await page.evaluate(FC_PIXELS, [png, hlRgb, fcRgba(HT).slice(0, 3), FC_TOL]);
+        }
+        const fill = px ? px.fill / px.n : 0, ink = px ? px.ink / px.n : 0;
+        ok(!!px && fill >= FC_FILL_MIN && ink >= FC_INK_MIN,
+          `${where}: ${what}, as drawn: the selected label's text box shows the Highlight fill (rgb ${JSON.stringify(hlRgb)}) on at least ${FC_FILL_MIN * 100}% of its pixels and the HighlightText ink on at least ${FC_INK_MIN * 100}%, never a Canvas backplate (fill ${(fill * 100).toFixed(1)}%, ink ${(ink * 100).toFixed(1)}% of ${px?.n ?? 0} px in ${JSON.stringify(box)})`);
+      };
+      const specimens = async (place) => {
+        const after = await page.evaluate(FC_SPECIMENS);
+        const before = specBefore[place];
+        const [floor, colored] = FC_SPEC_FLOOR[place];
+        const nColored = before.filter((x) => !x.startsWith(`${CV} none`)).length;
+        const diff = before.map((b, i) => [b, after[i]]).filter(([b, a]) => b !== a);
+        ok(before.length >= floor && nColored >= colored && after.length === before.length && diff.length === 0,
+          `${where}: the brand's color specimens on ${place} keep their real colors under forced colors (${before.length} read, at least ${floor}; ${nColored} colored, at least ${colored}; ${diff.length} changed, e.g. ${JSON.stringify(diff.slice(0, 2))})`);
+      };
+
+      // ── Color › Palettes: the segment, the tab, the held mode control, the specimens, the controls ──────────────
+      step = 'Palettes';
+      selected(await page.evaluate(FC_LOOK, '[data-p3="color-sub-palettes"]'), await page.evaluate(FC_LOOK, '[data-p3="color-sub-fills"]'), 'the Color sub-page segment');
+      await drawn('[data-p3="color-sub-palettes"]', 'the Color sub-page segment');
+      ran.add('segment');
+      const tOn = await page.evaluate(FC_LOOK, '[data-p3="tab-color"]'), tOff = await page.evaluate(FC_LOOK, '[data-p3="tab-brand"]');
+      ok(tOn?.under === CT && tOff?.under === CV, `${where}: the selected tab's underline draws in CanvasText ${CT}, a tab not selected hides its own in Canvas ${CV} (selected ${tOn?.under}, other ${tOff?.under})`);
+      ran.add('tab');
+      const hOn = await page.evaluate(FC_LOOK, '[data-p3="mode-option"][aria-checked="true"]'), hOff = await page.evaluate(FC_LOOK, '[data-p3="mode-option"][aria-checked="false"]');
+      ok(!!hOn && !!hOff && hOn.off && hOff.off && hOn.ink === GT && hOff.ink === GT && hOn.edge === GT && hOff.edge === CV && hOn.bg !== H,
+        `${where}: the held mode control on Palettes inks in GrayText ${GT}; the selected mode keeps its edge in GrayText, the others hide theirs in Canvas, and none fills with Highlight (selected ${JSON.stringify(hOn && [hOn.off, hOn.bg, hOn.ink, hOn.edge])}, other ${JSON.stringify(hOff && [hOff.off, hOff.bg, hOff.ink, hOff.edge])})`);
+      ran.add('held modes');
+      await specimens('color-palettes');
+      ran.add('palettes specimens');
+      await controlsOptIn('color-palettes');
+      await page.evaluate(() => document.activeElement?.blur?.());
+      await shot('palettes');
+      await shot('topbar', { x: 0, y: 0, width: w, height: 64 });
+
+      // ── Brand: the chip, the mode check box, focus rings ─────────────────────────────────────────────────────
+      step = 'Brand';
+      await goPlace(page, 'brand');
+      const chipOn = '[data-p3="personality-word"][aria-pressed="true"]', chipOff = '[data-p3="personality-word"][aria-pressed="false"]';
+      // prism3 opens with no word chosen: one is pressed here, so both states are drawn.
+      if (!(await page.locator(chipOn).count())) {
+        await hooks.click(page.locator(chipOff).first());
+        await page.waitForFunction((s) => !!document.querySelector(s), chipOn, { timeout: 5000 }).catch(() => {});
+      }
+      const cOn = await page.evaluate(FC_LOOK, chipOn), cOff = await page.evaluate(FC_LOOK, chipOff);
+      selected(cOn, cOff, 'a Personality chip');
+      await drawn(chipOn, 'a Personality chip');
+      ok(cOn?.glyph === HT, `${where}: a pressed chip's check draws in HighlightText ${HT} (read ${cOn?.glyph})`);
+      ran.add('chip');
+      const modeHooks = ['mode-on-dark', 'mode-on-hc-light', 'mode-on-hc-dark', 'mode-on-wireframe'];
+      const boxes = await page.evaluate((hs) => hs.map((hk) => { const n = document.querySelector(`[data-p3="${hk}"]`); const b = n?.querySelector('.p3-check-box');
+        return n && b ? { hk, on: n.getAttribute('aria-checked'), bg: getComputedStyle(b).backgroundColor, edge: getComputedStyle(b).borderTopColor } : null; }).filter(Boolean), modeHooks);
+      const bOn = boxes.find((b) => b.on === 'true'), bOff = boxes.find((b) => b.on === 'false');
+      ok(!!bOn && !!bOff && bOn.bg === H && bOn.edge === H && bOff.bg !== H,
+        `${where}: a checked mode's box fills with Highlight ${H}, an unchecked one's does not (${JSON.stringify(boxes)})`);
+      ran.add('mode check');
+      const fOn = await fcKeyFocus(page, chipOn), fOff = await fcKeyFocus(page, chipOff);
+      const fSeg = await fcKeyFocus(page, '[data-p3="tab-brand"]');
+      const ringOk = (f) => !!f && f.fv && f.olStyle === 'solid' && f.olWidth >= FOCUS_WIDTH_MIN && f.ol === CT;
+      ok(ringOk(fOn) && ringOk(fOff), `${where}: focus rings: a chip's ring, pressed or not, is solid, at least ${FOCUS_WIDTH_MIN}px, in CanvasText ${CT}, apart from the Highlight fill (pressed ${JSON.stringify(fOn && [fOn.fv, fOn.olStyle, fOn.olWidth, fOn.ol])}, not pressed ${JSON.stringify(fOff && [fOff.fv, fOff.olStyle, fOff.olWidth, fOff.ol])})`);
+      ok(!!fSeg && fSeg.fv && fSeg.ringWidth >= FOCUS_WIDTH_MIN && fSeg.ring === CT, `${where}: focus rings: the selected tab's ring is at least ${FOCUS_WIDTH_MIN}px, in CanvasText ${CT} (${JSON.stringify(fSeg && [fSeg.fv, fSeg.ringWidth, fSeg.ring])})`);
+      await page.evaluate(() => document.activeElement?.blur?.());
+      await controlsOptIn('brand');
+      await shot('brand');
+
+      // ── Color › Surfaces & fills: live mode radios, the switch, the step picker, the specimens, a held switch ──
+      step = 'Surfaces & fills';
+      await goPlace(page, 'color-fills');
+      const segFocus = await fcKeyFocus(page, '[data-p3="color-sub-fills"]');
+      ok(ringOk(segFocus), `${where}: focus rings: the selected segment's ring is solid, at least ${FOCUS_WIDTH_MIN}px, in CanvasText ${CT}, apart from its Highlight fill (${JSON.stringify(segFocus && [segFocus.fv, segFocus.olStyle, segFocus.olWidth, segFocus.ol])})`);
+      ran.add('focus rings');
+      await page.evaluate(() => document.activeElement?.blur?.());
+      selected(await page.evaluate(FC_LOOK, '[data-p3="mode-option"][aria-checked="true"]'), await page.evaluate(FC_LOOK, '[data-p3="mode-option"][aria-checked="false"]'), 'a live mode radio');
+      await drawn('[data-p3="mode-option"][aria-checked="true"]', 'a live mode radio');
+      ran.add('live modes');
+      await specimens('color-fills');
+      ran.add('fills specimens');
+      await controlsOptIn('color-fills');
+      const SW = '[data-p3="gradients-switch"]';
+      const swRead = () => page.evaluate((s) => { const n = document.querySelector(s); const t = n?.querySelector('.p3-switch-track'), k = n?.querySelector('.p3-switch-knob');
+        return n && t && k ? { on: n.getAttribute('aria-checked'), off: n.matches(':disabled') || n.getAttribute('aria-disabled') === 'true', track: getComputedStyle(t).backgroundColor,
+          edge: getComputedStyle(t).borderTopColor, knob: getComputedStyle(k).backgroundColor } : null; }, SW);
+      await hooks.need(page, SW);
+      const s0 = await swRead();
+      await hooks.click(page.locator(SW));
+      await page.waitForFunction(([s, was]) => document.querySelector(s)?.getAttribute('aria-checked') !== was, [SW, s0?.on], { timeout: 5000 }).catch(() => {});
+      const s1 = await swRead();
+      const [sOn, sOff] = s0?.on === 'true' ? [s0, s1] : [s1, s0];
+      ok(sOn?.on === 'true' && sOff?.on === 'false' && sOn.track === H && sOn.knob === HT && sOff.knob === CT && sOff.track !== H && sOn.knob !== sOn.track && sOff.knob !== sOff.track,
+        `${where}: the switch: on, its track fills with Highlight ${H} and its knob with HighlightText ${HT}; off, its knob is CanvasText ${CT} on a track that is not Highlight; the knob is drawn apart from its track in both (on ${JSON.stringify(sOn)}, off ${JSON.stringify(sOff)})`);
+      ran.add('switch');
+      await hooks.click(page.locator(SW));
+      await shot('fills');
+      const PICK = '[data-p3="levers-pane"] [data-p3="fill-pick"]';
+      await hooks.click(page.locator(PICK).first());
+      await hooks.need(page, '[data-p3="step-picker"]');
+      selected(await page.evaluate(FC_LOOK, '[data-p3="step-picker"] [data-p3="step-picker-step"][aria-pressed="true"]'),
+        await page.evaluate(FC_LOOK, '[data-p3="step-picker"] [data-p3="step-picker-step"][aria-pressed="false"]'), 'the step picker\'s step');
+      await drawn('[data-p3="step-picker"] [data-p3="step-picker-step"][aria-pressed="true"]', 'the step picker\'s step');
+      await controlsOptIn('color-fills, the step picker open');
+      ran.add('step picker');
+      await shot('fills-step-picker');
+      await hooks.click(page.locator('[data-p3="step-picker-close"]'));
+      // A derived mode holds the panel's settings (#2284), the switch with them: GrayText, its knob kept on its side.
+      step = 'Surfaces & fills, held';
+      await hooks.click(page.locator('[data-p3="mode-option"][data-mode="hc-light"]'));
+      await page.waitForFunction((s) => { const n = document.querySelector(s); return !!n && (n.disabled || n.getAttribute('aria-disabled') === 'true'); }, SW, { timeout: 5000 }).catch(() => {});
+      const sH = await swRead();
+      ok(!!sH && sH.off && sH.edge === GT && sH.knob === GT && sH.track !== H,
+        `${where}: a held switch draws its track's edge and its knob in GrayText ${GT}, never a Highlight track (${JSON.stringify(sH)})`);
+      ran.add('held switch');
+      await shot('fills-held');
+      await hooks.click(page.locator('[data-p3="mode-option"][data-mode="light"]'));
+
+      // ── Layout: the disabled field ───────────────────────────────────────────────────────────────────────────
+      step = 'Layout';
+      await goPlace(page, 'layout');
+      const dOff = await page.evaluate(FC_LOOK, '[data-p3="bp-input"]:disabled'), dOn = await page.evaluate(FC_LOOK, '[data-p3="bp-input"]:enabled');
+      ok(!!dOff && !!dOn && dOff.ink === GT && dOff.edge === GT && dOn.ink !== GT,
+        `${where}: the disabled breakpoint field inks and edges in GrayText ${GT}, an enabled one does not ink in it (disabled ${JSON.stringify(dOff && [dOff.ink, dOff.edge])}, enabled ${JSON.stringify(dOn && [dOn.ink, dOn.edge])})`);
+      ran.add('disabled field');
+
+      // ── the value pickers: Shape's base radius (a radius sample), Layout's columns (bar samples), Type's weight (a type
+      //    sample). Each is read open: the selected value, its label as drawn, and the opt-out sweep over every control. ─
+      /** Open the value picker behind `pick`, read it, close it. */
+      const valuePick = async (pick, what, place, name) => {
+        await hooks.click(page.locator(pick).first());
+        await hooks.need(page, '[data-p3="value-picker"]');
+        const on = '[data-p3="value-picker"] [data-p3="value-picker-value"][aria-pressed="true"]';
+        selected(await page.evaluate(FC_LOOK, on), await page.evaluate(FC_LOOK, '[data-p3="value-picker"] [data-p3="value-picker-value"][aria-pressed="false"]'), what);
+        await drawn(on, what);
+        await controlsOptIn(`${place}, ${what} open`);
+        await page.locator(on).scrollIntoViewIfNeeded();
+        await shot(name);
+        await hooks.click(page.locator('[data-p3="value-picker-close"]'));
+      };
+      step = 'Shape';
+      await goPlace(page, 'shape');
+      await openShapeAdvanced(page);
+      await valuePick('[data-p3="base-radius-pick"]', 'the base radius picker\'s value', 'shape', 'shape-value-picker');
+      ran.add('value picker');
+      step = 'Layout, the columns picker';
+      await goPlace(page, 'layout');
+      await valuePick('[data-p3="layout-columns-pick"]', 'the columns picker\'s value', 'layout', 'layout-value-picker');
+      ran.add('layout value picker');
+
+      // ── Type: the weights matrix ─────────────────────────────────────────────────────────────────────────────
+      step = 'Type';
+      await goPlace(page, 'type');
+      await shot('type');
+      await openTypeAdvanced(page);
+      selected(await page.evaluate(FC_LOOK, '[data-p3="weights-matrix"] [role="checkbox"][aria-checked="true"]'),
+        await page.evaluate(FC_LOOK, '[data-p3="weights-matrix"] [role="checkbox"][aria-checked="false"]'), 'a weights matrix check');
+      ran.add('weights check');
+      step = 'Type, the weight picker';
+      await valuePick('[data-p3="weight-pick"]', 'the weight picker\'s value', 'type', 'type-value-picker');
+      ran.add('type value picker');
+      // The plugin's font type-ahead: the host's fonts listed, the first option made active by the keyboard.
+      if (host === 'figma') {
+        step = 'Type, the font type-ahead';
+        await page.evaluate((m) => window.postMessage({ pluginMessage: m }, '*'), FC_FONTS);
+        await page.waitForFunction(() => document.querySelector('[data-p3="face-add-input"]')?.getAttribute('role') === 'combobox', null, { timeout: 5000 }).catch(() => {});
+        await page.locator('[data-p3="face-add-input"]').scrollIntoViewIfNeeded();
+        await page.locator('[data-p3="face-add-input"]').focus();
+        await page.keyboard.press('ArrowDown');
+        await page.waitForFunction(() => !!document.querySelector('[data-p3="face-font-option"][aria-selected="true"]'), null, { timeout: 5000 }).catch(() => {});
+        const optOn = '[data-p3="face-font-list"] [data-p3="face-font-option"][aria-selected="true"]';
+        selected(await page.evaluate(FC_LOOK, optOn), await page.evaluate(FC_LOOK, '[data-p3="face-font-list"] [data-p3="face-font-option"][aria-selected="false"]'), 'the font type-ahead\'s option');
+        await drawn(optOn, 'the font type-ahead\'s option');
+        await controlsOptIn('type, the font list open');
+        await shot('type-font-list');
+        await page.keyboard.press('Escape');
+        ran.add('font list');
+      }
+
+      // ── the verdict's mark, the check and then the warning with its count (last: the edit stays) ───────────────
+      step = 'the verdict';
+      const markOf = () => page.evaluate(() => { const b = document.querySelector('[data-p3="verdict"]'), g = b?.querySelector('.p3-tile-mark svg.p3-ico'), n = b?.querySelector('[data-p3="verdict-count"]');
+        return b && g ? { state: b.dataset.state, glyph: getComputedStyle(g).color, ink: getComputedStyle(b).color, shape: g.innerHTML, count: n ? getComputedStyle(n).color : null } : null; });
+      const v0 = await markOf();
+      if (host === 'web') await page.evaluate((o) => window.__prism3TestEdit('overrides', o), LOW_FIXTURE);
+      else await page.evaluate((i) => window.postMessage({ pluginMessage: { type: 'restore-input', input: i } }, '*'), LOW_BRAND);
+      await page.waitForFunction(() => document.querySelector('[data-p3="verdict"]')?.dataset.state === 'fail', null, { timeout: 5000 }).catch(() => {});
+      const v1 = await markOf();
+      ok(v0?.state === 'ok' && v1?.state === 'fail' && v0.glyph === v0.ink && v1.glyph === v1.ink && v0.glyph !== CV && v1.glyph !== CV && v1.count !== null && v1.count !== CV && v0.shape !== v1.shape,
+        `${where}: the verdict's mark draws in its tile's forced ink, never Canvas ${CV}: the check while every pair passes, the warning and its count once pairs fall below (ok ${JSON.stringify(v0 && [v0.glyph, v0.ink])}, fail ${JSON.stringify(v1 && [v1.glyph, v1.ink, v1.count])})`);
+      ran.add('verdict');
+
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+      // ── the plugin's tile dots: Agent on, Activity running (green) and failed (red) ─────────────────────────────
+      const dotOf = (k) => page.evaluate((x) => { const d = document.querySelector(`[data-p3="${x}"] .p3-tile-mark > .p3-dot`), b = d?.closest('button');
+        const cs = d ? getComputedStyle(d) : null; return d ? { state: d.dataset.state ?? null, shown: d.getClientRects().length > 0 && cs.display !== 'none', bg: cs.backgroundColor, tile: getComputedStyle(b).backgroundColor } : null; }, k);
+      // Last, after the console check: a link switched on opens the desktop bridge's socket, which no harness serves.
+      if (host === 'figma') {
+        step = 'Agent';
+        await page.evaluate((st) => window.postMessage({ pluginMessage: { type: 'agent-link-state', state: st } }, '*'), AGENT_ON);
+        await page.waitForFunction(() => document.querySelector('[data-p3="agent-toggle"]')?.getAttribute('aria-pressed') === 'true', null, { timeout: 5000 }).catch(() => {});
+        const a1 = await dotOf('agent-toggle');
+        ok(!!a1 && a1.shown && a1.bg === CT && a1.bg !== CV, `${where}: the pressed Agent tile's dot fills with CanvasText ${CT}, drawn on the forced Canvas ${CV} (${JSON.stringify(a1)})`);
+        ran.add('agent dot');
+        step = 'Activity';
+        await hooks.click(page.locator('[data-p3="apply-to-figma"]'));
+        await page.waitForFunction(() => document.querySelector('[data-p3="activity-open"] .p3-status-dot')?.dataset.state === 'run', null, { timeout: 5000 }).catch(() => {});
+        const run = await dotOf('activity-open');
+        await shot('topbar-dots', { x: 0, y: 0, width: w, height: 64 });
+        await page.evaluate(() => window.postMessage({ pluginMessage: { type: 'apply-result', ok: false, headline: '✗ write failed', summary: 'The write failed.' } }, '*'));
+        await page.waitForFunction(() => document.querySelector('[data-p3="activity-open"] .p3-status-dot')?.dataset.state === 'bad', null, { timeout: 5000 }).catch(() => {});
+        const bad = await dotOf('activity-open');
+        ok(run?.state === 'run' && bad?.state === 'bad' && run.shown && bad.shown && run.bg === CT && bad.bg === CT,
+          `${where}: Activity's dots, running (green outside forced colors) and failed (red), each fill with CanvasText ${CT} on the forced Canvas (running ${JSON.stringify(run)}, failed ${JSON.stringify(bad)})`);
+        ran.add('activity dots');
+        await page.evaluate((st) => window.postMessage({ pluginMessage: { type: 'agent-link-state', state: st } }, '*'), { ...AGENT_ON, on: false, since: null });
+      }
+
+      const want = [...FC_CASES, ...(host === 'figma' ? FC_PLUGIN_CASES : [])];
+      const missed = want.filter((c) => !ran.has(c));
+      ok(missed.length === 0, `${where}: every case ran (${ran.size} of ${want.length}${missed.length ? `; missed ${missed.join(', ')}` : ''})`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at a step that threw (${step}) — ${String(e?.message ?? e).split('\n')[0]}`);
+    } finally {
+      await cdp?.detach().catch(() => {});
+      await ctx.close();
+    }
+  }
+}
+// =============================================================================================
 // 42. #2233: the choice rows' accessibility, on Type › Type scale (the rows `choice()` draws and `stateLine` annotates).
 //     Both hosts, light, 1280. Four arms, one per defect:
 //   · (1) THE REASON REACHES THE KEYBOARD. A disabled chip takes no focus, so its reason, drawn as a line under the chips,
@@ -12904,6 +13339,148 @@ console.log(`\nChoice rows: reasons, announced state lines, arrows, focus after 
         ok(false, `${where0} prism3: the case stopped at "${step}" — ${stopped(e)}`);
       } finally { await ctx.close(); }
     }
+  }
+}
+// =============================================================================================
+// 43. #2451 (owner decision RS1 A, 2026-10-10): the three refusals that said their reason only in `title` draw it as a
+//     hint line under their chips, only while the chip is refused, and that line describes the chips' group, as Type
+//     scale's reasons do (§42 arm 1). Both hosts, light, at 1280 and 380, prism3, Type with Show advanced open. Each case:
+//     the state set up through the UI, then (i) a line under the group's chips, drawn, saying the approved sentence word
+//     for word; (ii) the group's description in the accessibility tree (CDP `Accessibility.getPartialAXTree`, never the
+//     attribute) contains it; (iii) no live region carries it, since a hint is never announced (Q184 B; only warnings
+//     are); (iv) with the refusal lifted, no such line is drawn and the description no longer says it.
+//   · Title floor 16px under Compact (S63.titleFloorCompact): Type scale on Compact; lifted by Type scale Default.
+//   · Title floor 18px while title 2xs is set individually (S63.titleFloorPinned): Expressive, title floor 16px, then
+//     title 2xs's desktop size set to its first free value; lifted by resetting that size.
+//   · Italic only on a text type that pins a font style (S63.italicPinned): body's default weight pinned to "Medium";
+//     lifted by clearing the pin.
+//
+// INDEPENDENCE (docs/34). EXPECTED is typed here: the three approved sentences, copied from the owner-approved strings
+// (S63.titleFloorCompact, S63.titleFloorPinned, S63.italicPinned), and which chip each case refuses, worked out by hand
+// from the issue. ACTUAL is the browser's: the drawn paragraphs and their boxes, the accessibility tree, and every live
+// region in the document. The line is found by its words inside the row, never through `aria-describedby` or an id, so
+// an unlinked line still reads as drawn and fails only the description arm. The live-region arm is read with the line
+// proven drawn in the same state, and the lifted arm through `hooks.absent` with the line proven seen, so neither
+// passes on a line that was never there (shape 4). Nothing is read from `type.ts` or `lever-kit.ts`.
+//
+// Mutations (#2451), each after a `wip:` commit, on both rebuilt bundles, each failing here by name on both hosts at both
+// widths (web 1280 shown), none outside this section:
+//   · (a) the line not drawn → `§43 web light 1280 Title floor 16px under Compact: (i) the reason is drawn as one line under
+//     the chips, … (read {"group":true,"lines":0,"drawn":0,"live":0})`, with (ii), (iii) and (iv) NOT MEASURED, every case (48);
+//   · (b) the line not linked (no `reasonId`) → `§43 web light 1280 Title floor 16px under Compact: (ii) the chips' group is
+//     described by the reason (read {"role":"radiogroup","description":""})`, and each other case's (ii) (12);
+//   · (c) the line sent to the live region (drawn as a warning) → `§43 web light 1280 Title floor 16px under Compact: (iii) a
+//     hint doesn't announce: the drawn reason is in no live region (drawn 1, 1 live region(s) carrying it)`, each case (12).
+// =============================================================================================
+console.log(`\nRefusal reasons drawn as hint lines: Title floor and Italic only (#2451)\n${'='.repeat(78)}`);
+{
+  const COMPACT = 'The Compact scale already places a title at 16px, so the engine refuses 16px with it.';
+  const PINNED18 = 'Leaves out title 2xs, which you set individually.';
+  const ITALIC = 'This text type pins a font style. Clear the pin first: Italic only sets the style from the weight.';
+  const FLOOR_ROW = '[data-p3="lever-typography-title-floor"]';
+  const FLOOR_GROUP = '[data-p3="title-floor"]';
+  const ITALIC_ROW = '[data-p3="italic-row"][data-group="body"]';
+  const ITALIC_GROUP = '[data-p3="italic-row"][data-group="body"] [data-p3="italic-choice"]';
+  const PIN = '[data-p3="pin-cut-row"][data-cat="body"][data-role="default"] [data-p3="pin-cut-input"]';
+  const T2XS = '[data-p3="type-size-desktop"][data-group="title"][data-variant="2xs"]';
+  const BOUND = { timeout: 10000 };
+  /** The group's description as the browser computes it. */
+  const descOf = async (page, sel) => {
+    const cdp = await page.context().newCDPSession(page);
+    try {
+      await cdp.send('DOM.enable');
+      await cdp.send('Accessibility.enable');
+      const { root } = await cdp.send('DOM.getDocument', { depth: 0 });
+      const { nodeId } = await cdp.send('DOM.querySelector', { nodeId: root.nodeId, selector: sel });
+      const node = nodeId ? (await cdp.send('Accessibility.getPartialAXTree', { nodeId, fetchRelatives: false })).nodes[0] : null;
+      return node ? { role: node.role?.value ?? null, description: node.description?.value ?? '' } : null;
+    } finally { await cdp.detach(); }
+  };
+  /** In the row: the paragraphs that say `words` and are drawn under the group's chips; and every live region carrying them. */
+  const lineOf = (page, row, group, words) => page.evaluate(([r, g, w]) => {
+    const grp = document.querySelector(g);
+    const gb = grp?.getBoundingClientRect();
+    const lines = [...(document.querySelector(r)?.querySelectorAll('p') ?? [])].filter((p) => (p.textContent ?? '').trim() === w);
+    const drawn = lines.filter((p) => { const b = p.getBoundingClientRect(); return b.width > 0 && b.height > 0 && !!gb && b.top >= gb.bottom - 0.5; });
+    const live = [...document.querySelectorAll('[aria-live], [role="status"], [role="alert"], [role="log"], output')]
+      .filter((e) => (e.getAttribute('aria-live') ?? '') !== 'off' && (e.textContent ?? '').includes(w)).length;
+    return { group: !!grp, lines: lines.length, drawn: drawn.length, live };
+  }, [row, group, words]);
+  const firstFree = (page) => page.evaluate(() => document.querySelector('[data-p3="value-picker"] [data-p3="value-picker-value"]:not([aria-disabled="true"]):not([aria-pressed="true"])')?.getAttribute('data-value') ?? null);
+  const closePicker = async (page) => {
+    if (await page.locator('[data-p3="value-picker-close"]').count()) await hooks.click(page.locator('[data-p3="value-picker-close"]'), BOUND);
+    await page.waitForFunction(() => !document.querySelector('[data-p3="value-picker"]'), null, BOUND).catch(() => {});
+  };
+  const chipOff = (page, sel, want) => page.waitForFunction(([s, x]) => document.querySelector(s)?.disabled === x, [sel, want], BOUND).catch(() => {});
+  const checked = (page, sel) => page.waitForFunction((s) => document.querySelector(s)?.getAttribute('aria-checked') === 'true', sel, BOUND).catch(() => {});
+  for (const host of ['web', 'figma']) for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 800 }]) {
+    const where = `§43 ${host} light ${w}`;
+    const { ctx, page, errors } = await open({ host, theme: 'light', w, h });
+    let step = 'open Type';
+    /** The four arms for one refusal, read with it showing; then `lift` and the line's absence. */
+    const arms = async (name, row, group, words, lift) => {
+      await settle(page);
+      const on = await lineOf(page, row, group, words);
+      ok(on.drawn === 1, `${where} ${name}: (i) the reason is drawn as one line under the chips, "${words}" (read ${JSON.stringify(on)})`);
+      const ax = await descOf(page, group);
+      ok(!!ax && ax.description.includes(words), `${where} ${name}: (ii) the chips' group is described by the reason (read ${JSON.stringify(ax)})`);
+      ok(on.drawn === 1 && on.live === 0, `${where} ${name}: (iii) a hint doesn't announce: the drawn reason is in no live region (drawn ${on.drawn}, ${on.live} live region(s) carrying it)`);
+      step = `${name}: lift the refusal`;
+      await lift();
+      await settle(page);
+      const off = await lineOf(page, row, group, words);
+      const ax2 = await descOf(page, group);
+      hooks.absent(ok, { seen: on.drawn === 1, state: `the "${name}" reason drawn` }, off.group && off.lines === 0 && !!ax2 && !ax2.description.includes(words),
+        `${where} ${name}: (iv) with the refusal lifted, the line is gone and the group's description no longer says it (read ${JSON.stringify(off)}, ${JSON.stringify(ax2)})`);
+    };
+    try {
+      await goPlace(page, 'type');
+      step = 'open Show advanced'; await openTypeAdvanced(page);
+      await hooks.need(page, FLOOR_GROUP);
+      // Title floor 16px under Compact.
+      step = 'Type scale Compact';
+      await hooks.click(page.locator('[data-p3="type-scale-compact"]'), BOUND);
+      await checked(page, '[data-p3="type-scale-compact"]');
+      await chipOff(page, '[data-p3="title-floor-16"]', true);
+      await arms('Title floor 16px under Compact', FLOOR_ROW, FLOOR_GROUP, COMPACT, async () => {
+        await hooks.click(page.locator('[data-p3="type-scale-default"]'), BOUND);
+        await checked(page, '[data-p3="type-scale-default"]');
+        await chipOff(page, '[data-p3="title-floor-16"]', false);
+      });
+      // Title floor 18px while title 2xs is set individually.
+      step = 'Expressive, title floor 16px';
+      await hooks.click(page.locator('[data-p3="type-scale-expressive"]'), BOUND);
+      await checked(page, '[data-p3="type-scale-expressive"]');
+      await hooks.click(page.locator('[data-p3="title-floor-16"]'), BOUND);
+      await checked(page, '[data-p3="title-floor-16"]');
+      step = 'set title 2xs';
+      await hooks.click(page.locator(T2XS), BOUND);
+      await hooks.need(page, '[data-p3="value-picker"]', BOUND);
+      const to = await firstFree(page);
+      await hooks.click(page.locator(`[data-p3="value-picker"] [data-p3="value-picker-value"][data-value="${to}"]`), BOUND);
+      await closePicker(page);
+      await chipOff(page, '[data-p3="title-floor-18"]', true);
+      await arms(`Title floor 18px with title 2xs set (${to}px)`, FLOOR_ROW, FLOOR_GROUP, PINNED18, async () => {
+        await hooks.click(page.locator(T2XS), BOUND);
+        await hooks.click(page.locator('[data-p3="value-picker"] [data-p3="value-picker-reset"]'), BOUND);
+        await closePicker(page);
+        await chipOff(page, '[data-p3="title-floor-18"]', false);
+      });
+      // Italic only on a text type that pins a font style.
+      step = 'pin body\'s font style';
+      await hooks.need(page, PIN, BOUND);
+      await page.locator(PIN).fill('Medium');
+      await page.locator(PIN).evaluate((e) => e.blur());
+      await chipOff(page, `${ITALIC_ROW} [data-p3="italic-choice-only"]`, true);
+      await arms('Italic only with a pinned font style', ITALIC_ROW, ITALIC_GROUP, ITALIC, async () => {
+        await page.locator(PIN).fill('');
+        await page.locator(PIN).evaluate((e) => e.blur());
+        await chipOff(page, `${ITALIC_ROW} [data-p3="italic-choice-only"]`, false);
+      });
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await ctx.close(); }
   }
 }
 // #2238: the check box is measured on both hosts, in both chrome themes, somewhere in the sweep.
