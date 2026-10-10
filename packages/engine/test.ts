@@ -83,6 +83,14 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { resolve, dirname, join, relative } from 'node:path';
 const HERE = dirname(fileURLToPath(import.meta.url));
 
+/** The `icon/<glyph>` components a plan nests (#2380) — FIXTURE SETUP for the stub file, so a paste that is
+ *  expected to run clean has the icon components a real file would have had built first. Never an expected
+ *  value: the instance assertions below type their expected `icon/<glyph>` names out. */
+const planIconComps = (n: { nestTarget?: string; children?: readonly unknown[] }): string[] => [
+  ...(n.nestTarget?.startsWith('icon/') ? [n.nestTarget] : []),
+  ...((n.children ?? []) as { nestTarget?: string; children?: readonly unknown[] }[]).flatMap(planIconComps),
+];
+
 import { Session as InspectorSession } from 'node:inspector/promises';
 
 // ---- #1268 EVERY ASSERTION SITE RAN — a section going quiet is a failure, not a smaller pass ----------
@@ -14789,8 +14797,9 @@ arm: {
     const imgPlaceholder = componentDefs.find((d) => d.id === 'image-placeholder')!;
     const markerOf = (d: ComponentDef): FigmaNodePlan => {
       const root = figmaAnatomyPlan(d, undefined, { ratio: '4:3' } as never).root;
-      const m = (root.children ?? []).find((c) => c.type === 'GLYPH');
-      if (!m) throw new Error(`image-placeholder projection has no GLYPH marker (got [${(root.children ?? []).map((c) => `${c.name}:${c.type}`).join(', ')}])`);
+      // By NAME since #2380: the marker is an instance of `icon/image` now, not a GLYPH.
+      const m = (root.children ?? []).find((c) => c.name === 'marker');
+      if (!m) throw new Error(`image-placeholder projection has no marker (got [${(root.children ?? []).map((c) => `${c.name}:${c.type}`).join(', ')}])`);
       return m;
     };
     // (a) the plan carries the literal, and it is a REAL enlargement past every icon rung (xl = 40) — a
@@ -14887,7 +14896,8 @@ arm: {
       // (`write-components.ts`, exercised by `test-roundtrip.ts`) only ever compares members that share a
       // group and the two QA misses cannot recur. The same assertion shape field-message's #1010 block makes.
       const ipGroups = planSetLayout(figmaAnatomySet(imgPlaceholder, {}), 'test').cells.map((c) => c.group).join(' | ');
-      ok(ipGroups === 'ratio=1:1 | ratio=4:3 | ratio=16:9',
+      // #2345: seven ratios, tallest to widest — typed here, not read from the def.
+      ok(ipGroups === 'ratio=2:3 | ratio=3:4 | ratio=4:5 | ratio=1:1 | ratio=4:3 | ratio=3:2 | ratio=16:9',
         `#1515 image-placeholder: the declared exemption reaches the engine's cohort key — every ratio is its own cohort, so the footprint read-back no longer compares 720×540 against 720×720 (got '${ipGroups}')`);
       // (c) MUTATION — DROP THE ASPECT LOCK. `ratio` still projects and still carries `footprintVaries`, but
       // with no `aspectRatio` deriving from it and no `presentWhen` gating it, nothing about the box varies,
@@ -14897,6 +14907,68 @@ arm: {
       const noLock = { ...imgPlaceholder, anatomy: { ...imgPlaceholder.anatomy, parts: { ...imgPlaceholder.anatomy.parts, frame: { ...imgPlaceholder.anatomy.parts.frame, aspectRatio: undefined } } } } as ComponentDef;
       ok(figmaPropertyErrors(noLock).some((e) => /footprintVaries: 'ratio' neither gates a part/.test(e) && /aspect-ratio lock/.test(e)),
         `#1515 MUTATION: with the frame's aspectRatio lock removed, 'ratio' moves the box for no reason and footprintVaries: ['ratio'] is refused BY NAME (got [${figmaPropertyErrors(noLock).filter((e) => /footprintVaries/.test(e)).join('; ') || 'NOTHING — the aspect-lock acceptance became a blanket'}])`);
+    }
+
+    // ---- #2345: seven ratios, a marker that scales with the frame, and a Marker boolean ----
+    // EXPECTED is typed here from the issue (owner direction 2026-10-07) — the ratio list, each ratio's
+    // number, the boolean's name and default — never read from the def or the projector. ACTUAL is the
+    // projected plan set, so a ratio dropped, a number mis-parsed, the placement or the boolean reverted
+    // each fails a line below by name.
+    {
+      const RATIOS: [string, number][] = [['2:3', 2 / 3], ['3:4', 3 / 4], ['4:5', 4 / 5], ['1:1', 1], ['4:3', 4 / 3], ['3:2', 3 / 2], ['16:9', 16 / 9]];
+      const ipSet = figmaAnatomySet(imgPlaceholder, {});
+      ok(ipSet.length === RATIOS.length, `#2345 image-placeholder projects ${RATIOS.length} members, one per ratio (got ${ipSet.length})`);
+      for (const [ratio, want] of RATIOS) {
+        const plan = ipSet.find((p) => p.coord.ratio === ratio);
+        const got = plan?.root.aspectRatio;
+        ok(got !== undefined && Math.abs(got - want) < 1e-9, `#2345 ratio=${ratio}: the frame locks to ${want.toFixed(4)} (got ${String(got)})`);
+      }
+      // THE MARKER — on every member, lifted, centered, constrained SCALE (the plan's `absoluteScale`).
+      const markers = ipSet.map((p) => [p.coord.ratio, (p.root.children ?? []).find((c) => c.name === 'marker')] as const);
+      const unscaled = markers.filter(([, m]) => !(m?.absoluteCenter === true && m?.absoluteScale === true)).map(([r]) => r);
+      ok(unscaled.length === 0, `#2345 the marker scales with the frame on every member: absoluteCenter + absoluteScale (missing on ${JSON.stringify(unscaled)})`);
+      // …and still sizes off its 180px literal at the nominal width, with no dimension bound (a bound size
+      // would hold against the SCALE constraint).
+      ok(markers.every(([, m]) => m?.glyphPx === 180 && Object.keys(m.bound).length === 0),
+        `#2345 the scaling marker keeps the 180px literal and binds no dimension (got ${JSON.stringify(markers.map(([r, m]) => [r, m?.glyphPx, m && Object.keys(m.bound)]))})`);
+      // THE MARKER BOOLEAN — declared on the set, default on, and wired to the marker on every member.
+      const props = planSetProperties(ipSet);
+      ok(JSON.stringify(props) === JSON.stringify([{ name: 'Marker', type: 'BOOLEAN', default: true }]),
+        `#2345 the set declares one property, the BOOLEAN 'Marker', default on (got ${JSON.stringify(props)})`);
+      const unwired = markers.filter(([, m]) => m?.visibleProp !== 'Marker' || m?.visible === false).map(([r]) => r);
+      ok(unwired.length === 0, `#2345 every member's marker is driven by 'Marker' and built visible (unwired or hidden on ${JSON.stringify(unwired)})`);
+      // FIGMA-ONLY (owner decision Q163.4b A): no code prop drives it, because in code the marker follows whether an
+      // image is supplied. The boolean is declared figmaOnly, and no prop by either name exists.
+      const mb = Object.values(imgPlaceholder.figmaProperties?.booleans ?? {}).find((v) => typeof v !== 'string' && v.figmaName === 'Marker');
+      ok(typeof mb === 'object' && mb.figmaOnly === true && !imgPlaceholder.props.some((p) => /^(showMarker|marker)$/i.test(p.name)),
+        `#2345/Q163.4b the Marker boolean is Figma-only and no code prop drives it (figmaOnly ${String(typeof mb === 'object' && mb.figmaOnly)}; props ${imgPlaceholder.props.map((p) => p.name).join(', ')})`);
+
+      // THE REFUSAL ARMS `PartDef.scaleWithParent` adds, each pinned BY NAME (docs/34).
+      const frame = imgPlaceholder.anatomy.parts.frame;
+      const mk = (parts: Record<string, unknown>): ComponentDef => ({ ...imgPlaceholder, anatomy: { ...imgPlaceholder.anatomy, parts: { ...imgPlaceholder.anatomy.parts, ...parts } } }) as ComponentDef;
+      const errs = (d: ComponentDef): string[] => validateComponentDef(d).errors.filter((e) => /scaleWithParent/.test(e));
+      ok(errs(imgPlaceholder).length === 0, `#2345 premise: the shipped def validates clean on scaleWithParent (got ${JSON.stringify(errs(imgPlaceholder))})`);
+      // (a) the parent carries no aspect lock — SCALE on an unlocked frame stretches the square glyph.
+      const unlocked = errs(mk({ frame: { ...frame, aspectRatio: undefined, height: 'nominal-side' } }));
+      ok(unlocked.some((e) => /carries no 'aspectRatio' lock/.test(e)), `#2345 scaleWithParent under a parent with no aspect lock is refused BY NAME (got ${JSON.stringify(unlocked)})`);
+      // (b) no glyphPx — a bound size holds against the constraint.
+      const sized = errs(mk({ marker: { ...marker, glyphPx: undefined, size: 'nominal-side' } }));
+      ok(sized.some((e) => /declares 'scaleWithParent' but no 'glyphPx'/.test(e)), `#2345 scaleWithParent without glyphPx is refused BY NAME (got ${JSON.stringify(sized)})`);
+      // (c) beside a corner pin — two placements for one node.
+      const cornered = errs(mk({ marker: { ...marker, corner: 'bottom-right', inset: 'nominal-side' } }));
+      ok(cornered.some((e) => /BOTH 'scaleWithParent' and 'corner'/.test(e)), `#2345 scaleWithParent beside corner is refused BY NAME (got ${JSON.stringify(cornered)})`);
+      // (d) on a non-vector — the projector reads it only on a vector.
+      const onBox = errs(mk({ frame: { ...frame, scaleWithParent: true } }));
+      ok(onBox.some((e) => /kind 'box' but declares 'scaleWithParent'/.test(e)), `#2345 scaleWithParent on a box is refused BY NAME (got ${JSON.stringify(onBox)})`);
+      // (e) under a parent with no auto-layout — Figma ignores layoutPositioning there, silently.
+      const noLayout = errs(mk({ frame: { ...frame, layout: undefined } }));
+      ok(noLayout.some((e) => /which is not an auto-layout 'box'/.test(e)), `#2345 scaleWithParent under a parent with no auto-layout is refused BY NAME (got ${JSON.stringify(noLayout)})`);
+      // (f) `false` authored — a switch that is on or absent.
+      const off = errs(mk({ marker: { ...marker, scaleWithParent: false } }));
+      ok(off.some((e) => /declares scaleWithParent false/.test(e)), `#2345 scaleWithParent: false is refused BY NAME (got ${JSON.stringify(off)})`);
+      // (g) on the ROOT — no parent to scale with.
+      const rootGlyph = { ...(rootGlyphDef as unknown as ComponentDef), anatomy: { root: 'g', parts: { g: { kind: 'vector' as const, role: 'target' as const, glyph: 'image', glyphPx: 180, scaleWithParent: true } } } } as unknown as ComponentDef;
+      ok(errs(rootGlyph).some((e) => /is the anatomy ROOT and declares 'scaleWithParent'/.test(e)), `#2345 scaleWithParent on the ROOT is refused BY NAME (got ${JSON.stringify(errs(rootGlyph))})`);
     }
 
     // ---- #2344 (owner decision Q156 A): the groups carry up to EIGHT rows, seven behind Figma-only booleans ----
@@ -18505,6 +18577,46 @@ arm: {
         `anatomy/textarea paste: at 16px × 165% (79.2px, stored single-precision) the reserved-rows floor reads back as KEPT (${JSON.stringify(taRun.misses.filter((m) => /minHeight|minLines/.test(m)))})`);
     }
 
+    // ---- #2345: the image-placeholder marker is built OUT OF FLOW, CENTERED and SCALE/SCALE, on BOTH legs ----
+    // The plan-level arm proves the plan says so; this proves each EXECUTOR writes it. The expected
+    // constraints are the literal 'SCALE' typed here, and the centering is measured against the PARENT'S
+    // OWN live box as the stub reports it — not against a number either executor computed.
+    {
+      const ipDef = componentDefs.find((d) => d.id === 'image-placeholder')!;
+      const ip = figmaAnatomySet(ipDef, {}).find((q) => q.coord.ratio === '4:3')!;
+      // Since #2389 the marker is an instance of `icon/image`, so the file holds that icon component, as a real one
+      // would (the plugin builds icons first).
+      const nested = (n: AnatomyPlan['root']): string[] => [...(n.nestTarget ? [n.nestTarget] : []), ...(n.children ?? []).flatMap(nested)];
+      const ipOpts: StubOpts = { vars: [...planBoundVars(ip.root), ...planPaintVars(ip.root)], styles: planTextStyles(ip.root), comps: nested(ip.root) };
+      const markerFacts = (page: StubPage): string => {
+        // The paste payload puts the member on the page; the plugin executor puts it inside its set.
+        const all = page.children.flatMap((c) => [c, ...(((c as Record<string, unknown>).children as Record<string, unknown>[] | undefined) ?? [])]);
+        const root = all.find((c) => c.name === planComponentName(ip)) as Record<string, unknown> | undefined;
+        const kid = ((root?.children as Record<string, unknown>[] | undefined) ?? []).find((c) => c.name === 'marker');
+        if (!root || !kid) return `no ${root ? 'marker' : 'member'} on the page`;
+        const c = kid.constraints as { horizontal?: string; vertical?: string } | null;
+        const cx = ((root.width as number) - (kid.width as number)) / 2, cy = ((root.height as number) - (kid.height as number)) / 2;
+        const centered = Math.abs((kid.x as number) - cx) < 0.01 && Math.abs((kid.y as number) - cy) < 0.01;
+        return `${String(kid.layoutPositioning)} ${c?.horizontal}/${c?.vertical} ${centered ? 'centered' : `off-center (${String(kid.x)},${String(kid.y)} want ${cx},${cy})`}`;
+      };
+      const WANT_MARKER = 'ABSOLUTE SCALE/SCALE centered';
+      const pastePage: StubPage = { children: [] };
+      const pasted = await runPayload(planToPluginJs(ip), { ...ipOpts, page: pastePage });
+      ok(markerFacts(pastePage) === WANT_MARKER && pasted.misses.length === 0,
+        `#2345 paste leg: the image-placeholder marker is ${WANT_MARKER} (got '${markerFacts(pastePage)}'; misses ${JSON.stringify(pasted.misses)})`);
+      const plugPage: StubPage = { children: [] };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the stub satisfies ComponentsApi
+      const plugged = await applyComponentPlan([ip], makeFigmaStub({ ...ipOpts, page: plugPage }) as any);
+      ok(markerFacts(plugPage) === WANT_MARKER && plugged.misses.length === 0,
+        `#2345 plugin leg: the image-placeholder marker is ${WANT_MARKER} (got '${markerFacts(plugPage)}'; misses ${JSON.stringify(plugged.misses)})`);
+      // POSITIVE CONTROL on the constraint's other branch: an overlay centered WITHOUT `absoluteScale` (the
+      // spinner's shape) still takes CENTER/CENTER, so the switch is the field and not an unconditional SCALE.
+      const centerOnly: AnatomyPlan = { ...ip, root: { ...ip.root, children: ip.root.children.map((c) => (c.name === 'marker' ? { ...c, absoluteScale: undefined } : c)) } };
+      const ctlPage: StubPage = { children: [] };
+      await runPayload(planToPluginJs(centerOnly), { ...ipOpts, page: ctlPage });
+      ok(markerFacts(ctlPage) === 'ABSOLUTE CENTER/CENTER centered', `#2345 control: without absoluteScale the centered child keeps CENTER/CENTER (got '${markerFacts(ctlPage)}')`);
+    }
+
     // ---- #1302: the stub's `textAlignVertical` refusal is LIVE ------------------------------------------
     // The accessor used to sit in `mkNode`'s object spread, which reads the getter once and drops the setter,
     // so a FRAME took the write silently and every gate leaning on "the wrong node type throws" was testing
@@ -19161,7 +19273,7 @@ arm: {
         const p = unstroked[0] ?? set[0];
         const at = planComponentName(p);
         const page: StubPage = { children: [] };
-        const r = await runPayload(planToPluginJs(p), { vars: [...planBoundVars(p.root), ...planPaintVars(p.root)], styles: planTextStyles(p.root), comps: ['FPO-default-icon'], page });
+        const r = await runPayload(planToPluginJs(p), { vars: [...planBoundVars(p.root), ...planPaintVars(p.root)], styles: planTextStyles(p.root), comps: ['FPO-default-icon', ...planIconComps(p.root)], page });
         const box = page.children[0] && partOf(page.children[0]);
         ok(r.misses.length === 0 && !!box,
           `anatomy/${def.id} #1228 reachable: the payload pastes clean at ${at} and its \`${part}\` was found (${JSON.stringify(r.misses)})`);
@@ -20800,7 +20912,7 @@ arm: {
         const fmOpts = {
           vars: fmSet.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]),
           styles: fmSet.flatMap((p) => planTextStyles(p.root)),
-          comps: [] as string[],
+          comps: [...new Set(fmSet.flatMap((p) => planIconComps(p.root)))],
         };
         const fmPastePage: StubPage = { children: [] };
         const fmPlugPage: StubPage = { children: [] };
@@ -20812,11 +20924,51 @@ arm: {
         // #1393 — THE GLYPH'S IMPORTED SUBTREE, in lockstep. `createNodeFromSvg` bypasses `createFrame()`, so both
         // executors claim the nodes inside a GLYPH in 'imported' mode; the button grid above builds no glyph, so
         // this is where that branch is compared. FLOOR: the page really holds an imported VECTOR to compare.
+        // On the SPINNER since #2380: field-message's status glyphs are instances of `icon/*` now and import
+        // nothing, and the spinner's composed glyph (`COMPONENT_GLYPHS`) is one that is still drawn inline.
         {
-          const plugFm = claims(fmPlugPage);
-          const fmDiff = claimDiff(plugFm, claims(fmPastePage));
+          const spSet = figmaAnatomySet(spinner, { swapTarget: 'FPO-default-icon' });
+          const spOpts = { vars: spSet.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]), styles: spSet.flatMap((p) => planTextStyles(p.root)) };
+          const spPastePage: StubPage = { children: [] };
+          const spPlugPage: StubPage = { children: [] };
+          await runPayload(planSetToPluginJs(spSet), { ...spOpts, page: spPastePage });
+          await plugRun(spSet, { ...spOpts, page: spPlugPage });
+          const plugFm = claims(spPlugPage);
+          const fmDiff = claimDiff(plugFm, claims(spPastePage));
           ok(plugFm.some((r) => / VECTOR \[/.test(r)) && fmDiff.length === 0,
             `#1393 lockstep (GLYPH): both executors claim a glyph's imported subtree identically — plugin vs paste differ on ${fmDiff.length}: ${fmDiff.slice(0, 2).join(' | ').slice(0, 600)}`);
+        }
+
+        // #2380 — THE INSET ICON, THROUGH THE PASTE EXECUTOR AND IN LOCKSTEP WITH THE PLUGIN. checkbox's check is an
+        // instance of `icon/check` inside the box-bound `mark` frame, placed at 0.8 of it (#1346) by the PARENT
+        // after the flow pass. The plugin's placement is read back by `apps/plugin/test-roundtrip.ts`; this is the
+        // paste executor's (`PAYLOAD_INSET`), which no other reader sees. EXPECTED is Prism 2's 0.8, typed here.
+        {
+          const cbChecked = figmaAnatomySet(checkboxControl, {}).filter((p) => p.coord.selection === 'checked');
+          const cbOpts = { vars: cbChecked.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]), styles: cbChecked.flatMap((p) => planTextStyles(p.root)), comps: ['focus-ring', ...new Set(cbChecked.flatMap((p) => planIconComps(p.root)))] };
+          const cbPastePage: StubPage = { children: [] };
+          const cbPlugPage: StubPage = { children: [] };
+          const cbPasted = await runPayload(planSetToPluginJs(cbChecked), { ...cbOpts, page: cbPastePage });
+          await plugRun(cbChecked, { ...cbOpts, page: cbPlugPage });
+          const insets = (page: StubPage): string[] => {
+            const out: string[] = [];
+            const walk = (n: Record<string, unknown>): void => {
+              if (n.name === 'mark') {
+                const g = ((n.children as Record<string, unknown>[] | undefined) ?? []).find((c) => c.name === 'glyph');
+                const W = n.width as number, H = n.height as number;
+                out.push(!g ? 'no glyph' : `${g.type} ${Number(((g.width as number) / W).toFixed(4))}x${Number(((g.height as number) / H).toFixed(4))} at ${Number(((g.x as number) / W).toFixed(4))},${Number(((g.y as number) / H).toFixed(4))} ${JSON.stringify(g.constraints)}`);
+              }
+              for (const c of (n.children as Record<string, unknown>[] | undefined) ?? []) walk(c);
+            };
+            for (const c of page.children as Record<string, unknown>[]) walk(c);
+            return out;
+          };
+          const WANT = `INSTANCE 0.8x0.8 at 0.1,0.1 ${JSON.stringify({ horizontal: 'SCALE', vertical: 'SCALE' })}`;
+          const pasteI = insets(cbPastePage);
+          ok(cbPasted.misses.length === 0 && pasteI.length === cbChecked.length && pasteI.every((x) => x === WANT),
+            `#2380 paste: every checked checkbox's icon is an instance at 0.8 of its mark frame, centered, SCALE/SCALE (${pasteI.length}/${cbChecked.length}: ${[...new Set(pasteI)].join(' | ')}${cbPasted.misses.length ? `; misses: ${cbPasted.misses.slice(0, 2).join(' | ')}` : ''})`);
+          ok(JSON.stringify(insets(cbPlugPage)) === JSON.stringify(pasteI),
+            `#2380 lockstep: both executors place the inset icon identically (plugin ${[...new Set(insets(cbPlugPage))].join(' | ')} vs paste ${[...new Set(pasteI)].join(' | ')})`);
         }
 
         // #1670 — THE SPINNER'S LAYER OPACITY, THROUGH THE PASTE EXECUTOR AND IN LOCKSTEP WITH THE PLUGIN. The
@@ -24926,30 +25078,29 @@ arm: {
   ok(cbGlyphs({}) === 'neither',
     `checkbox-control: and with neither axis supplied — the structure-only plan a consumer asking "what parts does this def have" gets (got '${cbGlyphs({})}')`);
 
-  // #1346 — THE INNER GLYPH IS INSET TO PRISM 2's 0.80 MARK-TO-BOX RATIO, pinned on the PROJECTED
-  // artboard rather than on the def's `glyphScale` field, so a revert to the old full-bleed mark fails
-  // HERE by name, not only in the projector that produced it. EXPECTED is authored from the Prism 2
-  // MEASUREMENT — `checkFill` 16 inside a 20px control box (the focus frame is 28 at offset −4, so the
-  // box is 28 − 2×4 = 20), giving 16/20 = 0.80, `reference/Prism2/component-specs/checkboxes.json` —
-  // independent of the engine. ACTUAL is the drawn grid's fraction of its artboard, read back from the
-  // plan: the mark FRAME binds the control box (asserted first), and the emitter pads the artboard to
-  // `grid / scale`, so the rendered mark is `grid / artboard` of the box. A mutation setting `glyphScale`
-  // back to 1 pads to the bare 24 grid, makes the ratio 1.0, and fails these by name. Not "it resolves"
-  // (docs/34 shape 5) — the VALUE 0.80 is asserted, transcribed from Prism 2, not read off the def.
+  // #1346 — THE INNER GLYPH IS INSET TO PRISM 2's 0.80 MARK-TO-BOX RATIO, pinned on the PROJECTED plan
+  // rather than on the def's `glyphScale` field, so a revert to the old full-bleed mark fails HERE by name,
+  // not only in the projector that produced it. EXPECTED is authored from the Prism 2 MEASUREMENT —
+  // `checkFill` 16 inside a 20px control box (the focus frame is 28 at offset −4, so the box is 28 − 2×4 =
+  // 20), giving 16/20 = 0.80, `reference/Prism2/component-specs/checkboxes.json` — independent of the engine.
+  // Since #2380 the mark is an INSTANCE of `icon/check` inside a `mark` frame bound to the control box, and
+  // ACTUAL is the fraction of that frame the instance is placed at (`glyphInset`), read off the plan. Before
+  // #2380 it was the padded artboard's grid fraction; the ink lands in the same place either way, 0.8 × box ×
+  // the grid. A mutation setting `glyphScale` back to 1 projects the instance full-bleed (no `glyphInset`,
+  // no wrapper) and fails these by name. Not "it resolves" (docs/34 shape 5) — the VALUE 0.80 is asserted,
+  // transcribed from Prism 2, not read off the def.
   const PRISM2_MARK_TO_BOX = 0.8;                                   // checkFill 16 / control box 20
-  const grid = Number(ICON_VIEWBOX.split(/\s+/)[2]);                // the 24-unit source grid, parsed
   const glyphNode = (part: string, selection: string) => {
     const f = (n: any): any => (n.name === part ? n : (n.children ?? []).map(f).find(Boolean));
     return f(figmaAnatomyPlan(checkboxControl, 'medium', { selection, state: 'rest' } as never).root);
   };
-  ok((checkboxControl.anatomy!.parts.mark as any).size === 'size.{size}.control',
-    `checkbox-control: the mark FRAME binds the control box ('size.{size}.control'), so the padded artboard is what insets the ink and the ratio below is box-relative (got size='${(checkboxControl.anatomy!.parts.mark as any).size}')`);
-  const markRatio = grid / (glyphNode('mark', 'checked').glyphViewBox as [number, number])[0];
-  ok(Math.abs(markRatio - PRISM2_MARK_TO_BOX) < 1e-9,
-    `checkbox-control: the check renders at Prism 2's ${PRISM2_MARK_TO_BOX} of the box — the 24-grid fills ${markRatio.toFixed(4)} of its ${(glyphNode('mark', 'checked').glyphViewBox as [number, number])[0]}px artboard, and the frame is box-bound, so a revert to a full-bleed 24px artboard (ratio 1.0) restores the oversized mark #1346 shrank (got ${markRatio.toFixed(4)})`);
-  const dashRatio = grid / (glyphNode('dash', 'indeterminate').glyphViewBox as [number, number])[0];
-  ok(Math.abs(dashRatio - PRISM2_MARK_TO_BOX) < 1e-9,
-    `checkbox-control: the dash renders at the same ${PRISM2_MARK_TO_BOX} of the box as the check (Prism 2 sizes subtractFill identically to checkFill), pinned separately so a change to one part cannot pass on the other's ratio (got ${dashRatio.toFixed(4)})`);
+  ok((checkboxControl.anatomy!.parts.mark as any).size === 'size.{size}.control' && glyphNode('mark', 'checked')?.bound?.width === 'control/size/md/height',
+    `checkbox-control: the mark FRAME binds the control box ('size.{size}.control'), so the inset below is box-relative (got size='${(checkboxControl.anatomy!.parts.mark as any).size}', bound width '${glyphNode('mark', 'checked')?.bound?.width}')`);
+  const insetOf = (part: string, selection: string): unknown => (glyphNode(part, selection)?.children ?? []).find((c: any) => c.type === 'NESTED_INSTANCE')?.glyphInset;
+  ok(insetOf('mark', 'checked') === PRISM2_MARK_TO_BOX,
+    `checkbox-control: the check renders at Prism 2's ${PRISM2_MARK_TO_BOX} of the box — its icon instance sits at that fraction of the box-bound mark frame, so a revert to a full-bleed instance restores the oversized mark #1346 shrank (got ${String(insetOf('mark', 'checked'))})`);
+  ok(insetOf('dash', 'indeterminate') === PRISM2_MARK_TO_BOX,
+    `checkbox-control: the dash renders at the same ${PRISM2_MARK_TO_BOX} of the box as the check (Prism 2 sizes subtractFill identically to checkFill), pinned separately so a change to one part cannot pass on the other's ratio (got ${String(insetOf('dash', 'indeterminate'))})`);
 
   // ---- the same three directions as a RULE over every gated part, because the block above is
   // ---- CHECKBOX-SHAPED and the second def to use the mechanism does not fit it (#910) -------------
@@ -29056,6 +29207,50 @@ arm: {
   const iconFlush = componentDefs.filter((d) => d.id.startsWith('icon-button') && 'inset' in (d.variants ?? {})).map((d) => d.id);
   ok(componentDefs.some((d) => d.id === 'icon-button') && iconFlush.length === 0,
     `#2350 icon buttons have no flush inset (${iconFlush.join(', ') || 'none'})`);
+}
+
+// ------------------------------------------------------------------- #2408: a flush button's hit area is 44×44 in code
+// Owner Q154 A: a flush text button has no visual minimum width, so its box is label-width and can be narrower
+// than 44px, and its hit area is at least 44×44 in code through an invisible extension. Figma has no hit areas,
+// so the rule lives in prose only, and nothing but this arm (and lint-hit-target's FLUSH arm) holds it there.
+// Each surface the rule ships on is read directly, and every expected phrase is a literal here, never read off the
+// def (docs/34): the def's `codeOnly` and `docs.do`, the generated components.ai.json, and the consume skill.
+{
+  // Phrases of the rule, not bare `44×44` / `::before`: the codeOnly entry says "Apple HIG 44×44" and "(::before /
+  // absolute overlay)" already, and bare words passed with the flush sentence deleted (measured).
+  // Owner Q170 B: 44×44 covers medium and large flush buttons; owner Q174 B: a small one is at least 24×24, the
+  // WCAG 2.5.8 floor. Each surface names both scopes, and none puts small, or every size, at 44×44.
+  const RULE = [/at least\s+44×44/, /::before`? inset outward/, /centered on the label/, /[Aa]t medium and large sizes/, /at least 24×24(px)? at small\b/];
+  const OVERSCOPE = /44×44(px)? at small\b|\bsmall, medium\b|every size|all sizes/;
+  const missing = (text: string | undefined) => [
+    ...RULE.filter((re) => !re.test(text ?? '')).map((re) => re.source),
+    ...(OVERSCOPE.test(text ?? '') ? [`over-scoped: ${OVERSCOPE.source}`] : []),
+  ];
+  const aiDoc = JSON.parse(readFileSync(resolve(HERE, './out/components/components.ai.json'), 'utf8')) as { components: unknown };
+  const aiComponents = (Array.isArray(aiDoc.components) ? aiDoc.components : Object.values(aiDoc.components as object)) as Array<{ id: string; docs?: { do?: string[] } }>;
+  for (const def of [button, buttonDestructive, buttonNeutral]) {
+    const code = def.anatomy!.codeOnly.find((c) => /flush/.test(c));
+    ok(!!code && missing(code).length === 0,
+      `#2408 ${def.id}: codeOnly states a medium or large flush button's hit area is at least 44×44 in code and a small one's at least 24×24, through a transparent ::before inset outward and centered on the label (missing: ${code ? missing(code).join(', ') || 'none' : 'no flush entry'})`);
+    const line = def.docs?.do?.find((d) => /^Set inset=flush/.test(d));
+    ok(!!line && missing(line).length === 0,
+      `#2408 ${def.id}: docs.do tells the developer to extend a medium or large flush button's hit area to 44×44 and a small one's to 24×24, with the ::before technique (missing: ${line ? missing(line).join(', ') || 'none' : 'no inset=flush line'})`);
+    const aiLine = aiComponents.find((c) => c.id === def.id)?.docs?.do?.find((d) => /^Set inset=flush/.test(d));
+    ok(!!aiLine && missing(aiLine).length === 0,
+      `#2408 ${def.id}: components.ai.json carries the flush hit-area rule, 44×44 at medium and large and 24×24 at small, in docs.do (missing: ${aiLine ? missing(aiLine).join(', ') || 'none' : 'no inset=flush line'})`);
+  }
+  // #2443: lint-hit-target's size scopes, read from its source and held to literals here, so widening or narrowing
+  // either constant fails by name (the gate's size-axis check reads only their union).
+  const gateSrc = readFileSync(resolve(HERE, './lint-hit-target.ts'), 'utf8');
+  const constOf = (name: string) => gateSrc.match(new RegExp(`^const ${name} = (\\[[^\\]]*\\]);`, 'm'))?.[1];
+  ok(constOf('FLUSH_SIZES') === "['medium', 'large']",
+    `#2443 lint-hit-target: FLUSH_SIZES is exactly ['medium', 'large'], the 44×44 flush scope (owner Q170 B) (got: ${constOf('FLUSH_SIZES') ?? 'not found'})`);
+  ok(constOf('FLUSH_SMALL_SIZES') === "['small']",
+    `#2443 lint-hit-target: FLUSH_SMALL_SIZES is exactly ['small'], the 24×24 flush scope (owner Q174 B) (got: ${constOf('FLUSH_SMALL_SIZES') ?? 'not found'})`);
+  const skill = readFileSync(resolve(HERE, '../../skills/prism3-consume/SKILL.md'), 'utf8');
+  const para = skill.split(/\n\s*\n/).find((b) => /inset=flush/.test(b) && /44×44/.test(b));
+  ok(!!para && missing(para).length === 0,
+    `#2408 prism3-consume: the skill tells the agent a medium or large flush text button keeps a 44×44 hit area in code and a small one 24×24, with the ::before technique (missing: ${para ? missing(para).join(', ') || 'none' : 'no paragraph names inset=flush and 44×44'})`);
 }
 
 // ------------------------------------------------------------------- report

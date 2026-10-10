@@ -8,7 +8,8 @@
  *
  * ── WHAT IT IS ──────────────────────────────────────────────────────────────────────────────────
  *
- * A rectangle sized to one of three ratios (`1:1`, `4:3`, `16:9`) that reads as "an image goes here".
+ * A rectangle sized to one of seven ratios (`2:3`, `3:4`, `4:5`, `1:1`, `4:3`, `3:2`, `16:9`, #2345) that reads
+ * as "an image goes here".
  * The raster swap itself is a NATIVE Figma action — a designer drops an image fill onto the frame — so
  * this def does not model the image; it models the frame that holds it and the empty state before one
  * arrives. `clipsContent: true` so a dropped photo that is the wrong size cannot overflow the frame.
@@ -67,12 +68,12 @@ export const imagePlaceholder: ComponentDef = {
   // `foundations`, image.md's category (#1700). `media` is not one of the KB's seven.
   category: 'foundations',
   status: 'draft',
-  summary: 'Empty media frame locked to 1:1, 4:3 or 16:9. Drop an image fill onto it.',
+  summary: 'Empty media frame locked to a ratio, from 2:3 portrait to 16:9. Drop an image fill onto it.',
   description:
-    'An empty-state media frame that holds a photograph at a fixed aspect ratio. Pick a ratio (1:1, 4:3 or 16:9) and the frame keeps that proportion while its size flexes to its container; a designer drops an image fill onto it (a native Figma action, not a modeled slot). Before an image arrives it shows a neutral fill and a centered "no image" marker, and it clips its content so a mismatched photo cannot overflow the frame.',
+    'An empty-state media frame that holds a photograph at a fixed aspect ratio. Pick a ratio (portrait 2:3, 3:4 or 4:5; square 1:1; landscape 4:3, 3:2 or 16:9) and the frame keeps that proportion while its size flexes to its container; a designer drops an image fill onto it (a native Figma action, not a modeled slot). Before an image arrives it shows a neutral fill and a centered "no image" marker that scales with the frame, and it clips its content so a mismatched photo cannot overflow the frame. Turn the marker off once an image is in.',
 
   props: [
-    { name: 'ratio', type: "enum: '1:1' | '4:3' | '16:9'", values: ['1:1', '4:3', '16:9'], default: '4:3', required: false, description: 'The width-to-height PROPORTION the frame holds while its actual size flexes — a square (1:1), the classic photo ratio (4:3), or widescreen (16:9). It is an aspect-ratio LOCK, not a pair of fixed dimensions: the frame derives its height from its width (or the reverse) so the shape survives being resized. Pick it from the media the frame will hold.' },
+    { name: 'ratio', type: "enum: '2:3' | '3:4' | '4:5' | '1:1' | '4:3' | '3:2' | '16:9'", values: ['2:3', '3:4', '4:5', '1:1', '4:3', '3:2', '16:9'], default: '4:3', required: false, description: 'The width-to-height PROPORTION the frame holds while its actual size flexes — portrait (2:3, 3:4 for apparel tiles, 4:5), a square (1:1), or landscape (the classic photo ratio 4:3, 3:2, widescreen 16:9). It is an aspect-ratio LOCK, not a pair of fixed dimensions: the frame derives its height from its width (or the reverse) so the shape survives being resized. Pick it from the media the frame will hold.' },
   ],
 
   // `[]` — an image placeholder is not interactive of itself. Dropping an image onto it is a native
@@ -83,7 +84,10 @@ export const imagePlaceholder: ComponentDef = {
   // The one axis, projected (see `figmaProperties`). No `size` axis — the frame's extent is its
   // container's, held to a ratio, not a rung it chooses.
   variants: {
-    ratio: ['1:1', '4:3', '16:9'],
+    // Tallest to widest (#2345): the three portrait ratios the commerce measurement needed, the square, then
+    // the landscape ratios. The three that shipped first (1:1, 4:3, 16:9) keep their names, so an existing
+    // set gains members and loses none.
+    ratio: ['2:3', '3:4', '4:5', '1:1', '4:3', '3:2', '16:9'],
   },
   // WHEN each axis changes (#1611): runtime axes are held to one footprint, authoring axes are not.
   axisKinds: { ratio: 'authoring' },
@@ -143,19 +147,25 @@ export const imagePlaceholder: ComponentDef = {
         // The "no image" glyph (#1316's `image` icon — a mountain-and-sun placeholder). Decorative; the
         // frame carries the accessible role.
         glyph: 'image',
+        // OPTIONAL because the `Marker` boolean (#2345) toggles it: a boolean hides a node the anatomy allows
+        // to be absent. Built visible at every member, so the empty state shows it by default.
+        optional: true,
         // A LITERAL 180px SQUARE (#1340), not a bound icon rung. The marker reads as a PROPORTION of the
         // large media frame: 180px is Prism 2's own centered-glyph-to-shorter-side ratio in this exact
         // frame family — its `playCircleLine` is 160px on the 480px-tall 4:3 frame (160/480 = 1/3), and
-        // 1/3 of prism3's 4:3 nominal shorter side (540) is 180. Held FIXED across the three ratios, as
-        // Prism 2 holds its centered glyph fixed. At the 720px nominal frame that is 25% of the width, 1/3
-        // of the 4:3 shorter side, 44% of the 16:9 shorter side (matching Prism 2's play-circle proportion
-        // there). A def-local literal, so no token is minted and CONTRACT stands. It is a FIXED floor, not
-        // a size that tracks the frame's flexing extent on resize — true resize-tracking needs a Figma
-        // scale-constraint projection the engine does not have (see `notes.unverified`), filed for a
-        // follow-up. `glyphPx` is legal on a NON-root vector — this def IS the host and the glyph node IS
-        // its slot, so the size is the def's to state.
+        // 1/3 of prism3's 4:3 nominal shorter side (540) is 180. The same 180 at every ratio, as Prism 2
+        // holds its centered glyph fixed: 25% of the 720px nominal width, 1/3 of the 4:3 shorter side, 44% of
+        // the 16:9 shorter side (matching Prism 2's play-circle proportion there). A def-local literal, so no
+        // token is minted and CONTRACT stands. It is the size at the NOMINAL width; on resize the marker
+        // scales from it (`scaleWithParent`, below). `glyphPx` is legal on a NON-root vector — this def IS
+        // the host and the glyph node IS its slot, so the size is the def's to state.
         glyphPx: 180,
-        note: 'The centered "no image" marker — a muted glyph shown until a photograph is dropped in, sized to read as a proportion of the media frame.',
+        // SCALES WITH THE FRAME (#2345): out of the flow, centered, constrained SCALE/SCALE. The frame's aspect
+        // lock makes every resize uniform, so the marker stays square and keeps its fraction of the frame — a
+        // 64px thumbnail shows a 16px marker rather than a cropped 180px one. The 180 above is now the size at
+        // the 720px nominal width, not a floor.
+        scaleWithParent: true,
+        note: 'The centered "no image" marker — a muted glyph shown until a photograph is dropped in. It scales with the frame, so it reads as the same proportion at any size. The Marker boolean hides it once an image is in.',
       },
     },
     codeOnly: [
@@ -163,26 +173,31 @@ export const imagePlaceholder: ComponentDef = {
       'aspect-lock derive — the frame holds its RATIO while its real size flexes, and Figma expresses that as an aspect-ratio LOCK (`lockAspectRatio()`) that DERIVES the second dimension from the first. The engine binds ONE nominal dimension and locks the ratio; that a variable BINDING on the single axis makes Figma derive the other at PASTE time (as a resize does) is a live-file behavior no offline host can witness, filed for the real-host round-trip arm (`tools/component-roundtrip/`). What the offline gates hold is the lock capturing the right ratio, read back as `targetAspectRatio`.',
       'raster swap — dropping an actual photograph onto the frame is a NATIVE Figma action (an image fill), not a modeled slot or variant. This def models the frame and its empty state; the image the designer supplies is theirs.',
       'scrim/veil and play-circle overlays — DEFERRED to a follow-up (#1316 residue, owner-held). A wash for text over the image nests the `veil` component, and a video affordance nests the `play-circle` glyph; both are compositions this core empty-state frame does not carry. Named here so the absence reads as a deferral rather than a gap.',
-      'the ratio is a magnitude of SHAPE, not a state — 1:1 / 4:3 / 16:9 is a proportion a designer selects, carried by Figma as a variant coordinate, never a runtime state. An image placeholder has no interaction states at all (`states: []`).',
+      'marker — in code the "no image" marker draws while no image is supplied and goes once one is, so it is derived, not a prop (owner decision Q163.4b A). Figma cannot tell that a fill is a photograph, so the Figma set carries a Figma-only `Marker` toggle, on by default, that a designer turns off once an image is in.',
+      'the ratio is a magnitude of SHAPE, not a state — 2:3 through 16:9 is a proportion a designer selects, carried by Figma as a variant coordinate, never a runtime state. An image placeholder has no interaction states at all (`states: []`).',
     ],
   },
 
   figmaProperties: {
-    // One axis, three ratios, three members. No `stateAxis` (no states), no `slotAxes`/`swaps`/`texts`
+    // One axis, seven ratios, seven members. No `stateAxis` (no states), no `slotAxes`/`swaps`/`texts`
     // — the frame carries no text and no swappable slot (the raster swap is native, not a component
     // property).
     variantAxes: ['ratio'],
     // THE BOX LEGITIMATELY MOVES ON `ratio` (#1515). The aspect lock derives a different height per ratio
-    // (720×720 / 720×540 / 720×405), so the footprint cohort must partition the three members rather than
-    // compare them — the same exemption `field-message` declares with `['status']`, but the reason here is
+    // (720×1080 / 720×960 / 720×900 / 720×720 / 720×540 / 720×480 / 720×405), so the footprint cohort must
+    // partition the seven members rather than compare them — the same exemption `field-message` declares with `['status']`, but the reason here is
     // the `aspectRatio` lock on the frame, not a `presentWhen`-gated part. Without this the footprint
-    // read-back false-flags 4:3 and 16:9 as differing from 1:1 (two misses in owner QA, the bug this fixes).
+    // read-back false-flags every other ratio as differing from the first (two misses in owner QA, the bug this fixes).
     // The schema validates that `ratio` both projects and drives some box's `aspectRatio`, so this is not a
     // blanket that switches the footprint rule off.
     footprintVaries: ['ratio'],
-    // Considered, and none survive — the frame has one fill, one marker, and no togglable node. Stated
-    // rather than omitted, as the schema asks.
-    booleans: {},
+    // ONE boolean (#2345): `Marker` shows or hides the "no image" marker. Figma has no signal a component can
+    // read for "an image fill is on this frame", so a designer who drops a photo on turns the marker off here.
+    // A node-visibility boolean (#1331), not an image-bearing variant, so the set stays at seven members
+    // rather than fourteen. Default on, so a fresh instance shows the empty state. FIGMA-ONLY (#2419's form, owner
+    // decision Q163.4b A): code has no `showMarker` prop, because in code the marker follows whether an image is
+    // supplied (see `codeOnly`), and a prop could only disagree with that.
+    booleans: { marker: { part: 'marker', default: true, figmaName: 'Marker', figmaOnly: true } },
   },
 
   accessibility: {
@@ -201,16 +216,17 @@ export const imagePlaceholder: ComponentDef = {
   },
 
   docs: {
-    usage: 'Use an image placeholder wherever a layout reserves space for a photograph before one is chosen — a card\'s media slot, a hero, a gallery cell. Pick the ratio from the media it will hold (1:1 for square thumbnails, 4:3 for standard photography, 16:9 for video stills and wide banners); the frame keeps that proportion while it flexes to its container, so a row of cards stays aligned even as their widths change. Drop a photograph onto the frame as an image fill — a native Figma action. The frame clips its content, so a mismatched image stays inside the ratio rather than overflowing.',
+    usage: 'Use an image placeholder wherever a layout reserves space for a photograph before one is chosen — a card\'s media slot, a hero, a gallery cell. Pick the ratio from the media it will hold (3:4, 4:5 or 2:3 for portrait product and apparel shots, 1:1 for square thumbnails, 4:3 or 3:2 for standard photography, 16:9 for video stills and wide banners); the frame keeps that proportion while it flexes to its container, so a row of cards stays aligned even as their widths change. Drop a photograph onto the frame as an image fill — a native Figma action — and turn the Marker property off so the "no image" marker does not sit on the photo. The marker scales with the frame, so a small thumbnail shows a small marker. The frame clips its content, so a mismatched image stays inside the ratio rather than overflowing.',
     do: [
       'Pick the ratio from the media the frame will hold, and let the lock keep it while the size flexes',
-      'Drop the photograph on as an image fill — the frame is the container, not a swappable slot',
+      'Drop the photograph on as an image fill — the frame is the container, not a swappable slot — and turn the Marker off once it is in',
       'Give an informative image an accessible name and a decorative one an empty alt; keep the empty-state marker decorative and aria-hidden',
       'Let the frame clip — a photo cropped to the ratio reads better than one that overflows the layout',
     ],
     dont: [
       'Hard-code a width AND a height to fake a ratio — the frame holds the ratio and derives the second dimension, so two fixed sizes fight the lock and break on resize',
-      'Treat the "no image" marker as the image\'s description — it is a placeholder affordance, replaced when a photograph arrives',
+      'Treat the "no image" marker as the image\'s description — it is a placeholder affordance, turned off when a photograph arrives',
+      'Leave the marker on over a supplied image — Figma cannot tell that a fill is a photo, so the Marker property is how the marker goes away',
       'Reach for an image placeholder as a decorative wash over a photo — that is the `veil` component (a follow-up may compose the two)',
       'Expect a play or scrim overlay yet — those are not built yet; this is the core empty-state frame',
     ],
@@ -219,11 +235,11 @@ export const imagePlaceholder: ComponentDef = {
 
   ai: {
     primaryPurpose: 'Reserve space for a photograph at a fixed aspect ratio, holding the proportion while the frame flexes to its container, and show a neutral empty state until an image is dropped in.',
-    whenToUse: 'A layout needs a media slot at a known proportion before the image is chosen — a card\'s photo area, a hero, a gallery cell. Pick 1:1, 4:3 or 16:9 from the media it will hold; the frame keeps that ratio as it resizes and clips whatever image is dropped onto it.',
+    whenToUse: 'A layout needs a media slot at a known proportion before the image is chosen — a card\'s photo area, a hero, a gallery cell. Pick a ratio from the media it will hold (2:3, 3:4 or 4:5 portrait, 1:1, 4:3, 3:2 or 16:9 landscape); the frame keeps that ratio as it resizes and clips whatever image is dropped onto it. Once an image is supplied, set showMarker to false (the Marker property in Figma) so the "no image" marker does not draw over it.',
     avoidWhen: 'The surface is a decorative wash over an existing photo (that is the `veil` component), the image is already present and fixed (place it directly), or the space needs a play button or a legibility scrim over the media (not built yet — this is the core empty-state frame only).',
     // `veil` sits over an image this frame holds; it is not nested, so it is a partner, not a part (#1700).
     commonPartners: ['icon', 'veil'],
-    triggerKeywords: ['image placeholder', 'media frame', 'photo frame', 'aspect ratio', '16:9', '4:3', 'square image', 'empty image', 'image slot', 'no image', 'media slot'],
+    triggerKeywords: ['image placeholder', 'media frame', 'photo frame', 'aspect ratio', '16:9', '4:3', '3:2', '3:4', '4:5', '2:3', 'portrait image', 'product image', 'square image', 'empty image', 'image slot', 'no image', 'media slot'],
     generationPriority: 3,
   },
 
@@ -248,7 +264,7 @@ export const imagePlaceholder: ComponentDef = {
       'THE PASTE-TIME DERIVE IS FIGMA-DOCUMENTED FOR RESIZE, NOT PROVEN FOR A BOUND VARIABLE. `lockAspectRatio()` derives the second dimension when a locked node is resized on one axis, and `targetAspectRatio` is read-only. Binding a variable on the single axis SETS that dimension, which is a resize — so the derive should hold — but that a `setBoundVariable` triggers it at paste time is a live-file behavior no offline host can witness, the same class as accept-and-discard. The offline gates prove the lock is captured with the right ratio (read back as `targetAspectRatio`); the derive-on-paste is filed for the real-host round-trip arm. If a pasted placeholder is ever found NOT deriving its height, the fallback is Option C — a nominal square plus the ratio carried in code/AI metadata only — and this note is the record that A was chosen on Figma\'s documented lock contract rather than on a live paste.',
       'THE OVERLAYS ARE DEFERRED (#1316). A legibility scrim/veil over the image and a play-circle video affordance both nest other components and are owner-held for a follow-up. Named here and in `codeOnly` so the absence reads as a deferral rather than a gap.',
       'THE NOMINAL WIDTH IS A PLACEHOLDER, NOT A MEASUREMENT (the veil/focus-ring idiom). `container.narrow` (720px) makes the standalone build a media-shaped rectangle; the frame has no intrinsic size, so nobody has decided 720px is RIGHT — it is a legible placeholder a designer resizes over their layout, and the ratio, not the width, is the fixed fact.',
-      'THE MARKER SIZE IS A FIXED FLOOR (180px), NOT A SIZE THAT TRACKS THE FRAME ON RESIZE (#1340). The owner asked to make the marker larger and, ideally, to scale it with the frame. A larger FIXED size grounded in Prism 2 (180px, its centered-glyph proportion, `glyphPx` on `marker`) is what shipped. TRUE proportional scaling — the marker tracking the frame\'s actual flexing extent as a designer resizes it — would need a Figma scale-constraint / percentage-size projection the engine does not have: the fluid `100%` container is skipped for exactly this reason (Figma has no percentage FLOAT primitive), and a per-ratio glyph would still be three fixed sizes, not resize-tracking. Filed as a follow-up mechanism question; the fixed floor is the deliverable, and 180px already reads as a proportion of the frame at every ratio (25% / 33% / 44% of the shorter side at 1:1 / 4:3 / 16:9), so the marker is no longer the stray 32px icon #1340 named.',
+      'THE MARKER SCALES THROUGH A CONSTRAINT, AND THAT A RESIZED INSTANCE HONORS IT IS A LIVE-HOST FACT (#2345). The marker is out of the auto-layout flow, centered, and constrained SCALE/SCALE (`scaleWithParent`), so it should keep its fraction of the frame: 180px at the 720px nominal width, 16px in a 64px thumbnail. Figma documents constraints on an absolutely positioned child of an auto-layout frame, and the offline gates prove the marker is built ABSOLUTE with SCALE/SCALE and centered. That a designer RESIZING AN INSTANCE scales it is a live-file behavior no offline host can witness: check it by placing a 4:3 instance and dragging it to 64px wide. It depends on the aspect lock staying on: a designer who unlocks the frame and resizes it on one axis stretches the marker with it. The 180px nominal size is still #1340\'s Prism 2 proportion (1/3 of the 4:3 shorter side), held across all seven ratios: 25% of the width at every ratio, so the share of the SHORTER side runs from 25% (portrait and square) to 44% (16:9).',
     ],
   },
 };
