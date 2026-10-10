@@ -1,0 +1,17 @@
+## (2026-10-10) — Studio: an edit that fixes a failed restore clears the strip and Apply at once, and a late file read loads nothing (#2487 A4, A14)
+
+Two findings from the merged Studio redesign review on #2487 (PR 3 of its six).
+
+**A4: store ordering.** `main.ts` had two module-level `brand` subscribers: the one that repaints the legacy chrome (`syncChrome()`, which paints the error strip) and, registered about 450 lines later, the one that cleared an `unresolved` restore failure once a rebuild resolved. `invalidate` calls subscribers in insertion order, so after an edit that fixed the brand the strip painted the failure that was about to be cleared. Apply Theme reads `restoreFailure` too, but the bar repaints it only on `bar`, which nothing sent. Both stayed stale until some later event. Now the one subscriber clears the failure first, paints, then calls `barChanged()` if it cleared. The second subscriber is gone. #1989's own control fixed the restore by loading another brand, which goes through `loadBrand` and `build()` and repaints everything, so it never reached this path.
+
+**A14: late file reads.** Both upload pickers read the file asynchronously. The start window (`shell/start.ts`) now keeps a read generation, bumped by each read and by `dismiss`, so a read that finishes after Close, after a load, or after another file was chosen loads nothing. The brand menu's import (`main.ts`, `importFile`) does the same with `importGen`, bumped by each read and by the two controls that can close and reopen the box (`toggleMenu`, `toggleImport`), and also checks that the menu and the box are still open. That covers every close path without a bump at each one, since the box can only reopen through those two controls.
+
+**Trap for whoever re-verifies this.** `syncStart()` replaces the start window when it switches between the first run and a reopened one (the #1197 empty-file answer). That replacement goes through `dismiss`, so a read in flight at that moment is dropped too. The window the file was chosen in has closed, so this follows the rule, but the designer sees a start window throughout.
+
+**Tests.** `apps/plugin/test-build-verdict.mjs`, a new A4 block: it restores a brand whose refused override sits in a custom mode, then removes that mode on the Brand page (an edit, not a load). The confirm is clicked by an in-page `dispatchEvent`, and the strip and Apply are read in the same task. Driving the click through Playwright would let a later repaint stand in for the subscriber. `apps/plugin/test-start-screen.mjs` §5b: `FileReader.readAsText` is held until the test releases it, so "late" is a fact of the harness rather than of machine speed. For each picker, a read released after the window closed must leave the file's brand, and a control read released with the window open must load harbor, so a hold that broke reading can't pass as "loads nothing".
+
+Mutations, each after a `wip:` commit, on a rebuilt plugin bundle, each failing by name:
+- the clear moved after `syncChrome()` fails `A4 an edit that fixes a refused restore clears the error strip … — strip "This file's saved brand didn't resolve: …"`;
+- the `barChanged()` removed fails the same arm, `— strip null, Apply disabled true`;
+- the `start.ts` generation check removed fails `A14 a start-window upload read after Close loads nothing … brand "harbor"`;
+- the `importFile` check removed fails `A14 a brand-menu upload read after the menu closed loads nothing … brand "harbor"`.
