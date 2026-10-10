@@ -52,8 +52,9 @@ takes my own nit from #2500's review: `onCommitted` commits the value captured a
   - A breakpoint committed at `change`, then written over in the same task, stores the value it held at `change`.
   - 20 picker `input`s in one frame re-resolve the brand once (a MutationObserver counts the OKLCH readout's
     changes), store once, and draw the last color.
-- **§45 figma light 1280, A10:** a host message (the agent link turning on) while the Export dialog is open leaves
-  it as it was: the same node (a marker the test sets), the import text, and its caret at 4.
+- **§45 figma light 1280, A10:** a host message (an Apply verdict) while the Export dialog is open leaves it as it
+  was: the same node (a marker the test sets), the import text, and its caret at 4. A premise reads that the message
+  reached the bar (its mutation records).
 
 Mutations, each from a `wip:` commit, restored with `git checkout --`, each failing only its own arm, by name:
 - **Shape's in-place sync removed (K3):**
@@ -68,7 +69,8 @@ Mutations, each from a `wip:` commit, restored with `git checkout --`, each fail
 - **`onCommitted` reading the field when its task runs:**
   `✗ §45 … onCommitted: a committed field commits the value it held at change, not one written after it (stored [0,768,1200,1440,1920])`.
 - **`perFrame` running every input at once:** `✗ §45 … picker: 20 color inputs in one frame re-resolve the brand once … (20 readout change(s) …)`.
-- **The export dialog rebuilt on every paint:** the A10 arm (see the PR for the line).
+- **The export dialog rebuilt on every paint:**
+  `✗ §45 figma light 1280 A10: a host message leaves the open Export dialog as it is, the import text and its caret in place ({"mark":null,…,"caret":24,…})`.
 - **`loadInput` back to its old order:**
   `✗ #2487 A13 loadInput tells origin, brand, mode and page once each, in that order … (heard ["origin:old:…","page:old:…","brand:new:…","mode:new:…"])`.
 
@@ -83,3 +85,6 @@ Mutations, each from a `wip:` commit, restored with `git checkout --`, each fail
   would land at 400ms, after the comparison, and the arm would pass on nothing. It now dispatches `change` too, so a
   leaked write lands before the read (docs/34).
 - **test:chrome prints only failures.** A section header with nothing under it is a pass.
+- **A10's first trigger was vacuous.** It used the agent link turning on, which repaints the Agent tile but never
+  reaches the bar's `paint`, so the mutation (the dialog rebuilt on every paint) survived. An Apply verdict is a
+  `host` notification, which `paint` subscribes to. The premise arm now reads that the message reached the bar.
