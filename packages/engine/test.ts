@@ -14673,13 +14673,13 @@ arm: {
           ok(bad.length === 0,
             `#2266 ${def.id} size=${size}: label ${LABEL_STYLE[size]} over input ${INPUT_STYLE[size]}, height ${def === textarea ? 'from rows' : HEIGHT[size]}, padding ${PAD[size]}, a 120 floor${bad.length ? ` — WRONG: ${bad.join('; ')}` : ''}`);
         }
-        // 84 members, led by small since #2501 (owner decision Q213: sizes smallest to largest in every def). The
-        // first member is the default variant and where an in-place update (#2265) lands a set built before #2266;
-        // medium led until then, and both consequences are accepted with the order. 72 until #2318's
+        // 84 members, led by medium: the default variant (Figma takes it from the top-left member), and where an
+        // in-place update (#2265) lands every member of a set built before #2266 (they were all the medium field).
+        // Kept by owner decision Q221 B as the named exception to #2501's smallest-to-largest. 72 until #2318's
         // `focus-visible-filled` column (size 3 × status 4 × state 7; 28 per size).
         const set = figmaAnatomySet(def, { swapTarget: 'FPO-default-icon' });
-        ok(set.length === 84 && set[0].size === 'small' && SIZES.every((sz) => set.filter((p) => p.size === sz).length === 28),
-          `#2266 ${def.id}: the set is 84 members, 28 per size, led by size=small (got ${set.length}, first ${String(set[0]?.size)})`);
+        ok(set.length === 84 && set[0].size === 'medium' && SIZES.every((sz) => set.filter((p) => p.size === sz).length === 28),
+          `#2266 ${def.id}: the set is 84 members, 28 per size, led by size=medium (got ${set.length}, first ${String(set[0]?.size)})`);
       }
 
       // (2b) #2318 (owner decision Q157, 2026-10-09): THE FOCUSED FIELD THAT HOLDS A VALUE, `state=focus-visible-filled`,
@@ -29395,10 +29395,9 @@ arm: {
 }
 
 // ---- one axis value order in every def (#2501, owner decision Q213) ----
-// Sizes smallest to largest; states Rest, Hover, Pressed together, then Focus (focus-visible and its variants), then
-// Disabled. The places of the states the owner did not name are the PR's recommendation, held as owner items:
-// Pending right after Pressed, Filled after the press group, Inactive and Read only after Disabled, Error and Empty
-// last. Both ladders are TYPED HERE from the decision, never read from a def or the schema's `STATES`, so a def
+// Sizes smallest to largest, except the named Q221 B exception below; states Rest, Hover, Pressed together, then Focus
+// (focus-visible and its variants), then Disabled. The states the owner did not name are placed by Q220 A: Pending
+// right after Pressed, Filled after the press group, Inactive and Read only after Disabled, Error and Empty last. Both ladders are TYPED HERE from the decision, never read from a def or the schema's `STATES`, so a def
 // reordered against them fails under its own name; a value neither ladder knows fails too, so a new state or size
 // is placed on purpose. Read at both layers the order lives in: the def's own lists (`states`, `variants.size`,
 // `figmaProperties.stateAxis`) and the projected set, the members' first-seen order, which is what the canvas and
@@ -29407,6 +29406,14 @@ arm: {
 {
   const STATE_LADDER = ['rest', 'hover', 'pressed', 'pending', 'filled', 'focus-visible', 'focus-visible-filled', 'disabled', 'inactive', 'read-only', 'error', 'empty'];
   const SIZE_LADDER = ['x-small', 'small', 'medium', 'large'];
+  // THE NAMED EXCEPTION (owner decision Q221 B, 2026-10-10): these three keep Medium first, because Figma takes a set's
+  // default variant from its top-left member, and Medium is the field a designer must get on insert. An EXACT list:
+  // a def not named here breaking small to large fails, and so does one named here leaving this order.
+  const SIZE_EXCEPTIONS: Record<string, string[]> = {
+    'text-field': ['medium', 'small', 'large'],
+    textarea: ['medium', 'small', 'large'],
+    select: ['medium', 'small', 'large'],
+  };
   const outOfOrder = (vals: readonly unknown[], ladder: readonly string[]): string | null => {
     const unknown = vals.filter((v) => !ladder.includes(String(v)));
     if (unknown.length) return `unplaced ${unknown.join(', ')}`;
@@ -29425,9 +29432,14 @@ arm: {
       ['projected states', firstSeen(set.map((p) => p.coord?.state)), STATE_LADDER],
       ['projected sizes', firstSeen(set.map((p) => p.size)), SIZE_LADDER],
     ];
-    const bad = lists.map(([where, vals, ladder]) => { const o = outOfOrder(vals, ladder); return o ? `${where} ${o}` : null; }).filter(Boolean);
+    const exception = SIZE_EXCEPTIONS[def.id];
+    const bad = lists.map(([where, vals, ladder]) => {
+      if (exception && ladder === SIZE_LADDER)
+        return JSON.stringify(vals) === JSON.stringify(exception) ? null : `${where} [${vals.join(', ')}], not the named exception's [${exception.join(', ')}] (Q221 B)`;
+      const o = outOfOrder(vals, ladder); return o ? `${where} ${o}` : null;
+    }).filter(Boolean);
     checked.set(def.id, lists.reduce((n, [, vals]) => n + vals.length, 0));
-    ok(bad.length === 0, `#2501 ${def.id}: sizes smallest to largest, states Rest, Hover, Pressed, then Focus, then Disabled (Q213), in the def and in the projected set${bad.length ? ` — WRONG: ${bad.join(' | ')}` : ''}`);
+    ok(bad.length === 0, `#2501 ${def.id}: sizes smallest to largest (or the named Q221 B order), states Rest, Hover, Pressed, then Focus, then Disabled (Q213), in the def and in the projected set${bad.length ? ` — WRONG: ${bad.join(' | ')}` : ''}`);
   }
   // REPRESENTED, never a count of files (docs/34): the defs Q213 was raised on, and each one that moved here, must
   // be among those read, each with values to order.

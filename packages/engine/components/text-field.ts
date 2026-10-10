@@ -135,14 +135,17 @@ export const textField: ComponentDef = {
   // Figma carried the single `md` rung and `size` was a code-only prop. Now each size scales the input type
   // (`body.sm/md/lg`), the nested label (one step below, by `follow`), the padding and the height.
   //
-  // SMALLEST TO LARGEST (#2501, owner decision Q213, 2026-10-10): every def lists its sizes in one order. Until then
-  // `medium` led here (#2266), because the set's first member is Figma's default variant AND the value an in-place
-  // update (#2265) gives every member of a set that GAINS this axis (`dryRunSet` gives an added axis the value the
-  // first plan carries). Both consequences are accepted with the new order: Figma's default text field is now the
-  // small one (the code default stays `size: medium`), and a text-field built before #2266, which has no size axis,
-  // lands on `small` on its next Update. A set that already has the axis sees its members move, not change.
+  // `medium` FIRST, deliberately, and the order is load-bearing rather than cosmetic: the named exception to
+  // smallest-to-largest (#2501; owner decision Q221 B, 2026-10-10, after Q213). Figma takes a set's default variant
+  // from the member at the TOP-LEFT of the canvas (checked on a scratch file: layer order does not move it), and
+  // the projector's first member is the top-left one, so medium first keeps Medium the field a designer inserts.
+  // It is also where an in-place update (#2265) lands every member of a set that GAINS this axis: `dryRunSet`
+  // gives an added axis the value the first plan carries, and every text-field built before #2266 IS the medium
+  // field (a 14 label over a 16 input, 44 tall), so medium first keeps those members' keys AND their look. It
+  // makes the Figma default match the code default (`size: medium`). The panel and the grid read medium, small,
+  // large; the variant picker lists the values in the order they were first combined.
   variants: {
-    size: ['small', 'medium', 'large'],
+    size: ['medium', 'small', 'large'],
     style: ['outline'], // default; filled/underline are theming, not an API axis (not projected)
     status: ['default', 'error', 'warning', 'success'],
   },

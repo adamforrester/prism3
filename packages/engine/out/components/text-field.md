@@ -82,7 +82,7 @@ Label = noun phrase, sentence case, no trailing colon. Placeholder = example onl
 
 | Axis | Values | Changes |
 | --- | --- | --- |
-| `size` | `small`, `medium`, `large` | once, when authored |
+| `size` | `medium`, `small`, `large` | once, when authored |
 | `style` | `outline` | once, when authored |
 | `status` | `default`, `error`, `warning`, `success` | at runtime |
 

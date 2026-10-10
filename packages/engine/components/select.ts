@@ -193,11 +193,13 @@ export const select: ComponentDef = {
   //
   // `size` (#2266, owner decisions Q84 A and Q101 A, lifting #1699 decision 2's deferral): the field sizing
   // system text-field and textarea share. Each size scales the value type (`body.sm/md/lg`), the nested
-  // label (one step below, by `follow`) and the padding; every size keeps the 44px floor. Smallest to largest,
-  // like every def (#2501, owner decision Q213), so Figma's default select is the small one and a select built
-  // before #2266 lands on `small` on its next Update. text-field's `variants` comment has the full argument.
+  // label (one step below, by `follow`) and the padding; every size keeps the 44px floor. `medium` FIRST,
+  // and load-bearing: the first member is Figma's default variant AND the value an in-place update (#2265)
+  // gives every member of a set that gains this axis, so each select built before #2266 (the medium field)
+  // keeps its key and its look. The named exception to smallest-to-largest (#2501, owner decision Q221 B);
+  // text-field's `variants` comment has the full argument.
   variants: {
-    size: ['small', 'medium', 'large'],
+    size: ['medium', 'small', 'large'],
     status: ['default', 'error', 'warning', 'success'],
   },
   // WHEN each axis changes (#1611): runtime axes are held to one footprint, authoring axes are not.

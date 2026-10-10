@@ -1,9 +1,9 @@
 ---
 engine: minor
 ---
-One axis value order in every component def (#2501, owner decision Q213). Sizes run smallest to largest, so
-text-field, textarea and select now list `small, medium, large` (medium led since #2266); their Figma default variant
-is the small field, and a field set built before #2266 lands on small when it gains the size axis. States run Rest,
+One axis value order in every component def (#2501, owner decisions Q213, Q220 A and Q221 B). Sizes run smallest
+to largest, except text-field, textarea and select, which keep `medium, small, large` as a named exception so the
+field a designer inserts stays Medium (Figma takes a set's default from its top-left member). States run Rest,
 Hover, Pressed, then Focus, then Disabled: button, icon-button and their destructive and neutral siblings now project
 `rest, hover, pressed, pending, focus-visible, disabled` (Focus visible was before Pressed), and their code `states`
 put `inactive` after `disabled`. The fields' and switch-row's code `states` put `pending` after the press group.

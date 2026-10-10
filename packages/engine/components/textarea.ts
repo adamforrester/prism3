@@ -146,12 +146,12 @@ export const textarea: ComponentDef = {
 
   // `style`, plus text-field's `status` axis with text-field's exact values (#1623 sign-off, C1/TA-4) —
   // the validation outcome, driven by the `validation` prop. `size` is text-field's projected axis since
-  // #2266, smallest to largest like every def (#2501, owner decision Q213; text-field's `variants` comment has
-  // what that moves: the default variant, and where an in-place update lands a member built before the axis). The
+  // #2266, `medium` FIRST for text-field's reason (the default variant, and where an in-place update lands
+  // every member built before the axis existed): the named exception to smallest-to-largest (#2501, Q221 B). The
   // brief's §15 also lists `resize` and `modifiers` as variant axes; neither is declared here and
   // `notes.contested` carries both arguments with their named alternatives.
   variants: {
-    size: ['small', 'medium', 'large'],
+    size: ['medium', 'small', 'large'],
     style: ['outline'], // filled / underline are theming, not an API axis (brief §4)
     status: ['default', 'error', 'warning', 'success'],
   },

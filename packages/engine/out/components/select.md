@@ -73,7 +73,7 @@ Label = noun phrase, sentence case, no trailing colon. Placeholder = the plain n
 
 | Axis | Values | Changes |
 | --- | --- | --- |
-| `size` | `small`, `medium`, `large` | once, when authored |
+| `size` | `medium`, `small`, `large` | once, when authored |
 | `status` | `default`, `error`, `warning`, `success` | at runtime |
 
 ## Accessibility

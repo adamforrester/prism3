@@ -2408,8 +2408,8 @@
       "variants": {
         "size": {
           "values": [
-            "small",
             "medium",
+            "small",
             "large"
           ],
           "kind": "authoring"
@@ -2661,8 +2661,8 @@
       "variants": {
         "size": {
           "values": [
-            "small",
             "medium",
+            "small",
             "large"
           ],
           "kind": "authoring"
@@ -4235,8 +4235,8 @@
       "variants": {
         "size": {
           "values": [
-            "small",
             "medium",
+            "small",
             "large"
           ],
           "kind": "authoring"

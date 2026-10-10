@@ -75,7 +75,7 @@ Counter reads "240 / 280" or "40 characters remaining"; over-limit reads "12 cha
 
 | Axis | Values | Changes |
 | --- | --- | --- |
-| `size` | `small`, `medium`, `large` | once, when authored |
+| `size` | `medium`, `small`, `large` | once, when authored |
 | `style` | `outline` | once, when authored |
 | `status` | `default`, `error`, `warning`, `success` | at runtime |
 
