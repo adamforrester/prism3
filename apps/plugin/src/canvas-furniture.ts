@@ -283,6 +283,15 @@ const gridMembers = (set: XNode, cells: readonly { name: string; row: number; co
   return out;
 };
 
+/** Whether the members with `surface=inverse` form one band no other member's rows enter. True with none. */
+export const inverseContiguous = (members: readonly GridMember[]): boolean => {
+  const inv = members.filter((m) => m.values.surface === 'inverse');
+  if (!inv.length) return true;
+  const top = Math.min(...inv.map((m) => m.y));
+  const bottom = Math.max(...inv.map((m) => m.y + m.height));
+  return members.every((m) => m.values.surface === 'inverse' || m.y + m.height <= top || m.y >= bottom);
+};
+
 /** Write a label's text, loading the face its text node carries. A face that will not load keeps "Label". */
 const writeText = async (api: FurnitureApi, inst: XNode, value: string, misses: string[]): Promise<void> => {
   const t = inst.findOne?.((n) => n.type === 'TEXT' && n.name === 'text');
@@ -313,6 +322,10 @@ export const drawFurniture = async (
   const out: FurnitureOutcome = { def: defId, parent: parent.name ?? '', columns: 0, rows: 0, backdrops: 0, cleared: clearFurniture(parent, defId), skipped: [], fontMisses: [] };
   const members = gridMembers(set, layout.cells);
   if (!members.length) { out.skipped.push(`No canvas labels for ${defId}: the set has no member this plan lays out`); return out; }
+  // ONLY OVER ONE INVERSE BLOCK (#2188 Q173): a set still laid out the earlier way has a band of inverse rows per
+  // appearance, and would get a backdrop and an "Inverse" bracket on each. Its old furniture is cleared above; none
+  // is drawn until the set is regrouped. DRAFT wording for the owner.
+  if (!inverseContiguous(members)) { out.skipped.push(`No canvas labels for ${defId}: its inverse rows are not in one block yet. Run Update to move them, then the labels are drawn`); return out; }
   const plan = planFurniture({ x: set.x ?? 0, y: set.y ?? 0 }, members, layout);
   const setTag = { v: 1 as const, def: defId, set: String(set.id ?? '') };
 

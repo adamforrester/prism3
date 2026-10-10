@@ -250,8 +250,10 @@ and #E0C7FF as literal colors) and `_inverse-backdrop` (a component whose fill b
 its next setup (`src/furniture-templates.ts`). After a build or an in-place update lands a set of a piloted def,
 `src/canvas-furniture.ts` places `_Label` instances on the set's parent, outside the set: a column label above each
 grid-axis value, nested row brackets to the left for the outer row axes (none for on/off axes), one "Inverse" bracket
-outermost, and an `_inverse-backdrop` instance behind each band of inverse rows. For a piloted def, the engine's
-`planSetLayout` groups `surface` outermost, so the inverse rows are one band. Labels and backdrops are tagged
+outermost, and an `_inverse-backdrop` instance behind the inverse rows. For a piloted def, the engine's
+`planSetLayout` groups `surface` outermost, so the inverse rows are one band. A set laid out before that reads as moves
+in the update's dry run (`gridMoves` in `src/update-plan.ts`, Q173), and the apply re-lays its grid with every id kept;
+until then it gets no furniture, so it never carries one backdrop per band. Labels and backdrops are tagged
 `prism3`/`furniture`: a rebuild or update clears and redraws them, prune removes those whose set is gone, and they never
 enter the set, so the update's hand-edit check and the as-built record never read them. The switch is
 `CANVAS_FURNITURE_PILOT` (engine), on for Button, Tag and Text field. Gated by `test-canvas-furniture.ts`.

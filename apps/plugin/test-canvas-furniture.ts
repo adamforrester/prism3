@@ -9,6 +9,10 @@
  *                 rather than adding, another def's furniture and a hand-placed `inverse-bg` left alone.
  *   group/…       Button built by the real executor: its 288 inverse members sit in one band no default member enters
  *                 (Q173 A). Mutation: `surface` not outermost in `planSetLayout` → `group/contiguous`.
+ *                 An earlier-layout Button (Q173: "an in-place update reports it as moves"): the dry run reports 360
+ *                 moves and nothing else, the furniture is not drawn on it, the update's apply moves them with every
+ *                 id kept, the next dry run reads up to date, and one backdrop and one Inverse bracket are drawn.
+ *                 Mutation: the moves not reported → `group/existing dry run`.
  *   panel/…       the grouping moves positions only: the set's children stay in plan order, so every variant
  *                 property's values read in the def's order (#2386).
  *   backdrop/…    on that Button, one backdrop covering exactly the inverse members' box plus `BACKDROP_PAD`, and no
@@ -34,7 +38,8 @@ import { componentDefs } from '@prism3/engine/components/index';
 import { applyComponentPlan } from './src/write-components';
 import { SWAP_TARGET } from './src/build-deps';
 import { makeShim, type Node } from './component-shim';
-import { captureBaselines, previewUpdate, type UpdateHost } from './src/update-plan';
+import { captureBaselines, previewUpdate, previewLine, previewVerdict, type UpdateHost } from './src/update-plan';
+import { applyUpdate, applyVerdict, previewHashOf } from './src/update-apply';
 import { BASELINE_KEY } from './src/member-baseline';
 import { NS } from './src/persist-figma';
 import { planFurniture, drawFurniture, furnitureLayout, sentenceCase, pruneFurniture, clearFurniture, hasFurniture, type GridMember, type FurnitureApi, type XNode } from './src/canvas-furniture';
@@ -229,6 +234,11 @@ const buildOnPage = async (id: string) => {
   const set = page.children.find((c) => c.type === 'COMPONENT_SET') as FNode;
   return { plans, page, api, set, built };
 };
+/** The Button members an old-layout set holds out of the grouped grid's rows, worked out by hand from the two row
+ *  orders, never read off `gridMoves`. The earlier order is filled default (12 rows), filled inverse (12), outline
+ *  default (12), outline inverse (12), text default (24), text inverse (24). Grouped, filled default (rows 0–11) and
+ *  text inverse (rows 72–95) keep their rows, and rows 12–71 move: 60 rows × 6 states. */
+const MOVES = 360;
 const boxOf = (set: FNode, m: FNode) => ({ x: Number(set.x) + Number(m.x), y: Number(set.y) + Number(m.y), w: Number(m.width), h: Number(m.height) });
 const valuesOf = (name: string): Record<string, string> => Object.fromEntries(name.split(', ').map((kv) => [kv.slice(0, kv.indexOf('=')), kv.slice(kv.indexOf('=') + 1)]));
 
@@ -299,8 +309,35 @@ section('group / panel / backdrop — Button, built by the real executor');
   const interleaved = (set.children as FNode[]).filter((m) => valuesOf(String(m.name)).surface === 'default' && Number(m.y) > Math.min(...(set.children as FNode[]).filter((x) => valuesOf(String(x.name)).surface === 'inverse').map((x) => Number(x.y)))).length;
   ok(interleaved > 0, `premise: the earlier layout interleaves inverse and default rows (${interleaved} default members below the first inverse one)`);
   const pre = (await previewUpdate(host, [{ def: 'button', plans }])).sets[0];
-  ok(pre.counts.current === 576 && pre.counts.add + pre.counts.drop + pre.counts.rename + pre.counts.handEdited === 0 && pre.moves.length === 0,
-    `group/existing dry run: the regrouping renames, adds and drops nothing, and is no hand edit (${JSON.stringify(pre.counts)})`);
+  const c0 = pre.counts;
+  ok(c0.move === MOVES && c0.current === 576 && c0.update + c0.add + c0.drop + c0.rename + c0.handEdited + c0.noBaseline + c0.unstamped + c0.revisionUnknown === 0 && pre.moves.length === 0 && pre.positions?.length === MOVES,
+    `group/existing dry run: an old-layout Button reports ${MOVES} moves and nothing else — no rename, add, drop or hand edit (${JSON.stringify(c0)})`);
+  ok(previewLine(pre) === `button: 576 members. ${MOVES} to move.` && previewVerdict({ sets: [pre], missing: [], refused: [] }).headline === 'Would change 1 of 1',
+    `group/existing dry run line: the moves are named (${previewLine(pre)})`);
+  // FURNITURE ONLY OVER ONE INVERSE BLOCK: on the ungrouped set nothing is drawn, so no backdrop or bracket per band.
+  const un = await drawFurniture(fakeTemplates(), set, furnitureLayout(plans), 'button');
+  ok(furnitureOn(page).length === 0 && un.backdrops + un.rows + un.columns === 0 && un.skipped.length === 1 && /inverse rows are not in one block yet/.test(un.skipped[0]),
+    `furniture/ungrouped: an ungrouped set gets no labels and no backdrop, and says why (${furnitureOn(page).length}, ${JSON.stringify(un.skipped)})`);
+
+  // THE UPDATE'S APPLY moves them: the grid re-laid in place, every id kept, nothing rewritten.
+  const res = await applyUpdate(host as never, bApi as never, [{ def: 'button', plans }], previewHashOf((await previewUpdate(host, [{ def: 'button', plans }]))));
+  const o1 = res.outcomes[0];
+  const regrouped = (set.children as FNode[]).filter((m) => Number(m.y) !== grouped.get(String(m.name))).length;
+  const keptIds = (set.children as FNode[]).every((m) => ids.get(String(m.name)) === String(m.id)) && page.children.filter((c) => c.type === 'COMPONENT_SET').length === 1;
+  ok(!res.refusedAll && res.outcomes.length === 1 && o1.moved === MOVES && o1.updated.length + o1.added + o1.renamed + o1.deprecated.length === 0 && o1.identity.length === 0 && o1.content.length === 0 && regrouped === 0 && keptIds,
+    `update/apply regroups: ${MOVES} moved, nothing updated, renamed or replaced, every member in the grouped layout, every id kept (${JSON.stringify({ refused: res.refusedAll, moved: o1?.moved, updated: o1?.updated.length, identity: o1?.identity, content: o1?.content, regrouped, keptIds })})`);
+  const v1 = applyVerdict(res);
+  ok(v1.ok && v1.headline === `✓ moved ${MOVES}` && v1.lines[0] === `button: ${MOVES} moved.`, `update/apply verdict: ${v1.headline} / ${v1.lines[0]}`);
+  const next = (await previewUpdate(host, [{ def: 'button', plans }])).sets[0];
+  ok(next.counts.move === undefined && next.positions === undefined && previewLine(next) === 'button: up to date (576 members).',
+    `update/next dry run: reads current after the apply (${previewLine(next)})`);
+  const drawn = await drawFurniture(fakeTemplates(), set, furnitureLayout(plans), 'button');
+  const after1 = furnitureOn(page);
+  ok(drawn.backdrops === 1 && after1.filter((n) => tagOf(n).kind === 'backdrop').length === 1 && after1.filter((n) => tagOf(n).kind === 'label' && textOf(n) === 'Inverse').length === 1,
+    `update/furniture once: one backdrop and one Inverse bracket after the regroup (${after1.filter((n) => tagOf(n).kind === 'backdrop').length} backdrops, ${after1.filter((n) => textOf(n) === 'Inverse').length} Inverse)`);
+
+  // A BUILD over an old-layout set regroups it the same way.
+  for (const c of oldLayout.cells) (members.find((m) => m.name === c.name) as Record<string, unknown>).y = rowY.get(c.row);
   await applyComponentPlan(plans, bApi as never, { targetPage: page as never });
   const after = page.children.find((c) => c.type === 'COMPONENT_SET') as FNode;
   const back = (after.children as FNode[]).filter((m) => Number(m.y) !== grouped.get(String(m.name))).length;

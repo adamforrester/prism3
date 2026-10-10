@@ -41,7 +41,7 @@
  * would remove. Its blind spots are this module's (`anatomy-readback.ts` lists them). A member whose stamp
  * moved and that shows no field difference is listed as re-applied rather than left out.
  */
-import { planComponentName, planSetProperties } from '@prism3/engine/anatomy-figma';
+import { planComponentName, planSetLayout, planSetProperties, CANVAS_FURNITURE_PILOT } from '@prism3/engine/anatomy-figma';
 import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
 import { diffAnatomy, type HostNode, type ReadPorts } from '@prism3/engine/anatomy-readback';
 import { COMPONENT_RENAMES, coordKey, coordPairs, renameCoordinate, type ComponentRename } from '@prism3/engine/component-renames';
@@ -97,7 +97,9 @@ export type SetPreview = {
   previewHash: string;
   counts: { members: number; current: number; update: number; add: number; drop: number; rename: number; handEdited: number; noBaseline: number; unstamped: number; revisionUnknown: number; reapplied: number;
     /** Of `noBaseline`, those whose record is from an earlier format (#2379 review). */
-    earlierRecord?: number };
+    earlierRecord?: number;
+    /** Members not where the plan's grid puts them (`gridMoves`): moved, never rewritten. Absent when none. */
+    move?: number };
   blockers: string[];
   axes: { from: string[]; to: string[]; renames: { from: string; to: string }[] };
   properties: { add: Prop[]; edit: Prop[]; rename: Prop[]; retype: Prop[]; remove: Prop[] };
@@ -123,6 +125,8 @@ export type SetPreview = {
   /** #2265 PR 2 — every matched member that is not current, with how it reads; what an apply acts on. Current
    *  members are left out, so a set with nothing to do carries an empty list. Never capped: an apply must see all. */
   states: { member: string; state: Exclude<MemberState, 'current'>; earlierRecord?: true }[];
+  /** #2188 Q173 — the members an update moves to their place in the grid, by name (`gridMoves`). Absent when none. */
+  positions?: string[];
   needsChoice: Choice[];
   /** Entries left out of a list past `LIST_CAP`, per list. Absent when nothing was. */
   truncated?: Record<string, number>;
@@ -198,6 +202,28 @@ export const ownedView = (host: HostSetView): HostSetView => {
   const ids = new Set(host.members.map((m) => m.id).filter(Boolean));
   const copied = (m: HostMember): boolean => !!m.baseline?.id && !!m.id && m.baseline.id !== m.id && ids.has(m.baseline.id);
   return { ...host, members: host.members.map((m) => (m.stamp && (!STAMP_SHAPE.test(m.stamp) || copied(m)) ? { ...m, stamp: '' } : m)) };
+};
+
+/**
+ * THE GRID AN UPDATE MOVES MEMBERS INTO (#2188, owner decision Q173: "an in-place update reports it as moves").
+ * For a def in the canvas-furniture pilot, the members whose row is not where the plan's grid puts it: a set laid
+ * out before `planSetLayout` grouped its inverse rows, read by name. The row tops are worked out as the executor's
+ * own layout pass works them out from the members' heights (`applyComponentPlan`, LAY OUT: the grid starts 24 in and
+ * rows sit 24 apart), so a set the executor has laid out reads none. A move rewrites no member: the update's apply
+ * re-lays the grid and keeps every id. Rows only, because the grouping moves rows; columns are as they were.
+ */
+export const gridMoves = (defId: string, plans: AnatomyPlan[], members: readonly HostMember[]): string[] => {
+  if (!CANVAS_FURNITURE_PILOT.has(defId) || !plans.length) return [];
+  let cells: { name: string; row: number }[];
+  try { cells = planSetLayout(plans, 'gridMoves').cells; } catch { return []; }
+  const rowOf = new Map(cells.map((c) => [c.name, c.row] as const));
+  const PAD = 24, GAP = 24;
+  const placed = members.filter((m) => rowOf.has(m.name) && typeof m.snap.y === 'number' && typeof m.snap.height === 'number');
+  const rowH: number[] = [];
+  for (const m of placed) { const r = rowOf.get(m.name)!; rowH[r] = Math.max(rowH[r] ?? 0, m.snap.height as number); }
+  // A sparse array, reduced as the executor reduces it: a row with no member adds nothing.
+  const top = (r: number): number => PAD + rowH.slice(0, r).reduce((a, b) => a + (b || 0) + GAP, 0);
+  return placed.filter((m) => Math.abs((m.snap.y as number) - top(rowOf.get(m.name)!)) > 0.5).map((m) => m.name);
 };
 
 /**
@@ -444,6 +470,10 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
   if (counts.noBaseline) needsChoice.push('noBaseline');
   if (collapse.length) needsChoice.push('axisCollapse');
 
+  // A set with members refused or to collapse is refused by the update, so it reports no moves either.
+  const positions = blockers.length || host.single ? [] : gridMoves(defId, plans, host.members);
+  if (positions.length) counts.move = positions.length;
+
   const truncated: Record<string, number> = {};
   const cap = <T>(name: string, list: T[]): T[] => {
     if (list.length <= LIST_CAP) return list;
@@ -470,6 +500,7 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
     possibleRenames: cap('possibleRenames', possibleRenames),
     handEdits: cap('handEdits', handEdits),
     states,
+    ...(positions.length ? { positions: cap('positions', positions) } : {}),
     needsChoice,
     ...(Object.keys(truncated).length ? { truncated } : {}),
   };
@@ -825,7 +856,7 @@ const propChanges = (p: SetPreview): number => Object.values(p.properties).reduc
  *  set's properties as planned. A member from an earlier plugin (`revisionUnknown`) matches its plan and has no
  *  hand edit. Its stamp just predates the executor revision, so it can't say which executor wrote it. That is
  *  not a difference (owner decision Q91 B, #2282), and the verdict flags those members on a line of their own. */
-const noChanges = (p: SetPreview): boolean => p.counts.current + p.counts.revisionUnknown === p.counts.members && !p.counts.add && !propChanges(p);
+const noChanges = (p: SetPreview): boolean => p.counts.current + p.counts.revisionUnknown === p.counts.members && !p.counts.add && !p.counts.move && !propChanges(p);
 /** No changes, and every member current. */
 const upToDate = (p: SetPreview): boolean => noChanges(p) && !p.counts.revisionUnknown;
 
@@ -850,6 +881,8 @@ export const previewLine = (p: SetPreview): string => {
     c.add ? `${c.add} to add` : '',
     c.drop ? `${c.drop} to mark deprecated` : '',
     c.rename ? `${c.rename} to rename` : '',
+    // DRAFT wording for the owner (#2188 Q173): the moves an update makes, in the line's "N to …" form.
+    c.move ? `${c.move} to move` : '',
     c.handEdited ? `${n(c.handEdited, 'member')} edited by hand` : '',
     c.noBaseline - (c.earlierRecord ?? 0) ? `${c.noBaseline - (c.earlierRecord ?? 0)} with no as-built record` : '',
     // The owner's wording (2026-10-09): a record from an earlier format is named as one, not as a missing record.
