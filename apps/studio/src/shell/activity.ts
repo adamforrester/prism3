@@ -142,7 +142,7 @@ export type Activity = {
   readonly button: HTMLButtonElement;
   /** The drawer, at the bottom of the frame. */
   readonly drawer: HTMLElement;
-  /** The status line a write's start is announced on, for the top bar: outside the drawer, which is not
+  /** The status line a write's start and finish are announced on, for the top bar: outside the drawer, which is not
    *  drawn until something has run, so it is in the document before its first announcement. */
   readonly live: HTMLElement;
 };
@@ -152,6 +152,18 @@ const statusWords = (running: number, failed: number, unread: boolean): string =
   [running && `${running} running`, failed && attention(failed), !running && !failed && unread && 'new result']
     .filter(Boolean).join(', ');
 const attention = (n: number): string => `${n} ${n === 1 ? 'needs' : 'need'} attention`;
+
+/** The status line's words when a run finishes (Q194, #2487; DRAFT wording). A clean run is "finished"; a bad one names
+ *  its reason, the first line of the host's detail (or its headline, without the leading mark, when it sent none). A
+ *  warning reads "finished with a warning", since the run did finish; a failure reads "failed", told apart as the Activity
+ *  button counts them (a "⚠" verdict is a warning unless the run reports something it was asked to make failed). */
+export const finishLine = (k: OpKey, o: Pick<OpReading, 'state' | 'verdict' | 'summary' | 'lines' | 'failed'>): string => {
+  if (o.state !== 'bad') return `${OP_TITLE[k]} finished.`;
+  const bare = (o.verdict ?? '').replace(/^[^\p{L}\p{N}]+/u, '').trim();
+  const reason = (o.lines?.find((l) => l.trim()) ?? o.summary?.split('\n').find((l) => l.trim()) ?? bare).trim().replace(/[.\s]+$/, '');
+  const warning = (o.verdict ?? '').startsWith('⚠') && !((o.failed ?? 0) > 0);
+  return `${OP_TITLE[k]} ${warning ? 'finished with a warning' : 'failed'}${reason ? `: ${reason}` : ''}.`;
+};
 
 /** A clock time, HH:MM, as concept v6 stamps an operation. */
 const clock = (d: Date): string => d.toTimeString().slice(0, 5);
@@ -213,7 +225,8 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
   body.append(close, linkDetail, rows, note);
   drawer.append(toggle, body);
   // A write's control says it is busy while the write runs, panel or agent, and a polite status line says
-  // so once, when it starts (owner decision #4 on #1956, the engine Button's `isPending` aria note). One
+  // so once, when it starts (owner decision #4 on #1956, the engine Button's `isPending` aria note), and again when it
+  // finishes (Q194, #2487: `finishLine`). One
   // line for every write, here, because the drawer is what hears an agent's run start. The words are the
   // row's: its title and its phase line.
   const live = hook(h('p', 'p3-sr p3-live'), 'activity-status');
@@ -240,6 +253,8 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
   let unread = false;   // a result landed while it was closed
   let timer: ReturnType<typeof setTimeout> | null = null;
   let last = read();
+  /** Whether the status line holds a run's words (its start, or a declined request) rather than a finish (Q194). */
+  let liveRunning = false;
   /** Every operation seen this session, in the order it first ran (v6). */
   const recs = new Map<OpKey, Rec>();
   /** The operations whose bodies are expanded. */
@@ -505,6 +520,8 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
   const onHost = (): void => {
     const cur = read();
     let started = false, settledOk = false, settledBad = false, landedOk = false, ended = false;
+    /** What this reading says on the status line when a run finishes (Q194), in the order the runs are read. */
+    const said: string[] = [];
     // A quiet operation (S11.2) is recorded like any other, but opens nothing by itself.
     const loud = (k: OpKey): boolean => !opts.quiet?.(k);
     /** Quiet operations whose result landed in this reading: the verdict's own request to show it is not by hand. */
@@ -521,6 +538,7 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
           expanded.add(k);
           if (loud(k)) started = true;
           live.textContent = `${OP_TITLE[k]}, ${n.phase ?? 'Running'}`;
+          liveRunning = true;
         }
         continue;
       }
@@ -541,6 +559,7 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
         // A clean result collapses its row (#483, owner decision #1 on #1956); a bad one opens it. A quiet one's
         // result marks the drawer unread, never opens it (S11.2).
         if (n.state === 'bad') { expanded.add(k); if (loud(k)) settledBad = true; else { quietlySettled.add(k); if (!open) unread = true; } } else { settledOk = true; expanded.delete(k); }
+        said.push(finishLine(k, n));
         continue;
       }
       if (n.state === 'idle' || (n.state === p.state && n.ref === p.ref)) continue;
@@ -561,13 +580,19 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
       if (!rec.t) rec.t = t;
       rec.history = [{ ok: true, verdict: 'Refused', summary: r.message, agent: r.agent, t, ref: r, refused: true } as Result, ...rec.history].slice(0, HISTORY_MAX);
       live.textContent = `${OP_TITLE[r.op]} already running; the second request was declined.`;
+      liveRunning = true;
     }
     // A result a page asked to show (its verdict pill clicked, or a bad verdict) opens the drawer on it.
     const reveal = cur.detail !== null && cur.detail !== last.detail && !quietlySettled.has(cur.detail) ? cur.detail : null;
     last = cur;
     const stillRunning = counts(cur).running > 0;
-    // Emptied once nothing runs, so the next start is a change even when its words are the same.
-    if (!stillRunning) live.textContent = '';
+    // Q194 (#2487, amending decision #4 on #1956): a run's finish is announced too, so a reader knows the file is safe
+    // to use again: a success briefly, a failure with its reason. The line then stands until the next start, whose
+    // words differ from it; a later reading with nothing to say (`closeDetail` brings one at once) leaves it. A run that
+    // ended with no verdict says nothing: its start's words are emptied once nothing runs, so the next start is a change
+    // even when its words are the same.
+    if (said.length) { live.textContent = said.join(' '); liveRunning = false; }
+    else if (!stillRunning && liveRunning) { live.textContent = ''; liveRunning = false; }
     if (settledBad) {
       // A failure or a warning stays open until it is closed, and at 380 it opens the sheet.
       open = true; auto = false; unread = false; clear();

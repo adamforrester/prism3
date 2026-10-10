@@ -873,6 +873,57 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   await page.close();
 }
 
+// ── Q194 (#2487): a run's finish is announced on the same polite status line ─────────────────────────
+//
+// The owner's call (Q194, amending decision #4 on #1956, which announced only the start): a screen-reader user needs
+// to know a run is over, so the file is safe to use again or the plugin can be closed. A success is a short "finished";
+// a failure is announced with its reason, the first line of the host's detail. EXPECTED is each line written here as a
+// literal (DRAFT wording, held for the owner on the PR); ACTUAL is the status line's text and role in the built panel,
+// read after each verdict. The start is read between the runs, so a line left standing from the last finish would show.
+//
+// MUTATIONS, each failing here by name:
+//   · the finish not pushed (`said.push(finishLine(k, n))` removed) → `Q194 a clean Apply Theme run is announced …` and
+//     `Q194 a failed Apply Theme run is announced with its reason …`.
+//   · the line emptied once nothing runs, as before Q194 (`if (!stillRunning) live.textContent = ''` unconditional)
+//     → the same two arms.
+//   · `finishLine` dropping the reason → `Q194 a failed Apply Theme run is announced with its reason …`.
+{
+  const { page, errors } = await openPanel();
+  const status = () => page.evaluate(() => {
+    const s = document.querySelector('[data-p3="activity-status"]');
+    return { text: s?.textContent ?? null, role: s?.getAttribute('role') ?? null, live: s?.getAttribute('aria-live') ?? null };
+  });
+  const state = (w) => page.waitForFunction((x) => document.querySelector('[data-p3="activity-op"][data-op="apply"]')?.dataset.state === x, w, { timeout: 5000 }).catch(() => {});
+  const run = async (id, result, landed) => {
+    await post(page, { type: 'agent-started', id, cmd: 'apply-theme' });
+    await state('running');
+    const started = await status();
+    await post(page, { type: 'apply-result', ...result });
+    await state(landed);
+    const done = await status();
+    await post(page, { type: 'agent-finished', id, cmd: 'apply-theme' });
+    await page.waitForTimeout(100);
+    return { started, done, after: await status() };
+  };
+
+  const clean = await run('f1', { ok: true, headline: '✓ 42 roles written', summary: '42 roles written' }, 'ok');
+  ok(clean.started.text === 'Apply Theme, Writing to Figma…' && clean.done.text === 'Apply Theme finished.' && clean.done.role === 'status' && clean.done.live !== 'assertive',
+    `Q194 a clean Apply Theme run is announced as finished, politely, on the status line that announced its start — start ${JSON.stringify(clean.started.text)}, finish ${JSON.stringify(clean.done.text)}, role ${clean.done.role}, aria-live ${clean.done.live}`);
+  ok(clean.after.text === 'Apply Theme finished.',
+    `Q194 the finish stands after the run closes, until the next start — read ${JSON.stringify(clean.after.text)}`);
+
+  const REASON = 'The variable collection is read-only in this file';
+  const failed = await run('f2', { ok: false, headline: '✗ Apply failed', summary: `${REASON}.`, lines: [`${REASON}.`] }, 'bad');
+  ok(failed.started.text === 'Apply Theme, Writing to Figma…' && failed.done.text === `Apply Theme failed: ${REASON}.` && failed.done.role === 'status',
+    `Q194 a failed Apply Theme run is announced with its reason — start ${JSON.stringify(failed.started.text)}, finish ${JSON.stringify(failed.done.text)}, role ${failed.done.role}`);
+
+  const warned = await run('f3', { ok: false, headline: '⚠ 40 of 42 roles written', summary: '2 roles were skipped', lines: ['2 roles were skipped'] }, 'bad');
+  ok(warned.done.text === 'Apply Theme finished with a warning: 2 roles were skipped.',
+    `Q194 a run that finishes with a warning is announced with its reason, as finished — read ${JSON.stringify(warned.done.text)}`);
+  ok(errors.length === 0, `Q194: no console errors (${errors.slice(0, 2).join(' · ')})`);
+  await page.close();
+}
+
 // ── #2088: the first phase line names the set being built, or none ───────────────────────────────────
 //
 // Before the first chunk boundary reports, the Activity row's phase line said "Building the Button set…" whatever

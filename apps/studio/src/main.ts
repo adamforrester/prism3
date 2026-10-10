@@ -785,7 +785,7 @@ const renderPreviewTokens = (host: HTMLElement, repaint: () => void): void => {
   // #466 — tok-seg is the L3 (nested) modifier of the shared view segment
   const seg = el('div', mix('pvseg', 'tok-seg'));
   for (const [k, label] of [['primitive', 'Primitives'], ['semantic', 'Semantics']] as Array<[TokTier, string]>) {
-    const b = el('button', 'pvseg-b' + (tokTier === k ? ' on' : ''), label) as HTMLButtonElement;
+    const b = hook(el('button', 'pvseg-b' + (tokTier === k ? ' on' : ''), label), `token-tier-${k}`) as HTMLButtonElement;
     b.onclick = () => { if (tokTier !== k) { tokTier = k; tokCat = ''; repaint(); } };
     seg.append(b);
   }
@@ -802,7 +802,7 @@ const renderPreviewTokens = (host: HTMLElement, repaint: () => void): void => {
 
     const pseg = el('div', 'seg');
     for (const [k, label] of [['full', 'Full'], ['short', 'Short']] as Array<['full' | 'short', string]>) {
-      const b = el('button', 'seg-b' + (tokPath === k ? ' on' : ''), label) as HTMLButtonElement;
+      const b = hook(el('button', 'seg-b' + (tokPath === k ? ' on' : ''), label), `token-path-${k}`) as HTMLButtonElement;
       b.onclick = () => { if (tokPath !== k) { tokPath = k; repaint(); } };
       pseg.append(b);
     }
@@ -906,7 +906,13 @@ const renderPreviewStyleGuide = (host: HTMLElement, repaint: () => void): void =
   // Sentence case, like every other `pfield` label in the app. `.pfk` uppercases it, so the casing is
   // invisible in the rendered view — but the string is what the next reader copies, and doc 29 §2b
   // states the rule (#504 review).
-  bar.append(pfield('View style guide on', stack));
+  const field = pfield('View style guide on', stack);
+  // D2 (#2487): the select is named by this caption, which `pfield` draws as a plain span. The id is per draw, so a
+  // second Style guide in the document could not take this one's name.
+  const cap = field.querySelector<HTMLElement>('.pfk')!;
+  cap.id = `sg-ground-cap-${++sgGroundCaps}`;
+  sel.setAttribute('aria-labelledby', cap.id);
+  bar.append(field);
   host.append(bar);
 
   // The type sample first, before Background (#1942, owner decision Q67), shared with the Type preview: a few of
@@ -984,6 +990,8 @@ const renderGeneratedNote = (): HTMLElement => {
  *  the Style guide is Brand's preview, lent to `preview/brand.ts`, and the contract table and the token
  *  list are Inspect's (S1.3). */
 let sgSurface = 'background.primary';
+/** How many surface captions have been drawn, for each one's id (D2, #2487). */
+let sgGroundCaps = 0;
 
 // The component catalog's host accessor (`componentCatalog`) moved to `state/component-catalog.ts` in UI redesign S8.2,
 // beside the catalog it reads; the Components page lists it (`preview/components.ts`).
