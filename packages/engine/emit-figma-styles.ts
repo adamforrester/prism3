@@ -155,7 +155,7 @@ export type FigmaPaintStyle = {
   interpolation: 'oklch' | 'srgb';
   stops: FigmaPaintStop[];
   sampledStops: FigmaPaintStop[];
-  a11y: { worstOnWhite: number; worstOnBlack: number; note: string };
+  a11y: { worstOnWhite: number; worstOnBlack: number; floor: number; clears: { white: boolean; black: boolean } };
 };
 export type FigmaPaintStylesFile = { $collection: 'gradient-styles'; styles: FigmaPaintStyle[] };
 
@@ -206,7 +206,9 @@ export const buildFigmaGradient = (theme: Theme): FigmaPaintStylesFile => {
       a11y: {
         worstOnWhite: ext.a11y?.worstOnWhite ?? 0,
         worstOnBlack: ext.a11y?.worstOnBlack ?? 0,
-        note: String(ext.a11y?.note ?? ''),
+        // #2411/#2422: the structured per-ink verdict, copied as data — no prose to drift from the numbers.
+        floor: ext.a11y?.floor ?? 4.5,
+        clears: { white: ext.a11y?.clears?.white === true, black: ext.a11y?.clears?.black === true },
       },
     };
     if (kind === 'linear') style.angle = ext.angle ?? 0;
