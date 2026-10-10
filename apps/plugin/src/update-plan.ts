@@ -211,6 +211,8 @@ export const ownedView = (host: HostSetView): HostSetView => {
  * own layout pass works them out from the members' heights (`applyComponentPlan`, LAY OUT: the grid starts 24 in and
  * rows sit 24 apart), so a set the executor has laid out reads none. A move rewrites no member: the update's apply
  * re-lays the grid and keeps every id. Rows only, because the grouping moves rows; columns are as they were.
+ * A member not built by Prism3 is never one of them (#2325, #2464: Prism3 never touches a member it didn't build),
+ * adoptable or not. It still counts toward its row's height, as the executor's layout counts it.
  */
 export const gridMoves = (defId: string, plans: AnatomyPlan[], members: readonly HostMember[]): string[] => {
   if (!CANVAS_FURNITURE_PILOT.has(defId) || !plans.length) return [];
@@ -223,7 +225,7 @@ export const gridMoves = (defId: string, plans: AnatomyPlan[], members: readonly
   for (const m of placed) { const r = rowOf.get(m.name)!; rowH[r] = Math.max(rowH[r] ?? 0, m.snap.height as number); }
   // A sparse array, reduced as the executor reduces it: a row with no member adds nothing.
   const top = (r: number): number => PAD + rowH.slice(0, r).reduce((a, b) => a + (b || 0) + GAP, 0);
-  return placed.filter((m) => Math.abs((m.snap.y as number) - top(rowOf.get(m.name)!)) > 0.5).map((m) => m.name);
+  return placed.filter((m) => !!m.stamp && Math.abs((m.snap.y as number) - top(rowOf.get(m.name)!)) > 0.5).map((m) => m.name);
 };
 
 /**

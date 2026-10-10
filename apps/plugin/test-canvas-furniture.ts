@@ -35,7 +35,7 @@
 import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, planComponentName, planSetLayout } from '@prism3/engine/anatomy-figma';
 import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
 import { componentDefs } from '@prism3/engine/components/index';
-import { applyComponentPlan } from './src/write-components';
+import { applyComponentPlan, STAMP_KEY } from './src/write-components';
 import { SWAP_TARGET } from './src/build-deps';
 import { makeShim, type Node } from './component-shim';
 import { captureBaselines, previewUpdate, previewLine, previewVerdict, type UpdateHost } from './src/update-plan';
@@ -331,6 +331,30 @@ section('group / panel / backdrop — Button, built by the real executor');
   const next = (await previewUpdate(host, [{ def: 'button', plans }])).sets[0];
   ok(next.counts.move === undefined && next.positions === undefined && previewLine(next) === 'button: up to date (576 members).',
     `update/next dry run: reads current after the apply (${previewLine(next)})`);
+
+  // A MEMBER PRISM3 DIDN'T BUILD, ON A PLANNED COORDINATE AND OFF THE GRID (#2471 review): Prism3 never touches a
+  // member it didn't build (#2325, #2464), so the regroup never moves one, adoptable or not. The dry run lists no
+  // move for it, the apply leaves it exactly where it is, and no verdict line counts it as moved and as left.
+  // Mutation: `gridMoves` reporting unstamped members → `unbuilt/no move`, `unbuilt/left in place`, `unbuilt/verdict`.
+  {
+    const own = (set.children as FNode[])[10] as FNode & { setSharedPluginData(ns: string, k: string, v: string): void; getSharedPluginData(ns: string, k: string): string };
+    const stampWas = own.getSharedPluginData(NS, STAMP_KEY);
+    const yWas = Number(own.y);
+    own.setSharedPluginData(NS, STAMP_KEY, '');
+    own.y = yWas + 500;
+    const at = JSON.stringify([own.x, own.y]);
+    const p2 = (await previewUpdate(host, [{ def: 'button', plans }])).sets[0];
+    ok(p2.counts.unstamped === 1 && p2.adoptable.includes(String(own.name)) && p2.counts.move === undefined && !p2.positions?.includes(String(own.name)),
+      `unbuilt/no move: the dry run lists no move for a member Prism3 didn't build, adoptable on a planned coordinate (${JSON.stringify({ move: p2.counts.move, positions: p2.positions, unstamped: p2.counts.unstamped, adoptable: p2.adoptable.length })}; ${previewLine(p2)})`);
+    const r2 = await applyUpdate(host as never, bApi as never, [{ def: 'button', plans }], previewHashOf(await previewUpdate(host, [{ def: 'button', plans }])));
+    const v2 = applyVerdict(r2);
+    ok(JSON.stringify([own.x, own.y]) === at && own.getSharedPluginData(NS, STAMP_KEY) === '',
+      `unbuilt/left in place: the apply leaves its x and y exactly as they were, and its stamp empty (${at} → ${JSON.stringify([own.x, own.y])})`);
+    ok(!r2.outcomes[0]?.moved && !v2.lines.some((l) => /moved/.test(l) && /left as they are/.test(l)),
+      `unbuilt/verdict: no line counts the member as moved and as left (${v2.headline}; ${v2.lines[0]})`);
+    own.setSharedPluginData(NS, STAMP_KEY, stampWas);
+    own.y = yWas;
+  }
   const drawn = await drawFurniture(fakeTemplates(), set, furnitureLayout(plans), 'button');
   const after1 = furnitureOn(page);
   ok(drawn.backdrops === 1 && after1.filter((n) => tagOf(n).kind === 'backdrop').length === 1 && after1.filter((n) => tagOf(n).kind === 'label' && textOf(n) === 'Inverse').length === 1,
