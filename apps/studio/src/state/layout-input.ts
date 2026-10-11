@@ -33,7 +33,8 @@
  * its count instead of throwing.
  *
  * WHAT IS NOT HERE. The page's other limit (two to seven breakpoints) is the page's: it offers no control that
- * breaks it, apart from the merge `editBreakpoint` refuses below.
+ * breaks it, apart from the merge `editBreakpoint` refuses below. A brand that ARRIVES with more than seven (#2513)
+ * is named by `namesFor` rather than throwing, and Remove takes it back down.
  */
 import { brandTheme, type BrandInput } from '@prism3/engine/theme';
 import { BOOT_BRAND, BRANDS, brandState, setPath, theme } from './store';
@@ -64,6 +65,11 @@ const nameCache = new Map<string, readonly string[]>();
  *  exported, and a second copy would drift). Resolved on the boot example with only the breakpoints swapped, so the
  *  working brand's own state (which may not resolve mid-edit) never decides a name. */
 export const namesFor = (floors: readonly number[]): readonly string[] => {
+  // MORE THAN SEVEN (#2513): the engine refuses the list and names none of it. Only an agent's live write makes one,
+  // and the page must still draw it, with Remove, so the brand can get back to seven. The first seven take the
+  // engine's names for seven; each width past them is named by its width (DRAFT for the owner), so no name is
+  // restated here and none of them collides with an engine name.
+  if (floors.length > MAX_BREAKPOINTS) return [...namesFor(floors.slice(0, MAX_BREAKPOINTS)), ...floors.slice(MAX_BREAKPOINTS).map((px) => `${px}px`)];
   // Names follow the COUNT alone, so a list the engine refuses for its first width (#2146) is named as the same
   // count starting at 0 would be, rather than throwing while the page draws it.
   const named = floors.length && floors[0] !== 0 ? [0, ...floors.slice(1)] : floors;
@@ -94,6 +100,10 @@ const commitBreakpoints = (next: readonly Entry[], o: { keepFirst?: boolean } = 
   // Remove on a list that ALREADY starts above 0 and keeps that first width (`keepFirst`): it makes nothing worse, and
   // at seven it is the way out (owner Q206 A), since the fix beside the error line is offered from six.
   if (floors[0] !== 0 && !(o.keepFirst && floors[0] === before[0])) return { dropped: [], refused: true };
+  // More than seven is the engine's refusal too, so it is never written: an eighth Add, or an edit at eight (#2513,
+  // where `namesFor` names such a list rather than throwing, so this refusal no longer comes from it). Remove, which
+  // brings a list that arrived with eight back to seven, passes.
+  if (floors.length > MAX_BREAKPOINTS) return { dropped: [], refused: true };
   // Both lists' names are worked out BEFORE the write (#2482 review): a list the engine can't name (eight breakpoints,
   // or a brand that arrived unnameable) is refused and writes nothing, so an invalid list is never stored and the D13
   // re-key below always runs with the write.
