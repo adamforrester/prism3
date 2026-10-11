@@ -314,7 +314,7 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
       const head = h('div', 'p3-icol-head');
       const t = h('h3', 'p3-icol-title', name);
       t.id = `${grp.id}-t`;
-      grp.setAttribute('aria-labelledby', t.id);
+      // No name, so not a landmark: only Inspect and Activity carry landmark names (Q197, #2487).
       const pal = interactivePaletteOf(rows[0]);
       head.append(t, h('span', 'p3-sub', `palette ${pal}`), h('span', 'p3-spacer'));
       const i = (brandState.interactivePalettes ?? []).findIndex((e) => (e.name ?? e.palette) === col);
@@ -469,7 +469,7 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
     const head = h('div', 'p3-lsec-head');
     const title = h('h2', 'p3-lsec-title', s.title);
     title.id = `${el.id}-t`;
-    el.setAttribute('aria-labelledby', title.id);
+    // No name, so not a landmark: only Inspect and Activity carry landmark names (Q197, #2487).
     head.append(title);
     if (s.desc) head.append(h('p', 'p3-lsec-desc', s.desc));
     el.append(head);
