@@ -123,9 +123,8 @@ export interface HostSession {
    *  A SIBLING OF `componentState` RATHER THAN A VARIANT OF IT, which is the same call the wire makes and
    *  for the same reason: this is not a verdict. `componentState` holds at most one value per action and
    *  the whole UI treats it as the answer; a progress reading is one of dozens, is stale the moment the
-   *  next one lands, and has no `ok`. Folded in as a third variant it would also widen the type
-   *  `renderApplyStatus` shares with `applyState`, forcing the theme write to handle a state it can never
-   *  be in. Kept beside it, `componentState === 'pending'` still means exactly "in flight" and this only
+   *  next one lands, and has no `ok`. Folded in as a third variant it would also widen the type it shares
+   *  with `applyState`, forcing the theme write to handle a state it can never be in. Kept beside it, `componentState === 'pending'` still means exactly "in flight" and this only
    *  says how far. */
   readonly componentProgress: { phase: 'build' | 'wire' | 'retry'; done: number; total: number } | null;
   /** How far the panel's in-flight style-guide run has got (#1778): `done` of `total` tables, `null` between runs

@@ -154,8 +154,6 @@ export type Frame = {
   /** The layer a window opens in, over everything the frame draws (S12: the start window and its guard). Empty, and
    *  drawn as nothing, while no window is open. */
   readonly layer: HTMLElement;
-  /** Remove the frame and drop its subscriptions and listeners. */
-  readonly unmount: () => void;
 };
 
 /** The levers pane, the panel the tabs control. */
@@ -811,12 +809,6 @@ export const mountFrame = (app: HTMLElement, opts: {
   return {
     head, bar: barSlot, barMain, notices, verdict, syncSticky, layer,
     activity: activity.button, figma, agent,
-    unmount: () => {
-      for (const c of cleanups) c();
-      root.remove();
-      app.classList.remove('p3-app');
-      document.documentElement.style.removeProperty('--chrome-h');
-    },
   };
 };
 

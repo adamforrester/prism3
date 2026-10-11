@@ -143,7 +143,6 @@ export const mountShapeLevers = (hostEl: HTMLElement, cleanups: (() => void)[], 
     const light = mode === 'light';
     const L = leverOf('radiusScale')!;
     const b = leverBlock('radiusScale', { label: SHAPE_COPY.softnessLabel, desc: SHAPE_COPY.softnessTip, forId: 'p3-radius-scale' });
-    const now = radiusScaleIn(mode);
     if (!light && !isDerived(mode)) b.ctl.append(subLine(SHAPE_COPY.editing(modeLabel(mode))));
     const s = slider('radiusScale', 'radius-scale-slider', `${SHAPE_COPY.softnessLabel}, ${modeLabel(mode)}`, (v) => {
       sliding = true;

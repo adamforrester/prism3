@@ -124,8 +124,6 @@ export const setLinkRung = (state: LinkRungState, rung: number | undefined): voi
 };
 /** The five link states a family carries, in the engine's walk order. */
 export const LINK_STATES = ['default', 'hover', 'pressed', 'visited', 'focused'] as const;
-/** The link families, by role prefix. */
-export const LINK_FAMILIES = ['text', 'inverse.text', 'icon', 'inverse.icon'] as const;
 /** Pin link family `prefix` in `mode` (#1510): `default` and `focused` take `step`, each engaged state keeps
  *  the signed step distance from the resting link its derived layout has, clamped to the ramp, all from
  *  `theme.linkPalette` (#1496). `undefined` (Auto) clears all five. The baselines are read off the theme as
