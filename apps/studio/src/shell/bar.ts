@@ -421,7 +421,7 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
         for (const f of blk.files) {
           if (f.name !== null) box.append(h('div', 'p3-export-pname', f.name));
           // A scroll region, so it is a Tab stop (and in the trap's list) rather than one Chromium adds behind its back.
-          const pre = h('pre', 'p3-export-pre', f.text);
+          const pre = hook(h('pre', 'p3-export-pre', f.text), 'export-preview');
           pre.tabIndex = 0;
           box.append(pre);
         }

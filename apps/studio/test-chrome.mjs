@@ -1241,7 +1241,9 @@ const FOCUS_OFFSET = 2;
 /** Rings drawn INSIDE the control on purpose, by hook: the two scrolling panes, whose ring sits inside their edge
  *  (S2) because outside it would be clipped by the frame. Their ring is held to the color and the width, and to
  *  sitting fully inside (an offset of minus its width). */
-const INNER_RINGS = ['levers-pane', 'preview-body'];
+// The export dialog's preview joins them (#2523, owner decision Q229 A): it fills a column that clips at its edges,
+// so its ring is drawn inside too.
+const INNER_RINGS = ['levers-pane', 'preview-body', 'export-preview'];
 const FOCUS_HEX = (() => {
   const out = join(REPO, 'packages', 'engine', 'out');
   const base = JSON.parse(readFileSync(join(out, 'prism3.tokens.json'), 'utf8'));
@@ -14247,7 +14249,7 @@ const PR5_MENU_FLOOR = 2;
 const PR5_DIALOG_FLOOR = 3;
 /** Rings this sweep found missing and that are filed, by the reader's name for the control: each must still be reached
  *  and still miss, so the entry fails once the gap is fixed and is removed then (a memory, not an exemption). */
-const PR5_RING_GAPS = { 'pre.p3-export-pre': 2523 };
+const PR5_RING_GAPS = {};   // #2523's preview, the one entry, closed by Q229 A: it now draws an inner ring
 /** Walk focus by `key` from where it is, reading each ring while focus stays inside `within`, until it comes back to a
  *  control it read (or leaves). Returns the rings read. */
 const pr5Walk = async (page, within, key) => {
@@ -14380,6 +14382,34 @@ for (const host of ['web', 'figma']) {
         console.log(`  ${where}: export dialog ${rings.length} rings`);
         ok(rings.length >= PR5_DIALOG_FLOOR && miss.length === 0,
           `${where}: with the export dialog open, each of its ${rings.length} controls walked by Tab draws the chrome ring (floor ${PR5_DIALOG_FLOOR})${miss.length ? ` — ${miss.slice(0, 3).map((x) => `${x.r.hook}: ${x.m.join(', ')}`).join('; ')}` : ''}`);
+        // #2523 (owner decision Q229 A): the preview's ring is the chrome's, drawn INSIDE its edge, and nothing clips it
+        // at either extreme of its own scroll, the way it scrolls (it fills a column that clips at its edges, which a
+        // ring 2px outside would lose on every side). Read at its four scroll corners: the ring by `FOCUS_RING_READ`,
+        // held to `ringMisses` as an inner ring, and the preview's box inside every ancestor that clips.
+        step = 'the export preview at its scroll extremes';
+        for (let i = 0; i < 40 && !(await page.evaluate(() => document.activeElement?.matches('[data-p3="export-preview"]'))); i++) await page.keyboard.press('Tab');
+        const corners = [];
+        for (const [x, y] of [['start', 'start'], ['end', 'end'], ['start', 'end'], ['end', 'start']]) {
+          const clip = await page.evaluate(([x, y]) => {
+            const pre = document.activeElement;
+            if (!pre?.matches('[data-p3="export-preview"]')) return { focused: false };
+            pre.scrollLeft = x === 'start' ? 0 : pre.scrollWidth; pre.scrollTop = y === 'start' ? 0 : pre.scrollHeight;
+            const r = pre.getBoundingClientRect();
+            const cut = [];
+            for (let n = pre.parentElement; n && n !== document.documentElement; n = n.parentElement) {
+              const cs = getComputedStyle(n);
+              if (cs.overflowX === 'visible' && cs.overflowY === 'visible') continue;
+              const c = n.getBoundingClientRect();
+              if (r.left < c.left - 0.5 || r.right > c.right + 0.5 || r.top < c.top - 0.5 || r.bottom > c.bottom + 0.5) cut.push(n.className);
+            }
+            return { focused: true, scrolled: (x === 'start' ? pre.scrollLeft === 0 : pre.scrollLeft > 0) && (y === 'start' ? pre.scrollTop === 0 : pre.scrollTop > 0), cut };
+          }, [x, y]);
+          const ring = clip.focused ? await page.evaluate(FOCUS_RING_READ, [false, [], INSPECT_LEGACY]) : null;
+          corners.push({ at: `${x}/${y}`, ...clip, miss: ring ? ringMisses(ring, 'light') : ['not focused'], ring: ring && `${ring.width}px ${ring.hex} at ${ring.offset}px, ${ring.r}:1` });
+        }
+        const badCorners = corners.filter((c) => !c.focused || !c.scrolled || c.cut.length || c.miss.length);
+        ok(corners.length === 4 && badCorners.length === 0,
+          `${where}: #2523 the export preview draws the chrome ring inside its edge, ${FOCUS_WIDTH_MIN}px or more at ${NONTEXT_MIN}:1, and nothing clips it at any extreme of its scroll (${corners.map((c) => `${c.at} ${c.ring ?? 'no ring'}`).join('; ')}${badCorners.length ? ` — WRONG: ${badCorners.map((c) => `${c.at}: ${!c.focused ? 'not focused' : !c.scrolled ? 'did not scroll' : ''}${c.cut.length ? ` clipped by ${c.cut.join(', ')}` : ''}${c.miss.length ? ` ${c.miss.join(', ')}` : ''}`).join(' | ')}` : ''})`);
         for (const [hk, issue] of Object.entries(PR5_RING_GAPS)) {
           ok(misses.some((x) => x.r.hook === hk), `${where}: [GAP #${issue}] ${hk} is reached in the export dialog and still draws no chrome ring (fixed: remove it from PR5_RING_GAPS)`);
         }
