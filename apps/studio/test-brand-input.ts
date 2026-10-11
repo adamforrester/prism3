@@ -107,6 +107,29 @@ ok(!B.renameCustomMode(0, 'dark') && !B.renameCustomMode(0, 'Bad Name'), 'a cust
 ok(B.renameCustomMode(0, 'promo') && B.customModes()[0].name === 'promo' && takes(), 'a custom mode renames');
 B.removeCustomMode(0);
 ok(store.brandState.customModes === undefined, 'removing the last custom mode leaves none');
+// D4 (#2487): a removed custom mode takes its per-mode data with it. The removal above is of a mode that never had any,
+// so it could not tell. Here custom-1 carries all four per-mode keys, and dark and light keep their own entries in two of them, so
+// the removal must take custom-1's entry out of each and leave theirs. The keys and values are typed here; "gone" is
+// read off the brand, and "the engine still builds" is the engine's own `brandTheme`.
+reset();
+B.addCustomMode();
+const pm = store.brandState as unknown as Record<string, Record<string, unknown> | undefined>;
+const cstep = store.theme.palettes.find((p) => p.palette === 'primary')!.steps[4];
+pm.overrides = { 'custom-1': { 'text.link.default': { palette: 'primary', step: cstep.key } } };
+pm.modeLevers = { dark: { density: 'compact' }, 'custom-1': { density: 'spacious' } };
+pm.modeAnchors = { 'custom-1': { primary: 400 } };
+pm.surfaces = { light: { base: 'white' }, 'custom-1': { base: 100 } };
+store.rebuild();
+ok(store.lastError === null && takes(), `D4: custom-1 with overrides, modeLevers, modeAnchors and surfaces of its own resolves (${store.lastError ?? 'no error'})`);
+B.removeCustomMode(0);
+const left = ['overrides', 'modeLevers', 'modeAnchors', 'surfaces'].filter((k) => pm[k] && 'custom-1' in pm[k]!);
+ok(left.length === 0 && store.brandState.customModes === undefined,
+  `D4: removing custom-1 takes its entry out of overrides, modeLevers, modeAnchors and surfaces (still there: ${left.join(', ') || 'none'})`);
+ok(pm.overrides === undefined && pm.modeAnchors === undefined
+  && JSON.stringify(pm.modeLevers) === '{"dark":{"density":"compact"}}' && JSON.stringify(pm.surfaces) === '{"light":{"base":"white"}}',
+  `D4: a key custom-1 emptied is gone, and the other modes' own entries stay (${JSON.stringify({ overrides: pm.overrides, modeLevers: pm.modeLevers, modeAnchors: pm.modeAnchors, surfaces: pm.surfaces })})`);
+store.rebuild();
+ok(store.lastError === null && takes(), `D4: after the removal the engine still builds the brand (${store.lastError ?? 'no error'})`);
 B.setPersonality('soft', true);
 ok(JSON.stringify(B.personality()) === '["soft"]' && takes(), 'a personality word is set, and the engine takes it');
 B.setPersonality('soft', false);
