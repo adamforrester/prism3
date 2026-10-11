@@ -5458,7 +5458,14 @@ export const ENGINE_VERSION = '0.236.0';
  * brand's label weights, as `default` does, so it is brand-dependent. An added path cannot break a reference.
  * Nothing is removed or retyped.
  */
-export const CONTRACT_VERSION = '14.5.0';
+/**
+ * 14.6.0 (owner decisions Q225 A and Q226 A, 2026-10-10): MINOR. Labels always carry the default weight:
+ * `type.label.{sm,md,lg}.default` and `.default-link` join the guaranteed surface, minted for every brand whatever its
+ * label weights or `buttonLabelWeight` say, because Tabs binds the default label on an unselected tab and emphasis on
+ * the selected one. Until now they were brand-dependent (emitted only under `buttonLabelWeight: default`). An added path
+ * cannot break a reference. Nothing is removed or retyped.
+ */
+export const CONTRACT_VERSION = '14.6.0';
 
 /** A guaranteed path that was removed, and where its consumers should point instead. */
 export type Deprecation = {

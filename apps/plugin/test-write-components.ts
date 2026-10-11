@@ -4941,6 +4941,8 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
 {
   const TREE_BLIND_PAIRS: [string, unknown][] = [
     ['buttonContentSize', 'smaller'],
+    // Q226 A: every brand ships `type.label.*.default`, so "Button label weight: Default" only rebinds the button family.
+    ['buttonLabelWeight', 'default'],
     ['buttonIcons', 'edges'],
     ['buttonMinWidthMultiplier', 1], ['buttonMinWidthMultiplier', 4],
     ['buttonTextHover', 'fill'],
@@ -4975,6 +4977,34 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   const blindUnmoved = TREE_BLIND_PAIRS.filter(([key, v]) => materialized(setIn(minimal, key, v)) === baseOut.get('minimal'))
     .map(([key, v]) => `${key}=${JSON.stringify(v)}`);
   ok(blindUnmoved.length === 0, `#1812 each tree-blind (lever, value) pair moves the materialized defs${blindUnmoved.length ? ` — UNMOVED: ${blindUnmoved.join(', ')}` : ''}`);
+}
+
+// =============================================================================================
+// Q226 A — A TAB IS HELD AT ITS BOLD WIDTH, read off the built set
+// =============================================================================================
+// An unselected tab's label is regular and a selected tab's is in the emphasis weight, and selecting a tab must not
+// move its neighbors. The shim's `textAdvance` makes each emphasis label style 8px wider than its default (a heavier
+// cut sets wider, #1611), on a layout-model shim where a column takes its widest child's width. Every selected and
+// unselected member at the same size and state must then measure the same width, and the build reports no footprint
+// miss. Mutation: the bold reserve dropped from `labelBox` → `tab width held (Q226 A)`.
+{
+  const tabDef = componentDefs.find((d) => d.id === 'tab')!;
+  const plans = figmaAnatomySet(materializeForBrand(tabDef, null), { swapTarget: SWAP });
+  const BOLD_WIDER = { 'label/sm/emphasis': 8, 'label/md/emphasis': 8, 'label/lg/emphasis': 8 };
+  const page: Page = { children: [] };
+  const r = await run(plans, { ...fullFor(plans), page, liveRoot: true, layoutModel: true, textAdvance: BOLD_WIDER });
+  const set = page.children.find((c) => c.name === 'tab' && c.type === 'COMPONENT_SET') as Node | undefined;
+  const members = (set?.children ?? []) as Node[];
+  const key = (m: Node) => String(m.name).split(', ').filter((seg) => !seg.startsWith('selection=')).sort().join(', ');
+  const by = new Map<string, Record<string, number>>();
+  for (const m of members) {
+    const sel = /selection=(\w+)/.exec(String(m.name))?.[1] ?? '?';
+    by.set(key(m), { ...(by.get(key(m)) ?? {}), [sel]: Number(m.width) });
+  }
+  const moved = [...by].filter(([, w]) => w.selected === undefined || w.unselected === undefined || w.selected !== w.unselected).map(([k, w]) => `${k}: ${w.unselected} → ${w.selected}`);
+  const footprint = r.misses.filter((x: string) => x.startsWith('footprint'));
+  ok(members.length === 30 && by.size === 15 && moved.length === 0 && footprint.length === 0,
+    `tab width held (Q226 A): with the emphasis label 8px wider, every selected tab measures exactly its unselected twin, so selecting never moves the neighbors (${members.length} members, ${by.size} pairs${moved.length ? ` — MOVED: ${moved.slice(0, 4).join(' | ')}` : ''}${footprint.length ? ` — ${footprint[0]}` : ''})`);
 }
 
 if (failed) process.exit(1);
