@@ -354,8 +354,19 @@ section('group / panel / backdrop — Button, built by the real executor');
       `unbuilt/left in place: the apply leaves its x and y exactly as they were, and its stamp empty (${at} → ${JSON.stringify([own.x, own.y])})`);
     ok(!r2.outcomes[0]?.moved && !v2.lines.some((l) => /moved/.test(l) && /left as they are/.test(l)),
       `unbuilt/verdict: no line counts the member as moved and as left (${v2.headline}; ${v2.lines[0]})`);
+    // THE APPLY SAYS WHAT THE DRY RUN SAID (#2495, owner Q205 A): it entered the set with nothing to write, and the dry
+    // run calls it "no changes", not up to date, since Adopt could claim a member. So its headline and set line are
+    // the dry run's, never "already up to date". Mutation: the old fall-through restored → `unbuilt/apply as previewed`.
+    const dry = previewVerdict({ sets: [p2], missing: [], refused: [] });
+    ok(v2.headline === dry.headline && v2.lines[0] === previewLine(p2) && v2.headline === '✓ No changes found',
+      `unbuilt/apply as previewed: the apply's headline and set line are the dry run's (${v2.headline} | ${v2.lines[0]} — the dry run: ${dry.headline} | ${previewLine(p2)})`);
     own.setSharedPluginData(NS, STAMP_KEY, stampWas);
     own.y = yWas;
+    // And a set that IS up to date still reads so, on the dry run and on the apply.
+    const p5 = (await previewUpdate(host, [{ def: 'button', plans }]));
+    const r5 = applyVerdict(await applyUpdate(host as never, bApi as never, [{ def: 'button', plans }], previewHashOf(p5)));
+    ok(previewLine(p5.sets[0]) === 'button: up to date (576 members).' && r5.headline === '✓ already up to date' && r5.lines[0] === 'button: already up to date.',
+      `unbuilt/up to date: with the member Prism3's again, the dry run reads up to date and the apply "already up to date" (${previewLine(p5.sets[0])} | ${r5.headline} | ${r5.lines[0]})`);
   }
   // ITS HEIGHT STILL COUNTS (#2471 review, UI lane): a member Prism3 didn't build is never moved, but the executor's
   // layout sizes its row by every member in it, so a taller one pushes every row below it down, and the dry run's row
