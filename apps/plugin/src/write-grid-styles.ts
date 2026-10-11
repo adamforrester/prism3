@@ -31,8 +31,15 @@
  * renamed only when it is Prism3's: it carries the ownership mark (`provenance.ts`, #1884), or, for one
  * written before the mark or on a host that keeps no shared plugin data, the engine's own grid-description
  * signature (`isEngineDescription`, the evidence the pre-flight already accepts). A client's own `sm`
- * matches neither and is never touched: the executor writes a new style rather than adopt it, and the
- * pre-flight (`preflight.ts`) refuses the apply before it gets that far.
+ * matches neither and is never touched.
+ *
+ * A CLIENT'S SIZE IS SKIPPED, NOT FOUGHT OVER (owner decision Q234 A). When the file already holds a grid
+ * style under a planned name and none of that name is Prism3's, the executor skips that one size: it
+ * creates nothing beside the client's style, renames nothing into its name, and reports the size in
+ * `skipped`, which the apply's result line names (`gridSkippedNote`). Every other size still applies. That
+ * includes a file holding both a client's `sm` and Prism3's own old `Grid / sm`: renaming the old one would
+ * put a second `sm` beside the client's, so both are left as they are and `sm` is reported skipped. The
+ * pre-flight therefore raises no conflict for grid styles; the skip is the answer to a collision.
  *
  * Compiled under `tsconfig.main.json` — has `figma.*`, NO `document`. The `GridStylesApi` port is the
  * minimal slice of `figma.*` the executor touches, so it's unit-testable against an in-memory shim
@@ -68,13 +75,22 @@ export interface GridStylesApi {
 }
 
 /** What the grid-style executor did — surfaced to the UI + asserted by the harness. `renamed` counts the
- *  old `Grid / <bp>` styles moved to their bare name in place (#2467); a renamed style is not `created`. */
-export type GridStyleApplyResult = { total: number; created: number; renamed: number };
+ *  old `Grid / <bp>` styles moved to their bare name in place (#2467); a renamed style is not `created`.
+ *  `skipped` names the sizes left alone because a client's own style already holds the name (Q234 A). */
+export type GridStyleApplyResult = { total: number; created: number; renamed: number; skipped: string[] };
+
+/** The apply result line's clause for skipped sizes — empty when none were. Worded as the text-style skip
+ *  clause is, with the pre-flight's own reason, and capped at three names like the other clauses. */
+export const gridSkippedNote = (skipped: readonly string[]): string =>
+  skipped.length
+    ? `⚠ ${skipped.length} grid ${skipped.length === 1 ? 'style' : 'styles'} skipped (already in this file, not created by Prism3: ${skipped.slice(0, 3).join(', ')}${skipped.length > 3 ? '…' : ''})`
+    : '';
 
 /**
  * Materialise the grid-style plan into Figma Grid Styles. For each planned name: reuse Prism3's own style
- * of that name; else RENAME Prism3's own old `Grid / <bp>` to it, in place (#2467); else create one. A
- * style that is not Prism3's is never read as a match, whatever its name. No variable binding — a grid
+ * of that name; else SKIP it when a client's own style already holds the name (Q234 A); else RENAME
+ * Prism3's own old `Grid / <bp>` to it, in place (#2467); else create one. A style that is not Prism3's is
+ * never read as a match, whatever its name, and never written. No variable binding — a grid
  * style holds baked geometry, so there is no alias graph and nothing to miss.
  */
 export const applyGridStylePlan = async (plan: GridStylePlan, api: GridStylesApi): Promise<GridStyleApplyResult> => {
@@ -83,8 +99,11 @@ export const applyGridStylePlan = async (plan: GridStylePlan, api: GridStylesApi
   const ours = (name: string): GridStyleNode | undefined => live.find((s) => s.name === name && isPrism3GridStyle(s));
   let created = 0;
   let renamed = 0;
+  const skipped: string[] = [];
   for (const row of plan) {
     let s = ours(row.name);
+    // A client's own style holds this name and none of it is Prism3's: skip the size (Q234 A, header).
+    if (!s && live.some((x) => x.name === row.name)) { skipped.push(row.name); continue; }
     if (!s) {
       s = ours(LEGACY_GRID_PREFIX + row.name);
       if (s) { s.name = row.name; renamed++; }
@@ -94,5 +113,5 @@ export const applyGridStylePlan = async (plan: GridStylePlan, api: GridStylesApi
     s.description = row.description;
     s.layoutGrids = row.layoutGrids;
   }
-  return { total: plan.length, created, renamed };
+  return { total: plan.length, created, renamed, skipped };
 };

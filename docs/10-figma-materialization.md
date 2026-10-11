@@ -431,8 +431,10 @@ border-width). The **4** uncovered — `motion`, `breakpoint`, `grid`, `containe
    STYLE surface, not token names → ENGINE bump, CONTRACT unchanged. **Renamed in place
    (#2467):** the plugin finds an old `Grid / <bp>` it owns (the #1884 ownership mark, else the
    engine's description signature) and renames it to `<bp>`, keeping its id so every layer using
-   it stays linked; a client's own `sm` is never adopted, and the opt-in prune spares an old name
-   whose size the plan still emits.
+   it stays linked. A client's own `sm` is never adopted: the apply skips that one size, leaves
+   the client's style untouched, names it in the result line, and applies every other size (owner
+   decision Q234 A; the pre-flight raises no conflict for grid styles). The opt-in prune spares an
+   old name whose size the plan still emits.
 5. **Motion.** Figma added motion variables at Config 2026 (TIME scope per the KB
    `_research/2026-06-28-figma-variables-styles-roundtrip` finding). Emit a `motion`
    collection with `motion/duration/*` (6 FLOAT × TIME) + `motion/duration-reduced/*` (the

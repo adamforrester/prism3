@@ -14,8 +14,12 @@ not grid style names, and the exporter gate and read-back parity both pass uncha
 - **Ownership, not name.** A bare `sm` is a name anyone might give a grid style, so a style counts as Prism3's only by the
   #1884 mark, else the engine's grid-description signature (`isPrism3GridStyle`). The description fallback is what keeps a
   file written before the mark, or a host with no shared plugin data (the MCP ledger mode), from getting duplicates.
-  The pre-flight applies the same test to grid styles and takes **no legacy presumption** for them: an unmarked `sm`
-  that is not engine-described refuses the apply even in a pre-#1581 file, where it used to be presumed Prism3's.
+  **A client's own `sm` skips that one size** (owner decision Q234 A): the executor leaves the client's style
+  untouched, writes nothing under that name, applies every other size, and the result line names the skip
+  (`⚠ 1 grid style skipped (already in this file, not created by Prism3: sm)`, `gridSkippedNote`). The pre-flight
+  raises no conflict for grid styles any more; other style kinds keep the whole-apply refusal. A file holding both a
+  client's `sm` and Prism3's own old `Grid / sm` skips `sm` too and leaves both as they are, because renaming the
+  old one would put a second `sm` beside the client's.
 - **Prune** (`prune-figma.ts`) spares an old `Grid / <bp>` whose size the plan still emits: it is waiting for its rename,
   and deleting it would unlink its layers. An old name for a size the plan dropped is stale under either name, as before.
 
@@ -26,18 +30,19 @@ stale grid style is admitted only by its engine description (and named in the re
 description is spared; that is the conservative direction, and a mark-based admission would need the prune snapshot to
 carry the mark, which it does not today.
 
-**Decided as technical calls, open to the owner:** what a client's colliding `sm` does. This keeps the existing floor:
-the pre-flight refuses the whole apply and names it ("grid style "sm" already in this file, not created by Prism3"),
-and the executor, if reached anyway, writes its own `sm` and leaves the client's alone. Whether Prism3 should instead
-skip, or write beside it, is a design question and is not answered here.
+**Owner decisions Q234, all A:** a client's colliding size is skipped, not refused (above); an old `Grid / xs` left
+after a brand drops `xs` is still offered for deletion and named in the review, never removed unseen; a stale grid
+style whose description a designer edited is not offered, a hand edit being protected as everywhere else. Each is
+pinned by name in `test-write-grid-styles.ts`, `test-write-preflight.ts` or `test-prune.ts`.
 
 **The check.** `test-write-grid-styles.ts` (rename keeps the object and id; pre-mark rename; a client's `sm` and
-`Grid / sm` untouched), `test-write-preflight.ts` (the whole apply on a file with old names, marked and pre-mark: 0
-created, 5 renamed, same objects; a client's `sm` refused with and without the legacy presumption), `test-prune.ts`
-(old name spared, dropped size pruned under either name, `md/wide` spared), and `test.ts` #1480 (bare names, literals).
+`Grid / sm` untouched; the skip, its line, and the client-plus-old-name case), `test-write-preflight.ts` (the whole
+apply on a file with old names, marked and pre-mark: 0 created, 5 renamed, same objects; a client's `sm` skipped with
+the other four sizes applied, with and without the legacy presumption), `test-prune.ts` (old name spared, dropped size
+offered and named under either name, an edited stale description spared, `md/wide` spared), and `test.ts` #1480 (bare names, literals).
 Each expected name is typed as a literal. Mutations, each after a `wip:` commit and restored with `git checkout --`:
-the rename turned into create-plus-delete, and into create-beside; the executor matching by name alone; the pre-flight's
-grid branch removed; the prune's rename-pending spare removed; bare names read as groups again; the emitter back to
+the rename turned into create-plus-delete, and into create-beside; the executor matching by name alone; the whole
+apply refused again over a client's `sm`; the skip clause dropped from the result line; the prune's rename-pending spare removed; bare names read as groups again; the emitter back to
 `Grid / <bp>`. Each fails its arm by name.
 
 **Not done here:** a live check on the scratch file. The scratch-file cleanup step (`runCleanupTheme`) removes a style

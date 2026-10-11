@@ -42,7 +42,7 @@ import nbMeasured from '@prism3/engine/schema/nb-measured.json';
 import exampleBrands from '@prism3/engine/schema/example-brands.json';
 import { applyWritePlan, applyFloatPlan, applyVarCollectionPlan, beginMigration } from './src/write-figma';
 import { applyStylesPlan } from './src/write-styles';
-import { applyGridStylePlan } from './src/write-grid-styles';
+import { applyGridStylePlan, gridSkippedNote } from './src/write-grid-styles';
 import { applyTextStylePlan } from './src/write-text-styles';
 import { guardApply, preflightPlanOf, conflictSummary, type PreflightPlan } from './src/preflight';
 import { runApplyTheme } from './src/apply-theme';
@@ -382,19 +382,26 @@ for (const era of ['marked', 'pre-mark'] as const) {
     `#2467 old names (${era}): the same five style objects now carry the bare names [${f.styles.grid.map((x) => x.name).join(', ')}]`);
 }
 
-// ── #2467 CLIENT `sm`: a client's own grid style under a bare planned name refuses the apply, untouched ──
-// No mark, the client's own description. Refused even under the legacy presumption (a persisted brand and
-// no stamps), because a bare size is a name anyone might use and Prism3 never wrote one unmarked.
+// ── Q234 A CLIENT `sm`: the whole apply goes ahead, that ONE size is skipped, the client's style untouched ──
+// No mark, the client's own description. The pre-flight raises no grid conflict; the executor skips `sm` and
+// writes the other four sizes. Checked with and without the legacy presumption (a persisted brand and no
+// stamps), because Prism3 never wrote an unmarked bare size, so a client's `sm` is never adopted in any era.
 for (const legacy of [false, true]) {
+  const tag = `Q234 client 'sm'${legacy ? ' (legacy presumption)' : ''}`;
   const f = new FileShim();
-  f.addStyle('grid', 'sm', 'Our 4-column mobile grid');
+  const client = f.addStyle('grid', 'sm', 'Our 4-column mobile grid');
   if (legacy) f.root.setSharedPluginData('prism3', 'brandInput', '{"stand-in":"persistInput"}');
-  f.writes = [];
-  const before = snapshot(f);
+  const before = JSON.stringify({ ...client, data: [...client.data] });
   const g = await apply(f);
-  const kinds = g.ok ? [] : g.conflicts.map((c) => `${c.kind} ${c.name}`);
-  ok(!g.ok && kinds.includes('grid style sm') && snapshot(f) === before && f.writes.length === 0,
-    `#2467 client 'sm'${legacy ? ' (legacy presumption)' : ''}: refused, the conflict names "grid style sm", and nothing is written (${f.writes.length} writes; ${kinds.join(' | ') || 'no conflicts'})`);
+  ok(g.ok && JSON.stringify(g.result.gs.skipped) === '["sm"]',
+    `${tag}: the apply is NOT refused — it goes ahead and skips that one size${g.ok ? ` (skipped ${JSON.stringify(g.result.gs.skipped)})` : ` — ${'threw' in g ? `threw: ${g.threw}` : conflictSummary(g.conflicts, 3)}`}`);
+  ok(JSON.stringify({ ...client, data: [...client.data] }) === before && f.styles.grid.filter((x) => x.name === 'sm').length === 1,
+    `${tag}: the client's 'sm' is untouched — name, description, grid, no mark — and no second 'sm' is written`);
+  const others = ['md', 'lg', 'xl', '2xl'].map((bp) => f.styles.grid.find((x) => x.name === bp));
+  ok(others.every((x) => !!x && x.data.get('prism3/owned') === '1' && x.layoutGrids.length === 1),
+    `${tag}: every other size still applies — md, lg, xl, 2xl written and marked ([${f.styles.grid.map((x) => x.name).join(', ')}])`);
+  ok(g.ok && gridSkippedNote(g.result.gs.skipped) === '⚠ 1 grid style skipped (already in this file, not created by Prism3: sm)',
+    `${tag}: the result line says so — "${g.ok ? gridSkippedNote(g.result.gs.skipped) : ''}"`);
 }
 
 console.log(failed ? `\n✗ ${failed} check(s) failed` : '\n✓ apply pre-flight: all checks passed');

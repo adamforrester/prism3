@@ -23,7 +23,8 @@
  */
 import { buildGridStylePlan } from '@prism3/engine/write-plan';
 import { brandTheme } from '@prism3/engine/theme';
-import { applyGridStylePlan } from './src/write-grid-styles';
+import { readFileSync } from 'node:fs';
+import { applyGridStylePlan, gridSkippedNote } from './src/write-grid-styles';
 import exampleBrands from '@prism3/engine/schema/example-brands.json';
 import type { BrandInput } from '@prism3/engine/theme';
 
@@ -143,19 +144,61 @@ const OLD_DESC_MD = '8-column grid for md — 16px gutter, 24px margin. A static
     `#2467 rename, pre-mark: an unmarked 'Grid / sm' with the engine's description is renamed in place (renamed ${r.renamed}, [${f.gridStyles.map((s) => s.name).join(', ')}])`);
 }
 
-// ---- #2467: a CLIENT's own `sm` is never touched -------------------------------------------------------
-// No Prism3 mark, the client's own description. A bare `sm` is a generic name, so the executor must judge
-// it by provenance: it writes its own `sm` and leaves the client's exactly as it was.
+// ---- #2467 / Q234 A: a CLIENT's own `sm` is never touched, and that ONE size is skipped ----------------
+// No Prism3 mark, the client's own description. A bare `sm` is a generic name, so the executor judges it by
+// provenance: it leaves the client's style exactly as it was, writes nothing under that name, reports the
+// size in `skipped`, and still applies every other size.
+const clientState = (x: ShimGridStyle): string =>
+  JSON.stringify({ id: x.id, name: x.name, d: x.description, g: x.layoutGrids, data: [...x.data], removed: x.removed });
 {
   const f = new GridStylesShim();
   const client = f.seed('sm', 'Our 4-column mobile grid', false);
-  const before = JSON.stringify({ name: client.name, d: client.description, g: client.layoutGrids, data: [...client.data] });
+  const before = clientState(client);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const r = await applyGridStylePlan(twoPlan, f as any);
-  ok(JSON.stringify({ name: client.name, d: client.description, g: client.layoutGrids, data: [...client.data] }) === before && !client.removed,
+  ok(clientState(client) === before,
     `#2467 client 'sm': a client's own grid style named 'sm', with no Prism3 mark, is untouched — name, description, grid and plugin data (now ${JSON.stringify({ d: client.description, mark: client.getSharedPluginData('prism3', 'owned') })})`);
-  ok(r.created === 2 && r.renamed === 0,
-    `#2467 client 'sm': the executor writes its own two styles rather than adopt the client's (created ${r.created}, renamed ${r.renamed})`);
+  ok(JSON.stringify(r.skipped) === '["sm"]' && f.gridStyles.filter((x) => x.name === 'sm').length === 1,
+    `Q234 client 'sm': the size is SKIPPED — reported in skipped, and no second 'sm' is written beside the client's (skipped ${JSON.stringify(r.skipped)}, [${f.gridStyles.map((x) => x.name).join(', ')}])`);
+  const md = f.gridStyles.find((x) => x.name === 'md');
+  ok(r.created === 1 && !!md && JSON.stringify(md.layoutGrids) === JSON.stringify(twoPlan[1].layoutGrids) && md.getSharedPluginData('prism3', 'owned') === '1',
+    `Q234 client 'sm': every other size still applies — 'md' created, carrying the plan's grid and Prism3's mark (created ${r.created})`);
+  ok(gridSkippedNote(r.skipped) === '⚠ 1 grid style skipped (already in this file, not created by Prism3: sm)',
+    `Q234 client 'sm': the result line says so — "${gridSkippedNote(r.skipped)}"`);
+}
+// The result line's clause, its plural and cap, and its absence (literals; DRAFT wording for the owner).
+ok(gridSkippedNote([]) === '', 'Q234: no skipped size, no clause');
+ok(gridSkippedNote(['xs', 'sm', 'md', 'lg']) === '⚠ 4 grid styles skipped (already in this file, not created by Prism3: xs, sm, md…)',
+  `Q234: four skipped sizes read as a plural, capped at three names — "${gridSkippedNote(['xs', 'sm', 'md', 'lg'])}"`);
+// The apply's result line carries the clause: `main.ts` hands the executor's `skipped` to it among the clauses.
+{
+  const mainSrc = readFileSync(new URL('./src/main.ts', import.meta.url), 'utf8');
+  const clauses = mainSrc.slice(mainSrc.indexOf('fromClauses(['), mainSrc.indexOf('].map((x) => [\', \', x] as const)'));
+  ok(clauses.includes('gridSkippedNote(gs.skipped)'),
+    'Q234: the Apply Theme result line includes the grid skip clause (`gridSkippedNote(gs.skipped)` among main.ts\'s apply clauses)');
+}
+// A client's `sm` AND Prism3's own old `Grid / sm` in one file. Renaming the old one would put a second `sm`
+// beside the client's, so `sm` is skipped and BOTH are left exactly as they were.
+{
+  const f = new GridStylesShim();
+  const client = f.seed('sm', 'Our 4-column mobile grid', false);
+  const old = f.seed('Grid / sm', OLD_DESC_SM, true);
+  const [cb, ob] = [clientState(client), clientState(old)];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const r = await applyGridStylePlan(twoPlan, f as any);
+  ok(clientState(client) === cb && clientState(old) === ob && JSON.stringify(r.skipped) === '["sm"]' && r.renamed === 0,
+    `Q234 client 'sm' + old 'Grid / sm': 'sm' is skipped and both styles are untouched — no rename into the client's name (skipped ${JSON.stringify(r.skipped)}, renamed ${r.renamed}, [${f.gridStyles.map((x) => x.name).join(', ')}])`);
+}
+// Prism3's own `sm` beside a client's same-named one: Prism3's is reused, nothing skipped, the client's untouched.
+{
+  const f = new GridStylesShim();
+  const client = f.seed('sm', 'Our 4-column mobile grid', false);
+  const mine = f.seed('sm', OLD_DESC_SM, true);
+  const cb = clientState(client);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const r = await applyGridStylePlan(twoPlan, f as any);
+  ok(clientState(client) === cb && r.skipped.length === 0 && JSON.stringify(mine.layoutGrids) === JSON.stringify(twoPlan[0].layoutGrids),
+    `Q234: where Prism3's own 'sm' sits beside a client's, Prism3's is rewritten and nothing is skipped (skipped ${JSON.stringify(r.skipped)})`);
 }
 // And a client's own `Grid / sm` (no mark, no engine description) is not Prism3's old style either.
 {

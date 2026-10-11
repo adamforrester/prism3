@@ -33,6 +33,7 @@ import { isRefusal } from '@prism3/engine/rename-map';
 import { rootOf } from '@prism3/engine/figma-names';
 import { conflictSummary } from './preflight';
 import { runApplyTheme } from './apply-theme';
+import { gridSkippedNote } from './write-grid-styles';
 import { applyComponentPlan, partialWriteOf } from './write-components';
 import type { ComponentProgress, CompPageTarget, CompNode, ComponentsApi } from './write-components';
 import { applyUpdate, applyVerdict, previewHashOf, type ApplyHost, type UpdateChoices } from './update-apply';
@@ -311,7 +312,7 @@ const applyTheme = async (input: BrandInput, sink: ActionSink): Promise<void> =>
       `styles ${s.effects.total} effects (+${s.effects.created}) / ${s.paints.total} gradients (+${s.paints.created}, ${s.paints.bound} stops bound) / ${gs.total} grid styles (+${gs.created})`,
       `type ${pf.loaded} fonts loaded / ${fontVarTotal} font vars (+${fontVarCreated}) / ${ts.total} text styles (+${ts.created})`,
       `${r.bound + f.bound + tv.bound + ts.bound} bindings`, misses ? `${misses} misses` : '',
-      ...renameNotes, orphanNote, strandedNote, resolvedNote, skippedNote, fontNote, refusedNote,
+      ...renameNotes, orphanNote, strandedNote, resolvedNote, skippedNote, gridSkippedNote(gs.skipped), fontNote, refusedNote,
     ].map((x) => [', ', x] as const));
     // Skipped fonts aren't a "failure" (variables still wrote); only true misses flip ok=false. The
     // pill's headline is derived from the COUNTS (see `apply-summary.ts`), never from `summary` — the
@@ -329,7 +330,7 @@ const applyTheme = async (input: BrandInput, sink: ActionSink): Promise<void> =>
           floatCollections: f.collections.length, floatCreated,
           effects: { total: s.effects.total, created: s.effects.created },
           gradients: { total: s.paints.total, created: s.paints.created, stopsBound: s.paints.bound },
-          gridStyles: { total: gs.total, created: gs.created },
+          gridStyles: { total: gs.total, created: gs.created, renamed: gs.renamed, skipped: gs.skipped },
           fontsLoaded: pf.loaded, fontVars: { total: fontVarTotal, created: fontVarCreated },
           textStyles: { total: ts.total, created: ts.created }, bindings: r.bound + f.bound + tv.bound + ts.bound,
         },

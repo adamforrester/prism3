@@ -167,6 +167,9 @@ const synthInput: PruneInput = {
       { name: 'Grid / sm', description: '4-column grid for sm — 16px gutter, 16px margin. A static copy of the layout variables.' },
       // An old-named style whose size the plan DROPPED is stale under either name → prune.
       { name: 'Grid / lg', description: '12-column grid for lg — 24px gutter, 24px margin. A static copy of the layout variables.' },
+      // Q234 3 A: a stale size (the plan dropped `xl`) whose description a designer EDITED. A hand edit is
+      // protected: with no group to admit a bare name, it is not offered. MUST survive.
+      { name: 'xl', description: 'Our wide desktop grid, use for dashboards' },
       { name: 'My Grid / wide', description: '' },   // hand-added → MUST survive
       // Hand-added and spelled WITHOUT the old emitter's spaces. `styleGroup` used to `.trim()`, which
       // pooled `Grid` with the old `Grid ` group and put this style on the delete list.
@@ -321,6 +324,10 @@ ok(prunedStyles('paint').join(',') === 'gradient/legacy',
   `paint style: the in-group orphan IS pruned — and \`shadow/hand-made\` is NOT, because \`shadow\` is a planned group for EFFECT styles only (got ${prunedStyles('paint').join(',') || 'none'}) — the per-kind namespace pin`);
 ok(prunedStyles('grid').join(',') === 'Grid / lg,xs',
   `grid style: a breakpoint the config dropped IS pruned under either name, and the hand-added \`My Grid / wide\`, \`Grid/wide\` and \`md/wide\` are NOT (got ${prunedStyles('grid').join(',') || 'none'})`);
+ok((plan.styles.find((g) => g.kind === 'grid')?.byProvenance ?? []).join(',') === 'Grid / lg,xs' && /Grid \/ lg/.test(prunePreviewSummary(plan)),
+  `Q234 2 A: the old \`Grid / lg\` left after the brand dropped \`lg\` is OFFERED and NAMED in the review text, never removed unseen (byProvenance: ${(plan.styles.find((g) => g.kind === 'grid')?.byProvenance ?? []).join(',') || 'none'})`);
+ok(!prunedStyles('grid').includes('xl'),
+  'Q234 3 A: a stale `xl` whose description a designer edited is NOT offered — a hand edit is protected — the by-name pin');
 ok(!prunedStyles('grid').includes('Grid / sm'),
   'grid style (#2467): an old-named `Grid / sm` whose size the plan still emits is NOT pruned — it is waiting for its in-place rename, and deleting it unlinks every layer using it — the by-name pin');
 ok(!prunedStyles('grid').includes('Grid/wide'),
