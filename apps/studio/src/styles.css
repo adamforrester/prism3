@@ -63,6 +63,10 @@
      what shows where it is, so the edge is held to WCAG 1.4.11's 3:1 non-text floor on both grounds a
      chip sits on (lint-contrast.mjs). --line2 is 1.3:1 and would not do. */
   --chip-edge:#84848c;
+  /* A15 (#2487) — the edge of a style guide pill whose pairing fails its floor (.sg-failpill). Decorative: the pill's
+     red text and its "!" carry the state, so it is not held to 3:1 (2.09:1 on --panel). A token so lint-contrast can
+     read it; whether it should clear 3:1 is the owner's. */
+  --fail-edge:#e6a2a2;
   --r:10px; --r-sm:7px; --r-xs:6px;
   /* Per-mode table geometry — shared so tables stack down the page on the same grid. The SIZE table
      sets these because it is the widest case: its stepper cell needs ~132px where a weight select
@@ -207,7 +211,10 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-fo
 .seg{display:flex;border:1px solid var(--line2);border-radius:var(--r-xs);padding:2px;gap:2px;background:var(--paper)}
 .seg-b{border:0;background:none;font:inherit;font-size:13.5px;color:var(--muted);padding:calc(var(--ctl-py) - 2px) 12px;border-radius:5px;cursor:pointer}
 .seg-b:hover{color:var(--ink)}
-.seg-b.on{background:var(--panel);color:var(--ink);font-weight:560;box-shadow:0 1px 2px rgba(20,22,30,.10)}
+/* Q195 (#2487): the selected segment was told from its neighbors only by weight and a near-white fill (about 1.1:1), so
+   it gets a 2px --ink underline, held at 3:1 or more against its own fill and its neighbors' ground in test-chrome. An
+   underline, as the token list's nested tier segment draws its selection (.tok-seg, below). */
+.seg-b.on{background:var(--panel);color:var(--ink);font-weight:560;box-shadow:inset 0 -2px 0 var(--ink),0 1px 2px rgba(20,22,30,.10)}
 
 /* Native color inputs: strip the browser's swatch inset so the color fills the whole control (no white gutter). */
 input[type=color]::-webkit-color-swatch-wrapper{padding:0}
@@ -411,6 +418,10 @@ label.cset-head{cursor:pointer}
 .cset-reason{color:var(--ink2)}
 /* The plugin's set radios sit in the chrome's Components preview, so their ring is the chrome's (#2144). */
 .cset-radio:focus-visible{outline:var(--p3-focus-width) solid var(--p3-focus-ring);outline-offset:var(--p3-focus-offset)}
+/* B2 (#2487): the other legacy controls lent into the chrome, which drew the browser's 1px ring: the token list's
+   segments and its scrolling table (Inspect), the motion replay and its speed (Depth & motion), and every .select, the
+   Brand style guide's surface among them. The chrome's ring, as the set radios'. */
+:is(.seg-b,.pvseg-b,.pv-tscroll,.mo-replay,.mo-slowmo-sel,.select):focus-visible{outline:var(--p3-focus-width) solid var(--p3-focus-ring);outline-offset:var(--p3-focus-offset)}
 /* Focus ring (review) — the numbers beside a live specimen; 2px at 2px offset is judged by eye. */
 .fr-wrap{display:flex;gap:26px;flex-wrap:wrap;align-items:flex-start;margin-top:10px}
 .fr-list{display:flex;flex-direction:column;gap:7px;min-width:0}
@@ -594,7 +605,7 @@ label.cset-head{cursor:pointer}
 .sg-lab{font-weight:640;font-size:14px;line-height:1.2}
 .sg-sub{font-size:12px;opacity:.9}
 .sg-failmk{position:absolute;top:8px;right:8px;width:15px;height:15px;border-radius:50%;background:#d21b1b;color:#fff;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center}
-.sg-failpill{border-color:#e6a2a2!important;color:#b42318!important}
+.sg-failpill{border-color:var(--fail-edge)!important;color:#b42318!important}
 .sg-fx{color:#d23;font-weight:800;margin-left:3px}
 /* Token column 244px, not 190px: the longest path here (color.text.warning-subtle) needs 211px plus the
    cell's 30px of padding, and at 190 the -subtle and link rows wrapped to two lines while their
