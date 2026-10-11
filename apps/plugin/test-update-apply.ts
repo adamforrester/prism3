@@ -75,6 +75,10 @@
  *                  and record: all current, or all built by an earlier plugin, none a hand edit (#2436). These defs
  *                  build no instance and no styled text (a premise), so `format/duplicate`'s mutations reach nothing
  *                  here. Mutation: a node's own key hashed → `duplicate single/current`, `duplicate single/earlier`.
+ *   relay/…        an update re-lays the grid, and a member Prism3 didn't build (no stamp) on a planned coordinate stays
+ *                  exactly where it is, named as left (#2494), and still sizes its row and column. Mutations: the LAY
+ *                  OUT pass's unstamped guard removed → `relay/unbuilt left`; its measuring loop skipping unstamped
+ *                  members → `relay/unbuilt size counts`.
  *   nochange/…     a set the dry run reads as "no changes" (every member built by an earlier plugin) takes its stamps and
  *                  nothing else, read by a write log the test installs on the shim's nodes (#2379). Mutation: those
  *                  members sent through the build's pass again → `nochange/writes` (7,575 other writes).
@@ -186,6 +190,7 @@ const confirm = async (w: World, targets: UpdateTarget[]) => {
   const pre = await previewUpdate(w.host, targets);
   return { pre, res: await applyUpdate(w.host, w.api as any, targets, previewHashOf(pre)) };
 };
+const pdOfMember = (n: Node, k: string): string => (n.getSharedPluginData as (a: string, b: string) => string)(NS, k);
 const varIdOf = async (w: World, name: string): Promise<string> =>
   (await w.api.variables.getLocalVariablesAsync()).find((v: { name: string }) => v.name.endsWith(`/${name}`)).id;
 
@@ -748,6 +753,56 @@ section('unrecorded — a member with no as-built record is updated and named, n
   ok((childNamed(m, 'content').boundVariables as Record<string, { id: string }>).itemSpacing?.id === await varIdOf(w, 'space/999'), 'unrecorded/written: its content gap is the plan\'s');
   const post = (await previewUpdate(w.host, [{ def: TAG, plans: moveGap(w.plans) }])).sets[0];
   ok(post.counts.current === 45 && post.counts.noBaseline === 0, `unrecorded/recorded: it now has a record, and reads current (${JSON.stringify(post.counts)})`);
+}
+
+/* ── re-lay ────────────────────────────────────────────────────────────────────────────────────────────── */
+section('re-lay — an update over a set leaves a member Prism3 didn\'t build where it is, even on a planned coordinate (#2494)');
+{
+  // The update runs for another reason (every member's gap moves), so the build's pass re-lays the grid. One member
+  // has no stamp (Prism3 didn't build it, so Adopt could claim it) and sits off the grid on its planned coordinate.
+  // Mutation: the LAY OUT pass's unstamped guard removed → `relay/unbuilt left`.
+  const w = await world(TAG, plansOf(TAG), { extraVars: ['space/999'] });
+  const own = membersOf(w.set())[6];
+  (own.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, STAMP_KEY, '');
+  own.x = Number(own.x) + 300;
+  own.y = Number(own.y) + 300;
+  const at = JSON.stringify([own.x, own.y]);
+  const next = moveGap(w.plans);
+  const pre = await previewUpdate(w.host, [{ def: TAG, plans: next }]);
+  ok(pre.sets[0].counts.unstamped === 1 && pre.sets[0].counts.update === 44 && pre.sets[0].adoptable.includes(String(own.name)),
+    `premise: the dry run reads 44 to update and the one not built by Prism3, which Adopt could claim (${JSON.stringify(pre.sets[0].counts)})`);
+  const res = await applyUpdate(w.host, w.api as any, [{ def: TAG, plans: next }], previewHashOf(pre));
+  const o = res.outcomes[0];
+  const gap = await varIdOf(w, 'space/999');
+  const written = membersOf(w.set()).filter((m) => (childNamed(m, 'content').boundVariables as Record<string, { id: string }>).itemSpacing?.id === gap).length;
+  ok(o.updated.length === 44 && written === 44 && JSON.stringify([own.x, own.y]) === at && pdOfMember(own, STAMP_KEY) === '',
+    `relay/unbuilt left: the update re-lays the grid and leaves the member Prism3 didn't build exactly where it was (${at} → ${JSON.stringify([own.x, own.y])}; ${o.updated.length} updated, ${written} with the new gap)`);
+  ok(o.skipped.some((x) => x.member === String(own.name) && x.reason === 'not built by Prism3'),
+    `relay/unbuilt named: the verdict names it as left, not built by Prism3 (${JSON.stringify(o.skipped)})`);
+}
+
+{
+  // ITS SIZE STILL COUNTS (#2511 review, Lane C): the re-lay leaves a member Prism3 didn't build where it is, but sizes
+  // its row and column by it, as the dry run's `gridMoves` does. Made wider and taller than its neighbours, in its own
+  // cell, the next member across starts one gap after its right edge, the next one down one gap below its bottom, and
+  // no member lands on top of it. The sizes are the TEST's, through the shim's own accessors. Mutation: the LAY OUT
+  // pass's measuring loop skipping unstamped members → `relay/unbuilt size counts`.
+  const w = await world(TAG, plansOf(TAG), { extraVars: ['space/999'] });
+  const own = membersOf(w.set())[6];
+  (own.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, STAMP_KEY, '');
+  const [wWas, hWas] = [Number(own.width), Number(own.height)];
+  Object.defineProperty(own, 'width', { configurable: true, enumerable: true, get: () => wWas + 300 });
+  Object.defineProperty(own, 'height', { configurable: true, enumerable: true, get: () => hWas + 30 });
+  const at = JSON.stringify([own.x, own.y]);
+  const next = moveGap(w.plans);
+  await applyUpdate(w.host, w.api as any, [{ def: TAG, plans: next }], await previewUpdate(w.host, [{ def: TAG, plans: next }]).then(previewHashOf));
+  const [ox, oy, ow, oh] = [Number(own.x), Number(own.y), Number(own.width), Number(own.height)];
+  const others = membersOf(w.set()).filter((m) => m !== own);
+  const across = others.filter((m) => Number(m.y) === oy && Number(m.x) > ox).sort((a, b) => Number(a.x) - Number(b.x))[0];
+  const below = others.filter((m) => Number(m.x) === ox && Number(m.y) > oy).sort((a, b) => Number(a.y) - Number(b.y))[0];
+  const overlaps = others.filter((m) => Number(m.x) < ox + ow && Number(m.x) + Number(m.width) > ox && Number(m.y) < oy + oh && Number(m.y) + Number(m.height) > oy).map((m) => String(m.name));
+  ok(JSON.stringify([own.x, own.y]) === at && !!across && !!below && Number(across.x) === ox + ow + 24 && Number(below.y) === oy + oh + 24 && overlaps.length === 0,
+    `relay/unbuilt size counts: a member Prism3 didn't build, wider and taller than its neighbours, still sizes its column and row: the next across starts at ${ox + ow + 24} (${across ? Number(across.x) : 'none'}), the next down at ${oy + oh + 24} (${below ? Number(below.y) : 'none'}), and ${overlaps.length} member(s) land on top of it${overlaps.length ? `: ${overlaps.slice(0, 2).join('; ')}` : ''}`);
 }
 
 /* ── no change ───────────────────────────────────────────────────────────────────────────────────────── */
