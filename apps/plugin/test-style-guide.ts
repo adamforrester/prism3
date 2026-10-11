@@ -54,7 +54,7 @@
  *  15. ONE RUN AT A TIME (#1785), through the plugin's run guard (#1957, `run-guard.ts`): a run asked for while
  *      another is mid-yield is refused, and exactly one set of tables results. (`test-agent-link.ts` drives the same
  *      guard through `main.ts`'s two real entry points.)
- *  16–19. PHASE 2 (#259), on the prism3 emission's dimension and font variables and its 74 text styles, plus a
+ *  16–19. PHASE 2 (#259), on the prism3 emission's dimension and font variables and its 80 text styles, plus a
  *      mode-varying `density` and a `metrics` ramp stored out of order: a table per collection and type on the right
  *      page; spacing bars, brackets and radius swatches at the value with their width or corner bound and each mode
  *      pinned; px and REM at 16px; ramp order; a font variable's one property bound; the fluid type-sets sizes side by
@@ -893,7 +893,7 @@ const twoRootVariables = (): { cols: ShimCol[]; vars: ShimVar[] } => {
   return { cols, vars: [...nb, ...vars] };
 };
 
-/** PHASE 2's file (#259): the prism3 emission's dimension and font variables and its 74 text styles, as a theme write
+/** PHASE 2's file (#259): the prism3 emission's dimension and font variables and its 80 text styles, as a theme write
  *  leaves them — `core` (dimension + font), `space`, `radius`, `size`, `type-sets` (desktop, mobile), `opacity` — plus
  *  two foreign collections: `density`, a dimension that varies by mode (compact 8/32, comfortable 12/40), and
  *  `metrics`, a size ramp stored out of order (16, 4, 100, 2) with a line height (24) and a letter spacing (−0.5). */
@@ -2105,7 +2105,8 @@ const main = async (): Promise<void> => {
     ok(JSON.stringify(headerRow(ts)) === JSON.stringify(['Token', 'desktop', 'Size / line height', 'REM', 'mobile', 'Size / line height', 'REM', 'Family', 'Weight', 'Style', 'Letter spacing', 'REM', 'Description']),
       `18: the text-style table: a specimen, size and REM per type-sets mode, then family, weight, style, letter spacing and its REM (${headerRow(ts).join(' · ')})`);
     const names = tg.children.filter((k) => k.gridCol === 0 && k.gridRow! > 0).sort((a, b) => a.gridRow! - b.gridRow!).map(textIn);
-    ok(names.length === 74 && JSON.stringify(names) === JSON.stringify(p2.styles.map((st) => st.name)), `18: one row per text style, 74, in the file's order (${names.slice(0, 2).join(', ')} …)`);
+    // 80 since Q226 A (2026-10-10): every brand ships the default label weight and its underlined twin (six styles).
+    ok(names.length === 80 && JSON.stringify(names) === JSON.stringify(p2.styles.map((st) => st.name)), `18: one row per text style, 80, in the file's order (${names.slice(0, 2).join(', ')} …)`);
     const body = rowOf(tg, 'body/lg/default');
     const bodyId = p2.styles.find((st) => st.name === 'body/lg/default')!.id;
     const spec = [cellAt(tg, body, 1), cellAt(tg, body, 4)];
@@ -2733,8 +2734,8 @@ const main = async (): Promise<void> => {
     const cat2 = catalogFor({ collections: f25b.cols, variables: f25b.vars, textStyles: f25b.styles }, contract, true);
     const all2 = cat2.collections.flatMap((c) => c.items);
     const ts = cat2.collections.find((c) => c.textStyles);
-    ok(ts?.name === 'Text styles' && ts.items.length === 74 && ts.items.every((i) => cat2.tables[i.table]?.title === 'Text styles' && cat2.tables[i.table]?.kind === 'text'),
-      `26: the 74 text styles are listed last, as "Text styles", each under the text-style table (${ts?.items.length})`);
+    ok(ts?.name === 'Text styles' && ts.items.length === 80 && ts.items.every((i) => cat2.tables[i.table]?.title === 'Text styles' && cat2.tables[i.table]?.kind === 'text'),
+      `26: the 80 text styles are listed last, as "Text styles", each under the text-style table (${ts?.items.length})`);
     const later = all2.filter((i) => i.table < 0).map((i) => i.name);
     const tableOf2 = (name: string): string | undefined => cat2.tables[all2.find((i) => i.name === name)?.table ?? -1]?.title;
     ok(later.length === 0 && tableOf2('pds3/opacity/50') === 'Opacity' && tableOf2('pds3/space/050') === 'Space',
