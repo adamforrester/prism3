@@ -58,7 +58,8 @@
  *                  headline reads up to date and the set line still counts them; with a real change beside them
  *                  it still counts. But members Adopt could claim (on planned coordinates) read "no changes", never
  *                  up to date (owner Q191 2B). Mutations: unstamped left out of `noChanges` → `converged/headline`,
- *                  `converged/set line`; the adoptable check dropped from `upToDate` → `converged/adoptable`.
+ *                  `converged/set line`; the adoptable check dropped from `upToDate` → `converged/adoptable`; the
+ *                  singular clause reworded → `converged/adoptable one` (#2520, a literal, never `previewLine` itself).
  *   adopt/…        the one-time Adopt records and stamps only an unstamped member on a planned coordinate no
  *                  stamped member holds; it then reads update, never current, and its node is the same node.
  *                  Mutations: Adopt stamps with the plan's own stamp → `adopt/reads update`; the stamp written
@@ -701,6 +702,19 @@ section('converged — a set whose only non-current members are not built by Pri
   const av = previewVerdict({ sets: [a], missing: [], refused: [] });
   ok(av.headline === '✓ No changes found' && av.lines[0] === 'tag: no changes (45 members). 2 not built by Prism3, left as they are. Adopt can claim them.',
     `converged/adoptable: a set whose only other members Adopt could claim reads "no changes" and names them, never up to date (${av.headline}; ${av.lines[0]})`);
+}
+{
+  // THE SINGULAR (#2520): one member Adopt could claim reads "Adopt can claim it.", pinned as the literal the UI lane
+  // gave, on the Button set as it is built (576 members), never compared with `previewLine` itself.
+  const b = await build('button');
+  const view = await readSetView(b.set as any);
+  const one = withMembers(view, (ms) => ms.map((m, i) => (i === 5 ? { ...m, stamp: '', baseline: null } : m)));
+  const p = dryRunSet('button', b.plans, one, b.ports);
+  ok(p.counts.members === 576 && p.counts.unstamped === 1 && p.adoptable.length === 1 && p.counts.add === 0 && p.changes.length === 0,
+    `premise: Button's 576 members, one not built by Prism3 on a planned coordinate, adoptable, nothing to add (${JSON.stringify(p.counts)}, ${p.adoptable.length} adoptable)`);
+  const line = previewLine(p);
+  ok(line === 'button: no changes (576 members). 1 not built by Prism3, left as they are. Adopt can claim it.',
+    `converged/adoptable one: a set with one member Adopt could claim reads "… Adopt can claim it." (got "${line}")`);
 }
 
 /* ── adopt ───────────────────────────────────────────────────────────────────────────────────────────── */
