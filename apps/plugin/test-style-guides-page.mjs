@@ -405,6 +405,12 @@ const LIST = CAT.tables.slice(0, 4).map((t) => ({ key: t.key, title: t.title, pa
   ok(st.live?.text === '', `progress: the live region is emptied when the run ends (${JSON.stringify(st.live?.text)})`);
   ok(st.drawerOpen === false && st.dot === 'bad' && st.verdict === '⚠ 1 drawn, 1 failed',
     `P1 (call 11): a failure the page shows marks Activity, and the drawer stays closed (open ${st.drawerOpen}, dot ${st.dot}, verdict "${st.verdict}")`);
+  // #2507 (Q194's finish line): a "⚠" verdict on a run with a failed table is a failure, so the status line says
+  // "failed", told apart from a warning the way the Activity button's dot is (D-RED A). The words are literals.
+  const finishNow = () => page.evaluate(() => document.querySelector('[data-p3="activity-status"]')?.textContent ?? null);
+  const failedLine = await finishNow();
+  ok(failedLine === 'Style guides failed: Primary: Primary refused. Stopped after table 2 of 4. The tables already drawn stay.',
+    `#2507 a "⚠" run with a failed table is announced as failed, not as a warning — read ${JSON.stringify(failedLine)}`);
   // P6: Draw it again draws that table alone, by its key.
   await hooks.click(page.locator('[data-p3="sg-again"]'));
   await posted(page, 'style-guide', 2);
@@ -433,6 +439,10 @@ const LIST = CAT.tables.slice(0, 4).map((t) => ({ key: t.key, title: t.title, pa
   st = await read(page);
   ok(st.dot === 'warn' && st.verdict === '⚠ 0 drawn, stopped',
     `D-RED A: a stopped run with no failed table marks Activity green, not red (dot ${st.dot}, verdict "${st.verdict}")`);
+  // #2507, the control: the same "⚠" with no table failed finished, with a warning.
+  const warnLine = await finishNow();
+  ok(warnLine === 'Style guides finished with a warning: Stopped after table 0 of 1. The tables already drawn stay.',
+    `#2507 a "⚠" run with nothing failed is announced as finished with a warning — read ${JSON.stringify(warnLine)}`);
   // The verdict pill opens Activity on the result, by hand.
   await hooks.click(page.locator('[data-p3="sg-verdict"]'));
   await until(page, 'Activity opened from the verdict pill', () => document.querySelector('[data-p3="activity-drawer"]')?.dataset.open === 'true');
