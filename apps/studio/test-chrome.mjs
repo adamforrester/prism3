@@ -13973,7 +13973,7 @@ console.log(`\n#2487 names, landmarks, the selected segment and the display-only
   }
 }
 // =============================================================================================
-// 46. #2487 PR 5 (B3 and A16; Lane D's M2, M4 and M5, Lane A's K2): every control the chrome draws has a computed name,
+// 47. #2487 PR 5 (B3 and A16; Lane D's M2, M4 and M5, Lane A's K2): every control the chrome draws has a computed name,
 //     the pane toggle's pressed state follows the pane shown, a menu's or a dialog's controls draw the ring, and a
 //     hovered control's text holds its contrast floor
 // =============================================================================================
