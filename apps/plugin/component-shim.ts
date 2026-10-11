@@ -1550,8 +1550,8 @@ export const makeShim = (opts: ShimOpts = {}) => {
       if (opts.burn?.member && !memberBurned) { memberBurned = true; charge(opts.burn.member); }
       n.type = 'COMPONENT'; giveKey(n);
       // NATIVE SLOTS (#2417): a COMPONENT's `createSlot` makes a SLOT, which is a frame in every respect the build
-      // writes (layout, padding, sizing, children). Unparented here; the executor places it, as it places any node.
-      // AS MEASURED: appended as the component's last child, named `Slot`. On a member ALREADY IN A SET the set gains a
+      // writes (layout, padding, sizing, children). AS MEASURED: appended as the component's last child, named `Slot`;
+      // the executor then moves it to the frame it replaces. On a member ALREADY IN A SET the set gains a
       // SLOT property at once, whose name follows the node's (a second member's slot gets its own property; only the
       // combine merges by name). Before the combine, the combine registers it (below).
       n.createSlot = () => {

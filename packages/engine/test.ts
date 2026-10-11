@@ -19732,6 +19732,22 @@ arm: {
         const claimed = withHint({ figmaProperties: { ...slottedTag.figmaProperties!, texts: { ...slottedTag.figmaProperties!.texts, hint: { part: 'hint', default: 'x' } } } });
         ok(errs(claimed).some((m) => /sits inside a native slot/.test(m)),
           `#2417 validator: a TEXT property claiming a part inside a native slot is refused (${errs(claimed).filter((m) => /slot/.test(m)).slice(0, 1).join('')})`);
+        // THE FOUR SHAPE REFUSALS, each asserted by its own message so a refusal switched off fails its own arm, not a
+        // neighbor's: copy on a non-text part, a slot on a non-box part, a slot with no layout, and a slot on the root.
+        // Each def is the slotted Tag with one part patched, as `withHint` builds its own.
+        const tagParts = slottedTag.anatomy!.parts;
+        const patched = (patch: Record<string, unknown>): ComponentDef => ({ ...slottedTag, anatomy: { ...slottedTag.anatomy!, parts: { ...tagParts, ...patch } as typeof tagParts } });
+        const refused = (d: ComponentDef, re: RegExp): string => { const all = errs(d); return all.some((m) => re.test(m)) ? '' : `none matched; got ${JSON.stringify(all.slice(0, 2))}`; };
+        const onBox = refused(patched({ dismiss: { ...tagParts.dismiss, characters: 'x' } }), /declares 'characters' — only a 'text' part/);
+        ok(onBox === '', `#2417 validator: copy on a box is refused, only a text part holds it ${onBox}`);
+        const onGlyph = refused(patched({ dismissGlyph: { ...tagParts.dismissGlyph, contentSlot: true } }), /only a 'box' can be a native slot/);
+        ok(onGlyph === '', `#2417 validator: a native slot on a non-box part is refused ${onGlyph}`);
+        const { layout: _layout, ...noLayout } = tagParts.dismiss;
+        const bare0 = refused(patched({ dismiss: { ...noLayout, contentSlot: true } }), /binds no 'layout'/);
+        ok(bare0 === '', `#2417 validator: a native slot with no layout is refused ${bare0}`);
+        const rootName = slottedTag.anatomy!.root;
+        const onRoot = refused(patched({ [rootName]: { ...tagParts[rootName], contentSlot: true } }), /on the root/);
+        ok(onRoot === '', `#2417 validator: a native slot on the root is refused ${onRoot}`);
         // A HOST WITHOUT NATIVE SLOTS: each cell stays a frame, and the payload names both what it could not make and
         // the property that therefore never existed, rather than an `addComponentProperty` the host refuses.
         const bare = await runPayload(planSetToPluginJs(sg), { vars: sg.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]), styles: sg.flatMap((p) => planTextStyles(p.root)), comps: [...new Set(sg.flatMap((p) => { const walk = (n: { swapTarget?: string; nestTarget?: string; children: unknown[] }): string[] => [...(n.swapTarget ? [n.swapTarget] : []), ...(n.nestTarget ? [n.nestTarget] : []), ...(n.children as (typeof n)[]).flatMap(walk)]; return walk(p.root); }))], noSlots: true });
