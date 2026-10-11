@@ -29477,6 +29477,39 @@ arm: {
     `#2518 tabs: alignment=center builds a 480px bar centering its hugging tabs over a full-width baseline, and alignment=start is the approved Tabs byte for byte (${centered} centered, ${started} unchanged${bad.length ? ` — WRONG: ${bad.join(' | ')}` : ''})`);
 }
 
+// ---- the `center` field's refusals (#2518 review, Lane D): each a way it would validate and center nothing, or
+// center every member. One arm per refusal, matched on its own words, so removing any one check fails its arm by name.
+{
+  const tabsDef = componentDefs.find((d) => d.id === 'tabs')!;
+  const R = tabsDef.anatomy!.root;
+  const parts = tabsDef.anatomy!.parts as Record<string, Record<string, unknown>>;
+  const C = { axis: 'alignment', value: 'center', placementWidth: 480 };
+  const withParts = (over: Record<string, Record<string, unknown>>, fp?: Record<string, unknown>) =>
+    validateComponentDef({ ...tabsDef, anatomy: { ...tabsDef.anatomy!, parts: { ...parts, ...over } as never }, ...(fp ? { figmaProperties: { ...tabsDef.figmaProperties!, ...fp } } : {}) } as ComponentDef).errors;
+  const rootWith = (c: unknown, extra: Record<string, unknown> = {}) => withParts({ [R]: { ...parts[R], center: c, ...extra } });
+  const { center: _rc, ...rootBare } = parts[R];
+  const refuses = (errs: string[], re: RegExp) => errs.some((x) => re.test(x));
+  ok(refuses(withParts({ [R]: rootBare, list: { ...parts.list, center: C } }), /part 'list' declares 'center' but is not the anatomy ROOT/),
+    '#2518 schema: a center off the root is refused by name');
+  ok(refuses(rootWith(C, { layout: { ...(parts[R].layout as object), direction: 'row' } }), /part 'container' declares 'center' but is not a 'box' with a 'column' layout/),
+    '#2518 schema: a center on a row root is refused by name');
+  ok(refuses(rootWith(C, { layout: undefined }), /part 'container' declares 'center' but is not a 'box' with a 'column' layout/),
+    '#2518 schema: a center on a root with no layout is refused by name');
+  ok(refuses(rootWith(C, { layout: { ...(parts[R].layout as { sizing: object }), sizing: { ...(parts[R].layout as { sizing: object }).sizing, x: 'fill' } } }), /part 'container' declares 'center' but already sizes its width/),
+    '#2518 schema: a center on a root already sized across is refused by name');
+  ok(refuses(rootWith({ ...C, axis: 'tone' }), /centers on 'tone', which is not one of this def's variant axes/),
+    '#2518 schema: a center axis the def does not declare is refused by name');
+  ok(refuses(withParts({ [R]: { ...parts[R], center: C } }, { variantAxes: ['size'] }), /centers on 'alignment', which figmaProperties\.variantAxes does not project/),
+    '#2518 schema: a center axis the set does not project is refused by name');
+  ok(refuses(rootWith({ ...C, value: 'middle' }), /centers at 'alignment=middle', which is not a value of that axis/),
+    '#2518 schema: a center value the axis does not declare is refused by name');
+  ok(refuses(rootWith({ ...C, value: 'start' }), /centers at 'alignment=start', the axis's first value/),
+    '#2518 schema: centering at the axis\'s default value is refused by name');
+  ok(refuses(rootWith({ ...C, placementWidth: 0 }), /declares a 'center\.placementWidth' that is not a positive number of px/),
+    '#2518 schema: a center build width of no size is refused by name');
+  ok(validateComponentDef(tabsDef).errors.length === 0, '#2518 schema: Tabs\' own center validates clean');
+}
+
 // ------------------------------------------------------------------- report
 console.log(`\nPrism3 engine tests: ${pass} passed, ${fails.length} failed`);
 
