@@ -36,4 +36,16 @@ breakpoints, beside the engine's error line.
   - the Layout page draws all eight rows with the error line and no page error;
   - one Remove (480) clears the bar and stores `[0,320,768,1024,1440,1920,2560]`.
 
-The mutation lines are in the PR.
+Mutations, each from a `wip:` commit and restored with `git checkout --`:
+- **`namesFor`'s guard for more than seven removed** (the fix):
+  - `✗ #2513: eight breakpoints are named without throwing … — The brand can have at most seven breakpoints. This brand has 8.`
+  - `✗ #2513: one Remove (768) leaves a valid seven … — {"dropped":[],"refused":true}, [0,320,480,768,1024,1440,1920,2560], …`
+  - in test:smoke, on every brand: `✗ <brand>: #2513: eight breakpoints draw on the Layout page with the error line and no page error — … 1 page error(s) (page.evaluate: Error: The brand can have at most seven breakpoints …)`
+  - and `✗ <brand>: #2513: one Remove (480) leaves a valid seven: … bar still shown, stored [0,320,480,1024,1440,1920,2560], 2 page error(s)`
+- **`commitBreakpoints`' refusal of more than seven removed:** `✗ an eighth breakpoint is refused before anything is written, the seven and their settings byte-identical — {"dropped":[]}, {"breakpoints":[0,480,768,1024,1440,1920,2560,2816],…}` (§6's existing arm).
+
+### A trap for whoever re-verifies this
+
+**Without the fix, the draw throws inside the live write's own `page.evaluate`.** As first written, the smoke arm
+ended the whole suite on that throw rather than failing by name. It now counts the throw as a page error, and its
+Remove click is bounded, so the mutation run reaches the named lines.
