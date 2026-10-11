@@ -336,6 +336,18 @@
         "assignments": 3,
         "sha256": "d641c34529ffbda87c8ff5ce8b02916135d7c75f1fec28b2e81f77cb85041eef"
       }
+    },
+    "divider": {
+      "set": {
+        "members": 5,
+        "assignments": 5,
+        "sha256": "74cb7bbb8af410c85dbfa483148904b28a69e7e543bab3b8101a317e813ceff3"
+      },
+      "grid": {
+        "members": 5,
+        "assignments": 5,
+        "sha256": "94bbb3b083a1d3f1ca360b12c5e61439ed51f40d539a430fd43ea479bac3d247"
+      }
     }
   }
 }

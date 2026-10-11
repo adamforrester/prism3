@@ -873,6 +873,88 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   await page.close();
 }
 
+// ── Q194 (#2487): a run's finish is announced on the same polite status line ─────────────────────────
+//
+// The owner's call (Q194, amending decision #4 on #1956, which announced only the start): a screen-reader user needs
+// to know a run is over, so the file is safe to use again or the plugin can be closed. A success is a short "finished";
+// a failure is announced with its reason, the first line of the host's detail. EXPECTED is each line written here as a
+// literal (DRAFT wording, held for the owner on the PR); ACTUAL is the status line's text and role in the built panel,
+// read after each verdict. The start is read between the runs, so a line left standing from the last finish would show.
+//
+// MUTATIONS, each failing here by name:
+//   · the finish not pushed (`said.push(finishLine(k, n))` removed) → `Q194 a clean Apply Theme run is announced …` and
+//     `Q194 a failed Apply Theme run is announced with its reason …`.
+//   · the line emptied once nothing runs, as before Q194 (`if (!stillRunning) live.textContent = ''` unconditional)
+//     → the same two arms.
+//   · `finishLine` dropping the reason → `Q194 a failed Apply Theme run is announced with its reason …`.
+{
+  const { page, errors } = await openPanel();
+  const status = () => page.evaluate(() => {
+    const s = document.querySelector('[data-p3="activity-status"]');
+    return { text: s?.textContent ?? null, role: s?.getAttribute('role') ?? null, live: s?.getAttribute('aria-live') ?? null };
+  });
+  const state = (w) => page.waitForFunction((x) => document.querySelector('[data-p3="activity-op"][data-op="apply"]')?.dataset.state === x, w, { timeout: 5000 }).catch(() => {});
+  const run = async (id, result, landed) => {
+    await post(page, { type: 'agent-started', id, cmd: 'apply-theme' });
+    await state('running');
+    const started = await status();
+    await post(page, { type: 'apply-result', ...result });
+    await state(landed);
+    const done = await status();
+    await post(page, { type: 'agent-finished', id, cmd: 'apply-theme' });
+    await page.waitForTimeout(100);
+    return { started, done, after: await status() };
+  };
+
+  const clean = await run('f1', { ok: true, headline: '✓ 42 roles written', summary: '42 roles written' }, 'ok');
+  ok(clean.started.text === 'Apply Theme, Writing to Figma…' && clean.done.text === 'Apply Theme finished.' && clean.done.role === 'status' && clean.done.live !== 'assertive',
+    `Q194 a clean Apply Theme run is announced as finished, politely, on the status line that announced its start — start ${JSON.stringify(clean.started.text)}, finish ${JSON.stringify(clean.done.text)}, role ${clean.done.role}, aria-live ${clean.done.live}`);
+  ok(clean.after.text === 'Apply Theme finished.',
+    `Q194 the finish stands after the run closes, until the next start — read ${JSON.stringify(clean.after.text)}`);
+
+  const REASON = 'The variable collection is read-only in this file';
+  const failed = await run('f2', { ok: false, headline: '✗ Apply failed', summary: `${REASON}.`, lines: [`${REASON}.`] }, 'bad');
+  ok(failed.started.text === 'Apply Theme, Writing to Figma…' && failed.done.text === `Apply Theme failed: ${REASON}.` && failed.done.role === 'status',
+    `Q194 a failed Apply Theme run is announced with its reason — start ${JSON.stringify(failed.started.text)}, finish ${JSON.stringify(failed.done.text)}, role ${failed.done.role}`);
+
+  const warned = await run('f3', { ok: false, headline: '⚠ 40 of 42 roles written', summary: '2 roles were skipped', lines: ['2 roles were skipped'] }, 'bad');
+  ok(warned.done.text === 'Apply Theme finished with a warning: 2 roles were skipped.',
+    `Q194 a run that finishes with a warning is announced with its reason, as finished — read ${JSON.stringify(warned.done.text)}`);
+  ok(errors.length === 0, `Q194: no console errors (${errors.slice(0, 2).join(' · ')})`);
+  await page.close();
+}
+
+// ── #2507: a run that ends with no verdict leaves the status line empty ─────────────────────────────
+//
+// Q194 keeps a finish on the line until the next start, but a run that ends with no verdict of its own (an agent
+// command whose handler threw: `agent-finished` with no result) has nothing to announce, so the start's words must go.
+// Left standing, "Apply Theme, Writing to Figma…" would claim a run still going, and the next start, with the same words,
+// would not be a change, so it would not be announced. A fresh page, so no earlier finish has set the line. EXPECTED is
+// the empty line and the start's words, literals; ACTUAL is the status line's text.
+//
+// MUTATION: `liveRunning = true` dropped when a run starts → `#2507 a run that ends with no verdict empties the status line …`.
+{
+  const { page, errors } = await openPanel();
+  const line = () => page.evaluate(() => document.querySelector('[data-p3="activity-status"]')?.textContent ?? null);
+  const applyIs = (w) => page.waitForFunction((x) => (document.querySelector('[data-p3="activity-op"][data-op="apply"]')?.dataset.state ?? 'idle') === x, w, { timeout: 5000 }).then(() => true, () => false);
+  await post(page, { type: 'agent-started', id: 'n1', cmd: 'apply-theme' });
+  const ran = await applyIs('running');
+  const started = await line();
+  await post(page, { type: 'agent-finished', id: 'n1', cmd: 'apply-theme' });
+  await page.waitForFunction(() => !document.querySelector('[data-p3="activity-op"][data-op="apply"][data-state="running"]'), null, { timeout: 5000 }).catch(() => {});
+  await page.waitForTimeout(100);
+  const ended = await line();
+  ok(ran && started === 'Apply Theme, Writing to Figma…' && ended === '',
+    `#2507 a run that ends with no verdict empties the status line, so it claims no run still going — start ${JSON.stringify(started)}, after ${JSON.stringify(ended)}`);
+  await post(page, { type: 'agent-started', id: 'n2', cmd: 'apply-theme' });
+  await applyIs('running');
+  const again = await line();
+  ok(again === 'Apply Theme, Writing to Figma…', `#2507 the next start is announced again, a change from the empty line — read ${JSON.stringify(again)}`);
+  await post(page, { type: 'agent-finished', id: 'n2', cmd: 'apply-theme' });
+  ok(errors.length === 0, `#2507: no console errors (${errors.slice(0, 2).join(' · ')})`);
+  await page.close();
+}
+
 // ── #2088: the first phase line names the set being built, or none ───────────────────────────────────
 //
 // Before the first chunk boundary reports, the Activity row's phase line said "Building the Button set…" whatever

@@ -106,6 +106,30 @@ if (missing.length) {
   process.exit(1);
 }
 
+// A15 (#2487): colors drawn OUTSIDE :root that this gate reads but holds to no floor, each for a stated reason. The rule
+// must take the color from its :root token, so the value stays where this file reads it: a literal there (the
+// `.sg-failpill` border was `#e6a2a2`, out of every pairing's reach) fails here. [selector, property, token, ground, why]
+const UNHELD = [
+  ['.sg-failpill', 'border-color', '--fail-edge', '--panel', 'decorative: the pill\'s red text and its "!" carry the state'],
+];
+const unheld = [];
+for (const [sel, prop, tok, ground, why] of UNHELD) {
+  const esc = sel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const decls = [...src.matchAll(new RegExp(`(?:^|[}\\s,])${esc}\\{([^}]*)\\}`, 'gm'))]
+    .flatMap((m) => [...m[1].matchAll(new RegExp(`(?:^|;)\\s*${prop}\\s*:\\s*([^;!}]+)`, 'g'))].map((d) => d[1].trim()));
+  if (!decls.length) { unheld.push(`${sel} draws no ${prop}: rename the entry here, or restore the rule`); continue; }
+  const lit = decls.filter((v) => v !== `var(${tok})`);
+  if (lit.length) { unheld.push(`${sel} ${prop} is ${lit.join(', ')}, not var(${tok})`); continue; }
+  if (!TOKENS[tok] || !TOKENS[ground]) { unheld.push(`${sel}: ${!TOKENS[tok] ? tok : ground} is not a :root hex`); continue; }
+  console.log(`   held to no floor: ${tok} ${TOKENS[tok]} on ${ground} ${TOKENS[ground]}   ${ratio(TOKENS[tok], TOKENS[ground]).toFixed(3)}  (${sel} ${prop}; ${why})`);
+}
+if (unheld.length) {
+  console.error(`lint:contrast FAILED — ${unheld.length} color(s) drawn outside :root that this gate cannot read:`);
+  for (const u of unheld) console.error(`   ${u}`);
+  console.error('  Take the color from its :root token, so its value is in reach of this file.');
+  process.exit(1);
+}
+
 const bad = rows.filter((x) => x.margin < 0);
 rows.sort((a, b) => a.margin - b.margin);
 console.log(`Studio chrome contrast — ${rows.length} pairings checked against their stated floors.`);

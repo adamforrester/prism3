@@ -470,6 +470,89 @@ console.log('\n5b. a late file read loads nothing once its window has closed (A1
       `#2503 a failed paste while a file read is held keeps its error, and the late read loads nothing — held ${held}, error ${JSON.stringify(err)}, brand "${b}"`);
     await page.close();
   }
+
+  // ── #2504: each brand-menu guard on its own ──────────────────────────────────────────────────────
+  // `importFile` drops a late read on either of two guards: the read generation (`mine !== importGen`, bumped by each
+  // read and by the two controls that reopen the box) and the open state (`brandMenuOpen && importOpen`). The A14 arm
+  // above closes the menu through the switcher, which trips both, so either guard alone passed it. These arms each
+  // leave exactly one guard to do the work. Reopened during the read, and a second file chosen during it, the box is
+  // open again when the late read lands: only the generation can drop it. Closed by Escape or by a click outside, the
+  // menu goes through `closeMenu`, which bumps nothing: only the open state can drop it. EXPECTED is the brand the file
+  // already held (`restored-brand`), or for the second file aurora, named here; ACTUAL is the brand switcher.
+  //
+  // MUTATIONS, each against the built bundle and failing here by name:
+  //   · `mine !== importGen ||` removed from `importFile` → `#2504 a brand-menu read across a close and reopen …` and
+  //     `#2504 a second file chosen during a held read …`.
+  //   · `|| !brandMenuOpen || !importOpen` removed → `#2504 a brand-menu read after Escape closed the menu …` and
+  //     `#2504 a brand-menu read after a click outside closed the menu …`.
+  const AURORA_FILE = resolve(REPO, 'packages/engine/examples/aurora.design.md');
+  // Release one held read (the i-th, in the order it was read), and wait for it and every task it queued.
+  const releaseOne = async (page, i, done) => {
+    await page.evaluate((i) => { window.__held[i](); }, i);
+    await page.waitForFunction((n) => window.__readsDone === n, done, { timeout: 4000 }).catch(() => {});
+    await page.evaluate(() => new Promise((r) => setTimeout(r, 50)));
+  };
+  // Closed and reopened while the read is held: the box is open again when it lands.
+  {
+    const { page, errors } = await booted();
+    await openImport(page);
+    await page.setInputFiles('[data-p3="import-file"]', MD);
+    const held = await heldOne(page);
+    await hooks.click(page.locator('[data-p3="brand-switcher"]').first());   // closes the menu
+    await openImport(page);
+    const open = await page.locator('[data-p3="import-file"]').count() === 1;
+    await release(page);
+    const b = await brandNow(page);
+    ok(held && open && b.includes('restored-brand') && !/harbor/i.test(b),
+      `#2504 a brand-menu read across a close and reopen loads nothing, though the box is open again — held ${held}, reopened ${open}, brand "${b}"`);
+    ok(errors.length === 0, `#2504 close and reopen: no console errors (${errors.slice(0, 1).join('') || 'none'})`);
+    await page.close();
+  }
+  // A second file chosen while the first is held: the first, released first, loads nothing; the second loads.
+  {
+    const { page } = await booted();
+    await openImport(page);
+    await page.setInputFiles('[data-p3="import-file"]', MD);
+    const held1 = await heldOne(page);
+    await page.setInputFiles('[data-p3="import-file"]', AURORA_FILE);
+    const held2 = await page.waitForFunction(() => window.__held.length === 2, null, { timeout: 4000 }).then(() => true, () => false);
+    await releaseOne(page, 0, 1);
+    const b1 = await brandNow(page);
+    await releaseOne(page, 1, 2);
+    const b2 = await brandNow(page);
+    ok(held1 && held2 && b1.includes('restored-brand') && !/harbor/i.test(b1) && /aurora/i.test(b2),
+      `#2504 a second file chosen during a held read outranks it: the first loads nothing, the second loads — held ${held1}/${held2}, after the first "${b1}", after the second "${b2}"`);
+    await page.close();
+  }
+  // Closed by Escape, from inside the menu: `closeMenu`, no bump.
+  {
+    const { page } = await booted();
+    await openImport(page);
+    await page.setInputFiles('[data-p3="import-file"]', MD);
+    const held = await heldOne(page);
+    await page.focus('[data-p3="brand-menu-import"]');
+    await page.keyboard.press('Escape');
+    const closed = await page.locator('[data-p3="import-file"]').count() === 0;
+    await release(page);
+    const b = await brandNow(page);
+    ok(held && closed && b.includes('restored-brand') && !/harbor/i.test(b),
+      `#2504 a brand-menu read after Escape closed the menu loads nothing — held ${held}, closed ${closed}, brand "${b}"`);
+    await page.close();
+  }
+  // Closed by a click outside it: `closeMenu`, no bump. The click lands on the levers pane's own padding.
+  {
+    const { page } = await booted();
+    await openImport(page);
+    await page.setInputFiles('[data-p3="import-file"]', MD);
+    const held = await heldOne(page);
+    await hooks.click(page.locator('[data-p3="levers-pane"]'), { position: { x: 2, y: 2 } });
+    const closed = await page.locator('[data-p3="import-file"]').count() === 0;
+    await release(page);
+    const b = await brandNow(page);
+    ok(held && closed && b.includes('restored-brand') && !/harbor/i.test(b),
+      `#2504 a brand-menu read after a click outside closed the menu loads nothing — held ${held}, closed ${closed}, brand "${b}"`);
+    await page.close();
+  }
 }
 
 // ── §6 — the screen holds at plugin dimensions ─────────────────────────────────────────────────
