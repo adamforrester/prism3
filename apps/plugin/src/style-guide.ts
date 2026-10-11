@@ -979,6 +979,24 @@ const fallbackGround = (catalog: SgCatalog, col: SgCollection, tail: readonly st
   }), near);
 };
 
+/**
+ * THE DEFAULT BORDER COLOR (#2506, owner decision Q233 B): the engine's `border.primary` role ("Default border"), found
+ * by trailing path `border/primary` among the file's COLOR variables, never `inverse/border/primary`; the name nearest
+ * `near`, then the shortest, wins. Null when the file has none.
+ */
+export const defaultBorderVar = (catalog: SgCatalog, near: string): SgVariable | null => {
+  const hits = catalog.variables.filter((v) => {
+    const segs = v.name.split('/');
+    return v.resolvedType === 'COLOR' && segs.length >= 2 && segs[segs.length - 2] === 'border'
+      && segs[segs.length - 1] === 'primary' && !isInverse(v.name);
+  });
+  hits.sort((a, b) => affinity(b.name, near) - affinity(a.name, near) || a.name.length - b.name.length);
+  return hits[0] ?? null;
+};
+/** A paint list with at least one paint showing. */
+const hasVisiblePaint = (paints: unknown): boolean =>
+  Array.isArray(paints) && paints.some((p) => !!p && (p as { visible?: unknown }).visible !== false);
+
 /** AN INVERSE TOKEN (#2331): one whose path has an `inverse` segment, read off the WHOLE variable name. Never off the path
  *  below a table's common prefix: the Inverse table's prefix is `<root>/color/inverse` itself, so `inverse/text/primary`
  *  read there as `text/primary` and drew on the white page ground, where `#F7F7F7` cannot be seen (the owner's report). */
@@ -1891,6 +1909,15 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
         const fields = spec.kind === 'radius' ? RADIUS_CORNERS : (['strokeWeight'] as const);
         if (!target) missAt(noLayer, 'type=radius', where);
         else if (!fields.map((k) => bindTo(target, k, variable)).every(Boolean)) missAt(unboundSpec, 'type=radius', where);
+        // A STROKE TO WEIGH (#2506, owner decision Q233 B): a member that arrives with no visible stroke (the owner's own,
+        // one fill) would bind its weight and draw nothing. Its layer is painted in the default border color, bound as a
+        // border role's swatch is, so every width draws. A member that already has a visible stroke keeps its own.
+        if (spec.kind === 'stroke' && target && !hasVisiblePaint(target.strokes)) {
+          const border = defaultBorderVar(catalog, row.name);
+          const ink = border ? variableById.get(border.id) : undefined;
+          if (ink) target.strokes = [api.variables.setBoundVariableForPaint(PLACEHOLDER_PAINT, 'color', ink)];
+          else missAt(unboundSpec, 'border color', where);
+        }
         // The member keeps its fixed size, in a cell of its own.
         const box = cellBox(true);
         box.appendChild?.(inst);

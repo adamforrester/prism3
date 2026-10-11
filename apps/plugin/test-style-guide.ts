@@ -235,6 +235,12 @@
  *     to its width…" fails alone; a row from another collection left unpinned → "35: the focus ring rows' radius examples
  *     are pinned to the focus collection's mode" and "35: a 0 width … draws no stroke" fail.
  *
+ *   - (#2506 Q233 B, each on a committed head, restored from it) the default border paint dropped → "35: on the owner's
+ *     stroke-less radius member, every Border width row's radius-example is painted one stroke bound to
+ *     pds3/color/border/primary" fails; the paint added whether or not the member has a stroke → "35: on the Set up
+ *     file's radius member, which has a stroke, every Border width row keeps that one stroke…" and "35: an open run
+ *     draws every table, every specimen bound" fail.
+ *
  * THE SHIM IGNORES A RESIZE THE HOST IGNORES: a FIXED text inside an instance keeps its main component's width under
  * `resize` (live, 2026-09-28). Before the shim modeled it, every width assertion passed over one-word-a-line text.
  *
@@ -3290,6 +3296,55 @@ const main = async (): Promise<void> => {
     const zeroFaults = [...zeroStroked('pds3/border-width/none', 'border-width'), ...zeroStroked('pds3/focus/ring/offset-field', 'focus')];
     ok(zeroFaults.length === 0 && textIn(cellAt(bwG, rowOf(bwG, 'pds3/border-width/none'), 2)).startsWith('0px'),
       `35: a 0 width (border-width/none, focus/ring/offset-field) draws no stroke: its radius example's weight is bound to 0 and nothing else in it is stroked (${zeroFaults.join(' / ') || 'none'})`);
+    // THE OWNER'S STROKE-LESS MEMBER (#2506, owner decision Q233 B): their type=radius, one fill and no stroke, in place
+    // of the Set up one; the emission's light-mode border colors in a color collection. Each row's radius-example is
+    // painted, its one stroke bound to pds3/color/border/primary (the engine's "Default border"), never to the inverse
+    // one or another border; its weight still bound to the row.
+    const bwFile = async (owner: boolean): Promise<Awaited<ReturnType<typeof phase2File>>> => {
+      const f = await phase2File();
+      for (const [c, file] of [['border-width', 'border-width.json'], ['focus', 'focus.json']] as const) {
+        f.cols.push({ id: `VariableCollectionId:${c}`, name: c, modes: [{ modeId: `${c}:0`, name: 'Default' }], defaultModeId: `${c}:0` });
+        (JSON.parse(readFileSync(join(OUT, file), 'utf8')) as { variables: Em[] }).variables.forEach((v, i) => f.vars.push({
+          id: `VariableID:${c}:${i}`, name: v.name, variableCollectionId: `VariableCollectionId:${c}`, resolvedType: v.resolvedType, description: v.description, scopes: v.scopes,
+          valuesByMode: { [`${c}:0`]: v.alias ? { type: 'VARIABLE_ALIAS', id: f.vars.find((x) => x.name === v.alias!.name)!.id } : v.value },
+        }));
+      }
+      f.cols.push({ id: 'VariableCollectionId:color', name: 'color', modes: [{ modeId: 'color:0', name: 'light' }], defaultModeId: 'color:0' });
+      (JSON.parse(readFileSync(join(OUT, 'color.light.json'), 'utf8')) as { variables: Em[] }).variables.filter((v) => v.name.includes('/border/')).forEach((v, i) => f.vars.push({
+        id: `VariableID:color:${i}`, name: v.name, variableCollectionId: 'VariableCollectionId:color', resolvedType: v.resolvedType, description: v.description, scopes: v.scopes,
+        valuesByMode: { 'color:0': v.value },
+      }));
+      if (owner) {
+        const set = setsNamed([f.fc], '_style-guide-swatches')[0];
+        set?.children.find((k) => k.name === 'type=radius')?.remove();
+        set?.appendChild(ownerRadiusMember());
+      }
+      return f;
+    };
+    const b2 = await bwFile(true);
+    const idOf2 = (name: string): string | undefined => b2.vars.find((v) => v.name === name)?.id;
+    const r2 = await draw(b2.api, contract, { types: ['borderWidth'] });
+    const bw2 = gridOf(tableFrame(b2.sem, 'Border width'));
+    const ex2 = (token: string): N | undefined => cellAt(bw2, rowOf(bw2, token), 1)?.findOne((k) => k.type === 'INSTANCE')?.findOne((k) => k.name === 'radius-example') ?? undefined;
+    ok(!!idOf2('pds3/color/border/primary') && !!idOf2('pds3/color/inverse/border/primary') && r2.unbound === 0
+      && BW_ROWS.every((t) => cellAt(bw2, rowOf(bw2, t), 1)?.findOne((k) => k.type === 'INSTANCE')?.mainComponent?.strokes instanceof Array
+        && (cellAt(bw2, rowOf(bw2, t), 1)!.findOne((k) => k.type === 'INSTANCE')!.mainComponent!.strokes as unknown[]).length === 0),
+      `35: the owner's stroke-less radius member is the one drawn, with the default and inverse border colors in the file, every specimen bound (unbound ${r2.unbound}; ${r2.misses.slice(0, 2).join(' / ')})`);
+    const unpainted = BW_ROWS.filter((t) => !Array.isArray(ex2(t)?.strokes) || (ex2(t)!.strokes as unknown[]).length !== 1 || boundId(ex2(t)!.strokes) !== idOf2('pds3/color/border/primary'));
+    ok(unpainted.length === 0,
+      `35: on the owner's stroke-less radius member, every Border width row's radius-example is painted one stroke bound to pds3/color/border/primary (not: ${unpainted.map((t) => `${t} ${JSON.stringify(ex2(t)?.strokes)}`).join(', ') || 'none'})`);
+    const weight2 = BW_ROWS.filter((t) => ex2(t)?.boundVariables.strokeWeight?.id !== idOf2(t));
+    ok(weight2.length === 0,
+      `35: on the owner's stroke-less radius member, every row's radius-example still has its strokeWeight bound to the row's variable (not: ${weight2.join(', ') || 'none'})`);
+    // A MEMBER THAT ALREADY HAS A STROKE KEEPS IT: the same file with the Set up file's radius member, whose
+    // radius-example carries its own ink stroke, and the default border color present. One paint, bound to nothing.
+    const b3 = await bwFile(false);
+    const r3 = await draw(b3.api, contract, { types: ['borderWidth'] });
+    const bw3 = gridOf(tableFrame(b3.sem, 'Border width'));
+    const ex3 = (token: string): N | undefined => cellAt(bw3, rowOf(bw3, token), 1)?.findOne((k) => k.type === 'INSTANCE')?.findOne((k) => k.name === 'radius-example') ?? undefined;
+    const repainted = BW_ROWS.filter((t) => !Array.isArray(ex3(t)?.strokes) || (ex3(t)!.strokes as unknown[]).length !== 1 || boundId(ex3(t)!.strokes) !== undefined);
+    ok(r3.unbound === 0 && repainted.length === 0,
+      `35: on the Set up file's radius member, which has a stroke, every Border width row keeps that one stroke, unbound and not repainted, the default border color in the file (unbound ${r3.unbound}; not: ${repainted.map((t) => `${t} ${JSON.stringify(ex3(t)?.strokes)}`).join(', ') || 'none'})`);
     ok(!tablesOn(b1.sem).concat(tablesOn(b1.prim)).some((w) => w.pluginData['prism3-style-guide'].split('|')[1] === 'VariableCollectionId:focus'),
       '35: no drawn table is keyed to the focus collection');
     const opG = gridOf(tableFrame(b1.prim, 'Opacity'));
