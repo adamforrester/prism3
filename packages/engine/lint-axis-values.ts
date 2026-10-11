@@ -376,7 +376,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'size',
     values: ['small', 'medium', 'large'],
-    defs: ['button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'field-label', 'tag', 'tab', 'tabs'],
+    defs: ['_accordion-indicator', 'accordion', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'field-label', 'tag', 'tab', 'tabs'],
     relation: 'canonical',
     reason:
       'The three-rung ladder, and canonical on weight of use — every def with a size axis except the two switch defs below, the '
@@ -599,6 +599,40 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'default, first so it is Figma\'s default member), or its height between items side by side (`vertical`). '
       + 'The same word and values as ARIA\'s `aria-orientation`. Distinct from `direction` (where a veil\'s wash '
       + 'sits across an image) and `width` (how much of its container a control takes), argued in `VARIANT_AXES`.',
+  },
+  {
+    axis: 'expansion',
+    values: ['collapsed', 'expanded'],
+    defs: ['_accordion-indicator', 'accordion'],
+    relation: 'sole',
+    reason:
+      'Whether a disclosure shows its content (#2417, owner Q182 and Q183): the accordion\'s panel present or not, and its '
+      + 'indicator turned to match. `collapsed` LEADS because it is the code default (an accordion opens closed) and so '
+      + 'Figma\'s default member. Shared by the accordion and its building-block indicator, which follows the accordion\'s '
+      + 'value. Distinct from `selection` (a value the user picks) and the state axis (a transient interaction), argued in '
+      + '`VARIANT_AXES`.',
+  },
+  {
+    axis: 'position',
+    values: ['start', 'end'],
+    defs: ['accordion'],
+    relation: 'sole',
+    reason:
+      'Which end of the header row the accordion\'s indicator sits at, in reading order (#2417, owner Q182, the name '
+      + 'DRAFT): before the title or after it. `start` LEADS because it is the owner\'s default and the code default: a '
+      + 'start indicator stays beside the title when the page is zoomed (WCAG 1.4.10). Logical values, so in right-to-left '
+      + 'text start is the right edge and nothing mirrors. Distinct from `direction` and `orientation`, argued in '
+      + '`VARIANT_AXES`.',
+  },
+  {
+    axis: 'indicator',
+    values: ['chevron', 'plus-minus'],
+    defs: ['_accordion-indicator'],
+    relation: 'sole',
+    reason:
+      'Which pair of glyphs the accordion\'s indicator shows (#2417, owner Q183): a chevron, down closed and up open, or a '
+      + 'plus that becomes a minus. `chevron` LEADS because it is the field\'s default and the code default. An axis of the '
+      + 'BUILDING BLOCK, exposed on the accordion, so a designer picks it once and it survives an expansion switch.',
   },
   {
     axis: 'ratio',

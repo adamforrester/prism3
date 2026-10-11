@@ -288,6 +288,14 @@
     "divider": {
       "members": 5,
       "sha256": "a217873d3441b9774592e5cf178f211928036cc585368c52d79a9e00223a54f3"
+    },
+    "_accordion-indicator": {
+      "members": 12,
+      "sha256": "6d2c87ff0ab8a4360791d66022f9d6b220108576a876b2c13c324e3b59dde17a"
+    },
+    "accordion": {
+      "members": 24,
+      "sha256": "31bab945f65da98559e252e1e4491c93835a8131457acfbb176c2e7a04fa3f76"
     }
   }
 }

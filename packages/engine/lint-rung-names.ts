@@ -341,6 +341,7 @@ const MUST_COVER = [
   'checkbox-control', 'checkbox-row', 'checkbox-group',
   'radio-control', 'radio-row', 'radio-group',
   'switch-control', 'switch-row',
+  '_accordion-indicator', 'accordion',
 ];
 
 /** Every token path in a brand's canonical tree, below the root — `icon.size.md`, `size.lg.height`. */

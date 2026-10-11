@@ -97,6 +97,9 @@ export const TAXONOMY: Taxonomy = {
         // Divider (#2455) — its own page, as the issue asks. Under Components beside the components that nest
         // it next (Accordion, #2417); the section is the owner's call and held as DRAFT in the PR.
         { page: 'Divider', defs: ['divider'] },
+        // Accordion (#2417) — its own page under Components after Divider, which it nests (DRAFT, owner item). Its
+        // building-block indicator builds first on the same page, so the header's nests resolve as Tabs' do.
+        { page: 'Accordion', defs: ['_accordion-indicator', 'accordion'] },
       ],
     },
     {

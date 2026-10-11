@@ -112,6 +112,10 @@ export type PaddingDef = {
    *  the trailing side; a def that also declares `inlineVisual` is refused (the two rules would both claim
    *  that side). */
   inlineEnd?: string;
+  /** The BOTTOM side's key, when it is not `block`'s (#2417). Accordion's panel takes no top inset (the header's
+   *  own bottom padding already spaces it from the title) and a larger bottom one before the divider, so `block`
+   *  pads the top and this the bottom. Absent, `block` pads both, as it always has. */
+  blockEnd?: string;
 };
 
 /**
@@ -1692,7 +1696,10 @@ export const validateComponentDef = (
   const req = (cond: boolean, msg: string) => { if (!cond) errors.push(msg); };
 
   // identity + prose
-  req(!!def.id && /^[a-z][a-z0-9-]*$/.test(def.id), `id must be kebab-case (got '${def.id}')`);
+  // A leading `_` marks a BUILDING BLOCK (#2417, owner decision Q183): a component only ever nested inside another,
+  // which Figma leaves out of a published library because its name starts with `_`. The set's name is its id, so
+  // the mark lives in the id. Kebab-case otherwise.
+  req(!!def.id && /^_?[a-z][a-z0-9-]*$/.test(def.id), `id must be kebab-case, optionally led by '_' for a building block (got '${def.id}')`);
   req(!!def.name, 'name is required');
   req(!!def.category, 'category is required');
   // #1700 — the KB's seven categories, closed. The type binds a def file; this binds everything that
@@ -2491,12 +2498,20 @@ export const fillKey = (
  * placeholder on the empty focused field. Node order is fixed per set, so the two positions are two parts, and the
  * projector resolves a slot once per def (two parts claiming `caret` would bind one variable for both, which
  * `anatomyErrors` refuses). So the second caret takes its own slot, bound to the same value ink.
+ *
+ * `body` (#2417, owner decision Q182) passes the test as a ROLE: the page's own text ink for content a control
+ * DISCLOSES, which does not follow the control's interactive state. Accordion's panel placeholder is page text
+ * (`color.text.primary`) under a header whose title is interactive ink (`label`, which follows the header's
+ * state); `paintOf` is part-blind, so reusing `label` would paint the panel with the header's state, and
+ * `indicator` is a de-emphasised suffix. No existing entry expresses "text that belongs to the page, not to the
+ * control". A text part asks for it with `paintSlot: 'body'`, and it is a text part's primary paint, as
+ * `indicator` is, so it sits in `PRIMARY_PAINT_SLOTS` too.
  */
 /** The reserved `presentWhen` key that gates a part on the projected STATE rather than on a variant axis
  *  (owner decision, 2026-09-26). See `PartDef.presentWhen`. */
 export const STATE_GATE = 'state';
 
-export const PAINT_SLOTS = ['fill', 'overlay', 'border', 'label', 'icon', 'indicator', 'caret', 'caret-end'] as const;
+export const PAINT_SLOTS = ['fill', 'overlay', 'border', 'label', 'icon', 'indicator', 'caret', 'caret-end', 'body'] as const;
 
 /**
  * The paint slots a SLOT-FREE template is allowed to answer (#758).
@@ -2524,7 +2539,7 @@ export const PAINT_SLOTS = ['fill', 'overlay', 'border', 'label', 'icon', 'indic
  * consistent answer rather than a demonstrated one — stated so the next slot-free grammar does not
  * inherit a silent hole.
  */
-export const PRIMARY_PAINT_SLOTS = new Set(['fill', 'label', 'icon', 'indicator']);
+export const PRIMARY_PAINT_SLOTS = new Set(['fill', 'label', 'icon', 'indicator', 'body']);
 
 /**
  * The slots a `box` part may declare in `paintSlots` (#933) — a NAMED SUBSET of `PAINT_SLOTS`, not a
@@ -3038,12 +3053,33 @@ export type State = (typeof STATES)[number];
  * naming the divider's axis `direction` would put two unrelated value sets under one name, the #756 failure.
  * `width` is how much of its container a control takes, and `shape` a corner silhouette. An AUTHORING axis: a
  * rule runs one way where it is placed. `lint-axis-values.ts` carries the two values as a `sole` set.
+ *
+ * ── `expansion`: THE TWENTY-THIRD NAME, FOR THE ACCORDION (owner decisions Q182 and Q183, 2026-10-10, #2417) ──
+ *
+ * `expansion` (`collapsed | expanded`) is WHETHER a disclosure shows its content: an accordion's panel present
+ * or not, with its indicator turned to match. The owner chose a new name over reusing `selection`, and it clears
+ * this list's bar as a distinct kind of distinction with the nearest defeated: `selection` is a value the user
+ * PICKS (a checked box, a selected tag, a chosen tab), which a form or a group reads back; opening a section
+ * picks nothing, and two open sections are not two selections. `state` is the transient interaction (rest,
+ * focus); an open accordion stays open when focus leaves it. A RUNTIME axis: the user opens and closes it.
+ * `lint-axis-values.ts` carries the two values as a `sole` set, shared by the accordion and its indicator.
+ *
+ * ── `position`: THE TWENTY-FOURTH NAME, FOR THE ACCORDION'S INDICATOR (owner decision Q182, 2026-10-10, #2417, DRAFT) ──
+ *
+ * `position` (`start | end`) is WHICH END of a row a part sits at, in reading order: the accordion's indicator
+ * before its title or after it. The owner named the values and the choice; the name is DRAFT. It clears the bar
+ * as a distinct kind of distinction with the nearest defeated: `direction` is where a veil's wash sits across an
+ * image, a distribution of paint; `orientation` is which way a rule runs; `inset` is whether a control keeps its
+ * inline padding; `offset` is a nested part's displacement. None says "this part comes first or last in the row",
+ * and naming it `direction` would put a paint distribution and a part's place in a row under one name, the #756
+ * failure. `start | end` are logical, so in a right-to-left page the start indicator sits at the right edge with
+ * no mirroring. An AUTHORING axis. `lint-axis-values.ts` carries the two values as a `sole` set.
  */
 export const VARIANT_AXES = [
   'size', 'intent', 'appearance', 'tone',
   'width', 'style', 'indicator', 'offset', 'selection',
   'name', 'surface', 'weight', 'value', 'intensity', 'ratio',
-  'status', 'emphasis', 'shape', 'type', 'direction', 'inset', 'orientation',
+  'status', 'emphasis', 'shape', 'type', 'direction', 'inset', 'orientation', 'expansion', 'position',
 ] as const;
 
 /** One member of the closed axis-NAME vocabulary. Values are not constrained — see `VARIANT_AXES`. */
@@ -3678,7 +3714,7 @@ const anatomyErrors = (def: ComponentDef): string[] => {
   // half-filled strings, none of which any def binds, and the failure read as "not a slot in tokens"
   // — a true statement about a key nobody wrote, pointing away from the actual gap (the expansion).
   const bindingKeys = (p: PartDef): string[] =>
-    [p.gap, p.height, p.minHeight, p.minWidthKey, p.radius, p.strokeWidth, p.size, p.width, p.type, p.inset, p.padding?.block, p.padding?.inlineLabel, p.padding?.inlineVisual, p.padding?.inlineEnd, p.paddingTop, p.flush?.key]
+    [p.gap, p.height, p.minHeight, p.minWidthKey, p.radius, p.strokeWidth, p.size, p.width, p.type, p.inset, p.padding?.block, p.padding?.blockEnd, p.padding?.inlineLabel, p.padding?.inlineVisual, p.padding?.inlineEnd, p.paddingTop, p.flush?.key]
       .filter((k): k is string => typeof k === 'string');
   for (const n of names)
     for (const key of bindingKeys(parts[n]))

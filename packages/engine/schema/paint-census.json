@@ -348,6 +348,30 @@
         "assignments": 5,
         "sha256": "94bbb3b083a1d3f1ca360b12c5e61439ed51f40d539a430fd43ea479bac3d247"
       }
+    },
+    "_accordion-indicator": {
+      "set": {
+        "members": 12,
+        "assignments": 12,
+        "sha256": "f8825ee300fe716df488e473564a2538a00d8eb998ff61eb0c3466c37ebcf94f"
+      },
+      "grid": {
+        "members": 12,
+        "assignments": 12,
+        "sha256": "29b896c3f858b37d7ab937dd0423ab19a11be4a4ae7bb82593e4785368c1eaa2"
+      }
+    },
+    "accordion": {
+      "set": {
+        "members": 24,
+        "assignments": 36,
+        "sha256": "2613cec0d13756111a4be9cff385ca642032695b5a2fc4dc4a4947ccb40d7d70"
+      },
+      "grid": {
+        "members": 24,
+        "assignments": 36,
+        "sha256": "f41fb75cb352eecc5f0bcb2f6bf70127914d4a631c5ce1d25e9240c8a0fedd1c"
+      }
     }
   }
 }

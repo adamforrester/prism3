@@ -3591,6 +3591,7 @@ for (const b of brands) {
       'switch-row': { keys: ['gap'], sizes: ['small', 'medium'] },
       tag: { keys: ['padding-x', 'select.gap', 'dismissible.visible-gap', 'check-gap', 'select.padding-end', 'dismissible.padding-end'], sizes: ['small', 'medium', 'large'] },
       tab: { keys: ['padding-x', 'gap'], sizes: ['small', 'medium', 'large'] },
+      accordion: { keys: ['pad-x', 'pad-y', 'gap', 'panel-pad-end'], sizes: ['small', 'medium', 'large'] },
     };
     const BTN = { compact: 'small 12/8/4/6 · medium 12/8/6/6 · large 20/12/6/8', comfortable: 'small 16/12/6/8 · medium 16/12/8/8 · large 24/16/8/12', spacious: 'small 20/16/8/12 · medium 20/16/12/12 · large 32/20/12/16' };
     const ROWS = { compact: 'small 6 · medium 6 · large 8', comfortable: 'small 8 · medium 8 · large 12', spacious: 'small 12 · medium 12 · large 16' };
@@ -3606,6 +3607,9 @@ for (const b of brands) {
       tag: { compact: 'small 6/4/4/4/6/0 · medium 8/6/6/4/8/0 · large 12/8/6/6/12/0', comfortable: 'small 8/6/6/4/8/0 · medium 12/8/8/6/12/0 · large 16/12/8/8/16/0', spacious: 'small 12/8/8/6/12/0 · medium 16/12/12/8/16/0 · large 20/16/12/12/20/0' },
       // Tab (#2416): padding-x / icon→label→count gap. Comfortable is the proposal's 12/6 · 16/8 · 20/8.
       tab: { compact: 'small 8/4 · medium 12/6 · large 16/6', comfortable: 'small 12/6 · medium 16/8 · large 20/8', spacious: 'small 16/8 · medium 20/12 · large 24/12' },
+      // Accordion (#2417, DRAFT): header inline / header block / glyph-to-title gap / panel bottom inset. Comfortable is
+      // the proposal's 12/8/8 · 16/12/12 · 24/16/16, with the panel's bottom inset matching the inline padding.
+      accordion: { compact: 'small 8/6/6/8 · medium 12/8/8/12 · large 20/12/12/20', comfortable: 'small 12/8/8/12 · medium 16/12/12/16 · large 24/16/16/24', spacious: 'small 16/12/12/16 · medium 20/16/16/20 · large 32/20/20/32' },
     };
     const wrong: string[] = [];
     for (const [id, spec] of Object.entries(SPECS)) {
@@ -3679,6 +3683,7 @@ for (const b of brands) {
       // type: the sum is what must stay under the padding. A `+` key is summed.
       tag: { prefix: 'sized', lt: [['select.gap+select.label-inset', 'padding-x'], ['dismissible.gap+dismissible.label-inset', 'padding-x'], ['check-gap', 'padding-x']] },
       tab: { prefix: 'sized', lt: [['gap', 'padding-x']] },
+      accordion: { prefix: 'sized', lt: [['gap', 'pad-x']] },
     };
     const GAP_TAILS = ['gap', 'check-gap'];
     const PAD_TAILS = ['padding-x', 'pad-x'];
@@ -13732,7 +13737,8 @@ arm: {
     let fieldsRead = 0;
     for (const d of componentDefs) {
       ok(/^[A-Z][A-Za-z0-9]*(?:\.[A-Z][A-Za-z0-9]*)?$/.test(d.name), `component-names: ${d.id} is named '${d.name}' — one convention: PascalCase, or Family.Part for a family`);
-      ok(d.name.replace('.', '').toLowerCase() === d.id.replace(/-/g, ''), `component-names: '${d.name}' does not read as its id '${d.id}' — the name is the id in PascalCase / Family.Part`);
+      // A building block's id leads with `_` (#2417), which its name does not carry.
+      ok(d.name.replace('.', '').toLowerCase() === d.id.replace(/^_/, '').replace(/-/g, ''), `component-names: '${d.name}' does not read as its id '${d.id}' — the name is the id in PascalCase / Family.Part`);
       for (const f of families) {
         if (d.id.startsWith(`${kebab(f)}-`)) ok(d.name.startsWith(`${f}.`), `component-names: ${d.id} is in the ${f} family (${f}.* names exist) but is named '${d.name}' — name it ${f}.<Part>`);
       }
@@ -16565,7 +16571,7 @@ arm: {
     //     missing from the table fails too: add the row with the brief's category, read from the KB.
     const KB_BRIEF_CATEGORY: Record<string, string> = {
       'badge.md': 'foundations', 'button.md': 'form', 'checkbox.md': 'form', 'icon.md': 'foundations', 'image.md': 'foundations',
-      'inline-message.md': 'feedback', 'radio.md': 'form', 'select.md': 'form', 'spinner.md': 'foundations', 'divider.md': 'foundations',
+      'inline-message.md': 'feedback', 'radio.md': 'form', 'select.md': 'form', 'spinner.md': 'foundations', 'divider.md': 'foundations', 'accordion.md': 'navigation',
       'switch.md': 'form', 'tabs.md': 'navigation', 'tag.md': 'foundations', 'text-field.md': 'form', 'textarea.md': 'form',
     };
     const defDir = resolve(HERE, './components');
@@ -17184,6 +17190,10 @@ arm: {
       { def: select, part: 'value', axes: { size: 3 }, at: { state: 'filled' } },
       { def: textarea, part: 'placeholder', axes: { size: 3 } },
       { def: textarea, part: 'value', axes: { size: 3 }, at: { state: 'filled' } },
+      // ACCORDION (#2417): the title binds Button's three label rungs (owner, 2026-10-11), and the panel placeholder the
+      // three body rungs. The placeholder exists only on an expanded member.
+      { def: componentDefs.find((d) => d.id === 'accordion')!, part: 'label', axes: { size: 3 } },
+      { def: componentDefs.find((d) => d.id === 'accordion')!, part: 'placeholder', axes: { size: 3 }, at: { expansion: 'expanded' } },
     ];
 
     // DIRECTION 1 — the authored table is the corpus. Discovered by walking every def's anatomy for a
@@ -25359,7 +25369,7 @@ arm: {
   // supplies that key as the projected STATE, spelled here as a literal so the oracle is not the schema's
   // own constant.
   // `tag` joins (2026-09-27): its check mark is gated on `selection: ['selected']`, the checkbox mark's shape.
-  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'radio-control', 'switch-control', 'select', 'badge', 'tag'];
+  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'radio-control', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion'];
   ok(GATED_EXPECTED.every((n) => gatedDefs.some((d) => d.id === n)) && gatedDefs.length === GATED_EXPECTED.length,
     `#910 the presentWhen projection rule below covers exactly [${GATED_EXPECTED.join(', ')}] — a def gaining a variant-gated part must be represented here, and a def losing one is a stale claim (found: ${gatedDefs.map((d) => d.id).join(', ') || 'none'})`);
   for (const def of gatedDefs) {
@@ -25368,12 +25378,22 @@ arm: {
     for (const [name, part] of Object.entries(def.anatomy!.parts)) {
       if (!part.presentWhen) continue;
       const axes = Object.entries(part.presentWhen);
-      // A part gated on TWO axes is AND-composed, so "supply the axis and expect presence" stops being
-      // the right question — it needs every gate satisfied at once. None exists today; fail rather than
-      // skip, so the arms below cannot go quietly vacuous over one.
-      ok(axes.length === 1,
-        `#910 ${def.id}.${name} gates presence on ${axes.length} axes [${axes.map(([a]) => a).join(', ')}] — the projection arms below supply ONE axis and would report an AND-composed part as spuriously absent. Handle the composition here rather than letting it read as covered`);
-      if (axes.length !== 1) continue;
+      // A part gated on SEVERAL axes is AND-composed (#2417: the accordion indicator's glyphs, on `indicator` and
+      // `expansion`), so "supply one axis and expect presence" is the wrong question. It is asked over the whole
+      // projected set instead: at every member, the part is present exactly when EVERY gate holds there, read off
+      // the member's own coordinate. A gate over several axes that no member satisfies still fails.
+      if (axes.length > 1) {
+        const set = figmaAnatomySet(def, { swapTarget: 'FPO-default-icon' });
+        const has = (n: { name: string; children: unknown[] }): boolean => n.name === name || (n.children as (typeof n)[]).some(has);
+        const wrongAt = set.filter((m) => {
+          const c = Object.fromEntries(planComponentName(m).split(', ').map((kv) => kv.split('=') as [string, string]));
+          return axes.every(([a, vs]) => (vs as readonly string[]).includes(c[a])) !== has(m.root as unknown as { name: string; children: unknown[] });
+        }).map((m) => planComponentName(m));
+        const anywhere = set.some((m) => has(m.root as unknown as { name: string; children: unknown[] }));
+        ok(wrongAt.length === 0 && anywhere,
+          `#910 ${def.id}.${name} gates presence on ${axes.length} axes [${axes.map(([a]) => a).join(', ')}], AND-composed: present at every member where all hold and at no other (${wrongAt.length} wrong${wrongAt.length ? `: ${wrongAt.slice(0, 2).join(' | ')}` : ''}${anywhere ? '' : '; present at no member'})`);
+        continue;
+      }
       const [axis, values] = axes[0];
       // Every OTHER variant axis pinned at its first value, so the only thing varying across the three
       // directions is the gated one.
@@ -29531,6 +29551,54 @@ arm: {
   ok(/^none with aria-hidden="true" by default\b/.test(divider.accessibility.role) && /decorative=false, separator\b/.test(divider.accessibility.role),
     `#2455 divider decorative: the code role is none with aria-hidden by default, and separator with decorative=false (got '${divider.accessibility.role}')`);
 }
+
+// ------------------------------------------------------------------- #2417: the accordion and its indicator
+// Each owner decision held against a literal (Q182, Q183): the 24 members and their axes, start as the default
+// position, no hover, pressed or disabled member, the indicator a nested building block exposed on `indicator` and
+// following `expansion`, the panel a native slot present only when open with page ink and no top inset, the nested
+// Divider stretched across the item with no width binding on its instance, and the 44px header floor at every size.
+// EXPECTED is typed here; ACTUAL is the projected plan, so a def that moved fails the arm by name.
+{
+  const acc = componentDefs.find((d) => d.id === 'accordion')!;
+  const ind = componentDefs.find((d) => d.id === '_accordion-indicator')!;
+  const plans = figmaAnatomySet(acc, { swapTarget: 'FPO-default-icon' });
+  const indPlans = figmaAnatomySet(ind, { swapTarget: 'FPO-default-icon' });
+  type PN = { name: string; type: string; children: PN[]; bound?: Record<string, string>; paints?: Record<string, string>; nestTarget?: string; nestVariant?: Record<string, string>; nestExpose?: string[]; layoutAlign?: string; characters?: string };
+  const find = (n: PN, name: string): PN | undefined => (n.name === name ? n : n.children.map((c) => find(c, name)).find(Boolean));
+  const coord = (p: AnatomyPlan): Record<string, string> => Object.fromEntries(planComponentName(p).split(', ').map((kv) => kv.split('=') as [string, string]));
+  ok(plans.length === 24 && JSON.stringify(acc.variants) === JSON.stringify({ expansion: ['collapsed', 'expanded'], position: ['start', 'end'], size: ['small', 'medium', 'large'] }),
+    `#2417 accordion: 24 members, expansion × position × size × state (Q183) (got ${plans.length}, ${JSON.stringify(acc.variants)})`);
+  ok(JSON.stringify(acc.states) === JSON.stringify(['rest', 'focus-visible']) && JSON.stringify(acc.figmaProperties?.stateAxis?.values) === JSON.stringify(['rest', 'focus-visible']),
+    `#2417 accordion: the states are rest and focus-visible only, with no hover (Q182), pressed or disabled (Q183) (got ${JSON.stringify(acc.states)})`);
+  const pos = acc.props.find((p) => p.name === 'position');
+  ok(acc.variants.position?.[0] === 'start' && pos?.default === 'start', `#2417 accordion position: start is the default, first in Figma and in code (Q182) (got ${acc.variants.position?.[0]}, ${pos?.default})`);
+  const glyphs = plans.map((p) => { const c = coord(p); const start = find(p.root as PN, 'startGlyph'), end = find(p.root as PN, 'endGlyph'); return { c, start, end }; });
+  ok(glyphs.every(({ c, start, end }) => {
+    const g = c.position === 'start' ? start : end, other = c.position === 'start' ? end : start;
+    return !!g && !other && g.nestTarget === '_accordion-indicator' && g.nestVariant?.expansion === c.expansion && g.nestVariant?.size === c.size && JSON.stringify(g.nestExpose) === JSON.stringify(['indicator']);
+  }), `#2417 accordion indicator: one nested _accordion-indicator per member, at its position, exposing indicator and following the member's expansion and size (Q183)`);
+  ok(plans.every((p) => { const c = coord(p); const panel = find(p.root as PN, 'content'); return c.expansion === 'expanded' ? panel?.type === 'CONTENT_SLOT' : !panel; }),
+    `#2417 accordion panel: a native slot on every expanded member and on no collapsed one (Q182)`);
+  const open = plans.find((p) => coord(p).expansion === 'expanded' && coord(p).size === 'medium')!;
+  const panel = find(open.root as PN, 'content')!, ph = find(open.root as PN, 'placeholder')!;
+  ok(panel.bound?.paddingTop === 'space/0' && panel.bound?.paddingBottom === 'space/200' && ph.paints?.fills === 'color/text/primary' && !!ph.characters,
+    `#2417 accordion panel: no top inset and a bottom one (the start/end block padding), and the placeholder in page ink with its own copy (Q182) (got top ${panel.bound?.paddingTop}, bottom ${panel.bound?.paddingBottom}, ink ${ph.paints?.fills})`);
+  // A WRAP UNDER A COLUMN stretches across it rather than growing down it: measured on a real host, the placeholder
+  // projected with `layoutGrow` ran one line 580px wide out of the 320px panel. The header's label, a wrap under a
+  // row, keeps its grow. Mutation: the column branch dropped → this arm, by name.
+  type PW = PN & { layoutGrow?: number; textAutoResize?: string };
+  ok(plans.filter((p) => coord(p).expansion === 'expanded').every((p) => { const t = find(p.root as PN, 'placeholder') as PW, l = find(p.root as PN, 'label') as PW; return t.layoutAlign === 'STRETCH' && t.layoutGrow === undefined && t.textAutoResize === 'HEIGHT' && l.layoutGrow === 1 && l.layoutAlign === undefined; }),
+    `#2417 accordion panel: the placeholder wraps across the panel (a column's stretch, no grow), and the header label still grows along its row (got ${JSON.stringify((({ layoutAlign, layoutGrow, textAutoResize }) => ({ layoutAlign, layoutGrow, textAutoResize }))(ph as PW))})`);
+  ok(plans.every((p) => { const d = find(p.root as PN, 'divider'); return d?.type === 'NESTED_INSTANCE' && d.nestTarget === 'divider' && d.layoutAlign === 'STRETCH' && !d.bound?.width; }),
+    `#2417 accordion divider: the Divider nested on every member, stretched across it, with no width binding on the instance (measured: the stretch drops the 720px one)`);
+  const FLOOR: Record<string, string> = { small: 'size/md/min-height', medium: 'size/md/min-height', large: 'size/lg/height' };
+  ok(plans.every((p) => find(p.root as PN, 'header')?.bound?.minHeight === FLOOR[coord(p).size]),
+    `#2417 accordion header: the 44px floor at every size, size/md/min-height at small and medium and size/lg/height at large (Q182)`);
+  const GLYPH: Record<string, string> = { 'chevron/collapsed': 'chevron-down', 'chevron/expanded': 'chevron-up', 'plus-minus/collapsed': 'plus', 'plus-minus/expanded': 'minus' };
+  ok(indPlans.length === 12 && indPlans.every((p) => { const c = coord(p); const shown = (p.root as PN).children.map((k) => k.name); return shown.length === 1 && shown[0] === { 'chevron-down': 'chevronDown', 'chevron-up': 'chevronUp', plus: 'plus', minus: 'minus' }[GLYPH[`${c.indicator}/${c.expansion}`]]; }),
+    `#2417 accordion indicator: 12 members, each showing exactly the one glyph for its pair and state (Q183)`);
+}
+
 
 // ------------------------------------------------------------------- report
 console.log(`\nPrism3 engine tests: ${pass} passed, ${fails.length} failed`);

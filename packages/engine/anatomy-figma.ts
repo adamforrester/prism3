@@ -445,7 +445,8 @@ export type FigmaNodePlan = {
    *  flag along the parent's PRIMARY axis). Carried ONLY when `1`, so every other node's plan is byte-identical
    *  — both executors read `n.layoutGrow ?? 0`, the literal the neutralizer wrote before this field. Its
    *  partner is `textAutoResize: 'HEIGHT'` below: filling the main axis fixes the WIDTH, and auto-height is
-   *  what lets the fixed-width text reflow. Set from `PartDef.wrap`. */
+   *  what lets the fixed-width text reflow. Set from `PartDef.wrap` under a row; under a column the wrap's
+   *  fill is `layoutAlign: 'STRETCH'` instead, since the width is that parent's cross axis (#2417). */
   layoutGrow?: number;
   /** For a `TEXT` node: how the text box resizes (#1424). `'HEIGHT'` = fixed width, auto height — the box
    *  wraps. Carried ONLY when it diverges from the executor default `'WIDTH_AND_HEIGHT'` (hug both axes, the
@@ -1547,7 +1548,7 @@ export const figmaAnatomyPlan = (
       if (p.paddingTop) bound.paddingTop = varOf(p.paddingTop);
       if (p.padding) {
         bound.paddingTop = varOf(p.padding.block);
-        bound.paddingBottom = varOf(p.padding.block);
+        bound.paddingBottom = varOf(p.padding.blockEnd ?? p.padding.block);
         // The slot-aware rule (#326): a filled visual slot on a side pulls that side's inset in,
         // because the glyph's own bounding box already contributes apparent space. With no slot
         // filled, both sides fall back to the label inset and the button is symmetric again —
@@ -1822,8 +1823,15 @@ export const figmaAnatomyPlan = (
       // `textAutoResize: 'HEIGHT'` lets the fixed-width box reflow — the two facts that turn a hugging,
       // overflowing label into a wrapping one. `anatomyErrors` requires the parent to bound its main-axis
       // width (a floor, a fixed or filled width, or a root's `placementWidth`), or the text keeps the width
-      // of its default string and wraps there (#1757).
-      ...(p.kind === 'text' && p.wrap === true ? { layoutGrow: 1, textAutoResize: 'HEIGHT' as const } : {}),
+      // of its default string and wraps there (#1757). Under a COLUMN the width is the CROSS axis, so the fill
+      // is `layoutAlign: 'STRETCH'` instead (#2417, accordion's panel placeholder): a `layoutGrow` there grows
+      // the height and leaves the text one line wide at its default string, measured running 580px out of a
+      // 320px panel.
+      ...(p.kind === 'text' && p.wrap === true
+        ? parentLayout?.direction === 'column'
+          ? { layoutAlign: 'STRETCH' as const, textAutoResize: 'HEIGHT' as const }
+          : { layoutGrow: 1, textAutoResize: 'HEIGHT' as const }
+        : {}),
       // THE HUGGING WRAP (#1762, `wrap: 'hug'`): no grow and no `HEIGHT` — the text hugs — and a max width it
       // wraps at, so a sibling after it follows the last word. The root's build width less one row gap per
       // declared sibling, the gap resolved at this coordinate and turned into px on the fixed space scale.
