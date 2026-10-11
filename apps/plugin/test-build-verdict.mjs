@@ -924,6 +924,37 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   await page.close();
 }
 
+// ── #2507: a run that ends with no verdict leaves the status line empty ─────────────────────────────
+//
+// Q194 keeps a finish on the line until the next start, but a run that ends with no verdict of its own (an agent
+// command whose handler threw: `agent-finished` with no result) has nothing to announce, so the start's words must go.
+// Left standing, "Apply Theme, Writing to Figma…" would claim a run still going, and the next start, with the same words,
+// would not be a change, so it would not be announced. A fresh page, so no earlier finish has set the line. EXPECTED is
+// the empty line and the start's words, literals; ACTUAL is the status line's text.
+//
+// MUTATION: `liveRunning = true` dropped when a run starts → `#2507 a run that ends with no verdict empties the status line …`.
+{
+  const { page, errors } = await openPanel();
+  const line = () => page.evaluate(() => document.querySelector('[data-p3="activity-status"]')?.textContent ?? null);
+  const applyIs = (w) => page.waitForFunction((x) => (document.querySelector('[data-p3="activity-op"][data-op="apply"]')?.dataset.state ?? 'idle') === x, w, { timeout: 5000 }).then(() => true, () => false);
+  await post(page, { type: 'agent-started', id: 'n1', cmd: 'apply-theme' });
+  const ran = await applyIs('running');
+  const started = await line();
+  await post(page, { type: 'agent-finished', id: 'n1', cmd: 'apply-theme' });
+  await page.waitForFunction(() => !document.querySelector('[data-p3="activity-op"][data-op="apply"][data-state="running"]'), null, { timeout: 5000 }).catch(() => {});
+  await page.waitForTimeout(100);
+  const ended = await line();
+  ok(ran && started === 'Apply Theme, Writing to Figma…' && ended === '',
+    `#2507 a run that ends with no verdict empties the status line, so it claims no run still going — start ${JSON.stringify(started)}, after ${JSON.stringify(ended)}`);
+  await post(page, { type: 'agent-started', id: 'n2', cmd: 'apply-theme' });
+  await applyIs('running');
+  const again = await line();
+  ok(again === 'Apply Theme, Writing to Figma…', `#2507 the next start is announced again, a change from the empty line — read ${JSON.stringify(again)}`);
+  await post(page, { type: 'agent-finished', id: 'n2', cmd: 'apply-theme' });
+  ok(errors.length === 0, `#2507: no console errors (${errors.slice(0, 2).join(' · ')})`);
+  await page.close();
+}
+
 // ── #2088: the first phase line names the set being built, or none ───────────────────────────────────
 //
 // Before the first chunk boundary reports, the Activity row's phase line said "Building the Button set…" whatever

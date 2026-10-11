@@ -38,7 +38,7 @@
  * legacy repaint tier and never imports `main.ts` (`test-shell-imports.ts`).
  */
 import { normalizeDisabledStrategy } from '@prism3/engine/theme';
-import { brandState, currentMode, getPath, lastError, rebuild, searchQuery, setPage, setSearchHits, subscribe, theme } from '../state/store';
+import { brandState, currentMode, getPath, searchQuery, setPage, setSearchHits, subscribe, theme } from '../state/store';
 import { isDerived } from '../state/verdict';
 import { overrideOf, rolesIn, stepHex, stepOfPath, stepsOf } from '../state/fills-input';
 import {
@@ -50,8 +50,8 @@ import { paletteRefOptions } from '../levers/controls';
 import { DOMAINS, type PageData, type Section } from '../shell/pages';
 import { modeLabel } from '../shell/preview';
 import { glyph, h, hook } from '../shell/dom';
-import { addRowButton, choice, jumpLabel, leverBlock, leverOf, selectField, stateLine, subLine, switchButton, tokenLabel, type LeverBlock } from '../ui/lever-kit';
-import { noteSectionEdit, scrollToStart } from '../preview/follow-edit';
+import { addRowButton, choice, jumpLabel, leverBlock, leverOf, selectField, stateLine, subLine, switchButton, tokenLabel, type LeverBlock, keepFocus, pageEdit, markRefused } from '../ui/lever-kit';
+import { scrollToStart } from '../preview/follow-edit';
 import { fmtRatio, stepPicker, type PickerPalette } from '../ui/step-picker';
 
 /** The button sets lever's info text (owner-approved, 2026-10-02). */
@@ -115,12 +115,7 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
   /** True once Add button set is clicked: the color select, the add and Cancel show in its place (QA-I4). */
   let adding = false;
 
-  const edit = (key: string, write: () => void): void => {
-    lastEdited = key;
-    write();
-    noteSectionEdit();   // QA-B9: the edit, and only an edit, reveals its preview section
-    rebuild();
-  };
+  const edit = pageEdit((k) => { lastEdited = k; });   // the shared edit (#2487 B5)
 
   /** Which mode the rows edit; nothing in a derived mode, whose panel the frame holds read-only under its one line
    *  (Q59; N-3 A, #1984). */
@@ -504,9 +499,8 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
   };
 
   const render = (): void => {
-    const had = document.activeElement as HTMLElement | null;
-    const focusKey = had && root.contains(had) ? had.getAttribute('data-p3') : null;
-    const focusIndex = focusKey ? [...root.querySelectorAll(`[data-p3="${focusKey}"]`)].indexOf(had!) : -1;
+    // What had focus, found again after the redraw (`keepFocus`, #2487 B5).
+    const { had, key: focusKey, again } = keepFocus(root);
     const focusStep = had?.dataset.step ?? null;
     const scrollTop = host.scrollTop;
     items = [];
@@ -522,24 +516,15 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
     nr.append(next);
     parts.push(nr);
     root.replaceChildren(...parts);
-    markRefused();
+    markRefused(items, lastEdited);   // the shared mark (#2487 B5)
     filter();
     if (focusKey) {
-      const same = [...root.querySelectorAll<HTMLElement>(`[data-p3="${focusKey}"]`)];
-      const pick = focusStep ? same.find((n) => n.dataset.step === focusStep) : same[Math.max(0, focusIndex)];
-      (pick ?? same[0])?.focus({ preventScroll: true });
+      again(focusStep ? (same) => same.find((n) => n.dataset.step === focusStep) : undefined)?.focus({ preventScroll: true });
       if (!root.contains(document.activeElement) && openRole) pickers.get(openRole)?.();
     }
     if (host.scrollTop !== scrollTop) host.scrollTop = scrollTop;
   };
 
-  const markRefused = (): void => {
-    for (const it of items) {
-      const yes = !!lastError && !!lastEdited && it.key === lastEdited;
-      it.block?.setRefused(yes);
-      if (it.refmark) { it.refmark.hidden = !yes; if (yes) it.el.dataset.refused = 'true'; }
-    }
-  };
 
   /** Search (Q3): hide what does not match, report the count. A group or a section with nothing shown hides. */
   const filter = (): void => {

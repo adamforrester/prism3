@@ -193,7 +193,7 @@ const makeButton = (id: string, name: string, summary: string, description: stri
     { name: 'aria-label', type: 'string', required: false, description: 'Extends the visible label with context it does not carry ("Delete invoice 1042" on a "Delete" button). Start it with the visible text, so a voice-control user who speaks the label still activates the control (WCAG 2.5.3 Label in Name).' },
   ],
 
-  states: ['rest', 'hover', 'focus-visible', 'pressed', 'pending', 'inactive', 'disabled'],
+  states: ['rest', 'hover', 'pressed', 'pending', 'focus-visible', 'disabled', 'inactive'],
   variants: {
     // #1223 — `intent` is gone as an axis; it is the component identity now. `appearance` carries
     // emphasis, `surface` the ground, `size` the rung, `width` a drag (not projected).
@@ -591,7 +591,7 @@ const makeButton = (id: string, name: string, summary: string, description: stri
     // six is right for the projection (what a variant can carry). Keeping it would have shipped 108
     // rows that render as their `rest` sibling — the emitter has no `inactive` paint branch — under a
     // label promising a blocked control. See the codeOnly entry for why no branch is worth adding.
-    stateAxis: { name: 'state', values: ['rest', 'hover', 'focus-visible', 'pressed', 'pending', 'disabled'] },
+    stateAxis: { name: 'state', values: ['rest', 'hover', 'pressed', 'pending', 'focus-visible', 'disabled'] },
     // Slot PRESENCE (§4) — the axis `planComponentName` has been emitting all along. Declaring it
     // takes the projected surface from 189 to 756, which is what the emitter already produced; the
     // gap was in the declaration, not the emitter.

@@ -37,7 +37,7 @@
  * stays open on its row and a choice in it keeps its focus. It never names a legacy repaint tier and never
  * imports `main.ts` (`test-shell-imports.ts`).
  */
-import { brandState, currentMode, lastError, rebuild, searchQuery, setPage, setSearchHits, subscribe, theme } from '../state/store';
+import { brandState, currentMode, rebuild, searchQuery, setPage, setSearchHits, subscribe, theme } from '../state/store';
 import { isDerived } from '../state/verdict';
 import {
   BORDER_ROWS, FIELD_ROWS, FILL_ROWS, FOCUS_ROLES, floorAutoFollows, floorAutoLabel, floorAutoShortLabel, FOREGROUND_ROWS, ICON_ROWS, PAIR_ICONS_CONFIRM, TEXT_ROWS, addGradient, addStop, bandOf, bandPalettes, editGradient, gradStopHex,
@@ -50,7 +50,7 @@ import { floorNoneText } from '../state/floor-refusal';
 import { DOMAINS, ICONS_DESC, type PageData, type Section } from '../shell/pages';
 import { modeLabel } from '../shell/preview';
 import { glyph, h, hook } from '../shell/dom';
-import { infoTip, inlineConfirm, jumpLabel, leverBlock, onCommitted, promoteLever, selectField, stateLine, subLine, switchButton, tokenLabel, type LeverBlock } from '../ui/lever-kit';
+import { infoTip, inlineConfirm, jumpLabel, leverBlock, onCommitted, promoteLever, selectField, stateLine, subLine, switchButton, tokenLabel, type LeverBlock, keepFocus, markRefused } from '../ui/lever-kit';
 import { noteSectionEdit, scrollToStart } from '../preview/follow-edit';
 import { fmtRatio, stepPicker, type StepPickerOpts } from '../ui/step-picker';
 
@@ -699,9 +699,8 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
   };
 
   const render = (): void => {
-    const had = document.activeElement as HTMLElement | null;
-    const focusKey = had && root.contains(had) ? had.getAttribute('data-p3') : null;
-    const focusIndex = focusKey ? [...root.querySelectorAll(`[data-p3="${focusKey}"]`)].indexOf(had!) : -1;
+    // What had focus, found again after the redraw (`keepFocus`, #2487 B5).
+    const { had, key: focusKey, again } = keepFocus(root);
     const focusStep = had?.dataset.step ?? null;
     items = [];
     pickers.clear();
@@ -715,25 +714,16 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
     nr.append(next);
     parts.push(nr);
     root.replaceChildren(...parts);
-    markRefused();
+    markRefused(items, lastEdited);   // the shared mark (#2487 B5)
     filter();
     if (focusKey) {
-      const same = [...root.querySelectorAll<HTMLElement>(`[data-p3="${focusKey}"]`)];
-      const pick = focusStep ? same.find((n) => n.dataset.step === focusStep) : same[Math.max(0, focusIndex)];
-      (pick ?? same[0])?.focus({ preventScroll: true });
+      again(focusStep ? (same) => same.find((n) => n.dataset.step === focusStep) : undefined)?.focus({ preventScroll: true });
       // A control that is disabled after the edit (Return to Auto, once there is nothing to return) cannot hold
       // focus; the open picker's current step takes it, so Escape still reaches the picker.
       if (!root.contains(document.activeElement) && openRole) pickers.get(openRole)?.();
     }
   };
 
-  const markRefused = (): void => {
-    for (const it of items) {
-      const yes = !!lastError && !!lastEdited && it.key === lastEdited;
-      it.block?.setRefused(yes);
-      if (it.refmark) { it.refmark.hidden = !yes; if (yes) it.el.dataset.refused = 'true'; }
-    }
-  };
 
   /** Search (Q3): hide what does not match, report the count. */
   const filter = (): void => {

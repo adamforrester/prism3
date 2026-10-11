@@ -17,7 +17,8 @@ import { leverManifest } from '@prism3/engine/levers';
 import type { Lever } from '@prism3/engine/levers';
 import { leverHook } from '../levers/controls';
 import { glyph, h, hook, switchEl } from '../shell/dom';
-import { holdPersist, releasePersist } from '../state/store';
+import { holdPersist, lastError, rebuild, releasePersist, searchQuery, setSearchHits } from '../state/store';
+import { noteSectionEdit } from '../preview/follow-edit';
 
 export const leverOf = (key: string): Lever | undefined => leverManifest.find((l) => l.key === key);
 const slug = (k: string): string => leverHook(k).slice('lever-'.length);
@@ -53,17 +54,10 @@ export const leverBlock = (key: string, opts: { label?: string; group?: boolean;
   head.append(name);
   let tip: HTMLElement | null = null;
   if (desc) {
-    const info = hook(h('button', 'p3-btn p3-btn-ghost p3-btn-icon p3-info'), 'lever-info');
-    info.type = 'button';
-    info.setAttribute('aria-label', `About ${label}`);
-    info.setAttribute('aria-expanded', 'false');
-    info.setAttribute('aria-controls', `p3-tip-${slug(key)}`);
-    info.append(glyph('info'));
-    tip = h('p', 'p3-tip', desc);
-    tip.id = `p3-tip-${slug(key)}`;
-    tip.hidden = true;
-    info.onclick = () => { const open = tip!.hidden; tip!.hidden = !open; info.setAttribute('aria-expanded', String(open)); };
-    head.append(info);
+    // The same info button and tip every other ⓘ draws (`infoTip`, below; #2487 B5 found this an inline copy).
+    const it = infoTip(`p3-tip-${slug(key)}`, label, desc);
+    tip = it.tip;
+    head.append(it.button);
   }
   const readout = h('span', 'p3-readout');
   readout.hidden = true;
@@ -299,6 +293,58 @@ export const perFrame = <T>(el: HTMLElement, run: (v: T) => void): ((v: T) => vo
     // And a value set with no release at all (an `input` and nothing after it) is stored once things go quiet.
     clearTimeout(quiet);
     quiet = window.setTimeout(release, QUIET_MS);
+  };
+};
+/** A page's edit (#2487 B5: four pages carried this body word for word): note which key moved, write, note the edit
+ *  for the preview's reveal (QA-B9: the edit, and only an edit, reveals its preview section), and re-resolve. */
+export const pageEdit = (seen: (key: string) => void) => (key: string, write: () => void): void => {
+  seen(key);
+  write();
+  noteSectionEdit();
+  rebuild();
+};
+
+/** Mark the refused lever (#2487 B5: Surfaces & fills and Interactive carried this word for word): the one whose key
+ *  was edited last, while the engine refuses the brand; its own refusal mark too, where the item draws one. */
+export const markRefused = (items: readonly { readonly key: string; readonly el: HTMLElement; readonly block?: LeverBlock; readonly refmark?: HTMLElement }[], lastEdited: string | null): void => {
+  for (const it of items) {
+    const yes = !!lastError && !!lastEdited && it.key === lastEdited;
+    it.block?.setRefused(yes);
+    if (it.refmark) { it.refmark.hidden = !yes; if (yes) it.el.dataset.refused = 'true'; }
+  }
+};
+
+/** Search (Q3) on a page of levers (#2487 B5: Depth & motion and Shape carried this word for word): hide what does not
+ *  match, hide a section with nothing shown, hide the page's intro and its Continue and Advanced rows while searching,
+ *  and report the count. */
+export const filterLevers = (root: HTMLElement, items: readonly { readonly el: HTMLElement; readonly said: string }[]): void => {
+  const q = searchQuery.trim().toLowerCase();
+  for (const it of items) it.el.hidden = !!q && !it.said.includes(q);
+  for (const s of root.querySelectorAll<HTMLElement>('.p3-lsec')) s.hidden = !!q && !s.querySelector('.p3-lever:not([hidden])');
+  for (const n of root.querySelectorAll<HTMLElement>('.p3-intro, .p3-nextrow, .p3-advrow > .p3-btn')) n.hidden = !!q;
+  setSearchHits(q ? items.filter((it) => !it.el.hidden).length : null);
+};
+
+/**
+ * What had focus inside `root`, to find again after a page redraws itself (#2487 B5: nine pages carried this inline).
+ * `again()` is the element with the same `data-p3` hook at the same index, else the first with that hook; a page may
+ * hand `again` its own pick among those (`same`), and the first is still the fallback. Undefined when focus was not
+ * in `root` or nothing with that hook was drawn.
+ */
+export const keepFocus = (root: HTMLElement): {
+  readonly had: HTMLElement | null; readonly key: string | null;
+  readonly again: (pick?: (same: HTMLElement[]) => HTMLElement | undefined) => HTMLElement | undefined;
+} => {
+  const had = document.activeElement as HTMLElement | null;
+  const key = had && root.contains(had) ? had.getAttribute('data-p3') : null;
+  const index = key ? [...root.querySelectorAll(`[data-p3="${key}"]`)].indexOf(had!) : -1;
+  return {
+    had, key,
+    again: (pick) => {
+      if (!key) return undefined;
+      const same = [...root.querySelectorAll<HTMLElement>(`[data-p3="${key}"]`)];
+      return (pick ? pick(same) : same[Math.max(0, index)]) ?? same[0];
+    },
   };
 };
 /** Write text only when it changed: a same-value write still replaces the text node and costs a layout. */

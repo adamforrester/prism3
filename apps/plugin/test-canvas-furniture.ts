@@ -261,7 +261,8 @@ section('group / panel / backdrop — Button, built by the real executor');
   ok(JSON.stringify(defs.surface?.variantOptions) === JSON.stringify(['default', 'inverse'])
     && JSON.stringify(defs.appearance?.variantOptions) === JSON.stringify(['filled', 'outline', 'text'])
     && JSON.stringify(defs.size?.variantOptions) === JSON.stringify(['small', 'medium', 'large'])
-    && JSON.stringify(defs.state?.variantOptions) === JSON.stringify(['rest', 'hover', 'focus-visible', 'pressed', 'pending', 'disabled']),
+    // #2501 (owner decision Q213): Pressed, with Pending after it, before Focus visible.
+    && JSON.stringify(defs.state?.variantOptions) === JSON.stringify(['rest', 'hover', 'pressed', 'pending', 'focus-visible', 'disabled']),
     `panel/values: the properties panel reads surface, appearance, size and state in the def's order (#2386) (${JSON.stringify([defs.surface?.variantOptions, defs.appearance?.variantOptions, defs.size?.variantOptions])})`);
 
   const o = await drawFurniture(fakeTemplates(), set, furnitureLayout(plans), 'button');
@@ -278,8 +279,9 @@ section('group / panel / backdrop — Button, built by the real executor');
 
   const rows = furn.filter((n) => tagOf(n).kind === 'label' && Number(n.x) < Number(set.x));
   const cols = furn.filter((n) => tagOf(n).kind === 'label' && Number(n.y) < Number(set.y));
-  ok(JSON.stringify(cols.map(textOf)) === JSON.stringify(['Rest', 'Hover', 'Focus visible', 'Pressed', 'Pending', 'Disabled']),
-    `pilot/button columns: Rest, Hover, Focus visible, Pressed, Pending, Disabled (${JSON.stringify(cols.map(textOf))})`);
+  // #2501 (owner decision Q213): Pressed, with Pending after it, before Focus visible.
+  ok(JSON.stringify(cols.map(textOf)) === JSON.stringify(['Rest', 'Hover', 'Pressed', 'Pending', 'Focus visible', 'Disabled']),
+    `pilot/button columns: Rest, Hover, Pressed, Pending, Focus visible, Disabled (${JSON.stringify(cols.map(textOf))})`);
   const count = (t: string) => rows.filter((n) => textOf(n) === t).length;
   ok(rows.length === 35 && count('Inverse') === 1 && count('Filled') === 2 && count('Outline') === 2 && count('Text') === 2 && count('Default') === 2 && count('Flush') === 2 && count('Small') === 8 && count('Medium') === 8 && count('Large') === 8,
     `pilot/button rows: 35 — Inverse once; Filled, Outline, Text once per surface; Default and Flush inside each Text block only; Small, Medium, Large in each of 8 groups (${rows.length}: ${JSON.stringify(Object.fromEntries([...new Set(rows.map(textOf))].map((t) => [t, count(t)])))})`);
@@ -398,6 +400,24 @@ section('group / panel / backdrop — Button, built by the real executor');
     own.y = yWas;
     // Put the grid back for the arms below: with its height restored, the 558 move back up.
     await applyUpdate(host as never, bApi as never, [{ def: 'button', plans }], previewHashOf(await previewUpdate(host, [{ def: 'button', plans }])));
+  }
+  // ITS WIDTH STILL COUNTS (#2521 review, UI lane; the twin of `unbuilt/row height`): a member Prism3 didn't build, wider
+  // than its column, pushes every column to its right across, and the dry run's column lefts must count it too. Read
+  // off a member in the REST column, which leads Button's six state columns before #2509's reorder (owner decision
+  // Q213) and after it, so 480 holds on both: 5 columns to its right × 96 rows. Mutation: `gridMoves`' column widths
+  // skipping unstamped members (`if (m.stamp) colW[…] = …`) → `unbuilt/column width` (0 to move).
+  {
+    const own = (set.children as FNode[]).find((m) => /(^|, )state=rest(,|$)/.test(String(m.name))) as FNode & { setSharedPluginData(ns: string, k: string, v: string): void; getSharedPluginData(ns: string, k: string): string };
+    const [stampWas, wWas] = [own.getSharedPluginData(NS, STAMP_KEY), Number(own.width)];
+    const wDesc = Object.getOwnPropertyDescriptor(own, 'width')!;
+    own.setSharedPluginData(NS, STAMP_KEY, '');
+    Object.defineProperty(own, 'width', { configurable: true, enumerable: wDesc.enumerable, get: () => wWas + 400 });
+    const grew = Number(own.width);
+    const p4 = (await previewUpdate(host, [{ def: 'button', plans }])).sets[0];
+    ok(grew === wWas + 400 && previewLine(p4) === 'button: 576 members. 480 to move, 1 not built by Prism3.' && !p4.positions?.includes(String(own.name)),
+      `unbuilt/column width: a member Prism3 didn't build, wider than its column, moves every column to its right, and is not itself a move (${wWas} → ${grew}px; ${previewLine(p4)})`);
+    own.setSharedPluginData(NS, STAMP_KEY, stampWas);
+    Object.defineProperty(own, 'width', wDesc);
   }
   // A STAMP THAT ISN'T PRISM3'S (#2471 review, UI lane): a member whose stamp is malformed is read as not built by
   // Prism3 (`ownedView`), so it is never a move either, however far off the grid it sits. Mutation: `gridMoves` handed

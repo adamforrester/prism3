@@ -41,8 +41,6 @@ let store: LocalStore | null = null;
 let save: ((p: FigmaThemePref) => void) | null = null;
 const watchers = new Set<() => void>();
 
-/** The theme the person chose. */
-export const themePref = (): ThemePref | FigmaThemePref => pref;
 /** The choice this host shows as current. */
 export const themeChoice = (): ThemeChoice => THEME_CHOICES.find((c) => c.pref === pref) ?? THEME_CHOICES[0];
 /** Repaint when the choice changes from outside a click (the plugin's stored choice arriving). */

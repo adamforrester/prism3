@@ -1026,11 +1026,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     mutedStep: number;                // the muted-ink palette step
     page: boolean;                    // the `on-*` pairs exist only on the page — see the call site
   };
-  // Bold semantic ink — gated against BOTH grounds it is placed on. See the call site in
-  // `buildContent` for why the floor alone was not enough.
-  const semanticInk = (r: Role, min: number): RatedNum =>
-    chromatic(r2p[r], theme.roleAnchorStep[r], floorRgb, min, false, [subtleTint(r).rgb]);
-  // The same rule against an arbitrary ground (#892). `buildContent` runs twice — once for the page
+  // Bold semantic ink, gated against BOTH grounds it is placed on, here against an arbitrary ground (#892). `buildContent` runs twice — once for the page
   // and once for the inverse band — and the SECOND ground is the whole reason this is parameterised
   // rather than duplicated: a status ink is gated against the floor AND against its own tint, so an
   // inverse ink derived by a hand-written near-copy would quietly gate on one ground while its page

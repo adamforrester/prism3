@@ -59,7 +59,7 @@ The accessible name is a verb naming the action ("Close", "More actions"), never
 
 ## States
 
-`rest`, `hover`, `focus-visible`, `pressed`, `pending`, `inactive`, `disabled`
+`rest`, `hover`, `pressed`, `pending`, `focus-visible`, `disabled`, `inactive`
 
 ## Variants
 
