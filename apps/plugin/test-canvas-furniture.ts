@@ -354,27 +354,50 @@ section('group / panel / backdrop — Button, built by the real executor');
       `unbuilt/left in place: the apply leaves its x and y exactly as they were, and its stamp empty (${at} → ${JSON.stringify([own.x, own.y])})`);
     ok(!r2.outcomes[0]?.moved && !v2.lines.some((l) => /moved/.test(l) && /left as they are/.test(l)),
       `unbuilt/verdict: no line counts the member as moved and as left (${v2.headline}; ${v2.lines[0]})`);
+    // THE APPLY SAYS WHAT THE DRY RUN SAID (#2495, owner Q205 A): it entered the set with nothing to write, and the dry
+    // run calls it "no changes", not up to date, since Adopt could claim a member. So its headline and set line are
+    // the dry run's, never "already up to date". Mutation: the old fall-through restored → `unbuilt/apply as previewed`.
+    const dry = previewVerdict({ sets: [p2], missing: [], refused: [] });
+    ok(v2.headline === dry.headline && v2.lines[0] === previewLine(p2) && v2.headline === '✓ No changes found',
+      `unbuilt/apply as previewed: the apply's headline and set line are the dry run's (${v2.headline} | ${v2.lines[0]} — the dry run: ${dry.headline} | ${previewLine(p2)})`);
     own.setSharedPluginData(NS, STAMP_KEY, stampWas);
     own.y = yWas;
+    // And a set that IS up to date still reads so, on the dry run and on the apply.
+    const p5 = (await previewUpdate(host, [{ def: 'button', plans }]));
+    const r5 = applyVerdict(await applyUpdate(host as never, bApi as never, [{ def: 'button', plans }], previewHashOf(p5)));
+    ok(previewLine(p5.sets[0]) === 'button: up to date (576 members).' && r5.headline === '✓ already up to date' && r5.lines[0] === 'button: already up to date.',
+      `unbuilt/up to date: with the member Prism3's again, the dry run reads up to date and the apply "already up to date" (${previewLine(p5.sets[0])} | ${r5.headline} | ${r5.lines[0]})`);
   }
   // ITS HEIGHT STILL COUNTS (#2471 review, UI lane): a member Prism3 didn't build is never moved, but the executor's
   // layout sizes its row by every member in it, so a taller one pushes every row below it down, and the dry run's row
-  // tops must count it too. Only the dry run is read here: an apply over these moves re-lays the grid, which moves the
-  // unbuilt member too (the executor's flaw, #2494). Mutation: `gridMoves`' row heights skipping unstamped members →
-  // `unbuilt/row height` (0 to move).
+  // tops must count it too. 558 is every member below its row: Button's grid is 96 rows of 6 states, member 10 sits in
+  // row 2, so 93 rows × 6 = 558. It is also off the grid, so the apply's re-lay would move it without the executor's
+  // guard (#2494): the apply moves the 558 and leaves it exactly where it is. Mutations: `gridMoves`' row heights
+  // skipping unstamped members → `unbuilt/row height` (0 to move); the LAY OUT pass's unstamped guard removed →
+  // `unbuilt/relay left` (✓ moved 559).
   {
     const own = (set.children as FNode[])[10] as FNode & { setSharedPluginData(ns: string, k: string, v: string): void; getSharedPluginData(ns: string, k: string): string };
     const [stampWas, hWas] = [own.getSharedPluginData(NS, STAMP_KEY), Number(own.height)];
     // The shim's height is worked out from the node's bindings and content, so the test overrides the accessor itself.
     const hDesc = Object.getOwnPropertyDescriptor(own, 'height')!;
+    const yWas = Number(own.y);
     own.setSharedPluginData(NS, STAMP_KEY, '');
     Object.defineProperty(own, 'height', { configurable: true, enumerable: hDesc.enumerable, get: () => hWas + 40 });
+    own.y = yWas + 500;
     const grew = Number(own.height);
+    const at = JSON.stringify([own.x, own.y]);
     const p3 = (await previewUpdate(host, [{ def: 'button', plans }])).sets[0];
     ok(grew === hWas + 40 && previewLine(p3) === 'button: 576 members. 558 to move, 1 not built by Prism3.' && !p3.positions?.includes(String(own.name)),
       `unbuilt/row height: a member Prism3 didn't build, taller than its row, moves every row below it, and is not itself a move (${hWas} → ${grew}px; ${previewLine(p3)})`);
+    const r3 = await applyUpdate(host as never, bApi as never, [{ def: 'button', plans }], previewHashOf(await previewUpdate(host, [{ def: 'button', plans }])));
+    const v3 = applyVerdict(r3);
+    ok(v3.headline === '✓ moved 558' && v3.lines[0] === 'button: 558 moved, 1 left as they are.' && JSON.stringify([own.x, own.y]) === at,
+      `unbuilt/relay left: the apply moves the 558 and leaves the member Prism3 didn't build exactly where it is (${v3.headline}; ${v3.lines[0]}; ${at} → ${JSON.stringify([own.x, own.y])})`);
     own.setSharedPluginData(NS, STAMP_KEY, stampWas);
     Object.defineProperty(own, 'height', hDesc);
+    own.y = yWas;
+    // Put the grid back for the arms below: with its height restored, the 558 move back up.
+    await applyUpdate(host as never, bApi as never, [{ def: 'button', plans }], previewHashOf(await previewUpdate(host, [{ def: 'button', plans }])));
   }
   // A STAMP THAT ISN'T PRISM3'S (#2471 review, UI lane): a member whose stamp is malformed is read as not built by
   // Prism3 (`ownedView`), so it is never a move either, however far off the grid it sits. Mutation: `gridMoves` handed

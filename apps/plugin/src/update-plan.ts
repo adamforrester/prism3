@@ -866,6 +866,8 @@ const noChanges = (p: SetPreview): boolean => p.counts.current + p.counts.revisi
  *  could claim (`adoptable`, #2283), so a set holding one reads "no changes", never up to date (owner decision Q191
  *  2B). Off the plan (the owner's own icons, #2464), it doesn't stop a set reading up to date. */
 const upToDate = (p: SetPreview): boolean => noChanges(p) && !p.counts.revisionUnknown && !p.adoptable.length;
+/** Whether the dry run calls the set up to date, for the apply's verdict to say the same (#2495, owner Q205 A). */
+export const setUpToDate = upToDate;
 
 /** How many named differences each set's lines carry, so a set that differs everywhere stays a few lines long. */
 export const DIFFERENCE_LINES = 8;

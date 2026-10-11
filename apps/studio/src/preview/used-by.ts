@@ -6,7 +6,7 @@
  * never imports the definitions themselves (UI redesign S7, T4; the generator's header says why).
  */
 export const USED_BY = {
-  defs: 28,
+  defs: 29,
   radius: {
     rounded: {
       "radius.md": [
@@ -106,7 +106,8 @@ export const USED_BY = {
       "Radio.Row",
       "Switch.Row",
       "Tag",
-      "Tab"
+      "Tab",
+      "Divider"
     ],
     "size.sm.height": [
       "Button",

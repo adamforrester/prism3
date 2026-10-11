@@ -533,9 +533,9 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
         name.value = g.name;
         name.setAttribute('aria-label', 'Gradient name');
         // Committed through the kit (#2487 A2), so Tab out of it keeps focus.
-        onCommitted(name, () => {
+        onCommitted(name, (v) => {
           lastEdited = 'gradients';
-          if (!renameGradient(gi, name.value)) { name.value = g.name; return; }
+          if (!renameGradient(gi, v)) { name.value = g.name; return; }
           noteSectionEdit();   // QA-B9, as `edit` does
           rebuild();
         });
@@ -588,9 +588,9 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
             num.type = 'number'; num.id = id; num.min = '0'; num.max = '100'; num.step = '5';
             num.value = String(Math.round(center[idx] * 100));
             // An empty field puts its value back rather than writing 0% (#2487 A6).
-            onCommitted(num, () => {
-              if (!num.value.trim()) { num.value = String(Math.round(center[idx] * 100)); return; }
-              edit('gradients', () => setCenter(gi, idx, Number(num.value)));
+            onCommitted(num, (v) => {
+              if (!v.trim()) { num.value = String(Math.round(center[idx] * 100)); return; }
+              edit('gradients', () => setCenter(gi, idx, Number(v)));
             });
             cf.append(num);
             set.append(field(label, id, cf));
@@ -616,9 +616,9 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
           pos.value = String(Math.round(st.position * 100));
           pos.setAttribute('aria-label', `Stop ${si + 1} position, percent`);
           // An empty field puts its value back rather than writing 0% (#2487 A6).
-          onCommitted(pos, () => {
-            if (!pos.value.trim()) { pos.value = String(Math.round(st.position * 100)); return; }
-            edit('gradients', () => setStopPosition(gi, si, Number(pos.value)));
+          onCommitted(pos, (v) => {
+            if (!v.trim()) { pos.value = String(Math.round(st.position * 100)); return; }
+            edit('gradients', () => setStopPosition(gi, si, Number(v)));
           });
           pf.append(pos);
           sr.append(ssw, pal.el, stp.el, pf);
