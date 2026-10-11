@@ -180,6 +180,20 @@
     },
     "members": 3
   },
+  "divider": {
+    "axes": {
+      "inset": [
+        "inset",
+        "middle-inset",
+        "none"
+      ],
+      "orientation": [
+        "horizontal",
+        "vertical"
+      ]
+    },
+    "members": 5
+  },
   "field-label": {
     "axes": {
       "emphasis": [
