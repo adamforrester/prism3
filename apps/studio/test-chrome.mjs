@@ -6900,7 +6900,9 @@ const openTint = async (page) => {
   await hooks.need(page, '[data-p3="shadow-tint-hue"]');
 };
 /** Move a slider to `v` the way a drag does: the value, then `input`. */
-const slide = (page, hk, v) => page.evaluate(([h, x]) => { const n = document.querySelector(`[data-p3="${h}"]`); n.value = String(x); n.dispatchEvent(new Event('input', { bubbles: true })); }, [hk, v]);
+// A set as a user's ends: `input`, then the release (`change`). Since #2487 PR 2 a drag stores on its release, so an
+// `input` alone would read the stored brand before the write.
+const slide = (page, hk, v) => page.evaluate(([h, x]) => { const n = document.querySelector(`[data-p3="${h}"]`); n.value = String(x); n.dispatchEvent(new Event('input', { bubbles: true })); n.dispatchEvent(new Event('change', { bubbles: true })); }, [hk, v]);
 /** Every dot the traces draw, and the animation each runs now. */
 const dotAnims = (page) => page.evaluate(() => [...document.querySelectorAll('[data-p3="depth-style-guide"] [data-p3="transition-dot"]')].map((d) => d.style.animation || ''));
 
@@ -8068,6 +8070,9 @@ for (const host of ['web', 'figma']) {
         const v = Number(n.value) === 3.75 ? 3.5 : 3.75;
         n.value = String(v);
         n.dispatchEvent(new Event('input', { bubbles: true }));
+        // The release too (#2487 PR 2): a drag stores on it, so without it a write that got through would land after
+        // this arm had already read the brand, and the arm would pass on nothing.
+        n.dispatchEvent(new Event('change', { bubbles: true }));
         return v;
       });
       await page.waitForTimeout(150);
@@ -8876,24 +8881,37 @@ for (const host of ['web', 'figma']) {
 //   · another chrome variable on a brand path (`ctl-edge` on `core.palette.primary.600`) → the build's
 //     `[brand] chrome var --p3-ctl-edge (light) resolves through brand token pds3.core.palette.primary.600`.
 //   · BRAND_ALLOW widened to a pattern → the build's `[brand] self-check: brandLeaks no longer refuses a sibling name …`.
+//   · B2 (#2487): the legacy controls' ring dropped from styles.css (`:is(.seg-b, …, .select):focus-visible`) → `#2144 web
+//     light 1280: every focused chrome control draws its ring … — 10 miss: brand style-guide-ground: color #101010, …,
+//     1px wide, … | depth motion-play: … | depth motion-slowmo: … | inspect token list …`, each host and theme.
 console.log(`\n#2144 — every chrome focus ring on ${FOCUS_RING_TOKEN} (light ${FOCUS_HEX.light}, dark ${FOCUS_HEX.dark})\n${'='.repeat(78)}`);
 /** The least number of chrome rings the whole sweep must read, per host (both themes). */
 const FOCUS_SWEEP_FLOOR = { web: 820, figma: 870 };
 /** The least each place must read, every host and theme (the fewest measured when this landed: 19, Shape and Components). */
 const FOCUS_PLACE_FLOOR = 15;
-/** The lent legacy views the sweep skips: all of INSPECT_LEGACY but Components' preview, whose one focusable control is
- *  the plugin's set radio. Its ring is drawn by `styles.css` (`.cset-radio`), on the chrome's variables since #2144, so
- *  it is read here; anything else that turns focusable in that view is read too, and must hold the same contract. */
-const FOCUS_SWEEP_SKIP = INSPECT_LEGACY.filter((h) => h !== '[data-p3="components-style-guide"]');
+/** The lent legacy views the sweep skips: INSPECT_LEGACY but the views whose controls draw the chrome's ring from
+ *  `styles.css`, on the chrome's variables. Components' preview, whose one focusable control is the plugin's set radio
+ *  (`.cset-radio`, #2144); and since B2 (#2487) the token list in Inspect (its segments and selects), Brand's Style guide
+ *  (its surface select), Depth & motion's preview (the replay and its speed) and Interactive's (its specimens are
+ *  display-only since Q196, so it has none). Anything else that turns focusable in those views is read too, and must
+ *  hold the same contract. */
+const SWEPT_LEGACY = ['[data-p3="components-style-guide"]', '[data-p3="inspect-token-list"]', '[data-p3="brand-style-guide"]',
+  '[data-p3="depth-style-guide"]', '[data-p3="interactive-style-guide"]'];
+const FOCUS_SWEEP_SKIP = INSPECT_LEGACY.filter((h) => !SWEPT_LEGACY.includes(h));
+/** B2 (#2487): the legacy controls that drew the browser's 1px ring, each of which the sweep must now reach and measure:
+ *  Brand's surface select, Depth & motion's replay and speed, and the token list's segments (Inspect › Token list, on
+ *  Semantics, the one tier that draws the Alias path segment). */
+const B2_RING_NEEDS = ['[data-p3="style-guide-ground"]', '[data-p3="motion-play"]', '[data-p3="motion-slowmo"]', '[data-p3="token-tier-primitive"]',
+  '[data-p3="token-tier-semantic"]', '[data-p3="token-path-full"]', '[data-p3="token-path-short"]'];
 /** Controls the sweep must reach and measure, by hook: Continue, a chip, a text field, a tab, and one of each other
  *  kind the issue names. The plugin adds its own bar control and the Components set radio (`styles.css`). */
 const FOCUS_SWEEP_NEEDS = {
   web: ['[data-p3="palettes-continue"]', '[data-p3="density-choice-comfortable"]', '[data-p3="brand-name"]', '[data-p3="primary-hex"]',
     '[data-p3="tab-color"]', '[data-p3="color-sub-palettes"]', '[data-p3="neutral-chroma-slider"]', '[data-p3="export-open"]', '[data-p3="search-open"]',
-    '[data-p3="mode-option"]', '[data-p3="inspect-open"]'],
+    '[data-p3="mode-option"]', '[data-p3="inspect-open"]', ...B2_RING_NEEDS],
   figma: ['[data-p3="palettes-continue"]', '[data-p3="density-choice-comfortable"]', '[data-p3="brand-name"]', '[data-p3="primary-hex"]',
     '[data-p3="tab-color"]', '[data-p3="color-sub-palettes"]', '[data-p3="neutral-chroma-slider"]', '[data-p3="export-open"]', '[data-p3="search-open"]',
-    '[data-p3="mode-option"]', '[data-p3="inspect-open"]', '[data-p3="apply-to-figma"]', '[data-p3="components-def-option"]'],
+    '[data-p3="mode-option"]', '[data-p3="inspect-open"]', '[data-p3="apply-to-figma"]', '[data-p3="components-def-option"]', ...B2_RING_NEEDS],
 };
 /** The focused controls photographed for review when a screenshot directory is given: [hook, file name part]. */
 const FOCUS_SHOTS = [['palettes-continue', 'continue'], ['density-choice-comfortable', 'chip'], ['brand-name', 'text-field'], ['tab-color', 'tab']];
@@ -8931,6 +8949,24 @@ for (const host of ['web', 'figma']) {
         }
         hostTotal += rings.length;
         focusSwept += rings.length;
+      }
+      // B2 (#2487): Inspect › Token list, on Semantics, over the last place: the lent token list's segments and selects.
+      {
+        await hooks.click(page.locator('[data-p3="inspect-open"]'), WAIT);
+        await hooks.click(page.locator('[data-p3="inspect-option-tokens"]'), WAIT);
+        await hooks.click(page.locator('[data-p3="token-tier-semantic"]'), WAIT);
+        await hooks.need(page, '[data-p3="token-path-short"]');
+        const rings = await focusRings(page, { all: true, max: 600, skipIn: FOCUS_SWEEP_SKIP });
+        counts.push(`inspect token list ${rings.length}`);
+        for (const r of rings) {
+          reached.add(r.hook);
+          const miss = ringMisses(r, r.pinnedLight ? 'light' : theme);
+          if (miss.length) bad.push({ r: { ...r, hook: `inspect token list ${r.hook}` }, miss });
+          lows.focus = Math.min(lows.focus, r.r);
+        }
+        hostTotal += rings.length;
+        focusSwept += rings.length;
+        await hooks.click(page.locator('[data-p3="inspect-close"]'), WAIT);
       }
       // The plugin's Build style guides page (S11.2; review of #2171), which no tab shows: its switch, its title box's
       // fold and every other control on it, with a catalog posted so the tree and every option group are drawn.
@@ -13750,6 +13786,356 @@ console.log(`\nInput commit and focus retention (#2487 PR 1)\n${'='.repeat(78)}`
       ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
     } finally { await ctx.close(); }
   }
+}
+// =============================================================================================
+// 45. #2487 PR 4 (findings D2, D5, D6, B2's Q195, and owner decisions Q196, Q197): names, landmarks, the selected
+//     segment and the display-only specimens, as the browser's accessibility tree and the keyboard read them. Both hosts,
+//     light, at 1280 (every place, then Inspect › Token list and Activity open, and on the plugin the Build style guides
+//     page) and at 380 (every place).
+//   · D2: Brand's "View style guide on" surface select has that caption as its accessible name.
+//   · D5 and Q197: exactly one `main` landmark everywhere, and the only named regions are the two panes, Inspect and
+//     Activity, each only while it is drawn.
+//   · Q195: the token list's selected Alias path segment (`.seg-b.on`) draws an edge of 2px or more that reaches 3:1
+//     against its own fill and against the ground of its unselected neighbor.
+//   · Q196 (closes D6): the Interactive specimens are display-only: Tab never lands on one, on Brand's Style guide or on
+//     Color › Interactive, and the accessibility tree exposes none of them as a button.
+//
+// INDEPENDENCE (docs/34). EXPECTED is typed here: the caption's words, the counts (one main; Inspect and Activity),
+// the 3:1 floor (NONTEXT_MIN, a literal) and zero specimen stops. ACTUAL is the browser's: CDP's full accessibility
+// tree (never an attribute), real Tab presses, and the computed box-shadow and backgrounds of the drawn segment. The
+// specimen arms run with the specimens proven drawn in the same state, so neither passes on a page that drew none.
+//
+// Mutations (#2487), each after a `wip:` commit, on both rebuilt bundles, each failing here by name:
+//   · the select's `aria-labelledby` removed (main.ts) → `#2487 web light 1280 / brand: D2 the Style guide's surface
+//     select is named "View style guide on" (read "")`.
+//   · `panes.setAttribute('role', 'main')` removed (frame.ts) → `#2487 web light 1280 / brand: D5 Q197 exactly one main
+//     landmark and no named region (main 0, …)`, every place.
+//   · a lever section named again (brand.ts's `aria-labelledby`) → `… / brand: D5 Q197 exactly one main landmark and no
+//     named region (… regions ["Identity", …])`.
+//   · the underline dropped from `.seg-b.on` (styles.css) → `#2487 web 1280: Q195 the selected Alias path segment draws
+//     an edge of 2px or more at 3:1 …`.
+//   · `b.inert = true` removed (preview/sections/interactive.ts) → `#2487 web light 1280 / color-interactive: Q196 Tab
+//     never lands on a specimen …` and `… the accessibility tree exposes no specimen as a button …`, on Brand too.
+// The 2px ring on the legacy controls (B2) is section 27's: its sweep reads them by name (B2_RING_NEEDS).
+console.log(`\n#2487 names, landmarks, the selected segment and the display-only specimens\n${'='.repeat(78)}`);
+{
+  const LANDMARK_ROLES = ['banner', 'navigation', 'region', 'main', 'complementary', 'contentinfo', 'form', 'search'];
+  /** One full read of the accessibility tree: how many main landmarks, the named regions, and how many specimens it
+   *  exposes as buttons. */
+  const axRead = async (page) => {
+    const cdp = await page.context().newCDPSession(page);
+    try {
+      await cdp.send('Accessibility.enable');
+      const { nodes } = await cdp.send('Accessibility.getFullAXTree');
+      const live = nodes.filter((n) => !n.ignored && LANDMARK_ROLES.includes(n.role?.value));
+      const { root } = await cdp.send('DOM.getDocument', { depth: 0 });
+      const { nodeIds } = await cdp.send('DOM.querySelectorAll', { nodeId: root.nodeId, selector: '[data-p3="style-guide-button"]' });
+      let exposed = 0;
+      for (const nodeId of nodeIds) {
+        const t = (await cdp.send('Accessibility.getPartialAXTree', { nodeId, fetchRelatives: false })).nodes;
+        if (t.some((n) => !n.ignored && n.role?.value === 'button')) exposed++;
+      }
+      return { mains: live.filter((n) => n.role.value === 'main').length,
+        regions: live.filter((n) => n.role.value === 'region').map((n) => n.name?.value ?? '').sort(), specimens: nodeIds.length, exposed };
+    } finally { await cdp.detach(); }
+  };
+  /** The accessible name the browser computes for the one element `sel` finds. */
+  const axName = async (page, sel) => {
+    const cdp = await page.context().newCDPSession(page);
+    try {
+      await cdp.send('Accessibility.enable');
+      const { root } = await cdp.send('DOM.getDocument', { depth: 0 });
+      const { nodeId } = await cdp.send('DOM.querySelector', { nodeId: root.nodeId, selector: sel });
+      if (!nodeId) return null;
+      const t = (await cdp.send('Accessibility.getPartialAXTree', { nodeId, fetchRelatives: false })).nodes;
+      return t.find((n) => !n.ignored)?.name?.value ?? '';
+    } finally { await cdp.detach(); }
+  };
+  /** Tab from the top of the page until a stop repeats: how many stops, and how many landed on a specimen. */
+  const specimenStops = async (page) => {
+    await page.evaluate(() => { document.activeElement?.blur(); window.scrollTo(0, 0); });
+    const seen = new Set();
+    let stops = 0, onSpecimen = 0;
+    for (let i = 0; i < 600; i++) {
+      await page.keyboard.press('Tab');
+      const r = await page.evaluate(() => {
+        const a = document.activeElement;
+        if (!a || a === document.body) return null;
+        if (!a.dataset.fstop) a.dataset.fstop = String(Math.random());
+        return { id: a.dataset.fstop, specimen: !!a.closest('[data-p3="style-guide-button"]') };
+      });
+      if (!r) continue;
+      if (seen.has(r.id)) break;
+      seen.add(r.id);
+      stops++;
+      if (r.specimen) onSpecimen++;
+    }
+    await page.evaluate(() => { for (const n of document.querySelectorAll('[data-fstop]')) delete n.dataset.fstop; });
+    return { stops, onSpecimen };
+  };
+  for (const host of ['web', 'figma']) {
+    for (const w of [1280, 380]) {
+      const { ctx, page, errors } = await open({ host, theme: 'light', w, h: 900 });
+      const where = `#2487 ${host} light ${w}`;
+      let step = 'boot';
+      try {
+        for (const place of NEW_PAGES) {
+          step = place;
+          await goPlace(page, place);
+          await settle(page);
+          const ax = await axRead(page);
+          ok(ax.mains === 1 && ax.regions.length === 0,
+            `${where} / ${place}: D5 Q197 exactly one main landmark and no named region (main ${ax.mains}, regions ${JSON.stringify(ax.regions)})`);
+          if (place === 'brand') {
+            // At 380 the preview is the other pane, and a control in a pane not shown has no name to read.
+            if (w === 380) await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'), WAIT);
+            await hooks.need(page, '[data-p3="style-guide-ground"]');
+            // Case aside: the caption is drawn uppercase (`.pfk`), and the browser names the select by the words as drawn.
+            const name = await axName(page, '[data-p3="style-guide-ground"]');
+            ok(name?.toLowerCase() === 'view style guide on', `${where} / brand: D2 the Style guide's surface select is named "View style guide on" (read ${JSON.stringify(name)})`);
+            if (w === 380) await hooks.click(page.locator('[data-p3="pane-toggle-settings"]'), WAIT);
+          }
+          if (w === 1280 && (place === 'brand' || place === 'color-interactive')) {
+            const tabs = await specimenStops(page);
+            ok(ax.specimens > 0 && tabs.stops > 0 && tabs.onSpecimen === 0,
+              `${where} / ${place}: Q196 Tab never lands on a specimen (${tabs.onSpecimen} of ${tabs.stops} stops, ${ax.specimens} specimens drawn)`);
+            ok(ax.specimens > 0 && ax.exposed === 0,
+              `${where} / ${place}: Q196 the accessibility tree exposes no specimen as a button (${ax.exposed} of ${ax.specimens})`);
+          }
+        }
+        if (w === 1280) {
+          step = 'Inspect › Token list';
+          await hooks.click(page.locator('[data-p3="inspect-open"]'), WAIT);
+          await hooks.click(page.locator('[data-p3="inspect-option-tokens"]'), WAIT);
+          await hooks.click(page.locator('[data-p3="token-tier-semantic"]'), WAIT);
+          await hooks.need(page, '[data-p3="token-path-full"]');
+          const seg = await page.evaluate(() => {
+            const parse = (s) => { const m = /rgba?\(([^)]+)\)/.exec(s ?? ''); if (!m) return null; const p = m[1].split(/[,\s/]+/).filter(Boolean).map(Number); return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 }; };
+            const over = (fg, bg) => ({ r: fg.r * fg.a + bg.r * (1 - fg.a), g: fg.g * fg.a + bg.g * (1 - fg.a), b: fg.b * fg.a + bg.b * (1 - fg.a), a: 1 });
+            const lum = (c) => { const f = (v) => { const x = v / 255; return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b); };
+            const ratio = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+            const groundOf = (n0) => { let acc = null; for (let n = n0; n && n.nodeType === 1; n = n.parentElement) { const c = parse(getComputedStyle(n).backgroundColor); if (c && c.a > 0) { acc = acc ? over(acc, c) : c; if (acc.a >= 0.999) return { ...acc, a: 1 }; } } return acc ? over(acc, { r: 255, g: 255, b: 255, a: 1 }) : { r: 255, g: 255, b: 255, a: 1 }; };
+            const on = [...document.querySelectorAll('[data-p3="token-path-full"], [data-p3="token-path-short"]')].find((b) => b.classList.contains('on'));
+            const off = [...document.querySelectorAll('[data-p3="token-path-full"], [data-p3="token-path-short"]')].find((b) => b !== on);
+            if (!on || !off) return { found: false };
+            // The edge: the box-shadow drawn INSIDE the segment and offset vertically (an underline, or an overline), or a
+            // border, whichever is wider. The browser's computed shadow lists the color first, then the offsets.
+            const edges = [];
+            for (const part of getComputedStyle(on).boxShadow.split(/,(?![^(]*\))/)) {
+              const c = parse(part);
+              const nums = part.replace(/rgba?\([^)]*\)/, '').match(/-?[\d.]+px/g)?.map(parseFloat) ?? [];
+              if (c && /inset/.test(part) && nums.length >= 2 && nums[0] === 0 && Math.abs(nums[1]) > 0) edges.push({ c, w: Math.abs(nums[1]) });
+            }
+            const cs = getComputedStyle(on);
+            for (const side of ['Top', 'Right', 'Bottom', 'Left']) {
+              const bw = parseFloat(cs[`border${side}Width`]);
+              if (cs[`border${side}Style`] !== 'none' && bw > 0) edges.push({ c: parse(cs[`border${side}Color`]), w: bw });
+            }
+            const fill = groundOf(on), beside = groundOf(off);
+            const best = edges.filter((e) => e.c).map((e) => ({ w: e.w, own: Math.floor(ratio(over(e.c, fill), fill) * 100) / 100, near: Math.floor(ratio(over(e.c, beside), beside) * 100) / 100 }))
+              .sort((a, b) => Math.min(b.own, b.near) - Math.min(a.own, a.near))[0] ?? null;
+            return { found: true, which: on.dataset.p3, best };
+          });
+          ok(seg.found && seg.best && seg.best.w >= FOCUS_WIDTH_MIN && seg.best.own >= NONTEXT_MIN && seg.best.near >= NONTEXT_MIN,
+            `${where}: Q195 the selected Alias path segment draws an edge of ${FOCUS_WIDTH_MIN}px or more at ${NONTEXT_MIN}:1 against its own fill and its neighbor's ground (read ${JSON.stringify(seg)})`);
+          step = 'Activity';
+          await hooks.click(page.locator('[data-p3="activity-open"]'), WAIT);
+          await hooks.need(page, '[data-p3="activity-body"]');
+          await settle(page);
+          const both = await axRead(page);
+          ok(both.mains === 1 && JSON.stringify(both.regions) === JSON.stringify(['Activity', 'Inspect']),
+            `${where} with Inspect and Activity open: D5 Q197 exactly one main landmark, and the named regions are Inspect and Activity alone (main ${both.mains}, regions ${JSON.stringify(both.regions)})`);
+          if (host === 'figma') {
+            step = 'Build style guides';
+            await hooks.click(page.locator('[data-p3="activity-open"]'), WAIT);
+            await hooks.click(page.locator('[data-p3="inspect-close"]'), WAIT);
+            await openFigma(page);
+            await hooks.click(page.locator('[data-p3="figma-option-style-guide"]'), WAIT);
+            await hooks.need(page, '[data-p3="style-guides"]');
+            await settle(page);
+            const sg = await axRead(page);
+            ok(sg.mains === 1, `${where} / build style guides: D5 exactly one main landmark (main ${sg.mains}, regions ${JSON.stringify(sg.regions)})`);
+          }
+        }
+        ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+      } catch (e) {
+        ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+      } finally { await ctx.close(); }
+    }
+  }
+}
+// =============================================================================================
+// §46 — DRAG AND REBUILD SPEED (#2487 PR 2: B1, A9, A10, A13; the merged review, comment 6098371348 §4)
+// =============================================================================================
+// A slider's `input` ran the page's whole edit, a full re-resolve and a `localStorage` write on every tick, and Layout
+// re-rendered its container sliders under the pointer, so a drag stopped after one step. Measured here as a user drags:
+//   · a mouse drag on Shape's softness slider and on Layout's Maximum width moves the value MORE THAN ONE STEP, and the
+//     drawn and stored values agree (K3, Shape's in-place sync, and Layout's new one);
+//   · a drag stores at most ONE `localStorage` write (per-tick persist);
+//   · a burst of 20 color-picker `input`s, then its release, stores once and draws the last color;
+//   · an identical brand repaint (a second slider step that changes nothing in the bar) re-measures the bar ZERO times:
+//     `measureFit` is the one caller of `getComputedStyle` on `[data-p3="bar-main"]`, counted by a wrapper (A9);
+//   · a committed field commits the value it held at `change`: a write to it inside that task does not leak in.
+//
+// INDEPENDENCE (docs/34). EXPECTED is typed here: one write, zero re-measures, the breakpoints worked out by hand from the
+// defaults [0, 768, 1024, 1440, 1920], and "more than one step" against the slider's own `step` attribute. ACTUAL is the
+// browser's: the slider's drawn value, the persisted brand, a wrapper on `Storage.prototype.setItem`, and one on
+// `window.getComputedStyle`. Nothing is read from `lever-kit.ts`, `store.ts` or the pages.
+//
+// Mutations (#2487 PR 2), each failing here by name: Shape's `sliding && dragging.sync()` path removed → `§46 … Shape:
+// a mouse drag moves the softness more than one step`; Layout's in-place path removed → the Maximum width arm; the
+// persist hold removed → both `stores at most one write` arms and the picker arm; the bar's same-value guard removed →
+// the re-measure arm; `onCommitted` reading the field when its task runs → the capture arm; `perFrame` running every
+// input at once → the picker's re-resolve arm; the export dialog rebuilt on every paint → the A10 arm (figma 1280).
+// =============================================================================================
+console.log(`\nDrag and rebuild speed (#2487 PR 2)\n${'='.repeat(78)}`);
+{
+  const BOUND = { timeout: 10000 };
+  const COUNT = () => {
+    window.__p3Writes = 0;
+    const set = Storage.prototype.setItem;
+    Storage.prototype.setItem = function (k, v) { if (k === 'prism3:brandInput') window.__p3Writes++; return set.call(this, k, v); };
+    window.__p3Fits = 0;
+    const gcs = window.getComputedStyle;
+    window.getComputedStyle = function (el, ...rest) { if (el instanceof Element && el.matches('[data-p3="bar-main"]')) window.__p3Fits++; return gcs.call(this, el, ...rest); };
+  };
+  const settle = (page) => page.evaluate(() => new Promise((r) => setTimeout(() => requestAnimationFrame(() => requestAnimationFrame(r)), 0)));
+  const writes = (page) => page.evaluate(() => window.__p3Writes);
+  const fits = (page) => page.evaluate(() => window.__p3Fits);
+  const zero = (page) => page.evaluate(() => { window.__p3Writes = 0; window.__p3Fits = 0; });
+  /** A mouse drag from the slider's thumb, rightward in small moves, as a user drags. Returns the value before and after. */
+  const drag = async (page, sel) => {
+    const el = page.locator(sel);
+    await el.scrollIntoViewIfNeeded();
+    const g = await el.evaluate((n) => { const r = n.getBoundingClientRect(); return { x: r.left, y: r.top + r.height / 2, w: r.width, v: Number(n.value), min: Number(n.min), max: Number(n.max), step: Number(n.step) || 1 }; });
+    // Start on the thumb (a press there moves nothing), and end three quarters of the way across the remaining track.
+    const at = g.x + ((g.v - g.min) / (g.max - g.min)) * g.w;
+    const to = at + (g.x + g.w - at) * 0.75;
+    await page.mouse.move(at, g.y);
+    await page.mouse.down();
+    for (let i = 1; i <= 12; i++) { await page.mouse.move(at + ((to - at) * i) / 12, g.y); await page.evaluate(() => new Promise((r) => requestAnimationFrame(r))); }
+    await page.mouse.up();
+    await settle(page);
+    const after = await page.locator(sel).evaluate((n) => Number(n.value));
+    return { before: g.v, after, step: g.step };
+  };
+
+  const where = '§46 web light 1280';
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  let step = 'install the counters';
+  try {
+    await page.evaluate(COUNT);
+    // Shape's softness (K3).
+    step = 'drag Shape\'s softness';
+    await goPlace(page, 'shape');
+    await hooks.need(page, '[data-p3="radius-scale-slider"]', BOUND);
+    await zero(page);
+    const sh = await drag(page, '[data-p3="radius-scale-slider"]');
+    const shWrites = await writes(page);
+    const shStored = (await persisted(page))?.radiusScale;
+    ok(sh.after - sh.before > sh.step * 1.5, `${where} Shape: a mouse drag moves the softness more than one step (${sh.before} → ${sh.after}, step ${sh.step})`);
+    ok(shWrites <= 1, `${where} Shape: a drag stores at most one write (${shWrites} written; stored ${JSON.stringify(shStored)})`);
+
+    // A9: an identical brand repaint re-measures the bar zero times. The first step may change the bar (its dirty state);
+    // the second changes nothing there.
+    step = 'step the softness twice by keyboard';
+    await page.locator('[data-p3="radius-scale-slider"]').focus();
+    await page.keyboard.press('ArrowLeft');
+    await settle(page);
+    await zero(page);
+    await page.keyboard.press('ArrowLeft');
+    await settle(page);
+    const f = await fits(page);
+    ok(f === 0, `${where} A9: a brand repaint that changes nothing in the bar re-measures it zero times (${f} measureFit call(s))`);
+
+    // Layout's Maximum width.
+    step = 'drag Layout\'s Maximum width';
+    await goPlace(page, 'layout');
+    await hooks.need(page, '[data-p3="container-max-range"]', BOUND);
+    await zero(page);
+    const mx = await drag(page, '[data-p3="container-max-range"]');
+    const mxWrites = await writes(page);
+    const mxStored = (await persisted(page))?.layout?.containerMax ?? null;
+    ok(mx.after - mx.before > mx.step * 1.5 && mxStored === mx.after, `${where} Layout: a mouse drag moves the Maximum width more than one step, and stores where it ends (${mx.before} → ${mx.after}, step ${mx.step}, stored ${mxStored})`);
+    ok(mxWrites <= 1, `${where} Layout: a drag on the Maximum width stores at most one write (${mxWrites} written)`);
+
+    // The onCommitted capture: a breakpoint commits the value it held at `change`.
+    step = 'commit a breakpoint, then write over the field in the same task';
+    await hooks.need(page, '[data-p3="bp-input"]', BOUND);
+    await page.evaluate(() => {
+      const fld = document.querySelectorAll('[data-p3="bp-input"]')[2];
+      fld.focus();
+      fld.value = '1100';
+      fld.dispatchEvent(new Event('change', { bubbles: true }));
+      fld.value = '1200';   // a repaint inside the task `change` fired in
+    });
+    await settle(page);
+    await page.waitForTimeout(200);
+    const bps = (await persisted(page))?.layout?.breakpoints ?? null;
+    ok(JSON.stringify(bps) === JSON.stringify([0, 768, 1100, 1440, 1920]), `${where} onCommitted: a committed field commits the value it held at change, not one written after it (stored ${JSON.stringify(bps)})`);
+
+    // A burst of color-picker inputs.
+    step = 'a burst of 20 primary-color inputs';
+    await goPlace(page, 'color-palettes');
+    await hooks.need(page, '[data-p3="primary-color"]', BOUND);
+    await zero(page);
+    // How many times the brand was re-resolved is read off the field's OKLCH readout, which every rebuild rewrites
+    // with the new color: a MutationObserver counts its text changes. 20 inputs in one task are one frame.
+    const last = await page.evaluate(() => {
+      const p = document.querySelector('[data-p3="primary-color"]');
+      const meta = p.closest('.p3-colorfield')?.querySelector('.p3-colorfield-meta');
+      window.__p3Meta = 0;
+      new MutationObserver((rs) => { window.__p3Meta += rs.length; }).observe(meta, { childList: true, characterData: true, subtree: true });
+      let hx = '';
+      for (let i = 0; i < 20; i++) { hx = `#${(0x204080 + i * 0x010203).toString(16).padStart(6, '0')}`; p.value = hx; p.dispatchEvent(new Event('input', { bubbles: true })); }
+      p.dispatchEvent(new Event('change', { bubbles: true }));
+      return hx;
+    });
+    await settle(page);
+    const pw = await writes(page);
+    const runs = await page.evaluate(() => window.__p3Meta);
+    const shown = await page.locator('[data-p3="primary-hex"]').inputValue();
+    ok(runs === 1 && shown === last, `${where} picker: 20 color inputs in one frame re-resolve the brand once, and draw the last color (${runs} readout change(s); field ${shown}, last ${last})`);
+    ok(pw === 1, `${where} picker: 20 color inputs and a release store once (${pw} written)`);
+    ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+  } finally { await ctx.close(); }
+// A10 (figma 1280): a host message while the Export dialog is open repaints the bar but leaves the dialog as it is: the
+// same node, the import text and its caret where they were. A marker set on the node by the TEST says whether it is the
+// same one; the message is an Apply verdict, which changes nothing the dialog shows.
+{
+  const where = '§46 figma light 1280';
+  const { ctx, page, errors } = await open({ host: 'figma', theme: 'light', w: 1280, h: 900 });
+  let step = 'open Export and its import box';
+  try {
+    await hooks.click(page.locator('[data-p3="export-open"]'), BOUND);
+    await hooks.need(page, '[data-p3="export-dialog"]', BOUND);
+    await hooks.click(page.locator('[data-p3="export-import"]'), BOUND);
+    await hooks.need(page, '[data-p3="import-text"]', BOUND);
+    step = 'type into the import box and put the caret mid-text';
+    const ta = page.locator('[data-p3="import-text"]');
+    await ta.fill('---\nname: caret test\n---');
+    await ta.evaluate((n) => { n.focus(); n.setSelectionRange(4, 4); n.closest('[data-p3="export-dialog"]').__p3Mark = 'kept'; });
+    step = 'a host message';
+    // A verdict is a `host` notification, which the bar repaints on; the premise below reads that it reached the bar.
+    await page.evaluate(() => { window.__p3Bar = 0; new MutationObserver((rs) => { window.__p3Bar += rs.length; }).observe(document.querySelector('[data-p3="bar-main"]'), { subtree: true, childList: true, attributes: true, characterData: true }); });
+    await postMsg(page, { type: 'apply-result', ok: true, headline: '✓ Applied 412 variables', summary: '412 variables written.' });
+    await settle(page);
+    const barMoved = await page.evaluate(() => window.__p3Bar);
+    ok(barMoved > 0, `${where} A10 premise: the host message reached the bar (${barMoved} mutation record(s))`);
+    const st = await page.evaluate(() => {
+      const d = document.querySelector('[data-p3="export-dialog"]');
+      const t = document.querySelector('[data-p3="import-text"]');
+      return { mark: d?.__p3Mark ?? null, value: t?.value ?? null, caret: t?.selectionStart ?? null, focused: document.activeElement === t };
+    });
+    ok(st.mark === 'kept' && st.value === '---\nname: caret test\n---' && st.caret === 4 && st.focused,
+      `${where} A10: a host message leaves the open Export dialog as it is, the import text and its caret in place (${JSON.stringify(st)})`);
+    ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+  } finally { await ctx.close(); }
+}
 }
 // #2238: the check box is measured on both hosts, in both chrome themes, somewhere in the sweep.
 for (const [k, n] of Object.entries(BOXES_BY)) ok(n > 0, `#2238 ${k}: the contrast audit measured check boxes in the sweep (${n})`);

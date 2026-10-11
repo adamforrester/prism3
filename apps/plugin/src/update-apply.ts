@@ -55,7 +55,7 @@ import { planTargets, presentNames } from './build-deps';
 import { NS } from './persist-figma';
 import { baselineDiff, baselineOf, readBaseline, snapshotMember } from './member-baseline';
 import { drawnFaults, faultLine, varsById } from './drawn';
-import { hostPorts, previewUpdate, readSetView, readSingleView, type SetPreview, type UpdateHost, type UpdatePreview, type UpdateTarget } from './update-plan';
+import { hostPorts, previewLine, previewUpdate, readSetView, readSingleView, setUpToDate, type SetPreview, type UpdateHost, type UpdatePreview, type UpdateTarget } from './update-plan';
 
 /** The set's record of the members an update kept and marked deprecated (Q2): a JSON list of member names. */
 export const RETAINED_KEY = 'retained';
@@ -125,6 +125,9 @@ export type SetOutcome = {
   content: string[];
   /** The build pass's own misses, apart from its notes on members it was told to leave alone. */
   misses: string[];
+  /** For a set the apply entered with nothing to write: the dry run's own set line, and whether the dry run called the
+   *  set up to date. The verdict says what the dry run said (#2495, owner Q205 A). */
+  asPreviewed?: { line: string; upToDate: boolean };
   /** Set when the run stopped in this set. */
   stopped?: string;
   /** Members the dry run read as built by an earlier plugin and otherwise unchanged (`revisionUnknown`): given the
@@ -538,7 +541,7 @@ export const applyUpdate = async (
       // A set left alone must not leave a difference the dry run named: each is a failure of this set, by name,
       // the way verify's content check names a field an applied member still holds. Never "already up to date".
       const left = p.changes.filter((c) => c.field !== 'stamp').map((c) => `${c.sample[0] ?? p.set}/${c.part}.${c.field}: ${c.from} (the plan says ${c.to})`);
-      res.outcomes.push({ def: t.def, set: p.set, updated: [], added: 0, renamed: 0, deprecated: [], skipped: [], kept: [], unrecorded: [], handEdits: choiceFor(opts.choices, p.set), identity: [], content: left, misses: [] });
+      res.outcomes.push({ def: t.def, set: p.set, updated: [], added: 0, renamed: 0, deprecated: [], skipped: [], kept: [], unrecorded: [], handEdits: choiceFor(opts.choices, p.set), identity: [], content: left, misses: [], asPreviewed: { line: previewLine(p), upToDate: setUpToDate(p) } });
       continue;
     }
     ready.push({ t, p, live });
@@ -613,7 +616,9 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
       o.earlierRecord?.length ? `${o.earlierRecord.length} of them recorded by an earlier plugin version` : '',
       o.skipped.length ? `${o.skipped.length} left as they are` : '',
     ].filter(Boolean);
-    lines.push(parts.length ? `${o.set}: ${parts.join(', ')}.` : `${o.set}: already up to date.`);
+    // A set the apply entered with nothing to write reads as its dry run read it (Q205 A): never "already up to date"
+    // for a set the dry run doesn't call up to date (one Adopt could claim a member of, #2495).
+    lines.push(parts.length ? `${o.set}: ${parts.join(', ')}.` : o.asPreviewed && !o.asPreviewed.upToDate ? o.asPreviewed.line : `${o.set}: already up to date.`);
     if (o.identity.length) lines.push(`${o.set}: component IDs changed — ${o.identity.slice(0, 3).join('; ')}${o.identity.length > 3 ? '; …' : ''}.`);
     if (o.content.length) lines.push(`${o.set}: ${n(o.content.length, 'field')} still differ from the plan — ${o.content.slice(0, 3).join('; ')}${o.content.length > 3 ? '; …' : ''}.`);
   }
@@ -627,6 +632,6 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
           : added ? `✓ added ${added}`
             : deprecated ? `✓ ${deprecated} marked deprecated`
               : renamed ? `✓ renamed ${renamed}`
-                : moved ? `✓ moved ${moved}` : '✓ already up to date';
+                : moved ? `✓ moved ${moved}` : r.outcomes.some((o) => o.asPreviewed && !o.asPreviewed.upToDate) ? '✓ No changes found' : '✓ already up to date';
   return { ok: !stopped && !failed.length && !refused, headline, summary: lines.join('\n'), lines };
 };

@@ -789,7 +789,7 @@ const renderPreviewTokens = (host: HTMLElement, repaint: () => void): void => {
   // #466 — tok-seg is the L3 (nested) modifier of the shared view segment
   const seg = el('div', mix('pvseg', 'tok-seg'));
   for (const [k, label] of [['primitive', 'Primitives'], ['semantic', 'Semantics']] as Array<[TokTier, string]>) {
-    const b = el('button', 'pvseg-b' + (tokTier === k ? ' on' : ''), label) as HTMLButtonElement;
+    const b = hook(el('button', 'pvseg-b' + (tokTier === k ? ' on' : ''), label), `token-tier-${k}`) as HTMLButtonElement;
     b.onclick = () => { if (tokTier !== k) { tokTier = k; tokCat = ''; repaint(); } };
     seg.append(b);
   }
@@ -806,7 +806,7 @@ const renderPreviewTokens = (host: HTMLElement, repaint: () => void): void => {
 
     const pseg = el('div', 'seg');
     for (const [k, label] of [['full', 'Full'], ['short', 'Short']] as Array<['full' | 'short', string]>) {
-      const b = el('button', 'seg-b' + (tokPath === k ? ' on' : ''), label) as HTMLButtonElement;
+      const b = hook(el('button', 'seg-b' + (tokPath === k ? ' on' : ''), label), `token-path-${k}`) as HTMLButtonElement;
       b.onclick = () => { if (tokPath !== k) { tokPath = k; repaint(); } };
       pseg.append(b);
     }
@@ -910,7 +910,13 @@ const renderPreviewStyleGuide = (host: HTMLElement, repaint: () => void): void =
   // Sentence case, like every other `pfield` label in the app. `.pfk` uppercases it, so the casing is
   // invisible in the rendered view — but the string is what the next reader copies, and doc 29 §2b
   // states the rule (#504 review).
-  bar.append(pfield('View style guide on', stack));
+  const field = pfield('View style guide on', stack);
+  // D2 (#2487): the select is named by this caption, which `pfield` draws as a plain span. The id is per draw, so a
+  // second Style guide in the document could not take this one's name.
+  const cap = field.querySelector<HTMLElement>('.pfk')!;
+  cap.id = `sg-ground-cap-${++sgGroundCaps}`;
+  sel.setAttribute('aria-labelledby', cap.id);
+  bar.append(field);
   host.append(bar);
 
   // The type sample first, before Background (#1942, owner decision Q67), shared with the Type preview: a few of
@@ -988,6 +994,8 @@ const renderGeneratedNote = (): HTMLElement => {
  *  the Style guide is Brand's preview, lent to `preview/brand.ts`, and the contract table and the token
  *  list are Inspect's (S1.3). */
 let sgSurface = 'background.primary';
+/** How many surface captions have been drawn, for each one's id (D2, #2487). */
+let sgGroundCaps = 0;
 
 // The component catalog's host accessor (`componentCatalog`) moved to `state/component-catalog.ts` in UI redesign S8.2,
 // beside the catalog it reads; the Components page lists it (`preview/components.ts`).
@@ -1243,7 +1251,9 @@ let importOpen = false;
 let importErr: string | null = null;
 let importText = '';            // M-17: survives re-renders so a failed paste isn't wiped
 /** A14 (#2487): which read of the import box's file picker is current. A read finishing after its box closed, reopened
- *  or took another file loads nothing. Bumped by each read, and by the two controls that can reopen the box. */
+ *  or took another file loads nothing. Bumped by each read, by the two controls that can reopen the box, and by every
+ *  staged load (#2503): a pasted Load or an example chosen while a read is held is the newer choice, so the late read
+ *  must not replace the brand a waiting confirm names, or the paste's error. */
 let importGen = 0;
 /** A load waiting on confirm-overwrite (#160 for import; #1033 extends it to the other two writers).
  *
@@ -1297,8 +1307,8 @@ subscribe('brand', () => {
 const loadBrand = (input: BrandInput, origin: Origin): void => {
   // The store replaces the input, sets the provenance from that same value, and resets the view to
   // the first page and mode (`loadInput`); what is left here is this file's own menus and the render.
-  // `loadInput` sets the page before it resolves the new brand, so the `page` subscriber must not
-  // render mid-load: the `build()` below is the one render, against the resolved brand.
+  // `loadInput` tells its subscribers once each, after the new brand is resolved (#2487 A13); the `page`
+  // subscriber still waits for `loading` to clear, because the `build()` below is this file's one render.
   loading = true;
   // #1994: a brand loading is what ends a `rejected` or `unreadable` restore failure (see `restoreFailure`).
   if (restoreFailure && restoreFailure.kind !== 'unresolved') restoreFailure = null;
@@ -1367,6 +1377,7 @@ const exportTokens = (): void => {
  *  it is true, and #160's guarantee is strengthened rather than weakened: it still cannot overwrite
  *  real edits silently. */
 const stageImport = (text: string, from: 'paste' | 'file'): void => {
+  importGen++;                    // #2503: a held file read is now older than this choice, failed paste included
   importText = text;              // M-17: keep the paste so an error re-render doesn't wipe it
   const res = from === 'paste' ? validatePaste(text) : validateDesignMd(text);
   if ('error' in res) { importErr = importErrorText(res.error); pendingLoad = null; barChanged(); return; }
@@ -1389,6 +1400,7 @@ const stageImport = (text: string, from: 'paste' | 'file'): void => {
  * still an edit the user would be upset to lose.
  */
 const stageLoad = (input: BrandInput, origin: Origin): void => {
+  importGen++;                    // #2503: an example chosen while a file read is held outranks the read
   if (!needsOverwriteConfirm(brandState, provenance)) { loadBrand(input, origin); return; }
   pendingLoad = { input, origin }; barChanged();
 };
