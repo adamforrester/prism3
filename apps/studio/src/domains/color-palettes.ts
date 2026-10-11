@@ -28,7 +28,7 @@ import {
 import { DOMAINS, type PageData, type Section } from '../shell/pages';
 import { glyph, h, hook } from '../shell/dom';
 import { noteEdit } from '../preview/follow-edit';
-import { choice, colorField, inlineConfirm, leverBlock, onCommitted, setText, leverOf, selectField, sliderReadout, slider, stateLine, subLine, type LeverBlock } from '../ui/lever-kit';
+import { choice, colorField, inlineConfirm, leverBlock, onCommitted, perFrame, setText, leverOf, selectField, sliderReadout, slider, stateLine, subLine, type LeverBlock } from '../ui/lever-kit';
 
 const PAGE = (DOMAINS.find((d) => d.id === 'color') as { subpages: readonly PageData[] }).subpages.find((p) => p.id === 'palettes')!;
 const pad = (n: number): string => String(n).padStart(3, '0');
@@ -116,16 +116,17 @@ export const mountPalettesLevers = (host: HTMLElement, cleanups: (() => void)[])
         pick.type = 'color';
         pick.dataset.content = '';
         pick.setAttribute('aria-label', `${c.name} color`);
-        pick.addEventListener('input', () => edit('brandColors', () => setBrandColor(i, pick.value), brandState.brandColors?.[i]?.name));
+        const drag = perFrame(pick, (hx: string) => edit('brandColors', () => setBrandColor(i, hx), brandState.brandColors?.[i]?.name));
+        pick.addEventListener('input', () => drag(pick.value));
         const name = hook(h('input', 'p3-hex-input p3-name-input'), 'brand-color-name');
         name.type = 'text';
         name.spellcheck = false;
         name.value = c.name;
         name.setAttribute('aria-label', 'Brand color name');
         // Committed through the kit (#2487 A2), so Tab out of it keeps focus.
-        onCommitted(name, () => {
+        onCommitted(name, (v) => {
           // Refused names (empty, unchanged, another palette's) put the old name back; nothing is written.
-          if (!renameBrandColor(i, name.value)) { name.value = brandState.brandColors?.[i]?.name ?? c.name; return; }
+          if (!renameBrandColor(i, v)) { name.value = brandState.brandColors?.[i]?.name ?? c.name; return; }
           lastEdited = 'brandColors';
           rebuild();
         });
