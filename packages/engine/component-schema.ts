@@ -446,6 +446,14 @@ export type PartDef = {
    *  Refused alongside `padding` (a box states its padding once), on a box with no `layout` (Figma pads only an
    *  auto-layout frame), and on every other kind. */
   paddingTop?: string;
+  /** For `box` parts: the box is a NATIVE FIGMA SLOT (#2417), the region a designer fills with their own content
+   *  on an instance, in place, with no component to make first. Its children are the slot's DEFAULT content (a
+   *  placeholder the designer replaces). The set gets one SLOT property named for the part; Figma merges every
+   *  member's slot of that name into it at the combine, and a designer's content survives a variant switch,
+   *  measured on a real host (an expansion switch to a member without the slot and back). Not an instance-swap
+   *  `slot` part: that one swaps a whole component the designer must have made, and its target is the one
+   *  nominated per file. A `box` with `layout` only, and never the root (a slot is a region inside a member). */
+  contentSlot?: true;
   /** For `box` parts: WHICH paint slots this box takes, in precedence order (#933). Absent means the
    *  box paints nothing — it is structure, and `field-label`'s and `field-message`'s boxes are exactly
    *  that. The words must come from `BOX_PAINT_SLOTS`.
@@ -4087,6 +4095,12 @@ const anatomyErrors = (def: ComponentDef): string[] => {
         e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'grow' — only a 'box' grows along its parent's main axis ('wrap' is the text twin); a nested instance's child-side writes are its parent's, and only 'crossAxisFill' is threaded there`);
       else if (!boundedMain)
         e.push(`anatomy part '${n}' declares 'grow' but its parent '${parent ?? '(none)'}' does not bound its main axis (a row needs a 'minWidth' floor, a fixed width, a width it fills from a bounded parent, or 'crossAxisFill' under a column; a column a fixed height, or 'crossAxisFill' under a row) — 'layoutGrow' fills REMAINING space and a hugging parent has none`);
+    }
+    // ---- NATIVE CONTENT SLOT (`contentSlot`, #2417) ----
+    if (p.contentSlot) {
+      if (p.kind !== 'box') e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'contentSlot' — only a 'box' can be a native slot (Figma's slot is a frame)`);
+      else if (!p.layout) e.push(`anatomy part '${n}' declares 'contentSlot' but binds no 'layout' — a slot holds a designer's content, and only an auto-layout frame flows it`);
+      if (n === a.root) e.push(`anatomy part '${n}' declares 'contentSlot' on the root — a slot is a region inside a member, never the member itself`);
     }
     // ---- TOP-ONLY PADDING (`paddingTop`) ----
     if (p.paddingTop !== undefined) {

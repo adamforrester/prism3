@@ -1251,7 +1251,9 @@ export const makeShim = (opts: ShimOpts = {}) => {
         });
         continue;
       }
-      let held: Record<string, string> | null = null;
+      // Seeded from what the node already holds: a native slot's reference is written by the host at the combine
+      // (#2417), before this setter is installed, and a guard that started from null would erase it.
+      let held: Record<string, string> | null = ((n as Record<string, unknown>).componentPropertyReferences as Record<string, string> | null | undefined) ?? null;
       Object.defineProperty(n, 'componentPropertyReferences', {
         configurable: true,
         get: () => held,
@@ -1546,7 +1548,21 @@ export const makeShim = (opts: ShimOpts = {}) => {
       // Inside the build loop, once per built member; the burn is charged on the first one only, so it
       // lands in exactly one chunk (#1848).
       if (opts.burn?.member && !memberBurned) { memberBurned = true; charge(opts.burn.member); }
-      n.type = 'COMPONENT'; giveKey(n); return n;
+      n.type = 'COMPONENT'; giveKey(n);
+      // NATIVE SLOTS (#2417): a COMPONENT's `createSlot` makes a SLOT, which is a frame in every respect the build
+      // writes (layout, padding, sizing, children). Unparented here; the executor places it, as it places any node.
+      // AS MEASURED: appended as the component's last child, named `Slot`. On a member ALREADY IN A SET the set gains a
+      // SLOT property at once, whose name follows the node's (a second member's slot gets its own property; only the
+      // combine merges by name). Before the combine, the combine registers it (below).
+      n.createSlot = () => {
+        const sl = mkNode('FRAME'); sl.type = 'SLOT'; sl.name = 'Slot';
+        (n.appendChild as (c: Node) => void)(sl);
+        const set = n.parent as Node | null;
+        const register = set?.type === 'COMPONENT_SET' ? (set as Record<string, unknown>)._slotProp as ((x: Node) => void) | undefined : undefined;
+        if (register) register(sl);
+        return sl;
+      };
+      return n;
     },
     combineAsVariants: (members: Node[], parent?: unknown) => {
       // Between the build loop's last boundary and the wire loop's first — the window the wire re-stamp
@@ -1582,6 +1598,8 @@ export const makeShim = (opts: ShimOpts = {}) => {
       set.dashPattern = [10, 5];
       for (const c of ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius']) (set as Record<string, unknown>)[c] = 5;
       takeFromPage(members);
+      // A member's parent is its set, as on the host: a native slot made on it later finds the set this way (#2417).
+      for (const m of members) if (!m.parent) m.parent = set;
       // #1568 — RECORD WHICH MEMBER OWNS EACH NODE, so `refuseRefsUntilYield` can refuse by member name.
       // Re-run over every twin the detach/settle paths install below, because a twin is a different object
       // standing at the same coordinate and a refusal keyed on the original would miss it.
@@ -1715,10 +1733,44 @@ export const makeShim = (opts: ShimOpts = {}) => {
       set.appendChild = (c: Node) => {
         (set.children as Node[]).push(c);
         takeFromPage([c]);
+        if (!c.parent) c.parent = set;
+        // A member APPENDED to an existing set merges its slots into the set's SLOT property of that name, as the
+        // combine does (measured, #2417); a name the set has no property for gets one.
+        (set as Record<string, unknown>)._mergeSlots?.(c);
         guardRefs({ ...set, declaredIds: set.declaredIds, findAll: () => [c, ...((c.findAll as () => Node[])?.() ?? [])] } as Node, (id) => defs[id]);
       };
       const defs: Record<string, { type: string; defaultValue?: unknown; variantOptions?: string[] }> = {};
       let seq = 100;
+      // NATIVE SLOTS (#2417), AS MEASURED ON A REAL HOST: every member's SLOT of one name merges into ONE SLOT
+      // property on the set at the combine, and each slot node references it as `slotContentId`. A slot property
+      // has no default value. Registered before `guardRefs` below installs its validating setter.
+      const slotKeys = new Map<string, string>();
+      (set as Record<string, unknown>)._mergeSlots = (m: Node): void => {
+        for (const sl of ((m.findAll as () => Node[])?.() ?? []).filter((x) => x.type === 'SLOT')) {
+          const nm = String(sl.name);
+          let key = Object.keys(defs).find((k) => defs[k].type === 'SLOT' && k.split('#')[0] === nm);
+          if (!key) { key = `${nm}#103:${seq++}`; defs[key] = { type: 'SLOT' }; }
+          sl.componentPropertyReferences = { slotContentId: key };
+        }
+      };
+      // A slot made on a member already in this set: its own property, named for the node and renamed with it.
+      (set as Record<string, unknown>)._slotProp = (sl: Node): void => {
+        let key = `${String(sl.name)}#103:${seq++}`;
+        defs[key] = { type: 'SLOT' };
+        sl.componentPropertyReferences = { slotContentId: key };
+        let nm = String(sl.name);
+        Object.defineProperty(sl, 'name', { configurable: true, enumerable: true, get: () => nm, set: (v: string) => {
+          nm = v;
+          if (defs[key]) { const next = `${v}#${key.split('#')[1]}`; defs[next] = defs[key]; delete defs[key]; key = next; sl.componentPropertyReferences = { slotContentId: key }; }
+        } });
+      };
+      for (const m of members)
+        for (const sl of ((m.findAll as () => Node[])?.() ?? []).filter((x) => x.type === 'SLOT')) {
+          const nm = String(sl.name);
+          let key = slotKeys.get(nm);
+          if (!key) { key = `${nm}#103:${seq++}`; slotKeys.set(nm, key); defs[key] = { type: 'SLOT' }; }
+          sl.componentPropertyReferences = { slotContentId: key };
+        }
       // A GETTER, not a snapshot: the axes Figma derives come from the member NAMES, so a set that
       // gained members by `appendChild` must report the wider axis. And a DUPLICATE member name makes
       // this getter THROW live while `addComponentProperty` keeps succeeding — precisely the trap the
@@ -1750,6 +1802,8 @@ export const makeShim = (opts: ShimOpts = {}) => {
         return Object.assign(out, defs);
       };
       const addProp = (name: string, type: string, defaultValue: unknown): string => {
+        // #2417 — measured: a SLOT property cannot be added with no default; the host makes one only through a slot node.
+        if (type === 'SLOT') throw new Error('in addComponentProperty: Property "node.addComponentProperty.defaultValue" failed validation: Required value missing');
         if (type === 'INSTANCE_SWAP' && typeof defaultValue !== 'string')
           throw new Error('in addComponentProperty: Property value is incompatible with component property type');
         if (type === 'BOOLEAN' && typeof defaultValue !== 'boolean')

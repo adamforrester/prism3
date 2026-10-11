@@ -17778,7 +17778,7 @@ arm: {
      *  Both exist because they answer different questions: `insetValue` is how the not-a-number case is
      *  reached (one bad value, whichever name asks), and `varOverrides` is how the two halves of the ring's
      *  coordinate are given DIFFERENT values, which is the only way to tell a sum from a doubling (#801). */
-    type StubOpts = { vars?: string[]; styles?: string[]; comps?: string[]; page?: StubPage; insetValue?: unknown; varOverrides?: Record<string, unknown>; varValues?: Record<string, number>; fileNodes?: StubFileNode[]; nestedInstanceParts?: string[]; effectStyles?: string[]; gradientDiscard?: 'paint' | 'bindings'; textMetrics?: { fontSize: number; lineHeight: { unit: string; value: number } }; setStrokes?: Record<string, unknown>[] };
+    type StubOpts = { vars?: string[]; styles?: string[]; comps?: string[]; page?: StubPage; insetValue?: unknown; varOverrides?: Record<string, unknown>; varValues?: Record<string, number>; fileNodes?: StubFileNode[]; nestedInstanceParts?: string[]; effectStyles?: string[]; gradientDiscard?: 'paint' | 'bindings'; textMetrics?: { fontSize: number; lineHeight: { unit: string; value: number } }; setStrokes?: Record<string, unknown>[]; noSlots?: boolean };
     /** The two halves of a focus ring's coordinate, the real NB values (`focus.ring.offset` /
      *  `focus.ring.width` — both 2 in every emitted brand). NAMED, and named HERE, because they are the
      *  stub's INPUT and the geometry assertions' EXPECTED at once, and #801 is what that costs when the
@@ -18161,6 +18161,21 @@ arm: {
             Object.defineProperty(node, 'height', { configurable: true, value: h, writable: true });
           },
           appendChild(c: Record<string, unknown>) { c.parent = node; (node.children as unknown[]).push(c); },
+          // #2417 — a MOVE, as on the host: out of its old parent, into this one at `i`. The paste executor's slot
+          // conversion places the slot and moves its default content with it.
+          insertChild(i: number, c: Record<string, unknown>) {
+            const from = c.parent as Record<string, unknown> | undefined;
+            const kids = from?.children as unknown[] | undefined;
+            if (kids) { const k = kids.indexOf(c); if (k >= 0) kids.splice(k, 1); }
+            c.parent = node;
+            (node.children as unknown[]).splice(Math.max(0, Math.min(i, (node.children as unknown[]).length)), 0, c);
+          },
+          // #2417 — out of the tree: the frame a native slot replaced.
+          remove() {
+            const kids = (node.parent as Record<string, unknown> | undefined)?.children as unknown[] | undefined;
+            if (kids) { const k = kids.indexOf(node); if (k >= 0) kids.splice(k, 1); }
+            node.parent = null;
+          },
           // Walks descendants for real, rather than returning `[]`. The set payload finds each part by
           // NAME inside every member to wire its property reference, so a stub that finds nothing would
           // let the whole wiring loop no-op and every assertion below pass on an empty set of writes.
@@ -18474,10 +18489,26 @@ arm: {
           set.appendChild = (c: Record<string, unknown>) => {
             (set.children as Record<string, unknown>[]).push(c);
             takeFromPage([c]);
+            mergeSlots(c);
             guardRefs({ ...set, declaredIds: set.declaredIds, findAll: () => [c, ...((c.findAll as () => unknown[])?.() ?? [])] } as Record<string, unknown>, (id) => defs[id]);
           };
           const defs: Record<string, { type: string; defaultValue?: unknown; variantOptions?: string[] }> = {};
           let seq = 100;
+          // #2417 — NATIVE SLOTS, as measured on a real host and as `component-shim.ts` models them: a member's slots
+          // merge by name into one SLOT property at the combine, and a member APPENDED later merges the same way.
+          const mergeSlots = (m: Record<string, unknown>): void => {
+            for (const sl of ((m.findAll as () => Record<string, unknown>[])?.() ?? []).filter((x) => x.type === 'SLOT')) {
+              const nm = String(sl.name);
+              let key = Object.keys(defs).find((k) => defs[k].type === 'SLOT' && k.split('#')[0] === nm);
+              if (!key) { key = `${nm}#103:${seq++}`; defs[key] = { type: 'SLOT' }; }
+              sl.componentPropertyReferences = { slotContentId: key };
+            }
+          };
+          for (const m of members) mergeSlots(m);
+          set.deleteComponentProperty = (key: string) => {
+            if (!defs[key]) throw new Error(`in deleteComponentProperty: Could not find a component property with name: '${key}'`);
+            delete defs[key];
+          };
           // A GETTER, not a snapshot, for two reasons the chunked path depends on. The axes Figma derives
           // come from the member NAMES (the wire format `planComponentName` emits), so a set that gained
           // members by `appendChild` must report the wider axis — a snapshot taken at combine time would
@@ -18503,6 +18534,9 @@ arm: {
             },
           });
           set.addComponentProperty = (name: string, type: string, defaultValue: unknown) => {
+            // #2417 — measured: a SLOT property cannot be added with no default ("Required value missing"); the host makes
+            // one only through a slot node.
+            if (type === 'SLOT') throw new Error('in addComponentProperty: Property "node.addComponentProperty.defaultValue" failed validation: Required value missing');
             if (type === 'INSTANCE_SWAP' && typeof defaultValue !== 'string')
               throw new Error('in addComponentProperty: Property value is incompatible with component property type');
             if (type === 'BOOLEAN' && typeof defaultValue !== 'boolean')
@@ -18529,7 +18563,15 @@ arm: {
         // precondition is stated in terms of containment, and a root that never becomes a component could only
         // ever refuse the deferred write. Returning the same object is right (Figma converts in place); the
         // type change is what lets `__exposeNow` succeed the moment it runs after this call.
-        createComponentFromNode: (n: unknown) => { (n as Record<string, unknown>).type = 'COMPONENT'; return n; },
+        createComponentFromNode: (n: unknown) => {
+          const c = n as Record<string, unknown>;
+          c.type = 'COMPONENT';
+          // #2417 — a COMPONENT's native slot: a SLOT that is a frame in every respect the build writes, appended as
+          // the component's last child and named `Slot`, as measured.
+          // `noSlots` models a host without the feature, which the payload must name rather than build around silently.
+          if (!opts.noSlots) c.createSlot = () => { const sl = mkNode('FRAME') as Record<string, unknown>; sl.type = 'SLOT'; sl.name = 'Slot'; (c.appendChild as (x: unknown) => void)(sl); return sl; };
+          return n;
+        },
         // A page a payload can SEARCH, not just append to. The chunked path finds its set here by name
         // and type, so `findOne` has to be real; a stub returning `null` would send every chunk down the
         // combine branch and build N separate sets while every assertion below still passed.
@@ -18567,7 +18609,8 @@ arm: {
             });
             continue;
           }
-          let held: Record<string, string> | null = null;
+          // Seeded from what the node holds: a native slot's reference is the host's, written at the combine (#2417).
+          let held: Record<string, string> | null = ((n as Record<string, unknown>).componentPropertyReferences as Record<string, string> | null | undefined) ?? null;
           Object.defineProperty(n, 'componentPropertyReferences', {
             configurable: true,
             get: () => held,
@@ -19648,6 +19691,39 @@ arm: {
       };
       const setRun = await runPayload(planSetToPluginJs(grid), fullSet);
       ok(setRun.misses.length === 0, `set properties: the set payload runs CLEAN end to end${setRun.misses.length ? ` — ${JSON.stringify(setRun.misses)}` : ''}`);
+
+      // ---- #2417: NATIVE SLOTS through the PASTE executor ----
+      // A TEST-ONLY def, Tag with its dismiss cell declared a slot (as `apps/plugin/test-native-slots.ts` builds it
+      // through the plugin executor): the 15 dismissible members carry it, the 30 others do not. Each cell must come
+      // back a SLOT, and the set must hold ONE SLOT property that every slot references. Mutations: `__slotsNow` not
+      // called → `#2417 paste: …` (FRAME cells, no property); the SLOT skip in the property loop dropped → the same
+      // arm (an `addComponentProperty` refused for want of a default).
+      {
+        const tagDef = componentDefs.find((d) => d.id === 'tag')!;
+        const slottedTag: ComponentDef = { ...tagDef, anatomy: { ...tagDef.anatomy!, parts: { ...tagDef.anatomy!.parts, dismiss: { ...tagDef.anatomy!.parts.dismiss, contentSlot: true } } } };
+        const sg = figmaAnatomySet(slottedTag, { swapTarget: 'FPO-default-icon' });
+        const page = { children: [] as Record<string, unknown>[] };
+        const run = await runPayload(planSetToPluginJs(sg), {
+          vars: sg.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]),
+          styles: sg.flatMap((p) => planTextStyles(p.root)),
+          // Every component the plans reach for, read off the plans (Tag nests the icon components it draws).
+          comps: [...new Set(sg.flatMap((p) => { const walk = (n: { swapTarget?: string; nestTarget?: string; children: unknown[] }): string[] => [...(n.swapTarget ? [n.swapTarget] : []), ...(n.nestTarget ? [n.nestTarget] : []), ...(n.children as (typeof n)[]).flatMap(walk)]; return walk(p.root); }))],
+          page,
+        });
+        const set = page.children.find((c) => c.type === 'COMPONENT_SET') as Record<string, unknown> | undefined;
+        const every = (n: Record<string, unknown>): Record<string, unknown>[] => [n, ...(((n.children as Record<string, unknown>[]) ?? []).flatMap(every))];
+        const cells = ((set?.children as Record<string, unknown>[]) ?? []).flatMap((m) => every(m).filter((n) => n.name === 'dismiss'));
+        const slotDefs = Object.entries(((set?.componentPropertyDefinitions ?? {}) as Record<string, { type: string }>)).filter(([, d]) => d.type === 'SLOT');
+        ok(run.misses.length === 0 && cells.length === 15 && cells.every((n) => n.type === 'SLOT') && slotDefs.length === 1
+          && cells.every((n) => (n.componentPropertyReferences as Record<string, string> | null)?.slotContentId === slotDefs[0][0])
+          && cells.every((n) => ((n.children as Record<string, unknown>[]) ?? []).map((c) => String(c.name)).join() === 'dismissGlyph'),
+          `#2417 paste: the paste executor builds each dismiss cell as a native SLOT holding its glyph, and the set holds one SLOT property they all reference (${cells.length} cells, ${[...new Set(cells.map((n) => n.type))].join('/')}; ${slotDefs.map(([k]) => k).join(', ') || 'no SLOT property'}${run.misses.length ? `; misses ${JSON.stringify(run.misses.slice(0, 2))}` : ''})`);
+        // A HOST WITHOUT NATIVE SLOTS: each cell stays a frame, and the payload names both what it could not make and
+        // the property that therefore never existed, rather than an `addComponentProperty` the host refuses.
+        const bare = await runPayload(planSetToPluginJs(sg), { vars: sg.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]), styles: sg.flatMap((p) => planTextStyles(p.root)), comps: [...new Set(sg.flatMap((p) => { const walk = (n: { swapTarget?: string; nestTarget?: string; children: unknown[] }): string[] => [...(n.swapTarget ? [n.swapTarget] : []), ...(n.nestTarget ? [n.nestTarget] : []), ...(n.children as (typeof n)[]).flatMap(walk)]; return walk(p.root); }))], noSlots: true });
+        ok(bare.misses.some((m) => /dismiss\.slot -> NOT MADE/.test(m)) && bare.misses.some((m) => /property dismiss -> SLOT not on the set/.test(m)) && !bare.misses.some((m) => /SLOT REFUSED/.test(m)),
+          `#2417 paste, no native slots: the cells stay frames and the payload names the slot it could not make and the property that never existed (${JSON.stringify(bare.misses.filter((m) => /slot|SLOT/.test(m)).slice(0, 2))})`);
+      }
 
       // ---- #1393: the PASTE executor leaves no Figma white default on an unclaimed or unresolvable fill ----
       // The payload half of #1387/F1. The plugin executor has `claimDefaults` (#865), which neutralizes a fill
