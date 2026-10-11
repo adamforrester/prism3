@@ -76,7 +76,7 @@ Label = noun phrase, sentence case, no trailing colon. Placeholder = example onl
 
 ## States
 
-`rest`, `hover`, `filled`, `focus-visible`, `focus-visible-filled`, `disabled`, `read-only`, `pending`, `empty`
+`rest`, `hover`, `pending`, `filled`, `focus-visible`, `focus-visible-filled`, `disabled`, `read-only`, `empty`
 
 ## Variants
 

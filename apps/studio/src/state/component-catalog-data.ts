@@ -94,8 +94,8 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "members": 576,
     "nests": [
       "icon",
-      "focus-ring",
-      "spinner"
+      "spinner",
+      "focus-ring"
     ]
   },
   {
@@ -159,8 +159,8 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "members": 576,
     "nests": [
       "icon",
-      "focus-ring",
-      "spinner"
+      "spinner",
+      "focus-ring"
     ]
   },
   {
@@ -224,8 +224,8 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "members": 576,
     "nests": [
       "icon",
-      "focus-ring",
-      "spinner"
+      "spinner",
+      "focus-ring"
     ]
   },
   {
@@ -240,8 +240,8 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "members": 216,
     "nests": [
       "icon",
-      "focus-ring",
-      "spinner"
+      "spinner",
+      "focus-ring"
     ]
   },
   {
@@ -256,8 +256,8 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "members": 216,
     "nests": [
       "icon",
-      "focus-ring",
-      "spinner"
+      "spinner",
+      "focus-ring"
     ]
   },
   {
@@ -272,8 +272,8 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "members": 216,
     "nests": [
       "icon",
-      "focus-ring",
-      "spinner"
+      "spinner",
+      "focus-ring"
     ]
   },
   {

@@ -67,7 +67,7 @@ The label names the setting and never changes. The description says what turning
 
 ## States
 
-`rest`, `hover`, `pressed`, `focus-visible`, `disabled`, `read-only`, `pending`, `error`
+`rest`, `hover`, `pressed`, `pending`, `focus-visible`, `disabled`, `read-only`, `error`
 
 ## Variants
 

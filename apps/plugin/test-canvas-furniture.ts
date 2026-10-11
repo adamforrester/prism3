@@ -261,7 +261,8 @@ section('group / panel / backdrop — Button, built by the real executor');
   ok(JSON.stringify(defs.surface?.variantOptions) === JSON.stringify(['default', 'inverse'])
     && JSON.stringify(defs.appearance?.variantOptions) === JSON.stringify(['filled', 'outline', 'text'])
     && JSON.stringify(defs.size?.variantOptions) === JSON.stringify(['small', 'medium', 'large'])
-    && JSON.stringify(defs.state?.variantOptions) === JSON.stringify(['rest', 'hover', 'focus-visible', 'pressed', 'pending', 'disabled']),
+    // #2501 (owner decision Q213): Pressed, with Pending after it, before Focus visible.
+    && JSON.stringify(defs.state?.variantOptions) === JSON.stringify(['rest', 'hover', 'pressed', 'pending', 'focus-visible', 'disabled']),
     `panel/values: the properties panel reads surface, appearance, size and state in the def's order (#2386) (${JSON.stringify([defs.surface?.variantOptions, defs.appearance?.variantOptions, defs.size?.variantOptions])})`);
 
   const o = await drawFurniture(fakeTemplates(), set, furnitureLayout(plans), 'button');
@@ -278,8 +279,9 @@ section('group / panel / backdrop — Button, built by the real executor');
 
   const rows = furn.filter((n) => tagOf(n).kind === 'label' && Number(n.x) < Number(set.x));
   const cols = furn.filter((n) => tagOf(n).kind === 'label' && Number(n.y) < Number(set.y));
-  ok(JSON.stringify(cols.map(textOf)) === JSON.stringify(['Rest', 'Hover', 'Focus visible', 'Pressed', 'Pending', 'Disabled']),
-    `pilot/button columns: Rest, Hover, Focus visible, Pressed, Pending, Disabled (${JSON.stringify(cols.map(textOf))})`);
+  // #2501 (owner decision Q213): Pressed, with Pending after it, before Focus visible.
+  ok(JSON.stringify(cols.map(textOf)) === JSON.stringify(['Rest', 'Hover', 'Pressed', 'Pending', 'Focus visible', 'Disabled']),
+    `pilot/button columns: Rest, Hover, Pressed, Pending, Focus visible, Disabled (${JSON.stringify(cols.map(textOf))})`);
   const count = (t: string) => rows.filter((n) => textOf(n) === t).length;
   ok(rows.length === 35 && count('Inverse') === 1 && count('Filled') === 2 && count('Outline') === 2 && count('Text') === 2 && count('Default') === 2 && count('Flush') === 2 && count('Small') === 8 && count('Medium') === 8 && count('Large') === 8,
     `pilot/button rows: 35 — Inverse once; Filled, Outline, Text once per surface; Default and Flush inside each Text block only; Small, Medium, Large in each of 8 groups (${rows.length}: ${JSON.stringify(Object.fromEntries([...new Set(rows.map(textOf))].map((t) => [t, count(t)])))})`);
