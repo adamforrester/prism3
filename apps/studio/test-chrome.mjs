@@ -8598,7 +8598,8 @@ for (const { w, h } of WIDTHS) {
           // The preview is a Tab stop of its own (tabindex 0), reached by Tab, whatever the trap does: a scroll region must
           // stay keyboard-reachable.
           const pv = await page.evaluate(() => { const p = document.querySelector('[data-p3="export-dialog"] .p3-export-pre'); return { tabindex: p?.getAttribute('tabindex') ?? null }; });
-          ok(pv.tabindex === '0' && tw.fwd.includes('pre'), `${where}: dialog tab order: the export preview is a Tab stop of its own (tabindex "${pv.tabindex}") and Tab reaches it (${tw.fwd.includes('pre')})`);
+          // Named by its hook since #2523 gave it one (`export-preview`); the walk names a hookless stop by its tag.
+          ok(pv.tabindex === '0' && tw.fwd.includes('export-preview'), `${where}: dialog tab order: the export preview is a Tab stop of its own (tabindex "${pv.tabindex}") and Tab reaches it (${tw.fwd.includes('export-preview')})`);
           // The trap defers to the browser for a focusable node its list does not name: a link planted in the footer, ahead
           // of Cancel, must be reached by Tab, and Tab from it must go on to Cancel (not wrap to the first control).
           await page.evaluate(() => { const a = document.createElement('a'); a.href = '#'; a.textContent = 'planted'; a.setAttribute('data-planted', ''); document.querySelector('[data-p3="export-dialog"] .p3-bardlg-foot').prepend(a); });
