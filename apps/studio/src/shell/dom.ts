@@ -163,3 +163,56 @@ export const trapTab = (dlg: HTMLElement, e: KeyboardEvent): void => {
   if (e.shiftKey && i === 0) { e.preventDefault(); f[f.length - 1].focus(); }
   else if (!e.shiftKey && i === f.length - 1) { e.preventDefault(); f[0].focus(); }
 };
+
+/**
+ * A menu button's open, close and keys, in one place (#2487 B5). The bar's Theme, Figma and the preview's Inspect menus
+ * each carried their own copy, and the copies drifted: only Figma opened on ArrowDown, and Theme's Escape did not stop
+ * propagation, so it also closed whatever sat under it. Each now hands its parts here:
+ *   · the button toggles the menu, and ArrowDown on it opens the menu;
+ *   · in the menu, Escape closes it onto the button and goes no further, Tab closes it and moves on, and ArrowDown,
+ *     ArrowUp, Home and End move along `list()` (wrapping), which a menu may narrow (Figma's enabled items);
+ *   · a press outside closes it; `open` focuses `first()` (the current choice, or the first item), or the button;
+ *   · `before` runs as it opens (a menu that fills or paints itself then).
+ * The menu's own items, labels and `onclick`s stay the caller's.
+ */
+export const menuButton = (o: {
+  readonly wrap: HTMLElement; readonly btn: HTMLElement; readonly menu: HTMLElement;
+  readonly list: () => HTMLElement[]; readonly first: () => HTMLElement | undefined;
+  readonly before?: () => void; readonly cleanups: (() => void)[];
+}): { readonly isOpen: () => boolean; readonly open: () => void; readonly close: (refocus: boolean) => void } => {
+  const { wrap, btn, menu, list, first } = o;
+  const isOpen = (): boolean => menu.isConnected;
+  const onDown = (e: MouseEvent): void => { if (!wrap.contains(e.target as Node)) close(false); };
+  const open = (): void => {
+    o.before?.();
+    wrap.append(menu);
+    btn.setAttribute('aria-expanded', 'true');
+    document.addEventListener('mousedown', onDown);
+    (first() ?? btn).focus();
+  };
+  function close(refocus: boolean): void {
+    if (!isOpen()) return;
+    menu.remove();
+    btn.setAttribute('aria-expanded', 'false');
+    document.removeEventListener('mousedown', onDown);
+    if (refocus) btn.focus();
+  }
+  btn.onclick = () => (isOpen() ? close(true) : open());
+  btn.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowDown' && !isOpen()) { e.preventDefault(); open(); }
+  });
+  menu.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(true); return; }
+    if (e.key === 'Tab') { close(false); return; }
+    const l = list();
+    if (!l.length) return;
+    const i = l.indexOf(document.activeElement as HTMLElement);
+    const to = e.key === 'ArrowDown' ? l[(i + 1) % l.length]
+      : e.key === 'ArrowUp' ? l[(i - 1 + l.length) % l.length]
+        : e.key === 'Home' ? l[0] : e.key === 'End' ? l[l.length - 1] : null;
+    if (to) { e.preventDefault(); to.focus(); }
+  });
+  btn.setAttribute('aria-expanded', 'false');
+  o.cleanups.push(() => document.removeEventListener('mousedown', onDown));
+  return { isOpen, open, close };
+};

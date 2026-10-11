@@ -518,12 +518,3 @@ export const setCenter = (gi: number, idx: 0 | 1, pct: number): void => editGrad
 /** A stop's ramp hex, for the levers' swatches (unresolved: `#888888`, as before). */
 export const gradStopHex = (palette: string, step: number): string =>
   theme.palettes.find((p) => p.palette === palette)?.steps.find((s) => s.num === step)?.hex ?? '#888888';
-/** The CSS for an INPUT gradient, stops resolved through the ramp, interpolated as its select says. */
-export const inputGradientCss = (g: GradientInput): string => {
-  const stops = g.stops.slice().sort((a, b) => a.position - b.position)
-    .map((s) => `${gradStopHex(s.palette, s.step)} ${Math.round(s.position * 100)}%`).join(', ');
-  const interp = g.interpolation ?? 'oklch';
-  return (g.kind ?? 'linear') === 'radial'
-    ? `radial-gradient(${g.shape ?? 'ellipse'} at ${Math.round((g.center?.[0] ?? 0.5) * 100)}% ${Math.round((g.center?.[1] ?? 0.5) * 100)}% in ${interp}, ${stops})`
-    : `linear-gradient(${g.angle ?? 135}deg in ${interp}, ${stops})`;
-};

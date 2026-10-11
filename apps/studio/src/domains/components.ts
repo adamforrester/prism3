@@ -30,7 +30,7 @@ import { componentCatalog } from '../state/component-catalog';
 import { noteSectionEdit } from '../preview/follow-edit';
 import { COMPONENTS_INTRO, DOMAINS, pageOfTab, type Host, type PageData, type Section } from '../shell/pages';
 import { glyph, h, hook } from '../shell/dom';
-import { choice, leverBlock, leverOf, slider, sliderReadout, stateLine, subLine, type LeverBlock } from '../ui/lever-kit';
+import { choice, leverBlock, leverOf, slider, sliderReadout, stateLine, subLine, type LeverBlock, keepFocus } from '../ui/lever-kit';
 import { SETS_COPY } from '../preview/sections/component-sets';
 import type { PageLends } from '../preview/brand';
 
@@ -165,9 +165,8 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
   };
 
   const render = (): void => {
-    const had = document.activeElement as HTMLElement | null;
-    const focusKey = had && root.contains(had) ? had.getAttribute('data-p3') : null;
-    const focusIndex = focusKey ? [...root.querySelectorAll(`[data-p3="${focusKey}"]`)].indexOf(had!) : -1;
+    // What had focus, found again after the redraw (`keepFocus`, #2487 B5).
+    const { key: focusKey, again } = keepFocus(root);
     const scrollTop = hostEl.scrollTop;
     items = [];
     dragging = null;
@@ -177,8 +176,7 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
     for (const it of items) it.block?.setRefused(!!lastError && !!lastEdited && it.key === lastEdited);
     filter();
     if (focusKey) {
-      const same = [...root.querySelectorAll<HTMLElement>(`[data-p3="${focusKey}"]`)];
-      (same[Math.max(0, focusIndex)] ?? same[0])?.focus({ preventScroll: true });
+      again()?.focus({ preventScroll: true });
     }
     if (hostEl.scrollTop !== scrollTop) hostEl.scrollTop = scrollTop;
   };
