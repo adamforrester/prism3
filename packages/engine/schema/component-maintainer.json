@@ -902,6 +902,7 @@
         "The panel — role=\"tabpanel\", aria-labelledby naming its tab and tabindex=\"0\", so Tab after the list lands on the panel. Not drawn in Figma: the panel is the content below the list.",
         "Panel mounting — the default mounts a panel when it is first shown; keep it mounted when it holds state (a half-filled form), or mount all panels when find-in-page or print must reach them.",
         "The selected underline in code — one element owned by the list that moves to the selected tab, sitting on the baseline (it overlaps the 1px line).",
+        "Alignment — at center the list spans its container (width: 100%) and the tabs sit centered in it (justify-content: center on the row of tabs); the baseline spans the full width. At start the tabs sit at the inline start. Each tab hugs its label either way.",
         "Overflow — a horizontal list never wraps. When the tabs do not fit, it scrolls with a fade at the cut edge, or ends in a \"More\" menu.",
         "RTL — the row mirrors, the first tab sits rightmost, and Left and Right follow reading order: in RTL, Left moves to the next tab.",
         "A disabled selected tab — if the selected tab becomes disabled, move tabindex=\"0\" to the nearest enabled tab.",
@@ -911,6 +912,7 @@
         "contested": [],
         "unverified": [],
         "evolution": [
+          "2026-10-10 (#2518): owner decision Q222 A, a centered alignment beside start. Centered tabs hug their labels and sit centered in a bar that spans its placement; the baseline spans the full width. The Figma member is built 480 wide (DRAFT).",
           "2026-10-09 (#2416): owner decisions Q177 (Tab nested in Tabs, the radio-group pattern for a variable child count; line tabs only; its own page), Q178 (primary label and 2px primary bar on the 1px border.primary baseline; no hover wash) and Q179 A (names, sizes, the count badge, six tabs at most with three shown, automatic activation, vertical and overflow code-only)."
         ],
         "projection": []

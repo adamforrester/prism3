@@ -327,14 +327,14 @@
     },
     "tabs": {
       "set": {
-        "members": 3,
-        "assignments": 3,
-        "sha256": "0d637cc3ffc0470e8b2ca10d050e2a862395c8980cc57312730494db4a6b96d4"
+        "members": 6,
+        "assignments": 6,
+        "sha256": "4390ca32f31d13a7545a7d00690ef182e128ecf8d77bb8db4da93d9a73d552d5"
       },
       "grid": {
-        "members": 3,
-        "assignments": 3,
-        "sha256": "d641c34529ffbda87c8ff5ce8b02916135d7c75f1fec28b2e81f77cb85041eef"
+        "members": 6,
+        "assignments": 6,
+        "sha256": "4ccfe09ed428431f8397112dad09a3b75887a2ab07409e73fff272d881f2cea4"
       }
     }
   }
