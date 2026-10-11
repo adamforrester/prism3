@@ -3313,14 +3313,15 @@ for (const brand of BRANDS) {
   const thrown8 = [];
   const onErr8 = (e) => thrown8.push(e.message);
   page.on('pageerror', onErr8);
-  await page.evaluate(() => window.__prism3TestEdit('layout.breakpoints', [0, 320, 480, 768, 1024, 1440, 1920, 2560]));
+  // A throw from the page's draw reaches the write's own call, so it is counted as a page error rather than ending the suite.
+  await page.evaluate(() => window.__prism3TestEdit('layout.breakpoints', [0, 320, 480, 768, 1024, 1440, 1920, 2560])).catch((e) => thrown8.push(String(e?.message ?? e)));
   await barSays(/at most seven breakpoints/);
   await page.waitForFunction(() => document.querySelectorAll('[data-p3="bp-input"]').length === 8, null, { timeout: 5000 }).catch(() => {});
   const rows8 = await rowsAt();
   const err8 = await errState();
   ok(thrown8.length === 0 && err8.shown && /at most seven breakpoints/.test(err8.text) && JSON.stringify(rows8) === JSON.stringify(['0', '320', '480', '768', '1024', '1440', '1920', '2560']),
     `${brand}: #2513: eight breakpoints draw on the Layout page with the error line and no page error — rows ${JSON.stringify(rows8)}, line ${err8.shown ? `"${err8.text.slice(0, 80)}"` : 'not shown'}, ${thrown8.length} page error(s)${thrown8.length ? ` (${thrown8[0]})` : ''}`);
-  await hooks.click(page.locator('[data-p3="bp-remove"]').nth(1));
+  await hooks.click(page.locator('[data-p3="bp-remove"]').nth(1), { timeout: 5000 }).catch((e) => thrown8.push(`Remove: ${String(e?.message ?? e).split('\n')[0]}`));
   await page.waitForFunction(() => document.querySelectorAll('[data-p3="bp-input"]').length === 7, null, { timeout: 5000 }).catch(() => {});
   const cleared8 = await page.waitForFunction(() => { const e = document.querySelector('[data-p3="error-bar"]'); return !!e && getComputedStyle(e).display === 'none'; }, null, { timeout: 5000 }).then(() => true, () => false);
   await page.waitForFunction(() => { try { return JSON.parse(localStorage.getItem('prism3:brandInput'))?.input?.layout?.breakpoints?.length === 7; } catch { return false; } }, null, { timeout: 5000 }).catch(() => {});
