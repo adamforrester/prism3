@@ -876,6 +876,7 @@
       "codeOnly": [
         "code delivery pending: behavior layer (#2454). The owner built the Figma components first (Q178.3); the entries below are a framework-neutral behavior contract for whichever layer the project's developers choose.",
         "The tab in code — a <button role=\"tab\"> with aria-selected (true or false, on every tab) and aria-controls naming its panel. The tab list owns roving tabindex: the selected tab is tabindex=\"0\", the rest -1.",
+        "The label weight in code — the selected tab sets its label in the emphasis weight, the others in the default weight, and every tab reserves its bold width so selecting never shifts the list: a hidden bold copy of the label (for example ::after { content: attr(data-label); font-weight: <emphasis>; height: 0; visibility: hidden; overflow: hidden }) in a column with the label.",
         "The hover bar — an unselected tab under the pointer or pressed shows a 2px bar in color.border.secondary where the selected bar sits; no background wash. A pointer-only cue: keyboard focus shows the focus ring instead.",
         "The underline slide — in code the selected underline is one element owned by the tab list that moves and resizes to the selected tab (about 150–200ms). Figma draws it per tab. Under prefers-reduced-motion it snaps.",
         "The count — read as part of the tab name (\"Reviews, 12 items\") through visually hidden text, never as a lone number.",
@@ -885,11 +886,11 @@
       ],
       "notes": {
         "contested": [
-          "Pressed on an unselected tab shows the same neutral bar as hover; only the label ink steps (interactive.neutral.text.pressed). Whether pressed needs a cue of its own is held for the owner (#2416), not invented here.",
-          "The brief asks for a heavier label weight when selected; the owner chose one weight in both states (Q178.1 A) so selecting never moves the neighbors."
+          "Pressed on an unselected tab shows the same neutral bar as hover; only the label ink steps (interactive.neutral.text.pressed). Whether pressed needs a cue of its own is held for the owner (#2416), not invented here."
         ],
         "unverified": [],
         "evolution": [
+          "2026-10-10 (Q225 A, Q226 A): the selected label in the emphasis weight and the unselected in the default weight, with every tab held at its bold width by a hidden bold copy of the label, so selecting still never moves the neighbors. Revises Q178.1 A's one weight; its goal stands.",
           "2026-10-09 (#2416): owner decisions Q177 (the nested Tab + Tabs shape, line tabs only, its own page), Q178.1 A (primary label plus a 2px primary bar on a 1px border.primary baseline, one weight), Q178.2 B (no hover wash; a 2px neutral bar previews the selected bar), Q179 A (names Tab and Tabs, S/M/L, the count as a nested Badge, automatic activation). The hover bar's role, border.secondary, was the build PR's technical pick: contracted at 3:1 against the page (#1745)."
         ],
         "projection": []

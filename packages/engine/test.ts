@@ -9514,6 +9514,8 @@ arm: {
   {
     const TREE_BLIND_PAIRS: [string, unknown][] = [
       ['buttonContentSize', 'smaller'],
+      // Q226 A: every brand ships `type.label.*.default`, so "Button label weight: Default" only rebinds the button family.
+      ['buttonLabelWeight', 'default'],
       ['buttonIcons', 'edges'],
       ['buttonMinWidthMultiplier', 1], ['buttonMinWidthMultiplier', 4],
       // #2324: "Text button hover: Fill" moves only the materialized button defs (the text appearance's wash).
@@ -11471,7 +11473,9 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   // Q78 A) and the always-underlined label (#2324, owner Q110), so those styles are the engine's additions, not a fixture
   // mismatch. Named, never a count, and each must still be emitted: a stale entry would silently absorb a real future extra.
   const NB_ENGINE_ADDED_STYLES = ['body/xs/default', 'body/xs/default-link', 'body/xs/strong', 'body/xs/strong-link',
-    'label/sm/emphasis-link', 'label/md/emphasis-link', 'label/lg/emphasis-link'];
+    'label/sm/emphasis-link', 'label/md/emphasis-link', 'label/lg/emphasis-link',
+    // Q226 A (2026-10-10): every brand ships the default label weight, for Tabs' unselected label, and its underlined twin.
+    'label/sm/default', 'label/md/default', 'label/lg/default', 'label/sm/default-link', 'label/md/default-link', 'label/lg/default-link'];
   const extraS = [...emittedByName.keys()].filter((n) => !expectedByCorrectedName.has(n) && !NB_ENGINE_ADDED_STYLES.includes(n));
   const staleAdded = NB_ENGINE_ADDED_STYLES.filter((n) => !emittedByName.has(n) || expectedByCorrectedName.has(n));
   // The added styles have no fixture twin, so the binding checks below skip them. Each body/xs style is held to its
@@ -11488,7 +11492,8 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   ok(missS.length === 0 && extraS.length === 0 && staleAdded.length === 0, `figma text-styles: the fixture's styles, plus the ${NB_ENGINE_ADDED_STYLES.length} named engine additions (body/xs, #2266; label links, #2324) — fix #1 (no \`text/\` wrapper)` + (missS.length ? ` — MISSING ${missS.slice(0, 3).join(',')}` : '') + (extraS.length ? ` — EXTRA ${extraS.slice(0, 3).join(',')}` : '') + (staleAdded.length ? ` — STALE addition ${staleAdded.join(',')}` : ''));
   // Each label link is held to its plain twin (#2324): every property identical, and the underline its only difference.
   const linkBad: string[] = [];
-  for (const n of NB_ENGINE_ADDED_STYLES.filter((x) => x.startsWith('label/'))) {
+  // The underlined label styles only: since Q226 A the list also carries the plain `label/*/default`, each a link's twin.
+  for (const n of NB_ENGINE_ADDED_STYLES.filter((x) => x.startsWith('label/') && x.endsWith('-link'))) {
     const ln: any = emittedByName.get(n), plain: any = emittedByName.get(n.replace(/-link$/, ''));
     if (!ln || !plain) { linkBad.push(`${n}: ${ln ? 'no plain twin' : 'not emitted'}`); continue; }
     const { textDecoration: lnDeco, ...lnRest } = ln.properties, { textDecoration: plDeco, ...plRest } = plain.properties;
@@ -14290,8 +14295,8 @@ arm: {
     }
 
     // (2) THE ROLE SHIPS. A brand whose label category ships `emphasis` only still emits `type.label.*.default`
-    // (tree and Figma text style) under Default, and every button binding resolves against that emission.
-    // The base build is asserted emphasis-only first, so the paths are the lever's doing.
+    // (tree and Figma text style) under Default, and every button binding resolves against that emission. Until
+    // Q226 A the base build was emphasis-only, so the paths were the lever's doing; now every brand ships them.
     for (const [bid, input] of LW_INPUTS) {
       const emphasisOnly = { ...input, typography: { ...input.typography, weights: { ...input.typography?.weights, label: ['emphasis'] } } } as BrandInput;
       const baseTheme = exampleTheme(`${bid} (label weights [emphasis])`, () => brandTheme(emphasisOnly));
@@ -14304,8 +14309,10 @@ arm: {
       const effects = new Set(figma.filter((a) => a.path.startsWith('shadow')).flatMap((a) => (a.j.styles ?? []).map((s: { name: string }) => s.name)));
       const vars = new Set(figma.flatMap((a) => (a.j.variables ?? []).map((v: { name: string }) => tailOf(v.name))));
       const want = ['sm', 'md', 'lg'];
-      ok(want.every((r) => !base.has(`type.label.${r}.default`) && base.has(`type.label.${r}.emphasis`)),
-        `#1752 role ships: ${bid} with label: [emphasis] emits no type.label.*.default at Emphasis (the precondition)`);
+      // Since Q226 A (2026-10-10) the default role ships whatever the lever says: Tabs binds it on an unselected tab.
+      // So the precondition is now that it ships at Emphasis too, and the lever's arm below still holds.
+      ok(want.every((r) => base.has(`type.label.${r}.default`) && base.has(`type.label.${r}.emphasis`)),
+        `#1752 role ships: ${bid} with label: [emphasis] emits type.label.*.default at Emphasis too (Q226 A: every brand ships it)`);
       ok(want.every((r) => paths.get(`type.label.${r}.default`) === 'typography' && paths.has(`type.label.${r}.emphasis`) && styles.has(`label/${r}/default`)),
         `#1752 role ships: ${bid} with label: [emphasis] emits type.label.{sm,md,lg}.default (tree and text style) at Default, and keeps emphasis — got ${want.map((r) => `${r}:${paths.get(`type.label.${r}.default`) ?? '-'}/${styles.has(`label/${r}/default`)}`).join(' ')}`);
       const misses = FAMILY.flatMap((def) => figmaAnatomySet(applyButtonLayout(def, { ...DEFAULT_BUTTON_LAYOUT, labelWeight: 'default' }, sizeRefPx(on.dims.sizes)))
@@ -15088,20 +15095,49 @@ arm: {
       ok(cells.length === 16 && barMissing.length === 0 && lowest.ratio >= 3,
         `#2416 Q178.2 the neutral hover bar (${String(hoverBar)}) clears 3:1 against color/background/primary in all 16 brand × mode cells (${cells.length} measured, lowest ${lowest.ratio.toFixed(2)}:1 at ${lowest.cell}${barMissing.length ? `; ${barMissing.join('; ')}` : ''})`);
 
-      // (4) NO LABEL WIDTH CHANGE BETWEEN SELECTIONS (Q178.1: the weight is the same in both states). At every size
-      // and state, the selected and unselected members carry the same structure — every node's name, text style and
-      // bound geometry — so only paint differs, and selecting a tab never moves its neighbors.
-      const shape = (n: AnatomyPlan['root']): string => JSON.stringify([n.name, n.textStyle ?? null, n.bound ?? {}, n.children.map(shape)]);
+      // (4) THE WEIGHT CUE, WITH NO WIDTH CHANGE (Q226 A, revising Q178.1 A's one weight). At every size and state the
+      // selected and unselected members carry the same structure, every node's name, text style and bound geometry,
+      // EXCEPT the visible label's style: `default` unselected and `emphasis` selected, both typed here. The bold
+      // reserve (`labelReserve`) binds `emphasis` in both states inside a clipping, zero-height `reserve`, so the label
+      // box keeps the bold width and selecting a tab never moves its neighbors; the host arm in
+      // `apps/plugin/test-write-components.ts` (`tab width held`) measures that width. Mutation: the reserve dropped
+      // from `labelBox` → this arm and `tab width held`.
+      const shape = (n: AnatomyPlan['root']): string => JSON.stringify([n.name, n.name === 'label' ? 'label' : (n.textStyle ?? null), n.bound ?? {}, n.children.map(shape)]);
+      const RUNG: Record<string, string> = { small: 'sm', medium: 'md', large: 'lg' };
       const moved: string[] = [];
       for (const size of SIZES) for (const state of STATES5) {
         const a = memberOf('unselected', size, state), b = memberOf('selected', size, state);
         if (!a || !b) { moved.push(`${size}/${state}: missing`); continue; }
-        if (shape(a.root) !== shape(b.root)) moved.push(`${size}/${state}: label ${String(findIn(a.root, 'label')?.textStyle)} vs ${String(findIn(b.root, 'label')?.textStyle)}`);
+        if (shape(a.root) !== shape(b.root)) moved.push(`${size}/${state}: structure differs beyond the label's weight`);
+        const want = { unselected: `label/${RUNG[size]}/default`, selected: `label/${RUNG[size]}/emphasis` };
+        const la = findIn(a.root, 'label')?.textStyle, lb = findIn(b.root, 'label')?.textStyle;
+        if (la !== want.unselected || lb !== want.selected) moved.push(`${size}/${state}: label ${String(la)} / ${String(lb)} (want ${want.unselected} / ${want.selected})`);
+        for (const [sel, m] of [['unselected', a], ['selected', b]] as const) {
+          const res = findIn(m.root, 'labelReserve'), box = findIn(m.root, 'reserve');
+          if (res?.textStyle !== want.selected || box?.clipsContent !== true || box?.bound?.height !== 'space/0' || res?.propertyRef?.prop !== findIn(m.root, 'label')?.propertyRef?.prop)
+            moved.push(`${size}/${state}/${sel}: reserve ${String(res?.textStyle)}, clips ${String(box?.clipsContent)}, height ${String(box?.bound?.height)}, driven by ${String(res?.propertyRef?.prop)}`);
+        }
       }
-      const LABEL_STYLE: Record<string, string> = { small: 'label/sm/emphasis', medium: 'label/md/emphasis', large: 'label/lg/emphasis' };
-      const styleOff = tabMembers.filter((m) => findIn(m.root, 'label')?.textStyle !== LABEL_STYLE[(m.size ?? m.coord.size) as string]).map((m) => `${planComponentName(m)}: ${String(findIn(m.root, 'label')?.textStyle)}`);
-      ok(moved.length === 0 && styleOff.length === 0,
-        `#2416 Q178.1 same weight in both states: selected and unselected tabs share every text style and bound dimension at each size and state, the label on label/{sm,md,lg}/emphasis (${moved.length + styleOff.length} off — ${[...moved, ...styleOff].slice(0, 3).join('; ') || 'none'})`);
+      ok(moved.length === 0,
+        `#2416 Q226 A the weight cue: unselected tabs set the label in label/{sm,md,lg}/default and selected in emphasis, with a clipped bold reserve driven by the same Label property holding the bold width, and nothing else differs (${moved.length} off${moved.length ? ` — ${moved.slice(0, 4).join(' | ')}` : ''})`);
+
+      // (4b) THE SELECTED BAR clears 3:1 against the page in every brand × mode (1.4.11), as the hover bar does above.
+      {
+        const cellsS: { cell: string; ratio: number }[] = [];
+        const missS: string[] = [];
+        const SELECTED_BAR = 'color/interactive/primary/border/rest';
+        for (const brand of BAR_BRANDS) for (const mode of BAR_MODES) {
+          const f = resolve(HERE, `./out/figma/${brand}/color.${mode}.json`);
+          if (!existsSync(f)) { missS.push(`${brand}/${mode}: no export`); continue; }
+          const vars = new Map((JSON.parse(readFileSync(f, 'utf8')).variables as { name: string; value: { r: number; g: number; b: number; a?: number } }[]).map((v) => [v.name.replace(/^[^/]+\//, ''), v.value]));
+          const fg = vars.get(SELECTED_BAR), bg = vars.get('color/background/primary');
+          if (!fg || !bg || (fg.a ?? 1) !== 1) { missS.push(`${brand}/${mode}: ${SELECTED_BAR} ${fg ? `alpha ${fg.a}` : 'missing'}`); continue; }
+          cellsS.push({ cell: `${brand}/${mode}`, ratio: contrast(toRgb(fg), toRgb(bg)) });
+        }
+        const lowestS = cellsS.reduce((a, c) => (c.ratio < a.ratio ? c : a), { cell: 'none', ratio: Infinity });
+        ok(cellsS.length === 16 && missS.length === 0 && lowestS.ratio >= 3,
+          `#2416 Q226 A the selected bar (${SELECTED_BAR}) clears 3:1 against color/background/primary in all 16 brand × mode cells (${cellsS.length} measured, lowest ${lowestS.ratio.toFixed(2)}:1 at ${lowestS.cell}${missS.length ? `; missing ${missS.join(', ')}` : ''})`);
+      }
 
       // (5) THE LIST: six nested tabs, tab 1 selected, tabs 4–6 behind Figma-only toggles, off by default (Q177.2, Q179 A).
       const listMembers = figmaAnatomySet(tabsDef, {});
@@ -17131,7 +17167,9 @@ arm: {
     // against IT.
     // `appearance` joined in #2324 (owner Q110): a text button's label binds its underlined twin, so the button family's
     // label type crosses size × appearance. A deliberate widening, recorded here so the next one has to be too.
-    const TYPE_KEY_AXES = ['size', 'weight', 'appearance'] as const;
+    // `selection` joined with Q226 A (2026-10-10): a tab's label binds the default weight unselected and the emphasis
+    // weight selected, so its type crosses size × selection.
+    const TYPE_KEY_AXES = ['size', 'weight', 'appearance', 'selection'] as const;
     // The (def, part) pairs that template a `type` key, and the axes each one names — authored from
     // reading the six defs, and asserted below to be exactly the set the corpus contains. Both
     // directions matter: a seventh binding added without a row here fails, and a row naming a binding
@@ -17171,7 +17209,9 @@ arm: {
       // `tag` (2026-09-27) binds Button's three label rungs, so three sizes discriminate into three styles.
       { def: tag, part: 'label', axes: { size: 3 } },
       // `tab` (#2416) binds the same three label rungs, at ONE weight across `selection` (owner Q178.1 A).
-      { def: tab, part: 'label', axes: { size: 3 } },
+      // Q226 A: the label's weight follows `selection`; the bold reserve is the selected weight at every size.
+      { def: tab, part: 'label', axes: { selection: 2, size: 3 } },
+      { def: tab, part: 'labelReserve', axes: { size: 3 } },
       // The two text nodes of `field-label`, the only bindings in the corpus that cross two axes.
       { def: fieldLabel, part: 'text', axes: { size: 3, weight: 2 } },
       { def: fieldLabel, part: 'indicator', axes: { size: 3, weight: 2 } },
@@ -23225,9 +23265,10 @@ arm: {
   // a lever, so the pattern must not spell one. A pattern anchored at `font/weight/` would match
   // NOTHING here and `fontTargets.size === 5` would be the only thing that noticed.
   for (const m of fontVars.matchAll(/,\["([a-z0-9/\-.]*core\/font\/weight\/\d+)"\]\]/g)) fontTargets.add(m[1]);
-  // 59 = 50 pre-#1485 (7 family + 22 size + 5 weight + 5 weight-role + 11 type-sets fluid) + 9 STRING
-  // cut variables (#1485), one per distinct NB (category, weight-role, italic) slot.
-  ok(fontCreated.size === 59, `materialise: font-vars creates all 59 typography variables incl. the 9 #1485 cut vars (${fontCreated.size})`);
+  // 60 = 50 pre-#1485 (7 family + 22 size + 5 weight + 5 weight-role + 11 type-sets fluid) + 10 STRING
+  // cut variables (#1485), one per distinct NB (category, weight-role, italic) slot. The tenth is (label, default),
+  // which every brand ships since Q226 A (2026-10-10).
+  ok(fontCreated.size === 60, `materialise: font-vars creates all 60 typography variables incl. the 10 #1485 cut vars (${fontCreated.size})`);
   ok(fontTargets.size === 5 && [...fontTargets].every((x) => fontCreated.has(x)),
     `materialise: every weight-role alias target is created by the same pass (${fontTargets.size} roles)`);
 
@@ -29225,7 +29266,9 @@ arm: {
   const missingLinks = corpus().filter(({ theme }) => !WANT_PATHS.every((x) => labelLinks(theme).includes(x))).map(({ id }) => id);
   ok(corpus().length >= 8 && missingLinks.length === 0, `#2324 every corpus brand mints the three underlined label styles (${missingLinks.join(', ') || 'all'})`);
   const noLinks = brandTheme({ ...MINIMAL_BRAND, typography: { links: [] } } as BrandInput);
-  ok(JSON.stringify(labelLinks(noLinks)) === JSON.stringify(WANT_PATHS),
+  // Six since Q226 A (2026-10-10): every brand also ships the default label weight, and its underlined twin with it.
+  const WANT_WITH_DEFAULT = ['label.lg.default-link', 'label.lg.emphasis-link', 'label.md.default-link', 'label.md.emphasis-link', 'label.sm.default-link', 'label.sm.emphasis-link'];
+  ok(JSON.stringify(labelLinks(noLinks)) === JSON.stringify(WANT_WITH_DEFAULT),
     `#2324 the underline is fixed: a brand with typography.links: [] still mints them (${labelLinks(noLinks).join(', ') || 'none'})`);
 }
 

@@ -1439,9 +1439,13 @@ export const figmaAnatomyPlan = (
   // so it is the panel identity. The KEY stays the idiomatic code prop (validated in `figmaPropertyErrors`);
   // `textFigmaName`/`swapFigmaName` resolve the decoupled display name, falling back to the KEY.
   for (const [prop, t] of Object.entries(fp?.texts ?? {})) {
-    drivenBy.set(t.part, { field: 'characters', prop: textFigmaName(prop, t) });
-    placeholder.set(t.part, textDefaultOf(t));
-    textDefaults.set(t.part, t.default);
+    // `also` (Q226 A): further text parts the same property drives, e.g. Tabs' bold reserve, which must spell the
+    // label exactly so it holds the label's bold width.
+    for (const part of [t.part, ...(t.also ?? [])]) {
+      drivenBy.set(part, { field: 'characters', prop: textFigmaName(prop, t) });
+      placeholder.set(part, textDefaultOf(t));
+      textDefaults.set(part, t.default);
+    }
   }
   for (const [prop, v] of Object.entries(fp?.swaps ?? {})) drivenBy.set(swapPart(v), { field: 'mainComponent', prop: swapFigmaName(prop, v) });
   // `booleans` does NOT ride `drivenBy`/`propertyRef` (#1331): a boolean's `visible` field coexists with a

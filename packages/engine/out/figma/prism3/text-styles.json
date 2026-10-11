@@ -2802,6 +2802,106 @@
       }
     },
     {
+      "name": "label/lg/default",
+      "description": "label lg default — 18px Inter, snug line-height, for control and form labels.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "pds3/core/font/family/label",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "pds3/core/font/style/label/default",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "pds3/core/font/size/18",
+          "collection": "core",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 400
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 115
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 0
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "NONE"
+        }
+      }
+    },
+    {
+      "name": "label/lg/default-link",
+      "description": "label lg default link — 18px Inter, snug line-height, for control and form labels.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "pds3/core/font/family/label",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "pds3/core/font/style/label/default",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "pds3/core/font/size/18",
+          "collection": "core",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 400
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 115
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 0
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "UNDERLINE"
+        }
+      }
+    },
+    {
       "name": "label/lg/emphasis",
       "description": "label lg emphasis — 18px Inter, snug line-height, for control and form labels.",
       "properties": {
@@ -2902,6 +3002,106 @@
       }
     },
     {
+      "name": "label/md/default",
+      "description": "label md default — 14px Inter, snug line-height, for control and form labels.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "pds3/core/font/family/label",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "pds3/core/font/style/label/default",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "pds3/core/font/size/14",
+          "collection": "core",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 400
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 115
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 0
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "NONE"
+        }
+      }
+    },
+    {
+      "name": "label/md/default-link",
+      "description": "label md default link — 14px Inter, snug line-height, for control and form labels.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "pds3/core/font/family/label",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "pds3/core/font/style/label/default",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "pds3/core/font/size/14",
+          "collection": "core",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 400
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 115
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 0
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "UNDERLINE"
+        }
+      }
+    },
+    {
       "name": "label/md/emphasis",
       "description": "label md emphasis — 14px Inter, snug line-height, for control and form labels.",
       "properties": {
@@ -2976,6 +3176,106 @@
         "fontWeight": {
           "bound": false,
           "value": 500
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 115
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 0
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "UNDERLINE"
+        }
+      }
+    },
+    {
+      "name": "label/sm/default",
+      "description": "label sm default — 12px Inter, snug line-height, for control and form labels.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "pds3/core/font/family/label",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "pds3/core/font/style/label/default",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "pds3/core/font/size/12",
+          "collection": "core",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 400
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 115
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 0
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "NONE"
+        }
+      }
+    },
+    {
+      "name": "label/sm/default-link",
+      "description": "label sm default link — 12px Inter, snug line-height, for control and form labels.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "pds3/core/font/family/label",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "pds3/core/font/style/label/default",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "pds3/core/font/size/12",
+          "collection": "core",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 400
         },
         "lineHeight": {
           "bound": false,
