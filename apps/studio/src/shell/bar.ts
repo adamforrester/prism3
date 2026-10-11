@@ -172,10 +172,15 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
   // ── paint ──────────────────────────────────────────────────────────────────────────────────────
   let wasOpen = false;
   let wasExport = false;
+  /** The export dialog as built, and what it was built from (A10). */
+  let expNode: HTMLElement | null = null;
+  let expKey = '';
   let wasPrune = false;
   const paintBrand = (v: BarView): void => {
     dot.style.background = v.brand.hex;
-    name.textContent = v.brand.name;
+    // Only when it differs (#2487 A9): a same-value write still replaces the text node, and the frame's observer then
+    // re-measures the whole bar, which every brand repaint (a slider's every step) did.
+    if (name.textContent !== v.brand.name) name.textContent = v.brand.name;
   };
   const paint = (): void => {
     const v = lend.read();
@@ -190,7 +195,7 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
     if (applyBtn && placed.applyTheme) {
       const a = placed.applyTheme();
       setBusy(applyBtn, !!a.busy);
-      applyBtn.disabled = a.disabled && !a.busy;
+      if (applyBtn.disabled !== (a.disabled && !a.busy)) applyBtn.disabled = a.disabled && !a.busy;   // same reason (A9)
       if (a.hint && a.disabled) applyBtn.title = a.hint; else applyBtn.removeAttribute('title');
     }
     exp.setAttribute('aria-expanded', String(v.exportOpen));
@@ -207,9 +212,20 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
     const want = order.filter((n): n is HTMLElement => !!n);
     if (want.length !== root.children.length || want.some((n, i) => root.children[i] !== n)) root.replaceChildren(...want);
 
-    layer.replaceChildren();
-    if (v.exportOpen) layer.append(exportDialog(lend.exportView(), v));
-    if (v.prune) layer.append(pruneDialog(v.prune));
+    // The export dialog is rebuilt only when what it shows changes (#2487 A10). Rebuilt on every `host`, `origin` or
+    // `bar` notification, the import box's caret jumped to the end, an IME composition broke and the preview's scroll
+    // reset. The import text is left out of the key: typing stores it without a repaint, so the box already shows it,
+    // and a text set from elsewhere (an uploaded file) is written into the box in place.
+    const ev = v.exportOpen ? lend.exportView() : null;
+    const key = ev ? JSON.stringify([ev, v.importOpen, v.importErr, v.confirm]) : '';
+    if (!ev) { expNode = null; expKey = ''; }
+    else if (!expNode || key !== expKey) { expNode = exportDialog(ev, v); expKey = key; }
+    else {
+      const ta = expNode.querySelector<HTMLTextAreaElement>('[data-p3="import-text"]');
+      if (ta && ta.value !== v.importText) ta.value = v.importText;
+    }
+    const kids = [expNode, v.prune ? pruneDialog(v.prune) : null].filter((n): n is HTMLElement => !!n);
+    if (kids.length !== layer.children.length || kids.some((n, i) => layer.children[i] !== n)) layer.replaceChildren(...kids);
 
     // Focus. A dialog first (#2124 review, findings 1 and 2): as one opens, focus moves into it (its first control);
     // as one closes, by whatever path (Close, Cancel, a scrim click, Escape, its action), focus goes back to the
