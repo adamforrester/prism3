@@ -29441,6 +29441,8 @@ arm: {
     '#2455 divider decorative: no Figma property (it changes no pixel), and the codeOnly list says so in an entry that leads with it');
   ok(/^none with aria-hidden="true" by default\b/.test(divider.accessibility.role) && /decorative=false, separator\b/.test(divider.accessibility.role),
     `#2455 divider decorative: the code role is none with aria-hidden by default, and separator with decorative=false (got '${divider.accessibility.role}')`);
+}
+
 // ---- centered Tabs (#2518, owner decision Q222 A) ----
 // At `alignment=center` the root projects as a bar built 480 wide (DRAFT, typed here from the decision), centering
 // its children across; the row of tabs keeps hugging and the baseline stretches across the bar. At `alignment=start`
