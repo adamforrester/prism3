@@ -47,7 +47,9 @@ export const interactiveSection = (ctx: SgCtx, o: InteractiveSectionOptions): HT
   // `pair` names the engine roles an OPAQUE fill specimen previews (#1652) — see `specimenPair`. The
   // outline row passes none: its fill is a translucent wash and its ink is contracted against the page, so
   // it has no single ink-on-fill pair to claim and stays on the smoke floor.
-  const btn = (bg: string, fg: string, bd: string | null, pair?: [string, string]): HTMLElement => { const b = hook(el('button', 'sg-btn', 'Button'), 'style-guide-button'); b.style.background = bg; (pair ? specimenPair(b, ...pair) : specimen(b)).style.color = fg; if (bd) b.style.borderColor = bd; return b; };
+  // Display-only (Q196, #2487): every state is already drawn side by side, so a specimen is inert, out of the tab order
+  // and the accessibility tree, rather than 39 tab stops that do nothing, each named "Button".
+  const btn = (bg: string, fg: string, bd: string | null, pair?: [string, string]): HTMLElement => { const b = hook(el('button', 'sg-btn', 'Button'), 'style-guide-button'); b.inert = true; b.style.background = bg; (pair ? specimenPair(b, ...pair) : specimen(b)).style.color = fg; if (bd) b.style.borderColor = bd; return b; };
   const bcol = (bg: string, fg: string, bd: string | null, st: string, fullkey: string, subpath: string, pair?: [string, string]): HTMLElement => { const c = hook(el('div', 'sg-bcol'), 'style-guide-state'); c.append(btn(bg, fg, bd, pair), hook(el('span', 'sg-st', st), 'style-guide-state-name'), ...pill(fullkey, subpath)); return c; };
   const footLine = (lbl: string, ...p: HTMLElement[]): HTMLElement => { const s = el('span', 'sg-foothint'); s.append(document.createTextNode(lbl + ' '), ...p); return s; };
   const trow = (label: string, foot: HTMLElement[], cols: HTMLElement[], inv: boolean): HTMLElement => {

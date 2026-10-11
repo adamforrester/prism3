@@ -8889,24 +8889,37 @@ for (const host of ['web', 'figma']) {
 //   · another chrome variable on a brand path (`ctl-edge` on `core.palette.primary.600`) → the build's
 //     `[brand] chrome var --p3-ctl-edge (light) resolves through brand token pds3.core.palette.primary.600`.
 //   · BRAND_ALLOW widened to a pattern → the build's `[brand] self-check: brandLeaks no longer refuses a sibling name …`.
+//   · B2 (#2487): the legacy controls' ring dropped from styles.css (`:is(.seg-b, …, .select):focus-visible`) → `#2144 web
+//     light 1280: every focused chrome control draws its ring … — 10 miss: brand style-guide-ground: color #101010, …,
+//     1px wide, … | depth motion-play: … | depth motion-slowmo: … | inspect token list …`, each host and theme.
 console.log(`\n#2144 — every chrome focus ring on ${FOCUS_RING_TOKEN} (light ${FOCUS_HEX.light}, dark ${FOCUS_HEX.dark})\n${'='.repeat(78)}`);
 /** The least number of chrome rings the whole sweep must read, per host (both themes). */
 const FOCUS_SWEEP_FLOOR = { web: 820, figma: 870 };
 /** The least each place must read, every host and theme (the fewest measured when this landed: 19, Shape and Components). */
 const FOCUS_PLACE_FLOOR = 15;
-/** The lent legacy views the sweep skips: all of INSPECT_LEGACY but Components' preview, whose one focusable control is
- *  the plugin's set radio. Its ring is drawn by `styles.css` (`.cset-radio`), on the chrome's variables since #2144, so
- *  it is read here; anything else that turns focusable in that view is read too, and must hold the same contract. */
-const FOCUS_SWEEP_SKIP = INSPECT_LEGACY.filter((h) => h !== '[data-p3="components-style-guide"]');
+/** The lent legacy views the sweep skips: INSPECT_LEGACY but the views whose controls draw the chrome's ring from
+ *  `styles.css`, on the chrome's variables. Components' preview, whose one focusable control is the plugin's set radio
+ *  (`.cset-radio`, #2144); and since B2 (#2487) the token list in Inspect (its segments and selects), Brand's Style guide
+ *  (its surface select), Depth & motion's preview (the replay and its speed) and Interactive's (its specimens are
+ *  display-only since Q196, so it has none). Anything else that turns focusable in those views is read too, and must
+ *  hold the same contract. */
+const SWEPT_LEGACY = ['[data-p3="components-style-guide"]', '[data-p3="inspect-token-list"]', '[data-p3="brand-style-guide"]',
+  '[data-p3="depth-style-guide"]', '[data-p3="interactive-style-guide"]'];
+const FOCUS_SWEEP_SKIP = INSPECT_LEGACY.filter((h) => !SWEPT_LEGACY.includes(h));
+/** B2 (#2487): the legacy controls that drew the browser's 1px ring, each of which the sweep must now reach and measure:
+ *  Brand's surface select, Depth & motion's replay and speed, and the token list's segments (Inspect › Token list, on
+ *  Semantics, the one tier that draws the Alias path segment). */
+const B2_RING_NEEDS = ['[data-p3="style-guide-ground"]', '[data-p3="motion-play"]', '[data-p3="motion-slowmo"]', '[data-p3="token-tier-primitive"]',
+  '[data-p3="token-tier-semantic"]', '[data-p3="token-path-full"]', '[data-p3="token-path-short"]'];
 /** Controls the sweep must reach and measure, by hook: Continue, a chip, a text field, a tab, and one of each other
  *  kind the issue names. The plugin adds its own bar control and the Components set radio (`styles.css`). */
 const FOCUS_SWEEP_NEEDS = {
   web: ['[data-p3="palettes-continue"]', '[data-p3="density-choice-comfortable"]', '[data-p3="brand-name"]', '[data-p3="primary-hex"]',
     '[data-p3="tab-color"]', '[data-p3="color-sub-palettes"]', '[data-p3="neutral-chroma-slider"]', '[data-p3="export-open"]', '[data-p3="search-open"]',
-    '[data-p3="mode-option"]', '[data-p3="inspect-open"]'],
+    '[data-p3="mode-option"]', '[data-p3="inspect-open"]', ...B2_RING_NEEDS],
   figma: ['[data-p3="palettes-continue"]', '[data-p3="density-choice-comfortable"]', '[data-p3="brand-name"]', '[data-p3="primary-hex"]',
     '[data-p3="tab-color"]', '[data-p3="color-sub-palettes"]', '[data-p3="neutral-chroma-slider"]', '[data-p3="export-open"]', '[data-p3="search-open"]',
-    '[data-p3="mode-option"]', '[data-p3="inspect-open"]', '[data-p3="apply-to-figma"]', '[data-p3="components-def-option"]'],
+    '[data-p3="mode-option"]', '[data-p3="inspect-open"]', '[data-p3="apply-to-figma"]', '[data-p3="components-def-option"]', ...B2_RING_NEEDS],
 };
 /** The focused controls photographed for review when a screenshot directory is given: [hook, file name part]. */
 const FOCUS_SHOTS = [['palettes-continue', 'continue'], ['density-choice-comfortable', 'chip'], ['brand-name', 'text-field'], ['tab-color', 'tab']];
@@ -8944,6 +8957,24 @@ for (const host of ['web', 'figma']) {
         }
         hostTotal += rings.length;
         focusSwept += rings.length;
+      }
+      // B2 (#2487): Inspect › Token list, on Semantics, over the last place: the lent token list's segments and selects.
+      {
+        await hooks.click(page.locator('[data-p3="inspect-open"]'), WAIT);
+        await hooks.click(page.locator('[data-p3="inspect-option-tokens"]'), WAIT);
+        await hooks.click(page.locator('[data-p3="token-tier-semantic"]'), WAIT);
+        await hooks.need(page, '[data-p3="token-path-short"]');
+        const rings = await focusRings(page, { all: true, max: 600, skipIn: FOCUS_SWEEP_SKIP });
+        counts.push(`inspect token list ${rings.length}`);
+        for (const r of rings) {
+          reached.add(r.hook);
+          const miss = ringMisses(r, r.pinnedLight ? 'light' : theme);
+          if (miss.length) bad.push({ r: { ...r, hook: `inspect token list ${r.hook}` }, miss });
+          lows.focus = Math.min(lows.focus, r.r);
+        }
+        hostTotal += rings.length;
+        focusSwept += rings.length;
+        await hooks.click(page.locator('[data-p3="inspect-close"]'), WAIT);
       }
       // The plugin's Build style guides page (S11.2; review of #2171), which no tab shows: its switch, its title box's
       // fold and every other control on it, with a catalog posted so the tree and every option group are drawn.
@@ -13762,6 +13793,183 @@ console.log(`\nInput commit and focus retention (#2487 PR 1)\n${'='.repeat(78)}`
     } catch (e) {
       ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
     } finally { await ctx.close(); }
+  }
+}
+// =============================================================================================
+// 45. #2487 PR 4 (findings D2, D5, D6, B2's Q195, and owner decisions Q196, Q197): names, landmarks, the selected
+//     segment and the display-only specimens, as the browser's accessibility tree and the keyboard read them. Both hosts,
+//     light, at 1280 (every place, then Inspect › Token list and Activity open, and on the plugin the Build style guides
+//     page) and at 380 (every place).
+//   · D2: Brand's "View style guide on" surface select has that caption as its accessible name.
+//   · D5 and Q197: exactly one `main` landmark everywhere, and the only named regions are the two panes, Inspect and
+//     Activity, each only while it is drawn.
+//   · Q195: the token list's selected Alias path segment (`.seg-b.on`) draws an edge of 2px or more that reaches 3:1
+//     against its own fill and against the ground of its unselected neighbor.
+//   · Q196 (closes D6): the Interactive specimens are display-only: Tab never lands on one, on Brand's Style guide or on
+//     Color › Interactive, and the accessibility tree exposes none of them as a button.
+//
+// INDEPENDENCE (docs/34). EXPECTED is typed here: the caption's words, the counts (one main; Inspect and Activity),
+// the 3:1 floor (NONTEXT_MIN, a literal) and zero specimen stops. ACTUAL is the browser's: CDP's full accessibility
+// tree (never an attribute), real Tab presses, and the computed box-shadow and backgrounds of the drawn segment. The
+// specimen arms run with the specimens proven drawn in the same state, so neither passes on a page that drew none.
+//
+// Mutations (#2487), each after a `wip:` commit, on both rebuilt bundles, each failing here by name:
+//   · the select's `aria-labelledby` removed (main.ts) → `#2487 web light 1280 / brand: D2 the Style guide's surface
+//     select is named "View style guide on" (read "")`.
+//   · `panes.setAttribute('role', 'main')` removed (frame.ts) → `#2487 web light 1280 / brand: D5 Q197 exactly one main
+//     landmark and no named region (main 0, …)`, every place.
+//   · a lever section named again (brand.ts's `aria-labelledby`) → `… / brand: D5 Q197 exactly one main landmark and no
+//     named region (… regions ["Identity", …])`.
+//   · the underline dropped from `.seg-b.on` (styles.css) → `#2487 web 1280: Q195 the selected Alias path segment draws
+//     an edge of 2px or more at 3:1 …`.
+//   · `b.inert = true` removed (preview/sections/interactive.ts) → `#2487 web light 1280 / color-interactive: Q196 Tab
+//     never lands on a specimen …` and `… the accessibility tree exposes no specimen as a button …`, on Brand too.
+// The 2px ring on the legacy controls (B2) is section 27's: its sweep reads them by name (B2_RING_NEEDS).
+console.log(`\n#2487 names, landmarks, the selected segment and the display-only specimens\n${'='.repeat(78)}`);
+{
+  const LANDMARK_ROLES = ['banner', 'navigation', 'region', 'main', 'complementary', 'contentinfo', 'form', 'search'];
+  /** One full read of the accessibility tree: how many main landmarks, the named regions, and how many specimens it
+   *  exposes as buttons. */
+  const axRead = async (page) => {
+    const cdp = await page.context().newCDPSession(page);
+    try {
+      await cdp.send('Accessibility.enable');
+      const { nodes } = await cdp.send('Accessibility.getFullAXTree');
+      const live = nodes.filter((n) => !n.ignored && LANDMARK_ROLES.includes(n.role?.value));
+      const { root } = await cdp.send('DOM.getDocument', { depth: 0 });
+      const { nodeIds } = await cdp.send('DOM.querySelectorAll', { nodeId: root.nodeId, selector: '[data-p3="style-guide-button"]' });
+      let exposed = 0;
+      for (const nodeId of nodeIds) {
+        const t = (await cdp.send('Accessibility.getPartialAXTree', { nodeId, fetchRelatives: false })).nodes;
+        if (t.some((n) => !n.ignored && n.role?.value === 'button')) exposed++;
+      }
+      return { mains: live.filter((n) => n.role.value === 'main').length,
+        regions: live.filter((n) => n.role.value === 'region').map((n) => n.name?.value ?? '').sort(), specimens: nodeIds.length, exposed };
+    } finally { await cdp.detach(); }
+  };
+  /** The accessible name the browser computes for the one element `sel` finds. */
+  const axName = async (page, sel) => {
+    const cdp = await page.context().newCDPSession(page);
+    try {
+      await cdp.send('Accessibility.enable');
+      const { root } = await cdp.send('DOM.getDocument', { depth: 0 });
+      const { nodeId } = await cdp.send('DOM.querySelector', { nodeId: root.nodeId, selector: sel });
+      if (!nodeId) return null;
+      const t = (await cdp.send('Accessibility.getPartialAXTree', { nodeId, fetchRelatives: false })).nodes;
+      return t.find((n) => !n.ignored)?.name?.value ?? '';
+    } finally { await cdp.detach(); }
+  };
+  /** Tab from the top of the page until a stop repeats: how many stops, and how many landed on a specimen. */
+  const specimenStops = async (page) => {
+    await page.evaluate(() => { document.activeElement?.blur(); window.scrollTo(0, 0); });
+    const seen = new Set();
+    let stops = 0, onSpecimen = 0;
+    for (let i = 0; i < 600; i++) {
+      await page.keyboard.press('Tab');
+      const r = await page.evaluate(() => {
+        const a = document.activeElement;
+        if (!a || a === document.body) return null;
+        if (!a.dataset.fstop) a.dataset.fstop = String(Math.random());
+        return { id: a.dataset.fstop, specimen: !!a.closest('[data-p3="style-guide-button"]') };
+      });
+      if (!r) continue;
+      if (seen.has(r.id)) break;
+      seen.add(r.id);
+      stops++;
+      if (r.specimen) onSpecimen++;
+    }
+    await page.evaluate(() => { for (const n of document.querySelectorAll('[data-fstop]')) delete n.dataset.fstop; });
+    return { stops, onSpecimen };
+  };
+  for (const host of ['web', 'figma']) {
+    for (const w of [1280, 380]) {
+      const { ctx, page, errors } = await open({ host, theme: 'light', w, h: 900 });
+      const where = `#2487 ${host} light ${w}`;
+      let step = 'boot';
+      try {
+        for (const place of NEW_PAGES) {
+          step = place;
+          await goPlace(page, place);
+          await settle(page);
+          const ax = await axRead(page);
+          ok(ax.mains === 1 && ax.regions.length === 0,
+            `${where} / ${place}: D5 Q197 exactly one main landmark and no named region (main ${ax.mains}, regions ${JSON.stringify(ax.regions)})`);
+          if (place === 'brand') {
+            // At 380 the preview is the other pane, and a control in a pane not shown has no name to read.
+            if (w === 380) await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'), WAIT);
+            await hooks.need(page, '[data-p3="style-guide-ground"]');
+            // Case aside: the caption is drawn uppercase (`.pfk`), and the browser names the select by the words as drawn.
+            const name = await axName(page, '[data-p3="style-guide-ground"]');
+            ok(name?.toLowerCase() === 'view style guide on', `${where} / brand: D2 the Style guide's surface select is named "View style guide on" (read ${JSON.stringify(name)})`);
+            if (w === 380) await hooks.click(page.locator('[data-p3="pane-toggle-settings"]'), WAIT);
+          }
+          if (w === 1280 && (place === 'brand' || place === 'color-interactive')) {
+            const tabs = await specimenStops(page);
+            ok(ax.specimens > 0 && tabs.stops > 0 && tabs.onSpecimen === 0,
+              `${where} / ${place}: Q196 Tab never lands on a specimen (${tabs.onSpecimen} of ${tabs.stops} stops, ${ax.specimens} specimens drawn)`);
+            ok(ax.specimens > 0 && ax.exposed === 0,
+              `${where} / ${place}: Q196 the accessibility tree exposes no specimen as a button (${ax.exposed} of ${ax.specimens})`);
+          }
+        }
+        if (w === 1280) {
+          step = 'Inspect › Token list';
+          await hooks.click(page.locator('[data-p3="inspect-open"]'), WAIT);
+          await hooks.click(page.locator('[data-p3="inspect-option-tokens"]'), WAIT);
+          await hooks.click(page.locator('[data-p3="token-tier-semantic"]'), WAIT);
+          await hooks.need(page, '[data-p3="token-path-full"]');
+          const seg = await page.evaluate(() => {
+            const parse = (s) => { const m = /rgba?\(([^)]+)\)/.exec(s ?? ''); if (!m) return null; const p = m[1].split(/[,\s/]+/).filter(Boolean).map(Number); return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 }; };
+            const over = (fg, bg) => ({ r: fg.r * fg.a + bg.r * (1 - fg.a), g: fg.g * fg.a + bg.g * (1 - fg.a), b: fg.b * fg.a + bg.b * (1 - fg.a), a: 1 });
+            const lum = (c) => { const f = (v) => { const x = v / 255; return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b); };
+            const ratio = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+            const groundOf = (n0) => { let acc = null; for (let n = n0; n && n.nodeType === 1; n = n.parentElement) { const c = parse(getComputedStyle(n).backgroundColor); if (c && c.a > 0) { acc = acc ? over(acc, c) : c; if (acc.a >= 0.999) return { ...acc, a: 1 }; } } return acc ? over(acc, { r: 255, g: 255, b: 255, a: 1 }) : { r: 255, g: 255, b: 255, a: 1 }; };
+            const on = [...document.querySelectorAll('[data-p3="token-path-full"], [data-p3="token-path-short"]')].find((b) => b.classList.contains('on'));
+            const off = [...document.querySelectorAll('[data-p3="token-path-full"], [data-p3="token-path-short"]')].find((b) => b !== on);
+            if (!on || !off) return { found: false };
+            // The edge: the box-shadow drawn INSIDE the segment and offset vertically (an underline, or an overline), or a
+            // border, whichever is wider. The browser's computed shadow lists the color first, then the offsets.
+            const edges = [];
+            for (const part of getComputedStyle(on).boxShadow.split(/,(?![^(]*\))/)) {
+              const c = parse(part);
+              const nums = part.replace(/rgba?\([^)]*\)/, '').match(/-?[\d.]+px/g)?.map(parseFloat) ?? [];
+              if (c && /inset/.test(part) && nums.length >= 2 && nums[0] === 0 && Math.abs(nums[1]) > 0) edges.push({ c, w: Math.abs(nums[1]) });
+            }
+            const cs = getComputedStyle(on);
+            for (const side of ['Top', 'Right', 'Bottom', 'Left']) {
+              const bw = parseFloat(cs[`border${side}Width`]);
+              if (cs[`border${side}Style`] !== 'none' && bw > 0) edges.push({ c: parse(cs[`border${side}Color`]), w: bw });
+            }
+            const fill = groundOf(on), beside = groundOf(off);
+            const best = edges.filter((e) => e.c).map((e) => ({ w: e.w, own: Math.floor(ratio(over(e.c, fill), fill) * 100) / 100, near: Math.floor(ratio(over(e.c, beside), beside) * 100) / 100 }))
+              .sort((a, b) => Math.min(b.own, b.near) - Math.min(a.own, a.near))[0] ?? null;
+            return { found: true, which: on.dataset.p3, best };
+          });
+          ok(seg.found && seg.best && seg.best.w >= FOCUS_WIDTH_MIN && seg.best.own >= NONTEXT_MIN && seg.best.near >= NONTEXT_MIN,
+            `${where}: Q195 the selected Alias path segment draws an edge of ${FOCUS_WIDTH_MIN}px or more at ${NONTEXT_MIN}:1 against its own fill and its neighbor's ground (read ${JSON.stringify(seg)})`);
+          step = 'Activity';
+          await hooks.click(page.locator('[data-p3="activity-open"]'), WAIT);
+          await hooks.need(page, '[data-p3="activity-body"]');
+          await settle(page);
+          const both = await axRead(page);
+          ok(both.mains === 1 && JSON.stringify(both.regions) === JSON.stringify(['Activity', 'Inspect']),
+            `${where} with Inspect and Activity open: D5 Q197 exactly one main landmark, and the named regions are Inspect and Activity alone (main ${both.mains}, regions ${JSON.stringify(both.regions)})`);
+          if (host === 'figma') {
+            step = 'Build style guides';
+            await hooks.click(page.locator('[data-p3="activity-open"]'), WAIT);
+            await hooks.click(page.locator('[data-p3="inspect-close"]'), WAIT);
+            await openFigma(page);
+            await hooks.click(page.locator('[data-p3="figma-option-style-guide"]'), WAIT);
+            await hooks.need(page, '[data-p3="style-guides"]');
+            await settle(page);
+            const sg = await axRead(page);
+            ok(sg.mains === 1, `${where} / build style guides: D5 exactly one main landmark (main ${sg.mains}, regions ${JSON.stringify(sg.regions)})`);
+          }
+        }
+        ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+      } catch (e) {
+        ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+      } finally { await ctx.close(); }
+    }
   }
 }
 // =============================================================================================

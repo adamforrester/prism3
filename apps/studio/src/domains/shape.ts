@@ -205,7 +205,7 @@ export const mountShapeLevers = (hostEl: HTMLElement, cleanups: (() => void)[], 
     const head = h('div', 'p3-lsec-head');
     const t = h('h2', 'p3-lsec-title', s.title);
     t.id = `${el.id}-t`;
-    el.setAttribute('aria-labelledby', t.id);
+    // No name, so not a landmark: only Inspect and Activity carry landmark names (Q197, #2487).
     head.append(t);
     if (s.desc) head.append(h('p', 'p3-lsec-desc', s.desc));
     el.append(head);
