@@ -59,6 +59,10 @@ const REMOVED_IDENTIFIERS = [
   'renderApplyStatus', 'MENU_LEGACY', 'LegacyPageKey', 'legacyOf', 'legacyPage',
   'renderWorkspace', 'renderModeStrip', 'renderModeContext', 'modeStripHost', 'setVolatile', 'paintVolatile',
   'chromedWorkspace', 'attachModeBadges', 'reconcileRegions',
+  // #2487 PR 6 (review findings B4, A17, D8): dead code the redesign left behind, and exports nothing imported. An
+  // export is not something `noUnusedLocals` can see, so these are named here.
+  'applyFull', 'themePref', 'describeControl', 'cssVarAdapter', 'makeWriteHost', 'inputGradientCss', 'LINK_FAMILIES',
+  'renderGeneratedNote', 'modeIsEditable', 'swatchCell', 'addButton', 'tokenPill', 'addClass', 'modeAllPass', 'DERIVED_MODES',
 ];
 /** Hooks H12 deleted, as the strings that minted them. `rail-page-` is the rail rows' family prefix. */
 const REMOVED_HOOKS = ['pages-menu', 'pages-menu-list', 'rail-item-label', 'legacy-frame', 'legacy-page', 'style-guide-row', 'style-guide-customize', 'style-guide-draw', 'mode-strip'];
@@ -278,6 +282,13 @@ for (const { surface, holds } of SURFACES) {
 }
 const unlisted = [...read.keys()].filter((k) => !SURFACES.some((s) => s.surface === k));
 ok(unlisted.length === 0, `every surface the walks read is one step 4 holds${unlisted.length ? ` — unlisted: ${unlisted.join(', ')}` : ''}`);
+
+console.log('\n2. The studio typecheck reports an unused local (#2487 PR 6)');
+{
+  // Read off the config `npm run -w @prism3/studio typecheck` uses, so turning the flag off fails here by name.
+  const cfg = JSON.parse(readFileSync(join(REPO, 'apps/studio/tsconfig.json'), 'utf8')) as { compilerOptions?: { noUnusedLocals?: boolean } };
+  ok(cfg.compilerOptions?.noUnusedLocals === true, `apps/studio/tsconfig.json sets noUnusedLocals, so a dead local fails the typecheck (got ${String(cfg.compilerOptions?.noUnusedLocals)})`);
+}
 
 console.log(`\n${executed - failed}/${executed} removed-legacy assertions passed.`);
 if (failed) process.exit(1);

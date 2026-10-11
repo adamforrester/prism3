@@ -21,7 +21,7 @@
 import { currentMode, rp, setCurrentMode, subscribe, theme } from '../state/store';
 import { breadthLine, healthLine, isDerived, modeLine, verdictLine, verdictOf, type Verdict } from '../state/verdict';
 import { INSPECT, type InspectId } from './pages';
-import { glyph, h, hook, tile } from './dom';
+import { glyph, h, hook, menuButton, tile } from './dom';
 import { ENGINE_VERSION } from '@prism3/engine/version';
 import { buildChip, buildTitle } from '../build-identity';
 
@@ -224,7 +224,6 @@ export const inspectMenu = (open: (v: InspectId, opener: HTMLElement) => void, c
   btn.type = 'button';
   btn.setAttribute('aria-haspopup', 'menu');
   btn.setAttribute('aria-controls', 'p3-inspect-menu');
-  btn.setAttribute('aria-expanded', 'false');
   btn.append(glyph('layers'), h('span', 'p3-btn-label', 'Inspect'), glyph('chev'));
   const menu = hook(h('div', 'p3-menu'), 'inspect-menu');
   menu.id = 'p3-inspect-menu';
@@ -253,30 +252,8 @@ export const inspectMenu = (open: (v: InspectId, opener: HTMLElement) => void, c
   menu.append(stamp);
   const note = items[0].querySelector('.p3-menu-note')!;
   const paint = (): void => { const v = verdict(); note.textContent = v.fail ? `${v.fail} below floor` : 'all pass'; };
-  const isOpen = (): boolean => menu.isConnected;
-  const onDown = (e: MouseEvent): void => { if (!wrap.contains(e.target as Node)) close(false); };
-  const show = (): void => {
-    paint();
-    wrap.append(menu);
-    btn.setAttribute('aria-expanded', 'true');
-    document.addEventListener('mousedown', onDown);
-    items[0].focus();
-  };
-  function close(refocus: boolean): void {
-    if (!isOpen()) return;
-    menu.remove();
-    btn.setAttribute('aria-expanded', 'false');
-    document.removeEventListener('mousedown', onDown);
-    if (refocus) btn.focus();
-  }
-  btn.onclick = () => (isOpen() ? close(true) : show());
-  menu.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(true); return; }
-    if (e.key === 'Tab') { close(false); return; }
-    const to = stepKey(items, document.activeElement as HTMLElement, e.key);
-    if (to) { e.preventDefault(); to.focus(); }
-  });
-  cleanups.push(() => document.removeEventListener('mousedown', onDown));
+  // Open, close and keys: the shared menu button (#2487 B5), which now opens on ArrowDown.
+  const { close } = menuButton({ wrap, btn, menu, list: () => items, first: () => items[0], before: paint, cleanups });
   wrap.append(btn);
   return wrap;
 };

@@ -54,7 +54,7 @@
 import { currentMode, page, rp, searchHits, searchQuery, setCurrentMode, setPage, setSearch, subscribe } from '../state/store';
 import { isDerived } from '../state/verdict';
 import { INSPECT, TABS, homeOf, isMenuPage, newPageOf, placeId, placeOfPage, placeOfTab, viewLabel, type Host, type InspectId, type NewPageKey, type Place, type TabId } from './pages';
-import { glyph, h, hook, tile } from './dom';
+import { glyph, h, hook, menuButton, tile } from './dom';
 import { inspectMenu, modeControl, modeLabel, paintInspectView, stepKey, verdictButton, type InspectLegacy } from './preview';
 import { mountActivity, type ActivityLend } from './activity';
 import { figmaMenu, type FigmaAction, type FigmaSource } from './figma';
@@ -846,33 +846,8 @@ const themeToggle = (cleanups: (() => void)[]): HTMLElement => {
     for (const [i, c] of THEME_CHOICES.entries()) items[i].setAttribute('aria-checked', String(c.pref === cur.pref));
   };
   cleanups.push(onThemeChange(paint));
-  const isOpen = (): boolean => menu.isConnected;
-  const onDown = (e: MouseEvent): void => { if (!wrap.contains(e.target as Node)) close(false); };
-  const open = (): void => {
-    wrap.append(menu);
-    btn.setAttribute('aria-expanded', 'true');
-    document.addEventListener('mousedown', onDown);
-    (items.find((i) => i.getAttribute('aria-checked') === 'true') ?? items[0]).focus();
-  };
-  function close(refocus: boolean): void {
-    if (!isOpen()) return;
-    menu.remove();
-    btn.setAttribute('aria-expanded', 'false');
-    document.removeEventListener('mousedown', onDown);
-    if (refocus) btn.focus();
-  }
-  btn.onclick = () => (isOpen() ? close(true) : open());
-  menu.addEventListener('keydown', (e) => {
-    const i = items.indexOf(document.activeElement as HTMLButtonElement);
-    if (e.key === 'Escape') { e.preventDefault(); close(true); }
-    else if (e.key === 'Tab') close(false);
-    else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-      e.preventDefault();
-      items[(i + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length].focus();
-    } else if (e.key === 'Home' || e.key === 'End') { e.preventDefault(); items[e.key === 'Home' ? 0 : items.length - 1].focus(); }
-  });
-  cleanups.push(() => document.removeEventListener('mousedown', onDown));
-  btn.setAttribute('aria-expanded', 'false');
+  // Open, close and keys: the shared menu button (#2487 B5), which now opens on ArrowDown and keeps Escape here.
+  const { close } = menuButton({ wrap, btn, menu, list: () => items, first: () => items.find((i) => i.getAttribute('aria-checked') === 'true') ?? items[0], cleanups });
   paint();
   wrap.append(btn);
   return wrap;

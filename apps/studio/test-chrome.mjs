@@ -14433,6 +14433,54 @@ for (const host of ['web', 'figma']) {
     } finally { await ctx.close(); }
   }
 }
+// =============================================================================================
+// §47 — ONE MENU BUTTON (#2487 PR 6, B5: the menu button's three copies had drifted)
+// =============================================================================================
+// The bar's Theme menu, the preview's Inspect menu and (plugin) the Figma menu share one menu button. Each, by keyboard:
+//   · ArrowDown on the closed button opens the menu, with focus inside it;
+//   · Escape closes it onto the button, and the key goes no further: a listener the TEST adds on `document` must not
+//     hear it (before, Theme's Escape reached whatever sat under the menu).
+// INDEPENDENCE (docs/34): the expectations are typed here (open, focus inside, closed, focus on the button, 0 Escapes
+// heard below); ACTUAL is the browser's `aria-expanded`, `document.activeElement` and the test's own listener.
+// Mutations, each failing here by name: the button's ArrowDown removed → every `ArrowDown opens` arm; Escape's
+// `stopPropagation` removed → every `Escape … goes no further` arm; one menu back on its own copy without either → its
+// own two arms (Theme, the drift the review found).
+// =============================================================================================
+console.log(`\nOne menu button (#2487 PR 6)\n${'='.repeat(78)}`);
+for (const [host, menus] of [['web', [['Theme', 'theme-toggle', 'theme-menu'], ['Inspect', 'inspect-open', 'inspect-menu']]], ['figma', [['Theme', 'theme-toggle', 'theme-menu'], ['Inspect', 'inspect-open', 'inspect-menu'], ['Figma', 'figma-open', 'figma-menu']]]]) {
+  const where = `§47 ${host} light 1280`;
+  const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900 });
+  let step = 'open';
+  try {
+    await page.evaluate(() => { window.__p3Esc = 0; document.addEventListener('keydown', (e) => { if (e.key === 'Escape') window.__p3Esc++; }); });
+    for (const [name, btnHook, menuHook] of menus) {
+      step = `${name}: ArrowDown on the button`;
+      await hooks.need(page, `[data-p3="${btnHook}"]`, { timeout: 10000 });
+      await page.locator(`[data-p3="${btnHook}"]`).focus();
+      await page.keyboard.press('ArrowDown');
+      const opened = await page.evaluate(([b, m]) => {
+        const btn = document.querySelector(`[data-p3="${b}"]`);
+        const menu = document.querySelector(`[data-p3="${m}"]`);
+        return { expanded: btn?.getAttribute('aria-expanded') ?? null, menu: !!menu, inside: !!menu && menu.contains(document.activeElement) };
+      }, [btnHook, menuHook]);
+      ok(opened.expanded === 'true' && opened.menu && opened.inside, `${where} ${name}: ArrowDown on the closed button opens the menu, focus inside it (${JSON.stringify(opened)})`);
+      step = `${name}: Escape in the menu`;
+      await page.evaluate(() => { window.__p3Esc = 0; });
+      await page.keyboard.press('Escape');
+      const closed = await page.evaluate(([b, m]) => ({
+        expanded: document.querySelector(`[data-p3="${b}"]`)?.getAttribute('aria-expanded') ?? null,
+        menu: !!document.querySelector(`[data-p3="${m}"]`),
+        onBtn: document.activeElement?.getAttribute('data-p3') === b,
+        heard: window.__p3Esc,
+      }), [btnHook, menuHook]);
+      ok(closed.expanded === 'false' && !closed.menu && closed.onBtn && closed.heard === 0,
+        `${where} ${name}: Escape closes the menu onto its button and goes no further (${JSON.stringify(closed)})`);
+    }
+    ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+  } finally { await ctx.close(); }
+}
 // #2238: the check box is measured on both hosts, in both chrome themes, somewhere in the sweep.
 for (const [k, n] of Object.entries(BOXES_BY)) ok(n > 0, `#2238 ${k}: the contrast audit measured check boxes in the sweep (${n})`);
 hooks.report(ok);
