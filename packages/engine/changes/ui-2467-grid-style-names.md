@@ -6,7 +6,8 @@ The layout grid styles drop their `Grid /` group and are named by the bare break
 inside a "Grid" group. Only `out/figma/<brand>/grid-styles.json` moves; the DTCG trees and the `layout.grid`
 variables are unchanged. The plugin renames an old `Grid / <bp>` it owns to `<bp>` in place, keeping its id so
 every layer using it stays linked, and never creates `<bp>` beside it. Ownership is the #1884 mark, else the
-engine's grid-description signature, never the name: a client's own `sm` is not adopted, and the pre-flight
-refuses the apply rather than write over it. The opt-in prune spares an old `Grid / <bp>` whose size the plan
+engine's grid-description signature, never the name: a client's own `sm` is not adopted. The apply skips that
+one size, leaves the client's style untouched, names it in the result line and applies every other size (owner
+decision Q234 A); the pre-flight raises no conflict for grid styles. The opt-in prune spares an old `Grid / <bp>` whose size the plan
 still emits, and no longer reads a bare size as a style group. CONTRACT is unchanged: style names are not in
 the token contract.
