@@ -75,6 +75,12 @@
  *                  and record: all current, or all built by an earlier plugin, none a hand edit (#2436). These defs
  *                  build no instance and no styled text (a premise), so `format/duplicate`'s mutations reach nothing
  *                  here. Mutation: a node's own key hashed → `duplicate single/current`, `duplicate single/earlier`.
+ *   grid/…         a set laid out with one axis reversed reads its members as moves on BOTH axes and for every def:
+ *                  button and icon-button at another x, select and textarea at another y; the apply converges with
+ *                  every id kept; an unrelated update reports its moves; and an update that resizes members counts the
+ *                  moves the dry run could not list (#2519). Mutations: rows only → `grid/button moves`,
+ *                  `grid/icon-button moves`; pilot defs only → `grid/select moves`, `grid/textarea moves`; the apply
+ *                  counting moves only when the dry run listed some → `grid/resized`.
  *   nochange/…     a set the dry run reads as "no changes" (every member built by an earlier plugin) takes its stamps and
  *                  nothing else, read by a write log the test installs on the shim's nodes (#2379). Mutation: those
  *                  members sent through the build's pass again → `nochange/writes` (7,575 other writes).
@@ -106,7 +112,7 @@ import { NS } from './src/persist-figma';
 import { materializeForBrand } from './src/brand-def';
 import { BASELINE_KEY } from './src/member-baseline';
 import { makeShim, STYLE_FONT, type Node, type Page } from './component-shim';
-import { captureBaselines, previewUpdate, previewVerdict, type UpdateHost, type UpdateTarget } from './src/update-plan';
+import { captureBaselines, previewLine, previewUpdate, previewVerdict, type UpdateHost, type UpdateTarget } from './src/update-plan';
 import { drawnFaults, faultLine, varsById } from './src/drawn';
 import { BASELINE_V, baselineOf, resetStyleNames, snapshotMember } from './src/member-baseline';
 import { applyUpdate, applyVerdict, previewHashOf, DEPRECATED_PREFIX, RETAINED_KEY, nestedFirst, type ApplyHost } from './src/update-apply';
@@ -748,6 +754,75 @@ section('unrecorded — a member with no as-built record is updated and named, n
   ok((childNamed(m, 'content').boundVariables as Record<string, { id: string }>).itemSpacing?.id === await varIdOf(w, 'space/999'), 'unrecorded/written: its content gap is the plan\'s');
   const post = (await previewUpdate(w.host, [{ def: TAG, plans: moveGap(w.plans) }])).sets[0];
   ok(post.counts.current === 45 && post.counts.noBaseline === 0, `unrecorded/recorded: it now has a record, and reads current (${JSON.stringify(post.counts)})`);
+}
+
+/* ── grid ──────────────────────────────────────────────────────────────────────────────────────────────── */
+section('grid — a set laid out in another axis order reads its members as moves, on both axes, for every def (#2519)');
+{
+  // A SET LAID OUT IN ANOTHER ORDER: one axis's values REVERSED in a copy of the def (the state columns of button and
+  // icon-button, so their members sit at another x; the size rows of select and textarea, another y), against the
+  // plans as they are. Reversed rather than put in a named order so that it differs from whatever order a def holds:
+  // the counts are the same before #2509's reorder (owner decision Q213) and after it, measured on both. Only Button
+  // is in the canvas-furniture pilot. Mutations: `gridMoves` reading rows only → `grid/button moves`,
+  // `grid/icon-button moves` (and their `… converges`, `… unrelated`); reading the pilot defs only →
+  // `grid/icon-button …`, `grid/select …`, `grid/textarea …`.
+  const reordered = (id: string, axis: 'state' | 'size'): AnatomyPlan[] => {
+    const d = structuredClone(componentDefs.find((x) => x.id === id)!) as unknown as { figmaProperties?: { stateAxis?: { values: string[] } }; variants: Record<string, string[] | undefined>; states?: string[] };
+    if (axis === 'state') {
+      d.figmaProperties!.stateAxis!.values = [...d.figmaProperties!.stateAxis!.values].reverse();
+      d.states = [...(d.states ?? [])].reverse();
+    } else d.variants.size = [...(d.variants.size ?? [])].reverse();
+    return figmaAnatomySet(d as never, { swapTarget: SWAP_TARGET });
+  };
+  const at = (set: Node): Map<string, string> => new Map(membersOf(set).map((m) => [String(m.name), `${m.x},${m.y}`] as const));
+  for (const [id, n, axis] of [['button', 576, 'x'], ['icon-button', 216, 'x'], ['select', 56, 'y'], ['textarea', 56, 'y']] as const) {
+    const along = axis === 'x' ? 'state' : 'size';
+    const plans = plansOf(id);
+    const w = await world(id, reordered(id, along));
+    const name = String(w.set().name), total = membersOf(w.set()).length;
+    const pre = await previewUpdate(w.host, [{ def: id, plans }]);
+    const c = pre.sets[0].counts;
+    // `positions` is capped at LIST_CAP like every list a dry run carries (`truncated` says by how many); the count is whole.
+    ok(c.move === n && (pre.sets[0].positions?.length ?? 0) + (pre.sets[0].truncated?.positions ?? 0) === n && c.update + c.add + c.drop + c.rename + c.handEdited + c.noBaseline === 0 && previewLine(pre.sets[0]) === `${name}: ${total} members. ${n} to move.`,
+      `grid/${id} moves: laid out in another order, ${n} members at another ${axis} read as moves, and nothing else (${previewLine(pre.sets[0])}; ${JSON.stringify(c)})`);
+    const before = identityOf(w.set());
+    const res = await applyUpdate(w.host, w.api as any, [{ def: id, plans }], previewHashOf(pre));
+    const v = applyVerdict(res);
+    const after = identityOf(w.set());
+    const keptIds = [...before.members].every(([k, b]) => after.members.get(k)?.id === b.id && after.members.get(k)?.key === b.key) && after.members.size === total;
+    const next = (await previewUpdate(w.host, [{ def: id, plans }])).sets[0];
+    ok(v.headline === `✓ moved ${n}` && v.lines[0] === `${name}: ${n} moved.` && keptIds && previewLine(next) === `${name}: up to date (${total} members).`,
+      `grid/${id} converges: the apply moves the ${n}, keeps every id, and the next dry run reads up to date (${v.headline} | ${v.lines[0]} | ids ${keptIds ? 'kept' : 'changed'} | ${previewLine(next)})`);
+    // AN UNRELATED UPDATE over the same old layout (every member's root gap moves): its moves are reported, never an
+    // x or y changed silently. Every member whose place changed is one the dry run listed, and the apply counts them.
+    const w2 = await world(id, reordered(id, along), { extraVars: ['space/999'] });
+    const next2 = plans.map((p) => { const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan; (q.root as unknown as { bound: Record<string, string> }).bound = { ...((q.root as unknown as { bound?: Record<string, string> }).bound ?? {}), itemSpacing: 'space/999' }; return q; });
+    const pre2 = await previewUpdate(w2.host, [{ def: id, plans: next2 }]);
+    const was = at(w2.set());
+    const res2 = await applyUpdate(w2.host, w2.api as any, [{ def: id, plans: next2 }], previewHashOf(pre2));
+    const changed = [...at(w2.set())].filter(([k, xy]) => was.get(k) !== xy).map(([k]) => k);
+    // Each member that changed place is one the dry run listed: by name where the list is whole, by count past its cap.
+    const listed = new Set(pre2.sets[0].positions ?? []);
+    const silent = pre2.sets[0].truncated?.positions ? changed.length - (pre2.sets[0].counts.move ?? 0) : changed.filter((k) => !listed.has(k)).length;
+    ok(pre2.sets[0].counts.update === total && pre2.sets[0].counts.move === n && changed.length === n && silent === 0 && res2.outcomes[0]?.moved === n,
+      `grid/${id} unrelated: an update for another reason moves the ${n} the dry run listed, counts them, and moves nothing silently (${changed.length} moved, ${silent} not listed, counted ${res2.outcomes[0]?.moved}; ${previewLine(pre2.sets[0])})`);
+  }
+}
+
+{
+  // A MOVE THE DRY RUN COULD NOT LIST (#2519): an update that resizes members (every member's start padding moves to
+  // space/999) re-lays the grid by their NEW sizes, which the dry run, reading the file as it is, cannot know. The
+  // apply still counts every member whose place changed, so no x or y changes silently. Mutation: the apply counting
+  // moves only when the dry run listed some → `grid/resized`.
+  const w = await world(TAG, plansOf(TAG), { extraVars: ['space/999'] });
+  const next = w.plans.map((p) => { const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan; (q.root as unknown as { bound: Record<string, string> }).bound = { ...((q.root as unknown as { bound?: Record<string, string> }).bound ?? {}), paddingLeft: 'space/999' }; return q; });
+  const pre = await previewUpdate(w.host, [{ def: TAG, plans: next }]);
+  const was = new Map(membersOf(w.set()).map((m) => [String(m.name), `${m.x},${m.y}`] as const));
+  const res = await applyUpdate(w.host, w.api as any, [{ def: TAG, plans: next }], previewHashOf(pre));
+  const changed = membersOf(w.set()).filter((m) => was.get(String(m.name)) !== `${m.x},${m.y}`).length;
+  const v = applyVerdict(res);
+  ok(pre.sets[0].counts.move === undefined && changed > 0 && res.outcomes[0]?.moved === changed && v.lines[0] === `tag: 45 updated in place, ${changed} moved.`,
+    `grid/resized: an update that resizes members moves ${changed} the dry run could not list, and the apply counts every one (${previewLine(pre.sets[0])} → ${v.lines[0]})`);
 }
 
 /* ── no change ───────────────────────────────────────────────────────────────────────────────────────── */

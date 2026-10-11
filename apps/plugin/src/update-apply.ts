@@ -443,7 +443,9 @@ const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, p:
     : (host.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as LiveSet[]).find((s) => idOf(s) === setId || (setKey && keyOf(s) === setKey)) ?? live;
   if (keyOf(now) !== setKey || idOf(now) !== setId) out.identity.push(`the set: key ${setKey} → ${keyOf(now)}, id ${setId} → ${idOf(now)}`);
   const after = new Map(kidsOf(now).map((c) => [coordOf(String(c.name ?? '')), c] as const));
-  if (p.counts.move) {
+  // EVERY member whose place changed is counted, whether or not the dry run listed it (#2519): a move the dry run
+  // could not predict (an update that resizes members re-lays the grid by their new sizes) is never silent.
+  {
     const n = [...wasAt].filter(([name, at]) => after.has(name) && posOf(after.get(name)) !== at).length;
     if (n) out.moved = n;
   }

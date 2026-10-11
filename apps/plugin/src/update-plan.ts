@@ -41,7 +41,7 @@
  * would remove. Its blind spots are this module's (`anatomy-readback.ts` lists them). A member whose stamp
  * moved and that shows no field difference is listed as re-applied rather than left out.
  */
-import { planComponentName, planSetLayout, planSetProperties, CANVAS_FURNITURE_PILOT } from '@prism3/engine/anatomy-figma';
+import { planComponentName, planSetLayout, planSetProperties } from '@prism3/engine/anatomy-figma';
 import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
 import { diffAnatomy, type HostNode, type ReadPorts } from '@prism3/engine/anatomy-readback';
 import { COMPONENT_RENAMES, coordKey, coordPairs, renameCoordinate, type ComponentRename } from '@prism3/engine/component-renames';
@@ -205,27 +205,38 @@ export const ownedView = (host: HostSetView): HostSetView => {
 };
 
 /**
- * THE GRID AN UPDATE MOVES MEMBERS INTO (#2188, owner decision Q173: "an in-place update reports it as moves").
- * For a def in the canvas-furniture pilot, the members whose row is not where the plan's grid puts it: a set laid
- * out before `planSetLayout` grouped its inverse rows, read by name. The row tops are worked out as the executor's
- * own layout pass works them out from the members' heights (`applyComponentPlan`, LAY OUT: the grid starts 24 in and
- * rows sit 24 apart), so a set the executor has laid out reads none. A move rewrites no member: the update's apply
- * re-lays the grid and keeps every id. Rows only, because the grouping moves rows; columns are as they were.
- * A member not built by Prism3 is never one of them (#2325, #2464: Prism3 never touches a member it didn't build),
- * adoptable or not. It still counts toward its row's height, as the executor's layout counts it.
+ * THE GRID AN UPDATE MOVES MEMBERS INTO (#2188, owner decision Q173: "an in-place update reports it as moves"). The
+ * members that are not where the plan's grid puts them, read by name, for EVERY def and on BOTH axes (#2519): the
+ * executor's LAY OUT pass (`applyComponentPlan`) lays every set out from `planSetLayout`, so a set laid out in an
+ * earlier order (the canvas-furniture pilot's grouped rows, #2471; one axis value order in every def, #2501) has
+ * members at another x as well as another y, and an update that re-lays the grid moves them. The cell tops and lefts
+ * are worked out as that pass works them out from the members' sizes: the grid starts 24 in, rows and columns sit 24
+ * apart, a row is as tall as its tallest member and a column as wide as its widest. A move rewrites no member: the
+ * update's apply re-lays the grid and keeps every id. A member not built by Prism3 is never one of them (#2325,
+ * #2464), adoptable or not; it still counts toward its row's height and its column's width, as the executor counts it.
  */
-export const gridMoves = (defId: string, plans: AnatomyPlan[], members: readonly HostMember[]): string[] => {
-  if (!CANVAS_FURNITURE_PILOT.has(defId) || !plans.length) return [];
-  let cells: { name: string; row: number }[];
+export const gridMoves = (plans: AnatomyPlan[], members: readonly HostMember[]): string[] => {
+  if (!plans.length) return [];
+  let cells: { name: string; row: number; col: number }[];
   try { cells = planSetLayout(plans, 'gridMoves').cells; } catch { return []; }
-  const rowOf = new Map(cells.map((c) => [c.name, c.row] as const));
+  const cellOf = new Map(cells.map((c) => [c.name, c] as const));
   const PAD = 24, GAP = 24;
-  const placed = members.filter((m) => rowOf.has(m.name) && typeof m.snap.y === 'number' && typeof m.snap.height === 'number');
+  const num = (v: unknown): v is number => typeof v === 'number';
+  const placed = members.filter((m) => cellOf.has(m.name) && num(m.snap.x) && num(m.snap.y) && num(m.snap.width) && num(m.snap.height));
+  const colW: number[] = [];
   const rowH: number[] = [];
-  for (const m of placed) { const r = rowOf.get(m.name)!; rowH[r] = Math.max(rowH[r] ?? 0, m.snap.height as number); }
-  // A sparse array, reduced as the executor reduces it: a row with no member adds nothing.
-  const top = (r: number): number => PAD + rowH.slice(0, r).reduce((a, b) => a + (b || 0) + GAP, 0);
-  return placed.filter((m) => !!m.stamp && Math.abs((m.snap.y as number) - top(rowOf.get(m.name)!)) > 0.5).map((m) => m.name);
+  for (const m of placed) {
+    const c = cellOf.get(m.name)!;
+    colW[c.col] = Math.max(colW[c.col] ?? 0, m.snap.width as number);
+    rowH[c.row] = Math.max(rowH[c.row] ?? 0, m.snap.height as number);
+  }
+  // Sparse arrays, reduced as the executor reduces them: a row or column with no member adds nothing.
+  const at = (arr: number[], n: number): number => PAD + arr.slice(0, n).reduce((a, b) => a + (b || 0) + GAP, 0);
+  return placed.filter((m) => {
+    if (!m.stamp) return false;
+    const c = cellOf.get(m.name)!;
+    return Math.abs((m.snap.x as number) - at(colW, c.col)) > 0.5 || Math.abs((m.snap.y as number) - at(rowH, c.row)) > 0.5;
+  }).map((m) => m.name);
 };
 
 /**
@@ -473,7 +484,7 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
   if (collapse.length) needsChoice.push('axisCollapse');
 
   // A set with members refused or to collapse is refused by the update, so it reports no moves either.
-  const positions = blockers.length || host.single ? [] : gridMoves(defId, plans, host.members);
+  const positions = blockers.length || host.single ? [] : gridMoves(plans, host.members);
   if (positions.length) counts.move = positions.length;
 
   const truncated: Record<string, number> = {};
