@@ -44,7 +44,9 @@ B4, B5, D8, D11 and A17 from the merged #2487 review (comment 6098371348, §4 PR
   - `leverBlock` now draws its ⓘ through `infoTip`, which it duplicated (D12).
 - **The CSS (D11):** 50 rules of `styles.css` whose classes no source names anywhere (the old start screen, the
   derived-mode note, the mode-strip badge, the add button and others), plus the comments that only described them.
-  `lint:live-css` holds the 325 live rules, untouched.
+  `lint:live-css` holds the 325 live rules, untouched. A `--accept` afterwards wrote the baseline at 325 live and 49
+  drawn by no page (95 before: the 46 keys removed here, none of them live). The other 49 are left: their classes
+  are still named in the source, so a state no suite reaches may draw them.
 
 ### Not done here, and why
 
@@ -64,4 +66,19 @@ B4, B5, D8, D11 and A17 from the merged #2487 review (comment 6098371348, §4 PR
   - ArrowDown on the closed button opens the menu with focus inside it;
   - Escape closes it onto the button, and a `document` listener the test adds hears no Escape.
 
-The mutation lines are in the PR.
+Mutations, each from a `wip:` commit, restored with `git checkout --`, each failing only its own arms, by name:
+- **An unused local re-added** (`const unusedProbe = 1` in `shell/theme.ts`):
+  `src/shell/theme.ts(44,7): error TS6133: 'unusedProbe' is declared but its value is never read.`
+- **`menuButton`'s Escape `stopPropagation` removed:**
+  `✗ §47 web light 1280 Theme: Escape closes the menu onto its button and goes no further (… "heard":1)`, and the same
+  for Inspect (web, plugin) and Figma (plugin). 5 of 39196 fail.
+- **The Theme menu back on its own copy** (`shell/frame.ts` at `main`): the two Theme arms on each host (ArrowDown
+  `{"expanded":"false","menu":false,…}`, Escape `"heard":1`), and only those. 4 of 39196 fail.
+- **`menuButton`'s ArrowDown open removed:** every `ArrowDown opens` arm, and the older Figma-menu arms that open it
+  by ArrowDown.
+
+### A trap for whoever re-verifies this
+
+**The Escape arm first read the ArrowDown arm's failure.** With the menu never opened, Escape on the button
+propagates anyway, so a missing ArrowDown failed both arms. The Escape arm now opens the menu by a click when ArrowDown
+didn't, so each arm reads its own key.
