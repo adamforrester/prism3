@@ -17,4 +17,6 @@ The export dialog's preview (`pre.p3-export-pre`) has been a Tab stop of its own
   - and the #2523 arm.
 - **the preview pushed past its column's edge:** the #2523 arm alone, `… clipped by p3-export-prevs`.
 
+**One existing arm moved with the hook.** S13.1's tab-order walk names each stop by its hook, or by its tag when it has none. So its "the export preview is a Tab stop of its own … and Tab reaches it" arm now looks for `export-preview` rather than `pre`. The first full verify caught it, on every host, theme and width.
+
 **A trap for whoever mutates this.** The chrome CSS build allows tokens only, so a raw `-6px` fails the build, and the suite then reports a stale bundle, not the arm. Write a mutation in tokens (`calc(-1 * var(--p3-space-075))`).
