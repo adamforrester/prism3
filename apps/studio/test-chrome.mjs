@@ -14465,6 +14465,8 @@ for (const [host, menus] of [['web', [['Theme', 'theme-toggle', 'theme-menu'], [
       }, [btnHook, menuHook]);
       ok(opened.expanded === 'true' && opened.menu && opened.inside, `${where} ${name}: ArrowDown on the closed button opens the menu, focus inside it (${JSON.stringify(opened)})`);
       step = `${name}: Escape in the menu`;
+      // Open by a click when ArrowDown did not, so this arm reads Escape alone, never the ArrowDown arm's failure.
+      if (!opened.menu) await page.locator(`[data-p3="${btnHook}"]`).click();
       await page.evaluate(() => { window.__p3Esc = 0; });
       await page.keyboard.press('Escape');
       const closed = await page.evaluate(([b, m]) => ({
