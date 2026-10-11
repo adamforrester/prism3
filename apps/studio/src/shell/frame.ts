@@ -299,7 +299,11 @@ export const mountFrame = (app: HTMLElement, opts: {
   const pageHeading = hook(h('h1', 'p3-sr'), 'page-heading');
   head.append(bar, notices, pageHeading, nav, subRow);
 
+  // D5 (#2487): the levers and the preview are the page's main content, so the panes are its one `main` landmark. A
+  // role, not the element: the Build style guides page is a `<main>` of its own (below), and the two are never shown
+  // together. Inside it no region is named (Q197): only the Inspect and Activity panes carry landmark names.
   const panes = hook(h('div', 'p3-panes'), 'panes');
+  panes.setAttribute('role', 'main');
   const levers = hook(h('section', 'p3-levers'), 'levers-pane');
   levers.id = PANEL_ID;
   // N-3 A (owner, 2026-10-05; #1984) and RX1 A, RX2 A (owner, 2026-10-07): ONE read-only state for the levers panel
@@ -365,7 +369,6 @@ export const mountFrame = (app: HTMLElement, opts: {
   const HOLD_WATCH: MutationObserverInit = { childList: true, subtree: true, attributes: true, attributeFilter: ['disabled', 'aria-disabled', 'tabindex'] };
   cleanups.push(() => leversHold.disconnect());
   const preview = hook(h('section', 'p3-preview'), 'preview-pane');
-  preview.setAttribute('aria-label', 'Preview');
   // Q2: the preview's title row shares one header height with the tab row, so the two dividers meet at
   // one y across the split. So the title, the mode control and Inspect sit on ONE row (S1.3): concept v6
   // put the modes on a second row, which is what offset the two dividers.
@@ -377,7 +380,9 @@ export const mountFrame = (app: HTMLElement, opts: {
   // V1: the body shows the page's one home view, named by `data-view`. It changes on a tab or sub-page
   // change and on nothing else. Each domain slice draws its view here (S2 first).
   const previewBody = hook(h('div', 'p3-preview-body'), 'preview-body');
-  previewBody.setAttribute('role', 'region');
+  // A group, not a region (Q197): it keeps the preview's title as its name, since the scroller can take focus, and
+  // stays out of the landmarks.
+  previewBody.setAttribute('role', 'group');
   previewBody.setAttribute('aria-labelledby', 'p3-preview-title');
   preview.append(previewHead, previewBody);
   panes.append(levers, preview);

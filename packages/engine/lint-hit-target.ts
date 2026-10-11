@@ -203,6 +203,7 @@ const EXCLUDED: Record<string, string> = {
   'field-label': 'a field label, not an interactive control',
   'field-message': 'a helper/validation message, not an interactive control',
   'veil': 'a media wash overlay, not an interactive control',
+  'divider': 'a 1px rule between groups of content, never interactive and never focusable',
   'image-placeholder': 'an empty-state media frame, not an interactive control',
   'spinner': 'a decorative loading indicator on the icon ladder, never interactive — the tap target is the host control it sits in (a pending button), which is gated',
   'badge': 'a static marker, never interactive (owner decision, 2026-09-27) — a count or dot on an icon button relies on the host\'s target, which is gated',

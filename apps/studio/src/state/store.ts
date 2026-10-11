@@ -142,6 +142,21 @@ let persist: ((input: BrandInput) => void) | null = null;
  *  because Figma shared-data is written by the plugin's main thread on Apply, not from here. */
 export const setPersist = (fn: ((input: BrandInput) => void) | null): void => { persist = fn; };
 
+/** While a drag is held (`holdPersist`, a slider from its first `input` to its release), a good rebuild owes a write
+ *  instead of making one, and the release writes the last-good brand once (#2487 B1): a drag stores once, not on
+ *  every tick. Every other rebuild writes as before. */
+let persistHolds = 0;
+let persistOwed = false;
+const writePersist = (): void => {
+  if (persistHolds) persistOwed = true;
+  else persist?.(brandState);
+};
+export const holdPersist = (): void => { persistHolds++; };
+export const releasePersist = (): void => {
+  if (!persistHolds || --persistHolds) return;
+  if (persistOwed) { persistOwed = false; persist?.(lastGoodInput); }
+};
+
 // ---- lifecycle -------------------------------------------------------------------------------------
 
 /** Start the session on `input`: resolve it, take it as the last-good input and the boot provenance,
@@ -160,17 +175,20 @@ export const initSession = (input: BrandInput, origin: Origin): void => {
 
 /** Re-resolve from the current brandState. On failure keep the last-good theme/rp and
  *  record the message (the render stays coherent; the edit is what's flagged). */
-export const rebuild = (): void => {
+const resolve = (): void => {
   try {
     const t = brandTheme(brandState);
     rp = resolvePreview(t);
     theme = t;
     lastGoodInput = structuredClone(brandState);   // M-16: anchor badges read this, not the (maybe failing) live state
     lastError = null;
-    persist?.(brandState);   // persist the last-good brand (web only — the plugin injects no writer; best-effort)
+    writePersist();   // persist the last-good brand (web only — the plugin injects no writer; best-effort)
   } catch (e) {
     lastError = studioMessage((e as Error).message, brandState);   // a floor refusal in the studio's words (Q67 B)
   }
+};
+export const rebuild = (): void => {
+  resolve();
   invalidate('brand');
 };
 
@@ -232,10 +250,15 @@ export const loadInput = (input: BrandInput, origin: Origin): void => {
   // Set from the SAME value assigned above, before any edit can land — the baseline is what was
   // loaded, not what the state happens to hold when someone next asks.
   provenance = provenanceOf(origin, brandState);
+  // ONE BATCH, IN THE ORDER RESOLVE, MODE, PAGE (#2487 A13). Every fact is set before anyone is told, so no subscriber
+  // paints the new page against the old theme, and each topic is told once.
+  resolve();
+  currentMode = rp.modes[0];
+  page = 'palettes';
   invalidate('origin');
-  setPage('palettes');
-  rebuild();
-  setCurrentMode(rp.modes[0]);
+  invalidate('brand');
+  invalidate('mode');
+  invalidate('page');
 };
 
 /** Return to the start moment without touching the working brand: the origin becomes `none`, so
