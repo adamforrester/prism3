@@ -222,5 +222,20 @@ store.rebuild();
 ok(store.lastError !== null && store.lastError !== FIRST_MUST_BE_0(320) && L.breakpointRefusal() === FIRST_MUST_BE_0(320) && L.breakpointRefusal() !== store.lastError,
   `beside another error (the columns), the list's own refusal is not the line's, so no action is offered — line "${store.lastError}", list "${L.breakpointRefusal()}"`);
 
+console.log('\n7. #2513: a brand that arrives with eight breakpoints (an agent\'s live write) is named, not thrown, and Remove takes it back to seven');
+reset({ breakpoints: [0, 768] });
+store.brandState.layout = { ...(store.brandState.layout ?? {}), breakpoints: [0, 320, 480, 768, 1024, 1440, 1920, 2560], columnOverrides: { md: 6 } };
+store.rebuild();
+ok(store.lastError === 'The brand can have at most seven breakpoints. This brand has 8.', `premise: the engine refuses eight, and the error line says so — "${store.lastError}"`);
+let eight: readonly string[] = [];
+let threw8 = '';
+try { eight = L.namesFor(L.breakpointsOf()); } catch (e) { threw8 = (e as Error).message; }
+ok(!threw8 && J(eight) === J(['xs', 'sm', 'md', 'lg', 'xl', '2xl', '3xl', '2560px']),
+  `#2513: eight breakpoints are named without throwing: the first seven by the engine's names for seven, the eighth by its width — ${threw8 || J(eight)}`);
+r = L.removeBreakpoint(3);
+store.rebuild();
+ok(!r.refused && J(lay()?.breakpoints) === J([0, 320, 480, 1024, 1440, 1920, 2560]) && store.lastError === null,
+  `#2513: one Remove (768) leaves a valid seven, and the brand resolves — ${J(r)}, ${J(lay()?.breakpoints)}, "${store.lastError}"`);
+
 console.log(`\n${executed - failed}/${executed} layout-input assertions passed.`);
 if (failed) process.exit(1);
