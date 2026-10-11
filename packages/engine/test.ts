@@ -19718,6 +19718,20 @@ arm: {
           && cells.every((n) => (n.componentPropertyReferences as Record<string, string> | null)?.slotContentId === slotDefs[0][0])
           && cells.every((n) => ((n.children as Record<string, unknown>[]) ?? []).map((c) => String(c.name)).join() === 'dismissGlyph'),
           `#2417 paste: the paste executor builds each dismiss cell as a native SLOT holding its glyph, and the set holds one SLOT property they all reference (${cells.length} cells, ${[...new Set(cells.map((n) => n.type))].join('/')}; ${slotDefs.map(([k]) => k).join(', ') || 'no SLOT property'}${run.misses.length ? `; misses ${JSON.stringify(run.misses.slice(0, 2))}` : ''})`);
+        // A SLOT'S TEXT IS LITERAL (#2417): Figma refuses a component-property reference on a slot sublayer (measured), so
+        // a text part inside a slot carries its own `characters`, and a TEXT property claiming one is refused, as is
+        // literal copy anywhere outside a slot. Mutations: the in-slot claim rule dropped → `#2417 validator: a TEXT
+        // property …`; the outside-a-slot rule dropped → `#2417 validator: literal copy outside …`.
+        const withHint = (extra: Partial<ComponentDef>, slot = true): ComponentDef => ({ ...slottedTag, ...extra, anatomy: { ...slottedTag.anatomy!, parts: { ...slottedTag.anatomy!.parts,
+          dismiss: { ...slottedTag.anatomy!.parts.dismiss, contentSlot: slot ? true : undefined, children: [...(tagDef.anatomy!.parts.dismiss.children ?? []), 'hint'] },
+          hint: { kind: 'text', type: tagDef.anatomy!.parts.label.type, characters: 'Drop content here' } } } });
+        const errs = (d: ComponentDef): string[] => validateComponentDef(d).errors;
+        ok(errs(withHint({})).length === 0, `#2417 validator: a literal text inside a native slot is valid (${errs(withHint({})).slice(0, 1).join('')})`);
+        ok(errs(withHint({}, false)).some((m) => /declares 'characters' outside a native slot/.test(m)),
+          `#2417 validator: literal copy outside a native slot is refused (${errs(withHint({}, false)).filter((m) => /hint/.test(m)).slice(0, 1).join('')})`);
+        const claimed = withHint({ figmaProperties: { ...slottedTag.figmaProperties!, texts: { ...slottedTag.figmaProperties!.texts, hint: { part: 'hint', default: 'x' } } } });
+        ok(errs(claimed).some((m) => /sits inside a native slot/.test(m)),
+          `#2417 validator: a TEXT property claiming a part inside a native slot is refused (${errs(claimed).filter((m) => /slot/.test(m)).slice(0, 1).join('')})`);
         // A HOST WITHOUT NATIVE SLOTS: each cell stays a frame, and the payload names both what it could not make and
         // the property that therefore never existed, rather than an `addComponentProperty` the host refuses.
         const bare = await runPayload(planSetToPluginJs(sg), { vars: sg.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]), styles: sg.flatMap((p) => planTextStyles(p.root)), comps: [...new Set(sg.flatMap((p) => { const walk = (n: { swapTarget?: string; nestTarget?: string; children: unknown[] }): string[] => [...(n.swapTarget ? [n.swapTarget] : []), ...(n.nestTarget ? [n.nestTarget] : []), ...(n.children as (typeof n)[]).flatMap(walk)]; return walk(p.root); }))], noSlots: true });

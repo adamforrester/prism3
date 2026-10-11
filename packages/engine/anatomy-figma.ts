@@ -1708,7 +1708,8 @@ export const figmaAnatomyPlan = (
     // The placeholder lands only on a TEXT node, and only where the def declares a TEXT property for
     // that part. A `characters` write on a FRAME throws, and a text part with no declared property is
     // a part whose copy nothing is claiming to own.
-    const chars = p.kind === 'text' ? placeholder.get(name) : undefined;
+    // A native slot's text carries its own literal copy (#2417), since no TEXT property can reach a slot sublayer.
+    const chars = p.kind === 'text' ? (placeholder.get(name) ?? p.characters) : undefined;
     // #1018: the canonical set-level default (the fallback `default`, constant across the set), carried
     // on the plan ONLY where it DIVERGES from this member's own `chars` — i.e. only on a `byVariant`
     // member whose per-coordinate copy differs from the fallback. Where the two are equal (every member

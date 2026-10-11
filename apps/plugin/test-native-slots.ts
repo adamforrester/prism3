@@ -36,7 +36,11 @@ const ok = (cond: boolean, label: string): void => {
 const SWAP_TARGET = 'FPO-default-icon';
 const tag = componentDefs.find((d) => d.id === 'tag')!;
 /** Tag with its dismiss cell declared a native slot, and nothing else changed. */
-const slotted: ComponentDef = { ...tag, anatomy: { ...tag.anatomy!, parts: { ...tag.anatomy!.parts, dismiss: { ...tag.anatomy!.parts.dismiss, contentSlot: true } } } };
+const slotted: ComponentDef = { ...tag, anatomy: { ...tag.anatomy!, parts: { ...tag.anatomy!.parts,
+  dismiss: { ...tag.anatomy!.parts.dismiss, contentSlot: true, children: [...(tag.anatomy!.parts.dismiss.children ?? []), 'hint'] },
+  // A slot's placeholder TEXT is literal copy (Figma refuses a property reference on a slot sublayer, measured).
+  hint: { kind: 'text', type: tag.anatomy!.parts.label.type, characters: 'Drop content here' },
+} } };
 const planComps = (n: { swapTarget?: string; nestTarget?: string; children: unknown[] }): string[] => [
   ...(n.swapTarget ? [n.swapTarget] : []), ...(n.nestTarget ? [n.nestTarget] : []), ...(n.children as (typeof n)[]).flatMap(planComps),
 ];
@@ -75,8 +79,11 @@ console.log('fresh build');
   const slots = members.flatMap((m) => all(m).filter((n) => n.name === 'dismiss'));
   ok(slots.length === withSlot.length && slots.every((n) => n.type === 'SLOT'),
     `slots/fresh is a SLOT: each member's dismiss cell is Figma's own SLOT node (${slots.length} cells, types ${[...new Set(slots.map((n) => n.type))].join(', ')})`);
-  ok(slots.every((n) => ((n.children as Node[]) ?? []).map((c) => String(c.name)).join() === 'dismissGlyph'),
-    `slots/default content: each slot holds its default content, the dismiss glyph (${[...new Set(slots.map((n) => ((n.children as Node[]) ?? []).map((c) => String(c.name)).join()))].join(' / ')})`);
+  ok(slots.every((n) => ((n.children as Node[]) ?? []).map((c) => String(c.name)).join() === 'dismissGlyph,hint'),
+    `slots/default content: each slot holds its default content, the dismiss glyph and a placeholder text (${[...new Set(slots.map((n) => ((n.children as Node[]) ?? []).map((c) => String(c.name)).join()))].join(' / ')})`);
+  const hints = slots.map((n) => ((n.children as Node[]) ?? []).find((c) => c.name === 'hint'));
+  ok(hints.every((t) => t?.type === 'TEXT' && t.characters === 'Drop content here' && !(t.componentPropertyReferences as Record<string, string> | null)?.characters),
+    `slots/literal text: the slot's placeholder text carries its own copy and no property reference (${JSON.stringify([...new Set(hints.map((t) => t?.characters))])})`);
   const placed = members.filter((m) => all(m).some((n) => n.name === 'dismiss')).every((m) => {
     const p = withSlot.find((q) => planComponentName(q) === m.name)!;
     const parentPlan = (function find(n: any): any { return n.children?.some((c: any) => c.name === 'dismiss') ? n : n.children?.map(find).find(Boolean); })(p.root);

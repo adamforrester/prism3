@@ -7,6 +7,7 @@ Accordion's panel holds the designer's own content (owner decision Q182: "a swap
 - **One SLOT property per name.** The combine merges every member's slot of one name into one property, but a slot made on a member already in a set gets a property of its own. So the property phase keeps the first, re-points every slot of that name at it, and deletes the rest. A SLOT property is verified, never added: the host refuses one without a default.
 - **The paste executor** (`__slotsNow` in the payload) makes the same conversion. It cannot write a plan onto an existing node, so it carries the frame's fields, size before any binding, and re-binds the plan's variables by name. Shipped only in a payload whose plans hold a slot, since every byte of the build ships in every chunk: icon-button stays at 16 chunks.
 - **A host without `createSlot`** keeps the frame, and the build names it (`<member>/<part>.slot -> NOT MADE …`).
+- **A slot's text is literal copy** (`PartDef.characters`). Measured: Figma refuses a component-property reference on a slot sublayer ("Cannot set component property references on slot sublayer"), while plain text in a slot's default content shows on an instance and a designer edits it there. So a `text` part inside a `contentSlot` box carries its own `characters`, which projects as the node's copy. A TEXT property claiming such a part is refused, and so is literal copy anywhere outside a slot, where a TEXT property is still the one way copy is written.
 - **`EXECUTOR_REVISION` 10 → 11.**
 
 ### Measured on a real host (the scratch file; every probe removed after)
@@ -20,13 +21,16 @@ Accordion's panel holds the designer's own content (owner decision Q182: "a swap
 
 ### Tests and mutations
 
-`apps/plugin/test-native-slots.ts` (11 assertions, joined to the plugin's `test`) builds a TEST-ONLY def, Tag with its `dismiss` cell declared a slot, through the plugin executor. `packages/engine/test.ts` runs the paste payload on the same def, and on a host without slots. The three host models (`component-shim.ts`, the engine stub, the real host) now agree on the measured behaviors above. Mutations, each failing by name:
+`apps/plugin/test-native-slots.ts` (12 assertions, joined to the plugin's `test`) builds a TEST-ONLY def, Tag with its `dismiss` cell declared a slot, through the plugin executor. `packages/engine/test.ts` runs the paste payload on the same def, and on a host without slots. The three host models (`component-shim.ts`, the engine stub, the real host) now agree on the measured behaviors above. Mutations, each failing by name:
 - `toSlots` not called after the conversion → `slots/fresh is a SLOT`, `slots/property`, `slots/read back`, `slots/clean`;
 - `toSlots` not called after an in-place member build → `slots/gained on update`, `slots/gained property`;
 - the consolidation skipped → `slots/gained property` (15 `dismiss` properties);
 - the no-host miss dropped → `slots/no host support named`;
 - the payload's slot code never shipped → `#2417 paste: …` (FRAME cells, no property);
-- the payload's SLOT skip dropped → `#2417 paste, no native slots: …`.
+- the payload's SLOT skip dropped → `#2417 paste, no native slots: …`;
+- the in-slot TEXT-claim rule dropped → `#2417 validator: a TEXT property claiming a part inside a native slot is refused`;
+- the outside-a-slot rule dropped → `#2417 validator: literal copy outside a native slot is refused`;
+- the projection's literal fallback dropped → `slots/literal text` (the placeholder comes out empty).
 
 ### Traps for whoever re-verifies
 
