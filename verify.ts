@@ -475,6 +475,12 @@ export const GATES: Gate[] = [
     cmd: ws('@prism3/plugin', 'build'),
   },
   {
+    // #2530 (owner Q239 A): the release build, `release/`, with every dev-only branch dropped.
+    id: 'build-plugin-release',
+    ciStep: 'Build plugin (release)',
+    cmd: ws('@prism3/plugin', 'build:release'),
+  },
+  {
     // ci.yml implements this as an inline grep; here it is a `derive` because it asserts a property of
     // a FILE, not of a command's exit status, and shelling out to grep for it would reintroduce the
     // pipeline that point 1 exists to keep out.
@@ -796,8 +802,8 @@ export const GATES: Gate[] = [
     id: 'lint-sandbox-reject',
     ciStep: "The built main.js carries no Figma-sandbox-rejected token sequence (#1461)",
     cmd: [...TSX, 'apps/plugin/lint-sandbox-reject.ts'],
-    after: ['build-plugin'],
-    why: 'it scans the dist/main.js the plugin build just wrote, exactly as Figma reads it',
+    after: ['build-plugin', 'build-plugin-release'],
+    why: 'it scans the dist/main.js and release/main.js the two plugin builds just wrote, exactly as Figma reads them',
   },
   {
     id: 'lint-bundle-prose',
@@ -805,6 +811,13 @@ export const GATES: Gate[] = [
     cmd: [...TSX, 'apps/plugin/lint-bundle-prose.ts'],
     after: ['build-plugin'],
     why: 'it reads the dist/main.js and dist/ui.html the plugin build just wrote',
+  },
+  {
+    id: 'lint-release-bundle',
+    ciStep: 'The release build carries no dev-only code (#2530)',
+    cmd: [...TSX, 'apps/plugin/lint-release-bundle.ts'],
+    after: ['build-plugin', 'build-plugin-release'],
+    why: 'it reads both builds: each dev-only marker must be in dist/ and absent from release/',
   },
   {
     // It fired for real on 2026-08-20, naming all 8 live sites that described #775's window — this

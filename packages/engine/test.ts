@@ -10503,7 +10503,7 @@ arm: {
 // "no generated brand exercises this path". A waiver justified by corpus agreement needs the corpus to
 // actually VARY on the axis in question — otherwise it records a coincidence as a decision.
 //
-// `semanticInk` (modes.ts) now gates these inks against the tint as well as the floor, so NB resolves
+// `semanticInkOn` (modes.ts) now gates these inks against the tint as well as the floor, so NB resolves
 // them one rung darker than it authored (recorded in NB_KNOWN_DIVERGENCES) and every mode is clean.
 // The gate is inverted accordingly: it asserts the shortfall is GONE, in all four modes, for the
 // fixture that used to own it. It fails if the pairing ever regresses below AA again.
@@ -10944,7 +10944,7 @@ arm: {
 // ceasing to be high-contrast on that axis; HC keeps its own 7:1 text bar for fills instead.
 // A FOURTH group joined in the semantic-ink-on-tint fix, and it moves the opposite way from group 1:
 // light-mode `text|icon/<sem>` now gate against their own `-subtle` tint as well as the page floor
-// (see `semanticInk` in modes.ts), so they resolve one rung DARKER than NB hand-authored — 550→600.
+// (see `semanticInkOn` in modes.ts), so they resolve one rung DARKER than NB hand-authored — 550→600.
 // This is #63's Option 2 arriving on its own: those NB inks measured 4.02–4.22:1 on the tint they are
 // used against, and #63 accepted that only because the engine's own brands looked green (both example
 // brands had TINTED pages, which held the floor high enough to hide it). A white page drops the floor
@@ -15126,8 +15126,9 @@ arm: {
         if (base?.paints?.fills !== 'color/border/primary' || base?.bound?.height !== 'border-width/hairline') bad.push(`baseline ${JSON.stringify(base?.paints)} ${JSON.stringify(base?.bound)}`);
         return bad.length ? [`${planComponentName(m)}: ${bad.join('; ')}`] : [];
       });
-      ok(listMembers.length === 3 && listOff.length === 0,
-        `#2416 Q177.2 tabs: 3 members (size), each nesting six tabs following its size, tab 1 selected, tabs 1-3 shown, tabs 4-6 hidden behind "Tab 4"-"Tab 6", over a 1px color/border/primary baseline (${listMembers.length} members, ${listOff.length} off — ${listOff[0] ?? 'none'})`);
+      // 6 since #2518 (owner decision Q222 A): size 3 × alignment 2 (start, center); what each member nests is unchanged.
+      ok(listMembers.length === 6 && listOff.length === 0,
+        `#2416 Q177.2 tabs: 6 members (size × alignment), each nesting six tabs following its size, tab 1 selected, tabs 1-3 shown, tabs 4-6 hidden behind "Tab 4"-"Tab 6", over a 1px color/border/primary baseline (${listMembers.length} members, ${listOff.length} off — ${listOff[0] ?? 'none'})`);
       const listProps = planSetProperties(listMembers).filter((p) => p.type === 'BOOLEAN').map((p) => `${p.name}=${String(p.default)}`);
       ok(JSON.stringify(listProps) === JSON.stringify(['Tab 4=false', 'Tab 5=false', 'Tab 6=false']),
         `#2416 Q179 tabs: the set declares exactly three Figma-only toggles, Tab 4-6, all off by default (${listProps.join(', ')})`);
@@ -17780,7 +17781,7 @@ arm: {
      *  Both exist because they answer different questions: `insetValue` is how the not-a-number case is
      *  reached (one bad value, whichever name asks), and `varOverrides` is how the two halves of the ring's
      *  coordinate are given DIFFERENT values, which is the only way to tell a sum from a doubling (#801). */
-    type StubOpts = { vars?: string[]; styles?: string[]; comps?: string[]; page?: StubPage; insetValue?: unknown; varOverrides?: Record<string, unknown>; varValues?: Record<string, number>; fileNodes?: StubFileNode[]; nestedInstanceParts?: string[]; effectStyles?: string[]; gradientDiscard?: 'paint' | 'bindings'; textMetrics?: { fontSize: number; lineHeight: { unit: string; value: number } }; setStrokes?: Record<string, unknown>[] };
+    type StubOpts = { vars?: string[]; styles?: string[]; comps?: string[]; page?: StubPage; insetValue?: unknown; varOverrides?: Record<string, unknown>; varValues?: Record<string, number>; fileNodes?: StubFileNode[]; nestedInstanceParts?: string[]; effectStyles?: string[]; gradientDiscard?: 'paint' | 'bindings'; textMetrics?: { fontSize: number; lineHeight: { unit: string; value: number } }; setStrokes?: Record<string, unknown>[]; noSlots?: boolean };
     /** The two halves of a focus ring's coordinate, the real NB values (`focus.ring.offset` /
      *  `focus.ring.width` — both 2 in every emitted brand). NAMED, and named HERE, because they are the
      *  stub's INPUT and the geometry assertions' EXPECTED at once, and #801 is what that costs when the
@@ -18163,6 +18164,21 @@ arm: {
             Object.defineProperty(node, 'height', { configurable: true, value: h, writable: true });
           },
           appendChild(c: Record<string, unknown>) { c.parent = node; (node.children as unknown[]).push(c); },
+          // #2417 — a MOVE, as on the host: out of its old parent, into this one at `i`. The paste executor's slot
+          // conversion places the slot and moves its default content with it.
+          insertChild(i: number, c: Record<string, unknown>) {
+            const from = c.parent as Record<string, unknown> | undefined;
+            const kids = from?.children as unknown[] | undefined;
+            if (kids) { const k = kids.indexOf(c); if (k >= 0) kids.splice(k, 1); }
+            c.parent = node;
+            (node.children as unknown[]).splice(Math.max(0, Math.min(i, (node.children as unknown[]).length)), 0, c);
+          },
+          // #2417 — out of the tree: the frame a native slot replaced.
+          remove() {
+            const kids = (node.parent as Record<string, unknown> | undefined)?.children as unknown[] | undefined;
+            if (kids) { const k = kids.indexOf(node); if (k >= 0) kids.splice(k, 1); }
+            node.parent = null;
+          },
           // Walks descendants for real, rather than returning `[]`. The set payload finds each part by
           // NAME inside every member to wire its property reference, so a stub that finds nothing would
           // let the whole wiring loop no-op and every assertion below pass on an empty set of writes.
@@ -18476,10 +18492,26 @@ arm: {
           set.appendChild = (c: Record<string, unknown>) => {
             (set.children as Record<string, unknown>[]).push(c);
             takeFromPage([c]);
+            mergeSlots(c);
             guardRefs({ ...set, declaredIds: set.declaredIds, findAll: () => [c, ...((c.findAll as () => unknown[])?.() ?? [])] } as Record<string, unknown>, (id) => defs[id]);
           };
           const defs: Record<string, { type: string; defaultValue?: unknown; variantOptions?: string[] }> = {};
           let seq = 100;
+          // #2417 — NATIVE SLOTS, as measured on a real host and as `component-shim.ts` models them: a member's slots
+          // merge by name into one SLOT property at the combine, and a member APPENDED later merges the same way.
+          const mergeSlots = (m: Record<string, unknown>): void => {
+            for (const sl of ((m.findAll as () => Record<string, unknown>[])?.() ?? []).filter((x) => x.type === 'SLOT')) {
+              const nm = String(sl.name);
+              let key = Object.keys(defs).find((k) => defs[k].type === 'SLOT' && k.split('#')[0] === nm);
+              if (!key) { key = `${nm}#103:${seq++}`; defs[key] = { type: 'SLOT' }; }
+              sl.componentPropertyReferences = { slotContentId: key };
+            }
+          };
+          for (const m of members) mergeSlots(m);
+          set.deleteComponentProperty = (key: string) => {
+            if (!defs[key]) throw new Error(`in deleteComponentProperty: Could not find a component property with name: '${key}'`);
+            delete defs[key];
+          };
           // A GETTER, not a snapshot, for two reasons the chunked path depends on. The axes Figma derives
           // come from the member NAMES (the wire format `planComponentName` emits), so a set that gained
           // members by `appendChild` must report the wider axis — a snapshot taken at combine time would
@@ -18505,6 +18537,9 @@ arm: {
             },
           });
           set.addComponentProperty = (name: string, type: string, defaultValue: unknown) => {
+            // #2417 — measured: a SLOT property cannot be added with no default ("Required value missing"); the host makes
+            // one only through a slot node.
+            if (type === 'SLOT') throw new Error('in addComponentProperty: Property "node.addComponentProperty.defaultValue" failed validation: Required value missing');
             if (type === 'INSTANCE_SWAP' && typeof defaultValue !== 'string')
               throw new Error('in addComponentProperty: Property value is incompatible with component property type');
             if (type === 'BOOLEAN' && typeof defaultValue !== 'boolean')
@@ -18531,7 +18566,15 @@ arm: {
         // precondition is stated in terms of containment, and a root that never becomes a component could only
         // ever refuse the deferred write. Returning the same object is right (Figma converts in place); the
         // type change is what lets `__exposeNow` succeed the moment it runs after this call.
-        createComponentFromNode: (n: unknown) => { (n as Record<string, unknown>).type = 'COMPONENT'; return n; },
+        createComponentFromNode: (n: unknown) => {
+          const c = n as Record<string, unknown>;
+          c.type = 'COMPONENT';
+          // #2417 — a COMPONENT's native slot: a SLOT that is a frame in every respect the build writes, appended as
+          // the component's last child and named `Slot`, as measured.
+          // `noSlots` models a host without the feature, which the payload must name rather than build around silently.
+          if (!opts.noSlots) c.createSlot = () => { const sl = mkNode('FRAME') as Record<string, unknown>; sl.type = 'SLOT'; sl.name = 'Slot'; (c.appendChild as (x: unknown) => void)(sl); return sl; };
+          return n;
+        },
         // A page a payload can SEARCH, not just append to. The chunked path finds its set here by name
         // and type, so `findOne` has to be real; a stub returning `null` would send every chunk down the
         // combine branch and build N separate sets while every assertion below still passed.
@@ -18569,7 +18612,8 @@ arm: {
             });
             continue;
           }
-          let held: Record<string, string> | null = null;
+          // Seeded from what the node holds: a native slot's reference is the host's, written at the combine (#2417).
+          let held: Record<string, string> | null = ((n as Record<string, unknown>).componentPropertyReferences as Record<string, string> | null | undefined) ?? null;
           Object.defineProperty(n, 'componentPropertyReferences', {
             configurable: true,
             get: () => held,
@@ -19650,6 +19694,69 @@ arm: {
       };
       const setRun = await runPayload(planSetToPluginJs(grid), fullSet);
       ok(setRun.misses.length === 0, `set properties: the set payload runs CLEAN end to end${setRun.misses.length ? ` — ${JSON.stringify(setRun.misses)}` : ''}`);
+
+      // ---- #2417: NATIVE SLOTS through the PASTE executor ----
+      // A TEST-ONLY def, Tag with its dismiss cell declared a slot (as `apps/plugin/test-native-slots.ts` builds it
+      // through the plugin executor): the 15 dismissible members carry it, the 30 others do not. Each cell must come
+      // back a SLOT, and the set must hold ONE SLOT property that every slot references. Mutations: `__slotsNow` not
+      // called → `#2417 paste: …` (FRAME cells, no property); the SLOT skip in the property loop dropped → the same
+      // arm (an `addComponentProperty` refused for want of a default).
+      {
+        const tagDef = componentDefs.find((d) => d.id === 'tag')!;
+        const slottedTag: ComponentDef = { ...tagDef, anatomy: { ...tagDef.anatomy!, parts: { ...tagDef.anatomy!.parts, dismiss: { ...tagDef.anatomy!.parts.dismiss, contentSlot: true } } } };
+        const sg = figmaAnatomySet(slottedTag, { swapTarget: 'FPO-default-icon' });
+        const page = { children: [] as Record<string, unknown>[] };
+        const run = await runPayload(planSetToPluginJs(sg), {
+          vars: sg.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]),
+          styles: sg.flatMap((p) => planTextStyles(p.root)),
+          // Every component the plans reach for, read off the plans (Tag nests the icon components it draws).
+          comps: [...new Set(sg.flatMap((p) => { const walk = (n: { swapTarget?: string; nestTarget?: string; children: unknown[] }): string[] => [...(n.swapTarget ? [n.swapTarget] : []), ...(n.nestTarget ? [n.nestTarget] : []), ...(n.children as (typeof n)[]).flatMap(walk)]; return walk(p.root); }))],
+          page,
+        });
+        const set = page.children.find((c) => c.type === 'COMPONENT_SET') as Record<string, unknown> | undefined;
+        const every = (n: Record<string, unknown>): Record<string, unknown>[] => [n, ...(((n.children as Record<string, unknown>[]) ?? []).flatMap(every))];
+        const cells = ((set?.children as Record<string, unknown>[]) ?? []).flatMap((m) => every(m).filter((n) => n.name === 'dismiss'));
+        const slotDefs = Object.entries(((set?.componentPropertyDefinitions ?? {}) as Record<string, { type: string }>)).filter(([, d]) => d.type === 'SLOT');
+        ok(run.misses.length === 0 && cells.length === 15 && cells.every((n) => n.type === 'SLOT') && slotDefs.length === 1
+          && cells.every((n) => (n.componentPropertyReferences as Record<string, string> | null)?.slotContentId === slotDefs[0][0])
+          && cells.every((n) => ((n.children as Record<string, unknown>[]) ?? []).map((c) => String(c.name)).join() === 'dismissGlyph'),
+          `#2417 paste: the paste executor builds each dismiss cell as a native SLOT holding its glyph, and the set holds one SLOT property they all reference (${cells.length} cells, ${[...new Set(cells.map((n) => n.type))].join('/')}; ${slotDefs.map(([k]) => k).join(', ') || 'no SLOT property'}${run.misses.length ? `; misses ${JSON.stringify(run.misses.slice(0, 2))}` : ''})`);
+        // A SLOT'S TEXT IS LITERAL (#2417): Figma refuses a component-property reference on a slot sublayer (measured), so
+        // a text part inside a slot carries its own `characters`, and a TEXT property claiming one is refused, as is
+        // literal copy anywhere outside a slot. Mutations: the in-slot claim rule dropped → `#2417 validator: a TEXT
+        // property …`; the outside-a-slot rule dropped → `#2417 validator: literal copy outside …`.
+        const withHint = (extra: Partial<ComponentDef>, slot = true): ComponentDef => ({ ...slottedTag, ...extra, anatomy: { ...slottedTag.anatomy!, parts: { ...slottedTag.anatomy!.parts,
+          dismiss: { ...slottedTag.anatomy!.parts.dismiss, contentSlot: slot ? true : undefined, children: [...(tagDef.anatomy!.parts.dismiss.children ?? []), 'hint'] },
+          hint: { kind: 'text', type: tagDef.anatomy!.parts.label.type, characters: 'Drop content here' } } } });
+        const errs = (d: ComponentDef): string[] => validateComponentDef(d).errors;
+        ok(errs(withHint({})).length === 0, `#2417 validator: a literal text inside a native slot is valid (${errs(withHint({})).slice(0, 1).join('')})`);
+        ok(errs(withHint({}, false)).some((m) => /declares 'characters' outside a native slot/.test(m)),
+          `#2417 validator: literal copy outside a native slot is refused (${errs(withHint({}, false)).filter((m) => /hint/.test(m)).slice(0, 1).join('')})`);
+        const claimed = withHint({ figmaProperties: { ...slottedTag.figmaProperties!, texts: { ...slottedTag.figmaProperties!.texts, hint: { part: 'hint', default: 'x' } } } });
+        ok(errs(claimed).some((m) => /sits inside a native slot/.test(m)),
+          `#2417 validator: a TEXT property claiming a part inside a native slot is refused (${errs(claimed).filter((m) => /slot/.test(m)).slice(0, 1).join('')})`);
+        // THE FOUR SHAPE REFUSALS, each asserted by its own message so a refusal switched off fails its own arm, not a
+        // neighbor's: copy on a non-text part, a slot on a non-box part, a slot with no layout, and a slot on the root.
+        // Each def is the slotted Tag with one part patched, as `withHint` builds its own.
+        const tagParts = slottedTag.anatomy!.parts;
+        const patched = (patch: Record<string, unknown>): ComponentDef => ({ ...slottedTag, anatomy: { ...slottedTag.anatomy!, parts: { ...tagParts, ...patch } as typeof tagParts } });
+        const refused = (d: ComponentDef, re: RegExp): string => { const all = errs(d); return all.some((m) => re.test(m)) ? '' : `none matched; got ${JSON.stringify(all.slice(0, 2))}`; };
+        const onBox = refused(patched({ dismiss: { ...tagParts.dismiss, characters: 'x' } }), /declares 'characters' — only a 'text' part/);
+        ok(onBox === '', `#2417 validator: copy on a box is refused, only a text part holds it ${onBox}`);
+        const onGlyph = refused(patched({ dismissGlyph: { ...tagParts.dismissGlyph, contentSlot: true } }), /only a 'box' can be a native slot/);
+        ok(onGlyph === '', `#2417 validator: a native slot on a non-box part is refused ${onGlyph}`);
+        const { layout: _layout, ...noLayout } = tagParts.dismiss;
+        const bare0 = refused(patched({ dismiss: { ...noLayout, contentSlot: true } }), /binds no 'layout'/);
+        ok(bare0 === '', `#2417 validator: a native slot with no layout is refused ${bare0}`);
+        const rootName = slottedTag.anatomy!.root;
+        const onRoot = refused(patched({ [rootName]: { ...tagParts[rootName], contentSlot: true } }), /on the root/);
+        ok(onRoot === '', `#2417 validator: a native slot on the root is refused ${onRoot}`);
+        // A HOST WITHOUT NATIVE SLOTS: each cell stays a frame, and the payload names both what it could not make and
+        // the property that therefore never existed, rather than an `addComponentProperty` the host refuses.
+        const bare = await runPayload(planSetToPluginJs(sg), { vars: sg.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]), styles: sg.flatMap((p) => planTextStyles(p.root)), comps: [...new Set(sg.flatMap((p) => { const walk = (n: { swapTarget?: string; nestTarget?: string; children: unknown[] }): string[] => [...(n.swapTarget ? [n.swapTarget] : []), ...(n.nestTarget ? [n.nestTarget] : []), ...(n.children as (typeof n)[]).flatMap(walk)]; return walk(p.root); }))], noSlots: true });
+        ok(bare.misses.some((m) => /dismiss\.slot -> NOT MADE/.test(m)) && bare.misses.some((m) => /property dismiss -> SLOT not on the set/.test(m)) && !bare.misses.some((m) => /SLOT REFUSED/.test(m)),
+          `#2417 paste, no native slots: the cells stay frames and the payload names the slot it could not make and the property that never existed (${JSON.stringify(bare.misses.filter((m) => /slot|SLOT/.test(m)).slice(0, 2))})`);
+      }
 
       // ---- #1393: the PASTE executor leaves no Figma white default on an unclaimed or unresolvable fill ----
       // The payload half of #1387/F1. The plugin executor has `claimDefaults` (#865), which neutralizes a fill
@@ -21740,8 +21847,14 @@ arm: {
       // NOW 15, AS OF #2501 — no byte moved: the state columns were reordered (owner decision Q213, Pressed and
       // Pending before Focus visible), and members in the new order pack one chunk tighter. Re-pinned per the same
       // standing instruction; every chunk stays under budget.
+      //
+      // NOW 16 AGAIN, AS OF #2417 — a shell-byte move: the paste script gained native slots (the `CONTENT_SLOT`
+      // branch, the slot list and the SLOT skip in the property loop), 303 bytes in every chunk's shell, measured
+      // against #2501's 15 (25,157 → 25,460 bytes for a one-member payload). The slot helper itself ships only
+      // when a set has a slot, so icon-button does not carry it. Re-pinned per the same standing instruction;
+      // every chunk stays under budget.
       const ibChunks = planSetChunks(ibSet);
-      ok(ibChunks.length === 15, `anatomy/icon-button: the set packs into 15 chunks (${ibChunks.length})`);
+      ok(ibChunks.length === 16, `anatomy/icon-button: the set packs into 16 chunks (${ibChunks.length})`);
       ok(ibChunks.every((c) => c.bytes <= SET_CHUNK_BYTES),
         `anatomy/icon-button: no chunk exceeds the byte budget (${ibChunks.map((c) => c.bytes).join(', ')} vs ${SET_CHUNK_BYTES})`);
       // And the chunks partition the set — no member dropped, none written twice. A packer that lost a
@@ -29501,6 +29614,73 @@ arm: {
     '#2455 divider decorative: no Figma property (it changes no pixel), and the codeOnly list says so in an entry that leads with it');
   ok(/^none with aria-hidden="true" by default\b/.test(divider.accessibility.role) && /decorative=false, separator\b/.test(divider.accessibility.role),
     `#2455 divider decorative: the code role is none with aria-hidden by default, and separator with decorative=false (got '${divider.accessibility.role}')`);
+}
+
+// ---- centered Tabs (#2518, owner decision Q222 A) ----
+// At `alignment=center` the root projects as a bar built 480 wide (DRAFT, typed here from the decision), centering
+// its children across; the row of tabs keeps hugging and the baseline stretches across the bar. At `alignment=start`
+// every member is BYTE-IDENTICAL to the approved Tabs (#2416), read against the same def with the axis taken out, so
+// "everything else matches" is held rather than assumed. Mutation: the root's `center` field dropped → `#2518 tabs`.
+{
+  const tabsDef = componentDefs.find((d) => d.id === 'tabs')!;
+  const { center: _c, ...rootNoCenter } = tabsDef.anatomy!.parts[tabsDef.anatomy!.root] as Record<string, unknown>;
+  const approved: ComponentDef = {
+    ...tabsDef,
+    props: tabsDef.props.filter((p) => p.name !== 'alignment'),
+    variants: { size: tabsDef.variants.size },
+    axisKinds: { size: 'authoring' },
+    anatomy: { ...tabsDef.anatomy!, parts: { ...tabsDef.anatomy!.parts, [tabsDef.anatomy!.root]: rootNoCenter as never } },
+    figmaProperties: { ...tabsDef.figmaProperties!, variantAxes: ['size'] },
+  };
+  const strip = (x: unknown): string => JSON.stringify((x as { root: unknown }).root);
+  const bad: string[] = [];
+  let centered = 0, started = 0;
+  for (const size of ['small', 'medium', 'large']) {
+    const c = figmaAnatomyPlan(tabsDef, size, { alignment: 'center' }) as unknown as { root: { counterAxisAlignItems?: string; counterAxisSizingMode?: string; placementWidth?: number; children: { name: string; primaryAxisSizingMode?: string; counterAxisSizingMode?: string; layoutAlign?: string }[] } };
+    const list = c.root.children.find((k) => k.name === 'list');
+    const base = c.root.children.find((k) => k.name === 'baseline');
+    if (c.root.counterAxisAlignItems === 'CENTER' && c.root.counterAxisSizingMode === 'FIXED' && c.root.placementWidth === 480
+      && list?.primaryAxisSizingMode === 'AUTO' && list?.counterAxisSizingMode === 'AUTO' && base?.layoutAlign === 'STRETCH') centered++;
+    else bad.push(`${size}/center: root ${c.root.counterAxisAlignItems} ${c.root.counterAxisSizingMode} ${c.root.placementWidth}, list ${list?.primaryAxisSizingMode}/${list?.counterAxisSizingMode}, baseline ${base?.layoutAlign}`);
+    const st = figmaAnatomyPlan(tabsDef, size, { alignment: 'start' });
+    if (strip(st) === strip(figmaAnatomyPlan(approved, size, {}))) started++;
+    else bad.push(`${size}/start: differs from the approved Tabs`);
+  }
+  ok(centered === 3 && started === 3 && bad.length === 0,
+    `#2518 tabs: alignment=center builds a 480px bar centering its hugging tabs over a full-width baseline, and alignment=start is the approved Tabs byte for byte (${centered} centered, ${started} unchanged${bad.length ? ` — WRONG: ${bad.join(' | ')}` : ''})`);
+}
+
+// ---- the `center` field's refusals (#2518 review, Lane D): each a way it would validate and center nothing, or
+// center every member. One arm per refusal, matched on its own words, so removing any one check fails its arm by name.
+{
+  const tabsDef = componentDefs.find((d) => d.id === 'tabs')!;
+  const R = tabsDef.anatomy!.root;
+  const parts = tabsDef.anatomy!.parts as Record<string, Record<string, unknown>>;
+  const C = { axis: 'alignment', value: 'center', placementWidth: 480 };
+  const withParts = (over: Record<string, Record<string, unknown>>, fp?: Record<string, unknown>) =>
+    validateComponentDef({ ...tabsDef, anatomy: { ...tabsDef.anatomy!, parts: { ...parts, ...over } as never }, ...(fp ? { figmaProperties: { ...tabsDef.figmaProperties!, ...fp } } : {}) } as ComponentDef).errors;
+  const rootWith = (c: unknown, extra: Record<string, unknown> = {}) => withParts({ [R]: { ...parts[R], center: c, ...extra } });
+  const { center: _rc, ...rootBare } = parts[R];
+  const refuses = (errs: string[], re: RegExp) => errs.some((x) => re.test(x));
+  ok(refuses(withParts({ [R]: rootBare, list: { ...parts.list, center: C } }), /part 'list' declares 'center' but is not the anatomy ROOT/),
+    '#2518 schema: a center off the root is refused by name');
+  ok(refuses(rootWith(C, { layout: { ...(parts[R].layout as object), direction: 'row' } }), /part 'container' declares 'center' but is not a 'box' with a 'column' layout/),
+    '#2518 schema: a center on a row root is refused by name');
+  ok(refuses(rootWith(C, { layout: undefined }), /part 'container' declares 'center' but is not a 'box' with a 'column' layout/),
+    '#2518 schema: a center on a root with no layout is refused by name');
+  ok(refuses(rootWith(C, { layout: { ...(parts[R].layout as { sizing: object }), sizing: { ...(parts[R].layout as { sizing: object }).sizing, x: 'fill' } } }), /part 'container' declares 'center' but already sizes its width/),
+    '#2518 schema: a center on a root already sized across is refused by name');
+  ok(refuses(rootWith({ ...C, axis: 'tone' }), /centers on 'tone', which is not one of this def's variant axes/),
+    '#2518 schema: a center axis the def does not declare is refused by name');
+  ok(refuses(withParts({ [R]: { ...parts[R], center: C } }, { variantAxes: ['size'] }), /centers on 'alignment', which figmaProperties\.variantAxes does not project/),
+    '#2518 schema: a center axis the set does not project is refused by name');
+  ok(refuses(rootWith({ ...C, value: 'middle' }), /centers at 'alignment=middle', which is not a value of that axis/),
+    '#2518 schema: a center value the axis does not declare is refused by name');
+  ok(refuses(rootWith({ ...C, value: 'start' }), /centers at 'alignment=start', the axis's first value/),
+    '#2518 schema: centering at the axis\'s default value is refused by name');
+  ok(refuses(rootWith({ ...C, placementWidth: 0 }), /declares a 'center\.placementWidth' that is not a positive number of px/),
+    '#2518 schema: a center build width of no size is refused by name');
+  ok(validateComponentDef(tabsDef).errors.length === 0, '#2518 schema: Tabs\' own center validates clean');
 }
 
 // ------------------------------------------------------------------- report

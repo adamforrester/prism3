@@ -8,7 +8,8 @@
  * members. The panel is not drawn: it is the page content below, and its role and wiring are code-only.
  * Owner decisions on #2416: the nested shape (Q177.2), line tabs only (Q177.4), its own `↳ Tabs` page with
  * no navigation grouping (Q177.14), a 1px `color.border.primary` baseline under the 2px bar (Q179 A), six
- * tabs at most in Figma, three shown (Q179 A), Tab 1 selected.
+ * tabs at most in Figma, three shown (Q179 A), Tab 1 selected. `alignment` (Q222 A, #2518): start or center, the
+ * centered list in a full-width bar.
  */
 import { ComponentDef } from '../component-schema';
 
@@ -35,11 +36,15 @@ export const tabs: ComponentDef = {
     { name: 'activation', type: "enum: 'automatic' | 'manual'", values: ['automatic', 'manual'], default: 'automatic', required: false, description: 'automatic: moving focus with the arrow keys selects the tab. manual: arrows move focus only, and Enter or Space selects. Use manual when showing a panel is slow.' },
     { name: 'label', type: 'string', required: false, description: 'The accessible name of the tab list, when nothing on the page already names it.' },
     { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'Passed to every tab.' },
+    { name: 'alignment', type: "enum: 'start' | 'center'", values: ['start', 'center'], default: 'start', required: false, description: 'start: the tabs sit at the start of the bar. center: the tabs sit centered in the bar, which spans its container; the baseline spans the full width either way.' },
   ],
 
   states: ['rest'],
-  variants: { size: ['small', 'medium', 'large'] },
-  axisKinds: { size: 'authoring' },
+  // `alignment` (#2518, owner decision Q222 A): `start` is the approved tab list (#2416); `center` sits the same tabs
+  // centered in a bar that spans its placement, the baseline full width. `start` leads: the code default and
+  // Figma's default member.
+  variants: { size: ['small', 'medium', 'large'], alignment: ['start', 'center'] },
+  axisKinds: { size: 'authoring', alignment: 'authoring' },
 
   paintKeys: ['{slot}'],
 
@@ -58,6 +63,9 @@ export const tabs: ComponentDef = {
         children: ['list', 'baseline'],
         layout: { direction: 'column', align: 'start', justify: 'start', sizing: { x: 'hug', y: 'hug' } },
         gap: 'gap',
+        // CENTERED (#2518): at `alignment=center` the list fills its placement and centers the row of tabs; the Figma
+        // member is built 480 wide, room for six large tabs (DRAFT, held for the owner on #2518).
+        center: { axis: 'alignment', value: 'center', placementWidth: 480 },
         note: 'The tab list: the row of tabs above the baseline.',
       },
       list: {
@@ -90,6 +98,7 @@ export const tabs: ComponentDef = {
       'The panel — role="tabpanel", aria-labelledby naming its tab and tabindex="0", so Tab after the list lands on the panel. Not drawn in Figma: the panel is the content below the list.',
       'Panel mounting — the default mounts a panel when it is first shown; keep it mounted when it holds state (a half-filled form), or mount all panels when find-in-page or print must reach them.',
       'The selected underline in code — one element owned by the list that moves to the selected tab, sitting on the baseline (it overlaps the 1px line).',
+      'Alignment — at center the list spans its container (width: 100%) and the tabs sit centered in it (justify-content: center on the row of tabs); the baseline spans the full width. At start the tabs sit at the inline start. Each tab hugs its label either way.',
       'Overflow — a horizontal list never wraps. When the tabs do not fit, it scrolls with a fade at the cut edge, or ends in a "More" menu.',
       'RTL — the row mirrors, the first tab sits rightmost, and Left and Right follow reading order: in RTL, Left moves to the next tab.',
       'A disabled selected tab — if the selected tab becomes disabled, move tabindex="0" to the nearest enabled tab.',
@@ -98,7 +107,7 @@ export const tabs: ComponentDef = {
   },
 
   figmaProperties: {
-    variantAxes: ['size'],
+    variantAxes: ['size', 'alignment'],
     booleans: {
       tab4: { part: 'tab4', default: false, figmaName: 'Tab 4', figmaOnly: true },
       tab5: { part: 'tab5', default: false, figmaName: 'Tab 5', figmaOnly: true },
@@ -169,6 +178,7 @@ export const tabs: ComponentDef = {
     contested: [],
     unverified: [],
     evolution: [
+      '2026-10-10 (#2518): owner decision Q222 A, a centered alignment beside start. Centered tabs hug their labels and sit centered in a bar that spans its placement; the baseline spans the full width. The Figma member is built 480 wide (DRAFT).',
       '2026-10-09 (#2416): owner decisions Q177 (Tab nested in Tabs, the radio-group pattern for a variable child count; line tabs only; its own page), Q178 (primary label and 2px primary bar on the 1px border.primary baseline; no hover wash) and Q179 A (names, sizes, the count badge, six tabs at most with three shown, automatic activation, vertical and overflow code-only).',
     ],
   },

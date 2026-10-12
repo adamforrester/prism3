@@ -252,6 +252,9 @@ export interface CompNode {
    *  instance at another main and keeps the instance node. The build path calls none of them. */
   insertChild?(index: number, child: CompNode): void;
   remove?(): void;
+  /** A COMPONENT's native slot (#2417): a new SLOT node, a frame Figma lets a designer fill on an instance. Optional
+   *  because the port is: a host without it builds the slot as a plain frame and says so. */
+  createSlot?(): CompNode;
   swapComponent?(component: unknown): void;
   /** Read by the update to pair a member's existing children with the plan's, by name. */
   readonly children?: readonly CompNode[];
@@ -1639,6 +1642,41 @@ const writeComponentSet = async (
       : 'OTHER';
   };
 
+  /**
+   * NATIVE SLOTS (#2417): each `CONTENT_SLOT` node, built as a frame like any box, becomes a real SLOT once its member is
+   * a component, because `createSlot` is a COMPONENT's method and the build makes a frame tree first. The slot takes the
+   * frame's place among its siblings, takes its children (the slot's default content), and then has the plan written
+   * onto it exactly as an update writes a plan onto an existing node (`build` with the slot as the node), so its own
+   * fields come from the plan and never from a copy. The fields a PARENT writes on a child as it appends it
+   * (`layoutAlign`, `layoutGrow`, `layoutPositioning`) are carried over from the frame. Called once per member,
+   * BEFORE the combine: Figma merges every member's slot of one name into one SLOT property there, measured.
+   * A host without `createSlot` keeps the frame, and the miss says what that costs a designer.
+   */
+  const slotPlans = (n: FigmaNodePlan): FigmaNodePlan[] => [...(n.type === 'CONTENT_SLOT' ? [n] : []), ...n.children.flatMap(slotPlans)];
+  const toSlots = async (comp: Wr, plan: FigmaNodePlan, parts: Map<string, Wr>, expose: Wr[], member: string): Promise<void> => {
+    for (const sp of slotPlans(plan)) {
+      const frame = parts.get(sp.name);
+      if (!frame || frame.type === 'SLOT') continue;
+      const parent = frame.parent as Wr | undefined;
+      if (!comp.createSlot || !parent) {
+        misses.push(`${member}/${sp.name}.slot -> NOT MADE (this host has no createSlot; built as a plain frame, so a designer cannot fill it on an instance)`);
+        continue;
+      }
+      let slot: Wr;
+      try { slot = wr(comp.createSlot()); }
+      catch (err) { misses.push(`${member}/${sp.name}.slot -> REFUSED (${(err as Error)?.message ?? String(err)}; built as a plain frame)`); continue; }
+      slot.name = sp.name;
+      parent.insertChild?.(((parent.children ?? []) as Wr[]).indexOf(frame), slot);
+      // MOVED with `insertChild`, which takes a node out of its old parent, as Figma's own move does.
+      ((frame.children ?? []) as Wr[]).slice().forEach((k, i) => slot.insertChild?.(i, k));
+      await build(sp, parts, expose, slot, undefined, sp.name);
+      const from = frame as unknown as Record<string, unknown>, to = slot as unknown as Record<string, unknown>;
+      for (const k of ['layoutAlign', 'layoutGrow', 'layoutPositioning'] as const) if (from[k] !== undefined && to[k] !== from[k]) to[k] = from[k];
+      frame.remove?.();
+      parts.set(sp.name, slot);
+    }
+  };
+
   /** #2265 PR 2 — can this existing node be configured as plan node `n`, or does the plan's type need a new one? The
    *  read-back's own map (`anatomy-readback.ts` HOST_TYPE): a GLYPH is a FRAME, either instance kind an INSTANCE, and
    *  an INSTANCE_SWAP with no target in this file a placeholder FRAME, as the build makes it. */
@@ -1646,6 +1684,7 @@ const writeComponentSet = async (
     const want = n.type === 'TEXT' ? 'TEXT'
       : n.type === 'NESTED_INSTANCE' ? 'INSTANCE'
       : n.type === 'INSTANCE_SWAP' ? (n.swapTarget && compByName.get(n.swapTarget) ? 'INSTANCE' : 'FRAME')
+      : n.type === 'CONTENT_SLOT' ? 'SLOT'
       : 'FRAME';
     return k.type === want;
   };
@@ -2608,6 +2647,9 @@ const writeComponentSet = async (
       const parts = new Map<string, Wr>();
       const expose: Wr[] = [];
       await build(spec.root, parts, expose, wr(existing), inPlace.keep, '.');
+      // A slot the plan GAINED, or one a type change rebuilt, came back a frame: the member is a component already,
+      // so it becomes a native slot here as on a fresh build (#2417). A slot the member already held is left alone.
+      await toSlots(wr(existing), spec.root, parts, expose, spec.name);
       for (const inst of expose) {
         if (inst.isExposedInstance === true) continue;
         try { inst.isExposedInstance = true; }
@@ -2653,6 +2695,8 @@ const writeComponentSet = async (
         trail.loose.delete(root);
         trail.loose.add(comp);
         comp.name = spec.name;
+        // NATIVE SLOTS, NOW THAT THERE IS A COMPONENT TO MAKE THEM ON (#2417). See `toSlots`.
+        await toSlots(comp, spec.root, parts, expose, spec.name);
         // EXPOSE, NOW THAT THERE IS A COMPONENT TO BE CONTAINED BY (#1378). `createComponentFromNode` converts
         // in place, so these handles — captured during the build — are descendants of `comp` and their chain
         // now reaches a COMPONENT. Before the conversion it reached a parentless frame and Figma refused.
@@ -2994,6 +3038,36 @@ const writeComponentSet = async (
     ? [`axes -> derived [${derived.join(',')}] but the names declared [${expected.join(',')}]`]
     : [];
 
+  // ---- NATIVE SLOTS, ONE PROPERTY PER NAME (#2417) --------------------------------------------
+  // Measured on a real host: the COMBINE merges every member's slot of one name into one SLOT property, but a slot
+  // made on a member already in a set (an update that gains one, or rebuilds one) gets a property of its own, so
+  // fifteen members gaining a `content` slot leave fifteen `content` properties. Re-pointing a slot's
+  // `slotContentId` at another SLOT property is accepted, and the property it leaves can be deleted, with a
+  // designer's content kept across a switch (also measured). So: the first property of each name is kept, every
+  // slot of that name points at it, and the rest are deleted. A no-op on a fresh build, which the combine merged.
+  if (readable) {
+    let consolidated = false;
+    for (const p of props) {
+      if (p.type !== 'SLOT') continue;
+      const keys = Object.keys(defs).filter((k) => defs[k].type === 'SLOT' && k.split('#')[0] === p.name);
+      if (keys.length < 2) continue;
+      const keep = keys[0];
+      for (const m of (liveSet().children ?? []) as CompNode[])
+        for (const n of [m, ...((m.findAll?.(() => true) ?? []) as CompNode[])]) {
+          if (n.type !== 'SLOT' || n.name !== p.name) continue;
+          const r = (n.componentPropertyReferences ?? undefined) as Record<string, string> | undefined;
+          if (r?.slotContentId === keep) continue;
+          try { wr(n).componentPropertyReferences = { ...(r ?? {}), slotContentId: keep }; }
+          catch (err) { misses.push(`${String(m.name)}/${p.name}.slot -> NOT RE-POINTED at ${keep} (${(err as Error)?.message ?? String(err)})`); }
+        }
+      for (const k of keys.slice(1)) {
+        try { liveSet().deleteComponentProperty?.(k); consolidated = true; }
+        catch (err) { misses.push(`property ${k} -> a second SLOT property named ${p.name}, NOT DELETED (${(err as Error)?.message ?? String(err)})`); }
+      }
+    }
+    if (consolidated) { try { defs = liveSet().componentPropertyDefinitions ?? defs; } catch { /* the read-back below reports an unreadable set */ } }
+  }
+
   // ---- COMPONENT PROPERTIES, on the set and only after combining -----------------------------
   // Emptied rather than skipped on an unreadable set: the UNREADABLE miss above is the single cause,
   // and declaring properties on a poisoned set would bury it under a dozen consequences.
@@ -3012,6 +3086,9 @@ const writeComponentSet = async (
       misses.push(`property ${p.name} -> ALREADY on the set as ${defs[already].type} but this paste declares ${p.type} (left alone; declaring it again would silently create a second property called ${p.name}2)`);
       continue;
     }
+    // A NATIVE SLOT's property is declared by its node (`createSlot`) and merged by name at the combine (#2417), so it
+    // is found above or it is missing because no member's slot was made; Figma refuses to add one without a default.
+    if (p.type === 'SLOT') { misses.push(`property ${p.name} -> SLOT not on the set (no member's slot was made, so the combine had none to merge; see the slot misses above)`); continue; }
     let def: string | boolean;
     if (p.type === 'INSTANCE_SWAP') {
       // Figma demands a NODE ID. The component `key`, `''`, `null` and `undefined` are each rejected,
