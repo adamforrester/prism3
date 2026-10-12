@@ -8,7 +8,7 @@ Built to the owner's decisions on #2417: Q180 as revised by Q182, then Q183, the
   - The title is in `type.label.*.emphasis`.
   - The panel, present only when expanded, is a NATIVE SLOT holding placeholder text in page ink, with no top inset and a bottom one.
   - A nested Divider is stretched under the section.
-  - The header row is center-left, so the title centers on the glyph (owner QA).
+  - The header row is top-aligned, and the glyph centers on the title's first line (Q262 A).
   - The shared focus ring is drawn inside the header's edge (Q257 A).
 - **`_accordion-indicator`, 12 members:** `indicator` [chevron, plus-minus] × `expansion` × `size`. It's the building block Q183 chose. Each member shows one glyph. The Accordion nests it at each `position`, with `indicator` exposed and `expansion` and `size` followed.
 - **Engine:**
@@ -35,10 +35,18 @@ Built to the owner's decisions on #2417: Q180 as revised by Q182, then Q183, the
 - **The title type is `type.label.*.emphasis`, not Q182's `type.body.*.strong`** (owner, 2026-10-11). A brand emits body strong only if it adds that weight, and nb-redesign does not, so `#1601` failed for it.
 - **Two indicator parts.** Node order is fixed per set, so `leadingIndicator` and `trailingIndicator` are two parts, each gated by `iconPosition`. A designer's chevron or plus-minus choice survives an expansion switch (measured) but is expected to reset on a position switch, since it then sits on another nested instance.
 - **`iconPosition` is `leading | trailing`** (values Q242, name from the owner's QA), as Button names its leading and trailing visuals and Switch row its `labelPosition`, following text direction. The indicator parts are named for the values too: `leadingIndicator`, `leadingGlyph`, `trailingIndicator`, `trailingGlyph`. A bare `position` read as if it could be the label's.
-  - **The Figma name is `iconPosition` for now, not "icon position".** A variant axis has no display name: its key is written straight into member names. Giving it one reaches the cohort and held-axis keys, the chunked paste parse, the grid keys, the furniture labels and the update path, so it is a follow-up engine PR (orchestrator's choice, 2026-10-12).
-  - The docs schema's axis-key pattern admits camelCase for it (`^[a-z][a-zA-Z0-9-]*$`).
+  - **Figma shows "icon position"** (#2571, closed here). Variant axes had no display name: the axis key was written straight into member names. A new `FigmaProperties.variantAxisNames` gives one, as `slotAxes[].figmaName` does for Button's "leading icon". The plan carries it only when set (`axisFigmaNames`), so no other def's plan moves.
+    - The display name is written by `planComponentName`, and read by every key that parses a member name: the grid axes, the cohort `group`, the `footprintVaries` handed to the chunked paste, `gridAxis`, and the axis-parity domain.
+    - The validator refuses a name for an axis the def doesn't have, and one that clashes with another panel name.
+    - A def that another def NESTS can't carry one yet, because a nest names its coordinate by code name and the projection can't see the nested def. `#2571 nesting` fails by name the day one is nested.
+  - The docs schema's axis-key pattern admits camelCase for the code name (`^[a-z][a-zA-Z0-9-]*$`).
 - **The live build and the owner's QA (2026-10-12).** Built on the NB master copy at `tree-5e5df81f`: the padding was approved, and four changes followed.
-  - **The header row is center-left** (`align: 'center'`), so a one-line title centers on the glyph. `#1009`'s rule asks a centered row for a reason, which `CENTRE_OK` now carries. The cost it names is flagged to the owner: on a wrapping title, the glyph centers on the whole block rather than holding the first line.
+  - **The header row is top-aligned, and the glyph centers on the title's first line** (owner Q262 A, revising the QA's center-left, which floated the glyph mid-block on a wrapped title, #1009). This is Prism2's construction:
+    - the indicator box is as tall as the row, with its glyph at the top;
+    - the title sits in its own column (`titleBox`), padded 2px down (`space.025`).
+    - Prism2 padded its icon 2px down because its icon was shorter than the line. Here every brand's title line (label type at the snug line height) is shorter than the glyph, so the 2px goes on the title instead.
+    - Line one's center is within 1px of the glyph's at every size in all five brands, and at medium it's within 0.05px. `#2417 accordion header (Q262)` measures that on a two-line title, from the plan's own alignments and each brand's emitted tokens.
+    - The body `line-box` binding is gone from both indicator boxes.
   - **The glyphs are one rung smaller:** `icon.size.xs`, `sm`, `md` (16/20/24px), superseding Q241.3's 20/24/32. `lint-rung-names` admits the medium default's `sm` through `ICON_OFFSET_DEFS`, the owner-sanctioned offset Button already uses.
   - **The focus ring is drawn inside the header's edge** (Q257 A, superseding Q243). Built live, Q243's ring still compensated its own 2px stroke outward, so it covered the Divider by 2px.
     - Now: offset 0, no `strokeInset`, and a new `PartDef.drawnInside: true` stating that the uncompensated stroke is intended.

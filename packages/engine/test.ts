@@ -26817,11 +26817,6 @@ arm: {
     + 'block and centring cannot float the icon mid-paragraph. Fixed on its counter axis as well, which is '
     + 'the mechanical half of the same fact: the row has no room to grow into a second line.';
   const CENTRE_OK: Record<string, string> = {
-    // Accordion's header (owner QA, 2026-10-12, #2417): the owner asked for center-left so the title centers on the
-    // indicator glyph. The cost #1009 names comes with it, and is flagged to the owner on #2534: on a wrapping title the
-    // glyph centers on the whole block rather than holding the first line.
-    'accordion.header':
-      "the owner's QA of the live build (2026-10-12) asked for the header row center-left, so a one-line title centers on the indicator glyph. On a wrapping title the glyph centers on the whole block (flagged to the owner on #2534).",
     'button.container': buttonCentreReason,
     // #1223 split the semantic intents into sibling components that share Button's exact anatomy, so the
     // same design fact exempts them — a Destructive or Neutral button label is the same short action phrase.
@@ -29721,7 +29716,8 @@ arm: {
   const indPlans = figmaAnatomySet(ind, { swapTarget: 'FPO-default-icon' });
   type PN = { name: string; type: string; children: PN[]; bound?: Record<string, string>; paints?: Record<string, string>; nestTarget?: string; nestVariant?: Record<string, string>; nestExpose?: string[]; layoutAlign?: string; characters?: string };
   const find = (n: PN, name: string): PN | undefined => (n.name === name ? n : n.children.map((c) => find(c, name)).find(Boolean));
-  const coord = (p: AnatomyPlan): Record<string, string> => Object.fromEntries(planComponentName(p).split(', ').map((kv) => kv.split('=') as [string, string]));
+  // The plan's own CODE coordinate (member names carry Figma display names, #2571: `icon position=leading`).
+  const coord = (p: AnatomyPlan): Record<string, string> => ({ ...(p.coord as Record<string, string>), ...(p.size ? { size: p.size } : {}) });
   ok(plans.length === 24 && JSON.stringify(acc.variants) === JSON.stringify({ expansion: ['collapsed', 'expanded'], iconPosition: ['leading', 'trailing'], size: ['small', 'medium', 'large'] }),
     `#2417 accordion: 24 members, expansion × iconPosition × size × state (Q183) (got ${plans.length}, ${JSON.stringify(acc.variants)})`);
   ok(JSON.stringify(acc.states) === JSON.stringify(['rest', 'focus-visible']) && JSON.stringify(acc.figmaProperties?.stateAxis?.values) === JSON.stringify(['rest', 'focus-visible']),
@@ -29731,8 +29727,8 @@ arm: {
   // THE AXIS NAME (owner QA, 2026-10-12): `iconPosition`, never a bare `position`, which read as if it could be the
   // label's. In the def's variants, its Figma axes, its props and every member's name. The old name back fails here.
   const bare = /(^|, )position=/;
-  ok(!('position' in acc.variants) && JSON.stringify(acc.figmaProperties?.variantAxes) === JSON.stringify(['expansion', 'iconPosition', 'size']) && !acc.props.some((p) => p.name === 'position') && plans.every((p) => /(^|, )iconPosition=(leading|trailing)(,|$)/.test(planComponentName(p)) && !bare.test(planComponentName(p))),
-    `#2417 accordion iconPosition (owner QA): the axis and prop are iconPosition, not position, in the def and every member's name (got ${JSON.stringify(Object.keys(acc.variants))}; ${planComponentName(plans[0])})`);
+  ok(!('position' in acc.variants) && JSON.stringify(acc.figmaProperties?.variantAxes) === JSON.stringify(['expansion', 'iconPosition', 'size']) && !acc.props.some((p) => p.name === 'position') && plans.every((p) => /(^|, )icon position=(leading|trailing)(,|$)/.test(planComponentName(p)) && !bare.test(planComponentName(p)) && !/iconPosition=/.test(planComponentName(p))),
+    `#2417 accordion iconPosition (owner QA, #2571): the code axis and prop are iconPosition, and every member's name carries its Figma name "icon position" (got ${JSON.stringify(Object.keys(acc.variants))}; ${planComponentName(plans[0])})`);
   // THE VALUE NAMES (Q242): `leading | trailing`, as Button names its visuals and Switch row its label position, in
   // the def, the prop, every member's name and the indicator parts' layer names. An old name back (`start` / `end`,
   // as a value or a part's lead) fails here by name.
@@ -29752,11 +29748,12 @@ arm: {
   ok(panel.bound?.paddingTop === 'space/0' && panel.bound?.paddingBottom === 'space/200' && ph.paints?.fills === 'color/text/primary' && !!ph.characters,
     `#2417 accordion panel: no top inset and a bottom one (the start/end block padding), and the placeholder in page ink with its own copy (Q182) (got top ${panel.bound?.paddingTop}, bottom ${panel.bound?.paddingBottom}, ink ${ph.paints?.fills})`);
   // A WRAP UNDER A COLUMN stretches across it rather than growing down it: measured on a real host, the placeholder
-  // projected with `layoutGrow` ran one line 580px wide out of the 320px panel. The header's label, a wrap under a
-  // row, keeps its grow. Mutation: the column branch dropped → this arm, by name.
+  // projected with `layoutGrow` ran one line 580px wide out of the 320px panel. The header's title, now in its own
+  // column (`titleBox`, Q262), stretches across it the same way, and the column grows along the header row. Mutation:
+  // the column branch dropped → this arm, by name.
   type PW = PN & { layoutGrow?: number; textAutoResize?: string };
-  ok(plans.filter((p) => coord(p).expansion === 'expanded').every((p) => { const t = find(p.root as PN, 'placeholder') as PW, l = find(p.root as PN, 'label') as PW; return t.layoutAlign === 'STRETCH' && t.layoutGrow === undefined && t.textAutoResize === 'HEIGHT' && l.layoutGrow === 1 && l.layoutAlign === undefined; }),
-    `#2417 accordion panel: the placeholder wraps across the panel (a column's stretch, no grow), and the header label still grows along its row (got ${JSON.stringify((({ layoutAlign, layoutGrow, textAutoResize }) => ({ layoutAlign, layoutGrow, textAutoResize }))(ph as PW))})`);
+  ok(plans.filter((p) => coord(p).expansion === 'expanded').every((p) => { const t = find(p.root as PN, 'placeholder') as PW, l = find(p.root as PN, 'label') as PW; const tb = find(p.root as PN, 'titleBox') as PW; return t.layoutAlign === 'STRETCH' && t.layoutGrow === undefined && t.textAutoResize === 'HEIGHT' && l.layoutAlign === 'STRETCH' && l.textAutoResize === 'HEIGHT' && tb?.layoutGrow === 1; }),
+    `#2417 accordion panel: the placeholder wraps across the panel (a column's stretch, no grow), and the title wraps across its column, which grows along the header row (Q262) (got ${JSON.stringify((({ layoutAlign, layoutGrow, textAutoResize }) => ({ layoutAlign, layoutGrow, textAutoResize }))(ph as PW))})`);
   ok(plans.every((p) => { const d = find(p.root as PN, 'divider'); return d?.type === 'NESTED_INSTANCE' && d.nestTarget === 'divider' && d.layoutAlign === 'STRETCH' && !d.bound?.width; }),
     `#2417 accordion divider: the Divider nested on every member, stretched across it, with no width binding on the instance (measured: the stretch drops the 720px one)`);
   const FLOOR: Record<string, string> = { small: 'size/md/min-height', medium: 'size/md/min-height', large: 'size/lg/height' };
@@ -29779,11 +29776,63 @@ arm: {
     '#2417 drawnInside: on a non-absolute part, it is refused by name');
   ok(validateComponentDef(withRing({ drawnInside: undefined })).errors.some((m) => /binds no 'strokeInset'/.test(m)),
     '#2417 drawnInside: without it, the #801 rule refuses an uncompensated ring again');
-  // THE HEADER CENTERS (owner QA, 2026-10-12): the row's cross axis is centered, so the title centers on the glyph.
-  // Top-aligned back fails here by name.
-  type PA = PN & { counterAxisAlignItems?: string };
-  const aligns = plans.map((p) => (find(p.root as PN, 'header') as PA).counterAxisAlignItems);
-  ok(aligns.every((a) => a === 'CENTER'), `#2417 accordion header (owner QA): center-left, the title centered on the glyph, on every member (got ${[...new Set(aligns)].join(', ')})`);
+  // THE GLYPH CENTERS ON THE TITLE'S FIRST LINE (owner Q262 A, revising the QA's center-left): the header row is
+  // top-aligned, the indicator box is as tall as the row with its glyph at the top (Prism2's icon container), and the
+  // title sits 2px lower (Prism2's 2px icon offset, mirrored, because here the title's line is the shorter of the two).
+  // A layout model reads the PLAN's own alignments and each brand's EMITTED tokens, places a TWO-LINE title and the
+  // glyph, and measures line one's center against the glyph's. EXPECTED (within 1px) is typed here. Mutation: the
+  // header back to center alignment → this arm, by name (the glyph then centers on the two-line block).
+  type PL = PN & { counterAxisAlignItems?: string; layoutAlign?: string };
+  const emitted = (b: string) => { const t = JSON.parse(readFileSync(resolve(HERE, `out/${b}.tokens.json`), 'utf8')); return t[Object.keys(t).find((k) => !k.startsWith('$'))!]; };
+  const at = (root: any, ref: string): any => ref.replace(/^\{|\}$/g, '').split('.').slice(ref.startsWith('{') ? 1 : 0).reduce((n: any, k) => n?.[k], root);
+  const num = (root: any, v: any): number => { const leaf = typeof v === 'string' && v.startsWith('{') ? at(root, v) : v; if (leaf && typeof leaf === 'object' && '$value' in leaf) return leaf.$extensions?.prism3?.px ?? num(root, leaf.$value); return parseFloat(String(leaf)); };
+  const RUNG_OF: Record<string, string> = { small: 'sm', medium: 'md', large: 'lg' };
+  const off: string[] = [];
+  let measured = 0;
+  for (const b of ['nb', 'prism3', 'aurora', 'harbor', 'wendys']) {
+    const root = emitted(b);
+    for (const p of plans.filter((q) => coord(q).iconPosition === 'leading' && coord(q).state === 'rest' && coord(q).expansion === 'collapsed')) {
+      const size = coord(p).size;
+      const header = find(p.root as PN, 'header') as PL, box = find(p.root as PN, 'leadingIndicator') as PL, tb = find(p.root as PN, 'titleBox') as PL;
+      const glyph = num(root, at(root, ind.tokens[`size.${size}.icon`]));
+      const type = at(root, acc.tokens[`size.${size}.type`]).$value;
+      const line = num(root, type.fontSize) * num(root, type.lineHeight);
+      // The offset the PLAN binds on the title's column, read back as a token path; absent means none.
+      const padVar = tb?.bound?.paddingTop;
+      const offset = padVar ? num(root, at(root, padVar.replace(/\//g, '.'))) : 0;
+      for (const lines of [1, 2]) {
+      const title = offset + lines * line; // a one-line and a TWO-LINE title
+      const H = Math.max(glyph, title);
+      const place = (align: string | undefined, h: number, inH: number) => (align === 'CENTER' ? (inH - h) / 2 : align === 'MAX' ? inH - h : 0);
+      // The indicator box stretches to the row (STRETCH) or sits at the header's alignment; the glyph sits in it at the box's own.
+      const boxH = box.layoutAlign === 'STRETCH' ? H : glyph;
+      const boxTop = box.layoutAlign === 'STRETCH' ? 0 : place(header.counterAxisAlignItems, glyph, H);
+      const glyphMid = boxTop + place(box.counterAxisAlignItems, glyph, boxH) + glyph / 2;
+      const lineOneMid = place(header.counterAxisAlignItems, title, H) + offset + line / 2;
+      measured++;
+      if (!(tb && header.counterAxisAlignItems === 'MIN' && Math.abs(glyphMid - lineOneMid) <= 1)) off.push(`${b} ${size} ${lines}-line (header ${header.counterAxisAlignItems}): glyph center ${glyphMid.toFixed(2)} vs line one ${lineOneMid.toFixed(2)}`);
+      }
+    }
+  }
+  ok(measured === 30 && off.length === 0,
+    `#2417 accordion header (Q262): top-aligned, and on a one- and a two-line title the glyph centers on line one, within 1px, at every size in every brand (${measured} measured${off.length ? `; OFF: ${off.join('; ')}` : ''})`);
+  // THE FIGMA DISPLAY NAME OF A VARIANT AXIS (#2571): "icon position" in every member name, and in every key that
+  // parses one, so the plugin's and the paste's layouts and footprint cohorts read the same string. Mutations: the
+  // cohort key left on code names → `#2571 layout`; the name written raw in `planComponentName` → the iconPosition arm.
+  const L = planSetLayout(plans, '#2571');
+  ok(L.axes.split(',').includes('icon position') && !L.axes.split(',').includes('iconPosition') && L.footprintVaries.includes('icon position') && L.cells.every((c) => /icon position=(leading|trailing)/.test(c.group)),
+    `#2571 layout: the grid axes, the held footprint axes and every cohort key carry "icon position" (axes ${L.axes}; held ${JSON.stringify(L.footprintVaries)}; ${L.cells[0].group})`);
+  const named2 = (n: Record<string, string>): ComponentDef => ({ ...acc, figmaProperties: { ...acc.figmaProperties!, variantAxisNames: n } }) as ComponentDef;
+  ok(validateComponentDef(named2({ orientation: 'way' })).errors.some((m) => /variantAxisNames\.orientation: 'orientation' is not one of this def's variantAxes/.test(m)),
+    '#2571 validator: a display name for an axis the def does not have is refused by name');
+  ok(validateComponentDef(named2({ iconPosition: 'size' })).errors.some((m) => /display name 'size' is claimed by both/.test(m)),
+    '#2571 validator: a display name that clashes with another axis is refused by name');
+  // NOT YET NESTABLE: a nest names its coordinate by code name, and the projection cannot see the nested def to map it.
+  // So no def may nest a def that renames an axis in Figma until that lands; this fails by name the day one does.
+  const renamedDefs = new Set(componentDefs.filter((d) => Object.keys(d.figmaProperties?.variantAxisNames ?? {}).length).map((d) => d.id));
+  const nestsRenamed = componentDefs.flatMap((d) => Object.entries(d.anatomy?.parts ?? {}).filter(([, p]) => p.nests && renamedDefs.has(p.nests) && p.nesting && p.nesting.kind !== 'nest-plain' as never).map(([n, p]) => `${d.id}.${n} → ${p.nests}`));
+  ok(renamedDefs.has('accordion') && nestsRenamed.length === 0,
+    `#2571 nesting: no def nests a def whose variant axes carry Figma display names (not supported yet)${nestsRenamed.length ? ` — NESTS: ${nestsRenamed.join(', ')}` : ''}`);
   // THE GLYPH SIZES (owner QA, 2026-10-12, superseding Q241.3): one rung below the control's, 16/20/24 at small,
   // medium and large. EXPECTED is the rung names, typed here; the old 20/24/32 rungs back fail here by name.
   const RUNG: Record<string, string> = { small: 'icon/size/xs', medium: 'icon/size/sm', large: 'icon/size/md' };

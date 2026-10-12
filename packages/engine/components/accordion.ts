@@ -91,7 +91,7 @@ export const accordion: ComponentDef = {
     'size.small.panel-type': 'type.body.sm.default',
     'size.small.panel-pad-top': 'space.0',
     'size.small.panel-pad-end': 'space.150',
-    'size.small.line-box': 'control.size.sm.line-box',
+    'size.small.title-offset': 'space.025',
     'size.medium.min-height': 'size.md.min-height',
     'size.medium.pad-x': 'space.200',
     'size.medium.pad-y': 'space.150',
@@ -100,7 +100,7 @@ export const accordion: ComponentDef = {
     'size.medium.panel-type': 'type.body.md.default',
     'size.medium.panel-pad-top': 'space.0',
     'size.medium.panel-pad-end': 'space.200',
-    'size.medium.line-box': 'control.size.md.line-box',
+    'size.medium.title-offset': 'space.025',
     'size.large.min-height': 'size.lg.height',
     'size.large.pad-x': 'space.300',
     'size.large.pad-y': 'space.200',
@@ -109,7 +109,7 @@ export const accordion: ComponentDef = {
     'size.large.panel-type': 'type.body.lg.default',
     'size.large.panel-pad-top': 'space.0',
     'size.large.panel-pad-end': 'space.300',
-    'size.large.line-box': 'control.size.lg.line-box',
+    'size.large.title-offset': 'space.025',
   },
 
   anatomy: {
@@ -127,29 +127,43 @@ export const accordion: ComponentDef = {
       header: {
         kind: 'box',
         role: 'target',
-        // Center-left (owner QA, 2026-10-12): the title centers vertically on the indicator glyph.
-        layout: { direction: 'row', align: 'center', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
+        // Top-left (owner Q262 A, revising the QA's center-left): the glyph sits beside the title's FIRST line, so a
+        // wrapped title keeps it there (#1009), and the title's 2px offset (`titleBox`) centers line one on the glyph.
+        layout: { direction: 'row', align: 'start', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
         crossAxisFill: true,
         minHeight: 'size.{size}.min-height',
         padding: { block: 'size.{size}.pad-y', inlineLabel: 'size.{size}.pad-x' },
         gap: 'size.{size}.gap',
-        children: ['leadingIndicator', 'label', 'trailingIndicator', 'focusRing'],
+        children: ['leadingIndicator', 'titleBox', 'trailingIndicator', 'focusRing'],
         note: 'The header row and the hit target: the whole row is the button, so a click anywhere on it opens or closes the section.',
       },
       leadingIndicator: {
         kind: 'box',
         role: 'presentation',
         presentWhen: { iconPosition: ['leading'] },
-        height: 'size.{size}.line-box',
-        layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'hug', y: 'fixed' } },
+        // Prism2's icon container (Q262): as tall as the row, its glyph at the top.
+        layout: { direction: 'row', align: 'start', justify: 'center', sizing: { x: 'hug', y: 'hug' } },
+        crossAxisFill: true,
         children: ['leadingGlyph'],
-        note: 'The indicator before the title, one header line tall, centered on the title with it.',
+        note: 'The indicator before the title: as tall as the header row, with the glyph at its top, beside the title\'s first line.',
       },
       leadingGlyph: {
         kind: 'nest',
         nests: '_accordion-indicator',
         nesting: { kind: 'nest-exposed', variant: { indicator: 'chevron', expansion: 'collapsed', size: 'medium' }, expose: ['indicator'], follow: ['expansion', 'size'] },
         note: 'The open and closed glyph. Choose chevron or plus-minus on the Accordion; it follows the open state and the size.',
+      },
+      titleBox: {
+        kind: 'box',
+        role: 'presentation',
+        // Prism2's text column, and its 2px icon offset mirrored onto the title (Q262): every brand's title line
+        // (label type at the snug line height) is SHORTER than the glyph, so the title is padded down 2px (space.025)
+        // to center its first line on the glyph, within 1px at every size.
+        layout: { direction: 'column', align: 'start', justify: 'start', sizing: { x: 'hug', y: 'hug' } },
+        grow: true,
+        paddingTop: 'size.{size}.title-offset',
+        children: ['label'],
+        note: 'The title\'s column. It fills the row, and sits 2px lower than the glyph so the first line centers on it.',
       },
       label: {
         kind: 'text',
@@ -161,10 +175,11 @@ export const accordion: ComponentDef = {
         kind: 'box',
         role: 'presentation',
         presentWhen: { iconPosition: ['trailing'] },
-        height: 'size.{size}.line-box',
-        layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'hug', y: 'fixed' } },
+        // Prism2's icon container (Q262): as tall as the row, its glyph at the top.
+        layout: { direction: 'row', align: 'start', justify: 'center', sizing: { x: 'hug', y: 'hug' } },
+        crossAxisFill: true,
         children: ['trailingGlyph'],
-        note: 'The indicator after the title, one header line tall, centered on the title with it.',
+        note: 'The indicator after the title: as tall as the header row, with the glyph at its top, beside the title\'s first line.',
       },
       trailingGlyph: {
         kind: 'nest',
@@ -225,6 +240,8 @@ export const accordion: ComponentDef = {
 
   figmaProperties: {
     variantAxes: ['expansion', 'iconPosition', 'size'],
+    // The panel reads "icon position" (owner, 2026-10-12; #2571), as Button's `leading` slot axis reads "leading icon".
+    variantAxisNames: { iconPosition: 'icon position' },
     stateAxis: { name: 'state', values: ['rest', 'focus-visible'] },
     gridAxis: 'state',
     footprintVaries: ['expansion'],

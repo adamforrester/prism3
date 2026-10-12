@@ -1101,6 +1101,15 @@ export type FigmaProperties = {
    *  empty answer nobody reads. Read that gate's own comment before trusting this one — its first
    *  version was unreachable and the suite stayed green (#802's class). */
   variantAxes: string[];
+  /** A variant axis's Figma DISPLAY NAME, keyed by its code name (#2571), when the two differ: Accordion's
+   *  `iconPosition` reads "icon position" in the properties panel, as Button's `leading` slot axis reads "leading
+   *  icon" (`slotAxes[].figmaName`). The display name is what every member name carries (`icon position=leading`), so
+   *  everything that parses a member name reads it: `planComponentName`, the grid and cohort keys, the chunked paste.
+   *  The code name stays the def's own everywhere else (`variants`, `presentWhen`, `axisKinds`, `props`). Absent means
+   *  the code name is used, so every def without one is byte-identical. Not yet supported on a def another def NESTS
+   *  (a nest names its coordinate by code name and the projection cannot see the nested def): `test.ts` fails by name
+   *  if one is nested. */
+  variantAxisNames?: Partial<Record<string, string>>;
   /** `states` projects as one MORE variant axis, under this name, over these values. Separate from
    *  `variantAxes` because `states` is its own top-level field, not a member of `variants`. */
   stateAxis?: { name: string; values: string[] };
@@ -1905,7 +1914,7 @@ export const figmaAxisNames = (def: ComponentDef): string[] => {
   const fp = def.figmaProperties;
   if (!fp) return [];
   return [
-    ...(fp.variantAxes ?? []),
+    ...(fp.variantAxes ?? []).map((a) => variantAxisFigmaName(fp, a)),
     ...(fp.stateAxis?.name ? [fp.stateAxis.name] : []),
     // The slot axis's Figma NAME, which is `figmaName` when the def decouples it (#1309/#1380) and the
     // code `name` otherwise. `planComponentName` writes this into the member coordinate, so the parity
@@ -1914,6 +1923,11 @@ export const figmaAxisNames = (def: ComponentDef): string[] => {
     ...(fp.slotAxes ?? []).map((s) => slotAxisFigmaName(s)),
   ];
 };
+
+/** A variant axis's Figma panel name (#2571): its `variantAxisNames` display name, or its code name. One reader for
+ *  the one rule, so `figmaAxisNames`, the projector and the validator cannot disagree. */
+export const variantAxisFigmaName = (fp: { variantAxisNames?: Partial<Record<string, string>> } | undefined, axis: string): string =>
+  fp?.variantAxisNames?.[axis] ?? axis;
 
 /** A slot axis's Figma panel name — its `figmaName` decoupling (#1309/#1380) or its code `name`. One
  *  reader for the one rule, so `figmaAxisNames`, the projector and the validator cannot disagree. */
@@ -2306,7 +2320,12 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
     else panelNames.set(name, source);
   };
   // Variant + state axis names are panel names too, so a display name colliding with one is caught.
-  for (const a of fp.variantAxes ?? []) panelNames.set(a, `variantAxes.${a}`);
+  // Plain axis names first, then each display name (#2571) is CLAIMED against all of them, whichever order they are declared in.
+  for (const a of fp.variantAxes ?? []) if (variantAxisFigmaName(fp, a) === a) panelNames.set(a, `variantAxes.${a}`);
+  for (const a of fp.variantAxes ?? []) if (variantAxisFigmaName(fp, a) !== a) claimPanel(variantAxisFigmaName(fp, a), `variantAxisNames.${a}`);
+  // A display name names a DECLARED variant axis (#2571): one for an axis the def does not have projects nowhere.
+  for (const a of Object.keys(fp.variantAxisNames ?? {}))
+    if (!(fp.variantAxes ?? []).includes(a)) e.push(`figmaProperties.variantAxisNames.${a}: '${a}' is not one of this def's variantAxes — a display name for an axis the set does not have projects nowhere`);
   if (fp.stateAxis?.name) panelNames.set(fp.stateAxis.name, 'stateAxis');
   for (const s of fp.slotAxes ?? []) claimPanel(slotAxisFigmaName(s), `slotAxes.${s.name}`);
   for (const [prop, t] of Object.entries(fp.texts ?? {})) claimPanel(textFigmaName(prop, t), `texts.${prop}`);

@@ -23,7 +23,7 @@
  * also-pure step (`planBindingErrors`) that takes the emitted Figma variable names as a Set.
  */
 import type { AxisKind, ComponentDef, PartDef } from './component-schema';
-import { axisKindOf, densitySizeValues, densitySpacingKeys, visibleGapKeys, fillKey, gridColumnAxis, fillPaintKey, paintKeyPlaceholders, parseRatio, PRIMARY_PAINT_SLOTS, replacesCandidates, STATE_GATE, statesOf, whenStates, variantsOf, slotAxisFigmaName, swapPart, swapFigmaName, textFigmaName, booleanPartsOf, booleanFigmaName, booleanDefault, figmaVariantCount, figmaAxisNames, isExcludedCoordinate, WEIGHT_INTENTS } from './component-schema';
+import { axisKindOf, densitySizeValues, densitySpacingKeys, visibleGapKeys, fillKey, gridColumnAxis, fillPaintKey, paintKeyPlaceholders, parseRatio, PRIMARY_PAINT_SLOTS, replacesCandidates, STATE_GATE, statesOf, whenStates, variantsOf, slotAxisFigmaName, variantAxisFigmaName, swapPart, swapFigmaName, textFigmaName, booleanPartsOf, booleanFigmaName, booleanDefault, figmaVariantCount, figmaAxisNames, isExcludedCoordinate, WEIGHT_INTENTS } from './component-schema';
 import type { ControlShape, ButtonIcons, ButtonContentSize, ButtonLabelWeight, ButtonTextHover, Density } from './scale';
 import { buttonMinWidth, DEFAULT_MIN_WIDTH_MULTIPLIER, densitySpacingStep, ratioMinWidth, spacePx, visibleGapStep } from './scale';
 // #1602 — the weight-role ladder and the default per-category weights, for resolving a component's
@@ -591,6 +591,10 @@ export type AnatomyPlan = {
    *  (lint-component-surface, #1252) hashes the whole plan, so a field present-but-empty on every def would
    *  move EVERY digest. A reader defaults an absent entry to the code name. */
   slotFigmaNames?: Record<string, string>;
+  /** A variant axis's Figma display name (#2571, `FigmaProperties.variantAxisNames`), keyed by code name, ONLY for
+   *  the axes whose display name differs, and the whole field OMITTED when none do, so every other plan (and its
+   *  `planStamp`) is byte-identical. Every member-name segment for a renamed axis is written under this name. */
+  axisFigmaNames?: Record<string, string>;
   /** Where in the variant grid this plan sits — `{}` for a structure-only plan. Carried so the
    *  payload can name the component after its own coordinate, and so a gate can tell a plan that
    *  legitimately has no paints from one that dropped them. */
@@ -1999,6 +2003,11 @@ export const figmaAnatomyPlan = (
       );
       return Object.keys(decoupled).length ? { slotFigmaNames: decoupled } : {};
     })(),
+    ...(() => {
+      const fp = def.figmaProperties;
+      const renamed = Object.fromEntries((fp?.variantAxes ?? []).filter((a) => variantAxisFigmaName(fp, a) !== a).map((a) => [a, variantAxisFigmaName(fp, a)]));
+      return Object.keys(renamed).length ? { axisFigmaNames: renamed } : {};
+    })(),
     coord,
     // Declaration order, `size` removed — it has its own fixed position in the name. See the field's note.
     gridAxisOrder: (def.figmaProperties?.variantAxes ?? []).filter((a) => a !== 'size'),
@@ -2885,7 +2894,8 @@ export const planComponentName = (plan: AnatomyPlan): string =>
     // whose axis is called `tone` or `color` projected a coordinate the name did not carry: the plan held
     // `{tone:'error'}` and the name came back `""`, four members sharing it, `planSetLayout` refusing the
     // duplicate. Byte-identical for the four defs that already project (all declare intent/appearance/size).
-    ...plan.gridAxisOrder.flatMap((a) => (plan.coord[a] ? [`${a}=${plan.coord[a]}`] : [])),
+    // A renamed axis (#2571) is written under its Figma display name: the member name is what Figma derives the panel from.
+    ...plan.gridAxisOrder.flatMap((a) => (plan.coord[a] ? [`${plan.axisFigmaNames?.[a] ?? a}=${plan.coord[a]}`] : [])),
     // CONDITIONAL SINCE #795, and this half is what the issue's "both halves" meant. It used to be
     // unconditional, which is the writer's side of the same wall: even had the plan admitted a sizeless
     // def, every member would still have been named `size=undefined`. The def's `variantAxes` decides —
@@ -2947,7 +2957,7 @@ export const variantNameErrors = (def: ComponentDef, memberNames: string[]): str
 
   // VALUE — the declared domain per axis KEY, transcribed from the declaration (not from a member).
   const domain: Record<string, Set<string>> = {};
-  for (const a of fp.variantAxes ?? []) domain[a] = new Set((variantsOf(def)[a] ?? []).map(String));
+  for (const a of fp.variantAxes ?? []) domain[variantAxisFigmaName(fp, a)] = new Set((variantsOf(def)[a] ?? []).map(String));
   if (fp.stateAxis) domain[fp.stateAxis.name] = new Set(fp.stateAxis.values);
   for (const s of fp.slotAxes ?? []) domain[slotAxisFigmaName(s)] = new Set(['true', 'false']);
   const declared = new Set(figmaAxisNames(def));
@@ -4490,7 +4500,7 @@ export const planSetLayout = (plans: AnatomyPlan[], fn: string) => {
   // Every plan in a set carries the same `gridAxis` (they come from one def via `figmaAnatomySet`), so
   // the first is the set's. Read off the PLAN rather than a def this function never receives.
   const colKey = gridColumnAxis(
-    plans[0].gridAxis,
+    plans[0].gridAxis && (plans[0].axisFigmaNames?.[plans[0].gridAxis] ?? plans[0].gridAxis),
     varying.map((k) => ({ name: k, values: new Set(vals.map((v) => v[k])).size })),
   );
   // INVERSE AS ONE BLOCK (#2188, owner decision Q173 A), for every def with canvas furniture (`CANVAS_FURNITURE`). `surface`
@@ -4552,7 +4562,8 @@ export const planSetLayout = (plans: AnatomyPlan[], fn: string) => {
       // that #1010's gate compares would disagree. Defaults to the code name for a def with no display name.
       ...(p.slotAxes.includes('leading') ? [`${p.slotFigmaNames?.leading ?? 'leading'}=${p.slots.leading}`] : []),
       ...(p.slotAxes.includes('trailing') ? [`${p.slotFigmaNames?.trailing ?? 'trailing'}=${p.slots.trailing}`] : []),
-      ...heldAxes(p).flatMap((k) => (vals[i][k] === undefined ? [] : [`${k}=${vals[i][k]}`])),
+      // Under each axis's Figma name (#2571), since `vals` is parsed from the member name.
+      ...heldAxes(p).map((k) => p.axisFigmaNames?.[k] ?? k).flatMap((k) => (vals[i][k] === undefined ? [] : [`${k}=${vals[i][k]}`])),
     ].join(', '),
   }));
 
@@ -4614,7 +4625,7 @@ export const planSetLayout = (plans: AnatomyPlan[], fn: string) => {
   // leading-then-trailing order the `group` uses, resolved through `slotFigmaNames`. Empty for a def with
   // no slot axes, so its payload is byte-identical.
   const slotKeys = ['leading', 'trailing'].filter((k) => plans[0].slotAxes.includes(k)).map((k) => plans[0].slotFigmaNames?.[k] ?? k);
-  return { cells, props, refs: [...refs.values()], refOverrides, axes, rows: rows.length, cols: cols.length, component: plans[0].component, rowKeys, colKey: colKey ?? '', rowLabels: rows, colVals: cols, footprintVaries: heldAxes(plans[0]), slotKeys };
+  return { cells, props, refs: [...refs.values()], refOverrides, axes, rows: rows.length, cols: cols.length, component: plans[0].component, rowKeys, colKey: colKey ?? '', rowLabels: rows, colVals: cols, footprintVaries: heldAxes(plans[0]).map((k) => plans[0].axisFigmaNames?.[k] ?? k), slotKeys };
 };
 
 /**
