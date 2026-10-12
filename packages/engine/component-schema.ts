@@ -1268,8 +1268,12 @@ export type FigmaProperties = {
    *  component-property NAME a designer reads in the panel — so panel `label` can sit over code prop
    *  `label`, or a swap can read `↳ swap leading icon` over prop `leadingVisual`. Absent means the KEY is
    *  the panel name, byte-identical to before. It is a Figma-facing label and needs NOT be a declared prop
-   *  (`figmaPropertyErrors` checks the KEY against `props`, never `figmaName`). */
-  texts?: Record<string, { part: string; default: string; figmaName?: string; byVariant?: Record<string, Record<string, string>> }>;
+   *  (`figmaPropertyErrors` checks the KEY against `props`, never `figmaName`).
+   *
+   *  `also` (owner decisions Q225 A and Q226 A, 2026-10-10): further TEXT parts the same property drives, so one
+   *  property writes the same characters to each. Tabs' selected-weight reserve is the case: an invisible copy of the
+   *  label in the selected weight that holds every tab at its bold width, which only works if it spells the label. */
+  texts?: Record<string, { part: string; default: string; figmaName?: string; byVariant?: Record<string, Record<string, string>>; also?: string[] }>;
   /** prop name → `kind: 'slot'` part. INSTANCE_SWAP property — the slot's CONTENT.
    *
    *  The bare-string form is `prop → part`, the byte-identical original. The object form
@@ -2196,6 +2200,9 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
     }
   };
   checkMap('texts', Object.fromEntries(Object.entries(fp.texts ?? {}).map(([p, t]) => [p, t.part])), 'characters', 'text');
+  // Each `also` part is claimed on the same field, so it is a text part no other property names (Q226 A).
+  for (const [prop, t] of Object.entries(fp.texts ?? {}))
+    t.also?.forEach((part, i) => checkMap(`texts.${prop}.also[${i}]`, { [prop]: part }, 'characters', 'text'));
   // `swaps` may carry the #1380 object form `{ part, figmaName }`; normalized to `prop → part` here so
   // the relational checks (prop is a declared prop, part exists and is a slot, one property per field) are
   // identical for the string and object forms — the display name is a Figma label, checked below.
@@ -2356,7 +2363,7 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
   // while still writing no `characters`. Only a TEXT property populates the placeholder. (`checkMap`
   // separately rejects a `swaps` entry pointing at a text part, so that state is unreachable today —
   // which is the argument for asking the precise question here rather than relying on it staying so.)
-  const textClaimed = new Set(Object.values(fp.texts ?? {}).map((t) => t.part));
+  const textClaimed = new Set(Object.values(fp.texts ?? {}).flatMap((t) => [t.part, ...(t.also ?? [])]));
   // A NATIVE SLOT's text (#2417): its copy is the part's own literal `characters`, and a TEXT property cannot reach it
   // (Figma refuses a reference on a slot sublayer), so a claim there is refused and an unclaimed one is expected.
   const slotParts = def.anatomy?.parts ?? {};
