@@ -84,7 +84,10 @@
  *   relay/…        an update re-lays the grid, and a member Prism3 didn't build (no stamp) on a planned coordinate stays
  *                  exactly where it is, named as left (#2494), and still sizes its row and column. Mutations: the LAY
  *                  OUT pass's unstamped guard removed → `relay/unbuilt left`; its measuring loop skipping unstamped
- *                  members → `relay/unbuilt size counts`.
+ *                  members → `relay/unbuilt size counts`. A member with a malformed stamp, and a Figma copy whose record
+ *                  names another member, are neither listed as moves nor moved (#2510): the dry run and the LAY OUT pass
+ *                  share `builtByPrism3`. Mutations: `ownedView` reading the stamp alone → `relay/not ours listed`;
+ *                  the LAY OUT pass reading the stamp alone → `relay/not ours left`.
  *   nochange/…     a set the dry run reads as "no changes" (every member built by an earlier plugin) takes its stamps and
  *                  nothing else, read by a write log the test installs on the shim's nodes (#2379). Mutation: those
  *                  members sent through the build's pass again → `nochange/writes` (7,575 other writes).
@@ -878,6 +881,36 @@ section('re-lay — an update over a set leaves a member Prism3 didn\'t build wh
   const overlaps = others.filter((m) => Number(m.x) < ox + ow && Number(m.x) + Number(m.width) > ox && Number(m.y) < oy + oh && Number(m.y) + Number(m.height) > oy).map((m) => String(m.name));
   ok(JSON.stringify([own.x, own.y]) === at && !!across && !!below && Number(across.x) === ox + ow + 24 && Number(below.y) === oy + oh + 24 && overlaps.length === 0,
     `relay/unbuilt size counts: a member Prism3 didn't build, wider and taller than its neighbours, still sizes its column and row: the next across starts at ${ox + ow + 24} (${across ? Number(across.x) : 'none'}), the next down at ${oy + oh + 24} (${below ? Number(below.y) : 'none'}), and ${overlaps.length} member(s) land on top of it${overlaps.length ? `: ${overlaps.slice(0, 2).join('; ')}` : ''}`);
+}
+
+{
+  // A STAMP NOT PRISM3'S, AND A COPY (#2510): the dry run reads both as not built by Prism3 (`ownedView`), so the apply
+  // must not move them either. One member's stamp is malformed; another's record names a third member, as a Figma
+  // Duplicate's does. Both sit off the grid on their planned coordinate; the update runs for another reason, so the
+  // grid is re-laid. The ownership test is shared (`builtByPrism3`), and each half is pinned BY NAME. Mutations:
+  // `ownedView` reading the stamp alone again → `relay/not ours listed`; the LAY OUT pass reading the stamp alone
+  // again → `relay/not ours left`.
+  const w = await world(TAG, plansOf(TAG), { extraVars: ['space/999'] });
+  const ms = membersOf(w.set());
+  const put = (m: Node, k: string, v: string): void => (m.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, k, v);
+  const pd = (m: Node, k: string): string => (m.getSharedPluginData as (a: string, b: string) => string)(NS, k);
+  const [bad, copy, orig] = [ms[6], ms[9], ms[8]];
+  put(bad, STAMP_KEY, 'not a stamp');
+  put(copy, BASELINE_KEY, pd(orig, BASELINE_KEY));
+  for (const m of [bad, copy]) { m.x = Number(m.x) + 300; m.y = Number(m.y) + 300; }
+  const state = (m: Node): string => JSON.stringify([m.x, m.y, pd(m, STAMP_KEY), pd(m, BASELINE_KEY)]);
+  const was = [state(bad), state(copy)];
+  const next = moveGap(w.plans);
+  const pre = await previewUpdate(w.host, [{ def: TAG, plans: next }]);
+  const listed = (pre.sets[0].positions ?? []).filter((n) => n === String(bad.name) || n === String(copy.name));
+  ok(pre.sets[0].counts.unstamped === 2 && listed.length === 0,
+    `relay/not ours listed: the dry run reads the malformed stamp and the copy as not built by Prism3 and lists neither as a move (${JSON.stringify(pre.sets[0].counts)}; listed ${JSON.stringify(listed)})`);
+  const res = await applyUpdate(w.host, w.api as any, [{ def: TAG, plans: next }], previewHashOf(pre));
+  const gap = await varIdOf(w, 'space/999');
+  const written = membersOf(w.set()).filter((m) => (childNamed(m, 'content').boundVariables as Record<string, { id: string }>).itemSpacing?.id === gap).length;
+  const now = [state(bad), state(copy)];
+  ok(res.outcomes[0].updated.length === 43 && written === 43 && now[0] === was[0] && now[1] === was[1],
+    `relay/not ours left: the update re-lays the grid and leaves the malformed stamp and the copy exactly as they were (${was.join(' ')} → ${now.join(' ')}; ${res.outcomes[0].updated.length} updated, ${written} with the new gap)`);
 }
 
 /* ── no change ───────────────────────────────────────────────────────────────────────────────────────── */

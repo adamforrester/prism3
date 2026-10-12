@@ -19,14 +19,15 @@
  * the LIST going short, by name; nothing catches a stale numeral in a sentence. `EXPECTED_ARTIFACTS`
  * below is the one number kept, and it is a claim about the emitted tree that `ci.yml` also asserts.
  *
- * ── THE FOUR THINGS THE RUNNER ITSELF HAS TO GET RIGHT ──────────────────────────────────────────
+ * ── THE FIVE THINGS THE RUNNER ITSELF HAS TO GET RIGHT ──────────────────────────────────────────
  *
  * 1. THE EXIT STATUS IS CAPTURED WITH NOTHING BETWEEN IT AND THE COMMAND. This week a failing gate
  *    was reported as a PASS because the reading was taken as `npx tsx gate.ts 2>&1 | tail -2; echo
  *    $?` — `$?` is `tail`'s status, and `tail` succeeds at tailing a failure. `lint-us-english.ts`
  *    had exited 1 and the report said green. So this file runs nothing through a shell and nothing
- *    through a pipeline: `spawnSync(argv[0], argv.slice(1), { shell: false })` returns the status and
- *    the output in ONE object, from ONE call. There is no pipeline for a status to get lost in — the
+ *    through a pipeline: `runGateCommand` spawns `argv` with `shell: false` and settles with the status
+ *    and the output in ONE object, from ONE call (it was one `spawnSync` until point 5 needed a timer that
+ *    runs while the gate does). There is no pipeline for a status to get lost in — the
  *    trap is unrepresentable here rather than remembered, which is the only version of that fix that
  *    survives an edit by someone who has not read this paragraph.
  *
@@ -55,6 +56,12 @@
  *    "all gates pass" while any gate is unrun, and the exit status is non-zero if any gate did not
  *    reach a verdict. Every entry in `GATES` appears in the table in every run, including the ones
  *    that were skipped, so a gate that stopped running is visible rather than absent.
+ *
+ * 5. A GATE THAT HANGS FAILS, BY NAME, AT ITS TIME LIMIT (#2537). A full run once sat in `smoke` for
+ *    two hours with its browser idle. Every command gate now has a limit (`DEFAULT_TIMEOUT_S`, a
+ *    measured override for `chrome`, all scaled by `VERIFY_TIMEOUT_SCALE`); past it, the gate and every
+ *    process it started are killed and the row reads FAIL with its elapsed time and "timed out" —
+ *    never SKIP, ADVISORY or a pass. `timeoutSelfCheck` proves it on a real hanging fixture each run.
  *
  * ── WHY THE LIST IS AUTHORED HERE AND NOT PARSED OUT OF ci.yml ──────────────────────────────────
  *
@@ -104,8 +111,9 @@
  *
  * Dependency-free per repo convention.
  */
-import { spawnSync } from 'node:child_process';
-import { existsSync, readFileSync, readdirSync, realpathSync } from 'node:fs';
+import { spawn, spawnSync } from 'node:child_process';
+import { existsSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { createRequire } from 'node:module';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -160,6 +168,184 @@ export type Gate = {
    *  real one. If that self-check is ever removed, delete this field in the same change — an unused
    *  field with no test is how a mechanism rots into a wrong answer. */
   advisory?: boolean;
+  /** This gate's time limit in seconds, when `DEFAULT_TIMEOUT_S` is wrong for it (point 5). Scaled by
+   *  `VERIFY_TIMEOUT_SCALE` like the default. Set it only from a measured duration, and say which. */
+  timeoutS?: number;
+};
+
+/**
+ * POINT 5 — THE TIME LIMIT (#2537). A full run once sat in `smoke` for 7133s with its browser idle;
+ * smoke's worst healthy time on the same machine is 360s. With no limit, one hung gate holds the whole
+ * run, and the machine's single verify slot, until someone notices. So every gate that runs a command
+ * has a limit, and a gate that reaches it is a FAIL, named, with its elapsed time: not a SKIP (it ran,
+ * and it did not finish, which is a finding about the gate) and never ADVISORY or a pass.
+ *
+ * THE NUMBERS, measured from 131 full verify logs on the shared development machine (2026-08..10), the
+ * worst healthy duration of each gate: chrome 1965s, plugin-test 440s, smoke 360s, engine-test 348s,
+ * studio-test 234s, and every other gate under 160s. The default is 1200s: 2.7x the slowest gate it
+ * covers, and still a sixth of the hang that motivated it. `chrome` gets 5400s: 2.7x its worst run
+ * inside verify, and 1.6x the 55 minutes one standalone `test:chrome` once took under load.
+ *
+ * A SLOWER MACHINE scales every limit at once with `VERIFY_TIMEOUT_SCALE` (for example `2`). There is
+ * no setting that turns the limit off: that would bring back the two-hour hang this exists to end.
+ *
+ * CI DOES NOT USE THESE. `ci.yml` runs each gate as its own step and never runs this loop (only
+ * `verify.ts --list`), so CI's limits are GitHub's job timeout, unchanged by this.
+ */
+export const DEFAULT_TIMEOUT_S = 1200;
+
+/** How long a timed-out gate gets between SIGTERM and SIGKILL. SIGTERM first because a Playwright
+ *  suite closes its browser on SIGTERM, and the browser is in a process group of its own. */
+const KILL_GRACE_MS = 10_000;
+
+export const timeoutScale = (raw = process.env.VERIFY_TIMEOUT_SCALE): number => {
+  if (raw === undefined || raw === '') return 1;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n <= 0) {
+    throw new Error(`VERIFY_TIMEOUT_SCALE must be a number above 0 (got "${raw}"). It multiplies every gate's time limit.`);
+  }
+  return n;
+};
+
+export const timeoutMsOf = (gate: Gate, scale: number): number => (gate.timeoutS ?? DEFAULT_TIMEOUT_S) * scale * 1000;
+
+/** The outcome of one gate command: exit status and output in ONE object, from ONE call (point 1). */
+export type RunOutcome = {
+  status: number | null;
+  error?: Error;
+  output: string;
+  ms: number;
+  timedOut: boolean;
+  limitMs: number;
+};
+
+/** Every pid below `root`, read from one snapshot of the process table. Linux reads `/proc`; elsewhere
+ *  `ps`. A tree walk from our own child's pid, never a match on a name or a command line. */
+const descendantsOf = (roots: number[]): number[] => {
+  const parentOf = new Map<number, number>();
+  if (existsSync('/proc/self/stat')) {
+    for (const d of readdirSync('/proc')) {
+      if (!/^\d+$/.test(d)) continue;
+      try {
+        const stat = readFileSync(`/proc/${d}/stat`, 'utf8');
+        // The command name (field 2) is in parentheses and may hold spaces, so read after the last ')'.
+        const ppid = Number(stat.slice(stat.lastIndexOf(')') + 2).split(' ')[1]);
+        parentOf.set(Number(d), ppid);
+      } catch { /* the process exited while we read */ }
+    }
+  } else {
+    const r = spawnSync('ps', ['-A', '-o', 'pid=,ppid='], { encoding: 'utf8', shell: false });
+    for (const line of (r.stdout ?? '').split('\n')) {
+      const [pid, ppid] = line.trim().split(/\s+/).map(Number);
+      if (pid) parentOf.set(pid, ppid);
+    }
+  }
+  const found = new Set<number>();
+  let frontier = roots;
+  while (frontier.length) {
+    const next: number[] = [];
+    for (const [pid, ppid] of parentOf) {
+      if (frontier.includes(ppid) && !found.has(pid)) { found.add(pid); next.push(pid); }
+    }
+    frontier = next;
+  }
+  return [...found];
+};
+
+const signal = (pid: number, sig: NodeJS.Signals) => { try { process.kill(pid, sig); } catch { /* already gone */ } };
+
+/**
+ * Stop a gate and EVERYTHING it started. Two sets, because neither alone is enough:
+ *   - the gate's process group (`-pid`), which holds whatever it spawned without detaching, and
+ *   - every descendant pid, found by walking the process table from the gate's pid BEFORE anything is
+ *     killed. Playwright launches its browser with `detached: true`, so the browser sits in a group of
+ *     its own and a group kill misses it; once its parent dies it is reparented and the walk cannot
+ *     find it either. Hence the snapshot first.
+ * SIGTERM, then SIGKILL after `graceMs`. The SIGKILL list is the first snapshot plus a second one taken
+ * from the pids still known, which catches anything spawned during the grace period.
+ */
+export const killTree = async (pid: number, graceMs: number): Promise<void> => {
+  const first = descendantsOf([pid]);
+  signal(-pid, 'SIGTERM');
+  for (const d of first) signal(d, 'SIGTERM');
+  await new Promise((r) => setTimeout(r, graceMs));
+  const all = new Set([...first, ...descendantsOf([pid, ...first])]);
+  signal(-pid, 'SIGKILL');
+  for (const d of all) signal(d, 'SIGKILL');
+};
+
+/**
+ * Run one gate command with a time limit. `detached: true` puts the gate in a process group of its own,
+ * so `killTree` can stop the group without touching this runner. The promise settles on `close` (all
+ * output read) or, after a time-out, once the whole kill sequence has run, whether or not a straggler
+ * still holds the pipe open.
+ */
+export const runGateCommand = (
+  cmd: string[],
+  opts: { cwd: string; env: NodeJS.ProcessEnv; timeoutMs: number; graceMs?: number; onSpawn?: (pid: number) => void },
+): Promise<RunOutcome> => new Promise((resolveRun) => {
+  const t0 = Date.now();
+  let stdout = '';
+  let stderr = '';
+  let status: number | null = null;
+  let timedOut = false;
+  let settled = false;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const finish = (error?: Error) => {
+    if (settled) return;
+    settled = true;
+    clearTimeout(timer);
+    resolveRun({ status, error, output: `${stdout}${stderr}`.trimEnd(), ms: Date.now() - t0, timedOut, limitMs: opts.timeoutMs });
+  };
+  const child = spawn(cmd[0], cmd.slice(1), {
+    cwd: opts.cwd, env: opts.env, shell: false, detached: true, stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  child.stdout!.setEncoding('utf8').on('data', (s: string) => { stdout += s; });
+  child.stderr!.setEncoding('utf8').on('data', (s: string) => { stderr += s; });
+  child.on('error', (e) => finish(e));
+  child.on('exit', (code) => { status = code; });
+  // After a time-out, `close` only marks the pipes done: the run settles when the kill sequence has
+  // finished, so the SIGKILL pass can never be left pending behind the next gate or the runner's exit.
+  let closed = false;
+  child.on('close', () => { closed = true; if (!timedOut) finish(); });
+  if (child.pid !== undefined) opts.onSpawn?.(child.pid);
+  timer = setTimeout(async () => {
+    timedOut = true;
+    const grace = opts.graceMs ?? KILL_GRACE_MS;
+    await killTree(child.pid!, grace);
+    if (closed) { finish(); return; }
+    // A straggler outside the tree may still hold the pipe; do not wait on it past one more grace.
+    setTimeout(() => { child.stdout!.destroy(); child.stderr!.destroy(); finish(); }, grace);
+  }, opts.timeoutMs);
+});
+
+/** The one place a command's run becomes a table outcome — the real loop and the self-check both call
+ *  it (`docs/34`, shape 2). A time-out is checked FIRST: a killed gate also has `status === null`, and
+ *  that branch would call it a SKIP. */
+export const classifyRun = (run: RunOutcome, gate: Gate): { outcome: GateOutcome; output: string } => {
+  if (run.timedOut) {
+    const s = (ms: number) => `${(ms / 1000).toFixed(1)}s`;
+    return {
+      outcome: 'FAIL',
+      output: `${run.output || '(no output before the time limit)'}\n\n` +
+        `✗ ${gate.id} timed out after ${s(run.limitMs)}, its limit, and was stopped (${s(run.ms)} in all, ` +
+        `with the time it was given to exit). Its whole process tree was killed. The output above is ` +
+        `everything it printed before then, so its last line is the step it was on. If this machine is ` +
+        `just slow, set VERIFY_TIMEOUT_SCALE (see point 5 in verify.ts).`,
+    };
+  }
+  // A gate that could not be LAUNCHED (spawn error, absent binary) has `status === null`. That is
+  // not a failure of the gate and must never read as one — it is an unrun gate, which is a SKIP.
+  if (run.error || run.status === null) {
+    return { outcome: 'SKIP', output: run.error ? `could not launch \`${gate.cmd!.join(' ')}\`: ${run.error.message}` : run.output };
+  }
+  return { outcome: run.status === 0 ? 'PASS' : gate.advisory ? 'ADVISORY' : 'FAIL', output: run.output };
+};
+
+/** One table row. A timed-out gate's row says so, so the reason is on the line that names it. */
+export const rowOf = (r: Result, timedOut = false): string => {
+  const mark = { PASS: '✓', FAIL: '✗', SKIP: '⊘', ADVISORY: '⚠' }[r.outcome];
+  return `  ${mark} ${r.outcome.padEnd(8)} ${r.gate.id.padEnd(26)} ${(r.ms / 1000).toFixed(1)}s${timedOut ? '  timed out' : ''}`;
 };
 
 /**
@@ -539,6 +725,8 @@ export const GATES: Gate[] = [
     after: ['build-web', 'build-plugin'],
     why: 'it drives the built dist/main.js and dist/ui.html in a browser',
     precondition: chromiumPrecondition,
+    // Measured: 1965s at worst inside verify, and one standalone run took 55 minutes under load (point 5).
+    timeoutS: 5400,
   },
   {
     // #2351 gap 1: the web and plugin token exports of every committed brand are byte-identical to each
@@ -1068,6 +1256,109 @@ export function verdictOf(results: Result[], expected?: number): { ok: boolean; 
   return { ok: reasons.length === 0, reasons };
 }
 
+/**
+ * POINT 5'S SELF-CHECK (#2537): a gate that hangs is reported FAIL, by name, within its limit, and
+ * nothing it started is left running. Async and spawns processes, so unlike the checks above it runs
+ * only when this file is the program (every `npm run verify`, and CI's `verify.ts --list` step), never
+ * when `lint-doc-gates.ts` imports `GATES`.
+ *
+ * The fixture is a real hang of the shape #2537 met: a node process that never exits, with one child
+ * in its own process group (the shape of `npm run` → node) and one DETACHED child (the shape of
+ * Playwright's browser, which a group kill misses). It writes the three pids to a file so this check
+ * can look for them afterwards, by pid.
+ *
+ * Every expected value is a literal (`docs/34`). The check is bounded from OUTSIDE the code under test:
+ * if the runner never returns, `OUTER_GUARD_MS` ends the wait, the failure is named, and the fixture's
+ * pids are killed here so the check itself never hangs.
+ */
+export const timeoutSelfCheck = async (): Promise<string[]> => {
+  const fails: string[] = [];
+  const LIMIT_MS = 2500;
+  const GRACE_MS = 500;
+  const OUTER_GUARD_MS = 15_000;
+  const dir = mkdtempSync(join(tmpdir(), 'verify-2537-'));
+  const pidFile = join(dir, 'pids.json');
+  const fixture = join(dir, 'hang-fixture.mjs');
+  writeFileSync(fixture, [
+    "import { spawn } from 'node:child_process';",
+    "import { writeFileSync } from 'node:fs';",
+    "const forever = ['-e', 'setInterval(() => {}, 1e9)'];",
+    "const inGroup = spawn(process.execPath, forever, { stdio: 'inherit' });",
+    "const ownGroup = spawn(process.execPath, forever, { stdio: 'ignore', detached: true });",
+    'writeFileSync(process.argv[2], JSON.stringify([process.pid, inGroup.pid, ownGroup.pid]));',
+    "console.log('hang-fixture: on step 3 of 3, waiting forever');",
+    'setInterval(() => {}, 1e9);',
+  ].join('\n'));
+  const readPids = (): number[] => { try { return JSON.parse(readFileSync(pidFile, 'utf8')); } catch { return []; } };
+  const alive = (pid: number): boolean => {
+    try { process.kill(pid, 0); } catch { return false; }
+    // A killed process nobody has reaped yet is a zombie: dead, and still answering kill(0).
+    try {
+      if (existsSync('/proc/self/stat')) {
+        const stat = readFileSync(`/proc/${pid}/stat`, 'utf8');
+        return stat.slice(stat.lastIndexOf(')') + 2)[0] !== 'Z';
+      }
+      return !spawnSync('ps', ['-o', 'stat=', '-p', String(pid)], { encoding: 'utf8' }).stdout.trim().startsWith('Z');
+    } catch { return false; }
+  };
+
+  const hangGate: Gate = { id: 'hang-fixture', ciStep: 'none', cmd: [process.execPath, fixture, pidFile] };
+  const fastGate: Gate = { id: 'fast-fixture', ciStep: 'none', cmd: [process.execPath, '-e', "console.log('fast-fixture ran')"] };
+  const opts = { cwd: dir, env: process.env, timeoutMs: LIMIT_MS, graceMs: GRACE_MS };
+
+  try {
+    const t0 = Date.now();
+    let guard: ReturnType<typeof setTimeout> | undefined;
+    const run = await Promise.race([
+      runGateCommand(hangGate.cmd!, opts),
+      new Promise<null>((r) => { guard = setTimeout(() => r(null), OUTER_GUARD_MS); }),
+    ]);
+    clearTimeout(guard);
+    const wall = Date.now() - t0;
+    if (run === null) {
+      fails.push(`hang-fixture: the runner did not return within ${OUTER_GUARD_MS / 1000}s for a gate with a ${LIMIT_MS / 1000}s limit — a hung gate hangs the whole run`);
+    } else {
+      const c = classifyRun(run, hangGate);
+      const row = rowOf({ gate: hangGate, outcome: c.outcome, output: c.output, ms: run.ms }, run.timedOut);
+      if (c.outcome !== 'FAIL') fails.push(`hang-fixture: a gate past its time limit is reported ${c.outcome}, not FAIL`);
+      if (!row.startsWith('  ✗ FAIL     hang-fixture') || !row.endsWith('timed out')) {
+        fails.push(`hang-fixture: the table row does not name the gate as a timed-out FAIL: "${row}"`);
+      }
+      if (!c.output.includes('✗ hang-fixture timed out after 2.5s, its limit, and was stopped')) {
+        fails.push('hang-fixture: the failure output does not say the gate timed out, by name, with its elapsed time');
+      }
+      if (!c.output.includes('hang-fixture: on step 3 of 3, waiting forever')) {
+        fails.push('hang-fixture: the output the gate printed before its limit was lost');
+      }
+      if (wall < LIMIT_MS || wall > LIMIT_MS + GRACE_MS + 3000) {
+        fails.push(`hang-fixture: reported after ${wall}ms, outside ${LIMIT_MS}..${LIMIT_MS + GRACE_MS + 3000}ms for a ${LIMIT_MS}ms limit`);
+      }
+    }
+
+    const pids = readPids();
+    if (pids.length !== 3) {
+      fails.push('hang-fixture: the fixture never wrote its pids, so nothing here tested a hang');
+    } else {
+      // SIGKILL is delivered at once, but give the kernel a moment to tear the processes down.
+      const until = Date.now() + 2000;
+      while (pids.some(alive) && Date.now() < until) await new Promise((r) => setTimeout(r, 50));
+      const names = ['the gate itself', 'its child in the same process group', 'its detached child, in a process group of its own'];
+      pids.forEach((pid, i) => { if (alive(pid)) fails.push(`hang-fixture: ${names[i]} (pid ${pid}) is still running after the time-out`); });
+    }
+
+    const fast = await runGateCommand(fastGate.cmd!, opts);
+    const f = classifyRun(fast, fastGate);
+    if (f.outcome !== 'PASS' || f.output !== 'fast-fixture ran') {
+      fails.push(`fast-fixture: a gate that exits 0 at once is reported ${f.outcome} with output "${f.output}", not PASS with "fast-fixture ran"`);
+    }
+  } finally {
+    // Clean up after a broken runner too, by pid: the fixture's own three, nothing else.
+    for (const pid of readPids()) signal(pid, 'SIGKILL');
+    rmSync(dir, { recursive: true, force: true });
+  }
+  return fails;
+};
+
 if (selfFails.length) {
   console.error("\n❌ the gate runner's own checks are broken — it cannot see what it claims to:\n");
   for (const f of selfFails) console.error(`    ${f}`);
@@ -1086,6 +1377,16 @@ if (isMain) {
   const argv = process.argv.slice(2);
   const verbose = argv.includes('--verbose');
   const only = argv.filter((a) => !a.startsWith('-'));
+
+  let scale: number;
+  try { scale = timeoutScale(); } catch (e) { console.error(`\n❌ ${(e as Error).message}`); process.exit(1); }
+
+  const timeoutFails = await timeoutSelfCheck();
+  if (timeoutFails.length) {
+    console.error("\n❌ the gate runner's own checks are broken — a hung gate would not be stopped and named:\n");
+    for (const f of timeoutFails) console.error(`    ✗ ${f}`);
+    process.exit(1);
+  }
 
   const orderProblems = orderViolations(GATES);
   if (orderProblems.length) {
@@ -1137,10 +1438,21 @@ if (isMain) {
   const tty = process.stderr.isTTY === true;
   const progress = (line: string) => { if (tty) process.stderr.write(line); };
 
+  // A gate runs in a process group of its own (point 5), so Ctrl-C at the terminal no longer reaches
+  // it. Pass it on: stop the running gate's tree, then exit as interrupted.
+  let running: number | undefined;
+  for (const sig of ['SIGINT', 'SIGTERM'] as const) {
+    process.on(sig, async () => {
+      if (running !== undefined) await killTree(running, 2000);
+      process.exit(130);
+    });
+  }
+
   for (const gate of selected) {
     progress(`  … ${gate.id}\r`);
     const t0 = Date.now();
     let result: Result;
+    let timedOut = false;
 
     const skip = gate.precondition?.();
     if (skip) {
@@ -1149,28 +1461,22 @@ if (isMain) {
       const d = gate.derive(byId);
       result = { gate, outcome: d.outcome === 'FAIL' && gate.advisory ? 'ADVISORY' : d.outcome, output: d.output, ms: Date.now() - t0 };
     } else {
-      // POINT 1: status and output from ONE call, with no shell and no pipeline between them.
-      const r = spawnSync(gate.cmd![0], gate.cmd!.slice(1), {
-        cwd: repoRoot, encoding: 'utf8', shell: false, maxBuffer: 64 * 1024 * 1024,
-        env: { ...process.env, FORCE_COLOR: '0', CI: '1' },
+      // POINT 1: status and output in ONE object from ONE call, with no shell and no pipeline between
+      // them. POINT 5: under a time limit, and a gate past it is killed with everything it started.
+      const r = await runGateCommand(gate.cmd!, {
+        cwd: repoRoot, env: { ...process.env, FORCE_COLOR: '0', CI: '1' }, timeoutMs: timeoutMsOf(gate, scale),
+        onSpawn: (pid) => { running = pid; },
       });
-      const output = `${r.stdout ?? ''}${r.stderr ?? ''}`.trimEnd();
-      // A gate that could not be LAUNCHED (spawn error, absent binary) has `status === null`. That is
-      // not a failure of the gate and must never read as one — it is an unrun gate, which is a SKIP.
-      const outcome: GateOutcome = r.error || r.status === null
-        ? 'SKIP'
-        : r.status === 0 ? 'PASS' : gate.advisory ? 'ADVISORY' : 'FAIL';
-      result = {
-        gate, outcome, ms: Date.now() - t0,
-        output: r.error ? `could not launch \`${gate.cmd!.join(' ')}\`: ${r.error.message}` : output,
-      };
+      running = undefined;
+      timedOut = r.timedOut;
+      const c = classifyRun(r, gate);
+      result = { gate, outcome: c.outcome, output: c.output, ms: Date.now() - t0 };
     }
 
     results.push(result);
     byId.set(gate.id, result);
     progress(`${' '.repeat(40)}\r`);
-    const mark = { PASS: '✓', FAIL: '✗', SKIP: '⊘', ADVISORY: '⚠' }[result.outcome];
-    console.log(`  ${mark} ${result.outcome.padEnd(8)} ${gate.id.padEnd(26)} ${(result.ms / 1000).toFixed(1)}s`);
+    console.log(rowOf(result, timedOut));
   }
 
   // POINT 2: the buffered output, printed only where it is wanted.
