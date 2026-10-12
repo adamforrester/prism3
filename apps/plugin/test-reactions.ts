@@ -202,11 +202,12 @@ section('orphan — a destination the host still resolves, to a node with no par
   (hover.remove as () => void)();
   // The host keeps a deleted node for undo: the lookup FINDS it, `removed: false`, `parent: null` (measured live).
   const orphan = { id: hover.id, name: hover.name, removed: false, parent: null };
-  (globalThis as any).figma = { getNodeByIdAsync: async (id: string) => (id === orphan.id ? orphan : null) };
+  // Every other id resolves to the shim's own node, as the host's lookup would: the orphan is the one with no parent.
+  (globalThis as any).figma = { getNodeByIdAsync: async (id: string) => (id === orphan.id ? orphan : membersOf(w).find((m) => String(m.id) === id) ?? null) };
   try {
     const p = (await previewUpdate(w.host, targets(w, TAG))).sets[0];
     const rest = p.states.find((s) => s.member === T('rest'));
-    ok(rest?.state === 'update' && !p.handEdits.some((h) => h.member === T('rest')), `orphan/dangling: the Rest member reads to update, not hand-edited (${JSON.stringify(rest)}; ${JSON.stringify(p.handEdits.filter((h) => h.member === T('rest')))})`);
+    ok(p.states.length === 1 && rest?.state === 'update' && !p.handEdits.some((h) => h.member === T('rest')), `orphan/dangling: the Rest member reads to update, not hand-edited (${JSON.stringify(rest)}; ${JSON.stringify(p.handEdits.filter((h) => h.member === T('rest')))})`);
   } finally { delete (globalThis as any).figma; }
 }
 

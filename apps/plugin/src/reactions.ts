@@ -117,10 +117,14 @@ const hostLookup = (): Lookup | undefined => {
 };
 
 /**
- * A member's own reactions, read off the host: each action's destination resolved to a sibling member by id, else
- * looked up. A destination that is no sibling resolves DANGLING when the lookup finds nothing or finds a node with
- * no `parent` (the orphan a replaced member leaves, which still EXISTS: an existence check alone reads it as fine),
- * else as a node outside the set. `undefined` when the host has no reactions to read (a port without them).
+ * A member's own reactions, read off the host, each action's destination resolved to a sibling member, a node
+ * outside the set, or DANGLING: no node, or a node with no `parent` (the orphan a replaced member leaves, which still
+ * EXISTS: an existence check alone reads it as fine). `undefined` when the host has no reactions to read.
+ *
+ * ONE LOOKUP PER DESTINATION where the host has one, a sibling being the node whose parent is the member's own. Never
+ * a map of the set's children per member: a snapshot is taken of every member a dry run reads, and on a 576-member
+ * set a map each would be ~330,000 host reads. Without a lookup (the shim), the siblings are searched, and only when
+ * there is a destination to find.
  */
 export const readReactions = async (node: unknown, lookup: Lookup | undefined = hostLookup()): Promise<ReadReaction[] | undefined> => {
   const n = node as { name?: unknown; reactions?: unknown; parent?: unknown };
@@ -128,11 +132,29 @@ export const readReactions = async (node: unknown, lookup: Lookup | undefined = 
   try { raw = n.reactions; } catch { return undefined; }
   if (!Array.isArray(raw)) return undefined;
   const source = String(n.name ?? '');
-  const byId = new Map<string, string>();
-  try {
-    for (const c of ((n.parent as { children?: readonly unknown[] } | null)?.children ?? []) as { id?: unknown; name?: unknown }[])
-      if (typeof c.id === 'string' && c.id) byId.set(c.id, String(c.name ?? ''));
-  } catch { /* no siblings to read: every destination is looked up */ }
+  const idOf = (x: unknown): string => { try { const id = (x as { id?: unknown } | null)?.id; return typeof id === 'string' ? id : ''; } catch { return ''; } };
+  let parent: unknown = null;
+  try { parent = n.parent ?? null; } catch { parent = null; }
+  const parentId = idOf(parent);
+  let byId: Map<string, string> | null = null;
+  const sibling = (id: string): string | undefined => {
+    if (!byId) {
+      byId = new Map();
+      try { for (const c of ((parent as { children?: readonly unknown[] } | null)?.children ?? []) as { name?: unknown }[]) { const cid = idOf(c); if (cid) byId.set(cid, String(c.name ?? '')); } }
+      catch { /* no siblings to read */ }
+    }
+    return byId.get(id);
+  };
+  /** Where an action points: `{ to }` a sibling's name, `{ outside }` a node elsewhere, or `null` dangling. */
+  const resolve = async (id: string): Promise<{ to: string } | { outside: string } | null> => {
+    if (!lookup) { const s = sibling(id); return s === undefined ? null : { to: s }; }
+    let found: { name?: unknown; parent?: unknown } | null = null;
+    try { found = await lookup(id); } catch { found = null; }
+    let p: unknown = null;
+    try { p = found?.parent ?? null; } catch { p = null; }
+    if (!found || !p) return null;
+    return parentId && idOf(p) === parentId ? { to: String(found.name ?? '') } : { outside: String(found.name ?? '') };
+  };
   const out: ReadReaction[] = [];
   for (const r of raw as HostReaction[]) {
     const t = String(r?.trigger?.type ?? 'NONE');
@@ -144,16 +166,10 @@ export const readReactions = async (node: unknown, lookup: Lookup | undefined = 
       const type = String(a?.type ?? '');
       let to = '', words = type.toLowerCase();
       if (type === 'NODE' && typeof a.destinationId === 'string' && a.destinationId) {
-        const sib = byId.get(a.destinationId);
-        if (sib !== undefined) { to = relativeTo(source, sib); words = to; }
-        else {
-          let found: { name?: unknown; parent?: unknown } | null = null;
-          try { found = lookup ? await lookup(a.destinationId) : null; } catch { found = null; }
-          let parent: unknown = null;
-          try { parent = found?.parent ?? null; } catch { parent = null; }
-          if (found && parent) { to = `^${String(found.name ?? '')}`; words = `${String(found.name ?? '')}, outside the set`; }
-          else { to = '?'; words = 'a member no longer in the set'; dangling = true; }
-        }
+        const at = await resolve(a.destinationId);
+        if (at && 'to' in at) { to = relativeTo(source, at.to); words = to; }
+        else if (at) { to = `^${at.outside}`; words = `${at.outside}, outside the set`; }
+        else { to = '?'; words = 'a member no longer in the set'; dangling = true; }
       }
       keys.push(`${type}:${String(a?.navigation ?? '')}:${String(a?.transition?.type ?? '')}:${to}`);
       texts.push(words);
