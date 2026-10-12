@@ -380,7 +380,12 @@ npx tsx apps/plugin/lint-executor-revision.ts
                                                     # run reports a member stamped by an older
                                                     # revision as needing a re-apply; a forgotten
                                                     # bump reports it as current. Reads the merge
-                                                    # base with git, same history need as above
+                                                    # base with git, same history need as above.
+                                                    # Two PRs claiming one number (#2551): a PR run
+                                                    # re-fetches main and fails a number main holds;
+                                                    # main's push run also compares HEAD^, so a squash
+                                                    # landing a taken number fails there. Its
+                                                    # self-check replays #2529/#2548 in a $TMPDIR repo
 npx tsx packages/engine/lint-materialization-renames.ts
                                                     # a materialization rename — one the CONTRACT
                                                     # cannot see, because a Figma collection name and
