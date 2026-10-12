@@ -24967,13 +24967,21 @@ arm: {
       const c = canonicalShape(ICON_PATHS[n]);
       byShape.set(c, [...(byShape.get(c) ?? []), n].sort());
     }
-    // 41 since the textarea's `resize-grip` joined the set (2026-09-25): a new shape, so both counts move by
-    // one and the three collisions below stay the only ones.
-    ok(byShape.size === 41,
-      `glyph-shape: the vocabulary's ${ICON_NAMES.length} names draw 41 distinct RENDERED shapes (got ${byShape.size}) — 42 distinct path STRINGS, so string comparison is off by one`);
+    // 41 since the textarea's `resize-grip` joined the set (2026-09-25); 42 since the hamburger `menu` did
+    // (Q253 A, 2026-10-12): each a new shape, so both counts move by one and the three collisions below stay the
+    // only ones.
+    ok(byShape.size === 42,
+      `glyph-shape: the vocabulary's ${ICON_NAMES.length} names draw 42 distinct RENDERED shapes (got ${byShape.size}) — 43 distinct path STRINGS, so string comparison is off by one`);
     const groups = [...byShape.values()].filter((g) => g.length > 1).map((g) => g.join('|')).sort();
     ok(groups.join(' , ') === 'close|close-filled , minus|minus-filled , plus|plus-filled',
       `glyph-shape: and they are exactly the three -fill/-line pairs the source set draws identically (got [${groups.join('] [')}]) — a count of three would also pass on three collisions somewhere else`);
+
+    // The hamburger (owner decision Q253 A, 2026-10-12), named rather than counted: a count moves the same
+    // way whichever name joins or leaves. The bars are typed from the owner's SVG, not read from icons/.
+    const menuPath = (ICON_PATHS as Record<string, string | undefined>)['menu'];
+    const MENU_BARS = 'M3 4H21V6H3V4ZM3 11H21V13H3V11ZM3 18H21V20H3V18Z';
+    ok((ICON_NAMES as readonly string[]).includes('menu') && menuPath !== undefined && canonicalShape(menuPath) === canonicalShape(MENU_BARS),
+      `Q253 A menu: the set carries \`menu\`, Remix's menu-line, drawn as three 2px bars at y 4, 11 and 18 (got ${menuPath === undefined ? 'no menu in the set' : menuPath})`);
   }
 
   // ---- focus-ring: the bindings that moved from the FILE into the engine ----

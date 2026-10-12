@@ -439,7 +439,7 @@ const singleWorld = async (plans: AnatomyPlan[], extraVars: string[] = [], o: { 
   const next = plans.map((p) => { const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan; (q.root as unknown as Record<string, unknown>).descendantFills = 'color/icon/secondary'; return q; });
   const t = { def: 'icon', plans: next, single: true };
   const pre = await previewUpdate(w.host, [t]);
-  ok(pre.sets[0]?.counts.update === 44, `premise: the dry run reads all 44 icons out of date (${JSON.stringify(pre.sets[0]?.counts)})`);
+  ok(pre.sets[0]?.counts.update === 45, `premise: the dry run reads all 45 icons out of date (${JSON.stringify(pre.sets[0]?.counts)})`);
   const res = await applyUpdate(w.host, w.api as any, [t], previewHashOf(pre));
   const v = applyVerdict(res);
   ok(v.ok && v.headline === '✓ updated 44 in place', `single/update: ${v.headline} (${v.lines.slice(0, 2).join(' | ').slice(0, 220)})`);
@@ -539,7 +539,7 @@ const reinked = (plans: AnatomyPlan[]): AnatomyPlan[] => plans.map((p) => { cons
   for (const c of w.comps()) putPd(c, BASELINE_KEY, '');
   const t = { def: 'icon', plans: reinked(plans), single: true };
   const pre = await previewUpdate(w.host, [t]);
-  ok(pre.sets[0]?.counts.noBaseline === 44, `premise: the dry run reads all 44 icons with no record (${JSON.stringify(pre.sets[0]?.counts)})`);
+  ok(pre.sets[0]?.counts.noBaseline === 45, `premise: the dry run reads all 45 icons with no record (${JSON.stringify(pre.sets[0]?.counts)})`);
   const res = await applyUpdate(w.host, w.api as any, [t], previewHashOf(pre));
   const o = res.outcomes[0];
   const v = applyVerdict(res);
@@ -1257,8 +1257,8 @@ section('mixed — in a set the build updates, a member from an earlier plugin s
   }
   const t = { def: 'icon', plans, single: true };
   const pre = await previewUpdate(w.host, [t]);
-  ok(pre.sets[0]?.counts.revisionUnknown === 44 && previewVerdict(pre).headline === '✓ No changes found',
-    `premise: all 44 icons read "built by an earlier plugin", and nothing changes (${JSON.stringify(pre.sets[0]?.counts)}; ${previewVerdict(pre).headline})`);
+  ok(pre.sets[0]?.counts.revisionUnknown === 45 && previewVerdict(pre).headline === '✓ No changes found',
+    `premise: all 45 icons read "built by an earlier plugin", and nothing changes (${JSON.stringify(pre.sets[0]?.counts)}; ${previewVerdict(pre).headline})`);
   const logs = w.comps().map((c) => watchWrites(c));
   const res = await applyUpdate(w.host, w.api as any, [t], previewHashOf(pre));
   const other = logs.flat().filter((x) => !new RegExp(`setSharedPluginData\\(${NS}, (${STAMP_KEY}|${BASELINE_KEY})\\)$`).test(x));

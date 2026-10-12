@@ -918,7 +918,7 @@ const buildSingle = async (id: string) => {
 {
   const ic = await buildSingle('icon');
   const pd = (n: Node, k: string): string => (n.getSharedPluginData as (a: string, b: string) => string)(NS, k);
-  ok(ic.comps().length === 44 && ic.comps().every((c) => String(c.name).startsWith('icon/')), `premise: 44 icons built as single components (${ic.comps().length})`);
+  ok(ic.comps().length === 45 && ic.comps().every((c) => String(c.name).startsWith('icon/')), `premise: 45 icons built as single components (${ic.comps().length})`);
   const r = await previewUpdate(ic.host, [ic.target]);
   ok(r.missing.length === 0 && r.sets.length === 1 && r.sets[0].counts.current === 44 && r.sets[0].counts.members === 44,
     `single/found: the icons are read as one set of 44, all current, not "Not in this file" (${JSON.stringify(r.missing)}, ${JSON.stringify(r.sets[0]?.counts)})`);
