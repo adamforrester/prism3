@@ -48,6 +48,7 @@ Built to the owner's decisions on #2417: Q180 as revised by Q182, then Q183, the
   - `test.ts`'s brief category, gated-parts, type-grid and spacing tables;
   - the file taxonomy.
 - A `wrap: true` text under a column projects the cross-axis stretch, not the grow (measured above).
+- **Canvas furniture on both sets** (owner decision Q212 A, every def that builds a set): `_accordion-indicator` and `accordion` join `CANVAS_FURNITURE`, which #2538's `rollout/switch` holds to the def registry. The Accordion page joins the `clearance/pages` register as the seventh page holding more than one set; its two sets clear each other by 141px.
 - `#910` now handles a part gated on several axes (AND-composed), asked over the whole projected set.
 - Both baselines are accepted under the change note. The docs schema allows a `_` id. `regen` expects 180 artifacts.
 - The `#2417 accordion …` arms in `test.ts` hold each decision against a literal. The mutations and their failing lines are in the Ready comment.
