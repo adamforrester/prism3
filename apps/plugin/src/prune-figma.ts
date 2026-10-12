@@ -26,7 +26,7 @@
  *     an empty collection does not — its provenance cannot be read from a name that is not there.
  *   • STYLES, all four kinds — an `orphansOf` orphan whose TOP-LEVEL GROUP the plan still emits. Styles
  *     carry NEITHER the brand root NOR the `core` tier (`figma-names.ts` header,
- *     `test-write-typography.ts`) — they are `display/2xl`, `shadow/lg`, `gradient/brand`, `Grid / xs`,
+ *     `test-write-typography.ts`) — they are `display/2xl`, `shadow/lg`, `gradient/brand`, the grid size `xs`,
  *     what a designer browses by hand — so the root guard cannot apply. Their namespace is the set of
  *     groups the plan emits, PER KIND: a dropped `display/2xl` shares the `display` group with the
  *     surviving `display/xl`, so it prunes; a hand-added `Marketing/Hero` shares no group with the plan
@@ -186,7 +186,8 @@ const inRoot = (name: string, root: string): boolean => root !== '' && rootOf(na
 /** The TOP-LEVEL group of a style name (`display/2xl` → `display`, `Heading` → `Heading`). Styles carry
  *  no brand root, so their namespace is the group the plan emits — see the header.
  *
- *  DELIBERATELY NOT TRIMMED. The grid emitter writes its separator with spaces (`Grid / xs`, #1480), so
+ *  DELIBERATELY NOT TRIMMED. The grid emitter wrote its separator with spaces (`Grid / xs`, #1480, until
+ *  #2467 dropped the group; the old names still matter, see `LEGACY_GRID_PREFIX`), so
  *  this yields `Grid ` there — and that is fine, because BOTH sides of the comparison come from the same
  *  emitter and match. Trimming was in the first draft of this function and a mutation proved it changed
  *  nothing on the engine's own names; where it DID change something was the conservative direction, and
@@ -200,6 +201,12 @@ const inRoot = (name: string, root: string): boolean => root !== '' && rootOf(na
  *  is answered by ADDING a second admission path, not by loosening this one, because every loosening of a
  *  character class widens what a hand-made name falls into. */
 const styleGroup = (name: string): string => name.split('/')[0] ?? '';
+
+/** The group the grid styles were named under before #2467 (`Grid / sm`, now `sm`). Frozen: it names text
+ *  the engine no longer writes. The executor (`write-grid-styles.ts`) renames an owned `Grid / <bp>` to
+ *  `<bp>` in place, and the prune below spares one whose `<bp>` the plan still emits, because that style is
+ *  waiting for its rename, not stale: deleting it would unlink every layer that uses it. */
+export const LEGACY_GRID_PREFIX = 'Grid / ';
 
 /* ── style provenance: the description signature (#1577) ──────────────────────────────────────────── */
 
@@ -362,14 +369,22 @@ export const computePrunePlan = (input: PruneInput): PrunePlan => {
   // recognize a style a designer RENAMED out of the group. Reuses `orphansOf` over the names, so the
   // ordering the rest of the system reads is unchanged; the two tests are the namespace guard (there is no
   // brand root on a style name). A style matching neither is spared — an addition, never a loosening.
+  //
+  // A planned name with NO separator has no group (#2467: the grid styles are bare sizes, `sm` … `2xl`).
+  // Read as its own group it would put a designer's `md/wide` in the engine's namespace, so it adds none,
+  // and a stale bare-named style is admitted by its description signature alone, NAMED in the review.
+  // And an old `Grid / <bp>` whose `<bp>` the plan still emits is spared outright: it is the style the
+  // next apply renames in place (`LEGACY_GRID_PREFIX`), not a stale one.
   const styles: PrunePlan['styles'] = [];
   for (const kind of STYLE_KINDS) {
     const planned = input.plannedStyles[kind] ?? [];
-    const plannedGroups = new Set(planned.map(styleGroup));
+    const plannedGroups = new Set(planned.filter((n) => n.includes('/')).map(styleGroup));
+    const awaitingRename = new Set(kind === 'grid' ? planned.map((n) => LEGACY_GRID_PREFIX + n) : []);
     const live = (input.styles[kind] ?? []).map(asFileStyle);
     const described = new Map(live.map((s) => [s.name, s.description ?? ''] as const));
     const byProvenance: string[] = [];
     const orphans = orphansOf(live.map((s) => s.name), planned).filter((n) => {
+      if (awaitingRename.has(n)) return false;
       if (plannedGroups.has(styleGroup(n))) return true;
       if (!isEngineDescription(kind, described.get(n) ?? '', planned)) return false;
       byProvenance.push(n);
