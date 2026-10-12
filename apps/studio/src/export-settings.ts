@@ -524,7 +524,7 @@ export const fileNames = (tree: unknown, slug: string, s: SettingsState): readon
 /**
  * WHAT THE DOWNLOAD IS (#2552, owner decision Q250 A): the base plus one overlay per mode, each with every
  * `$extensions` removed, so a token carries only `$value`, `$type` and `$description`. Byte for byte the
- * engine's committed `out/consumer/` set at the default settings.
+ * engine's committed `out/<slug>.base.tokens.json` and overlays at the default settings.
  *
  * NEVER THE SINGLE-FILE TREE. `<brand>.tokens.json` keeps every non-default mode inside `$extensions`,
  * because DTCG has no modes, so it is internal: offered as a download it either ships our metadata or,
@@ -550,7 +550,7 @@ export interface MetadataOptionDef {
  * Deliberately NOT one of `DTCG_SETTINGS`: by #720's rule 2 a shape setting is reversible and loses
  * nothing, and removing `$extensions` is neither. So it is its own option, with its own check
  * (`metadataDefects`), and the shape settings' round-trips are not asked to vouch for it. On, it writes
- * the same base + overlays with our metadata kept, which is the engine's `out/` projection; the
+ * the same base + overlays with our metadata kept (`buildOverlaySet(tree, { metadata: true })`); the
  * single-file tree stays out either way.
  */
 export const METADATA_OPTION: MetadataOptionDef = {

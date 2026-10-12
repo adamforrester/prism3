@@ -599,9 +599,9 @@ const OUT_DIR = join(ROOT, '..', '..', 'packages', 'engine', 'out');
 
 /** Export › Download, collecting every file it writes (#2552). The download is the CONSUMER set — the base plus one
  *  overlay per mode, several files — so a test reading one download would see only the base. The count expected is
- *  read off the committed `out/consumer/` set for the brand, never from the page. Returns { name → parsed JSON }. */
+ *  read off the brand's committed base + overlay files, never from the page. Returns { name → parsed JSON }. */
 const downloadSet = async (page, id) => {
-  const count = readdirSync(join(OUT_DIR, 'consumer')).filter((f) => f.startsWith(`${id}.`)).length;
+  const count = readdirSync(OUT_DIR).filter((f) => f === `${id}.base.tokens.json` || (f.startsWith(`${id}.`) && f.endsWith('.overlay.tokens.json'))).length;
   const got = new Map();
   const all = new Promise((res) => {
     const on = (dl) => { got.set(dl.suggestedFilename(), dl); if (got.size >= count) { page.off('download', on); res(); } };

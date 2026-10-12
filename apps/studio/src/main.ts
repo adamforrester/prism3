@@ -1282,7 +1282,7 @@ const exportDesignMd = (): void => { const b = briefInput(); if (b) download(`${
  *
  *  The SAME `exportDtcg` the preview renders — one function, so the files the user gets cannot differ from the
  *  sample they were shown. With every setting at its default the output is byte-identical to the engine's
- *  committed `out/consumer/` set, which `test:export-parity` holds in both hosts. The single-file tree is never
+ *  committed base + overlay files, which `test:export-parity` holds in both hosts. The single-file tree is never
  *  written: it keeps every mode but the default inside `$extensions`, so it is internal (`export-settings.ts`).
  *
  *  The set, and a split, write several files, which browsers deliver as several downloads. Not zipped: a zip needs

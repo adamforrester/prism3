@@ -9,8 +9,11 @@
  *
  * So this emits a second, PROJECTED set that any conforming tool can read with no adapter:
  *
- *     <brand>.base.tokens.json          every DTCG-typed token, default-mode values, NO modes extension
- *     <brand>.<mode>.overlay.tokens.json  ONLY the leaves whose value differs from base
+ *     <brand>.base.tokens.json          every DTCG-typed token, default-mode values, NO `$extensions`
+ *     <brand>.<mode>.overlay.tokens.json  ONLY the leaves whose value differs from base, NO `$extensions`
+ *
+ * Since #2552 (owner decision Q250 A) this set IS the consumer handoff: no `$extensions` anywhere, so no
+ * vendor key, no build data and no internal prose travels to a client — see `buildOverlaySet`.
  *
  * "Every DTCG-typed token" is exact, and the qualifier is the fix in #642: a leaf whose `$type` is not
  * in the spec is omitted here, because a promise of conformance that carries an unresolvable type is
@@ -102,7 +105,9 @@ export const overlayModes = (tree: unknown): string[] => {
  * Removing it is not tidying — it is the whole contract. A consumer that reads this file must not be
  * able to find a second value it is silently ignoring; if `modes` rode along, the base would be the
  * canonical tree again and the projection would buy nothing. Everything else under `$extensions`
- * stays: it is descriptive (contrast ratings, provenance, Figma binding), not a hidden value.
+ * stays HERE: it is descriptive (contrast ratings, provenance, Figma binding), not a hidden value, and
+ * the internal metadata export keeps it. The handoff drops all of it one step later (`buildOverlaySet`,
+ * #2552).
  */
 const projectLeaf = (n: Node): Node => {
   const out = { ...n };

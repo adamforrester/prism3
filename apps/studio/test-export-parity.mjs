@@ -1,6 +1,7 @@
 /**
  * `test:export-parity` — the web studio's token export and the plugin's token export of the same brand are the
- * same bytes, and those bytes are the engine's committed CONSUMER set for that brand (#2351 gap 1; #2552).
+ * same bytes, and those bytes are the engine's committed consumer set — the base + overlay files — for that brand
+ * (#2351 gap 1; #2552).
  *
  *   npm run -w @prism3/studio build && npm run -w @prism3/plugin build
  *   npm run -w @prism3/studio test:export-parity
@@ -24,12 +25,12 @@
  *
  *   1. PARITY: for each brand, the web download and the plugin download are the same set of file names, and each
  *      file is BYTE-IDENTICAL across the two. No normalization, no tolerance.
- *   2. ACCURACY: the set is exactly `packages/engine/out/consumer/<id>.*`, read off disk, and each file is
- *      byte-identical to its committed copy.
+ *   2. ACCURACY: the set is exactly `packages/engine/out/<id>.base.tokens.json` plus each
+ *      `out/<id>.<mode>.overlay.tokens.json`, read off disk, and each file is byte-identical to its committed copy.
  *   3. THE DEFAULT (#2552): "Include build metadata" shows Off, and no download is the single-file
  *      `<id>.tokens.json`, which keeps its modes inside `$extensions` and is never a handoff file. For one brand
- *      per host the option is then turned On, and each file must be the engine's `out/<name>` projection, so the
- *      option is seen to do what it says rather than only to default.
+ *      per host the option is then turned On: the same files, each carrying `$extensions`, and each equal to its
+ *      committed file once those are removed, so the option is seen to do what it says rather than only to default.
  *
  * ── independence (docs/34) ────────────────────────────────────────────────────────────────────────
  *
@@ -156,7 +157,10 @@ const openStart = async (host) => {
 };
 
 /** The committed consumer set for a brand, read off disk: the expected side, and how many downloads to wait for. */
-const consumerSet = (id) => readdirSync(join(OUT, 'consumer')).filter((f) => f.startsWith(`${id}.`)).sort();
+const consumerSet = (id) => readdirSync(OUT).filter((f) => f === `${id}.base.tokens.json` || (f.startsWith(`${id}.`) && f.endsWith('.overlay.tokens.json'))).sort();
+/** Every `$extensions` removed, at any depth: the test's own strip, so it does not borrow the subject's. */
+const strip = (n) => Array.isArray(n) ? n.map(strip) : n && typeof n === 'object'
+  ? Object.fromEntries(Object.entries(n).filter(([k]) => k !== '$extensions').map(([k, v]) => [k, strip(v)])) : n;
 const METADATA_LABEL = 'Include build metadata';   // #2552, DRAFT wording; the option's own aria-label prefix
 
 /** Load `id` from the start screen the way a person does, then Export › Download at the default settings, collecting
@@ -215,7 +219,7 @@ for (const host of ['web', 'figma']) {
 const names = (m) => [...m.keys()].sort();
 for (const id of GATED) {
   const expected = consumerSet(id);
-  ok(expected.length >= 4, `${id}: out/consumer holds its set (${expected.join(', ')})`);
+  ok(expected.length >= 4, `${id}: out/ holds its base + overlay set (${expected.join(', ')})`);
   let web, figma;
   try { web = await exportFrom('web', id); } catch (e) { ok(false, `${id}: the web export ran — ${e.message.split('\n')[0]}`); continue; }
   try { figma = await exportFrom('figma', id); } catch (e) { ok(false, `${id}: the plugin export ran — ${e.message.split('\n')[0]}`); continue; }
@@ -227,8 +231,8 @@ for (const id of GATED) {
     ok(JSON.stringify(names(x.files)) === JSON.stringify(expected),
       `${id}: ${host} — the download is the consumer set (${names(x.files).join(', ') || 'nothing'})`);
     for (const name of expected) {
-      const body = x.files.get(name), want = readFileSync(join(OUT, 'consumer', name), 'utf8');
-      ok(body === want, `${id}: ACCURACY — the ${host} ${name} is out/consumer/${name} byte for byte (${body?.length ?? 0} / ${want.length} bytes)${body === want ? '' : ` — ${body === undefined ? 'not downloaded' : firstDiff(body, want)}`}`);
+      const body = x.files.get(name), want = readFileSync(join(OUT, name), 'utf8');
+      ok(body === want, `${id}: ACCURACY — the ${host} ${name} is out/${name} byte for byte (${body?.length ?? 0} / ${want.length} bytes)${body === want ? '' : ` — ${body === undefined ? 'not downloaded' : firstDiff(body, want)}`}`);
       ok(body === undefined || !body.includes('"$extensions"'), `${id}: ${host} — ${name} carries no $extensions`);
     }
   }
@@ -239,7 +243,7 @@ for (const id of GATED) {
   }
 }
 
-// ── the option does what it says: On writes the engine's projection, metadata kept ─────────────────────
+// ── the option does what it says: On writes the same files with the metadata kept ─────────────────────
 {
   const id = GATED.includes('prism3') ? 'prism3' : GATED[0];
   for (const host of ['web', 'figma']) {
@@ -249,7 +253,9 @@ for (const id of GATED) {
     ok(JSON.stringify(names(x.files)) === JSON.stringify(expected), `${id}: ${host} — with metadata On, the same file names (${names(x.files).join(', ')})`);
     for (const name of expected) {
       const body = x.files.get(name), want = readFileSync(join(OUT, name), 'utf8');
-      ok(body === want, `${id}: ${host} — with metadata On, ${name} is the engine's out/${name} byte for byte${body === want ? '' : ` — ${body === undefined ? 'not downloaded' : firstDiff(body, want)}`}`);
+      const back = body === undefined ? undefined : JSON.stringify(strip(JSON.parse(body)), null, 2) + '\n';
+      ok(body !== undefined && body.includes('"$extensions"') && back === want,
+        `${id}: ${host} — with metadata On, ${name} carries $extensions, and without them is out/${name} byte for byte${back === want ? '' : ` — ${back === undefined ? 'not downloaded' : firstDiff(back, want)}`}`);
     }
   }
 }

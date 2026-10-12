@@ -268,9 +268,11 @@ for (const brand of brands) {
       view.set(p, { type: l.$type, value: m?.$value ?? l.$value, description: m?.description ?? l.$description ?? '', against: m?.against ?? l.$extensions?.prism3?.against });
     }
     checkView(`${brand}.tokens.json`, mode, view);
-    // The conforming projection, as a consumer merges it.
+    // The conforming projection, as a consumer merges it. Since #2552 it carries no `$extensions`, so a leaf's
+    // recorded partner is read from the CANONICAL tree for the same path in this mode (`view`, above): the
+    // projection's own value and prose are what is checked, against the record the engine keeps.
     const merged: View = new Map();
-    const lay = (tree: Map<string, Leaf>) => { for (const [p, l] of tree) merged.set(p, { type: l.$type, value: l.$value, description: l.$description ?? '', against: l.$extensions?.prism3?.against }); };
+    const lay = (tree: Map<string, Leaf>) => { for (const [p, l] of tree) merged.set(p, { type: l.$type, value: l.$value, description: l.$description ?? '', against: view.get(p)?.against }); };
     lay(leavesOf(read(`${brand}.base.tokens.json`)));
     if (mode !== 'light') lay(leavesOf(read(`${brand}.${mode}.overlay.tokens.json`)));
     checkView(mode === 'light' ? `${brand}.base.tokens.json` : `${brand}.base+${mode}.overlay`, mode, merged);

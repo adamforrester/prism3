@@ -9,8 +9,8 @@
  *     subset (fonttools) is not used to read it back.
  *   - THE SUBJECT is the text the chrome is given to draw, from three surfaces:
  *       notes     the engine's decision notes, `$extensions.prism3.decisions` in each emitted brand's
- *                 full and base trees (`out/<brand>.tokens.json`, `.base.tokens.json`). Inspect › Decisions log
- *                 shows them word for word (D4).
+ *                 full tree (`out/<brand>.tokens.json`). Inspect › Decisions log shows them word for word (D4).
+ *                 The base tree carried a copy until #2552 made the projection the clean consumer set.
  *       verdicts  every string literal in `apps/plugin/src/**`. The host's verdict headlines and
  *                 summaries are composed across the main thread (`apply-summary.ts`, `main.ts`,
  *                 `style-guide.ts`, `prune-figma.ts`, …), so the scope is the directory, not a list of
@@ -142,7 +142,7 @@ const OUT_DIR = join(ROOT, 'packages', 'engine', 'out');
 /** How many brands emit into `out/` today. A new brand moves this number in the same change. */
 export const BRAND_COUNT = 5;
 /** The per-brand trees that carry decision notes, by suffix after the brand's name. */
-export const NOTE_TREES = ['.tokens.json', '.base.tokens.json'];
+export const NOTE_TREES = ['.tokens.json'];   // #2552: the base carries no `$extensions`, so no notes
 /** The source roots whose string literals the chrome can draw. */
 export const SOURCE_ROOTS = [join(ROOT, 'apps', 'plugin', 'src'), join(ROOT, 'apps', 'studio', 'src')];
 /** Files that must be read, each yielding a string literal: the ones this check was written for. */
