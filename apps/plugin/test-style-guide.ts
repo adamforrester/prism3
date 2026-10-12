@@ -3397,6 +3397,44 @@ const main = async (): Promise<void> => {
     const inst = cellAt(g, rowOf(g, 'pds3/focus/ring/width'), 1)?.findOne((k) => k.type === 'INSTANCE') ?? undefined;
     ok(r.unbound === 0 && inst?.explicitVariableModes['VariableCollectionId:focus'] === 'focus:base' && textIn(cellAt(g, rowOf(g, 'pds3/focus/ring/width'), 2)).startsWith('2px'),
       `35b: drawn, the focus ring width's outline is pinned to focus's default mode and reads 2px (${JSON.stringify(inst?.explicitVariableModes)}; "${textIn(cellAt(g, rowOf(g, 'pds3/focus/ring/width'), 2))}")`);
+    // Base is drawn, as the fallback; Spare is read by no column, and the notes name it alone (#2505, Q247 A).
+    const spare = plan.notes.filter((n) => n.includes('no column here'));
+    ok(JSON.stringify(spare) === JSON.stringify(["Border width: focus's mode Spare has no column here, so its focus ring values aren't drawn"]),
+      `35b: the notes name Spare, the one focus mode no column reads, and not Base, the fallback (${JSON.stringify(spare)})`);
+  }
+
+  console.log("35c. #2505: focus's modes that no Border width column reads are named in the notes (owner decision Q247 A)");
+  {
+    // THE FILE: §35b's, with focus's modes "Default" (its default, matched by border-width's one column by name),
+    // "Compact" and "Spacious" (matched by none). The note's wording is the owner's, typed here.
+    const fileWith = async (focusModes: string[]) => {
+      const f = await phase2File();
+      type Em = { name: string; resolvedType: string; description: string; value: unknown; alias: { name: string } | null; scopes?: string[] };
+      for (const [c, file] of [['border-width', 'border-width.json'], ['focus', 'focus.json']] as const) {
+        const names = c === 'focus' ? focusModes : ['Default'];
+        f.cols.push({ id: `VariableCollectionId:${c}`, name: c, modes: names.map((n) => ({ modeId: `${c}:${n}`, name: n })), defaultModeId: `${c}:${names[0]}` });
+        (JSON.parse(readFileSync(join(OUT, file), 'utf8')) as { variables: Em[] }).variables.forEach((v, i) => {
+          const value = v.alias ? { type: 'VARIABLE_ALIAS', id: f.vars.find((x) => x.name === v.alias!.name)!.id } : v.value;
+          f.vars.push({
+            id: `VariableID:${c}:${i}`, name: v.name, variableCollectionId: `VariableCollectionId:${c}`, resolvedType: v.resolvedType, description: v.description, scopes: v.scopes,
+            valuesByMode: Object.fromEntries(names.map((n) => [`${c}:${n}`, value])),
+          });
+        });
+      }
+      return f;
+    };
+    const f = await fileWith(['Default', 'Compact', 'Spacious']);
+    const plan = planStyleGuide({ collections: f.cols, variables: f.vars, textStyles: f.styles }, contract);
+    const left = plan.notes.filter((n) => n.includes('no column here'));
+    ok(JSON.stringify(left) === JSON.stringify(["Border width: focus's modes Compact, Spacious have no column here, so their focus ring values aren't drawn"]),
+      `35c: the notes name Compact and Spacious, the focus modes no Border width column reads (${JSON.stringify(left)})`);
+    const r = await draw(f.api, contract);
+    ok(r.notes.includes("Border width: focus's modes Compact, Spacious have no column here, so their focus ring values aren't drawn"),
+      `35c: the run's notes carry it too, as the page and the summary show them (${JSON.stringify(r.notes)})`);
+    // The control: every focus mode read by a column, so the notes say nothing of focus.
+    const one = await fileWith(['Default']);
+    const quiet = planStyleGuide({ collections: one.cols, variables: one.vars, textStyles: one.styles }, contract).notes.filter((n) => n.includes('no column here'));
+    ok(quiet.length === 0, `35c: with focus's one mode read by the Default column, the notes name no focus mode (${JSON.stringify(quiet)})`);
   }
 
   if (failures) { console.error(`\n${failures} style-guide check(s) failed`); process.exit(1); }
