@@ -968,7 +968,7 @@ export const previewLine = (p: SetPreview): string => {
   const adopt = k ? ` Adopt can claim ${k === c.unstamped ? (k === 1 ? 'it' : 'them') : `${k} of them`}.` : '';
   if (upToDate(p)) return `${p.set}: up to date (${n(c.members, 'member')}).${own}`;
   if (noChanges(p)) return `${p.set}: no changes (${n(c.members, 'member')}).${own}${adopt}`;
-  // DRAFT wording for the owner (#2542, Q245.2 A): the whole set moves on its page.
+  // Wording approved, Q246 A (#2542, Q245.2 A): the whole set moves on its page.
   const setMove = p.setMove ? ' The set moves to its place on the page.' : '';
   return parts.length ? `${p.set}: ${n(c.members, 'member')}. ${parts.join(', ')}.${setMove}` : `${p.set}: ${n(c.members, 'member')}.${setMove}`;
 };
@@ -993,7 +993,7 @@ export const previewVerdict = (r: UpdatePreview): { ok: boolean; headline: strin
     ...r.refused.map((x) => `${x.def}: can't be checked. ${x.reason}.`),
     r.missing.length ? `Not in this file: ${r.missing.join(', ')}.` : '',
     earlier ? `${earlier} built by an earlier plugin. Update ${earlier === 1 ? 'it to bring it' : 'them to bring them'} current.` : '',
-    // DRAFT wording for the owner (#2542, Q245.2 A).
+    // Wording approved, Q246 A (#2542, Q245.2 A).
     setsMoving(r) ? `${n(setsMoving(r), 'set')} to move, so the sets on each page sit as a new build spaces them.` : '',
     'This was a check only. Nothing in the file changed.',
   ].filter(Boolean);

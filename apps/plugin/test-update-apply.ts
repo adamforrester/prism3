@@ -905,8 +905,11 @@ section('page — an update re-spaces the sets Prism3 built on a page as a new b
   // The old spacing: each later set 160 right of the one before.
   for (let k = 1; k < sets.length; k++) sets[k].x = Number(sets[k - 1].x) + Number(sets[k - 1].width) + 160;
   const note = { type: 'FRAME', name: 'my notes', x: 0, y: 6000, width: 900, height: 200, children: [] } as unknown as Node;
-  page.children.push(note);
+  // And the page's section header above the sets, as a built page has (#2405): never moved, never in the row.
+  const header = { type: 'INSTANCE', name: '_section-header', x: 0, y: -400, width: 3000, height: 152, children: [] } as unknown as Node;
+  page.children.push(note, header);
   const noteAt = JSON.stringify([note.x, note.y]);
+  const headerAt = JSON.stringify([header.x, header.y]);
   const host = { ...api, root: { ...api.root, findAllWithCriteria: (c: { types: string[] }) => (c.types.length === 1 && c.types[0] === 'COMPONENT_SET' ? page.children.filter((n) => n.type === 'COMPONENT_SET') : api.root.findAllWithCriteria(c)) } } as unknown as ApplyHost;
   const targets = IDS.map((id) => ({ def: id, plans: plansBy.get(id)! }));
   const ids = (): string => JSON.stringify(sets.map((st) => [st.id, ...membersOf(st).map((m) => m.id)]));
@@ -927,7 +930,8 @@ section('page — an update re-spaces the sets Prism3 built on a page as a new b
   ok(JSON.stringify(at) === JSON.stringify(fresh) && ids() === idsWas && av.headline === '✓ 2 sets moved'
     && av.lines.includes('button-destructive: the set moved to its place on the page.') && previewVerdict(next).headline === '✓ All sets up to date',
     `page/converges: the apply puts each set where a fresh build did (${JSON.stringify(at)}, fresh ${JSON.stringify(fresh)}), keeps every set and member id, and the next dry run is up to date (${av.headline}; ${previewVerdict(next).headline})`);
-  ok(JSON.stringify([note.x, note.y]) === noteAt, `page/untouched: a frame Prism3 didn't build stays where it was (${noteAt} → ${JSON.stringify([note.x, note.y])})`);
+  ok(JSON.stringify([note.x, note.y]) === noteAt && JSON.stringify([header.x, header.y]) === headerAt,
+    `page/untouched: a frame Prism3 didn't build, and the page header, stay where they were (${noteAt} → ${JSON.stringify([note.x, note.y])}; header ${headerAt} → ${JSON.stringify([header.x, header.y])})`);
   // IN ORDER, AS LITTLE AS IT TAKES: a note far right in the row pulls no set past it, and a set Prism3 didn't build stays
   // put as an obstacle the later set goes around, never jumps over. Squeezed again, with the note moved into the row.
   for (let k = 1; k < sets.length; k++) sets[k].x = Number(sets[k - 1].x) + Number(sets[k - 1].width) + 160;
@@ -942,14 +946,30 @@ section('page — an update re-spaces the sets Prism3 built on a page as a new b
   const pre3 = await previewUpdate(host, targets.slice(0, 2));
   // button at 0..864; the unbuilt set at 1700..2564; button-destructive would sit at 1264..2128, which overlaps it, so it
   // goes past it: 2564 + 400 = 2964. The unbuilt set never moves.
-  ok(pre3.sets[1]?.setMove?.to.x === 2964 && Number(neutral.x) === 1700,
-    `page/around: a set Prism3 didn't build stays put, and the set that would overlap it goes just past it (${JSON.stringify(pre3.sets[1]?.setMove ?? null)}; the unbuilt set at ${neutral.x})`);
+  await applyUpdate(host, api, targets.slice(0, 2), previewHashOf(pre3));
+  ok(pre3.sets[1]?.setMove?.to.x === 2964 && Number(sets[1].x) === 2964 && Number(neutral.x) === 1700,
+    `page/around: a set Prism3 didn't build stays put, and the set that would overlap it goes just past it, in the dry run and the apply (${JSON.stringify(pre3.sets[1]?.setMove ?? null)}; applied at ${sets[1].x}; the unbuilt set at ${neutral.x})`);
   membersOf(neutral).forEach((m, k) => (m.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, STAMP_KEY, stampsWas[k]));
   note.x = 0; note.y = 6000;
   // SCOPED TO ONE DEF, the page does not take part: the update reads one of its three sets, so it moves none.
   for (let k = 1; k < sets.length; k++) sets[k].x = Number(sets[k - 1].x) + Number(sets[k - 1].width) + 160;
   const one = await previewUpdate(host, [targets[1]]);
-  ok(!one.sets[0].setMove, `page/scoped: an update that reads one set of the page moves no set (${JSON.stringify(one.sets[0].setMove ?? null)})`);
+  const xsBefore = JSON.stringify(sets.map((st) => Number(st.x)));
+  await applyUpdate(host, api, [targets[1]], previewHashOf(one));
+  ok(!one.sets[0].setMove && JSON.stringify(sets.map((st) => Number(st.x))) === xsBefore,
+    `page/scoped: an update that reads one set of the page moves no set, in the dry run or the apply (${JSON.stringify(one.sets[0].setMove ?? null)}; ${xsBefore} → ${JSON.stringify(sets.map((st) => Number(st.x)))})`);
+  // A SET THE UPDATE CAN'T TOUCH holds its page still: two of button-destructive's members on one coordinate block it,
+  // so neither the dry run nor the apply moves any set on the page, though the third is squeezed too.
+  // Mutation: `pageSetMoves` dropping its blocked check (`here.some((f) => f.blocked) ||`) → `page/blocked`.
+  const twin = membersOf(sets[1]);
+  const nameWas = String(twin[1].name);
+  twin[1].name = String(twin[0].name);
+  const pre4 = await previewUpdate(host, targets);
+  const xs4 = JSON.stringify(sets.map((st) => Number(st.x)));
+  await applyUpdate(host, api, targets, previewHashOf(pre4));
+  ok(pre4.sets[1].blockers.length > 0 && pre4.sets.every((p) => !p.setMove) && JSON.stringify(sets.map((st) => Number(st.x))) === xs4,
+    `page/blocked: a page holding a set the update can't touch moves no set, in the dry run or the apply (${pre4.sets[1].blockers.length} blocker(s); moves ${JSON.stringify(pre4.sets.map((p) => p.setMove?.to ?? null))}; ${xs4} → ${JSON.stringify(sets.map((st) => Number(st.x)))})`);
+  twin[1].name = nameWas;
 }
 
 /* ── no change ───────────────────────────────────────────────────────────────────────────────────────── */

@@ -645,7 +645,7 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
       o.deprecated.length ? `${o.deprecated.length} marked deprecated` : '',
       // DRAFT wording for the owner (#2188 Q173), the dry run's "to move" as done.
       o.moved ? `${o.moved} moved` : '',
-      // DRAFT wording for the owner (#2542, Q245.2 A), the dry run's "moves to its place on the page" as done.
+      // Wording approved, Q246 A (#2542, Q245.2 A), the dry run's "moves to its place on the page" as done.
       o.setMoved ? 'the set moved to its place on the page' : '',
       o.kept.length ? `${n(o.kept.length, 'hand edit')} ${o.handEdits === 'overwrite' ? 'overwritten' : o.handEdits === 'accept' ? 'accepted as built' : 'kept'}` : '',
       o.unrecorded.length - (o.earlierRecord?.length ?? 0) ? `${o.unrecorded.length - (o.earlierRecord?.length ?? 0)} of them without an as-built record` : '',
