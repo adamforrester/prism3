@@ -46,6 +46,10 @@ export interface TaxonomyLeaf {
 export interface TaxonomySection {
   readonly header: string;
   readonly leaves: readonly TaxonomyLeaf[];
+  /** True where the section's pages sit in ALPHABETICAL order in the file, by visible name, case-insensitive
+   *  (#2568, owner decision Q260 A): a new page is inserted at its place, and the in-place Update reorders the
+   *  existing ones. Unset, the leaves keep the order listed here. */
+  readonly alphabetical?: boolean;
 }
 
 export interface Taxonomy {
@@ -76,6 +80,8 @@ export const TAXONOMY: Taxonomy = {
     },
     {
       header: 'Components',
+      // Alphabetical in the file (#2568, owner decision Q260 A); the list below is no longer the page order.
+      alphabetical: true,
       leaves: [
         { page: 'Buttons', defs: ['button', 'button-destructive', 'button-neutral'] },
         { page: 'Icon button', defs: ['icon-button', 'icon-button-destructive', 'icon-button-neutral'] },

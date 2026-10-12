@@ -248,6 +248,14 @@ export const resolveComponentPage = async (
   }
   const full = leafPageName(leaf);
   const { page, created } = ensureNamed(api, full);
+  // AN ALPHABETICAL SECTION (#2568, owner decision Q260 A): a new page goes after the last of the section's own pages
+  // whose name sorts before it, the header otherwise. An existing page is left where it is: reordering is the
+  // in-place Update's, listed in its dry run, never a side effect of a build.
+  if (section.alphabetical) {
+    if (created) placeAfter(api, page, alphabeticalAnchor(api, section, page) ?? header, true);
+    else placeAfter(api, page, header, false);
+    return page;
+  }
   placeAfter(api, page, anchor, created);
   return page;
 };
@@ -256,3 +264,104 @@ export const resolveComponentPage = async (
  *  diagnostics. */
 export const stripNestPrefix = (name: string): string =>
   name.startsWith(NEST_PREFIX) ? name.slice(NEST_PREFIX.length) : name;
+
+/* ── page order (#2568, owner decision Q260 A) ──────────────────────────────────────────────────────────── */
+
+/** How an alphabetical section sorts its pages: by the visible name, without the `↳ `, case-insensitive. The exact
+ *  name breaks a tie, so the order is total and a re-run never swaps two pages that differ only in case. */
+export const comparePageNames = (a: string, b: string): number => {
+  const x = stripNestPrefix(a).toLowerCase();
+  const y = stripNestPrefix(b).toLowerCase();
+  return x < y ? -1 : x > y ? 1 : a < b ? -1 : a > b ? 1 : 0;
+};
+
+/** A section's pages in the file: everything after its header up to the next divider. Null with no header. */
+const sectionSpan = (children: readonly PageLike[], section: TaxonomySection): { start: number; pages: PageLike[] } | null => {
+  const h = children.findIndex((p) => !isDivider(p) && p.name === section.header);
+  if (h < 0) return null;
+  let end = h + 1;
+  while (end < children.length && !isDivider(children[end])) end++;
+  return { start: h + 1, pages: children.slice(h + 1, end) };
+};
+
+/** Whether a page is one Prism3 creates in this section: named as one of its leaves. Any other page is a designer's,
+ *  and never moves. */
+const ownIn = (section: TaxonomySection): ((p: PageLike) => boolean) => {
+  const names = new Set(section.leaves.map(leafPageName));
+  return (p) => !isDivider(p) && names.has(p.name);
+};
+
+/** Of `placed`, the page `page` goes straight after: the last by name that sorts before it. Null when none does. */
+const lastBefore = (placed: readonly PageLike[], page: PageLike): PageLike | null =>
+  placed.filter((p) => p !== page && comparePageNames(p.name, page.name) < 0).sort((a, b) => comparePageNames(a.name, b.name)).pop() ?? null;
+
+/** The section's own page a new `page` goes after (`lastBefore` over the section's own pages). */
+const alphabeticalAnchor = (api: PagesApi, section: TaxonomySection, page: PageLike): PageLike | null => {
+  const span = sectionSpan(api.root.children, section);
+  return span ? lastBefore(span.pages.filter(ownIn(section)), page) : null;
+};
+
+/**
+ * Which of a section's own pages are out of order: those outside the LONGEST run already in order. Keeping that run
+ * where it is moves the fewest pages, so one page dropped at the front reads as one page to reorder, not every page
+ * after it, and the pages around a designer's page stay its neighbors wherever they can. Ties in length go to the
+ * run found first, so the answer is the same on every read of the same list.
+ */
+const misplaced = (own: readonly PageLike[]): Set<PageLike> => {
+  // Longest increasing subsequence by name, O(n²): a section holds tens of pages.
+  const len = own.map(() => 1);
+  const prev = own.map(() => -1);
+  for (let i = 0; i < own.length; i++)
+    for (let j = 0; j < i; j++)
+      if (comparePageNames(own[j].name, own[i].name) < 0 && len[j] + 1 > len[i]) { len[i] = len[j] + 1; prev[i] = j; }
+  let end = -1;
+  for (let i = 0; i < own.length; i++) if (end < 0 || len[i] > len[end]) end = i;
+  const kept = new Set<PageLike>();
+  for (let i = end; i >= 0; i = prev[i]) kept.add(own[i]);
+  return new Set(own.filter((p) => !kept.has(p)));
+};
+
+/**
+ * THE PAGES OUT OF ORDER (#2568): for every alphabetical section, each of its own pages the apply would move, by full
+ * page name, sorted by name. Pure over the page list, so the dry run reads it and writes nothing. A designer's page is
+ * never in it. Empty when every alphabetical section is in order.
+ */
+export const pagesOutOfOrder = (children: readonly PageLike[], taxonomy: Taxonomy = TAXONOMY): string[] => {
+  const out: string[] = [];
+  for (const section of taxonomy.sections) {
+    if (!section.alphabetical) continue;
+    const span = sectionSpan(children, section);
+    if (!span) continue;
+    out.push(...[...misplaced(span.pages.filter(ownIn(section)))].sort((a, b) => comparePageNames(a.name, b.name)).map((p) => p.name));
+  }
+  return out;
+};
+
+/**
+ * PUT EVERY ALPHABETICAL SECTION IN ORDER (#2568): the Update's apply. Each out-of-order page, in name order, goes
+ * straight after the last page in order that sorts before it (the header when none does), the rule a new page follows.
+ * Only the section's own pages are handed to `insertChild`; a designer's page is never moved, and nothing is created
+ * or deleted. Returns the pages it put in place, by full name: the dry run's list less any still out of order, so the
+ * apply counts what the dry run counted.
+ */
+export const reorderPages = (api: { root: Pick<PagesApi['root'], 'children' | 'insertChild'> }, taxonomy: Taxonomy = TAXONOMY): string[] => {
+  const before = pagesOutOfOrder(api.root.children, taxonomy);
+  for (const section of taxonomy.sections) {
+    if (!section.alphabetical) continue;
+    const span = sectionSpan(api.root.children, section);
+    if (!span) continue;
+    const header = api.root.children[span.start - 1];
+    const own = span.pages.filter(ownIn(section));
+    const move = misplaced(own);
+    const placed = own.filter((p) => !move.has(p));
+    for (const p of [...move].sort((a, b) => comparePageNames(a.name, b.name))) {
+      const anchor = lastBefore(placed, p) ?? header;
+      // REMOVE-THEN-SPLICE: the index is the anchor's in the list without `p`, plus one.
+      const without = api.root.children.filter((x) => x !== p);
+      api.root.insertChild(without.indexOf(anchor) + 1, p);
+      placed.push(p);
+    }
+  }
+  const after = new Set(pagesOutOfOrder(api.root.children, taxonomy));
+  return before.filter((name) => !after.has(name));
+};

@@ -217,6 +217,13 @@ Rules, all enforced in the config + `test-file-setup.ts`:
 - **Dividers are native** — `figma.createPageDivider()` (default name `---`, `isPageDivider` true), matched
   back by the flag, not the name (so a repeated `---` is not an idempotency hazard). One before each section.
 - **`↳ ` prefix** (U+21B3 + space) on every component page; `Cover` and the section headers have none.
+- **Components pages are alphabetical** (#2568, owner decision Q260 A), by visible name without the `↳ `,
+  case-insensitive — the section's `alphabetical` flag, so the list above is not their file order. A new page
+  is inserted after the last of the section's pages that sorts before it. The in-place Update's dry run lists
+  the pages out of order ("Component pages: N to reorder (…)", `pagesOutOfOrder`) and its apply moves them
+  (`reorderPages`): the fewest pages, each after the last in-order page that sorts before it. A page whose name
+  is no taxonomy leaf is a designer's and is never moved; no page is created or deleted, and no other section
+  moves. The other sections keep the config's order.
 - **The split that decides ownership:** a leaf with NO defs (the Foundations placeholders, `File Components`)
   is pre-created by `file-setup`; a leaf WITH defs is created ON DEMAND by the page-aware build, so an unbuilt
   component leaves no empty page. `Icons & assets` (the `icon` def) is the one Foundations leaf on the build's side.
@@ -257,7 +264,8 @@ until then it gets no furniture, so it never carries one backdrop per band. Labe
 `prism3`/`furniture`: a rebuild or update clears and redraws them, prune removes those whose set is gone, and they never
 enter the set, so the update's hand-edit check and the as-built record never read them. The switch is
 `CANVAS_FURNITURE` (engine), on for every def that builds a set; Icon and Spinner build single components and have
-none. Sets side by side sit `SET_GAP` (400) apart, so a later set's row labels fit between them. Gated by
+none. A row thinner than its label (the 1px horizontal Divider, #2568 Q258 A) keeps the label's own height, centered
+on the row, with `Show bracket` off; every other row label spans its rows. Sets side by side sit `SET_GAP` (400) apart, so a later set's row labels fit between them. Gated by
 `test-canvas-furniture.ts`, which draws every def and measures the clearance on every shared page.
 
 **Not yet wired:** a UI trigger for `file-setup` (the shared-UI button) is a follow-up — the owner deferred UI
