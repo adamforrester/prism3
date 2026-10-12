@@ -3575,6 +3575,29 @@
       },
       "label": {
         "sm": {
+          "default": {
+            "$type": "typography",
+            "$value": {
+              "fontFamily": "{ads.core.font.family.label}",
+              "fontSize": "{ads.core.font.size.12}",
+              "fontWeight": "{ads.core.font.weight-role.default}",
+              "lineHeight": "{ads.core.font.line-height-role.snug}",
+              "letterSpacing": "{ads.core.font.letter-spacing-role.normal}"
+            },
+            "$description": "label sm default — 12px Inter, snug line-height, default weight, normal tracking"
+          },
+          "default-link": {
+            "$type": "typography",
+            "$value": {
+              "fontFamily": "{ads.core.font.family.label}",
+              "fontSize": "{ads.core.font.size.12}",
+              "fontWeight": "{ads.core.font.weight-role.default}",
+              "lineHeight": "{ads.core.font.line-height-role.snug}",
+              "letterSpacing": "{ads.core.font.letter-spacing-role.normal}",
+              "textDecoration": "underline"
+            },
+            "$description": "label sm default link — 12px Inter, snug line-height, default weight, normal tracking, underlined (a text button's label)"
+          },
           "emphasis": {
             "$type": "typography",
             "$value": {
@@ -3600,6 +3623,29 @@
           }
         },
         "md": {
+          "default": {
+            "$type": "typography",
+            "$value": {
+              "fontFamily": "{ads.core.font.family.label}",
+              "fontSize": "{ads.core.font.size.14}",
+              "fontWeight": "{ads.core.font.weight-role.default}",
+              "lineHeight": "{ads.core.font.line-height-role.snug}",
+              "letterSpacing": "{ads.core.font.letter-spacing-role.normal}"
+            },
+            "$description": "label md default — 14px Inter, snug line-height, default weight, normal tracking"
+          },
+          "default-link": {
+            "$type": "typography",
+            "$value": {
+              "fontFamily": "{ads.core.font.family.label}",
+              "fontSize": "{ads.core.font.size.14}",
+              "fontWeight": "{ads.core.font.weight-role.default}",
+              "lineHeight": "{ads.core.font.line-height-role.snug}",
+              "letterSpacing": "{ads.core.font.letter-spacing-role.normal}",
+              "textDecoration": "underline"
+            },
+            "$description": "label md default link — 14px Inter, snug line-height, default weight, normal tracking, underlined (a text button's label)"
+          },
           "emphasis": {
             "$type": "typography",
             "$value": {
@@ -3625,6 +3671,29 @@
           }
         },
         "lg": {
+          "default": {
+            "$type": "typography",
+            "$value": {
+              "fontFamily": "{ads.core.font.family.label}",
+              "fontSize": "{ads.core.font.size.18}",
+              "fontWeight": "{ads.core.font.weight-role.default}",
+              "lineHeight": "{ads.core.font.line-height-role.snug}",
+              "letterSpacing": "{ads.core.font.letter-spacing-role.normal}"
+            },
+            "$description": "label lg default — 18px Inter, snug line-height, default weight, normal tracking"
+          },
+          "default-link": {
+            "$type": "typography",
+            "$value": {
+              "fontFamily": "{ads.core.font.family.label}",
+              "fontSize": "{ads.core.font.size.18}",
+              "fontWeight": "{ads.core.font.weight-role.default}",
+              "lineHeight": "{ads.core.font.line-height-role.snug}",
+              "letterSpacing": "{ads.core.font.letter-spacing-role.normal}",
+              "textDecoration": "underline"
+            },
+            "$description": "label lg default link — 18px Inter, snug line-height, default weight, normal tracking, underlined (a text button's label)"
+          },
           "emphasis": {
             "$type": "typography",
             "$value": {

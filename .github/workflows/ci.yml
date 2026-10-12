@@ -127,7 +127,9 @@ jobs:
       # The dry run reports a member written by an older executor as needing a re-apply, by comparing
       # the stamp's third field with EXECUTOR_REVISION (#1098). A hand-bumped number is forgotten, and a
       # forgotten one reports stale members as current. This fails a PR that changes the executor's code
-      # (comments excluded) at the merge base without raising it.
+      # (comments excluded) at the merge base without raising it. Two PRs claiming one number (#2551): on a
+      # PR it re-fetches the base branch and fails a number main already holds; on main's push run it also
+      # compares HEAD with its first parent, so a squash that lands a taken number fails there.
       - name: "The component executor's code moved only with EXECUTOR_REVISION (#1098, #2265)"
         run: npx --yes tsx@4 apps/plugin/lint-executor-revision.ts
 
