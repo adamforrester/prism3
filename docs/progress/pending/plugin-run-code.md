@@ -11,7 +11,7 @@ It's about 90 lines in `apps/plugin/src/dev-commands.ts`, plus three `PRISM3_DEV
 
 **The sandbox, proven first, live.** On the scratch file's main thread (read-only, through the Desktop Bridge, 2026-10-12), an indirect `(0, eval)` of an async IIFE:
 - saw `figma` as a global, `await` worked, a throw rejected, and a syntax error threw at once;
-- refused code containing `import` + `(` when it was evaluated ("possible import expression rejected"). That's the rule `lint-sandbox-reject.ts` applies to our bundle at load, now also measured at run time.
+- once, in that session, refused code containing `import` + `(` when it was evaluated ("possible import expression rejected"). Lane A couldn't reproduce that in the hosted runner (#2544 review), so the shipped docs claim nothing about run time. What's verified is the load-time rule, which `lint-sandbox-reject` keeps out of our own bundles.
 
 The dev and release `main.js` both pass `lint-sandbox-reject`.
 
@@ -33,3 +33,12 @@ The dev and release `main.js` both pass `lint-sandbox-reject`.
 - **the handler no longer reporting its value:** `✗ run-code value`, `✗ run-code await + figma`, `✗ run-code logs` and `✗ e2e/run-code … bridge envelope`.
 
 **Not yet run live through our own plugin:** the command on a real file. That needs the owner to open this branch's dev build with the agent link on. The evaluation itself is proven live; only the plugin wiring around it is measured in the harness.
+
+**Review fixes (Lane A, BLOCK on `62417877`):**
+- **A timeout stops the waiting, not the code.** JavaScript can't stop an async function from outside, so a timed-out run may go on, and its writes can still land (Lane A saw one 200 ms after the report). The message now says so: "run-code: timed out after N ms; the code may still be running, and anything it writes may still land". So do both READMEs. An arm checks the wording, and that a write made after the timeout does land.
+- **Two argument checks are now tested:** a `timeoutMs` out of range (0, 600001, a string), and args that aren't an object (a string, an array). Each comes back `bad-args` with its own message.
+- **The `import(` claim is out of the shipped docs** (see the sandbox bullets above).
+- **Mutations, each failing by name:**
+  - the range check removed: `✗ run-code args: a timeoutMs of 0, 600001 or a string is bad-args, naming the range (0 → undefined, …)`;
+  - non-object args read as `{}`: `✗ run-code args: args that are a string or an array are bad-args, "args for 'run-code' must be an object"`;
+  - the old message restored: `✗ run-code timeout: a run past its timeoutMs is reported as timed out, saying its code may still be running ({… "run-code: timed out after 20 ms"})`.

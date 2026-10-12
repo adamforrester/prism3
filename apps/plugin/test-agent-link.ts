@@ -970,9 +970,26 @@ section('run-code — a dev build runs code in the main thread and reports in ou
   r = await run({ code: 'return 1 +;' });
   ok(r.ok === false && r.error?.code === 'handler-threw' && /^run-code: the code does not parse — /.test(r.error?.message ?? ''),
     `run-code syntax: code that does not parse is refused as handler-threw, saying so (${JSON.stringify(r.error)})`);
-  r = await run({ code: 'await new Promise((res) => setTimeout(res, 200));\nreturn 1;', timeoutMs: 20 });
-  ok(r.ok === false && r.error?.code === 'handler-threw' && r.error?.message === 'run-code: timed out after 20 ms',
-    `run-code timeout: a run past its timeoutMs is stopped and says so (${JSON.stringify(r.error)})`);
+  // A timeout stops the WAITING, not the code (#2544 review): the message says so, and a write the code makes after the
+  // report still lands. EXPECTED, both halves, written here.
+  g.__lateWrite = undefined;
+  r = await run({ code: 'await new Promise((res) => setTimeout(res, 60));\nglobalThis.__lateWrite = "landed";\nreturn 1;', timeoutMs: 20 });
+  ok(r.ok === false && r.error?.code === 'handler-threw'
+    && r.error?.message === 'run-code: timed out after 20 ms; the code may still be running, and anything it writes may still land',
+    `run-code timeout: a run past its timeoutMs is reported as timed out, saying its code may still be running (${JSON.stringify(r.error)})`);
+  const lateAtReport = g.__lateWrite;
+  await new Promise((res) => setTimeout(res, 120));
+  ok(lateAtReport === undefined && g.__lateWrite === 'landed',
+    `run-code timeout: the timed-out code did go on, and its write landed after the report, as the message warns (at the report ${JSON.stringify(lateAtReport)}, after ${JSON.stringify(g.__lateWrite)})`);
+  // The args checks, each by its own message (#2544 review: neither was tested).
+  const badTimeouts = [0, 600001, '30'].map((t) => ({ t, rr: null as unknown }));
+  for (const b of badTimeouts) b.rr = await run({ code: 'return 1;', timeoutMs: b.t });
+  ok(badTimeouts.every((b) => (b.rr as AgentResult).error?.code === 'bad-args' && (b.rr as AgentResult).error?.message === 'run-code takes args.timeoutMs: milliseconds from 1 to 600000'),
+    `run-code args: a timeoutMs of 0, 600001 or a string is bad-args, naming the range (${badTimeouts.map((b) => `${JSON.stringify(b.t)} → ${(b.rr as AgentResult).error?.code}`).join(', ')})`);
+  const rs = await d(envelope('run-code' as never, 'return 1;' as never), 'mailbox');
+  const ra = await d(envelope('run-code' as never, ['return 1;'] as never), 'mailbox');
+  ok([rs, ra].every((x) => x.error?.code === 'bad-args' && x.error?.message === "args for 'run-code' must be an object"),
+    `run-code args: args that are a string or an array are bad-args, "args for 'run-code' must be an object" (${[rs, ra].map((x) => JSON.stringify(x.error)).join(', ')})`);
   r = await run({});
   ok(r.ok === false && r.error?.code === 'bad-args' && /needs args\.code/.test(r.error?.message ?? ''),
     `run-code args: no code is bad-args (${JSON.stringify(r.error)})`);

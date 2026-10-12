@@ -54,8 +54,9 @@ the preview. `status` lists every command the running build answers.
 thread as the body of an async function, so it may `await` and `return`, and reaches `figma` as a global.
 `result.data.value` is the returned value as JSON, `result.logs` the console lines printed while it ran; a syntax
 error, a throw or a timeout (30 s by default, `timeoutMs` up to 600000) comes back as `error.code: 'handler-threw'`.
-Code that spells `import` followed by `(` is refused by Figma's sandbox when it is evaluated. This server needs no
-change for it: `figma_run` passes any `cmd` through. A release build answers it `unknown-command`.
+**A timeout stops the waiting, not the code:** the run may still be going, and a write it makes afterwards can still
+land, so read the file again before relying on its state. This server needs no change for it: `figma_run` passes any
+`cmd` through. A release build answers it `unknown-command`.
 
 One command runs at a time. `figma_run` fails as a tool error (`isError`) only when no result can
 come back: no plugin connected, a timeout (default 600 s), or the plugin disconnecting mid-run. A

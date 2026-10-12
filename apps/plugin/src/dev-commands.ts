@@ -14,9 +14,13 @@
  * works, a throw rejects, and a syntax error throws at once. The Figma Console MCP's Desktop Bridge uses a DIRECT eval
  * (its `EXECUTE_CODE`, v1.39.0: "AsyncFunction is restricted in Figma's plugin sandbox, but eval works"); a direct
  * eval stops esbuild from tree-shaking the module, so the release build would keep this file as unreachable text.
- * The sandbox's text scan rejects `import` followed by `(` at load (`lint-sandbox-reject.ts`) and, measured the same
- * day, in code evaluated at run time too ("possible import expression rejected"): nothing here spells it, and a
- * caller's code that does is refused with that message.
+ * Figma's sandbox rejects a plugin whose source has `import` followed by `(` at load, and `lint-sandbox-reject.ts`
+ * keeps that sequence out of our own bundles; nothing here spells it. What the sandbox does with it in code passed
+ * to this command at run time is not verified here, so this file claims nothing about it.
+ *
+ * A TIMEOUT STOPS THE WAITING, NOT THE CODE (#2544 review). JavaScript cannot stop an async function from outside, so
+ * a run past its `timeoutMs` is reported as timed out while its code may go on: a write it makes after that can still
+ * land (seen: one landing 200 ms after the report). The message says so, and so do the READMEs.
  */
 
 export const RUN_CODE = 'run-code' as const;
@@ -62,7 +66,7 @@ export const runCode = async (a: RunCodeArgs, data: (d: Record<string, unknown>)
   }
   let timer: ReturnType<typeof setTimeout> | undefined;
   const timeout = new Promise<never>((_, reject) => {
-    timer = setTimeout(() => reject(new Error(`run-code: timed out after ${a.timeoutMs} ms`)), a.timeoutMs);
+    timer = setTimeout(() => reject(new Error(`run-code: timed out after ${a.timeoutMs} ms; the code may still be running, and anything it writes may still land`)), a.timeoutMs);
   });
   const t0 = Date.now();
   try {
