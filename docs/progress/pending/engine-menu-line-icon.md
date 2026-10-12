@@ -28,3 +28,12 @@ way whichever name joins or leaves, so none of them would say which.
 names. Its "36 glyphs" was already stale (44 names before this PR), so it now reads "a few dozen", with no number to go
 stale again. Found while checking it: NOTICE says `resize-grip.svg` is the one glyph not from Remix, but
 `fpo-default-icon.svg`'s source is recorded nowhere. Filed as #2570.
+
+**The source, checked against the release.** The repo records no Remix Icon version. NOTICE.md, LICENSE (whose
+"Version 1.0 – January 2026" is the licence's version) and `icon-set.ts` name none. So the owner's paste was checked
+against the npm `remixicon` package, unpacked to `/tmp` by `npm pack` (no `node_modules` touched). `menu-line.svg` in
+4.9.1, the latest, is exactly the owner's path, and `menu-fill.svg` is the same path. It is also unchanged in every
+release from 4.3.0 to 4.8.0. **A trap for whoever pins the set's release later:** no npm release matches every
+committed glyph. 4.3–4.5 match 29 of the 43 Remix files and 4.6–4.9.1 match 27. The rest differ only in the fourth
+decimal place (`check-line` starts `M10.0007` here and `M9.9997` in 4.9.1). The `width`/`height`/`fill="none"` wrapper
+is the remixicon.com download's format, not the package's, so the set was probably taken from the site. Added to #2570.
