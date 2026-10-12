@@ -951,11 +951,35 @@ export const fillsAxis = (def: ComponentDef, name: string, axis: Axis): boolean 
  * geometry key is named by the anatomy and its absence is an authoring error, whereas a paint key is
  * looked up speculatively across a grid nothing claims is full.
  */
+/** THE CENTERED MEMBER (#2518, `PartDef.center`): at the root's `center.axis=center.value`, the root reads as if it
+ *  declared `layout.align: 'center'`, `sizing.x: 'fill'` and `center.placementWidth` (#1757), so its children sit
+ *  centered across a bar that spans its placement, a `crossAxisFill` child spans the full width, and the member is
+ *  built at that width. Every other coordinate returns the def itself, so its plan is byte-identical. Applied
+ *  before anything reads the anatomy, so every path below (sizing modes, the bounded fill, the build-width resize
+ *  each executor already performs) sees one consistent root. */
+const centeredAt = (def: ComponentDef, slots: PlanSlots): ComponentDef => {
+  const a = def.anatomy;
+  const root = a?.parts[a.root];
+  const c = root?.kind === 'box' ? root.center : undefined;
+  if (!a || !root || !c || !root.layout || slots[c.axis] !== c.value) return def;
+  return {
+    ...def,
+    anatomy: {
+      ...a,
+      parts: {
+        ...a.parts,
+        [a.root]: { ...root, layout: { ...root.layout, align: 'center', sizing: { ...root.layout.sizing, x: 'fill' } }, placementWidth: c.placementWidth },
+      },
+    },
+  };
+};
+
 export const figmaAnatomyPlan = (
-  def: ComponentDef,
+  authored: ComponentDef,
   size: string | undefined,
   slots: PlanSlots = {},
 ): AnatomyPlan => {
+  const def = centeredAt(authored, slots);
   const a = def.anatomy;
   if (!a) throw new Error(`${def.id}: no anatomy block to project`);
   // A DEF WITH ONE TYPE SCALE HAS NO SIZE COORDINATE (#795), and `undefined` is how it says so.
@@ -1442,9 +1466,13 @@ export const figmaAnatomyPlan = (
   // so it is the panel identity. The KEY stays the idiomatic code prop (validated in `figmaPropertyErrors`);
   // `textFigmaName`/`swapFigmaName` resolve the decoupled display name, falling back to the KEY.
   for (const [prop, t] of Object.entries(fp?.texts ?? {})) {
-    drivenBy.set(t.part, { field: 'characters', prop: textFigmaName(prop, t) });
-    placeholder.set(t.part, textDefaultOf(t));
-    textDefaults.set(t.part, t.default);
+    // `also` (Q226 A): further text parts the same property drives, e.g. Tabs' bold reserve, which must spell the
+    // label exactly so it holds the label's bold width.
+    for (const part of [t.part, ...(t.also ?? [])]) {
+      drivenBy.set(part, { field: 'characters', prop: textFigmaName(prop, t) });
+      placeholder.set(part, textDefaultOf(t));
+      textDefaults.set(part, t.default);
+    }
   }
   for (const [prop, v] of Object.entries(fp?.swaps ?? {})) drivenBy.set(swapPart(v), { field: 'mainComponent', prop: swapFigmaName(prop, v) });
   // `booleans` does NOT ride `drivenBy`/`propertyRef` (#1331): a boolean's `visible` field coexists with a

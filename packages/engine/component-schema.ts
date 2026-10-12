@@ -641,6 +641,18 @@ export type PartDef = {
    *  Refused on a non-`box` kind, without `padding` and `layout`, with an `axis` that is not a projected
    *  variant axis, with a `value` that is not on it or is its first (default) value, and with an unbound `key`. */
   flush?: { axis: string; value: string; key: string };
+  /** For the ROOT `box` of a def with an alignment-like axis: the member at `axis=value` CENTERS its children in a bar
+   *  that spans its placement (#2518, owner decision Q222 A: centered Tabs). At that coordinate the projector reads
+   *  the root as if it declared `layout.align: 'center'`, `sizing.x: 'fill'` and this `placementWidth` (#1757): the
+   *  children keep their own sizing (tabs still hug their labels) and sit centered across, a child with
+   *  `crossAxisFill` (Tabs' baseline) spans the full width, and the Figma member is BUILT at `placementWidth` so the
+   *  centering shows on the canvas. Every other value of the axis is the root as authored, byte for byte.
+   *
+   *  A column root only: in a column, `align` is the cross axis, which is the bar's width. Refused off the root, on a
+   *  non-`box`, on a box with no `layout` or a `row` layout, on a root that already fills or is fixed across (the
+   *  field supplies the fill), with an `axis` that is not a projected variant axis, with a `value` that is not on it
+   *  or is its first (default) value, and with a `placementWidth` that is not a positive number. */
+  center?: { axis: string; value: string; placementWidth: number };
   /** For `box` parts: the name of a VARIANT axis whose values are `W:H` ratio strings, from which the
    *  box's aspect-ratio LOCK is derived per member (#1316). image-placeholder declares `aspectRatio:
    *  'ratio'` and a `ratio` axis of `['2:3', …, '16:9']` (seven ratios, #2345); the projector parses the member's own
@@ -1256,8 +1268,12 @@ export type FigmaProperties = {
    *  component-property NAME a designer reads in the panel — so panel `label` can sit over code prop
    *  `label`, or a swap can read `↳ swap leading icon` over prop `leadingVisual`. Absent means the KEY is
    *  the panel name, byte-identical to before. It is a Figma-facing label and needs NOT be a declared prop
-   *  (`figmaPropertyErrors` checks the KEY against `props`, never `figmaName`). */
-  texts?: Record<string, { part: string; default: string; figmaName?: string; byVariant?: Record<string, Record<string, string>> }>;
+   *  (`figmaPropertyErrors` checks the KEY against `props`, never `figmaName`).
+   *
+   *  `also` (owner decisions Q225 A and Q226 A, 2026-10-10): further TEXT parts the same property drives, so one
+   *  property writes the same characters to each. Tabs' selected-weight reserve is the case: an invisible copy of the
+   *  label in the selected weight that holds every tab at its bold width, which only works if it spells the label. */
+  texts?: Record<string, { part: string; default: string; figmaName?: string; byVariant?: Record<string, Record<string, string>>; also?: string[] }>;
   /** prop name → `kind: 'slot'` part. INSTANCE_SWAP property — the slot's CONTENT.
    *
    *  The bare-string form is `prop → part`, the byte-identical original. The object form
@@ -2184,6 +2200,9 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
     }
   };
   checkMap('texts', Object.fromEntries(Object.entries(fp.texts ?? {}).map(([p, t]) => [p, t.part])), 'characters', 'text');
+  // Each `also` part is claimed on the same field, so it is a text part no other property names (Q226 A).
+  for (const [prop, t] of Object.entries(fp.texts ?? {}))
+    t.also?.forEach((part, i) => checkMap(`texts.${prop}.also[${i}]`, { [prop]: part }, 'characters', 'text'));
   // `swaps` may carry the #1380 object form `{ part, figmaName }`; normalized to `prop → part` here so
   // the relational checks (prop is a declared prop, part exists and is a slot, one property per field) are
   // identical for the string and object forms — the display name is a Figma label, checked below.
@@ -2344,7 +2363,7 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
   // while still writing no `characters`. Only a TEXT property populates the placeholder. (`checkMap`
   // separately rejects a `swaps` entry pointing at a text part, so that state is unreachable today —
   // which is the argument for asking the precise question here rather than relying on it staying so.)
-  const textClaimed = new Set(Object.values(fp.texts ?? {}).map((t) => t.part));
+  const textClaimed = new Set(Object.values(fp.texts ?? {}).flatMap((t) => [t.part, ...(t.also ?? [])]));
   // A NATIVE SLOT's text (#2417): its copy is the part's own literal `characters`, and a TEXT property cannot reach it
   // (Figma refuses a reference on a slot sublayer), so a claim there is refused and an unclaimed one is expected.
   const slotParts = def.anatomy?.parts ?? {};
@@ -3038,12 +3057,27 @@ export type State = (typeof STATES)[number];
  * naming the divider's axis `direction` would put two unrelated value sets under one name, the #756 failure.
  * `width` is how much of its container a control takes, and `shape` a corner silhouette. An AUTHORING axis: a
  * rule runs one way where it is placed. `lint-axis-values.ts` carries the two values as a `sole` set.
+ *
+ * ── `alignment`: THE TWENTY-THIRD NAME, FOR CENTERED TABS (owner Q222 A, 2026-10-10, #2518) ──
+ *
+ * `alignment` (`start | center`) is WHERE a row of items sits along the bar that holds it: at its start edge, or
+ * centered in it, while the bar itself spans its placement. The name and values are the owner's decision (Q222 A);
+ * adding it to this list is held as an owner item on #2518. It clears this list's bar the way `inset` did: a
+ * distinct kind of distinction no existing name expresses, with the nearest defeated. `inset` drops a control's
+ * own padding and moves nothing else; `width` is how much of its container a control takes; `direction` is where
+ * a veil's wash sits; `offset` is a nested part's displacement from its host; `justify` is not a variant name at
+ * all but a layout field every box already has. None says "the items keep their size and sit centered in a bar
+ * that spans its container". Naming it `width` would claim a centered tab list is a width choice, when the tabs
+ * hug their labels exactly as they do at `start`. Read by the root's `center` field (`PartDef.center`), which
+ * names the axis, its centered value and the width the centered member is built at. An AUTHORING axis: a tab list
+ * is centered where it is placed and never moves on screen. `lint-axis-values.ts` carries the two values as a
+ * `sole` set.
  */
 export const VARIANT_AXES = [
   'size', 'intent', 'appearance', 'tone',
   'width', 'style', 'indicator', 'offset', 'selection',
   'name', 'surface', 'weight', 'value', 'intensity', 'ratio',
-  'status', 'emphasis', 'shape', 'type', 'direction', 'inset', 'orientation',
+  'status', 'emphasis', 'shape', 'type', 'direction', 'inset', 'orientation', 'alignment',
 ] as const;
 
 /** One member of the closed axis-NAME vocabulary. Values are not constrained — see `VARIANT_AXES`. */
@@ -4481,6 +4515,29 @@ const anatomyErrors = (def: ComponentDef): string[] => {
         if (!values.includes(f.value)) e.push(`anatomy part '${n}' flushes at '${f.axis}=${f.value}', which is not a value of that axis [${values.join(', ')}]`);
         else if (values[0] === f.value) e.push(`anatomy part '${n}' flushes at '${f.axis}=${f.value}', the axis's first value — the default member would be flush, and so would the code default`);
       }
+    }
+    // ---- `center`, a root that centers its children in a full-width bar at one coordinate (#2518) ----
+    // Each rule is a way the field would validate and then center nothing, or center every member: a part that is
+    // not the root, a kind or layout the projector cannot center across, a root that is already bounded across, an
+    // axis the set never enumerates, a value no member takes, the axis's default, or a build width of no size.
+    if (p.center !== undefined) {
+      const c = p.center;
+      if (n !== a.root) e.push(`anatomy part '${n}' declares 'center' but is not the anatomy ROOT — centering stands in for a placement, and only the root has one`);
+      if (p.kind !== 'box' || !p.layout || p.layout.direction !== 'column')
+        e.push(`anatomy part '${n}' declares 'center' but is not a 'box' with a 'column' layout — a column's cross axis is the bar's width, which is what centering moves`);
+      else if (p.layout.sizing.x !== 'hug' || p.placementWidth !== undefined)
+        e.push(`anatomy part '${n}' declares 'center' but already sizes its width (sizing.x '${p.layout.sizing.x}'${p.placementWidth !== undefined ? ', a placementWidth' : ''}) — the field supplies the fill and the build width at its coordinate`);
+      const values = variantsOf(def)[c.axis];
+      if (!values)
+        e.push(`anatomy part '${n}' centers on '${c.axis}', which is not one of this def's variant axes [${Object.keys(variantsOf(def)).join(', ') || 'none'}] — the projector never supplies it, so no member is centered`);
+      else {
+        if (!(def.figmaProperties?.variantAxes ?? []).includes(c.axis))
+          e.push(`anatomy part '${n}' centers on '${c.axis}', which figmaProperties.variantAxes does not project — the set is enumerated over the projected axes only, so no member would be centered`);
+        if (!values.includes(c.value)) e.push(`anatomy part '${n}' centers at '${c.axis}=${c.value}', which is not a value of that axis [${values.join(', ')}]`);
+        else if (values[0] === c.value) e.push(`anatomy part '${n}' centers at '${c.axis}=${c.value}', the axis's first value — the default member would be centered, and so would the code default`);
+      }
+      if (!(typeof c.placementWidth === 'number' && c.placementWidth > 0))
+        e.push(`anatomy part '${n}' declares a 'center.placementWidth' that is not a positive number of px`);
     }
     // ---- `padding.inlineEnd`, the trailing side's own key (the spacing model, 2026-09-29) ----
     if (p.padding?.inlineEnd !== undefined && p.padding.inlineVisual !== undefined)
