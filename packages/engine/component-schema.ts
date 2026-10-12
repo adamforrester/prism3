@@ -446,6 +446,19 @@ export type PartDef = {
    *  Refused alongside `padding` (a box states its padding once), on a box with no `layout` (Figma pads only an
    *  auto-layout frame), and on every other kind. */
   paddingTop?: string;
+  /** For `box` parts: the box is a NATIVE FIGMA SLOT (#2417), the region a designer fills with their own content
+   *  on an instance, in place, with no component to make first. Its children are the slot's DEFAULT content (a
+   *  placeholder the designer replaces). The set gets one SLOT property named for the part; Figma merges every
+   *  member's slot of that name into it at the combine, and a designer's content survives a variant switch,
+   *  measured on a real host (an expansion switch to a member without the slot and back). Not an instance-swap
+   *  `slot` part: that one swaps a whole component the designer must have made, and its target is the one
+   *  nominated per file. A `box` with `layout` only, and never the root (a slot is a region inside a member). */
+  contentSlot?: true;
+  /** For `text` parts INSIDE a `contentSlot` box (#2417): the placeholder copy, written as it is. A text node in a
+   *  native slot's default content can carry no component-property reference (measured: Figma refuses one on a slot
+   *  sublayer), so a slot's placeholder is literal text, which a designer edits or replaces on the instance. Refused
+   *  anywhere else, where a TEXT property is the one way copy is written. */
+  characters?: string;
   /** For `box` parts: WHICH paint slots this box takes, in precedence order (#933). Absent means the
    *  box paints nothing — it is structure, and `field-label`'s and `field-message`'s boxes are exactly
    *  that. The words must come from `BOX_PAINT_SLOTS`.
@@ -628,6 +641,18 @@ export type PartDef = {
    *  Refused on a non-`box` kind, without `padding` and `layout`, with an `axis` that is not a projected
    *  variant axis, with a `value` that is not on it or is its first (default) value, and with an unbound `key`. */
   flush?: { axis: string; value: string; key: string };
+  /** For the ROOT `box` of a def with an alignment-like axis: the member at `axis=value` CENTERS its children in a bar
+   *  that spans its placement (#2518, owner decision Q222 A: centered Tabs). At that coordinate the projector reads
+   *  the root as if it declared `layout.align: 'center'`, `sizing.x: 'fill'` and this `placementWidth` (#1757): the
+   *  children keep their own sizing (tabs still hug their labels) and sit centered across, a child with
+   *  `crossAxisFill` (Tabs' baseline) spans the full width, and the Figma member is BUILT at `placementWidth` so the
+   *  centering shows on the canvas. Every other value of the axis is the root as authored, byte for byte.
+   *
+   *  A column root only: in a column, `align` is the cross axis, which is the bar's width. Refused off the root, on a
+   *  non-`box`, on a box with no `layout` or a `row` layout, on a root that already fills or is fixed across (the
+   *  field supplies the fill), with an `axis` that is not a projected variant axis, with a `value` that is not on it
+   *  or is its first (default) value, and with a `placementWidth` that is not a positive number. */
+  center?: { axis: string; value: string; placementWidth: number };
   /** For `box` parts: the name of a VARIANT axis whose values are `W:H` ratio strings, from which the
    *  box's aspect-ratio LOCK is derived per member (#1316). image-placeholder declares `aspectRatio:
    *  'ratio'` and a `ratio` axis of `['2:3', …, '16:9']` (seven ratios, #2345); the projector parses the member's own
@@ -2339,7 +2364,16 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
   // separately rejects a `swaps` entry pointing at a text part, so that state is unreachable today —
   // which is the argument for asking the precise question here rather than relying on it staying so.)
   const textClaimed = new Set(Object.values(fp.texts ?? {}).flatMap((t) => [t.part, ...(t.also ?? [])]));
+  // A NATIVE SLOT's text (#2417): its copy is the part's own literal `characters`, and a TEXT property cannot reach it
+  // (Figma refuses a reference on a slot sublayer), so a claim there is refused and an unclaimed one is expected.
+  const slotParts = def.anatomy?.parts ?? {};
+  const parentOf = new Map<string, string>();
+  for (const [n, q] of Object.entries(slotParts)) for (const c of q.children ?? []) parentOf.set(c, n);
+  const inSlot = (n: string): boolean => { for (let x = parentOf.get(n); x; x = parentOf.get(x)) if (slotParts[x]?.contentSlot) return true; return false; };
+  for (const [prop, t] of Object.entries(fp.texts ?? {}))
+    if (inSlot(t.part)) e.push(`figmaProperties.texts.${prop} claims '${t.part}', which sits inside a native slot — Figma refuses a component-property reference on a slot sublayer, so the reference would throw at build. Give the part literal \`characters\` instead`);
   for (const [name, p] of Object.entries(def.anatomy?.parts ?? {})) {
+    if (p.kind === 'text' && p.characters !== undefined) continue;
     if (p.kind === 'text' && !textClaimed.has(name)) {
       e.push(`anatomy part '${name}' is a 'text' part with no TEXT property claiming it — \`characters\` is written only where \`figmaProperties.texts\` names the part, so this node projects with its ink and type style and NO content: an empty, zero-width text node in Figma. Add \`texts: { <prop>: { part: '${name}', default: '<placeholder>' } }\`. This is #510's blank-button defect at one-node scale`);
     }
@@ -3023,12 +3057,27 @@ export type State = (typeof STATES)[number];
  * naming the divider's axis `direction` would put two unrelated value sets under one name, the #756 failure.
  * `width` is how much of its container a control takes, and `shape` a corner silhouette. An AUTHORING axis: a
  * rule runs one way where it is placed. `lint-axis-values.ts` carries the two values as a `sole` set.
+ *
+ * ── `alignment`: THE TWENTY-THIRD NAME, FOR CENTERED TABS (owner Q222 A, 2026-10-10, #2518) ──
+ *
+ * `alignment` (`start | center`) is WHERE a row of items sits along the bar that holds it: at its start edge, or
+ * centered in it, while the bar itself spans its placement. The name and values are the owner's decision (Q222 A);
+ * adding it to this list is held as an owner item on #2518. It clears this list's bar the way `inset` did: a
+ * distinct kind of distinction no existing name expresses, with the nearest defeated. `inset` drops a control's
+ * own padding and moves nothing else; `width` is how much of its container a control takes; `direction` is where
+ * a veil's wash sits; `offset` is a nested part's displacement from its host; `justify` is not a variant name at
+ * all but a layout field every box already has. None says "the items keep their size and sit centered in a bar
+ * that spans its container". Naming it `width` would claim a centered tab list is a width choice, when the tabs
+ * hug their labels exactly as they do at `start`. Read by the root's `center` field (`PartDef.center`), which
+ * names the axis, its centered value and the width the centered member is built at. An AUTHORING axis: a tab list
+ * is centered where it is placed and never moves on screen. `lint-axis-values.ts` carries the two values as a
+ * `sole` set.
  */
 export const VARIANT_AXES = [
   'size', 'intent', 'appearance', 'tone',
   'width', 'style', 'indicator', 'offset', 'selection',
   'name', 'surface', 'weight', 'value', 'intensity', 'ratio',
-  'status', 'emphasis', 'shape', 'type', 'direction', 'inset', 'orientation',
+  'status', 'emphasis', 'shape', 'type', 'direction', 'inset', 'orientation', 'alignment',
 ] as const;
 
 /** One member of the closed axis-NAME vocabulary. Values are not constrained — see `VARIANT_AXES`. */
@@ -4095,6 +4144,20 @@ const anatomyErrors = (def: ComponentDef): string[] => {
       else if (!boundedMain)
         e.push(`anatomy part '${n}' declares 'grow' but its parent '${parent ?? '(none)'}' does not bound its main axis (a row needs a 'minWidth' floor, a fixed width, a width it fills from a bounded parent, or 'crossAxisFill' under a column; a column a fixed height, or 'crossAxisFill' under a row) — 'layoutGrow' fills REMAINING space and a hugging parent has none`);
     }
+    // ---- A SLOT'S LITERAL TEXT (`characters`, #2417) ----
+    if (p.characters !== undefined) {
+      if (p.kind !== 'text') e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'characters' — only a 'text' part holds copy`);
+      let up = Object.entries(a.parts).find(([, q]) => (q.children ?? []).includes(n))?.[0];
+      let slotted = false;
+      while (up) { if (a.parts[up]?.contentSlot) { slotted = true; break; } const at = up; up = Object.entries(a.parts).find(([, q]) => (q.children ?? []).includes(at))?.[0]; }
+      if (!slotted) e.push(`anatomy part '${n}' declares 'characters' outside a native slot — copy is written through a TEXT property (\`figmaProperties.texts\`) everywhere but inside a \`contentSlot\` box`);
+    }
+    // ---- NATIVE CONTENT SLOT (`contentSlot`, #2417) ----
+    if (p.contentSlot) {
+      if (p.kind !== 'box') e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'contentSlot' — only a 'box' can be a native slot (Figma's slot is a frame)`);
+      else if (!p.layout) e.push(`anatomy part '${n}' declares 'contentSlot' but binds no 'layout' — a slot holds a designer's content, and only an auto-layout frame flows it`);
+      if (n === a.root) e.push(`anatomy part '${n}' declares 'contentSlot' on the root — a slot is a region inside a member, never the member itself`);
+    }
     // ---- TOP-ONLY PADDING (`paddingTop`) ----
     if (p.paddingTop !== undefined) {
       if (p.kind !== 'box')
@@ -4452,6 +4515,29 @@ const anatomyErrors = (def: ComponentDef): string[] => {
         if (!values.includes(f.value)) e.push(`anatomy part '${n}' flushes at '${f.axis}=${f.value}', which is not a value of that axis [${values.join(', ')}]`);
         else if (values[0] === f.value) e.push(`anatomy part '${n}' flushes at '${f.axis}=${f.value}', the axis's first value — the default member would be flush, and so would the code default`);
       }
+    }
+    // ---- `center`, a root that centers its children in a full-width bar at one coordinate (#2518) ----
+    // Each rule is a way the field would validate and then center nothing, or center every member: a part that is
+    // not the root, a kind or layout the projector cannot center across, a root that is already bounded across, an
+    // axis the set never enumerates, a value no member takes, the axis's default, or a build width of no size.
+    if (p.center !== undefined) {
+      const c = p.center;
+      if (n !== a.root) e.push(`anatomy part '${n}' declares 'center' but is not the anatomy ROOT — centering stands in for a placement, and only the root has one`);
+      if (p.kind !== 'box' || !p.layout || p.layout.direction !== 'column')
+        e.push(`anatomy part '${n}' declares 'center' but is not a 'box' with a 'column' layout — a column's cross axis is the bar's width, which is what centering moves`);
+      else if (p.layout.sizing.x !== 'hug' || p.placementWidth !== undefined)
+        e.push(`anatomy part '${n}' declares 'center' but already sizes its width (sizing.x '${p.layout.sizing.x}'${p.placementWidth !== undefined ? ', a placementWidth' : ''}) — the field supplies the fill and the build width at its coordinate`);
+      const values = variantsOf(def)[c.axis];
+      if (!values)
+        e.push(`anatomy part '${n}' centers on '${c.axis}', which is not one of this def's variant axes [${Object.keys(variantsOf(def)).join(', ') || 'none'}] — the projector never supplies it, so no member is centered`);
+      else {
+        if (!(def.figmaProperties?.variantAxes ?? []).includes(c.axis))
+          e.push(`anatomy part '${n}' centers on '${c.axis}', which figmaProperties.variantAxes does not project — the set is enumerated over the projected axes only, so no member would be centered`);
+        if (!values.includes(c.value)) e.push(`anatomy part '${n}' centers at '${c.axis}=${c.value}', which is not a value of that axis [${values.join(', ')}]`);
+        else if (values[0] === c.value) e.push(`anatomy part '${n}' centers at '${c.axis}=${c.value}', the axis's first value — the default member would be centered, and so would the code default`);
+      }
+      if (!(typeof c.placementWidth === 'number' && c.placementWidth > 0))
+        e.push(`anatomy part '${n}' declares a 'center.placementWidth' that is not a positive number of px`);
     }
     // ---- `padding.inlineEnd`, the trailing side's own key (the spacing model, 2026-09-29) ----
     if (p.padding?.inlineEnd !== undefined && p.padding.inlineVisual !== undefined)

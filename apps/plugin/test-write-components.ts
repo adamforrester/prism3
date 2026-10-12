@@ -3597,11 +3597,13 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     `#1633 reachable: button alone into an empty file misses its focus ring (${ringMisses(bareRun.misses).length} focusRing misses)`);
 
   // (a) FRESH FILE — icon, focus-ring and (since #1670) the pending state's spinner are built first, then
-  // button with no ring or slot miss.
+  // button with no ring or slot miss. In the order the plans first reach them: since #2501 (owner decision Q213)
+  // Pending comes before Focus visible, so the spinner is reached before the ring. The three nest nothing of each
+  // other, so their order among themselves is not load-bearing; that all three precede button is, and is read below.
   const fresh = fileWith();
   const built = await prebuildDependencies(button, fresh.ctx);
-  ok(JSON.stringify(built.map((b) => b.id)) === JSON.stringify(['icon', 'focus-ring', 'spinner']),
-    `#1633 fresh file: button's missing nests are built first — icon, focus-ring, spinner (${built.map((b) => b.id).join(', ') || 'none'})`);
+  ok(JSON.stringify(built.map((b) => b.id)) === JSON.stringify(['icon', 'spinner', 'focus-ring']),
+    `#1633 fresh file: button's missing nests are built first — icon, spinner, focus-ring (${built.map((b) => b.id).join(', ') || 'none'})`);
   const freshRun = await fresh.build(button);
   const freshRing = ringMisses(freshRun.misses);
   ok(freshRing.length === 0,
@@ -4769,23 +4771,24 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     `#1750 the first set on an empty page stays at 0,0; its box is pinned here as the input to the arms below (${at(first)}, ${box(first)})`);
 
   // (b) TWO DEFS ON ONE PAGE, in the taxonomy's order (`↳ Buttons`: button, then button-destructive): the
-  // second lands 160 right of the first (780 + 160 = 940), top-aligned.
+  // second lands 400 right of the first (780 + 400 = 1180), top-aligned. 400 since #2502 (160 before), so the
+  // second set's canvas labels fit between the two.
   const rDestructive = await run(destructive, { ...fullFor(destructive), page: pg });
   const second = pg.children[1];
-  ok(rDestructive.set === 'button-destructive' && second.name === 'button-destructive' && at(second) === '940,0',
-    `#1750 the second set on a page lands beside the first, 160px clear and top-aligned, at 940,0 (got ${String(second?.name)} at ${second ? at(second) : '—'})`);
+  ok(rDestructive.set === 'button-destructive' && second.name === 'button-destructive' && at(second) === '1180,0',
+    `#1750 the second set on a page lands beside the first, 400px clear and top-aligned, at 1180,0 (got ${String(second?.name)} at ${second ? at(second) : '—'})`);
 
   // (c) WHAT SHARES THE ROW PUSHES IT RIGHT; WHAT SITS ABOVE DOES NOT. A header-wide frame above the sets
   // (bottom edge at -80, where `page-header.ts` puts it) and a designer's note in the row at 900..1300.
-  // Expected x: the note's right edge, 1300, + 160 = 1460 — not the header's 5000 + 160.
+  // Expected x: the note's right edge, 1300, + 400 = 1700 — not the header's 5000 + 400.
   const pg2: Page = { children: [] };
   await run(grid, { ...full(), page: pg2 });
   pg2.children.push({ type: 'FRAME', name: 'header-like', x: 0, y: -400, width: 5000, height: 320 } as Node);
   pg2.children.push({ type: 'FRAME', name: 'note', x: 900, y: 60, width: 400, height: 100 } as Node);
   await run(destructive, { ...fullFor(destructive), page: pg2 });
   const placed = pg2.children.find((n) => n.name === 'button-destructive')!;
-  ok(at(placed) === '1460,0',
-    `#1750 a node in the set's row pushes it right (1300 + 160), a node wholly above it does not (got ${at(placed)})`);
+  ok(at(placed) === '1700,0',
+    `#1750 a node in the set's row pushes it right (1300 + 400), a node wholly above it does not (got ${at(placed)})`);
   // NO TWO TOP-LEVEL NODES OVERLAP — the property a designer sees, checked over every pair on the page.
   const rect = (n: Node) => ({ x: Number(n.x), y: Number(n.y), r: Number(n.x) + Number(n.width), b: Number(n.y) + Number(n.height) });
   const overlaps: string[] = [];
@@ -4798,48 +4801,48 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
 
   // (c') A NODE THAT STARTS ABOVE THE ROW AND REACHES INTO IT still shares the row. A frame at x 1000..2900,
   // y -500..500: its top edge is above the sets' top (0), its bottom is inside the new set's row. Expected
-  // x: 2900 + 160 = 3060. A check that counted only nodes whose TOP edge falls inside the row would miss it
-  // and land the set at 940,0, over the frame.
+  // x: 2900 + 400 = 3300. A check that counted only nodes whose TOP edge falls inside the row would miss it
+  // and land the set at 1180,0, over the frame.
   const pgTall: Page = { children: [] };
   await run(grid, { ...full(), page: pgTall });
   pgTall.children.push({ type: 'FRAME', name: 'tall', x: 1000, y: -500, width: 1900, height: 1000 } as Node);
   await run(destructive, { ...fullFor(destructive), page: pgTall });
   const pastTall = pgTall.children.find((n) => n.name === 'button-destructive')!;
-  ok(at(pastTall) === '3060,0',
-    `#1750 a node that starts above the row and extends into it still pushes the set right (2900 + 160 = 3060), at 3060,0 (got ${at(pastTall)})`);
+  ok(at(pastTall) === '3300,0',
+    `#1750 a node that starts above the row and extends into it still pushes the set right (2900 + 400 = 3300), at 3300,0 (got ${at(pastTall)})`);
 
-  // (d) CONTENT BUT NO SET YET: top-aligned with the content, right of it. Frame at 100..600, y 40 → 760,40.
+  // (d) CONTENT BUT NO SET YET: top-aligned with the content, right of it. Frame at 100..600, y 40 → 1000,40.
   const pg3: Page = { children: [{ type: 'FRAME', name: 'intro', x: 100, y: 40, width: 500, height: 300 } as Node] };
   await run(grid, { ...full(), page: pg3 });
   const onContent = pg3.children.find((n) => n.name === 'button')!;
-  ok(at(onContent) === '760,40', `#1750 on a page with content and no set, the set lands right of it, top-aligned, at 760,40 (got ${at(onContent)})`);
+  ok(at(onContent) === '1000,40', `#1750 on a page with content and no set, the set lands right of it, top-aligned, at 1000,40 (got ${at(onContent)})`);
 
   // (e) A REBUILD NEVER MOVES A SET: the designer's placement wins, as it does for the page header.
   first.x = 5000;
   first.y = 7000;
   const rAgain = await run(grid, { ...full(), page: pg });
-  ok(rAgain.set === 'button' && rAgain.added === 0 && at(first) === '5000,7000' && at(second) === '940,0',
+  ok(rAgain.set === 'button' && rAgain.added === 0 && at(first) === '5000,7000' && at(second) === '1180,0',
     `#1750 a rebuild leaves a set the designer moved where they put it, and its sibling where it was (button at ${at(first)}, button-destructive at ${at(second)})`);
 
   // (f) #2405 — A PAGE THAT HOLDS ONLY ITS SECTION HEADER. Live: the sets on a component page were deleted and
   // rebuilt, and every one landed right of the header instead of under it. The header is an INSTANCE named
   // exactly as `file-components.ts` names its set, `_Section-header` with a capital S, so a case-sensitive
   // match fails here, at 100,-300, 1000x220. Expected: the header's left edge (100) and its bottom
-  // (-300 + 220 = -80) + 80 = 0. On main this lands at 1100 + 160 = 1260, -300.
+  // (-300 + 220 = -80) + 80 = 0. Before #2405 this landed beside the header, at 1100 + 160 = 1260, -300.
   const header = (type = 'INSTANCE'): Node => ({ type, name: '_Section-header', x: 100, y: -300, width: 1000, height: 220 } as Node);
   const pgH: Page = { children: [header()] };
   await run(grid, { ...full(), page: pgH });
   const underHeader = pgH.children.find((n) => n.name === 'button')!;
   ok(at(underHeader) === '100,0',
     `#2405 on a page holding only its section header, a rebuilt set lands under it on its left edge, 80 below, at 100,0, never beside it (got ${at(underHeader)})`);
-  // ...and its sibling then top-aligns with it, beside it, as on a fresh page: 100 + 780 + 160 = 1040.
+  // ...and its sibling then top-aligns with it, beside it, as on a fresh page: 100 + 780 + 400 = 1280.
   await run(destructive, { ...fullFor(destructive), page: pgH });
   const besideRebuilt = pgH.children.find((n) => n.name === 'button-destructive')!;
-  ok(at(besideRebuilt) === '1040,0',
-    `#2405 the rebuilt set's sibling lands beside it under the header at 1040,0 (got ${at(besideRebuilt)})`);
+  ok(at(besideRebuilt) === '1280,0',
+    `#2405 the rebuilt set's sibling lands beside it under the header at 1280,0 (got ${at(besideRebuilt)})`);
 
   // (g) #2405 — A HEADER AND AN EXISTING SET THE DESIGNER PLACED. The existing set stays where it is (300,500),
-  // and the new one top-aligns with it, beside it: 300 + 780 + 160 = 1240, y 500 — not under the header.
+  // and the new one top-aligns with it, beside it: 300 + 780 + 400 = 1480, y 500 — not under the header.
   const pgHS: Page = { children: [header()] };
   await run(grid, { ...full(), page: pgHS });
   const kept = pgHS.children.find((n) => n.name === 'button')!;
@@ -4848,11 +4851,11 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   await run(grid, { ...full(), page: pgHS });
   await run(destructive, { ...fullFor(destructive), page: pgHS });
   const nextToKept = pgHS.children.find((n) => n.name === 'button-destructive')!;
-  ok(at(kept) === '300,500' && at(nextToKept) === '1240,500',
-    `#2405 with a header and an existing set, the existing set stays at 300,500 and the new one lands beside it at 1240,500 (got ${at(kept)} and ${at(nextToKept)})`);
+  ok(at(kept) === '300,500' && at(nextToKept) === '1480,500',
+    `#2405 with a header and an existing set, the existing set stays at 300,500 and the new one lands beside it at 1480,500 (got ${at(kept)} and ${at(nextToKept)})`);
 
   // (h) #2405 — A DETACHED HEADER. A designer who detaches the header instance leaves a FRAME of the same name;
-  // it is still the header, so the set goes under it at 100,0 as in (f), not beside it at 1260,-300.
+  // it is still the header, so the set goes under it at 100,0 as in (f), not beside it at 1500,-300 (1100 + 400).
   const pgF: Page = { children: [header('FRAME')] };
   await run(grid, { ...full(), page: pgF });
   const underDetached = pgF.children.find((n) => n.name === 'button')!;
@@ -4861,7 +4864,7 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
 
   // (i) #2405 — A HEADER, A STRAY NODE AND NO SET. A note frame left beside the header at 1300,-300 (200x100)
   // is not a set to top-align with: the set still goes under the header at 100,0. Top-aligned with the stray
-  // it would land at -300, right of both: 1500 + 160 = 1660.
+  // it would land at -300, right of both: 1500 + 400 = 1900.
   const stray = (x: number, y: number): Node => ({ type: 'FRAME', name: 'note', x, y, width: 200, height: 100 } as Node);
   const pgHN: Page = { children: [header(), stray(1300, -300)] };
   await run(grid, { ...full(), page: pgHN });
@@ -4869,12 +4872,12 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   ok(at(underWithStray) === '100,0',
     `#2405 on a page with a section header, a stray non-set node beside it and no set, the set lands under the header at 100,0, never beside it (got ${at(underWithStray)})`);
   // ...and a stray node in the row under the header (100,0, 200x100) pushes the set right, still under the
-  // header: 100 + 200 + 160 = 460, y 0.
+  // header: 100 + 200 + 400 = 700, y 0.
   const pgHB: Page = { children: [header(), stray(100, 0)] };
   await run(grid, { ...full(), page: pgHB });
   const pastStray = pgHB.children.find((n) => n.name === 'button')!;
-  ok(at(pastStray) === '460,0',
-    `#2405 a stray node in the row under the header pushes the set right of it, still under the header, at 460,0 (got ${at(pastStray)})`);
+  ok(at(pastStray) === '700,0',
+    `#2405 a stray node in the row under the header pushes the set right of it, still under the header, at 700,0 (got ${at(pastStray)})`);
 }
 
 // ---- #1750: page headers are placed after ALL of a run's builds, once per page ------------------------
@@ -4977,6 +4980,53 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   const blindUnmoved = TREE_BLIND_PAIRS.filter(([key, v]) => materialized(setIn(minimal, key, v)) === baseOut.get('minimal'))
     .map(([key, v]) => `${key}=${JSON.stringify(v)}`);
   ok(blindUnmoved.length === 0, `#1812 each tree-blind (lever, value) pair moves the materialized defs${blindUnmoved.length ? ` — UNMOVED: ${blindUnmoved.join(', ')}` : ''}`);
+}
+
+// =============================================================================================
+// #2518 — CENTERED TABS (owner decision Q222 A), read off the built set
+// =============================================================================================
+// At `alignment=center` the tab list sits centered in a bar that spans its placement: the member is BUILT 480 wide
+// (DRAFT, typed here from the decision, never read from the def), its baseline spans those 480, and the row of tabs
+// keeps its hugging width and sits at half the slack. At `alignment=start` the approved list is unchanged: the row at
+// x 0 and the bar exactly as wide as it. Read on a layout-model shim, which places a column's children across by
+// the frame's `counterAxisAlignItems`. Mutation: the root's `center` field dropped from tabs.ts → `centered tabs (#2518)`.
+{
+  const SWAP_T = SWAP;
+  const project = (d: ComponentDef) => figmaAnatomySet(materializeForBrand(d, null), { swapTarget: SWAP_T });
+  const tabsDef = componentDefs.find((d) => d.id === 'tabs')!;
+  const all = componentDefs.flatMap((d) => { try { return project(d); } catch { return []; } });
+  const f = fullFor(all);
+  const page: Page = { children: [] };
+  const shim = makeShim({ vars: f.vars, styles: f.styles, effects: f.effects, comps: [], liveRoot: true, page, layoutModel: true });
+  const build = (d: ComponentDef) => applyComponentPlan(project(d), shim as any, { emitAsComponents: d.figmaProperties?.emitAsComponents });
+  await prebuildDependencies(tabsDef, { defs: componentDefs, project, host: shim as any, build });
+  await build(tabsDef);
+  const set = page.children.find((c) => c.name === 'tabs' && c.type === 'COMPONENT_SET') as Node | undefined;
+  const members = (set?.children ?? []) as Node[];
+  const child = (m: Node, name: string) => ((m.children as Node[]) ?? []).find((c) => c.name === name);
+  const BAR = 480;
+  const wrongCenter: string[] = [];
+  const wrongStart: string[] = [];
+  let centered = 0, started = 0;
+  for (const m of members) {
+    const list = child(m, 'list'); const base = child(m, 'baseline');
+    const at = String(m.name);
+    if (!list || !base) { (at.includes('alignment=center') ? wrongCenter : wrongStart).push(`${at}: no list or baseline`); continue; }
+    const W = Number(m.width), lw = Number(list.width), lx = Number(list.x), bw = Number(base.width);
+    if (at.includes('alignment=center')) {
+      centered++;
+      const want = (BAR - lw) / 2;
+      if (W !== BAR || bw !== BAR || !(lw < BAR) || Math.abs(lx - want) > 0.5)
+        wrongCenter.push(`${at}: bar ${W}, baseline ${bw}, list ${lw} at x ${lx} (want a ${BAR} bar and baseline, the list at ${want})`);
+    } else if (at.includes('alignment=start')) {
+      started++;
+      if (lx !== 0 || W !== lw || bw !== lw) wrongStart.push(`${at}: bar ${W}, baseline ${bw}, list ${lw} at x ${lx} (want the list at 0, bar and baseline its width)`);
+    }
+  }
+  ok(centered === 3 && wrongCenter.length === 0,
+    `centered tabs (#2518): at alignment=center every size builds a ${BAR}px bar with a full-width baseline and the tabs centered in it (${centered} of 3 centered members${wrongCenter.length ? ` — WRONG: ${wrongCenter.join(' | ')}` : ''})`);
+  ok(started === 3 && wrongStart.length === 0,
+    `start tabs (#2518): at alignment=start the approved list is unchanged, the tabs at the start and the bar as wide as they are (${started} of 3${wrongStart.length ? ` — WRONG: ${wrongStart.join(' | ')}` : ''})`);
 }
 
 // =============================================================================================

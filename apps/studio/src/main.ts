@@ -20,8 +20,8 @@
  * combination is caught and surfaced with the last-good render preserved.
  */
 import { brandTheme } from '@prism3/engine/theme';
-import type { BrandInput, Theme } from '@prism3/engine/theme';
-import { hex, oklchToRgb, contrast, composite } from '@prism3/engine/color';
+import type { BrandInput } from '@prism3/engine/theme';
+import { hex, oklchToRgb } from '@prism3/engine/color';
 import { resolveAllModes } from '@prism3/engine/modes';
 import { toDesignMd } from '@prism3/engine/design-md';
 import { buildTree, deref, subNode, numOf, remPxOf, familyOf, type TreeNode } from '@prism3/engine/tree';
@@ -46,8 +46,7 @@ import {
 // The Style guide's shared color sections and the helpers they draw with (UI redesign S4a, owner decision Q5):
 // Color › Surfaces & fills draws the same five sections from the same modules.
 import {
-  SG_SURFACES, colorPath, ground as sharedGround, oppositeOf, palSection, sgContext, specimen, subHead,
-  tokenPillSpan, withInverseBadge, type SgRole,
+  SG_SURFACES, ground as sharedGround, oppositeOf, palSection, sgContext, type SgRole,
 } from './preview/sections/kit';
 import {
   COLOR_SECTIONS, disabledSection, interactiveSection, typeSampleSection, radiusSampleSection, RADIUS_SAMPLE, SAMPLE_SHADOW,
@@ -61,7 +60,7 @@ import { brandControlShape } from './state/shape-input';
 // Motion control to `domains/depth.ts` (S9.2); the Type writes to `state/type-input.ts` and every Type control to
 // `domains/type.ts` (S6.1 to S6.3). Nothing here writes either any more.
 import {
-  needsOverwriteConfirm, isDirty, isUnrecoverable, editCount,
+  needsOverwriteConfirm, isUnrecoverable, editCount,
   type Origin,
 } from './provenance';
 import {
@@ -73,8 +72,8 @@ import {
 // bindings here: read freely, reassigned only through its setters.
 import {
   BRANDS, brandState, provenance, bootProvenance, theme, lastGoodInput, rp, currentMode, lastError, page,
-  firstRun, rebuild, ensureThemeFresh, loadInput, clearOrigin, setPage,
-  getPath, setPath, subscribe, invalidate,
+  firstRun, ensureThemeFresh, loadInput, clearOrigin, setPage,
+  subscribe, invalidate,
   type Mode, type PageKey,
 } from './state/store';
 
@@ -117,14 +116,6 @@ const syncErrorBar = (): void => {
   else globalErr.show(null);
   syncChromeHeight();   // the bar lives in the chrome; showing it moves everything sticky below
 };
-// `syncChrome()` refreshes EVERY declared chrome surface (see CHROME_SURFACES) rather than naming
-// them one at a time. These two lines used to read `renderModeStrip(); syncErrorBar();` — two of the
-// four surfaces, hand-listed in two refresh paths, which is the shape that let #388's error bar be
-// reachable from exactly one page. A surface added to the declaration is picked up here for free.
-const apply = (): void => { rebuild(); syncChrome(); };
-// `applyFull`, for a structural edit, rebuilds and nothing more since H12 (#2289): the legacy workspace it
-// re-rendered is gone, and every page repaints from the `brand` topic.
-const applyFull = (): void => { rebuild(); };
 
 // ---- scoped styles: the class-name law (#770) --------------------------------
 //
@@ -256,12 +247,6 @@ const el = <T extends string = string>(tag: string, cls?: (T & Scoped<T>) | Mix,
  *  a rename does not move what they locate. The value names the element's ROLE in kebab-case and stays
  *  fixed across a redesign. No style rule keys on it, and state stays on the shared STATES classes. */
 const hook = <E extends Element>(n: E, role: string): E => { n.setAttribute('data-p3', role); return n; };
-/** `classList.add` under the same law — for the two places a class is added to an already-built
- *  element rather than at its mint. Pass `mix(...)` when the addition crosses a scope. */
-const addClass = (n: HTMLElement, cls: string | Mix): void => {
-  const next = `${n.className} ${typeof cls === 'string' ? cls : cls.cls}`.trim();
-  n.className = typeof cls === 'string' ? checkScope(next) : next;
-};
 
 // ---- control kit — the reusable vocabulary every knob + select is built from ----------------------
 // Small structural primitives shared by renderControl and the bespoke editors, so a control (or a whole
@@ -324,8 +309,8 @@ const selectEl = (mods: string | Mix = ''): HTMLSelectElement => el(
  *  pill's own shrink-to-fit width — circular — which collapsed the head to nothing on 181 of 198
  *  pills. Both measured, not reasoned about. `title` carries the full path for the elided case.
  *
- *  This mints the pill ALONE. `tokenPill` is what callers want: it pairs the pill with the `inverse`
- *  badge (#1147) where the path needs one. The two are split because the two callers that rebuild the
+ *  This mints the pill ALONE. `tokenPillBadged` (same file) is what callers want: it pairs the pill with the
+ *  `inverse` badge (#1147) where the path needs one. The two are split because the two callers that rebuild the
  *  pill's children — `tokenPillWrapping` and `sgPill` — must hold the pill itself, not a wrapper. */
 // `tokenPillSpan` lives in `preview/sections/kit.ts` (UI redesign S4a).
 /** True when a path's discriminator is the `inverse` group (#1141) — matched as a whole SEGMENT, so a
@@ -344,20 +329,10 @@ const selectEl = (mods: string | Mix = ''): HTMLSelectElement => el(
  *
  *  Anything INSIDE the pill would be subject to the same ellipsis, so the badge sits outside its
  *  overflow box. And it is a sibling rather than a segment of the pill's text for the reason
- *  `tokenPill` documents at length: the pill is ONE text node, two earlier attempts to split it
+ *  `tokenPillSpan`'s note above documents at length: the pill is ONE text node, two earlier attempts to split it
  *  regressed copy/paste, and a path copied out of a pill still has to be the path. `.tpill`'s own text
  *  node is untouched here. */
 // `withInverseBadge` lives in `preview/sections/kit.ts` (UI redesign S4a).
-const tokenPill = (path: string): HTMLElement => withInverseBadge(path, tokenPillSpan(path));
-// `tokenPillWrapping` lives in `preview/sections/kit.ts` (UI redesign S9.1), with the Motion sections that draw it.
-/** A dashed "+ add" button (doc 24 C4). `.addbtn` owns the styling; pass context classes (width/margin)
- *  via `cls`. That context class comes from the CALLER's scope, so the pairing is a declared mix()
- *  — the base owns cosmetics, the context class owns placement, and neither overrides the other (#770). */
-const addButton = (label: string, onClick: () => void, cls = ''): HTMLButtonElement => {
-  const btn = el('button', cls ? mix('addbtn', cls) : 'addbtn', label) as HTMLButtonElement;
-  btn.onclick = onClick;
-  return btn;
-};
 // The COMMIT host (docs/22 #110) — distinct from the preview: "materialise this theme".
 // On web it's inert (the export bar downloads); in the Figma plugin it posts the BrandInput to
 // the main thread (→ #108 applyWritePlan) and receives the #109 read-back seed summary on boot.
@@ -444,8 +419,8 @@ const pfield = (label: string, control: HTMLElement, right = false): HTMLElement
 // ===========================================================================
 
 // `renderControl`, the generic lever knob, went in UI redesign S8.2 with its last caller (the Button options, now the
-// levers kit's chips and slider on Components, `domains/components.ts`); the descriptor it read stays in
-// `levers/controls.ts` (`describeControl`, #1675) for the levers kit.
+// levers kit's chips and slider on Components, `domains/components.ts`). The descriptor it read
+// (`describeControl`, #1675) went in #2487 PR 6, since no page read it.
 
 // The per-mode `modeLevers` read/write helpers — `getModeLever`, `setModeLever`, `pruneModeLevers` —
 // live in `state/store.ts`, with the prune-to-byte-identical invariant they exist to keep.
@@ -535,12 +510,6 @@ const tokenTableEl = (rows: Array<{ name: string; cells: Array<HTMLElement | str
     table.append(tr);
   }
   return table;
-};
-const swatchCell = (hex: string | undefined): HTMLElement => {
-  const wrap = el('span', 'tok-val');
-  if (hex) { const sw = el('span', 'tok-sw'); sw.style.background = hex; wrap.append(sw, el('span', 'mono', hex)); }
-  else wrap.append(document.createTextNode('—'));
-  return wrap;
 };
 // The token list walks the SAME DTCG tree `exportTokens` downloads (`buildTree(theme).tree`), so what you
 // see IS what you'd export — and a full tree walk shows EVERY token, not the preview-bound subset (#263).
@@ -859,7 +828,7 @@ const renderPreviewTokens = (host: HTMLElement, repaint: () => void): void => {
 /** Style guide (Preview → Style guide) — the resolved system composed in situ: every color role in
  *  context, on light and inverse surfaces, driven by the global mode picker. The semantic token path is
  *  the label (a `.tpill`); the resolved primitive + hex + contrast reveal on hover. Reuses the doc-26
- *  shell (`palSection`/`subHead`/`tokenPill`); only the specimen layout is new (`sg-*`). */
+ *  shell (`palSection`/`subHead`/`tokenPillBadged`); only the specimen layout is new (`sg-*`). */
 const renderPreviewStyleGuide = (host: HTMLElement, repaint: () => void): void => {
   // The five color sections (Background, Foreground, Text color, Border, Icon), their cards, the ground and
   // the surface list are SHARED with Color › Surfaces & fills (UI redesign S4a, owner decision Q5): they live
@@ -936,47 +905,7 @@ const renderPreviewStyleGuide = (host: HTMLElement, repaint: () => void): void =
 };
 
 
-// === Mode context control (#171) ==========================================================
-// A workspace-level single-select switcher that puts the WHOLE stage into ONE mode at a time —
-// editing one mode at a time (docs/11 Pillar 2 authoring context). Three tiers by how a mode's
-// values are produced: light/dark are GENERATED and editable, writing through `modeLevers` /
-// `modeAnchors` / `brandState.overrides`; hc-light/hc-dark/wireframe are DERIVED-only (auto from the
-// contrast contracts, read-only verification views); primitives are mode-independent so this
-// control never renders on that stage. Replaces the mode chips that used to overflow the brand
-// dropdown. Managing WHICH modes exist is Brand › Modes (UI redesign S3; the brand menu's copy went with #1943).
-const DERIVED_MODES = new Set<string>(['hc-light', 'hc-dark', 'wireframe']);
-/** #423 — a DERIVED mode is generated from light/dark (accessibility floors for HC, mechanical
- *  grayscale for wireframe) and the engine REFUSES per-mode levers on it: `CUSTOMIZABLE_MODES` is
- *  `['light', 'dark', ...customNames]`, and anything else throws "is generate-only and not
- *  customizable". The one-mode-at-a-time pages already gate on this via `renderGeneratedNote`, but a
- *  table that shows every mode AS COLUMNS has no such gate — each column must check for itself, or the
- *  click reaches the engine and the user reads a raw internal error string. */
-const modeIsEditable = (m: string): boolean => !DERIVED_MODES.has(m);
-const modeAllPass = (m: Mode): boolean => rp.contracts.every((ct) => !ct.byMode[m] || ct.byMode[m]!.pass);
 
-/** A2a — the read-only view shown when a GENERATED mode (HC / wireframe) is selected. These modes are
- *  auto-derived and never hand-tuned, so the editing controls are replaced by an explanation + a
- *  per-mode contract verdict; the verification preview below still renders the mode on real components. */
-const renderGeneratedNote = (): HTMLElement => {
-  const wf = currentMode === 'wireframe';
-  const label = MODE_LABEL[currentMode] ?? currentMode;
-  const box = hook(el('div', 'genview'), 'derived-note');
-  box.append(el('h3', 'genview-t', `${label} is auto-derived — read-only`));
-  box.append(el('p', 'genview-d', wf
-    ? 'Wireframe is a mechanical grayscale: every non-neutral role collapses to its neutral equivalent and corners go sharp. It’s generated from your theme, not hand-tuned — edit Light or Dark and it follows.'
-    : 'High contrast pushes every role to meet the AAA contrast floors. It’s derived from your contrast contracts, not hand-tuned — edit Light or Dark and it follows. Verifying it here is the point: confirm it holds before you ship.'));
-  const ok = modeAllPass(currentMode);
-  const chip = el('div', 'genview-chip ' + (ok ? 'ok' : 'no'));
-  chip.append(el('span', 'gv-mark', ok ? '✓' : '✗'),
-    el('span', undefined, ok ? 'Every contrast contract passes in this mode' : 'Some contracts fail in this mode — see Preview → Contrast contracts'));
-  box.append(chip);
-  // Points at Brand › Modes, not the mode strip: managing WHICH modes exist is there (#432 put it in the brand
-  // menu; #1943 left Brand › Modes the one place). No blanket "preview below" promise here any more either — several pages
-  // that reach this note (Size & radius, Layout) render no specimen at all, and Surfaces/Typography pass
-  // an empty specimen list, so the claim was false on 4 of the 7 pages that can show this note.
-  box.append(el('p', 'genview-hint', 'Toggle which modes generate from Brand › Modes.'));
-  return box;
-};
 
 /** Bespoke editors for the object/list levers renderControl can't edit (it only shows them read-only).
  *  Rendered alongside the manifest-advanced slider/enum controls in the (always-visible) extras panel. */
@@ -1223,6 +1152,8 @@ type PageHost = HTMLElement & { readonly [CHROMED]: true };
  *  structural back to advisory without the gate saying so. */
 type Assert<T extends true> = T;
 type PageHostIsUnforgeable = Assert<HTMLElement extends PageHost ? false : true>;
+/** The proof is used, so `noUnusedLocals` keeps it: removing the type above now fails the typecheck by name too. */
+export type { PageHostIsUnforgeable };
 
 /** `--chrome-h` positions the sticky rail AND the sticky mode bar, so it must track the real header.
  *  It used to be read off the mode strip's parent — fine while the strip lived in the chrome, wrong

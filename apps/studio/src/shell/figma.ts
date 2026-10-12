@@ -19,7 +19,7 @@
  * busy state can be found; its `run` does nothing while the write is out.
  */
 import { subscribe } from '../state/store';
-import { glyph, h, hook, pendingLabel, setBusy } from './dom';
+import { glyph, h, hook, menuButton, pendingLabel, setBusy } from './dom';
 
 /** One write the menu offers. `run` is the function the old control ran. */
 export type FigmaAction = {
@@ -43,7 +43,6 @@ export const figmaMenu = (read: FigmaSource, cleanups: (() => void)[]): HTMLElem
   btn.type = 'button';
   btn.setAttribute('aria-haspopup', 'menu');
   btn.setAttribute('aria-controls', 'p3-figma-menu');
-  btn.setAttribute('aria-expanded', 'false');
   btn.append(h('span', 'p3-btn-label', 'Figma'), glyph('chev'));
   const menu = hook(h('div', 'p3-menu p3-figma-menu'), 'figma-menu');
   menu.id = 'p3-figma-menu';
@@ -94,36 +93,8 @@ export const figmaMenu = (read: FigmaSource, cleanups: (() => void)[]): HTMLElem
     }
   };
 
-  const isOpen = (): boolean => menu.isConnected;
-  const onDown = (e: MouseEvent): void => { if (!wrap.contains(e.target as Node)) close(false); };
-  const show = (): void => {
-    fill();
-    wrap.append(menu);
-    btn.setAttribute('aria-expanded', 'true');
-    document.addEventListener('mousedown', onDown);
-    (enabled()[0] ?? btn).focus();
-  };
-  function close(refocus: boolean): void {
-    if (!isOpen()) return;
-    menu.remove();
-    btn.setAttribute('aria-expanded', 'false');
-    document.removeEventListener('mousedown', onDown);
-    if (refocus) btn.focus();
-  }
-  btn.onclick = () => (isOpen() ? close(true) : show());
-  btn.addEventListener('keydown', (e) => {
-    if (e.key === 'ArrowDown' && !isOpen()) { e.preventDefault(); show(); }
-  });
-  menu.addEventListener('keydown', (e) => {
-    const list = enabled();
-    const i = list.indexOf(document.activeElement as HTMLButtonElement);
-    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(true); }
-    else if (e.key === 'Tab') close(false);
-    else if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && list.length) {
-      e.preventDefault();
-      list[(i + (e.key === 'ArrowDown' ? 1 : -1) + list.length) % list.length].focus();
-    } else if ((e.key === 'Home' || e.key === 'End') && list.length) { e.preventDefault(); list[e.key === 'Home' ? 0 : list.length - 1].focus(); }
-  });
+  // Open, close and keys: the shared menu button (#2487 B5). Its list is the enabled items, so arrows pass a disabled one.
+  const { isOpen, close } = menuButton({ wrap, btn, menu, list: enabled, first: () => enabled()[0], before: fill, cleanups });
   // A host update can re-mint the items, or disable the focused one, which would leave focus on BODY with the menu
   // open and its keys dead (#2487 A11). Focus then moves to the first item that can run, or to the button.
   const refill = (): void => {
@@ -132,7 +103,7 @@ export const figmaMenu = (read: FigmaSource, cleanups: (() => void)[]): HTMLElem
     fill();
     if (had && !enabled().includes(document.activeElement as HTMLButtonElement)) (enabled()[0] ?? btn).focus();
   };
-  cleanups.push(() => document.removeEventListener('mousedown', onDown), subscribe('host', refill));
+  cleanups.push(subscribe('host', refill));
   wrap.append(btn);
   return wrap;
 };

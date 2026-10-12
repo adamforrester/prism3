@@ -100,7 +100,7 @@ export const subHead = (title: string): HTMLElement => { const s = el('div', 'su
 export const colorPath = (role: string): string => `color.${role}`;
 
 /** A token-path chip, ALONE: the small mono pill. A long path elides from the LEFT (`direction: rtl` in
- *  `styles.css`, #289), and the path stays one text node so a copy is exact. `tokenPill` in `main.ts` pairs
+ *  `styles.css`, #289), and the path stays one text node so a copy is exact. `tokenPillBadged` below pairs
  *  it with the `inverse` badge. */
 export const tokenPillSpan = (path: string): HTMLElement => {
   const p = hook(el('span', 'tpill mono', path), 'token-pill');
@@ -119,13 +119,14 @@ export const withInverseBadge = (path: string, pill: HTMLElement): HTMLElement =
   wrap.append(badge, pill);
   return wrap;
 };
-/** A token pill with its `inverse` badge where the path carries one: `main.ts`'s `tokenPill`, for the sections. */
+/** A token pill with its `inverse` badge where the path carries one. (It replaced `main.ts`'s `tokenPill`, which went
+ *  in #2487 PR 6.) */
 export const tokenPillBadged = (path: string): HTMLElement => withInverseBadge(path, tokenPillSpan(path));
 /** A token pill that WRAPS on path boundaries, for card grids whose column width is fixed by the
  *  content set (six easing curves → a ~123px card, against ~225px for `motion.easing.expressive`).
  *  (Moved from `main.ts` in UI redesign S9.1 with the Motion sections, its only callers; unchanged.)
  *
- *  Deliberately NOT folded into `tokenPill`: `<wbr>` is not inert under `white-space: nowrap` in
+ *  Deliberately NOT folded into `tokenPillSpan`: `<wbr>` is not inert under `white-space: nowrap` in
  *  Chromium. Putting it in the shared helper took Layout's breakpoint pills from 0 wrapped to 5 and
  *  turned Surfaces' 3 elided pills into 3 wrapped ones — measured against `main` with the same sweep,
  *  which is the only reason it was caught. A shared component is exactly where an "obviously harmless"

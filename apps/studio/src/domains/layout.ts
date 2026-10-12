@@ -38,7 +38,7 @@ import { DOMAINS, LAYOUT_LABELS, pageOfTab, type PageData, type Section } from '
 import { modeLabel } from '../shell/preview';
 import { glyph, h, hook } from '../shell/dom';
 import type { StripAction } from '../shell/notices';
-import { addRowButton, leverBlock, leverOf, promoteLever, slider, sliderReadout, stateLine, textField, tokenLabel, type LeverBlock } from '../ui/lever-kit';
+import { addRowButton, leverBlock, leverOf, promoteLever, slider, sliderReadout, stateLine, textField, tokenLabel, type LeverBlock, keepFocus } from '../ui/lever-kit';
 import { noteSectionEdit } from '../preview/follow-edit';
 import { valuePicker, type PickerValue, type ValuePickerOpts } from '../ui/value-picker';
 
@@ -347,9 +347,8 @@ export const mountLayoutLevers = (host: HTMLElement, cleanups: (() => void)[]): 
   let syncs: (() => void)[] = [];
   const render = (): void => {
     syncs = [];
-    const had = document.activeElement as HTMLElement | null;
-    const focusKey = had && root.contains(had) ? had.getAttribute('data-p3') : null;
-    const focusIndex = focusKey ? [...root.querySelectorAll(`[data-p3="${focusKey}"]`)].indexOf(had!) : -1;
+    // What had focus, found again after the redraw (`keepFocus`, #2487 B5).
+    const { key: focusKey, again } = keepFocus(root);
     const scrollTop = host.scrollTop;
     items = [];
     pickFocus = null;
@@ -369,8 +368,7 @@ export const mountLayoutLevers = (host: HTMLElement, cleanups: (() => void)[]): 
     filter();
     if (focusPick && pickFocus) { focusPick = false; (pickFocus as () => void)(); }
     else if (focusKey) {
-      const same = [...root.querySelectorAll<HTMLElement>(`[data-p3="${focusKey}"]`)];
-      (same[Math.max(0, focusIndex)] ?? same[0])?.focus({ preventScroll: true });
+      again()?.focus({ preventScroll: true });
     }
     if (host.scrollTop !== scrollTop) host.scrollTop = scrollTop;
   };

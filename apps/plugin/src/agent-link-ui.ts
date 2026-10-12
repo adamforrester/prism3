@@ -129,12 +129,17 @@ export const mountAgentLink = (): void => {
 
   // Transport B: while the link is on, hold a socket to the local desktop bridge and relay its commands
   // to the main thread (`agent-bridge-relay.ts`). Nothing connects while the link is off.
-  const relay = createBridgeRelay({
-    open: (url) => new WebSocket(url) as unknown as WsLike,
-    post,
-    schedule: (fn, ms) => setTimeout(fn, ms),
-    cancel: (t) => clearTimeout(t as ReturnType<typeof setTimeout>),
-  });
+  // DEV BUILDS ONLY (#2530): the socket's one origin is listed under `devAllowedDomains`, which Figma honours only
+  // for a development import, so the release build (`PRISM3_DEV` false) drops the relay and its URL entirely.
+  let relay: ReturnType<typeof createBridgeRelay> | null = null;
+  if (PRISM3_DEV) {
+    relay = createBridgeRelay({
+      open: (url) => new WebSocket(url) as unknown as WsLike,
+      post,
+      schedule: (fn, ms) => setTimeout(fn, ms),
+      cancel: (t) => clearTimeout(t as ReturnType<typeof setTimeout>),
+    });
+  }
 
   window.addEventListener('message', (e: MessageEvent) => {
     const m = e.data && (e.data as { pluginMessage?: { type?: string; state?: AgentLinkState } }).pluginMessage;
@@ -143,7 +148,7 @@ export const mountAgentLink = (): void => {
       state = m.state;
       render();
     }
-    relay.fromMain(m as Parameters<typeof relay.fromMain>[0]);
+    relay?.fromMain(m as Parameters<ReturnType<typeof createBridgeRelay>['fromMain']>[0]);
   });
 
   // The slot comes and goes with the app view (the start screen has no frame), and the frame keeps one

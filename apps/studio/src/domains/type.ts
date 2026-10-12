@@ -45,7 +45,7 @@
  * imports `main.ts` (`test-shell-imports.ts`).
  */
 import {
-  brandState, currentMode, getModeLever, getPath, lastError, rebuild, rp, searchQuery, setPage, setSearchHits, subscribe, theme,
+  brandState, currentMode, getModeLever, getPath, lastError, rp, searchQuery, setPage, setSearchHits, subscribe, theme,
 } from '../state/store';
 import { isDerived } from '../state/verdict';
 import {
@@ -60,11 +60,10 @@ import type { FacePin } from '@prism3/engine/theme';
 import { faceStatus, WEIGHT_NAME, type HostFonts } from '../ui/fonts';
 import { valuePicker, type ValuePickerOpts } from '../ui/value-picker';
 import { emToPercentLabel } from '../em-percent';
-import { noteSectionEdit } from '../preview/follow-edit';
 import { DOMAINS, type PageData, type Section } from '../shell/pages';
 import { modeLabel } from '../shell/preview';
 import { glyph, h, hook } from '../shell/dom';
-import { chipChoice, choice, leverBlock, leverOf, promoteLever, refuseOption, selectField, stateLine, subLine, switchButton, textField, tokenLabel, type LeverBlock } from '../ui/lever-kit';
+import { chipChoice, choice, leverBlock, leverOf, promoteLever, refuseOption, selectField, stateLine, subLine, switchButton, textField, tokenLabel, type LeverBlock, keepFocus, pageEdit } from '../ui/lever-kit';
 import type { PageLends } from '../preview/brand';
 
 const PAGE = DOMAINS.find((d) => d.id === 'type') as PageData;
@@ -233,12 +232,7 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
   let addError: string | null = null;
   let items: Item[] = [];
 
-  const edit = (key: string, write: () => void): void => {
-    lastEdited = key;
-    write();
-    noteSectionEdit();   // QA-B9: the edit, and only an edit, reveals its preview section
-    rebuild();
-  };
+  const edit = pageEdit((k) => { lastEdited = k; });   // the shared edit (#2487 B5)
   const fonts = (): HostFonts => lend.fonts();
 
   /** A plain name, and its token under it in mono (QA-B2, which reverses Q68's order), as Surfaces & fills' fields. */
@@ -1149,9 +1143,8 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
   };
 
   const render = (): void => {
-    const had = document.activeElement as HTMLElement | null;
-    const focusKey = had && root.contains(had) ? had.getAttribute('data-p3') : null;
-    const focusIndex = focusKey ? [...root.querySelectorAll(`[data-p3="${focusKey}"]`)].indexOf(had!) : -1;
+    // What had focus, found again after the redraw (`keepFocus`, #2487 B5).
+    const { key: focusKey, again } = keepFocus(root);
     const typed = root.querySelector<HTMLInputElement>('#p3-face-add')?.value ?? '';
     const scrollTop = host.scrollTop;
     items = [];
@@ -1189,8 +1182,7 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
     afterRelease = false;
     if (focusPick && pickFocus) { focusPick = false; (pickFocus as () => void)(); }
     else if (focusKey) {
-      const same = [...root.querySelectorAll<HTMLElement>(`[data-p3="${focusKey}"]`)];
-      const to = same[Math.max(0, focusIndex)] ?? same[0];
+      const to = again();
       // #2233: Release pinned sizes is gone once it has worked, so focus stays in Type scale, on its selected chip,
       // the group's one Tab stop, from which the arrows now reach the chips the release enabled.
       if (to) to.focus({ preventScroll: true });

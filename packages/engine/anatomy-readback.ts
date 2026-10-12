@@ -114,6 +114,8 @@ const HOST_TYPE: Record<FigmaNodePlan['type'], string[]> = {
   NESTED_INSTANCE: ['INSTANCE'],
   // Figma builds a glyph from an SVG document, which arrives as a FRAME wrapping the outline.
   GLYPH: ['FRAME'],
+  // A native slot (#2417) is Figma's own SLOT node, a frame a designer fills on an instance.
+  CONTENT_SLOT: ['SLOT'],
 };
 
 /** Does this subtree hold drawn geometry? The `glyphSvg` predicate — an SVG is submitted and vectors

@@ -470,8 +470,9 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
       const h = have.get(w.name);
       if (!h) { properties.add.push({ name: w.name, type: w.type }); continue; }
       if (h.type !== w.type) { properties.retype.push({ name: w.name, type: w.type, from: h.type, to: w.type }); continue; }
-      // An INSTANCE_SWAP default is a node id the host chose; it has no plan-side value to compare.
-      if (w.type === 'INSTANCE_SWAP') continue;
+      // An INSTANCE_SWAP default is a node id the host chose; it has no plan-side value to compare. A SLOT has no
+      // default at all (#2417).
+      if (w.type === 'INSTANCE_SWAP' || w.type === 'SLOT') continue;
       if (h.defaultValue !== w.default) properties.edit.push({ name: w.name, type: w.type, from: String(h.defaultValue), to: String(w.default) });
     }
     for (const [name, h] of have) if (!wanted.some((w) => w.name === name)) properties.remove.push({ name, type: h.type });

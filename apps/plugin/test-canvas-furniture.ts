@@ -17,8 +17,16 @@
  *                 property's values read in the def's order (#2386).
  *   backdrop/…    on that Button, one backdrop covering exactly the inverse members' box plus `BACKDROP_PAD`, and no
  *                 default member. Mutation: the backdrop not drawn → `backdrop/covers`.
- *   pilot/…       Button, Tag and Text field: the label texts and counts, literal, and each column label over its
+ *   pilot/…       Button, Tag and Text field (the pilot's three): the label texts and counts, literal, and each column label over its
  *                 column as the shim's nodes place it.
+ *   rollout/…     every def that builds a set (#2502, Q212 A): the switch covers each one, held to `componentDefs`; on
+ *                 an earlier layout its dry run reports the moves worked out by hand here (360 for the three buttons,
+ *                 180 for the three icon buttons, none for the rest), the apply moves them, and the next dry run reads
+ *                 up to date; its furniture is drawn with nothing skipped, a backdrop only for the six with `surface`
+ *                 rows, and no label inside its own set.
+ *   clearance/…   every page that holds more than one set, built in page order with each set's furniture drawn after
+ *                 it lands: no label enters another set or its labels, and each later set's labels keep 40px from the
+ *                 set to their left. Mutation: `SET_GAP` back to 160 → `clearance/Buttons`, `clearance/Icon button`.
  *   update/…      Tag with its labels drawn: the dry run reads all 45 members current with no hand edit and nothing
  *                 unstamped, and the as-built record covers 45 members. Mutations: the labels drawn into a member,
  *                 which the dry run then reads as 19 hand edits, or into the set → `update/ignores furniture`.
@@ -44,6 +52,7 @@ import { BASELINE_KEY } from './src/member-baseline';
 import { NS } from './src/persist-figma';
 import { planFurniture, drawFurniture, furnitureLayout, sentenceCase, pruneFurniture, clearFurniture, hasFurniture, type GridMember, type FurnitureApi, type XNode } from './src/canvas-furniture';
 import { ensureFurnitureTemplates } from './src/furniture-templates';
+import { allLeaves } from './src/file-taxonomy';
 import type { TemplatesApi } from './src/furniture-templates';
 
 let failed = 0;
@@ -244,8 +253,6 @@ const valuesOf = (name: string): Record<string, string> => Object.fromEntries(na
 
 section('group / panel / backdrop — Button, built by the real executor');
 {
-  ok(hasFurniture('button') && hasFurniture('tag') && hasFurniture('text-field') && !hasFurniture('icon-button') && !hasFurniture('button-destructive'),
-    'pilot/switch: Button, Tag and Text field are on; Icon button and Button destructive are not');
   const { plans, page, set, api: bApi } = await buildOnPage('button');
   const members = set.children as FNode[];
   const inv = members.filter((m) => valuesOf(String(m.name)).surface === 'inverse');
@@ -261,7 +268,8 @@ section('group / panel / backdrop — Button, built by the real executor');
   ok(JSON.stringify(defs.surface?.variantOptions) === JSON.stringify(['default', 'inverse'])
     && JSON.stringify(defs.appearance?.variantOptions) === JSON.stringify(['filled', 'outline', 'text'])
     && JSON.stringify(defs.size?.variantOptions) === JSON.stringify(['small', 'medium', 'large'])
-    && JSON.stringify(defs.state?.variantOptions) === JSON.stringify(['rest', 'hover', 'focus-visible', 'pressed', 'pending', 'disabled']),
+    // #2501 (owner decision Q213): Pressed, with Pending after it, before Focus visible.
+    && JSON.stringify(defs.state?.variantOptions) === JSON.stringify(['rest', 'hover', 'pressed', 'pending', 'focus-visible', 'disabled']),
     `panel/values: the properties panel reads surface, appearance, size and state in the def's order (#2386) (${JSON.stringify([defs.surface?.variantOptions, defs.appearance?.variantOptions, defs.size?.variantOptions])})`);
 
   const o = await drawFurniture(fakeTemplates(), set, furnitureLayout(plans), 'button');
@@ -278,8 +286,9 @@ section('group / panel / backdrop — Button, built by the real executor');
 
   const rows = furn.filter((n) => tagOf(n).kind === 'label' && Number(n.x) < Number(set.x));
   const cols = furn.filter((n) => tagOf(n).kind === 'label' && Number(n.y) < Number(set.y));
-  ok(JSON.stringify(cols.map(textOf)) === JSON.stringify(['Rest', 'Hover', 'Focus visible', 'Pressed', 'Pending', 'Disabled']),
-    `pilot/button columns: Rest, Hover, Focus visible, Pressed, Pending, Disabled (${JSON.stringify(cols.map(textOf))})`);
+  // #2501 (owner decision Q213): Pressed, with Pending after it, before Focus visible.
+  ok(JSON.stringify(cols.map(textOf)) === JSON.stringify(['Rest', 'Hover', 'Pressed', 'Pending', 'Focus visible', 'Disabled']),
+    `pilot/button columns: Rest, Hover, Pressed, Pending, Focus visible, Disabled (${JSON.stringify(cols.map(textOf))})`);
   const count = (t: string) => rows.filter((n) => textOf(n) === t).length;
   ok(rows.length === 35 && count('Inverse') === 1 && count('Filled') === 2 && count('Outline') === 2 && count('Text') === 2 && count('Default') === 2 && count('Flush') === 2 && count('Small') === 8 && count('Medium') === 8 && count('Large') === 8,
     `pilot/button rows: 35 — Inverse once; Filled, Outline, Text once per surface; Default and Flush inside each Text block only; Small, Medium, Large in each of 8 groups (${rows.length}: ${JSON.stringify(Object.fromEntries([...new Set(rows.map(textOf))].map((t) => [t, count(t)])))})`);
@@ -484,6 +493,120 @@ for (const [id, wantCols, wantRows] of [
   ok(o.backdrops === 0 && !o.skipped.length, `pilot/${id}: no inverse rows, so no backdrop, and nothing skipped (${o.backdrops})`);
 }
 
+/* ── rollout: furniture on every def that builds a set (#2502, owner decision Q212 A) ──────────────────────── */
+section('rollout — every def that builds a set: drawn, converged, and clear of its neighbors');
+{
+  // THE SWITCH COVERS EVERY SET. The oracle is the def registry, never the engine's list: every def with Figma
+  // properties builds a set, except the two that build single components (`emitAsComponents`), which have no grid.
+  const withSet = componentDefs.filter((d) => d.figmaProperties && !d.figmaProperties.emitAsComponents).map((d) => d.id);
+  const single = componentDefs.filter((d) => d.figmaProperties?.emitAsComponents).map((d) => d.id);
+  ok(withSet.length === 27 && withSet.every(hasFurniture) && JSON.stringify(single) === JSON.stringify(['icon', 'spinner']) && !single.some(hasFurniture),
+    `rollout/switch: all 27 defs that build a set have furniture; Icon and Spinner, single components, do not (off: ${JSON.stringify(withSet.filter((id) => !hasFurniture(id)))})`);
+
+  // THE MEMBERS AN EARLIER LAYOUT HOLDS OFF THEIR GROUPED ROW, per def, worked out by hand. Only a def with a `surface`
+  // ROW axis regroups. Button and its two siblings: 360, as `MOVES` above. The three icon buttons: 36 rows of 6
+  // states; the earlier row order is appearance (3) × shape (2) × surface (2) × size (3), the grouped one surface ×
+  // appearance × shape × size, so a row keeps its place only where 12a + 6s + 3u = 18u + 6a + 3s, that is 2a + s =
+  // 5u: (filled, square?, default) — a = 0, s = 0, u = 0 — and a = 2, s = 1, u = 1. Six rows stay, 30 rows × 6 = 180
+  // move. Every other def: none, its layout is the one it had.
+  const MOVES_BY_DEF: Record<string, number> = {
+    button: 360, 'button-destructive': 360, 'button-neutral': 360,
+    'icon-button': 180, 'icon-button-destructive': 180, 'icon-button-neutral': 180,
+  };
+  // THE DEFS WITH A BACKDROP: the six above, the only ones whose rows split by `surface`. Focus ring has `surface`
+  // too, but as its grid axis (two columns), so it gets two column labels and no backdrop (held for the owner, #2502).
+  const BACKDROP = new Set(Object.keys(MOVES_BY_DEF));
+  for (const id of withSet) {
+    const { plans, page, api, set } = await buildOnPage(id);
+    const members = set.children as FNode[];
+    const host = {
+      ...api,
+      root: { ...(api.root as object), findAllWithCriteria: (c: { types: string[] }) => (c.types.length === 1 && c.types[0] === 'COMPONENT_SET' ? page.children.filter((n) => n.type === 'COMPONENT_SET') : (api.root as { findAllWithCriteria: (c: unknown) => unknown[] }).findAllWithCriteria(c)) },
+    } as unknown as UpdateHost;
+    const targets = [{ def: id, plans }];
+    // An earlier layout, as the Button arm above lays one: each member on the row the old order gave it.
+    const built = new Map(members.map((m) => [String(m.name), { x: Number(m.x), y: Number(m.y) }] as const));
+    const rowY = new Map(planSetLayout(plans, 'test').cells.map((c) => [c.row, built.get(c.name)!.y] as const));
+    for (const c of planSetLayout(plans.map((p) => ({ ...p, component: `${id}-before-2502` })), 'test').cells)
+      (members.find((m) => m.name === c.name) as Record<string, unknown>).y = rowY.get(c.row);
+    const want = MOVES_BY_DEF[id] ?? 0;
+    const pre = (await previewUpdate(host, targets)).sets[0];
+    const others = pre ? pre.counts.update + pre.counts.add + pre.counts.drop + pre.counts.rename + pre.counts.handEdited + pre.counts.noBaseline + pre.counts.unstamped + pre.counts.revisionUnknown : -1;
+    ok(!!pre && (pre.counts.move ?? 0) === want && others === 0,
+      `rollout/${id} dry run: ${want} to move on an earlier layout, and nothing else (${pre ? previewLine(pre) : 'no set read'})`);
+    if (want) {
+      const res = await applyUpdate(host as never, api as never, targets, previewHashOf(await previewUpdate(host, targets)));
+      ok(res.outcomes[0]?.moved === want, `rollout/${id} apply: ${want} moved (${applyVerdict(res).lines[0]})`);
+    }
+    const next = (await previewUpdate(host, targets)).sets[0];
+    ok(!!next && previewLine(next) === `${id}: up to date (${members.length} members).` && members.every((m) => Number(m.x) === built.get(String(m.name))!.x && Number(m.y) === built.get(String(m.name))!.y),
+      `rollout/${id} converges: the next dry run reads up to date, every member back where a fresh build puts it (${next ? previewLine(next) : 'no set read'})`);
+
+    const o = await drawFurniture(fakeTemplates(), set, furnitureLayout(plans), id);
+    const furn = furnitureOn(page);
+    const surfaces = new Set(members.map((m) => valuesOf(String(m.name)).surface).filter(Boolean));
+    ok(o.columns + o.rows > 0 && o.skipped.length === 0 && furn.length === o.columns + o.rows + o.backdrops,
+      `rollout/${id} drawn: ${o.columns} column and ${o.rows} row labels, nothing skipped (${JSON.stringify(o.skipped)})`);
+    ok(BACKDROP.has(id) ? o.backdrops === 1 && surfaces.has('inverse') : o.backdrops === 0,
+      `rollout/${id} backdrop: ${BACKDROP.has(id) ? 'one, behind the inverse block' : surfaces.size ? 'none: surface is its grid axis' : 'none: no surface axis'} (${o.backdrops})`);
+    // INSIDE THE SET'S BOX, NOTHING: every label sits outside it.
+    const sb = { x: Number(set.x), y: Number(set.y), w: Number(set.width), h: Number(set.height) };
+    const inside = furn.filter((n) => tagOf(n).kind === 'label' && Number(n.x) < sb.x + sb.w && Number(n.x) + Number(n.width) > sb.x && Number(n.y) < sb.y + sb.h && Number(n.y) + Number(n.height) > sb.y);
+    ok(inside.length === 0, `rollout/${id} outside: no label overlaps its own set (${inside.map(textOf).join(', ')})`);
+  }
+
+  // SIDE BY SIDE (#2471 item 10): the pages that hold more than one set, built in page order by the real executor so
+  // each later set is placed by `placeNewSet`, with its furniture drawn after it lands, as a build does. No label or
+  // backdrop may enter another set's box or another set's labels, and each set's row labels keep at least 40px
+  // (2.5 × the 16px `LABEL_GAP`, written here) from the set to their left, so they read as their own set's.
+  // The pages, by hand; held to the taxonomy so a new shared page is not skipped.
+  const SHARED: Record<string, string[]> = {
+    Buttons: ['button', 'button-destructive', 'button-neutral'],
+    'Icon button': ['icon-button', 'icon-button-destructive', 'icon-button-neutral'],
+    Checkbox: ['checkbox-control', 'checkbox-row', 'checkbox-group'],
+    Radio: ['radio-control', 'radio-row', 'radio-group'],
+    Switch: ['switch-control', 'switch-row'],
+    Tabs: ['tab', 'tabs'],
+  };
+  const fromTaxonomy = Object.fromEntries(allLeaves().filter(({ leaf }) => leaf.defs.length > 1).map(({ leaf }) => [leaf.page, [...leaf.defs]]));
+  ok(JSON.stringify(fromTaxonomy) === JSON.stringify(SHARED), `clearance/pages: the six pages that hold more than one set (${JSON.stringify(Object.keys(fromTaxonomy))})`);
+  const box = (n: FNode) => ({ x: Number(n.x), y: Number(n.y), w: Number(n.width), h: Number(n.height) });
+  const meets = (a: ReturnType<typeof box>, b: ReturnType<typeof box>) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+  for (const [name, ids] of Object.entries(SHARED)) {
+    const page = makePage(`↳ ${name}`);
+    for (const id of ids) {
+      const plans = plansOf(id);
+      const api = makeShim({
+        vars: [...new Set(plans.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]))],
+        styles: [...new Set(plans.flatMap((p) => planTextStyles(p.root)))],
+        effects: [...new Set(plans.flatMap((p) => planEffectStyles(p.root)))],
+        comps: [...new Set([SWAP_TARGET, 'focus-ring', ...plans.flatMap((p) => planComps(p.root))])],
+        page: page as unknown as { children: Node[] },
+        liveRoot: true,
+        identities: true,
+        keyPrefix: id,
+      }) as Record<string, unknown>;
+      await applyComponentPlan(plans, api as never, { targetPage: page as never });
+      // By name: each def's shim numbers its own node ids, so two sets on this page can share one.
+      const set = page.children.find((c) => c.type === 'COMPONENT_SET' && c.name === id) as FNode;
+      await drawFurniture(fakeTemplates(), set, furnitureLayout(plans), id);
+    }
+    const sets = page.children.filter((c) => c.type === 'COMPONENT_SET').sort((a, b) => Number(a.x) - Number(b.x));
+    const furn = furnitureOn(page);
+    const hits: string[] = [];
+    for (const f of furn) {
+      for (const s of sets) if (s.name !== tagOf(f).def && meets(box(f), box(s))) hits.push(`"${textOf(f) || 'backdrop'}" of ${tagOf(f).def} on ${String(s.name)}`);
+      for (const g of furn) if (tagOf(g).def !== tagOf(f).def && meets(box(f), box(g))) hits.push(`"${textOf(f) || 'backdrop'}" of ${tagOf(f).def} on "${textOf(g) || 'backdrop'}" of ${tagOf(g).def}`);
+    }
+    const clear = sets.slice(1).map((s, i) => {
+      const own = furn.filter((f) => tagOf(f).def === s.name);
+      return Math.min(...own.map((f) => Number(f.x))) - (Number(sets[i].x) + Number(sets[i].width));
+    });
+    ok(sets.length === ids.length && hits.length === 0 && clear.every((c) => c >= 40),
+      `clearance/${name}: ${sets.length} sets, no label on a neighboring set or its labels, and each later set's labels ${clear.join(', ')}px clear of the set to their left (${hits.slice(0, 3).join('; ')})`);
+  }
+}
+
 /* ── update: furniture is invisible to the dry run and the as-built record ──────────────────────────────── */
 section('update — the dry run and the as-built record ignore the labels');
 {
@@ -519,12 +642,12 @@ section('prune — furniture whose set is gone');
   };
   const live = make('button', 'S:live');
   const gone = make('button', 'S:gone');
-  const unpiloted = make('icon-button', 'S:live2');
+  const unpiloted = make('icon', 'S:live2');
   const untagged = labelInstance('Top');
   page.appendChild(untagged);
   const n = pruneFurniture(page.children, (id) => id === 'S:live' || id === 'S:live2');
   ok(n === 2 && page.children.includes(live) && !page.children.includes(gone) && !page.children.includes(unpiloted) && page.children.includes(untagged),
-    `prune/stale: the label of a deleted set and one for a def the pilot no longer covers go; a live set's label and an untagged node stay (${n})`);
+    `prune/stale: the label of a deleted set and one for a def with no furniture (Icon, single components) go; a live set's label and an untagged node stay (${n})`);
 }
 
 /* ── templates: `_Label` and `_inverse-backdrop` as file setup builds them ──────────────────────────────── */

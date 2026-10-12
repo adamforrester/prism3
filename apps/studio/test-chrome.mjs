@@ -1241,7 +1241,9 @@ const FOCUS_OFFSET = 2;
 /** Rings drawn INSIDE the control on purpose, by hook: the two scrolling panes, whose ring sits inside their edge
  *  (S2) because outside it would be clipped by the frame. Their ring is held to the color and the width, and to
  *  sitting fully inside (an offset of minus its width). */
-const INNER_RINGS = ['levers-pane', 'preview-body'];
+// The export dialog's preview joins them (#2523, owner decision Q229 A): it fills a column that clips at its edges,
+// so its ring is drawn inside too.
+const INNER_RINGS = ['levers-pane', 'preview-body', 'export-preview'];
 const FOCUS_HEX = (() => {
   const out = join(REPO, 'packages', 'engine', 'out');
   const base = JSON.parse(readFileSync(join(out, 'prism3.tokens.json'), 'utf8'));
@@ -8596,7 +8598,8 @@ for (const { w, h } of WIDTHS) {
           // The preview is a Tab stop of its own (tabindex 0), reached by Tab, whatever the trap does: a scroll region must
           // stay keyboard-reachable.
           const pv = await page.evaluate(() => { const p = document.querySelector('[data-p3="export-dialog"] .p3-export-pre'); return { tabindex: p?.getAttribute('tabindex') ?? null }; });
-          ok(pv.tabindex === '0' && tw.fwd.includes('pre'), `${where}: dialog tab order: the export preview is a Tab stop of its own (tabindex "${pv.tabindex}") and Tab reaches it (${tw.fwd.includes('pre')})`);
+          // Named by its hook since #2523 gave it one (`export-preview`); the walk names a hookless stop by its tag.
+          ok(pv.tabindex === '0' && tw.fwd.includes('export-preview'), `${where}: dialog tab order: the export preview is a Tab stop of its own (tabindex "${pv.tabindex}") and Tab reaches it (${tw.fwd.includes('export-preview')})`);
           // The trap defers to the browser for a focusable node its list does not name: a link planted in the footer, ahead
           // of Cancel, must be reached by Tab, and Tab from it must go on to Cancel (not wrap to the first control).
           await page.evaluate(() => { const a = document.createElement('a'); a.href = '#'; a.textContent = 'planted'; a.setAttribute('data-planted', ''); document.querySelector('[data-p3="export-dialog"] .p3-bardlg-foot').prepend(a); });
@@ -14247,7 +14250,7 @@ const PR5_MENU_FLOOR = 2;
 const PR5_DIALOG_FLOOR = 3;
 /** Rings this sweep found missing and that are filed, by the reader's name for the control: each must still be reached
  *  and still miss, so the entry fails once the gap is fixed and is removed then (a memory, not an exemption). */
-const PR5_RING_GAPS = { 'pre.p3-export-pre': 2523 };
+const PR5_RING_GAPS = {};   // #2523's preview, the one entry, closed by Q229 A: it now draws an inner ring
 /** Walk focus by `key` from where it is, reading each ring while focus stays inside `within`, until it comes back to a
  *  control it read (or leaves). Returns the rings read. */
 const pr5Walk = async (page, within, key) => {
@@ -14380,6 +14383,34 @@ for (const host of ['web', 'figma']) {
         console.log(`  ${where}: export dialog ${rings.length} rings`);
         ok(rings.length >= PR5_DIALOG_FLOOR && miss.length === 0,
           `${where}: with the export dialog open, each of its ${rings.length} controls walked by Tab draws the chrome ring (floor ${PR5_DIALOG_FLOOR})${miss.length ? ` — ${miss.slice(0, 3).map((x) => `${x.r.hook}: ${x.m.join(', ')}`).join('; ')}` : ''}`);
+        // #2523 (owner decision Q229 A): the preview's ring is the chrome's, drawn INSIDE its edge, and nothing clips it
+        // at either extreme of its own scroll, the way it scrolls (it fills a column that clips at its edges, which a
+        // ring 2px outside would lose on every side). Read at its four scroll corners: the ring by `FOCUS_RING_READ`,
+        // held to `ringMisses` as an inner ring, and the preview's box inside every ancestor that clips.
+        step = 'the export preview at its scroll extremes';
+        for (let i = 0; i < 40 && !(await page.evaluate(() => document.activeElement?.matches('[data-p3="export-preview"]'))); i++) await page.keyboard.press('Tab');
+        const corners = [];
+        for (const [x, y] of [['start', 'start'], ['end', 'end'], ['start', 'end'], ['end', 'start']]) {
+          const clip = await page.evaluate(([x, y]) => {
+            const pre = document.activeElement;
+            if (!pre?.matches('[data-p3="export-preview"]')) return { focused: false };
+            pre.scrollLeft = x === 'start' ? 0 : pre.scrollWidth; pre.scrollTop = y === 'start' ? 0 : pre.scrollHeight;
+            const r = pre.getBoundingClientRect();
+            const cut = [];
+            for (let n = pre.parentElement; n && n !== document.documentElement; n = n.parentElement) {
+              const cs = getComputedStyle(n);
+              if (cs.overflowX === 'visible' && cs.overflowY === 'visible') continue;
+              const c = n.getBoundingClientRect();
+              if (r.left < c.left - 0.5 || r.right > c.right + 0.5 || r.top < c.top - 0.5 || r.bottom > c.bottom + 0.5) cut.push(n.className);
+            }
+            return { focused: true, scrolled: (x === 'start' ? pre.scrollLeft === 0 : pre.scrollLeft > 0) && (y === 'start' ? pre.scrollTop === 0 : pre.scrollTop > 0), cut };
+          }, [x, y]);
+          const ring = clip.focused ? await page.evaluate(FOCUS_RING_READ, [false, [], INSPECT_LEGACY]) : null;
+          corners.push({ at: `${x}/${y}`, ...clip, miss: ring ? ringMisses(ring, 'light') : ['not focused'], ring: ring && `${ring.width}px ${ring.hex} at ${ring.offset}px, ${ring.r}:1` });
+        }
+        const badCorners = corners.filter((c) => !c.focused || !c.scrolled || c.cut.length || c.miss.length);
+        ok(corners.length === 4 && badCorners.length === 0,
+          `${where}: #2523 the export preview draws the chrome ring inside its edge, ${FOCUS_WIDTH_MIN}px or more at ${NONTEXT_MIN}:1, and nothing clips it at any extreme of its scroll (${corners.map((c) => `${c.at} ${c.ring ?? 'no ring'}`).join('; ')}${badCorners.length ? ` — WRONG: ${badCorners.map((c) => `${c.at}: ${!c.focused ? 'not focused' : !c.scrolled ? 'did not scroll' : ''}${c.cut.length ? ` clipped by ${c.cut.join(', ')}` : ''}${c.miss.length ? ` ${c.miss.join(', ')}` : ''}`).join(' | ')}` : ''})`);
         for (const [hk, issue] of Object.entries(PR5_RING_GAPS)) {
           ok(misses.some((x) => x.r.hook === hk), `${where}: [GAP #${issue}] ${hk} is reached in the export dialog and still draws no chrome ring (fixed: remove it from PR5_RING_GAPS)`);
         }
@@ -14432,6 +14463,56 @@ for (const host of ['web', 'figma']) {
       ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
     } finally { await ctx.close(); }
   }
+}
+// =============================================================================================
+// §47 — ONE MENU BUTTON (#2487 PR 6, B5: the menu button's three copies had drifted)
+// =============================================================================================
+// The bar's Theme menu, the preview's Inspect menu and (plugin) the Figma menu share one menu button. Each, by keyboard:
+//   · ArrowDown on the closed button opens the menu, with focus inside it;
+//   · Escape closes it onto the button, and the key goes no further: a listener the TEST adds on `document` must not
+//     hear it (before, Theme's Escape reached whatever sat under the menu).
+// INDEPENDENCE (docs/34): the expectations are typed here (open, focus inside, closed, focus on the button, 0 Escapes
+// heard below); ACTUAL is the browser's `aria-expanded`, `document.activeElement` and the test's own listener.
+// Mutations, each failing here by name: the button's ArrowDown removed → every `ArrowDown opens` arm; Escape's
+// `stopPropagation` removed → every `Escape … goes no further` arm; one menu back on its own copy without either → its
+// own two arms (Theme, the drift the review found).
+// =============================================================================================
+console.log(`\nOne menu button (#2487 PR 6)\n${'='.repeat(78)}`);
+for (const [host, menus] of [['web', [['Theme', 'theme-toggle', 'theme-menu'], ['Inspect', 'inspect-open', 'inspect-menu']]], ['figma', [['Theme', 'theme-toggle', 'theme-menu'], ['Inspect', 'inspect-open', 'inspect-menu'], ['Figma', 'figma-open', 'figma-menu']]]]) {
+  const where = `§47 ${host} light 1280`;
+  const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900 });
+  let step = 'open';
+  try {
+    await page.evaluate(() => { window.__p3Esc = 0; document.addEventListener('keydown', (e) => { if (e.key === 'Escape') window.__p3Esc++; }); });
+    for (const [name, btnHook, menuHook] of menus) {
+      step = `${name}: ArrowDown on the button`;
+      await hooks.need(page, `[data-p3="${btnHook}"]`, { timeout: 10000 });
+      await page.locator(`[data-p3="${btnHook}"]`).focus();
+      await page.keyboard.press('ArrowDown');
+      const opened = await page.evaluate(([b, m]) => {
+        const btn = document.querySelector(`[data-p3="${b}"]`);
+        const menu = document.querySelector(`[data-p3="${m}"]`);
+        return { expanded: btn?.getAttribute('aria-expanded') ?? null, menu: !!menu, inside: !!menu && menu.contains(document.activeElement) };
+      }, [btnHook, menuHook]);
+      ok(opened.expanded === 'true' && opened.menu && opened.inside, `${where} ${name}: ArrowDown on the closed button opens the menu, focus inside it (${JSON.stringify(opened)})`);
+      step = `${name}: Escape in the menu`;
+      // Open by a click when ArrowDown did not, so this arm reads Escape alone, never the ArrowDown arm's failure.
+      if (!opened.menu) await hooks.click(page.locator(`[data-p3="${btnHook}"]`));
+      await page.evaluate(() => { window.__p3Esc = 0; });
+      await page.keyboard.press('Escape');
+      const closed = await page.evaluate(([b, m]) => ({
+        expanded: document.querySelector(`[data-p3="${b}"]`)?.getAttribute('aria-expanded') ?? null,
+        menu: !!document.querySelector(`[data-p3="${m}"]`),
+        onBtn: document.activeElement?.getAttribute('data-p3') === b,
+        heard: window.__p3Esc,
+      }), [btnHook, menuHook]);
+      ok(closed.expanded === 'false' && !closed.menu && closed.onBtn && closed.heard === 0,
+        `${where} ${name}: Escape closes the menu onto its button and goes no further (${JSON.stringify(closed)})`);
+    }
+    ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+  } finally { await ctx.close(); }
 }
 // #2238: the check box is measured on both hosts, in both chrome themes, somewhere in the sweep.
 for (const [k, n] of Object.entries(BOXES_BY)) ok(n > 0, `#2238 ${k}: the contrast audit measured check boxes in the sweep (${n})`);

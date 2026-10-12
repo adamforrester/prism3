@@ -2,10 +2,10 @@
  "file": "apps/studio/src/styles.css",
  "note": "Written only by `node apps/studio/lint-live-css.mjs --accept` (#2201). Never by regen, never by the gate.",
  "coverage": {
-  "web|light": 285,
-  "web|dark": 89,
-  "figma|light": 218,
-  "figma|dark": 88
+  "web|light": 292,
+  "web|dark": 91,
+  "figma|light": 240,
+  "figma|dark": 90
  },
  "live": {
   ":root #1": {
@@ -1020,7 +1020,7 @@
    "seen": {
     "suite": "test:chrome",
     "host": "web",
-    "scheme": "light",
+    "scheme": "dark",
     "url": "/index.html"
    }
   },
@@ -1042,7 +1042,7 @@
    "seen": {
     "suite": "test:chrome",
     "host": "web",
-    "scheme": "light",
+    "scheme": "dark",
     "url": "/index.html"
    }
   },
@@ -4334,7 +4334,7 @@
    "seen": {
     "suite": "test:chrome",
     "host": "web",
-    "scheme": "light",
+    "scheme": "dark",
     "url": "/index.html"
    }
   },
@@ -4348,7 +4348,7 @@
    "seen": {
     "suite": "test:chrome",
     "host": "web",
-    "scheme": "light",
+    "scheme": "dark",
     "url": "/index.html"
    }
   },
@@ -5680,9 +5680,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
+    "host": "figma",
     "scheme": "light",
-    "url": "/index.html"
+    "url": "/plugin?figma=light"
    }
   },
   ".mtbl-scroll #1": {
@@ -5714,9 +5714,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
+    "host": "figma",
     "scheme": "light",
-    "url": "/index.html"
+    "url": "/plugin?figma=light"
    }
   },
   ".mtbl-tbl #1": {
@@ -5731,9 +5731,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
+    "host": "figma",
     "scheme": "light",
-    "url": "/index.html"
+    "url": "/plugin?figma=light"
    }
   },
   ".mtbl-tbl th #1": {
@@ -5752,9 +5752,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
+    "host": "figma",
     "scheme": "light",
-    "url": "/index.html"
+    "url": "/plugin?figma=light"
    }
   },
   ".mtbl-tbl td #1": {
@@ -5773,9 +5773,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
+    "host": "figma",
     "scheme": "light",
-    "url": "/index.html"
+    "url": "/plugin?figma=light"
    }
   },
   ".mtbl-tbl thead th #1": {
@@ -5799,9 +5799,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
+    "host": "figma",
     "scheme": "light",
-    "url": "/index.html"
+    "url": "/plugin?figma=light"
    }
   },
   ".mtbl-tbl tbody tr:last-child td #1": {
@@ -5814,9 +5814,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
+    "host": "figma",
     "scheme": "light",
-    "url": "/index.html"
+    "url": "/plugin?figma=light"
    }
   },
   ".mtbl-stick #1": {
@@ -5843,9 +5843,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
+    "host": "figma",
     "scheme": "light",
-    "url": "/index.html"
+    "url": "/plugin?figma=light"
    }
   },
   ".mtbl-tbl thead .mtbl-stick #1": {
@@ -5865,9 +5865,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
+    "host": "figma",
     "scheme": "light",
-    "url": "/index.html"
+    "url": "/plugin?figma=light"
    }
   },
   ".mtbl-mode #1": {
@@ -5879,9 +5879,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
+    "host": "figma",
     "scheme": "light",
-    "url": "/index.html"
+    "url": "/plugin?figma=light"
    }
   },
   ".mtbl-fill #1": {
@@ -5897,9 +5897,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
+    "host": "figma",
     "scheme": "light",
-    "url": "/index.html"
+    "url": "/plugin?figma=light"
    }
   },
   ".mtbl-fill.mtbl-spec #1": {
@@ -5914,9 +5914,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
+    "host": "figma",
     "scheme": "light",
-    "url": "/index.html"
+    "url": "/plugin?figma=light"
    }
   },
   ".mtbl-spec-t #1": {
@@ -5934,9 +5934,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".mtbl-name #1": {
@@ -5949,9 +5949,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
+    "host": "figma",
     "scheme": "light",
-    "url": "/index.html"
+    "url": "/plugin?figma=light"
    }
   },
   ".tf-stat #1": {
@@ -5963,9 +5963,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".sl-note #1": {
@@ -6016,9 +6016,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".tpw-mark #1": {
@@ -6030,9 +6030,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".tpw-mark.yes #1": {
@@ -6043,9 +6043,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".tpw-mark.no #1": {
@@ -6056,9 +6056,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".tpw-samp #1": {
@@ -6070,9 +6070,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".ltbl-who #1": {
@@ -6087,9 +6087,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
+    "host": "figma",
     "scheme": "light",
-    "url": "/index.html"
+    "url": "/plugin?figma=light"
    }
   },
   ".ltbl-who.none #1": {
@@ -6101,9 +6101,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
+    "host": "figma",
     "scheme": "light",
-    "url": "/index.html"
+    "url": "/plugin?figma=light"
    }
   },
   ".ltbl-samp #1": {
@@ -6117,9 +6117,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".shp-who #1": {
@@ -6130,9 +6130,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
+    "host": "figma",
     "scheme": "light",
-    "url": "/index.html"
+    "url": "/plugin?figma=light"
    }
   },
   ".shp-label #1": {
@@ -6144,9 +6144,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
+    "host": "figma",
     "scheme": "light",
-    "url": "/index.html"
+    "url": "/plugin?figma=light"
    }
   },
   ".shp-sw #1": {
@@ -6175,9 +6175,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
+    "host": "figma",
     "scheme": "light",
-    "url": "/index.html"
+    "url": "/plugin?figma=light"
    }
   },
   ".shp-hbar #1": {
@@ -6209,9 +6209,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
+    "host": "figma",
     "scheme": "light",
-    "url": "/index.html"
+    "url": "/plugin?figma=light"
    }
   },
   ".shp-wbar #1": {
@@ -6243,9 +6243,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
+    "host": "figma",
     "scheme": "light",
-    "url": "/index.html"
+    "url": "/plugin?figma=light"
    }
   },
   ".shp-wbar.zero #1": {
@@ -6273,9 +6273,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
+    "host": "figma",
     "scheme": "light",
-    "url": "/index.html"
+    "url": "/plugin?figma=light"
    }
   },
   ".shp-line #1": {
@@ -6288,9 +6288,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
+    "host": "figma",
     "scheme": "light",
-    "url": "/index.html"
+    "url": "/plugin?figma=light"
    }
   },
   ".shp-icon #1": {
@@ -6321,9 +6321,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
+    "host": "figma",
     "scheme": "light",
-    "url": "/index.html"
+    "url": "/plugin?figma=light"
    }
   },
   ".shp-shapes #1": {
@@ -6338,9 +6338,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
+    "host": "figma",
     "scheme": "light",
-    "url": "/index.html"
+    "url": "/plugin?figma=light"
    }
   },
   ".shp-shape #1": {
@@ -6380,9 +6380,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
+    "host": "figma",
     "scheme": "light",
-    "url": "/index.html"
+    "url": "/plugin?figma=light"
    }
   },
   ".shp-shape.on #1": {
@@ -6397,9 +6397,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
+    "host": "figma",
     "scheme": "light",
-    "url": "/index.html"
+    "url": "/plugin?figma=light"
    }
   },
   ".shp-bar #1": {
@@ -6427,9 +6427,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
+    "host": "figma",
     "scheme": "light",
-    "url": "/index.html"
+    "url": "/plugin?figma=light"
    }
   },
   ".shp-panel #1": {
@@ -6660,9 +6660,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   "@media (max-width: 640px) » #app #1": {
@@ -7011,45 +7011,16 @@
  },
  "dead": [
   ".faint #1",
-  ".startview #1",
-  ".start-col #1",
-  ".start-mark #1",
-  ".start-h #1",
-  ".start-lede #1",
-  ".start-card #1",
-  ".start-hero #1",
-  ".start-ct #1",
-  ".start-cd #1",
-  ".start-color-row #1",
-  ".start-swatch #1",
   ".start-hex #1",
   ".start-go #1",
   ".start-go:hover #1",
-  ".start-row2 #1",
-  ".start-c2t #1",
-  ".start-alt #1",
-  ".start-alt:hover #1",
-  ".start-chips #1",
-  ".start-chip #1",
-  ".start-chip:hover #1",
-  ".start-chip .dot #1",
   ".chrome #1",
-  ".brandmark #1",
-  ".wordmark #1",
   ".barbtn.open #1",
   ".barbtn .caret #1",
   ".barbtn.primary #1",
   ".barbtn.primary:hover #1",
-  ".bar-seed #1",
-  ".bar-seed.bad #1",
   ".start-file #1",
   ".start-upload #1",
-  ".start-imp-err #1",
-  ".msb #1",
-  ".msb.on #1",
-  ".msb-k #1",
-  ".msb-v #1",
-  ".msb.on .msb-v #1",
   ".pfield.r #1",
   ".panchor #1",
   ".panchor.dia::before #1",
@@ -7060,8 +7031,6 @@
   ".panel #1",
   ".rx #1",
   ".rx:hover #1",
-  ".addbtn #1",
-  ".addbtn:hover #1",
   ".band #1",
   ".band:last-child #1",
   ".strip #1",
@@ -7073,25 +7042,12 @@
   ".select.sm #1",
   ".select.fill #1",
   ".chips #1",
-  ".chips-legend #1",
-  ".stage-vol #1",
   ".pv-tally.no #1",
   ".mo-ramp td:nth-child(4) #1",
-  ".mo-playnote #1",
   ".cset-radio ~ .cset-name #1",
   ".cset-reason #1",
   ".cset-off .cset-name #1",
   ".cset-reason #2",
-  ".cs-preview #1",
-  ".genview #1",
-  ".genview-t #1",
-  ".genview-d #1",
-  ".genview-chip #1",
-  ".genview-chip.ok #1",
-  ".genview-chip.no #1",
-  ".gv-mark #1",
-  ".genview-hint #1",
-  ".psec-h #1",
   ".pair-path #1",
   ".pair-sub #1",
   ".tok-callout #1",
@@ -7101,9 +7057,7 @@
   ".mtbl-mode .select.set #1",
   ".mtbl-mode .tpill #1",
   ".tpw-mark.unknown #1",
-  ".fz-list #1",
   "@media (max-width: 900px) » .pfield.r #1",
-  "@media (max-width: 640px) » .lab #1",
-  "@media (max-width: 380px) » .wordmark #1"
+  "@media (max-width: 640px) » .lab #1"
  ]
 }

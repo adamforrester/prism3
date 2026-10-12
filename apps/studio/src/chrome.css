@@ -399,8 +399,10 @@
 /* QA-B9, QA-B17: the two panes' eased scroll (an edit's reveal, a jump link) glides on the default transition's
    duration and curve. A scroll takes no CSS curve, so `preview/follow-edit.ts` reads these and steps it. */
 :is(.p3-levers, .p3-preview-body) { --p3-scroll-dur: var(--p3-transition-dur); --p3-scroll-ease: var(--p3-transition-ease); }
-/* The two panes scroll, so a keyboard can focus them; their ring sits inside their edge (S2). */
-:is(.p3-levers, .p3-preview-body):focus-visible { outline: var(--p3-focus-width) solid var(--p3-focus-ring); outline-offset: calc(-1 * var(--p3-focus-width)); }
+/* The two panes scroll, so a keyboard can focus them; their ring sits inside their edge (S2). So does the export
+   dialog's preview, a Tab stop that scrolls inside a scrolling column (#2523, owner decision Q229 A): drawn outside, its
+   ring would be clipped at the column's edges. */
+:is(.p3-levers, .p3-preview-body, .p3-export-pre):focus-visible { outline: var(--p3-focus-width) solid var(--p3-focus-ring); outline-offset: calc(-1 * var(--p3-focus-width)); }
 
 /* ── the preview header (S1.3): title, the mode control and Inspect, on one row (Q2) ─────── */
 .p3-preview-title {

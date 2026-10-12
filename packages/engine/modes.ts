@@ -1026,11 +1026,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     mutedStep: number;                // the muted-ink palette step
     page: boolean;                    // the `on-*` pairs exist only on the page — see the call site
   };
-  // Bold semantic ink — gated against BOTH grounds it is placed on. See the call site in
-  // `buildContent` for why the floor alone was not enough.
-  const semanticInk = (r: Role, min: number): RatedNum =>
-    chromatic(r2p[r], theme.roleAnchorStep[r], floorRgb, min, false, [subtleTint(r).rgb]);
-  // The same rule against an arbitrary ground (#892). `buildContent` runs twice — once for the page
+  // Bold semantic ink, gated against BOTH grounds it is placed on, here against an arbitrary ground (#892). `buildContent` runs twice — once for the page
   // and once for the inverse band — and the SECOND ground is the whole reason this is parameterised
   // rather than duplicated: a status ink is gated against the floor AND against its own tint, so an
   // inverse ink derived by a hand-written near-copy would quietly gate on one ground while its page
@@ -1223,7 +1219,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // The same five for a banner or badge sitting on a dark hero / inverse band (#892).
   //
   // A PREREQUISITE, NOT A CONVENIENCE, and the reason is the load-bearing half of #892's
-  // "generated, not authored" argument. `semanticInk` gates each status ink against TWO grounds —
+  // "generated, not authored" argument. `semanticInkOn` gates each status ink against TWO grounds —
   // the floor AND its own tint — because the alert/banner pattern puts the ink on the tint rather
   // than on the page (see its call site in `buildContent`). So the inverse form of `text.danger` is
   // "the same rule against a different ground" only if the inverse tint EXISTS to be the second

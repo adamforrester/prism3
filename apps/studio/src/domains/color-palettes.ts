@@ -28,7 +28,7 @@ import {
 import { DOMAINS, type PageData, type Section } from '../shell/pages';
 import { glyph, h, hook } from '../shell/dom';
 import { noteEdit } from '../preview/follow-edit';
-import { choice, colorField, inlineConfirm, leverBlock, onCommitted, perFrame, setText, leverOf, selectField, sliderReadout, slider, stateLine, subLine, type LeverBlock } from '../ui/lever-kit';
+import { choice, colorField, inlineConfirm, leverBlock, onCommitted, perFrame, setText, leverOf, selectField, sliderReadout, slider, stateLine, subLine, type LeverBlock, keepFocus } from '../ui/lever-kit';
 
 const PAGE = (DOMAINS.find((d) => d.id === 'color') as { subpages: readonly PageData[] }).subpages.find((p) => p.id === 'palettes')!;
 const pad = (n: number): string => String(n).padStart(3, '0');
@@ -276,9 +276,8 @@ export const mountPalettesLevers = (host: HTMLElement, cleanups: (() => void)[])
   };
 
   const render = (): void => {
-    const had = document.activeElement as HTMLElement | null;
-    const focusKey = had && root.contains(had) ? had.getAttribute('data-p3') : null;
-    const focusIndex = focusKey ? [...root.querySelectorAll(`[data-p3="${focusKey}"]`)].indexOf(had!) : -1;
+    // What had focus, found again after the redraw (`keepFocus`, #2487 B5).
+    const { key: focusKey, again } = keepFocus(root);
     shapeKey = shape();
     drawn = [];
     const parts: HTMLElement[] = [h('p', 'p3-intro', PAGE.intro)];
@@ -315,7 +314,7 @@ export const mountPalettesLevers = (host: HTMLElement, cleanups: (() => void)[])
     root.replaceChildren(...parts);
     sync();
     filter();
-    if (focusKey) [...root.querySelectorAll<HTMLElement>(`[data-p3="${focusKey}"]`)][Math.max(0, focusIndex)]?.focus({ preventScroll: true });
+    if (focusKey) again()?.focus({ preventScroll: true });
   };
 
   const sync = (): void => {

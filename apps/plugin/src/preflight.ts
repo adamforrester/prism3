@@ -28,6 +28,9 @@
  *     before the mark existed. Engine-shaped → Prism3's, and the write stamps it. Anything else,
  *     including empty → someone else's. The mark comes first because the description is the
  *     designer's to edit: judged by it alone, one rewritten description refused every later apply.
+ *     A GRID style is not judged here at all (#2467, owner decision Q234 A): its names are bare sizes,
+ *     so a client's own `sm` is a collision to expect, and the executor skips that one size rather than
+ *     this refusing the whole apply. It judges by the mark and the signature alone (`isPrism3GridStyle`).
  *   · VARIABLE — no marker of its own: it is judged by its collection, plus a `resolvedType` check against
  *     the type the plan writes, which is the conflict that throws. `provenance.ts` says why.
  *
@@ -180,7 +183,14 @@ export const preflightApply = async (
   for (const kind of Object.keys(STYLE_GETTERS) as StyleKind[]) {
     const planned = plan.styles[kind];
     if (!planned.length) continue;
-    const existing = new Map((await STYLE_GETTERS[kind](api)).map((s) => [s.name, s] as const));
+    // GRID raises no conflict (owner decision Q234 A). Its names are bare sizes (`sm`), a name a client's
+    // own grid style may well carry, so a collision is answered per size: the executor skips that size,
+    // leaves the client's style untouched, and the result line names it (`write-grid-styles.ts`). The rest
+    // of the apply goes ahead. Ownership there is `isPrism3GridStyle` — the mark, else the engine's
+    // description — with no legacy presumption, so a client's `sm` is never adopted in any era.
+    if (kind === 'grid') continue;
+    const all = await STYLE_GETTERS[kind](api);
+    const existing = new Map(all.map((s) => [s.name, s] as const));
     for (const name of planned) {
       const s = existing.get(name);
       // The mark first (#1884), then the two kinds of evidence a style written before the mark carries.

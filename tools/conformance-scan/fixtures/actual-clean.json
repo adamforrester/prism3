@@ -230,9 +230,9 @@
         "effects[1].blendMode": { "kind": "value", "value": "NORMAL" }
       }
     },
-    "grid|Grid / xs": {
+    "grid|xs": {
       "kind": "grid",
-      "name": "Grid / xs",
+      "name": "xs",
       "props": {
         "layoutGrids.length": { "kind": "value", "value": "1" },
         "layoutGrids[0].pattern": { "kind": "value", "value": "COLUMNS" },

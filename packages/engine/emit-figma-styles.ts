@@ -227,14 +227,19 @@ export const buildFigmaGradient = (theme: Theme): FigmaPaintStylesFile => {
 // breakpoint mode). Those numbers are the responsive source of truth, but a number cannot BECOME a
 // live Figma column grid — Figma has no variable→layout-grid binding. So a designer got the values
 // and no applicable grid. This emits the missing artifact: one reusable Grid Style per breakpoint,
-// sourced from the SAME layout data (columns/gutter/margin), so a designer applies `Grid / md` to a
+// sourced from the SAME layout data (columns/gutter/margin), so a designer applies `md` to a
 // frame and sees the md column grid.
 //
 // STATIC, BY THE PLATFORM — a Figma grid style cannot mode-switch off a variable, so N breakpoints
-// emit N SEPARATE grid styles (`Grid / sm`, `Grid / md`, …), coexisting with the `layout` variable
+// emit N SEPARATE grid styles (`sm`, `md`, …), coexisting with the `layout` variable
 // collection. Two representations of the one dataset: the variables stay responsive-by-mode, the grid
 // styles are the fixed, apply-able form. Names follow the auto breakpoint names (`theme.layout.grid`
-// `bp`), so a 2-breakpoint brand yields exactly `Grid / sm` + `Grid / md`.
+// `bp`), so a 2-breakpoint brand yields exactly `sm` + `md`.
+//
+// BARE NAMES, NO GROUP (#2467, owner decision Q185 A). Until #2467 these were `Grid / <bp>`, which Figma's
+// styles panel shows as a `Grid` group holding everything in the grid list. The plugin renames an old
+// `Grid / <bp>` it owns to `<bp>` in place, keeping its id (`apps/plugin/src/write-grid-styles.ts`), so a
+// file applied before this keeps every layer linked.
 //
 // COLUMNS/STRETCH: the columns stretch to fill the container, `gutterSize` between them and `offset`
 // (the margin) inset from the container edges — the mobile-first responsive grid the layout data
@@ -260,7 +265,7 @@ const GRID_OVERLAY_COLOR: FigmaColor = { r: 1, g: 0, b: 0, a: 0.1 };
 
 export const buildFigmaGridStyles = (theme: Theme): FigmaGridStylesFile => {
   const styles: FigmaGridStyle[] = theme.layout.grid.map((g) => ({
-    name: `Grid / ${g.bp}`,
+    name: g.bp,
     description: figmaGridStyleDescription(g.columns, g.bp, g.gutterPx, g.marginPx),
     layoutGrids: [{
       pattern: 'COLUMNS',

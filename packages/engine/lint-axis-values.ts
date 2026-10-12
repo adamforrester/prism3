@@ -395,7 +395,8 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'existing member of a set that gains this axis. Every field built before #2266 is the medium field, so '
       + 'medium first keeps those members\' look as well as their keys; `small` first would rewrite them as '
       + 'the small field in place. The code enum (`props.size`) keeps the ladder\'s own order; '
-      + '`lint-rung-names.ts` DEFAULT_FIRST admits the split. Held for the owner on #2266.',
+      + '`lint-rung-names.ts` DEFAULT_FIRST admits the split. Decided by the owner: Q221 B (2026-10-10), the named '
+      + 'exception to #2501\'s smallest-to-largest, because Figma takes the default from the top-left member.',
   },
   {
     axis: 'size',
@@ -614,6 +615,16 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'this is a width-to-height proportion that holds while the actual dimensions flex, argued in '
       + '`VARIANT_AXES`. SEVEN values: the three the owner settled on in #1316, plus the portrait 2:3, 3:4 '
       + 'and 4:5 and the landscape 3:2 a measured commerce file needed (#2345), ordered tallest to widest.',
+  },
+  {
+    axis: 'alignment',
+    values: ['start', 'center'],
+    defs: ['tabs'],
+    relation: 'sole',
+    reason:
+      'Where a tab list sits in its bar (#2518, owner Q222 A): at the start edge, as Tabs was approved (#2416), or '
+      + 'centered in a bar that spans its placement, the baseline full width either way. `start` LEADS because it '
+      + 'is the code default and every member before #2518.',
   },
   {
     axis: 'inset',
