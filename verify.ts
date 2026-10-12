@@ -1359,6 +1359,42 @@ export const timeoutSelfCheck = async (): Promise<string[]> => {
   return fails;
 };
 
+// ---- KEEP A LOCAL RUN AWAKE (#2547, #2550, owner Q252) ---------------------------------------------
+// A local verify on the owner's laptop takes about half an hour, and the laptop sleeps when left. A sleeping display
+// stops Chromium producing frames, so a browser gate's click or key press never completes (measured: three of the
+// smoke and chrome hangs fell in display-off or system-sleep windows, `pmset -g log`). On macOS the run holds
+// `caffeinate` for exactly its own lifetime: `-w <pid>` releases the assertion when this process exits, however it
+// exits. `-d` the display, `-i` idle sleep, `-m` disk, `-s` system sleep on AC power, `-u` the user as active. Any
+// other platform (CI's Linux) spawns nothing, so CI is unchanged. A missing `caffeinate` is not an error: the run goes
+// on as it did before.
+export const CAFFEINATE_ARGS = (pid: number): string[] => ['-dimsu', '-w', String(pid)];
+type SpawnLike = (cmd: string, args: string[], opts: { stdio: 'ignore' }) => { unref(): void; on(ev: 'error', f: () => void): unknown };
+export const keepAwake = (platform: NodeJS.Platform = process.platform, pid: number = process.pid, spawnFn: SpawnLike = spawn as unknown as SpawnLike): boolean => {
+  if (platform !== 'darwin') return false;
+  try {
+    const child = spawnFn('caffeinate', CAFFEINATE_ARGS(pid), { stdio: 'ignore' });
+    child.on('error', () => { /* no caffeinate on this Mac: the run goes on as before */ });
+    child.unref();
+    return true;
+  } catch {
+    return false;
+  }
+};
+// Its check, with a recording spawn: darwin starts `caffeinate -dimsu -w <pid>` once, and no other platform starts
+// anything. EXPECTED is the argv written here, not read from `CAFFEINATE_ARGS`.
+{
+  const calls: [string, string[]][] = [];
+  const rec: SpawnLike = (cmd, args) => { calls.push([cmd, args]); return { unref() {}, on() { return undefined; } }; };
+  const mac = keepAwake('darwin', 4242, rec);
+  if (!mac || JSON.stringify(calls) !== JSON.stringify([['caffeinate', ['-dimsu', '-w', '4242']]])) {
+    selfFails.push(`keepAwake on darwin should start "caffeinate -dimsu -w 4242" once (started ${JSON.stringify(calls)}): a local run on the owner's Mac would sleep mid-verify`);
+  }
+  for (const other of ['linux', 'win32'] as const) {
+    calls.length = 0;
+    if (keepAwake(other, 4242, rec) || calls.length) selfFails.push(`keepAwake on ${other} should start nothing (started ${JSON.stringify(calls)}): CI would run caffeinate`);
+  }
+}
+
 if (selfFails.length) {
   console.error("\n❌ the gate runner's own checks are broken — it cannot see what it claims to:\n");
   for (const f of selfFails) console.error(`    ${f}`);
@@ -1396,6 +1432,10 @@ if (isMain) {
     console.error('  not an error: the prose gates would scan a stale bundle and report it clean (#302, #310).');
     process.exit(1);
   }
+
+  // Before the first gate, and only for a real run of this file (#2547, #2550): see `keepAwake`.
+  const awake = keepAwake();
+  if (awake) console.log('  (macOS: caffeinate holds the display and the system awake until this run exits)');
 
   if (argv.includes('--list')) {
     console.log(`${GATES.length} gates, in run order:\n`);
