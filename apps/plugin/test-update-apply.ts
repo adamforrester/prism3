@@ -970,6 +970,28 @@ section('page — an update re-spaces the sets Prism3 built on a page as a new b
   ok(pre4.sets[1].blockers.length > 0 && pre4.sets.every((p) => !p.setMove) && JSON.stringify(sets.map((st) => Number(st.x))) === xs4,
     `page/blocked: a page holding a set the update can't touch moves no set, in the dry run or the apply (${pre4.sets[1].blockers.length} blocker(s); moves ${JSON.stringify(pre4.sets.map((p) => p.setMove?.to ?? null))}; ${xs4} → ${JSON.stringify(sets.map((st) => Number(st.x)))})`);
   twin[1].name = nameWas;
+  // THE RE-SPACING ONLY MAKES ROOM (owner decision Q248 A): a set moves only when it sits closer to its left neighbour
+  // than a fresh build's 400, and just far enough to clear it. Each laid out by hand here, button at 0..864.
+  const movesOf = async () => (await previewUpdate(host, targets)).sets.map((p) => p.setMove?.to ?? null);
+  // Spaced wider than a fresh build: 600 apart. Nothing moves. Mutation: the "only when too close" check removed → this.
+  sets[1].x = 864 + 600; sets[2].x = sets[1].x + 864 + 600;
+  const wider = await movesOf();
+  ok(JSON.stringify(wider) === JSON.stringify([null, null, null]),
+    `page/wider: sets a designer spaced wider than a fresh build (600 apart) stay exactly where they are (${JSON.stringify(wider)})`);
+  // A second row: button-neutral below the first row (its top under the first row's 3480), its x inside button's span.
+  // It has no Prism3 set to its left in its own row, so it stays; button-destructive, 160 from button, still moves.
+  // Mutation: the left neighbour taken from any row, not the set's own → this.
+  sets[1].x = 864 + 160; sets[2].x = 300; sets[2].y = 4000;
+  const rows = await movesOf();
+  ok(JSON.stringify(rows) === JSON.stringify([null, { x: 1264, y: 0 }, null]),
+    `page/second row: a set in a second row below the first stays where it is, never lifted into the first; the too-close set in the first row still moves (${JSON.stringify(rows)})`);
+  sets[2].y = 0;
+  // Too close by a little, 300 apart: it moves to exactly 400 clear (1264), no further, and the set beyond it, already
+  // 572 clear of where it lands, stays. Mutation: the move sent past a fixed step rather than to `SET_GAP` → this.
+  sets[1].x = 864 + 300; sets[2].x = 2700;
+  const enough = await movesOf();
+  ok(JSON.stringify(enough) === JSON.stringify([null, { x: 1264, y: 0 }, null]),
+    `page/just enough: a set 300 from its neighbour moves just far enough to sit 400 clear (1264), and the one beyond, already clear, stays (${JSON.stringify(enough)})`);
 }
 
 /* ── no change ───────────────────────────────────────────────────────────────────────────────────────── */
