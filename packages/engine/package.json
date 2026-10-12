@@ -18,6 +18,8 @@
     "./components/index": "./components/index.ts",
     "./design-md": "./design-md.ts",
     "./emit-brandinput": "./emit-brandinput.ts",
+    "./emit-dtcg-consumer": "./emit-dtcg-consumer.ts",
+    "./emit-dtcg-overlay": "./emit-dtcg-overlay.ts",
     "./emit-figma-color": "./emit-figma-color.ts",
     "./emit-figma-font": "./emit-figma-font.ts",
     "./emit-figma-styles": "./emit-figma-styles.ts",

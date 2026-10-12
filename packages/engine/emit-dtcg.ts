@@ -26,6 +26,7 @@ import { Theme, brandTheme, BrandInput } from './theme';
 import { nbTheme } from './nb-fixture';
 import { resolveAllModes, ModeResult } from './modes';
 import { buildOverlaySet } from './emit-dtcg-overlay';
+import { stripExtensions } from './emit-dtcg-consumer';
 import { buildAiMetadata } from './ai-metadata';
 import { parseDesignMd } from './design-md';
 import { buildTree, Stats } from './tree';
@@ -59,6 +60,14 @@ export const emitTheme = (theme: Theme, outDir: string): { tree: any; modes: Mod
   writeFileSync(resolve(outDir, `${theme.id}.base.tokens.json`), JSON.stringify(projected.base, null, 2) + '\n');
   for (const { mode, tree } of projected.overlays) {
     writeFileSync(resolve(outDir, `${theme.id}.${mode}.overlay.tokens.json`), JSON.stringify(tree, null, 2) + '\n');
+  }
+  // The CONSUMER set (#2552): the same base + overlays with every `$extensions` removed — what a client
+  // is handed. Taken from the projection, never the tree above, whose other modes live in `$extensions`.
+  const consumerDir = resolve(outDir, 'consumer');
+  mkdirSync(consumerDir, { recursive: true });
+  writeFileSync(resolve(consumerDir, `${theme.id}.base.tokens.json`), JSON.stringify(stripExtensions(projected.base), null, 2) + '\n');
+  for (const { mode, tree } of projected.overlays) {
+    writeFileSync(resolve(consumerDir, `${theme.id}.${mode}.overlay.tokens.json`), JSON.stringify(stripExtensions(tree), null, 2) + '\n');
   }
   return built;
 };

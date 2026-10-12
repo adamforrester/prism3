@@ -39,6 +39,16 @@
       "why": "One overlay per theme mode. Base + overlay is the projection a conforming consumer resolves."
     },
     {
+      "kind": "consumer-base",
+      "pattern": "out/consumer/{brand}.base.tokens.json",
+      "why": "The consumer set's base (#2552, owner decision Q250 A): the conforming base with every `$extensions` removed, so a token carries only `$value`, `$type` and `$description`. The default handoff; `lint-consumer-build.ts` holds it."
+    },
+    {
+      "kind": "consumer-overlay",
+      "pattern": "out/consumer/{brand}.{mode}.overlay.tokens.json",
+      "why": "The consumer set's per-mode overlay (#2552): the conforming overlay with every `$extensions` removed. Base + overlay, with no build metadata, is what a client is handed."
+    },
+    {
       "kind": "agent-metadata",
       "pattern": "out/{brand}.ai.json",
       "why": "Per-brand agent metadata. Travels because an ejected repo has no Prism3 MCP to query (#668)."

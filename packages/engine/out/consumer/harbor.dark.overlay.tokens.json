@@ -1,0 +1,1428 @@
+{
+  "hds": {
+    "color": {
+      "background": {
+        "primary": {
+          "$type": "color",
+          "$value": "{hds.core.palette.neutral.950}",
+          "$description": "Page surface — the canvas / base"
+        },
+        "secondary": {
+          "$type": "color",
+          "$value": "{hds.core.palette.neutral.900}",
+          "$description": "Page surface, second tier — a band one step off the base (equal to the base in high-contrast modes)"
+        },
+        "tertiary": {
+          "$type": "color",
+          "$value": "{hds.core.palette.neutral.850}",
+          "$description": "Page surface, third tier"
+        }
+      },
+      "foreground": {
+        "primary": {
+          "$type": "color",
+          "$value": "{hds.core.palette.neutral.900}",
+          "$description": "Default surface placed on the page — a card"
+        },
+        "secondary": {
+          "$type": "color",
+          "$value": "{hds.core.palette.neutral.850}",
+          "$description": "A second surface — a panel / nested container"
+        },
+        "tertiary": {
+          "$type": "color",
+          "$value": "{hds.core.palette.neutral.800}",
+          "$description": "A third surface step"
+        },
+        "brand": {
+          "$type": "color",
+          "$value": "{hds.core.palette.primary.550}",
+          "$description": "Bold brand fill — clears 3:1 on background.secondary"
+        },
+        "brand-subtle": {
+          "$type": "color",
+          "$value": "{hds.core.palette.primary.900}",
+          "$description": "Subtle brand tint surface — banners, badges, selected rows"
+        },
+        "success-subtle": {
+          "$type": "color",
+          "$value": "{hds.core.palette.success.900}",
+          "$description": "Subtle success tint surface — banners, badges, selected rows"
+        },
+        "warning-subtle": {
+          "$type": "color",
+          "$value": "{hds.core.palette.warning.900}",
+          "$description": "Subtle warning tint surface — banners, badges, selected rows"
+        },
+        "danger-subtle": {
+          "$type": "color",
+          "$value": "{hds.core.palette.danger.900}",
+          "$description": "Subtle danger tint surface — banners, badges, selected rows"
+        },
+        "info-subtle": {
+          "$type": "color",
+          "$value": "{hds.core.palette.info.900}",
+          "$description": "Subtle info tint surface — banners, badges, selected rows"
+        }
+      },
+      "text": {
+        "primary": {
+          "$type": "color",
+          "$value": "{hds.core.palette.neutral.025}",
+          "$description": "Primary text — strongest neutral"
+        },
+        "secondary": {
+          "$type": "color",
+          "$value": "{hds.core.palette.neutral.450}",
+          "$description": "Secondary text — 4.5:1 on background.secondary"
+        },
+        "tertiary": {
+          "$type": "color",
+          "$value": "{hds.core.palette.neutral.550}",
+          "$description": "Tertiary text — 3:1 on background.secondary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor"
+        },
+        "brand": {
+          "$type": "color",
+          "$value": "{hds.core.palette.primary.450}",
+          "$description": "brand text — 4.5:1 on background.secondary and on its own tint"
+        },
+        "success": {
+          "$type": "color",
+          "$value": "{hds.core.palette.success.450}",
+          "$description": "success text — 4.5:1 on background.secondary and on its own tint"
+        },
+        "warning": {
+          "$type": "color",
+          "$value": "{hds.core.palette.warning.450}",
+          "$description": "warning text — 4.5:1 on background.secondary and on its own tint"
+        },
+        "danger": {
+          "$type": "color",
+          "$value": "{hds.core.palette.danger.450}",
+          "$description": "danger text — 4.5:1 on background.secondary and on its own tint"
+        },
+        "info": {
+          "$type": "color",
+          "$value": "{hds.core.palette.info.450}",
+          "$description": "info text — 4.5:1 on background.secondary and on its own tint"
+        },
+        "brand-subtle": {
+          "$type": "color",
+          "$value": "{hds.core.palette.primary.350}",
+          "$description": "Muted brand text — 3:1 on background.primary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor"
+        },
+        "success-subtle": {
+          "$type": "color",
+          "$value": "{hds.core.palette.success.350}",
+          "$description": "Muted success text — 3:1 on background.primary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor"
+        },
+        "warning-subtle": {
+          "$type": "color",
+          "$value": "{hds.core.palette.warning.350}",
+          "$description": "Muted warning text — 3:1 on background.primary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor"
+        },
+        "danger-subtle": {
+          "$type": "color",
+          "$value": "{hds.core.palette.danger.350}",
+          "$description": "Muted danger text — 3:1 on background.primary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor"
+        },
+        "info-subtle": {
+          "$type": "color",
+          "$value": "{hds.core.palette.info.350}",
+          "$description": "Muted info text — 3:1 on background.primary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor"
+        },
+        "on-brand": {
+          "$type": "color",
+          "$value": "{hds.core.palette.neutral.025}",
+          "$description": "Text on a solid brand fill — 4.5:1"
+        },
+        "link": {
+          "default": {
+            "$type": "color",
+            "$value": "{hds.core.palette.primary.450}",
+            "$description": "Link text — default, 4.5:1 on background.secondary"
+          },
+          "hover": {
+            "$type": "color",
+            "$value": "{hds.core.palette.primary.350}",
+            "$description": "Link text — hover, 4.5:1 on background.secondary"
+          },
+          "visited": {
+            "$type": "color",
+            "$value": "{hds.core.palette.primary.150}",
+            "$description": "Link text — visited, 4.5:1 on background.secondary"
+          },
+          "focused": {
+            "$type": "color",
+            "$value": "{hds.core.palette.primary.450}",
+            "$description": "Link text — focused, 4.5:1 on background.secondary"
+          },
+          "pressed": {
+            "$type": "color",
+            "$value": "{hds.core.palette.primary.250}",
+            "$description": "Link text — pressed, 4.5:1 on background.secondary"
+          }
+        }
+      },
+      "icon": {
+        "primary": {
+          "$type": "color",
+          "$value": "{hds.core.palette.neutral.025}",
+          "$description": "Primary icon — strongest neutral"
+        },
+        "secondary": {
+          "$type": "color",
+          "$value": "{hds.core.palette.neutral.450}",
+          "$description": "Secondary icon — 4.5:1 on background.secondary"
+        },
+        "tertiary": {
+          "$type": "color",
+          "$value": "{hds.core.palette.neutral.550}",
+          "$description": "Tertiary icon — 3:1 on background.secondary"
+        },
+        "brand": {
+          "$type": "color",
+          "$value": "{hds.core.palette.primary.450}",
+          "$description": "brand icon — 4.5:1 on background.secondary and on its own tint"
+        },
+        "success": {
+          "$type": "color",
+          "$value": "{hds.core.palette.success.450}",
+          "$description": "success icon — 4.5:1 on background.secondary and on its own tint"
+        },
+        "warning": {
+          "$type": "color",
+          "$value": "{hds.core.palette.warning.450}",
+          "$description": "warning icon — 4.5:1 on background.secondary and on its own tint"
+        },
+        "danger": {
+          "$type": "color",
+          "$value": "{hds.core.palette.danger.450}",
+          "$description": "danger icon — 4.5:1 on background.secondary and on its own tint"
+        },
+        "info": {
+          "$type": "color",
+          "$value": "{hds.core.palette.info.450}",
+          "$description": "info icon — 4.5:1 on background.secondary and on its own tint"
+        },
+        "brand-subtle": {
+          "$type": "color",
+          "$value": "{hds.core.palette.primary.350}",
+          "$description": "Muted brand icon — low-emphasis accent, 3:1 on background.primary"
+        },
+        "success-subtle": {
+          "$type": "color",
+          "$value": "{hds.core.palette.success.350}",
+          "$description": "Muted success icon — low-emphasis accent, 3:1 on background.primary"
+        },
+        "warning-subtle": {
+          "$type": "color",
+          "$value": "{hds.core.palette.warning.350}",
+          "$description": "Muted warning icon — low-emphasis accent, 3:1 on background.primary"
+        },
+        "danger-subtle": {
+          "$type": "color",
+          "$value": "{hds.core.palette.danger.350}",
+          "$description": "Muted danger icon — low-emphasis accent, 3:1 on background.primary"
+        },
+        "info-subtle": {
+          "$type": "color",
+          "$value": "{hds.core.palette.info.350}",
+          "$description": "Muted info icon — low-emphasis accent, 3:1 on background.primary"
+        },
+        "on-brand": {
+          "$type": "color",
+          "$value": "{hds.core.palette.neutral.025}",
+          "$description": "Icon on a solid brand fill — 4.5:1"
+        },
+        "link": {
+          "default": {
+            "$type": "color",
+            "$value": "{hds.core.palette.primary.450}",
+            "$description": "Link icon — default, 4.5:1 on background.secondary"
+          },
+          "hover": {
+            "$type": "color",
+            "$value": "{hds.core.palette.primary.350}",
+            "$description": "Link icon — hover, 4.5:1 on background.secondary"
+          },
+          "visited": {
+            "$type": "color",
+            "$value": "{hds.core.palette.primary.150}",
+            "$description": "Link icon — visited, 4.5:1 on background.secondary"
+          },
+          "focused": {
+            "$type": "color",
+            "$value": "{hds.core.palette.primary.450}",
+            "$description": "Link icon — focused, 4.5:1 on background.secondary"
+          },
+          "pressed": {
+            "$type": "color",
+            "$value": "{hds.core.palette.primary.250}",
+            "$description": "Link icon — pressed, 4.5:1 on background.secondary"
+          }
+        }
+      },
+      "interactive": {
+        "primary": {
+          "fill": {
+            "rest": {
+              "$type": "color",
+              "$value": "{hds.core.palette.primary.500}",
+              "$description": "primary interactive fill — rest, clears 3:1 on background.secondary"
+            },
+            "hover": {
+              "$type": "color",
+              "$value": "{hds.core.palette.primary.400}",
+              "$description": "primary interactive fill — hover, clears 3:1 on background.secondary"
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{hds.core.palette.primary.300}",
+              "$description": "primary interactive fill — pressed, clears 3:1 on background.secondary"
+            },
+            "focused": {
+              "$type": "color",
+              "$value": "{hds.core.palette.primary.500}",
+              "$description": "primary interactive fill — focused, clears 3:1 on background.secondary"
+            },
+            "selected": {
+              "$type": "color",
+              "$value": "{hds.core.palette.primary.500}",
+              "$description": "primary interactive fill — selected, clears 3:1 on background.secondary"
+            }
+          },
+          "text": {
+            "rest": {
+              "$type": "color",
+              "$value": "{hds.core.palette.primary.450}",
+              "$description": "primary interactive ink — rest (outline / text appearance)"
+            },
+            "hover": {
+              "$type": "color",
+              "$value": "{hds.core.palette.primary.350}",
+              "$description": "primary interactive ink — hover (outline / text appearance)"
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{hds.core.palette.primary.250}",
+              "$description": "primary interactive ink — pressed (outline / text appearance)"
+            }
+          },
+          "icon": {
+            "rest": {
+              "$type": "color",
+              "$value": "{hds.core.palette.primary.450}",
+              "$description": "primary interactive icon ink — rest (the glyph in an outline / ghost / text control)"
+            },
+            "hover": {
+              "$type": "color",
+              "$value": "{hds.core.palette.primary.350}",
+              "$description": "primary interactive icon ink — hover (the glyph in an outline / ghost / text control)"
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{hds.core.palette.primary.250}",
+              "$description": "primary interactive icon ink — pressed (the glyph in an outline / ghost / text control)"
+            }
+          },
+          "border": {
+            "rest": {
+              "$type": "color",
+              "$value": "{hds.core.palette.primary.450}",
+              "$description": "primary interactive border — rest (the outline edge; follows the ink)"
+            },
+            "hover": {
+              "$type": "color",
+              "$value": "{hds.core.palette.primary.350}",
+              "$description": "primary interactive border — hover (the outline edge; follows the ink)"
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{hds.core.palette.primary.250}",
+              "$description": "primary interactive border — pressed (the outline edge; follows the ink)"
+            }
+          },
+          "overlay": {
+            "hover": {
+              "$type": "color",
+              "$value": "{hds.core.palette.white-alpha.10}",
+              "$description": "primary interactive overlay — hover (10% neutral wash for the PAGE ground; the dark-band twin is inverse.interactive.primary.overlay.hover)"
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{hds.core.palette.white-alpha.20}",
+              "$description": "primary interactive overlay — pressed (20% neutral wash for the PAGE ground; the dark-band twin is inverse.interactive.primary.overlay.pressed)"
+            },
+            "selected": {
+              "$type": "color",
+              "$value": "{hds.core.palette.white-alpha.20}",
+              "$description": "primary interactive overlay — selected (20% neutral wash for the PAGE ground; the dark-band twin is inverse.interactive.primary.overlay.selected)"
+            }
+          },
+          "subtle-fill": {
+            "selected": {
+              "$type": "color",
+              "$value": "#437f7f4d",
+              "$description": "primary interactive subtle fill — selected (the primary fill at opacity.30; translucent, the selected background of a selectable control or an outline/text control)"
+            }
+          }
+        },
+        "destructive": {
+          "fill": {
+            "rest": {
+              "$type": "color",
+              "$value": "{hds.core.palette.danger.500}",
+              "$description": "destructive interactive fill — rest, clears 3:1 on background.secondary"
+            },
+            "hover": {
+              "$type": "color",
+              "$value": "{hds.core.palette.danger.400}",
+              "$description": "destructive interactive fill — hover, clears 3:1 on background.secondary"
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{hds.core.palette.danger.300}",
+              "$description": "destructive interactive fill — pressed, clears 3:1 on background.secondary"
+            },
+            "focused": {
+              "$type": "color",
+              "$value": "{hds.core.palette.danger.500}",
+              "$description": "destructive interactive fill — focused, clears 3:1 on background.secondary"
+            },
+            "selected": {
+              "$type": "color",
+              "$value": "{hds.core.palette.danger.500}",
+              "$description": "destructive interactive fill — selected, clears 3:1 on background.secondary"
+            }
+          },
+          "text": {
+            "rest": {
+              "$type": "color",
+              "$value": "{hds.core.palette.danger.400}",
+              "$description": "destructive interactive ink — rest (outline / text appearance)"
+            },
+            "hover": {
+              "$type": "color",
+              "$value": "{hds.core.palette.danger.300}",
+              "$description": "destructive interactive ink — hover (outline / text appearance)"
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{hds.core.palette.danger.200}",
+              "$description": "destructive interactive ink — pressed (outline / text appearance)"
+            }
+          },
+          "icon": {
+            "rest": {
+              "$type": "color",
+              "$value": "{hds.core.palette.danger.400}",
+              "$description": "destructive interactive icon ink — rest (the glyph in an outline / ghost / text control)"
+            },
+            "hover": {
+              "$type": "color",
+              "$value": "{hds.core.palette.danger.300}",
+              "$description": "destructive interactive icon ink — hover (the glyph in an outline / ghost / text control)"
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{hds.core.palette.danger.200}",
+              "$description": "destructive interactive icon ink — pressed (the glyph in an outline / ghost / text control)"
+            }
+          },
+          "border": {
+            "rest": {
+              "$type": "color",
+              "$value": "{hds.core.palette.danger.400}",
+              "$description": "destructive interactive border — rest (the outline edge; follows the ink)"
+            },
+            "hover": {
+              "$type": "color",
+              "$value": "{hds.core.palette.danger.300}",
+              "$description": "destructive interactive border — hover (the outline edge; follows the ink)"
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{hds.core.palette.danger.200}",
+              "$description": "destructive interactive border — pressed (the outline edge; follows the ink)"
+            }
+          },
+          "overlay": {
+            "hover": {
+              "$type": "color",
+              "$value": "{hds.core.palette.white-alpha.10}",
+              "$description": "destructive interactive overlay — hover (10% neutral wash for the PAGE ground; the dark-band twin is inverse.interactive.destructive.overlay.hover)"
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{hds.core.palette.white-alpha.20}",
+              "$description": "destructive interactive overlay — pressed (20% neutral wash for the PAGE ground; the dark-band twin is inverse.interactive.destructive.overlay.pressed)"
+            },
+            "selected": {
+              "$type": "color",
+              "$value": "{hds.core.palette.white-alpha.20}",
+              "$description": "destructive interactive overlay — selected (20% neutral wash for the PAGE ground; the dark-band twin is inverse.interactive.destructive.overlay.selected)"
+            }
+          }
+        },
+        "neutral": {
+          "fill": {
+            "rest": {
+              "$type": "color",
+              "$value": "{hds.core.palette.neutral.850}",
+              "$description": "neutral interactive fill — rest, clears 0:1 on background.secondary"
+            },
+            "hover": {
+              "$type": "color",
+              "$value": "{hds.core.palette.neutral.750}",
+              "$description": "neutral interactive fill — hover, clears 0:1 on background.secondary"
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{hds.core.palette.neutral.650}",
+              "$description": "neutral interactive fill — pressed, clears 0:1 on background.secondary"
+            },
+            "focused": {
+              "$type": "color",
+              "$value": "{hds.core.palette.neutral.850}",
+              "$description": "neutral interactive fill — focused, clears 0:1 on background.secondary"
+            },
+            "selected": {
+              "$type": "color",
+              "$value": "{hds.core.palette.neutral.850}",
+              "$description": "neutral interactive fill — selected, clears 0:1 on background.secondary"
+            }
+          },
+          "on-fill": {
+            "$type": "color",
+            "$value": "{hds.core.palette.neutral.025}",
+            "$description": "Ink on the neutral interactive fill"
+          },
+          "text": {
+            "rest": {
+              "$type": "color",
+              "$value": "{hds.core.palette.neutral.025}",
+              "$description": "neutral interactive ink — rest (outline / text appearance)"
+            },
+            "hover": {
+              "$type": "color",
+              "$value": "{hds.core.palette.neutral.100}",
+              "$description": "neutral interactive ink — hover (outline / text appearance)"
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{hds.core.palette.neutral.200}",
+              "$description": "neutral interactive ink — pressed (outline / text appearance)"
+            }
+          },
+          "icon": {
+            "rest": {
+              "$type": "color",
+              "$value": "{hds.core.palette.neutral.025}",
+              "$description": "neutral interactive icon ink — rest (the glyph in an outline / ghost / text control)"
+            },
+            "hover": {
+              "$type": "color",
+              "$value": "{hds.core.palette.neutral.100}",
+              "$description": "neutral interactive icon ink — hover (the glyph in an outline / ghost / text control)"
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{hds.core.palette.neutral.200}",
+              "$description": "neutral interactive icon ink — pressed (the glyph in an outline / ghost / text control)"
+            }
+          },
+          "border": {
+            "rest": {
+              "$type": "color",
+              "$value": "{hds.core.palette.neutral.025}",
+              "$description": "neutral interactive border — rest (the outline edge; follows the ink)"
+            },
+            "hover": {
+              "$type": "color",
+              "$value": "{hds.core.palette.neutral.100}",
+              "$description": "neutral interactive border — hover (the outline edge; follows the ink)"
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{hds.core.palette.neutral.200}",
+              "$description": "neutral interactive border — pressed (the outline edge; follows the ink)"
+            }
+          },
+          "overlay": {
+            "hover": {
+              "$type": "color",
+              "$value": "{hds.core.palette.white-alpha.10}",
+              "$description": "neutral interactive overlay — hover (10% neutral wash for the PAGE ground; the dark-band twin is inverse.interactive.neutral.overlay.hover)"
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{hds.core.palette.white-alpha.20}",
+              "$description": "neutral interactive overlay — pressed (20% neutral wash for the PAGE ground; the dark-band twin is inverse.interactive.neutral.overlay.pressed)"
+            },
+            "selected": {
+              "$type": "color",
+              "$value": "{hds.core.palette.white-alpha.20}",
+              "$description": "neutral interactive overlay — selected (20% neutral wash for the PAGE ground; the dark-band twin is inverse.interactive.neutral.overlay.selected)"
+            }
+          }
+        }
+      },
+      "disabled": {
+        "fill": {
+          "$type": "color",
+          "$value": "{hds.core.palette.neutral.750}",
+          "$description": "Disabled control fill — one muted neutral, any intent"
+        },
+        "on-fill": {
+          "$type": "color",
+          "$value": "{hds.core.palette.neutral.450}",
+          "$description": "Label / icon on a disabled fill — muted but clears 3:1"
+        },
+        "text": {
+          "$type": "color",
+          "$value": "{hds.core.palette.neutral.550}",
+          "$description": "Disabled text — reduced contrast, legible; clears 3:1"
+        },
+        "icon": {
+          "$type": "color",
+          "$value": "{hds.core.palette.neutral.550}",
+          "$description": "Disabled icon — reduced contrast, legible; clears 3:1"
+        },
+        "border": {
+          "$type": "color",
+          "$value": "{hds.core.palette.neutral.750}",
+          "$description": "Disabled control border — muted neutral"
+        }
+      },
+      "border": {
+        "primary": {
+          "$type": "color",
+          "$value": "{hds.core.palette.neutral.750}",
+          "$description": "Default border — decorative, ~1.8:1"
+        },
+        "secondary": {
+          "$type": "color",
+          "$value": "{hds.core.palette.neutral.500}",
+          "$description": "Stronger border / divider"
+        },
+        "tertiary": {
+          "$type": "color",
+          "$value": "{hds.core.palette.neutral.250}",
+          "$description": "Strongest border / divider — the third rung of the neutral edge ladder"
+        },
+        "success": {
+          "$type": "color",
+          "$value": "{hds.core.palette.success.450}",
+          "$description": "success border — SC 1.4.11 non-text contrast, 3:1"
+        },
+        "warning": {
+          "$type": "color",
+          "$value": "{hds.core.palette.warning.450}",
+          "$description": "warning border — SC 1.4.11 non-text contrast, 3:1"
+        },
+        "danger": {
+          "$type": "color",
+          "$value": "{hds.core.palette.danger.450}",
+          "$description": "danger border — SC 1.4.11 non-text contrast, 3:1"
+        },
+        "focus": {
+          "$type": "color",
+          "$value": "{hds.core.palette.primary.450}",
+          "$description": "Focus ring color (keyboard focus) — SC 1.4.11 non-text contrast, 3:1 on background.primary"
+        }
+      },
+      "scrim": {
+        "default": {
+          "$type": "color",
+          "$value": "{hds.core.palette.black-alpha.60}",
+          "$description": "Scrim — black backdrop behind modals and drawers; opacity 60%"
+        }
+      },
+      "field": {
+        "border": {
+          "rest": {
+            "$type": "color",
+            "$value": "{hds.core.palette.neutral.550}",
+            "$description": "Form field resting border — the boundary of a transparent-fill field, so a perceivable boundary (SC 1.4.11) at 3:1 against the darkest permissible ground (`background.secondary`), not the page alone"
+          },
+          "hover": {
+            "$type": "color",
+            "$value": "{hds.core.palette.neutral.450}",
+            "$description": "Form field hover border — two ramp steps stronger than rest, gated at 3:1 on the darkest permissible ground (pair it with a second cue; color alone does not carry the state)"
+          }
+        },
+        "placeholder": {
+          "$type": "color",
+          "$value": "{hds.core.palette.neutral.450}",
+          "$description": "Form field placeholder ink — a readable hint, 4.5:1 on the darkest permissible ground behind the transparent fill (not a sub-AA placeholder)"
+        }
+      },
+      "inverse": {
+        "background": {
+          "primary": {
+            "$type": "color",
+            "$value": "{hds.core.palette.neutral.025}",
+            "$description": "Inverse page surface — the opposite-polarity band (dark on a light page, light on a dark page)"
+          },
+          "secondary": {
+            "$type": "color",
+            "$value": "{hds.core.palette.neutral.050}",
+            "$description": "Inverse page surface, second tier"
+          },
+          "tertiary": {
+            "$type": "color",
+            "$value": "{hds.core.palette.neutral.100}",
+            "$description": "Inverse page surface, third tier"
+          }
+        },
+        "foreground": {
+          "primary": {
+            "$type": "color",
+            "$value": "{hds.core.palette.neutral.050}",
+            "$description": "Inverse / bold surface — the opposite-polarity fill (dark on a light page, light on a dark page)"
+          },
+          "secondary": {
+            "$type": "color",
+            "$value": "{hds.core.palette.neutral.100}",
+            "$description": "Inverse surface, second tier"
+          },
+          "tertiary": {
+            "$type": "color",
+            "$value": "{hds.core.palette.neutral.150}",
+            "$description": "Inverse surface, third tier"
+          },
+          "brand": {
+            "$type": "color",
+            "$value": "{hds.core.palette.primary.600}",
+            "$description": "Bold brand fill on an inverse surface — clears 3:1 on inverse.background.secondary"
+          },
+          "brand-subtle": {
+            "$type": "color",
+            "$value": "{hds.core.palette.primary.100}",
+            "$description": "Subtle brand tint surface on an inverse surface — banners, badges and selected rows on the inverse band"
+          },
+          "success-subtle": {
+            "$type": "color",
+            "$value": "{hds.core.palette.success.100}",
+            "$description": "Subtle success tint surface on an inverse surface — banners, badges and selected rows on the inverse band"
+          },
+          "warning-subtle": {
+            "$type": "color",
+            "$value": "{hds.core.palette.warning.100}",
+            "$description": "Subtle warning tint surface on an inverse surface — banners, badges and selected rows on the inverse band"
+          },
+          "danger-subtle": {
+            "$type": "color",
+            "$value": "{hds.core.palette.danger.100}",
+            "$description": "Subtle danger tint surface on an inverse surface — banners, badges and selected rows on the inverse band"
+          },
+          "info-subtle": {
+            "$type": "color",
+            "$value": "{hds.core.palette.info.100}",
+            "$description": "Subtle info tint surface on an inverse surface — banners, badges and selected rows on the inverse band"
+          }
+        },
+        "interactive": {
+          "primary": {
+            "text": {
+              "rest": {
+                "$type": "color",
+                "$value": "{hds.core.palette.primary.600}",
+                "$description": "primary interactive ink on an inverse surface — rest (outline / text on the inverse band)"
+              },
+              "hover": {
+                "$type": "color",
+                "$value": "{hds.core.palette.primary.700}",
+                "$description": "primary interactive ink on an inverse surface — hover (outline / text on the inverse band)"
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{hds.core.palette.primary.800}",
+                "$description": "primary interactive ink on an inverse surface — pressed (outline / text on the inverse band)"
+              }
+            },
+            "icon": {
+              "rest": {
+                "$type": "color",
+                "$value": "{hds.core.palette.primary.600}",
+                "$description": "primary interactive icon ink on an inverse surface — rest (the glyph in an outline / ghost / text control on the inverse band)"
+              },
+              "hover": {
+                "$type": "color",
+                "$value": "{hds.core.palette.primary.700}",
+                "$description": "primary interactive icon ink on an inverse surface — hover (the glyph in an outline / ghost / text control on the inverse band)"
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{hds.core.palette.primary.800}",
+                "$description": "primary interactive icon ink on an inverse surface — pressed (the glyph in an outline / ghost / text control on the inverse band)"
+              }
+            },
+            "fill": {
+              "rest": {
+                "$type": "color",
+                "$value": "{hds.core.palette.black}",
+                "$description": "primary interactive fill on an inverse surface — rest — the white / black default"
+              },
+              "hover": {
+                "$type": "color",
+                "$value": "{hds.core.palette.neutral.900}",
+                "$description": "primary interactive fill on an inverse surface — hover — 2 neutral rungs off the white / black rest fill."
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{hds.core.palette.neutral.800}",
+                "$description": "primary interactive fill on an inverse surface — pressed — 4 neutral rungs off the white / black rest fill."
+              },
+              "focused": {
+                "$type": "color",
+                "$value": "{hds.core.palette.neutral.900}",
+                "$description": "primary interactive fill on an inverse surface — focused — 2 neutral rungs off the white / black rest fill."
+              },
+              "selected": {
+                "$type": "color",
+                "$value": "{hds.core.palette.neutral.800}",
+                "$description": "primary interactive fill on an inverse surface — selected — 4 neutral rungs off the white / black rest fill."
+              }
+            },
+            "on-fill": {
+              "$type": "color",
+              "$value": "{hds.core.palette.primary.350}",
+              "$description": "Ink on the primary inverse fill — the most vivid brand step clearing 4.5:1 on every state of the white / black fill, rest through selected, or the max-contrast extreme in the high-contrast modes"
+            },
+            "border": {
+              "rest": {
+                "$type": "color",
+                "$value": "{hds.core.palette.primary.600}",
+                "$description": "primary interactive border on an inverse surface — rest (the outline edge; follows the ink)"
+              },
+              "hover": {
+                "$type": "color",
+                "$value": "{hds.core.palette.primary.700}",
+                "$description": "primary interactive border on an inverse surface — hover (the outline edge; follows the ink)"
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{hds.core.palette.primary.800}",
+                "$description": "primary interactive border on an inverse surface — pressed (the outline edge; follows the ink)"
+              }
+            },
+            "overlay": {
+              "hover": {
+                "$type": "color",
+                "$value": "{hds.core.palette.black-alpha.10}",
+                "$description": "primary interactive overlay on an inverse surface — hover (10% wash, the opposite polarity to the page wash)"
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{hds.core.palette.black-alpha.20}",
+                "$description": "primary interactive overlay on an inverse surface — pressed (20% wash, the opposite polarity to the page wash)"
+              },
+              "selected": {
+                "$type": "color",
+                "$value": "{hds.core.palette.black-alpha.20}",
+                "$description": "primary interactive overlay on an inverse surface — selected (20% wash, the opposite polarity to the page wash)"
+              }
+            }
+          },
+          "destructive": {
+            "text": {
+              "rest": {
+                "$type": "color",
+                "$value": "{hds.core.palette.danger.600}",
+                "$description": "destructive interactive ink on an inverse surface — rest (outline / text on the inverse band)"
+              },
+              "hover": {
+                "$type": "color",
+                "$value": "{hds.core.palette.danger.700}",
+                "$description": "destructive interactive ink on an inverse surface — hover (outline / text on the inverse band)"
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{hds.core.palette.danger.800}",
+                "$description": "destructive interactive ink on an inverse surface — pressed (outline / text on the inverse band)"
+              }
+            },
+            "icon": {
+              "rest": {
+                "$type": "color",
+                "$value": "{hds.core.palette.danger.600}",
+                "$description": "destructive interactive icon ink on an inverse surface — rest (the glyph in an outline / ghost / text control on the inverse band)"
+              },
+              "hover": {
+                "$type": "color",
+                "$value": "{hds.core.palette.danger.700}",
+                "$description": "destructive interactive icon ink on an inverse surface — hover (the glyph in an outline / ghost / text control on the inverse band)"
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{hds.core.palette.danger.800}",
+                "$description": "destructive interactive icon ink on an inverse surface — pressed (the glyph in an outline / ghost / text control on the inverse band)"
+              }
+            },
+            "fill": {
+              "rest": {
+                "$type": "color",
+                "$value": "{hds.core.palette.black}",
+                "$description": "destructive interactive fill on an inverse surface — rest — the white / black default"
+              },
+              "hover": {
+                "$type": "color",
+                "$value": "{hds.core.palette.neutral.900}",
+                "$description": "destructive interactive fill on an inverse surface — hover — 2 neutral rungs off the white / black rest fill."
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{hds.core.palette.neutral.800}",
+                "$description": "destructive interactive fill on an inverse surface — pressed — 4 neutral rungs off the white / black rest fill."
+              },
+              "focused": {
+                "$type": "color",
+                "$value": "{hds.core.palette.neutral.900}",
+                "$description": "destructive interactive fill on an inverse surface — focused — 2 neutral rungs off the white / black rest fill."
+              },
+              "selected": {
+                "$type": "color",
+                "$value": "{hds.core.palette.neutral.800}",
+                "$description": "destructive interactive fill on an inverse surface — selected — 4 neutral rungs off the white / black rest fill."
+              }
+            },
+            "on-fill": {
+              "$type": "color",
+              "$value": "{hds.core.palette.danger.350}",
+              "$description": "Ink on the destructive inverse fill — the danger step clearing 4.5:1 on every state of the white / black fill, rest through selected, or the max-contrast extreme in the high-contrast modes"
+            },
+            "border": {
+              "rest": {
+                "$type": "color",
+                "$value": "{hds.core.palette.danger.600}",
+                "$description": "destructive interactive border on an inverse surface — rest (the outline edge; follows the ink)"
+              },
+              "hover": {
+                "$type": "color",
+                "$value": "{hds.core.palette.danger.700}",
+                "$description": "destructive interactive border on an inverse surface — hover (the outline edge; follows the ink)"
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{hds.core.palette.danger.800}",
+                "$description": "destructive interactive border on an inverse surface — pressed (the outline edge; follows the ink)"
+              }
+            },
+            "overlay": {
+              "hover": {
+                "$type": "color",
+                "$value": "{hds.core.palette.black-alpha.10}",
+                "$description": "destructive interactive overlay on an inverse surface — hover (10% wash, the opposite polarity to the page wash)"
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{hds.core.palette.black-alpha.20}",
+                "$description": "destructive interactive overlay on an inverse surface — pressed (20% wash, the opposite polarity to the page wash)"
+              },
+              "selected": {
+                "$type": "color",
+                "$value": "{hds.core.palette.black-alpha.20}",
+                "$description": "destructive interactive overlay on an inverse surface — selected (20% wash, the opposite polarity to the page wash)"
+              }
+            }
+          },
+          "neutral": {
+            "text": {
+              "rest": {
+                "$type": "color",
+                "$value": "{hds.core.palette.neutral.950}",
+                "$description": "neutral interactive ink on an inverse surface — rest (outline / text on the inverse band)"
+              },
+              "hover": {
+                "$type": "color",
+                "$value": "{hds.core.palette.neutral.850}",
+                "$description": "neutral interactive ink on an inverse surface — hover (outline / text on the inverse band)"
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{hds.core.palette.neutral.750}",
+                "$description": "neutral interactive ink on an inverse surface — pressed (outline / text on the inverse band)"
+              }
+            },
+            "icon": {
+              "rest": {
+                "$type": "color",
+                "$value": "{hds.core.palette.neutral.950}",
+                "$description": "neutral interactive icon ink on an inverse surface — rest (the glyph in an outline / ghost / text control on the inverse band)"
+              },
+              "hover": {
+                "$type": "color",
+                "$value": "{hds.core.palette.neutral.850}",
+                "$description": "neutral interactive icon ink on an inverse surface — hover (the glyph in an outline / ghost / text control on the inverse band)"
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{hds.core.palette.neutral.750}",
+                "$description": "neutral interactive icon ink on an inverse surface — pressed (the glyph in an outline / ghost / text control on the inverse band)"
+              }
+            },
+            "fill": {
+              "rest": {
+                "$type": "color",
+                "$value": "{hds.core.palette.black}",
+                "$description": "neutral interactive fill on an inverse surface — rest — the white / black default"
+              },
+              "hover": {
+                "$type": "color",
+                "$value": "{hds.core.palette.neutral.900}",
+                "$description": "neutral interactive fill on an inverse surface — hover — 2 neutral rungs off the white / black rest fill."
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{hds.core.palette.neutral.800}",
+                "$description": "neutral interactive fill on an inverse surface — pressed — 4 neutral rungs off the white / black rest fill."
+              },
+              "focused": {
+                "$type": "color",
+                "$value": "{hds.core.palette.neutral.900}",
+                "$description": "neutral interactive fill on an inverse surface — focused — 2 neutral rungs off the white / black rest fill."
+              },
+              "selected": {
+                "$type": "color",
+                "$value": "{hds.core.palette.neutral.800}",
+                "$description": "neutral interactive fill on an inverse surface — selected — 4 neutral rungs off the white / black rest fill."
+              }
+            },
+            "on-fill": {
+              "$type": "color",
+              "$value": "{hds.core.palette.neutral.025}",
+              "$description": "Ink on the neutral inverse fill — a neutral high-contrast label on the white / black rest fill"
+            },
+            "border": {
+              "rest": {
+                "$type": "color",
+                "$value": "{hds.core.palette.neutral.950}",
+                "$description": "neutral interactive border on an inverse surface — rest (the outline edge; follows the ink)"
+              },
+              "hover": {
+                "$type": "color",
+                "$value": "{hds.core.palette.neutral.850}",
+                "$description": "neutral interactive border on an inverse surface — hover (the outline edge; follows the ink)"
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{hds.core.palette.neutral.750}",
+                "$description": "neutral interactive border on an inverse surface — pressed (the outline edge; follows the ink)"
+              }
+            },
+            "overlay": {
+              "hover": {
+                "$type": "color",
+                "$value": "{hds.core.palette.black-alpha.10}",
+                "$description": "neutral interactive overlay on an inverse surface — hover (10% wash, the opposite polarity to the page wash)"
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{hds.core.palette.black-alpha.20}",
+                "$description": "neutral interactive overlay on an inverse surface — pressed (20% wash, the opposite polarity to the page wash)"
+              },
+              "selected": {
+                "$type": "color",
+                "$value": "{hds.core.palette.black-alpha.20}",
+                "$description": "neutral interactive overlay on an inverse surface — selected (20% wash, the opposite polarity to the page wash)"
+              }
+            }
+          }
+        },
+        "disabled": {
+          "fill": {
+            "$type": "color",
+            "$value": "{hds.core.palette.neutral.250}",
+            "$description": "Disabled control fill on an inverse surface — one muted neutral, any intent"
+          },
+          "on-fill": {
+            "$type": "color",
+            "$value": "{hds.core.palette.neutral.600}",
+            "$description": "Label / icon on a disabled fill on an inverse surface — muted but clears 3:1"
+          },
+          "text": {
+            "$type": "color",
+            "$value": "{hds.core.palette.neutral.450}",
+            "$description": "Disabled text on an inverse surface — reduced contrast, legible; clears 3:1"
+          },
+          "icon": {
+            "$type": "color",
+            "$value": "{hds.core.palette.neutral.450}",
+            "$description": "Disabled icon on an inverse surface — reduced contrast, legible; clears 3:1"
+          },
+          "border": {
+            "$type": "color",
+            "$value": "{hds.core.palette.neutral.250}",
+            "$description": "Disabled control border on an inverse surface — muted neutral"
+          }
+        },
+        "field": {
+          "border": {
+            "rest": {
+              "$type": "color",
+              "$value": "{hds.core.palette.neutral.450}",
+              "$description": "Form field resting border on an inverse surface — the boundary of a transparent-fill field, a perceivable boundary (SC 1.4.11) at 3:1 against the darkest permissible inverse ground"
+            },
+            "hover": {
+              "$type": "color",
+              "$value": "{hds.core.palette.neutral.550}",
+              "$description": "Form field hover border on an inverse surface — two ramp steps stronger than rest, gated at 3:1 on the darkest permissible inverse ground (pair it with a second cue; color alone does not carry the state)"
+            }
+          },
+          "placeholder": {
+            "$type": "color",
+            "$value": "{hds.core.palette.neutral.550}",
+            "$description": "Form field placeholder ink on an inverse surface — a readable hint, 4.5:1 on the darkest permissible inverse ground behind the transparent fill"
+          }
+        },
+        "text": {
+          "primary": {
+            "$type": "color",
+            "$value": "{hds.core.palette.neutral.950}",
+            "$description": "Primary text on an inverse surface — strongest neutral"
+          },
+          "secondary": {
+            "$type": "color",
+            "$value": "{hds.core.palette.neutral.550}",
+            "$description": "Secondary text on an inverse surface — 4.5:1 on inverse.background.secondary"
+          },
+          "tertiary": {
+            "$type": "color",
+            "$value": "{hds.core.palette.neutral.450}",
+            "$description": "Tertiary text on an inverse surface — 3:1 on inverse.background.secondary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor"
+          },
+          "brand": {
+            "$type": "color",
+            "$value": "{hds.core.palette.primary.600}",
+            "$description": "brand text — 4.5:1 on inverse.background.secondary and on its own tint"
+          },
+          "success": {
+            "$type": "color",
+            "$value": "{hds.core.palette.success.600}",
+            "$description": "success text — 4.5:1 on inverse.background.secondary and on its own tint"
+          },
+          "warning": {
+            "$type": "color",
+            "$value": "{hds.core.palette.warning.600}",
+            "$description": "warning text — 4.5:1 on inverse.background.secondary and on its own tint"
+          },
+          "danger": {
+            "$type": "color",
+            "$value": "{hds.core.palette.danger.600}",
+            "$description": "danger text — 4.5:1 on inverse.background.secondary and on its own tint"
+          },
+          "info": {
+            "$type": "color",
+            "$value": "{hds.core.palette.info.600}",
+            "$description": "info text — 4.5:1 on inverse.background.secondary and on its own tint"
+          },
+          "brand-subtle": {
+            "$type": "color",
+            "$value": "{hds.core.palette.primary.650}",
+            "$description": "Muted brand text — 3:1 on inverse.background.primary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor"
+          },
+          "success-subtle": {
+            "$type": "color",
+            "$value": "{hds.core.palette.success.650}",
+            "$description": "Muted success text — 3:1 on inverse.background.primary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor"
+          },
+          "warning-subtle": {
+            "$type": "color",
+            "$value": "{hds.core.palette.warning.650}",
+            "$description": "Muted warning text — 3:1 on inverse.background.primary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor"
+          },
+          "danger-subtle": {
+            "$type": "color",
+            "$value": "{hds.core.palette.danger.650}",
+            "$description": "Muted danger text — 3:1 on inverse.background.primary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor"
+          },
+          "info-subtle": {
+            "$type": "color",
+            "$value": "{hds.core.palette.info.650}",
+            "$description": "Muted info text — 3:1 on inverse.background.primary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor"
+          },
+          "link": {
+            "default": {
+              "$type": "color",
+              "$value": "{hds.core.palette.primary.600}",
+              "$description": "Link text on an inverse surface — default, 4.5:1 on inverse.background.secondary"
+            },
+            "hover": {
+              "$type": "color",
+              "$value": "{hds.core.palette.primary.700}",
+              "$description": "Link text on an inverse surface — hover, 4.5:1 on inverse.background.secondary"
+            },
+            "visited": {
+              "$type": "color",
+              "$value": "{hds.core.palette.primary.900}",
+              "$description": "Link text on an inverse surface — visited, 4.5:1 on inverse.background.secondary"
+            },
+            "focused": {
+              "$type": "color",
+              "$value": "{hds.core.palette.primary.600}",
+              "$description": "Link text on an inverse surface — focused, 4.5:1 on inverse.background.secondary"
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{hds.core.palette.primary.800}",
+              "$description": "Link text on an inverse surface — pressed, 4.5:1 on inverse.background.secondary"
+            }
+          }
+        },
+        "icon": {
+          "primary": {
+            "$type": "color",
+            "$value": "{hds.core.palette.neutral.950}",
+            "$description": "Primary icon on an inverse surface — strongest neutral"
+          },
+          "secondary": {
+            "$type": "color",
+            "$value": "{hds.core.palette.neutral.550}",
+            "$description": "Secondary icon on an inverse surface — 4.5:1 on inverse.background.secondary"
+          },
+          "tertiary": {
+            "$type": "color",
+            "$value": "{hds.core.palette.neutral.450}",
+            "$description": "Tertiary icon on an inverse surface — 3:1 on inverse.background.secondary"
+          },
+          "brand": {
+            "$type": "color",
+            "$value": "{hds.core.palette.primary.600}",
+            "$description": "brand icon — 4.5:1 on inverse.background.secondary and on its own tint"
+          },
+          "success": {
+            "$type": "color",
+            "$value": "{hds.core.palette.success.600}",
+            "$description": "success icon — 4.5:1 on inverse.background.secondary and on its own tint"
+          },
+          "warning": {
+            "$type": "color",
+            "$value": "{hds.core.palette.warning.600}",
+            "$description": "warning icon — 4.5:1 on inverse.background.secondary and on its own tint"
+          },
+          "danger": {
+            "$type": "color",
+            "$value": "{hds.core.palette.danger.600}",
+            "$description": "danger icon — 4.5:1 on inverse.background.secondary and on its own tint"
+          },
+          "info": {
+            "$type": "color",
+            "$value": "{hds.core.palette.info.600}",
+            "$description": "info icon — 4.5:1 on inverse.background.secondary and on its own tint"
+          },
+          "brand-subtle": {
+            "$type": "color",
+            "$value": "{hds.core.palette.primary.650}",
+            "$description": "Muted brand icon — low-emphasis accent, 3:1 on inverse.background.primary"
+          },
+          "success-subtle": {
+            "$type": "color",
+            "$value": "{hds.core.palette.success.650}",
+            "$description": "Muted success icon — low-emphasis accent, 3:1 on inverse.background.primary"
+          },
+          "warning-subtle": {
+            "$type": "color",
+            "$value": "{hds.core.palette.warning.650}",
+            "$description": "Muted warning icon — low-emphasis accent, 3:1 on inverse.background.primary"
+          },
+          "danger-subtle": {
+            "$type": "color",
+            "$value": "{hds.core.palette.danger.650}",
+            "$description": "Muted danger icon — low-emphasis accent, 3:1 on inverse.background.primary"
+          },
+          "info-subtle": {
+            "$type": "color",
+            "$value": "{hds.core.palette.info.650}",
+            "$description": "Muted info icon — low-emphasis accent, 3:1 on inverse.background.primary"
+          },
+          "link": {
+            "default": {
+              "$type": "color",
+              "$value": "{hds.core.palette.primary.600}",
+              "$description": "Link icon on an inverse surface — default, 4.5:1 on inverse.background.secondary"
+            },
+            "hover": {
+              "$type": "color",
+              "$value": "{hds.core.palette.primary.700}",
+              "$description": "Link icon on an inverse surface — hover, 4.5:1 on inverse.background.secondary"
+            },
+            "visited": {
+              "$type": "color",
+              "$value": "{hds.core.palette.primary.900}",
+              "$description": "Link icon on an inverse surface — visited, 4.5:1 on inverse.background.secondary"
+            },
+            "focused": {
+              "$type": "color",
+              "$value": "{hds.core.palette.primary.600}",
+              "$description": "Link icon on an inverse surface — focused, 4.5:1 on inverse.background.secondary"
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{hds.core.palette.primary.800}",
+              "$description": "Link icon on an inverse surface — pressed, 4.5:1 on inverse.background.secondary"
+            }
+          }
+        },
+        "border": {
+          "primary": {
+            "$type": "color",
+            "$value": "{hds.core.palette.neutral.200}",
+            "$description": "Default border on an inverse surface — decorative, ~1.8:1"
+          },
+          "secondary": {
+            "$type": "color",
+            "$value": "{hds.core.palette.neutral.500}",
+            "$description": "Stronger border / divider on an inverse surface"
+          },
+          "tertiary": {
+            "$type": "color",
+            "$value": "{hds.core.palette.neutral.700}",
+            "$description": "Strongest border / divider on an inverse surface — the third rung of the inverse edge ladder"
+          },
+          "focus": {
+            "$type": "color",
+            "$value": "{hds.core.palette.primary.600}",
+            "$description": "Focus ring color on inverse surfaces (keyboard focus) — SC 1.4.11 non-text contrast, 3:1 on inverse.background.primary"
+          }
+        }
+      }
+    },
+    "shadow": {
+      "xs": {
+        "$type": "shadow",
+        "$value": [
+          {
+            "color": "#0e0c0a08",
+            "offsetX": "0px",
+            "offsetY": "1px",
+            "blur": "2px",
+            "spread": "0px"
+          },
+          {
+            "color": "#0e0c0a05",
+            "offsetX": "0px",
+            "offsetY": "1px",
+            "blur": "3px",
+            "spread": "0px"
+          }
+        ],
+        "$description": "shadow xs — elevation 1 of 6, 2-layer (key+ambient)"
+      },
+      "sm": {
+        "$type": "shadow",
+        "$value": [
+          {
+            "color": "#0e0c0a0a",
+            "offsetX": "0px",
+            "offsetY": "1px",
+            "blur": "2px",
+            "spread": "-1px"
+          },
+          {
+            "color": "#0e0c0a08",
+            "offsetX": "0px",
+            "offsetY": "2px",
+            "blur": "6px",
+            "spread": "-1px"
+          }
+        ],
+        "$description": "shadow sm — elevation 2 of 6, 2-layer (key+ambient)"
+      },
+      "md": {
+        "$type": "shadow",
+        "$value": [
+          {
+            "color": "#0e0c0a0f",
+            "offsetX": "0px",
+            "offsetY": "2px",
+            "blur": "4px",
+            "spread": "-2px"
+          },
+          {
+            "color": "#0e0c0a0a",
+            "offsetX": "0px",
+            "offsetY": "4px",
+            "blur": "12px",
+            "spread": "-3px"
+          }
+        ],
+        "$description": "shadow md — elevation 3 of 6, 2-layer (key+ambient)"
+      },
+      "lg": {
+        "$type": "shadow",
+        "$value": [
+          {
+            "color": "#0e0c0a12",
+            "offsetX": "0px",
+            "offsetY": "3px",
+            "blur": "6px",
+            "spread": "-3px"
+          },
+          {
+            "color": "#0e0c0a0d",
+            "offsetX": "0px",
+            "offsetY": "8px",
+            "blur": "20px",
+            "spread": "-5px"
+          }
+        ],
+        "$description": "shadow lg — elevation 4 of 6, 2-layer (key+ambient)"
+      },
+      "xl": {
+        "$type": "shadow",
+        "$value": [
+          {
+            "color": "#0e0c0a17",
+            "offsetX": "0px",
+            "offsetY": "4px",
+            "blur": "8px",
+            "spread": "-4px"
+          },
+          {
+            "color": "#0e0c0a12",
+            "offsetX": "0px",
+            "offsetY": "14px",
+            "blur": "32px",
+            "spread": "-8px"
+          }
+        ],
+        "$description": "shadow xl — elevation 5 of 6, 2-layer (key+ambient)"
+      },
+      "2xl": {
+        "$type": "shadow",
+        "$value": [
+          {
+            "color": "#0e0c0a1c",
+            "offsetX": "0px",
+            "offsetY": "6px",
+            "blur": "12px",
+            "spread": "-6px"
+          },
+          {
+            "color": "#0e0c0a17",
+            "offsetX": "0px",
+            "offsetY": "22px",
+            "blur": "52px",
+            "spread": "-12px"
+          }
+        ],
+        "$description": "shadow 2xl — elevation 6 of 6, 2-layer (key+ambient)"
+      },
+      "inset": {
+        "$type": "shadow",
+        "$value": [
+          {
+            "color": "#0e0c0a4d",
+            "offsetX": "0px",
+            "offsetY": "2px",
+            "blur": "4px",
+            "spread": "0px"
+          }
+        ],
+        "$description": "shadow inset — inner shadow for wells / pressed states / inputs"
+      }
+    }
+  }
+}
