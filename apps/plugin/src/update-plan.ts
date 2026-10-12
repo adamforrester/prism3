@@ -49,7 +49,7 @@ import { ENGINE_VERSION } from '@prism3/engine/version';
 import { EXECUTOR_REVISION } from './executor-revision';
 import { memberStamp, planHalf, revHalf, STAMP_KEY } from './write-components';
 import { NS } from './persist-figma';
-import { BASELINE_V, UPDATING_KEY, baselineDiff, baselineOf, readBaseline, recordFormat, snapshotMember, writeBaseline, type Baseline, type SnapNode } from './member-baseline';
+import { BASELINE_V, UPDATING_KEY, baselineDiff, baselineOf, builtByPrism3, readBaseline, recordFormat, snapshotMember, writeBaseline, type Baseline, type OwnershipRead, type SnapNode } from './member-baseline';
 import { drawnFaults, type DrawnFault, type DrawVar } from './drawn';
 
 /** One member of a set as the dry run reads it. */
@@ -187,21 +187,21 @@ const paintText = (raw: unknown, ports: ReadPorts): string => {
   return `${what}${opacity}${p.visible === false ? ', hidden' : ''}`;
 };
 
-/** A stamp Prism3 wrote (#2300): the engine version, a 16-hex plan stamp or `adopted`, and the executor revision
- *  (absent on a stamp from before #1098). Anything else is not Prism3's, however it got there. */
-export const STAMP_SHAPE = /^[^|]+\|(?:[0-9a-f]{16}|adopted)(?:\|\d+)?$/;
+/** The stamp shape (#2300), defined with the ownership check it serves in `member-baseline.ts` and re-exported for
+ *  the readers that already import it from here. */
+export { STAMP_SHAPE } from './member-baseline';
 
 /**
  * THE MEMBERS AS PRISM3 OWNS THEM (#2300): a member whose stamp is malformed, or whose as-built record names
  * ANOTHER member of the set (a Figma Duplicate copies both, so a copy's record names its original), reads as
  * not built by Prism3. Its stamp is blanked here, once, so every reading below (drops, matches, Adopt, the
- * capture) treats it as a designer's own member. A record naming a node that is not in the set is no evidence of a
- * copy: the host has reassigned member ids after set-level operations (#1473, #1516).
+ * capture) treats it as a designer's own member. The test is `builtByPrism3`, shared with the executor's LAY OUT
+ * pass (#2510), so the apply never moves a member this reads as a designer's.
  */
 export const ownedView = (host: HostSetView): HostSetView => {
-  const ids = new Set(host.members.map((m) => m.id).filter(Boolean));
-  const copied = (m: HostMember): boolean => !!m.baseline?.id && !!m.id && m.baseline.id !== m.id && ids.has(m.baseline.id);
-  return { ...host, members: host.members.map((m) => (m.stamp && (!STAMP_SHAPE.test(m.stamp) || copied(m)) ? { ...m, stamp: '' } : m)) };
+  const read = (m: HostMember): OwnershipRead => ({ id: m.id, stamp: m.stamp, recordId: m.baseline?.id });
+  const owned = builtByPrism3(host.members.map(read));
+  return { ...host, members: host.members.map((m) => (m.stamp && !owned(read(m)) ? { ...m, stamp: '' } : m)) };
 };
 
 /**
