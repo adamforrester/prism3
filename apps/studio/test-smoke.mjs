@@ -2083,6 +2083,76 @@ const rendersFrame = (page) => Promise.race([
   page.evaluate(() => new Promise((r) => requestAnimationFrame(() => r(true)))).catch(() => false),
   new Promise((r) => setTimeout(() => r(false), 3000)),
 ]);
+/** INPUT THAT CAN NEVER WAIT FOREVER (#2547, #2550). A Playwright click or key press on a ready control waits for the
+ *  renderer to take the input, and it has no bound of its own: a key press none at all, a click 30s and then an
+ *  UNCAUGHT throw that ends the suite. Both were seen: Escape at S4d waiting two hours, a step click at S4c and the
+ *  Interactive picker's 30s throws. Each of those calls runs through this, bounded at INPUT_MS: a stall fails ONE arm
+ *  by name, and says what the page was doing, so the cause is read off the failure instead of guessed.
+ *    · If the page still renders a frame, it was BUSY (a long task, the machine under load) and is carried on.
+ *    · If it renders none, the renderer is pausing nothing on its own: the debugger PAUSES it and the failure names
+ *      the JavaScript stack it was in (or says none was running, which points at layout, paint or GC). The page is
+ *      then treated as dead, as `closeDead` does for a click that never settles.
+ *  Returns whether the input went through. */
+const INPUT_MS = 15000;
+/** One debugger session per page, enabled while the page still answers (#2547): `Debugger.enable` runs on the page's
+ *  main thread, so asked for only once the page is stuck it never completes and the pause never lands. Enabled at the
+ *  page's first bounded input, the later `Debugger.pause` is an interrupt, which stops even a busy loop. */
+const debuggers = new WeakMap();
+const debuggerOf = async (page) => {
+  if (debuggers.has(page)) return debuggers.get(page);
+  const pending = (async () => {
+    try {
+      const cdp = await page.context().newCDPSession(page);
+      const on = await Promise.race([cdp.send('Debugger.enable').then(() => true, () => false), new Promise((r) => setTimeout(() => r(false), 3000))]);
+      return on ? cdp : null;
+    } catch { return null; }
+  })();
+  debuggers.set(page, pending);
+  return pending;
+};
+const stallStack = async (page) => {
+  const cdp = await Promise.race([debuggerOf(page), new Promise((r) => setTimeout(() => r(null), 3000))]);
+  if (!cdp) return 'no debugger session could be opened on the page, so where it stopped is unknown';
+  try {
+    const paused = new Promise((r) => cdp.once('Debugger.paused', (e) => r(e)));
+    await Promise.race([cdp.send('Debugger.pause').catch(() => {}), new Promise((r) => setTimeout(r, 3000))]);
+    const e = await Promise.race([paused, new Promise((r) => setTimeout(() => r(null), 5000))]);
+    if (!e) return 'the debugger could not pause it within 5s: it was not running JavaScript (layout, paint, GC, or no frames being produced at all)';
+    const frames = (e.callFrames ?? []).slice(0, 6).map((f) => `${f.functionName || '(anonymous)'} ${String(f.url).split('/').pop() || '(page)'}:${f.location.lineNumber + 1}`);
+    await Promise.race([cdp.send('Debugger.resume').catch(() => {}), new Promise((r) => setTimeout(r, 3000))]);
+    return `it was running JavaScript: ${frames.join(' < ') || '(no frames)'}`;
+  } catch (err) {
+    return `the debugger failed (${String(err?.message ?? err).slice(0, 80)})`;
+  }
+};
+/** The slowest bounded input that went through, printed at the end: how close a run came to INPUT_MS. */
+const slowestInput = { ms: 0, label: '' };
+let boundedInputs = 0;
+const bounded = async (page, label, act) => {
+  if (deadPages.has(page)) return false;
+  await debuggerOf(page);   // enabled while the page answers, so a later stall can be paused (see `debuggerOf`)
+  let timer;
+  const t0 = Date.now();
+  const out = await Promise.race([
+    act().then(() => 'ok', (e) => e),
+    new Promise((r) => { timer = setTimeout(() => r('timeout'), INPUT_MS); }),
+  ]);
+  clearTimeout(timer);
+  if (out === 'ok') {
+    boundedInputs++;
+    const ms = Date.now() - t0;
+    if (ms > slowestInput.ms) { slowestInput.ms = ms; slowestInput.label = label; }
+    return true;
+  }
+  const what = out === 'timeout' ? `did not return within ${INPUT_MS}ms` : `threw after ${Date.now() - t0}ms: ${String(out?.message ?? out).split('\n')[0].slice(0, 120)}`;
+  if (await rendersFrame(page)) {
+    ok(false, `${label}: the input ${what}; the page still renders frames, so it was busy, not stuck`);
+    return false;
+  }
+  const stack = await stallStack(page);
+  await closeDead(page, `${label}: the input ${what}; ${stack}`);
+  return false;
+};
 const settledClick = async (page, selector, label) => {
   const deadline = Date.now() + SETTLE_CLICK_MS * 2;
   const settled = await Promise.race([
@@ -2162,14 +2232,16 @@ s4cArm: for (const brand of BRANDS) {
       let v;
       if (PICKED.has(k)) {
         // The picker: open it, choose its pick-th step (a key: `white`, `050`), close it.
-        await hooks.click(page.locator(SURF(k)));
+        // Every input bounded (#2550): a stall fails this control by name and the arm goes on, or skips a dead page.
+        const at = `S4c ${brand}: previewing ${m}, the ${k} picker`;
+        if (!await bounded(page, `${at} opens`, () => hooks.click(page.locator(SURF(k)), { timeout: INPUT_MS }))) { if (deadPages.has(page)) continue s4cArm; continue; }
         await hooks.need(page, '[data-p3="levers-pane"] [data-p3="step-picker"]');
         const keys = await page.locator('[data-p3="levers-pane"] [data-p3="step-picker-step"]').evaluateAll((ns) => ns.map((n) => n.dataset.step));
         v = keys[Math.min(pick, keys.length - 1)];
-        await hooks.click(page.locator(`[data-p3="levers-pane"] [data-p3="step-picker-step"][data-step="${v}"]`));
+        if (!await bounded(page, `${at} takes its ${v} step`, () => hooks.click(page.locator(`[data-p3="levers-pane"] [data-p3="step-picker-step"][data-step="${v}"]`), { timeout: INPUT_MS }))) { if (deadPages.has(page)) continue s4cArm; continue; }
         // Bounded: a control that wrote the wrong key redraws on its old value, and the check below says so.
         await page.waitForFunction((vv) => document.querySelector(`[data-p3="levers-pane"] [data-p3="step-picker-step"][data-step="${vv}"]`)?.getAttribute('aria-pressed') === 'true', v, { timeout: 5000 }).catch(() => {});
-        await page.keyboard.press('Escape');
+        if (!await bounded(page, `${at} closes on Escape`, () => page.keyboard.press('Escape'))) { if (deadPages.has(page)) continue s4cArm; continue; }
       } else {
         const values = await page.locator(SURF(k)).evaluate((x) => [...x.options].map((o) => o.value));
         v = values[Math.min(pick, values.length - 1)];
@@ -2232,10 +2304,12 @@ s4cArm: for (const brand of BRANDS) {
   for (const [m, role, step] of EDITS) {
     if (!await previewMode(page, m)) { if (deadPages.has(page)) continue s4cArm; continue; }
     const row = `[data-p3="levers-pane"] [data-p3="field-rows"] .p3-fillrow[data-role="${role}"]`;
-    await hooks.click(page.locator(`${row} [data-p3="fill-pick"]`));
-    await hooks.click(page.locator(`[data-p3="levers-pane"] [data-p3="step-picker-step"][data-step="${step}"]`));
+    // Every input bounded (#2550): a stall fails this row by name and the arm goes on, or skips a dead page.
+    const at = `S4c ${brand}: the ${role} row in ${m}`;
+    if (!await bounded(page, `${at}: its picker opens`, () => hooks.click(page.locator(`${row} [data-p3="fill-pick"]`), { timeout: INPUT_MS }))) { if (deadPages.has(page)) continue s4cArm; continue; }
+    if (!await bounded(page, `${at}: the ${step} step is taken`, () => hooks.click(page.locator(`[data-p3="levers-pane"] [data-p3="step-picker-step"][data-step="${step}"]`), { timeout: INPUT_MS }))) { if (deadPages.has(page)) continue s4cArm; continue; }
     await page.waitForFunction((sel) => /Override/.test(document.querySelector(sel)?.textContent ?? ''), `${row} [data-p3="fill-pick"]`, { timeout: 5000 }).catch(() => {});
-    await page.keyboard.press('Escape');
+    if (!await bounded(page, `${at}: Escape closes the picker`, () => page.keyboard.press('Escape'))) { if (deadPages.has(page)) continue s4cArm; continue; }
   }
   await hooks.click(page.locator('[data-p3="export-open"]'));
   await hooks.need(page, '[data-p3="export-dialog"]');
@@ -2418,10 +2492,12 @@ s4dArm: for (const brand of BRANDS) {
     // Bounded: a row left locked (or not drawn) is a failure by name here, not a 30-second timeout.
     const can = await page.evaluate((sel) => { const b = document.querySelector(sel); return !!b && !b.disabled; }, `${row} [data-p3="fill-pick"]`);
     if (!can) { ok(false, `S4d ${brand}: the ${sec} row ${role} in ${m} is drawn and enabled, so it can be edited`); continue; }
-    await hooks.click(page.locator(`${row} [data-p3="fill-pick"]`));
-    await hooks.click(page.locator(`[data-p3="levers-pane"] [data-p3="step-picker-step"][data-step="${step}"]`));
+    // Every input bounded (#2547: this Escape once waited two hours): a stall fails this row by name and the arm goes on, or skips a dead page.
+    const at = `S4d ${brand}: the ${sec} row ${role} in ${m}`;
+    if (!await bounded(page, `${at}: its picker opens`, () => hooks.click(page.locator(`${row} [data-p3="fill-pick"]`), { timeout: INPUT_MS }))) { if (deadPages.has(page)) continue s4dArm; continue; }
+    if (!await bounded(page, `${at}: the ${step} step is taken`, () => hooks.click(page.locator(`[data-p3="levers-pane"] [data-p3="step-picker-step"][data-step="${step}"]`), { timeout: INPUT_MS }))) { if (deadPages.has(page)) continue s4dArm; continue; }
     await page.waitForFunction((sel) => /Override/.test(document.querySelector(sel)?.textContent ?? ''), `${row} [data-p3="fill-pick"]`, { timeout: 5000 }).catch(() => {});
-    await page.keyboard.press('Escape');
+    if (!await bounded(page, `${at}: Escape closes the picker`, () => page.keyboard.press('Escape'))) { if (deadPages.has(page)) continue s4dArm; continue; }
     const ov = (await inputAt(page))?.overrides?.[m]?.[role];
     ok(JSON.stringify(ov) === JSON.stringify({ palette: pal, step }), `S4d ${brand}: the ${sec} row ${role} in ${m} persists overrides.${m}["${role}"] = ${JSON.stringify({ palette: pal, step })} (persisted ${JSON.stringify(ov)})`);
   }
@@ -2994,12 +3070,13 @@ const readIRow = (page, role) => page.evaluate((r) => {
   const row = document.querySelector(`[data-p3="levers-pane"] .p3-fillrow[data-role="${r}"]`);
   return row ? { label: row.querySelector('[data-p3="int-pick"] .p3-btn-label')?.textContent?.trim() ?? null, swatch: getComputedStyle(row.querySelector('.p3-fill-sw')).backgroundColor } : null;
 }, role);
-/** Open `role`'s step picker, run `act` on it, and close it again with Escape. */
+/** Open `role`'s step picker, run `act` on it, and close it again with Escape. Every input bounded (#2550): returns
+ *  false when one stalled, which failed an arm by name; a caller skips the brand when the page went dead. */
 const withPicker = async (page, role, act) => {
-  await hooks.click(page.locator(`[data-p3="levers-pane"] [data-p3="int-pick"][data-role="${role}"]`));
+  if (!await bounded(page, `picker ${role}: opens`, () => hooks.click(page.locator(`[data-p3="levers-pane"] [data-p3="int-pick"][data-role="${role}"]`), { timeout: INPUT_MS }))) return false;
   await hooks.need(page, '[data-p3="levers-pane"] [data-p3="step-picker"]');
-  await act(page.locator('[data-p3="levers-pane"] [data-p3="step-picker"]'));
-  await page.keyboard.press('Escape');
+  if (!await bounded(page, `picker ${role}: its action runs`, () => act(page.locator('[data-p3="levers-pane"] [data-p3="step-picker"]')))) return false;
+  return bounded(page, `picker ${role}: Escape closes it`, () => page.keyboard.press('Escape'));
 };
 
 /** The wash rows this suite actually judged, and in how many polarities. Floored after the loop: the
@@ -3008,7 +3085,7 @@ const withPicker = async (page, role, act) => {
 let washRowsSeen = 0;
 let washPolarities = new Set();
 
-for (const brand of BRANDS) {
+s5aArm: for (const brand of BRANDS) {
   const { ctx, page, drain } = await openBrand(brand);
 
   // --- 2a. the override picker: does its "Auto" tell the truth? (#330) --------------------------
@@ -3033,16 +3110,17 @@ for (const brand of BRANDS) {
     await withPicker(page, ROLE, async (pk) => { s = await pk.locator('[data-p3="step-picker-step"]').evaluateAll((ns) => ns.map((n) => n.dataset.step)); });
     return s;
   })();
+  if (deadPages.has(page)) continue s5aArm;
   let pick = null, during = null;
   for (const step of stepsOffered) {
-    await withPicker(page, ROLE, (pk) => hooks.click(pk.locator(`[data-p3="step-picker-step"][data-step="${step}"]`)));
+    await withPicker(page, ROLE, (pk) => hooks.click(pk.locator(`[data-p3="step-picker-step"][data-step="${step}"]`))); if (deadPages.has(page)) continue s5aArm;
     during = await readIRow(page, ROLE);
     if (during?.swatch !== before?.swatch) { pick = step; break; }
   }
   ok(pick !== null, `${brand}: some step in the picker moves the resolved color (picked '${pick}')`);
   ok(new RegExp(`^Override · \\S+ ${pick}\\b`).test(during?.label ?? ''), `${brand}: picking '${pick}' sets the override and says so ("${during?.label}")`);
   // THE #330 ASSERTION: Auto produces the value its own words promised.
-  await withPicker(page, ROLE, (pk) => hooks.click(pk.locator('[data-p3="step-picker-auto"]')));
+  await withPicker(page, ROLE, (pk) => hooks.click(pk.locator('[data-p3="step-picker-auto"]'))); if (deadPages.has(page)) continue s5aArm;
   const after = await readIRow(page, ROLE);
   ok(after?.swatch === before?.swatch, `${brand}: Return to Auto returns the color the Auto label named (was ${before?.swatch}, now ${after?.swatch}) (#330)`);
   ok(after?.label === before?.label, `${brand}: the Auto label is unchanged after the round trip ("${before?.label}" → "${after?.label}") (#330)`);
@@ -4823,7 +4901,7 @@ const readEdgeRow = (page, role) => page.evaluate((r) => {
   };
 }, role);
 
-for (const brand of BRANDS) {
+s5bArm: for (const brand of BRANDS) {
   const { ctx, page, drain } = await openBrand(brand);
   await gotoInteractive(page);
   const notes = [];
@@ -4872,10 +4950,10 @@ for (const brand of BRANDS) {
     `${brand}: the preview's Outline hover and pressed edges are the Hover and Pressed rows' colors (${o0[1]?.edge}, ${o0[2]?.edge})`);
   // The step has to be one that MOVES the resolved color.
   let steps = [];
-  await withPicker(page, ROLE, async (pk) => { steps = await pk.locator('[data-p3="step-picker-step"]').evaluateAll((ns) => ns.map((n) => n.dataset.step)); });
+  await withPicker(page, ROLE, async (pk) => { steps = await pk.locator('[data-p3="step-picker-step"]').evaluateAll((ns) => ns.map((n) => n.dataset.step)); }); if (deadPages.has(page)) continue s5bArm;
   let pick = null, during = null;
   for (const step of steps) {
-    await withPicker(page, ROLE, (pk) => hooks.click(pk.locator(`[data-p3="step-picker-step"][data-step="${step}"]`)));
+    await withPicker(page, ROLE, (pk) => hooks.click(pk.locator(`[data-p3="step-picker-step"][data-step="${step}"]`))); if (deadPages.has(page)) continue s5bArm;
     during = await readEdgeRow(page, ROLE);
     if (during?.swatch !== before?.swatch) { pick = step; break; }
   }
@@ -4886,7 +4964,7 @@ for (const brand of BRANDS) {
     `${brand}: pinning the border moves the preview's Outline EDGE (${o0[0]?.edge} → ${o1[0]?.edge}, row ${during?.swatch}) (#576)`);
   ok(o1[0]?.ink === o0[0]?.ink, `${brand}: and leaves the Outline INK where it was (${o0[0]?.ink}) — the edge can now differ from the label it surrounds`);
   ok((await readIRow(page, INK))?.swatch === inkBefore, `${brand}: the Text · rest row is untouched by a border override (${inkBefore}) — the override is scoped to the one role`);
-  await withPicker(page, ROLE, (pk) => hooks.click(pk.locator('[data-p3="step-picker-auto"]')));
+  await withPicker(page, ROLE, (pk) => hooks.click(pk.locator('[data-p3="step-picker-auto"]'))); if (deadPages.has(page)) continue s5bArm;
   const back = await readEdgeRow(page, ROLE);
   ok(back?.swatch === before?.swatch && back?.label === before?.label && (await outline())[0]?.edge === o0[0]?.edge,
     `${brand}: Return to Auto returns the edge the Auto label named (${back?.swatch}, "${back?.label}")`);
@@ -5410,6 +5488,9 @@ for (const c of REFUSED_CASES) {
 // =============================================================================================
 await browser.close();
 server.close();
+
+// #2547/#2550: how close the bounded inputs came to their limit, so a run under load shows its margin.
+console.log(`\nBounded inputs (#2547, #2550): ${boundedInputs} went through, the slowest in ${slowestInput.ms}ms of ${INPUT_MS}ms (${slowestInput.label || 'none'})`);
 
 console.log(`\nStable test hooks (F1)\n${'='.repeat(78)}`);
 hooks.report(ok);
