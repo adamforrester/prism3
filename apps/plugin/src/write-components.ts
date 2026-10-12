@@ -61,6 +61,7 @@ import { tailOf } from '@prism3/engine/figma-names';
 import { NS } from './persist-figma';
 import { EXECUTOR_REVISION } from './executor-revision';
 import { BASELINE_KEY, UPDATING_KEY, baselineOf, builtByPrism3, mainOf, readBaseline, snapshotMember, writeBaseline, type OwnershipRead } from './member-baseline';
+import { REACTIONS_PATH, plannedRead, reactionMap, reactionToWrite, reactionVerdict, reactionsText, readReactions } from './reactions';
 // #1318 — the ONE gradient-stop binder, shared with the Paint Style executor rather than written twice.
 import { bindGradientStops } from './write-styles';
 import type { VariableAlias, Rgba } from './write-styles';
@@ -294,6 +295,10 @@ export interface CompNode {
    *  (as unknown provenance, which is stale). That is the safe reading in both cases. */
   getSharedPluginData?(namespace: string, key: string): string;
   setSharedPluginData?(namespace: string, key: string, value: string): void;
+  /** A member's prototype reactions (#2466, `reactions.ts`): read, then written whole by `setReactionsAsync`, the
+   *  one way the host takes them. Optional like everything here: a host without them builds no interactions. */
+  readonly reactions?: readonly unknown[];
+  setReactionsAsync?(reactions: unknown[]): Promise<void>;
 }
 
 /** A COMPONENT_SET, which has a surface no ordinary node does. `componentPropertyDefinitions` is a
@@ -2586,6 +2591,8 @@ const writeComponentSet = async (
       const prior = readBaseline(m);
       const now = baselineOf(await snapshotMember(m));
       if (!entry.accept) for (const p of entry.keep) if (prior?.nodes[p] !== undefined) now.nodes[p] = prior.nodes[p];
+      // Reactions kept as a hand edit keep their recorded hash too (#2466), for the same reason.
+      if (!entry.accept && entry.keep.has(REACTIONS_PATH) && prior?.reactions !== undefined) now.reactions = prior.reactions;
       m.setSharedPluginData?.(NS, BASELINE_KEY, JSON.stringify({ ...now, ...(m.id ? { id: String(m.id) } : {}) }));
     } catch (err) { return `${mName}.asBuilt -> NOT RECORDED (${(err as Error)?.message ?? String(err)})`; }
     // THE STAMP, LAST (§7): only now does the member read current. Then the marker comes off.
@@ -3628,6 +3635,41 @@ const writeComponentSet = async (
   const refsWired = wiredRefs.length;
   const membersWired = new Set(wiredRefs.map((r) => r[0])).size;
 
+  // INTERACTIVE COMPONENTS (#2466, owner decision Q238 A, `reactions.ts`): every member this run built or configured
+  // in place gets its reactions FROM THE PLAN, resolved by name to the siblings the set holds NOW. After every other
+  // write, because a reaction names its destination by id and an in-place update may have just added that
+  // destination; before the record, so the record holds them. Never kept from what the file had: a sibling that
+  // was replaced left these pointing at an orphan (docs/18 §3). A member whose reactions already read as planned is
+  // not written (a write costs ~12.5ms on the host, measured), nor is one whose reactions an update keeps as a
+  // hand edit. Read back, as everything here is. Yields on the chunk boundary, as the loops above do.
+  const reactionMiss: string[] = [];
+  const plannedReactions = reactionMap(plans.map((p) => planComponentName(p)));
+  if (plannedReactions.size) {
+    const kids = (liveSet().children ?? []) as CompNode[];
+    const byMember = new Map(kids.map((c) => [String(c.name), c] as const));
+    let writes = 0;
+    for (const mName of builtParts.keys()) {
+      const want = plannedReactions.get(mName);
+      const m = byMember.get(mName);
+      if (!want || !m || typeof m.setReactionsAsync !== 'function') continue;
+      if (updated.get(mName)?.keep.has(REACTIONS_PATH)) continue;
+      const wantRead = want.map((r) => plannedRead(mName, r));
+      const had = await readReactions(m);
+      if (had && !reactionVerdict(wantRead, had).differs) continue;
+      const write: unknown[] = [];
+      for (const r of want) {
+        const id = byMember.get(r.to)?.id;
+        if (id) write.push(reactionToWrite(r.trigger, String(id)));
+        else reactionMiss.push(`${mName}.reactions -> ${r.trigger} NOT WRITTEN (${r.to} is not in the set)`);
+      }
+      try { await m.setReactionsAsync(write); }
+      catch (err) { reactionMiss.push(`${mName}.reactions -> REFUSED (${(err as Error)?.message ?? String(err)})`); continue; }
+      const back = await readReactions(m);
+      if (back && reactionVerdict(wantRead, back).differs) reactionMiss.push(`${mName}.reactions -> NOT HELD (wrote ${reactionsText(wantRead)}, reads ${reactionsText(back)})`);
+      if (++writes % chunkSize === 0) await yieldTo();
+    }
+  }
+
   // THE "AS BUILT" BASELINE (#2265), last, once every write and repair above has landed: the record is of
   // the member as the host now holds it, which is what a later dry run reads it against. Only on members
   // THIS run built; a skipped member keeps the baseline its own build wrote, and a member built before
@@ -3648,7 +3690,7 @@ const writeComponentSet = async (
     try { await writeBaseline(m); }
     catch (err) { asBuiltMiss.push(`${mName}.asBuilt -> NOT RECORDED (${(err as Error)?.message ?? String(err)})`); }
   }
-  const allMisses = misses.concat(stray, boxMiss, axisMiss, coincident, footprint, propMiss, asBuiltMiss);
+  const allMisses = misses.concat(stray, boxMiss, axisMiss, coincident, footprint, propMiss, reactionMiss, asBuiltMiss);
 
   // #1579 — THE FINAL REPORT, overwriting the provisional one written at the combine (keep-last). On
   // `liveSet()` rather than `set`, for #1574's reason: a report left on a handle the host has replaced is

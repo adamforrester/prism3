@@ -44,7 +44,8 @@
  * Identity: the set's key, every surviving member's key and id, and every surviving child's id, captured in
  * preflight, compared after the run. A difference is a failure naming the member, apart from the children the
  * dry run said would be replaced. Content: `diffAnatomy` of every updated member against its plan, apart from
- * the nodes kept as hand edits. Either failing makes the verdict a failure.
+ * the nodes kept as hand edits, and its prototype reactions against the ones the plan gives it (#2466), unless they
+ * were kept as a hand edit. Either failing makes the verdict a failure.
  */
 import { diffAnatomy, type HostNode } from '@prism3/engine/anatomy-readback';
 import { planBoundVars, planComponentName, planEffectStyles, planPaintVars, planSetProperties, planTextStyles, type AnatomyPlan } from '@prism3/engine/anatomy-figma';
@@ -55,7 +56,8 @@ import { planTargets, presentNames } from './build-deps';
 import { NS } from './persist-figma';
 import { baselineDiff, baselineOf, readBaseline, snapshotMember } from './member-baseline';
 import { drawnFaults, faultLine, varsById } from './drawn';
-import { hostPorts, previewLine, previewUpdate, readSetView, readSingleView, setUpToDate, type SetPreview, type UpdateHost, type UpdatePreview, type UpdateTarget } from './update-plan';
+import { REACTIONS, hostPorts, previewLine, previewUpdate, readSetView, readSingleView, setUpToDate, type SetPreview, type UpdateHost, type UpdatePreview, type UpdateTarget } from './update-plan';
+import { REACTIONS_PATH, plannedRead, reactionMap, reactionVerdict, reactionsText } from './reactions';
 
 /** The set's record of the members an update kept and marked deprecated (Q2): a JSON list of member names. */
 export const RETAINED_KEY = 'retained';
@@ -470,6 +472,7 @@ const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, p:
   // ── VERIFY (b): CONTENT, every updated member against its plan, apart from the hand edits kept ──────────────
   const ports = await hostPorts(host);
   const varById = await varsById(api as unknown as Parameters<typeof varsById>[0]);
+  const plannedRx = reactionMap(t.plans.map((x) => planComponentName(x)));
   for (const name of out.updated) {
     const a = after.get(name);
     const pl = plans.get(name);
@@ -499,6 +502,12 @@ const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, p:
     // WHAT THE HOST DRAWS (#2379): the paint's stored color and alpha, and a glyph's vectors where they sit, which
     // `diffAnatomy` does not read. The dry run judges a member by the same check (`drawn.ts`).
     for (const f of drawnFaults(a, varById, (part) => [...keep].some((k) => part === k || part.startsWith(`${k}/`)))) out.content.push(faultLine(name, f));
+    // ITS REACTIONS (#2466), read off the host with every destination resolved: written from the plan, or kept.
+    const want = plannedRx.get(name);
+    if (want && snap.reactions && !keep.has(REACTIONS_PATH)) {
+      const planned = want.map((r) => plannedRead(name, r));
+      if (reactionVerdict(planned, snap.reactions).differs) out.content.push(`${name}/${REACTIONS}: ${reactionsText(snap.reactions)} (the plan says ${reactionsText(planned)})`);
+    }
   }
   if (work.restamp.length) await restampMembers(now, work.restamp, plans, out, hostOf);
   return out;

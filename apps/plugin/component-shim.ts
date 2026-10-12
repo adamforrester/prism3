@@ -1233,6 +1233,29 @@ export const makeShim = (opts: ShimOpts = {}) => {
       }
     }
     if (opts.identities) Object.defineProperty(node, 'id', { configurable: true, enumerable: false, writable: true, value: `N:${++nodeSeq}` });
+    // #2466 — PROTOTYPE REACTIONS, where nodes have ids to point at (`identities`). Read as a copy and written whole,
+    // as the host does. What the live probe saw refused is refused here too (docs/18 §3): a `MOUSE_ENTER` or
+    // `MOUSE_LEAVE` trigger with no `delay`, and a hover, press or click trigger carrying any field but `type`. A
+    // destination is stored as the id written; it is never followed, so a removed node's id DANGLES as on the host.
+    if (opts.identities) {
+      let reactions: unknown[] = [];
+      Object.defineProperty(node, 'reactions', { configurable: true, enumerable: false, get: () => JSON.parse(JSON.stringify(reactions)) });
+      Object.defineProperty(node, 'setReactionsAsync', {
+        configurable: true, enumerable: false, writable: true,
+        value: async (rs: { trigger?: Record<string, unknown> | null; actions?: { type?: string; destinationId?: unknown }[] }[]) => {
+          for (const r of rs) {
+            const t = r.trigger ?? {};
+            if ((t.type === 'MOUSE_ENTER' || t.type === 'MOUSE_LEAVE') && typeof t.delay !== 'number')
+              throw new Error(`in setReactionsAsync: Validation failed: trigger ${String(t.type)} requires a delay`);
+            if (['ON_HOVER', 'ON_PRESS', 'ON_CLICK'].includes(String(t.type)) && Object.keys(t).some((k) => k !== 'type'))
+              throw new Error(`in setReactionsAsync: Validation failed: trigger ${String(t.type)} takes no other field`);
+            for (const a of r.actions ?? []) if (a.type === 'NODE' && typeof a.destinationId !== 'string')
+              throw new Error('in setReactionsAsync: Validation failed: a NODE action needs a destinationId');
+          }
+          reactions = JSON.parse(JSON.stringify(rs));
+        },
+      });
+    }
     return node;
   };
 
