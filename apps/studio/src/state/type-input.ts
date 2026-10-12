@@ -30,7 +30,7 @@
  */
 import {
   brandTheme, typefaceSlug, derivedRungFor, shiftRung, REQUIRED_WEIGHT_ROLES, PER_MODE_SIZE_GROUPS,
-  LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, TRACKING_SHIFT_KEYS, DISPLAY_VARIANTS, TYPE_LINK_DEFAULT, TYPE_LINK_ALWAYS,
+  LINE_HEIGHT_KEYS, TRACKING_SHIFT_KEYS, DISPLAY_VARIANTS, TYPE_LINK_DEFAULT, TYPE_LINK_ALWAYS,
 } from '@prism3/engine/theme';
 import type { BrandInput, Theme, TypographyInput, PerModeSizeGroup, FacePin } from '@prism3/engine/theme';
 import { brandState, theme, getPath, setPath, setModeLever } from './store';

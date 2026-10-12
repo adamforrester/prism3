@@ -31,17 +31,16 @@
  * nothing here has a volatile region to leave stale). It never names a legacy repaint tier and never imports `main.ts`
  * (`test-shell-imports.ts`).
  */
-import { brandState, currentMode, getPath, lastError, rebuild, searchQuery, setPage, setSearchHits, subscribe, theme } from '../state/store';
+import { brandState, currentMode, getPath, lastError, searchQuery, setPage, setSearchHits, subscribe, theme } from '../state/store';
 import { isDerived } from '../state/verdict';
 import {
   authoredTint, brandShadowValue, easingOverride, setEasingRole, setShadow, shadowOverride, setTempo, tempoOverride, type ShadowKey,
 } from '../state/depth-motion-input';
-import { noteSectionEdit } from '../preview/follow-edit';
 import { DOMAINS, pageOfTab, type PageData } from '../shell/pages';
 import { modeLabel } from '../shell/preview';
 import { glyph, h, hook } from '../shell/dom';
 import { valuePicker } from '../ui/value-picker';
-import { choice, leverBlock, leverOf, setText, slider, sliderReadout, stateLine, subLine, tokenLabel, type LeverBlock } from '../ui/lever-kit';
+import { choice, leverBlock, leverOf, setText, slider, sliderReadout, stateLine, subLine, tokenLabel, type LeverBlock, keepFocus, pageEdit, filterLevers } from '../ui/lever-kit';
 
 const PAGE = DOMAINS.find((d) => d.id === 'depth') as PageData;
 const section = (title: string) => PAGE.sections.find((s) => s.title === title)!;
@@ -125,12 +124,7 @@ export const mountDepthLevers = (host: HTMLElement, cleanups: (() => void)[]): v
   const drawnBrand: Partial<Record<ShadowKey, number | null>> = {};
   let shapeKey = '';
 
-  const edit = (key: string, write: () => void): void => {
-    lastEdited = key;
-    write();
-    noteSectionEdit();   // QA-B9: the edit, and only an edit, reveals its preview section
-    rebuild();
-  };
+  const edit = pageEdit((k) => { lastEdited = k; });   // the shared edit (#2487 B5)
   const light = (): boolean => currentMode === 'light';
   const derived = (): boolean => isDerived(currentMode);
 
@@ -350,9 +344,8 @@ export const mountDepthLevers = (host: HTMLElement, cleanups: (() => void)[]): v
     getPath(brandState, 'motionPersonality'), light() ? null : [tempoOverride(currentMode), getPath(brandState, `modeLevers.${currentMode}.easings`)]]);
 
   const render = (): void => {
-    const had = document.activeElement as HTMLElement | null;
-    const focusKey = had && root.contains(had) ? had.getAttribute('data-p3') : null;
-    const focusIndex = focusKey ? [...root.querySelectorAll(`[data-p3="${focusKey}"]`)].indexOf(had!) : -1;
+    // What had focus, found again after the redraw (`keepFocus`, #2487 B5).
+    const { key: focusKey, again } = keepFocus(root);
     const scrollTop = host.scrollTop;
     shapeKey = shape();
     items = [];
@@ -387,20 +380,13 @@ export const mountDepthLevers = (host: HTMLElement, cleanups: (() => void)[]): v
     filter();
     if (focusPick && pickFocus) { focusPick = false; (pickFocus as () => void)(); }
     else if (focusKey) {
-      const same = [...root.querySelectorAll<HTMLElement>(`[data-p3="${focusKey}"]`)];
-      (same[Math.max(0, focusIndex)] ?? same[0])?.focus({ preventScroll: true });
+      again()?.focus({ preventScroll: true });
     }
     if (host.scrollTop !== scrollTop) host.scrollTop = scrollTop;
   };
 
   /** Search (Q3): hide what does not match, report the count. */
-  const filter = (): void => {
-    const q = searchQuery.trim().toLowerCase();
-    for (const it of items) it.el.hidden = !!q && !it.said.includes(q);
-    for (const s of root.querySelectorAll<HTMLElement>('.p3-lsec')) s.hidden = !!q && !s.querySelector('.p3-lever:not([hidden])');
-    for (const n of root.querySelectorAll<HTMLElement>('.p3-intro, .p3-nextrow, .p3-advrow > .p3-btn')) n.hidden = !!q;
-    setSearchHits(q ? items.filter((it) => !it.el.hidden).length : null);
-  };
+  const filter = (): void => filterLevers(root, items);   // the shared search (#2487 B5)
 
   cleanups.push(subscribe('brand', () => {
     if (shape() !== shapeKey) { render(); return; }

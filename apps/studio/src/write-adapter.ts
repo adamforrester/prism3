@@ -1,101 +1,22 @@
 /**
- * The write-adapter seam (docs/22, GH #106).
+ * The host seam (docs/22, GH #106): what differs between the web playground and the Figma plugin iframe, which
+ * run one UI.
  *
- * The single-UI goal — one UI for the web playground AND the Figma plugin iframe —
- * hinges on a swappable WRITE surface. The UI computes a resolved token model
- * (`ResolvedPreview`, straight off the pure engine) and hands it to ONE `apply(model)`
- * interface, implemented per host:
- *   • web    → CSS custom properties (this file's `cssVarAdapter`)
- *   • plugin → `figma.variables` (the `figmaVarAdapter` stub, wired in the plugin phase)
- *
- * The UI never writes resolved token VALUES itself; it only references them by their
- * stable custom-property NAMES (`cssVar` / `typeVar`) and lets the active host fill
- * them in. Swap the host (see `makeWriteHost`) and the same UI drives a different
- * backend — no UI change. This is the seam that lets `apps/studio/src` be reused verbatim
- * inside the plugin.
- *
- * PURE-adjacent: imports only TYPES (the engine's, and the plugin's wire contract) + DOM. No `node:*`.
- */
-import type { ResolvedPreview } from '@prism3/engine/resolve-preview';
-import type { UiToMain, MainToUi, OfType, StyleGuideOptions, StyleGuideCatalog, StyleGuideCatalogCollection, StyleGuideCatalogTable, StyleGuideKind } from '../../plugin/src/messages';
-
-type Mode = ResolvedPreview['modes'][number];
-
-/** Deterministic CSS custom-property name for a resolved binding ref. Shared by the
- *  adapter (which SETS it) and the UI (which REFERENCES it via `var()`), so the two
- *  can never drift. The category prefix (`color.` / `radius.` / `space.` / `type.`)
- *  survives sanitisation, so refs across categories can't collide. */
-export const cssVarName = (ref: string): string => '--' + ref.replace(/[^a-z0-9]+/gi, '-').toLowerCase();
-/** `var(--…)` reference for a colour or dimension binding — what the UI assigns. */
-export const cssVar = (ref: string): string => `var(${cssVarName(ref)})`;
-
-/** A typography composite resolves to three atoms; each gets its own property. */
-export type TypeAtom = 'family' | 'weight' | 'size';
-const typeAtomName = (ref: string, atom: TypeAtom): string => `${cssVarName(ref)}-${atom}`;
-export const typeVar = (ref: string, atom: TypeAtom): string => `var(${typeAtomName(ref, atom)})`;
-
-/** The one interface every host implements. `mode` selects which resolved slice of the
- *  (per-mode) model to project — the web preview shows one mode at a time. */
-export interface WriteAdapter {
-  apply(model: ResolvedPreview, mode: Mode): void;
-}
-
-/**
- * Web host — writes the resolved model as CSS custom properties on a scope element.
- * The preview chips (descendants of that scope) inherit the properties, so they read
- * `var(--…)` and never touch the resolved hex/px themselves.
- */
-export const cssVarAdapter = (scope: HTMLElement): WriteAdapter => ({
-  apply(model, mode) {
-    const s = scope.style;
-    // Colours — the per-mode slice. Sparse: a narrowed-modes theme only carries the
-    // modes it generates, so a ref absent for this mode is simply left unset (the UI's
-    // `var(--…, fallback)` handles the gap, mirroring the old presence guards).
-    for (const [ref, byMode] of Object.entries(model.colors)) {
-      const hex = byMode[mode];
-      if (hex) s.setProperty(cssVarName(ref), hex);
-    }
-    // Dimensions — the effective value for this mode (wireframe zeroes radius, etc.), in px.
-    for (const [ref, px] of Object.entries(model.dims)) {
-      const eff = model.dimOverrides[ref]?.[mode] ?? px;
-      s.setProperty(cssVarName(ref), `${eff}px`);
-    }
-    // Typography — mode-invariant; three atoms per composite. A binding the brand does not emit is
-    // absent from `model.type` and named in `model.unresolvedType` (#1720). Its atoms are REMOVED, not
-    // just skipped: an earlier apply may have set them for a brand that did emit the style, and a
-    // property left on the scope would keep painting that brand's value.
-    for (const [ref, t] of Object.entries(model.type)) {
-      if (!t) continue;
-      s.setProperty(typeAtomName(ref, 'family'), t.fontFamilyStack);
-      s.setProperty(typeAtomName(ref, 'weight'), String(t.fontWeight));
-      s.setProperty(typeAtomName(ref, 'size'), `${t.fontSizePx}px`);
-    }
-    for (const ref of model.unresolvedType) {
-      for (const atom of ['family', 'weight', 'size'] as const) s.removeProperty(typeAtomName(ref, atom));
-    }
-    // Shadows — the per-mode CSS box-shadow (dark = reduced). Sparse like colours: a
-    // mode without a resolved shadow is left unset (the UI's `var(--…, fallback)` covers it).
-    for (const [ref, byMode] of Object.entries(model.shadows)) {
-      const css = byMode[mode];
-      if (css) s.setProperty(cssVarName(ref), css);
-    }
-  },
-});
-
-/**
- * The live PREVIEW seam is host-invariant: BOTH hosts paint the preview via CSS custom
- * properties, because the plugin iframe is a full DOM context too — the same chips render
- * identically in the browser and the iframe. So `makeWriteHost` returns `cssVarAdapter` for
- * every host; the plugin does NOT paint the preview into `figma.variables`.
- *
- * What differs per host is the COMMIT action (docs/22 #110) — "materialise this theme":
+ * The live PREVIEW is not here: both hosts paint it the same way, in a full DOM. What differs per host is the
+ * COMMIT action (docs/22 #110), "materialise this theme":
  *   • web    → download design.md / tokens.json (the UI's existing export bar)
  *   • figma  → post the live `BrandInput` to the plugin main thread, which runs #108's
  *              `applyWritePlan` against `figma.variables`.
- * That's the `HostCommit` seam below, selected at BUILD time by `PRISM3_HOST` (esbuild
- * `--define`), so the shared UI bundle never carries the other host's code.
+ * That's the `HostCommit` seam below, selected at BUILD time by `PRISM3_HOST` (esbuild `--define`), so the shared
+ * UI bundle never carries the other host's code. And the INBOUND half: every `MainToUi` message is validated at
+ * this boundary (`toHostMessage`) before the UI sees it.
+ *
+ * A CSS custom-property write adapter (`cssVarAdapter`, `makeWriteHost`) and its `cssVar`/`typeVar` names lived
+ * here until #2487 PR 6: nothing in the UI read them, so they went (review finding A17).
+ *
+ * PURE-adjacent: imports only TYPES (the plugin's wire contract) + DOM. No `node:*`.
  */
-export const makeWriteHost = (scope: HTMLElement): WriteAdapter => cssVarAdapter(scope);
+import type { UiToMain, MainToUi, OfType, StyleGuideOptions, StyleGuideCatalog, StyleGuideCatalogCollection, StyleGuideCatalogTable, StyleGuideKind } from '../../plugin/src/messages';
 
 /** A host→UI notification after the adapter has validated it at the boundary. Not a wire type: the
  *  wire carries `messages.ts` `MainToUi` (tagged `type`); the adapter checks each field and hands the UI

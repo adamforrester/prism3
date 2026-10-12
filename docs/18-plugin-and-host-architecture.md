@@ -72,6 +72,28 @@ INSTANCE_SWAP | VARIANT | **SLOT**`, `createInstance()`, `instance.setProperties
 property type is the direct Figma expression of the KB `§15` slot contracts (`required_content` /
 `optional_content`) — worth noting, it's newer than most plugin code assumes.
 
+**Prototype reactions on variants** (interactive components, #2466; measured live on 2026-10-11 against a
+plugin-built Button set of 576 members, through the Desktop Bridge and the agent link):
+- **Writable from plugin code, inside a set.** `member.setReactionsAsync([{ trigger, actions: [{ type: 'NODE',
+  destinationId: sibling.id, navigation: 'CHANGE_TO', transition: null }] }])` on a member, pointing at a sibling
+  member, is accepted and reads back with the same destination ids. That is Figma's interactive component.
+- **Triggers.** `ON_HOVER` (While hovering), `ON_PRESS` (While pressing) and `ON_CLICK` (On click) take no other
+  field. `MOUSE_ENTER` and `MOUSE_LEAVE` are **refused** unless the trigger carries a `delay` (0 works); the
+  validation error lists the shapes it accepts. In presentation mode the owner confirmed each one behaves as
+  expected: hover to Hover, press to Pressed, enter/leave to Hover and back, click to Pressed and back.
+- **Inherited.** An instance placed from the set carries its member's reactions, and so does a Button nested
+  inside an instance of another component. Nothing is written on the instance.
+- **Cost.** Every one of the set's 96 families (Rest → Hover on hover, Rest and Hover → Pressed on press) took
+  192 calls, 288 reactions, in 2.4s, about 12.5ms a call. Clearing them took 2.5s.
+- **The in-place Update does not see reactions.** With 288 reactions on the set, the dry run still read 576 of
+  576 current, with the same preview hash as before any reaction existed. Reactions are not in the as-built
+  fingerprint, so an Update neither reports a designer removing them nor puts them back.
+- **An overwritten member keeps its id and its reactions** (a hand-edited Hover member, `handEdits: 'overwrite'`).
+- **A replaced member does not.** A deleted Pressed member came back from the Update under a new id with no
+  reactions. Its siblings' reactions still pointed at the old id, which resolves to an orphan node (`removed:
+  false`, `parent: null`, kept for undo), so they dangle with no error anywhere. A build that writes reactions
+  therefore has to write them from the plan on every apply, by state, rather than keep what is there.
+
 **What the API cannot express** (the real boundary — this is the "lossy" line, precisely):
 - **Behaviour / interaction logic** — a working focus trap, arrow-key menu nav, a state machine. Figma has
   prototyping, not logic.

@@ -100,7 +100,7 @@ export const switchRow: ComponentDef = {
   // Checkbox's seven PLUS `pending`. These drive the CODE projection (a disabled Row dims its label);
   // the Figma set is size-only (the nested control's `state` is exposed). `error` is an OUTCOME failure
   // here, not a validation failure (see the header). `read-only` and `pending` are admitted in `codeOnly`.
-  states: ['rest', 'hover', 'pressed', 'focus-visible', 'disabled', 'read-only', 'pending', 'error'],
+  states: ['rest', 'hover', 'pressed', 'pending', 'focus-visible', 'disabled', 'read-only', 'error'],
 
   // `size` ONLY since #1354 (the decomposition). `selection` LEFT the Row's variant matrix — it is now
   // EXPOSED from the nested `switch-control` (the consumer drives it from the parent). `size` STAYS the
