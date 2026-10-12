@@ -2,7 +2,7 @@
   "$collection": "grid-styles",
   "styles": [
     {
-      "name": "Grid / xs",
+      "name": "xs",
       "description": "4-column grid for xs — 16px gutter, 16px margin. A static copy of the layout variables.",
       "layoutGrids": [
         {
@@ -22,7 +22,7 @@
       ]
     },
     {
-      "name": "Grid / sm",
+      "name": "sm",
       "description": "8-column grid for sm — 16px gutter, 24px margin. A static copy of the layout variables.",
       "layoutGrids": [
         {
@@ -42,7 +42,7 @@
       ]
     },
     {
-      "name": "Grid / md",
+      "name": "md",
       "description": "12-column grid for md — 24px gutter, 24px margin. A static copy of the layout variables.",
       "layoutGrids": [
         {
@@ -62,7 +62,7 @@
       ]
     },
     {
-      "name": "Grid / lg",
+      "name": "lg",
       "description": "12-column grid for lg — 24px gutter, 32px margin. A static copy of the layout variables.",
       "layoutGrids": [
         {
@@ -82,7 +82,7 @@
       ]
     },
     {
-      "name": "Grid / xl",
+      "name": "xl",
       "description": "12-column grid for xl — 32px gutter, 48px margin. A static copy of the layout variables.",
       "layoutGrids": [
         {
@@ -102,7 +102,7 @@
       ]
     },
     {
-      "name": "Grid / 2xl",
+      "name": "2xl",
       "description": "12-column grid for 2xl — 32px gutter, 48px margin. A static copy of the layout variables.",
       "layoutGrids": [
         {
