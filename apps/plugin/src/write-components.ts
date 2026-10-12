@@ -880,6 +880,47 @@ export const placeNewSet = (existing: readonly PageBox[], height: number): { x: 
   return { x, y };
 };
 
+/** A top-level node on a page, as `respaceSets` reads it: `prism3` marks a set Prism3 built (its members carry a
+ *  stamp), `furniture` a label, bracket or backdrop the canvas furniture drew for one (`canvas-furniture.ts`). */
+export type RespaceBox = PageBox & { id: string; prism3?: boolean; furniture?: boolean };
+
+/**
+ * WHERE EACH PRISM3 SET ON A PAGE GOES SO THE PAGE IS SPACED AS A NEW BUILD SPACES IT (#2542, owner decision Q245.2 A):
+ * `SET_GAP` apart (#2502 widened it to 400 for the row labels, and `placeNewSet` never moves a set that exists).
+ * Returns only the sets whose place changes.
+ *
+ * IN ORDER, AND AS LITTLE AS IT TAKES. The page's Prism3 sets are taken left to right, the order a fresh build lays
+ * them in and the order the page already shows. The leftmost stays where it is; each next one goes `SET_GAP` right
+ * of the one before, top-aligned with the first, which is where `placeNewSet` put it in a fresh build of that page.
+ * Only if that spot OVERLAPS something that stays put is it pushed just past it, `SET_GAP` clear. Unlike a new set,
+ * a set being re-spaced is not sent right of everything in its row: a note far to the right, or a set the designer
+ * built, would otherwise pull every set after the first past it.
+ *
+ * NEVER MOVES CONTENT PRISM3 DIDN'T BUILD (#2464, #2494): a set with no stamped member, the page header and any other
+ * node stay exactly where they are, as obstacles. The canvas furniture is left out: it is drawn for a set after the
+ * update lands, from where the set then sits, so it follows the move.
+ */
+export const respaceSets = (nodes: readonly RespaceBox[]): { id: string; from: { x: number; y: number }; to: { x: number; y: number } }[] => {
+  const ours = nodes.filter((b) => b.type === 'COMPONENT_SET' && b.prism3 && !b.header).sort((a, b) => a.x - b.x || a.y - b.y);
+  if (ours.length < 2) return [];
+  const fixed = nodes.filter((b) => !(b.type === 'COMPONENT_SET' && b.prism3) && !b.furniture);
+  const y = ours[0].y;
+  let right = ours[0].x + ours[0].width;
+  const moves: { id: string; from: { x: number; y: number }; to: { x: number; y: number } }[] = [];
+  for (const b of ours.slice(1)) {
+    let x = right + SET_GAP;
+    // Past anything that stays and would overlap the set at this spot; again, until the spot is clear.
+    for (let pushed = true; pushed;) {
+      pushed = false;
+      for (const f of fixed)
+        if (f.y < y + b.height && f.y + f.height > y && f.x < x + b.width && f.x + f.width > x) { x = f.x + f.width + SET_GAP; pushed = true; }
+    }
+    if (Math.abs(x - b.x) > 0.5 || Math.abs(y - b.y) > 0.5) moves.push({ id: b.id, from: { x: b.x, y: b.y }, to: { x, y } });
+    right = x + b.width;
+  }
+  return moves;
+};
+
 /**
  * THE BUILD'S OWN REPORT, LEFT ON THE SET (#1579).
  *
