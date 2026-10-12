@@ -322,6 +322,14 @@
       ],
       "tracks": [
         "border.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "border.tertiary",
+          "min": "3:1",
+          "ratio": 3.08,
+          "requirement": "MUST clear 3:1 against `border.tertiary` in every mode."
+        }
       ]
     },
     "inverse.foreground.primary": {
@@ -6187,36 +6195,42 @@
       }
     },
     "border.secondary": {
-      "$description": "Stronger border / divider",
+      "$description": "Stronger border / divider — decorative, ~2:1",
       "meaning": "Separation / structure",
-      "when_to_use": "Higher-emphasis dividers and separators. Clears 3:1 in every mode on `background.primary`. Below 3:1 on `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
-      "avoid_when": "Do not use as a faint hairline (use `border.primary`).",
+      "when_to_use": "Dividers and outlines that need more presence than a hairline but carry no meaning on their own — decorative, with no contrast minimum.",
+      "avoid_when": "Do not use where the boundary has to be perceived (SC 1.4.11, 3:1) — use `border.tertiary`. For a faint hairline use `border.primary`.",
       "mode_overrides": {
-        "light": "{hds.core.palette.neutral.450}",
-        "dark": "{hds.core.palette.neutral.500}",
+        "light": "{hds.core.palette.neutral.300}",
+        "dark": "{hds.core.palette.neutral.700}",
         "hc-light": "{hds.core.palette.neutral.700}",
         "hc-dark": "{hds.core.palette.neutral.250}"
+      }
+    },
+    "border.tertiary": {
+      "$description": "Accessible border — the first edge that clears 3:1 (SC 1.4.11) on every page and surface tier",
+      "meaning": "Separation / structure",
+      "when_to_use": "The first accessible border — a meaningful divider, a badge or table outline, any boundary that has to be perceived. Clears 3:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
+      "avoid_when": "Do not use as a hairline (use `border.primary`) or as a focus ring (use `border.focus`) — the ring has its own hue for a reason.",
+      "mode_overrides": {
+        "light": "{hds.core.palette.neutral.550}",
+        "dark": "{hds.core.palette.neutral.500}",
+        "hc-light": "{hds.core.palette.neutral.950}",
+        "hc-dark": "{hds.core.palette.neutral.025}"
       },
       "contrast_with": [
         {
           "token": "background.primary",
           "min": "3:1",
-          "ratio": 3.2,
+          "ratio": 4.56,
           "requirement": "MUST clear 3:1 against `background.primary` in every mode."
+        },
+        {
+          "token": "foreground.tertiary",
+          "min": "3:1",
+          "ratio": 3.08,
+          "requirement": "MUST clear 3:1 against `foreground.tertiary` in every mode."
         }
       ]
-    },
-    "border.tertiary": {
-      "$description": "Strongest border / divider — the third rung of the neutral edge ladder",
-      "meaning": "Separation / structure",
-      "when_to_use": "The most prominent structural edge — a table outline, a section rule, the boundary that has to read as deliberate. Clears 3:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
-      "avoid_when": "Do not use as a hairline (use `border.primary`) or as a focus ring (use `border.focus`) — the ring has its own hue for a reason.",
-      "mode_overrides": {
-        "light": "{hds.core.palette.neutral.650}",
-        "dark": "{hds.core.palette.neutral.250}",
-        "hc-light": "{hds.core.palette.neutral.950}",
-        "hc-dark": "{hds.core.palette.neutral.025}"
-      }
     },
     "border.brand": {
       "$description": "brand border — SC 1.4.11 non-text contrast, 3:1",
@@ -6361,8 +6375,8 @@
     "inverse.border.secondary": {
       "$description": "Stronger border / divider on an inverse surface",
       "meaning": "Separation / structure (inverse ground)",
-      "when_to_use": "Higher-emphasis dividers and separators. Below 3:1 on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `border.secondary`. Do not use as a faint hairline (use `inverse.border.primary`).",
+      "when_to_use": "Dividers and outlines that need more presence than a hairline but carry no meaning on their own — decorative, with no contrast minimum. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `border.secondary`. Do not use where the boundary has to be perceived (SC 1.4.11, 3:1) — use `inverse.border.tertiary`. For a faint hairline use `inverse.border.primary`.",
       "mode_overrides": {
         "light": "{hds.core.palette.neutral.600}",
         "dark": "{hds.core.palette.neutral.500}",
@@ -6373,7 +6387,7 @@
     "inverse.border.tertiary": {
       "$description": "Strongest border / divider on an inverse surface — the third rung of the inverse edge ladder",
       "meaning": "Separation / structure (inverse ground)",
-      "when_to_use": "The most prominent structural edge — a table outline, a section rule, the boundary that has to read as deliberate. Clears 3:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary`. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
+      "when_to_use": "The first accessible border — a meaningful divider, a badge or table outline, any boundary that has to be perceived. Clears 3:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary`. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `border.tertiary`. Do not use as a hairline (use `inverse.border.primary`) or as a focus ring (use `inverse.border.focus`) — the ring has its own hue for a reason.",
       "mode_overrides": {
         "light": "{hds.core.palette.neutral.350}",
@@ -8741,7 +8755,6 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.border.secondary",
-        "color.border.tertiary",
         "color.interactive.neutral.fill.hover",
         "color.inverse.border.secondary",
         "color.inverse.disabled.border",
@@ -8755,6 +8768,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.border.secondary",
         "color.disabled.on-fill",
         "color.icon.secondary",
         "color.text.secondary"
@@ -8794,7 +8808,6 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
-        "color.border.secondary",
         "color.disabled.icon",
         "color.disabled.on-fill",
         "color.disabled.text",
@@ -8823,7 +8836,7 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.border.primary",
-        "color.border.secondary",
+        "color.border.tertiary",
         "color.disabled.icon",
         "color.disabled.text",
         "color.field.border.rest",
@@ -8846,6 +8859,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.border.tertiary",
         "color.disabled.icon",
         "color.disabled.on-fill",
         "color.disabled.text",
@@ -8890,7 +8904,6 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
-        "color.border.tertiary",
         "color.disabled.on-fill",
         "color.field.placeholder",
         "color.interactive.neutral.fill.pressed",

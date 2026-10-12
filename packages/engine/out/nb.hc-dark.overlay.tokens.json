@@ -2891,7 +2891,7 @@
         "secondary": {
           "$type": "color",
           "$value": "{nbds.core.palette.neutral.250}",
-          "$description": "Stronger border / divider",
+          "$description": "Stronger border / divider — decorative, ~9.9:1",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -2906,15 +2906,14 @@
               },
               "aliasOf": "nbds.core.palette.neutral.250",
               "contrast": 10.09,
-              "against": "background.primary",
-              "min": 4.5
+              "against": "background.primary"
             }
           }
         },
         "tertiary": {
           "$type": "color",
           "$value": "{nbds.core.palette.neutral.025}",
-          "$description": "Strongest border / divider — the third rung of the neutral edge ladder",
+          "$description": "Accessible border — the first edge that clears 4.5:1 (SC 1.4.11) on every page and surface tier",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -2929,7 +2928,8 @@
               },
               "aliasOf": "nbds.core.palette.neutral.025",
               "contrast": 19.57,
-              "against": "background.primary"
+              "against": "background.primary",
+              "min": 4.5
             }
           }
         },

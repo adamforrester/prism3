@@ -92,10 +92,14 @@ const pickMostExtreme = (cands: Cand[], surface: RGB): Rated =>
  * extreme one does — the same fallback `pickMinPass` takes — and the contrast sweep at the end of
  * `resolveMode` names the shortfall. `min: 0` (the default) makes every candidate eligible, so an
  * uncontracted rung picks exactly as it always has.
+ *
+ * `alsoClear` (#2569) names ADDITIONAL grounds a candidate must clear `min` against to be eligible — the
+ * `pickBrand` mechanism of the same name, for a rung drawn on more than one surface. The reported `ratio`
+ * stays measured against `surface`. Empty by default.
  */
-const pickClosest = (cands: Cand[], surface: RGB, target: number, min = 0): Rated => {
+const pickClosest = (cands: Cand[], surface: RGB, target: number, min = 0, alsoClear: RGB[] = []): Rated => {
   const rated = cands.map((c) => ({ ...c, ratio: contrast(c.rgb, surface) }));
-  const eligible = rated.filter((c) => c.ratio >= min);
+  const eligible = rated.filter((c) => c.ratio >= min && alsoClear.every((g) => contrast(c.rgb, g) >= min));
   if (!eligible.length) return rated.sort((a, b) => b.ratio - a.ratio)[0];
   return eligible.sort((a, b) => Math.abs(a.ratio - target) - Math.abs(b.ratio - target))[0];
 };
@@ -153,7 +157,9 @@ export type ModeCfg = {
   // extremes + escalated borders); 'wireframe' = chromatic roles redirect to the neutral ramp.
   kind: 'standard' | 'hc' | 'wireframe';
   primaryMin: number; secondaryMin: number; tertiaryMin: number; actionMin: number;
-  borderTarget: number; nonTextMin: number;
+  // The neutral edge ladder's three targets (#2569): `borderTarget` is `border.primary`'s, the other two
+  // are the upper rungs'. `border.tertiary` is also floored at `nonTextMin` on every page and surface ground.
+  borderTarget: number; borderSecondaryTarget: number; borderTertiaryTarget: number; nonTextMin: number;
 };
 
 // `ratio` is the RAW WCAG contrast (un-rounded) — compare it directly against `min`; round
@@ -308,14 +314,14 @@ const cand = (path: string, rgb: RGB): Cand => ({ path, rgb });
 // this registry, so adding a mode is a descriptor, not a new code branch. `kind` drives resolveMode's
 // behaviour (hc / wireframe specialisations) in place of matching the mode name. `wireframe` reuses the
 // LIGHT family's surfaces (its greyscale redirect happens in resolveMode). Extended by custom modes (C).
-export type MinSet = Pick<ModeCfg, 'primaryMin' | 'secondaryMin' | 'tertiaryMin' | 'actionMin' | 'borderTarget' | 'nonTextMin'>;
+export type MinSet = Pick<ModeCfg, 'primaryMin' | 'secondaryMin' | 'tertiaryMin' | 'actionMin' | 'borderTarget' | 'borderSecondaryTarget' | 'borderTertiaryTarget' | 'nonTextMin'>;
 export type ModeDescriptor = { name: ModeName; kind: 'standard' | 'hc' | 'wireframe'; family: 'light' | 'dark'; mins: MinSet };
 export const BUILTIN_MODES: ModeDescriptor[] = [
-  { name: 'light',     kind: 'standard',  family: 'light', mins: { primaryMin: 7,  secondaryMin: 4.5, tertiaryMin: 3,   actionMin: 4.5, borderTarget: 1.4, nonTextMin: 3 } },
-  { name: 'dark',      kind: 'standard',  family: 'dark',  mins: { primaryMin: 7,  secondaryMin: 4.5, tertiaryMin: 3,   actionMin: 4.5, borderTarget: 1.8, nonTextMin: 3 } },
-  { name: 'hc-light',  kind: 'hc',        family: 'light', mins: { primaryMin: 15, secondaryMin: 7,   tertiaryMin: 4.5, actionMin: 7,   borderTarget: 4.5, nonTextMin: 4.5 } },
-  { name: 'hc-dark',   kind: 'hc',        family: 'dark',  mins: { primaryMin: 15, secondaryMin: 7,   tertiaryMin: 4.5, actionMin: 7,   borderTarget: 4.5, nonTextMin: 4.5 } },
-  { name: 'wireframe', kind: 'wireframe', family: 'light', mins: { primaryMin: 7,  secondaryMin: 4.5, tertiaryMin: 3,   actionMin: 4.5, borderTarget: 1.4, nonTextMin: 3 } },
+  { name: 'light',     kind: 'standard',  family: 'light', mins: { primaryMin: 7,  secondaryMin: 4.5, tertiaryMin: 3,   actionMin: 4.5, borderTarget: 1.4, borderSecondaryTarget: 2, borderTertiaryTarget: 3, nonTextMin: 3 } },
+  { name: 'dark',      kind: 'standard',  family: 'dark',  mins: { primaryMin: 7,  secondaryMin: 4.5, tertiaryMin: 3,   actionMin: 4.5, borderTarget: 1.8, borderSecondaryTarget: 2, borderTertiaryTarget: 3, nonTextMin: 3 } },
+  { name: 'hc-light',  kind: 'hc',        family: 'light', mins: { primaryMin: 15, secondaryMin: 7,   tertiaryMin: 4.5, actionMin: 7,   borderTarget: 4.5, borderSecondaryTarget: 4.5 * 2.2, borderTertiaryTarget: 4.5 * 2.2 * 2.2, nonTextMin: 4.5 } },
+  { name: 'hc-dark',   kind: 'hc',        family: 'dark',  mins: { primaryMin: 15, secondaryMin: 7,   tertiaryMin: 4.5, actionMin: 7,   borderTarget: 4.5, borderSecondaryTarget: 4.5 * 2.2, borderTertiaryTarget: 4.5 * 2.2 * 2.2, nonTextMin: 4.5 } },
+  { name: 'wireframe', kind: 'wireframe', family: 'light', mins: { primaryMin: 7,  secondaryMin: 4.5, tertiaryMin: 3,   actionMin: 4.5, borderTarget: 1.4, borderSecondaryTarget: 2, borderTertiaryTarget: 3, nonTextMin: 3 } },
 ];
 
 const modeConfigs = (ns: string, neutralPalette: string, neutral: Step[], surfaces: SurfacesConfig = {}, descriptors: ModeDescriptor[] = BUILTIN_MODES, palettes: { palette: string; steps: Step[] }[] = [{ palette: neutralPalette, steps: neutral }]): Record<ModeName, ModeCfg> => {
@@ -2125,23 +2131,32 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // set is `inverse.border.*` below. In HC the border targets escalate — borders
   // carry structure when surfaces flatten.
   put('border.primary', pickClosest(ramp, baseRgb, cfg.borderTarget), `Default border — decorative, ~${cfg.borderTarget}:1`, 'background.primary', 0);
-  // CONTRACTED at the mode's non-text bar (#1745): Badge's subtle neutral member is edged in this role, and
-  // the edge is what separates it from the page. The target still sets the rung; the floor only makes a
-  // rung that lands under the bar ineligible, so the pick moves one step deeper where the closest step
-  // misses it (a warm neutral on an off-white page) and nowhere else.
-  put('border.secondary', pickClosest(ramp, baseRgb, cfg.borderTarget * 2.2, cfg.nonTextMin), 'Stronger border / divider', 'background.primary', cfg.nonTextMin);
-  // A THIRD RUNG, because border was the only surface/ink family that stopped at two (#1140).
-  // `background`, `foreground`, `text` and `icon` all ship `primary`/`secondary`/`tertiary`, so a
-  // designer reaching for the third step of the neutral edge ladder found nothing and had to pick a
-  // palette step by hand — the exact leak the semantic layer exists to prevent.
+  // THE LADDER IS TWO DECORATIVE RUNGS, THEN THE FIRST ACCESSIBLE ONE (#2569, owner decision Q259 C).
   //
-  // ONE MORE RUNG OF THE SAME LADDER, not a new rule: `secondary` is `borderTarget * 2.2` and this is
-  // `* 2.2` again. `pickClosest` clamps to what the ramp actually offers, which is what keeps HC
-  // honest — at `borderTarget` 4.5 the third rung asks for 21.78:1, above anything the neutral ramp
-  // can deliver, so it lands on the strongest available step rather than throwing. `test.ts` asserts
-  // the three rungs resolve to DISTINCT steps in every mode of every corpus brand; the ratio ladder is
-  // the derivation, the distinctness is the contract.
-  put('border.tertiary', pickClosest(ramp, baseRgb, cfg.borderTarget * 2.2 * 2.2), 'Strongest border / divider — the third rung of the neutral edge ladder', 'background.primary', 0);
+  // `secondary` is decorative and UNFLOORED: ~2:1 against the page in the standard modes, around step 300 on
+  // a typical ramp. It carried a hard `nonTextMin` floor from #1745 (Badge's subtle neutral edge), and that
+  // floor is what put a 100 → 400 jump between the first two rungs. The contract moved with the edge: Badge
+  // binds `border.tertiary` now, so nothing that needs 3:1 is drawn in `secondary`. HC keeps its escalated
+  // target (`borderTarget * 2.2`), clamped to what the ramp offers.
+  put('border.secondary', pickClosest(ramp, baseRgb, cfg.borderSecondaryTarget), `Stronger border / divider — decorative, ~${+cfg.borderSecondaryTarget.toFixed(2)}:1`, 'background.primary', 0);
+  // `tertiary` is the FIRST ACCESSIBLE BORDER: it clears `nonTextMin` (3:1, HC's own 4.5:1) against EVERY
+  // ground it can sit on — the three page tiers and the three surface tiers — so a boundary that has to be
+  // perceived (SC 1.4.11) has a role that holds on a tinted surface too (#2498). In the standard modes the
+  // target IS the floor, so the pick is the quietest step that clears it everywhere; HC keeps its escalated
+  // target and clamps to the strongest step, which clears the floor on HC's flat grounds trivially.
+  //
+  // Contracted twice, because one pair cannot say "every ground": against the page (the `against` every
+  // border names), and — as `alsoAgainst` — against whichever of the other five grounds it measures LOWEST
+  // on, the binding one. A brand whose ramp cannot clear every ground is named by the contrast sweep there.
+  // `test.ts` (#2569) measures all six grounds from the emitted hexes, never from this list.
+  const edgeGrounds = (['background.secondary', 'background.tertiary', 'foreground.primary', 'foreground.secondary', 'foreground.tertiary'] as const)
+    .map((k) => ({ k, rgb: asGround(k, rgbByRole.get(k)!) }));
+  const borderTertiary = pickClosest(ramp, baseRgb, cfg.borderTertiaryTarget, cfg.nonTextMin, edgeGrounds.map((g) => g.rgb));
+  put('border.tertiary', borderTertiary, `Accessible border — the first edge that clears ${cfg.nonTextMin}:1 (SC 1.4.11) on every page and surface tier`, 'background.primary', cfg.nonTextMin);
+  roles['border.tertiary'].alsoAgainst = {
+    against: edgeGrounds.map((g) => ({ k: g.k, r: contrast(borderTertiary.rgb, g.rgb) })).sort((a, b) => a.r - b.r)[0].k,
+    min: cfg.nonTextMin,
+  };
   // #1782 — THE THREE FIELD STATUS BORDERS ALSO CLEAR THE FIELD'S OWN GROUNDS. `text-field`, `textarea` and
   // `select` swap their border to `border.danger` / `border.warning` / `border.success` for a non-default
   // status, in EVERY non-disabled state — including hover, where the control fills with the translucent

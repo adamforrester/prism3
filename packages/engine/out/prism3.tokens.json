@@ -10694,36 +10694,34 @@
         },
         "secondary": {
           "$type": "color",
-          "$value": "{pds3.core.palette.neutral.400}",
-          "$description": "Stronger border / divider",
+          "$value": "{pds3.core.palette.neutral.250}",
+          "$description": "Stronger border / divider — decorative, ~2:1",
           "$extensions": {
             "prism3": {
               "role": "semantic",
-              "aliasOf": "pds3.core.palette.neutral.400",
-              "contrast": 3.28,
+              "aliasOf": "pds3.core.palette.neutral.250",
+              "contrast": 2.08,
               "against": "background.primary",
-              "min": 3,
               "modes": {
                 "dark": {
-                  "$value": "{pds3.core.palette.neutral.500}",
-                  "aliasOf": "pds3.core.palette.neutral.500",
-                  "contrast": 4.26,
-                  "against": "background.primary",
-                  "min": 3
+                  "$value": "{pds3.core.palette.neutral.700}",
+                  "aliasOf": "pds3.core.palette.neutral.700",
+                  "contrast": 1.96,
+                  "against": "background.primary"
                 },
                 "hc-light": {
                   "$value": "{pds3.core.palette.neutral.700}",
                   "aliasOf": "pds3.core.palette.neutral.700",
                   "contrast": 9.89,
                   "against": "background.primary",
-                  "min": 4.5
+                  "description": "Stronger border / divider — decorative, ~9.9:1"
                 },
                 "hc-dark": {
                   "$value": "{pds3.core.palette.neutral.250}",
                   "aliasOf": "pds3.core.palette.neutral.250",
                   "contrast": 10.11,
                   "against": "background.primary",
-                  "min": 4.5
+                  "description": "Stronger border / divider — decorative, ~9.9:1"
                 }
               },
               "figma": {
@@ -10740,32 +10738,38 @@
         },
         "tertiary": {
           "$type": "color",
-          "$value": "{pds3.core.palette.neutral.600}",
-          "$description": "Strongest border / divider — the third rung of the neutral edge ladder",
+          "$value": "{pds3.core.palette.neutral.550}",
+          "$description": "Accessible border — the first edge that clears 3:1 (SC 1.4.11) on every page and surface tier",
           "$extensions": {
             "prism3": {
               "role": "semantic",
-              "aliasOf": "pds3.core.palette.neutral.600",
-              "contrast": 6.69,
+              "aliasOf": "pds3.core.palette.neutral.550",
+              "contrast": 5.51,
               "against": "background.primary",
+              "min": 3,
               "modes": {
                 "dark": {
-                  "$value": "{pds3.core.palette.neutral.250}",
-                  "aliasOf": "pds3.core.palette.neutral.250",
-                  "contrast": 9.35,
-                  "against": "background.primary"
+                  "$value": "{pds3.core.palette.neutral.500}",
+                  "aliasOf": "pds3.core.palette.neutral.500",
+                  "contrast": 4.26,
+                  "against": "background.primary",
+                  "min": 3
                 },
                 "hc-light": {
                   "$value": "{pds3.core.palette.neutral.950}",
                   "aliasOf": "pds3.core.palette.neutral.950",
                   "contrast": 19.43,
-                  "against": "background.primary"
+                  "against": "background.primary",
+                  "min": 4.5,
+                  "description": "Accessible border — the first edge that clears 4.5:1 (SC 1.4.11) on every page and surface tier"
                 },
                 "hc-dark": {
                   "$value": "{pds3.core.palette.neutral.025}",
                   "aliasOf": "pds3.core.palette.neutral.025",
                   "contrast": 19.6,
-                  "against": "background.primary"
+                  "against": "background.primary",
+                  "min": 4.5,
+                  "description": "Accessible border — the first edge that clears 4.5:1 (SC 1.4.11) on every page and surface tier"
                 }
               },
               "figma": {

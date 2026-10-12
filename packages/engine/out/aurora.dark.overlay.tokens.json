@@ -2217,8 +2217,30 @@
         },
         "secondary": {
           "$type": "color",
+          "$value": "{ads.core.palette.neutral.700}",
+          "$description": "Stronger border / divider — decorative, ~2:1",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "light",
+                  "dark",
+                  "hc-light",
+                  "hc-dark"
+                ]
+              },
+              "aliasOf": "ads.core.palette.neutral.700",
+              "contrast": 1.97,
+              "against": "background.primary"
+            }
+          }
+        },
+        "tertiary": {
+          "$type": "color",
           "$value": "{ads.core.palette.neutral.500}",
-          "$description": "Stronger border / divider",
+          "$description": "Accessible border — the first edge that clears 3:1 (SC 1.4.11) on every page and surface tier",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -2235,28 +2257,6 @@
               "contrast": 4.28,
               "against": "background.primary",
               "min": 3
-            }
-          }
-        },
-        "tertiary": {
-          "$type": "color",
-          "$value": "{ads.core.palette.neutral.300}",
-          "$description": "Strongest border / divider — the third rung of the neutral edge ladder",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "figma": {
-                "collection": "color",
-                "modes": [
-                  "light",
-                  "dark",
-                  "hc-light",
-                  "hc-dark"
-                ]
-              },
-              "aliasOf": "ads.core.palette.neutral.300",
-              "contrast": 8.1,
-              "against": "background.primary"
             }
           }
         },

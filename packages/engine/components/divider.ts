@@ -9,10 +9,15 @@
  *
  * ── `decorative`: A CODE PROP, NOT A FIGMA PROPERTY ──────────────────────────────────────────────
  *
- * A decorative rule and a semantic one are the same pixels, so a Figma property for it would toggle nothing
- * the canvas can show: a boolean drives one node's `visible`, and neither value hides the rule. The bit lives
- * in code only, stated in `anatomy.codeOnly`, the way the brief puts it ("tokens, not props" for thickness and
- * color; the semantics bit is the one real prop).
+ * A Figma boolean drives one node's `visible`, and neither value hides the rule, so a Figma property for the
+ * bit would toggle nothing the canvas can show. The bit lives in code only, stated in `anatomy.codeOnly`, the
+ * way the brief puts it ("tokens, not props" for thickness and color; the semantics bit is the one real prop).
+ *
+ * IT CHANGES THE COLOR IN CODE (#2569, owner Q259 3A). A decorative rule paints `color.border.secondary`, a
+ * decorative rung at ~2:1. A separator (decorative=false) marks a boundary someone has to perceive, so it
+ * paints `color.border.tertiary`, the first neutral edge the engine contracts at 3:1 on every page and surface
+ * tier; this closes the tinted-surface limit Q208/Q227 documented (#2498). The binding is `separator.fill`, a
+ * CODE-ONLY paint: the Figma set keeps the decorative default, and `lint-paint.ts` names the key as unreached.
  *
  * ── `inset`: A FIGMA VARIANT AXIS (owner Q190.2 A) ───────────────────────────────────────────────
  *
@@ -41,7 +46,8 @@
  * A filled box rather than a stroke: a stroke draws inside a box's bounds on all four sides, so a 1px
  * horizontal rule drawn as a stroke would need a 0-height box and a bottom-only stroke, which `PartDef` cannot
  * say (Figma's per-side stroke weights are not bindable here). A 1px box with a fill is the same pixels, in
- * code as in Figma: `block-size: var(--border-width-hairline); background: var(--color-border-secondary)`.
+ * code as in Figma: `block-size: var(--border-width-hairline); background: var(--color-border-secondary)` (a
+ * separator's is `--color-border-tertiary`, above).
  *
  * FILLING THE PARENT is a placement fact, and the root sets no `fill` sizing for it. A root has no parent in
  * its own def; `sizing.x: 'fill'` with a `placementWidth` is the idiom for a root that fills across, but it is
@@ -80,7 +86,7 @@ export const divider: ComponentDef = {
   props: [
     { name: 'orientation', type: "enum: 'horizontal' | 'vertical'", values: ['horizontal', 'vertical'], default: 'horizontal', required: false, description: 'Which way the rule runs. horizontal spans the width of its container and separates content stacked above and below it; vertical spans the height of its container and separates items side by side. A vertical rule sets aria-orientation="vertical"; horizontal is the default and needs no attribute.' },
     { name: 'inset', type: "enum: 'none' | 'inset' | 'middle-inset'", values: ['none', 'inset', 'middle-inset'], default: 'none', required: false, description: 'How far the rule sits in from its container\'s edges. none runs edge to edge; inset starts the rule 16px in from the start edge, so it lines up with indented content such as list text after an avatar; middle-inset indents both ends. The start edge follows text direction. A vertical rule takes none or middle-inset only.' },
-    { name: 'decorative', type: 'boolean', default: true, required: false, description: 'Whether the rule is only visual. true (the default) hides it from assistive technology with aria-hidden="true". Set false when the rule marks a real break in the content: it becomes a separator, an <hr> for a horizontal rule.' },
+    { name: 'decorative', type: 'boolean', default: true, required: false, description: 'Whether the rule is only visual. true (the default) hides it from assistive technology with aria-hidden="true". Set false when the rule marks a real break in the content: it becomes a separator, an <hr> for a horizontal rule, drawn in border.tertiary so it reaches 3:1 on every background.' },
   ],
 
   // `[]` — a divider is not interactive. It has no hover, press or focus, the same claim veil and focus-ring make.
@@ -97,8 +103,11 @@ export const divider: ComponentDef = {
   paintKeys: ['{slot}'],
 
   tokens: {
-    // THE COLOR (DRAFT, owner item). `color.border.secondary` is the role the token tier describes as a divider.
+    // THE COLOR (DRAFT, owner item). `color.border.secondary` is the decorative rung of the edge ladder.
     'fill': 'color.border.secondary',
+    // A SEPARATOR'S COLOR (#2569, owner Q259 3A) — code only: a divider with decorative=false paints the first
+    // neutral edge contracted at 3:1 on every page and surface tier. No Figma member draws it (see header).
+    'separator.fill': 'color.border.tertiary',
     // THE THICKNESS (DRAFT, owner item) — the box's cross dimension, per orientation.
     'horizontal.height': 'border-width.hairline',
     'vertical.width': 'border-width.hairline',
@@ -163,9 +172,9 @@ export const divider: ComponentDef = {
     },
     codeOnly: [
       // MUST NOT lead with `orientation` or `inset` (axes this def projects) — see the `admits()` trap.
-      'decorative — a code prop with no Figma property. A decorative rule and a separator are the same pixels, so a Figma toggle would change nothing on the canvas. true (the default) renders `aria-hidden="true"` (a `<div>`, or an `<hr>` with `role="none"` as well); false renders an `<hr>` for a horizontal rule, or `<div role="separator" aria-orientation="vertical">` for a vertical one.',
+      'decorative — a code prop with no Figma property. A Figma boolean only shows or hides a node, and neither value hides the rule, so the Figma set draws the decorative default. true (the default) renders `aria-hidden="true"` (a `<div>`, or an `<hr>` with `role="none"` as well) in `color.border.secondary`; false renders an `<hr>` for a horizontal rule, or `<div role="separator" aria-orientation="vertical">` for a vertical one, in `color.border.tertiary` (the `separator.fill` binding), which reaches 3:1 on every background.',
       'filling the container — a divider spans its container: a horizontal rule `inline-size: 100%` (or the stretch a flex or grid column gives it), a vertical rule `align-self: stretch` in a row. Figma cannot hold that for a standalone component, which has no parent, so the standalone member binds a nominal length (`container.narrow` across, `size.md.height` tall) and a host that nests it stretches the instance with `crossAxisFill`.',
-      'the element — for a separator (decorative=false), use `<hr>` for a horizontal rule: it is a separator to assistive technology with no extra attributes. Reset its border and margin (`border: 0; margin: 0`) and paint it as a box: `block-size: var(--border-width-hairline); background: var(--color-border-secondary)`. A vertical rule is a `<div role="separator" aria-orientation="vertical">` with `inline-size` set to the hairline instead, because `<hr>` is horizontal by default. Never give a divider focus: a separator that is not a splitter takes no place in the tab order.',
+      'the element — for a separator (decorative=false), use `<hr>` for a horizontal rule: it is a separator to assistive technology with no extra attributes. Reset its border and margin (`border: 0; margin: 0`) and paint it as a box: `block-size: var(--border-width-hairline); background: var(--color-border-tertiary)`. A vertical rule is a `<div role="separator" aria-orientation="vertical">` with `inline-size` set to the hairline instead, because `<hr>` is horizontal by default. Never give a divider focus: a separator that is not a splitter takes no place in the tab order.',
       'the inset in code — a margin on logical edges, so it mirrors in right-to-left text: `margin-inline-start: var(--space-200)` at inset, both `margin-inline` sides at middle-inset, and `margin-block: var(--space-100)` for a vertical middle inset. Figma holds the same distances as the divider\'s padding.',
       'forced colors — under `forced-colors: active` a background is replaced, and a 1px box painted only by `background` can disappear. Give it `background: CanvasText` (or a `border-block-start` in place of the background) inside a `@media (forced-colors: active)` block so the rule survives.',
     ],
@@ -176,7 +185,8 @@ export const divider: ComponentDef = {
     variantAxes: ['orientation', 'inset'],
     // A vertical rule takes no start-only inset (the header gives the reason), so the set is five members.
     excludeCoordinates: [{ orientation: ['vertical'], inset: ['inset'] }],
-    // Considered, and none survive — `decorative` changes no pixel, and a rule has nothing to toggle.
+    // Considered, and none survive — `decorative` changes no node's visibility (its color change is code only),
+    // and a rule has nothing to toggle.
     booleans: {},
   },
 
@@ -184,9 +194,9 @@ export const divider: ComponentDef = {
     role: 'none with aria-hidden="true" by default, because a divider is decorative unless set otherwise; with decorative=false, separator (native <hr> for a horizontal rule, role="separator" with aria-orientation="vertical" for a vertical one)',
     wcag: [
       '1.3.1 Info and Relationships — a rule that marks a real break in content is a separator, so assistive technology hears the break a sighted reader sees',
-      // The tinted-surface limit (owner Q208 A): `color.border.secondary` measures 2.36–2.81:1 on
-      // `background.secondary` / `tertiary` in light mode. A stronger border role is filed as #2498.
-      '1.4.11 Non-text Contrast — a decorative divider carries no information and needs no contrast minimum; a divider that genuinely communicates a boundary should clear 3:1. On a tinted surface, such as background.secondary or background.tertiary in light mode, the default rule does not reach 3:1, so a divider that marks a real boundary (decorative=false) needs more than the default rule there.',
+      // The tinted-surface limit (owner Q208 A) is closed by #2569 (Q259 3A): a separator binds `border.tertiary`,
+      // contracted at 3:1 against every page and surface tier in every mode. DRAFT copy, owner item.
+      '1.4.11 Non-text Contrast — a decorative divider carries no information and needs no contrast minimum. A divider that marks a real boundary (decorative=false) uses border.tertiary, which reaches 3:1 on every background.',
     ],
     focus: 'None. A divider is not focusable and takes no place in the tab order.',
     aria: 'By default the rule sets aria-hidden="true", so a screen reader does not announce a break that means nothing. With decorative=false, an <hr> needs no attributes, and a vertical rule sets role="separator" and aria-orientation="vertical".',
@@ -237,7 +247,7 @@ export const divider: ComponentDef = {
 
   notes: {
     contested: [
-      'Approved defaults (owner Q190.3 A): the `orientation` axis and its two values; `border-width.hairline` as the thickness; `color.border.secondary` as the color (the role the token tier names as a divider, 3.20:1 at its lowest against `background.primary`, measured in harbor light); filling the container; no states; its own Figma page. Held back: a `thick` thickness and a `color.border.primary` variant, each one more axis value when a consumer needs it.',
+      'Approved defaults (owner Q190.3 A): the `orientation` axis and its two values; `border-width.hairline` as the thickness; `color.border.secondary` as the color (the decorative rung of the edge ladder, ~2:1 against the page since #2569; a separator, decorative=false, paints `color.border.tertiary` in code); filling the container; no states; its own Figma page. Held back: a `thick` thickness and a `color.border.primary` variant, each one more axis value when a consumer needs it.',
       'DECORATIVE BY DEFAULT (owner Q190.1 A, after the brief): `decorative` defaults to true and hides the rule from assistive technology. The inverse default, a separator everywhere, is the more common real-world bug: a screen reader announces a separator between every toolbar button.',
       'THE INSET STEPS ARE DRAFT (owner Q190.2 A): `space.200` for the start and both-ends insets, `space.100` for a vertical middle inset, the closest existing steps; the brief names no token. A vertical rule takes no start-only inset, so the Figma set is five members.',
       'THE LABELLED DIVIDER is deferred to its own issue: the brief\'s `label` and `labelPosition` (the "OR" between two ways to sign in).',

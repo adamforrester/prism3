@@ -2344,14 +2344,14 @@
       ],
       "description": "Stronger border / divider",
       "value": {
-        "r": 0.45490196347236633,
-        "g": 0.4588235318660736,
-        "b": 0.46666666865348816,
+        "r": 0.25882354378700256,
+        "g": 0.26274511218070984,
+        "b": 0.2705882489681244,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "wds/core/palette/neutral/500"
+        "name": "wds/core/palette/neutral/700"
       }
     },
     {
@@ -2362,14 +2362,14 @@
       ],
       "description": "Strongest border / divider",
       "value": {
-        "r": 0.7019608020782471,
-        "g": 0.7058823704719543,
-        "b": 0.7098039388656616,
+        "r": 0.45490196347236633,
+        "g": 0.4588235318660736,
+        "b": 0.46666666865348816,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "wds/core/palette/neutral/250"
+        "name": "wds/core/palette/neutral/500"
       }
     },
     {

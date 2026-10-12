@@ -12,12 +12,11 @@
  * rule for a runtime axis).
  *
  * HOVER (Q178.2 B): NO overlay wash. An unselected tab at hover and pressed shows a 2px NEUTRAL bar where the
- * selected bar would go. The role is `color.border.secondary`, a technical pick the owner delegated: it is
- * the one neutral edge role the engine CONTRACTS at 3:1 against `background.primary` in every brand and mode
- * (#1745, `modes.ts` `put('border.secondary', …, cfg.nonTextMin)`), so the floor holds for a brand that does
- * not exist yet, not only for the four with a committed export. Measured on those four × four modes: 3.26–10.14:1.
- * `interactive.neutral.border.hover` is also contracted, but it is label ink (14.0–16.1:1), darker than the
- * selected bar it previews in every non-HC mode; `border.tertiary` is unfloored (`min 0`).
+ * selected bar would go. The role is `color.border.secondary`, a technical pick the owner delegated. It was
+ * contracted at 3:1 when picked (#1745); since #2569 (owner Q259 C) it is a DECORATIVE rung at ~2:1 with no
+ * floor, and the bar stays on it on purpose: the hover bar is a pointer-only preview, not the selected state,
+ * and reading lighter than the selected bar sharpens the difference Q224/Q225 asked for. The accessible
+ * neutral edge is now `border.tertiary`; the hover bar does not need it.
  * A selected tab's hover and pressed step its primary bar and label, also with no wash.
  *
  * The bar is ONE always-present box painting its `fill` slot, keyed per selection. `fill` is structural, so
@@ -247,7 +246,7 @@ export const tab: ComponentDef = {
     ],
     unverified: [],
     evolution: [
-      '2026-10-09 (#2416): owner decisions Q177 (the nested Tab + Tabs shape, line tabs only, its own page), Q178.1 A (primary label plus a 2px primary bar on a 1px border.primary baseline, one weight), Q178.2 B (no hover wash; a 2px neutral bar previews the selected bar), Q179 A (names Tab and Tabs, S/M/L, the count as a nested Badge, automatic activation). The hover bar\'s role, border.secondary, was the build PR\'s technical pick: contracted at 3:1 against the page (#1745).',
+      '2026-10-09 (#2416): owner decisions Q177 (the nested Tab + Tabs shape, line tabs only, its own page), Q178.1 A (primary label plus a 2px primary bar on a 1px border.primary baseline, one weight), Q178.2 B (no hover wash; a 2px neutral bar previews the selected bar), Q179 A (names Tab and Tabs, S/M/L, the count as a nested Badge, automatic activation). The hover bar\'s role, border.secondary, was the build PR\'s technical pick: contracted at 3:1 against the page when picked (#1745), and a decorative ~2:1 rung since #2569 (owner Q259 C), which the bar keeps: a pointer-only preview reads lighter than the selected bar.',
     ],
   },
 };
