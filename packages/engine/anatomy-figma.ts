@@ -62,7 +62,7 @@ export type FigmaNodePlan = {
    *  what it IS rather than for the node type it lands as, which is the convention `INSTANCE_SWAP` and
    *  `NESTED_INSTANCE` already set — neither is a Figma node type either, and both name the build
    *  strategy because that is what an executor branches on. */
-  type: 'FRAME' | 'TEXT' | 'INSTANCE_SWAP' | 'NESTED_INSTANCE' | 'GLYPH';
+  type: 'FRAME' | 'TEXT' | 'INSTANCE_SWAP' | 'NESTED_INSTANCE' | 'GLYPH' | 'CONTENT_SLOT';
   layoutMode?: 'HORIZONTAL' | 'VERTICAL';
   primaryAxisAlignItems?: 'MIN' | 'CENTER' | 'MAX' | 'SPACE_BETWEEN';
   counterAxisAlignItems?: 'MIN' | 'CENTER' | 'MAX' | 'BASELINE';
@@ -550,7 +550,10 @@ export type FigmaPropertyPlan =
   /** `swapTarget` is a component NAME; the payload resolves it to the node id Figma demands. A
    *  target that does not resolve makes the property unbuildable rather than merely undefaulted,
    *  which is why the payload reports it as a miss instead of substituting something. */
-  | { name: string; type: 'INSTANCE_SWAP'; swapTarget: string };
+  | { name: string; type: 'INSTANCE_SWAP'; swapTarget: string }
+  /** A NATIVE SLOT (#2417): no default (Figma refuses one for SLOT), and declared by the slot node itself, which
+   *  `createSlot` makes and the combine merges by name. The executors verify it rather than add it. */
+  | { name: string; type: 'SLOT' };
 
 export type AnatomyPlan = {
   component: string;
@@ -1705,7 +1708,8 @@ export const figmaAnatomyPlan = (
     // The placeholder lands only on a TEXT node, and only where the def declares a TEXT property for
     // that part. A `characters` write on a FRAME throws, and a text part with no declared property is
     // a part whose copy nothing is claiming to own.
-    const chars = p.kind === 'text' ? placeholder.get(name) : undefined;
+    // A native slot's text carries its own literal copy (#2417), since no TEXT property can reach a slot sublayer.
+    const chars = p.kind === 'text' ? (placeholder.get(name) ?? p.characters) : undefined;
     // #1018: the canonical set-level default (the fallback `default`, constant across the set), carried
     // on the plan ONLY where it DIVERGES from this member's own `chars` — i.e. only on a `byVariant`
     // member whose per-coordinate copy differs from the fallback. Where the two are equal (every member
@@ -1771,7 +1775,7 @@ export const figmaAnatomyPlan = (
       // `nest` (#1226 PR-A) projects the SAME `NESTED_INSTANCE` as `absolute` — the difference is the flow,
       // not the node type: a `nest` carries no `absoluteInset`, so it stays a normal flow child (a cell),
       // where an `absolute` is positioned out of the flow below. The plugin builds both by `createInstance`.
-      type: p.kind === 'text' ? 'TEXT' : p.kind === 'box' ? 'FRAME' : (p.kind === 'absolute' || p.kind === 'nest') ? 'NESTED_INSTANCE'
+      type: p.kind === 'text' ? 'TEXT' : p.kind === 'box' ? (p.contentSlot ? 'CONTENT_SLOT' : 'FRAME') : (p.kind === 'absolute' || p.kind === 'nest') ? 'NESTED_INSTANCE'
         : p.kind === 'vector' ? (iconTarget ? (glyphInset !== undefined ? 'FRAME' : 'NESTED_INSTANCE') : 'GLYPH') : 'INSTANCE_SWAP',
       // The icon component, on the instance itself when it is the part's own node (#2380). An inset instance
       // carries it one level down, on the child the wrapper is given below.
@@ -2663,6 +2667,10 @@ const readVarsOwn = (n: FigmaNodePlan): string[] =>
 export const planPaintVars = (n: FigmaNodePlan): string[] =>
   [...paintVarsOwn(n), ...n.children.flatMap(planPaintVars)];
 
+/** Every NATIVE SLOT node in a plan (#2417), depth-first. */
+const slotNodes = (n: FigmaNodePlan): FigmaNodePlan[] =>
+  [...(n.type === 'CONTENT_SLOT' ? [n] : []), ...n.children.flatMap(slotNodes)];
+
 /** Every node in a plan carrying a `propertyRef`, depth-first. */
 const refNodes = (n: FigmaNodePlan): FigmaNodePlan[] =>
   [...(n.propertyRef ? [n] : []), ...n.children.flatMap(refNodes)];
@@ -2744,6 +2752,9 @@ export const planSetProperties = (plans: AnatomyPlan[]): FigmaPropertyPlan[] => 
         throw new Error(`planSetProperties: '${prop.name}' is declared two different ways across the set — ${JSON.stringify(prev)} vs ${JSON.stringify(prop)}`);
       byName.set(prop.name, prop);
     }
+    // NATIVE SLOTS (#2417): one SLOT property per slot node NAME, which is what Figma's combine merges by. The
+    // node declares it (`createSlot`), so this records what the set will hold for the read-back, not a write.
+    for (const n of slotNodes(plan.root)) byName.set(n.name, { name: n.name, type: 'SLOT' });
   }
   // ORDERED text → each PRESENCE boolean immediately followed by the swap it gates → any unpaired swap
   // (#1380, #1331, #1519), which is the property CREATION order the executor applies and therefore the
@@ -2770,6 +2781,8 @@ export const planSetProperties = (plans: AnatomyPlan[]): FigmaPropertyPlan[] => 
     if (swap) { ordered.push(swap); emitted.add(swap.name); }
   }
   for (const p of all) if (p.type === 'INSTANCE_SWAP' && !emitted.has(p.name)) ordered.push(p);
+  // Slots last: Figma places a slot's property where its node creates it, so the order here is the read-back's.
+  for (const p of all) if (p.type === 'SLOT') ordered.push(p);
   return ordered;
 };
 
@@ -3344,6 +3357,7 @@ const root=await build(PLAN);
 figma.currentPage.appendChild(root);
 const comp=figma.createComponentFromNode(root);
 __exposeNow(${JSON.stringify(planComponentName(plan))});
+__slotsNow(comp,${JSON.stringify(planComponentName(plan))});
 comp.name=${JSON.stringify(planComponentName(plan))};
 // The NODE ID, not the name. Two runs of the same plan produce two identically-named components, so
 // a caller verifying by name reads whichever one document order hands it — which is how #482's stale
@@ -3594,8 +3608,37 @@ const PAYLOAD_GRADIENT_CLAIM = '&&!m.gradientFill';
 const hasGradient = (n: FigmaNodePlan): boolean => n.gradientFill !== undefined || n.children.some(hasGradient);
 /** `PAYLOAD_BUILD` for these roots: the reserved-lines write, the pinned icons, the corner pin, the root's
  *  build width, the hugging wrap's max width and the gradient fill spliced in where one of them needs it. */
+/** #2417 — the native-slot conversion, shipped only in a payload whose plans hold a slot: every byte of the build
+ *  ships in every chunk (#1809), and no set but one with a slot needs it. Elsewhere `__slotsNow` is a no-op. */
+const hasContentSlot = (n: FigmaNodePlan): boolean => n.type === 'CONTENT_SLOT' || n.children.some(hasContentSlot);
+const PAYLOAD_SLOTS = `// #2417 — NATIVE SLOTS, the paste twin of the plugin executor's \`toSlots\`: each \`CONTENT_SLOT\`, built as a frame,
+// becomes a real SLOT once its member is a component (\`createSlot\` is a COMPONENT's method), in the frame's place,
+// holding its children (the slot's default content). This payload cannot write a plan onto an existing node, so the
+// frame's own fields are carried over, its size BEFORE any binding (a \`resize\` clears them), and its variables
+// re-bound from the plan by name. Called once per member, before the combine, which merges slots by name; a member a
+// later chunk appends to the set merges into its slot property the same way (measured), so no duplicate arises here.
+const __SLOT_FIELDS=['layoutMode','primaryAxisSizingMode','counterAxisSizingMode','primaryAxisAlignItems','counterAxisAlignItems','layoutWrap','itemSpacing','counterAxisSpacing','paddingTop','paddingRight','paddingBottom','paddingLeft','minWidth','maxWidth','minHeight','maxHeight','clipsContent','fills','strokes','strokeWeight','strokeAlign','cornerRadius','opacity','visible','layoutAlign','layoutGrow','layoutPositioning'];
+const __slotsNow=(comp,member)=>{
+  for(const [frame,n] of __slots){
+    const parent=frame.parent;
+    if(!comp.createSlot||!parent){misses.push(member+'/'+n.name+'.slot -> NOT MADE (this host has no createSlot; built as a plain frame, so a designer cannot fill it on an instance)');continue;}
+    let sl;
+    try{sl=comp.createSlot();}catch(e){misses.push(member+'/'+n.name+'.slot -> REFUSED ('+(e&&e.message?e.message:String(e))+'; built as a plain frame)');continue;}
+    sl.name=n.name;
+    parent.insertChild(parent.children.indexOf(frame),sl);
+    sl.unlockAspectRatio();
+    sl.resize(frame.width,frame.height);
+    for(const k of __SLOT_FIELDS){if(frame[k]!==undefined&&sl[k]!==frame[k]){try{sl[k]=frame[k];}catch(e){misses.push(member+'/'+n.name+'.'+k+' -> NOT CARRIED to the slot ('+(e&&e.message?e.message:String(e))+')');}}}
+    for(const [prop,varName] of Object.entries(n.bound||{})){const v=byName.get(varName);if(v)sl.setBoundVariable(prop,v);}
+    frame.children.slice().forEach((c,i)=>sl.insertChild(i,c));
+    frame.remove();
+  }
+  __slots.length=0;
+};
+`;
+const PAYLOAD_NO_SLOTS = 'const __slotsNow=()=>{};';
 const payloadBuildFor = (roots: FigmaNodePlan[]): string =>
-  PAYLOAD_BUILD.replace(MIN_LINES_SLOT, roots.some(hasMinLines) ? PAYLOAD_MIN_LINES : '')
+  PAYLOAD_BUILD.replace('/*__SLOTS__*/', roots.some(hasContentSlot) ? PAYLOAD_SLOTS : PAYLOAD_NO_SLOTS).replace(MIN_LINES_SLOT, roots.some(hasMinLines) ? PAYLOAD_MIN_LINES : '')
     .replace(PIN_LIFT_SLOT, roots.some(hasPin) ? PAYLOAD_PIN_LIFT : '')
     .replace(PIN_SLOT, roots.some(hasPin) ? PAYLOAD_PIN : '')
     .replace(CORNER_SLOT, roots.some(hasCorner) ? PAYLOAD_CORNER : '')
@@ -3606,6 +3649,8 @@ const payloadBuildFor = (roots: FigmaNodePlan[]): string =>
     .replace(GRADIENT_CLAIM_SLOT, roots.some(hasGradient) ? PAYLOAD_GRADIENT_CLAIM : '');
 
 const PAYLOAD_BUILD = `const __expose=[];
+// #2417 — NATIVE SLOTS, queued during the build like the exposures and made by \`__slotsNow\` after each conversion.
+const __slots=[];
 // #1378 — DRAIN THE EXPOSURE QUEUE, called immediately after every \`createComponentFromNode\` and nowhere
 // else. That call is what puts the nested instances inside a component, which is Figma's precondition for
 // \`isExposedInstance\`; the conversion is in place, so the handles collected during the build are still the
@@ -3620,6 +3665,7 @@ const __exposeNow=(member)=>{
   }
   __expose.length=0;
 };
+/*__SLOTS__*/
 // #1393 — CLAIM THE DEFAULTS, the paste twin of the plugin executor's \`claimDefaults\` (#865), kept in
 // LOCKSTEP with it: same properties, same values, same carve-outs. \`createFrame()\` hands back an opaque
 // white box and \`combineAsVariants()\` a dressed set, so every property no plan claimed survived as a Figma
@@ -3750,7 +3796,7 @@ const build=async(n)=>{
     // top-left corner of the glyph. This is the one property of the import we override.
     for(const v of drawn)v.constraints={horizontal:'SCALE',vertical:'SCALE'};
   }
-  else{node=figma.createFrame();node.clipsContent=n.clipsContent===true;}
+  else{node=figma.createFrame();node.clipsContent=n.clipsContent===true;if(n.type==='CONTENT_SLOT')__slots.push([node,n]);}
   node.name=n.name;
   // THE LITERAL GLYPH SIZE (#1340), on a glyph or, since #2380, on the icon INSTANCE an icon-set glyph builds
   // as (image-placeholder's 180px marker). Neither is sized by a host or binds a \`size\` variable, so it stays
@@ -4086,6 +4132,8 @@ for(const p of PROPS){
     misses.push('property '+p.name+' -> ALREADY on the set as '+declared[already].type+' but this paste declares '+p.type+' (left alone; declaring it again would silently create a second property called '+p.name+'2)');
     continue;
   }
+  // A SLOT is declared by its node and merged by name at the combine (#2417); one not on the set was never made.
+  if(p.type==='SLOT'){misses.push('property '+p.name+" -> SLOT not on the set (no member's slot was made, so the combine had none to merge; see the slot misses above)");continue;}
   let def;
   if(p.type==='INSTANCE_SWAP'){
     // Figma demands a NODE ID here. \`key\`, \`''\`, \`null\` and \`undefined\` are each rejected with
@@ -4572,6 +4620,7 @@ for(const spec of PLANS){
   figma.currentPage.appendChild(root);
   const comp=figma.createComponentFromNode(root);
   __exposeNow(spec.name);
+  __slotsNow(comp,spec.name);
   comp.name=spec.name;
   built.push(comp);
 }
@@ -4709,6 +4758,7 @@ for(const spec of PLANS){
   figma.currentPage.appendChild(root);
   const comp=figma.createComponentFromNode(root);
   __exposeNow(spec.name);
+  __slotsNow(comp,spec.name);
   comp.name=spec.name;
   fresh.push(comp);
 }
