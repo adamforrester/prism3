@@ -305,7 +305,11 @@ transports: A, the file mailbox, and B, the local desktop bridge.
   answered `stale`, not run. The agent side is `agent-snippets.ts`, printed by
   `tools/figma-mcp/agent-link.ts` (runbook: `tools/figma-mcp/README.md` §5).
 - ✅ **Off by default, never persisted**; the panel shows whether it is listening and the last command's
-  headline. Commands are data mapped to handlers by name — nothing in a command is evaluated.
+  headline. Commands are data mapped to handlers by name — nothing in a command is evaluated, in a release build.
+  A **dev build** (`dist/`, `PRISM3_DEV` true) answers one more, `run-code {code, timeoutMs?}`, which runs `code` in
+  the main thread as the body of an async function and returns its value in `result.data.value` and its console
+  lines in `result.logs` (#2530, owner Q239 A). It exists so a lane can probe a file without swapping plugins. The
+  release build (`npm run build:release`) does not carry it, and `lint-release-bundle.ts` checks that.
 - ✅ **Tested through the real `main.ts`** — `test-agent-link.ts` installs a host model as the global
   `figma` and imports `main.ts` itself, then drives the mailbox with the exact scripts the CLI prints.
 - ⏭ **Not verified live:** whether a `use_figma` write reaches an open plugin through multiplayer, and how
