@@ -97,9 +97,11 @@ export const TILE_VARS = [
   ['text-2', 'color.text.secondary', C],
   ['icon', 'color.icon.primary', C],
   ['icon-2', 'color.icon.secondary', C],
-  // lines: 1 is the hairline (decorative only: region and section splits), 2 clears 3:1 (slider rail)
+  // lines: 1 is the hairline (decorative only: region and section splits), 2 clears 3:1 (slider rail).
+  // line-2 is border.tertiary since #2569: border.secondary became a decorative ~2:1 rung, and tertiary is the
+  // first border contracted at 3:1 on every page and surface tier.
   ['line-1', 'color.border.primary', C],
-  ['line-2', 'color.border.secondary', C],
+  ['line-2', 'color.border.tertiary', C],
   // fields, the selected edge and focus, hover washes
   ['field-edge', 'color.field.border.rest', C],
   ['field-edge-hover', 'color.field.border.hover', C],
