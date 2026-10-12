@@ -216,6 +216,10 @@ const ZERO_OK: Record<string, string> = {
   'text-field.focusRing': FIELD_RING,
   'select.focusRing': FIELD_RING,
   'textarea.focusRing': FIELD_RING,
+  // The header spans its container, so the control offset's outset ring would be clipped by an overflow-hidden
+  // container and would overlap the nested Divider below (owner decision Q243, #2417). The field offset puts the
+  // ring on the header's edge; it still compensates its own stroke, so it is drawn outside the edge, never across it.
+  'accordion.focusRing': "the FIELD offset on a full-width header (owner decision Q243, #2417): the control offset's outset ring would be clipped by an overflow-hidden container and overlap the nested Divider. The ring still compensates its own stroke (`strokeInset: 'ring-width'`), so it is drawn outside the header's edge, never across it",
 };
 
 /**

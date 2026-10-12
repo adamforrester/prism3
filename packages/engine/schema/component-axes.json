@@ -24,8 +24,8 @@
         "expanded"
       ],
       "position": [
-        "end",
-        "start"
+        "leading",
+        "trailing"
       ],
       "size": [
         "large",

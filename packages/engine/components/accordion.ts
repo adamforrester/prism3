@@ -11,11 +11,12 @@
  * in the header with its `indicator` (chevron or plus-minus) exposed; see that file for why, and for the live
  * check that a designer's choice survives switching `expansion`.
  *
- * ── WHERE THE INDICATOR SITS (`position`, Q182: start the default) ───────────────────────────────────────────
+ * ── WHERE THE INDICATOR SITS (`position`, Q182: leading the default; the values named by Q242) ─────────────────
  *
- * A start indicator stays beside the title under zoom and magnification (WCAG 1.4.10 reflow), where an end one can
- * drift off the visible area. Node order is fixed per set, so the two positions are two parts, `startIndicator`
- * and `endIndicator`, each gated by `position`; each sits in a box one header line tall, so on a wrapping title the
+ * A leading indicator stays beside the title under zoom and magnification (WCAG 1.4.10 reflow), where a trailing one
+ * can drift off the visible area. `leading | trailing` (Q242) are Button's leading and trailing visuals and Switch
+ * row's label position, and follow text direction. Node order is fixed per set, so the two positions are two parts,
+ * `leadingIndicator` and `trailingIndicator`, each gated by `position`; each sits in a box one header line tall, so on a wrapping title the
  * glyph holds the first line (checkbox-row's line-box construction).
  *
  * ── THE PANEL IS A NATIVE FIGMA SLOT (Q182: "a swappable slot … the build checks whether Figma's native slot
@@ -52,14 +53,14 @@ export const accordion: ComponentDef = {
     { name: 'defaultExpanded', type: 'boolean', default: false, required: false, description: 'Opens the section on first render when nothing controls it.' },
     { name: 'headingLevel', type: "enum: 2 | 3 | 4 | 5 | 6", values: ['2', '3', '4', '5', '6'], default: '3', required: false, description: 'The level of the heading that wraps the header button. Set it one below the heading the accordion sits under, so the page outline stays intact.' },
     { name: 'indicator', type: "enum: 'chevron' | 'plus-minus'", values: ['chevron', 'plus-minus'], default: 'chevron', required: false, description: 'The open and closed glyph: a chevron that points down when closed and up when open, or a plus that becomes a minus.' },
-    { name: 'position', type: "enum: 'start' | 'end'", values: ['start', 'end'], default: 'start', required: false, description: 'Which end of the header the indicator sits at. start keeps it beside the title when the page is zoomed; in right-to-left text, start is the right edge.' },
+    { name: 'position', type: "enum: 'leading' | 'trailing'", values: ['leading', 'trailing'], default: 'leading', required: false, description: 'Which side of the title the indicator sits on, following text direction. leading keeps it beside the title when the page is zoomed; in right-to-left text, leading is the right edge.' },
     { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'The header\'s type, padding and indicator size. Every size keeps the header at least 44px tall.' },
   ],
 
   states: ['rest', 'focus-visible'],
   variants: {
     expansion: ['collapsed', 'expanded'],
-    position: ['start', 'end'],
+    position: ['leading', 'trailing'],
     size: ['small', 'medium', 'large'],
   },
   axisKinds: { expansion: 'runtime', position: 'authoring', size: 'authoring' },
@@ -68,16 +69,17 @@ export const accordion: ComponentDef = {
   densitySpacing: ['size.{size}.pad-x', 'size.{size}.pad-y', 'size.{size}.gap', 'size.{size}.panel-pad-end'],
 
   tokens: {
-    // ── INK (DRAFT). The title is interactive neutral ink; the panel's placeholder is page ink (`body`).
+    // ── INK (approved, Q241). The title is interactive neutral ink; the panel's placeholder is page ink (`body`).
     // The title TYPE is `type.label.{rung}.emphasis`, which every brand emits (owner decision, 2026-10-11, revising
     // Q182's `type.body.*.strong`: a brand emits body strong only if it adds that weight, and nb-redesign does not).
     'label': 'color.interactive.neutral.text.rest',
     'body': 'color.text.primary',
     'ring-width': 'focus.ring.width',
-    // Button's ring offset, not the fields' (`offset-field` is 0 in some brands, and the header has no border to clear).
-    'ring-offset': 'focus.ring.offset',
+    // The fields' ring offset, on the header's edge (Q243): the header spans its container, so the control offset's
+    // outset ring would be clipped by an overflow-hidden container and would overlap the nested Divider below.
+    'ring-offset': 'focus.ring.offset-field',
 
-    // ── PER SIZE (DRAFT). The header floor is 44px at every size (Q182): `size.md.min-height` at small and medium,
+    // ── PER SIZE (the padding pending the owner's visual QA, Q241). The header floor is 44px at every size (Q182): `size.md.min-height` at small and medium,
     // `size.lg.height` at large. Size moves the type, the padding and the indicator's line box.
     'size.small.min-height': 'size.md.min-height',
     'size.small.pad-x': 'space.150',
@@ -128,19 +130,19 @@ export const accordion: ComponentDef = {
         minHeight: 'size.{size}.min-height',
         padding: { block: 'size.{size}.pad-y', inlineLabel: 'size.{size}.pad-x' },
         gap: 'size.{size}.gap',
-        children: ['startIndicator', 'label', 'endIndicator', 'focusRing'],
+        children: ['leadingIndicator', 'label', 'trailingIndicator', 'focusRing'],
         note: 'The header row and the hit target: the whole row is the button, so a click anywhere on it opens or closes the section.',
       },
-      startIndicator: {
+      leadingIndicator: {
         kind: 'box',
         role: 'presentation',
-        presentWhen: { position: ['start'] },
+        presentWhen: { position: ['leading'] },
         height: 'size.{size}.line-box',
         layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'hug', y: 'fixed' } },
-        children: ['startGlyph'],
+        children: ['leadingGlyph'],
         note: 'The indicator before the title, one header line tall so it holds the first line when the title wraps.',
       },
-      startGlyph: {
+      leadingGlyph: {
         kind: 'nest',
         nests: '_accordion-indicator',
         nesting: { kind: 'nest-exposed', variant: { indicator: 'chevron', expansion: 'collapsed', size: 'medium' }, expose: ['indicator'], follow: ['expansion', 'size'] },
@@ -152,20 +154,20 @@ export const accordion: ComponentDef = {
         wrap: true,
         note: 'The section title. It fills the row and wraps onto more lines rather than truncating.',
       },
-      endIndicator: {
+      trailingIndicator: {
         kind: 'box',
         role: 'presentation',
-        presentWhen: { position: ['end'] },
+        presentWhen: { position: ['trailing'] },
         height: 'size.{size}.line-box',
         layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'hug', y: 'fixed' } },
-        children: ['endGlyph'],
+        children: ['trailingGlyph'],
         note: 'The indicator after the title, one header line tall so it holds the first line when the title wraps.',
       },
-      endGlyph: {
+      trailingGlyph: {
         kind: 'nest',
         nests: '_accordion-indicator',
         nesting: { kind: 'nest-exposed', variant: { indicator: 'chevron', expansion: 'collapsed', size: 'medium' }, expose: ['indicator'], follow: ['expansion', 'size'] },
-        note: 'The open and closed glyph, at the end of the header.',
+        note: 'The open and closed glyph, after the title.',
       },
       focusRing: {
         kind: 'absolute',
@@ -192,7 +194,7 @@ export const accordion: ComponentDef = {
         type: 'size.{size}.panel-type',
         paintSlot: 'body',
         wrap: true,
-        // Literal copy (DRAFT): a slot's text can carry no TEXT property, so the designer edits or replaces it in place.
+        // Literal copy (approved, Q241): a slot's text can carry no TEXT property, so the designer edits or replaces it in place.
         characters: 'Section content. Replace this with the text or components the section holds.',
         note: 'Placeholder content. Replace it with the text or components the section holds.',
       },
@@ -212,7 +214,7 @@ export const accordion: ComponentDef = {
       'a group of accordions — a stack of items, no Figma def (owner decision). In code, a group takes `type: "multiple" | "single"` (default multiple: comparing two sections needs both open), `value` / `defaultValue` / `onValueChange` as key arrays, and `headingLevel`, `indicator` and `size` for every item. All sections may be closed. Wrapped in a list (<ul>/<li>) only in a group, never on a single item.',
       'the hover — no hover member and no hover wash (owner decision); the header shows the pointer cursor only.',
       'the height animation — the panel eases open and closed (motion.transition.enter / exit); under prefers-reduced-motion it opens and closes at the reduced duration. Figma variants carry no motion.',
-      'RTL — the header mirrors through logical properties: a start indicator moves to the right edge and the title aligns right. No glyph mirrors.',
+      'RTL — the header mirrors through logical properties: a leading indicator moves to the right edge and the title aligns right. No glyph mirrors.',
       'text expansion — the title wraps; the header uses min-height, never a fixed height, and the indicator holds the first line.',
       'scroll into view — after a section opens, scroll its header into view (`scrollIntoView({ block: "nearest" })` on the next frame) so a tall panel does not push it off screen.',
     ],
@@ -238,7 +240,7 @@ export const accordion: ComponentDef = {
       '2.4.3 Focus Order (each header is its own tab stop; when open, the next Tab moves into the panel)',
       '2.4.7 Focus Visible / 2.4.13 Focus Appearance (the shared focus ring around the header)',
       '1.4.1 Use of Color (open and closed differ by glyph, not by color)',
-      '1.4.10 Reflow, as intent (a start indicator stays beside the title when the page is zoomed)',
+      '1.4.10 Reflow, as intent (a leading indicator stays beside the title when the page is zoomed)',
       '2.5.5 Target Size (Enhanced), as intent (the whole header is the target, at least 44px tall on comfortable and spacious density)',
     ],
     keyboard: 'Tab moves from header to header, and into an open panel\'s content. Enter or Space opens and closes the focused header. There is no roving tab index. Up and Down between headers, and Home and End, are optional extras and must not trap focus.',
@@ -292,14 +294,14 @@ export const accordion: ComponentDef = {
 
   notes: {
     contested: [
-      'DRAFT VISIBLE CHOICES for the owner: the `position` axis name; the 44px header floor via `size.md.min-height` at small and medium and `size.lg.height` at large; the padding steps (inline 12/16/24, block 8/12/16, gap 8/12/16); the panel insets (no top, then 12/16/24 below, with the content aligned to the header edge rather than to the title); the inks (`interactive.neutral.text.rest` for the title, `text.primary` for the panel placeholder); the Figma copy ("Section title", and the panel placeholder).',
+      'PENDING THE OWNER\'S VISUAL QA (Q241): the padding steps (inline 12/16/24, block 8/12/16, gap 8/12/16) and the panel insets (no top, then 12/16/24 below, with the content aligned to the header edge rather than to the title). Approved in Q241: the inks (`interactive.neutral.text.rest` for the title, `text.primary` for the panel placeholder), the Figma copy ("Section title", and the panel placeholder), the property names, the page placement and the prose.',
       'A flush style only: the brief\'s contained (boxed card) variant is not built.',
     ],
     unverified: [
       'That the native slot behaves the same on a designer\'s instance in every Figma plan: slots were measured in one file; a plan without the feature keeps the panel as a plain frame, and the build says so.',
     ],
     evolution: [
-      'Owner decisions: Q180 (a design proposal), Q182 (one item, no group def; a start or end indicator, start the default; no hover; the content a swappable slot; a nested Divider; the expansion axis; the body type; the 44px floor; three sizes; reduced motion through the duration tokens; the two engine fixes), Q183 (the building-block indicator, 24 members, no disabled and no pressed).',
+      'Owner decisions: Q180 (a design proposal), Q182 (one item, no group def; an indicator before or after the title, before the default; no hover; the content a swappable slot; a nested Divider; the expansion axis; the body type; the 44px floor; three sizes; reduced motion through the duration tokens; the two engine fixes), Q183 (the building-block indicator, 24 members, no disabled and no pressed), Q242 (the position values `leading | trailing`, as Button and Switch row name theirs), Q243 (the header\'s focus ring on its edge, `focus.ring.offset-field`).',
     ],
   },
 };

@@ -29648,15 +29648,22 @@ arm: {
   type PN = { name: string; type: string; children: PN[]; bound?: Record<string, string>; paints?: Record<string, string>; nestTarget?: string; nestVariant?: Record<string, string>; nestExpose?: string[]; layoutAlign?: string; characters?: string };
   const find = (n: PN, name: string): PN | undefined => (n.name === name ? n : n.children.map((c) => find(c, name)).find(Boolean));
   const coord = (p: AnatomyPlan): Record<string, string> => Object.fromEntries(planComponentName(p).split(', ').map((kv) => kv.split('=') as [string, string]));
-  ok(plans.length === 24 && JSON.stringify(acc.variants) === JSON.stringify({ expansion: ['collapsed', 'expanded'], position: ['start', 'end'], size: ['small', 'medium', 'large'] }),
+  ok(plans.length === 24 && JSON.stringify(acc.variants) === JSON.stringify({ expansion: ['collapsed', 'expanded'], position: ['leading', 'trailing'], size: ['small', 'medium', 'large'] }),
     `#2417 accordion: 24 members, expansion × position × size × state (Q183) (got ${plans.length}, ${JSON.stringify(acc.variants)})`);
   ok(JSON.stringify(acc.states) === JSON.stringify(['rest', 'focus-visible']) && JSON.stringify(acc.figmaProperties?.stateAxis?.values) === JSON.stringify(['rest', 'focus-visible']),
     `#2417 accordion: the states are rest and focus-visible only, with no hover (Q182), pressed or disabled (Q183) (got ${JSON.stringify(acc.states)})`);
   const pos = acc.props.find((p) => p.name === 'position');
-  ok(acc.variants.position?.[0] === 'start' && pos?.default === 'start', `#2417 accordion position: start is the default, first in Figma and in code (Q182) (got ${acc.variants.position?.[0]}, ${pos?.default})`);
-  const glyphs = plans.map((p) => { const c = coord(p); const start = find(p.root as PN, 'startGlyph'), end = find(p.root as PN, 'endGlyph'); return { c, start, end }; });
+  ok(acc.variants.position?.[0] === 'leading' && pos?.default === 'leading', `#2417 accordion position: leading is the default, first in Figma and in code (Q182) (got ${acc.variants.position?.[0]}, ${pos?.default})`);
+  // THE VALUE NAMES (Q242): `leading | trailing`, as Button names its visuals and Switch row its label position, in
+  // the def, the prop, every member's name and the indicator parts' layer names. An old name back (`start` / `end`,
+  // as a value or a part's lead) fails here by name.
+  const OLD = /\b(?:start|end)\b|^(?:start|end)[A-Z]/;
+  const named = [...plans.map((p) => coord(p).position), ...(pos?.values ?? []), String(pos?.type), ...Object.keys(acc.anatomy!.parts).filter((n) => /Indicator$|Glyph$/.test(n))];
+  ok(JSON.stringify(pos?.values) === JSON.stringify(['leading', 'trailing']) && named.every((n) => !OLD.test(n)) && ['leadingIndicator', 'leadingGlyph', 'trailingIndicator', 'trailingGlyph'].every((n) => n in acc.anatomy!.parts),
+    `#2417 accordion position (Q242): the values are leading and trailing in the def, the prop and every member, and the indicator parts are named for them${named.filter((n) => OLD.test(n)).length ? ` — OLD NAME: ${[...new Set(named.filter((n) => OLD.test(n)))].join(', ')}` : ''}`);
+  const glyphs = plans.map((p) => { const c = coord(p); const start = find(p.root as PN, 'leadingGlyph'), end = find(p.root as PN, 'trailingGlyph'); return { c, start, end }; });
   ok(glyphs.every(({ c, start, end }) => {
-    const g = c.position === 'start' ? start : end, other = c.position === 'start' ? end : start;
+    const g = c.position === 'leading' ? start : end, other = c.position === 'leading' ? end : start;
     return !!g && !other && g.nestTarget === '_accordion-indicator' && g.nestVariant?.expansion === c.expansion && g.nestVariant?.size === c.size && JSON.stringify(g.nestExpose) === JSON.stringify(['indicator']);
   }), `#2417 accordion indicator: one nested _accordion-indicator per member, at its position, exposing indicator and following the member's expansion and size (Q183)`);
   ok(plans.every((p) => { const c = coord(p); const panel = find(p.root as PN, 'content'); return c.expansion === 'expanded' ? panel?.type === 'CONTENT_SLOT' : !panel; }),
@@ -29676,6 +29683,12 @@ arm: {
   const FLOOR: Record<string, string> = { small: 'size/md/min-height', medium: 'size/md/min-height', large: 'size/lg/height' };
   ok(plans.every((p) => find(p.root as PN, 'header')?.bound?.minHeight === FLOOR[coord(p).size]),
     `#2417 accordion header: the 44px floor at every size, size/md/min-height at small and medium and size/lg/height at large (Q182)`);
+  // THE RING ON THE HEADER'S EDGE (Q243): the fields' offset, 0, not the control offset — a full-width header's outset
+  // ring would be clipped by an overflow-hidden container and would overlap the nested Divider. The control offset
+  // back fails here by name.
+  const ringAt = plans.filter((p) => coord(p).state === 'focus-visible').map((p) => (find(p.root as PN, 'focusRing') as PN & { absoluteInset?: string } | undefined)?.absoluteInset);
+  ok(acc.tokens['ring-offset'] === 'focus.ring.offset-field' && ringAt.length === 12 && ringAt.every((v) => v === 'focus/ring/offset-field'),
+    `#2417 accordion focus ring (Q243): on the header's edge, focus.ring.offset-field on every focus-visible member, never the control offset (got ${acc.tokens['ring-offset']}; ${[...new Set(ringAt)].join(', ')})`);
   const GLYPH: Record<string, string> = { 'chevron/collapsed': 'chevron-down', 'chevron/expanded': 'chevron-up', 'plus-minus/collapsed': 'plus', 'plus-minus/expanded': 'minus' };
   ok(indPlans.length === 12 && indPlans.every((p) => { const c = coord(p); const shown = (p.root as PN).children.map((k) => k.name); return shown.length === 1 && shown[0] === { 'chevron-down': 'chevronDown', 'chevron-up': 'chevronUp', plus: 'plus', minus: 'minus' }[GLYPH[`${c.indicator}/${c.expansion}`]]; }),
     `#2417 accordion indicator: 12 members, each showing exactly the one glyph for its pair and state (Q183)`);

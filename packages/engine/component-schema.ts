@@ -3064,15 +3064,16 @@ export type State = (typeof STATES)[number];
  * focus); an open accordion stays open when focus leaves it. A RUNTIME axis: the user opens and closes it.
  * `lint-axis-values.ts` carries the two values as a `sole` set, shared by the accordion and its indicator.
  *
- * ── `position`: THE TWENTY-FOURTH NAME, FOR THE ACCORDION'S INDICATOR (owner decision Q182, 2026-10-10, #2417, DRAFT) ──
+ * ── `position`: THE TWENTY-FOURTH NAME, FOR THE ACCORDION'S INDICATOR (owner decisions Q182 and Q242, #2417) ──
  *
- * `position` (`start | end`) is WHICH END of a row a part sits at, in reading order: the accordion's indicator
- * before its title or after it. The owner named the values and the choice; the name is DRAFT. It clears the bar
+ * `position` (`leading | trailing`) is WHICH SIDE of a row a part sits on, in reading order: the accordion's indicator
+ * before its title or after it. The owner chose the axis (Q182) and named the values (Q242) as Button names its
+ * leading and trailing visuals and Switch row its `labelPosition`. It clears the bar
  * as a distinct kind of distinction with the nearest defeated: `direction` is where a veil's wash sits across an
  * image, a distribution of paint; `orientation` is which way a rule runs; `inset` is whether a control keeps its
  * inline padding; `offset` is a nested part's displacement. None says "this part comes first or last in the row",
  * and naming it `direction` would put a paint distribution and a part's place in a row under one name, the #756
- * failure. `start | end` are logical, so in a right-to-left page the start indicator sits at the right edge with
+ * failure. `leading | trailing` follow text direction, so in a right-to-left page the leading indicator sits at the right edge with
  * no mirroring. An AUTHORING axis. `lint-axis-values.ts` carries the two values as a `sole` set.
  */
 export const VARIANT_AXES = [

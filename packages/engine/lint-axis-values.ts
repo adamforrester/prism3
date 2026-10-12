@@ -615,15 +615,16 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   },
   {
     axis: 'position',
-    values: ['start', 'end'],
+    values: ['leading', 'trailing'],
     defs: ['accordion'],
     relation: 'sole',
     reason:
-      'Which end of the header row the accordion\'s indicator sits at, in reading order (#2417, owner Q182, the name '
-      + 'DRAFT): before the title or after it. `start` LEADS because it is the owner\'s default and the code default: a '
-      + 'start indicator stays beside the title when the page is zoomed (WCAG 1.4.10). Logical values, so in right-to-left '
-      + 'text start is the right edge and nothing mirrors. Distinct from `direction` and `orientation`, argued in '
-      + '`VARIANT_AXES`.',
+      'Which side of the title the accordion\'s indicator sits on (#2417; the axis owner Q182, the values owner Q242): '
+      + 'before it or after it, following text direction. `leading` LEADS because it is the owner\'s default and the code '
+      + 'default: a leading indicator stays beside the title when the page is zoomed (WCAG 1.4.10). The words are Button\'s '
+      + 'leading and trailing visuals and Switch row\'s `labelPosition`, a prop there and not an axis, so this set has no '
+      + 'other def to stand in a relation with. In right-to-left text leading is the right edge and nothing mirrors. '
+      + 'Distinct from `direction` and `orientation`, argued in `VARIANT_AXES`.',
   },
   {
     axis: 'indicator',

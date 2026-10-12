@@ -5775,14 +5775,14 @@
         },
         {
           "name": "position",
-          "type": "enum: 'start' | 'end'",
-          "default": "start",
+          "type": "enum: 'leading' | 'trailing'",
+          "default": "leading",
           "required": false,
           "values": [
-            "start",
-            "end"
+            "leading",
+            "trailing"
           ],
-          "description": "Which end of the header the indicator sits at. start keeps it beside the title when the page is zoomed; in right-to-left text, start is the right edge."
+          "description": "Which side of the title the indicator sits on, following text direction. leading keeps it beside the title when the page is zoomed; in right-to-left text, leading is the right edge."
         },
         {
           "name": "size",
@@ -5811,8 +5811,8 @@
         },
         "position": {
           "values": [
-            "start",
-            "end"
+            "leading",
+            "trailing"
           ],
           "kind": "authoring"
         },
@@ -5834,7 +5834,7 @@
           "2.4.3 Focus Order (each header is its own tab stop; when open, the next Tab moves into the panel)",
           "2.4.7 Focus Visible / 2.4.13 Focus Appearance (the shared focus ring around the header)",
           "1.4.1 Use of Color (open and closed differ by glyph, not by color)",
-          "1.4.10 Reflow, as intent (a start indicator stays beside the title when the page is zoomed)",
+          "1.4.10 Reflow, as intent (a leading indicator stays beside the title when the page is zoomed)",
           "2.5.5 Target Size (Enhanced), as intent (the whole header is the target, at least 44px tall on comfortable and spacious density)"
         ],
         "keyboard": "Tab moves from header to header, and into an open panel's content. Enter or Space opens and closes the focused header. There is no roving tab index. Up and Down between headers, and Home and End, are optional extras and must not trap focus.",

@@ -1,17 +1,17 @@
 ## (2026-10-11) — Accordion: one expand and collapse section, built on a nested indicator, a native slot and the Divider (#2417)
 
-Built to the owner's decisions on #2417: Q180 as revised by Q182, then Q183, and the title type revised on 2026-10-11. It lands after #2529, the native-slot engine feature, which it merges in.
+Built to the owner's decisions on #2417: Q180 as revised by Q182, then Q183, the title type revised on 2026-10-11, and the review answers Q241 to Q243. It lands after #2529, the native-slot engine feature, which it merges in.
 
-- **`accordion`, 24 members:** `expansion` [collapsed, expanded] × `position` [start, end] × `size` [small, medium, large] × state [rest, focus-visible].
+- **`accordion`, 24 members:** `expansion` [collapsed, expanded] × `position` [leading, trailing] × `size` [small, medium, large] × state [rest, focus-visible].
   - No hover (Q182), and no disabled or pressed member (Q183).
   - The header row is the button, with a 44px floor at every size.
   - The title is in `type.label.*.emphasis`.
   - The panel, present only when expanded, is a NATIVE SLOT holding placeholder text in page ink, with no top inset and a bottom one.
   - A nested Divider is stretched under the section.
-  - The shared focus ring sits around the header.
+  - The shared focus ring sits around the header, on its edge (`focus.ring.offset-field`, Q243).
 - **`_accordion-indicator`, 12 members:** `indicator` [chevron, plus-minus] × `expansion` × `size`. It's the building block Q183 chose. Each member shows one glyph. The Accordion nests it at each `position`, with `indicator` exposed and `expansion` and `size` followed.
 - **Engine:**
-  - two new variant axes, `expansion` and `position` (the name DRAFT);
+  - two new variant axes, `expansion` and `position` (values `leading | trailing`, Q242);
   - a def id may lead with `_` for a building block, which Figma leaves out of a published library;
   - `PaddingDef.blockEnd` pads a box's bottom apart from its top;
   - a new `body` paint slot, for page text inside a control.
@@ -32,16 +32,11 @@ Built to the owner's decisions on #2417: Q180 as revised by Q182, then Q183, and
 ### Choices made on the way, for the owner
 
 - **The title type is `type.label.*.emphasis`, not Q182's `type.body.*.strong`** (owner, 2026-10-11). A brand emits body strong only if it adds that weight, and nb-redesign does not, so `#1601` failed for it.
-- **Two indicator parts.** Node order is fixed per set, so `start` and `end` are two parts, each gated by `position`. A designer's chevron or plus-minus choice survives an expansion switch (measured) but is expected to reset on a position switch, since it then sits on another nested instance.
-- **DRAFT, all visible:**
-  - the `position` name;
-  - the padding steps (inline 12/16/24, block 8/12/16, gap 8/12/16);
-  - the panel's bottom inset 12/16/24, with the content aligned to the header edge;
-  - the glyph rungs, one per control rung (20/24/32px, as Tab and Tag map theirs);
-  - the inks;
-  - the Figma copy ("Section title", and the panel placeholder);
-  - the display name `Accordion.Indicator`;
-  - both defs on one "Accordion" page under Components, after Divider.
+- **Two indicator parts.** Node order is fixed per set, so `leadingIndicator` and `trailingIndicator` are two parts, each gated by `position`. A designer's chevron or plus-minus choice survives an expansion switch (measured) but is expected to reset on a position switch, since it then sits on another nested instance.
+- **`position` is `leading | trailing`** (owner Q242), as Button names its leading and trailing visuals and Switch row its `labelPosition`, following text direction. The indicator parts are named for the values too: `leadingIndicator`, `leadingGlyph`, `trailingIndicator`, `trailingGlyph`.
+- **The header's ring sits on its edge** (owner Q243): `focus.ring.offset-field`, 0, not the control offset, because a full-width header's outset ring would be clipped by an overflow-hidden container and overlap the nested Divider. `lint-absolute-inset` admits the 0 in `ZERO_OK` with that reason. The ring still compensates its own 2px stroke, as a field's does, so the stroke sits just outside the header's edge.
+- **Pending the owner's visual QA (Q241):** the padding steps (inline 12/16/24, block 8/12/16, gap 8/12/16), the panel insets (no top, then 12/16/24 below) and the glyph sizes (20/24/32px).
+- **Approved in Q241:** the inks, the Figma copy ("Section title", and the panel placeholder), the property names, the display name `Accordion.Indicator`, both defs on one "Accordion" page under Components after Divider, and the prose.
 
 ### Gates and tests
 

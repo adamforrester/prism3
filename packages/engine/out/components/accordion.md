@@ -52,7 +52,7 @@ Titles are short, parallel noun phrases or questions, in sentence case, with no 
 | `defaultExpanded` | boolean | `false` | no | Opens the section on first render when nothing controls it. |
 | `headingLevel` | enum: 2 \| 3 \| 4 \| 5 \| 6 | `3` | no | The level of the heading that wraps the header button. Set it one below the heading the accordion sits under, so the page outline stays intact. |
 | `indicator` | enum: 'chevron' \| 'plus-minus' | `chevron` | no | The open and closed glyph: a chevron that points down when closed and up when open, or a plus that becomes a minus. |
-| `position` | enum: 'start' \| 'end' | `start` | no | Which end of the header the indicator sits at. start keeps it beside the title when the page is zoomed; in right-to-left text, start is the right edge. |
+| `position` | enum: 'leading' \| 'trailing' | `leading` | no | Which side of the title the indicator sits on, following text direction. leading keeps it beside the title when the page is zoomed; in right-to-left text, leading is the right edge. |
 | `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | The header's type, padding and indicator size. Every size keeps the header at least 44px tall. |
 
 ## States
@@ -64,7 +64,7 @@ Titles are short, parallel noun phrases or questions, in sentence case, with no 
 | Axis | Values | Changes |
 | --- | --- | --- |
 | `expansion` | `collapsed`, `expanded` | at runtime |
-| `position` | `start`, `end` | once, when authored |
+| `position` | `leading`, `trailing` | once, when authored |
 | `size` | `small`, `medium`, `large` | once, when authored |
 
 ## Accessibility
@@ -77,7 +77,7 @@ Titles are short, parallel noun phrases or questions, in sentence case, with no 
   - 2.4.3 Focus Order (each header is its own tab stop; when open, the next Tab moves into the panel)
   - 2.4.7 Focus Visible / 2.4.13 Focus Appearance (the shared focus ring around the header)
   - 1.4.1 Use of Color (open and closed differ by glyph, not by color)
-  - 1.4.10 Reflow, as intent (a start indicator stays beside the title when the page is zoomed)
+  - 1.4.10 Reflow, as intent (a leading indicator stays beside the title when the page is zoomed)
   - 2.5.5 Target Size (Enhanced), as intent (the whole header is the target, at least 44px tall on comfortable and spacious density)
 - **Keyboard:** Tab moves from header to header, and into an open panel's content. Enter or Space opens and closes the focused header. There is no roving tab index. Up and Down between headers, and Home and End, are optional extras and must not trap focus.
 - **Focus:** A focus ring around the header row on :focus-visible. Opening a section does not move focus.
