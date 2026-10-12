@@ -65,7 +65,7 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { buildConsumer, buildProjected, SOURCE, OUT_ROOT } from './sd.consumer.mjs';
+import { buildConsumer, buildProjected, buildConsumerSet, SOURCE, OUT_ROOT } from './sd.consumer.mjs';
 
 const CONFIG = resolve(dirname(fileURLToPath(import.meta.url)), 'sd.consumer.mjs');
 
@@ -312,6 +312,21 @@ for (const brand of brands) {
     ok(m.refs > src.leaves * 0.5, `${brand}/${mode}: [#609] alias references survive (${m.refs})`);
     ok(differing > 0, `${brand}/${mode}: [#609] actually differs from base (${differing} vars) — the overlay is not inert`);
     ok(m.selectors.join('|') === `[data-theme="${mode}"]`, `${brand}/${mode}: [#609] emitted under its own selector (${m.selectors.join('|')})`);
+  }
+
+  // ---- THE CONSUMER SET (#2552): the projection with every `$extensions` removed, which is what a client
+  // is handed. Built by the same stock config from `out/consumer/`, and held to the projected build of the
+  // same brand and mode, variable for variable: removing our metadata must change no value a consumer reads.
+  // Both sides are Style Dictionary's own output over two committed inputs; neither is derived from the other.
+  for (const mode of ['base', ...src.modes]) {
+    const projected = mode === 'base' ? base : readEmitted(await buildProjected(brand, mode));
+    const consumer = readEmitted(await buildConsumerSet(brand, mode));
+    const names = new Set([...Object.keys(projected.byName), ...Object.keys(consumer.byName)]);
+    const differ = [...names].filter((k) => projected.byName[k] !== consumer.byName[k]);
+    ok(consumer.unique === projected.unique && differ.length === 0,
+      `${brand}/${mode}: [#2552] the CONSUMER set builds to the projected CSS, variable for variable (${consumer.unique}/${projected.unique})${differ.length ? ` — ${differ.length} differ, e.g. ${differ.slice(0, 2).join(', ')}` : ''}`);
+    ok(consumer.refs === projected.refs && consumer.selectors.join('|') === projected.selectors.join('|'),
+      `${brand}/${mode}: [#2552] the consumer set keeps every alias reference (${consumer.refs}) and the selector (${consumer.selectors.join('|')})`);
   }
 
   // A known page color, addressed through the brand's OWN root so this is not an `nb` assertion wearing

@@ -60,6 +60,29 @@ export const buildProjected = async (brand, mode) => {
   return resolve(OUT_DIR, `${brand}-projected`, `${mode}.css`);
 };
 
+/** The CONSUMER build (#2552): the same base + overlay composition, read from `out/consumer/`, where every
+ *  `$extensions` is removed. Same stock config as `buildProjected`, so the two builds differ only in input. */
+export const CONSUMER_ROOT = resolve(OUT_ROOT, 'consumer');
+export const buildConsumerSet = async (brand, mode) => {
+  const sd = new StyleDictionary({
+    source: [
+      resolve(CONSUMER_ROOT, `${brand}.base.tokens.json`),
+      ...(mode === 'base' ? [] : [resolve(CONSUMER_ROOT, `${brand}.${mode}.overlay.tokens.json`)]),
+    ],
+    usesDtcg: true,
+    log: { warnings: 'disabled' },
+    platforms: {
+      css: {
+        transformGroup: 'css',
+        buildPath: `${OUT_DIR}/${brand}-consumer/`,
+        files: [{ destination: `${mode}.css`, format: 'css/variables', options: { outputReferences: true, selector: mode === 'base' ? ':root' : `[data-theme="${mode}"]` } }],
+      },
+    },
+  });
+  await sd.buildAllPlatforms();
+  return resolve(OUT_DIR, `${brand}-consumer`, `${mode}.css`);
+};
+
 export const buildConsumer = async (brand) => {
   const sd = new StyleDictionary({
     source: [SOURCE(brand)],
