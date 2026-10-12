@@ -3271,6 +3271,37 @@ const main = async (): Promise<void> => {
       `35: drawn, the Style column reads "Medium Italic" with its variable's chip, and Weight "500 · Medium" (column ${styleCol}: "${textIn(cellAt(tsG, rowOf(tsG, 'display/3xl/emphasis'), styleCol))}")`);
   }
 
+  console.log("35b. #2505: the focus ring rows read focus's DEFAULT mode when focus names its modes differently");
+  {
+    // THE FILE: §35's, except that focus names its modes apart from border-width's "Default": a first mode "Spare"
+    // holding 9 for every ring value, and its default mode "Base" holding the emission's aliases (2, 2, 0). So no
+    // column of the Border width table finds a focus mode by name, and each focus row falls back to focus's DEFAULT
+    // mode, not its first mode and not the column's own ID. Every expected value is typed here.
+    const f = await phase2File();
+    type Em = { name: string; resolvedType: string; description: string; value: unknown; alias: { name: string } | null; scopes?: string[] };
+    for (const [c, file] of [['border-width', 'border-width.json'], ['focus', 'focus.json']] as const) {
+      const modes = c === 'focus' ? [{ modeId: 'focus:spare', name: 'Spare' }, { modeId: 'focus:base', name: 'Base' }] : [{ modeId: `${c}:0`, name: 'Default' }];
+      f.cols.push({ id: `VariableCollectionId:${c}`, name: c, modes, defaultModeId: c === 'focus' ? 'focus:base' : `${c}:0` });
+      (JSON.parse(readFileSync(join(OUT, file), 'utf8')) as { variables: Em[] }).variables.forEach((v, i) => {
+        const value = v.alias ? { type: 'VARIABLE_ALIAS', id: f.vars.find((x) => x.name === v.alias!.name)!.id } : v.value;
+        f.vars.push({
+          id: `VariableID:${c}:${i}`, name: v.name, variableCollectionId: `VariableCollectionId:${c}`, resolvedType: v.resolvedType, description: v.description, scopes: v.scopes,
+          valuesByMode: c === 'focus' ? { 'focus:spare': 9, 'focus:base': value } : { [`${c}:0`]: value },
+        });
+      });
+    }
+    const plan = planStyleGuide({ collections: f.cols, variables: f.vars, textStyles: f.styles }, contract);
+    const bw = plan.tables.find((t) => t.title === 'Border width');
+    const ring = bw?.rows.filter((r) => r.tokenCell.startsWith('pds3/focus/')).map((r) => `${r.tokenCell}=${r.cells[0].value}@${r.cells[0].modeId}`);
+    ok(JSON.stringify(ring) === JSON.stringify(['pds3/focus/ring/width=2px@focus:base', 'pds3/focus/ring/offset=2px@focus:base', 'pds3/focus/ring/offset-field=0px@focus:base']),
+      `35b: with no focus mode named "Default", each focus ring row reads focus's default mode (Base), not its first (Spare, 9) (${JSON.stringify(ring)})`);
+    const r = await draw(f.api, contract);
+    const g = gridOf(tableFrame(f.sem, 'Border width'));
+    const inst = cellAt(g, rowOf(g, 'pds3/focus/ring/width'), 1)?.findOne((k) => k.type === 'INSTANCE') ?? undefined;
+    ok(r.unbound === 0 && inst?.explicitVariableModes['VariableCollectionId:focus'] === 'focus:base' && textIn(cellAt(g, rowOf(g, 'pds3/focus/ring/width'), 2)).startsWith('2px'),
+      `35b: drawn, the focus ring width's outline is pinned to focus's default mode and reads 2px (${JSON.stringify(inst?.explicitVariableModes)}; "${textIn(cellAt(g, rowOf(g, 'pds3/focus/ring/width'), 2))}")`);
+  }
+
   if (failures) { console.error(`\n${failures} style-guide check(s) failed`); process.exit(1); }
   console.log('\nstyle guide: all checks pass');
 };
