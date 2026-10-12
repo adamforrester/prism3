@@ -53,7 +53,7 @@
  * 2 breakpoints reported ~92 token-tier findings against the committed compact / 6-breakpoint
  * expectation, and not one of them was drift. Every one was the lever delta — `control/size` and
  * `size/*` a uniform rung up, a `dimension` rung present on one side and absent on the other, the
- * `layout` collection's whole mode shape, the `breakpoint` values, the `Grid / *` styles.
+ * `layout` collection's whole mode shape, the `breakpoint` values, the grid styles (`xs` … `2xl`).
  *
  * So the config is supplied: `--design <file>` builds the expectation from the exact brief the theme
  * was emitted from (the studio's own "Export design.md" round-trips into it), and `<brand>` keeps

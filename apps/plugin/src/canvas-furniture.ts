@@ -13,7 +13,7 @@
  *     inset bracket;
  *   - ONE "Inverse" ROW BRACKET outermost for a set with `surface=inverse` rows (Q171.5, in the normal label color,
  *     outside the backdrop), and one backdrop behind each contiguous band of inverse rows — one per set, since the
- *     pilot's `planSetLayout` groups the inverse rows into one block (Q173 A).
+ *     `planSetLayout` groups the inverse rows into one block (Q173 A).
  * The wording is the variant values in sentence case, one vocabulary (Q171.2): `focus-visible` → "Focus visible".
  *
  * PLACED FROM WHERE THE MEMBERS ARE, NOT FROM WHERE THE PLAN SAYS. Rows and columns are measured off the set's
@@ -35,13 +35,13 @@
  * NEVER THROWS FOR A MISSING TEMPLATE. A file where file setup has not run since this change has no `_Label` or no
  * `_inverse-backdrop`; that part is skipped and the outcome says so, the `page-header.ts` posture.
  */
-import { planSetLayout, CANVAS_FURNITURE_PILOT } from '@prism3/engine/anatomy-figma';
+import { planSetLayout, CANVAS_FURNITURE } from '@prism3/engine/anatomy-figma';
 import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
 import { isTemplateSet } from './file-components';
 import { LABEL_SET, BACKDROP_COMPONENT, labelVariant, bindBackdrop } from './furniture-templates';
 import type { BackdropVariables } from './furniture-templates';
 
-export { CANVAS_FURNITURE_PILOT };
+export { CANVAS_FURNITURE };
 /** Shared plugin data namespace and key the tag lives under. The namespace is `persist-figma.ts`'s `NS`. */
 export const FURNITURE_NS = 'prism3';
 export const FURNITURE_KEY = 'furniture';
@@ -55,8 +55,8 @@ export const BACKDROP_PAD = 12;
 /** How many outer row axes are labeled (Q171.1: "the outer two or three"). The inverse bracket is extra. */
 export const ROW_LABEL_DEPTH = 3;
 
-/** A def's furniture switch: the engine's pilot list, the one switch `planSetLayout` reads too. */
-export const hasFurniture = (defId: string): boolean => CANVAS_FURNITURE_PILOT.has(defId);
+/** A def's furniture switch: the engine's list, the one switch `planSetLayout` reads too. */
+export const hasFurniture = (defId: string): boolean => CANVAS_FURNITURE.has(defId);
 
 /** A variant value as label text: hyphens to spaces, first letter capitalized (`read-only` → "Read only"). */
 export const sentenceCase = (value: string): string => {
@@ -325,7 +325,9 @@ export const drawFurniture = async (
   // ONLY OVER ONE INVERSE BLOCK (#2188 Q173): a set still laid out the earlier way has a band of inverse rows per
   // appearance, and would get a backdrop and an "Inverse" bracket on each. Its old furniture is cleared above; none
   // is drawn until the set is regrouped. DRAFT wording for the owner.
-  if (!inverseContiguous(members)) { out.skipped.push(`No canvas labels for ${defId}: its inverse rows are not in one block yet. Run Update to move them, then the labels are drawn`); return out; }
+  // A def whose `surface` is the GRID axis (Focus ring) has its inverse members in a column, beside the default ones,
+  // never in rows of their own; there is no row block to wait for, and no backdrop is planned (#2502).
+  if (layout.rowKeys.includes('surface') && !inverseContiguous(members)) { out.skipped.push(`No canvas labels for ${defId}: its inverse rows are not in one block yet. Run Update to move them, then the labels are drawn`); return out; }
   const plan = planFurniture({ x: set.x ?? 0, y: set.y ?? 0 }, members, layout);
   const setTag = { v: 1 as const, def: defId, set: String(set.id ?? '') };
 
@@ -398,7 +400,7 @@ export const drawFurniture = async (
 };
 
 /**
- * The furniture prune removes: instances whose set is gone, or whose def is no longer piloted. `setAlive` answers
+ * The furniture prune removes: instances whose set is gone, or whose def no longer has furniture. `setAlive` answers
  * for a set id whether a component set with that id is still in the file. Pure, so the rule is checked offline.
  */
 export const staleFurniture = <T extends { tag: FurnitureTag }>(items: readonly T[], setAlive: (setId: string) => boolean): T[] =>
