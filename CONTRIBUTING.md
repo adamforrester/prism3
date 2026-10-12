@@ -206,13 +206,14 @@ npx tsx verify.ts --list    # the list and the exact commands, running nothing
 npx tsx verify.ts lint-paint lint-voice   # a named subset, labelled as a subset in the summary
 ```
 
-Four properties, each of them a defect that has actually shipped in this repo, and all four are
+Five properties, each of them a defect that has actually shipped in this repo, and all five are
 stated in `verify.ts`'s header:
 
 1. **The exit status is captured with nothing between it and the command.** `npx tsx gate.ts 2>&1 |
    tail -2; echo $?` reports **`tail`'s** status — `tail` succeeds at tailing a failure — which is how
-   a `lint-us-english.ts` that exited 1 got reported as a pass. The runner uses one `spawnSync` with
-   `shell: false`, so there is no pipeline for a status to get lost in.
+   a `lint-us-english.ts` that exited 1 got reported as a pass. The runner spawns each gate with
+   `shell: false` and reads its status and output from one call, so there is no pipeline for a status
+   to get lost in.
 2. **Output is buffered per gate.** Thirty-odd gates interleaving thousands of lines is how a real failure gets
    read past. A clean run is a table; a red run is a table plus exactly the failing output. `--verbose`
    prints everything.
@@ -223,6 +224,12 @@ stated in `verify.ts`'s header:
 4. **A gate that did not run is never printed as a pass** — SKIP is its own outcome, a skipped gate
    makes the whole run non-green, and a table shorter than the list is itself a failure. Represented,
    not counted, the same discipline `lint-us-english.ts` applies to its own surfaces.
+5. **A gate that hangs fails at its time limit, by name (#2537).** A full run once sat in `smoke` for
+   two hours. Each gate has a limit, a default plus a longer one for `chrome`, both set from the slowest
+   healthy runs on record (the numbers and where they came from are in `verify.ts`, and only there). Past it, the gate and every process it started are killed, and its
+   row reads FAIL, with its elapsed time and "timed out". On a slower machine, set
+   `VERIFY_TIMEOUT_SCALE` (for example `2`) to scale every limit. CI runs each gate as its own step and
+   is unaffected.
 
 Two things it deliberately does *not* do. It does not run bare `regen.ts` before `regen.ts --check`:
 that is the **authoring** sequence (regenerate → review the diff → commit), and doing it here would
