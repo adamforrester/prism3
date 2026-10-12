@@ -28,6 +28,12 @@
  * 2026-09-17 incident hit; add a pattern only when a real reject is observed, so a false positive
  * never trains anyone to narrow the scan.
  *
+ * ── BOTH BUILDS (#2530) ───────────────────────────────────────────────────────────────────────────
+ *
+ * The release build (`release/main.js`, `build.mjs --release`) is built with `minifySyntax`, which rewrites the
+ * bundle's syntax, so it is scanned as well as `dist/main.js`, and each must be present: a missing one is a FAIL
+ * that names the build to run, never a skip.
+ *
  * ── SCOPED TO main.js, DELIBERATELY (not ui.html) ─────────────────────────────────────────────────
  *
  * The reject is the MAIN-THREAD controller sandbox's text scan. `dist/ui.html` runs in a normal
@@ -50,7 +56,10 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const MAIN_JS = resolve(HERE, 'dist/main.js');
+const MAIN_JS = [
+  { file: resolve(HERE, 'dist/main.js'), name: 'apps/plugin/dist/main.js', build: 'npm run -w @prism3/plugin build' },
+  { file: resolve(HERE, 'release/main.js'), name: 'apps/plugin/release/main.js', build: 'npm run -w @prism3/plugin build:release' },
+];
 
 type RejectPattern = {
   name: string;
@@ -113,32 +122,35 @@ function main(): void {
     process.exit(1);
   }
 
-  if (!existsSync(MAIN_JS)) {
-    console.error(`✗ lint-sandbox-reject — apps/plugin/dist/main.js is missing. Run the plugin build first (npm run -w @prism3/plugin build); this gate must run AFTER build-plugin.`);
-    process.exit(1);
-  }
-  const text = readFileSync(MAIN_JS, 'utf8');
-  if (text.trim().length === 0) {
-    console.error('✗ lint-sandbox-reject — apps/plugin/dist/main.js is empty; nothing was scanned (a build failure would look like this).');
-    process.exit(1);
-  }
-
-  const hits = scan(text);
-  if (hits.length) {
-    console.error(`✗ lint-sandbox-reject — ${hits.length} Figma-sandbox reject sequence(s) in apps/plugin/dist/main.js.`);
-    console.error('  Figma will refuse to load the plugin. Each occurrence:');
-    for (const h of hits) {
-      console.error(`    main.js:${h.line}  [${h.pattern}]  ${h.snippet}`);
+  let bad = false;
+  for (const target of MAIN_JS) {
+    if (!existsSync(target.file)) {
+      console.error(`✗ lint-sandbox-reject — ${target.name} is missing. Run \`${target.build}\` first; this gate must run AFTER both plugin builds.`);
+      bad = true;
+      continue;
     }
-    console.error('');
-    for (const p of REJECT_PATTERNS) {
-      if (hits.some((h) => h.pattern === p.name)) console.error(`  • ${p.name}: ${p.why}`);
+    const text = readFileSync(target.file, 'utf8');
+    if (text.trim().length === 0) {
+      console.error(`✗ lint-sandbox-reject — ${target.name} is empty; nothing was scanned (a build failure would look like this).`);
+      bad = true;
+      continue;
     }
-    process.exit(1);
+    const hits = scan(text);
+    if (hits.length) {
+      console.error(`✗ lint-sandbox-reject — ${hits.length} Figma-sandbox reject sequence(s) in ${target.name}.`);
+      console.error('  Figma will refuse to load the plugin. Each occurrence:');
+      for (const h of hits) console.error(`    main.js:${h.line}  [${h.pattern}]  ${h.snippet}`);
+      console.error('');
+      for (const p of REJECT_PATTERNS) {
+        if (hits.some((h) => h.pattern === p.name)) console.error(`  • ${p.name}: ${p.why}`);
+      }
+      bad = true;
+      continue;
+    }
+    const lineCount = text.split('\n').length;
+    console.log(`✓ lint-sandbox-reject — 0 Figma-sandbox reject sequences in ${target.name} (${lineCount} lines scanned; ${REJECT_PATTERNS.length} pattern(s); detector self-check ok).`);
   }
-
-  const lineCount = text.split('\n').length;
-  console.log(`✓ lint-sandbox-reject — 0 Figma-sandbox reject sequences in apps/plugin/dist/main.js (${lineCount} lines scanned; ${REJECT_PATTERNS.length} pattern(s); detector self-check ok).`);
+  if (bad) process.exit(1);
 }
 
 main();

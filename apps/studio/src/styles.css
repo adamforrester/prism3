@@ -287,7 +287,7 @@ input[type=color]::-moz-color-swatch{border:none;border-radius:inherit}
 .mo-ez-stage{position:relative;width:100%;height:82px;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--panel);overflow:hidden}
 /* Card pills WRAP rather than elide. Six curves in one row makes a ~123px card, and
    motion.easing.expressive needs ~225px — no column width fixes that, so the label takes a second
-   line. tokenPill's <wbr> keeps the break on a dot. (Same call as the Preview gallery's card pills.) */
+   line. tokenPillWrapping's <wbr> keeps the break on a dot. (Same call as the Preview gallery's card pills.) */
 .mo-ez-card .tpill,.mo-spring-card .tpill,.mo-ms-chip .tpill,.mo-colmeta .tpill{white-space:normal;overflow:visible;direction:ltr;word-break:break-word;max-width:100%}
 .mo-ez-name{font-size:13px;font-weight:640;color:var(--ink)}
 .mo-ez-bez{font-size:10.5px;color:var(--faint)}
@@ -434,7 +434,7 @@ label.cset-head{cursor:pointer}
 /* #1147 — the `inverse` badge rides BESIDE the pill, outside its overflow box, because the rule above
    elides the START of the path and #1141 put the inverse discriminator there. A wrapper rather than
    anything inside .tpill: inline content would be elided by the same rule, and text content would
-   change what a copied path yields (the two measured regressions tokenPill's comment records).
+   change what a copied path yields (the two measured regressions the token pill's note in main.ts records).
    min-width:0 on both is the standard guard against a flex item's min-content floor, and it is a GUARD
    rather than an observed fix — dropping it changes nothing measurable at 1440px or at 380px (the
    plugin's own MIN_SIZE.width): no container the studio renders is narrow enough to push a wrapper
