@@ -10,9 +10,15 @@ docs. No token moves, so CONTRACT is unchanged; a minor change note covers the p
 needed nothing. The pins that did move:
 - `glyph-shape` in `test.ts`: 41 → 42 distinct rendered shapes (43 path strings). The three -fill/-line collisions
   stay the only ones; `menu` collides with nothing.
-- Four premises in `apps/plugin/test-update-apply.ts` and one in `test-update-components.ts`: 44 → 45 icons. These
-  are Lane A's update-path tests, and the edits are count-only.
+- The single-icon arms of `apps/plugin/test-update-apply.ts` (15) and `test-update-components.ts` (4): 44 → 45
+  icons, and "the other 43" → 44. These are Lane A's update-path tests, and the edits are count-only.
+- `apps/studio/test-component-catalog.ts`: Icon's "44 components" → 45.
+- `lint-axis-values.ts`: the icon `name` set's register entry gains `menu`, between `link` and `minus`.
 - The surface, renames and paint baselines, each by its own `--accept`, and Studio's catalog by its generator.
+
+**A trap worth knowing.** The plugin's `test` script chains its files with `&&`, so the first failing file hides
+every file after it. A pre-push run piped through `grep | head` also reported exit 0, because the pipe's status is
+`head`'s. The first full verify found 3 gates red; each pinned file was then run on its own until green.
 
 **Named, not counted.** A new `Q253 A menu` arm in `test.ts` checks that the set carries `menu` and that it draws the
 owner's three bars, typed from the SVG the owner sent rather than read from `icons/`. Every count above moves the same
