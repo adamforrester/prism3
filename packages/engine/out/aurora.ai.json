@@ -6982,6 +6982,33 @@
         "textDecoration": "underline"
       }
     },
+    "type.label.sm.default": {
+      "$description": "UI label type — buttons, form labels, tabs, chips.",
+      "meaning": "Type style — label sm default (12px, label face)",
+      "when_to_use": "Control and form labels, button text, tabs, chips, badges.",
+      "avoid_when": "Do not use for running text (use body).",
+      "resolves_to": {
+        "fontFamily": "{ads.core.font.family.label}",
+        "fontSize": "{ads.core.font.size.12}",
+        "fontWeight": "{ads.core.font.weight-role.default}",
+        "lineHeight": "{ads.core.font.line-height-role.snug}",
+        "letterSpacing": "{ads.core.font.letter-spacing-role.normal}"
+      }
+    },
+    "type.label.sm.default-link": {
+      "$description": "UI label type — buttons, form labels, tabs, chips (underlined link variant).",
+      "meaning": "Type style — label sm default link (12px, label face)",
+      "when_to_use": "The label of a button at the text appearance, at rest and in every state. The underline is fixed.",
+      "avoid_when": "Do not use for a filled or outline button's label (use `type.label.sm.default`).",
+      "resolves_to": {
+        "fontFamily": "{ads.core.font.family.label}",
+        "fontSize": "{ads.core.font.size.12}",
+        "fontWeight": "{ads.core.font.weight-role.default}",
+        "lineHeight": "{ads.core.font.line-height-role.snug}",
+        "letterSpacing": "{ads.core.font.letter-spacing-role.normal}",
+        "textDecoration": "underline"
+      }
+    },
     "type.label.sm.emphasis": {
       "$description": "UI label type — buttons, form labels, tabs, chips.",
       "meaning": "Type style — label sm emphasis (12px, label face)",
@@ -7009,6 +7036,33 @@
         "textDecoration": "underline"
       }
     },
+    "type.label.md.default": {
+      "$description": "UI label type — buttons, form labels, tabs, chips.",
+      "meaning": "Type style — label md default (14px, label face)",
+      "when_to_use": "Control and form labels, button text, tabs, chips, badges.",
+      "avoid_when": "Do not use for running text (use body).",
+      "resolves_to": {
+        "fontFamily": "{ads.core.font.family.label}",
+        "fontSize": "{ads.core.font.size.14}",
+        "fontWeight": "{ads.core.font.weight-role.default}",
+        "lineHeight": "{ads.core.font.line-height-role.snug}",
+        "letterSpacing": "{ads.core.font.letter-spacing-role.normal}"
+      }
+    },
+    "type.label.md.default-link": {
+      "$description": "UI label type — buttons, form labels, tabs, chips (underlined link variant).",
+      "meaning": "Type style — label md default link (14px, label face)",
+      "when_to_use": "The label of a button at the text appearance, at rest and in every state. The underline is fixed.",
+      "avoid_when": "Do not use for a filled or outline button's label (use `type.label.md.default`).",
+      "resolves_to": {
+        "fontFamily": "{ads.core.font.family.label}",
+        "fontSize": "{ads.core.font.size.14}",
+        "fontWeight": "{ads.core.font.weight-role.default}",
+        "lineHeight": "{ads.core.font.line-height-role.snug}",
+        "letterSpacing": "{ads.core.font.letter-spacing-role.normal}",
+        "textDecoration": "underline"
+      }
+    },
     "type.label.md.emphasis": {
       "$description": "UI label type — buttons, form labels, tabs, chips.",
       "meaning": "Type style — label md emphasis (14px, label face)",
@@ -7031,6 +7085,33 @@
         "fontFamily": "{ads.core.font.family.label}",
         "fontSize": "{ads.core.font.size.14}",
         "fontWeight": "{ads.core.font.weight-role.emphasis}",
+        "lineHeight": "{ads.core.font.line-height-role.snug}",
+        "letterSpacing": "{ads.core.font.letter-spacing-role.normal}",
+        "textDecoration": "underline"
+      }
+    },
+    "type.label.lg.default": {
+      "$description": "UI label type — buttons, form labels, tabs, chips.",
+      "meaning": "Type style — label lg default (18px, label face)",
+      "when_to_use": "Control and form labels, button text, tabs, chips, badges.",
+      "avoid_when": "Do not use for running text (use body).",
+      "resolves_to": {
+        "fontFamily": "{ads.core.font.family.label}",
+        "fontSize": "{ads.core.font.size.18}",
+        "fontWeight": "{ads.core.font.weight-role.default}",
+        "lineHeight": "{ads.core.font.line-height-role.snug}",
+        "letterSpacing": "{ads.core.font.letter-spacing-role.normal}"
+      }
+    },
+    "type.label.lg.default-link": {
+      "$description": "UI label type — buttons, form labels, tabs, chips (underlined link variant).",
+      "meaning": "Type style — label lg default link (18px, label face)",
+      "when_to_use": "The label of a button at the text appearance, at rest and in every state. The underline is fixed.",
+      "avoid_when": "Do not use for a filled or outline button's label (use `type.label.lg.default`).",
+      "resolves_to": {
+        "fontFamily": "{ads.core.font.family.label}",
+        "fontSize": "{ads.core.font.size.18}",
+        "fontWeight": "{ads.core.font.weight-role.default}",
         "lineHeight": "{ads.core.font.line-height-role.snug}",
         "letterSpacing": "{ads.core.font.letter-spacing-role.normal}",
         "textDecoration": "underline"
@@ -7276,7 +7357,13 @@
         "type.caption.lg.default-link",
         "type.caption.md.default",
         "type.caption.md.default-link",
-        "type.code.inline.default"
+        "type.code.inline.default",
+        "type.label.lg.default",
+        "type.label.lg.default-link",
+        "type.label.md.default",
+        "type.label.md.default-link",
+        "type.label.sm.default",
+        "type.label.sm.default-link"
       ]
     },
     "core.font.weight-role.emphasis": {
@@ -10831,10 +10918,16 @@
         "type.caption.md.default-link",
         "type.caption.md.strong",
         "type.caption.md.strong-link",
+        "type.label.lg.default",
+        "type.label.lg.default-link",
         "type.label.lg.emphasis",
         "type.label.lg.emphasis-link",
+        "type.label.md.default",
+        "type.label.md.default-link",
         "type.label.md.emphasis",
         "type.label.md.emphasis-link",
+        "type.label.sm.default",
+        "type.label.sm.default-link",
         "type.label.sm.emphasis",
         "type.label.sm.emphasis-link"
       ]
@@ -10881,6 +10974,8 @@
         "type.caption.lg.default-link",
         "type.caption.lg.strong",
         "type.caption.lg.strong-link",
+        "type.label.sm.default",
+        "type.label.sm.default-link",
         "type.label.sm.emphasis",
         "type.label.sm.emphasis-link"
       ]
@@ -10898,6 +10993,8 @@
         "type.code.inline.default",
         "type.eyebrow.md.emphasis",
         "type.eyebrow.sm.emphasis",
+        "type.label.md.default",
+        "type.label.md.default-link",
         "type.label.md.emphasis",
         "type.label.md.emphasis-link"
       ]
@@ -10926,6 +11023,8 @@
         "type.body.lg.default-link",
         "type.body.lg.strong",
         "type.body.lg.strong-link",
+        "type.label.lg.default",
+        "type.label.lg.default-link",
         "type.label.lg.emphasis",
         "type.label.lg.emphasis-link"
       ]
@@ -11097,7 +11196,13 @@
         "type.caption.lg.default-link",
         "type.caption.md.default",
         "type.caption.md.default-link",
-        "type.code.inline.default"
+        "type.code.inline.default",
+        "type.label.lg.default",
+        "type.label.lg.default-link",
+        "type.label.md.default",
+        "type.label.md.default-link",
+        "type.label.sm.default",
+        "type.label.sm.default-link"
       ]
     },
     "core.font.weight.500": {
@@ -11182,10 +11287,16 @@
         "type.eyebrow.lg.emphasis",
         "type.eyebrow.md.emphasis",
         "type.eyebrow.sm.emphasis",
+        "type.label.lg.default",
+        "type.label.lg.default-link",
         "type.label.lg.emphasis",
         "type.label.lg.emphasis-link",
+        "type.label.md.default",
+        "type.label.md.default-link",
         "type.label.md.emphasis",
         "type.label.md.emphasis-link",
+        "type.label.sm.default",
+        "type.label.sm.default-link",
         "type.label.sm.emphasis",
         "type.label.sm.emphasis-link",
         "type.title.2xl.strong",
@@ -11299,10 +11410,16 @@
         "type.caption.md.strong",
         "type.caption.md.strong-link",
         "type.code.inline.default",
+        "type.label.lg.default",
+        "type.label.lg.default-link",
         "type.label.lg.emphasis",
         "type.label.lg.emphasis-link",
+        "type.label.md.default",
+        "type.label.md.default-link",
         "type.label.md.emphasis",
         "type.label.md.emphasis-link",
+        "type.label.sm.default",
+        "type.label.sm.default-link",
         "type.label.sm.emphasis",
         "type.label.sm.emphasis-link"
       ]
