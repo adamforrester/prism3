@@ -21845,8 +21845,14 @@ arm: {
       // NOW 15, AS OF #2501 — no byte moved: the state columns were reordered (owner decision Q213, Pressed and
       // Pending before Focus visible), and members in the new order pack one chunk tighter. Re-pinned per the same
       // standing instruction; every chunk stays under budget.
+      //
+      // NOW 16 AGAIN, AS OF #2417 — a shell-byte move: the paste script gained native slots (the `CONTENT_SLOT`
+      // branch, the slot list and the SLOT skip in the property loop), 303 bytes in every chunk's shell, measured
+      // against #2501's 15 (25,157 → 25,460 bytes for a one-member payload). The slot helper itself ships only
+      // when a set has a slot, so icon-button does not carry it. Re-pinned per the same standing instruction;
+      // every chunk stays under budget.
       const ibChunks = planSetChunks(ibSet);
-      ok(ibChunks.length === 15, `anatomy/icon-button: the set packs into 15 chunks (${ibChunks.length})`);
+      ok(ibChunks.length === 16, `anatomy/icon-button: the set packs into 16 chunks (${ibChunks.length})`);
       ok(ibChunks.every((c) => c.bytes <= SET_CHUNK_BYTES),
         `anatomy/icon-button: no chunk exceeds the byte budget (${ibChunks.map((c) => c.bytes).join(', ')} vs ${SET_CHUNK_BYTES})`);
       // And the chunks partition the set — no member dropped, none written twice. A packer that lost a
