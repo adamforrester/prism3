@@ -1,6 +1,6 @@
 ## (2026-10-11) — Update: the sets Prism3 built on a page are re-spaced as a new build spaces them (#2542, owner decision Q245.2 A)
 
-**Status:** plugin only (the update's dry run and apply, and a pure placement rule in the executor). `EXECUTOR_REVISION` 12 → 14: #2529 took 12 after this branched, and #2545 is landing at 13. No engine file moves, so no engine bump is owed.
+**Status:** plugin only (the update's dry run and apply, and a pure placement rule in the executor). `EXECUTOR_REVISION` 13 → 14 against main (#2545 took 13). No engine file moves, so no engine bump is owed.
 
 **Why:** #2502 (#2538) widened the gap between side-by-side sets to 400 so a set's new row labels clear its neighbour, but `placeNewSet` places only new sets. In a file built before it, later sets stay 160 apart and their row brackets land on the set to their left. An Update now re-spaces them, so the owner's single Update leaves each page clean.
 
@@ -9,6 +9,10 @@
 **Approaches tried and discarded:** first, replaying `placeNewSet` for each set. It reproduces a fresh build only on a page with nothing else in the row: `placeNewSet` puts a NEW set right of everything in its band, so a designer's note far to the right, or a set they built, would pull every later set past it. Re-spacing an existing page keeps the order and moves as little as it takes. Then, laying every set out `SET_GAP` after the one before (the first review round): that also closed up a designer's wider spacing and would lift a second row, which Q248 A rules out: the re-spacing only makes room.
 
 **Scope and safety:** a page takes part only when every Prism3 set on it is a target of this update and none is blocked, so an update scoped to one def never moves a set it wasn't asked about. A set's move is in the preview hash, so a set moved between the check and the confirm refuses the apply. The apply recomputes the moves from the live sets after their members land (new sizes), writes only `x` and `y`, and keeps every set and member id.
+
+**Two fixes from review (the UI lane, on 43c4c45f):**
+- **A set never lands on another Prism3 set.** The push past an obstacle read only the nodes Prism3 didn't build. Repro: A at 0, B at 960 (too close), a designer's frame at 1800..1900, C at 1920, all 800 wide. B was pushed past the frame to 2300, over C, which stays because it is 1120 clear of A. Now the obstacles are the fixed nodes, every set already placed, and a set not reached yet once the spot is at or past its left edge: B goes to 3120. **Trap:** counting EVERY later set as an obstacle was tried first and is wrong. On a plain squeezed page, B's fresh spot overlaps C where C sits now, though C would move clear of B on its own turn, so B jumped past C. Short of a later set's left edge, that set still has the moving one as its left neighbour and clears it; past it, it doesn't.
+- **Set ownership reads the members' shared test.** This branch had a local `const builtByPrism3` (any stamp on any member), which after #2545 shadowed the shared import of that name (TS2440). At runtime, `ownedView` would have called the set-level function with a member list, and every dry run would throw. It is now `setBuiltByPrism3`: a set is Prism3's when one of its members passes #2545's `builtByPrism3`. So a set whose only stamps are malformed, or one copied with its record from another member, is a designer's set and an obstacle.
 
 **A trap:** the pass maps a move back to its set by the node, never by id. In the shim every set built into one shim is `SET:1`, and mapping by id sent all three sets' moves to one name.
 
@@ -23,7 +27,12 @@
 - `wider`: sets spaced 600 apart stay;
 - `second row`: a set below the first row stays, while the too-close set in the first row still moves;
 - `just enough`: a set 300 from its neighbour moves to exactly 400 clear, and the one beyond, already clear, stays.
+- `never onto a set`: the repro on the built sets (864 wide, so B lands at 3184), read from the page after the apply: no two nodes in the row overlap;
+- `not ours by its stamps`: a set whose stamps are all malformed, or whose one stamp is a copy, is gone around (2964);
+- `respace onto a set` (`respaceSets` itself): the repro exactly, 800 wide, B to 3120 and over nothing.
 
 `around` and `scoped` also check the apply, and the test page carries a section header, which stays put.
 
 Mutations, each failing by name: the set-move pass removed (`set moves`, `converges`, `in order`, `around`, `second row`, `just enough`); the push past an obstacle removed (`around`); every set treated as Prism3's (`around`); the scope rule removed (`scoped`); the blocked check removed (`blocked`, and the blocked set itself was moved); the "only when too close" check removed (`wider`, `just enough`, `converges`); the left neighbour from any row (`second row`); a fixed step instead of `SET_GAP` clear (`just enough`, `in order`, `second row`, `converges`).
+
+The review fixes' mutations, from the committed tree: the push reading only the nodes Prism3 didn't build again (`never onto a set`, `respace onto a set`); every later set counted as an obstacle (`set moves`, `converges`, `in order`); the set-level check reading "any member has a stamp" again (`not ours by its stamps`).
