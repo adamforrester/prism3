@@ -506,6 +506,51 @@ console.log("\nan agent's run after a panel run (#2313)");
   await page.close();
 }
 
+// ── #2508 (owner Q217.5): a quiet run's finish is announced once ─────────────────────────────────────
+// The page's run is quiet (it opens no drawer), yet Activity's status line announces its finish (Q194). The rule: when a
+// page announces a run's result itself, Activity stays silent for it. Measured here, the page does NOT announce the
+// result: its one live region holds the run line and is emptied at the finish. So the finish is heard once, from
+// Activity. Every live region in the document is watched (aria-live, and the status, alert and log roles, which are live
+// by role), by a MutationObserver the TEST installs just before the verdict lands, and every non-empty text a region
+// takes is one announcement. Expected, typed here: exactly one, and it is Activity's status line.
+console.log('\na quiet run\'s finish is announced once (#2508)');
+{
+  const { page, errors } = await openPage();
+  await post(page, { type: 'style-guide-catalog', catalog: CAT });
+  await treeDrawn(page);
+  await hooks.click(page.locator('[data-p3="sg-draw"]'));
+  await posted(page, 'style-guide', 1);
+  await post(page, { type: 'style-guide-tables', tables: LIST.slice(0, 2) });
+  await post(page, { type: 'style-guide-progress', done: 0, total: 2, tableMs: 0 });
+  await post(page, { type: 'style-guide-table', index: 0, status: 'done' });
+  await post(page, { type: 'style-guide-table', index: 1, status: 'done' });
+  await until(page, 'the run line drawn', () => /of 2/.test(document.querySelector('[data-p3="sg-live"]')?.textContent ?? ''));
+  await page.evaluate(() => {
+    const LIVE = '[aria-live], [role="status"], [role="alert"], [role="log"]';
+    window.__said = [];
+    const seen = new Map();
+    const take = () => {
+      for (const n of document.querySelectorAll(LIVE)) {
+        if (n.getAttribute('aria-live') === 'off') continue;
+        const t = (n.textContent ?? '').trim();
+        if (t && seen.get(n) !== t) window.__said.push({ region: n.getAttribute('data-p3') ?? n.tagName, text: t });
+        seen.set(n, t);
+      }
+    };
+    for (const n of document.querySelectorAll(LIVE)) seen.set(n, (n.textContent ?? '').trim());
+    new MutationObserver(take).observe(document.body, { subtree: true, childList: true, characterData: true });
+  });
+  await post(page, { type: 'style-guide-result', ok: true, headline: '✓ style guide: 2 tables', summary: '2 tables drawn' });
+  await until(page, "the run's verdict drawn", () => document.querySelector('[data-p3="sg-verdict"]')?.textContent === '✓ style guide: 2 tables');
+  await page.waitForTimeout(300);
+  const said = await page.evaluate(() => window.__said);
+  const st = await read(page);
+  ok(said.length === 1 && said[0].region === 'activity-status' && st.drawerOpen === false,
+    `#2508: a quiet run's finish is announced exactly once, by Activity's status line, and the drawer stays closed (${JSON.stringify(said)}, drawer open ${st.drawerOpen})`);
+  ok(errors.length === 0, `no console errors (${errors.slice(0, 2).join(' · ')})`);
+  await page.close();
+}
+
 // ── 380 (P9) ─────────────────────────────────────────────────────────────────────────────────────
 console.log('\nat 380 (P9)');
 {

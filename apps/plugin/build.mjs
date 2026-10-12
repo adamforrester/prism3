@@ -19,8 +19,15 @@ import { maintainerProsePlugin } from './strip-maintainer-prose.mjs';
 import { chromeCss } from '../studio/chrome/esbuild-plugin.mjs';
 
 const root = dirname(fileURLToPath(import.meta.url));
-const out = resolve(root, 'dist');
+/** THE RELEASE BUILD (#2530, owner Q239 A). `--release` writes `release/` instead of `dist/`: the same two bundles
+ *  with `PRISM3_DEV` false, so esbuild drops every dev-only branch (the agent link's desktop bridge relay, and any
+ *  dev command), and a `manifest.json` beside them with no `devAllowedDomains`. A dev build (`dist/`, the one every
+ *  lane imports) keeps both. `lint-release-bundle.ts` checks the release output holds none of the dev-only code. */
+const release = process.argv.includes('--release');
+const outName = release ? 'release' : 'dist';
+const out = resolve(root, outName);
 const watch = process.argv.includes('--watch');
+if (release && watch) throw new Error('build.mjs: --release builds once; it has no --watch.');
 
 /**
  * WHICH BUILD IS RUNNING (#836) — `<ISO seconds> <absolute tree path>`, stamped into BOTH bundles.
@@ -142,7 +149,7 @@ const assertNoAbsolutePath = async (name, text) => {
   }
   if (!found.length) return;
   throw new Error(
-    `apps/plugin/dist/${name}: an absolute filesystem path reached the bundle — ${found.length} ` +
+    `apps/plugin/${outName}/${name}: an absolute filesystem path reached the bundle — ${found.length} ` +
       `occurrence(s): ${[...new Set(found)].slice(0, 5).join(' · ')}. dist/ is imported into Figma, so ` +
       `a directory name (and usually a username) would ship with it, and two checkouts of one commit ` +
       `would emit different bytes. Stamp a derived token, not a path. See #1117.`,
@@ -184,7 +191,7 @@ const assertNoAbsolutePath = async (name, text) => {
 const assertIdentity = async (name, text, id) => {
   if (text.includes(id)) return;
   throw new Error(
-    `apps/plugin/dist/${name}: the build identity '${id}' did not reach the bundle, so this build cannot ` +
+    `apps/plugin/${outName}/${name}: the build identity '${id}' did not reach the bundle, so this build cannot ` +
       `say which tree it came from. Either the PRISM3_BUILD define is missing from this entry or nothing ` +
       `in it reads PRISM3_BUILD. See #836.`,
   );
@@ -200,7 +207,12 @@ const mainOpts = (id) => ({
   // with a fallback: an absent define leaves a bare identifier that throws at load. `PRISM3_HOST` is
   // deliberately NOT defined here — this entry never references it, and defining an identifier no code
   // reads would make `assertIdentity` the only thing proving either define does anything.
-  define: { PRISM3_BUILD: JSON.stringify(id) },
+  // `PRISM3_DEV` (#2530): true in `dist/`, false in `release/`, where every `if (PRISM3_DEV)` branch is dropped.
+  define: { PRISM3_BUILD: JSON.stringify(id), PRISM3_DEV: String(!release) },
+  // The release build folds `if (false)` away (#2530). Without minification esbuild keeps a dead branch's TEXT, and
+  // a branch's text keeps its imports alive, so the dev code would ship unreachable instead of absent. Syntax only:
+  // no renaming, no whitespace change, so a release stack trace still reads like the dev build's.
+  minifySyntax: release,
   // #1623 sign-off — a component def's `notes` and `codeOnly` prose are maintainer-only and stay out of
   // `dist/`; see `strip-maintainer-prose.mjs`, and `lint-bundle-prose.ts` for the check.
   plugins: [maintainerProsePlugin],
@@ -228,7 +240,8 @@ const buildUiHtml = async (id) => {
     // field unfalsifiable: `plugin` is the same string in every checkout, so the one panel chip that could
     // have answered "which tree is Figma running?" answered "a plugin" (#836).
     // PRISM3_TEST_HOOKS (#2098): the web smoke suite's hook, never in the plugin; defined so no bare identifier is left.
-    define: { PRISM3_HOST: '"figma"', PRISM3_BUILD: JSON.stringify(id), PRISM3_TEST_HOOKS: 'false' },
+    define: { PRISM3_HOST: '"figma"', PRISM3_BUILD: JSON.stringify(id), PRISM3_TEST_HOOKS: 'false', PRISM3_DEV: String(!release) },
+    minifySyntax: release,   // as `mainOpts` (#2530): a dead dev branch is dropped, not kept as text
     // The studio chrome stylesheet is a real .css file since #769, imported by the studio's entry.ts as TEXT.
     // This loader is what keeps the UI a SINGLE self-contained document: esbuild's default `.css`
     // loader emits a separate stylesheet, which an iframe shipping `allowedDomains:["none"]` has no
@@ -261,18 +274,18 @@ const buildUiHtml = async (id) => {
   const closers = html.split('</script>').length - 1;
   if (closers !== 1) {
     throw new Error(
-      `apps/plugin/dist/ui.html: expected exactly 1 </script>, found ${closers}. The inlined bundle ` +
+      `apps/plugin/${outName}/ui.html: expected exactly 1 </script>, found ${closers}. The inlined bundle ` +
         `closed its own tag early, so the UI will render blank. See #496.`,
     );
   }
   if (html.includes('src="./ui.ts"')) {
-    throw new Error('apps/plugin/dist/ui.html: the dev-only module tag survived into the build.');
+    throw new Error(`apps/plugin/${outName}/ui.html: the dev-only module tag survived into the build.`);
   }
   await assertIdentity('ui.html', html, id);
   await assertNoAbsolutePath('ui.html', html);
   await mkdir(out, { recursive: true });
   await writeFile(resolve(out, 'ui.html'), html);
-  console.log('  dist/ui.html   (shared studio/src UI inlined, host=figma)');
+  console.log(`  ${outName}/ui.html   (shared studio/src UI inlined, host=figma)`);
 };
 
 const buildMain = async (id) => {
@@ -296,14 +309,14 @@ const buildMain = async (id) => {
   const hits = mainJs.split('\n').map((l, i) => [i + 1, l]).filter(([, l]) => l.includes('node:'));
   if (hits.length) {
     throw new Error(
-      `apps/plugin/dist/main.js references a node: builtin on ${hits.length} line(s) — the main thread ` +
+      `apps/plugin/${outName}/main.js references a node: builtin on ${hits.length} line(s) — the main thread ` +
         `must stay sandbox-safe:\n` +
         hits.map(([n, l]) => `  ${n}: ${String(l).trim().slice(0, 160)}`).join('\n'),
     );
   }
   await assertIdentity('main.js', mainJs, id);
   await assertNoAbsolutePath('main.js', mainJs);
-  console.log('  dist/main.js   (0 node: builtins)');
+  console.log(`  ${outName}/main.js   (0 node: builtins)`);
 };
 
 // ONE IDENTITY PER REBUILD, SHARED BY BOTH BUNDLES — the two outputs of one source change must not be
@@ -312,7 +325,19 @@ const rebuild = async () => {
   const id = buildId();
   await buildMain(id);
   await buildUiHtml(id);
+  if (release) await writeReleaseManifest();
   return id;
+};
+
+/** The release manifest (#2530): the plugin's own, with the bundle paths beside it and no `devAllowedDomains`. Read
+ *  from `manifest.json` so the name, id and `allowedDomains` cannot drift from the dev build's. */
+const writeReleaseManifest = async () => {
+  const m = JSON.parse(await readFile(resolve(root, 'manifest.json'), 'utf8'));
+  m.main = 'main.js';
+  m.ui = 'ui.html';
+  if (m.networkAccess) delete m.networkAccess.devAllowedDomains;
+  await writeFile(resolve(out, 'manifest.json'), `${JSON.stringify(m, null, 2)}\n`);
+  console.log('  release/manifest.json   (no devAllowedDomains)');
 };
 
 if (watch) {
@@ -333,7 +358,7 @@ if (watch) {
   const id = await rebuild();
   // The identity, printed where the person who just ran the build is looking. The 2026-08-26 incident
   // was diagnosed by three lanes reading build output, and none of them could see which tree Figma had.
-  console.log(`plugin build complete → apps/plugin/dist/  (${id})`);
+  console.log(`plugin build complete → apps/plugin/${outName}/  (${id})`);
   // The mapping the bundle deliberately does not carry (#1117). Printed here, where the person who
   // can act on it is standing: the bundle names the tree by an opaque token, and this is the line
   // that says which tree that token is. Local build output, never a shipped artifact.

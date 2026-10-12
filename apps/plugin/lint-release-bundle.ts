@@ -1,0 +1,124 @@
+/**
+ * THE RELEASE BUNDLE CARRIES NO DEV-ONLY CODE (#2530, owner Q239 A).
+ *
+ *   npx tsx apps/plugin/lint-release-bundle.ts      (after `build` AND `build:release`)
+ *
+ * The plugin has two builds. `dist/` is the DEV build every lane imports: `PRISM3_DEV` true, the agent link's
+ * desktop bridge relay (`ws://localhost:17331`) and the manifest's `devAllowedDomains`. `release/` is the RELEASE
+ * build (`node build.mjs --release`): `PRISM3_DEV` false, every `if (PRISM3_DEV)` branch dropped, and a manifest with
+ * no dev domains. Figma honours `devAllowedDomains` only for a development import, so nothing in Figma itself keeps
+ * dev code out of a release. This gate does.
+ *
+ * ── HOW IT COMPARES TWO INDEPENDENT THINGS (docs/34) ───────────────────────────────────────────────
+ *
+ * SUBJECT: the built `release/main.js`, `release/ui.html` and `release/manifest.json`, the bytes a release hands Figma.
+ *
+ * EXPECTED: `DEV_ONLY` below, authored here from what the dev-only code IS (the relay's URL and its factory), never
+ * read from either bundle. A list derived from the bundle could not fail (docs/34 shape 2).
+ *
+ * ── THE MARKERS ARE NOT VACUOUS ───────────────────────────────────────────────────────────────────
+ *
+ * A marker that names nothing passes on every release bundle. So each marker must also be FOUND in the dev build
+ * (`dist/`) it came from. When the dev code is renamed or removed, that check fails and names the marker, rather than
+ * leaving a gate that checks for code nobody writes any more. And `selfCheck()` runs each pattern on a positive
+ * control (which must match) and a negative one (which must not).
+ *
+ * ── THE MANIFEST ──────────────────────────────────────────────────────────────────────────────────
+ *
+ * `release/manifest.json` must be the plugin's own `manifest.json` with exactly two differences: the bundle paths
+ * point beside it (`main.js`, `ui.html`), and `networkAccess.devAllowedDomains` is gone. `allowedDomains` stays
+ * `["none"]`, written here as a literal. Anything else that differs fails by name.
+ *
+ * BY-NAME MUTATIONS (each proven red, then restored): the relay's `if (PRISM3_DEV)` guard removed in
+ * `agent-link-ui.ts` → `[bridge-relay-url]` and `[bridge-relay]` fail on `release/ui.html`; `minifySyntax` dropped
+ * from the release build → the same two fail (the dead branch kept as text keeps the module); the manifest's
+ * `delete … devAllowedDomains` removed in `build.mjs` → `release/manifest.json carries no devAllowedDomains` fails.
+ */
+
+import { existsSync, readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { isDeepStrictEqual } from 'node:util';
+
+const HERE = dirname(fileURLToPath(import.meta.url));
+const DIST = resolve(HERE, 'dist');
+const RELEASE = resolve(HERE, 'release');
+
+type Bundle = 'main.js' | 'ui.html';
+type Marker = { name: string; re: RegExp; in: readonly Bundle[]; positive: string; negative: string; what: string };
+
+// Authored from what the dev-only code is, NOT read from a bundle (docs/34). A new dev-only piece adds its marker here.
+const DEV_ONLY: readonly Marker[] = [
+  {
+    name: 'bridge-relay-url',
+    re: /localhost:17331|\b17331\b/,
+    in: ['ui.html'],
+    positive: 'var BRIDGE_PORT = 17331;',
+    negative: 'var BRIDGE_PORT = 173310;',
+    what: "the agent link's desktop bridge port (`agent-bridge-relay.ts`), reachable only under devAllowedDomains",
+  },
+  {
+    name: 'bridge-relay',
+    re: /\bcreateBridgeRelay\b/,
+    in: ['ui.html'],
+    positive: 'relay = createBridgeRelay({',
+    negative: 'relay = createBridgeRelayed({',
+    what: "the relay's factory (`agent-bridge-relay.ts`)",
+  },
+];
+
+let failed = 0;
+const ok = (cond: boolean, label: string, detail = ''): void => {
+  console.log(`  ${cond ? '✓' : '✗'} ${label}${!cond && detail ? `\n      ${detail}` : ''}`);
+  if (!cond) failed++;
+};
+const read = (dir: string, f: string): string => {
+  const p = resolve(dir, f);
+  return existsSync(p) ? readFileSync(p, 'utf8') : '';
+};
+const near = (text: string, re: RegExp): string => {
+  const m = re.exec(text);
+  return m ? `…${text.slice(Math.max(0, m.index - 60), m.index + 60).replace(/\s+/g, ' ')}…` : '';
+};
+
+console.log('\nRelease bundle — no dev-only code (#2530)\n');
+
+// The detector first: a pattern that cannot match, or matches everything, makes every other check meaningless.
+for (const m of DEV_ONLY) {
+  ok(m.re.test(m.positive) && !m.re.test(m.negative), `detector [${m.name}]: matches its positive control and not its negative`);
+}
+
+const dev: Record<Bundle, string> = { 'main.js': read(DIST, 'main.js'), 'ui.html': read(DIST, 'ui.html') };
+const rel: Record<Bundle, string> = { 'main.js': read(RELEASE, 'main.js'), 'ui.html': read(RELEASE, 'ui.html') };
+for (const f of ['main.js', 'ui.html'] as const) {
+  ok(dev[f].length > 100_000, `dist/${f} is a real bundle (${dev[f].length} bytes)`, 'run `npm run -w @prism3/plugin build` first');
+  ok(rel[f].length > 100_000, `release/${f} is a real bundle (${rel[f].length} bytes)`, 'run `npm run -w @prism3/plugin build:release` first');
+}
+
+for (const m of DEV_ONLY) {
+  for (const f of m.in) {
+    ok(m.re.test(dev[f]), `[${m.name}] is in the dev build's dist/${f}, so its absence from a release means something`,
+      `the marker no longer names code the dev build carries (${m.what}): update DEV_ONLY with the code`);
+    ok(rel[f].length > 0 && !m.re.test(rel[f]), `[${m.name}] is absent from release/${f}: ${m.what}`, near(rel[f], m.re));
+  }
+}
+
+// The manifest: the plugin's own, less the dev domains, with the bundle paths beside it.
+const devManifest = JSON.parse(read(HERE, 'manifest.json') || '{}');
+const relText = read(RELEASE, 'manifest.json');
+const relManifest = relText ? JSON.parse(relText) : null;
+ok(!!relManifest, 'release/manifest.json exists');
+ok(!!relManifest && !relText.includes('devAllowedDomains'), 'release/manifest.json carries no devAllowedDomains');
+ok(!!relManifest && isDeepStrictEqual(relManifest.networkAccess?.allowedDomains, ['none']),
+  `release/manifest.json allows no network (allowedDomains ["none"]; got ${JSON.stringify(relManifest?.networkAccess?.allowedDomains)})`);
+if (relManifest) {
+  const expected = structuredClone(devManifest);
+  expected.main = 'main.js';
+  expected.ui = 'ui.html';
+  if (expected.networkAccess) delete expected.networkAccess.devAllowedDomains;
+  ok(isDeepStrictEqual(relManifest, expected), 'release/manifest.json is manifest.json with only the bundle paths and devAllowedDomains changed',
+    `release ${JSON.stringify(relManifest)}`);
+}
+
+console.log(failed ? `\n✗ lint-release-bundle — ${failed} check(s) failed` : '\n✓ lint-release-bundle — the release build carries no dev-only code');
+process.exit(failed ? 1 : 0);

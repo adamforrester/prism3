@@ -4,7 +4,7 @@
  *   • plugin build → `--define:PRISM3_HOST='"figma"'`
  *
  * Declared as an ambient const so both the web tsconfig and the plugin's ui-context tsconfig
- * typecheck the shared `apps/studio/src` UI. `makeWriteHost` / `hostCommit` branch on it, and esbuild
+ * typecheck the shared `apps/studio/src` UI. `hostCommit` (`write-adapter.ts`) branches on it, and esbuild
  * dead-code-eliminates the unused host's branch — so the "one UI, no fork" bundle never ships
  * the other host's code.
  */

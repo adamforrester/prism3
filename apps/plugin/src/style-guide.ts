@@ -149,7 +149,8 @@ export type SgSpecimen =
   | { kind: 'spacing'; member: 'filled' | 'line' }
   /** The swatches set's `type=radius` member, its four corners bound to the variable. */
   | { kind: 'radius' }
-  /** The swatches set's `type=border` member, its outline's stroke weight bound to the variable (#2353). */
+  /** The swatches set's `type=radius` member, its `radius-example` layer's stroke weight bound to the variable and its
+   *  corners left at the member's own radius (#2506, owner direction on #2490). */
   | { kind: 'stroke' }
   /** A fill swatch drawn as a translucent color is (#2353, Q159 A): the swatches set's `type=transparency` member filling
    *  its cell, painted `OPACITY_INK`, its layer opacity bound to the variable. */
@@ -781,8 +782,8 @@ const planVariableTables = (catalog: SgCatalog, ix: Index, options: StyleGuideOp
  *  spacing style: it draws the radius swatch, a corner, whatever the option. A font variable binds the property it is
  *  for, or the Customize override. */
 const specimenOf = (type: string, kind: VarKind, options: StyleGuideOptions): SgSpecimen => {
-  // A border width draws its outline at the width, and an opacity its swatch at the opacity (#2353): like a radius, a
-  // specimen of the property itself, never a spacing bar.
+  // A border width draws the radius example's stroke at the width (#2506), and an opacity its swatch at the opacity
+  // (#2353): like a radius, a specimen of the property itself, never a spacing bar.
   if (type === 'borderWidth') return { kind: 'stroke' };
   if (type === 'opacity') return { kind: 'opacity' };
   if (type === 'dimension') {
@@ -977,6 +978,24 @@ const fallbackGround = (catalog: SgCatalog, col: SgCollection, tail: readonly st
     return want.every((w, i) => tailHere[i] === w) && (want[0] === 'inverse' || segs[segs.length - want.length - 1] !== 'inverse');
   }), near);
 };
+
+/**
+ * THE DEFAULT BORDER COLOR (#2506, owner decision Q233 B): the engine's `border.primary` role ("Default border"), found
+ * by trailing path `border/primary` among the file's COLOR variables, never `inverse/border/primary`; the name nearest
+ * `near`, then the shortest, wins. Null when the file has none.
+ */
+export const defaultBorderVar = (catalog: SgCatalog, near: string): SgVariable | null => {
+  const hits = catalog.variables.filter((v) => {
+    const segs = v.name.split('/');
+    return v.resolvedType === 'COLOR' && segs.length >= 2 && segs[segs.length - 2] === 'border'
+      && segs[segs.length - 1] === 'primary' && !isInverse(v.name);
+  });
+  hits.sort((a, b) => affinity(b.name, near) - affinity(a.name, near) || a.name.length - b.name.length);
+  return hits[0] ?? null;
+};
+/** A paint list with at least one paint showing. */
+const hasVisiblePaint = (paints: unknown): boolean =>
+  Array.isArray(paints) && paints.some((p) => !!p && (p as { visible?: unknown }).visible !== false);
 
 /** AN INVERSE TOKEN (#2331): one whose path has an `inverse` segment, read off the WHOLE variable name. Never off the path
  *  below a table's common prefix: the Inverse table's prefix is `<root>/color/inverse` itself, so `inverse/text/primary`
@@ -1811,6 +1830,7 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
      *     layer (`spacingLayer`) is the value's width by its bound `paddingLeft`, the one width the host lets a plugin
      *     set inside an instance; a bracket's bars, absolute and constrained in the component, follow it;
      *   • radius: the swatches set's `type=radius` member at its fixed size, its four corners bound;
+     *   • border width (#2506): the same member, its `radius-example` layer's stroke weight bound and its corners not;
      *   • font: "Abc 123" in a text cell with the one property bound (a family or weight first loads that font);
      *   • style: "Abc 123" in a text cell with the text style applied (`setTextStyleIdAsync`).
      * Each is pinned to its column's mode BEFORE it is bound, so the host resolves the variable in that mode. A binding
@@ -1876,18 +1896,28 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
         return box;
       };
       if (spec.kind === 'radius' || spec.kind === 'stroke') {
-        const type = spec.kind === 'radius' ? 'radius' : 'border';
-        const v = variantOf(swatches, { type }, `type=${type}`);
-        if (!v?.createInstance) { missAt(noLayer, `type=${type}`, where); return; }
+        const v = variantOf(swatches, { type: 'radius' }, 'type=radius');
+        if (!v?.createInstance) { missAt(noLayer, 'type=radius', where); return; }
         const inst = v.createInstance() as SgNode;
         pin(inst);
         // Every corner bound, so the specimen shows the value whichever corner the member rounds (review of `4faeb98a`).
         // The owner's member clips a 256 × 96 `radius-example` to a 48 × 48 window, so only its top-left shows. A BORDER
-        // WIDTH (#2353) binds the outline's stroke weight: the outline is drawn at the width, a 0 as no outline.
-        const target = spec.kind === 'radius' ? radiusLayer(inst) : bindTarget(inst, 'border');
+        // WIDTH draws on the same layer (#2506, owner direction on #2490: border width and radius read as the same
+        // object, a different property shown): its stroke weight bound, a 0 as no stroke, and its corners left at the
+        // member's own radius, never bound to the width.
+        const target = radiusLayer(inst);
         const fields = spec.kind === 'radius' ? RADIUS_CORNERS : (['strokeWeight'] as const);
-        if (!target) missAt(noLayer, `type=${type}`, where);
-        else if (!fields.map((k) => bindTo(target, k, variable)).every(Boolean)) missAt(unboundSpec, `type=${type}`, where);
+        if (!target) missAt(noLayer, 'type=radius', where);
+        else if (!fields.map((k) => bindTo(target, k, variable)).every(Boolean)) missAt(unboundSpec, 'type=radius', where);
+        // A STROKE TO WEIGH (#2506, owner decision Q233 B): a member that arrives with no visible stroke (the owner's own,
+        // one fill) would bind its weight and draw nothing. Its layer is painted in the default border color, bound as a
+        // border role's swatch is, so every width draws. A member that already has a visible stroke keeps its own.
+        if (spec.kind === 'stroke' && target && !hasVisiblePaint(target.strokes)) {
+          const border = defaultBorderVar(catalog, row.name);
+          const ink = border ? variableById.get(border.id) : undefined;
+          if (ink) target.strokes = [api.variables.setBoundVariableForPaint(PLACEHOLDER_PAINT, 'color', ink)];
+          else missAt(unboundSpec, 'border color', where);
+        }
         // The member keeps its fixed size, in a cell of its own.
         const box = cellBox(true);
         box.appendChild?.(inst);
