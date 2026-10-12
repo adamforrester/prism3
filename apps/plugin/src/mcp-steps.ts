@@ -284,7 +284,7 @@ export const runStyles = (raw: unknown) => writeStep(raw, 'styles', async (host,
 /** GRID styles (#1480). */
 export const runGrid = (raw: unknown) => writeStep(raw, 'grid', async (host, d, r) => {
   const res = await applyGridStylePlan(d.plan as GridStylePlan, host);
-  Object.assign(r, { created: res.created, total: res.total });
+  Object.assign(r, { created: res.created, total: res.total, renamed: res.renamed, skipped: res.skipped });
 });
 
 /** TYPOGRAPHY variables (#237) — `core/font` + `type-sets`. */

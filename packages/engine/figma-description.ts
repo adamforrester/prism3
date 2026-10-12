@@ -298,7 +298,7 @@ export const figmaContainerDescription = (key: string, px: number): string => {
 /** `grid/<key>` across breakpoint modes — `perBreakpoint` is the `sm 4 · md 8 · lg–2xl 12` list. */
 export const figmaGridVarDescription = (key: 'columns' | 'gutter' | 'margin', perBreakpoint: string): string =>
   `Grid ${key} by breakpoint: ${perBreakpoint}`;
-/** A `Grid / <bp>` style. The recognizer in `apps/plugin/src/prune-figma.ts` keys on this template. */
+/** A grid style, named by its breakpoint (`md`). The recognizer in `apps/plugin/src/prune-figma.ts` keys on this template. */
 export const figmaGridStyleDescription = (columns: number, bp: string, gutterPx: number, marginPx: number): string =>
   `${columns}-column grid for ${bp} — ${gutterPx}px gutter, ${marginPx}px margin. A static copy of the layout variables.`;
 
