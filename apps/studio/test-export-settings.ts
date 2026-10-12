@@ -25,7 +25,7 @@ import {
   IMPORT_SLOTS, SAMPLE_CRITERIA, defaultSettings, visibleSettings, projectDtcg, mergeFiles,
   fileNames, previewFiles, sampleLeaves, leavesOf, rootKeyOf, renameSegment, unrenameSegment,
   availableImportSlots, declarationDefects, jargonDefects, admissionDefects, aliasDefects,
-  sampleDefects,
+  sampleDefects, METADATA_OPTION, exportDtcg, exportFileNames, exportPreview, metadataDefects,
   type SettingDef, type SettingsState, type ExportSource,
 } from './src/export-settings';
 import { readFileSync, readdirSync } from 'node:fs';
@@ -278,6 +278,38 @@ ok(unbuilt.length === 1 && unbuilt.every((s) => 'needs' in s && !!s.needs),
 // The union is the enforcement: an unavailable slot HAS no label, so a renderer cannot show one.
 ok(unbuilt.every((s) => !('label' in s) && !('desc' in s)),
   'an unavailable slot carries no copy — there is no string to render for a path that does not exist');
+
+// =============================================================================================
+// 7b. The download is the CONSUMER set, metadata off by default (#2552, owner decision Q250 A)
+// =============================================================================================
+//
+// The expected side is the engine's COMMITTED output, read off disk: `out/consumer/` for the default
+// download and `out/` for the metadata-on download. Both are written by the engine's Node path and held
+// by `regen --check` and `lint-consumer-build.ts`; nothing here derives them from `exportDtcg`. The file
+// LIST is read from the directory too, so a mode the export dropped fails by name.
+
+console.log('\n=== 7b. the download is the consumer set (#2552) ===');
+ok(METADATA_OPTION.def === 'off', `"${METADATA_OPTION.label}" is off by default`);
+ok(!ALL_SETTINGS.some((s) => (s.key as string) === METADATA_OPTION.key), 'build metadata is not a shape setting — removing $extensions is not reversible (#720 rule 2)');
+const CONSUMER = join(OUT, 'consumer');
+for (const { id, tree } of corpus) {
+  const want = readdirSync(CONSUMER).filter((f) => f.startsWith(`${id}.`)).sort();
+  const got = exportDtcg(tree, id, defaultSettings());
+  ok(want.length >= 4 && JSON.stringify(got.map((f) => f.name).sort()) === JSON.stringify(want),
+    `${id}: the default download is the consumer set — ${got.map((f) => f.name).join(', ')}`);
+  ok(JSON.stringify(exportFileNames(tree, id, defaultSettings())) === JSON.stringify(got.map((f) => f.name)), `${id}: the file list names exactly what the download writes`);
+  const unequal = got.filter((f) => !want.includes(f.name) || f.text !== readFileSync(join(CONSUMER, f.name), 'utf8')).map((f) => f.name);
+  ok(unequal.length === 0, `${id}: every default file is out/consumer/<name> byte for byte${unequal.length ? ` — differs: ${unequal.join(', ')}` : ''}`);
+  ok(got.every((f) => !f.text.includes('"$extensions"')), `${id}: no default file carries $extensions`);
+  const onFiles = exportDtcg(tree, id, defaultSettings(), true);
+  const onUnequal = onFiles.filter((f) => f.text !== readFileSync(join(OUT, f.name), 'utf8')).map((f) => f.name);
+  ok(onFiles.length === got.length && onUnequal.length === 0,
+    `${id}: with build metadata on, each file is the engine's out/<name> projection byte for byte${onUnequal.length ? ` — differs: ${onUnequal.join(', ')}` : ''}`);
+  ok(![...got, ...onFiles].some((f) => f.name === `${id}.tokens.json`), `${id}: the single-file ${id}.tokens.json is never offered`);
+  ok(exportPreview(tree, id, defaultSettings()).every((f) => !f.text.includes('"$extensions"') && f.name.startsWith(`${id}.base`)),
+    `${id}: the default preview samples the base file the download writes, with no $extensions`);
+  none(metadataDefects(tree, id), `${id}: in all 16 setting combinations, metadata off is on minus $extensions, and no combination writes ${id}.tokens.json`);
+}
 
 // =============================================================================================
 // 8. MUTATION — the checks fail when they should, which is the only reason to believe them

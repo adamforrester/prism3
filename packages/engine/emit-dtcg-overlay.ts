@@ -147,7 +147,7 @@ export const buildBase = (tree: unknown): unknown => {
  * does not promise. Everything NOT named here (`role`, `figma`, `generated`, `layers`) describes the
  * leaf and survives untouched.
  *
- * The list is short because the producer is narrow: `tree.ts`'s colour writer emits exactly these,
+ * The list is short because the producer is narrow: `tree.ts`'s color writer emits exactly these,
  * and shadow mode entries carry none of them (a shadow's `layers` is a COUNT and is mode-invariant —
  * measured, both modes carry 2). A new per-mode field must be added here or the overlay will print
  * the base's copy of it beside a different value, which is #1257 exactly.
@@ -162,7 +162,7 @@ const MODE_SCOPED = ['aliasOf', 'contrast', 'against', 'min', 'contrastModel', '
  * Its fields are `contrast`/`against`/`min`, which on a leaf live under `$extensions.prism3`, so the
  * spread landed the mode's correct rating OUTSIDE `$extensions` as a stray sibling of `$type` that no
  * consumer reads, and left the BASE's `aliasOf` and `contrast` sitting under `$extensions` beside a
- * value they do not describe. Measured on `main` before the fix: **2369 aliased colour leaves across
+ * value they do not describe. Measured on `main` before the fix: **2369 aliased color leaves across
  * all twelve overlays, every single one** naming a path its own `$value` does not resolve to —
  * `$value: {…palette.white}` beside `aliasOf: …palette.neutral.050` — and 2057 carrying a stale
  * contrast. The correct rating was present the whole time, at the top level, 163/163 right in

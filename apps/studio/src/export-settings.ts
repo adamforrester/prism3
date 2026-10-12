@@ -45,6 +45,9 @@
  * one. See `declarationDefects()` for which half of the enforcement is load-bearing.
  */
 
+import { buildOverlaySet } from '@prism3/engine/emit-dtcg-overlay';
+import { buildConsumerSet, stripExtensions } from '@prism3/engine/emit-dtcg-consumer';
+
 // ===========================================================================================
 // Sources — what the tokens came from, which is the gate. NOT the host (#720).
 // ===========================================================================================
@@ -102,7 +105,9 @@ export const ARTIFACTS: readonly ArtifactDef[] = [
     label: 'Design tokens',
     // Descriptions may carry teachable domain vocabulary (#618, reading 1) — "alias" and "token" are
     // learnable from two encounters on screen. Engine identifiers are not; see `jargonDefects`.
-    desc: 'The whole token tree in the W3C design-token format, aliases intact. This is the file a build reads.',
+    // #2552 (DRAFT wording for the owner): the download is the base plus one overlay per mode, never the
+    // single-file tree, so the copy says "files" and names the split a build composes.
+    desc: 'The token set in the W3C design-token format, aliases intact: a base file and one overlay per mode. These are the files a build reads.',
   },
   {
     id: 'design-md',
@@ -195,9 +200,11 @@ export const DTCG_SETTINGS: readonly SettingDef[] = [
     sources: ['generated'],
     admits: 'file-count',
     label: 'Files',
-    desc: 'One file holds everything. Splitting writes a file per top-level group — same names, spread out, and they merge back.',
+    // #2552 (DRAFT wording): "one file holds everything" stopped being true when the download became the
+    // base + overlays, so the copy and the first option's label now name the per-mode split.
+    desc: 'One file per mode: the base, then an overlay for each other mode. Splitting also writes a file per top-level group — same names, spread out, and they merge back.',
     options: [
-      { value: 'single', label: 'One file' },
+      { value: 'single', label: 'One per mode' },
       { value: 'per-group', label: 'One per group' },
     ],
     def: 'single',
@@ -512,6 +519,111 @@ export const fileNames = (tree: unknown, slug: string, s: SettingsState): readon
   projectDtcg(tree, slug, s).map((f) => f.name);
 
 // ===========================================================================================
+// The download — the consumer set, and the one option that is not a shape setting (#2552)
+// ===========================================================================================
+
+/**
+ * WHAT THE DOWNLOAD IS (#2552, owner decision Q250 A): the base plus one overlay per mode, each with every
+ * `$extensions` removed, so a token carries only `$value`, `$type` and `$description`. Byte for byte the
+ * engine's committed `out/consumer/` set at the default settings.
+ *
+ * NEVER THE SINGLE-FILE TREE. `<brand>.tokens.json` keeps every non-default mode inside `$extensions`,
+ * because DTCG has no modes, so it is internal: offered as a download it either ships our metadata or,
+ * stripped, silently loses every mode but the default. No path here returns it; the export takes the
+ * canonical tree only as INPUT and always hands back the projection.
+ *
+ * The shape settings above apply to each file of the set unchanged. `projectDtcg` names a file after the
+ * slug it is given, so the base is projected under `<slug>.base` and each overlay under
+ * `<slug>.<mode>.overlay`, which is how the default names match the engine's file for file.
+ */
+export interface MetadataOptionDef {
+  readonly key: 'buildMetadata';
+  readonly artifact: ArtifactId;
+  readonly label: string;
+  readonly desc: string;
+  readonly options: readonly OptionDef[];
+  readonly def: 'off';
+}
+
+/**
+ * "Include build metadata" — internal use, OFF by default (#2552). DRAFT wording for the owner.
+ *
+ * Deliberately NOT one of `DTCG_SETTINGS`: by #720's rule 2 a shape setting is reversible and loses
+ * nothing, and removing `$extensions` is neither. So it is its own option, with its own check
+ * (`metadataDefects`), and the shape settings' round-trips are not asked to vouch for it. On, it writes
+ * the same base + overlays with our metadata kept, which is the engine's `out/` projection; the
+ * single-file tree stays out either way.
+ */
+export const METADATA_OPTION: MetadataOptionDef = {
+  key: 'buildMetadata',
+  artifact: 'dtcg',
+  label: 'Include build metadata',
+  desc: "For internal use. Adds how each token was built, and what built the file. A consumer's build never reads it, so the handoff leaves it out.",
+  options: [
+    { value: 'off', label: 'Off' },
+    { value: 'on', label: 'On' },
+  ],
+  def: 'off',
+};
+
+/** The tree with every `$extensions` key removed, at any depth. */
+export { stripExtensions };
+
+/**
+ * The download: one file per mode layer (or per layer and group), shaped by the settings.
+ *
+ * `metadata` defaults to off, so a caller that does not pass it gets the consumer set. The ONE function
+ * the download, the file list and the preview all read, for the reason `projectDtcg` is one function.
+ */
+export const exportLayers = (tree: unknown, metadata = false): ReadonlyArray<{ readonly layer: string; readonly tree: unknown }> => {
+  const set = metadata ? buildOverlaySet(tree) : buildConsumerSet(tree);
+  return [
+    { layer: 'base', tree: set.base },
+    ...set.overlays.map(({ mode, tree: t }) => ({ layer: `${mode}.overlay`, tree: t })),
+  ];
+};
+
+export const exportDtcg = (tree: unknown, slug: string, s: SettingsState, metadata = false): readonly OutFile[] =>
+  exportLayers(tree, metadata).flatMap(({ layer, tree: t }) => projectDtcg(t, `${slug}.${layer}`, s));
+
+export const exportFileNames = (tree: unknown, slug: string, s: SettingsState, metadata = false): readonly string[] =>
+  exportDtcg(tree, slug, s, metadata).map((f) => f.name);
+
+/** The preview: the real projection over a sample of the BASE file the download writes. */
+export const exportPreview = (tree: unknown, slug: string, s: SettingsState, metadata = false, max = 6): readonly OutFile[] =>
+  previewFiles(exportLayers(tree, metadata)[0].tree, `${slug}.base`, s, max);
+
+/**
+ * The option's own checks, over a real emitted tree. On and off write the same files under the same
+ * names; off is on with `$extensions` removed and nothing else; off carries no `$extensions` anywhere;
+ * on carries some (or the option does nothing); and no setting combination, either way, writes the
+ * single-file `<slug>.tokens.json`.
+ */
+export const metadataDefects = (tree: unknown, slug = 'brand'): string[] => {
+  const out: string[] = [];
+  if (!METADATA_OPTION.options.some((o) => o.value === METADATA_OPTION.def)) out.push(`${METADATA_OPTION.key}: default is not one of its options`);
+  if (METADATA_OPTION.def !== 'off') out.push(`${METADATA_OPTION.key}: must default to off — the handoff carries no build metadata`);
+  const hasExt = (v: unknown): boolean =>
+    Array.isArray(v) ? v.some(hasExt) : isObj(v) && Object.entries(v).some(([k, x]) => k === '$extensions' || hasExt(x));
+  let states: SettingsState[] = [defaultSettings()];
+  for (const st of DTCG_SETTINGS) states = states.flatMap((x) => st.options.map((o) => ({ ...x, [st.key]: o.value }) as SettingsState));
+  for (const s of states) {
+    const tag = DTCG_SETTINGS.map((st) => `${st.key}=${s[st.key]}`).join(',');
+    const off = exportDtcg(tree, slug, s, false);
+    const on = exportDtcg(tree, slug, s, true);
+    for (const f of [...off, ...on]) if (f.name === `${slug}.tokens.json`) out.push(`${tag}: the single-file tree ${f.name} is offered`);
+    if (off.map((f) => f.name).join('|') !== on.map((f) => f.name).join('|')) out.push(`${tag}: metadata on and off write different files`);
+    off.forEach((f, i) => {
+      const doc = JSON.parse(f.text) as unknown;
+      if (hasExt(doc)) out.push(`${tag}: ${f.name} carries $extensions with metadata off`);
+      if (on[i] && !sameJson(doc, stripExtensions(JSON.parse(on[i].text)))) out.push(`${tag}: ${f.name} with metadata off is not the on file minus $extensions`);
+    });
+    if (!on.some((f) => hasExt(JSON.parse(f.text)))) out.push(`${tag}: metadata on adds nothing`);
+  }
+  return out;
+};
+
+// ===========================================================================================
 // Import — a slot, not a control (#723, #721)
 // ===========================================================================================
 
@@ -614,6 +726,8 @@ export const jargonDefects = (): string[] => {
     // does not lean on the key to explain itself.
     if (`${s.label} ${s.desc}`.includes(s.key)) out.push(`${s.key}: its own key appears in its copy`);
   }
+  check(`${METADATA_OPTION.key} label`, METADATA_OPTION.label);
+  check(`${METADATA_OPTION.key} desc`, METADATA_OPTION.desc);
   for (const slot of availableImportSlots()) {
     check(`import slot ${slot.id} label`, slot.label);
     check(`import slot ${slot.id} desc`, slot.desc);
