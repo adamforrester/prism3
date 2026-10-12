@@ -10503,7 +10503,7 @@ arm: {
 // "no generated brand exercises this path". A waiver justified by corpus agreement needs the corpus to
 // actually VARY on the axis in question — otherwise it records a coincidence as a decision.
 //
-// `semanticInk` (modes.ts) now gates these inks against the tint as well as the floor, so NB resolves
+// `semanticInkOn` (modes.ts) now gates these inks against the tint as well as the floor, so NB resolves
 // them one rung darker than it authored (recorded in NB_KNOWN_DIVERGENCES) and every mode is clean.
 // The gate is inverted accordingly: it asserts the shortfall is GONE, in all four modes, for the
 // fixture that used to own it. It fails if the pairing ever regresses below AA again.
@@ -10944,7 +10944,7 @@ arm: {
 // ceasing to be high-contrast on that axis; HC keeps its own 7:1 text bar for fills instead.
 // A FOURTH group joined in the semantic-ink-on-tint fix, and it moves the opposite way from group 1:
 // light-mode `text|icon/<sem>` now gate against their own `-subtle` tint as well as the page floor
-// (see `semanticInk` in modes.ts), so they resolve one rung DARKER than NB hand-authored — 550→600.
+// (see `semanticInkOn` in modes.ts), so they resolve one rung DARKER than NB hand-authored — 550→600.
 // This is #63's Option 2 arriving on its own: those NB inks measured 4.02–4.22:1 on the tint they are
 // used against, and #63 accepted that only because the engine's own brands looked green (both example
 // brands had TINTED pages, which held the floor high enough to hide it). A white page drops the floor
