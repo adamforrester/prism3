@@ -70,9 +70,9 @@ each handler's `switch` exhaustive, so a new message type can't be silently drop
   not a second UI. `tsconfig.ui.json` repoints at the shared UI so the DOM-clean/no-plugin-typings check
   runs on what's bundled.
 - ✅ **Host selected at BUILD time** via `PRISM3_HOST` (esbuild `--define`; `apps/studio/src/prism3-host.d.ts`).
-  `makeWriteHost` → `cssVarAdapter` for both (the preview paints CSS vars in either host); the COMMIT
-  seam (`hostCommit`) differs — web downloads via the export bar, figma posts the live `BrandInput` to
-  the main thread. esbuild DCEs the unused branch.
+  Both hosts paint the preview the same way, in a full DOM; the COMMIT seam (`hostCommit`,
+  `apps/studio/src/write-adapter.ts`) differs — web downloads via the export bar, figma posts the live
+  `BrandInput` to the main thread. esbuild DCEs the unused branch.
 - ✅ **Write path = #108 verbatim**, only the theme source changed (bundled NB → live UI knobs):
   `apply-theme` carries a `BrandInput`; the main thread runs `buildWritePlan(buildFigmaColor(brandTheme(input)))`
   → `applyWritePlan`. On boot it runs #109 read-back → a `seed-info` panel.

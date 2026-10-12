@@ -44,8 +44,10 @@ ordered, and step 3 is the one that decides whether the findings are real.
   `letter-spacing`, `--faint`) — SOURCE, ANCHOR, HUE, … No bare, unlabeled controls.
 - **Source-as-select.** A control with 3+ mutually-exclusive sources/modes uses a `select`; a binary may
   be a segmented control. (Palettes/Validation are the template.)
-- **Reuse the component kit** (doc 24) — `selectEl`, `tokenPill`, `addButton`, `removeButton`,
-  `renderCard`, `objEditor`. Don't hand-roll a one-off variant; extend the shared component.
+- **Reuse the component kit** — `selectEl` (`main.ts`), the token pills `tokenPillSpan` and `tokenPillBadged`
+  (`preview/sections/kit.ts`), and the levers kit (`ui/lever-kit.ts`). Don't hand-roll a one-off variant; extend the
+  shared component. (Doc 24's kit list predates the redesign: `tokenPill`, `addButton`, `removeButton`, `renderCard`
+  and `objEditor` are gone, the last of them in #2487 PR 6.)
 - **Human-readable copy.** No internal jargon in the UI (`ink`→`text`, `action`→"default interactive
   color"). Labels name what the user recognizes, not how the system is built.
 - **One label per concept, page-wide.** "Which categories consume this" was `Binding`, `Bound by` and
@@ -104,7 +106,7 @@ ordered, and step 3 is the one that decides whether the findings are real.
   with no bar — the user has no way to re-enable it.
 
 ### Token paths
-- **Every token-bearing row/card shows its real, resolvable path via `tokenPill`, in the correct
+- **Every token-bearing row/card shows its real, resolvable path via a token pill (`tokenPillBadged`), in the correct
   namespace** — `color.*` for semantic roles, `palette.*` for the raw ramp primitives, `gradient.*` for
   paint styles, and (on the ramp pages) `radius.*` / `shadow.*` / `font.*` / `duration.*`. Verify the
   string against the emitted token tree (`buildTree`) — never invent a path. (#232 lesson: `color.primary`

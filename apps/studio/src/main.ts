@@ -309,8 +309,8 @@ const selectEl = (mods: string | Mix = ''): HTMLSelectElement => el(
  *  pill's own shrink-to-fit width — circular — which collapsed the head to nothing on 181 of 198
  *  pills. Both measured, not reasoned about. `title` carries the full path for the elided case.
  *
- *  This mints the pill ALONE. `tokenPill` is what callers want: it pairs the pill with the `inverse`
- *  badge (#1147) where the path needs one. The two are split because the two callers that rebuild the
+ *  This mints the pill ALONE. `tokenPillBadged` (same file) is what callers want: it pairs the pill with the
+ *  `inverse` badge (#1147) where the path needs one. The two are split because the two callers that rebuild the
  *  pill's children — `tokenPillWrapping` and `sgPill` — must hold the pill itself, not a wrapper. */
 // `tokenPillSpan` lives in `preview/sections/kit.ts` (UI redesign S4a).
 /** True when a path's discriminator is the `inverse` group (#1141) — matched as a whole SEGMENT, so a
@@ -329,7 +329,7 @@ const selectEl = (mods: string | Mix = ''): HTMLSelectElement => el(
  *
  *  Anything INSIDE the pill would be subject to the same ellipsis, so the badge sits outside its
  *  overflow box. And it is a sibling rather than a segment of the pill's text for the reason
- *  `tokenPill` documents at length: the pill is ONE text node, two earlier attempts to split it
+ *  `tokenPillSpan`'s note above documents at length: the pill is ONE text node, two earlier attempts to split it
  *  regressed copy/paste, and a path copied out of a pill still has to be the path. `.tpill`'s own text
  *  node is untouched here. */
 // `withInverseBadge` lives in `preview/sections/kit.ts` (UI redesign S4a).
@@ -419,8 +419,8 @@ const pfield = (label: string, control: HTMLElement, right = false): HTMLElement
 // ===========================================================================
 
 // `renderControl`, the generic lever knob, went in UI redesign S8.2 with its last caller (the Button options, now the
-// levers kit's chips and slider on Components, `domains/components.ts`); the descriptor it read stays in
-// `levers/controls.ts` (`describeControl`, #1675) for the levers kit.
+// levers kit's chips and slider on Components, `domains/components.ts`). The descriptor it read
+// (`describeControl`, #1675) went in #2487 PR 6, since no page read it.
 
 // The per-mode `modeLevers` read/write helpers — `getModeLever`, `setModeLever`, `pruneModeLevers` —
 // live in `state/store.ts`, with the prune-to-byte-identical invariant they exist to keep.
@@ -828,7 +828,7 @@ const renderPreviewTokens = (host: HTMLElement, repaint: () => void): void => {
 /** Style guide (Preview → Style guide) — the resolved system composed in situ: every color role in
  *  context, on light and inverse surfaces, driven by the global mode picker. The semantic token path is
  *  the label (a `.tpill`); the resolved primitive + hex + contrast reveal on hover. Reuses the doc-26
- *  shell (`palSection`/`subHead`/`tokenPill`); only the specimen layout is new (`sg-*`). */
+ *  shell (`palSection`/`subHead`/`tokenPillBadged`); only the specimen layout is new (`sg-*`). */
 const renderPreviewStyleGuide = (host: HTMLElement, repaint: () => void): void => {
   // The five color sections (Background, Foreground, Text color, Border, Icon), their cards, the ground and
   // the surface list are SHARED with Color › Surfaces & fills (UI redesign S4a, owner decision Q5): they live
