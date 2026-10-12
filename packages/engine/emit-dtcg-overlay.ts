@@ -9,8 +9,11 @@
  *
  * So this emits a second, PROJECTED set that any conforming tool can read with no adapter:
  *
- *     <brand>.base.tokens.json          every DTCG-typed token, default-mode values, NO modes extension
- *     <brand>.<mode>.overlay.tokens.json  ONLY the leaves whose value differs from base
+ *     <brand>.base.tokens.json          every DTCG-typed token, default-mode values, NO `$extensions`
+ *     <brand>.<mode>.overlay.tokens.json  ONLY the leaves whose value differs from base, NO `$extensions`
+ *
+ * Since #2552 (owner decision Q250 A) this set IS the consumer handoff: no `$extensions` anywhere, so no
+ * vendor key, no build data and no internal prose travels to a client — see `buildOverlaySet`.
  *
  * "Every DTCG-typed token" is exact, and the qualifier is the fix in #642: a leaf whose `$type` is not
  * in the spec is omitted here, because a promise of conformance that carries an unresolvable type is
@@ -102,7 +105,9 @@ export const overlayModes = (tree: unknown): string[] => {
  * Removing it is not tidying — it is the whole contract. A consumer that reads this file must not be
  * able to find a second value it is silently ignoring; if `modes` rode along, the base would be the
  * canonical tree again and the projection would buy nothing. Everything else under `$extensions`
- * stays: it is descriptive (contrast ratings, provenance, Figma binding), not a hidden value.
+ * stays HERE: it is descriptive (contrast ratings, provenance, Figma binding), not a hidden value, and
+ * the internal metadata export keeps it. The handoff drops all of it one step later (`buildOverlaySet`,
+ * #2552).
  */
 const projectLeaf = (n: Node): Node => {
   const out = { ...n };
@@ -147,7 +152,7 @@ export const buildBase = (tree: unknown): unknown => {
  * does not promise. Everything NOT named here (`role`, `figma`, `generated`, `layers`) describes the
  * leaf and survives untouched.
  *
- * The list is short because the producer is narrow: `tree.ts`'s colour writer emits exactly these,
+ * The list is short because the producer is narrow: `tree.ts`'s color writer emits exactly these,
  * and shadow mode entries carry none of them (a shadow's `layers` is a COUNT and is mode-invariant —
  * measured, both modes carry 2). A new per-mode field must be added here or the overlay will print
  * the base's copy of it beside a different value, which is #1257 exactly.
@@ -162,7 +167,7 @@ const MODE_SCOPED = ['aliasOf', 'contrast', 'against', 'min', 'contrastModel', '
  * Its fields are `contrast`/`against`/`min`, which on a leaf live under `$extensions.prism3`, so the
  * spread landed the mode's correct rating OUTSIDE `$extensions` as a stray sibling of `$type` that no
  * consumer reads, and left the BASE's `aliasOf` and `contrast` sitting under `$extensions` beside a
- * value they do not describe. Measured on `main` before the fix: **2369 aliased colour leaves across
+ * value they do not describe. Measured on `main` before the fix: **2369 aliased color leaves across
  * all twelve overlays, every single one** naming a path its own `$value` does not resolve to —
  * `$value: {…palette.white}` beside `aliasOf: …palette.neutral.050` — and 2057 carrying a stale
  * contrast. The correct rating was present the whole time, at the top level, 163/163 right in
@@ -260,8 +265,33 @@ export const leafCount = (n: unknown): number => {
   return c;
 };
 
-/** The whole projected set for one brand: the base plus one overlay per mode. */
-export const buildOverlaySet = (tree: unknown): { base: unknown; overlays: Array<{ mode: string; tree: unknown }> } => ({
-  base: buildBase(tree),
-  overlays: overlayModes(tree).map((mode) => ({ mode, tree: buildOverlay(tree, mode) })),
-});
+/** The tree with every `$extensions` key removed, at any depth. Key order is otherwise kept. */
+export const stripExtensions = (n: unknown): unknown => {
+  if (Array.isArray(n)) return n.map(stripExtensions);
+  if (!n || typeof n !== 'object') return n;
+  const out: Node = {};
+  for (const [k, v] of Object.entries(n as Node)) if (k !== '$extensions') out[k] = stripExtensions(v);
+  return out;
+};
+
+/**
+ * The whole projected set for one brand: the base plus one overlay per mode — THE CONSUMER SET (#2552, owner
+ * decision Q250 A).
+ *
+ * By default every `$extensions` is removed, so a token carries only `$value`, `$type` and `$description` and the
+ * files carry no generator stamp, no `decisions` log and no per-token build data. DTCG says a tool MUST preserve
+ * what it does not understand, so anything left here travels into every client pipeline. The strip is safe HERE
+ * and nowhere upstream: the canonical tree keeps each non-default mode inside `$extensions.prism3.modes`, and this
+ * projection has already moved those values into their own overlays, so removing the extensions costs no value.
+ * That is why the single-file tree stays internal and this set is the handoff.
+ *
+ * `metadata: true` keeps the build metadata — the studio's internal "Include build metadata" export. `buildBase` and
+ * `buildOverlay` below are the metadata-keeping primitives; the strip is the one step after them.
+ */
+export const buildOverlaySet = (tree: unknown, opts: { metadata?: boolean } = {}): { base: unknown; overlays: Array<{ mode: string; tree: unknown }> } => {
+  const keep = (t: unknown): unknown => (opts.metadata ? t : stripExtensions(t));
+  return {
+    base: keep(buildBase(tree)),
+    overlays: overlayModes(tree).map((mode) => ({ mode, tree: keep(buildOverlay(tree, mode)) })),
+  };
+};
