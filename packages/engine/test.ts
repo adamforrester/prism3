@@ -10508,7 +10508,7 @@ arm: {
 // "no generated brand exercises this path". A waiver justified by corpus agreement needs the corpus to
 // actually VARY on the axis in question — otherwise it records a coincidence as a decision.
 //
-// `semanticInk` (modes.ts) now gates these inks against the tint as well as the floor, so NB resolves
+// `semanticInkOn` (modes.ts) now gates these inks against the tint as well as the floor, so NB resolves
 // them one rung darker than it authored (recorded in NB_KNOWN_DIVERGENCES) and every mode is clean.
 // The gate is inverted accordingly: it asserts the shortfall is GONE, in all four modes, for the
 // fixture that used to own it. It fails if the pairing ever regresses below AA again.
@@ -10949,7 +10949,7 @@ arm: {
 // ceasing to be high-contrast on that axis; HC keeps its own 7:1 text bar for fills instead.
 // A FOURTH group joined in the semantic-ink-on-tint fix, and it moves the opposite way from group 1:
 // light-mode `text|icon/<sem>` now gate against their own `-subtle` tint as well as the page floor
-// (see `semanticInk` in modes.ts), so they resolve one rung DARKER than NB hand-authored — 550→600.
+// (see `semanticInkOn` in modes.ts), so they resolve one rung DARKER than NB hand-authored — 550→600.
 // This is #63's Option 2 arriving on its own: those NB inks measured 4.02–4.22:1 on the tint they are
 // used against, and #63 accepted that only because the engine's own brands looked green (both example
 // brands had TINTED pages, which held the floor high enough to hide it). A white page drops the floor
@@ -12317,7 +12317,7 @@ arm: {
 // (19d) #1480 — GRID STYLES. Layout emits as FLOAT variables, but a number cannot BECOME a live Figma
 // column grid (Figma has no variable→layout-grid binding), so this emits the missing artifact: one
 // reusable Grid Style per breakpoint, sourced from the SAME layout data (columns/gutter/margin), named
-// `Grid / <bp>` following the auto breakpoint names. Grid styles are STATIC (no mode-switch off a
+// by the bare breakpoint name (`md`; `Grid / <bp>` until #2467, owner decision Q185 A). Grid styles are STATIC (no mode-switch off a
 // variable), so N breakpoints = N separate styles, coexisting with the numeric `layout` collection.
 //
 // INDEPENDENCE (docs/34 shape 1). The expected columns/gutter/margin are HAND-AUTHORED here from the
@@ -12325,7 +12325,7 @@ arm: {
 // `cols` ladder 4/8/…/base at base 12; the `GUTTER_PX`/`MARGIN_PX` ramps), NEVER read back from
 // `theme.layout` or `buildFigmaLayout` — a gate whose expected value is derived from the emitter it
 // checks cannot see the emitter break. It also asserts REPRESENTATION, not a count: every breakpoint
-// name must appear as its own `Grid / <bp>` style carrying a COLUMNS/STRETCH grid, so a style silently
+// name must appear as its own `<bp>` style carrying a COLUMNS/STRETCH grid, so a style silently
 // dropped or misnamed fails by name.
 //
 // MUTATION REGISTER (docs/34: a gate that cannot see its subject cannot fail). Each applied to the
@@ -12336,6 +12336,7 @@ arm: {
 //       (all of sm/md/lg/xl/2xl here). Verified.
 //   M2  the name template `Grid / ${g.bp}` → `Grid/${g.bp}` (drops the spaced separator). The
 //       representation arm fails BY NAME — `Grid / md` absent — for all five breakpoints. Verified.
+//       (#2467 renamed the template to the bare `g.bp`; the expected names below are the literal sizes.)
 {
   const theme = nbTheme();
   const grid = buildFigmaGridStyles(theme);
@@ -12353,18 +12354,18 @@ arm: {
     { bp: '2xl', count: 12, gutter: 32, margin: 48 },
   ];
 
-  // REPRESENTATION: one `Grid / <bp>` style per breakpoint, in order, and nothing else.
+  // REPRESENTATION: one `<bp>` style per breakpoint, in order, and nothing else — bare, no group (#2467).
   const names = grid.styles.map((s) => s.name);
-  const wantNames = EXPECT.map((r) => `Grid / ${r.bp}`);
+  const wantNames = EXPECT.map((r) => r.bp);
   ok(names.join(' | ') === wantNames.join(' | '),
-    `#1480 grid: one 'Grid / <bp>' style per breakpoint in order [${wantNames.join(', ')}] — got [${names.join(', ')}]`);
+    `#1480/#2467 grid: one bare '<bp>' style per breakpoint in order [${wantNames.join(', ')}] — got [${names.join(', ')}]`);
 
   // Each style holds exactly one COLUMNS/STRETCH grid whose count/gutterSize/offset match the layout
   // contract for its breakpoint — BY NAME, so a wrong-field or mis-sourced value names the breakpoint.
   const bad: string[] = [];
   for (const row of EXPECT) {
-    const style = grid.styles.find((s) => s.name === `Grid / ${row.bp}`);
-    if (!style) { bad.push(`${row.bp}: no 'Grid / ${row.bp}' style`); continue; }
+    const style = grid.styles.find((s) => s.name === row.bp);
+    if (!style) { bad.push(`${row.bp}: no '${row.bp}' style`); continue; }
     if (style.layoutGrids.length !== 1) { bad.push(`${row.bp}: ${style.layoutGrids.length} layoutGrids (want 1)`); continue; }
     const lg = style.layoutGrids[0];
     if (lg.pattern !== 'COLUMNS') bad.push(`${row.bp}: pattern ${lg.pattern} (want COLUMNS)`);
@@ -12380,8 +12381,8 @@ arm: {
   // A 2-breakpoint brand yields exactly two grid styles following the auto names (the #1479 interlink) —
   // proves the emit is count-derived, not hardcoded to 5. Names authored, not read back.
   const two = buildFigmaGridStyles(brandTheme({ id: 'grid2', primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.008 }, layout: { breakpoints: [0, 768] } } as BrandInput));
-  ok(two.styles.map((s) => s.name).join(' | ') === 'Grid / sm | Grid / md',
-    `#1480 grid: a 2-breakpoint brand yields exactly [Grid / sm, Grid / md] (got [${two.styles.map((s) => s.name).join(', ')}])`);
+  ok(two.styles.map((s) => s.name).join(' | ') === 'sm | md',
+    `#1480/#2467 grid: a 2-breakpoint brand yields exactly [sm, md] (got [${two.styles.map((s) => s.name).join(', ')}])`);
 }
 
 // (19e) #1532 — PER-BREAKPOINT COLUMN OVERRIDES. `layout.columnOverrides` (keyed by breakpoint name)
@@ -12412,7 +12413,7 @@ arm: {
   const emittedCols = (overrides?: Record<string, number>): Record<string, number> => {
     const g = buildFigmaGridStyles(brandTheme({ ...BASE, layout: overrides ? { columnOverrides: overrides } : {} } as BrandInput));
     const out: Record<string, number> = {};
-    for (const s of g.styles) out[s.name.replace('Grid / ', '')] = s.layoutGrids[0].count;
+    for (const s of g.styles) out[s.name] = s.layoutGrids[0].count;
     return out;
   };
 
@@ -12475,7 +12476,7 @@ arm: {
   const emittedGaps = (layout?: BrandInput['layout']): Record<string, { gutter: number; margin: number }> => {
     const g = buildFigmaGridStyles(brandTheme({ ...BASE, layout: layout ?? {} } as BrandInput));
     const out: Record<string, { gutter: number; margin: number }> = {};
-    for (const s of g.styles) out[s.name.replace('Grid / ', '')] = { gutter: s.layoutGrids[0].gutterSize, margin: s.layoutGrids[0].offset };
+    for (const s of g.styles) out[s.name] = { gutter: s.layoutGrids[0].gutterSize, margin: s.layoutGrids[0].offset };
     return out;
   };
   // ACTUAL alias: the DTCG grid node's gutter $value for a bp (the space token grid/gutter aliases).
@@ -15131,8 +15132,9 @@ arm: {
         if (base?.paints?.fills !== 'color/border/primary' || base?.bound?.height !== 'border-width/hairline') bad.push(`baseline ${JSON.stringify(base?.paints)} ${JSON.stringify(base?.bound)}`);
         return bad.length ? [`${planComponentName(m)}: ${bad.join('; ')}`] : [];
       });
-      ok(listMembers.length === 3 && listOff.length === 0,
-        `#2416 Q177.2 tabs: 3 members (size), each nesting six tabs following its size, tab 1 selected, tabs 1-3 shown, tabs 4-6 hidden behind "Tab 4"-"Tab 6", over a 1px color/border/primary baseline (${listMembers.length} members, ${listOff.length} off — ${listOff[0] ?? 'none'})`);
+      // 6 since #2518 (owner decision Q222 A): size 3 × alignment 2 (start, center); what each member nests is unchanged.
+      ok(listMembers.length === 6 && listOff.length === 0,
+        `#2416 Q177.2 tabs: 6 members (size × alignment), each nesting six tabs following its size, tab 1 selected, tabs 1-3 shown, tabs 4-6 hidden behind "Tab 4"-"Tab 6", over a 1px color/border/primary baseline (${listMembers.length} members, ${listOff.length} off — ${listOff[0] ?? 'none'})`);
       const listProps = planSetProperties(listMembers).filter((p) => p.type === 'BOOLEAN').map((p) => `${p.name}=${String(p.default)}`);
       ok(JSON.stringify(listProps) === JSON.stringify(['Tab 4=false', 'Tab 5=false', 'Tab 6=false']),
         `#2416 Q179 tabs: the set declares exactly three Figma-only toggles, Tab 4-6, all off by default (${listProps.join(', ')})`);
@@ -20486,28 +20488,28 @@ arm: {
         const box = (n: Record<string, unknown> | undefined) => `${String(n?.width)}x${String(n?.height)}`;
         ok(at(first) === '0,0' && box(first) === '504x348',
           `#1809 the first set on an empty page stays at 0,0; its box is pinned as the input to the arms below (${at(first)}, ${box(first)})`);
-        // (f) A SECOND DEF ON THE SAME PAGE lands 160 right of the first (504 + 160 = 664), top-aligned. Chunk 2
+        // (f) A SECOND DEF ON THE SAME PAGE lands 400 right of the first (160 before #2502) (504 + 400 = 904), top-aligned. Chunk 2
         // onward append into it and do not move it.
         const dRuns = await paste(destructive, placePage);
         const second = setOf(placePage, 'button-destructive');
-        ok(dRuns.length >= 2 && placePage.children.length === 2 && at(second) === '664,0' && at(first) === '0,0',
-          `#1809 a second set pasted onto the page lands beside the first, 160px clear and top-aligned, at 664,0 (${dRuns.length} chunks; button-destructive at ${at(second)}, button at ${at(first)})`);
+        ok(dRuns.length >= 2 && placePage.children.length === 2 && at(second) === '904,0' && at(first) === '0,0',
+          `#1809 a second set pasted onto the page lands beside the first, 400px clear and top-aligned, at 904,0 (${dRuns.length} chunks; button-destructive at ${at(second)}, button at ${at(first)})`);
         // PARITY: the plugin places the same set at the same coordinate on the same page.
         const placePlug: StubPage = { children: [] };
         await plug(btn, placePlug);
         await plug(destructive, placePlug);
-        ok(at(setOf(placePlug, 'button-destructive')) === '664,0' && at(setOf(placePlug, 'button-destructive')) === at(second),
+        ok(at(setOf(placePlug, 'button-destructive')) === '904,0' && at(setOf(placePlug, 'button-destructive')) === at(second),
           `#1809 parity: the plugin places the second set at the same coordinate (plugin ${at(setOf(placePlug, 'button-destructive'))}, paste ${at(second)})`);
         // (g) A REBUILD NEVER MOVES A SET: re-pasting `button` after the designer moved it leaves it there.
         first!.x = 5000;
         first!.y = 7000;
         const again = await paste(btn, placePage);
-        ok(again.every((r) => r.added === 0) && at(first) === '5000,7000' && at(second) === '664,0',
+        ok(again.every((r) => r.added === 0) && at(first) === '5000,7000' && at(second) === '904,0',
           `#1809 a re-paste leaves a set the designer moved where they put it, and its sibling where it was (button at ${at(first)}, button-destructive at ${at(second)})`);
 
         // (h) WHAT SHARES THE ROW PUSHES IT RIGHT; WHAT SITS ABOVE DOES NOT. A header-wide frame above the sets
-        // (bottom edge at -80) and a note inside the row at x 600..1000. Expected x: 1000 + 160 = 1160, not the
-        // header's 5000 + 160.
+        // (bottom edge at -80) and a note inside the row at x 600..1000. Expected x: 1000 + 400 = 1400, not the
+        // header's 5000 + 400.
         const rowPage: StubPage = { children: [] };
         const rowPlug: StubPage = { children: [] };
         for (const pg of [rowPage, rowPlug]) {
@@ -20522,20 +20524,20 @@ arm: {
           const p = rect(a), q = rect(b);
           if (p.x < q.r && q.x < p.r && p.y < q.b && q.y < p.b) overlaps.push(`${String(a.name)} x ${String(b.name)}`);
         }));
-        ok(at(setOf(rowPage, 'button-destructive')) === '1160,0' && rowPage.children.length === 4 && overlaps.length === 0,
-          `#1809 a node in the set's row pushes it right (1000 + 160), a node wholly above it does not, and no two of the page's nodes overlap (at ${at(setOf(rowPage, 'button-destructive'))}; overlaps: ${overlaps.join(', ') || 'none'})`);
-        ok(at(setOf(rowPlug, 'button-destructive')) === '1160,0',
+        ok(at(setOf(rowPage, 'button-destructive')) === '1400,0' && rowPage.children.length === 4 && overlaps.length === 0,
+          `#1809 a node in the set's row pushes it right (1000 + 400), a node wholly above it does not, and no two of the page's nodes overlap (at ${at(setOf(rowPage, 'button-destructive'))}; overlaps: ${overlaps.join(', ') || 'none'})`);
+        ok(at(setOf(rowPlug, 'button-destructive')) === '1400,0',
           `#1809 parity: the plugin places it at the same coordinate on the same page (plugin ${at(setOf(rowPlug, 'button-destructive'))})`);
 
         // (i) CONTENT BUT NO SET YET: top-aligned with the content, right of it. A frame at x 100..600, y 40 →
-        // the set at 760,40.
+        // the set at 1000,40.
         const introPage: StubPage = { children: [{ type: 'FRAME', name: 'intro', x: 100, y: 40, width: 500, height: 300 }] };
         await paste(btn, introPage);
-        ok(at(setOf(introPage)) === '760,40',
-          `#1809 on a page with content and no set, the set lands right of it, top-aligned, at 760,40 (got ${at(setOf(introPage))})`);
+        ok(at(setOf(introPage)) === '1000,40',
+          `#1809 on a page with content and no set, the set lands right of it, top-aligned, at 1000,40 (got ${at(setOf(introPage))})`);
 
         // (i') A NODE WHOLLY BELOW THE ROW DOES NOT PUSH THE SET. A note at x 600..1000, y 400..500, under the
-        // `button` set's 348-high row. Expected: 504 + 160 = 664,0, not the note's 1000 + 160, in both executors.
+        // `button` set's 348-high row. Expected: 504 + 400 = 904,0, not the note's 1000 + 400, in both executors.
         const belowPage: StubPage = { children: [] };
         const belowPlug: StubPage = { children: [] };
         for (const pg of [belowPage, belowPlug]) {
@@ -20543,16 +20545,16 @@ arm: {
           pg.children.push({ type: 'FRAME', name: 'below', x: 600, y: 400, width: 400, height: 100 });
           if (pg === belowPage) await paste(destructive, pg); else await plug(destructive, pg);
         }
-        ok(at(setOf(belowPage, 'button-destructive')) === '664,0' && at(setOf(belowPlug, 'button-destructive')) === '664,0',
-          `#1809 a node wholly below the row does not push the set: 664,0 in both executors (paste ${at(setOf(belowPage, 'button-destructive'))}, plugin ${at(setOf(belowPlug, 'button-destructive'))}; destructive set ${String(setOf(belowPage, 'button-destructive')?.height)} high)`);
+        ok(at(setOf(belowPage, 'button-destructive')) === '904,0' && at(setOf(belowPlug, 'button-destructive')) === '904,0',
+          `#1809 a node wholly below the row does not push the set: 904,0 in both executors (paste ${at(setOf(belowPage, 'button-destructive'))}, plugin ${at(setOf(belowPlug, 'button-destructive'))}; destructive set ${String(setOf(belowPage, 'button-destructive')?.height)} high)`);
 
         // (j) THE REMEDY THE MISS STATES IS TRUE, and the new set lands beside the old: rename the refused set
-        // aside and paste again. The renamed set is 504 wide (the same 36 members), so the new one lands at 664,0.
+        // aside and paste again. The renamed set is 504 wide (the same 36 members), so the new one lands at 904,0.
         setOf(renPage)!.name = 'button (earlier axes)';
         const remedy = await paste(btn, renPage);
         ok(remedy.every((r) => !r.misses.length) && renPage.children.length === 2 && kids(setOf(renPage)).length === 36
-          && at(setOf(renPage)) === '664,0' && kids(setOf(renPage, 'button (earlier axes)')).every((m, i) => m === renBefore[i]),
-          `#1809 after renaming the old set aside, the paste makes a fresh 36-member set beside it at 664,0 and leaves the old one as it was (${renPage.children.length} top-level, new set at ${at(setOf(renPage))}, misses ${JSON.stringify(remedy.map((r) => r.misses.length))})`);
+          && at(setOf(renPage)) === '904,0' && kids(setOf(renPage, 'button (earlier axes)')).every((m, i) => m === renBefore[i]),
+          `#1809 after renaming the old set aside, the paste makes a fresh 36-member set beside it at 904,0 and leaves the old one as it was (${renPage.children.length} top-level, new set at ${at(setOf(renPage))}, misses ${JSON.stringify(remedy.map((r) => r.misses.length))})`);
       }
 
       // ---- #1377 / #1392: THE PAYLOAD EXECUTOR'S EXPOSURE WRITE, over EVERY nest-exposed def -------
@@ -21530,7 +21532,7 @@ arm: {
         // which is only correct while the column axis is the last element — the exact assumption that
         // stops holding the moment the axis is chosen. A `state` still present in `rowKeys` would put
         // every member of a row in one cell.
-        // Button is in the canvas-furniture pilot (#2188 Q173 A), so `surface` leads: the inverse rows form one block.
+        // Button has canvas furniture (#2188 Q173 A, every def since #2502), so `surface` leads: the inverse rows form one block.
         ok(JSON.stringify(fullLayout.rowKeys) === JSON.stringify(['surface', 'appearance', 'inset', 'size', 'leading icon', 'trailing icon']),
           `#656: the rows combine every varying axis EXCEPT the column one, surface first — the two slot axes carry their Figma names (#1380) — got ${JSON.stringify(fullLayout.rowKeys)}`);
         // #2188 Q173 A: rows 0–47 are surface=default and 48–95 surface=inverse, each a contiguous band. Literals: 96
@@ -29634,6 +29636,73 @@ arm: {
     `#2455 divider decorative: the code role is none with aria-hidden by default, and separator with decorative=false (got '${divider.accessibility.role}')`);
 }
 
+// ---- centered Tabs (#2518, owner decision Q222 A) ----
+// At `alignment=center` the root projects as a bar built 480 wide (DRAFT, typed here from the decision), centering
+// its children across; the row of tabs keeps hugging and the baseline stretches across the bar. At `alignment=start`
+// every member is BYTE-IDENTICAL to the approved Tabs (#2416), read against the same def with the axis taken out, so
+// "everything else matches" is held rather than assumed. Mutation: the root's `center` field dropped → `#2518 tabs`.
+{
+  const tabsDef = componentDefs.find((d) => d.id === 'tabs')!;
+  const { center: _c, ...rootNoCenter } = tabsDef.anatomy!.parts[tabsDef.anatomy!.root] as Record<string, unknown>;
+  const approved: ComponentDef = {
+    ...tabsDef,
+    props: tabsDef.props.filter((p) => p.name !== 'alignment'),
+    variants: { size: tabsDef.variants.size },
+    axisKinds: { size: 'authoring' },
+    anatomy: { ...tabsDef.anatomy!, parts: { ...tabsDef.anatomy!.parts, [tabsDef.anatomy!.root]: rootNoCenter as never } },
+    figmaProperties: { ...tabsDef.figmaProperties!, variantAxes: ['size'] },
+  };
+  const strip = (x: unknown): string => JSON.stringify((x as { root: unknown }).root);
+  const bad: string[] = [];
+  let centered = 0, started = 0;
+  for (const size of ['small', 'medium', 'large']) {
+    const c = figmaAnatomyPlan(tabsDef, size, { alignment: 'center' }) as unknown as { root: { counterAxisAlignItems?: string; counterAxisSizingMode?: string; placementWidth?: number; children: { name: string; primaryAxisSizingMode?: string; counterAxisSizingMode?: string; layoutAlign?: string }[] } };
+    const list = c.root.children.find((k) => k.name === 'list');
+    const base = c.root.children.find((k) => k.name === 'baseline');
+    if (c.root.counterAxisAlignItems === 'CENTER' && c.root.counterAxisSizingMode === 'FIXED' && c.root.placementWidth === 480
+      && list?.primaryAxisSizingMode === 'AUTO' && list?.counterAxisSizingMode === 'AUTO' && base?.layoutAlign === 'STRETCH') centered++;
+    else bad.push(`${size}/center: root ${c.root.counterAxisAlignItems} ${c.root.counterAxisSizingMode} ${c.root.placementWidth}, list ${list?.primaryAxisSizingMode}/${list?.counterAxisSizingMode}, baseline ${base?.layoutAlign}`);
+    const st = figmaAnatomyPlan(tabsDef, size, { alignment: 'start' });
+    if (strip(st) === strip(figmaAnatomyPlan(approved, size, {}))) started++;
+    else bad.push(`${size}/start: differs from the approved Tabs`);
+  }
+  ok(centered === 3 && started === 3 && bad.length === 0,
+    `#2518 tabs: alignment=center builds a 480px bar centering its hugging tabs over a full-width baseline, and alignment=start is the approved Tabs byte for byte (${centered} centered, ${started} unchanged${bad.length ? ` — WRONG: ${bad.join(' | ')}` : ''})`);
+}
+
+// ---- the `center` field's refusals (#2518 review, Lane D): each a way it would validate and center nothing, or
+// center every member. One arm per refusal, matched on its own words, so removing any one check fails its arm by name.
+{
+  const tabsDef = componentDefs.find((d) => d.id === 'tabs')!;
+  const R = tabsDef.anatomy!.root;
+  const parts = tabsDef.anatomy!.parts as Record<string, Record<string, unknown>>;
+  const C = { axis: 'alignment', value: 'center', placementWidth: 480 };
+  const withParts = (over: Record<string, Record<string, unknown>>, fp?: Record<string, unknown>) =>
+    validateComponentDef({ ...tabsDef, anatomy: { ...tabsDef.anatomy!, parts: { ...parts, ...over } as never }, ...(fp ? { figmaProperties: { ...tabsDef.figmaProperties!, ...fp } } : {}) } as ComponentDef).errors;
+  const rootWith = (c: unknown, extra: Record<string, unknown> = {}) => withParts({ [R]: { ...parts[R], center: c, ...extra } });
+  const { center: _rc, ...rootBare } = parts[R];
+  const refuses = (errs: string[], re: RegExp) => errs.some((x) => re.test(x));
+  ok(refuses(withParts({ [R]: rootBare, list: { ...parts.list, center: C } }), /part 'list' declares 'center' but is not the anatomy ROOT/),
+    '#2518 schema: a center off the root is refused by name');
+  ok(refuses(rootWith(C, { layout: { ...(parts[R].layout as object), direction: 'row' } }), /part 'container' declares 'center' but is not a 'box' with a 'column' layout/),
+    '#2518 schema: a center on a row root is refused by name');
+  ok(refuses(rootWith(C, { layout: undefined }), /part 'container' declares 'center' but is not a 'box' with a 'column' layout/),
+    '#2518 schema: a center on a root with no layout is refused by name');
+  ok(refuses(rootWith(C, { layout: { ...(parts[R].layout as { sizing: object }), sizing: { ...(parts[R].layout as { sizing: object }).sizing, x: 'fill' } } }), /part 'container' declares 'center' but already sizes its width/),
+    '#2518 schema: a center on a root already sized across is refused by name');
+  ok(refuses(rootWith({ ...C, axis: 'tone' }), /centers on 'tone', which is not one of this def's variant axes/),
+    '#2518 schema: a center axis the def does not declare is refused by name');
+  ok(refuses(withParts({ [R]: { ...parts[R], center: C } }, { variantAxes: ['size'] }), /centers on 'alignment', which figmaProperties\.variantAxes does not project/),
+    '#2518 schema: a center axis the set does not project is refused by name');
+  ok(refuses(rootWith({ ...C, value: 'middle' }), /centers at 'alignment=middle', which is not a value of that axis/),
+    '#2518 schema: a center value the axis does not declare is refused by name');
+  ok(refuses(rootWith({ ...C, value: 'start' }), /centers at 'alignment=start', the axis's first value/),
+    '#2518 schema: centering at the axis\'s default value is refused by name');
+  ok(refuses(rootWith({ ...C, placementWidth: 0 }), /declares a 'center\.placementWidth' that is not a positive number of px/),
+    '#2518 schema: a center build width of no size is refused by name');
+  ok(validateComponentDef(tabsDef).errors.length === 0, '#2518 schema: Tabs\' own center validates clean');
+}
+
 // ------------------------------------------------------------------- #2417: the accordion and its indicator
 // Each owner decision held against a literal (Q182, Q183): the 24 members and their axes, start as the default
 // position, no hover, pressed or disabled member, the indicator a nested building block exposed on `indicator` and
@@ -29693,7 +29762,6 @@ arm: {
   ok(indPlans.length === 12 && indPlans.every((p) => { const c = coord(p); const shown = (p.root as PN).children.map((k) => k.name); return shown.length === 1 && shown[0] === { 'chevron-down': 'chevronDown', 'chevron-up': 'chevronUp', plus: 'plus', minus: 'minus' }[GLYPH[`${c.indicator}/${c.expansion}`]]; }),
     `#2417 accordion indicator: 12 members, each showing exactly the one glyph for its pair and state (Q183)`);
 }
-
 
 // ------------------------------------------------------------------- report
 console.log(`\nPrism3 engine tests: ${pass} passed, ${fails.length} failed`);

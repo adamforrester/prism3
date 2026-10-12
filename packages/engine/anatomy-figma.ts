@@ -952,11 +952,35 @@ export const fillsAxis = (def: ComponentDef, name: string, axis: Axis): boolean 
  * geometry key is named by the anatomy and its absence is an authoring error, whereas a paint key is
  * looked up speculatively across a grid nothing claims is full.
  */
+/** THE CENTERED MEMBER (#2518, `PartDef.center`): at the root's `center.axis=center.value`, the root reads as if it
+ *  declared `layout.align: 'center'`, `sizing.x: 'fill'` and `center.placementWidth` (#1757), so its children sit
+ *  centered across a bar that spans its placement, a `crossAxisFill` child spans the full width, and the member is
+ *  built at that width. Every other coordinate returns the def itself, so its plan is byte-identical. Applied
+ *  before anything reads the anatomy, so every path below (sizing modes, the bounded fill, the build-width resize
+ *  each executor already performs) sees one consistent root. */
+const centeredAt = (def: ComponentDef, slots: PlanSlots): ComponentDef => {
+  const a = def.anatomy;
+  const root = a?.parts[a.root];
+  const c = root?.kind === 'box' ? root.center : undefined;
+  if (!a || !root || !c || !root.layout || slots[c.axis] !== c.value) return def;
+  return {
+    ...def,
+    anatomy: {
+      ...a,
+      parts: {
+        ...a.parts,
+        [a.root]: { ...root, layout: { ...root.layout, align: 'center', sizing: { ...root.layout.sizing, x: 'fill' } }, placementWidth: c.placementWidth },
+      },
+    },
+  };
+};
+
 export const figmaAnatomyPlan = (
-  def: ComponentDef,
+  authored: ComponentDef,
   size: string | undefined,
   slots: PlanSlots = {},
 ): AnatomyPlan => {
+  const def = centeredAt(authored, slots);
   const a = def.anatomy;
   if (!a) throw new Error(`${def.id}: no anatomy block to project`);
   // A DEF WITH ONE TYPE SCALE HAS NO SIZE COORDINATE (#795), and `undefined` is how it says so.
@@ -4397,14 +4421,23 @@ for(const [name,key] of bare)if(!referenced.has(key))propMiss.push('property '+n
  * writing, read-backs. Do not "simplify" it into a shared-helper comparison.
  */
 /**
- * THE CANVAS-FURNITURE PILOT (#2406 Q171, #2188 Q172/Q173) — the defs whose component pages carry the canvas
- * furniture: `_Label` instances around the set, an `_inverse-backdrop` behind its inverse rows, and the inverse
- * rows grouped into one block. ONE SWITCH, PER DEF: `planSetLayout` reads it for the grouping, so both executors
- * (the plugin's and the paste payload's) lay a piloted set out the same way, and the plugin reads it for the
- * labels and the backdrop. Owner-scoped to three defs until the owner has checked them in Figma; the rollout to
- * every page adds ids here and nothing else.
+ * THE CANVAS FURNITURE (#2406 Q171, #2188 Q172/Q173; on every def since #2502, owner decision Q212 A) — the defs whose
+ * component pages carry the canvas furniture: `_Label` instances around the set, an `_inverse-backdrop` behind its
+ * inverse rows, and the inverse rows grouped into one block. ONE SWITCH, PER DEF: `planSetLayout` reads it for the
+ * grouping, so both executors (the plugin's and the paste payload's) lay a set out the same way, and the plugin reads
+ * it for the labels and the backdrop.
+ *
+ * EVERY DEF THAT BUILDS A SET, LISTED BY ID rather than "every def", so a set laid out by an earlier plugin can still be
+ * planned the old way under another name (`test-canvas-furniture.ts` does). The two `emitAsComponents` defs (`icon`,
+ * `spinner`) build single components, so there is no grid to label. `test-canvas-furniture.ts` `rollout/switch` holds
+ * this list to `componentDefs`, so a new def that is not added here fails by name.
  */
-export const CANVAS_FURNITURE_PILOT: ReadonlySet<string> = new Set(['button', 'tag', 'text-field']);
+export const CANVAS_FURNITURE: ReadonlySet<string> = new Set([
+  'focus-ring', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral',
+  'field-label', 'field-message', 'text-field', 'textarea', 'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control',
+  'radio-row', 'radio-group', 'switch-control', 'switch-row', 'select', 'veil', 'image-placeholder', 'badge', 'tag', 'tab', 'tabs',
+  'divider',
+]);
 
 export const planSetLayout = (plans: AnatomyPlan[], fn: string) => {
   if (!plans.length) throw new Error(`${fn}: no plans`);
@@ -4460,13 +4493,13 @@ export const planSetLayout = (plans: AnatomyPlan[], fn: string) => {
     plans[0].gridAxis,
     varying.map((k) => ({ name: k, values: new Set(vals.map((v) => v[k])).size })),
   );
-  // INVERSE AS ONE BLOCK (#2188, owner decision Q173 A), for the defs in the canvas-furniture pilot only. `surface`
+  // INVERSE AS ONE BLOCK (#2188, owner decision Q173 A), for every def with canvas furniture (`CANVAS_FURNITURE`). `surface`
   // moves to the front of the row keys and the rows are regrouped by its value, so every `surface=inverse` row sits
   // in one contiguous band under one backdrop instead of one band per appearance. LAYOUT ONLY: a member's name,
   // coordinate and key are untouched, and so is the plan order the members are built and combined in, which is the
   // order a variant property's values read in the properties panel (#2386). The regroup is a STABLE partition: inside
   // each surface block the rows keep the order they had, so the rest of the grid reads as before.
-  const surfaceFirst = CANVAS_FURNITURE_PILOT.has(plans[0].component) && varying.includes('surface') && colKey !== 'surface';
+  const surfaceFirst = CANVAS_FURNITURE.has(plans[0].component) && varying.includes('surface') && colKey !== 'surface';
   const rowKeys = varying.filter((k) => k !== colKey && !(surfaceFirst && k === 'surface'));
   if (surfaceFirst) rowKeys.unshift('surface');
   const order = (list: string[]) => { const seen: string[] = []; for (const x of list) if (!seen.includes(x)) seen.push(x); return seen; };
@@ -4829,7 +4862,7 @@ if(colW.length&&rowH.length&&(Math.round(set.width)<Math.round(wantW)||Math.roun
   boxMiss.push('set -> BOX '+Math.round(set.width)+'x'+Math.round(set.height)+' does not contain its '+members.length+' members ('+Math.round(wantW)+'x'+Math.round(wantH)+' needed; appending does NOT grow the frame)');
 // #1750 — PLACE A NEW SET CLEAR OF THE PAGE'S CONTENT, the plugin's \`placeNewSet\` rule: an empty page
 // leaves the set at the origin; otherwise top-aligned with the sets already there (or with all content when
-// there is none), then 160 (the plugin's SET_GAP, a placeholder) right of everything that overlaps the
+// there is none), then 400 (the plugin's SET_GAP, widened for the canvas furniture in #2502) right of everything that overlaps the
 // set's row. A node wholly above or below the row does not push it. AFTER the resize, because the row is
 // the set's height. Written again here rather than shared: the paste script cannot import the plugin, and
 // test.ts compares the two placements.
@@ -4838,7 +4871,7 @@ if(colW.length&&rowH.length&&(Math.round(set.width)<Math.round(wantW)||Math.roun
 // finished set's can be covered here where the plugin would have pushed the set past it (#1856).
 // NO POSITION READ-BACK, unlike the plugin: the stub stores x/y as plain fields, so the read-back could not
 // fail in any gate, and it would cost bytes in every chunk.
-if(created&&prior.length){const S=prior.filter(b=>b.t==='COMPONENT_SET'),y=Math.min(...(S.length?S:prior).map(b=>b.y)),B=prior.filter(b=>b.y<y+set.height&&b.y+b.h>y);set.x=Math.max(...(B.length?B:prior).map(b=>b.x+b.w))+160;set.y=y;}
+if(created&&prior.length){const S=prior.filter(b=>b.t==='COMPONENT_SET'),y=Math.min(...(S.length?S:prior).map(b=>b.y)),B=prior.filter(b=>b.y<y+set.height&&b.y+b.h>y);set.x=Math.max(...(B.length?B:prior).map(b=>b.x+b.w))+400;set.y=y;}
 // READ BACK the definitions, GUARDED. A duplicate member name poisons this getter (see above), so an
 // unguarded read throws with no indication of which member caused it — and takes the whole paste's
 // report with it, including the misses already collected.

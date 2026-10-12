@@ -812,6 +812,14 @@ export const makeShim = (opts: ShimOpts = {}) => {
         const gap = bv.itemSpacing?.value ?? 0;
         // A LITERAL padding (#1667's reserve beside a pinned icon) counts when the side is not bound.
         let at = bv.paddingLeft?.value ?? (typeof p.paddingLeft === 'number' ? p.paddingLeft : 0);
+        // A COLUMN'S CROSS AXIS (#2518, `layoutModel` only): a flow child of a VERTICAL frame sits at the left padding,
+        // moved by the frame's `counterAxisAlignItems` — half its slack across at CENTER, all of it at MAX — the way
+        // the host places a hugging row inside a wider column. Without `layoutModel` the old reading stands, so no
+        // existing assertion moves.
+        if (opts.layoutModel && p.layoutMode === 'VERTICAL' && !node._absolute) {
+          const slack = Math.max(0, innerX(p) - ((node.width as number) || 0));
+          return at + (p.counterAxisAlignItems === 'CENTER' ? slack / 2 : p.counterAxisAlignItems === 'MAX' ? slack : 0);
+        }
         // JUSTIFIED TO THE END (#1751, `layoutModel` only): a row's flow starts where its content, packed
         // right, leaves off — the slack its own width has over the children's.
         if (opts.layoutModel && p.layoutMode === 'HORIZONTAL' && p.primaryAxisAlignItems === 'MAX') {

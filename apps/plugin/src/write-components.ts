@@ -810,12 +810,15 @@ const memberAxisLists = (set: CompSet): string[][] => {
 };
 
 /**
- * THE GAP BETWEEN SIBLING SETS ON A PAGE, in px (#1750). A PLACEHOLDER: it is the spacing the owner used when
- * laying out the master file by hand (left to right, top-aligned, 160 apart), and the issue records that the
- * owner has not picked the final number. A page position is not a bindable field, so there is no variable to
- * bind it to — the same reason `page-header.ts`'s `HEADER_GAP` is a literal.
+ * THE GAP BETWEEN SIBLING SETS ON A PAGE, in px (#1750). 160 at first, the spacing the owner used when laying out
+ * the master file by hand (left to right, top-aligned). WIDENED TO 400 when the canvas furniture reached every def
+ * (#2502, owner decision Q212 A: the gap is a layout call): a later set's row labels sit in this gap, left of the
+ * set, and Button's four bracket columns reach about 320px. 400 leaves them clear of the set to their left with
+ * room to read as their own set's (`test-canvas-furniture.ts` `clearance/…` measures it on every shared page). A page
+ * position is not a bindable field, so there is no variable to bind it to — the same reason `page-header.ts`'s
+ * `HEADER_GAP` is a literal. The paste payload's copy of this rule (`anatomy-figma.ts`) writes the same number.
  */
-export const SET_GAP = 160;
+export const SET_GAP = 400;
 
 /** A top-level node's box on a page, as `placeNewSet` reads it. `header` marks the page's section header. */
 export type PageBox = { type?: string; x: number; y: number; width: number; height: number; header?: boolean };

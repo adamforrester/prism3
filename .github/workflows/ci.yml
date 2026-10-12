@@ -194,6 +194,13 @@ jobs:
       - name: Build plugin
         run: npm run -w @prism3/plugin build
 
+      # THE RELEASE BUILD (#2530, owner Q239 A): `release/`, with `PRISM3_DEV` false, so every dev-only branch (the
+      # agent link's desktop bridge relay, any dev command) is dropped, and a manifest with no devAllowedDomains.
+      # `lint-release-bundle.ts` below checks it carries none of the dev-only code; `lint-sandbox-reject.ts` scans its
+      # main.js too.
+      - name: Build plugin (release)
+        run: npm run -w @prism3/plugin build:release
+
       # dist/main.js runs in Figma's sandboxed main thread, which has no node: builtins. A regression
       # here breaks the plugin at load in Figma, not at typecheck or build time.
       - name: "Plugin main.js has 0 node: builtins"
@@ -932,7 +939,8 @@ jobs:
       # "the Figma import (2026-09-15)" bricked the plugin with 58 gates + CI green (PR #1460), because
       # no gate reads main.js the way Figma does: plugin-no-node-builtins scans it for `node:` builtins,
       # the verdict/start suites drive the UI, us-english/voice read it as prose. Runs after the plugin
-      # build; scoped to main.js (ui.html is a browser iframe where import() is valid syntax).
+      # build; scoped to main.js (ui.html is a browser iframe where import() is valid syntax). It scans both builds'
+      # main.js (#2530): the release build's is rewritten by minifySyntax.
       - name: The built main.js carries no Figma-sandbox-rejected token sequence (#1461)
         run: npx --yes tsx@4 apps/plugin/lint-sandbox-reject.ts
 
@@ -942,6 +950,12 @@ jobs:
       # both built bundles against the real defs, so it runs after the plugin build.
       - name: The built plugin ships no maintainer notes and no Prism 2 in component text (#1623)
         run: npx --yes tsx@4 apps/plugin/lint-bundle-prose.ts
+
+      # THE RELEASE BUILD CARRIES NO DEV-ONLY CODE (#2530). Each dev-only marker, authored in the gate, must be found
+      # in dist/ (so it names real code) and absent from release/, and release/manifest.json must be manifest.json
+      # less devAllowedDomains with its bundle paths beside it. Runs after both plugin builds.
+      - name: The release build carries no dev-only code (#2530)
+        run: npx --yes tsx@4 apps/plugin/lint-release-bundle.ts
 
       # A stated advisory window, once it closes, fails the build. The step below this one is
       # advisory with a date on it, and that date is written in six places — this workflow twice,
