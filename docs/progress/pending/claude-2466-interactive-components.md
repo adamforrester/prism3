@@ -27,6 +27,8 @@ Button: 192 members, 288 reactions, the probe's own count.
 - Reactions are read only on the member itself, never on its descendants.
 - A set built before this, re-checked, reads every Rest and Hover member "to update", with a named line per family. That's on top of the revision bump.
 
+**A shim gap this exposed:** `component-shim.ts`'s combine set a member's parent to its set only where it had none. A member built onto a `file-shim.ts` page arrived with the page as its parent, kept it, and every reaction in that set read as dangling (`test-canvas-furniture.ts` caught it: 192 "to update"). The host's combine always reparents, so the shim now does too.
+
 **Found and filed, not fixed (one concern per PR):**
 - #2563 (pre-existing, reproduced on clean `main`): a member an update adds is appended, never combined, so a translucent overlay wash stays at 100%, and verify doesn't check added members. The apply reports success, and the next dry run reads it "to update". The test's replace case uses a family with no wash for that reason.
 - #2564: the `use_figma` paste path writes no reactions.

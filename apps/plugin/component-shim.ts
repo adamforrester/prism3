@@ -1629,8 +1629,11 @@ export const makeShim = (opts: ShimOpts = {}) => {
       set.dashPattern = [10, 5];
       for (const c of ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius']) (set as Record<string, unknown>)[c] = 5;
       takeFromPage(members);
-      // A member's parent is its set, as on the host: a native slot made on it later finds the set this way (#2417).
-      for (const m of members) if (!m.parent) m.parent = set;
+      // A member's parent is its set, as on the host: a native slot made on it later finds the set this way (#2417),
+      // and a reaction's destination is resolved among its siblings this way (#2466). ALWAYS the set: a member built
+      // onto a page that records parents (`file-shim.ts`) arrived with the page as its parent, which the host's
+      // combine replaces. Kept only where unset, it read every reaction in such a set as dangling.
+      for (const m of members) m.parent = set;
       // #1568 — RECORD WHICH MEMBER OWNS EACH NODE, so `refuseRefsUntilYield` can refuse by member name.
       // Re-run over every twin the detach/settle paths install below, because a twin is a different object
       // standing at the same coordinate and a refusal keyed on the original would miss it.
