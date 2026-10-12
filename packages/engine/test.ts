@@ -10503,7 +10503,7 @@ arm: {
 // "no generated brand exercises this path". A waiver justified by corpus agreement needs the corpus to
 // actually VARY on the axis in question — otherwise it records a coincidence as a decision.
 //
-// `semanticInk` (modes.ts) now gates these inks against the tint as well as the floor, so NB resolves
+// `semanticInkOn` (modes.ts) now gates these inks against the tint as well as the floor, so NB resolves
 // them one rung darker than it authored (recorded in NB_KNOWN_DIVERGENCES) and every mode is clean.
 // The gate is inverted accordingly: it asserts the shortfall is GONE, in all four modes, for the
 // fixture that used to own it. It fails if the pairing ever regresses below AA again.
@@ -10944,7 +10944,7 @@ arm: {
 // ceasing to be high-contrast on that axis; HC keeps its own 7:1 text bar for fills instead.
 // A FOURTH group joined in the semantic-ink-on-tint fix, and it moves the opposite way from group 1:
 // light-mode `text|icon/<sem>` now gate against their own `-subtle` tint as well as the page floor
-// (see `semanticInk` in modes.ts), so they resolve one rung DARKER than NB hand-authored — 550→600.
+// (see `semanticInkOn` in modes.ts), so they resolve one rung DARKER than NB hand-authored — 550→600.
 // This is #63's Option 2 arriving on its own: those NB inks measured 4.02–4.22:1 on the tint they are
 // used against, and #63 accepted that only because the engine's own brands looked green (both example
 // brands had TINTED pages, which held the floor high enough to hide it). A white page drops the floor
@@ -12312,7 +12312,7 @@ arm: {
 // (19d) #1480 — GRID STYLES. Layout emits as FLOAT variables, but a number cannot BECOME a live Figma
 // column grid (Figma has no variable→layout-grid binding), so this emits the missing artifact: one
 // reusable Grid Style per breakpoint, sourced from the SAME layout data (columns/gutter/margin), named
-// `Grid / <bp>` following the auto breakpoint names. Grid styles are STATIC (no mode-switch off a
+// by the bare breakpoint name (`md`; `Grid / <bp>` until #2467, owner decision Q185 A). Grid styles are STATIC (no mode-switch off a
 // variable), so N breakpoints = N separate styles, coexisting with the numeric `layout` collection.
 //
 // INDEPENDENCE (docs/34 shape 1). The expected columns/gutter/margin are HAND-AUTHORED here from the
@@ -12320,7 +12320,7 @@ arm: {
 // `cols` ladder 4/8/…/base at base 12; the `GUTTER_PX`/`MARGIN_PX` ramps), NEVER read back from
 // `theme.layout` or `buildFigmaLayout` — a gate whose expected value is derived from the emitter it
 // checks cannot see the emitter break. It also asserts REPRESENTATION, not a count: every breakpoint
-// name must appear as its own `Grid / <bp>` style carrying a COLUMNS/STRETCH grid, so a style silently
+// name must appear as its own `<bp>` style carrying a COLUMNS/STRETCH grid, so a style silently
 // dropped or misnamed fails by name.
 //
 // MUTATION REGISTER (docs/34: a gate that cannot see its subject cannot fail). Each applied to the
@@ -12331,6 +12331,7 @@ arm: {
 //       (all of sm/md/lg/xl/2xl here). Verified.
 //   M2  the name template `Grid / ${g.bp}` → `Grid/${g.bp}` (drops the spaced separator). The
 //       representation arm fails BY NAME — `Grid / md` absent — for all five breakpoints. Verified.
+//       (#2467 renamed the template to the bare `g.bp`; the expected names below are the literal sizes.)
 {
   const theme = nbTheme();
   const grid = buildFigmaGridStyles(theme);
@@ -12348,18 +12349,18 @@ arm: {
     { bp: '2xl', count: 12, gutter: 32, margin: 48 },
   ];
 
-  // REPRESENTATION: one `Grid / <bp>` style per breakpoint, in order, and nothing else.
+  // REPRESENTATION: one `<bp>` style per breakpoint, in order, and nothing else — bare, no group (#2467).
   const names = grid.styles.map((s) => s.name);
-  const wantNames = EXPECT.map((r) => `Grid / ${r.bp}`);
+  const wantNames = EXPECT.map((r) => r.bp);
   ok(names.join(' | ') === wantNames.join(' | '),
-    `#1480 grid: one 'Grid / <bp>' style per breakpoint in order [${wantNames.join(', ')}] — got [${names.join(', ')}]`);
+    `#1480/#2467 grid: one bare '<bp>' style per breakpoint in order [${wantNames.join(', ')}] — got [${names.join(', ')}]`);
 
   // Each style holds exactly one COLUMNS/STRETCH grid whose count/gutterSize/offset match the layout
   // contract for its breakpoint — BY NAME, so a wrong-field or mis-sourced value names the breakpoint.
   const bad: string[] = [];
   for (const row of EXPECT) {
-    const style = grid.styles.find((s) => s.name === `Grid / ${row.bp}`);
-    if (!style) { bad.push(`${row.bp}: no 'Grid / ${row.bp}' style`); continue; }
+    const style = grid.styles.find((s) => s.name === row.bp);
+    if (!style) { bad.push(`${row.bp}: no '${row.bp}' style`); continue; }
     if (style.layoutGrids.length !== 1) { bad.push(`${row.bp}: ${style.layoutGrids.length} layoutGrids (want 1)`); continue; }
     const lg = style.layoutGrids[0];
     if (lg.pattern !== 'COLUMNS') bad.push(`${row.bp}: pattern ${lg.pattern} (want COLUMNS)`);
@@ -12375,8 +12376,8 @@ arm: {
   // A 2-breakpoint brand yields exactly two grid styles following the auto names (the #1479 interlink) —
   // proves the emit is count-derived, not hardcoded to 5. Names authored, not read back.
   const two = buildFigmaGridStyles(brandTheme({ id: 'grid2', primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.008 }, layout: { breakpoints: [0, 768] } } as BrandInput));
-  ok(two.styles.map((s) => s.name).join(' | ') === 'Grid / sm | Grid / md',
-    `#1480 grid: a 2-breakpoint brand yields exactly [Grid / sm, Grid / md] (got [${two.styles.map((s) => s.name).join(', ')}])`);
+  ok(two.styles.map((s) => s.name).join(' | ') === 'sm | md',
+    `#1480/#2467 grid: a 2-breakpoint brand yields exactly [sm, md] (got [${two.styles.map((s) => s.name).join(', ')}])`);
 }
 
 // (19e) #1532 — PER-BREAKPOINT COLUMN OVERRIDES. `layout.columnOverrides` (keyed by breakpoint name)
@@ -12407,7 +12408,7 @@ arm: {
   const emittedCols = (overrides?: Record<string, number>): Record<string, number> => {
     const g = buildFigmaGridStyles(brandTheme({ ...BASE, layout: overrides ? { columnOverrides: overrides } : {} } as BrandInput));
     const out: Record<string, number> = {};
-    for (const s of g.styles) out[s.name.replace('Grid / ', '')] = s.layoutGrids[0].count;
+    for (const s of g.styles) out[s.name] = s.layoutGrids[0].count;
     return out;
   };
 
@@ -12470,7 +12471,7 @@ arm: {
   const emittedGaps = (layout?: BrandInput['layout']): Record<string, { gutter: number; margin: number }> => {
     const g = buildFigmaGridStyles(brandTheme({ ...BASE, layout: layout ?? {} } as BrandInput));
     const out: Record<string, { gutter: number; margin: number }> = {};
-    for (const s of g.styles) out[s.name.replace('Grid / ', '')] = { gutter: s.layoutGrids[0].gutterSize, margin: s.layoutGrids[0].offset };
+    for (const s of g.styles) out[s.name] = { gutter: s.layoutGrids[0].gutterSize, margin: s.layoutGrids[0].offset };
     return out;
   };
   // ACTUAL alias: the DTCG grid node's gutter $value for a bp (the space token grid/gutter aliases).
@@ -17779,7 +17780,7 @@ arm: {
      *  Both exist because they answer different questions: `insetValue` is how the not-a-number case is
      *  reached (one bad value, whichever name asks), and `varOverrides` is how the two halves of the ring's
      *  coordinate are given DIFFERENT values, which is the only way to tell a sum from a doubling (#801). */
-    type StubOpts = { vars?: string[]; styles?: string[]; comps?: string[]; page?: StubPage; insetValue?: unknown; varOverrides?: Record<string, unknown>; varValues?: Record<string, number>; fileNodes?: StubFileNode[]; nestedInstanceParts?: string[]; effectStyles?: string[]; gradientDiscard?: 'paint' | 'bindings'; textMetrics?: { fontSize: number; lineHeight: { unit: string; value: number } }; setStrokes?: Record<string, unknown>[] };
+    type StubOpts = { vars?: string[]; styles?: string[]; comps?: string[]; page?: StubPage; insetValue?: unknown; varOverrides?: Record<string, unknown>; varValues?: Record<string, number>; fileNodes?: StubFileNode[]; nestedInstanceParts?: string[]; effectStyles?: string[]; gradientDiscard?: 'paint' | 'bindings'; textMetrics?: { fontSize: number; lineHeight: { unit: string; value: number } }; setStrokes?: Record<string, unknown>[]; noSlots?: boolean };
     /** The two halves of a focus ring's coordinate, the real NB values (`focus.ring.offset` /
      *  `focus.ring.width` — both 2 in every emitted brand). NAMED, and named HERE, because they are the
      *  stub's INPUT and the geometry assertions' EXPECTED at once, and #801 is what that costs when the
@@ -18162,6 +18163,21 @@ arm: {
             Object.defineProperty(node, 'height', { configurable: true, value: h, writable: true });
           },
           appendChild(c: Record<string, unknown>) { c.parent = node; (node.children as unknown[]).push(c); },
+          // #2417 — a MOVE, as on the host: out of its old parent, into this one at `i`. The paste executor's slot
+          // conversion places the slot and moves its default content with it.
+          insertChild(i: number, c: Record<string, unknown>) {
+            const from = c.parent as Record<string, unknown> | undefined;
+            const kids = from?.children as unknown[] | undefined;
+            if (kids) { const k = kids.indexOf(c); if (k >= 0) kids.splice(k, 1); }
+            c.parent = node;
+            (node.children as unknown[]).splice(Math.max(0, Math.min(i, (node.children as unknown[]).length)), 0, c);
+          },
+          // #2417 — out of the tree: the frame a native slot replaced.
+          remove() {
+            const kids = (node.parent as Record<string, unknown> | undefined)?.children as unknown[] | undefined;
+            if (kids) { const k = kids.indexOf(node); if (k >= 0) kids.splice(k, 1); }
+            node.parent = null;
+          },
           // Walks descendants for real, rather than returning `[]`. The set payload finds each part by
           // NAME inside every member to wire its property reference, so a stub that finds nothing would
           // let the whole wiring loop no-op and every assertion below pass on an empty set of writes.
@@ -18475,10 +18491,26 @@ arm: {
           set.appendChild = (c: Record<string, unknown>) => {
             (set.children as Record<string, unknown>[]).push(c);
             takeFromPage([c]);
+            mergeSlots(c);
             guardRefs({ ...set, declaredIds: set.declaredIds, findAll: () => [c, ...((c.findAll as () => unknown[])?.() ?? [])] } as Record<string, unknown>, (id) => defs[id]);
           };
           const defs: Record<string, { type: string; defaultValue?: unknown; variantOptions?: string[] }> = {};
           let seq = 100;
+          // #2417 — NATIVE SLOTS, as measured on a real host and as `component-shim.ts` models them: a member's slots
+          // merge by name into one SLOT property at the combine, and a member APPENDED later merges the same way.
+          const mergeSlots = (m: Record<string, unknown>): void => {
+            for (const sl of ((m.findAll as () => Record<string, unknown>[])?.() ?? []).filter((x) => x.type === 'SLOT')) {
+              const nm = String(sl.name);
+              let key = Object.keys(defs).find((k) => defs[k].type === 'SLOT' && k.split('#')[0] === nm);
+              if (!key) { key = `${nm}#103:${seq++}`; defs[key] = { type: 'SLOT' }; }
+              sl.componentPropertyReferences = { slotContentId: key };
+            }
+          };
+          for (const m of members) mergeSlots(m);
+          set.deleteComponentProperty = (key: string) => {
+            if (!defs[key]) throw new Error(`in deleteComponentProperty: Could not find a component property with name: '${key}'`);
+            delete defs[key];
+          };
           // A GETTER, not a snapshot, for two reasons the chunked path depends on. The axes Figma derives
           // come from the member NAMES (the wire format `planComponentName` emits), so a set that gained
           // members by `appendChild` must report the wider axis — a snapshot taken at combine time would
@@ -18504,6 +18536,9 @@ arm: {
             },
           });
           set.addComponentProperty = (name: string, type: string, defaultValue: unknown) => {
+            // #2417 — measured: a SLOT property cannot be added with no default ("Required value missing"); the host makes
+            // one only through a slot node.
+            if (type === 'SLOT') throw new Error('in addComponentProperty: Property "node.addComponentProperty.defaultValue" failed validation: Required value missing');
             if (type === 'INSTANCE_SWAP' && typeof defaultValue !== 'string')
               throw new Error('in addComponentProperty: Property value is incompatible with component property type');
             if (type === 'BOOLEAN' && typeof defaultValue !== 'boolean')
@@ -18530,7 +18565,15 @@ arm: {
         // precondition is stated in terms of containment, and a root that never becomes a component could only
         // ever refuse the deferred write. Returning the same object is right (Figma converts in place); the
         // type change is what lets `__exposeNow` succeed the moment it runs after this call.
-        createComponentFromNode: (n: unknown) => { (n as Record<string, unknown>).type = 'COMPONENT'; return n; },
+        createComponentFromNode: (n: unknown) => {
+          const c = n as Record<string, unknown>;
+          c.type = 'COMPONENT';
+          // #2417 — a COMPONENT's native slot: a SLOT that is a frame in every respect the build writes, appended as
+          // the component's last child and named `Slot`, as measured.
+          // `noSlots` models a host without the feature, which the payload must name rather than build around silently.
+          if (!opts.noSlots) c.createSlot = () => { const sl = mkNode('FRAME') as Record<string, unknown>; sl.type = 'SLOT'; sl.name = 'Slot'; (c.appendChild as (x: unknown) => void)(sl); return sl; };
+          return n;
+        },
         // A page a payload can SEARCH, not just append to. The chunked path finds its set here by name
         // and type, so `findOne` has to be real; a stub returning `null` would send every chunk down the
         // combine branch and build N separate sets while every assertion below still passed.
@@ -18568,7 +18611,8 @@ arm: {
             });
             continue;
           }
-          let held: Record<string, string> | null = null;
+          // Seeded from what the node holds: a native slot's reference is the host's, written at the combine (#2417).
+          let held: Record<string, string> | null = ((n as Record<string, unknown>).componentPropertyReferences as Record<string, string> | null | undefined) ?? null;
           Object.defineProperty(n, 'componentPropertyReferences', {
             configurable: true,
             get: () => held,
@@ -19650,6 +19694,69 @@ arm: {
       const setRun = await runPayload(planSetToPluginJs(grid), fullSet);
       ok(setRun.misses.length === 0, `set properties: the set payload runs CLEAN end to end${setRun.misses.length ? ` — ${JSON.stringify(setRun.misses)}` : ''}`);
 
+      // ---- #2417: NATIVE SLOTS through the PASTE executor ----
+      // A TEST-ONLY def, Tag with its dismiss cell declared a slot (as `apps/plugin/test-native-slots.ts` builds it
+      // through the plugin executor): the 15 dismissible members carry it, the 30 others do not. Each cell must come
+      // back a SLOT, and the set must hold ONE SLOT property that every slot references. Mutations: `__slotsNow` not
+      // called → `#2417 paste: …` (FRAME cells, no property); the SLOT skip in the property loop dropped → the same
+      // arm (an `addComponentProperty` refused for want of a default).
+      {
+        const tagDef = componentDefs.find((d) => d.id === 'tag')!;
+        const slottedTag: ComponentDef = { ...tagDef, anatomy: { ...tagDef.anatomy!, parts: { ...tagDef.anatomy!.parts, dismiss: { ...tagDef.anatomy!.parts.dismiss, contentSlot: true } } } };
+        const sg = figmaAnatomySet(slottedTag, { swapTarget: 'FPO-default-icon' });
+        const page = { children: [] as Record<string, unknown>[] };
+        const run = await runPayload(planSetToPluginJs(sg), {
+          vars: sg.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]),
+          styles: sg.flatMap((p) => planTextStyles(p.root)),
+          // Every component the plans reach for, read off the plans (Tag nests the icon components it draws).
+          comps: [...new Set(sg.flatMap((p) => { const walk = (n: { swapTarget?: string; nestTarget?: string; children: unknown[] }): string[] => [...(n.swapTarget ? [n.swapTarget] : []), ...(n.nestTarget ? [n.nestTarget] : []), ...(n.children as (typeof n)[]).flatMap(walk)]; return walk(p.root); }))],
+          page,
+        });
+        const set = page.children.find((c) => c.type === 'COMPONENT_SET') as Record<string, unknown> | undefined;
+        const every = (n: Record<string, unknown>): Record<string, unknown>[] => [n, ...(((n.children as Record<string, unknown>[]) ?? []).flatMap(every))];
+        const cells = ((set?.children as Record<string, unknown>[]) ?? []).flatMap((m) => every(m).filter((n) => n.name === 'dismiss'));
+        const slotDefs = Object.entries(((set?.componentPropertyDefinitions ?? {}) as Record<string, { type: string }>)).filter(([, d]) => d.type === 'SLOT');
+        ok(run.misses.length === 0 && cells.length === 15 && cells.every((n) => n.type === 'SLOT') && slotDefs.length === 1
+          && cells.every((n) => (n.componentPropertyReferences as Record<string, string> | null)?.slotContentId === slotDefs[0][0])
+          && cells.every((n) => ((n.children as Record<string, unknown>[]) ?? []).map((c) => String(c.name)).join() === 'dismissGlyph'),
+          `#2417 paste: the paste executor builds each dismiss cell as a native SLOT holding its glyph, and the set holds one SLOT property they all reference (${cells.length} cells, ${[...new Set(cells.map((n) => n.type))].join('/')}; ${slotDefs.map(([k]) => k).join(', ') || 'no SLOT property'}${run.misses.length ? `; misses ${JSON.stringify(run.misses.slice(0, 2))}` : ''})`);
+        // A SLOT'S TEXT IS LITERAL (#2417): Figma refuses a component-property reference on a slot sublayer (measured), so
+        // a text part inside a slot carries its own `characters`, and a TEXT property claiming one is refused, as is
+        // literal copy anywhere outside a slot. Mutations: the in-slot claim rule dropped → `#2417 validator: a TEXT
+        // property …`; the outside-a-slot rule dropped → `#2417 validator: literal copy outside …`.
+        const withHint = (extra: Partial<ComponentDef>, slot = true): ComponentDef => ({ ...slottedTag, ...extra, anatomy: { ...slottedTag.anatomy!, parts: { ...slottedTag.anatomy!.parts,
+          dismiss: { ...slottedTag.anatomy!.parts.dismiss, contentSlot: slot ? true : undefined, children: [...(tagDef.anatomy!.parts.dismiss.children ?? []), 'hint'] },
+          hint: { kind: 'text', type: tagDef.anatomy!.parts.label.type, characters: 'Drop content here' } } } });
+        const errs = (d: ComponentDef): string[] => validateComponentDef(d).errors;
+        ok(errs(withHint({})).length === 0, `#2417 validator: a literal text inside a native slot is valid (${errs(withHint({})).slice(0, 1).join('')})`);
+        ok(errs(withHint({}, false)).some((m) => /declares 'characters' outside a native slot/.test(m)),
+          `#2417 validator: literal copy outside a native slot is refused (${errs(withHint({}, false)).filter((m) => /hint/.test(m)).slice(0, 1).join('')})`);
+        const claimed = withHint({ figmaProperties: { ...slottedTag.figmaProperties!, texts: { ...slottedTag.figmaProperties!.texts, hint: { part: 'hint', default: 'x' } } } });
+        ok(errs(claimed).some((m) => /sits inside a native slot/.test(m)),
+          `#2417 validator: a TEXT property claiming a part inside a native slot is refused (${errs(claimed).filter((m) => /slot/.test(m)).slice(0, 1).join('')})`);
+        // THE FOUR SHAPE REFUSALS, each asserted by its own message so a refusal switched off fails its own arm, not a
+        // neighbor's: copy on a non-text part, a slot on a non-box part, a slot with no layout, and a slot on the root.
+        // Each def is the slotted Tag with one part patched, as `withHint` builds its own.
+        const tagParts = slottedTag.anatomy!.parts;
+        const patched = (patch: Record<string, unknown>): ComponentDef => ({ ...slottedTag, anatomy: { ...slottedTag.anatomy!, parts: { ...tagParts, ...patch } as typeof tagParts } });
+        const refused = (d: ComponentDef, re: RegExp): string => { const all = errs(d); return all.some((m) => re.test(m)) ? '' : `none matched; got ${JSON.stringify(all.slice(0, 2))}`; };
+        const onBox = refused(patched({ dismiss: { ...tagParts.dismiss, characters: 'x' } }), /declares 'characters' — only a 'text' part/);
+        ok(onBox === '', `#2417 validator: copy on a box is refused, only a text part holds it ${onBox}`);
+        const onGlyph = refused(patched({ dismissGlyph: { ...tagParts.dismissGlyph, contentSlot: true } }), /only a 'box' can be a native slot/);
+        ok(onGlyph === '', `#2417 validator: a native slot on a non-box part is refused ${onGlyph}`);
+        const { layout: _layout, ...noLayout } = tagParts.dismiss;
+        const bare0 = refused(patched({ dismiss: { ...noLayout, contentSlot: true } }), /binds no 'layout'/);
+        ok(bare0 === '', `#2417 validator: a native slot with no layout is refused ${bare0}`);
+        const rootName = slottedTag.anatomy!.root;
+        const onRoot = refused(patched({ [rootName]: { ...tagParts[rootName], contentSlot: true } }), /on the root/);
+        ok(onRoot === '', `#2417 validator: a native slot on the root is refused ${onRoot}`);
+        // A HOST WITHOUT NATIVE SLOTS: each cell stays a frame, and the payload names both what it could not make and
+        // the property that therefore never existed, rather than an `addComponentProperty` the host refuses.
+        const bare = await runPayload(planSetToPluginJs(sg), { vars: sg.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]), styles: sg.flatMap((p) => planTextStyles(p.root)), comps: [...new Set(sg.flatMap((p) => { const walk = (n: { swapTarget?: string; nestTarget?: string; children: unknown[] }): string[] => [...(n.swapTarget ? [n.swapTarget] : []), ...(n.nestTarget ? [n.nestTarget] : []), ...(n.children as (typeof n)[]).flatMap(walk)]; return walk(p.root); }))], noSlots: true });
+        ok(bare.misses.some((m) => /dismiss\.slot -> NOT MADE/.test(m)) && bare.misses.some((m) => /property dismiss -> SLOT not on the set/.test(m)) && !bare.misses.some((m) => /SLOT REFUSED/.test(m)),
+          `#2417 paste, no native slots: the cells stay frames and the payload names the slot it could not make and the property that never existed (${JSON.stringify(bare.misses.filter((m) => /slot|SLOT/.test(m)).slice(0, 2))})`);
+      }
+
       // ---- #1393: the PASTE executor leaves no Figma white default on an unclaimed or unresolvable fill ----
       // The payload half of #1387/F1. The plugin executor has `claimDefaults` (#865), which neutralizes a fill
       // nobody claimed to `[]`; the paste executor had no such pass, so on the host every frame whose plan
@@ -20370,28 +20477,28 @@ arm: {
         const box = (n: Record<string, unknown> | undefined) => `${String(n?.width)}x${String(n?.height)}`;
         ok(at(first) === '0,0' && box(first) === '504x348',
           `#1809 the first set on an empty page stays at 0,0; its box is pinned as the input to the arms below (${at(first)}, ${box(first)})`);
-        // (f) A SECOND DEF ON THE SAME PAGE lands 160 right of the first (504 + 160 = 664), top-aligned. Chunk 2
+        // (f) A SECOND DEF ON THE SAME PAGE lands 400 right of the first (160 before #2502) (504 + 400 = 904), top-aligned. Chunk 2
         // onward append into it and do not move it.
         const dRuns = await paste(destructive, placePage);
         const second = setOf(placePage, 'button-destructive');
-        ok(dRuns.length >= 2 && placePage.children.length === 2 && at(second) === '664,0' && at(first) === '0,0',
-          `#1809 a second set pasted onto the page lands beside the first, 160px clear and top-aligned, at 664,0 (${dRuns.length} chunks; button-destructive at ${at(second)}, button at ${at(first)})`);
+        ok(dRuns.length >= 2 && placePage.children.length === 2 && at(second) === '904,0' && at(first) === '0,0',
+          `#1809 a second set pasted onto the page lands beside the first, 400px clear and top-aligned, at 904,0 (${dRuns.length} chunks; button-destructive at ${at(second)}, button at ${at(first)})`);
         // PARITY: the plugin places the same set at the same coordinate on the same page.
         const placePlug: StubPage = { children: [] };
         await plug(btn, placePlug);
         await plug(destructive, placePlug);
-        ok(at(setOf(placePlug, 'button-destructive')) === '664,0' && at(setOf(placePlug, 'button-destructive')) === at(second),
+        ok(at(setOf(placePlug, 'button-destructive')) === '904,0' && at(setOf(placePlug, 'button-destructive')) === at(second),
           `#1809 parity: the plugin places the second set at the same coordinate (plugin ${at(setOf(placePlug, 'button-destructive'))}, paste ${at(second)})`);
         // (g) A REBUILD NEVER MOVES A SET: re-pasting `button` after the designer moved it leaves it there.
         first!.x = 5000;
         first!.y = 7000;
         const again = await paste(btn, placePage);
-        ok(again.every((r) => r.added === 0) && at(first) === '5000,7000' && at(second) === '664,0',
+        ok(again.every((r) => r.added === 0) && at(first) === '5000,7000' && at(second) === '904,0',
           `#1809 a re-paste leaves a set the designer moved where they put it, and its sibling where it was (button at ${at(first)}, button-destructive at ${at(second)})`);
 
         // (h) WHAT SHARES THE ROW PUSHES IT RIGHT; WHAT SITS ABOVE DOES NOT. A header-wide frame above the sets
-        // (bottom edge at -80) and a note inside the row at x 600..1000. Expected x: 1000 + 160 = 1160, not the
-        // header's 5000 + 160.
+        // (bottom edge at -80) and a note inside the row at x 600..1000. Expected x: 1000 + 400 = 1400, not the
+        // header's 5000 + 400.
         const rowPage: StubPage = { children: [] };
         const rowPlug: StubPage = { children: [] };
         for (const pg of [rowPage, rowPlug]) {
@@ -20406,20 +20513,20 @@ arm: {
           const p = rect(a), q = rect(b);
           if (p.x < q.r && q.x < p.r && p.y < q.b && q.y < p.b) overlaps.push(`${String(a.name)} x ${String(b.name)}`);
         }));
-        ok(at(setOf(rowPage, 'button-destructive')) === '1160,0' && rowPage.children.length === 4 && overlaps.length === 0,
-          `#1809 a node in the set's row pushes it right (1000 + 160), a node wholly above it does not, and no two of the page's nodes overlap (at ${at(setOf(rowPage, 'button-destructive'))}; overlaps: ${overlaps.join(', ') || 'none'})`);
-        ok(at(setOf(rowPlug, 'button-destructive')) === '1160,0',
+        ok(at(setOf(rowPage, 'button-destructive')) === '1400,0' && rowPage.children.length === 4 && overlaps.length === 0,
+          `#1809 a node in the set's row pushes it right (1000 + 400), a node wholly above it does not, and no two of the page's nodes overlap (at ${at(setOf(rowPage, 'button-destructive'))}; overlaps: ${overlaps.join(', ') || 'none'})`);
+        ok(at(setOf(rowPlug, 'button-destructive')) === '1400,0',
           `#1809 parity: the plugin places it at the same coordinate on the same page (plugin ${at(setOf(rowPlug, 'button-destructive'))})`);
 
         // (i) CONTENT BUT NO SET YET: top-aligned with the content, right of it. A frame at x 100..600, y 40 →
-        // the set at 760,40.
+        // the set at 1000,40.
         const introPage: StubPage = { children: [{ type: 'FRAME', name: 'intro', x: 100, y: 40, width: 500, height: 300 }] };
         await paste(btn, introPage);
-        ok(at(setOf(introPage)) === '760,40',
-          `#1809 on a page with content and no set, the set lands right of it, top-aligned, at 760,40 (got ${at(setOf(introPage))})`);
+        ok(at(setOf(introPage)) === '1000,40',
+          `#1809 on a page with content and no set, the set lands right of it, top-aligned, at 1000,40 (got ${at(setOf(introPage))})`);
 
         // (i') A NODE WHOLLY BELOW THE ROW DOES NOT PUSH THE SET. A note at x 600..1000, y 400..500, under the
-        // `button` set's 348-high row. Expected: 504 + 160 = 664,0, not the note's 1000 + 160, in both executors.
+        // `button` set's 348-high row. Expected: 504 + 400 = 904,0, not the note's 1000 + 400, in both executors.
         const belowPage: StubPage = { children: [] };
         const belowPlug: StubPage = { children: [] };
         for (const pg of [belowPage, belowPlug]) {
@@ -20427,16 +20534,16 @@ arm: {
           pg.children.push({ type: 'FRAME', name: 'below', x: 600, y: 400, width: 400, height: 100 });
           if (pg === belowPage) await paste(destructive, pg); else await plug(destructive, pg);
         }
-        ok(at(setOf(belowPage, 'button-destructive')) === '664,0' && at(setOf(belowPlug, 'button-destructive')) === '664,0',
-          `#1809 a node wholly below the row does not push the set: 664,0 in both executors (paste ${at(setOf(belowPage, 'button-destructive'))}, plugin ${at(setOf(belowPlug, 'button-destructive'))}; destructive set ${String(setOf(belowPage, 'button-destructive')?.height)} high)`);
+        ok(at(setOf(belowPage, 'button-destructive')) === '904,0' && at(setOf(belowPlug, 'button-destructive')) === '904,0',
+          `#1809 a node wholly below the row does not push the set: 904,0 in both executors (paste ${at(setOf(belowPage, 'button-destructive'))}, plugin ${at(setOf(belowPlug, 'button-destructive'))}; destructive set ${String(setOf(belowPage, 'button-destructive')?.height)} high)`);
 
         // (j) THE REMEDY THE MISS STATES IS TRUE, and the new set lands beside the old: rename the refused set
-        // aside and paste again. The renamed set is 504 wide (the same 36 members), so the new one lands at 664,0.
+        // aside and paste again. The renamed set is 504 wide (the same 36 members), so the new one lands at 904,0.
         setOf(renPage)!.name = 'button (earlier axes)';
         const remedy = await paste(btn, renPage);
         ok(remedy.every((r) => !r.misses.length) && renPage.children.length === 2 && kids(setOf(renPage)).length === 36
-          && at(setOf(renPage)) === '664,0' && kids(setOf(renPage, 'button (earlier axes)')).every((m, i) => m === renBefore[i]),
-          `#1809 after renaming the old set aside, the paste makes a fresh 36-member set beside it at 664,0 and leaves the old one as it was (${renPage.children.length} top-level, new set at ${at(setOf(renPage))}, misses ${JSON.stringify(remedy.map((r) => r.misses.length))})`);
+          && at(setOf(renPage)) === '904,0' && kids(setOf(renPage, 'button (earlier axes)')).every((m, i) => m === renBefore[i]),
+          `#1809 after renaming the old set aside, the paste makes a fresh 36-member set beside it at 904,0 and leaves the old one as it was (${renPage.children.length} top-level, new set at ${at(setOf(renPage))}, misses ${JSON.stringify(remedy.map((r) => r.misses.length))})`);
       }
 
       // ---- #1377 / #1392: THE PAYLOAD EXECUTOR'S EXPOSURE WRITE, over EVERY nest-exposed def -------
@@ -21414,7 +21521,7 @@ arm: {
         // which is only correct while the column axis is the last element — the exact assumption that
         // stops holding the moment the axis is chosen. A `state` still present in `rowKeys` would put
         // every member of a row in one cell.
-        // Button is in the canvas-furniture pilot (#2188 Q173 A), so `surface` leads: the inverse rows form one block.
+        // Button has canvas furniture (#2188 Q173 A, every def since #2502), so `surface` leads: the inverse rows form one block.
         ok(JSON.stringify(fullLayout.rowKeys) === JSON.stringify(['surface', 'appearance', 'inset', 'size', 'leading icon', 'trailing icon']),
           `#656: the rows combine every varying axis EXCEPT the column one, surface first — the two slot axes carry their Figma names (#1380) — got ${JSON.stringify(fullLayout.rowKeys)}`);
         // #2188 Q173 A: rows 0–47 are surface=default and 48–95 surface=inverse, each a contiguous band. Literals: 96
@@ -21739,8 +21846,14 @@ arm: {
       // NOW 15, AS OF #2501 — no byte moved: the state columns were reordered (owner decision Q213, Pressed and
       // Pending before Focus visible), and members in the new order pack one chunk tighter. Re-pinned per the same
       // standing instruction; every chunk stays under budget.
+      //
+      // NOW 16 AGAIN, AS OF #2417 — a shell-byte move: the paste script gained native slots (the `CONTENT_SLOT`
+      // branch, the slot list and the SLOT skip in the property loop), 303 bytes in every chunk's shell, measured
+      // against #2501's 15 (25,157 → 25,460 bytes for a one-member payload). The slot helper itself ships only
+      // when a set has a slot, so icon-button does not carry it. Re-pinned per the same standing instruction;
+      // every chunk stays under budget.
       const ibChunks = planSetChunks(ibSet);
-      ok(ibChunks.length === 15, `anatomy/icon-button: the set packs into 15 chunks (${ibChunks.length})`);
+      ok(ibChunks.length === 16, `anatomy/icon-button: the set packs into 16 chunks (${ibChunks.length})`);
       ok(ibChunks.every((c) => c.bytes <= SET_CHUNK_BYTES),
         `anatomy/icon-button: no chunk exceeds the byte budget (${ibChunks.map((c) => c.bytes).join(', ')} vs ${SET_CHUNK_BYTES})`);
       // And the chunks partition the set — no member dropped, none written twice. A packer that lost a

@@ -70,9 +70,9 @@ each handler's `switch` exhaustive, so a new message type can't be silently drop
   not a second UI. `tsconfig.ui.json` repoints at the shared UI so the DOM-clean/no-plugin-typings check
   runs on what's bundled.
 - ✅ **Host selected at BUILD time** via `PRISM3_HOST` (esbuild `--define`; `apps/studio/src/prism3-host.d.ts`).
-  `makeWriteHost` → `cssVarAdapter` for both (the preview paints CSS vars in either host); the COMMIT
-  seam (`hostCommit`) differs — web downloads via the export bar, figma posts the live `BrandInput` to
-  the main thread. esbuild DCEs the unused branch.
+  Both hosts paint the preview the same way, in a full DOM; the COMMIT seam (`hostCommit`,
+  `apps/studio/src/write-adapter.ts`) differs — web downloads via the export bar, figma posts the live
+  `BrandInput` to the main thread. esbuild DCEs the unused branch.
 - ✅ **Write path = #108 verbatim**, only the theme source changed (bundled NB → live UI knobs):
   `apply-theme` carries a `BrandInput`; the main thread runs `buildWritePlan(buildFigmaColor(brandTheme(input)))`
   → `applyWritePlan`. On boot it runs #109 read-back → a `seed-info` panel.
@@ -243,20 +243,22 @@ text only while it still reads the placeholder. A file with no `_Section-header`
 the build result says so. The agent link shares this handler; the `use_figma` paste path
 (`src/mcp-steps.ts`) does not place a header. Gated by `test-page-header.ts`.
 
-**The canvas furniture (pilot, #2406 Q171, #2188 Q172/Q173).** File setup also builds `_Label` (the owner's
+**The canvas furniture (#2406 Q171, #2188 Q172/Q173; on every def since #2502, Q212 A).** File setup also builds `_Label` (the owner's
 Prism 2 label: `Text` = Top | Left | Right | Bottom, `surface` = default | inverse, a `Show bracket` boolean, #9747FF
 and #E0C7FF as literal colors) and `_inverse-backdrop` (a component whose fill binds the brand's
 `color/inverse/background/primary`) onto `↳ File Components`, each on its own, so a file set up earlier gets them on
-its next setup (`src/furniture-templates.ts`). After a build or an in-place update lands a set of a piloted def,
+its next setup (`src/furniture-templates.ts`). After a build or an in-place update lands a set,
 `src/canvas-furniture.ts` places `_Label` instances on the set's parent, outside the set: a column label above each
 grid-axis value, nested row brackets to the left for the outer row axes (none for on/off axes), one "Inverse" bracket
-outermost, and an `_inverse-backdrop` instance behind the inverse rows. For a piloted def, the engine's
+outermost, and an `_inverse-backdrop` instance behind the inverse rows. For a def with a `surface` row axis, the engine's
 `planSetLayout` groups `surface` outermost, so the inverse rows are one band. A set laid out before that reads as moves
 in the update's dry run (`gridMoves` in `src/update-plan.ts`, Q173), and the apply re-lays its grid with every id kept;
 until then it gets no furniture, so it never carries one backdrop per band. Labels and backdrops are tagged
 `prism3`/`furniture`: a rebuild or update clears and redraws them, prune removes those whose set is gone, and they never
 enter the set, so the update's hand-edit check and the as-built record never read them. The switch is
-`CANVAS_FURNITURE_PILOT` (engine), on for Button, Tag and Text field. Gated by `test-canvas-furniture.ts`.
+`CANVAS_FURNITURE` (engine), on for every def that builds a set; Icon and Spinner build single components and have
+none. Sets side by side sit `SET_GAP` (400) apart, so a later set's row labels fit between them. Gated by
+`test-canvas-furniture.ts`, which draws every def and measures the clearance on every shared page.
 
 **Not yet wired:** a UI trigger for `file-setup` (the shared-UI button) is a follow-up — the owner deferred UI
 placement, and the message contract + main-thread handler are complete and ready for it.

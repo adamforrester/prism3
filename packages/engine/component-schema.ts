@@ -446,6 +446,19 @@ export type PartDef = {
    *  Refused alongside `padding` (a box states its padding once), on a box with no `layout` (Figma pads only an
    *  auto-layout frame), and on every other kind. */
   paddingTop?: string;
+  /** For `box` parts: the box is a NATIVE FIGMA SLOT (#2417), the region a designer fills with their own content
+   *  on an instance, in place, with no component to make first. Its children are the slot's DEFAULT content (a
+   *  placeholder the designer replaces). The set gets one SLOT property named for the part; Figma merges every
+   *  member's slot of that name into it at the combine, and a designer's content survives a variant switch,
+   *  measured on a real host (an expansion switch to a member without the slot and back). Not an instance-swap
+   *  `slot` part: that one swaps a whole component the designer must have made, and its target is the one
+   *  nominated per file. A `box` with `layout` only, and never the root (a slot is a region inside a member). */
+  contentSlot?: true;
+  /** For `text` parts INSIDE a `contentSlot` box (#2417): the placeholder copy, written as it is. A text node in a
+   *  native slot's default content can carry no component-property reference (measured: Figma refuses one on a slot
+   *  sublayer), so a slot's placeholder is literal text, which a designer edits or replaces on the instance. Refused
+   *  anywhere else, where a TEXT property is the one way copy is written. */
+  characters?: string;
   /** For `box` parts: WHICH paint slots this box takes, in precedence order (#933). Absent means the
    *  box paints nothing — it is structure, and `field-label`'s and `field-message`'s boxes are exactly
    *  that. The words must come from `BOX_PAINT_SLOTS`.
@@ -2332,7 +2345,16 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
   // separately rejects a `swaps` entry pointing at a text part, so that state is unreachable today —
   // which is the argument for asking the precise question here rather than relying on it staying so.)
   const textClaimed = new Set(Object.values(fp.texts ?? {}).map((t) => t.part));
+  // A NATIVE SLOT's text (#2417): its copy is the part's own literal `characters`, and a TEXT property cannot reach it
+  // (Figma refuses a reference on a slot sublayer), so a claim there is refused and an unclaimed one is expected.
+  const slotParts = def.anatomy?.parts ?? {};
+  const parentOf = new Map<string, string>();
+  for (const [n, q] of Object.entries(slotParts)) for (const c of q.children ?? []) parentOf.set(c, n);
+  const inSlot = (n: string): boolean => { for (let x = parentOf.get(n); x; x = parentOf.get(x)) if (slotParts[x]?.contentSlot) return true; return false; };
+  for (const [prop, t] of Object.entries(fp.texts ?? {}))
+    if (inSlot(t.part)) e.push(`figmaProperties.texts.${prop} claims '${t.part}', which sits inside a native slot — Figma refuses a component-property reference on a slot sublayer, so the reference would throw at build. Give the part literal \`characters\` instead`);
   for (const [name, p] of Object.entries(def.anatomy?.parts ?? {})) {
+    if (p.kind === 'text' && p.characters !== undefined) continue;
     if (p.kind === 'text' && !textClaimed.has(name)) {
       e.push(`anatomy part '${name}' is a 'text' part with no TEXT property claiming it — \`characters\` is written only where \`figmaProperties.texts\` names the part, so this node projects with its ink and type style and NO content: an empty, zero-width text node in Figma. Add \`texts: { <prop>: { part: '${name}', default: '<placeholder>' } }\`. This is #510's blank-button defect at one-node scale`);
     }
@@ -4087,6 +4109,20 @@ const anatomyErrors = (def: ComponentDef): string[] => {
         e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'grow' — only a 'box' grows along its parent's main axis ('wrap' is the text twin); a nested instance's child-side writes are its parent's, and only 'crossAxisFill' is threaded there`);
       else if (!boundedMain)
         e.push(`anatomy part '${n}' declares 'grow' but its parent '${parent ?? '(none)'}' does not bound its main axis (a row needs a 'minWidth' floor, a fixed width, a width it fills from a bounded parent, or 'crossAxisFill' under a column; a column a fixed height, or 'crossAxisFill' under a row) — 'layoutGrow' fills REMAINING space and a hugging parent has none`);
+    }
+    // ---- A SLOT'S LITERAL TEXT (`characters`, #2417) ----
+    if (p.characters !== undefined) {
+      if (p.kind !== 'text') e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'characters' — only a 'text' part holds copy`);
+      let up = Object.entries(a.parts).find(([, q]) => (q.children ?? []).includes(n))?.[0];
+      let slotted = false;
+      while (up) { if (a.parts[up]?.contentSlot) { slotted = true; break; } const at = up; up = Object.entries(a.parts).find(([, q]) => (q.children ?? []).includes(at))?.[0]; }
+      if (!slotted) e.push(`anatomy part '${n}' declares 'characters' outside a native slot — copy is written through a TEXT property (\`figmaProperties.texts\`) everywhere but inside a \`contentSlot\` box`);
+    }
+    // ---- NATIVE CONTENT SLOT (`contentSlot`, #2417) ----
+    if (p.contentSlot) {
+      if (p.kind !== 'box') e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'contentSlot' — only a 'box' can be a native slot (Figma's slot is a frame)`);
+      else if (!p.layout) e.push(`anatomy part '${n}' declares 'contentSlot' but binds no 'layout' — a slot holds a designer's content, and only an auto-layout frame flows it`);
+      if (n === a.root) e.push(`anatomy part '${n}' declares 'contentSlot' on the root — a slot is a region inside a member, never the member itself`);
     }
     // ---- TOP-ONLY PADDING (`paddingTop`) ----
     if (p.paddingTop !== undefined) {
