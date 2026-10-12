@@ -31,22 +31,12 @@
     {
       "kind": "conforming-base",
       "pattern": "out/{brand}.base.tokens.json",
-      "why": "The conforming projection's base set — readable by a stock Style Dictionary with no custom code (#609, #642)."
+      "why": "The conforming projection's base set — readable by a stock Style Dictionary with no custom code (#609, #642). Since #2552 it is also the consumer handoff: no `$extensions` anywhere, so a token carries only `$value`, `$type` and `$description`."
     },
     {
       "kind": "conforming-overlay",
       "pattern": "out/{brand}.{mode}.overlay.tokens.json",
-      "why": "One overlay per theme mode. Base + overlay is the projection a conforming consumer resolves."
-    },
-    {
-      "kind": "consumer-base",
-      "pattern": "out/consumer/{brand}.base.tokens.json",
-      "why": "The consumer set's base (#2552, owner decision Q250 A): the conforming base with every `$extensions` removed, so a token carries only `$value`, `$type` and `$description`. The default handoff; `lint-consumer-build.ts` holds it."
-    },
-    {
-      "kind": "consumer-overlay",
-      "pattern": "out/consumer/{brand}.{mode}.overlay.tokens.json",
-      "why": "The consumer set's per-mode overlay (#2552): the conforming overlay with every `$extensions` removed. Base + overlay, with no build metadata, is what a client is handed."
+      "why": "One overlay per theme mode. Base + overlay is the projection a conforming consumer resolves, and (#2552) it carries no `$extensions`."
     },
     {
       "kind": "agent-metadata",

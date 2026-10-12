@@ -1,6 +1,6 @@
 /**
  * `test:export-parity` — the web studio's token export and the plugin's token export of the same brand are the
- * same bytes, and those bytes are the engine's committed emission for that brand (#2351, gap 1).
+ * same bytes, and those bytes are the engine's committed CONSUMER set for that brand (#2351 gap 1; #2552).
  *
  *   npm run -w @prism3/studio build && npm run -w @prism3/plugin build
  *   npm run -w @prism3/studio test:export-parity
@@ -9,7 +9,9 @@
  *
  * BOTH BUILT BUNDLES, through the person's own path: the studio's `dist/main.js` (host=web) and the plugin's
  * `dist/ui.html` (host=figma), each opened in Chromium, each given a brand from its start screen, then Export ›
- * Download with every export setting at its default. The file the browser downloads is what is compared. No
+ * Download with every export setting at its default. The files the browser downloads are what is compared: since
+ * #2552 the download is the consumer set, the base plus one overlay per mode with no `$extensions`, so a brand
+ * writes several files and every one is held. No
  * export function is imported here: a gate that called `projectDtcg` itself would test a function, not the two
  * products, and a host-only branch (a `PRISM3_HOST` define, a figma-only seed) could differ and stay green.
  *
@@ -20,9 +22,14 @@
  *
  * ── the rule, stated ──────────────────────────────────────────────────────────────────────────────
  *
- *   1. PARITY: for each brand, the web download and the plugin download have the same file name and are
- *      BYTE-IDENTICAL. No normalization, no tolerance.
- *   2. ACCURACY: each of them is byte-identical to `packages/engine/out/<id>.tokens.json`.
+ *   1. PARITY: for each brand, the web download and the plugin download are the same set of file names, and each
+ *      file is BYTE-IDENTICAL across the two. No normalization, no tolerance.
+ *   2. ACCURACY: the set is exactly `packages/engine/out/consumer/<id>.*`, read off disk, and each file is
+ *      byte-identical to its committed copy.
+ *   3. THE DEFAULT (#2552): "Include build metadata" shows Off, and no download is the single-file
+ *      `<id>.tokens.json`, which keeps its modes inside `$extensions` and is never a handoff file. For one brand
+ *      per host the option is then turned On, and each file must be the engine's `out/<name>` projection, so the
+ *      option is seen to do what it says rather than only to default.
  *
  * ── independence (docs/34) ────────────────────────────────────────────────────────────────────────
  *
@@ -48,7 +55,7 @@
  *
  *   · non-default export settings (key case, file split, and the rest of `export-settings.ts`): their shaping is
  *     `test-export-settings.ts`'s, over the same function both hosts call;
- *   · the design.md export, and the overlay and base projections the engine also emits;
+ *   · the design.md export;
  *   · TokenPress, which exports a FIGMA FILE rather than a brand, and is gap 2's subject
  *     (`apps/plugin/test-readback-parity.ts`).
  */
@@ -148,8 +155,13 @@ const openStart = async (host) => {
   return { ctx, page, errors, chips: chips.map((s) => s.trim()) };
 };
 
-/** Load `id` from the start screen the way a person does, then Export › Download at the default settings. */
-const exportFrom = async (host, id) => {
+/** The committed consumer set for a brand, read off disk: the expected side, and how many downloads to wait for. */
+const consumerSet = (id) => readdirSync(join(OUT, 'consumer')).filter((f) => f.startsWith(`${id}.`)).sort();
+const METADATA_LABEL = 'Include build metadata';   // #2552, DRAFT wording; the option's own aria-label prefix
+
+/** Load `id` from the start screen the way a person does, then Export › Download at the default settings, collecting
+ *  every file the download writes. With `metadataOn`, the metadata option is switched On first. */
+const exportFrom = async (host, id, metadataOn = false) => {
   const { ctx, page, errors } = await openStart(host);
   try {
     const src = SOURCES[id];
@@ -163,10 +175,22 @@ const exportFrom = async (host, id) => {
     await hooks.need(page, '[data-p3="frame"]');
     await hooks.click(page.locator('[data-p3="export-open"]'));
     await hooks.need(page, '[data-p3="export-dialog"]');
-    const pending = page.waitForEvent('download');
+    const off = page.locator(`[data-p3="export-setting"][aria-label="${METADATA_LABEL}: Off"]`);
+    const metadataDefault = (await off.count()) === 1 ? await off.getAttribute('aria-pressed') : 'absent';
+    if (metadataOn) await hooks.click(page.locator(`[data-p3="export-setting"][aria-label="${METADATA_LABEL}: On"]`));
+    const want = consumerSet(id).length;
+    const got = new Map();
+    const all = new Promise((res) => {
+      const on = (dl) => { got.set(dl.suggestedFilename(), dl); if (got.size >= want) { page.off('download', on); res(); } };
+      page.on('download', on);
+    });
     await hooks.click(page.locator('[data-p3="export-dialog"] [data-p3="dialog-confirm"]'));
-    const dl = await pending;
-    return { name: dl.suggestedFilename(), body: await readFile(await dl.path(), 'utf8'), errors };
+    await Promise.race([all, new Promise((res) => setTimeout(res, 15000))]);
+    // A beat for a download beyond the expected count, so an extra file is seen rather than raced past.
+    await new Promise((res) => setTimeout(res, 500));
+    const files = new Map();
+    for (const [name, dl] of got) files.set(name, await readFile(await dl.path(), 'utf8'));
+    return { files, metadataDefault, errors };
   } finally { await ctx.close(); }
 };
 
@@ -187,18 +211,47 @@ for (const host of ['web', 'figma']) {
   ok(chipIds.every((id) => chips.some((c) => c.includes(SOURCES[id].chip))), `${host}: every gated example is offered (${chipIds.join(', ')})`);
 }
 
-// ── per brand: web == plugin == the committed emission ──────────────────────────────────────────────
+// ── per brand: web == plugin == the committed consumer set ─────────────────────────────────────────
+const names = (m) => [...m.keys()].sort();
 for (const id of GATED) {
-  const expected = readFileSync(join(OUT, `${id}.tokens.json`), 'utf8');
+  const expected = consumerSet(id);
+  ok(expected.length >= 4, `${id}: out/consumer holds its set (${expected.join(', ')})`);
   let web, figma;
   try { web = await exportFrom('web', id); } catch (e) { ok(false, `${id}: the web export ran — ${e.message.split('\n')[0]}`); continue; }
   try { figma = await exportFrom('figma', id); } catch (e) { ok(false, `${id}: the plugin export ran — ${e.message.split('\n')[0]}`); continue; }
   ok(web.errors.length === 0, `${id}: web raised no page error${web.errors.length ? ` — ${web.errors[0]}` : ''}`);
   ok(figma.errors.length === 0, `${id}: plugin raised no page error${figma.errors.length ? ` — ${figma.errors[0]}` : ''}`);
-  ok(web.name === `${id}.tokens.json` && figma.name === web.name, `${id}: both download ${id}.tokens.json (web ${web.name}, plugin ${figma.name})`);
-  ok(web.body === figma.body, `${id}: PARITY — web and plugin exports are byte-identical (${web.body.length} / ${figma.body.length} bytes)${web.body === figma.body ? '' : ` — ${firstDiff(web.body, figma.body)}`}`);
-  ok(web.body === expected, `${id}: ACCURACY — the web export is out/${id}.tokens.json byte for byte (${web.body.length} / ${expected.length} bytes)${web.body === expected ? '' : ` — ${firstDiff(web.body, expected)}`}`);
-  ok(figma.body === expected, `${id}: ACCURACY — the plugin export is out/${id}.tokens.json byte for byte (${figma.body.length} / ${expected.length} bytes)${figma.body === expected ? '' : ` — ${firstDiff(figma.body, expected)}`}`);
+  for (const [host, x] of [['web', web], ['plugin', figma]]) {
+    ok(x.metadataDefault === 'true', `${id}: ${host} — "${METADATA_LABEL}" defaults to Off (aria-pressed ${x.metadataDefault})`);
+    ok(!x.files.has(`${id}.tokens.json`), `${id}: ${host} — the single-file ${id}.tokens.json is not downloaded`);
+    ok(JSON.stringify(names(x.files)) === JSON.stringify(expected),
+      `${id}: ${host} — the download is the consumer set (${names(x.files).join(', ') || 'nothing'})`);
+    for (const name of expected) {
+      const body = x.files.get(name), want = readFileSync(join(OUT, 'consumer', name), 'utf8');
+      ok(body === want, `${id}: ACCURACY — the ${host} ${name} is out/consumer/${name} byte for byte (${body?.length ?? 0} / ${want.length} bytes)${body === want ? '' : ` — ${body === undefined ? 'not downloaded' : firstDiff(body, want)}`}`);
+      ok(body === undefined || !body.includes('"$extensions"'), `${id}: ${host} — ${name} carries no $extensions`);
+    }
+  }
+  ok(JSON.stringify(names(web.files)) === JSON.stringify(names(figma.files)), `${id}: PARITY — web and plugin download the same files`);
+  for (const name of names(web.files)) {
+    const a = web.files.get(name), b = figma.files.get(name);
+    ok(a === b, `${id}: PARITY — web and plugin ${name} are byte-identical (${a.length} / ${b?.length ?? 0} bytes)${a === b ? '' : ` — ${b === undefined ? 'plugin did not write it' : firstDiff(a, b)}`}`);
+  }
+}
+
+// ── the option does what it says: On writes the engine's projection, metadata kept ─────────────────────
+{
+  const id = GATED.includes('prism3') ? 'prism3' : GATED[0];
+  for (const host of ['web', 'figma']) {
+    let x;
+    try { x = await exportFrom(host, id, true); } catch (e) { ok(false, `${id}: the ${host} export with metadata On ran — ${e.message.split('\n')[0]}`); continue; }
+    const expected = consumerSet(id);
+    ok(JSON.stringify(names(x.files)) === JSON.stringify(expected), `${id}: ${host} — with metadata On, the same file names (${names(x.files).join(', ')})`);
+    for (const name of expected) {
+      const body = x.files.get(name), want = readFileSync(join(OUT, name), 'utf8');
+      ok(body === want, `${id}: ${host} — with metadata On, ${name} is the engine's out/${name} byte for byte${body === want ? '' : ` — ${body === undefined ? 'not downloaded' : firstDiff(body, want)}`}`);
+    }
+  }
 }
 
 await browser.close();

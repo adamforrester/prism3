@@ -26,7 +26,6 @@ import { Theme, brandTheme, BrandInput } from './theme';
 import { nbTheme } from './nb-fixture';
 import { resolveAllModes, ModeResult } from './modes';
 import { buildOverlaySet } from './emit-dtcg-overlay';
-import { stripExtensions } from './emit-dtcg-consumer';
 import { buildAiMetadata } from './ai-metadata';
 import { parseDesignMd } from './design-md';
 import { buildTree, Stats } from './tree';
@@ -51,23 +50,14 @@ export const emitTheme = (theme: Theme, outDir: string): { tree: any; modes: Mod
   writeFileSync(resolve(outDir, `${theme.id}.tokens.json`), JSON.stringify(built.tree, null, 2) + '\n');
   // AI-readable metadata sidecar (agent surface for the semantic layer).
   writeFileSync(resolve(outDir, `${theme.id}.ai.json`), JSON.stringify(buildAiMetadata(theme, built.tree), null, 2) + '\n');
-  // The CONFORMING projection (#609). The tree above stays the source of truth; these are what a
-  // consumer with no Prism3-specific code can actually read, because `$extensions` is ignorable by
-  // spec and a stock build otherwise sees one value per token. Base + overlay, composed by the
-  // consumer's own multi-source merge — see `emit-dtcg-overlay.ts` for why overlays and not full
-  // per-mode trees.
+  // The CONFORMING projection (#609), and since #2552 the CONSUMER set itself: base + overlay, composed by the
+  // consumer's own multi-source merge, with no `$extensions` anywhere — a token carries `$value`, `$type` and
+  // `$description`. The tree above stays the source of truth and keeps every extension (its other modes live
+  // there); see `emit-dtcg-overlay.ts` for why overlays and not full per-mode trees, and why the strip is safe here.
   const projected = buildOverlaySet(built.tree);
   writeFileSync(resolve(outDir, `${theme.id}.base.tokens.json`), JSON.stringify(projected.base, null, 2) + '\n');
   for (const { mode, tree } of projected.overlays) {
     writeFileSync(resolve(outDir, `${theme.id}.${mode}.overlay.tokens.json`), JSON.stringify(tree, null, 2) + '\n');
-  }
-  // The CONSUMER set (#2552): the same base + overlays with every `$extensions` removed — what a client
-  // is handed. Taken from the projection, never the tree above, whose other modes live in `$extensions`.
-  const consumerDir = resolve(outDir, 'consumer');
-  mkdirSync(consumerDir, { recursive: true });
-  writeFileSync(resolve(consumerDir, `${theme.id}.base.tokens.json`), JSON.stringify(stripExtensions(projected.base), null, 2) + '\n');
-  for (const { mode, tree } of projected.overlays) {
-    writeFileSync(resolve(consumerDir, `${theme.id}.${mode}.overlay.tokens.json`), JSON.stringify(stripExtensions(tree), null, 2) + '\n');
   }
   return built;
 };

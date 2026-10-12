@@ -260,8 +260,33 @@ export const leafCount = (n: unknown): number => {
   return c;
 };
 
-/** The whole projected set for one brand: the base plus one overlay per mode. */
-export const buildOverlaySet = (tree: unknown): { base: unknown; overlays: Array<{ mode: string; tree: unknown }> } => ({
-  base: buildBase(tree),
-  overlays: overlayModes(tree).map((mode) => ({ mode, tree: buildOverlay(tree, mode) })),
-});
+/** The tree with every `$extensions` key removed, at any depth. Key order is otherwise kept. */
+export const stripExtensions = (n: unknown): unknown => {
+  if (Array.isArray(n)) return n.map(stripExtensions);
+  if (!n || typeof n !== 'object') return n;
+  const out: Node = {};
+  for (const [k, v] of Object.entries(n as Node)) if (k !== '$extensions') out[k] = stripExtensions(v);
+  return out;
+};
+
+/**
+ * The whole projected set for one brand: the base plus one overlay per mode — THE CONSUMER SET (#2552, owner
+ * decision Q250 A).
+ *
+ * By default every `$extensions` is removed, so a token carries only `$value`, `$type` and `$description` and the
+ * files carry no generator stamp, no `decisions` log and no per-token build data. DTCG says a tool MUST preserve
+ * what it does not understand, so anything left here travels into every client pipeline. The strip is safe HERE
+ * and nowhere upstream: the canonical tree keeps each non-default mode inside `$extensions.prism3.modes`, and this
+ * projection has already moved those values into their own overlays, so removing the extensions costs no value.
+ * That is why the single-file tree stays internal and this set is the handoff.
+ *
+ * `metadata: true` keeps the build metadata — the studio's internal "Include build metadata" export. `buildBase` and
+ * `buildOverlay` below are the metadata-keeping primitives; the strip is the one step after them.
+ */
+export const buildOverlaySet = (tree: unknown, opts: { metadata?: boolean } = {}): { base: unknown; overlays: Array<{ mode: string; tree: unknown }> } => {
+  const keep = (t: unknown): unknown => (opts.metadata ? t : stripExtensions(t));
+  return {
+    base: keep(buildBase(tree)),
+    overlays: overlayModes(tree).map((mode) => ({ mode, tree: keep(buildOverlay(tree, mode)) })),
+  };
+};

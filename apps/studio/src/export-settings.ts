@@ -45,8 +45,7 @@
  * one. See `declarationDefects()` for which half of the enforcement is load-bearing.
  */
 
-import { buildOverlaySet } from '@prism3/engine/emit-dtcg-overlay';
-import { buildConsumerSet, stripExtensions } from '@prism3/engine/emit-dtcg-consumer';
+import { buildOverlaySet, stripExtensions } from '@prism3/engine/emit-dtcg-overlay';
 
 // ===========================================================================================
 // Sources — what the tokens came from, which is the gate. NOT the host (#720).
@@ -576,7 +575,7 @@ export { stripExtensions };
  * the download, the file list and the preview all read, for the reason `projectDtcg` is one function.
  */
 export const exportLayers = (tree: unknown, metadata = false): ReadonlyArray<{ readonly layer: string; readonly tree: unknown }> => {
-  const set = metadata ? buildOverlaySet(tree) : buildConsumerSet(tree);
+  const set = buildOverlaySet(tree, { metadata });
   return [
     { layer: 'base', tree: set.base },
     ...set.overlays.map(({ mode, tree: t }) => ({ layer: `${mode}.overlay`, tree: t })),

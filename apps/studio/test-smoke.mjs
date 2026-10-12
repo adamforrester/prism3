@@ -43,6 +43,7 @@
  */
 import { createServer } from 'node:http';
 import { appendFile, readFile } from 'node:fs/promises';
+import { readdirSync } from 'node:fs';
 import { dirname, extname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
@@ -595,6 +596,28 @@ const describeField = (u) => `${u.cls} ${u.text} at ${u.ratio}:1, caret ${u.care
  * borrowing an exemption for a pair the engine never emitted.
  */
 const OUT_DIR = join(ROOT, '..', '..', 'packages', 'engine', 'out');
+
+/** Export › Download, collecting every file it writes (#2552). The download is the CONSUMER set — the base plus one
+ *  overlay per mode, several files — so a test reading one download would see only the base. The count expected is
+ *  read off the committed `out/consumer/` set for the brand, never from the page. Returns { name → parsed JSON }. */
+const downloadSet = async (page, id) => {
+  const count = readdirSync(join(OUT_DIR, 'consumer')).filter((f) => f.startsWith(`${id}.`)).length;
+  const got = new Map();
+  const all = new Promise((res) => {
+    const on = (dl) => { got.set(dl.suggestedFilename(), dl); if (got.size >= count) { page.off('download', on); res(); } };
+    page.on('download', on);
+  });
+  await hooks.click(page.locator('[data-p3="export-dialog"] [data-p3="dialog-confirm"]'));
+  await Promise.race([all, new Promise((res) => setTimeout(res, 15000))]);
+  const out = {};
+  for (const [name, dl] of got) { try { out[name] = JSON.parse(await readFile(await dl.path(), 'utf8')); } catch { /* reported by the caller */ } }
+  return out;
+};
+/** A role's value in mode `m` across an exported consumer set: light reads the base, any other mode its overlay first. */
+const aliasInSet = (set, id, root, role, m) => {
+  const at = (tree) => role.split('.').reduce((n, x) => n?.[x], tree?.[root]?.color)?.$value;
+  return (m === 'light' ? at(set[`${id}.base.tokens.json`]) : at(set[`${id}.${m}.overlay.tokens.json`]) ?? at(set[`${id}.base.tokens.json`])) ?? null;
+};
 const PREVIEW_SPEC = JSON.parse(await readFile(join(ROOT, '..', '..', 'packages', 'engine', 'schema', 'preview-spec.json'), 'utf8'));
 /** The pressed ink-on-fill contract the engine declares, read from the spec — not restated. */
 const PRESSED_MIN = (() => {
@@ -2239,13 +2262,10 @@ s4cArm: for (const brand of BRANDS) {
   }
   await hooks.click(page.locator('[data-p3="export-open"]'));
   await hooks.need(page, '[data-p3="export-dialog"]');
-  const pending = page.waitForEvent('download');
-  await hooks.click(page.locator('[data-p3="export-dialog"] [data-p3="dialog-confirm"]'));
-  let exported = null;
-  try { exported = JSON.parse(await readFile(await (await pending).path(), 'utf8')); } catch { /* reported below */ }
+  const exported = await downloadSet(page, brand.toLowerCase());   // #2552: base + one overlay per mode
   for (const [m, role, step] of EDITS) {
     const want = `{${root}.core.palette.neutral.${step}}`;
-    const was = aliasIn(emission, role, m), got = exported ? aliasIn(exported, role, m) : null;
+    const was = aliasIn(emission, role, m), got = aliasInSet(exported, brand.toLowerCase(), root, role, m);
     ok(got === want && was !== want, `S4c ${brand}: a Fields edit of ${role} in ${m} to neutral ${step} reaches the exported tokens as ${want} (exported ${got}; the committed emission has ${was})`);
   }
   const errs = drain();
@@ -2431,13 +2451,10 @@ s4dArm: for (const brand of BRANDS) {
   const aliasIn = (tree, role, m) => (m === 'light' ? leaf(tree, role)?.$value : leaf(tree, role)?.$extensions?.prism3?.modes?.[m]?.$value) ?? null;
   await hooks.click(page.locator('[data-p3="export-open"]'));
   await hooks.need(page, '[data-p3="export-dialog"]');
-  const pending = page.waitForEvent('download');
-  await hooks.click(page.locator('[data-p3="export-dialog"] [data-p3="dialog-confirm"]'));
-  let exported = null;
-  try { exported = JSON.parse(await readFile(await (await pending).path(), 'utf8')); } catch { /* reported below */ }
+  const exported = await downloadSet(page, b);   // #2552: base + one overlay per mode
   for (const [m, role, pal, step, sec] of S4D_EDITS) {
     const want = `{${root}.core.palette.${pal}.${step}}`;
-    const was = aliasIn(emission, role, m), got = exported ? aliasIn(exported, role, m) : null;
+    const was = aliasIn(emission, role, m), got = aliasInSet(exported, b, root, role, m);
     ok(got === want && was !== want, `S4d ${brand}: an edit on the ${sec} section's ${role} in ${m} reaches the exported tokens as ${want} (exported ${got}; the committed emission has ${was})`);
   }
   const errs = drain();
