@@ -754,7 +754,7 @@ const planVariableTables = (catalog: SgCatalog, ix: Index, options: StyleGuideOp
           const from = [...new Set(mine.map((m) => ix.collections.get(m.v.variableCollectionId)?.name ?? col.name))];
           const where = from.length > 1 ? `${from.slice(0, -1).join(', ')} and ${from[from.length - 1]}` : from[0];
           // A borrowed collection's modes that no column reads, by name or as the fallback, are not drawn; the notes say so
-          // rather than dropping them silently (#2505, owner decision Q247 A: the wording is the owner's).
+          // rather than dropping them silently (#2505, owner decisions Q247 A and Q261 A: the wording is the owner's).
           for (const id of new Set(mine.map((m) => m.v.variableCollectionId))) {
             if (id === col.id) continue;
             const own = ix.collections.get(id);
@@ -762,8 +762,8 @@ const planVariableTables = (catalog: SgCatalog, ix: Index, options: StyleGuideOp
             const drawn = new Set(col.modes.map((m) => modeIn(v, m)));
             const left = (own?.modes ?? []).filter((x) => !drawn.has(x.modeId)).map((x) => x.name);
             if (left.length) notes.push(left.length === 1
-              ? `${title}: ${own!.name}'s mode ${left[0]} has no column here, so its focus ring values aren't drawn`
-              : `${title}: ${own!.name}'s modes ${left.join(', ')} have no column here, so their focus ring values aren't drawn`);
+              ? `${title}: ${own!.name}'s mode ${left[0]} has no column here, so its values aren't drawn`
+              : `${title}: ${own!.name}'s modes ${left.join(', ')} have no column here, so their values aren't drawn`);
           }
           const perMode = col.modes.length > 1 ? `, per mode (${col.modes.map((m) => m.name).join(', ')})` : '';
           const refs = primitive && k ? (k === n ? ', each referenced by another variable' : `, ${k} referenced by another variable`) : '';
