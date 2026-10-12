@@ -614,7 +614,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + '`VARIANT_AXES`.',
   },
   {
-    axis: 'position',
+    axis: 'iconPosition',
     values: ['leading', 'trailing'],
     defs: ['accordion'],
     relation: 'sole',

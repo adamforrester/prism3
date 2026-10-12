@@ -950,10 +950,10 @@
       "notes": {
         "contested": [
           "THE BUILDING-BLOCK SHAPE (owner Q183): four glyphs in one subcomponent, its `indicator` exposed on the Accordion, instead of an `indicator` axis on the Accordion (which would double its set). The name `_accordion-indicator` is the owner's; `Accordion.Indicator` as the display name is approved (Q241).",
-          "THE GLYPH SIZES ARE PENDING THE OWNER'S VISUAL QA (Q241): one icon rung per Accordion rung (`icon.size.sm`, `md`, `lg`, 20/24/32px), as Tab and Tag map theirs."
+          "THE GLYPH SIZES (owner QA, 2026-10-12, superseding Q241.3): one rung below the control's, `icon.size.xs`, `sm`, `md` (16/20/24px). The first set, 20/24/32px as Tab and Tag map theirs, read too large on the live build."
         ],
         "unverified": [
-          "That a designer's plus-minus choice survives a switch of the Accordion's POSITION (leading to trailing). The leading and trailing indicators are two parts, so the exposed override sits on two different nested instances; an expansion switch keeps it (measured), a position switch is expected to drop it."
+          "That a designer's plus-minus choice survives a switch of the Accordion's ICON POSITION (leading to trailing). The leading and trailing indicators are two parts, so the exposed override sits on two different nested instances; an expansion switch keeps it (measured), a position switch is expected to drop it."
         ],
         "evolution": [],
         "projection": []
@@ -969,7 +969,7 @@
         "the hover — no hover member and no hover wash (owner decision); the header shows the pointer cursor only.",
         "the height animation — the panel eases open and closed (motion.transition.enter / exit); under prefers-reduced-motion it opens and closes at the reduced duration. Figma variants carry no motion.",
         "RTL — the header mirrors through logical properties: a leading indicator moves to the right edge and the title aligns right. No glyph mirrors.",
-        "text expansion — the title wraps; the header uses min-height, never a fixed height, and the indicator holds the first line.",
+        "text expansion — the title wraps; the header uses min-height, never a fixed height, and the indicator centers on the title.",
         "scroll into view — after a section opens, scroll its header into view (`scrollIntoView({ block: \"nearest\" })` on the next frame) so a tall panel does not push it off screen."
       ],
       "notes": {
@@ -981,7 +981,7 @@
           "That the native slot behaves the same on a designer's instance in every Figma plan: slots were measured in one file; a plan without the feature keeps the panel as a plain frame, and the build says so."
         ],
         "evolution": [
-          "Owner decisions: Q180 (a design proposal), Q182 (one item, no group def; an indicator before or after the title, before the default; no hover; the content a swappable slot; a nested Divider; the expansion axis; the body type; the 44px floor; three sizes; reduced motion through the duration tokens; the two engine fixes), Q183 (the building-block indicator, 24 members, no disabled and no pressed), Q242 (the position values `leading | trailing`, as Button and Switch row name theirs), Q243 (the header's focus ring on its edge, `focus.ring.offset-field`)."
+          "Owner decisions: Q180 (a design proposal), Q182 (one item, no group def; an indicator before or after the title, before the default; no hover; the content a swappable slot; a nested Divider; the expansion axis; the body type; the 44px floor; three sizes; reduced motion through the duration tokens; the two engine fixes), Q183 (the building-block indicator, 24 members, no disabled and no pressed), Q242 (the position values `leading | trailing`, as Button and Switch row name theirs), Q243 (the header's focus ring on its edge, `focus.ring.offset-field`), and the owner's QA of the live build (2026-10-12): the header centered, the glyphs one rung smaller (16/20/24), Q257 A (the ring drawn inside the header's edge), and `position` renamed `iconPosition`."
         ],
         "projection": []
       }

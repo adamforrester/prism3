@@ -365,12 +365,12 @@
       "set": {
         "members": 24,
         "assignments": 36,
-        "sha256": "861e9b9951bfb7b64d0737ed21d6a09a903520c26a1dce672bf2f2ae880350f7"
+        "sha256": "26744d5b7d02e33bdc73da586ed946118193515fbe9b2258ea2f2437b6b18e34"
       },
       "grid": {
         "members": 24,
         "assignments": 36,
-        "sha256": "a8f7b2b3bc7105088a8f02be90d0a33a21a9bc0448631c606832e7c86b6c4b37"
+        "sha256": "03ae18ca130993ca7024b0c326bee33fe759c364a7fb2e0077f7083cb2eaec3e"
       }
     }
   }

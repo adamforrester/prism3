@@ -216,10 +216,6 @@ const ZERO_OK: Record<string, string> = {
   'text-field.focusRing': FIELD_RING,
   'select.focusRing': FIELD_RING,
   'textarea.focusRing': FIELD_RING,
-  // The header spans its container, so the control offset's outset ring would be clipped by an overflow-hidden
-  // container and would overlap the nested Divider below (owner decision Q243, #2417). The field offset puts the
-  // ring on the header's edge; it still compensates its own stroke, so it is drawn outside the edge, never across it.
-  'accordion.focusRing': "the FIELD offset on a full-width header (owner decision Q243, #2417): the control offset's outset ring would be clipped by an overflow-hidden container and overlap the nested Divider. The ring still compensates its own stroke (`strokeInset: 'ring-width'`), so it is drawn outside the header's edge, never across it",
 };
 
 /**
@@ -238,7 +234,15 @@ const MUST_COVER = ['button.focusRing', 'icon-button.focusRing', 'checkbox-contr
  * — the arithmetic degrades to `gap = offset`, every other check here still passes, and the ring goes
  * flush again.
  */
-const MUST_CLEAR_STROKE = ['button.focusRing', 'icon-button.focusRing', 'checkbox-control.focusRing', 'tab.focusRing', 'accordion.focusRing'];
+const MUST_CLEAR_STROKE = ['button.focusRing', 'icon-button.focusRing', 'checkbox-control.focusRing', 'tab.focusRing'];
+
+/**
+ * THE PARTS DRAWN INSIDE THEIR HOST'S EDGE (`PartDef.drawnInside`, #2417, owner decision Q257 A). Each declares no
+ * `strokeInset` on purpose, so the inside stroke of what it nests falls within the host, and its gap must be EXACTLY 0
+ * in every brand: a part offset outward while declaring itself inside is neither. Typed here, not read off the defs,
+ * so a def that drops the declaration fails by name below rather than shrinking the list.
+ */
+const MUST_DRAW_INSIDE = ['accordion.focusRing'];
 
 /** The naming convention, restated rather than imported from the projector — shortcut 1 above. */
 const nameOf = (ref: string): string => ref.replace(/\./g, '/');
@@ -359,6 +363,7 @@ const covered = new Set<string>();
  *  `absoluteStrokeInset` leaves C computing `gap = offset` again — #801's arithmetic exactly — and
  *  every remaining check passes. */
 const strokeCovered = new Set<string>();
+const insideCovered = new Set<string>();
 let coords = 0;
 let valueChecks = 0;
 
@@ -435,6 +440,16 @@ for (const def of componentDefs) {
         const inwardRef = nested ? inwardStrokeRef(nested) : undefined;
         const strokeRef = d.strokeKey !== undefined ? refOf(d.strokeKey) : undefined;
 
+        const drawnInside = (def.anatomy?.parts?.[node.name] as { drawnInside?: true } | undefined)?.drawnInside === true;
+        if (drawnInside && d.strokeKey === undefined) {
+          // Drawn inside its host's edge (Q257 A): no compensation by design, and the gap must be exactly 0 (below).
+          for (const brand of bs) {
+            const gap = vars.get(brand)!.get(node.absoluteInset);
+            if (gap !== 0) failures.push(`${at}: '${node.name}' declares drawnInside, and '${node.absoluteInset}' = ${gap} in brand '${brand}' — a part drawn inside its host's edge must sit on it (gap 0); offset ${gap}px outward with an uncompensated stroke it is neither inside nor clear (#801)`);
+            else { insideCovered.add(`${def.id}.${node.name}`); valueChecks++; }
+          }
+          continue;
+        }
         if (inwardRef && d.strokeKey === undefined) {
           failures.push(
             `${at}: '${node.name}' nests '${node.nestTarget}', whose root part declares a stroke width ('${inwardRef}') it draws INSIDE its bounds (strokeAlign: 'INSIDE' at both executors) — and this part declares no \`strokeInset\` to compensate for it. The part is sited at -inset, the stroke is drawn back across the gap, and the visible separation is (inset − ${inwardRef}). That is #801: at the shipped 2px/2px it is ZERO, and it resolves, writes and reports no miss.`,
@@ -596,6 +611,10 @@ notes.push(`corner pins: ${cornerChecks} (member × brand) edge check(s) over ${
 for (const m of MUST_COVER)
   if (!covered.has(m))
     failures.push(`SCOPE NOT REPRESENTED: '${m}' is a known absolute inset part and this run checked no plan carrying it. If it was legitimately removed, drop it from MUST_COVER in this file in the same PR; otherwise a clean run here means nothing.`);
+
+for (const m of MUST_DRAW_INSIDE)
+  if (!insideCovered.has(m))
+    failures.push(`INSIDE NOT EXERCISED: '${m}' is drawn inside its host's edge by owner decision (Q257 A), and this run checked no plan carrying it as drawnInside with a 0 gap in every brand. Either the def dropped drawnInside or the plan stopped carrying the part; a clean run here would mean nothing for it.`);
 
 for (const m of MUST_CLEAR_STROKE)
   if (!strokeCovered.has(m))

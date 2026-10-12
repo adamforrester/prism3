@@ -67,9 +67,9 @@
         "states": { "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true, "description": "Interaction states. Empty for a non-interactive component." },
         "variants": {
           "type": "object",
-          "description": "Variant axes, keyed by axis name.",
+          "description": "Variant axes, keyed by axis name: lowercase, or camelCase for a multi-word axis (`iconPosition`, #2417).",
           "additionalProperties": false,
-          "patternProperties": { "^[a-z][a-z0-9-]*$": { "$ref": "#/$defs/axis" } }
+          "patternProperties": { "^[a-z][a-zA-Z0-9-]*$": { "$ref": "#/$defs/axis" } }
         },
         "accessibility": {
           "type": "object",

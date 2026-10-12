@@ -26817,6 +26817,11 @@ arm: {
     + 'block and centring cannot float the icon mid-paragraph. Fixed on its counter axis as well, which is '
     + 'the mechanical half of the same fact: the row has no room to grow into a second line.';
   const CENTRE_OK: Record<string, string> = {
+    // Accordion's header (owner QA, 2026-10-12, #2417): the owner asked for center-left so the title centers on the
+    // indicator glyph. The cost #1009 names comes with it, and is flagged to the owner on #2534: on a wrapping title the
+    // glyph centers on the whole block rather than holding the first line.
+    'accordion.header':
+      "the owner's QA of the live build (2026-10-12) asked for the header row center-left, so a one-line title centers on the indicator glyph. On a wrapping title the glyph centers on the whole block (flagged to the owner on #2534).",
     'button.container': buttonCentreReason,
     // #1223 split the semantic intents into sibling components that share Button's exact anatomy, so the
     // same design fact exempts them — a Destructive or Neutral button label is the same short action phrase.
@@ -29717,22 +29722,27 @@ arm: {
   type PN = { name: string; type: string; children: PN[]; bound?: Record<string, string>; paints?: Record<string, string>; nestTarget?: string; nestVariant?: Record<string, string>; nestExpose?: string[]; layoutAlign?: string; characters?: string };
   const find = (n: PN, name: string): PN | undefined => (n.name === name ? n : n.children.map((c) => find(c, name)).find(Boolean));
   const coord = (p: AnatomyPlan): Record<string, string> => Object.fromEntries(planComponentName(p).split(', ').map((kv) => kv.split('=') as [string, string]));
-  ok(plans.length === 24 && JSON.stringify(acc.variants) === JSON.stringify({ expansion: ['collapsed', 'expanded'], position: ['leading', 'trailing'], size: ['small', 'medium', 'large'] }),
-    `#2417 accordion: 24 members, expansion × position × size × state (Q183) (got ${plans.length}, ${JSON.stringify(acc.variants)})`);
+  ok(plans.length === 24 && JSON.stringify(acc.variants) === JSON.stringify({ expansion: ['collapsed', 'expanded'], iconPosition: ['leading', 'trailing'], size: ['small', 'medium', 'large'] }),
+    `#2417 accordion: 24 members, expansion × iconPosition × size × state (Q183) (got ${plans.length}, ${JSON.stringify(acc.variants)})`);
   ok(JSON.stringify(acc.states) === JSON.stringify(['rest', 'focus-visible']) && JSON.stringify(acc.figmaProperties?.stateAxis?.values) === JSON.stringify(['rest', 'focus-visible']),
     `#2417 accordion: the states are rest and focus-visible only, with no hover (Q182), pressed or disabled (Q183) (got ${JSON.stringify(acc.states)})`);
-  const pos = acc.props.find((p) => p.name === 'position');
-  ok(acc.variants.position?.[0] === 'leading' && pos?.default === 'leading', `#2417 accordion position: leading is the default, first in Figma and in code (Q182) (got ${acc.variants.position?.[0]}, ${pos?.default})`);
+  const pos = acc.props.find((p) => p.name === 'iconPosition');
+  ok(acc.variants.iconPosition?.[0] === 'leading' && pos?.default === 'leading', `#2417 accordion iconPosition: leading is the default, first in Figma and in code (Q182) (got ${acc.variants.iconPosition?.[0]}, ${pos?.default})`);
+  // THE AXIS NAME (owner QA, 2026-10-12): `iconPosition`, never a bare `position`, which read as if it could be the
+  // label's. In the def's variants, its Figma axes, its props and every member's name. The old name back fails here.
+  const bare = /(^|, )position=/;
+  ok(!('position' in acc.variants) && JSON.stringify(acc.figmaProperties?.variantAxes) === JSON.stringify(['expansion', 'iconPosition', 'size']) && !acc.props.some((p) => p.name === 'position') && plans.every((p) => /(^|, )iconPosition=(leading|trailing)(,|$)/.test(planComponentName(p)) && !bare.test(planComponentName(p))),
+    `#2417 accordion iconPosition (owner QA): the axis and prop are iconPosition, not position, in the def and every member's name (got ${JSON.stringify(Object.keys(acc.variants))}; ${planComponentName(plans[0])})`);
   // THE VALUE NAMES (Q242): `leading | trailing`, as Button names its visuals and Switch row its label position, in
   // the def, the prop, every member's name and the indicator parts' layer names. An old name back (`start` / `end`,
   // as a value or a part's lead) fails here by name.
   const OLD = /\b(?:start|end)\b|^(?:start|end)[A-Z]/;
-  const named = [...plans.map((p) => coord(p).position), ...(pos?.values ?? []), String(pos?.type), ...Object.keys(acc.anatomy!.parts).filter((n) => /Indicator$|Glyph$/.test(n))];
+  const named = [...plans.map((p) => coord(p).iconPosition), ...(pos?.values ?? []), String(pos?.type), ...Object.keys(acc.anatomy!.parts).filter((n) => /Indicator$|Glyph$/.test(n))];
   ok(JSON.stringify(pos?.values) === JSON.stringify(['leading', 'trailing']) && named.every((n) => !OLD.test(n)) && ['leadingIndicator', 'leadingGlyph', 'trailingIndicator', 'trailingGlyph'].every((n) => n in acc.anatomy!.parts),
-    `#2417 accordion position (Q242): the values are leading and trailing in the def, the prop and every member, and the indicator parts are named for them${named.filter((n) => OLD.test(n)).length ? ` — OLD NAME: ${[...new Set(named.filter((n) => OLD.test(n)))].join(', ')}` : ''}`);
+    `#2417 accordion iconPosition (Q242): the values are leading and trailing in the def, the prop and every member, and the indicator parts are named for them${named.filter((n) => OLD.test(n)).length ? ` — OLD NAME: ${[...new Set(named.filter((n) => OLD.test(n)))].join(', ')}` : ''}`);
   const glyphs = plans.map((p) => { const c = coord(p); const start = find(p.root as PN, 'leadingGlyph'), end = find(p.root as PN, 'trailingGlyph'); return { c, start, end }; });
   ok(glyphs.every(({ c, start, end }) => {
-    const g = c.position === 'leading' ? start : end, other = c.position === 'leading' ? end : start;
+    const g = c.iconPosition === 'leading' ? start : end, other = c.iconPosition === 'leading' ? end : start;
     return !!g && !other && g.nestTarget === '_accordion-indicator' && g.nestVariant?.expansion === c.expansion && g.nestVariant?.size === c.size && JSON.stringify(g.nestExpose) === JSON.stringify(['indicator']);
   }), `#2417 accordion indicator: one nested _accordion-indicator per member, at its position, exposing indicator and following the member's expansion and size (Q183)`);
   ok(plans.every((p) => { const c = coord(p); const panel = find(p.root as PN, 'content'); return c.expansion === 'expanded' ? panel?.type === 'CONTENT_SLOT' : !panel; }),
@@ -29752,12 +29762,34 @@ arm: {
   const FLOOR: Record<string, string> = { small: 'size/md/min-height', medium: 'size/md/min-height', large: 'size/lg/height' };
   ok(plans.every((p) => find(p.root as PN, 'header')?.bound?.minHeight === FLOOR[coord(p).size]),
     `#2417 accordion header: the 44px floor at every size, size/md/min-height at small and medium and size/lg/height at large (Q182)`);
-  // THE RING ON THE HEADER'S EDGE (Q243): the fields' offset, 0, not the control offset — a full-width header's outset
-  // ring would be clipped by an overflow-hidden container and would overlap the nested Divider. The control offset
-  // back fails here by name.
-  const ringAt = plans.filter((p) => coord(p).state === 'focus-visible').map((p) => (find(p.root as PN, 'focusRing') as PN & { absoluteInset?: string } | undefined)?.absoluteInset);
-  ok(acc.tokens['ring-offset'] === 'focus.ring.offset-field' && ringAt.length === 12 && ringAt.every((v) => v === 'focus/ring/offset-field'),
-    `#2417 accordion focus ring (Q243): on the header's edge, focus.ring.offset-field on every focus-visible member, never the control offset (got ${acc.tokens['ring-offset']}; ${[...new Set(ringAt)].join(', ')})`);
+  // THE RING INSIDE THE HEADER'S EDGE (Q257 A, superseding Q243): offset 0 (the fields' offset) and NO stroke
+  // compensation, so the ring's inside stroke sits within the header and never covers the nested Divider (measured
+  // live: compensated, it covered it by 2px). The control offset back, or the compensation back, fails here by name.
+  type PR = PN & { absoluteInset?: string; absoluteStrokeInset?: string };
+  const rings = plans.filter((p) => coord(p).state === 'focus-visible').map((p) => find(p.root as PN, 'focusRing') as PR | undefined);
+  ok(acc.tokens['ring-offset'] === 'focus.ring.offset-field' && rings.length === 12 && rings.every((r) => r?.absoluteInset === 'focus/ring/offset-field' && r.absoluteStrokeInset === undefined),
+    `#2417 accordion focus ring (Q257): drawn inside the header's edge, focus.ring.offset-field and no stroke compensation on every focus-visible member (got ${acc.tokens['ring-offset']}; ${[...new Set(rings.map((r) => `${r?.absoluteInset} + ${r?.absoluteStrokeInset ?? 'no stroke'}`))].join(', ')})`);
+  // `drawnInside` IS VALIDATED ON ITS OWN TERMS (#2417): never beside `strokeInset`, and only on an absolute part. Each
+  // refusal is asserted by its own message, so switching one off fails its own arm.
+  const withRing = (patch: Record<string, unknown>, part = 'focusRing'): ComponentDef => ({ ...acc, anatomy: { ...acc.anatomy!, parts: { ...acc.anatomy!.parts, [part]: { ...acc.anatomy!.parts[part], ...patch } } } }) as ComponentDef;
+  ok(validateComponentDef(acc).errors.length === 0, `#2417 drawnInside: Accordion's inside ring validates clean (${validateComponentDef(acc).errors.slice(0, 1).join('')})`);
+  ok(validateComponentDef(withRing({ strokeInset: 'ring-offset' })).errors.some((m) => /declares both 'drawnInside' and 'strokeInset'/.test(m)),
+    '#2417 drawnInside: declared beside strokeInset, it is refused by name');
+  ok(validateComponentDef(withRing({ drawnInside: true }, 'header')).errors.some((m) => /is kind 'box' but declares 'drawnInside'/.test(m)),
+    '#2417 drawnInside: on a non-absolute part, it is refused by name');
+  ok(validateComponentDef(withRing({ drawnInside: undefined })).errors.some((m) => /binds no 'strokeInset'/.test(m)),
+    '#2417 drawnInside: without it, the #801 rule refuses an uncompensated ring again');
+  // THE HEADER CENTERS (owner QA, 2026-10-12): the row's cross axis is centered, so the title centers on the glyph.
+  // Top-aligned back fails here by name.
+  type PA = PN & { counterAxisAlignItems?: string };
+  const aligns = plans.map((p) => (find(p.root as PN, 'header') as PA).counterAxisAlignItems);
+  ok(aligns.every((a) => a === 'CENTER'), `#2417 accordion header (owner QA): center-left, the title centered on the glyph, on every member (got ${[...new Set(aligns)].join(', ')})`);
+  // THE GLYPH SIZES (owner QA, 2026-10-12, superseding Q241.3): one rung below the control's, 16/20/24 at small,
+  // medium and large. EXPECTED is the rung names, typed here; the old 20/24/32 rungs back fail here by name.
+  const RUNG: Record<string, string> = { small: 'icon/size/xs', medium: 'icon/size/sm', large: 'icon/size/md' };
+  const sizes = indPlans.map((p) => ({ size: coord(p).size, w: (p.root as PN).bound?.width, h: (p.root as PN).bound?.height }));
+  ok(sizes.length === 12 && sizes.every((g) => g.w === RUNG[g.size] && g.h === RUNG[g.size]),
+    `#2417 accordion glyphs (owner QA): 16/20/24, icon/size/xs, sm and md at small, medium and large (got ${[...new Set(sizes.map((g) => `${g.size} ${g.w}`))].join(', ')})`);
   const GLYPH: Record<string, string> = { 'chevron/collapsed': 'chevron-down', 'chevron/expanded': 'chevron-up', 'plus-minus/collapsed': 'plus', 'plus-minus/expanded': 'minus' };
   ok(indPlans.length === 12 && indPlans.every((p) => { const c = coord(p); const shown = (p.root as PN).children.map((k) => k.name); return shown.length === 1 && shown[0] === { 'chevron-down': 'chevronDown', 'chevron-up': 'chevronUp', plus: 'plus', minus: 'minus' }[GLYPH[`${c.indicator}/${c.expansion}`]]; }),
     `#2417 accordion indicator: 12 members, each showing exactly the one glyph for its pair and state (Q183)`);

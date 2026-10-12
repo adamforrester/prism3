@@ -5792,7 +5792,7 @@
           "description": "The open and closed glyph: a chevron that points down when closed and up when open, or a plus that becomes a minus."
         },
         {
-          "name": "position",
+          "name": "iconPosition",
           "type": "enum: 'leading' | 'trailing'",
           "default": "leading",
           "required": false,
@@ -5827,7 +5827,7 @@
           ],
           "kind": "runtime"
         },
-        "position": {
+        "iconPosition": {
           "values": [
             "leading",
             "trailing"

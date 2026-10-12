@@ -52,7 +52,7 @@ Titles are short, parallel noun phrases or questions, in sentence case, with no 
 | `defaultExpanded` | boolean | `false` | no | Opens the section on first render when nothing controls it. |
 | `headingLevel` | enum: 2 \| 3 \| 4 \| 5 \| 6 | `3` | no | The level of the heading that wraps the header button. Set it one below the heading the accordion sits under, so the page outline stays intact. |
 | `indicator` | enum: 'chevron' \| 'plus-minus' | `chevron` | no | The open and closed glyph: a chevron that points down when closed and up when open, or a plus that becomes a minus. |
-| `position` | enum: 'leading' \| 'trailing' | `leading` | no | Which side of the title the indicator sits on, following text direction. leading keeps it beside the title when the page is zoomed; in right-to-left text, leading is the right edge. |
+| `iconPosition` | enum: 'leading' \| 'trailing' | `leading` | no | Which side of the title the indicator sits on, following text direction. leading keeps it beside the title when the page is zoomed; in right-to-left text, leading is the right edge. |
 | `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | The header's type, padding and indicator size. Every size keeps the header at least 44px tall. |
 
 ## States
@@ -64,7 +64,7 @@ Titles are short, parallel noun phrases or questions, in sentence case, with no 
 | Axis | Values | Changes |
 | --- | --- | --- |
 | `expansion` | `collapsed`, `expanded` | at runtime |
-| `position` | `leading`, `trailing` | once, when authored |
+| `iconPosition` | `leading`, `trailing` | once, when authored |
 | `size` | `small`, `medium`, `large` | once, when authored |
 
 ## Accessibility

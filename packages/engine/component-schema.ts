@@ -960,6 +960,14 @@ export type PartDef = {
    *  stroke and is what every non-ring absolute part will want. `lint-absolute-inset.ts` is what stops
    *  the omission from being silent for a part that does carry one. */
   strokeInset?: string;
+  /** For `absolute`: the part is DRAWN INSIDE its host's edge, deliberately (#2417, owner decision Q257 A), so its
+   *  nested component's inside stroke is not compensated: the part sits on the host's own bounds and its stroke falls
+   *  within them. The stated alternative to `strokeInset`, never both (the validator refuses the pair), and it says
+   *  why a ring that would otherwise be #801's flush geometry is intended: an Accordion header spans its container,
+   *  so an outset ring is clipped by an overflow-hidden container and covers the Divider under it. Its `inset` must
+   *  resolve to 0 in every brand, which `lint-absolute-inset.ts` asserts (`MUST_DRAW_INSIDE`): a ring offset outward
+   *  while declaring itself inside would be neither. */
+  drawnInside?: true;
   /** For `vector` parts: PIN the glyph into a corner of its parent, OUT of the auto-layout flow, `inset`
    *  (a binding key, like `absolute`'s) in from both edges of that corner. The textarea's resize grip is the
    *  case: a small glyph that sits at the control's bottom-right corner and must not take a cell — in the
@@ -3091,11 +3099,12 @@ export type State = (typeof STATES)[number];
  * focus); an open accordion stays open when focus leaves it. A RUNTIME axis: the user opens and closes it.
  * `lint-axis-values.ts` carries the two values as a `sole` set, shared by the accordion and its indicator.
  *
- * ── `position`: THE TWENTY-FIFTH NAME, FOR THE ACCORDION'S INDICATOR (owner decisions Q182 and Q242, #2417) ──
+ * ── `iconPosition`: THE TWENTY-FIFTH NAME, FOR THE ACCORDION'S INDICATOR (owner decisions Q182, Q242 and the QA, #2417) ──
  *
- * `position` (`leading | trailing`) is WHICH SIDE of a row a part sits on, in reading order: the accordion's indicator
+ * `iconPosition` (`leading | trailing`) is WHICH SIDE of a row a part sits on, in reading order: the accordion's indicator
  * before its title or after it. The owner chose the axis (Q182) and named the values (Q242) as Button names its
- * leading and trailing visuals and Switch row its `labelPosition`. It clears the bar
+ * leading and trailing visuals and Switch row its `labelPosition`. Named `iconPosition`, not `position`, because the
+ * owner read a bare `position` as possibly the label's (live QA, 2026-10-12). It clears the bar
  * as a distinct kind of distinction with the nearest defeated: `direction` is where a veil's wash sits across an
  * image, a distribution of paint; `orientation` is which way a rule runs; `inset` is whether a control keeps its
  * inline padding; `offset` is a nested part's displacement. None says "this part comes first or last in the row",
@@ -3107,7 +3116,7 @@ export const VARIANT_AXES = [
   'size', 'intent', 'appearance', 'tone',
   'width', 'style', 'indicator', 'offset', 'selection',
   'name', 'surface', 'weight', 'value', 'intensity', 'ratio',
-  'status', 'emphasis', 'shape', 'type', 'direction', 'inset', 'orientation', 'alignment', 'expansion', 'position',
+  'status', 'emphasis', 'shape', 'type', 'direction', 'inset', 'orientation', 'alignment', 'expansion', 'iconPosition',
 ] as const;
 
 /** One member of the closed axis-NAME vocabulary. Values are not constrained — see `VARIANT_AXES`. */
@@ -3871,7 +3880,7 @@ const anatomyErrors = (def: ComponentDef): string[] => {
       // field and fails by name (`MUST_CLEAR_STROKE`) if a ring stops declaring its own stroke. So the
       // name check stays as the authoring-time floor and the generalization lives one layer out, rather
       // than being deleted here on the strength of a field this file cannot follow.
-      if (p.inset && p.nests === 'focus-ring' && !p.strokeInset)
+      if (p.inset && p.nests === 'focus-ring' && !p.strokeInset && !p.drawnInside)
         e.push(`anatomy part '${n}' is kind 'absolute' binding inset '${p.inset}' and nests 'focus-ring', but binds no 'strokeInset' — the ring draws its stroke INSIDE its own bounds, so a materializer positioning it at -inset leaves a gap of (inset - strokeWidth) and at the shipped 2px/2px that is ZERO: flush against the border it must be distinguishable from (WCAG 1.4.11, #801). Bind the ring's width key here`);
       // A part outside the flow cannot be the interaction target: `role: 'target'` is what owns the hit
       // area, radius, fill and border, and a node that takes no space in the row owns no hit area. The
@@ -4230,6 +4239,11 @@ const anatomyErrors = (def: ComponentDef): string[] => {
     // off an absolute part there is nothing for it to compensate and it would project to nothing.
     if (p.kind !== 'absolute' && p.strokeInset !== undefined)
       e.push(`anatomy part '${n}' is kind '${p.kind}' but binds 'strokeInset' — it compensates an absolute part's 'inset' for an inside-drawn stroke, and there is no inset here to compensate`);
+    // `drawnInside` (#2417, Q257 A) is `strokeInset`'s stated alternative: an absolute part only, and never with it.
+    if (p.drawnInside !== undefined && p.kind !== 'absolute')
+      e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'drawnInside' — only an 'absolute' part is sited against its host's edge, so only it can be drawn inside it`);
+    if (p.drawnInside && p.strokeInset !== undefined)
+      e.push(`anatomy part '${n}' declares both 'drawnInside' and 'strokeInset' — drawn inside the host's edge means the stroke is NOT compensated outward, and 'strokeInset' compensates it; declare one`);
     // `strokeWidth` is the other half (#1266) and gets the same rule for a different reason: only the
     // `box` branch of the projector reads it, so on any other kind it is a binding that projects to
     // nothing — the ring's own defect one layer up, where a declared stroke and no bound weight read as

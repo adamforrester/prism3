@@ -54,11 +54,10 @@ export const accordionIndicator: ComponentDef = {
   tokens: {
     // The header's own glyph ink, an icon role (#1471). Approved (Q241).
     'icon': 'color.interactive.neutral.icon.rest',
-    // The glyph size per Accordion size (pending the owner's visual QA, Q241): one icon rung per control rung, as Tab and Tag map theirs, so the
-    // default (medium) resolves to the md rung.
-    'size.small.icon': 'icon.size.sm',
-    'size.medium.icon': 'icon.size.md',
-    'size.large.icon': 'icon.size.lg',
+    // The glyph size per Accordion size (owner QA, 2026-10-12, superseding Q241.3): one rung below the control's, 16/20/24.
+    'size.small.icon': 'icon.size.xs',
+    'size.medium.icon': 'icon.size.sm',
+    'size.large.icon': 'icon.size.md',
   },
 
   anatomy: {
@@ -139,10 +138,10 @@ export const accordionIndicator: ComponentDef = {
   notes: {
     contested: [
       'THE BUILDING-BLOCK SHAPE (owner Q183): four glyphs in one subcomponent, its `indicator` exposed on the Accordion, instead of an `indicator` axis on the Accordion (which would double its set). The name `_accordion-indicator` is the owner\'s; `Accordion.Indicator` as the display name is approved (Q241).',
-      'THE GLYPH SIZES ARE PENDING THE OWNER\'S VISUAL QA (Q241): one icon rung per Accordion rung (`icon.size.sm`, `md`, `lg`, 20/24/32px), as Tab and Tag map theirs.',
+      'THE GLYPH SIZES (owner QA, 2026-10-12, superseding Q241.3): one rung below the control\'s, `icon.size.xs`, `sm`, `md` (16/20/24px). The first set, 20/24/32px as Tab and Tag map theirs, read too large on the live build.',
     ],
     unverified: [
-      'That a designer\'s plus-minus choice survives a switch of the Accordion\'s POSITION (leading to trailing). The leading and trailing indicators are two parts, so the exposed override sits on two different nested instances; an expansion switch keeps it (measured), a position switch is expected to drop it.',
+      'That a designer\'s plus-minus choice survives a switch of the Accordion\'s ICON POSITION (leading to trailing). The leading and trailing indicators are two parts, so the exposed override sits on two different nested instances; an expansion switch keeps it (measured), a position switch is expected to drop it.',
     ],
   },
 };
