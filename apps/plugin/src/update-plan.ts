@@ -50,7 +50,7 @@ import { EXECUTOR_REVISION } from './executor-revision';
 import { memberStamp, planHalf, revHalf, respaceSets, STAMP_KEY, type RespaceBox } from './write-components';
 import { readTag } from './canvas-furniture';
 import { NS } from './persist-figma';
-import { BASELINE_V, UPDATING_KEY, baselineDiff, baselineOf, readBaseline, recordFormat, snapshotMember, writeBaseline, type Baseline, type SnapNode } from './member-baseline';
+import { BASELINE_V, UPDATING_KEY, baselineDiff, baselineOf, builtByPrism3, readBaseline, recordFormat, snapshotMember, writeBaseline, type Baseline, type OwnershipRead, type SnapNode } from './member-baseline';
 import { drawnFaults, type DrawnFault, type DrawVar } from './drawn';
 
 /** One member of a set as the dry run reads it. */
@@ -191,21 +191,21 @@ const paintText = (raw: unknown, ports: ReadPorts): string => {
   return `${what}${opacity}${p.visible === false ? ', hidden' : ''}`;
 };
 
-/** A stamp Prism3 wrote (#2300): the engine version, a 16-hex plan stamp or `adopted`, and the executor revision
- *  (absent on a stamp from before #1098). Anything else is not Prism3's, however it got there. */
-export const STAMP_SHAPE = /^[^|]+\|(?:[0-9a-f]{16}|adopted)(?:\|\d+)?$/;
+/** The stamp shape (#2300), defined with the ownership check it serves in `member-baseline.ts` and re-exported for
+ *  the readers that already import it from here. */
+export { STAMP_SHAPE } from './member-baseline';
 
 /**
  * THE MEMBERS AS PRISM3 OWNS THEM (#2300): a member whose stamp is malformed, or whose as-built record names
  * ANOTHER member of the set (a Figma Duplicate copies both, so a copy's record names its original), reads as
  * not built by Prism3. Its stamp is blanked here, once, so every reading below (drops, matches, Adopt, the
- * capture) treats it as a designer's own member. A record naming a node that is not in the set is no evidence of a
- * copy: the host has reassigned member ids after set-level operations (#1473, #1516).
+ * capture) treats it as a designer's own member. The test is `builtByPrism3`, shared with the executor's LAY OUT
+ * pass (#2510), so the apply never moves a member this reads as a designer's.
  */
 export const ownedView = (host: HostSetView): HostSetView => {
-  const ids = new Set(host.members.map((m) => m.id).filter(Boolean));
-  const copied = (m: HostMember): boolean => !!m.baseline?.id && !!m.id && m.baseline.id !== m.id && ids.has(m.baseline.id);
-  return { ...host, members: host.members.map((m) => (m.stamp && (!STAMP_SHAPE.test(m.stamp) || copied(m)) ? { ...m, stamp: '' } : m)) };
+  const read = (m: HostMember): OwnershipRead => ({ id: m.id, stamp: m.stamp, recordId: m.baseline?.id });
+  const owned = builtByPrism3(host.members.map(read));
+  return { ...host, members: host.members.map((m) => (m.stamp && !owned(read(m)) ? { ...m, stamp: '' } : m)) };
 };
 
 /**
@@ -794,9 +794,15 @@ export type UpdatePreview = { sets: SetPreview[]; missing: string[]; refused: { 
 /** How many sets a dry run moves on their pages (#2542). */
 export const setsMoving = (r: UpdatePreview): number => r.sets.filter((p) => !p.blockers.length && p.setMove).length;
 
-/** Whether a node is a set Prism3 built: one of its members carries a stamp (#2464, #2494). */
-const builtByPrism3 = (n: { children?: readonly unknown[] }): boolean =>
-  ((n.children ?? []) as { getSharedPluginData?(ns: string, k: string): string }[]).some((m) => !!m.getSharedPluginData?.(NS, STAMP_KEY));
+/** Whether a node is a set Prism3 built (#2464, #2494): at least one of its members is, by the shared member test
+ *  (`builtByPrism3`, #2510). So a set whose only stamps are malformed, or copied with their records by a Duplicate,
+ *  is a designer's set, and an obstacle, as `ownedView` reads its members. */
+const setBuiltByPrism3 = (n: { children?: readonly unknown[] }): boolean => {
+  const members = (n.children ?? []) as { id?: unknown; getSharedPluginData?(ns: string, k: string): string }[];
+  const reads: OwnershipRead[] = members.map((m) => ({ id: m.id === undefined ? undefined : String(m.id), stamp: m.getSharedPluginData?.(NS, STAMP_KEY) ?? '', recordId: readBaseline(m)?.id }));
+  const owned = builtByPrism3(reads);
+  return reads.some(owned);
+};
 
 /**
  * THE SET MOVES ON EACH PAGE (#2542, owner decision Q245.2 A), by set name. A page takes part only when EVERY set
@@ -815,13 +821,13 @@ export const pageSetMoves = (found: readonly { name: string; set: LiveSet; block
   for (const [page, here] of pages) {
     const kids = (page as { children: readonly unknown[] }).children as { id?: unknown; type?: unknown; name?: unknown; x?: unknown; y?: unknown; width?: unknown; height?: unknown; children?: readonly unknown[] }[];
     const read = new Set(here.map((f) => f.set));
-    const ours = kids.filter((k) => k.type === 'COMPONENT_SET' && builtByPrism3(k));
+    const ours = kids.filter((k) => k.type === 'COMPONENT_SET' && setBuiltByPrism3(k));
     if (here.some((f) => f.blocked) || !ours.every((k) => read.has(k as LiveSet))) continue;
     // Keyed by the node's place on the page, never by its id: what maps a move back to its set is the node itself.
     const boxes: RespaceBox[] = kids.map((k, i) => ({
       id: String(i), type: String(k.type ?? ''), x: Number(k.x ?? 0), y: Number(k.y ?? 0), width: Number(k.width ?? 0), height: Number(k.height ?? 0),
       header: (k.type === 'INSTANCE' || k.type === 'FRAME') && String(k.name ?? '').toLowerCase() === '_section-header',
-      prism3: k.type === 'COMPONENT_SET' && builtByPrism3(k),
+      prism3: k.type === 'COMPONENT_SET' && setBuiltByPrism3(k),
       furniture: !!readTag(k as never),
     }));
     for (const m of respaceSets(boxes)) {

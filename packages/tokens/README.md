@@ -45,7 +45,9 @@ per token. Measured: **556 leaves → 556 CSS variables, 1:1**, three of four mo
 That was filed as #609 and originally written up here as a defect awaiting a fix. #609 resolved the
 other way, and the correction matters: the canonical tree **keeps** `$extensions` as the source of
 truth, and the engine emits a conforming **projection** beside it (`<brand>.base.tokens.json` plus one
-`<brand>.<mode>.overlay.tokens.json` per theme mode). So the collapse above is permanent and
+`<brand>.<mode>.overlay.tokens.json` per theme mode). Since #2552 that projection is also the consumer
+handoff and carries no `$extensions` at all; this gate reads it unchanged, with the same stock config. So
+the collapse above is permanent and
 deliberate, and the assertions that pin it now document *why* the projection exists rather than
 flagging something to fix.
 

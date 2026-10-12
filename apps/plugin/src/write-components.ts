@@ -60,7 +60,7 @@ import { ENGINE_VERSION } from '@prism3/engine/version';
 import { tailOf } from '@prism3/engine/figma-names';
 import { NS } from './persist-figma';
 import { EXECUTOR_REVISION } from './executor-revision';
-import { BASELINE_KEY, UPDATING_KEY, baselineOf, mainOf, readBaseline, snapshotMember, writeBaseline } from './member-baseline';
+import { BASELINE_KEY, UPDATING_KEY, baselineOf, builtByPrism3, mainOf, readBaseline, snapshotMember, writeBaseline, type OwnershipRead } from './member-baseline';
 // #1318 — the ONE gradient-stop binder, shared with the Paint Style executor rather than written twice.
 import { bindGradientStops } from './write-styles';
 import type { VariableAlias, Rgba } from './write-styles';
@@ -900,6 +900,10 @@ export type RespaceBox = PageBox & { id: string; prism3?: boolean; furniture?: b
  *   · a set with no Prism3 set to its left in its row (the first of a row, a SECOND ROW below the first) stays, so a
  *     second row is never lifted into the first, and `y` never changes;
  *   · if the spot a moving set needs overlaps something that stays put, it is pushed just past it, `SET_GAP` clear.
+ *     "Something" includes the OTHER Prism3 sets (#2548): every set already placed, where it now sits, and a set not
+ *     reached yet once the spot is at or past its left edge. Short of that edge, the later set still has this one as
+ *     its left neighbour and moves clear of it on its own turn; past it, the later set no longer sees this one, so it
+ *     would stay where it is underneath. A set that moves clears every set placed before it, so no two land on each other.
  * Sets are taken left to right, so a set moved right pushes its own right neighbour only if that one is now too close.
  *
  * NEVER MOVES CONTENT PRISM3 DIDN'T BUILD (#2464, #2494): a set with no stamped member, the page header and any other
@@ -913,7 +917,7 @@ export const respaceSets = (nodes: readonly RespaceBox[]): { id: string; from: {
   const sameRow = (a: PageBox, b: PageBox): boolean => a.y < b.y + b.height && a.y + a.height > b.y;
   const placed: PageBox[] = [];
   const moves: { id: string; from: { x: number; y: number }; to: { x: number; y: number } }[] = [];
-  for (const b of ours) {
+  for (const [i, b] of ours.entries()) {
     const left = placed.filter((p) => sameRow(p, b) && p.x < b.x);
     if (!left.length) { placed.push(b); continue; }
     const right = Math.max(...left.map((p) => p.x + p.width));
@@ -921,9 +925,10 @@ export const respaceSets = (nodes: readonly RespaceBox[]): { id: string; from: {
     if (b.x - right >= SET_GAP - 0.5) { placed.push(b); continue; }
     let x = right + SET_GAP;
     // Past anything that stays and would overlap the set at this spot; again, until the spot is clear.
+    const later = ours.slice(i + 1);
     for (let pushed = true; pushed;) {
       pushed = false;
-      for (const f of fixed)
+      for (const f of [...fixed, ...placed, ...later.filter((u) => x >= u.x)])
         if (f.y < b.y + b.height && f.y + f.height > b.y && f.x < x + b.width && f.x + f.width > x) { x = f.x + f.width + SET_GAP; pushed = true; }
     }
     moves.push({ id: b.id, from: { x: b.x, y: b.y }, to: { x, y: b.y } });
@@ -2911,6 +2916,9 @@ const writeComponentSet = async (
     rowH[cell.row] = Math.max(rowH[cell.row] ?? 0, c.height ?? 0);
   });
   const at = (arr: number[], n: number): number => arr.slice(0, n).reduce((a, b) => a + (b || 0) + GAP, 0);
+  // Read once over the whole set, because a copy is a member whose record names ANOTHER member (#2510).
+  const ownership: OwnershipRead[] = members.map((c) => ({ id: c.id, stamp: c.getSharedPluginData?.(NS, STAMP_KEY) ?? '', recordId: readBaseline(c)?.id }));
+  const owned = builtByPrism3(ownership);
   const stray: string[] = [];
   members.forEach((c, i) => {
     const cell = cellOf[i];
@@ -2921,12 +2929,14 @@ const writeComponentSet = async (
       if (!opts.update?.retained?.has(String(c.name))) stray.push(`member ${c.name} -> NOT A GENERATED VARIANT (left in place; it will not follow the grid)`);
       return;
     }
-    // A MEMBER PRISM3 DIDN'T BUILD (no stamp) is never moved, even on a planned coordinate (#2494; #2325, #2464:
-    // Prism3 never touches a member it didn't build). Its size still counts toward its row and column above, as the
-    // dry run's `gridMoves` counts it, so the members around it sit where the dry run said they would. Only for a member
-    // that can carry a stamp: the port makes `getSharedPluginData` optional, and a node without it holds no stamp to
-    // read, so it is laid out as before rather than taken for a member Prism3 didn't build.
-    if (c.getSharedPluginData && !c.getSharedPluginData(NS, STAMP_KEY)) return;
+    // A MEMBER PRISM3 DIDN'T BUILD is never moved, even on a planned coordinate (#2494; #2325, #2464: Prism3 never
+    // touches a member it didn't build). "Didn't build" is `builtByPrism3`, the dry run's own test (`ownedView`,
+    // #2510): no stamp, a stamp not of Prism3's shape, or a record naming another member (a Figma Duplicate). Its size
+    // still counts toward its row and column above, as the dry run's `gridMoves` counts it, so the members around it sit
+    // where the dry run said they would. Only for a member that can carry a stamp: the port makes `getSharedPluginData`
+    // optional, and a node without it holds no stamp to read, so it is laid out as before rather than taken for a
+    // member Prism3 didn't build.
+    if (c.getSharedPluginData && !owned(ownership[i])) return;
     const m = wr(c);
     // ONLY WHERE IT MOVES (#2379): an update re-lays the grid over members it leaves alone (a member from an earlier
     // plugin takes only its stamp), and a write that puts back the same number is still a write to the host.

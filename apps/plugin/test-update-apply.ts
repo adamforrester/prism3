@@ -84,7 +84,10 @@
  *   relay/…        an update re-lays the grid, and a member Prism3 didn't build (no stamp) on a planned coordinate stays
  *                  exactly where it is, named as left (#2494), and still sizes its row and column. Mutations: the LAY
  *                  OUT pass's unstamped guard removed → `relay/unbuilt left`; its measuring loop skipping unstamped
- *                  members → `relay/unbuilt size counts`.
+ *                  members → `relay/unbuilt size counts`. A member with a malformed stamp, and a Figma copy whose record
+ *                  names another member, are neither listed as moves nor moved (#2510): the dry run and the LAY OUT pass
+ *                  share `builtByPrism3`. Mutations: `ownedView` reading the stamp alone → `relay/not ours listed`;
+ *                  the LAY OUT pass reading the stamp alone → `relay/not ours left`.
  *   nochange/…     a set the dry run reads as "no changes" (every member built by an earlier plugin) takes its stamps and
  *                  nothing else, read by a write log the test installs on the shim's nodes (#2379). Mutation: those
  *                  members sent through the build's pass again → `nochange/writes` (7,575 other writes).
@@ -110,7 +113,7 @@
 import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, planComponentName } from '@prism3/engine/anatomy-figma';
 import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
 import { componentDefs } from '@prism3/engine/components/index';
-import { applyComponentPlan, STAMP_KEY } from './src/write-components';
+import { applyComponentPlan, respaceSets, STAMP_KEY } from './src/write-components';
 import { SWAP_TARGET } from './src/build-deps';
 import { NS } from './src/persist-figma';
 import { materializeForBrand } from './src/brand-def';
@@ -880,6 +883,36 @@ section('re-lay — an update over a set leaves a member Prism3 didn\'t build wh
     `relay/unbuilt size counts: a member Prism3 didn't build, wider and taller than its neighbours, still sizes its column and row: the next across starts at ${ox + ow + 24} (${across ? Number(across.x) : 'none'}), the next down at ${oy + oh + 24} (${below ? Number(below.y) : 'none'}), and ${overlaps.length} member(s) land on top of it${overlaps.length ? `: ${overlaps.slice(0, 2).join('; ')}` : ''}`);
 }
 
+{
+  // A STAMP NOT PRISM3'S, AND A COPY (#2510): the dry run reads both as not built by Prism3 (`ownedView`), so the apply
+  // must not move them either. One member's stamp is malformed; another's record names a third member, as a Figma
+  // Duplicate's does. Both sit off the grid on their planned coordinate; the update runs for another reason, so the
+  // grid is re-laid. The ownership test is shared (`builtByPrism3`), and each half is pinned BY NAME. Mutations:
+  // `ownedView` reading the stamp alone again → `relay/not ours listed`; the LAY OUT pass reading the stamp alone
+  // again → `relay/not ours left`.
+  const w = await world(TAG, plansOf(TAG), { extraVars: ['space/999'] });
+  const ms = membersOf(w.set());
+  const put = (m: Node, k: string, v: string): void => (m.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, k, v);
+  const pd = (m: Node, k: string): string => (m.getSharedPluginData as (a: string, b: string) => string)(NS, k);
+  const [bad, copy, orig] = [ms[6], ms[9], ms[8]];
+  put(bad, STAMP_KEY, 'not a stamp');
+  put(copy, BASELINE_KEY, pd(orig, BASELINE_KEY));
+  for (const m of [bad, copy]) { m.x = Number(m.x) + 300; m.y = Number(m.y) + 300; }
+  const state = (m: Node): string => JSON.stringify([m.x, m.y, pd(m, STAMP_KEY), pd(m, BASELINE_KEY)]);
+  const was = [state(bad), state(copy)];
+  const next = moveGap(w.plans);
+  const pre = await previewUpdate(w.host, [{ def: TAG, plans: next }]);
+  const listed = (pre.sets[0].positions ?? []).filter((n) => n === String(bad.name) || n === String(copy.name));
+  ok(pre.sets[0].counts.unstamped === 2 && listed.length === 0,
+    `relay/not ours listed: the dry run reads the malformed stamp and the copy as not built by Prism3 and lists neither as a move (${JSON.stringify(pre.sets[0].counts)}; listed ${JSON.stringify(listed)})`);
+  const res = await applyUpdate(w.host, w.api as any, [{ def: TAG, plans: next }], previewHashOf(pre));
+  const gap = await varIdOf(w, 'space/999');
+  const written = membersOf(w.set()).filter((m) => (childNamed(m, 'content').boundVariables as Record<string, { id: string }>).itemSpacing?.id === gap).length;
+  const now = [state(bad), state(copy)];
+  ok(res.outcomes[0].updated.length === 43 && written === 43 && now[0] === was[0] && now[1] === was[1],
+    `relay/not ours left: the update re-lays the grid and leaves the malformed stamp and the copy exactly as they were (${was.join(' ')} → ${now.join(' ')}; ${res.outcomes[0].updated.length} updated, ${written} with the new gap)`);
+}
+
 /* ── sets on a page (#2542) ───────────────────────────────────────────────────────────────────────────── */
 section('page — an update re-spaces the sets Prism3 built on a page as a new build would, and moves nothing else (#2542)');
 {
@@ -992,6 +1025,59 @@ section('page — an update re-spaces the sets Prism3 built on a page as a new b
   const enough = await movesOf();
   ok(JSON.stringify(enough) === JSON.stringify([null, { x: 1264, y: 0 }, null]),
     `page/just enough: a set 300 from its neighbour moves just far enough to sit 400 clear (1264), and the one beyond, already clear, stays (${JSON.stringify(enough)})`);
+  // NEVER ONTO A SET THAT STAYS (the UI lane's repro on #2548): button at 0, button-destructive at 960 (96 clear, too
+  // close), a frame of the designer's at 1800..1900, button-neutral at 1920 (1056 clear of button, so it stays). Pushed
+  // past the frame alone, button-destructive would land at 2300, over button-neutral (1920..2784); it goes past that set
+  // too, to 2784 + 400 = 3184. Read after the APPLY, from the page: no two nodes in the row overlap. Mutation: the
+  // obstacle push reading only the nodes Prism3 didn't build → this, and `page/respace onto a set` below.
+  const post = { type: 'FRAME', name: 'my post-it', x: 1800, y: 0, width: 100, height: 200, children: [] } as unknown as Node;
+  page.children.push(post);
+  sets[1].x = 960; sets[2].x = 1920;
+  const pre5 = await previewUpdate(host, targets);
+  await applyUpdate(host, api, targets, previewHashOf(pre5));
+  const row = page.children.filter((n) => n.type === 'COMPONENT_SET' || n === post) as Node[];
+  const box = (n: Node) => [Number(n.x), Number(n.y), Number(n.width), Number(n.height)];
+  const over = row.flatMap((a, i) => row.slice(i + 1).filter((b) => { const [ax, ay, aw, ah] = box(a), [bx, by, bw, bh] = box(b); return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by; }).map((b) => `${a.name} over ${b.name}`));
+  ok(over.length === 0 && Number(sets[1].x) === 3184 && Number(sets[2].x) === 1920 && Number(post.x) === 1800,
+    `page/never onto a set: a set pushed past a frame of the designer's goes past the Prism3 set that stays there too (3184), and after the apply no two nodes in the row overlap (${over.join(', ') || 'none overlap'}; at ${JSON.stringify(sets.map((st) => Number(st.x)))}; the frame at ${post.x})`);
+  page.children.splice(page.children.indexOf(post), 1);
+  // A SET WHOSE ONLY STAMPS ARE NOT PRISM3'S is a designer's set, by the members' shared test (`builtByPrism3`, #2510),
+  // so it stays put as an obstacle and does not hold the page still as a set the update didn't read. button-neutral at
+  // 1700, read by neither update: first every stamp malformed, then a single valid stamp copied with its record from
+  // another member (a Duplicate), the rest blank. Either way button-destructive goes around it, to 2964. Mutation: the
+  // set-level check reading "any member has a stamp" again → this.
+  const nm = membersOf(neutral);
+  const pdOfM = (m: Node, k: string): string => (m.getSharedPluginData as (a: string, b: string) => string)(NS, k);
+  const putM = (m: Node, k: string, v: string): void => (m.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, k, v);
+  const was6 = nm.map((m) => [pdOfM(m, STAMP_KEY), pdOfM(m, BASELINE_KEY)]);
+  const around = async (): Promise<number | null> => { sets[1].x = 864 + 160; neutral.x = 1700; return (await previewUpdate(host, targets.slice(0, 2))).sets[1]?.setMove?.to.x ?? null; };
+  for (const m of nm) putM(m, STAMP_KEY, 'not a stamp');
+  const malformed = await around();
+  nm.forEach((m, k) => putM(m, STAMP_KEY, k === 1 ? was6[0][0] : ''));
+  putM(nm[1], BASELINE_KEY, was6[0][1]);
+  const copied = await around();
+  nm.forEach((m, k) => { putM(m, STAMP_KEY, was6[k][0]); putM(m, BASELINE_KEY, was6[k][1]); });
+  ok(malformed === 2964 && copied === 2964,
+    `page/not ours by its stamps: a set whose stamps are all malformed, or whose one stamp is a copy, is a designer's set the moving set goes around (malformed → ${malformed}, copied → ${copied}; want 2964 each)`);
+}
+
+/* ── re-spacing, as a function (#2542) ─────────────────────────────────────────────────────────────────── */
+section('respaceSets — a moving set never lands on another Prism3 set (#2548 review)');
+{
+  // The UI lane's repro, exactly: A at 0, B at 960 (too close), a frame Prism3 didn't build at 1800..1900, C at 1920,
+  // all 800 wide. B needs 1200; the frame pushes it to 2300, which is over C (1920..2720), so it goes on to 3120.
+  const nodes = [
+    { id: 'A', type: 'COMPONENT_SET', prism3: true, x: 0, y: 0, width: 800, height: 800 },
+    { id: 'B', type: 'COMPONENT_SET', prism3: true, x: 960, y: 0, width: 800, height: 800 },
+    { id: 'frame', type: 'FRAME', x: 1800, y: 0, width: 100, height: 800 },
+    { id: 'C', type: 'COMPONENT_SET', prism3: true, x: 1920, y: 0, width: 800, height: 800 },
+  ];
+  const moves = respaceSets(nodes);
+  const at = new Map(nodes.map((n) => [n.id, n.x]));
+  for (const m of moves) at.set(m.id, m.to.x);
+  const over = nodes.flatMap((a, i) => nodes.slice(i + 1).filter((b) => at.get(a.id)! < at.get(b.id)! + b.width && at.get(a.id)! + a.width > at.get(b.id)!).map((b) => `${a.id} over ${b.id}`));
+  ok(over.length === 0 && JSON.stringify(moves.map((m) => [m.id, m.to.x])) === JSON.stringify([['B', 3120]]),
+    `page/respace onto a set: B, pushed past the frame, goes past C as well (3120) and lands on nothing (${JSON.stringify(moves.map((m) => [m.id, m.to.x]))}; ${over.join(', ') || 'none overlap'})`);
 }
 
 /* ── no change ───────────────────────────────────────────────────────────────────────────────────────── */

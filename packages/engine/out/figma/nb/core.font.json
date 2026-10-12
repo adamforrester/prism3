@@ -482,6 +482,16 @@
       "alias": null
     },
     {
+      "name": "nbds/core/font/style/label/default",
+      "resolvedType": "STRING",
+      "scopes": [
+        "FONT_STYLE"
+      ],
+      "description": "Font style for label default text styles",
+      "value": "Regular",
+      "alias": null
+    },
+    {
       "name": "nbds/core/font/style/label/emphasis",
       "resolvedType": "STRING",
       "scopes": [

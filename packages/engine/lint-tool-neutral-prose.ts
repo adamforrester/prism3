@@ -20,7 +20,7 @@
  *                    "Prism3" does not). Consumer prose is, by PATH:
  *                      · every DTCG file (full, base, each overlay): every `$description`, token or
  *                        group; `$extensions.prism3.modes.<mode>.description`; the root `decisions[]`
- *                        (owner Q167 call 6);
+ *                        (owner Q167 call 6), which since #2552 only the full tree carries;
  *                      · every `<brand>.ai.json`: `$description`, `meaning`, `when_to_use`, `avoid_when`,
  *                        `intent`, `consume`, `requirement`, and the file `note`;
  *                      · `components/components.ai.json`: the file `note`, and every string under each
@@ -181,8 +181,8 @@ for (const b of brands) {
     };
     walk(tree, '', false);
     // What each file kind promises (measured on the commit that added this gate).
-    const promised = kind === 'tokens' ? ['$description', 'modes.*.description', 'decisions[]']
-      : kind === 'base.tokens' ? ['$description', 'decisions[]'] : ['$description'];
+    // #2552: the base and overlays carry no `$extensions`, so the decision record lives in the full tree only.
+    const promised = kind === 'tokens' ? ['$description', 'modes.*.description', 'decisions[]'] : ['$description'];
     for (const f of promised) if (seen[f] === 0) fail(`UNREPRESENTED ${file} ${f}: 0 values read`);
   }
 
