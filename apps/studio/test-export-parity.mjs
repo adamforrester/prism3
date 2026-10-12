@@ -184,14 +184,18 @@ const exportFrom = async (host, id, metadataOn = false) => {
     if (metadataOn) await hooks.click(page.locator(`[data-p3="export-setting"][aria-label="${METADATA_LABEL}: On"]`));
     const want = consumerSet(id).length;
     const got = new Map();
+    // The listener stays attached through the beat below: detaching it at `want` files left the beat listening to
+    // nothing, so a download beyond the expected count (the single-file tree, arriving last) passed silently.
+    let on;
     const all = new Promise((res) => {
-      const on = (dl) => { got.set(dl.suggestedFilename(), dl); if (got.size >= want) { page.off('download', on); res(); } };
+      on = (dl) => { got.set(dl.suggestedFilename(), dl); if (got.size >= want) res(); };
       page.on('download', on);
     });
     await hooks.click(page.locator('[data-p3="export-dialog"] [data-p3="dialog-confirm"]'));
     await Promise.race([all, new Promise((res) => setTimeout(res, 15000))]);
     // A beat for a download beyond the expected count, so an extra file is seen rather than raced past.
     await new Promise((res) => setTimeout(res, 500));
+    page.off('download', on);
     const files = new Map();
     for (const [name, dl] of got) files.set(name, await readFile(await dl.path(), 'utf8'));
     return { files, metadataDefault, errors };
