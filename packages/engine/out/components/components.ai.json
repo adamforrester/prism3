@@ -5368,6 +5368,17 @@
             "large"
           ],
           "description": "Passed to every tab."
+        },
+        {
+          "name": "alignment",
+          "type": "enum: 'start' | 'center'",
+          "default": "start",
+          "required": false,
+          "values": [
+            "start",
+            "center"
+          ],
+          "description": "start: the tabs sit at the start of the bar. center: the tabs sit centered in the bar, which spans its container; the baseline spans the full width either way."
         }
       ],
       "states": [
@@ -5379,6 +5390,13 @@
             "small",
             "medium",
             "large"
+          ],
+          "kind": "authoring"
+        },
+        "alignment": {
+          "values": [
+            "start",
+            "center"
           ],
           "kind": "authoring"
         }

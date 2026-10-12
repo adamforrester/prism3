@@ -15126,8 +15126,9 @@ arm: {
         if (base?.paints?.fills !== 'color/border/primary' || base?.bound?.height !== 'border-width/hairline') bad.push(`baseline ${JSON.stringify(base?.paints)} ${JSON.stringify(base?.bound)}`);
         return bad.length ? [`${planComponentName(m)}: ${bad.join('; ')}`] : [];
       });
-      ok(listMembers.length === 3 && listOff.length === 0,
-        `#2416 Q177.2 tabs: 3 members (size), each nesting six tabs following its size, tab 1 selected, tabs 1-3 shown, tabs 4-6 hidden behind "Tab 4"-"Tab 6", over a 1px color/border/primary baseline (${listMembers.length} members, ${listOff.length} off — ${listOff[0] ?? 'none'})`);
+      // 6 since #2518 (owner decision Q222 A): size 3 × alignment 2 (start, center); what each member nests is unchanged.
+      ok(listMembers.length === 6 && listOff.length === 0,
+        `#2416 Q177.2 tabs: 6 members (size × alignment), each nesting six tabs following its size, tab 1 selected, tabs 1-3 shown, tabs 4-6 hidden behind "Tab 4"-"Tab 6", over a 1px color/border/primary baseline (${listMembers.length} members, ${listOff.length} off — ${listOff[0] ?? 'none'})`);
       const listProps = planSetProperties(listMembers).filter((p) => p.type === 'BOOLEAN').map((p) => `${p.name}=${String(p.default)}`);
       ok(JSON.stringify(listProps) === JSON.stringify(['Tab 4=false', 'Tab 5=false', 'Tab 6=false']),
         `#2416 Q179 tabs: the set declares exactly three Figma-only toggles, Tab 4-6, all off by default (${listProps.join(', ')})`);
@@ -29613,6 +29614,73 @@ arm: {
     '#2455 divider decorative: no Figma property (it changes no pixel), and the codeOnly list says so in an entry that leads with it');
   ok(/^none with aria-hidden="true" by default\b/.test(divider.accessibility.role) && /decorative=false, separator\b/.test(divider.accessibility.role),
     `#2455 divider decorative: the code role is none with aria-hidden by default, and separator with decorative=false (got '${divider.accessibility.role}')`);
+}
+
+// ---- centered Tabs (#2518, owner decision Q222 A) ----
+// At `alignment=center` the root projects as a bar built 480 wide (DRAFT, typed here from the decision), centering
+// its children across; the row of tabs keeps hugging and the baseline stretches across the bar. At `alignment=start`
+// every member is BYTE-IDENTICAL to the approved Tabs (#2416), read against the same def with the axis taken out, so
+// "everything else matches" is held rather than assumed. Mutation: the root's `center` field dropped → `#2518 tabs`.
+{
+  const tabsDef = componentDefs.find((d) => d.id === 'tabs')!;
+  const { center: _c, ...rootNoCenter } = tabsDef.anatomy!.parts[tabsDef.anatomy!.root] as Record<string, unknown>;
+  const approved: ComponentDef = {
+    ...tabsDef,
+    props: tabsDef.props.filter((p) => p.name !== 'alignment'),
+    variants: { size: tabsDef.variants.size },
+    axisKinds: { size: 'authoring' },
+    anatomy: { ...tabsDef.anatomy!, parts: { ...tabsDef.anatomy!.parts, [tabsDef.anatomy!.root]: rootNoCenter as never } },
+    figmaProperties: { ...tabsDef.figmaProperties!, variantAxes: ['size'] },
+  };
+  const strip = (x: unknown): string => JSON.stringify((x as { root: unknown }).root);
+  const bad: string[] = [];
+  let centered = 0, started = 0;
+  for (const size of ['small', 'medium', 'large']) {
+    const c = figmaAnatomyPlan(tabsDef, size, { alignment: 'center' }) as unknown as { root: { counterAxisAlignItems?: string; counterAxisSizingMode?: string; placementWidth?: number; children: { name: string; primaryAxisSizingMode?: string; counterAxisSizingMode?: string; layoutAlign?: string }[] } };
+    const list = c.root.children.find((k) => k.name === 'list');
+    const base = c.root.children.find((k) => k.name === 'baseline');
+    if (c.root.counterAxisAlignItems === 'CENTER' && c.root.counterAxisSizingMode === 'FIXED' && c.root.placementWidth === 480
+      && list?.primaryAxisSizingMode === 'AUTO' && list?.counterAxisSizingMode === 'AUTO' && base?.layoutAlign === 'STRETCH') centered++;
+    else bad.push(`${size}/center: root ${c.root.counterAxisAlignItems} ${c.root.counterAxisSizingMode} ${c.root.placementWidth}, list ${list?.primaryAxisSizingMode}/${list?.counterAxisSizingMode}, baseline ${base?.layoutAlign}`);
+    const st = figmaAnatomyPlan(tabsDef, size, { alignment: 'start' });
+    if (strip(st) === strip(figmaAnatomyPlan(approved, size, {}))) started++;
+    else bad.push(`${size}/start: differs from the approved Tabs`);
+  }
+  ok(centered === 3 && started === 3 && bad.length === 0,
+    `#2518 tabs: alignment=center builds a 480px bar centering its hugging tabs over a full-width baseline, and alignment=start is the approved Tabs byte for byte (${centered} centered, ${started} unchanged${bad.length ? ` — WRONG: ${bad.join(' | ')}` : ''})`);
+}
+
+// ---- the `center` field's refusals (#2518 review, Lane D): each a way it would validate and center nothing, or
+// center every member. One arm per refusal, matched on its own words, so removing any one check fails its arm by name.
+{
+  const tabsDef = componentDefs.find((d) => d.id === 'tabs')!;
+  const R = tabsDef.anatomy!.root;
+  const parts = tabsDef.anatomy!.parts as Record<string, Record<string, unknown>>;
+  const C = { axis: 'alignment', value: 'center', placementWidth: 480 };
+  const withParts = (over: Record<string, Record<string, unknown>>, fp?: Record<string, unknown>) =>
+    validateComponentDef({ ...tabsDef, anatomy: { ...tabsDef.anatomy!, parts: { ...parts, ...over } as never }, ...(fp ? { figmaProperties: { ...tabsDef.figmaProperties!, ...fp } } : {}) } as ComponentDef).errors;
+  const rootWith = (c: unknown, extra: Record<string, unknown> = {}) => withParts({ [R]: { ...parts[R], center: c, ...extra } });
+  const { center: _rc, ...rootBare } = parts[R];
+  const refuses = (errs: string[], re: RegExp) => errs.some((x) => re.test(x));
+  ok(refuses(withParts({ [R]: rootBare, list: { ...parts.list, center: C } }), /part 'list' declares 'center' but is not the anatomy ROOT/),
+    '#2518 schema: a center off the root is refused by name');
+  ok(refuses(rootWith(C, { layout: { ...(parts[R].layout as object), direction: 'row' } }), /part 'container' declares 'center' but is not a 'box' with a 'column' layout/),
+    '#2518 schema: a center on a row root is refused by name');
+  ok(refuses(rootWith(C, { layout: undefined }), /part 'container' declares 'center' but is not a 'box' with a 'column' layout/),
+    '#2518 schema: a center on a root with no layout is refused by name');
+  ok(refuses(rootWith(C, { layout: { ...(parts[R].layout as { sizing: object }), sizing: { ...(parts[R].layout as { sizing: object }).sizing, x: 'fill' } } }), /part 'container' declares 'center' but already sizes its width/),
+    '#2518 schema: a center on a root already sized across is refused by name');
+  ok(refuses(rootWith({ ...C, axis: 'tone' }), /centers on 'tone', which is not one of this def's variant axes/),
+    '#2518 schema: a center axis the def does not declare is refused by name');
+  ok(refuses(withParts({ [R]: { ...parts[R], center: C } }, { variantAxes: ['size'] }), /centers on 'alignment', which figmaProperties\.variantAxes does not project/),
+    '#2518 schema: a center axis the set does not project is refused by name');
+  ok(refuses(rootWith({ ...C, value: 'middle' }), /centers at 'alignment=middle', which is not a value of that axis/),
+    '#2518 schema: a center value the axis does not declare is refused by name');
+  ok(refuses(rootWith({ ...C, value: 'start' }), /centers at 'alignment=start', the axis's first value/),
+    '#2518 schema: centering at the axis\'s default value is refused by name');
+  ok(refuses(rootWith({ ...C, placementWidth: 0 }), /declares a 'center\.placementWidth' that is not a positive number of px/),
+    '#2518 schema: a center build width of no size is refused by name');
+  ok(validateComponentDef(tabsDef).errors.length === 0, '#2518 schema: Tabs\' own center validates clean');
 }
 
 // ------------------------------------------------------------------- report
