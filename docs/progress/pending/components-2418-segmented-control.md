@@ -50,3 +50,10 @@ reads 120 wide.
   second updates that list (Segment: 30 members, 12 sources, 18 reactions).
 - **The page sorts alphabetically** (#2568, Q260 A), so "after Tabs" holds in the taxonomy list but the file shows
   `↳ Segmented control` between Radio and Select. Held for the owner.
+- **The paste executor writes an instance's `layoutGrow` twice** (review BLOCK on 1946897c). The generic build line
+  (`if(n.layoutGrow)node.layoutGrow=n.layoutGrow;`) runs for every node the payload creates, instances included,
+  and the parent's pass writes it again. Remove either line alone and the paste host still reads grow 1, so no gate can
+  fail on one of them by itself. `test.ts`'s #1751 parity floor now has a segmented-control row: every `segment1`–`segment5`
+  instance must read `p:FIXED` and `grow:1` on the paste host, a literal. Remove both lines and that row and the parity line
+  fail by name for segmented-control and nothing else. The plugin side has no generic write (its `claimDefaults` returns
+  early on an instance), so its parent-side line is load-bearing and test-write-components' equal-widths arm holds it.

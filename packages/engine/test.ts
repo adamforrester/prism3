@@ -21093,6 +21093,13 @@ arm: {
           // #1762: field-label's name HUGS (no grow, auto width) and wraps at its 316 max width, on both hosts —
           // the paste twin's spliced max-width line as well as the plugin's.
           [fieldLabel, [new RegExp(`^/[^/]+/[^/]+ HORIZONTAL p:FIXED c:AUTO .* w:${BUILD_W}$`), /\/text undefined .*grow:0 text:WIDTH_AND_HEIGHT mw:316$/]],
+          // #2418 Q269.6 A: a segmented control's options share the track equally — each of the five nested options
+          // GROWS along the track (layoutGrow 1, written by the parent's pass on an instance) with its own main axis
+          // FIXED. Written out per option, a literal, not read off the def. On the paste host an instance's grow is
+          // written TWICE, by the generic build line (`if(n.layoutGrow)node.layoutGrow=...`, every created node) and by
+          // the parent's pass (`kid.layoutGrow`), so either alone keeps this row green: drop BOTH and it fails by name.
+          // The plugin's parent-side write is the only one it has, held by test-write-components' equal-widths arm.
+          [componentDefs.find((d) => d.id === 'segmented-control')!, [1, 2, 3, 4, 5].map((i) => new RegExp(`/track/segment${i} undefined p:FIXED .*grow:1 `))],
         ]);
         for (const [def, want] of FLOORS) {
           const plans = figmaAnatomySet(def, { swapTarget: 'FPO-default-icon' });
