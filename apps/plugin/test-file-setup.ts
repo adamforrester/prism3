@@ -241,7 +241,7 @@ console.log('3b. component pages: alphabetical on insert, reordered by the updat
     const own = got.filter((n) => four.includes(n));
     const fine = JSON.stringify(own) === JSON.stringify(['↳ radio', '↳ Select', '↳ Switch', '↳ Veil'])
       && got[0] === 'Components' && got[got.length - 1] === '---' && got.indexOf('A designer page') < got.indexOf('Another')
-      && !handedHere.some((n) => !four.includes(n)) && handedHere.length === listedHere.length && pagesOutOfOrder(w.children, tax).length === 0;
+      && !handedHere.some((n) => !four.includes(n)) && new Set(handedHere).size === listedHere.length && pagesOutOfOrder(w.children, tax).length === 0;
     if (!fine) bad++;
   }
   ok(bad === 0, `order/permutations: all 24 orders converge to radio, Select, Switch, Veil (case-insensitive), moving only the listed pages and never a designer page (${bad} wrong)`);
@@ -302,6 +302,146 @@ console.log('3c. subcomponent pages: alphabetical within their own section, no p
     // A stray page counts as a designer's in the section it sits in, so it is never moved, let alone out of it.
     ok(JSON.stringify(comp) === JSON.stringify(['↳ Divider', '↳ Tabs', '↳ Field Label']) && JSON.stringify(sub) === JSON.stringify(['↳ Focus Ring', '↳ Spinner', '↳ Badge']),
       `order/no crossing: each section in order within itself, no page moved between Components and Subcomponents (Components ${JSON.stringify(compBefore)} → ${JSON.stringify(comp)}; Subcomponents ${JSON.stringify(subBefore)} → ${JSON.stringify(sub)})`);
+  }
+}
+
+// ── 3d. The real file (#2597): the update, file-setup and five builds move only Prism3's own pages ──────────────
+// The page list of the file the owner ran the sequence on, by name and id, as a LITERAL fixture. A host shim that reads
+// `insertChild`'s index the way the real list shows the host does (in the list before the page is taken out, so a
+// forward move lands one slot early), and the earlier remove-then-splice reading too: the fix must hold under both.
+// Every expected list below is written by hand, never read off the taxonomy or the sort.
+console.log('3d. the #2597 file: update, file-setup and builds move only the component pages Prism3 owns');
+{
+  type Reading = 'host' | 'splice';
+  interface FixturePage extends PageLike { id: string; _kids: unknown[] }
+  const COMPONENT_PAGES = ['↳ Buttons', '↳ Checkbox', '↳ Icon button', '↳ Radio', '↳ Select', '↳ Switch', '↳ Textarea', '↳ Veil', '↳ Badge', '↳ Tag', '↳ Tabs', '↳ Divider', '↳ Text field', '↳ Accordion'];
+  const SUB_PAGES = ['↳ Field Message', '↳ Focus Ring', '↳ Image Placeholder', '↳ Spinner', '↳ Field Label'];
+  // [name, id]; a divider is `---`. The pages Prism3 builds hold their sets (`_kids`), so a page recreated in place
+  // of one would show up empty.
+  const ORIGINAL: [string, string][] = [
+    ['Cover', '1:667'], ['---', '1:669'], ['Foundations', '1:668'], ['↳ Primitive tokens', '1:670'], ['↳ Semantic tokens', '1:671'], ['↳ Icons & assets', '1:718'],
+    ['---', '1:674'], ['Components', '1:673'], ...COMPONENT_PAGES.map((n, i): [string, string] => [n, `81:${100 + i}`]),
+    ['---', '1:676'], ['Subcomponents', '1:675'], ...SUB_PAGES.map((n, i): [string, string] => [n, `24:${100 + i}`]),
+    ['---', '1:678'], ['Sandbox', '1:677'], ['↳ Grids & layouts', '1:672'], ['↳ File Components', '1:679'], ['↳ Helpful Tools', '95:15832'],
+  ];
+  // The issue's reconstruction, Grids & layouts first under Foundations. The replay shows it was under Sandbox when
+  // the sequence ran (the Diagnosis on #2597); both are replayed.
+  const RECONSTRUCTED: [string, string][] = ORIGINAL.filter(([n]) => n !== '↳ Grids & layouts');
+  RECONSTRUCTED.splice(RECONSTRUCTED.findIndex(([n]) => n === 'Foundations') + 1, 0, ['↳ Grids & layouts', '1:672']);
+  const OWN_LEAVES = new Set([...COMPONENT_PAGES, ...SUB_PAGES]);
+  const HEADERS = ['Cover', 'Foundations', 'Components', 'Subcomponents', 'Sandbox'];
+  const FOUNDATIONS = ['↳ Primitive tokens', '↳ Semantic tokens', '↳ Icons & assets', '↳ Grids & layouts'];
+  const SANDBOX = ['↳ File Components', '↳ Helpful Tools'];
+  const DESIGNER = ['↳ Helpful Tools'];
+
+  const fixture = (pages: [string, string][], reading: Reading) => {
+    const children: FixturePage[] = [];
+    let made = 0;
+    const mk = (name: string, id: string): FixturePage => ({
+      name, id, isPageDivider: name === '---', _kids: OWN_LEAVES.has(name) || name === '↳ Icons & assets' ? [{ type: 'COMPONENT_SET', name: `${name.slice(2)} set` }] : [],
+      appendChild(c: unknown) { this._kids.push(c); }, findOne(pred: (n: unknown) => boolean) { return this._kids.find(pred) ?? null; },
+    });
+    for (const [n, id] of pages) children.push(mk(n, id));
+    const api: PagesApi = {
+      root: {
+        get children() { return children; },
+        insertChild(index: number, child: PageLike) {
+          const c = child as FixturePage;
+          const i = children.indexOf(c);
+          const at = Math.max(0, Math.min(index, children.length));
+          if (reading === 'splice') { if (i >= 0) children.splice(i, 1); children.splice(Math.min(at, children.length), 0, c); return; }
+          // THE HOST'S READING: the index counts in the list as it stands, the page still in it; the old copy goes after.
+          children.splice(at, 0, c);
+          if (i >= 0) children.splice(i >= at ? i + 1 : i, 1);
+        },
+        appendChild(child: PageLike) { const i = children.indexOf(child as FixturePage); if (i >= 0) children.splice(i, 1); children.push(child as FixturePage); },
+      },
+      createPage() { const p = mk('', `new:${++made}`); children.push(p); return p; },
+      createPageDivider() { const p = mk('---', `new:${++made}`); children.push(p); return p; },
+      async setCurrentPageAsync() { /* view only */ },
+      async loadAllPagesAsync() { /* nothing to load */ },
+    };
+    const ids = (): string[] => children.map((p) => p.id);
+    const label = (): string[] => children.map((p) => (p.isPageDivider ? `--- ${p.id}` : p.name));
+    return { api, children, ids, label };
+  };
+  // A page's place among the pages Prism3 may not move: the list with its own component-section leaves taken out.
+  const fixedOrder = (kids: readonly FixturePage[]): string[] => kids.filter((p) => !OWN_LEAVES.has(p.name)).map((p) => p.id);
+  const spanOf = (label: string[], header: string): string[] => { const h = label.indexOf(header); const end = label.findIndex((n, i) => i > h && n.startsWith('---')); return label.slice(h + 1, end < 0 ? undefined : end); };
+  const SEQUENCE = ['accordion', 'file-setup', 'button', 'button-destructive', 'icon-button', 'icon-button-destructive'];
+
+  for (const [world, pages] of [['file', ORIGINAL], ['reconstructed', RECONSTRUCTED]] as const) {
+    for (const reading of ['host', 'splice'] as const) {
+      const tag = `replay/${world}, ${reading} reading`;
+      const f = fixture(pages, reading);
+      const start = f.children.slice();
+      const startFixed = fixedOrder(start);
+      const startIds = new Set(f.ids());
+      const sets = new Map(start.map((p) => [p.id, JSON.stringify(p._kids)]));
+      // THE UPDATE'S PAGE ORDER: the dry run's list and the apply, as `update-apply.ts` calls them.
+      const listed = pagesOutOfOrder(f.children);
+      const reordered = reorderPages(f.api);
+      ok(JSON.stringify(listed) === JSON.stringify(['↳ Accordion', '↳ Badge', '↳ Divider', '↳ Tabs', '↳ Tag', '↳ Text field', '↳ Field Label']) && JSON.stringify(reordered) === JSON.stringify(listed),
+        `${tag}: the update lists and reorders the 7 pages the file's update reported (${JSON.stringify(reordered)})`);
+      const afterUpdate = f.ids();
+      // Then the rebuild of Accordion, file-setup, and the four button builds, the list recorded after each.
+      const steps: string[] = [];
+      for (const s of SEQUENCE) {
+        const before = f.ids().join();
+        if (s === 'file-setup') await scaffoldSkeleton(f.api, TAXONOMY);
+        else await resolveComponentPage(f.api, s, TAXONOMY);
+        if (f.ids().join() !== before) steps.push(s);
+      }
+      const end = f.label();
+      ok(steps.length === 0 && JSON.stringify(f.ids()) === JSON.stringify(afterUpdate),
+        `${tag}: after the update, file-setup and the five builds leave the page list exactly as they found it (changed by ${JSON.stringify(steps)})`);
+      ok(JSON.stringify(spanOf(end, 'Components')) === JSON.stringify(['↳ Accordion', '↳ Badge', '↳ Buttons', '↳ Checkbox', '↳ Divider', '↳ Icon button', '↳ Radio', '↳ Select', '↳ Switch', '↳ Tabs', '↳ Tag', '↳ Text field', '↳ Textarea', '↳ Veil']),
+        `${tag}: alphabetical/Components: the section reads A to Z straight after its header (${JSON.stringify(spanOf(end, 'Components'))})`);
+      ok(JSON.stringify(spanOf(end, 'Subcomponents')) === JSON.stringify(['↳ Field Label', '↳ Field Message', '↳ Focus Ring', '↳ Image Placeholder', '↳ Spinner']),
+        `${tag}: alphabetical/Subcomponents: the section reads A to Z straight after its header (${JSON.stringify(spanOf(end, 'Subcomponents'))})`);
+      const endFixed = fixedOrder(f.children);
+      const movedOf = (names: readonly string[]): string[] => start.filter((p) => names.includes(p.isPageDivider ? '---' : p.name))
+        .filter((p) => startFixed.indexOf(p.id) !== endFixed.indexOf(p.id)).map((p) => `${p.name} ${p.id}`);
+      ok(movedOf(HEADERS).length === 0, `${tag}: no header moved (${JSON.stringify(movedOf(HEADERS))})`);
+      ok(movedOf(['---']).length === 0, `${tag}: no divider moved (${JSON.stringify(movedOf(['---']))})`);
+      ok(movedOf(FOUNDATIONS).length === 0, `${tag}: no Foundations page moved (${JSON.stringify(movedOf(FOUNDATIONS))})`);
+      ok(movedOf(SANDBOX).length === 0, `${tag}: no Sandbox page moved (${JSON.stringify(movedOf(SANDBOX))})`);
+      ok(movedOf(DESIGNER).length === 0, `${tag}: no designer page moved (${JSON.stringify(movedOf(DESIGNER))})`);
+      ok(JSON.stringify(endFixed) === JSON.stringify(startFixed), `${tag}: only the component-section pages Prism3 owns moved (${JSON.stringify(endFixed.filter((id, i) => startFixed[i] !== id))})`);
+      const created = f.ids().filter((id) => !startIds.has(id));
+      ok(created.length === 0 && f.children.length === start.length, `${tag}: no page created (${JSON.stringify(created)})`);
+      ok(f.children.every((p) => sets.get(p.id) === JSON.stringify(p._kids)), `${tag}: every set is on the page it was on`);
+    }
+  }
+
+  // A FORWARD MOVE under the host's reading: Tabs, at the front of its section, goes straight after Divider (the last page
+  // in order that sorts before it), ahead of the designer's Notes: the one kind of move the host reads differently.
+  for (const reading of ['host', 'splice'] as const) {
+    const f = fixture([['Components', 'h'], ['↳ Tabs', 'a'], ['↳ Badge', 'b'], ['↳ Divider', 'c'], ['Notes', 'd'], ['↳ Veil', 'e'], ['---', 'f']], reading);
+    reorderPages(f.api);
+    ok(JSON.stringify(f.label()) === JSON.stringify(['Components', '↳ Badge', '↳ Divider', '↳ Tabs', 'Notes', '↳ Veil', '--- f']),
+      `replay/forward move, ${reading} reading: a page moved forward lands straight after its anchor (${JSON.stringify(f.label())})`);
+  }
+
+  // A BUILD BESIDE A HEADER WITH NO DIVIDER: the designer deleted the `---` before Components. The build of a page that
+  // exists creates no divider and moves nothing.
+  for (const reading of ['host', 'splice'] as const) {
+    const f = fixture(ORIGINAL.filter(([, id]) => id !== '1:674'), reading);
+    const before = f.ids();
+    for (const d of ['button', 'icon-button', 'accordion']) await resolveComponentPage(f.api, d, TAXONOMY);
+    ok(JSON.stringify(f.ids()) === JSON.stringify(before), `replay/no divider for an existing header, ${reading} reading: the build creates no page and moves none (${JSON.stringify(f.ids().filter((id, i) => before[i] !== id))})`);
+  }
+
+  // A BUILD OF A PAGE THAT SITS ABOVE ITS HEADER: the designer keeps `↳ Buttons` under Foundations. The build finds it
+  // there and builds onto it; it is not pulled back under Components.
+  for (const reading of ['host', 'splice'] as const) {
+    const pages = ORIGINAL.filter(([n]) => n !== '↳ Buttons');
+    pages.splice(pages.findIndex(([, id]) => id === '1:674'), 0, ['↳ Buttons', '81:100']);
+    const f = fixture(pages, reading);
+    const before = f.ids();
+    const got = await resolveComponentPage(f.api, 'button', TAXONOMY);
+    ok(got?.name === '↳ Buttons' && JSON.stringify(f.ids()) === JSON.stringify(before),
+      `replay/existing page above its header, ${reading} reading: the build returns it where it is and moves nothing (${JSON.stringify(f.label().slice(4, 10))})`);
   }
 }
 
