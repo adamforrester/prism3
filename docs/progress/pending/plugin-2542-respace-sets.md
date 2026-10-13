@@ -1,0 +1,42 @@
+## (2026-10-11) — Update: the sets Prism3 built on a page are re-spaced as a new build spaces them (#2542, owner decision Q245.2 A)
+
+**Status:** plugin only (the update's dry run and apply, and a pure placement rule in the executor). `EXECUTOR_REVISION` 13 → 14 against main (#2545 took 13). No engine file moves, so no engine bump is owed.
+
+**Why:** #2502 (#2538) widened the gap between side-by-side sets to 400 so a set's new row labels clear its neighbour, but `placeNewSet` places only new sets. In a file built before it, later sets stay 160 apart and their row brackets land on the set to their left. An Update now re-spaces them, so the owner's single Update leaves each page clean.
+
+**The rule (`respaceSets`, beside `placeNewSet`; owner decision Q248 A, "the re-spacing only makes room"):** a set moves only when it sits closer to its left neighbour (the nearest Prism3 set to its left in the same row, as already moved) than a fresh build's `SET_GAP`, and then to exactly `SET_GAP` clear of it. A set spaced wider stays; a set with no Prism3 set to its left in its row (the first of a row, a second row) stays, so a second row is never lifted and `y` never changes. If the spot a moving set needs overlaps something that stays put, it is pushed just past it. A set Prism3 didn't build (no stamped member), the page header and every other node never move. The canvas furniture follows the move, since it is redrawn after the update from where each set sits.
+
+**Approaches tried and discarded:** first, replaying `placeNewSet` for each set. It reproduces a fresh build only on a page with nothing else in the row: `placeNewSet` puts a NEW set right of everything in its band, so a designer's note far to the right, or a set they built, would pull every later set past it. Re-spacing an existing page keeps the order and moves as little as it takes. Then, laying every set out `SET_GAP` after the one before (the first review round): that also closed up a designer's wider spacing and would lift a second row, which Q248 A rules out: the re-spacing only makes room.
+
+**Scope and safety:** a page takes part only when every Prism3 set on it is a target of this update and none is blocked, so an update scoped to one def never moves a set it wasn't asked about. A set's move is in the preview hash, so a set moved between the check and the confirm refuses the apply. The apply recomputes the moves from the live sets after their members land (new sizes), writes only `x` and `y`, and keeps every set and member id.
+
+**Two fixes from review (the UI lane, on 43c4c45f):**
+- **A set never lands on another Prism3 set.** The push past an obstacle read only the nodes Prism3 didn't build. Repro: A at 0, B at 960 (too close), a designer's frame at 1800..1900, C at 1920, all 800 wide. B was pushed past the frame to 2300, over C, which stays because it is 1120 clear of A. Now the obstacles are the fixed nodes, every set already placed, and a set not reached yet once the spot is at or past its left edge: B goes to 3120. **Trap:** counting EVERY later set as an obstacle was tried first and is wrong. On a plain squeezed page, B's fresh spot overlaps C where C sits now, though C would move clear of B on its own turn, so B jumped past C. Short of a later set's left edge, that set still has the moving one as its left neighbour and clears it; past it, it doesn't.
+- **Set ownership reads the members' shared test.** This branch had a local `const builtByPrism3` (any stamp on any member), which after #2545 shadowed the shared import of that name (TS2440). At runtime, `ownedView` would have called the set-level function with a member list, and every dry run would throw. It is now `setBuiltByPrism3`: a set is Prism3's when one of its members passes #2545's `builtByPrism3`. So a set whose only stamps are malformed, or one copied with its record from another member, is a designer's set and an obstacle.
+
+**A trap:** the pass maps a move back to its set by the node, never by id. In the shim every set built into one shim is `SET:1`, and mapping by id sent all three sets' moves to one name.
+
+**Tests** (`test-update-apply.ts`, `page/…`), the button family on one page squeezed to the old 160:
+- `set moves`: the dry run moves the 2 later sets ("Would change 2 of 3");
+- `converges`: the apply puts each where a fresh build did, keeps every id, and the next dry run is up to date ("✓ 2 sets moved");
+- `untouched`: a frame Prism3 didn't build stays put;
+- `in order`: a note far right in the row pulls no set past it;
+- `around`: a set Prism3 didn't build stays put, and the set that would overlap it goes just past it;
+- `scoped`: an update reading one set of the page moves none, in the dry run or the apply;
+- `blocked`: a page holding a set the update can't touch (two members on one coordinate) moves no set, in the dry run or the apply;
+- `wider`: sets spaced 600 apart stay;
+- `second row`: a set below the first row stays, while the too-close set in the first row still moves;
+- `just enough`: a set 300 from its neighbour moves to exactly 400 clear, and the one beyond, already clear, stays.
+- `never onto a set`: the repro on the built sets (864 wide, so B lands at 3184), read from the page after the apply: no two nodes in the row overlap;
+- `not ours by its stamps`: a set whose stamps are all malformed, or whose one stamp is a copy, is gone around (2964);
+- `respace onto a set` (`respaceSets` itself): the repro exactly, 800 wide, B to 3120 and over nothing.
+
+`around` and `scoped` also check the apply, and the test page carries a section header, which stays put.
+
+Mutations, each failing by name: the set-move pass removed (`set moves`, `converges`, `in order`, `around`, `second row`, `just enough`); the push past an obstacle removed (`around`); every set treated as Prism3's (`around`); the scope rule removed (`scoped`); the blocked check removed (`blocked`, and the blocked set itself was moved); the "only when too close" check removed (`wider`, `just enough`, `converges`); the left neighbour from any row (`second row`); a fixed step instead of `SET_GAP` clear (`just enough`, `in order`, `second row`, `converges`).
+
+The review fixes' mutations, from the committed tree: the push reading only the nodes Prism3 didn't build again (`never onto a set`, `respace onto a set`); every later set counted as an obstacle (`set moves`, `converges`, `in order`); the set-level check reading "any member has a stamp" again (`not ours by its stamps`).
+
+The "every set already placed" arm had no test of its own: leaving `...placed` out of the obstacle list kept the suite green, because in every committed layout a moved set's spot already cleared the sets placed before it. The re-review's repro now has its own arm (`respace onto a moved set`): A at 0 (800 wide), B at 900, C at 1000 (900 wide), a designer's frame at 1500..1600. B goes to 2000, and C, pushed past the same frame, goes on past B to 3200. With `...placed` removed, C lands on B at 2000 and only that arm fails. Test only: no behavior change, `EXECUTOR_REVISION` stays 14.
+
+**With #2575 (#2568, the page order) merged in.** Both features add work to the same dry run and apply, and the merge conflicted in `update-plan.ts` and `update-apply.ts`. Resolved so they compose: the preview carries each set's `setMove` and the file's `pages`; `previewHashOf` covers both, so a set or a page moved after the check refuses the confirm; an apply whose only work is set moves, page reorders, or both saves ONE named version first, its title the existing composition (`Before Prism3 updated button-destructive, button-neutral, the page order`, the form #2575 approved for sets alongside the page order); the pages move first, then the sets update, then the sets move. `applyVerdict` keeps both counters. A run that does both needed a headline that hides neither: `✓ 2 sets moved, reordered 1 page`, the two approved headlines (Q246 A, Q264 A) joined, marked DRAFT for the owner. New arm `both/…` (dry run, version, done, verdict, hash for a set, hash for a page). Mutations from the committed tree: the set's move dropped from the hash fails only `both/hash, set`; the page list dropped fails `both/hash, page` and #2575's `pages/hash`. A trap in writing the arm: each hash arm first read `_versions.length === 1`, so the set mutation, by letting a confirm through, also failed the page arm. Each now counts from its own baseline, so a mutation fails only the arm it targets. `EXECUTOR_REVISION` stays 14 (main 13).
