@@ -107,6 +107,9 @@ export const TAXONOMY: Taxonomy = {
     },
     {
       header: 'Subcomponents',
+      // Alphabetical in the file too (#2568, owner decision Q265 B), each section within itself; the list below is
+      // no longer the page order.
+      alphabetical: true,
       leaves: [
         { page: 'Image Placeholder', defs: ['image-placeholder'] },
         { page: 'Focus Ring', defs: ['focus-ring'] },

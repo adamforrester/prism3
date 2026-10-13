@@ -932,7 +932,7 @@ export const previewLine = (p: SetPreview): string => {
   return `${p.set}: ${n(c.members, 'member')}. ${parts.join(', ')}.`;
 };
 
-/** DRAFT wording for the owner (#2568, the Q211/Q246 family): the component pages out of alphabetical order, named
+/** Owner-approved wording (#2568, the Q211/Q246 family; Q264 A): the component pages out of alphabetical order, named
  *  as the page list shows them less the `↳ `. Empty when none. */
 export const pagesLine = (pages: readonly string[] | undefined): string =>
   pages?.length ? `Component pages: ${pages.length} to reorder (${pages.map(stripNestPrefix).join(', ')}).` : '';
@@ -947,7 +947,7 @@ export const previewVerdict = (r: UpdatePreview): { ok: boolean; headline: strin
   const claimable = r.sets.some((p) => !p.blockers.length && p.adoptable.length);
   const blocked = r.sets.filter((p) => p.blockers.length).length + r.refused.length;
   const reorder = r.pages?.length ?? 0;
-  // DRAFT wording for the owner (#2568): pages to reorder and nothing else is its own headline.
+  // Owner-approved wording (#2568, Q264 A): pages to reorder and nothing else is its own headline.
   const headline = r.sets.length + r.refused.length === 0 ? (reorder ? `Would reorder ${n(reorder, 'page')}` : 'No sets to check')
     : blocked ? `✗ ${n(blocked, 'set')} can't be checked`
       : changing ? `Would change ${changing} of ${r.sets.length}` : reorder ? `Would reorder ${n(reorder, 'page')}`

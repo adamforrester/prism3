@@ -13,6 +13,7 @@
  *   3. `resolveComponentPage` inserts each `↳ <family>` page in its correct section slot; in the alphabetical
  *      Components section, at its place by name (3b, #2568), where `pagesOutOfOrder` and `reorderPages` (the
  *      update's dry run and apply) are checked too: every orders' pages converge, a designer page never moves.
+ *      Subcomponents is alphabetical as well (3c, Q265 B), each section within itself, no page crossing between.
  *   4. `assertCoverage` reads the REAL `componentDefs` registry (the oracle) and finds every id mapped;
  *      a synthetic unmapped id is reported BY NAME (the arm that fails if a def is added and not placed).
  *   5. `applyComponentPlan`'s `targetPage` option routes a built set onto the target page, leaving
@@ -244,6 +245,64 @@ console.log('3b. component pages: alphabetical on insert, reordered by the updat
     if (!fine) bad++;
   }
   ok(bad === 0, `order/permutations: all 24 orders converge to radio, Select, Switch, Veil (case-insensitive), moving only the listed pages and never a designer page (${bad} wrong)`);
+}
+
+// ── 3c. Subcomponents in alphabetical order too (#2568, owner decision Q265 B) ──────────────────────
+// Each section is ordered within itself; no page crosses between them. Expected orders are hand-sorted LITERALS.
+console.log('3c. subcomponent pages: alphabetical within their own section, no page crossing between sections');
+{
+  const spanOf = (n: string[], header: string): string[] => { const h = n.indexOf(header); return n.slice(h + 1, n.indexOf('---', h + 1)); };
+  // (a) Built out of taxonomy order: each new Subcomponents page lands at its alphabetical place.
+  {
+    const { api, children, names } = makePagesShim();
+    await scaffoldSkeleton(api, TAXONOMY);
+    for (const id of ['spinner', 'field-message', 'image-placeholder', 'focus-ring', 'field-label']) await resolveComponentPage(api, id, TAXONOMY);
+    ok(JSON.stringify(spanOf(names(), 'Subcomponents')) === JSON.stringify(['↳ Field Label', '↳ Field Message', '↳ Focus Ring', '↳ Image Placeholder', '↳ Spinner']),
+      `order/sub new page: each new Subcomponents page lands at its alphabetical place (${JSON.stringify(spanOf(names(), 'Subcomponents'))})`);
+    ok(pagesOutOfOrder(children).length === 0, 'order/sub new page: a file built only by the build reads in order');
+  }
+  // (b) A designer page inside Subcomponents keeps its neighbors while the section is put in order around it.
+  {
+    const { api, children, names } = makePagesShim();
+    await scaffoldSkeleton(api, TAXONOMY);
+    for (const id of ['field-label', 'focus-ring', 'image-placeholder', 'spinner']) await resolveComponentPage(api, id, TAXONOMY);
+    const at = (name: string) => children.findIndex((p) => p.name === name);
+    const memo = api.createPage(); memo.name = 'Sub notes';
+    api.root.insertChild(at('↳ Image Placeholder'), memo);
+    api.root.insertChild(at('↳ Field Label'), children[at('↳ Spinner')]);   // Spinner to the front
+    // Now: Spinner, Field Label, Focus Ring, Sub notes, Image Placeholder.
+    const before = names();
+    const listed = pagesOutOfOrder(children);
+    const handed: string[] = [];
+    const insert = api.root.insertChild.bind(api.root);
+    reorderPages({ root: { get children() { return children; }, insertChild: (i, p) => { handed.push(p.name); insert(i, p); } } });
+    const near = (n: string[], x: string) => [n[n.indexOf(x) - 1], n[n.indexOf(x) + 1]];
+    ok(JSON.stringify(listed) === JSON.stringify(['↳ Spinner'])
+      && JSON.stringify(spanOf(names(), 'Subcomponents')) === JSON.stringify(['↳ Field Label', '↳ Focus Ring', 'Sub notes', '↳ Image Placeholder', '↳ Spinner'])
+      && !handed.includes('Sub notes') && JSON.stringify(near(names(), 'Sub notes')) === JSON.stringify(near(before, 'Sub notes')),
+      `order/sub designer page: Subcomponents put in order, the designer page never moved and keeps its neighbors (listed ${JSON.stringify(listed)}; ${JSON.stringify(spanOf(names(), 'Subcomponents'))}; moved ${JSON.stringify(handed)})`);
+  }
+  // (c) Both sections shuffled, and one section's page dropped by hand into the other: each section is put in order
+  // within itself, and every page stays in the section it was found in.
+  {
+    const { api, children, names } = makePagesShim();
+    await scaffoldSkeleton(api, TAXONOMY);
+    for (const id of ['badge', 'tabs', 'divider', 'spinner', 'focus-ring', 'field-label']) await resolveComponentPage(api, id, TAXONOMY);
+    const at = (name: string) => children.findIndex((p) => p.name === name);
+    const moveAfter = (x: string, anchor: string) => { const p = children[at(x)]; const rest = children.filter((c) => c !== p); api.root.insertChild(rest.indexOf(children[at(anchor)]) + 1, p); };
+    moveAfter('↳ Tabs', 'Components');           // Components: Tabs, Badge, Divider
+    moveAfter('↳ Spinner', 'Subcomponents');     // Subcomponents: Spinner, Field Label, Focus Ring
+    moveAfter('↳ Badge', '↳ Focus Ring');        // Badge dropped into Subcomponents, last
+    moveAfter('↳ Field Label', '↳ Divider');     // Field Label dropped into Components, last
+    const compBefore = spanOf(names(), 'Components'), subBefore = spanOf(names(), 'Subcomponents');
+    ok(JSON.stringify(compBefore) === JSON.stringify(['↳ Tabs', '↳ Divider', '↳ Field Label']) && JSON.stringify(subBefore) === JSON.stringify(['↳ Spinner', '↳ Focus Ring', '↳ Badge']),
+      `order/no crossing: the shuffled file is the one this arm means (${JSON.stringify(compBefore)}; ${JSON.stringify(subBefore)})`);
+    reorderPages(api);
+    const comp = spanOf(names(), 'Components'), sub = spanOf(names(), 'Subcomponents');
+    // A stray page counts as a designer's in the section it sits in, so it is never moved, let alone out of it.
+    ok(JSON.stringify(comp) === JSON.stringify(['↳ Divider', '↳ Tabs', '↳ Field Label']) && JSON.stringify(sub) === JSON.stringify(['↳ Focus Ring', '↳ Spinner', '↳ Badge']),
+      `order/no crossing: each section in order within itself, no page moved between Components and Subcomponents (Components ${JSON.stringify(compBefore)} → ${JSON.stringify(comp)}; Subcomponents ${JSON.stringify(subBefore)} → ${JSON.stringify(sub)})`);
+  }
 }
 
 // ── 4. Taxonomy coverage of the real registry ────────────────────────────────────────────────────

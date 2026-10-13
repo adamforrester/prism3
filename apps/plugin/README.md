@@ -217,13 +217,14 @@ Rules, all enforced in the config + `test-file-setup.ts`:
 - **Dividers are native** — `figma.createPageDivider()` (default name `---`, `isPageDivider` true), matched
   back by the flag, not the name (so a repeated `---` is not an idempotency hazard). One before each section.
 - **`↳ ` prefix** (U+21B3 + space) on every component page; `Cover` and the section headers have none.
-- **Components pages are alphabetical** (#2568, owner decision Q260 A), by visible name without the `↳ `,
-  case-insensitive — the section's `alphabetical` flag, so the list above is not their file order. A new page
+- **Components and Subcomponents pages are alphabetical** (#2568, owner decisions Q260 A and Q265 B), each
+  section within itself, by visible name without the `↳ `, case-insensitive — the section's `alphabetical`
+  flag, so the lists above are not their file order. No page ever crosses from one section to the other. A new page
   is inserted after the last of the section's pages that sorts before it. The in-place Update's dry run lists
   the pages out of order ("Component pages: N to reorder (…)", `pagesOutOfOrder`) and its apply moves them
   (`reorderPages`): the fewest pages, each after the last in-order page that sorts before it. A page whose name
   is no taxonomy leaf is a designer's and is never moved; no page is created or deleted, and no other section
-  moves. The other sections keep the config's order.
+  moves. Foundations and Sandbox keep the config's order.
 - **The split that decides ownership:** a leaf with NO defs (the Foundations placeholders, `File Components`)
   is pre-created by `file-setup`; a leaf WITH defs is created ON DEMAND by the page-aware build, so an unbuilt
   component leaves no empty page. `Icons & assets` (the `icon` def) is the one Foundations leaf on the build's side.

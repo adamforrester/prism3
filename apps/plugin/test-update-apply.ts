@@ -253,9 +253,9 @@ section('hash — a confirm over a file that moved since the check writes nothin
 }
 
 /* ── pages ───────────────────────────────────────────────────────────────────────────────────────────── */
-// #2568, owner decision Q260 A: the update lists the component pages out of alphabetical order and the apply puts them
-// in place with the usual confirm, moving no designer page. The page list is the host's; the expected orders are
-// literals sorted by hand. Mutations: the dry run's page read dropped → `pages/dry run`; the apply's reorder dropped
+// #2568, owner decisions Q260 A and Q265 B: the update lists the component pages out of alphabetical order and the
+// apply puts them in place with the usual confirm, moving no designer page. Components and Subcomponents are each
+// ordered within themselves. The page list is the host's; the expected orders are literals sorted by hand. Mutations: the dry run's page read dropped → `pages/dry run`; the apply's reorder dropped
 // → `pages/apply`, `pages/converges`; a designer page moved → `pages/designer`.
 section('pages — component pages out of alphabetical order: listed by the dry run, put in order by the apply');
 {
@@ -270,14 +270,15 @@ section('pages — component pages out of alphabetical order: listed by the dry 
   const targets = [{ def: TAG, plans: w.plans }];
   const pre = await previewUpdate(host, targets);
   const v = previewVerdict(pre);
-  // Tabs, Divider, Badge, Tag: the longest run in order is two long (Tabs, Tag, the first found), so two pages move.
-  ok(JSON.stringify(pre.pages) === JSON.stringify(['↳ Badge', '↳ Divider']) && v.lines.includes('Component pages: 2 to reorder (Badge, Divider).') && v.headline === 'Would reorder 2 pages',
-    `pages/dry run: Badge and Divider listed, the set itself up to date (${JSON.stringify(pre.pages)}; ${v.headline}; ${v.lines.join(' | ')})`);
+  // Tabs, Divider, Badge, Tag: the longest run in order is two long (Tabs, Tag, the first found), so two pages move;
+  // Spinner, Field Label: Spinner kept (the first found), so Field Label moves.
+  ok(JSON.stringify(pre.pages) === JSON.stringify(['↳ Badge', '↳ Divider', '↳ Field Label']) && v.lines.includes('Component pages: 3 to reorder (Badge, Divider, Field Label).') && v.headline === 'Would reorder 3 pages',
+    `pages/dry run: Badge, Divider and Field Label listed, the set itself up to date (${JSON.stringify(pre.pages)}; ${v.headline}; ${v.lines.join(' | ')})`);
   const res = await applyUpdate(host, w.api as any, targets, previewHashOf(pre));
-  ok(JSON.stringify(names()) === JSON.stringify(['Cover', '---', 'Components', '↳ Badge', '↳ Divider', '↳ Tabs', 'Notes', '↳ Tag', '---', 'Subcomponents', '↳ Spinner', '↳ Field Label'])
-    && JSON.stringify(res.reordered) === JSON.stringify(['↳ Badge', '↳ Divider']) && applyVerdict(res).headline === '✓ reordered 2 pages',
-    `pages/apply: Badge, Divider, Tabs, Tag in order; Subcomponents untouched (${JSON.stringify(names())}; ${applyVerdict(res).headline})`);
-  ok(JSON.stringify(handed) === JSON.stringify(['↳ Badge', '↳ Divider']) && names().indexOf('↳ Tag') - names().indexOf('Notes') === 1,
+  ok(JSON.stringify(names()) === JSON.stringify(['Cover', '---', 'Components', '↳ Badge', '↳ Divider', '↳ Tabs', 'Notes', '↳ Tag', '---', 'Subcomponents', '↳ Field Label', '↳ Spinner'])
+    && JSON.stringify(res.reordered) === JSON.stringify(['↳ Badge', '↳ Divider', '↳ Field Label']) && applyVerdict(res).headline === '✓ reordered 3 pages',
+    `pages/apply: Badge, Divider, Tabs, Tag in order; Field Label, Spinner in order, each within its own section (${JSON.stringify(names())}; ${applyVerdict(res).headline})`);
+  ok(JSON.stringify(handed) === JSON.stringify(['↳ Badge', '↳ Divider', '↳ Field Label']) && names().indexOf('↳ Tag') - names().indexOf('Notes') === 1,
     `pages/designer: only the listed pages moved, Notes never, and it still precedes Tag (moved ${JSON.stringify(handed)})`);
   ok(JSON.stringify(w.api._versions) === JSON.stringify(['Before Prism3 updated the page order']), `pages/version: one named version before the move (${JSON.stringify(w.api._versions)})`);
   const again = await previewUpdate(host, targets);

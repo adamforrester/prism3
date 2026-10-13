@@ -637,7 +637,7 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
     if (o.content.length) lines.push(`${o.set}: ${n(o.content.length, 'field')} still differ from the plan — ${o.content.slice(0, 3).join('; ')}${o.content.length > 3 ? '; …' : ''}.`);
   }
   for (const x of r.refused) lines.push(`${x.def}: not updated. ${x.reason}.`);
-  // DRAFT wording for the owner (#2568), the dry run's "to reorder" as done.
+  // Owner-approved wording (#2568, Q264 A), the dry run's "to reorder" as done.
   if (reordered) lines.push(`Component pages: ${reordered} reordered (${r.reordered!.map(stripNestPrefix).join(', ')}).`);
   if (r.missing.length) lines.push(`Not in this file: ${r.missing.join(', ')}.`);
   if (r.version) lines.push(`Saved a version first: "${r.version}".`);
