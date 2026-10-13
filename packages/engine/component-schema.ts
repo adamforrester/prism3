@@ -112,6 +112,10 @@ export type PaddingDef = {
    *  the trailing side; a def that also declares `inlineVisual` is refused (the two rules would both claim
    *  that side). */
   inlineEnd?: string;
+  /** The BOTTOM side's key, when it is not `block`'s (#2417). Accordion's panel takes no top inset (the header's
+   *  own bottom padding already spaces it from the title) and a larger bottom one before the divider, so `block`
+   *  pads the top and this the bottom. Absent, `block` pads both, as it always has. */
+  blockEnd?: string;
 };
 
 /**
@@ -956,6 +960,14 @@ export type PartDef = {
    *  stroke and is what every non-ring absolute part will want. `lint-absolute-inset.ts` is what stops
    *  the omission from being silent for a part that does carry one. */
   strokeInset?: string;
+  /** For `absolute`: the part is DRAWN INSIDE its host's edge, deliberately (#2417, owner decision Q257 A), so its
+   *  nested component's inside stroke is not compensated: the part sits on the host's own bounds and its stroke falls
+   *  within them. The stated alternative to `strokeInset`, never both (the validator refuses the pair), and it says
+   *  why a ring that would otherwise be #801's flush geometry is intended: an Accordion header spans its container,
+   *  so an outset ring is clipped by an overflow-hidden container and covers the Divider under it. Its `inset` must
+   *  resolve to 0 in every brand, which `lint-absolute-inset.ts` asserts (`MUST_DRAW_INSIDE`): a ring offset outward
+   *  while declaring itself inside would be neither. */
+  drawnInside?: true;
   /** For `vector` parts: PIN the glyph into a corner of its parent, OUT of the auto-layout flow, `inset`
    *  (a binding key, like `absolute`'s) in from both edges of that corner. The textarea's resize grip is the
    *  case: a small glyph that sits at the control's bottom-right corner and must not take a cell — in the
@@ -1089,6 +1101,15 @@ export type FigmaProperties = {
    *  empty answer nobody reads. Read that gate's own comment before trusting this one — its first
    *  version was unreachable and the suite stayed green (#802's class). */
   variantAxes: string[];
+  /** A variant axis's Figma DISPLAY NAME, keyed by its code name (#2571), when the two differ: Accordion's
+   *  `iconPosition` reads "icon position" in the properties panel, as Button's `leading` slot axis reads "leading
+   *  icon" (`slotAxes[].figmaName`). The display name is what every member name carries (`icon position=leading`), so
+   *  everything that parses a member name reads it: `planComponentName`, the grid and cohort keys, the chunked paste.
+   *  The code name stays the def's own everywhere else (`variants`, `presentWhen`, `axisKinds`, `props`). Absent means
+   *  the code name is used, so every def without one is byte-identical. Not yet supported on a def another def NESTS
+   *  (a nest names its coordinate by code name and the projection cannot see the nested def): `test.ts` fails by name
+   *  if one is nested. */
+  variantAxisNames?: Partial<Record<string, string>>;
   /** `states` projects as one MORE variant axis, under this name, over these values. Separate from
    *  `variantAxes` because `states` is its own top-level field, not a member of `variants`. */
   stateAxis?: { name: string; values: string[] };
@@ -1708,7 +1729,10 @@ export const validateComponentDef = (
   const req = (cond: boolean, msg: string) => { if (!cond) errors.push(msg); };
 
   // identity + prose
-  req(!!def.id && /^[a-z][a-z0-9-]*$/.test(def.id), `id must be kebab-case (got '${def.id}')`);
+  // A leading `_` marks a BUILDING BLOCK (#2417, owner decision Q183): a component only ever nested inside another,
+  // which Figma leaves out of a published library because its name starts with `_`. The set's name is its id, so
+  // the mark lives in the id. Kebab-case otherwise.
+  req(!!def.id && /^_?[a-z][a-z0-9-]*$/.test(def.id), `id must be kebab-case, optionally led by '_' for a building block (got '${def.id}')`);
   req(!!def.name, 'name is required');
   req(!!def.category, 'category is required');
   // #1700 — the KB's seven categories, closed. The type binds a def file; this binds everything that
@@ -1894,7 +1918,7 @@ export const figmaAxisNames = (def: ComponentDef): string[] => {
   const fp = def.figmaProperties;
   if (!fp) return [];
   return [
-    ...(fp.variantAxes ?? []),
+    ...(fp.variantAxes ?? []).map((a) => variantAxisFigmaName(fp, a)),
     ...(fp.stateAxis?.name ? [fp.stateAxis.name] : []),
     // The slot axis's Figma NAME, which is `figmaName` when the def decouples it (#1309/#1380) and the
     // code `name` otherwise. `planComponentName` writes this into the member coordinate, so the parity
@@ -1903,6 +1927,11 @@ export const figmaAxisNames = (def: ComponentDef): string[] => {
     ...(fp.slotAxes ?? []).map((s) => slotAxisFigmaName(s)),
   ];
 };
+
+/** A variant axis's Figma panel name (#2571): its `variantAxisNames` display name, or its code name. One reader for
+ *  the one rule, so `figmaAxisNames`, the projector and the validator cannot disagree. */
+export const variantAxisFigmaName = (fp: { variantAxisNames?: Partial<Record<string, string>> } | undefined, axis: string): string =>
+  fp?.variantAxisNames?.[axis] ?? axis;
 
 /** A slot axis's Figma panel name — its `figmaName` decoupling (#1309/#1380) or its code `name`. One
  *  reader for the one rule, so `figmaAxisNames`, the projector and the validator cannot disagree. */
@@ -2298,7 +2327,12 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
     else panelNames.set(name, source);
   };
   // Variant + state axis names are panel names too, so a display name colliding with one is caught.
-  for (const a of fp.variantAxes ?? []) panelNames.set(a, `variantAxes.${a}`);
+  // Plain axis names first, then each display name (#2571) is CLAIMED against all of them, whichever order they are declared in.
+  for (const a of fp.variantAxes ?? []) if (variantAxisFigmaName(fp, a) === a) panelNames.set(a, `variantAxes.${a}`);
+  for (const a of fp.variantAxes ?? []) if (variantAxisFigmaName(fp, a) !== a) claimPanel(variantAxisFigmaName(fp, a), `variantAxisNames.${a}`);
+  // A display name names a DECLARED variant axis (#2571): one for an axis the def does not have projects nowhere.
+  for (const a of Object.keys(fp.variantAxisNames ?? {}))
+    if (!(fp.variantAxes ?? []).includes(a)) e.push(`figmaProperties.variantAxisNames.${a}: '${a}' is not one of this def's variantAxes — a display name for an axis the set does not have projects nowhere`);
   if (fp.stateAxis?.name) panelNames.set(fp.stateAxis.name, 'stateAxis');
   for (const s of fp.slotAxes ?? []) claimPanel(slotAxisFigmaName(s), `slotAxes.${s.name}`);
   for (const [prop, t] of Object.entries(fp.texts ?? {})) claimPanel(textFigmaName(prop, t), `texts.${prop}`);
@@ -2510,12 +2544,20 @@ export const fillKey = (
  * placeholder on the empty focused field. Node order is fixed per set, so the two positions are two parts, and the
  * projector resolves a slot once per def (two parts claiming `caret` would bind one variable for both, which
  * `anatomyErrors` refuses). So the second caret takes its own slot, bound to the same value ink.
+ *
+ * `body` (#2417, owner decision Q182) passes the test as a ROLE: the page's own text ink for content a control
+ * DISCLOSES, which does not follow the control's interactive state. Accordion's panel placeholder is page text
+ * (`color.text.primary`) under a header whose title is interactive ink (`label`, which follows the header's
+ * state); `paintOf` is part-blind, so reusing `label` would paint the panel with the header's state, and
+ * `indicator` is a de-emphasised suffix. No existing entry expresses "text that belongs to the page, not to the
+ * control". A text part asks for it with `paintSlot: 'body'`, and it is a text part's primary paint, as
+ * `indicator` is, so it sits in `PRIMARY_PAINT_SLOTS` too.
  */
 /** The reserved `presentWhen` key that gates a part on the projected STATE rather than on a variant axis
  *  (owner decision, 2026-09-26). See `PartDef.presentWhen`. */
 export const STATE_GATE = 'state';
 
-export const PAINT_SLOTS = ['fill', 'overlay', 'border', 'label', 'icon', 'indicator', 'caret', 'caret-end'] as const;
+export const PAINT_SLOTS = ['fill', 'overlay', 'border', 'label', 'icon', 'indicator', 'caret', 'caret-end', 'body'] as const;
 
 /**
  * The paint slots a SLOT-FREE template is allowed to answer (#758).
@@ -2543,7 +2585,7 @@ export const PAINT_SLOTS = ['fill', 'overlay', 'border', 'label', 'icon', 'indic
  * consistent answer rather than a demonstrated one — stated so the next slot-free grammar does not
  * inherit a silent hole.
  */
-export const PRIMARY_PAINT_SLOTS = new Set(['fill', 'label', 'icon', 'indicator']);
+export const PRIMARY_PAINT_SLOTS = new Set(['fill', 'label', 'icon', 'indicator', 'body']);
 
 /**
  * The slots a `box` part may declare in `paintSlots` (#933) — a NAMED SUBSET of `PAINT_SLOTS`, not a
@@ -3072,12 +3114,35 @@ export type State = (typeof STATES)[number];
  * names the axis, its centered value and the width the centered member is built at. An AUTHORING axis: a tab list
  * is centered where it is placed and never moves on screen. `lint-axis-values.ts` carries the two values as a
  * `sole` set.
+ *
+ * ── `expansion`: THE TWENTY-FOURTH NAME, FOR THE ACCORDION (owner decisions Q182 and Q183, 2026-10-10, #2417) ──
+ *
+ * `expansion` (`collapsed | expanded`) is WHETHER a disclosure shows its content: an accordion's panel present
+ * or not, with its indicator turned to match. The owner chose a new name over reusing `selection`, and it clears
+ * this list's bar as a distinct kind of distinction with the nearest defeated: `selection` is a value the user
+ * PICKS (a checked box, a selected tag, a chosen tab), which a form or a group reads back; opening a section
+ * picks nothing, and two open sections are not two selections. `state` is the transient interaction (rest,
+ * focus); an open accordion stays open when focus leaves it. A RUNTIME axis: the user opens and closes it.
+ * `lint-axis-values.ts` carries the two values as a `sole` set, shared by the accordion and its indicator.
+ *
+ * ── `iconPosition`: THE TWENTY-FIFTH NAME, FOR THE ACCORDION'S INDICATOR (owner decisions Q182, Q242 and the QA, #2417) ──
+ *
+ * `iconPosition` (`leading | trailing`) is WHICH SIDE of a row a part sits on, in reading order: the accordion's indicator
+ * before its title or after it. The owner chose the axis (Q182) and named the values (Q242) as Button names its
+ * leading and trailing visuals and Switch row its `labelPosition`. Named `iconPosition`, not `position`, because the
+ * owner read a bare `position` as possibly the label's (live QA, 2026-10-12). It clears the bar
+ * as a distinct kind of distinction with the nearest defeated: `direction` is where a veil's wash sits across an
+ * image, a distribution of paint; `orientation` is which way a rule runs; `inset` is whether a control keeps its
+ * inline padding; `offset` is a nested part's displacement. None says "this part comes first or last in the row",
+ * and naming it `direction` would put a paint distribution and a part's place in a row under one name, the #756
+ * failure. `leading | trailing` follow text direction, so in a right-to-left page the leading indicator sits at the right edge with
+ * no mirroring. An AUTHORING axis. `lint-axis-values.ts` carries the two values as a `sole` set.
  */
 export const VARIANT_AXES = [
   'size', 'intent', 'appearance', 'tone',
   'width', 'style', 'indicator', 'offset', 'selection',
   'name', 'surface', 'weight', 'value', 'intensity', 'ratio',
-  'status', 'emphasis', 'shape', 'type', 'direction', 'inset', 'orientation', 'alignment',
+  'status', 'emphasis', 'shape', 'type', 'direction', 'inset', 'orientation', 'alignment', 'expansion', 'iconPosition',
 ] as const;
 
 /** One member of the closed axis-NAME vocabulary. Values are not constrained — see `VARIANT_AXES`. */
@@ -3712,7 +3777,7 @@ const anatomyErrors = (def: ComponentDef): string[] => {
   // half-filled strings, none of which any def binds, and the failure read as "not a slot in tokens"
   // — a true statement about a key nobody wrote, pointing away from the actual gap (the expansion).
   const bindingKeys = (p: PartDef): string[] =>
-    [p.gap, p.height, p.minHeight, p.minWidthKey, p.radius, p.strokeWidth, p.size, p.width, p.type, p.inset, p.padding?.block, p.padding?.inlineLabel, p.padding?.inlineVisual, p.padding?.inlineEnd, p.paddingTop, p.flush?.key]
+    [p.gap, p.height, p.minHeight, p.minWidthKey, p.radius, p.strokeWidth, p.size, p.width, p.type, p.inset, p.padding?.block, p.padding?.blockEnd, p.padding?.inlineLabel, p.padding?.inlineVisual, p.padding?.inlineEnd, p.paddingTop, p.flush?.key]
       .filter((k): k is string => typeof k === 'string');
   for (const n of names)
     for (const key of bindingKeys(parts[n]))
@@ -3841,7 +3906,7 @@ const anatomyErrors = (def: ComponentDef): string[] => {
       // field and fails by name (`MUST_CLEAR_STROKE`) if a ring stops declaring its own stroke. So the
       // name check stays as the authoring-time floor and the generalization lives one layer out, rather
       // than being deleted here on the strength of a field this file cannot follow.
-      if (p.inset && p.nests === 'focus-ring' && !p.strokeInset)
+      if (p.inset && p.nests === 'focus-ring' && !p.strokeInset && !p.drawnInside)
         e.push(`anatomy part '${n}' is kind 'absolute' binding inset '${p.inset}' and nests 'focus-ring', but binds no 'strokeInset' — the ring draws its stroke INSIDE its own bounds, so a materializer positioning it at -inset leaves a gap of (inset - strokeWidth) and at the shipped 2px/2px that is ZERO: flush against the border it must be distinguishable from (WCAG 1.4.11, #801). Bind the ring's width key here`);
       // A part outside the flow cannot be the interaction target: `role: 'target'` is what owns the hit
       // area, radius, fill and border, and a node that takes no space in the row owns no hit area. The
@@ -4200,6 +4265,11 @@ const anatomyErrors = (def: ComponentDef): string[] => {
     // off an absolute part there is nothing for it to compensate and it would project to nothing.
     if (p.kind !== 'absolute' && p.strokeInset !== undefined)
       e.push(`anatomy part '${n}' is kind '${p.kind}' but binds 'strokeInset' — it compensates an absolute part's 'inset' for an inside-drawn stroke, and there is no inset here to compensate`);
+    // `drawnInside` (#2417, Q257 A) is `strokeInset`'s stated alternative: an absolute part only, and never with it.
+    if (p.drawnInside !== undefined && p.kind !== 'absolute')
+      e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'drawnInside' — only an 'absolute' part is sited against its host's edge, so only it can be drawn inside it`);
+    if (p.drawnInside && p.strokeInset !== undefined)
+      e.push(`anatomy part '${n}' declares both 'drawnInside' and 'strokeInset' — drawn inside the host's edge means the stroke is NOT compensated outward, and 'strokeInset' compensates it; declare one`);
     // `strokeWidth` is the other half (#1266) and gets the same rule for a different reason: only the
     // `box` branch of the projector reads it, so on any other kind it is a binding that projects to
     // nothing — the ring's own defect one layer up, where a declared stroke and no bound weight read as

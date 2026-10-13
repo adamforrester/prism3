@@ -159,6 +159,8 @@ const INTERACTIVE: Record<string, Binding> = {
   'tag': { key: (s) => `size.${s}.height`, why: 'the tag box height' },
   // #2416: a tab's medium target is Button's own height rung, 44 on comfortable and spacious.
   'tab': { key: (s) => `size.${s}.height`, why: 'the tab box height' },
+  // #2417: the whole header row is the target; its floor is 44px at every size (owner Q182).
+  'accordion': { key: (s) => `size.${s}.min-height`, why: 'the header row\'s min-height floor' },
 };
 
 // ── TARGETS INSIDE A CONTROL (#1741): `<def>.<part>` → the tokens KEY of the part's side at a size ─────────
@@ -204,6 +206,7 @@ const EXCLUDED: Record<string, string> = {
   'field-message': 'a helper/validation message, not an interactive control',
   'veil': 'a media wash overlay, not an interactive control',
   'divider': 'a 1px rule between groups of content, never interactive and never focusable',
+  '_accordion-indicator': 'a decorative glyph inside an Accordion header; the tap target is the header row, gated as accordion',
   'image-placeholder': 'an empty-state media frame, not an interactive control',
   'spinner': 'a decorative loading indicator on the icon ladder, never interactive — the tap target is the host control it sits in (a pending button), which is gated',
   'badge': 'a static marker, never interactive (owner decision, 2026-09-27) — a count or dot on an icon button relies on the host\'s target, which is gated',
