@@ -133,6 +133,7 @@ const MUST_COVER = [
   'checkbox-control.mark', 'checkbox-control.dash', 'textarea.grip', 'tag.check', 'tag.dismissGlyph',
   'field-message.iconError', 'field-message.iconWarning', 'field-message.iconSuccess',
   'switch-control.onGlyph', 'switch-control.offGlyph', 'select.chevron', 'image-placeholder.marker',
+  '_accordion-indicator.chevronDown', '_accordion-indicator.chevronUp', '_accordion-indicator.plus', '_accordion-indicator.minus',
 ];
 
 /** The component name prefix an icon-set glyph is an instance of (#2380): `icon/<glyph>`, the component the
@@ -228,6 +229,13 @@ const arcSubpaths = (d: string): ArcSeg[][] => {
  * the def no longer gates on fails as a stale memory rather than as a silent exemption.
  */
 const FIXED_GLYPH: Record<string, { glyph: string; at: Record<string, readonly string[]>; why: string }> = {
+  // #2417 (owner Q183) — the Accordion indicator's four glyphs, one per (indicator, expansion) pair. `glyph:
+  // '{expansion}'` cannot express them: the vocabulary has no `collapsed` or `expanded` glyph, and the pair changes
+  // with `indicator` as well.
+  '_accordion-indicator.chevronDown': { glyph: 'chevron-down', at: { indicator: ['chevron'], expansion: ['collapsed'] }, why: 'the closed chevron, pointing down at the content a click will open' },
+  '_accordion-indicator.chevronUp': { glyph: 'chevron-up', at: { indicator: ['chevron'], expansion: ['expanded'] }, why: 'the open chevron, pointing up' },
+  '_accordion-indicator.plus': { glyph: 'plus', at: { indicator: ['plus-minus'], expansion: ['collapsed'] }, why: 'the closed mark of the plus and minus pair' },
+  '_accordion-indicator.minus': { glyph: 'minus', at: { indicator: ['plus-minus'], expansion: ['expanded'] }, why: 'the open mark of the plus and minus pair' },
   'image-placeholder.marker': {
     glyph: 'image',
     // `at: {}` — present at EVERY coordinate, not gated by a variant. The marker is the "no image"

@@ -88,8 +88,8 @@ One or two words per tab, nouns, sentence case.
 ## Composition
 
 - **Composes with:** `tab`
-- **Alternative to:** `select`
-- **Planned:** `segmented-control`, `accordion`, `link`
+- **Alternative to:** `select`, `accordion`
+- **Planned:** `segmented-control`, `link`
 - **Replaces:**
   - show and hide divs with no tab semantics
   - role="tab" on links that change the route

@@ -16,11 +16,11 @@
       "type": "object",
       "description": "One entry per registered component, keyed by its id.",
       "additionalProperties": false,
-      "patternProperties": { "^[a-z][a-z0-9-]*$": { "$ref": "#/$defs/component" } }
+      "patternProperties": { "^_?[a-z][a-z0-9-]*$": { "$ref": "#/$defs/component" } }
     }
   },
   "$defs": {
-    "id": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$", "description": "A component id: kebab-case, as registered." },
+    "id": { "type": "string", "pattern": "^_?[a-z][a-z0-9-]*$", "description": "A component id: kebab-case, as registered. A leading underscore marks a building block, a component only nested inside another and left out of a published library." },
     "text": { "type": "string", "minLength": 1, "description": "Prose, one or more sentences." },
     "texts": { "type": "array", "items": { "$ref": "#/$defs/text" }, "description": "A list of prose entries. Empty when the definition carries none." },
     "ids": { "type": "array", "items": { "$ref": "#/$defs/id" }, "uniqueItems": true, "description": "A list of component ids. Empty when the definition carries none." },
@@ -67,9 +67,9 @@
         "states": { "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true, "description": "Interaction states. Empty for a non-interactive component." },
         "variants": {
           "type": "object",
-          "description": "Variant axes, keyed by axis name.",
+          "description": "Variant axes, keyed by axis name: lowercase, or camelCase for a multi-word axis (`iconPosition`, #2417).",
           "additionalProperties": false,
-          "patternProperties": { "^[a-z][a-z0-9-]*$": { "$ref": "#/$defs/axis" } }
+          "patternProperties": { "^[a-z][a-zA-Z0-9-]*$": { "$ref": "#/$defs/axis" } }
         },
         "accessibility": {
           "type": "object",
