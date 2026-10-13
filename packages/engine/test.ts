@@ -30059,46 +30059,81 @@ arm: {
     '#2417 drawnInside: on a non-absolute part, it is refused by name');
   ok(validateComponentDef(withRing({ drawnInside: undefined })).errors.some((m) => /binds no 'strokeInset'/.test(m)),
     '#2417 drawnInside: without it, the #801 rule refuses an uncompensated ring again');
-  // THE GLYPH CENTERS ON THE TITLE'S FIRST LINE (owner Q262 A, revising the QA's center-left): the header row is
-  // top-aligned, the indicator box is as tall as the row with its glyph at the top (Prism2's icon container), and the
-  // title sits 2px lower (Prism2's 2px icon offset, mirrored, because here the title's line is the shorter of the two).
-  // A layout model reads the PLAN's own alignments and each brand's EMITTED tokens, places a TWO-LINE title and the
-  // glyph, and measures line one's center against the glyph's. EXPECTED (within 1px) is typed here. Mutation: the
-  // header back to center alignment → this arm, by name (the glyph then centers on the two-line block).
+  // THE GLYPH CENTERS ON THE TITLE'S FIRST LINE (owner Q262 A, revising the QA's center-left; kept by Q276 A): the
+  // glyph and the title share a row whose items are top-aligned, the indicator box is as tall as that row with its
+  // glyph at the top (Prism2's icon container), and the title sits 2px lower (Prism2's 2px icon offset, mirrored,
+  // because here the title's line is the shorter of the two). A layout model reads the PLAN's own alignments and each
+  // brand's EMITTED tokens, places a one- and a TWO-LINE title and the glyph inside the indicator's parent row, and
+  // measures line one's center against the glyph's. EXPECTED (within 1px, and the row top-aligned as Q262 A and Q276 A
+  // state it) is typed here. Mutations: the row's items centered → this arm, by name (the alignment literal: with the
+  // indicator stretched and the title the taller box, centering moves nothing a model can measure); the indicator
+  // box centering its glyph → this arm (the glyph then centers on the two-line block).
   type PL = PN & { counterAxisAlignItems?: string; layoutAlign?: string };
   const emitted = (b: string) => { const t = JSON.parse(readFileSync(resolve(HERE, `out/${b}.tokens.json`), 'utf8')); return t[Object.keys(t).find((k) => !k.startsWith('$'))!]; };
   const at = (root: any, ref: string): any => ref.replace(/^\{|\}$/g, '').split('.').slice(ref.startsWith('{') ? 1 : 0).reduce((n: any, k) => n?.[k], root);
   const num = (root: any, v: any): number => { const leaf = typeof v === 'string' && v.startsWith('{') ? at(root, v) : v; if (leaf && typeof leaf === 'object' && '$value' in leaf) return leaf.$extensions?.prism3?.px ?? num(root, leaf.$value); return parseFloat(String(leaf)); };
-  const RUNG_OF: Record<string, string> = { small: 'sm', medium: 'md', large: 'lg' };
+  const parentOf = (n: PN, name: string): PN | undefined => (n.children.some((c) => c.name === name) ? n : n.children.map((c) => parentOf(c, name)).find(Boolean));
+  const varPx = (root: any, v: string | undefined) => (v ? num(root, at(root, v.replace(/\//g, '.'))) : 0);
+  const place = (align: string | undefined, h: number, inH: number) => (align === 'CENTER' ? (inH - h) / 2 : align === 'MAX' ? inH - h : 0);
   const off: string[] = [];
   let measured = 0;
   for (const b of ['nb', 'prism3', 'aurora', 'harbor', 'wendys']) {
     const root = emitted(b);
     for (const p of plans.filter((q) => coord(q).iconPosition === 'leading' && coord(q).state === 'rest' && coord(q).expansion === 'collapsed')) {
       const size = coord(p).size;
-      const header = find(p.root as PN, 'header') as PL, box = find(p.root as PN, 'leadingIndicator') as PL, tb = find(p.root as PN, 'titleBox') as PL;
+      const row = parentOf(p.root as PN, 'leadingIndicator') as PL | undefined, box = find(p.root as PN, 'leadingIndicator') as PL, tb = find(p.root as PN, 'titleBox') as PL;
       const glyph = num(root, at(root, ind.tokens[`size.${size}.icon`]));
       const type = at(root, acc.tokens[`size.${size}.type`]).$value;
       const line = num(root, type.fontSize) * num(root, type.lineHeight);
       // The offset the PLAN binds on the title's column, read back as a token path; absent means none.
-      const padVar = tb?.bound?.paddingTop;
-      const offset = padVar ? num(root, at(root, padVar.replace(/\//g, '.'))) : 0;
+      const offset = varPx(root, tb?.bound?.paddingTop);
       for (const lines of [1, 2]) {
       const title = offset + lines * line; // a one-line and a TWO-LINE title
       const H = Math.max(glyph, title);
-      const place = (align: string | undefined, h: number, inH: number) => (align === 'CENTER' ? (inH - h) / 2 : align === 'MAX' ? inH - h : 0);
-      // The indicator box stretches to the row (STRETCH) or sits at the header's alignment; the glyph sits in it at the box's own.
+      // The indicator box stretches to the row (STRETCH) or sits at the row's alignment; the glyph sits in it at the box's own.
       const boxH = box.layoutAlign === 'STRETCH' ? H : glyph;
-      const boxTop = box.layoutAlign === 'STRETCH' ? 0 : place(header.counterAxisAlignItems, glyph, H);
+      const boxTop = box.layoutAlign === 'STRETCH' ? 0 : place(row?.counterAxisAlignItems, glyph, H);
       const glyphMid = boxTop + place(box.counterAxisAlignItems, glyph, boxH) + glyph / 2;
-      const lineOneMid = place(header.counterAxisAlignItems, title, H) + offset + line / 2;
+      const lineOneMid = place(row?.counterAxisAlignItems, title, H) + offset + line / 2;
       measured++;
-      if (!(tb && header.counterAxisAlignItems === 'MIN' && Math.abs(glyphMid - lineOneMid) <= 1)) off.push(`${b} ${size} ${lines}-line (header ${header.counterAxisAlignItems}): glyph center ${glyphMid.toFixed(2)} vs line one ${lineOneMid.toFixed(2)}`);
+      if (!(tb && row?.counterAxisAlignItems === 'MIN' && Math.abs(glyphMid - lineOneMid) <= 1)) off.push(`${b} ${size} ${lines}-line (row ${row?.name} ${row?.counterAxisAlignItems}): glyph center ${glyphMid.toFixed(2)} vs line one ${lineOneMid.toFixed(2)}`);
       }
     }
   }
   ok(measured === 30 && off.length === 0,
-    `#2417 accordion header (Q262): top-aligned, and on a one- and a two-line title the glyph centers on line one, within 1px, at every size in every brand (${measured} measured${off.length ? `; OFF: ${off.join('; ')}` : ''})`);
+    `#2417 accordion header (Q262): the glyph's row is top-aligned, and on a one- and a two-line title the glyph centers on line one, within 1px, at every size in every brand (${measured} measured${off.length ? `; OFF: ${off.join('; ')}` : ''})`);
+  // A SINGLE LINE IS CENTERED IN THE HEADER (owner Q276 A, #2594): the header is top-aligned no more. It centers one
+  // row holding the indicator and the title, so the 44px floor's slack falls evenly above and below the content
+  // rather than all of it below (measured on a live build: 6px high at small). EXPECTED is the header's own middle,
+  // half of max(min-height, padding + content), from each brand's EMITTED min-height, padding, glyph size and label
+  // type; ACTUAL places the content with the PLAN's alignments. Within 0.5px, typed here. Mutation: the header back to
+  // top-aligned with no row → this arm, by name.
+  const offC: string[] = [];
+  let measuredC = 0;
+  for (const b of ['nb', 'prism3', 'aurora', 'harbor', 'wendys']) {
+    const root = emitted(b);
+    for (const p of plans.filter((q) => coord(q).state === 'rest' && coord(q).expansion === 'collapsed')) {
+      const size = coord(p).size, side = coord(p).iconPosition;
+      const header = find(p.root as PN, 'header') as PL;
+      const glyph = num(root, at(root, ind.tokens[`size.${size}.icon`]));
+      const type = at(root, acc.tokens[`size.${size}.type`]).$value;
+      const line = num(root, type.fontSize) * num(root, type.lineHeight);
+      const tb = find(p.root as PN, 'titleBox') as PL;
+      const offset = varPx(root, tb?.bound?.paddingTop);
+      const padT = varPx(root, header.bound?.paddingTop), padB = varPx(root, header.bound?.paddingBottom), floor = varPx(root, header.bound?.minHeight);
+      const content = Math.max(glyph, offset + line);
+      const hh = Math.max(floor, padT + content + padB);
+      // The content's top: the header places its flow child (the row, or on an older plan the tallest of its own
+      // children) at its alignment inside the padding.
+      const flow = header.children.filter((c) => c.name !== 'focusRing');
+      const top = padT + place(header.counterAxisAlignItems, content, hh - padT - padB);
+      const mid = top + content / 2;
+      measuredC++;
+      if (!(floor > 0 && Math.abs(mid - hh / 2) <= 0.5)) offC.push(`${b} ${size} ${side} (header ${header.counterAxisAlignItems} over [${flow.map((c) => c.name).join(', ')}]): content center ${mid.toFixed(2)} vs header middle ${(hh / 2).toFixed(2)} of ${hh.toFixed(2)}`);
+    }
+  }
+  ok(measuredC === 30 && offC.length === 0,
+    `#2594 accordion header (Q276): a single-line header's content is vertically centered, within 0.5px, at every size and icon position in every brand (${measuredC} measured${offC.length ? `; OFF: ${offC.join('; ')}` : ''})`);
   // THE FIGMA DISPLAY NAME OF A VARIANT AXIS (#2571): "icon position" in every member name, and in every key that
   // parses one, so the plugin's and the paste's layouts and footprint cohorts read the same string. Mutations: the
   // cohort key left on code names → `#2571 layout`; the name written raw in `planComponentName` → the iconPosition arm.
