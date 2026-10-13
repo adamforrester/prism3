@@ -58,7 +58,7 @@ rather than brand ones: Lucide (ISC), Phosphor (MIT), Heroicons (MIT), Material 
 
 ## Scope of what is committed here
 
-36 glyphs of Remix Icon's several thousand — well under the *"complete Icon library or substantial
+A few dozen glyphs of Remix Icon's several thousand, one SVG per name in `icon-set.ts` — well under the *"complete Icon library or substantial
 portions of it"* threshold §5 attaches its licence-inclusion requirement to. The licence is committed
 anyway: it costs nothing, and it removes the judgment call for whoever reads this next.
 

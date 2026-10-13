@@ -211,7 +211,7 @@ const EXPECTED_SLOT_SCOPES: Record<string, string[]> = {
   'color/disabled/fill': ['FRAME_FILL', 'SHAPE_FILL'],
   'color/disabled/on-fill': ['FRAME_FILL', 'SHAPE_FILL', 'TEXT_FILL'],
   'color/disabled/text': ['TEXT_FILL'],
-  'color/disabled/icon': ['FRAME_FILL', 'SHAPE_FILL', 'STROKE_COLOR'],
+  'color/disabled/icon': ['FRAME_FILL', 'SHAPE_FILL'],
   'color/disabled/border': ['STROKE_COLOR'],
   'color/field/fill': ['FRAME_FILL', 'SHAPE_FILL'],
   'color/field/border/rest': ['STROKE_COLOR'],

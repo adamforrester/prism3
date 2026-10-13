@@ -1112,6 +1112,14 @@ npx tsx packages/engine/lint-tool-neutral-prose.ts  # consumer prose names no to
                                                     # a11y.clears.<ink> matches its worst case,
                                                     # recomputed from the stops (#2422). Every promised
                                                     # field represented per brand and file, with floors.
+npx tsx packages/engine/lint-consumer-build.ts      # the consumer set carries no build metadata (#2552,
+                                                    # owner Q250 A): every base + overlay file has no
+                                                    # $extensions, a token keeps only $value, $type and
+                                                    # $description, no key or string names a tool, and
+                                                    # each file byte-matches the gate's OWN derivation
+                                                    # from the committed canonical tree (never the
+                                                    # projector). Every alias resolves against its base;
+                                                    # every brand ships a base + one overlay per mode.
 npx tsx packages/engine/lint-advisory-expiry.ts     # a stated advisory window, once it closes, fails
                                                     # the build. The one gate here whose ORACLE IS THE
                                                     # CLOCK: no API, no issue state, no network, and

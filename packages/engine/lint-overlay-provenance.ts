@@ -23,10 +23,18 @@
  * and never opens an overlay. The projected files are the artifact a conforming consumer is told to
  * read standalone, and no gate had ever asked whether a leaf there is internally consistent.
  *
+ * ── SINCE #2552: THE SUBJECT IS THE METADATA-KEEPING OVERLAY ───────────────────────────────────
+ *
+ * The committed overlays are now the clean consumer set and carry no `$extensions`, so there is no
+ * provenance in them to be wrong (`lint-consumer-build.ts` holds that). Provenance still ships in ONE
+ * place: the studio's internal "Include build metadata" export, which is `buildOverlay` with its
+ * extensions kept. So ACTUAL is that overlay, computed here from the COMMITTED canonical tree, and the
+ * #1257 defect stays caught where it can still occur.
+ *
  * ── INDEPENDENCE (docs/34) — READ BEFORE CHANGING ANY COMPARISON BELOW ──────────────────────────
  *
- *   ACTUAL   — the emitted OVERLAY artifacts (`<brand>.<mode>.overlay.tokens.json`), the projector's
- *              output.
+ *   ACTUAL   — the projector's metadata-keeping OVERLAY (`buildOverlay`), run over the committed
+ *              canonical tree. The projector is the SUBJECT, so calling it for ACTUAL is the point.
  *   EXPECTED — the emitted CANONICAL tree (`<brand>.tokens.json`), written by `tree.ts`, which the
  *              overlay projector does not write and this gate reads by its own traversal.
  *
@@ -35,7 +43,7 @@
  *
  * WHAT MUST NEVER BE DONE HERE, because each turns the gate into agreement with itself:
  *
- *   ✗ calling `buildOverlay()` or `modeLeaf()` to compute what a leaf should contain — the #1257 bug
+ *   ✗ calling `buildOverlay()` or `modeLeaf()` to compute what a leaf SHOULD contain (EXPECTED) — the #1257 bug
  *     would be reproduced on both sides and reported as a pass (`docs/34` shape 2);
  *   ✗ deriving EXPECTED from the overlay leaf's own `$extensions` — that is the field under test;
  *   ✗ resolving an alias through `emit-dtcg.ts`'s resolver. Arm A walks the palette itself, below.
@@ -77,6 +85,7 @@
 
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
+import { buildOverlay } from './emit-dtcg-overlay';
 
 const OUT = join(import.meta.dirname, 'out');
 
@@ -135,7 +144,8 @@ let aliasedAsserted = 0;
 
 for (const brand of brands) {
   const canonPath = join(OUT, `${brand}.tokens.json`);
-  const canon = leavesOf(JSON.parse(readFileSync(canonPath, 'utf8')));
+  const canonTree = JSON.parse(readFileSync(canonPath, 'utf8'));
+  const canon = leavesOf(canonTree);
 
   // ---- ARM D: the CAUSE, checked upstream on the canonical tree ---------------------------------
   // Every colour mode entry must carry its own `aliasOf`. Before #1257 none did (measured: 729 colour
@@ -165,7 +175,8 @@ for (const brand of brands) {
   const files = readdirSync(OUT).filter((f) => f.startsWith(`${brand}.`) && f.endsWith('.overlay.tokens.json')).sort();
   for (const file of files) {
     const mode = file.slice(brand.length + 1, -'.overlay.tokens.json'.length);
-    const overlay = leavesOf(JSON.parse(readFileSync(join(OUT, file), 'utf8')));
+    // ACTUAL: the metadata-keeping overlay for this mode (see the header's #2552 note), from the committed canonical tree.
+    const overlay = leavesOf(buildOverlay(canonTree, mode));
     overlaysRead++;
     let aliased = 0;
 
@@ -220,7 +231,7 @@ const FLOOR = 1500;
 if (aliasedAsserted < FLOOR)
   failures.push(`only ${aliasedAsserted} aliased overlay leaves examined corpus-wide, floor ${FLOOR} — the census collapsed, so the arms above are reporting on a set too small to mean anything (docs/34 shape 9)`);
 
-console.log(`overlay provenance — aliased leaves per overlay, read from the emitted artifacts:`);
+console.log(`overlay provenance — aliased leaves per metadata-keeping overlay, built from the committed canonical trees (#2552):`);
 for (const line of perBrand) console.log(line);
 
 if (failures.length) {

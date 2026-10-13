@@ -2355,15 +2355,15 @@ for (const b of brands) {
   for (const st of ['rest', 'hover', 'pressed'])
     if (scopeOf(`color/interactive/primary/border/${st}`) !== JSON.stringify(['STROKE_COLOR'])) scopeBad.push(`primary/border/${st}`);
   if (scopeOf('color/interactive/primary/fill/rest') !== JSON.stringify(['FRAME_FILL', 'SHAPE_FILL'])) scopeBad.push('primary/fill/rest');
-  // #1471 — the minted interactive ICON role scopes as a GLYPH ([FRAME,SHAPE,STROKE]) like `icon.*` /
-  // `disabled.icon`, NOT as TEXT — a glyph can paint or stroke, so its picker context differs from the label
+  // #1471 — the minted interactive ICON role scopes as a GLYPH ([FRAME,SHAPE] since #2566) like `icon.*` /
+  // `disabled.icon`, NOT as TEXT — a glyph is a fill, so its picker context differs from the label
   // (`text` = TEXT_FILL above). Every state carries it, like `border`.
   for (const st of ['rest', 'hover', 'pressed'])
-    if (scopeOf(`color/interactive/primary/icon/${st}`) !== JSON.stringify(['FRAME_FILL', 'SHAPE_FILL', 'STROKE_COLOR'])) scopeBad.push(`primary/icon/${st}`);
+    if (scopeOf(`color/interactive/primary/icon/${st}`) !== JSON.stringify(['FRAME_FILL', 'SHAPE_FILL'])) scopeBad.push(`primary/icon/${st}`);
   ok(scopeBad.length === 0, 'interactive: Figma slots carry slot-aware scopes' + (scopeBad.length ? ` — ${scopeBad.join(',')}` : ''));
 
   // (e2) disabled.<slot> is also slot-scoped — surface/on-disabled paint, text=TEXT_FILL,
-  //     icon=[FRAME,SHAPE,STROKE], border=STROKE. Before this gate, disabled had no entry
+  //     icon=[FRAME,SHAPE] (#2566), border=STROKE. Before this gate, disabled had no entry
   //     in COLOR_SCOPES so the family fell through to fill scopes and inks miscased —
   //     the NB fixture doesn't carry disabled/*, so the round-trip test was the only
   //     signal. This pins all five slots.
@@ -2371,7 +2371,7 @@ for (const b of brands) {
   if (scopeOf('color/disabled/fill') !== JSON.stringify(['FRAME_FILL', 'SHAPE_FILL'])) disabledScopeBad.push('disabled/fill');
   if (scopeOf('color/disabled/on-fill') !== JSON.stringify(['FRAME_FILL', 'SHAPE_FILL', 'TEXT_FILL'])) disabledScopeBad.push('disabled/on-fill');
   if (scopeOf('color/disabled/text') !== JSON.stringify(['TEXT_FILL'])) disabledScopeBad.push('disabled/text');
-  if (scopeOf('color/disabled/icon') !== JSON.stringify(['FRAME_FILL', 'SHAPE_FILL', 'STROKE_COLOR'])) disabledScopeBad.push('disabled/icon');
+  if (scopeOf('color/disabled/icon') !== JSON.stringify(['FRAME_FILL', 'SHAPE_FILL'])) disabledScopeBad.push('disabled/icon');
   if (scopeOf('color/disabled/border') !== JSON.stringify(['STROKE_COLOR'])) disabledScopeBad.push('disabled/border');
   ok(disabledScopeBad.length === 0, 'disabled: Figma slots carry slot-aware scopes' + (disabledScopeBad.length ? ` — ${disabledScopeBad.join(',')}` : ''));
 
@@ -2407,7 +2407,7 @@ for (const b of brands) {
     // The fix's whole point: a surface, NOT ink — Frame/Shape only, no TEXT_FILL (#1484).
     foreground: { leaf: 'color/foreground/primary', scopes: ['FRAME_FILL', 'SHAPE_FILL'] },
     text: { leaf: 'color/text/primary', scopes: ['TEXT_FILL'] },
-    icon: { leaf: 'color/icon/primary', scopes: ['FRAME_FILL', 'SHAPE_FILL', 'STROKE_COLOR'] },
+    icon: { leaf: 'color/icon/primary', scopes: ['FRAME_FILL', 'SHAPE_FILL'] },
     border: { leaf: 'color/border/primary', scopes: ['STROKE_COLOR'] },
   };
   const familyScopeBad: string[] = [];
@@ -2425,6 +2425,62 @@ for (const b of brands) {
   const clearScopeBad = ['color/veil/dark/clear', 'color/veil/light/clear'].filter((l) => scopeOf(l) !== JSON.stringify(['FRAME_FILL', 'SHAPE_FILL']));
   ok(clearScopeBad.length === 0,
     `veil: both clear ends are scoped FRAME_FILL + SHAPE_FILL, like the rungs${clearScopeBad.length ? ` — WRONG: ${clearScopeBad.map((l) => `${l}=${scopeOf(l)}`).join('; ')}` : ''}`);
+
+// (e5) #2566 — EVERY ICON IS A FILL, NEVER A STROKE (owner decision). Every icon color role — `color.icon.*`,
+//      `color.inverse.icon.*`, `interactive.<c>.icon.*`, `disabled.icon` and their inverse twins — scopes in Figma
+//      to exactly FRAME_FILL + SHAPE_FILL, so it stays out of the border (STROKE_COLOR) picker, and out of the
+//      text picker too. The representatives in (e)/(e2)/(e4) pin one leaf per family; this pins EVERY role.
+//
+//      docs/34 independence: the ROLE LIST comes from the DTCG tree (`buildTree`), which knows nothing of
+//      scopes, and the expected set is a hand-written literal — never `colorScopes`/`COLOR_SCOPES`, which is
+//      the subject. The Figma emission is built LIVE here, not read from `out/figma`, so a mutated scope map
+//      fails this block before regen rather than after. Brands are every committed brief in `examples/` plus
+//      the NB fixture, so a brand added there is swept without an edit here. Every failure names brand, mode,
+//      variable and the scopes it carries. A DTCG icon role with no Figma variable is a named failure too, so
+//      the sweep proves each role REPRESENTED, and the floors stop an empty glob or role list passing.
+{
+  const ICON_SCOPES = ['FRAME_FILL', 'SHAPE_FILL'];
+  const briefs = readdirSync(resolve(HERE, './examples')).filter((f) => f.endsWith('.design.md')).sort();
+  const iconBrands: Array<[string, Theme | undefined]> = [['nb', nbTheme()], ...briefs.map((file): [string, Theme | undefined] => [file, exampleTheme(file, () => {
+    const text = readFileSync(resolve(HERE, `./examples/${file}`), 'utf8');
+    const std = parseStandardDesignMd(text);
+    return brandTheme(isStandardDesignMd(std) ? standardToBrandInput(std).input : parseDesignMd(text).input);
+  })])];
+  const iconBad: string[] = [];
+  const iconMissing: string[] = [];
+  const kinds = new Set<string>();
+  let brandsSwept = 0;
+  let rolesChecked = 0;
+  for (const [id, th] of loadedRows(iconBrands)) {
+    brandsSwept++;
+    const { tree } = buildTree(th!);
+    const root = Object.keys(tree)[0];
+    const roles: string[] = [];
+    const walk = (o: any, p: string[]): void => {
+      if (!o || typeof o !== 'object') return;
+      if ('$value' in o) { if (p.includes('icon')) roles.push(p.join('/')); return; }
+      for (const k of Object.keys(o)) if (!k.startsWith('$')) walk(o[k], [...p, k]);
+    };
+    walk(tree[root].color, ['color']);
+    for (const r of roles) kinds.add(r.split('/').filter((s) => s !== 'inverse').slice(0, 2).join('/') + (r.includes('/inverse/') ? ' (inverse)' : ''));
+    const { color } = buildFigmaColor(th!);
+    for (const file of color) {
+      const byName = new Map<string, any>(file.variables.map((v: any) => [v.name, v]));
+      for (const r of roles) {
+        const v = byName.get(`${root}/${r}`);
+        if (!v) { iconMissing.push(`${id} ${file.$mode}: ${root}/${r}`); continue; }
+        rolesChecked++;
+        if ([...v.scopes].sort().join(',') !== ICON_SCOPES.join(',')) iconBad.push(`${id} ${file.$mode}: ${v.name}=[${v.scopes.join(',')}]`);
+      }
+    }
+  }
+  ok(brandsSwept >= 5 && rolesChecked >= brandsSwept * 61 && ['color/icon', 'color/interactive', 'color/disabled', 'color/icon (inverse)', 'color/interactive (inverse)', 'color/disabled (inverse)'].every((k) => kinds.has(k)),
+    `#2566 icon-scope sweep is populated: ${brandsSwept} brands (floor 5), ${rolesChecked} role×mode checks, kinds [${[...kinds].sort().join('; ')}]`);
+  ok(iconMissing.length === 0,
+    `#2566 every DTCG icon color role has a Figma color variable in every mode${iconMissing.length ? ` — MISSING: ${iconMissing.slice(0, 6).join('; ')}${iconMissing.length > 6 ? ` (+${iconMissing.length - 6})` : ''}` : ''}`);
+  ok(iconBad.length === 0,
+    `#2566 every icon color role scopes to exactly FRAME_FILL + SHAPE_FILL in every brand and mode (no STROKE_COLOR, no TEXT_FILL)${iconBad.length ? ` — WRONG SCOPE: ${iconBad.slice(0, 6).join('; ')}${iconBad.length > 6 ? ` (+${iconBad.length - 6})` : ''}` : ''}`);
+}
 
   // (f) overlays (docs/20 §6): each colour has hover/pressed/selected washes, mode-adaptive
   //     (black-alpha light / white-alpha dark), and the COMPOSITED result is a gated contract
@@ -11057,6 +11113,8 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
 // `foreground.*` are on-color SURFACE/fill colours — the ground painted UNDER on-color content — not
 // ink (that is `text.*`). A `TEXT_FILL` there wrongly offered them in Figma's text-fill picker, so the
 // engine now scopes them like their surface twins `background`/`scrim`/`veil` (FRAME/SHAPE, no Text).
+// The export also scoped every `icon.*` FRAME/SHAPE/STROKE; #2566 (owner decision: every icon is a fill,
+// never a stroke) drops the STROKE, so the 23 icon roles the export carries are recorded here too.
 //
 // Recorded here rather than edited into the frozen fixture (docs/34 shape 6: rewriting the fixture to
 // agree with our own change would leave this gate reading a file the change had itself edited — green
@@ -11070,6 +11128,8 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
 // statement of a var the emitter really moved (docs/34 shape 1), staleness-checked on its own.
 const FG_NB_SCOPES = ['FRAME_FILL', 'SHAPE_FILL', 'TEXT_FILL'];
 const FG_ENGINE_SCOPES = ['FRAME_FILL', 'SHAPE_FILL'];
+const ICON_NB_SCOPES = ['FRAME_FILL', 'SHAPE_FILL', 'STROKE_COLOR'];
+const ICON_ENGINE_SCOPES = ['FRAME_FILL', 'SHAPE_FILL'];
 const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[] }[] = [
   { name: 'color/foreground/primary', nb: FG_NB_SCOPES, engine: FG_ENGINE_SCOPES },
   { name: 'color/foreground/secondary', nb: FG_NB_SCOPES, engine: FG_ENGINE_SCOPES },
@@ -11087,6 +11147,30 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   { name: 'color/foreground/warning-subtle', nb: FG_NB_SCOPES, engine: FG_ENGINE_SCOPES },
   { name: 'color/foreground/danger-subtle', nb: FG_NB_SCOPES, engine: FG_ENGINE_SCOPES },
   { name: 'color/foreground/info-subtle', nb: FG_NB_SCOPES, engine: FG_ENGINE_SCOPES },
+  // #2566 (owner decision): every icon is a fill, never a stroke, so icon roles drop STROKE_COLOR.
+  { name: 'color/icon/primary', nb: ICON_NB_SCOPES, engine: ICON_ENGINE_SCOPES },
+  { name: 'color/icon/secondary', nb: ICON_NB_SCOPES, engine: ICON_ENGINE_SCOPES },
+  { name: 'color/icon/tertiary', nb: ICON_NB_SCOPES, engine: ICON_ENGINE_SCOPES },
+  { name: 'color/icon/brand', nb: ICON_NB_SCOPES, engine: ICON_ENGINE_SCOPES },
+  { name: 'color/icon/success', nb: ICON_NB_SCOPES, engine: ICON_ENGINE_SCOPES },
+  { name: 'color/icon/warning', nb: ICON_NB_SCOPES, engine: ICON_ENGINE_SCOPES },
+  { name: 'color/icon/danger', nb: ICON_NB_SCOPES, engine: ICON_ENGINE_SCOPES },
+  { name: 'color/icon/info', nb: ICON_NB_SCOPES, engine: ICON_ENGINE_SCOPES },
+  { name: 'color/icon/brand-subtle', nb: ICON_NB_SCOPES, engine: ICON_ENGINE_SCOPES },
+  { name: 'color/icon/success-subtle', nb: ICON_NB_SCOPES, engine: ICON_ENGINE_SCOPES },
+  { name: 'color/icon/warning-subtle', nb: ICON_NB_SCOPES, engine: ICON_ENGINE_SCOPES },
+  { name: 'color/icon/danger-subtle', nb: ICON_NB_SCOPES, engine: ICON_ENGINE_SCOPES },
+  { name: 'color/icon/info-subtle', nb: ICON_NB_SCOPES, engine: ICON_ENGINE_SCOPES },
+  { name: 'color/icon/on-brand', nb: ICON_NB_SCOPES, engine: ICON_ENGINE_SCOPES },
+  { name: 'color/icon/on-success', nb: ICON_NB_SCOPES, engine: ICON_ENGINE_SCOPES },
+  { name: 'color/icon/on-warning', nb: ICON_NB_SCOPES, engine: ICON_ENGINE_SCOPES },
+  { name: 'color/icon/on-danger', nb: ICON_NB_SCOPES, engine: ICON_ENGINE_SCOPES },
+  { name: 'color/icon/on-info', nb: ICON_NB_SCOPES, engine: ICON_ENGINE_SCOPES },
+  { name: 'color/icon/on-inverse', nb: ICON_NB_SCOPES, engine: ICON_ENGINE_SCOPES },
+  { name: 'color/icon/link/default', nb: ICON_NB_SCOPES, engine: ICON_ENGINE_SCOPES },
+  { name: 'color/icon/link/hover', nb: ICON_NB_SCOPES, engine: ICON_ENGINE_SCOPES },
+  { name: 'color/icon/link/visited', nb: ICON_NB_SCOPES, engine: ICON_ENGINE_SCOPES },
+  { name: 'color/icon/link/focused', nb: ICON_NB_SCOPES, engine: ICON_ENGINE_SCOPES },
 ];
 
 // Token Press export (fixtures/figma/nb): same variable names per collection/mode, same
@@ -25008,13 +25092,21 @@ arm: {
       const c = canonicalShape(ICON_PATHS[n]);
       byShape.set(c, [...(byShape.get(c) ?? []), n].sort());
     }
-    // 41 since the textarea's `resize-grip` joined the set (2026-09-25): a new shape, so both counts move by
-    // one and the three collisions below stay the only ones.
-    ok(byShape.size === 41,
-      `glyph-shape: the vocabulary's ${ICON_NAMES.length} names draw 41 distinct RENDERED shapes (got ${byShape.size}) — 42 distinct path STRINGS, so string comparison is off by one`);
+    // 41 since the textarea's `resize-grip` joined the set (2026-09-25); 42 since the hamburger `menu` did
+    // (Q253 A, 2026-10-12): each a new shape, so both counts move by one and the three collisions below stay the
+    // only ones.
+    ok(byShape.size === 42,
+      `glyph-shape: the vocabulary's ${ICON_NAMES.length} names draw 42 distinct RENDERED shapes (got ${byShape.size}) — 43 distinct path STRINGS, so string comparison is off by one`);
     const groups = [...byShape.values()].filter((g) => g.length > 1).map((g) => g.join('|')).sort();
     ok(groups.join(' , ') === 'close|close-filled , minus|minus-filled , plus|plus-filled',
       `glyph-shape: and they are exactly the three -fill/-line pairs the source set draws identically (got [${groups.join('] [')}]) — a count of three would also pass on three collisions somewhere else`);
+
+    // The hamburger (owner decision Q253 A, 2026-10-12), named rather than counted: a count moves the same
+    // way whichever name joins or leaves. The bars are typed from the owner's SVG, not read from icons/.
+    const menuPath = (ICON_PATHS as Record<string, string | undefined>)['menu'];
+    const MENU_BARS = 'M3 4H21V6H3V4ZM3 11H21V13H3V11ZM3 18H21V20H3V18Z';
+    ok((ICON_NAMES as readonly string[]).includes('menu') && menuPath !== undefined && canonicalShape(menuPath) === canonicalShape(MENU_BARS),
+      `Q253 A menu: the set carries \`menu\`, Remix's menu-line, drawn as three 2px bars at y 4, 11 and 18 (got ${menuPath === undefined ? 'no menu in the set' : menuPath})`);
   }
 
   // ---- focus-ring: the bindings that moved from the FILE into the engine ----

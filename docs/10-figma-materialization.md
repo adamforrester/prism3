@@ -150,17 +150,18 @@ the #84 round-trip caught for `disabled/*` — see task #85).
 | `background`, `scrim` | `FRAME_FILL, SHAPE_FILL` |
 | `foreground` | `FRAME_FILL, SHAPE_FILL, TEXT_FILL` |
 | `text` | `TEXT_FILL` |
-| `icon` | `FRAME_FILL, SHAPE_FILL, STROKE_COLOR` |
+| `icon` | `FRAME_FILL, SHAPE_FILL` (every icon is a fill, never a stroke — #2566) |
 | `border` | `STROKE_COLOR` |
 | `interactive.<c>.fill.*`, `.overlay.*` | `FRAME_FILL, SHAPE_FILL` |
 | `interactive.<c>.on-fill` | `FRAME_FILL, SHAPE_FILL, TEXT_FILL` |
 | `interactive.<c>.text` | `TEXT_FILL` |
 | `interactive.<c>.border` | `STROKE_COLOR` |
+| `interactive.<c>.icon` | `FRAME_FILL, SHAPE_FILL` |
 | `interactive.<c>.inverse` | `FRAME_FILL, SHAPE_FILL` |
 | `disabled.fill`, `disabled.border` (fill) | `FRAME_FILL, SHAPE_FILL` / `STROKE_COLOR` |
 | `disabled.on-fill` | `FRAME_FILL, SHAPE_FILL, TEXT_FILL` |
 | `disabled.text` | `TEXT_FILL` |
-| `disabled.icon` | `FRAME_FILL, SHAPE_FILL, STROKE_COLOR` |
+| `disabled.icon` | `FRAME_FILL, SHAPE_FILL` |
 
 **Removed 2026-07-06:** `action` — the family was retired in task #14 (see docs/20).
 Components bind `interactive.*` / `disabled.*` instead. The bare `foreground.danger`

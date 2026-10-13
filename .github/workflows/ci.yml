@@ -910,6 +910,13 @@ jobs:
       - name: Consumer prose names no tool (#2411)
         run: npx --yes tsx@4 packages/engine/lint-tool-neutral-prose.ts
 
+      # #2552 (owner Q250 A) — THE CONSUMER SET CARRIES NO BUILD METADATA. The base + overlay files are the
+      # handoff: no $extensions anywhere, a token keeps only $value, $type and $description, and no key or
+      # string names a tool. Each file byte-matches the gate's OWN derivation from the committed canonical
+      # tree (never the projector), every alias resolves against its base, and every brand ships its set.
+      - name: The consumer set carries no build metadata (#2552)
+        run: npx --yes tsx@4 packages/engine/lint-consumer-build.ts
+
       # THE SECOND DIRECTION (#865). Every write the component executor makes is verified by a read-back
       # — set the value, read it, report a miss if the host did not keep it. Nothing verified what it did
       # NOT write, and a Figma node is never silent: a property no def mentioned kept Figma's own default
