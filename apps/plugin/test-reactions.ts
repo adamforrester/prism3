@@ -27,6 +27,10 @@
  *   converge/…   a set built before reactions existed (no reactions, no reactions in its records, an older executor
  *                revision) is named by the dry run, updated, verified, and then reads up to date. Mutations: the
  *                executor skips in-place members → `converge/written`, `converge/up to date`.
+ *   all three/…  reactions to repair, sets to move (#2542) and pages to reorder (#2568) in ONE run: one named version,
+ *                all of it done, and a change to any of the three after the check refuses the confirm. Mutations: the
+ *                reactions dropped from a set's fingerprint → `all three/hash, reactions`; the set's move dropped from
+ *                `previewHashOf` → `all three/hash, set`; the page list dropped from it → `all three/hash, page`.
  *
  * Run: `npx tsx apps/plugin/test-reactions.ts`
  */
@@ -280,6 +284,95 @@ section('converge — a set built before reactions existed is updated once, then
   const next = await previewUpdate(w.host, targets(w, TAG));
   ok(previewVerdict(next).headline === '✓ All sets up to date' && next.sets[0].counts.current === 45, `converge/up to date: the next dry run reads ${previewVerdict(next).headline} (${JSON.stringify(next.sets[0].counts)})`);
   ok(membersOf(w).every((m) => typeof JSON.parse((m.getSharedPluginData as (a: string, b: string) => string)(NS, BASELINE_KEY)).reactions === 'string'), 'converge/recorded: every member\'s record now holds its reactions');
+}
+
+/* ── all three ──────────────────────────────────────────────────────────────────────────────────────────── */
+// One run whose work is reactions to repair (#2466), sets to move on their page (#2542) and component pages out of order
+// (#2568): one named version for all of it, all of it done, and the confirm's hash covering each. Three in-scope sets
+// on one page. The tag set as an earlier plugin left it (no reactions, records that never held them); the tab set's
+// Rest member with a reaction that dangles. The title, orders and counts are literals. Mutations: the reactions dropped
+// from a set's fingerprint (`update-plan.ts`) → `all three/hash, reactions`; the set's move dropped from `previewHashOf`
+// → `all three/hash, set`; the page list dropped from it → `all three/hash, page`.
+section('all three — reactions, set moves and page reorders in one run: one version, all done, all in the hash');
+{
+  const IDS = ['tag', 'tab', 'switch-control'];
+  const plansBy = new Map(IDS.map((id) => [id, plansOf(id)] as const));
+  const all = [...plansBy.values()].flat();
+  const page: Page = { children: [] };
+  const api = makeShim({
+    vars: [...new Set([...all.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]), 'space/0'])],
+    styles: [...new Set(all.flatMap((p) => planTextStyles(p.root)))],
+    effects: [...new Set(all.flatMap((p) => planEffectStyles(p.root)))],
+    comps: [...new Set([SWAP_TARGET, 'focus-ring', ...all.flatMap((p) => planComps(p.root))])],
+    page, liveRoot: true, identities: true, scaleConstrained: true,
+  }) as any;
+  for (const id of IDS) { const r = await applyComponentPlan(plansBy.get(id)!, api); if (r.misses.length) throw new Error(`premise: ${id} built with ${r.misses.length} miss(es): ${r.misses[0]}`); }
+  const sets = page.children.filter((n) => n.type === 'COMPONENT_SET') as Node[];
+  for (const set of sets) (set as { parent?: unknown }).parent = page;
+  // The shim names every set `SET:1`; the host gives each its own id, and the apply's identity check finds a set by it.
+  sets.forEach((s, k) => { s.id = `SET:${k + 1}`; });
+  const fresh = sets.map((n) => [Number(n.x), Number(n.y)]);
+  for (let k = 1; k < sets.length; k++) sets[k].x = Number(sets[k - 1].x) + Number(sets[k - 1].width) + 160;
+  type P = { name: string; isPageDivider?: boolean; appendChild(): void };
+  const pg = (name: string, isPageDivider = false): P => ({ name, isPageDivider, appendChild() {} });
+  const pages: P[] = [pg('Cover'), pg('---', true), pg('Components'), pg('↳ Tabs'), pg('↳ Badge'), pg('↳ Divider')];
+  const host = { ...api, root: { ...api.root,
+    findAllWithCriteria: (c: { types: string[] }) => (c.types.length === 1 && c.types[0] === 'COMPONENT_SET' ? page.children.filter((n) => n.type === 'COMPONENT_SET') : api.root.findAllWithCriteria(c)),
+    get children() { return pages; }, insertChild(i: number, p: P) { pages.splice(pages.indexOf(p), 1); pages.splice(i, 0, p); } } } as unknown as ApplyHost;
+  const names = () => pages.map((p) => p.name);
+  const targets = IDS.map((id) => ({ def: id, plans: plansBy.get(id)! }));
+  const [tagSet, tabSet] = sets;
+  const kids = (s: Node): Node[] => s.children as Node[];
+  const pd = (m: Node, k: string): string => (m.getSharedPluginData as (a: string, b: string) => string)(NS, k);
+  const put = (m: Node, k: string, v: string): void => (m.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, k, v);
+  for (const m of kids(tagSet)) {
+    await (m.setReactionsAsync as (r: unknown[]) => Promise<void>)([]);
+    const rec = JSON.parse(pd(m, BASELINE_KEY)); delete rec.reactions; put(m, BASELINE_KEY, JSON.stringify(rec));
+  }
+  const TAB_REST = kids(tabSet).find((m) => axesOf(String(m.name)).get('state') === 'rest')!;
+  const dangle = (transition: unknown) => (TAB_REST.setReactionsAsync as (r: unknown[]) => Promise<void>)(
+    reactionsOf(TAB_REST).map((r) => (r.trigger.type === 'ON_HOVER' ? { ...r, actions: r.actions.map((a) => ({ ...a, destinationId: 'gone:1', transition })) } : r)));
+  await dangle(null);
+  const pre = await previewUpdate(host, targets);
+  const stateOf = (set: string, member: string) => pre.sets.find((p) => p.set === set)?.states.find((s) => s.member === member)?.state;
+  ok(JSON.stringify(pre.sets.filter((p) => p.setMove).map((p) => p.set)) === JSON.stringify(['tab', 'switch-control'])
+    && JSON.stringify(pre.pages) === JSON.stringify(['↳ Tabs'])
+    && pre.sets[0].counts.update === 18 && stateOf('tab', String(TAB_REST.name)) === 'update',
+    `all three/dry run: 18 tag members and the dangling tab member to update, the 2 later sets to move, Tabs to reorder (${JSON.stringify(pre.sets.map((p) => [p.set, p.counts.update, !!p.setMove]))}; ${JSON.stringify(pre.pages)})`);
+  // THE HASH covers all three: each changed after the check refuses the confirm, and nothing is saved or written.
+  const refused = async (label: string, change: () => Promise<void> | void, undo: () => Promise<void> | void): Promise<void> => {
+    const p = await previewUpdate(host, targets);
+    await change();
+    const v = api._versions.length;
+    const r = await applyUpdate(host, api, targets, previewHashOf(p));
+    ok(!!r.refusedAll && api._versions.length === v, `all three/hash, ${label} (${r.refusedAll ?? 'applied'})`);
+    await undo();
+  };
+  // A transition is in a reaction's key and not in its words, so the preview's text reads the same: only the hash sees it.
+  await refused('reactions: a reaction changed since the check refuses the confirm', () => dangle({ type: 'DISSOLVE', duration: 0.2 }), () => dangle(null));
+  const x2 = Number(sets[2].x);
+  await refused('set: a set moved since the check refuses the confirm', () => { sets[2].x = x2 + 50; }, () => { sets[2].x = x2; });
+  await refused('page: a page moved since the check refuses the confirm', () => { const d = pages.splice(5, 1)[0]; pages.splice(4, 0, d); }, () => { const b = pages.splice(5, 1)[0]; pages.splice(4, 0, b); });
+  // THE RUN: one named version, then every set's reactions, every set's place, and the page order.
+  const go = await previewUpdate(host, targets);
+  const res = await applyUpdate(host, api, targets, previewHashOf(go));
+  ok(JSON.stringify(api._versions) === JSON.stringify(['Before Prism3 updated tag, tab, switch-control, the page order']),
+    `all three/version: one named version, naming the sets and the page order (${JSON.stringify(api._versions)})`);
+  const byName = (s: Node, n: Node): string[] => {
+    const ids = new Map(kids(s).map((m) => [String(m.id), String(m.name)] as const));
+    return reactionsOf(n).flatMap((r) => r.actions.map((a) => `${r.trigger.type}→${ids.get(a.destinationId) ?? '?'}`)).sort();
+  };
+  const tagTotal = kids(tagSet).reduce((k, m) => k + reactionsOf(m).length, 0);
+  const tabRest = kids(tabSet).find((m) => axesOf(String(m.name)).get('state') === 'rest' && String(m.name) === String(TAB_REST.name))!;
+  const sib = (state: string): string => String(TAB_REST.name).replace('state=rest', `state=${state}`);
+  ok(tagTotal === 27 && JSON.stringify(byName(tabSet, tabRest)) === JSON.stringify([`ON_HOVER→${sib('hover')}`, `ON_PRESS→${sib('pressed')}`]),
+    `all three/reactions: the 27 tag reactions written and the tab Rest member's hover repaired (${tagTotal}; ${byName(tabSet, tabRest).join('; ')})`);
+  ok(JSON.stringify(sets.map((n) => [Number(n.x), Number(n.y)])) === JSON.stringify(fresh)
+    && JSON.stringify(names()) === JSON.stringify(['Cover', '---', 'Components', '↳ Badge', '↳ Divider', '↳ Tabs']),
+    `all three/moved: each set where a fresh build put it, and the pages in order (${JSON.stringify(sets.map((n) => Number(n.x)))}; ${JSON.stringify(names())})`);
+  const next = await previewUpdate(host, targets);
+  ok(applyVerdict(res).ok && previewVerdict(next).headline === '✓ All sets up to date' && !next.pages,
+    `all three/converges: ${applyVerdict(res).headline} (${applyVerdict(res).lines.join(" | ")}); the next dry run reads ${previewVerdict(next).headline}`);
 }
 
 console.log(failed ? `\n✗ ${failed} of ${executed} assertions failed` : `\n✓ all passed — ${executed} assertions executed`);

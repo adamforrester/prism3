@@ -1,6 +1,6 @@
 ## (2026-10-12) — Interactive components: built sets carry Rest → Hover → Pressed reactions, recorded and kept current by the Update (#2466, owner decision Q238 A)
 
-**STATUS: branch `claude/2466-interactive-components`.** Plugin only, so no engine change note. `EXECUTOR_REVISION` 13 → 15: #2548 holds 14.
+**STATUS: branch `claude/2466-interactive-components`.** Plugin only, so no engine change note. `EXECUTOR_REVISION` 14 → 15: #2548 took 14 on main.
 
 **What it does.** Every set whose `state` axis holds `rest`, `hover` and `pressed` gets prototype reactions on its members. That's 11 defs, derived from the member names and never listed: the three buttons, the three icon buttons, tag, tab, and the checkbox, radio and switch controls.
 - Rest → Hover on `ON_HOVER`.
@@ -34,10 +34,15 @@ Button: 192 members, 288 reactions, the probe's own count.
 - #2563 (pre-existing, reproduced on clean `main`): a member an update adds is appended, never combined, so a translucent overlay wash stays at 100%, and verify doesn't check added members. The apply reports success, and the next dry run reads it "to update". The test's replace case uses a family with no wash for that reason.
 - #2564: the `use_figma` paste path writes no reactions.
 
-**Gates.** `test-reactions.ts`, 31 assertions, run in the plugin's `test`. Five mutations, each failing by name:
+**Gates.** `test-reactions.ts`, 41 assertions, run in the plugin's `test`. Each of these mutations fails by name:
 - the excluded-state filter dropped;
 - one fewer axis matched;
 - the executor skipping in-place members on apply;
 - reactions dropped from the record;
 - existence checked instead of parent;
 - the dangle dropped from the state's first test.
+- the reactions dropped from a set's fingerprint, the set's move dropped from `previewHashOf`, or the page list dropped from it (`all three/hash, …`).
+
+**After #2548, #2575 and #2534 merged.** The merge conflicted only on imports. The set moves (#2542) and the page order (#2568) fit around the reactions unchanged. A set's hash already carries its reactions (its fingerprint), and `previewHashOf` carries each set's hash, its move and the page list. `all three/…` runs all three kinds of work at once: reactions to repair (missing on one set, dangling on another), sets to move, and a page to reorder. It saves one named version and does all of it. A reaction, set or page changed after the check refuses the confirm. The reaction change is a transition, which is in a reaction's key but not its words, so only the hash can catch it. Accordion (#2534) has `rest` and `focus-visible` only, so the scope rule leaves it out. It's still 11 defs, and `map/scope` already checks every def, Accordion included.
+
+**Trap: the shim gives every set the id `SET:1`.** The apply's identity check finds a set by id, so on a page of several sets it re-reads the first one. The update then reads "component IDs changed" for a set it updated correctly. A real host gives each set its own id, so `all three/…` assigns distinct ids itself. Any future multi-set apply test needs the same (#2593).
