@@ -46,6 +46,10 @@ export interface TaxonomyLeaf {
 export interface TaxonomySection {
   readonly header: string;
   readonly leaves: readonly TaxonomyLeaf[];
+  /** True where the section's pages sit in ALPHABETICAL order in the file, by visible name, case-insensitive
+   *  (#2568, owner decision Q260 A): a new page is inserted at its place, and the in-place Update reorders the
+   *  existing ones. Unset, the leaves keep the order listed here. */
+  readonly alphabetical?: boolean;
 }
 
 export interface Taxonomy {
@@ -76,6 +80,8 @@ export const TAXONOMY: Taxonomy = {
     },
     {
       header: 'Components',
+      // Alphabetical in the file (#2568, owner decision Q260 A); the list below is no longer the page order.
+      alphabetical: true,
       leaves: [
         { page: 'Buttons', defs: ['button', 'button-destructive', 'button-neutral'] },
         { page: 'Icon button', defs: ['icon-button', 'icon-button-destructive', 'icon-button-neutral'] },
@@ -97,10 +103,16 @@ export const TAXONOMY: Taxonomy = {
         // Divider (#2455) — its own page, as the issue asks. Under Components beside the components that nest
         // it next (Accordion, #2417); the section is the owner's call and held as DRAFT in the PR.
         { page: 'Divider', defs: ['divider'] },
+        // Accordion (#2417) — its own page under Components after Divider, which it nests (DRAFT, owner item). Its
+        // building-block indicator builds first on the same page, so the header's nests resolve as Tabs' do.
+        { page: 'Accordion', defs: ['_accordion-indicator', 'accordion'] },
       ],
     },
     {
       header: 'Subcomponents',
+      // Alphabetical in the file too (#2568, owner decision Q265 B), each section within itself; the list below is
+      // no longer the page order.
+      alphabetical: true,
       leaves: [
         { page: 'Image Placeholder', defs: ['image-placeholder'] },
         { page: 'Focus Ring', defs: ['focus-ring'] },

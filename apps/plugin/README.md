@@ -217,6 +217,14 @@ Rules, all enforced in the config + `test-file-setup.ts`:
 - **Dividers are native** — `figma.createPageDivider()` (default name `---`, `isPageDivider` true), matched
   back by the flag, not the name (so a repeated `---` is not an idempotency hazard). One before each section.
 - **`↳ ` prefix** (U+21B3 + space) on every component page; `Cover` and the section headers have none.
+- **Components and Subcomponents pages are alphabetical** (#2568, owner decisions Q260 A and Q265 B), each
+  section within itself, by visible name without the `↳ `, case-insensitive — the section's `alphabetical`
+  flag, so the lists above are not their file order. No page ever crosses from one section to the other. A new page
+  is inserted after the last of the section's pages that sorts before it. The in-place Update's dry run lists
+  the pages out of order ("Component pages: N to reorder (…)", `pagesOutOfOrder`) and its apply moves them
+  (`reorderPages`): the fewest pages, each after the last in-order page that sorts before it. A page whose name
+  is no taxonomy leaf is a designer's and is never moved; no page is created or deleted, and no other section
+  moves. Foundations and Sandbox keep the config's order.
 - **The split that decides ownership:** a leaf with NO defs (the Foundations placeholders, `File Components`)
   is pre-created by `file-setup`; a leaf WITH defs is created ON DEMAND by the page-aware build, so an unbuilt
   component leaves no empty page. `Icons & assets` (the `icon` def) is the one Foundations leaf on the build's side.
@@ -257,7 +265,8 @@ until then it gets no furniture, so it never carries one backdrop per band. Labe
 `prism3`/`furniture`: a rebuild or update clears and redraws them, prune removes those whose set is gone, and they never
 enter the set, so the update's hand-edit check and the as-built record never read them. The switch is
 `CANVAS_FURNITURE` (engine), on for every def that builds a set; Icon and Spinner build single components and have
-none. Sets side by side sit `SET_GAP` (400) apart, so a later set's row labels fit between them. Gated by
+none. A row thinner than its label (the 1px horizontal Divider, #2568 Q258 A) keeps the label's own height, centered
+on the row, with `Show bracket` off; every other row label spans its rows. Sets side by side sit `SET_GAP` (400) apart, so a later set's row labels fit between them. Gated by
 `test-canvas-furniture.ts`, which draws every def and measures the clearance on every shared page.
 
 **Interactive components (#2466, owner decision Q238 A).** Every set whose `state` axis holds `rest`, `hover` and
@@ -317,7 +326,12 @@ transports: A, the file mailbox, and B, the local desktop bridge.
   answered `stale`, not run. The agent side is `agent-snippets.ts`, printed by
   `tools/figma-mcp/agent-link.ts` (runbook: `tools/figma-mcp/README.md` §5).
 - ✅ **Off by default, never persisted**; the panel shows whether it is listening and the last command's
-  headline. Commands are data mapped to handlers by name — nothing in a command is evaluated.
+  headline. Commands are data mapped to handlers by name — nothing in a command is evaluated, in a release build.
+  A **dev build** (`dist/`, `PRISM3_DEV` true) answers one more, `run-code {code, timeoutMs?}`, which runs `code` in
+  the main thread as the body of an async function and returns its value in `result.data.value` and its console
+  lines in `result.logs` (#2530, owner Q239 A). A timeout stops the waiting, not the code: the run may still be going,
+  and a write it makes afterwards can still land. It exists so a lane can probe a file without swapping plugins. The
+  release build (`npm run build:release`) does not carry it, and `lint-release-bundle.ts` checks that.
 - ✅ **Tested through the real `main.ts`** — `test-agent-link.ts` installs a host model as the global
   `figma` and imports `main.ts` itself, then drives the mailbox with the exact scripts the CLI prints.
 - ⏭ **Not verified live:** whether a `use_figma` write reaches an open plugin through multiplayer, and how

@@ -49,11 +49,13 @@ import { diffAnatomy, type HostNode, type ReadPorts } from '@prism3/engine/anato
 import { COMPONENT_RENAMES, coordKey, coordPairs, renameCoordinate, type ComponentRename } from '@prism3/engine/component-renames';
 import { ENGINE_VERSION } from '@prism3/engine/version';
 import { EXECUTOR_REVISION } from './executor-revision';
-import { memberStamp, planHalf, revHalf, STAMP_KEY } from './write-components';
+import { memberStamp, planHalf, revHalf, respaceSets, STAMP_KEY, type RespaceBox } from './write-components';
+import { readTag } from './canvas-furniture';
 import { NS } from './persist-figma';
 import { BASELINE_V, UPDATING_KEY, baselineDiff, baselineOf, builtByPrism3, readBaseline, recordFormat, snapshotMember, writeBaseline, type Baseline, type OwnershipRead, type SnapNode } from './member-baseline';
 import { drawnFaults, type DrawnFault, type DrawVar } from './drawn';
 import { REACTIONS_PATH, plannedRead, reactionMap, reactionVerdict, reactionsText, type PlannedReaction, type ReadReaction } from './reactions';
+import { pagesOutOfOrder, stripNestPrefix, type PageLike } from './file-setup';
 
 /** One member of a set as the dry run reads it. */
 export type HostMember = {
@@ -130,6 +132,9 @@ export type SetPreview = {
   states: { member: string; state: Exclude<MemberState, 'current'>; earlierRecord?: true }[];
   /** #2188 Q173 — the members an update moves to their place in the grid, by name (`gridMoves`). Absent when none. */
   positions?: string[];
+  /** #2542 (owner decision Q245.2 A) — the WHOLE SET moves on its page, to where a fresh build would place it
+   *  (`respaceSets`), so sets sit `SET_GAP` apart. Absent when it stays. */
+  setMove?: { from: { x: number; y: number }; to: { x: number; y: number } };
   needsChoice: Choice[];
   /** Entries left out of a list past `LIST_CAP`, per list. Absent when nothing was. */
   truncated?: Record<string, number>;
@@ -728,7 +733,9 @@ export const adoptSet = async (
 
 /** The host the two commands read: the file's sets and its own variable and style catalogues. */
 export type UpdateHost = {
-  root: { findAllWithCriteria(c: { types: string[] }): readonly unknown[] };
+  /** `children` and `insertChild` are the document's pages, for the page order (#2568). A host without them (a test's
+   *  shim) has no page order to check. */
+  root: { findAllWithCriteria(c: { types: string[] }): readonly unknown[]; readonly children?: readonly PageLike[]; insertChild?(index: number, child: PageLike): void };
   variables: { getLocalVariablesAsync(): Promise<readonly { id: string; name: string }[]> };
   getLocalTextStylesAsync(): Promise<readonly { id: string; name: string }[]>;
   getLocalEffectStylesAsync(): Promise<readonly { id: string; name: string }[]>;
@@ -818,7 +825,59 @@ const locateView = async (host: UpdateHost, t: UpdateTarget, breathe?: () => Pro
   return { kind: 'found', name, set: found[0], view: await readSetView(found[0], breathe, drawVars) };
 };
 
-export type UpdatePreview = { sets: SetPreview[]; missing: string[]; refused: { def: string; reason: string }[] };
+export type UpdatePreview = {
+  sets: SetPreview[]; missing: string[]; refused: { def: string; reason: string }[];
+  /** #2568, owner decision Q260 A — the component pages not in alphabetical order, by full page name, which the apply
+   *  moves into place (`pagesOutOfOrder`). Absent when none. */
+  pages?: string[];
+};
+
+/** How many sets a dry run moves on their pages (#2542). */
+export const setsMoving = (r: UpdatePreview): number => r.sets.filter((p) => !p.blockers.length && p.setMove).length;
+
+/** Whether a node is a set Prism3 built (#2464, #2494): at least one of its members is, by the shared member test
+ *  (`builtByPrism3`, #2510). So a set whose only stamps are malformed, or copied with their records by a Duplicate,
+ *  is a designer's set, and an obstacle, as `ownedView` reads its members. */
+const setBuiltByPrism3 = (n: { children?: readonly unknown[] }): boolean => {
+  const members = (n.children ?? []) as { id?: unknown; getSharedPluginData?(ns: string, k: string): string }[];
+  const reads: OwnershipRead[] = members.map((m) => ({ id: m.id === undefined ? undefined : String(m.id), stamp: m.getSharedPluginData?.(NS, STAMP_KEY) ?? '', recordId: readBaseline(m)?.id }));
+  const owned = builtByPrism3(reads);
+  return reads.some(owned);
+};
+
+/**
+ * THE SET MOVES ON EACH PAGE (#2542, owner decision Q245.2 A), by set name. A page takes part only when EVERY set
+ * Prism3 built on it is one this update reads and none is blocked: an update scoped to one def never moves a set it
+ * wasn't asked about. Read from the page's top-level nodes as they sit (`respaceSets`), so the dry run lists the moves
+ * the file shows now, and the apply, called again after its sets land, moves them by their new sizes.
+ */
+export const pageSetMoves = (found: readonly { name: string; set: LiveSet; blocked: boolean }[]): Map<string, { from: { x: number; y: number }; to: { x: number; y: number } }> => {
+  const out = new Map<string, { from: { x: number; y: number }; to: { x: number; y: number } }>();
+  const pages = new Map<unknown, typeof found[number][]>();
+  for (const f of found) {
+    const page = f.set.parent as { children?: readonly unknown[] } | null | undefined;
+    if (!page || !Array.isArray(page.children)) continue;
+    pages.set(page, [...(pages.get(page) ?? []), f]);
+  }
+  for (const [page, here] of pages) {
+    const kids = (page as { children: readonly unknown[] }).children as { id?: unknown; type?: unknown; name?: unknown; x?: unknown; y?: unknown; width?: unknown; height?: unknown; children?: readonly unknown[] }[];
+    const read = new Set(here.map((f) => f.set));
+    const ours = kids.filter((k) => k.type === 'COMPONENT_SET' && setBuiltByPrism3(k));
+    if (here.some((f) => f.blocked) || !ours.every((k) => read.has(k as LiveSet))) continue;
+    // Keyed by the node's place on the page, never by its id: what maps a move back to its set is the node itself.
+    const boxes: RespaceBox[] = kids.map((k, i) => ({
+      id: String(i), type: String(k.type ?? ''), x: Number(k.x ?? 0), y: Number(k.y ?? 0), width: Number(k.width ?? 0), height: Number(k.height ?? 0),
+      header: (k.type === 'INSTANCE' || k.type === 'FRAME') && String(k.name ?? '').toLowerCase() === '_section-header',
+      prism3: k.type === 'COMPONENT_SET' && setBuiltByPrism3(k),
+      furniture: !!readTag(k as never),
+    }));
+    for (const m of respaceSets(boxes)) {
+      const f = here.find((x) => x.set === (kids[Number(m.id)] as LiveSet));
+      if (f) out.set(f.name, { from: m.from, to: m.to });
+    }
+  }
+  return out;
+};
 
 /** `update-components` in its dry-run mode: every target's set read and laid against its plans. Writes
  *  nothing. A def with no set in the file is `missing`; a def with two sets of its name is `refused`,
@@ -826,6 +885,7 @@ export type UpdatePreview = { sets: SetPreview[]; missing: string[]; refused: { 
 export const previewUpdate = async (host: UpdateHost, targets: readonly UpdateTarget[], breathe?: () => Promise<void>, ledger: readonly ComponentRename[] = COMPONENT_RENAMES): Promise<UpdatePreview> => {
   const ports = await hostPorts(host);
   const out: UpdatePreview = { sets: [], missing: [], refused: [] };
+  const found: { preview: SetPreview; set: LiveSet }[] = [];
   for (const t of targets) {
     const v = await locateView(host, t, breathe, ports.drawVars);
     if (v.kind === 'missing') { out.missing.push(t.def); continue; }
@@ -839,7 +899,14 @@ export const previewUpdate = async (host: UpdateHost, targets: readonly UpdateTa
     const absent = absentNests(host, t.plans);
     if (absent.length) preview.blockers.push(`Not in this file: ${absent.join(', ')}. Build ${[...new Set(absent.map((a) => a.split('/')[0]))].join(', ')} first, then run the update again`);
     out.sets.push(preview);
+    if (!t.single) found.push({ preview, set: v.set });
   }
+  // #2542: the sets that move on their pages, read once every set has been.
+  const moves = pageSetMoves(found.map((f) => ({ name: f.preview.set, set: f.set, blocked: f.preview.blockers.length > 0 })));
+  for (const f of found) { const m = moves.get(f.preview.set); if (m) f.preview.setMove = m; }
+  // THE PAGE ORDER (#2568): read once for the file, whichever sets the targets name, since the pages are the file's.
+  const pages = host.root.children ? pagesOutOfOrder(host.root.children) : [];
+  if (pages.length) out.pages = pages;
   return out;
 };
 
@@ -906,7 +973,7 @@ const propChanges = (p: SetPreview): number => Object.values(p.properties).reduc
  *  Nor is a member NOT BUILT BY PRISM3 (`unstamped`, #2464): the update never touches it and lists no change for it
  *  (the owner's own icons, #2325), so a set whose only other members are those reads as having no changes, and the
  *  set's line still counts them. Counted as a change, a file holding them could never read up to date. */
-const noChanges = (p: SetPreview): boolean => p.counts.current + p.counts.revisionUnknown + p.counts.unstamped === p.counts.members && !p.counts.add && !p.counts.move && !propChanges(p);
+const noChanges = (p: SetPreview): boolean => p.counts.current + p.counts.revisionUnknown + p.counts.unstamped === p.counts.members && !p.counts.add && !p.counts.move && !p.setMove && !propChanges(p);
 /** No changes, and every member current. A member not built by Prism3 that sits on a PLANNED coordinate is one Adopt
  *  could claim (`adoptable`, #2283), so a set holding one reads "no changes", never up to date (owner decision Q191
  *  2B). Off the plan (the owner's own icons, #2464), it doesn't stop a set reading up to date. */
@@ -951,8 +1018,15 @@ export const previewLine = (p: SetPreview): string => {
   const adopt = k ? ` Adopt can claim ${k === c.unstamped ? (k === 1 ? 'it' : 'them') : `${k} of them`}.` : '';
   if (upToDate(p)) return `${p.set}: up to date (${n(c.members, 'member')}).${own}`;
   if (noChanges(p)) return `${p.set}: no changes (${n(c.members, 'member')}).${own}${adopt}`;
-  return `${p.set}: ${n(c.members, 'member')}. ${parts.join(', ')}.`;
+  // Wording approved, Q246 A (#2542, Q245.2 A): the whole set moves on its page.
+  const setMove = p.setMove ? ' The set moves to its place on the page.' : '';
+  return parts.length ? `${p.set}: ${n(c.members, 'member')}. ${parts.join(', ')}.${setMove}` : `${p.set}: ${n(c.members, 'member')}.${setMove}`;
 };
+
+/** Owner-approved wording (#2568, the Q211/Q246 family; Q264 A): the component pages out of alphabetical order, named
+ *  as the page list shows them less the `↳ `. Empty when none. */
+export const pagesLine = (pages: readonly string[] | undefined): string =>
+  pages?.length ? `Component pages: ${pages.length} to reorder (${pages.map(stripNestPrefix).join(', ')}).` : '';
 
 /** The verdict for a dry run. `ok` is false only where a set could not be checked. `lines` is the Activity drawer's
  *  copy (#2177): one per set, then the closing lines, the same list `summary` is joined from. */
@@ -963,17 +1037,23 @@ export const previewVerdict = (r: UpdatePreview): { ok: boolean; headline: strin
   // "no changes" one, the existing words.
   const claimable = r.sets.some((p) => !p.blockers.length && p.adoptable.length);
   const blocked = r.sets.filter((p) => p.blockers.length).length + r.refused.length;
-  const headline = r.sets.length + r.refused.length === 0 ? 'No sets to check'
+  const reorder = r.pages?.length ?? 0;
+  // Owner-approved wording (#2568, Q264 A): pages to reorder and nothing else is its own headline.
+  const headline = r.sets.length + r.refused.length === 0 ? (reorder ? `Would reorder ${n(reorder, 'page')}` : 'No sets to check')
     : blocked ? `✗ ${n(blocked, 'set')} can't be checked`
-      : changing ? `Would change ${changing} of ${r.sets.length}` : earlier || claimable ? '✓ No changes found' : '✓ All sets up to date';
+      : changing ? `Would change ${changing} of ${r.sets.length}` : reorder ? `Would reorder ${n(reorder, 'page')}`
+        : earlier || claimable ? '✓ No changes found' : '✓ All sets up to date';
   const lines = [
     // Each set's line, then each field it differs from its plan in, NAMED (#2295): where, what, the plan's value and
     // the file's. `changes` is grouped by part, field and both values, so one engine change over 432 members is one
     // line. A bare re-apply (no field moved) is not a difference and is left to the set's own line.
     ...r.sets.flatMap((p) => [previewLine(p), ...namedLines(p.set, p.changes.filter((c) => c.field !== 'stamp').map((c) => ({ part: c.part, field: c.field, plan: c.to, file: c.from, members: c.members })))]),
     ...r.refused.map((x) => `${x.def}: can't be checked. ${x.reason}.`),
+    pagesLine(r.pages),
     r.missing.length ? `Not in this file: ${r.missing.join(', ')}.` : '',
     earlier ? `${earlier} built by an earlier plugin. Update ${earlier === 1 ? 'it to bring it' : 'them to bring them'} current.` : '',
+    // Wording approved, Q246 A (#2542, Q245.2 A).
+    setsMoving(r) ? `${n(setsMoving(r), 'set')} to move, so the sets on each page sit as a new build spaces them.` : '',
     'This was a check only. Nothing in the file changed.',
   ].filter(Boolean);
   return { ok: blocked === 0, headline, summary: lines.join('\n'), lines };

@@ -56,7 +56,8 @@ import { planTargets, presentNames } from './build-deps';
 import { NS } from './persist-figma';
 import { baselineDiff, baselineOf, readBaseline, snapshotMember } from './member-baseline';
 import { drawnFaults, faultLine, varsById } from './drawn';
-import { REACTIONS, hostPorts, previewLine, previewUpdate, readSetView, readSingleView, setUpToDate, type SetPreview, type UpdateHost, type UpdatePreview, type UpdateTarget } from './update-plan';
+import { reorderPages, stripNestPrefix } from './file-setup';
+import { REACTIONS, hostPorts, pageSetMoves, previewLine, previewUpdate, readSetView, readSingleView, setUpToDate, type SetPreview, type UpdateHost, type UpdatePreview, type UpdateTarget } from './update-plan';
 import { REACTIONS_PATH, plannedRead, reactionMap, reactionVerdict, reactionsText } from './reactions';
 
 /** The set's record of the members an update kept and marked deprecated (Q2): a JSON list of member names. */
@@ -74,7 +75,9 @@ const fnv = (s: string): string => {
 
 /** The one hash a confirm echoes: every set's own hash, and what was missing or refused. */
 export const previewHashOf = (r: UpdatePreview): string =>
-  fnv(JSON.stringify([r.sets.map((s) => [s.set, s.previewHash]), r.missing, r.refused]));
+  // A set's move (#2542) and the page list (#2568) are in the hash, so a set or a page someone moves between the check
+  // and the confirm refuses the apply.
+  fnv(JSON.stringify([r.sets.map((s) => (s.setMove ? [s.set, s.previewHash, s.setMove] : [s.set, s.previewHash])), r.missing, r.refused, ...(r.pages ? [r.pages] : [])]));
 
 /** The host an apply needs: the file the dry run reads, and the executor's port, which are the same `figma` in
  *  the plugin. Two parameters because they are two surfaces, and the offline host models each separately. */
@@ -137,6 +140,8 @@ export type SetOutcome = {
   restamped?: string[];
   /** #2188 Q173 — members the build's pass moved to their place in the grid, measured off the host. Absent when none. */
   moved?: number;
+  /** #2542 (owner decision Q245.2 A) — the whole set moved on its page, to where a fresh build would place it. */
+  setMoved?: true;
 };
 
 export type ApplyResult = {
@@ -146,6 +151,8 @@ export type ApplyResult = {
   version?: string;
   missing: string[];
   refused: { def: string; reason: string }[];
+  /** #2568 — the component pages the apply put in alphabetical order, by full page name. Absent when none. */
+  reordered?: string[];
 };
 
 type LiveNode = { id?: unknown; key?: unknown; name?: unknown; type?: unknown; children?: readonly unknown[]; parent?: unknown };
@@ -557,9 +564,14 @@ export const applyUpdate = async (
     }
     ready.push({ t, p, live });
   }
-  if (!ready.length) return res;
-  // A NAMED VERSION, ONCE, BEFORE THE FIRST WRITE (Q7). Refused or unavailable, nothing is written.
-  const title = versionTitle(ready.map((x) => x.p.set));
+  // A set whose only work is its move on the page (#2542) is work too: the version is saved and the move made.
+  const moving = preview.sets.filter((p) => p.setMove && !p.blockers.length);
+  // THE PAGE ORDER (#2568) is work of its own: a file whose sets are all up to date can still have pages to reorder.
+  const reorder = !!preview.pages?.length && typeof host.root.insertChild === 'function' && !!host.root.children;
+  if (!ready.length && !moving.length && !reorder) return res;
+  // A NAMED VERSION, ONCE, BEFORE THE FIRST WRITE (Q7), for all of it: the sets updated or moved, then the page order.
+  // Refused or unavailable, nothing is written.
+  const title = versionTitle([...new Set([...ready.map((x) => x.p.set), ...moving.map((p) => p.set)]), ...(reorder ? ['the page order'] : [])]);
   try {
     if (!host.saveVersionHistoryAsync) throw new Error('this host cannot save a version');
     await host.saveVersionHistoryAsync(title);
@@ -567,6 +579,12 @@ export const applyUpdate = async (
   } catch (err) {
     res.refusedAll = `the named version could not be saved (${(err as Error)?.message ?? String(err)}), so nothing was written`;
     return res;
+  }
+  // First, before the sets: moving a page rewrites nothing on it, and a stop in a set below leaves the order done.
+  if (reorder) {
+    const root = host.root;
+    const done = reorderPages({ root: { get children() { return root.children ?? []; }, insertChild: (i, p) => root.insertChild!(i, p) } });
+    if (done.length) res.reordered = done;
   }
   for (const { t, p, live, stampOnly } of ready) {
     // Re-read: a nested set updated just before this one changed what this one's instances point at.
@@ -581,6 +599,33 @@ export const applyUpdate = async (
     const o = await applySet(host, api, t, p, fresh, { description: opts.descriptionOf?.(t.def), yieldTo: opts.yieldTo, handEdits: choiceFor(opts.choices, p.set), noBaseline: noRecordFor(opts.choices, p.set) });
     res.outcomes.push(o);
     if (o.stopped) break;
+  }
+  // THE SETS MOVE ON THEIR PAGES LAST (#2542, owner decision Q245.2 A), once every set has its new size, so each sits
+  // where a fresh build would place it. Read again from the live sets: the moves the dry run listed, plus any a resize
+  // just made (as #2519 counts the member moves the dry run could not list). A set the apply refused or stopped in
+  // holds its page still. Only `x` and `y` are written, so every set and member keeps its id.
+  if (!res.outcomes.some((o) => o.stopped)) {
+    const live: { name: string; set: LiveSet; blocked: boolean }[] = [];
+    for (const t of targets) {
+      if (t.single) continue;
+      const p = preview.sets.find((s) => s.set === (t.plans[0]?.component ?? t.def));
+      const set = p ? await liveFor(host, t, p.set) : undefined;
+      if (!p || !set) continue;
+      live.push({ name: p.set, set, blocked: p.blockers.length > 0 || res.outcomes.some((o) => o.set === p.set && !!o.refused) });
+    }
+    const moves = pageSetMoves(live as never);
+    for (const { name, set } of live) {
+      const m = moves.get(name);
+      if (!m) continue;
+      (set as { x?: number; y?: number }).x = m.to.x;
+      (set as { x?: number; y?: number }).y = m.to.y;
+      const t = targets.find((x) => (x.plans[0]?.component ?? x.def) === name)!;
+      let o = res.outcomes.find((x) => x.set === name);
+      if (!o) { o = { def: t.def, set: name, updated: [], added: 0, renamed: 0, deprecated: [], skipped: [], kept: [], unrecorded: [], handEdits: choiceFor(opts.choices, name), identity: [], content: [], misses: [] }; res.outcomes.push(o); }
+      o.setMoved = true;
+      // A set whose only work was the move no longer reads as it was previewed: it changed.
+      if (o.asPreviewed) delete o.asPreviewed;
+    }
   }
   return res;
 };
@@ -600,13 +645,15 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
   // A set the apply entered and wrote nothing to, every member it would have written left as it is (`noBaseline:
   // 'skip'`, a layer added by hand, a member that would need replacing), still holds what its dry run listed. It is
   // NOT UPDATED, never "already up to date" (#2364 review; the owner's choice, 2026-10-08: the approved headline).
-  const idle = r.outcomes.filter((o) => !o.refused && !o.stopped && o.skipped.length && !o.updated.length && !o.added && !o.renamed && !o.deprecated.length && !o.moved).length;
+  const idle = r.outcomes.filter((o) => !o.refused && !o.stopped && o.skipped.length && !o.updated.length && !o.added && !o.renamed && !o.deprecated.length && !o.moved && !o.setMoved).length;
   const refused = r.outcomes.filter((o) => o.refused).length + r.refused.length + idle;
   const updated = r.outcomes.reduce((k, o) => k + o.updated.length, 0);
   const added = r.outcomes.reduce((k, o) => k + o.added, 0);
   const deprecated = r.outcomes.reduce((k, o) => k + o.deprecated.length, 0);
   const renamed = r.outcomes.reduce((k, o) => k + o.renamed, 0);
   const moved = r.outcomes.reduce((k, o) => k + (o.moved ?? 0), 0);
+  const setsMoved = r.outcomes.filter((o) => o.setMoved).length;
+  const reordered = r.reordered?.length ?? 0;
   const lines: string[] = [];
   for (const o of r.outcomes) {
     if (o.refused) { lines.push(`${o.set}: not updated. ${o.refused}.`); continue; }
@@ -621,6 +668,8 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
       o.deprecated.length ? `${o.deprecated.length} marked deprecated` : '',
       // DRAFT wording for the owner (#2188 Q173), the dry run's "to move" as done.
       o.moved ? `${o.moved} moved` : '',
+      // Wording approved, Q246 A (#2542, Q245.2 A), the dry run's "moves to its place on the page" as done.
+      o.setMoved ? 'the set moved to its place on the page' : '',
       o.kept.length ? `${n(o.kept.length, 'hand edit')} ${o.handEdits === 'overwrite' ? 'overwritten' : o.handEdits === 'accept' ? 'accepted as built' : 'kept'}` : '',
       o.unrecorded.length - (o.earlierRecord?.length ?? 0) ? `${o.unrecorded.length - (o.earlierRecord?.length ?? 0)} of them without an as-built record` : '',
       // The owner's wording (2026-10-09).
@@ -634,6 +683,8 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
     if (o.content.length) lines.push(`${o.set}: ${n(o.content.length, 'field')} still differ from the plan — ${o.content.slice(0, 3).join('; ')}${o.content.length > 3 ? '; …' : ''}.`);
   }
   for (const x of r.refused) lines.push(`${x.def}: not updated. ${x.reason}.`);
+  // Owner-approved wording (#2568, Q264 A), the dry run's "to reorder" as done.
+  if (reordered) lines.push(`Component pages: ${reordered} reordered (${r.reordered!.map(stripNestPrefix).join(', ')}).`);
   if (r.missing.length) lines.push(`Not in this file: ${r.missing.join(', ')}.`);
   if (r.version) lines.push(`Saved a version first: "${r.version}".`);
   const headline = stopped ? `✗ update stopped at ${stopped.set}`
@@ -643,6 +694,10 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
           : added ? `✓ added ${added}`
             : deprecated ? `✓ ${deprecated} marked deprecated`
               : renamed ? `✓ renamed ${renamed}`
-                : moved ? `✓ moved ${moved}` : r.outcomes.some((o) => o.asPreviewed && !o.asPreviewed.upToDate) ? '✓ No changes found' : '✓ already up to date';
+                : moved ? `✓ moved ${moved}`
+                  // DRAFT wording for the owner: sets moved AND pages reordered in one run, the two approved headlines
+                  // (Q246 A, Q264 A) joined, so neither hides the other.
+                  : setsMoved && reordered ? `✓ ${n(setsMoved, 'set')} moved, reordered ${n(reordered, 'page')}`
+                    : setsMoved ? `✓ ${n(setsMoved, 'set')} moved` : reordered ? `✓ reordered ${n(reordered, 'page')}` : r.outcomes.some((o) => o.asPreviewed && !o.asPreviewed.upToDate) ? '✓ No changes found' : '✓ already up to date';
   return { ok: !stopped && !failed.length && !refused, headline, summary: lines.join('\n'), lines };
 };

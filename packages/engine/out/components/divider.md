@@ -40,6 +40,7 @@ A divider holds no copy.
 - **Purpose:** Separate groups of content with a thin horizontal or vertical rule that spans its container.
 - **Use when:** Two groups of content sit next to each other and spacing alone does not separate them: page sections, accordion or list rows, or clusters of controls in a toolbar (vertical).
 - **Avoid when:** Spacing already separates the groups, the edge is a container's own border (a card or field draws its own), or the break needs a title (use a heading).
+- **Often used with:** `accordion`
 
 ## Props
 
@@ -71,7 +72,7 @@ None — not interactive.
 
 ## Composition
 
-- **Planned:** `accordion`, `list`, `menu`, `card`, `stack`, `toolbar`
+- **Planned:** `list`, `menu`, `card`, `stack`, `toolbar`
 - **Replaces:**
   - a hand-drawn line or a border-bottom on one item standing in for a separator
 

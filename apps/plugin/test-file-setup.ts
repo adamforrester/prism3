@@ -10,7 +10,10 @@
  *      literal spine written from the owner's taxonomy, not read back off the config.
  *   2. It is IDEMPOTENT and NON-DESTRUCTIVE — a re-run creates nothing new, and a component page the build
  *      inserted between placeholders is not reordered by a later scaffold.
- *   3. `resolveComponentPage` inserts each `↳ <family>` page in its correct section slot.
+ *   3. `resolveComponentPage` inserts each `↳ <family>` page in its correct section slot; in the alphabetical
+ *      Components section, at its place by name (3b, #2568), where `pagesOutOfOrder` and `reorderPages` (the
+ *      update's dry run and apply) are checked too: every orders' pages converge, a designer page never moves.
+ *      Subcomponents is alphabetical as well (3c, Q265 B), each section within itself, no page crossing between.
  *   4. `assertCoverage` reads the REAL `componentDefs` registry (the oracle) and finds every id mapped;
  *      a synthetic unmapped id is reported BY NAME (the arm that fails if a def is added and not placed).
  *   5. `applyComponentPlan`'s `targetPage` option routes a built set onto the target page, leaving
@@ -20,7 +23,7 @@
  *      creation only, the same non-destructive posture as the page list itself. The expected paint is
  *      written literally in the assertion, not read off `file-setup.ts`, so it fails if the constant drifts.
  */
-import { scaffoldSkeleton, resolveComponentPage } from './src/file-setup';
+import { scaffoldSkeleton, resolveComponentPage, pagesOutOfOrder, reorderPages } from './src/file-setup';
 import type { PagesApi, PageLike } from './src/file-setup';
 import { TAXONOMY, NEST_PREFIX, assertCoverage, EXCLUDED_DEFS } from './src/file-taxonomy';
 import { applyComponentPlan } from './src/write-components';
@@ -173,6 +176,133 @@ console.log('3. resolveComponentPage positions leaves correctly');
   // An unmapped id resolves to null (caller falls back to currentPage).
   const none = await resolveComponentPage(api, 'not-a-real-def', TAXONOMY);
   ok(none === null, 'an unmapped def id resolves to null');
+}
+
+// ── 3b. Component pages in alphabetical order (#2568, owner decision Q260 A) ───────────────────────
+// The expected orders are LITERALS, sorted by hand from the visible names, never read off the taxonomy or the sort.
+console.log('3b. component pages: alphabetical on insert, reordered by the update, designer pages left alone');
+{
+  const { api, children, names } = makePagesShim();
+  await scaffoldSkeleton(api, TAXONOMY);
+  const span = (): string[] => { const n = names(); const ci = n.indexOf('Components'); return n.slice(ci + 1, n.indexOf('---', ci + 1)); };
+  // Built out of taxonomy order, as the live file was: Tabs, then Divider, then Badge, then Buttons, then Icon button.
+  for (const id of ['tabs', 'divider', 'badge', 'button', 'icon-button']) await resolveComponentPage(api, id, TAXONOMY);
+  ok(JSON.stringify(span()) === JSON.stringify(['↳ Badge', '↳ Buttons', '↳ Divider', '↳ Icon button', '↳ Tabs']),
+    `order/new page: each new component page lands at its alphabetical place (${JSON.stringify(span())})`);
+  ok(pagesOutOfOrder(children).length === 0, 'order/new page: a file built only by the build reads in order');
+
+  // A DESIGNER'S PAGE in the section, and the component pages shuffled by hand around it.
+  const notes = api.createPage(); notes.name = 'Notes';
+  const at = (name: string) => children.findIndex((p) => p.name === name);
+  api.root.insertChild(at('↳ Divider'), notes);
+  api.root.insertChild(at('↳ Badge'), children[at('↳ Tabs')]);   // Tabs to the front
+  // Now: Tabs, Badge, Buttons, Notes, Divider, Icon button. A new page still lands by name, Notes untouched.
+  const notesAt = at('Notes');
+  await resolveComponentPage(api, 'checkbox-row', TAXONOMY);
+  ok(JSON.stringify(span()) === JSON.stringify(['↳ Tabs', '↳ Badge', '↳ Buttons', '↳ Checkbox', 'Notes', '↳ Divider', '↳ Icon button']),
+    `order/new page among others: Checkbox goes after Buttons, the last page that sorts before it, and the build moves no existing page (${JSON.stringify(span())})`);
+  ok(at('Notes') === notesAt + 1 && at('Notes') - at('↳ Checkbox') === 1, 'order/new page among others: the designer page only shifted by the one inserted before it');
+
+  // THE DRY RUN'S LIST: Tabs, the one page dropped at the front, and no other; the designer page never.
+  const listed = pagesOutOfOrder(children);
+  ok(JSON.stringify(listed) === JSON.stringify(['↳ Tabs']),
+    `order/dry run: lists the out-of-order component page and no other (${JSON.stringify(listed)})`);
+
+  // THE APPLY: the designer page is never handed to `insertChild`, keeps its slot, and the section converges.
+  const handed: string[] = [];
+  const insert = api.root.insertChild.bind(api.root);
+  const before = names();
+  const done = reorderPages({ root: { get children() { return children; }, insertChild: (i, p) => { handed.push(p.name); insert(i, p); } } });
+  ok(JSON.stringify(span()) === JSON.stringify(['↳ Badge', '↳ Buttons', '↳ Checkbox', 'Notes', '↳ Divider', '↳ Icon button', '↳ Tabs']),
+    `order/apply: component pages alphabetical around the designer page (${JSON.stringify(span())})`);
+  const near = (n: string[], x: string) => [n[n.indexOf(x) - 1], n[n.indexOf(x) + 1]];
+  ok(!handed.includes('Notes') && JSON.stringify(near(names(), 'Notes')) === JSON.stringify(near(before, 'Notes')),
+    `order/designer page: never moved, same neighbors (${JSON.stringify(near(before, 'Notes'))} → ${JSON.stringify(near(names(), 'Notes'))}; moved ${JSON.stringify(handed)})`);
+  ok(JSON.stringify(done) === JSON.stringify(listed), `order/apply: reports what the dry run listed (${JSON.stringify(done)})`);
+  const outside = (n: string[]) => n.filter((_, i) => i < n.indexOf('Components') || i > n.indexOf('---', n.indexOf('Components')));
+  ok(JSON.stringify(outside(names())) === JSON.stringify(outside(before)), 'order/apply: no page outside the component pages moved, none created or deleted');
+  const settled = names();
+  ok(pagesOutOfOrder(children).length === 0 && reorderPages(api).length === 0 && JSON.stringify(names()) === JSON.stringify(settled), 'order/converges: the next check lists nothing and a second apply moves nothing');
+
+  // EVERY PERMUTATION of four component pages around two designer pages converges and keeps the designer slots.
+  const four = ['↳ Veil', '↳ Select', '↳ radio', '↳ Switch'];
+  const perms = (xs: string[]): string[][] => xs.length <= 1 ? [xs] : xs.flatMap((x, i) => perms([...xs.slice(0, i), ...xs.slice(i + 1)]).map((r) => [x, ...r]));
+  let bad = 0;
+  for (const order of perms(four)) {
+    const w = makePagesShim();
+    const tax = { ...TAXONOMY, sections: [{ header: 'Components', alphabetical: true, leaves: four.map((n) => ({ page: n.slice(2), defs: ['x'] })) }] };
+    for (const n of ['Components', order[0], 'A designer page', order[1], order[2], 'Another', order[3]]) w.api.createPage().name = n;
+    w.api.createPageDivider();
+    const handedHere: string[] = [];
+    const ins = w.api.root.insertChild.bind(w.api.root);
+    const listedHere = pagesOutOfOrder(w.children, tax);
+    reorderPages({ root: { get children() { return w.children; }, insertChild: (i, p) => { handedHere.push(p.name); ins(i, p); } } }, tax);
+    const got = w.names();
+    const own = got.filter((n) => four.includes(n));
+    const fine = JSON.stringify(own) === JSON.stringify(['↳ radio', '↳ Select', '↳ Switch', '↳ Veil'])
+      && got[0] === 'Components' && got[got.length - 1] === '---' && got.indexOf('A designer page') < got.indexOf('Another')
+      && !handedHere.some((n) => !four.includes(n)) && handedHere.length === listedHere.length && pagesOutOfOrder(w.children, tax).length === 0;
+    if (!fine) bad++;
+  }
+  ok(bad === 0, `order/permutations: all 24 orders converge to radio, Select, Switch, Veil (case-insensitive), moving only the listed pages and never a designer page (${bad} wrong)`);
+}
+
+// ── 3c. Subcomponents in alphabetical order too (#2568, owner decision Q265 B) ──────────────────────
+// Each section is ordered within itself; no page crosses between them. Expected orders are hand-sorted LITERALS.
+console.log('3c. subcomponent pages: alphabetical within their own section, no page crossing between sections');
+{
+  const spanOf = (n: string[], header: string): string[] => { const h = n.indexOf(header); return n.slice(h + 1, n.indexOf('---', h + 1)); };
+  // (a) Built out of taxonomy order: each new Subcomponents page lands at its alphabetical place.
+  {
+    const { api, children, names } = makePagesShim();
+    await scaffoldSkeleton(api, TAXONOMY);
+    for (const id of ['spinner', 'field-message', 'image-placeholder', 'focus-ring', 'field-label']) await resolveComponentPage(api, id, TAXONOMY);
+    ok(JSON.stringify(spanOf(names(), 'Subcomponents')) === JSON.stringify(['↳ Field Label', '↳ Field Message', '↳ Focus Ring', '↳ Image Placeholder', '↳ Spinner']),
+      `order/sub new page: each new Subcomponents page lands at its alphabetical place (${JSON.stringify(spanOf(names(), 'Subcomponents'))})`);
+    ok(pagesOutOfOrder(children).length === 0, 'order/sub new page: a file built only by the build reads in order');
+  }
+  // (b) A designer page inside Subcomponents keeps its neighbors while the section is put in order around it.
+  {
+    const { api, children, names } = makePagesShim();
+    await scaffoldSkeleton(api, TAXONOMY);
+    for (const id of ['field-label', 'focus-ring', 'image-placeholder', 'spinner']) await resolveComponentPage(api, id, TAXONOMY);
+    const at = (name: string) => children.findIndex((p) => p.name === name);
+    const memo = api.createPage(); memo.name = 'Sub notes';
+    api.root.insertChild(at('↳ Image Placeholder'), memo);
+    api.root.insertChild(at('↳ Field Label'), children[at('↳ Spinner')]);   // Spinner to the front
+    // Now: Spinner, Field Label, Focus Ring, Sub notes, Image Placeholder.
+    const before = names();
+    const listed = pagesOutOfOrder(children);
+    const handed: string[] = [];
+    const insert = api.root.insertChild.bind(api.root);
+    reorderPages({ root: { get children() { return children; }, insertChild: (i, p) => { handed.push(p.name); insert(i, p); } } });
+    const near = (n: string[], x: string) => [n[n.indexOf(x) - 1], n[n.indexOf(x) + 1]];
+    ok(JSON.stringify(listed) === JSON.stringify(['↳ Spinner'])
+      && JSON.stringify(spanOf(names(), 'Subcomponents')) === JSON.stringify(['↳ Field Label', '↳ Focus Ring', 'Sub notes', '↳ Image Placeholder', '↳ Spinner'])
+      && !handed.includes('Sub notes') && JSON.stringify(near(names(), 'Sub notes')) === JSON.stringify(near(before, 'Sub notes')),
+      `order/sub designer page: Subcomponents put in order, the designer page never moved and keeps its neighbors (listed ${JSON.stringify(listed)}; ${JSON.stringify(spanOf(names(), 'Subcomponents'))}; moved ${JSON.stringify(handed)})`);
+  }
+  // (c) Both sections shuffled, and one section's page dropped by hand into the other: each section is put in order
+  // within itself, and every page stays in the section it was found in.
+  {
+    const { api, children, names } = makePagesShim();
+    await scaffoldSkeleton(api, TAXONOMY);
+    for (const id of ['badge', 'tabs', 'divider', 'spinner', 'focus-ring', 'field-label']) await resolveComponentPage(api, id, TAXONOMY);
+    const at = (name: string) => children.findIndex((p) => p.name === name);
+    const moveAfter = (x: string, anchor: string) => { const p = children[at(x)]; const rest = children.filter((c) => c !== p); api.root.insertChild(rest.indexOf(children[at(anchor)]) + 1, p); };
+    moveAfter('↳ Tabs', 'Components');           // Components: Tabs, Badge, Divider
+    moveAfter('↳ Spinner', 'Subcomponents');     // Subcomponents: Spinner, Field Label, Focus Ring
+    moveAfter('↳ Badge', '↳ Focus Ring');        // Badge dropped into Subcomponents, last
+    moveAfter('↳ Field Label', '↳ Divider');     // Field Label dropped into Components, last
+    const compBefore = spanOf(names(), 'Components'), subBefore = spanOf(names(), 'Subcomponents');
+    ok(JSON.stringify(compBefore) === JSON.stringify(['↳ Tabs', '↳ Divider', '↳ Field Label']) && JSON.stringify(subBefore) === JSON.stringify(['↳ Spinner', '↳ Focus Ring', '↳ Badge']),
+      `order/no crossing: the shuffled file is the one this arm means (${JSON.stringify(compBefore)}; ${JSON.stringify(subBefore)})`);
+    reorderPages(api);
+    const comp = spanOf(names(), 'Components'), sub = spanOf(names(), 'Subcomponents');
+    // A stray page counts as a designer's in the section it sits in, so it is never moved, let alone out of it.
+    ok(JSON.stringify(comp) === JSON.stringify(['↳ Divider', '↳ Tabs', '↳ Field Label']) && JSON.stringify(sub) === JSON.stringify(['↳ Focus Ring', '↳ Spinner', '↳ Badge']),
+      `order/no crossing: each section in order within itself, no page moved between Components and Subcomponents (Components ${JSON.stringify(compBefore)} → ${JSON.stringify(comp)}; Subcomponents ${JSON.stringify(subBefore)} → ${JSON.stringify(sub)})`);
+  }
 }
 
 // ── 4. Taxonomy coverage of the real registry ────────────────────────────────────────────────────

@@ -12,6 +12,8 @@
  *                  rebuilt instead of configured → `keys/members`.
  *   apply/…        the plan's change reaches the host, and the next dry run reads every member current.
  *   hash/…         a confirm whose hash the file no longer matches writes nothing.
+ *   pages/…        component pages out of alphabetical order are listed by the dry run and put in order by the apply,
+ *                  a designer's page never moved (#2568).
  *   hand/…         a hand edit is kept, and still reported by the next dry run. Mutation: the record of an
  *                  updated member taken whole from the host → `hand/still reported`.
  *   drop/…         a member the plan no longer has is kept and marked deprecated, never deleted. Mutation: a
@@ -113,7 +115,7 @@
 import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, planComponentName } from '@prism3/engine/anatomy-figma';
 import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
 import { componentDefs } from '@prism3/engine/components/index';
-import { applyComponentPlan, STAMP_KEY } from './src/write-components';
+import { applyComponentPlan, respaceSets, STAMP_KEY } from './src/write-components';
 import { SWAP_TARGET } from './src/build-deps';
 import { NS } from './src/persist-figma';
 import { materializeForBrand } from './src/brand-def';
@@ -248,6 +250,45 @@ section('hash — a confirm over a file that moved since the check writes nothin
   const res = await applyUpdate(w.host, w.api as any, [{ def: TAG, plans: next }], previewHashOf(pre));
   ok(!!res.refusedAll && /changed since the check/.test(res.refusedAll), `hash/refused: ${res.refusedAll}`);
   ok(membersOf(w.set()).map((m) => (m.getSharedPluginData as (a: string, b: string) => string)(NS, STAMP_KEY)).join() === stamps && w.api._versions.length === 0, 'hash/nothing written: no stamp moved, no version saved');
+}
+
+/* ── pages ───────────────────────────────────────────────────────────────────────────────────────────── */
+// #2568, owner decisions Q260 A and Q265 B: the update lists the component pages out of alphabetical order and the
+// apply puts them in place with the usual confirm, moving no designer page. Components and Subcomponents are each
+// ordered within themselves. The page list is the host's; the expected orders are literals sorted by hand. Mutations: the dry run's page read dropped → `pages/dry run`; the apply's reorder dropped
+// → `pages/apply`, `pages/converges`; a designer page moved → `pages/designer`.
+section('pages — component pages out of alphabetical order: listed by the dry run, put in order by the apply');
+{
+  const w = await world(TAG);
+  type P = { name: string; isPageDivider?: boolean; appendChild(): void };
+  const pg = (name: string, isPageDivider = false): P => ({ name, isPageDivider, appendChild() {} });
+  const pages: P[] = [pg('Cover'), pg('---', true), pg('Components'), pg('↳ Tabs'), pg('↳ Divider'), pg('Notes'), pg('↳ Badge'), pg('↳ Tag'),
+    pg('---', true), pg('Subcomponents'), pg('↳ Spinner'), pg('↳ Field Label')];
+  const handed: string[] = [];
+  const host = { ...w.host, root: { ...w.host.root, get children() { return pages; }, insertChild(i: number, p: P) { handed.push(p.name); pages.splice(pages.indexOf(p), 1); pages.splice(i, 0, p); } } } as unknown as ApplyHost;
+  const names = () => pages.map((p) => p.name);
+  const targets = [{ def: TAG, plans: w.plans }];
+  const pre = await previewUpdate(host, targets);
+  const v = previewVerdict(pre);
+  // Tabs, Divider, Badge, Tag: the longest run in order is two long (Tabs, Tag, the first found), so two pages move;
+  // Spinner, Field Label: Spinner kept (the first found), so Field Label moves.
+  ok(JSON.stringify(pre.pages) === JSON.stringify(['↳ Badge', '↳ Divider', '↳ Field Label']) && v.lines.includes('Component pages: 3 to reorder (Badge, Divider, Field Label).') && v.headline === 'Would reorder 3 pages',
+    `pages/dry run: Badge, Divider and Field Label listed, the set itself up to date (${JSON.stringify(pre.pages)}; ${v.headline}; ${v.lines.join(' | ')})`);
+  const res = await applyUpdate(host, w.api as any, targets, previewHashOf(pre));
+  ok(JSON.stringify(names()) === JSON.stringify(['Cover', '---', 'Components', '↳ Badge', '↳ Divider', '↳ Tabs', 'Notes', '↳ Tag', '---', 'Subcomponents', '↳ Field Label', '↳ Spinner'])
+    && JSON.stringify(res.reordered) === JSON.stringify(['↳ Badge', '↳ Divider', '↳ Field Label']) && applyVerdict(res).headline === '✓ reordered 3 pages',
+    `pages/apply: Badge, Divider, Tabs, Tag in order; Field Label, Spinner in order, each within its own section (${JSON.stringify(names())}; ${applyVerdict(res).headline})`);
+  ok(JSON.stringify(handed) === JSON.stringify(['↳ Badge', '↳ Divider', '↳ Field Label']) && names().indexOf('↳ Tag') - names().indexOf('Notes') === 1,
+    `pages/designer: only the listed pages moved, Notes never, and it still precedes Tag (moved ${JSON.stringify(handed)})`);
+  ok(JSON.stringify(w.api._versions) === JSON.stringify(['Before Prism3 updated the page order']), `pages/version: one named version before the move (${JSON.stringify(w.api._versions)})`);
+  const again = await previewUpdate(host, targets);
+  ok(!again.pages && previewVerdict(again).headline === '✓ All sets up to date', `pages/converges: the next dry run lists no page (${previewVerdict(again).headline})`);
+  // A page moved by hand after the check is a different file: the confirm writes nothing.
+  pages.splice(pages.indexOf(pages.find((p) => p.name === '↳ Tag')!), 1); pages.splice(3, 0, pg('↳ Tag'));
+  const pre2 = await previewUpdate(host, targets);
+  const tabs = pages.find((p) => p.name === '↳ Tabs')!; pages.splice(pages.indexOf(tabs), 1); pages.splice(3, 0, tabs);
+  const res2 = await applyUpdate(host, w.api as any, targets, previewHashOf(pre2));
+  ok(!!res2.refusedAll && !res2.reordered, `pages/hash: a page moved since the check refuses the confirm (${res2.refusedAll})`);
 }
 
 /* ── hand ────────────────────────────────────────────────────────────────────────────────────────────── */
@@ -911,6 +952,254 @@ section('re-lay — an update over a set leaves a member Prism3 didn\'t build wh
   const now = [state(bad), state(copy)];
   ok(res.outcomes[0].updated.length === 43 && written === 43 && now[0] === was[0] && now[1] === was[1],
     `relay/not ours left: the update re-lays the grid and leaves the malformed stamp and the copy exactly as they were (${was.join(' ')} → ${now.join(' ')}; ${res.outcomes[0].updated.length} updated, ${written} with the new gap)`);
+}
+
+/* ── sets on a page (#2542) ───────────────────────────────────────────────────────────────────────────── */
+section('page — an update re-spaces the sets Prism3 built on a page as a new build would, and moves nothing else (#2542)');
+{
+  // The button family on one page, built as a fresh file would be: 400 apart (`SET_GAP`, #2502). Then squeezed back
+  // to the old 160 a file built before #2502 has, with a note of the designer's own (a frame Prism3 didn't build) on
+  // the page. The set's `parent` is the page, as on the host (the shim leaves it unset). Mutation: the set-move pass
+  // dropped from the dry run and the apply → `page/set moves`, `page/converges`.
+  const IDS = ['button', 'button-destructive', 'button-neutral'];
+  const plansBy = new Map(IDS.map((id) => [id, plansOf(id)] as const));
+  const all = [...plansBy.values()].flat();
+  const page: Page = { children: [] };
+  const api = makeShim({
+    vars: [...new Set([...all.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]), 'space/0'])],
+    styles: [...new Set(all.flatMap((p) => planTextStyles(p.root)))],
+    effects: [...new Set(all.flatMap((p) => planEffectStyles(p.root)))],
+    comps: [...new Set([SWAP_TARGET, 'focus-ring', ...all.flatMap((p) => planComps(p.root))])],
+    page, liveRoot: true, identities: true, scaleConstrained: true,
+  }) as any;
+  for (const id of IDS) { const r = await applyComponentPlan(plansBy.get(id)!, api); if (r.misses.length) throw new Error(`premise: ${id} built with ${r.misses.length} miss(es): ${r.misses[0]}`); }
+  const sets = page.children.filter((n) => n.type === 'COMPONENT_SET') as Node[];
+  for (const set of sets) (set as { parent?: unknown }).parent = page;
+  const fresh = sets.map((n) => [Number(n.x), Number(n.y)]);
+  // The old spacing: each later set 160 right of the one before.
+  for (let k = 1; k < sets.length; k++) sets[k].x = Number(sets[k - 1].x) + Number(sets[k - 1].width) + 160;
+  const note = { type: 'FRAME', name: 'my notes', x: 0, y: 6000, width: 900, height: 200, children: [] } as unknown as Node;
+  // And the page's section header above the sets, as a built page has (#2405): never moved, never in the row.
+  const header = { type: 'INSTANCE', name: '_section-header', x: 0, y: -400, width: 3000, height: 152, children: [] } as unknown as Node;
+  page.children.push(note, header);
+  const noteAt = JSON.stringify([note.x, note.y]);
+  const headerAt = JSON.stringify([header.x, header.y]);
+  const host = { ...api, root: { ...api.root, findAllWithCriteria: (c: { types: string[] }) => (c.types.length === 1 && c.types[0] === 'COMPONENT_SET' ? page.children.filter((n) => n.type === 'COMPONENT_SET') : api.root.findAllWithCriteria(c)) } } as unknown as ApplyHost;
+  const targets = IDS.map((id) => ({ def: id, plans: plansBy.get(id)! }));
+  const ids = (): string => JSON.stringify(sets.map((st) => [st.id, ...membersOf(st).map((m) => m.id)]));
+  const idsWas = ids();
+  // THE DRY RUN: the two later sets move, and nothing else does.
+  const pre = await previewUpdate(host, targets);
+  const moving = pre.sets.filter((p) => p.setMove).map((p) => p.set);
+  const v = previewVerdict(pre);
+  ok(JSON.stringify(moving) === JSON.stringify(['button-destructive', 'button-neutral']) && pre.sets.every((p) => !p.blockers.length)
+    && v.headline === 'Would change 2 of 3' && v.lines.includes('2 sets to move, so the sets on each page sit as a new build spaces them.')
+    && previewLine(pre.sets[1]) === 'button-destructive: 576 members. The set moves to its place on the page.',
+    `page/set moves: on a page squeezed to the old spacing, the dry run moves the 2 later sets and nothing else (${JSON.stringify(moving)}; ${v.headline}; ${previewLine(pre.sets[1])})`);
+  // THE APPLY: each set lands where a fresh build put it, every id kept, the note untouched, and the next dry run up to date.
+  const res = await applyUpdate(host, api, targets, previewHashOf(pre));
+  const av = applyVerdict(res);
+  const at = sets.map((n) => [Number(n.x), Number(n.y)]);
+  const next = await previewUpdate(host, targets);
+  ok(JSON.stringify(at) === JSON.stringify(fresh) && ids() === idsWas && av.headline === '✓ 2 sets moved'
+    && av.lines.includes('button-destructive: the set moved to its place on the page.') && previewVerdict(next).headline === '✓ All sets up to date',
+    `page/converges: the apply puts each set where a fresh build did (${JSON.stringify(at)}, fresh ${JSON.stringify(fresh)}), keeps every set and member id, and the next dry run is up to date (${av.headline}; ${previewVerdict(next).headline})`);
+  ok(JSON.stringify([note.x, note.y]) === noteAt && JSON.stringify([header.x, header.y]) === headerAt,
+    `page/untouched: a frame Prism3 didn't build, and the page header, stay where they were (${noteAt} → ${JSON.stringify([note.x, note.y])}; header ${headerAt} → ${JSON.stringify([header.x, header.y])})`);
+  // IN ORDER, AS LITTLE AS IT TAKES: a note far right in the row pulls no set past it, and a set Prism3 didn't build stays
+  // put as an obstacle the later set goes around, never jumps over. Squeezed again, with the note moved into the row.
+  for (let k = 1; k < sets.length; k++) sets[k].x = Number(sets[k - 1].x) + Number(sets[k - 1].width) + 160;
+  note.x = 9000; note.y = 0;
+  const pre2 = await previewUpdate(host, targets);
+  ok(JSON.stringify(pre2.sets.map((p) => p.setMove?.to ?? null)) === JSON.stringify([null, { x: 1264, y: 0 }, { x: 2528, y: 0 }]),
+    `page/in order: a note far right in the row pulls no set past it; the sets take the fresh spacing (${JSON.stringify(pre2.sets.map((p) => p.setMove?.to ?? null))})`);
+  const neutral = sets[2];
+  const stampsWas = membersOf(neutral).map((m) => (m.getSharedPluginData as (a: string, b: string) => string)(NS, STAMP_KEY));
+  for (const m of membersOf(neutral)) (m.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, STAMP_KEY, '');
+  neutral.x = 1700;
+  const pre3 = await previewUpdate(host, targets.slice(0, 2));
+  // button at 0..864; the unbuilt set at 1700..2564; button-destructive would sit at 1264..2128, which overlaps it, so it
+  // goes past it: 2564 + 400 = 2964. The unbuilt set never moves.
+  await applyUpdate(host, api, targets.slice(0, 2), previewHashOf(pre3));
+  ok(pre3.sets[1]?.setMove?.to.x === 2964 && Number(sets[1].x) === 2964 && Number(neutral.x) === 1700,
+    `page/around: a set Prism3 didn't build stays put, and the set that would overlap it goes just past it, in the dry run and the apply (${JSON.stringify(pre3.sets[1]?.setMove ?? null)}; applied at ${sets[1].x}; the unbuilt set at ${neutral.x})`);
+  membersOf(neutral).forEach((m, k) => (m.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, STAMP_KEY, stampsWas[k]));
+  note.x = 0; note.y = 6000;
+  // SCOPED TO ONE DEF, the page does not take part: the update reads one of its three sets, so it moves none.
+  for (let k = 1; k < sets.length; k++) sets[k].x = Number(sets[k - 1].x) + Number(sets[k - 1].width) + 160;
+  const one = await previewUpdate(host, [targets[1]]);
+  const xsBefore = JSON.stringify(sets.map((st) => Number(st.x)));
+  await applyUpdate(host, api, [targets[1]], previewHashOf(one));
+  ok(!one.sets[0].setMove && JSON.stringify(sets.map((st) => Number(st.x))) === xsBefore,
+    `page/scoped: an update that reads one set of the page moves no set, in the dry run or the apply (${JSON.stringify(one.sets[0].setMove ?? null)}; ${xsBefore} → ${JSON.stringify(sets.map((st) => Number(st.x)))})`);
+  // A SET THE UPDATE CAN'T TOUCH holds its page still: two of button-destructive's members on one coordinate block it,
+  // so neither the dry run nor the apply moves any set on the page, though the third is squeezed too.
+  // Mutation: `pageSetMoves` dropping its blocked check (`here.some((f) => f.blocked) ||`) → `page/blocked`.
+  const twin = membersOf(sets[1]);
+  const nameWas = String(twin[1].name);
+  twin[1].name = String(twin[0].name);
+  const pre4 = await previewUpdate(host, targets);
+  const xs4 = JSON.stringify(sets.map((st) => Number(st.x)));
+  await applyUpdate(host, api, targets, previewHashOf(pre4));
+  ok(pre4.sets[1].blockers.length > 0 && pre4.sets.every((p) => !p.setMove) && JSON.stringify(sets.map((st) => Number(st.x))) === xs4,
+    `page/blocked: a page holding a set the update can't touch moves no set, in the dry run or the apply (${pre4.sets[1].blockers.length} blocker(s); moves ${JSON.stringify(pre4.sets.map((p) => p.setMove?.to ?? null))}; ${xs4} → ${JSON.stringify(sets.map((st) => Number(st.x)))})`);
+  twin[1].name = nameWas;
+  // THE RE-SPACING ONLY MAKES ROOM (owner decision Q248 A): a set moves only when it sits closer to its left neighbour
+  // than a fresh build's 400, and just far enough to clear it. Each laid out by hand here, button at 0..864.
+  const movesOf = async () => (await previewUpdate(host, targets)).sets.map((p) => p.setMove?.to ?? null);
+  // Spaced wider than a fresh build: 600 apart. Nothing moves. Mutation: the "only when too close" check removed → this.
+  sets[1].x = 864 + 600; sets[2].x = sets[1].x + 864 + 600;
+  const wider = await movesOf();
+  ok(JSON.stringify(wider) === JSON.stringify([null, null, null]),
+    `page/wider: sets a designer spaced wider than a fresh build (600 apart) stay exactly where they are (${JSON.stringify(wider)})`);
+  // A second row: button-neutral below the first row (its top under the first row's 3480), its x inside button's span.
+  // It has no Prism3 set to its left in its own row, so it stays; button-destructive, 160 from button, still moves.
+  // Mutation: the left neighbour taken from any row, not the set's own → this.
+  sets[1].x = 864 + 160; sets[2].x = 300; sets[2].y = 4000;
+  const rows = await movesOf();
+  ok(JSON.stringify(rows) === JSON.stringify([null, { x: 1264, y: 0 }, null]),
+    `page/second row: a set in a second row below the first stays where it is, never lifted into the first; the too-close set in the first row still moves (${JSON.stringify(rows)})`);
+  sets[2].y = 0;
+  // Too close by a little, 300 apart: it moves to exactly 400 clear (1264), no further, and the set beyond it, already
+  // 572 clear of where it lands, stays. Mutation: the move sent past a fixed step rather than to `SET_GAP` → this.
+  sets[1].x = 864 + 300; sets[2].x = 2700;
+  const enough = await movesOf();
+  ok(JSON.stringify(enough) === JSON.stringify([null, { x: 1264, y: 0 }, null]),
+    `page/just enough: a set 300 from its neighbour moves just far enough to sit 400 clear (1264), and the one beyond, already clear, stays (${JSON.stringify(enough)})`);
+  // NEVER ONTO A SET THAT STAYS (the UI lane's repro on #2548): button at 0, button-destructive at 960 (96 clear, too
+  // close), a frame of the designer's at 1800..1900, button-neutral at 1920 (1056 clear of button, so it stays). Pushed
+  // past the frame alone, button-destructive would land at 2300, over button-neutral (1920..2784); it goes past that set
+  // too, to 2784 + 400 = 3184. Read after the APPLY, from the page: no two nodes in the row overlap. Mutation: the
+  // obstacle push reading only the nodes Prism3 didn't build → this, and `page/respace onto a set` below.
+  const post = { type: 'FRAME', name: 'my post-it', x: 1800, y: 0, width: 100, height: 200, children: [] } as unknown as Node;
+  page.children.push(post);
+  sets[1].x = 960; sets[2].x = 1920;
+  const pre5 = await previewUpdate(host, targets);
+  await applyUpdate(host, api, targets, previewHashOf(pre5));
+  const row = page.children.filter((n) => n.type === 'COMPONENT_SET' || n === post) as Node[];
+  const box = (n: Node) => [Number(n.x), Number(n.y), Number(n.width), Number(n.height)];
+  const over = row.flatMap((a, i) => row.slice(i + 1).filter((b) => { const [ax, ay, aw, ah] = box(a), [bx, by, bw, bh] = box(b); return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by; }).map((b) => `${a.name} over ${b.name}`));
+  ok(over.length === 0 && Number(sets[1].x) === 3184 && Number(sets[2].x) === 1920 && Number(post.x) === 1800,
+    `page/never onto a set: a set pushed past a frame of the designer's goes past the Prism3 set that stays there too (3184), and after the apply no two nodes in the row overlap (${over.join(', ') || 'none overlap'}; at ${JSON.stringify(sets.map((st) => Number(st.x)))}; the frame at ${post.x})`);
+  page.children.splice(page.children.indexOf(post), 1);
+  // A SET WHOSE ONLY STAMPS ARE NOT PRISM3'S is a designer's set, by the members' shared test (`builtByPrism3`, #2510),
+  // so it stays put as an obstacle and does not hold the page still as a set the update didn't read. button-neutral at
+  // 1700, read by neither update: first every stamp malformed, then a single valid stamp copied with its record from
+  // another member (a Duplicate), the rest blank. Either way button-destructive goes around it, to 2964. Mutation: the
+  // set-level check reading "any member has a stamp" again → this.
+  const nm = membersOf(neutral);
+  const pdOfM = (m: Node, k: string): string => (m.getSharedPluginData as (a: string, b: string) => string)(NS, k);
+  const putM = (m: Node, k: string, v: string): void => (m.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, k, v);
+  const was6 = nm.map((m) => [pdOfM(m, STAMP_KEY), pdOfM(m, BASELINE_KEY)]);
+  const around = async (): Promise<number | null> => { sets[1].x = 864 + 160; neutral.x = 1700; return (await previewUpdate(host, targets.slice(0, 2))).sets[1]?.setMove?.to.x ?? null; };
+  for (const m of nm) putM(m, STAMP_KEY, 'not a stamp');
+  const malformed = await around();
+  nm.forEach((m, k) => putM(m, STAMP_KEY, k === 1 ? was6[0][0] : ''));
+  putM(nm[1], BASELINE_KEY, was6[0][1]);
+  const copied = await around();
+  nm.forEach((m, k) => { putM(m, STAMP_KEY, was6[k][0]); putM(m, BASELINE_KEY, was6[k][1]); });
+  ok(malformed === 2964 && copied === 2964,
+    `page/not ours by its stamps: a set whose stamps are all malformed, or whose one stamp is a copy, is a designer's set the moving set goes around (malformed → ${malformed}, copied → ${copied}; want 2964 each)`);
+}
+
+/* ── set moves and page order together (#2542 × #2568) ─────────────────────────────────────────────────── */
+// One run whose only work is BOTH: sets squeezed to the old spacing on their page (#2542), and component pages out of
+// alphabetical order (#2568). One named version for all of it, both done, the hash covering both, the verdict naming
+// both. The expected title, headline and orders are literals. Mutations: the set's move dropped from `previewHashOf` →
+// `both/hash, set`; the page list dropped from it → `both/hash, page`.
+section('both — set moves and page reorders in one run: one version, both done, both in the hash and the verdict');
+{
+  const IDS = ['button', 'button-destructive', 'button-neutral'];
+  const plansBy = new Map(IDS.map((id) => [id, plansOf(id)] as const));
+  const all = [...plansBy.values()].flat();
+  const page: Page = { children: [] };
+  const api = makeShim({
+    vars: [...new Set([...all.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]), 'space/0'])],
+    styles: [...new Set(all.flatMap((p) => planTextStyles(p.root)))],
+    effects: [...new Set(all.flatMap((p) => planEffectStyles(p.root)))],
+    comps: [...new Set([SWAP_TARGET, 'focus-ring', ...all.flatMap((p) => planComps(p.root))])],
+    page, liveRoot: true, identities: true, scaleConstrained: true,
+  }) as any;
+  for (const id of IDS) { const r = await applyComponentPlan(plansBy.get(id)!, api); if (r.misses.length) throw new Error(`premise: ${id} built with ${r.misses.length} miss(es): ${r.misses[0]}`); }
+  const sets = page.children.filter((n) => n.type === 'COMPONENT_SET') as Node[];
+  for (const set of sets) (set as { parent?: unknown }).parent = page;
+  const fresh = sets.map((n) => [Number(n.x), Number(n.y)]);
+  const squeeze = (): void => { for (let k = 1; k < sets.length; k++) sets[k].x = Number(sets[k - 1].x) + Number(sets[k - 1].width) + 160; };
+  squeeze();
+  type P = { name: string; isPageDivider?: boolean; appendChild(): void };
+  const pg = (name: string, isPageDivider = false): P => ({ name, isPageDivider, appendChild() {} });
+  const pages: P[] = [pg('Cover'), pg('---', true), pg('Components'), pg('↳ Tabs'), pg('↳ Badge'), pg('↳ Divider')];
+  const host = { ...api, root: { ...api.root,
+    findAllWithCriteria: (c: { types: string[] }) => (c.types.length === 1 && c.types[0] === 'COMPONENT_SET' ? page.children.filter((n) => n.type === 'COMPONENT_SET') : api.root.findAllWithCriteria(c)),
+    get children() { return pages; }, insertChild(i: number, p: P) { pages.splice(pages.indexOf(p), 1); pages.splice(i, 0, p); } } } as unknown as ApplyHost;
+  const names = () => pages.map((p) => p.name);
+  const targets = IDS.map((id) => ({ def: id, plans: plansBy.get(id)! }));
+  const pre = await previewUpdate(host, targets);
+  const v = previewVerdict(pre);
+  ok(JSON.stringify(pre.sets.filter((p) => p.setMove).map((p) => p.set)) === JSON.stringify(['button-destructive', 'button-neutral'])
+    && JSON.stringify(pre.pages) === JSON.stringify(['↳ Tabs'])
+    && v.lines.includes('2 sets to move, so the sets on each page sit as a new build spaces them.') && v.lines.includes('Component pages: 1 to reorder (Tabs).'),
+    `both/dry run: the 2 later sets move and Tabs is listed to reorder (${JSON.stringify(pre.pages)}; ${v.lines.join(' | ')})`);
+  const res = await applyUpdate(host, api, targets, previewHashOf(pre));
+  const av = applyVerdict(res);
+  ok(JSON.stringify(api._versions) === JSON.stringify(['Before Prism3 updated button-destructive, button-neutral, the page order']),
+    `both/version: one named version, naming the moving sets and the page order (${JSON.stringify(api._versions)})`);
+  ok(JSON.stringify(sets.map((n) => [Number(n.x), Number(n.y)])) === JSON.stringify(fresh)
+    && JSON.stringify(names()) === JSON.stringify(['Cover', '---', 'Components', '↳ Badge', '↳ Divider', '↳ Tabs']),
+    `both/done: each set where a fresh build put it, and the pages in order (${JSON.stringify(sets.map((n) => Number(n.x)))}; ${JSON.stringify(names())})`);
+  ok(av.ok && av.headline === '✓ 2 sets moved, reordered 1 page'
+    && av.lines.includes('button-destructive: the set moved to its place on the page.') && av.lines.includes('Component pages: 1 reordered (Tabs).'),
+    `both/verdict: the headline and the lines name the set moves and the reorder (${av.headline}; ${av.lines.join(' | ')})`);
+  // THE HASH covers both. A set moved after the check refuses the confirm; so does a page moved after it.
+  squeeze();
+  const pre2 = await previewUpdate(host, targets);
+  sets[2].x = Number(sets[2].x) + 50;
+  const v2 = api._versions.length;
+  const res2 = await applyUpdate(host, api, targets, previewHashOf(pre2));
+  ok(!!res2.refusedAll && api._versions.length === v2, `both/hash, set: a set moved since the check refuses the confirm (${res2.refusedAll ?? 'applied'})`);
+  pages.splice(pages.indexOf(pages.find((p) => p.name === '↳ Tabs')!), 1); pages.splice(3, 0, pg('↳ Tabs'));
+  const pre3 = await previewUpdate(host, targets);
+  const divider = pages.find((p) => p.name === '↳ Divider')!; pages.splice(pages.indexOf(divider), 1); pages.splice(4, 0, divider);
+  const v3 = api._versions.length;
+  const res3 = await applyUpdate(host, api, targets, previewHashOf(pre3));
+  ok(!!res3.refusedAll && api._versions.length === v3, `both/hash, page: a page moved since the check refuses the confirm (${res3.refusedAll ?? 'applied'})`);
+}
+
+/* ── re-spacing, as a function (#2542) ─────────────────────────────────────────────────────────────────── */
+section('respaceSets — a moving set never lands on another Prism3 set (#2548 review)');
+{
+  // The UI lane's repro, exactly: A at 0, B at 960 (too close), a frame Prism3 didn't build at 1800..1900, C at 1920,
+  // all 800 wide. B needs 1200; the frame pushes it to 2300, which is over C (1920..2720), so it goes on to 3120.
+  const nodes = [
+    { id: 'A', type: 'COMPONENT_SET', prism3: true, x: 0, y: 0, width: 800, height: 800 },
+    { id: 'B', type: 'COMPONENT_SET', prism3: true, x: 960, y: 0, width: 800, height: 800 },
+    { id: 'frame', type: 'FRAME', x: 1800, y: 0, width: 100, height: 800 },
+    { id: 'C', type: 'COMPONENT_SET', prism3: true, x: 1920, y: 0, width: 800, height: 800 },
+  ];
+  const moves = respaceSets(nodes);
+  const at = new Map(nodes.map((n) => [n.id, n.x]));
+  for (const m of moves) at.set(m.id, m.to.x);
+  const over = nodes.flatMap((a, i) => nodes.slice(i + 1).filter((b) => at.get(a.id)! < at.get(b.id)! + b.width && at.get(a.id)! + a.width > at.get(b.id)!).map((b) => `${a.id} over ${b.id}`));
+  ok(over.length === 0 && JSON.stringify(moves.map((m) => [m.id, m.to.x])) === JSON.stringify([['B', 3120]]),
+    `page/respace onto a set: B, pushed past the frame, goes past C as well (3120) and lands on nothing (${JSON.stringify(moves.map((m) => [m.id, m.to.x]))}; ${over.join(', ') || 'none overlap'})`);
+}
+{
+  // NEVER ONTO A SET ALREADY MOVED (the re-review's repro on #2548): A at 0 (800 wide), B at 900 (800), C at 1000 (900),
+  // a frame Prism3 didn't build at 1500..1600, all in one row. B needs 1200; the frame pushes it to 2000. C, whose left
+  // neighbour is still A, needs 1200 too; the frame pushes it to 2000, which is where B now sits (2000..2800), so it goes
+  // on to 3200. Mutation: the obstacle push leaving out the sets already placed (`...placed`) → this.
+  const nodes = [
+    { id: 'A', type: 'COMPONENT_SET', prism3: true, x: 0, y: 0, width: 800, height: 800 },
+    { id: 'B', type: 'COMPONENT_SET', prism3: true, x: 900, y: 0, width: 800, height: 800 },
+    { id: 'C', type: 'COMPONENT_SET', prism3: true, x: 1000, y: 0, width: 900, height: 800 },
+    { id: 'frame', type: 'FRAME', x: 1500, y: 0, width: 100, height: 800 },
+  ];
+  const moves = respaceSets(nodes);
+  const at = new Map(nodes.map((n) => [n.id, n.x]));
+  for (const m of moves) at.set(m.id, m.to.x);
+  const over = nodes.flatMap((a, i) => nodes.slice(i + 1).filter((b) => at.get(a.id)! < at.get(b.id)! + b.width && at.get(a.id)! + a.width > at.get(b.id)!).map((b) => `${a.id} over ${b.id}`));
+  ok(over.length === 0 && JSON.stringify(moves.map((m) => [m.id, m.to.x])) === JSON.stringify([['B', 2000], ['C', 3200]]),
+    `page/respace onto a moved set: C, pushed past the frame, goes past B where B was just moved (3200) and lands on nothing (${JSON.stringify(moves.map((m) => [m.id, m.to.x]))}; ${over.join(', ') || 'none overlap'})`);
 }
 
 /* ── no change ───────────────────────────────────────────────────────────────────────────────────────── */

@@ -43,6 +43,8 @@ import type { FileComponentsApi, FNode } from './file-components';
 
 export const LABEL_SET = '_Label';
 export const BACKDROP_COMPONENT = '_inverse-backdrop';
+/** The `_Label` set's boolean that shows or hides the bracket. A row thinner than its label turns it off (#2568). */
+export const BRACKET_PROPERTY = 'Show bracket';
 /** The four placements, in the order the set lists them. Top first: it is the default. */
 export const LABEL_PLACEMENTS = ['Top', 'Left', 'Right', 'Bottom'] as const;
 export type LabelPlacement = (typeof LABEL_PLACEMENTS)[number];
@@ -151,7 +153,7 @@ const buildLabel = (api: FileComponentsApi, page: TemplatesPage, loaded: Set<str
   }
   const set = api.combineAsVariants(members.map((m) => m.root), page);
   set.name = LABEL_SET;
-  const propId = set.addComponentProperty?.('Show bracket', 'BOOLEAN', true);
+  const propId = set.addComponentProperty?.(BRACKET_PROPERTY, 'BOOLEAN', true);
   if (propId) for (const m of members) m.bracket.componentPropertyReferences = { visible: propId };
   stackVariants(set, members.map((m) => m.root));
   return set;

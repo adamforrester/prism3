@@ -325,6 +325,7 @@ section('e2e — MCP → bridge → relay → main.ts → ACTIONS → back');
   };
   const g = globalThis as Record<string, unknown>;
   g.figma = host; g.__html__ = ''; g.PRISM3_BUILD = '2026-09-25T00:00:00Z tree-test0000';
+  g.PRISM3_DEV = true;   // the dev build's define (#2530): the bridge is a dev build's transport
   const main = await import('./src/main');
   const toMain = (m: unknown) => (host.ui as { onmessage: (m: unknown) => void }).onmessage(m);
   relay = createBridgeRelay({
@@ -368,6 +369,18 @@ section('e2e — MCP → bridge → relay → main.ts → ACTIONS → back');
     'e2e/routes: build-components reached ACTIONS.buildComponents and returned its verdict');
   const unk = await call('figma_run', { cmd: 'paint-it-blue', timeoutMs: 8000 });
   ok((unk.value as AgentResult).error?.code === 'unknown-command', 'e2e: an unknown command comes back as a failed result, not silence');
+
+  // #2530: the dev build's run-code, through the real server (unchanged: its figma_run takes any cmd) and the real relay
+  // into the real main.ts. EXPECTED is written here: the value, the log line and the bridge envelope.
+  const rc = await call('figma_run', { cmd: 'run-code', args: { code: 'console.log("from the plugin");\nreturn { file: figma.root.name, n: 21 * 2 };' }, timeoutMs: 8000 });
+  const rcr = rc.value as AgentResult;
+  ok(!rc.isError && rcr.ok === true && rcr.transport === 'bridge' && rcr.cmd === 'run-code'
+    && JSON.stringify(rcr.result?.data.value) === JSON.stringify({ file: (host.root as { name: string }).name, n: 42 })
+    && JSON.stringify(rcr.result?.logs) === JSON.stringify(['from the plugin']),
+    `e2e/run-code: figma_run run-code runs in main.ts and returns its value and log line in a bridge envelope (${JSON.stringify(rcr.result ?? rcr.error)})`);
+  const rce = await call('figma_run', { cmd: 'run-code', args: { code: 'return missingName;' }, timeoutMs: 8000 });
+  ok((rce.value as AgentResult).ok === false && (rce.value as AgentResult).error?.code === 'handler-threw' && /missingName/.test((rce.value as AgentResult).error?.message ?? ''),
+    `e2e/run-code: a throw comes back over the bridge as handler-threw with its message (${JSON.stringify((rce.value as AgentResult).error)})`);
 
   toMain({ type: 'agent-link', on: false });
   ok(await until(() => relay!.connected() === false), 'e2e/switch-off: switching the link off closes the socket');

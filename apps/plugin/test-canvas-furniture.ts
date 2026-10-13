@@ -97,8 +97,12 @@ const labelInstance = (placement: 'Top' | 'Left', textNames: readonly string[] =
   const text: FNode = texts[0] ?? ({ characters: 'Label' } as FNode);
   let w: number | null = null;
   let h: number | null = null;
+  // The `Show bracket` boolean as Figma keys it on an instance, with its `#id` suffix (#2568).
+  const props: Record<string, { type: string; value: boolean }> = { 'Show bracket#1:0': { type: 'BOOLEAN', value: true } };
   const n: FNode = {
     id: `I:${++seq}`, type: 'INSTANCE', name: '_Label', x: 0, y: 0,
+    get componentProperties() { return props; },
+    setProperties(p: Record<string, boolean>) { for (const [k, v] of Object.entries(p)) { if (!props[k]) throw new Error(`no property ${k}`); props[k].value = v; } },
     get width() { return w ?? (placement === 'Top' ? 7 * String(text.characters).length : 7 * String(text.characters).length + 22); },
     get height() { return h ?? (placement === 'Top' ? 37 : 16); },
     // The text layers, then the bracket: a frame with no text in it.
@@ -539,9 +543,41 @@ for (const [id, wantCols, wantRows] of [
   ok(placed, `pilot/${id} column boxes: every column label spans its column's members and ends 16 above the set`);
   // Each innermost row label spans its row's members exactly.
   const inner = rows.filter((n) => Number(n.x) + Number(n.width) === Number(set.x) - 16);
-  const spans = inner.every((n) => members.some((m) => boxOf(set, m).y === n.y) && members.some((m) => boxOf(set, m).y + boxOf(set, m).h === Number(n.y) + Number(n.height)));
-  ok(inner.length === (id === 'tag' ? 9 : 12) && spans, `labels/rows ${id}: each innermost bracket starts on a member's top and ends on a member's bottom (${inner.length})`);
+  // The shim sizes members from their bindings, not their values, so most rows here are thinner than the label's 16px
+  // and take the thin-row rule (#2568): the label keeps its height, centered on one row's members.
+  const spans = inner.every((n) => (members.some((m) => boxOf(set, m).y === n.y) && members.some((m) => boxOf(set, m).y + boxOf(set, m).h === Number(n.y) + Number(n.height)))
+    || members.some((m) => boxOf(set, m).h < 16 && boxOf(set, m).y + boxOf(set, m).h / 2 === Number(n.y) + Number(n.height) / 2));
+  ok(inner.length === (id === 'tag' ? 9 : 12) && spans, `labels/rows ${id}: each innermost bracket starts on a member's top and ends on a member's bottom, or is centered on a row thinner than itself (${inner.length})`);
   ok(o.backdrops === 0 && !o.skipped.length, `pilot/${id}: no inverse rows, so no backdrop, and nothing skipped (${o.backdrops})`);
+}
+
+/* ── a row thinner than its label (#2568, owner decision Q258 A) ─────────────────────────────────────────── */
+section('thin row — Divider: a 1px row draws its label centered, with no bracket');
+{
+  const { plans, page, set } = await buildOnPage('divider');
+  // The shim sizes a member from its bindings, not their values, so the live sizes are written here: the horizontal
+  // rule is `border-width.hairline` (1px) tall, the vertical one its nominal length. Literals, as measured live.
+  const members = set.children as FNode[];
+  for (const m of members) {
+    const h = valuesOf(String(m.name)).orientation === 'horizontal' ? 1 : 48;
+    Object.defineProperty(m, 'height', { configurable: true, enumerable: true, get: () => h });
+  }
+  await drawFurniture(fakeTemplates(), set, furnitureLayout(plans), 'divider');
+  const rows = furnitureOn(page).filter((n) => Number(n.x) < Number(set.x));
+  const bracketOn = (n: FNode): boolean => (n.componentProperties as Record<string, { value: boolean }>)['Show bracket#1:0'].value;
+  // The oracle is the members' boxes, never the plan: a row is thin where its members are shorter than the label's
+  // own 16px (the shim's hug height, `labelInstance`).
+  const rowOf = (n: FNode) => members.filter((m) => boxOf(set, m).y < Number(n.y) + Number(n.height) && boxOf(set, m).y + boxOf(set, m).h > Number(n.y));
+  const thin = rows.filter((n) => rowOf(n).every((m) => Number(m.height) < 16));
+  const tall = rows.filter((n) => !thin.includes(n));
+  ok(thin.length === 1 && textOf(thin[0]) === 'Horizontal' && thin.every((n) => !bracketOn(n)),
+    `thin row/no bracket: every label on a row thinner than itself has its bracket off (${thin.length} thin: ${thin.map((n) => `${textOf(n)} ${bracketOn(n) ? 'on' : 'off'}`).join(', ')})`);
+  ok(thin.every((n) => Number(n.height) === 16),
+    `thin row/not clipped: each keeps its own 16px height, never the row's (${thin.map((n) => n.height).join(', ')})`);
+  const centered = thin.every((n) => { const ms = rowOf(n); const top = Math.min(...ms.map((m) => boxOf(set, m).y)); const bottom = Math.max(...ms.map((m) => boxOf(set, m).y + boxOf(set, m).h)); return Number(n.y) + Number(n.height) / 2 === (top + bottom) / 2; });
+  ok(centered, `thin row/centered: each label's middle sits on its row's middle (${thin.map((n) => `${n.y}+${n.height}`).join(', ')})`);
+  ok(tall.length > 0 && tall.every((n) => bracketOn(n) && rowOf(n).some((m) => boxOf(set, m).y === Number(n.y))),
+    `thin row/others unchanged: a row as tall as its label keeps its bracket and spans its row (${tall.length}: ${tall.map(textOf).join(', ')})`);
 }
 
 /* ── rollout: furniture on every def that builds a set (#2502, owner decision Q212 A) ──────────────────────── */
@@ -551,8 +587,8 @@ section('rollout — every def that builds a set: drawn, converged, and clear of
   // properties builds a set, except the two that build single components (`emitAsComponents`), which have no grid.
   const withSet = componentDefs.filter((d) => d.figmaProperties && !d.figmaProperties.emitAsComponents).map((d) => d.id);
   const single = componentDefs.filter((d) => d.figmaProperties?.emitAsComponents).map((d) => d.id);
-  ok(withSet.length === 27 && withSet.every(hasFurniture) && JSON.stringify(single) === JSON.stringify(['icon', 'spinner']) && !single.some(hasFurniture),
-    `rollout/switch: all 27 defs that build a set have furniture; Icon and Spinner, single components, do not (off: ${JSON.stringify(withSet.filter((id) => !hasFurniture(id)))})`);
+  ok(withSet.length === 29 && withSet.every(hasFurniture) && JSON.stringify(single) === JSON.stringify(['icon', 'spinner']) && !single.some(hasFurniture),
+    `rollout/switch: all 29 defs that build a set have furniture; Icon and Spinner, single components, do not (off: ${JSON.stringify(withSet.filter((id) => !hasFurniture(id)))})`);
 
   // THE MEMBERS AN EARLIER LAYOUT HOLDS OFF THEIR GROUPED ROW, per def, worked out by hand. Only a def with a `surface`
   // ROW axis regroups. Button and its two siblings: 360, as `MOVES` above. The three icon buttons: 36 rows of 6
@@ -618,9 +654,10 @@ section('rollout — every def that builds a set: drawn, converged, and clear of
     Radio: ['radio-control', 'radio-row', 'radio-group'],
     Switch: ['switch-control', 'switch-row'],
     Tabs: ['tab', 'tabs'],
+    Accordion: ['_accordion-indicator', 'accordion'],
   };
   const fromTaxonomy = Object.fromEntries(allLeaves().filter(({ leaf }) => leaf.defs.length > 1).map(({ leaf }) => [leaf.page, [...leaf.defs]]));
-  ok(JSON.stringify(fromTaxonomy) === JSON.stringify(SHARED), `clearance/pages: the six pages that hold more than one set (${JSON.stringify(Object.keys(fromTaxonomy))})`);
+  ok(JSON.stringify(fromTaxonomy) === JSON.stringify(SHARED), `clearance/pages: the seven pages that hold more than one set (${JSON.stringify(Object.keys(fromTaxonomy))})`);
   const box = (n: FNode) => ({ x: Number(n.x), y: Number(n.y), w: Number(n.width), h: Number(n.height) });
   const meets = (a: ReturnType<typeof box>, b: ReturnType<typeof box>) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
   for (const [name, ids] of Object.entries(SHARED)) {
