@@ -475,6 +475,7 @@ import { dirname, extname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import { hookGuard } from './test-hooks.mjs';
+import { INPUT_MS, makeBounded } from './test-bounded.mjs';
 import { P, loadModes, resolve as resolveToken } from './chrome/tokens.mjs';
 import { assertBundleFresh, PLUGIN_UI_SOURCE_ROOTS, STUDIO_SOURCE_ROOTS } from './test-bundle-freshness.mjs';
 
@@ -492,6 +493,11 @@ const ok = (cond, label) => {
   failed++;
   console.error(`  ✗ ${label}`);
 };
+// Bounded inputs (#2550, shared with test-smoke.mjs in test-bounded.mjs): a stall fails one check by name and says what
+// the page was doing. A page that renders no frame, or a busy one whose input is still in flight (#2557 review), ends
+// its case with that named failure: `onDead` reports it and throws an error marked `reported`, so the case's own catch
+// does not count it twice, and the case's `finally` closes its context, which retires the page and cancels the input.
+const { bounded } = makeBounded({ ok, onDead: async (_page, label, why) => { const message = why ? `${label}: ${why}` : label; ok(false, message); const e = new Error(message); e.reported = true; throw e; } });
 
 // ── the literal floors ───────────────────────────────────────────────────────────────────────────
 const TEXT_MIN = 4.5;
@@ -5946,13 +5952,18 @@ for (const host of ['web', 'figma']) {
     await close();
     ok(JSON.stringify(await persisted(page)) === JSON.stringify(pZero), 'Q62: Return to Auto on the Dark size prunes modeLevers');
     // Dark: a line height swap (Light has none).
-    await page.locator('[data-p3="lh-swap"][data-name="normal"]').selectOption('relaxed');
-    await page.waitForFunction(() => document.querySelector('[data-p3="lh-swap"][data-name="normal"]')?.value === 'relaxed');
-    const p3 = await persisted(page);
-    ok(p3?.modeLevers?.dark?.lineHeights?.normal === 'relaxed' && JSON.stringify(p3?.typography) === JSON.stringify(pZero?.typography),
-      `previewing Dark, a line height swap writes modeLevers.dark.lineHeights.normal and nothing brand-wide — wrote ${JSON.stringify(p3?.modeLevers)}`);
-    await page.locator('[data-p3="lh-swap"][data-name="normal"]').selectOption('');
-    await page.waitForFunction(() => document.querySelector('[data-p3="lh-swap"][data-name="normal"]')?.value === '');
+    // Bounded (#2550): this `selectOption` timed out once in a cloud run, as a bare 30s throw. Now a stall fails this
+    // step by name and says what the page was doing; the rest of the swap is skipped, not timed out again.
+    const LH = '[data-p3="lh-swap"][data-name="normal"]';
+    if (await bounded(page, 'S6.3 Type edits: previewing Dark, the normal line height swaps to relaxed', () => page.locator(LH).selectOption('relaxed', { timeout: INPUT_MS }))) {
+      await page.waitForFunction(() => document.querySelector('[data-p3="lh-swap"][data-name="normal"]')?.value === 'relaxed');
+      const p3 = await persisted(page);
+      ok(p3?.modeLevers?.dark?.lineHeights?.normal === 'relaxed' && JSON.stringify(p3?.typography) === JSON.stringify(pZero?.typography),
+        `previewing Dark, a line height swap writes modeLevers.dark.lineHeights.normal and nothing brand-wide — wrote ${JSON.stringify(p3?.modeLevers)}`);
+      if (await bounded(page, 'S6.3 Type edits: previewing Dark, the normal line height swaps back', () => page.locator(LH).selectOption('', { timeout: INPUT_MS }))) {
+        await page.waitForFunction(() => document.querySelector('[data-p3="lh-swap"][data-name="normal"]')?.value === '');
+      }
+    }
     // Dark: the same nudge writes the same bytes as from Light (Q54).
     await page.locator('[data-p3="nudge-lh"][data-group="body"]').selectOption('1');
     await page.waitForFunction(() => document.querySelector('[data-p3="nudge-lh"][data-group="body"]')?.value === '1');
@@ -6122,7 +6133,8 @@ for (const host of ['web', 'figma']) {
     ok(JSON.stringify(pEnd) === JSON.stringify(pZero), `type: every edit after the nudge undone, the persisted brand is the one it was${JSON.stringify(pEnd) === JSON.stringify(pZero) ? '' : ` — typography ${JSON.stringify(pEnd?.typography)}, modeLevers ${JSON.stringify(pEnd?.modeLevers)}; was ${JSON.stringify(pZero?.typography)}`}`);
     ok(errors.length === 0, `type S6.3 edits: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `S6.3 Type edits: the case stopped at a step that threw — ${stopped(e)}`);
+    // A bounded stall already reported itself by name (`onDead`, #2550); anything else stopped the case here.
+    if (!e?.reported) ok(false, `S6.3 Type edits: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // #2194 (owner, N3 A, 2026-10-06): the clash message and Release pinned sizes show only when a pinned size is what
