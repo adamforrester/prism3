@@ -52,7 +52,7 @@ import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, gradientTransform
 import { verifyReadback, verifyFloatReadback, verifyTypographyReadback, ReadbackSnapshot } from './read-back';
 import { tailOf } from './figma-names';
 import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION, UnrecognizedPersistedInputError } from './persist-input';
-import { validateComponentDef, VARIANT_AXES, axisKindOf, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, isExcludedCoordinate, fillPaintKey, replacesCandidates, statesOf, PAINT_SLOTS, ComponentDef, AnatomyDef } from './component-schema';
+import { validateComponentDef, VARIANT_AXES, axisKindOf, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, variantAxisFigmaName, isExcludedCoordinate, fillPaintKey, replacesCandidates, statesOf, PAINT_SLOTS, ComponentDef, AnatomyDef } from './component-schema';
 import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, settleChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, figmaTextStyleName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, applySpacingDensity, applyMinWidthRatio, DEFAULT_BUTTON_LAYOUT, isButtonFamily, resolveWeightIntent, DEFAULT_WEIGHT_AVAILABILITY, isPillable, PILL_RADIUS_DERIVATION, PILL_RADIUS_RUNG, BOXED_RADIUS_RUNG, HAIRLINE_RADIUS_RUNG, CONTROL_SHAPE_RUNG, ROUNDED_RADIUS_RUNG, variantSetErrors, variantNameErrors, glyphLayerOpacities, type AnatomyPlan, type SwapFound } from './anatomy-figma';
 import type { ControlShape } from './scale';
 import { COMPONENT_RENAMES, coordKey, renameCoordinate, isDeclaredDrop, unaccounted as renamesUnaccounted, danglingTargets as renamesDangling, type ComponentRename, type AxesBaseline } from './component-renames';
@@ -22592,6 +22592,22 @@ arm: {
       ok(variantNameErrors(button, cleanNames).length === 0,
         'variant-product self-check: the clean 576-member set reports nothing');
     }
+    // SELF-CHECK, the missing domain (#2534 review M6): a declared axis key with no domain entry, the shape a domain
+    // keyed by code name while the declared names read display names produces. It was a TypeError that took the whole
+    // loop down; it must be a named error. Driven without mutating the function: the fixture's display name answers
+    // differently on its first read than on later ones, so the domain and the declared names disagree whichever the
+    // function builds first, and one member is keyed by each name so the declared-but-domainless key is always hit.
+    {
+      const acc = componentDefs.find((d) => d.id === 'accordion')!;
+      let reads = 0;
+      const names = { get iconPosition() { return reads++ === 0 ? 'icon position' : 'icon side'; } };
+      const split = { ...acc, figmaProperties: { ...acc.figmaProperties!, variantAxisNames: names } } as ComponentDef;
+      let errs: string[] | undefined;
+      let threw = '';
+      try { errs = variantNameErrors(split, ['icon position=leading', 'icon side=leading']); } catch (e) { threw = String(e); }
+      ok(!threw && (errs ?? []).some((e) => /axis 'icon (position|side)' in member .* is declared but has no declared value domain/.test(e)),
+        `variant-product self-check: a declared axis with no domain is reported by name, not thrown${threw ? ` (THREW ${threw})` : ` (${(errs ?? []).length} error(s))`}`);
+    }
 
     // THE VEIL BEFORE #1318 — value × intensity, solid washes only. Built by removing exactly what #1318 added
     // (the `direction` axis and prop, the part's `gradient`, the two clear-end bindings), and used twice: as the
@@ -25417,7 +25433,7 @@ arm: {
         const has = (n: { name: string; children: unknown[] }): boolean => n.name === name || (n.children as (typeof n)[]).some(has);
         const wrongAt = set.filter((m) => {
           const c = Object.fromEntries(planComponentName(m).split(', ').map((kv) => kv.split('=') as [string, string]));
-          return axes.every(([a, vs]) => (vs as readonly string[]).includes(c[a])) !== has(m.root as unknown as { name: string; children: unknown[] });
+          return axes.every(([a, vs]) => (vs as readonly string[]).includes(c[variantAxisFigmaName(def.figmaProperties, a)])) !== has(m.root as unknown as { name: string; children: unknown[] });
         }).map((m) => planComponentName(m));
         const anywhere = set.some((m) => has(m.root as unknown as { name: string; children: unknown[] }));
         ok(wrongAt.length === 0 && anywhere,
@@ -29830,7 +29846,7 @@ arm: {
   // NOT YET NESTABLE: a nest names its coordinate by code name, and the projection cannot see the nested def to map it.
   // So no def may nest a def that renames an axis in Figma until that lands; this fails by name the day one does.
   const renamedDefs = new Set(componentDefs.filter((d) => Object.keys(d.figmaProperties?.variantAxisNames ?? {}).length).map((d) => d.id));
-  const nestsRenamed = componentDefs.flatMap((d) => Object.entries(d.anatomy?.parts ?? {}).filter(([, p]) => p.nests && renamedDefs.has(p.nests) && p.nesting && p.nesting.kind !== 'nest-plain' as never).map(([n, p]) => `${d.id}.${n} → ${p.nests}`));
+  const nestsRenamed = componentDefs.flatMap((d) => Object.entries(d.anatomy?.parts ?? {}).filter(([, p]) => p.nests && renamedDefs.has(p.nests) && p.nesting).map(([n, p]) => `${d.id}.${n} → ${p.nests}`));
   ok(renamedDefs.has('accordion') && nestsRenamed.length === 0,
     `#2571 nesting: no def nests a def whose variant axes carry Figma display names (not supported yet)${nestsRenamed.length ? ` — NESTS: ${nestsRenamed.join(', ')}` : ''}`);
   // THE GLYPH SIZES (owner QA, 2026-10-12, superseding Q241.3): one rung below the control's, 16/20/24 at small,

@@ -2971,6 +2971,7 @@ export const variantNameErrors = (def: ComponentDef, memberNames: string[]): str
       const [k, v] = kv.split('=');
       coord[k] = v;
       if (!declared.has(k)) errs.push(`${def.id}: member '${name}' carries undeclared axis '${k}'`);
+      else if (!domain[k]) errs.push(`${def.id}: axis '${k}' in member '${name}' is declared but has no declared value domain — the domain and the declared names are keyed differently`);
       else if (!domain[k].has(v)) errs.push(`${def.id}: axis '${k}=${v}' in member '${name}' is outside its declared values {${[...domain[k]].join(', ')}}`);
     }
     // EXCLUDED — a member at a coordinate `excludeCoordinates` removes (2026-09-28). Matched here from the

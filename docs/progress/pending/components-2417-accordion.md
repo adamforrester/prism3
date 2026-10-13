@@ -9,8 +9,9 @@ Built to the owner's decisions on #2417: Q180 as revised by Q182, then Q183, the
   - The panel, present only when expanded, is a NATIVE SLOT holding placeholder text in page ink, with no top inset and a bottom one.
   - A nested Divider is stretched under the section.
   - The header row is top-aligned, and the glyph centers on the title's first line (Q262 A).
+  - Q266 A accepts that construction as built: the indicator box is the row's height with its glyph at the top, and the title is padded down `space.025`. Label line-box tokens with the offset derived from the type follow in #2586, before any label line-height lever.
   - The shared focus ring is drawn inside the header's edge (Q257 A).
-- **`_accordion-indicator`, 12 members:** `indicator` [chevron, plus-minus] × `expansion` × `size`. It's the building block Q183 chose. Each member shows one glyph. The Accordion nests it at each `position`, with `indicator` exposed and `expansion` and `size` followed.
+- **`_accordion-indicator`, 12 members:** `indicator` [chevron, plus-minus] × `expansion` × `size`. It's the building block Q183 chose. Each member shows one glyph. The Accordion nests it on the leading or the trailing side, with `indicator` exposed and `expansion` and `size` followed.
 - **Engine:**
   - two new variant axes, `expansion` and `iconPosition` (values `leading | trailing`, Q242; the name from the owner's QA);
   - a def id may lead with `_` for a building block, which Figma leaves out of a published library;
