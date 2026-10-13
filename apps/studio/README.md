@@ -122,8 +122,10 @@ Two smaller traps worth inheriting rather than rediscovering:
   roles → equivalent neutral, radius → 0); the preview reads its per-mode geometry from
   `resolvePreview`'s `dimOverrides` so corners actually square off. *New brand* starts light-only.
 - ✅ **Export** — from the menu: **design.md** (`toDesignMd`, re-imports here — the loop
-  closes) and **tokens.json** (the resolved DTCG tree via `buildTree`, namespaced under the
-  brand's `root`). Both are pure engine functions; the browser just Blob-downloads them.
+  closes) and **Design tokens** (since #2552, the consumer set: `<brand>.base.tokens.json` plus one
+  `<brand>.<mode>.overlay.tokens.json` per mode, with no `$extensions`; *Include build metadata*,
+  internal and off by default, keeps them). The single-file tree is never offered — its other modes
+  live in `$extensions`. Both are pure engine functions; the browser just Blob-downloads them.
 - ✅ **Preview on every lever stage** — Semantic / Typography / Form each show the live
   component preview + overlay reflecting their axis; Typography also has a type-scale specimen.
 - ⏭ **Next:** promote the engine to a named `@prism3/engine` workspace package so imports

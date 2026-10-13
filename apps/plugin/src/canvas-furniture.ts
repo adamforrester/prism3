@@ -295,10 +295,29 @@ export const inverseContiguous = (members: readonly GridMember[]): boolean => {
   return members.every((m) => m.values.surface === 'inverse' || m.y + m.height <= top || m.y >= bottom);
 };
 
+/** Every TEXT layer under `n`, in tree order. */
+const textLayers = (n: XNode): XNode[] =>
+  (n.children ?? []).flatMap((c) => [...(c.type === 'TEXT' ? [c] : []), ...textLayers(c)]);
+
+/**
+ * The text layer a label's value goes into (#2558). The plugin's own `_Label` names it `text`; a file's own copy may
+ * spell it `Text`, or call it something else. So: the layer named `text` exactly, then `text` in any case, then the
+ * instance's only TEXT layer. More than one TEXT layer and none named `text` is a miss, never a guess. Returns the
+ * miss sentence when there is no layer to write.
+ */
+export const labelTextLayer = (inst: XNode): XNode | string => {
+  const all = textLayers(inst);
+  const found = all.find((n) => n.name === 'text') ?? all.find((n) => String(n.name ?? '').toLowerCase() === 'text') ?? (all.length === 1 ? all[0] : undefined);
+  if (found) return found;
+  return all.length
+    ? `${LABEL_SET} has ${all.length} text layers and none named "text"`
+    : `${LABEL_SET} has no text layer`;
+};
+
 /** Write a label's text, loading the face its text node carries. A face that will not load keeps "Label". */
 const writeText = async (api: FurnitureApi, inst: XNode, value: string, misses: string[]): Promise<void> => {
-  const t = inst.findOne?.((n) => n.type === 'TEXT' && n.name === 'text');
-  if (!t) { misses.push(`${LABEL_SET} has no text layer named "text"`); return; }
+  const t = labelTextLayer(inst);
+  if (typeof t === 'string') { misses.push(t); return; }
   const font = t.fontName as { family?: unknown; style?: unknown } | undefined;
   if (!font || typeof font.family !== 'string' || typeof font.style !== 'string') { misses.push(`${LABEL_SET}: mixed or unreadable font`); return; }
   try { await api.loadFontAsync({ family: font.family, style: font.style }); }
@@ -314,6 +333,20 @@ const hideBracket = (inst: XNode): void => {
   if (key && inst.setProperties) { inst.setProperties({ [key]: false }); return; }
   const b = inst.findOne?.((n) => n.name === 'bracket');
   if (b) b.visible = false;
+};
+
+/** A variant name as its properties, keys and values in lower case: `Text=Top, surface=default` → {text: top, …}. */
+const variantProps = (name: unknown): string =>
+  String(name ?? '').split(',').map((kv) => kv.split('=').map((x) => x.trim().toLowerCase()).join('=')).sort().join(', ');
+
+/**
+ * The `_Label` member a placement selects (#2558): its exact Figma name first, then the same properties in any case
+ * and any order, so a file whose own `_Label` spells `Surface=Default` or lists `surface` first still matches.
+ */
+export const labelMember = (labels: XNode, placement: 'Top' | 'Left'): XNode | undefined => {
+  const want = labelVariant(placement);
+  const members = labels.children ?? [];
+  return members.find((c) => c.name === want) ?? members.find((c) => variantProps(c.name) === variantProps(want));
 };
 
 /**
@@ -352,9 +385,8 @@ export const drawFurniture = async (
   const labels = pick('COMPONENT_SET', LABEL_SET);
   if (!labels) out.skipped.push(`No canvas labels for ${defId}: this file has no ${LABEL_SET} component, and Set up file adds it`);
   else {
-    const variant = (placement: 'Top' | 'Left'): XNode | undefined => labels.children?.find((c) => c.name === labelVariant(placement));
-    const top = variant('Top');
-    const left = variant('Left');
+    const top = labelMember(labels, 'Top');
+    const left = labelMember(labels, 'Left');
     if (plan.columns.length && !top?.createInstance) out.skipped.push(`No column labels for ${defId}: ${LABEL_SET} has no ${labelVariant('Top')} variant`);
     else for (const c of plan.columns) {
       const inst = top!.createInstance!();
