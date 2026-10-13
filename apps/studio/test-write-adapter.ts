@@ -140,8 +140,11 @@ const CATALOG = {
   collections: [
     { id: 'C:1', name: 'color', modes: ['light', 'dark'], items: [{ name: 'color/text/primary', table: 0, value: '#111111' }, { name: 'color/opacity/50', table: -1, value: '50' }] },
     { id: 'text-styles', name: 'Text styles', modes: [], textStyles: true, items: [{ name: 'body/md', table: 1, value: '' }] },
+    { id: 'effect-styles', name: 'Effect styles', modes: [], effectStyles: true, items: [{ name: 'shadow/sm', table: 2, value: '' }] },
+    { id: 'gradient-styles', name: 'Gradient styles', modes: [], gradientStyles: true, items: [{ name: 'gradient/brand', table: 3, value: '' }] },
   ],
-  tables: [{ key: 'color|C:1|color/text', title: 'Text', kind: 'color', page: 'Semantic tokens', rows: 1 }, { key: 'typography|text-styles|body', title: 'Text styles', kind: 'text', page: 'Semantic tokens', rows: 1 }],
+  tables: [{ key: 'color|C:1|color/text', title: 'Text', kind: 'color', page: 'Semantic tokens', rows: 1 }, { key: 'typography|text-styles|body', title: 'Text styles', kind: 'text', page: 'Semantic tokens', rows: 1 },
+    { key: 'shadow|effect-styles|', title: 'Effect styles', kind: 'effect', page: 'Semantic tokens', rows: 1 }, { key: 'gradient|gradient-styles|', title: 'Gradient styles', kind: 'gradient', page: 'Semantic tokens', rows: 1 }],
   notes: ['Not drawn until a later phase: 1 opacity variable'],
 };
 accepts('style-guide-catalog', { type: 'style-guide-catalog', catalog: CATALOG }, { kind: 'style-guide-catalog', catalog: CATALOG, error: null });

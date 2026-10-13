@@ -199,7 +199,7 @@ const tableReading = (m: { done?: unknown; total?: unknown }): { done: number; t
 };
 const isId = (x: unknown): x is string => typeof x === 'string' && x.length > 0;
 const str = (x: unknown): x is string => typeof x === 'string';
-const KINDS: readonly StyleGuideKind[] = ['color', 'dimension', 'font', 'text'];
+const KINDS: readonly StyleGuideKind[] = ['color', 'dimension', 'font', 'text', 'effect', 'gradient'];
 /** The style guide's catalog (S11.2), checked entry by entry: an entry with a field of the wrong type is dropped, and
  *  an item whose table index points at no table reads as one no phase draws (-1), so the page never offers a table
  *  the host did not name. `null` when the shape is not a catalog at all. */
@@ -222,7 +222,8 @@ const catalogOf = (c: unknown): StyleGuideCatalog | null => {
       return [{ name: y.name, table: t, value: str(y.value) ? y.value : '' }];
     });
     const modes = Array.isArray(x.modes) ? (x.modes as unknown[]).filter(str) : [];
-    return [{ id: x.id, name: x.name, modes, ...(x.textStyles === true ? { textStyles: true as const } : {}), items }];
+    return [{ id: x.id, name: x.name, modes, ...(x.textStyles === true ? { textStyles: true as const } : {}),
+      ...(x.effectStyles === true ? { effectStyles: true as const } : {}), ...(x.gradientStyles === true ? { gradientStyles: true as const } : {}), items }];
   });
   const notes = Array.isArray(o.notes) ? (o.notes as unknown[]).filter(str) : [];
   return { setUp: o.setUp === true, collections, tables, notes };
