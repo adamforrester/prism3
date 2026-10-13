@@ -12,6 +12,8 @@
  *                  rebuilt instead of configured → `keys/members`.
  *   apply/…        the plan's change reaches the host, and the next dry run reads every member current.
  *   hash/…         a confirm whose hash the file no longer matches writes nothing.
+ *   pages/…        component pages out of alphabetical order are listed by the dry run and put in order by the apply,
+ *                  a designer's page never moved (#2568).
  *   hand/…         a hand edit is kept, and still reported by the next dry run. Mutation: the record of an
  *                  updated member taken whole from the host → `hand/still reported`.
  *   drop/…         a member the plan no longer has is kept and marked deprecated, never deleted. Mutation: a
@@ -248,6 +250,45 @@ section('hash — a confirm over a file that moved since the check writes nothin
   const res = await applyUpdate(w.host, w.api as any, [{ def: TAG, plans: next }], previewHashOf(pre));
   ok(!!res.refusedAll && /changed since the check/.test(res.refusedAll), `hash/refused: ${res.refusedAll}`);
   ok(membersOf(w.set()).map((m) => (m.getSharedPluginData as (a: string, b: string) => string)(NS, STAMP_KEY)).join() === stamps && w.api._versions.length === 0, 'hash/nothing written: no stamp moved, no version saved');
+}
+
+/* ── pages ───────────────────────────────────────────────────────────────────────────────────────────── */
+// #2568, owner decisions Q260 A and Q265 B: the update lists the component pages out of alphabetical order and the
+// apply puts them in place with the usual confirm, moving no designer page. Components and Subcomponents are each
+// ordered within themselves. The page list is the host's; the expected orders are literals sorted by hand. Mutations: the dry run's page read dropped → `pages/dry run`; the apply's reorder dropped
+// → `pages/apply`, `pages/converges`; a designer page moved → `pages/designer`.
+section('pages — component pages out of alphabetical order: listed by the dry run, put in order by the apply');
+{
+  const w = await world(TAG);
+  type P = { name: string; isPageDivider?: boolean; appendChild(): void };
+  const pg = (name: string, isPageDivider = false): P => ({ name, isPageDivider, appendChild() {} });
+  const pages: P[] = [pg('Cover'), pg('---', true), pg('Components'), pg('↳ Tabs'), pg('↳ Divider'), pg('Notes'), pg('↳ Badge'), pg('↳ Tag'),
+    pg('---', true), pg('Subcomponents'), pg('↳ Spinner'), pg('↳ Field Label')];
+  const handed: string[] = [];
+  const host = { ...w.host, root: { ...w.host.root, get children() { return pages; }, insertChild(i: number, p: P) { handed.push(p.name); pages.splice(pages.indexOf(p), 1); pages.splice(i, 0, p); } } } as unknown as ApplyHost;
+  const names = () => pages.map((p) => p.name);
+  const targets = [{ def: TAG, plans: w.plans }];
+  const pre = await previewUpdate(host, targets);
+  const v = previewVerdict(pre);
+  // Tabs, Divider, Badge, Tag: the longest run in order is two long (Tabs, Tag, the first found), so two pages move;
+  // Spinner, Field Label: Spinner kept (the first found), so Field Label moves.
+  ok(JSON.stringify(pre.pages) === JSON.stringify(['↳ Badge', '↳ Divider', '↳ Field Label']) && v.lines.includes('Component pages: 3 to reorder (Badge, Divider, Field Label).') && v.headline === 'Would reorder 3 pages',
+    `pages/dry run: Badge, Divider and Field Label listed, the set itself up to date (${JSON.stringify(pre.pages)}; ${v.headline}; ${v.lines.join(' | ')})`);
+  const res = await applyUpdate(host, w.api as any, targets, previewHashOf(pre));
+  ok(JSON.stringify(names()) === JSON.stringify(['Cover', '---', 'Components', '↳ Badge', '↳ Divider', '↳ Tabs', 'Notes', '↳ Tag', '---', 'Subcomponents', '↳ Field Label', '↳ Spinner'])
+    && JSON.stringify(res.reordered) === JSON.stringify(['↳ Badge', '↳ Divider', '↳ Field Label']) && applyVerdict(res).headline === '✓ reordered 3 pages',
+    `pages/apply: Badge, Divider, Tabs, Tag in order; Field Label, Spinner in order, each within its own section (${JSON.stringify(names())}; ${applyVerdict(res).headline})`);
+  ok(JSON.stringify(handed) === JSON.stringify(['↳ Badge', '↳ Divider', '↳ Field Label']) && names().indexOf('↳ Tag') - names().indexOf('Notes') === 1,
+    `pages/designer: only the listed pages moved, Notes never, and it still precedes Tag (moved ${JSON.stringify(handed)})`);
+  ok(JSON.stringify(w.api._versions) === JSON.stringify(['Before Prism3 updated the page order']), `pages/version: one named version before the move (${JSON.stringify(w.api._versions)})`);
+  const again = await previewUpdate(host, targets);
+  ok(!again.pages && previewVerdict(again).headline === '✓ All sets up to date', `pages/converges: the next dry run lists no page (${previewVerdict(again).headline})`);
+  // A page moved by hand after the check is a different file: the confirm writes nothing.
+  pages.splice(pages.indexOf(pages.find((p) => p.name === '↳ Tag')!), 1); pages.splice(3, 0, pg('↳ Tag'));
+  const pre2 = await previewUpdate(host, targets);
+  const tabs = pages.find((p) => p.name === '↳ Tabs')!; pages.splice(pages.indexOf(tabs), 1); pages.splice(3, 0, tabs);
+  const res2 = await applyUpdate(host, w.api as any, targets, previewHashOf(pre2));
+  ok(!!res2.refusedAll && !res2.reordered, `pages/hash: a page moved since the check refuses the confirm (${res2.refusedAll})`);
 }
 
 /* ── hand ────────────────────────────────────────────────────────────────────────────────────────────── */
