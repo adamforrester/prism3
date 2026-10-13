@@ -100,6 +100,9 @@ export const TAXONOMY: Taxonomy = {
         // Tabs — its own page under Components, owner-decided 2026-10-09 (#2416 Q177.14: no navigation grouping,
         // no new section). Tab builds first, so the list's nested tabs resolve against it on the same page.
         { page: 'Tabs', defs: ['tab', 'tabs'] },
+        // Segmented control (#2418, owner Q269.7) — its own page under Components, after Tabs. The option builds
+        // first, so the control's nested options resolve against it on the same page, as Tabs' do.
+        { page: 'Segmented control', defs: ['segmented-control-segment', 'segmented-control'] },
         // Divider (#2455) — its own page, as the issue asks. Under Components beside the components that nest
         // it next (Accordion, #2417); the section is the owner's call and held as DRAFT in the PR.
         { page: 'Divider', defs: ['divider'] },

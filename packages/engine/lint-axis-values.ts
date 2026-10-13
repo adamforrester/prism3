@@ -361,7 +361,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'selection',
     values: ['unselected', 'selected'],
-    defs: ['tag', 'tab'],
+    defs: ['tag', 'tab', 'segmented-control-segment'],
     relation: 'disjoint',
     reason:
       'A selectable tag\'s two values, in the words the Tag brief uses (§4, §15) — `selected` is what a filter '
@@ -371,12 +371,13 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'the one of the three the brief lists last. Disjoint, the loud kind: a consumer lining the sets up sees at '
       + 'once they do not match. `unselected` leads because it is the rest coordinate. The spelling is an '
       + 'axis-value choice held for the owner in the Tag PR (2026-09-27). Tab joins it (#2416, owner Q177.2): a '
-      + 'tab\'s state IS aria-selected, so `selected` is its ARIA word too, and one spelling serves both.',
+      + 'tab\'s state IS aria-selected, so `selected` is its ARIA word too, and one spelling serves both. A segmented '
+      + 'control\'s option joins it (#2418, owner Q269): Tag\'s values, its state riding aria-current or a native radio.',
   },
   {
     axis: 'size',
     values: ['small', 'medium', 'large'],
-    defs: ['_accordion-indicator', 'accordion', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'field-label', 'tag', 'tab', 'tabs'],
+    defs: ['_accordion-indicator', 'accordion', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'field-label', 'tag', 'tab', 'tabs', 'segmented-control-segment', 'segmented-control'],
     relation: 'canonical',
     reason:
       'The three-rung ladder, and canonical on weight of use — every def with a size axis except the two switch defs below, the '

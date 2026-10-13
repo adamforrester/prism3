@@ -2,7 +2,7 @@
 
 > Labeled stack of Radio rows. Owns the shared name, one value and validation.
 
-A labeled set for choosing EXACTLY ONE from a small set of mutually exclusive, all-visible options. A required section label (FieldLabel) above a vertical stack of Radio.Row options. Owns the contract a single radio cannot — and without which the radios are not radios at all: the shared name that enforces exclusivity, the single scalar value, the single tab stop with roving focus, and all validation, announced once for the group. Use for 2 to about 7 options where seeing them all aids the decision; past that, a Select or a filtering combobox (not built yet) scans better. Not any-number selection (Checkbox.Group), not a single independent opt-in (a lone Checkbox.Row), not an immediate-effect setting list (a list of Switch.Row), not the same choice collapsed (Select) or in a compact skin (a segmented control, not built yet).
+A labeled set for choosing EXACTLY ONE from a small set of mutually exclusive, all-visible options. A required section label (FieldLabel) above a vertical stack of Radio.Row options. Owns the contract a single radio cannot — and without which the radios are not radios at all: the shared name that enforces exclusivity, the single scalar value, the single tab stop with roving focus, and all validation, announced once for the group. Use for 2 to about 7 options where seeing them all aids the decision; past that, a Select or a filtering combobox (not built yet) scans better. Not any-number selection (Checkbox.Group), not a single independent opt-in (a lone Checkbox.Row), not an immediate-effect setting list (a list of Switch.Row), not the same choice collapsed (Select) or in a compact skin (SegmentedControl).
 
 - **ID:** `radio-group`
 - **Category:** form
@@ -44,7 +44,7 @@ The group label names the decision; the rows carry the short options. Group erro
 
 - **Purpose:** Choose exactly one from a bounded set via a labeled stack of Radio.Row options, with the group owning the shared name, the single scalar value, group-level required and all validation.
 - **Use when:** A small bounded single-select committed on save (shipping method, plan tier, a contact preference), where seeing all 2 to about 7 options aids the choice and the group needs one label, one required rule and one validation message.
-- **Avoid when:** Any number of options may be chosen (Checkbox.Group — exactly-one versus any-number), a single independent opt-in with no siblings (a lone Checkbox.Row), the change takes effect the instant it is toggled (Switch.Row, or a segmented control, not built yet), or the set runs past about 7 options or vertical space is tight (a Select, or a filtering combobox, not built yet).
+- **Avoid when:** Any number of options may be chosen (Checkbox.Group — exactly-one versus any-number), a single independent opt-in with no siblings (a lone Checkbox.Row), the change takes effect the instant it is toggled (Switch.Row, or SegmentedControl), or the set runs past about 7 options or vertical space is tight (a Select, or a filtering combobox, not built yet).
 - **Often used with:** `radio-row`, `radio-control`, `field-label`, `field-message`
 
 ## Props
@@ -93,8 +93,8 @@ The group label names the decision; the rows carry the short options. Group erro
 ## Composition
 
 - **Composes with:** `radio-row`, `field-label`
-- **Alternative to:** `checkbox-group`, `select`, `switch-row`
-- **Planned:** `form`, `combobox`, `segmented-control`
+- **Alternative to:** `checkbox-group`, `select`, `switch-row`, `segmented-control`
+- **Planned:** `form`, `combobox`
 - **Replaces:**
   - a bare set of \<input type="radio"> with no shared label or group wiring
   - a set of checkboxes misused for a mutually exclusive choice

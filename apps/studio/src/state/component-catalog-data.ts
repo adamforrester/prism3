@@ -874,5 +874,60 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
       "divider",
       "focus-ring"
     ]
+  },
+  {
+    "id": "segmented-control-segment",
+    "name": "SegmentedControl.Segment",
+    "category": "form",
+    "summary": "One option of a segmented control. Selected, it shows a tint, a 2px outline and a bold label.",
+    "unit": "variants",
+    "spacing": [
+      {
+        "key": "size.small.padding-x",
+        "ref": "space.150"
+      },
+      {
+        "key": "size.medium.padding-x",
+        "ref": "space.200"
+      },
+      {
+        "key": "size.large.padding-x",
+        "ref": "space.250"
+      },
+      {
+        "key": "size.small.gap",
+        "ref": "space.075"
+      },
+      {
+        "key": "size.medium.gap",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.large.gap",
+        "ref": "space.100"
+      }
+    ],
+    "buildable": true,
+    "reason": null,
+    "members": 30,
+    "nests": [
+      "icon",
+      "focus-ring"
+    ]
+  },
+  {
+    "id": "segmented-control",
+    "name": "SegmentedControl",
+    "category": "form",
+    "summary": "A row of two to five options in one track, where exactly one is selected and all stay visible.",
+    "unit": "variants",
+    "spacing": [],
+    "buildable": true,
+    "reason": null,
+    "members": 3,
+    "nests": [
+      "field-label",
+      "segmented-control-segment"
+    ]
   }
 ];

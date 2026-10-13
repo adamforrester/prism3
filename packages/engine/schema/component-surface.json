@@ -296,6 +296,22 @@
     "accordion": {
       "members": 24,
       "sha256": "52b69bf043eb787e51424207561e42515df44508e5ab219914ff5b0ef5f0eb2a"
+    },
+    "segmented-control-segment": {
+      "members": 30,
+      "sha256": "10f22809def568e3da0d63b2c18be5f53d58c2a75e673980ea62c39b0d71c3cf"
+    },
+    "segmented-control-segment@outline-solid-tint": {
+      "members": 30,
+      "sha256": "150623f874c9f28ad2faefa7a6859fca2f4598e2ad21cf6627ac97aeda05058f"
+    },
+    "segmented-control-segment@outline-none": {
+      "members": 30,
+      "sha256": "122854b8539ea1778d366b5c6f704ab6e606d5742e880becc0fe8d2a12278db4"
+    },
+    "segmented-control": {
+      "members": 3,
+      "sha256": "f9e21c4d8cccf6f57235b1106105996eb72bb3a25c4a4dc7b4b3c731d95f974e"
     }
   }
 }

@@ -6,12 +6,13 @@
  * never imports the definitions themselves (UI redesign S7, T4; the generator's header says why).
  */
 export const USED_BY = {
-  defs: 31,
+  defs: 33,
   radius: {
     rounded: {
       "radius.md": [
         "Button",
-        "IconButton"
+        "IconButton",
+        "SegmentedControl"
       ],
       "radius.round": [
         "IconButton",
@@ -24,7 +25,8 @@ export const USED_BY = {
         "TextField",
         "Textarea",
         "Select",
-        "Badge"
+        "Badge",
+        "SegmentedControl"
       ]
     },
     pill: {
@@ -32,6 +34,9 @@ export const USED_BY = {
         "Button",
         "IconButton"
       ],
+      "radius.md": [
+        "SegmentedControl"
+      ],
       "radius.round": [
         "IconButton",
         "Radio.Control",
@@ -43,10 +48,14 @@ export const USED_BY = {
         "TextField",
         "Textarea",
         "Select",
-        "Badge"
+        "Badge",
+        "SegmentedControl"
       ]
     },
     boxed: {
+      "radius.md": [
+        "SegmentedControl"
+      ],
       "radius.none": [
         "Button",
         "IconButton",
@@ -63,7 +72,8 @@ export const USED_BY = {
         "Tag"
       ],
       "radius.sm": [
-        "Badge"
+        "Badge",
+        "SegmentedControl"
       ]
     },
     hairline: {
@@ -75,6 +85,9 @@ export const USED_BY = {
         "Checkbox.Control",
         "Select"
       ],
+      "radius.md": [
+        "SegmentedControl"
+      ],
       "radius.round": [
         "IconButton",
         "Radio.Control",
@@ -83,7 +96,8 @@ export const USED_BY = {
         "Tag"
       ],
       "radius.sm": [
-        "Badge"
+        "Badge",
+        "SegmentedControl"
       ]
     }
   },
@@ -97,7 +111,8 @@ export const USED_BY = {
       "Select",
       "Tag",
       "Tab",
-      "Accordion"
+      "Accordion",
+      "SegmentedControl"
     ],
     "size.md.height": [
       "FocusRing",
@@ -108,7 +123,8 @@ export const USED_BY = {
       "Switch.Row",
       "Tag",
       "Tab",
-      "Divider"
+      "Divider",
+      "SegmentedControl"
     ],
     "size.sm.height": [
       "Button",
@@ -117,7 +133,8 @@ export const USED_BY = {
       "Radio.Row",
       "Switch.Row",
       "Tag",
-      "Tab"
+      "Tab",
+      "SegmentedControl"
     ]
   },
   buttonSizes: {

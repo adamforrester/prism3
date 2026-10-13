@@ -2210,6 +2210,9 @@ const writeComponentSet = async (
       // design override, and the `nest` rows / label / message are exactly the children that must STRETCH.
       // Written only when the plan carries it (a `crossAxisFill` part); every other child keeps `INHERIT`.
       if (c.layoutAlign) kid.layoutAlign = c.layoutAlign;
+      // ITS MAIN-AXIS TWIN (#2418, a growing `nest`): `layoutGrow` on an INSTANCE, which `claimDefaults` never
+      // reaches, so a segmented control's segments share the track. Lockstep with the paste executor.
+      if (c.layoutGrow) kid.layoutGrow = c.layoutGrow;
       // A FILLING NEST'S OWN MODE (#1751): the stretch above is only the supplier — an instance whose root
       // hugs goes on hugging until its own mode on that axis is FIXED. Lockstep with the paste executor.
       if (c.instanceSizing) Object.assign(kid, c.instanceSizing);

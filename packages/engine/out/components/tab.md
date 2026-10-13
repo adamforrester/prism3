@@ -35,7 +35,7 @@ One or two words, a noun, sentence case.
 
 - **Purpose:** One trigger inside Tabs that shows its panel in place when selected.
 - **Use when:** Only as a child of Tabs.
-- **Avoid when:** Changing the page or the address (a navigation of links), or switching a value within the current view (a segmented control, not built yet).
+- **Avoid when:** Changing the page or the address (a navigation of links), or switching a value within the current view (SegmentedControl).
 - **Often used with:** `tabs`, `icon`, `badge`
 
 ## Props
@@ -83,7 +83,6 @@ One or two words, a noun, sentence case.
 ## Composition
 
 - **Composes with:** `badge`, `focus-ring`
-- **Planned:** `segmented-control`
 - **Replaces:**
   - a styled button that shows and hides a div with no tab semantics
 
