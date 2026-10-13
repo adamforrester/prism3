@@ -152,6 +152,9 @@ export const ICON_SOURCES: Record<string, string> = {
   'more-horizontal-filled': 'more-fill',
   'more-vertical-filled': 'more-2-fill',
   home: 'home-line',
+  // The hamburger (owner decision Q253 A, 2026-10-12): Remix's `menu-line`, three 2px bars. `menu`, the plain noun,
+  // like `home` and `search`; the owner's file was titled `menu-fill`, which in Remix is the same glyph.
+  menu: 'menu-line',
 
   // Landed in #841 concurrently with this file's authoring; mapped here rather than left
   // unreachable. `link-m` keeps its source filename rather than renaming to `link-line` — #841's own
