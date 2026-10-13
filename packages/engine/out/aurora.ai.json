@@ -7600,6 +7600,24 @@
     }
   },
   "layout": {
+    "type.label.sm.line-box": {
+      "$description": "type.label.sm line-box — 14px, the height of one line of the `label.sm` type (font size × line height). A glyph beside a title sits in a box this tall and centers within it, so it stays on the title's first line when the title wraps.",
+      "meaning": "Label line height, sm — one line of the label sm type",
+      "when_to_use": "The box a glyph beside a title centers in, so it stays on the title's first line.",
+      "resolves_to": "14px"
+    },
+    "type.label.md.line-box": {
+      "$description": "type.label.md line-box — 16px, the height of one line of the `label.md` type (font size × line height). A glyph beside a title sits in a box this tall and centers within it, so it stays on the title's first line when the title wraps.",
+      "meaning": "Label line height, md — one line of the label md type",
+      "when_to_use": "The box a glyph beside a title centers in, so it stays on the title's first line.",
+      "resolves_to": "16px"
+    },
+    "type.label.lg.line-box": {
+      "$description": "type.label.lg line-box — 21px, the height of one line of the `label.lg` type (font size × line height). A glyph beside a title sits in a box this tall and centers within it, so it stays on the title's first line when the title wraps.",
+      "meaning": "Label line height, lg — one line of the label lg type",
+      "when_to_use": "The box a glyph beside a title centers in, so it stays on the title's first line.",
+      "resolves_to": "21px"
+    },
     "icon.size.xs": {
       "$description": "icon.size.xs — 16px artboard (fixed grid; pairs with size.xs)",
       "meaning": "Icon size step xs",
@@ -8038,12 +8056,6 @@
       "when_to_use": "The line-box of a checkbox, radio or switch at the sm step.",
       "resolves_to": "21px"
     },
-    "control.size.sm.label-line-box": {
-      "$description": "control.size.sm label-line-box — 14px, the height of one line of the `label.sm` type (font size × line height). A glyph beside a title sits in a box this tall and centers within it, so it stays on the title's first line when the title wraps.",
-      "meaning": "Selection-control geometry, sm step — label-line-box",
-      "when_to_use": "The label-line-box of a checkbox, radio or switch at the sm step.",
-      "resolves_to": "14px"
-    },
     "control.size.md.height": {
       "$description": "control.size.md — 20px box edge for a square control's own dimension: a checkbox square or a radio circle (density: comfortable). A square control reads this on both axes. A switch's track is not square and reads `track`/`width` instead.",
       "meaning": "Selection-control geometry, md step — height",
@@ -8092,12 +8104,6 @@
       "when_to_use": "The line-box of a checkbox, radio or switch at the md step.",
       "resolves_to": "24px"
     },
-    "control.size.md.label-line-box": {
-      "$description": "control.size.md label-line-box — 16px, the height of one line of the `label.md` type (font size × line height). A glyph beside a title sits in a box this tall and centers within it, so it stays on the title's first line when the title wraps.",
-      "meaning": "Selection-control geometry, md step — label-line-box",
-      "when_to_use": "The label-line-box of a checkbox, radio or switch at the md step.",
-      "resolves_to": "16px"
-    },
     "control.size.lg.height": {
       "$description": "control.size.lg — 24px box edge for a square control's own dimension: a checkbox square or a radio circle (density: comfortable). A square control reads this on both axes. A switch's track is not square and reads `track`/`width` instead.",
       "meaning": "Selection-control geometry, lg step — height",
@@ -8145,12 +8151,6 @@
       "meaning": "Selection-control geometry, lg step — line-box",
       "when_to_use": "The line-box of a checkbox, radio or switch at the lg step.",
       "resolves_to": "27px"
-    },
-    "control.size.lg.label-line-box": {
-      "$description": "control.size.lg label-line-box — 21px, the height of one line of the `label.lg` type (font size × line height). A glyph beside a title sits in a box this tall and centers within it, so it stays on the title's first line when the title wraps.",
-      "meaning": "Selection-control geometry, lg step — label-line-box",
-      "when_to_use": "The label-line-box of a checkbox, radio or switch at the lg step.",
-      "resolves_to": "21px"
     }
   },
   "motion": {

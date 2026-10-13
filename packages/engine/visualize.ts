@@ -215,9 +215,11 @@ for (const b of brands) {
     html.push(`<div class="trow"><div class="tmeta"><b>${path.replace(/^type\./, '')}</b><span>${range} · w${weight} · lh ${lh} · ls ${ls}${tc !== 'none' ? ' · ' + tc : ''}${deco === 'underline' ? ' · link' : ''}</span><span class="tfam">${esc(family.split(',')[0])}</span></div><div class="tsample" style="${style}">${esc(path.split('.').slice(1).join(' '))}</div></div>`);
   };
   // Recurse to every composite leaf ($value-bearing); the tree is now group/size/weight[-link].
+  // Typography leaves only: `type.label.{rung}.line-box` (#2586) is a dimension beside the composites,
+  // and drawn as a specimen it reads as a 0px style.
   const walkType = (node: Node, path: string) => {
     if (node && typeof node === 'object') {
-      if ('$value' in node) { renderType(path, node); return; }
+      if ('$value' in node) { if (node.$type === 'typography') renderType(path, node); return; }
       for (const k of Object.keys(node)) walkType(node[k], `${path}.${k}`);
     }
   };

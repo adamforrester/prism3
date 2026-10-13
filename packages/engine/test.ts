@@ -3076,14 +3076,8 @@ for (const b of brands) {
     // here, switch-only), not as a separate group that would orphan those two. A ninth field is still a
     // decision someone takes.
     const fields = CONTROL_RUNG_NAMES.map((n) => Object.keys(grp?.[n] ?? {}).sort().join('+'));
-    //
-    // #2586 added the NINTH, `label-line-box`, and it fired here on the first run as the other five did.
-    // The argument is `line-box`'s, for the other type a glyph sits beside: a title is set in
-    // `type.label.*`, and the product Figma cannot compute has to be baked somewhere. Beside `line-box`
-    // rather than under `type.label.{rung}`, so the type groups stay composites only. A tenth field is
-    // still a decision someone takes.
-    ok(fields.every((f) => f === 'dot+height+inset+label-line-box+line-box+radius+thumb+track+width'),
-      `#910/#1201/#997/#1015/#1425/#2586 each rung carries exactly \`height\` + \`width\` + \`dot\` + \`line-box\` + \`label-line-box\` + \`inset\` + \`radius\` + \`track\` + \`thumb\` — no tenth field drifts in (got ${[...new Set(fields)].join(' / ')})`);
+    ok(fields.every((f) => f === 'dot+height+inset+line-box+radius+thumb+track+width'),
+      `#910/#1201/#997/#1015/#1425 each rung carries exactly \`height\` + \`width\` + \`dot\` + \`line-box\` + \`inset\` + \`radius\` + \`track\` + \`thumb\` — no ninth field drifts in (got ${[...new Set(fields)].join(' / ')})`);
     ok(CONTROL_RUNG_NAMES.join(',') === Object.keys(grp ?? {}).join(','),
       `#900 three rungs, sm/md/lg — no \`xs\`/\`xl\`, because no def declares a control at either (got ${Object.keys(grp ?? {}).join(',')})`);
   }
@@ -3107,7 +3101,7 @@ for (const b of brands) {
   }
 
   // ---- #2586: the LABEL line box is one line of the emitted label type ----------------------------
-  // `control.size.{rung}.label-line-box` bakes `fontSize × lineHeight` of `type.label.{rung}.*`, because
+  // `type.label.{rung}.line-box` (owner Q275.1 B) bakes `fontSize × lineHeight` of `type.label.{rung}.*`, because
   // Figma variables cannot multiply. The EXPECTED px here comes from the emitted label composites, resolved
   // through their own aliases (`fontSize` → a px, `lineHeight` → a ratio), never from the new token or from
   // `theme.typography` (docs/34). So a token that drops the line height (14/16/18 for 14/16/21), or one
@@ -3141,23 +3135,27 @@ for (const b of brands) {
       got[id] = {};
       for (const rung of ['sm', 'md', 'lg']) {
         const group = tr[rootKey].type?.label?.[rung] ?? {};
-        const lines = Object.entries(group).filter(([k]) => !k.startsWith('$')).map(([k, comp]: [string, any]) =>
+        // Composites only: the line box itself is a dimension leaf in the same group (Q282 A).
+        const lines = Object.entries(group).filter(([k, n]: [string, any]) => !k.startsWith('$') && n?.$type === 'typography').map(([k, comp]: [string, any]) =>
           ({ k, exact: resolveNum(comp.$value?.fontSize) * resolveNum(comp.$value?.lineHeight) }));
         const expected = new Set(lines.map((l) => Math.round(l.exact)));
-        const leaf = tr[rootKey].control?.size?.[rung]?.['label-line-box'];
+        const leaf = group['line-box'];
         const px = leaf ? parseFloat(String(leaf.$value)) : NaN;
         got[id][rung] = px;
         if (!lines.length || expected.size !== 1 || !expected.has(px))
           wrong.push(`${id} ${rung}: token ${leaf?.$value ?? 'absent'}, label type gives ${[...expected].join('|') || 'nothing'}px (${lines.map((l) => `${l.k} ${l.exact.toFixed(2)}`).join(', ')})`);
         // A centered glyph's center is the box's, whatever its size, so one check per rung covers every glyph.
+        // This RESTATES the construction rather than checking it independently: rounding bounds |px − exact|
+        // at 0.5, so the two centers are at most 0.25 apart whenever the value arm above passes. It is kept as
+        // the stated geometric claim, at the bound rounding actually guarantees.
         for (const l of lines.slice(0, 1))
-          if (!(Math.abs(px / 2 - l.exact / 2) <= 0.5)) offLine.push(`${id} ${rung}: glyph center ${(px / 2).toFixed(2)} vs line one ${(l.exact / 2).toFixed(2)}`);
+          if (!(Math.abs(px / 2 - l.exact / 2) <= 0.25)) offLine.push(`${id} ${rung}: glyph center ${(px / 2).toFixed(2)} vs line one ${(l.exact / 2).toFixed(2)}`);
       }
     }
     ok(labelBoxRows.length >= 5 && wrong.length === 0,
-      `#2586 control.size.{sm,md,lg}.label-line-box is one line of the emitted type.label.{rung} type (font size × line height, rounded), in every brand and in a synthetic label line height (${labelBoxRows.length} rows)` + (wrong.length ? ` — WRONG: ${wrong.join('; ')}` : ''));
+      `#2586 type.label.{sm,md,lg}.line-box is one line of the emitted type.label.{rung} composites (font size × line height, rounded), in every brand and in a synthetic label line height (${labelBoxRows.length} rows)` + (wrong.length ? ` — WRONG: ${wrong.join('; ')}` : ''));
     ok(offLine.length === 0,
-      `#2586 a glyph centered in the label line box sits on the title's first line within 0.5px, in every row` + (offLine.length ? ` — OFF: ${offLine.join('; ')}` : ''));
+      `#2586 a glyph centered in the label line box sits on the title's first line within 0.25px, in every row` + (offLine.length ? ` — OFF: ${offLine.join('; ')}` : ''));
     const syn = got['aurora (label line height 1.5)'];
     ok(!!syn && Math.abs(syn.md - 21) <= 0.5 && syn.md !== got['nb']?.md,
       `#2586 a label line-height change moves the token: at 1.5, md is about 21px (14px × 1.5), not the corpus ${got['nb']?.md}px (got ${syn?.md}px)`);
@@ -3173,8 +3171,50 @@ for (const b of brands) {
     const bent: Theme = { ...th, typography: { ...th.typography, composites: th.typography.composites.map((c) => (c.path === target ? { ...c, sizePx: c.sizePx + 2 } : c)) } };
     let threw = '';
     try { buildTree(bent); } catch (e) { threw = (e as Error).message; }
-    ok(/label-line-box is ambiguous/.test(threw) && threw.includes(target),
+    ok(/type\.label\.md\.line-box is ambiguous/.test(threw) && threw.includes(target),
       `#2586 a label composite that disagrees with its rung-mates fails the build by name, instead of the label line box following composite order (${threw || 'no throw'})`);
+  }
+
+  // ---- #2586: `type.*` is no longer composites only, so every reader of it filters (Q282 A) ---------
+  // `type.label.{rung}.line-box` is a dimension beside the composites. Two readers once walked all of
+  // `type.*` as composites: `visualize.ts` drew the leaf as a 0px type specimen in `out/tokens.html`, and
+  // `ai-metadata.ts` let it fall through to the primitive tier as "Private primitive — prefer a semantic
+  // token", telling an agent not to bind the token a title row is for. The expected set comes from the
+  // committed trees ($type per leaf), the specimens from the committed page, and the sidecar is built here.
+  {
+    const nonType: string[] = [];
+    const typeLeaves = (node: any, path: string) => {
+      if (!node || typeof node !== 'object') return;
+      if ('$value' in node) { if (node.$type !== 'typography') nonType.push(path); return; }
+      for (const k of Object.keys(node)) if (!k.startsWith('$')) typeLeaves(node[k], `${path}.${k}`);
+    };
+    for (const f of readdirSync(resolve(HERE, './out')).filter((f) => /^[a-z0-9-]+\.tokens\.json$/.test(f))) {
+      const tr = JSON.parse(readFileSync(resolve(HERE, './out', f), 'utf8'));
+      const root = Object.keys(tr).find((k) => !k.startsWith('$'))!;
+      for (const g of Object.keys(tr[root]?.type ?? {})) typeLeaves(tr[root].type[g], g);
+    }
+    const page = readFileSync(resolve(HERE, './out/tokens.html'), 'utf8');
+    const specimens = new Set([...page.matchAll(/<div class="trow"><div class="tmeta"><b>([^<]+)<\/b>/g)].map((m) => m[1]));
+    const drawn = [...new Set(nonType)].filter((p) => specimens.has(p));
+    ok(nonType.some((p) => /^label\.(sm|md|lg)\.line-box$/.test(p)) && specimens.size > 0 && drawn.length === 0,
+      `#2586 tokens.html draws no type specimen for a non-typography leaf under type.* (${new Set(nonType).size} such leaves, ${specimens.size} specimens)` + (drawn.length ? ` — DRAWN: ${drawn.join(', ')}` : ''));
+    const priv: string[] = [];
+    let roles = 0;
+    for (const { id, theme: th } of corpus()) {
+      const ai = buildAiMetadata(th, buildTree(th).tree) as any;
+      const scan = (o: any) => {
+        for (const [k, v] of Object.entries<any>(o ?? {})) {
+          if (!v || typeof v !== 'object') continue;
+          if (k.startsWith('type.') && typeof v.consume === 'string' && /Private primitive/.test(v.consume)) priv.push(`${id.split(' ')[0]} ${k}`);
+          else scan(v);
+        }
+      };
+      scan(ai);
+      for (const rung of ['sm', 'md', 'lg'])
+        if (ai.layout?.[`type.label.${rung}.line-box`]?.meaning === `Label line height, ${rung} — one line of the label ${rung} type`) roles++;
+    }
+    ok(priv.length === 0 && roles === corpus().length * 3,
+      `#2586 ai.json gives no type.* leaf the "Private primitive" consume line, and each type.label.{rung}.line-box its layout role (${roles} of ${corpus().length * 3})` + (priv.length ? ` — PRIVATE: ${priv.join(', ')}` : ''));
   }
 
   // ---- VALUES × DENSITY: the window, and the clamping bug it exists to prevent -----------------

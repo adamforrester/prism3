@@ -541,6 +541,10 @@ const thinRole = (path: string): { tier: 'layout' | 'motion' | 'typography'; mea
   if (s[0] === 'focus' && s[1] === 'ring') return { tier: 'layout', meaning: `Focus-ring geometry — ${tail(2)}`, when: 'The keyboard-focus ring drawn around a focused element. Its color is `border.focus`.' };
   if (s[0] === 'size' && s.length === 3) return { tier: 'layout', meaning: `Control size step ${s[1]} — ${s[2]}`, when: `The ${s[2]} of a button, field or other control at the ${s[1]} size step. Take every dimension of one control from the same step.` };
   if (s[0] === 'control' && s[1] === 'size') return { tier: 'layout', meaning: `Selection-control geometry, ${s[2]} step — ${tail(3)}`, when: `The ${tail(3)} of a checkbox, radio or switch at the ${s[2]} step.` };
+  // #2586 (Q282 A): the one non-composite leaf under `type.*`, a baked line box beside the composites it measures.
+  // Layout tier, beside its body twin `control.size.*.line-box`: it is a box height, a dimension and not a type
+  // style, so it carries no composite and no `avoid_when` the typography tier requires.
+  if (s[0] === 'type' && s.length === 4 && last === 'line-box') return { tier: 'layout', meaning: `${cap(s[1])} line height, ${s[2]} — one line of the ${s[1]} ${s[2]} type`, when: 'The box a glyph beside a title centers in, so it stays on the title\'s first line.' };
   if (s[0] === 'icon' && s[1] === 'size') return { tier: 'layout', meaning: `Icon size step ${last}`, when: 'The rendered size of an icon glyph.' };
   if (s[0] === 'grid' && s.length === 3) return { tier: 'layout', meaning: `Layout grid ${s[2]} at the ${s[1]} breakpoint`, when: `The ${s[2]} of the page layout grid from the ${s[1]} breakpoint up.` };
   if (s[0] === 'motion') {

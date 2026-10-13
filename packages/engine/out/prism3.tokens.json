@@ -20910,6 +20910,17 @@
                 }
               }
             }
+          },
+          "line-box": {
+            "$type": "dimension",
+            "$value": "14px",
+            "$description": "type.label.sm line-box — 14px, the height of one line of the `label.sm` type (font size × line height). A glyph beside a title sits in a box this tall and centers within it, so it stays on the title's first line when the title wraps.",
+            "$extensions": {
+              "prism3": {
+                "generated": true,
+                "px": 14
+              }
+            }
           }
         },
         "md": {
@@ -21066,6 +21077,17 @@
                 }
               }
             }
+          },
+          "line-box": {
+            "$type": "dimension",
+            "$value": "16px",
+            "$description": "type.label.md line-box — 16px, the height of one line of the `label.md` type (font size × line height). A glyph beside a title sits in a box this tall and centers within it, so it stays on the title's first line when the title wraps.",
+            "$extensions": {
+              "prism3": {
+                "generated": true,
+                "px": 16
+              }
+            }
           }
         },
         "lg": {
@@ -21220,6 +21242,17 @@
                     "textDecoration"
                   ]
                 }
+              }
+            }
+          },
+          "line-box": {
+            "$type": "dimension",
+            "$value": "21px",
+            "$description": "type.label.lg line-box — 21px, the height of one line of the `label.lg` type (font size × line height). A glyph beside a title sits in a box this tall and centers within it, so it stays on the title's first line when the title wraps.",
+            "$extensions": {
+              "prism3": {
+                "generated": true,
+                "px": 21
               }
             }
           }
@@ -23339,17 +23372,6 @@
                 "px": 21
               }
             }
-          },
-          "label-line-box": {
-            "$type": "dimension",
-            "$value": "14px",
-            "$description": "control.size.sm label-line-box — 14px, the height of one line of the `label.sm` type (font size × line height). A glyph beside a title sits in a box this tall and centers within it, so it stays on the title's first line when the title wraps.",
-            "$extensions": {
-              "prism3": {
-                "generated": true,
-                "px": 14
-              }
-            }
           }
         },
         "md": {
@@ -23455,17 +23477,6 @@
                 "px": 24
               }
             }
-          },
-          "label-line-box": {
-            "$type": "dimension",
-            "$value": "16px",
-            "$description": "control.size.md label-line-box — 16px, the height of one line of the `label.md` type (font size × line height). A glyph beside a title sits in a box this tall and centers within it, so it stays on the title's first line when the title wraps.",
-            "$extensions": {
-              "prism3": {
-                "generated": true,
-                "px": 16
-              }
-            }
           }
         },
         "lg": {
@@ -23569,17 +23580,6 @@
               "prism3": {
                 "generated": true,
                 "px": 27
-              }
-            }
-          },
-          "label-line-box": {
-            "$type": "dimension",
-            "$value": "21px",
-            "$description": "control.size.lg label-line-box — 21px, the height of one line of the `label.lg` type (font size × line height). A glyph beside a title sits in a box this tall and centers within it, so it stays on the title's first line when the title wraps.",
-            "$extensions": {
-              "prism3": {
-                "generated": true,
-                "px": 21
               }
             }
           }

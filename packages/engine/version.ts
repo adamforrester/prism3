@@ -5466,10 +5466,11 @@ export const ENGINE_VERSION = '0.236.0';
  * cannot break a reference. Nothing is removed or retyped.
  */
 /**
- * 14.7.0 (#2586, owner Q266 A and Q267 A, 2026-10-13): MINOR. `control.size.{sm,md,lg}.label-line-box` join the
- * guaranteed surface: one line of the `type.label.{rung}` type (font size × line height), baked to px as `line-box` is
- * for body, so a glyph beside a wrapping title can center on its first line. An added path cannot break a reference.
- * Nothing is removed or retyped.
+ * 14.7.0 (#2586, owner Q266 A, Q267 A, Q275 and Q282 A, 2026-10-13): MINOR. `type.label.{sm,md,lg}.line-box` join
+ * the guaranteed surface: one line of the `type.label.{rung}` type (font size × line height), baked to px as
+ * `control.size.*.line-box` is for body, so a glyph beside a wrapping title can center on its first line. It sits with
+ * the type it measures, the first non-composite leaf under `type.*`. An added path cannot break a reference. Nothing
+ * is removed or retyped.
  */
 export const CONTRACT_VERSION = '14.7.0';
 

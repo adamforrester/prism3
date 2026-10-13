@@ -3620,6 +3620,11 @@
               "textDecoration": "underline"
             },
             "$description": "label sm emphasis link — 12px Inter, snug line-height, emphasis weight, normal tracking, underlined (a text button's label)"
+          },
+          "line-box": {
+            "$type": "dimension",
+            "$value": "14px",
+            "$description": "type.label.sm line-box — 14px, the height of one line of the `label.sm` type (font size × line height). A glyph beside a title sits in a box this tall and centers within it, so it stays on the title's first line when the title wraps."
           }
         },
         "md": {
@@ -3668,6 +3673,11 @@
               "textDecoration": "underline"
             },
             "$description": "label md emphasis link — 14px Inter, snug line-height, emphasis weight, normal tracking, underlined (a text button's label)"
+          },
+          "line-box": {
+            "$type": "dimension",
+            "$value": "16px",
+            "$description": "type.label.md line-box — 16px, the height of one line of the `label.md` type (font size × line height). A glyph beside a title sits in a box this tall and centers within it, so it stays on the title's first line when the title wraps."
           }
         },
         "lg": {
@@ -3716,6 +3726,11 @@
               "textDecoration": "underline"
             },
             "$description": "label lg emphasis link — 18px Inter, snug line-height, emphasis weight, normal tracking, underlined (a text button's label)"
+          },
+          "line-box": {
+            "$type": "dimension",
+            "$value": "21px",
+            "$description": "type.label.lg line-box — 21px, the height of one line of the `label.lg` type (font size × line height). A glyph beside a title sits in a box this tall and centers within it, so it stays on the title's first line when the title wraps."
           }
         }
       },
@@ -4498,11 +4513,6 @@
             "$type": "dimension",
             "$value": "21px",
             "$description": "control.size.sm line-box — 21px, the height of one line of the `body.sm` label (font size × line height). A selection control sits in a box this tall and centers within it, so it tracks the first line of a wrapping label instead of floating mid-paragraph."
-          },
-          "label-line-box": {
-            "$type": "dimension",
-            "$value": "14px",
-            "$description": "control.size.sm label-line-box — 14px, the height of one line of the `label.sm` type (font size × line height). A glyph beside a title sits in a box this tall and centers within it, so it stays on the title's first line when the title wraps."
           }
         },
         "md": {
@@ -4545,11 +4555,6 @@
             "$type": "dimension",
             "$value": "24px",
             "$description": "control.size.md line-box — 24px, the height of one line of the `body.md` label (font size × line height). A selection control sits in a box this tall and centers within it, so it tracks the first line of a wrapping label instead of floating mid-paragraph."
-          },
-          "label-line-box": {
-            "$type": "dimension",
-            "$value": "16px",
-            "$description": "control.size.md label-line-box — 16px, the height of one line of the `label.md` type (font size × line height). A glyph beside a title sits in a box this tall and centers within it, so it stays on the title's first line when the title wraps."
           }
         },
         "lg": {
@@ -4592,11 +4597,6 @@
             "$type": "dimension",
             "$value": "27px",
             "$description": "control.size.lg line-box — 27px, the height of one line of the `body.lg` label (font size × line height). A selection control sits in a box this tall and centers within it, so it tracks the first line of a wrapping label instead of floating mid-paragraph."
-          },
-          "label-line-box": {
-            "$type": "dimension",
-            "$value": "21px",
-            "$description": "control.size.lg label-line-box — 21px, the height of one line of the `label.lg` type (font size × line height). A glyph beside a title sits in a box this tall and centers within it, so it stays on the title's first line when the title wraps."
           }
         }
       }
