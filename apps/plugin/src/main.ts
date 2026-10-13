@@ -1257,7 +1257,8 @@ const dispatch = createDispatcher({
         build: PRISM3_BUILD,
         file: { name: figma.root.name, currentPage: figma.currentPage.name, brandInput: brand, colorVars, themed: (colorVars ?? 0) > 0 },
         link: agentLink.state(),
-        commands: [...AGENT_COMMANDS],
+        // #2530: a dev build answers its dev command too; a release build's list has none.
+        commands: PRISM3_DEV ? [...AGENT_COMMANDS, 'run-code'] : [...AGENT_COMMANDS],
       },
     };
   },
