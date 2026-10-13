@@ -1233,6 +1233,29 @@ export const makeShim = (opts: ShimOpts = {}) => {
       }
     }
     if (opts.identities) Object.defineProperty(node, 'id', { configurable: true, enumerable: false, writable: true, value: `N:${++nodeSeq}` });
+    // #2466 — PROTOTYPE REACTIONS, where nodes have ids to point at (`identities`). Read as a copy and written whole,
+    // as the host does. What the live probe saw refused is refused here too (docs/18 §3): a `MOUSE_ENTER` or
+    // `MOUSE_LEAVE` trigger with no `delay`, and a hover, press or click trigger carrying any field but `type`. A
+    // destination is stored as the id written; it is never followed, so a removed node's id DANGLES as on the host.
+    if (opts.identities) {
+      let reactions: unknown[] = [];
+      Object.defineProperty(node, 'reactions', { configurable: true, enumerable: false, get: () => JSON.parse(JSON.stringify(reactions)) });
+      Object.defineProperty(node, 'setReactionsAsync', {
+        configurable: true, enumerable: false, writable: true,
+        value: async (rs: { trigger?: Record<string, unknown> | null; actions?: { type?: string; destinationId?: unknown }[] }[]) => {
+          for (const r of rs) {
+            const t = r.trigger ?? {};
+            if ((t.type === 'MOUSE_ENTER' || t.type === 'MOUSE_LEAVE') && typeof t.delay !== 'number')
+              throw new Error(`in setReactionsAsync: Validation failed: trigger ${String(t.type)} requires a delay`);
+            if (['ON_HOVER', 'ON_PRESS', 'ON_CLICK'].includes(String(t.type)) && Object.keys(t).some((k) => k !== 'type'))
+              throw new Error(`in setReactionsAsync: Validation failed: trigger ${String(t.type)} takes no other field`);
+            for (const a of r.actions ?? []) if (a.type === 'NODE' && typeof a.destinationId !== 'string')
+              throw new Error('in setReactionsAsync: Validation failed: a NODE action needs a destinationId');
+          }
+          reactions = JSON.parse(JSON.stringify(rs));
+        },
+      });
+    }
     return node;
   };
 
@@ -1606,8 +1629,11 @@ export const makeShim = (opts: ShimOpts = {}) => {
       set.dashPattern = [10, 5];
       for (const c of ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius']) (set as Record<string, unknown>)[c] = 5;
       takeFromPage(members);
-      // A member's parent is its set, as on the host: a native slot made on it later finds the set this way (#2417).
-      for (const m of members) if (!m.parent) m.parent = set;
+      // A member's parent is its set, as on the host: a native slot made on it later finds the set this way (#2417),
+      // and a reaction's destination is resolved among its siblings this way (#2466). ALWAYS the set: a member built
+      // onto a page that records parents (`file-shim.ts`) arrived with the page as its parent, which the host's
+      // combine replaces. Kept only where unset, it read every reaction in such a set as dangling.
+      for (const m of members) m.parent = set;
       // #1568 — RECORD WHICH MEMBER OWNS EACH NODE, so `refuseRefsUntilYield` can refuse by member name.
       // Re-run over every twin the detach/settle paths install below, because a twin is a different object
       // standing at the same coordinate and a refusal keyed on the original would miss it.

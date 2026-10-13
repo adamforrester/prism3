@@ -35,6 +35,10 @@
  * fixed-size node by hand is not seen. An instance's children are not walked either: they belong to the
  * main component, and the main is a member of its own set with its own baseline.
  *
+ * AND THE MEMBER'S PROTOTYPE REACTIONS (#2466), as one hash beside the nodes' (`Baseline.reactions`), each destination
+ * named by the axes it differs from the member on, never by id (`reactions.ts`). A change to them is reported at
+ * `REACTIONS_PATH`, as a hand edit like any other.
+ *
  * `v` is the format's version. A change to what is hashed changes every hash, so it raises `v`, and a
  * dry run that reads an older `v` reports the member as having no baseline rather than as hand-edited.
  *
@@ -47,6 +51,7 @@
  * record, and `capture-baseline` records them again.
  */
 import { NS } from './persist-figma';
+import { REACTIONS_PATH, readReactions, reactionsSignature, type ReadReaction } from './reactions';
 
 export const BASELINE_KEY = 'memberAsBuilt';
 /** A member an update is part-way through (#2265 PR 2): written before its first write, cleared after its stamp.
@@ -60,12 +65,16 @@ export const UPDATING_KEY = 'memberUpdating';
 export const BASELINE_V = 3;
 
 /** A node as the snapshot holds it: plain data, read once, so the hash and the read-back both read the
- *  same values, and nothing reads a getter Figma forbids under `documentAccess: dynamic-page`. */
-export type SnapNode = Record<string, unknown> & { name: string; type: string; children?: SnapNode[] };
+ *  same values, and nothing reads a getter Figma forbids under `documentAccess: dynamic-page`. `reactions` is on
+ *  the member root only (#2466): its own prototype reactions, each destination resolved against its siblings. */
+export type SnapNode = Record<string, unknown> & { name: string; type: string; children?: SnapNode[]; reactions?: ReadReaction[] };
 
 /** The record stored on a member. `id` is the node it was written on (v2); absent only on a record computed from a
- *  snapshot rather than written to a node. */
-export type Baseline = { v: number; id?: string; nodes: Record<string, string> };
+ *  snapshot rather than written to a node. `reactions` (#2466) is the hash of the member's own prototype reactions,
+ *  beside the node hashes rather than in the root's, so a record written before reactions existed hashes every node
+ *  as it did and reads unchanged: a record without the field makes no claim about reactions either way, and the
+ *  same `v` reads both. Absent too where the host has no reactions to read. */
+export type Baseline = { v: number; id?: string; nodes: Record<string, string>; reactions?: string };
 
 /** A stamp Prism3 wrote (#2300): the engine version, a 16-hex plan stamp or `adopted`, and the executor revision
  *  (absent on a stamp from before #1098). Anything else is not Prism3's, however it got there. */
@@ -158,9 +167,10 @@ const styleNameOf = async (id: string): Promise<string> => {
 export const resetStyleNames = (): void => styleNames.clear();
 
 export const snapshotMember = async (root: unknown): Promise<SnapNode> => {
-  const walk = async (raw: unknown, parentWidth: unknown, parentHeight: unknown): Promise<SnapNode> => {
+  const walk = async (raw: unknown, parentWidth: unknown, parentHeight: unknown, isRoot = false): Promise<SnapNode> => {
     const n = raw as LiveNode;
     const out: SnapNode = { name: String(n.name ?? ''), type: String(n.type ?? '') };
+    if (isRoot) { const r = await readReactions(n); if (r) out.reactions = r; }
     for (const k of SNAP_KEYS) {
       let v: unknown;
       try { v = n[k]; } catch { continue; }
@@ -184,7 +194,7 @@ export const snapshotMember = async (root: unknown): Promise<SnapNode> => {
     }
     return out;
   };
-  return walk(root, undefined, undefined);
+  return walk(root, undefined, undefined, true);
 };
 
 // ---- the hash -------------------------------------------------------------------------------------------
@@ -292,7 +302,7 @@ export const nodesByPath = (root: SnapNode): Map<string, SnapNode> => {
 export const baselineOf = (snap: SnapNode): Baseline => {
   const nodes: Record<string, string> = {};
   for (const [path, n] of nodesByPath(snap)) nodes[path] = fnv(nodeSignature(n));
-  return { v: BASELINE_V, nodes };
+  return { v: BASELINE_V, nodes, ...(snap.reactions ? { reactions: fnv(reactionsSignature(snap.reactions)) } : {}) };
 };
 
 type DataNode = { getSharedPluginData?: (ns: string, k: string) => string; setSharedPluginData?: (ns: string, k: string, v: string) => void };
@@ -336,5 +346,7 @@ export const baselineDiff = (stored: Baseline, now: Baseline): { changed: string
     else if (now.nodes[p] !== h) changed.push(p);
   }
   for (const p of Object.keys(now.nodes)) if (!(p in stored.nodes)) added.push(p);
+  // The member's reactions (#2466), only where BOTH records hold them: an earlier record makes no claim about them.
+  if (stored.reactions !== undefined && now.reactions !== undefined && stored.reactions !== now.reactions) changed.push(REACTIONS_PATH);
   return { changed, added, removed };
 };
