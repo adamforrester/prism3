@@ -95,10 +95,11 @@ copy a resolved hex into your component — that pins one mode and breaks the ot
 The sidecar's `avoid_when` encodes the traps the role's *name* can't. The portable ones
 that hold across brands:
 
-- **`border.primary` is decorative — not a contrast target.** The engine makes the default
-  border intentionally low-contrast (often well under 3:1). If you need a border that must
-  read as a UI edge (a 3:1 target), use `border.secondary` or `border.focus`. A decorative
-  divider is *exempt* from the 3:1 contract — don't pair it as one.
+- **`border.primary` and `border.secondary` are decorative — not contrast targets.** The engine
+  makes both intentionally low-contrast (about 1.4:1 and 2:1 on the page). If you need a border
+  that must read as a UI edge (a 3:1 target), use `border.tertiary`, which clears 3:1 on every
+  `background.*` and `foreground.*` tier, or `border.focus` for focus. A decorative divider is
+  *exempt* from the 3:1 contract — don't pair it as one.
 - **`*.on-*` ink goes on its paired fill, nothing else.** `interactive.primary.on-fill` sits on
   `interactive.primary.fill.rest`; `text.on-danger` on `foreground.danger`. Plain `text.primary` /
   `text.secondary` go on surfaces (`background.*` / `foreground.*`), never on a solid vivid fill.
@@ -165,7 +166,8 @@ sidecar's `avoid_when` closes them:
 
 - **A card outline.** Tempting: `border.primary` as a 3:1 UI edge. Wrong — it's decorative
   (can be ~1.4:1 on the page). Either drop it from your 3:1 pairs (it's exempt decoration) or,
-  if the edge must *read*, use `border.secondary` / `border.focus`.
+  if the edge must *read*, use `border.tertiary` / `border.focus`. `border.secondary` is
+  decorative too (~2:1).
 - **A disabled button's label.** Tempting: score `disabled.on-fill` on `disabled.fill` as
   `text` (4.5:1). It's ~3:1 by design and **exempt** — classify it `ui`, don't fail on it.
 

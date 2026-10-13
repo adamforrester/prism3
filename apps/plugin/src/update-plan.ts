@@ -38,7 +38,9 @@
  *
  * `diffAnatomy`, the read-back the build already trusts, run on a snapshot of the member against the plan,
  * plus the one direction it does not report: a child the host has and the plan does not, which an update
- * would remove. Its blind spots are this module's (`anatomy-readback.ts` lists them). A member whose stamp
+ * would remove. And the member's prototype reactions (#2466, `reactions.ts`) against the ones the plan gives it: a
+ * reaction missing, extra or changed is a field change (`REACTIONS`), and a destination that is no longer a member
+ * of the set DANGLES, which, like a drawn fault, makes the member "to update" whatever its record says. Its blind spots are this module's (`anatomy-readback.ts` lists them). A member whose stamp
  * moved and that shows no field difference is listed as re-applied rather than left out.
  */
 import { planComponentName, planSetLayout, planSetProperties } from '@prism3/engine/anatomy-figma';
@@ -52,6 +54,7 @@ import { readTag } from './canvas-furniture';
 import { NS } from './persist-figma';
 import { BASELINE_V, UPDATING_KEY, baselineDiff, baselineOf, builtByPrism3, readBaseline, recordFormat, snapshotMember, writeBaseline, type Baseline, type OwnershipRead, type SnapNode } from './member-baseline';
 import { drawnFaults, type DrawnFault, type DrawVar } from './drawn';
+import { REACTIONS_PATH, plannedRead, reactionMap, reactionVerdict, reactionsText, type PlannedReaction, type ReadReaction } from './reactions';
 import { pagesOutOfOrder, stripNestPrefix, type PageLike } from './file-setup';
 
 /** One member of a set as the dry run reads it. */
@@ -135,6 +138,18 @@ export type SetPreview = {
   needsChoice: Choice[];
   /** Entries left out of a list past `LIST_CAP`, per list. Absent when nothing was. */
   truncated?: Record<string, number>;
+};
+
+/** The field a reaction difference is named under (#2466). DRAFT wording. */
+export const REACTIONS = 'prototype reactions';
+
+/** The reactions the plan gives one member and the ones it holds, as `reactions.ts` reads them; `null` for a member
+ *  of a set out of scope, or one read off a host with no reactions to read. */
+export const memberReactions = (planned: ReadonlyMap<string, PlannedReaction[]>, plan: AnatomyPlan, m: HostMember): { planned: ReadReaction[]; read: ReadReaction[] } | null => {
+  const name = planComponentName(plan);
+  const want = planned.get(name);
+  if (!want || !m.snap.reactions) return null;
+  return { planned: want.map((r) => plannedRead(name, r)), read: m.snap.reactions };
 };
 
 /** Each list is capped so a whole-library preview stays a few mailbox chunks (§6). */
@@ -346,6 +361,7 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
   const handEdits: SetPreview['handEdits'] = [];
   const rev = String(EXECUTOR_REVISION);
   const states: SetPreview['states'] = [];
+  const plannedRx = reactionMap(plans.map((p) => planComponentName(p)));
   for (const l of matched) {
     const plan = planned.get(l.target)!;
     const { m } = l;
@@ -367,13 +383,18 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
       const hit = (p: string): boolean => parts.some((d) => p === d || (d !== '.' && p.startsWith(`${d}/`)));
       edit = { ...edit, changed: edit.changed.filter((p) => !hit(p)) };
     }
+    // ITS REACTIONS (#2466). A DANGLING destination (a sibling replaced since they were written) is damage, as a drawn
+    // fault is: never a hand edit, never current, and the update writes them again from the plan.
+    const rx = memberReactions(plannedRx, plan, m);
+    const rxv = rx ? reactionVerdict(rx.planned, rx.read) : { differs: false, dangling: false };
+    if (rxv.dangling && edit) edit = { ...edit, changed: edit.changed.filter((p) => p !== REACTIONS_PATH) };
     const edited = !!edit && (edit.changed.length + edit.added.length + edit.removed.length > 0);
     const planMoved = planHalf(m.stamp) !== planHalf(memberStamp(plan));
     const revField = m.stamp.split('|').length >= 3 ? revHalf(m.stamp) : null;
-    const state: MemberState = damaged.length ? 'update'
+    const state: MemberState = damaged.length || rxv.dangling ? 'update'
       : !m.baseline ? 'noBaseline'
       : edited ? 'handEdited'
-      : planMoved || (revField !== null && revField !== rev) ? 'update'
+      : planMoved || (revField !== null && revField !== rev) || rxv.differs ? 'update'
       : revField === null ? 'revisionUnknown'
       : 'current';
     counts[state]++;
@@ -434,7 +455,16 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
       if (c.sample.length < 3) c.sample.push(m.name);
       changes.set(k, c);
     }
-    if (state === 'update' && divs.length === 0 && extras.length === 0 && dropped.length === 0 && !(m.drawn ?? []).length) {
+    if (rx && rxv.differs) {
+      touched.add(REACTIONS_PATH);
+      const from = reactionsText(rx.read), to = reactionsText(rx.planned);
+      const k = `.\u0000${REACTIONS}\u0000${from}\u0000${to}`;
+      const c = changes.get(k) ?? { part: '.', field: REACTIONS, from, to, members: 0, sample: [] };
+      c.members++;
+      if (c.sample.length < 3) c.sample.push(m.name);
+      changes.set(k, c);
+    }
+    if (state === 'update' && divs.length === 0 && extras.length === 0 && dropped.length === 0 && !(m.drawn ?? []).length && !rxv.differs) {
       counts.reapplied++;
       const k = '.\u0000stamp\u0000\u0000';
       const c = changes.get(k) ?? { part: '.', field: 'stamp', from: planMoved ? 'an earlier plan' : 'an earlier executor revision', to: 're-applied — no field-level difference visible', members: 0, sample: [] };
@@ -526,7 +556,7 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
   // THE PREVIEW HASH covers what the preview says AND the file state it was read from — each member's id,
   // stamp and current node hashes — so a confirm (PR 2) can refuse an apply over a file that moved after
   // the preview even where the preview's own text would not have changed.
-  const fingerprint = read.members.map((m) => [m.id, m.name, m.stamp, baselineOf(m.snap).nodes]);
+  const fingerprint = read.members.map((m) => { const b = baselineOf(m.snap); return [m.id, m.name, m.stamp, b.nodes, b.reactions ?? null]; });
   const previewHash = fnv(JSON.stringify([body, fingerprint]));
   return { ...body, previewHash };
 };
@@ -602,7 +632,7 @@ const liveNode = (set: LiveSet, m: HostMember): { name?: unknown; setSharedPlugi
 export type Difference = { part: string; field: string; plan: string; file: string };
 
 /** Every field a member's snapshot differs from its plan in, by part (`.` for the member itself). */
-export const differencesOf = (plan: AnatomyPlan, m: HostMember, ports: ReadPorts): Difference[] => {
+export const differencesOf = (plan: AnatomyPlan, m: HostMember, ports: ReadPorts, rx?: { planned: ReadReaction[]; read: ReadReaction[] } | null): Difference[] => {
   const rootName = plan.root.name;
   const rel = (p: string): string => (p === rootName ? '.' : p.startsWith(`${rootName}/`) ? p.slice(rootName.length + 1) : p);
   const out: Difference[] = diffAnatomy([plan], [m.snap as unknown as HostNode], () => m.name, ports)
@@ -615,15 +645,16 @@ export const differencesOf = (plan: AnatomyPlan, m: HostMember, ports: ReadPorts
   droppedFills(plan.root, m.snap, '.', ports, dropped);
   for (const { part, file } of dropped) out.push({ part, field: 'fill', plan: 'none', file });
   for (const f of m.drawn ?? []) out.push({ part: f.part, field: f.field, plan: f.want, file: f.file });
+  if (rx && reactionVerdict(rx.planned, rx.read).differs) out.push({ part: '.', field: REACTIONS, plan: reactionsText(rx.planned), file: reactionsText(rx.read) });
   return out;
 };
 
-export const captureVerdict = (plan: AnatomyPlan | undefined, m: HostMember, ports: ReadPorts): { record: boolean; reason: string; differences?: Difference[] } => {
+export const captureVerdict = (plan: AnatomyPlan | undefined, m: HostMember, ports: ReadPorts, rx?: { planned: ReadReaction[]; read: ReadReaction[] } | null): { record: boolean; reason: string; differences?: Difference[] } => {
   if (!plan) return { record: false, reason: 'not in the plan' };
   if (!m.stamp) return { record: false, reason: 'unstamped' };
   if (m.baseline) return { record: false, reason: 'already has a baseline' };
   if (planHalf(m.stamp) !== planHalf(memberStamp(plan))) return { record: false, reason: 'built from an earlier plan' };
-  const differences = differencesOf(plan, m, ports);
+  const differences = differencesOf(plan, m, ports, rx);
   if (differences.length) return { record: false, reason: `differs from the plan in ${differences.length} place(s)`, differences };
   return { record: true, reason: 'recorded' };
 };
@@ -638,8 +669,10 @@ export const captureSet = async (set: LiveSet, plans: AnatomyPlan[], ports: Read
   const view = ownedView(read ?? await readSetView(set, breathe, (ports as UpdatePorts).drawVars));
   let recorded = 0;
   const skipped: { member: string; reason: string; differences?: Difference[] }[] = [];
+  const plannedRx = reactionMap(plans.map((p) => planComponentName(p)));
   for (const m of view.members) {
-    const v = captureVerdict(planned.get(coordKey(m.name)), m, ports);
+    const plan = planned.get(coordKey(m.name));
+    const v = captureVerdict(plan, m, ports, plan ? memberReactions(plannedRx, plan, m) : null);
     if (!v.record) { skipped.push({ member: m.name, reason: v.reason, ...(v.differences ? { differences: v.differences } : {}) }); continue; }
     // BY THE NODE ID IT WAS READ FROM (#2301), so a set reordered while it was read cannot put the record on another
     // member. A node that is gone, or no longer carries the name it was read under, is left out.

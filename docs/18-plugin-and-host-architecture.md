@@ -93,6 +93,9 @@ plugin-built Button set of 576 members, through the Desktop Bridge and the agent
   reactions. Its siblings' reactions still pointed at the old id, which resolves to an orphan node (`removed:
   false`, `parent: null`, kept for undo), so they dangle with no error anywhere. A build that writes reactions
   therefore has to write them from the plan on every apply, by state, rather than keep what is there.
+- **Built (#2466, owner decision Q238 A).** `apps/plugin/src/reactions.ts` plans them from the `state` axis; the
+  executor writes them from that plan on every build and in-place update; the as-built record holds them, so the dry
+  run reads a hand-removed one as a hand edit and a destination with no `parent` as dangling.
 
 **What the API cannot express** (the real boundary — this is the "lossy" line, precisely):
 - **Behaviour / interaction logic** — a working focus trap, arrow-key menu nav, a state machine. Figma has

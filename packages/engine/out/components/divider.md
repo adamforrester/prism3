@@ -48,7 +48,7 @@ A divider holds no copy.
 | --- | --- | --- | --- | --- |
 | `orientation` | enum: 'horizontal' \| 'vertical' | `horizontal` | no | Which way the rule runs. horizontal spans the width of its container and separates content stacked above and below it; vertical spans the height of its container and separates items side by side. A vertical rule sets aria-orientation="vertical"; horizontal is the default and needs no attribute. |
 | `inset` | enum: 'none' \| 'inset' \| 'middle-inset' | `none` | no | How far the rule sits in from its container's edges. none runs edge to edge; inset starts the rule 16px in from the start edge, so it lines up with indented content such as list text after an avatar; middle-inset indents both ends. The start edge follows text direction. A vertical rule takes none or middle-inset only. |
-| `decorative` | boolean | `true` | no | Whether the rule is only visual. true (the default) hides it from assistive technology with aria-hidden="true". Set false when the rule marks a real break in the content: it becomes a separator, an \<hr> for a horizontal rule. |
+| `decorative` | boolean | `true` | no | Whether the rule is only visual. true (the default) hides it from assistive technology with aria-hidden="true". Set false when the rule marks a real break in the content: it becomes a separator, an \<hr> for a horizontal rule, drawn in border.tertiary so it reaches 3:1 on every background. |
 
 ## States
 
@@ -66,7 +66,7 @@ None — not interactive.
 - **Role:** none with aria-hidden="true" by default, because a divider is decorative unless set otherwise; with decorative=false, separator (native \<hr> for a horizontal rule, role="separator" with aria-orientation="vertical" for a vertical one)
 - **WCAG:**
   - 1.3.1 Info and Relationships — a rule that marks a real break in content is a separator, so assistive technology hears the break a sighted reader sees
-  - 1.4.11 Non-text Contrast — a decorative divider carries no information and needs no contrast minimum; a divider that genuinely communicates a boundary should clear 3:1. On a tinted surface, such as background.secondary or background.tertiary in light mode, the default rule does not reach 3:1, so a divider that marks a real boundary (decorative=false) needs more than the default rule there.
+  - 1.4.11 Non-text Contrast — a decorative divider carries no information and needs no contrast minimum. A divider that marks a real boundary (decorative=false) uses border.tertiary, which reaches 3:1 on every background.
 - **Focus:** None. A divider is not focusable and takes no place in the tab order.
 - **ARIA:** By default the rule sets aria-hidden="true", so a screen reader does not announce a break that means nothing. With decorative=false, an \<hr> needs no attributes, and a vertical rule sets role="separator" and aria-orientation="vertical".
 

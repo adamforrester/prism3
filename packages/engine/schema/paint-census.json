@@ -293,12 +293,12 @@
       "set": {
         "members": 20,
         "assignments": 40,
-        "sha256": "9220c30b7e43c5018f9f338921df1bf62bc3ba1389ebf05f4d9a3356aaa35cd4"
+        "sha256": "a6426425bcf8c668ead23a27ccdf88ce4af0bf93d833e3c20be203b5f0acfe1a"
       },
       "grid": {
         "members": 20,
         "assignments": 40,
-        "sha256": "5cdaafa155a9ed752f2f256f1aa22bcd682d944391c2b9b8596c2323d475bc07"
+        "sha256": "53261d7fd48526b501a417a8ec48e9080b57f89c84a395afa75544745f9b9349"
       }
     },
     "tag": {
