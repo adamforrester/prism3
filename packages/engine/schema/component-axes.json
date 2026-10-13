@@ -309,6 +309,7 @@
         "info-circle",
         "info-circle-filled",
         "link",
+        "menu",
         "minus",
         "minus-filled",
         "more-horizontal-filled",
@@ -325,7 +326,7 @@
         "warning-triangle-filled"
       ]
     },
-    "members": 44
+    "members": 45
   },
   "icon-button": {
     "axes": {

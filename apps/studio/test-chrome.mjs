@@ -3627,12 +3627,15 @@ const EMITTED_FLOOR = (() => {
   };
   return Object.fromEntries(['light', 'dark', 'hc-light', 'hc-dark'].map((m) => {
     const t = treeFor(m);
-    const step = leafAt(t, `${root}.color.foreground.brand`)?.$extensions?.prism3?.against ?? null;
+    // #2552: the overlays carry no `$extensions`, so `against` is read from the canonical tree's own record for this
+    // mode (its `modes.<mode>` entry, else the leaf's), the same tree the engine writes and the projection reads.
+    const recorded = (path) => { const x = leafAt(base, path)?.$extensions?.prism3; return (m === 'light' ? undefined : x?.modes?.[m]?.against) ?? x?.against ?? null; };
+    const step = recorded(`${root}.color.foreground.brand`);
     const hex = step ? (resolveHex(t, `${root}.color.${step}`) ?? resolveHex(t, `${root}.core.palette.${step}`)) : null;
     // GR2: each bold fill's emitted hex and what it is measured against, for its badge's expected ratio.
     // A mode's overlay carries only the leaves whose VALUE varies, so a fill whose hex is the same in every mode keeps
     // its per-mode `against` on the base leaf (`$extensions.prism3.modes.<mode>`), read first.
-    const againstIn = (path) => leafAt(base, path)?.$extensions?.prism3?.modes?.[m]?.against ?? leafAt(t, path)?.$extensions?.prism3?.against ?? null;
+    const againstIn = (path) => recorded(path);
     const fills = Object.fromEntries(FLOOR_BADGED.map((sem) => [sem, { hex: resolveHex(t, `${root}.color.foreground.${sem}`), against: againstIn(`${root}.color.foreground.${sem}`) }]));
     // Q13(a): each on-fill card's two roles, emitted hexes, for the drawn-pairing badge's oracle.
     const roles = Object.fromEntries(ON_FILL_CARDS.flat().map((k) => [k, resolveHex(t, `${root}.color.${k}`)]));

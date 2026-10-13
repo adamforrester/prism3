@@ -48,7 +48,15 @@ imported from its manifest for development.
 Commands: `status`, `apply-theme {input}`, `build-components {def?}`, `file-setup`,
 `style-guide {collections?, types?, tables?}`, `prune {input, confirm}`, `readback` — the same seven as the mailbox, run through the same handlers the
 panel's buttons reach. `prune` with `confirm: true` deletes; send `confirm: false` first and report
-the preview.
+the preview. `status` lists every command the running build answers.
+
+**A dev build of the plugin also answers `run-code {code, timeoutMs?}`** (#2530): `code` runs in the plugin's main
+thread as the body of an async function, so it may `await` and `return`, and reaches `figma` as a global.
+`result.data.value` is the returned value as JSON, `result.logs` the console lines printed while it ran; a syntax
+error, a throw or a timeout (30 s by default, `timeoutMs` up to 600000) comes back as `error.code: 'handler-threw'`.
+**A timeout stops the waiting, not the code:** the run may still be going, and a write it makes afterwards can still
+land, so read the file again before relying on its state. This server needs no change for it: `figma_run` passes any
+`cmd` through. A release build answers it `unknown-command`.
 
 One command runs at a time. `figma_run` fails as a tool error (`isError`) only when no result can
 come back: no plugin connected, a timeout (default 600 s), or the plugin disconnecting mid-run. A

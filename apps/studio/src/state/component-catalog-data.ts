@@ -18,7 +18,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "spacing": [],
     "buildable": true,
     "reason": null,
-    "members": 44,
+    "members": 45,
     "nests": []
   },
   {

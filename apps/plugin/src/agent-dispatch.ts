@@ -29,7 +29,8 @@
 import { ENGINE_VERSION } from '@prism3/engine/version';
 import { AGENT_PROTOCOL_VERSION, parseCommand, failedResult } from './agent-protocol';
 import type { UpdateChoiceArgs } from './agent-protocol';
-import type { AgentResult, AgentTransport, AgentProgress, ValidCommand, AgentCmd } from './agent-protocol';
+import type { AgentResult, AgentTransport, AgentProgress, ValidCommand, AgentCmd, DevCmd } from './agent-protocol';
+import { RUN_CODE, parseRunCode, runCode } from './dev-commands';
 import type { MainToUi, StyleGuideOptions } from './messages';
 import type { BrandInput } from '@prism3/engine/theme';
 import { allLeaves, leafPageName } from './file-taxonomy';
@@ -148,7 +149,7 @@ type Deps = {
 
 /** Per-command routes into the table. The ONLY place a command meets a handler — see the header. */
 type Route = (c: ValidCommand, a: AgentActions, sink: ActionSink, d: Deps) => Promise<void>;
-export const ROUTES: { [C in AgentCmd]: Route } = {
+export const ROUTES: { [C in Exclude<AgentCmd, DevCmd>]: Route } = {
   status: async (_c, _a, sink, d) => { sink.data(await d.status()); },
   'apply-theme': (c, a, sink) => a.applyTheme((c as Extract<ValidCommand, { cmd: 'apply-theme' }>).args.input, sink),
   'build-components': (c, a, sink) => a.buildComponents((c as Extract<ValidCommand, { cmd: 'build-components' }>).args.def, sink),
@@ -217,7 +218,17 @@ export const createDispatcher = (deps: Deps) => {
   };
   const runOne = async (raw: unknown, transport: AgentTransport): Promise<AgentResult> => {
     const startedAt = now().toISOString();
-    const parsed = parseCommand(raw);
+    let parsed = parseCommand(raw);
+    // #2530, dev builds only: a dev command's envelope passes every envelope check and stops at `unknown-command`, the
+    // one place a dev command is let through. `PRISM3_DEV` is false in a release, so this and `dev-commands.ts` go.
+    if (PRISM3_DEV && !parsed.ok && parsed.error.code === 'unknown-command' && parsed.cmd === RUN_CODE) {
+      const r = raw as { v: number; id: string; args?: unknown; issuedAt: string };
+      const a = r.args === undefined ? {} : r.args;
+      const rc = a && typeof a === 'object' && !Array.isArray(a) ? parseRunCode(a as Record<string, unknown>) : 'args for \'run-code\' must be an object';
+      parsed = typeof rc === 'string'
+        ? { ok: false, id: parsed.id, cmd: parsed.cmd, error: { code: 'bad-args', message: rc } }
+        : { ok: true, command: { v: r.v, id: r.id, cmd: RUN_CODE, args: rc, issuedAt: r.issuedAt } };
+    }
     if (!parsed.ok) {
       return failedResult({ id: parsed.id ?? '', cmd: parsed.cmd, transport, engineVersion: ENGINE_VERSION, at: startedAt }, parsed.error);
     }
@@ -257,7 +268,10 @@ export const createDispatcher = (deps: Deps) => {
     };
     try { deps.onStart?.(c.id, c.cmd, c.cmd === 'update-components' && c.args.confirm === true); } catch { /* a reader; see `forward` */ }
     try {
-      await teeConsole(onLine, () => ROUTES[c.cmd](c, deps.actions, sink, deps));
+      // #2530: the dev command is a dev build's only; in a release the branch is folded away with `dev-commands.ts`.
+      await teeConsole(onLine, () => (PRISM3_DEV && c.cmd === RUN_CODE
+        ? runCode((c as Extract<ValidCommand, { cmd: 'run-code' }>).args, sink.data)
+        : ROUTES[c.cmd as Exclude<AgentCmd, DevCmd>](c, deps.actions, sink, deps)));
     } catch (e) {
       return {
         ...failedResult({ id: c.id, cmd: c.cmd, transport, engineVersion: ENGINE_VERSION, at: startedAt },
@@ -284,8 +298,10 @@ export const createDispatcher = (deps: Deps) => {
     const verdict = verdicts.length ? verdicts[verdicts.length - 1] : null;
     if (verdicts.length > 1) data.earlierVerdicts = verdicts.slice(0, -1);
     // A write command that posted no verdict at all is not a success: the panel would still say pending.
-    if (!verdict && c.cmd !== 'status') data.noVerdict = 'the handler returned without reporting a verdict';
-    const ok = (verdict !== null || c.cmd === 'status') && verdicts.every((v) => !('ok' in v) || v.ok);
+    // A read posts no verdict: `status`, and in a dev build its dev command, whose value is its data (#2530).
+    const read = c.cmd === 'status' || (PRISM3_DEV && c.cmd === RUN_CODE);
+    if (!verdict && !read) data.noVerdict = 'the handler returned without reporting a verdict';
+    const ok = (verdict !== null || read) && verdicts.every((v) => !('ok' in v) || v.ok);
     return {
       v: AGENT_PROTOCOL_VERSION, id: c.id, cmd: c.cmd, ok,
       startedAt, finishedAt: now().toISOString(), engineVersion: ENGINE_VERSION, transport,

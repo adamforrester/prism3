@@ -759,5 +759,32 @@ ok(halfRes.orphans.find((o) => o.name === 'color')!.names.includes(nbVar('color/
     `#1646 color before opacity: every wash names its missing opacity variable (${coldRes.misses.length}: ${coldRes.misses[0]})`);
 }
 
+// ---- #2566: Apply Theme UPDATES an existing variable's scopes, not only a new one's ---------------------
+// Icon color roles lost STROKE_COLOR (every icon is a fill). A file written before that holds icon variables
+// still scoped [FRAME_FILL, SHAPE_FILL, STROKE_COLOR]; re-applying must rewrite those scopes in place on the
+// SAME variables (same id, nothing created), or the border picker keeps offering icon colors in every file
+// that already exists. The old scopes are seeded by hand here, and the expected set is a literal — not read
+// off the plan — so a write path that skips scopes on update, or a plan that regains STROKE_COLOR, fails by name.
+{
+  const oldShim = new VariablesShim();
+  await opacityFirst(oldShim);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies VariablesApi
+  await applyWritePlan(plan, oldShim as any);
+  const isIconVar = (v: ShimVar) => v.resolvedType === 'COLOR' && v.name.startsWith(nbVar('color/')) && v.name.split('/').includes('icon');
+  const seeded = oldShim.vars.filter(isIconVar);
+  for (const v of seeded) v.scopes = ['FRAME_FILL', 'SHAPE_FILL', 'STROKE_COLOR'];
+  const idsBefore = seeded.map((v) => v.id).join(',');
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies VariablesApi
+  const upd = await applyWritePlan(plan, oldShim as any);
+  const after = oldShim.vars.filter(isIconVar);
+  const wrong = after.filter((v) => [...v.scopes].sort().join(',') !== 'FRAME_FILL,SHAPE_FILL');
+  ok(seeded.length >= 20 && ['color/icon/', 'color/interactive/', 'color/disabled/icon', 'color/inverse/icon/'].every((p) => seeded.some((v) => v.name.startsWith(nbVar(p)))),
+    `#2566 the seeded file holds icon variables of every kind (${seeded.length})`);
+  ok(upd.colorCreated === 0 && after.map((v) => v.id).join(',') === idsBefore,
+    `#2566 re-apply updates the existing icon variables in place (created ${upd.colorCreated}, same ${after.length} ids)`);
+  ok(wrong.length === 0,
+    `#2566 re-apply rewrites every existing icon variable's scopes to FRAME_FILL + SHAPE_FILL${wrong.length ? ` — STILL: ${wrong.slice(0, 4).map((v) => `${v.name}=[${v.scopes.join(',')}]`).join('; ')}` : ''}`);
+}
+
 console.log(`\nplugin write-adapter: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'}`);
 if (failed) process.exit(1);

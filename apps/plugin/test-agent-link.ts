@@ -123,6 +123,7 @@ const g = globalThis as Record<string, unknown>;
 g.figma = host;
 g.__html__ = '';
 g.PRISM3_BUILD = '2026-09-25T00:00:00Z tree-test0000';
+g.PRISM3_DEV = true;   // the dev build's define (#2530); the run-code section sets it false for its release arm
 
 // The poll loop runs on `setTimeout`. Captured, so the suite ticks it by hand and nothing runs behind it.
 const realSetTimeout = globalThis.setTimeout;
@@ -208,7 +209,8 @@ section('status');
   ok(st?.engineVersion === ENGINE_VERSION && st?.build === g.PRISM3_BUILD, 'with the engine version and the plugin build');
   ok(st?.file?.themed === false && st?.file?.brandInput === 'absent', "and the file's themed state (unthemed here)");
   ok(st?.link?.on === true, 'and the link state');
-  ok(JSON.stringify(st?.commands) === JSON.stringify(AGENT_COMMANDS), 'and the commands this build answers');
+  // A dev build (`PRISM3_DEV` true here) answers its dev command after the stable ones (#2530); a release lists none.
+  ok(JSON.stringify(st?.commands) === JSON.stringify([...AGENT_COMMANDS, 'run-code']), `and the commands this build answers: the stable ones, then run-code (${JSON.stringify(st?.commands)})`);
   ok(r.result?.verdict === null, 'status has no UI verdict — it has no UI twin');
 }
 
@@ -935,5 +937,68 @@ section('snippets — short enough to paste');
 }
 
 g.setTimeout = realSetTimeout;
+
+/* ── run-code (#2530, owner Q239 A): the dev build's one dev command ─────────────────────────────────── */
+// After the real setTimeout is back: the command's timeout runs on it. EXPECTED is written here (values, log lines,
+// error codes and the words of each message); ACTUAL is the dispatcher's envelope. `PRISM3_DEV` is the build's
+// define, set on globalThis the way `PRISM3_BUILD` is above, and read at call time, so the last arm can be a release.
+section('run-code — a dev build runs code in the main thread and reports in our envelope; a release build refuses it');
+{
+  const noop = async () => undefined;
+  const d = createDispatcher({
+    actions: {
+      applyTheme: noop, buildComponents: noop, fileSetup: noop, styleGuide: noop, prune: noop, seedFromFile: noop,
+      updateComponents: noop, captureBaseline: noop, adoptMembers: noop,
+    } as unknown as Parameters<typeof createDispatcher>[0]['actions'],
+    status: async () => ({}),
+    census: async () => null,
+  });
+  const run = (args: Record<string, unknown>) => d(envelope('run-code' as never, args as never), 'mailbox');
+  g.PRISM3_DEV = true;
+  let r = await run({ code: 'return 1 + 1;' });
+  ok(r.ok === true && r.result?.data.value === 2 && r.result?.data.valueType === 'number' && r.result?.verdict === null,
+    `run-code value: "return 1 + 1" comes back ok with data.value 2 and no verdict (${JSON.stringify(r.result?.data ?? r.error)})`);
+  r = await run({ code: 'await new Promise((res) => setTimeout(res, 5));\nreturn { page: figma.root.name, list: [1, "two"] };' });
+  ok(r.ok === true && JSON.stringify(r.result?.data.value) === JSON.stringify({ page: (host as { root: { name: string } }).root.name, list: [1, 'two'] }),
+    `run-code await + figma: the code awaits, reaches figma as a global and returns an object as JSON (${JSON.stringify(r.result?.data.value)})`);
+  r = await run({ code: 'console.log("first", 2);\nconsole.warn("second");\nreturn null;' });
+  ok(r.ok === true && JSON.stringify(r.result?.logs) === JSON.stringify(['first 2', '[warn] second']) && r.result?.data.valueType === 'null',
+    `run-code logs: the console lines printed while it ran come back in result.logs (${JSON.stringify(r.result?.logs)})`);
+  r = await run({ code: 'throw new Error("boom");' });
+  ok(r.ok === false && r.error?.code === 'handler-threw' && r.error?.message === 'boom',
+    `run-code throw: a throw comes back as handler-threw with its message (${JSON.stringify(r.error)})`);
+  r = await run({ code: 'return 1 +;' });
+  ok(r.ok === false && r.error?.code === 'handler-threw' && /^run-code: the code does not parse — /.test(r.error?.message ?? ''),
+    `run-code syntax: code that does not parse is refused as handler-threw, saying so (${JSON.stringify(r.error)})`);
+  // A timeout stops the WAITING, not the code (#2544 review): the message says so, and a write the code makes after the
+  // report still lands. EXPECTED, both halves, written here.
+  g.__lateWrite = undefined;
+  r = await run({ code: 'await new Promise((res) => setTimeout(res, 60));\nglobalThis.__lateWrite = "landed";\nreturn 1;', timeoutMs: 20 });
+  ok(r.ok === false && r.error?.code === 'handler-threw'
+    && r.error?.message === 'run-code: timed out after 20 ms; the code may still be running, and anything it writes may still land',
+    `run-code timeout: a run past its timeoutMs is reported as timed out, saying its code may still be running (${JSON.stringify(r.error)})`);
+  const lateAtReport = g.__lateWrite;
+  await new Promise((res) => setTimeout(res, 120));
+  ok(lateAtReport === undefined && g.__lateWrite === 'landed',
+    `run-code timeout: the timed-out code did go on, and its write landed after the report, as the message warns (at the report ${JSON.stringify(lateAtReport)}, after ${JSON.stringify(g.__lateWrite)})`);
+  // The args checks, each by its own message (#2544 review: neither was tested).
+  const badTimeouts = [0, 600001, '30'].map((t) => ({ t, rr: null as unknown }));
+  for (const b of badTimeouts) b.rr = await run({ code: 'return 1;', timeoutMs: b.t });
+  ok(badTimeouts.every((b) => (b.rr as AgentResult).error?.code === 'bad-args' && (b.rr as AgentResult).error?.message === 'run-code takes args.timeoutMs: milliseconds from 1 to 600000'),
+    `run-code args: a timeoutMs of 0, 600001 or a string is bad-args, naming the range (${badTimeouts.map((b) => `${JSON.stringify(b.t)} → ${(b.rr as AgentResult).error?.code}`).join(', ')})`);
+  const rs = await d(envelope('run-code' as never, 'return 1;' as never), 'mailbox');
+  const ra = await d(envelope('run-code' as never, ['return 1;'] as never), 'mailbox');
+  ok([rs, ra].every((x) => x.error?.code === 'bad-args' && x.error?.message === "args for 'run-code' must be an object"),
+    `run-code args: args that are a string or an array are bad-args, "args for 'run-code' must be an object" (${[rs, ra].map((x) => JSON.stringify(x.error)).join(', ')})`);
+  r = await run({});
+  ok(r.ok === false && r.error?.code === 'bad-args' && /needs args\.code/.test(r.error?.message ?? ''),
+    `run-code args: no code is bad-args (${JSON.stringify(r.error)})`);
+  g.PRISM3_DEV = false;
+  r = await run({ code: 'return 1;' });
+  ok(r.ok === false && r.error?.code === 'unknown-command',
+    `run-code release: with PRISM3_DEV false (a release build) the command is unknown-command and nothing runs (${JSON.stringify(r.error)})`);
+  g.PRISM3_DEV = true;
+}
+
 console.log(`\n${failed === 0 ? '✅ ALL PASS' : `❌ ${failed} FAILED`} — ${executed} assertions executed`);
 process.exit(failed === 0 ? 0 : 1);
