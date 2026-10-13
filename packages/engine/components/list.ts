@@ -13,7 +13,7 @@
  * normal copy, use the native list; if a designer controls its spacing, markers or icons, use the component." It is
  * carried in `summary` (the Figma description), `ai.avoidWhen` and the docs page.
  *
- * THE ITEM GAP (DRAFT, owner item): 8/12/16 (`space.100` / `150` / `200`), and it follows density.
+ * THE ITEM GAP (owner decision Q280.2 A): 8/12/16 (`space.100` / `150` / `200`), and it follows density.
  */
 import { ComponentDef } from '../component-schema';
 
@@ -57,7 +57,7 @@ export const list: ComponentDef = {
   densitySpacing: ['size.{size}.gap'],
 
   tokens: {
-    // THE ITEM GAP (DRAFT, owner item): 8/12/16 at comfortable density, moved one step by density.
+    // THE ITEM GAP (owner decision Q280.2 A): 8/12/16 at comfortable density, moved one step by density.
     'size.small.gap': 'space.100',
     'size.medium.gap': 'space.150',
     'size.large.gap': 'space.200',
@@ -143,7 +143,7 @@ export const list: ComponentDef = {
   ai: {
     primaryPurpose: 'A short run of text items, each after a bullet, a number or an icon, laid out with bound spacing and markers.',
     whenToUse: 'A short set of points a designer lays out in UI: password rules, feature lists, icon checklists, steps. Ordered when the order means something.',
-    avoidWhen: 'The list is running text a writer edits as normal copy, such as an article body, terms or long help text: if a writer could edit it as normal copy, use the native list; if a designer controls its spacing, markers or icons, use the component. Also avoid it for a choice the user makes (Select, or a listbox), a command menu, navigation links, or values compared across columns (a table).',
+    avoidWhen: 'Running text, such as an article body, terms or long help text. The test: if a writer could edit it as normal copy, use the native list; if a designer controls its spacing, markers or icons, use the component. Also avoid it for a choice the user makes (Select, or a listbox), a command menu, navigation links, or values compared across columns (a table).',
     commonPartners: ['list-item', 'icon', 'text-field'],
     triggerKeywords: ['list', 'bulleted list', 'numbered list', 'ordered list', 'unordered list', 'checklist', 'feature list', 'password rules'],
     generationPriority: 2,

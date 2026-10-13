@@ -10,7 +10,7 @@
  * Shape (Q273.2, Q273.3, Q273.4): `type` [unordered, ordered, icon] × `size` [medium, small, large] = 9 members. No
  * state axis and no reactions: a read list is not interactive.
  *
- * THE MARKER COLUMN. `markerBox` is a FIXED width in every type (`size.{size}.marker-column`, DRAFT 24/32/40), so a
+ * THE MARKER COLUMN. `markerBox` is a FIXED width in every type (`size.{size}.marker-column`, 24/32/40, owner decision Q280.1 A), so a
  * wrapped line and a mixed list keep one text edge: the text wraps under itself, not under the marker (a hanging
  * indent). It is ONE BODY LINE TALL (`control.size.{size}.line-box`, checkbox-row's #1201 construction) and the row is
  * top-aligned, so the marker centers on the first line of a wrapping item instead of the middle of the paragraph.
@@ -67,7 +67,7 @@ export const listItem: ComponentDef = {
     'gap': 'space.0',
     'radius': 'radius.round',
 
-    // THE MARKER COLUMN (DRAFT, owner item): 24/32/40, room for "10." at each size. FIXED: not in `densitySpacing`,
+    // THE MARKER COLUMN (owner decision Q280.1 A): 24/32/40, room for "10." at each size. FIXED: not in `densitySpacing`,
     // because the column is a width the text edge is aligned to, not a space between two things.
     'size.small.marker-column': 'space.300',
     'size.medium.marker-column': 'space.400',
@@ -83,7 +83,7 @@ export const listItem: ComponentDef = {
     'size.medium.dot': 'control.size.md.dot',
     'size.large.dot': 'control.size.lg.dot',
 
-    // THE ICON MARKER (DRAFT, owner item): the icon ladder at the item's rung, 16/20/24, inside the 21/24/27 line box.
+    // THE ICON MARKER (owner decision Q280.5 A, noted): the icon ladder at the item's rung, 16/20/24, inside the 21/24/27 line box.
     // The proposal's one-rung-smaller 16/16/20 would be an `ICON_OFFSET_DEFS` exception, which is the owner's to grant.
     'size.small.icon': 'icon.size.sm',
     'size.medium.icon': 'icon.size.md',

@@ -10,12 +10,12 @@ new tokens, no contract change. Category `data`, aliases `unordered-list`, `orde
 The native Figma list fields, read from `@figma/plugin-typings` 1.131.0 and posted on #2319: `paragraphSpacing` and
 `paragraphIndent` bind variables (on a node, a range and a text style); `listSpacing`, `indentation`, `hangingList` and
 `listOptions` do not. The marker has no field of its own (no glyph, size, color or start number), so its ink can only
-come from the text's fill, which does bind. The proposal's "can't bind" was right for size, partly wrong for the indent,
-and wrong for ink as stated. What Dev Mode shows for a native list stays UNVERIFIED: this lane cannot open it.
+come from the text's fill, which does bind. The proposal's "can't bind" was right for size and for the list indent (only a first-line `paragraphIndent` binds),
+wrong for ink as stated. What Dev Mode shows for a native list stays UNVERIFIED: this lane cannot open it.
 
 ### What the construction is
 
-- **The marker column** is a box with a bound width (`space.300/400/500`, DRAFT 24/32/40) and a bound height
+- **The marker column** is a box with a bound width (`space.300/400/500`, 24/32/40, Q280.1 A) and a bound height
   (`control.size.*.line-box`), both FIXED, in a top-aligned row: checkbox-row's #1201 construction, so a wrapping item
   keeps its marker on line one. The text fills the rest of the row and wraps under itself (the hanging indent).
 - **One marker per type**, each a `presentWhen`-gated part: a round `control.size.*.dot` box on `color.icon.primary`, a
@@ -37,6 +37,18 @@ and wrong for ink as stated. What Dev Mode shows for a native list stays UNVERIF
 - **The native-list rule** (Q273.9) is in `ai.avoidWhen` and `docs.usage` in the decision's words. The Figma
   description is `summary`, at most 100 characters, so it carries a short form ("For running text, use a native text
   list.") rather than the full test.
+
+### Owner decisions Q280 (all A, 2026-10-13)
+
+The draft values this PR built to are approved: the marker column 24/32/40 (`space.300/400/500`), fixed, not
+density-following; the item gap 8/12/16 (`space.100/150/200`), density-following (compact 6/8/12, spacious 12/16/20);
+the placeholder "List item" and the number default "1."; and the two Figma descriptions as built. Noted as stated: icon
+markers 16/20/24, ordered numbers typed by the designer, and Dev Mode's handling of a native list still unverified (the
+owner checks it by hand).
+
+Review fix: the `swapDefault` refusal of a component-owned glyph was removed as unreachable. `glyphPath` already throws
+for any name outside the icon vocabulary, and the only component-owned glyph (`spinner`) is outside it, so the second
+throw could never run and a mutation disabling it passed every test.
 
 ### Traps
 
