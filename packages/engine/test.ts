@@ -52,7 +52,7 @@ import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, gradientTransform
 import { verifyReadback, verifyFloatReadback, verifyTypographyReadback, ReadbackSnapshot } from './read-back';
 import { tailOf } from './figma-names';
 import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION, UnrecognizedPersistedInputError } from './persist-input';
-import { validateComponentDef, VARIANT_AXES, axisKindOf, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, isExcludedCoordinate, fillPaintKey, replacesCandidates, statesOf, PAINT_SLOTS, ComponentDef, AnatomyDef } from './component-schema';
+import { validateComponentDef, VARIANT_AXES, axisKindOf, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, variantAxisFigmaName, isExcludedCoordinate, fillPaintKey, replacesCandidates, statesOf, PAINT_SLOTS, ComponentDef, AnatomyDef } from './component-schema';
 import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, settleChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, figmaTextStyleName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, applySpacingDensity, applyMinWidthRatio, DEFAULT_BUTTON_LAYOUT, isButtonFamily, resolveWeightIntent, DEFAULT_WEIGHT_AVAILABILITY, isPillable, PILL_RADIUS_DERIVATION, PILL_RADIUS_RUNG, BOXED_RADIUS_RUNG, HAIRLINE_RADIUS_RUNG, CONTROL_SHAPE_RUNG, ROUNDED_RADIUS_RUNG, variantSetErrors, variantNameErrors, glyphLayerOpacities, type AnatomyPlan, type SwapFound } from './anatomy-figma';
 import type { ControlShape } from './scale';
 import { COMPONENT_RENAMES, coordKey, renameCoordinate, isDeclaredDrop, unaccounted as renamesUnaccounted, danglingTargets as renamesDangling, type ComponentRename, type AxesBaseline } from './component-renames';
@@ -3647,6 +3647,7 @@ for (const b of brands) {
       'switch-row': { keys: ['gap'], sizes: ['small', 'medium'] },
       tag: { keys: ['padding-x', 'select.gap', 'dismissible.visible-gap', 'check-gap', 'select.padding-end', 'dismissible.padding-end'], sizes: ['small', 'medium', 'large'] },
       tab: { keys: ['padding-x', 'gap'], sizes: ['small', 'medium', 'large'] },
+      accordion: { keys: ['pad-x', 'pad-y', 'gap', 'panel-pad-end'], sizes: ['small', 'medium', 'large'] },
     };
     const BTN = { compact: 'small 12/8/4/6 · medium 12/8/6/6 · large 20/12/6/8', comfortable: 'small 16/12/6/8 · medium 16/12/8/8 · large 24/16/8/12', spacious: 'small 20/16/8/12 · medium 20/16/12/12 · large 32/20/12/16' };
     const ROWS = { compact: 'small 6 · medium 6 · large 8', comfortable: 'small 8 · medium 8 · large 12', spacious: 'small 12 · medium 12 · large 16' };
@@ -3662,6 +3663,9 @@ for (const b of brands) {
       tag: { compact: 'small 6/4/4/4/6/0 · medium 8/6/6/4/8/0 · large 12/8/6/6/12/0', comfortable: 'small 8/6/6/4/8/0 · medium 12/8/8/6/12/0 · large 16/12/8/8/16/0', spacious: 'small 12/8/8/6/12/0 · medium 16/12/12/8/16/0 · large 20/16/12/12/20/0' },
       // Tab (#2416): padding-x / icon→label→count gap. Comfortable is the proposal's 12/6 · 16/8 · 20/8.
       tab: { compact: 'small 8/4 · medium 12/6 · large 16/6', comfortable: 'small 12/6 · medium 16/8 · large 20/8', spacious: 'small 16/8 · medium 20/12 · large 24/12' },
+      // Accordion (#2417, DRAFT): header inline / header block / glyph-to-title gap / panel bottom inset. Comfortable is
+      // the proposal's 12/8/8 · 16/12/12 · 24/16/16, with the panel's bottom inset matching the inline padding.
+      accordion: { compact: 'small 8/6/6/8 · medium 12/8/8/12 · large 20/12/12/20', comfortable: 'small 12/8/8/12 · medium 16/12/12/16 · large 24/16/16/24', spacious: 'small 16/12/12/16 · medium 20/16/16/20 · large 32/20/20/32' },
     };
     const wrong: string[] = [];
     for (const [id, spec] of Object.entries(SPECS)) {
@@ -3735,6 +3739,7 @@ for (const b of brands) {
       // type: the sum is what must stay under the padding. A `+` key is summed.
       tag: { prefix: 'sized', lt: [['select.gap+select.label-inset', 'padding-x'], ['dismissible.gap+dismissible.label-inset', 'padding-x'], ['check-gap', 'padding-x']] },
       tab: { prefix: 'sized', lt: [['gap', 'padding-x']] },
+      accordion: { prefix: 'sized', lt: [['gap', 'pad-x']] },
     };
     const GAP_TAILS = ['gap', 'check-gap'];
     const PAD_TAILS = ['padding-x', 'pad-x'];
@@ -13929,7 +13934,8 @@ arm: {
     let fieldsRead = 0;
     for (const d of componentDefs) {
       ok(/^[A-Z][A-Za-z0-9]*(?:\.[A-Z][A-Za-z0-9]*)?$/.test(d.name), `component-names: ${d.id} is named '${d.name}' — one convention: PascalCase, or Family.Part for a family`);
-      ok(d.name.replace('.', '').toLowerCase() === d.id.replace(/-/g, ''), `component-names: '${d.name}' does not read as its id '${d.id}' — the name is the id in PascalCase / Family.Part`);
+      // A building block's id leads with `_` (#2417), which its name does not carry.
+      ok(d.name.replace('.', '').toLowerCase() === d.id.replace(/^_/, '').replace(/-/g, ''), `component-names: '${d.name}' does not read as its id '${d.id}' — the name is the id in PascalCase / Family.Part`);
       for (const f of families) {
         if (d.id.startsWith(`${kebab(f)}-`)) ok(d.name.startsWith(`${f}.`), `component-names: ${d.id} is in the ${f} family (${f}.* names exist) but is named '${d.name}' — name it ${f}.<Part>`);
       }
@@ -16801,7 +16807,7 @@ arm: {
     //     missing from the table fails too: add the row with the brief's category, read from the KB.
     const KB_BRIEF_CATEGORY: Record<string, string> = {
       'badge.md': 'foundations', 'button.md': 'form', 'checkbox.md': 'form', 'icon.md': 'foundations', 'image.md': 'foundations',
-      'inline-message.md': 'feedback', 'radio.md': 'form', 'select.md': 'form', 'spinner.md': 'foundations', 'divider.md': 'foundations',
+      'inline-message.md': 'feedback', 'radio.md': 'form', 'select.md': 'form', 'spinner.md': 'foundations', 'divider.md': 'foundations', 'accordion.md': 'navigation',
       'switch.md': 'form', 'tabs.md': 'navigation', 'tag.md': 'foundations', 'text-field.md': 'form', 'textarea.md': 'form',
     };
     const defDir = resolve(HERE, './components');
@@ -17424,6 +17430,10 @@ arm: {
       { def: select, part: 'value', axes: { size: 3 }, at: { state: 'filled' } },
       { def: textarea, part: 'placeholder', axes: { size: 3 } },
       { def: textarea, part: 'value', axes: { size: 3 }, at: { state: 'filled' } },
+      // ACCORDION (#2417): the title binds Button's three label rungs (owner, 2026-10-11), and the panel placeholder the
+      // three body rungs. The placeholder exists only on an expanded member.
+      { def: componentDefs.find((d) => d.id === 'accordion')!, part: 'label', axes: { size: 3 } },
+      { def: componentDefs.find((d) => d.id === 'accordion')!, part: 'placeholder', axes: { size: 3 }, at: { expansion: 'expanded' } },
     ];
 
     // DIRECTION 1 — the authored table is the corpus. Discovered by walking every def's anatomy for a
@@ -22819,6 +22829,22 @@ arm: {
       ok(variantNameErrors(button, cleanNames).length === 0,
         'variant-product self-check: the clean 576-member set reports nothing');
     }
+    // SELF-CHECK, the missing domain (#2534 review M6): a declared axis key with no domain entry, the shape a domain
+    // keyed by code name while the declared names read display names produces. It was a TypeError that took the whole
+    // loop down; it must be a named error. Driven without mutating the function: the fixture's display name answers
+    // differently on its first read than on later ones, so the domain and the declared names disagree whichever the
+    // function builds first, and one member is keyed by each name so the declared-but-domainless key is always hit.
+    {
+      const acc = componentDefs.find((d) => d.id === 'accordion')!;
+      let reads = 0;
+      const names = { get iconPosition() { return reads++ === 0 ? 'icon position' : 'icon side'; } };
+      const split = { ...acc, figmaProperties: { ...acc.figmaProperties!, variantAxisNames: names } } as ComponentDef;
+      let errs: string[] | undefined;
+      let threw = '';
+      try { errs = variantNameErrors(split, ['icon position=leading', 'icon side=leading']); } catch (e) { threw = String(e); }
+      ok(!threw && (errs ?? []).some((e) => /axis 'icon (position|side)' in member .* is declared but has no declared value domain/.test(e)),
+        `variant-product self-check: a declared axis with no domain is reported by name, not thrown${threw ? ` (THREW ${threw})` : ` (${(errs ?? []).length} error(s))`}`);
+    }
 
     // THE VEIL BEFORE #1318 — value × intensity, solid washes only. Built by removing exactly what #1318 added
     // (the `direction` axis and prop, the part's `gradient`, the two clear-end bindings), and used twice: as the
@@ -25635,7 +25661,7 @@ arm: {
   // supplies that key as the projected STATE, spelled here as a literal so the oracle is not the schema's
   // own constant.
   // `tag` joins (2026-09-27): its check mark is gated on `selection: ['selected']`, the checkbox mark's shape.
-  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'radio-control', 'switch-control', 'select', 'badge', 'tag'];
+  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'radio-control', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion'];
   ok(GATED_EXPECTED.every((n) => gatedDefs.some((d) => d.id === n)) && gatedDefs.length === GATED_EXPECTED.length,
     `#910 the presentWhen projection rule below covers exactly [${GATED_EXPECTED.join(', ')}] — a def gaining a variant-gated part must be represented here, and a def losing one is a stale claim (found: ${gatedDefs.map((d) => d.id).join(', ') || 'none'})`);
   for (const def of gatedDefs) {
@@ -25644,12 +25670,22 @@ arm: {
     for (const [name, part] of Object.entries(def.anatomy!.parts)) {
       if (!part.presentWhen) continue;
       const axes = Object.entries(part.presentWhen);
-      // A part gated on TWO axes is AND-composed, so "supply the axis and expect presence" stops being
-      // the right question — it needs every gate satisfied at once. None exists today; fail rather than
-      // skip, so the arms below cannot go quietly vacuous over one.
-      ok(axes.length === 1,
-        `#910 ${def.id}.${name} gates presence on ${axes.length} axes [${axes.map(([a]) => a).join(', ')}] — the projection arms below supply ONE axis and would report an AND-composed part as spuriously absent. Handle the composition here rather than letting it read as covered`);
-      if (axes.length !== 1) continue;
+      // A part gated on SEVERAL axes is AND-composed (#2417: the accordion indicator's glyphs, on `indicator` and
+      // `expansion`), so "supply one axis and expect presence" is the wrong question. It is asked over the whole
+      // projected set instead: at every member, the part is present exactly when EVERY gate holds there, read off
+      // the member's own coordinate. A gate over several axes that no member satisfies still fails.
+      if (axes.length > 1) {
+        const set = figmaAnatomySet(def, { swapTarget: 'FPO-default-icon' });
+        const has = (n: { name: string; children: unknown[] }): boolean => n.name === name || (n.children as (typeof n)[]).some(has);
+        const wrongAt = set.filter((m) => {
+          const c = Object.fromEntries(planComponentName(m).split(', ').map((kv) => kv.split('=') as [string, string]));
+          return axes.every(([a, vs]) => (vs as readonly string[]).includes(c[variantAxisFigmaName(def.figmaProperties, a)])) !== has(m.root as unknown as { name: string; children: unknown[] });
+        }).map((m) => planComponentName(m));
+        const anywhere = set.some((m) => has(m.root as unknown as { name: string; children: unknown[] }));
+        ok(wrongAt.length === 0 && anywhere,
+          `#910 ${def.id}.${name} gates presence on ${axes.length} axes [${axes.map(([a]) => a).join(', ')}], AND-composed: present at every member where all hold and at no other (${wrongAt.length} wrong${wrongAt.length ? `: ${wrongAt.slice(0, 2).join(' | ')}` : ''}${anywhere ? '' : '; present at no member'})`);
+        continue;
+      }
       const [axis, values] = axes[0];
       // Every OTHER variant axis pinned at its first value, so the only thing varying across the three
       // directions is the gated one.
@@ -29929,6 +29965,147 @@ arm: {
   ok(refuses(rootWith({ ...C, placementWidth: 0 }), /declares a 'center\.placementWidth' that is not a positive number of px/),
     '#2518 schema: a center build width of no size is refused by name');
   ok(validateComponentDef(tabsDef).errors.length === 0, '#2518 schema: Tabs\' own center validates clean');
+}
+
+// ------------------------------------------------------------------- #2417: the accordion and its indicator
+// Each owner decision held against a literal (Q182, Q183): the 24 members and their axes, start as the default
+// position, no hover, pressed or disabled member, the indicator a nested building block exposed on `indicator` and
+// following `expansion`, the panel a native slot present only when open with page ink and no top inset, the nested
+// Divider stretched across the item with no width binding on its instance, and the 44px header floor at every size.
+// EXPECTED is typed here; ACTUAL is the projected plan, so a def that moved fails the arm by name.
+{
+  const acc = componentDefs.find((d) => d.id === 'accordion')!;
+  const ind = componentDefs.find((d) => d.id === '_accordion-indicator')!;
+  const plans = figmaAnatomySet(acc, { swapTarget: 'FPO-default-icon' });
+  const indPlans = figmaAnatomySet(ind, { swapTarget: 'FPO-default-icon' });
+  type PN = { name: string; type: string; children: PN[]; bound?: Record<string, string>; paints?: Record<string, string>; nestTarget?: string; nestVariant?: Record<string, string>; nestExpose?: string[]; layoutAlign?: string; characters?: string };
+  const find = (n: PN, name: string): PN | undefined => (n.name === name ? n : n.children.map((c) => find(c, name)).find(Boolean));
+  // The plan's own CODE coordinate (member names carry Figma display names, #2571: `icon position=leading`).
+  const coord = (p: AnatomyPlan): Record<string, string> => ({ ...(p.coord as Record<string, string>), ...(p.size ? { size: p.size } : {}) });
+  ok(plans.length === 24 && JSON.stringify(acc.variants) === JSON.stringify({ expansion: ['collapsed', 'expanded'], iconPosition: ['leading', 'trailing'], size: ['small', 'medium', 'large'] }),
+    `#2417 accordion: 24 members, expansion × iconPosition × size × state (Q183) (got ${plans.length}, ${JSON.stringify(acc.variants)})`);
+  ok(JSON.stringify(acc.states) === JSON.stringify(['rest', 'focus-visible']) && JSON.stringify(acc.figmaProperties?.stateAxis?.values) === JSON.stringify(['rest', 'focus-visible']),
+    `#2417 accordion: the states are rest and focus-visible only, with no hover (Q182), pressed or disabled (Q183) (got ${JSON.stringify(acc.states)})`);
+  const pos = acc.props.find((p) => p.name === 'iconPosition');
+  ok(acc.variants.iconPosition?.[0] === 'leading' && pos?.default === 'leading', `#2417 accordion iconPosition: leading is the default, first in Figma and in code (Q182) (got ${acc.variants.iconPosition?.[0]}, ${pos?.default})`);
+  // THE AXIS NAME (owner QA, 2026-10-12): `iconPosition`, never a bare `position`, which read as if it could be the
+  // label's. In the def's variants, its Figma axes, its props and every member's name. The old name back fails here.
+  const bare = /(^|, )position=/;
+  ok(!('position' in acc.variants) && JSON.stringify(acc.figmaProperties?.variantAxes) === JSON.stringify(['expansion', 'iconPosition', 'size']) && !acc.props.some((p) => p.name === 'position') && plans.every((p) => /(^|, )icon position=(leading|trailing)(,|$)/.test(planComponentName(p)) && !bare.test(planComponentName(p)) && !/iconPosition=/.test(planComponentName(p))),
+    `#2417 accordion iconPosition (owner QA, #2571): the code axis and prop are iconPosition, and every member's name carries its Figma name "icon position" (got ${JSON.stringify(Object.keys(acc.variants))}; ${planComponentName(plans[0])})`);
+  // THE VALUE NAMES (Q242): `leading | trailing`, as Button names its visuals and Switch row its label position, in
+  // the def, the prop, every member's name and the indicator parts' layer names. An old name back (`start` / `end`,
+  // as a value or a part's lead) fails here by name.
+  const OLD = /\b(?:start|end)\b|^(?:start|end)[A-Z]/;
+  const named = [...plans.map((p) => coord(p).iconPosition), ...(pos?.values ?? []), String(pos?.type), ...Object.keys(acc.anatomy!.parts).filter((n) => /Indicator$|Glyph$/.test(n))];
+  ok(JSON.stringify(pos?.values) === JSON.stringify(['leading', 'trailing']) && named.every((n) => !OLD.test(n)) && ['leadingIndicator', 'leadingGlyph', 'trailingIndicator', 'trailingGlyph'].every((n) => n in acc.anatomy!.parts),
+    `#2417 accordion iconPosition (Q242): the values are leading and trailing in the def, the prop and every member, and the indicator parts are named for them${named.filter((n) => OLD.test(n)).length ? ` — OLD NAME: ${[...new Set(named.filter((n) => OLD.test(n)))].join(', ')}` : ''}`);
+  const glyphs = plans.map((p) => { const c = coord(p); const start = find(p.root as PN, 'leadingGlyph'), end = find(p.root as PN, 'trailingGlyph'); return { c, start, end }; });
+  ok(glyphs.every(({ c, start, end }) => {
+    const g = c.iconPosition === 'leading' ? start : end, other = c.iconPosition === 'leading' ? end : start;
+    return !!g && !other && g.nestTarget === '_accordion-indicator' && g.nestVariant?.expansion === c.expansion && g.nestVariant?.size === c.size && JSON.stringify(g.nestExpose) === JSON.stringify(['indicator']);
+  }), `#2417 accordion indicator: one nested _accordion-indicator per member, at its position, exposing indicator and following the member's expansion and size (Q183)`);
+  ok(plans.every((p) => { const c = coord(p); const panel = find(p.root as PN, 'content'); return c.expansion === 'expanded' ? panel?.type === 'CONTENT_SLOT' : !panel; }),
+    `#2417 accordion panel: a native slot on every expanded member and on no collapsed one (Q182)`);
+  const open = plans.find((p) => coord(p).expansion === 'expanded' && coord(p).size === 'medium')!;
+  const panel = find(open.root as PN, 'content')!, ph = find(open.root as PN, 'placeholder')!;
+  ok(panel.bound?.paddingTop === 'space/0' && panel.bound?.paddingBottom === 'space/200' && ph.paints?.fills === 'color/text/primary' && !!ph.characters,
+    `#2417 accordion panel: no top inset and a bottom one (the start/end block padding), and the placeholder in page ink with its own copy (Q182) (got top ${panel.bound?.paddingTop}, bottom ${panel.bound?.paddingBottom}, ink ${ph.paints?.fills})`);
+  // A WRAP UNDER A COLUMN stretches across it rather than growing down it: measured on a real host, the placeholder
+  // projected with `layoutGrow` ran one line 580px wide out of the 320px panel. The header's title, now in its own
+  // column (`titleBox`, Q262), stretches across it the same way, and the column grows along the header row. Mutation:
+  // the column branch dropped → this arm, by name.
+  type PW = PN & { layoutGrow?: number; textAutoResize?: string };
+  ok(plans.filter((p) => coord(p).expansion === 'expanded').every((p) => { const t = find(p.root as PN, 'placeholder') as PW, l = find(p.root as PN, 'label') as PW; const tb = find(p.root as PN, 'titleBox') as PW; return t.layoutAlign === 'STRETCH' && t.layoutGrow === undefined && t.textAutoResize === 'HEIGHT' && l.layoutAlign === 'STRETCH' && l.textAutoResize === 'HEIGHT' && tb?.layoutGrow === 1; }),
+    `#2417 accordion panel: the placeholder wraps across the panel (a column's stretch, no grow), and the title wraps across its column, which grows along the header row (Q262) (got ${JSON.stringify((({ layoutAlign, layoutGrow, textAutoResize }) => ({ layoutAlign, layoutGrow, textAutoResize }))(ph as PW))})`);
+  ok(plans.every((p) => { const d = find(p.root as PN, 'divider'); return d?.type === 'NESTED_INSTANCE' && d.nestTarget === 'divider' && d.layoutAlign === 'STRETCH' && !d.bound?.width; }),
+    `#2417 accordion divider: the Divider nested on every member, stretched across it, with no width binding on the instance (measured: the stretch drops the 720px one)`);
+  const FLOOR: Record<string, string> = { small: 'size/md/min-height', medium: 'size/md/min-height', large: 'size/lg/height' };
+  ok(plans.every((p) => find(p.root as PN, 'header')?.bound?.minHeight === FLOOR[coord(p).size]),
+    `#2417 accordion header: the 44px floor at every size, size/md/min-height at small and medium and size/lg/height at large (Q182)`);
+  // THE RING INSIDE THE HEADER'S EDGE (Q257 A, superseding Q243): offset 0 (the fields' offset) and NO stroke
+  // compensation, so the ring's inside stroke sits within the header and never covers the nested Divider (measured
+  // live: compensated, it covered it by 2px). The control offset back, or the compensation back, fails here by name.
+  type PR = PN & { absoluteInset?: string; absoluteStrokeInset?: string };
+  const rings = plans.filter((p) => coord(p).state === 'focus-visible').map((p) => find(p.root as PN, 'focusRing') as PR | undefined);
+  ok(acc.tokens['ring-offset'] === 'focus.ring.offset-field' && rings.length === 12 && rings.every((r) => r?.absoluteInset === 'focus/ring/offset-field' && r.absoluteStrokeInset === undefined),
+    `#2417 accordion focus ring (Q257): drawn inside the header's edge, focus.ring.offset-field and no stroke compensation on every focus-visible member (got ${acc.tokens['ring-offset']}; ${[...new Set(rings.map((r) => `${r?.absoluteInset} + ${r?.absoluteStrokeInset ?? 'no stroke'}`))].join(', ')})`);
+  // `drawnInside` IS VALIDATED ON ITS OWN TERMS (#2417): never beside `strokeInset`, and only on an absolute part. Each
+  // refusal is asserted by its own message, so switching one off fails its own arm.
+  const withRing = (patch: Record<string, unknown>, part = 'focusRing'): ComponentDef => ({ ...acc, anatomy: { ...acc.anatomy!, parts: { ...acc.anatomy!.parts, [part]: { ...acc.anatomy!.parts[part], ...patch } } } }) as ComponentDef;
+  ok(validateComponentDef(acc).errors.length === 0, `#2417 drawnInside: Accordion's inside ring validates clean (${validateComponentDef(acc).errors.slice(0, 1).join('')})`);
+  ok(validateComponentDef(withRing({ strokeInset: 'ring-offset' })).errors.some((m) => /declares both 'drawnInside' and 'strokeInset'/.test(m)),
+    '#2417 drawnInside: declared beside strokeInset, it is refused by name');
+  ok(validateComponentDef(withRing({ drawnInside: true }, 'header')).errors.some((m) => /is kind 'box' but declares 'drawnInside'/.test(m)),
+    '#2417 drawnInside: on a non-absolute part, it is refused by name');
+  ok(validateComponentDef(withRing({ drawnInside: undefined })).errors.some((m) => /binds no 'strokeInset'/.test(m)),
+    '#2417 drawnInside: without it, the #801 rule refuses an uncompensated ring again');
+  // THE GLYPH CENTERS ON THE TITLE'S FIRST LINE (owner Q262 A, revising the QA's center-left): the header row is
+  // top-aligned, the indicator box is as tall as the row with its glyph at the top (Prism2's icon container), and the
+  // title sits 2px lower (Prism2's 2px icon offset, mirrored, because here the title's line is the shorter of the two).
+  // A layout model reads the PLAN's own alignments and each brand's EMITTED tokens, places a TWO-LINE title and the
+  // glyph, and measures line one's center against the glyph's. EXPECTED (within 1px) is typed here. Mutation: the
+  // header back to center alignment → this arm, by name (the glyph then centers on the two-line block).
+  type PL = PN & { counterAxisAlignItems?: string; layoutAlign?: string };
+  const emitted = (b: string) => { const t = JSON.parse(readFileSync(resolve(HERE, `out/${b}.tokens.json`), 'utf8')); return t[Object.keys(t).find((k) => !k.startsWith('$'))!]; };
+  const at = (root: any, ref: string): any => ref.replace(/^\{|\}$/g, '').split('.').slice(ref.startsWith('{') ? 1 : 0).reduce((n: any, k) => n?.[k], root);
+  const num = (root: any, v: any): number => { const leaf = typeof v === 'string' && v.startsWith('{') ? at(root, v) : v; if (leaf && typeof leaf === 'object' && '$value' in leaf) return leaf.$extensions?.prism3?.px ?? num(root, leaf.$value); return parseFloat(String(leaf)); };
+  const RUNG_OF: Record<string, string> = { small: 'sm', medium: 'md', large: 'lg' };
+  const off: string[] = [];
+  let measured = 0;
+  for (const b of ['nb', 'prism3', 'aurora', 'harbor', 'wendys']) {
+    const root = emitted(b);
+    for (const p of plans.filter((q) => coord(q).iconPosition === 'leading' && coord(q).state === 'rest' && coord(q).expansion === 'collapsed')) {
+      const size = coord(p).size;
+      const header = find(p.root as PN, 'header') as PL, box = find(p.root as PN, 'leadingIndicator') as PL, tb = find(p.root as PN, 'titleBox') as PL;
+      const glyph = num(root, at(root, ind.tokens[`size.${size}.icon`]));
+      const type = at(root, acc.tokens[`size.${size}.type`]).$value;
+      const line = num(root, type.fontSize) * num(root, type.lineHeight);
+      // The offset the PLAN binds on the title's column, read back as a token path; absent means none.
+      const padVar = tb?.bound?.paddingTop;
+      const offset = padVar ? num(root, at(root, padVar.replace(/\//g, '.'))) : 0;
+      for (const lines of [1, 2]) {
+      const title = offset + lines * line; // a one-line and a TWO-LINE title
+      const H = Math.max(glyph, title);
+      const place = (align: string | undefined, h: number, inH: number) => (align === 'CENTER' ? (inH - h) / 2 : align === 'MAX' ? inH - h : 0);
+      // The indicator box stretches to the row (STRETCH) or sits at the header's alignment; the glyph sits in it at the box's own.
+      const boxH = box.layoutAlign === 'STRETCH' ? H : glyph;
+      const boxTop = box.layoutAlign === 'STRETCH' ? 0 : place(header.counterAxisAlignItems, glyph, H);
+      const glyphMid = boxTop + place(box.counterAxisAlignItems, glyph, boxH) + glyph / 2;
+      const lineOneMid = place(header.counterAxisAlignItems, title, H) + offset + line / 2;
+      measured++;
+      if (!(tb && header.counterAxisAlignItems === 'MIN' && Math.abs(glyphMid - lineOneMid) <= 1)) off.push(`${b} ${size} ${lines}-line (header ${header.counterAxisAlignItems}): glyph center ${glyphMid.toFixed(2)} vs line one ${lineOneMid.toFixed(2)}`);
+      }
+    }
+  }
+  ok(measured === 30 && off.length === 0,
+    `#2417 accordion header (Q262): top-aligned, and on a one- and a two-line title the glyph centers on line one, within 1px, at every size in every brand (${measured} measured${off.length ? `; OFF: ${off.join('; ')}` : ''})`);
+  // THE FIGMA DISPLAY NAME OF A VARIANT AXIS (#2571): "icon position" in every member name, and in every key that
+  // parses one, so the plugin's and the paste's layouts and footprint cohorts read the same string. Mutations: the
+  // cohort key left on code names → `#2571 layout`; the name written raw in `planComponentName` → the iconPosition arm.
+  const L = planSetLayout(plans, '#2571');
+  ok(L.axes.split(',').includes('icon position') && !L.axes.split(',').includes('iconPosition') && L.footprintVaries.includes('icon position') && L.cells.every((c) => /icon position=(leading|trailing)/.test(c.group)),
+    `#2571 layout: the grid axes, the held footprint axes and every cohort key carry "icon position" (axes ${L.axes}; held ${JSON.stringify(L.footprintVaries)}; ${L.cells[0].group})`);
+  const named2 = (n: Record<string, string>): ComponentDef => ({ ...acc, figmaProperties: { ...acc.figmaProperties!, variantAxisNames: n } }) as ComponentDef;
+  ok(validateComponentDef(named2({ orientation: 'way' })).errors.some((m) => /variantAxisNames\.orientation: 'orientation' is not one of this def's variantAxes/.test(m)),
+    '#2571 validator: a display name for an axis the def does not have is refused by name');
+  ok(validateComponentDef(named2({ iconPosition: 'size' })).errors.some((m) => /display name 'size' is claimed by both/.test(m)),
+    '#2571 validator: a display name that clashes with another axis is refused by name');
+  // NOT YET NESTABLE: a nest names its coordinate by code name, and the projection cannot see the nested def to map it.
+  // So no def may nest a def that renames an axis in Figma until that lands; this fails by name the day one does.
+  const renamedDefs = new Set(componentDefs.filter((d) => Object.keys(d.figmaProperties?.variantAxisNames ?? {}).length).map((d) => d.id));
+  const nestsRenamed = componentDefs.flatMap((d) => Object.entries(d.anatomy?.parts ?? {}).filter(([, p]) => p.nests && renamedDefs.has(p.nests) && p.nesting).map(([n, p]) => `${d.id}.${n} → ${p.nests}`));
+  ok(renamedDefs.has('accordion') && nestsRenamed.length === 0,
+    `#2571 nesting: no def nests a def whose variant axes carry Figma display names (not supported yet)${nestsRenamed.length ? ` — NESTS: ${nestsRenamed.join(', ')}` : ''}`);
+  // THE GLYPH SIZES (owner QA, 2026-10-12, superseding Q241.3): one rung below the control's, 16/20/24 at small,
+  // medium and large. EXPECTED is the rung names, typed here; the old 20/24/32 rungs back fail here by name.
+  const RUNG: Record<string, string> = { small: 'icon/size/xs', medium: 'icon/size/sm', large: 'icon/size/md' };
+  const sizes = indPlans.map((p) => ({ size: coord(p).size, w: (p.root as PN).bound?.width, h: (p.root as PN).bound?.height }));
+  ok(sizes.length === 12 && sizes.every((g) => g.w === RUNG[g.size] && g.h === RUNG[g.size]),
+    `#2417 accordion glyphs (owner QA): 16/20/24, icon/size/xs, sm and md at small, medium and large (got ${[...new Set(sizes.map((g) => `${g.size} ${g.w}`))].join(', ')})`);
+  const GLYPH: Record<string, string> = { 'chevron/collapsed': 'chevron-down', 'chevron/expanded': 'chevron-up', 'plus-minus/collapsed': 'plus', 'plus-minus/expanded': 'minus' };
+  ok(indPlans.length === 12 && indPlans.every((p) => { const c = coord(p); const shown = (p.root as PN).children.map((k) => k.name); return shown.length === 1 && shown[0] === { 'chevron-down': 'chevronDown', 'chevron-up': 'chevronUp', plus: 'plus', minus: 'minus' }[GLYPH[`${c.indicator}/${c.expansion}`]]; }),
+    `#2417 accordion indicator: 12 members, each showing exactly the one glyph for its pair and state (Q183)`);
 }
 
 // ------------------------------------------------------------------- report

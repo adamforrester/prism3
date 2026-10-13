@@ -23,7 +23,7 @@
  * also-pure step (`planBindingErrors`) that takes the emitted Figma variable names as a Set.
  */
 import type { AxisKind, ComponentDef, PartDef } from './component-schema';
-import { axisKindOf, densitySizeValues, densitySpacingKeys, visibleGapKeys, fillKey, gridColumnAxis, fillPaintKey, paintKeyPlaceholders, parseRatio, PRIMARY_PAINT_SLOTS, replacesCandidates, STATE_GATE, statesOf, whenStates, variantsOf, slotAxisFigmaName, swapPart, swapFigmaName, textFigmaName, booleanPartsOf, booleanFigmaName, booleanDefault, figmaVariantCount, figmaAxisNames, isExcludedCoordinate, WEIGHT_INTENTS } from './component-schema';
+import { axisKindOf, densitySizeValues, densitySpacingKeys, visibleGapKeys, fillKey, gridColumnAxis, fillPaintKey, paintKeyPlaceholders, parseRatio, PRIMARY_PAINT_SLOTS, replacesCandidates, STATE_GATE, statesOf, whenStates, variantsOf, slotAxisFigmaName, variantAxisFigmaName, swapPart, swapFigmaName, textFigmaName, booleanPartsOf, booleanFigmaName, booleanDefault, figmaVariantCount, figmaAxisNames, isExcludedCoordinate, WEIGHT_INTENTS } from './component-schema';
 import type { ControlShape, ButtonIcons, ButtonContentSize, ButtonLabelWeight, ButtonTextHover, Density } from './scale';
 import { buttonMinWidth, DEFAULT_MIN_WIDTH_MULTIPLIER, densitySpacingStep, ratioMinWidth, spacePx, visibleGapStep } from './scale';
 // #1602 — the weight-role ladder and the default per-category weights, for resolving a component's
@@ -445,7 +445,8 @@ export type FigmaNodePlan = {
    *  flag along the parent's PRIMARY axis). Carried ONLY when `1`, so every other node's plan is byte-identical
    *  — both executors read `n.layoutGrow ?? 0`, the literal the neutralizer wrote before this field. Its
    *  partner is `textAutoResize: 'HEIGHT'` below: filling the main axis fixes the WIDTH, and auto-height is
-   *  what lets the fixed-width text reflow. Set from `PartDef.wrap`. */
+   *  what lets the fixed-width text reflow. Set from `PartDef.wrap` under a row; under a column the wrap's
+   *  fill is `layoutAlign: 'STRETCH'` instead, since the width is that parent's cross axis (#2417). */
   layoutGrow?: number;
   /** For a `TEXT` node: how the text box resizes (#1424). `'HEIGHT'` = fixed width, auto height — the box
    *  wraps. Carried ONLY when it diverges from the executor default `'WIDTH_AND_HEIGHT'` (hug both axes, the
@@ -590,6 +591,10 @@ export type AnatomyPlan = {
    *  (lint-component-surface, #1252) hashes the whole plan, so a field present-but-empty on every def would
    *  move EVERY digest. A reader defaults an absent entry to the code name. */
   slotFigmaNames?: Record<string, string>;
+  /** A variant axis's Figma display name (#2571, `FigmaProperties.variantAxisNames`), keyed by code name, ONLY for
+   *  the axes whose display name differs, and the whole field OMITTED when none do, so every other plan (and its
+   *  `planStamp`) is byte-identical. Every member-name segment for a renamed axis is written under this name. */
+  axisFigmaNames?: Record<string, string>;
   /** Where in the variant grid this plan sits — `{}` for a structure-only plan. Carried so the
    *  payload can name the component after its own coordinate, and so a gate can tell a plan that
    *  legitimately has no paints from one that dropped them. */
@@ -1575,7 +1580,7 @@ export const figmaAnatomyPlan = (
       if (p.paddingTop) bound.paddingTop = varOf(p.paddingTop);
       if (p.padding) {
         bound.paddingTop = varOf(p.padding.block);
-        bound.paddingBottom = varOf(p.padding.block);
+        bound.paddingBottom = varOf(p.padding.blockEnd ?? p.padding.block);
         // The slot-aware rule (#326): a filled visual slot on a side pulls that side's inset in,
         // because the glyph's own bounding box already contributes apparent space. With no slot
         // filled, both sides fall back to the label inset and the button is symmetric again —
@@ -1850,8 +1855,15 @@ export const figmaAnatomyPlan = (
       // `textAutoResize: 'HEIGHT'` lets the fixed-width box reflow — the two facts that turn a hugging,
       // overflowing label into a wrapping one. `anatomyErrors` requires the parent to bound its main-axis
       // width (a floor, a fixed or filled width, or a root's `placementWidth`), or the text keeps the width
-      // of its default string and wraps there (#1757).
-      ...(p.kind === 'text' && p.wrap === true ? { layoutGrow: 1, textAutoResize: 'HEIGHT' as const } : {}),
+      // of its default string and wraps there (#1757). Under a COLUMN the width is the CROSS axis, so the fill
+      // is `layoutAlign: 'STRETCH'` instead (#2417, accordion's panel placeholder): a `layoutGrow` there grows
+      // the height and leaves the text one line wide at its default string, measured running 580px out of a
+      // 320px panel.
+      ...(p.kind === 'text' && p.wrap === true
+        ? parentLayout?.direction === 'column'
+          ? { layoutAlign: 'STRETCH' as const, textAutoResize: 'HEIGHT' as const }
+          : { layoutGrow: 1, textAutoResize: 'HEIGHT' as const }
+        : {}),
       // THE HUGGING WRAP (#1762, `wrap: 'hug'`): no grow and no `HEIGHT` — the text hugs — and a max width it
       // wraps at, so a sibling after it follows the last word. The root's build width less one row gap per
       // declared sibling, the gap resolved at this coordinate and turned into px on the fixed space scale.
@@ -1994,6 +2006,11 @@ export const figmaAnatomyPlan = (
         (def.figmaProperties?.slotAxes ?? []).filter((s) => slotAxisFigmaName(s) !== s.name).map((s) => [s.name, slotAxisFigmaName(s)]),
       );
       return Object.keys(decoupled).length ? { slotFigmaNames: decoupled } : {};
+    })(),
+    ...(() => {
+      const fp = def.figmaProperties;
+      const renamed = Object.fromEntries((fp?.variantAxes ?? []).filter((a) => variantAxisFigmaName(fp, a) !== a).map((a) => [a, variantAxisFigmaName(fp, a)]));
+      return Object.keys(renamed).length ? { axisFigmaNames: renamed } : {};
     })(),
     coord,
     // Declaration order, `size` removed — it has its own fixed position in the name. See the field's note.
@@ -2881,7 +2898,8 @@ export const planComponentName = (plan: AnatomyPlan): string =>
     // whose axis is called `tone` or `color` projected a coordinate the name did not carry: the plan held
     // `{tone:'error'}` and the name came back `""`, four members sharing it, `planSetLayout` refusing the
     // duplicate. Byte-identical for the four defs that already project (all declare intent/appearance/size).
-    ...plan.gridAxisOrder.flatMap((a) => (plan.coord[a] ? [`${a}=${plan.coord[a]}`] : [])),
+    // A renamed axis (#2571) is written under its Figma display name: the member name is what Figma derives the panel from.
+    ...plan.gridAxisOrder.flatMap((a) => (plan.coord[a] ? [`${plan.axisFigmaNames?.[a] ?? a}=${plan.coord[a]}`] : [])),
     // CONDITIONAL SINCE #795, and this half is what the issue's "both halves" meant. It used to be
     // unconditional, which is the writer's side of the same wall: even had the plan admitted a sizeless
     // def, every member would still have been named `size=undefined`. The def's `variantAxes` decides —
@@ -2943,7 +2961,7 @@ export const variantNameErrors = (def: ComponentDef, memberNames: string[]): str
 
   // VALUE — the declared domain per axis KEY, transcribed from the declaration (not from a member).
   const domain: Record<string, Set<string>> = {};
-  for (const a of fp.variantAxes ?? []) domain[a] = new Set((variantsOf(def)[a] ?? []).map(String));
+  for (const a of fp.variantAxes ?? []) domain[variantAxisFigmaName(fp, a)] = new Set((variantsOf(def)[a] ?? []).map(String));
   if (fp.stateAxis) domain[fp.stateAxis.name] = new Set(fp.stateAxis.values);
   for (const s of fp.slotAxes ?? []) domain[slotAxisFigmaName(s)] = new Set(['true', 'false']);
   const declared = new Set(figmaAxisNames(def));
@@ -2957,6 +2975,7 @@ export const variantNameErrors = (def: ComponentDef, memberNames: string[]): str
       const [k, v] = kv.split('=');
       coord[k] = v;
       if (!declared.has(k)) errs.push(`${def.id}: member '${name}' carries undeclared axis '${k}'`);
+      else if (!domain[k]) errs.push(`${def.id}: axis '${k}' in member '${name}' is declared but has no declared value domain — the domain and the declared names are keyed differently`);
       else if (!domain[k].has(v)) errs.push(`${def.id}: axis '${k}=${v}' in member '${name}' is outside its declared values {${[...domain[k]].join(', ')}}`);
     }
     // EXCLUDED — a member at a coordinate `excludeCoordinates` removes (2026-09-28). Matched here from the
@@ -4432,7 +4451,7 @@ export const CANVAS_FURNITURE: ReadonlySet<string> = new Set([
   'focus-ring', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral',
   'field-label', 'field-message', 'text-field', 'textarea', 'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control',
   'radio-row', 'radio-group', 'switch-control', 'switch-row', 'select', 'veil', 'image-placeholder', 'badge', 'tag', 'tab', 'tabs',
-  'divider',
+  'divider', '_accordion-indicator', 'accordion',
 ]);
 
 export const planSetLayout = (plans: AnatomyPlan[], fn: string) => {
@@ -4486,7 +4505,7 @@ export const planSetLayout = (plans: AnatomyPlan[], fn: string) => {
   // Every plan in a set carries the same `gridAxis` (they come from one def via `figmaAnatomySet`), so
   // the first is the set's. Read off the PLAN rather than a def this function never receives.
   const colKey = gridColumnAxis(
-    plans[0].gridAxis,
+    plans[0].gridAxis && (plans[0].axisFigmaNames?.[plans[0].gridAxis] ?? plans[0].gridAxis),
     varying.map((k) => ({ name: k, values: new Set(vals.map((v) => v[k])).size })),
   );
   // INVERSE AS ONE BLOCK (#2188, owner decision Q173 A), for every def with canvas furniture (`CANVAS_FURNITURE`). `surface`
@@ -4548,7 +4567,8 @@ export const planSetLayout = (plans: AnatomyPlan[], fn: string) => {
       // that #1010's gate compares would disagree. Defaults to the code name for a def with no display name.
       ...(p.slotAxes.includes('leading') ? [`${p.slotFigmaNames?.leading ?? 'leading'}=${p.slots.leading}`] : []),
       ...(p.slotAxes.includes('trailing') ? [`${p.slotFigmaNames?.trailing ?? 'trailing'}=${p.slots.trailing}`] : []),
-      ...heldAxes(p).flatMap((k) => (vals[i][k] === undefined ? [] : [`${k}=${vals[i][k]}`])),
+      // Under each axis's Figma name (#2571), since `vals` is parsed from the member name.
+      ...heldAxes(p).map((k) => p.axisFigmaNames?.[k] ?? k).flatMap((k) => (vals[i][k] === undefined ? [] : [`${k}=${vals[i][k]}`])),
     ].join(', '),
   }));
 
@@ -4610,7 +4630,7 @@ export const planSetLayout = (plans: AnatomyPlan[], fn: string) => {
   // leading-then-trailing order the `group` uses, resolved through `slotFigmaNames`. Empty for a def with
   // no slot axes, so its payload is byte-identical.
   const slotKeys = ['leading', 'trailing'].filter((k) => plans[0].slotAxes.includes(k)).map((k) => plans[0].slotFigmaNames?.[k] ?? k);
-  return { cells, props, refs: [...refs.values()], refOverrides, axes, rows: rows.length, cols: cols.length, component: plans[0].component, rowKeys, colKey: colKey ?? '', rowLabels: rows, colVals: cols, footprintVaries: heldAxes(plans[0]), slotKeys };
+  return { cells, props, refs: [...refs.values()], refOverrides, axes, rows: rows.length, cols: cols.length, component: plans[0].component, rowKeys, colKey: colKey ?? '', rowLabels: rows, colVals: cols, footprintVaries: heldAxes(plans[0]).map((k) => plans[0].axisFigmaNames?.[k] ?? k), slotKeys };
 };
 
 /**

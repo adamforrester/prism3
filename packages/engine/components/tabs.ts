@@ -162,10 +162,10 @@ export const tabs: ComponentDef = {
 
   composition: {
     composesWith: ['tab'],
-    alternativeTo: ['select'],
+    alternativeTo: ['select', 'accordion'],
     replacesPatterns: ['show and hide divs with no tab semantics', 'role="tab" on links that change the route'],
     supersededBy: [],
-    planned: ['segmented-control', 'accordion', 'link'],
+    planned: ['segmented-control', 'link'],
   },
 
   motion: {

@@ -941,6 +941,51 @@
         "evolution": [],
         "projection": []
       }
+    },
+    "_accordion-indicator": {
+      "codeOnly": [
+        "the glyph in code — an `aria-hidden=\"true\"` icon inside the Accordion header button. In code it is part of the Accordion, not a component of its own: the button's `aria-expanded` carries the state, and the glyph only shows it.",
+        "the turn — a chevron may rotate 180 degrees on open instead of swapping glyphs (motion.transition.enter / exit, the reduced duration under prefers-reduced-motion). Figma swaps the down and up glyphs, since a variant holds no motion.",
+        "RTL — no glyph mirrors: a down or up chevron and a plus or minus are symmetric about the vertical axis."
+      ],
+      "notes": {
+        "contested": [
+          "THE BUILDING-BLOCK SHAPE (owner Q183): four glyphs in one subcomponent, its `indicator` exposed on the Accordion, instead of an `indicator` axis on the Accordion (which would double its set). The name `_accordion-indicator` is the owner's; `Accordion.Indicator` as the display name is approved (Q241).",
+          "THE GLYPH SIZES (owner QA, 2026-10-12, superseding Q241.3): one rung below the control's, `icon.size.xs`, `sm`, `md` (16/20/24px). The first set, 20/24/32px as Tab and Tag map theirs, read too large on the live build."
+        ],
+        "unverified": [
+          "That a designer's plus-minus choice survives a switch of the Accordion's ICON POSITION (leading to trailing). The leading and trailing indicators are two parts, so the exposed override sits on two different nested instances; an expansion switch keeps it (measured), a position switch is expected to drop it."
+        ],
+        "evolution": [],
+        "projection": []
+      }
+    },
+    "accordion": {
+      "codeOnly": [
+        "the heading wrapper — the header button sits inside an <hN> of the level `headingLevel` names (default 3). Figma has no heading level; the outline is a code contract.",
+        "the panel region — role=\"region\" with aria-labelledby pointing at the header button, and the button carries aria-expanded and aria-controls. A closed panel is `hidden` (out of the page, the tab order and assistive technology). Leave the region role off when more than about six panels can be open at once, so the page does not fill with landmarks.",
+        "the panel content — `children` takes any node. Figma draws a placeholder paragraph in the slot, which a designer replaces.",
+        "native first — <details> and <summary> give the expand, collapse, keyboard and focus behavior with no script, and `name=\"…\"` on a set of them makes a single-open group. Custom ARIA (a button with aria-expanded) is the path for controlled state.",
+        "a group of accordions — a stack of items, no Figma def (owner decision). In code, a group takes `type: \"multiple\" | \"single\"` (default multiple: comparing two sections needs both open), `value` / `defaultValue` / `onValueChange` as key arrays, and `headingLevel`, `indicator` and `size` for every item. All sections may be closed. Wrapped in a list (<ul>/<li>) only in a group, never on a single item.",
+        "the hover — no hover member and no hover wash (owner decision); the header shows the pointer cursor only.",
+        "the height animation — the panel eases open and closed (motion.transition.enter / exit); under prefers-reduced-motion it opens and closes at the reduced duration. Figma variants carry no motion.",
+        "RTL — the header mirrors through logical properties: a leading indicator moves to the right edge and the title aligns right. No glyph mirrors.",
+        "text expansion — the title wraps; the header uses min-height, never a fixed height, and the indicator centers on the title.",
+        "scroll into view — after a section opens, scroll its header into view (`scrollIntoView({ block: \"nearest\" })` on the next frame) so a tall panel does not push it off screen."
+      ],
+      "notes": {
+        "contested": [
+          "PENDING THE OWNER'S VISUAL QA (Q241): the padding steps (inline 12/16/24, block 8/12/16, gap 8/12/16) and the panel insets (no top, then 12/16/24 below, with the content aligned to the header edge rather than to the title). Approved in Q241: the inks (`interactive.neutral.text.rest` for the title, `text.primary` for the panel placeholder), the Figma copy (\"Section title\", and the panel placeholder), the property names, the page placement and the prose.",
+          "A flush style only: the brief's contained (boxed card) variant is not built."
+        ],
+        "unverified": [
+          "That the native slot behaves the same on a designer's instance in every Figma plan: slots were measured in one file; a plan without the feature keeps the panel as a plain frame, and the build says so."
+        ],
+        "evolution": [
+          "Owner decisions: Q180 (a design proposal), Q182 (one item, no group def; an indicator before or after the title, before the default; no hover; the content a swappable slot; a nested Divider; the expansion axis; the body type; the 44px floor; three sizes; reduced motion through the duration tokens; the two engine fixes), Q183 (the building-block indicator, 24 members, no disabled and no pressed), Q242 (the position values `leading | trailing`, as Button and Switch row name theirs), Q243 (the header's focus ring on its edge, `focus.ring.offset-field`), and the owner's QA of the live build (2026-10-12): the header centered, the glyphs one rung smaller (16/20/24), Q257 A (the ring drawn inside the header's edge), and `position` renamed `iconPosition`."
+        ],
+        "projection": []
+      }
     }
   }
 }

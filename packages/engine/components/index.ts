@@ -69,6 +69,8 @@ import { tag } from './tag';
 import { tab } from './tab';
 import { tabs } from './tabs';
 import { divider } from './divider';
+import { accordionIndicator } from './accordion-indicator';
+import { accordion } from './accordion';
 
 /** Named access, kept ALONGSIDE the set rather than replaced by it. Most of `test.ts`'s component
  *  assertions are about one def's specific fields (`button.variants.appearance`,
@@ -76,7 +78,7 @@ import { divider } from './divider';
  *  be a worse call site, not a better one — a lookup that can return `undefined` standing in for a
  *  binding that cannot. The set is for iteration; these are for the assertions that are ABOUT one
  *  component. */
-export { button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, textarea, checkboxControl, checkboxRow, checkboxGroup, radioControl, radioRow, radioGroup, switchControl, switchRow, select, veil, imagePlaceholder, spinner, badge, tag, tab, tabs, divider };
+export { button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, textarea, checkboxControl, checkboxRow, checkboxGroup, radioControl, radioRow, radioGroup, switchControl, switchRow, select, veil, imagePlaceholder, spinner, badge, tag, tab, tabs, divider, accordionIndicator, accordion };
 
 /** Every component def the engine defines. The one thing a projection should iterate. */
 export const componentDefs: readonly ComponentDef[] = [
@@ -176,4 +178,9 @@ export const componentDefs: readonly ComponentDef[] = [
   tabs,
   // `divider` (#2455) — a 1px rule. Nests nothing; Accordion (#2417) will nest it as its item rule.
   divider,
+  // `_accordion-indicator` (#2417, owner Q183) — the Accordion's open/closed glyph, a building block nested in its
+  // header and never placed alone. Before `accordion`, which nests it.
+  accordionIndicator,
+  // `accordion` (#2417) — one expand/collapse section. Nests the indicator, the focus ring and the divider.
+  accordion,
 ];
