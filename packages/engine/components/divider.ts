@@ -217,9 +217,10 @@ export const divider: ComponentDef = {
     primaryPurpose: 'Separate groups of content with a thin horizontal or vertical rule that spans its container.',
     whenToUse: 'Two groups of content sit next to each other and spacing alone does not separate them: page sections, accordion or list rows, or clusters of controls in a toolbar (vertical).',
     avoidWhen: 'Spacing already separates the groups, the edge is a container\'s own border (a card or field draws its own), or the break needs a title (use a heading).',
-    // Accordion (#2417) nests the divider as its item rule, so it is a host here. The brief's other partners (list,
-    // menu, card, stack, toolbar) are not registered defs yet, so they wait in `composition.planned`.
-    commonPartners: ['accordion'],
+    // Accordion (#2417) nests the divider as its item rule, so it is a host here. List (#2319) is registered now and
+    // sits beside it, though its first cut nests none. The brief's other partners (menu, card, stack, toolbar) are not
+    // registered defs yet, so they wait in `composition.planned`.
+    commonPartners: ['accordion', 'list'],
     triggerKeywords: ['divider', 'separator', 'rule', 'horizontal rule', 'vertical rule', 'hr', 'line between sections', 'section break'],
     generationPriority: 3,
   },
@@ -232,7 +233,7 @@ export const divider: ComponentDef = {
       'a hand-drawn line or a border-bottom on one item standing in for a separator',
     ],
     supersededBy: [],
-    planned: ['list', 'menu', 'card', 'stack', 'toolbar'],
+    planned: ['menu', 'card', 'stack', 'toolbar'],
   },
 
   notes: {

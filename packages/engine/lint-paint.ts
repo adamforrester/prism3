@@ -250,6 +250,11 @@ const CENSUS_PATH = join(repo, 'packages/engine/schema/paint-census.json');
  * asserting something untrue about the def it names.
  */
 const PROVENANCE_EXCEPTIONS: Record<string, string> = {
+  // List.Item (#2319): the key is the `icon` PAINT SLOT (the icon marker's ink), whose spelling matches the `type` value
+  // `icon`. It is the slot that leads, not the axis value: the key binds at every type, and only the icon member draws
+  // the slot it paints.
+  'list-item|icon':
+    "the key is the `icon` paint slot, not the `type` value `icon`; the two share a spelling. It binds the icon role, `color.icon.primary`, for the icon marker, which only the icon type draws",
   'field-message|default.label':
     "status `default` maps to the MUTED body role, not to a role named 'default' — the token tier has no `text.default`, and `secondary` is what a non-status message's ink is",
   'field-message|default.icon':

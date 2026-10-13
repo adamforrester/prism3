@@ -1777,6 +1777,16 @@ export const figmaAnatomyPlan = (
     // designer repointing the leading icon should not repoint the spinner.
     const ownTarget = p.kind === 'overlay' && p.nests ? nestedSwapTarget(def.id, name, p.nests, p.size ? resolveKey(p.size, 'binding') : undefined) : undefined;
     const propertyRef = ownTarget ? undefined : drivenBy.get(cellName);
+    // A SLOT THAT NAMES ITS OWN DEFAULT (#2319, Q273.3): the swap starts at `icon/<glyph>` instead of the file's
+    // nominated target. Unlike an overlay's own target it keeps its property, which then defaults to this icon.
+    // `glyphPath` throws first for a name outside the icon vocabulary; a component-owned glyph is not an icon.
+    let slotDefault: string | undefined;
+    if (p.kind === 'slot' && p.swapDefault !== undefined) {
+      glyphPath(def.id, name, p.swapDefault);
+      if (COMPONENT_GLYPHS[p.swapDefault])
+        throw new Error(`${def.id}: anatomy part '${name}' declares swapDefault '${p.swapDefault}', a component-owned glyph with no icon component to swap to`);
+      slotDefault = iconComponentName(p.swapDefault);
+    }
 
     // AN ICON-SET GLYPH IS AN INSTANCE OF ITS ICON COMPONENT (#2380, owner decision Q137 A). A `vector` part
     // whose glyph is in the icon set (`ICON_SOURCES`) is built as an instance of `icon/<name>`, the component
@@ -1952,7 +1962,7 @@ export const figmaAnatomyPlan = (
       // ON EVERY TEXT NODE, not only the overriding ones — see the field's own note. The default lives
       // here and nowhere else, so this line IS the rule #1009 asked to be located.
       ...(p.kind === 'text' ? { textAlignVertical: VERTICAL_ALIGN[p.verticalAlign ?? 'center'] } : {}),
-      ...(ownTarget ? { swapTarget: ownTarget } : (p.kind === 'slot' || p.kind === 'overlay') && slots.swapTarget ? { swapTarget: slots.swapTarget } : {}),
+      ...(ownTarget ? { swapTarget: ownTarget } : slotDefault ? { swapTarget: slotDefault } : (p.kind === 'slot' || p.kind === 'overlay') && slots.swapTarget ? { swapTarget: slots.swapTarget } : {}),
       ...(Object.keys(paints).length ? { paints } : {}),
       ...(gradientFill ? { gradientFill } : {}),
       // An inset instance's ink travels with it, onto the child (below): the wrapper frame draws nothing.
@@ -4451,7 +4461,7 @@ export const CANVAS_FURNITURE: ReadonlySet<string> = new Set([
   'focus-ring', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral',
   'field-label', 'field-message', 'text-field', 'textarea', 'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control',
   'radio-row', 'radio-group', 'switch-control', 'switch-row', 'select', 'veil', 'image-placeholder', 'badge', 'tag', 'tab', 'tabs',
-  'divider', '_accordion-indicator', 'accordion',
+  'divider', '_accordion-indicator', 'accordion', 'list-item', 'list',
 ]);
 
 export const planSetLayout = (plans: AnatomyPlan[], fn: string) => {
