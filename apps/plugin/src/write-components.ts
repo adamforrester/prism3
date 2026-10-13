@@ -883,6 +883,60 @@ export const placeNewSet = (existing: readonly PageBox[], height: number): { x: 
   return { x, y };
 };
 
+/** A top-level node on a page, as `respaceSets` reads it: `prism3` marks a set Prism3 built (its members carry a
+ *  stamp), `furniture` a label, bracket or backdrop the canvas furniture drew for one (`canvas-furniture.ts`). */
+export type RespaceBox = PageBox & { id: string; prism3?: boolean; furniture?: boolean };
+
+/**
+ * WHERE A PRISM3 SET ON A PAGE MOVES SO ITS ROW LABELS HAVE ROOM (#2542; owner decisions Q245.2 A and Q248 A, "the
+ * re-spacing only makes room"). #2502 widened the gap between sets to `SET_GAP` (400) so a set's row labels and
+ * brackets clear the set to its left, and `placeNewSet` never moves a set that exists. Returns only the sets that move.
+ *
+ * ONLY WHEN TOO CLOSE, AND ONLY FAR ENOUGH. A set's LEFT NEIGHBOUR is the nearest Prism3 set to its left in the same
+ * row (their heights overlap), as already moved. A set moves only when it sits closer to that neighbour than
+ * `SET_GAP`, and then to exactly `SET_GAP` clear of it, which is where a fresh build of the page places it. Everything
+ * else is the designer's placement, and it wins, as it does in `placeNewSet`:
+ *   · a set spaced WIDER stays exactly where it is;
+ *   · a set with no Prism3 set to its left in its row (the first of a row, a SECOND ROW below the first) stays, so a
+ *     second row is never lifted into the first, and `y` never changes;
+ *   · if the spot a moving set needs overlaps something that stays put, it is pushed just past it, `SET_GAP` clear.
+ *     "Something" includes the OTHER Prism3 sets (#2548): every set already placed, where it now sits, and a set not
+ *     reached yet once the spot is at or past its left edge. Short of that edge, the later set still has this one as
+ *     its left neighbour and moves clear of it on its own turn; past it, the later set no longer sees this one, so it
+ *     would stay where it is underneath. A set that moves clears every set placed before it, so no two land on each other.
+ * Sets are taken left to right, so a set moved right pushes its own right neighbour only if that one is now too close.
+ *
+ * NEVER MOVES CONTENT PRISM3 DIDN'T BUILD (#2464, #2494): a set with no stamped member, the page header and any other
+ * node stay exactly where they are, as obstacles. The canvas furniture is left out: it is drawn for a set after the
+ * update lands, from where the set then sits, so it follows the move.
+ */
+export const respaceSets = (nodes: readonly RespaceBox[]): { id: string; from: { x: number; y: number }; to: { x: number; y: number } }[] => {
+  const ours = nodes.filter((b) => b.type === 'COMPONENT_SET' && b.prism3 && !b.header).sort((a, b) => a.x - b.x || a.y - b.y);
+  if (ours.length < 2) return [];
+  const fixed = nodes.filter((b) => !(b.type === 'COMPONENT_SET' && b.prism3) && !b.furniture);
+  const sameRow = (a: PageBox, b: PageBox): boolean => a.y < b.y + b.height && a.y + a.height > b.y;
+  const placed: PageBox[] = [];
+  const moves: { id: string; from: { x: number; y: number }; to: { x: number; y: number } }[] = [];
+  for (const [i, b] of ours.entries()) {
+    const left = placed.filter((p) => sameRow(p, b) && p.x < b.x);
+    if (!left.length) { placed.push(b); continue; }
+    const right = Math.max(...left.map((p) => p.x + p.width));
+    // Too close only: a set spaced the fresh gap or wider is the designer's, and stays.
+    if (b.x - right >= SET_GAP - 0.5) { placed.push(b); continue; }
+    let x = right + SET_GAP;
+    // Past anything that stays and would overlap the set at this spot; again, until the spot is clear.
+    const later = ours.slice(i + 1);
+    for (let pushed = true; pushed;) {
+      pushed = false;
+      for (const f of [...fixed, ...placed, ...later.filter((u) => x >= u.x)])
+        if (f.y < b.y + b.height && f.y + f.height > b.y && f.x < x + b.width && f.x + f.width > x) { x = f.x + f.width + SET_GAP; pushed = true; }
+    }
+    moves.push({ id: b.id, from: { x: b.x, y: b.y }, to: { x, y: b.y } });
+    placed.push({ ...b, x });
+  }
+  return moves;
+};
+
 /**
  * THE BUILD'S OWN REPORT, LEFT ON THE SET (#1579).
  *

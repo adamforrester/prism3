@@ -48,6 +48,7 @@ import { dirname, extname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import { hookGuard } from './test-hooks.mjs';
+import { INPUT_MS, makeBounded, rendersFrame } from './test-bounded.mjs';
 import { assertBundleFresh, STUDIO_SOURCE_ROOTS } from './test-bundle-freshness.mjs';
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
@@ -2107,89 +2108,10 @@ const closeDead = async (page, label, why = `the page rendered no frame within $
   // Bounded too: a close against a frozen renderer is the one call left, and it must not become the hang.
   await Promise.race([page.context().close().catch(() => {}), new Promise((r) => setTimeout(r, 10000))]);
 };
-/** Whether the page renders a frame within 3s, bounded on this side. After a failed click this tells a frozen
- *  renderer (dead: close it) from a control that would not take the click (alive: carry on). */
-const rendersFrame = (page) => Promise.race([
-  page.evaluate(() => new Promise((r) => requestAnimationFrame(() => r(true)))).catch(() => false),
-  new Promise((r) => setTimeout(() => r(false), 3000)),
-]);
-/** INPUT THAT CAN NEVER WAIT FOREVER (#2547, #2550). A Playwright click or key press on a ready control waits for the
- *  renderer to take the input, and it has no bound of its own: a key press none at all, a click 30s and then an
- *  UNCAUGHT throw that ends the suite. Both were seen: Escape at S4d waiting two hours, a step click at S4c and the
- *  Interactive picker's 30s throws. Each of those calls runs through this, bounded at INPUT_MS: a stall fails ONE arm
- *  by name, and says what the page was doing, so the cause is read off the failure instead of guessed.
- *    · If the page still renders a frame, it was BUSY (a long task, the machine under load). When the input THREW it
- *      is over, and the page is carried on. When it did not return it is STILL IN FLIGHT and would land later, on
- *      whatever the arm does next (a late step click drifts the picker, a late Escape closes the next one), so the
- *      page is retired as `closeDead` retires a dead one: its context closed, which cancels the input, and the arm
- *      skips the brand (#2557 review, a busy stall once ran on into an uncaught throw that ended the suite).
- *    · If it renders none, the renderer is pausing nothing on its own: the debugger PAUSES it and the failure names
- *      the JavaScript stack it was in (or says none was running, which points at layout, paint or GC). The page is
- *      then treated as dead, as `closeDead` does for a click that never settles.
- *  Every action passed in carries its own `{ timeout: INPUT_MS }` where Playwright takes one, so nothing inside it
- *  outlives the bound on its own clock. Returns whether the input went through; false with the page not in
- *  `deadPages` only when the input threw and nothing is left in flight. */
-const INPUT_MS = 15000;
-/** One debugger session per page, enabled while the page still answers (#2547): `Debugger.enable` runs on the page's
- *  main thread, so asked for only once the page is stuck it never completes and the pause never lands. Enabled at the
- *  page's first bounded input, the later `Debugger.pause` is an interrupt, which stops even a busy loop. */
-const debuggers = new WeakMap();
-const debuggerOf = async (page) => {
-  if (debuggers.has(page)) return debuggers.get(page);
-  const pending = (async () => {
-    try {
-      const cdp = await page.context().newCDPSession(page);
-      const on = await Promise.race([cdp.send('Debugger.enable').then(() => true, () => false), new Promise((r) => setTimeout(() => r(false), 3000))]);
-      return on ? cdp : null;
-    } catch { return null; }
-  })();
-  debuggers.set(page, pending);
-  return pending;
-};
-const stallStack = async (page) => {
-  const cdp = await Promise.race([debuggerOf(page), new Promise((r) => setTimeout(() => r(null), 3000))]);
-  if (!cdp) return 'no debugger session could be opened on the page, so where it stopped is unknown';
-  try {
-    const paused = new Promise((r) => cdp.once('Debugger.paused', (e) => r(e)));
-    await Promise.race([cdp.send('Debugger.pause').catch(() => {}), new Promise((r) => setTimeout(r, 3000))]);
-    const e = await Promise.race([paused, new Promise((r) => setTimeout(() => r(null), 5000))]);
-    if (!e) return 'the debugger could not pause it within 5s: it was not running JavaScript (layout, paint, GC, or no frames being produced at all)';
-    const frames = (e.callFrames ?? []).slice(0, 6).map((f) => `${f.functionName || '(anonymous)'} ${String(f.url).split('/').pop() || '(page)'}:${f.location.lineNumber + 1}`);
-    await Promise.race([cdp.send('Debugger.resume').catch(() => {}), new Promise((r) => setTimeout(r, 3000))]);
-    return `it was running JavaScript: ${frames.join(' < ') || '(no frames)'}`;
-  } catch (err) {
-    return `the debugger failed (${String(err?.message ?? err).slice(0, 80)})`;
-  }
-};
-/** The slowest bounded input that went through, printed at the end: how close a run came to INPUT_MS. */
-const slowestInput = { ms: 0, label: '' };
-let boundedInputs = 0;
-const bounded = async (page, label, act) => {
-  if (deadPages.has(page)) return false;
-  await debuggerOf(page);   // enabled while the page answers, so a later stall can be paused (see `debuggerOf`)
-  let timer;
-  const t0 = Date.now();
-  const out = await Promise.race([
-    act().then(() => 'ok', (e) => e),
-    new Promise((r) => { timer = setTimeout(() => r('timeout'), INPUT_MS); }),
-  ]);
-  clearTimeout(timer);
-  if (out === 'ok') {
-    boundedInputs++;
-    const ms = Date.now() - t0;
-    if (ms > slowestInput.ms) { slowestInput.ms = ms; slowestInput.label = label; }
-    return true;
-  }
-  const what = out === 'timeout' ? `did not return within ${INPUT_MS}ms` : `threw after ${Date.now() - t0}ms: ${String(out?.message ?? out).split('\n')[0].slice(0, 120)}`;
-  if (await rendersFrame(page)) {
-    if (out === 'timeout') await closeDead(page, label, `the input ${what}; the page still renders frames, so it was busy, not stuck, but the input is still in flight`);
-    else ok(false, `${label}: the input ${what}; the page still renders frames, so it was busy, not stuck`);
-    return false;
-  }
-  const stack = await stallStack(page);
-  await closeDead(page, `${label}: the input ${what}; ${stack}`);
-  return false;
-};
+// Every bounded input (#2547, #2550) goes through the shared helper in `test-bounded.mjs`: a stall fails one arm by
+// name and says what the page was doing. A page that renders no frame, or a busy one whose input is still in flight
+// (#2557 review), goes through `closeDead`: its context is closed and its brand is skipped.
+const { bounded, stats: inputStats } = makeBounded({ ok, isDead: (p) => deadPages.has(p), onDead: closeDead });
 /** The wait after a bounded open (#2557 review): bounded at INPUT_MS on Playwright's clock and caught, so a picker
  *  that opened but never drew fails its arm by name, rather than as `hooks.need`'s throw past every arm (which also
  *  blames a renamed hook). Returns whether it drew. */
@@ -5530,7 +5452,7 @@ await browser.close();
 server.close();
 
 // #2547/#2550: how close the bounded inputs came to their limit, so a run under load shows its margin.
-console.log(`\nBounded inputs (#2547, #2550): ${boundedInputs} went through, the slowest in ${slowestInput.ms}ms of ${INPUT_MS}ms (${slowestInput.label || 'none'})`);
+console.log(`\nBounded inputs (#2547, #2550): ${inputStats.inputs} went through, the slowest in ${inputStats.slowestMs}ms of ${INPUT_MS}ms (${inputStats.slowestLabel || 'none'})`);
 
 console.log(`\nStable test hooks (F1)\n${'='.repeat(78)}`);
 hooks.report(ok);
