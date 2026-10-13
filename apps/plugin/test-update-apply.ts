@@ -12,6 +12,8 @@
  *                  rebuilt instead of configured → `keys/members`.
  *   apply/…        the plan's change reaches the host, and the next dry run reads every member current.
  *   hash/…         a confirm whose hash the file no longer matches writes nothing.
+ *   pages/…        component pages out of alphabetical order are listed by the dry run and put in order by the apply,
+ *                  a designer's page never moved (#2568).
  *   hand/…         a hand edit is kept, and still reported by the next dry run. Mutation: the record of an
  *                  updated member taken whole from the host → `hand/still reported`.
  *   drop/…         a member the plan no longer has is kept and marked deprecated, never deleted. Mutation: a
@@ -250,6 +252,45 @@ section('hash — a confirm over a file that moved since the check writes nothin
   ok(membersOf(w.set()).map((m) => (m.getSharedPluginData as (a: string, b: string) => string)(NS, STAMP_KEY)).join() === stamps && w.api._versions.length === 0, 'hash/nothing written: no stamp moved, no version saved');
 }
 
+/* ── pages ───────────────────────────────────────────────────────────────────────────────────────────── */
+// #2568, owner decisions Q260 A and Q265 B: the update lists the component pages out of alphabetical order and the
+// apply puts them in place with the usual confirm, moving no designer page. Components and Subcomponents are each
+// ordered within themselves. The page list is the host's; the expected orders are literals sorted by hand. Mutations: the dry run's page read dropped → `pages/dry run`; the apply's reorder dropped
+// → `pages/apply`, `pages/converges`; a designer page moved → `pages/designer`.
+section('pages — component pages out of alphabetical order: listed by the dry run, put in order by the apply');
+{
+  const w = await world(TAG);
+  type P = { name: string; isPageDivider?: boolean; appendChild(): void };
+  const pg = (name: string, isPageDivider = false): P => ({ name, isPageDivider, appendChild() {} });
+  const pages: P[] = [pg('Cover'), pg('---', true), pg('Components'), pg('↳ Tabs'), pg('↳ Divider'), pg('Notes'), pg('↳ Badge'), pg('↳ Tag'),
+    pg('---', true), pg('Subcomponents'), pg('↳ Spinner'), pg('↳ Field Label')];
+  const handed: string[] = [];
+  const host = { ...w.host, root: { ...w.host.root, get children() { return pages; }, insertChild(i: number, p: P) { handed.push(p.name); pages.splice(pages.indexOf(p), 1); pages.splice(i, 0, p); } } } as unknown as ApplyHost;
+  const names = () => pages.map((p) => p.name);
+  const targets = [{ def: TAG, plans: w.plans }];
+  const pre = await previewUpdate(host, targets);
+  const v = previewVerdict(pre);
+  // Tabs, Divider, Badge, Tag: the longest run in order is two long (Tabs, Tag, the first found), so two pages move;
+  // Spinner, Field Label: Spinner kept (the first found), so Field Label moves.
+  ok(JSON.stringify(pre.pages) === JSON.stringify(['↳ Badge', '↳ Divider', '↳ Field Label']) && v.lines.includes('Component pages: 3 to reorder (Badge, Divider, Field Label).') && v.headline === 'Would reorder 3 pages',
+    `pages/dry run: Badge, Divider and Field Label listed, the set itself up to date (${JSON.stringify(pre.pages)}; ${v.headline}; ${v.lines.join(' | ')})`);
+  const res = await applyUpdate(host, w.api as any, targets, previewHashOf(pre));
+  ok(JSON.stringify(names()) === JSON.stringify(['Cover', '---', 'Components', '↳ Badge', '↳ Divider', '↳ Tabs', 'Notes', '↳ Tag', '---', 'Subcomponents', '↳ Field Label', '↳ Spinner'])
+    && JSON.stringify(res.reordered) === JSON.stringify(['↳ Badge', '↳ Divider', '↳ Field Label']) && applyVerdict(res).headline === '✓ reordered 3 pages',
+    `pages/apply: Badge, Divider, Tabs, Tag in order; Field Label, Spinner in order, each within its own section (${JSON.stringify(names())}; ${applyVerdict(res).headline})`);
+  ok(JSON.stringify(handed) === JSON.stringify(['↳ Badge', '↳ Divider', '↳ Field Label']) && names().indexOf('↳ Tag') - names().indexOf('Notes') === 1,
+    `pages/designer: only the listed pages moved, Notes never, and it still precedes Tag (moved ${JSON.stringify(handed)})`);
+  ok(JSON.stringify(w.api._versions) === JSON.stringify(['Before Prism3 updated the page order']), `pages/version: one named version before the move (${JSON.stringify(w.api._versions)})`);
+  const again = await previewUpdate(host, targets);
+  ok(!again.pages && previewVerdict(again).headline === '✓ All sets up to date', `pages/converges: the next dry run lists no page (${previewVerdict(again).headline})`);
+  // A page moved by hand after the check is a different file: the confirm writes nothing.
+  pages.splice(pages.indexOf(pages.find((p) => p.name === '↳ Tag')!), 1); pages.splice(3, 0, pg('↳ Tag'));
+  const pre2 = await previewUpdate(host, targets);
+  const tabs = pages.find((p) => p.name === '↳ Tabs')!; pages.splice(pages.indexOf(tabs), 1); pages.splice(3, 0, tabs);
+  const res2 = await applyUpdate(host, w.api as any, targets, previewHashOf(pre2));
+  ok(!!res2.refusedAll && !res2.reordered, `pages/hash: a page moved since the check refuses the confirm (${res2.refusedAll})`);
+}
+
 /* ── hand ────────────────────────────────────────────────────────────────────────────────────────────── */
 section('hand — a hand edit is kept, and still reported after the update');
 {
@@ -439,25 +480,25 @@ const singleWorld = async (plans: AnatomyPlan[], extraVars: string[] = [], o: { 
   const next = plans.map((p) => { const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan; (q.root as unknown as Record<string, unknown>).descendantFills = 'color/icon/secondary'; return q; });
   const t = { def: 'icon', plans: next, single: true };
   const pre = await previewUpdate(w.host, [t]);
-  ok(pre.sets[0]?.counts.update === 44, `premise: the dry run reads all 44 icons out of date (${JSON.stringify(pre.sets[0]?.counts)})`);
+  ok(pre.sets[0]?.counts.update === 45, `premise: the dry run reads all 45 icons out of date (${JSON.stringify(pre.sets[0]?.counts)})`);
   const res = await applyUpdate(w.host, w.api as any, [t], previewHashOf(pre));
   const v = applyVerdict(res);
-  ok(v.ok && v.headline === '✓ updated 44 in place', `single/update: ${v.headline} (${v.lines.slice(0, 2).join(' | ').slice(0, 220)})`);
+  ok(v.ok && v.headline === '✓ updated 45 in place', `single/update: ${v.headline} (${v.lines.slice(0, 2).join(' | ').slice(0, 220)})`);
   const after = new Map(w.comps().map((c) => [String(c.name), { key: String(c.key), id: String(c.id) }] as const));
-  ok(after.size === 44 && [...before].every(([n, b]) => after.get(n)?.key === b.key && after.get(n)?.id === b.id), 'single/keys: every icon keeps its key and id');
+  ok(after.size === 45 && [...before].every(([n, b]) => after.get(n)?.key === b.key && after.get(n)?.id === b.id), 'single/keys: every icon keeps its key and id');
   const sec = (await w.api.variables.getLocalVariablesAsync()).find((x: { name: string }) => x.name.endsWith('/color/icon/secondary')).id;
   const inked = w.comps().filter((c) => ((c.children as Node[]) ?? []).filter((k) => k.type === 'VECTOR').every((k) => (k.fills as { boundVariables?: { color?: { id: string } } }[])[0]?.boundVariables?.color?.id === sec)).length;
-  ok(inked === 44, `single/written: every icon's ink is the plan's new color (${inked})`);
+  ok(inked === 45, `single/written: every icon's ink is the plan's new color (${inked})`);
   const post = (await previewUpdate(w.host, [t])).sets[0];
   const markers = w.comps().filter((c) => (c.getSharedPluginData as (a: string, b: string) => string)(NS, 'memberUpdating') !== '').length;
-  ok(post.counts.current === 44 && markers === 0, `single/finished: each icon is finished as a set member is, current with its marker off (${JSON.stringify(post.counts)}, ${markers} markers left)`);
+  ok(post.counts.current === 45 && markers === 0, `single/finished: each icon is finished as a set member is, current with its marker off (${JSON.stringify(post.counts)}, ${markers} markers left)`);
 }
 {
   const plans = plansOf('icon');
   const w = await singleWorld(plans.filter((_, i) => i !== 5));
   const res = await applyUpdate(w.host, w.api as any, [{ def: 'icon', plans, single: true }], previewHashOf(await previewUpdate(w.host, [{ def: 'icon', plans, single: true }])));
   const at = w.comps().map((c) => `${c.x},${c.y}`);
-  ok(res.outcomes[0]?.added === 1 && w.comps().length === 44 && new Set(at).size === at.length,
+  ok(res.outcomes[0]?.added === 1 && w.comps().length === 45 && new Set(at).size === at.length,
     `single/add: the glyph the plan gained is built, in a slot no other icon holds (${res.outcomes[0]?.added}, ${w.comps().length} icons, ${new Set(at).size} distinct places)`);
 }
 {
@@ -507,8 +548,8 @@ const reinked = (plans: AnatomyPlan[]): AnatomyPlan[] => plans.map((p) => { cons
   const named = res.outcomes[0]?.misses.filter((x) => x.startsWith(`name=${String(hit.name).split('/').pop()}.asBuilt -> NOT RECORDED`)) ?? [];
   ok(named.length === 1, `recordfail/named: the outcome names the icon as not recorded (${JSON.stringify(named)}; ${v.headline})`);
   const post = (await previewUpdate(w.host, [t])).sets[0];
-  ok(post.counts.current === 43 && post.counts.current + (post.counts.update ?? 0) + (post.counts.noBaseline ?? 0) === 44 && !post.handEdits.some((h) => h.member.endsWith(String(hit.name).split('/').pop()!)),
-    `recordfail/out of date: the next dry run reads it out of date, never current, the other 43 current (${JSON.stringify(post.counts)})`);
+  ok(post.counts.current === 44 && post.counts.current + (post.counts.update ?? 0) + (post.counts.noBaseline ?? 0) === 45 && !post.handEdits.some((h) => h.member.endsWith(String(hit.name).split('/').pop()!)),
+    `recordfail/out of date: the next dry run reads it out of date, never current, the other 44 current (${JSON.stringify(post.counts)})`);
 }
 {
   // THE SAME FAILURE ON A SET MEMBER: `finishUpdated` is the set path's finish too, called from its own loop.
@@ -539,16 +580,16 @@ const reinked = (plans: AnatomyPlan[]): AnatomyPlan[] => plans.map((p) => { cons
   for (const c of w.comps()) putPd(c, BASELINE_KEY, '');
   const t = { def: 'icon', plans: reinked(plans), single: true };
   const pre = await previewUpdate(w.host, [t]);
-  ok(pre.sets[0]?.counts.noBaseline === 44, `premise: the dry run reads all 44 icons with no record (${JSON.stringify(pre.sets[0]?.counts)})`);
+  ok(pre.sets[0]?.counts.noBaseline === 45, `premise: the dry run reads all 45 icons with no record (${JSON.stringify(pre.sets[0]?.counts)})`);
   const res = await applyUpdate(w.host, w.api as any, [t], previewHashOf(pre));
   const o = res.outcomes[0];
   const v = applyVerdict(res);
-  ok(v.ok && o?.updated.length === 44 && o.unrecorded.length === 44,
+  ok(v.ok && o?.updated.length === 45 && o.unrecorded.length === 45,
     `unrecorded single/updated: by default every record-less icon is updated and named as updated without a record (${v.headline}; ${o?.updated.length} updated, ${o?.unrecorded.length} unrecorded)`);
   const sec = await varIdOf(w as unknown as World, 'color/icon/secondary');
   const inked = w.comps().filter((c) => ((c.children as Node[]) ?? []).filter((k) => k.type === 'VECTOR').every((k) => (k.fills as { boundVariables?: { color?: { id: string } } }[])[0]?.boundVariables?.color?.id === sec)).length;
   const post = (await previewUpdate(w.host, [t])).sets[0];
-  ok(inked === 44 && post.counts.current === 44 && w.comps().every((c) => !!pdOf(c, BASELINE_KEY)),
+  ok(inked === 45 && post.counts.current === 45 && w.comps().every((c) => !!pdOf(c, BASELINE_KEY)),
     `unrecorded single/recorded: each takes the plan's ink and a record, and reads current after (${inked} inked; ${JSON.stringify(post.counts)})`);
 }
 {
@@ -563,8 +604,8 @@ const reinked = (plans: AnatomyPlan[]): AnatomyPlan[] => plans.map((p) => { cons
   const res = await applyUpdate(w.host, w.api as any, [t], previewHashOf(pre), { choices: { noBaseline: 'skip' } });
   const o = res.outcomes[0];
   const post = (await previewUpdate(w.host, [t])).sets[0];
-  ok(o?.updated.length === 43 && dump() === before && JSON.stringify(o.skipped.map((x) => x.reason)) === JSON.stringify(['no as-built record']) && post.counts.noBaseline === 1,
-    `unrecorded single/skip: under noBaseline 'skip' the record-less icon is left exactly as it is and named, the other 43 updated (${o?.updated.length}, ${JSON.stringify(o?.skipped)}, ${dump() === before ? 'untouched' : 'written'}; ${JSON.stringify(post.counts)})`);
+  ok(o?.updated.length === 44 && dump() === before && JSON.stringify(o.skipped.map((x) => x.reason)) === JSON.stringify(['no as-built record']) && post.counts.noBaseline === 1,
+    `unrecorded single/skip: under noBaseline 'skip' the record-less icon is left exactly as it is and named, the other 44 updated (${o?.updated.length}, ${JSON.stringify(o?.skipped)}, ${dump() === before ? 'untouched' : 'written'}; ${JSON.stringify(post.counts)})`);
 }
 {
   // A DUPLICATE OF THE FILE, FOR THE SINGLE COMPONENTS (#2436): `format/duplicate` for the icons and the spinner. The
@@ -1061,6 +1102,67 @@ section('page — an update re-spaces the sets Prism3 built on a page as a new b
     `page/not ours by its stamps: a set whose stamps are all malformed, or whose one stamp is a copy, is a designer's set the moving set goes around (malformed → ${malformed}, copied → ${copied}; want 2964 each)`);
 }
 
+/* ── set moves and page order together (#2542 × #2568) ─────────────────────────────────────────────────── */
+// One run whose only work is BOTH: sets squeezed to the old spacing on their page (#2542), and component pages out of
+// alphabetical order (#2568). One named version for all of it, both done, the hash covering both, the verdict naming
+// both. The expected title, headline and orders are literals. Mutations: the set's move dropped from `previewHashOf` →
+// `both/hash, set`; the page list dropped from it → `both/hash, page`.
+section('both — set moves and page reorders in one run: one version, both done, both in the hash and the verdict');
+{
+  const IDS = ['button', 'button-destructive', 'button-neutral'];
+  const plansBy = new Map(IDS.map((id) => [id, plansOf(id)] as const));
+  const all = [...plansBy.values()].flat();
+  const page: Page = { children: [] };
+  const api = makeShim({
+    vars: [...new Set([...all.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]), 'space/0'])],
+    styles: [...new Set(all.flatMap((p) => planTextStyles(p.root)))],
+    effects: [...new Set(all.flatMap((p) => planEffectStyles(p.root)))],
+    comps: [...new Set([SWAP_TARGET, 'focus-ring', ...all.flatMap((p) => planComps(p.root))])],
+    page, liveRoot: true, identities: true, scaleConstrained: true,
+  }) as any;
+  for (const id of IDS) { const r = await applyComponentPlan(plansBy.get(id)!, api); if (r.misses.length) throw new Error(`premise: ${id} built with ${r.misses.length} miss(es): ${r.misses[0]}`); }
+  const sets = page.children.filter((n) => n.type === 'COMPONENT_SET') as Node[];
+  for (const set of sets) (set as { parent?: unknown }).parent = page;
+  const fresh = sets.map((n) => [Number(n.x), Number(n.y)]);
+  const squeeze = (): void => { for (let k = 1; k < sets.length; k++) sets[k].x = Number(sets[k - 1].x) + Number(sets[k - 1].width) + 160; };
+  squeeze();
+  type P = { name: string; isPageDivider?: boolean; appendChild(): void };
+  const pg = (name: string, isPageDivider = false): P => ({ name, isPageDivider, appendChild() {} });
+  const pages: P[] = [pg('Cover'), pg('---', true), pg('Components'), pg('↳ Tabs'), pg('↳ Badge'), pg('↳ Divider')];
+  const host = { ...api, root: { ...api.root,
+    findAllWithCriteria: (c: { types: string[] }) => (c.types.length === 1 && c.types[0] === 'COMPONENT_SET' ? page.children.filter((n) => n.type === 'COMPONENT_SET') : api.root.findAllWithCriteria(c)),
+    get children() { return pages; }, insertChild(i: number, p: P) { pages.splice(pages.indexOf(p), 1); pages.splice(i, 0, p); } } } as unknown as ApplyHost;
+  const names = () => pages.map((p) => p.name);
+  const targets = IDS.map((id) => ({ def: id, plans: plansBy.get(id)! }));
+  const pre = await previewUpdate(host, targets);
+  const v = previewVerdict(pre);
+  ok(JSON.stringify(pre.sets.filter((p) => p.setMove).map((p) => p.set)) === JSON.stringify(['button-destructive', 'button-neutral'])
+    && JSON.stringify(pre.pages) === JSON.stringify(['↳ Tabs'])
+    && v.lines.includes('2 sets to move, so the sets on each page sit as a new build spaces them.') && v.lines.includes('Component pages: 1 to reorder (Tabs).'),
+    `both/dry run: the 2 later sets move and Tabs is listed to reorder (${JSON.stringify(pre.pages)}; ${v.lines.join(' | ')})`);
+  const res = await applyUpdate(host, api, targets, previewHashOf(pre));
+  const av = applyVerdict(res);
+  ok(JSON.stringify(api._versions) === JSON.stringify(['Before Prism3 updated button-destructive, button-neutral, the page order']),
+    `both/version: one named version, naming the moving sets and the page order (${JSON.stringify(api._versions)})`);
+  ok(JSON.stringify(sets.map((n) => [Number(n.x), Number(n.y)])) === JSON.stringify(fresh)
+    && JSON.stringify(names()) === JSON.stringify(['Cover', '---', 'Components', '↳ Badge', '↳ Divider', '↳ Tabs']),
+    `both/done: each set where a fresh build put it, and the pages in order (${JSON.stringify(sets.map((n) => Number(n.x)))}; ${JSON.stringify(names())})`);
+  ok(av.ok && av.headline === '✓ 2 sets moved, reordered 1 page'
+    && av.lines.includes('button-destructive: the set moved to its place on the page.') && av.lines.includes('Component pages: 1 reordered (Tabs).'),
+    `both/verdict: the headline and the lines name the set moves and the reorder (${av.headline}; ${av.lines.join(' | ')})`);
+  // THE HASH covers both. A set moved after the check refuses the confirm; so does a page moved after it.
+  squeeze();
+  const pre2 = await previewUpdate(host, targets);
+  sets[2].x = Number(sets[2].x) + 50;
+  const res2 = await applyUpdate(host, api, targets, previewHashOf(pre2));
+  ok(!!res2.refusedAll && api._versions.length === 1, `both/hash, set: a set moved since the check refuses the confirm (${res2.refusedAll ?? 'applied'})`);
+  pages.splice(pages.indexOf(pages.find((p) => p.name === '↳ Tabs')!), 1); pages.splice(3, 0, pg('↳ Tabs'));
+  const pre3 = await previewUpdate(host, targets);
+  const divider = pages.find((p) => p.name === '↳ Divider')!; pages.splice(pages.indexOf(divider), 1); pages.splice(4, 0, divider);
+  const res3 = await applyUpdate(host, api, targets, previewHashOf(pre3));
+  ok(!!res3.refusedAll && api._versions.length === 1, `both/hash, page: a page moved since the check refuses the confirm (${res3.refusedAll ?? 'applied'})`);
+}
+
 /* ── re-spacing, as a function (#2542) ─────────────────────────────────────────────────────────────────── */
 section('respaceSets — a moving set never lands on another Prism3 set (#2548 review)');
 {
@@ -1442,14 +1544,14 @@ section('mixed — in a set the build updates, a member from an earlier plugin s
   }
   const t = { def: 'icon', plans, single: true };
   const pre = await previewUpdate(w.host, [t]);
-  ok(pre.sets[0]?.counts.revisionUnknown === 44 && previewVerdict(pre).headline === '✓ No changes found',
-    `premise: all 44 icons read "built by an earlier plugin", and nothing changes (${JSON.stringify(pre.sets[0]?.counts)}; ${previewVerdict(pre).headline})`);
+  ok(pre.sets[0]?.counts.revisionUnknown === 45 && previewVerdict(pre).headline === '✓ No changes found',
+    `premise: all 45 icons read "built by an earlier plugin", and nothing changes (${JSON.stringify(pre.sets[0]?.counts)}; ${previewVerdict(pre).headline})`);
   const logs = w.comps().map((c) => watchWrites(c));
   const res = await applyUpdate(w.host, w.api as any, [t], previewHashOf(pre));
   const other = logs.flat().filter((x) => !new RegExp(`setSharedPluginData\\(${NS}, (${STAMP_KEY}|${BASELINE_KEY})\\)$`).test(x));
   const again = (await previewUpdate(w.host, [t])).sets[0];
-  ok(res.outcomes[0]?.restamped?.length === 44 && other.length === 0 && again.counts.current === 44,
-    `single/stamped: each icon takes its stamp and nothing else, and all 44 read current (${res.outcomes[0]?.restamped?.length} stamped; ${other.length} other writes; ${JSON.stringify(again.counts)}; ${applyVerdict(res).headline})`);
+  ok(res.outcomes[0]?.restamped?.length === 45 && other.length === 0 && again.counts.current === 45,
+    `single/stamped: each icon takes its stamp and nothing else, and all 45 read current (${res.outcomes[0]?.restamped?.length} stamped; ${other.length} other writes; ${JSON.stringify(again.counts)}; ${applyVerdict(res).headline})`);
 }
 
 {
@@ -1470,14 +1572,14 @@ section('mixed — in a set the build updates, a member from an earlier plugin s
   const pre = await previewUpdate(w.host, [t]);
   const st = pre.sets[0];
   const stateOf = st?.states.find((x) => x.member === `name=${String(hit.name).replace(/^icon\//, '')}`)?.state;
-  ok(stateOf === 'update' && st?.counts.revisionUnknown === 43 && st.changes.some((c) => c.field === 'fills' && /stored #000000/.test(c.from)),
+  ok(stateOf === 'update' && st?.counts.revisionUnknown === 44 && st.changes.some((c) => c.field === 'fills' && /stored #000000/.test(c.from)),
     `single/damage: the icon drawn black under its binding reads "to update", named, though its record matches and its stamp is an earlier plugin's (${stateOf}; ${st?.counts.revisionUnknown} from an earlier plugin; ${st?.changes.map((c) => `${c.field}: ${c.from}`).join(' | ')})`);
   const res = await applyUpdate(w.host, w.api as any, [t], previewHashOf(pre));
   const vars = await varsById(w.api as any);
   const left = w.comps().flatMap((c) => drawnFaults(c, vars));
   const again = (await previewUpdate(w.host, [t])).sets[0];
-  ok(applyVerdict(res).ok && res.outcomes[0]?.updated.length === 1 && res.outcomes[0]?.restamped?.length === 43 && left.length === 0 && again.counts.current === 44,
-    `single/damage repaired: the update re-applies that icon, which then draws its variable's color; the other 43 take their stamps; all 44 read current (${applyVerdict(res).headline}; ${res.outcomes[0]?.updated.length} updated, ${res.outcomes[0]?.restamped?.length} stamped; ${left.length} faults; ${again.counts.current} current)`);
+  ok(applyVerdict(res).ok && res.outcomes[0]?.updated.length === 1 && res.outcomes[0]?.restamped?.length === 44 && left.length === 0 && again.counts.current === 45,
+    `single/damage repaired: the update re-applies that icon, which then draws its variable's color; the other 44 take their stamps; all 45 read current (${applyVerdict(res).headline}; ${res.outcomes[0]?.updated.length} updated, ${res.outcomes[0]?.restamped?.length} stamped; ${left.length} faults; ${again.counts.current} current)`);
 }
 
 {
