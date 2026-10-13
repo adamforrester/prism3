@@ -101,7 +101,10 @@ const COLOR_SCOPES: Record<string, string[]> = {
   // (FRAME/SHAPE, no Text); a `TEXT_FILL` here wrongly offered it in Figma's text-fill picker (#1484).
   foreground: ['FRAME_FILL', 'SHAPE_FILL'],
   text: ['TEXT_FILL'],
-  icon: ['FRAME_FILL', 'SHAPE_FILL', 'STROKE_COLOR'],
+  // Every icon is a FILL in Prism3, never a stroke (#2566, owner decision): a glyph paints as a frame or
+  // shape fill, so an icon role is offered in the fill pickers only and stays out of the border palette.
+  // The interactive and disabled `icon` slots below carry the same set.
+  icon: ['FRAME_FILL', 'SHAPE_FILL'],
   border: ['STROKE_COLOR'],
 };
 // `interactive.<color>.<slot>` (docs/20) is scoped by its SLOT, not the family —
@@ -112,7 +115,7 @@ const INTERACTIVE_SLOT_SCOPES: Record<string, string[]> = {
   'on-fill': ['FRAME_FILL', 'SHAPE_FILL', 'TEXT_FILL'],
   text: ['TEXT_FILL'],
   border: ['STROKE_COLOR'],
-  icon: ['FRAME_FILL', 'SHAPE_FILL', 'STROKE_COLOR'],
+  icon: ['FRAME_FILL', 'SHAPE_FILL'],
   overlay: ['FRAME_FILL', 'SHAPE_FILL'], // a translucent wash painted over a surface
   'subtle-fill': ['FRAME_FILL', 'SHAPE_FILL'], // the tinted wash — the fill at an opacity step (#1614)
 };
@@ -124,7 +127,7 @@ const DISABLED_SLOT_SCOPES: Record<string, string[]> = {
   fill: ['FRAME_FILL', 'SHAPE_FILL'],
   'on-fill': ['FRAME_FILL', 'SHAPE_FILL', 'TEXT_FILL'],
   text: ['TEXT_FILL'],
-  icon: ['FRAME_FILL', 'SHAPE_FILL', 'STROKE_COLOR'],
+  icon: ['FRAME_FILL', 'SHAPE_FILL'],
   border: ['STROKE_COLOR'],
 };
 // `field.<slot>` (docs/20 §17) — form-element chrome, scoped by slot: the field fill paints,
