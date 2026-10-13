@@ -1779,12 +1779,10 @@ export const figmaAnatomyPlan = (
     const propertyRef = ownTarget ? undefined : drivenBy.get(cellName);
     // A SLOT THAT NAMES ITS OWN DEFAULT (#2319, Q273.3): the swap starts at `icon/<glyph>` instead of the file's
     // nominated target. Unlike an overlay's own target it keeps its property, which then defaults to this icon.
-    // `glyphPath` throws first for a name outside the icon vocabulary; a component-owned glyph is not an icon.
+    // `glyphPath` throws first for a name outside the icon vocabulary.
     let slotDefault: string | undefined;
     if (p.kind === 'slot' && p.swapDefault !== undefined) {
       glyphPath(def.id, name, p.swapDefault);
-      if (COMPONENT_GLYPHS[p.swapDefault])
-        throw new Error(`${def.id}: anatomy part '${name}' declares swapDefault '${p.swapDefault}', a component-owned glyph with no icon component to swap to`);
       slotDefault = iconComponentName(p.swapDefault);
     }
 

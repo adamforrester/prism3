@@ -10,8 +10,8 @@ new tokens, no contract change. Category `data`, aliases `unordered-list`, `orde
 The native Figma list fields, read from `@figma/plugin-typings` 1.131.0 and posted on #2319: `paragraphSpacing` and
 `paragraphIndent` bind variables (on a node, a range and a text style); `listSpacing`, `indentation`, `hangingList` and
 `listOptions` do not. The marker has no field of its own (no glyph, size, color or start number), so its ink can only
-come from the text's fill, which does bind. The proposal's "can't bind" was right for size, partly wrong for the indent,
-and wrong for ink as stated. What Dev Mode shows for a native list stays UNVERIFIED: this lane cannot open it.
+come from the text's fill, which does bind. The proposal's "can't bind" was right for size and for the list indent (only a
+first-line `paragraphIndent` binds), wrong for ink as stated. What Dev Mode shows for a native list stays UNVERIFIED: this lane cannot open it.
 
 ### What the construction is
 
