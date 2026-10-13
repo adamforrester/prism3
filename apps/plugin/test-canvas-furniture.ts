@@ -33,6 +33,12 @@
  *   clearance/…   every page that holds more than one set, built in page order with each set's furniture drawn after
  *                 it lands: no label enters another set or its labels, and each later set's labels keep 40px from the
  *                 set to their left. Mutation: `SET_GAP` back to 160 → `clearance/Buttons`, `clearance/Icon button`.
+ *   templates/missing…  a file without `_Label` or `_inverse-backdrop` (#2598): one line for the run, naming each
+ *                 missing template and Set up file, and the update's summary carries it. Mutations: the line dropped →
+ *                 `templates/missing build`; one line per set → the same; the summary left out → `templates/update summary`.
+ *   placement/…   sets deleted and rebuilt on Buttons and Icon button with the header and the third set kept (#2598): each
+ *                 lands under the header in the first free slot from its left edge. Mutations: the old rule → every
+ *                 `placement/<page> …` arm; a gap or the set's width dropped → `placement/slot …`.
  *   update/…      Tag with its labels drawn: the dry run reads all 45 members current with no hand edit and nothing
  *                 unstamped, and the as-built record covers 45 members. Mutations: the labels drawn into a member,
  *                 which the dry run then reads as 19 hand edits, or into the set → `update/ignores furniture`.
@@ -49,14 +55,14 @@
 import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, planComponentName, planSetLayout } from '@prism3/engine/anatomy-figma';
 import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
 import { componentDefs } from '@prism3/engine/components/index';
-import { applyComponentPlan, STAMP_KEY } from './src/write-components';
+import { applyComponentPlan, placeNewSet, STAMP_KEY } from './src/write-components';
 import { SWAP_TARGET } from './src/build-deps';
 import { makeShim, type Node } from './component-shim';
 import { captureBaselines, previewUpdate, previewLine, previewVerdict, type UpdateHost } from './src/update-plan';
 import { applyUpdate, applyVerdict, previewHashOf } from './src/update-apply';
 import { BASELINE_KEY } from './src/member-baseline';
 import { NS } from './src/persist-figma';
-import { planFurniture, drawFurniture, furnitureLayout, sentenceCase, pruneFurniture, clearFurniture, hasFurniture, type GridMember, type FurnitureApi, type XNode } from './src/canvas-furniture';
+import { planFurniture, drawFurniture, furnitureLayout, furnitureItems, withFurnitureItems, sentenceCase, pruneFurniture, clearFurniture, hasFurniture, type GridMember, type FurnitureApi, type XNode } from './src/canvas-furniture';
 import { ensureFurnitureTemplates } from './src/furniture-templates';
 import { allLeaves } from './src/file-taxonomy';
 import type { TemplatesApi } from './src/furniture-templates';
@@ -231,8 +237,31 @@ section('draw — the executor places, tags, redraws and clears');
   ok(page.children.includes(other) && page.children.includes(handBg), `draw/others: another def's label and a hand-placed inverse-bg are untouched`);
   ok(clearFurniture(page, 'grid') === 8 && page.children.includes(other) && furnitureOn(page).length === 1, `draw/clear: clearing the def removes its 8 and nothing else`);
   const none = await drawFurniture(fakeTemplates({ labels: false, backdrop: false }), set, handLayout, 'grid');
-  ok(none.columns + none.rows + none.backdrops === 0 && none.skipped.length === 2 && /no _Label component, and Set up file adds it/.test(none.skipped[0]) && /no _inverse-backdrop component/.test(none.skipped[1]),
-    `draw/no template: a file without the templates draws nothing and says so (${JSON.stringify(none.skipped)})`);
+  ok(none.columns + none.rows + none.backdrops === 0 && JSON.stringify(none.missing) === JSON.stringify(['_Label', '_inverse-backdrop']) && none.skipped.length === 0,
+    `draw/no template: a file without the templates draws nothing and names both as missing (${JSON.stringify(none.missing)}; ${JSON.stringify(none.skipped)})`);
+
+  // #2598 — THE RUN'S ONE LINE. Two sets built in a file with neither template: one line naming both, never one per
+  // set, and the action to take. The wording is written out here, never read off the module.
+  const none2 = await drawFurniture(fakeTemplates({ labels: false, backdrop: false }), set, handLayout, 'grid');
+  const both = 'No canvas labels or inverse backdrops drawn: this file has no _Label or _inverse-backdrop component. Run Set up file, then build again';
+  const buildItems = furnitureItems([none, none2], 'build');
+  ok(buildItems.length === 1 && buildItems[0] === both,
+    `templates/missing build: one line for the run, naming both templates and Set up file (${JSON.stringify(buildItems)})`);
+  const updateItems = furnitureItems([none], 'update');
+  ok(updateItems.length === 1 && updateItems[0] === both.replace('then build again', 'then update again'),
+    `templates/missing update: the update's line asks for an update again (${JSON.stringify(updateItems)})`);
+  // Only `_Label` missing: the backdrop is drawn, and the line names the labels alone.
+  const noLabel = await drawFurniture(fakeTemplates({ labels: false }), set, handLayout, 'grid');
+  const labelOnly = furnitureItems([noLabel], 'build');
+  ok(noLabel.backdrops === 1 && labelOnly.length === 1 && labelOnly[0] === 'No canvas labels drawn: this file has no _Label component. Run Set up file, then build again',
+    `templates/missing label: the backdrop drawn, one line naming _Label alone (${noLabel.backdrops}; ${JSON.stringify(labelOnly)})`);
+  ok(furnitureItems([o, again], 'build').length === 0, `templates/present: a file with both templates gets no line`);
+  // The update's verdict: the line reaches its SUMMARY, the text an agent reads, as well as its lines.
+  const verdict = { ok: true, headline: '✓ updated 3 in place', summary: 'grid: 3 updated in place.', lines: ['grid: 3 updated in place.'] };
+  const withLine = withFurnitureItems(verdict, updateItems);
+  ok(withLine.summary === `grid: 3 updated in place.\n${updateItems[0]}.` && withLine.lines[1] === `${updateItems[0]}.` && withLine.ok && withLine.headline === verdict.headline,
+    `templates/update summary: the update's summary and lines both carry the line (${JSON.stringify(withLine.summary)})`);
+  clearFurniture(page, 'grid');
 }
 
 section('label text — the text layer a value goes into, whatever the file\'s _Label calls it (#2558)');
@@ -692,6 +721,81 @@ section('rollout — every def that builds a set: drawn, converged, and clear of
     });
     ok(sets.length === ids.length && hits.length === 0 && clear.every((c) => c >= 40),
       `clearance/${name}: ${sets.length} sets, no label on a neighboring set or its labels, and each later set's labels ${clear.join(', ')}px clear of the set to their left (${hits.slice(0, 3).join('; ')})`);
+  }
+}
+
+/* ── placement: a rebuilt set goes back under the page's header (#2598) ─────────────────────────────────── */
+section('placement — sets deleted and rebuilt on a page that keeps its header and a sibling set (#2598)');
+{
+  // LIVE (#2598): on Buttons the owner deleted `button` and `button-destructive`, kept `button-neutral`, and rebuilt
+  // the two. The rebuilt `button` landed right of `button-neutral`, past the header's right edge. Replayed here on
+  // both families' pages: the three sets built in page order with their labels, a header placed over the content as
+  // `page-header.ts` places one (the content's left edge, its bottom 80 above the content's top, the content's
+  // width), the first two sets deleted with their labels left behind (deleting a set does not delete them), then
+  // each rebuilt as `main.ts` builds: its own old labels cleared, the set built, its labels drawn.
+  // THE SLOT, on literal boxes: a header at 0,-300 (3000 × 220) and a set the designer left at 1000,0 (500 × 200). A
+  // slot is free when the new set, with 400 on each side for its own labels and its neighbor's, meets nothing. A 500-wide
+  // set fits left of it (0 + 500 + 400 = 900, short of 1000); a 700-wide one does not (1100), and goes 400 past it, to
+  // 1500 + 400 = 1900. A 500-wide one with a node at -300..-100 in its row starts 400 past that node, at 300, where
+  // 300 + 500 + 400 = 1200 passes 1000, so it goes to 1900 too.
+  const hdr = { type: 'INSTANCE', x: 0, y: -300, width: 3000, height: 220, header: true };
+  const kept = { type: 'COMPONENT_SET', x: 1000, y: 0, width: 500, height: 200 };
+  const at = (p: { x: number; y: number } | null) => (p ? `${p.x},${p.y}` : 'null');
+  ok(at(placeNewSet([hdr, kept], 200, 500)) === '0,0', `placement/slot fits: a 500-wide set takes the gap left of the kept set, at 0,0 (got ${at(placeNewSet([hdr, kept], 200, 500))})`);
+  ok(at(placeNewSet([hdr, kept], 200, 700)) === '1900,0', `placement/slot too narrow: a 700-wide set leaves 400 for the kept set's labels, so it goes past it, at 1900,0 (got ${at(placeNewSet([hdr, kept], 200, 700))})`);
+  const stray = { type: 'FRAME', x: -300, y: 50, width: 200, height: 50 };
+  ok(at(placeNewSet([hdr, kept, stray], 200, 500)) === '1900,0', `placement/slot left gap: a node at -300..-100 pushes the slot to 300, where 500 wide no longer fits before the kept set, so 1900,0 (got ${at(placeNewSet([hdr, kept, stray], 200, 500))})`);
+
+  const buildOne = async (page: ReturnType<typeof makePage>, id: string): Promise<FNode> => {
+    const plans = plansOf(id);
+    clearFurniture(page, id);
+    const api = makeShim({
+      vars: [...new Set(plans.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]))],
+      styles: [...new Set(plans.flatMap((p) => planTextStyles(p.root)))],
+      effects: [...new Set(plans.flatMap((p) => planEffectStyles(p.root)))],
+      comps: [...new Set([SWAP_TARGET, 'focus-ring', ...plans.flatMap((p) => planComps(p.root))])],
+      page: page as unknown as { children: Node[] },
+      liveRoot: true,
+      identities: true,
+      keyPrefix: id,
+    }) as Record<string, unknown>;
+    await applyComponentPlan(plans, api as never, { targetPage: page as never });
+    const set = page.children.find((c) => c.type === 'COMPONENT_SET' && c.name === id) as FNode;
+    await drawFurniture(fakeTemplates(), set, furnitureLayout(plans), id);
+    return set;
+  };
+  const box = (n: FNode) => ({ x: Number(n.x), y: Number(n.y), w: Number(n.width), h: Number(n.height) });
+  const meets = (a: ReturnType<typeof box>, b: ReturnType<typeof box>) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+  for (const [name, ids] of [['Buttons', ['button', 'button-destructive', 'button-neutral']], ['Icon button', ['icon-button', 'icon-button-destructive', 'icon-button-neutral']]] as const) {
+    const page = makePage(`↳ ${name}`);
+    const first: Record<string, ReturnType<typeof box>> = {};
+    for (const id of ids) first[id] = box(await buildOne(page, id));
+    const content = page.children.map(box);
+    const left = Math.min(...content.map((b) => b.x));
+    const top = Math.min(...content.map((b) => b.y));
+    const right = Math.max(...content.map((b) => b.x + b.w));
+    const header = { id: `HDR:${name}`, type: 'INSTANCE', name: '_Section-header', x: left, y: top - 80 - 220, width: right - left, height: 220 } as unknown as FNode;
+    page.appendChild(header);
+    for (const id of ids.slice(0, 2)) detach(page.children.find((c) => c.type === 'COMPONENT_SET' && c.name === id)!);
+    const hb = box(header);
+    const a = box(await buildOne(page, ids[0]));
+    ok(a.x === hb.x && a.y === first[ids[2]].y && a.x + a.w <= hb.x + hb.w,
+      `placement/${name} first: the rebuilt ${ids[0]} lands under the header on its left edge, top-aligned with ${ids[2]}, at ${hb.x},${first[ids[2]].y} (got ${a.x},${a.y}; the header spans ${hb.x}..${hb.x + hb.w})`);
+    const b = box(await buildOne(page, ids[1]));
+    ok(b.x === a.x + a.w + 400 && b.y === a.y && b.x + b.w <= hb.x + hb.w,
+      `placement/${name} second: the rebuilt ${ids[1]} lands 400 right of ${ids[0]}, top-aligned, still under the header, at ${a.x + a.w + 400},${a.y} (got ${b.x},${b.y})`);
+    // NOTHING MEETS ANYTHING ELSE'S: no set on another set or on another set's labels, the header on nothing.
+    const sets = page.children.filter((c) => c.type === 'COMPONENT_SET');
+    const furn = furnitureOn(page);
+    const hits: string[] = [];
+    for (const s1 of sets) {
+      if (meets(box(s1), hb)) hits.push(`${String(s1.name)} on the header`);
+      for (const s2 of sets) if (s2 !== s1 && meets(box(s1), box(s2))) hits.push(`${String(s1.name)} on ${String(s2.name)}`);
+      for (const f of furn) if (tagOf(f).def !== s1.name && meets(box(s1), box(f))) hits.push(`${String(s1.name)} on a label of ${tagOf(f).def}`);
+    }
+    const order = sets.slice().sort((p, q) => Number(p.x) - Number(q.x)).map((c) => String(c.name));
+    ok(hits.length === 0 && JSON.stringify(order) === JSON.stringify(ids),
+      `placement/${name} clear: the sets read ${order.join(', ')} left to right, and none meets the header, another set or another set's labels (${hits.slice(0, 3).join('; ') || 'none'})`);
   }
 }
 

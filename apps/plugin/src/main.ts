@@ -47,7 +47,7 @@ import { resolveAllModes } from '@prism3/engine/modes';
 import { TAXONOMY } from './file-taxonomy';
 import { ensurePageHeader, pageHeaderCopy, pageHeaderItems } from './page-header';
 import type { PageHeaderOutcome, HeaderPage } from './page-header';
-import { hasFurniture, clearFurniture, drawFurniture, furnitureLayout, furnitureItems, readTag, staleFurniture, pruneFurniture, furniturePruneText, FURNITURE_NS, FURNITURE_KEY } from './canvas-furniture';
+import { hasFurniture, clearFurniture, drawFurniture, furnitureLayout, furnitureItems, withFurnitureItems, readTag, staleFurniture, pruneFurniture, furniturePruneText, FURNITURE_NS, FURNITURE_KEY } from './canvas-furniture';
 import type { FurnitureApi, FurnitureOutcome, FurnitureParent, FurnitureTag, XNode } from './canvas-furniture';
 import { ensureFurnitureTemplates } from './furniture-templates';
 import type { TemplatesApi } from './furniture-templates';
@@ -771,7 +771,7 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink): Pro
         ...fromClauses([
           ...head.map((x) => [', ', x] as const), [', ', missNote], ['. ', staleItem],
           ['. ', alsoBuiltItem(alsoBuilt)], ...pageHeaderItems(headers).map((x) => ['. ', x] as const),
-          ...furnitureItems(furniture).map((x) => ['. ', x] as const),
+          ...furnitureItems(furniture, 'build').map((x) => ['. ', x] as const),
         ]),
       }, sink);
       verdictPosted = true;
@@ -935,9 +935,7 @@ const updateComponents = async (defId: string | undefined, previewHash: string |
       if (drawn) furniture.push(drawn);
     }
     sink.data({ update: { mode: 'apply', ...r, furniture } });
-    const verdict = applyVerdict(r);
-    const extra = furnitureItems(furniture);
-    postVerdict({ type: 'component-update-result', ...verdict, ...(extra.length ? { lines: [...verdict.lines, ...extra] } : {}) }, sink);
+    postVerdict({ type: 'component-update-result', ...withFurnitureItems(applyVerdict(r), furnitureItems(furniture, 'update')) }, sink);
   } catch (e) {
     const why = (e as Error)?.message ?? String(e);
     postVerdict({ type: 'component-update-result', ok: false, headline: previewHash === null ? '✗ check failed' : '✗ update failed', summary: why, lines: [why] }, sink);

@@ -33,7 +33,12 @@
  * HELD FOR THE OWNER, every number here: `LABEL_GAP`, `LEVEL_GAP`, `BACKDROP_PAD` and `ROW_LABEL_DEPTH`.
  *
  * NEVER THROWS FOR A MISSING TEMPLATE. A file where file setup has not run since this change has no `_Label` or no
- * `_inverse-backdrop`; that part is skipped and the outcome says so, the `page-header.ts` posture.
+ * `_inverse-backdrop`; that part is skipped and the outcome names the template (`missing`), the `page-header.ts`
+ * posture. A run reports it ONCE, as its own line asking the designer to run Set up file (`templatesLine`, #2598):
+ * it was one clause per set, and an update's clauses reached its lines but not its summary, so a run that drew no
+ * labels on a file without templates read as if nothing had been left out. The build does not make the templates
+ * itself: they go on `↳ File Components`, a page only file setup may create, and an update's apply may write only
+ * what its dry run showed.
  */
 import { planSetLayout, CANVAS_FURNITURE } from '@prism3/engine/anatomy-figma';
 import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
@@ -232,8 +237,10 @@ export interface FurnitureOutcome {
   backdrops: number;
   /** Instances of this def's earlier furniture removed first. */
   cleared: number;
-  /** A part not drawn, as the verdict sentence: no `_Label` in the file, no `_inverse-backdrop`, or a missing variant. */
+  /** A part not drawn, as the verdict sentence: a missing variant, a set with no parent, an ungrouped set. */
   skipped: string[];
+  /** The templates this set needed and the file does not hold (#2598). Reported once per run (`templatesLine`). */
+  missing?: string[];
   fontMisses: string[];
   /** `bound` when this run bound the backdrop template to the inverse ground; `no-variable` before a theme. */
   backdropBinding?: 'bound' | 'kept' | 'no-variable';
@@ -383,7 +390,7 @@ export const drawFurniture = async (
     templates.find((n) => n.type === type && n.name === name) ?? templates.find((n) => n.type === type && isTemplateSet(n.name, name));
 
   const labels = pick('COMPONENT_SET', LABEL_SET);
-  if (!labels) out.skipped.push(`No canvas labels for ${defId}: this file has no ${LABEL_SET} component, and Set up file adds it`);
+  if (!labels) out.missing = [...(out.missing ?? []), LABEL_SET];
   else {
     const top = labelMember(labels, 'Top');
     const left = labelMember(labels, 'Left');
@@ -434,7 +441,8 @@ export const drawFurniture = async (
 
   if (plan.backdrops.length) {
     const backdrop = pick('COMPONENT', BACKDROP_COMPONENT);
-    if (!backdrop?.createInstance) out.skipped.push(`No inverse backdrop for ${defId}: this file has no ${BACKDROP_COMPONENT} component, and Set up file adds it`);
+    if (!backdrop) out.missing = [...(out.missing ?? []), BACKDROP_COMPONENT];
+    else if (!backdrop.createInstance) out.skipped.push(`No inverse backdrop for ${defId}: ${BACKDROP_COMPONENT} cannot be instanced`);
     else {
       out.backdropBinding = await bindBackdrop(api.variables, backdrop);
       for (const b of plan.backdrops) {
@@ -484,13 +492,38 @@ export const furniturePruneText = (n: number, applied: boolean): string => {
     : `${what} ${n === 1 ? 'belongs' : 'belong'} to a set no longer in this file. Deleting ${n === 1 ? 'it' : 'them'} touches no component.`;
 };
 
-/** The verdict clauses for a build or update: one per set whose furniture was skipped in part or fell back. */
-export const furnitureItems = (outcomes: readonly FurnitureOutcome[]): string[] => {
-  const parts: string[] = [];
+/**
+ * THE MISSING-TEMPLATE LINE (#2598), once per run, naming every template a set needed and the file lacks, and what to
+ * do: run Set up file, then the same action again. Empty when nothing is missing. DRAFT wording, held for the owner.
+ */
+export const templatesLine = (outcomes: readonly FurnitureOutcome[], action: 'build' | 'update'): string => {
+  const missing = [LABEL_SET, BACKDROP_COMPONENT].filter((t) => outcomes.some((o) => o.missing?.includes(t)));
+  if (!missing.length) return '';
+  const what = missing.map((t) => (t === LABEL_SET ? 'canvas labels' : 'inverse backdrops')).join(' or ');
+  const names = missing.join(' or ');
+  return `No ${what} drawn: this file has no ${names} component. Run Set up file, then ${action === 'build' ? 'build' : 'update'} again`;
+};
+
+/** The verdict clauses for a build or update: the missing-template line first, then one per set whose furniture
+ *  was skipped in part or fell back. */
+export const furnitureItems = (outcomes: readonly FurnitureOutcome[], action: 'build' | 'update'): string[] => {
+  const line = templatesLine(outcomes, action);
+  const parts: string[] = line ? [line] : [];
   for (const o of outcomes) {
     parts.push(...o.skipped);
     if (o.fontMisses.length) parts.push(`Some canvas labels for ${o.def} kept their placeholder text (${[...new Set(o.fontMisses)].join('; ')})`);
     if (o.backdropBinding === 'no-variable') parts.push(`The inverse backdrop for ${o.def} is not bound yet: apply the theme, then build again`);
   }
   return parts;
+};
+
+/**
+ * AN UPDATE'S VERDICT WITH THE FURNITURE CLAUSES (#2598): each a sentence of its own, in its lines AND its summary, the
+ * shape `applyVerdict` gives every other line. They reached the lines only, so an agent reading the summary was told
+ * nothing about labels the update did not draw.
+ */
+export const withFurnitureItems = <V extends { summary: string; lines: string[] }>(verdict: V, items: readonly string[]): V => {
+  if (!items.length) return verdict;
+  const sentences = items.map((x) => `${x}.`);
+  return { ...verdict, summary: [verdict.summary, ...sentences].filter(Boolean).join('\n'), lines: [...verdict.lines, ...sentences] };
 };
