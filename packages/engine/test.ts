@@ -10833,6 +10833,7 @@ arm: {
 //      from the role's `alsoAgainst`, so dropping one from the picker's list cannot shrink this proof.
 //   3. Badge's subtle neutral edge and a separator Divider bind `border.tertiary`; the decorative Divider and
 //      Tab's hover bar stay on `border.secondary`.
+//   4. `border.tertiary` is the FIRST step that clears: one notch toward the page misses the bar somewhere.
 //   (Distinct rungs are (10g-ii)'s, just above.)
 {
   const NON_TEXT_2569: Record<string, number> = { light: 3, dark: 3, 'hc-light': 4.5, 'hc-dark': 4.5, wireframe: 3 };
@@ -10866,6 +10867,29 @@ arm: {
     `#2569 border.secondary is a decorative rung: ~2:1 on the page and under 3:1 in every light and dark mode (${stdCells} cells, floor 8)${decorative.length ? ` — ${decorative.join('; ')}` : ''}`);
   ok(shortfall.length === 0 && pairs === cells * GROUNDS_2569.length && cells >= 16,
     `#2569 border.tertiary clears the non-text bar (3:1, 4.5:1 in HC) on every page and surface tier, in every mode of every brand (${pairs} pairs over ${cells} cells, floor 16 cells)${shortfall.length ? ` — ${shortfall.join('; ')}` : ''}`);
+
+  // 4. ...and it is the FIRST step that clears: in light and dark, the neutral step one notch toward the page
+  //    from tertiary's emitted step misses the literal bar on at least one of the six grounds. Without this a
+  //    tertiary back on the old ~6.8:1 pick passes claims 1–2 and makes the shipped "first edge" prose false.
+  //    "Toward the page" is measured (the neighbour quieter on `background.primary`), not read off a direction.
+  const notFirst: string[] = [];
+  let firstCells = 0;
+  for (const { id, theme } of rows2569) for (const m of resolveAllModes(theme)) {
+    if (m.mode !== 'light' && m.mode !== 'dark') continue;
+    firstCells++;
+    const role = m.roles['border.tertiary'], page = m.roles['background.primary'];
+    const segs = role?.path.split('.') ?? [];
+    const steps = [...(theme.palettes.find((p: any) => p.palette === segs[segs.length - 2])?.steps ?? [])].sort((a: any, b: any) => a.num - b.num);
+    const at = steps.findIndex((s: any) => s.key === segs[segs.length - 1]);
+    if (!role || !page || at < 0 || steps[at].hex.toLowerCase() !== role.hex.toLowerCase()) { notFirst.push(`${id}/${m.mode}: tertiary ${role?.path ?? 'absent'} not found on its ramp`); continue; }
+    const vsPage = (hex: string) => contrast(hexToRgb(hex), hexToRgb(page.hex));
+    const quieter = [steps[at - 1], steps[at + 1]].filter((s: any) => s && vsPage(s.hex) < vsPage(role.hex)).sort((a: any, b: any) => vsPage(b.hex) - vsPage(a.hex))[0];
+    if (!quieter) { notFirst.push(`${id}/${m.mode}: no quieter neighbour of ${role.path}`); continue; }
+    const misses = GROUNDS_2569.filter((g) => m.roles[g] && contrast(hexToRgb(quieter.hex), hexToRgb(m.roles[g].hex)) < NON_TEXT_2569[m.mode]);
+    if (misses.length === 0) notFirst.push(`${id}/${m.mode}: ${quieter.key} (one notch quieter than ${segs[segs.length - 1]}) already clears ${NON_TEXT_2569[m.mode]}:1 on all six grounds`);
+  }
+  ok(notFirst.length === 0 && firstCells >= 8,
+    `#2569 border.tertiary is the quietest step that clears every ground: one notch toward the page misses the bar on at least one of the six, in every light and dark mode (${firstCells} cells, floor 8)${notFirst.length ? ` — ${notFirst.join('; ')}` : ''}`);
 
   const tokOf = (def: any, k: string) => def.tokens?.[k];
   const BIND_2569: [string, any, string, string][] = [
