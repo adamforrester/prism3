@@ -38,7 +38,7 @@
 import { planSetLayout, CANVAS_FURNITURE } from '@prism3/engine/anatomy-figma';
 import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
 import { isTemplateSet } from './file-components';
-import { LABEL_SET, BACKDROP_COMPONENT, labelVariant, bindBackdrop } from './furniture-templates';
+import { LABEL_SET, BACKDROP_COMPONENT, BRACKET_PROPERTY, labelVariant, bindBackdrop } from './furniture-templates';
 import type { BackdropVariables } from './furniture-templates';
 
 export { CANVAS_FURNITURE };
@@ -195,6 +195,9 @@ export interface XNode {
   readonly parent?: unknown;
   readonly children?: readonly XNode[];
   characters?: string;
+  visible?: boolean;
+  readonly componentProperties?: Readonly<Record<string, unknown>>;
+  setProperties?(props: Record<string, string | boolean>): void;
   readonly fontName?: unknown;
   fills?: unknown;
   layoutSizingHorizontal?: unknown;
@@ -322,6 +325,16 @@ const writeText = async (api: FurnitureApi, inst: XNode, value: string, misses: 
   t.characters = value;
 };
 
+/** Turn a label's bracket off (#2568): through the `_Label` set's `Show bracket` boolean where the instance has it, so
+ *  the label stays a plain instance of the template; else the `bracket` layer's visibility, on a `_Label` from before
+ *  the boolean. The property's key carries Figma's `#id` suffix, so it is found by its name. */
+const hideBracket = (inst: XNode): void => {
+  const key = Object.keys(inst.componentProperties ?? {}).find((k) => k === BRACKET_PROPERTY || k.startsWith(`${BRACKET_PROPERTY}#`));
+  if (key && inst.setProperties) { inst.setProperties({ [key]: false }); return; }
+  const b = inst.findOne?.((n) => n.name === 'bracket');
+  if (b) b.visible = false;
+};
+
 /** A variant name as its properties, keys and values in lower case: `Text=Top, surface=default` → {text: top, …}. */
 const variantProps = (name: unknown): string =>
   String(name ?? '').split(',').map((kv) => kv.split('=').map((x) => x.trim().toLowerCase()).join('=')).sort().join(', ');
@@ -397,10 +410,19 @@ export const drawFurniture = async (
           const inst = left!.createInstance!();
           parent.appendChild(inst);
           await writeText(api, inst, r.text, out.fontMisses);
-          inst.layoutSizingVertical = 'FIXED';
-          inst.resize?.(inst.width ?? 0, r.height);
+          // A ROW THINNER THAN ITS LABEL (#2568, owner decision Q258 A): the horizontal Divider is 1px tall, and a
+          // label fixed to that height clips its text and its bracket. Such a row keeps the label's own height and
+          // draws it centered on the row with no bracket, overhanging the row. Every other row is unchanged.
+          const natural = inst.height ?? 0;
+          if (r.height < natural) {
+            hideBracket(inst);
+            inst.y = r.y + (r.height - natural) / 2;
+          } else {
+            inst.layoutSizingVertical = 'FIXED';
+            inst.resize?.(inst.width ?? 0, r.height);
+            inst.y = r.y;
+          }
           inst.x = right - (inst.width ?? 0);
-          inst.y = r.y;
           leftmost = Math.min(leftmost, inst.x);
           tag(inst, { ...setTag, kind: 'label' });
           out.rows++;

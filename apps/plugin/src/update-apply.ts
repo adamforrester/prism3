@@ -55,6 +55,7 @@ import { planTargets, presentNames } from './build-deps';
 import { NS } from './persist-figma';
 import { baselineDiff, baselineOf, readBaseline, snapshotMember } from './member-baseline';
 import { drawnFaults, faultLine, varsById } from './drawn';
+import { reorderPages, stripNestPrefix } from './file-setup';
 import { hostPorts, previewLine, previewUpdate, readSetView, readSingleView, setUpToDate, type SetPreview, type UpdateHost, type UpdatePreview, type UpdateTarget } from './update-plan';
 
 /** The set's record of the members an update kept and marked deprecated (Q2): a JSON list of member names. */
@@ -72,7 +73,7 @@ const fnv = (s: string): string => {
 
 /** The one hash a confirm echoes: every set's own hash, and what was missing or refused. */
 export const previewHashOf = (r: UpdatePreview): string =>
-  fnv(JSON.stringify([r.sets.map((s) => [s.set, s.previewHash]), r.missing, r.refused]));
+  fnv(JSON.stringify([r.sets.map((s) => [s.set, s.previewHash]), r.missing, r.refused, ...(r.pages ? [r.pages] : [])]));
 
 /** The host an apply needs: the file the dry run reads, and the executor's port, which are the same `figma` in
  *  the plugin. Two parameters because they are two surfaces, and the offline host models each separately. */
@@ -144,6 +145,8 @@ export type ApplyResult = {
   version?: string;
   missing: string[];
   refused: { def: string; reason: string }[];
+  /** #2568 — the component pages the apply put in alphabetical order, by full page name. Absent when none. */
+  reordered?: string[];
 };
 
 type LiveNode = { id?: unknown; key?: unknown; name?: unknown; type?: unknown; children?: readonly unknown[]; parent?: unknown };
@@ -548,9 +551,11 @@ export const applyUpdate = async (
     }
     ready.push({ t, p, live });
   }
-  if (!ready.length) return res;
+  // THE PAGE ORDER (#2568) is work of its own: a file whose sets are all up to date can still have pages to reorder.
+  const reorder = !!preview.pages?.length && typeof host.root.insertChild === 'function' && !!host.root.children;
+  if (!ready.length && !reorder) return res;
   // A NAMED VERSION, ONCE, BEFORE THE FIRST WRITE (Q7). Refused or unavailable, nothing is written.
-  const title = versionTitle(ready.map((x) => x.p.set));
+  const title = versionTitle([...ready.map((x) => x.p.set), ...(reorder ? ['the page order'] : [])]);
   try {
     if (!host.saveVersionHistoryAsync) throw new Error('this host cannot save a version');
     await host.saveVersionHistoryAsync(title);
@@ -558,6 +563,12 @@ export const applyUpdate = async (
   } catch (err) {
     res.refusedAll = `the named version could not be saved (${(err as Error)?.message ?? String(err)}), so nothing was written`;
     return res;
+  }
+  // First, before the sets: moving a page rewrites nothing on it, and a stop in a set below leaves the order done.
+  if (reorder) {
+    const root = host.root;
+    const done = reorderPages({ root: { get children() { return root.children ?? []; }, insertChild: (i, p) => root.insertChild!(i, p) } });
+    if (done.length) res.reordered = done;
   }
   for (const { t, p, live, stampOnly } of ready) {
     // Re-read: a nested set updated just before this one changed what this one's instances point at.
@@ -598,6 +609,7 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
   const deprecated = r.outcomes.reduce((k, o) => k + o.deprecated.length, 0);
   const renamed = r.outcomes.reduce((k, o) => k + o.renamed, 0);
   const moved = r.outcomes.reduce((k, o) => k + (o.moved ?? 0), 0);
+  const reordered = r.reordered?.length ?? 0;
   const lines: string[] = [];
   for (const o of r.outcomes) {
     if (o.refused) { lines.push(`${o.set}: not updated. ${o.refused}.`); continue; }
@@ -625,6 +637,8 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
     if (o.content.length) lines.push(`${o.set}: ${n(o.content.length, 'field')} still differ from the plan — ${o.content.slice(0, 3).join('; ')}${o.content.length > 3 ? '; …' : ''}.`);
   }
   for (const x of r.refused) lines.push(`${x.def}: not updated. ${x.reason}.`);
+  // Owner-approved wording (#2568, Q264 A), the dry run's "to reorder" as done.
+  if (reordered) lines.push(`Component pages: ${reordered} reordered (${r.reordered!.map(stripNestPrefix).join(', ')}).`);
   if (r.missing.length) lines.push(`Not in this file: ${r.missing.join(', ')}.`);
   if (r.version) lines.push(`Saved a version first: "${r.version}".`);
   const headline = stopped ? `✗ update stopped at ${stopped.set}`
@@ -634,6 +648,6 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
           : added ? `✓ added ${added}`
             : deprecated ? `✓ ${deprecated} marked deprecated`
               : renamed ? `✓ renamed ${renamed}`
-                : moved ? `✓ moved ${moved}` : r.outcomes.some((o) => o.asPreviewed && !o.asPreviewed.upToDate) ? '✓ No changes found' : '✓ already up to date';
+                : moved ? `✓ moved ${moved}` : reordered ? `✓ reordered ${n(reordered, 'page')}` : r.outcomes.some((o) => o.asPreviewed && !o.asPreviewed.upToDate) ? '✓ No changes found' : '✓ already up to date';
   return { ok: !stopped && !failed.length && !refused, headline, summary: lines.join('\n'), lines };
 };

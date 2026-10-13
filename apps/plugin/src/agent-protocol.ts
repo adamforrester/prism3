@@ -29,6 +29,7 @@
  * NO EVAL. A command is data mapped to a handler by name (`agent-dispatch.ts`); nothing in an envelope is
  * ever executed.
  */
+import type { RunCodeArgs } from './dev-commands';
 import type { BrandInput } from '@prism3/engine/theme';
 import type { MainToUi, StyleGuideOptions } from './messages';
 
@@ -38,7 +39,11 @@ export const AGENT_PROTOCOL_VERSION = 1;
 /** Every command this plugin answers, in the order the runbook documents them. Stable ids: renaming one
  *  is a breaking change for every agent that sends it, so it is a version bump, not an edit. */
 export const AGENT_COMMANDS = ['status', 'apply-theme', 'build-components', 'file-setup', 'style-guide', 'prune', 'readback', 'update-components', 'capture-baseline', 'adopt-members'] as const;
-export type AgentCmd = (typeof AGENT_COMMANDS)[number];
+/** #2530: the dev-only commands (`dev-commands.ts`). Named here for the TYPES only: `parseCommand` answers them
+ *  `unknown-command`, and the dispatcher accepts one only in a `PRISM3_DEV &&` branch, so a release build neither
+ *  lists nor runs one, and the Node-side tools that import this file see no dev code. */
+export type DevCmd = 'run-code';
+export type AgentCmd = (typeof AGENT_COMMANDS)[number] | DevCmd;
 
 /** Each command's `args`, exactly as the UI sends the matching message (`messages.ts` `UiToMain`). */
 export type AgentArgs = {
@@ -66,6 +71,8 @@ export type AgentArgs = {
   /** #2283: the one-time Adopt (§10 Q4). Records and stamps members Prism3 did not build, so an update can
    *  bring them to the plan in place. No `def` means every set. */
   'adopt-members': { def?: string };
+  /** #2530, dev builds only: the body of an async function to run in the main thread (`dev-commands.ts`). */
+  'run-code': RunCodeArgs;
 };
 
 /** #2265 PR 2 — what an applied update does with hand edits (design note §5): `keep` (the default), `overwrite` or
@@ -205,7 +212,8 @@ export const parseCommand = (raw: unknown): ParsedCommand => {
   const args = raw.args === undefined ? {} : raw.args;
   if (!isObject(args)) return fail('bad-args', `args for '${cmd}' must be an object`);
   const base = { v: AGENT_PROTOCOL_VERSION, id, issuedAt: raw.issuedAt };
-  switch (cmd as AgentCmd) {
+  // The stable commands only: a dev command never reaches here (the check above answers it `unknown-command`, #2530).
+  switch (cmd as (typeof AGENT_COMMANDS)[number]) {
     case 'apply-theme':
       if (!isObject(args.input)) return fail('bad-args', "apply-theme needs args.input: a BrandInput object, as the UI's Apply sends it");
       return { ok: true, command: { ...base, cmd: 'apply-theme', args: { input: args.input as unknown as BrandInput } } };
