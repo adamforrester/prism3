@@ -52,7 +52,7 @@ import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, gradientTransform
 import { verifyReadback, verifyFloatReadback, verifyTypographyReadback, ReadbackSnapshot } from './read-back';
 import { tailOf } from './figma-names';
 import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION, UnrecognizedPersistedInputError } from './persist-input';
-import { validateComponentDef, VARIANT_AXES, axisKindOf, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, isExcludedCoordinate, fillPaintKey, replacesCandidates, statesOf, PAINT_SLOTS, ComponentDef, AnatomyDef } from './component-schema';
+import { validateComponentDef, VARIANT_AXES, axisKindOf, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, variantAxisFigmaName, isExcludedCoordinate, fillPaintKey, replacesCandidates, statesOf, PAINT_SLOTS, ComponentDef, AnatomyDef } from './component-schema';
 import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, settleChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, figmaTextStyleName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, applySpacingDensity, applyMinWidthRatio, DEFAULT_BUTTON_LAYOUT, isButtonFamily, resolveWeightIntent, DEFAULT_WEIGHT_AVAILABILITY, isPillable, PILL_RADIUS_DERIVATION, PILL_RADIUS_RUNG, BOXED_RADIUS_RUNG, HAIRLINE_RADIUS_RUNG, CONTROL_SHAPE_RUNG, ROUNDED_RADIUS_RUNG, variantSetErrors, variantNameErrors, glyphLayerOpacities, type AnatomyPlan, type SwapFound } from './anatomy-figma';
 import type { ControlShape } from './scale';
 import { COMPONENT_RENAMES, coordKey, renameCoordinate, isDeclaredDrop, unaccounted as renamesUnaccounted, danglingTargets as renamesDangling, type ComponentRename, type AxesBaseline } from './component-renames';
@@ -3724,6 +3724,7 @@ for (const b of brands) {
       'switch-row': { keys: ['gap'], sizes: ['small', 'medium'] },
       tag: { keys: ['padding-x', 'select.gap', 'dismissible.visible-gap', 'check-gap', 'select.padding-end', 'dismissible.padding-end'], sizes: ['small', 'medium', 'large'] },
       tab: { keys: ['padding-x', 'gap'], sizes: ['small', 'medium', 'large'] },
+      accordion: { keys: ['pad-x', 'pad-y', 'gap', 'panel-pad-end'], sizes: ['small', 'medium', 'large'] },
     };
     const BTN = { compact: 'small 12/8/4/6 · medium 12/8/6/6 · large 20/12/6/8', comfortable: 'small 16/12/6/8 · medium 16/12/8/8 · large 24/16/8/12', spacious: 'small 20/16/8/12 · medium 20/16/12/12 · large 32/20/12/16' };
     const ROWS = { compact: 'small 6 · medium 6 · large 8', comfortable: 'small 8 · medium 8 · large 12', spacious: 'small 12 · medium 12 · large 16' };
@@ -3739,6 +3740,9 @@ for (const b of brands) {
       tag: { compact: 'small 6/4/4/4/6/0 · medium 8/6/6/4/8/0 · large 12/8/6/6/12/0', comfortable: 'small 8/6/6/4/8/0 · medium 12/8/8/6/12/0 · large 16/12/8/8/16/0', spacious: 'small 12/8/8/6/12/0 · medium 16/12/12/8/16/0 · large 20/16/12/12/20/0' },
       // Tab (#2416): padding-x / icon→label→count gap. Comfortable is the proposal's 12/6 · 16/8 · 20/8.
       tab: { compact: 'small 8/4 · medium 12/6 · large 16/6', comfortable: 'small 12/6 · medium 16/8 · large 20/8', spacious: 'small 16/8 · medium 20/12 · large 24/12' },
+      // Accordion (#2417, DRAFT): header inline / header block / glyph-to-title gap / panel bottom inset. Comfortable is
+      // the proposal's 12/8/8 · 16/12/12 · 24/16/16, with the panel's bottom inset matching the inline padding.
+      accordion: { compact: 'small 8/6/6/8 · medium 12/8/8/12 · large 20/12/12/20', comfortable: 'small 12/8/8/12 · medium 16/12/12/16 · large 24/16/16/24', spacious: 'small 16/12/12/16 · medium 20/16/16/20 · large 32/20/20/32' },
     };
     const wrong: string[] = [];
     for (const [id, spec] of Object.entries(SPECS)) {
@@ -3812,6 +3816,7 @@ for (const b of brands) {
       // type: the sum is what must stay under the padding. A `+` key is summed.
       tag: { prefix: 'sized', lt: [['select.gap+select.label-inset', 'padding-x'], ['dismissible.gap+dismissible.label-inset', 'padding-x'], ['check-gap', 'padding-x']] },
       tab: { prefix: 'sized', lt: [['gap', 'padding-x']] },
+      accordion: { prefix: 'sized', lt: [['gap', 'pad-x']] },
     };
     const GAP_TAILS = ['gap', 'check-gap'];
     const PAD_TAILS = ['padding-x', 'pad-x'];
@@ -6084,11 +6089,11 @@ arm: {
 
   // THE PAINT TABLE (owner decisions, 2026-09-28), member by member. SUBTLE status: the tone's tint under the
   // tone's text ink, edged in the tone's border role; neutral is the second surface under the primary text,
-  // edged in the secondary border. BOLD status, count and dot: the solid tone fill under `text.on-<tone>`;
+  // edged in the TERTIARY border, the first neutral edge contracted at 3:1 on every ground (#2569). BOLD status, count and dot: the solid tone fill under `text.on-<tone>`;
   // bold neutral is the inverse surface under its ink. The count and dot have no subtle member.
   type Paint = { fill: string; label?: string; border?: string };
   const PAINT: Record<string, Paint> = {
-    'neutral.status.subtle': { fill: 'foreground.secondary', label: 'text.primary', border: 'border.secondary' },
+    'neutral.status.subtle': { fill: 'foreground.secondary', label: 'text.primary', border: 'border.tertiary' },
     'neutral.status.bold': { fill: 'inverse.foreground.tertiary', label: 'inverse.text.primary' },
     'neutral.count.bold': { fill: 'inverse.foreground.tertiary', label: 'inverse.text.primary' },
     'neutral.dot.bold': { fill: 'inverse.foreground.tertiary' },
@@ -6247,7 +6252,8 @@ arm: {
 // The badge block above MEASURES the neutral pairs in the example brands; this holds that the engine CONTRACTS
 // them, so a client brand is checked at generation time too. Three pairs, each written here as a literal rather
 // than read from `modes.ts`:
-//   1. `border.secondary` (the subtle neutral edge) against `background.primary` at the non-text bar;
+//   1. `border.tertiary` (the subtle neutral edge since #2569; `border.secondary` before it became decorative)
+//      against `background.primary` at the non-text bar;
 //   2. `inverse.foreground.tertiary` (the bold neutral fill) against `background.primary` at the same bar;
 //   3. `inverse.text.primary` (the bold neutral label) on that fill at 4.5:1 — the fill's SECOND pair, because
 //      the ink's own `against` is already the inverse band.
@@ -6268,13 +6274,13 @@ arm: {
   for (const [brand, th] of themes) for (const m of resolveAllModes(th)) {
     cells++;
     const bar = NON_TEXT[m.mode];
-    const edge = m.roles['border.secondary'], fill = m.roles['inverse.foreground.tertiary'];
-    if (edge?.against !== 'background.primary' || edge?.min !== bar) wrong.push(`${brand}/${m.mode} border.secondary ${edge?.against}@${edge?.min}`);
+    const edge = m.roles['border.tertiary'], fill = m.roles['inverse.foreground.tertiary'];
+    if (edge?.against !== 'background.primary' || edge?.min !== bar) wrong.push(`${brand}/${m.mode} border.tertiary ${edge?.against}@${edge?.min}`);
     if (fill?.against !== 'background.primary' || fill?.min !== bar) wrong.push(`${brand}/${m.mode} inverse.foreground.tertiary ${fill?.against}@${fill?.min}`);
     if (JSON.stringify(fill?.alsoAgainst) !== JSON.stringify({ against: 'inverse.text.primary', min: 4.5 })) wrong.push(`${brand}/${m.mode} inverse.foreground.tertiary second pair ${JSON.stringify(fill?.alsoAgainst)}`);
   }
   ok(cells === 20 && wrong.length === 0,
-    `#1745 the three neutral pairs are contracted in all ${cells} of 20 brand × mode cells: border.secondary and inverse.foreground.tertiary against background.primary at 3:1 (4.5:1 in HC), and inverse.text.primary on inverse.foreground.tertiary at 4.5:1${wrong.length ? ` — ${wrong.slice(0, 6).join('; ')}` : ''}`);
+    `#1745 the three neutral pairs are contracted in all ${cells} of 20 brand × mode cells: border.tertiary and inverse.foreground.tertiary against background.primary at 3:1 (4.5:1 in HC), and inverse.text.primary on inverse.foreground.tertiary at 4.5:1${wrong.length ? ` — ${wrong.slice(0, 6).join('; ')}` : ''}`);
 
   const ratioOf = (m: any, a: string, b: string): number => contrast(hexToRgb(m.roles[a].hex), hexToRgb(m.roles[b].hex));
   const lightOf = (bi: BrandInput) => resolveAllModes(brandTheme(bi)).find((m) => m.mode === 'light')!;
@@ -6282,7 +6288,7 @@ arm: {
   // One synthetic brand per pair. Named literally, so dropping one fails by name instead of shrinking the proof
   // (each arm below is guarded, so a dropped brand reads as this failure rather than a crash).
   const SYNTH: Record<string, BrandInput> = {
-    // A warm neutral on an off-white page: the neutral step closest to the edge target lands under 3:1.
+    // A warm neutral on an off-white page: the neutral step closest to the old edge target lands under 3:1.
     edge: { ...MINIMAL_BRAND, id: 't1745-edge', neutral: { hue: 60, chroma: 0.03 }, surfaces: { light: { base: 100 } } } as BrandInput,
     // A mid-dark band: the ink still clears its own 7:1 on the band, but not 4.5:1 on the band's third step.
     label: { ...MINIMAL_BRAND, id: 't1745-label', surfaces: { light: { inverseBase: 650 } } } as BrandInput,
@@ -6292,7 +6298,8 @@ arm: {
   ok(['edge', 'label', 'fill'].every((k) => k in SYNTH), `#1745 one synthetic brand per neutral pair: edge, label, fill (got ${Object.keys(SYNTH).join(', ')})`);
 
   // (1) THE EDGE — the solver repairs it. Live check first: the step the pre-#1745 rule picked (the neutral step
-  // whose contrast on the page is closest to 1.4 × 2.2 = 3.08) is under 3:1, recomputed here from the ramp.
+  // whose contrast on the page is closest to 1.4 × 2.2 = 3.08) is under 3:1, recomputed here from the ramp. The
+  // edge is `border.tertiary` since #2569, and the repair is the same: it clears 3:1 on the page, unwarned.
   if (SYNTH.edge) {
     const th = brandTheme(SYNTH.edge);
     const m = lightOf(SYNTH.edge);
@@ -6301,9 +6308,9 @@ arm: {
     const closest = neutral.map((s: any) => ({ key: s.key, r: contrast(s.rgb, page) })).sort((a: any, b: any) => Math.abs(a.r - 3.08) - Math.abs(b.r - 3.08))[0];
     ok(closest.r < 3,
       `#1745 edge fixture is live: under the old rule border.secondary took neutral.${closest.key} at ${closest.r.toFixed(2)}:1 on the page, below 3:1`);
-    const r = ratioOf(m, 'border.secondary', 'background.primary');
-    ok(r >= 3 && warnsOf(m, 'border.secondary').length === 0,
-      `#1745 edge repaired: border.secondary (${m.roles['border.secondary'].path.split('.').pop()}) clears 3:1 on the page at ${r.toFixed(2)} in the edge fixture, and no warning names it`);
+    const r = ratioOf(m, 'border.tertiary', 'background.primary');
+    ok(r >= 3 && warnsOf(m, 'border.tertiary').length === 0,
+      `#1745 edge repaired: border.tertiary (${m.roles['border.tertiary'].path.split('.').pop()}) clears 3:1 on the page at ${r.toFixed(2)} in the edge fixture, and no warning names it`);
   }
   // (2) THE LABEL ON THE BOLD NEUTRAL FILL — the contract catches it. The band is declared, so nothing moves it; the
   // shortfall is named, with the ink as the partner.
@@ -6692,7 +6699,7 @@ arm: {
     return { fill: plan.root.paints?.fills, stroke: plan.root.paints?.strokes, radius: plan.root.bound?.topLeftRadius, refs, names: planPartNames(plan.root) };
   };
   const BADGE_REST: Record<string, { fill: string; stroke?: string }> = {
-    'subtle.neutral': { fill: 'color/foreground/secondary', stroke: 'color/border/secondary' },
+    'subtle.neutral': { fill: 'color/foreground/secondary', stroke: 'color/border/tertiary' },
     ...Object.fromEntries(['info', 'success', 'warning', 'danger'].map((t) => [`subtle.${t}`, { fill: `color/foreground/${t}-subtle`, stroke: `color/border/${t}` }])),
     'bold.neutral': { fill: 'color/inverse/foreground/tertiary' },
     ...Object.fromEntries(['info', 'success', 'warning', 'danger'].map((t) => [`bold.${t}`, { fill: `color/foreground/${t}` }])),
@@ -10896,6 +10903,123 @@ arm: {
   }
 }
 
+// (10g-iii) #2569 — THE BORDER LADDER IS TWO DECORATIVE RUNGS, THEN THE FIRST ACCESSIBLE ONE (owner Q259 C).
+//
+// Four claims, each against an EXPECTED stated here as a literal and an ACTUAL measured from the emitted hexes —
+// never from a role's own `ratio`, `min` or `against`, and never from `modes.ts`'s target table, which is the
+// subject (`docs/34`):
+//   1. `border.secondary` is DECORATIVE: it lands near 2:1 on the page in light and near 2.4:1 in dark (owner
+//      Q270.2), UNDER 3:1 on every ground. A rung that regains the old 3:1 floor lands on step 400 (3.2–3.3:1)
+//      and fails here by name. In dark it is also a FULL 100 steps from `border.primary` (Q270.2: a half step
+//      reads as the same line), measured on the emitted step names against a literal spacing.
+//   2. `border.tertiary` clears the non-text bar against EVERY ground it can sit on — the three page tiers and
+//      the three surface tiers — in every mode of every brand (#2498). The grounds are listed here, not read
+//      from the role's `alsoAgainst`, so dropping one from the picker's list cannot shrink this proof.
+//   3. Badge's subtle neutral edge and a separator Divider bind `border.tertiary`; the decorative Divider and
+//      Tab's hover bar stay on `border.secondary`.
+//   4. `border.tertiary` is the FIRST step that clears: one notch toward the page misses the bar somewhere.
+//   (Distinct rungs are (10g-ii)'s, just above.)
+{
+  const NON_TEXT_2569: Record<string, number> = { light: 3, dark: 3, 'hc-light': 4.5, 'hc-dark': 4.5, wireframe: 3 };
+  const GROUNDS_2569 = ['background.primary', 'background.secondary', 'background.tertiary', 'foreground.primary', 'foreground.secondary', 'foreground.tertiary'];
+  const rows2569: { id: string; theme: any }[] = [
+    ...corpus(),
+    ...loadedRows([['prism3 (example)', exampleTheme('prism3', () => brandTheme(exampleBrands()['prism3'] as BrandInput))]]).map(([id, theme]) => ({ id: id as string, theme })),
+  ];
+  const SECONDARY_CENTER_2569: Record<string, number> = { light: 2, dark: 2.4 };
+  const DARK_RUNG_GAP_Q270 = 100;
+  const decorative: string[] = [], shortfall: string[] = [], tooClose: string[] = [];
+  let stdCells = 0, cells = 0, pairs = 0, darkCells = 0;
+  for (const { id, theme } of rows2569) for (const m of resolveAllModes(theme)) {
+    const bar = NON_TEXT_2569[m.mode];
+    if (bar === undefined) { shortfall.push(`${id}/${m.mode}: no bar stated for this mode`); continue; }
+    cells++;
+    const hexOf = (k: string) => m.roles[k]?.hex;
+    if (m.mode === 'light' || m.mode === 'dark') {
+      stdCells++;
+      const r = contrast(hexToRgb(hexOf('border.secondary')!), hexToRgb(hexOf('background.primary')!));
+      if (!(Math.abs(r - SECONDARY_CENTER_2569[m.mode]) <= 0.4)) decorative.push(`${id}/${m.mode} ${m.roles['border.secondary'].path.split('.').pop()} at ${r.toFixed(2)} on the page`);
+      for (const g of GROUNDS_2569) {
+        const rg = m.roles[g] ? contrast(hexToRgb(hexOf('border.secondary')!), hexToRgb(hexOf(g)!)) : NaN;
+        if (!(rg < 3)) decorative.push(`${id}/${m.mode} on ${g}: ${Number.isNaN(rg) ? 'absent' : rg.toFixed(2)}`);
+      }
+    }
+    if (m.mode === 'dark') {
+      darkCells++;
+      const stepOf = (k: string) => Number(m.roles[k]?.path.split('.').pop());
+      const gap = Math.abs(stepOf('border.primary') - stepOf('border.secondary'));
+      if (!(gap >= DARK_RUNG_GAP_Q270)) tooClose.push(`${id}: primary ${stepOf('border.primary')}, secondary ${stepOf('border.secondary')} (${gap} apart)`);
+    }
+    const edge = hexOf('border.tertiary');
+    for (const g of GROUNDS_2569) {
+      const gh = hexOf(g);
+      if (!edge || !gh) { shortfall.push(`${id}/${m.mode}: ${!edge ? 'border.tertiary' : g} absent`); continue; }
+      pairs++;
+      const r = contrast(hexToRgb(edge), hexToRgb(gh));
+      if (r < bar) shortfall.push(`${id}/${m.mode} on ${g}: ${r.toFixed(2)} < ${bar}`);
+    }
+  }
+  ok(decorative.length === 0 && stdCells >= 8,
+    `#2569 border.secondary is a decorative rung: ~2:1 on the page in light, ~2.4:1 in dark, and under 3:1 on every ground in every light and dark mode (${stdCells} cells, floor 8)${decorative.length ? ` — ${decorative.join('; ')}` : ''}`);
+  ok(tooClose.length === 0 && darkCells >= 4,
+    `#2569 Q270.2 dark border.primary and border.secondary sit at least ${DARK_RUNG_GAP_Q270} steps apart in every brand (${darkCells} cells, floor 4)${tooClose.length ? ` — ${tooClose.join('; ')}` : ''}`);
+  ok(shortfall.length === 0 && pairs === cells * GROUNDS_2569.length && cells >= 16,
+    `#2569 border.tertiary clears the non-text bar (3:1, 4.5:1 in HC) on every page and surface tier, in every mode of every brand (${pairs} pairs over ${cells} cells, floor 16 cells)${shortfall.length ? ` — ${shortfall.join('; ')}` : ''}`);
+
+  // 4. ...and it is the FIRST step that clears: in light and dark, the neutral step one notch toward the page
+  //    from tertiary's emitted step misses the literal bar on at least one of the six grounds. Without this a
+  //    tertiary back on the old ~6.8:1 pick passes claims 1–2 and makes the shipped "first edge" prose false.
+  //    "Toward the page" is measured (the neighbour quieter on `background.primary`), not read off a direction.
+  const notFirst: string[] = [];
+  let firstCells = 0;
+  for (const { id, theme } of rows2569) for (const m of resolveAllModes(theme)) {
+    if (m.mode !== 'light' && m.mode !== 'dark') continue;
+    firstCells++;
+    const role = m.roles['border.tertiary'], page = m.roles['background.primary'];
+    const segs = role?.path.split('.') ?? [];
+    const steps = [...(theme.palettes.find((p: any) => p.palette === segs[segs.length - 2])?.steps ?? [])].sort((a: any, b: any) => a.num - b.num);
+    const at = steps.findIndex((s: any) => s.key === segs[segs.length - 1]);
+    if (!role || !page || at < 0 || steps[at].hex.toLowerCase() !== role.hex.toLowerCase()) { notFirst.push(`${id}/${m.mode}: tertiary ${role?.path ?? 'absent'} not found on its ramp`); continue; }
+    const vsPage = (hex: string) => contrast(hexToRgb(hex), hexToRgb(page.hex));
+    const quieter = [steps[at - 1], steps[at + 1]].filter((s: any) => s && vsPage(s.hex) < vsPage(role.hex)).sort((a: any, b: any) => vsPage(b.hex) - vsPage(a.hex))[0];
+    if (!quieter) { notFirst.push(`${id}/${m.mode}: no quieter neighbour of ${role.path}`); continue; }
+    const misses = GROUNDS_2569.filter((g) => m.roles[g] && contrast(hexToRgb(quieter.hex), hexToRgb(m.roles[g].hex)) < NON_TEXT_2569[m.mode]);
+    if (misses.length === 0) notFirst.push(`${id}/${m.mode}: ${quieter.key} (one notch quieter than ${segs[segs.length - 1]}) already clears ${NON_TEXT_2569[m.mode]}:1 on all six grounds`);
+  }
+  ok(notFirst.length === 0 && firstCells >= 8,
+    `#2569 border.tertiary is the quietest step that clears every ground: one notch toward the page misses the bar on at least one of the six, in every light and dark mode (${firstCells} cells, floor 8)${notFirst.length ? ` — ${notFirst.join('; ')}` : ''}`);
+
+  const tokOf = (def: any, k: string) => def.tokens?.[k];
+  const BIND_2569: [string, any, string, string][] = [
+    ['badge subtle neutral edge', componentDefs.find((d) => d.id === 'badge'), 'neutral.status.subtle.border', 'color.border.tertiary'],
+    ['divider separator (decorative=false)', divider, 'separator.fill', 'color.border.tertiary'],
+    ['divider decorative default', divider, 'fill', 'color.border.secondary'],
+    ['tab hover bar', tab, 'unselected.fill.hover', 'color.border.secondary'],
+  ];
+  const wrongBind = BIND_2569.filter(([, def, k, want]) => tokOf(def, k) !== want).map(([what, def, k, want]) => `${what}: ${k} → ${tokOf(def, k) ?? 'unbound'} (want ${want})`);
+  ok(wrongBind.length === 0,
+    `#2569 the meaningful edges bind border.tertiary (badge's subtle neutral edge, a separator divider) and the decorative ones stay on border.secondary (the default divider, tab's hover bar)${wrongBind.length ? ` — ${wrongBind.join('; ')}` : ''}`);
+
+  // 5. Q270.6 — HC's `border.secondary` clears 4.5:1, so its description must not call it "decorative"; light
+  //    and dark's still must. Read from the EMITTED DTCG `$description` per mode file, against these literals —
+  //    both directions, so dropping the word everywhere fails as surely as putting it back in HC.
+  const WANT_DECORATIVE_Q270: [string, string, boolean][] = [
+    ['light', 'base', true], ['dark', 'dark.overlay', true], ['hc-light', 'hc-light.overlay', false], ['hc-dark', 'hc-dark.overlay', false],
+  ];
+  const wrongDesc: string[] = [];
+  let descCells = 0;
+  for (const brand of ['prism3', 'nb', 'aurora', 'harbor', 'wendys']) for (const [mode, file, want] of WANT_DECORATIVE_Q270) {
+    const tree: any = JSON.parse(readFileSync(resolve(HERE, 'out', `${brand}.${file}.tokens.json`), 'utf8'));
+    const root = Object.keys(tree).filter((k) => !k.startsWith('$'));
+    const desc = root.length === 1 ? tree[root[0]]?.color?.border?.secondary?.$description : undefined;
+    if (typeof desc !== 'string') { wrongDesc.push(`${brand}/${mode}: no emitted border.secondary description`); continue; }
+    descCells++;
+    if (/decorative/i.test(desc) !== want) wrongDesc.push(`${brand}/${mode}: "${desc}" (want ${want ? 'with' : 'without'} "decorative")`);
+  }
+  ok(wrongDesc.length === 0 && descCells >= 20,
+    `#2569 Q270.6 border.secondary's HC description drops "decorative" (and light and dark keep it), in the emitted DTCG of every brand (${descCells} cells, floor 20)${wrongDesc.length ? ` — ${wrongDesc.join('; ')}` : ''}`);
+}
+
 // (10h) #575 — the OUTLINE-METHOD contract: for every `outlineInteraction` value, the role
 // `outlineFillFamily` names is the role the engine actually emits, and the family it does NOT name
 // is absent.
@@ -11183,6 +11307,13 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   { mode: 'hc-dark', name: 'color/border/danger', nb: 'palette/red/500', engine: 'palette/red/450' },        // HC: 500 at 3.82:1 (clears 3:1)
   { mode: 'hc-dark', name: 'color/border/warning', nb: 'palette/amber/500', engine: 'palette/amber/450' },   // HC: 500 at 3.89:1 (clears 3:1)
   { mode: 'hc-dark', name: 'color/border/success', nb: 'palette/green/450', engine: 'palette/green/400' },   // HC: 450 at 4.26:1 (clears 3:1)
+  // EIGHTH group (#2569, owner Q259 C): `border/secondary` in the STANDARD modes. NB authored the second neutral
+  // rung at ~3:1 (400 light, 500 dark); the owner made it a DECORATIVE ~2:1 rung with no floor, so two
+  // decorative shades come before the accessible one, `border/tertiary` (an engine addition NB predates, not a
+  // divergence). HC is absent: its escalated targets are unchanged and still reproduce NB's authored steps.
+  // Dark lands on 650 (~2.4:1), a full 100 from `border/primary`'s 750 (owner Q270.2), not 700.
+  { mode: 'light', name: 'color/border/secondary', nb: 'palette/neutral/400', engine: 'palette/neutral/250' },
+  { mode: 'dark', name: 'color/border/secondary', nb: 'palette/neutral/500', engine: 'palette/neutral/650' },
 ];
 
 // Figma SCOPES the engine intentionally emits DIFFERENTLY from the frozen real-NB export (#1484).
@@ -13899,7 +14030,8 @@ arm: {
     let fieldsRead = 0;
     for (const d of componentDefs) {
       ok(/^[A-Z][A-Za-z0-9]*(?:\.[A-Z][A-Za-z0-9]*)?$/.test(d.name), `component-names: ${d.id} is named '${d.name}' — one convention: PascalCase, or Family.Part for a family`);
-      ok(d.name.replace('.', '').toLowerCase() === d.id.replace(/-/g, ''), `component-names: '${d.name}' does not read as its id '${d.id}' — the name is the id in PascalCase / Family.Part`);
+      // A building block's id leads with `_` (#2417), which its name does not carry.
+      ok(d.name.replace('.', '').toLowerCase() === d.id.replace(/^_/, '').replace(/-/g, ''), `component-names: '${d.name}' does not read as its id '${d.id}' — the name is the id in PascalCase / Family.Part`);
       for (const f of families) {
         if (d.id.startsWith(`${kebab(f)}-`)) ok(d.name.startsWith(`${f}.`), `component-names: ${d.id} is in the ${f} family (${f}.* names exist) but is named '${d.name}' — name it ${f}.<Part>`);
       }
@@ -15237,26 +15369,32 @@ arm: {
       ok(washes.length === 0 && bodyPaints.length === 0,
         `#2416 Q178.2 no hover wash: no tab member paints an overlay and the tab body paints nothing (${washes.length} overlay paint(s), ${bodyPaints.length} painted bod(ies) — ${[...washes, ...bodyPaints].slice(0, 3).join('; ') || 'none'})`);
 
-      // (3) THE NEUTRAL HOVER BAR CLEARS 3:1 AGAINST THE PAGE in every brand and mode with a committed Figma export.
-      // The variable is read off the PLAN (the subject); the values come from the committed exports; the floor and
-      // the represented cells are literals. Four brands × four modes, stated, so a missing export fails here.
+      // (3) THE NEUTRAL HOVER BAR PREVIEWS THE SELECTED BAR, LIGHTER, in every brand and mode with a committed Figma
+      // export. It cleared 3:1 until #2569 (owner Q259 C) made `border.secondary` a decorative ~2:1 rung; the bar
+      // stays on it, and reading lighter than the selected bar is what the owner kept (Q224/Q225). So the claim, in
+      // light and dark: visibly off the page (above 1.5:1) and below the selected bar's own contrast, cell by cell.
+      // HC's ladder did not move (its escalated target still lands near 10:1), so there the bar holds HC's 4.5:1
+      // non-text bar, as it always has, and is not lighter than the selected bar. The variables are
+      // read off the PLAN (the subject); the values come from the committed exports; the bound and the represented
+      // cells are literals. Four brands × four modes, stated, so a missing export fails here.
       const BAR_BRANDS = ['aurora', 'nb', 'prism3', 'wendys'];
       const BAR_MODES = ['light', 'dark', 'hc-light', 'hc-dark'];
       const hoverBar = findIn(memberOf('unselected', 'medium', 'hover')!.root, 'indicator')?.paints?.fills;
+      const selectedBar = findIn(memberOf('selected', 'medium', 'rest')!.root, 'indicator')?.paints?.fills;
       const toRgb = (c: { r: number; g: number; b: number }): RGB => ({ r: c.r * 255, g: c.g * 255, b: c.b * 255 });
-      const cells: { cell: string; ratio: number }[] = [];
+      const cells: { cell: string; ratio: number; selected: number }[] = [];
       const barMissing: string[] = [];
       for (const brand of BAR_BRANDS) for (const mode of BAR_MODES) {
         const f = resolve(HERE, `./out/figma/${brand}/color.${mode}.json`);
         if (!existsSync(f)) { barMissing.push(`${brand}/${mode}: no export`); continue; }
         const vars = new Map((JSON.parse(readFileSync(f, 'utf8')).variables as { name: string; value: { r: number; g: number; b: number; a?: number } }[]).map((v) => [v.name.replace(/^[^/]+\//, ''), v.value]));
-        const fg = hoverBar ? vars.get(hoverBar) : undefined, bg = vars.get('color/background/primary');
-        if (!fg || !bg || (fg.a ?? 1) !== 1) { barMissing.push(`${brand}/${mode}: ${String(hoverBar)} ${fg ? `alpha ${fg.a}` : 'missing'}`); continue; }
-        cells.push({ cell: `${brand}/${mode}`, ratio: contrast(toRgb(fg), toRgb(bg)) });
+        const fg = hoverBar ? vars.get(hoverBar) : undefined, sel = selectedBar ? vars.get(selectedBar) : undefined, bg = vars.get('color/background/primary');
+        if (!fg || !sel || !bg || (fg.a ?? 1) !== 1) { barMissing.push(`${brand}/${mode}: ${String(hoverBar)} ${fg ? `alpha ${fg.a}` : 'missing'}, ${String(selectedBar)} ${sel ? 'ok' : 'missing'}`); continue; }
+        cells.push({ cell: `${brand}/${mode}`, ratio: contrast(toRgb(fg), toRgb(bg)), selected: contrast(toRgb(sel), toRgb(bg)) });
       }
-      const lowest = cells.reduce((a, c) => (c.ratio < a.ratio ? c : a), { cell: 'none', ratio: Infinity });
-      ok(cells.length === 16 && barMissing.length === 0 && lowest.ratio >= 3,
-        `#2416 Q178.2 the neutral hover bar (${String(hoverBar)}) clears 3:1 against color/background/primary in all 16 brand × mode cells (${cells.length} measured, lowest ${lowest.ratio.toFixed(2)}:1 at ${lowest.cell}${barMissing.length ? `; ${barMissing.join('; ')}` : ''})`);
+      const offBar = cells.filter((c) => (c.cell.includes('/hc-') ? !(c.ratio >= 4.5) : !(c.ratio > 1.5 && c.ratio < c.selected))).map((c) => `${c.cell} ${c.ratio.toFixed(2)} vs selected ${c.selected.toFixed(2)}`);
+      ok(cells.length === 16 && barMissing.length === 0 && offBar.length === 0,
+        `#2416 Q178.2 / #2569 the neutral hover bar (${String(hoverBar)}) sits visibly off color/background/primary (above 1.5:1) and lighter than the selected bar (${String(selectedBar)}) in the 8 light and dark cells, and clears 4.5:1 in the 8 HC cells (${cells.length} measured${offBar.length ? ` — ${offBar.join('; ')}` : ''}${barMissing.length ? `; ${barMissing.join('; ')}` : ''})`);
 
       // (4) THE WEIGHT CUE, WITH NO WIDTH CHANGE (Q226 A, revising Q178.1 A's one weight). At every size and state the
       // selected and unselected members carry the same structure, every node's name, text style and bound geometry,
@@ -16765,7 +16903,7 @@ arm: {
     //     missing from the table fails too: add the row with the brief's category, read from the KB.
     const KB_BRIEF_CATEGORY: Record<string, string> = {
       'badge.md': 'foundations', 'button.md': 'form', 'checkbox.md': 'form', 'icon.md': 'foundations', 'image.md': 'foundations',
-      'inline-message.md': 'feedback', 'radio.md': 'form', 'select.md': 'form', 'spinner.md': 'foundations', 'divider.md': 'foundations',
+      'inline-message.md': 'feedback', 'radio.md': 'form', 'select.md': 'form', 'spinner.md': 'foundations', 'divider.md': 'foundations', 'accordion.md': 'navigation',
       'switch.md': 'form', 'tabs.md': 'navigation', 'tag.md': 'foundations', 'text-field.md': 'form', 'textarea.md': 'form',
     };
     const defDir = resolve(HERE, './components');
@@ -17388,6 +17526,10 @@ arm: {
       { def: select, part: 'value', axes: { size: 3 }, at: { state: 'filled' } },
       { def: textarea, part: 'placeholder', axes: { size: 3 } },
       { def: textarea, part: 'value', axes: { size: 3 }, at: { state: 'filled' } },
+      // ACCORDION (#2417): the title binds Button's three label rungs (owner, 2026-10-11), and the panel placeholder the
+      // three body rungs. The placeholder exists only on an expanded member.
+      { def: componentDefs.find((d) => d.id === 'accordion')!, part: 'label', axes: { size: 3 } },
+      { def: componentDefs.find((d) => d.id === 'accordion')!, part: 'placeholder', axes: { size: 3 }, at: { expansion: 'expanded' } },
     ];
 
     // DIRECTION 1 — the authored table is the corpus. Discovered by walking every def's anatomy for a
@@ -22783,6 +22925,22 @@ arm: {
       ok(variantNameErrors(button, cleanNames).length === 0,
         'variant-product self-check: the clean 576-member set reports nothing');
     }
+    // SELF-CHECK, the missing domain (#2534 review M6): a declared axis key with no domain entry, the shape a domain
+    // keyed by code name while the declared names read display names produces. It was a TypeError that took the whole
+    // loop down; it must be a named error. Driven without mutating the function: the fixture's display name answers
+    // differently on its first read than on later ones, so the domain and the declared names disagree whichever the
+    // function builds first, and one member is keyed by each name so the declared-but-domainless key is always hit.
+    {
+      const acc = componentDefs.find((d) => d.id === 'accordion')!;
+      let reads = 0;
+      const names = { get iconPosition() { return reads++ === 0 ? 'icon position' : 'icon side'; } };
+      const split = { ...acc, figmaProperties: { ...acc.figmaProperties!, variantAxisNames: names } } as ComponentDef;
+      let errs: string[] | undefined;
+      let threw = '';
+      try { errs = variantNameErrors(split, ['icon position=leading', 'icon side=leading']); } catch (e) { threw = String(e); }
+      ok(!threw && (errs ?? []).some((e) => /axis 'icon (position|side)' in member .* is declared but has no declared value domain/.test(e)),
+        `variant-product self-check: a declared axis with no domain is reported by name, not thrown${threw ? ` (THREW ${threw})` : ` (${(errs ?? []).length} error(s))`}`);
+    }
 
     // THE VEIL BEFORE #1318 — value × intensity, solid washes only. Built by removing exactly what #1318 added
     // (the `direction` axis and prop, the part's `gradient`, the two clear-end bindings), and used twice: as the
@@ -25599,7 +25757,7 @@ arm: {
   // supplies that key as the projected STATE, spelled here as a literal so the oracle is not the schema's
   // own constant.
   // `tag` joins (2026-09-27): its check mark is gated on `selection: ['selected']`, the checkbox mark's shape.
-  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'radio-control', 'switch-control', 'select', 'badge', 'tag'];
+  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'radio-control', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion'];
   ok(GATED_EXPECTED.every((n) => gatedDefs.some((d) => d.id === n)) && gatedDefs.length === GATED_EXPECTED.length,
     `#910 the presentWhen projection rule below covers exactly [${GATED_EXPECTED.join(', ')}] — a def gaining a variant-gated part must be represented here, and a def losing one is a stale claim (found: ${gatedDefs.map((d) => d.id).join(', ') || 'none'})`);
   for (const def of gatedDefs) {
@@ -25608,12 +25766,22 @@ arm: {
     for (const [name, part] of Object.entries(def.anatomy!.parts)) {
       if (!part.presentWhen) continue;
       const axes = Object.entries(part.presentWhen);
-      // A part gated on TWO axes is AND-composed, so "supply the axis and expect presence" stops being
-      // the right question — it needs every gate satisfied at once. None exists today; fail rather than
-      // skip, so the arms below cannot go quietly vacuous over one.
-      ok(axes.length === 1,
-        `#910 ${def.id}.${name} gates presence on ${axes.length} axes [${axes.map(([a]) => a).join(', ')}] — the projection arms below supply ONE axis and would report an AND-composed part as spuriously absent. Handle the composition here rather than letting it read as covered`);
-      if (axes.length !== 1) continue;
+      // A part gated on SEVERAL axes is AND-composed (#2417: the accordion indicator's glyphs, on `indicator` and
+      // `expansion`), so "supply one axis and expect presence" is the wrong question. It is asked over the whole
+      // projected set instead: at every member, the part is present exactly when EVERY gate holds there, read off
+      // the member's own coordinate. A gate over several axes that no member satisfies still fails.
+      if (axes.length > 1) {
+        const set = figmaAnatomySet(def, { swapTarget: 'FPO-default-icon' });
+        const has = (n: { name: string; children: unknown[] }): boolean => n.name === name || (n.children as (typeof n)[]).some(has);
+        const wrongAt = set.filter((m) => {
+          const c = Object.fromEntries(planComponentName(m).split(', ').map((kv) => kv.split('=') as [string, string]));
+          return axes.every(([a, vs]) => (vs as readonly string[]).includes(c[variantAxisFigmaName(def.figmaProperties, a)])) !== has(m.root as unknown as { name: string; children: unknown[] });
+        }).map((m) => planComponentName(m));
+        const anywhere = set.some((m) => has(m.root as unknown as { name: string; children: unknown[] }));
+        ok(wrongAt.length === 0 && anywhere,
+          `#910 ${def.id}.${name} gates presence on ${axes.length} axes [${axes.map(([a]) => a).join(', ')}], AND-composed: present at every member where all hold and at no other (${wrongAt.length} wrong${wrongAt.length ? `: ${wrongAt.slice(0, 2).join(' | ')}` : ''}${anywhere ? '' : '; present at no member'})`);
+        continue;
+      }
       const [axis, values] = axes[0];
       // Every OTHER variant axis pinned at its first value, so the only thing varying across the three
       // directions is the gated one.
@@ -29893,6 +30061,147 @@ arm: {
   ok(refuses(rootWith({ ...C, placementWidth: 0 }), /declares a 'center\.placementWidth' that is not a positive number of px/),
     '#2518 schema: a center build width of no size is refused by name');
   ok(validateComponentDef(tabsDef).errors.length === 0, '#2518 schema: Tabs\' own center validates clean');
+}
+
+// ------------------------------------------------------------------- #2417: the accordion and its indicator
+// Each owner decision held against a literal (Q182, Q183): the 24 members and their axes, start as the default
+// position, no hover, pressed or disabled member, the indicator a nested building block exposed on `indicator` and
+// following `expansion`, the panel a native slot present only when open with page ink and no top inset, the nested
+// Divider stretched across the item with no width binding on its instance, and the 44px header floor at every size.
+// EXPECTED is typed here; ACTUAL is the projected plan, so a def that moved fails the arm by name.
+{
+  const acc = componentDefs.find((d) => d.id === 'accordion')!;
+  const ind = componentDefs.find((d) => d.id === '_accordion-indicator')!;
+  const plans = figmaAnatomySet(acc, { swapTarget: 'FPO-default-icon' });
+  const indPlans = figmaAnatomySet(ind, { swapTarget: 'FPO-default-icon' });
+  type PN = { name: string; type: string; children: PN[]; bound?: Record<string, string>; paints?: Record<string, string>; nestTarget?: string; nestVariant?: Record<string, string>; nestExpose?: string[]; layoutAlign?: string; characters?: string };
+  const find = (n: PN, name: string): PN | undefined => (n.name === name ? n : n.children.map((c) => find(c, name)).find(Boolean));
+  // The plan's own CODE coordinate (member names carry Figma display names, #2571: `icon position=leading`).
+  const coord = (p: AnatomyPlan): Record<string, string> => ({ ...(p.coord as Record<string, string>), ...(p.size ? { size: p.size } : {}) });
+  ok(plans.length === 24 && JSON.stringify(acc.variants) === JSON.stringify({ expansion: ['collapsed', 'expanded'], iconPosition: ['leading', 'trailing'], size: ['small', 'medium', 'large'] }),
+    `#2417 accordion: 24 members, expansion × iconPosition × size × state (Q183) (got ${plans.length}, ${JSON.stringify(acc.variants)})`);
+  ok(JSON.stringify(acc.states) === JSON.stringify(['rest', 'focus-visible']) && JSON.stringify(acc.figmaProperties?.stateAxis?.values) === JSON.stringify(['rest', 'focus-visible']),
+    `#2417 accordion: the states are rest and focus-visible only, with no hover (Q182), pressed or disabled (Q183) (got ${JSON.stringify(acc.states)})`);
+  const pos = acc.props.find((p) => p.name === 'iconPosition');
+  ok(acc.variants.iconPosition?.[0] === 'leading' && pos?.default === 'leading', `#2417 accordion iconPosition: leading is the default, first in Figma and in code (Q182) (got ${acc.variants.iconPosition?.[0]}, ${pos?.default})`);
+  // THE AXIS NAME (owner QA, 2026-10-12): `iconPosition`, never a bare `position`, which read as if it could be the
+  // label's. In the def's variants, its Figma axes, its props and every member's name. The old name back fails here.
+  const bare = /(^|, )position=/;
+  ok(!('position' in acc.variants) && JSON.stringify(acc.figmaProperties?.variantAxes) === JSON.stringify(['expansion', 'iconPosition', 'size']) && !acc.props.some((p) => p.name === 'position') && plans.every((p) => /(^|, )icon position=(leading|trailing)(,|$)/.test(planComponentName(p)) && !bare.test(planComponentName(p)) && !/iconPosition=/.test(planComponentName(p))),
+    `#2417 accordion iconPosition (owner QA, #2571): the code axis and prop are iconPosition, and every member's name carries its Figma name "icon position" (got ${JSON.stringify(Object.keys(acc.variants))}; ${planComponentName(plans[0])})`);
+  // THE VALUE NAMES (Q242): `leading | trailing`, as Button names its visuals and Switch row its label position, in
+  // the def, the prop, every member's name and the indicator parts' layer names. An old name back (`start` / `end`,
+  // as a value or a part's lead) fails here by name.
+  const OLD = /\b(?:start|end)\b|^(?:start|end)[A-Z]/;
+  const named = [...plans.map((p) => coord(p).iconPosition), ...(pos?.values ?? []), String(pos?.type), ...Object.keys(acc.anatomy!.parts).filter((n) => /Indicator$|Glyph$/.test(n))];
+  ok(JSON.stringify(pos?.values) === JSON.stringify(['leading', 'trailing']) && named.every((n) => !OLD.test(n)) && ['leadingIndicator', 'leadingGlyph', 'trailingIndicator', 'trailingGlyph'].every((n) => n in acc.anatomy!.parts),
+    `#2417 accordion iconPosition (Q242): the values are leading and trailing in the def, the prop and every member, and the indicator parts are named for them${named.filter((n) => OLD.test(n)).length ? ` — OLD NAME: ${[...new Set(named.filter((n) => OLD.test(n)))].join(', ')}` : ''}`);
+  const glyphs = plans.map((p) => { const c = coord(p); const start = find(p.root as PN, 'leadingGlyph'), end = find(p.root as PN, 'trailingGlyph'); return { c, start, end }; });
+  ok(glyphs.every(({ c, start, end }) => {
+    const g = c.iconPosition === 'leading' ? start : end, other = c.iconPosition === 'leading' ? end : start;
+    return !!g && !other && g.nestTarget === '_accordion-indicator' && g.nestVariant?.expansion === c.expansion && g.nestVariant?.size === c.size && JSON.stringify(g.nestExpose) === JSON.stringify(['indicator']);
+  }), `#2417 accordion indicator: one nested _accordion-indicator per member, at its position, exposing indicator and following the member's expansion and size (Q183)`);
+  ok(plans.every((p) => { const c = coord(p); const panel = find(p.root as PN, 'content'); return c.expansion === 'expanded' ? panel?.type === 'CONTENT_SLOT' : !panel; }),
+    `#2417 accordion panel: a native slot on every expanded member and on no collapsed one (Q182)`);
+  const open = plans.find((p) => coord(p).expansion === 'expanded' && coord(p).size === 'medium')!;
+  const panel = find(open.root as PN, 'content')!, ph = find(open.root as PN, 'placeholder')!;
+  ok(panel.bound?.paddingTop === 'space/0' && panel.bound?.paddingBottom === 'space/200' && ph.paints?.fills === 'color/text/primary' && !!ph.characters,
+    `#2417 accordion panel: no top inset and a bottom one (the start/end block padding), and the placeholder in page ink with its own copy (Q182) (got top ${panel.bound?.paddingTop}, bottom ${panel.bound?.paddingBottom}, ink ${ph.paints?.fills})`);
+  // A WRAP UNDER A COLUMN stretches across it rather than growing down it: measured on a real host, the placeholder
+  // projected with `layoutGrow` ran one line 580px wide out of the 320px panel. The header's title, now in its own
+  // column (`titleBox`, Q262), stretches across it the same way, and the column grows along the header row. Mutation:
+  // the column branch dropped → this arm, by name.
+  type PW = PN & { layoutGrow?: number; textAutoResize?: string };
+  ok(plans.filter((p) => coord(p).expansion === 'expanded').every((p) => { const t = find(p.root as PN, 'placeholder') as PW, l = find(p.root as PN, 'label') as PW; const tb = find(p.root as PN, 'titleBox') as PW; return t.layoutAlign === 'STRETCH' && t.layoutGrow === undefined && t.textAutoResize === 'HEIGHT' && l.layoutAlign === 'STRETCH' && l.textAutoResize === 'HEIGHT' && tb?.layoutGrow === 1; }),
+    `#2417 accordion panel: the placeholder wraps across the panel (a column's stretch, no grow), and the title wraps across its column, which grows along the header row (Q262) (got ${JSON.stringify((({ layoutAlign, layoutGrow, textAutoResize }) => ({ layoutAlign, layoutGrow, textAutoResize }))(ph as PW))})`);
+  ok(plans.every((p) => { const d = find(p.root as PN, 'divider'); return d?.type === 'NESTED_INSTANCE' && d.nestTarget === 'divider' && d.layoutAlign === 'STRETCH' && !d.bound?.width; }),
+    `#2417 accordion divider: the Divider nested on every member, stretched across it, with no width binding on the instance (measured: the stretch drops the 720px one)`);
+  const FLOOR: Record<string, string> = { small: 'size/md/min-height', medium: 'size/md/min-height', large: 'size/lg/height' };
+  ok(plans.every((p) => find(p.root as PN, 'header')?.bound?.minHeight === FLOOR[coord(p).size]),
+    `#2417 accordion header: the 44px floor at every size, size/md/min-height at small and medium and size/lg/height at large (Q182)`);
+  // THE RING INSIDE THE HEADER'S EDGE (Q257 A, superseding Q243): offset 0 (the fields' offset) and NO stroke
+  // compensation, so the ring's inside stroke sits within the header and never covers the nested Divider (measured
+  // live: compensated, it covered it by 2px). The control offset back, or the compensation back, fails here by name.
+  type PR = PN & { absoluteInset?: string; absoluteStrokeInset?: string };
+  const rings = plans.filter((p) => coord(p).state === 'focus-visible').map((p) => find(p.root as PN, 'focusRing') as PR | undefined);
+  ok(acc.tokens['ring-offset'] === 'focus.ring.offset-field' && rings.length === 12 && rings.every((r) => r?.absoluteInset === 'focus/ring/offset-field' && r.absoluteStrokeInset === undefined),
+    `#2417 accordion focus ring (Q257): drawn inside the header's edge, focus.ring.offset-field and no stroke compensation on every focus-visible member (got ${acc.tokens['ring-offset']}; ${[...new Set(rings.map((r) => `${r?.absoluteInset} + ${r?.absoluteStrokeInset ?? 'no stroke'}`))].join(', ')})`);
+  // `drawnInside` IS VALIDATED ON ITS OWN TERMS (#2417): never beside `strokeInset`, and only on an absolute part. Each
+  // refusal is asserted by its own message, so switching one off fails its own arm.
+  const withRing = (patch: Record<string, unknown>, part = 'focusRing'): ComponentDef => ({ ...acc, anatomy: { ...acc.anatomy!, parts: { ...acc.anatomy!.parts, [part]: { ...acc.anatomy!.parts[part], ...patch } } } }) as ComponentDef;
+  ok(validateComponentDef(acc).errors.length === 0, `#2417 drawnInside: Accordion's inside ring validates clean (${validateComponentDef(acc).errors.slice(0, 1).join('')})`);
+  ok(validateComponentDef(withRing({ strokeInset: 'ring-offset' })).errors.some((m) => /declares both 'drawnInside' and 'strokeInset'/.test(m)),
+    '#2417 drawnInside: declared beside strokeInset, it is refused by name');
+  ok(validateComponentDef(withRing({ drawnInside: true }, 'header')).errors.some((m) => /is kind 'box' but declares 'drawnInside'/.test(m)),
+    '#2417 drawnInside: on a non-absolute part, it is refused by name');
+  ok(validateComponentDef(withRing({ drawnInside: undefined })).errors.some((m) => /binds no 'strokeInset'/.test(m)),
+    '#2417 drawnInside: without it, the #801 rule refuses an uncompensated ring again');
+  // THE GLYPH CENTERS ON THE TITLE'S FIRST LINE (owner Q262 A, revising the QA's center-left): the header row is
+  // top-aligned, the indicator box is as tall as the row with its glyph at the top (Prism2's icon container), and the
+  // title sits 2px lower (Prism2's 2px icon offset, mirrored, because here the title's line is the shorter of the two).
+  // A layout model reads the PLAN's own alignments and each brand's EMITTED tokens, places a TWO-LINE title and the
+  // glyph, and measures line one's center against the glyph's. EXPECTED (within 1px) is typed here. Mutation: the
+  // header back to center alignment → this arm, by name (the glyph then centers on the two-line block).
+  type PL = PN & { counterAxisAlignItems?: string; layoutAlign?: string };
+  const emitted = (b: string) => { const t = JSON.parse(readFileSync(resolve(HERE, `out/${b}.tokens.json`), 'utf8')); return t[Object.keys(t).find((k) => !k.startsWith('$'))!]; };
+  const at = (root: any, ref: string): any => ref.replace(/^\{|\}$/g, '').split('.').slice(ref.startsWith('{') ? 1 : 0).reduce((n: any, k) => n?.[k], root);
+  const num = (root: any, v: any): number => { const leaf = typeof v === 'string' && v.startsWith('{') ? at(root, v) : v; if (leaf && typeof leaf === 'object' && '$value' in leaf) return leaf.$extensions?.prism3?.px ?? num(root, leaf.$value); return parseFloat(String(leaf)); };
+  const RUNG_OF: Record<string, string> = { small: 'sm', medium: 'md', large: 'lg' };
+  const off: string[] = [];
+  let measured = 0;
+  for (const b of ['nb', 'prism3', 'aurora', 'harbor', 'wendys']) {
+    const root = emitted(b);
+    for (const p of plans.filter((q) => coord(q).iconPosition === 'leading' && coord(q).state === 'rest' && coord(q).expansion === 'collapsed')) {
+      const size = coord(p).size;
+      const header = find(p.root as PN, 'header') as PL, box = find(p.root as PN, 'leadingIndicator') as PL, tb = find(p.root as PN, 'titleBox') as PL;
+      const glyph = num(root, at(root, ind.tokens[`size.${size}.icon`]));
+      const type = at(root, acc.tokens[`size.${size}.type`]).$value;
+      const line = num(root, type.fontSize) * num(root, type.lineHeight);
+      // The offset the PLAN binds on the title's column, read back as a token path; absent means none.
+      const padVar = tb?.bound?.paddingTop;
+      const offset = padVar ? num(root, at(root, padVar.replace(/\//g, '.'))) : 0;
+      for (const lines of [1, 2]) {
+      const title = offset + lines * line; // a one-line and a TWO-LINE title
+      const H = Math.max(glyph, title);
+      const place = (align: string | undefined, h: number, inH: number) => (align === 'CENTER' ? (inH - h) / 2 : align === 'MAX' ? inH - h : 0);
+      // The indicator box stretches to the row (STRETCH) or sits at the header's alignment; the glyph sits in it at the box's own.
+      const boxH = box.layoutAlign === 'STRETCH' ? H : glyph;
+      const boxTop = box.layoutAlign === 'STRETCH' ? 0 : place(header.counterAxisAlignItems, glyph, H);
+      const glyphMid = boxTop + place(box.counterAxisAlignItems, glyph, boxH) + glyph / 2;
+      const lineOneMid = place(header.counterAxisAlignItems, title, H) + offset + line / 2;
+      measured++;
+      if (!(tb && header.counterAxisAlignItems === 'MIN' && Math.abs(glyphMid - lineOneMid) <= 1)) off.push(`${b} ${size} ${lines}-line (header ${header.counterAxisAlignItems}): glyph center ${glyphMid.toFixed(2)} vs line one ${lineOneMid.toFixed(2)}`);
+      }
+    }
+  }
+  ok(measured === 30 && off.length === 0,
+    `#2417 accordion header (Q262): top-aligned, and on a one- and a two-line title the glyph centers on line one, within 1px, at every size in every brand (${measured} measured${off.length ? `; OFF: ${off.join('; ')}` : ''})`);
+  // THE FIGMA DISPLAY NAME OF A VARIANT AXIS (#2571): "icon position" in every member name, and in every key that
+  // parses one, so the plugin's and the paste's layouts and footprint cohorts read the same string. Mutations: the
+  // cohort key left on code names → `#2571 layout`; the name written raw in `planComponentName` → the iconPosition arm.
+  const L = planSetLayout(plans, '#2571');
+  ok(L.axes.split(',').includes('icon position') && !L.axes.split(',').includes('iconPosition') && L.footprintVaries.includes('icon position') && L.cells.every((c) => /icon position=(leading|trailing)/.test(c.group)),
+    `#2571 layout: the grid axes, the held footprint axes and every cohort key carry "icon position" (axes ${L.axes}; held ${JSON.stringify(L.footprintVaries)}; ${L.cells[0].group})`);
+  const named2 = (n: Record<string, string>): ComponentDef => ({ ...acc, figmaProperties: { ...acc.figmaProperties!, variantAxisNames: n } }) as ComponentDef;
+  ok(validateComponentDef(named2({ orientation: 'way' })).errors.some((m) => /variantAxisNames\.orientation: 'orientation' is not one of this def's variantAxes/.test(m)),
+    '#2571 validator: a display name for an axis the def does not have is refused by name');
+  ok(validateComponentDef(named2({ iconPosition: 'size' })).errors.some((m) => /display name 'size' is claimed by both/.test(m)),
+    '#2571 validator: a display name that clashes with another axis is refused by name');
+  // NOT YET NESTABLE: a nest names its coordinate by code name, and the projection cannot see the nested def to map it.
+  // So no def may nest a def that renames an axis in Figma until that lands; this fails by name the day one does.
+  const renamedDefs = new Set(componentDefs.filter((d) => Object.keys(d.figmaProperties?.variantAxisNames ?? {}).length).map((d) => d.id));
+  const nestsRenamed = componentDefs.flatMap((d) => Object.entries(d.anatomy?.parts ?? {}).filter(([, p]) => p.nests && renamedDefs.has(p.nests) && p.nesting).map(([n, p]) => `${d.id}.${n} → ${p.nests}`));
+  ok(renamedDefs.has('accordion') && nestsRenamed.length === 0,
+    `#2571 nesting: no def nests a def whose variant axes carry Figma display names (not supported yet)${nestsRenamed.length ? ` — NESTS: ${nestsRenamed.join(', ')}` : ''}`);
+  // THE GLYPH SIZES (owner QA, 2026-10-12, superseding Q241.3): one rung below the control's, 16/20/24 at small,
+  // medium and large. EXPECTED is the rung names, typed here; the old 20/24/32 rungs back fail here by name.
+  const RUNG: Record<string, string> = { small: 'icon/size/xs', medium: 'icon/size/sm', large: 'icon/size/md' };
+  const sizes = indPlans.map((p) => ({ size: coord(p).size, w: (p.root as PN).bound?.width, h: (p.root as PN).bound?.height }));
+  ok(sizes.length === 12 && sizes.every((g) => g.w === RUNG[g.size] && g.h === RUNG[g.size]),
+    `#2417 accordion glyphs (owner QA): 16/20/24, icon/size/xs, sm and md at small, medium and large (got ${[...new Set(sizes.map((g) => `${g.size} ${g.w}`))].join(', ')})`);
+  const GLYPH: Record<string, string> = { 'chevron/collapsed': 'chevron-down', 'chevron/expanded': 'chevron-up', 'plus-minus/collapsed': 'plus', 'plus-minus/expanded': 'minus' };
+  ok(indPlans.length === 12 && indPlans.every((p) => { const c = coord(p); const shown = (p.root as PN).children.map((k) => k.name); return shown.length === 1 && shown[0] === { 'chevron-down': 'chevronDown', 'chevron-up': 'chevronUp', plus: 'plus', minus: 'minus' }[GLYPH[`${c.indicator}/${c.expansion}`]]; }),
+    `#2417 accordion indicator: 12 members, each showing exactly the one glyph for its pair and state (Q183)`);
 }
 
 // ------------------------------------------------------------------- report

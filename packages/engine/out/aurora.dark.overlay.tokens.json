@@ -526,13 +526,13 @@
         },
         "secondary": {
           "$type": "color",
-          "$value": "{ads.core.palette.neutral.500}",
-          "$description": "Stronger border / divider"
+          "$value": "{ads.core.palette.neutral.650}",
+          "$description": "Stronger border / divider — decorative, ~2.4:1"
         },
         "tertiary": {
           "$type": "color",
-          "$value": "{ads.core.palette.neutral.300}",
-          "$description": "Strongest border / divider — the third rung of the neutral edge ladder"
+          "$value": "{ads.core.palette.neutral.500}",
+          "$description": "Accessible border — the first edge that clears 3:1 (SC 1.4.11) on every page and surface tier"
         },
         "success": {
           "$type": "color",

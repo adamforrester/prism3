@@ -61,6 +61,7 @@ import { tailOf } from '@prism3/engine/figma-names';
 import { NS } from './persist-figma';
 import { EXECUTOR_REVISION } from './executor-revision';
 import { BASELINE_KEY, UPDATING_KEY, baselineOf, builtByPrism3, mainOf, readBaseline, snapshotMember, writeBaseline, type OwnershipRead } from './member-baseline';
+import { REACTIONS_PATH, plannedRead, reactionMap, reactionToWrite, reactionVerdict, reactionsText, readReactions } from './reactions';
 // #1318 — the ONE gradient-stop binder, shared with the Paint Style executor rather than written twice.
 import { bindGradientStops } from './write-styles';
 import type { VariableAlias, Rgba } from './write-styles';
@@ -294,6 +295,10 @@ export interface CompNode {
    *  (as unknown provenance, which is stale). That is the safe reading in both cases. */
   getSharedPluginData?(namespace: string, key: string): string;
   setSharedPluginData?(namespace: string, key: string, value: string): void;
+  /** A member's prototype reactions (#2466, `reactions.ts`): read, then written whole by `setReactionsAsync`, the
+   *  one way the host takes them. Optional like everything here: a host without them builds no interactions. */
+  readonly reactions?: readonly unknown[];
+  setReactionsAsync?(reactions: unknown[]): Promise<void>;
 }
 
 /** A COMPONENT_SET, which has a surface no ordinary node does. `componentPropertyDefinitions` is a
@@ -881,6 +886,60 @@ export const placeNewSet = (existing: readonly PageBox[], height: number): { x: 
   // An empty band happens only when every node there has zero height; then everything counts.
   const x = Math.max(...(band.length ? band : existing).map((b) => b.x + b.width)) + SET_GAP;
   return { x, y };
+};
+
+/** A top-level node on a page, as `respaceSets` reads it: `prism3` marks a set Prism3 built (its members carry a
+ *  stamp), `furniture` a label, bracket or backdrop the canvas furniture drew for one (`canvas-furniture.ts`). */
+export type RespaceBox = PageBox & { id: string; prism3?: boolean; furniture?: boolean };
+
+/**
+ * WHERE A PRISM3 SET ON A PAGE MOVES SO ITS ROW LABELS HAVE ROOM (#2542; owner decisions Q245.2 A and Q248 A, "the
+ * re-spacing only makes room"). #2502 widened the gap between sets to `SET_GAP` (400) so a set's row labels and
+ * brackets clear the set to its left, and `placeNewSet` never moves a set that exists. Returns only the sets that move.
+ *
+ * ONLY WHEN TOO CLOSE, AND ONLY FAR ENOUGH. A set's LEFT NEIGHBOUR is the nearest Prism3 set to its left in the same
+ * row (their heights overlap), as already moved. A set moves only when it sits closer to that neighbour than
+ * `SET_GAP`, and then to exactly `SET_GAP` clear of it, which is where a fresh build of the page places it. Everything
+ * else is the designer's placement, and it wins, as it does in `placeNewSet`:
+ *   · a set spaced WIDER stays exactly where it is;
+ *   · a set with no Prism3 set to its left in its row (the first of a row, a SECOND ROW below the first) stays, so a
+ *     second row is never lifted into the first, and `y` never changes;
+ *   · if the spot a moving set needs overlaps something that stays put, it is pushed just past it, `SET_GAP` clear.
+ *     "Something" includes the OTHER Prism3 sets (#2548): every set already placed, where it now sits, and a set not
+ *     reached yet once the spot is at or past its left edge. Short of that edge, the later set still has this one as
+ *     its left neighbour and moves clear of it on its own turn; past it, the later set no longer sees this one, so it
+ *     would stay where it is underneath. A set that moves clears every set placed before it, so no two land on each other.
+ * Sets are taken left to right, so a set moved right pushes its own right neighbour only if that one is now too close.
+ *
+ * NEVER MOVES CONTENT PRISM3 DIDN'T BUILD (#2464, #2494): a set with no stamped member, the page header and any other
+ * node stay exactly where they are, as obstacles. The canvas furniture is left out: it is drawn for a set after the
+ * update lands, from where the set then sits, so it follows the move.
+ */
+export const respaceSets = (nodes: readonly RespaceBox[]): { id: string; from: { x: number; y: number }; to: { x: number; y: number } }[] => {
+  const ours = nodes.filter((b) => b.type === 'COMPONENT_SET' && b.prism3 && !b.header).sort((a, b) => a.x - b.x || a.y - b.y);
+  if (ours.length < 2) return [];
+  const fixed = nodes.filter((b) => !(b.type === 'COMPONENT_SET' && b.prism3) && !b.furniture);
+  const sameRow = (a: PageBox, b: PageBox): boolean => a.y < b.y + b.height && a.y + a.height > b.y;
+  const placed: PageBox[] = [];
+  const moves: { id: string; from: { x: number; y: number }; to: { x: number; y: number } }[] = [];
+  for (const [i, b] of ours.entries()) {
+    const left = placed.filter((p) => sameRow(p, b) && p.x < b.x);
+    if (!left.length) { placed.push(b); continue; }
+    const right = Math.max(...left.map((p) => p.x + p.width));
+    // Too close only: a set spaced the fresh gap or wider is the designer's, and stays.
+    if (b.x - right >= SET_GAP - 0.5) { placed.push(b); continue; }
+    let x = right + SET_GAP;
+    // Past anything that stays and would overlap the set at this spot; again, until the spot is clear.
+    const later = ours.slice(i + 1);
+    for (let pushed = true; pushed;) {
+      pushed = false;
+      for (const f of [...fixed, ...placed, ...later.filter((u) => x >= u.x)])
+        if (f.y < b.y + b.height && f.y + f.height > b.y && f.x < x + b.width && f.x + f.width > x) { x = f.x + f.width + SET_GAP; pushed = true; }
+    }
+    moves.push({ id: b.id, from: { x: b.x, y: b.y }, to: { x, y: b.y } });
+    placed.push({ ...b, x });
+  }
+  return moves;
 };
 
 /**
@@ -2586,6 +2645,8 @@ const writeComponentSet = async (
       const prior = readBaseline(m);
       const now = baselineOf(await snapshotMember(m));
       if (!entry.accept) for (const p of entry.keep) if (prior?.nodes[p] !== undefined) now.nodes[p] = prior.nodes[p];
+      // Reactions kept as a hand edit keep their recorded hash too (#2466), for the same reason.
+      if (!entry.accept && entry.keep.has(REACTIONS_PATH) && prior?.reactions !== undefined) now.reactions = prior.reactions;
       m.setSharedPluginData?.(NS, BASELINE_KEY, JSON.stringify({ ...now, ...(m.id ? { id: String(m.id) } : {}) }));
     } catch (err) { return `${mName}.asBuilt -> NOT RECORDED (${(err as Error)?.message ?? String(err)})`; }
     // THE STAMP, LAST (§7): only now does the member read current. Then the marker comes off.
@@ -3628,6 +3689,41 @@ const writeComponentSet = async (
   const refsWired = wiredRefs.length;
   const membersWired = new Set(wiredRefs.map((r) => r[0])).size;
 
+  // INTERACTIVE COMPONENTS (#2466, owner decision Q238 A, `reactions.ts`): every member this run built or configured
+  // in place gets its reactions FROM THE PLAN, resolved by name to the siblings the set holds NOW. After every other
+  // write, because a reaction names its destination by id and an in-place update may have just added that
+  // destination; before the record, so the record holds them. Never kept from what the file had: a sibling that
+  // was replaced left these pointing at an orphan (docs/18 §3). A member whose reactions already read as planned is
+  // not written (a write costs ~12.5ms on the host, measured), nor is one whose reactions an update keeps as a
+  // hand edit. Read back, as everything here is. Yields on the chunk boundary, as the loops above do.
+  const reactionMiss: string[] = [];
+  const plannedReactions = reactionMap(plans.map((p) => planComponentName(p)));
+  if (plannedReactions.size) {
+    const kids = (liveSet().children ?? []) as CompNode[];
+    const byMember = new Map(kids.map((c) => [String(c.name), c] as const));
+    let writes = 0;
+    for (const mName of builtParts.keys()) {
+      const want = plannedReactions.get(mName);
+      const m = byMember.get(mName);
+      if (!want || !m || typeof m.setReactionsAsync !== 'function') continue;
+      if (updated.get(mName)?.keep.has(REACTIONS_PATH)) continue;
+      const wantRead = want.map((r) => plannedRead(mName, r));
+      const had = await readReactions(m);
+      if (had && !reactionVerdict(wantRead, had).differs) continue;
+      const write: unknown[] = [];
+      for (const r of want) {
+        const id = byMember.get(r.to)?.id;
+        if (id) write.push(reactionToWrite(r.trigger, String(id)));
+        else reactionMiss.push(`${mName}.reactions -> ${r.trigger} NOT WRITTEN (${r.to} is not in the set)`);
+      }
+      try { await m.setReactionsAsync(write); }
+      catch (err) { reactionMiss.push(`${mName}.reactions -> REFUSED (${(err as Error)?.message ?? String(err)})`); continue; }
+      const back = await readReactions(m);
+      if (back && reactionVerdict(wantRead, back).differs) reactionMiss.push(`${mName}.reactions -> NOT HELD (wrote ${reactionsText(wantRead)}, reads ${reactionsText(back)})`);
+      if (++writes % chunkSize === 0) await yieldTo();
+    }
+  }
+
   // THE "AS BUILT" BASELINE (#2265), last, once every write and repair above has landed: the record is of
   // the member as the host now holds it, which is what a later dry run reads it against. Only on members
   // THIS run built; a skipped member keeps the baseline its own build wrote, and a member built before
@@ -3648,7 +3744,7 @@ const writeComponentSet = async (
     try { await writeBaseline(m); }
     catch (err) { asBuiltMiss.push(`${mName}.asBuilt -> NOT RECORDED (${(err as Error)?.message ?? String(err)})`); }
   }
-  const allMisses = misses.concat(stray, boxMiss, axisMiss, coincident, footprint, propMiss, asBuiltMiss);
+  const allMisses = misses.concat(stray, boxMiss, axisMiss, coincident, footprint, propMiss, reactionMiss, asBuiltMiss);
 
   // #1579 — THE FINAL REPORT, overwriting the provisional one written at the combine (keep-last). On
   // `liveSet()` rather than `set`, for #1574's reason: a report left on a handle the host has replaced is

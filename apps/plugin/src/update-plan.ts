@@ -38,7 +38,9 @@
  *
  * `diffAnatomy`, the read-back the build already trusts, run on a snapshot of the member against the plan,
  * plus the one direction it does not report: a child the host has and the plan does not, which an update
- * would remove. Its blind spots are this module's (`anatomy-readback.ts` lists them). A member whose stamp
+ * would remove. And the member's prototype reactions (#2466, `reactions.ts`) against the ones the plan gives it: a
+ * reaction missing, extra or changed is a field change (`REACTIONS`), and a destination that is no longer a member
+ * of the set DANGLES, which, like a drawn fault, makes the member "to update" whatever its record says. Its blind spots are this module's (`anatomy-readback.ts` lists them). A member whose stamp
  * moved and that shows no field difference is listed as re-applied rather than left out.
  */
 import { planComponentName, planSetLayout, planSetProperties } from '@prism3/engine/anatomy-figma';
@@ -47,10 +49,12 @@ import { diffAnatomy, type HostNode, type ReadPorts } from '@prism3/engine/anato
 import { COMPONENT_RENAMES, coordKey, coordPairs, renameCoordinate, type ComponentRename } from '@prism3/engine/component-renames';
 import { ENGINE_VERSION } from '@prism3/engine/version';
 import { EXECUTOR_REVISION } from './executor-revision';
-import { memberStamp, planHalf, revHalf, STAMP_KEY } from './write-components';
+import { memberStamp, planHalf, revHalf, respaceSets, STAMP_KEY, type RespaceBox } from './write-components';
+import { readTag } from './canvas-furniture';
 import { NS } from './persist-figma';
 import { BASELINE_V, UPDATING_KEY, baselineDiff, baselineOf, builtByPrism3, readBaseline, recordFormat, snapshotMember, writeBaseline, type Baseline, type OwnershipRead, type SnapNode } from './member-baseline';
 import { drawnFaults, type DrawnFault, type DrawVar } from './drawn';
+import { REACTIONS_PATH, plannedRead, reactionMap, reactionVerdict, reactionsText, type PlannedReaction, type ReadReaction } from './reactions';
 import { pagesOutOfOrder, stripNestPrefix, type PageLike } from './file-setup';
 
 /** One member of a set as the dry run reads it. */
@@ -128,9 +132,24 @@ export type SetPreview = {
   states: { member: string; state: Exclude<MemberState, 'current'>; earlierRecord?: true }[];
   /** #2188 Q173 — the members an update moves to their place in the grid, by name (`gridMoves`). Absent when none. */
   positions?: string[];
+  /** #2542 (owner decision Q245.2 A) — the WHOLE SET moves on its page, to where a fresh build would place it
+   *  (`respaceSets`), so sets sit `SET_GAP` apart. Absent when it stays. */
+  setMove?: { from: { x: number; y: number }; to: { x: number; y: number } };
   needsChoice: Choice[];
   /** Entries left out of a list past `LIST_CAP`, per list. Absent when nothing was. */
   truncated?: Record<string, number>;
+};
+
+/** The field a reaction difference is named under (#2466). DRAFT wording. */
+export const REACTIONS = 'prototype reactions';
+
+/** The reactions the plan gives one member and the ones it holds, as `reactions.ts` reads them; `null` for a member
+ *  of a set out of scope, or one read off a host with no reactions to read. */
+export const memberReactions = (planned: ReadonlyMap<string, PlannedReaction[]>, plan: AnatomyPlan, m: HostMember): { planned: ReadReaction[]; read: ReadReaction[] } | null => {
+  const name = planComponentName(plan);
+  const want = planned.get(name);
+  if (!want || !m.snap.reactions) return null;
+  return { planned: want.map((r) => plannedRead(name, r)), read: m.snap.reactions };
 };
 
 /** Each list is capped so a whole-library preview stays a few mailbox chunks (§6). */
@@ -342,6 +361,7 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
   const handEdits: SetPreview['handEdits'] = [];
   const rev = String(EXECUTOR_REVISION);
   const states: SetPreview['states'] = [];
+  const plannedRx = reactionMap(plans.map((p) => planComponentName(p)));
   for (const l of matched) {
     const plan = planned.get(l.target)!;
     const { m } = l;
@@ -363,13 +383,18 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
       const hit = (p: string): boolean => parts.some((d) => p === d || (d !== '.' && p.startsWith(`${d}/`)));
       edit = { ...edit, changed: edit.changed.filter((p) => !hit(p)) };
     }
+    // ITS REACTIONS (#2466). A DANGLING destination (a sibling replaced since they were written) is damage, as a drawn
+    // fault is: never a hand edit, never current, and the update writes them again from the plan.
+    const rx = memberReactions(plannedRx, plan, m);
+    const rxv = rx ? reactionVerdict(rx.planned, rx.read) : { differs: false, dangling: false };
+    if (rxv.dangling && edit) edit = { ...edit, changed: edit.changed.filter((p) => p !== REACTIONS_PATH) };
     const edited = !!edit && (edit.changed.length + edit.added.length + edit.removed.length > 0);
     const planMoved = planHalf(m.stamp) !== planHalf(memberStamp(plan));
     const revField = m.stamp.split('|').length >= 3 ? revHalf(m.stamp) : null;
-    const state: MemberState = damaged.length ? 'update'
+    const state: MemberState = damaged.length || rxv.dangling ? 'update'
       : !m.baseline ? 'noBaseline'
       : edited ? 'handEdited'
-      : planMoved || (revField !== null && revField !== rev) ? 'update'
+      : planMoved || (revField !== null && revField !== rev) || rxv.differs ? 'update'
       : revField === null ? 'revisionUnknown'
       : 'current';
     counts[state]++;
@@ -430,7 +455,16 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
       if (c.sample.length < 3) c.sample.push(m.name);
       changes.set(k, c);
     }
-    if (state === 'update' && divs.length === 0 && extras.length === 0 && dropped.length === 0 && !(m.drawn ?? []).length) {
+    if (rx && rxv.differs) {
+      touched.add(REACTIONS_PATH);
+      const from = reactionsText(rx.read), to = reactionsText(rx.planned);
+      const k = `.\u0000${REACTIONS}\u0000${from}\u0000${to}`;
+      const c = changes.get(k) ?? { part: '.', field: REACTIONS, from, to, members: 0, sample: [] };
+      c.members++;
+      if (c.sample.length < 3) c.sample.push(m.name);
+      changes.set(k, c);
+    }
+    if (state === 'update' && divs.length === 0 && extras.length === 0 && dropped.length === 0 && !(m.drawn ?? []).length && !rxv.differs) {
       counts.reapplied++;
       const k = '.\u0000stamp\u0000\u0000';
       const c = changes.get(k) ?? { part: '.', field: 'stamp', from: planMoved ? 'an earlier plan' : 'an earlier executor revision', to: 're-applied — no field-level difference visible', members: 0, sample: [] };
@@ -522,7 +556,7 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
   // THE PREVIEW HASH covers what the preview says AND the file state it was read from — each member's id,
   // stamp and current node hashes — so a confirm (PR 2) can refuse an apply over a file that moved after
   // the preview even where the preview's own text would not have changed.
-  const fingerprint = read.members.map((m) => [m.id, m.name, m.stamp, baselineOf(m.snap).nodes]);
+  const fingerprint = read.members.map((m) => { const b = baselineOf(m.snap); return [m.id, m.name, m.stamp, b.nodes, b.reactions ?? null]; });
   const previewHash = fnv(JSON.stringify([body, fingerprint]));
   return { ...body, previewHash };
 };
@@ -598,7 +632,7 @@ const liveNode = (set: LiveSet, m: HostMember): { name?: unknown; setSharedPlugi
 export type Difference = { part: string; field: string; plan: string; file: string };
 
 /** Every field a member's snapshot differs from its plan in, by part (`.` for the member itself). */
-export const differencesOf = (plan: AnatomyPlan, m: HostMember, ports: ReadPorts): Difference[] => {
+export const differencesOf = (plan: AnatomyPlan, m: HostMember, ports: ReadPorts, rx?: { planned: ReadReaction[]; read: ReadReaction[] } | null): Difference[] => {
   const rootName = plan.root.name;
   const rel = (p: string): string => (p === rootName ? '.' : p.startsWith(`${rootName}/`) ? p.slice(rootName.length + 1) : p);
   const out: Difference[] = diffAnatomy([plan], [m.snap as unknown as HostNode], () => m.name, ports)
@@ -611,15 +645,16 @@ export const differencesOf = (plan: AnatomyPlan, m: HostMember, ports: ReadPorts
   droppedFills(plan.root, m.snap, '.', ports, dropped);
   for (const { part, file } of dropped) out.push({ part, field: 'fill', plan: 'none', file });
   for (const f of m.drawn ?? []) out.push({ part: f.part, field: f.field, plan: f.want, file: f.file });
+  if (rx && reactionVerdict(rx.planned, rx.read).differs) out.push({ part: '.', field: REACTIONS, plan: reactionsText(rx.planned), file: reactionsText(rx.read) });
   return out;
 };
 
-export const captureVerdict = (plan: AnatomyPlan | undefined, m: HostMember, ports: ReadPorts): { record: boolean; reason: string; differences?: Difference[] } => {
+export const captureVerdict = (plan: AnatomyPlan | undefined, m: HostMember, ports: ReadPorts, rx?: { planned: ReadReaction[]; read: ReadReaction[] } | null): { record: boolean; reason: string; differences?: Difference[] } => {
   if (!plan) return { record: false, reason: 'not in the plan' };
   if (!m.stamp) return { record: false, reason: 'unstamped' };
   if (m.baseline) return { record: false, reason: 'already has a baseline' };
   if (planHalf(m.stamp) !== planHalf(memberStamp(plan))) return { record: false, reason: 'built from an earlier plan' };
-  const differences = differencesOf(plan, m, ports);
+  const differences = differencesOf(plan, m, ports, rx);
   if (differences.length) return { record: false, reason: `differs from the plan in ${differences.length} place(s)`, differences };
   return { record: true, reason: 'recorded' };
 };
@@ -634,8 +669,10 @@ export const captureSet = async (set: LiveSet, plans: AnatomyPlan[], ports: Read
   const view = ownedView(read ?? await readSetView(set, breathe, (ports as UpdatePorts).drawVars));
   let recorded = 0;
   const skipped: { member: string; reason: string; differences?: Difference[] }[] = [];
+  const plannedRx = reactionMap(plans.map((p) => planComponentName(p)));
   for (const m of view.members) {
-    const v = captureVerdict(planned.get(coordKey(m.name)), m, ports);
+    const plan = planned.get(coordKey(m.name));
+    const v = captureVerdict(plan, m, ports, plan ? memberReactions(plannedRx, plan, m) : null);
     if (!v.record) { skipped.push({ member: m.name, reason: v.reason, ...(v.differences ? { differences: v.differences } : {}) }); continue; }
     // BY THE NODE ID IT WAS READ FROM (#2301), so a set reordered while it was read cannot put the record on another
     // member. A node that is gone, or no longer carries the name it was read under, is left out.
@@ -795,12 +832,60 @@ export type UpdatePreview = {
   pages?: string[];
 };
 
+/** How many sets a dry run moves on their pages (#2542). */
+export const setsMoving = (r: UpdatePreview): number => r.sets.filter((p) => !p.blockers.length && p.setMove).length;
+
+/** Whether a node is a set Prism3 built (#2464, #2494): at least one of its members is, by the shared member test
+ *  (`builtByPrism3`, #2510). So a set whose only stamps are malformed, or copied with their records by a Duplicate,
+ *  is a designer's set, and an obstacle, as `ownedView` reads its members. */
+const setBuiltByPrism3 = (n: { children?: readonly unknown[] }): boolean => {
+  const members = (n.children ?? []) as { id?: unknown; getSharedPluginData?(ns: string, k: string): string }[];
+  const reads: OwnershipRead[] = members.map((m) => ({ id: m.id === undefined ? undefined : String(m.id), stamp: m.getSharedPluginData?.(NS, STAMP_KEY) ?? '', recordId: readBaseline(m)?.id }));
+  const owned = builtByPrism3(reads);
+  return reads.some(owned);
+};
+
+/**
+ * THE SET MOVES ON EACH PAGE (#2542, owner decision Q245.2 A), by set name. A page takes part only when EVERY set
+ * Prism3 built on it is one this update reads and none is blocked: an update scoped to one def never moves a set it
+ * wasn't asked about. Read from the page's top-level nodes as they sit (`respaceSets`), so the dry run lists the moves
+ * the file shows now, and the apply, called again after its sets land, moves them by their new sizes.
+ */
+export const pageSetMoves = (found: readonly { name: string; set: LiveSet; blocked: boolean }[]): Map<string, { from: { x: number; y: number }; to: { x: number; y: number } }> => {
+  const out = new Map<string, { from: { x: number; y: number }; to: { x: number; y: number } }>();
+  const pages = new Map<unknown, typeof found[number][]>();
+  for (const f of found) {
+    const page = f.set.parent as { children?: readonly unknown[] } | null | undefined;
+    if (!page || !Array.isArray(page.children)) continue;
+    pages.set(page, [...(pages.get(page) ?? []), f]);
+  }
+  for (const [page, here] of pages) {
+    const kids = (page as { children: readonly unknown[] }).children as { id?: unknown; type?: unknown; name?: unknown; x?: unknown; y?: unknown; width?: unknown; height?: unknown; children?: readonly unknown[] }[];
+    const read = new Set(here.map((f) => f.set));
+    const ours = kids.filter((k) => k.type === 'COMPONENT_SET' && setBuiltByPrism3(k));
+    if (here.some((f) => f.blocked) || !ours.every((k) => read.has(k as LiveSet))) continue;
+    // Keyed by the node's place on the page, never by its id: what maps a move back to its set is the node itself.
+    const boxes: RespaceBox[] = kids.map((k, i) => ({
+      id: String(i), type: String(k.type ?? ''), x: Number(k.x ?? 0), y: Number(k.y ?? 0), width: Number(k.width ?? 0), height: Number(k.height ?? 0),
+      header: (k.type === 'INSTANCE' || k.type === 'FRAME') && String(k.name ?? '').toLowerCase() === '_section-header',
+      prism3: k.type === 'COMPONENT_SET' && setBuiltByPrism3(k),
+      furniture: !!readTag(k as never),
+    }));
+    for (const m of respaceSets(boxes)) {
+      const f = here.find((x) => x.set === (kids[Number(m.id)] as LiveSet));
+      if (f) out.set(f.name, { from: m.from, to: m.to });
+    }
+  }
+  return out;
+};
+
 /** `update-components` in its dry-run mode: every target's set read and laid against its plans. Writes
  *  nothing. A def with no set in the file is `missing`; a def with two sets of its name is `refused`,
  *  because which one an update should touch is not this command's call. */
 export const previewUpdate = async (host: UpdateHost, targets: readonly UpdateTarget[], breathe?: () => Promise<void>, ledger: readonly ComponentRename[] = COMPONENT_RENAMES): Promise<UpdatePreview> => {
   const ports = await hostPorts(host);
   const out: UpdatePreview = { sets: [], missing: [], refused: [] };
+  const found: { preview: SetPreview; set: LiveSet }[] = [];
   for (const t of targets) {
     const v = await locateView(host, t, breathe, ports.drawVars);
     if (v.kind === 'missing') { out.missing.push(t.def); continue; }
@@ -814,7 +899,11 @@ export const previewUpdate = async (host: UpdateHost, targets: readonly UpdateTa
     const absent = absentNests(host, t.plans);
     if (absent.length) preview.blockers.push(`Not in this file: ${absent.join(', ')}. Build ${[...new Set(absent.map((a) => a.split('/')[0]))].join(', ')} first, then run the update again`);
     out.sets.push(preview);
+    if (!t.single) found.push({ preview, set: v.set });
   }
+  // #2542: the sets that move on their pages, read once every set has been.
+  const moves = pageSetMoves(found.map((f) => ({ name: f.preview.set, set: f.set, blocked: f.preview.blockers.length > 0 })));
+  for (const f of found) { const m = moves.get(f.preview.set); if (m) f.preview.setMove = m; }
   // THE PAGE ORDER (#2568): read once for the file, whichever sets the targets name, since the pages are the file's.
   const pages = host.root.children ? pagesOutOfOrder(host.root.children) : [];
   if (pages.length) out.pages = pages;
@@ -884,7 +973,7 @@ const propChanges = (p: SetPreview): number => Object.values(p.properties).reduc
  *  Nor is a member NOT BUILT BY PRISM3 (`unstamped`, #2464): the update never touches it and lists no change for it
  *  (the owner's own icons, #2325), so a set whose only other members are those reads as having no changes, and the
  *  set's line still counts them. Counted as a change, a file holding them could never read up to date. */
-const noChanges = (p: SetPreview): boolean => p.counts.current + p.counts.revisionUnknown + p.counts.unstamped === p.counts.members && !p.counts.add && !p.counts.move && !propChanges(p);
+const noChanges = (p: SetPreview): boolean => p.counts.current + p.counts.revisionUnknown + p.counts.unstamped === p.counts.members && !p.counts.add && !p.counts.move && !p.setMove && !propChanges(p);
 /** No changes, and every member current. A member not built by Prism3 that sits on a PLANNED coordinate is one Adopt
  *  could claim (`adoptable`, #2283), so a set holding one reads "no changes", never up to date (owner decision Q191
  *  2B). Off the plan (the owner's own icons, #2464), it doesn't stop a set reading up to date. */
@@ -929,7 +1018,9 @@ export const previewLine = (p: SetPreview): string => {
   const adopt = k ? ` Adopt can claim ${k === c.unstamped ? (k === 1 ? 'it' : 'them') : `${k} of them`}.` : '';
   if (upToDate(p)) return `${p.set}: up to date (${n(c.members, 'member')}).${own}`;
   if (noChanges(p)) return `${p.set}: no changes (${n(c.members, 'member')}).${own}${adopt}`;
-  return `${p.set}: ${n(c.members, 'member')}. ${parts.join(', ')}.`;
+  // Wording approved, Q246 A (#2542, Q245.2 A): the whole set moves on its page.
+  const setMove = p.setMove ? ' The set moves to its place on the page.' : '';
+  return parts.length ? `${p.set}: ${n(c.members, 'member')}. ${parts.join(', ')}.${setMove}` : `${p.set}: ${n(c.members, 'member')}.${setMove}`;
 };
 
 /** Owner-approved wording (#2568, the Q211/Q246 family; Q264 A): the component pages out of alphabetical order, named
@@ -961,6 +1052,8 @@ export const previewVerdict = (r: UpdatePreview): { ok: boolean; headline: strin
     pagesLine(r.pages),
     r.missing.length ? `Not in this file: ${r.missing.join(', ')}.` : '',
     earlier ? `${earlier} built by an earlier plugin. Update ${earlier === 1 ? 'it to bring it' : 'them to bring them'} current.` : '',
+    // Wording approved, Q246 A (#2542, Q245.2 A).
+    setsMoving(r) ? `${n(setsMoving(r), 'set')} to move, so the sets on each page sit as a new build spaces them.` : '',
     'This was a check only. Nothing in the file changed.',
   ].filter(Boolean);
   return { ok: blocked === 0, headline, summary: lines.join('\n'), lines };

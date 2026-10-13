@@ -2214,13 +2214,13 @@
         },
         "secondary": {
           "$type": "color",
-          "$value": "{wds.core.palette.neutral.400}",
-          "$description": "Stronger border / divider"
+          "$value": "{wds.core.palette.neutral.250}",
+          "$description": "Stronger border / divider — decorative, ~2:1"
         },
         "tertiary": {
           "$type": "color",
-          "$value": "{wds.core.palette.neutral.600}",
-          "$description": "Strongest border / divider — the third rung of the neutral edge ladder"
+          "$value": "{wds.core.palette.neutral.550}",
+          "$description": "Accessible border — the first edge that clears 3:1 (SC 1.4.11) on every page and surface tier"
         },
         "brand": {
           "$type": "color",

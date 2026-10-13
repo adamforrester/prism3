@@ -293,12 +293,12 @@
       "set": {
         "members": 20,
         "assignments": 40,
-        "sha256": "9220c30b7e43c5018f9f338921df1bf62bc3ba1389ebf05f4d9a3356aaa35cd4"
+        "sha256": "a6426425bcf8c668ead23a27ccdf88ce4af0bf93d833e3c20be203b5f0acfe1a"
       },
       "grid": {
         "members": 20,
         "assignments": 40,
-        "sha256": "5cdaafa155a9ed752f2f256f1aa22bcd682d944391c2b9b8596c2323d475bc07"
+        "sha256": "53261d7fd48526b501a417a8ec48e9080b57f89c84a395afa75544745f9b9349"
       }
     },
     "tag": {
@@ -347,6 +347,30 @@
         "members": 5,
         "assignments": 5,
         "sha256": "94bbb3b083a1d3f1ca360b12c5e61439ed51f40d539a430fd43ea479bac3d247"
+      }
+    },
+    "_accordion-indicator": {
+      "set": {
+        "members": 12,
+        "assignments": 12,
+        "sha256": "f8825ee300fe716df488e473564a2538a00d8eb998ff61eb0c3466c37ebcf94f"
+      },
+      "grid": {
+        "members": 12,
+        "assignments": 12,
+        "sha256": "29b896c3f858b37d7ab937dd0423ab19a11be4a4ae7bb82593e4785368c1eaa2"
+      }
+    },
+    "accordion": {
+      "set": {
+        "members": 24,
+        "assignments": 36,
+        "sha256": "cac6e60c9ccf797d91079dd54582aaa278ae31bb6c3ff2bf9d714c3aba943841"
+      },
+      "grid": {
+        "members": 24,
+        "assignments": 36,
+        "sha256": "79d9ed9de5445dd5847b1115a62ed6f294dc3b81a8455347077f364ec9fd11c6"
       }
     }
   }

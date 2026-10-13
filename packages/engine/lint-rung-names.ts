@@ -211,6 +211,9 @@ const ICON_OFFSET_DEFS: Record<string, string> = {
   button: 'icon.size.*',
   'button-destructive': 'icon.size.*',
   'button-neutral': 'icon.size.*',
+  // The Accordion's glyph, one rung below its control (owner QA of the live build, 2026-10-12, #2417): 16/20/24, so
+  // its medium default is `sm`, as Button's is.
+  '_accordion-indicator': 'icon.size.*',
 };
 
 /**
@@ -341,6 +344,7 @@ const MUST_COVER = [
   'checkbox-control', 'checkbox-row', 'checkbox-group',
   'radio-control', 'radio-row', 'radio-group',
   'switch-control', 'switch-row',
+  '_accordion-indicator', 'accordion',
 ];
 
 /** Every token path in a brand's canonical tree, below the root — `icon.size.md`, `size.lg.height`. */

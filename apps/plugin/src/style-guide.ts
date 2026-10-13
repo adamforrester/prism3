@@ -75,7 +75,31 @@ export interface SgTextStyle {
   textDecoration?: string;
   boundVariables?: Record<string, { id?: string } | undefined>;
 }
-export interface SgCatalog { collections: readonly SgCollection[]; variables: readonly SgVariable[]; textStyles?: readonly SgTextStyle[] }
+/** One layer of an effect style (#2353 batch 2a), as the host's `Effect` holds it: a shadow's offset, blur (`radius`),
+ *  spread and color, or a blur's radius alone. */
+export interface SgEffect {
+  type: string;
+  color?: { r: number; g: number; b: number; a: number };
+  offset?: { x: number; y: number };
+  radius?: number;
+  spread?: number;
+  visible?: boolean;
+}
+/** A local effect style (#2353 batch 2a), as `getLocalEffectStylesAsync` returns it: its layers in the file's order. */
+export interface SgEffectStyle { id: string; name: string; description?: string; effects: readonly SgEffect[] }
+/** One stop of a gradient paint, as the host's `ColorStop` holds it: where it sits (0–1), its color, and the variable its
+ *  color is bound to, if any. */
+export interface SgStop { position: number; color: { r: number; g: number; b: number; a: number }; boundVariables?: { color?: { id?: string } } }
+/** A local paint style (#2353 batch 2a), as `getLocalPaintStylesAsync` returns it. Only one holding a gradient paint is
+ *  drawn, in the Gradient styles table. */
+export interface SgPaintStyle { id: string; name: string; description?: string; paints: readonly { type: string; gradientStops?: readonly SgStop[] }[] }
+export interface SgCatalog {
+  collections: readonly SgCollection[];
+  variables: readonly SgVariable[];
+  textStyles?: readonly SgTextStyle[];
+  effectStyles?: readonly SgEffectStyle[];
+  paintStyles?: readonly SgPaintStyle[];
+}
 
 /** The engine's contrast contract, per mode: `resolveAllModes(theme)` satisfies it structurally. */
 export type SgContract = readonly {
@@ -87,9 +111,10 @@ export type { SwatchType, ValueFormat, StyleGuideOptions, DimensionDisplay, Font
 import type { SwatchType, StyleGuideOptions, ValueFormat, StyleGuideCatalog, StyleGuideCatalogCollection, StyleGuideKind } from './messages';
 
 /** The types phases 1 and 2 document: `color`; `dimension` (spacing, size, radius and icon-size variables); `borderWidth`
- *  and `opacity` (#2353 batch 1); the five font-variable kinds, one table each; and `typography`, the file's text styles.
- *  Everything else is named in the result as a later phase. Matched in any case. */
-export const PHASE_TYPES = ['color', 'dimension', 'borderWidth', 'opacity', 'fontFamily', 'fontSize', 'fontWeight', 'lineHeight', 'letterSpacing', 'typography'] as const;
+ *  and `opacity` (#2353 batch 1); the five font-variable kinds, one table each; `typography`, the file's text styles; and
+ *  `shadow` and `gradient` (#2353 batch 2a), its effect styles and its gradient paint styles. Everything else is named in
+ *  the result as a later phase. Matched in any case. */
+export const PHASE_TYPES = ['color', 'dimension', 'borderWidth', 'opacity', 'fontFamily', 'fontSize', 'fontWeight', 'lineHeight', 'letterSpacing', 'typography', 'shadow', 'gradient'] as const;
 /** The font-variable kinds, each its own table (proposed, owner to confirm: one table per kind). */
 export const FONT_KINDS = ['fontFamily', 'fontSize', 'fontWeight', 'lineHeight', 'letterSpacing'] as const;
 export type FontKind = (typeof FONT_KINDS)[number];
@@ -158,7 +183,13 @@ export type SgSpecimen =
   /** "Abc 123" in a text cell, with one property bound to the variable, or none (`generic`). */
   | { kind: 'font'; bind: FontKind | null }
   /** "Abc 123" in a text cell with the text style applied. */
-  | { kind: 'style' };
+  | { kind: 'style' }
+  /** A card with the effect style applied (#2353 batch 2a): the swatches set's `type=default` member at its own size,
+   *  painted the cell's white, its own layers hidden, in a padded cell. */
+  | { kind: 'effect' }
+  /** A fill swatch filled with the paint style (#2353 batch 2a): the `type=default` member filling its cell edge to edge,
+   *  as a color's fill swatch does, its fill the style. */
+  | { kind: 'gradient' };
 
 export interface SgRow {
   variableId: string;
@@ -509,6 +540,8 @@ export const planStyleGuide = (catalog: SgCatalog, contract: SgContract | null, 
   tables.push(...planVariableTables(catalog, ix, options, wantTypes, wantCollections, referenced, notes)
     .filter((t) => !(t.type === 'fontSize' && responsive && t.collectionId === responsive.id)));
   if (wantTypes.includes('typography') && !wantCollections) tables.push(...planTextStyles(catalog, ix, options));
+  if (wantTypes.includes('shadow') && !wantCollections) tables.push(...planEffectStyles(catalog, options, format));
+  if (wantTypes.includes('gradient') && !wantCollections) tables.push(...planGradientStyles(catalog, ix, options, format));
   // PHASE 2 TITLES ARE UNIQUE (proposed, owner to confirm): two collections can both hold a font-size table (`core`
   // and `type-sets`), so a title two phase-2 tables share names its collection, "Font size (core)". The tables filter
   // matches a title, so a shared one would draw both. Color titles are phase 1's and unchanged.
@@ -917,6 +950,119 @@ const planTextStyles = (catalog: SgCatalog, ix: Index, options: StyleGuideOption
   }];
 };
 
+/** The pseudo-collections the effect and gradient tables' keys name (#2353 batch 2a): styles belong to no collection. */
+export const EFFECT_STYLES_ID = 'effect-styles';
+export const GRADIENT_STYLES_ID = 'gradient-styles';
+/** The one column a style table's specimen sits in when it has no modes, as the text styles' does without a responsive
+ *  collection. */
+const STYLE_SPECIMEN: SgMode = { modeId: '', name: 'Specimen' };
+/** An effect layer's type as the table prints it. */
+const EFFECT_NAME: Record<string, string> = { DROP_SHADOW: 'Drop shadow', INNER_SHADOW: 'Inner shadow', LAYER_BLUR: 'Layer blur', BACKGROUND_BLUR: 'Background blur' };
+const isShadow = (e: SgEffect): boolean => e.type === 'DROP_SHADOW' || e.type === 'INNER_SHADOW';
+/** A gradient paint's type as the table prints it. */
+const GRADIENT_NAME: Record<string, string> = { GRADIENT_LINEAR: 'Linear', GRADIENT_RADIAL: 'Radial', GRADIENT_ANGULAR: 'Angular', GRADIENT_DIAMOND: 'Diamond' };
+const isGradient = (p: { type: string }): boolean => p.type in GRADIENT_NAME;
+/** A gradient stop's position as the table prints it: the host stores 0–1, printed as a percentage of the gradient's length. */
+export const formatStop = (position: number): string => `${trimNum(position * 100, 2)}%`;
+/** One line a layer or stop, in the order the style holds them: the cell's text, a row's lines aligned across its columns. */
+const lines = (xs: readonly string[]): string => xs.join('\n');
+
+/**
+ * THE EFFECT-STYLE TABLE (#2353 batch 2a; owner direction, 2026-10-09: "Shadows: effect styles, following the existing
+ * style pattern"). One row per local effect style, in the file's order, on `↳ Semantic tokens`, as the text styles are:
+ * every local effect style, whoever made it. The specimen is a card with the style applied, so it stays bound to the
+ * style; the values print once per row, one line per layer in the style's order, so a two-layer elevation reads as two
+ * lines in every column: the type, x, y, blur, spread and color. A blur layer has no offset, spread or color: "—".
+ */
+const planEffectStyles = (catalog: SgCatalog, options: StyleGuideOptions, format: ValueFormat): SgTable[] => {
+  const styles = catalog.effectStyles ?? [];
+  if (!styles.length) return [];
+  const prefix = commonPrefix(styles.map((s) => s.name.split('/').slice(0, -1)));
+  const rows: SgRow[] = styles.map((s) => {
+    const shadow = (f: (e: SgEffect) => string): string => lines(s.effects.map((e) => (isShadow(e) ? f(e) : '—')));
+    const cells: SgCell[] = [{
+      modeId: STYLE_SPECIMEN.modeId,
+      modeName: STYLE_SPECIMEN.name,
+      value: lines(s.effects.map((e) => `${EFFECT_NAME[e.type] ?? sentence(e.type.toLowerCase())}${e.visible === false ? ' (hidden)' : ''}`)),
+      alias: null,
+      // What the style holds, independent of the print format, so a format toggle is not a change.
+      raw: JSON.stringify(s.effects.map((e) => [e.type, e.visible !== false, e.offset?.x ?? null, e.offset?.y ?? null, e.radius ?? null, e.spread ?? null, e.color ?? null])),
+      groundId: null,
+      contrast: null,
+    }];
+    const extra = [
+      { value: shadow((e) => formatPx(e.offset?.x ?? 0)), alias: null },
+      { value: shadow((e) => formatPx(e.offset?.y ?? 0)), alias: null },
+      { value: lines(s.effects.map((e) => formatPx(e.radius ?? 0))), alias: null },
+      { value: shadow((e) => formatPx(e.spread ?? 0)), alias: null },
+      { value: shadow((e) => (e.color ? formatColor(e.color, format) : '—')), alias: null },
+    ];
+    const token = s.name.split('/').slice(prefix.length).join('/');
+    return { variableId: s.id, name: s.name, token, tokenCell: tokenCellOf(options, s.name, token), label: humanizeName(s.name.split('/').slice(prefix.length), prefix[prefix.length - 1]), description: s.description ?? '', display: 'default' as SwatchType, cells, specimen: { kind: 'effect' }, extra };
+  });
+  const n = rows.length;
+  return [{
+    key: `shadow|${EFFECT_STYLES_ID}|${prefix.join('/')}`,
+    type: 'shadow',
+    kind: 'semantic',
+    page: SEMANTIC_PAGE,
+    collectionId: EFFECT_STYLES_ID,
+    title: 'Effect styles',
+    description: `${n} effect style${n === 1 ? '' : 's'} in this file`,
+    modes: [STYLE_SPECIMEN],
+    columns: ['Token', STYLE_SPECIMEN.name, 'Type', 'X', 'Y', 'Blur', 'Spread', 'Color', ...(options.description === false ? [] : ['Description'])],
+    rows,
+  }];
+};
+
+/**
+ * THE GRADIENT-STYLE TABLE (#2353 batch 2a; owner direction, 2026-10-09: "Gradient styles"). One row per local paint style
+ * that holds a gradient, in the file's order, on `↳ Semantic tokens`; a solid paint style is no gradient, and is drawn
+ * nowhere. The specimen is a swatch filled with the style, edge to edge as a color's fill swatch is, so it stays bound to
+ * the style. The stops print once per row, one line a stop in the paint's order: its position, its color, and the
+ * variable its color is bound to ("—" for a stop bound to none), that column left out when aliases are off.
+ */
+const planGradientStyles = (catalog: SgCatalog, ix: Index, options: StyleGuideOptions, format: ValueFormat): SgTable[] => {
+  const styles = (catalog.paintStyles ?? []).filter((s) => s.paints.some(isGradient));
+  if (!styles.length) return [];
+  const aliases = options.aliases !== false;
+  const prefix = commonPrefix(styles.map((s) => s.name.split('/').slice(0, -1)));
+  const rows: SgRow[] = styles.map((s) => {
+    const grads = s.paints.filter(isGradient);
+    const stops = grads.flatMap((p) => p.gradientStops ?? []);
+    const varOf = (st: SgStop): string | null => { const id = st.boundVariables?.color?.id; return (id && ix.byId.get(id)?.name) || null; };
+    const cells: SgCell[] = [{
+      modeId: STYLE_SPECIMEN.modeId,
+      modeName: STYLE_SPECIMEN.name,
+      value: grads.map((p) => GRADIENT_NAME[p.type]).join(' + '),
+      alias: null,
+      raw: JSON.stringify(grads.map((p) => [p.type, (p.gradientStops ?? []).map((st) => [st.position, st.color, st.boundVariables?.color?.id ?? null])])),
+      groundId: null,
+      contrast: null,
+    }];
+    const extra = [
+      { value: lines(stops.map((st) => formatStop(st.position))), alias: null },
+      { value: lines(stops.map((st) => formatColor(st.color, format))), alias: null },
+      ...(aliases ? [{ value: lines(stops.map((st) => varOf(st) ?? '—')), alias: null }] : []),
+    ];
+    const token = s.name.split('/').slice(prefix.length).join('/');
+    return { variableId: s.id, name: s.name, token, tokenCell: tokenCellOf(options, s.name, token), label: humanizeName(s.name.split('/').slice(prefix.length), prefix[prefix.length - 1]), description: s.description ?? '', display: 'default' as SwatchType, cells, specimen: { kind: 'gradient' }, extra };
+  });
+  const n = rows.length;
+  return [{
+    key: `gradient|${GRADIENT_STYLES_ID}|${prefix.join('/')}`,
+    type: 'gradient',
+    kind: 'semantic',
+    page: SEMANTIC_PAGE,
+    collectionId: GRADIENT_STYLES_ID,
+    title: 'Gradient styles',
+    description: `${n} gradient style${n === 1 ? '' : 's'} in this file`,
+    modes: [STYLE_SPECIMEN],
+    columns: ['Token', STYLE_SPECIMEN.name, 'Type', 'Position', 'Color', ...(aliases ? ['Variable'] : []), ...(options.description === false ? [] : ['Description'])],
+    rows,
+  }];
+};
+
 /** A size word the humanized name keeps upper-case: xs, sm, md, lg, xl, 2xl, 3xl, xxl, 2xs (proposed, owner to confirm). */
 const SIZE_WORD = /^(\d*x{1,3}[sl]|sm|md|lg)$/i;
 /**
@@ -1073,6 +1219,11 @@ export interface SgNode extends CellNode {
   /** Phase 2: apply a text style to a text node (the dynamic-page form). */
   setTextStyleIdAsync?(id: string): Promise<void>;
   textStyleId?: unknown;
+  /** #2353 batch 2a: apply an effect style or a fill (paint) style to a node (the dynamic-page forms). */
+  setEffectStyleIdAsync?(id: string): Promise<void>;
+  setFillStyleIdAsync?(id: string): Promise<void>;
+  effectStyleId?: unknown;
+  fillStyleId?: unknown;
   /** A text's line height: a font-size specimen takes the font's own (`AUTO`, #2267). */
   lineHeight?: unknown;
   /** A floor on an auto-layout or grid child's size (a palette swatch that FILLs its cell). */
@@ -1099,6 +1250,9 @@ export interface StyleGuideApi {
   createFrame(): SgNode;
   /** Phase 2: the file's local text styles, in the file's order. Optional: without it, no text-style table. */
   getLocalTextStylesAsync?(): Promise<readonly unknown[]>;
+  /** #2353 batch 2a: the file's local effect and paint styles, in the file's order. Optional: without one, no table of it. */
+  getLocalEffectStylesAsync?(): Promise<readonly unknown[]>;
+  getLocalPaintStylesAsync?(): Promise<readonly unknown[]>;
   /** The fonts the host has, for the face a family specimen is set in (#2371). Optional: without it, the faces the
    *  file's text styles use and the cell's own style are tried. */
   listAvailableFontsAsync?(): Promise<ReadonlyArray<{ fontName: { family: string; style: string } }>>;
@@ -1190,17 +1344,28 @@ export const CELLS_PER_YIELD = 28;
 
 /** Read the file's collections, variables and text styles into the plan's catalog, keeping the host objects by id.
  *  Every variable, not only COLOR: phase 2 reads FLOAT and STRING ones (the #146 lesson — a type-filtered fetch
- *  misses the font family and size variables). */
-export const readCatalog = async (vars: StyleGuideApi['variables'], textStyles?: () => Promise<readonly unknown[]>): Promise<{ catalog: SgCatalog; collectionById: Map<string, unknown>; variableById: Map<string, unknown> }> => {
+ *  misses the font family and size variables). The effect and paint styles too (#2353 batch 2a), when asked for. */
+export const readCatalog = async (vars: StyleGuideApi['variables'], textStyles?: () => Promise<readonly unknown[]>,
+  styles: { effect?: () => Promise<readonly unknown[]>; paint?: () => Promise<readonly unknown[]> } = {}): Promise<{ catalog: SgCatalog; collectionById: Map<string, unknown>; variableById: Map<string, unknown> }> => {
   const cols = (await vars.getLocalVariableCollectionsAsync()) as readonly (SgCollection & { id: string })[];
   const vs = (await vars.getLocalVariablesAsync()) as readonly SgVariable[];
   const ts = (textStyles ? await textStyles() : []) as readonly SgTextStyle[];
+  const es = (styles.effect ? await styles.effect() : []) as readonly SgEffectStyle[];
+  const ps = (styles.paint ? await styles.paint() : []) as readonly SgPaintStyle[];
   const catalog: SgCatalog = {
     collections: cols.map((c) => ({ id: c.id, name: c.name, modes: c.modes.map((m) => ({ modeId: m.modeId, name: m.name })), defaultModeId: c.defaultModeId })),
     variables: vs.map((v) => ({ id: v.id, name: v.name, variableCollectionId: v.variableCollectionId, resolvedType: v.resolvedType, description: v.description, valuesByMode: v.valuesByMode, scopes: v.scopes ? [...v.scopes] : undefined })),
     textStyles: ts.map((t) => ({
       id: t.id, name: t.name, description: t.description, fontName: { family: t.fontName?.family, style: t.fontName?.style }, fontSize: t.fontSize,
       lineHeight: t.lineHeight, letterSpacing: t.letterSpacing, paragraphSpacing: t.paragraphSpacing, textDecoration: t.textDecoration, boundVariables: t.boundVariables,
+    })),
+    effectStyles: es.map((t) => ({
+      id: t.id, name: t.name, description: t.description,
+      effects: (t.effects ?? []).map((e) => ({ type: e.type, color: e.color, offset: e.offset, radius: e.radius, spread: e.spread, visible: e.visible })),
+    })),
+    paintStyles: ps.map((t) => ({
+      id: t.id, name: t.name, description: t.description,
+      paints: (t.paints ?? []).map((p) => ({ type: p.type, gradientStops: p.gradientStops?.map((st) => ({ position: st.position, color: st.color, boundVariables: st.boundVariables })) })),
     })),
   };
   return { catalog, collectionById: new Map(cols.map((c) => [c.id, c])), variableById: new Map(vs.map((v) => [v.id, v])) };
@@ -1294,8 +1459,9 @@ export const categoryOfKey = (key: string): string => {
   const type = key.split('|')[0];
   return (FONT_KINDS as readonly string[]).includes(type) ? 'font' : type === 'borderWidth' ? 'dimension' : type;
 };
-/** Rows in this order down a page; a later phase's category after them, by name. */
-const CATEGORY_ORDER = ['color', 'dimension', 'font', 'typography'];
+/** Rows in this order down a page; a later phase's category after them, by name. The effect and gradient styles (#2353
+ *  batch 2a) each start a row of their own after the text styles'. Owner-approved (Q272 A). */
+const CATEGORY_ORDER = ['color', 'dimension', 'font', 'typography', 'shadow', 'gradient'];
 const categoryRank = (cat: string): number => { const i = CATEGORY_ORDER.indexOf(cat); return i < 0 ? CATEGORY_ORDER.length : i; };
 /** The radius swatch's four corners, each bound to the radius variable. */
 const RADIUS_CORNERS = ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'] as const;
@@ -1440,7 +1606,10 @@ const setWidth = (n: SgNode, w: number): void => {
 export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | null, options: StyleGuideOptions = {}, run: StyleGuideRun = {}): Promise<StyleGuideResult> => {
   const yieldTo = run.yieldTo ?? realYield;
   await api.loadAllPagesAsync();
-  const { catalog, collectionById, variableById } = await readCatalog(api.variables, api.getLocalTextStylesAsync ? () => api.getLocalTextStylesAsync!() : undefined);
+  const { catalog, collectionById, variableById } = await readCatalog(api.variables, api.getLocalTextStylesAsync ? () => api.getLocalTextStylesAsync!() : undefined, {
+    effect: api.getLocalEffectStylesAsync ? () => api.getLocalEffectStylesAsync!() : undefined,
+    paint: api.getLocalPaintStylesAsync ? () => api.getLocalPaintStylesAsync!() : undefined,
+  });
   const plan = planStyleGuide(catalog, contract, options);
   const misses: string[] = [];
   const out: TableOutcome[] = [];
@@ -1464,6 +1633,7 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
   const spacingSet = sets[SPACING_CELL_SET] as SgNode | undefined;
   if (!spacingSet && plan.tables.some((t) => t.rows.some((r) => r.specimen?.kind === 'spacing'))) misses.push(`no ${SPACING_CELL_SET} set — dimension rows have no specimen; Set up file adds it`);
   const styleById = new Map((catalog.textStyles ?? []).map((st) => [st.id, st]));
+  const effectById = new Map((catalog.effectStyles ?? []).map((st) => [st.id, st]));
   if (!headerSet) misses.push(`no ${SECTION_HEADER_SET} set — tables have no header; Set up file adds it`);
   else if (!headerVariant) misses.push(`${SECTION_HEADER_SET} has no ${HEADER_VARIANT} variant — tables have no header`);
 
@@ -1954,6 +2124,42 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
         place(box, r, c);
         return;
       }
+      if (spec.kind === 'effect' || spec.kind === 'gradient') {
+        // A STYLE'S SPECIMEN (#2353 batch 2a) is the swatches set's type=default member with the style applied, so it
+        // stays bound to the style and follows an edit to it. Its own layers are hidden, as a fill swatch's are.
+        //   • effect: a card at the member's own size, painted the cell's white, in a padded cell of its own; the padding
+        //     is the style's reach (offset, blur and spread, the widest layer), so the shadow is drawn whole, never cut
+        //     at the cell's edge, and never less than the cell's usual 12 × 16;
+        //   • gradient: the member fills its cell edge to edge, as a color's fill swatch does (#2268, #2331), its fill
+        //     the style.
+        const v = variantOf(swatches, { type: 'default' }, 'type=default');
+        if (!v?.createInstance) { missAt(noLayer, 'type=default', where); return; }
+        const inst = v.createInstance() as SgNode;
+        for (const k of (inst.children ?? []) as SgNode[]) k.visible = false;
+        inst.fills = CELL_FILL;
+        let bound = false;
+        try {
+          if (spec.kind === 'effect') { if (inst.setEffectStyleIdAsync) await inst.setEffectStyleIdAsync(row.variableId); else inst.effectStyleId = row.variableId; }
+          else if (inst.setFillStyleIdAsync) await inst.setFillStyleIdAsync(row.variableId); else inst.fillStyleId = row.variableId;
+          bound = true;
+        } catch { /* named below */ }
+        if (!bound) missAt(unboundSpec, `${spec.kind}-style`, where);
+        if (spec.kind === 'gradient') {
+          grid.appendChildAt?.(inst, r, c);
+          fillCell(inst);
+          ruleBelow(inst);
+          return;
+        }
+        const reach = Math.ceil(Math.max(0, ...(effectById.get(row.variableId)?.effects ?? []).map((e) =>
+          Math.max(Math.abs(e.offset?.x ?? 0), Math.abs(e.offset?.y ?? 0)) + (e.radius ?? 0) + Math.max(0, e.spread ?? 0))));
+        const box = cellBox(true);
+        box.paddingTop = Math.max(12, reach); box.paddingBottom = Math.max(12, reach);
+        box.paddingLeft = Math.max(16, reach); box.paddingRight = Math.max(16, reach);
+        box.appendChild?.(inst);
+        keepSize({ inst, w: num(v.width), h: num(v.height) });
+        place(box, r, c);
+        return;
+      }
       const inst = await textCell('default', 'white', SAMPLE_TEXT);
       if (!inst) return;
       // PINNED BEFORE BOUND (review of `4faeb98a`): the host resolves a bound family or weight in the node's mode at
@@ -2125,7 +2331,8 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
   // recorded is never deleted — owner decision, 2026-09-28); this is the frame the generator wrote, not a duplicate
   // that carries its plugin data; it sits directly on the page the generator wrote it to, where the generator put
   // it; and it still holds what was written.
-  const collectionIds = new Set([...catalog.collections.map((c) => c.id), ...(catalog.textStyles?.length ? [TEXT_STYLES_ID] : [])]);
+  const collectionIds = new Set([...catalog.collections.map((c) => c.id), ...(catalog.textStyles?.length ? [TEXT_STYLES_ID] : []),
+    ...(catalog.effectStyles?.length ? [EFFECT_STYLES_ID] : []), ...(catalog.paintStyles?.some((st) => st.paints.some(isGradient)) ? [GRADIENT_STYLES_ID] : [])]);
   const verdictOf = async (f: SgNode, p: SgPage, colId: string): Promise<KeepReason | 'unedited'> => {
     if (!collectionIds.has(colId)) return 'no-collection';
     if (!plan.tables.length) return 'nothing-drawn';
@@ -2263,7 +2470,10 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
   const unbound = [...unboundIn.values()].reduce((a, b) => a + b, 0) + count(unboundSpec, unsized, noLayer, noSet, fixedLayer);
   const plural = (n: number, one: string, many: string): string => (n === 1 ? one : many);
   for (const [variant, n] of unboundIn) misses.push(`${n} ${n === 1 ? 'swatch' : 'swatches'} in ${variant} have no layer that takes a fill, so they show the component's own color`);
-  for (const [what, ws] of unboundSpec) { const n = ws.length; misses.push(`${n} ${what} specimen${plural(n, ' is', 's are')} not bound to ${plural(n, 'its', 'their')} ${what === 'text-style' ? 'style' : 'variable'}, so ${plural(n, 'it shows', 'they show')} the cell component's own value (${placesOf(ws)})`); }
+  // Q272 A (#2353): an effect or gradient style's miss names the style in plain words ("15 effect styles are not bound
+  // to their style"), never the internal kind key. The older kinds' wording is approved and stays as it was.
+  const plainStyle: Readonly<Record<string, string>> = { 'effect-style': 'effect style', 'gradient-style': 'gradient style' };
+  for (const [what, ws] of unboundSpec) { const n = ws.length; misses.push(`${n} ${plainStyle[what] ?? `${what} specimen`}${plural(n, ' is', 's are')} not bound to ${plural(n, 'its', 'their')} ${what.endsWith('-style') ? 'style' : 'variable'}, so ${plural(n, 'it shows', 'they show')} the cell component's own value (${placesOf(ws)})`); }
   for (const [what, ws] of unsized) { const n = ws.length; misses.push(`${n} ${what} spacing specimen${plural(n, ' is', 's are')} not sized to ${plural(n, 'its', 'their')} value: bound by ${plural(n, 'its', 'their')} left padding, the layer did not take the value's width (${placesOf(ws)})`); }
   // THE OWNER'S FIXED-WIDTH CELLS: said ONCE for the run, in the terms of the fix, not once per specimen.
   if (fixedLayer.size) {
@@ -2373,9 +2583,11 @@ export const isSetUp = (root: StyleGuideApi['root']): boolean => {
   return !!sets[SWATCH_SET] && !!sets[TEXT_CELL_SET] && pages.has(PRIMITIVE_PAGE) && pages.has(SEMANTIC_PAGE);
 };
 
-/** Border width and opacity (#2353) are grouped with spacing and size: the page's four kinds stay four. */
+/** Border width and opacity (#2353) are grouped with spacing and size; the effect and gradient styles (#2353 batch 2a)
+ *  are a kind each, as the text styles are. */
 const KIND_OF_TYPE = (type: string): StyleGuideKind =>
-  type === 'color' ? 'color' : type === 'dimension' || type === 'borderWidth' || type === 'opacity' ? 'dimension' : type === 'typography' ? 'text' : 'font';
+  type === 'color' ? 'color' : type === 'dimension' || type === 'borderWidth' || type === 'opacity' ? 'dimension' : type === 'typography' ? 'text'
+    : type === 'shadow' ? 'effect' : type === 'gradient' ? 'gradient' : 'font';
 /** The variable kinds whose number is a length, printed in px in the tree. */
 const LENGTH_KINDS: ReadonlySet<VarKind> = new Set<VarKind>(['spacing', 'size', 'radius', 'scale', 'fontSize', 'lineHeight', 'letterSpacing',
   'paragraphSpacing', 'paragraphIndent', 'borderWidth', 'iconSize', 'breakpoint', 'grid']);
@@ -2417,6 +2629,12 @@ export const catalogFor = (catalog: SgCatalog, contract: SgContract | null, setU
   }));
   const styles = catalog.textStyles ?? [];
   if (styles.length) collections.push({ id: TEXT_STYLES_ID, name: 'Text styles', modes: [], textStyles: true, items: styles.map((st) => ({ name: st.name, table: tableOf.get(st.id) ?? -1, value: '' })) });
+  // The effect styles and the gradient paint styles (#2353 batch 2a), each one more entry after the text styles. A solid
+  // paint style is no gradient: no table draws it, and the page does not list it.
+  const effects = catalog.effectStyles ?? [];
+  if (effects.length) collections.push({ id: EFFECT_STYLES_ID, name: 'Effect styles', modes: [], effectStyles: true, items: effects.map((st) => ({ name: st.name, table: tableOf.get(st.id) ?? -1, value: '' })) });
+  const gradients = (catalog.paintStyles ?? []).filter((st) => st.paints.some(isGradient));
+  if (gradients.length) collections.push({ id: GRADIENT_STYLES_ID, name: 'Gradient styles', modes: [], gradientStyles: true, items: gradients.map((st) => ({ name: st.name, table: tableOf.get(st.id) ?? -1, value: '' })) });
   return {
     setUp,
     collections,
