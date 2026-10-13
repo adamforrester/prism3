@@ -260,6 +260,27 @@ export const gridMoves = (plans: AnatomyPlan[], members: readonly HostMember[]):
 };
 
 /**
+ * WHAT AN UPDATE REFUSES A SET FOR, READ OFF ITS DRY RUN (#2592). One test, run by the dry run, which lists what it
+ * returns as a blocker on the set, and so by the apply, whose preflight refuses every set with a blocker. Two copies
+ * drifted once: the dry run counted a collapse as members to mark deprecated, and the confirmed apply refused the set.
+ * `names` are every child of the set as the file holds it, for a rename that would land on another child's name.
+ * `null` when nothing here refuses the set. What the dry run cannot see (a font that will not load, a variable or style
+ * the file lacks) stays the apply's preflight (#2601).
+ */
+export const setRefusal = (p: Pick<SetPreview, 'needsChoice' | 'unstamped' | 'moves'> & { axes: { from: readonly string[]; to: readonly string[] } }, names: readonly string[]): string | null => {
+  if (p.needsChoice.includes('axisCollapse')) return 'an axis the plan removed would collapse members onto one coordinate, and they cannot stay in the set';
+  if (p.axes.from.join(',') !== p.axes.to.join(',') && p.unstamped.length)
+    return `the axes change, and ${p.unstamped.length} member${p.unstamped.length === 1 ? '' : 's'} not built by Prism3 would be left on the old ones (${p.unstamped.slice(0, 3).join('; ')})`;
+  const after = new Set(names);
+  for (const m of p.moves) after.delete(m.from);
+  for (const m of p.moves) {
+    if (after.has(m.to)) return `renaming ${m.from} would give it the name of another member (${m.to})`;
+    after.add(m.to);
+  }
+  return null;
+};
+
+/**
  * The dry run of one set, pure: the plan for `defId` against the set as `host` holds it.
  * `ports` resolve the host's variable and style ids to names, from the host's own catalogues.
  */
@@ -518,6 +539,9 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
   if (handEdits.length) needsChoice.push('handEdits');
   if (counts.noBaseline) needsChoice.push('noBaseline');
   if (collapse.length) needsChoice.push('axisCollapse');
+  // WHAT THE APPLY WOULD REFUSE IS A BLOCKER HERE (#2592), by the one test both read, so the confirm step shows it.
+  const refused = setRefusal({ needsChoice, axes: { from: hostAxes, to: planAxes }, unstamped, moves }, [...read.members.map((m) => m.name), ...read.others]);
+  if (refused) blockers.push(refused);
 
   // A set with members refused or to collapse is refused by the update, so it reports no moves either.
   const positions = blockers.length || host.single ? [] : gridMoves(plans, host.members);
@@ -972,8 +996,9 @@ const propChanges = (p: SetPreview): number => Object.values(p.properties).reduc
  *  not a difference (owner decision Q91 B, #2282), and the verdict flags those members on a line of their own.
  *  Nor is a member NOT BUILT BY PRISM3 (`unstamped`, #2464): the update never touches it and lists no change for it
  *  (the owner's own icons, #2325), so a set whose only other members are those reads as having no changes, and the
- *  set's line still counts them. Counted as a change, a file holding them could never read up to date. */
-const noChanges = (p: SetPreview): boolean => p.counts.current + p.counts.revisionUnknown + p.counts.unstamped === p.counts.members && !p.counts.add && !p.counts.move && !p.setMove && !propChanges(p);
+ *  set's line still counts them. Counted as a change, a file holding them could never read up to date. A member to
+ *  rename is a change (#2592): it reads current, and the apply renames it, so a set of renames is never up to date. */
+const noChanges = (p: SetPreview): boolean => p.counts.current + p.counts.revisionUnknown + p.counts.unstamped === p.counts.members && !p.counts.add && !p.counts.rename && !p.counts.move && !p.setMove && !propChanges(p);
 /** No changes, and every member current. A member not built by Prism3 that sits on a PLANNED coordinate is one Adopt
  *  could claim (`adoptable`, #2283), so a set holding one reads "no changes", never up to date (owner decision Q191
  *  2B). Off the plan (the owner's own icons, #2464), it doesn't stop a set reading up to date. */

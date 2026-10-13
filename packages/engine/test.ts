@@ -29579,6 +29579,12 @@ arm: {
   ok(dangling.length === 1 && dangling[0].includes("ends at 'xl'"), '#2265 renames lint: an entry renaming into a value the tree does not project is refused');
   ok(renamesDangling(after, [{ def: 'chip', kind: 'drop', issue: 0 }]).some((b) => b.includes('names no issue')), '#2265 renames lint: an entry without an issue is refused');
   ok(COMPONENT_RENAMES.every((r) => Number.isInteger(r.issue) && r.issue > 0), '#2265 COMPONENT_RENAMES: every entry names its issue');
+  // #2592: the baseline is keyed by the Figma panel's name, so an axis that gains a display name (`variantAxisNames`) on
+  // main is an axis rename to the lint, and it demands the entry. Accordion's never did, because no merge base held it.
+  const shown: AxesBaseline = { acc: { axes: { 'icon position': ['leading', 'trailing'] }, members: 2 } };
+  const display = renamesUnaccounted({ acc: { axes: { iconPosition: ['leading', 'trailing'] }, members: 2 } }, shown, []);
+  ok(display.length === 1 && display[0].startsWith("acc: axis 'iconPosition' is gone"), `#2592 renames lint: an axis renamed only for display needs an entry (${display.join('; ')})`);
+  ok(renamesUnaccounted({ acc: { axes: { iconPosition: ['leading', 'trailing'] }, members: 2 } }, shown, [{ def: 'acc', kind: 'axis', from: 'iconPosition', to: 'icon position', issue: 2592 }]).length === 0, '#2592 renames lint: the axis entry claims it');
 }
 
 // ------------------------------------------------------------------- #2324: the text-button underline

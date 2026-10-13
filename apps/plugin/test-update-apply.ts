@@ -59,6 +59,13 @@
  *   apply/blocked  a set the dry run refuses (two members on one coordinate) is refused by the apply too: the
  *                  dry run's reason returned, every member byte-identical, no version saved (#2328 review). Mutation:
  *                  the apply's own blocker check dropped from `preflight` → `apply/blocked`.
+ *   agree/…        every set the apply refuses, the dry run listed as a blocker, in its own words (#2592): a collapse
+ *                  (an Accordion built on `position`, no ledger entry) and a rename onto a hand-made member's name. The
+ *                  expected side is the apply's own refusal, read off the confirmed run. Mutation: the dry run's call to
+ *                  `setRefusal` dropped, the apply's own copy restored → `agree/collapse`, `agree/rename onto a name`.
+ *   display rename/…  an Accordion built while its icon axis was `position`, or `iconPosition`, updates in place to the
+ *                  def's `icon position`: every member renamed, every key and id the test captured kept (#2592).
+ *                  Mutation: the ledger entries dropped → `display rename/position …`, `display rename/iconPosition …`.
  *   apply/copy     with the original's coordinate dropped, only the original is marked deprecated; a Figma duplicate
  *                  of it and an unstamped member off the plan keep their description, stamp and record exactly
  *                  (#2328 review). Mutation: the deprecations take the unstamped members too → `apply/copy`.
@@ -449,6 +456,70 @@ const dumpSet = (set: Node): string => JSON.stringify(membersOf(set).map((m) => 
   ok(JSON.stringify(o?.deprecated) === JSON.stringify([String(orig.name)]) && String(orig.description ?? '').startsWith(DEPRECATED_PREFIX)
     && JSON.stringify(retained) === JSON.stringify([String(orig.name)]) && keep(dup) === dupBefore && keep(own) === ownBefore,
     `apply/copy: only the original is marked deprecated; the duplicate and the hand-made member keep their description, stamp and record (${JSON.stringify(o?.deprecated)}; ${JSON.stringify(retained)}; dup ${keep(dup) === dupBefore ? 'kept' : 'changed'}, own ${keep(own) === ownBefore ? 'kept' : 'changed'})`);
+}
+
+/* ── agree ───────────────────────────────────────────────────────────────────────────────────────────── */
+section('agree — every set the apply refuses, the dry run listed as a blocker (#2592)');
+/** The arm's ground truth is the apply's own outcome, read off the confirmed run, and the file read off the shim: a
+ *  set it refused must carry that reason among the dry run's blockers, and say so in the dry run's own words. */
+const agrees = async (w: World, targets: UpdateTarget[], ledger?: Parameters<typeof previewUpdate>[3]) => {
+  const pre = await previewUpdate(w.host, targets, undefined, ledger);
+  const before = dumpSet(w.set());
+  let res: Awaited<ReturnType<typeof applyUpdate>>;
+  try { res = await applyUpdate(w.host, w.api as any, targets, previewHashOf(pre), ledger ? { ledger } : {}); }
+  catch (err) { return { pre, refused: [] as string[], unlisted: [`the apply threw: ${String((err as Error).message).slice(0, 80)}`], untouched: false }; }
+  const refused = res.outcomes.filter((o) => o.refused).map((o) => o.set);
+  const unlisted = res.outcomes.filter((o) => o.refused).filter((o) => {
+    const p = pre.sets.find((x) => x.set === o.set);
+    return !p || !p.blockers.includes(o.refused!) || !previewVerdict(pre).lines.some((l) => l.startsWith(`${o.set}: can't be checked.`) && l.includes(o.refused!));
+  }).map((o) => `${o.set}: ${o.refused}`);
+  return { pre, refused, unlisted, untouched: dumpSet(w.set()) === before && w.api._versions.length === 0 };
+};
+{
+  // The live case: an Accordion built while its icon axis was `position`, against a ledger with no entry for it. The
+  // axis reads as removed and `icon position` as added, so half the members collapse.
+  const w = await world('accordion');
+  for (const m of membersOf(w.set())) m.name = String(m.name).replace('icon position=', 'position=');
+  const r = await agrees(w, [{ def: 'accordion', plans: w.plans }], []);
+  ok(r.refused.length === 1 && r.unlisted.length === 0 && r.untouched && /collapse/.test(r.pre.sets[0]?.blockers.join() ?? ''),
+    `agree/collapse: the apply refuses the set, and the dry run listed that reason as its blocker (${r.refused.length} refused; unlisted ${JSON.stringify(r.unlisted).slice(0, 160)}; ${r.pre.sets[0] ? previewLine(r.pre.sets[0]).slice(0, 120) : 'no set'})`);
+}
+{
+  // A declared rename that would give Prism3's member the name a hand-made member holds.
+  const w = await world(TAG);
+  const ours = membersOf(w.set()).find((m) => String(m.name).includes('size=small') && String(m.name).includes('state=rest'))!;
+  const at = String(ours.name);
+  const theirs = membersOf(w.set()).find((m) => String(m.name) === at.replace('size=small', 'size=medium'))!;
+  ours.name = at.replace('size=small', 'size=sm');
+  theirs.name = at;
+  for (const k of [STAMP_KEY, BASELINE_KEY]) (theirs.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, k, '');
+  const r = await agrees(w, [{ def: TAG, plans: w.plans }], [{ def: TAG, kind: 'value', axis: 'size', from: 'sm', to: 'small', issue: 2265 }]);
+  ok(r.refused.length === 1 && r.unlisted.length === 0 && r.untouched,
+    `agree/rename onto a name: the apply refuses the set, and the dry run listed that reason as its blocker (${r.refused.length} refused; unlisted ${JSON.stringify(r.unlisted).slice(0, 160)})`);
+}
+
+section('display rename — a set built while an axis had another Figma name updates in place, every id kept (#2592)');
+for (const old of ['position', 'iconPosition']) {
+  // Built from #2534 before it merged: the axis the def now shows as `icon position` was `position`, then `iconPosition`.
+  // The engine's own ledger (`COMPONENT_RENAMES`) is what the update reads; the names expected are the test's own.
+  const w = await world('accordion');
+  for (const m of membersOf(w.set())) m.name = String(m.name).replace('icon position=', `${old}=`);
+  const before = identityOf(w.set());
+  const n = before.members.size;
+  ok(n === 24 && [...before.members.keys()].every((k) => k.includes(`${old}=`)), `premise: the set holds ${n} members on ${old}`);
+  const { pre, res } = await confirm(w, [{ def: 'accordion', plans: w.plans }]);
+  const p = pre.sets[0];
+  ok(!!p && !p.blockers.length && p.counts.rename === n && p.counts.add === 0 && p.counts.drop === 0 && previewLine(p).includes(`${n} to rename`),
+    `display rename/${old} dry run: ${n} to rename, nothing to add or mark deprecated, no blocker (${p ? previewLine(p).slice(0, 160) : 'no set'})`);
+  const after = identityOf(w.set());
+  const kept = [...before.members].every(([name, b]) => {
+    const a = after.members.get(name.replace(`${old}=`, 'icon position='));
+    return !!a && a.key === b.key && a.id === b.id;
+  });
+  ok(applyVerdict(res).ok && res.outcomes[0]?.renamed === n && after.members.size === n && kept,
+    `display rename/${old} in place: every member renamed onto icon position, its key and id kept (${res.outcomes[0]?.renamed}; ${after.members.size}; ${applyVerdict(res).headline}; ${res.outcomes[0]?.refused ?? ''})`);
+  const post = (await previewUpdate(w.host, [{ def: 'accordion', plans: w.plans }])).sets[0];
+  ok(post?.counts.current === n, `display rename/${old} current: every member reads current after (${JSON.stringify(post?.counts)})`);
 }
 
 /* ── single ──────────────────────────────────────────────────────────────────────────────────────────── */
