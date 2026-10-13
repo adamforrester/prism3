@@ -263,7 +263,7 @@
     },
     "badge": {
       "members": 20,
-      "sha256": "f946c45819e0024cb04c2488173378419968ec864b6141753539f05f82e4b750"
+      "sha256": "26af96babc3ac602ca3190b0e539f8baa8769abc3cc5218b746405c81e38f5c0"
     },
     "tag": {
       "members": 45,
@@ -287,7 +287,7 @@
     },
     "divider": {
       "members": 5,
-      "sha256": "a217873d3441b9774592e5cf178f211928036cc585368c52d79a9e00223a54f3"
+      "sha256": "88c69a41126449cab4f3b740af2325ec02d0aa7922a6a225229ba6522b93d6d0"
     },
     "_accordion-indicator": {
       "members": 12,
