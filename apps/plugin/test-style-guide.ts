@@ -3558,6 +3558,12 @@ const main = async (): Promise<void> => {
       `36: a blur layer prints its type and blur, "—" for what it has not, beside the shadow layer (${JSON.stringify(fxRow('Brand/Frost'))})`);
     ok(JSON.stringify(planStyleGuide(cat36, contract, { types: ['shadow'], valueFormat: 'rgba' }).tables[0]?.rows.find((r) => r.name === 'shadow/xs')?.extra?.[4].value) === JSON.stringify('rgba(10, 18, 40, 0.1)\nrgba(10, 18, 40, 0.06)'),
       '36: a shadow color follows the Color value format: rgba(10, 18, 40, 0.1) and 0.06 for shadow/xs');
+    // A HIDDEN LAYER is still listed, its Type line marked: planned off a copy, so the counts above stand.
+    const veiled = planStyleGuide({ ...cat36, effectStyles: [...f.effectStyles, { id: 'S:effect:veil,', name: 'Brand/Veil', description: '', effects: [
+      { type: 'DROP_SHADOW', color: { r: 0, g: 0, b: 0, a: 0.25 }, offset: { x: 0, y: 2 }, radius: 4, spread: 0, visible: false },
+    ] }] }, contract, { types: ['shadow'] }).tables[0]?.rows.find((r) => r.name === 'Brand/Veil');
+    ok(veiled?.cells[0].value === 'Drop shadow (hidden)',
+      `36: a hidden layer's Type line reads "Drop shadow (hidden)" (${JSON.stringify(veiled?.cells[0].value)})`);
 
     const GRAD_ROWS = ['gradient/brand', 'gradient/glow', 'Brand/Sunset'];
     ok(gr?.key === 'gradient|gradient-styles|' && gr.title === 'Gradient styles' && gr.page === SEM && gr.description === '3 gradient styles in this file'
