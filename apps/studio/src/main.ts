@@ -64,7 +64,7 @@ import {
   type Origin,
 } from './provenance';
 import {
-  ARTIFACTS, defaultSettings, visibleSettings, projectDtcg, fileNames, previewFiles, availableImportSlots,
+  ARTIFACTS, METADATA_OPTION, defaultSettings, visibleSettings, exportDtcg, exportFileNames, exportPreview, availableImportSlots,
   type ArtifactId, type SettingsState, type ExportSource,
 } from './export-settings';
 // The BrandInput session — the working input, the resolved theme, the last-good rule, the viewed mode
@@ -1176,6 +1176,8 @@ let exportMenuOpen = false;
 // would make choosing "compact" read as an unsaved brand edit.
 let exportArtifact: ArtifactId = 'dtcg';
 let exportSettings: SettingsState = defaultSettings();
+// #2552: "Include build metadata", internal use, OFF by default — and not persisted, for the reason above.
+let exportMetadata = false;   // METADATA_OPTION.def is 'off' by type; test-export-settings holds the two together
 // The only source that exists (#584 unbuilt). Not derived from PRISM3_HOST — see `export-settings.ts`.
 const exportSource: ExportSource = 'generated';
 let importOpen = false;
@@ -1275,21 +1277,21 @@ const briefSlug = (): string => { const b = briefInput(); return String(b?.id ||
 /** Export the brief as design.md — round-trips straight back into Import. */
 const exportDesignMd = (): void => { const b = briefInput(); if (b) download(`${briefSlug()}.design.md`, toDesignMd(b), 'text/markdown'); };
 
-/** Export the resolved DTCG token tree (buildTree) of the last-good theme, namespaced under `root`,
- *  shaped by the dialog's settings (#723).
+/** Export the last-good theme's tokens as the CONSUMER set (#2552): the base plus one overlay per mode, with no
+ *  `$extensions` unless "Include build metadata" is on, shaped by the dialog's settings (#723).
  *
- *  The SAME `projectDtcg` the preview renders — one function, so the file the user gets cannot differ
- *  from the sample they were shown. With every setting at its default the output is byte-identical to
- *  what this wrote before #723 (`JSON.stringify(tree, null, 2)` + a trailing newline), which is the
- *  point: the settings are additive, and someone who ignores the dialog gets the export they had.
+ *  The SAME `exportDtcg` the preview renders — one function, so the files the user gets cannot differ from the
+ *  sample they were shown. With every setting at its default the output is byte-identical to the engine's
+ *  committed base + overlay files, which `test:export-parity` holds in both hosts. The single-file tree is never
+ *  written: it keeps every mode but the default inside `$extensions`, so it is internal (`export-settings.ts`).
  *
- *  A split writes several files, which browsers deliver as several downloads. Not zipped: a zip needs
+ *  The set, and a split, write several files, which browsers deliver as several downloads. Not zipped: a zip needs
  *  a dependency (the engine is dependency-free, and jszip lives in TokenPress for reasons of its own),
  *  and the file list in the dialog is what makes the count expected rather than surprising. */
 const exportTokens = (): void => {
   ensureThemeFresh();                   // #1196 — re-resolve if the namespace drifted since the last rebuild, so the tree's root and its refs agree
   const tree = buildTree(theme).tree;   // `theme` is the last-good — always valid, never throws
-  for (const file of projectDtcg(tree, slug(), exportSettings)) {
+  for (const file of exportDtcg(tree, slug(), exportSettings, exportMetadata)) {
     download(file.name, file.text, 'application/json');
   }
 };
@@ -1400,7 +1402,7 @@ const barRead = (): BarView => ({
 
 /** The export dialog's content (#723, implementing #720), from `export-settings.ts`, which is pure and tested under
  *  tsx (`test-export-settings.ts`). Two levels, artifact then settings: that is what let `design.md` have no settings
- *  as a legible answer. The preview is the REAL `projectDtcg` over a six-token sample, never a second renderer. */
+ *  as a legible answer. The preview is the REAL `projectDtcg` (through `exportPreview`) over a six-token sample of the base file, never a second renderer. */
 const exportView = (): ExportView => {
   const artifact = ARTIFACTS.find((a) => a.id === exportArtifact)!;
   // `visibleSettings` filters the ONE list by artifact and source (#720). Never a per-source list.
@@ -1409,14 +1411,14 @@ const exportView = (): ExportView => {
   if (exportArtifact === 'dtcg') {
     ensureThemeFresh();                   // #1196 — the preview must show the current namespace, same as the download
     const tree = buildTree(theme).tree;   // `theme` is the last-good — always valid, never throws
-    const files = fileNames(tree, slug(), exportSettings);
+    const files = exportFileNames(tree, slug(), exportSettings, exportMetadata);
     right.push({ kind: 'cap', text: files.length === 1 ? 'You get 1 file' : `You get ${files.length} files` });
     // Every name, up to a point, then a count; `title` keeps the full list one hover away.
     right.push({ kind: 'files', text: files.length <= 4 ? files.join('\n') : `${files.slice(0, 3).join('\n')}\n+${files.length - 3} more`, title: files.join('\n') });
     if (restoreFailure) right.push({ kind: 'note', text: TOKENS_NONE, hook: 'export-restore-note' });
     right.push({ kind: 'cap', text: 'A few tokens, shaped by these settings' });
     // One block PER FILE, with the name above it when there are several, never the texts concatenated.
-    const prev = previewFiles(tree, slug(), exportSettings);
+    const prev = exportPreview(tree, slug(), exportSettings, exportMetadata);
     right.push({ kind: 'previews', files: prev.map((f) => ({ name: prev.length > 1 ? f.name : null, text: f.text })) });
   } else {
     if (briefInput()) {
@@ -1432,8 +1434,13 @@ const exportView = (): ExportView => {
   return {
     artifacts: ARTIFACTS.map((a) => ({ id: a.id, label: a.label, on: a.id === exportArtifact })),
     desc: artifact.desc,
-    settings: settings.map((s) => ({ key: s.key, label: s.label, desc: s.desc,
-      options: s.options.map((o) => ({ value: o.value, label: o.label, on: exportSettings[s.key] === o.value })) })),
+    settings: [
+      ...settings.map((s) => ({ key: s.key, label: s.label, desc: s.desc,
+        options: s.options.map((o) => ({ value: o.value, label: o.label, on: exportSettings[s.key] === o.value })) })),
+      // #2552: the metadata option rides the settings list's controls, but it is not a shape setting (see its def).
+      ...(exportArtifact === METADATA_OPTION.artifact ? [{ key: METADATA_OPTION.key, label: METADATA_OPTION.label, desc: METADATA_OPTION.desc,
+        options: METADATA_OPTION.options.map((o) => ({ value: o.value, label: o.label, on: (o.value === 'on') === exportMetadata })) }] : []),
+    ],
     // Said out loud rather than left as an empty area: silence reads as a loading state or a bug.
     none: settings.length ? null : 'Nothing to set — the brief is written one way.',
     right,
@@ -1476,7 +1483,11 @@ const barActions: BarActions = {
   // Escape closes the dialog and its import box with it, as it always has.
   escapeExport: () => { exportMenuOpen = false; importOpen = false; barChanged(); },
   artifact: (id) => { exportArtifact = id as ArtifactId; barChanged(); },
-  setting: (key, value) => { exportSettings = { ...exportSettings, [key]: value }; barChanged(); },
+  setting: (key, value) => {
+    if (key === METADATA_OPTION.key) exportMetadata = value === 'on';
+    else exportSettings = { ...exportSettings, [key]: value };
+    barChanged();
+  },
   download: () => {
     exportMenuOpen = false; barChanged();
     if (exportArtifact === 'design-md') exportDesignMd(); else exportTokens();
