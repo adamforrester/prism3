@@ -24,6 +24,7 @@ Button: 192 members, 288 reactions, the probe's own count.
 
 **Traps for whoever re-verifies this:**
 - An existence check alone reads the orphan as fine. `orphan/dangling` pins the parent check.
+- On a recorded, unedited member, a dangle and a plain difference both read "to update", so `orphan/dangling` alone can't see the dangle override in the state. `orphan/no record` and `orphan/hand-renamed` pin it where no record or an edit elsewhere would otherwise decide.
 - Reactions are read only on the member itself, never on its descendants.
 - A set built before this, re-checked, reads every Rest and Hover member "to update", with a named line per family. That's on top of the revision bump.
 
@@ -38,4 +39,5 @@ Button: 192 members, 288 reactions, the probe's own count.
 - one fewer axis matched;
 - the executor skipping in-place members on apply;
 - reactions dropped from the record;
-- existence checked instead of parent.
+- existence checked instead of parent;
+- the dangle dropped from the state's first test.

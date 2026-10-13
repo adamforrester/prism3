@@ -19,7 +19,9 @@
  *                dangles at the old id; the next dry run reads up to date. Mutation: the executor skips the members
  *                an update configures in place → `replaced/no dangling`, `replaced/current`.
  *   orphan/…     a destination the host still resolves, to an orphan with no parent, DANGLES: the member reads "to
- *                update", never hand-edited. Mutation: existence checked, not `parent` → `orphan/dangling`.
+ *                update", never hand-edited. Mutation: existence checked, not `parent` → `orphan/dangling`. It does
+ *                so too where no record or a hand edit elsewhere would otherwise decide the state. Mutation: the
+ *                dangle dropped from the state's first test → `orphan/no record`, `orphan/hand-renamed`.
  *   hand/…       a reaction removed by hand is a hand edit at its own path, kept by default and still reported;
  *                overwritten on request, then current. Mutation: reactions dropped from the record → `hand/detected`.
  *   converge/…   a set built before reactions existed (no reactions, no reactions in its records, an older executor
@@ -208,6 +210,25 @@ section('orphan — a destination the host still resolves, to a node with no par
     const p = (await previewUpdate(w.host, targets(w, TAG))).sets[0];
     const rest = p.states.find((s) => s.member === T('rest'));
     ok(p.states.length === 1 && rest?.state === 'update' && !p.handEdits.some((h) => h.member === T('rest')), `orphan/dangling: the Rest member reads to update, not hand-edited (${JSON.stringify(rest)}; ${JSON.stringify(p.handEdits.filter((h) => h.member === T('rest')))})`);
+    // Where the member's state is otherwise decided BEFORE its reactions are read — no record, or a hand edit
+    // elsewhere on it — the dangle still makes it "to update". The arm above cannot tell: a recorded, unedited member
+    // reads "to update" for a reaction that differs, dangling or not.
+    const restNode = member(w, T('rest'));
+    const set = restNode.setSharedPluginData as (a: string, b: string, c: string) => void;
+    const pd = restNode.getSharedPluginData as (a: string, b: string) => string;
+    const record = pd(NS, BASELINE_KEY);
+    set(NS, BASELINE_KEY, '');
+    const nb = (await previewUpdate(w.host, targets(w, TAG))).sets[0];
+    const nbRest = nb.states.find((s) => s.member === T('rest'));
+    ok(nbRest?.state === 'update', `orphan/no record: with its record cleared, the dangling Rest member reads to update, not without a record (${JSON.stringify(nbRest)})`);
+    set(NS, BASELINE_KEY, record);
+    const child = (restNode.children as Node[])[0];
+    const was = child.name;
+    child.name = `${was} (renamed)`;
+    const he = (await previewUpdate(w.host, targets(w, TAG))).sets[0];
+    const heRest = he.states.find((s) => s.member === T('rest'));
+    ok(heRest?.state === 'update' && !he.handEdits.some((h) => h.member === T('rest') && h.path === REACTIONS_PATH), `orphan/hand-renamed: with a layer renamed by hand, the dangling Rest member reads to update, its reactions never a hand edit (${JSON.stringify(heRest)}; ${JSON.stringify(he.handEdits.filter((h) => h.member === T('rest')))})`);
+    child.name = was;
   } finally { delete (globalThis as any).figma; }
 }
 
