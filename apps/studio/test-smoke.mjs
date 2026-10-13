@@ -2071,9 +2071,9 @@ const SETTLE_CLICK_MS = 15000;
  *  `evaluate` on it waits with no timeout of its own, so the suite would hang (measured: 25+ minutes). Its
  *  context is closed, and the arm that owns it skips to the next brand. Read by every `previewMode` caller. */
 const deadPages = new WeakSet();
-const closeDead = async (page, label) => {
+const closeDead = async (page, label, why = `the page rendered no frame within ${SETTLE_CLICK_MS}ms, so it is treated as dead`) => {
   deadPages.add(page);
-  ok(false, `${label}: the page rendered no frame within ${SETTLE_CLICK_MS}ms, so it is treated as dead — its context is closed and the rest of this arm is skipped`);
+  ok(false, `${label}: ${why} — its context is closed and the rest of this arm is skipped`);
   // Bounded too: a close against a frozen renderer is the one call left, and it must not become the hang.
   await Promise.race([page.context().close().catch(() => {}), new Promise((r) => setTimeout(r, 10000))]);
 };
@@ -2088,11 +2088,17 @@ const rendersFrame = (page) => Promise.race([
  *  UNCAUGHT throw that ends the suite. Both were seen: Escape at S4d waiting two hours, a step click at S4c and the
  *  Interactive picker's 30s throws. Each of those calls runs through this, bounded at INPUT_MS: a stall fails ONE arm
  *  by name, and says what the page was doing, so the cause is read off the failure instead of guessed.
- *    · If the page still renders a frame, it was BUSY (a long task, the machine under load) and is carried on.
+ *    · If the page still renders a frame, it was BUSY (a long task, the machine under load). When the input THREW it
+ *      is over, and the page is carried on. When it did not return it is STILL IN FLIGHT and would land later, on
+ *      whatever the arm does next (a late step click drifts the picker, a late Escape closes the next one), so the
+ *      page is retired as `closeDead` retires a dead one: its context closed, which cancels the input, and the arm
+ *      skips the brand (#2557 review, a busy stall once ran on into an uncaught throw that ended the suite).
  *    · If it renders none, the renderer is pausing nothing on its own: the debugger PAUSES it and the failure names
  *      the JavaScript stack it was in (or says none was running, which points at layout, paint or GC). The page is
  *      then treated as dead, as `closeDead` does for a click that never settles.
- *  Returns whether the input went through. */
+ *  Every action passed in carries its own `{ timeout: INPUT_MS }` where Playwright takes one, so nothing inside it
+ *  outlives the bound on its own clock. Returns whether the input went through; false with the page not in
+ *  `deadPages` only when the input threw and nothing is left in flight. */
 const INPUT_MS = 15000;
 /** One debugger session per page, enabled while the page still answers (#2547): `Debugger.enable` runs on the page's
  *  main thread, so asked for only once the page is stuck it never completes and the pause never lands. Enabled at the
@@ -2146,13 +2152,19 @@ const bounded = async (page, label, act) => {
   }
   const what = out === 'timeout' ? `did not return within ${INPUT_MS}ms` : `threw after ${Date.now() - t0}ms: ${String(out?.message ?? out).split('\n')[0].slice(0, 120)}`;
   if (await rendersFrame(page)) {
-    ok(false, `${label}: the input ${what}; the page still renders frames, so it was busy, not stuck`);
+    if (out === 'timeout') await closeDead(page, label, `the input ${what}; the page still renders frames, so it was busy, not stuck, but the input is still in flight`);
+    else ok(false, `${label}: the input ${what}; the page still renders frames, so it was busy, not stuck`);
     return false;
   }
   const stack = await stallStack(page);
   await closeDead(page, `${label}: the input ${what}; ${stack}`);
   return false;
 };
+/** The wait after a bounded open (#2557 review): bounded at INPUT_MS on Playwright's clock and caught, so a picker
+ *  that opened but never drew fails its arm by name, rather than as `hooks.need`'s throw past every arm (which also
+ *  blames a renamed hook). Returns whether it drew. */
+const drawn = (page, selector, label) => page.locator(selector).first().waitFor({ timeout: INPUT_MS })
+  .then(() => true, () => { ok(false, `${label}: it did not draw within ${INPUT_MS}ms`); return false; });
 const settledClick = async (page, selector, label) => {
   const deadline = Date.now() + SETTLE_CLICK_MS * 2;
   const settled = await Promise.race([
@@ -2235,7 +2247,7 @@ s4cArm: for (const brand of BRANDS) {
         // Every input bounded (#2550): a stall fails this control by name and the arm goes on, or skips a dead page.
         const at = `S4c ${brand}: previewing ${m}, the ${k} picker`;
         if (!await bounded(page, `${at} opens`, () => hooks.click(page.locator(SURF(k)), { timeout: INPUT_MS }))) { if (deadPages.has(page)) continue s4cArm; continue; }
-        await hooks.need(page, '[data-p3="levers-pane"] [data-p3="step-picker"]');
+        if (!await drawn(page, '[data-p3="levers-pane"] [data-p3="step-picker"]', `${at} draws its steps`)) continue;
         const keys = await page.locator('[data-p3="levers-pane"] [data-p3="step-picker-step"]').evaluateAll((ns) => ns.map((n) => n.dataset.step));
         v = keys[Math.min(pick, keys.length - 1)];
         if (!await bounded(page, `${at} takes its ${v} step`, () => hooks.click(page.locator(`[data-p3="levers-pane"] [data-p3="step-picker-step"][data-step="${v}"]`), { timeout: INPUT_MS }))) { if (deadPages.has(page)) continue s4cArm; continue; }
@@ -3070,13 +3082,16 @@ const readIRow = (page, role) => page.evaluate((r) => {
   const row = document.querySelector(`[data-p3="levers-pane"] .p3-fillrow[data-role="${r}"]`);
   return row ? { label: row.querySelector('[data-p3="int-pick"] .p3-btn-label')?.textContent?.trim() ?? null, swatch: getComputedStyle(row.querySelector('.p3-fill-sw')).backgroundColor } : null;
 }, role);
-/** Open `role`'s step picker, run `act` on it, and close it again with Escape. Every input bounded (#2550): returns
- *  false when one stalled, which failed an arm by name; a caller skips the brand when the page went dead. */
-const withPicker = async (page, role, act) => {
-  if (!await bounded(page, `picker ${role}: opens`, () => hooks.click(page.locator(`[data-p3="levers-pane"] [data-p3="int-pick"][data-role="${role}"]`), { timeout: INPUT_MS }))) return false;
-  await hooks.need(page, '[data-p3="levers-pane"] [data-p3="step-picker"]');
-  if (!await bounded(page, `picker ${role}: its action runs`, () => act(page.locator('[data-p3="levers-pane"] [data-p3="step-picker"]')))) return false;
-  return bounded(page, `picker ${role}: Escape closes it`, () => page.keyboard.press('Escape'));
+/** Open `role`'s step picker, run `act` on it, and close it again with Escape. `at` names the arm and brand
+ *  (`S5a <brand>`), so a failure here says which. Every input bounded (#2550), and `act` gives its own clicks
+ *  `{ timeout: INPUT_MS }`: returns false when one stalled, which failed the arm by name; a caller skips the brand
+ *  when the page went dead. */
+const withPicker = async (page, at, role, act) => {
+  const label = `${at}: the ${role} picker`;
+  if (!await bounded(page, `${label} opens`, () => hooks.click(page.locator(`[data-p3="levers-pane"] [data-p3="int-pick"][data-role="${role}"]`), { timeout: INPUT_MS }))) return false;
+  if (!await drawn(page, '[data-p3="levers-pane"] [data-p3="step-picker"]', `${label}, opened,`)) return false;
+  if (!await bounded(page, `${label}: its action runs`, () => act(page.locator('[data-p3="levers-pane"] [data-p3="step-picker"]')))) return false;
+  return bounded(page, `${label}: Escape closes it`, () => page.keyboard.press('Escape'));
 };
 
 /** The wash rows this suite actually judged, and in how many polarities. Floored after the loop: the
@@ -3107,20 +3122,20 @@ s5aArm: for (const brand of BRANDS) {
   // baseline would leave every reading below identical and pass this whole section on a defect.
   const stepsOffered = await (async () => {
     let s = [];
-    await withPicker(page, ROLE, async (pk) => { s = await pk.locator('[data-p3="step-picker-step"]').evaluateAll((ns) => ns.map((n) => n.dataset.step)); });
+    await withPicker(page, `S5a ${brand}`, ROLE, async (pk) => { s = await pk.locator('[data-p3="step-picker-step"]').evaluateAll((ns) => ns.map((n) => n.dataset.step)); });
     return s;
   })();
   if (deadPages.has(page)) continue s5aArm;
   let pick = null, during = null;
   for (const step of stepsOffered) {
-    await withPicker(page, ROLE, (pk) => hooks.click(pk.locator(`[data-p3="step-picker-step"][data-step="${step}"]`))); if (deadPages.has(page)) continue s5aArm;
+    await withPicker(page, `S5a ${brand}`, ROLE, (pk) => hooks.click(pk.locator(`[data-p3="step-picker-step"][data-step="${step}"]`), { timeout: INPUT_MS })); if (deadPages.has(page)) continue s5aArm;
     during = await readIRow(page, ROLE);
     if (during?.swatch !== before?.swatch) { pick = step; break; }
   }
   ok(pick !== null, `${brand}: some step in the picker moves the resolved color (picked '${pick}')`);
   ok(new RegExp(`^Override · \\S+ ${pick}\\b`).test(during?.label ?? ''), `${brand}: picking '${pick}' sets the override and says so ("${during?.label}")`);
   // THE #330 ASSERTION: Auto produces the value its own words promised.
-  await withPicker(page, ROLE, (pk) => hooks.click(pk.locator('[data-p3="step-picker-auto"]'))); if (deadPages.has(page)) continue s5aArm;
+  await withPicker(page, `S5a ${brand}`, ROLE, (pk) => hooks.click(pk.locator('[data-p3="step-picker-auto"]'), { timeout: INPUT_MS })); if (deadPages.has(page)) continue s5aArm;
   const after = await readIRow(page, ROLE);
   ok(after?.swatch === before?.swatch, `${brand}: Return to Auto returns the color the Auto label named (was ${before?.swatch}, now ${after?.swatch}) (#330)`);
   ok(after?.label === before?.label, `${brand}: the Auto label is unchanged after the round trip ("${before?.label}" → "${after?.label}") (#330)`);
@@ -4950,10 +4965,10 @@ s5bArm: for (const brand of BRANDS) {
     `${brand}: the preview's Outline hover and pressed edges are the Hover and Pressed rows' colors (${o0[1]?.edge}, ${o0[2]?.edge})`);
   // The step has to be one that MOVES the resolved color.
   let steps = [];
-  await withPicker(page, ROLE, async (pk) => { steps = await pk.locator('[data-p3="step-picker-step"]').evaluateAll((ns) => ns.map((n) => n.dataset.step)); }); if (deadPages.has(page)) continue s5bArm;
+  await withPicker(page, `S5b ${brand}`, ROLE, async (pk) => { steps = await pk.locator('[data-p3="step-picker-step"]').evaluateAll((ns) => ns.map((n) => n.dataset.step)); }); if (deadPages.has(page)) continue s5bArm;
   let pick = null, during = null;
   for (const step of steps) {
-    await withPicker(page, ROLE, (pk) => hooks.click(pk.locator(`[data-p3="step-picker-step"][data-step="${step}"]`))); if (deadPages.has(page)) continue s5bArm;
+    await withPicker(page, `S5b ${brand}`, ROLE, (pk) => hooks.click(pk.locator(`[data-p3="step-picker-step"][data-step="${step}"]`), { timeout: INPUT_MS })); if (deadPages.has(page)) continue s5bArm;
     during = await readEdgeRow(page, ROLE);
     if (during?.swatch !== before?.swatch) { pick = step; break; }
   }
@@ -4964,7 +4979,7 @@ s5bArm: for (const brand of BRANDS) {
     `${brand}: pinning the border moves the preview's Outline EDGE (${o0[0]?.edge} → ${o1[0]?.edge}, row ${during?.swatch}) (#576)`);
   ok(o1[0]?.ink === o0[0]?.ink, `${brand}: and leaves the Outline INK where it was (${o0[0]?.ink}) — the edge can now differ from the label it surrounds`);
   ok((await readIRow(page, INK))?.swatch === inkBefore, `${brand}: the Text · rest row is untouched by a border override (${inkBefore}) — the override is scoped to the one role`);
-  await withPicker(page, ROLE, (pk) => hooks.click(pk.locator('[data-p3="step-picker-auto"]'))); if (deadPages.has(page)) continue s5bArm;
+  await withPicker(page, `S5b ${brand}`, ROLE, (pk) => hooks.click(pk.locator('[data-p3="step-picker-auto"]'), { timeout: INPUT_MS })); if (deadPages.has(page)) continue s5bArm;
   const back = await readEdgeRow(page, ROLE);
   ok(back?.swatch === before?.swatch && back?.label === before?.label && (await outline())[0]?.edge === o0[0]?.edge,
     `${brand}: Return to Auto returns the edge the Auto label named (${back?.swatch}, "${back?.label}")`);
