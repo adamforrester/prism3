@@ -3643,9 +3643,13 @@ const main = async (): Promise<void> => {
     refuseStyle = true;
     const refused = await draw(f.api, contract, { types: ['shadow', 'gradient'] });
     refuseStyle = false;
-    ok(refused.unbound === 18 && refused.misses.some((m) => m.startsWith('15 effect-style specimens are not bound to their style')) && refused.misses.some((m) => m.startsWith('3 gradient-style specimens are not bound to their style'))
+    ok(refused.unbound === 18 && refused.misses.some((m) => m.startsWith('15 effect styles are not bound to their style, so they show the cell component\'s own value ('))
+      && refused.misses.some((m) => m.startsWith('3 gradient styles are not bound to their style, so they show the cell component\'s own value ('))
       && !styleGuideSummary(refused).ok,
-      `36: a style the host refuses to apply is counted (18), named by kind, and not a pass (${refused.unbound}; ${refused.misses.filter((m) => m.includes('-style')).join(' / ')})`);
+      `36: a style the host refuses to apply is counted (18), named by kind, and not a pass (${refused.unbound}; ${refused.misses.filter((m) => m.includes('style')).join(' / ')})`);
+    // Q272 A: the miss names the style in plain words. No internal kind key reaches the user, in the misses or the summary.
+    const keyLeaks = [...refused.misses, styleGuideSummary(refused).summary, ...styleGuideSummary(refused).lines].filter((m) => /\b(effect|gradient)-style\b/.test(m));
+    ok(keyLeaks.length === 0, `36: the refused styles' miss says "effect styles" / "gradient styles", never a raw kind key (${keyLeaks.join(' / ') || 'none'})`);
   }
 
   if (failures) { console.error(`\n${failures} style-guide check(s) failed`); process.exit(1); }

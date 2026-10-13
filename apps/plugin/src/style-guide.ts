@@ -1460,7 +1460,7 @@ export const categoryOfKey = (key: string): string => {
   return (FONT_KINDS as readonly string[]).includes(type) ? 'font' : type === 'borderWidth' ? 'dimension' : type;
 };
 /** Rows in this order down a page; a later phase's category after them, by name. The effect and gradient styles (#2353
- *  batch 2a) each start a row of their own after the text styles' (proposed, owner to confirm). */
+ *  batch 2a) each start a row of their own after the text styles'. Owner-approved (Q272 A). */
 const CATEGORY_ORDER = ['color', 'dimension', 'font', 'typography', 'shadow', 'gradient'];
 const categoryRank = (cat: string): number => { const i = CATEGORY_ORDER.indexOf(cat); return i < 0 ? CATEGORY_ORDER.length : i; };
 /** The radius swatch's four corners, each bound to the radius variable. */
@@ -2470,7 +2470,10 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
   const unbound = [...unboundIn.values()].reduce((a, b) => a + b, 0) + count(unboundSpec, unsized, noLayer, noSet, fixedLayer);
   const plural = (n: number, one: string, many: string): string => (n === 1 ? one : many);
   for (const [variant, n] of unboundIn) misses.push(`${n} ${n === 1 ? 'swatch' : 'swatches'} in ${variant} have no layer that takes a fill, so they show the component's own color`);
-  for (const [what, ws] of unboundSpec) { const n = ws.length; misses.push(`${n} ${what} specimen${plural(n, ' is', 's are')} not bound to ${plural(n, 'its', 'their')} ${what.endsWith('-style') ? 'style' : 'variable'}, so ${plural(n, 'it shows', 'they show')} the cell component's own value (${placesOf(ws)})`); }
+  // Q272 A (#2353): an effect or gradient style's miss names the style in plain words ("15 effect styles are not bound
+  // to their style"), never the internal kind key. The older kinds' wording is approved and stays as it was.
+  const plainStyle: Readonly<Record<string, string>> = { 'effect-style': 'effect style', 'gradient-style': 'gradient style' };
+  for (const [what, ws] of unboundSpec) { const n = ws.length; misses.push(`${n} ${plainStyle[what] ?? `${what} specimen`}${plural(n, ' is', 's are')} not bound to ${plural(n, 'its', 'their')} ${what.endsWith('-style') ? 'style' : 'variable'}, so ${plural(n, 'it shows', 'they show')} the cell component's own value (${placesOf(ws)})`); }
   for (const [what, ws] of unsized) { const n = ws.length; misses.push(`${n} ${what} spacing specimen${plural(n, ' is', 's are')} not sized to ${plural(n, 'its', 'their')} value: bound by ${plural(n, 'its', 'their')} left padding, the layer did not take the value's width (${placesOf(ws)})`); }
   // THE OWNER'S FIXED-WIDTH CELLS: said ONCE for the run, in the terms of the fix, not once per specimen.
   if (fixedLayer.size) {
