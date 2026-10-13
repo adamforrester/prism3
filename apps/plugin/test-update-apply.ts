@@ -1154,13 +1154,15 @@ section('both — set moves and page reorders in one run: one version, both done
   squeeze();
   const pre2 = await previewUpdate(host, targets);
   sets[2].x = Number(sets[2].x) + 50;
+  const v2 = api._versions.length;
   const res2 = await applyUpdate(host, api, targets, previewHashOf(pre2));
-  ok(!!res2.refusedAll && api._versions.length === 1, `both/hash, set: a set moved since the check refuses the confirm (${res2.refusedAll ?? 'applied'})`);
+  ok(!!res2.refusedAll && api._versions.length === v2, `both/hash, set: a set moved since the check refuses the confirm (${res2.refusedAll ?? 'applied'})`);
   pages.splice(pages.indexOf(pages.find((p) => p.name === '↳ Tabs')!), 1); pages.splice(3, 0, pg('↳ Tabs'));
   const pre3 = await previewUpdate(host, targets);
   const divider = pages.find((p) => p.name === '↳ Divider')!; pages.splice(pages.indexOf(divider), 1); pages.splice(4, 0, divider);
+  const v3 = api._versions.length;
   const res3 = await applyUpdate(host, api, targets, previewHashOf(pre3));
-  ok(!!res3.refusedAll && api._versions.length === 1, `both/hash, page: a page moved since the check refuses the confirm (${res3.refusedAll ?? 'applied'})`);
+  ok(!!res3.refusedAll && api._versions.length === v3, `both/hash, page: a page moved since the check refuses the confirm (${res3.refusedAll ?? 'applied'})`);
 }
 
 /* ── re-spacing, as a function (#2542) ─────────────────────────────────────────────────────────────────── */
