@@ -1079,6 +1079,24 @@ section('respaceSets — a moving set never lands on another Prism3 set (#2548 r
   ok(over.length === 0 && JSON.stringify(moves.map((m) => [m.id, m.to.x])) === JSON.stringify([['B', 3120]]),
     `page/respace onto a set: B, pushed past the frame, goes past C as well (3120) and lands on nothing (${JSON.stringify(moves.map((m) => [m.id, m.to.x]))}; ${over.join(', ') || 'none overlap'})`);
 }
+{
+  // NEVER ONTO A SET ALREADY MOVED (the re-review's repro on #2548): A at 0 (800 wide), B at 900 (800), C at 1000 (900),
+  // a frame Prism3 didn't build at 1500..1600, all in one row. B needs 1200; the frame pushes it to 2000. C, whose left
+  // neighbour is still A, needs 1200 too; the frame pushes it to 2000, which is where B now sits (2000..2800), so it goes
+  // on to 3200. Mutation: the obstacle push leaving out the sets already placed (`...placed`) → this.
+  const nodes = [
+    { id: 'A', type: 'COMPONENT_SET', prism3: true, x: 0, y: 0, width: 800, height: 800 },
+    { id: 'B', type: 'COMPONENT_SET', prism3: true, x: 900, y: 0, width: 800, height: 800 },
+    { id: 'C', type: 'COMPONENT_SET', prism3: true, x: 1000, y: 0, width: 900, height: 800 },
+    { id: 'frame', type: 'FRAME', x: 1500, y: 0, width: 100, height: 800 },
+  ];
+  const moves = respaceSets(nodes);
+  const at = new Map(nodes.map((n) => [n.id, n.x]));
+  for (const m of moves) at.set(m.id, m.to.x);
+  const over = nodes.flatMap((a, i) => nodes.slice(i + 1).filter((b) => at.get(a.id)! < at.get(b.id)! + b.width && at.get(a.id)! + a.width > at.get(b.id)!).map((b) => `${a.id} over ${b.id}`));
+  ok(over.length === 0 && JSON.stringify(moves.map((m) => [m.id, m.to.x])) === JSON.stringify([['B', 2000], ['C', 3200]]),
+    `page/respace onto a moved set: C, pushed past the frame, goes past B where B was just moved (3200) and lands on nothing (${JSON.stringify(moves.map((m) => [m.id, m.to.x]))}; ${over.join(', ') || 'none overlap'})`);
+}
 
 /* ── no change ───────────────────────────────────────────────────────────────────────────────────────── */
 section('no change — a member the dry run calls "no changes" is written nothing but its stamp and record (#2379)');
