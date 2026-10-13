@@ -43,6 +43,7 @@
  */
 import { createServer } from 'node:http';
 import { appendFile, readFile } from 'node:fs/promises';
+import { readdirSync } from 'node:fs';
 import { dirname, extname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
@@ -596,6 +597,35 @@ const describeField = (u) => `${u.cls} ${u.text} at ${u.ratio}:1, caret ${u.care
  * borrowing an exemption for a pair the engine never emitted.
  */
 const OUT_DIR = join(ROOT, '..', '..', 'packages', 'engine', 'out');
+
+/** Export › Download, collecting every file it writes (#2552). The download is the CONSUMER set — the base plus one
+ *  overlay per mode, several files — so a test reading one download would see only the base. The count expected is
+ *  read off the brand's committed base + overlay files, never from the page. Returns { name → parsed JSON }. */
+const downloadSet = async (page, id, expect) => {
+  const count = expect ?? readdirSync(OUT_DIR).filter((f) => f === `${id}.base.tokens.json` || (f.startsWith(`${id}.`) && f.endsWith('.overlay.tokens.json'))).length;
+  const got = new Map();
+  const all = new Promise((res) => {
+    const on = (dl) => { got.set(dl.suggestedFilename(), dl); if (got.size >= count) { page.off('download', on); res(); } };
+    page.on('download', on);
+  });
+  await hooks.click(page.locator('[data-p3="export-dialog"] [data-p3="dialog-confirm"]'));
+  await Promise.race([all, new Promise((res) => setTimeout(res, 15000))]);
+  const out = {};
+  for (const [name, dl] of got) { try { out[name] = JSON.parse(await readFile(await dl.path(), 'utf8')); } catch { /* reported by the caller */ } }
+  return out;
+};
+/** One mode's view of an exported consumer set: the base with that mode's overlay laid over it, as a consumer merges. */
+const mergedFromSet = (set, id, m) => {
+  const t = structuredClone(set[`${id}.base.tokens.json`] ?? {});
+  const put = (src, dst) => { for (const [k, v] of Object.entries(src ?? {})) { if (v && typeof v === 'object' && '$value' in v) dst[k] = v; else put(v, dst[k] ??= {}); } };
+  if (m !== 'light') put(set[`${id}.${m}.overlay.tokens.json`], t);
+  return t;
+};
+/** A role's value in mode `m` across an exported consumer set: light reads the base, any other mode its overlay first. */
+const aliasInSet = (set, id, root, role, m) => {
+  const at = (tree) => role.split('.').reduce((n, x) => n?.[x], tree?.[root]?.color)?.$value;
+  return (m === 'light' ? at(set[`${id}.base.tokens.json`]) : at(set[`${id}.${m}.overlay.tokens.json`]) ?? at(set[`${id}.base.tokens.json`])) ?? null;
+};
 const PREVIEW_SPEC = JSON.parse(await readFile(join(ROOT, '..', '..', 'packages', 'engine', 'schema', 'preview-spec.json'), 'utf8'));
 /** The pressed ink-on-fill contract the engine declares, read from the spec — not restated. */
 const PRESSED_MIN = (() => {
@@ -2072,17 +2102,21 @@ const SETTLE_CLICK_MS = 15000;
  *  `evaluate` on it waits with no timeout of its own, so the suite would hang (measured: 25+ minutes). Its
  *  context is closed, and the arm that owns it skips to the next brand. Read by every `previewMode` caller. */
 const deadPages = new WeakSet();
-const closeDead = async (page, label) => {
+const closeDead = async (page, label, why = `the page rendered no frame within ${SETTLE_CLICK_MS}ms, so it is treated as dead`) => {
   deadPages.add(page);
-  ok(false, `${label}: the page rendered no frame within ${SETTLE_CLICK_MS}ms, so it is treated as dead — its context is closed and the rest of this arm is skipped`);
+  ok(false, `${label}: ${why} — its context is closed and the rest of this arm is skipped`);
   // Bounded too: a close against a frozen renderer is the one call left, and it must not become the hang.
   await Promise.race([page.context().close().catch(() => {}), new Promise((r) => setTimeout(r, 10000))]);
 };
-/** Whether the page renders a frame within 3s, bounded on this side. After a failed click this tells a frozen
- *  renderer (dead: close it) from a control that would not take the click (alive: carry on). */
 // Every bounded input (#2547, #2550) goes through the shared helper in `test-bounded.mjs`: a stall fails one arm by
-// name and says what the page was doing; a page that renders no frame goes through `closeDead` and its brand is skipped.
+// name and says what the page was doing. A page that renders no frame, or a busy one whose input is still in flight
+// (#2557 review), goes through `closeDead`: its context is closed and its brand is skipped.
 const { bounded, stats: inputStats } = makeBounded({ ok, isDead: (p) => deadPages.has(p), onDead: closeDead });
+/** The wait after a bounded open (#2557 review): bounded at INPUT_MS on Playwright's clock and caught, so a picker
+ *  that opened but never drew fails its arm by name, rather than as `hooks.need`'s throw past every arm (which also
+ *  blames a renamed hook). Returns whether it drew. */
+const drawn = (page, selector, label) => page.locator(selector).first().waitFor({ timeout: INPUT_MS })
+  .then(() => true, () => { ok(false, `${label}: it did not draw within ${INPUT_MS}ms`); return false; });
 const settledClick = async (page, selector, label) => {
   const deadline = Date.now() + SETTLE_CLICK_MS * 2;
   const settled = await Promise.race([
@@ -2165,7 +2199,7 @@ s4cArm: for (const brand of BRANDS) {
         // Every input bounded (#2550): a stall fails this control by name and the arm goes on, or skips a dead page.
         const at = `S4c ${brand}: previewing ${m}, the ${k} picker`;
         if (!await bounded(page, `${at} opens`, () => hooks.click(page.locator(SURF(k)), { timeout: INPUT_MS }))) { if (deadPages.has(page)) continue s4cArm; continue; }
-        await hooks.need(page, '[data-p3="levers-pane"] [data-p3="step-picker"]');
+        if (!await drawn(page, '[data-p3="levers-pane"] [data-p3="step-picker"]', `${at} draws its steps`)) continue;
         const keys = await page.locator('[data-p3="levers-pane"] [data-p3="step-picker-step"]').evaluateAll((ns) => ns.map((n) => n.dataset.step));
         v = keys[Math.min(pick, keys.length - 1)];
         if (!await bounded(page, `${at} takes its ${v} step`, () => hooks.click(page.locator(`[data-p3="levers-pane"] [data-p3="step-picker-step"][data-step="${v}"]`), { timeout: INPUT_MS }))) { if (deadPages.has(page)) continue s4cArm; continue; }
@@ -2243,13 +2277,10 @@ s4cArm: for (const brand of BRANDS) {
   }
   await hooks.click(page.locator('[data-p3="export-open"]'));
   await hooks.need(page, '[data-p3="export-dialog"]');
-  const pending = page.waitForEvent('download');
-  await hooks.click(page.locator('[data-p3="export-dialog"] [data-p3="dialog-confirm"]'));
-  let exported = null;
-  try { exported = JSON.parse(await readFile(await (await pending).path(), 'utf8')); } catch { /* reported below */ }
+  const exported = await downloadSet(page, brand.toLowerCase());   // #2552: base + one overlay per mode
   for (const [m, role, step] of EDITS) {
     const want = `{${root}.core.palette.neutral.${step}}`;
-    const was = aliasIn(emission, role, m), got = exported ? aliasIn(exported, role, m) : null;
+    const was = aliasIn(emission, role, m), got = aliasInSet(exported, brand.toLowerCase(), root, role, m);
     ok(got === want && was !== want, `S4c ${brand}: a Fields edit of ${role} in ${m} to neutral ${step} reaches the exported tokens as ${want} (exported ${got}; the committed emission has ${was})`);
   }
   const errs = drain();
@@ -2437,13 +2468,10 @@ s4dArm: for (const brand of BRANDS) {
   const aliasIn = (tree, role, m) => (m === 'light' ? leaf(tree, role)?.$value : leaf(tree, role)?.$extensions?.prism3?.modes?.[m]?.$value) ?? null;
   await hooks.click(page.locator('[data-p3="export-open"]'));
   await hooks.need(page, '[data-p3="export-dialog"]');
-  const pending = page.waitForEvent('download');
-  await hooks.click(page.locator('[data-p3="export-dialog"] [data-p3="dialog-confirm"]'));
-  let exported = null;
-  try { exported = JSON.parse(await readFile(await (await pending).path(), 'utf8')); } catch { /* reported below */ }
+  const exported = await downloadSet(page, b);   // #2552: base + one overlay per mode
   for (const [m, role, pal, step, sec] of S4D_EDITS) {
     const want = `{${root}.core.palette.${pal}.${step}}`;
-    const was = aliasIn(emission, role, m), got = exported ? aliasIn(exported, role, m) : null;
+    const was = aliasIn(emission, role, m), got = aliasInSet(exported, b, root, role, m);
     ok(got === want && was !== want, `S4d ${brand}: an edit on the ${sec} section's ${role} in ${m} reaches the exported tokens as ${want} (exported ${got}; the committed emission has ${was})`);
   }
   const errs = drain();
@@ -3000,13 +3028,16 @@ const readIRow = (page, role) => page.evaluate((r) => {
   const row = document.querySelector(`[data-p3="levers-pane"] .p3-fillrow[data-role="${r}"]`);
   return row ? { label: row.querySelector('[data-p3="int-pick"] .p3-btn-label')?.textContent?.trim() ?? null, swatch: getComputedStyle(row.querySelector('.p3-fill-sw')).backgroundColor } : null;
 }, role);
-/** Open `role`'s step picker, run `act` on it, and close it again with Escape. Every input bounded (#2550): returns
- *  false when one stalled, which failed an arm by name; a caller skips the brand when the page went dead. */
-const withPicker = async (page, role, act) => {
-  if (!await bounded(page, `picker ${role}: opens`, () => hooks.click(page.locator(`[data-p3="levers-pane"] [data-p3="int-pick"][data-role="${role}"]`), { timeout: INPUT_MS }))) return false;
-  await hooks.need(page, '[data-p3="levers-pane"] [data-p3="step-picker"]');
-  if (!await bounded(page, `picker ${role}: its action runs`, () => act(page.locator('[data-p3="levers-pane"] [data-p3="step-picker"]')))) return false;
-  return bounded(page, `picker ${role}: Escape closes it`, () => page.keyboard.press('Escape'));
+/** Open `role`'s step picker, run `act` on it, and close it again with Escape. `at` names the arm and brand
+ *  (`S5a <brand>`), so a failure here says which. Every input bounded (#2550), and `act` gives its own clicks
+ *  `{ timeout: INPUT_MS }`: returns false when one stalled, which failed the arm by name; a caller skips the brand
+ *  when the page went dead. */
+const withPicker = async (page, at, role, act) => {
+  const label = `${at}: the ${role} picker`;
+  if (!await bounded(page, `${label} opens`, () => hooks.click(page.locator(`[data-p3="levers-pane"] [data-p3="int-pick"][data-role="${role}"]`), { timeout: INPUT_MS }))) return false;
+  if (!await drawn(page, '[data-p3="levers-pane"] [data-p3="step-picker"]', `${label}, opened,`)) return false;
+  if (!await bounded(page, `${label}: its action runs`, () => act(page.locator('[data-p3="levers-pane"] [data-p3="step-picker"]')))) return false;
+  return bounded(page, `${label}: Escape closes it`, () => page.keyboard.press('Escape'));
 };
 
 /** The wash rows this suite actually judged, and in how many polarities. Floored after the loop: the
@@ -3037,20 +3068,20 @@ s5aArm: for (const brand of BRANDS) {
   // baseline would leave every reading below identical and pass this whole section on a defect.
   const stepsOffered = await (async () => {
     let s = [];
-    await withPicker(page, ROLE, async (pk) => { s = await pk.locator('[data-p3="step-picker-step"]').evaluateAll((ns) => ns.map((n) => n.dataset.step)); });
+    await withPicker(page, `S5a ${brand}`, ROLE, async (pk) => { s = await pk.locator('[data-p3="step-picker-step"]').evaluateAll((ns) => ns.map((n) => n.dataset.step)); });
     return s;
   })();
   if (deadPages.has(page)) continue s5aArm;
   let pick = null, during = null;
   for (const step of stepsOffered) {
-    await withPicker(page, ROLE, (pk) => hooks.click(pk.locator(`[data-p3="step-picker-step"][data-step="${step}"]`))); if (deadPages.has(page)) continue s5aArm;
+    await withPicker(page, `S5a ${brand}`, ROLE, (pk) => hooks.click(pk.locator(`[data-p3="step-picker-step"][data-step="${step}"]`), { timeout: INPUT_MS })); if (deadPages.has(page)) continue s5aArm;
     during = await readIRow(page, ROLE);
     if (during?.swatch !== before?.swatch) { pick = step; break; }
   }
   ok(pick !== null, `${brand}: some step in the picker moves the resolved color (picked '${pick}')`);
   ok(new RegExp(`^Override · \\S+ ${pick}\\b`).test(during?.label ?? ''), `${brand}: picking '${pick}' sets the override and says so ("${during?.label}")`);
   // THE #330 ASSERTION: Auto produces the value its own words promised.
-  await withPicker(page, ROLE, (pk) => hooks.click(pk.locator('[data-p3="step-picker-auto"]'))); if (deadPages.has(page)) continue s5aArm;
+  await withPicker(page, `S5a ${brand}`, ROLE, (pk) => hooks.click(pk.locator('[data-p3="step-picker-auto"]'), { timeout: INPUT_MS })); if (deadPages.has(page)) continue s5aArm;
   const after = await readIRow(page, ROLE);
   ok(after?.swatch === before?.swatch, `${brand}: Return to Auto returns the color the Auto label named (was ${before?.swatch}, now ${after?.swatch}) (#330)`);
   ok(after?.label === before?.label, `${brand}: the Auto label is unchanged after the round trip ("${before?.label}" → "${after?.label}") (#330)`);
@@ -3806,13 +3837,15 @@ const readNewChips = (sel) => {
 //     carries it, and the trace draws it.
 // Oracle: the export, downloaded and parsed here (`motionOracle`), and the persisted brand; never the page's own model.
 console.log(`\nEasing per motion role, through the export (#2046)\n${'='.repeat(78)}`);
-const exportTree = async (page, where) => {
+/** #2552: the export is the consumer set (base + one overlay per mode), so each mode is read as a consumer merges it. */
+/** `id` names a committed brand; without one (a brand made here, light only) the set is one base file, its id read off it. */
+const exportTree = async (page, where, id) => {
   await hooks.click(page.locator('[data-p3="export-open"]'));
   await hooks.need(page, '[data-p3="export-dialog"]');
-  const pending = page.waitForEvent('download');
-  await hooks.click(page.locator('[data-p3="export-dialog"] [data-p3="dialog-confirm"]'));
-  const dl = await pending;
-  try { return JSON.parse(await readFile(await dl.path(), 'utf8')); } catch { ok(false, `${where}: the export is a parseable token file`); return null; }
+  const set = await downloadSet(page, id, id ? undefined : 1);
+  const own = id ?? Object.keys(set).find((n) => n.endsWith('.base.tokens.json'))?.slice(0, -'.base.tokens.json'.length);
+  if (!own || !set[`${own}.base.tokens.json`]) { ok(false, `${where}: the export is a parseable token set`); return null; }
+  return { light: mergedFromSet(set, own, 'light'), dark: mergedFromSet(set, own, 'dark') };
 };
 /** Pick `curve` for `role` in the value picker, and wait for the picker to close or the row to say it. */
 const pickEasing = async (page, role, curve) => {
@@ -3835,9 +3868,9 @@ let easingTrips = 0;
   const b = await persistedBrand(page);
   ok(b?.modeLevers?.dark?.easings?.[role] === curve && b?.motionPersonality?.easingRoles?.[role] === lightBefore,
     `Q22: ${brand}: previewing Dark, picking ${curve} for ${role} writes modeLevers.dark.easings.${role} and not the brand value (dark ${JSON.stringify(b?.modeLevers?.dark?.easings ?? null)}, brand ${JSON.stringify(b?.motionPersonality?.easingRoles ?? null)})`);
-  const tree = await exportTree(page, `${brand} / Dark easing`);
+  const tree = await exportTree(page, `${brand} / Dark easing`, brand.toLowerCase());
   if (tree) {
-    const dark = motionOracle(tree, 'dark'), light = motionOracle(tree, 'light');
+    const dark = motionOracle(tree.dark, 'dark'), light = motionOracle(tree.light, 'light');
     ok(dark.curve(role)?.name === curve && light.curve(role)?.name !== curve,
       `#2046: ${brand}: the exported motion.easing-role.${role} is ${curve} in dark only (dark ${dark.curve(role)?.name}, light ${light.curve(role)?.name})`);
     const t = await tracedCurve(page, role);
@@ -3849,7 +3882,7 @@ let easingTrips = 0;
   }
   // Picking Light's own curve in Dark is Auto (the legacy table never offered the self-map): it clears the override.
   await chooseMode(page, 'dark');
-  const lightCurve = (tree && motionOracle(tree, 'light').curve(role)?.name) ?? 'expressive';
+  const lightCurve = (tree && motionOracle(tree.light, 'light').curve(role)?.name) ?? 'expressive';
   await pickEasing(page, role, lightCurve);
   const b2 = await persistedBrand(page);
   ok(b2?.modeLevers?.dark?.easings?.[role] === undefined,
@@ -3878,7 +3911,7 @@ let easingTrips = 0;
   ok(b?.motionPersonality?.easingRoles?.[role] === curve, `#2046: a one-mode brand picks ${curve} for ${role}: it writes motionPersonality.easingRoles.${role} (persisted ${JSON.stringify(b?.motionPersonality ?? null)})`);
   const tree = await exportTree(page, 'one-mode brand');
   if (tree) {
-    const o = motionOracle(tree, 'light');
+    const o = motionOracle(tree.light, 'light');
     ok(o.curve(role)?.name === curve, `#2046: a one-mode brand's export carries motion.easing-role.${role} → ${curve} (exports ${o.curve(role)?.name})`);
     const t = await tracedCurve(page, role);
     ok(!!t && sameBez(t.bez, o.curve(role)?.bez), `#2046: a one-mode brand's traced ${role} transition draws the exported curve ${JSON.stringify(o.curve(role)?.bez)} (draws ${JSON.stringify(t?.bez)})`);
@@ -4880,10 +4913,10 @@ s5bArm: for (const brand of BRANDS) {
     `${brand}: the preview's Outline hover and pressed edges are the Hover and Pressed rows' colors (${o0[1]?.edge}, ${o0[2]?.edge})`);
   // The step has to be one that MOVES the resolved color.
   let steps = [];
-  await withPicker(page, ROLE, async (pk) => { steps = await pk.locator('[data-p3="step-picker-step"]').evaluateAll((ns) => ns.map((n) => n.dataset.step)); }); if (deadPages.has(page)) continue s5bArm;
+  await withPicker(page, `S5b ${brand}`, ROLE, async (pk) => { steps = await pk.locator('[data-p3="step-picker-step"]').evaluateAll((ns) => ns.map((n) => n.dataset.step)); }); if (deadPages.has(page)) continue s5bArm;
   let pick = null, during = null;
   for (const step of steps) {
-    await withPicker(page, ROLE, (pk) => hooks.click(pk.locator(`[data-p3="step-picker-step"][data-step="${step}"]`))); if (deadPages.has(page)) continue s5bArm;
+    await withPicker(page, `S5b ${brand}`, ROLE, (pk) => hooks.click(pk.locator(`[data-p3="step-picker-step"][data-step="${step}"]`), { timeout: INPUT_MS })); if (deadPages.has(page)) continue s5bArm;
     during = await readEdgeRow(page, ROLE);
     if (during?.swatch !== before?.swatch) { pick = step; break; }
   }
@@ -4894,7 +4927,7 @@ s5bArm: for (const brand of BRANDS) {
     `${brand}: pinning the border moves the preview's Outline EDGE (${o0[0]?.edge} → ${o1[0]?.edge}, row ${during?.swatch}) (#576)`);
   ok(o1[0]?.ink === o0[0]?.ink, `${brand}: and leaves the Outline INK where it was (${o0[0]?.ink}) — the edge can now differ from the label it surrounds`);
   ok((await readIRow(page, INK))?.swatch === inkBefore, `${brand}: the Text · rest row is untouched by a border override (${inkBefore}) — the override is scoped to the one role`);
-  await withPicker(page, ROLE, (pk) => hooks.click(pk.locator('[data-p3="step-picker-auto"]'))); if (deadPages.has(page)) continue s5bArm;
+  await withPicker(page, `S5b ${brand}`, ROLE, (pk) => hooks.click(pk.locator('[data-p3="step-picker-auto"]'), { timeout: INPUT_MS })); if (deadPages.has(page)) continue s5bArm;
   const back = await readEdgeRow(page, ROLE);
   ok(back?.swatch === before?.swatch && back?.label === before?.label && (await outline())[0]?.edge === o0[0]?.edge,
     `${brand}: Return to Auto returns the edge the Auto label named (${back?.swatch}, "${back?.label}")`);
@@ -5176,21 +5209,20 @@ console.log(`\nfacePin — Pin a cut control (#1467)\n${'='.repeat(78)}`);
   hooks.absent(ok, { seen: err.present, state: 'the error surface mounted on this page' },
     !err.shown, `${brand}: a pin whose family matches the bound face is accepted, no error surfaced${err.shown ? ` — "${err.text.slice(0, 80)}"` : ''}`);
 
-  // EMISSION: the pin reaches the emitted DTCG verbatim. Export the tokens (default shape) and find the
-  // composite leaves carrying $extensions.prism3.facePin — the engine bakes the Figma Text Style's
-  // fontStyle from exactly this (emit-figma-font.ts). Oracle: the same STYLE + bound face typed above.
+  // EMISSION: the pin reaches the emitted DTCG verbatim. Export the tokens and find the composite leaves
+  // carrying $extensions.prism3.facePin — the engine bakes the Figma Text Style's fontStyle from exactly this
+  // (emit-figma-font.ts). Oracle: the same STYLE + bound face typed above. facePin is BUILD METADATA, which the
+  // default export leaves out since #2552, so "Include build metadata" is switched On to read it.
   await hooks.click(page.locator('[data-p3="export-open"]'));
   await hooks.need(page, '[data-p3="export-dialog"]');
-  const pending = page.waitForEvent('download');
-  await hooks.click(page.locator('[data-p3="export-dialog"] [data-p3="dialog-confirm"]'));
-  const dl = await pending;
+  await hooks.click(page.locator('[data-p3="export-setting"][aria-label="Include build metadata: On"]'));
   let emitted = null;
   try {
-    const tree = JSON.parse(await readFile(await dl.path(), 'utf8'));
+    const set = await downloadSet(page, brand.toLowerCase());
     const found = [];
     const walk = (n) => { if (n && typeof n === 'object') { const p = n.$extensions?.prism3?.facePin; if (p) found.push(p); for (const k of Object.keys(n)) walk(n[k]); } };
-    walk(tree);
-    emitted = found;
+    for (const tree of Object.values(set)) walk(tree);
+    emitted = found.length ? found : null;
   } catch { /* reported by the assertions below */ }
   ok(Array.isArray(emitted) && emitted.length > 0, `${brand}: the exported DTCG carries the pinned cut in $extensions.prism3.facePin (${emitted?.length ?? 0} leaves)`);
   ok(Array.isArray(emitted) && emitted.length > 0 && emitted.every((p) => p.style === STYLE), `${brand}: every emitted facePin bakes fontStyle = "${STYLE}" verbatim`);

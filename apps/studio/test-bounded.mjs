@@ -7,10 +7,16 @@
  * 30 s, and test:chrome S6.3's `lh-swap` `selectOption` timing out in a cloud run. An input run through `bounded`
  * is held to INPUT_MS: a stall fails ONE check by name and says what the page was doing, so the cause is read off
  * the failure instead of guessed.
- *   · If the page still renders a frame, it was BUSY (a long task, a loaded machine) and the caller carries on.
+ *   · If the page still renders a frame, it was BUSY (a long task, a loaded machine). When the input THREW it is
+ *     over, and the caller carries on. When it did not return it is STILL IN FLIGHT and would land later, on whatever
+ *     the caller does next (a late step click drifts the picker, a late Escape closes the next one), so the page goes
+ *     to the caller's `onDead` as a dead one does, which must retire it: closing its context cancels the input
+ *     (#2557 review, a busy stall once ran on into an uncaught throw that ended the suite).
  *   · If it renders none, the debugger PAUSES the renderer and the failure names the JavaScript stack it was in, or
- *     says it was not running JavaScript (layout, paint, GC, or no frames being produced at all). The caller's
- *     `onDead` then decides what happens to the page.
+ *     says it was not running JavaScript (layout, paint, GC, or no frames being produced at all). The page then goes
+ *     to `onDead` too.
+ * Every action passed in carries its own `{ timeout: INPUT_MS }` where Playwright takes one, so nothing inside it
+ * outlives the bound on its own clock.
  *
  * The debugger is enabled on each page at its FIRST bounded input, while the page still answers. `Debugger.enable`
  * runs on the page's main thread, so asked for only once the page is stuck it never completes and the pause never
@@ -62,8 +68,12 @@ const stallStack = async (page) => {
  * A suite's `bounded(page, label, act)`, which returns whether the input went through.
  *   · `ok(cond, label)` — the suite's assertion;
  *   · `isDead(page)` — a page the suite already gave up on is not touched again;
- *   · `onDead(page, message)` — what the suite does with a page that renders no frame (it must report `message`).
- * `stats` is the slowest input that went through, for a suite to print as its margin.
+ *   · `onDead(page, label, why?)` — what the suite does with a page that renders no frame, or a busy one whose input
+ *     is still in flight. It must report the failure and retire the page. `why` is set on the busy path and says
+ *     what happened; on the dead path it is left out and `label` already carries the input and the stack, so the
+ *     suite's own words for a dead page follow (test-smoke's `closeDead` signature).
+ * Returns whether the input went through; false with `onDead` not called only when the input threw and nothing is
+ * left in flight. `stats` is the slowest input that went through, for a suite to print as its margin.
  */
 export const makeBounded = ({ ok, isDead = () => false, onDead }) => {
   const stats = { inputs: 0, slowestMs: 0, slowestLabel: '' };
@@ -85,7 +95,8 @@ export const makeBounded = ({ ok, isDead = () => false, onDead }) => {
     }
     const what = out === 'timeout' ? `did not return within ${INPUT_MS}ms` : `threw after ${Date.now() - t0}ms: ${String(out?.message ?? out).split('\n')[0].slice(0, 120)}`;
     if (await rendersFrame(page)) {
-      ok(false, `${label}: the input ${what}; the page still renders frames, so it was busy, not stuck`);
+      if (out === 'timeout') await onDead(page, label, `the input ${what}; the page still renders frames, so it was busy, not stuck, but the input is still in flight`);
+      else ok(false, `${label}: the input ${what}; the page still renders frames, so it was busy, not stuck`);
       return false;
     }
     await onDead(page, `${label}: the input ${what}; ${await stallStack(page)}`);

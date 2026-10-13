@@ -67,6 +67,27 @@ export type SnapNode = Record<string, unknown> & { name: string; type: string; c
  *  snapshot rather than written to a node. */
 export type Baseline = { v: number; id?: string; nodes: Record<string, string> };
 
+/** A stamp Prism3 wrote (#2300): the engine version, a 16-hex plan stamp or `adopted`, and the executor revision
+ *  (absent on a stamp from before #1098). Anything else is not Prism3's, however it got there. */
+export const STAMP_SHAPE = /^[^|]+\|(?:[0-9a-f]{16}|adopted)(?:\|\d+)?$/;
+
+/** A member as the ownership check reads it: its node id, its stamp (`''` for none), and the id its as-built
+ *  record names, if it has one. */
+export type OwnershipRead = { id?: string; stamp: string; recordId?: string };
+
+/**
+ * BUILT BY PRISM3 (#2300, #2510): ONE predicate, read by the dry run (`ownedView`) and by the executor's LAY OUT
+ * pass, so the two cannot disagree about which members are Prism3's. A member is Prism3's when it carries a stamp of
+ * Prism3's shape and its as-built record does not name ANOTHER member of the set (a Figma Duplicate copies stamp and
+ * record, so a copy's record names its original). A record naming a node that is not in the set is no evidence of a
+ * copy: the host has reassigned member ids after set-level operations (#1473, #1516). Built over the whole set,
+ * because "another member" is a fact about the set.
+ */
+export const builtByPrism3 = (members: readonly OwnershipRead[]): ((m: OwnershipRead) => boolean) => {
+  const ids = new Set(members.map((m) => m.id).filter(Boolean));
+  return (m) => !!m.stamp && STAMP_SHAPE.test(m.stamp) && !(!!m.recordId && !!m.id && m.recordId !== m.id && ids.has(m.recordId));
+};
+
 /** The node fields the snapshot copies: everything the hash reads and everything `diffAnatomy` reads. */
 const SNAP_KEYS = [
   'visible', 'opacity', 'layoutMode', 'layoutWrap', 'primaryAxisSizingMode', 'counterAxisSizingMode',

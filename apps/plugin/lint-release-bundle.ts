@@ -29,7 +29,9 @@
  * point beside it (`main.js`, `ui.html`), and `networkAccess.devAllowedDomains` is gone. `allowedDomains` stays
  * `["none"]`, written here as a literal. Anything else that differs fails by name.
  *
- * BY-NAME MUTATIONS (each proven red, then restored): the relay's `if (PRISM3_DEV)` guard removed in
+ * BY-NAME MUTATIONS (each proven red, then restored): the dispatcher's `PRISM3_DEV &&` guards removed (#2530 PR 2) →
+ * `[dev-command-name]` and `[dev-command-eval]` fail on `release/main.js`; `dev-commands.ts` back to a DIRECT eval →
+ * the same two (a direct eval stops esbuild dropping the module); the relay's `if (PRISM3_DEV)` guard removed in
  * `agent-link-ui.ts` → `[bridge-relay-url]` and `[bridge-relay]` fail on `release/ui.html`; `minifySyntax` dropped
  * from the release build → the same two fail (the dead branch kept as text keeps the module); the manifest's
  * `delete … devAllowedDomains` removed in `build.mjs` → `release/manifest.json carries no devAllowedDomains` fails.
@@ -64,6 +66,22 @@ const DEV_ONLY: readonly Marker[] = [
     positive: 'relay = createBridgeRelay({',
     negative: 'relay = createBridgeRelayed({',
     what: "the relay's factory (`agent-bridge-relay.ts`)",
+  },
+  {
+    name: 'dev-command-name',
+    re: /\brun-code\b/,
+    in: ['main.js'],
+    positive: 'var RUN_CODE = "run-code";',
+    negative: 'var RUN_CODE = "run-codes";',
+    what: 'the dev-only `run-code` command (`dev-commands.ts`), its name, parse and messages',
+  },
+  {
+    name: 'dev-command-eval',
+    re: /\(0,\s*eval\)/,
+    in: ['main.js'],
+    positive: 'pending = (0, eval)(wrapped);',
+    negative: 'pending = (0, evaluate)(wrapped);',
+    what: "the dev-only command's evaluation (`dev-commands.ts`): no eval of any kind ships in a release",
   },
 ];
 

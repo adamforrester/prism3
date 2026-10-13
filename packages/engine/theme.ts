@@ -1346,19 +1346,22 @@ export const REQUIRED_WEIGHT_ROLES: Partial<Record<TypeGroup, { role: WeightRole
   caption: { role: 'default', why: 'text areas and field messages use it' },
 };
 /**
- * #1752 — the weight role `buttonLabelWeight: 'default'` makes the button label bind, and the category it
- * lives in. `applyButtonLayout` rebinds the button family's `type.label.*.emphasis` to this role by name,
- * so the brand must SHIP it: `withButtonLabelWeight` unions it into the label category's weight set before the
- * composites are built. A brand whose label set already carries `default` is unchanged (same array back),
- * and 'emphasis' (the lever's default) never reaches the union, so every existing brand is byte-identical.
- * The union keeps `WEIGHT_ROLE_ORDER` (lightest first), the order every default set is written in.
+ * #1752 — the weight role `buttonLabelWeight: 'default'` makes the button label bind, and the category it lives in.
+ * `applyButtonLayout` rebinds the button family's `type.label.*.emphasis` to this role by name.
+ *
+ * EVERY BRAND SHIPS IT since owner decisions Q225 A and Q226 A (2026-10-10): Tabs binds `type.label.*.default` on
+ * an unselected tab and `emphasis` on the selected one, so the label category always carries `default` beside its
+ * own roles, whatever the button lever says. `withLabelDefault` unions it into the label weight set before the
+ * composites are built, so the composites, the Figma text styles and `weightAvailability` all see it. A brand whose
+ * label set already carries `default` is unchanged (same array back). The union keeps `WEIGHT_ROLE_ORDER`
+ * (lightest first), the order every default set is written in. Until then it was unioned only under the lever.
  */
 export const BUTTON_LABEL_DEFAULT_ROLE: WeightRoleName = 'default';
-const withButtonLabelWeight = (t: TypographyInput | undefined, w: ButtonLabelWeight | undefined): TypographyInput | undefined => {
-  if (w !== 'default') return t;
+const withLabelDefault = (t: TypographyInput | undefined): TypographyInput | undefined => {
   const roles = t?.weights?.label ?? TYPE_WEIGHTS_DEFAULT.label;
-  // A malformed set is `buildComposites`' to refuse, by name; the union does not repair or mask it.
-  if (!Array.isArray(roles) || roles.includes(BUTTON_LABEL_DEFAULT_ROLE)) return t;
+  // A malformed set is `buildComposites`' to refuse, by name; the union does not repair or mask it. An EMPTY set is
+  // one (#1639 refuses a category with no weight), so it is passed through untouched rather than given `default`.
+  if (!Array.isArray(roles) || roles.length === 0 || roles.includes(BUTTON_LABEL_DEFAULT_ROLE)) return t;
   const label = [...roles, BUTTON_LABEL_DEFAULT_ROLE].sort((a, b) => WEIGHT_ROLE_ORDER.indexOf(a) - WEIGHT_ROLE_ORDER.indexOf(b));
   return { ...t, weights: { ...t?.weights, label } };
 };
@@ -2903,12 +2906,12 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   }
   const layout = buildLayout(input.layout);
   notes.push(`layout: ${layout.breakpoints.length} breakpoints (${layout.breakpoints.map((b) => `${b.name} ${n2(b.px)}`).join(', ')}); ${layout.baseColumns}-column grid (${layout.grid.map((g) => g.columns).join('/')} by breakpoint); gutters ${layout.grid.map((g) => g.gutterPx).join('/')}px and margins ${layout.grid.map((g) => g.marginPx).join('/')}px, from the spacing scale; containers max ${n2(layout.containerMax)}px, narrow ${n2(layout.containerNarrow)}px.`);
-  // #1752 — `buttonLabelWeight: 'default'` puts the `default` role in the label category (the identity
-  // otherwise). Before the build, so the composites, the Figma text styles and `weightAvailability` all
-  // see it: the button's rebound label style then names a style the brand emits.
-  const typography = buildTypography(withButtonLabelWeight(input.typography, input.buttonLabelWeight));
+  // The label category always carries the `default` role (Q225 A, Q226 A: Tabs binds it unselected), before the
+  // build so the composites, the Figma text styles and `weightAvailability` all see it. A button under
+  // `buttonLabelWeight: 'default'` (#1752) rebinds to the same role.
+  const typography = buildTypography(withLabelDefault(input.typography));
   if (input.buttonLabelWeight === 'default')
-    notes.push('button label weight: default — buttons bind type.label.*.default, so the label category ships the default role beside emphasis; tags and badges keep emphasis.');
+    notes.push('button label weight: default — buttons bind type.label.*.default; tags and badges keep emphasis.');
   // Per-mode typography levers (Phase D): a customizable mode may override the font FAMILY per
   // category and/or the font WEIGHT per weight-role. Re-derive the affected PRIMITIVES via the
   // SAME helpers buildTypography uses — family stacks by merging the mode's stacks over the base
@@ -3285,7 +3288,8 @@ export const nbThemeFrom = (s: NbMeasured): Theme => {
     disabledStrategy: 'reduced', disabledMin: 3, iconContrast: 'text', outlineInteraction: 'overlay-neutral',
     neutralEmphasis: 'subtle', strictInteractiveContrast: false, interactivePalettes: [],
     dims, motion: buildMotion(),
-    typography: buildTypography(),
+    // The label category always ships the `default` role (Q225 A, Q226 A), here as in every brand.
+    typography: buildTypography(withLabelDefault(undefined)),
     shadow: buildShadow(s.neutralHue.hue, { tint: { amount: 0 } }),  // NB ships pure-black shadows
     layout: buildLayout({ containerMax: 1920 }),                     // NB caps at 1920 + narrow 720
     gradient: { gradients: [] },                                     // NB ships no gradients (it had none)
@@ -3300,3 +3304,4 @@ export const nbThemeFrom = (s: NbMeasured): Theme => {
     ],
   };
 };
+

@@ -49,8 +49,9 @@ import { ENGINE_VERSION } from '@prism3/engine/version';
 import { EXECUTOR_REVISION } from './executor-revision';
 import { memberStamp, planHalf, revHalf, STAMP_KEY } from './write-components';
 import { NS } from './persist-figma';
-import { BASELINE_V, UPDATING_KEY, baselineDiff, baselineOf, readBaseline, recordFormat, snapshotMember, writeBaseline, type Baseline, type SnapNode } from './member-baseline';
+import { BASELINE_V, UPDATING_KEY, baselineDiff, baselineOf, builtByPrism3, readBaseline, recordFormat, snapshotMember, writeBaseline, type Baseline, type OwnershipRead, type SnapNode } from './member-baseline';
 import { drawnFaults, type DrawnFault, type DrawVar } from './drawn';
+import { pagesOutOfOrder, stripNestPrefix, type PageLike } from './file-setup';
 
 /** One member of a set as the dry run reads it. */
 export type HostMember = {
@@ -187,21 +188,21 @@ const paintText = (raw: unknown, ports: ReadPorts): string => {
   return `${what}${opacity}${p.visible === false ? ', hidden' : ''}`;
 };
 
-/** A stamp Prism3 wrote (#2300): the engine version, a 16-hex plan stamp or `adopted`, and the executor revision
- *  (absent on a stamp from before #1098). Anything else is not Prism3's, however it got there. */
-export const STAMP_SHAPE = /^[^|]+\|(?:[0-9a-f]{16}|adopted)(?:\|\d+)?$/;
+/** The stamp shape (#2300), defined with the ownership check it serves in `member-baseline.ts` and re-exported for
+ *  the readers that already import it from here. */
+export { STAMP_SHAPE } from './member-baseline';
 
 /**
  * THE MEMBERS AS PRISM3 OWNS THEM (#2300): a member whose stamp is malformed, or whose as-built record names
  * ANOTHER member of the set (a Figma Duplicate copies both, so a copy's record names its original), reads as
  * not built by Prism3. Its stamp is blanked here, once, so every reading below (drops, matches, Adopt, the
- * capture) treats it as a designer's own member. A record naming a node that is not in the set is no evidence of a
- * copy: the host has reassigned member ids after set-level operations (#1473, #1516).
+ * capture) treats it as a designer's own member. The test is `builtByPrism3`, shared with the executor's LAY OUT
+ * pass (#2510), so the apply never moves a member this reads as a designer's.
  */
 export const ownedView = (host: HostSetView): HostSetView => {
-  const ids = new Set(host.members.map((m) => m.id).filter(Boolean));
-  const copied = (m: HostMember): boolean => !!m.baseline?.id && !!m.id && m.baseline.id !== m.id && ids.has(m.baseline.id);
-  return { ...host, members: host.members.map((m) => (m.stamp && (!STAMP_SHAPE.test(m.stamp) || copied(m)) ? { ...m, stamp: '' } : m)) };
+  const read = (m: HostMember): OwnershipRead => ({ id: m.id, stamp: m.stamp, recordId: m.baseline?.id });
+  const owned = builtByPrism3(host.members.map(read));
+  return { ...host, members: host.members.map((m) => (m.stamp && !owned(read(m)) ? { ...m, stamp: '' } : m)) };
 };
 
 /**
@@ -695,7 +696,9 @@ export const adoptSet = async (
 
 /** The host the two commands read: the file's sets and its own variable and style catalogues. */
 export type UpdateHost = {
-  root: { findAllWithCriteria(c: { types: string[] }): readonly unknown[] };
+  /** `children` and `insertChild` are the document's pages, for the page order (#2568). A host without them (a test's
+   *  shim) has no page order to check. */
+  root: { findAllWithCriteria(c: { types: string[] }): readonly unknown[]; readonly children?: readonly PageLike[]; insertChild?(index: number, child: PageLike): void };
   variables: { getLocalVariablesAsync(): Promise<readonly { id: string; name: string }[]> };
   getLocalTextStylesAsync(): Promise<readonly { id: string; name: string }[]>;
   getLocalEffectStylesAsync(): Promise<readonly { id: string; name: string }[]>;
@@ -785,7 +788,12 @@ const locateView = async (host: UpdateHost, t: UpdateTarget, breathe?: () => Pro
   return { kind: 'found', name, set: found[0], view: await readSetView(found[0], breathe, drawVars) };
 };
 
-export type UpdatePreview = { sets: SetPreview[]; missing: string[]; refused: { def: string; reason: string }[] };
+export type UpdatePreview = {
+  sets: SetPreview[]; missing: string[]; refused: { def: string; reason: string }[];
+  /** #2568, owner decision Q260 A — the component pages not in alphabetical order, by full page name, which the apply
+   *  moves into place (`pagesOutOfOrder`). Absent when none. */
+  pages?: string[];
+};
 
 /** `update-components` in its dry-run mode: every target's set read and laid against its plans. Writes
  *  nothing. A def with no set in the file is `missing`; a def with two sets of its name is `refused`,
@@ -807,6 +815,9 @@ export const previewUpdate = async (host: UpdateHost, targets: readonly UpdateTa
     if (absent.length) preview.blockers.push(`Not in this file: ${absent.join(', ')}. Build ${[...new Set(absent.map((a) => a.split('/')[0]))].join(', ')} first, then run the update again`);
     out.sets.push(preview);
   }
+  // THE PAGE ORDER (#2568): read once for the file, whichever sets the targets name, since the pages are the file's.
+  const pages = host.root.children ? pagesOutOfOrder(host.root.children) : [];
+  if (pages.length) out.pages = pages;
   return out;
 };
 
@@ -921,6 +932,11 @@ export const previewLine = (p: SetPreview): string => {
   return `${p.set}: ${n(c.members, 'member')}. ${parts.join(', ')}.`;
 };
 
+/** Owner-approved wording (#2568, the Q211/Q246 family; Q264 A): the component pages out of alphabetical order, named
+ *  as the page list shows them less the `↳ `. Empty when none. */
+export const pagesLine = (pages: readonly string[] | undefined): string =>
+  pages?.length ? `Component pages: ${pages.length} to reorder (${pages.map(stripNestPrefix).join(', ')}).` : '';
+
 /** The verdict for a dry run. `ok` is false only where a set could not be checked. `lines` is the Activity drawer's
  *  copy (#2177): one per set, then the closing lines, the same list `summary` is joined from. */
 export const previewVerdict = (r: UpdatePreview): { ok: boolean; headline: string; summary: string; lines: string[] } => {
@@ -930,15 +946,19 @@ export const previewVerdict = (r: UpdatePreview): { ok: boolean; headline: strin
   // "no changes" one, the existing words.
   const claimable = r.sets.some((p) => !p.blockers.length && p.adoptable.length);
   const blocked = r.sets.filter((p) => p.blockers.length).length + r.refused.length;
-  const headline = r.sets.length + r.refused.length === 0 ? 'No sets to check'
+  const reorder = r.pages?.length ?? 0;
+  // Owner-approved wording (#2568, Q264 A): pages to reorder and nothing else is its own headline.
+  const headline = r.sets.length + r.refused.length === 0 ? (reorder ? `Would reorder ${n(reorder, 'page')}` : 'No sets to check')
     : blocked ? `✗ ${n(blocked, 'set')} can't be checked`
-      : changing ? `Would change ${changing} of ${r.sets.length}` : earlier || claimable ? '✓ No changes found' : '✓ All sets up to date';
+      : changing ? `Would change ${changing} of ${r.sets.length}` : reorder ? `Would reorder ${n(reorder, 'page')}`
+        : earlier || claimable ? '✓ No changes found' : '✓ All sets up to date';
   const lines = [
     // Each set's line, then each field it differs from its plan in, NAMED (#2295): where, what, the plan's value and
     // the file's. `changes` is grouped by part, field and both values, so one engine change over 432 members is one
     // line. A bare re-apply (no field moved) is not a difference and is left to the set's own line.
     ...r.sets.flatMap((p) => [previewLine(p), ...namedLines(p.set, p.changes.filter((c) => c.field !== 'stamp').map((c) => ({ part: c.part, field: c.field, plan: c.to, file: c.from, members: c.members })))]),
     ...r.refused.map((x) => `${x.def}: can't be checked. ${x.reason}.`),
+    pagesLine(r.pages),
     r.missing.length ? `Not in this file: ${r.missing.join(', ')}.` : '',
     earlier ? `${earlier} built by an earlier plugin. Update ${earlier === 1 ? 'it to bring it' : 'them to bring them'} current.` : '',
     'This was a check only. Nothing in the file changed.',

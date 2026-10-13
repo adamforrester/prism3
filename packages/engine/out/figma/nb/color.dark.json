@@ -725,8 +725,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "STROKE_COLOR"
+        "SHAPE_FILL"
       ],
       "description": "Primary icon — strongest neutral",
       "value": {
@@ -745,8 +744,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "STROKE_COLOR"
+        "SHAPE_FILL"
       ],
       "description": "Secondary icon — 4.5:1 on background/secondary",
       "value": {
@@ -765,8 +763,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "STROKE_COLOR"
+        "SHAPE_FILL"
       ],
       "description": "Tertiary icon — 3:1 on background/secondary",
       "value": {
@@ -785,8 +782,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "STROKE_COLOR"
+        "SHAPE_FILL"
       ],
       "description": "Brand icon — 4.5:1 on background/secondary and on its own tint",
       "value": {
@@ -805,8 +801,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "STROKE_COLOR"
+        "SHAPE_FILL"
       ],
       "description": "Success icon — 4.5:1 on background/secondary and on its own tint",
       "value": {
@@ -825,8 +820,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "STROKE_COLOR"
+        "SHAPE_FILL"
       ],
       "description": "Warning icon — 4.5:1 on background/secondary and on its own tint",
       "value": {
@@ -845,8 +839,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "STROKE_COLOR"
+        "SHAPE_FILL"
       ],
       "description": "Danger icon — 4.5:1 on background/secondary and on its own tint",
       "value": {
@@ -865,8 +858,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "STROKE_COLOR"
+        "SHAPE_FILL"
       ],
       "description": "Info icon — 4.5:1 on background/secondary and on its own tint",
       "value": {
@@ -885,8 +877,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "STROKE_COLOR"
+        "SHAPE_FILL"
       ],
       "description": "Muted brand icon — 3:1 on background/primary",
       "value": {
@@ -905,8 +896,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "STROKE_COLOR"
+        "SHAPE_FILL"
       ],
       "description": "Muted success icon — 3:1 on background/primary",
       "value": {
@@ -925,8 +915,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "STROKE_COLOR"
+        "SHAPE_FILL"
       ],
       "description": "Muted warning icon — 3:1 on background/primary",
       "value": {
@@ -945,8 +934,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "STROKE_COLOR"
+        "SHAPE_FILL"
       ],
       "description": "Muted danger icon — 3:1 on background/primary",
       "value": {
@@ -965,8 +953,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "STROKE_COLOR"
+        "SHAPE_FILL"
       ],
       "description": "Muted info icon — 3:1 on background/primary",
       "value": {
@@ -985,8 +972,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "STROKE_COLOR"
+        "SHAPE_FILL"
       ],
       "description": "Icon on a solid brand fill — 4.5:1 on foreground/brand",
       "value": {
@@ -1005,8 +991,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "STROKE_COLOR"
+        "SHAPE_FILL"
       ],
       "description": "Icon on a solid success fill — 4.5:1 on foreground/success",
       "value": {
@@ -1025,8 +1010,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "STROKE_COLOR"
+        "SHAPE_FILL"
       ],
       "description": "Icon on a solid warning fill — 4.5:1 on foreground/warning",
       "value": {
@@ -1045,8 +1029,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "STROKE_COLOR"
+        "SHAPE_FILL"
       ],
       "description": "Icon on a solid danger fill — 4.5:1 on foreground/danger",
       "value": {
@@ -1065,8 +1048,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "STROKE_COLOR"
+        "SHAPE_FILL"
       ],
       "description": "Icon on a solid info fill — 4.5:1 on foreground/info",
       "value": {
@@ -1085,8 +1067,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "STROKE_COLOR"
+        "SHAPE_FILL"
       ],
       "description": "Link icon, default — 4.5:1 on background/secondary",
       "value": {
@@ -1105,8 +1086,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "STROKE_COLOR"
+        "SHAPE_FILL"
       ],
       "description": "Link icon, hover — 4.5:1 on background/secondary",
       "value": {
@@ -1125,8 +1105,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "STROKE_COLOR"
+        "SHAPE_FILL"
       ],
       "description": "Link icon, visited — 4.5:1 on background/secondary",
       "value": {
@@ -1145,8 +1124,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "STROKE_COLOR"
+        "SHAPE_FILL"
       ],
       "description": "Link icon, focused — 4.5:1 on background/secondary",
       "value": {
@@ -1165,8 +1143,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "STROKE_COLOR"
+        "SHAPE_FILL"
       ],
       "description": "Link icon, pressed — 4.5:1 on background/secondary",
       "value": {
@@ -1354,8 +1331,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "STROKE_COLOR"
+        "SHAPE_FILL"
       ],
       "description": "Primary icon, rest — 4.5:1 on background/primary (outline, ghost, text)",
       "value": {
@@ -1374,8 +1350,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "STROKE_COLOR"
+        "SHAPE_FILL"
       ],
       "description": "Primary icon, hover — 4.5:1 on background/primary (outline, ghost, text)",
       "value": {
@@ -1394,8 +1369,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "STROKE_COLOR"
+        "SHAPE_FILL"
       ],
       "description": "Primary icon, pressed — 4.5:1 on background/primary (outline, ghost, text)",
       "value": {
@@ -1717,8 +1691,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "STROKE_COLOR"
+        "SHAPE_FILL"
       ],
       "description": "Destructive icon, rest — 4.5:1 on background/tertiary (outline, ghost, text)",
       "value": {
@@ -1737,8 +1710,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "STROKE_COLOR"
+        "SHAPE_FILL"
       ],
       "description": "Destructive icon, hover — 4.5:1 on background/tertiary (outline, ghost, text)",
       "value": {
@@ -1757,8 +1729,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "STROKE_COLOR"
+        "SHAPE_FILL"
       ],
       "description": "Destructive icon, pressed — 4.5:1 on background/tertiary (outline, ghost, text)",
       "value": {
@@ -2057,8 +2028,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "STROKE_COLOR"
+        "SHAPE_FILL"
       ],
       "description": "Neutral icon, rest — 4.5:1 on background/primary (outline, ghost, text)",
       "value": {
@@ -2077,8 +2047,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "STROKE_COLOR"
+        "SHAPE_FILL"
       ],
       "description": "Neutral icon, hover — 4.5:1 on background/primary (outline, ghost, text)",
       "value": {
@@ -2097,8 +2066,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "STROKE_COLOR"
+        "SHAPE_FILL"
       ],
       "description": "Neutral icon, pressed — 4.5:1 on background/primary (outline, ghost, text)",
       "value": {
@@ -2285,8 +2253,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "STROKE_COLOR"
+        "SHAPE_FILL"
       ],
       "description": "Disabled icon — reduced contrast, 3:1 on background/secondary",
       "value": {
@@ -3087,8 +3054,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "STROKE_COLOR"
+        "SHAPE_FILL"
       ],
       "description": "Primary icon, rest — 4.5:1 on inverse/background/primary (outline, ghost, text)",
       "value": {
@@ -3107,8 +3073,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "STROKE_COLOR"
+        "SHAPE_FILL"
       ],
       "description": "Primary icon, hover — 4.5:1 on inverse/background/primary (outline, ghost, text)",
       "value": {
@@ -3127,8 +3092,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "STROKE_COLOR"
+        "SHAPE_FILL"
       ],
       "description": "Primary icon, pressed — 4.5:1 on inverse/background/primary (outline, ghost, text)",
       "value": {
@@ -3427,8 +3391,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "STROKE_COLOR"
+        "SHAPE_FILL"
       ],
       "description": "Destructive icon, rest — 4.5:1 on inverse/background/tertiary (outline, ghost, text)",
       "value": {
@@ -3447,8 +3410,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "STROKE_COLOR"
+        "SHAPE_FILL"
       ],
       "description": "Destructive icon, hover — 4.5:1 on inverse/background/tertiary (outline, ghost, text)",
       "value": {
@@ -3467,8 +3429,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "STROKE_COLOR"
+        "SHAPE_FILL"
       ],
       "description": "Destructive icon, pressed — 4.5:1 on inverse/background/tertiary (outline, ghost, text)",
       "value": {
@@ -3767,8 +3728,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "STROKE_COLOR"
+        "SHAPE_FILL"
       ],
       "description": "Neutral icon, rest — 4.5:1 on inverse/background/primary (outline, ghost, text)",
       "value": {
@@ -3787,8 +3747,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "STROKE_COLOR"
+        "SHAPE_FILL"
       ],
       "description": "Neutral icon, hover — 4.5:1 on inverse/background/primary (outline, ghost, text)",
       "value": {
@@ -3807,8 +3766,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "STROKE_COLOR"
+        "SHAPE_FILL"
       ],
       "description": "Neutral icon, pressed — 4.5:1 on inverse/background/primary (outline, ghost, text)",
       "value": {
@@ -4110,8 +4068,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "STROKE_COLOR"
+        "SHAPE_FILL"
       ],
       "description": "Disabled icon — reduced contrast, 3:1 on inverse/background/secondary",
       "value": {
@@ -4545,8 +4502,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "STROKE_COLOR"
+        "SHAPE_FILL"
       ],
       "description": "Primary icon — strongest neutral",
       "value": {
@@ -4565,8 +4521,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "STROKE_COLOR"
+        "SHAPE_FILL"
       ],
       "description": "Secondary icon — 4.5:1 on inverse/background/secondary",
       "value": {
@@ -4585,8 +4540,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "STROKE_COLOR"
+        "SHAPE_FILL"
       ],
       "description": "Tertiary icon — 3:1 on inverse/background/secondary",
       "value": {
@@ -4605,8 +4559,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "STROKE_COLOR"
+        "SHAPE_FILL"
       ],
       "description": "Brand icon — 4.5:1 on inverse/background/secondary and on its own tint",
       "value": {
@@ -4625,8 +4578,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "STROKE_COLOR"
+        "SHAPE_FILL"
       ],
       "description": "Success icon — 4.5:1 on inverse/background/secondary and on its own tint",
       "value": {
@@ -4645,8 +4597,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "STROKE_COLOR"
+        "SHAPE_FILL"
       ],
       "description": "Warning icon — 4.5:1 on inverse/background/secondary and on its own tint",
       "value": {
@@ -4665,8 +4616,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "STROKE_COLOR"
+        "SHAPE_FILL"
       ],
       "description": "Danger icon — 4.5:1 on inverse/background/secondary and on its own tint",
       "value": {
@@ -4685,8 +4635,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "STROKE_COLOR"
+        "SHAPE_FILL"
       ],
       "description": "Info icon — 4.5:1 on inverse/background/secondary and on its own tint",
       "value": {
@@ -4705,8 +4654,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "STROKE_COLOR"
+        "SHAPE_FILL"
       ],
       "description": "Muted brand icon — 3:1 on inverse/background/primary",
       "value": {
@@ -4725,8 +4673,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "STROKE_COLOR"
+        "SHAPE_FILL"
       ],
       "description": "Muted success icon — 3:1 on inverse/background/primary",
       "value": {
@@ -4745,8 +4692,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "STROKE_COLOR"
+        "SHAPE_FILL"
       ],
       "description": "Muted warning icon — 3:1 on inverse/background/primary",
       "value": {
@@ -4765,8 +4711,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "STROKE_COLOR"
+        "SHAPE_FILL"
       ],
       "description": "Muted danger icon — 3:1 on inverse/background/primary",
       "value": {
@@ -4785,8 +4730,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "STROKE_COLOR"
+        "SHAPE_FILL"
       ],
       "description": "Muted info icon — 3:1 on inverse/background/primary",
       "value": {
@@ -4805,8 +4749,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "STROKE_COLOR"
+        "SHAPE_FILL"
       ],
       "description": "Link icon, default — 4.5:1 on inverse/background/secondary",
       "value": {
@@ -4825,8 +4768,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "STROKE_COLOR"
+        "SHAPE_FILL"
       ],
       "description": "Link icon, hover — 4.5:1 on inverse/background/secondary",
       "value": {
@@ -4845,8 +4787,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "STROKE_COLOR"
+        "SHAPE_FILL"
       ],
       "description": "Link icon, visited — 4.5:1 on inverse/background/secondary",
       "value": {
@@ -4865,8 +4806,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "STROKE_COLOR"
+        "SHAPE_FILL"
       ],
       "description": "Link icon, focused — 4.5:1 on inverse/background/secondary",
       "value": {
@@ -4885,8 +4825,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "STROKE_COLOR"
+        "SHAPE_FILL"
       ],
       "description": "Link icon, pressed — 4.5:1 on inverse/background/secondary",
       "value": {

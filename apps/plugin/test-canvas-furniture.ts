@@ -7,6 +7,12 @@
  *   draw/…        the executor on the same grid: each instance's position after its text sets its width, nested
  *                 columns stepping left, the backdrop behind the set, every instance tagged, a redraw replacing
  *                 rather than adding, another def's furniture and a hand-placed `inverse-bg` left alone.
+ *   label text/…  the text layer a value goes into (#2558): `text`, `Text`, `TEXT` and a lone layer of another name
+ *                 each take the value; with two, the one named text; with two and none so named, or with none, a
+ *                 miss by name and the placeholder kept. The `_Label` member by its properties, any case and order.
+ *                 Mutations: the exact-name lookup back → `label text/Text`, `label text/another name`; the lone
+ *                 fallback guessing among several → `label text/ambiguous`; the variant matched by exact name only →
+ *                 `label text/variant spelling`; a miss dropped silently → `label text/no layer`.
  *   group/…       Button built by the real executor: its 288 inverse members sit in one band no default member enters
  *                 (Q173 A). Mutation: `surface` not outermost in `planSetLayout` → `group/contiguous`.
  *                 An earlier-layout Button (Q173: "an in-place update reports it as moves"): the dry run reports 360
@@ -85,17 +91,23 @@ const detach = (c: FNode): void => {
 };
 /** A label instance that measures like the owner's: Top is 37 high (12px text, 8 gap, 14 bracket) and as wide as its
  *  text; Left is 7px a character plus 8 + 14 wide and 16 high until its height is fixed. */
-const labelInstance = (placement: 'Top' | 'Left'): FNode => {
+const labelInstance = (placement: 'Top' | 'Left', textNames: readonly string[] = ['text']): FNode => {
   const data = new Map<string, string>();
-  const text: FNode = { type: 'TEXT', name: 'text', characters: 'Label', fontName: { family: 'Inter', style: 'Medium' } } as FNode;
+  const texts: FNode[] = textNames.map((name) => ({ type: 'TEXT', name, characters: 'Label', fontName: { family: 'Inter', style: 'Medium' } }) as FNode);
+  const text: FNode = texts[0] ?? ({ characters: 'Label' } as FNode);
   let w: number | null = null;
   let h: number | null = null;
+  // The `Show bracket` boolean as Figma keys it on an instance, with its `#id` suffix (#2568).
+  const props: Record<string, { type: string; value: boolean }> = { 'Show bracket#1:0': { type: 'BOOLEAN', value: true } };
   const n: FNode = {
     id: `I:${++seq}`, type: 'INSTANCE', name: '_Label', x: 0, y: 0,
+    get componentProperties() { return props; },
+    setProperties(p: Record<string, boolean>) { for (const [k, v] of Object.entries(p)) { if (!props[k]) throw new Error(`no property ${k}`); props[k].value = v; } },
     get width() { return w ?? (placement === 'Top' ? 7 * String(text.characters).length : 7 * String(text.characters).length + 22); },
     get height() { return h ?? (placement === 'Top' ? 37 : 16); },
-    children: [text],
-    findOne: (p: (x: XNode) => boolean) => (p(text) ? text : null),
+    // The text layers, then the bracket: a frame with no text in it.
+    children: [...texts, { type: 'FRAME', name: 'bracket', children: [] } as unknown as FNode],
+    findOne: (p: (x: XNode) => boolean) => texts.find(p) ?? null,
     resize(nw: number, nh: number) {
       if (n.layoutSizingHorizontal === 'FIXED') w = nw;
       if (n.layoutSizingVertical === 'FIXED') h = nh;
@@ -119,12 +131,13 @@ const backdropInstance = (): FNode => {
   } as unknown as FNode;
   return n;
 };
-const fakeTemplates = (o: { labels?: boolean; backdrop?: boolean } = {}) => {
+const fakeTemplates = (o: { labels?: boolean; backdrop?: boolean; textNames?: readonly string[]; variants?: readonly [string, string] } = {}) => {
+  const [topName, leftName] = o.variants ?? ['Text=Top, surface=default', 'Text=Left, surface=default'];
   const labelSet = {
     type: 'COMPONENT_SET', name: '_Label',
     children: [
-      { type: 'COMPONENT', name: 'Text=Top, surface=default', createInstance: () => labelInstance('Top') },
-      { type: 'COMPONENT', name: 'Text=Left, surface=default', createInstance: () => labelInstance('Left') },
+      { type: 'COMPONENT', name: topName, createInstance: () => labelInstance('Top', o.textNames) },
+      { type: 'COMPONENT', name: leftName, createInstance: () => labelInstance('Left', o.textNames) },
     ],
   };
   const backdrop = { type: 'COMPONENT', name: '_inverse-backdrop', fills: [{ type: 'SOLID', color: { r: 0.5, g: 0.5, b: 0.5 }, boundVariables: { color: { id: 'V:bound' } } }], createInstance: backdropInstance };
@@ -220,6 +233,48 @@ section('draw — the executor places, tags, redraws and clears');
   const none = await drawFurniture(fakeTemplates({ labels: false, backdrop: false }), set, handLayout, 'grid');
   ok(none.columns + none.rows + none.backdrops === 0 && none.skipped.length === 2 && /no _Label component, and Set up file adds it/.test(none.skipped[0]) && /no _inverse-backdrop component/.test(none.skipped[1]),
     `draw/no template: a file without the templates draws nothing and says so (${JSON.stringify(none.skipped)})`);
+}
+
+section('label text — the text layer a value goes into, whatever the file\'s _Label calls it (#2558)');
+{
+  // The hand-laid grid again; every label's text is read off its own text layers here, never through the module.
+  const nameOf = (v: Record<string, string>) => Object.entries(v).map(([k, x]) => `${k}=${x}`).join(', ');
+  const handLayout = { ...LAYOUT, cells: GRID.map((m) => ({ name: nameOf(m.values), row: m.row, col: m.col })) };
+  const WANT = ['Rest', 'Focus visible', 'Filled', 'Outline', 'Filled', 'Outline', 'Inverse'].sort();
+  const run = async (o: Parameters<typeof fakeTemplates>[0]) => {
+    const page = makePage();
+    const set = { id: 'S:grid', type: 'COMPONENT_SET', name: 'grid', x: 1000, y: 500, width: 272, height: 536,
+      children: GRID.map((m) => ({ name: nameOf(m.values), x: m.x, y: m.y, width: m.width, height: m.height })) } as unknown as FNode;
+    page.appendChild(set);
+    const out = await drawFurniture(fakeTemplates(o), set, handLayout, 'grid');
+    const labels = furnitureOn(page).filter((n) => tagOf(n).kind === 'label');
+    const texts = labels.map((n) => (n.children as FNode[]).filter((c) => c.type === 'TEXT').map((c) => String(c.characters)));
+    return { out, labels, texts };
+  };
+  const written = (r: Awaited<ReturnType<typeof run>>) => JSON.stringify(r.texts.map((t) => t.find((x) => x !== 'Label') ?? 'Label').sort());
+  for (const [name, layers] of [['lowercase', ['text']], ['Text', ['Text']], ['TEXT', ['TEXT']], ['another name', ['Caption']]] as const) {
+    const r = await run({ textNames: layers });
+    ok(r.labels.length === 7 && written(r) === JSON.stringify(WANT) && r.out.fontMisses.length === 0,
+      `label text/${name}: a _Label whose text layer is ${JSON.stringify(layers[0])} shows each axis value, no placeholder left and no miss (${written(r)}; ${JSON.stringify(r.out.fontMisses)})`);
+  }
+  // Two text layers, one of them "Text": that one takes the value, the other is left as it was.
+  const two = await run({ textNames: ['Note', 'Text'] });
+  ok(two.texts.every((t) => t[0] === 'Label' && t[1] !== 'Label') && two.out.fontMisses.length === 0,
+    `label text/prefers the named layer: with "Note" and "Text", "Text" takes the value (${JSON.stringify(two.texts[0])})`);
+  // Two text layers and none named text: a miss by name, never a guess.
+  const amb = await run({ textNames: ['Note', 'Caption'] });
+  ok(amb.texts.every((t) => t.every((x) => x === 'Label')) && amb.out.fontMisses.length === 7 && amb.out.fontMisses.every((m) => m === '_Label has 2 text layers and none named "text"'),
+    `label text/ambiguous: two text layers and neither named "text" is reported, nothing written (${JSON.stringify([...new Set(amb.out.fontMisses)])})`);
+  const none = await run({ textNames: [] });
+  ok(none.labels.length === 7 && none.out.fontMisses.length === 7 && none.out.fontMisses.every((m) => m === '_Label has no text layer'),
+    `label text/no layer: a _Label with no text layer reports "_Label has no text layer" for each label (${JSON.stringify([...new Set(none.out.fontMisses)])})`);
+  // The variant, found by its properties in any case and order.
+  const spelled = await run({ textNames: ['Text'], variants: ['surface=Default, Text=Top', 'Surface=default, text=Left'] });
+  ok(spelled.out.columns === 2 && spelled.out.rows === 5 && spelled.out.skipped.length === 0 && written(spelled) === JSON.stringify(WANT),
+    `label text/variant spelling: "surface=Default, Text=Top" and "Surface=default, text=Left" still select Top and Left (${spelled.out.columns}, ${spelled.out.rows}; ${JSON.stringify(spelled.out.skipped)})`);
+  const wrong = await run({ variants: ['Text=Bottom, surface=default', 'Text=Left, surface=inverse'] });
+  ok(wrong.out.columns + wrong.out.rows === 0 && wrong.out.skipped.length === 2,
+    `label text/variant mismatch: Bottom and inverse members never stand in for Top and Left (${JSON.stringify(wrong.out.skipped)})`);
 }
 
 /* ── the pilot defs, built by the real executor ─────────────────────────────────────────────────────────── */
@@ -488,9 +543,41 @@ for (const [id, wantCols, wantRows] of [
   ok(placed, `pilot/${id} column boxes: every column label spans its column's members and ends 16 above the set`);
   // Each innermost row label spans its row's members exactly.
   const inner = rows.filter((n) => Number(n.x) + Number(n.width) === Number(set.x) - 16);
-  const spans = inner.every((n) => members.some((m) => boxOf(set, m).y === n.y) && members.some((m) => boxOf(set, m).y + boxOf(set, m).h === Number(n.y) + Number(n.height)));
-  ok(inner.length === (id === 'tag' ? 9 : 12) && spans, `labels/rows ${id}: each innermost bracket starts on a member's top and ends on a member's bottom (${inner.length})`);
+  // The shim sizes members from their bindings, not their values, so most rows here are thinner than the label's 16px
+  // and take the thin-row rule (#2568): the label keeps its height, centered on one row's members.
+  const spans = inner.every((n) => (members.some((m) => boxOf(set, m).y === n.y) && members.some((m) => boxOf(set, m).y + boxOf(set, m).h === Number(n.y) + Number(n.height)))
+    || members.some((m) => boxOf(set, m).h < 16 && boxOf(set, m).y + boxOf(set, m).h / 2 === Number(n.y) + Number(n.height) / 2));
+  ok(inner.length === (id === 'tag' ? 9 : 12) && spans, `labels/rows ${id}: each innermost bracket starts on a member's top and ends on a member's bottom, or is centered on a row thinner than itself (${inner.length})`);
   ok(o.backdrops === 0 && !o.skipped.length, `pilot/${id}: no inverse rows, so no backdrop, and nothing skipped (${o.backdrops})`);
+}
+
+/* ── a row thinner than its label (#2568, owner decision Q258 A) ─────────────────────────────────────────── */
+section('thin row — Divider: a 1px row draws its label centered, with no bracket');
+{
+  const { plans, page, set } = await buildOnPage('divider');
+  // The shim sizes a member from its bindings, not their values, so the live sizes are written here: the horizontal
+  // rule is `border-width.hairline` (1px) tall, the vertical one its nominal length. Literals, as measured live.
+  const members = set.children as FNode[];
+  for (const m of members) {
+    const h = valuesOf(String(m.name)).orientation === 'horizontal' ? 1 : 48;
+    Object.defineProperty(m, 'height', { configurable: true, enumerable: true, get: () => h });
+  }
+  await drawFurniture(fakeTemplates(), set, furnitureLayout(plans), 'divider');
+  const rows = furnitureOn(page).filter((n) => Number(n.x) < Number(set.x));
+  const bracketOn = (n: FNode): boolean => (n.componentProperties as Record<string, { value: boolean }>)['Show bracket#1:0'].value;
+  // The oracle is the members' boxes, never the plan: a row is thin where its members are shorter than the label's
+  // own 16px (the shim's hug height, `labelInstance`).
+  const rowOf = (n: FNode) => members.filter((m) => boxOf(set, m).y < Number(n.y) + Number(n.height) && boxOf(set, m).y + boxOf(set, m).h > Number(n.y));
+  const thin = rows.filter((n) => rowOf(n).every((m) => Number(m.height) < 16));
+  const tall = rows.filter((n) => !thin.includes(n));
+  ok(thin.length === 1 && textOf(thin[0]) === 'Horizontal' && thin.every((n) => !bracketOn(n)),
+    `thin row/no bracket: every label on a row thinner than itself has its bracket off (${thin.length} thin: ${thin.map((n) => `${textOf(n)} ${bracketOn(n) ? 'on' : 'off'}`).join(', ')})`);
+  ok(thin.every((n) => Number(n.height) === 16),
+    `thin row/not clipped: each keeps its own 16px height, never the row's (${thin.map((n) => n.height).join(', ')})`);
+  const centered = thin.every((n) => { const ms = rowOf(n); const top = Math.min(...ms.map((m) => boxOf(set, m).y)); const bottom = Math.max(...ms.map((m) => boxOf(set, m).y + boxOf(set, m).h)); return Number(n.y) + Number(n.height) / 2 === (top + bottom) / 2; });
+  ok(centered, `thin row/centered: each label's middle sits on its row's middle (${thin.map((n) => `${n.y}+${n.height}`).join(', ')})`);
+  ok(tall.length > 0 && tall.every((n) => bracketOn(n) && rowOf(n).some((m) => boxOf(set, m).y === Number(n.y))),
+    `thin row/others unchanged: a row as tall as its label keeps its bracket and spans its row (${tall.length}: ${tall.map(textOf).join(', ')})`);
 }
 
 /* ── rollout: furniture on every def that builds a set (#2502, owner decision Q212 A) ──────────────────────── */

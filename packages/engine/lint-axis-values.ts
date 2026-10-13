@@ -292,7 +292,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       'arrow-up-left', 'arrow-up-right', 'check', 'check-circle', 'check-circle-filled',
       'chevron-down', 'chevron-left', 'chevron-right', 'chevron-up', 'close', 'close-filled',
       'error-circle', 'error-circle-filled', 'external-link-filled', 'eye', 'eye-filled', 'eye-off',
-      'eye-off-filled', 'FPO-default-icon', 'home', 'image', 'info-circle', 'info-circle-filled', 'link', 'minus', 'minus-filled',
+      'eye-off-filled', 'FPO-default-icon', 'home', 'image', 'info-circle', 'info-circle-filled', 'link', 'menu', 'minus', 'minus-filled',
       'more-horizontal-filled', 'more-vertical-filled', 'pause-circle', 'play-circle', 'plus', 'plus-circle', 'plus-circle-filled',
       'plus-filled', 'resize-grip', 'search', 'warning-triangle', 'warning-triangle-filled',
     ],
