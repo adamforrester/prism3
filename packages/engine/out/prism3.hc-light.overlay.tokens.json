@@ -415,7 +415,7 @@
         "secondary": {
           "$type": "color",
           "$value": "{pds3.core.palette.neutral.700}",
-          "$description": "Stronger border / divider — decorative, ~9.9:1"
+          "$description": "Stronger border / divider — ~9.9:1"
         },
         "tertiary": {
           "$type": "color",

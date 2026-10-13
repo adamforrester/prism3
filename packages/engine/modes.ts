@@ -318,7 +318,10 @@ export type MinSet = Pick<ModeCfg, 'primaryMin' | 'secondaryMin' | 'tertiaryMin'
 export type ModeDescriptor = { name: ModeName; kind: 'standard' | 'hc' | 'wireframe'; family: 'light' | 'dark'; mins: MinSet };
 export const BUILTIN_MODES: ModeDescriptor[] = [
   { name: 'light',     kind: 'standard',  family: 'light', mins: { primaryMin: 7,  secondaryMin: 4.5, tertiaryMin: 3,   actionMin: 4.5, borderTarget: 1.4, borderSecondaryTarget: 2, borderTertiaryTarget: 3, nonTextMin: 3 } },
-  { name: 'dark',      kind: 'standard',  family: 'dark',  mins: { primaryMin: 7,  secondaryMin: 4.5, tertiaryMin: 3,   actionMin: 4.5, borderTarget: 1.8, borderSecondaryTarget: 2, borderTertiaryTarget: 3, nonTextMin: 3 } },
+  // Dark's `borderSecondaryTarget` is 2.4, not light's 2 (#2569, owner Q270.2): at 2 it lands one half step
+  // (700) from `border.primary`'s 750, which reads as the same line. 2.4 puts it a full 100 apart (650) and
+  // still under 3:1 on every ground; darkening `primary` to 800 instead was measured and drops it below 1.4:1.
+  { name: 'dark',      kind: 'standard',  family: 'dark',  mins: { primaryMin: 7,  secondaryMin: 4.5, tertiaryMin: 3,   actionMin: 4.5, borderTarget: 1.8, borderSecondaryTarget: 2.4, borderTertiaryTarget: 3, nonTextMin: 3 } },
   { name: 'hc-light',  kind: 'hc',        family: 'light', mins: { primaryMin: 15, secondaryMin: 7,   tertiaryMin: 4.5, actionMin: 7,   borderTarget: 4.5, borderSecondaryTarget: 4.5 * 2.2, borderTertiaryTarget: 4.5 * 2.2 * 2.2, nonTextMin: 4.5 } },
   { name: 'hc-dark',   kind: 'hc',        family: 'dark',  mins: { primaryMin: 15, secondaryMin: 7,   tertiaryMin: 4.5, actionMin: 7,   borderTarget: 4.5, borderSecondaryTarget: 4.5 * 2.2, borderTertiaryTarget: 4.5 * 2.2 * 2.2, nonTextMin: 4.5 } },
   { name: 'wireframe', kind: 'wireframe', family: 'light', mins: { primaryMin: 7,  secondaryMin: 4.5, tertiaryMin: 3,   actionMin: 4.5, borderTarget: 1.4, borderSecondaryTarget: 2, borderTertiaryTarget: 3, nonTextMin: 3 } },
@@ -2133,12 +2136,13 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   put('border.primary', pickClosest(ramp, baseRgb, cfg.borderTarget), `Default border — decorative, ~${cfg.borderTarget}:1`, 'background.primary', 0);
   // THE LADDER IS TWO DECORATIVE RUNGS, THEN THE FIRST ACCESSIBLE ONE (#2569, owner decision Q259 C).
   //
-  // `secondary` is decorative and UNFLOORED: ~2:1 against the page in the standard modes, around step 300 on
+  // `secondary` is decorative and UNFLOORED: ~2:1 against the page in light and ~2.4:1 in dark, around step 300 on
   // a typical ramp. It carried a hard `nonTextMin` floor from #1745 (Badge's subtle neutral edge), and that
   // floor is what put a 100 → 400 jump between the first two rungs. The contract moved with the edge: Badge
   // binds `border.tertiary` now, so nothing that needs 3:1 is drawn in `secondary`. HC keeps its escalated
-  // target (`borderTarget * 2.2`), clamped to what the ramp offers.
-  put('border.secondary', pickClosest(ramp, baseRgb, cfg.borderSecondaryTarget), `Stronger border / divider — decorative, ~${+cfg.borderSecondaryTarget.toFixed(2)}:1`, 'background.primary', 0);
+  // target (`borderTarget * 2.2`), clamped to what the ramp offers, and its description drops "decorative"
+  // there (owner Q270.6): at ~9.9:1 the word misdescribes the edge.
+  put('border.secondary', pickClosest(ramp, baseRgb, cfg.borderSecondaryTarget), `Stronger border / divider — ${cfg.kind === 'hc' ? '' : 'decorative, '}~${+cfg.borderSecondaryTarget.toFixed(2)}:1`, 'background.primary', 0);
   // `tertiary` is the FIRST ACCESSIBLE BORDER: it clears `nonTextMin` (3:1, HC's own 4.5:1) against EVERY
   // ground it can sit on — the three page tiers and the three surface tiers — so a boundary that has to be
   // perceived (SC 1.4.11) has a role that holds on a tinted surface too (#2498). In the standard modes the

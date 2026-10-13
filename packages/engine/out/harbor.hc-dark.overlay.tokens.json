@@ -674,7 +674,7 @@
         "secondary": {
           "$type": "color",
           "$value": "{hds.core.palette.neutral.250}",
-          "$description": "Stronger border / divider — decorative, ~9.9:1"
+          "$description": "Stronger border / divider — ~9.9:1"
         },
         "tertiary": {
           "$type": "color",

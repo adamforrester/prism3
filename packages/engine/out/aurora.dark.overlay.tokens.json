@@ -526,8 +526,8 @@
         },
         "secondary": {
           "$type": "color",
-          "$value": "{ads.core.palette.neutral.700}",
-          "$description": "Stronger border / divider — decorative, ~2:1"
+          "$value": "{ads.core.palette.neutral.650}",
+          "$description": "Stronger border / divider — decorative, ~2.4:1"
         },
         "tertiary": {
           "$type": "color",

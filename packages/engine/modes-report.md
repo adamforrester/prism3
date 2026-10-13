@@ -537,7 +537,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.icon.link.focused | red.550 | 4.62 | 4.5 | ✅ |
 | inverse.icon.link.pressed | red.750 | 9.94 | 4.5 | ✅ |
 | border.primary | neutral.750 | — | — | · |
-| border.secondary | neutral.700 | — | — | · |
+| border.secondary | neutral.650 | — | — | · |
 | border.tertiary | neutral.500 | 4.23 | 3 | ✅ |
 | border.brand | red.500 | 4.24 | 3 | ✅ |
 | border.success | green.450 | 4.73 | 3 | ✅ |
@@ -1704,7 +1704,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.icon.link.focused | primary.600 | 6.44 | 4.5 | ✅ |
 | inverse.icon.link.pressed | primary.800 | 12.42 | 4.5 | ✅ |
 | border.primary | neutral.750 | — | — | · |
-| border.secondary | neutral.700 | — | — | · |
+| border.secondary | neutral.650 | — | — | · |
 | border.tertiary | neutral.500 | 4.26 | 3 | ✅ |
 | border.brand | primary.500 | 4.24 | 3 | ✅ |
 | border.success | success.450 | 5.03 | 3 | ✅ |
@@ -2873,7 +2873,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.icon.link.focused | accent.500 | 3.76 | 3 | ✅ |
 | inverse.icon.link.pressed | accent.700 | 8.27 | 3 | ✅ |
 | border.primary | neutral.750 | — | — | · |
-| border.secondary | neutral.700 | — | — | · |
+| border.secondary | neutral.650 | — | — | · |
 | border.tertiary | neutral.500 | 4.28 | 3 | ✅ |
 | border.brand | primary.500 | 4.25 | 3 | ✅ |
 | border.success | success.450 | 5.07 | 3 | ✅ |
@@ -4041,7 +4041,7 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | inverse.icon.link.focused | primary.600 | 5.59 | 4.5 | ✅ |
 | inverse.icon.link.pressed | primary.800 | 11.49 | 4.5 | ✅ |
 | border.primary | neutral.750 | — | — | · |
-| border.secondary | neutral.700 | — | — | · |
+| border.secondary | neutral.650 | — | — | · |
 | border.tertiary | neutral.500 | 4.23 | 3 | ✅ |
 | border.brand | primary.500 | 4.24 | 3 | ✅ |
 | border.success | success.450 | 5.06 | 3 | ✅ |

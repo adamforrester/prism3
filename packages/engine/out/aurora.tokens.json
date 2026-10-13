@@ -10689,24 +10689,25 @@
               "against": "background.primary",
               "modes": {
                 "dark": {
-                  "$value": "{ads.core.palette.neutral.700}",
-                  "aliasOf": "ads.core.palette.neutral.700",
-                  "contrast": 1.97,
-                  "against": "background.primary"
+                  "$value": "{ads.core.palette.neutral.650}",
+                  "aliasOf": "ads.core.palette.neutral.650",
+                  "contrast": 2.39,
+                  "against": "background.primary",
+                  "description": "Stronger border / divider — decorative, ~2.4:1"
                 },
                 "hc-light": {
                   "$value": "{ads.core.palette.neutral.700}",
                   "aliasOf": "ads.core.palette.neutral.700",
                   "contrast": 9.85,
                   "against": "background.primary",
-                  "description": "Stronger border / divider — decorative, ~9.9:1"
+                  "description": "Stronger border / divider — ~9.9:1"
                 },
                 "hc-dark": {
                   "$value": "{ads.core.palette.neutral.250}",
                   "aliasOf": "ads.core.palette.neutral.250",
                   "contrast": 10.14,
                   "against": "background.primary",
-                  "description": "Stronger border / divider — decorative, ~9.9:1"
+                  "description": "Stronger border / divider — ~9.9:1"
                 }
               },
               "figma": {

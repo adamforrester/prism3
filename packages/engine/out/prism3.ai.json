@@ -6221,7 +6221,7 @@
       "avoid_when": "Do not use where the boundary has to be perceived (SC 1.4.11, 3:1) — use `border.tertiary`. For a faint hairline use `border.primary`.",
       "mode_overrides": {
         "light": "{pds3.core.palette.neutral.250}",
-        "dark": "{pds3.core.palette.neutral.700}",
+        "dark": "{pds3.core.palette.neutral.650}",
         "hc-light": "{pds3.core.palette.neutral.700}",
         "hc-dark": "{pds3.core.palette.neutral.250}"
       }
@@ -9500,6 +9500,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.border.secondary",
         "color.field.placeholder",
         "color.interactive.neutral.fill.pressed",
         "color.inverse.field.placeholder",

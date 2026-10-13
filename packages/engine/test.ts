@@ -10826,8 +10826,10 @@ arm: {
 // Four claims, each against an EXPECTED stated here as a literal and an ACTUAL measured from the emitted hexes —
 // never from a role's own `ratio`, `min` or `against`, and never from `modes.ts`'s target table, which is the
 // subject (`docs/34`):
-//   1. `border.secondary` is DECORATIVE: in the standard modes it lands near 2:1 on the page and UNDER 3:1. A
-//      rung that regains the old 3:1 floor lands on step 400 (3.2–3.3:1) and fails here by name.
+//   1. `border.secondary` is DECORATIVE: it lands near 2:1 on the page in light and near 2.4:1 in dark (owner
+//      Q270.2), UNDER 3:1 on every ground. A rung that regains the old 3:1 floor lands on step 400 (3.2–3.3:1)
+//      and fails here by name. In dark it is also a FULL 100 steps from `border.primary` (Q270.2: a half step
+//      reads as the same line), measured on the emitted step names against a literal spacing.
 //   2. `border.tertiary` clears the non-text bar against EVERY ground it can sit on — the three page tiers and
 //      the three surface tiers — in every mode of every brand (#2498). The grounds are listed here, not read
 //      from the role's `alsoAgainst`, so dropping one from the picker's list cannot shrink this proof.
@@ -10842,8 +10844,10 @@ arm: {
     ...corpus(),
     ...loadedRows([['prism3 (example)', exampleTheme('prism3', () => brandTheme(exampleBrands()['prism3'] as BrandInput))]]).map(([id, theme]) => ({ id: id as string, theme })),
   ];
-  const decorative: string[] = [], shortfall: string[] = [];
-  let stdCells = 0, cells = 0, pairs = 0;
+  const SECONDARY_CENTER_2569: Record<string, number> = { light: 2, dark: 2.4 };
+  const DARK_RUNG_GAP_Q270 = 100;
+  const decorative: string[] = [], shortfall: string[] = [], tooClose: string[] = [];
+  let stdCells = 0, cells = 0, pairs = 0, darkCells = 0;
   for (const { id, theme } of rows2569) for (const m of resolveAllModes(theme)) {
     const bar = NON_TEXT_2569[m.mode];
     if (bar === undefined) { shortfall.push(`${id}/${m.mode}: no bar stated for this mode`); continue; }
@@ -10852,7 +10856,17 @@ arm: {
     if (m.mode === 'light' || m.mode === 'dark') {
       stdCells++;
       const r = contrast(hexToRgb(hexOf('border.secondary')!), hexToRgb(hexOf('background.primary')!));
-      if (!(r < 3 && Math.abs(r - 2) <= 0.4)) decorative.push(`${id}/${m.mode} ${m.roles['border.secondary'].path.split('.').pop()} at ${r.toFixed(2)}`);
+      if (!(Math.abs(r - SECONDARY_CENTER_2569[m.mode]) <= 0.4)) decorative.push(`${id}/${m.mode} ${m.roles['border.secondary'].path.split('.').pop()} at ${r.toFixed(2)} on the page`);
+      for (const g of GROUNDS_2569) {
+        const rg = m.roles[g] ? contrast(hexToRgb(hexOf('border.secondary')!), hexToRgb(hexOf(g)!)) : NaN;
+        if (!(rg < 3)) decorative.push(`${id}/${m.mode} on ${g}: ${Number.isNaN(rg) ? 'absent' : rg.toFixed(2)}`);
+      }
+    }
+    if (m.mode === 'dark') {
+      darkCells++;
+      const stepOf = (k: string) => Number(m.roles[k]?.path.split('.').pop());
+      const gap = Math.abs(stepOf('border.primary') - stepOf('border.secondary'));
+      if (!(gap >= DARK_RUNG_GAP_Q270)) tooClose.push(`${id}: primary ${stepOf('border.primary')}, secondary ${stepOf('border.secondary')} (${gap} apart)`);
     }
     const edge = hexOf('border.tertiary');
     for (const g of GROUNDS_2569) {
@@ -10864,7 +10878,9 @@ arm: {
     }
   }
   ok(decorative.length === 0 && stdCells >= 8,
-    `#2569 border.secondary is a decorative rung: ~2:1 on the page and under 3:1 in every light and dark mode (${stdCells} cells, floor 8)${decorative.length ? ` — ${decorative.join('; ')}` : ''}`);
+    `#2569 border.secondary is a decorative rung: ~2:1 on the page in light, ~2.4:1 in dark, and under 3:1 on every ground in every light and dark mode (${stdCells} cells, floor 8)${decorative.length ? ` — ${decorative.join('; ')}` : ''}`);
+  ok(tooClose.length === 0 && darkCells >= 4,
+    `#2569 Q270.2 dark border.primary and border.secondary sit at least ${DARK_RUNG_GAP_Q270} steps apart in every brand (${darkCells} cells, floor 4)${tooClose.length ? ` — ${tooClose.join('; ')}` : ''}`);
   ok(shortfall.length === 0 && pairs === cells * GROUNDS_2569.length && cells >= 16,
     `#2569 border.tertiary clears the non-text bar (3:1, 4.5:1 in HC) on every page and surface tier, in every mode of every brand (${pairs} pairs over ${cells} cells, floor 16 cells)${shortfall.length ? ` — ${shortfall.join('; ')}` : ''}`);
 
@@ -11194,8 +11210,9 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // rung at ~3:1 (400 light, 500 dark); the owner made it a DECORATIVE ~2:1 rung with no floor, so two
   // decorative shades come before the accessible one, `border/tertiary` (an engine addition NB predates, not a
   // divergence). HC is absent: its escalated targets are unchanged and still reproduce NB's authored steps.
+  // Dark lands on 650 (~2.4:1), a full 100 from `border/primary`'s 750 (owner Q270.2), not 700.
   { mode: 'light', name: 'color/border/secondary', nb: 'palette/neutral/400', engine: 'palette/neutral/250' },
-  { mode: 'dark', name: 'color/border/secondary', nb: 'palette/neutral/500', engine: 'palette/neutral/700' },
+  { mode: 'dark', name: 'color/border/secondary', nb: 'palette/neutral/500', engine: 'palette/neutral/650' },
 ];
 
 // Figma SCOPES the engine intentionally emits DIFFERENTLY from the frozen real-NB export (#1484).
