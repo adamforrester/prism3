@@ -52,6 +52,16 @@
       "alias": null
     },
     {
+      "name": "nbds/control/size/sm/label-line-box",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Title line height (label sm, 14px) — a glyph centers on the title's first line.",
+      "value": 14,
+      "alias": null
+    },
+    {
       "name": "nbds/control/size/sm/inset",
       "resolvedType": "FLOAT",
       "scopes": [
@@ -153,6 +163,16 @@
       "alias": null
     },
     {
+      "name": "nbds/control/size/md/label-line-box",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Title line height (label md, 16px) — a glyph centers on the title's first line.",
+      "value": 16,
+      "alias": null
+    },
+    {
       "name": "nbds/control/size/md/inset",
       "resolvedType": "FLOAT",
       "scopes": [
@@ -251,6 +271,16 @@
       ],
       "description": "Label line height (body lg, 27px) — the control centers on the label's first line.",
       "value": 27,
+      "alias": null
+    },
+    {
+      "name": "nbds/control/size/lg/label-line-box",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Title line height (label lg, 21px) — a glyph centers on the title's first line.",
+      "value": 21,
       "alias": null
     },
     {

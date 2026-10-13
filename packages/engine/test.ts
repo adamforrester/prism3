@@ -3076,8 +3076,14 @@ for (const b of brands) {
     // here, switch-only), not as a separate group that would orphan those two. A ninth field is still a
     // decision someone takes.
     const fields = CONTROL_RUNG_NAMES.map((n) => Object.keys(grp?.[n] ?? {}).sort().join('+'));
-    ok(fields.every((f) => f === 'dot+height+inset+line-box+radius+thumb+track+width'),
-      `#910/#1201/#997/#1015/#1425 each rung carries exactly \`height\` + \`width\` + \`dot\` + \`line-box\` + \`inset\` + \`radius\` + \`track\` + \`thumb\` — no ninth field drifts in (got ${[...new Set(fields)].join(' / ')})`);
+    //
+    // #2586 added the NINTH, `label-line-box`, and it fired here on the first run as the other five did.
+    // The argument is `line-box`'s, for the other type a glyph sits beside: a title is set in
+    // `type.label.*`, and the product Figma cannot compute has to be baked somewhere. Beside `line-box`
+    // rather than under `type.label.{rung}`, so the type groups stay composites only. A tenth field is
+    // still a decision someone takes.
+    ok(fields.every((f) => f === 'dot+height+inset+label-line-box+line-box+radius+thumb+track+width'),
+      `#910/#1201/#997/#1015/#1425/#2586 each rung carries exactly \`height\` + \`width\` + \`dot\` + \`line-box\` + \`label-line-box\` + \`inset\` + \`radius\` + \`track\` + \`thumb\` — no tenth field drifts in (got ${[...new Set(fields)].join(' / ')})`);
     ok(CONTROL_RUNG_NAMES.join(',') === Object.keys(grp ?? {}).join(','),
       `#900 three rungs, sm/md/lg — no \`xs\`/\`xl\`, because no def declares a control at either (got ${Object.keys(grp ?? {}).join(',')})`);
   }
@@ -3098,6 +3104,77 @@ for (const b of brands) {
     try { buildTree(bent); } catch (e) { threw = (e as Error).message; }
     ok(/line-box is ambiguous/.test(threw) && threw.includes(target),
       `#1220 a body composite that disagrees with its rung-mates fails the build by name, instead of the line box following composite order (${threw || 'no throw'})`);
+  }
+
+  // ---- #2586: the LABEL line box is one line of the emitted label type ----------------------------
+  // `control.size.{rung}.label-line-box` bakes `fontSize × lineHeight` of `type.label.{rung}.*`, because
+  // Figma variables cannot multiply. The EXPECTED px here comes from the emitted label composites, resolved
+  // through their own aliases (`fontSize` → a px, `lineHeight` → a ratio), never from the new token or from
+  // `theme.typography` (docs/34). So a token that drops the line height (14/16/18 for 14/16/21), or one
+  // baked from the body type (21/24/27), fails by name. A glyph centered in that box must also sit on the
+  // title's first line within 0.5px of the exact (unrounded) line, whatever the glyph's size (Accordion's
+  // are 16/20/24, larger than the line, so they overflow the box equally above and below).
+  // The synthetic row re-points the label composites at the 1.5 line height and nothing else: the token
+  // must MOVE to about 21px at md (14px × 1.5), which is the case #2586 was filed for.
+  {
+    const labelBoxRows: Array<[string, Theme]> = [...corpus().map(({ id, theme }) => [id.split(' ')[0], theme] as [string, Theme])];
+    const auroraTh = exampleTheme('aurora', () => brandTheme(exampleBrands()['aurora'] as BrandInput));
+    if (auroraTh) {
+      const lh150 = auroraTh.typography.lineHeights.find((l) => l.value === 1.5)?.key;
+      ok(!!lh150, `#2586 synthetic: the line-height ladder has a 1.5 step to re-point the label type at (got ${auroraTh.typography.lineHeights.map((l) => `${l.key}=${l.value}`).join(', ')})`);
+      if (lh150) labelBoxRows.push(['aurora (label line height 1.5)', { ...auroraTh, typography: { ...auroraTh.typography, composites: auroraTh.typography.composites.map((c) => (c.group === 'label' ? { ...c, lineHeight: lh150 } : c)) } }]);
+    }
+    const wrong: string[] = [];
+    const offLine: string[] = [];
+    const got: Record<string, Record<string, number>> = {};
+    for (const [id, th] of labelBoxRows) {
+      const tr = buildTree(th).tree as any;
+      const rootKey = Object.keys(tr)[0];
+      const byPath = (dotted: string): any => dotted.split('.').reduce((n: any, k) => n?.[k], tr);
+      const resolveNum = (v: any, hops = 0): number => {
+        if (typeof v === 'string' && /^\{.+\}$/.test(v) && hops < 10) {
+          const leaf = byPath(v.slice(1, -1));
+          return leaf?.$extensions?.prism3?.px ?? resolveNum(leaf?.$value, hops + 1);
+        }
+        return typeof v === 'number' ? v : parseFloat(String(v)) * (String(v).endsWith('rem') ? 16 : 1);
+      };
+      got[id] = {};
+      for (const rung of ['sm', 'md', 'lg']) {
+        const group = tr[rootKey].type?.label?.[rung] ?? {};
+        const lines = Object.entries(group).filter(([k]) => !k.startsWith('$')).map(([k, comp]: [string, any]) =>
+          ({ k, exact: resolveNum(comp.$value?.fontSize) * resolveNum(comp.$value?.lineHeight) }));
+        const expected = new Set(lines.map((l) => Math.round(l.exact)));
+        const leaf = tr[rootKey].control?.size?.[rung]?.['label-line-box'];
+        const px = leaf ? parseFloat(String(leaf.$value)) : NaN;
+        got[id][rung] = px;
+        if (!lines.length || expected.size !== 1 || !expected.has(px))
+          wrong.push(`${id} ${rung}: token ${leaf?.$value ?? 'absent'}, label type gives ${[...expected].join('|') || 'nothing'}px (${lines.map((l) => `${l.k} ${l.exact.toFixed(2)}`).join(', ')})`);
+        // A centered glyph's center is the box's, whatever its size, so one check per rung covers every glyph.
+        for (const l of lines.slice(0, 1))
+          if (!(Math.abs(px / 2 - l.exact / 2) <= 0.5)) offLine.push(`${id} ${rung}: glyph center ${(px / 2).toFixed(2)} vs line one ${(l.exact / 2).toFixed(2)}`);
+      }
+    }
+    ok(labelBoxRows.length >= 5 && wrong.length === 0,
+      `#2586 control.size.{sm,md,lg}.label-line-box is one line of the emitted type.label.{rung} type (font size × line height, rounded), in every brand and in a synthetic label line height (${labelBoxRows.length} rows)` + (wrong.length ? ` — WRONG: ${wrong.join('; ')}` : ''));
+    ok(offLine.length === 0,
+      `#2586 a glyph centered in the label line box sits on the title's first line within 0.5px, in every row` + (offLine.length ? ` — OFF: ${offLine.join('; ')}` : ''));
+    const syn = got['aurora (label line height 1.5)'];
+    ok(!!syn && Math.abs(syn.md - 21) <= 0.5 && syn.md !== got['nb']?.md,
+      `#2586 a label line-height change moves the token: at 1.5, md is about 21px (14px × 1.5), not the corpus ${got['nb']?.md}px (got ${syn?.md}px)`);
+  }
+
+  // ---- #2586: the label line box is unambiguous per rung, or the build says so (as #1220) ---------
+  arm: {
+    const th = exampleTheme('aurora', () => brandTheme(exampleBrands()['aurora'] as BrandInput));
+    if (!th) break arm;
+    const mdLabel = th.typography.composites.filter((c) => c.group === 'label' && c.path.split('.')[1] === 'md');
+    ok(mdLabel.length >= 2, `#2586 reachable: label.md has several composites to disagree (${mdLabel.map((c) => c.path).join(', ')})`);
+    const target = mdLabel[mdLabel.length - 1].path;
+    const bent: Theme = { ...th, typography: { ...th.typography, composites: th.typography.composites.map((c) => (c.path === target ? { ...c, sizePx: c.sizePx + 2 } : c)) } };
+    let threw = '';
+    try { buildTree(bent); } catch (e) { threw = (e as Error).message; }
+    ok(/label-line-box is ambiguous/.test(threw) && threw.includes(target),
+      `#2586 a label composite that disagrees with its rung-mates fails the build by name, instead of the label line box following composite order (${threw || 'no throw'})`);
   }
 
   // ---- VALUES × DENSITY: the window, and the clamping bug it exists to prevent -----------------

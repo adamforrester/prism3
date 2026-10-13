@@ -290,7 +290,8 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
     // The rung's own px per field — the Figma line states the arithmetic from these, not from the DTCG prose.
     const rungPx: Record<string, number> = Object.fromEntries(Object.entries(brand.control.size[rung])
       .filter(([k]) => !k.startsWith('$')).map(([k, l]: [string, any]) => [k, pxFromValue(tree, l.$value)]));
-    for (const field of ['height', 'width', 'dot', 'line-box', 'inset', 'radius', 'track', 'thumb']) {
+    // `label-line-box` with #2586 — a title row's glyph box binds it, exactly as `line-box` above.
+    for (const field of ['height', 'width', 'dot', 'line-box', 'label-line-box', 'inset', 'radius', 'track', 'thumb']) {
       const leaf = brand.control.size[rung][field];
       if (!leaf) continue;
       const isAlias = typeof leaf.$value === 'string' && /^\{.+\}$/.test(leaf.$value);

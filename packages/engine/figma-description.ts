@@ -269,6 +269,7 @@ export const figmaControlDescription = (field: string, c: Record<string, number>
     case 'width': return `Switch track width — ${c.width}px (twice the ${c.track}px track height)`;
     case 'dot': return `Radio dot — ${c.dot}px (half the ${c.height}px box)`;
     case 'line-box': return `Label line height (body ${bodyRung}, ${c['line-box']}px) — the control centers on the label's first line.`;
+    case 'label-line-box': return `Title line height (label ${bodyRung}, ${c['label-line-box']}px) — a glyph centers on the title's first line.`;
     case 'inset': return `Switch thumb inset — ${c.inset}px ((${c.track}px track − ${c.thumb}px thumb) ÷ 2). Switches only.`;
     case 'radius': return `Checkbox/radio corner — ${c.radius}px, clamped to the ${c.height}px box (does not follow the radius scale).`;
     case 'track': return `Switch track height — ${c.track}px. Switches only.`;
