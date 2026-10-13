@@ -10922,6 +10922,25 @@ arm: {
   const wrongBind = BIND_2569.filter(([, def, k, want]) => tokOf(def, k) !== want).map(([what, def, k, want]) => `${what}: ${k} → ${tokOf(def, k) ?? 'unbound'} (want ${want})`);
   ok(wrongBind.length === 0,
     `#2569 the meaningful edges bind border.tertiary (badge's subtle neutral edge, a separator divider) and the decorative ones stay on border.secondary (the default divider, tab's hover bar)${wrongBind.length ? ` — ${wrongBind.join('; ')}` : ''}`);
+
+  // 5. Q270.6 — HC's `border.secondary` clears 4.5:1, so its description must not call it "decorative"; light
+  //    and dark's still must. Read from the EMITTED DTCG `$description` per mode file, against these literals —
+  //    both directions, so dropping the word everywhere fails as surely as putting it back in HC.
+  const WANT_DECORATIVE_Q270: [string, string, boolean][] = [
+    ['light', 'base', true], ['dark', 'dark.overlay', true], ['hc-light', 'hc-light.overlay', false], ['hc-dark', 'hc-dark.overlay', false],
+  ];
+  const wrongDesc: string[] = [];
+  let descCells = 0;
+  for (const brand of ['prism3', 'nb', 'aurora', 'harbor', 'wendys']) for (const [mode, file, want] of WANT_DECORATIVE_Q270) {
+    const tree: any = JSON.parse(readFileSync(resolve(HERE, 'out', `${brand}.${file}.tokens.json`), 'utf8'));
+    const root = Object.keys(tree).filter((k) => !k.startsWith('$'));
+    const desc = root.length === 1 ? tree[root[0]]?.color?.border?.secondary?.$description : undefined;
+    if (typeof desc !== 'string') { wrongDesc.push(`${brand}/${mode}: no emitted border.secondary description`); continue; }
+    descCells++;
+    if (/decorative/i.test(desc) !== want) wrongDesc.push(`${brand}/${mode}: "${desc}" (want ${want ? 'with' : 'without'} "decorative")`);
+  }
+  ok(wrongDesc.length === 0 && descCells >= 20,
+    `#2569 Q270.6 border.secondary's HC description drops "decorative" (and light and dark keep it), in the emitted DTCG of every brand (${descCells} cells, floor 20)${wrongDesc.length ? ` — ${wrongDesc.join('; ')}` : ''}`);
 }
 
 // (10h) #575 — the OUTLINE-METHOD contract: for every `outlineInteraction` value, the role
