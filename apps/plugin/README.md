@@ -269,6 +269,16 @@ none. A row thinner than its label (the 1px horizontal Divider, #2568 Q258 A) ke
 on the row, with `Show bracket` off; every other row label spans its rows. Sets side by side sit `SET_GAP` (400) apart, so a later set's row labels fit between them. Gated by
 `test-canvas-furniture.ts`, which draws every def and measures the clearance on every shared page.
 
+**Interactive components (#2466, owner decision Q238 A).** Every set whose `state` axis holds `rest`, `hover` and
+`pressed` (the button family, icon buttons, tag, tab, and the checkbox, radio and switch controls) gets prototype
+reactions on its members: Rest → Hover on While hovering, and Rest and Hover → Pressed on While pressing, each
+`CHANGE_TO` the sibling matched on every other axis. Every other state has none. `src/reactions.ts` plans them from the
+member names; the executor writes them from that plan on every build and every in-place update, after every other
+write, because a reaction names its destination by node id and a member an update re-adds comes back under a new one
+(docs/18 §3). They are in the as-built record, so the dry run reads a reaction a designer removed or changed as a hand
+edit, a missing or extra one as "to update", and one pointing at a member no longer in the set as dangling. Gated by
+`test-reactions.ts`. The `use_figma` paste path writes none (#2564).
+
 **Not yet wired:** a UI trigger for `file-setup` (the shared-UI button) is a follow-up — the owner deferred UI
 placement, and the message contract + main-thread handler are complete and ready for it.
 
