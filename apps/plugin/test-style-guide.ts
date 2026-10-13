@@ -95,6 +95,11 @@
  *      percentage with its swatch, the transparency member filling its cell, its layer opacity bound; font style as the
  *      Text styles table's Style column; the later-phase note and the page's catalog without those groups. Phase 2's
  *      file plus the emission's border-width, focus, icon and layout collections; every expected value typed here.
+ *  36. BATCH 2A (#2353): the effect styles and the gradient paint styles, a table each, every local style in the file's order
+ *      (one Prism3 did not make included, a solid paint style left out); each layer and each stop printed on a line of its
+ *      own; the specimen a type=default card or fill swatch with the style applied by id; the phase boundary; the page's
+ *      catalog; a rerun in place; a refused style counted. The emission's 14 effect and 2 gradient styles plus three
+ *      foreign styles; every expected value typed here.
  *
  * INDEPENDENCE (docs/34): expected values are literals written here. The ratios (19.42, 18.13, 21) and the
  * failing 3.27 (neutral/400 on white, computed by hand from the WCAG formula), 6.44 (foreground.brand on
@@ -241,6 +246,15 @@
  *     file's radius member, which has a stroke, every Border width row keeps that one stroke…" and "35: an open run
  *     draws every table, every specimen bound" fail.
  *
+ *   - (#2353 batch 2a, each on a committed head, restored with `git reset --hard`) the style never applied to its specimen →
+ *     "36: every Effect styles row's card is the type=default member with its effect style applied…", "36: every Gradient
+ *     styles row's swatch is an instance filling its cell, its fill style the row's gradient…" and "36: a style the host
+ *     refuses to apply is counted (18)…" fail; a multi-layer shadow's second layer dropped → "36: shadow/2xl prints both its
+ *     layers…", "36: a blur layer prints its type and blur…", "36: a shadow color follows the Color value format…" and "36:
+ *     drawn, shadow/2xl's cells read its two layers…" fail; a stop's position printed off by a factor of ten → "36:
+ *     gradient/brand prints its stops…", "36: gradient/glow is Radial…", "36: Brand/Sunset prints its three stops…" and "36:
+ *     drawn, Brand/Sunset's stops read 0%, 35%, 100%…" fail.
+ *
  * THE SHIM IGNORES A RESIZE THE HOST IGNORES: a FIXED text inside an instance keeps its main component's width under
  * `resize` (live, 2026-09-28). Before the shim modeled it, every width assertion passed over one-word-a-line text.
  *
@@ -300,7 +314,9 @@ const insideInstance = (n: N): boolean => { for (let p = n.parent; p; p = p.pare
  * starts with `loadAllPagesAsync`, which makes its shim the one whose fonts, variables and styles a bind reads.
  * Its own weight table, not the plugin's (docs/34): the style a host picks for a weight.
  */
-interface World { fonts: Set<string>; loads: string[]; cols: ShimCol[]; vars: ShimVar[]; styles: ShimStyle[] }
+interface World { fonts: Set<string>; loads: string[]; cols: ShimCol[]; vars: ShimVar[]; styles: ShimStyle[]; effectStyles: ShimEffectStyle[]; paintStyles: ShimPaintStyle[] }
+/** When set, applying an effect or a paint style throws, as the host does for a style it refuses (#2353 batch 2a). */
+let refuseStyle = false;
 let active: World | null = null;
 const SHIM_WEIGHT_STYLE: Record<number, string> = { 100: 'Thin', 200: 'Extra Light', 300: 'Light', 400: 'Regular', 500: 'Medium', 600: 'Semi Bold', 700: 'Bold', 800: 'Extra Bold', 900: 'Black' };
 const FONT_BOUND = new Set(['fontFamily', 'fontStyle', 'fontWeight', 'fontSize', 'letterSpacing', 'lineHeight', 'paragraphSpacing', 'paragraphIndent']);
@@ -581,6 +597,22 @@ class N {
     // width that bind gave it, and then no longer follows its variable until HUG is set again.
     if (v && firstPad && this.lsh === 'HUG' && isAuto(this)) { const w0 = this.width; this.lsh = 'FIXED'; this.w = w0; }
   }
+  /** #2353 batch 2a: an effect or a fill style applied, as the host does under dynamic-page: the node takes the style's id
+   *  and its layers or paints. A style the file does not hold throws. */
+  effectStyleId = '';
+  fillStyleId = '';
+  async setEffectStyleIdAsync(id: string): Promise<void> {
+    const st = active?.effectStyles.find((x) => x.id === id);
+    if (refuseStyle || !st) throw new Error(`cannot apply effect style ${id}`);
+    this.effectStyleId = id;
+    this.effects = st.effects.map((e) => ({ ...e }));
+  }
+  async setFillStyleIdAsync(id: string): Promise<void> {
+    const st = active?.paintStyles.find((x) => x.id === id);
+    if (refuseStyle || !st) throw new Error(`cannot apply paint style ${id}`);
+    this.fillStyleId = id;
+    this.fills = st.paints.map((x) => ({ ...x }));
+  }
   textStyleId = '';
   async setTextStyleIdAsync(id: string): Promise<void> {
     const st = active?.styles.find((x) => x.id === id);
@@ -774,7 +806,11 @@ const headerSet = (name = '_Section-header'): N => {
   return set;
 };
 
-interface Shim { api: StyleGuideApi & CellsApi; pages: N[]; vars: ShimVar[]; cols: ShimCol[]; fontFails: Set<string>; styles: ShimStyle[]; world: World }
+interface Shim { api: StyleGuideApi & CellsApi; pages: N[]; vars: ShimVar[]; cols: ShimCol[]; fontFails: Set<string>; styles: ShimStyle[]; world: World; effectStyles: ShimEffectStyle[]; paintStyles: ShimPaintStyle[] }
+/** A local effect style and a local paint style, as `getLocalEffectStylesAsync` and `getLocalPaintStylesAsync` return them
+ *  (#2353 batch 2a). Empty unless a section adds some. */
+interface ShimEffectStyle { id: string; name: string; description: string; effects: { type: string; color?: { r: number; g: number; b: number; a: number }; offset?: { x: number; y: number }; radius: number; spread?: number; visible: boolean; blendMode?: string }[] }
+interface ShimPaintStyle { id: string; name: string; description: string; paints: { type: string; color?: unknown; gradientStops?: { position: number; color: { r: number; g: number; b: number; a: number }; boundVariables?: { color: { type: string; id: string } } }[]; gradientTransform?: unknown }[] }
 interface ShimCol { id: string; name: string; modes: { modeId: string; name: string }[]; defaultModeId: string }
 interface ShimVar { id: string; name: string; variableCollectionId: string; resolvedType: string; description: string; valuesByMode: Record<string, unknown>; scopes?: string[] }
 /** A local text style as `getLocalTextStylesAsync` returns one (phase 2). */
@@ -786,7 +822,9 @@ interface ShimStyle {
 
 const makeShim = (pages: N[], cols: ShimCol[], vars: ShimVar[], styles: ShimStyle[] = []): Shim => {
   const fontFails = new Set<string>();
-  const world: World = { fonts: new Set(), loads: [], cols, vars, styles };
+  const effectStyles: ShimEffectStyle[] = [];
+  const paintStyles: ShimPaintStyle[] = [];
+  const world: World = { fonts: new Set(), loads: [], cols, vars, styles, effectStyles, paintStyles };
   const root = {
     get children() { return pages; },
     findAllWithCriteria: (c: { types: string[] }) => pages.flatMap((p) => p.findAllWithCriteria(c)),
@@ -810,6 +848,8 @@ const makeShim = (pages: N[], cols: ShimCol[], vars: ShimVar[], styles: ShimStyl
       return f;
     },
     getLocalTextStylesAsync: async () => styles,
+    getLocalEffectStylesAsync: async () => effectStyles,
+    getLocalPaintStylesAsync: async () => paintStyles,
     createComponent: () => new N('COMPONENT'),
     // The host's default for a new text node: it sizes to its words.
     createText: () => { const t = new N('TEXT'); t.textAutoResize = 'WIDTH_AND_HEIGHT'; return t; },
@@ -827,7 +867,7 @@ const makeShim = (pages: N[], cols: ShimCol[], vars: ShimVar[], styles: ShimStyl
       setBoundVariableForPaint: (paint: object, field: string, v: { id: string }) => ({ ...paint, boundVariables: { [field]: { type: 'VARIABLE_ALIAS', id: v.id } } }),
     },
   };
-  return { api: api as unknown as StyleGuideApi & CellsApi, pages, vars, cols, fontFails, styles, world };
+  return { api: api as unknown as StyleGuideApi & CellsApi, pages, vars, cols, fontFails, styles, world, effectStyles, paintStyles };
 };
 
 /** The prism3 variables, as a theme write leaves them: `core` (Default) and `color` (four modes). */
@@ -1196,7 +1236,7 @@ const main = async (): Promise<void> => {
     ok(hover.cells[0].contrast?.ink === 'text/primary' && hover.cells[0].contrast?.ground === 'background/primary' && contrastText(hover.cells[0].contrast).startsWith('15.42:1 — clears the 4.5:1 floor'), '3: text/primary over interactive.primary.overlay.hover on background.primary, light: 15.42:1');
     const noBrand = planStyleGuide(catalog, null);
     ok(noBrand.tables.every((t) => t.rows.every((r) => r.cells.every((c) => c.contrast === null))) && noBrand.notes.some((n) => n.startsWith('No saved brand')), '3: no saved brand — every contrast "—", said once');
-    ok(planStyleGuide(catalog, contract, { types: ['shadow'] }).tables.length === 0 && planStyleGuide(catalog, contract, { types: ['shadow'] }).notes.includes('shadow: not in this phase — this phase draws color, dimension, borderWidth, opacity, fontFamily, fontSize, fontWeight, lineHeight, letterSpacing, typography'), '3: a later-phase type is named, not drawn');
+    ok(planStyleGuide(catalog, contract, { types: ['motion'] }).tables.length === 0 && planStyleGuide(catalog, contract, { types: ['motion'] }).notes.includes('motion: not in this phase — this phase draws color, dimension, borderWidth, opacity, fontFamily, fontSize, fontWeight, lineHeight, letterSpacing, typography, shadow, gradient'), '3: a later-phase type is named, not drawn');
     ok(planStyleGuide(catalog, contract, { valueFormat: 'rgba' }).tables.find((t) => t.title === 'Scrim')!.rows[0].cells[0].value === 'rgba(0, 0, 0, 0.4)', '3: rgba format');
   }
 
@@ -2211,9 +2251,9 @@ const main = async (): Promise<void> => {
       `19: tables: [Font size (metrics)] draws the disambiguated table alone (${d1.tables.map((t) => t.title).join(', ')})`);
     ok((await draw(dup.api, contract, { tables: ['Font size'] })).unmatched.length === 1, '19: "Font size" alone matches neither disambiguated title, and is reported');
     // THE PHASE BOUNDARY: a type outside it is named, not drawn; the later-phase variables are counted.
-    const out = await draw(p2.api, contract, { types: ['dimension', 'shadow'] });
-    ok(out.tables.length === 6 && out.tables.every((t) => t.key.startsWith('dimension|')) && out.notes.includes('shadow: not in this phase — this phase draws color, dimension, borderWidth, opacity, fontFamily, fontSize, fontWeight, lineHeight, letterSpacing, typography'),
-      `19: types [dimension, shadow] draws the 6 dimension tables and names shadow as outside this phase (${out.notes.join(' / ')})`);
+    const out = await draw(p2.api, contract, { types: ['dimension', 'motion'] });
+    ok(out.tables.length === 6 && out.tables.every((t) => t.key.startsWith('dimension|')) && out.notes.includes('motion: not in this phase — this phase draws color, dimension, borderWidth, opacity, fontFamily, fontSize, fontWeight, lineHeight, letterSpacing, typography, shadow, gradient'),
+      `19: types [dimension, motion] draws the 6 dimension tables and names motion as outside this phase (${out.notes.join(' / ')})`);
     // Since #2353 every variable phase 2's file holds is drawn: its 13 font styles in the Text styles table, its 12
     // opacities in their own. The note's counts are asserted in 21 and 35.
     ok(!p2First.notes.some((n) => n.startsWith('Not drawn until a later phase')), `19: an open run of a file with nothing left for a later phase names none (${p2First.notes.join(' / ')})`);
@@ -3468,6 +3508,148 @@ const main = async (): Promise<void> => {
     const inst = cellAt(g, rowOf(g, 'pds3/focus/ring/width'), 1)?.findOne((k) => k.type === 'INSTANCE') ?? undefined;
     ok(r.unbound === 0 && inst?.explicitVariableModes['VariableCollectionId:focus'] === 'focus:named' && textIn(cellAt(g, rowOf(g, 'pds3/focus/ring/width'), 2)).startsWith('2px'),
       `35c: drawn, the focus ring width's outline is pinned to focus's mode named like the column and reads 2px (${JSON.stringify(inst?.explicitVariableModes)}; "${textIn(cellAt(g, rowOf(g, 'pds3/focus/ring/width'), 2))}")`);
+  }
+
+  console.log('36. batch 2a (#2353): the effect styles and the gradient paint styles, each a table with its specimen bound to the style');
+  {
+    // THE FILE: phase 2's, plus the prism3 emission's 14 effect styles and 2 gradient paint styles as a theme write leaves
+    // them (each stop bound to the palette variable it was traced to), the palette those stops bind, and three styles
+    // Prism3 did not make: an effect style with a blur and a shadow, a three-stop gradient bound to nothing, and a solid
+    // paint style. Every expected value below is typed here, from the emission read by hand, never off the planner.
+    const f = await phase2File();
+    type Rgba = { r: number; g: number; b: number; a: number };
+    const palette = (JSON.parse(readFileSync(join(OUT, 'core.palette.json'), 'utf8')) as { variables: { name: string; resolvedType: string; value: Rgba }[] }).variables;
+    palette.forEach((v, i) => f.vars.push({ id: `VariableID:palette:${i}`, name: v.name, variableCollectionId: 'VariableCollectionId:core', resolvedType: v.resolvedType, description: '', valuesByMode: { 'core:0': v.value } }));
+    const varId = (name: string): string => f.vars.find((v) => v.name === name)!.id;
+    type EmEffect = ShimEffectStyle['effects'][number];
+    const shadows = (JSON.parse(readFileSync(join(OUT, 'shadow-styles.json'), 'utf8')) as { styles: { name: string; description: string; effects: EmEffect[] }[] }).styles;
+    shadows.forEach((st, i) => f.effectStyles.push({ id: `S:effect:${i},`, name: st.name, description: st.description, effects: st.effects }));
+    f.effectStyles.push({ id: 'S:effect:frost,', name: 'Brand/Frost', description: '', effects: [
+      { type: 'LAYER_BLUR', radius: 8, visible: true },
+      { type: 'DROP_SHADOW', color: { r: 0, g: 0, b: 0, a: 0.25 }, offset: { x: 4, y: 6 }, radius: 10, spread: 2, visible: true },
+    ] });
+    const grads = (JSON.parse(readFileSync(join(OUT, 'gradient-styles.json'), 'utf8')) as { styles: { name: string; description: string; paintType: string; stops: { position: number; color: Rgba; alias: string | null }[] }[] }).styles;
+    grads.forEach((st, i) => f.paintStyles.push({ id: `S:paint:${i},`, name: st.name, description: st.description, paints: [{
+      type: st.paintType, gradientTransform: [[1, 0, 0], [0, 1, 0]],
+      gradientStops: st.stops.map((x) => ({ position: x.position, color: x.color, ...(x.alias ? { boundVariables: { color: { type: 'VARIABLE_ALIAS', id: varId(x.alias) } } } : {}) })),
+    }] }));
+    f.paintStyles.push({ id: 'S:paint:ink,', name: 'Brand/Ink', description: '', paints: [{ type: 'SOLID', color: { r: 0, g: 0, b: 0 } }] });
+    f.paintStyles.push({ id: 'S:paint:sunset,', name: 'Brand/Sunset', description: 'A sunset', paints: [{ type: 'GRADIENT_LINEAR', gradientTransform: [[1, 0, 0], [0, 1, 0]], gradientStops: [
+      { position: 0, color: { r: 1, g: 0.5, b: 0, a: 1 } }, { position: 0.35, color: { r: 1, g: 0, b: 0.5, a: 0.5 } }, { position: 1, color: { r: 0.2, g: 0, b: 0.4, a: 1 } }] }] });
+
+    const cat36: SgCatalog = { collections: f.cols, variables: f.vars, textStyles: f.styles, effectStyles: f.effectStyles, paintStyles: f.paintStyles };
+    const plan = planStyleGuide(cat36, contract, { types: ['shadow', 'gradient'] });
+    const fx = plan.tables.find((t) => t.type === 'shadow');
+    const gr = plan.tables.find((t) => t.type === 'gradient');
+    const EFFECT_ROWS = ['shadow/xs', 'shadow/sm', 'shadow/md', 'shadow/lg', 'shadow/xl', 'shadow/2xl', 'shadow/inset',
+      'shadow-dark/xs', 'shadow-dark/sm', 'shadow-dark/md', 'shadow-dark/lg', 'shadow-dark/xl', 'shadow-dark/2xl', 'shadow-dark/inset', 'Brand/Frost'];
+    ok(plan.tables.length === 2 && fx?.key === 'shadow|effect-styles|' && fx.title === 'Effect styles' && fx.page === SEM && fx.description === '15 effect styles in this file'
+      && JSON.stringify(fx.columns) === JSON.stringify(['Token', 'Specimen', 'Type', 'X', 'Y', 'Blur', 'Spread', 'Color', 'Description']),
+      `36: the effect styles draw one table, "Effect styles" on Semantic tokens: Token · Specimen · Type · X · Y · Blur · Spread · Color · Description (${fx?.key}; ${fx?.columns.join(', ')}; "${fx?.description}")`);
+    ok(JSON.stringify(fx?.rows.map((r) => r.tokenCell)) === JSON.stringify(EFFECT_ROWS),
+      `36: one row per effect style, in the file's order, the one Prism3 did not make included (${fx?.rows.map((r) => r.tokenCell).join(', ')})`);
+    // ONE LINE A LAYER, every layer, in every value column: the cell's value, then the extras (X, Y, Blur, Spread, Color).
+    const fxRow = (name: string): string[] => { const r = fx?.rows.find((x) => x.name === name); return r ? [r.cells[0].value, ...(r.extra ?? []).map((e) => e.value)] : []; };
+    ok(JSON.stringify(fxRow('shadow/2xl')) === JSON.stringify(['Drop shadow\nDrop shadow', '0px\n0px', '6px\n22px', '12px\n52px', '-6px\n-12px', '#0A1228 · 14%\n#0A1228 · 12%']),
+      `36: shadow/2xl prints both its layers, one line each: x 0 0, y 6 22, blur 12 52, spread -6 -12, #0A1228 at 14% and 12% (${JSON.stringify(fxRow('shadow/2xl'))})`);
+    ok(JSON.stringify(fxRow('shadow-dark/inset')) === JSON.stringify(['Inner shadow', '0px', '2px', '4px', '0px', '#0A1228 · 30%']),
+      `36: shadow-dark/inset prints its one inner shadow: 0, 2, 4, 0, #0A1228 at 30% (${JSON.stringify(fxRow('shadow-dark/inset'))})`);
+    ok(JSON.stringify(fxRow('Brand/Frost')) === JSON.stringify(['Layer blur\nDrop shadow', '—\n4px', '—\n6px', '8px\n10px', '—\n2px', '—\n#000000 · 25%']),
+      `36: a blur layer prints its type and blur, "—" for what it has not, beside the shadow layer (${JSON.stringify(fxRow('Brand/Frost'))})`);
+    ok(JSON.stringify(planStyleGuide(cat36, contract, { types: ['shadow'], valueFormat: 'rgba' }).tables[0]?.rows.find((r) => r.name === 'shadow/xs')?.extra?.[4].value) === JSON.stringify('rgba(10, 18, 40, 0.1)\nrgba(10, 18, 40, 0.06)'),
+      '36: a shadow color follows the Color value format: rgba(10, 18, 40, 0.1) and 0.06 for shadow/xs');
+    // A HIDDEN LAYER is still listed, its Type line marked: planned off a copy, so the counts above stand.
+    const veiled = planStyleGuide({ ...cat36, effectStyles: [...f.effectStyles, { id: 'S:effect:veil,', name: 'Brand/Veil', description: '', effects: [
+      { type: 'DROP_SHADOW', color: { r: 0, g: 0, b: 0, a: 0.25 }, offset: { x: 0, y: 2 }, radius: 4, spread: 0, visible: false },
+    ] }] }, contract, { types: ['shadow'] }).tables[0]?.rows.find((r) => r.name === 'Brand/Veil');
+    ok(veiled?.cells[0].value === 'Drop shadow (hidden)',
+      `36: a hidden layer's Type line reads "Drop shadow (hidden)" (${JSON.stringify(veiled?.cells[0].value)})`);
+
+    const GRAD_ROWS = ['gradient/brand', 'gradient/glow', 'Brand/Sunset'];
+    ok(gr?.key === 'gradient|gradient-styles|' && gr.title === 'Gradient styles' && gr.page === SEM && gr.description === '3 gradient styles in this file'
+      && JSON.stringify(gr.columns) === JSON.stringify(['Token', 'Specimen', 'Type', 'Position', 'Color', 'Variable', 'Description'])
+      && JSON.stringify(gr.rows.map((r) => r.tokenCell)) === JSON.stringify(GRAD_ROWS),
+      `36: the gradient paint styles draw one table, "Gradient styles": Token · Specimen · Type · Position · Color · Variable · Description, a row per gradient in the file's order and none for the solid Brand/Ink (${gr?.key}; ${gr?.columns.join(', ')}; ${gr?.rows.map((r) => r.tokenCell).join(', ')})`);
+    const grRow = (name: string, t = gr): string[] => { const r = t?.rows.find((x) => x.name === name); return r ? [r.cells[0].value, ...(r.extra ?? []).map((e) => e.value)] : []; };
+    ok(JSON.stringify(grRow('gradient/brand')) === JSON.stringify(['Linear', '0%\n100%', '#1E1EFF\n#7A3CFF', 'pds3/core/palette/primary/600\npds3/core/palette/accent/500']),
+      `36: gradient/brand prints its stops, one line each: 0% #1E1EFF on primary/600, 100% #7A3CFF on accent/500 (${JSON.stringify(grRow('gradient/brand'))})`);
+    ok(JSON.stringify(grRow('gradient/glow')) === JSON.stringify(['Radial', '0%\n100%', '#8D6FFC\n#1408C6', 'pds3/core/palette/accent/400\npds3/core/palette/primary/700']),
+      `36: gradient/glow is Radial, 0% #8D6FFC on accent/400, 100% #1408C6 on primary/700 (${JSON.stringify(grRow('gradient/glow'))})`);
+    ok(JSON.stringify(grRow('Brand/Sunset')) === JSON.stringify(['Linear', '0%\n35%\n100%', '#FF8000\n#FF0080 · 50%\n#330066', '—\n—\n—']),
+      `36: Brand/Sunset prints its three stops at 0%, 35% and 100%, a stop bound to nothing as "—" (${JSON.stringify(grRow('Brand/Sunset'))})`);
+    const noAlias = planStyleGuide(cat36, contract, { types: ['gradient'], aliases: false }).tables[0];
+    ok(JSON.stringify(noAlias?.columns) === JSON.stringify(['Token', 'Specimen', 'Type', 'Position', 'Color', 'Description']) && grRow('gradient/brand', noAlias).length === 3,
+      `36: aliases off, the Variable column goes (${noAlias?.columns.join(', ')})`);
+
+    // ONLY WHAT EXISTS: a file with no effect or paint style draws neither table; a collections filter leaves them out.
+    const bare = planStyleGuide({ collections: f.cols, variables: f.vars, textStyles: f.styles }, contract, { types: ['shadow', 'gradient'] });
+    ok(bare.tables.length === 0 && planStyleGuide(cat36, contract, { types: ['shadow', 'gradient'], collections: ['core'] }).tables.length === 0,
+      `36: a file with no effect or gradient style draws neither table, and a collections filter leaves both out (${bare.tables.map((t) => t.title).join(', ')})`);
+    // THE PHASE BOUNDARY MOVED: shadow and gradient are in it; motion still is not.
+    const motion = planStyleGuide(cat36, contract, { types: ['shadow', 'gradient', 'motion'] }).notes;
+    ok(motion.includes('motion: not in this phase — this phase draws color, dimension, borderWidth, opacity, fontFamily, fontSize, fontWeight, lineHeight, letterSpacing, typography, shadow, gradient')
+      && !motion.some((n) => n.startsWith('shadow:') || n.startsWith('gradient:')),
+      `36: the note names shadow and gradient among the types this phase draws, and no longer either as outside it (${motion.join(' / ')})`);
+
+    // THE PAGE'S CATALOG: each style under its table, after the text styles; the solid paint style not listed.
+    const cat = catalogFor(cat36, contract, true);
+    const names = cat.collections.map((c) => c.name);
+    const fxCol = cat.collections.find((c) => c.name === 'Effect styles');
+    const grCol = cat.collections.find((c) => c.name === 'Gradient styles');
+    ok(JSON.stringify(names.slice(-3)) === JSON.stringify(['Text styles', 'Effect styles', 'Gradient styles']) && fxCol?.effectStyles === true && grCol?.gradientStyles === true
+      && JSON.stringify(fxCol.items.map((it) => `${it.name}→${cat.tables[it.table]?.title}`)) === JSON.stringify(EFFECT_ROWS.map((n) => `${n}→Effect styles`))
+      && JSON.stringify(grCol.items.map((it) => `${it.name}→${cat.tables[it.table]?.title}`)) === JSON.stringify(GRAD_ROWS.map((n) => `${n}→Gradient styles`)),
+      `36: the page lists the effect styles and the gradient styles after the text styles, each under its table, Brand/Ink nowhere (${names.slice(-3).join(', ')}; ${grCol?.items.map((it) => it.name).join(', ')})`);
+    ok(cat.tables.find((t) => t.title === 'Effect styles')?.kind === 'effect' && cat.tables.find((t) => t.title === 'Gradient styles')?.kind === 'gradient',
+      '36: the page groups them as the effect and gradient kinds');
+
+    // DRAWN.
+    const r = await draw(f.api, contract, { types: ['shadow', 'gradient'] });
+    ok(r.unbound === 0 && JSON.stringify(r.tables.map((t) => `${t.title}:${t.status}`)) === JSON.stringify(['Effect styles:created', 'Gradient styles:created']),
+      `36: drawn, both tables are created and every specimen is bound (unbound ${r.unbound}; ${r.tables.map((t) => `${t.title}:${t.status}`).join(', ')}; ${r.misses.slice(0, 2).join(' / ')})`);
+    const fxW = tableFrame(f.sem, 'Effect styles')!;
+    const fxG = gridOf(fxW);
+    ok(JSON.stringify(headerRow(fxW)) === JSON.stringify(['Token', 'Specimen', 'Type', 'X', 'Y', 'Blur', 'Spread', 'Color', 'Description']),
+      `36: drawn, the Effect styles header row (${headerRow(fxW).join(', ')})`);
+    // THE SPECIMEN IS BOUND TO THE STYLE: a type=default card with the style applied by id, not a copy of its layers.
+    const card = (name: string): N | undefined => cellAt(fxG, rowOf(fxG, name), 1)?.findOne((k) => k.type === 'INSTANCE') ?? undefined;
+    const styleId = (name: string): string | undefined => f.effectStyles.find((x) => x.name === name)?.id;
+    const unboundCards = EFFECT_ROWS.filter((n) => card(n)?.effectStyleId !== styleId(n) || card(n)?.mainComponent?.name !== 'type=default');
+    ok(unboundCards.length === 0,
+      `36: every Effect styles row's card is the type=default member with its effect style applied (not: ${unboundCards.map((n) => `${n}→${card(n)?.mainComponent?.name}/${String(card(n)?.effectStyleId)}`).join(', ') || 'none'})`);
+    const c2xl = card('shadow/2xl');
+    ok(!!c2xl && JSON.stringify((c2xl.fills as { color?: unknown }[]).map((p) => p.color)) === JSON.stringify([{ r: 1, g: 1, b: 1 }]) && c2xl.children.every((k) => k.visible === false)
+      && c2xl.parent?.paddingTop === 74 && c2xl.parent?.paddingLeft === 74 && card('shadow/xs')?.parent?.paddingTop === 12 && card('shadow/xs')?.parent?.paddingLeft === 16,
+      `36: the card is white, its own layers hidden, in a cell padded by the style's reach: 74 for shadow/2xl (22 + 52), the usual 12 × 16 for shadow/xs (${JSON.stringify(c2xl?.fills)}; ${c2xl?.parent?.paddingTop}/${c2xl?.parent?.paddingLeft}; ${card('shadow/xs')?.parent?.paddingTop}/${card('shadow/xs')?.parent?.paddingLeft})`);
+    const at = (g: N, name: string, col: number): string => textIn(cellAt(g, rowOf(g, name), col));
+    ok(at(fxG, 'shadow/2xl', 2) === 'Drop shadow\nDrop shadow' && at(fxG, 'shadow/2xl', 4) === '6px\n22px' && at(fxG, 'shadow/2xl', 5) === '12px\n52px' && at(fxG, 'shadow/2xl', 6) === '-6px\n-12px'
+      && at(fxG, 'shadow/2xl', 7) === '#0A1228 · 14%\n#0A1228 · 12%' && at(fxG, 'shadow/2xl', 8) === 'Elevation 6 of 6 — light mode',
+      `36: drawn, shadow/2xl's cells read its two layers, one line each, and its description (${[2, 4, 5, 6, 7, 8].map((c) => JSON.stringify(at(fxG, 'shadow/2xl', c))).join(' · ')})`);
+    const grW = tableFrame(f.sem, 'Gradient styles')!;
+    const grG = gridOf(grW);
+    const swatch = (name: string): N | undefined => cellAt(grG, rowOf(grG, name), 1);
+    const pId = (name: string): string | undefined => f.paintStyles.find((x) => x.name === name)?.id;
+    const unboundSwatches = GRAD_ROWS.filter((n) => swatch(n)?.type !== 'INSTANCE' || swatch(n)?.fillStyleId !== pId(n) || swatch(n)?.lsh !== 'FILL' || swatch(n)?.layoutSizingVertical !== 'FILL');
+    ok(unboundSwatches.length === 0,
+      `36: every Gradient styles row's swatch is an instance filling its cell, its fill style the row's gradient (not: ${unboundSwatches.map((n) => `${n}→${swatch(n)?.type}/${String(swatch(n)?.fillStyleId)}`).join(', ') || 'none'})`);
+    ok(at(grG, 'Brand/Sunset', 3) === '0%\n35%\n100%' && at(grG, 'gradient/brand', 5) === 'pds3/core/palette/primary/600\npds3/core/palette/accent/500' && at(grG, 'gradient/glow', 2) === 'Radial',
+      `36: drawn, Brand/Sunset's stops read 0%, 35%, 100%, and gradient/brand's stops their variables (${JSON.stringify(at(grG, 'Brand/Sunset', 3))}; ${JSON.stringify(at(grG, 'gradient/brand', 5))})`);
+
+    // A RERUN updates both in place: no second table, no change.
+    const again = await draw(f.api, contract, { types: ['shadow', 'gradient'] });
+    ok(tablesOn(f.sem).length === 2 && again.tables.every((t) => t.status === 'updated' && t.diff.added.length + t.diff.removed.length + t.diff.changed.length === 0),
+      `36: a rerun updates both tables in place, nothing added, removed or changed (${tablesOn(f.sem).length} tables; ${again.tables.map((t) => t.status).join(', ')})`);
+    // A STYLE THE HOST WILL NOT APPLY is counted and named by table and token, and is not a pass.
+    refuseStyle = true;
+    const refused = await draw(f.api, contract, { types: ['shadow', 'gradient'] });
+    refuseStyle = false;
+    ok(refused.unbound === 18 && refused.misses.some((m) => m.startsWith('15 effect styles are not bound to their style, so they show the cell component\'s own value ('))
+      && refused.misses.some((m) => m.startsWith('3 gradient styles are not bound to their style, so they show the cell component\'s own value ('))
+      && !styleGuideSummary(refused).ok,
+      `36: a style the host refuses to apply is counted (18), named by kind, and not a pass (${refused.unbound}; ${refused.misses.filter((m) => m.includes('style')).join(' / ')})`);
+    // Q272 A: the miss names the style in plain words. No internal kind key reaches the user, in the misses or the summary.
+    const keyLeaks = [...refused.misses, styleGuideSummary(refused).summary, ...styleGuideSummary(refused).lines].filter((m) => /\b(effect|gradient)-style\b/.test(m));
+    ok(keyLeaks.length === 0, `36: the refused styles' miss says "effect styles" / "gradient styles", never a raw kind key (${keyLeaks.join(' / ') || 'none'})`);
   }
 
   if (failures) { console.error(`\n${failures} style-guide check(s) failed`); process.exit(1); }
