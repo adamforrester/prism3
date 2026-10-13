@@ -8,17 +8,23 @@
  *        submitted value. A code prop only: one Figma component serves both.
  *   2 A  A value control, never contained tabs.
  *   3 A  Bold when selected with the width held (Tab's bold reserve, #2528), plus the tint and the 2px outline.
- *   4 A  (PROVISIONAL) The hover is the neutral overlay wash. The owner checks it built before it is final.
- *   5 A  (PROVISIONAL) Track `radius.md`, indicator `radius.sm`. No style axis.
+ *   4 A  The hover is the neutral overlay wash (confirmed built, Q278.1 A).
+ *   5 A  Track `radius.md`, indicator `radius.sm`, 4px inside. No style axis (confirmed built, Q278.2 A: the corners
+ *        stay non-concentric, no derived radius token).
  *   6 A  `grow` on a nested instance, so the segments are equal width in Figma as in code.
  *   7 A  `SegmentedControl` / `SegmentedControl.Segment`, category `form`, toggles `Segment 3`–`Segment 5`, its own
  *        page after Tabs.
  *   8 A  2–5 segments, 3 shown.
  *
+ * Owner decisions Q278 (2026-10-13), on the built PR, all A: 1 the hover wash kept; 2 the shape kept as built;
+ * 3 the default label "Option"; 4 the control built at 320 and a standalone option at 120; 5 no track padding or
+ * gap, each option carrying its own 4px inset; 6 the page sorts alphabetically (Q260 A, between Radio and Select),
+ * no exception.
+ *
  * ── THE SEGMENT ────────────────────────────────────────────────────────────────────────────────────────
  * `selection` [unselected, selected] × `size` [small, medium, large] × five states = 30 members. The cell is the
  * hit target (Button's height rung); an INDICATOR inset 4px inside it carries the paint. The cell is BUILT at a
- * placement width (DRAFT) and fills: the indicator grows across it, so when the control grows a segment the
+ * placement width (120, Q278.4 A) and fills: the indicator grows across it, so when the control grows a segment the
  * selected tint and outline span the whole share, not just the label.
  *
  * THE SELECTED LOOK (the system selection pattern, skill §5, with Q269.3's weight): the tint
@@ -100,7 +106,7 @@ export const segmentedControlSegment: ComponentDef = {
     'size.large.type.selected': 'type.label.lg.emphasis',
     'size.large.type.unselected': 'type.label.lg.default',
 
-    // UNSELECTED — no edge and no fill at rest; the neutral wash at hover and pressed (Q269.4 A, provisional).
+    // UNSELECTED — no edge and no fill at rest; the neutral wash at hover and pressed (Q269.4 A, Q278.1 A).
     'unselected.overlay.hover': 'color.interactive.neutral.overlay.hover',
     'unselected.overlay.pressed': 'color.interactive.neutral.overlay.pressed',
     'unselected.label': 'color.interactive.neutral.text.rest',
@@ -141,7 +147,7 @@ export const segmentedControlSegment: ComponentDef = {
         height: 'size.{size}.height',
         padding: { block: 'inset', inlineLabel: 'inset' },
         // BUILT AT A PLACEMENT WIDTH (#1757) so the indicator has a width to grow across; inside the control each
-        // segment grows along the track and takes its equal share instead (DRAFT width, held for the owner).
+        // segment grows along the track and takes its equal share instead (Q278.4 A).
         placementWidth: 120,
         note: 'The option cell, as tall as a button and the whole of the pointer target. It paints nothing: the indicator inside it carries the selection. Inside a segmented control it takes an equal share of the track.',
       },
@@ -225,7 +231,7 @@ export const segmentedControlSegment: ComponentDef = {
     variantAxes: ['selection', 'size'],
     stateAxis: { name: 'state', values: ['rest', 'hover', 'pressed', 'focus-visible', 'disabled'] },
     gridAxis: 'state',
-    // "Option" is DRAFT, held for the owner (Q269).
+    // "Option" (Q278.3 A).
     texts: { label: { part: 'label', default: 'Option', also: ['labelReserve'] } },
     booleans: { leadingIcon: { part: 'leadingVisual', figmaName: 'leading icon', default: false } },
     swaps: { leadingIcon: { part: 'leadingVisual', figmaName: '↳ swap leading icon' } },
@@ -278,15 +284,13 @@ export const segmentedControlSegment: ComponentDef = {
   },
 
   notes: {
-    contested: [
-      'The hover wash (Q269.4 A) and the shape (Q269.5 A, indicator radius.sm) are provisional: the owner checks them built before they are final, and the hover may change with the shape.',
-      'The build width of a standalone option (placementWidth 120) is the build PR\'s pick so the indicator has a width to fill; inside the control the option takes its equal share. Held for the owner.',
-    ],
+    contested: [],
     unverified: [
       'The outline against the tint inside it measures 3.01:1 at its tightest (one brand, light mode, 2026-10-09). It is not the selection cue on its own (the outline against the track and the bold label are), but it has no margin.',
     ],
     evolution: [
       '2026-10-13 (#2418): owner decisions Q269 1–8 A: view behavior by default, a value control not contained tabs, bold when selected with the width held plus tint and 2px outline, the neutral hover wash (provisional), track radius.md and indicator radius.sm (provisional), grow on a nested instance for equal widths, the names and its own page after Tabs, 2–5 segments with 3 shown.',
+      '2026-10-13 (#2418): owner decisions Q278 1–6 A, on the built option: the hover wash kept (Q269.4 no longer provisional); the shape kept as built, track radius.md and indicator radius.sm 4px inside, corners non-concentric with no derived radius token; the default label "Option"; a standalone option built at 120 so the indicator has a width to fill, while inside the control it takes its equal share.',
     ],
   },
 };
@@ -346,7 +350,7 @@ export const segmentedControl: ComponentDef = {
         layout: { direction: 'column', align: 'start', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
         gap: 'gap',
         // BUILT AT 320 (#1757, the fields' width) and fills its column; the track stretches across it, so the
-        // growing segments have a bounded width to share (DRAFT width, held for the owner).
+        // growing segments have a bounded width to share (Q278.4 A).
         placementWidth: 320,
         note: 'The control: a label above the track. It fills its column.',
       },
@@ -463,12 +467,11 @@ export const segmentedControl: ComponentDef = {
   },
 
   notes: {
-    contested: [
-      'The built width (placementWidth 320) fits three options at every size; with all five shown at large the options can run narrower than their labels until a designer widens the control. Held for the owner.',
-    ],
+    contested: [],
     unverified: [],
     evolution: [
       '2026-10-13 (#2418): owner decisions Q269 1–8 A. Two defs, Segment (30 members) nested in the control (3); view behavior by default; bold selected label with its width held; neutral hover wash and radius.md / radius.sm, both provisional; grow on a nested instance for equal widths; Segment 3 on, 4 and 5 off.',
+      '2026-10-13 (#2418): owner decisions Q278 1–6 A, on the built control: hover and shape kept; built at 320, which fits three options at every size (with all five shown at large the options can run narrower than their labels until a designer widens the control); no track padding or gap, each option carrying its own 4px inset; the page sorts alphabetically, between Radio and Select.',
     ],
   },
 };

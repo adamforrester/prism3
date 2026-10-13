@@ -4013,7 +4013,9 @@ ${GRADIENT_SLOT}
     // \`layoutAlign\` is a CHILD's relationship to its parent's auto-layout, and applying it here reaches a
     // nested INSTANCE (a \`nest\` row / label / message) the child neutralizer returns early on. Written only
     // when the plan carries it (a \`crossAxisFill\` part); every other child keeps Figma's \`INHERIT\`. Its
-    // main-axis twin \`layoutGrow\` likewise (#2418, a growing \`nest\`): the neutralizer never reaches an instance.
+    // main-axis twin \`layoutGrow\` is written here too (#2418, a growing \`nest\`), in lockstep with the plugin
+    // executor, where the parent's pass is an instance's only grow write. On this path the generic build write
+    // (\`if(n.layoutGrow)node.layoutGrow=…\`) already covers an instance, so this one is redundant and kept for lockstep.
     //
     // And a filling nest's own FIXED mode beside it (#1751): without it a stretched instance hugs — see the
     // plan field. On the SAME line and unguarded (\`Object.assign\` skips an undefined source) because a

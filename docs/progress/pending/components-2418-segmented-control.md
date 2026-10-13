@@ -6,6 +6,13 @@ CONTRACT unchanged: every binding is an existing role. `EXECUTOR_REVISION` 13 �
 Built from the proposal branch's draft (`claude/segmented-control-proposal`, `74af810`) with the owner's decisions Q269
 1–8 A applied.
 
+**Owner decisions Q278 (2026-10-13), all A**, on the built PR: (1) the hover wash is kept, no longer provisional;
+(2) the shape is kept as built, the track `radius.md` and the selected pill `radius.sm` 4px inside, corners
+non-concentric with no derived radius token; (3) the default label "Option" is approved; (4) the control is built at 320
+and a standalone option at 120; (5) no track padding or gap, each option carrying its own 4px inset; (6) the page sorts
+alphabetically under Q260 A, between Radio and Select, no exception. The defs record them in their evolution notes and
+no longer list them as contested.
+
 ### What changed
 
 - **`SegmentedControl.Segment`.** selection × size × five states. A cell on Button's height rung (the hit target) with
@@ -32,7 +39,7 @@ Built from the proposal branch's draft (`claude/segmented-control-proposal`, `74
 Equal widths needed two fills, not one. The options growing along the track only widens each option's **cell**; the
 indicator inside it hugged its label, so the tint and outline would have sat label-wide in the middle of a wider cell.
 A box can only grow into a parent that bounds its main axis, and the option's root hugged. So the option's root is
-**built at a placement width** (`placementWidth: 120`, DRAFT, the #1757 mechanism the fields use) and the indicator
+**built at a placement width** (`placementWidth: 120`, Q278.4 A, the #1757 mechanism the fields use) and the indicator
 `grow`s across it; inside the control, the host's FIXED share replaces the 120. That is why the standalone option set
 reads 120 wide.
 
@@ -46,10 +53,10 @@ reads 120 wide.
 - **The outline against the tint inside it** is 3.01:1 at its tightest. It is not the cue on its own (the outline
   against the track is 4.56:1 minimum, and the bold label carries the selection too), but it has no margin.
 - **Reactions (#2466).** #2574 was open at build time. Its reaction map derives scope from the `state` axis, so the
-  Segment set will be in scope once both land; its `map/` arm lists the 11 defs literally, and whichever PR merges
-  second updates that list (Segment: 30 members, 12 sources, 18 reactions).
+  Segment set will be in scope once both land; its `map/` arm lists the defs literally. #2574 merged first, so this
+  PR adds the Segment to that list (30 members, 12 sources, 18 reactions) and the label reads 12 defs.
 - **The page sorts alphabetically** (#2568, Q260 A), so "after Tabs" holds in the taxonomy list but the file shows
-  `↳ Segmented control` between Radio and Select. Held for the owner.
+  `↳ Segmented control` between Radio and Select. The owner kept that order (Q278.6 A), no exception.
 - **The paste executor writes an instance's `layoutGrow` twice** (review BLOCK on 1946897c). The generic build line
   (`if(n.layoutGrow)node.layoutGrow=n.layoutGrow;`) runs for every node the payload creates, instances included,
   and the parent's pass writes it again. Remove either line alone and the paste host still reads grow 1, so no gate can
@@ -57,3 +64,5 @@ reads 120 wide.
   instance must read `p:FIXED` and `grow:1` on the paste host, a literal. Remove both lines and that row and the parity line
   fail by name for segmented-control and nothing else. The plugin side has no generic write (its `claimDefaults` returns
   early on an instance), so its parent-side line is load-bearing and test-write-components' equal-widths arm holds it.
+  The paste-side parent write stays, for lockstep with the plugin path; its comment in `anatomy-figma.ts` says it is
+  redundant there rather than claiming the neutralizer never reaches an instance (delta check on 98df419e).
