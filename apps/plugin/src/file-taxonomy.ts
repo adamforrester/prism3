@@ -106,6 +106,9 @@ export const TAXONOMY: Taxonomy = {
         // Accordion (#2417) — its own page under Components after Divider, which it nests (DRAFT, owner item). Its
         // building-block indicator builds first on the same page, so the header's nests resolve as Tabs' do.
         { page: 'Accordion', defs: ['_accordion-indicator', 'accordion'] },
+        // List (#2319, owner decision Q273.7) — its own page under Components, List.Item beside it. The item builds first,
+        // so the list's nested items resolve against it on the same page.
+        { page: 'List', defs: ['list-item', 'list'] },
       ],
     },
     {
