@@ -28,7 +28,9 @@
  *      resolvedType: 'STRING' }`, and the variable name is a cut name (`.../font/style/<cat>/<role>`).
  *      This is the #1485 claim, and the arm the "revert to baked" mutation trips.
  *   B. CUT VARIABLE EXISTS — that bound variable is present in the brand's `core.font.json`, STRING,
- *      scoped FONT_STYLE, with a NON-EMPTY string value. A bind to a missing variable is a dangling
+ *      with NO scope (#2602: every `core` row but the font family and weight rows is unscoped, so no
+ *      local picker offers it; the style binds it through the API, which scopes do not limit) and a
+ *      NON-EMPTY string value. The scope set is held to the literal `[]`, not the emitter's constant. A bind to a missing variable is a dangling
  *      reference; a bind to an empty cut is a downgrade in disguise.
  *   C. WEIGHT IS PARALLEL DATA — every text style's `fontWeight` is `{ bound: false, value: <number> }`,
  *      never bound. Binding it too would double-bind the single weight/style control against the STRING
@@ -186,12 +188,12 @@ for (const brand of brands) {
     const cut = p.fontStyle as { bound?: boolean; variable?: string } | undefined;
     if (cut?.bound === true && cut.variable && CUT_NAME.test(cut.variable)) {
       cutBinds++;
-      // B — the bound cut variable exists in core, STRING/FONT_STYLE, non-empty value.
+      // B — the bound cut variable exists in core, STRING, unscoped (#2602), non-empty value.
       const v = varByName.get(cut.variable);
       if (!v) failures.push(`${brand}/${s.name}: cut variable '${cut.variable}' is bound but NOT emitted in core.font.json — a dangling reference`);
       else {
         if (v.resolvedType !== 'STRING') failures.push(`${brand}/${s.name}: cut variable '${cut.variable}' is ${v.resolvedType}, not STRING`);
-        if (!(v.scopes ?? []).includes('FONT_STYLE')) failures.push(`${brand}/${s.name}: cut variable '${cut.variable}' is not scoped FONT_STYLE (${JSON.stringify(v.scopes)})`);
+        if (JSON.stringify(v.scopes) !== '[]') failures.push(`${brand}/${s.name}: cut variable '${cut.variable}' carries scopes ${JSON.stringify(v.scopes)} — a \`core\` cut is unscoped (#2602)`);
         if (typeof v.value !== 'string' || v.value.length === 0) failures.push(`${brand}/${s.name}: cut variable '${cut.variable}' has an empty/non-string value (${JSON.stringify(v.value)}) — a silent downgrade`);
       }
       // D — per-category isolation: the cut's category matches the style's family category.
@@ -226,4 +228,4 @@ if (failures.length) {
   process.exit(1);
 }
 console.log(`  ✓ every text style binds its cut to a per-category STRING variable, keeps fontWeight as unbound data,`);
-console.log(`    and every bound cut resolves to an emitted FONT_STYLE variable, in all ${brands.length} brand(s).`);
+console.log(`    and every bound cut resolves to an emitted, unscoped core variable, in all ${brands.length} brand(s).`);

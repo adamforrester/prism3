@@ -30,7 +30,8 @@
  *   all three/…  reactions to repair, sets to move (#2542) and pages to reorder (#2568) in ONE run: one named version,
  *                all of it done, and a change to any of the three after the check refuses the confirm. Mutations: the
  *                reactions dropped from a set's fingerprint → `all three/hash, reactions`; the set's move dropped from
- *                `previewHashOf` → `all three/hash, set`; the page list dropped from it → `all three/hash, page`.
+ *                `previewHashOf` → `all three/hash, set`; the page list dropped from it → `all three/hash, page`. The
+ *                three sets keep the ids the shim gave them (#2593); every set named `SET:1` again → `all three/converges`.
  *
  * Run: `npx tsx apps/plugin/test-reactions.ts`
  */
@@ -309,8 +310,6 @@ section('all three — reactions, set moves and page reorders in one run: one ve
   for (const id of IDS) { const r = await applyComponentPlan(plansBy.get(id)!, api); if (r.misses.length) throw new Error(`premise: ${id} built with ${r.misses.length} miss(es): ${r.misses[0]}`); }
   const sets = page.children.filter((n) => n.type === 'COMPONENT_SET') as Node[];
   for (const set of sets) (set as { parent?: unknown }).parent = page;
-  // The shim names every set `SET:1`; the host gives each its own id, and the apply's identity check finds a set by it.
-  sets.forEach((s, k) => { s.id = `SET:${k + 1}`; });
   const fresh = sets.map((n) => [Number(n.x), Number(n.y)]);
   for (let k = 1; k < sets.length; k++) sets[k].x = Number(sets[k - 1].x) + Number(sets[k - 1].width) + 160;
   type P = { name: string; isPageDivider?: boolean; appendChild(): void };
