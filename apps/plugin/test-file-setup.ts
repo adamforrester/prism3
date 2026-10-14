@@ -466,6 +466,32 @@ console.log('3d. the #2597 file: update, file-setup and builds move only the com
     ok(got?.name === '↳ Icons & assets' && JSON.stringify(f.ids()) === JSON.stringify(before),
       `replay/existing page outside its non-alphabetical section, ${reading} reading: the build returns it where it is and moves nothing (${JSON.stringify(f.ids().filter((id, i) => before[i] !== id))})`);
   }
+
+  // A CREATED HEADER LANDS AT THE END OF THE PREVIOUS SECTION'S SPAN (#2605), not after that section's furthest page:
+  // on this file `↳ Grids & layouts`, a Foundations page, sits under Sandbox, and a `Components` anchored off it went
+  // inside Sandbox. A divider the run creates shows as `--- new`. Mutation: the anchor back to the furthest page →
+  // `created header/…` (Components after `↳ Grids & layouts`).
+  const plain = (label: string[]): string[] => label.map((n) => (n.startsWith('--- new:') ? '--- new' : n));
+  const TAIL = ['--- 1:676', 'Subcomponents', ...SUB_PAGES, '--- 1:678', 'Sandbox', '↳ Grids & layouts', '↳ File Components', '↳ Helpful Tools'];
+  const HEAD = ['Cover', '--- 1:669', 'Foundations', '↳ Primitive tokens', '↳ Semantic tokens', '↳ Icons & assets'];
+  for (const reading of ['host', 'splice'] as const) {
+    for (const run of ['build', 'file-setup'] as const) {
+      // The header deleted, its divider and its pages kept: it comes back where it stood, on that divider, over its pages.
+      const f = fixture(ORIGINAL.filter(([, id]) => id !== '1:673'), reading);
+      if (run === 'build') await resolveComponentPage(f.api, 'button', TAXONOMY); else await scaffoldSkeleton(f.api, TAXONOMY);
+      const want = [...HEAD, '--- 1:674', 'Components', ...COMPONENT_PAGES, ...TAIL];
+      ok(JSON.stringify(plain(f.label())) === JSON.stringify(want),
+        `created header/kept pages, ${run}, ${reading} reading: Components comes back on its own divider, ahead of its pages, outside Sandbox (${JSON.stringify(plain(f.label()).slice(5, 9))} … ${JSON.stringify(plain(f.label()).slice(-6))})`);
+
+      // The whole section gone, divider and pages too: the header takes the divider that closed Foundations, and a new
+      // divider keeps it apart from Subcomponents.
+      const g = fixture(ORIGINAL.filter(([n, id]) => id !== '1:673' && id !== '1:674' && !COMPONENT_PAGES.includes(n)), reading);
+      if (run === 'build') await resolveComponentPage(g.api, 'button', TAXONOMY); else await scaffoldSkeleton(g.api, TAXONOMY);
+      const wantG = [...HEAD, '--- 1:676', 'Components', ...(run === 'build' ? ['↳ Buttons'] : []), '--- new', ...TAIL.slice(1)];
+      ok(JSON.stringify(plain(g.label())) === JSON.stringify(wantG),
+        `created header/no section left, ${run}, ${reading} reading: Components after Foundations' span, a divider each side, outside Sandbox (${JSON.stringify(plain(g.label()).slice(5, 10))} … ${JSON.stringify(plain(g.label()).slice(-6))})`);
+    }
+  }
 }
 
 // ── 4. Taxonomy coverage of the real registry ────────────────────────────────────────────────────

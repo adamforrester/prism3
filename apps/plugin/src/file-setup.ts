@@ -132,8 +132,9 @@ const ensureDividerBefore = (api: PagesApi, ref: PageLike): void => {
   moveAfter(api.root, div, idx > 0 ? api.root.children[idx - 1] : null);
 };
 
-/** The last existing page (header or any leaf, empty or on-demand) of a section, by document order — the
- *  anchor the NEXT section's divider hangs off. Null when the section has no page in the file yet. */
+/** The last existing page (header or any leaf, empty or on-demand) of a section, by document order. The anchor for
+ *  the NEXT section's header only when this one has no header, so no span (`sectionEndAnchor`). Null when the section
+ *  has no page in the file yet. */
 const lastExistingPageOfSection = (api: PagesApi, section: TaxonomySection): PageLike | null => {
   const names = [section.header, ...section.leaves.map(leafPageName)];
   let best: PageLike | null = null;
@@ -145,6 +146,22 @@ const lastExistingPageOfSection = (api: PagesApi, section: TaxonomySection): Pag
     if (i > bestIdx) { best = p; bestIdx = i; }
   }
   return best;
+};
+
+/**
+ * WHERE THE NEXT SECTION'S CREATED HEADER HANGS OFF (#2605): the end of `section`'s SPAN, the pages from its header
+ * to the next divider, never the furthest of its pages wherever it sits. A leaf a designer keeps in another section
+ * (a Foundations page under Sandbox) is not where Foundations ends, and anchoring off it put a created `Components`
+ * inside Sandbox. When a divider closes the span, the anchor is that divider, so a created header reuses it and lands
+ * where a deleted one stood, ahead of any of its own pages still there; when the span runs to the end of the file,
+ * the anchor is its last page. A section with no header in the file has no span, and falls back to its furthest page.
+ */
+const sectionEndAnchor = (api: PagesApi, section: TaxonomySection): PageLike | null => {
+  const children = api.root.children;
+  const span = sectionSpan(children, section);
+  if (!span) return lastExistingPageOfSection(api, section);
+  const end = span.start + span.pages.length;
+  return children[end] ?? children[end - 1];
 };
 
 /** What `scaffoldSkeleton` reconciled — page names created this run, and the File Components page node so
@@ -198,7 +215,7 @@ export const scaffoldSkeleton = async (api: PagesApi, taxonomy: Taxonomy = TAXON
         if (existing) leafAnchor = existing;
       }
     }
-    anchor = lastExistingPageOfSection(api, section) ?? header ?? anchor;
+    anchor = sectionEndAnchor(api, section) ?? header ?? anchor;
   }
 
   return { created, fileComponentsPage };
@@ -206,19 +223,24 @@ export const scaffoldSkeleton = async (api: PagesApi, taxonomy: Taxonomy = TAXON
 
 /**
  * Ensure a section's header page exists — the minimal skeleton the page-aware build needs when it runs before
- * (or without) a full `scaffoldSkeleton`. A header it CREATES goes after the previous section's last existing
- * page, else after Cover, else at the end, with a divider before it. An existing header is returned as found:
+ * (or without) a full `scaffoldSkeleton`. A header it CREATES goes at the end of the previous section's span
+ * (`sectionEndAnchor`), else after Cover, else at the end, with a divider before it. An existing header is returned as found:
  * the build creates no divider beside it and moves nothing (#2597), whatever page sits before it.
  */
 const ensureSectionHeader = (api: PagesApi, taxonomy: Taxonomy, section: TaxonomySection): PageLike => {
   const found = findNamed(api, section.header);
   if (found) return found;
   const idx = taxonomy.sections.indexOf(section);
-  const prev = idx > 0 ? lastExistingPageOfSection(api, taxonomy.sections[idx - 1]) : null;
+  const prev = idx > 0 ? sectionEndAnchor(api, taxonomy.sections[idx - 1]) : null;
   const anchor = prev ?? findNamed(api, taxonomy.cover);
   const header = ensureNamed(api, section.header).page;
   placeAfter(api, header, anchor);
   ensureDividerBefore(api, header);
+  // Reusing the divider that closed the previous span can leave the created header straight above the next section's
+  // header. A divider goes between them, created, never moved in (#2597): file-setup's walk does the same for every
+  // header it reaches.
+  const next = api.root.children[api.root.children.indexOf(header) + 1];
+  if (next && !isDivider(next) && taxonomy.sections.some((s) => s.header === next.name)) ensureDividerBefore(api, next);
   return header;
 };
 
