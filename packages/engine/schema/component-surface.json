@@ -297,6 +297,14 @@
       "members": 24,
       "sha256": "bf90e1abfe92bdb827247b68db8cdd370e38578c50fe4fe4d3ebdf08ac98698c"
     },
+    "list-item": {
+      "members": 9,
+      "sha256": "fe7450e9de9e4e51368e45ad3a560934cc76cc7f17c9328bea32977a40563ddf"
+    },
+    "list": {
+      "members": 9,
+      "sha256": "96372cb53a57539f124bedbc88ea5bf507bbf312bdaea6317e8c335c9ebee4b1"
+    },
     "link": {
       "members": 96,
       "sha256": "93a37091efcf42afcbca8b5cb738dd424ff04b8f2a9c2a7eb943753abb6ee62f"

@@ -301,7 +301,11 @@ const LADDER_STATED_ONCE: Record<string, string> = {
  * the reason, both directions: an admitted def that binds a tier rung at its default is stale, and a def whose
  * default reaches only spacing and is not admitted fails as before.
  */
-const SPACING_ONLY_LADDER: Record<string, string> = {};
+const SPACING_ONLY_LADDER: Record<string, string> = {
+  // #2319: List's own size binding is its item gap, a space step per size; its type and marker scale through the
+  // nested List.Item, which this gate checks on its own rungs.
+  list: 'its only size-keyed binding is the item gap (`space.100` / `150` / `200`); the text and markers are sized by the nested List.Item, checked under its own name',
+};
 
 /**
  * DEFS WHOSE FIGMA ORDER LEADS WITH THE DEFAULT (#2266). The code enum (`props.size.values`) is the LADDER and
@@ -345,6 +349,7 @@ const MUST_COVER = [
   'radio-control', 'radio-row', 'radio-group',
   'switch-control', 'switch-row',
   '_accordion-indicator', 'accordion',
+  'list-item', 'list',
   'link',
 ];
 

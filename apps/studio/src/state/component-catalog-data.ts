@@ -876,6 +876,47 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     ]
   },
   {
+    "id": "list-item",
+    "name": "List.Item",
+    "category": "data",
+    "summary": "One list item: a bullet, number or icon at a fixed indent, then text that wraps under itself.",
+    "unit": "variants",
+    "spacing": [],
+    "buildable": true,
+    "reason": null,
+    "members": 9,
+    "nests": [
+      "icon"
+    ]
+  },
+  {
+    "id": "list",
+    "name": "List",
+    "category": "data",
+    "summary": "Short UI items after a bullet, number or icon. For running text, use a native text list.",
+    "unit": "variants",
+    "spacing": [
+      {
+        "key": "size.small.gap",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.medium.gap",
+        "ref": "space.150"
+      },
+      {
+        "key": "size.large.gap",
+        "ref": "space.200"
+      }
+    ],
+    "buildable": true,
+    "reason": null,
+    "members": 9,
+    "nests": [
+      "list-item"
+    ]
+  },
+  {
     "id": "link",
     "name": "Link",
     "category": "navigation",

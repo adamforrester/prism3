@@ -373,6 +373,30 @@
         "sha256": "88cf8aa7fe0701bac67a5b532f21e05c004048e63d2eab9d163288cc68743b9b"
       }
     },
+    "list-item": {
+      "set": {
+        "members": 9,
+        "assignments": 18,
+        "sha256": "6adb8fe761ef26ab54ac1b81746538e0827fd0ac16c3e93e90b96b5b0ce78839"
+      },
+      "grid": {
+        "members": 9,
+        "assignments": 18,
+        "sha256": "01a23cf7308c78c8875f8cc52e781ded94f0dd6de14cf5616b09e81df04eeeca"
+      }
+    },
+    "list": {
+      "set": {
+        "members": 9,
+        "assignments": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "grid": {
+        "members": 9,
+        "assignments": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
     "link": {
       "set": {
         "members": 96,

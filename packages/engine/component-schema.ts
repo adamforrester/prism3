@@ -700,6 +700,13 @@ export type PartDef = {
    *  naming a glyph that survives the swap is untouched, and every def naming one that does not fails at
    *  projection instead of building an empty square. */
   glyph?: string;
+  /** For a `slot`: the icon-set glyph its swap starts at, in place of the file's nominated default (#2319, owner
+   *  decision Q273.3: List's icon marker starts at `check`). The slot keeps its INSTANCE_SWAP property, so a designer
+   *  still swaps it; only the property's default and the built instance change, to `icon/<glyph>`, which the plugin
+   *  builds first as it does any swap target (`build-deps.ts`). A NAME from the icon set, resolved at projection like
+   *  `glyph`, so a set that drops it fails there by name rather than building a placeholder. Refused on every kind
+   *  but `slot`: only a slot carries a swap property to default. */
+  swapDefault?: string;
   /** THE FRACTION OF ITS BOX A `vector`'s ICON OCCUPIES (#1346). An icon fills its part's box by default
    *  (`glyphScale` absent ≡ `1`): the box is bound to its host size and the ink renders at whatever
    *  proportion the artwork itself draws (`check` draws ~71% of the grid). A control whose reference sits its
@@ -4665,6 +4672,9 @@ const anatomyErrors = (def: ComponentDef): string[] => {
     // leaves an author believing the part draws something.
     if (p.kind !== 'vector' && p.glyph !== undefined)
       e.push(`anatomy part '${n}' is kind '${p.kind}' but names a 'glyph' — only a 'vector' part carries geometry. A slot's content is whatever the consumer swaps in, which is a component and not a path`);
+    // `swapDefault` (#2319) is read only for a slot, which alone carries a swap property to default.
+    if (p.swapDefault !== undefined && p.kind !== 'slot')
+      e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'swapDefault' — only a 'slot' carries a swap property whose default it sets, so on any other kind it is ignored`);
     // `glyphScale` (#1346) is read only by the vector branch's glyph-document emitter, so it is the
     // same wrong-kind-silently-ignored shape as `glyph` above and refused the same way. And its RANGE is
     // load-bearing: the projector pads the artboard to `grid / glyphScale`, so `0` divides and a value
