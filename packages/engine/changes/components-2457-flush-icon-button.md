@@ -6,7 +6,7 @@ button with no padding, no fill and no border, made to be nested (a counter's mi
 only, on IconButton.Neutral's glyph roles (`color.interactive.neutral.icon.*`, `color.disabled.icon`); hover and
 pressed move the glyph ink alone. The box is the glyph, 20 / 20 / 24px (`icon.size.sm` / `sm` / `md`, Q283.13 A), so
 in code the hit area extends to at least 44×44px at every size and Figma draws the glyph square only. `size` ×
-`state` (rest, hover, pressed, focus-visible, disabled) = 15 members, carrying Rest → Hover → Pressed reactions
+`state` (rest, hover, pressed, focus-visible, disabled) = 15 members in the flush-only build (30 with the second shape, below), carrying Rest → Hover → Pressed reactions
 through the existing mechanism (#2574). Its page is under Subcomponents. The three IconButton sets are unchanged.
 No new token, so CONTRACT is unchanged.
 

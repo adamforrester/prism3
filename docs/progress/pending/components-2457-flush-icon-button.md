@@ -1,14 +1,16 @@
 ## (2026-10-14) — Flush icon button: a glyph-only action with no padding or fill, made to be nested (#2457, owner decision Q283.3 A)
 
-**Status:** a new def, `flush-icon-button` (`FlushIconButton`, name DRAFT), plus gates. ENGINE minor (change note). CONTRACT unchanged: no new token. No executor change, so `EXECUTOR_REVISION` stays at main's 15. 181 committed artifacts (one new docs page), moved in `verify.ts` and `ci.yml` together.
+**Status:** a new def, `flush-icon-button` (`FlushIconButton`, name DRAFT), plus gates. ENGINE minor (change note). CONTRACT unchanged: no new token. No executor change, so `EXECUTOR_REVISION` stays at main's 15. One new docs page, so the artifact count moved by one in `verify.ts` and `ci.yml` together: 183 on the tree merged with List (#2596), which added its own.
+
+**Current shape, in one line:** `shape` [flush, round] × `size` × `state` = 30 members, 18 reactions, a 32-set furniture rollout and 34 defs in `used-by.ts` on the merged tree. The first half below records the flush-only first push (15 members); where a figure there was later changed, it is marked *superseded* and the round section has the current one.
 
 **What it is (Q283.3 A, on #2427):** "its own small def, ghost only, no padding, color-only hover, code-side 44x44 hit area." The three IconButton sets are untouched.
-- `size` [small, medium, large] × `state` [rest, hover, pressed, focus-visible, disabled] = 15 members. No `appearance` axis.
-- The box is the glyph square: `size.{size}.side` → `icon.size.sm` / `sm` / `md` (20 / 20 / 24, Q283.13 A), and the swap slot binds the same key. No padding is bound, because none exists.
-- The box declares no `paintSlots`, so it paints nothing at any state. The glyph walks IconButton.Neutral's ghost ink (`color.interactive.neutral.icon.{rest,hover,pressed}`; neutral reflects inward since #2324, so hover does move), and `color.disabled.icon` at disabled.
+- `size` [small, medium, large] × `state` [rest, hover, pressed, focus-visible, disabled] = 15 members (*superseded*: 30 once the `shape` axis landed, below). No `appearance` axis.
+- The box is the glyph square: `size.{size}.side` (*superseded*: renamed `size.{size}.flush`, below) → `icon.size.sm` / `sm` / `md` (20 / 20 / 24, Q283.13 A), and the swap slot binds the same key. No padding is bound, because none exists.
+- The box declares no `paintSlots`, so it paints nothing at any state (*superseded*: it now declares `overlay` and `border` for the round shape, and flush still paints nothing; see "How flush stays unpainted" below). The glyph walks IconButton.Neutral's ghost ink (`color.interactive.neutral.icon.{rest,hover,pressed}`; neutral reflects inward since #2324, so hover does move), and `color.disabled.icon` at disabled.
 - Focus: the shared focus ring, `nest-fixed`, at `focus.ring.offset`, as on IconButton.
-- Reactions: nothing authored. `reactions.ts` derives scope from member names, and the set has rest, hover and pressed (#2574, Q238 A). `test-reactions.ts` `map/scope` now lists 12 defs, the new one at 15 members, 6 sources, 9 reactions (3 sizes × rest → hover, rest → pressed, hover → pressed).
-- Canvas furniture: on, like every set (`CANVAS_FURNITURE`, Q212 A); `test-canvas-furniture.ts` counts 30 sets, and the new set draws 5 column and 3 row labels.
+- Reactions: nothing authored. `reactions.ts` derives scope from member names, and the set has rest, hover and pressed (#2574, Q238 A). `test-reactions.ts` `map/scope` now lists 12 defs, the new one at 15 members, 6 sources, 9 reactions (3 sizes × rest → hover, rest → pressed, hover → pressed). *Superseded:* 30 members, 12 sources, 18 reactions with both shapes.
+- Canvas furniture: on, like every set (`CANVAS_FURNITURE`, Q212 A); `test-canvas-furniture.ts` counted 30 sets (*superseded*: 32 on the tree merged with List).
 - Page: `↳ Flush Icon Button` under Subcomponents (Q283.14 A), alphabetical between Field Message and Focus Ring.
 
 **The hit area is a stated rule, not a measurement.** No emitted token is its target: the box is 20 or 24px by design. `lint-hit-target.ts` gains a third classification beside INTERACTIVE and EXCLUDED, `CODE_SIDE_TARGETS`. A listed def is measured *below* 44 at every size on comfortable (so a box grown to 44 makes the entry stale by name), and must state the 44×44 rule twice, as literals the gate holds: in `codeOnly` (the maintainer record) and in the shipped `docs.do`. The second is the one that matters to an implementer, since `codeOnly` never ships. The nest arm now also sees code-side targets, so the Counter nesting two of these will have to list them in `INNER_TARGETS`.
@@ -16,16 +18,16 @@
 **Nesting (for the Counter):** `test-roundtrip.ts` builds a fixture host, never registered, that nests the button twice (`decrement`, `increment`), both `nest-exposed` with `expose: ['state']` and `follow: ['size']`, against the button's own set. It validates clean, and on the shim both instances in all 3 members are marked exposed, are instances of the right set, and read back with no `nestExpose` or `nestTarget` divergence. **So two nests exposing the same axis coexist on the shim.** A real host is not measured: Figma lists each exposed instance's properties under its own layer name, which the shim does not model.
 
 **Gates (each mutation-proven by name):**
-- `test.ts` `#2457 flush-icon-button`: 15 members (scope floor); no padding; box and glyph on the literal 20 / 20 / 24 rung; the box paints nothing at any state; the glyph walks the literal neutral ink.
+- `test.ts` `#2457 flush-icon-button` (*superseded* by the rewrite below, 30 members): 15 members (scope floor); no padding; box and glyph on the literal 20 / 20 / 24 rung; the box paints nothing at any state; the glyph walks the literal neutral ink.
 - `lint-hit-target.ts` `CODE_SIDE_TARGETS`: below 44 at every size; the `codeOnly` rule; the shipped `docs.do` rule. A self-check drives `ruleGap` both ways.
 - `test-roundtrip.ts` `#2457 two-nest`: the fixture above, plus the nested set offering the five owner-decided states as literals.
 - `test-file-setup.ts` 3c: the page lands at its literal alphabetical place.
-- Recorded counts that moved with the new def: the studio's `used-by.ts` index (`gen-used-by.ts --write`, 32 defs) and component catalog (`gen-component-catalog.ts --write`, which `test:chrome` reads for its count of sets) and the axis baseline `component-axes.json` (`lint-component-renames.ts --accept`, an addition with no rename).
+- Recorded counts that moved with the new def: the studio's `used-by.ts` index (`gen-used-by.ts --write`, 32 defs; *superseded*: 34 on the tree merged with List) and component catalog (`gen-component-catalog.ts --write`, which `test:chrome` reads for its count of sets) and the axis baseline `component-axes.json` (`lint-component-renames.ts --accept`, an addition with no rename).
 - List entries: `lint-rung-names` (`MUST_COVER`, and `ICON_OFFSET_DEFS`, because the medium default is the `sm` rung per Q283.13 A), `lint-axis-values` (the canonical size set), `lint-paint-placement` (`EXPECT_ANATOMY`), and both baselines accepted.
 
 **Mutations** (each on a committed tree, restored with `git reset --hard`):
 - Hover adds a fill (an `overlay` paint slot and an `overlay.hover` key): `test.ts` fails `#2457 flush-icon-button's box paints nothing at any state` (all three hover members), and `#1608 the wash binders` names the new binder.
-- Padding not zero (a `space.100` padding on the box): `test.ts` fails `#2457 flush-icon-button binds no padding at any member` (all 15).
+- Padding not zero (a `space.100` padding on the box): `test.ts` fails `#2457 flush-icon-button binds no padding at any member` (all 15 of the flush-only build).
 - The hit-area sentence deleted from `docs.do`: `lint-hit-target.ts` fails `flush-icon-button: the shipped docs.do does not tell the implementer to extend the hit area`.
 - The hit-area entry deleted from `codeOnly`: `lint-hit-target.ts` fails `flush-icon-button: no codeOnly entry states the code-side hit area`.
 - The fixture's `state` unexposed (`nest-exposed` → `nest-fixed`): `test-roundtrip.ts` fails `#2457 two-nest: both flush icon buttons … marked exposed` (6 instances, `isExposedInstance=false`).
@@ -53,7 +55,7 @@
 
 **Gates (each mutation-proven by name):**
 - `test.ts` `#2457 flush-icon-button`, rewritten against literals for both shapes: 30 members; the axis is [flush, round]; no padding; the glyph 20 / 20 / 24 and the flush box on the same rung; the flush box paints nothing; the glyph ink walk on both shapes; the round box 36 / 44 / 56 and full-round; the round edge at every state; the round wash at hover and pressed only.
-- `lint-hit-target.ts` `CODE_SIDE_TARGETS`: the flush key re-pointed, and a new `atFloor` list measures the round circle at medium and large (literal sizes) against the 44px floor over comfortable and spacious. Small round (36) stays under the code-side rule the def states "at every size".
+- `lint-hit-target.ts` `CODE_SIDE_TARGETS`: the flush key re-pointed, and a new `atFloor` list measures the round circle at medium and large (literal sizes) against the 44px floor over comfortable and spacious. Small round (36) stays under the code-side rule the def states "at every size". The `atFloor.sizes` list is itself asserted against the literal `medium,large` in the self-check (Q287 A), as `FLUSH_SIZES` is: without it, narrowing the list to `['large']` let the medium circle drop to 36 with every gate green (the #2443 shape, found in independent review).
 - `lint-axis-values.ts`: a second `shape` set, `[flush, round]`, `disjoint`, and IconButton's `[square, circular]` moves from `sole` to `canonical`. The reason names the near-overlap (`round` draws IconButton's `circular` corner).
 
 **Owner items (DRAFT), the round shape:**
@@ -67,5 +69,6 @@
 - Round loses its edge (`round.border` deleted): `test.ts` fails `#2457 flush-icon-button's round shape keeps its decorative edge at every state` (every round member, disabled included, since the disabled edge needs a rest edge).
 - Round's hover drops its fill (`round.overlay.hover` deleted): `test.ts` fails `#2457 flush-icon-button's round shape fills with the neutral overlay at hover and pressed, and at no other state` (the three round hover members).
 - Flush gains a fill (a `flush.overlay.hover` key): `test.ts` fails `#2457 flush-icon-button's flush box paints nothing at any state` (the three flush hover members).
+- `atFloor.sizes` narrowed to `['large']`: `lint-hit-target.ts` fails `flush-icon-button atFloor.sizes is [large], but the round circle is held to the 44px floor at medium and large (owner Q287 A).`
 
 **A trap:** a brand whose `outlineInteraction` is `none` drops the round shape's hover and pressed wash, as it does for every neutral wash (`applyOutlineInteraction`; `#1608` now names this def among the binders). On such a brand the round shape's hover moves the glyph ink only. The `test.ts` arm reads the default projection, where the wash is present.
