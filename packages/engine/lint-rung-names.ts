@@ -214,6 +214,9 @@ const ICON_OFFSET_DEFS: Record<string, string> = {
   // The Accordion's glyph, one rung below its control (owner QA of the live build, 2026-10-12, #2417): 16/20/24, so
   // its medium default is `sm`, as Button's is.
   '_accordion-indicator': 'icon.size.*',
+  // The flush icon button (#2457): its box IS the glyph, 20/20/24 (owner Q283.13 A, on #2427), so its medium
+  // default is `sm`, as the Accordion's glyph is.
+  'flush-icon-button': 'icon.size.*',
 };
 
 /**
@@ -338,7 +341,7 @@ const SIZE_BY_FOLLOW_ONLY: Record<string, string> = {
 const MUST_COVER = [
   'icon', 'spinner',
   'button', 'button-destructive', 'button-neutral',
-  'icon-button', 'icon-button-destructive', 'icon-button-neutral',
+  'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'flush-icon-button',
   'field-label', 'text-field', 'textarea', 'select', 'tag',
   'tab', 'tabs',
   'checkbox-control', 'checkbox-row', 'checkbox-group',

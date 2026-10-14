@@ -165,6 +165,10 @@
       "members": 216,
       "sha256": "f858d2f9f7ad130ff0d46a543d4e97d64cdbc9f94fef7cee78789a1b9e8e72c2"
     },
+    "flush-icon-button": {
+      "members": 15,
+      "sha256": "224f3ebce987cbcdd330f12134711aa03d98b09c977f0889bc0281bcdb6530be"
+    },
     "field-label": {
       "members": 24,
       "sha256": "5f7578aab19f22b43959f2dfcde6e62c5bf9c9d26b96a56e31e544fb897a5bc5"

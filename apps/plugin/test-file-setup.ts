@@ -256,8 +256,9 @@ console.log('3c. subcomponent pages: alphabetical within their own section, no p
   {
     const { api, children, names } = makePagesShim();
     await scaffoldSkeleton(api, TAXONOMY);
-    for (const id of ['spinner', 'field-message', 'image-placeholder', 'focus-ring', 'field-label']) await resolveComponentPage(api, id, TAXONOMY);
-    ok(JSON.stringify(spanOf(names(), 'Subcomponents')) === JSON.stringify(['↳ Field Label', '↳ Field Message', '↳ Focus Ring', '↳ Image Placeholder', '↳ Spinner']),
+    // #2457 — the flush icon button joins the section (owner Q283.14 A), between Field Message and Focus Ring.
+    for (const id of ['spinner', 'field-message', 'flush-icon-button', 'image-placeholder', 'focus-ring', 'field-label']) await resolveComponentPage(api, id, TAXONOMY);
+    ok(JSON.stringify(spanOf(names(), 'Subcomponents')) === JSON.stringify(['↳ Field Label', '↳ Field Message', '↳ Flush Icon Button', '↳ Focus Ring', '↳ Image Placeholder', '↳ Spinner']),
       `order/sub new page: each new Subcomponents page lands at its alphabetical place (${JSON.stringify(spanOf(names(), 'Subcomponents'))})`);
     ok(pagesOutOfOrder(children).length === 0, 'order/sub new page: a file built only by the build reads in order');
   }

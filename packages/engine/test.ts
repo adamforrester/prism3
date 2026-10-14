@@ -70,7 +70,7 @@ import type { AnatomyPlan, ButtonLayout } from './anatomy-figma';
 // ABOUT one component (`button.variants.appearance`, `textField.tokens[...]`), which a find-by-id
 // over the set would only make weaker. Completeness of the set is NOT asserted here — that is
 // `typecheck-components.ts`'s registry arm, whose oracle is git's index.
-import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, checkboxControl, checkboxRow, checkboxGroup, radioGroup, textarea, radioControl, radioRow, switchControl, switchRow, select, spinner, tag, tab, divider } from './components/index';
+import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, flushIconButton, icon, focusRing, fieldLabel, fieldMessage, textField, checkboxControl, checkboxRow, checkboxGroup, radioGroup, textarea, radioControl, radioRow, switchControl, switchRow, select, spinner, tag, tab, divider } from './components/index';
 // The glyph vocabulary, for #864's geometry assertions. Imported so EXPECTED comes from the set rather
 // than from the projector that read it — the two halves `docs/34` requires.
 import { ICON_NAMES, ICON_PATHS, ICON_FILL_RULES, ICON_VIEWBOX } from './icon-glyphs';
@@ -16199,6 +16199,46 @@ arm: {
   ok(JSON.stringify(button.variants.appearance) === JSON.stringify(['filled', 'outline', 'text']), 'component: Button appearance axis is filled/outline/text (reconciled)');
   ok(!Object.values(button.tokens).some((v) => /color\.action\.|color\.foreground\.danger\.|foreground\.secondary/.test(String(v))), 'component: Button binds interactive.*/disabled.*, not the legacy action./danger./secondary roles');
   ok(iconButton.inherits === 'button' && !!iconButton.props.find((p) => p.name === 'aria-label')?.required, 'component: IconButton inherits button + REQUIRES an accessible name');
+
+  // ---- #2457: THE FLUSH ICON BUTTON — owner decision Q283.3 A (on #2427): ghost only, NO padding, COLOR-ONLY hover ----
+  // EXPECTED is the decision, transcribed here as literals and never read off the def (docs/34): the box is the
+  // glyph's own `icon.size.*` rung (Q283.13 A: 20 / 20 / 24 → sm / sm / md), it binds no padding of any kind, and
+  // at NO state does the box paint (no fill, no overlay wash, no edge) — hover and pressed move the glyph ink alone,
+  // on IconButton.Neutral's ghost roles. ACTUAL is every projected member's plan, so a padding added, a box rebound
+  // to a control rung, or a wash keyed at hover each fail one named arm.
+  {
+    const FLUSH_SIDE: Record<string, string> = { small: 'icon/size/sm', medium: 'icon/size/sm', large: 'icon/size/md' };
+    const FLUSH_INK: Record<string, string> = {
+      rest: 'color/interactive/neutral/icon/rest', hover: 'color/interactive/neutral/icon/hover', pressed: 'color/interactive/neutral/icon/pressed',
+      'focus-visible': 'color/interactive/neutral/icon/rest', disabled: 'color/disabled/icon',
+    };
+    const plans = figmaAnatomySet(flushIconButton, { swapTarget: 'FPO-default-icon' });
+    // SCOPE FLOOR: every owner-decided size × state is a member, so a dropped state cannot shrink what is checked.
+    const coords = new Set(plans.map((p) => `${p.size}|${p.coord.state}`));
+    const missing = Object.keys(FLUSH_SIDE).flatMap((sz) => Object.keys(FLUSH_INK).map((st) => `${sz}|${st}`)).filter((c) => !coords.has(c));
+    ok(plans.length === 15 && missing.length === 0,
+      `#2457 flush-icon-button projects every size × state, 3 × 5 = 15 members (got ${plans.length}; missing: [${missing.join(', ')}])`);
+    const paddingBound: string[] = [], wrongSide: string[] = [], painted: string[] = [], wrongInk: string[] = [];
+    for (const p of plans) {
+      const name = planComponentName(p);
+      const root = p.root;
+      // NO PADDING: no padding field on the box, bound or literal, and the box and the glyph bind the SAME rung.
+      const padKeys = [...Object.keys(root.bound ?? {}), ...Object.keys(root)].filter((k) => /padding/i.test(k) && (root as Record<string, unknown>)[k] !== 0);
+      if (padKeys.length) paddingBound.push(`${name} [${padKeys.join(', ')}]`);
+      const glyph = root.children.find((c) => c.name === 'icon');
+      const want = FLUSH_SIDE[String(p.size)];
+      if (root.bound?.width !== want || root.bound?.height !== want || glyph?.bound?.width !== want || glyph?.bound?.height !== want)
+        wrongSide.push(`${name} (box ${root.bound?.width}×${root.bound?.height}, glyph ${glyph?.bound?.width}×${glyph?.bound?.height}, want ${want})`);
+      // COLOR-ONLY HOVER: the box itself paints nothing at any state — its paint, children excluded, is empty.
+      const own = planPaintVars({ ...root, children: [] });
+      if (own.length) painted.push(`${name} [${own.join(', ')}]`);
+      if (glyph?.descendantFills !== FLUSH_INK[String(p.coord.state)]) wrongInk.push(`${name} (${glyph?.descendantFills})`);
+    }
+    ok(paddingBound.length === 0, `#2457 flush-icon-button binds no padding at any member — the box is the glyph (Q283.3 A)${paddingBound.length ? ` — padded: ${paddingBound.join('; ')}` : ''}`);
+    ok(wrongSide.length === 0, `#2457 flush-icon-button's box and glyph are one rung, 20 / 20 / 24 (Q283.13 A)${wrongSide.length ? ` — ${wrongSide.join('; ')}` : ''}`);
+    ok(painted.length === 0, `#2457 flush-icon-button's box paints nothing at any state, hover and pressed included — no fill, no wash, no edge (color-only hover, Q283.3 A)${painted.length ? ` — painted: ${painted.join('; ')}` : ''}`);
+    ok(wrongInk.length === 0, `#2457 flush-icon-button's glyph walks the neutral ghost ink, rest → hover → pressed, and the disabled icon role at disabled${wrongInk.length ? ` — ${wrongInk.join('; ')}` : ''}`);
+  }
 
   // #1225 — INTENT IS THE COMPONENT NOW, NOT AN AXIS (the icon-only counterpart of #1223's Button split).
   // The three semantic intents are three components (IconButton = primary, Destructive IconButton, Neutral

@@ -193,6 +193,23 @@ const flushRuleGap = (codeOnly: readonly string[]): string[] => {
   return (best ?? FLUSH_RULE).map((re) => re.source);
 };
 
+// ── CODE-SIDE TARGETS (#2457, owner Q283.3 A): a control whose whole visible box is below the floor by design ──
+// The flush icon button's box IS its glyph (20 or 24px, no padding), so no emitted token is its target: the owner's
+// rule is a hit area of at least 44×44 in CODE at every size, through an invisible extension, and Figma draws the
+// glyph square only. So, as for FLUSH_MEMBERS, this gate requires the def to STATE it, twice: in `codeOnly` (the
+// maintainer record) and in the shipped `docs.do` (the page an implementer reads, which `codeOnly` never reaches).
+// Each listed def is also measured BELOW the floor at every size on comfortable, so a box later grown to 44 makes the
+// entry stale by name rather than leaving a code-side claim on a control that no longer needs one. The phrases are
+// literals here, never read off the def (docs/34): deleting either sentence from the def fails this gate by name.
+const CODE_SIDE_TARGETS: Record<string, { key: (size: string) => string; why: string }> = {
+  'flush-icon-button': { key: (s) => `size.${s}.side`, why: "the flush icon button's glyph square, with no padding" },
+};
+const CODE_SIDE_RULE = [/at least 44×44px at every size/, /::before`? inset outward/, /centered on the glyph/];
+const CODE_SIDE_DOC = [/hit area in code to at least 44×44px at every size/, /::before`? inset outward/];
+/** The phrases of `rule` that no single entry carries (the best entry's gaps). Pure, so the self-check can drive it. */
+const ruleGap = (entries: readonly string[], rule: readonly RegExp[]): string[] =>
+  (entries.map((e) => rule.filter((re) => !re.test(e))).sort((a, b) => a.length - b.length)[0] ?? [...rule]).map((re) => re.source);
+
 /** The defs carved out as a size-level exception: a small button (owner, #1443) and a small tag (owner,
  *  2026-09-27, "as for Button") sit below the floor on purpose. Kept as data so the walk asserts each is
  *  ACTUALLY below the floor. */
@@ -266,11 +283,13 @@ const defIds = new Set(componentDefs.map((d) => d.id));
 for (const d of componentDefs) {
   const inInteractive = d.id in INTERACTIVE;
   const inExcluded = d.id in EXCLUDED;
-  if (inInteractive && inExcluded) failures.push(`${d.id}: appears in BOTH INTERACTIVE and EXCLUDED — decide which, then state it once.`);
-  if (!inInteractive && !inExcluded) failures.push(`${d.id}: is neither measured nor excluded. A new interactive control must be added to INTERACTIVE with its hit-target binding; a non-control must be added to EXCLUDED with a reason.`);
+  const inCodeSide = d.id in CODE_SIDE_TARGETS;
+  if ([inInteractive, inExcluded, inCodeSide].filter(Boolean).length > 1) failures.push(`${d.id}: appears in more than one of INTERACTIVE, EXCLUDED and CODE_SIDE_TARGETS — decide which, then state it once.`);
+  if (!inInteractive && !inExcluded && !inCodeSide) failures.push(`${d.id}: is neither measured nor excluded. A new interactive control must be added to INTERACTIVE with its hit-target binding; a non-control must be added to EXCLUDED with a reason.`);
 }
 for (const id of Object.keys(INTERACTIVE)) if (!defIds.has(id)) failures.push(`INTERACTIVE names '${id}', which is not a def in componentDefs — a stale entry measures nothing.`);
 for (const id of Object.keys(EXCLUDED)) if (!defIds.has(id)) failures.push(`EXCLUDED names '${id}', which is not a def in componentDefs — a stale exclusion.`);
+for (const id of Object.keys(CODE_SIDE_TARGETS)) if (!defIds.has(id)) failures.push(`CODE_SIDE_TARGETS names '${id}', which is not a def in componentDefs — a stale entry.`);
 for (const id of SMALL_SIZE) if (!(id in INTERACTIVE)) failures.push(`SMALL_SIZE names '${id}', which is not an INTERACTIVE control — a stale exception entry.`);
 
 /** A control's DEFAULT size — the `size` prop's default, or `single` for the no-size-axis control. */
@@ -375,7 +394,9 @@ const markFailures = (defs: readonly ComponentDef[], interactive: ReadonlySet<st
 }
 failures.push(...selfFails.filter((f) => f.startsWith('markFailures')));
 
-failures.push(...markFailures(componentDefs, new Set(Object.keys(INTERACTIVE)), new Set(Object.keys(INNER_TARGETS))));
+// A code-side target (below) is a control too: a host nesting one has a second target inside it, which must be
+// listed, so the nest arm sees CODE_SIDE_TARGETS as well (#2457 — the Counter will nest two).
+failures.push(...markFailures(componentDefs, new Set([...Object.keys(INTERACTIVE), ...Object.keys(CODE_SIDE_TARGETS)]), new Set(Object.keys(INNER_TARGETS))));
 for (const [id, inner] of Object.entries(INNER_TARGETS)) {
   const [defId, partName] = id.split('.');
   const def = componentDefs.find((d) => d.id === defId);
@@ -444,8 +465,40 @@ for (const id of FLUSH_MEMBERS) {
   if (gap.length) failures.push(`${id}/inset=flush: no codeOnly entry states the code-side hit area, 44×44 at medium and large and 24×24 at small (missing or over-scoped: ${gap.join(', ')}) — a flush member has no width floor, so the height measured above does not cover it. State that its hit area is at least 44×44 at medium and large sizes and at least 24×24 at small in code through a ::before extension (owner Q154 A, Q170 B, Q174 B, #2408).`);
 }
 
-// ── EXCEPTION 1: small size — asserted ACTUALLY below the floor on comfortable (self-justified) ──
 const comfortable = floorBuilds.find((b) => b.density === 'comfortable')!;
+// ── CODE-SIDE TARGETS (#2457): below the floor at every size, and the 44×44 code-side rule stated twice ──
+{
+  const CASES: Array<{ why: string; entries: string[]; rule: RegExp[]; fires: boolean }> = [
+    { why: 'the rule stated in one codeOnly entry', entries: ['the hit area is at least 44×44px at every size in code: a transparent ::before inset outward and centered on the glyph'], rule: CODE_SIDE_RULE, fires: false },
+    { why: 'THE MUTATION: the size scope dropped', entries: ['the hit area is at least 44×44px in code: a transparent ::before inset outward and centered on the glyph'], rule: CODE_SIDE_RULE, fires: true },
+    { why: 'the phrases split across two entries', entries: ['at least 44×44px at every size', 'a ::before inset outward and centered on the glyph'], rule: CODE_SIDE_RULE, fires: true },
+    { why: 'the shipped instruction stated', entries: ['Extend its hit area in code to at least 44×44px at every size, with a transparent `::before` inset outward'], rule: CODE_SIDE_DOC, fires: false },
+    { why: 'THE MUTATION: the shipped instruction deleted', entries: ['Always give it an accessible name (a verb)'], rule: CODE_SIDE_DOC, fires: true },
+    { why: 'an empty list', entries: [], rule: CODE_SIDE_DOC, fires: true },
+  ];
+  for (const c of CASES)
+    if ((ruleGap(c.entries, c.rule).length > 0) !== c.fires) failures.push(`ruleGap, ${c.why}: should ${c.fires ? 'FIRE' : 'pass'}, but did not.`);
+}
+for (const [id, target] of Object.entries(CODE_SIDE_TARGETS)) {
+  const def = componentDefs.find((d) => d.id === id);
+  if (!def) continue;   // reported as stale above
+  const sizes = (def.variants?.size as string[] | undefined) ?? [];
+  if (!sizes.length) { failures.push(`${id}: CODE_SIDE_TARGETS measures each size, and the def declares no size axis.`); continue; }
+  for (const size of sizes) {
+    const path = (def.tokens as Record<string, string> | undefined)?.[target.key(size)];
+    const px = path ? resolvePx(comfortable.tree, comfortable.root, path) : undefined;
+    if (px === undefined) { failures.push(`${id}/${size}: tokens['${target.key(size)}'] does not resolve to a px on the comfortable build (${target.why}) — the box binding moved. Re-point CODE_SIDE_TARGETS['${id}'].key.`); continue; }
+    const bad = violation(px, 'exception');
+    rows.push(`${id}/${size} → ${path} = ${px}px (comfortable) [code-side hit area ≥ 44×44 at every size, #2457, Q283.3 A]${bad ? '  ✗' : ''}`);
+    if (bad) failures.push(`${id}/${size} (${target.why}) ${bad} — a box at the floor is an INTERACTIVE control, measured on its own box; move it there.`);
+  }
+  const ruleMiss = ruleGap(def.anatomy?.codeOnly ?? [], CODE_SIDE_RULE);
+  if (ruleMiss.length) failures.push(`${id}: no codeOnly entry states the code-side hit area (missing: ${ruleMiss.join(', ')}) — its box is below the floor by design, so the rule is the only target it has. State that the hit area is at least 44×44px at every size in code, through a ::before inset outward and centered on the glyph (owner Q283.3 A, #2457).`);
+  const docMiss = ruleGap(def.docs?.do ?? [], CODE_SIDE_DOC);
+  if (docMiss.length) failures.push(`${id}: the shipped docs.do does not tell the implementer to extend the hit area (missing: ${docMiss.join(', ')}) — codeOnly never ships, so without this the code docs lose the only 44×44 target the control has. Keep a docs.do entry: "Extend its hit area in code to at least 44×44px at every size, with a transparent ::before inset outward…" (owner Q283.3 A, #2457).`);
+}
+
+// ── EXCEPTION 1: small size — asserted ACTUALLY below the floor on comfortable (self-justified) ──
 for (const id of SMALL_SIZE) {
   const def = componentDefs.find((d) => d.id === id)!;
   const path = (def.tokens as Record<string, string>)['size.small.height'];
@@ -476,7 +529,7 @@ if (floorCount === 0 && !failures.length)
   failures.push(`no interactive control was measured against the floor — the gate asserts nothing.`);
 
 // ── REPORT ────────────────────────────────────────────────────────────────────────────────────────
-console.log(`Hit-target floor — floor ${FLOOR_PX}px (WCAG 2.5.5) at each control's DEFAULT size over the ${FLOOR_DENSITIES.join(' + ')} densities; ${floorCount} control(s) held to the floor, 2 permanent exceptions (small button or tag; compact density), ${Object.keys(EXCLUDED).length} def(s) excluded.`);
+console.log(`Hit-target floor — floor ${FLOOR_PX}px (WCAG 2.5.5) at each control's DEFAULT size over the ${FLOOR_DENSITIES.join(' + ')} densities; ${floorCount} control(s) held to the floor, 2 permanent exceptions (small button or tag; compact density), ${Object.keys(CODE_SIDE_TARGETS).length} code-side target(s), ${Object.keys(EXCLUDED).length} def(s) excluded.`);
 for (const r of rows) console.log(`    ${r}`);
 if (failures.length) {
   console.error(`\n❌ ${failures.length} hit-target failure(s):`);

@@ -277,6 +277,21 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     ]
   },
   {
+    "id": "flush-icon-button",
+    "name": "FlushIconButton",
+    "category": "form",
+    "summary": "Icon-only action with no padding or fill, set inside another component. Needs an accessible name.",
+    "unit": "variants",
+    "spacing": [],
+    "buildable": true,
+    "reason": null,
+    "members": 15,
+    "nests": [
+      "icon",
+      "focus-ring"
+    ]
+  },
+  {
     "id": "field-label",
     "name": "FieldLabel",
     "category": "form",

@@ -256,6 +256,31 @@
         "projection": []
       }
     },
+    "flush-icon-button": {
+      "codeOnly": [
+        "touch-target-expansion — the visible box is the glyph square (20px at small and medium, 24px at large) and carries no padding, so the hit area is at least 44×44px at every size in code: an invisible extension, such as a transparent `::before` inset outward and centered on the glyph, reaches past the glyph into the space around it, while the box stays glyph-sized so the glyph still lines up with the content edge. Figma has no hit areas, so it draws the glyph square only. A host must leave the extension room: two flush icon buttons closer than 44px apart overlap their hit areas.",
+        "focus-ring-offset — the ring geometry projects (an absolute sibling nesting the shared `focus-ring`), and its position is frozen at paste, as on IconButton: Figma's x and y accept no variable binding, so the build writes the sum of `focus.ring.offset` and `focus.ring.width`.",
+        "aria-label — the required accessible name, held at the type level in code. Figma cannot hold \"required\", and a text property named for it would read as a name already given.",
+        "Exposed state in a host — a host such as a counter nests this button with its `state` exposed, so the designer can show one side disabled at a limit. In code the host sets `aria-disabled=\"true\"` on that button at the limit rather than native disabled, so it stays in the accessibility tree.",
+        "RTL mirroring — only a directional glyph flips under RTL (a back or forward chevron); close, minus and plus stay as drawn."
+      ],
+      "notes": {
+        "contested": [
+          "NAME AND ID (DRAFT, owner item): `FlushIconButton` / `flush-icon-button`, a sibling-free id. `IconButton.Flush` / `icon-button-flush` would read as a fourth IconButton family sibling, which it is not (it has no appearance axis and a different box); `_flush-icon-button` would hide it from a published library, but a card close may place it directly.",
+          "THE COLOR FAMILY (DRAFT, owner item): neutral only, IconButton.Neutral's ghost glyph ink, as the quantity-stepper proposal drafted. A primary or destructive flush icon button is not built.",
+          "THE SMALL HIT AREA (DRAFT, owner item): 44×44 at every size, as Q283.3 A states it. The flush TEXT button puts small at 24×24 (Q174 B); this def does not follow that, since its small and medium glyph boxes are the same 20px.",
+          "TWO NESTS EXPOSING `state` ON ONE HOST are built and exposed on the shim (`test-roundtrip.ts`), but untested on a real host, where Figma lists each exposed instance's properties under its layer name."
+        ],
+        "unverified": [
+          "motion timing — no motion token is bound, so nothing gates the 100–150ms target.",
+          "The focus ring clears 3:1 against the page (gated, focus-ring.ts); against a host's fill it is not measured."
+        ],
+        "evolution": [
+          "Q283.3 A (2026-10-14): its own small def rather than an `inset` axis on IconButton's ghost appearance, so the three IconButton sets stay as they are."
+        ],
+        "projection": []
+      }
+    },
     "field-label": {
       "codeOnly": [
         "the DISABLED dim (#1339) — the label dims when its FIELD is disabled, and the field's native disabled is the source of truth. This is ONE mechanism, the `disabled` STATE: it projects as a Figma variant carrying the dimmed ink (`disabled.label` / `disabled.indicator` → `color.disabled.text`, kept above the 3:1 contrast floor), and in code it is driven by the disabled field's context (the CSS cascade / a data-attribute), NOT by a `disabled` prop on the label — the old prop that duplicated the state axis was removed. So a designer sees the dimmed variant in Figma, and a code consumer gets the dim from the field it names, with no second knob to keep in sync. When field-label is NESTED (select, checkbox, text-field), the host fixes it to `state=rest` and the code drives the dim, exactly as those defs' own `codeOnly` entries record.",

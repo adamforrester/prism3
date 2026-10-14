@@ -46,6 +46,7 @@
 import type { ComponentDef } from '../component-schema';
 import { button, buttonDestructive, buttonNeutral } from './button';
 import { iconButton, iconButtonDestructive, iconButtonNeutral } from './icon-button';
+import { flushIconButton } from './flush-icon-button';
 import { icon } from './icon';
 import { focusRing } from './focus-ring';
 import { fieldLabel } from './field-label';
@@ -78,7 +79,7 @@ import { accordion } from './accordion';
  *  be a worse call site, not a better one — a lookup that can return `undefined` standing in for a
  *  binding that cannot. The set is for iteration; these are for the assertions that are ABOUT one
  *  component. */
-export { button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, textarea, checkboxControl, checkboxRow, checkboxGroup, radioControl, radioRow, radioGroup, switchControl, switchRow, select, veil, imagePlaceholder, spinner, badge, tag, tab, tabs, divider, accordionIndicator, accordion };
+export { button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, flushIconButton, icon, focusRing, fieldLabel, fieldMessage, textField, textarea, checkboxControl, checkboxRow, checkboxGroup, radioControl, radioRow, radioGroup, switchControl, switchRow, select, veil, imagePlaceholder, spinner, badge, tag, tab, tabs, divider, accordionIndicator, accordion };
 
 /** Every component def the engine defines. The one thing a projection should iterate. */
 export const componentDefs: readonly ComponentDef[] = [
@@ -102,6 +103,9 @@ export const componentDefs: readonly ComponentDef[] = [
   // composition with (nest `focus-ring`, require `icon`).
   iconButtonDestructive,
   iconButtonNeutral,
+  // #2457 — the flush icon-only control (owner Q283.3 A), its own small def beside the three icon buttons. It
+  // nests `focus-ring` and swaps in `icon`, as they do.
+  flushIconButton,
   fieldLabel,
   fieldMessage,
   textField,

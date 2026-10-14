@@ -267,6 +267,23 @@
     },
     "members": 4
   },
+  "flush-icon-button": {
+    "axes": {
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ],
+      "state": [
+        "disabled",
+        "focus-visible",
+        "hover",
+        "pressed",
+        "rest"
+      ]
+    },
+    "members": 15
+  },
   "focus-ring": {
     "axes": {
       "surface": [
