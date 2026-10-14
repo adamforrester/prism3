@@ -134,10 +134,10 @@ ok(shim.collections.length === 3 && !!palCol && !!colCol && !!opCol, 'exactly th
 ok(colCol.modes.map((m) => m.name).join(',') === plan.color.modes.join(','),
   `color collection modes match the plan (${colCol.modes.map((m) => m.name).join('/')})`);
 
-// primitives hidden + scoped
+// primitives hidden + unscoped (#2602: empty scopes hide them from local pickers)
 const palVars = shim.vars.filter((v) => v.variableCollectionId === palCol.id);
-ok(palVars.length > 0 && palVars.every((v) => v.hiddenFromPublishing && v.scopes.length > 0),
-  'every `core` palette primitive hidden from publishing + scoped');
+ok(palVars.length > 0 && palVars.every((v) => v.hiddenFromPublishing && JSON.stringify(v.scopes) === '[]'),
+  'every `core` palette primitive hidden from publishing + unscoped (#2602)');
 
 // the collapse-guard: background/primary resolves to a DIFFERENT palette target per mode
 const colVars = new Map(shim.vars.filter((v) => v.variableCollectionId === colCol.id).map((v) => [v.name, v]));

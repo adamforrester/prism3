@@ -10,6 +10,9 @@
  * whole check — every rule evaluated over the entire before-set rather than only over what moved. The
  * accounting itself lives in `materialization-renames.ts`; this script only sources its two inputs.
  *
+ * On main's push run the merge base is HEAD itself, so there the first parent is the base instead
+ * (`comparison-base.ts`, #2556; replayed by `lint-push-base.ts`).
+ *
  * ── TWO REGISTERS RECORD A RENAME, AND THIS GATE READS BOTH (#1140) ─────────────────────────────
  *
  * "Claimed by a rule" was the whole test until #1140, and it was never the whole truth. A rule covers a
@@ -79,6 +82,7 @@ import {
   type VarKey,
 } from './materialization-renames';
 import { deriveVariableRenames } from './rename-map';
+import { comparisonBase } from './comparison-base';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(HERE, '..', '..');
@@ -193,7 +197,10 @@ if (!mb.ok || !mb.out.trim())
     '  A shallow clone is the usual cause: the histories are disconnected, so git cannot find a common',
     '  ancestor. `fetch-depth: 0` in CI, `git fetch --unshallow` locally.',
   ]);
-const base = mb.out.trim();
+// On the base branch the merge base is HEAD itself, and the first parent is compared instead (#2556):
+// `comparison-base.ts` has the reason, and `lint-push-base.ts` replays it against this gate.
+const cmp = comparisonBase(git, mb.out.trim(), die);
+const base = cmp.base;
 
 // Every emitted file the merge base TRACKED — `ls-tree` at that commit, so a file added on this branch
 // is absent (its keys are additions) and a file deleted on it is present (its keys are removals).
@@ -373,7 +380,7 @@ const listing = (label: string, xs: readonly string[]): string[] =>
 if (!isTotal(acct)) {
   const out: string[] = [
     `the emission moved and ${MATERIALIZATION_RENAMES.length} rule(s) do not account for it.`,
-    `    base ${base.slice(0, 8)} (${baseRef}) · ${acct.beforeCount} keys → working tree · ${acct.afterCount} keys`,
+    `    base ${base.slice(0, 8)} (${baseRef}, ${cmp.label}) · ${acct.beforeCount} keys → working tree · ${acct.afterCount} keys`,
     // The roots are printed because a wrong one changes every claim silently: with the root mis-read, the
     // #1097 rule's domain matches every live name and the report fills with contradictions that have
     // nothing to do with the diff. Seeing `nb@nbds` rules that out in one glance.
@@ -410,7 +417,7 @@ if (!isTotal(acct)) {
 }
 
 console.log(
-  `✓ materialization renames accounted for — base ${base.slice(0, 8)} (${baseRef}, via ${baseVia}), `
+  `✓ materialization renames accounted for — base ${base.slice(0, 8)} (${baseRef}, via ${baseVia}, ${cmp.label}), `
   + `roots ${per.map((p) => `${p.brand}@${p.root}`).join(' · ')}: `
   + `${acct.beforeCount} keys → ${acct.afterCount}, ${acct.removed.length} removed / ${acct.added.length} added, `
   + `${claimTally}.`

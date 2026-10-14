@@ -13,10 +13,12 @@
  *     page, and it never deletes (the same additive posture as the theme write, which refuses to delete a
  *     page/variable it cannot prove is stale). Dividers are matched by `isPageDivider`, not by name,
  *     because `---` is deliberately non-unique.
- *   • NON-DESTRUCTIVE TO ON-DEMAND LEAVES — the component pages the build creates (`Icons & assets`,
- *     `Buttons`, …) sit BETWEEN file-setup's own pages, so the reconciler only pulls a page tight against
- *     its anchor when the page is newly created or currently sits BEFORE the anchor; a page already after
- *     its anchor is left where it is, so a re-run does not reorder a designer's built component pages.
+ *   • NEVER MOVES A PAGE THAT EXISTS (#2597) — file-setup and the build position only the pages they
+ *     create. A header, divider, placeholder or component page already in the file stays where it is,
+ *     wherever that is: a designer's arrangement is theirs, and the in-place Update's page order
+ *     (`reorderPages`, listed in its dry run) is the one write that moves pages. Until #2597 an existing
+ *     page was pulled tight against its anchor when it sat before it, and on a real file whose Foundations
+ *     page lived under Sandbox that dragged every later section header to the end of the file.
  *
  * PORTED, NOT COUPLED TO `figma`: every document mutation goes through the `PagesApi` port so
  * `test-file-setup.ts` can drive it with an in-memory shim. The global `figma` satisfies the port
@@ -42,10 +44,12 @@ export interface PageLike {
 }
 
 /**
- * The document surface. `insertChild(index, page)` is Figma's own reposition primitive; its contract here
- * — matched by the shim — is REMOVE-THEN-SPLICE: if `page` is already a child it is removed first, then
- * inserted at `index` in the resulting array (clamped). Reading `root.children` requires the pages to be
- * loaded, hence `loadAllPagesAsync` on the port.
+ * The document surface. `insertChild(index, page)` is Figma's own reposition primitive. For a page already
+ * in the list, this module does NOT assume how the host reads `index` (#2597): the real file's page list
+ * after a build is only reachable if the host reads it in the list BEFORE the page is taken out, so a
+ * forward move lands one slot early, while the earlier shim read it after (remove-then-splice). Every move
+ * goes through `moveAfter`, which is right under either reading. Reading `root.children` requires the
+ * pages to be loaded, hence `loadAllPagesAsync` on the port.
  */
 export interface PagesApi {
   root: {
@@ -96,23 +100,26 @@ const ensureNamed = (api: PagesApi, name: string): { page: PageLike; created: bo
 };
 
 /**
- * Reposition `node` to sit immediately after `anchor` (or at the front when `anchor` is null), but only
- * when it needs moving. A freshly `created` page (appended at the end) is always pulled into place; an
- * EXISTING page is pulled only when it currently sits at or before the anchor — a page already further
- * along is left alone, which is what keeps on-demand component pages and hand-added pages from being
- * reordered on a re-run.
+ * MOVE `page` STRAIGHT AFTER `anchor` (the front when null), right under either reading of the host's index (#2597).
+ * The index is the anchor's in the list as it stands, plus one. Read before the page is taken out (the host), a page
+ * moving forward lands just after the anchor; read after (remove-then-splice), it lands one slot past it. Either
+ * way it is then after the anchor, so the one correction is a BACKWARD move, which both readings place the same.
+ * A backward move is right the first time under both. An anchor not in the list moves nothing.
  */
-const placeAfter = (api: PagesApi, node: PageLike, anchor: PageLike | null, created: boolean): void => {
-  const kids = api.root.children;
-  const ni = kids.indexOf(node);
-  const ai = anchor ? kids.indexOf(anchor) : -1;
-  if (anchor && ai < 0) return;            // anchor not in the file — cannot position; leave the node
-  if (ni === ai + 1) return;               // already immediately after the anchor — idempotent no-op
-  if (!created && ni > ai + 1) return;     // existing page already sits after the anchor — do not reorder
-  const withoutNode = ni < 0 ? [...kids] : kids.filter((_, i) => i !== ni);
-  const target = anchor ? withoutNode.indexOf(anchor) + 1 : 0;
-  api.root.insertChild(target, node);
+const moveAfter = (root: Pick<PagesApi['root'], 'children' | 'insertChild'>, page: PageLike, anchor: PageLike | null): void => {
+  const at = (): number => (anchor ? root.children.indexOf(anchor) + 1 : 0);
+  if (anchor && at() === 0) return;
+  if (root.children[at()] === page) return;
+  root.insertChild(at(), page);
+  if (root.children[at()] !== page) root.insertChild(at(), page);
 };
+
+/**
+ * Put a page this run CREATED (appended at the end) straight after `anchor`, or at the front when `anchor` is null.
+ * Only ever called for a created page: an existing page is never moved here (#2597), so a re-run, a build or a
+ * file-setup leaves a designer's arrangement exactly as it found it.
+ */
+const placeAfter = (api: PagesApi, node: PageLike, anchor: PageLike | null): void => moveAfter(api.root, node, anchor);
 
 /** Ensure a native divider sits immediately before `ref`. Reused if the page just before `ref` is
  *  already a divider; otherwise created and moved into the gap. */
@@ -120,14 +127,14 @@ const ensureDividerBefore = (api: PagesApi, ref: PageLike): void => {
   const idx = api.root.children.indexOf(ref);
   if (idx > 0 && isDivider(api.root.children[idx - 1])) return;
   const div = api.createPageDivider();
-  // Insert immediately before `ref`: in the array without the freshly-appended divider, that is `ref`'s
-  // current index.
-  const withoutDiv = api.root.children.filter((p) => p !== div);
-  api.root.insertChild(withoutDiv.indexOf(ref), div);
+  // Straight after the page before `ref`, so immediately before `ref` (#2597: through `moveAfter`, whatever the
+  // host's index reading and wherever the host put the new divider).
+  moveAfter(api.root, div, idx > 0 ? api.root.children[idx - 1] : null);
 };
 
-/** The last existing page (header or any leaf, empty or on-demand) of a section, by document order — the
- *  anchor the NEXT section's divider hangs off. Null when the section has no page in the file yet. */
+/** The last existing page (header or any leaf, empty or on-demand) of a section, by document order. The anchor for
+ *  the NEXT section's header only when this one has no header, so no span (`sectionEndAnchor`). Null when the section
+ *  has no page in the file yet. */
 const lastExistingPageOfSection = (api: PagesApi, section: TaxonomySection): PageLike | null => {
   const names = [section.header, ...section.leaves.map(leafPageName)];
   let best: PageLike | null = null;
@@ -139,6 +146,26 @@ const lastExistingPageOfSection = (api: PagesApi, section: TaxonomySection): Pag
     if (i > bestIdx) { best = p; bestIdx = i; }
   }
   return best;
+};
+
+/**
+ * WHERE THE NEXT SECTION'S CREATED HEADER HANGS OFF (#2605): the end of `section`'s SPAN, the pages from its header
+ * to the next divider, never the furthest of its pages wherever it sits. A leaf a designer keeps in another section
+ * (a Foundations page under Sandbox) is not where Foundations ends, and anchoring off it put a created `Components`
+ * inside Sandbox. When a divider closes the span AND the page after it is one of `next`'s own leaves, the anchor is
+ * that divider, so a created `next` header reuses it and lands where a deleted one stood, ahead of its own pages.
+ * Otherwise (a designer's page or section after the divider, another header, the end of the file) the anchor is the
+ * span's last page: the created header gets a divider of its own and the divider that was there stays with whatever
+ * follows it, never absorbed into the new header's span. A section with no header in the file has no span, and falls
+ * back to its furthest page.
+ */
+const sectionEndAnchor = (api: PagesApi, section: TaxonomySection, next?: TaxonomySection): PageLike | null => {
+  const children = api.root.children;
+  const span = sectionSpan(children, section);
+  if (!span) return lastExistingPageOfSection(api, section);
+  const end = span.start + span.pages.length;
+  const after = children[end + 1];
+  return children[end] && next && after && ownIn(next)(after) ? children[end] : children[end - 1];
 };
 
 /** What `scaffoldSkeleton` reconciled — page names created this run, and the File Components page node so
@@ -162,8 +189,8 @@ export const scaffoldSkeleton = async (api: PagesApi, taxonomy: Taxonomy = TAXON
   const created: string[] = [];
   const ensureAt = (name: string, anchor: PageLike | null): PageLike => {
     const { page, created: made } = ensureNamed(api, name);
-    if (made) created.push(name);
-    placeAfter(api, page, anchor, made);
+    // Only a page this run creates is positioned (#2597); an existing one stays where the designer has it.
+    if (made) { created.push(name); placeAfter(api, page, anchor); }
     return page;
   };
 
@@ -171,7 +198,7 @@ export const scaffoldSkeleton = async (api: PagesApi, taxonomy: Taxonomy = TAXON
   let anchor: PageLike = ensureAt(taxonomy.cover, null);
   let fileComponentsPage: PageLike | null = null;
 
-  for (const section of taxonomy.sections) {
+  for (const [i, section] of taxonomy.sections.entries()) {
     // A native divider precedes every section. The running `anchor` is the previous group's last
     // existing page (Cover for the first section), so place the header after it, then slip a divider
     // into the gap: anchor, ---, header.
@@ -192,27 +219,26 @@ export const scaffoldSkeleton = async (api: PagesApi, taxonomy: Taxonomy = TAXON
         if (existing) leafAnchor = existing;
       }
     }
-    anchor = lastExistingPageOfSection(api, section) ?? header ?? anchor;
+    anchor = sectionEndAnchor(api, section, taxonomy.sections[i + 1]) ?? header ?? anchor;
   }
 
   return { created, fileComponentsPage };
 };
 
 /**
- * Ensure a section's header page exists with a divider before it — the minimal skeleton the page-aware
- * build needs when it runs before (or without) a full `scaffoldSkeleton`. Positions a freshly created
- * header after the previous section's last existing page, else after Cover, else at the end.
+ * Ensure a section's header page exists — the minimal skeleton the page-aware build needs when it runs before
+ * (or without) a full `scaffoldSkeleton`. A header it CREATES goes at the end of the previous section's span
+ * (`sectionEndAnchor`), else after Cover, else at the end, with a divider before it. An existing header is returned as found:
+ * the build creates no divider beside it and moves nothing (#2597), whatever page sits before it.
  */
 const ensureSectionHeader = (api: PagesApi, taxonomy: Taxonomy, section: TaxonomySection): PageLike => {
-  let header = findNamed(api, section.header);
-  if (!header) {
-    const idx = taxonomy.sections.indexOf(section);
-    const prev = idx > 0 ? lastExistingPageOfSection(api, taxonomy.sections[idx - 1]) : null;
-    const anchor = prev ?? findNamed(api, taxonomy.cover);
-    const made = ensureNamed(api, section.header);
-    header = made.page;
-    placeAfter(api, header, anchor, true);
-  }
+  const found = findNamed(api, section.header);
+  if (found) return found;
+  const idx = taxonomy.sections.indexOf(section);
+  const prev = idx > 0 ? sectionEndAnchor(api, taxonomy.sections[idx - 1], section) : null;
+  const anchor = prev ?? findNamed(api, taxonomy.cover);
+  const header = ensureNamed(api, section.header).page;
+  placeAfter(api, header, anchor);
   ensureDividerBefore(api, header);
   return header;
 };
@@ -223,10 +249,10 @@ const ensureSectionHeader = (api: PagesApi, taxonomy: Taxonomy, section: Taxonom
  * not map, so the caller falls back to `currentPage` (the pre-#1554 behaviour) rather than inventing a
  * page.
  *
- * The leaf is anchored after the last existing preceding sibling in its section (or the section header),
- * so building `icon` drops `Icons & assets` between `Semantic tokens` and `Grids & layouts`, and building
- * `button` drops `Buttons` right after the `Components` header — each in taxonomy order regardless of
- * which siblings exist yet. Idempotent: a second build of the same family finds the page and returns it.
+ * A NEW leaf is anchored after the last existing preceding sibling in its section (or the section header),
+ * so building `icon` drops `Icons & assets` between `Semantic tokens` and `Grids & layouts`; in an
+ * alphabetical section, after the last of its own pages that sorts before it. Idempotent: a second build of
+ * the same family finds the page and returns it where it is, moved by nothing (#2597).
  */
 export const resolveComponentPage = async (
   api: PagesApi,
@@ -248,15 +274,12 @@ export const resolveComponentPage = async (
   }
   const full = leafPageName(leaf);
   const { page, created } = ensureNamed(api, full);
+  // An existing page is left where it is (#2597), in every section: reordering is the in-place Update's, listed in its
+  // dry run, never a side effect of a build.
+  if (!created) return page;
   // AN ALPHABETICAL SECTION (#2568, owner decision Q260 A): a new page goes after the last of the section's own pages
-  // whose name sorts before it, the header otherwise. An existing page is left where it is: reordering is the
-  // in-place Update's, listed in its dry run, never a side effect of a build.
-  if (section.alphabetical) {
-    if (created) placeAfter(api, page, alphabeticalAnchor(api, section, page) ?? header, true);
-    else placeAfter(api, page, header, false);
-    return page;
-  }
-  placeAfter(api, page, anchor, created);
+  // whose name sorts before it, the header otherwise.
+  placeAfter(api, page, section.alphabetical ? alphabeticalAnchor(api, section, page) ?? header : anchor);
   return page;
 };
 
@@ -355,10 +378,8 @@ export const reorderPages = (api: { root: Pick<PagesApi['root'], 'children' | 'i
     const move = misplaced(own);
     const placed = own.filter((p) => !move.has(p));
     for (const p of [...move].sort((a, b) => comparePageNames(a.name, b.name))) {
-      const anchor = lastBefore(placed, p) ?? header;
-      // REMOVE-THEN-SPLICE: the index is the anchor's in the list without `p`, plus one.
-      const without = api.root.children.filter((x) => x !== p);
-      api.root.insertChild(without.indexOf(anchor) + 1, p);
+      // Through `moveAfter` (#2597): a page moving forward lands one slot early on the host otherwise.
+      moveAfter(api.root, p, lastBefore(placed, p) ?? header);
       placed.push(p);
     }
   }

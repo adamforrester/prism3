@@ -294,7 +294,7 @@ const PATTERNS: { name: string; re: RegExp; sample: string }[] = [
 // ── exclusion 1: document GENRE ─────────────────────────────────────────────────────────────────
 
 /** Declared append-only dated journals. A forward claim in a dated entry is scoped to its date. */
-const JOURNALS = new Set(['docs/00-progress.md']);
+const JOURNALS = new Set(['docs/00-progress.md', 'docs/progress/archive/2026-07-08.md']);
 /** The journal SHAPE, used both to verify each declaration and to surface undeclared candidates. */
 const JOURNAL_MIN_DATED = 20;
 const JOURNAL_MIN_RATIO = 0.5;

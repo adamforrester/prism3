@@ -3765,6 +3765,7 @@ for (const b of brands) {
       'switch-row': { keys: ['gap'], sizes: ['small', 'medium'] },
       tag: { keys: ['padding-x', 'select.gap', 'dismissible.visible-gap', 'check-gap', 'select.padding-end', 'dismissible.padding-end'], sizes: ['small', 'medium', 'large'] },
       tab: { keys: ['padding-x', 'gap'], sizes: ['small', 'medium', 'large'] },
+      'segmented-control-segment': { keys: ['padding-x', 'gap'], sizes: ['small', 'medium', 'large'] },
       accordion: { keys: ['pad-x', 'pad-y', 'gap', 'panel-pad-end'], sizes: ['small', 'medium', 'large'] },
       list: { keys: ['gap'], sizes: ['small', 'medium', 'large'] },
     };
@@ -3782,6 +3783,8 @@ for (const b of brands) {
       tag: { compact: 'small 6/4/4/4/6/0 · medium 8/6/6/4/8/0 · large 12/8/6/6/12/0', comfortable: 'small 8/6/6/4/8/0 · medium 12/8/8/6/12/0 · large 16/12/8/8/16/0', spacious: 'small 12/8/8/6/12/0 · medium 16/12/12/8/16/0 · large 20/16/12/12/20/0' },
       // Tab (#2416): padding-x / icon→label→count gap. Comfortable is the proposal's 12/6 · 16/8 · 20/8.
       tab: { compact: 'small 8/4 · medium 12/6 · large 16/6', comfortable: 'small 12/6 · medium 16/8 · large 20/8', spacious: 'small 16/8 · medium 20/12 · large 24/12' },
+      // Segmented control option (#2418): padding-x / icon→label gap, Tab's numbers (the refreshed proposal §6).
+      'segmented-control-segment': { compact: 'small 8/4 · medium 12/6 · large 16/6', comfortable: 'small 12/6 · medium 16/8 · large 20/8', spacious: 'small 16/8 · medium 20/12 · large 24/12' },
       // Accordion (#2417, DRAFT): header inline / header block / glyph-to-title gap / panel bottom inset. Comfortable is
       // the proposal's 12/8/8 · 16/12/12 · 24/16/16, with the panel's bottom inset matching the inline padding.
       accordion: { compact: 'small 8/6/6/8 · medium 12/8/8/12 · large 20/12/12/20', comfortable: 'small 12/8/8/12 · medium 16/12/12/16 · large 24/16/16/24', spacious: 'small 16/12/12/16 · medium 20/16/16/20 · large 32/20/20/32' },
@@ -3823,6 +3826,7 @@ for (const b of brands) {
       select: ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       'checkbox-row': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       tab: ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
+      'segmented-control-segment': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       'radio-row': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       'switch-row': ['size.small.gap', 'size.medium.gap'],
       list: ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
@@ -3861,6 +3865,7 @@ for (const b of brands) {
       // type: the sum is what must stay under the padding. A `+` key is summed.
       tag: { prefix: 'sized', lt: [['select.gap+select.label-inset', 'padding-x'], ['dismissible.gap+dismissible.label-inset', 'padding-x'], ['check-gap', 'padding-x']] },
       tab: { prefix: 'sized', lt: [['gap', 'padding-x']] },
+      'segmented-control-segment': { prefix: 'sized', lt: [['gap', 'padding-x']] },
       accordion: { prefix: 'sized', lt: [['gap', 'pad-x']] },
     };
     const GAP_TAILS = ['gap', 'check-gap'];
@@ -4260,7 +4265,7 @@ arm: {
   const { modes, create, aliases } = plan.color;
   ok(modes.length === 4, `write-plan: nb plan carries 4 colour modes (${modes.join('/')})`);
   ok(plan.palette.length > 0 && plan.palette.every((r) => r.hidden), 'write-plan: every `core` palette primitive is hidden from publishing');
-  ok(plan.palette.every((r) => r.scopes.length > 0 && r.value && typeof r.value.r === 'number'), 'write-plan: palette rows carry scopes + a literal RGBA value');
+  ok(plan.palette.every((r) => JSON.stringify(r.scopes) === '[]' && r.value && typeof r.value.r === 'number'), 'write-plan: palette rows carry no scope (#2602) + a literal RGBA value');
   ok(create.length > 0 && create.every((r) => r.valuesByMode.length === modes.length), 'write-plan: every colour create-row carries one literal value per mode');
   ok(aliases.length === create.length && aliases.every((r) => r.targetsByMode.length === modes.length), 'write-plan: every colour alias-row carries one target per mode (parallel to create-rows)');
   ok(aliases.some((r) => new Set(r.targetsByMode).size > 1), 'write-plan: alias rows carry distinct per-mode targets (collapse-proof at the plan level)');
@@ -11660,7 +11665,15 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       // Follows `NB_KNOWN_RENAMES`, so a renamed var stays scope/alias/value checked rather than
       // being skipped by the `continue` — a rename must not become a way to stop being verified.
       const ov = outByName.get(name) ?? outByName.get(NB_KNOWN_RENAMES[name] ?? '\0'); if (!ov) continue;
-      if (JSON.stringify([...fv.scopes].sort()) !== JSON.stringify([...ov.scopes].sort())) {
+      if (key === 'palette') {
+        // #2602 — the palette is the one file whose scopes diverge WHOLESALE, so it is stated once here
+        // rather than as 122 waiver rows: the frozen export scopes every step to the four fill/stroke
+        // targets, and the engine scopes none (an unscoped primitive is hidden from every local picker,
+        // verified live 2026-10-13). Both sides are literals, so either one moving is a named finding.
+        if (JSON.stringify([...fv.scopes].sort()) !== '["FRAME_FILL","SHAPE_FILL","STROKE_COLOR","TEXT_FILL"]'
+            || JSON.stringify(ov.scopes) !== '[]')
+          scopeBad.push(`${name} [#2602 palette scope divergence CHANGED: fixture ${JSON.stringify(fv.scopes)}, engine ${JSON.stringify(ov.scopes)}]`);
+      } else if (JSON.stringify([...fv.scopes].sort()) !== JSON.stringify([...ov.scopes].sort())) {
         // A scope the engine intentionally diverges on (#1484: foreground drops TEXT_FILL) is accepted
         // ONLY when it matches an NB_KNOWN_SCOPE_DIVERGENCES entry EXACTLY (fixture nb → engine). A
         // different divergence than recorded is a new finding and still fails.
@@ -11735,11 +11748,12 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   const missingF = [...fontByName.keys()].filter((n) => !emitByName.has(n));
   const extraF = [...emitByName.keys()].filter((n) => !fontByName.has(n) && !isCutVar(n));
   ok(missingF.length === 0 && extraF.length === 0, `figma font: variable names match fixture (${fontFix.variables.length}) modulo the #1485 cut vars` + (missingF.length ? ` — MISSING ${missingF.slice(0, 3).join(',')}` : '') + (extraF.length ? ` — EXTRA ${extraF.slice(0, 3).join(',')}` : ''));
-  // The cut variables ARE emitted (representation floor) — STRING, FONT_STYLE scope, alias-free, one per
+  // The cut variables ARE emitted (representation floor) — STRING, unscoped (#2602: every `core` row is;
+  // the Text Style binds the cut through the API, which scopes do not limit), alias-free, one per
   // distinct (category, weight-role, italic) slot. A mutation that stops emitting them fails HERE.
   const cutVars = font.variables.filter((v: any) => isCutVar(v.name));
-  ok(cutVars.length > 0 && cutVars.every((v: any) => v.resolvedType === 'STRING' && v.scopes.includes('FONT_STYLE') && !v.alias && typeof v.value === 'string' && v.value.length > 0),
-    `#1485 figma font: STRING cut variables are emitted (FONT_STYLE, alias-free, non-empty value) — ${cutVars.length} slot(s)`);
+  ok(cutVars.length > 0 && cutVars.every((v: any) => v.resolvedType === 'STRING' && v.scopes.length === 0 && !v.alias && typeof v.value === 'string' && v.value.length > 0),
+    `#1485 figma font: STRING cut variables are emitted (unscoped, alias-free, non-empty value) — ${cutVars.length} slot(s)`);
   // NB derives its cuts from the weight roles (no facePin in the nb fixture), so the values are the
   // named-instance guesses. Independent oracle = a hand-written role→style map, NOT the emitter.
   const NB_CUT_BY_ROLE: Record<string, string> = { subtle: 'Light', default: 'Regular', emphasis: 'Semi Bold', strong: 'Bold', max: 'Black' };
@@ -11749,16 +11763,19 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   }).map((v: any) => `${v.name}=${v.value}`);
   ok(cutValBad.length === 0, `#1485 figma font: each derived cut is the role's named-instance style (subtle→Light … strong→Bold)` + (cutValBad.length ? ` — ${cutValBad.slice(0, 3).join(', ')}` : ''));
 
-  // Scopes are restored to their real per-family targets across primitive +
-  // semantic (this PR keeps the fixture-match here — hidden-from-publishing
-  // handles the hide, scopes remain guidance for bespoke picker use).
+  // Scopes are NOT compared to the fixture any more (#2602): the fixture freezes one font scope per row,
+  // and the `core` size rows are now emitted unscoped, so a local picker never offers them. The family,
+  // weight and weight-role rows keep their font scope (owner decision Q292 A — TokenPress types them from
+  // it; #2616 is the follow-up). The expectation is a literal per group, not the fixture and not the
+  // emitter's constant.
   // Family descriptions now lead with the fixture's stack line (fix #4) and
   // have the DTCG $description appended — assert `startsWith` on the fixture.
   const badFT: string[] = [], badFS: string[] = [], badFV: string[] = [], badFA: string[] = [], badFD: string[] = [];
   for (const [name, fv] of fontByName) {
     const ov = emitByName.get(name); if (!ov) continue;
     if (fv.resolvedType !== ov.resolvedType) badFT.push(name);
-    if (JSON.stringify([...fv.scopes].sort()) !== JSON.stringify([...ov.scopes].sort())) badFS.push(name);
+    const wantFS = /\/font\/family\//.test(name) ? '["FONT_FAMILY"]' : /\/font\/weight(-role)?\//.test(name) ? '["FONT_WEIGHT"]' : '[]';
+    if (JSON.stringify(ov.scopes) !== wantFS) badFS.push(`${name}=${JSON.stringify(ov.scopes)} (want ${wantFS})`);
     if (fv.value !== ov.value) badFV.push(name);
     if ((fv.alias ? nbFixName(fv.alias.name) : null) !== (ov.alias?.name ?? null)) badFA.push(name);
     // The fixture's line is `stack: A, B, C`; the Figma register names face A, then B, C… in order, as many
@@ -11771,7 +11788,7 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     }
   }
   ok(badFT.length === 0, 'figma font: resolvedType matches fixture' + (badFT.length ? ` — ${badFT.slice(0, 3).join(',')}` : ''));
-  ok(badFS.length === 0, 'figma font: scopes match fixture' + (badFS.length ? ` — ${badFS.slice(0, 3).join(',')}` : ''));
+  ok(badFS.length === 0, 'figma font: fixture size rows are emitted unscoped, family rows FONT_FAMILY, weight and weight-role rows FONT_WEIGHT (#2602, Q292 A)' + (badFS.length ? ` — ${badFS.slice(0, 3).join(',')}` : ''));
   ok(badFV.length === 0, 'figma font: values match fixture' + (badFV.length ? ` — ${badFV.slice(0, 3).join(',')}` : ''));
   ok(badFA.length === 0, 'figma font: weight-role aliases target the same numeric weight as fixture' + (badFA.length ? ` — ${badFA.slice(0, 3).join(',')}` : ''));
   ok(badFD.length === 0, 'figma font: family descriptions name the fixture face, then its fallback stack in order (fix #4 preserved)' + (badFD.length ? ` — ${badFD.slice(0, 3).join(',')}` : ''));
@@ -11989,17 +12006,19 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     ok(expected[key] === got[key], `figma dims.${key}: variable count matches DTCG tree (${expected[key]})` + (expected[key] !== got[key] ? ` — got ${got[key]}` : ''));
   }
 
-  // (b) Every FLOAT var carries a valid non-empty scope set and resolvedType=FLOAT.
+  // (b) Every FLOAT var is resolvedType=FLOAT, and every SEMANTIC one carries a non-empty scope set.
   // radius is now per-mode (Pillar 1b); the Default-mode file is [0], byte-identical
-  // to the pre-1b world for a non-wireframe brand like NB.
+  // to the pre-1b world for a non-wireframe brand like NB. The `dimension` primitives are the exception
+  // by design (#2602): they live in `core` and carry NO scope, asserted with the rest of `core` in (14)'s
+  // primitive arm; here they are held to the literal `[]` so a rescoped primitive fails in this block too.
   const allDimColls = [dims.dimension, dims.space, dims.radius[0], dims.size, dims.borderWidth, dims.focus, dims.opacity];
   const badType: string[] = [], badScope: string[] = [];
   for (const c of allDimColls) for (const v of c.variables) {
     if (v.resolvedType !== 'FLOAT') badType.push(`${c.$collection}:${v.name}`);
-    if (!v.scopes || v.scopes.length === 0) badScope.push(`${c.$collection}:${v.name}`);
+    if (c === dims.dimension ? JSON.stringify(v.scopes) !== '[]' : (!v.scopes || v.scopes.length === 0)) badScope.push(`${c.$collection}:${v.name}=[${(v.scopes ?? []).join(',')}]`);
   }
   ok(badType.length === 0, 'figma dims: every variable is resolvedType FLOAT' + (badType.length ? ` — ${badType.slice(0, 3).join(', ')}` : ''));
-  ok(badScope.length === 0, 'figma dims: every variable declares at least one scope' + (badScope.length ? ` — ${badScope.slice(0, 3).join(', ')}` : ''));
+  ok(badScope.length === 0, 'figma dims: every semantic variable declares at least one scope, every `dimension` primitive none (#2602)' + (badScope.length ? ` — ${badScope.slice(0, 3).join(', ')}` : ''));
 
   // (c) Every alias target resolves within the emitted collections.
   const allNames = new Set<string>();
@@ -12464,37 +12483,40 @@ arm: {
   const nameDrift = nameSets.filter((s) => s !== nameSets[0]);
   ok(nameDrift.length === 0, `figma layout: every mode carries the same variable-name set (${layout[0].variables.length} vars)`);
 
-  // (c) Every var is resolvedType FLOAT with a non-empty scope + non-empty description.
+  // (c) Every var is resolvedType FLOAT with a non-empty description, and every var but `grid/columns`
+  // has a non-empty scope. `grid/columns` carries none (#2602): Figma has no count scope, and ALL_SCOPES
+  // offered a column count in every FLOAT picker. (d) pins it to the literal `[]`.
   const badType: string[] = [], badScope: string[] = [], emptyDesc: string[] = [];
   for (const l of layout) for (const v of l.variables) {
     if (v.resolvedType !== 'FLOAT') badType.push(`${l.$mode}:${v.name}`);
-    if (!v.scopes || v.scopes.length === 0) badScope.push(`${l.$mode}:${v.name}`);
+    if (v.name !== nbVar('grid/columns') && (!v.scopes || v.scopes.length === 0)) badScope.push(`${l.$mode}:${v.name}`);
     if (!v.description || v.description.length === 0) emptyDesc.push(`${l.$mode}:${v.name}`);
   }
   ok(badType.length === 0, 'figma layout: every variable is resolvedType FLOAT' + (badType.length ? ` — ${badType.slice(0, 3).join(', ')}` : ''));
-  ok(badScope.length === 0, 'figma layout: every variable declares at least one scope' + (badScope.length ? ` — ${badScope.slice(0, 3).join(', ')}` : ''));
+  ok(badScope.length === 0, 'figma layout: every variable but grid/columns declares at least one scope' + (badScope.length ? ` — ${badScope.slice(0, 3).join(', ')}` : ''));
   ok(emptyDesc.length === 0, 'figma layout: every variable carries the DTCG $description' + (emptyDesc.length ? ` — ${emptyDesc.slice(0, 3).join(', ')}` : ''));
 
-  // (d) Scopes narrow correctly per family. grid/columns is ALL_SCOPES (no
-  // narrow scope fits a count); grid/{gutter,margin} → GAP (matches space);
-  // container/{max,narrow} + breakpoint/* → WIDTH_HEIGHT.
+  // (d) Scopes narrow correctly per family. grid/columns carries none (#2602 — no
+  // narrow scope fits a count, and ALL_SCOPES put it in every picker); grid/{gutter,margin} → GAP
+  // (matches space); container/{max,narrow} + breakpoint/* → WIDTH_HEIGHT. An unknown row falls
+  // through to a sentinel no emission carries, so it fails instead of silently matching `[]`.
   // #1097 — every name below is matched ROOTED. The `return []` fall-through is why that matters here
   // rather than being bookkeeping: an unrooted literal matches nothing, every row falls through to the
   // empty expectation, and the arm then asserts "these variables have no scopes" — which is false for
   // all ten and so does still go red, but reporting the wrong defect. The three arms further down are
   // the ones that would have gone SILENT.
   const scopeFor = (name: string): string[] => {
-    if (name === nbVar('grid/columns')) return ['ALL_SCOPES'];
+    if (name === nbVar('grid/columns')) return [];
     if (name === nbVar('grid/gutter') || name === nbVar('grid/margin')) return ['GAP'];
     if (name.startsWith(nbVar('container/')) || name.startsWith(nbVar('breakpoint/'))) return ['WIDTH_HEIGHT'];
-    return [];
+    return ['<no family matched>'];
   };
   const scopeMismatch: string[] = [];
   for (const l of layout) for (const v of l.variables) {
     const expect = scopeFor(v.name);
     if (JSON.stringify(v.scopes) !== JSON.stringify(expect)) scopeMismatch.push(`${l.$mode}:${v.name}=${v.scopes.join(',')} (want ${expect.join(',')})`);
   }
-  ok(scopeMismatch.length === 0, 'figma layout: scopes narrow per family (grid.columns→ALL_SCOPES; grid.gutter/margin→GAP; container/*+breakpoint/*→WIDTH_HEIGHT)' + (scopeMismatch.length ? ` — ${scopeMismatch.slice(0, 3).join('; ')}` : ''));
+  ok(scopeMismatch.length === 0, 'figma layout: scopes narrow per family (grid.columns→none, #2602; grid.gutter/margin→GAP; container/*+breakpoint/*→WIDTH_HEIGHT)' + (scopeMismatch.length ? ` — ${scopeMismatch.slice(0, 3).join('; ')}` : ''));
 
   // (e) grid/gutter + grid/margin are ALIASES into space/* (per-mode — the
   // point of the mode column is that gutter+margin grow with the breakpoint).
@@ -13744,26 +13766,23 @@ arm: {
 // (23) EMIT-FIGMA — hide primitives + thread descriptions (docs/10 §3, this PR).
 // Two intent policies gated together because they land in the same emit pass.
 //
-// (a) PRIMITIVE TIER is hidden from library consumers. Every var in a
-//     ref-tier collection (palette, dimension, font/family/*, font/size/*,
-//     font/weight/*) carries `hiddenFromPublishing: true` (Figma's official
-//     mechanism for "consumers of this file as a library shouldn't see this in
-//     the picker"). NOTE: opacity is NOT in this set — it is directly consumable
-//     (#79), so it sits in the visible tier below. Scopes stay at their real role-family targets
-//     — Figma's Plugin API rejects "bogus" scopes ("Invalid scope for this
-//     variable type" if you try `TEXT_CONTENT` on a COLOR/FLOAT var), and
-//     `scopes: []` is documented as ALL_SCOPES (probe-verified 2026-07-04:
-//     setBoundVariableForPaint succeeds on a var with scopes=[]), so
-//     there is no scopes-based mechanism to hide a variable from LOCAL
-//     pickers in the definer file. The production discipline: publish
-//     tokens as a library and consume in a separate authoring file —
-//     hidden-from-publishing narrows the picker end-to-end there.
+// (a) THE `core` COLLECTION IS HIDDEN EVERYWHERE (#2602). Every var in it — palette, dimension,
+//     font/family/*, font/size/*, font/weight/*, font/weight-role/* and the font/style/* cuts —
+//     carries `hiddenFromPublishing: true` (hides it from a library consumer's picker) AND
+//     `scopes: []` (hides it from every local picker in the defining file; verified live by the owner
+//     2026-10-13 — an unscoped palette step left the fill picker, its scoped neighbor stayed). Until
+//     #2602 this block asserted the opposite: role-family scopes, on the strength of a 2026-07-04 probe
+//     that showed `setBoundVariableForPaint` succeeding on an unscoped var. An API bind is not a picker;
+//     scopes never block one. The exception (owner decision Q292 A, 2026-10-14): font/family/* keeps
+//     FONT_FAMILY and font/weight/* + font/weight-role/* keep FONT_WEIGHT, because TokenPress types a
+//     font variable's DTCG `$type` from its scope (#2616 unscopes them once it types by name).
+//     NOTE: opacity is NOT in this set — it is directly consumable (#79).
 //
 // (b) SEMANTIC + DIRECTLY-CONSUMABLE TIER stays visible. `color/*`, `space`,
 //     `radius`, `size`, `border-width`, `focus`, `opacity` (#79 — consumable, no
-//     semantic layer to prefer), `font-fluid`, `core/font/weight-role/*`, `layout` all
-//     keep their role-family scopes and carry no `hiddenFromPublishing` field
-//     (JSON stays clean — bytes are unchanged modulo the new descriptions).
+//     semantic layer to prefer), `font-fluid`, `layout` all keep their role-family scopes and carry
+//     no `hiddenFromPublishing` field. (`core/font/weight-role/*` was listed here until #2602; it
+//     lives in `core`, and the owner's decision covers the whole collection.)
 //
 // (c) DESCRIPTIONS ARE THREADED. Every Figma variable's `description` reads
 //     from the underlying DTCG leaf's `$description` — the source of truth for
@@ -13778,20 +13797,25 @@ arm: {
   const dims = buildFigmaDims(theme);
   const layout = buildFigmaLayout(theme);
 
-  // Primitive-tier: every var must have hiddenFromPublishing=true. Scopes stay
-  // at real role-family targets (Figma's Plugin API rejects "bogus"/non-matching
-  // scopes and treats scopes=[] as ALL_SCOPES; hidden-from-publishing is
-  // the only scopes-safe mechanism).
+  // Primitive-tier: every var must have hiddenFromPublishing=true AND no scope (#2602), bar the font
+  // family and weight rows, which keep FONT_FAMILY / FONT_WEIGHT (owner decision Q292 A). The expected
+  // scope set is a literal per group, never `PRIMITIVE_SCOPES` — the emitter's constant would agree with
+  // any value it was changed to (docs/34 shape 1).
   const primitiveGroups: Array<{ tag: string; vars: any[]; expectScopes: string[] }> = [
-    { tag: 'palette', vars: palette.variables, expectScopes: ['FRAME_FILL', 'SHAPE_FILL', 'TEXT_FILL', 'STROKE_COLOR'] },
-    { tag: 'dimension', vars: dims.dimension.variables, expectScopes: ['WIDTH_HEIGHT', 'GAP', 'CORNER_RADIUS', 'STROKE_FLOAT'] },
+    { tag: 'palette', vars: palette.variables, expectScopes: [] },
+    { tag: 'dimension', vars: dims.dimension.variables, expectScopes: [] },
     // Rooted + `core`-tiered since #1097/#1102. A bare `font/family/` prefix would now match nothing
     // and every assertion below it would pass over an EMPTY array — the vacuous-filter shape, not a
     // failure. `nbVar` derives the root from the theme, so it cannot drift from the emitter.
     { tag: 'core/font/family', vars: font.variables.filter((v) => v.name.startsWith(nbVar('core/font/family/'))), expectScopes: ['FONT_FAMILY'] },
-    { tag: 'core/font/size', vars: font.variables.filter((v) => v.name.startsWith(nbVar('core/font/size/'))), expectScopes: ['FONT_SIZE'] },
+    { tag: 'core/font/size', vars: font.variables.filter((v) => v.name.startsWith(nbVar('core/font/size/'))), expectScopes: [] },
     { tag: 'core/font/weight', vars: font.variables.filter((v) => v.name.startsWith(nbVar('core/font/weight/'))), expectScopes: ['FONT_WEIGHT'] },
+    { tag: 'core/font/weight-role', vars: font.variables.filter((v) => v.name.startsWith(nbVar('core/font/weight-role/'))), expectScopes: ['FONT_WEIGHT'] },
+    { tag: 'core/font/style', vars: font.variables.filter((v) => v.name.startsWith(nbVar('core/font/style/'))), expectScopes: [] },
   ];
+  // Each group REPRESENTED — an empty filter would pass every assertion below over nothing.
+  const emptyGroups = primitiveGroups.filter((g) => g.vars.length === 0).map((g) => g.tag);
+  ok(emptyGroups.length === 0, 'figma primitives: every `core` group is represented' + (emptyGroups.length ? ` — EMPTY: ${emptyGroups.join(', ')}` : ''));
   const notHidden: string[] = [];
   const wrongScope: string[] = [];
   for (const g of primitiveGroups) {
@@ -13803,7 +13827,7 @@ arm: {
     }
   }
   ok(notHidden.length === 0, `figma primitives: every ref-tier var has hiddenFromPublishing=true (${primitiveGroups.reduce((n, g) => n + g.vars.length, 0)} vars across ${primitiveGroups.length} collections)` + (notHidden.length ? ` — ${notHidden.slice(0, 3).join(', ')}` : ''));
-  ok(wrongScope.length === 0, 'figma primitives: each ref-tier collection carries its role-family scopes (hidden-from-publishing does the hide; scopes still guide bespoke use)' + (wrongScope.length ? ` — ${wrongScope.slice(0, 3).join(', ')}` : ''));
+  ok(wrongScope.length === 0, 'figma primitives: every `core` var carries no scope, bar font family (FONT_FAMILY) and font weight and weight-role (FONT_WEIGHT) (#2602, Q292 A — empty scopes hide it from local pickers)' + (wrongScope.length ? ` — ${wrongScope.slice(0, 3).join(', ')}` : ''));
 
   // Semantic-tier: every var must NOT be hidden.
   const semanticGroups: Array<{ tag: string; vars: any[] }> = [
@@ -13815,7 +13839,6 @@ arm: {
     { tag: 'focus', vars: dims.focus.variables },
     { tag: 'opacity', vars: dims.opacity.variables },
     { tag: 'font-fluid', vars: fluid.flatMap((c) => c.variables) },
-    { tag: 'core/font/weight-role', vars: font.variables.filter((v) => v.name.startsWith(nbVar('core/font/weight-role/'))) },
     { tag: 'layout', vars: layout.flatMap((c) => c.variables) },
   ];
   const wronglyHidden: string[] = [];
@@ -13883,6 +13906,118 @@ arm: {
   const first = JSON.stringify(buildFigmaColor(theme).palette);
   const second = JSON.stringify(buildFigmaColor(theme).palette);
   ok(first === second, 'figma palette: emit is deterministic (regeneration byte-identical)');
+}
+
+// (23b) #2602 — EVERY BRAND, EVERY WRITE PATH: the `core` collection is hidden from publishing and carries
+// no scope, bar the font family and weight rows (owner decision Q292 A: `font/family/*` keeps FONT_FAMILY,
+// `font/weight/*` and `font/weight-role/*` keep FONT_WEIGHT, so TokenPress still types them `fontFamily` /
+// `fontWeight`; #2616 is the follow-up that unscopes them), and NO variable anywhere carries ALL_SCOPES.
+// (23) holds nb's emitter output per group; this arm is the owner's rules stated once over everything that
+// reaches a Figma file:
+//   · the in-memory emission (`figmaArtifacts`) for nb and every committed `examples/*.design.md` brief;
+//   · the plans the plugin executor writes (`buildWritePlan` / `buildFloatWritePlan` / `buildFontVarPlan`,
+//     `apps/plugin/src/write-figma.ts` assigns `row.scopes` and `row.hidden` verbatim);
+//   · the paste payloads the CLI prints (`passPayloads` — palette, dims-create, font-vars), decoded from
+//     their compact scope codes, where an empty code is what decodes to `[]` and `*` is ALL_SCOPES;
+//   · the committed `out/figma/<brand>/` trees the paste path reads.
+// Expected values are LITERALS: the per-group scope sets in `CORE_SCOPES_2602` (and their paste codes, `m`
+// and `e`, in `CORE_CODES_2602`), `true`, `'ALL_SCOPES'`, `'*'`, `'core'` — never `PRIMITIVE_SCOPES` or
+// `CORE_COLLECTION` (docs/34 shape 1). Every `core` group is REPRESENTED per brand, so a renamed group
+// or an empty filter fails by name instead of passing over nothing.
+{
+  const CORE_GROUP = /\/core\/(palette|dimension|font\/family|font\/size|font\/weight-role|font\/weight|font\/style)\//;
+  const GROUPS = ['palette', 'dimension', 'font/family', 'font/size', 'font/weight', 'font/weight-role', 'font/style'];
+  // Q292 A, as literals. A group absent here expects `[]`; the paste payloads carry the compact code instead.
+  const CORE_SCOPES_2602: Record<string, string> = { 'font/family': '["FONT_FAMILY"]', 'font/weight': '["FONT_WEIGHT"]', 'font/weight-role': '["FONT_WEIGHT"]' };
+  const CORE_CODES_2602: Record<string, string> = { 'font/family': 'm', 'font/weight': 'e', 'font/weight-role': 'e' };
+  const briefs = readdirSync(resolve(HERE, './examples')).filter((f) => f.endsWith('.design.md')).sort();
+  const brands: Array<[string, Theme | undefined]> = [['nb', nbTheme()], ...briefs.map((file): [string, Theme | undefined] => [file, exampleTheme(file, () => {
+    const text = readFileSync(resolve(HERE, `./examples/${file}`), 'utf8');
+    const std = parseStandardDesignMd(text);
+    return brandTheme(isStandardDesignMd(std) ? standardToBrandInput(std).input : parseDesignMd(text).input);
+  })])];
+  const coreBad: string[] = [], allScopes: string[] = [], unrepresented: string[] = [];
+  let brandsSwept = 0, coreSwept = 0, varsSwept = 0;
+  const checkCore = (where: string, name: string, scopes: unknown, hidden: unknown, seen: Set<string>, paste = false): void => {
+    coreSwept++;
+    const g = CORE_GROUP.exec(name)?.[1];
+    if (g) seen.add(g);
+    const want = paste ? JSON.stringify(g && CORE_CODES_2602[g] ? [CORE_CODES_2602[g]] : []) : (g && CORE_SCOPES_2602[g]) || '[]';
+    if (JSON.stringify(scopes) !== want || hidden !== true) coreBad.push(`${where}: ${name} scopes=${JSON.stringify(scopes)} (want ${want}) hidden=${JSON.stringify(hidden)}`);
+  };
+  const checkAny = (where: string, name: string, scopes: unknown): void => {
+    varsSwept++;
+    if (Array.isArray(scopes) && scopes.includes('ALL_SCOPES')) allScopes.push(`${where}: ${name}`);
+  };
+  const represented = (where: string, seen: Set<string>): void => {
+    const missing = GROUPS.filter((g) => !seen.has(g));
+    if (missing.length) unrepresented.push(`${where} [${missing.join(', ')}]`);
+  };
+  for (const [id, th] of loadedRows(brands)) {
+    brandsSwept++;
+    // the emission
+    const seenEmit = new Set<string>();
+    for (const a of figmaArtifacts(th!).artifacts) {
+      const f = JSON.parse(a.content);
+      if (!Array.isArray(f?.variables)) continue;
+      for (const v of f.variables) {
+        checkAny(`${id} ${a.path}`, v.name, v.scopes);
+        if (f.$collection === 'core') checkCore(`${id} ${a.path}`, v.name, v.scopes, v.hiddenFromPublishing, seenEmit);
+      }
+    }
+    represented(`${id} emission`, seenEmit);
+    // the plugin executor's plans
+    const seenPlan = new Set<string>();
+    for (const r of buildWritePlan(buildFigmaColor(th!)).palette) checkCore(`${id} plan palette`, r.name, r.scopes, r.hidden, seenPlan);
+    for (const p of buildFloatWritePlan(th!)) for (const r of p.create) {
+      checkAny(`${id} plan ${p.name}`, r.name, r.scopes);
+      if (p.name === 'core') checkCore(`${id} plan ${p.name}`, r.name, r.scopes, r.hidden, seenPlan);
+    }
+    for (const p of buildFontVarPlan(th!)) for (const r of p.rows) {
+      checkAny(`${id} plan ${p.name}`, r.name, r.scopes);
+      if (p.name === 'core') checkCore(`${id} plan ${p.name}`, r.name, r.scopes, r.hidden, seenPlan);
+    }
+    represented(`${id} plugin plan`, seenPlan);
+  }
+  // the committed trees + the paste payloads built from them
+  const treeBrands = readdirSync(resolve(HERE, './out/figma'), { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name).sort();
+  for (const b of treeBrands) {
+    const seenTree = new Set<string>();
+    for (const file of readdirSync(resolve(HERE, `./out/figma/${b}`)).filter((f) => f.endsWith('.json')).sort()) {
+      const f = JSON.parse(readFileSync(resolve(HERE, `./out/figma/${b}/${file}`), 'utf8'));
+      if (!Array.isArray(f?.variables)) continue;
+      for (const v of f.variables) {
+        checkAny(`out/figma/${b}/${file}`, v.name, v.scopes);
+        if (f.$collection === 'core') checkCore(`out/figma/${b}/${file}`, v.name, v.scopes, v.hiddenFromPublishing, seenTree);
+      }
+    }
+    represented(`out/figma/${b}`, seenTree);
+    // Paste payloads: the row literal each pass embeds. Palette rows are [name, code, desc, value, hidden];
+    // dims-create and font-vars group rows per collection as [collection, axis, modes, rows], their rows
+    // carrying the code at index 1 (dims) or 2 (font) and `hidden` at 3 (dims) or 4 (font).
+    const seenPaste = new Set<string>();
+    const rowsOf = (pass: string, label: string): any[] => {
+      const m = new RegExp(`^const ${label}=(\\[.*\\]);$`, 'm').exec(passPayloads(b, pass)[0]);
+      if (!m) { coreBad.push(`paste ${b} ${pass}: no \`const ${label}=\` row literal found`); return []; }
+      return JSON.parse(m[1]);
+    };
+    for (const [name, code, , , hidden] of rowsOf('palette', 'P')) {
+      checkAny(`paste ${b} palette`, name, code === '*' || String(code).includes('*') ? ['ALL_SCOPES'] : []);
+      checkCore(`paste ${b} palette`, name, code === '' ? [] : [code], hidden === 1, seenPaste, true);
+    }
+    for (const [pass, label, codeAt, hiddenAt] of [['dims-create', 'D', 1, 3], ['font-vars', 'F', 2, 4]] as const) {
+      for (const [collection, , , rows] of rowsOf(pass, label)) for (const r of rows) {
+        checkAny(`paste ${b} ${pass} ${collection}`, r[0], String(r[codeAt]).includes('*') ? ['ALL_SCOPES'] : []);
+        if (collection === 'core') checkCore(`paste ${b} ${pass}`, r[0], r[codeAt] === '' ? [] : [r[codeAt]], r[hiddenAt] === 1, seenPaste, true);
+      }
+    }
+    represented(`paste ${b}`, seenPaste);
+  }
+  ok(brandsSwept >= 5 && treeBrands.length >= 4 && coreSwept > 0 && varsSwept > coreSwept,
+    `#2602 sweep floor: ${brandsSwept} brand(s) emitted (≥5), ${treeBrands.length} committed tree(s) (≥4), ${coreSwept} core row(s), ${varsSwept} variable row(s)`);
+  ok(unrepresented.length === 0, '#2602 every `core` group (palette, dimension, font family/size/weight/weight-role/style) is represented on every path' + (unrepresented.length ? ` — MISSING: ${unrepresented.slice(0, 4).join('; ')}` : ''));
+  ok(coreBad.length === 0, `#2602 every \`core\` variable is hidden from publishing and carries no scope, bar FONT_FAMILY on font/family and FONT_WEIGHT on font/weight and font/weight-role (Q292 A), in every brand and on every write path (${coreSwept} rows)` + (coreBad.length ? ` — ${coreBad.length} wrong: ${coreBad.slice(0, 4).join('; ')}` : ''));
+  ok(allScopes.length === 0, `#2602 no emitted variable carries ALL_SCOPES, in every brand and on every write path (${varsSwept} rows)` + (allScopes.length ? ` — ${allScopes.length} wrong: ${allScopes.slice(0, 4).join('; ')}` : ''));
 }
 
 // ----------------------------------------- component-definition schema (docs/14 §2, DRAFT v0)
@@ -15514,6 +15649,173 @@ arm: {
         `#2416 Q179 tabs: the set declares exactly three Figma-only toggles, Tab 4-6, all off by default (${listProps.join(', ')})`);
       ok(!(tabsDef.props ?? []).some((p) => /^tab\d$/i.test(p.name) || /^showTab/i.test(p.name)),
         '#2416 Q179 tabs: no code prop drives a tab toggle (Figma-only; in code the count is children)');
+    }
+
+    // ---- #2418 (owner decisions Q269 1-8 A): SegmentedControl.Segment and SegmentedControl ----
+    // Every expected value below is a literal typed here from Q269 and the refreshed proposal it decided, never read
+    // off the defs: the defs and their projected plans are the SUBJECT (docs/34 shape 1). Each arm names its decision,
+    // so a mutation of the def fails the arm it breaks, by name.
+    {
+      const findIn = (n: AnatomyPlan['root'], name: string): AnatomyPlan['root'] | undefined => n.name === name ? n : n.children.map((k) => findIn(k, name)).find(Boolean);
+      const segDef = componentDefs.find((d) => d.id === 'segmented-control-segment')!;
+      const ctlDef = componentDefs.find((d) => d.id === 'segmented-control')!;
+      const segMembers = figmaAnatomySet(segDef, { swapTarget: 'FPO-default-icon' });
+      const SIZES = ['small', 'medium', 'large'];
+      const RUNG: Record<string, string> = { small: 'sm', medium: 'md', large: 'lg' };
+      const STATES5 = ['rest', 'hover', 'pressed', 'focus-visible', 'disabled'];
+      const memberOf = (selection: string, size: string, state: string) =>
+        segMembers.find((m) => m.coord.selection === selection && (m.size ?? m.coord.size) === size && m.coord.state === state);
+
+      // (1) THE INDICATOR — the tint, the 2px outline and the hover wash, per selection and state (Q269.3 A, Q269.4 A).
+      // The cell paints nothing; the indicator, inset 4px (space/050) inside a cell on Button's height rung, does.
+      const FILL: Record<string, Record<string, string | undefined>> = {
+        selected: { rest: 'color/interactive/primary/subtle-fill/selected', hover: 'color/interactive/primary/subtle-fill/selected', pressed: 'color/interactive/primary/subtle-fill/selected', 'focus-visible': 'color/interactive/primary/subtle-fill/selected', disabled: undefined },
+        unselected: { rest: undefined, hover: 'color/interactive/neutral/overlay/hover', pressed: 'color/interactive/neutral/overlay/pressed', 'focus-visible': undefined, disabled: undefined },
+      };
+      const EDGE: Record<string, Record<string, string | undefined>> = {
+        selected: { rest: 'color/interactive/primary/border/rest', hover: 'color/interactive/primary/border/hover', pressed: 'color/interactive/primary/border/pressed', 'focus-visible': 'color/interactive/primary/border/rest', disabled: 'color/disabled/border' },
+        unselected: { rest: undefined, hover: undefined, pressed: undefined, 'focus-visible': undefined, disabled: undefined },
+      };
+      const WEIGHT: Record<string, string> = { selected: 'border-width/thick', unselected: 'border-width/none' };
+      const indOff: string[] = [];
+      for (const selection of ['unselected', 'selected']) for (const size of SIZES) for (const state of STATES5) {
+        const m = memberOf(selection, size, state);
+        const ind = m && findIn(m.root, 'indicator');
+        const got = { cell: m?.root.bound?.height, inset: m?.root.bound?.paddingLeft, cellPaint: Object.keys(m?.root.paints ?? {}).length, fill: ind?.paints?.fills, edge: ind?.paints?.strokes, weight: ind?.bound?.strokeWeight, radius: ind?.bound?.topLeftRadius };
+        const want = { cell: `size/${RUNG[size]}/height`, inset: 'space/050', cellPaint: 0, fill: FILL[selection][state], edge: EDGE[selection][state], weight: WEIGHT[selection], radius: 'radius/sm' };
+        if (JSON.stringify(got) !== JSON.stringify(want)) indOff.push(`${selection}/${size}/${state}: ${JSON.stringify(got)} (want ${JSON.stringify(want)})`);
+      }
+      ok(segMembers.length === 30 && indOff.length === 0,
+        `#2418 Q269.3/Q269.4 segment indicator: 30 members; the cell on size/{sm,md,lg}/height paints nothing and insets the indicator 4px; the indicator (radius/sm) takes the primary subtle-fill tint and a 2px primary outline stepping with hover and pressed when selected, a disabled 2px outline and no tint when disabled, and only the neutral overlay wash at hover and pressed when unselected (${segMembers.length} members, ${indOff.length} off — ${indOff.slice(0, 2).join('; ') || 'none'})`);
+
+      // (2) THE SELECTED LABEL'S INK IS NEUTRAL, NOT PRIMARY (Q269 QA note), and clears 4.5:1 on the tint. The inks are
+      // read off the PLAN (the subject) at rest, hover and pressed; the values come from the committed exports; the tint
+      // is composited over color/background/primary by a straight sRGB source-over written here. Four brands × four modes,
+      // stated, so a missing export fails. Mutation: the selected label pointed at the primary ink → this arm fails
+      // (primary measures 3.01–4.75:1 on the tint across the 16 cells, under the floor in most of them).
+      const BRANDS = ['aurora', 'nb', 'prism3', 'wendys'];
+      const MODES = ['light', 'dark', 'hc-light', 'hc-dark'];
+      type V = { r: number; g: number; b: number; a?: number };
+      const over = (fg: V, bg: V): RGB => { const a = fg.a ?? 1; return { r: (fg.r * a + bg.r * (1 - a)) * 255, g: (fg.g * a + bg.g * (1 - a)) * 255, b: (fg.b * a + bg.b * (1 - a)) * 255 }; };
+      const solid = (c: V): RGB => ({ r: c.r * 255, g: c.g * 255, b: c.b * 255 });
+      const inks = [...new Set(['rest', 'hover', 'pressed'].map((st) => findIn(memberOf('selected', 'medium', st)!.root, 'label')?.paints?.fills ?? 'none'))];
+      const TINT = 'color/interactive/primary/subtle-fill/selected';
+      const OUTLINE = 'color/interactive/primary/border/rest';
+      const cells: { cell: string; ratio: number }[] = [], edges: { cell: string; ratio: number }[] = [];
+      const miss: string[] = [];
+      for (const brand of BRANDS) for (const mode of MODES) {
+        const f = resolve(HERE, `./out/figma/${brand}/color.${mode}.json`);
+        if (!existsSync(f)) { miss.push(`${brand}/${mode}: no export`); continue; }
+        const vars = new Map((JSON.parse(readFileSync(f, 'utf8')).variables as { name: string; value: V }[]).map((v) => [v.name.replace(/^[^/]+\//, ''), v.value]));
+        const page = vars.get('color/background/primary'), tint = vars.get(TINT), edge = vars.get(OUTLINE);
+        if (!page || !tint || !edge) { miss.push(`${brand}/${mode}: page ${!!page}, tint ${!!tint}, outline ${!!edge}`); continue; }
+        const ground = over(tint, page);
+        for (const ink of inks) {
+          const fg = vars.get(ink);
+          if (!fg || (fg.a ?? 1) !== 1) { miss.push(`${brand}/${mode}: ${ink} ${fg ? `alpha ${fg.a}` : 'missing'}`); continue; }
+          cells.push({ cell: `${brand}/${mode} ${ink}`, ratio: contrast(solid(fg), ground) });
+        }
+        edges.push({ cell: `${brand}/${mode}`, ratio: contrast(solid(edge), solid(page)) });
+      }
+      const low = (xs: { cell: string; ratio: number }[]) => xs.reduce((a, c) => (c.ratio < a.ratio ? c : a), { cell: 'none', ratio: Infinity });
+      const lowInk = low(cells), lowEdge = low(edges);
+      ok(miss.length === 0 && inks.length > 0 && inks.every((i) => /^color\/interactive\/neutral\/text\//.test(i)) && cells.length === 16 * inks.length && lowInk.ratio >= 4.5,
+        `#2418 Q269 the selected label: neutral ink, never primary (${inks.join(', ')}), and it clears 4.5:1 on the tint composited over color/background/primary in all 16 brand × mode cells (${cells.length} measured, lowest ${lowInk.ratio.toFixed(2)}:1 at ${lowInk.cell}${miss.length ? `; ${miss.join('; ')}` : ''})`);
+      ok(edges.length === 16 && lowEdge.ratio >= 3,
+        `#2418 Q269.3 the selected outline (${OUTLINE}) clears 3:1 against color/background/primary, the track ground, in all 16 brand × mode cells (${edges.length} measured, lowest ${lowEdge.ratio.toFixed(2)}:1 at ${lowEdge.cell})`);
+
+      // (3) BOLD WHEN SELECTED, WIDTH HELD (Q269.3 A, Tab's construction). At every size and state the visible label is
+      // label/{rung}/default unselected and label/{rung}/emphasis selected; the bold reserve binds emphasis in both, inside
+      // a clipping zero-height frame, driven by the same Label property. Mutation: the weight swap removed (one label
+      // style at both selections) → this arm.
+      const weightOff: string[] = [];
+      for (const size of SIZES) for (const state of STATES5) for (const selection of ['unselected', 'selected']) {
+        const m = memberOf(selection, size, state);
+        if (!m) { weightOff.push(`${selection}/${size}/${state}: missing`); continue; }
+        const want = selection === 'selected' ? `label/${RUNG[size]}/emphasis` : `label/${RUNG[size]}/default`;
+        const lab = findIn(m.root, 'label'), res = findIn(m.root, 'labelReserve'), box = findIn(m.root, 'reserve');
+        if (lab?.textStyle !== want || res?.textStyle !== `label/${RUNG[size]}/emphasis` || box?.clipsContent !== true || box?.bound?.height !== 'space/0' || !lab?.propertyRef || res?.propertyRef?.prop !== lab.propertyRef.prop)
+          weightOff.push(`${selection}/${size}/${state}: label ${String(lab?.textStyle)}, reserve ${String(res?.textStyle)} clips ${String(box?.clipsContent)} at ${String(box?.bound?.height)}, driven by ${String(res?.propertyRef?.prop)}`);
+      }
+      ok(weightOff.length === 0,
+        `#2418 Q269.3 the weight swap: unselected options set the label in label/{sm,md,lg}/default and selected in emphasis, with a clipped bold reserve driven by the same Label property holding the bold width (${weightOff.length} off${weightOff.length ? ` — ${weightOff.slice(0, 3).join(' | ')}` : ''})`);
+
+      // (4) THE CONTROL: a 1px neutral track (radius/md, Q269.5) holding EXACTLY five nested options, option 1 selected,
+      // 3 shown, 4 and 5 off behind Figma-only toggles, an optional nested FieldLabel (Q269.7, Q269.8). Mutation: a sixth
+      // segment → this arm (a segmented control holds two to five).
+      const ctlMembers = figmaAnatomySet(ctlDef, {});
+      const SEGS = ['segment1', 'segment2', 'segment3', 'segment4', 'segment5'];
+      const ctlOff = ctlMembers.flatMap((m) => {
+        const size = (m.size ?? m.coord.size) as string;
+        const bad: string[] = [];
+        const track = findIn(m.root, 'track');
+        const kids = track?.children.map((k) => k.name) ?? [];
+        if (JSON.stringify(kids) !== JSON.stringify(SEGS)) bad.push(`track holds ${kids.join(',')}`);
+        if (track?.paints?.strokes !== 'color/interactive/neutral/border/rest' || track?.paints?.fills !== undefined || track?.bound?.strokeWeight !== 'border-width/hairline' || track?.bound?.topLeftRadius !== 'radius/md')
+          bad.push(`track ${JSON.stringify(track?.paints)} ${track?.bound?.strokeWeight} ${track?.bound?.topLeftRadius}`);
+        SEGS.forEach((t, i) => {
+          const n = findIn(m.root, t);
+          const v = n?.nestVariant ?? {};
+          if (n?.nestTarget !== 'segmented-control-segment' || v.selection !== (i === 0 ? 'selected' : 'unselected') || v.size !== size || v.state !== 'rest' || JSON.stringify(n?.nestExpose) !== JSON.stringify(['selection', 'state']))
+            bad.push(`${t} nests ${String(n?.nestTarget)} ${JSON.stringify(v)} exposing ${JSON.stringify(n?.nestExpose)}`);
+          const wantProp = i < 2 ? undefined : `Segment ${i + 1}`;
+          if (n?.visibleProp !== wantProp || (n?.visible === false) !== (i >= 3)) bad.push(`${t} visibleProp ${String(n?.visibleProp)}, visible ${String(n?.visible)}`);
+        });
+        const lab = findIn(m.root, 'label');
+        if (lab?.nestTarget !== 'field-label' || lab?.visibleProp !== 'Label' || lab?.visible === false) bad.push(`label ${String(lab?.nestTarget)} ${String(lab?.visibleProp)}`);
+        return bad.length ? [`${planComponentName(m)}: ${bad.join('; ')}`] : [];
+      });
+      ok(ctlMembers.length === 3 && ctlOff.length === 0,
+        `#2418 Q269.7/Q269.8 control: 3 members (size), a 1px color/interactive/neutral/border/rest track at radius/md with no fill, holding exactly five options following the size, option 1 selected, 1-3 shown and 4-5 hidden behind "Segment 4"-"Segment 5", selection and state exposed, under a nested FieldLabel behind "Label" (${ctlMembers.length} members, ${ctlOff.length} off — ${ctlOff[0] ?? 'none'})`);
+      const ctlProps = planSetProperties(ctlMembers).filter((p) => p.type === 'BOOLEAN').map((p) => `${p.name}=${String(p.default)}`);
+      ok(JSON.stringify(ctlProps) === JSON.stringify(['Label=true', 'Segment 3=true', 'Segment 4=false', 'Segment 5=false']),
+        `#2418 Q269.7 control: the set declares exactly four Figma-only toggles, Label and Segment 3 on, Segment 4 and 5 off (${ctlProps.join(', ')})`);
+      ok(!(ctlDef.props ?? []).some((p) => /^segment\d$/i.test(p.name) || /^showLabel$/i.test(p.name)),
+        '#2418 Q269.7 control: no code prop drives a segment or label toggle (Figma-only; in code the count is children)');
+
+      // (5) EQUAL WIDTHS IN FIGMA (Q269.6 A). Every option grows along the track (`layoutGrow: 1`, its own main-axis mode
+      // FIXED), the track stretches across a control built at a placement width, and inside each option the indicator
+      // grows across a cell built at one. The host arm `segmented control equal widths` in
+      // `apps/plugin/test-write-components.ts` measures the shares. Mutation: `grow` dropped from the options → this arm.
+      const growOff = ctlMembers.flatMap((m) => {
+        const bad: string[] = [];
+        for (const t of SEGS) {
+          const n = findIn(m.root, t);
+          if (n?.layoutGrow !== 1 || n?.instanceSizing?.primaryAxisSizingMode !== 'FIXED') bad.push(`${t} layoutGrow ${String(n?.layoutGrow)}, ${JSON.stringify(n?.instanceSizing)}`);
+        }
+        const track = findIn(m.root, 'track');
+        if (track?.layoutAlign !== 'STRETCH' || typeof m.root.placementWidth !== 'number') bad.push(`track ${String(track?.layoutAlign)}, root built at ${String(m.root.placementWidth)}`);
+        return bad.length ? [`${planComponentName(m)}: ${bad.join('; ')}`] : [];
+      });
+      const indGrowOff = segMembers.filter((m) => { const ind = findIn(m.root, 'indicator'); return ind?.layoutGrow !== 1 || ind?.layoutAlign !== 'STRETCH' || typeof m.root.placementWidth !== 'number'; }).map(planComponentName);
+      ok(growOff.length === 0 && indGrowOff.length === 0,
+        `#2418 Q269.6 equal widths: every option grows along a stretched track (layoutGrow 1, its main axis FIXED), and every option's indicator grows across its cell (${growOff.length + indGrowOff.length} off — ${[...growOff, ...indGrowOff].slice(0, 2).join('; ') || 'none'})`);
+
+      // (6) THE BEHAVIOR PROP (Q269.1 A): view by default, form available; code only, so no Figma property carries it.
+      const beh = ctlDef.props.find((p) => p.name === 'behavior');
+      ok(JSON.stringify(beh?.values) === JSON.stringify(['view', 'form']) && beh?.default === 'view' && !planSetProperties(ctlMembers).some((p) => /behavior/i.test(p.name)),
+        `#2418 Q269.1 behavior: view and form, view the default, and no Figma property (got ${JSON.stringify(beh?.values)} default ${String(beh?.default)})`);
+
+      // (7) TABS POINTS AT IT: Tab's avoidWhen and Tabs' usage and avoidWhen name the segmented control, not "not built yet".
+      const tabDef = componentDefs.find((d) => d.id === 'tab')!, tabsDef = componentDefs.find((d) => d.id === 'tabs')!;
+      const texts = [tabDef.ai.avoidWhen, tabsDef.docs.usage, tabsDef.ai.avoidWhen];
+      ok(texts.every((t) => /segmented control|SegmentedControl/i.test(t) && !/segmented control, not built yet/i.test(t)) && tabsDef.composition?.alternativeTo?.includes('segmented-control') && !(tabDef.composition?.planned ?? []).includes('segmented-control') && !(tabsDef.composition?.planned ?? []).includes('segmented-control'),
+        '#2418 Tab and Tabs name the registered segmented control: no "not built yet", and it is no longer planned');
+    }
+
+    // ---- #2418 (owner Q269.6): `grow` on a nested instance ----
+    // The validator used to refuse `grow` on every kind but `box`. A `nest` now grows too, under the same precondition (a
+    // bounded parent main axis); every other kind and an unbounded parent are still refused, each by its own message.
+    {
+      const base = componentDefs.find((d) => d.id === 'segmented-control')!;
+      const errs = (mut: (d: ComponentDef) => void) => { const d = JSON.parse(JSON.stringify(base)) as ComponentDef; mut(d); return validateComponentDef(d).errors; };
+      ok(validateComponentDef(base).errors.length === 0, '#2418 grow on a nest: the segmented control, whose options grow along a bounded track, validates');
+      const unbounded = errs((d) => { delete d.anatomy!.parts.track.crossAxisFill; });
+      ok(unbounded.some((e) => /part 'segment1' declares 'grow' but its parent 'track' does not bound its main axis/.test(e)),
+        `#2418 grow on a nest: an option in a track that bounds no width is refused BY NAME (${unbounded[0] ?? 'no error'})`);
+      const onText = errs((d) => { (d.anatomy!.parts as Record<string, unknown>).note = { kind: 'text', type: 'gap', grow: true }; d.anatomy!.parts.track.children!.push('note'); });
+      ok(onText.some((e) => /part 'note' is kind 'text' but declares 'grow' — only a 'box' or a 'nest'/.test(e)),
+        `#2418 grow on a nest: grow on a text part is still refused BY NAME (${onText.find((e) => /'note'/.test(e)) ?? 'no error'})`);
     }
 
     // ---- #1424: the labelled ROW wraps a long label instead of overflowing ----
@@ -17224,8 +17526,10 @@ arm: {
     const binders = componentDefs.filter((d) => applyOutlineInteraction(d, 'none') !== d).map((d) => d.id).sort();
     // `tag` joins (2026-09-27): an unselected tag's hover and pressed are the neutral overlay wash on its outline,
     // Button's outline grammar, so a solid-tint or no-hover brand reaches it exactly as it reaches a button.
-    ok(JSON.stringify(binders) === JSON.stringify(['button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'select', 'tag', 'text-field', 'textarea']),
-      `#1608 the wash binders the lever reaches: button ×3, icon-button ×3, select, tag, text-field, textarea (${binders.join(', ')})`);
+    // `segmented-control-segment` joins (#2418, Q269.4): an unselected option's hover and pressed are the neutral wash,
+    // and its selected tint is the subtle-fill Tag binds, so a solid-tint or no-hover brand reaches it as it reaches a tag.
+    ok(JSON.stringify(binders) === JSON.stringify(['button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'segmented-control-segment', 'select', 'tag', 'text-field', 'textarea']),
+      `#1608 the wash binders the lever reaches: button ×3, icon-button ×3, segmented-control-segment, select, tag, text-field, textarea (${binders.join(', ')})`);
 
     // BY-NAME MUTATION, in-suite: the RAW def (no wrap) under solid-tint misses the page wash — the 96-miss
     // shape the owner saw, outline's 48 and text's 48. Since #2324 the text appearance keys no wash by default, so the
@@ -17574,6 +17878,9 @@ arm: {
       // Q226 A: the label's weight follows `selection`; the bold reserve is the selected weight at every size.
       { def: tab, part: 'label', axes: { selection: 2, size: 3 } },
       { def: tab, part: 'labelReserve', axes: { size: 3 } },
+      // The segmented control's option (#2418, Q269.3 A): Tab's construction, the label's weight following `selection`.
+      { def: componentDefs.find((d) => d.id === 'segmented-control-segment')!, part: 'label', axes: { selection: 2, size: 3 } },
+      { def: componentDefs.find((d) => d.id === 'segmented-control-segment')!, part: 'labelReserve', axes: { size: 3 } },
       // The two text nodes of `field-label`, the only bindings in the corpus that cross two axes.
       { def: fieldLabel, part: 'text', axes: { size: 3, weight: 2 } },
       { def: fieldLabel, part: 'indicator', axes: { size: 3, weight: 2 } },
@@ -18188,7 +18495,7 @@ arm: {
      *  Both exist because they answer different questions: `insetValue` is how the not-a-number case is
      *  reached (one bad value, whichever name asks), and `varOverrides` is how the two halves of the ring's
      *  coordinate are given DIFFERENT values, which is the only way to tell a sum from a doubling (#801). */
-    type StubOpts = { vars?: string[]; styles?: string[]; comps?: string[]; page?: StubPage; insetValue?: unknown; varOverrides?: Record<string, unknown>; varValues?: Record<string, number>; fileNodes?: StubFileNode[]; nestedInstanceParts?: string[]; effectStyles?: string[]; gradientDiscard?: 'paint' | 'bindings'; textMetrics?: { fontSize: number; lineHeight: { unit: string; value: number } }; setStrokes?: Record<string, unknown>[]; noSlots?: boolean };
+    type StubOpts = { vars?: string[]; styles?: string[]; comps?: string[]; page?: StubPage; insetValue?: unknown; varOverrides?: Record<string, unknown>; varValues?: Record<string, number>; fileNodes?: StubFileNode[]; nestedInstanceParts?: string[]; effectStyles?: string[]; gradientDiscard?: 'paint' | 'bindings'; textMetrics?: { fontSize: number; lineHeight: { unit: string; value: number } }; setStrokes?: Record<string, unknown>[]; noSlots?: boolean; colors?: Record<string, { r: number; g: number; b: number; a: number }> };
     /** The two halves of a focus ring's coordinate, the real NB values (`focus.ring.offset` /
      *  `focus.ring.width` — both 2 in every emitted brand). NAMED, and named HERE, because they are the
      *  stub's INPUT and the geometry assertions' EXPECTED at once, and #801 is what that costs when the
@@ -18270,8 +18577,11 @@ arm: {
       // so the arithmetic under test would be satisfied by the wrong formula. `RING_*` are the real NB
       // values, which is what makes the expected coordinate in the geometry assertion a real number rather
       // than a restatement of whatever the stub happens to hand back.
+      // `colors` (#2468): what a COLOR variable resolves to for a node, where an arm needs the host's color truth. Off
+      // by default, so a color variable resolves to the number below and both executors fall back to their black base.
       const resolved = (name: string): unknown =>
-        opts.varOverrides && name in opts.varOverrides ? opts.varOverrides[name]
+        opts.colors && name in opts.colors ? opts.colors[name]
+          : opts.varOverrides && name in opts.varOverrides ? opts.varOverrides[name]
           : opts.insetValue !== undefined ? opts.insetValue
           : name === 'focus/ring/width' ? RING_STROKE
           : name === 'focus/ring/offset' ? RING_GAP
@@ -21189,6 +21499,13 @@ arm: {
           // #1762: field-label's name HUGS (no grow, auto width) and wraps at its 316 max width, on both hosts —
           // the paste twin's spliced max-width line as well as the plugin's.
           [fieldLabel, [new RegExp(`^/[^/]+/[^/]+ HORIZONTAL p:FIXED c:AUTO .* w:${BUILD_W}$`), /\/text undefined .*grow:0 text:WIDTH_AND_HEIGHT mw:316$/]],
+          // #2418 Q269.6 A: a segmented control's options share the track equally — each of the five nested options
+          // GROWS along the track (layoutGrow 1, written by the parent's pass on an instance) with its own main axis
+          // FIXED. Written out per option, a literal, not read off the def. On the paste host an instance's grow is
+          // written TWICE, by the generic build line (`if(n.layoutGrow)node.layoutGrow=...`, every created node) and by
+          // the parent's pass (`kid.layoutGrow`), so either alone keeps this row green: drop BOTH and it fails by name.
+          // The plugin's parent-side write is the only one it has, held by test-write-components' equal-widths arm.
+          [componentDefs.find((d) => d.id === 'segmented-control')!, [1, 2, 3, 4, 5].map((i) => new RegExp(`/track/segment${i} undefined p:FIXED .*grow:1 `))],
         ]);
         for (const [def, want] of FLOORS) {
           const plans = figmaAnatomySet(def, { swapTarget: 'FPO-default-icon' });
@@ -21472,6 +21789,48 @@ arm: {
           const diff = [...a.keys()].filter((k) => a.get(k) !== b.get(k));
           ok(a.size === 30 && b.size === 30 && diff.length === 0,
             `#1318 parity: both executors write the IDENTICAL fill on every veil member${diff.length ? ` — differ on ${diff.slice(0, 2).map((k) => `${k}: plugin ${a.get(k)} / paste ${b.get(k)}`).join(' | ')}` : ''}`);
+          // #2468 — THE BASE UNDER EACH BINDING IS THE VARIABLE'S OWN COLOR, on both paths. The host draws a paint's
+          // STORED color (#2379, #2391), so a black base is what shows wherever it does not re-resolve. The colors are
+          // the host's truth, written here per name (distinct, the veil's own alphas, a clear end at 0); the expected
+          // base is read off that table, never off either executor. A solid carries the alpha as its opacity, which
+          // the stub's fresh-bind reset then sets to 1 (#1646), so only its RGB is held; a stop carries its alpha in
+          // its color, so all four channels are.
+          {
+            const VEIL_A: Record<string, number> = { subtle: 0.5, medium: 0.6, strong: 0.7, clear: 0 };
+            const colors: NonNullable<StubOpts['colors']> = {};
+            (veilOpts.vars ?? []).filter((v) => v.startsWith('color/')).sort().forEach((v, i) => {
+              colors[v] = { r: (i + 1) / 20, g: (19 - i) / 20, b: ((i * 7) % 19) / 20, a: VEIL_A[v.split('/').pop()!] ?? 1 };
+            });
+            const cPaste: StubPage = { children: [] };
+            const cPlug: StubPage = { children: [] };
+            await runPayload(planSetToPluginJs(veilSet), { ...veilOpts, colors, page: cPaste });
+            await plugRun(veilSet, { ...veilOpts, colors, page: cPlug });
+            const name = (id: string | undefined): string => (id ?? '').replace(/^V:/, '');
+            const baseOff = (page: StubPage): string[] => {
+              const set = page.children.find((c) => c.type === 'COMPONENT_SET');
+              const out: string[] = [];
+              let seen = 0;
+              for (const m of (set?.children ?? []) as Record<string, unknown>[]) {
+                const f = ((m.fills as Record<string, unknown>[] | undefined) ?? [])[0] as { type?: string; color?: Record<string, number>; boundVariables?: { color?: { id?: string } }; gradientStops?: { color?: Record<string, number>; boundVariables?: { color?: { id?: string } } }[] } | undefined;
+                if (!f) { out.push(`${String(m.name)}: no fill`); continue; }
+                if (f.type === 'SOLID') {
+                  const want = colors[name(f.boundVariables?.color?.id)];
+                  seen++;
+                  if (!want || ['r', 'g', 'b'].some((k) => f.color?.[k] !== want[k as 'r'])) out.push(`${String(m.name)}: solid base ${JSON.stringify(f.color)}, want ${JSON.stringify(want)}`);
+                } else for (const st of f.gradientStops ?? []) {
+                  const want = colors[name(st.boundVariables?.color?.id)];
+                  seen++;
+                  if (!want || ['r', 'g', 'b', 'a'].some((k) => st.color?.[k] !== want[k as 'r'])) out.push(`${String(m.name)}: stop base ${JSON.stringify(st.color)}, want ${JSON.stringify(want)}`);
+                }
+              }
+              if (seen !== 6 + 24 * 2) out.push(`${seen} bound paints and stops read, want 54`);
+              return out;
+            };
+            for (const [label, page] of [['plugin', cPlug], ['paste', cPaste]] as const) {
+              const off = baseOff(page);
+              ok(off.length === 0, `#2468 ${label}: every veil solid and every gradient stop is based on its variable's own resolved color, not black (6 solids, 48 stops)${off.length ? ` — ${off.slice(0, 2).join(' | ')}` : ''}`);
+            }
+          }
           // A STARVED FILE: the light clear end is missing. Both paths report the SAME miss and leave the
           // light directional members CLEAR — never a one-stop gradient over a placeholder colour.
           const starved: StubOpts = { vars: (veilOpts.vars ?? []).filter((n) => n !== 'color/veil/light/clear') };
@@ -29675,6 +30034,32 @@ arm: {
         && movedB.lines.includes("  ✓ folded entries — 2 folded fragment(s) found in the log at their landing day, newest merge first; 2 more landed off main's first-parent history (a merge of main, or this branch) and are not seen here (#1880)")
         && movedB.lines.some((l) => l.startsWith('✗ ONE WRITER (log) — this diff changes docs/00-progress.md')),
       `#1880 folded entries: on the branch, a hand-move of entries that arrived through a merge is not seen by this arm (stated limit) and fails ONE WRITER instead (exit ${movedB.status}: ${verdict(movedB)})`);
+
+    // (e) #2583: the archive. From m5, the oldest three sections move out of the log to an archive file. The
+    // pure move passes, and Pre one / Pre two, folded and now archived, are still found and ordered. Dropping
+    // or duplicating a section on the way fails ARCHIVE MOVE by name; the log half alone fails ONE WRITER.
+    const section = (t: string, d = '2026-03-01') => `## (${d}) — ${t}\n\n${t} body.\n\n`;
+    const archive = (titles: string[]) => put('docs/progress/archive/2026-01.md',
+      '# Archive\n\n---\n\n' + titles.map((t) => (t === 'Seed' ? section(t, '2026-01-01') : section(t))).join(''));
+    const liveLog = () => put('docs/00-progress.md', '# Progress\n\n' + section('Bravo') + section('Alpha'));
+    const branchFromMain = (name: string, files: () => void) => { git('checkout', '-q', '-b', name, m5); files(); fragment(`lane-${name}`, `Topic ${name}`); commit(name); };
+    branchFromMain('arch', () => { liveLog(); archive(['Pre two', 'Pre one', 'Seed']); });
+    branchFromMain('arch-drop', () => { liveLog(); archive(['Pre two', 'Seed']); });
+    branchFromMain('arch-dup', () => { liveLog(); archive(['Pre two', 'Pre two', 'Pre one', 'Seed']); });
+    branchFromMain('arch-log-only', () => { liveLog(); });
+    const arch = run('arch', PR);
+    ok(arch.status === 0 && arch.lines.includes(ALL_FOUR)
+        && arch.lines.includes('  ✓ archive move — 3 section(s) moved out of docs/00-progress.md; all 5 sections of the log and archive byte-identical and in order'),
+      `#2583 archive move: a pure move passes, and the archived folded entries are still found in landing order (exit ${arch.status}: ${arch.lines.filter((l) => /archive|ARCHIVE|folded|ONE WRITER/.test(l)).join(' | ')})`);
+    const archDrop = run('arch-drop', PR);
+    ok(archDrop.status === 1 && archDrop.lines.includes('  · lost: "## (2026-03-01) — Pre one" — 1 at the base, 0 now (dropped, or its text changed on the way)'),
+      `#2583 archive move: an entry dropped on the way fails ARCHIVE MOVE by name (exit ${archDrop.status})`);
+    const archDup = run('arch-dup', PR);
+    ok(archDup.status === 1 && archDup.lines.includes('  · added: "## (2026-03-01) — Pre two" — 1 at the base, 2 now (duplicated, written new, or its text changed on the way)'),
+      `#2583 archive move: an entry duplicated on the way fails ARCHIVE MOVE by name (exit ${archDup.status})`);
+    const archLogOnly = run('arch-log-only', PR);
+    ok(archLogOnly.status === 1 && archLogOnly.lines.some((l) => l.startsWith('✗ ONE WRITER (log) — this diff changes docs/00-progress.md')),
+      `#2583 archive move: entries cut from the log with no archive half fail ONE WRITER (exit ${archLogOnly.status})`);
   } finally {
     rmSync(scratch, { recursive: true, force: true });
   }
