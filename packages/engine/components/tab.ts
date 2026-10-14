@@ -249,7 +249,7 @@ export const tab: ComponentDef = {
   ai: {
     primaryPurpose: 'One trigger inside Tabs that shows its panel in place when selected.',
     whenToUse: 'Only as a child of Tabs.',
-    avoidWhen: 'Changing the page or the address (a navigation of links), or switching a value within the current view (a segmented control, not built yet).',
+    avoidWhen: 'Changing the page or the address (a navigation of links), or switching a value within the current view (SegmentedControl).',
     commonPartners: ['tabs', 'icon', 'badge'],
     triggerKeywords: ['tab', 'tab trigger', 'tab item'],
     generationPriority: 3,
@@ -260,7 +260,7 @@ export const tab: ComponentDef = {
     alternativeTo: [],
     replacesPatterns: ['a styled button that shows and hides a div with no tab semantics'],
     supersededBy: [],
-    planned: ['segmented-control'],
+    planned: [],
   },
 
   motion: {

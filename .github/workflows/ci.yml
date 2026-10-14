@@ -15,10 +15,15 @@ on:
   push:
     branches: [main]
 
-# A force-push supersedes the previous run; don't burn minutes finishing a stale one.
+# A force-push to a PR supersedes the previous run; don't burn minutes finishing a stale one. A push
+# run on main is never cancelled (#2617): it is the only run that compares a squash with its parent
+# (`comparison-base.ts`), so a run cancelled by the next squash would leave that squash compared with
+# nothing. 19 of 40 consecutive push runs on main had ended `cancelled` before this. Each push run
+# gets its own group (keyed by SHA), not just `cancel-in-progress: false`: within one shared group
+# GitHub still cancels a PENDING run when a third arrives, so a burst of three squashes would drop one.
 concurrency:
-  group: gates-${{ github.ref }}
-  cancel-in-progress: true
+  group: gates-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   gates:
@@ -123,6 +128,14 @@ jobs:
       # no entry. The baseline's `from` side is the merge base, read with `git show`, never the tree.
       - name: A removed component variant is declared in COMPONENT_RENAMES (#2265)
         run: npx --yes tsx@4 packages/engine/lint-component-renames.ts
+
+      # The four git-history gates above read their "before" at the merge base of HEAD and the base
+      # branch, and on this file's push run on main that merge base is HEAD itself: each compared a squash
+      # with itself and passed (#2556, the #2551 gap). `comparison-base.ts` gives them the first parent
+      # there. This replays main's push run against each real gate in a `$TMPDIR` clone and requires a
+      # squash that breaks the gate's rule to fail by the gate's own assertion, and one that keeps it to pass.
+      - name: "On main's push run each git-history gate compares a squash with its parent (#2556)"
+        run: npx --yes tsx@4 packages/engine/lint-push-base.ts
 
       # The dry run reports a member written by an older executor as needing a re-apply, by comparing
       # the stamp's third field with EXECUTOR_REVISION (#1098). A hand-bumped number is forgotten, and a
@@ -423,8 +436,8 @@ jobs:
           count=$(npx --yes tsx@4 packages/engine/regen.ts --check | grep -oE '[0-9]+ committed artifacts')
           echo "reported: $count"
           case "$count" in
-            "183 committed artifacts") echo "✓ full set covered" ;;
-            *) echo "✗ artifact coverage changed — expected 183. If the set legitimately grew or shrank, update this check in the same PR."; exit 1 ;;
+            "185 committed artifacts") echo "✓ full set covered" ;;
+            *) echo "✗ artifact coverage changed — expected 185. If the set legitimately grew or shrank, update this check in the same PR."; exit 1 ;;
           esac
 
       # The RUNNER's own checks, not a second run of the gates (#789). `verify.ts` is what a contributor

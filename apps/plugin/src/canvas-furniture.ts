@@ -21,8 +21,8 @@
  * plugin. The plan supplies only which row and column each member is in (`planSetLayout`'s cells, by member name).
  *
  * PRISM3'S OWN, AND TAGGED SO. Every instance carries shared plugin data `prism3`/`furniture` naming its def and its
- * set. A rebuild or update clears the def's furniture on that parent and draws it fresh, so it never drifts from the
- * grid; prune removes furniture whose set is gone (`staleFurniture`). The update's hand-edit check and the as-built
+ * set. A rebuild or update clears the def's furniture on that parent, and the set's own on any other parent it was
+ * moved from (`clearMovedFurniture`, #2485), and draws it fresh, so it never drifts from the grid; prune removes furniture whose set is gone (`staleFurniture`). The update's hand-edit check and the as-built
  * record read the set's members only, and furniture is never a member: it is never appended into the set, which is
  * what keeps both blind to it (`test-canvas-furniture.ts` `update/…` holds that).
  *
@@ -223,7 +223,12 @@ export interface FurnitureParent {
 }
 /** The host surface: a file-wide template search, font loading, and the variables the backdrop binds. */
 export interface FurnitureApi {
-  root: { findAllWithCriteria(criteria: { types: ('COMPONENT' | 'COMPONENT_SET')[] }): readonly unknown[] };
+  root: {
+    findAllWithCriteria(criteria: {
+      types: ('COMPONENT' | 'COMPONENT_SET' | 'INSTANCE')[];
+      sharedPluginData?: { namespace: string; keys: string[] };
+    }): readonly unknown[];
+  };
   loadFontAsync(font: { family: string; style: string }): Promise<void>;
   variables?: BackdropVariables;
 }
@@ -235,7 +240,7 @@ export interface FurnitureOutcome {
   columns: number;
   rows: number;
   backdrops: number;
-  /** Instances of this def's earlier furniture removed first. */
+  /** Instances of this def's earlier furniture removed first: on the set's parent, and this set's on any other. */
   cleared: number;
   /** A part not drawn, as the verdict sentence: a missing variant, a set with no parent, an ungrouped set. */
   skipped: string[];
@@ -274,6 +279,26 @@ export const clearFurniture = (parent: FurnitureParent, defId: string): number =
   let n = 0;
   for (const c of [...(parent.children as readonly XNode[])]) {
     if (readTag(c)?.def !== defId) continue;
+    c.remove?.();
+    n++;
+  }
+  return n;
+};
+
+/**
+ * THE FURNITURE A MOVED SET LEFT BEHIND (#2485): `set`'s own furniture, by its tag's set id, on any parent but
+ * `parent`. A designer who moves a set to another page or into a frame leaves its labels and backdrop where they
+ * were, and `clearFurniture` reads only the parent it draws on. Found file-wide by the tag, so only Prism3's own
+ * furniture is ever touched: an untagged node (a hand-placed `inverse-bg`, Q172.5) never matches, and another set's
+ * furniture never does either, even of the same def. Returns how many instances went.
+ */
+export const clearMovedFurniture = (api: FurnitureApi, set: XNode, parent: FurnitureParent): number => {
+  const setId = String(set.id ?? '');
+  if (!setId) return 0;
+  const tagged = api.root.findAllWithCriteria({ types: ['INSTANCE'], sharedPluginData: { namespace: FURNITURE_NS, keys: [FURNITURE_KEY] } }) as readonly XNode[];
+  let n = 0;
+  for (const c of tagged) {
+    if (c.removed || c.parent === parent || readTag(c)?.set !== setId) continue;
     c.remove?.();
     n++;
   }
@@ -372,7 +397,7 @@ export const drawFurniture = async (
   const parent = set.parent as FurnitureParent | null | undefined;
   if (!parent || typeof parent.insertChild !== 'function')
     return { def: defId, parent: '', columns: 0, rows: 0, backdrops: 0, cleared: 0, skipped: [`No canvas labels for ${defId}: the set has no parent to place them on`], fontMisses: [] };
-  const out: FurnitureOutcome = { def: defId, parent: parent.name ?? '', columns: 0, rows: 0, backdrops: 0, cleared: clearFurniture(parent, defId), skipped: [], fontMisses: [] };
+  const out: FurnitureOutcome = { def: defId, parent: parent.name ?? '', columns: 0, rows: 0, backdrops: 0, cleared: clearFurniture(parent, defId) + clearMovedFurniture(api, set, parent), skipped: [], fontMisses: [] };
   const members = gridMembers(set, layout.cells);
   if (!members.length) { out.skipped.push(`No canvas labels for ${defId}: the set has no member this plan lays out`); return out; }
   // ONLY OVER ONE INVERSE BLOCK (#2188 Q173): a set still laid out the earlier way has a band of inverse rows per

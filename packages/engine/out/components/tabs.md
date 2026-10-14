@@ -11,7 +11,7 @@ A row of tabs above a baseline. Each tab names one panel of related content; sel
 
 ## Usage
 
-Use tabs to switch between peer sections of related content in one place, one at a time, such as a product's description, specifications and reviews. Don't use tabs to go to another page (use links in a navigation), to change a setting or filter the current view (use a segmented control, not built yet, or a select), or for content people need to compare side by side.
+Use tabs to switch between peer sections of related content in one place, one at a time, such as a product's description, specifications and reviews. Don't use tabs to go to another page (use links in a navigation), to change a setting or filter the current view (use a segmented control or a select), or for content people need to compare side by side.
 
 ### Do
 
@@ -39,7 +39,7 @@ One or two words per tab, nouns, sentence case.
 
 - **Purpose:** Switch between peer panels of related content in place, one at a time.
 - **Use when:** Two to about six peer sections of one subject, viewed one at a time, where switching is quick and the address need not change.
-- **Avoid when:** The selection changes the page or the address (a navigation of links), filters or re-sorts the current view (a segmented control, not built yet, or Select), is a required sequence (a stepper, not built yet), or has many independent sections (an accordion, not built yet).
+- **Avoid when:** The selection changes the page or the address (a navigation of links), filters or re-sorts the current view (SegmentedControl, or Select), is a required sequence (a stepper, not built yet), or has many independent sections (Accordion).
 - **Often used with:** `tab`, `badge`, `icon`
 
 ## Props
@@ -88,8 +88,7 @@ One or two words per tab, nouns, sentence case.
 ## Composition
 
 - **Composes with:** `tab`
-- **Alternative to:** `select`, `accordion`
-- **Planned:** `segmented-control`
+- **Alternative to:** `select`, `accordion`, `segmented-control`
 - **Replaces:**
   - show and hide divs with no tab semantics
   - role="tab" on links that change the route

@@ -3765,6 +3765,7 @@ for (const b of brands) {
       'switch-row': { keys: ['gap'], sizes: ['small', 'medium'] },
       tag: { keys: ['padding-x', 'select.gap', 'dismissible.visible-gap', 'check-gap', 'select.padding-end', 'dismissible.padding-end'], sizes: ['small', 'medium', 'large'] },
       tab: { keys: ['padding-x', 'gap'], sizes: ['small', 'medium', 'large'] },
+      'segmented-control-segment': { keys: ['padding-x', 'gap'], sizes: ['small', 'medium', 'large'] },
       accordion: { keys: ['pad-x', 'pad-y', 'gap', 'panel-pad-end'], sizes: ['small', 'medium', 'large'] },
       list: { keys: ['gap'], sizes: ['small', 'medium', 'large'] },
       link: { keys: ['gap'], sizes: ['small', 'medium', 'large'] },
@@ -3783,6 +3784,8 @@ for (const b of brands) {
       tag: { compact: 'small 6/4/4/4/6/0 · medium 8/6/6/4/8/0 · large 12/8/6/6/12/0', comfortable: 'small 8/6/6/4/8/0 · medium 12/8/8/6/12/0 · large 16/12/8/8/16/0', spacious: 'small 12/8/8/6/12/0 · medium 16/12/12/8/16/0 · large 20/16/12/12/20/0' },
       // Tab (#2416): padding-x / icon→label→count gap. Comfortable is the proposal's 12/6 · 16/8 · 20/8.
       tab: { compact: 'small 8/4 · medium 12/6 · large 16/6', comfortable: 'small 12/6 · medium 16/8 · large 20/8', spacious: 'small 16/8 · medium 20/12 · large 24/12' },
+      // Segmented control option (#2418): padding-x / icon→label gap, Tab's numbers (the refreshed proposal §6).
+      'segmented-control-segment': { compact: 'small 8/4 · medium 12/6 · large 16/6', comfortable: 'small 12/6 · medium 16/8 · large 20/8', spacious: 'small 16/8 · medium 20/12 · large 24/12' },
       // Accordion (#2417, DRAFT): header inline / header block / glyph-to-title gap / panel bottom inset. Comfortable is
       // the proposal's 12/8/8 · 16/12/12 · 24/16/16, with the panel's bottom inset matching the inline padding.
       accordion: { compact: 'small 8/6/6/8 · medium 12/8/8/12 · large 20/12/12/20', comfortable: 'small 12/8/8/12 · medium 16/12/12/16 · large 24/16/16/24', spacious: 'small 16/12/12/16 · medium 20/16/16/20 · large 32/20/20/32' },
@@ -3827,6 +3830,7 @@ for (const b of brands) {
       select: ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       'checkbox-row': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       tab: ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
+      'segmented-control-segment': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       'radio-row': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       'switch-row': ['size.small.gap', 'size.medium.gap'],
       list: ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
@@ -3865,6 +3869,7 @@ for (const b of brands) {
       // type: the sum is what must stay under the padding. A `+` key is summed.
       tag: { prefix: 'sized', lt: [['select.gap+select.label-inset', 'padding-x'], ['dismissible.gap+dismissible.label-inset', 'padding-x'], ['check-gap', 'padding-x']] },
       tab: { prefix: 'sized', lt: [['gap', 'padding-x']] },
+      'segmented-control-segment': { prefix: 'sized', lt: [['gap', 'padding-x']] },
       accordion: { prefix: 'sized', lt: [['gap', 'pad-x']] },
     };
     const GAP_TAILS = ['gap', 'check-gap'];
@@ -15650,6 +15655,173 @@ arm: {
         '#2416 Q179 tabs: no code prop drives a tab toggle (Figma-only; in code the count is children)');
     }
 
+    // ---- #2418 (owner decisions Q269 1-8 A): SegmentedControl.Segment and SegmentedControl ----
+    // Every expected value below is a literal typed here from Q269 and the refreshed proposal it decided, never read
+    // off the defs: the defs and their projected plans are the SUBJECT (docs/34 shape 1). Each arm names its decision,
+    // so a mutation of the def fails the arm it breaks, by name.
+    {
+      const findIn = (n: AnatomyPlan['root'], name: string): AnatomyPlan['root'] | undefined => n.name === name ? n : n.children.map((k) => findIn(k, name)).find(Boolean);
+      const segDef = componentDefs.find((d) => d.id === 'segmented-control-segment')!;
+      const ctlDef = componentDefs.find((d) => d.id === 'segmented-control')!;
+      const segMembers = figmaAnatomySet(segDef, { swapTarget: 'FPO-default-icon' });
+      const SIZES = ['small', 'medium', 'large'];
+      const RUNG: Record<string, string> = { small: 'sm', medium: 'md', large: 'lg' };
+      const STATES5 = ['rest', 'hover', 'pressed', 'focus-visible', 'disabled'];
+      const memberOf = (selection: string, size: string, state: string) =>
+        segMembers.find((m) => m.coord.selection === selection && (m.size ?? m.coord.size) === size && m.coord.state === state);
+
+      // (1) THE INDICATOR — the tint, the 2px outline and the hover wash, per selection and state (Q269.3 A, Q269.4 A).
+      // The cell paints nothing; the indicator, inset 4px (space/050) inside a cell on Button's height rung, does.
+      const FILL: Record<string, Record<string, string | undefined>> = {
+        selected: { rest: 'color/interactive/primary/subtle-fill/selected', hover: 'color/interactive/primary/subtle-fill/selected', pressed: 'color/interactive/primary/subtle-fill/selected', 'focus-visible': 'color/interactive/primary/subtle-fill/selected', disabled: undefined },
+        unselected: { rest: undefined, hover: 'color/interactive/neutral/overlay/hover', pressed: 'color/interactive/neutral/overlay/pressed', 'focus-visible': undefined, disabled: undefined },
+      };
+      const EDGE: Record<string, Record<string, string | undefined>> = {
+        selected: { rest: 'color/interactive/primary/border/rest', hover: 'color/interactive/primary/border/hover', pressed: 'color/interactive/primary/border/pressed', 'focus-visible': 'color/interactive/primary/border/rest', disabled: 'color/disabled/border' },
+        unselected: { rest: undefined, hover: undefined, pressed: undefined, 'focus-visible': undefined, disabled: undefined },
+      };
+      const WEIGHT: Record<string, string> = { selected: 'border-width/thick', unselected: 'border-width/none' };
+      const indOff: string[] = [];
+      for (const selection of ['unselected', 'selected']) for (const size of SIZES) for (const state of STATES5) {
+        const m = memberOf(selection, size, state);
+        const ind = m && findIn(m.root, 'indicator');
+        const got = { cell: m?.root.bound?.height, inset: m?.root.bound?.paddingLeft, cellPaint: Object.keys(m?.root.paints ?? {}).length, fill: ind?.paints?.fills, edge: ind?.paints?.strokes, weight: ind?.bound?.strokeWeight, radius: ind?.bound?.topLeftRadius };
+        const want = { cell: `size/${RUNG[size]}/height`, inset: 'space/050', cellPaint: 0, fill: FILL[selection][state], edge: EDGE[selection][state], weight: WEIGHT[selection], radius: 'radius/sm' };
+        if (JSON.stringify(got) !== JSON.stringify(want)) indOff.push(`${selection}/${size}/${state}: ${JSON.stringify(got)} (want ${JSON.stringify(want)})`);
+      }
+      ok(segMembers.length === 30 && indOff.length === 0,
+        `#2418 Q269.3/Q269.4 segment indicator: 30 members; the cell on size/{sm,md,lg}/height paints nothing and insets the indicator 4px; the indicator (radius/sm) takes the primary subtle-fill tint and a 2px primary outline stepping with hover and pressed when selected, a disabled 2px outline and no tint when disabled, and only the neutral overlay wash at hover and pressed when unselected (${segMembers.length} members, ${indOff.length} off — ${indOff.slice(0, 2).join('; ') || 'none'})`);
+
+      // (2) THE SELECTED LABEL'S INK IS NEUTRAL, NOT PRIMARY (Q269 QA note), and clears 4.5:1 on the tint. The inks are
+      // read off the PLAN (the subject) at rest, hover and pressed; the values come from the committed exports; the tint
+      // is composited over color/background/primary by a straight sRGB source-over written here. Four brands × four modes,
+      // stated, so a missing export fails. Mutation: the selected label pointed at the primary ink → this arm fails
+      // (primary measures 3.01–4.75:1 on the tint across the 16 cells, under the floor in most of them).
+      const BRANDS = ['aurora', 'nb', 'prism3', 'wendys'];
+      const MODES = ['light', 'dark', 'hc-light', 'hc-dark'];
+      type V = { r: number; g: number; b: number; a?: number };
+      const over = (fg: V, bg: V): RGB => { const a = fg.a ?? 1; return { r: (fg.r * a + bg.r * (1 - a)) * 255, g: (fg.g * a + bg.g * (1 - a)) * 255, b: (fg.b * a + bg.b * (1 - a)) * 255 }; };
+      const solid = (c: V): RGB => ({ r: c.r * 255, g: c.g * 255, b: c.b * 255 });
+      const inks = [...new Set(['rest', 'hover', 'pressed'].map((st) => findIn(memberOf('selected', 'medium', st)!.root, 'label')?.paints?.fills ?? 'none'))];
+      const TINT = 'color/interactive/primary/subtle-fill/selected';
+      const OUTLINE = 'color/interactive/primary/border/rest';
+      const cells: { cell: string; ratio: number }[] = [], edges: { cell: string; ratio: number }[] = [];
+      const miss: string[] = [];
+      for (const brand of BRANDS) for (const mode of MODES) {
+        const f = resolve(HERE, `./out/figma/${brand}/color.${mode}.json`);
+        if (!existsSync(f)) { miss.push(`${brand}/${mode}: no export`); continue; }
+        const vars = new Map((JSON.parse(readFileSync(f, 'utf8')).variables as { name: string; value: V }[]).map((v) => [v.name.replace(/^[^/]+\//, ''), v.value]));
+        const page = vars.get('color/background/primary'), tint = vars.get(TINT), edge = vars.get(OUTLINE);
+        if (!page || !tint || !edge) { miss.push(`${brand}/${mode}: page ${!!page}, tint ${!!tint}, outline ${!!edge}`); continue; }
+        const ground = over(tint, page);
+        for (const ink of inks) {
+          const fg = vars.get(ink);
+          if (!fg || (fg.a ?? 1) !== 1) { miss.push(`${brand}/${mode}: ${ink} ${fg ? `alpha ${fg.a}` : 'missing'}`); continue; }
+          cells.push({ cell: `${brand}/${mode} ${ink}`, ratio: contrast(solid(fg), ground) });
+        }
+        edges.push({ cell: `${brand}/${mode}`, ratio: contrast(solid(edge), solid(page)) });
+      }
+      const low = (xs: { cell: string; ratio: number }[]) => xs.reduce((a, c) => (c.ratio < a.ratio ? c : a), { cell: 'none', ratio: Infinity });
+      const lowInk = low(cells), lowEdge = low(edges);
+      ok(miss.length === 0 && inks.length > 0 && inks.every((i) => /^color\/interactive\/neutral\/text\//.test(i)) && cells.length === 16 * inks.length && lowInk.ratio >= 4.5,
+        `#2418 Q269 the selected label: neutral ink, never primary (${inks.join(', ')}), and it clears 4.5:1 on the tint composited over color/background/primary in all 16 brand × mode cells (${cells.length} measured, lowest ${lowInk.ratio.toFixed(2)}:1 at ${lowInk.cell}${miss.length ? `; ${miss.join('; ')}` : ''})`);
+      ok(edges.length === 16 && lowEdge.ratio >= 3,
+        `#2418 Q269.3 the selected outline (${OUTLINE}) clears 3:1 against color/background/primary, the track ground, in all 16 brand × mode cells (${edges.length} measured, lowest ${lowEdge.ratio.toFixed(2)}:1 at ${lowEdge.cell})`);
+
+      // (3) BOLD WHEN SELECTED, WIDTH HELD (Q269.3 A, Tab's construction). At every size and state the visible label is
+      // label/{rung}/default unselected and label/{rung}/emphasis selected; the bold reserve binds emphasis in both, inside
+      // a clipping zero-height frame, driven by the same Label property. Mutation: the weight swap removed (one label
+      // style at both selections) → this arm.
+      const weightOff: string[] = [];
+      for (const size of SIZES) for (const state of STATES5) for (const selection of ['unselected', 'selected']) {
+        const m = memberOf(selection, size, state);
+        if (!m) { weightOff.push(`${selection}/${size}/${state}: missing`); continue; }
+        const want = selection === 'selected' ? `label/${RUNG[size]}/emphasis` : `label/${RUNG[size]}/default`;
+        const lab = findIn(m.root, 'label'), res = findIn(m.root, 'labelReserve'), box = findIn(m.root, 'reserve');
+        if (lab?.textStyle !== want || res?.textStyle !== `label/${RUNG[size]}/emphasis` || box?.clipsContent !== true || box?.bound?.height !== 'space/0' || !lab?.propertyRef || res?.propertyRef?.prop !== lab.propertyRef.prop)
+          weightOff.push(`${selection}/${size}/${state}: label ${String(lab?.textStyle)}, reserve ${String(res?.textStyle)} clips ${String(box?.clipsContent)} at ${String(box?.bound?.height)}, driven by ${String(res?.propertyRef?.prop)}`);
+      }
+      ok(weightOff.length === 0,
+        `#2418 Q269.3 the weight swap: unselected options set the label in label/{sm,md,lg}/default and selected in emphasis, with a clipped bold reserve driven by the same Label property holding the bold width (${weightOff.length} off${weightOff.length ? ` — ${weightOff.slice(0, 3).join(' | ')}` : ''})`);
+
+      // (4) THE CONTROL: a 1px neutral track (radius/md, Q269.5) holding EXACTLY five nested options, option 1 selected,
+      // 3 shown, 4 and 5 off behind Figma-only toggles, an optional nested FieldLabel (Q269.7, Q269.8). Mutation: a sixth
+      // segment → this arm (a segmented control holds two to five).
+      const ctlMembers = figmaAnatomySet(ctlDef, {});
+      const SEGS = ['segment1', 'segment2', 'segment3', 'segment4', 'segment5'];
+      const ctlOff = ctlMembers.flatMap((m) => {
+        const size = (m.size ?? m.coord.size) as string;
+        const bad: string[] = [];
+        const track = findIn(m.root, 'track');
+        const kids = track?.children.map((k) => k.name) ?? [];
+        if (JSON.stringify(kids) !== JSON.stringify(SEGS)) bad.push(`track holds ${kids.join(',')}`);
+        if (track?.paints?.strokes !== 'color/interactive/neutral/border/rest' || track?.paints?.fills !== undefined || track?.bound?.strokeWeight !== 'border-width/hairline' || track?.bound?.topLeftRadius !== 'radius/md')
+          bad.push(`track ${JSON.stringify(track?.paints)} ${track?.bound?.strokeWeight} ${track?.bound?.topLeftRadius}`);
+        SEGS.forEach((t, i) => {
+          const n = findIn(m.root, t);
+          const v = n?.nestVariant ?? {};
+          if (n?.nestTarget !== 'segmented-control-segment' || v.selection !== (i === 0 ? 'selected' : 'unselected') || v.size !== size || v.state !== 'rest' || JSON.stringify(n?.nestExpose) !== JSON.stringify(['selection', 'state']))
+            bad.push(`${t} nests ${String(n?.nestTarget)} ${JSON.stringify(v)} exposing ${JSON.stringify(n?.nestExpose)}`);
+          const wantProp = i < 2 ? undefined : `Segment ${i + 1}`;
+          if (n?.visibleProp !== wantProp || (n?.visible === false) !== (i >= 3)) bad.push(`${t} visibleProp ${String(n?.visibleProp)}, visible ${String(n?.visible)}`);
+        });
+        const lab = findIn(m.root, 'label');
+        if (lab?.nestTarget !== 'field-label' || lab?.visibleProp !== 'Label' || lab?.visible === false) bad.push(`label ${String(lab?.nestTarget)} ${String(lab?.visibleProp)}`);
+        return bad.length ? [`${planComponentName(m)}: ${bad.join('; ')}`] : [];
+      });
+      ok(ctlMembers.length === 3 && ctlOff.length === 0,
+        `#2418 Q269.7/Q269.8 control: 3 members (size), a 1px color/interactive/neutral/border/rest track at radius/md with no fill, holding exactly five options following the size, option 1 selected, 1-3 shown and 4-5 hidden behind "Segment 4"-"Segment 5", selection and state exposed, under a nested FieldLabel behind "Label" (${ctlMembers.length} members, ${ctlOff.length} off — ${ctlOff[0] ?? 'none'})`);
+      const ctlProps = planSetProperties(ctlMembers).filter((p) => p.type === 'BOOLEAN').map((p) => `${p.name}=${String(p.default)}`);
+      ok(JSON.stringify(ctlProps) === JSON.stringify(['Label=true', 'Segment 3=true', 'Segment 4=false', 'Segment 5=false']),
+        `#2418 Q269.7 control: the set declares exactly four Figma-only toggles, Label and Segment 3 on, Segment 4 and 5 off (${ctlProps.join(', ')})`);
+      ok(!(ctlDef.props ?? []).some((p) => /^segment\d$/i.test(p.name) || /^showLabel$/i.test(p.name)),
+        '#2418 Q269.7 control: no code prop drives a segment or label toggle (Figma-only; in code the count is children)');
+
+      // (5) EQUAL WIDTHS IN FIGMA (Q269.6 A). Every option grows along the track (`layoutGrow: 1`, its own main-axis mode
+      // FIXED), the track stretches across a control built at a placement width, and inside each option the indicator
+      // grows across a cell built at one. The host arm `segmented control equal widths` in
+      // `apps/plugin/test-write-components.ts` measures the shares. Mutation: `grow` dropped from the options → this arm.
+      const growOff = ctlMembers.flatMap((m) => {
+        const bad: string[] = [];
+        for (const t of SEGS) {
+          const n = findIn(m.root, t);
+          if (n?.layoutGrow !== 1 || n?.instanceSizing?.primaryAxisSizingMode !== 'FIXED') bad.push(`${t} layoutGrow ${String(n?.layoutGrow)}, ${JSON.stringify(n?.instanceSizing)}`);
+        }
+        const track = findIn(m.root, 'track');
+        if (track?.layoutAlign !== 'STRETCH' || typeof m.root.placementWidth !== 'number') bad.push(`track ${String(track?.layoutAlign)}, root built at ${String(m.root.placementWidth)}`);
+        return bad.length ? [`${planComponentName(m)}: ${bad.join('; ')}`] : [];
+      });
+      const indGrowOff = segMembers.filter((m) => { const ind = findIn(m.root, 'indicator'); return ind?.layoutGrow !== 1 || ind?.layoutAlign !== 'STRETCH' || typeof m.root.placementWidth !== 'number'; }).map(planComponentName);
+      ok(growOff.length === 0 && indGrowOff.length === 0,
+        `#2418 Q269.6 equal widths: every option grows along a stretched track (layoutGrow 1, its main axis FIXED), and every option's indicator grows across its cell (${growOff.length + indGrowOff.length} off — ${[...growOff, ...indGrowOff].slice(0, 2).join('; ') || 'none'})`);
+
+      // (6) THE BEHAVIOR PROP (Q269.1 A): view by default, form available; code only, so no Figma property carries it.
+      const beh = ctlDef.props.find((p) => p.name === 'behavior');
+      ok(JSON.stringify(beh?.values) === JSON.stringify(['view', 'form']) && beh?.default === 'view' && !planSetProperties(ctlMembers).some((p) => /behavior/i.test(p.name)),
+        `#2418 Q269.1 behavior: view and form, view the default, and no Figma property (got ${JSON.stringify(beh?.values)} default ${String(beh?.default)})`);
+
+      // (7) TABS POINTS AT IT: Tab's avoidWhen and Tabs' usage and avoidWhen name the segmented control, not "not built yet".
+      const tabDef = componentDefs.find((d) => d.id === 'tab')!, tabsDef = componentDefs.find((d) => d.id === 'tabs')!;
+      const texts = [tabDef.ai.avoidWhen, tabsDef.docs.usage, tabsDef.ai.avoidWhen];
+      ok(texts.every((t) => /segmented control|SegmentedControl/i.test(t) && !/segmented control, not built yet/i.test(t)) && tabsDef.composition?.alternativeTo?.includes('segmented-control') && !(tabDef.composition?.planned ?? []).includes('segmented-control') && !(tabsDef.composition?.planned ?? []).includes('segmented-control'),
+        '#2418 Tab and Tabs name the registered segmented control: no "not built yet", and it is no longer planned');
+    }
+
+    // ---- #2418 (owner Q269.6): `grow` on a nested instance ----
+    // The validator used to refuse `grow` on every kind but `box`. A `nest` now grows too, under the same precondition (a
+    // bounded parent main axis); every other kind and an unbounded parent are still refused, each by its own message.
+    {
+      const base = componentDefs.find((d) => d.id === 'segmented-control')!;
+      const errs = (mut: (d: ComponentDef) => void) => { const d = JSON.parse(JSON.stringify(base)) as ComponentDef; mut(d); return validateComponentDef(d).errors; };
+      ok(validateComponentDef(base).errors.length === 0, '#2418 grow on a nest: the segmented control, whose options grow along a bounded track, validates');
+      const unbounded = errs((d) => { delete d.anatomy!.parts.track.crossAxisFill; });
+      ok(unbounded.some((e) => /part 'segment1' declares 'grow' but its parent 'track' does not bound its main axis/.test(e)),
+        `#2418 grow on a nest: an option in a track that bounds no width is refused BY NAME (${unbounded[0] ?? 'no error'})`);
+      const onText = errs((d) => { (d.anatomy!.parts as Record<string, unknown>).note = { kind: 'text', type: 'gap', grow: true }; d.anatomy!.parts.track.children!.push('note'); });
+      ok(onText.some((e) => /part 'note' is kind 'text' but declares 'grow' — only a 'box' or a 'nest'/.test(e)),
+        `#2418 grow on a nest: grow on a text part is still refused BY NAME (${onText.find((e) => /'note'/.test(e)) ?? 'no error'})`);
+    }
+
     // ---- #1424: the labelled ROW wraps a long label instead of overflowing ----
     // Prism 2's radio-button-row / checkbox-row let a long label WRAP to a second line with the control
     // top-anchored (the description text is `layoutSizingHorizontal: FILL`). The engine expresses that as
@@ -17082,7 +17254,7 @@ arm: {
     //     missing from the table fails too: add the row with the brief's category, read from the KB.
     const KB_BRIEF_CATEGORY: Record<string, string> = {
       'badge.md': 'foundations', 'button.md': 'form', 'checkbox.md': 'form', 'icon.md': 'foundations', 'image.md': 'foundations',
-      'inline-message.md': 'feedback', 'link.md': 'navigation', 'radio.md': 'form', 'select.md': 'form', 'spinner.md': 'foundations', 'divider.md': 'foundations', 'accordion.md': 'navigation', 'list.md': 'data',
+      'inline-message.md': 'feedback', 'link.md': 'navigation', 'radio.md': 'form', 'select.md': 'form', 'spinner.md': 'foundations', 'divider.md': 'foundations', 'accordion.md': 'navigation', 'list.md': 'data', 'segmented-control.md': 'form',
       'switch.md': 'form', 'tabs.md': 'navigation', 'tag.md': 'foundations', 'text-field.md': 'form', 'textarea.md': 'form',
     };
     const defDir = resolve(HERE, './components');
@@ -17458,8 +17630,10 @@ arm: {
     const binders = componentDefs.filter((d) => applyOutlineInteraction(d, 'none') !== d).map((d) => d.id).sort();
     // `tag` joins (2026-09-27): an unselected tag's hover and pressed are the neutral overlay wash on its outline,
     // Button's outline grammar, so a solid-tint or no-hover brand reaches it exactly as it reaches a button.
-    ok(JSON.stringify(binders) === JSON.stringify(['button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'select', 'tag', 'text-field', 'textarea']),
-      `#1608 the wash binders the lever reaches: button ×3, icon-button ×3, select, tag, text-field, textarea (${binders.join(', ')})`);
+    // `segmented-control-segment` joins (#2418, Q269.4): an unselected option's hover and pressed are the neutral wash,
+    // and its selected tint is the subtle-fill Tag binds, so a solid-tint or no-hover brand reaches it as it reaches a tag.
+    ok(JSON.stringify(binders) === JSON.stringify(['button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'segmented-control-segment', 'select', 'tag', 'text-field', 'textarea']),
+      `#1608 the wash binders the lever reaches: button ×3, icon-button ×3, segmented-control-segment, select, tag, text-field, textarea (${binders.join(', ')})`);
 
     // BY-NAME MUTATION, in-suite: the RAW def (no wrap) under solid-tint misses the page wash — the 96-miss
     // shape the owner saw, outline's 48 and text's 48. Since #2324 the text appearance keys no wash by default, so the
@@ -17811,6 +17985,9 @@ arm: {
       // Q226 A: the label's weight follows `selection`; the bold reserve is the selected weight at every size.
       { def: tab, part: 'label', axes: { selection: 2, size: 3 } },
       { def: tab, part: 'labelReserve', axes: { size: 3 } },
+      // The segmented control's option (#2418, Q269.3 A): Tab's construction, the label's weight following `selection`.
+      { def: componentDefs.find((d) => d.id === 'segmented-control-segment')!, part: 'label', axes: { selection: 2, size: 3 } },
+      { def: componentDefs.find((d) => d.id === 'segmented-control-segment')!, part: 'labelReserve', axes: { size: 3 } },
       // The two text nodes of `field-label`, the only bindings in the corpus that cross two axes.
       { def: fieldLabel, part: 'text', axes: { size: 3, weight: 2 } },
       { def: fieldLabel, part: 'indicator', axes: { size: 3, weight: 2 } },
@@ -21433,6 +21610,13 @@ arm: {
           // #1762: field-label's name HUGS (no grow, auto width) and wraps at its 316 max width, on both hosts —
           // the paste twin's spliced max-width line as well as the plugin's.
           [fieldLabel, [new RegExp(`^/[^/]+/[^/]+ HORIZONTAL p:FIXED c:AUTO .* w:${BUILD_W}$`), /\/text undefined .*grow:0 text:WIDTH_AND_HEIGHT mw:316$/]],
+          // #2418 Q269.6 A: a segmented control's options share the track equally — each of the five nested options
+          // GROWS along the track (layoutGrow 1, written by the parent's pass on an instance) with its own main axis
+          // FIXED. Written out per option, a literal, not read off the def. On the paste host an instance's grow is
+          // written TWICE, by the generic build line (`if(n.layoutGrow)node.layoutGrow=...`, every created node) and by
+          // the parent's pass (`kid.layoutGrow`), so either alone keeps this row green: drop BOTH and it fails by name.
+          // The plugin's parent-side write is the only one it has, held by test-write-components' equal-widths arm.
+          [componentDefs.find((d) => d.id === 'segmented-control')!, [1, 2, 3, 4, 5].map((i) => new RegExp(`/track/segment${i} undefined p:FIXED .*grow:1 `))],
         ]);
         for (const [def, want] of FLOORS) {
           const plans = figmaAnatomySet(def, { swapTarget: 'FPO-default-icon' });

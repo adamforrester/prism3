@@ -73,6 +73,7 @@ import { accordionIndicator } from './accordion-indicator';
 import { accordion } from './accordion';
 import { listItem } from './list-item';
 import { list } from './list';
+import { segmentedControlSegment, segmentedControl } from './segmented-control';
 import { link } from './link';
 
 /** Named access, kept ALONGSIDE the set rather than replaced by it. Most of `test.ts`'s component
@@ -81,7 +82,7 @@ import { link } from './link';
  *  be a worse call site, not a better one — a lookup that can return `undefined` standing in for a
  *  binding that cannot. The set is for iteration; these are for the assertions that are ABOUT one
  *  component. */
-export { button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, textarea, checkboxControl, checkboxRow, checkboxGroup, radioControl, radioRow, radioGroup, switchControl, switchRow, select, veil, imagePlaceholder, spinner, badge, tag, tab, tabs, divider, accordionIndicator, accordion, listItem, list, link };
+export { button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, textarea, checkboxControl, checkboxRow, checkboxGroup, radioControl, radioRow, radioGroup, switchControl, switchRow, select, veil, imagePlaceholder, spinner, badge, tag, tab, tabs, divider, accordionIndicator, accordion, listItem, list, segmentedControlSegment, segmentedControl, link };
 
 /** Every component def the engine defines. The one thing a projection should iterate. */
 export const componentDefs: readonly ComponentDef[] = [
@@ -190,6 +191,10 @@ export const componentDefs: readonly ComponentDef[] = [
   listItem,
   // `list` (#2319) — the read list. Nests its items.
   list,
+  // `segmented-control-segment` and `segmented-control` (#2418, owner Q269) — one option and the control. The
+  // control nests the option (size-followed, growing along the track) and the field label; the option first.
+  segmentedControlSegment,
+  segmentedControl,
   // Link (#2580) — a standalone link plus an inline look. Nests `focus-ring` and swaps in `icon`, both above.
   link,
 ];

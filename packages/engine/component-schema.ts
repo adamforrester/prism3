@@ -435,9 +435,11 @@ export type PartDef = {
    *  message is shown.
    *
    *  Projects the same `layoutGrow: 1` a wrapping label does, and both executors already write it on every
-   *  created node (`claimDefaults` claims `0` everywhere else), so no executor changes. Carried onto the plan
-   *  ONLY when set. Refused on the root and on every kind but `box` (a nested instance's child-side writes are
-   *  the parent's, and only `layoutAlign` is threaded there). ITS PRECONDITION is `wrap`'s: the parent must
+   *  created node (`claimDefaults` claims `0` everywhere else). Carried onto the plan ONLY when set. Valid on a
+   *  `box` or a `nest` (#2418, owner Q269.6: a segmented control's segments share the track equally). A nested
+   *  instance's child-side writes are its parent's, so both executors write `layoutGrow` on an instance from the
+   *  PARENT's pass, beside `layoutAlign`, with the instance's own main-axis mode FIXED (`instanceSizing`), or
+   *  it would go on hugging. Refused on the root and on every other kind. ITS PRECONDITION is `wrap`'s: the parent must
    *  BOUND its main axis, or the grow fills nothing. A row is bounded by a `minWidth` floor, a fixed main
    *  axis, a width it fills from a bounded ancestor (#1757), or a `crossAxisFill` stretch across a COLUMN
    *  parent (it is then as wide as that column). */
@@ -4227,8 +4229,8 @@ const anatomyErrors = (def: ComponentDef): string[] => {
         : pp.layout.sizing.y === 'fixed' || (!!pp.crossAxisFill && gpp?.layout?.direction === 'row'));
       if (n === a.root)
         e.push(`anatomy part '${n}' is the anatomy ROOT and declares 'grow' — main-axis grow is a CHILD-side property (layoutGrow) and the root has no parent to fill`);
-      else if (p.kind !== 'box')
-        e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'grow' — only a 'box' grows along its parent's main axis ('wrap' is the text twin); a nested instance's child-side writes are its parent's, and only 'crossAxisFill' is threaded there`);
+      else if (p.kind !== 'box' && p.kind !== 'nest')
+        e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'grow' — only a 'box' or a 'nest' takes an in-flow cell that grows along its parent's main axis ('wrap' is the text twin); a slot/vector is sized by its artboard, and overlay/absolute sit outside the flow`);
       else if (!boundedMain)
         e.push(`anatomy part '${n}' declares 'grow' but its parent '${parent ?? '(none)'}' does not bound its main axis (a row needs a 'minWidth' floor, a fixed width, a width it fills from a bounded parent, or 'crossAxisFill' under a column; a column a fixed height, or 'crossAxisFill' under a row) — 'layoutGrow' fills REMAINING space and a hugging parent has none`);
     }

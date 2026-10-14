@@ -928,7 +928,7 @@ export const fillsAxis = (def: ComponentDef, name: string, axis: Axis): boolean 
   const onMain = mainAxisOf(pp.layout.direction) === axis;
   const declared = p.kind === 'box'
     ? p.layout?.sizing[axis] === 'fill' || (!onMain && !!p.crossAxisFill) || (onMain && !!p.grow)
-    : p.kind === 'nest' && !onMain && !!p.crossAxisFill;
+    : p.kind === 'nest' && ((!onMain && !!p.crossAxisFill) || (onMain && !!p.grow));
   if (!declared) return false;
   // A ROOT BUILT AT ITS PLACEMENT WIDTH (#1757) is bounded across: it is FIXED at that width until a host's
   // stretch overrides it (#2292) — the validator's `boundsX` reads it the same way.
@@ -1893,7 +1893,7 @@ export const figmaAnatomyPlan = (
         : {}),
       // A GROWING BOX (`grow`), `wrap`'s main-axis fill without the reflow: carried ONLY when set, so every
       // other box's plan is byte-identical. `anatomyErrors` asserts the parent bounds its main axis.
-      ...(p.kind === 'box' && p.grow ? { layoutGrow: 1 } : {}),
+      ...((p.kind === 'box' || p.kind === 'nest') && p.grow ? { layoutGrow: 1 } : {}),
       // THE RESERVED LINES (textarea's `rows`), carried ONLY on a `text` part declaring `lines`, as the
       // named prop's DEFAULT — so the Figma box and the code prop read one number. A count, never pixels:
       // the executor multiplies it by the node's own line height at paste. `anatomyErrors` has already
@@ -4033,13 +4033,16 @@ ${GRADIENT_SLOT}
     // CROSS-AXIS CHILD FILL (#1503). Applied by the PARENT for the same reason the absolute lifts below are:
     // \`layoutAlign\` is a CHILD's relationship to its parent's auto-layout, and applying it here reaches a
     // nested INSTANCE (a \`nest\` row / label / message) the child neutralizer returns early on. Written only
-    // when the plan carries it (a \`crossAxisFill\` part); every other child keeps Figma's \`INHERIT\`.
+    // when the plan carries it (a \`crossAxisFill\` part); every other child keeps Figma's \`INHERIT\`. Its
+    // main-axis twin \`layoutGrow\` is written here too (#2418, a growing \`nest\`), in lockstep with the plugin
+    // executor, where the parent's pass is an instance's only grow write. On this path the generic build write
+    // (\`if(n.layoutGrow)node.layoutGrow=…\`) already covers an instance, so this one is redundant and kept for lockstep.
     //
     // And a filling nest's own FIXED mode beside it (#1751): without it a stretched instance hugs — see the
     // plan field. On the SAME line and unguarded (\`Object.assign\` skips an undefined source) because a
     // guard on a line of its own costs 25 bytes in every chunk's shell. (Chosen when the #536 probe grid had to
     // stay one chunk; #1798 replaced that rule with the indivisible-unit headroom and a tested split.)
-    if(c.layoutAlign)kid.layoutAlign=c.layoutAlign;Object.assign(kid,c.instanceSizing);
+    if(c.layoutAlign)kid.layoutAlign=c.layoutAlign;if(c.layoutGrow)kid.layoutGrow=c.layoutGrow;Object.assign(kid,c.instanceSizing);
 ${MIN_LINES_SLOT}${MAX_WIDTH_SLOT}
 ${PIN_LIFT_SLOT}
   }
@@ -4472,7 +4475,7 @@ export const CANVAS_FURNITURE: ReadonlySet<string> = new Set([
   'focus-ring', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral',
   'field-label', 'field-message', 'text-field', 'textarea', 'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control',
   'radio-row', 'radio-group', 'switch-control', 'switch-row', 'select', 'veil', 'image-placeholder', 'badge', 'tag', 'tab', 'tabs',
-  'divider', '_accordion-indicator', 'accordion', 'list-item', 'list', 'link',
+  'divider', '_accordion-indicator', 'accordion', 'list-item', 'list', 'segmented-control-segment', 'segmented-control', 'link',
 ]);
 
 export const planSetLayout = (plans: AnatomyPlan[], fn: string) => {
