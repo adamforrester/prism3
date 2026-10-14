@@ -442,6 +442,7 @@ export const drawFurniture = async (
   if (plan.backdrops.length) {
     const backdrop = pick('COMPONENT', BACKDROP_COMPONENT);
     if (!backdrop) out.missing = [...(out.missing ?? []), BACKDROP_COMPONENT];
+    // Wording approved, Q284.2 A.
     else if (!backdrop.createInstance) out.skipped.push(`No inverse backdrop for ${defId}: ${BACKDROP_COMPONENT} cannot be instanced`);
     else {
       out.backdropBinding = await bindBackdrop(api.variables, backdrop);
@@ -494,7 +495,7 @@ export const furniturePruneText = (n: number, applied: boolean): string => {
 
 /**
  * THE MISSING-TEMPLATE LINE (#2598), once per run, naming every template a set needed and the file lacks, and what to
- * do: run Set up file, then the same action again. Empty when nothing is missing. DRAFT wording, held for the owner.
+ * do: run Set up file, then the same action again. Empty when nothing is missing. Wording approved, Q284.1 A.
  */
 export const templatesLine = (outcomes: readonly FurnitureOutcome[], action: 'build' | 'update'): string => {
   const missing = [LABEL_SET, BACKDROP_COMPONENT].filter((t) => outcomes.some((o) => o.missing?.includes(t)));
@@ -527,3 +528,15 @@ export const withFurnitureItems = <V extends { summary: string; lines: string[] 
   const sentences = items.map((x) => `${x}.`);
   return { ...verdict, summary: [verdict.summary, ...sentences].filter(Boolean).join('\n'), lines: [...verdict.lines, ...sentences] };
 };
+
+/**
+ * A MISSING TEMPLATE MAKES THE RUN A WARNING (#2598, owner decision Q284.3 A): the build or update worked, but the page
+ * is incomplete. The verdict turns `ok: false`, the state every partial result already takes (a build's set reads
+ * "issues" and the panel opens its detail), and a `✓` headline becomes `⚠` over the same words, so no new pill copy
+ * exists. A headline already `⚠` or `✗` is left as it is: it already reads as not clean. A run with every template
+ * present is returned unchanged.
+ */
+export const withTemplateWarning = <V extends { ok: boolean; headline: string }>(verdict: V, outcomes: readonly FurnitureOutcome[]): V =>
+  outcomes.some((o) => o.missing?.length)
+    ? { ...verdict, ok: false, headline: verdict.headline.startsWith('✓') ? `⚠${verdict.headline.slice(1)}` : verdict.headline }
+    : verdict;

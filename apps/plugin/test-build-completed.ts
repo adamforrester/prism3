@@ -22,7 +22,9 @@
  * Update's `component-update-result` summary must each carry the missing-template line, literal, as `main.ts` posts
  * them. The Update is driven through `ACTIONS.updateComponents` (check, then apply), the table the panel and the
  * agent link both reach. The host's set search finds the sets on its pages, as Figma's does, and `getNodeByIdAsync`
- * finds the set the build drew beside, so the furniture reaches its template lookup.
+ * finds the set the build drew beside, so the furniture reaches its template lookup. Such a run is a warning (owner
+ * decision Q284.3 A): `ok: false` and a `⚠` headline. Then Set up file's template builder makes the templates, and the
+ * same build and Update read `✓`. The host holds the variables and styles Badge binds, so only the template can warn.
  *
  * INDEPENDENCE (docs/34): the expected values are literals typed here, from the owner's definition of the
  * two results; the actual side is what `main.ts` posted. The refusal is reached by editing the HOST's file
@@ -31,10 +33,16 @@
  * Mutation this fails by name: `completed: true` hard-coded on `main.ts`'s success-path post →
  * `C1: a build the executor refused (#1780) posts completed: false`. The template line dropped from the build's post
  * (`main.ts`, `furnitureItems(furniture, 'build')`) → `templates/build verdict`; from the Update's
- * (`withFurnitureItems(applyVerdict(r), …)`) → `templates/update verdict`.
+ * (`withFurnitureItems(applyVerdict(r), …)`) → `templates/update verdict`. The warning (Q284.3 A) dropped from the
+ * build's post (`main.ts`, `withTemplateWarning({ type: 'component-result', … })`) → `templates/build warns`; from the
+ * Update's → `templates/update warns`; a warning with every template present → `templates/build clean`,
+ * `templates/update clean`.
  */
 import { makeShim } from './component-shim';
 import type { Node } from './component-shim';
+import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles } from '@prism3/engine/anatomy-figma';
+import { SWAP_TARGET } from './src/build-deps';
+import { componentDefs } from '@prism3/engine/components/index';
 
 let failed = 0;
 let executed = 0;
@@ -62,7 +70,14 @@ const mkPage = (divider: boolean): ShimPage => {
 };
 
 const posted: any[] = [];
-const shim = makeShim() as Record<string, any>;
+// The variables and styles Badge binds are in the file, as after Apply Theme, so a build with every template present is
+// clean (✓) and Q284.3's ⚠ can only come from the missing template (`templates/build warns` and `… clean`).
+const badgePlans = figmaAnatomySet(componentDefs.find((d) => d.id === 'badge')!, { swapTarget: SWAP_TARGET });
+const shim = makeShim({
+  vars: [...new Set(badgePlans.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]))],
+  styles: [...new Set(badgePlans.flatMap((p) => planTextStyles(p.root)))],
+  effects: [...new Set(badgePlans.flatMap((p) => planEffectStyles(p.root)))],
+}) as Record<string, any>;
 const root = shim.root as Record<string, unknown>;
 Object.defineProperty(root, 'children', { get: () => pages });
 Object.assign(root, {
@@ -160,6 +175,31 @@ const applied = (await runAction((sink) => ACTIONS.updateComponents('badge', has
 const NO_LABEL_UPDATE = 'No canvas labels drawn: this file has no _Label component. Run Set up file, then update again';
 ok(!!applied && String(applied.summary).includes(NO_LABEL_UPDATE) && (applied.lines as string[]).some((l) => l.startsWith(NO_LABEL_UPDATE)),
   `templates/update verdict: the Update's component-update-result summary carries the missing-template line (${JSON.stringify(applied?.summary)})`);
+
+// 1c. Q284.3 A: a run that skipped furniture for a missing template is a WARNING, the state every partial result takes:
+//     `ok: false` and a `⚠` headline, never `✓`. The build still made its set, so it stays `completed`.
+ok(!!first && first.ok === false && first.completed === true && String(first.headline).startsWith('⚠'),
+  `templates/build warns: no _Label makes the build's verdict ⚠, ok false, completed (ok ${first?.ok}, "${first?.headline}")`);
+ok(!!applied && applied.ok === false && String(applied.headline).startsWith('⚠'),
+  `templates/update warns: no _Label makes the Update's verdict ⚠, ok false (ok ${applied?.ok}, "${applied?.headline}")`);
+// Then Set up file's own template builder makes them, as the line asks, and the same build and Update read ✓ again.
+const { ensureFurnitureTemplates } = await import('./src/furniture-templates');
+const componentsPage = mkPage(false);
+componentsPage.name = '↳ File Components';
+// Figma's `createComponent`, as the shim makes a component: a frame made one.
+const templatesApi = { ...shim, createComponent: () => shim.createComponentFromNode(shim.createFrame()) };
+const made = await ensureFurnitureTemplates(templatesApi as never, componentsPage as never);
+ok(made.built.includes('_Label'), `fixture: Set up file's template builder makes _Label in this host (${JSON.stringify(made)})`);
+const withTemplates = await build('badge');
+ok(!!withTemplates && withTemplates.ok === true && String(withTemplates.headline).startsWith('✓')
+  && !(withTemplates.lines as string[]).some((l) => l.startsWith('No canvas labels drawn')),
+  `templates/build clean: with the templates in the file, the same build stays ✓ (ok ${withTemplates?.ok}, "${withTemplates?.headline}", ${JSON.stringify(withTemplates?.lines)})`);
+const check2 = await runAction((sink) => ACTIONS.updateComponents('badge', null, undefined, sink as never));
+const hash2 = (check2.data.find((d) => (d.update as { mode?: string })?.mode === 'preview')?.update as { previewHash?: string })?.previewHash;
+const applied2 = (await runAction((sink) => ACTIONS.updateComponents('badge', hash2 ?? null, undefined, sink as never))).posts
+  .find((m) => m?.type === 'component-update-result');
+ok(!!applied2 && applied2.ok === true && String(applied2.headline).startsWith('✓') && !String(applied2.summary).includes('No canvas labels drawn'),
+  `templates/update clean: with the templates in the file, the same Update stays ✓ (ok ${applied2?.ok}, "${applied2?.headline}", ${JSON.stringify(applied2?.summary)})`);
 
 // 2. The same set, its members renamed onto a smaller axis list: refused, nothing built.
 const members = (set?.children ?? []) as Node[];

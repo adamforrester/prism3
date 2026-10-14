@@ -30,7 +30,7 @@ a set deleted and rebuilt goes back into the gap it left, and the rebuilt sets r
 existing #2405 arms (f) to (i) in `test-write-components.ts` pass unchanged. The rebuilt set starts at the header's
 left edge, which on a page laid out by a first build is the left edge of the first set's row labels, so it sits about
 one label column left of where the first build put it. That is the #2405 rule as documented ("on the header's left
-edge").
+edge"), and the owner accepted it (Q284.4 A).
 
 **Tried and dropped:** letting the set sit closer to a node that is itself canvas furniture (a label already in the
 gap). Its mutation survived: a rebuilt set sits a label column left of its old spot, so a real page always has the
@@ -44,13 +44,27 @@ so the panel shows the headline and leaves the detail closed. Picked (a), a line
 templates: the templates go on `↳ File Components`, a page only file setup may create (#2597), and an update's apply
 may write only what its dry run showed. Now a set records the templates it lacked (`missing`), and the run reports them
 **once**, first among the furniture items, naming each template and asking the designer to run Set up file, then
-build (or update) again. The update's furniture items reach its summary and its lines (`withFurnitureItems`). DRAFT
-wording, held for the owner: "No canvas labels or inverse backdrops drawn: this file has no _Label or _inverse-backdrop
-component. Run Set up file, then build again."
+build (or update) again. The update's furniture items reach its summary and its lines (`withFurnitureItems`). Wording
+approved, owner decision Q284.1 A: "No canvas labels or inverse backdrops drawn: this file has no _Label or
+_inverse-backdrop component. Run Set up file, then build again", each form naming only the missing template, and
+"then update again" on an update. Q284.2 A approved the other new string, "No inverse backdrop for {component}:
+_inverse-backdrop cannot be instanced", for a found template with no `createInstance`.
 
-**Held for the owner:** whether a missing template should make the verdict a warning (`⚠`, `ok: false`), so the panel
-opens its detail and the set reads "issues". That's what would make the line visible without opening the row. It
-changes what a panel build reports, so it's a design call. This PR doesn't make it.
+**A missing template makes the run a warning (owner decision Q284.3 A).** The build or update worked, but the page is
+incomplete. `withTemplateWarning` turns the verdict `ok: false` and a `✓` headline into `⚠` over the same words
+("⚠ built 20 variants", "⚠ already up to date"), so there is no new pill copy. That's the state every partial result
+already takes: a build that made its set stays `completed`, so the panel marks the set "issues" and opens the detail
+where the line sits. A headline already `⚠` or `✗` is left alone. Only a missing template warns: a variant the found
+`_Label` lacks, or a template that cannot be instanced, stays a skipped line under a `✓`, as before.
+
+Gated where `main.ts` posts it, in the same host as the wiring arms (`test-build-completed.ts`). That host now holds the
+variables and styles Badge binds, as after Apply Theme, so the build is otherwise clean and the `⚠` can come only from
+the missing template; before, the build was already `⚠ 245 misses` and the Update refused, so a warning arm there
+could not fail. `templates/build warns` and `templates/update warns` read the posted verdicts in a file with no
+`_Label`. Then Set up file's own template builder (`ensureFurnitureTemplates`) makes the templates, and
+`templates/build clean` and `templates/update clean` read the same build and Update as `✓`. The shim's components
+cannot be instanced, so that second run still skips its labels (a skipped line, which stays `✓`); the arm pins only
+that a present template does not warn.
 
 ### Item 3 (labels overlapping the next set)
 
@@ -82,7 +96,12 @@ zero-width set and not the real one, and the rebuilt set must land past it. Muta
 - the update summary left without the items: `templates/update summary` fails;
 - the template line dropped from the build's post in `main.ts`: `templates/build verdict` fails;
 - the Update's post back to `applyVerdict(r)` alone: `templates/update verdict` fails;
-- `applyComponentPlan` passing width 0 to `placeNewSet`: `placement/narrow gap` fails.
+- `applyComponentPlan` passing width 0 to `placeNewSet`: `placement/narrow gap` fails;
+- the warning dropped from the build's post in `main.ts`: `templates/build warns` fails;
+- the warning dropped from the Update's post: `templates/update warns` fails;
+- a warning with every template present (the condition made always true): `templates/build clean` and
+  `templates/update clean` fail;
+- a warning for a missing `_inverse-backdrop` only: `templates/build warns` and `templates/update warns` fail.
 
 `EXECUTOR_REVISION` 15 → 19: #2591 claims 16, and 17 and 18 were named for #2600 and #2592's fix.
 
