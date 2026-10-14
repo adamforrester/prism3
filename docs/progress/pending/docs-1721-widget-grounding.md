@@ -32,6 +32,8 @@ id. The widget buys buttons and costs a staleness class.
 component instance, and it is *"only available in FigJam"*. Nothing in Figma Design can follow a node.
 
 **Nothing filed to build.** Owner's call, explicitly held: candidate uses were explored (drift sentinel,
+contract-delta notes, constraint cards, adoption board) and none became an issue. `§7`'s new bullet records
+that whether any widget ships is open while the theming-surface question is closed.
 
 **Reworked onto `main` (#2583, owner decision Q288.1).** First written as #1721, which sat 354 commits behind
 with its entry edited straight into the log. This PR carries the same `docs/18` text as new work, with the
