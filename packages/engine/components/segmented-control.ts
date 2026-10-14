@@ -1,0 +1,477 @@
+/**
+ * SegmentedControl and SegmentedControl.Segment (#2418).
+ *
+ * KB brief: `components/segmented-control.md`
+ *
+ * Owner decisions Q269 (2026-10-13), on the refreshed proposal:
+ *   1 A  `behavior`: `view` by default (a group of buttons, the current one marked); `form` (a radio group) for a
+ *        submitted value. A code prop only: one Figma component serves both.
+ *   2 A  A value control, never contained tabs.
+ *   3 A  Bold when selected with the width held (Tab's bold reserve, #2528), plus the tint and the 2px outline.
+ *   4 A  The hover is the neutral overlay wash (confirmed built, Q278.1 A).
+ *   5 A  Track `radius.md`, indicator `radius.sm`, 4px inside. No style axis (confirmed built, Q278.2 A: the corners
+ *        stay non-concentric, no derived radius token).
+ *   6 A  `grow` on a nested instance, so the segments are equal width in Figma as in code.
+ *   7 A  `SegmentedControl` / `SegmentedControl.Segment`, category `form`, toggles `Segment 3`–`Segment 5`, its own
+ *        page after Tabs.
+ *   8 A  2–5 segments, 3 shown.
+ *
+ * Owner decisions Q278 (2026-10-13), on the built PR, all A: 1 the hover wash kept; 2 the shape kept as built;
+ * 3 the default label "Option"; 4 the control built at 320 and a standalone option at 120; 5 no track padding or
+ * gap, each option carrying its own 4px inset; 6 the page sorts alphabetically (Q260 A, between Radio and Select),
+ * no exception.
+ *
+ * ── THE SEGMENT ────────────────────────────────────────────────────────────────────────────────────────
+ * `selection` [unselected, selected] × `size` [small, medium, large] × five states = 30 members. The cell is the
+ * hit target (Button's height rung); an INDICATOR inset 4px inside it carries the paint. The cell is BUILT at a
+ * placement width (120, Q278.4 A) and fills: the indicator grows across it, so when the control grows a segment the
+ * selected tint and outline span the whole share, not just the label.
+ *
+ * THE SELECTED LOOK (the system selection pattern, skill §5, with Q269.3's weight): the tint
+ * `interactive.primary.subtle-fill.selected` in the `overlay` slot, a 2px `interactive.primary.border.*` outline
+ * drawn inside the indicator, and the label in the EMPHASIS weight with a clipped bold reserve, so the label box is
+ * as wide in both states. The label and icon keep the NEUTRAL ink when selected: the primary ink misses 4.5:1 on
+ * the tint (3.01–4.75:1 over the 16 committed brand × mode cells; the skill quotes 2.70:1). Tab can use the primary
+ * ink because it has no tint.
+ *
+ * ── THE CONTROL ────────────────────────────────────────────────────────────────────────────────────────
+ * `size` only = 3 members. An optional nested FieldLabel above a 1px outlined TRACK holding five nested segments,
+ * `nest-exposed` (`selection`, `state`) and following `size`. Segments 1 and 2 always show; 3 (on), 4 and 5 (off)
+ * sit behind Figma-only booleans (#2344). Segment 1 is selected. Each segment GROWS along the track (Q269.6), and
+ * the track stretches across the control, so the segments share its width equally.
+ */
+import { ComponentDef } from '../component-schema';
+
+export const segmentedControlSegment: ComponentDef = {
+  id: 'segmented-control-segment',
+  name: 'SegmentedControl.Segment',
+  aliases: ['segment', 'segmented-control-option'],
+  category: 'form',
+  status: 'draft',
+  summary: 'One option of a segmented control. Selected, it shows a tint, a 2px outline and a bold label.',
+  description:
+    'One option in a segmented control: a cell as tall as a button, holding the option label and an optional leading icon. A selected option takes a tint and a 2px outline inside the cell, and its label is set in the emphasis weight. Every option keeps the width of its bold label, so selecting one never moves the others. At hover, an unselected option shows a light neutral wash. SegmentedControl places the options and owns the selection.',
+
+  props: [
+    { name: 'label', type: 'string', required: true, description: 'The option name: a short noun or noun phrase, one line.' },
+    { name: 'value', type: 'string', required: true, description: 'The value the control reports when this option is selected.' },
+    { name: 'selected', type: 'boolean', default: 'false', required: false, description: 'Whether this option is the selected one. Set by the control from its value; do not set it on an option inside a control.' },
+    { name: 'leadingIcon', type: 'slot', required: false, description: 'An icon before the label. Decorative when a label is shown.' },
+    { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'Option height, padding and label type. Passed down by the control.' },
+    { name: 'disabled', type: 'boolean', default: 'false', required: false, description: 'Dims this one option and takes it out of interaction, while the rest of the control stays usable.' },
+  ],
+
+  states: ['rest', 'hover', 'pressed', 'focus-visible', 'disabled'],
+  variants: {
+    selection: ['unselected', 'selected'],
+    size: ['small', 'medium', 'large'],
+  },
+  axisKinds: { selection: 'runtime', size: 'authoring' },
+
+  paintKeys: ['{selection}.{slot}.{state}', '{selection}.{slot}'],
+  densitySpacing: ['size.{size}.padding-x', 'size.{size}.gap'],
+
+  tokens: {
+    // The indicator's inset inside the cell: the visible pill sits 4px inside the hit target at every size.
+    'inset': 'space.050',
+    'pad-y': 'space.0',
+    'indicator-radius': 'radius.sm',
+    // THE BOLD RESERVE (Q269.3, Tab's Q226 A construction): a zero-height, clipping frame holding the label in the
+    // selected weight, so the label box is always as wide as the bold label.
+    'reserve-height': 'space.0',
+    // THE OUTLINE WEIGHT, per selection: none unselected (the track carries the control's edge), 2px selected,
+    // drawn inside the indicator so it adds no width.
+    'unselected.border-width': 'border-width.none',
+    'selected.border-width': 'border-width.thick',
+    'focus-ring': 'color.border.focus',
+    'ring-width': 'focus.ring.width',
+    'ring-offset': 'focus.ring.offset',
+
+    'size.small.height': 'size.sm.height',
+    'size.small.padding-x': 'space.150',
+    'size.small.gap': 'space.075',
+    'size.small.icon': 'icon.size.sm',
+    'size.small.type.selected': 'type.label.sm.emphasis',
+    'size.small.type.unselected': 'type.label.sm.default',
+    'size.medium.height': 'size.md.height',
+    'size.medium.padding-x': 'space.200',
+    'size.medium.gap': 'space.100',
+    'size.medium.icon': 'icon.size.md',
+    'size.medium.type.selected': 'type.label.md.emphasis',
+    'size.medium.type.unselected': 'type.label.md.default',
+    'size.large.height': 'size.lg.height',
+    'size.large.padding-x': 'space.250',
+    'size.large.gap': 'space.100',
+    'size.large.icon': 'icon.size.lg',
+    'size.large.type.selected': 'type.label.lg.emphasis',
+    'size.large.type.unselected': 'type.label.lg.default',
+
+    // UNSELECTED — no edge and no fill at rest; the neutral wash at hover and pressed (Q269.4 A, Q278.1 A).
+    'unselected.overlay.hover': 'color.interactive.neutral.overlay.hover',
+    'unselected.overlay.pressed': 'color.interactive.neutral.overlay.pressed',
+    'unselected.label': 'color.interactive.neutral.text.rest',
+    'unselected.label.hover': 'color.interactive.neutral.text.hover',
+    'unselected.label.pressed': 'color.interactive.neutral.text.pressed',
+    'unselected.icon': 'color.interactive.neutral.icon.rest',
+    'unselected.icon.hover': 'color.interactive.neutral.icon.hover',
+    'unselected.icon.pressed': 'color.interactive.neutral.icon.pressed',
+
+    // SELECTED — Tag's selection pattern: the tint holds at hover and pressed, the 2px outline steps. The label and
+    // icon keep the NEUTRAL ink: the primary ink misses 4.5:1 on the tint (3.01:1 at the lowest).
+    'selected.overlay': 'color.interactive.primary.subtle-fill.selected',
+    'selected.border': 'color.interactive.primary.border.rest',
+    'selected.border.hover': 'color.interactive.primary.border.hover',
+    'selected.border.pressed': 'color.interactive.primary.border.pressed',
+    'selected.label': 'color.interactive.neutral.text.rest',
+    'selected.label.hover': 'color.interactive.neutral.text.hover',
+    'selected.label.pressed': 'color.interactive.neutral.text.pressed',
+    'selected.icon': 'color.interactive.neutral.icon.rest',
+    'selected.icon.hover': 'color.interactive.neutral.icon.hover',
+    'selected.icon.pressed': 'color.interactive.neutral.icon.pressed',
+
+    // DISABLED — a disabled selected option keeps a disabled outline (its 2px width holds); the tint is the overlay
+    // slot, which the disabled branch does not carry. An unselected one has a 0px edge, so nothing shows.
+    'disabled.label': 'color.disabled.text',
+    'disabled.icon': 'color.disabled.icon',
+    'disabled.border': 'color.disabled.border',
+  },
+
+  anatomy: {
+    root: 'container',
+    parts: {
+      container: {
+        kind: 'box',
+        role: 'target',
+        children: ['indicator'],
+        layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'fill', y: 'fixed' } },
+        height: 'size.{size}.height',
+        padding: { block: 'inset', inlineLabel: 'inset' },
+        // BUILT AT A PLACEMENT WIDTH (#1757) so the indicator has a width to grow across; inside the control each
+        // segment grows along the track and takes its equal share instead (Q278.4 A).
+        placementWidth: 120,
+        note: 'The option cell, as tall as a button and the whole of the pointer target. It paints nothing: the indicator inside it carries the selection. Inside a segmented control it takes an equal share of the track.',
+      },
+      indicator: {
+        kind: 'box',
+        role: 'presentation',
+        paintSlots: ['overlay', 'border'],
+        children: ['content', 'focusRing'],
+        layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'hug', y: 'hug' } },
+        grow: true,
+        crossAxisFill: true,
+        radius: 'indicator-radius',
+        strokeWidth: '{selection}.border-width',
+        note: 'The selected indicator, inset 4px inside the cell and as wide as the cell allows. Selected, it takes a tint and a 2px outline drawn inside it, so its box does not grow; unselected, it is clear at rest and takes a light neutral wash at hover and press.',
+      },
+      content: {
+        kind: 'box',
+        role: 'presentation',
+        children: ['leadingVisual', 'labelBox'],
+        layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'hug', y: 'hug' } },
+        padding: { block: 'pad-y', inlineLabel: 'size.{size}.padding-x' },
+        gap: 'size.{size}.gap',
+        note: 'The optional leading icon and the label, centered in the indicator.',
+      },
+      leadingVisual: {
+        kind: 'slot',
+        optional: true,
+        size: 'size.{size}.icon',
+        nesting: { kind: 'swap' },
+        note: 'An optional icon before the label. Every option in one control shows an icon, or none does.',
+      },
+      labelBox: {
+        kind: 'box',
+        role: 'presentation',
+        children: ['reserve', 'label'],
+        layout: { direction: 'column', align: 'center', justify: 'start', sizing: { x: 'hug', y: 'hug' } },
+        note: 'Holds the label at the width of its selected weight: as wide as the wider of the bold reserve and the label, with the label centered.',
+      },
+      reserve: {
+        kind: 'box',
+        role: 'presentation',
+        children: ['labelReserve'],
+        height: 'reserve-height',
+        clipsContent: true,
+        layout: { direction: 'column', align: 'center', justify: 'start', sizing: { x: 'hug', y: 'fixed' } },
+        note: 'A zero-height frame that clips the bold copy of the label: it takes the bold width and shows nothing.',
+      },
+      labelReserve: {
+        kind: 'text',
+        type: 'size.{size}.type.selected',
+        note: 'The label again, in the selected weight, never seen: it holds every option at its bold width.',
+      },
+      label: {
+        kind: 'text',
+        type: 'size.{size}.type.{selection}',
+        note: 'The option name, one line: regular when unselected, in the emphasis weight when selected.',
+      },
+      focusRing: {
+        kind: 'absolute',
+        when: 'focus-visible',
+        nests: 'focus-ring',
+        inset: 'ring-offset',
+        strokeInset: 'ring-width',
+        nesting: { kind: 'nest-fixed', variant: { surface: 'default' } },
+        note: 'The shared focus ring, around the indicator while the option has keyboard focus.',
+      },
+    },
+    codeOnly: [
+      'code delivery pending: behavior layer (#2454), as for Tabs. The entries below are a framework-neutral behavior contract.',
+      'The option in code — a <button> with aria-current in the view behavior, or a native <input type="radio"> with its <label> in the form behavior. The control decides which, never the option.',
+      'The label weight in code — the selected option sets its label in the emphasis weight and the others in the default weight, and every option reserves its bold width so selecting never shifts the row: a hidden bold copy of the label (for example ::after { content: attr(data-label); font-weight: <emphasis>; height: 0; visibility: hidden; overflow: hidden }) in a column with the label.',
+      'The indicator in code — it may be one sliding node shared by the options (aria-hidden) rather than a box per option; the 4px inset and the paint are the same either way.',
+      'forced-colors — the tint drops out; the 2px outline survives as a system-color border or outline, so the selection still shows.',
+      'The hit-target expansion — a small option is 36px tall on comfortable density; reaching 44px there is a code-side hit area larger than the visible box.',
+      'RTL — logical properties mirror the row: the leading icon moves to the right of the label.',
+      'text expansion — a label never wraps or truncates; the control renders a select instead when the longest translated label no longer fits.',
+    ],
+  },
+
+  figmaProperties: {
+    variantAxes: ['selection', 'size'],
+    stateAxis: { name: 'state', values: ['rest', 'hover', 'pressed', 'focus-visible', 'disabled'] },
+    gridAxis: 'state',
+    // "Option" (Q278.3 A).
+    texts: { label: { part: 'label', default: 'Option', also: ['labelReserve'] } },
+    booleans: { leadingIcon: { part: 'leadingVisual', figmaName: 'leading icon', default: false } },
+    swaps: { leadingIcon: { part: 'leadingVisual', figmaName: '↳ swap leading icon' } },
+  },
+
+  accessibility: {
+    role: 'a <button> with aria-current in the view behavior, or a native radio with its label in the form behavior; the control sets which',
+    wcag: [
+      '1.4.1 Use of Color (a 2px outline and the bold label mark the selected option, never the tint alone)',
+      '1.4.11 Non-text Contrast (targets 3:1 for the selected outline against the track)',
+      '2.4.13 Focus Appearance (the shared focus ring)',
+      '2.5.8 Target Size (targets 44px at medium on comfortable and spacious density)',
+    ],
+    keyboard: 'Set by the control: in the view behavior each option is a Tab stop and Enter or Space selects it; in the form behavior arrow keys move between options and select.',
+    focus: 'A focus ring around the indicator on :focus-visible. It can sit on a different option from the selected one.',
+    aria: 'A leading icon is aria-hidden when a label is shown. An icon-only option needs an aria-label and a tooltip.',
+  },
+
+  content: {
+    labelPattern: 'A short noun or noun phrase, one line, parallel with the other options ("List", "Grid"). Not a verb phrase.',
+  },
+
+  docs: {
+    usage: 'Use inside SegmentedControl only. An option names one value; selecting it changes the current view or the form value in place.',
+    do: ['Give every option in a control the same kind of content: all labels, or all labels with icons', 'Let the control set selected from its value'],
+    dont: ['Place an option outside a segmented control', 'Set selected on an option inside a control by hand'],
+    contentGuidelines: 'One or two words, a noun, sentence case.',
+  },
+
+  ai: {
+    primaryPurpose: 'One option inside a segmented control.',
+    whenToUse: 'Only as a child of SegmentedControl.',
+    avoidWhen: 'Anywhere outside a segmented control: a single toggle is a switch or a select tag, and a lone action is a button.',
+    commonPartners: ['segmented-control', 'icon'],
+    triggerKeywords: ['segment', 'segmented option', 'segmented control option'],
+    generationPriority: 9,
+  },
+
+  composition: {
+    composesWith: ['focus-ring'],
+    alternativeTo: [],
+    replacesPatterns: ['a styled button with a hand-rolled active state'],
+    supersededBy: [],
+  },
+
+  motion: {
+    enter: 'None. On selection the tint and outline move to this option, or cross-fade, over a short duration.',
+    exit: 'None.',
+    reduceMotion: 'The indicator moves at once; only the color change remains.',
+  },
+
+  notes: {
+    contested: [],
+    unverified: [
+      'The outline against the tint inside it measures 3.01:1 at its tightest (one brand, light mode, 2026-10-09). It is not the selection cue on its own (the outline against the track and the bold label are), but it has no margin.',
+    ],
+    evolution: [
+      '2026-10-13 (#2418): owner decisions Q269 1–8 A: view behavior by default, a value control not contained tabs, bold when selected with the width held plus tint and 2px outline, the neutral hover wash (provisional), track radius.md and indicator radius.sm (provisional), grow on a nested instance for equal widths, the names and its own page after Tabs, 2–5 segments with 3 shown.',
+      '2026-10-13 (#2418): owner decisions Q278 1–6 A, on the built option: the hover wash kept (Q269.4 no longer provisional); the shape kept as built, track radius.md and indicator radius.sm 4px inside, corners non-concentric with no derived radius token; the default label "Option"; a standalone option built at 120 so the indicator has a width to fill, while inside the control it takes its equal share.',
+    ],
+  },
+};
+
+const segmentNest = (selection: 'selected' | 'unselected') => ({
+  kind: 'nest' as const,
+  nests: 'segmented-control-segment',
+  nesting: { kind: 'nest-exposed' as const, variant: { selection, size: 'medium', state: 'rest' }, follow: ['size'], expose: ['selection', 'state'] },
+  // Q269.6 A: every segment grows along the track, so the segments share its width equally.
+  grow: true,
+});
+
+export const segmentedControl: ComponentDef = {
+  id: 'segmented-control',
+  name: 'SegmentedControl',
+  aliases: ['segmented-button', 'segmented-buttons', 'toggle-button-group', 'content-switcher', 'connected-button-group'],
+  category: 'form',
+  status: 'draft',
+  summary: 'A row of two to five options in one track, where exactly one is selected and all stay visible.',
+  description:
+    'A compact row of two to five short options in one outlined track, where exactly one is always selected and every option stays visible. Selecting an option changes a value in place: a parameter of the current view, such as list or grid, or a form value. The options share the track equally. A visible label, or an accessible name, says what is being chosen.',
+
+  props: [
+    { name: 'label', type: 'string', required: true, description: 'What is being chosen, such as "View". Shown above the track, or given as an accessible name only when the page already shows it.' },
+    { name: 'value', type: 'string', required: false, description: 'The selected option\'s value. Controlled; pair it with onChange.' },
+    { name: 'defaultValue', type: 'string', required: false, description: 'The option selected first, when the control manages its own state. A segmented control always has one option selected.' },
+    { name: 'onChange', type: 'function', required: false, description: 'Called with the new value when the selection changes. Never called with an empty value.' },
+    { name: 'behavior', type: "enum: 'view' | 'form'", values: ['view', 'form'], default: 'view', required: false, description: 'view: a group of buttons that changes the current view at once, the selected one marked as current. form: a radio group whose value is submitted with a form. One look, two behaviors; never wire one as the other.' },
+    { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'Passed to every option. Medium is a button\'s height, 44px on comfortable and spacious density.' },
+    { name: 'width', type: "enum: 'auto' | 'full'", values: ['auto', 'full'], default: 'auto', required: false, description: 'auto: every option as wide as the widest. full: the control fills its column and the options share it equally.' },
+    { name: 'name', type: 'string', required: false, description: 'The form field name, in the form behavior.' },
+    { name: 'disabled', type: 'boolean', default: 'false', required: false, description: 'Disables every option and takes the control out of the Tab order.' },
+  ],
+
+  states: ['rest'],
+  variants: { size: ['small', 'medium', 'large'] },
+  axisKinds: { size: 'authoring' },
+
+  paintKeys: ['{slot}'],
+
+  tokens: {
+    'gap': 'space.100',
+    'track-pad': 'space.0',
+    'track-gap': 'space.0',
+    'radius': 'radius.md',
+    'border-width': 'border-width.hairline',
+    'border': 'color.interactive.neutral.border.rest',
+  },
+
+  anatomy: {
+    root: 'container',
+    parts: {
+      container: {
+        kind: 'box',
+        role: 'target',
+        children: ['label', 'track'],
+        layout: { direction: 'column', align: 'start', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
+        gap: 'gap',
+        // BUILT AT 320 (#1757, the fields' width) and fills its column; the track stretches across it, so the
+        // growing segments have a bounded width to share (Q278.4 A).
+        placementWidth: 320,
+        note: 'The control: a label above the track. It fills its column.',
+      },
+      label: {
+        kind: 'nest',
+        nests: 'field-label',
+        nesting: { kind: 'nest-fixed', variant: { size: 'medium', emphasis: 'secondary', weight: 'bold', state: 'rest' }, follow: ['size'] },
+        crossAxisFill: true,
+        optional: true,
+        note: 'The visible label, naming what is being chosen. Shown by default.',
+      },
+      track: {
+        kind: 'box',
+        role: 'presentation',
+        paintSlots: ['border'],
+        children: ['segment1', 'segment2', 'segment3', 'segment4', 'segment5'],
+        layout: { direction: 'row', align: 'center', justify: 'start', sizing: { x: 'hug', y: 'hug' } },
+        padding: { block: 'track-pad', inlineLabel: 'track-pad' },
+        gap: 'track-gap',
+        radius: 'radius',
+        strokeWidth: 'border-width',
+        crossAxisFill: true,
+        note: 'The track: one 1px outline around every option, the control\'s visible edge, with no fill. Each option fills an equal share of it.',
+      },
+      segment1: { ...segmentNest('selected'), note: 'The first option, selected.' },
+      segment2: { ...segmentNest('unselected'), note: 'The second option. A segmented control has at least two.' },
+      segment3: { ...segmentNest('unselected'), optional: true, note: 'A third option, shown by default.' },
+      segment4: { ...segmentNest('unselected'), optional: true, note: 'A fourth option, off by default.' },
+      segment5: { ...segmentNest('unselected'), optional: true, note: 'A fifth option, off by default. Past five, use a select.' },
+    },
+    codeOnly: [
+      'code delivery pending: behavior layer (#2454), as for Tabs. The entries below are a framework-neutral behavior contract for whichever layer the project\'s developers choose.',
+      'The view behavior (the default) — role="group" named by the label, holding <button> elements; the selected one carries aria-current="true". Each button is its own Tab stop and Enter or Space selects it, so arrowing never changes the view by accident.',
+      'The form behavior — a <fieldset> with a <legend> (or role="radiogroup" with aria-labelledby) holding native <input type="radio"> elements that share one name. One Tab stop; arrow keys move and select, wrapping at the ends.',
+      'Never empty — a click on the selected option does nothing, so onChange never reports an empty value. In the form behavior a radio cannot be cleared, so this holds by default.',
+      'Equal widths — display: inline-grid with grid-auto-flow: column and grid-auto-columns: 1fr makes every option as wide as the widest (width auto); width full sets inline-size: 100%, capped by the parent with a max-width.',
+      'The sliding indicator (optional) — one aria-hidden node behind the options, moved with transform from the selected option\'s measured box (a ResizeObserver, re-measured when fonts load or the direction changes), about 150–200ms. Under prefers-reduced-motion it moves without animation.',
+      'Overflow — the control never wraps or scrolls; when the options do not fit, render a select instead.',
+      'RTL — logical properties mirror the row, so the first option sits at the right edge; a sliding indicator measures from the inline start edge.',
+      'text expansion — translations run 30 to 50 percent longer; measure the longest translated label and fall back to a select when the control would overflow its column.',
+    ],
+  },
+
+  figmaProperties: {
+    variantAxes: ['size'],
+    // Q269.7 and Q269.8: segments 1 and 2 always show; 3 to 5 behind Figma-only toggles (#2344), 3 on. In code the
+    // count is `children`. The label behind its own Figma-only toggle, on.
+    booleans: {
+      showLabel: { part: 'label', default: true, figmaName: 'Label', figmaOnly: true },
+      segment3: { part: 'segment3', default: true, figmaName: 'Segment 3', figmaOnly: true },
+      segment4: { part: 'segment4', default: false, figmaName: 'Segment 4', figmaOnly: true },
+      segment5: { part: 'segment5', default: false, figmaName: 'Segment 5', figmaOnly: true },
+    },
+  },
+
+  accessibility: {
+    role: 'view behavior: role="group" of buttons, the selected one with aria-current="true". form behavior: a radio group (a fieldset with a legend, or role="radiogroup"), native radios inside. Never role="tablist".',
+    wcag: [
+      '1.3.1 Info and Relationships (the group and its label are exposed together)',
+      '4.1.2 Name, Role, Value',
+      '1.4.1 Use of Color (the selected option has a 2px outline and a bold label as well as a tint)',
+      '1.4.11 Non-text Contrast (targets 3:1 for the selected outline and the track edge)',
+      '2.4.7 Focus Visible',
+      '2.4.13 Focus Appearance (the shared focus ring, as intent)',
+      '2.5.8 Target Size (every option is a full-height cell)',
+      '2.5.5 Target Size (targets 44 by 44 at medium on comfortable and spacious density)',
+    ],
+    keyboard: 'view behavior: Tab moves to each option and Enter or Space selects it. form behavior: Tab enters at the selected option, arrow keys move to the next or previous option and select it, wrapping at the ends, and Tab leaves.',
+    focus: 'A focus ring around the focused option\'s indicator on :focus-visible.',
+    aria: 'The label names the group (aria-labelledby, or a legend in the form behavior); without it a screen reader announces options with no subject. Some screen readers do not announce aria-current on a button, so test the view behavior. Every name is translatable, and the row mirrors right to left.',
+  },
+
+  content: {
+    labelPattern: 'Short nouns or noun phrases, one line each, in sentence case: "List", "Grid". The same kind of content in every option. The control label names what is being chosen ("View", "Time range").',
+  },
+
+  docs: {
+    usage: 'Use a segmented control for a choice between two to five short options that changes a value in place: a parameter of the current view, such as list or grid, or a form value. Every option stays visible, and one is always selected. Don\'t use it to switch between panels of content (use tabs), for more than five options or long labels (use a select or a radio group), or for one setting that turns on and off (use a switch).',
+    do: [
+      'Name what is being chosen, with a visible label or an accessible name',
+      'Use two to five options with short, one-line labels',
+      'Select a sensible option from the start',
+      'Use the form behavior when the value is submitted with a form',
+    ],
+    dont: [
+      'Leave the control unnamed',
+      'Use it for more than five options or long labels',
+      'Let a click on the selected option clear the selection',
+      'Use it to switch between panels of content; that is tabs',
+    ],
+    contentGuidelines: 'One or two words per option, nouns, sentence case: "List", not "Show list".',
+  },
+
+  ai: {
+    primaryPurpose: 'Choose exactly one of two to five short, always-visible options that change a value in place.',
+    whenToUse: 'A short single choice the user changes often or that changes the current view at once, such as list or grid, a time range or a delivery method.',
+    avoidWhen: 'The options switch panels of content (use tabs), there are more than five or the labels are long (use a select or a radio group), options need descriptions (use a radio group), it is one on/off setting (use a switch), or selecting goes to another page (a navigation of links).',
+    commonPartners: ['segmented-control-segment', 'field-label', 'icon'],
+    triggerKeywords: ['segmented control', 'segmented button', 'view switcher', 'content switcher', 'toggle group', 'list grid toggle'],
+    generationPriority: 4,
+  },
+
+  composition: {
+    composesWith: ['field-label', 'segmented-control-segment'],
+    alternativeTo: ['tabs', 'radio-group', 'select', 'switch-row'],
+    replacesPatterns: ['a radio group restyled as a compact switcher for a view that changes at once', 'a row of buttons with a hand-rolled active state and no group semantics'],
+    supersededBy: [],
+  },
+
+  motion: {
+    enter: 'None. On selection the indicator moves to the new option, about 150–200ms, or the tint and outline cross-fade.',
+    exit: 'None.',
+    reduceMotion: 'The indicator moves at once; only the color change remains.',
+  },
+
+  notes: {
+    contested: [],
+    unverified: [],
+    evolution: [
+      '2026-10-13 (#2418): owner decisions Q269 1–8 A. Two defs, Segment (30 members) nested in the control (3); view behavior by default; bold selected label with its width held; neutral hover wash and radius.md / radius.sm, both provisional; grow on a nested instance for equal widths; Segment 3 on, 4 and 5 off.',
+      '2026-10-13 (#2418): owner decisions Q278 1–6 A, on the built control: hover and shape kept; built at 320, which fits three options at every size (with all five shown at large the options can run narrower than their labels until a designer widens the control); no track padding or gap, each option carrying its own 4px inset; the page sorts alphabetically, between Radio and Select.',
+    ],
+  },
+};

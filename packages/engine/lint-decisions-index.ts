@@ -49,8 +49,8 @@
  *                           fails — the index claiming a decision that is not (or no longer) there.
  *
  *   ARM B, the converse:   EXPECTED = the set of `Decided (...)` headings the CORPUS actually
- *                           contains — every tracked `docs/**\/*.md` file except the two exemptions
- *                           above, parsed live, independent of the baseline.
+ *                           contains — every tracked or not-ignored `docs/**\/*.md` file except
+ *                           the exemptions above, parsed live, independent of the baseline.
  *                           ACTUAL   = the baseline's rows.
  *                           A heading with no matching baseline row fails — a decision recorded and
  *                           never indexed, which is the gap #886 exists to close and the one a
@@ -75,9 +75,10 @@
  * SCOPE NOT REPRESENTED against `KNOWN_DECISION_DOCS`, so a dead detector cannot report a clean zero).
  * Negative control: appending a heading plus its baseline row via `--accept` passes.
  *
- * SCOPE — every tracked `docs/**\/*.md` file except `docs/00-progress.md` (genre exemption), its
- * pending fragments under `docs/progress/` (#1807 — the same log before `fold.ts` moves them into it; an
- * index row pointing at a fragment would dangle the moment the fold deleted it) and
+ * SCOPE — every tracked `docs/**\/*.md` file, and every untracked one git does not ignore (#2358),
+ * except `docs/00-progress.md` (genre exemption), its pending fragments under `docs/progress/` (#1807 —
+ * the same log before `fold.ts` moves them into it; an index row pointing at a fragment would dangle
+ * the moment the fold deleted it) and
  * `docs/42-current-decisions.md` (the index's own convention prose). Representation is asserted, not
  * counted: every doc the baseline currently cites must still be found carrying at least one `Decided`
  * heading by this run, so a regex that stops matching fails instead of reporting a clean zero
@@ -254,10 +255,17 @@ const baseline = JSON.parse(readFileSync(join(repo, BASELINE), 'utf8')) as {
 };
 
 
-const tracked = execSync('git ls-files docs', { cwd: repo, encoding: 'utf8' })
-  .trim()
-  .split('\n')
-  .filter((f) => f.endsWith('.md') && !EXEMPT.has(f) && !f.startsWith(EXEMPT_PREFIX));
+// Tracked files AND untracked ones git does not ignore (#2358). Tracked-only, a decision doc written and
+// not yet `git add`ed was invisible: the gate printed the old heading count and "clean" over exactly the
+// file its author had just written, and the miss surfaced only later in CI or not at all. CI sees the same
+// set either way, since nothing there is untracked; `.gitignore` still keeps scratch output out.
+const listDocs = (...args: string[]): string[] =>
+  execSync(`git ls-files ${args.join(' ')} docs`, { cwd: repo, encoding: 'utf8' })
+    .trim()
+    .split('\n')
+    .filter((f) => f.endsWith('.md') && !EXEMPT.has(f) && !f.startsWith(EXEMPT_PREFIX));
+const untracked = listDocs('--others', '--exclude-standard');
+const tracked = [...listDocs('--cached'), ...untracked];
 
 const allHeadings: Heading[] = [];
 for (const f of tracked) {
@@ -346,7 +354,7 @@ for (const doc of KNOWN_DECISION_DOCS) {
 }
 
 lines.push(`  baseline: ${baseline.decisions.length} decision(s) across ${KNOWN_DECISION_DOCS.length} doc(s)`);
-lines.push(`  corpus:   ${allHeadings.length} 'Decided (...)' heading(s) found across ${tracked.length} scanned file(s)`);
+lines.push(`  corpus:   ${allHeadings.length} 'Decided (...)' heading(s) found across ${tracked.length} scanned file(s)${untracked.length ? `, ${untracked.length} of them untracked (${untracked.join(', ')})` : ''}`);
 
 if (accept) {
   const knownKeys = new Set(baseline.decisions.map((d) => `${d.doc}|${d.date}|${issuesOf(d).join('+')}|${d.title}`));
