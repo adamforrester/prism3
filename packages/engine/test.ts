@@ -17259,11 +17259,13 @@ arm: {
     // stand. 47 briefs at bdaedeb2; the KB's seven categories, which the def validator also holds.
     ok(Object.keys(kbBriefs).length >= 40 && Object.values(kbBriefs).every((b) => ['foundations', 'form', 'feedback', 'navigation', 'overlay', 'layout', 'data'].includes(b.category)),
       `#2488 schema/kb-briefs.json holds the KB's component catalogue: at least 40 briefs, each in one of the seven categories (${Object.keys(kbBriefs).length} read)`);
-    /** The brief a def's id or aliases name, by file name or by a brief's own alias. */
+    /** The brief a def's id or aliases name, by file name or by a brief's own alias. Both clauses read the
+     *  def's id AND its aliases: a def whose id is outside the catalogue but whose alias is a brief's alias
+     *  (a `busy-indicator` aliased `activity-indicator`, which spinner.md lists) names that brief too. */
     const briefFor = (d: ComponentDef): string | undefined => {
       const names = [d.id, ...(d.aliases ?? [])].map((n) => n.toLowerCase());
       return Object.keys(kbBriefs).find((f) => names.includes(f.slice(0, -3)))
-        ?? Object.keys(kbBriefs).find((f) => kbBriefs[f].aliases.some((a) => a.toLowerCase() === d.id));
+        ?? Object.keys(kbBriefs).find((f) => kbBriefs[f].aliases.some((a) => names.includes(a.toLowerCase())));
     };
     const defDir = resolve(HERE, './components');
     const defFiles = readdirSync(defDir).filter((f) => f.endsWith('.ts') && f !== 'index.ts').sort();
@@ -17283,7 +17285,7 @@ arm: {
         fileOf.set(d.id, f);
         if (cites.length === 1) {
           const want = KB_BRIEF_CATEGORY[cites[0]];
-          ok(want !== undefined, `#1700 ${d.id}: cites \`components/${cites[0]}\`, which is not in the test's KB-brief table — add the row with the brief's own category`);
+          ok(want !== undefined, `#1700 ${d.id}: cites \`components/${cites[0]}\`, which \`schema/kb-briefs.json\` lacks — refresh it with \`npx tsx packages/engine/kb-briefs-refresh.ts <kb checkout>\`, never by hand`);
           ok(d.category === want, `#1700 ${d.id}: category is '${d.category}', and its brief \`components/${cites[0]}\` files it under '${want}' — a def takes its brief's category`);
         } else if (noBrief) {
           const exists = briefFor(d);
