@@ -277,6 +277,10 @@ export const figmaControlDescription = (field: string, c: Record<string, number>
   }
 };
 
+/** `type/label/<rung>/line-box` (#2586, Q275.3 A): one line of the label type, carried in the `control` collection. */
+export const figmaLabelLineBoxDescription = (rung: string, px: number): string =>
+  `Title line height (label ${rung}, ${px}px) — a glyph centers on the title's first line.`;
+
 /** `focus/ring/<key>` (#1623 FG/F-17). */
 export const figmaFocusDescription = (key: string, px: number): string => {
   switch (key) {
