@@ -3219,6 +3219,16 @@ const main = async (): Promise<void> => {
     const p34s = await phase2File();
     await draw(p34s.api, contract, { types: ['dimension'], tokenNames: 'short' });
     ok(tokenCol(tableFrame(p34s.sem, 'Space'))[1] === '025', `34: short: the space step prints 025 (${tokenCol(tableFrame(p34s.sem, 'Space'))[1]})`);
+
+    // TEXT STYLES THAT SHARE A ROOT (#2475): the fixture's styles start at `body/…` and `display/…`, which share no
+    // prefix, so short and full printed the same text and a planner that always printed the full name passed. Here
+    // the same styles sit under one root, `nbds/`, as a brand's text styles do: short drops the root, full keeps it.
+    const p34r = await phase2File();
+    const rooted = { collections: p34r.cols, variables: p34r.vars, textStyles: p34r.styles.map((st) => ({ ...st, name: `nbds/${st.name}` })) };
+    const ts = (o: StyleGuideOptions): string | undefined => planStyleGuide(rooted, contract, o).tables.find((t) => t.title === 'Text styles')?.rows.find((r) => r.name === 'nbds/body/lg/default')?.tokenCell;
+    ok(ts({ tokenNames: 'short' }) === 'body/lg/default',
+      `34: short: text styles under one root print the name below it, body/lg/default for nbds/body/lg/default (${ts({ tokenNames: 'short' })})`);
+    ok(ts({}) === 'nbds/body/lg/default', `34: default: the same style prints its whole name, nbds/body/lg/default (${ts({})})`);
   }
 
   console.log('35. batch 1 (#2353): border widths with the focus ring, icon size as a dimension, opacity with its swatch, font style as a Text styles column');
