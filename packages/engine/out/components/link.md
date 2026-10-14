@@ -54,8 +54,8 @@ Descriptive text that stands alone, sentence case. Front-load the words that nam
 | `surface` | enum: 'default' \| 'inverse' | `default` | no | The ground the link sits on: the page, or a dark or brand-filled band, which takes the inverse link colors. |
 | `isExternal` | boolean | `false` | no | Opens in a new tab: adds the trailing external icon, visually hidden "(opens in new tab)" text and rel="noopener noreferrer". Keep it for narrow cases. |
 | `asChild` | boolean | `false` | no | Merges the link's styling and accessibility onto a router's link child, so one anchor renders and the component depends on no router. |
-| `leadingIcon` | slot | — | no | An icon before the label, standalone only. Decorative: the label names the link. |
-| `trailingIcon` | slot | — | no | An icon after the label, standalone only, such as an arrow or the external icon. |
+| `leadingIcon` | slot | — | no | An icon before the label. Not for inline links. Decorative: the label names the link. |
+| `trailingIcon` | slot | — | no | An icon after the label, such as an arrow or the external icon. Not for inline links. |
 
 ## States
 

@@ -16991,7 +16991,8 @@ arm: {
   // check that walked `link.tokens` would only confirm the loop agrees with itself (docs/34). ACTUAL is each member's
   // label text style in the real projection (`figmaAnatomySet`). Mutations, each failing the arm named:
   //   standalone underlined at rest  → `#2580 link/standalone`;   inline not underlined at some state → `#2580 link/inline`;
-  //   emphasis bound to the default weight, or default first  → `#2580 link/weight`;   a third style value → `#2580 link/style`.
+  //   emphasis bound to the default weight, or default first  → `#2580 link/weight`;   a third style value → `#2580 link/style`;
+  //   `{state}` allowed in a geometry key → `#2580 link/state-type-only`.
   {
     const linkDef = componentDefs.find((d) => d.id === 'link');
     ok(!!linkDef, '#2580 link: the Link component is registered');
@@ -17030,6 +17031,23 @@ arm: {
         && linkDef.name === 'Link' && linkDef.category === 'navigation'
         && JSON.stringify(linkDef.aliases) === JSON.stringify(['text-link', 'anchor', 'hyperlink']),
         '#2580 link/identity (Q289.7 A, Q289.8 A): Link / link, navigation, aliases text-link, anchor, hyperlink; label "Link text"; the approved summary; "(opens in new tab)"');
+
+      // `{state}` is a TYPE-key placeholder only (component-schema.ts, `keyAxes`). The footprint rule the schema comment
+      // leans on runs only against a live Figma file, so this refusal is the one guard against a state-keyed box. The
+      // clone moves the row's gap with the state AND supplies every slot that expansion would ask for, so a validator
+      // that let `{state}` reach a geometry key would find nothing missing and pass it. Mutation: widen `keyAxes` to every
+      // binding key → this arm fails by name, and nothing else in the suite does.
+      const STATE_GAP = 'size.{size}.gap.{state}';
+      const stateGapTokens: Record<string, string> = { ...linkDef.tokens };
+      for (const size of linkDef.variants.size ?? []) for (const st of statesOf(linkDef)) stateGapTokens[`size.${size}.gap.${st}`] = 'space.050';
+      const parts = linkDef.anatomy!.parts;
+      const stateGapErrs = validateComponentDef({
+        ...linkDef, tokens: stateGapTokens,
+        anatomy: { ...linkDef.anatomy!, parts: { ...parts, container: { ...parts.container, gap: STATE_GAP } } },
+      } as ComponentDef).errors;
+      const realErrs = validateComponentDef(linkDef).errors;
+      ok(realErrs.length === 0 && stateGapErrs.some((e) => e.includes(`binding key '${STATE_GAP}' names placeholder '{state}', which is not an axis`)),
+        `#2580 link/state-type-only: a type key may name {state}, a geometry key may not — Link validates clean, and a clone with a state-keyed gap is refused naming the placeholder (Link: ${realErrs.join('; ') || 'no errors'}; clone: ${stateGapErrs.join('; ') || 'no errors'})`);
     }
   }
 

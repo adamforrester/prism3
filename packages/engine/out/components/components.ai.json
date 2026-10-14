@@ -6291,13 +6291,13 @@
           "name": "leadingIcon",
           "type": "slot",
           "required": false,
-          "description": "An icon before the label, standalone only. Decorative: the label names the link."
+          "description": "An icon before the label. Not for inline links. Decorative: the label names the link."
         },
         {
           "name": "trailingIcon",
           "type": "slot",
           "required": false,
-          "description": "An icon after the label, standalone only, such as an arrow or the external icon."
+          "description": "An icon after the label, such as an arrow or the external icon. Not for inline links."
         }
       ],
       "states": [
