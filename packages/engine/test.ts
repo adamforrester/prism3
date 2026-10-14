@@ -3450,7 +3450,8 @@ for (const b of brands) {
     // so both read the varying family and both belong here, exactly as checkbox + checkbox-control do.
     // #1348 split `radio` the same way: `radio-control` (the circle/dot, binding control+dot) and the
     // `radio` Row (which KEEPS a `size.*.control` binding, the nest pinning the nested control's square).
-    const CONTROL_DEFS = ['checkbox-control', 'checkbox-row', 'radio-control', 'radio-row', 'switch-control', 'switch-row'];
+    // `list-item` (#2319) binds `size.*.dot` for its bullet, the radio dot's diameter, so it reads the varying family too.
+    const CONTROL_DEFS = ['checkbox-control', 'checkbox-row', 'radio-control', 'radio-row', 'switch-control', 'switch-row', 'list-item'];
     const withControl = componentDefs.filter((d) =>
       Object.keys(d.tokens ?? {}).some((k) => /^size\.[^.]+\.(control|dot|track)$/.test(k)));
     ok(CONTROL_DEFS.every((n) => withControl.some((d) => d.id === n)) && withControl.length === CONTROL_DEFS.length,
@@ -3765,6 +3766,7 @@ for (const b of brands) {
       tag: { keys: ['padding-x', 'select.gap', 'dismissible.visible-gap', 'check-gap', 'select.padding-end', 'dismissible.padding-end'], sizes: ['small', 'medium', 'large'] },
       tab: { keys: ['padding-x', 'gap'], sizes: ['small', 'medium', 'large'] },
       accordion: { keys: ['pad-x', 'pad-y', 'gap', 'panel-pad-end'], sizes: ['small', 'medium', 'large'] },
+      list: { keys: ['gap'], sizes: ['small', 'medium', 'large'] },
     };
     const BTN = { compact: 'small 12/8/4/6 · medium 12/8/6/6 · large 20/12/6/8', comfortable: 'small 16/12/6/8 · medium 16/12/8/8 · large 24/16/8/12', spacious: 'small 20/16/8/12 · medium 20/16/12/12 · large 32/20/12/16' };
     const ROWS = { compact: 'small 6 · medium 6 · large 8', comfortable: 'small 8 · medium 8 · large 12', spacious: 'small 12 · medium 12 · large 16' };
@@ -3783,6 +3785,8 @@ for (const b of brands) {
       // Accordion (#2417, DRAFT): header inline / header block / glyph-to-title gap / panel bottom inset. Comfortable is
       // the proposal's 12/8/8 · 16/12/12 · 24/16/16, with the panel's bottom inset matching the inline padding.
       accordion: { compact: 'small 8/6/6/8 · medium 12/8/8/12 · large 20/12/12/20', comfortable: 'small 12/8/8/12 · medium 16/12/12/16 · large 24/16/16/24', spacious: 'small 16/12/12/16 · medium 20/16/16/20 · large 32/20/20/32' },
+      // List (#2319, approved (Q280 A)): the item gap. Comfortable is 8/12/16.
+      list: { compact: 'small 6 · medium 8 · large 12', comfortable: 'small 8 · medium 12 · large 16', spacious: 'small 12 · medium 16 · large 20' },
     };
     const wrong: string[] = [];
     for (const [id, spec] of Object.entries(SPECS)) {
@@ -3821,6 +3825,7 @@ for (const b of brands) {
       tab: ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       'radio-row': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       'switch-row': ['size.small.gap', 'size.medium.gap'],
+      list: ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       tag: ['small', 'medium', 'large'].flatMap((v) => [
         `size.${v}.select.gap+size.${v}.select.label-inset`, `size.${v}.dismissible.gap+size.${v}.dismissible.label-inset`, `size.${v}.check-gap`]),
     };
@@ -17016,7 +17021,7 @@ arm: {
     //     missing from the table fails too: add the row with the brief's category, read from the KB.
     const KB_BRIEF_CATEGORY: Record<string, string> = {
       'badge.md': 'foundations', 'button.md': 'form', 'checkbox.md': 'form', 'icon.md': 'foundations', 'image.md': 'foundations',
-      'inline-message.md': 'feedback', 'radio.md': 'form', 'select.md': 'form', 'spinner.md': 'foundations', 'divider.md': 'foundations', 'accordion.md': 'navigation',
+      'inline-message.md': 'feedback', 'radio.md': 'form', 'select.md': 'form', 'spinner.md': 'foundations', 'divider.md': 'foundations', 'accordion.md': 'navigation', 'list.md': 'data',
       'switch.md': 'form', 'tabs.md': 'navigation', 'tag.md': 'foundations', 'text-field.md': 'form', 'textarea.md': 'form',
     };
     const defDir = resolve(HERE, './components');
@@ -17645,6 +17650,10 @@ arm: {
       // three body rungs. The placeholder exists only on an expanded member.
       { def: componentDefs.find((d) => d.id === 'accordion')!, part: 'label', axes: { size: 3 } },
       { def: componentDefs.find((d) => d.id === 'accordion')!, part: 'placeholder', axes: { size: 3 }, at: { expansion: 'expanded' } },
+      // LIST (#2319, Q273.4): the item text and the number bind the three body rungs. The number exists only on an
+      // ordered member.
+      { def: componentDefs.find((d) => d.id === 'list-item')!, part: 'text', axes: { size: 3 } },
+      { def: componentDefs.find((d) => d.id === 'list-item')!, part: 'number', axes: { size: 3 }, at: { type: 'ordered' } },
     ];
 
     // DIRECTION 1 — the authored table is the corpus. Discovered by walking every def's anatomy for a
@@ -25872,7 +25881,7 @@ arm: {
   // supplies that key as the projected STATE, spelled here as a literal so the oracle is not the schema's
   // own constant.
   // `tag` joins (2026-09-27): its check mark is gated on `selection: ['selected']`, the checkbox mark's shape.
-  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'radio-control', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion'];
+  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'radio-control', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion', 'list-item'];
   ok(GATED_EXPECTED.every((n) => gatedDefs.some((d) => d.id === n)) && gatedDefs.length === GATED_EXPECTED.length,
     `#910 the presentWhen projection rule below covers exactly [${GATED_EXPECTED.join(', ')}] — a def gaining a variant-gated part must be represented here, and a def losing one is a stale claim (found: ${gatedDefs.map((d) => d.id).join(', ') || 'none'})`);
   for (const def of gatedDefs) {
@@ -26000,7 +26009,9 @@ arm: {
   // The field family's focus caret (owner decision, 2026-09-26) binds `width` too: a hairline-wide bar one
   // value line tall, two different variables, so it joins on the rule's own terms. The divider (#2455) binds
   // both axes per orientation: a hairline thickness and a nominal length, two different variables.
-  const WIDTH_EXPECTED = ['text-field', 'textarea', 'switch-control', 'divider'];
+  // List.Item's marker column (#2319) binds its width (the column) and its height (one body line), two different
+  // variables: a fixed column one line tall.
+  const WIDTH_EXPECTED = ['text-field', 'textarea', 'switch-control', 'divider', 'list-item'];
   ok(WIDTH_EXPECTED.every((n) => widthDefs.some((d) => d.id === n)) && widthDefs.length === WIDTH_EXPECTED.length,
     `#990 the width projection rule below covers exactly [${WIDTH_EXPECTED.join(', ')}] — a def gaining a deliberately non-square box must be represented here, and a def losing one is a stale claim (found: ${widthDefs.map((d) => d.id).join(', ') || 'none'})`);
   for (const def of widthDefs) {
@@ -27332,6 +27343,11 @@ arm: {
     // expansion) — and the tab's height is fixed, so the first line IS the block.
     'tab.content':
       "a tab's label is one line by contract (a horizontal tab list scrolls rather than wrapping) and the tab's height is fixed, so the leading icon and the count center against the only line.",
+    // `list-item` (#2319): the marker column pairs the bullet with the number, but `presentWhen` on `type` puts at most
+    // one of them in any member, and the column is exactly one body line tall with the ROW top-aligned (the #1201
+    // construction), so centring inside it lands the marker on the first line of a wrapping item, never mid-paragraph.
+    'list-item.markerBox':
+      "the marker column is one body line tall and its row is top-aligned, so centring the marker inside it puts the marker on the item's first line however far the text wraps; the bullet and the number are gated on type and never present together.",
     'tag.labelCheck':
       "the tag's height is fixed at one line in Figma and its label is one line there, so the check mark (and, one row out, the leading icon) center against the only line; in code a wrapped label centers them on the label block, which is held for the owner (tag.ts notes.contested).",
   };
@@ -29771,6 +29787,12 @@ arm: {
   ok(dangling.length === 1 && dangling[0].includes("ends at 'xl'"), '#2265 renames lint: an entry renaming into a value the tree does not project is refused');
   ok(renamesDangling(after, [{ def: 'chip', kind: 'drop', issue: 0 }]).some((b) => b.includes('names no issue')), '#2265 renames lint: an entry without an issue is refused');
   ok(COMPONENT_RENAMES.every((r) => Number.isInteger(r.issue) && r.issue > 0), '#2265 COMPONENT_RENAMES: every entry names its issue');
+  // #2592: the baseline is keyed by the Figma panel's name, so an axis that gains a display name (`variantAxisNames`) on
+  // main is an axis rename to the lint, and it demands the entry. Accordion's never did, because no merge base held it.
+  const shown: AxesBaseline = { acc: { axes: { 'icon position': ['leading', 'trailing'] }, members: 2 } };
+  const display = renamesUnaccounted({ acc: { axes: { iconPosition: ['leading', 'trailing'] }, members: 2 } }, shown, []);
+  ok(display.length === 1 && display[0].startsWith("acc: axis 'iconPosition' is gone"), `#2592 renames lint: an axis renamed only for display needs an entry (${display.join('; ')})`);
+  ok(renamesUnaccounted({ acc: { axes: { iconPosition: ['leading', 'trailing'] }, members: 2 } }, shown, [{ def: 'acc', kind: 'axis', from: 'iconPosition', to: 'icon position', issue: 2592 }]).length === 0, '#2592 renames lint: the axis entry claims it');
 }
 
 // ------------------------------------------------------------------- #2324: the text-button underline
@@ -30352,6 +30374,99 @@ arm: {
   const GLYPH: Record<string, string> = { 'chevron/collapsed': 'chevron-down', 'chevron/expanded': 'chevron-up', 'plus-minus/collapsed': 'plus', 'plus-minus/expanded': 'minus' };
   ok(indPlans.length === 12 && indPlans.every((p) => { const c = coord(p); const shown = (p.root as PN).children.map((k) => k.name); return shown.length === 1 && shown[0] === { 'chevron-down': 'chevronDown', 'chevron-up': 'chevronUp', plus: 'plus', minus: 'minus' }[GLYPH[`${c.indicator}/${c.expansion}`]]; }),
     `#2417 accordion indicator: 12 members, each showing exactly the one glyph for its pair and state (Q183)`);
+}
+
+// ------------------------------------------------------------------- #2319: the list and its item
+// Each owner decision held against a literal (Q273): the two 9-member sets and their exact axes, no state, the marker
+// column fixed per size and never filling or hugging, the marker box one body line tall in a top-aligned row, each
+// marker on its own role (the bullet and icon on the icon role, the number and text on the text role), the icon swap
+// starting at `check`, the item gap per size, items 1 to 3 shown and 4 to 8 behind off booleans, and the native-list
+// rule in the decision's words. EXPECTED is typed here; ACTUAL is the projected plan, so a def that moved fails the arm
+// by name.
+{
+  const li = componentDefs.find((d) => d.id === 'list-item')!;
+  const ls = componentDefs.find((d) => d.id === 'list')!;
+  const liPlans = figmaAnatomySet(li, { swapTarget: 'FPO-default-icon' });
+  const lsPlans = figmaAnatomySet(ls, { swapTarget: 'FPO-default-icon' });
+  type PN = { name: string; type: string; children: PN[]; bound?: Record<string, string>; paints?: Record<string, string>; nestTarget?: string; nestVariant?: Record<string, string>; layoutAlign?: string; textStyle?: string; textAutoResize?: string; swapTarget?: string; visible?: boolean; primaryAxisSizingMode?: string; counterAxisSizingMode?: string; counterAxisAlignItems?: string; layoutGrow?: number };
+  const find = (n: PN, name: string): PN | undefined => (n.name === name ? n : n.children.map((c) => find(c, name)).find(Boolean));
+  const coord = (p: AnatomyPlan): Record<string, string> => ({ ...(p.coord as Record<string, string>), ...(p.size ? { size: p.size } : {}) });
+  const TYPES = ['unordered', 'ordered', 'icon'];
+  const SIZES = ['small', 'medium', 'large'];
+  const RUNG: Record<string, string> = { small: 'sm', medium: 'md', large: 'lg' };
+
+  // THE SHAPE (Q273.2, Q273.3, Q273.4). Exactly three types and three sizes on both defs; a fourth type value fails here.
+  for (const [d, plans] of [[li, liPlans], [ls, lsPlans]] as const)
+    ok(plans.length === 9 && JSON.stringify(d.variants) === JSON.stringify({ type: TYPES, size: SIZES }) && JSON.stringify(d.figmaProperties?.variantAxes) === JSON.stringify(['type', 'size']),
+      `#2319 ${d.id}: 9 members, type [unordered, ordered, icon] × size [small, medium, large] (Q273.2–4) (got ${plans.length}, ${JSON.stringify(d.variants)})`);
+  ok(li.states.length === 0 && ls.states.length === 0 && !li.figmaProperties?.stateAxis && !ls.figmaProperties?.stateAxis,
+    `#2319 list: no states and no state axis on either set — a read list is not interactive (Q273) (got ${JSON.stringify(li.states)}, ${JSON.stringify(ls.states)})`);
+  ok(li.category === 'data' && ls.category === 'data' && li.name === 'List.Item' && ls.name === 'List' && JSON.stringify(ls.aliases) === JSON.stringify(['unordered-list', 'ordered-list', 'bullet-list']),
+    `#2319 list: named List and List.Item, category data, aliases unordered-list, ordered-list and bullet-list (Q273.7) (got ${ls.name}/${li.name}, ${ls.category}, ${JSON.stringify(ls.aliases)})`);
+
+  // THE MARKER COLUMN: one fixed width per size, the same in every type, never filling or hugging, so the text edge
+  // never moves and the column never shrinks with the text. Widths 24/32/40 (space.300/400/500), approved (Q280 A).
+  const COLUMN: Record<string, string> = { small: 'space/300', medium: 'space/400', large: 'space/500' };
+  const colBad = liPlans.filter((p) => { const m = find(p.root as PN, 'markerBox'); return !(m && m.bound?.width === COLUMN[coord(p).size] && m.primaryAxisSizingMode === 'FIXED'); });
+  ok(colBad.length === 0,
+    `#2319 list-item marker column: a fixed width per size (space/300, 400, 500), the same in every type, never hugging or filling, so it never shrinks with the text (${colBad.length ? `WRONG: ${colBad.map((p) => `${planComponentName(p)} ${JSON.stringify(find(p.root as PN, 'markerBox')?.bound)}`).slice(0, 2).join('; ')}` : 'all 9'})`);
+  // The text takes the rest of the row and wraps under itself (the hanging indent).
+  ok(liPlans.every((p) => { const t = find(p.root as PN, 'text'); return t?.layoutGrow === 1 && t.textAutoResize === 'HEIGHT' && t.textStyle === `body/${RUNG[coord(p).size]}/default` && t.paints?.fills === 'color/text/primary'; }),
+    `#2319 list-item text: body sm / md / lg default in text.primary, filling the rest of the row and wrapping under itself (Q273.4)`);
+
+  // THE MARKER ON LINE ONE: the row top-aligned, the marker box one body line tall (control.size.*.line-box), the marker
+  // centered in it. Centering the marker on the whole item instead fails here.
+  const lineBad = liPlans.filter((p) => { const r = p.root as PN, m = find(r, 'markerBox'); return !(r.counterAxisAlignItems === 'MIN' && m?.bound?.height === `control/size/${RUNG[coord(p).size]}/line-box` && m.counterAxisSizingMode === 'FIXED' && m.counterAxisAlignItems === 'CENTER'); });
+  ok(lineBad.length === 0,
+    `#2319 list-item marker box: one body line tall (control/size/*/line-box) in a top-aligned row, the marker centered in it, so a wrapping item keeps its marker on line one (${lineBad.length ? `WRONG: ${lineBad.map((p) => `${planComponentName(p)} row ${(p.root as PN).counterAxisAlignItems}, box ${JSON.stringify(find(p.root as PN, 'markerBox')?.bound)}`).slice(0, 2).join('; ')}` : 'all 9'})`);
+
+  // THE MARKERS (Q273.3, Q273.8): exactly one per member, the one its type names, each on its own role.
+  const markerBad: string[] = [];
+  for (const p of liPlans) {
+    const c = coord(p), m = find(p.root as PN, 'markerBox')!;
+    const kids = m.children.map((k) => k.name);
+    const want = { unordered: 'bullet', ordered: 'number', icon: 'icon' }[c.type]!;
+    const k = m.children[0];
+    // A member of a type outside the three has no marker child at all, so `k` is read optionally and the arm fails, not throws.
+    const okRole = !k ? false : c.type === 'unordered' ? k.paints?.fills === 'color/icon/primary' && k.bound?.width === `control/size/${RUNG[c.size]}/dot` && k.bound?.height === `control/size/${RUNG[c.size]}/dot` && k.bound?.topLeftRadius === 'radius/round'
+      : c.type === 'ordered' ? k.paints?.fills === 'color/text/primary' && k.textStyle === `body/${RUNG[c.size]}/default`
+      : c.type === 'icon' && k?.type === 'INSTANCE_SWAP' && k.swapTarget === 'icon/check' && k.bound?.width === `icon/size/${RUNG[c.size]}`;
+    if (kids.length !== 1 || kids[0] !== want || !okRole) markerBad.push(`${planComponentName(p)}: ${kids.join('+')} ${JSON.stringify({ fills: k?.paints?.fills, ts: k?.textStyle, sw: k?.swapTarget, b: k?.bound?.width })}`);
+  }
+  ok(markerBad.length === 0,
+    `#2319 list-item markers: one per member — a round control/size/*/dot bullet in color/icon/primary, a number in the item's body style in color/text/primary, or an icon swap starting at icon/check (Q273.3, Q273.8)${markerBad.length ? ` — WRONG: ${markerBad.slice(0, 3).join('; ')}` : ''}`);
+  // The icon marker's ink, which reaches the glyph inside the instance, is the icon role too.
+  ok(li.tokens.icon === 'color.icon.primary' && li.tokens.indicator === 'color.icon.primary' && li.tokens.label === 'color.text.primary',
+    `#2319 list-item inks: the bullet (indicator) and the icon on color.icon.primary, the number and text (label) on color.text.primary (Q273.8, #1471) (got ${li.tokens.indicator}, ${li.tokens.icon}, ${li.tokens.label})`);
+  const props = planSetProperties(liPlans);
+  ok(JSON.stringify(props) === JSON.stringify([{ name: 'text', type: 'TEXT', default: 'List item' }, { name: 'number', type: 'TEXT', default: '1.' }, { name: 'swap icon', type: 'INSTANCE_SWAP', swapTarget: 'icon/check' }]),
+    `#2319 list-item properties: text "List item", number "1." and the icon swap defaulting to icon/check, with no presence toggle (Q273.3) (got ${JSON.stringify(props)})`);
+
+  // THE LIST (Q273.2): items 1 to 3 shown, 4 to 8 behind off, Figma-only booleans, every item following the list's type and size.
+  const GAP: Record<string, string> = { small: 'space/100', medium: 'space/150', large: 'space/200' };
+  const listBad = lsPlans.filter((p) => {
+    const c = coord(p), r = p.root as PN;
+    const items = r.children;
+    return !(r.bound?.itemSpacing === GAP[c.size] && items.length === 8 && items.every((it, i) => it.name === `item${i + 1}` && it.type === 'NESTED_INSTANCE' && it.nestTarget === 'list-item' && it.nestVariant?.type === c.type && it.nestVariant?.size === c.size && it.layoutAlign === 'STRETCH' && (i < 3 ? it.visible !== false : it.visible === false)));
+  });
+  ok(listBad.length === 0,
+    `#2319 list: eight nested List.Items stretched across the list, following its type and size, items 1–3 shown and 4–8 hidden, the item gap space/100, 150, 200 (${listBad.length ? `WRONG: ${listBad.map(planComponentName).slice(0, 2).join('; ')}` : 'all 9'})`);
+  ok(JSON.stringify(planSetProperties(lsPlans)) === JSON.stringify([4, 5, 6, 7, 8].map((n) => ({ name: `Item ${n}`, type: 'BOOLEAN', default: false }))) && [4, 5, 6, 7, 8].every((n) => (ls.figmaProperties?.booleans?.[`item${n}`] as { figmaOnly?: boolean })?.figmaOnly === true),
+    `#2319 list: Item 4 to Item 8 are Figma-only booleans, off (Q273) (got ${JSON.stringify(planSetProperties(lsPlans))})`);
+
+  // THE NATIVE-LIST RULE (Q273.9), in the decision's words, in avoidWhen and on the docs page; the summary (the Figma
+  // description, 100 characters at most) sends running text to a native text list.
+  const TEST = 'if a writer could edit it as normal copy, use the native list; if a designer controls its spacing, markers or icons, use the component';
+  ok(ls.ai.avoidWhen.includes(TEST) && ls.docs.usage.includes(TEST) && /running text/.test(ls.summary) && /native text list/.test(ls.summary),
+    `#2319 list: the native-list test in the decision's words in avoidWhen and the docs usage, and the summary names native text lists for running text (Q273.9)`);
+
+  // `swapDefault` IS VALIDATED ON ITS OWN TERMS: refused off a slot, and a name outside the icon set throws at projection.
+  const withDefault = (part: string, glyph: string): ComponentDef => ({ ...li, anatomy: { ...li.anatomy!, parts: { ...li.anatomy!.parts, [part]: { ...li.anatomy!.parts[part], swapDefault: glyph } } } });
+  ok(validateComponentDef(li).errors.length === 0 && validateComponentDef(withDefault('bullet', 'check')).errors.some((m) => /swapDefault/.test(m)),
+    `#2319 swapDefault: List.Item validates clean, and swapDefault on a box is refused by name`);
+  let threw = '';
+  try { figmaAnatomySet(withDefault('icon', 'not-an-icon'), { swapTarget: 'FPO-default-icon' }); } catch (e) { threw = (e as Error).message; }
+  ok(/not-an-icon/.test(threw), `#2319 swapDefault: a glyph outside the icon set throws at projection, naming it (got ${threw.slice(0, 120) || 'no throw'})`);
 }
 
 // ------------------------------------------------------------------- report

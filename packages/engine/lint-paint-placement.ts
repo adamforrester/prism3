@@ -293,12 +293,12 @@ const EXPECT_ANATOMY = [
   'icon-button-neutral', 'field-label', 'field-message', 'text-field', 'textarea', 'checkbox-control', 'checkbox-row',
   'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'switch-control', 'switch-row', 'select', 'veil',
   'image-placeholder', 'spinner', 'badge', 'tag', 'tab', 'tabs', 'divider', '_accordion-indicator', 'accordion',
-  'flush-icon-button',
+  'flush-icon-button', 'list-item', 'list',
 ];
 const EXPECT_PAINTERS = [
   'focus-ring', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive',
   'icon-button-neutral', 'text-field', 'textarea', 'checkbox-control', 'radio-control', 'switch-control', 'select', 'veil',
-  'image-placeholder', 'badge', 'tag', 'tab', 'tabs', 'divider',
+  'image-placeholder', 'badge', 'tag', 'tab', 'tabs', 'divider', 'list-item',
   // #2457 Q287 A: the round shape's edge and wash. The flush shape's box resolves none of them.
   'flush-icon-button',
 ];

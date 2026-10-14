@@ -456,6 +456,36 @@
     },
     "members": 7
   },
+  "list": {
+    "axes": {
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ],
+      "type": [
+        "icon",
+        "ordered",
+        "unordered"
+      ]
+    },
+    "members": 9
+  },
+  "list-item": {
+    "axes": {
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ],
+      "type": [
+        "icon",
+        "ordered",
+        "unordered"
+      ]
+    },
+    "members": 9
+  },
   "radio-control": {
     "axes": {
       "selection": [

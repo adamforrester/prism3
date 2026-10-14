@@ -1015,6 +1015,50 @@
         ],
         "projection": []
       }
+    },
+    "list-item": {
+      "codeOnly": [
+        "The element — an <li> inside the List's <ul> or <ol>. The marker is drawn by CSS (::marker, or a ::before pseudo-element in a fixed-width box), so it is not text and is not read twice; an icon marker is an aria-hidden <svg>.",
+        "The hanging indent — the item is a two-column grid (or flex row) with the marker column at a fixed inline size; the text column wraps under itself. Never padding-left plus a negative text-indent on the text: that breaks when the marker is wider than the indent.",
+        "The marker on line one — the marker box is one line-height tall (block-size: 1lh, or the line box of the text style) and centers its content; the item aligns to the start. Centering the whole item floats the marker to the middle of a wrapped paragraph.",
+        "The number in code — counted, never typed: list-style-type: decimal (or a CSS counter, or @counter-style for a locale's own digits) on the <ol>. value on an <li> restarts the count from that item. Figma has no counter, so each item there holds its own typed number.",
+        "RTL — logical properties throughout: the marker column moves to the inline end, the text to its start. Numerals stay in the locale's digit form. A check icon does not mirror.",
+        "text expansion — the item grows down, never across: the text wraps, the marker column keeps its width, and nothing has a fixed block size (WCAG 1.4.12)."
+      ],
+      "notes": {
+        "contested": [
+          "The ordered numbers in Figma: each nested item in an ordered List shows \"1.\" until a designer types its number. Giving a nested instance its own text needs a per-instance TEXT override that neither executor writes (#2319); code counts itself either way."
+        ],
+        "unverified": [
+          "Whether the number glyph and the text's first line share one baseline on a real host: both bind the same type style and the number sits in a box one line tall, so they should; not measured on a built file."
+        ],
+        "evolution": [
+          "2026-10-13 (#2319): owner decisions Q273 — the read list now as List and List.Item (Q273.1), two components with every marker bound (Q273.2), the icon marker as a third type starting at check (Q273.3), body sm / md / lg (Q273.4), no nested list in Figma (Q273.5), no tone (Q273.6), category data (Q273.7), markers at the text's strength (Q273.8), native text lists for running text (Q273.9)."
+        ],
+        "projection": []
+      }
+    },
+    "list": {
+      "codeOnly": [
+        "The element — <ul role=\"list\"> for unordered and icon, <ol role=\"list\"> for ordered, chosen from type. The explicit role is required: a list whose markers are styled off (list-style: none) loses its list role in WebKit, and VoiceOver stops announcing \"list, 6 items\". The component draws its own markers, so it always sets the role.",
+        "Numbering — the <ol> counts its items through CSS (list-style-type: decimal, or a counter); numbers are never typed into the item text. start and reversed pass through to the <ol>. A locale with its own digits takes them through @counter-style.",
+        "The item gap — row-gap on the list (or margin-block-start on every item after the first), from the size's gap token. Never a margin on the last item.",
+        "Nested lists — a <ul> or <ol> inside an <li> indents by one marker column and uses the same size. Not drawn in Figma.",
+        "Figma numbering — a Figma list cannot count, so each item of an ordered List holds its own number as text. A designer types \"2.\", \"3.\" and on into the items after the first.",
+        "item count — Figma shows three items, with five more behind toggles; code takes any number of children."
+      ],
+      "notes": {
+        "contested": [
+          "The ordered numbers in Figma: the three nested items show \"1.\" each until a designer types \"2.\" and \"3.\". A nested instance with its own text needs a per-instance TEXT override that neither executor writes; held as a follow-up rather than built in this PR (#2319)."
+        ],
+        "unverified": [
+          "What Dev Mode shows for a native Figma text list (list spacing, the marker, bound paragraph variables) — not checked; the build lane has no Dev Mode (#2319, Q273.10)."
+        ],
+        "evolution": [
+          "2026-10-13 (#2319): owner decisions Q273 — the read list now (Q273.1), two components with every marker bound (Q273.2), the icon marker as a third type (Q273.3), body sm / md / lg (Q273.4), no nested list in Figma (Q273.5), no tone (Q273.6), names, category data and its own page (Q273.7), markers at the text's strength (Q273.8), and native text lists for running text, the component for UI lists (Q273.9). Native list fields verified against the plugin typings (Q273.10): paragraph spacing and indent bind, list spacing and the marker do not."
+        ],
+        "projection": []
+      }
     }
   }
 }

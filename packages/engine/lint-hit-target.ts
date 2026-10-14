@@ -231,6 +231,8 @@ const EXCLUDED: Record<string, string> = {
   'field-message': 'a helper/validation message, not an interactive control',
   'veil': 'a media wash overlay, not an interactive control',
   'divider': 'a 1px rule between groups of content, never interactive and never focusable',
+  'list': 'a read list of text items, never interactive and never focusable; a link inside an item is its own control (#2319)',
+  'list-item': 'one item of a read list, never interactive and never focusable; a link inside it is its own control (#2319)',
   '_accordion-indicator': 'a decorative glyph inside an Accordion header; the tap target is the header row, gated as accordion',
   'image-placeholder': 'an empty-state media frame, not an interactive control',
   'spinner': 'a decorative loading indicator on the icon ladder, never interactive — the tap target is the host control it sits in (a pending button), which is gated',
@@ -452,6 +454,11 @@ for (const [id, inner] of Object.entries(INNER_TARGETS)) {
     failures.push(`FLUSH_SIZES is [${FLUSH_SIZES.join(', ')}], but the 44×44 flush hit area is owed at medium and large only (owner Q170 B).`);
   if (FLUSH_SMALL_SIZES.join() !== 'small')
     failures.push(`FLUSH_SMALL_SIZES is [${FLUSH_SMALL_SIZES.join(', ')}], but the 24×24 flush hit area is owed at small only (owner Q174 B).`);
+  // #2457: the round circle's at-floor scope against a literal too (owner Q287 A: 36 / 44 / 56), so narrowing it
+  // cannot let the medium circle drop below 44 with every gate green.
+  const roundSizes = CODE_SIDE_TARGETS['flush-icon-button']?.atFloor?.sizes ?? [];
+  if (roundSizes.join() !== 'medium,large')
+    failures.push(`flush-icon-button atFloor.sizes is [${roundSizes.join(', ')}], but the round circle is held to the 44px floor at medium and large (owner Q287 A).`);
 }
 for (const def of componentDefs) {
   if (!(def.id in INTERACTIVE)) continue;

@@ -268,6 +268,20 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'defs, so none is shared. Two values and not the three interactions it replaces (clickable | selectable '
       + '| removable): the plain clickable tag was dropped, and an action in place is a button.',
   },
+  {
+    axis: 'type',
+    values: ['unordered', 'ordered', 'icon'],
+    defs: ['list-item', 'list'],
+    relation: 'disjoint',
+    reason:
+      'Which MARKER a list shows (owner decisions Q273.1 and Q273.3, #2319): bullets for a list whose order carries no '
+      + 'meaning (`<ul>`), numbers for one whose order does (`<ol>`), or an icon before each item (a `<ul>` with an icon '
+      + 'marker). The HTML words for the first two, so the value names the element a developer writes. `unordered` LEADS '
+      + 'because it is the code default and Figma\'s default member. DISJOINT from Badge\'s canonical set, the loud kind of '
+      + 'divergence: a badge type is a content kind and a list type a marker kind, and no value would mean the same thing '
+      + 'on both defs, so none is shared. Shared by List and List.Item because the List passes its type to every item '
+      + '(`follow`), so the two must hold one set; one entry records both, and a drift between them fails here.',
+  },
   // `indicator` IS GONE FROM THE REGISTER (#1338), and its absence is the point rather than an omission —
   // the same shape the `intent` note below records. field-label carried a three-way
   // `[none/required/optional]` axis whose most important value was ABSENCE, which is exactly why it never
@@ -376,7 +390,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'size',
     values: ['small', 'medium', 'large'],
-    defs: ['_accordion-indicator', 'accordion', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'flush-icon-button', 'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'field-label', 'tag', 'tab', 'tabs'],
+    defs: ['_accordion-indicator', 'accordion', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'flush-icon-button', 'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'field-label', 'tag', 'tab', 'tabs', 'list-item', 'list'],
     relation: 'canonical',
     reason:
       'The three-rung ladder, and canonical on weight of use — every def with a size axis except the two switch defs below, the '
