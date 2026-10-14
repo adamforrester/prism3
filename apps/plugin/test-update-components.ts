@@ -93,6 +93,9 @@
  *
  * Run: `npx tsx apps/plugin/test-update-components.ts`
  */
+import { WHAT_CHANGED_LINES, whatChangedLines } from './src/release-summary';
+import { ENGINE_VERSION } from '@prism3/engine/version';
+import releaseIndex from '../../docs/public/releases/index.json';
 import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, planComponentName } from '@prism3/engine/anatomy-figma';
 import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
 import { componentDefs } from '@prism3/engine/components/index';
@@ -465,6 +468,10 @@ section('drop — a member the plan no longer has is a drop, and the update need
   ok(p.drops.length === n && p.counts.drop === n && p.drops.every((d) => d.includes('state=rest')), `drop/listed: the ${n} state=rest members are drops (${p.drops.length})`);
   ok(p.needsChoice.includes('drops'), `drop/needs choice: a drop is a choice the update asks for (${p.needsChoice.join(', ')})`);
   ok(/to mark deprecated/.test(previewVerdict({ sets: [p], missing: [], refused: [] }).summary), 'drop/words: the summary says they would be marked deprecated, not deleted');
+  // #2650: the sets the check would change are the ones the release lines are asked about, before the closing line.
+  let asked: string[] = [];
+  const wv = previewVerdict({ sets: [p], missing: [], refused: [] }, (sets) => { asked = sets; return ['What changed (stub)']; });
+  ok(JSON.stringify(asked) === JSON.stringify([p.set]) && wv.lines[wv.lines.length - 2] === 'What changed (stub)', `release/wired: a changing set is asked about, and its lines sit above the closing line (${JSON.stringify(asked)})`);
 }
 
 /* ── rev ─────────────────────────────────────────────────────────────────────────────────────────────── */
@@ -1051,6 +1058,24 @@ section('file — a def with no set is missing; the verdict says nothing changed
   const c = captureVerdictText({ sets: [{ def: TAG, set: 'Tag', recorded: 2, skipped: [] }], missing: ['badge'], refused: [{ def: 'x', reason: 'two sets' }] });
   ok(JSON.stringify(c.lines) === JSON.stringify(['Tag: 2 members recorded.', 'x: not recorded. two sets.', 'Not in this file: badge.']),
     `file/capture lines: one line per set, refusal and missing list (${JSON.stringify(c.lines)})`);
+}
+
+// ── #2650: "What changed in <version>" — the version's breaking and new Figma items, for the sets the check would change ──
+{
+  const ix = { releases: [{ version: '9.9.0', md: '9.9.0.md', highlights: [
+    { component: 'tag', class: 'new', text: '`tag` has a new property, `tone`, with the values `a` and `b`.' },
+    { component: 'tag', class: 'breaking', text: '`tag`: `size` no longer has the value `small`.' },
+    { component: 'badge', class: 'breaking', text: '`badge` no longer builds. A set already in a file stays as it is.' },
+  ] }] };
+  const l = whatChangedLines(['tag'], '9.9.0', ix);
+  ok(JSON.stringify(l) === JSON.stringify(['What changed in 9.9.0 for these sets:', 'Breaking: tag: size no longer has the value small.', 'New: tag has a new property, tone, with the values a and b.', 'Full notes: docs/public/releases/9.9.0.md']),
+    `release/lines: breaking first, only the sets named, backticks dropped, then the pointer (${JSON.stringify(l)})`);
+  ok(whatChangedLines(['divider'], '9.9.0', ix).length === 0 && whatChangedLines(['tag'], '1.0.0', ix).length === 0, 'release/none: no lines for a set with no items, or a version with no notes');
+  const many = { releases: [{ version: '9.9.0', md: '9.9.0.md', highlights: Array.from({ length: WHAT_CHANGED_LINES + 2 }, (_, i) => ({ component: 'tag', class: 'new', text: `item ${i}.` })) }] };
+  const m = whatChangedLines(['tag'], '9.9.0', many);
+  ok(m.length === WHAT_CHANGED_LINES + 3 && m[WHAT_CHANGED_LINES + 1] === '2 more in the full notes.', `release/cap: ${WHAT_CHANGED_LINES} named, the rest counted (${JSON.stringify(m)})`);
+  // The bundled index carries the version this plugin builds at: the fold writes it with the version (lint-release-notes REPRESENTED).
+  ok(releaseIndex.releases.some((r) => r.version === ENGINE_VERSION), `release/bundled: docs/public/releases/index.json has an entry for ${ENGINE_VERSION}`);
 }
 
 console.log(`\n${failed ? `❌ ${failed} FAILED` : '✓ all passed'} — ${executed} assertions executed`);
