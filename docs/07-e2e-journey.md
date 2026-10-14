@@ -24,9 +24,9 @@ deterministic shell + template composition fed by real system context, not freef
 | Layer | What it is | Prism3 status |
 |---|---|---|
 | 1 — **DTCG tokens + descriptions** | the themed token layer, machine-readable | ✅ the engine emits this today (DTCG + `.ai.json` + Figma directives) |
-| 2 — **Component metadata** (`.ai.json` per component) | anatomy, when-to-use, slot contracts | ⬜ future — the code component library |
-| 3 — **Agent instructions** (`AGENTS.md`/`CLAUDE.md`) | how an agent should use layers 1–2 | ⬜ future |
-| 4 — **MCP exposure / Figma pipeline** | the surface agents actually call | ✅ built — `engine/mcp.ts` (6 tools, CI-gated by `mcp-test.ts`) and the Figma plugin write path (`apps/plugin/src/write-figma.ts`) both exist |
+| 2 — **Component metadata** (`.ai.json` per component) | anatomy, when-to-use, slot contracts | 🔶 started — the engine emits `out/components/components.ai.json` and a doc per component (`out/components/*.md`) from the component defs; the code component library is still future |
+| 3 — **Agent instructions** (`CLAUDE.md` + skills) | how an agent should use layers 1–2 | 🔶 started — `CLAUDE.md` and four shipped skills (`skills/prism3-theme`, `prism3-consume`, `prism3-rebind`, `prism3-build-component`); no `AGENTS.md`; the per-brand payload instructions an ejected repo carries are #668, not built |
+| 4 — **MCP exposure / Figma pipeline** | the surface agents actually call | ✅ built — `packages/engine/mcp.ts` (6 tools, CI-gated by `mcp-test.ts`) and the Figma plugin write path (`apps/plugin/src/write-figma.ts`) both exist |
 
 The whole E2E vision reduces to one sentence: **Prism3 built layer 1; the journey is to
 complete layers 2–4 so an agent can operate the pipeline end-to-end — without forcing a
@@ -152,8 +152,8 @@ The plugin's ability to read Figma-loaded fonts stays a **strength** — it beco
 
 ## 6. `design.md` — the authoring front door (new practice IP)
 
-> **✅ BUILT (2026-07-01).** `engine/design-md.ts` (block-style YAML-subset parser
-> → `BrandInput` + prose split) + `engine/cli.ts` (`tsx cli.ts <design.md> [--out]`)
+> **✅ BUILT (2026-07-01).** `packages/engine/design-md.ts` (block-style YAML-subset parser
+> → `BrandInput` + prose split) + `packages/engine/cli.ts` (`tsx cli.ts <design.md> [--out]`)
 > over the pure core; `emit-dtcg.ts` now exports the reusable core and compiles the
 > two example briefs from `examples/*.design.md`. `aurora.design.md` reproduces the
 > golden byte-for-byte (faithfulness); `harbor.design.md` is the net-new coverage
@@ -200,8 +200,8 @@ yet parsed. (Alternatives considered and rejected: JSON frontmatter — uglier t
 `design.json` + prose companion — two files.)
 
 **Build shape for step A (the CLI adapter):**
-- `engine/design-md.ts` — the YAML-subset parser + `parseDesignMd(text) → BrandInput`.
-- `engine/cli.ts` — `tsx cli.ts <design.md> [--out <dir>]`: parse → schema-validate → `brandTheme(input)` (the pure core) → reuse the existing emit (`emit-dtcg`) + `ai-metadata` + optional `visualize`. No new token logic; it's a new *entry point* over the core, replacing the hardcoded `nb`/`aurora` themes with a file-driven one.
+- `packages/engine/design-md.ts` — the YAML-subset parser + `parseDesignMd(text) → BrandInput`.
+- `packages/engine/cli.ts` — `tsx cli.ts <design.md> [--out <dir>]`: parse → schema-validate → `brandTheme(input)` (the pure core) → reuse the existing emit (`emit-dtcg`) + `ai-metadata` + optional `visualize`. No new token logic; it's a new *entry point* over the core, replacing the hardcoded `nb`/`aurora` themes with a file-driven one.
 - A worked `examples/aurora.design.md` whose frontmatter reproduces the current `aurora` `BrandInput`, so the CLI output can be diffed against `out/aurora.tokens.json` as the acceptance test (the **faithfulness** check — CLI path ≡ hardcoded path, byte-for-byte).
 - A **second, net-new brand** authored from scratch through the CLI (the **coverage** check — the engine has never seen it via this path). It should deliberately exercise the *complementary* corner of the input space from Aurora, so between the two the levers are well covered:
 
@@ -254,10 +254,10 @@ seat — it extracts, it does not build). This section stays as the layer's plac
 
 ## 8. Open decisions
 
-1. **Engine-core extraction.** Confirm the pure-core / I/O-shell split (§3) as the next
+1. **Engine-core extraction.** ✅ DONE (§9 step 1). Confirm the pure-core / I/O-shell split (§3) as the next
    structural move — it's the precondition for the engine living inside the plugin and behind
    an MCP. Bounded refactor; unblocks everything downstream.
-2. **First adapter to build.** `design.md` + CLI (small, proves the authoring on-ramp, gives
+2. **First adapter to build.** ✅ MOOT: all three are now built (§9 steps 2–4). `design.md` + CLI (small, proves the authoring on-ramp, gives
    agents a front door) vs. the MCP server (bigger, but the headline "agents build production
    UI" payoff) vs. folding the core into the Figma plugin first (designer value soonest).
 3. **Plugin ownership.** ✅ RESOLVED (2026-07-01, see `08-theming-interfaces` §2): a **new**
@@ -279,15 +279,17 @@ seat — it extracts, it does not build). This section stays as the layer's plac
 2. **`design.md` + CLI adapter.** Authoring on-ramp; proves the front door; no LLM required
    to use it, agent-draftable when wanted. ✅ done (2026-07-01) — see §6.
 3. **MCP adapter over the core.** Turns "agent themes Prism3" from aspiration to a callable
-   surface — the §15 MCP-first payoff. ✅ done — `engine/mcp.ts`, 6 tools, CI-gated by
+   surface — the §15 MCP-first payoff. ✅ done — `packages/engine/mcp.ts`, 6 tools, CI-gated by
    `mcp-test.ts`.
 4. **Fold the core into the Prism3 Figma plugin** as the Figma materialization adapter
    (§5); retire the plugin's separate brain. ✅ done — `apps/plugin/` bundles the core;
    `apps/plugin/src/write-figma.ts` is the materialization adapter.
 5. **(Later) Component library** as components-as-data → WC + React + Storybook + `.ai.json`
    + Code Connect (layers 2–3), reusing the UIC research in the KB. 🔶 started —
-   `engine/components/*` has begun (button, icon-button, text-field, field-label,
-   field-message); WC/React/Storybook/Code Connect projections still to come.
+   `packages/engine/components/*` holds the component defs (the form controls and their rows,
+   tabs, accordion, badge, tag, spinner and more), projected into Figma by the plugin and into
+   `out/components/` (a doc per component + `components.ai.json`); WC/React/Storybook/Code Connect
+   projections still to come.
 
 ---
 
@@ -319,7 +321,7 @@ of converters. Locked decisions in this section.
 |---|---|---|---|
 | **brand-skills** (CLI + Claude skill) | ① Author | **EXTRACT** — assets (Figma/site/PDF) → a `design.md` + `.brand/` package (observed colours/type/space + rich brand prose) | exists; public repo |
 | **Prism3 engine** | ① Author | **GENERATE** — `design.md` anchors → a complete, contract-verified, moded token system | this repo |
-| **Token Press** (Figma plugin) | ③ Export | Figma → Style Dictionary / DTCG export | exists; **private, different org** — not provisioned here yet |
+| **Token Press** (Figma plugin) | ③ Export | Figma → Style Dictionary / DTCG export | exists; ported into this repo as `apps/tokenpress/` (`@prism3/tokenpress`) |
 | **Theming plugin** (Figma) | ② Materialize | themes a duplicated Figma file (variables) | exists; **separate** project |
 | **Text-style plugin** (Figma) | ② Materialize | updates variable bindings in text styles | exists; **separate** project |
 | **Style-guide generator** (Figma) | ②/view | generates a style guide inside Figma | exists; **separate** project |
@@ -381,18 +383,18 @@ Two shared vocabularies make the bridge deterministic (no guessing in the classi
 ### 11.6 The Wendy's spike (validation before rework) — ✅ DONE (2026-07-01)
 
 Built **here** (prism3-tokens), additive to the shipped step-A pipeline:
-- `engine/standard-design-md.ts` — reader for the STANDARD (brand-skills / google-labs) `design.md`
+- `packages/engine/standard-design-md.ts` — reader for the STANDARD (brand-skills / google-labs) `design.md`
   frontmatter (`colors`/`typography`/`rounded`/`spacing`/`elevation`/`name` + the optional namespaced
   `x-prism3` levers block, §11.4), reusing the format-agnostic `parseYamlSubset` from `design-md.ts`.
   A shape mapper, not a second parser.
-- `engine/classify-colors.ts` — the **colour-role classifier** (§11.5): the flat `colors:` map →
+- `packages/engine/classify-colors.ts` — the **colour-role classifier** (§11.5): the flat `colors:` map →
   engine anchors by naming convention (`primary`→pinned; `secondary`/`tertiary`→`brandColors[]`;
   `neutral-<step>`→derived `{hue,chroma}`; `success`/`warning`/`error`→`danger`→status; `info`/`white`/
   variants → report-only). Deterministic + pure; adds `hexToRgb` to `color.ts`.
-- `engine/fidelity.ts` — the full-parity fidelity report builder (colour ΔE00 + typography + spacing +
+- `packages/engine/fidelity.ts` — the full-parity fidelity report builder (colour ΔE00 + typography + spacing +
   radius + elevation), pure and brand-agnostic; the Decision-A regression artefact.
 - **Promoted into the shipped CLI (2026-07-01).** The reader + classifier are no longer spike-only:
-  `engine/cli.ts` **auto-detects the dialect** (a top-level flat `colors:` map ⇒ standard; else
+  `packages/engine/cli.ts` **auto-detects the dialect** (a top-level flat `colors:` map ⇒ standard; else
   engine-native) and runs either through the same core — `standardToBrandInput` (classify + families +
   `x-prism3` levers) → `brandTheme` → `emitTheme`; `--fidelity` writes `out/<id>-fidelity-report.md`. The
   `x-prism3` map (radiusScale/typeScale/density/motionTempo/actionPalette/iconContrast/surfaces/gradients
@@ -420,6 +422,6 @@ Spec: `brand-skills/docs/superpowers/specs/2026-07-01-prism3-engine-alignment-de
 no version bump. The engine side already consumes it (§11.6) and the CLI now speaks both dialects. Both
 tools speak one contract. The evidence that drove the spec — the classification log, the `error`→`danger`
 rename, the observed `info`/`error` dups, and the `x-prism3` lever candidates — is regenerated in the
-fidelity report (`engine/out/wendys-fidelity-report.md`, §6). **Token Press** provisioning is deferred (it's a private, different-org repo and sits
+fidelity report (`packages/engine/out/wendys-fidelity-report.md`, §6). **Token Press** provisioning was deferred at the time (it was a private, different-org repo and sits
 at the *export* stage, downstream of this work); its I/O is captured in §11.1 so the contract
-accounts for it without needing its code yet.
+accounted for it without needing its code. It has since been ported into this repo as `apps/tokenpress/`.
