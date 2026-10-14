@@ -483,13 +483,28 @@ console.log('3d. the #2597 file: update, file-setup and builds move only the com
       ok(JSON.stringify(plain(f.label())) === JSON.stringify(want),
         `created header/kept pages, ${run}, ${reading} reading: Components comes back on its own divider, ahead of its pages, outside Sandbox (${JSON.stringify(plain(f.label()).slice(5, 9))} … ${JSON.stringify(plain(f.label()).slice(-6))})`);
 
-      // The whole section gone, divider and pages too: the header takes the divider that closed Foundations, and a new
-      // divider keeps it apart from Subcomponents.
+      // The whole section gone, divider and pages too: the divider that closed Foundations is followed by Subcomponents'
+      // header, not a Components page, so it stays with Subcomponents and the header gets a new divider of its own.
       const g = fixture(ORIGINAL.filter(([n, id]) => id !== '1:673' && id !== '1:674' && !COMPONENT_PAGES.includes(n)), reading);
       if (run === 'build') await resolveComponentPage(g.api, 'button', TAXONOMY); else await scaffoldSkeleton(g.api, TAXONOMY);
-      const wantG = [...HEAD, '--- 1:676', 'Components', ...(run === 'build' ? ['↳ Buttons'] : []), '--- new', ...TAIL.slice(1)];
+      const wantG = [...HEAD, '--- new', 'Components', ...(run === 'build' ? ['↳ Buttons'] : []), ...TAIL];
       ok(JSON.stringify(plain(g.label())) === JSON.stringify(wantG),
         `created header/no section left, ${run}, ${reading} reading: Components after Foundations' span, a divider each side, outside Sandbox (${JSON.stringify(plain(g.label()).slice(5, 10))} … ${JSON.stringify(plain(g.label()).slice(-6))})`);
+
+      // A DESIGNER'S PAGE OR SECTION after the divider that closed Foundations, Components and its pages gone: the
+      // divider stays with the designer's pages, and the created header goes before it on a divider of its own, so it
+      // never takes `Notes` (or `Archive`'s span) into Components. Mutation: always anchor on the closing divider →
+      // `created header/designer …` (Components, then `Notes` with no divider between).
+      for (const designer of [[['Notes', '7:1']], [['Archive', '7:2'], ['↳ old stuff', '7:3']]] as [string, string][][]) {
+        const at = ORIGINAL.findIndex(([, id]) => id === '1:674') + 1;
+        const pages = ORIGINAL.filter(([n, id]) => id !== '1:673' && !COMPONENT_PAGES.includes(n));
+        pages.splice(at, 0, ...designer);
+        const d = fixture(pages, reading);
+        if (run === 'build') await resolveComponentPage(d.api, 'button', TAXONOMY); else await scaffoldSkeleton(d.api, TAXONOMY);
+        const wantD = [...HEAD, '--- new', 'Components', ...(run === 'build' ? ['↳ Buttons'] : []), '--- 1:674', ...designer.map(([n]) => n), ...TAIL];
+        ok(JSON.stringify(plain(d.label())) === JSON.stringify(wantD),
+          `created header/designer ${designer[0][0]}, ${run}, ${reading} reading: Components on its own divider, the designer's pages kept behind theirs (${JSON.stringify(plain(d.label()).slice(5, 12))})`);
+      }
     }
   }
 }
