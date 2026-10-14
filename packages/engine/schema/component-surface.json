@@ -304,6 +304,22 @@
     "list": {
       "members": 9,
       "sha256": "96372cb53a57539f124bedbc88ea5bf507bbf312bdaea6317e8c335c9ebee4b1"
+    },
+    "segmented-control-segment": {
+      "members": 30,
+      "sha256": "10f22809def568e3da0d63b2c18be5f53d58c2a75e673980ea62c39b0d71c3cf"
+    },
+    "segmented-control-segment@outline-solid-tint": {
+      "members": 30,
+      "sha256": "150623f874c9f28ad2faefa7a6859fca2f4598e2ad21cf6627ac97aeda05058f"
+    },
+    "segmented-control-segment@outline-none": {
+      "members": 30,
+      "sha256": "122854b8539ea1778d366b5c6f704ab6e606d5742e880becc0fe8d2a12278db4"
+    },
+    "segmented-control": {
+      "members": 3,
+      "sha256": "f9e21c4d8cccf6f57235b1106105996eb72bb3a25c4a4dc7b4b3c731d95f974e"
     }
   }
 }

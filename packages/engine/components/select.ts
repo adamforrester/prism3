@@ -134,7 +134,7 @@ export const select: ComponentDef = {
   status: 'draft',
   summary: 'Closed control for picking one value from a known set. The menu is the platform\'s.',
   description:
-    'A control for choosing ONE value from a known, bounded set — the closed, native-first field: label, a bordered control showing the current value or a placeholder with a trailing chevron, and a helper/validation message below. Composes the shared FieldLabel and FieldMessage. The open menu is the platform\'s (native or a separate listbox), not modeled here. Single-choice only: a choice of several values is a Checkbox.Group, or a multi-select, not built yet. Not free-form text (TextField), not a small always-visible set (Radio.Group, or a segmented control, not built yet), not a set the user filters by typing (a combobox, not built yet).',
+    'A control for choosing ONE value from a known, bounded set — the closed, native-first field: label, a bordered control showing the current value or a placeholder with a trailing chevron, and a helper/validation message below. Composes the shared FieldLabel and FieldMessage. The open menu is the platform\'s (native or a separate listbox), not modeled here. Single-choice only: a choice of several values is a Checkbox.Group, or a multi-select, not built yet. Not free-form text (TextField), not a small always-visible set (Radio.Group, or SegmentedControl), not a set the user filters by typing (a combobox, not built yet).',
 
   props: [
     { name: 'label', type: 'string | node', required: true, description: 'The visible, persistent label, rendered as the nested FieldLabel. Required — a select always carries a programmatic name. Never the placeholder.' },
@@ -651,7 +651,7 @@ export const select: ComponentDef = {
   ai: {
     primaryPurpose: 'Choose one value from a known, bounded set, with an associated label and helper/validation message, modeling the closed control.',
     whenToUse: 'One-of-a-known-set choices too numerous or space-costly to show all at once — a country, a status, a category.',
-    avoidWhen: 'The value is free-form text (TextField), the user types to filter a suggestion list (a combobox, not built yet — a different ARIA contract), more than one value may be chosen (Checkbox.Group, or a multi-select, not built yet — this select is single-choice), the set is 4–5 options or fewer and worth showing at once (Radio.Group, or a segmented control, not built yet), the set runs past about 15 options (a combobox), or the choice is a binary that takes effect instantly (Switch.Row).',
+    avoidWhen: 'The value is free-form text (TextField), the user types to filter a suggestion list (a combobox, not built yet — a different ARIA contract), more than one value may be chosen (Checkbox.Group, or a multi-select, not built yet — this select is single-choice), the set is 4–5 options or fewer and worth showing at once (Radio.Group, or SegmentedControl), the set runs past about 15 options (a combobox), or the choice is a binary that takes effect instantly (Switch.Row).',
     commonPartners: ['field-label', 'field-message', 'focus-ring', 'icon'],
     // No `combobox` (brief §10: the mis-conflation, a different component) and no `menu` (a menu performs an
     // action, a select sets a value — brief §12; it is an alternative, not this) (#1699).
@@ -662,12 +662,12 @@ export const select: ComponentDef = {
   composition: {
     // What the anatomy nests (#1700). The leading glyph and the chevron are partners, not parts.
     composesWith: ['field-label', 'field-message', 'focus-ring'],
-    alternativeTo: ['text-field', 'radio-group', 'checkbox-group'],
+    alternativeTo: ['text-field', 'radio-group', 'checkbox-group', 'segmented-control'],
     replacesPatterns: ['a bare <select> with no label wiring', 'placeholder-as-label'],
     // Nothing supersedes the select — combobox / radio / text-field are sibling alternatives chosen by
     // intent and scale, not replacements.
     supersededBy: [],
-    planned: ['form', 'menu', 'combobox', 'segmented-control'],
+    planned: ['form', 'menu', 'combobox'],
   },
 
   // KB select brief §8. The signature motion is the open list's, which this def does not model; what the closed

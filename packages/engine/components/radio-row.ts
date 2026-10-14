@@ -108,7 +108,7 @@ export const radioRow: ComponentDef = {
   inherits: 'checkbox-row',
   summary: 'One labeled option inside a Radio.Group. The whole row is the hit target.',
   description:
-    'A control for choosing exactly one from a small set of mutually exclusive, all-visible options — 2 to about 7, where seeing them all aids the decision. This def is the labeled OPTION: it nests a Radio.Control (the outlined circle and its inner selection dot) and carries the option label, with the whole row as the hit target. The group is a separate component and is MANDATORY, because a lone radio is meaningless: it owns the shared name that enforces exclusivity, the single selected value, the single tab stop, and all validation. Selection is derived from the group, never held here. Not any-number selection (Checkbox.Row), not an immediate on/off (Switch.Row), not the same choice collapsed (Select) or in a compact skin (a segmented control, not built yet).',
+    'A control for choosing exactly one from a small set of mutually exclusive, all-visible options — 2 to about 7, where seeing them all aids the decision. This def is the labeled OPTION: it nests a Radio.Control (the outlined circle and its inner selection dot) and carries the option label, with the whole row as the hit target. The group is a separate component and is MANDATORY, because a lone radio is meaningless: it owns the shared name that enforces exclusivity, the single selected value, the single tab stop, and all validation. Selection is derived from the group, never held here. Not any-number selection (Checkbox.Row), not an immediate on/off (Switch.Row), not the same choice collapsed (Select) or in a compact skin (SegmentedControl).',
 
   // THE DELTA ONLY. The form-field substrate reaches this def through `checkbox` and is not restated.
   // FOUR PROPS ARE DELIBERATELY ABSENT — `checked`, `onChange` and `name` all live on the group (see
@@ -369,7 +369,7 @@ export const radioRow: ComponentDef = {
       'Add toggle-off behavior — no-deselect is native and deliberate',
       'Model an exclusive choice as several checkboxes, or a true/false toggle as two radios',
       'Reach for radio past about 7 options or in tight vertical space — that is Select',
-      'Use radio for a choice that takes effect instantly — that is Switch.Row, or a segmented control (not built yet)',
+      'Use radio for a choice that takes effect instantly — that is Switch.Row, or SegmentedControl',
     ],
     contentGuidelines: 'Option labels are parallel and brief; the detail that distinguishes them goes in the description. The group label names the decision. Errors are group-level and say what to do.',
   },
@@ -377,7 +377,7 @@ export const radioRow: ComponentDef = {
   ai: {
     primaryPurpose: 'Present one option within a mutually exclusive set via a labeled row that nests the circle-and-dot control, deriving its selected state from the group that owns the value.',
     whenToUse: 'Exactly one of 2 to about 7 all-visible options where seeing them together aids the decision, and the choice is committed on submit rather than applied instantly. Always as a child of a Radio.Group.',
-    avoidWhen: 'Any number of options may be selected (Checkbox.Row — never model an exclusive choice as several checkboxes), the change applies immediately (Switch.Row — and never two radios for a true/false toggle), the set runs past about 7 or vertical space is tight (Select, the collapsed alternative), the choice is a dense frequent view-switch (a segmented control, not built yet, which carries a different accessibility model), or it is really an action (Button). Also do not reach for this def when what is wanted is the group: use Radio.Group (`radio-group`), which owns the name, the value and the validation.',
+    avoidWhen: 'Any number of options may be selected (Checkbox.Row — never model an exclusive choice as several checkboxes), the change applies immediately (Switch.Row — and never two radios for a true/false toggle), the set runs past about 7 or vertical space is tight (Select, the collapsed alternative), the choice is a dense frequent view-switch (SegmentedControl, which carries a different accessibility model), or it is really an action (Button). Also do not reach for this def when what is wanted is the group: use Radio.Group (`radio-group`), which owns the name, the value and the validation.',
     commonPartners: ['radio-control', 'radio-group', 'field-label', 'field-message', 'focus-ring'],
     triggerKeywords: ['radio', 'radio button', 'option', 'pick one', 'mutually exclusive'],
     generationPriority: 2,
@@ -388,7 +388,7 @@ export const radioRow: ComponentDef = {
     // The group, the field parts and the ring (nested one level down, by the control) are partners —
     // `ai.commonPartners` carries them.
     composesWith: ['radio-control'],
-    alternativeTo: ['checkbox-row', 'switch-row', 'select'],
+    alternativeTo: ['checkbox-row', 'switch-row', 'select', 'segmented-control'],
     replacesPatterns: [
       'a set of checkboxes misused for a mutually exclusive choice',
       'a bare <input type="radio"> set with no group label',
@@ -397,7 +397,7 @@ export const radioRow: ComponentDef = {
     // Brief §12: Select supersedes radio when the option count grows past about 5-7; a segmented control
     // supersedes it when the presentation should be compact — not built yet, so it sits in `planned`.
     supersededBy: ['select'],
-    planned: ['form', 'card', 'segmented-control', 'toggle-button'],
+    planned: ['form', 'card', 'toggle-button'],
   },
 
   // Brief §8. The Row draws no motion of its own; the dot's transition belongs to the nested control.
