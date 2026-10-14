@@ -5,12 +5,7 @@
     {
       "name": "ads/core/dimension/0",
       "resolvedType": "FLOAT",
-      "scopes": [
-        "WIDTH_HEIGHT",
-        "GAP",
-        "CORNER_RADIUS",
-        "STROKE_FLOAT"
-      ],
+      "scopes": [],
       "description": "0px — dimension primitive",
       "value": 0,
       "alias": null,
@@ -19,12 +14,7 @@
     {
       "name": "ads/core/dimension/1",
       "resolvedType": "FLOAT",
-      "scopes": [
-        "WIDTH_HEIGHT",
-        "GAP",
-        "CORNER_RADIUS",
-        "STROKE_FLOAT"
-      ],
+      "scopes": [],
       "description": "1px — dimension primitive",
       "value": 1,
       "alias": null,
@@ -33,12 +23,7 @@
     {
       "name": "ads/core/dimension/2",
       "resolvedType": "FLOAT",
-      "scopes": [
-        "WIDTH_HEIGHT",
-        "GAP",
-        "CORNER_RADIUS",
-        "STROKE_FLOAT"
-      ],
+      "scopes": [],
       "description": "2px — dimension primitive",
       "value": 2,
       "alias": null,
@@ -47,12 +32,7 @@
     {
       "name": "ads/core/dimension/3",
       "resolvedType": "FLOAT",
-      "scopes": [
-        "WIDTH_HEIGHT",
-        "GAP",
-        "CORNER_RADIUS",
-        "STROKE_FLOAT"
-      ],
+      "scopes": [],
       "description": "3px — dimension primitive",
       "value": 3,
       "alias": null,
@@ -61,12 +41,7 @@
     {
       "name": "ads/core/dimension/4",
       "resolvedType": "FLOAT",
-      "scopes": [
-        "WIDTH_HEIGHT",
-        "GAP",
-        "CORNER_RADIUS",
-        "STROKE_FLOAT"
-      ],
+      "scopes": [],
       "description": "4px — dimension primitive",
       "value": 4,
       "alias": null,
@@ -75,12 +50,7 @@
     {
       "name": "ads/core/dimension/5",
       "resolvedType": "FLOAT",
-      "scopes": [
-        "WIDTH_HEIGHT",
-        "GAP",
-        "CORNER_RADIUS",
-        "STROKE_FLOAT"
-      ],
+      "scopes": [],
       "description": "5px — dimension primitive",
       "value": 5,
       "alias": null,
@@ -89,12 +59,7 @@
     {
       "name": "ads/core/dimension/6",
       "resolvedType": "FLOAT",
-      "scopes": [
-        "WIDTH_HEIGHT",
-        "GAP",
-        "CORNER_RADIUS",
-        "STROKE_FLOAT"
-      ],
+      "scopes": [],
       "description": "6px — dimension primitive",
       "value": 6,
       "alias": null,
@@ -103,12 +68,7 @@
     {
       "name": "ads/core/dimension/8",
       "resolvedType": "FLOAT",
-      "scopes": [
-        "WIDTH_HEIGHT",
-        "GAP",
-        "CORNER_RADIUS",
-        "STROKE_FLOAT"
-      ],
+      "scopes": [],
       "description": "8px — dimension primitive",
       "value": 8,
       "alias": null,
@@ -117,12 +77,7 @@
     {
       "name": "ads/core/dimension/10",
       "resolvedType": "FLOAT",
-      "scopes": [
-        "WIDTH_HEIGHT",
-        "GAP",
-        "CORNER_RADIUS",
-        "STROKE_FLOAT"
-      ],
+      "scopes": [],
       "description": "10px — dimension primitive",
       "value": 10,
       "alias": null,
@@ -131,12 +86,7 @@
     {
       "name": "ads/core/dimension/12",
       "resolvedType": "FLOAT",
-      "scopes": [
-        "WIDTH_HEIGHT",
-        "GAP",
-        "CORNER_RADIUS",
-        "STROKE_FLOAT"
-      ],
+      "scopes": [],
       "description": "12px — dimension primitive",
       "value": 12,
       "alias": null,
@@ -145,12 +95,7 @@
     {
       "name": "ads/core/dimension/16",
       "resolvedType": "FLOAT",
-      "scopes": [
-        "WIDTH_HEIGHT",
-        "GAP",
-        "CORNER_RADIUS",
-        "STROKE_FLOAT"
-      ],
+      "scopes": [],
       "description": "16px — dimension primitive",
       "value": 16,
       "alias": null,
@@ -159,12 +104,7 @@
     {
       "name": "ads/core/dimension/18",
       "resolvedType": "FLOAT",
-      "scopes": [
-        "WIDTH_HEIGHT",
-        "GAP",
-        "CORNER_RADIUS",
-        "STROKE_FLOAT"
-      ],
+      "scopes": [],
       "description": "18px — dimension primitive",
       "value": 18,
       "alias": null,
@@ -173,12 +113,7 @@
     {
       "name": "ads/core/dimension/20",
       "resolvedType": "FLOAT",
-      "scopes": [
-        "WIDTH_HEIGHT",
-        "GAP",
-        "CORNER_RADIUS",
-        "STROKE_FLOAT"
-      ],
+      "scopes": [],
       "description": "20px — dimension primitive",
       "value": 20,
       "alias": null,
@@ -187,12 +122,7 @@
     {
       "name": "ads/core/dimension/24",
       "resolvedType": "FLOAT",
-      "scopes": [
-        "WIDTH_HEIGHT",
-        "GAP",
-        "CORNER_RADIUS",
-        "STROKE_FLOAT"
-      ],
+      "scopes": [],
       "description": "24px — dimension primitive",
       "value": 24,
       "alias": null,
@@ -201,12 +131,7 @@
     {
       "name": "ads/core/dimension/28",
       "resolvedType": "FLOAT",
-      "scopes": [
-        "WIDTH_HEIGHT",
-        "GAP",
-        "CORNER_RADIUS",
-        "STROKE_FLOAT"
-      ],
+      "scopes": [],
       "description": "28px — dimension primitive",
       "value": 28,
       "alias": null,
@@ -215,12 +140,7 @@
     {
       "name": "ads/core/dimension/30",
       "resolvedType": "FLOAT",
-      "scopes": [
-        "WIDTH_HEIGHT",
-        "GAP",
-        "CORNER_RADIUS",
-        "STROKE_FLOAT"
-      ],
+      "scopes": [],
       "description": "30px — dimension primitive",
       "value": 30,
       "alias": null,
@@ -229,12 +149,7 @@
     {
       "name": "ads/core/dimension/32",
       "resolvedType": "FLOAT",
-      "scopes": [
-        "WIDTH_HEIGHT",
-        "GAP",
-        "CORNER_RADIUS",
-        "STROKE_FLOAT"
-      ],
+      "scopes": [],
       "description": "32px — dimension primitive",
       "value": 32,
       "alias": null,
@@ -243,12 +158,7 @@
     {
       "name": "ads/core/dimension/36",
       "resolvedType": "FLOAT",
-      "scopes": [
-        "WIDTH_HEIGHT",
-        "GAP",
-        "CORNER_RADIUS",
-        "STROKE_FLOAT"
-      ],
+      "scopes": [],
       "description": "36px — dimension primitive",
       "value": 36,
       "alias": null,
@@ -257,12 +167,7 @@
     {
       "name": "ads/core/dimension/40",
       "resolvedType": "FLOAT",
-      "scopes": [
-        "WIDTH_HEIGHT",
-        "GAP",
-        "CORNER_RADIUS",
-        "STROKE_FLOAT"
-      ],
+      "scopes": [],
       "description": "40px — dimension primitive",
       "value": 40,
       "alias": null,
@@ -271,12 +176,7 @@
     {
       "name": "ads/core/dimension/44",
       "resolvedType": "FLOAT",
-      "scopes": [
-        "WIDTH_HEIGHT",
-        "GAP",
-        "CORNER_RADIUS",
-        "STROKE_FLOAT"
-      ],
+      "scopes": [],
       "description": "44px — dimension primitive",
       "value": 44,
       "alias": null,
@@ -285,12 +185,7 @@
     {
       "name": "ads/core/dimension/48",
       "resolvedType": "FLOAT",
-      "scopes": [
-        "WIDTH_HEIGHT",
-        "GAP",
-        "CORNER_RADIUS",
-        "STROKE_FLOAT"
-      ],
+      "scopes": [],
       "description": "48px — dimension primitive",
       "value": 48,
       "alias": null,
@@ -299,12 +194,7 @@
     {
       "name": "ads/core/dimension/52",
       "resolvedType": "FLOAT",
-      "scopes": [
-        "WIDTH_HEIGHT",
-        "GAP",
-        "CORNER_RADIUS",
-        "STROKE_FLOAT"
-      ],
+      "scopes": [],
       "description": "52px — dimension primitive",
       "value": 52,
       "alias": null,
@@ -313,12 +203,7 @@
     {
       "name": "ads/core/dimension/56",
       "resolvedType": "FLOAT",
-      "scopes": [
-        "WIDTH_HEIGHT",
-        "GAP",
-        "CORNER_RADIUS",
-        "STROKE_FLOAT"
-      ],
+      "scopes": [],
       "description": "56px — dimension primitive",
       "value": 56,
       "alias": null,
@@ -327,12 +212,7 @@
     {
       "name": "ads/core/dimension/60",
       "resolvedType": "FLOAT",
-      "scopes": [
-        "WIDTH_HEIGHT",
-        "GAP",
-        "CORNER_RADIUS",
-        "STROKE_FLOAT"
-      ],
+      "scopes": [],
       "description": "60px — dimension primitive",
       "value": 60,
       "alias": null,
@@ -341,12 +221,7 @@
     {
       "name": "ads/core/dimension/64",
       "resolvedType": "FLOAT",
-      "scopes": [
-        "WIDTH_HEIGHT",
-        "GAP",
-        "CORNER_RADIUS",
-        "STROKE_FLOAT"
-      ],
+      "scopes": [],
       "description": "64px — dimension primitive",
       "value": 64,
       "alias": null,
@@ -355,12 +230,7 @@
     {
       "name": "ads/core/dimension/68",
       "resolvedType": "FLOAT",
-      "scopes": [
-        "WIDTH_HEIGHT",
-        "GAP",
-        "CORNER_RADIUS",
-        "STROKE_FLOAT"
-      ],
+      "scopes": [],
       "description": "68px — dimension primitive",
       "value": 68,
       "alias": null,
@@ -369,12 +239,7 @@
     {
       "name": "ads/core/dimension/72",
       "resolvedType": "FLOAT",
-      "scopes": [
-        "WIDTH_HEIGHT",
-        "GAP",
-        "CORNER_RADIUS",
-        "STROKE_FLOAT"
-      ],
+      "scopes": [],
       "description": "72px — dimension primitive",
       "value": 72,
       "alias": null,
@@ -383,12 +248,7 @@
     {
       "name": "ads/core/dimension/76",
       "resolvedType": "FLOAT",
-      "scopes": [
-        "WIDTH_HEIGHT",
-        "GAP",
-        "CORNER_RADIUS",
-        "STROKE_FLOAT"
-      ],
+      "scopes": [],
       "description": "76px — dimension primitive",
       "value": 76,
       "alias": null,
@@ -397,12 +257,7 @@
     {
       "name": "ads/core/dimension/80",
       "resolvedType": "FLOAT",
-      "scopes": [
-        "WIDTH_HEIGHT",
-        "GAP",
-        "CORNER_RADIUS",
-        "STROKE_FLOAT"
-      ],
+      "scopes": [],
       "description": "80px — dimension primitive",
       "value": 80,
       "alias": null,
@@ -411,12 +266,7 @@
     {
       "name": "ads/core/dimension/84",
       "resolvedType": "FLOAT",
-      "scopes": [
-        "WIDTH_HEIGHT",
-        "GAP",
-        "CORNER_RADIUS",
-        "STROKE_FLOAT"
-      ],
+      "scopes": [],
       "description": "84px — dimension primitive",
       "value": 84,
       "alias": null,
@@ -425,12 +275,7 @@
     {
       "name": "ads/core/dimension/88",
       "resolvedType": "FLOAT",
-      "scopes": [
-        "WIDTH_HEIGHT",
-        "GAP",
-        "CORNER_RADIUS",
-        "STROKE_FLOAT"
-      ],
+      "scopes": [],
       "description": "88px — dimension primitive",
       "value": 88,
       "alias": null,
@@ -439,12 +284,7 @@
     {
       "name": "ads/core/dimension/92",
       "resolvedType": "FLOAT",
-      "scopes": [
-        "WIDTH_HEIGHT",
-        "GAP",
-        "CORNER_RADIUS",
-        "STROKE_FLOAT"
-      ],
+      "scopes": [],
       "description": "92px — dimension primitive",
       "value": 92,
       "alias": null,
@@ -453,12 +293,7 @@
     {
       "name": "ads/core/dimension/96",
       "resolvedType": "FLOAT",
-      "scopes": [
-        "WIDTH_HEIGHT",
-        "GAP",
-        "CORNER_RADIUS",
-        "STROKE_FLOAT"
-      ],
+      "scopes": [],
       "description": "96px — dimension primitive",
       "value": 96,
       "alias": null,
@@ -467,12 +302,7 @@
     {
       "name": "ads/core/dimension/100",
       "resolvedType": "FLOAT",
-      "scopes": [
-        "WIDTH_HEIGHT",
-        "GAP",
-        "CORNER_RADIUS",
-        "STROKE_FLOAT"
-      ],
+      "scopes": [],
       "description": "100px — dimension primitive",
       "value": 100,
       "alias": null,
@@ -481,12 +311,7 @@
     {
       "name": "ads/core/dimension/104",
       "resolvedType": "FLOAT",
-      "scopes": [
-        "WIDTH_HEIGHT",
-        "GAP",
-        "CORNER_RADIUS",
-        "STROKE_FLOAT"
-      ],
+      "scopes": [],
       "description": "104px — dimension primitive",
       "value": 104,
       "alias": null,
@@ -495,12 +320,7 @@
     {
       "name": "ads/core/dimension/108",
       "resolvedType": "FLOAT",
-      "scopes": [
-        "WIDTH_HEIGHT",
-        "GAP",
-        "CORNER_RADIUS",
-        "STROKE_FLOAT"
-      ],
+      "scopes": [],
       "description": "108px — dimension primitive",
       "value": 108,
       "alias": null,
@@ -509,12 +329,7 @@
     {
       "name": "ads/core/dimension/112",
       "resolvedType": "FLOAT",
-      "scopes": [
-        "WIDTH_HEIGHT",
-        "GAP",
-        "CORNER_RADIUS",
-        "STROKE_FLOAT"
-      ],
+      "scopes": [],
       "description": "112px — dimension primitive",
       "value": 112,
       "alias": null,
@@ -523,12 +338,7 @@
     {
       "name": "ads/core/dimension/116",
       "resolvedType": "FLOAT",
-      "scopes": [
-        "WIDTH_HEIGHT",
-        "GAP",
-        "CORNER_RADIUS",
-        "STROKE_FLOAT"
-      ],
+      "scopes": [],
       "description": "116px — dimension primitive",
       "value": 116,
       "alias": null,
@@ -537,12 +347,7 @@
     {
       "name": "ads/core/dimension/120",
       "resolvedType": "FLOAT",
-      "scopes": [
-        "WIDTH_HEIGHT",
-        "GAP",
-        "CORNER_RADIUS",
-        "STROKE_FLOAT"
-      ],
+      "scopes": [],
       "description": "120px — dimension primitive",
       "value": 120,
       "alias": null,
@@ -551,12 +356,7 @@
     {
       "name": "ads/core/dimension/124",
       "resolvedType": "FLOAT",
-      "scopes": [
-        "WIDTH_HEIGHT",
-        "GAP",
-        "CORNER_RADIUS",
-        "STROKE_FLOAT"
-      ],
+      "scopes": [],
       "description": "124px — dimension primitive",
       "value": 124,
       "alias": null,
@@ -565,12 +365,7 @@
     {
       "name": "ads/core/dimension/128",
       "resolvedType": "FLOAT",
-      "scopes": [
-        "WIDTH_HEIGHT",
-        "GAP",
-        "CORNER_RADIUS",
-        "STROKE_FLOAT"
-      ],
+      "scopes": [],
       "description": "128px — dimension primitive",
       "value": 128,
       "alias": null,
