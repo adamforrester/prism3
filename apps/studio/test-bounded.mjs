@@ -49,9 +49,17 @@ const debuggerOf = async (page) => {
   return pending;
 };
 
+/** Pages whose debugger `watchStalls` turned on. A reporter made with `requireWatched` refuses input on any other. */
+const watched = new WeakSet();
+
 /** Turn the debugger on now, while the page answers (#2585). Call it once the page has loaded, on any page that will
- *  take bounded input; returns whether it is on. */
-export const watchStalls = async (page) => !!await debuggerOf(page);
+ *  take bounded input; returns whether it is on. A page is marked watched only when it is on, so a failed attach is
+ *  reported by the page's first bounded input, the same as a missing call. */
+export const watchStalls = async (page) => {
+  const on = !!await debuggerOf(page);
+  if (on) watched.add(page);
+  return on;
+};
 
 /** Pause the page and say where it was. */
 const stallStack = async (page) => {
@@ -81,11 +89,19 @@ const stallStack = async (page) => {
  * Returns whether the input went through; false with `onDead` not called only when the input threw and nothing is
  * left in flight. `stats` is the slowest input that went through, for a suite to print as its margin. `inputMs` is the
  * bound, INPUT_MS unless a suite's self-check wants a short one.
+ *   · `requireWatched` — every page that takes bounded input must first have been given `watchStalls` with its
+ *     debugger on. An input on any other page fails one check by name and is not sent: without the early debugger a
+ *     freeze an earlier step started is reported as "where it stopped is unknown", which is the #2585 shape, and
+ *     nothing else would notice the missing call until a real stall (#2631 review). Both suites' reporters set it.
  */
-export const makeBounded = ({ ok, isDead = () => false, onDead, inputMs = INPUT_MS }) => {
+export const makeBounded = ({ ok, isDead = () => false, onDead, inputMs = INPUT_MS, requireWatched = false }) => {
   const stats = { inputs: 0, slowestMs: 0, slowestLabel: '' };
   const bounded = async (page, label, act) => {
     if (isDead(page)) return false;
+    if (requireWatched && !watched.has(page)) {
+      ok(false, `${label}: the page was never given watchStalls, or its debugger did not turn on, so a freeze an earlier step started could not be located (#2585)`);
+      return false;
+    }
     await debuggerOf(page);
     let timer;
     const t0 = Date.now();

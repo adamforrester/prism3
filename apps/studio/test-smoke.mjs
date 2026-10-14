@@ -2131,7 +2131,7 @@ const closeDead = async (page, label, why = `the page rendered no frame within $
 // Every bounded input (#2547, #2550) goes through the shared helper in `test-bounded.mjs`: a stall fails one arm by
 // name and says what the page was doing. A page that renders no frame, or a busy one whose input is still in flight
 // (#2557 review), goes through `closeDead`: its context is closed and its brand is skipped.
-const { bounded, stats: inputStats } = makeBounded({ ok, isDead: (p) => deadPages.has(p), onDead: closeDead });
+const { bounded, stats: inputStats } = makeBounded({ ok, isDead: (p) => deadPages.has(p), onDead: closeDead, requireWatched: true });
 /** The wait after a bounded open (#2557 review): bounded at INPUT_MS on Playwright's clock and caught, so a picker
  *  that opened but never drew fails its arm by name, rather than as `hooks.need`'s throw past every arm (which also
  *  blames a renamed hook). Returns whether it drew. */

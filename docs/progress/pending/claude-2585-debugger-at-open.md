@@ -7,7 +7,8 @@
 **The change:**
 - **`test-bounded.mjs`:**
   - exports `watchStalls(page)`, which turns the debugger on now and returns whether it is on;
-  - `makeBounded` takes an optional `inputMs` (default `INPUT_MS`) so a self-check can use a short bound.
+  - `makeBounded` takes an optional `inputMs` (default `INPUT_MS`) so a self-check can use a short bound;
+  - `makeBounded` takes `requireWatched` (#2631 review). `watchStalls` marks a page watched only when its debugger turned on, and a reporter with `requireWatched` refuses bounded input on any other page, failing one check by name: "the page was never given watchStalls, or its debugger did not turn on". Both suites' reporters set it. Without it, test:chrome's `watchStalls` call had no check at all (removing it failed nothing on a clean run), and a new page in either suite that skipped the call would go unnoticed until a real stall read "unknown". It costs nothing at run time, and a failed attach is now reported instead of discarded.
 - **test-smoke:** `openBrand` calls `watchStalls` once the app is loaded. Every page that takes bounded input in smoke (S4c, S4d, S4e, S5a, S5b) comes from `openBrand`.
 - **test:chrome:** only S6.3's Type-edits case takes bounded input (`lh-swap`), and it calls `watchStalls` after `open()`. The suite's other pages don't, so they pay nothing.
 - **A self-check, new, in smoke** (after the corpus is read). It takes a page from `openBrand` and freezes it with a named loop, `frozenBeforeInput`. Then it sends one bounded key press with a 2 s bound, through its own reporter (`closeDead` and the dead-page set aren't touched). It expects exactly one report, naming `frozenBeforeInput`. This is the first check of what the stall report says. Until now that report was read only off mutations.

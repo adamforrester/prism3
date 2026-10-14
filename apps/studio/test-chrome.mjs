@@ -497,7 +497,7 @@ const ok = (cond, label) => {
 // the page was doing. A page that renders no frame, or a busy one whose input is still in flight (#2557 review), ends
 // its case with that named failure: `onDead` reports it and throws an error marked `reported`, so the case's own catch
 // does not count it twice, and the case's `finally` closes its context, which retires the page and cancels the input.
-const { bounded } = makeBounded({ ok, onDead: async (_page, label, why) => { const message = why ? `${label}: ${why}` : label; ok(false, message); const e = new Error(message); e.reported = true; throw e; } });
+const { bounded } = makeBounded({ ok, requireWatched: true, onDead: async (_page, label, why) => { const message = why ? `${label}: ${why}` : label; ok(false, message); const e = new Error(message); e.reported = true; throw e; } });
 
 // ── the literal floors ───────────────────────────────────────────────────────────────────────────
 const TEXT_MIN = 4.5;
