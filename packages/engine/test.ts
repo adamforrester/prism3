@@ -18173,7 +18173,7 @@ arm: {
      *  Both exist because they answer different questions: `insetValue` is how the not-a-number case is
      *  reached (one bad value, whichever name asks), and `varOverrides` is how the two halves of the ring's
      *  coordinate are given DIFFERENT values, which is the only way to tell a sum from a doubling (#801). */
-    type StubOpts = { vars?: string[]; styles?: string[]; comps?: string[]; page?: StubPage; insetValue?: unknown; varOverrides?: Record<string, unknown>; varValues?: Record<string, number>; fileNodes?: StubFileNode[]; nestedInstanceParts?: string[]; effectStyles?: string[]; gradientDiscard?: 'paint' | 'bindings'; textMetrics?: { fontSize: number; lineHeight: { unit: string; value: number } }; setStrokes?: Record<string, unknown>[]; noSlots?: boolean };
+    type StubOpts = { vars?: string[]; styles?: string[]; comps?: string[]; page?: StubPage; insetValue?: unknown; varOverrides?: Record<string, unknown>; varValues?: Record<string, number>; fileNodes?: StubFileNode[]; nestedInstanceParts?: string[]; effectStyles?: string[]; gradientDiscard?: 'paint' | 'bindings'; textMetrics?: { fontSize: number; lineHeight: { unit: string; value: number } }; setStrokes?: Record<string, unknown>[]; noSlots?: boolean; colors?: Record<string, { r: number; g: number; b: number; a: number }> };
     /** The two halves of a focus ring's coordinate, the real NB values (`focus.ring.offset` /
      *  `focus.ring.width` — both 2 in every emitted brand). NAMED, and named HERE, because they are the
      *  stub's INPUT and the geometry assertions' EXPECTED at once, and #801 is what that costs when the
@@ -18255,8 +18255,11 @@ arm: {
       // so the arithmetic under test would be satisfied by the wrong formula. `RING_*` are the real NB
       // values, which is what makes the expected coordinate in the geometry assertion a real number rather
       // than a restatement of whatever the stub happens to hand back.
+      // `colors` (#2468): what a COLOR variable resolves to for a node, where an arm needs the host's color truth. Off
+      // by default, so a color variable resolves to the number below and both executors fall back to their black base.
       const resolved = (name: string): unknown =>
-        opts.varOverrides && name in opts.varOverrides ? opts.varOverrides[name]
+        opts.colors && name in opts.colors ? opts.colors[name]
+          : opts.varOverrides && name in opts.varOverrides ? opts.varOverrides[name]
           : opts.insetValue !== undefined ? opts.insetValue
           : name === 'focus/ring/width' ? RING_STROKE
           : name === 'focus/ring/offset' ? RING_GAP
@@ -21457,6 +21460,48 @@ arm: {
           const diff = [...a.keys()].filter((k) => a.get(k) !== b.get(k));
           ok(a.size === 30 && b.size === 30 && diff.length === 0,
             `#1318 parity: both executors write the IDENTICAL fill on every veil member${diff.length ? ` — differ on ${diff.slice(0, 2).map((k) => `${k}: plugin ${a.get(k)} / paste ${b.get(k)}`).join(' | ')}` : ''}`);
+          // #2468 — THE BASE UNDER EACH BINDING IS THE VARIABLE'S OWN COLOR, on both paths. The host draws a paint's
+          // STORED color (#2379, #2391), so a black base is what shows wherever it does not re-resolve. The colors are
+          // the host's truth, written here per name (distinct, the veil's own alphas, a clear end at 0); the expected
+          // base is read off that table, never off either executor. A solid carries the alpha as its opacity, which
+          // the stub's fresh-bind reset then sets to 1 (#1646), so only its RGB is held; a stop carries its alpha in
+          // its color, so all four channels are.
+          {
+            const VEIL_A: Record<string, number> = { subtle: 0.5, medium: 0.6, strong: 0.7, clear: 0 };
+            const colors: NonNullable<StubOpts['colors']> = {};
+            (veilOpts.vars ?? []).filter((v) => v.startsWith('color/')).sort().forEach((v, i) => {
+              colors[v] = { r: (i + 1) / 20, g: (19 - i) / 20, b: ((i * 7) % 19) / 20, a: VEIL_A[v.split('/').pop()!] ?? 1 };
+            });
+            const cPaste: StubPage = { children: [] };
+            const cPlug: StubPage = { children: [] };
+            await runPayload(planSetToPluginJs(veilSet), { ...veilOpts, colors, page: cPaste });
+            await plugRun(veilSet, { ...veilOpts, colors, page: cPlug });
+            const name = (id: string | undefined): string => (id ?? '').replace(/^V:/, '');
+            const baseOff = (page: StubPage): string[] => {
+              const set = page.children.find((c) => c.type === 'COMPONENT_SET');
+              const out: string[] = [];
+              let seen = 0;
+              for (const m of (set?.children ?? []) as Record<string, unknown>[]) {
+                const f = ((m.fills as Record<string, unknown>[] | undefined) ?? [])[0] as { type?: string; color?: Record<string, number>; boundVariables?: { color?: { id?: string } }; gradientStops?: { color?: Record<string, number>; boundVariables?: { color?: { id?: string } } }[] } | undefined;
+                if (!f) { out.push(`${String(m.name)}: no fill`); continue; }
+                if (f.type === 'SOLID') {
+                  const want = colors[name(f.boundVariables?.color?.id)];
+                  seen++;
+                  if (!want || ['r', 'g', 'b'].some((k) => f.color?.[k] !== want[k as 'r'])) out.push(`${String(m.name)}: solid base ${JSON.stringify(f.color)}, want ${JSON.stringify(want)}`);
+                } else for (const st of f.gradientStops ?? []) {
+                  const want = colors[name(st.boundVariables?.color?.id)];
+                  seen++;
+                  if (!want || ['r', 'g', 'b', 'a'].some((k) => st.color?.[k] !== want[k as 'r'])) out.push(`${String(m.name)}: stop base ${JSON.stringify(st.color)}, want ${JSON.stringify(want)}`);
+                }
+              }
+              if (seen !== 6 + 24 * 2) out.push(`${seen} bound paints and stops read, want 54`);
+              return out;
+            };
+            for (const [label, page] of [['plugin', cPlug], ['paste', cPaste]] as const) {
+              const off = baseOff(page);
+              ok(off.length === 0, `#2468 ${label}: every veil solid and every gradient stop is based on its variable's own resolved color, not black (6 solids, 48 stops)${off.length ? ` — ${off.slice(0, 2).join(' | ')}` : ''}`);
+            }
+          }
           // A STARVED FILE: the light clear end is missing. Both paths report the SAME miss and leave the
           // light directional members CLEAR — never a one-stop gradient over a placeholder colour.
           const starved: StubOpts = { vars: (veilOpts.vars ?? []).filter((n) => n !== 'color/veil/light/clear') };
@@ -29660,6 +29705,32 @@ arm: {
         && movedB.lines.includes("  ✓ folded entries — 2 folded fragment(s) found in the log at their landing day, newest merge first; 2 more landed off main's first-parent history (a merge of main, or this branch) and are not seen here (#1880)")
         && movedB.lines.some((l) => l.startsWith('✗ ONE WRITER (log) — this diff changes docs/00-progress.md')),
       `#1880 folded entries: on the branch, a hand-move of entries that arrived through a merge is not seen by this arm (stated limit) and fails ONE WRITER instead (exit ${movedB.status}: ${verdict(movedB)})`);
+
+    // (e) #2583: the archive. From m5, the oldest three sections move out of the log to an archive file. The
+    // pure move passes, and Pre one / Pre two, folded and now archived, are still found and ordered. Dropping
+    // or duplicating a section on the way fails ARCHIVE MOVE by name; the log half alone fails ONE WRITER.
+    const section = (t: string, d = '2026-03-01') => `## (${d}) — ${t}\n\n${t} body.\n\n`;
+    const archive = (titles: string[]) => put('docs/progress/archive/2026-01.md',
+      '# Archive\n\n---\n\n' + titles.map((t) => (t === 'Seed' ? section(t, '2026-01-01') : section(t))).join(''));
+    const liveLog = () => put('docs/00-progress.md', '# Progress\n\n' + section('Bravo') + section('Alpha'));
+    const branchFromMain = (name: string, files: () => void) => { git('checkout', '-q', '-b', name, m5); files(); fragment(`lane-${name}`, `Topic ${name}`); commit(name); };
+    branchFromMain('arch', () => { liveLog(); archive(['Pre two', 'Pre one', 'Seed']); });
+    branchFromMain('arch-drop', () => { liveLog(); archive(['Pre two', 'Seed']); });
+    branchFromMain('arch-dup', () => { liveLog(); archive(['Pre two', 'Pre two', 'Pre one', 'Seed']); });
+    branchFromMain('arch-log-only', () => { liveLog(); });
+    const arch = run('arch', PR);
+    ok(arch.status === 0 && arch.lines.includes(ALL_FOUR)
+        && arch.lines.includes('  ✓ archive move — 3 section(s) moved out of docs/00-progress.md; all 5 sections of the log and archive byte-identical and in order'),
+      `#2583 archive move: a pure move passes, and the archived folded entries are still found in landing order (exit ${arch.status}: ${arch.lines.filter((l) => /archive|ARCHIVE|folded|ONE WRITER/.test(l)).join(' | ')})`);
+    const archDrop = run('arch-drop', PR);
+    ok(archDrop.status === 1 && archDrop.lines.includes('  · lost: "## (2026-03-01) — Pre one" — 1 at the base, 0 now (dropped, or its text changed on the way)'),
+      `#2583 archive move: an entry dropped on the way fails ARCHIVE MOVE by name (exit ${archDrop.status})`);
+    const archDup = run('arch-dup', PR);
+    ok(archDup.status === 1 && archDup.lines.includes('  · added: "## (2026-03-01) — Pre two" — 1 at the base, 2 now (duplicated, written new, or its text changed on the way)'),
+      `#2583 archive move: an entry duplicated on the way fails ARCHIVE MOVE by name (exit ${archDup.status})`);
+    const archLogOnly = run('arch-log-only', PR);
+    ok(archLogOnly.status === 1 && archLogOnly.lines.some((l) => l.startsWith('✗ ONE WRITER (log) — this diff changes docs/00-progress.md')),
+      `#2583 archive move: entries cut from the log with no archive half fail ONE WRITER (exit ${archLogOnly.status})`);
   } finally {
     rmSync(scratch, { recursive: true, force: true });
   }
