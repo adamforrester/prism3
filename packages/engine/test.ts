@@ -3668,7 +3668,7 @@ for (const b of brands) {
       // Accordion (#2417, DRAFT): header inline / header block / glyph-to-title gap / panel bottom inset. Comfortable is
       // the proposal's 12/8/8 · 16/12/12 · 24/16/16, with the panel's bottom inset matching the inline padding.
       accordion: { compact: 'small 8/6/6/8 · medium 12/8/8/12 · large 20/12/12/20', comfortable: 'small 12/8/8/12 · medium 16/12/12/16 · large 24/16/16/24', spacious: 'small 16/12/12/16 · medium 20/16/16/20 · large 32/20/20/32' },
-      // List (#2319, DRAFT): the item gap. Comfortable is the proposal's 8/12/16.
+      // List (#2319, approved (Q280 A)): the item gap. Comfortable is 8/12/16.
       list: { compact: 'small 6 · medium 8 · large 12', comfortable: 'small 8 · medium 12 · large 16', spacious: 'small 12 · medium 16 · large 20' },
     };
     const wrong: string[] = [];
@@ -30040,7 +30040,7 @@ arm: {
     `#2319 list: named List and List.Item, category data, aliases unordered-list, ordered-list and bullet-list (Q273.7) (got ${ls.name}/${li.name}, ${ls.category}, ${JSON.stringify(ls.aliases)})`);
 
   // THE MARKER COLUMN: one fixed width per size, the same in every type, never filling or hugging, so the text edge
-  // never moves and the column never shrinks with the text. DRAFT widths 24/32/40 (space.300/400/500).
+  // never moves and the column never shrinks with the text. Widths 24/32/40 (space.300/400/500), approved (Q280 A).
   const COLUMN: Record<string, string> = { small: 'space/300', medium: 'space/400', large: 'space/500' };
   const colBad = liPlans.filter((p) => { const m = find(p.root as PN, 'markerBox'); return !(m && m.bound?.width === COLUMN[coord(p).size] && m.primaryAxisSizingMode === 'FIXED'); });
   ok(colBad.length === 0,
