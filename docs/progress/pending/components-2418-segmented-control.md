@@ -2,7 +2,7 @@
 
 **Status:** engine (two new defs and one validator/projector change), both executors, the plugin taxonomy. ENGINE minor
 (change note): two new projected surfaces, `segmented-control-segment` (30 members) and `segmented-control` (3).
-CONTRACT unchanged: every binding is an existing role. `EXECUTOR_REVISION` 13 → 16 (#2548 holds 14 and #2574 holds 15).
+CONTRACT unchanged: every binding is an existing role. `EXECUTOR_REVISION` → 20: main reached 19 (#2604) before this landed, so it takes the next number.
 Built from the proposal branch's draft (`claude/segmented-control-proposal`, `74af810`) with the owner's decisions Q269
 1–8 A applied.
 
