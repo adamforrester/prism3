@@ -2246,11 +2246,13 @@ s4cArm: for (const brand of BRANDS) {
       const before = (await inputAt(page))?.overrides ?? {};
       const rawBefore = await brandRaw(page);
       const row = `[data-p3="levers-pane"] [data-p3="field-rows"] .p3-fillrow[data-role="${role}"]`;
-      await hooks.click(page.locator(`${row} [data-p3="fill-pick"]`));
-      await hooks.click(page.locator(`[data-p3="levers-pane"] [data-p3="step-picker-step"][data-step="${step}"]`));
+      // Every input bounded (#2589): a stall fails this row by name and the arm goes on, or skips a dead page.
+      const at = `S4c ${brand}: previewing ${m}, the Fields row ${role}`;
+      if (!await bounded(page, `${at}: its picker opens`, () => hooks.click(page.locator(`${row} [data-p3="fill-pick"]`), { timeout: INPUT_MS }))) { if (deadPages.has(page)) continue s4cArm; continue; }
+      if (!await bounded(page, `${at}: the ${step} step is taken`, () => hooks.click(page.locator(`[data-p3="levers-pane"] [data-p3="step-picker-step"][data-step="${step}"]`), { timeout: INPUT_MS }))) { if (deadPages.has(page)) continue s4cArm; continue; }
       // Bounded: an edit that writes nothing leaves the brand as it was, and the check below says so.
       await page.waitForFunction((was) => { try { return localStorage.getItem('prism3:brandInput') !== was; } catch { return false; } }, rawBefore, { timeout: 5000 }).catch(() => {});
-      await page.keyboard.press('Escape');
+      if (!await bounded(page, `${at}: Escape closes the picker`, () => page.keyboard.press('Escape'))) { if (deadPages.has(page)) continue s4cArm; continue; }
       const after = (await inputAt(page))?.overrides ?? {};
       const want = { ...(before[m] ?? {}), [role]: { palette: 'neutral', step } };
       const held = JSON.stringify(after[other]) === JSON.stringify(before[other]);
@@ -2310,37 +2312,51 @@ s4eArm: for (const brand of BRANDS) {
   // full sentence, the tier it follows included, as its tooltip (each read below is with the floor on Auto, as the brand loads).
   const floorAuto = () => page.evaluate(() => { const b = document.querySelector('[data-p3="levers-pane"] [data-p3="surface-floor-pick"]'); return b?.getAttribute('title') ?? null; });
   const TEXT_SEC = '[data-p3="levers-pane"] [data-p3="text-rows"] .p3-fillrow[data-role="text.secondary"] [data-p3="fill-pick"]';
-  const groundOf = async () => {
-    await hooks.click(page.locator(TEXT_SEC));
-    await hooks.need(page, '[data-p3="levers-pane"] [data-p3="step-picker"]');
+  // Every input in this arm bounded (#2589): a stall fails one check by name. A helper returns null (or false) when
+  // an input failed; its caller skips the brand when the page was retired (`deadPages`), else carries on and the
+  // check that reads the result says what it got.
+  const groundOf = async (at) => {
+    if (!await bounded(page, `${at}: text.secondary's picker opens`, () => hooks.click(page.locator(TEXT_SEC), { timeout: INPUT_MS }))) return null;
+    if (!await drawn(page, '[data-p3="levers-pane"] [data-p3="step-picker"]', `${at}: text.secondary's picker`)) return null;
     const hint = await page.evaluate(() => document.querySelector('[data-p3="levers-pane"] [data-p3="step-picker"] .p3-picker-hint')?.textContent ?? '');
-    await page.keyboard.press('Escape');
+    if (!await bounded(page, `${at}: Escape closes text.secondary's picker`, () => page.keyboard.press('Escape'))) return null;
     return (/against ([a-z0-9-]+\.[0-9]+)/.exec(hint) ?? [])[1] ?? hint;
+  };
+  /** Open the `k` surface picker, take its `step`, wait for the write, close it. Returns whether every input went through. */
+  const pickStep = async (at, k, step) => {
+    const raw = await brandRaw();
+    if (!await bounded(page, `${at}: the ${k} picker opens`, () => hooks.click(page.locator(SURF(k)), { timeout: INPUT_MS }))) return false;
+    if (!await bounded(page, `${at}: the ${k} picker takes its ${step} step`, () => hooks.click(page.locator(`[data-p3="levers-pane"] [data-p3="step-picker-step"][data-step="${step}"]`), { timeout: INPUT_MS }))) return false;
+    await page.waitForFunction((was) => { try { return localStorage.getItem('prism3:brandInput') !== was; } catch { return false; } }, raw, { timeout: 5000 }).catch(() => {});
+    return bounded(page, `${at}: Escape closes the ${k} picker`, () => page.keyboard.press('Escape'));
   };
   const brandRaw = () => page.evaluate(() => { try { return localStorage.getItem('prism3:brandInput'); } catch { return null; } });
   const before = await inputAt(page);
-  const autoBefore = await floorAuto(), groundBefore = await groundOf();
+  const autoBefore = await floorAuto(), groundBefore = await groundOf(`S4e ${brand}: before the pick`);
+  if (deadPages.has(page)) continue s4eArm;
   ok(wasStep !== null && wasStep !== '200' && autoBefore === `Auto · follows background.secondary (neutral ${wasStep})` && groundBefore === `neutral.${wasStep}`,
     `S4e ${brand}: before, the floor's Auto follows background.secondary at the emission's neutral ${wasStep}, and text.secondary is measured on neutral.${wasStep} — read ${JSON.stringify(autoBefore)}, ${JSON.stringify(groundBefore)}`);
-  const raw0 = await brandRaw();
-  await hooks.click(page.locator(SURF('secondary')));
-  await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="step-picker-step"][data-step="200"]'));
-  await page.waitForFunction((was) => { try { return localStorage.getItem('prism3:brandInput') !== was; } catch { return false; } }, raw0, { timeout: 5000 }).catch(() => {});
-  await page.keyboard.press('Escape');
+  if (!await pickStep(`S4e ${brand}: the Secondary pick`, 'secondary', '200') && deadPages.has(page)) continue s4eArm;
   const after = await inputAt(page);
   ok(after?.surfaces?.light?.secondary === 200 && JSON.stringify(after?.overrides) === JSON.stringify(before?.overrides) && JSON.stringify(after?.surfaces?.dark) === JSON.stringify(before?.surfaces?.dark),
     `S4e ${brand}: the Secondary pick persists surfaces.light.secondary = 200 and no override — persisted surfaces ${JSON.stringify(after?.surfaces)}, overrides ${JSON.stringify(after?.overrides)}`);
-  const autoAfter = await floorAuto(), groundAfter = await groundOf();
+  const autoAfter = await floorAuto(), groundAfter = await groundOf(`S4e ${brand}: after the pick`);
+  if (deadPages.has(page)) continue s4eArm;
   ok(autoAfter === 'Auto · follows background.secondary (neutral 200)', `S4e ${brand}: the floor's Auto label follows the pick: "Auto · follows background.secondary (neutral 200)" — read ${JSON.stringify(autoAfter)}`);
   ok(groundAfter === 'neutral.200', `S4e ${brand}: the floor-gated text.secondary re-derives against neutral.200 — read ${JSON.stringify(groundAfter)} (was ${groundBefore})`);
   const raw1 = await brandRaw();
-  await hooks.click(page.locator(SURF('secondary')));
-  // Bounded: with nothing to return (a pick that wrote no input), Return to Auto is disabled, and the check below says so.
-  const autoBtn = page.locator('[data-p3="levers-pane"] [data-p3="step-picker-auto"]');
-  await hooks.need(page, '[data-p3="levers-pane"] [data-p3="step-picker-auto"]');
-  if (await autoBtn.isEnabled()) await hooks.click(autoBtn);
-  await page.waitForFunction((was) => { try { return localStorage.getItem('prism3:brandInput') !== was; } catch { return false; } }, raw1, { timeout: 5000 }).catch(() => {});
-  await page.keyboard.press('Escape');
+  const atAuto = `S4e ${brand}: Return to Auto`;
+  const autoSel = '[data-p3="levers-pane"] [data-p3="step-picker-auto"]';
+  if (await bounded(page, `${atAuto}: the secondary picker opens`, () => hooks.click(page.locator(SURF('secondary')), { timeout: INPUT_MS }))
+    && await drawn(page, autoSel, `${atAuto}: the secondary picker`)) {
+    // Bounded: with nothing to return (a pick that wrote no input), Return to Auto is disabled, and the check below says so.
+    const enabled = await page.evaluate((sel) => !document.querySelector(sel)?.disabled, autoSel);
+    if (!enabled || await bounded(page, `${atAuto}: the button is pressed`, () => hooks.click(page.locator(autoSel), { timeout: INPUT_MS }))) {
+      await page.waitForFunction((was) => { try { return localStorage.getItem('prism3:brandInput') !== was; } catch { return false; } }, raw1, { timeout: 5000 }).catch(() => {});
+      await bounded(page, `${atAuto}: Escape closes the secondary picker`, () => page.keyboard.press('Escape'));
+    }
+  }
+  if (deadPages.has(page)) continue s4eArm;
   const cleared = await inputAt(page);
   ok(!('secondary' in (cleared?.surfaces?.light ?? {})) && JSON.stringify(cleared?.surfaces) === JSON.stringify(before?.surfaces),
     `S4e ${brand}: Return to Auto clears surfaces.light.secondary, the surfaces as loaded — persisted ${JSON.stringify(cleared?.surfaces)} (loaded ${JSON.stringify(before?.surfaces)})`);
@@ -2352,21 +2368,24 @@ s4eArm: for (const brand of BRANDS) {
   // Inverse fill's own palette select. EXPECTED: literal 'neutral', and the emission's alias.
   const wasPalette = (/\.palette\.([a-z0-9-]+)\.[0-9]+\}$/.exec(wasAlias) ?? [])[1] ?? null;
   const pickerPalettes = async (k) => {
-    await hooks.click(page.locator(SURF(k)));
-    await hooks.need(page, '[data-p3="levers-pane"] [data-p3="step-picker-palette"]');
+    const at = `S4e ${brand}: the ${k} picker's palettes`;
+    if (!await bounded(page, `${at}: the picker opens`, () => hooks.click(page.locator(SURF(k)), { timeout: INPUT_MS }))) return null;
+    if (!await drawn(page, '[data-p3="levers-pane"] [data-p3="step-picker-palette"]', `${at}: the palette select`)) return null;
     const vals = await page.evaluate(() => [...document.querySelectorAll('[data-p3="levers-pane"] [data-p3="step-picker"] [data-p3="step-picker-palette"] option')].map((o) => o.value));
-    await page.keyboard.press('Escape');
+    if (!await bounded(page, `${at}: Escape closes the picker`, () => page.keyboard.press('Escape'))) return null;
     return vals;
   };
   const bandPals = await page.evaluate(() => [...document.querySelectorAll('[data-p3="levers-pane"] [data-p3="surface-band-palette"] option')].map((o) => o.value));
   for (const k of ['secondary', 'tertiary']) {
     const pals = await pickerPalettes(k);
+    if (deadPages.has(page)) continue s4eArm;
     ok(wasPalette === 'neutral' && JSON.stringify(pals) === JSON.stringify(['neutral']),
       `S4e ${brand}: the ${k} picker offers the neutral palette only (the emission draws background.secondary on ${wasPalette}) — read ${JSON.stringify(pals)}`);
   }
   for (const k of ['inverse-secondary', 'inverse-tertiary']) {
     const pals = await pickerPalettes(k);
-    ok(pals.includes('neutral') && pals.includes('primary') && JSON.stringify(pals) === JSON.stringify(bandPals),
+    if (deadPages.has(page)) continue s4eArm;
+    ok(pals?.includes('neutral') && pals.includes('primary') && JSON.stringify(pals) === JSON.stringify(bandPals),
       `S4e ${brand}: the ${k} picker still offers the Inverse fill's palettes ${JSON.stringify(bandPals)} — read ${JSON.stringify(pals)}`);
   }
   // The floor's Auto label names the ENGINE's floor (S4e review). At a ladder end the second tier snaps to black
@@ -2375,13 +2394,11 @@ s4eArm: for (const brand of BRANDS) {
   // (its picker's hint), the two read through different controls.
   for (const [m, pageKey, want] of [['light', 'black', 'Auto · neutral 950'], ['dark', 'white', 'Auto · neutral 050']]) {
     if (!await previewMode(page, m)) { if (deadPages.has(page)) continue s4eArm; continue; }
-    const rawP = await brandRaw();
-    await hooks.click(page.locator(SURF('base')));
-    await hooks.click(page.locator(`[data-p3="levers-pane"] [data-p3="step-picker-step"][data-step="${pageKey}"]`));
-    await page.waitForFunction((was) => { try { return localStorage.getItem('prism3:brandInput') !== was; } catch { return false; } }, rawP, { timeout: 5000 }).catch(() => {});
-    await page.keyboard.press('Escape');
+    const at = `S4e ${brand}: ${m}, Page ${pageKey}`;
+    if (!await pickStep(at, 'base', pageKey)) { if (deadPages.has(page)) continue s4eArm; continue; }
     const persisted = (await inputAt(page))?.surfaces?.[m]?.base;
-    const label = await floorAuto(), ground = await groundOf();
+    const label = await floorAuto(), ground = await groundOf(at);
+    if (deadPages.has(page)) continue s4eArm;
     ok(persisted === pageKey && label === want && `Auto · ${String(ground).split('.').join(' ')}` === want,
       `S4e ${brand}: ${m}, Page ${pageKey} (a ladder end): the floor's Auto reads ${JSON.stringify(want)}, the floor text.secondary is measured on — read ${JSON.stringify(label)}, against ${JSON.stringify(ground)}, base ${JSON.stringify(persisted)}`);
   }

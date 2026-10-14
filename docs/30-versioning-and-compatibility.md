@@ -143,10 +143,15 @@ vary:
 | `harbor` | engine-native brief, a different lever combination |
 | `wendys` | **standard dialect** — a flat `colors:` map classified into anchors; a different typeface |
 | `minimal` | the three required fields and **nothing else** — the sparsest input the engine accepts |
+| `minimal-levers` | the sparsest input with `outlineInteraction: 'none'` and `displayCeiling: 'sm'` — the two levers that remove paths (#957, below) |
+| `minimal-bp2` | the sparsest input with a **two-breakpoint layout**, demoting the upper breakpoint and grid tiers (#1479) |
+| `minimal-weights` | the sparsest input with **narrowed weight sets**, demoting the declined weight roles (#1632, below) |
 | `minimal-compact` | the sparsest input at **compact density** — a test-only fixture, the corpus's only compact member since aurora moved to comfortable (#1215) |
 | `minimal-weight-swap` | the sparsest input with **eyebrow and code swapping their single weight**, demoting the swapped-out roles (#1639) |
 
-That intersection is **485 paths**, with zero `$type` disagreements between any two members.
+That intersection was **485 paths** when this section was written, with zero `$type` disagreements
+between any two members. The `guaranteed` set in `token-contract.json` holds the live count; a copy
+of it in prose goes stale (see #1180 below).
 
 Two details are load-bearing:
 
@@ -209,11 +214,12 @@ for renames the contract cannot see. See `docs/44` and that module's header.
 **`minimal` is what stops the number over-claiming.** Without it the intersection would be "whatever
 four richly-specified brands happen to share", which is a much weaker promise wearing the same
 label. It is worth recording that adding `minimal` removed **zero** paths: every one of the 485
-survives the sparsest possible input. `wendys` earns its place by removing exactly one —
+survived the sparsest possible input. `wendys` earns its place by removing exactly one —
 `font.typeface.inter`, a slug derived from a *value* — which is precisely the class of path that
 should never have been promised.
 
-Everything else the engine can emit is recorded as `brandDependent` (234 paths). Those are
+Everything else the engine can emit is recorded as `brandDependent` (234 paths when this was written;
+the baseline holds the live count). Those are
 informational: they exist for some inputs only, and they **never** force a version bump.
 
 ### Sparse is not suppressed: levers that remove paths (#957)
@@ -323,6 +329,20 @@ guaranteed removal with no replacement path, so MAJOR: `CONTRACT_VERSION` 13.2.0
 component's spec names (a medium Button: `space.200` on the label side, `space.150` on the icon side,
 `space.100` between), moved one step for a compact or spacious brand.
 
+### Additions since 14.0.0 (MINOR)
+
+Every bump after 14.0.0 has added guaranteed paths and removed or retyped none, so each is MINOR:
+
+| `CONTRACT_VERSION` | PR | guaranteed paths added |
+|---|---|---|
+| 14.1.0 | #1885 (#1852) | `radius.{xl,2xl,3xl}`, the container rungs that follow the radius lever |
+| 14.2.0 | #2059 (#2053) | `radius.hairline`, always emitted once the `radiusHairline` switch was retired |
+| 14.3.0 | #2312 (#2266) | `type.body.xs.default` and `-link`, the 12px body rung |
+| 14.4.0 | #2338 (#2322) | three `core.font.letter-spacing-role.*` roles and three `core.font.letter-spacing.*` steps |
+| 14.5.0 | #2349 (#2324) | `type.label.{sm,md,lg}.emphasis-link` |
+| 14.6.0 | #2528 | `type.label.{sm,md,lg}.default` and `-link`: labels always ship the default weight |
+| 14.7.0 | #2590 (#2586) | `type.label.{sm,md,lg}.line-box` |
+
 ## Change classification
 
 | change to the guaranteed set | level | why |
@@ -331,15 +351,16 @@ component's spec names (a medium Button: `space.200` on the label side, `space.1
 | a path's `$type` **changes** | MAJOR | same name, new meaning — breaks a consumer that did nothing |
 | a path is **added** | MINOR | a new name cannot break an existing reference |
 | only `brandDependent` moved | none | says something changed about the corpus, not the promise |
-| only values changed | none | that is the engine working — bump `ENGINE_VERSION` |
+| only values changed | none | that is the engine working — declare an engine bump in a change note (`fold.ts` assigns `ENGINE_VERSION`) |
 
 ## Deprecations
 
 `DEPRECATIONS` in `version.ts` maps a retired path to its replacement and the `CONTRACT_VERSION`
 that retired it. **It is not empty** — the guaranteed surface has been renamed before: #531
 (`CONTRACT_VERSION` 2.0.0) renamed `motion.easing.{enter,exit,emphasized}` to
-`motion.easing.{decelerate,accelerate,expressive}`, and those three renames are the table's three
-entries.
+`motion.easing.{decelerate,accelerate,expressive}`, and those three renames were the table's first three
+entries. It has grown with every MAJOR that renamed paths since: at `CONTRACT_VERSION` 14.7.0 it holds
+682 entries, from nine MAJOR bumps (2.0.0 through 10.0.0).
 
 It exists because without it MAJOR is a dead end: a consumer learns their build broke but not
 what to write instead. With it, a removal ships its own migration, mechanically appliable by a

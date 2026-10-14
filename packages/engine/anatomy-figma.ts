@@ -3646,13 +3646,15 @@ const hasMaxWidth = (n: FigmaNodePlan): boolean => n.maxWidth !== undefined || n
  * reported and leaves the node CLEAR rather than half a gradient — #1387's rule for an unresolvable fill.
  * The read-back asks the host for a linear gradient whose every stop still carries its binding. The claim
  * joins `claimDefaults`' fill test, so the default pass does not erase the gradient it cannot see as a fill.
- * The stop colour is a placeholder the bound variable overrides, as the solid path's black is. Lockstep with
- * the plugin executor (`write-components.ts`, which binds stops through `write-styles.ts`'s helper).
+ * Each stop's base is its variable's own color for the node, alpha included (#2468, mirroring the plugin's #2391):
+ * the host draws a stop's STORED color, so a placeholder base is what a pasted veil would show wherever the host
+ * does not re-resolve. Black only where nothing resolves. Lockstep with the plugin executor (`write-components.ts`,
+ * which binds stops through `write-styles.ts`'s helper).
  */
 const GRADIENT_SLOT = '__GRADIENT__';
 const PAYLOAD_GRADIENT = `  if(n.gradientFill){
     const G=n.gradientFill,st=[];
-    for(const s of G.stops){const v=byName.get(s.variable);if(!v){misses.push(n.name+'.fills -> '+s.variable);continue;}st.push({position:s.position,color:{r:0,g:0,b:0,a:1},boundVariables:{color:figma.variables.createVariableAlias(v)}});}
+    for(const s of G.stops){const v=byName.get(s.variable);if(!v){misses.push(n.name+'.fills -> '+s.variable);continue;}const c=__rgb(v);st.push({position:s.position,color:c?{r:c.r,g:c.g,b:c.b,a:typeof c.a==='number'?c.a:1}:{r:0,g:0,b:0,a:1},boundVariables:{color:figma.variables.createVariableAlias(v)}});}
     const all=st.length===G.stops.length;
     node.fills=all?[{type:'GRADIENT_LINEAR',gradientTransform:G.gradientTransform,gradientStops:st}]:[];
     const f=(node.fills||[])[0];
@@ -3937,10 +3939,15 @@ ${PLACEMENT_SLOT}
   // PAINTS — a fourth API shape. \`setBoundVariableForPaint\` RETURNS a new paint rather than mutating
   // the node, so the result must be assigned back into a fills/strokes ARRAY; forgetting the
   // assignment is a no-op that throws nothing.
+  // THE BASE IS THE VARIABLE'S OWN COLOR for this node, black only where nothing resolves (#2468, the plugin's #2379
+  // and #2391): the host draws the stored color. A wash's alpha is the paint's opacity; a stop keeps it in its color.
+  const __rgb=v=>{try{const c=v.resolveForConsumer(node).value;if(c&&[c.r,c.g,c.b].every(x=>typeof x==='number'))return c;}catch(e){}return null;};
   const paint=(varName,where)=>{
     const v=byName.get(varName);
     if(!v){misses.push(n.name+'.'+where+' -> '+varName);return null;}
-    return figma.variables.setBoundVariableForPaint({type:'SOLID',color:{r:0,g:0,b:0}},'color',v);
+    const c=__rgb(v),p={type:'SOLID',color:c?{r:c.r,g:c.g,b:c.b}:{r:0,g:0,b:0}};
+    if(c&&typeof c.a==='number'&&c.a<1)p.opacity=c.a;
+    return figma.variables.setBoundVariableForPaint(p,'color',v);
   };
   // Same reason as \`wrote\` above: only a paint that was actually assigned can have been discarded.
   const painted={};
