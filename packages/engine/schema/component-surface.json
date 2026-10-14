@@ -307,7 +307,15 @@
     },
     "link": {
       "members": 96,
-      "sha256": "93a37091efcf42afcbca8b5cb738dd424ff04b8f2a9c2a7eb943753abb6ee62f"
+      "sha256": "56c6b59bb5853039c8a7cdb476ee20b147cd45da75f94c3433e6aeb1494c7f60"
+    },
+    "link@body-emphasis": {
+      "members": 96,
+      "sha256": "9d31f1a7113dd53842189b692d570ae53ca05492b62f4d87da2156d68c3609d6"
+    },
+    "link@body-single": {
+      "members": 48,
+      "sha256": "d638e0d2252c4c6b6027d540f713c7bc928da7e76bb799af8e0448f8ed877232"
     }
   }
 }

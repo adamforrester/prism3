@@ -6214,7 +6214,7 @@
       "category": "navigation",
       "status": "draft",
       "summary": "Text that goes to another page, a place on the page or a file. Underlined in running text.",
-      "description": "Text that goes to another page, a place on the page, a file or another site. A link is always a real anchor with an href; an action in place is a button, however light it looks. The standalone style sits on its own line, below a form, in a footer or beside a control, and shows its underline at hover, pressed and keyboard focus. The inline style is underlined at every state, for a link that sits in body copy, so it is never told apart by color alone. Both come in the emphasis weight, the default, and the default weight that matches body text. A link inside a paragraph is a text range with the link text style rather than this component.",
+      "description": "Text that goes to another page, a place on the page, a file or another site. A link is always a real anchor with an href; an action in place is a button, however light it looks. The standalone style sits on its own line, below a form, in a footer or beside a control, and shows its underline at hover, pressed and keyboard focus. The inline style is underlined at every state, for a link that sits in body copy, so it is never told apart by color alone. Both come in two weights: emphasis, the starting value, and default, which is lighter. A link inside a paragraph is a text range with that text's own link style rather than this component.",
       "props": [
         {
           "name": "label",
@@ -6248,7 +6248,7 @@
             "emphasis",
             "default"
           ],
-          "description": "The label weight. Emphasis is the default; the default weight matches body text."
+          "description": "Emphasis is the starting value; choose Default for a lighter weight link."
         },
         {
           "name": "size",
@@ -6260,7 +6260,7 @@
             "medium",
             "large"
           ],
-          "description": "The label type rung. The box is one text line tall at every size."
+          "description": "The body type size: 14, 16 or 18px. The box is one text line tall, or as tall as the icon where the icon is taller: 16px at small and medium, 20px at large."
         },
         {
           "name": "surface",
@@ -6286,12 +6286,6 @@
           "default": "false",
           "required": false,
           "description": "Merges the link's styling and accessibility onto a router's link child, so one anchor renders and the component depends on no router."
-        },
-        {
-          "name": "leadingIcon",
-          "type": "slot",
-          "required": false,
-          "description": "An icon before the label. Not for inline links. Decorative: the label names the link."
         },
         {
           "name": "trailingIcon",
@@ -6358,7 +6352,7 @@
         "labelPattern": "Names the destination and makes sense on its own: \"Shipping and returns\", \"Annual report (PDF, 2 MB)\". Link the noun phrase, not the whole sentence. Never a bare \"click here\" or \"learn more\", and never a raw URL."
       },
       "docs": {
-        "usage": "Use a link to go somewhere: another page, a place on the page, a file or another site. Use standalone on its own line and inline in body copy. For an action in place, such as submit, open a dialog or toggle, use a button.",
+        "usage": "Use a link to go somewhere: another page, a place on the page, a file or another site. Use standalone on its own line and inline in body copy. For an action in place, such as submit, open a dialog or toggle, use a button. A link inside small print is a text range with that text's own link style.",
         "do": [
           "Write link text that names the destination",
           "State the format and size of a file link",

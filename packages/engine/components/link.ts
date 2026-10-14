@@ -10,10 +10,17 @@
  *     the existing `-link` text styles: Figma cannot place an instance inside a run of text.
  *   - Q289.2 A — `standalone` sets the plain label at rest and its underlined twin at hover, pressed and
  *     focus-visible; `inline` is underlined at every state. No `quiet` for now.
- *   - Q289.3 B — two weights, emphasis first and the default: `emphasis` binds `type.label.<rung>.emphasis[-link]`,
- *     `default` binds `type.label.<rung>.default[-link]`. Both are the label tier, one line tall (`snug`); the body
- *     tier has no emphasis-link role, and minting one would be a new token.
+ *   - Q289.3 B, worded by Q297.3 — two weights, `emphasis` (the starting value) and `default` (lighter).
+ *   - Q297.1 (revising Q289.3's label tier) — the BODY tier, 14 / 16 / 18px, for both styles, so a Link matches the
+ *     body text and the text-range link (`type.body.*.default-link`) in the same paragraph. No 12px link. `default`
+ *     binds `type.body.<rung>.default[-link]`; `emphasis` binds the heaviest body weight the brand ships, through
+ *     `weightIntent` (#1602): `strong[-link]` in a default brand, `emphasis[-link]` in one whose body weights are
+ *     `[default, emphasis]`. The body tier has no `emphasis` role in a default brand, so a fixed binding would name a
+ *     style some brand does not emit (the #1601 miss).
  *   - Q289.4 A — one text line tall in Figma; code expands the hit area to at least 24px.
+ *   - Q297.2 — icons are trailing only and standalone only (Carbon's model): no leading icon, and the trailing slot is
+ *     absent from every inline member (`presentWhen`). 16px with the 14px and 16px text, 20px with the 18px text, so
+ *     the icon fits inside the body line (21 / 24 / 27px at the 1.5 line height).
  *   - Q289.5 A — visited and current are code only (`STATES` has neither).
  *   - Q289.6 A — Button takes `href` and renders `<a>`; no LinkButton def.
  *
@@ -31,6 +38,8 @@ import { ComponentDef } from '../component-schema';
 const SIZES = ['small', 'medium', 'large'] as const;
 const RUNG: Record<(typeof SIZES)[number], string> = { small: 'sm', medium: 'md', large: 'lg' };
 const WEIGHTS = ['emphasis', 'default'] as const;
+/** The default-brand body role per weight; `weightIntent` repoints `emphasis` per brand. */
+const ROLE: Record<(typeof WEIGHTS)[number], string> = { emphasis: 'strong', default: 'default' };
 const STYLES = ['standalone', 'inline'] as const;
 const STATES = ['rest', 'hover', 'pressed', 'focus-visible'] as const;
 
@@ -38,7 +47,7 @@ const STATES = ['rest', 'hover', 'pressed', 'focus-visible'] as const;
 const typeKeys: Record<string, string> = Object.fromEntries(
   SIZES.flatMap((size) => WEIGHTS.flatMap((weight) => STYLES.flatMap((style) => STATES.map((state) => {
     const underlined = style === 'inline' || state !== 'rest';
-    return [`size.${size}.type.${weight}.${style}.${state}`, `type.label.${RUNG[size]}.${weight}${underlined ? '-link' : ''}`];
+    return [`size.${size}.type.${weight}.${style}.${state}`, `type.body.${RUNG[size]}.${ROLE[weight]}${underlined ? '-link' : ''}`];
   })))),
 );
 
@@ -50,18 +59,17 @@ export const link: ComponentDef = {
   status: 'draft',
   summary: 'Text that goes to another page, a place on the page or a file. Underlined in running text.',
   description:
-    'Text that goes to another page, a place on the page, a file or another site. A link is always a real anchor with an href; an action in place is a button, however light it looks. The standalone style sits on its own line, below a form, in a footer or beside a control, and shows its underline at hover, pressed and keyboard focus. The inline style is underlined at every state, for a link that sits in body copy, so it is never told apart by color alone. Both come in the emphasis weight, the default, and the default weight that matches body text. A link inside a paragraph is a text range with the link text style rather than this component.',
+    'Text that goes to another page, a place on the page, a file or another site. A link is always a real anchor with an href; an action in place is a button, however light it looks. The standalone style sits on its own line, below a form, in a footer or beside a control, and shows its underline at hover, pressed and keyboard focus. The inline style is underlined at every state, for a link that sits in body copy, so it is never told apart by color alone. Both come in two weights: emphasis, the starting value, and default, which is lighter. A link inside a paragraph is a text range with that text\'s own link style rather than this component.',
 
   props: [
     { name: 'label', type: 'string', required: true, description: 'The link text. It names the destination and makes sense read on its own, without the sentence around it.' },
     { name: 'href', type: 'string', required: true, description: 'The destination: a URL, a fragment such as "#main", or a file. With no href, render plain text rather than a link.' },
     { name: 'style', type: "enum: 'standalone' | 'inline'", values: ['standalone', 'inline'], default: 'standalone', required: false, description: 'Standalone shows its underline at hover, pressed and focus; inline is underlined at every state, for a link in body copy.' },
-    { name: 'weight', type: "enum: 'emphasis' | 'default'", values: ['emphasis', 'default'], default: 'emphasis', required: false, description: 'The label weight. Emphasis is the default; the default weight matches body text.' },
-    { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'The label type rung. The box is one text line tall at every size.' },
+    { name: 'weight', type: "enum: 'emphasis' | 'default'", values: ['emphasis', 'default'], default: 'emphasis', required: false, description: 'Emphasis is the starting value; choose Default for a lighter weight link.' },
+    { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'The body type size: 14, 16 or 18px. The box is one text line tall, or as tall as the icon where the icon is taller: 16px at small and medium, 20px at large.' },
     { name: 'surface', type: "enum: 'default' | 'inverse'", values: ['default', 'inverse'], default: 'default', required: false, description: 'The ground the link sits on: the page, or a dark or brand-filled band, which takes the inverse link colors.' },
     { name: 'isExternal', type: 'boolean', default: 'false', required: false, description: 'Opens in a new tab: adds the trailing external icon, visually hidden "(opens in new tab)" text and rel="noopener noreferrer". Keep it for narrow cases.' },
     { name: 'asChild', type: 'boolean', default: 'false', required: false, description: 'Merges the link\'s styling and accessibility onto a router\'s link child, so one anchor renders and the component depends on no router.' },
-    { name: 'leadingIcon', type: 'slot', required: false, description: 'An icon before the label. Not for inline links. Decorative: the label names the link.' },
     { name: 'trailingIcon', type: 'slot', required: false, description: 'An icon after the label, such as an arrow or the external icon. Not for inline links.' },
   ],
 
@@ -73,6 +81,8 @@ export const link: ComponentDef = {
     surface: ['default', 'inverse'],
   },
   axisKinds: { style: 'authoring', weight: 'authoring', size: 'authoring', surface: 'authoring' },
+  // Emphasis resolves to the heaviest body weight the brand ships, default to its reading weight (Q297.1, #1602).
+  weightIntent: { axis: 'weight', group: 'body', intents: { emphasis: 'bold', default: 'regular' } },
 
   paintKeys: ['{slot}.{state}', '{slot}'],
   densitySpacing: ['size.{size}.gap'],
@@ -82,11 +92,11 @@ export const link: ComponentDef = {
     'ring-offset': 'focus.ring.offset',
 
     'size.small.gap': 'space.050',
-    'size.small.icon': 'icon.size.sm',
+    'size.small.icon': 'icon.size.xs',
     'size.medium.gap': 'space.050',
-    'size.medium.icon': 'icon.size.md',
+    'size.medium.icon': 'icon.size.xs',
     'size.large.gap': 'space.100',
-    'size.large.icon': 'icon.size.lg',
+    'size.large.icon': 'icon.size.sm',
     ...typeKeys,
 
     // The link ink, stepped by state. `focus-visible` takes the `focused` rung.
@@ -106,17 +116,10 @@ export const link: ComponentDef = {
       container: {
         kind: 'box',
         role: 'target',
-        children: ['leadingVisual', 'label', 'trailingVisual', 'focusRing'],
+        children: ['label', 'trailingVisual', 'focusRing'],
         layout: { direction: 'row', align: 'center', justify: 'start', sizing: { x: 'hug', y: 'hug' } },
         gap: 'size.{size}.gap',
-        note: 'The link: a row that hugs its label, one text line tall, with no padding and no fill.',
-      },
-      leadingVisual: {
-        kind: 'slot',
-        optional: true,
-        size: 'size.{size}.icon',
-        nesting: { kind: 'swap' },
-        note: 'An optional icon before the label, in the link color. Standalone links only; an inline link carries none.',
+        note: 'The link: a row that hugs its label and any icon, with no padding and no fill.',
       },
       label: {
         kind: 'text',
@@ -126,9 +129,10 @@ export const link: ComponentDef = {
       trailingVisual: {
         kind: 'slot',
         optional: true,
+        presentWhen: { style: ['standalone'] },
         size: 'size.{size}.icon',
         nesting: { kind: 'swap' },
-        note: 'An optional icon after the label, such as an arrow or the external icon for a link that opens a new tab.',
+        note: 'An optional icon after the label, in the link color, such as an arrow or the external icon for a link that opens a new tab. Standalone links only; an inline link carries none.',
       },
       focusRing: {
         kind: 'absolute',
@@ -152,7 +156,7 @@ export const link: ComponentDef = {
       'The skip link — "Skip to main content", the first focusable element, href="#main", visually hidden by clipping until it has focus. A pattern built from Link, not a separate component.',
       'The color transition — about 150ms on color and the underline at hover and focus; under prefers-reduced-motion it snaps.',
       'RTL — logical properties move the trailing icon to the leading edge, and directional glyphs (the arrow, the external icon) mirror.',
-      'text expansion — links wrap across lines and keep the underline, and an icon stays inline with its first or last word rather than centered on the wrapped block (Figma shows one line, so it centers there); never white-space: nowrap on a link.',
+      'text expansion — links wrap across lines and keep the underline, and the trailing icon stays inline with the last word rather than centered on the wrapped block (Figma shows one line, so it centers there); never white-space: nowrap on a link.',
     ],
   },
 
@@ -162,11 +166,9 @@ export const link: ComponentDef = {
     gridAxis: 'state',
     texts: { label: { part: 'label', default: 'Link text' } },
     booleans: {
-      leadingIcon: { part: 'leadingVisual', figmaName: 'leading icon', default: false },
       trailingIcon: { part: 'trailingVisual', figmaName: 'trailing icon', default: false },
     },
     swaps: {
-      leadingIcon: { part: 'leadingVisual', figmaName: '↳ swap leading icon' },
       trailingIcon: { part: 'trailingVisual', figmaName: '↳ swap trailing icon' },
     },
   },
@@ -194,7 +196,7 @@ export const link: ComponentDef = {
   },
 
   docs: {
-    usage: 'Use a link to go somewhere: another page, a place on the page, a file or another site. Use standalone on its own line and inline in body copy. For an action in place, such as submit, open a dialog or toggle, use a button.',
+    usage: 'Use a link to go somewhere: another page, a place on the page, a file or another site. Use standalone on its own line and inline in body copy. For an action in place, such as submit, open a dialog or toggle, use a button. A link inside small print is a text range with that text\'s own link style.',
     do: [
       'Write link text that names the destination',
       'State the format and size of a file link',
@@ -235,7 +237,6 @@ export const link: ComponentDef = {
 
   notes: {
     contested: [
-      'The brief says inline links carry no icons. The leading and trailing icon toggles exist on both styles in Figma (presence is a node-visibility boolean, not gated by style); the docs say not to add one to an inline link. Gating them to standalone is held for the owner, not invented here.',
       'The brief lists a quiet style (no underline, muted) and an inverse static-color style. Q289.2 A: no quiet for now; inverse is the `surface` axis, which takes the theme\'s inverse link roles rather than forced white or black.',
       'The brief lists a link-button alias. Q289.6 A: Button takes href and renders <a>, so link-button is not an alias of this component.',
     ],
@@ -244,6 +245,7 @@ export const link: ComponentDef = {
     ],
     evolution: [
       '2026-10-14 (#2580, owner decisions Q289): a standalone Link plus an inline look (1 A); style standalone | inline, standalone underlined at hover, pressed and focus, inline always (2 A); two weights, emphasis first and the default (3 B); one line tall with a code-side 24px hit area (4 A); visited and current code only (5 A); Button takes href, no LinkButton (6 A); Link / link, navigation, aliases text-link, anchor, hyperlink (7 A); the wording "Link text", "(opens in new tab)" and the summary (8 A).',
+      '2026-10-14 (#2580, owner decisions Q297): the body type tier for both styles, 14 / 16 / 18px, with no 12px link (1); a trailing icon only, on standalone links only, 16px with 14px and 16px text and 20px with 18px text (2); the weight wording, with the values kept as emphasis | default (3).',
     ],
   },
 };

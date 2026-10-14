@@ -1535,8 +1535,12 @@ export type ComponentDef = {
    *  `type.body.*.strong` for `bold`); the materializer repoints that role per brand and DROPS the axis
    *  when every intent coincides (a single-weight brand). Present only on a def whose weight varies —
    *  `field-label` is the first. `group` is a `TypeGroup`; `axis` must be a declared `variants` axis
-   *  whose values are the intents. Validated in `validateComponentDef`. */
-  weightIntent?: { axis: VariantAxis; group: TypeGroup };
+   *  whose values are the intents. Validated in `validateComponentDef`.
+   *
+   *  `intents` (#2580) maps axis values to intents for a def whose axis keeps its own value names: Link's
+   *  `weight` is `emphasis | default` (owner Q297.3) and binds the body tier (Q297.1), so `emphasis` reads as
+   *  `bold` and `default` as `regular`. Without it, the axis values must themselves be intents. */
+  weightIntent?: { axis: VariantAxis; group: TypeGroup; intents?: Record<string, WeightIntent> };
 
   /** THE SPACING THAT FOLLOWS DENSITY (the spacing model, 2026-09-29: "size is for size, space is for
    *  space"). The `tokens` keys whose `space.*` step is this def's COMFORTABLE padding or gap. Before
@@ -1866,9 +1870,15 @@ export const validateComponentDef = (
     if (!axisValues || !axisValues.length) {
       errors.push(`weightIntent.axis '${axis}' is not a declared \`variants\` axis — the intents to resolve are that axis's values`);
     } else {
-      for (const v of axisValues)
-        if (!(WEIGHT_INTENTS as readonly string[]).includes(v))
-          errors.push(`weightIntent: axis '${axis}' value '${v}' is not a weight intent [${WEIGHT_INTENTS.join(', ')}] — a value the projector has no resolution rule for would resolve to a bogus text style`);
+      const intents = def.weightIntent.intents;
+      for (const v of axisValues) {
+        const intent = intents ? intents[v] : v;
+        if (!(WEIGHT_INTENTS as readonly string[]).includes(intent as string))
+          errors.push(`weightIntent: axis '${axis}' value '${v}' ${intents ? `maps to '${intent}', which` : ''} is not a weight intent [${WEIGHT_INTENTS.join(', ')}] — a value the projector has no resolution rule for would resolve to a bogus text style`);
+      }
+      for (const k of Object.keys(intents ?? {}))
+        if (!axisValues.includes(k))
+          errors.push(`weightIntent.intents names '${k}', which is not a value of axis '${axis}' [${axisValues.join(', ')}]`);
       // Every type token entry keyed under an intent value must name the declared category, and there
       // must be at least one — a weightIntent that binds nothing under its axis is inert.
       const typeUnderAxis = Object.entries(def.tokens ?? {}).filter(

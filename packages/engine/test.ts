@@ -17122,12 +17122,17 @@ arm: {
   // label text style in the real projection (`figmaAnatomySet`). Mutations, each failing the arm named:
   //   standalone underlined at rest  → `#2580 link/standalone`;   inline not underlined at some state → `#2580 link/inline`;
   //   emphasis bound to the default weight, or default first  → `#2580 link/weight`;   a third style value → `#2580 link/style`;
-  //   `{state}` allowed in a geometry key → `#2580 link/state-type-only`.
+  //   `{state}` allowed in a geometry key → `#2580 link/state-type-only`;
+  //   a 12px size (small bound to `type.body.xs`, or back to the label tier) → `#2580 link/body-tier` (Q297.1);
+  //   an icon on an inline link, or a leading icon → `#2580 link/icons` (Q297.2);
+  //   the `-link` suffix dropped when `weightIntent` repoints, or emphasis bound to a role nb-redesign lacks → `#2580 link/weight-intent`.
   {
     const linkDef = componentDefs.find((d) => d.id === 'link');
     ok(!!linkDef, '#2580 link: the Link component is registered');
     if (linkDef) {
       const RUNG: Record<string, string> = { small: 'sm', medium: 'md', large: 'lg' };
+      // Q297.1: the body tier, the default brand's role per weight (emphasis → the heaviest body weight, `strong`).
+      const ROLE: Record<string, string> = { emphasis: 'strong', default: 'default' };
       const UNDERLINED_STANDALONE = new Set(['hover', 'pressed', 'focus-visible']);
       type LN = { name: string; textStyle?: string; children: LN[] };
       const labelStyle = (n: LN): string | undefined => (n.name === 'label' ? n.textStyle : n.children.map(labelStyle).find(Boolean));
@@ -17135,7 +17140,7 @@ arm: {
       const rows = plans.map((p) => ({ c: p.coord as Record<string, string>, size: String(p.size), style: labelStyle(p.root as unknown as LN) }));
       ok(plans.length === 96, `#2580 link/members: style 2 × weight 2 × size 3 × surface 2 × 4 states = 96 members (got ${plans.length})`);
       const want = (r: { c: Record<string, string>; size: string }, underlined: boolean) =>
-        figmaTextStyleName(`type.label.${RUNG[r.size]}.${r.c.weight}${underlined ? '-link' : ''}`);
+        figmaTextStyleName(`type.body.${RUNG[r.size]}.${ROLE[r.c.weight]}${underlined ? '-link' : ''}`);
       const standalone = rows.filter((r) => r.c.style === 'standalone');
       const sOff = standalone.filter((r) => r.style !== want(r, UNDERLINED_STANDALONE.has(r.c.state)));
       ok(standalone.length === 48 && sOff.length === 0,
@@ -17147,8 +17152,53 @@ arm: {
       const restMd = (weight: string) => rows.find((r) => r.c.style === 'standalone' && r.c.weight === weight && r.c.surface === 'default' && r.size === 'medium' && r.c.state === 'rest')?.style;
       const weightProp = linkDef.props.find((p) => p.name === 'weight');
       ok(JSON.stringify(linkDef.variants.weight) === JSON.stringify(['emphasis', 'default'])
-        && restMd('emphasis') === 'label/md/emphasis' && restMd('default') === 'label/md/default' && weightProp?.default === 'emphasis',
-        `#2580 link/weight (Q289.3 B): two weights, emphasis first and the default, binding the emphasis role, and the default weight binding the default role (axis ${JSON.stringify(linkDef.variants.weight)}, prop default ${weightProp?.default}, medium rest ${restMd('emphasis')} / ${restMd('default')})`);
+        && restMd('emphasis') === 'body/md/strong' && restMd('default') === 'body/md/default' && weightProp?.default === 'emphasis'
+        && weightProp?.description === 'Emphasis is the starting value; choose Default for a lighter weight link.',
+        `#2580 link/weight (Q289.3 B, Q297.3): two weights, emphasis first and the default, emphasis binding the heavier body role and default the reading weight, with the owner's prop wording (axis ${JSON.stringify(linkDef.variants.weight)}, prop default ${weightProp?.default}, medium rest ${restMd('emphasis')} / ${restMd('default')})`);
+      // Q297.1 — the body tier at 14 / 16 / 18px for both styles, and no 12px link. The font sizes are read off the
+      // committed default-brand emission and compared to literals, so a rung moved to `type.body.xs` (12px) or back to the
+      // label tier (12 / 14 / 18px) fails here by name.
+      const emitted = JSON.parse(readFileSync(resolve(HERE, './out/prism3.tokens.json'), 'utf8'));
+      const eRoot = emitted[Object.keys(emitted).find((k) => !k.startsWith('$'))!];
+      const pxOf = (styleName: string): number | undefined => {
+        let v: unknown = styleName.split('/').reduce((n: any, k) => n?.[k], eRoot.type)?.$value?.fontSize;
+        while (typeof v === 'string' && v.startsWith('{')) v = v.slice(1, -1).split('.').reduce((n: any, k) => n?.[k], emitted)?.$value;
+        return typeof v === 'string' && v.endsWith('rem') ? parseFloat(v) * 16 : typeof v === 'string' ? parseFloat(v) : undefined;
+      };
+      const PX: Record<string, number> = { small: 14, medium: 16, large: 18 };
+      const tierOff = rows.filter((r) => !r.style?.startsWith('body/') || pxOf(r.style) !== PX[r.size]);
+      ok(rows.length === 96 && tierOff.length === 0,
+        `#2580 link/body-tier (Q297.1): every member, standalone and inline, sets body type at 14 / 16 / 18px, with no 12px link${tierOff.length ? `; OFF: ${tierOff.slice(0, 4).map((r) => `${JSON.stringify(r.c)} ${r.size} → ${r.style} (${pxOf(r.style ?? '')}px)`).join('; ')}` : ''}`);
+
+      // Q297.2 — a trailing icon only, on standalone members only, 16px with 14px and 16px text and 20px with 18px text.
+      type IN = { name: string; bound?: Record<string, string>; children?: IN[] };
+      const nodes = (n: IN): IN[] => [n, ...(n.children ?? []).flatMap(nodes)];
+      const ICON: Record<string, string> = { small: 'icon/size/xs', medium: 'icon/size/xs', large: 'icon/size/sm' };
+      const emittedIconPx = ['xs', 'sm'].map((k) => eRoot.icon.size[k].$value).map((v: string) => v.slice(1, -1).split('.').reduce((n: any, k) => n?.[k], emitted)?.$value);
+      const iconOff = plans.flatMap((p) => {
+        const c = p.coord as Record<string, string>;
+        const all = nodes(p.root as unknown as IN);
+        const trailing = all.filter((n) => n.name === 'trailingVisual');
+        const out: string[] = [];
+        if (all.some((n) => n.name === 'leadingVisual')) out.push(`${JSON.stringify(c)} ${p.size}: a leading icon`);
+        if (c.style === 'inline' && trailing.length) out.push(`${JSON.stringify(c)} ${p.size}: an inline link with an icon`);
+        if (c.style === 'standalone' && (trailing.length !== 1 || trailing[0].bound?.width !== ICON[String(p.size)] || trailing[0].bound?.height !== ICON[String(p.size)]))
+          out.push(`${JSON.stringify(c)} ${p.size}: trailing icon ${JSON.stringify(trailing.map((t) => t.bound))}`);
+        return out;
+      });
+      const figBools = Object.keys(linkDef.figmaProperties?.booleans ?? {});
+      ok(iconOff.length === 0 && JSON.stringify(figBools) === JSON.stringify(['trailingIcon']) && !linkDef.props.some((p) => p.name === 'leadingIcon')
+        && JSON.stringify(emittedIconPx) === JSON.stringify(['16px', '20px']),
+        `#2580 link/icons (Q297.2): trailing only, standalone only, 16px at small and medium and 20px at large (booleans ${JSON.stringify(figBools)}, icon xs/sm ${JSON.stringify(emittedIconPx)}${iconOff.length ? `; OFF: ${iconOff.slice(0, 4).join('; ')}` : ''})`);
+
+      // Q297.1 through `weightIntent` — a brand whose body weights are [default, emphasis] (nb-redesign's shape) binds
+      // its own emphasis role and keeps the underlined twin, rather than the `strong` it does not emit.
+      const nbShape = figmaAnatomySet(applyWeightIntent(linkDef, { ...DEFAULT_WEIGHT_AVAILABILITY, body: ['default', 'emphasis'] }), { swapTarget: 'FPO-default-icon' });
+      const nbAt = (state: string) => nbShape.map((p) => ({ c: p.coord as Record<string, string>, size: String(p.size), style: labelStyle(p.root as unknown as LN) }))
+        .find((r) => r.c.style === 'standalone' && r.c.weight === 'emphasis' && r.c.surface === 'default' && r.size === 'medium' && r.c.state === state)?.style;
+      ok(nbShape.length === 96 && nbAt('rest') === 'body/md/emphasis' && nbAt('hover') === 'body/md/emphasis-link',
+        `#2580 link/weight-intent (Q297.1, #1602): in a [default, emphasis] body brand, emphasis binds body/md/emphasis at rest and body/md/emphasis-link at hover (got ${nbShape.length} members, ${nbAt('rest')} / ${nbAt('hover')})`);
+
       ok(JSON.stringify(linkDef.variants.style) === JSON.stringify(['standalone', 'inline'])
         && JSON.stringify([...new Set(plans.map((p) => (p.coord as Record<string, string>).style))]) === JSON.stringify(['standalone', 'inline']),
         `#2580 link/style (Q289.2 A): style is exactly standalone | inline, standalone first, and the projection carries no other (axis ${JSON.stringify(linkDef.variants.style)})`);
@@ -26057,7 +26107,8 @@ arm: {
   // supplies that key as the projected STATE, spelled here as a literal so the oracle is not the schema's
   // own constant.
   // `tag` joins (2026-09-27): its check mark is gated on `selection: ['selected']`, the checkbox mark's shape.
-  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'radio-control', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion', 'list-item'];
+  // `link` joins (#2580, owner Q297.2): its trailing icon is gated on `style: ['standalone']`, so an inline link carries none.
+  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'radio-control', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion', 'list-item', 'link'];
   ok(GATED_EXPECTED.every((n) => gatedDefs.some((d) => d.id === n)) && gatedDefs.length === GATED_EXPECTED.length,
     `#910 the presentWhen projection rule below covers exactly [${GATED_EXPECTED.join(', ')}] — a def gaining a variant-gated part must be represented here, and a def losing one is a stale claim (found: ${gatedDefs.map((d) => d.id).join(', ') || 'none'})`);
   for (const def of gatedDefs) {
@@ -27524,11 +27575,11 @@ arm: {
     // construction), so centring inside it lands the marker on the first line of a wrapping item, never mid-paragraph.
     'list-item.markerBox':
       "the marker column is one body line tall and its row is top-aligned, so centring the marker inside it puts the marker on the item's first line however far the text wraps; the bullet and the number are gated on type and never present together.",
-    // `link` (#2580): the row pairs the optional icons with the label. In Figma a link is one text line tall (owner
-    // Q289.4 A) and its label is one line of placeholder text, so the icons center against the only line. In code a
+    // `link` (#2580): the row pairs the optional trailing icon with the label (Q297.2). In Figma a link is one text line
+    // tall (owner Q289.4 A) and its label is one line of placeholder text, so the icon centers against the only line. In code a
     // link wraps, and the icon is inline with its word rather than centered on the block (link.ts codeOnly).
     'link.container':
-      "a link is one text line tall in Figma and its label is one line there, so the icons center against the only line; in code the icon sits inline with its first or last word, never centered on a wrapped block (link.ts codeOnly).",
+      "a link is one text line tall in Figma and its label is one line there, so the trailing icon centers against the only line; in code the icon sits inline with the last word, never centered on a wrapped block (link.ts codeOnly).",
     'tag.labelCheck':
       "the tag's height is fixed at one line in Figma and its label is one line there, so the check mark (and, one row out, the leading icon) center against the only line; in code a wrapped label centers them on the label block, which is held for the owner (tag.ts notes.contested).",
   };

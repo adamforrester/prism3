@@ -2459,7 +2459,8 @@ export const applyWeightIntent = (def: ComponentDef, avail: WeightAvailability):
   const axisValues = def.variants?.[wi.axis] ?? [];
   if (!axisValues.length)
     throw new Error(`${def.id}: weightIntent.axis '${wi.axis}' names no values in \`variants\` — the intents to resolve are the axis values`);
-  const roleFor = new Map(axisValues.map((v) => [v, resolveWeightIntent(v, groupAvail)] as const));
+  // `intents` (#2580) names the intent for an axis that keeps its own value names (Link: emphasis → bold).
+  const roleFor = new Map(axisValues.map((v) => [v, resolveWeightIntent(wi.intents ? wi.intents[v] : v, groupAvail)] as const));
 
   // A type token entry keyed under this axis: its ref is a `type.<group>.<variant>.<role>` and the key
   // carries one of the axis values. The repoint replaces the ref's role tail with the brand's role.
@@ -2470,7 +2471,9 @@ export const applyWeightIntent = (def: ComponentDef, avail: WeightAvailability):
     const segs = ref.split('.');
     if (segs[1] !== wi.group)
       throw new Error(`${def.id}: weight-intent type ref '${ref}' is in category '${segs[1]}' but weightIntent.group is '${wi.group}' — one weight axis cannot span two categories' availabilities`);
-    segs[segs.length - 1] = roleFor.get(intent)!;
+    // The underlined twin keeps its `-link` suffix (#2580): `strong-link` → `emphasis-link`, not `emphasis`.
+    const link = segs[segs.length - 1].endsWith('-link') ? '-link' : '';
+    segs[segs.length - 1] = roleFor.get(intent)! + link;
     return segs.join('.');
   };
 

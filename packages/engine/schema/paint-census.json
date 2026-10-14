@@ -400,13 +400,13 @@
     "link": {
       "set": {
         "members": 96,
-        "assignments": 288,
-        "sha256": "b530beed5c077ffac924ab862fc695ac1c6f1e45476a0a73d2f576044c07fa35"
+        "assignments": 144,
+        "sha256": "f787471a3c22c5a3d7c498c6ad42a0c2f9673a7f3ed3c68a48405f3fbddf9d3c"
       },
       "grid": {
         "members": 96,
-        "assignments": 288,
-        "sha256": "c9c3e5ac1b88a0e28d87ac8a8879dd8c2fdffae53b9ebeb801765072fe81d487"
+        "assignments": 144,
+        "sha256": "5480f441576c069f711473c032feaabf90c037ec47bcd140f87fb8e5145b2fb6"
       }
     }
   }

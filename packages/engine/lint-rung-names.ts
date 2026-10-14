@@ -244,9 +244,23 @@ const HOST_DEFAULT_DEFS: Record<string, string> = {
   'field-label': 'a nested field part whose default is the small label (#1699 decision 4), and the small label is 12px since the field sizing system put each label one body step below its field\'s input (#2266) — every host now passes its own size through',
 };
 
+/**
+ * THE OWNER-SANCTIONED TWO-RUNG ICON OFFSET (#2580, owner decision Q297.2, 2026-10-14). Link's trailing icon sits
+ * just above its text size, Carbon-style: 16px with the 14px and 16px text and 20px with the 18px text, so its medium
+ * default is `xs`, two rungs below `md`. Only the named family moves: Link's body type families still default to `md`.
+ * Same guarantees as ICON_OFFSET_DEFS: the expectation is the RULE (`md` minus two), so a revert to `md` and a slip
+ * to `sm` both fail BY NAME, and the admission is checked both directions below.
+ */
+const ICON_OFFSET_TWO_DEFS: Record<string, string> = {
+  link: 'icon.size.*',
+};
+
 /** The default rung EXPECTED for one (def, tier family): the sanctioned offset where listed, else `md`. */
 const expectedDefaultRung = (defId: string, family: string): string =>
-  defId in HOST_DEFAULT_DEFS ? LABEL_DEFAULT_RUNG : ICON_OFFSET_DEFS[defId] === family ? OFFSET_DEFAULT_RUNG : DEFAULT_RUNG;
+  defId in HOST_DEFAULT_DEFS ? LABEL_DEFAULT_RUNG
+    : ICON_OFFSET_DEFS[defId] === family ? OFFSET_DEFAULT_RUNG
+    : ICON_OFFSET_TWO_DEFS[defId] === family ? LABEL_DEFAULT_RUNG
+    : DEFAULT_RUNG;
 
 /**
  * DEFS WITH NO SIZE AXIS, admitted by name with the reason. Checked in BOTH directions: a def here
@@ -590,7 +604,10 @@ for (const def of componentDefs) {
       if (!wrong.length) continue;
       const sanctioned = ICON_OFFSET_DEFS[def.id] === family;
       const hostAligned = def.id in HOST_DEFAULT_DEFS;
-      failures.push(hostAligned
+      const sanctionedTwo = ICON_OFFSET_TWO_DEFS[def.id] === family;
+      failures.push(sanctionedTwo
+        ? `${def.id}: size defaults to '${dflt}', whose OWNER-SANCTIONED icon family '${family}' reaches tier rung(s) ${wrong.map((r) => `'${r}'`).join(', ')} — Q297.2 sets the icon at '${want}', exactly two rungs below '${DEFAULT_RUNG}' (16px with 16px text). A revert to '${DEFAULT_RUNG}' or any other rung breaks it.`
+        : hostAligned
         ? `${def.id}: size defaults to '${dflt}', whose family '${family}' reaches tier rung(s) ${wrong.map((r) => `'${r}'`).join(', ')} — the #1699/#2266 default is '${want}', two rungs below '${DEFAULT_RUNG}' (${HOST_DEFAULT_DEFS[def.id]}). A revert to the old 14/16/18 ladder lands on '${OFFSET_DEFAULT_RUNG}' and breaks the one-step pairing with every field's input.`
         : sanctioned
         ? `${def.id}: size defaults to '${dflt}', whose OWNER-SANCTIONED icon family '${family}' reaches tier rung(s) ${wrong.map((r) => `'${r}'`).join(', ')} — the #1350 offset is that the button family's icon resolves to '${want}', exactly one rung below '${DEFAULT_RUNG}'. A revert to '${DEFAULT_RUNG}' or any other rung breaks the offset invariant: it resolves and typechecks, so only this gate sees it.`
@@ -634,6 +651,18 @@ for (const [id, family] of Object.entries(ICON_OFFSET_DEFS)) {
   const seen = defaultFamiliesByDef.get(id);
   if (!seen || !seen.has(family))
     failures.push(`STALE ADMISSION: ICON_OFFSET_DEFS sanctions '${id}' offsetting family '${family}' at its default, but that family is not bound at the default size '${enumOf(def).default}'. The #1350 offset has nothing to apply to — remove the admission or restore the binding.`);
+}
+
+// The Q297.2 two-rung admission, both directions (docs/34).
+for (const [id, family] of Object.entries(ICON_OFFSET_TWO_DEFS)) {
+  const def = componentDefs.find((d) => d.id === id);
+  if (!def) {
+    failures.push(`STALE ADMISSION: ICON_OFFSET_TWO_DEFS names '${id}', which is not a def any more. Remove it.`);
+    continue;
+  }
+  const seen = defaultFamiliesByDef.get(id);
+  if (!seen || !seen.has(family))
+    failures.push(`STALE ADMISSION: ICON_OFFSET_TWO_DEFS sanctions '${id}' offsetting family '${family}' at its default, but that family is not bound at the default size '${enumOf(def).default}'. Remove the admission or restore the binding.`);
 }
 
 // The #1699 host-aligned admission, both directions (docs/34): a listed def must exist and must bind at

@@ -1044,11 +1044,10 @@
         "The skip link — \"Skip to main content\", the first focusable element, href=\"#main\", visually hidden by clipping until it has focus. A pattern built from Link, not a separate component.",
         "The color transition — about 150ms on color and the underline at hover and focus; under prefers-reduced-motion it snaps.",
         "RTL — logical properties move the trailing icon to the leading edge, and directional glyphs (the arrow, the external icon) mirror.",
-        "text expansion — links wrap across lines and keep the underline, and an icon stays inline with its first or last word rather than centered on the wrapped block (Figma shows one line, so it centers there); never white-space: nowrap on a link."
+        "text expansion — links wrap across lines and keep the underline, and the trailing icon stays inline with the last word rather than centered on the wrapped block (Figma shows one line, so it centers there); never white-space: nowrap on a link."
       ],
       "notes": {
         "contested": [
-          "The brief says inline links carry no icons. The leading and trailing icon toggles exist on both styles in Figma (presence is a node-visibility boolean, not gated by style); the docs say not to add one to an inline link. Gating them to standalone is held for the owner, not invented here.",
           "The brief lists a quiet style (no underline, muted) and an inverse static-color style. Q289.2 A: no quiet for now; inverse is the `surface` axis, which takes the theme's inverse link roles rather than forced white or black.",
           "The brief lists a link-button alias. Q289.6 A: Button takes href and renders <a>, so link-button is not an alias of this component."
         ],
@@ -1056,7 +1055,8 @@
           "The contrast floors (4.94:1 lowest at rest on background.primary, 4.56:1 on background.secondary) were measured for the proposal from the committed emission; no gate holds Link's ink to them beyond the shared link roles' own contracts."
         ],
         "evolution": [
-          "2026-10-14 (#2580, owner decisions Q289): a standalone Link plus an inline look (1 A); style standalone | inline, standalone underlined at hover, pressed and focus, inline always (2 A); two weights, emphasis first and the default (3 B); one line tall with a code-side 24px hit area (4 A); visited and current code only (5 A); Button takes href, no LinkButton (6 A); Link / link, navigation, aliases text-link, anchor, hyperlink (7 A); the wording \"Link text\", \"(opens in new tab)\" and the summary (8 A)."
+          "2026-10-14 (#2580, owner decisions Q289): a standalone Link plus an inline look (1 A); style standalone | inline, standalone underlined at hover, pressed and focus, inline always (2 A); two weights, emphasis first and the default (3 B); one line tall with a code-side 24px hit area (4 A); visited and current code only (5 A); Button takes href, no LinkButton (6 A); Link / link, navigation, aliases text-link, anchor, hyperlink (7 A); the wording \"Link text\", \"(opens in new tab)\" and the summary (8 A).",
+          "2026-10-14 (#2580, owner decisions Q297): the body type tier for both styles, 14 / 16 / 18px, with no 12px link (1); a trailing icon only, on standalone links only, 16px with 14px and 16px text and 20px with 18px text (2); the weight wording, with the values kept as emphasis | default (3)."
         ],
         "projection": []
       }

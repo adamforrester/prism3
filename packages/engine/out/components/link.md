@@ -2,7 +2,7 @@
 
 > Text that goes to another page, a place on the page or a file. Underlined in running text.
 
-Text that goes to another page, a place on the page, a file or another site. A link is always a real anchor with an href; an action in place is a button, however light it looks. The standalone style sits on its own line, below a form, in a footer or beside a control, and shows its underline at hover, pressed and keyboard focus. The inline style is underlined at every state, for a link that sits in body copy, so it is never told apart by color alone. Both come in the emphasis weight, the default, and the default weight that matches body text. A link inside a paragraph is a text range with the link text style rather than this component.
+Text that goes to another page, a place on the page, a file or another site. A link is always a real anchor with an href; an action in place is a button, however light it looks. The standalone style sits on its own line, below a form, in a footer or beside a control, and shows its underline at hover, pressed and keyboard focus. The inline style is underlined at every state, for a link that sits in body copy, so it is never told apart by color alone. Both come in two weights: emphasis, the starting value, and default, which is lighter. A link inside a paragraph is a text range with that text's own link style rather than this component.
 
 - **ID:** `link`
 - **Category:** navigation
@@ -11,7 +11,7 @@ Text that goes to another page, a place on the page, a file or another site. A l
 
 ## Usage
 
-Use a link to go somewhere: another page, a place on the page, a file or another site. Use standalone on its own line and inline in body copy. For an action in place, such as submit, open a dialog or toggle, use a button.
+Use a link to go somewhere: another page, a place on the page, a file or another site. Use standalone on its own line and inline in body copy. For an action in place, such as submit, open a dialog or toggle, use a button. A link inside small print is a text range with that text's own link style.
 
 ### Do
 
@@ -49,12 +49,11 @@ Descriptive text that stands alone, sentence case. Front-load the words that nam
 | `label` | string | — | yes | The link text. It names the destination and makes sense read on its own, without the sentence around it. |
 | `href` | string | — | yes | The destination: a URL, a fragment such as "#main", or a file. With no href, render plain text rather than a link. |
 | `style` | enum: 'standalone' \| 'inline' | `standalone` | no | Standalone shows its underline at hover, pressed and focus; inline is underlined at every state, for a link in body copy. |
-| `weight` | enum: 'emphasis' \| 'default' | `emphasis` | no | The label weight. Emphasis is the default; the default weight matches body text. |
-| `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | The label type rung. The box is one text line tall at every size. |
+| `weight` | enum: 'emphasis' \| 'default' | `emphasis` | no | Emphasis is the starting value; choose Default for a lighter weight link. |
+| `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | The body type size: 14, 16 or 18px. The box is one text line tall, or as tall as the icon where the icon is taller: 16px at small and medium, 20px at large. |
 | `surface` | enum: 'default' \| 'inverse' | `default` | no | The ground the link sits on: the page, or a dark or brand-filled band, which takes the inverse link colors. |
 | `isExternal` | boolean | `false` | no | Opens in a new tab: adds the trailing external icon, visually hidden "(opens in new tab)" text and rel="noopener noreferrer". Keep it for narrow cases. |
 | `asChild` | boolean | `false` | no | Merges the link's styling and accessibility onto a router's link child, so one anchor renders and the component depends on no router. |
-| `leadingIcon` | slot | — | no | An icon before the label. Not for inline links. Decorative: the label names the link. |
 | `trailingIcon` | slot | — | no | An icon after the label, such as an arrow or the external icon. Not for inline links. |
 
 ## States
