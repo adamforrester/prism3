@@ -314,8 +314,9 @@ console.log('3d. the #2597 file: update, file-setup and builds move only the com
 {
   type Reading = 'host' | 'splice';
   interface FixturePage extends PageLike { id: string; _kids: unknown[] }
-  const COMPONENT_PAGES = ['↳ Buttons', '↳ Checkbox', '↳ Icon button', '↳ Radio', '↳ Select', '↳ Switch', '↳ Textarea', '↳ Veil', '↳ Badge', '↳ Tag', '↳ Tabs', '↳ Divider', '↳ Text field', '↳ Accordion'];
-  const SUB_PAGES = ['↳ Field Message', '↳ Focus Ring', '↳ Image Placeholder', '↳ Spinner', '↳ Field Label'];
+  // The order the file held before its first Update, as restored from its saved version ("Live replay results" on #2597).
+  const COMPONENT_PAGES = ['↳ Buttons', '↳ Checkbox', '↳ Icon button', '↳ Radio', '↳ Select', '↳ Switch', '↳ Textarea', '↳ Text field', '↳ Tag', '↳ Tabs', '↳ Divider', '↳ Accordion', '↳ Badge', '↳ Veil'];
+  const SUB_PAGES = ['↳ Field Message', '↳ Field Label', '↳ Focus Ring', '↳ Image Placeholder', '↳ Spinner'];
   // [name, id]; a divider is `---`. The pages Prism3 builds hold their sets (`_kids`), so a page recreated in place
   // of one would show up empty.
   const ORIGINAL: [string, string][] = [
@@ -369,6 +370,16 @@ console.log('3d. the #2597 file: update, file-setup and builds move only the com
   const fixedOrder = (kids: readonly FixturePage[]): string[] => kids.filter((p) => !OWN_LEAVES.has(p.name)).map((p) => p.id);
   const spanOf = (label: string[], header: string): string[] => { const h = label.indexOf(header); const end = label.findIndex((n, i) => i > h && n.startsWith('---')); return label.slice(h + 1, end < 0 ? undefined : end); };
   const SEQUENCE = ['accordion', 'file-setup', 'button', 'button-destructive', 'icon-button', 'icon-button-destructive'];
+
+  // THE SHIM PIN: the host shim's reading, as a literal drawn from the live run ("Diagnosis confirmed live" on #2597:
+  // a forward move landed one slot early). [A,B,C] with `insertChild(2, A)` is [B,A,C] on the host; remove-then-splice
+  // would give [B,C,A]. Every host-reading arm below stands on this shim, so it is asserted, not assumed.
+  for (const [reading, want] of [['host', ['B', 'A', 'C']], ['splice', ['B', 'C', 'A']]] as const) {
+    const f = fixture([['A', 'a'], ['B', 'b'], ['C', 'c']], reading);
+    f.api.root.insertChild(2, f.children[0]);
+    ok(JSON.stringify(f.label()) === JSON.stringify(want),
+      `replay/shim pin, ${reading} reading: [A,B,C] with insertChild(2, A) gives ${JSON.stringify(want)} (${JSON.stringify(f.label())})`);
+  }
 
   for (const [world, pages] of [['file', ORIGINAL], ['reconstructed', RECONSTRUCTED]] as const) {
     for (const reading of ['host', 'splice'] as const) {
@@ -442,6 +453,18 @@ console.log('3d. the #2597 file: update, file-setup and builds move only the com
     const got = await resolveComponentPage(f.api, 'button', TAXONOMY);
     ok(got?.name === '↳ Buttons' && JSON.stringify(f.ids()) === JSON.stringify(before),
       `replay/existing page above its header, ${reading} reading: the build returns it where it is and moves nothing (${JSON.stringify(f.label().slice(4, 10))})`);
+  }
+
+  // A BUILD IN A SECTION THAT IS NOT ALPHABETICAL: the designer keeps `↳ Icons & assets` under Sandbox. The `icon` build
+  // finds it there and builds onto it; it is not pulled back under Foundations.
+  for (const reading of ['host', 'splice'] as const) {
+    const pages = ORIGINAL.filter(([n]) => n !== '↳ Icons & assets');
+    pages.push(['↳ Icons & assets', '1:718']);
+    const f = fixture(pages, reading);
+    const before = f.ids();
+    const got = await resolveComponentPage(f.api, 'icon', TAXONOMY);
+    ok(got?.name === '↳ Icons & assets' && JSON.stringify(f.ids()) === JSON.stringify(before),
+      `replay/existing page outside its non-alphabetical section, ${reading} reading: the build returns it where it is and moves nothing (${JSON.stringify(f.ids().filter((id, i) => before[i] !== id))})`);
   }
 }
 
