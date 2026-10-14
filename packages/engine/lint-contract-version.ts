@@ -34,10 +34,11 @@
  *
  * `GITHUB_BASE_REF` when set (authoritative, no fall through), else `origin/main`, else `main`; then the
  * merge base with HEAD (`lint-materialization-renames.ts` has the ladder and why each step fails rather
- * than falls back). On main's push run the merge base is HEAD itself, so there the first parent is the
- * base instead: compared with itself, a squash that lowered the number would pass (#2551, #2556). No base
- * ref, no merge base, or no first parent on the base branch is a failure, never a pass. Needs history:
- * `ci.yml`'s `fetch-depth: 0` provides it.
+ * than falls back). On main's push run the merge base is HEAD itself, so there `comparison-base.ts` takes
+ * the first parent instead: compared with itself, a squash that lowered the number would pass (#2551,
+ * #2556). `lint-push-base.ts` replays that run against this gate, so the step cannot be lost silently. No
+ * base ref, no merge base, or no first parent on the base branch is a failure, never a pass. Needs
+ * history: `ci.yml`'s `fetch-depth: 0` provides it.
  *
  * A branch that moved the surface is also held to the base branch's CURRENT number, not only the merge
  * base's: two PRs that each raise 14.7.0 to 15.0.0 make the identical edit, merge with no conflict, and
@@ -48,15 +49,13 @@
  * the edit, the same reading `token-contract.ts --check` takes.
  */
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { dirname, join, resolve } from 'node:path';
+import { readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { comparisonBase } from './comparison-base';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-/** Set only by the push-run replay below, for the run it makes of this file in a scratch repo. */
-const REPLAY_ENV = 'P3_LINT_CONTRACT_VERSION_REPLAY_REPO';
-const REPO = process.env[REPLAY_ENV] ? resolve(process.env[REPLAY_ENV]!) : resolve(HERE, '..', '..');
+const REPO = resolve(HERE, '..', '..');
 const BASELINE = 'packages/engine/schema/token-contract.json';
 const VERSION = 'packages/engine/version.ts';
 
@@ -126,55 +125,6 @@ if (SELF_CHECK.length !== SELF_CHECK_CASES) selfFails.push(`the self-check has $
 if (selfFails.length)
   die(['the self-check answered wrongly — the rule in this gate cannot be trusted on the real tree (#2334).', ...selfFails.map((f) => `    ✗ ${f}`)]);
 
-// ---- the push-run replay: the first-parent step, run for real ----------------------------------------------
-//
-// On main's push run the merge base is HEAD, and only the first-parent step below stops a squash being compared
-// with itself. Nothing on the real tree exercises that step on a pull request, so it would pass silently if it
-// were lost (#2334 review). The replay builds a scratch repo whose main has just taken a squash that LOWERS the
-// number, points `origin/main` at HEAD as a push run's checkout does, and runs this file there in a child. The
-// child must refuse with "is BELOW the base's" against the first parent. A control commit after it, which moves
-// nothing, must pass, so a refusal is the step working and not a broken scratch repo. Expected outcomes are
-// literals here. Mutation: `onBase` forced to false → `✗ push run, a squash lowers the number: expected a refusal`.
-const REPLAY_CASES = 2;
-let replayed = 0;
-if (!process.env[REPLAY_ENV]) {
-  const dir = mkdtempSync(join(tmpdir(), 'p3-contract-replay-'));
-  try {
-    const sg = (...args: string[]) => spawnSync('git', ['-C', dir, '-c', 'user.name=replay', '-c', 'user.email=replay@example.invalid',
-      '-c', 'commit.gpgsign=false', ...args], { encoding: 'utf8' });
-    const commit = (msg: string, version: string, guaranteed: Record<string, string>, extra?: string) => {
-      mkdirSync(join(dir, 'packages/engine/schema'), { recursive: true });
-      writeFileSync(join(dir, VERSION), `export const CONTRACT_VERSION = '${version}';\n`);
-      writeFileSync(join(dir, BASELINE), JSON.stringify({ contractVersion: version, guaranteed }, null, 2));
-      if (extra) writeFileSync(join(dir, 'README.md'), extra);
-      const a = sg('add', '-A'), c = sg('commit', '-q', '-m', msg), u = sg('update-ref', 'refs/remotes/origin/main', 'HEAD');
-      if (a.status || c.status || u.status) die(['the push-run replay could not build its scratch repo — this check CANNOT RUN.', `    ${(a.stderr || c.stderr || u.stderr).trim()}`]);
-    };
-    const env = { ...process.env, [REPLAY_ENV]: dir };
-    delete env.GITHUB_BASE_REF; delete env.GITHUB_ACTIONS;
-    const child = () => spawnSync(process.execPath, [...process.execArgv, fileURLToPath(import.meta.url)], { encoding: 'utf8', env });
-    const fails: string[] = [];
-    const expect = (label: string, refuse: boolean) => {
-      const r = child();
-      const out = `${r.stdout ?? ''}${r.stderr ?? ''}`;
-      const firstParent = out.includes('first parent — HEAD is on the base branch');
-      const good = refuse ? r.status === 1 && out.includes('is BELOW the base\'s') && firstParent : r.status === 0 && firstParent;
-      if (good) replayed++;
-      else fails.push(`${label}: expected ${refuse ? 'a refusal, "is BELOW the base\'s", against the first parent' : 'a pass against the first parent'}; exit ${r.status}, ${out.trim().split('\n').filter((l) => /❌|✓|base /.test(l)).slice(0, 3).join(' | ') || '(no output)'}`);
-    };
-    if (sg('init', '-q').status) die(['the push-run replay could not `git init` a scratch repo — this check CANNOT RUN.']);
-    commit('the base', '14.7.0', { a: 'color', b: 'color' });
-    commit('a squash that lowers the number', '14.6.0', { a: 'color', b: 'color' });
-    expect('push run, a squash lowers the number', true);
-    commit('a control that moves nothing', '14.6.0', { a: 'color', b: 'color' }, 'control\n');
-    expect('push run, a control that moves nothing', false);
-    if (replayed + fails.length !== REPLAY_CASES) fails.push(`the replay ran ${replayed + fails.length} case(s), not ${REPLAY_CASES}`);
-    if (fails.length) die(['the push-run replay answered wrongly — the first-parent base step cannot be trusted (#2334 review).', ...fails.map((f) => `    ✗ ${f}`)]);
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
-  }
-}
-
 // ---- the base --------------------------------------------------------------------------------------------
 
 const prBase = process.env.GITHUB_BASE_REF ? `origin/${process.env.GITHUB_BASE_REF}` : null;
@@ -205,18 +155,9 @@ if (!baseRef)
 const mb = git('merge-base', 'HEAD', baseRef!);
 if (!mb.ok || !mb.out.trim())
   die([`no merge base between HEAD and ${baseRef} — this check CANNOT RUN.`, `    ${mb.err || '(git printed nothing)'}`, '  A shallow clone is the usual cause: `git fetch --unshallow`.']);
-let base = mb.out.trim();
-let how = 'merge base';
-const onBase = git('rev-parse', 'HEAD').out.trim() === base;
-if (onBase) {
-  // Main's push run: the merge base is HEAD, and a comparison with it compares a squash with itself.
-  const parent = git('rev-parse', '--verify', '--quiet', 'HEAD^1^{commit}');
-  if (!parent.ok || !parent.out.trim())
-    die(['HEAD is on the base branch and has no first parent — this check CANNOT RUN.',
-      '  There the merge base is HEAD itself, so the parent is the only base that sees what this commit merged.']);
-  base = parent.out.trim();
-  how = 'first parent — HEAD is on the base branch';
-}
+// Main's push run: the merge base is HEAD, and a comparison with it compares a squash with itself, so the
+// shared step compares with the first parent there (#2556). `lint-push-base.ts` replays that run against this gate.
+const { base, onBase, label: how } = comparisonBase(git, mb.out.trim(), die);
 const where = `base ${base.slice(0, 8)} (${baseRef}, ${how})`;
 
 // ---- the two sides ---------------------------------------------------------------------------------------
@@ -251,7 +192,6 @@ const listing = (label: string, xs: string[]): string[] =>
   xs.length ? [`    ${label} (${xs.length}): ${xs.slice(0, PRINT).join(', ')}${xs.length > PRINT ? `, … and ${xs.length - PRINT} more` : ''}`] : [];
 
 console.log(`self-check (#2334): ${SELF_CHECK.length}/${SELF_CHECK_CASES} cases of the increment rule answered as expected`);
-if (!process.env[REPLAY_ENV]) console.log(`push-run replay (#2334 review): ${replayed}/${REPLAY_CASES} scratch-repo runs of this gate answered as expected`);
 console.log(`Contract version against the base (#2334) — ${where}`);
 console.log(`  CONTRACT_VERSION: ${wasVersion} at the base → ${nowVersion} in the tree`);
 console.log(`  guaranteed paths since the base: ${m.added.length} added, ${m.removed.length} removed, ${m.retyped.length} retyped — ${m.level === 'none' ? 'no change' : `a ${m.level.toUpperCase()} change`}`);

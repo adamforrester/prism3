@@ -283,9 +283,9 @@ npx tsx packages/engine/lint-contract-version.ts    # CONTRACT_VERSION against t
                                                     # removed or retyped guaranteed path, at least
                                                     # MINOR for an added one, the base's own number
                                                     # when nothing moved. Needs history, FAILS with
-                                                    # no base ref; first parent on main's push run,
-                                                    # which a scratch-repo replay of the gate itself
-                                                    # proves on every run, PRs included
+                                                    # no base ref; first parent on main's push run
+                                                    # (`comparison-base.ts`, replayed by
+                                                    # `lint-push-base.ts` below)
 npx tsx packages/engine/lint-skills.ts              # shipped skills still make true claims
 npx tsx packages/engine/lint-doc-gates.ts           # this checklist stays in sync with ci.yml (#613)
                                                     # and names no RETIRED gate: a deleted gate's line
@@ -391,7 +391,7 @@ npx tsx packages/engine/lint-component-renames.ts
                                                     # so it needs history and FAILS with no base ref;
                                                     # its in-tree arm checks the baseline is current
 npx tsx packages/engine/lint-push-base.ts      # on main's push run the merge base is HEAD, so
-                                                    # the four git-history gates above compared a
+                                                    # the five git-history gates above compared a
                                                     # squash with itself and passed (#2556, the
                                                     # #2551 gap). `comparison-base.ts` gives them
                                                     # HEAD's first parent there; this replays main's
