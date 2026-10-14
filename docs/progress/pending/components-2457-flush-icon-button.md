@@ -1,8 +1,8 @@
 ## (2026-10-14) — Flush icon button: a glyph-only action with no padding or fill, made to be nested (#2457, owner decision Q283.3 A)
 
-**Status:** a new def, `flush-icon-button` (`FlushIconButton`, name DRAFT), plus gates. ENGINE minor (change note). CONTRACT unchanged: no new token. No executor change, so `EXECUTOR_REVISION` stays at main's 15. One new docs page, so the artifact count moved by one in `verify.ts` and `ci.yml` together: 183 on the tree merged with List (#2596), which added its own.
+**Status:** three new defs, `flush-icon-button` (FlushIconButton, primary), `flush-icon-button-destructive` and `flush-icon-button-neutral` (Q295.2 B, on IconButton's family pattern), plus gates. ENGINE minor (change note). CONTRACT unchanged: no new token. No executor change, so `EXECUTOR_REVISION` stays at main's 15. Three new docs pages, so the artifact count is **185** in `verify.ts` and `ci.yml` together, on the tree merged with main at `32e50978`.
 
-**Current shape, in one line:** `shape` [flush, round] × `size` × `state` = 30 members, 18 reactions, a 32-set furniture rollout and 34 defs in `used-by.ts` on the merged tree. The first half below records the flush-only first push (15 members); where a figure there was later changed, it is marked *superseded* and the round section has the current one.
+**Current shape, in one line:** three families, each `shape` [flush, round] × `size` × `state` = 30 members (90 in all), 18 reactions each, a 34-set furniture rollout, 36 defs in `used-by.ts`, a paint census of 51 assignments per family. The first two sections below record the neutral-only pushes, when the bare id was neutral; where a figure there was later changed it is marked *superseded*, and the last section has the current one.
 
 **What it is (Q283.3 A, on #2427):** "its own small def, ghost only, no padding, color-only hover, code-side 44x44 hit area." The three IconButton sets are untouched.
 - `size` [small, medium, large] × `state` [rest, hover, pressed, focus-visible, disabled] = 15 members (*superseded*: 30 once the `shape` axis landed, below). No `appearance` axis.
@@ -33,7 +33,7 @@
 - The fixture's `state` unexposed (`nest-exposed` → `nest-fixed`): `test-roundtrip.ts` fails `#2457 two-nest: both flush icon buttons … marked exposed` (6 instances, `isExposedInstance=false`).
 - `disabled` dropped from the button's projected state axis: `test-roundtrip.ts` fails `#2457 two-nest: the nested set offers the owner-decided states`.
 
-**Owner items (DRAFT):**
+**Owner items (*resolved*, Q295 2026-10-14: 1, 3 and 4 A; 2 B, see the last section):**
 1. Name and id: `FlushIconButton` / `flush-icon-button`. Alternatives: `IconButton.Flush` / `icon-button-flush`, which reads as a fourth IconButton family sibling (it has no appearance axis and a different box); `_flush-icon-button`, which hides it from a published library (a card close may place it directly).
 2. Color family: neutral only, IconButton.Neutral's ghost glyph, as the stepper proposal drafted. No primary or destructive flush icon button.
 3. Small's hit area: 44×44, as Q283.3 A states it, where the flush text button puts small at 24×24 (Q174 B). Small and medium are the same 20px box here.
@@ -58,7 +58,7 @@
 - `lint-hit-target.ts` `CODE_SIDE_TARGETS`: the flush key re-pointed, and a new `atFloor` list measures the round circle at medium and large (literal sizes) against the 44px floor over comfortable and spacious. Small round (36) stays under the code-side rule the def states "at every size". The `atFloor.sizes` list is itself asserted against the literal `medium,large` in the self-check (Q287 A), as `FLUSH_SIZES` is: without it, narrowing the list to `['large']` let the medium circle drop to 36 with every gate green (the #2443 shape, found in independent review).
 - `lint-axis-values.ts`: a second `shape` set, `[flush, round]`, `disjoint`, and IconButton's `[square, circular]` moves from `sole` to `canonical`. The reason names the near-overlap (`round` draws IconButton's `circular` corner).
 
-**Owner items (DRAFT), the round shape:**
+**Owner items, the round shape (*resolved*, Q295 2026-10-14: 5–8 all A):**
 5. Axis name and values: `shape: flush | round`, flush first. Alternative value `circular`, IconButton's word for the same full-round corner.
 6. Sizes: the circle is the Counter's height, 36 / 44 / 56 (`size.sm` / `md` / `lg.height`). Alternative: the wireframe's 8px inset, 28 / 36 / 48, which needs a default-rung exception and a rung for 48.
 7. Glyph: 20 / 20 / 24 on both shapes, per Q283.13 A (the wireframe drew 16 at small).
@@ -72,3 +72,24 @@
 - `atFloor.sizes` narrowed to `['large']`: `lint-hit-target.ts` fails `flush-icon-button atFloor.sizes is [large], but the round circle is held to the 44px floor at medium and large (owner Q287 A).`
 
 **A trap:** a brand whose `outlineInteraction` is `none` drops the round shape's hover and pressed wash, as it does for every neutral wash (`applyOutlineInteraction`; `#1608` now names this def among the binders). On such a brand the round shape's hover moves the glyph ink only. The `test.ts` arm reads the default projection, where the wash is present.
+
+### Three color families and center-to-center spacing (owner decisions Q295.2 B and Q296 A on #2457)
+
+**Q295.2 B:** "also primary and destructive, not neutral only", built on IconButton's own family pattern, on both shapes. IconButton's pattern (#1225) is that the family is the *component*, not an axis: one factory, three defs, byte-identical but for the `color.interactive.<family>.*` paint and the selection fields. So `flush-icon-button.ts` now exports `makeFlushIconButton` and three defs, with IconButton's naming: **the bare id is primary**, so `flush-icon-button` (FlushIconButton) now means the primary family, and the neutral build this PR started with is `flush-icon-button-neutral` (FlushIconButton.Neutral). The Counter fixture in `test-roundtrip.ts` nests the neutral one.
+- Per family: the glyph ink `interactive.<family>.icon.{rest,hover,pressed}` on both shapes, and the round wash `interactive.<family>.overlay.{hover,pressed}`, IconButton's ghost roles. 8 family bindings per def.
+- The round edge stays `color.border.secondary` on all three. IconButton's ghost draws no edge, so its precedent has no family edge to follow; whether a destructive circle should go red is put to the owner on the PR and held in `notes.contested`.
+- Shipped prose that named IconButton.Neutral now says "the IconButton of the same color" where it is shared, and each sibling names its own IconButton in `avoidWhen` and `composition.alternativeTo`. The neutral summary and description are the approved wording, unchanged; primary and destructive each have their own first sentence and share the rest. The destructive sibling carries the confirmation rule in `docs.do`.
+- Counts that moved: `test-reactions.ts` 14 defs; `test-canvas-furniture.ts` 34 sets; `used-by.ts` 36 defs; the catalog; `component-axes.json`, `component-surface.json` and the paint census accepted (an addition, no rename: the bare id has not merged before, so nothing on main moves under it).
+
+**Q296 A:** the 44px between two flush icon buttons is center to center. `docs.do` now reads "Space two flush icon buttons at least 44px apart, center to center, so their tap areas don't overlap", and the `codeOnly` hit-area entry says center to center too.
+
+**Gates:**
+- `test.ts` `#2457`, per family, with the expected ink and wash written out as literal paths for each: 30 members, the shape axis, no padding, the glyph and flush box rungs, flush unpainted, the family's ink walk on both shapes, the round box, the decorative edge, and the family's wash at hover and pressed only.
+- `test.ts` `#2457 … clears 3:1 against the page`: each family's glyph ink at rest, hover and pressed, measured by `resolveAllModes` in every example brand × mode (the glyph identifies the control). Every one clears 4.5:1 today.
+- `test.ts` the factory guard, #1225's repeated: shared fields byte-identical, non-color tokens identical, each def binds only its family (8 bindings), each names its own IconButton, the keywords differ, and the confirmation rule is on destructive only. The Q296 sentence is held literally in all three.
+- `lint-hit-target.ts`: all three in `CODE_SIDE_TARGETS`, and the `atFloor.sizes` literal check runs per id.
+- List entries: `CANVAS_FURNITURE`, `lint-axis-values` (both sets), `lint-paint-placement` (both lists), `lint-rung-names` (both), the file taxonomy, and `#1608` (the wash binders now name all three).
+
+**Family mutations** (each on a committed tree, restored with `git reset --hard`):
+- Destructive drops its round wash at hover (`round.overlay.hover` omitted for that family): `test.ts` fails `#2457 flush-icon-button-destructive's round shape fills with the destructive overlay at hover and pressed, and at no other state` (the three round hover members) and `#2457 flush-icon-button-destructive carries its full interactive.destructive skin — 8 bindings (got 7)`.
+- Destructive's flush ink swapped to neutral (`flush.icon` → `interactive.neutral.icon.rest`): `test.ts` fails `#2457 flush-icon-button-destructive's glyph walks the destructive ghost ink …`, `… binds ONLY interactive.destructive — no other family's paint (stray: flush.icon)` and `… 8 bindings (got 7)`.

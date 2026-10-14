@@ -1,30 +1,30 @@
 # FlushIconButton
 
-> Icon-only action inside another component: a bare glyph or a light circle. Needs an accessible name.
+> Icon-only brand action inside a component: a bare glyph or a light circle. Needs an accessible name.
 
-An icon-only button made to sit inside another component, such as the minus and plus of a counter or the close on a card. It has two shapes. Flush has no padding, no fill and no border: the glyph is the whole visible control, so it lines up with the content edge around it, and hover and press change the glyph color only. Round draws a circle around the glyph with a light edge, and hover and press add a soft fill; its diameter matches the height of a counter at the same size. The flush box is the glyph, 20 or 24px, so in code the hit area extends past it to at least 44×44px. Because there is no visible text, an accessible name is required.
+An icon-only button in the brand's primary color, made to sit inside another component where the action carries the brand, such as the add on a list row. It has two shapes. Flush has no padding, no fill and no border: the glyph is the whole visible control, so it lines up with the content edge around it, and hover and press change the glyph color only. Round draws a circle around the glyph with a light edge, and hover and press add a soft fill; its diameter matches the height of a counter at the same size. The flush box is the glyph, 20 or 24px, so in code the hit area extends past it to at least 44×44px. Because there is no visible text, an accessible name is required.
 
 - **ID:** `flush-icon-button`
 - **Category:** form
 - **Status:** draft
 - **Also known as:** flush-icon-btn, bare-icon-button
-- **Builds on:** `icon-button-neutral`
+- **Builds on:** `icon-button`
 
 ## Usage
 
-Use inside another component where the icon is itself the control: the minus and plus of a counter, or the close on a card. Use flush where the glyph must line up with the content edge, such as inside a counter that draws its own box. Use round where the buttons stand on their own beside a value, such as a counter with no box. For an icon action with its own padded box in a toolbar, use IconButton.Neutral.
+Use inside another component where the icon is itself the control: the minus and plus of a counter, or the close on a card. Use flush where the glyph must line up with the content edge, such as inside a counter that draws its own box. Use round where the buttons stand on their own beside a value, such as a counter with no box. For an icon action with its own padded box in a toolbar, use the IconButton of the same color.
 
 ### Do
 
 - Always give it an accessible name (a verb)
 - Extend its hit area in code to at least 44×44px at every size, with a transparent `::before` inset outward and centered on the glyph, so the target clears 44px while the box stays glyph-sized
-- Leave 44px between two flush icon buttons, so their hit areas do not overlap
+- Space two flush icon buttons at least 44px apart, center to center, so their tap areas don't overlap
 
 ### Don't
 
 - Nest it inside a control whose whole row is already a button, such as an accordion header or a tab
 - Add a fill or a wash to the flush shape on hover or press; only the glyph color changes. Use the round shape for a fill
-- Use it on its own in a toolbar, where IconButton.Neutral gives the action a visible box
+- Use it on its own in a toolbar, where the IconButton of the same color gives the action a visible box
 
 ### Content guidelines
 
@@ -38,8 +38,8 @@ The accessible name is a verb naming the action ("Close", "Increase quantity"), 
 
 - **Purpose:** Trigger an action inside another component, with a bare glyph that sits flush with the content edge or a glyph in a light circle.
 - **Use when:** The minus and plus of a counter, a card's close, or any icon action inside a component. shape=flush where the glyph must line up with the content edge; shape=round where the buttons stand on their own beside a value.
-- **Avoid when:** The action stands on its own in a toolbar or a header (use IconButton.Neutral, which has a visible box and a hover wash). It would sit inside an element that is already a button, such as an accordion header or a tab. You cannot supply an accessible name.
-- **Often used with:** `icon`, `focus-ring`, `icon-button-neutral`
+- **Avoid when:** The action deletes or removes something (use FlushIconButton.Destructive). It carries no brand emphasis, such as the minus and plus of a counter or the close on a card (use FlushIconButton.Neutral). It stands on its own in a toolbar or a header (use IconButton, which has a visible box). It would sit inside an element that is already a button, such as an accordion header or a tab. You cannot supply an accessible name.
+- **Often used with:** `icon`, `focus-ring`
 
 ## Props
 
@@ -86,7 +86,7 @@ The accessible name is a verb naming the action ("Close", "Increase quantity"), 
 ## Composition
 
 - **Composes with:** `focus-ring`
-- **Alternative to:** `icon-button-neutral`
+- **Alternative to:** `icon-button`
 - **Planned:** `counter`, `number-input`, `card`
 - **Replaces:**
   - an \<svg> with a click handler and no button

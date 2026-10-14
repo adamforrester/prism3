@@ -122,8 +122,9 @@ export const TAXONOMY: Taxonomy = {
         { page: 'Field Label', defs: ['field-label'] },
         { page: 'Field Message', defs: ['field-message'] },
         // #2457 — the flush icon button, under Subcomponents (owner decision Q283.14 A on #2427): it is made to be nested,
-        // in a counter first. Placed alphabetically in the file by the section's own rule.
-        { page: 'Flush Icon Button', defs: ['flush-icon-button'] },
+        // in a counter first. Placed alphabetically in the file by the section's own rule. Three families on one page, as
+        // the Icon button page carries IconButton's three (Q295.2 B).
+        { page: 'Flush Icon Button', defs: ['flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral'] },
         // #1670 — owner-decided 2026-09-26: the spinner sits under Subcomponents, beside the other parts a
         // host swaps or nests in (the button's pending state swaps it into its icon slot).
         { page: 'Spinner', defs: ['spinner'] },

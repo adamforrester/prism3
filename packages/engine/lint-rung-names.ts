@@ -217,6 +217,8 @@ const ICON_OFFSET_DEFS: Record<string, string> = {
   // The flush icon button (#2457): its box IS the glyph, 20/20/24 (owner Q283.13 A, on #2427), so its medium
   // default is `sm`, as the Accordion's glyph is.
   'flush-icon-button': 'icon.size.*',
+  'flush-icon-button-destructive': 'icon.size.*',
+  'flush-icon-button-neutral': 'icon.size.*',
 };
 
 /**
@@ -345,7 +347,8 @@ const SIZE_BY_FOLLOW_ONLY: Record<string, string> = {
 const MUST_COVER = [
   'icon', 'spinner',
   'button', 'button-destructive', 'button-neutral',
-  'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'flush-icon-button',
+  'icon-button', 'icon-button-destructive', 'icon-button-neutral',
+  'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral',
   'field-label', 'text-field', 'textarea', 'select', 'tag',
   'tab', 'tabs',
   'checkbox-control', 'checkbox-row', 'checkbox-group',

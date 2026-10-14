@@ -206,11 +206,16 @@ const flushRuleGap = (codeOnly: readonly string[]): string[] => {
 // to 44 where the owner's sizes put it there (medium 44, large 56). The sizes are literals here, never read off the
 // def; the size below them (small, 36) stays covered by the code-side rule, which the def states "at every size".
 type AtFloor = { key: (size: string) => string; sizes: readonly string[]; why: string };
+// The three flush icon-button families (Q295.2 B) share one box, so each is listed and measured on its own: a family
+// dropped from this list fails as unmeasured, and one whose box drifts fails by its own id.
+const FLUSH_ICON_BUTTON_TARGET = (): { key: (size: string) => string; why: string; atFloor?: AtFloor } => ({
+  key: (s) => `size.${s}.flush`, why: "the flush icon button's glyph square, with no padding",
+  atFloor: { key: (s) => `size.${s}.round`, sizes: ['medium', 'large'], why: "the round flush icon button's circle, the Counter's height" },
+});
 const CODE_SIDE_TARGETS: Record<string, { key: (size: string) => string; why: string; atFloor?: AtFloor }> = {
-  'flush-icon-button': {
-    key: (s) => `size.${s}.flush`, why: "the flush icon button's glyph square, with no padding",
-    atFloor: { key: (s) => `size.${s}.round`, sizes: ['medium', 'large'], why: "the round flush icon button's circle, the Counter's height" },
-  },
+  'flush-icon-button': FLUSH_ICON_BUTTON_TARGET(),
+  'flush-icon-button-destructive': FLUSH_ICON_BUTTON_TARGET(),
+  'flush-icon-button-neutral': FLUSH_ICON_BUTTON_TARGET(),
 };
 const CODE_SIDE_RULE = [/at least 44×44px at every size/, /::before`? inset outward/, /centered on the glyph/];
 const CODE_SIDE_DOC = [/hit area in code to at least 44×44px at every size/, /::before`? inset outward/];
@@ -456,9 +461,11 @@ for (const [id, inner] of Object.entries(INNER_TARGETS)) {
     failures.push(`FLUSH_SMALL_SIZES is [${FLUSH_SMALL_SIZES.join(', ')}], but the 24×24 flush hit area is owed at small only (owner Q174 B).`);
   // #2457: the round circle's at-floor scope against a literal too (owner Q287 A: 36 / 44 / 56), so narrowing it
   // cannot let the medium circle drop below 44 with every gate green.
-  const roundSizes = CODE_SIDE_TARGETS['flush-icon-button']?.atFloor?.sizes ?? [];
-  if (roundSizes.join() !== 'medium,large')
-    failures.push(`flush-icon-button atFloor.sizes is [${roundSizes.join(', ')}], but the round circle is held to the 44px floor at medium and large (owner Q287 A).`);
+  for (const id of ['flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral']) {
+    const roundSizes = CODE_SIDE_TARGETS[id]?.atFloor?.sizes ?? [];
+    if (roundSizes.join() !== 'medium,large')
+      failures.push(`${id} atFloor.sizes is [${roundSizes.join(', ')}], but the round circle is held to the 44px floor at medium and large (owner Q287 A).`);
+  }
 }
 for (const def of componentDefs) {
   if (!(def.id in INTERACTIVE)) continue;

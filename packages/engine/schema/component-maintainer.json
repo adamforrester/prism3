@@ -258,7 +258,7 @@
     },
     "flush-icon-button": {
       "codeOnly": [
-        "touch-target-expansion — the visible box is the glyph square (20px at small and medium, 24px at large) and carries no padding, so the hit area is at least 44×44px at every size in code: an invisible extension, such as a transparent `::before` inset outward and centered on the glyph, reaches past the glyph into the space around it, while the box stays glyph-sized so the glyph still lines up with the content edge. Figma has no hit areas, so it draws the glyph square only. A host must leave the extension room: two flush icon buttons closer than 44px apart overlap their hit areas.",
+        "touch-target-expansion — the visible box is the glyph square (20px at small and medium, 24px at large) and carries no padding, so the hit area is at least 44×44px at every size in code: an invisible extension, such as a transparent `::before` inset outward and centered on the glyph, reaches past the glyph into the space around it, while the box stays glyph-sized so the glyph still lines up with the content edge. Figma has no hit areas, so it draws the glyph square only. A host must leave the extension room: two flush icon buttons closer than 44px apart, center to center, overlap their hit areas.",
         "focus-ring-offset — the ring geometry projects (an absolute sibling nesting the shared `focus-ring`), and its position is frozen at paste, as on IconButton: Figma's x and y accept no variable binding, so the build writes the sum of `focus.ring.offset` and `focus.ring.width`.",
         "aria-label — the required accessible name, held at the type level in code. Figma cannot hold \"required\", and a text property named for it would read as a name already given.",
         "Exposed state in a host — a host such as a counter nests this button with its `state` exposed, so the designer can show one side disabled at a limit. In code the host sets `aria-disabled=\"true\"` on that button at the limit rather than native disabled, so it stays in the accessibility tree.",
@@ -267,20 +267,78 @@
       ],
       "notes": {
         "contested": [
-          "NAME AND ID (DRAFT, owner item): `FlushIconButton` / `flush-icon-button`, a sibling-free id. `IconButton.Flush` / `icon-button-flush` would read as a fourth IconButton family sibling, which it is not (it has no appearance axis and a different box); `_flush-icon-button` would hide it from a published library, but a card close may place it directly.",
-          "THE COLOR FAMILY (DRAFT, owner item): neutral only, IconButton.Neutral's ghost glyph ink, as the quantity-stepper proposal drafted. A primary or destructive flush icon button is not built.",
-          "THE SMALL HIT AREA (DRAFT, owner item): 44×44 at every size, as Q283.3 A states it. The flush TEXT button puts small at 24×24 (Q174 B); this def does not follow that, since its small and medium glyph boxes are the same 20px.",
           "TWO NESTS EXPOSING `state` ON ONE HOST are built and exposed on the shim (`test-roundtrip.ts`), but untested on a real host, where Figma lists each exposed instance's properties under its layer name.",
-          "THE ROUND SHAPE (Q287 A; DRAFT values, owner items): the value name `round` (IconButton spells its full-round corner `circular`; `lint-axis-values` records the two sets as disjoint and names the pair); the diameter equal to the Counter's height, 36 / 44 / 56 (`size.{sm,md,lg}.height`), where the wireframe drew the circle 8px inside it (28 / 36 / 48, which would need a sub-`md` default exception and has no 48 rung); the edge `color.border.secondary` (decorative) and `color.disabled.border` at disabled; the wash `color.interactive.neutral.overlay.{hover,pressed}`."
+          "THE DESTRUCTIVE ROUND EDGE (DRAFT, owner question on #2457): all three families keep the decorative `color.border.secondary` edge. IconButton's ghost draws no edge, so its precedent does not say whether a destructive circle should go red (`interactive.destructive.border.*`, IconButton.Destructive's outline edge)."
         ],
         "unverified": [
           "motion timing — no motion token is bound, so nothing gates the 100–150ms target.",
           "The focus ring clears 3:1 against the page (gated, focus-ring.ts); against a host's fill it is not measured.",
-          "The round edge, `color.border.secondary`, is about 2:1 against the page by design (decorative, no floor); the glyph on the round shape's hover and pressed wash keeps its contrast through the overlay contract (`interactive.neutral.overlay.*` against `text.primary`), which is gated for text ink, not the neutral icon ink."
+          "The round edge, `color.border.secondary`, is about 2:1 against the page by design (decorative, no floor). The glyph ink clears 3:1 against the page per family (gated, `test.ts` #2457); on the round shape's hover and pressed wash it keeps its contrast through the overlay contract (`interactive.<family>.overlay.*` against the family's text ink), which is gated for text ink, not the icon ink."
         ],
         "evolution": [
           "Q283.3 A (2026-10-14): its own small def rather than an `inset` axis on IconButton's ghost appearance, so the three IconButton sets stay as they are.",
-          "Q287 A (2026-10-14): one component with two shapes, `flush` and `round`, rather than a second def. The Counter's outlined appearance nests flush and its ghost appearance nests round."
+          "Q287 A (2026-10-14): one component with two shapes, `flush` and `round`, rather than a second def. The Counter's outlined appearance nests flush and its ghost appearance nests round.",
+          "Q295 (2026-10-14): the name `FlushIconButton` / `flush-icon-button` (A); a 44×44 code-side hit area at every size, small included (A); sizes small, medium, large (A); `shape: flush | round` (A); round 36 / 44 / 56 (A); the glyph 20 / 20 / 24 on both shapes (A); the neutral roles as built (A).",
+          "Q295.2 B (2026-10-14): primary and destructive beside neutral, on both shapes, as IconButton's three components: the bare id is primary, the siblings `-destructive` and `-neutral`, and each takes its IconButton's ghost ink and wash.",
+          "Q296 A (2026-10-14): the 44px spacing between two flush icon buttons is center to center, so their 44×44 hit areas touch without overlapping."
+        ],
+        "projection": []
+      }
+    },
+    "flush-icon-button-destructive": {
+      "codeOnly": [
+        "touch-target-expansion — the visible box is the glyph square (20px at small and medium, 24px at large) and carries no padding, so the hit area is at least 44×44px at every size in code: an invisible extension, such as a transparent `::before` inset outward and centered on the glyph, reaches past the glyph into the space around it, while the box stays glyph-sized so the glyph still lines up with the content edge. Figma has no hit areas, so it draws the glyph square only. A host must leave the extension room: two flush icon buttons closer than 44px apart, center to center, overlap their hit areas.",
+        "focus-ring-offset — the ring geometry projects (an absolute sibling nesting the shared `focus-ring`), and its position is frozen at paste, as on IconButton: Figma's x and y accept no variable binding, so the build writes the sum of `focus.ring.offset` and `focus.ring.width`.",
+        "aria-label — the required accessible name, held at the type level in code. Figma cannot hold \"required\", and a text property named for it would read as a name already given.",
+        "Exposed state in a host — a host such as a counter nests this button with its `state` exposed, so the designer can show one side disabled at a limit. In code the host sets `aria-disabled=\"true\"` on that button at the limit rather than native disabled, so it stays in the accessibility tree.",
+        "RTL mirroring — only a directional glyph flips under RTL (a back or forward chevron); close, minus and plus stay as drawn.",
+        "the round focus ring — on the circle, the ring is round too: its radius is the host radius plus the ring offset, derived in code as on IconButton's circular shape, since the shared ring binds no radius of its own."
+      ],
+      "notes": {
+        "contested": [
+          "TWO NESTS EXPOSING `state` ON ONE HOST are built and exposed on the shim (`test-roundtrip.ts`), but untested on a real host, where Figma lists each exposed instance's properties under its layer name.",
+          "THE DESTRUCTIVE ROUND EDGE (DRAFT, owner question on #2457): all three families keep the decorative `color.border.secondary` edge. IconButton's ghost draws no edge, so its precedent does not say whether a destructive circle should go red (`interactive.destructive.border.*`, IconButton.Destructive's outline edge)."
+        ],
+        "unverified": [
+          "motion timing — no motion token is bound, so nothing gates the 100–150ms target.",
+          "The focus ring clears 3:1 against the page (gated, focus-ring.ts); against a host's fill it is not measured.",
+          "The round edge, `color.border.secondary`, is about 2:1 against the page by design (decorative, no floor). The glyph ink clears 3:1 against the page per family (gated, `test.ts` #2457); on the round shape's hover and pressed wash it keeps its contrast through the overlay contract (`interactive.<family>.overlay.*` against the family's text ink), which is gated for text ink, not the icon ink."
+        ],
+        "evolution": [
+          "Q283.3 A (2026-10-14): its own small def rather than an `inset` axis on IconButton's ghost appearance, so the three IconButton sets stay as they are.",
+          "Q287 A (2026-10-14): one component with two shapes, `flush` and `round`, rather than a second def. The Counter's outlined appearance nests flush and its ghost appearance nests round.",
+          "Q295 (2026-10-14): the name `FlushIconButton` / `flush-icon-button` (A); a 44×44 code-side hit area at every size, small included (A); sizes small, medium, large (A); `shape: flush | round` (A); round 36 / 44 / 56 (A); the glyph 20 / 20 / 24 on both shapes (A); the neutral roles as built (A).",
+          "Q295.2 B (2026-10-14): primary and destructive beside neutral, on both shapes, as IconButton's three components: the bare id is primary, the siblings `-destructive` and `-neutral`, and each takes its IconButton's ghost ink and wash.",
+          "Q296 A (2026-10-14): the 44px spacing between two flush icon buttons is center to center, so their 44×44 hit areas touch without overlapping."
+        ],
+        "projection": []
+      }
+    },
+    "flush-icon-button-neutral": {
+      "codeOnly": [
+        "touch-target-expansion — the visible box is the glyph square (20px at small and medium, 24px at large) and carries no padding, so the hit area is at least 44×44px at every size in code: an invisible extension, such as a transparent `::before` inset outward and centered on the glyph, reaches past the glyph into the space around it, while the box stays glyph-sized so the glyph still lines up with the content edge. Figma has no hit areas, so it draws the glyph square only. A host must leave the extension room: two flush icon buttons closer than 44px apart, center to center, overlap their hit areas.",
+        "focus-ring-offset — the ring geometry projects (an absolute sibling nesting the shared `focus-ring`), and its position is frozen at paste, as on IconButton: Figma's x and y accept no variable binding, so the build writes the sum of `focus.ring.offset` and `focus.ring.width`.",
+        "aria-label — the required accessible name, held at the type level in code. Figma cannot hold \"required\", and a text property named for it would read as a name already given.",
+        "Exposed state in a host — a host such as a counter nests this button with its `state` exposed, so the designer can show one side disabled at a limit. In code the host sets `aria-disabled=\"true\"` on that button at the limit rather than native disabled, so it stays in the accessibility tree.",
+        "RTL mirroring — only a directional glyph flips under RTL (a back or forward chevron); close, minus and plus stay as drawn.",
+        "the round focus ring — on the circle, the ring is round too: its radius is the host radius plus the ring offset, derived in code as on IconButton's circular shape, since the shared ring binds no radius of its own."
+      ],
+      "notes": {
+        "contested": [
+          "TWO NESTS EXPOSING `state` ON ONE HOST are built and exposed on the shim (`test-roundtrip.ts`), but untested on a real host, where Figma lists each exposed instance's properties under its layer name.",
+          "THE DESTRUCTIVE ROUND EDGE (DRAFT, owner question on #2457): all three families keep the decorative `color.border.secondary` edge. IconButton's ghost draws no edge, so its precedent does not say whether a destructive circle should go red (`interactive.destructive.border.*`, IconButton.Destructive's outline edge)."
+        ],
+        "unverified": [
+          "motion timing — no motion token is bound, so nothing gates the 100–150ms target.",
+          "The focus ring clears 3:1 against the page (gated, focus-ring.ts); against a host's fill it is not measured.",
+          "The round edge, `color.border.secondary`, is about 2:1 against the page by design (decorative, no floor). The glyph ink clears 3:1 against the page per family (gated, `test.ts` #2457); on the round shape's hover and pressed wash it keeps its contrast through the overlay contract (`interactive.<family>.overlay.*` against the family's text ink), which is gated for text ink, not the icon ink."
+        ],
+        "evolution": [
+          "Q283.3 A (2026-10-14): its own small def rather than an `inset` axis on IconButton's ghost appearance, so the three IconButton sets stay as they are.",
+          "Q287 A (2026-10-14): one component with two shapes, `flush` and `round`, rather than a second def. The Counter's outlined appearance nests flush and its ghost appearance nests round.",
+          "Q295 (2026-10-14): the name `FlushIconButton` / `flush-icon-button` (A); a 44×44 code-side hit area at every size, small included (A); sizes small, medium, large (A); `shape: flush | round` (A); round 36 / 44 / 56 (A); the glyph 20 / 20 / 24 on both shapes (A); the neutral roles as built (A).",
+          "Q295.2 B (2026-10-14): primary and destructive beside neutral, on both shapes, as IconButton's three components: the bare id is primary, the siblings `-destructive` and `-neutral`, and each takes its IconButton's ghost ink and wash.",
+          "Q296 A (2026-10-14): the 44px spacing between two flush icon buttons is center to center, so their 44×44 hit areas touch without overlapping."
         ],
         "projection": []
       }

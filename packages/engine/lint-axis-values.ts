@@ -390,7 +390,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'size',
     values: ['small', 'medium', 'large'],
-    defs: ['_accordion-indicator', 'accordion', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'flush-icon-button', 'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'field-label', 'tag', 'tab', 'tabs', 'list-item', 'list'],
+    defs: ['_accordion-indicator', 'accordion', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'field-label', 'tag', 'tab', 'tabs', 'list-item', 'list'],
     relation: 'canonical',
     reason:
       'The three-rung ladder, and canonical on weight of use — every def with a size axis except the two switch defs below, the '
@@ -461,7 +461,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'shape',
     values: ['flush', 'round'],
-    defs: ['flush-icon-button'],
+    defs: ['flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral'],
     relation: 'disjoint',
     reason:
       'The flush icon button\'s two shapes (#2457, owner decision Q287 A: "one component with two shapes"). NOT pure '
@@ -469,7 +469,8 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'decorative edge and a hover wash, so the two differ in size, corner AND paint. DISJOINT, and the pair is named '
       + 'here on purpose because it is the near-overlap this register exists to flag: `round` draws the same full-round '
       + 'corner IconButton calls `circular`. The owner\'s decision spells it `round`, and the canonical set has no `flush`, '
-      + 'so the two sets are not one ladder; the spelling is held as an owner item on #2457 (`round` or `circular`). '
+      + 'so the two sets are not one ladder; the owner kept `round` (Q295.5 A). Shared by the three flush icon-button '
+      + 'components BY DESIGN (Q295.2 B, one anatomy through `makeFlushIconButton`), so this one entry records all three. '
       + '`flush` LEADS because it is the code default and the shape built first, so Figma\'s inserted member is flush.',
   },
   {

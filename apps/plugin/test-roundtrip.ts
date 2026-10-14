@@ -1906,9 +1906,10 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
 // The flush icon button is built to be nested (owner Q283.3 A), and its first host — the Counter (#2427, Q286) —
 // nests two of them, each with its `state` exposed, so a designer sets one side to `disabled` at a limit (Q283.7
 // note). No such host is registered yet, so this block builds the shape with a FIXTURE host, never registered:
-// a row nesting `flush-icon-button` twice (`decrement`, `increment`), both `nest-exposed` with `expose: ['state']`
+// a row nesting `flush-icon-button-neutral` twice (`decrement`, `increment`), both `nest-exposed` with `expose: ['state']`
 // and `follow: ['size']`. It is built against the flush icon button's own SET (its real member names), and read
-// back off the shim.
+// back off the shim. The Counter nests the NEUTRAL family (Q295.2 B: three families, IconButton's pattern), so the
+// fixture does too.
 //
 // EXPECTED is authored here: both instances exposed in every member, each an instance of the flush icon button
 // set, and the nested set offering the five owner-decided states as literals, `disabled` among them. The open
@@ -1917,10 +1918,10 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
 // its own layer name; that is not measured here.
 {
   const FLUSH_STATES = ['rest', 'hover', 'pressed', 'focus-visible', 'disabled'];
-  const child = componentDefs.find((d) => d.id === 'flush-icon-button');
-  ok(!!child, '#2457 two-nest: the flush-icon-button def is registered');
+  const child = componentDefs.find((d) => d.id === 'flush-icon-button-neutral');
+  ok(!!child, '#2457 two-nest: the flush-icon-button-neutral def is registered');
   if (child) {
-    const nestPart = { kind: 'nest', nests: 'flush-icon-button', nesting: { kind: 'nest-exposed', variant: { shape: 'flush', state: 'rest' }, expose: ['state'], follow: ['size'] } } as const;
+    const nestPart = { kind: 'nest', nests: 'flush-icon-button-neutral', nesting: { kind: 'nest-exposed', variant: { shape: 'flush', state: 'rest' }, expose: ['state'], follow: ['size'] } } as const;
     const host = {
       id: 'fixture-two-flush', name: 'FixtureTwoFlush', aliases: [], category: 'form', status: 'draft',
       summary: 'A fixture host nesting two flush icon buttons.', description: 'A fixture host nesting two flush icon buttons, each with its state exposed.',
@@ -1939,10 +1940,10 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
       figmaProperties: { variantAxes: ['size'], booleans: {} },
       accessibility: { role: 'group' }, docs: { usage: 'Fixture.', do: [], dont: [] },
       ai: { primaryPurpose: 'Fixture.', whenToUse: 'Never.', avoidWhen: 'Always.' },
-      composition: { composesWith: ['flush-icon-button'] },
+      composition: { composesWith: ['flush-icon-button-neutral'] },
     } as unknown as ComponentDef;
     const errs = validateComponentDef(host).errors;
-    ok(errs.length === 0, `#2457 two-nest: a host nesting flush-icon-button twice with \`state\` exposed validates clean${errs.length ? ` — ${errs.join('; ')}` : ''}`);
+    ok(errs.length === 0, `#2457 two-nest: a host nesting flush-icon-button-neutral twice with \`state\` exposed validates clean${errs.length ? ` — ${errs.join('; ')}` : ''}`);
     const childPlans = figmaAnatomySet(child, { swapTarget: SWAP_TARGET });
     const childStates = [...new Set(childPlans.map((p) => p.coord.state))];
     ok(JSON.stringify(childStates) === JSON.stringify(FLUSH_STATES),
@@ -1950,8 +1951,8 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
     const plans = figmaAnatomySet(host, { swapTarget: SWAP_TARGET });
     const f = fullFor(plans);
     const page: Page = { children: [] };
-    const fileNodes = [{ name: 'flush-icon-button', type: 'COMPONENT_SET' as const, variants: childPlans.map(planComponentName) }];
-    const shim = makeShim({ ...f, comps: (f.comps ?? []).filter((c) => c !== 'flush-icon-button'), fileNodes, page });
+    const fileNodes = [{ name: 'flush-icon-button-neutral', type: 'COMPONENT_SET' as const, variants: childPlans.map(planComponentName) }];
+    const shim = makeShim({ ...f, comps: (f.comps ?? []).filter((c) => c !== 'flush-icon-button-neutral'), fileNodes, page });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
     const r = await applyComponentPlan(plans, shim as any, {}) as { misses?: string[] };
     const members = ((page.children[0]?.children ?? []) as unknown as HostNode[]);
@@ -1963,13 +1964,13 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
         const main = inst?.mainComponent as { parent?: { name?: string } } | undefined;
         if (!inst || inst.type !== 'INSTANCE') off.push(`${String(m.name)}/${side}: not built as an instance`);
         else if (inst.isExposedInstance !== true) off.push(`${String(m.name)}/${side}: not exposed (isExposedInstance=${String(inst.isExposedInstance)})`);
-        else if (main?.parent?.name !== 'flush-icon-button') off.push(`${String(m.name)}/${side}: an instance of ${main?.parent?.name ?? 'nothing named'}, not flush-icon-button`);
+        else if (main?.parent?.name !== 'flush-icon-button-neutral') off.push(`${String(m.name)}/${side}: an instance of ${main?.parent?.name ?? 'nothing named'}, not flush-icon-button-neutral`);
       }
     }
-    const planned = plans.flatMap((p) => p.root.children.filter((c) => c.nestTarget === 'flush-icon-button').map((c) => (c.nestExpose ?? []).join(',')));
+    const planned = plans.flatMap((p) => p.root.children.filter((c) => c.nestTarget === 'flush-icon-button-neutral').map((c) => (c.nestExpose ?? []).join(',')));
     const misses = (r.misses ?? []).filter((m) => /nestExpose|decrement|increment/.test(m));
     ok(members.length === 3 && off.length === 0 && misses.length === 0 && planned.length === 6 && planned.every((e) => e === 'state'),
-      `#2457 two-nest: both flush icon buttons, in all 3 members, are instances of the flush-icon-button set marked exposed, each exposing [state], with no miss — two nests exposing one axis coexist on the shim (${members.length} members; ${off.length ? off.join('; ') : 'none off'}; plan exposes [${[...new Set(planned)].join(' | ')}] on ${planned.length} nests; misses: ${misses.join(' | ') || 'none'})`);
+      `#2457 two-nest: both flush icon buttons, in all 3 members, are instances of the flush-icon-button-neutral set marked exposed, each exposing [state], with no miss — two nests exposing one axis coexist on the shim (${members.length} members; ${off.length ? off.join('; ') : 'none off'}; plan exposes [${[...new Set(planned)].join(' | ')}] on ${planned.length} nests; misses: ${misses.join(' | ') || 'none'})`);
     const ports: ReadPorts = { varName: (id) => id.replace(/^V:/, ''), styleName: (id) => id };
     const div = diffAnatomy(plans, members, planComponentName, ports, {}).filter((d) => d.field === 'nestExpose' || d.field === 'nestTarget');
     ok(div.length === 0, `#2457 two-nest: the read-back agrees with the plan on every nest and exposure (${div.length} divergent${div.length ? `: ${div[0].member} :: ${div[0].path} — ${div[0].actual}` : ''})`);

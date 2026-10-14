@@ -10,7 +10,7 @@
  *
  *   · GHOST ONLY — no `appearance` axis. The glyph is the only thing painted. The paint is IconButton.Neutral's
  *     ghost glyph ink (`color.interactive.neutral.icon.*`), the role the quantity-stepper proposal named for its
- *     − and + (#2427, Oct 9 §4). No new token.
+ *     − and + (#2427, Oct 9 §4). No new token. (Since Q295.2 B, each family's own ghost ink: see the foot.)
  *   · NO PADDING — the box IS the glyph square, bound to the `icon.size.*` rung, so the glyph's artboard sits on
  *     the content edge. The glyph's own artboard margin stays as drawn (Q283.11 A, "optical flush").
  *   · COLOR-ONLY HOVER — hover and pressed walk the glyph ink (`icon.{hover,pressed}`), and the box paints
@@ -46,25 +46,72 @@
  *     C; about 2:1 against the page, no floor). The glyph is the control and carries the 3:1, as it does on the
  *     flush shape; the edge only draws the circle. At disabled it takes `color.disabled.border`.
  *   · ROUND'S HOVER AND PRESSED — the neutral overlay wash, `color.interactive.neutral.overlay.{hover,pressed}`,
- *     IconButton.Neutral's ghost wash, on top of the glyph's ink walk. Rest paints no fill.
+ *     IconButton.Neutral's ghost wash, on top of the glyph's ink walk. Rest paints no fill. (Per family since Q295.2 B.)
  *
  * The paint grammar leads with `{shape}`, and every box paint key is `round.*`, so the flush members resolve
  * none of them: `test.ts` holds, per member, that flush paints nothing and round paints exactly its edge plus the
  * wash at hover and pressed, against literals.
+ *
+ * ── THREE COLOR FAMILIES (owner decision Q295.2 B on #2457, 2026-10-14) ─────────────────────────────────────
+ *
+ * "Also primary and destructive, not neutral only", built on IconButton's own family pattern (#1225): the family
+ * is the COMPONENT, not an axis. One factory, `makeFlushIconButton`, makes three defs that are byte-identical but
+ * for the `color.interactive.<family>.*` bindings and the selection fields an agent picks a sibling by, exactly as
+ * `makeIconButton` does, and with IconButton's naming: the bare id is the primary component (`flush-icon-button`,
+ * FlushIconButton), and the siblings are `flush-icon-button-destructive` (FlushIconButton.Destructive) and
+ * `flush-icon-button-neutral` (FlushIconButton.Neutral). Each family takes its IconButton's GHOST roles: the glyph
+ * ink `interactive.<family>.icon.*` and, on round, the wash `interactive.<family>.overlay.{hover,pressed}`. The
+ * round edge is not a family color: IconButton's ghost has no edge to take one from, so it stays the decorative
+ * `color.border.secondary` on all three (Q295.2 B's default). `test.ts` holds the factory's safety (#1225's guard,
+ * repeated) and each family's glyph contrast against the page.
  */
 import { ComponentDef } from '../component-schema';
 
-export const flushIconButton: ComponentDef = {
-  id: 'flush-icon-button',
-  name: 'FlushIconButton',
+type IntentFamily = 'primary' | 'neutral' | 'destructive';
+
+/**
+ * The per-family PAINT, authored once and spread into each sibling (#1225's pattern). The glyph ink is IconButton's
+ * ghost ink for the family, the same on both shapes; the wash is IconButton's ghost overlay for the family, on round
+ * only. Nothing else differs between the three defs.
+ */
+const flushIconButtonIntentTokens = (family: IntentFamily): Record<string, string> => ({
+  // THE GLYPH INK, walking state (#1427, #2324), the same on both shapes. On flush this is the whole of the hover and
+  // pressed treatment.
+  'flush.icon': `color.interactive.${family}.icon.rest`,
+  'flush.icon.hover': `color.interactive.${family}.icon.hover`,
+  'flush.icon.pressed': `color.interactive.${family}.icon.pressed`,
+  'round.icon': `color.interactive.${family}.icon.rest`,
+  'round.icon.hover': `color.interactive.${family}.icon.hover`,
+  'round.icon.pressed': `color.interactive.${family}.icon.pressed`,
+  // ROUND ONLY (Q287 A): IconButton's ghost wash for the family.
+  'round.overlay.hover': `color.interactive.${family}.overlay.hover`,
+  'round.overlay.pressed': `color.interactive.${family}.overlay.pressed`,
+});
+
+/** What each sibling says for itself (#1697's split): the fields an agent chooses between the three by. */
+type FlushIconButtonSibling = {
+  /** The IconButton of the same family: `inherits` and `composition.alternativeTo`. */
+  iconButton: string;
+  triggerKeywords: string[];
+  avoidWhen: string;
+  generationPriority: number;
+  /** Appended to the shared `docs.do`. */
+  do: string[];
+};
+
+const AVOID_WHEN = 'It would sit inside an element that is already a button, such as an accordion header or a tab. You cannot supply an accessible name.';
+
+const makeFlushIconButton = (id: string, name: string, summary: string, description: string, family: IntentFamily, sibling: FlushIconButtonSibling): ComponentDef => ({
+
+  id,
+  name,
   aliases: ['flush-icon-btn', 'bare-icon-button'],
   category: 'form',
   status: 'draft',
-  summary: 'Icon-only action inside another component: a bare glyph or a light circle. Needs an accessible name.',
-  description:
-    'An icon-only button made to sit inside another component, such as the minus and plus of a counter or the close on a card. It has two shapes. Flush has no padding, no fill and no border: the glyph is the whole visible control, so it lines up with the content edge around it, and hover and press change the glyph color only. Round draws a circle around the glyph with a light edge, and hover and press add a soft fill; its diameter matches the height of a counter at the same size. The flush box is the glyph, 20 or 24px, so in code the hit area extends past it to at least 44×44px. Because there is no visible text, an accessible name is required.',
+  summary,
+  description,
 
-  inherits: 'icon-button-neutral',
+  inherits: sibling.iconButton,
 
   props: [
     { name: 'icon', type: 'slot', required: true, description: 'The single icon. Rendered aria-hidden: the button owns the name.' },
@@ -107,20 +154,14 @@ export const flushIconButton: ComponentDef = {
     'border-width': 'border-width.hairline',
     'ring-width': 'focus.ring.width',
     'ring-offset': 'focus.ring.offset',
-    // THE GLYPH INK — IconButton.Neutral's ghost ink, walking state (#1427, #2324: neutral reflects inward, so hover
-    // and pressed do move), the same on both shapes. On flush this is the whole of the hover and pressed treatment.
-    'flush.icon': 'color.interactive.neutral.icon.rest',
-    'flush.icon.hover': 'color.interactive.neutral.icon.hover',
-    'flush.icon.pressed': 'color.interactive.neutral.icon.pressed',
-    'round.icon': 'color.interactive.neutral.icon.rest',
-    'round.icon.hover': 'color.interactive.neutral.icon.hover',
-    'round.icon.pressed': 'color.interactive.neutral.icon.pressed',
+    // THE PER-FAMILY PAINT (Q295.2 B): the glyph ink on both shapes and the round wash, from IconButton's ghost roles
+    // for the family. Authored once in `flushIconButtonIntentTokens` so the three siblings cannot drift (#1225).
+    ...flushIconButtonIntentTokens(family),
     'disabled.icon': 'color.disabled.icon',
     // ROUND ONLY (Q287 A). The edge is DECORATIVE: the decorative rung of the edge ladder (#2569, Q259 C), not a
-    // 3:1 border, because the glyph carries the control. The wash is IconButton.Neutral's ghost overlay.
+    // 3:1 border, because the glyph carries the control. It is the same on all three families: IconButton's ghost
+    // draws no edge, so there is no family edge to follow (Q295.2 B).
     'round.border': 'color.border.secondary',
-    'round.overlay.hover': 'color.interactive.neutral.overlay.hover',
-    'round.overlay.pressed': 'color.interactive.neutral.overlay.pressed',
     // The disabled edge. The cross-cutting `disabled.*` branch applies a structural paint only where the shape has
     // it at rest, so flush (no `flush.border`) still draws no edge at disabled.
     'disabled.border': 'color.disabled.border',
@@ -161,7 +202,7 @@ export const flushIconButton: ComponentDef = {
       },
     },
     codeOnly: [
-      'touch-target-expansion — the visible box is the glyph square (20px at small and medium, 24px at large) and carries no padding, so the hit area is at least 44×44px at every size in code: an invisible extension, such as a transparent `::before` inset outward and centered on the glyph, reaches past the glyph into the space around it, while the box stays glyph-sized so the glyph still lines up with the content edge. Figma has no hit areas, so it draws the glyph square only. A host must leave the extension room: two flush icon buttons closer than 44px apart overlap their hit areas.',
+      'touch-target-expansion — the visible box is the glyph square (20px at small and medium, 24px at large) and carries no padding, so the hit area is at least 44×44px at every size in code: an invisible extension, such as a transparent `::before` inset outward and centered on the glyph, reaches past the glyph into the space around it, while the box stays glyph-sized so the glyph still lines up with the content edge. Figma has no hit areas, so it draws the glyph square only. A host must leave the extension room: two flush icon buttons closer than 44px apart, center to center, overlap their hit areas.',
       'focus-ring-offset — the ring geometry projects (an absolute sibling nesting the shared `focus-ring`), and its position is frozen at paste, as on IconButton: Figma\'s x and y accept no variable binding, so the build writes the sum of `focus.ring.offset` and `focus.ring.width`.',
       'aria-label — the required accessible name, held at the type level in code. Figma cannot hold "required", and a text property named for it would read as a name already given.',
       'Exposed state in a host — a host such as a counter nests this button with its `state` exposed, so the designer can show one side disabled at a limit. In code the host sets `aria-disabled="true"` on that button at the limit rather than native disabled, so it stays in the accessibility tree.',
@@ -197,16 +238,17 @@ export const flushIconButton: ComponentDef = {
   },
 
   docs: {
-    usage: 'Use inside another component where the icon is itself the control: the minus and plus of a counter, or the close on a card. Use flush where the glyph must line up with the content edge, such as inside a counter that draws its own box. Use round where the buttons stand on their own beside a value, such as a counter with no box. For an icon action with its own padded box in a toolbar, use IconButton.Neutral.',
+    usage: 'Use inside another component where the icon is itself the control: the minus and plus of a counter, or the close on a card. Use flush where the glyph must line up with the content edge, such as inside a counter that draws its own box. Use round where the buttons stand on their own beside a value, such as a counter with no box. For an icon action with its own padded box in a toolbar, use the IconButton of the same color.',
     do: [
       'Always give it an accessible name (a verb)',
       'Extend its hit area in code to at least 44×44px at every size, with a transparent `::before` inset outward and centered on the glyph, so the target clears 44px while the box stays glyph-sized',
-      'Leave 44px between two flush icon buttons, so their hit areas do not overlap',
+      'Space two flush icon buttons at least 44px apart, center to center, so their tap areas don\'t overlap',
+      ...sibling.do,
     ],
     dont: [
       'Nest it inside a control whose whole row is already a button, such as an accordion header or a tab',
       'Add a fill or a wash to the flush shape on hover or press; only the glyph color changes. Use the round shape for a fill',
-      'Use it on its own in a toolbar, where IconButton.Neutral gives the action a visible box',
+      'Use it on its own in a toolbar, where the IconButton of the same color gives the action a visible box',
     ],
     contentGuidelines: 'The accessible name is a verb naming the action ("Close", "Increase quantity"), never the glyph\'s shape.',
   },
@@ -214,15 +256,15 @@ export const flushIconButton: ComponentDef = {
   ai: {
     primaryPurpose: 'Trigger an action inside another component, with a bare glyph that sits flush with the content edge or a glyph in a light circle.',
     whenToUse: 'The minus and plus of a counter, a card\'s close, or any icon action inside a component. shape=flush where the glyph must line up with the content edge; shape=round where the buttons stand on their own beside a value.',
-    avoidWhen: 'The action stands on its own in a toolbar or a header (use IconButton.Neutral, which has a visible box and a hover wash). It would sit inside an element that is already a button, such as an accordion header or a tab. You cannot supply an accessible name.',
-    commonPartners: ['icon', 'focus-ring', 'icon-button-neutral'],
-    triggerKeywords: ['flush icon button', 'bare icon button', 'round icon button in a counter', 'counter plus minus', 'card close icon', 'stepper button'],
-    generationPriority: 4,
+    avoidWhen: `${sibling.avoidWhen} ${AVOID_WHEN}`,
+    commonPartners: ['icon', 'focus-ring'],
+    triggerKeywords: sibling.triggerKeywords,
+    generationPriority: sibling.generationPriority,
   },
 
   composition: {
     composesWith: ['focus-ring'],
-    alternativeTo: ['icon-button-neutral'],
+    alternativeTo: [sibling.iconButton],
     planned: ['counter', 'number-input', 'card'],
     replacesPatterns: ['an <svg> with a click handler and no button', 'an IconButton with its padding overridden to zero'],
   },
@@ -235,20 +277,72 @@ export const flushIconButton: ComponentDef = {
 
   notes: {
     contested: [
-      'NAME AND ID (DRAFT, owner item): `FlushIconButton` / `flush-icon-button`, a sibling-free id. `IconButton.Flush` / `icon-button-flush` would read as a fourth IconButton family sibling, which it is not (it has no appearance axis and a different box); `_flush-icon-button` would hide it from a published library, but a card close may place it directly.',
-      'THE COLOR FAMILY (DRAFT, owner item): neutral only, IconButton.Neutral\'s ghost glyph ink, as the quantity-stepper proposal drafted. A primary or destructive flush icon button is not built.',
-      'THE SMALL HIT AREA (DRAFT, owner item): 44×44 at every size, as Q283.3 A states it. The flush TEXT button puts small at 24×24 (Q174 B); this def does not follow that, since its small and medium glyph boxes are the same 20px.',
       'TWO NESTS EXPOSING `state` ON ONE HOST are built and exposed on the shim (`test-roundtrip.ts`), but untested on a real host, where Figma lists each exposed instance\'s properties under its layer name.',
-      'THE ROUND SHAPE (Q287 A; DRAFT values, owner items): the value name `round` (IconButton spells its full-round corner `circular`; `lint-axis-values` records the two sets as disjoint and names the pair); the diameter equal to the Counter\'s height, 36 / 44 / 56 (`size.{sm,md,lg}.height`), where the wireframe drew the circle 8px inside it (28 / 36 / 48, which would need a sub-`md` default exception and has no 48 rung); the edge `color.border.secondary` (decorative) and `color.disabled.border` at disabled; the wash `color.interactive.neutral.overlay.{hover,pressed}`.',
+      'THE DESTRUCTIVE ROUND EDGE (DRAFT, owner question on #2457): all three families keep the decorative `color.border.secondary` edge. IconButton\'s ghost draws no edge, so its precedent does not say whether a destructive circle should go red (`interactive.destructive.border.*`, IconButton.Destructive\'s outline edge).',
     ],
     evolution: [
       'Q283.3 A (2026-10-14): its own small def rather than an `inset` axis on IconButton\'s ghost appearance, so the three IconButton sets stay as they are.',
       'Q287 A (2026-10-14): one component with two shapes, `flush` and `round`, rather than a second def. The Counter\'s outlined appearance nests flush and its ghost appearance nests round.',
+      'Q295 (2026-10-14): the name `FlushIconButton` / `flush-icon-button` (A); a 44×44 code-side hit area at every size, small included (A); sizes small, medium, large (A); `shape: flush | round` (A); round 36 / 44 / 56 (A); the glyph 20 / 20 / 24 on both shapes (A); the neutral roles as built (A).',
+      'Q295.2 B (2026-10-14): primary and destructive beside neutral, on both shapes, as IconButton\'s three components: the bare id is primary, the siblings `-destructive` and `-neutral`, and each takes its IconButton\'s ghost ink and wash.',
+      'Q296 A (2026-10-14): the 44px spacing between two flush icon buttons is center to center, so their 44×44 hit areas touch without overlapping.',
     ],
     unverified: [
       'motion timing — no motion token is bound, so nothing gates the 100–150ms target.',
       'The focus ring clears 3:1 against the page (gated, focus-ring.ts); against a host\'s fill it is not measured.',
-      'The round edge, `color.border.secondary`, is about 2:1 against the page by design (decorative, no floor); the glyph on the round shape\'s hover and pressed wash keeps its contrast through the overlay contract (`interactive.neutral.overlay.*` against `text.primary`), which is gated for text ink, not the neutral icon ink.',
+      'The round edge, `color.border.secondary`, is about 2:1 against the page by design (decorative, no floor). The glyph ink clears 3:1 against the page per family (gated, `test.ts` #2457); on the round shape\'s hover and pressed wash it keeps its contrast through the overlay contract (`interactive.<family>.overlay.*` against the family\'s text ink), which is gated for text ink, not the icon ink.',
     ],
   },
-};
+});
+
+// The approved neutral wording (Q295.9 A), and the body all three share after their first sentence.
+const DESCRIPTION_BODY = 'It has two shapes. Flush has no padding, no fill and no border: the glyph is the whole visible control, so it lines up with the content edge around it, and hover and press change the glyph color only. Round draws a circle around the glyph with a light edge, and hover and press add a soft fill; its diameter matches the height of a counter at the same size. The flush box is the glyph, 20 or 24px, so in code the hit area extends past it to at least 44×44px. Because there is no visible text, an accessible name is required.';
+
+// ── THE THREE COMPONENTS (Q295.2 B, IconButton's #1225 pattern) ───────────────────────────────────────────────
+// `test.ts` holds that they share every field but the family paint and the selection fields, as it does for IconButton.
+export const flushIconButton: ComponentDef = makeFlushIconButton(
+  'flush-icon-button',
+  'FlushIconButton',
+  'Icon-only brand action inside a component: a bare glyph or a light circle. Needs an accessible name.',
+  `An icon-only button in the brand's primary color, made to sit inside another component where the action carries the brand, such as the add on a list row. ${DESCRIPTION_BODY}`,
+  'primary',
+  {
+    iconButton: 'icon-button',
+    triggerKeywords: ['primary flush icon button', 'brand icon action in a component', 'inline add button', 'round brand icon button'],
+    avoidWhen: 'The action deletes or removes something (use FlushIconButton.Destructive). It carries no brand emphasis, such as the minus and plus of a counter or the close on a card (use FlushIconButton.Neutral). It stands on its own in a toolbar or a header (use IconButton, which has a visible box).',
+    generationPriority: 5,
+    do: [],
+  },
+);
+
+export const flushIconButtonDestructive: ComponentDef = makeFlushIconButton(
+  'flush-icon-button-destructive',
+  'FlushIconButton.Destructive',
+  'Icon-only destructive action in a component: a bare glyph or light circle. Needs an accessible name.',
+  `An icon-only button in the destructive color, made to sit inside another component where the action deletes or removes something, such as the remove on a list row. ${DESCRIPTION_BODY}`,
+  'destructive',
+  {
+    iconButton: 'icon-button-destructive',
+    triggerKeywords: ['destructive flush icon button', 'danger icon in a component', 'inline remove button', 'row delete icon'],
+    avoidWhen: 'The action is not destructive (use FlushIconButton, or FlushIconButton.Neutral for one with no brand emphasis). It stands on its own in a toolbar or a header (use IconButton.Destructive, which has a visible box).',
+    generationPriority: 5,
+    do: [
+      'Confirm a destructive action that cannot be undone, and give the confirmation a neutral way out ("Cancel" or "Keep"), since a lone glyph offers none',
+    ],
+  },
+);
+
+export const flushIconButtonNeutral: ComponentDef = makeFlushIconButton(
+  'flush-icon-button-neutral',
+  'FlushIconButton.Neutral',
+  'Icon-only action inside another component: a bare glyph or a light circle. Needs an accessible name.',
+  `An icon-only button made to sit inside another component, such as the minus and plus of a counter or the close on a card. ${DESCRIPTION_BODY}`,
+  'neutral',
+  {
+    iconButton: 'icon-button-neutral',
+    triggerKeywords: ['flush icon button', 'bare icon button', 'round icon button in a counter', 'counter plus minus', 'card close icon', 'stepper button'],
+    avoidWhen: 'The action carries the brand (use FlushIconButton) or deletes something (use FlushIconButton.Destructive). It stands on its own in a toolbar or a header (use IconButton.Neutral, which has a visible box and a hover wash).',
+    generationPriority: 4,
+    do: [],
+  },
+);
