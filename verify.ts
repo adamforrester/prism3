@@ -861,7 +861,7 @@ export const GATES: Gate[] = [
   },
   {
     id: 'lint-progress-order',
-    ciStep: 'docs/00-progress.md stays newest-entry-first',
+    ciStep: 'docs/00-progress.md and its archive stay newest-entry-first',
     cmd: engine('lint-progress-order.ts'),
   },
   {
