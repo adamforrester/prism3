@@ -48,12 +48,15 @@
  * the edit, the same reading `token-contract.ts --check` takes.
  */
 import { spawnSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const REPO = resolve(HERE, '..', '..');
+/** Set only by the push-run replay below, for the run it makes of this file in a scratch repo. */
+const REPLAY_ENV = 'P3_LINT_CONTRACT_VERSION_REPLAY_REPO';
+const REPO = process.env[REPLAY_ENV] ? resolve(process.env[REPLAY_ENV]!) : resolve(HERE, '..', '..');
 const BASELINE = 'packages/engine/schema/token-contract.json';
 const VERSION = 'packages/engine/version.ts';
 
@@ -95,7 +98,7 @@ const verdict = (was: Semver, now: Semver, level: Level): string | null => {
   const [na, ni, np] = now;
   const order = na !== wa ? na - wa : ni !== wi ? ni - wi : np - wp;
   if (order < 0) return 'is BELOW the base\'s';
-  if (level === 'none') return order > 0 ? 'was raised over the base\'s with no guaranteed path moved' : null;
+  if (level === 'none') return order > 0 ? 'was raised over the base\'s' : null;
   if (level === 'major') return na > wa ? null : 'needs a MAJOR increment over the base\'s';
   return na > wa || (na === wa && ni > wi) ? null : 'needs at least a MINOR increment over the base\'s';
 };
@@ -122,6 +125,55 @@ const selfFails = SELF_CHECK.filter((c) => (verdict(semver(c.was, c.label), semv
 if (SELF_CHECK.length !== SELF_CHECK_CASES) selfFails.push(`the self-check has ${SELF_CHECK.length} case(s), not ${SELF_CHECK_CASES}`);
 if (selfFails.length)
   die(['the self-check answered wrongly — the rule in this gate cannot be trusted on the real tree (#2334).', ...selfFails.map((f) => `    ✗ ${f}`)]);
+
+// ---- the push-run replay: the first-parent step, run for real ----------------------------------------------
+//
+// On main's push run the merge base is HEAD, and only the first-parent step below stops a squash being compared
+// with itself. Nothing on the real tree exercises that step on a pull request, so it would pass silently if it
+// were lost (#2334 review). The replay builds a scratch repo whose main has just taken a squash that LOWERS the
+// number, points `origin/main` at HEAD as a push run's checkout does, and runs this file there in a child. The
+// child must refuse with "is BELOW the base's" against the first parent. A control commit after it, which moves
+// nothing, must pass, so a refusal is the step working and not a broken scratch repo. Expected outcomes are
+// literals here. Mutation: `onBase` forced to false → `✗ push run, a squash lowers the number: expected a refusal`.
+const REPLAY_CASES = 2;
+let replayed = 0;
+if (!process.env[REPLAY_ENV]) {
+  const dir = mkdtempSync(join(tmpdir(), 'p3-contract-replay-'));
+  try {
+    const sg = (...args: string[]) => spawnSync('git', ['-C', dir, '-c', 'user.name=replay', '-c', 'user.email=replay@example.invalid',
+      '-c', 'commit.gpgsign=false', ...args], { encoding: 'utf8' });
+    const commit = (msg: string, version: string, guaranteed: Record<string, string>, extra?: string) => {
+      mkdirSync(join(dir, 'packages/engine/schema'), { recursive: true });
+      writeFileSync(join(dir, VERSION), `export const CONTRACT_VERSION = '${version}';\n`);
+      writeFileSync(join(dir, BASELINE), JSON.stringify({ contractVersion: version, guaranteed }, null, 2));
+      if (extra) writeFileSync(join(dir, 'README.md'), extra);
+      const a = sg('add', '-A'), c = sg('commit', '-q', '-m', msg), u = sg('update-ref', 'refs/remotes/origin/main', 'HEAD');
+      if (a.status || c.status || u.status) die(['the push-run replay could not build its scratch repo — this check CANNOT RUN.', `    ${(a.stderr || c.stderr || u.stderr).trim()}`]);
+    };
+    const env = { ...process.env, [REPLAY_ENV]: dir };
+    delete env.GITHUB_BASE_REF; delete env.GITHUB_ACTIONS;
+    const child = () => spawnSync(process.execPath, [...process.execArgv, fileURLToPath(import.meta.url)], { encoding: 'utf8', env });
+    const fails: string[] = [];
+    const expect = (label: string, refuse: boolean) => {
+      const r = child();
+      const out = `${r.stdout ?? ''}${r.stderr ?? ''}`;
+      const firstParent = out.includes('first parent — HEAD is on the base branch');
+      const good = refuse ? r.status === 1 && out.includes('is BELOW the base\'s') && firstParent : r.status === 0 && firstParent;
+      if (good) replayed++;
+      else fails.push(`${label}: expected ${refuse ? 'a refusal, "is BELOW the base\'s", against the first parent' : 'a pass against the first parent'}; exit ${r.status}, ${out.trim().split('\n').filter((l) => /❌|✓|base /.test(l)).slice(0, 3).join(' | ') || '(no output)'}`);
+    };
+    if (sg('init', '-q').status) die(['the push-run replay could not `git init` a scratch repo — this check CANNOT RUN.']);
+    commit('the base', '14.7.0', { a: 'color', b: 'color' });
+    commit('a squash that lowers the number', '14.6.0', { a: 'color', b: 'color' });
+    expect('push run, a squash lowers the number', true);
+    commit('a control that moves nothing', '14.6.0', { a: 'color', b: 'color' }, 'control\n');
+    expect('push run, a control that moves nothing', false);
+    if (replayed + fails.length !== REPLAY_CASES) fails.push(`the replay ran ${replayed + fails.length} case(s), not ${REPLAY_CASES}`);
+    if (fails.length) die(['the push-run replay answered wrongly — the first-parent base step cannot be trusted (#2334 review).', ...fails.map((f) => `    ✗ ${f}`)]);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
 
 // ---- the base --------------------------------------------------------------------------------------------
 
@@ -199,6 +251,7 @@ const listing = (label: string, xs: string[]): string[] =>
   xs.length ? [`    ${label} (${xs.length}): ${xs.slice(0, PRINT).join(', ')}${xs.length > PRINT ? `, … and ${xs.length - PRINT} more` : ''}`] : [];
 
 console.log(`self-check (#2334): ${SELF_CHECK.length}/${SELF_CHECK_CASES} cases of the increment rule answered as expected`);
+if (!process.env[REPLAY_ENV]) console.log(`push-run replay (#2334 review): ${replayed}/${REPLAY_CASES} scratch-repo runs of this gate answered as expected`);
 console.log(`Contract version against the base (#2334) — ${where}`);
 console.log(`  CONTRACT_VERSION: ${wasVersion} at the base → ${nowVersion} in the tree`);
 console.log(`  guaranteed paths since the base: ${m.added.length} added, ${m.removed.length} removed, ${m.retyped.length} retyped — ${m.level === 'none' ? 'no change' : `a ${m.level.toUpperCase()} change`}`);

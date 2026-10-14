@@ -37,5 +37,16 @@ base branch's current number (in CI the base is fetched again at run time, and a
 main's push run compares the squash with its first parent. Replayed once in a scratch clone: main at
 14.8.0 with one addition, a PR from the old base claiming 14.8.0 for another fails ("origin/main moved the
 number after this branch left it"); the same PR at 14.9.0 passes; and the clashing squash on main fails
-against its parent while `token-contract.ts --check` says unchanged. The replay is not committed as a
-self-check; the rule's own cases are.
+against its parent while `token-contract.ts --check` says unchanged.
+
+**The first-parent arm had no guard (review).** Forcing `onBase` to false passed: on a push run the merge
+base is HEAD, so a squash that lowered 14.7.0 to 14.6.0 was compared with itself and printed `✓`, the
+#2556 shape. Nothing on a pull request's tree reaches that step, and #2617's `lint-push-base` (which
+replays the other git-history gates) is not on main yet. So the gate now replays the push run itself on
+every run: a scratch repo whose main has just taken a squash lowering the number, `origin/main` at HEAD,
+and this file run there in a child. It must refuse with "is BELOW the base's" against the first parent,
+and a control commit after it that moves nothing must pass. Mutations: `onBase` forced to false → `✗ push
+run, a squash lowers the number: expected a refusal …`; `HEAD^1` replaced by `HEAD` → the same line. The
+child reads the scratch repo through `P3_LINT_CONTRACT_VERSION_REPLAY_REPO`, which only the replay sets.
+Once #2617 lands, a `lint-push-base` case can replace this. The review's nit is fixed too: a raised
+number now reads `14.7.1 was raised over the base's 14.7.0`, where the number had landed after the clause.

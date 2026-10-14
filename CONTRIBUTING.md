@@ -283,7 +283,9 @@ npx tsx packages/engine/lint-contract-version.ts    # CONTRACT_VERSION against t
                                                     # removed or retyped guaranteed path, at least
                                                     # MINOR for an added one, the base's own number
                                                     # when nothing moved. Needs history, FAILS with
-                                                    # no base ref; first parent on main's push run
+                                                    # no base ref; first parent on main's push run,
+                                                    # which a scratch-repo replay of the gate itself
+                                                    # proves on every run, PRs included
 npx tsx packages/engine/lint-skills.ts              # shipped skills still make true claims
 npx tsx packages/engine/lint-doc-gates.ts           # this checklist stays in sync with ci.yml (#613)
                                                     # and names no RETIRED gate: a deleted gate's line
