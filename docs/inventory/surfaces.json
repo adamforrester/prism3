@@ -134,7 +134,7 @@
         "Purpose": "MCP server: dependency-free JSON-RPC 2.0 over stdio (`:1-41`)",
         "Args / flags (parsed from source)": "none. Protocols `2026-07-28` + `2024-11-05` (`:35-37`)",
         "Reads": "`schema/theme-schema.json` (`:736`)",
-        "Writes": "stdout responses. The `export_theme` tool writes `tokens.json`, `ai-metadata.json`, `figma/<file>` under a relative `outDir` (`:551-555`) and refuses absolute paths and `..` (`:345`). Tools (6): `list_levers` `theme_brand` `score_consumption` `theme_from_brief` `export_theme` `validate_brand` (`:236-372`)"
+        "Writes": "stdout responses. The `export_theme` tool writes `tokens.json`, `ai-metadata.json`, `figma/<file>` under a relative `outDir` (`:551-555`) and refuses absolute paths and `..` (`unsafeOutDir`, `:528-533`). Tools (6): `list_levers` `theme_brand` `score_consumption` `theme_from_brief` `export_theme` `validate_brand` (`:236-372`)"
       },
       {
         "Script": "`packages/engine/test.ts`",
@@ -3020,15 +3020,15 @@
         "Path": "Agent link",
         "Entry": "`npx tsx tools/figma-mcp/agent-link.ts link\\|send <cmd>\\|read <id>`",
         "Target tool": "`use_figma` (mailbox in root shared plugin data, ns `prism3agent`)",
-        "What it emits": "short scripts that drive the OPEN plugin. Commands: status, apply-theme, build-components, file-setup, style-guide, prune, readback",
-        "Source": "tools/figma-mcp/agent-link.ts:1-16; README.md:122-195"
+        "What it emits": "short scripts that drive the OPEN plugin. Commands: the 10 in `AGENT_COMMANDS`: status, apply-theme, build-components, file-setup, style-guide, prune, readback, update-components, capture-baseline, adopt-members. The file's header comment lists only the first 7 (§10.3 #18)",
+        "Source": "tools/figma-mcp/agent-link.ts:1-16,21,59,62; apps/plugin/src/agent-protocol.ts:41; README.md:122-195"
       },
       {
         "Path": "Legacy (engine)",
-        "Entry": "`npx tsx packages/engine/materialise-to-figma.ts <brand> [--pass palette\\|color-create\\|color-aliases\\|verify] [--chunk N]`",
+        "Entry": "`npx tsx packages/engine/materialise-to-figma.ts <brand> [--pass palette\\|color-create\\|dims-create\\|color-aliases\\|dims-aliases\\|font-vars\\|text-styles\\|styles\\|verify] [--chunk N]`",
         "Target tool": "`figma_execute` (named in header)",
-        "What it emits": "plugin-JS payloads for variables only, from `out/figma/<brand>/`",
-        "Source": "packages/engine/materialise-to-figma.ts:1-11,56-60"
+        "What it emits": "plugin-JS payloads for variables and styles, from `out/figma/<brand>/`",
+        "Source": "packages/engine/materialise-to-figma.ts:1-11,56-60,906-909"
       }
     ],
     "tests": [
@@ -3291,7 +3291,7 @@
           "best-effort, never fails an apply"
         ],
         "source": [
-          "apps/plugin/src/provenance.ts:1-60"
+          "apps/plugin/src/provenance.ts:1-57"
         ]
       },
       {
@@ -3686,7 +3686,7 @@
         "name": "bridge",
         "devOnly": true,
         "detail": "iframe WebSocket to ws://localhost:17331, retry 2000 ms",
-        "source": "apps/plugin/src/agent-bridge-relay.ts:97-124"
+        "source": "apps/plugin/src/agent-bridge-relay.ts:44-119"
       }
     ],
     "contradictionsCount": 17,
@@ -4068,7 +4068,7 @@
       "exportSettingsPersisted": false
     },
     "hosting": {
-      "dev": "node build.mjs --dev → esbuild serve 127.0.0.1:5173 (apps/studio/build.mjs:43-46)",
+      "dev": "node build.mjs --dev → esbuild serve 127.0.0.1:5173 (apps/studio/build.mjs:37-40)",
       "build": "dist/main.js(+map) (apps/studio/build.mjs:27-40)",
       "site": "build-site.mjs → apps/studio/public/{index.html,dist/main.js,dist/main.js.map} (apps/studio/build-site.mjs:57-70)",
       "vercel": {
@@ -4200,7 +4200,7 @@
       },
       {
         "Family": "Figma payloads",
-        "Files": "`out/figma/<brand>/*.json` for 4 brands. One of the four synthetic native briefs has no Figma tree (`emit-figma.ts:262-268`). Files: `color.{light,dark,hc-light,hc-dark}`, `core.{palette,dimension,font}`, `layout.<bp>` (5 or 6), `motion`, `radius`, `space`, `size`, `icon`, `control`, `border-width`, `focus`, `opacity`, `type-sets.{desktop,mobile}`, `{text,shadow,gradient,grid}-styles`",
+        "Files": "`out/figma/<brand>/*.json` for 4 brands. Of the three native example briefs, `<ex2>` has no Figma tree: the emission covers `<ref>`, `<default>`, `<ex1>` and `<std>` (`emit-figma.ts:280-285`). Files: `color.{light,dark,hc-light,hc-dark}`, `core.{palette,dimension,font}`, `layout.<bp>` (5 or 6), `motion`, `radius`, `space`, `size`, `icon`, `control`, `border-width`, `focus`, `opacity`, `type-sets.{desktop,mobile}`, `{text,shadow,gradient,grid}-styles`",
         "Writer (file:line)": "`emit-figma.ts:290`, content from `figmaArtifacts()` (`:173-258`)",
         "Consumers (file:line)": "`materialise-to-figma.ts:53,153`; `tools/exporter-comparison/gate.ts:210` + `adapt-figma-emission.ts`; `apps/plugin/test-readback-parity.ts:106`; `tools/conformance-scan/state.ts:23`; `apps/tokenpress/tests/unit/opacity-percent-to-fraction.test.ts`; many lints. The plugin does NOT read these files at runtime: it builds live via `@prism3/engine/emit-figma-color` and related modules (import counts in `apps/plugin/src`). MCP `export_theme` emits the same set from `figmaArtifacts` (`mcp.ts:553-555`)"
       },
@@ -5182,11 +5182,11 @@
     },
     {
       "group": "Figma plugin",
-      "edge": "bridge server → iframe (WebSocket) → main thread : `agent-command` (apps/plugin/src/agent-bridge-relay.ts:150-157)"
+      "edge": "bridge server → iframe (WebSocket) → main thread : `agent-command` (apps/plugin/src/agent-bridge-relay.ts:72-80)"
     },
     {
       "group": "Figma plugin",
-      "edge": "main thread → iframe → bridge server : `agent-result`, `agent-progress`, `agent-log`, `agent-link-state` (apps/plugin/src/agent-bridge-relay.ts:183-195; apps/plugin/src/main.ts:1230-1233)"
+      "edge": "main thread → iframe → bridge server : `agent-result`, `agent-progress`, `agent-log`, `agent-link-state` (apps/plugin/src/agent-bridge-relay.ts:104-117; apps/plugin/src/main.ts:1230-1233)"
     },
     {
       "group": "Figma plugin",
@@ -5425,20 +5425,6 @@
     },
     {
       "group": "10.1 Engine README, root README, docs/07 (engine and artifacts)",
-      "doc": "`README.md` (root)",
-      "id": "12",
-      "docSays": "The Run block lists 4 engine commands and points to the engine README for \"the full command list\" (`README.md:35-41`)",
-      "codeSays": "No contradiction in the commands. The root `verify` script (`package.json` scripts) is not mentioned (omission)."
-    },
-    {
-      "group": "10.1 Engine README, root README, docs/07 (engine and artifacts)",
-      "doc": "`README.md` (root)",
-      "id": "13",
-      "docSays": "`npm install` from root (`README.md:50`)",
-      "codeSays": "Not a code contradiction; `CLAUDE.md` asks for `npm ci` in worktrees (policy, noted only)"
-    },
-    {
-      "group": "10.1 Engine README, root README, docs/07 (engine and artifacts)",
       "doc": "`docs/07-e2e-journey.md`",
       "id": "14",
       "docSays": "\"Only two things touch `node:fs`: the emit layer … and two legacy-regression fixture loaders\" (`docs/07:85-86`)",
@@ -5552,13 +5538,6 @@
       "id": "9",
       "docSays": "Internal comment, mcp.ts:231-232: \"roughly 23,000 tokens to discover three tools\"",
       "codeSays": "6 tools now (mcp.ts:234-383). Historical comment"
-    },
-    {
-      "group": "10.2 MCP server",
-      "doc": null,
-      "id": "10",
-      "docSays": "Internal comment, mcp.ts:15-31 (header tool list)",
-      "codeSays": "Matches the 6 tools. No contradiction (checked)"
     },
     {
       "group": "10.3 Figma plugin",
@@ -5678,6 +5657,13 @@
       "id": "17",
       "docSays": "\"Style-guide generator (Figma) … exists; **separate** project\"; \"The three Figma plugins are confirmed **separate** codebases\" (docs/07-e2e-journey.md:327,330)",
       "codeSays": "The plugin has its own style-guide action (apps/plugin/src/messages.ts:78; apps/plugin/src/main.ts:1054-1085)"
+    },
+    {
+      "group": "10.3 Figma plugin",
+      "doc": "`tools/figma-mcp/agent-link.ts` (header comment)",
+      "id": "18",
+      "docSays": "\"Commands: status · apply-theme {input} · build-components {def?} · file-setup · style-guide {…} · prune {input, confirm} · readback\" (`tools/figma-mcp/agent-link.ts:13-14`), 7 commands",
+      "codeSays": "The CLI imports `AGENT_COMMANDS` (`tools/figma-mcp/agent-link.ts:21`), 10 commands (`apps/plugin/src/agent-protocol.ts:41`), and sends any of them (`tools/figma-mcp/agent-link.ts:59,62`). The comment omits `update-components`, `capture-baseline` and `adopt-members`"
     },
     {
       "group": "10.4 Web studio and TokenPress",
@@ -5951,6 +5937,29 @@
       "id": "9",
       "docSays": "packages/engine/README.md (engine guide)",
       "codeSays": "it does not mention `components/`, `component-schema.ts`, `anatomy-figma.ts`, `emit-component-docs.ts` or `lint-skills.ts` (grep finds none of them). This is an omission, not a false claim"
+    }
+  ],
+  "docChecksNoConflict": [
+    {
+      "group": "10.1 Engine README, root README, docs/07 (engine and artifacts)",
+      "doc": "`README.md` (root)",
+      "id": "12",
+      "docSays": "The Run block lists 4 engine commands and points to the engine README for \"the full command list\" (`README.md:35-41`)",
+      "codeSays": "No contradiction in the commands. The root `verify` script (`package.json` scripts) is not mentioned (omission)."
+    },
+    {
+      "group": "10.1 Engine README, root README, docs/07 (engine and artifacts)",
+      "doc": "`README.md` (root)",
+      "id": "13",
+      "docSays": "`npm install` from root (`README.md:50`)",
+      "codeSays": "Not a code contradiction; `CLAUDE.md` asks for `npm ci` in worktrees (policy, noted only)"
+    },
+    {
+      "group": "10.2 MCP server",
+      "doc": null,
+      "id": "10",
+      "docSays": "Internal comment, mcp.ts:15-31 (header tool list)",
+      "codeSays": "Matches the 6 tools. No contradiction (checked)"
     },
     {
       "group": "10.5 Components and skills",
