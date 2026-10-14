@@ -113,12 +113,12 @@ Only the flags found are listed. Every gate runs as `npx tsx packages/engine/<na
 |---|---|---|
 | Entry | `packages/engine/mcp.ts` (runs only when it is `argv[1]`, the `isMain` check) | mcp.ts:732-733 |
 | Command | `npx tsx packages/engine/mcp.ts` (header); README/CI use `npx --yes tsx@4 …/mcp.ts` | mcp.ts:41; packages/engine/README.md:84,90,93; .github/workflows/ci.yml:68 (mcp-test) |
-| Args | none. The schema is read from `./schema/theme-schema.json` relative to the file | mcp.ts:735 |
+| Args | none. The schema is read from `packages/engine/schema/theme-schema.json`, resolved relative to `mcp.ts` | mcp.ts:735 |
 | Transport | stdio, newline-delimited JSON-RPC 2.0. Reads stdin chunks, splits on `\n`, trims, skips empty lines. Writes one JSON line per response to stdout. stderr carries a ready banner listing protocols and tools | mcp.ts:730-761 |
 | Parse error | `{id:null, error:{code:-32700,'parse error'}}`. The process continues | mcp.ts:753-754 |
 | Handler throw | `-32603 internal error: <msg>` | mcp.ts:756-757 |
 | SDK | none. Hand-rolled (no `@modelcontextprotocol/sdk`) | mcp.ts:4-7 |
-| serverInfo | `{ name: 'prism3-engine', version: ENGINE_VERSION }`, imported from `./version` | mcp.ts:53,57 |
+| serverInfo | `{ name: 'prism3-engine', version: ENGINE_VERSION }`, imported from `packages/engine/version.ts` | mcp.ts:53,57 |
 | Protocol versions | `PROTOCOL_VERSIONS = ['2026-07-28','2024-11-05']` | mcp.ts:70 |
 | `initialize` reply version | echoes the client's version if it is in the list and not `2026-07-28`, else `HANDSHAKE_PROTOCOL_VERSION = '2024-11-05'`. Live: a client asking for `2025-11-25` gets `2024-11-05` | mcp.ts:78, 699-703 |
 | Per-request version | `params._meta['io.modelcontextprotocol/protocolVersion']`: an unsupported value returns `-32022` with `data.supported`, and an absent one is served | mcp.ts:82-87, 684-687 |

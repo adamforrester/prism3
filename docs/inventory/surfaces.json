@@ -411,7 +411,7 @@
       },
       {
         "Fact": "Args",
-        "Value": "none. The schema is read from `./schema/theme-schema.json` relative to the file",
+        "Value": "none. The schema is read from `packages/engine/schema/theme-schema.json`, resolved relative to `mcp.ts`",
         "Source": "mcp.ts:735"
       },
       {
@@ -436,7 +436,7 @@
       },
       {
         "Fact": "serverInfo",
-        "Value": "`{ name: 'prism3-engine', version: ENGINE_VERSION }`, imported from `./version`",
+        "Value": "`{ name: 'prism3-engine', version: ENGINE_VERSION }`, imported from `packages/engine/version.ts`",
         "Source": "mcp.ts:53,57"
       },
       {
