@@ -36,6 +36,18 @@ gates against its first parent and passes, so this does not turn main red.
   four copies would drift. The replay runs the real gates, so a regression in the shared step fails all
   four there.
 
+**Main's push runs are no longer cancelled.** Review found `ci.yml`'s `concurrency` block cancelled an
+in-flight run on `refs/heads/main` whenever the next squash landed: 19 of the last 40 push runs on main
+had ended `cancelled`. The next run compares only its own squash with its own parent, so a cancelled
+squash was never compared with anything, and the guarantee above (and #2555's for `EXECUTOR_REVISION`)
+held for about half of main's commits. `cancel-in-progress` is now
+true only when the run's event is `pull_request`, and a push run's concurrency group is keyed by its SHA
+rather than the ref: a PR's superseded run is still cancelled, and every main push run finishes. The
+group change is not optional. With one shared group and `cancel-in-progress: false`, GitHub keeps one
+run going and one pending, and cancels the pending run when a third arrives, so a burst of three
+squashes would still drop the middle one. The cost is CI minutes for push runs that would have been cancelled. No gate checks
+the setting; `lint-push-base.ts`'s header says the arm holds only for push runs that complete.
+
 **Trap for whoever re-verifies this.** On a fresh branch with no commits yet, HEAD is still on main, so a
 local run compares against main's last squash rather than against nothing. That is correct, but a fold
 that just landed will show up as the diff under review until the branch has its first commit.

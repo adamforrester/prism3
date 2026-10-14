@@ -15,10 +15,15 @@ on:
   push:
     branches: [main]
 
-# A force-push supersedes the previous run; don't burn minutes finishing a stale one.
+# A force-push to a PR supersedes the previous run; don't burn minutes finishing a stale one. A push
+# run on main is never cancelled (#2617): it is the only run that compares a squash with its parent
+# (`comparison-base.ts`), so a run cancelled by the next squash would leave that squash compared with
+# nothing. 19 of 40 consecutive push runs on main had ended `cancelled` before this. Each push run
+# gets its own group (keyed by SHA), not just `cancel-in-progress: false`: within one shared group
+# GitHub still cancels a PENDING run when a third arrives, so a burst of three squashes would drop one.
 concurrency:
-  group: gates-${{ github.ref }}
-  cancel-in-progress: true
+  group: gates-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   gates:

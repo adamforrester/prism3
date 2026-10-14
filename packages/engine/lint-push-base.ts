@@ -35,6 +35,11 @@
  * unchanged; that path is what every PR's own run of the four gates exercises. Nor does any gate re-check
  * a stale PR run after its base moves: nothing in a gate can. The push run is where that is caught.
  *
+ * A push run that does not complete. The push-run arm holds only for a run that reaches the four
+ * gates: a cancelled run compares its squash with nothing, and the next run compares only its own
+ * squash with its own parent. `ci.yml` therefore gives each push run on main its own concurrency
+ * group and cancels in-progress runs on pull requests only; nothing here checks that setting.
+ *
  * Run: `npx tsx packages/engine/lint-push-base.ts`
  */
 import { spawnSync } from 'node:child_process';
