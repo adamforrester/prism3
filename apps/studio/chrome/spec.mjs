@@ -23,14 +23,15 @@ export const V6_VARS = [
   // text is 4.17:1 on neutral 850, so nothing on the bar is set in text-2: the bar carries primary text,
   // glyphs (3:1) and white-filled controls. The audit measures every text node on it.
   ['bar-bg', 'color.background.secondary', 'color.background.tertiary', C, 'top bar (IA-2)'],
-  // B1. The control edge on the page and on the levers panel: neutral 400 (border.secondary) in light,
-  // 3.28:1 on white and 3.06:1 on neutral 025. In dark the token that clears 3:1 closest on neutral
-  // 950 and 900 is field.border.rest (neutral 550: 3.52 and 3.25; neutral 600 is 2.91 and 2.68).
-  ['edge', 'color.border.secondary', 'color.field.border.rest', C, 'control edge on the page and levers (B1)'],
-  // B1. On the top bar border.secondary fails in light (2.70:1 on neutral 050), so the bar keeps
-  // field.border.rest (3.18:1). In dark, field.border.rest fails on neutral 850 (2.92:1) and
-  // border.secondary (neutral 500) clears it closest (3.52:1).
-  ['edge-bar', 'color.field.border.rest', 'color.border.secondary', C, 'control edge on the top bar (B1)'],
+  // B1. The control edge on the page and on the levers panel: the token that clears 3:1 closest. In light
+  // that was neutral 400 (border.secondary) until #2569 made border.secondary a decorative ~2:1 rung (neutral
+  // 250); it is now field.border.rest (neutral 450), the next role that clears it. In dark, field.border.rest
+  // (neutral 550: 3.52 and 3.25 on neutral 950 and 900; neutral 600 is 2.91 and 2.68).
+  ['edge', 'color.field.border.rest', 'color.field.border.rest', C, 'control edge on the page and levers (B1)'],
+  // B1. On the top bar in light field.border.rest clears 3:1 (3.18:1 on neutral 050). In dark,
+  // field.border.rest fails on neutral 850 (2.92:1) and border.tertiary (neutral 500, the step border.secondary
+  // held before #2569) clears it closest (3.52:1).
+  ['edge-bar', 'color.field.border.rest', 'color.border.tertiary', C, 'control edge on the top bar (B1)'],
   // Type for the hierarchy the owner asked for (V8): a 20px view title, and tracked small capitals for
   // card titles. Same token in both themes.
   ['fs-20', 'core.font.size.20', 'core.font.size.20', D, 'view title'],

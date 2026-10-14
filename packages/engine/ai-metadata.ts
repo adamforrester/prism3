@@ -232,17 +232,20 @@ const describe = (group: string, variant: string, state: string | undefined, ctx
   if (group === 'border') {
     if (variant === 'primary') {
       // Name the border that really clears 3:1 on every step, rather than a fixed one (AI/A-9: the old
-      // advice named `border.secondary`, which clears it on `background.primary` alone).
-      const strong = ['border.secondary', 'border.tertiary'].find((b) => LADDER.every((s) => ctx.failing(b, s, 3).length === 0));
+      // advice named `border.secondary`, which clears it on `background.primary` alone). Since #2569 that is
+      // `border.tertiary` by contract; measured here anyway, so a brand whose ramp misses it is not told it clears.
+      const strong = ['border.tertiary'].find((b) => LADDER.every((s) => ctx.failing(b, s, 3).length === 0));
       const redirect = strong ? ` ${q(strong)} clears 3:1 in every mode on ${list(LADDER)} — use it, or ${q('field.border.rest')} for an input.` : ` No border role clears 3:1 on every surface step; each border's entry lists where it does.`;
       return { when_to_use: 'Dividers, card outlines, low-emphasis separation.', avoid_when: `Do not use where 3:1 non-text contrast is required.${redirect}` };
     }
-    if (variant === 'secondary') return { when_to_use: `Higher-emphasis dividers and separators. ${surfaceClause(ctx, 'border.secondary', 3).text}`, avoid_when: `Do not use as a faint hairline (use ${q('border.primary')}).` };
+    // #2569: the second DECORATIVE rung (~2:1, no floor). Its advice is a redirect for a boundary that must be
+    // perceived, not a surface claim it does not make.
+    if (variant === 'secondary') return { when_to_use: 'Dividers and outlines that need more presence than a hairline but carry no meaning on their own — decorative, with no contrast minimum.', avoid_when: `Do not use where the boundary has to be perceived (SC 1.4.11, 3:1) — use ${q('border.tertiary')}. For a faint hairline use ${q('border.primary')}.` };
     // `border.inverse` HAD A BESPOKE BRANCH HERE UNTIL #1140, dispatching `default` (decorative) versus
     // `focus` (the ring) off the third segment. Both are ordinary `border` roles now —
     // `inverse.border.primary` and `inverse.border.focus` — so they take the branches below and the
     // inverse decoration, and `default` is gone entirely: it was byte-identical to `primary`.
-    if (variant === 'tertiary') return { when_to_use: `The most prominent structural edge — a table outline, a section rule, the boundary that has to read as deliberate. ${surfaceClause(ctx, 'border.tertiary', 3).text}`, avoid_when: `Do not use as a hairline (use ${q('border.primary')}) or as a focus ring (use ${q('border.focus')}) — the ring has its own hue for a reason.` };
+    if (variant === 'tertiary') return { when_to_use: `The first accessible border — a meaningful divider, a badge or table outline, any boundary that has to be perceived. ${surfaceClause(ctx, 'border.tertiary', 3).text}`, avoid_when: `Do not use as a hairline (use ${q('border.primary')}) or as a focus ring (use ${q('border.focus')}) — the ring has its own hue for a reason.` };
     if (variant === 'focus') {
       const c = surfaceClause(ctx, 'border.focus', ctx.min('border.focus') || 3);
       return { when_to_use: `The keyboard-focus indicator on interactive elements. ${c.text}`, avoid_when: `Do not use as a decorative divider (use ${q('border.primary')}).`, page_note: `On an inverse band, use ${q('inverse.border.focus')}.`, ...(c.ok.length ? { sits_on: c.ok } : {}) };
