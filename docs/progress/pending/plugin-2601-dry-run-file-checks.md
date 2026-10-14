@@ -26,3 +26,10 @@ now overrides both.
 apply's own refusal against the dry run's blockers, the #2592 harness. Mutation: the dry run's call to `fileBlockers`
 moved to a side field the apply's preflight reads (the pre-fix shape) fails all four by name, and #2380's
 `icons/absent`. No def names an effect style today, so that check has no arm, as before.
+
+**The hash claim had no arm (review).** Dropping `s.blockers` from `previewHashOf` passed every suite, so the claim
+above was unguarded. `fonts/installed since the check` takes the check with the font refused on both the host and
+the port, restores the real `loadFontAsync` on both, then confirms with the first check's hash: the apply's fresh
+preview has no blocker, and only the blockers in the hash tell the two apart. Mutation: `s.blockers` dropped from
+`previewHashOf` → `✗ fonts/installed since the check: … not refused`. The `agree` harness now compares a refusal
+against `p.blockers.join('; ')`, the preflight's own join, so a set with two blockers no longer reads as unlisted.
