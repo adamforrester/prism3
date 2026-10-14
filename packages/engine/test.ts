@@ -30825,7 +30825,10 @@ arm: {
   };
   const shapeBad: string[] = [];
   for (const p of plans) {
-    const c = coord(p), r = p.root as DN, [w, h, top, bottom, pad] = SHAPE[c.placement];
+    const c = coord(p), r = p.root as DN, sh = SHAPE[c.placement];
+    // A placement outside the three (a side placement, Q303.1) has no expected shape and fails here, not throws.
+    if (!sh) { shapeBad.push(`${planComponentName(p)}: placement '${c.placement}' is not center, bottom or full`); continue; }
+    const [w, h, top, bottom, pad] = sh;
     const wantW = w ?? WIDTH[c.size];
     const body = find(r, 'body')!;
     const okSize = r.placementWidth === wantW && r.counterAxisSizingMode === 'FIXED'
