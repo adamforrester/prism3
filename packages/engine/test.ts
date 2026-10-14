@@ -18328,7 +18328,7 @@ arm: {
      *  Both exist because they answer different questions: `insetValue` is how the not-a-number case is
      *  reached (one bad value, whichever name asks), and `varOverrides` is how the two halves of the ring's
      *  coordinate are given DIFFERENT values, which is the only way to tell a sum from a doubling (#801). */
-    type StubOpts = { vars?: string[]; styles?: string[]; comps?: string[]; page?: StubPage; insetValue?: unknown; varOverrides?: Record<string, unknown>; varValues?: Record<string, number>; fileNodes?: StubFileNode[]; nestedInstanceParts?: string[]; effectStyles?: string[]; gradientDiscard?: 'paint' | 'bindings'; textMetrics?: { fontSize: number; lineHeight: { unit: string; value: number } }; setStrokes?: Record<string, unknown>[]; noSlots?: boolean };
+    type StubOpts = { vars?: string[]; styles?: string[]; comps?: string[]; page?: StubPage; insetValue?: unknown; varOverrides?: Record<string, unknown>; varValues?: Record<string, number>; fileNodes?: StubFileNode[]; nestedInstanceParts?: string[]; effectStyles?: string[]; gradientDiscard?: 'paint' | 'bindings'; textMetrics?: { fontSize: number; lineHeight: { unit: string; value: number } }; setStrokes?: Record<string, unknown>[]; noSlots?: boolean; colors?: Record<string, { r: number; g: number; b: number; a: number }> };
     /** The two halves of a focus ring's coordinate, the real NB values (`focus.ring.offset` /
      *  `focus.ring.width` — both 2 in every emitted brand). NAMED, and named HERE, because they are the
      *  stub's INPUT and the geometry assertions' EXPECTED at once, and #801 is what that costs when the
@@ -18410,8 +18410,11 @@ arm: {
       // so the arithmetic under test would be satisfied by the wrong formula. `RING_*` are the real NB
       // values, which is what makes the expected coordinate in the geometry assertion a real number rather
       // than a restatement of whatever the stub happens to hand back.
+      // `colors` (#2468): what a COLOR variable resolves to for a node, where an arm needs the host's color truth. Off
+      // by default, so a color variable resolves to the number below and both executors fall back to their black base.
       const resolved = (name: string): unknown =>
-        opts.varOverrides && name in opts.varOverrides ? opts.varOverrides[name]
+        opts.colors && name in opts.colors ? opts.colors[name]
+          : opts.varOverrides && name in opts.varOverrides ? opts.varOverrides[name]
           : opts.insetValue !== undefined ? opts.insetValue
           : name === 'focus/ring/width' ? RING_STROKE
           : name === 'focus/ring/offset' ? RING_GAP
@@ -21612,6 +21615,48 @@ arm: {
           const diff = [...a.keys()].filter((k) => a.get(k) !== b.get(k));
           ok(a.size === 30 && b.size === 30 && diff.length === 0,
             `#1318 parity: both executors write the IDENTICAL fill on every veil member${diff.length ? ` — differ on ${diff.slice(0, 2).map((k) => `${k}: plugin ${a.get(k)} / paste ${b.get(k)}`).join(' | ')}` : ''}`);
+          // #2468 — THE BASE UNDER EACH BINDING IS THE VARIABLE'S OWN COLOR, on both paths. The host draws a paint's
+          // STORED color (#2379, #2391), so a black base is what shows wherever it does not re-resolve. The colors are
+          // the host's truth, written here per name (distinct, the veil's own alphas, a clear end at 0); the expected
+          // base is read off that table, never off either executor. A solid carries the alpha as its opacity, which
+          // the stub's fresh-bind reset then sets to 1 (#1646), so only its RGB is held; a stop carries its alpha in
+          // its color, so all four channels are.
+          {
+            const VEIL_A: Record<string, number> = { subtle: 0.5, medium: 0.6, strong: 0.7, clear: 0 };
+            const colors: NonNullable<StubOpts['colors']> = {};
+            (veilOpts.vars ?? []).filter((v) => v.startsWith('color/')).sort().forEach((v, i) => {
+              colors[v] = { r: (i + 1) / 20, g: (19 - i) / 20, b: ((i * 7) % 19) / 20, a: VEIL_A[v.split('/').pop()!] ?? 1 };
+            });
+            const cPaste: StubPage = { children: [] };
+            const cPlug: StubPage = { children: [] };
+            await runPayload(planSetToPluginJs(veilSet), { ...veilOpts, colors, page: cPaste });
+            await plugRun(veilSet, { ...veilOpts, colors, page: cPlug });
+            const name = (id: string | undefined): string => (id ?? '').replace(/^V:/, '');
+            const baseOff = (page: StubPage): string[] => {
+              const set = page.children.find((c) => c.type === 'COMPONENT_SET');
+              const out: string[] = [];
+              let seen = 0;
+              for (const m of (set?.children ?? []) as Record<string, unknown>[]) {
+                const f = ((m.fills as Record<string, unknown>[] | undefined) ?? [])[0] as { type?: string; color?: Record<string, number>; boundVariables?: { color?: { id?: string } }; gradientStops?: { color?: Record<string, number>; boundVariables?: { color?: { id?: string } } }[] } | undefined;
+                if (!f) { out.push(`${String(m.name)}: no fill`); continue; }
+                if (f.type === 'SOLID') {
+                  const want = colors[name(f.boundVariables?.color?.id)];
+                  seen++;
+                  if (!want || ['r', 'g', 'b'].some((k) => f.color?.[k] !== want[k as 'r'])) out.push(`${String(m.name)}: solid base ${JSON.stringify(f.color)}, want ${JSON.stringify(want)}`);
+                } else for (const st of f.gradientStops ?? []) {
+                  const want = colors[name(st.boundVariables?.color?.id)];
+                  seen++;
+                  if (!want || ['r', 'g', 'b', 'a'].some((k) => st.color?.[k] !== want[k as 'r'])) out.push(`${String(m.name)}: stop base ${JSON.stringify(st.color)}, want ${JSON.stringify(want)}`);
+                }
+              }
+              if (seen !== 6 + 24 * 2) out.push(`${seen} bound paints and stops read, want 54`);
+              return out;
+            };
+            for (const [label, page] of [['plugin', cPlug], ['paste', cPaste]] as const) {
+              const off = baseOff(page);
+              ok(off.length === 0, `#2468 ${label}: every veil solid and every gradient stop is based on its variable's own resolved color, not black (6 solids, 48 stops)${off.length ? ` — ${off.slice(0, 2).join(' | ')}` : ''}`);
+            }
+          }
           // A STARVED FILE: the light clear end is missing. Both paths report the SAME miss and leave the
           // light directional members CLEAR — never a one-stop gradient over a placeholder colour.
           const starved: StubOpts = { vars: (veilOpts.vars ?? []).filter((n) => n !== 'color/veil/light/clear') };
