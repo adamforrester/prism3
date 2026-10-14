@@ -136,6 +136,9 @@ export type SetPreview = {
    *  (`respaceSets`), so sets sit `SET_GAP` apart. Absent when it stays. */
   setMove?: { from: { x: number; y: number }; to: { x: number; y: number } };
   needsChoice: Choice[];
+  /** Of `blockers`, those Adopt clears by claiming the members they name (`setRefusal`), so it is not refused for
+   *  them. Absent when none. */
+  adoptClears?: string[];
   /** Entries left out of a list past `LIST_CAP`, per list. Absent when nothing was. */
   truncated?: Record<string, number>;
 };
@@ -257,6 +260,29 @@ export const gridMoves = (plans: AnatomyPlan[], members: readonly HostMember[]):
     const c = cellOf.get(m.name)!;
     return Math.abs((m.snap.x as number) - at(colW, c.col)) > 0.5 || Math.abs((m.snap.y as number) - at(rowH, c.row)) > 0.5;
   }).map((m) => m.name);
+};
+
+/**
+ * WHAT AN UPDATE REFUSES A SET FOR, READ OFF ITS DRY RUN (#2592). One test, run by the dry run, which lists what it
+ * returns as a blocker on the set, and so by the apply, whose preflight refuses every set with a blocker. Two copies
+ * drifted once: the dry run counted a collapse as members to mark deprecated, and the confirmed apply refused the set.
+ * `names` are every child of the set as the file holds it, for a rename that would land on another child's name.
+ * `null` when nothing here refuses the set. What the dry run cannot see (a font that will not load, a variable or style
+ * the file lacks) stays the apply's preflight (#2601).
+ * `adoptClears` is true for the one refusal Adopt exists to clear: an axis change over members not built by Prism3.
+ * Adopt claims them, so it must not be refused by it, or the set could never be updated (#2603 review).
+ */
+export const setRefusal = (p: Pick<SetPreview, 'needsChoice' | 'unstamped' | 'moves'> & { axes: { from: readonly string[]; to: readonly string[] } }, names: readonly string[]): { reason: string; adoptClears: boolean } | null => {
+  if (p.needsChoice.includes('axisCollapse')) return { reason: 'an axis the plan removed would collapse members onto one coordinate, and they cannot stay in the set', adoptClears: false };
+  if (p.axes.from.join(',') !== p.axes.to.join(',') && p.unstamped.length)
+    return { reason: `the axes change, and ${p.unstamped.length} member${p.unstamped.length === 1 ? '' : 's'} not built by Prism3 would be left on the old ones (${p.unstamped.slice(0, 3).join('; ')})`, adoptClears: true };
+  const after = new Set(names);
+  for (const m of p.moves) after.delete(m.from);
+  for (const m of p.moves) {
+    if (after.has(m.to)) return { reason: `renaming ${m.from} would give it the name of another member (${m.to})`, adoptClears: false };
+    after.add(m.to);
+  }
+  return null;
 };
 
 /**
@@ -518,6 +544,11 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
   if (handEdits.length) needsChoice.push('handEdits');
   if (counts.noBaseline) needsChoice.push('noBaseline');
   if (collapse.length) needsChoice.push('axisCollapse');
+  // WHAT THE APPLY WOULD REFUSE IS A BLOCKER HERE (#2592), by the one test both read, so the confirm step shows it.
+  const refused = setRefusal({ needsChoice, axes: { from: hostAxes, to: planAxes }, unstamped, moves }, [...read.members.map((m) => m.name), ...read.others]);
+  if (refused) blockers.push(refused.reason);
+  // The blockers Adopt claims its way past; every one is still a blocker here, for the update.
+  const adoptClears = refused?.adoptClears ? [refused.reason] : [];
 
   // A set with members refused or to collapse is refused by the update, so it reports no moves either.
   const positions = blockers.length || host.single ? [] : gridMoves(plans, host.members);
@@ -551,6 +582,7 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
     states,
     ...(positions.length ? { positions: cap('positions', positions) } : {}),
     needsChoice,
+    ...(adoptClears.length ? { adoptClears } : {}),
     ...(Object.keys(truncated).length ? { truncated } : {}),
   };
   // THE PREVIEW HASH covers what the preview says AND the file state it was read from — each member's id,
@@ -705,9 +737,11 @@ export const adoptSet = async (
   const view = ownedView(await readSetView(set, breathe, (ports as UpdatePorts).drawVars));
   // THE DRY RUN DECIDES (#2299 review): which members Adopt may claim is the dry run's own matching, renames and axis
   // changes applied, and a set the dry run refuses (two members on one coordinate, two axis lists) is refused here
-  // too, whole, with nothing written. Claiming members of a set the update cannot touch would only stamp them.
+  // too, whole, with nothing written. Claiming members of a set the update cannot touch would only stamp them. The
+  // one exception is the blocker Adopt itself clears, an axis change over unstamped members (#2603 review).
   const p = dryRunSet(defId, plans, view, ports, ledger);
-  if (p.blockers.length) return { adopted: 0, skipped: [], refused: p.blockers.join('; ') };
+  const refusing = p.blockers.filter((b) => !p.adoptClears?.includes(b));
+  if (refusing.length) return { adopted: 0, skipped: [], refused: refusing.join('; ') };
   const adoptable = new Set(p.adoptable);
   const held = new Map(p.held.map((h) => [h.member, h.byPrism3] as const));
   const rev = String(EXECUTOR_REVISION);
@@ -972,8 +1006,9 @@ const propChanges = (p: SetPreview): number => Object.values(p.properties).reduc
  *  not a difference (owner decision Q91 B, #2282), and the verdict flags those members on a line of their own.
  *  Nor is a member NOT BUILT BY PRISM3 (`unstamped`, #2464): the update never touches it and lists no change for it
  *  (the owner's own icons, #2325), so a set whose only other members are those reads as having no changes, and the
- *  set's line still counts them. Counted as a change, a file holding them could never read up to date. */
-const noChanges = (p: SetPreview): boolean => p.counts.current + p.counts.revisionUnknown + p.counts.unstamped === p.counts.members && !p.counts.add && !p.counts.move && !p.setMove && !propChanges(p);
+ *  set's line still counts them. Counted as a change, a file holding them could never read up to date. A member to
+ *  rename is a change (#2592): it reads current, and the apply renames it, so a set of renames is never up to date. */
+const noChanges = (p: SetPreview): boolean => p.counts.current + p.counts.revisionUnknown + p.counts.unstamped === p.counts.members && !p.counts.add && !p.counts.rename && !p.counts.move && !p.setMove && !propChanges(p);
 /** No changes, and every member current. A member not built by Prism3 that sits on a PLANNED coordinate is one Adopt
  *  could claim (`adoptable`, #2283), so a set holding one reads "no changes", never up to date (owner decision Q191
  *  2B). Off the plan (the owner's own icons, #2464), it doesn't stop a set reading up to date. */

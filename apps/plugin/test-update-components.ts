@@ -820,10 +820,25 @@ section('adopt — a set the dry run refuses is refused whole; a held coordinate
   theirs.name = at;
   for (const k of [STAMP_KEY, BASELINE_KEY]) (theirs.setSharedPluginData as (ns: string, k: string, v: string) => void)(NS, k, '');
   const ledger: ComponentRename[] = [{ def: TAG, kind: 'value', axis: 'size', from: 'sm', to: 'small', issue: 2265 }];
+  // The rename would give Prism3's member the hand-made one's name, so the update refuses the set, and the dry run says
+  // so (#2592): Adopt, which follows the dry run, refuses it whole.
+  const r = await adoptMembers(b.shim, [{ def: TAG, plans: b.plans }], undefined, ledger);
+  ok(r.sets.length === 0 && r.refused.length === 1 && /would give it the name of another member/.test(r.refused[0].reason) && stampOf(theirs) === '',
+    `adopt/rename onto a name: the set is refused whole, nothing stamped (${JSON.stringify(r).slice(0, 200)})`);
+}
+{
+  // The hand-made member carries the old name, so the declared rename lands it on the coordinate Prism3's member holds.
+  const b = await build(TAG);
+  const stampOf = (n: Node): string => (n.getSharedPluginData as (ns: string, k: string) => string)(NS, STAMP_KEY);
+  const ours = memberNamed(b.set, (n) => n.includes('size=small') && n.includes('state=rest') && n.includes('selection=unselected'));
+  const theirs = memberNamed(b.set, (n) => n === setValue(String(ours.name), 'size', 'medium'));
+  theirs.name = setValue(String(ours.name), 'size', 'sm');
+  for (const k of [STAMP_KEY, BASELINE_KEY]) (theirs.setSharedPluginData as (ns: string, k: string, v: string) => void)(NS, k, '');
+  const ledger: ComponentRename[] = [{ def: TAG, kind: 'value', axis: 'size', from: 'sm', to: 'small', issue: 2265 }];
   const r = await adoptMembers(b.shim, [{ def: TAG, plans: b.plans }], undefined, ledger);
   const s = r.sets[0];
-  ok(!!s && s.adopted === 0 && s.skipped.length === 1 && s.skipped[0].member === at && s.skipped[0].reason === 'a Prism3 member has this coordinate' && stampOf(theirs) === '',
-    `adopt/held: the hand-made member on the coordinate Prism3's renamed member lands on is left as it is (${JSON.stringify(s)})`);
+  ok(!!s && s.adopted === 0 && s.skipped.length === 1 && s.skipped[0].member === String(theirs.name) && s.skipped[0].reason === 'a Prism3 member has this coordinate' && stampOf(theirs) === '',
+    `adopt/held: the hand-made member on the coordinate Prism3's member holds is left as it is (${JSON.stringify(r).slice(0, 200)})`);
 }
 {
   // The set is reversed while it is read (the read hands the thread back every 24 members): each write still lands on
