@@ -579,6 +579,13 @@ export const GATES: Gate[] = [
     cmd: engine('lint-component-renames.ts'),
   },
   {
+    // The four git-history gates above, replayed on main's push run in a `$TMPDIR` clone (#2556): a
+    // squash that breaks a gate's rule must fail by that gate's own assertion. Runs the gates itself.
+    id: 'lint-push-base',
+    ciStep: "On main's push run each git-history gate compares a squash with its parent (#2556)",
+    cmd: engine('lint-push-base.ts'),
+  },
+  {
     // The executor's code at the merge base against the tree (#1098, #2265). Source only, so it needs
     // no build; it sits here with the other git-history gates rather than after the plugin build.
     id: 'lint-executor-revision',
