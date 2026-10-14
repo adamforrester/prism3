@@ -392,6 +392,12 @@ const entriesOf = (tree: unknown): Entry[] => {
 export const groupMetaOf = (tree: unknown): GroupMeta[] =>
   entriesOf(tree).flatMap((e) => (e.kind === 'meta' ? [{ path: e.path, key: e.key, value: e.value }] : []));
 
+/** Group `$`-keys as a SET, sorted by path then key. What the round-trip checks compare: the dotted
+ *  inverse keeps every field but not a key's place relative to the group's children (see
+ *  `flattenEntries`), so walk order is not a claim either check makes. */
+const groupMetaSet = (metas: readonly GroupMeta[]): GroupMeta[] =>
+  [...metas].sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
+
 /** Rebuild a nested tree from walk entries — the inverse of `entriesOf`, group `$`-keys included. */
 const nestEntries = (entries: readonly Entry[]): Node => {
   const out: Node = {};
@@ -420,7 +426,10 @@ const nest = (leaves: readonly Leaf[]): Node =>
  * dotted path, as an object with no `$value` (`"prism.color.status": { "$description": … }`). That is
  * the flat format's existing rule, one entry per path, applied to the one node kind it had no entry
  * for; a reader tells the two apart the way DTCG does, by `$value`. It inverts with `nestEntries`, so
- * the setting stays a pure reshape (#720 rule 2) rather than one that quietly loses fields.
+ * the setting stays a pure reshape (#720 rule 2) rather than one that quietly loses fields. "Pure"
+ * here means every field comes back on the same group; a group's `$`-keys come back together, before
+ * its children, so a trailing `$extensions` changes place relative to them. Key order is not a DTCG
+ * meaning, and the round-trip checks compare the keys as a set (`groupMetaSet`).
  */
 const flattenEntries = (entries: readonly Entry[]): Node => {
   const out: Node = {};
@@ -876,7 +885,7 @@ export const admissionDefects = (tree: unknown, slug = 'brand'): string[] => {
         const invertedMeta = groupMetaOf(doc).map((m) => ({
           ...m, path: m.path.split('.').map((x) => unrenameSegment(x, opt.value)).join('.'),
         }));
-        if (!sameJson(canonical(invertedMeta), canonical(groupMetaOf(tree)))) {
+        if (!sameJson(canonical(groupMetaSet(invertedMeta)), canonical(groupMetaSet(groupMetaOf(tree))))) {
           out.push(`${tag}: a group's own $description or $extensions did not survive`);
         }
       }
@@ -893,7 +902,7 @@ export const admissionDefects = (tree: unknown, slug = 'brand'): string[] => {
         if (!sameJson(canonical(nest(got)), canonical(nest(want)))) out.push(`${tag}: leaves differ after the reshape`);
         if (!sameJson(canonical(metaOf(doc)), canonical(metaOf(tree)))) out.push(`${tag}: the document's own $extensions did not survive`);
         // #2446: a group's own `$description` / `$extensions` come back on the same group.
-        if (!sameJson(canonical(groupMetaOf(back)), canonical(groupMetaOf(tree)))) {
+        if (!sameJson(canonical(groupMetaSet(groupMetaOf(back))), canonical(groupMetaSet(groupMetaOf(tree))))) {
           out.push(`${tag}: a group's own $description or $extensions did not survive the reshape`);
         }
       }

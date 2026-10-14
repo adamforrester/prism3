@@ -317,9 +317,11 @@ for (const { id, tree } of corpus) {
 //
 // No committed tree carries group-level metadata today, so the corpus alone cannot show this: a
 // projection that drops every group `$`-key passes 2–7b over the real trees, which is how it shipped.
-// The fixture is therefore a REAL emitted tree with group metadata put on three groups, in three
-// positions: the root wrapper (first key), a top-level group (after its children) and a deep group
-// (both). The expected side is the ENGINE's base projection of that fixture (`buildBase`, plus
+// The fixture is therefore a REAL emitted tree with group metadata put on three groups: the root
+// wrapper (first key AND after its children), a top-level group (after its children) and a deep group
+// (both). The root wrapper's split keys, around descendants that carry their own, are the shape whose
+// `$`-keys the dotted inverse puts back in a different order (review of #2615): the check holds them
+// as a set. The expected side is the ENGINE's base projection of that fixture (`buildBase`, plus
 // `stripExtensions` for the default), serialized here: the engine path that writes `out/*.base.tokens.json`,
 // which runs no studio code, so a studio projection that drops or reorders a key cannot reach it.
 
@@ -336,9 +338,9 @@ console.log('\n=== 7c. group metadata survives the export (#2446) ===');
   const deepNode = (wrapper[top] as N)[deep] as N;
   (wrapper[top] as N)[deep] = { $description: `The ${deep} group.`, ...deepNode, $extensions: { fixture: { at: 'deep, after children' } } };
   wrapper[top] = { ...(wrapper[top] as N), $extensions: { fixture: { at: 'top, after children' } } };
-  fixture[root] = { $description: 'The root wrapper.', ...wrapper };
+  fixture[root] = { $description: 'The root wrapper.', ...wrapper, $extensions: { fixture: { at: 'root, after children' } } };
   const metas = groupMetaOf(fixture);
-  ok(metas.length === 4, `fixture: ${metas.length} group $-keys on ${root}, ${root}.${top}, ${root}.${top}.${deep} (expected 4)`);
+  ok(metas.length === 5, `fixture: ${metas.length} group $-keys on ${root}, ${root}.${top}, ${root}.${top}.${deep} (expected 5)`);
 
   const ser = (v: unknown): string => JSON.stringify(v, null, 2) + '\n';
   const base = (files: readonly { name: string; text: string }[]): string | undefined =>
@@ -354,13 +356,18 @@ console.log('\n=== 7c. group metadata survives the export (#2446) ===');
   const deepPath = `${root}.${top}.${deep}`;
   ok(JSON.stringify(dotted[deepPath]) === JSON.stringify({ $description: `The ${deep} group.`, $extensions: { fixture: { at: 'deep, after children' } } }),
     `dotted: ${deepPath} holds the group's own $description and $extensions, and no $value`);
-  ok(JSON.stringify(dotted[root]) === JSON.stringify({ $description: 'The root wrapper.' }), `dotted: ${root} holds the root wrapper's $description`);
+  ok(JSON.stringify(dotted[root]) === JSON.stringify({ $description: 'The root wrapper.', $extensions: { fixture: { at: 'root, after children' } } }),
+    `dotted: ${root} holds the root wrapper's $description and its trailing $extensions`);
 
   // Every shape setting still round-trips with group metadata present, and the split merges back to it.
   none(admissionDefects(fixture, 'fx'), 'every shape setting round-trips the fixture, group $-keys included');
+  // The minimal shape from the #2615 review: a group with `$`-keys on both sides of a child that has its own
+  // (`space` is only there so the per-group split has two files to make).
+  none(admissionDefects({ prism: { color: { $description: 'c', red: { $description: 'r', '100': { $value: '#f00', $type: 'color' } }, $extensions: { x: 1 } }, space: { '1': { $value: '1px', $type: 'dimension' } } } }, 'x'),
+    'a group\'s $-keys on both sides of a child with its own still round-trip: the dotted inverse may reorder them, not lose them');
   const single = JSON.parse(projectDtcg(fixture, 'fx', defaultSettings())[0].text) as unknown;
   const merged = mergeFiles(projectDtcg(fixture, 'fx', { ...defaultSettings(), fileStructure: 'per-group' }));
-  ok(JSON.stringify(groupMetaOf(merged)) === JSON.stringify(groupMetaOf(single)) && groupMetaOf(single).length === 4,
+  ok(JSON.stringify(groupMetaOf(merged)) === JSON.stringify(groupMetaOf(single)) && groupMetaOf(single).length === 5,
     'per-group: the files merge back to every group $-key the single file holds');
   none(aliasDefects(fixture, { ...defaultSettings(), formatDotNotation: 'dotted' }, 'fx'), 'dotted: a group entry is not read as a token, and every alias still resolves');
 }
