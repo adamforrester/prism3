@@ -27,7 +27,7 @@ import {
   figmaDurationPrimitiveDescription, figmaDurationDescription, figmaStaggerDescription,
   figmaBreakpointDescription, figmaContainerDescription, figmaGridVarDescription,
 } from './figma-description';
-import { figName, nsName, coreName, CORE_COLLECTION } from './emit-figma-color';
+import { figName, nsName, coreName, CORE_COLLECTION, PRIMITIVE_SCOPES } from './emit-figma-color';
 import type { FigmaVar, FigmaCollectionFile } from './emit-figma-color';
 
 /** Numeric px from a `12px` or `"{alias}"` value. For alias targets we resolve via
@@ -129,10 +129,9 @@ export type FigmaDimsCollections = {
 //   opacity      → dimensionless 0–1 (0/5/10/…/100 as percent keys). Scope: OPACITY.
 // ---------------------------------------------------------------------------
 
-// Scopes by Figma convention. `dimension` primitives get the broad set (they can
-// bind anywhere a FLOAT is expected); each semantic collection narrows to its
-// intended surface, so the picker in Figma only shows relevant vars.
-const DIMENSION_SCOPES = ['WIDTH_HEIGHT', 'GAP', 'CORNER_RADIUS', 'STROKE_FLOAT'];
+// Scopes by Figma convention. `dimension` primitives carry none (#2602 — `PRIMITIVE_SCOPES`, so no local
+// picker offers them); each semantic collection narrows to its intended surface, so the picker in Figma
+// only shows relevant vars.
 const SPACE_SCOPES = ['GAP'];
 const RADIUS_SCOPES = ['CORNER_RADIUS'];
 const BORDER_WIDTH_SCOPES = ['STROKE_FLOAT'];
@@ -157,15 +156,13 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
   const brand = tree[root];
 
   // dimension primitives — REF TIER. Value is the numeric px; no alias.
-  // hiddenFromPublishing hides from library consumers who should reach
+  // Hidden from publishing AND unscoped (#2602), so designers reach for the
   // `space`/`radius`/`size`/`border-width`/`focus` semantics (all of which
-  // alias into this scale). Scopes stay at the four dim targets so, if a
-  // component author needs a raw primitive for a bespoke case, the picker
-  // guidance is still correct.
+  // alias into this scale) in a consuming file and in this one alike.
   const dimVars: FigmaVar[] = byNumericKey(Object.keys(brand.core.dimension)).map((key) => ({
     name: coreDim(`dimension/${key}`),
     resolvedType: 'FLOAT' as const,
-    scopes: DIMENSION_SCOPES,
+    scopes: PRIMITIVE_SCOPES,
     description: figmaDimensionDescription(pxFromValue(tree, brand.core.dimension[key].$value)),
     value: pxFromValue(tree, brand.core.dimension[key].$value),
     alias: null,
@@ -403,7 +400,8 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
 // NO SCOPE, deliberately: Figma's `VariableScope` has no time member (plugin-typings 1.131.0 and the
 // live API reference, both checked 2026-10-09), and no Figma property binds a duration. `scopes: []`
 // hides the variables from every property picker, which is the truth; `ALL_SCOPES` would offer 200 as a
-// width. The number is milliseconds; TokenPress types `motion/…` FLOATs back to DTCG `duration`.
+// width. Empty scopes hiding a variable from local pickers was verified live on 2026-10-13 (#2602), the
+// same fact the `core` primitives rely on (see the PRIMITIVE marker comment in `emit-figma-color.ts`). The number is milliseconds; TokenPress types `motion/…` FLOATs back to DTCG `duration`.
 //
 // MODES follow the radius precedent: a brand whose mode levers run a different tempo carries a
 // `$extensions.prism3.modes.<mode>` re-point on the semantic leaf (tree.ts), and each such mode becomes a
@@ -486,7 +484,7 @@ export const buildFigmaMotion = (theme: Theme): FigmaCollectionFile[] => {
 // `layout` var (respects viewport mode), and Figma resolves each per its own
 // collection.
 //   breakpoint/{name}   — FLOAT, the min-width threshold (mode-invariant).
-//   grid/columns        — FLOAT, per-mode count. ALL_SCOPES (no count scope).
+//   grid/columns        — FLOAT, per-mode count. No scope (no count scope exists).
 //   grid/gutter,margin  — FLOAT, PER-MODE alias into `space/*`. Scope: GAP.
 //   container/max,narrow— FLOAT, viewport-invariant. Scope: WIDTH_HEIGHT.
 // `container/fluid` (`"100%"`) skipped — Figma has no percentage FLOAT primitive.
@@ -495,10 +493,13 @@ export const buildFigmaMotion = (theme: Theme): FigmaCollectionFile[] => {
 export const LAYOUT_MODES = ['sm', 'md', 'lg', 'xl', '2xl'] as const;
 
 // grid/columns is a count, not a dimension — none of the FLOAT scopes fit
-// (WIDTH_HEIGHT/GAP/CORNER_RADIUS/STROKE_FLOAT/OPACITY/FONT_*). Figma has no
-// layoutGrid.count scope. ALL_SCOPES keeps it available everywhere without
-// wrongly claiming a narrower binding target.
-const LAYOUT_COLUMNS_SCOPES = ['ALL_SCOPES'];
+// (WIDTH_HEIGHT/GAP/CORNER_RADIUS/STROKE_FLOAT/OPACITY/FONT_*), and `VariableScope`
+// has no layout-grid member (plugin-typings 1.131.0). It carries NO scope (#2602):
+// ALL_SCOPES offered a column count in every FLOAT picker — as a width, a gap, a
+// radius, an opacity. Nothing in Prism3 binds it (the grid styles bake the count as a
+// literal, `emit-figma-styles.ts`), and scopes limit only the pickers, so it stays
+// bindable to a grid's `count` through `setBoundVariableForLayoutGrid`.
+const LAYOUT_COLUMNS_SCOPES: string[] = [];
 const LAYOUT_GAP_SCOPES = ['GAP']; // gutter + margin — same as the space collection they alias
 const LAYOUT_CONTAINER_SCOPES = ['WIDTH_HEIGHT'];
 const LAYOUT_BREAKPOINT_SCOPES = ['WIDTH_HEIGHT']; // min-width threshold
