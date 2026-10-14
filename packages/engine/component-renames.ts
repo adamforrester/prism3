@@ -33,10 +33,17 @@ export type ComponentRename =
   | { readonly def: string; readonly kind: 'drop'; readonly axis?: string; readonly value?: string; readonly issue: number };
 
 /**
- * THE LEDGER. Empty today: no def has renamed a value or an axis since member stamps were introduced
- * (#827), so there is no rename to record. The first one goes here, in the PR that makes it.
+ * THE LEDGER. Names are the Figma panel's, as a set holds them: an axis renamed only for display
+ * (`variantAxisNames`) is an axis rename here, and arm B of the lint demands its entry.
+ *
+ * Accordion's two entries are for sets built from #2534 before it merged (#2592): its icon axis was `position`, then
+ * `iconPosition`, then shown as `icon position`, all inside that one PR, so no merge base ever held the earlier names
+ * and the lint had nothing to demand. A file built from either head is updated in place through them.
  */
-export const COMPONENT_RENAMES: readonly ComponentRename[] = [];
+export const COMPONENT_RENAMES: readonly ComponentRename[] = [
+  { def: 'accordion', kind: 'axis', from: 'position', to: 'icon position', issue: 2592 },
+  { def: 'accordion', kind: 'axis', from: 'iconPosition', to: 'icon position', issue: 2592 },
+];
 
 /** A coordinate as its canonical key: the `axis=value` segments, sorted by axis, joined with `, `. Two
  *  names that differ only in segment order share one key (Figma rewrites the order when an axis is renamed

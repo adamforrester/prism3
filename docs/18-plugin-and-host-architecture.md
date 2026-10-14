@@ -45,13 +45,22 @@ Key fields (developers.figma.com/docs/plugins/manifest):
 
 - **`main`** / **`ui`** — the sandbox code file / the iframe HTML.
 - **`editorType`** — array of `"figma"` | `"figjam"` | `"dev"` | `"slides"` | `"buzz"` (note: `figjam` +
-  `dev` together are unsupported). We target `"figma"` (and likely `"dev"` for a read/inspect surface).
+  `dev` together are unsupported). We target `"figma"`: `apps/plugin/manifest.json` declares `["figma"]` only.
+  Whether to add `"dev"` for a read/inspect surface is still open (§7).
 - **`documentAccess: "dynamic-page"`** — **required for new plugins**. It's why the document getters are
   **async** (`getLocalVariableCollectionsAsync`, `getVariableByIdAsync`, …) — pages load on demand.
 - **`networkAccess`** — `{ allowedDomains: [...] , reasoning, devAllowedDomains }`. `allowedDomains` is
   required (`"none"` / `"*"` / wildcards / explicit URLs); `"*"` or localhost needs `reasoning`. An
-  unlisted request gets a CSP error. **Prism3 needs none of this at runtime** — the engine is bundled
-  in, no server call — so we can ship `allowedDomains: ["none"]`, a real trust/reliability win.
+  unlisted request gets a CSP error. **Theming needs none of this at runtime** — the engine is bundled
+  in, no server call — so the manifest ships `allowedDomains: ["none"]`, a real trust/reliability win.
+  The one exception is dev-only: the dev manifest also lists `devAllowedDomains: ["ws://localhost:17331"]`,
+  the agent link's local desktop-bridge socket (`apps/plugin/src/agent-bridge-relay.ts`), which Figma
+  honours only for a development import.
+- **Dev build vs release build (#2530).** `npm run -w @prism3/plugin build` writes `dist/` with
+  `PRISM3_DEV` true; `build:release` writes `release/` with `PRISM3_DEV` false, so esbuild drops every
+  dev-only branch (the bridge relay, the dev-only agent-link command), and writes a `manifest.json` beside
+  the bundles with `devAllowedDomains` removed (`apps/plugin/build.mjs`, `writeReleaseManifest`).
+  `apps/plugin/lint-release-bundle.ts` checks that each dev-only marker is in `dist/` and absent from `release/`.
 - **`permissions`** — `currentuser` / `activeusers` / `fileusers` / `payments` / `teamlibrary`.
 - **`capabilities`** — `textreview` / `codegen` / `inspect` / `vscode` (codegen/inspect = Dev-Mode surfaces).
 
@@ -159,8 +168,9 @@ via semantic roles). The Figma component is that same thing's visual shell.
 
 ## 7. Open decisions this grounding surfaces
 
-- **Bundling** — the engine + control UI must bundle into the plugin's iframe HTML (a browser/Figma bundle
-  is a packaging step, not a port — `09`). No `npm install` at runtime; `networkAccess: none`.
+- **Bundling** — ✅ resolved: `apps/plugin/build.mjs` bundles the engine + control UI into `dist/ui.html`
+  and the main-thread writer into `dist/main.js` (a packaging step, not a port — `09`). No `npm install` at
+  runtime; `allowedDomains: ["none"]` (§2 for the dev-only exception).
 - **Author our own headless primitives vs. wrap an existing lib** (React Aria / Radix / Ark) — a `14`-layer
   decision, deferred.
 - **Dev-Mode surface** — whether the plugin also ships a `dev`/`inspect` capability (read tokens/specs in

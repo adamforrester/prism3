@@ -25,7 +25,7 @@
  *                      record one cannot be told from the plan (Q113 A). `choices.noBaseline: 'skip'` leaves it.
  *   structural edit    the whole member skipped: its paths can no longer be trusted node by node (§5).
  *   collapse           a set an axis removal would collapse is refused: those members cannot stay in the set,
- *                      and deleting them is never the default.
+ *                      and deleting them is never the default. The dry run lists it as a blocker (`setRefusal`, #2592).
  *
  * ── THE ORDER (§7) ────────────────────────────────────────────────────────────────────────────────────────
  *
@@ -239,19 +239,9 @@ export const nestedFirst = (targets: readonly UpdateTarget[]): UpdateTarget[] =>
  * PREFLIGHT, one set, writing nothing. `null` when the set can be updated; otherwise the reason it cannot.
  */
 const preflight = async (api: ComponentsApi, t: UpdateTarget, p: SetPreview, live: LiveSet, present: Set<string>): Promise<string | null> => {
+  // A collapse, an axis change over members not built by Prism3, and a rename onto another member's name are the dry
+  // run's blockers (`setRefusal`, #2592): one test, so the confirm step lists every set this refuses for them.
   if (p.blockers.length) return p.blockers.join('; ');
-  if (p.needsChoice.includes('axisCollapse')) return 'an axis the plan removed would collapse members onto one coordinate, and they cannot stay in the set';
-  const hostAxes = p.axes.from.join(',');
-  if (hostAxes !== p.axes.to.join(',') && p.unstamped.length)
-    return `the axes change, and ${p.unstamped.length} member${p.unstamped.length === 1 ? '' : 's'} not built by Prism3 would be left on the old ones (${p.unstamped.slice(0, 3).join('; ')})`;
-  const { coordOf } = namesFor(t);
-  const names = live.children ? kidsOf(live).map((c) => coordOf(String(c.name ?? ''))) : [];
-  const after = new Map(names.map((n) => [n, n] as const));
-  for (const m of p.moves) { after.delete(m.from); }
-  for (const m of p.moves) {
-    if (after.has(m.to)) return `renaming ${m.from} would give it the name of another member (${m.to})`;
-    after.set(m.to, m.to);
-  }
   // EVERY NAME THE PLANS REACH FOR, resolved in this file before anything is written. A build would report each
   // as a miss and write the rest; an update would leave a published set half-changed, which is worse (§7).
   const roots = t.plans.map((x) => x.root);
