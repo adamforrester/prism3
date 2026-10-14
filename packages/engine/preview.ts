@@ -32,7 +32,8 @@ export type PreviewSpec = { components: PreviewComponent[] };
 // focus, disabled per the engine's disabledMin) 3.
 const TEXT = 4.5, UI = 3;
 
-// Common bindings reused across variants.
+// Common bindings reused across variants. The card's edge is `border.secondary`, a DECORATIVE rung (~2:1, no
+// floor, #2569): the card is set apart by its shadow and surface step too, so its outline carries no contract.
 const surface = { bg: 'color.foreground.primary', text: 'color.text.primary', border: 'color.border.secondary' };
 
 export const previewSpec: PreviewSpec = {

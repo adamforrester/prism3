@@ -2311,14 +2311,14 @@
       ],
       "description": "Stronger border / divider",
       "value": {
-        "r": 0.4588235318660736,
-        "g": 0.4627451002597809,
-        "b": 0.47843137383461,
+        "r": 0.30980393290519714,
+        "g": 0.30980393290519714,
+        "b": 0.3294117748737335,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/neutral/500"
+        "name": "ads/core/palette/neutral/650"
       }
     },
     {
@@ -2329,14 +2329,14 @@
       ],
       "description": "Strongest border / divider",
       "value": {
-        "r": 0.6549019813537598,
-        "g": 0.6549019813537598,
-        "b": 0.6666666865348816,
+        "r": 0.4588235318660736,
+        "g": 0.4627451002597809,
+        "b": 0.47843137383461,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/neutral/300"
+        "name": "ads/core/palette/neutral/500"
       }
     },
     {

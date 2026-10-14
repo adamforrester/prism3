@@ -67,10 +67,11 @@
  *
  * SUBTLE (status only): the tone's subtle tint `foreground.<tone>-subtle` under `text.<tone>` — the pair
  * `modes.ts` contracts at 4.5:1 in every mode — with a 1px edge in the tone's border role `border.<tone>`.
- * Neutral is `foreground.secondary` under `text.primary`, edged in `border.secondary`. The tints measure
+ * Neutral is `foreground.secondary` under `text.primary`, edged in `border.tertiary`. The tints measure
  * 1.06–1.40:1 against `background.primary` (the neutral 1.00:1 in both high-contrast modes), so the tint
  * alone gives the pill no shape; the edge does: `border.<tone>` measures at least 3.75:1 against the page
- * and `border.secondary` at least 3.20:1, in all five example brands (#1735). The edge is `border-width.hairline`
+ * and `border.tertiary` at least 3:1 against every page and surface tier, contracted in every mode (#1735; the
+ * neutral edge moved off `border.secondary` when that rung became decorative, #2569). The edge is `border-width.hairline`
  * on the surface's own stroke, and both executors draw a stroke INSIDE the node's bounds, so a subtle member
  * is exactly the size of its bold twin.
  *
@@ -153,7 +154,9 @@ export const badge: ComponentDef = {
     // ── STATUS, SUBTLE: the tone's tint, the tone's text ink, and a 1px edge in the tone's border role.
     'neutral.status.subtle.fill': 'color.foreground.secondary',
     'neutral.status.subtle.label': 'color.text.primary',
-    'neutral.status.subtle.border': 'color.border.secondary',
+    // `border.tertiary`, the first neutral edge contracted at the non-text bar on every ground (#2569). It is the
+    // pill's only boundary, so it needs 3:1; `border.secondary` is decorative (~2:1) and must not carry it.
+    'neutral.status.subtle.border': 'color.border.tertiary',
     'info.status.subtle.fill': 'color.foreground.info-subtle',
     'info.status.subtle.label': 'color.text.info',
     'info.status.subtle.border': 'color.border.info',
@@ -339,7 +342,7 @@ export const badge: ComponentDef = {
       'The axis is renamed `genre` → `type` (owner, 2026-09-28), so Badge and Tag use one name for which kind of the component a member is. The values (`status | count | dot`) are unchanged; the prop, the paint keys, the padding and corner keys and the Figma variant property move with it.',
       'Bold tone fills for the count and dot (owner-approved with the genre axis): `foreground.<tone>` under `text.on-<tone>`, with the bold neutral on the inverse surface `inverse.foreground.tertiary` under `inverse.text.primary`.',
       'The `emphasis` axis (owner decisions, 2026-09-28): the status label comes in `subtle` and `bold`, and the count and dot stay bold-only, so the Figma set is twenty members through `figmaProperties.excludeCoordinates`. This replaces the first fix for the invisible neutral, which painted every neutral status label with the bold inverse fill and made it the loudest status label on the page.',
-      'The subtle tints separate by their edge (#1735, owner decision 2026-09-28). The tone tints measure 1.06–1.40:1 against the page and the neutral tint 1.00:1 in both high-contrast modes, so the tint alone gave the pill no shape. The subtle status label now carries a 1px edge in the tone\'s border role, at least 3.75:1 against the page (`border.secondary` for neutral, at least 3.20:1), and the tint is no longer held to 3:1.',
+      'The subtle tints separate by their edge (#1735, owner decision 2026-09-28). The tone tints measure 1.06–1.40:1 against the page and the neutral tint 1.00:1 in both high-contrast modes, so the tint alone gave the pill no shape. The subtle status label now carries a 1px edge in the tone\'s border role, at least 3.75:1 against the page (`border.tertiary` for neutral, at least 3:1 on every page and surface tier since #2569, when `border.secondary` became a decorative rung), and the tint is no longer held to 3:1.',
       'The status label\'s corner is the small radius, `radius.sm` (owner decision, 2026-09-28): 2px in nb and prism3, 4px in aurora, so it scales per brand. The count and the dot stay `radius.round`. Before it every type was a pill, and a subtle status label with its 1px edge read close to Tag\'s outlined pill.',
       'A leading icon on the status label, as the brief allows, painted from the tone\'s icon role.',
       'A size axis (small, medium, large) for the count and status label, once a host needs more than one.',

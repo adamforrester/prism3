@@ -175,9 +175,10 @@ export interface StyleGuideOptions {
   tokenNames?: 'full' | 'short';
 }
 
-/** The four kinds of table the Build style guides page groups by (owner decision H8): color; spacing and size (every
- *  `dimension` table, radius included); the five font-variable kinds; and the text styles. */
-export type StyleGuideKind = 'color' | 'dimension' | 'font' | 'text';
+/** The kinds of table the Build style guides page groups by (owner decision H8): color; spacing and size (every
+ *  `dimension` table, radius included); the five font-variable kinds; the text styles; and (#2353 batch 2a) the effect
+ *  styles and the gradient paint styles. */
+export type StyleGuideKind = 'color' | 'dimension' | 'font' | 'text' | 'effect' | 'gradient';
 /** One table a run with no filter would draw, in the order it draws them. */
 export interface StyleGuideCatalogTable {
   /** The table's key (`<type>|<collection id>|<group path>`): what the `tables` option matches besides the title. */
@@ -199,13 +200,16 @@ export interface StyleGuideCatalogItem {
    *  a weight, the string for a family. Empty for a text style. */
   value: string;
 }
-/** A variable collection, or the file's text styles as one more entry (`textStyles: true`). */
+/** A variable collection, or the file's text styles as one more entry (`textStyles: true`), and its effect styles and
+ *  gradient paint styles as one each (`effectStyles: true`, `gradientStyles: true`, #2353 batch 2a). */
 export interface StyleGuideCatalogCollection {
   id: string;
   name: string;
   modes: string[];
   items: StyleGuideCatalogItem[];
   textStyles?: true;
+  effectStyles?: true;
+  gradientStyles?: true;
 }
 /** What the Build style guides page shows before a run (S11.2). */
 export interface StyleGuideCatalog {
