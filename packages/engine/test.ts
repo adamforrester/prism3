@@ -29735,6 +29735,32 @@ arm: {
         && movedB.lines.includes("  ✓ folded entries — 2 folded fragment(s) found in the log at their landing day, newest merge first; 2 more landed off main's first-parent history (a merge of main, or this branch) and are not seen here (#1880)")
         && movedB.lines.some((l) => l.startsWith('✗ ONE WRITER (log) — this diff changes docs/00-progress.md')),
       `#1880 folded entries: on the branch, a hand-move of entries that arrived through a merge is not seen by this arm (stated limit) and fails ONE WRITER instead (exit ${movedB.status}: ${verdict(movedB)})`);
+
+    // (e) #2583: the archive. From m5, the oldest three sections move out of the log to an archive file. The
+    // pure move passes, and Pre one / Pre two, folded and now archived, are still found and ordered. Dropping
+    // or duplicating a section on the way fails ARCHIVE MOVE by name; the log half alone fails ONE WRITER.
+    const section = (t: string, d = '2026-03-01') => `## (${d}) — ${t}\n\n${t} body.\n\n`;
+    const archive = (titles: string[]) => put('docs/progress/archive/2026-01.md',
+      '# Archive\n\n---\n\n' + titles.map((t) => (t === 'Seed' ? section(t, '2026-01-01') : section(t))).join(''));
+    const liveLog = () => put('docs/00-progress.md', '# Progress\n\n' + section('Bravo') + section('Alpha'));
+    const branchFromMain = (name: string, files: () => void) => { git('checkout', '-q', '-b', name, m5); files(); fragment(`lane-${name}`, `Topic ${name}`); commit(name); };
+    branchFromMain('arch', () => { liveLog(); archive(['Pre two', 'Pre one', 'Seed']); });
+    branchFromMain('arch-drop', () => { liveLog(); archive(['Pre two', 'Seed']); });
+    branchFromMain('arch-dup', () => { liveLog(); archive(['Pre two', 'Pre two', 'Pre one', 'Seed']); });
+    branchFromMain('arch-log-only', () => { liveLog(); });
+    const arch = run('arch', PR);
+    ok(arch.status === 0 && arch.lines.includes(ALL_FOUR)
+        && arch.lines.includes('  ✓ archive move — 3 section(s) moved out of docs/00-progress.md; all 5 sections of the log and archive byte-identical and in order'),
+      `#2583 archive move: a pure move passes, and the archived folded entries are still found in landing order (exit ${arch.status}: ${arch.lines.filter((l) => /archive|ARCHIVE|folded|ONE WRITER/.test(l)).join(' | ')})`);
+    const archDrop = run('arch-drop', PR);
+    ok(archDrop.status === 1 && archDrop.lines.includes('  · lost: "## (2026-03-01) — Pre one" — 1 at the base, 0 now (dropped, or its text changed on the way)'),
+      `#2583 archive move: an entry dropped on the way fails ARCHIVE MOVE by name (exit ${archDrop.status})`);
+    const archDup = run('arch-dup', PR);
+    ok(archDup.status === 1 && archDup.lines.includes('  · added: "## (2026-03-01) — Pre two" — 1 at the base, 2 now (duplicated, written new, or its text changed on the way)'),
+      `#2583 archive move: an entry duplicated on the way fails ARCHIVE MOVE by name (exit ${archDup.status})`);
+    const archLogOnly = run('arch-log-only', PR);
+    ok(archLogOnly.status === 1 && archLogOnly.lines.some((l) => l.startsWith('✗ ONE WRITER (log) — this diff changes docs/00-progress.md')),
+      `#2583 archive move: entries cut from the log with no archive half fail ONE WRITER (exit ${archLogOnly.status})`);
   } finally {
     rmSync(scratch, { recursive: true, force: true });
   }

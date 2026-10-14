@@ -541,8 +541,10 @@ jobs:
       # in the log in MERGE order at its landing day, and that every PR but a fold adds a fragment —
       # which makes it the fourth gate here that reads
       # git HISTORY (`git log --first-parent`), covered by the job-level `fetch-depth: 0` above. It
-      # refuses a shallow clone rather than missing folded fragments silently.
-      - name: docs/00-progress.md stays newest-entry-first
+      # refuses a shallow clone rather than missing folded fragments silently. Since #2583 it reads the
+      # log and `docs/progress/archive/` as one sequence, and fails any write to the archive that is
+      # not a pure move of whole entries out of the log.
+      - name: docs/00-progress.md and its archive stay newest-entry-first
         run: npx --yes tsx@4 packages/engine/lint-progress-order.ts
 
       # `out/` mixed the brand's token trees (which travel to a client on eject) with a regression
