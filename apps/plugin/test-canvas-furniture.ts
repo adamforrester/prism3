@@ -656,6 +656,7 @@ section('rollout — every def that builds a set: drawn, converged, and clear of
     Tabs: ['tab', 'tabs'],
     'Segmented control': ['segmented-control-segment', 'segmented-control'],
     Accordion: ['_accordion-indicator', 'accordion'],
+    List: ['list-item', 'list'],
   };
   const fromTaxonomy = Object.fromEntries(allLeaves().filter(({ leaf }) => leaf.defs.length > 1).map(({ leaf }) => [leaf.page, [...leaf.defs]]));
   ok(JSON.stringify(fromTaxonomy) === JSON.stringify(SHARED), `clearance/pages: the eight pages that hold more than one set (${JSON.stringify(Object.keys(fromTaxonomy))})`);

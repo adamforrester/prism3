@@ -5574,7 +5574,8 @@
         "whenToUse": "Two groups of content sit next to each other and spacing alone does not separate them: page sections, accordion or list rows, or clusters of controls in a toolbar (vertical).",
         "avoidWhen": "Spacing already separates the groups, the edge is a container's own border (a card or field draws its own), or the break needs a title (use a heading).",
         "commonPartners": [
-          "accordion"
+          "accordion",
+          "list"
         ],
         "triggerKeywords": [
           "divider",
@@ -5594,7 +5595,6 @@
         "supersedes": [],
         "supersededBy": [],
         "planned": [
-          "list",
           "menu",
           "card",
           "stack",
@@ -5925,6 +5925,292 @@
         "replacesPatterns": [
           "a show/hide div with no aria-expanded or heading",
           "a tablist used for vertical sections that open together"
+        ]
+      }
+    },
+    "list-item": {
+      "id": "list-item",
+      "name": "List.Item",
+      "aliases": [
+        "list-row",
+        "bullet-item"
+      ],
+      "category": "data",
+      "status": "draft",
+      "summary": "One list item: a bullet, number or icon at a fixed indent, then text that wraps under itself.",
+      "description": "One item in a List: a marker in a fixed-width column, then short text that wraps under itself rather than under the marker. The marker is a bullet, a number or an icon, and it sits on the first line of the text however many lines the item runs to. The marker column keeps the same width in every type, so the text of every item starts at one edge. Used inside a List; the List sets the type and size of every item it holds.",
+      "props": [
+        {
+          "name": "children",
+          "type": "node",
+          "required": true,
+          "description": "The item text: a short phrase or sentence. It wraps under itself. Inline content such as a link is allowed; a block such as a second list is a nested list, indented by one marker column."
+        },
+        {
+          "name": "type",
+          "type": "enum: 'unordered' | 'ordered' | 'icon'",
+          "default": "unordered",
+          "required": false,
+          "values": [
+            "unordered",
+            "ordered",
+            "icon"
+          ],
+          "description": "Which marker the item shows. Set by the List from its own type; do not set it on an item inside a List."
+        },
+        {
+          "name": "size",
+          "type": "enum: 'small' | 'medium' | 'large'",
+          "default": "medium",
+          "required": false,
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ],
+          "description": "The text size (body small, medium or large) and the marker sized to it. Set by the List."
+        },
+        {
+          "name": "value",
+          "type": "number",
+          "required": false,
+          "description": "In an ordered list, the number this item shows; the items after it count on from it. Leave it unset to let the list count."
+        },
+        {
+          "name": "icon",
+          "type": "slot",
+          "required": false,
+          "description": "The marker glyph when type is icon. A check by default. Decorative: the item text carries the meaning."
+        }
+      ],
+      "states": [],
+      "variants": {
+        "type": {
+          "values": [
+            "unordered",
+            "ordered",
+            "icon"
+          ],
+          "kind": "authoring"
+        },
+        "size": {
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ],
+          "kind": "authoring"
+        }
+      },
+      "accessibility": {
+        "role": "listitem (a native <li>), inside the List's list",
+        "wcag": [
+          "1.3.1 Info and Relationships (each item is a list item, so its position and the count are announced)",
+          "1.4.1 Use of Color (an icon marker never carries meaning alone; the text does)",
+          "1.4.12 Text Spacing (the item wraps and grows; nothing has a fixed height)"
+        ],
+        "focus": "None. An item is not focusable; a link inside it takes focus on its own.",
+        "aria": "None on the item: a native <li> is a list item. An icon marker is aria-hidden=\"true\". When an icon stands for a state (met, not met), the state is also in the item text or in visually hidden text, never in the icon alone."
+      },
+      "content": {
+        "labelPattern": "Short and parallel: every item the same grammatical shape, sentence case. A phrase needs no closing period; full sentences take one each. Lead with the word that differs from the item before."
+      },
+      "docs": {
+        "usage": "Use inside a List only. Each item is one short phrase or sentence after its marker. For several sentences, write a paragraph instead.",
+        "do": [
+          "Keep items short and parallel",
+          "Let the List set every item's type and size"
+        ],
+        "dont": [
+          "Mix types within one list",
+          "Put the meaning of an item in its icon alone"
+        ],
+        "contentGuidelines": "One phrase or sentence per item, sentence case, parallel with the items around it."
+      },
+      "ai": {
+        "primaryPurpose": "One item inside a List: a marker in a fixed column, then text that wraps under itself.",
+        "whenToUse": "Only as a child of List.",
+        "avoidWhen": "Content a writer edits as normal copy (use a native text list in the text itself), a choice the user makes (a listbox), a command (a menu), or a navigation link (a navigation, not built yet).",
+        "commonPartners": [
+          "list",
+          "icon"
+        ],
+        "triggerKeywords": [
+          "list item",
+          "bullet point",
+          "list entry"
+        ],
+        "generationPriority": 3
+      },
+      "motion": {
+        "enter": "None.",
+        "exit": "None.",
+        "reduceMotion": "Nothing moves."
+      },
+      "composition": {
+        "composesWith": [],
+        "alternativeTo": [],
+        "supersedes": [],
+        "supersededBy": [],
+        "planned": [
+          "data-list",
+          "checklist"
+        ],
+        "replacesPatterns": [
+          "a paragraph with a typed bullet character and spaces before it",
+          "an icon and a text box laid side by side by hand"
+        ]
+      }
+    },
+    "list": {
+      "id": "list",
+      "name": "List",
+      "aliases": [
+        "unordered-list",
+        "ordered-list",
+        "bullet-list"
+      ],
+      "category": "data",
+      "status": "draft",
+      "summary": "Short UI items after a bullet, number or icon. For running text, use a native text list.",
+      "description": "A vertical run of short items, each after a bullet, a number or an icon, with the marker, its size and color, the indent and the space between items all bound to tokens. Unordered when the order carries no meaning, ordered when it does (steps, a ranking), and icon for a set of points such as requirements or features. Every item's text starts at one edge and wraps under itself. Use it for lists a designer lays out: password rules, feature lists, icon checklists, steps. For lists inside running text that a writer edits as normal copy, such as an article body, terms or long help text, use a native text list instead.",
+      "props": [
+        {
+          "name": "type",
+          "type": "enum: 'unordered' | 'ordered' | 'icon'",
+          "default": "unordered",
+          "required": false,
+          "values": [
+            "unordered",
+            "ordered",
+            "icon"
+          ],
+          "description": "unordered (a <ul> with bullets) when the order carries no meaning; ordered (an <ol>, numbered) when it does; icon (a <ul> with an icon before each item) for points such as requirements or features. Passed to every item."
+        },
+        {
+          "name": "size",
+          "type": "enum: 'small' | 'medium' | 'large'",
+          "default": "medium",
+          "required": false,
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ],
+          "description": "The text size, body small, medium or large, with the marker, the marker column and the space between items sized to it. Passed to every item."
+        },
+        {
+          "name": "start",
+          "type": "number",
+          "default": 1,
+          "required": false,
+          "description": "Ordered only: the number the first item shows."
+        },
+        {
+          "name": "reversed",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Ordered only: count down instead of up."
+        },
+        {
+          "name": "children",
+          "type": "node",
+          "required": true,
+          "description": "The items, each a List.Item."
+        }
+      ],
+      "states": [],
+      "variants": {
+        "type": {
+          "values": [
+            "unordered",
+            "ordered",
+            "icon"
+          ],
+          "kind": "authoring"
+        },
+        "size": {
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ],
+          "kind": "authoring"
+        }
+      },
+      "accessibility": {
+        "role": "list (a native <ul> or <ol> with role=\"list\" set explicitly), its items listitem",
+        "wcag": [
+          "1.3.1 Info and Relationships (the list and its items are marked up as a list, so the count and each position are announced)",
+          "1.4.1 Use of Color (an icon marker never carries meaning alone)",
+          "1.4.12 Text Spacing (items wrap and grow; nothing has a fixed height)"
+        ],
+        "focus": "None. A list is not focusable; a link inside an item takes focus on its own.",
+        "aria": "role=\"list\" on the <ul> or <ol>, always, because the markers are drawn by the component (see the element note). Markers are not text: a bullet or number drawn by CSS is not read twice, and an icon marker is aria-hidden=\"true\". When icons stand for states (met, not met), each item says its state in text or in visually hidden text."
+      },
+      "content": {
+        "labelPattern": "Items short and parallel, sentence case. Phrases take no closing period; full sentences take one each. Three to seven items read at a glance; past that, group them or use a table."
+      },
+      "docs": {
+        "usage": "Use a List for a short set of points that a designer lays out: password rules, feature lists, icon checklists, steps. Ordered when the order carries meaning, unordered when it does not, icon for points such as requirements. Native text lists versus this component: if a writer could edit it as normal copy, use the native list; if a designer controls its spacing, markers or icons, use the component. So a list inside an article body, terms or long help text is a native text list.",
+        "do": [
+          "Use ordered only when the order carries meaning",
+          "Keep items short and parallel",
+          "Put each item's state in its text when an icon shows it",
+          "Use a native text list inside running text a writer edits"
+        ],
+        "dont": [
+          "Type numbers or bullet characters into the item text",
+          "Use a List for choices the user picks from; that is a listbox",
+          "Use a List for commands or navigation links",
+          "Use a List for values compared across columns; that is a table"
+        ],
+        "contentGuidelines": "One phrase or sentence per item, sentence case, every item the same grammatical shape."
+      },
+      "ai": {
+        "primaryPurpose": "A short run of text items, each after a bullet, a number or an icon, laid out with bound spacing and markers.",
+        "whenToUse": "A short set of points a designer lays out in UI: password rules, feature lists, icon checklists, steps. Ordered when the order means something.",
+        "avoidWhen": "Running text, such as an article body, terms or long help text. The test: if a writer could edit it as normal copy, use the native list; if a designer controls its spacing, markers or icons, use the component. Also avoid it for a choice the user makes (Select, or a listbox), a command menu, navigation links, or values compared across columns (a table).",
+        "commonPartners": [
+          "list-item",
+          "icon",
+          "text-field"
+        ],
+        "triggerKeywords": [
+          "list",
+          "bulleted list",
+          "numbered list",
+          "ordered list",
+          "unordered list",
+          "checklist",
+          "feature list",
+          "password rules"
+        ],
+        "generationPriority": 2
+      },
+      "motion": {
+        "enter": "None.",
+        "exit": "None.",
+        "reduceMotion": "Nothing moves."
+      },
+      "composition": {
+        "composesWith": [
+          "list-item"
+        ],
+        "alternativeTo": [],
+        "supersedes": [],
+        "supersededBy": [],
+        "planned": [
+          "data-list",
+          "checklist",
+          "table",
+          "menu",
+          "navigation"
+        ],
+        "replacesPatterns": [
+          "a <ul> with list-style: none and no role=\"list\"",
+          "a column of text boxes with typed bullet characters"
         ]
       }
     },
