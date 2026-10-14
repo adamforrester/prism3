@@ -1174,20 +1174,27 @@ npx tsx packages/engine/lint-component-docs.ts      # every registered component
                                                     # table), axis kinds included; codeOnly/notes are in
                                                     # the maintainer record and in neither payload form;
                                                     # no Prism 2 in the payload.
-npx tsx packages/engine/lint-ecosystem.ts           # the ecosystem diagram's data matches the code
-                                                    # (#2637): docs/public/ecosystem/ecosystem.json is
-                                                    # the SUBJECT, the code the ORACLE. Every source
-                                                    # path and docs link is git-tracked; every edge joins
-                                                    # known nodes and is never more built than either
-                                                    # end; every trace step is an edge; the component
-                                                    # defs, MCP tools, agent link commands, bridge tools
-                                                    # and skills it lists are exactly the code's, both
-                                                    # ways, each with a floor; the page fetches the
-                                                    # data; its text tokens clear 4.5:1 in light and dark.
                                                     # LIMIT: a claim phrased with neither `advis...`
                                                     # nor `continue-on-error` is not seen, and the run
                                                     # prints the whole census so a count that drops
                                                     # without a deletion in the diff is the tell
+npx tsx packages/engine/lint-ecosystem.ts           # the ecosystem diagram's data matches the code
+                                                    # (#2637, Q304): docs/public/ecosystem/ecosystem.json
+                                                    # is the SUBJECT, the code the ORACLE. Every source
+                                                    # path and docs link is git-tracked; every edge joins
+                                                    # known nodes, is never more built than either end,
+                                                    # and names a known connection; every trace step is
+                                                    # an edge; every check sits on a node. LANES: MCP
+                                                    # tools (toolDefs) only in agent lanes, plugin
+                                                    # messages (UiToMain) only in figma lanes and never
+                                                    # with a web claim; an agent command that is also a
+                                                    # UiToMain type needs the figma lane, one that is not
+                                                    # must not have it; a web-only or figma-only UI
+                                                    # feature cites a PRISM3_HOST branch. The defs, MCP
+                                                    # tools, agent commands, bridge tools and skills it
+                                                    # lists are exactly the code's, both ways, each with
+                                                    # a floor; the page fetches the data and writes no
+                                                    # feature label itself; its text tokens clear 4.5:1.
 ```
 
 CI (`.github/workflows/ci.yml`) also runs the web and plugin gates below **on every PR,
