@@ -320,6 +320,10 @@
     "segmented-control": {
       "members": 3,
       "sha256": "f9e21c4d8cccf6f57235b1106105996eb72bb3a25c4a4dc7b4b3c731d95f974e"
+    },
+    "dialog": {
+      "members": 15,
+      "sha256": "1ef0d92e1c89c70032181dbcac5d72602840faed94642099d9b21a27e112aeee"
     }
   }
 }

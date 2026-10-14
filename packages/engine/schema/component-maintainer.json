@@ -1075,6 +1075,40 @@
         ],
         "projection": []
       }
+    },
+    "dialog": {
+      "codeOnly": [
+        "role — `role=\"dialog\"` with `aria-modal=\"true\"`; the native `<dialog>` opened with `showModal()` provides both. `role: \"alertdialog\"` is a code prop with no Figma property: set it for a confirmation that interrupts and needs an answer. An alertdialog hides the close button (the Figma `close` toggle shows the result), keeps a backdrop click from closing it, and must hold at least one focusable control.",
+        "labelling — `aria-labelledby` points at the title, made a heading (`<h2>`); `aria-describedby` points at the description when there is one.",
+        "focus in — on open, focus moves into the dialog: to the first control in the body for a short form; to the title (`tabindex=\"-1\"`) when the body is long reading content, so a screen reader starts at the top; for an alertdialog, to the least destructive action (Cancel). Never to a destructive button.",
+        "focus held — Tab and Shift+Tab cycle inside the dialog, and the page behind is inert. A modal `<dialog>` makes the page inert natively.",
+        "focus returned — on close, focus goes back to the control that opened the dialog. If that control is gone, to the nearest control that still makes sense, never to the page body.",
+        "Escape — closes a dialog, and closes an alertdialog as Cancel. The close button is always reachable by keyboard, so the dialog is never a keyboard trap (SC 2.1.2).",
+        "backdrop click — closes a dialog, never an alertdialog. Close only when the press started on the backdrop (`mousedown` target is the dialog element itself), so a text selection dragged out of the panel does not close it. A full-screen dialog has no visible backdrop; Escape and the close button still apply.",
+        "scroll lock — the page behind does not scroll while the dialog is open (`html:has(dialog[open]) { overflow: hidden }`, with the scrollbar width added back as padding so the page does not shift). The body scrolls with `overscroll-behavior: contain`, so a scroll at its end does not move the page.",
+        "only the body scrolls — the header and footer stay put and the body scrolls between them, so a focused field in the body is never hidden under the footer (SC 2.4.11). Show the two dividers only while the body overflows; in Figma they are the `dividers` toggle.",
+        "placement per breakpoint, no automatic switch — `placement` can take a value per breakpoint, but nothing switches on its own: a dialog stays centered on a phone unless the product chooses bottom or full. A centered panel on a small screen is the viewport width less the grid margins. Bottom and full are full width; full is also full height. A bottom sheet is at most 90% of the viewport height, so the page shows above it; a centered panel at most the viewport height less the grid margin top and bottom. Above that, the body scrolls.",
+        "the panel padding below 480px — `space.200` instead of `space.300` on a centered panel when the viewport is narrower than 480px. Figma builds the bottom and full members, which are small-screen placements, with `space.200`.",
+        "motion — opening: a centered panel fades in and scales up a little; a bottom sheet and a full-screen dialog slide up from the bottom edge; the backdrop fades. On `motion.duration.moderate` with `motion.easing-role.enter`, and `motion.easing-role.exit` to close. Under `prefers-reduced-motion`, a fade only, at `motion.duration-reduced.moderate`, with no movement. Figma shows the panel at rest.",
+        "the backdrop — `color.scrim.default` on `::backdrop`. It is not part of the component: the Figma page draws it behind each example as canvas furniture.",
+        "stacking — a modal `<dialog>` renders in the top layer, so it needs no z-index. Avoid opening a dialog from a dialog: replace the content or close the first.",
+        "right-to-left — the layout mirrors through logical properties: the close button moves to the start edge and the footer order mirrors.",
+        "code delivery pending: behavior layer (#2454) — initial focus placement, backdrop-click dismissal and focus return wait on that decision. The contract above holds under any answer to it."
+      ],
+      "notes": {
+        "contested": [
+          "HELD FOR THE OWNER (#2609): the bottom and full members' build size (360 wide, and 640 tall for full), the title-to-description gap (space.100) and the title-to-close gap (space.200), the body placeholder copy, the description text property's Figma name (\"description text\"), the `actions` prop, and Cancel as an outline Button beside a filled Save.",
+          "The close button sits at the header's top edge, beside the first line of the title, without an offset that centers it on that line: whether the title moves down to center on the 44px button is held for the owner's visual QA."
+        ],
+        "unverified": [
+          "The nested close button shows the file's default icon until a designer swaps it to close, and the nested footer buttons read \"Button\" until a designer types \"Cancel\" and \"Save\": a per-instance override on a nested instance is executor work no def can ask for yet (#2645).",
+          "That the native slot keeps a designer's body content across a placement or footer switch in every Figma plan, as it does across the accordion's expansion switch."
+        ],
+        "evolution": [
+          "Owner decisions: the proposal on #2609 (one component, the anatomy, the tokens, the accessibility contract), and Q303 (2026-10-14): no side or drawer placement; `placement` center, bottom or full, with no automatic switch; the backdrop `color.scrim.default` as canvas furniture and `::backdrop`; def-level widths; footer inline, stacked or none; Escape, close and backdrop click dismiss a dialog, and an alertdialog only through its buttons or Escape; `role` a code prop that hides close on an alertdialog; close on by default; corners per placement; the names and aliases; the placeholder wording."
+        ],
+        "projection": []
+      }
     }
   }
 }

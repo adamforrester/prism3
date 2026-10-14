@@ -112,6 +112,9 @@ export const TAXONOMY: Taxonomy = {
         // List (#2319, owner decision Q273.7) — its own page under Components, List.Item beside it. The item builds first,
         // so the list's nested items resolve against it on the same page.
         { page: 'List', defs: ['list-item', 'list'] },
+        // Dialog (#2609, owner decision Q303.12 A) — its own page under Components, every placement on it. It nests the
+        // Neutral IconButton, the Divider and the Button, which the build places first wherever their pages sort.
+        { page: 'Dialog', defs: ['dialog'] },
       ],
     },
     {

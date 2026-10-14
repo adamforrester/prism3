@@ -402,7 +402,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'size',
     values: ['medium', 'small', 'large'],
-    defs: ['text-field', 'select', 'textarea'],
+    defs: ['text-field', 'select', 'textarea', 'dialog'],
     relation: 'reordered',
     reason:
       'The canonical ladder, led by `medium` (#2266, the field sizing system). The first value is the set\'s '
@@ -411,7 +411,9 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'medium first keeps those members\' look as well as their keys; `small` first would rewrite them as '
       + 'the small field in place. The code enum (`props.size`) keeps the ladder\'s own order; '
       + '`lint-rung-names.ts` DEFAULT_FIRST admits the split. Decided by the owner: Q221 B (2026-10-10), the named '
-      + 'exception to #2501\'s smallest-to-largest, because Figma takes the default from the top-left member.',
+      + 'exception to #2501\'s smallest-to-largest, because Figma takes the default from the top-left member. '
+      + 'Dialog (#2609) joins on the owner\'s Q303, which approved the proposal\'s axis table listing its sizes '
+      + 'default first: a dialog inserted from the assets panel is the 560px medium panel.',
   },
   {
     axis: 'size',
@@ -640,6 +642,27 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'leading and trailing visuals and Switch row\'s `labelPosition`, a prop there and not an axis, so this set has no '
       + 'other def to stand in a relation with. In right-to-left text leading is the right edge and nothing mirrors. '
       + 'Distinct from `direction` and `orientation`, argued in `VARIANT_AXES`.',
+  },
+  {
+    axis: 'placement',
+    values: ['center', 'bottom', 'full'],
+    defs: ['dialog'],
+    relation: 'sole',
+    reason:
+      'Where a layer sits over the page (#2609, owner decision Q303.1): centered, attached to the bottom edge as a bottom '
+      + 'sheet, or filling a small screen. No side placement, by the same decision. `center` LEADS because it is the code '
+      + 'default on every screen and Figma\'s default member. One def carries it, so there is no other to stand in a '
+      + 'relation with. Distinct from `alignment` and `direction`, argued in `VARIANT_AXES`.',
+  },
+  {
+    axis: 'footer',
+    values: ['inline', 'stacked', 'none'],
+    defs: ['dialog'],
+    relation: 'sole',
+    reason:
+      'How a panel lays out its actions (#2609, owner decision Q303.6 A): a row at the end edge, full-width buttons '
+      + 'stacked, or no footer. `inline` LEADS because it is the code default and Figma\'s default member. One def '
+      + 'carries it. Distinct from `orientation` and `alignment`, argued in `VARIANT_AXES`.',
   },
   {
     axis: 'indicator',
