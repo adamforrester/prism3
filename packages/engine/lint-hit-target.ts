@@ -161,6 +161,8 @@ const INTERACTIVE: Record<string, Binding> = {
   'tab': { key: (s) => `size.${s}.height`, why: 'the tab box height' },
   // #2417: the whole header row is the target; its floor is 44px at every size (owner Q182).
   'accordion': { key: (s) => `size.${s}.min-height`, why: 'the header row\'s min-height floor' },
+  // #2418: each option\'s full-height cell is its target, on Button\'s own height rung (the visible pill is inset 4px).
+  'segmented-control-segment': { key: (s) => `size.${s}.height`, why: 'the option cell height' },
 };
 
 // ── TARGETS INSIDE A CONTROL (#1741): `<def>.<part>` → the tokens KEY of the part's side at a size ─────────
@@ -226,7 +228,7 @@ const ruleGap = (entries: readonly string[], rule: readonly RegExp[]): string[] 
 /** The defs carved out as a size-level exception: a small button (owner, #1443) and a small tag (owner,
  *  2026-09-27, "as for Button") sit below the floor on purpose. Kept as data so the walk asserts each is
  *  ACTUALLY below the floor. */
-const SMALL_SIZE = new Set(['button', 'button-destructive', 'button-neutral', 'tag', 'tab']);
+const SMALL_SIZE = new Set(['button', 'button-destructive', 'button-neutral', 'tag', 'tab', 'segmented-control-segment']);
 
 // ── EXCLUDED: represented, with a stated reason (docs/34 — a hand-enumerated legitimate exclusion) ──
 const EXCLUDED: Record<string, string> = {
@@ -235,6 +237,7 @@ const EXCLUDED: Record<string, string> = {
   'field-label': 'a field label, not an interactive control',
   'field-message': 'a helper/validation message, not an interactive control',
   'veil': 'a media wash overlay, not an interactive control',
+  'segmented-control': 'a segmented control\'s track and label — its tap targets are the nested options, which are gated as segmented-control-segment',
   'divider': 'a 1px rule between groups of content, never interactive and never focusable',
   'list': 'a read list of text items, never interactive and never focusable; a link inside an item is its own control (#2319)',
   'list-item': 'one item of a read list, never interactive and never focusable; a link inside it is its own control (#2319)',

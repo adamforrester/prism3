@@ -74,6 +74,7 @@ import { accordionIndicator } from './accordion-indicator';
 import { accordion } from './accordion';
 import { listItem } from './list-item';
 import { list } from './list';
+import { segmentedControlSegment, segmentedControl } from './segmented-control';
 
 /** Named access, kept ALONGSIDE the set rather than replaced by it. Most of `test.ts`'s component
  *  assertions are about one def's specific fields (`button.variants.appearance`,
@@ -81,7 +82,7 @@ import { list } from './list';
  *  be a worse call site, not a better one — a lookup that can return `undefined` standing in for a
  *  binding that cannot. The set is for iteration; these are for the assertions that are ABOUT one
  *  component. */
-export { button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, textarea, checkboxControl, checkboxRow, checkboxGroup, radioControl, radioRow, radioGroup, switchControl, switchRow, select, veil, imagePlaceholder, spinner, badge, tag, tab, tabs, divider, accordionIndicator, accordion, listItem, list };
+export { button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, textarea, checkboxControl, checkboxRow, checkboxGroup, radioControl, radioRow, radioGroup, switchControl, switchRow, select, veil, imagePlaceholder, spinner, badge, tag, tab, tabs, divider, accordionIndicator, accordion, listItem, list, segmentedControlSegment, segmentedControl };
 
 /** Every component def the engine defines. The one thing a projection should iterate. */
 export const componentDefs: readonly ComponentDef[] = [
@@ -195,4 +196,8 @@ export const componentDefs: readonly ComponentDef[] = [
   listItem,
   // `list` (#2319) — the read list. Nests its items.
   list,
+  // `segmented-control-segment` and `segmented-control` (#2418, owner Q269) — one option and the control. The
+  // control nests the option (size-followed, growing along the track) and the field label; the option first.
+  segmentedControlSegment,
+  segmentedControl,
 ];
