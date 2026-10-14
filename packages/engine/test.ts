@@ -31,6 +31,7 @@ import { resolvePreview } from './resolve-preview';
 import { exampleBrands, exampleBrandsJson, EXAMPLE_IDS } from './emit-brandinput';
 import { buildFigmaColor, buildFigmaFont, buildFigmaFontFluid, buildFigmaTextStyles, buildFigmaDims, buildFigmaLayout, buildFigmaShadow, buildFigmaGradient, buildFigmaGridStyles, fontStyleName, figName, parseColor, figmaArtifacts, COLOR_MODES, FONT_FLUID_MODES, LAYOUT_MODES } from './emit-figma';
 import type { FigmaCollectionFile } from './emit-figma';
+import { MOTION_FIGMA_COVERAGE, springBounce } from './emit-figma-dims';
 import { buildBase, buildOverlay, overlayModes, buildOverlaySet, leafCount, DTCG_TYPES } from './emit-dtcg-overlay';
 import { callTool as mcpCallTool, unsafeOutDir, EXPORT_SECTIONS } from './mcp';
 import { buildTree, validateBrandInput, readExampleBrand } from './emit-dtcg';
@@ -47,8 +48,8 @@ import {
 import { buildContract, corpus as contractCorpus, pathsOf, MINIMAL_BRAND, MINIMAL_COMPACT_BRAND, readBaseline } from './token-contract';
 import { scoreConsumption, scoreContractCompliance, tokenPaths, normalizeRef, isPrimitiveRef, PRIMITIVE_TIER, PRIMITIVE_GROUPS } from './eval';
 import { runEval, buildPrompt, extractRefs, extractPairs, SAMPLE_TASKS } from './eval-run';
-import { aliasRows, colorAliasesJs, colorAliasesChunks, verifyJs, floatCollections, fontCollections, passJs, passOrder, passPayloads, colorCreateChunks, colorIndivisibleUnit, pruneReport, registerFigmaTree } from './materialise-to-figma';
-import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, gradientTransformFor, buildFontVarPlan, buildTextStylePlan, fontVarPlanFrom, stylesPlanFromFiles, textStylePlanFromFiles } from './write-plan';
+import { aliasRows, colorAliasesJs, colorAliasesChunks, verifyJs, floatCollections, fontCollections, motionCollections, passJs, passOrder, passPayloads, colorCreateChunks, colorIndivisibleUnit, pruneReport, registerFigmaTree } from './materialise-to-figma';
+import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, gradientTransformFor, buildFontVarPlan, buildMotionVarPlan, buildTextStylePlan, fontVarPlanFrom, stylesPlanFromFiles, textStylePlanFromFiles } from './write-plan';
 import { verifyReadback, verifyFloatReadback, verifyTypographyReadback, ReadbackSnapshot } from './read-back';
 import { tailOf } from './figma-names';
 import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION, UnrecognizedPersistedInputError } from './persist-input';
@@ -4450,10 +4451,11 @@ arm: {
   // Nine collections, ten axes: #1097 merged `core-palette`/`core-dimension`/`core-font` into ONE `core`
   // collection, so `core/dimension` is a SLICE of a collection rather than a collection of its own. The
   // count moves 10 → 9 for that reason and no other.
-  // `motion` joined in #2394: FLOAT milliseconds, the first float collection with no scope.
-  const EXPECTED = ['core', 'space', 'radius', 'size', 'icon', 'control', 'border-width', 'focus', 'opacity', 'layout', 'motion'];
+  // `motion` joined in #2394 as FLOAT milliseconds and left with #2412: TIMING + EASING, so it is
+  // `buildMotionVarPlan`'s, not a FLOAT axis. Asserted absent here so it cannot be written twice.
+  const EXPECTED = ['core', 'space', 'radius', 'size', 'icon', 'control', 'border-width', 'focus', 'opacity', 'layout'];
   ok(EXPECTED.every((n) => names.includes(n)) && names.length === EXPECTED.length,
-    `float-plan: eleven collections present (${names.join(', ')})`);
+    `float-plan: ten collections present, motion not among them (${names.join(', ')})`);
 
   // Single-mode dims axes vs per-breakpoint layout.
   ok(auroraFloat.find((c) => c.name === 'core')!.modes.join(',') === 'Default',
@@ -23289,6 +23291,26 @@ arm: {
   }
 }
 
+// ------------------------------------------- materialise-to-figma: the MOTION paste path (#2412)
+// `motion` left the FLOAT passes when it became TIMING + EASING. Its pass must cover the collection the plugin
+// writes, carry the same rows, and never write `scopes`: Figma refuses one on both types, and a refusal in a
+// pasted script aborts the script.
+{
+  const pluginMotion = buildMotionVarPlan(nbTheme());
+  ok(JSON.stringify(motionCollections('nb')) === JSON.stringify(pluginMotion.map((p) => p.name)) && !floatCollections('nb').includes('motion'),
+    `materialise: the paste path writes motion in its own pass, as the plugin does (${motionCollections('nb')}; float: ${floatCollections('nb').includes('motion') ? 'motion still there' : 'no motion'})`);
+  const mv = passJs('nb', 'motion-vars');
+  const rows = JSON.parse(/const M=(.*);\n/.exec(mv)?.[1] ?? '[]') as [string, string[], [string, string, string, number, unknown[], (string | null)[]][]][];
+  const planRows = pluginMotion.flatMap((p) => p.rows.map((r) => [r.name, r.resolvedType, r.description, r.hidden ? 1 : 0, r.valuesByMode, r.aliasByMode]));
+  ok(rows.length === 1 && JSON.stringify(rows[0][2]) === JSON.stringify(planRows),
+    `materialise: motion-vars carries the plugin's ${planRows.length} motion rows, typed and valued alike`);
+  ok(rows.length === 1 && rows[0][2].some((r) => r[1] === 'TIMING') && rows[0][2].some((r) => r[1] === 'EASING') && rows[0][2].every((r) => r[1] === 'TIMING' || r[1] === 'EASING'),
+    'materialise: motion-vars rows are TIMING and EASING, nothing else');
+  ok(/createVariable\(name,col,ty\)/.test(mv) && !/\.scopes\s*=/.test(mv),
+    'materialise: motion-vars creates each variable with its own type and never writes scopes');
+  ok(passOrder().includes('motion-vars'), 'materialise: motion-vars is in the paste order');
+}
+
 // ------------------------------------------- materialise-to-figma: the FLOAT paste path (#342)
 // The two write paths — the CLI paste string and the live plugin executor — are supposed to be
 // projections of ONE plan. They weren't: the plugin has written floats since #108 while the CLI
@@ -24397,32 +24419,54 @@ arm: {
     'figmaArtifacts: no two artifacts claim the same path (a collision would silently drop a file)');
 }
 
-// ---- motion in Figma (#2394): FLOAT milliseconds, no scope, the DTCG's names ---------------------------
+// ---- motion in Figma (#2394, #2412): TIMING seconds + EASING, the DTCG's names ---------------------------
 // EXPECTED is typed here, row by row, from the DTCG motion ramp of each brief (`out/<brand>.tokens.json`,
-// read once by hand) — never from the emitter. `[name below the root, ms, alias target below the root]`;
-// a primitive has no alias. NB runs the standard tempo; aurora runs snappy, so its ramp is a different
-// set of numbers, including a 30ms stagger and an 80ms primitive NB does not have.
+// read once by hand) — never from the emitter. A duration row is `[name below the root, SECONDS, alias target]`
+// (Figma's TIMING holds seconds, spike #2403, so 200ms is typed 0.2 here, not computed); a primitive has no
+// alias. NB runs the standard tempo; aurora runs snappy, so its ramp is a different set of numbers, including
+// a 30ms stagger and an 80ms primitive NB does not have. The easing rows are the same in both briefs.
 {
   type Row = [string, number, string | null];
-  const prim = (ms: number): Row => [`motion/duration-ms/${ms}`, ms, null];
-  const sem = (name: string, ms: number): Row => [`motion/${name}`, ms, `motion/duration-ms/${ms}`];
+  const prim = (key: number, sec: number): Row => [`motion/duration-ms/${key}`, sec, null];
+  const sem = (name: string, key: number, sec: number): Row => [`motion/${name}`, sec, `motion/duration-ms/${key}`];
   const NB_MOTION: Row[] = [
-    ...[0, 40, 50, 100, 200, 300, 500, 800, 2600].map(prim),
-    sem('duration/instant', 50), sem('duration/fast', 100), sem('duration/normal', 200), sem('duration/moderate', 300),
-    sem('duration/slow', 500), sem('duration/slower', 800), sem('duration/spin', 800),
-    sem('duration-reduced/instant', 50), sem('duration-reduced/fast', 100), sem('duration-reduced/normal', 50),
-    sem('duration-reduced/moderate', 0), sem('duration-reduced/slow', 0), sem('duration-reduced/slower', 0),
-    sem('duration-reduced/spin', 2600),
-    sem('stagger', 40),
+    prim(0, 0), prim(40, 0.04), prim(50, 0.05), prim(100, 0.1), prim(200, 0.2), prim(300, 0.3), prim(500, 0.5), prim(800, 0.8), prim(2600, 2.6),
+    sem('duration/instant', 50, 0.05), sem('duration/fast', 100, 0.1), sem('duration/normal', 200, 0.2), sem('duration/moderate', 300, 0.3),
+    sem('duration/slow', 500, 0.5), sem('duration/slower', 800, 0.8), sem('duration/spin', 800, 0.8),
+    sem('duration-reduced/instant', 50, 0.05), sem('duration-reduced/fast', 100, 0.1), sem('duration-reduced/normal', 50, 0.05),
+    sem('duration-reduced/moderate', 0, 0), sem('duration-reduced/slow', 0, 0), sem('duration-reduced/slower', 0, 0),
+    sem('duration-reduced/spin', 2600, 2.6),
+    sem('stagger', 40, 0.04),
   ];
   const AURORA_MOTION: Row[] = [
-    ...[0, 30, 40, 50, 80, 160, 240, 400, 640, 800, 2600].map(prim),
-    sem('duration/instant', 40), sem('duration/fast', 80), sem('duration/normal', 160), sem('duration/moderate', 240),
-    sem('duration/slow', 400), sem('duration/slower', 640), sem('duration/spin', 800),
-    sem('duration-reduced/instant', 40), sem('duration-reduced/fast', 80), sem('duration-reduced/normal', 50),
-    sem('duration-reduced/moderate', 0), sem('duration-reduced/slow', 0), sem('duration-reduced/slower', 0),
-    sem('duration-reduced/spin', 2600),
-    sem('stagger', 30),
+    prim(0, 0), prim(30, 0.03), prim(40, 0.04), prim(50, 0.05), prim(80, 0.08), prim(160, 0.16), prim(240, 0.24), prim(400, 0.4),
+    prim(640, 0.64), prim(800, 0.8), prim(2600, 2.6),
+    sem('duration/instant', 40, 0.04), sem('duration/fast', 80, 0.08), sem('duration/normal', 160, 0.16), sem('duration/moderate', 240, 0.24),
+    sem('duration/slow', 400, 0.4), sem('duration/slower', 640, 0.64), sem('duration/spin', 800, 0.8),
+    sem('duration-reduced/instant', 40, 0.04), sem('duration-reduced/fast', 80, 0.08), sem('duration-reduced/normal', 50, 0.05),
+    sem('duration-reduced/moderate', 0, 0), sem('duration-reduced/slow', 0, 0), sem('duration-reduced/slower', 0, 0),
+    sem('duration-reduced/spin', 2600, 2.6),
+    sem('stagger', 30, 0.03),
+  ];
+  // EASING: `[name, value, alias, hidden]`. Curves are hidden primitives, roles published aliases of a curve,
+  // springs published, `bounce` only: 1 − the damping ratio (0.9 / 0.8 / 0.6 → 0.1 / 0.2 / 0.4, spike #2403).
+  type ERow = [string, unknown, string | null, boolean];
+  const bez = (x1: number, y1: number, x2: number, y2: number) => ({ type: 'CUSTOM_CUBIC_BEZIER', easingFunctionCubicBezier: { x1, y1, x2, y2 } });
+  const spring = (bounce: number) => ({ type: 'CUSTOM_SPRING', easingFunctionSpring: { bounce } });
+  const EASING: ERow[] = [
+    ['motion/easing/linear', bez(0, 0, 1, 1), null, true],
+    ['motion/easing/standard', bez(0.2, 0, 0, 1), null, true],
+    ['motion/easing/decelerate', bez(0, 0, 0.2, 1), null, true],
+    ['motion/easing/accelerate', bez(0.4, 0, 1, 1), null, true],
+    ['motion/easing/expressive', bez(0.4, 0.14, 0.3, 1), null, true],
+    ['motion/easing/calm', bez(0.4, 0, 0.6, 1), null, true],
+    ['motion/easing-role/default', bez(0.2, 0, 0, 1), 'motion/easing/standard', false],
+    ['motion/easing-role/enter', bez(0, 0, 0.2, 1), 'motion/easing/decelerate', false],
+    ['motion/easing-role/exit', bez(0.4, 0, 1, 1), 'motion/easing/accelerate', false],
+    ['motion/easing-role/emphasized', bez(0.4, 0.14, 0.3, 1), 'motion/easing/expressive', false],
+    ['motion/spring/snappy', spring(0.1), null, false],
+    ['motion/spring/gentle', spring(0.2), null, false],
+    ['motion/spring/bouncy', spring(0.4), null, false],
   ];
 
   /** The emitted `motion.json` of a theme, through the same shell regen writes with. */
@@ -24438,46 +24482,85 @@ arm: {
       `motion (${brand}): one motion.json, collection motion, mode Default (${file ? `${file.$collection}/${file.$mode}` : 'absent'})`);
     if (!file) return;
     const byName = new Map(file.variables.map((v) => [v.name, v]));
-    for (const [tail, ms, alias] of expected) {
+    for (const [tail, sec, alias] of expected) {
       const v = byName.get(`${root}/${tail}`);
       ok(!!v, `motion (${brand}): ${tail} is emitted`);
       if (!v) continue;
-      ok(v.value === ms, `motion (${brand}): ${tail} is ${ms}ms (got ${v.value})`);
+      ok(v.value === sec, `motion (${brand}): ${tail} is ${sec}s (got ${v.value})`);
       ok((v.alias?.name ?? null) === (alias ? `${root}/${alias}` : null),
         `motion (${brand}): ${tail} aliases ${alias ?? 'nothing'} (got ${v.alias?.name ?? 'nothing'})`);
-      ok(v.resolvedType === 'FLOAT' && Array.isArray(v.scopes) && v.scopes.length === 0,
-        `motion (${brand}): ${tail} is a FLOAT with no scope (Figma has no time scope) — got ${v.resolvedType} [${v.scopes}]`);
+      ok(v.resolvedType === 'TIMING' && JSON.stringify(v.scopes) === '["ALL_SCOPES"]',
+        `motion (${brand}): ${tail} is TIMING at ALL_SCOPES (Figma refuses a scopes write on it) — got ${v.resolvedType} [${v.scopes}]`);
       ok(!!v.hiddenFromPublishing === (alias === null),
         `motion (${brand}): ${tail} is ${alias === null ? 'hidden from publishing (a primitive)' : 'published (a semantic)'}`);
     }
-    const extra = file.variables.map((v) => v.name).filter((n) => !expected.some(([t]) => `${root}/${t}` === n));
-    ok(extra.length === 0 && file.variables.length === expected.length,
-      `motion (${brand}): exactly the ${expected.length} expected variables${extra.length ? ` — extra: ${extra.join(', ')}` : ''}`);
+    for (const [tail, value, alias, hidden] of EASING) {
+      const v = byName.get(`${root}/${tail}`);
+      ok(!!v && v.resolvedType === 'EASING' && JSON.stringify(v.scopes) === '["ALL_SCOPES"]',
+        `motion (${brand}): ${tail} is EASING at ALL_SCOPES (got ${v ? `${v.resolvedType} [${v.scopes}]` : 'absent'})`);
+      if (!v) continue;
+      ok(JSON.stringify(v.value) === JSON.stringify(value), `motion (${brand}): ${tail} holds ${JSON.stringify(value)} (got ${JSON.stringify(v.value)})`);
+      ok((v.alias?.name ?? null) === (alias ? `${root}/${alias}` : null), `motion (${brand}): ${tail} aliases ${alias ?? 'nothing'} (got ${v.alias?.name ?? 'nothing'})`);
+      ok(!!v.hiddenFromPublishing === hidden, `motion (${brand}): ${tail} is ${hidden ? 'hidden from publishing' : 'published'}`);
+    }
+    const all = [...expected.map(([t]) => t), ...EASING.map(([t]) => t)];
+    const extra = file.variables.map((v) => v.name).filter((n) => !all.some((t) => `${root}/${t}` === n));
+    ok(extra.length === 0 && file.variables.length === all.length,
+      `motion (${brand}): exactly the ${all.length} expected variables, no transition among them${extra.length ? ` — extra: ${extra.join(', ')}` : ''}`);
   };
   check('nb', nbTheme(), NB_MOTION);
   check('aurora', exampleTheme('aurora', () => brandTheme(exampleBrands()['aurora'] as BrandInput)), AURORA_MOTION);
 
-  // Apply Theme writes it: the float plan carries the collection, same rows.
-  const nbMotionPlan = buildFloatWritePlan(nbTheme()).find((c) => c.name === 'motion');
-  ok(!!nbMotionPlan && nbMotionPlan.modes.join() === 'Default' && nbMotionPlan.create.length === NB_MOTION.length,
-    `motion: the float write plan carries the motion collection, one Default mode, ${NB_MOTION.length} rows (${nbMotionPlan?.create.length})`);
-  ok(!!nbMotionPlan && nbMotionPlan.aliases.find((a) => a.name === `${NB_ROOT}/motion/stagger`)?.targetsByMode[0] === `${NB_ROOT}/motion/duration-ms/40`,
-    'motion: the float plan binds nb stagger to the 40ms primitive');
+  // "Every DTCG motion token has a Figma form or a stated reason" (#2412 done-when): every family under
+  // `<root>.motion` in the DTCG is a key of MOTION_FIGMA_COVERAGE, and the one with no form says why.
+  const nbDtcgMotion = Object.keys(buildTree(nbTheme()).tree[NB_ROOT].motion);
+  const uncovered = nbDtcgMotion.filter((f) => !(f in MOTION_FIGMA_COVERAGE));
+  ok(uncovered.length === 0 && nbDtcgMotion.length === Object.keys(MOTION_FIGMA_COVERAGE).length,
+    `motion: every DTCG motion family has a Figma form or a stated reason (${nbDtcgMotion.join(', ')}${uncovered.length ? ` — UNCOVERED: ${uncovered.join(', ')}` : ''})`);
+  const transitionCover = MOTION_FIGMA_COVERAGE.transition as { none?: string };
+  ok(typeof transitionCover.none === 'string' && /composite/.test(transitionCover.none),
+    `motion: transition has no Figma form, and the reason names the composite (${transitionCover.none})`);
+
+  // A spring with no bounce Figma would take is refused, not clamped.
+  const threw = (fn: () => unknown): boolean => { try { fn(); return false; } catch { return true; } };
+  ok(springBounce(0.9) === 0.1 && springBounce(1) === 0 && threw(() => springBounce(1.2)) && threw(() => springBounce(0)),
+    'motion: springBounce is 1 − ζ on (0, 1] and throws outside it (0.9 → 0.1; 1.2 and 0 refused)');
+
+  // Apply Theme writes it: the motion var plan carries the collection, same rows, typed per row.
+  const nbMotionPlan = buildMotionVarPlan(nbTheme()).find((c) => c.name === 'motion');
+  ok(!!nbMotionPlan && nbMotionPlan.modes.join() === 'Default' && nbMotionPlan.rows.length === NB_MOTION.length + EASING.length,
+    `motion: the motion var plan carries the collection, one Default mode, ${NB_MOTION.length + EASING.length} rows (${nbMotionPlan?.rows.length})`);
+  ok(!!nbMotionPlan && nbMotionPlan.rows.find((r) => r.name === `${NB_ROOT}/motion/stagger`)?.aliasByMode[0] === `${NB_ROOT}/motion/duration-ms/40`,
+    'motion: the plan binds nb stagger to the 40ms primitive');
+  ok(!!nbMotionPlan && nbMotionPlan.rows.filter((r) => r.resolvedType === 'TIMING').length === NB_MOTION.length
+    && nbMotionPlan.rows.filter((r) => r.resolvedType === 'EASING').length === EASING.length,
+    `motion: the plan rows carry TIMING ×${NB_MOTION.length} and EASING ×${EASING.length}`);
 
   // A per-mode tempo (dark runs relaxed, ×1.3) becomes a mode, the radius way: the semantic re-points at the
   // mode's primitive, and the files switch to per-mode names. Relaxed normal is 260ms, stagger 50ms.
   const pm = brandTheme({ id: 'mm', modes: ['light', 'dark'], primary: { l: 0.55, c: 0.18, h: 285 }, neutral: { hue: 285, chroma: 0.01 }, modeLevers: { dark: { tempo: 'relaxed' } } } as unknown as BrandInput);
   const pmPaths = figmaArtifacts(pm).artifacts.map((a) => a.path).filter((p) => /^motion\./.test(p)).sort();
   ok(pmPaths.join() === 'motion.Default.json,motion.dark.json', `motion: a per-mode tempo switches to per-mode files (${pmPaths.join()})`);
-  const pmPlan = buildFloatWritePlan(pm).find((c) => c.name === 'motion');
-  const pmNormal = pmPlan?.create.find((r) => r.name === `${pm.root}/motion/duration/normal`);
-  const pmNormalAlias = pmPlan?.aliases.find((a) => a.name === `${pm.root}/motion/duration/normal`);
-  ok(pmPlan?.modes.join() === 'Default,dark' && pmNormal?.valuesByMode.join() === '200,260'
-    && pmNormalAlias?.targetsByMode.join() === `${pm.root}/motion/duration-ms/200,${pm.root}/motion/duration-ms/260`,
-    `motion: dark re-points duration/normal 200 → 260ms (modes ${pmPlan?.modes.join()}, values ${pmNormal?.valuesByMode.join()})`);
-  ok(pmPlan?.create.find((r) => r.name === `${pm.root}/motion/stagger`)?.valuesByMode.join() === '40,50',
-    'motion: dark re-points stagger 40 → 50ms');
+  const pmPlan = buildMotionVarPlan(pm).find((c) => c.name === 'motion');
+  const pmNormal = pmPlan?.rows.find((r) => r.name === `${pm.root}/motion/duration/normal`);
+  ok(pmPlan?.modes.join() === 'Default,dark' && pmNormal?.valuesByMode.join() === '0.2,0.26'
+    && pmNormal?.aliasByMode.join() === `${pm.root}/motion/duration-ms/200,${pm.root}/motion/duration-ms/260`,
+    `motion: dark re-points duration/normal 0.2 → 0.26s (modes ${pmPlan?.modes.join()}, values ${pmNormal?.valuesByMode.join()})`);
+  ok(pmPlan?.rows.find((r) => r.name === `${pm.root}/motion/stagger`)?.valuesByMode.join() === '0.04,0.05',
+    'motion: dark re-points stagger 0.04 → 0.05s');
   ok(/260ms in dark/.test(pmNormal?.description ?? ''), `motion: the one description names the dark value (${pmNormal?.description})`);
+
+  // A per-mode EASING ROLE (dark draws `emphasized` from `calm`) becomes a mode the same way: the role re-points
+  // at the mode's curve, the curves themselves stay mode-invariant. The mode exists with no tempo lever at all.
+  const er = brandTheme({ id: 'er', modes: ['light', 'dark'], primary: { l: 0.55, c: 0.18, h: 285 }, neutral: { hue: 285, chroma: 0.01 }, modeLevers: { dark: { easings: { emphasized: 'calm' } } } } as unknown as BrandInput);
+  const erPlan = buildMotionVarPlan(er).find((c) => c.name === 'motion');
+  const erRole = erPlan?.rows.find((r) => r.name === `${er.root}/motion/easing-role/emphasized`);
+  const erCurve = erPlan?.rows.find((r) => r.name === `${er.root}/motion/easing/calm`);
+  ok(erPlan?.modes.join() === 'Default,dark' && erRole?.aliasByMode.join() === `${er.root}/motion/easing/expressive,${er.root}/motion/easing/calm`,
+    `motion: a dark easing-role lever re-points easing-role/emphasized expressive → calm (modes ${erPlan?.modes.join()}, aliases ${erRole?.aliasByMode.join()})`);
+  ok(JSON.stringify(erCurve?.valuesByMode) === JSON.stringify([bez(0.4, 0, 0.6, 1), bez(0.4, 0, 0.6, 1)]) && erCurve?.aliasByMode.every((t) => t === null) === true,
+    'motion: the calm curve is the same literal in both modes (curves are mode-invariant)');
+  ok(/calm in dark/.test(erRole?.description ?? ''), `motion: the role's description names the dark curve (${erRole?.description})`);
 }
 
 // ---- export_theme: the manifest is the result, and outDir is model-controlled ------------------

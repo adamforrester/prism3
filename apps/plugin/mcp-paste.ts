@@ -118,7 +118,7 @@ const liftPlugin: Plugin = {
 
 /** Every runtime export a script can call — one bundle each, so each script carries only its own step. */
 export const STEP_EXPORTS = [
-  'runPreflight', 'runColor', 'runFloat', 'runStyles', 'runGrid', 'runFont', 'runText', 'runPersist',
+  'runPreflight', 'runColor', 'runFloat', 'runStyles', 'runGrid', 'runFont', 'runMotion', 'runText', 'runPersist',
   'runReadbackVars', 'runReadbackStyles', 'runCleanupTheme',
   'runComponentChunk', 'runComponentEmit', 'runReadbackComponents', 'runCleanupPage',
 ] as const;
@@ -202,7 +202,7 @@ type ThemeOpts = { ledger?: Ledger; sliceCeiling?: number };
 
 /** The pre-flight plan exactly as `apply-theme.ts` builds it. */
 export const preflightOf = (p: ThemePlans): PreflightPlan =>
-  preflightPlanOf({ color: p.colorPlan, float: p.floatPlan, font: p.fontPlan, styles: p.stylesPlan, grid: p.gridPlan, text: p.textPlan });
+  preflightPlanOf({ color: p.colorPlan, float: p.floatPlan, font: p.fontPlan, motion: p.motionPlan, styles: p.stylesPlan, grid: p.gridPlan, text: p.textPlan });
 
 /** Every theme script, in order: pre-flight, the writes, then the read-backs. Numbered by the caller. */
 export const themeScripts = (input: BrandInput, opts: ThemeOpts = {}): Script[] => {
@@ -295,6 +295,13 @@ export const themeScripts = (input: BrandInput, opts: ThemeOpts = {}): Script[] 
   if (fontJs.length + NUMBER_SLACK > SCRIPT_CEILING) throw new Error(`font variables: the one font script is ${fontJs.length} characters, over the ${SCRIPT_CEILING} ceiling, and it cannot be split (its aliases cross its two collections)`);
   out.push({ phase: 'theme', kind: 'font', label: 'font variables', purpose: 'Writes the font family/size/weight variables (`core` font group) and the fluid type sets.', expect: '{ ok: true, misses: [], refused: [] }', js: fontJs });
 
+  // MOTION (#2412) — one script: the durations (TIMING) and easing curves, roles and springs (EASING) in the one
+  // `motion` collection, the roles aliasing curves in the same collection, so it does not split either.
+  const motionData = { ...common('motion variables'), fonts, plans: p.motionPlan };
+  const motionJs = assemble('runMotion', motionData);
+  if (motionJs.length + NUMBER_SLACK > SCRIPT_CEILING) throw new Error(`motion variables: the one motion script is ${motionJs.length} characters, over the ${SCRIPT_CEILING} ceiling, and it cannot be split (its roles alias its curves)`);
+  out.push({ phase: 'theme', kind: 'motion', label: 'motion variables', purpose: 'Writes the motion durations and the easing curves, easing roles and springs.', expect: '{ ok: true, misses: [], refused: [] }', js: motionJs });
+
   // TEXT styles.
   const tSlices = slice(p.textPlan, (s) => assemble('runText', { ...common('text'), fonts, plan: s }), 'text styles');
   tSlices.forEach((s, i) => {
@@ -307,7 +314,7 @@ export const themeScripts = (input: BrandInput, opts: ThemeOpts = {}): Script[] 
 
   // READ-BACK — enough variable pages for the plan plus headroom for orphans; `total` in each result says
   // whether the pages covered the file (report.ts checks it).
-  const planned = p.colorPlan.palette.length + p.colorPlan.color.create.length + p.floatPlan.reduce((n, c) => n + c.create.length, 0) + p.fontPlan.reduce((n, c) => n + c.rows.length, 0);
+  const planned = p.colorPlan.palette.length + p.colorPlan.color.create.length + p.floatPlan.reduce((n, c) => n + c.create.length, 0) + [...p.fontPlan, ...p.motionPlan].reduce((n, c) => n + c.rows.length, 0);
   const pages = Math.ceil((planned * 1.25 + 50) / READBACK_PAGE);
   for (let i = 0; i < pages; i++) {
     const label = `read back variables ${i + 1}/${pages}`;
@@ -488,7 +495,9 @@ export const mergeLedgers = (results: readonly StepReport[], seed?: Ledger): Led
 /* ── the comparison against the plan (report.ts, and the gate) ─────────────────────────────────────── */
 
 type Rgba = { r: number; g: number; b: number; a?: number };
-type Val = number | string | boolean | Rgba | { alias: string; opacity?: number | string } | null;
+/** An EASING value (#2412): Figma's `MotionEasing`, a cubic bezier or a `bounce`-only spring. */
+type Easing = { type: string; easingFunctionCubicBezier?: Record<string, number>; easingFunctionSpring?: Record<string, number> };
+type Val = number | string | boolean | Rgba | Easing | { alias: string; opacity?: number | string } | null;
 export type ExpectedVar = { collection: string; type: string; scopes: string[]; hidden: boolean; description: string; values: Val[]; modes: string[] | 'first' };
 
 /** Every variable the plans write, keyed by name, with what each mode should hold. */
@@ -510,14 +519,22 @@ export const expectedVariables = (p: ThemePlans): Map<string, ExpectedVar> => {
     const fa = new Map(c.aliases.map((a) => [a.name, a.targetsByMode] as const));
     for (const r of c.create) out.set(r.name, { collection: c.name, type: 'FLOAT', scopes: r.scopes, hidden: r.hidden, description: r.description, modes: c.modes, values: r.valuesByMode.map((v, i) => (fa.get(r.name)?.[i] ? { alias: fa.get(r.name)![i]! } : v)) });
   }
-  for (const c of p.fontPlan) for (const r of c.rows) out.set(r.name, { collection: c.name, type: r.resolvedType, scopes: r.scopes, hidden: r.hidden, description: r.description, modes: c.modes, values: r.valuesByMode.map((v, i) => (r.aliasByMode[i] ? { alias: r.aliasByMode[i]! } : v as Val)) });
+  for (const c of [...p.fontPlan, ...p.motionPlan]) for (const r of c.rows) out.set(r.name, { collection: c.name, type: r.resolvedType, scopes: r.scopes, hidden: r.hidden, description: r.description, modes: c.modes, values: r.valuesByMode.map((v, i) => (r.aliasByMode[i] ? { alias: r.aliasByMode[i]! } : v as Val)) });
   return out;
 };
 
 const sameVal = (a: Val | undefined, b: Val | undefined): boolean => {
   if (a && typeof a === 'object' && 'alias' in a) return !!b && typeof b === 'object' && 'alias' in b && b.alias === a.alias && b.opacity === a.opacity;
+  // An EASING value: the same kind, and every number of its function within the float tolerance below.
+  if (a && typeof a === 'object' && 'type' in a) {
+    if (!b || typeof b !== 'object' || !('type' in b) || b.type !== a.type) return false;
+    const fa = { ...a.easingFunctionCubicBezier, ...a.easingFunctionSpring };
+    const fb = { ...b.easingFunctionCubicBezier, ...b.easingFunctionSpring };
+    const keys = new Set([...Object.keys(fa), ...Object.keys(fb)]);
+    return [...keys].every((k) => typeof fa[k] === 'number' && typeof fb[k] === 'number' && Math.abs(fa[k] - fb[k]) < 1e-4);
+  }
   if (a && typeof a === 'object') {
-    if (!b || typeof b !== 'object' || 'alias' in b) return false;
+    if (!b || typeof b !== 'object' || 'alias' in b || 'type' in b) return false;
     const x = a as Rgba; const y = b as Rgba;
     // Figma stores channels as float32; 1e-3 is well inside one 8-bit step (0.0039).
     return Math.abs(x.r - y.r) < 1e-3 && Math.abs(x.g - y.g) < 1e-3 && Math.abs(x.b - y.b) < 1e-3 && Math.abs((x.a ?? 1) - (y.a ?? 1)) < 1e-3;
@@ -568,7 +585,7 @@ export const compareReadback = (p: ThemePlans, results: StepReport[]): { finding
     });
   }
   // MODES — every planned collection's modes present (in plan order, as its leading modes).
-  const plannedModes: [string, string[]][] = [['color', p.colorPlan.color.modes], ...p.floatPlan.map((c) => [c.name, c.modes] as [string, string[]]), ...p.fontPlan.map((c) => [c.name, c.modes] as [string, string[]])];
+  const plannedModes: [string, string[]][] = [['color', p.colorPlan.color.modes], ...p.floatPlan.map((c) => [c.name, c.modes] as [string, string[]]), ...[...p.fontPlan, ...p.motionPlan].map((c) => [c.name, c.modes] as [string, string[]])];
   for (const [col, modes] of plannedModes) {
     const c = colByName.get(col);
     if (!c) { findings.push({ category: 'missing collection', name: col, detail: 'planned, not in the file' }); continue; }
@@ -584,7 +601,7 @@ export const compareReadback = (p: ThemePlans, results: StepReport[]): { finding
     const orphans = orphansOf(byCol.get(col) ?? [], [...planned].filter((n) => expected.get(n)!.collection === col));
     for (const o of orphans) findings.push({ category: 'orphan', name: o, detail: `in '${col}', not in the plan (reported, never deleted)` });
   }
-  const plannedCollections = ['core', 'color', ...p.floatPlan.map((c) => c.name), ...p.fontPlan.map((c) => c.name)];
+  const plannedCollections = ['core', 'color', ...p.floatPlan.map((c) => c.name), ...p.fontPlan.map((c) => c.name), ...p.motionPlan.map((c) => c.name)];
   for (const s of strandedCollections(cols.map((c) => c.name), plannedCollections)) findings.push({ category: 'stranded collection', name: s, detail: 'in the file, written by no plan' });
 
   // STYLES — present, and carrying the engine's description.

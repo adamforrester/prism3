@@ -88,6 +88,9 @@ const ADDED: Record<string, number> = {
   // prism3 #2394 — `motion/stagger` is a duration, not a number; written into Figma as a FLOAT with no
   // scope, it is typed back by name like the rest of `motion/duration…`.
   'tests/unit/motion-stagger-duration.test.ts': 4,
+  // prism3 #2412 — Figma's TIMING (seconds → a `duration` in ms) and EASING (a curve → `cubicBezier`, a spring →
+  // `spring` holding its `bounce`) variables, aliases typed by what they resolve to.
+  'tests/unit/motion-timing-easing.test.ts': 8,
 };
 
 // ---- the harness checks itself first -------------------------------------------------------

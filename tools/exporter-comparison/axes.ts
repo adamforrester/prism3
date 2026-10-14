@@ -172,8 +172,9 @@ export const COLLECTION_AXIS: Record<string, Axis> = {
   control: 'none',
   focus: 'none',
   icon: 'none',
-  // Motion (#2394) — FLOAT milliseconds. One `Default` mode unless a brand's mode levers run a different
-  // tempo, which no committed brand does; the first that does gains a mode here, like `radius`.
+  // Motion (#2394, #2412) — TIMING durations and EASING curves, roles and springs. One `Default` mode unless a
+  // brand's mode levers run a different tempo or easing role, which no committed brand does; the first that does
+  // gains a mode here, like `radius`.
   motion: 'none',
   opacity: 'none',
   radius: 'none',

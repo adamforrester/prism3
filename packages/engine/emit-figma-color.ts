@@ -22,8 +22,17 @@ import { interactiveStateRungs } from './modes';
 import { figmaColorDescription, figmaPaletteDescription, figmaAlphaDescription, FIGMA_EXTREME } from './figma-description';
 
 export type FigmaColor = { r: number; g: number; b: number; a: number };
-export type FigmaVarValue = FigmaColor | number | string;
-export type FigmaResolvedType = 'COLOR' | 'FLOAT' | 'STRING';
+/** An EASING variable's value (#2412), in the shape Figma's `MotionEasing` takes it: a cubic bezier, or a spring
+ *  normalized to `bounce` alone. Figma refuses a spring carrying mass, stiffness or damping (spike #2403). */
+export type FigmaEasing =
+  | { type: 'CUSTOM_CUBIC_BEZIER'; easingFunctionCubicBezier: { x1: number; y1: number; x2: number; y2: number } }
+  | { type: 'CUSTOM_SPRING'; easingFunctionSpring: { bounce: number } };
+export type FigmaVarValue = FigmaColor | number | string | FigmaEasing;
+/** TIMING (seconds) and EASING joined in #2412. Figma refuses `scopes` on both: they stay `ALL_SCOPES`. */
+export type FigmaResolvedType = 'COLOR' | 'FLOAT' | 'STRING' | 'TIMING' | 'EASING';
+/** The two variable types Figma refuses a `scopes` write on (spike #2403: "Cannot set scopes on this variable
+ *  type"). Every executor reads this rather than its own list, so a third such type is one edit. */
+export const UNSCOPED_TYPES: readonly FigmaResolvedType[] = ['TIMING', 'EASING'];
 export type FigmaVar = {
   name: string;
   resolvedType: FigmaResolvedType;

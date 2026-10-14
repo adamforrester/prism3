@@ -237,8 +237,9 @@ export const figmaArtifacts = (theme: Theme): { artifacts: FigmaArtifact[]; summ
 
   const layout = buildFigmaLayout(theme);
   for (const l of layout) add(`layout.${l.$mode}.json`, l);
-  // MOTION (#2394) — FLOAT milliseconds, no scope. Same single-vs-per-mode rule as `radius`: a brand with
-  // no per-mode tempo emits one `motion.json`; one whose mode levers move the tempo emits one per mode.
+  // MOTION (#2394, #2412) — TIMING seconds and EASING curves, roles and springs. Same single-vs-per-mode rule as
+  // `radius`: a brand with no per-mode tempo or easing role emits one `motion.json`; one whose mode levers move
+  // either emits one per mode.
   const motion = buildFigmaMotion(theme);
   if (motion.length === 1) add('motion.json', motion[0]);
   else for (const m of motion) add(`motion.${m.$mode}.json`, m);

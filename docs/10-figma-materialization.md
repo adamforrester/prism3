@@ -461,6 +461,32 @@ border-width). The **4** uncovered — `motion`, `breakpoint`, `grid`, `containe
    holds every exported motion leaf to `out/<brand>.tokens.json` by path, type and milliseconds.
    `easing`/`easing-role`/`spring`/`transition` stay DTCG-only, with no companion file: the style
    guide's motion table reads them from the DTCG (#2353).
+   **✅ SUPERSEDED (2026-10-14, #2412, owner decisions Q291 A ×5), as TIMING and EASING.** Spike #2403
+   found Figma's own motion variable types (`@figma/plugin-typings` 1.141.0, live-probed). The `motion`
+   collection now holds every DTCG motion family that has a Figma form:
+   - `motion/duration-ms/*`, `motion/duration/*`, `motion/duration-reduced/*`, `motion/stagger` are
+     **TIMING**, in **seconds** (the API stores seconds and the panel shows milliseconds, checked by the
+     owner on a live file: 2000ms reads back as `2`). The names keep the DTCG path, `duration-ms` included.
+   - `motion/easing/*` are **EASING** `CUSTOM_CUBIC_BEZIER`, hidden from publishing; `motion/easing-role/*`
+     are EASING aliases of them, re-pointed per mode where `modeLevers.<mode>.easings` moves one (the
+     curves stay mode-invariant).
+   - `motion/spring/*` are **EASING** `CUSTOM_SPRING` holding `bounce` only, `1 − damping ratio`
+     (0.9 / 0.8 / 0.6 → 0.1 / 0.2 / 0.4). Stiffness has no place: a spring's length is the duration it
+     plays with. Published, since no role tier aliases a spring.
+   - `motion/transition/*` have **no** Figma form: Figma has no composite variable, and an animation
+     style must also name what animates, which a DTCG transition does not. `MOTION_FIGMA_COVERAGE`
+     (`emit-figma-dims.ts`) states every family's form or reason, and the suite holds it to the DTCG.
+
+   Figma refuses a `scopes` write on TIMING and EASING, so the emission states `ALL_SCOPES` and no
+   executor writes one (`UNSCOPED_TYPES`); the test file model refuses it the same way. Apply Theme
+   writes the collection through `buildMotionVarPlan` and the mixed-type executor; the CLI paste path
+   has its own `motion-vars` pass. On export, TokenPress types TIMING as `duration` in milliseconds (the
+   Q146 output, unchanged), a bezier as `cubicBezier`, and a spring as `spring` `{ bounce }`;
+   `test:readback-parity` holds each to `out/<brand>.tokens.json`. A file still holding 0.235.0's FLOAT
+   motion (owner decision Q293 A): in Prism3's own stamped `motion` collection, each planned name held as
+   FLOAT where the plan writes TIMING is deleted and re-created as TIMING, and Apply's result line says
+   "replaced N motion variables (FLOAT ms → TIMING)" (`replacesOnRetype`, shared by the pre-flight and the
+   executor). The new variable has a new id. Every other type mismatch still refuses.
 6. **✅ DONE (2026-07-04, #50) — Generalise** — emit aurora + wendys too (prove brand-agnostic).
    No fixtures for those, so gated on structural validity (every axis emits the right shape;
    every colour/dims/layout alias resolves *within each brand*; no namespace leakage — `figName`
