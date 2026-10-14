@@ -183,7 +183,7 @@ export const dialog: ComponentDef = {
         nests: 'icon-button-neutral',
         optional: true,
         nesting: { kind: 'nest-fixed', variant: { appearance: 'ghost', size: 'medium', shape: 'square', surface: 'default', state: 'rest' } },
-        note: 'The close button: a IconButton.Neutral, ghost, medium, labelled "Close". Shown by default; an alertdialog hides it.',
+        note: 'The close button: an IconButton.Neutral, ghost, medium, labeled "Close". Shown by default; an alertdialog hides it.',
       },
       headerDivider: {
         kind: 'nest',
@@ -272,7 +272,7 @@ export const dialog: ComponentDef = {
     },
     codeOnly: [
       'role — `role="dialog"` with `aria-modal="true"`; the native `<dialog>` opened with `showModal()` provides both. `role: "alertdialog"` is a code prop with no Figma property: set it for a confirmation that interrupts and needs an answer. An alertdialog hides the close button (the Figma `close` toggle shows the result), keeps a backdrop click from closing it, and must hold at least one focusable control.',
-      'labelling — `aria-labelledby` points at the title, made a heading (`<h2>`); `aria-describedby` points at the description when there is one.',
+      'labeling — `aria-labelledby` points at the title, made a heading (`<h2>`); `aria-describedby` points at the description when there is one.',
       'focus in — on open, focus moves into the dialog: to the first control in the body for a short form; to the title (`tabindex="-1"`) when the body is long reading content, so a screen reader starts at the top; for an alertdialog, to the least destructive action (Cancel). Never to a destructive button.',
       'focus held — Tab and Shift+Tab cycle inside the dialog, and the page behind is inert. A modal `<dialog>` makes the page inert natively.',
       'focus returned — on close, focus goes back to the control that opened the dialog. If that control is gone, to the nearest control that still makes sense, never to the page body.',
