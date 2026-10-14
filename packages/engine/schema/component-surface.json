@@ -296,6 +296,10 @@
     "accordion": {
       "members": 24,
       "sha256": "bf90e1abfe92bdb827247b68db8cdd370e38578c50fe4fe4d3ebdf08ac98698c"
+    },
+    "link": {
+      "members": 96,
+      "sha256": "93a37091efcf42afcbca8b5cb738dd424ff04b8f2a9c2a7eb943753abb6ee62f"
     }
   }
 }

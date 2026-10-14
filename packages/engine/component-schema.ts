@@ -3779,9 +3779,15 @@ const anatomyErrors = (def: ComponentDef): string[] => {
   const bindingKeys = (p: PartDef): string[] =>
     [p.gap, p.height, p.minHeight, p.minWidthKey, p.radius, p.strokeWidth, p.size, p.width, p.type, p.inset, p.padding?.block, p.padding?.blockEnd, p.padding?.inlineLabel, p.padding?.inlineVisual, p.padding?.inlineEnd, p.paddingTop, p.flush?.key]
       .filter((k): k is string => typeof k === 'string');
+  // A TYPE KEY MAY ALSO NAME `{state}` (#2580): a standalone Link sets its label in the underlined style at hover,
+  // pressed and focus-visible and the plain one at rest, so its text style moves with the interaction state while
+  // its geometry does not. Type only: a state-keyed height or padding would move a box between one instance's before
+  // and after, which the footprint rule exists to refuse. Expanded over the def's declared states like an axis.
+  const keyAxes = (p: PartDef, key: string): Record<string, readonly string[]> =>
+    key === p.type ? { ...(def.variants ?? {}), state: statesOf(def) } : (def.variants ?? {});
   for (const n of names)
     for (const key of bindingKeys(parts[n]))
-      for (const expanded of expandKey(key, def.variants ?? {}))
+      for (const expanded of expandKey(key, keyAxes(parts[n], key)))
         if (!(expanded in (def.tokens ?? {})))
           e.push(`anatomy part '${n}': binding key '${expanded}'${expanded === key ? '' : ` (from '${key}')`} is not a slot in tokens`);
   // A placeholder naming no declared axis expands to NOTHING and would otherwise reach the loop above
@@ -3791,7 +3797,7 @@ const anatomyErrors = (def: ComponentDef): string[] => {
   for (const n of names)
     for (const key of bindingKeys(parts[n]))
       for (const ph of paintKeyPlaceholders(key))
-        if (!(ph in (def.variants ?? {})))
+        if (!(ph in keyAxes(parts[n], key)))
           e.push(`anatomy part '${n}': binding key '${key}' names placeholder '{${ph}}', which is not an axis in variants — the projector fills a binding key from the member's coordinate, so a placeholder no axis supplies can never be filled`);
   if (sizes.length === 0 && names.some((n) => bindingKeys(parts[n]).some((k) => k.includes('{size}'))))
     e.push("anatomy uses the {size} placeholder but variants.size is empty — nothing to expand over");

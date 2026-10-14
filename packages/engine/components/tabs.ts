@@ -165,7 +165,7 @@ export const tabs: ComponentDef = {
     alternativeTo: ['select', 'accordion'],
     replacesPatterns: ['show and hide divs with no tab semantics', 'role="tab" on links that change the route'],
     supersededBy: [],
-    planned: ['segmented-control', 'link'],
+    planned: ['segmented-control'],
   },
 
   motion: {

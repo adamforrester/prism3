@@ -1156,6 +1156,9 @@ export const figmaAnatomyPlan = (
   // the prop unset. It reaches binding keys only — paints and the member's coordinate stay structure-only — and only
   // an axis the coordinate does not give at all, so a real member, which gives every axis, never takes it.
   const propDefault = (axis: string): string | undefined => {
+    // A type key naming `{state}` (#2580) resolves a structure-only plan, which has no state, at the def's first
+    // declared state: the resting look, which is what an instance shows before anyone points at it.
+    if (axis === 'state') return statesOf(def)[0];
     const d = def.props?.find((p) => p.name === axis)?.default;
     return typeof d === 'string' && (def.variants as Record<string, readonly string[]> | undefined)?.[axis]?.includes(d) ? d : undefined;
   };
@@ -4451,7 +4454,7 @@ export const CANVAS_FURNITURE: ReadonlySet<string> = new Set([
   'focus-ring', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral',
   'field-label', 'field-message', 'text-field', 'textarea', 'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control',
   'radio-row', 'radio-group', 'switch-control', 'switch-row', 'select', 'veil', 'image-placeholder', 'badge', 'tag', 'tab', 'tabs',
-  'divider', '_accordion-indicator', 'accordion',
+  'divider', '_accordion-indicator', 'accordion', 'link',
 ]);
 
 export const planSetLayout = (plans: AnatomyPlan[], fn: string) => {

@@ -874,5 +874,33 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
       "divider",
       "focus-ring"
     ]
+  },
+  {
+    "id": "link",
+    "name": "Link",
+    "category": "navigation",
+    "summary": "Text that goes to another page, a place on the page or a file. Underlined in running text.",
+    "unit": "variants",
+    "spacing": [
+      {
+        "key": "size.small.gap",
+        "ref": "space.050"
+      },
+      {
+        "key": "size.medium.gap",
+        "ref": "space.050"
+      },
+      {
+        "key": "size.large.gap",
+        "ref": "space.100"
+      }
+    ],
+    "buildable": true,
+    "reason": null,
+    "members": 96,
+    "nests": [
+      "icon",
+      "focus-ring"
+    ]
   }
 ];

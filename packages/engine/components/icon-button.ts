@@ -564,7 +564,7 @@ const makeIconButton = (id: string, name: string, summary: string, description: 
     // `icon` the required slot carries is a partner, not a part — a slot names no component (#513).
     composesWith: ['focus-ring', 'spinner'],
     alternativeTo: [inheritsFrom],
-    planned: ['tooltip', 'button-group', 'menu', 'popover', 'link'],
+    planned: ['tooltip', 'button-group', 'menu', 'popover'],
     replacesPatterns: ['div[role=button] wrapping an icon', 'a <button> holding only an <svg> and no accessible name'],
   },
 

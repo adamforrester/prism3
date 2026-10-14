@@ -3765,6 +3765,7 @@ for (const b of brands) {
       tag: { keys: ['padding-x', 'select.gap', 'dismissible.visible-gap', 'check-gap', 'select.padding-end', 'dismissible.padding-end'], sizes: ['small', 'medium', 'large'] },
       tab: { keys: ['padding-x', 'gap'], sizes: ['small', 'medium', 'large'] },
       accordion: { keys: ['pad-x', 'pad-y', 'gap', 'panel-pad-end'], sizes: ['small', 'medium', 'large'] },
+      link: { keys: ['gap'], sizes: ['small', 'medium', 'large'] },
     };
     const BTN = { compact: 'small 12/8/4/6 · medium 12/8/6/6 · large 20/12/6/8', comfortable: 'small 16/12/6/8 · medium 16/12/8/8 · large 24/16/8/12', spacious: 'small 20/16/8/12 · medium 20/16/12/12 · large 32/20/12/16' };
     const ROWS = { compact: 'small 6 · medium 6 · large 8', comfortable: 'small 8 · medium 8 · large 12', spacious: 'small 12 · medium 12 · large 16' };
@@ -3783,6 +3784,9 @@ for (const b of brands) {
       // Accordion (#2417, DRAFT): header inline / header block / glyph-to-title gap / panel bottom inset. Comfortable is
       // the proposal's 12/8/8 · 16/12/12 · 24/16/16, with the panel's bottom inset matching the inline padding.
       accordion: { compact: 'small 8/6/6/8 · medium 12/8/8/12 · large 20/12/12/20', comfortable: 'small 12/8/8/12 · medium 16/12/12/16 · large 24/16/16/24', spacious: 'small 16/12/12/16 · medium 20/16/16/20 · large 32/20/20/32' },
+      // Link (#2580, DRAFT): the icon-to-label gap. Comfortable is the proposal's space.050 / space.050 / space.100; compact
+      // clamps small and medium at space.050, the bottom of the density ladder, as Tab's small gap does.
+      link: { compact: 'small 4 · medium 4 · large 6', comfortable: 'small 4 · medium 4 · large 8', spacious: 'small 6 · medium 6 · large 12' },
     };
     const wrong: string[] = [];
     for (const [id, spec] of Object.entries(SPECS)) {
@@ -16943,7 +16947,7 @@ arm: {
     //     missing from the table fails too: add the row with the brief's category, read from the KB.
     const KB_BRIEF_CATEGORY: Record<string, string> = {
       'badge.md': 'foundations', 'button.md': 'form', 'checkbox.md': 'form', 'icon.md': 'foundations', 'image.md': 'foundations',
-      'inline-message.md': 'feedback', 'radio.md': 'form', 'select.md': 'form', 'spinner.md': 'foundations', 'divider.md': 'foundations', 'accordion.md': 'navigation',
+      'inline-message.md': 'feedback', 'link.md': 'navigation', 'radio.md': 'form', 'select.md': 'form', 'spinner.md': 'foundations', 'divider.md': 'foundations', 'accordion.md': 'navigation',
       'switch.md': 'form', 'tabs.md': 'navigation', 'tag.md': 'foundations', 'text-field.md': 'form', 'textarea.md': 'form',
     };
     const defDir = resolve(HERE, './components');
@@ -16975,6 +16979,53 @@ arm: {
     const unplaced = componentDefs.filter((d) => !fileOf.has(d.id)).map((d) => d.id);
     ok(unplaced.length === 0 && fileOf.size === componentDefs.length,
       `#1700 every registered def was found in a def file and its header read (${fileOf.size} of ${componentDefs.length}; unplaced: [${unplaced.join(', ')}])`);
+  }
+
+  // ---- #2580: LINK, owner decisions Q289 (2026-10-14) — each held against a literal, read off the projected plans ----
+  // EXPECTED is typed here from the decisions, never read from `link.ts`: the def builds its type keys in a loop, so a
+  // check that walked `link.tokens` would only confirm the loop agrees with itself (docs/34). ACTUAL is each member's
+  // label text style in the real projection (`figmaAnatomySet`). Mutations, each failing the arm named:
+  //   standalone underlined at rest  → `#2580 link/standalone`;   inline not underlined at some state → `#2580 link/inline`;
+  //   emphasis bound to the default weight, or default first  → `#2580 link/weight`;   a third style value → `#2580 link/style`.
+  {
+    const linkDef = componentDefs.find((d) => d.id === 'link');
+    ok(!!linkDef, '#2580 link: the Link component is registered');
+    if (linkDef) {
+      const RUNG: Record<string, string> = { small: 'sm', medium: 'md', large: 'lg' };
+      const UNDERLINED_STANDALONE = new Set(['hover', 'pressed', 'focus-visible']);
+      type LN = { name: string; textStyle?: string; children: LN[] };
+      const labelStyle = (n: LN): string | undefined => (n.name === 'label' ? n.textStyle : n.children.map(labelStyle).find(Boolean));
+      const plans = figmaAnatomySet(linkDef, { swapTarget: 'FPO-default-icon' });
+      const rows = plans.map((p) => ({ c: p.coord as Record<string, string>, size: String(p.size), style: labelStyle(p.root as unknown as LN) }));
+      ok(plans.length === 96, `#2580 link/members: style 2 × weight 2 × size 3 × surface 2 × 4 states = 96 members (got ${plans.length})`);
+      const want = (r: { c: Record<string, string>; size: string }, underlined: boolean) =>
+        figmaTextStyleName(`type.label.${RUNG[r.size]}.${r.c.weight}${underlined ? '-link' : ''}`);
+      const standalone = rows.filter((r) => r.c.style === 'standalone');
+      const sOff = standalone.filter((r) => r.style !== want(r, UNDERLINED_STANDALONE.has(r.c.state)));
+      ok(standalone.length === 48 && sOff.length === 0,
+        `#2580 link/standalone (Q289.2 A): a standalone link is plain at rest and underlined at hover, pressed and focus-visible, at every weight, size and surface (${standalone.length} members${sOff.length ? `; OFF: ${sOff.map((r) => `${JSON.stringify(r.c)} ${r.size} → ${r.style}`).join('; ')}` : ''})`);
+      const inline = rows.filter((r) => r.c.style === 'inline');
+      const iOff = inline.filter((r) => r.style !== want(r, true));
+      ok(inline.length === 48 && iOff.length === 0,
+        `#2580 link/inline (Q289.2 A): an inline link is underlined at every state, weight, size and surface (${inline.length} members${iOff.length ? `; OFF: ${iOff.map((r) => `${JSON.stringify(r.c)} ${r.size} → ${r.style}`).join('; ')}` : ''})`);
+      const restMd = (weight: string) => rows.find((r) => r.c.style === 'standalone' && r.c.weight === weight && r.c.surface === 'default' && r.size === 'medium' && r.c.state === 'rest')?.style;
+      const weightProp = linkDef.props.find((p) => p.name === 'weight');
+      ok(JSON.stringify(linkDef.variants.weight) === JSON.stringify(['emphasis', 'default'])
+        && restMd('emphasis') === 'label/md/emphasis' && restMd('default') === 'label/md/default' && weightProp?.default === 'emphasis',
+        `#2580 link/weight (Q289.3 B): two weights, emphasis first and the default, binding the emphasis role, and the default weight binding the default role (axis ${JSON.stringify(linkDef.variants.weight)}, prop default ${weightProp?.default}, medium rest ${restMd('emphasis')} / ${restMd('default')})`);
+      ok(JSON.stringify(linkDef.variants.style) === JSON.stringify(['standalone', 'inline'])
+        && JSON.stringify([...new Set(plans.map((p) => (p.coord as Record<string, string>).style))]) === JSON.stringify(['standalone', 'inline']),
+        `#2580 link/style (Q289.2 A): style is exactly standalone | inline, standalone first, and the projection carries no other (axis ${JSON.stringify(linkDef.variants.style)})`);
+      ok(JSON.stringify(linkDef.states) === JSON.stringify(['rest', 'hover', 'pressed', 'focus-visible']),
+        `#2580 link/states (Q289.5 A): rest, hover, pressed and focus-visible; visited and current are code only, and no disabled (got ${JSON.stringify(linkDef.states)})`);
+      const texts = linkDef.figmaProperties?.texts as Record<string, { default?: string }> | undefined;
+      ok(texts?.label?.default === 'Link text'
+        && linkDef.summary === 'Text that goes to another page, a place on the page or a file. Underlined in running text.'
+        && (linkDef.anatomy?.codeOnly ?? []).some((e) => e.includes('"(opens in new tab)"'))
+        && linkDef.name === 'Link' && linkDef.category === 'navigation'
+        && JSON.stringify(linkDef.aliases) === JSON.stringify(['text-link', 'anchor', 'hyperlink']),
+        '#2580 link/identity (Q289.7 A, Q289.8 A): Link / link, navigation, aliases text-link, anchor, hyperlink; label "Link text"; the approved summary; "(opens in new tab)"');
+    }
   }
 
   // ---- #1339: disabled is ONE mechanism (the STATE), not a state axis + a prop ----
@@ -17511,7 +17562,10 @@ arm: {
     // label type crosses size × appearance. A deliberate widening, recorded here so the next one has to be too.
     // `selection` joined with Q226 A (2026-10-10): a tab's label binds the default weight unselected and the emphasis
     // weight selected, so its type crosses size × selection.
-    const TYPE_KEY_AXES = ['size', 'weight', 'appearance', 'selection'] as const;
+    // `style` and `state` joined with Link (#2580, owner Q289.2 A): a standalone link binds its plain style at rest and the
+    // underlined twin at hover, pressed and focus, and an inline link the underlined twin throughout. `state` is the first
+    // non-variant axis here, and the schema admits it in a type key only (`component-schema.ts`, `keyAxes`).
+    const TYPE_KEY_AXES = ['size', 'weight', 'appearance', 'selection', 'style', 'state'] as const;
     // The (def, part) pairs that template a `type` key, and the axes each one names — authored from
     // reading the six defs, and asserted below to be exactly the set the corpus contains. Both
     // directions matter: a seventh binding added without a row here fails, and a row naming a binding
@@ -17570,6 +17624,9 @@ arm: {
       // three body rungs. The placeholder exists only on an expanded member.
       { def: componentDefs.find((d) => d.id === 'accordion')!, part: 'label', axes: { size: 3 } },
       { def: componentDefs.find((d) => d.id === 'accordion')!, part: 'placeholder', axes: { size: 3 }, at: { expansion: 'expanded' } },
+      // LINK (#2580): the label crosses size, weight, style and, the first type key to do so, the interaction state. The
+      // underline is the state half: a standalone link is plain at rest and underlined at hover, pressed and focus.
+      { def: componentDefs.find((d) => d.id === 'link')!, part: 'label', axes: { size: 3, weight: 2, style: 2, state: 2 } },
     ];
 
     // DIRECTION 1 — the authored table is the corpus. Discovered by walking every def's anatomy for a
@@ -17617,7 +17674,8 @@ arm: {
       const base: Record<string, string> = { ...Object.fromEntries(
         Object.entries(variants).filter(([a]) => a !== 'size').map(([a, vs]) => [a, vs[0]])), ...(row.at ?? {}) };
       for (const [axis, expectedDistinct] of Object.entries(row.axes)) {
-        const values = variants[axis] ?? [];
+        // `state` is not a variant axis (#2580): its values are the def's declared states, and it rides in the coordinate.
+        const values = axis === 'state' ? [...statesOf(row.def)] : (variants[axis] ?? []);
         ok(values.length >= 2,
           `anatomy: ${row.def.id}'s '${axis}' axis declares at least two values, or the discrimination arm below cannot fail (#1248)`);
         // `size` is a positional argument to the projector, every other axis rides in the coordinate.
@@ -27257,6 +27315,11 @@ arm: {
     // expansion) — and the tab's height is fixed, so the first line IS the block.
     'tab.content':
       "a tab's label is one line by contract (a horizontal tab list scrolls rather than wrapping) and the tab's height is fixed, so the leading icon and the count center against the only line.",
+    // `link` (#2580): the row pairs the optional icons with the label. In Figma a link is one text line tall (owner
+    // Q289.4 A) and its label is one line of placeholder text, so the icons center against the only line. In code a
+    // link wraps, and the icon is inline with its word rather than centered on the block (link.ts codeOnly).
+    'link.container':
+      "a link is one text line tall in Figma and its label is one line there, so the icons center against the only line; in code the icon sits inline with its first or last word, never centered on a wrapped block (link.ts codeOnly).",
     'tag.labelCheck':
       "the tag's height is fixed at one line in Figma and its label is one line there, so the check mark (and, one row out, the leading icon) center against the only line; in code a wrapped label centers them on the label block, which is held for the owner (tag.ts notes.contested).",
   };

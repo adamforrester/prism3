@@ -376,7 +376,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'size',
     values: ['small', 'medium', 'large'],
-    defs: ['_accordion-indicator', 'accordion', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'field-label', 'tag', 'tab', 'tabs'],
+    defs: ['_accordion-indicator', 'accordion', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'field-label', 'tag', 'tab', 'tabs', 'link'],
     relation: 'canonical',
     reason:
       'The three-rung ladder, and canonical on weight of use — every def with a size axis except the two switch defs below, the '
@@ -447,16 +447,30 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
     axis: 'style',
     values: ['outline'],
     defs: ['text-field', 'textarea'],
-    relation: 'sole',
+    relation: 'canonical',
     reason:
       'An axis of ONE, declared rather than dropped: the field substrate has a single treatment today, and '
       + 'the axis exists so that filled and underline have somewhere to land without a later API break. '
-      + 'The cost of an axis of one is real (`modifiers`, #845) and it is being paid deliberately here.',
+      + 'The cost of an axis of one is real (`modifiers`, #845) and it is being paid deliberately here. '
+      + '`canonical` since Link (#2580) declared a second `style` set against it.',
+  },
+  {
+    axis: 'style',
+    values: ['standalone', 'inline'],
+    defs: ['link'],
+    relation: 'disjoint',
+    reason:
+      'Where a link sits, and so how it shows it is a link (owner decision Q289.2 A): `standalone` on its own line, '
+      + 'underlined at hover, pressed and focus because its placement carries the cue; `inline` in body copy, '
+      + 'underlined at every state because color alone fails SC 1.4.1. The same kind of distinction as the field\'s '
+      + '`style` (a line treatment), hence the name. DISJOINT, the loud kind: a field outline and a link placement '
+      + 'share no value that would mean the same thing on both. `standalone` LEADS, the code default and so Figma\'s '
+      + 'default member. No `quiet` for now (Q289.2 A).',
   },
   {
     axis: 'surface',
     values: ['default', 'inverse'],
-    defs: ['button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'focus-ring'],
+    defs: ['button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'focus-ring', 'link'],
     relation: 'sole',
     reason:
       'The ground a control sits on (#1134): `default` the page, `inverse` a dark or brand-filled band. THE '
@@ -535,7 +549,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
     axis: 'weight',
     values: ['regular', 'bold'],
     defs: ['field-label'],
-    relation: 'sole',
+    relation: 'canonical',
     reason:
       'How heavy the label reads, held apart from how big it is — Prism 2\'s third form-label control '
       + '(#1248, completing #872), whose enum is `["Regular", "Bold"]` and whose Bold variants cross size '
@@ -545,7 +559,22 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'Naming the values `default`/`strong` would pin the axis to `type.body.*`\'s cells, which a def '
       + 'binding a different tier does not share. TWO values and not the weight-role ladder\'s five '
       + '(`subtle`, `default`, `emphasis`, `strong`, `max`): this axis is what a designer CHOOSES on a '
-      + 'component, not what the type scale can express, and Prism 2 offers two.',
+      + 'component, not what the type scale can express, and Prism 2 offers two. `canonical` since Link (#2580) '
+      + 'declared a second `weight` set against it.',
+  },
+  {
+    axis: 'weight',
+    values: ['emphasis', 'default'],
+    defs: ['link'],
+    relation: 'disjoint',
+    reason:
+      'How heavy a link\'s label reads (owner decision Q289.3 B): `emphasis` binds `type.label.<rung>.emphasis[-link]`, '
+      + 'the common footer and form look and the default, so it LEADS; `default` binds `type.label.<rung>.default[-link]`, '
+      + 'the weight of body text. VALUES ARE THE WEIGHT-ROLE NAMES the two bind, unlike field-label\'s intents: a link '
+      + 'binds the label tier\'s two roles by name and needs no brand-resolved intent. DISJOINT from field-label\'s '
+      + '`regular | bold`, the loud kind, and argued: `bold` there resolves to the heaviest body cut (`strong`), which '
+      + 'is not `emphasis`, so no shared value would mean the same thing on both. The axis name and its two values '
+      + 'are the build\'s pick from the owner\'s example, held as an owner item in the PR.',
   },
   {
     axis: 'value',

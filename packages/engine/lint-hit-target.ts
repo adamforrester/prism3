@@ -216,6 +216,7 @@ const EXCLUDED: Record<string, string> = {
   'checkbox-group': 'a group container — its interactive tap targets are the nested checkbox-rows, which are gated',
   'radio-group': 'a group container — its interactive tap targets are the nested radio-rows, which are gated',
   'tabs': 'a tab list container — its interactive tap targets are the nested tabs, which are gated as tab',
+  'link': 'one text line tall in Figma by owner decision (Q289.4 A), so its box is the line, not a control height: code expands the hit area to at least 24px (SC 2.5.8, codeOnly), and an inline link in a sentence is exempt under the inline exception',
   'textarea': 'a multi-line field whose height is rows/auto-grow (fluid); it binds no single-line height, so there is no fixed hit-target dimension to measure',
 };
 

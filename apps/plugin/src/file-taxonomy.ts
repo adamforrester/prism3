@@ -106,6 +106,9 @@ export const TAXONOMY: Taxonomy = {
         // Accordion (#2417) — its own page under Components after Divider, which it nests (DRAFT, owner item). Its
         // building-block indicator builds first on the same page, so the header's nests resolve as Tabs' do.
         { page: 'Accordion', defs: ['_accordion-indicator', 'accordion'] },
+        // Link (#2580) — its own page under Components. The proposal named a navigation section; none exists (Tabs
+        // went under Components, Q177.14), so the section is held as an owner item in the PR.
+        { page: 'Link', defs: ['link'] },
       ],
     },
     {
