@@ -2246,6 +2246,78 @@ section('icons — a set built with inline glyphs updates to icon instances, as 
   }
 }
 
+/* ── accordion header row (#2594) ────────────────────────────────────────────────────────────────────── */
+section('accordion — a set built before the header row (#2594, owner Q276 A) takes the row in place, every member kept');
+{
+  // THE FILE AS A BUILD AT MAIN BEFORE #2594 LEFT IT: the header top-aligned, holding the indicators and the title
+  // directly with the gap on itself, and no `titleRow`. Reconstructed from today's def by putting those facts back,
+  // so the subject is the real def's projection on both sides (as `image-placeholder` above does).
+  const ACC = 'accordion';
+  const now = componentDefs.find((x) => x.id === ACC)!;
+  const { titleRow, ...restParts } = now.anatomy.parts;
+  const before2594 = {
+    ...now,
+    anatomy: { ...now.anatomy, parts: { ...restParts, header: { ...now.anatomy.parts.header, layout: { ...now.anatomy.parts.header.layout!, align: 'start' }, gap: titleRow.gap, children: [...titleRow.children!, 'focusRing'] } } },
+  } as typeof now;
+  const oldPlans = figmaAnatomySet(before2594, { swapTarget: SWAP_TARGET });
+  const newPlans = plansOf(ACC);
+  const w = await world(ACC, oldPlans);
+  const header = (m: Node): Node => childNamed(m, 'header');
+  const kids = (n: Node | undefined): string[] => ((n?.children as Node[] | undefined) ?? []).map((c) => String(c.name));
+  ok(membersOf(w.set()).length === 24 && membersOf(w.set()).every((m) => !childNamed(header(m), 'titleRow') && kids(header(m)).includes('titleBox') && header(m).counterAxisAlignItems === 'MIN'),
+    `premise: the file holds 24 members built before #2594, each header top-aligned and holding the title directly (${kids(header(membersOf(w.set())[0])).join(', ')}; ${String(header(membersOf(w.set())[0]).counterAxisAlignItems)})`);
+  const before = identityOf(w.set());
+  const keptIds = (m: Node) => ({ header: String(header(m).id), divider: String(childNamed(m, 'divider')?.id) });
+  const beforeKept = new Map(membersOf(w.set()).map((m) => [String(m.name), keptIds(m)] as const));
+  const { pre, res } = await confirm(w, [{ def: ACC, plans: newPlans }]);
+  const p = pre.sets[0];
+  ok(p.counts.update === 24 && p.counts.add === 0 && p.counts.drop === 0 && p.renames.length === 0 && !p.blockers.length && !p.replacements.length,
+    `acc/dry run: all 24 members read update, none added, dropped, renamed or replaced, and nothing refused (${JSON.stringify(p.counts)}, ${p.blockers.join('; ') || 'no blockers'}, ${p.replacements.length} replacements)`);
+  ok(p.changes.some((c) => c.part === 'header' && c.field === 'counterAxisAlignItems' && c.from === 'MIN' && c.to === 'CENTER' && c.members === 24) && p.changes.some((c) => c.part === 'header/titleRow' && c.field === 'children' && c.to === 'present'),
+    `acc/dry run: the header's centering and the added row are named differences (${JSON.stringify(p.changes.map((c) => [c.part, c.field, c.members])).slice(0, 240)})`);
+  const v = applyVerdict(res);
+  ok(v.ok, `acc/verdict: ${v.headline} (${v.lines.slice(0, 2).join(' | ').slice(0, 240)})`);
+  const after = identityOf(w.set());
+  ok(JSON.stringify(after.set) === JSON.stringify(before.set), 'acc/set kept: the set keeps its key and id');
+  const moved = [...before.members].filter(([name, b]) => after.members.get(name)?.key !== b.key || after.members.get(name)?.id !== b.id).map(([n]) => n);
+  ok(moved.length === 0 && after.members.size === 24, `acc/members kept: all 24 members keep their keys and ids (${moved.join('; ') || 'none moved'})`);
+  const lostHost = membersOf(w.set()).filter((m) => JSON.stringify(keptIds(m)) !== JSON.stringify(beforeKept.get(String(m.name)))).map((m) => String(m.name));
+  ok(lostHost.length === 0, `acc/header kept: each member's header and Divider keep their node ids; the row is added inside the header in place (${lostHost.slice(0, 2).join('; ') || 'all 24'})`);
+  // The new structure, read off the shim's nodes: the header centers one row, and the row holds the indicator and
+  // the title, top-aligned. Typed here from Q276 A.
+  const shape = membersOf(w.set()).map((m) => {
+    const h = header(m), row = childNamed(h, 'titleRow');
+    const side = /icon position=leading/.test(String(m.name)) ? 'leadingIndicator' : 'trailingIndicator';
+    const want = side === 'leadingIndicator' ? ['leadingIndicator', 'titleBox'] : ['titleBox', 'trailingIndicator'];
+    return { m: String(m.name), ok: h.counterAxisAlignItems === 'CENTER' && !!row && row.counterAxisAlignItems === 'MIN' && JSON.stringify(kids(row)) === JSON.stringify(want) && !kids(h).includes('titleBox') && !kids(h).includes(side), got: `${String(h.counterAxisAlignItems)} [${kids(h).join(', ')}] / ${String(row?.counterAxisAlignItems)} [${kids(row).join(', ')}]` };
+  });
+  ok(shape.every((x) => x.ok), `acc/structure: every header is centered and holds the row, which holds the indicator and the title top-aligned (${shape.filter((x) => !x.ok).slice(0, 2).map((x) => `${x.m}: ${x.got}`).join('; ') || 'all 24'})`);
+  const post = (await previewUpdate(w.host, [{ def: ACC, plans: newPlans }])).sets[0];
+  ok(post.counts.current === 24 && post.handEdits.length === 0, `acc/current: the next dry run reads all 24 current (${JSON.stringify(post.counts)})`);
+  // THE COST, stated rather than hidden: the indicators and the title move into a frame the file did not have, and
+  // the in-place update pairs a node's children by name under the SAME parent, so they are built fresh inside the row
+  // and the old ones removed. Their ids change; a placed instance's own choice on the nested indicator does not carry
+  // over (the title is a text property, so its text does). Typed here so a change to that pairing is seen.
+  const rebuilt = [...before.members].every(([name, b]) => {
+    const now2 = new Set(after.members.get(name)?.kids.values() ?? []);
+    const was = [...b.kids].filter(([path]) => /^header#0\/(titleBox|leadingIndicator|trailingIndicator)#/.test(path)).map(([, id]) => id);
+    return was.length > 0 && was.every((id) => !now2.has(id));
+  });
+  ok(rebuilt, 'acc/moved children: the indicator and the title are built fresh inside the row, so their ids change');
+  // ADOPTED, NOT RE-CREATED, ONCE THERE: a later update (here an executor revision bump, every member out of date
+  // with nothing else moved) pairs the row the first update added, and every node under it keeps its id.
+  for (const m of membersOf(w.set())) {
+    const st = (m.getSharedPluginData as (a: string, b: string) => string)(NS, STAMP_KEY);
+    (m.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, STAMP_KEY, st.replace(/\|[^|]*$/, '|0'));
+  }
+  const rowIds = (m: Node): string => JSON.stringify([...idsUnder(childNamed(header(m), 'titleRow'))]);
+  const beforeRow = new Map(membersOf(w.set()).map((m) => [String(m.name), rowIds(m)] as const));
+  const again = await confirm(w, [{ def: ACC, plans: newPlans }]);
+  ok(again.pre.sets[0].counts.update === 24 && applyVerdict(again.res).ok, `acc/again: a revision bump reads all 24 out of date and updates them (${JSON.stringify(again.pre.sets[0].counts)}; ${applyVerdict(again.res).headline})`);
+  const reRow = membersOf(w.set()).filter((m) => rowIds(m) !== beforeRow.get(String(m.name))).map((m) => String(m.name));
+  ok(reRow.length === 0, `acc/row adopted: a later update keeps the row and every node under it, by id, on every member (${reRow.slice(0, 2).join('; ') || 'all 24'})`);
+}
+
 void STYLE_FONT; void BASELINE_KEY;
 console.log(`\n${failed ? `❌ ${failed} FAILED` : '✓ all passed'} — ${executed} assertions executed`);
 if (failed) process.exit(1);
