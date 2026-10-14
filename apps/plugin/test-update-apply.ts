@@ -63,6 +63,10 @@
  *                  (an Accordion built on `position`, no ledger entry) and a rename onto a hand-made member's name. The
  *                  expected side is the apply's own refusal, read off the confirmed run. Mutation: the dry run's call to
  *                  `setRefusal` dropped, the apply's own copy restored → `agree/collapse`, `agree/rename onto a name`.
+ *   adopt/axis change  an Accordion on `position` (a declared display rename) with one member's stamp and record
+ *                  cleared: the dry run blocks the axis change, and Adopt, which exists to clear that blocker, claims the
+ *                  member, so the next dry run has none (#2603 review). Mutation: Adopt refused by every blocker again →
+ *                  `adopt/axis change`.
  *   display rename/…  an Accordion built while its icon axis was `position`, or `iconPosition`, updates in place to the
  *                  def's `icon position`: every member renamed, every key and id the test captured kept (#2592).
  *                  Mutation: the ledger entries dropped → `display rename/position …`, `display rename/iconPosition …`.
@@ -128,7 +132,7 @@ import { NS } from './src/persist-figma';
 import { materializeForBrand } from './src/brand-def';
 import { BASELINE_KEY } from './src/member-baseline';
 import { makeShim, STYLE_FONT, type Node, type Page } from './component-shim';
-import { captureBaselines, previewLine, previewUpdate, previewVerdict, type UpdateHost, type UpdateTarget } from './src/update-plan';
+import { adoptMembers, captureBaselines, previewLine, previewUpdate, previewVerdict, type UpdateHost, type UpdateTarget } from './src/update-plan';
 import { drawnFaults, faultLine, varsById } from './src/drawn';
 import { BASELINE_V, baselineOf, resetStyleNames, snapshotMember } from './src/member-baseline';
 import { applyUpdate, applyVerdict, previewHashOf, DEPRECATED_PREFIX, RETAINED_KEY, nestedFirst, type ApplyHost } from './src/update-apply';
@@ -496,6 +500,22 @@ const agrees = async (w: World, targets: UpdateTarget[], ledger?: Parameters<typ
   const r = await agrees(w, [{ def: TAG, plans: w.plans }], [{ def: TAG, kind: 'value', axis: 'size', from: 'sm', to: 'small', issue: 2265 }]);
   ok(r.refused.length === 1 && r.unlisted.length === 0 && r.untouched,
     `agree/rename onto a name: the apply refuses the set, and the dry run listed that reason as its blocker (${r.refused.length} refused; unlisted ${JSON.stringify(r.unlisted).slice(0, 160)})`);
+}
+
+{
+  // The refusal Adopt exists to clear (#2603 review): the axes change over a member Prism3 did not build. The dry run
+  // blocks the update on it; Adopt must not be blocked by it, or the set is stuck.
+  const w = await world('accordion');
+  for (const m of membersOf(w.set())) m.name = String(m.name).replace('icon position=', 'position=');
+  const theirs = membersOf(w.set())[1]!;
+  for (const k of [STAMP_KEY, BASELINE_KEY]) (theirs.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, k, '');
+  const targets = [{ def: 'accordion', plans: w.plans }];
+  const pre = (await previewUpdate(w.host, targets)).sets[0];
+  ok(!!pre && pre.blockers.length === 1 && /axes change/.test(pre.blockers[0]!), `premise: the dry run blocks the axis change over one unstamped member (${pre?.blockers.join('; ')})`);
+  const a = await adoptMembers(w.host, targets);
+  const post = (await previewUpdate(w.host, targets)).sets[0];
+  ok(a.refused.length === 0 && a.sets[0]?.adopted === 1 && !!post && post.blockers.length === 0 && post.unstamped.length === 0,
+    `adopt/axis change: Adopt claims the one member the axis change blocked on, and the next dry run has no blocker (${a.sets[0]?.adopted ?? 0} adopted; refused ${JSON.stringify(a.refused).slice(0, 160)}; after: ${post?.blockers.join('; ') || 'none'})`);
 }
 
 section('display rename — a set built while an axis had another Figma name updates in place, every id kept (#2592)');

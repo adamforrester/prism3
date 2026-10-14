@@ -9,4 +9,5 @@ is an axis rename to it, and `lint-component-renames.ts` already demands the ent
 emitted artifact, token or projected component surface moves, so CONTRACT is unchanged. In the plugin, the update's
 dry run and its apply share one refusal test (`setRefusal`): a collapse, an axis change over members not built by
 Prism3, and a rename onto another member's name are blockers in the dry run, so the confirm step lists every set the
-apply refuses for them. A set whose only change is renames no longer reads as up to date.
+apply refuses for them. Adopt is refused by the same blockers, except the axis change over members not built by
+Prism3, which Adopt clears by claiming them. A set whose only change is renames no longer reads as up to date.
