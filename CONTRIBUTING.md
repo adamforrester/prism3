@@ -467,7 +467,10 @@ npx tsx packages/engine/lint-progress-order.ts       # docs/00-progress.md stays
                                                     # well-formed entry, and every folded one is in the log at its landing day in
                                                     # MERGE order (#1104's same-day order, which the date sort ties), read from
                                                     # `git log --first-parent` with its own code, never fold.ts's;
-                                                    # and every PR but a fold ADDS a fragment
+                                                    # and every PR but a fold ADDS a fragment. Since #2583
+                                                    # it reads the log and docs/progress/archive/ as one
+                                                    # sequence, and a diff that writes the archive must be a
+                                                    # pure move: the same sections, in order, byte for byte
 npx tsx packages/engine/lint-payload-manifest.ts     # every emitted artifact is classified payload or ours
                                                     # (#674). The manifest is AUTHORED, never regenerated:
                                                     # built from a scan it would classify each new artifact
@@ -1589,7 +1592,7 @@ Keeping these separate is what stops the backlog from drifting out of sync with 
 
 | Kind of thing | Home |
 |---|---|
-| **What shipped, what was decided and why** | `docs/00-progress.md` — narrative history, most recent first, append-only. It records *what happened*; it is not a to-do list. A PR adds its entry as `docs/progress/pending/<slug>.md`, and the fold moves it into the log (§2). |
+| **What shipped, what was decided and why** | `docs/00-progress.md` — narrative history, most recent first, append-only. Entries older than about a month move, unchanged, to `docs/progress/archive/` (#2583). It records *what happened*; it is not a to-do list. A PR adds its entry as `docs/progress/pending/<slug>.md`, and the fold moves it into the log (§2). |
 | **Actionable backlog** | **GitHub issues.** Anything someone could pick up belongs here, not in doc prose. |
 | **Ideas not yet scoped** | `docs/27-future-ideas.md` — discovery-level, deliberately not issues yet. An idea graduates to an issue when it's actionable. |
 | **Architecture, models, specs** | The numbered docs in `docs/`. Add a new numbered file only for a genuinely new topic area; append, don't renumber. |

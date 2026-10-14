@@ -431,8 +431,8 @@ jobs:
           count=$(npx --yes tsx@4 packages/engine/regen.ts --check | grep -oE '[0-9]+ committed artifacts')
           echo "reported: $count"
           case "$count" in
-            "182 committed artifacts") echo "✓ full set covered" ;;
-            *) echo "✗ artifact coverage changed — expected 182. If the set legitimately grew or shrank, update this check in the same PR."; exit 1 ;;
+            "184 committed artifacts") echo "✓ full set covered" ;;
+            *) echo "✗ artifact coverage changed — expected 184. If the set legitimately grew or shrank, update this check in the same PR."; exit 1 ;;
           esac
 
       # The RUNNER's own checks, not a second run of the gates (#789). `verify.ts` is what a contributor
@@ -549,8 +549,10 @@ jobs:
       # in the log in MERGE order at its landing day, and that every PR but a fold adds a fragment —
       # which makes it the fourth gate here that reads
       # git HISTORY (`git log --first-parent`), covered by the job-level `fetch-depth: 0` above. It
-      # refuses a shallow clone rather than missing folded fragments silently.
-      - name: docs/00-progress.md stays newest-entry-first
+      # refuses a shallow clone rather than missing folded fragments silently. Since #2583 it reads the
+      # log and `docs/progress/archive/` as one sequence, and fails any write to the archive that is
+      # not a pure move of whole entries out of the log.
+      - name: docs/00-progress.md and its archive stay newest-entry-first
         run: npx --yes tsx@4 packages/engine/lint-progress-order.ts
 
       # `out/` mixed the brand's token trees (which travel to a client on eject) with a regression

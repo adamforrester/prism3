@@ -5,12 +5,7 @@
     {
       "name": "pds3/core/palette/white",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Pure white — the light extreme",
       "value": {
         "r": 1,
@@ -24,12 +19,7 @@
     {
       "name": "pds3/core/palette/black",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Pure black — the dark extreme",
       "value": {
         "r": 0,
@@ -43,12 +33,7 @@
     {
       "name": "pds3/core/palette/transparent",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Transparent — alpha 0, no paint (the default form field fill)",
       "value": {
         "r": 0,
@@ -62,12 +47,7 @@
     {
       "name": "pds3/core/palette/primary/025",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Brand (primary) 025 — Highlight band (near-white tints, steps 025–050)",
       "value": {
         "r": 0.9529411792755127,
@@ -81,12 +61,7 @@
     {
       "name": "pds3/core/palette/primary/050",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Brand (primary) 050 — Highlight band (near-white tints, steps 025–050)",
       "value": {
         "r": 0.886274516582489,
@@ -100,12 +75,7 @@
     {
       "name": "pds3/core/palette/primary/100",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Brand (primary) 100 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.8156862854957581,
@@ -119,12 +89,7 @@
     {
       "name": "pds3/core/palette/primary/150",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Brand (primary) 150 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.7450980544090271,
@@ -138,12 +103,7 @@
     {
       "name": "pds3/core/palette/primary/200",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Brand (primary) 200 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.6705882549285889,
@@ -157,12 +117,7 @@
     {
       "name": "pds3/core/palette/primary/250",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Brand (primary) 250 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.6000000238418579,
@@ -176,12 +131,7 @@
     {
       "name": "pds3/core/palette/primary/300",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Brand (primary) 300 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.5254902243614197,
@@ -195,12 +145,7 @@
     {
       "name": "pds3/core/palette/primary/350",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Brand (primary) 350 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.45098039507865906,
@@ -214,12 +159,7 @@
     {
       "name": "pds3/core/palette/primary/400",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Brand (primary) 400 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0.3803921639919281,
@@ -233,12 +173,7 @@
     {
       "name": "pds3/core/palette/primary/450",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Brand (primary) 450 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0.30980393290519714,
@@ -252,12 +187,7 @@
     {
       "name": "pds3/core/palette/primary/500",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Brand (primary) 500 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0.239215686917305,
@@ -271,12 +201,7 @@
     {
       "name": "pds3/core/palette/primary/550",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Brand (primary) 550 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0.16078431904315948,
@@ -290,12 +215,7 @@
     {
       "name": "pds3/core/palette/primary/600",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Brand (primary) 600 — the brand color, exact",
       "value": {
         "r": 0.11764705926179886,
@@ -309,12 +229,7 @@
     {
       "name": "pds3/core/palette/primary/650",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Brand (primary) 650 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.09803921729326248,
@@ -328,12 +243,7 @@
     {
       "name": "pds3/core/palette/primary/700",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Brand (primary) 700 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.0784313753247261,
@@ -347,12 +257,7 @@
     {
       "name": "pds3/core/palette/primary/750",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Brand (primary) 750 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.062745101749897,
@@ -366,12 +271,7 @@
     {
       "name": "pds3/core/palette/primary/800",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Brand (primary) 800 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.04313725605607033,
@@ -385,12 +285,7 @@
     {
       "name": "pds3/core/palette/primary/850",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Brand (primary) 850 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.027450980618596077,
@@ -404,12 +299,7 @@
     {
       "name": "pds3/core/palette/primary/900",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Brand (primary) 900 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.01568627543747425,
@@ -423,12 +313,7 @@
     {
       "name": "pds3/core/palette/primary/950",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Brand (primary) 950 — Shadow band (near-black shade, step 950)",
       "value": {
         "r": 0.007843137718737125,
@@ -442,12 +327,7 @@
     {
       "name": "pds3/core/palette/neutral/025",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Neutral 025 — Highlight band (near-white tints, steps 025–050)",
       "value": {
         "r": 0.9686274528503418,
@@ -461,12 +341,7 @@
     {
       "name": "pds3/core/palette/neutral/050",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Neutral 050 — Highlight band (near-white tints, steps 025–050)",
       "value": {
         "r": 0.9137254953384399,
@@ -480,12 +355,7 @@
     {
       "name": "pds3/core/palette/neutral/100",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Neutral 100 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.8588235378265381,
@@ -499,12 +369,7 @@
     {
       "name": "pds3/core/palette/neutral/150",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Neutral 150 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.8078431487083435,
@@ -518,12 +383,7 @@
     {
       "name": "pds3/core/palette/neutral/200",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Neutral 200 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.7529411911964417,
@@ -537,12 +397,7 @@
     {
       "name": "pds3/core/palette/neutral/250",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Neutral 250 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.7019608020782471,
@@ -556,12 +411,7 @@
     {
       "name": "pds3/core/palette/neutral/300",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Neutral 300 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.6509804129600525,
@@ -575,12 +425,7 @@
     {
       "name": "pds3/core/palette/neutral/350",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Neutral 350 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.6000000238418579,
@@ -594,12 +439,7 @@
     {
       "name": "pds3/core/palette/neutral/400",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Neutral 400 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0.5529412031173706,
@@ -613,12 +453,7 @@
     {
       "name": "pds3/core/palette/neutral/450",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Neutral 450 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0.501960813999176,
@@ -632,12 +467,7 @@
     {
       "name": "pds3/core/palette/neutral/500",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Neutral 500 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0.45490196347236633,
@@ -651,12 +481,7 @@
     {
       "name": "pds3/core/palette/neutral/550",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Neutral 550 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0.40392157435417175,
@@ -670,12 +495,7 @@
     {
       "name": "pds3/core/palette/neutral/600",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Neutral 600 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0.35686275362968445,
@@ -689,12 +509,7 @@
     {
       "name": "pds3/core/palette/neutral/650",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Neutral 650 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.30588236451148987,
@@ -708,12 +523,7 @@
     {
       "name": "pds3/core/palette/neutral/700",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Neutral 700 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.25882354378700256,
@@ -727,12 +537,7 @@
     {
       "name": "pds3/core/palette/neutral/750",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Neutral 750 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.21568627655506134,
@@ -746,12 +551,7 @@
     {
       "name": "pds3/core/palette/neutral/800",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Neutral 800 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.1725490242242813,
@@ -765,12 +565,7 @@
     {
       "name": "pds3/core/palette/neutral/850",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Neutral 850 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.12941177189350128,
@@ -784,12 +579,7 @@
     {
       "name": "pds3/core/palette/neutral/900",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Neutral 900 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.09019608050584793,
@@ -803,12 +593,7 @@
     {
       "name": "pds3/core/palette/neutral/950",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Neutral 950 — Shadow band (near-black shade, step 950)",
       "value": {
         "r": 0.05098039284348488,
@@ -822,12 +607,7 @@
     {
       "name": "pds3/core/palette/accent/025",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Brand (accent) 025 — Highlight band (near-white tints, steps 025–050)",
       "value": {
         "r": 0.9647058844566345,
@@ -841,12 +621,7 @@
     {
       "name": "pds3/core/palette/accent/050",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Brand (accent) 050 — Highlight band (near-white tints, steps 025–050)",
       "value": {
         "r": 0.9098039269447327,
@@ -860,12 +635,7 @@
     {
       "name": "pds3/core/palette/accent/100",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Brand (accent) 100 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.8549019694328308,
@@ -879,12 +649,7 @@
     {
       "name": "pds3/core/palette/accent/150",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Brand (accent) 150 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.800000011920929,
@@ -898,12 +663,7 @@
     {
       "name": "pds3/core/palette/accent/200",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Brand (accent) 200 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.7450980544090271,
@@ -917,12 +677,7 @@
     {
       "name": "pds3/core/palette/accent/250",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Brand (accent) 250 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.6941176652908325,
@@ -936,12 +691,7 @@
     {
       "name": "pds3/core/palette/accent/300",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Brand (accent) 300 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.6431372761726379,
@@ -955,12 +705,7 @@
     {
       "name": "pds3/core/palette/accent/350",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Brand (accent) 350 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.5960784554481506,
@@ -974,12 +719,7 @@
     {
       "name": "pds3/core/palette/accent/400",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Brand (accent) 400 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0.5529412031173706,
@@ -993,12 +733,7 @@
     {
       "name": "pds3/core/palette/accent/450",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Brand (accent) 450 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0.5137255191802979,
@@ -1012,12 +747,7 @@
     {
       "name": "pds3/core/palette/accent/500",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Brand (accent) 500 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0.47843137383461,
@@ -1031,12 +761,7 @@
     {
       "name": "pds3/core/palette/accent/550",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Brand (accent) 550 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0.4274509847164154,
@@ -1050,12 +775,7 @@
     {
       "name": "pds3/core/palette/accent/600",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Brand (accent) 600 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0.3764705955982208,
@@ -1069,12 +789,7 @@
     {
       "name": "pds3/core/palette/accent/650",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Brand (accent) 650 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.3294117748737335,
@@ -1088,12 +803,7 @@
     {
       "name": "pds3/core/palette/accent/700",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Brand (accent) 700 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.2823529541492462,
@@ -1107,12 +817,7 @@
     {
       "name": "pds3/core/palette/accent/750",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Brand (accent) 750 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.23529411852359772,
@@ -1126,12 +831,7 @@
     {
       "name": "pds3/core/palette/accent/800",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Brand (accent) 800 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.1921568661928177,
@@ -1145,12 +845,7 @@
     {
       "name": "pds3/core/palette/accent/850",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Brand (accent) 850 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.14509804546833038,
@@ -1164,12 +859,7 @@
     {
       "name": "pds3/core/palette/accent/900",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Brand (accent) 900 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.10196078568696976,
@@ -1183,12 +873,7 @@
     {
       "name": "pds3/core/palette/accent/950",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Brand (accent) 950 — Shadow band (near-black shade, step 950)",
       "value": {
         "r": 0.062745101749897,
@@ -1202,12 +887,7 @@
     {
       "name": "pds3/core/palette/success/025",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Success 025 — Highlight band (near-white tints, steps 025–050)",
       "value": {
         "r": 0.9529411792755127,
@@ -1221,12 +901,7 @@
     {
       "name": "pds3/core/palette/success/050",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Success 050 — Highlight band (near-white tints, steps 025–050)",
       "value": {
         "r": 0.8117647171020508,
@@ -1240,12 +915,7 @@
     {
       "name": "pds3/core/palette/success/100",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Success 100 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.6039215922355652,
@@ -1259,12 +929,7 @@
     {
       "name": "pds3/core/palette/success/150",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Success 150 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.45490196347236633,
@@ -1278,12 +943,7 @@
     {
       "name": "pds3/core/palette/success/200",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Success 200 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.4117647111415863,
@@ -1297,12 +957,7 @@
     {
       "name": "pds3/core/palette/success/250",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Success 250 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.37254902720451355,
@@ -1316,12 +971,7 @@
     {
       "name": "pds3/core/palette/success/300",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Success 300 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.3333333432674408,
@@ -1335,12 +985,7 @@
     {
       "name": "pds3/core/palette/success/350",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Success 350 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.29411765933036804,
@@ -1354,12 +999,7 @@
     {
       "name": "pds3/core/palette/success/400",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Success 400 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0.2549019753932953,
@@ -1373,12 +1013,7 @@
     {
       "name": "pds3/core/palette/success/450",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Success 450 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0.21960784494876862,
@@ -1392,12 +1027,7 @@
     {
       "name": "pds3/core/palette/success/500",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Success 500 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0.18039216101169586,
@@ -1411,12 +1041,7 @@
     {
       "name": "pds3/core/palette/success/550",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Success 550 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0.1411764770746231,
@@ -1430,12 +1055,7 @@
     {
       "name": "pds3/core/palette/success/600",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Success 600 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0.09803921729326248,
@@ -1449,12 +1069,7 @@
     {
       "name": "pds3/core/palette/success/650",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Success 650 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.05098039284348488,
@@ -1468,12 +1083,7 @@
     {
       "name": "pds3/core/palette/success/700",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Success 700 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.003921568859368563,
@@ -1487,12 +1097,7 @@
     {
       "name": "pds3/core/palette/success/750",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Success 750 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0,
@@ -1506,12 +1111,7 @@
     {
       "name": "pds3/core/palette/success/800",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Success 800 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0,
@@ -1525,12 +1125,7 @@
     {
       "name": "pds3/core/palette/success/850",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Success 850 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0,
@@ -1544,12 +1139,7 @@
     {
       "name": "pds3/core/palette/success/900",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Success 900 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0,
@@ -1563,12 +1153,7 @@
     {
       "name": "pds3/core/palette/success/950",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Success 950 — Shadow band (near-black shade, step 950)",
       "value": {
         "r": 0,
@@ -1582,12 +1167,7 @@
     {
       "name": "pds3/core/palette/warning/025",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Warning 025 — Highlight band (near-white tints, steps 025–050)",
       "value": {
         "r": 0.9803921580314636,
@@ -1601,12 +1181,7 @@
     {
       "name": "pds3/core/palette/warning/050",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Warning 050 — Highlight band (near-white tints, steps 025–050)",
       "value": {
         "r": 0.9647058844566345,
@@ -1620,12 +1195,7 @@
     {
       "name": "pds3/core/palette/warning/100",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Warning 100 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.9647058844566345,
@@ -1639,12 +1209,7 @@
     {
       "name": "pds3/core/palette/warning/150",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Warning 150 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.9725490212440491,
@@ -1658,12 +1223,7 @@
     {
       "name": "pds3/core/palette/warning/200",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Warning 200 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.9803921580314636,
@@ -1677,12 +1237,7 @@
     {
       "name": "pds3/core/palette/warning/250",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Warning 250 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.95686274766922,
@@ -1696,12 +1251,7 @@
     {
       "name": "pds3/core/palette/warning/300",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Warning 300 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.8941176533699036,
@@ -1715,12 +1265,7 @@
     {
       "name": "pds3/core/palette/warning/350",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Warning 350 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.8352941274642944,
@@ -1734,12 +1279,7 @@
     {
       "name": "pds3/core/palette/warning/400",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Warning 400 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0.772549033164978,
@@ -1753,12 +1293,7 @@
     {
       "name": "pds3/core/palette/warning/450",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Warning 450 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0.7098039388656616,
@@ -1772,12 +1307,7 @@
     {
       "name": "pds3/core/palette/warning/500",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Warning 500 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0.6470588445663452,
@@ -1791,12 +1321,7 @@
     {
       "name": "pds3/core/palette/warning/550",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Warning 550 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0.5803921818733215,
@@ -1810,12 +1335,7 @@
     {
       "name": "pds3/core/palette/warning/600",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Warning 600 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0.5098039507865906,
@@ -1829,12 +1349,7 @@
     {
       "name": "pds3/core/palette/warning/650",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Warning 650 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.4431372582912445,
@@ -1848,12 +1363,7 @@
     {
       "name": "pds3/core/palette/warning/700",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Warning 700 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.3803921639919281,
@@ -1867,12 +1377,7 @@
     {
       "name": "pds3/core/palette/warning/750",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Warning 750 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.3176470696926117,
@@ -1886,12 +1391,7 @@
     {
       "name": "pds3/core/palette/warning/800",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Warning 800 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.2549019753932953,
@@ -1905,12 +1405,7 @@
     {
       "name": "pds3/core/palette/warning/850",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Warning 850 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.19607843458652496,
@@ -1924,12 +1419,7 @@
     {
       "name": "pds3/core/palette/warning/900",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Warning 900 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.1411764770746231,
@@ -1943,12 +1433,7 @@
     {
       "name": "pds3/core/palette/warning/950",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Warning 950 — Shadow band (near-black shade, step 950)",
       "value": {
         "r": 0.09019608050584793,
@@ -1962,12 +1447,7 @@
     {
       "name": "pds3/core/palette/info/025",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Info 025 — Highlight band (near-white tints, steps 025–050)",
       "value": {
         "r": 0.9529411792755127,
@@ -1981,12 +1461,7 @@
     {
       "name": "pds3/core/palette/info/050",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Info 050 — Highlight band (near-white tints, steps 025–050)",
       "value": {
         "r": 0.8588235378265381,
@@ -2000,12 +1475,7 @@
     {
       "name": "pds3/core/palette/info/100",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Info 100 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.7529411911964417,
@@ -2019,12 +1489,7 @@
     {
       "name": "pds3/core/palette/info/150",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Info 150 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.6274510025978088,
@@ -2038,12 +1503,7 @@
     {
       "name": "pds3/core/palette/info/200",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Info 200 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.48627451062202454,
@@ -2057,12 +1517,7 @@
     {
       "name": "pds3/core/palette/info/250",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Info 250 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.3019607961177826,
@@ -2076,12 +1531,7 @@
     {
       "name": "pds3/core/palette/info/300",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Info 300 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.23137255012989044,
@@ -2095,12 +1545,7 @@
     {
       "name": "pds3/core/palette/info/350",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Info 350 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.19607843458652496,
@@ -2114,12 +1559,7 @@
     {
       "name": "pds3/core/palette/info/400",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Info 400 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0.16078431904315948,
@@ -2133,12 +1573,7 @@
     {
       "name": "pds3/core/palette/info/450",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Info 450 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0.12156862765550613,
@@ -2152,12 +1587,7 @@
     {
       "name": "pds3/core/palette/info/500",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Info 500 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0.08235294371843338,
@@ -2171,12 +1601,7 @@
     {
       "name": "pds3/core/palette/info/550",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Info 550 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0.027450980618596077,
@@ -2190,12 +1615,7 @@
     {
       "name": "pds3/core/palette/info/600",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Info 600 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0,
@@ -2209,12 +1629,7 @@
     {
       "name": "pds3/core/palette/info/650",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Info 650 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0,
@@ -2228,12 +1643,7 @@
     {
       "name": "pds3/core/palette/info/700",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Info 700 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0,
@@ -2247,12 +1657,7 @@
     {
       "name": "pds3/core/palette/info/750",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Info 750 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0,
@@ -2266,12 +1671,7 @@
     {
       "name": "pds3/core/palette/info/800",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Info 800 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0,
@@ -2285,12 +1685,7 @@
     {
       "name": "pds3/core/palette/info/850",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Info 850 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0,
@@ -2304,12 +1699,7 @@
     {
       "name": "pds3/core/palette/info/900",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Info 900 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0,
@@ -2323,12 +1713,7 @@
     {
       "name": "pds3/core/palette/info/950",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Info 950 — Shadow band (near-black shade, step 950)",
       "value": {
         "r": 0,
@@ -2342,12 +1727,7 @@
     {
       "name": "pds3/core/palette/danger/025",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Danger 025 — Highlight band (near-white tints, steps 025–050)",
       "value": {
         "r": 0.9921568632125854,
@@ -2361,12 +1741,7 @@
     {
       "name": "pds3/core/palette/danger/050",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Danger 050 — Highlight band (near-white tints, steps 025–050)",
       "value": {
         "r": 0.9686274528503418,
@@ -2380,12 +1755,7 @@
     {
       "name": "pds3/core/palette/danger/100",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Danger 100 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.95686274766922,
@@ -2399,12 +1769,7 @@
     {
       "name": "pds3/core/palette/danger/150",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Danger 150 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.9490196108818054,
@@ -2418,12 +1783,7 @@
     {
       "name": "pds3/core/palette/danger/200",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Danger 200 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.9411764740943909,
@@ -2437,12 +1797,7 @@
     {
       "name": "pds3/core/palette/danger/250",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Danger 250 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.9333333373069763,
@@ -2456,12 +1811,7 @@
     {
       "name": "pds3/core/palette/danger/300",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Danger 300 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.929411768913269,
@@ -2475,12 +1825,7 @@
     {
       "name": "pds3/core/palette/danger/350",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Danger 350 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.9176470637321472,
@@ -2494,12 +1839,7 @@
     {
       "name": "pds3/core/palette/danger/400",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Danger 400 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0.9098039269447327,
@@ -2513,12 +1853,7 @@
     {
       "name": "pds3/core/palette/danger/450",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Danger 450 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0.8901960849761963,
@@ -2532,12 +1867,7 @@
     {
       "name": "pds3/core/palette/danger/500",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Danger 500 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0.8235294222831726,
@@ -2551,12 +1881,7 @@
     {
       "name": "pds3/core/palette/danger/550",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Danger 550 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0.7411764860153198,
@@ -2570,12 +1895,7 @@
     {
       "name": "pds3/core/palette/danger/600",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Danger 600 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0.658823549747467,
@@ -2589,12 +1909,7 @@
     {
       "name": "pds3/core/palette/danger/650",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Danger 650 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.5803921818733215,
@@ -2608,12 +1923,7 @@
     {
       "name": "pds3/core/palette/danger/700",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Danger 700 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.5058823823928833,
@@ -2627,12 +1937,7 @@
     {
       "name": "pds3/core/palette/danger/750",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Danger 750 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.4313725531101227,
@@ -2646,12 +1951,7 @@
     {
       "name": "pds3/core/palette/danger/800",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Danger 800 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.3607843220233917,
@@ -2665,12 +1965,7 @@
     {
       "name": "pds3/core/palette/danger/850",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Danger 850 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.2862745225429535,
@@ -2684,12 +1979,7 @@
     {
       "name": "pds3/core/palette/danger/900",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Danger 900 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.2078431397676468,
@@ -2703,12 +1993,7 @@
     {
       "name": "pds3/core/palette/danger/950",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Danger 950 — Shadow band (near-black shade, step 950)",
       "value": {
         "r": 0.13725490868091583,
@@ -2722,12 +2007,7 @@
     {
       "name": "pds3/core/palette/black-alpha/5",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Black at 5% — composites over any surface",
       "value": {
         "r": 0,
@@ -2741,12 +2021,7 @@
     {
       "name": "pds3/core/palette/black-alpha/10",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Black at 10% — composites over any surface",
       "value": {
         "r": 0,
@@ -2760,12 +2035,7 @@
     {
       "name": "pds3/core/palette/black-alpha/20",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Black at 20% — composites over any surface",
       "value": {
         "r": 0,
@@ -2779,12 +2049,7 @@
     {
       "name": "pds3/core/palette/black-alpha/30",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Black at 30% — composites over any surface",
       "value": {
         "r": 0,
@@ -2798,12 +2063,7 @@
     {
       "name": "pds3/core/palette/black-alpha/40",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Black at 40% — composites over any surface",
       "value": {
         "r": 0,
@@ -2817,12 +2077,7 @@
     {
       "name": "pds3/core/palette/black-alpha/50",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Black at 50% — composites over any surface",
       "value": {
         "r": 0,
@@ -2836,12 +2091,7 @@
     {
       "name": "pds3/core/palette/black-alpha/60",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Black at 60% — composites over any surface",
       "value": {
         "r": 0,
@@ -2855,12 +2105,7 @@
     {
       "name": "pds3/core/palette/black-alpha/70",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Black at 70% — composites over any surface",
       "value": {
         "r": 0,
@@ -2874,12 +2119,7 @@
     {
       "name": "pds3/core/palette/black-alpha/80",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Black at 80% — composites over any surface",
       "value": {
         "r": 0,
@@ -2893,12 +2133,7 @@
     {
       "name": "pds3/core/palette/black-alpha/90",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "Black at 90% — composites over any surface",
       "value": {
         "r": 0,
@@ -2912,12 +2147,7 @@
     {
       "name": "pds3/core/palette/white-alpha/0",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "White at 0% — composites over any surface",
       "value": {
         "r": 1,
@@ -2931,12 +2161,7 @@
     {
       "name": "pds3/core/palette/white-alpha/5",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "White at 5% — composites over any surface",
       "value": {
         "r": 1,
@@ -2950,12 +2175,7 @@
     {
       "name": "pds3/core/palette/white-alpha/10",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "White at 10% — composites over any surface",
       "value": {
         "r": 1,
@@ -2969,12 +2189,7 @@
     {
       "name": "pds3/core/palette/white-alpha/20",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "White at 20% — composites over any surface",
       "value": {
         "r": 1,
@@ -2988,12 +2203,7 @@
     {
       "name": "pds3/core/palette/white-alpha/30",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "White at 30% — composites over any surface",
       "value": {
         "r": 1,
@@ -3007,12 +2217,7 @@
     {
       "name": "pds3/core/palette/white-alpha/40",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "White at 40% — composites over any surface",
       "value": {
         "r": 1,
@@ -3026,12 +2231,7 @@
     {
       "name": "pds3/core/palette/white-alpha/50",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "White at 50% — composites over any surface",
       "value": {
         "r": 1,
@@ -3045,12 +2245,7 @@
     {
       "name": "pds3/core/palette/white-alpha/60",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "White at 60% — composites over any surface",
       "value": {
         "r": 1,
@@ -3064,12 +2259,7 @@
     {
       "name": "pds3/core/palette/white-alpha/70",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "White at 70% — composites over any surface",
       "value": {
         "r": 1,
@@ -3083,12 +2273,7 @@
     {
       "name": "pds3/core/palette/white-alpha/80",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "White at 80% — composites over any surface",
       "value": {
         "r": 1,
@@ -3102,12 +2287,7 @@
     {
       "name": "pds3/core/palette/white-alpha/90",
       "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
+      "scopes": [],
       "description": "White at 90% — composites over any surface",
       "value": {
         "r": 1,

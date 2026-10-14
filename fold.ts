@@ -29,7 +29,8 @@
  *      per note would mint numbers no build ever ran as, and no artifact ever carried.
  *   5. Writes the constant, and the fold's changelog section directly below the FOLD MARKER in
  *      `version.ts` (newest fold first; each note under it, newest merge first).
- *   6. Prepends the fragments to `docs/00-progress.md` below its intro, newest merge first. Each
+ *   6. Prepends the fragments to `docs/00-progress.md` below its intro, newest merge first (older entries are
+ *      archived under `docs/progress/archive/` by a pure move, #2583; the fold never writes there). Each
  *      entry's heading date becomes the UTC date its fragment LANDED on `main`, so the log reads in
  *      merge order and its dates stay non-increasing (the #1104 / #1170 same-day order, settled by a
  *      real oracle rather than by whoever resolved the conflict).
@@ -61,6 +62,8 @@ const NOTES_DIR = 'packages/engine/changes';
 const FRAGMENTS_DIR = 'docs/progress/pending';
 const VERSION_FILE = 'packages/engine/version.ts';
 const LOG_FILE = 'docs/00-progress.md';
+/** Where older entries move, out of the log (#2583). Read only for the newest entry's date; never written. */
+const ARCHIVE_DIR = 'docs/progress/archive';
 /** The line in `version.ts` the fold writes directly below. Matched as a PREFIX, so the rest of the
  *  line may be reworded without breaking the fold; the gate matches the same prefix independently. */
 const MARKER_PREFIX = ' * ── FOLDED CHANGE NOTES (#1807)';
@@ -283,7 +286,12 @@ if (fragments.length) {
   const logLines = logSrc.split('\n');
   const rule = logLines.findIndex((l) => l.trim() === '---');
   if (rule < 0) refuse([`${LOG_FILE} has no \`---\` rule below its intro; the fold inserts directly beneath it.`]);
-  const topEntry = logLines.map((l) => HEADING_RE.exec(l)).find(Boolean);
+  // The newest entry: the log's top one, or, if a move archived every entry, the newest archive file's (#2583).
+  const archived = existsSync(join(repo, ARCHIVE_DIR))
+    ? readdirSync(join(repo, ARCHIVE_DIR)).filter((f) => f.endsWith('.md') && f !== 'README.md').sort().reverse()
+    : [];
+  const topEntry = [logSrc, ...archived.map((f) => readFileSync(join(repo, ARCHIVE_DIR, f), 'utf8'))]
+    .flatMap((s) => s.split('\n')).map((l) => HEADING_RE.exec(l)).find(Boolean);
   // Dates must stay non-increasing down the file, or the log's own date gate fails on the fold. A
   // committer clock that ran backwards, or a hand-written entry dated ahead, both land here.
   const days = fragments.map((f) => landing.get(f.path)!.day);

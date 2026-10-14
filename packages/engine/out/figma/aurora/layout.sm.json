@@ -65,9 +65,7 @@
     {
       "name": "ads/grid/columns",
       "resolvedType": "FLOAT",
-      "scopes": [
-        "ALL_SCOPES"
-      ],
+      "scopes": [],
       "description": "Grid columns by breakpoint: xs 4 · sm 8 · md–2xl 12",
       "value": 8,
       "alias": null

@@ -136,10 +136,10 @@ const opVals = shim.vars.filter((v) => v.variableCollectionId === opCol.id).flat
 ok(opVals.length > 0 && opVals.every((n) => n >= 0 && n <= 100) && opVals.some((n) => n > 1),
   `opacity values are 0–100 percent (max ${Math.max(...opVals)})`);
 
-// the `core` primitives hidden from publishing + scoped
+// the `core` primitives hidden from publishing + unscoped (#2602: empty scopes hide them from local pickers)
 const dimVars = shim.vars.filter((v) => v.variableCollectionId === dimCol.id);
-ok(dimVars.length > 0 && dimVars.every((v) => v.hiddenFromPublishing && v.scopes.length > 0),
-  'every `core` primitive hidden from publishing + scoped');
+ok(dimVars.length > 0 && dimVars.every((v) => v.hiddenFromPublishing && JSON.stringify(v.scopes) === '[]'),
+  'every `core` dimension primitive hidden from publishing + unscoped (#2602)');
 
 // layout carries one mode per breakpoint the brand ships (aurora: xs..2xl = 6)
 const layoutCol = shim.collections.find((c) => c.name === 'layout')!;

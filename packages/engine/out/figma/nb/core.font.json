@@ -82,9 +82,7 @@
     {
       "name": "nbds/core/font/size/10",
       "resolvedType": "FLOAT",
-      "scopes": [
-        "FONT_SIZE"
-      ],
+      "scopes": [],
       "description": "10px (0.625rem) font size",
       "value": 10,
       "alias": null,
@@ -93,9 +91,7 @@
     {
       "name": "nbds/core/font/size/11",
       "resolvedType": "FLOAT",
-      "scopes": [
-        "FONT_SIZE"
-      ],
+      "scopes": [],
       "description": "11px (0.6875rem) font size",
       "value": 11,
       "alias": null,
@@ -104,9 +100,7 @@
     {
       "name": "nbds/core/font/size/12",
       "resolvedType": "FLOAT",
-      "scopes": [
-        "FONT_SIZE"
-      ],
+      "scopes": [],
       "description": "12px (0.75rem) font size",
       "value": 12,
       "alias": null,
@@ -115,9 +109,7 @@
     {
       "name": "nbds/core/font/size/14",
       "resolvedType": "FLOAT",
-      "scopes": [
-        "FONT_SIZE"
-      ],
+      "scopes": [],
       "description": "14px (0.875rem) font size",
       "value": 14,
       "alias": null,
@@ -126,9 +118,7 @@
     {
       "name": "nbds/core/font/size/16",
       "resolvedType": "FLOAT",
-      "scopes": [
-        "FONT_SIZE"
-      ],
+      "scopes": [],
       "description": "16px (1rem) font size",
       "value": 16,
       "alias": null,
@@ -137,9 +127,7 @@
     {
       "name": "nbds/core/font/size/18",
       "resolvedType": "FLOAT",
-      "scopes": [
-        "FONT_SIZE"
-      ],
+      "scopes": [],
       "description": "18px (1.125rem) font size",
       "value": 18,
       "alias": null,
@@ -148,9 +136,7 @@
     {
       "name": "nbds/core/font/size/20",
       "resolvedType": "FLOAT",
-      "scopes": [
-        "FONT_SIZE"
-      ],
+      "scopes": [],
       "description": "20px (1.25rem) font size",
       "value": 20,
       "alias": null,
@@ -159,9 +145,7 @@
     {
       "name": "nbds/core/font/size/24",
       "resolvedType": "FLOAT",
-      "scopes": [
-        "FONT_SIZE"
-      ],
+      "scopes": [],
       "description": "24px (1.5rem) font size",
       "value": 24,
       "alias": null,
@@ -170,9 +154,7 @@
     {
       "name": "nbds/core/font/size/28",
       "resolvedType": "FLOAT",
-      "scopes": [
-        "FONT_SIZE"
-      ],
+      "scopes": [],
       "description": "28px (1.75rem) font size",
       "value": 28,
       "alias": null,
@@ -181,9 +163,7 @@
     {
       "name": "nbds/core/font/size/32",
       "resolvedType": "FLOAT",
-      "scopes": [
-        "FONT_SIZE"
-      ],
+      "scopes": [],
       "description": "32px (2rem) font size",
       "value": 32,
       "alias": null,
@@ -192,9 +172,7 @@
     {
       "name": "nbds/core/font/size/36",
       "resolvedType": "FLOAT",
-      "scopes": [
-        "FONT_SIZE"
-      ],
+      "scopes": [],
       "description": "36px (2.25rem) font size",
       "value": 36,
       "alias": null,
@@ -203,9 +181,7 @@
     {
       "name": "nbds/core/font/size/40",
       "resolvedType": "FLOAT",
-      "scopes": [
-        "FONT_SIZE"
-      ],
+      "scopes": [],
       "description": "40px (2.5rem) font size",
       "value": 40,
       "alias": null,
@@ -214,9 +190,7 @@
     {
       "name": "nbds/core/font/size/48",
       "resolvedType": "FLOAT",
-      "scopes": [
-        "FONT_SIZE"
-      ],
+      "scopes": [],
       "description": "48px (3rem) font size",
       "value": 48,
       "alias": null,
@@ -225,9 +199,7 @@
     {
       "name": "nbds/core/font/size/56",
       "resolvedType": "FLOAT",
-      "scopes": [
-        "FONT_SIZE"
-      ],
+      "scopes": [],
       "description": "56px (3.5rem) font size",
       "value": 56,
       "alias": null,
@@ -236,9 +208,7 @@
     {
       "name": "nbds/core/font/size/64",
       "resolvedType": "FLOAT",
-      "scopes": [
-        "FONT_SIZE"
-      ],
+      "scopes": [],
       "description": "64px (4rem) font size",
       "value": 64,
       "alias": null,
@@ -247,9 +217,7 @@
     {
       "name": "nbds/core/font/size/72",
       "resolvedType": "FLOAT",
-      "scopes": [
-        "FONT_SIZE"
-      ],
+      "scopes": [],
       "description": "72px (4.5rem) font size",
       "value": 72,
       "alias": null,
@@ -258,9 +226,7 @@
     {
       "name": "nbds/core/font/size/80",
       "resolvedType": "FLOAT",
-      "scopes": [
-        "FONT_SIZE"
-      ],
+      "scopes": [],
       "description": "80px (5rem) font size",
       "value": 80,
       "alias": null,
@@ -269,9 +235,7 @@
     {
       "name": "nbds/core/font/size/96",
       "resolvedType": "FLOAT",
-      "scopes": [
-        "FONT_SIZE"
-      ],
+      "scopes": [],
       "description": "96px (6rem) font size",
       "value": 96,
       "alias": null,
@@ -280,9 +244,7 @@
     {
       "name": "nbds/core/font/size/112",
       "resolvedType": "FLOAT",
-      "scopes": [
-        "FONT_SIZE"
-      ],
+      "scopes": [],
       "description": "112px (7rem) font size",
       "value": 112,
       "alias": null,
@@ -291,9 +253,7 @@
     {
       "name": "nbds/core/font/size/128",
       "resolvedType": "FLOAT",
-      "scopes": [
-        "FONT_SIZE"
-      ],
+      "scopes": [],
       "description": "128px (8rem) font size",
       "value": 128,
       "alias": null,
@@ -302,9 +262,7 @@
     {
       "name": "nbds/core/font/size/144",
       "resolvedType": "FLOAT",
-      "scopes": [
-        "FONT_SIZE"
-      ],
+      "scopes": [],
       "description": "144px (9rem) font size",
       "value": 144,
       "alias": null,
@@ -313,9 +271,7 @@
     {
       "name": "nbds/core/font/size/160",
       "resolvedType": "FLOAT",
-      "scopes": [
-        "FONT_SIZE"
-      ],
+      "scopes": [],
       "description": "160px (10rem) font size",
       "value": 160,
       "alias": null,
@@ -387,7 +343,8 @@
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "nbds/core/font/weight/300"
-      }
+      },
+      "hiddenFromPublishing": true
     },
     {
       "name": "nbds/core/font/weight-role/default",
@@ -400,7 +357,8 @@
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "nbds/core/font/weight/400"
-      }
+      },
+      "hiddenFromPublishing": true
     },
     {
       "name": "nbds/core/font/weight-role/emphasis",
@@ -413,7 +371,8 @@
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "nbds/core/font/weight/600"
-      }
+      },
+      "hiddenFromPublishing": true
     },
     {
       "name": "nbds/core/font/weight-role/strong",
@@ -426,7 +385,8 @@
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "nbds/core/font/weight/700"
-      }
+      },
+      "hiddenFromPublishing": true
     },
     {
       "name": "nbds/core/font/weight-role/max",
@@ -439,107 +399,98 @@
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "nbds/core/font/weight/900"
-      }
+      },
+      "hiddenFromPublishing": true
     },
     {
       "name": "nbds/core/font/style/display/strong",
       "resolvedType": "STRING",
-      "scopes": [
-        "FONT_STYLE"
-      ],
+      "scopes": [],
       "description": "Font style for display strong text styles",
       "value": "Bold",
-      "alias": null
+      "alias": null,
+      "hiddenFromPublishing": true
     },
     {
       "name": "nbds/core/font/style/title/strong",
       "resolvedType": "STRING",
-      "scopes": [
-        "FONT_STYLE"
-      ],
+      "scopes": [],
       "description": "Font style for title strong text styles",
       "value": "Bold",
-      "alias": null
+      "alias": null,
+      "hiddenFromPublishing": true
     },
     {
       "name": "nbds/core/font/style/body/default",
       "resolvedType": "STRING",
-      "scopes": [
-        "FONT_STYLE"
-      ],
+      "scopes": [],
       "description": "Font style for body default text styles",
       "value": "Regular",
-      "alias": null
+      "alias": null,
+      "hiddenFromPublishing": true
     },
     {
       "name": "nbds/core/font/style/body/strong",
       "resolvedType": "STRING",
-      "scopes": [
-        "FONT_STYLE"
-      ],
+      "scopes": [],
       "description": "Font style for body strong text styles",
       "value": "Bold",
-      "alias": null
+      "alias": null,
+      "hiddenFromPublishing": true
     },
     {
       "name": "nbds/core/font/style/label/default",
       "resolvedType": "STRING",
-      "scopes": [
-        "FONT_STYLE"
-      ],
+      "scopes": [],
       "description": "Font style for label default text styles",
       "value": "Regular",
-      "alias": null
+      "alias": null,
+      "hiddenFromPublishing": true
     },
     {
       "name": "nbds/core/font/style/label/emphasis",
       "resolvedType": "STRING",
-      "scopes": [
-        "FONT_STYLE"
-      ],
+      "scopes": [],
       "description": "Font style for label emphasis text styles",
       "value": "Semi Bold",
-      "alias": null
+      "alias": null,
+      "hiddenFromPublishing": true
     },
     {
       "name": "nbds/core/font/style/caption/default",
       "resolvedType": "STRING",
-      "scopes": [
-        "FONT_STYLE"
-      ],
+      "scopes": [],
       "description": "Font style for caption default text styles",
       "value": "Regular",
-      "alias": null
+      "alias": null,
+      "hiddenFromPublishing": true
     },
     {
       "name": "nbds/core/font/style/caption/strong",
       "resolvedType": "STRING",
-      "scopes": [
-        "FONT_STYLE"
-      ],
+      "scopes": [],
       "description": "Font style for caption strong text styles",
       "value": "Bold",
-      "alias": null
+      "alias": null,
+      "hiddenFromPublishing": true
     },
     {
       "name": "nbds/core/font/style/eyebrow/emphasis",
       "resolvedType": "STRING",
-      "scopes": [
-        "FONT_STYLE"
-      ],
+      "scopes": [],
       "description": "Font style for eyebrow emphasis text styles",
       "value": "Semi Bold",
-      "alias": null
+      "alias": null,
+      "hiddenFromPublishing": true
     },
     {
       "name": "nbds/core/font/style/code/default",
       "resolvedType": "STRING",
-      "scopes": [
-        "FONT_STYLE"
-      ],
+      "scopes": [],
       "description": "Font style for code default text styles",
       "value": "Regular",
-      "alias": null
+      "alias": null,
+      "hiddenFromPublishing": true
     }
   ]
 }

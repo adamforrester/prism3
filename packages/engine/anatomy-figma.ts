@@ -928,7 +928,7 @@ export const fillsAxis = (def: ComponentDef, name: string, axis: Axis): boolean 
   const onMain = mainAxisOf(pp.layout.direction) === axis;
   const declared = p.kind === 'box'
     ? p.layout?.sizing[axis] === 'fill' || (!onMain && !!p.crossAxisFill) || (onMain && !!p.grow)
-    : p.kind === 'nest' && !onMain && !!p.crossAxisFill;
+    : p.kind === 'nest' && ((!onMain && !!p.crossAxisFill) || (onMain && !!p.grow));
   if (!declared) return false;
   // A ROOT BUILT AT ITS PLACEMENT WIDTH (#1757) is bounded across: it is FIXED at that width until a host's
   // stretch overrides it (#2292) — the validator's `boundsX` reads it the same way.
@@ -1890,7 +1890,7 @@ export const figmaAnatomyPlan = (
         : {}),
       // A GROWING BOX (`grow`), `wrap`'s main-axis fill without the reflow: carried ONLY when set, so every
       // other box's plan is byte-identical. `anatomyErrors` asserts the parent bounds its main axis.
-      ...(p.kind === 'box' && p.grow ? { layoutGrow: 1 } : {}),
+      ...((p.kind === 'box' || p.kind === 'nest') && p.grow ? { layoutGrow: 1 } : {}),
       // THE RESERVED LINES (textarea's `rows`), carried ONLY on a `text` part declaring `lines`, as the
       // named prop's DEFAULT — so the Figma box and the code prop read one number. A count, never pixels:
       // the executor multiplies it by the node's own line height at paste. `anatomyErrors` has already
@@ -3646,13 +3646,15 @@ const hasMaxWidth = (n: FigmaNodePlan): boolean => n.maxWidth !== undefined || n
  * reported and leaves the node CLEAR rather than half a gradient — #1387's rule for an unresolvable fill.
  * The read-back asks the host for a linear gradient whose every stop still carries its binding. The claim
  * joins `claimDefaults`' fill test, so the default pass does not erase the gradient it cannot see as a fill.
- * The stop colour is a placeholder the bound variable overrides, as the solid path's black is. Lockstep with
- * the plugin executor (`write-components.ts`, which binds stops through `write-styles.ts`'s helper).
+ * Each stop's base is its variable's own color for the node, alpha included (#2468, mirroring the plugin's #2391):
+ * the host draws a stop's STORED color, so a placeholder base is what a pasted veil would show wherever the host
+ * does not re-resolve. Black only where nothing resolves. Lockstep with the plugin executor (`write-components.ts`,
+ * which binds stops through `write-styles.ts`'s helper).
  */
 const GRADIENT_SLOT = '__GRADIENT__';
 const PAYLOAD_GRADIENT = `  if(n.gradientFill){
     const G=n.gradientFill,st=[];
-    for(const s of G.stops){const v=byName.get(s.variable);if(!v){misses.push(n.name+'.fills -> '+s.variable);continue;}st.push({position:s.position,color:{r:0,g:0,b:0,a:1},boundVariables:{color:figma.variables.createVariableAlias(v)}});}
+    for(const s of G.stops){const v=byName.get(s.variable);if(!v){misses.push(n.name+'.fills -> '+s.variable);continue;}const c=__rgb(v);st.push({position:s.position,color:c?{r:c.r,g:c.g,b:c.b,a:typeof c.a==='number'?c.a:1}:{r:0,g:0,b:0,a:1},boundVariables:{color:figma.variables.createVariableAlias(v)}});}
     const all=st.length===G.stops.length;
     node.fills=all?[{type:'GRADIENT_LINEAR',gradientTransform:G.gradientTransform,gradientStops:st}]:[];
     const f=(node.fills||[])[0];
@@ -3937,10 +3939,15 @@ ${PLACEMENT_SLOT}
   // PAINTS — a fourth API shape. \`setBoundVariableForPaint\` RETURNS a new paint rather than mutating
   // the node, so the result must be assigned back into a fills/strokes ARRAY; forgetting the
   // assignment is a no-op that throws nothing.
+  // THE BASE IS THE VARIABLE'S OWN COLOR for this node, black only where nothing resolves (#2468, the plugin's #2379
+  // and #2391): the host draws the stored color. A wash's alpha is the paint's opacity; a stop keeps it in its color.
+  const __rgb=v=>{try{const c=v.resolveForConsumer(node).value;if(c&&[c.r,c.g,c.b].every(x=>typeof x==='number'))return c;}catch(e){}return null;};
   const paint=(varName,where)=>{
     const v=byName.get(varName);
     if(!v){misses.push(n.name+'.'+where+' -> '+varName);return null;}
-    return figma.variables.setBoundVariableForPaint({type:'SOLID',color:{r:0,g:0,b:0}},'color',v);
+    const c=__rgb(v),p={type:'SOLID',color:c?{r:c.r,g:c.g,b:c.b}:{r:0,g:0,b:0}};
+    if(c&&typeof c.a==='number'&&c.a<1)p.opacity=c.a;
+    return figma.variables.setBoundVariableForPaint(p,'color',v);
   };
   // Same reason as \`wrote\` above: only a paint that was actually assigned can have been discarded.
   const painted={};
@@ -4020,13 +4027,16 @@ ${GRADIENT_SLOT}
     // CROSS-AXIS CHILD FILL (#1503). Applied by the PARENT for the same reason the absolute lifts below are:
     // \`layoutAlign\` is a CHILD's relationship to its parent's auto-layout, and applying it here reaches a
     // nested INSTANCE (a \`nest\` row / label / message) the child neutralizer returns early on. Written only
-    // when the plan carries it (a \`crossAxisFill\` part); every other child keeps Figma's \`INHERIT\`.
+    // when the plan carries it (a \`crossAxisFill\` part); every other child keeps Figma's \`INHERIT\`. Its
+    // main-axis twin \`layoutGrow\` is written here too (#2418, a growing \`nest\`), in lockstep with the plugin
+    // executor, where the parent's pass is an instance's only grow write. On this path the generic build write
+    // (\`if(n.layoutGrow)node.layoutGrow=…\`) already covers an instance, so this one is redundant and kept for lockstep.
     //
     // And a filling nest's own FIXED mode beside it (#1751): without it a stretched instance hugs — see the
     // plan field. On the SAME line and unguarded (\`Object.assign\` skips an undefined source) because a
     // guard on a line of its own costs 25 bytes in every chunk's shell. (Chosen when the #536 probe grid had to
     // stay one chunk; #1798 replaced that rule with the indivisible-unit headroom and a tested split.)
-    if(c.layoutAlign)kid.layoutAlign=c.layoutAlign;Object.assign(kid,c.instanceSizing);
+    if(c.layoutAlign)kid.layoutAlign=c.layoutAlign;if(c.layoutGrow)kid.layoutGrow=c.layoutGrow;Object.assign(kid,c.instanceSizing);
 ${MIN_LINES_SLOT}${MAX_WIDTH_SLOT}
 ${PIN_LIFT_SLOT}
   }
@@ -4459,7 +4469,7 @@ export const CANVAS_FURNITURE: ReadonlySet<string> = new Set([
   'focus-ring', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral',
   'field-label', 'field-message', 'text-field', 'textarea', 'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control',
   'radio-row', 'radio-group', 'switch-control', 'switch-row', 'select', 'veil', 'image-placeholder', 'badge', 'tag', 'tab', 'tabs',
-  'divider', '_accordion-indicator', 'accordion', 'list-item', 'list',
+  'divider', '_accordion-indicator', 'accordion', 'list-item', 'list', 'segmented-control-segment', 'segmented-control',
 ]);
 
 export const planSetLayout = (plans: AnatomyPlan[], fn: string) => {
