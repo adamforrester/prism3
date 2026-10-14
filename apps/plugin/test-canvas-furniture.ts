@@ -38,7 +38,10 @@
  *                 `templates/missing build`; one line per set → the same; the summary left out → `templates/update summary`.
  *   placement/…   sets deleted and rebuilt on Buttons and Icon button with the header and the third set kept (#2598): each
  *                 lands under the header in the first free slot from its left edge. Mutations: the old rule → every
- *                 `placement/<page> …` arm; a gap or the set's width dropped → `placement/slot …`.
+ *                 `placement/<page> …` arm; a gap or the set's width dropped → `placement/slot …`; the width dropped at
+ *                 `applyComponentPlan`'s call → `placement/narrow gap`, a kept set moved into the rebuilt one's slot.
+ *                 These arms read the helper's output; `test-build-completed.ts` `templates/… verdict` reads the line
+ *                 in the verdicts `main.ts` posts.
  *   update/…      Tag with its labels drawn: the dry run reads all 45 members current with no hand edit and nothing
  *                 unstamped, and the as-built record covers 45 members. Mutations: the labels drawn into a member,
  *                 which the dry run then reads as 19 hand edits, or into the set → `update/ignores furniture`.
@@ -796,6 +799,34 @@ section('placement — sets deleted and rebuilt on a page that keeps its header 
     const order = sets.slice().sort((p, q) => Number(p.x) - Number(q.x)).map((c) => String(c.name));
     ok(hits.length === 0 && JSON.stringify(order) === JSON.stringify(ids),
       `placement/${name} clear: the sets read ${order.join(', ')} left to right, and none meets the header, another set or another set's labels (${hits.slice(0, 3).join('; ') || 'none'})`);
+  }
+  // THE WIDTH AT THE CALL SITE (#2598 review): the replay above always leaves a label column of slack, so a rebuilt set
+  // placed as if it had no width lands in the same spot. Here the kept set is moved left, with its labels, until its
+  // leftmost node sits half the rebuilt set's width short of `width + 400` past the header's left edge: a slot
+  // that holds a zero-width set and not the real one. The rebuilt set must go past the kept set, as the slot rule
+  // says, not under its labels. Mutation: `applyComponentPlan` passing width 0 → `placement/narrow gap`.
+  {
+    const page = makePage('↳ Narrow gap');
+    const w = box(await buildOne(page, 'button')).w;
+    await buildOne(page, 'button-neutral');
+    const content = page.children.map(box);
+    const left = Math.min(...content.map((b) => b.x));
+    const top = Math.min(...content.map((b) => b.y));
+    const right = Math.max(...content.map((b) => b.x + b.w));
+    const header = { id: 'HDR:narrow', type: 'INSTANCE', name: '_Section-header', x: left, y: top - 80 - 220, width: right - left, height: 220 } as unknown as FNode;
+    page.appendChild(header);
+    detach(page.children.find((c) => c.type === 'COMPONENT_SET' && c.name === 'button')!);
+    const keptSet = page.children.find((c) => c.type === 'COMPONENT_SET' && c.name === 'button-neutral')!;
+    const keptNodes = [keptSet, ...furnitureOn(page).filter((f) => tagOf(f).def === 'button-neutral')];
+    const dx = left + 400 + Math.round(w / 2) - Math.min(...keptNodes.map((n) => Number(n.x)));
+    for (const n of keptNodes) n.x = Number(n.x) + dx;
+    const keptLeft = Math.min(...keptNodes.map((n) => Number(n.x)));
+    const keptRight = Math.max(...keptNodes.map((n) => Number(n.x) + Number(n.width)));
+    const ok1 = keptLeft >= left + 400 && keptLeft < left + w + 800;
+    const a = box(await buildOne(page, 'button'));
+    const hitsKept = keptNodes.filter((n) => meets(a, box(n))).length;
+    ok(ok1 && a.x >= keptRight + 400 && hitsKept === 0,
+      `placement/narrow gap: the kept set's nodes start at ${keptLeft}, ${keptLeft - left} past the header's left edge, short of the rebuilt set's ${w} + 800, so it lands past them, at ${keptRight + 400} or right (got ${a.x}; ${hitsKept} kept node(s) met)`);
   }
 }
 
