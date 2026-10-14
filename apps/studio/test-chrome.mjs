@@ -12721,14 +12721,8 @@ for (const host of ['web', 'figma']) {
         for (const [place, modes] of Object.entries(MS_PLACES)) {
           for (const mode of modes) {
             step = `${place} in ${mode}`;
-            if (place === 'color-interactive' && (w === 640 || w === 800)) {
-              // As in section 19b: at 640 and 800 the preview covers the sub-nav's last tab, so the keyboard reaches Interactive.
-              await hooks.click(page.locator('[data-p3="tab-color"]'));
-              await page.locator('[data-p3="color-sub-interactive"]').focus();
-              await page.keyboard.press('Enter');
-              await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.place === 'color-interactive');
-              await page.evaluate(() => document.fonts.ready);
-            } else await goPlace(page, place);
+            // By pointer at every width (#2463): since #2393 the sub-nav takes a pointer at 640 and 800 too.
+            await goPlace(page, place);
             if (place !== 'color-palettes') await roShowMode(page, mode);
             await toPreview();
             await settle();

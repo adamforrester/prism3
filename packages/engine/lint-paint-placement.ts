@@ -294,11 +294,12 @@ const EXPECT_ANATOMY = [
   'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'switch-control', 'switch-row', 'select', 'veil',
   'image-placeholder', 'spinner', 'badge', 'tag', 'tab', 'tabs', 'divider', '_accordion-indicator', 'accordion',
   'list-item', 'list',
+  'segmented-control-segment', 'segmented-control',
 ];
 const EXPECT_PAINTERS = [
   'focus-ring', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive',
   'icon-button-neutral', 'text-field', 'textarea', 'checkbox-control', 'radio-control', 'switch-control', 'select', 'veil',
-  'image-placeholder', 'badge', 'tag', 'tab', 'tabs', 'divider', 'list-item',
+  'image-placeholder', 'badge', 'tag', 'tab', 'tabs', 'divider', 'list-item', 'segmented-control-segment', 'segmented-control',
 ];
 const closedSet = (what: string, expected: string[], live: string[], remedy: string): void => {
   for (const id of expected.filter((x) => !live.includes(x))) {

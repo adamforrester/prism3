@@ -506,6 +506,37 @@
     },
     "members": 3
   },
+  "segmented-control": {
+    "axes": {
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ]
+    },
+    "members": 3
+  },
+  "segmented-control-segment": {
+    "axes": {
+      "selection": [
+        "selected",
+        "unselected"
+      ],
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ],
+      "state": [
+        "disabled",
+        "focus-visible",
+        "hover",
+        "pressed",
+        "rest"
+      ]
+    },
+    "members": 30
+  },
   "select": {
     "axes": {
       "size": [

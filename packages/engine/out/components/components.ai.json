@@ -608,7 +608,7 @@
       "ai": {
         "primaryPurpose": "Trigger an action in place.",
         "whenToUse": "The user needs to DO something on this surface — submit, confirm, open, apply, or start async work.",
-        "avoidWhen": "The target is a different location/URL → use a link (or link-button if it must look like a button). A persistent on/off state → use Switch.Row. One-of-many selection → use Radio.Group (or a segmented control, not built yet). A toggle with pressed state → use a toggle button (not built yet). Icon-only with no visible text → use IconButton (the accessible name is required there at the type level). The action deletes or removes something → use Button.Destructive. The action carries no brand emphasis (a toolbar control, a dense row) → use Button.Neutral.",
+        "avoidWhen": "The target is a different location/URL → use a link (or link-button if it must look like a button). A persistent on/off state → use Switch.Row. One-of-many selection → use Radio.Group (or SegmentedControl). A toggle with pressed state → use a toggle button (not built yet). Icon-only with no visible text → use IconButton (the accessible name is required there at the type level). The action deletes or removes something → use Button.Destructive. The action carries no brand emphasis (a toolbar control, a dense row) → use Button.Neutral.",
         "commonPartners": [
           "icon",
           "spinner",
@@ -891,7 +891,7 @@
       "ai": {
         "primaryPurpose": "Trigger an action in place.",
         "whenToUse": "The user needs to DO something on this surface — submit, confirm, open, apply, or start async work.",
-        "avoidWhen": "The target is a different location/URL → use a link (or link-button if it must look like a button). A persistent on/off state → use Switch.Row. One-of-many selection → use Radio.Group (or a segmented control, not built yet). A toggle with pressed state → use a toggle button (not built yet). Icon-only with no visible text → use IconButton (the accessible name is required there at the type level). The action is not destructive → use Button, or Button.Neutral for one with no brand emphasis. Color is a weak carrier on its own, so a destructive action also names its consequence in the label.",
+        "avoidWhen": "The target is a different location/URL → use a link (or link-button if it must look like a button). A persistent on/off state → use Switch.Row. One-of-many selection → use Radio.Group (or SegmentedControl). A toggle with pressed state → use a toggle button (not built yet). Icon-only with no visible text → use IconButton (the accessible name is required there at the type level). The action is not destructive → use Button, or Button.Neutral for one with no brand emphasis. Color is a weak carrier on its own, so a destructive action also names its consequence in the label.",
         "commonPartners": [
           "icon",
           "spinner",
@@ -1174,7 +1174,7 @@
       "ai": {
         "primaryPurpose": "Trigger an action in place.",
         "whenToUse": "The user needs to DO something on this surface — submit, confirm, open, apply, or start async work.",
-        "avoidWhen": "The target is a different location/URL → use a link (or link-button if it must look like a button). A persistent on/off state → use Switch.Row. One-of-many selection → use Radio.Group (or a segmented control, not built yet). A toggle with pressed state → use a toggle button (not built yet). Icon-only with no visible text → use IconButton (the accessible name is required there at the type level). The action is the view's main one or carries the brand → use Button. It deletes or removes something → use Button.Destructive.",
+        "avoidWhen": "The target is a different location/URL → use a link (or link-button if it must look like a button). A persistent on/off state → use Switch.Row. One-of-many selection → use Radio.Group (or SegmentedControl). A toggle with pressed state → use a toggle button (not built yet). Icon-only with no visible text → use IconButton (the accessible name is required there at the type level). The action is the view's main one or carries the brand → use Button. It deletes or removes something → use Button.Destructive.",
         "commonPartners": [
           "icon",
           "spinner",
@@ -2041,6 +2041,7 @@
           "select",
           "checkbox-group",
           "radio-group",
+          "segmented-control",
           "field-message"
         ],
         "triggerKeywords": [
@@ -3434,7 +3435,7 @@
       "category": "form",
       "status": "draft",
       "summary": "One labeled option inside a Radio.Group. The whole row is the hit target.",
-      "description": "A control for choosing exactly one from a small set of mutually exclusive, all-visible options — 2 to about 7, where seeing them all aids the decision. This def is the labeled OPTION: it nests a Radio.Control (the outlined circle and its inner selection dot) and carries the option label, with the whole row as the hit target. The group is a separate component and is MANDATORY, because a lone radio is meaningless: it owns the shared name that enforces exclusivity, the single selected value, the single tab stop, and all validation. Selection is derived from the group, never held here. Not any-number selection (Checkbox.Row), not an immediate on/off (Switch.Row), not the same choice collapsed (Select) or in a compact skin (a segmented control, not built yet).",
+      "description": "A control for choosing exactly one from a small set of mutually exclusive, all-visible options — 2 to about 7, where seeing them all aids the decision. This def is the labeled OPTION: it nests a Radio.Control (the outlined circle and its inner selection dot) and carries the option label, with the whole row as the hit target. The group is a separate component and is MANDATORY, because a lone radio is meaningless: it owns the shared name that enforces exclusivity, the single selected value, the single tab stop, and all validation. Selection is derived from the group, never held here. Not any-number selection (Checkbox.Row), not an immediate on/off (Switch.Row), not the same choice collapsed (Select) or in a compact skin (SegmentedControl).",
       "inherits": "checkbox-row",
       "props": [
         {
@@ -3521,14 +3522,14 @@
           "Add toggle-off behavior — no-deselect is native and deliberate",
           "Model an exclusive choice as several checkboxes, or a true/false toggle as two radios",
           "Reach for radio past about 7 options or in tight vertical space — that is Select",
-          "Use radio for a choice that takes effect instantly — that is Switch.Row, or a segmented control (not built yet)"
+          "Use radio for a choice that takes effect instantly — that is Switch.Row, or SegmentedControl"
         ],
         "contentGuidelines": "Option labels are parallel and brief; the detail that distinguishes them goes in the description. The group label names the decision. Errors are group-level and say what to do."
       },
       "ai": {
         "primaryPurpose": "Present one option within a mutually exclusive set via a labeled row that nests the circle-and-dot control, deriving its selected state from the group that owns the value.",
         "whenToUse": "Exactly one of 2 to about 7 all-visible options where seeing them together aids the decision, and the choice is committed on submit rather than applied instantly. Always as a child of a Radio.Group.",
-        "avoidWhen": "Any number of options may be selected (Checkbox.Row — never model an exclusive choice as several checkboxes), the change applies immediately (Switch.Row — and never two radios for a true/false toggle), the set runs past about 7 or vertical space is tight (Select, the collapsed alternative), the choice is a dense frequent view-switch (a segmented control, not built yet, which carries a different accessibility model), or it is really an action (Button). Also do not reach for this def when what is wanted is the group: use Radio.Group (`radio-group`), which owns the name, the value and the validation.",
+        "avoidWhen": "Any number of options may be selected (Checkbox.Row — never model an exclusive choice as several checkboxes), the change applies immediately (Switch.Row — and never two radios for a true/false toggle), the set runs past about 7 or vertical space is tight (Select, the collapsed alternative), the choice is a dense frequent view-switch (SegmentedControl, which carries a different accessibility model), or it is really an action (Button). Also do not reach for this def when what is wanted is the group: use Radio.Group (`radio-group`), which owns the name, the value and the validation.",
         "commonPartners": [
           "radio-control",
           "radio-group",
@@ -3557,7 +3558,8 @@
         "alternativeTo": [
           "checkbox-row",
           "switch-row",
-          "select"
+          "select",
+          "segmented-control"
         ],
         "supersedes": [],
         "supersededBy": [
@@ -3566,7 +3568,6 @@
         "planned": [
           "form",
           "card",
-          "segmented-control",
           "toggle-button"
         ],
         "replacesPatterns": [
@@ -3591,7 +3592,7 @@
       "category": "form",
       "status": "draft",
       "summary": "Labeled stack of Radio rows. Owns the shared name, one value and validation.",
-      "description": "A labeled set for choosing EXACTLY ONE from a small set of mutually exclusive, all-visible options. A required section label (FieldLabel) above a vertical stack of Radio.Row options. Owns the contract a single radio cannot — and without which the radios are not radios at all: the shared name that enforces exclusivity, the single scalar value, the single tab stop with roving focus, and all validation, announced once for the group. Use for 2 to about 7 options where seeing them all aids the decision; past that, a Select or a filtering combobox (not built yet) scans better. Not any-number selection (Checkbox.Group), not a single independent opt-in (a lone Checkbox.Row), not an immediate-effect setting list (a list of Switch.Row), not the same choice collapsed (Select) or in a compact skin (a segmented control, not built yet).",
+      "description": "A labeled set for choosing EXACTLY ONE from a small set of mutually exclusive, all-visible options. A required section label (FieldLabel) above a vertical stack of Radio.Row options. Owns the contract a single radio cannot — and without which the radios are not radios at all: the shared name that enforces exclusivity, the single scalar value, the single tab stop with roving focus, and all validation, announced once for the group. Use for 2 to about 7 options where seeing them all aids the decision; past that, a Select or a filtering combobox (not built yet) scans better. Not any-number selection (Checkbox.Group), not a single independent opt-in (a lone Checkbox.Row), not an immediate-effect setting list (a list of Switch.Row), not the same choice collapsed (Select) or in a compact skin (SegmentedControl).",
       "props": [
         {
           "name": "label",
@@ -3704,7 +3705,7 @@
       "ai": {
         "primaryPurpose": "Choose exactly one from a bounded set via a labeled stack of Radio.Row options, with the group owning the shared name, the single scalar value, group-level required and all validation.",
         "whenToUse": "A small bounded single-select committed on save (shipping method, plan tier, a contact preference), where seeing all 2 to about 7 options aids the choice and the group needs one label, one required rule and one validation message.",
-        "avoidWhen": "Any number of options may be chosen (Checkbox.Group — exactly-one versus any-number), a single independent opt-in with no siblings (a lone Checkbox.Row), the change takes effect the instant it is toggled (Switch.Row, or a segmented control, not built yet), or the set runs past about 7 options or vertical space is tight (a Select, or a filtering combobox, not built yet).",
+        "avoidWhen": "Any number of options may be chosen (Checkbox.Group — exactly-one versus any-number), a single independent opt-in with no siblings (a lone Checkbox.Row), the change takes effect the instant it is toggled (Switch.Row, or SegmentedControl), or the set runs past about 7 options or vertical space is tight (a Select, or a filtering combobox, not built yet).",
         "commonPartners": [
           "radio-row",
           "radio-control",
@@ -3739,14 +3740,14 @@
         "alternativeTo": [
           "checkbox-group",
           "select",
-          "switch-row"
+          "switch-row",
+          "segmented-control"
         ],
         "supersedes": [],
         "supersededBy": [],
         "planned": [
           "form",
-          "combobox",
-          "segmented-control"
+          "combobox"
         ],
         "replacesPatterns": [
           "a bare set of <input type=\"radio\"> with no shared label or group wiring",
@@ -3912,7 +3913,7 @@
       "category": "form",
       "status": "draft",
       "summary": "Labeled switch for a setting that applies immediately. Label leads, switch trails.",
-      "description": "A control for a binary on/off setting that takes effect IMMEDIATELY — no save, no submit; the flip is both the input and the execution command. The labeled ROW: it nests a Switch.Control (the track, thumb and state glyph) and carries the setting label, with the whole row as the hit target and the control at the trailing edge. Independent by definition: there is no Switch.Group, which closes the selection-control decomposition arc (checkbox has an optional group, radio a mandatory one, switch none). A settings list of switches is a list of rows, not a selection group. Not a staged binary submitted with a form (Checkbox.Row — if a submit button sits anywhere in the flow, it is a Checkbox.Row), not an action or view-mode toggle (a toggle button with aria-pressed, not built yet), not a one-of-two exclusive labeled choice (Radio.Group, or a segmented control, not built yet).",
+      "description": "A control for a binary on/off setting that takes effect IMMEDIATELY — no save, no submit; the flip is both the input and the execution command. The labeled ROW: it nests a Switch.Control (the track, thumb and state glyph) and carries the setting label, with the whole row as the hit target and the control at the trailing edge. Independent by definition: there is no Switch.Group, which closes the selection-control decomposition arc (checkbox has an optional group, radio a mandatory one, switch none). A settings list of switches is a list of rows, not a selection group. Not a staged binary submitted with a form (Checkbox.Row — if a submit button sits anywhere in the flow, it is a Checkbox.Row), not an action or view-mode toggle (a toggle button with aria-pressed, not built yet), not a one-of-two exclusive labeled choice (Radio.Group, or SegmentedControl).",
       "inherits": "checkbox-row",
       "props": [
         {
@@ -4040,7 +4041,7 @@
       "ai": {
         "primaryPurpose": "Set a binary on/off value that takes effect immediately, with no save step, via a labeled row that nests the track-and-thumb control.",
         "whenToUse": "A single independent setting that applies the moment it is flipped — a notification preference, dark mode, a feature flag — usually in a settings row or list with the label leading.",
-        "avoidWhen": "The change is staged and committed by a Save or Submit button (Checkbox.Row — the presence of that button anywhere in the flow is the tell), the toggle reveals a sub-form that must be completed for the data to be valid (Checkbox.Row again; the most common misuse), it is a single consent or agreement (Checkbox.Row), it performs an action or sets a view mode rather than holding a setting (a toggle button with aria-pressed, not built yet), it is a one-of-two exclusive labeled choice (Radio.Group, or a segmented control, not built yet), or a third indeterminate state is needed (Checkbox.Row). Also do not reach for this def expecting a group: there is no Switch.Group by decision.",
+        "avoidWhen": "The change is staged and committed by a Save or Submit button (Checkbox.Row — the presence of that button anywhere in the flow is the tell), the toggle reveals a sub-form that must be completed for the data to be valid (Checkbox.Row again; the most common misuse), it is a single consent or agreement (Checkbox.Row), it performs an action or sets a view mode rather than holding a setting (a toggle button with aria-pressed, not built yet), it is a one-of-two exclusive labeled choice (Radio.Group, or SegmentedControl), or a third indeterminate state is needed (Checkbox.Row). Also do not reach for this def expecting a group: there is no Switch.Group by decision.",
         "commonPartners": [
           "switch-control",
           "focus-ring"
@@ -4070,14 +4071,14 @@
         ],
         "alternativeTo": [
           "checkbox-row",
-          "radio-row"
+          "radio-row",
+          "segmented-control"
         ],
         "supersedes": [],
         "supersededBy": [],
         "planned": [
           "card",
-          "toggle-button",
-          "segmented-control"
+          "toggle-button"
         ],
         "replacesPatterns": [
           "a checkbox misused for an immediate-effect setting",
@@ -4100,7 +4101,7 @@
       "category": "form",
       "status": "draft",
       "summary": "Closed control for picking one value from a known set. The menu is the platform's.",
-      "description": "A control for choosing ONE value from a known, bounded set — the closed, native-first field: label, a bordered control showing the current value or a placeholder with a trailing chevron, and a helper/validation message below. Composes the shared FieldLabel and FieldMessage. The open menu is the platform's (native or a separate listbox), not modeled here. Single-choice only: a choice of several values is a Checkbox.Group, or a multi-select, not built yet. Not free-form text (TextField), not a small always-visible set (Radio.Group, or a segmented control, not built yet), not a set the user filters by typing (a combobox, not built yet).",
+      "description": "A control for choosing ONE value from a known, bounded set — the closed, native-first field: label, a bordered control showing the current value or a placeholder with a trailing chevron, and a helper/validation message below. Composes the shared FieldLabel and FieldMessage. The open menu is the platform's (native or a separate listbox), not modeled here. Single-choice only: a choice of several values is a Checkbox.Group, or a multi-select, not built yet. Not free-form text (TextField), not a small always-visible set (Radio.Group, or SegmentedControl), not a set the user filters by typing (a combobox, not built yet).",
       "props": [
         {
           "name": "label",
@@ -4289,7 +4290,7 @@
       "ai": {
         "primaryPurpose": "Choose one value from a known, bounded set, with an associated label and helper/validation message, modeling the closed control.",
         "whenToUse": "One-of-a-known-set choices too numerous or space-costly to show all at once — a country, a status, a category.",
-        "avoidWhen": "The value is free-form text (TextField), the user types to filter a suggestion list (a combobox, not built yet — a different ARIA contract), more than one value may be chosen (Checkbox.Group, or a multi-select, not built yet — this select is single-choice), the set is 4–5 options or fewer and worth showing at once (Radio.Group, or a segmented control, not built yet), the set runs past about 15 options (a combobox), or the choice is a binary that takes effect instantly (Switch.Row).",
+        "avoidWhen": "The value is free-form text (TextField), the user types to filter a suggestion list (a combobox, not built yet — a different ARIA contract), more than one value may be chosen (Checkbox.Group, or a multi-select, not built yet — this select is single-choice), the set is 4–5 options or fewer and worth showing at once (Radio.Group, or SegmentedControl), the set runs past about 15 options (a combobox), or the choice is a binary that takes effect instantly (Switch.Row).",
         "commonPartners": [
           "field-label",
           "field-message",
@@ -4319,15 +4320,15 @@
         "alternativeTo": [
           "text-field",
           "radio-group",
-          "checkbox-group"
+          "checkbox-group",
+          "segmented-control"
         ],
         "supersedes": [],
         "supersededBy": [],
         "planned": [
           "form",
           "menu",
-          "combobox",
-          "segmented-control"
+          "combobox"
         ],
         "replacesPatterns": [
           "a bare <select> with no label wiring",
@@ -5276,7 +5277,7 @@
       "ai": {
         "primaryPurpose": "One trigger inside Tabs that shows its panel in place when selected.",
         "whenToUse": "Only as a child of Tabs.",
-        "avoidWhen": "Changing the page or the address (a navigation of links), or switching a value within the current view (a segmented control, not built yet).",
+        "avoidWhen": "Changing the page or the address (a navigation of links), or switching a value within the current view (SegmentedControl).",
         "commonPartners": [
           "tabs",
           "icon",
@@ -5302,9 +5303,7 @@
         "alternativeTo": [],
         "supersedes": [],
         "supersededBy": [],
-        "planned": [
-          "segmented-control"
-        ],
+        "planned": [],
         "replacesPatterns": [
           "a styled button that shows and hides a div with no tab semantics"
         ]
@@ -5421,7 +5420,7 @@
         "labelPattern": "Short, parallel nouns, one or two words each. Past six or seven tabs, rethink the grouping."
       },
       "docs": {
-        "usage": "Use tabs to switch between peer sections of related content in one place, one at a time, such as a product's description, specifications and reviews. Don't use tabs to go to another page (use links in a navigation), to change a setting or filter the current view (use a segmented control, not built yet, or a select), or for content people need to compare side by side.",
+        "usage": "Use tabs to switch between peer sections of related content in one place, one at a time, such as a product's description, specifications and reviews. Don't use tabs to go to another page (use links in a navigation), to change a setting or filter the current view (use a segmented control or a select), or for content people need to compare side by side.",
         "do": [
           "Keep labels short, parallel nouns",
           "Keep one tab selected at all times",
@@ -5439,7 +5438,7 @@
       "ai": {
         "primaryPurpose": "Switch between peer panels of related content in place, one at a time.",
         "whenToUse": "Two to about six peer sections of one subject, viewed one at a time, where switching is quick and the address need not change.",
-        "avoidWhen": "The selection changes the page or the address (a navigation of links), filters or re-sorts the current view (a segmented control, not built yet, or Select), is a required sequence (a stepper, not built yet), or has many independent sections (an accordion, not built yet).",
+        "avoidWhen": "The selection changes the page or the address (a navigation of links), filters or re-sorts the current view (SegmentedControl, or Select), is a required sequence (a stepper, not built yet), or has many independent sections (Accordion).",
         "commonPartners": [
           "tab",
           "badge",
@@ -5466,12 +5465,12 @@
         ],
         "alternativeTo": [
           "select",
-          "accordion"
+          "accordion",
+          "segmented-control"
         ],
         "supersedes": [],
         "supersededBy": [],
         "planned": [
-          "segmented-control",
           "link"
         ],
         "replacesPatterns": [
@@ -6212,6 +6211,326 @@
         "replacesPatterns": [
           "a <ul> with list-style: none and no role=\"list\"",
           "a column of text boxes with typed bullet characters"
+        ]
+      }
+    },
+    "segmented-control-segment": {
+      "id": "segmented-control-segment",
+      "name": "SegmentedControl.Segment",
+      "aliases": [
+        "segment",
+        "segmented-control-option"
+      ],
+      "category": "form",
+      "status": "draft",
+      "summary": "One option of a segmented control. Selected, it shows a tint, a 2px outline and a bold label.",
+      "description": "One option in a segmented control: a cell as tall as a button, holding the option label and an optional leading icon. A selected option takes a tint and a 2px outline inside the cell, and its label is set in the emphasis weight. Every option keeps the width of its bold label, so selecting one never moves the others. At hover, an unselected option shows a light neutral wash. SegmentedControl places the options and owns the selection.",
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "required": true,
+          "description": "The option name: a short noun or noun phrase, one line."
+        },
+        {
+          "name": "value",
+          "type": "string",
+          "required": true,
+          "description": "The value the control reports when this option is selected."
+        },
+        {
+          "name": "selected",
+          "type": "boolean",
+          "default": "false",
+          "required": false,
+          "description": "Whether this option is the selected one. Set by the control from its value; do not set it on an option inside a control."
+        },
+        {
+          "name": "leadingIcon",
+          "type": "slot",
+          "required": false,
+          "description": "An icon before the label. Decorative when a label is shown."
+        },
+        {
+          "name": "size",
+          "type": "enum: 'small' | 'medium' | 'large'",
+          "default": "medium",
+          "required": false,
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ],
+          "description": "Option height, padding and label type. Passed down by the control."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "default": "false",
+          "required": false,
+          "description": "Dims this one option and takes it out of interaction, while the rest of the control stays usable."
+        }
+      ],
+      "states": [
+        "rest",
+        "hover",
+        "pressed",
+        "focus-visible",
+        "disabled"
+      ],
+      "variants": {
+        "selection": {
+          "values": [
+            "unselected",
+            "selected"
+          ],
+          "kind": "runtime"
+        },
+        "size": {
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ],
+          "kind": "authoring"
+        }
+      },
+      "accessibility": {
+        "role": "a <button> with aria-current in the view behavior, or a native radio with its label in the form behavior; the control sets which",
+        "wcag": [
+          "1.4.1 Use of Color (a 2px outline and the bold label mark the selected option, never the tint alone)",
+          "1.4.11 Non-text Contrast (targets 3:1 for the selected outline against the track)",
+          "2.4.13 Focus Appearance (the shared focus ring)",
+          "2.5.8 Target Size (targets 44px at medium on comfortable and spacious density)"
+        ],
+        "keyboard": "Set by the control: in the view behavior each option is a Tab stop and Enter or Space selects it; in the form behavior arrow keys move between options and select.",
+        "focus": "A focus ring around the indicator on :focus-visible. It can sit on a different option from the selected one.",
+        "aria": "A leading icon is aria-hidden when a label is shown. An icon-only option needs an aria-label and a tooltip."
+      },
+      "content": {
+        "labelPattern": "A short noun or noun phrase, one line, parallel with the other options (\"List\", \"Grid\"). Not a verb phrase."
+      },
+      "docs": {
+        "usage": "Use inside SegmentedControl only. An option names one value; selecting it changes the current view or the form value in place.",
+        "do": [
+          "Give every option in a control the same kind of content: all labels, or all labels with icons",
+          "Let the control set selected from its value"
+        ],
+        "dont": [
+          "Place an option outside a segmented control",
+          "Set selected on an option inside a control by hand"
+        ],
+        "contentGuidelines": "One or two words, a noun, sentence case."
+      },
+      "ai": {
+        "primaryPurpose": "One option inside a segmented control.",
+        "whenToUse": "Only as a child of SegmentedControl.",
+        "avoidWhen": "Anywhere outside a segmented control: a single toggle is a switch or a select tag, and a lone action is a button.",
+        "commonPartners": [
+          "segmented-control",
+          "icon"
+        ],
+        "triggerKeywords": [
+          "segment",
+          "segmented option",
+          "segmented control option"
+        ],
+        "generationPriority": 9
+      },
+      "motion": {
+        "enter": "None. On selection the tint and outline move to this option, or cross-fade, over a short duration.",
+        "exit": "None.",
+        "reduceMotion": "The indicator moves at once; only the color change remains."
+      },
+      "composition": {
+        "composesWith": [
+          "focus-ring"
+        ],
+        "alternativeTo": [],
+        "supersedes": [],
+        "supersededBy": [],
+        "planned": [],
+        "replacesPatterns": [
+          "a styled button with a hand-rolled active state"
+        ]
+      }
+    },
+    "segmented-control": {
+      "id": "segmented-control",
+      "name": "SegmentedControl",
+      "aliases": [
+        "segmented-button",
+        "segmented-buttons",
+        "toggle-button-group",
+        "content-switcher",
+        "connected-button-group"
+      ],
+      "category": "form",
+      "status": "draft",
+      "summary": "A row of two to five options in one track, where exactly one is selected and all stay visible.",
+      "description": "A compact row of two to five short options in one outlined track, where exactly one is always selected and every option stays visible. Selecting an option changes a value in place: a parameter of the current view, such as list or grid, or a form value. The options share the track equally. A visible label, or an accessible name, says what is being chosen.",
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "required": true,
+          "description": "What is being chosen, such as \"View\". Shown above the track, or given as an accessible name only when the page already shows it."
+        },
+        {
+          "name": "value",
+          "type": "string",
+          "required": false,
+          "description": "The selected option's value. Controlled; pair it with onChange."
+        },
+        {
+          "name": "defaultValue",
+          "type": "string",
+          "required": false,
+          "description": "The option selected first, when the control manages its own state. A segmented control always has one option selected."
+        },
+        {
+          "name": "onChange",
+          "type": "function",
+          "required": false,
+          "description": "Called with the new value when the selection changes. Never called with an empty value."
+        },
+        {
+          "name": "behavior",
+          "type": "enum: 'view' | 'form'",
+          "default": "view",
+          "required": false,
+          "values": [
+            "view",
+            "form"
+          ],
+          "description": "view: a group of buttons that changes the current view at once, the selected one marked as current. form: a radio group whose value is submitted with a form. One look, two behaviors; never wire one as the other."
+        },
+        {
+          "name": "size",
+          "type": "enum: 'small' | 'medium' | 'large'",
+          "default": "medium",
+          "required": false,
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ],
+          "description": "Passed to every option. Medium is a button's height, 44px on comfortable and spacious density."
+        },
+        {
+          "name": "width",
+          "type": "enum: 'auto' | 'full'",
+          "default": "auto",
+          "required": false,
+          "values": [
+            "auto",
+            "full"
+          ],
+          "description": "auto: every option as wide as the widest. full: the control fills its column and the options share it equally."
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": false,
+          "description": "The form field name, in the form behavior."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "default": "false",
+          "required": false,
+          "description": "Disables every option and takes the control out of the Tab order."
+        }
+      ],
+      "states": [
+        "rest"
+      ],
+      "variants": {
+        "size": {
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ],
+          "kind": "authoring"
+        }
+      },
+      "accessibility": {
+        "role": "view behavior: role=\"group\" of buttons, the selected one with aria-current=\"true\". form behavior: a radio group (a fieldset with a legend, or role=\"radiogroup\"), native radios inside. Never role=\"tablist\".",
+        "wcag": [
+          "1.3.1 Info and Relationships (the group and its label are exposed together)",
+          "4.1.2 Name, Role, Value",
+          "1.4.1 Use of Color (the selected option has a 2px outline and a bold label as well as a tint)",
+          "1.4.11 Non-text Contrast (targets 3:1 for the selected outline and the track edge)",
+          "2.4.7 Focus Visible",
+          "2.4.13 Focus Appearance (the shared focus ring, as intent)",
+          "2.5.8 Target Size (every option is a full-height cell)",
+          "2.5.5 Target Size (targets 44 by 44 at medium on comfortable and spacious density)"
+        ],
+        "keyboard": "view behavior: Tab moves to each option and Enter or Space selects it. form behavior: Tab enters at the selected option, arrow keys move to the next or previous option and select it, wrapping at the ends, and Tab leaves.",
+        "focus": "A focus ring around the focused option's indicator on :focus-visible.",
+        "aria": "The label names the group (aria-labelledby, or a legend in the form behavior); without it a screen reader announces options with no subject. Some screen readers do not announce aria-current on a button, so test the view behavior. Every name is translatable, and the row mirrors right to left."
+      },
+      "content": {
+        "labelPattern": "Short nouns or noun phrases, one line each, in sentence case: \"List\", \"Grid\". The same kind of content in every option. The control label names what is being chosen (\"View\", \"Time range\")."
+      },
+      "docs": {
+        "usage": "Use a segmented control for a choice between two to five short options that changes a value in place: a parameter of the current view, such as list or grid, or a form value. Every option stays visible, and one is always selected. Don't use it to switch between panels of content (use tabs), for more than five options or long labels (use a select or a radio group), or for one setting that turns on and off (use a switch).",
+        "do": [
+          "Name what is being chosen, with a visible label or an accessible name",
+          "Use two to five options with short, one-line labels",
+          "Select a sensible option from the start",
+          "Use the form behavior when the value is submitted with a form"
+        ],
+        "dont": [
+          "Leave the control unnamed",
+          "Use it for more than five options or long labels",
+          "Let a click on the selected option clear the selection",
+          "Use it to switch between panels of content; that is tabs"
+        ],
+        "contentGuidelines": "One or two words per option, nouns, sentence case: \"List\", not \"Show list\"."
+      },
+      "ai": {
+        "primaryPurpose": "Choose exactly one of two to five short, always-visible options that change a value in place.",
+        "whenToUse": "A short single choice the user changes often or that changes the current view at once, such as list or grid, a time range or a delivery method.",
+        "avoidWhen": "The options switch panels of content (use tabs), there are more than five or the labels are long (use a select or a radio group), options need descriptions (use a radio group), it is one on/off setting (use a switch), or selecting goes to another page (a navigation of links).",
+        "commonPartners": [
+          "segmented-control-segment",
+          "field-label",
+          "icon"
+        ],
+        "triggerKeywords": [
+          "segmented control",
+          "segmented button",
+          "view switcher",
+          "content switcher",
+          "toggle group",
+          "list grid toggle"
+        ],
+        "generationPriority": 4
+      },
+      "motion": {
+        "enter": "None. On selection the indicator moves to the new option, about 150–200ms, or the tint and outline cross-fade.",
+        "exit": "None.",
+        "reduceMotion": "The indicator moves at once; only the color change remains."
+      },
+      "composition": {
+        "composesWith": [
+          "field-label",
+          "segmented-control-segment"
+        ],
+        "alternativeTo": [
+          "tabs",
+          "radio-group",
+          "select",
+          "switch-row"
+        ],
+        "supersedes": [],
+        "supersededBy": [],
+        "planned": [],
+        "replacesPatterns": [
+          "a radio group restyled as a compact switcher for a view that changes at once",
+          "a row of buttons with a hand-rolled active state and no group semantics"
         ]
       }
     }

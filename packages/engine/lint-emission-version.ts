@@ -61,6 +61,9 @@
  * as a rollback. So the comparison is ORDERING, not inequality: HEAD's version must be greater than the
  * base's, and equal-with-a-change or backward-with-a-change both fail here.
  *
+ * On main's push run the merge base is HEAD itself, so there the first parent is the base instead
+ * (`comparison-base.ts`, #2556; replayed by `lint-push-base.ts`).
+ *
  * The converse is NOT a defect and is not checked: `ENGINE_VERSION` may legitimately move without the
  * corpus emission moving (a plugin-side behavior change produces no `out/` diff at all), and the ordering
  * check is CONDITIONAL on a moved emission — a version that moves any direction over an UNCHANGED emission
@@ -122,6 +125,7 @@ import { fileURLToPath } from 'node:url';
 import { ENGINE_VERSION, satisfiesBump } from './version';
 import { ENGINE_ARTIFACTS, SCHEMA_ARTIFACTS } from './regen';
 import { PENDING_STAMP, STAMP_PATHS, auditStamps, readStamps, type StampSources } from './rename-stamp-audit';
+import { comparisonBase } from './comparison-base';
 
 const here = resolve(fileURLToPath(import.meta.url), '..');
 const repo = resolve(here, '../..');
@@ -261,7 +265,10 @@ if (!mb.ok || !mb.out.trim())
     '  A shallow clone is the usual cause: the histories are disconnected, so git cannot find a common',
     '  ancestor. `fetch-depth: 0` in CI, `git fetch --unshallow` locally.',
   ]);
-const base = mb.out.trim();
+// On the base branch the merge base is HEAD itself, and the first parent is compared instead (#2556):
+// `comparison-base.ts` has the reason, and `lint-push-base.ts` replays it against this gate.
+const cmp = comparisonBase(git, mb.out.trim(), die);
+const base = cmp.base;
 
 // ---- SIDE A: did any artifact's content move? ----------------------------------------------------
 const diff = git('diff', '--name-only', base, 'HEAD', '--', ...SCOPE);
@@ -295,7 +302,7 @@ const baseVersion = m[1];
 const forward = isForward(baseVersion, ENGINE_VERSION);
 const versionMoved = baseVersion !== ENGINE_VERSION;
 const wentBackward = versionMoved && !forward;   // differs AND not strictly greater = a lower stamp
-const where = `base ${base.slice(0, 8)} (${baseRef}, via ${baseVia})`;
+const where = `base ${base.slice(0, 8)} (${baseRef}, via ${baseVia}, ${cmp.label})`;
 
 // ---- CHANGE NOTES (#1807) ------------------------------------------------------------------------
 //

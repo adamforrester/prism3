@@ -326,6 +326,7 @@ const SIZE_BY_FOLLOW_ONLY: Record<string, string> = {
   'checkbox-group': 'its inter-row gap is 0px (`space.0`, the rows self-space — #1623 sign-off), so the size axis binds nothing of its own and reaches the nested field-label and checkbox rows by `follow`',
   'radio-group': 'mirrors checkbox-group — a 0px inter-row gap (`space.0`, #1623 sign-off), so the size axis reaches the nested field-label and radio rows by `follow` only',
   'tabs': 'the tab list binds no size.* key of its own — its gap is 0px (`space.0`, each tab carries its own padding) and the baseline is a fixed 1px hairline — so the size axis reaches the six nested tabs by `follow` only (#2416)',
+  'segmented-control': 'the control binds no size.* key of its own — its label gap is a fixed `space.100`, the track a 1px hairline with no padding, and each option carries its own height and padding — so the size axis reaches the nested label and the five options by `follow` only (#2418)',
 };
 
 /**
@@ -350,6 +351,7 @@ const MUST_COVER = [
   'switch-control', 'switch-row',
   '_accordion-indicator', 'accordion',
   'list-item', 'list',
+  'segmented-control-segment', 'segmented-control',
 ];
 
 /** Every token path in a brand's canonical tree, below the root — `icon.size.md`, `size.lg.height`. */
