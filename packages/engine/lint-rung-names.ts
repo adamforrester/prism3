@@ -320,6 +320,8 @@ const DEFAULT_FIRST: Record<string, string> = {
   'text-field': 'the Figma default and the in-place-update landing value are `medium`, the field before #2266',
   select: 'the Figma default and the in-place-update landing value are `medium`, the select before #2266',
   textarea: 'the Figma default and the in-place-update landing value are `medium`, the textarea before #2266',
+  // #2317: TextField's size order through the shared field factory (Q301 builds it medium first, the field family's order).
+  'password-field': 'the Figma default is `medium`, the field family\'s order from the shared field factory (#2317)',
 };
 
 const SIZE_BY_FOLLOW_ONLY: Record<string, string> = {
@@ -352,6 +354,7 @@ const MUST_COVER = [
   '_accordion-indicator', 'accordion',
   'list-item', 'list',
   'segmented-control-segment', 'segmented-control',
+  'password-field',
 ];
 
 /** Every token path in a brand's canonical tree, below the root — `icon.size.md`, `size.lg.height`. */

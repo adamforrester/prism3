@@ -320,6 +320,18 @@
     "segmented-control": {
       "members": 3,
       "sha256": "f9e21c4d8cccf6f57235b1106105996eb72bb3a25c4a4dc7b4b3c731d95f974e"
+    },
+    "password-field": {
+      "members": 84,
+      "sha256": "135a2ef08302df08551e27931a1bab8466e58827b68af6255d3034f86ddf0e42"
+    },
+    "password-field@outline-solid-tint": {
+      "members": 84,
+      "sha256": "ff6949df6220f5d2519f4d40e7592e371fc13e5c6a0ed71d5da14068817594e9"
+    },
+    "password-field@outline-none": {
+      "members": 84,
+      "sha256": "57381d7bf5166e7bd13dac4f27784a3d84def730035e1d57d485211d27e2ef48"
     }
   }
 }

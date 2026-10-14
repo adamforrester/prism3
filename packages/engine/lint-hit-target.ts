@@ -151,6 +151,8 @@ const INTERACTIVE: Record<string, Binding> = {
   'icon-button-neutral': { key: (s) => `size.${s}.side`, why: 'the square icon-button side' },
   // The two single-line fields are sized since #2266; each size binds the floor (`size.md.min-height`) or above.
   'text-field': { key: (s) => `size.${s}.height`, why: 'the field control height — size.md.min-height, the interactive floor, at small and medium (#1437, #2266 Q6)' },
+  // #2317: the Password field is TextField's box, from the same factory, so it binds the same height rung.
+  'password-field': { key: (s) => `size.${s}.height`, why: 'the field control height — TextField\'s, from the shared field factory (#2317)' },
   'select': { key: (s) => `size.${s}.min-height`, why: 'the select control floor — size.md.min-height, the interactive floor, at small and medium (#1437, #2266 Q6)' },
   'switch-row': { key: (s) => `size.${s}.min-height`, why: 'the labelled switch row floor' },
   'checkbox-row': { key: (s) => `size.${s}.min-height`, why: 'the labelled checkbox row floor' },
@@ -173,7 +175,15 @@ const INTERACTIVE: Record<string, Binding> = {
 // marker, fails by name.
 const INNER_TARGETS: Record<string, { key: (size: string) => string; why: string }> = {
   'tag.dismiss': { key: (s) => `size.${s}.height`, why: "the dismissible tag's × slot, a square the tag's height (owner, 2026-09-28) — the target itself or a part of a whole-tag target, the owner's open call; it clears the floor either way" },
+  // #2317: a NESTED control with no side bound in the host. Its key is the NESTED def's (Button's box height), read
+  // through Button's own tokens at the size the host nests it at, so a toggle pointed at a smaller rung fails here.
+  'password-field.toggle': { key: (s) => `size.${s}.height`, why: 'the Show/Hide button, a nested flush text Button at the field\'s size (Q301.3 B): its box height on Button\'s own rung; its width is the code-side flush rule below' },
 };
+
+// ── HOSTS OF A NESTED FLUSH BUTTON (#2317): a host whose nested Button is flush owes the same code-side hit area ────
+// The nested Button's own def states the rule (FLUSH_MEMBERS), but a designer or agent reads the HOST, so the host
+// states it too, with the same phrases. Compared both ways with the defs' nested coordinates.
+const FLUSH_NESTS = new Set(['password-field']);
 
 // ── FLUSH MEMBERS (#2408): the defs whose flush member drops its width floor, so its hit area is code-side ────
 // Authored here and compared both ways with the defs' own `flush` fields, so a new flush def cannot arrive with
@@ -392,6 +402,23 @@ for (const [id, inner] of Object.entries(INNER_TARGETS)) {
   const size = defaultSizeOf(def);
   if (!size) { failures.push(`${id}: its def has no default size to measure the inner target at.`); continue; }
   const want = inner.key(size);
+  // A NESTED CONTROL WITH NO SIDE OF ITS OWN (#2317): measured through the NESTED def's tokens, at the size the host
+  // nests it at (its followed size, or the size its coordinate names).
+  if (nestsControl && part.size === undefined && part.width === undefined && part.height === undefined) {
+    const nesting = part.nesting as { variant?: Record<string, string>; follow?: readonly string[] } | undefined;
+    const nestedSize = nesting?.follow?.includes('size') ? size : nesting?.variant?.size;
+    const nested = componentDefs.find((d) => d.id === part.nests)!;
+    const key = nestedSize ? inner.key(nestedSize) : undefined;
+    const path = key ? (nested.tokens as Record<string, string>)[key] : undefined;
+    const got = floorBuilds.map((b) => ({ density: b.density, px: path ? resolvePx(b.tree, b.root, path) : undefined }));
+    if (!path || got.some((m) => m.px === undefined)) { failures.push(`${id}/${size}: the nested '${part.nests}' binds nothing at tokens['${key ?? '?'}'] that resolves on every floor density — cannot measure the nested target.`); continue; }
+    const px = Math.min(...got.map((m) => m.px!));
+    floorCount++;
+    const bad = violation(px, 'floor');
+    rows.push(`${id}/${size} → ${part.nests} ${key} → ${path} = ${px}px (min over ${FLOOR_DENSITIES.join('+')}) [floor, nested target]${bad ? '  ✗' : ''}`);
+    if (bad) failures.push(`${id}/${size} (${inner.why}, ${path}) ${bad} on a ${got.find((m) => m.px === px)!.density} brand — a target inside a control must meet the floor too.`);
+    continue;
+  }
   // BOTH SIDES: a square's one `size`, or `width` and `height` each (the schema refuses a marked part with an
   // unbound side). Each must expand to the measured key, so a slot 4 wide and 44 tall cannot clear on its height.
   const sides = part.size !== undefined ? [part.size] : [part.width, part.height];
@@ -436,6 +463,21 @@ for (const def of componentDefs) {
     failures.push(`${def.id}: has a flush part, which drops its width floor, and FLUSH_MEMBERS does not list it — its hit target is measured on height alone. Add it, and state the 44×44 code-side hit area in its codeOnly.`);
   if (!flushes && FLUSH_MEMBERS.has(def.id))
     failures.push(`FLUSH_MEMBERS names '${def.id}', which has no flush part — a stale entry.`);
+}
+// The hosts of a nested flush Button, both ways, and each states the code-side rule in its own codeOnly.
+for (const def of componentDefs) {
+  if (!(def.id in INTERACTIVE)) continue;
+  const nestsFlush = Object.values(def.anatomy?.parts ?? {}).some((p) => p.kind === 'nest' && !!p.nests && p.nests in INTERACTIVE
+    && (p.nesting as { variant?: Record<string, string> } | undefined)?.variant?.inset === 'flush');
+  if (nestsFlush && !FLUSH_NESTS.has(def.id))
+    failures.push(`${def.id}: nests a flush Button, whose width floor is code-side, and FLUSH_NESTS does not list it — state the 44×44 code-side hit area in its codeOnly and list it.`);
+  if (!nestsFlush && FLUSH_NESTS.has(def.id))
+    failures.push(`FLUSH_NESTS names '${def.id}', which nests no flush Button — a stale entry.`);
+  if (nestsFlush) {
+    const gap = flushRuleGap(def.anatomy?.codeOnly ?? []);
+    rows.push(`${def.id} → a nested flush Button; hit area ≥ 44×44 in code at ${FLUSH_SIZES.join(' and ')}, ≥ 24×24 at ${FLUSH_SMALL_SIZES.join(', ')} (codeOnly) [code-side rule, #2317]${gap.length ? '  ✗' : ''}`);
+    if (gap.length) failures.push(`${def.id}: nests a flush Button, and no codeOnly entry states its code-side hit area, 44×44 at medium and large and 24×24 at small (missing or over-scoped: ${gap.join(', ')}).`);
+  }
 }
 for (const id of FLUSH_MEMBERS) {
   const def = componentDefs.find((d) => d.id === id);

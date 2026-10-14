@@ -420,6 +420,18 @@
         "assignments": 3,
         "sha256": "d56be217e4d5e9249293c92121719843ffcec6bd8f287d32d573b27f16618a0a"
       }
+    },
+    "password-field": {
+      "set": {
+        "members": 84,
+        "assignments": 360,
+        "sha256": "70a8a24f7a1deba9e2d7cb8b3ba4c343e90a5ae3347ed1cbee353b447ead2122"
+      },
+      "grid": {
+        "members": 108,
+        "assignments": 456,
+        "sha256": "f4c8a2016d77cece81f97d359ca68dc8eff078bc1f9a52f0f7609105c65946f0"
+      }
     }
   }
 }

@@ -192,10 +192,20 @@ export type PaddingDef = {
  * label ramp, the gap and the row height — not just the control), and only the axes that are purely the
  * control's become the consumer's. A wholesale flag could not draw that line.
  */
+/**
+ * `atState` — A HOST STATE THAT MOVES THE NESTED COORDINATE (#2317). `follow` passes a host axis through BY NAME,
+ * which needs the two vocabularies to agree; a field's seven states and a Button's six do not (`filled`, `read-only`
+ * and `focus-visible-filled` have no Button member). `atState` names, per HOST state value, the nested axis values
+ * that member takes instead: the Password field's `{ disabled: { state: 'disabled' } }` nests Button's disabled
+ * member at the field's disabled member and its `variant` (rest) everywhere else. Applied after `follow`. Each key
+ * must be a value of the host's projected state axis and each axis one `variant` names, and none may be
+ * `follow`ed or exposed (the host would drive one axis two ways). Projector-only: the plan already carries the
+ * resolved coordinate per member, so neither executor reads this field.
+ */
 export type NestingRelation =
   | { kind: 'swap' }
-  | { kind: 'nest-fixed'; variant: Record<string, string>; follow?: readonly string[] }
-  | { kind: 'nest-exposed'; variant: Record<string, string>; expose: readonly string[]; follow?: readonly string[] };
+  | { kind: 'nest-fixed'; variant: Record<string, string>; follow?: readonly string[]; atState?: Record<string, Record<string, string>> }
+  | { kind: 'nest-exposed'; variant: Record<string, string>; expose: readonly string[]; follow?: readonly string[]; atState?: Record<string, Record<string, string>> };
 
 export type PartDef = {
   kind: PartKind;
@@ -917,6 +927,13 @@ export type PartDef = {
    *  would be the tempting choice — and it would silently make every nested set fixed-at-its-first-
    *  variant, which is the #656 error this field exists to stop. See `NestingRelation`. */
   nesting?: NestingRelation;
+  /** For a `nest` part: the nested instance's own TEXT property values, by the nested def's `figmaProperties.texts`
+   *  key (#2317). A component set has ONE default per text property, so a host that needs its nested instance to
+   *  say something else (the Password field's Button reading "Show", not "Button") states it here, and both
+   *  executors write it onto the instance as a property override (`setProperties`) once it is created. An
+   *  instance override, not a default: the nested set keeps its own, and a designer can still change it on the
+   *  host. Each key must be a text property the nested def declares (`test.ts`, against the registry). */
+  nestTexts?: Record<string, string>;
   /** For `absolute`: the binding key giving the size of the VISIBLE GAP between this part's inner edge
    *  and its parent's bounds. The focus ring's `focus.ring.offset` — at offset 2 an unbroken 2px sliver
    *  of background separates the ring from the control's own border (WCAG 1.4.11, target 3:1).
@@ -4387,6 +4404,22 @@ const anatomyErrors = (def: ComponentDef): string[] => {
     // the fixed `variant` at every coordinate (#1298). The exposed axes are the CHILD's and are NOT checked
     // here (the host does not project them — that is the whole point); their correctness against the child
     // is a projection/round-trip question (`nestVariantMatch`, `test-roundtrip.ts`), not a schema one.
+    if ((p.nesting?.kind === 'nest-fixed' || p.nesting?.kind === 'nest-exposed') && p.nesting.atState) {
+      const stateValues = def.figmaProperties?.stateAxis?.values ?? [];
+      const nesting = p.nesting;
+      for (const [hostState, coord] of Object.entries(nesting.atState ?? {})) {
+        if (!stateValues.includes(hostState))
+          e.push(`anatomy part '${n}' declares nesting 'atState' for '${hostState}', which is not a value of this def's projected state axis [${stateValues.join(', ') || 'none'}] — no member sits at it, so the mapping would never fire`);
+        for (const axis of Object.keys(coord)) {
+          if (!(axis in nesting.variant))
+            e.push(`anatomy part '${n}' declares nesting 'atState' on '${axis}', which its 'variant' does not name — 'atState' moves an axis the coordinate already accounts for, so the moved coordinate still names every axis of one member`);
+          if (nesting.follow?.includes(axis) || (nesting.kind === 'nest-exposed' && nesting.expose.includes(axis)))
+            e.push(`anatomy part '${n}' declares nesting 'atState' on '${axis}', which it also follows or exposes — one axis is driven one way`);
+        }
+      }
+    }
+    if (p.nestTexts && p.kind !== 'nest')
+      e.push(`anatomy part '${n}' declares 'nestTexts' but is kind '${p.kind}' — only an in-flow nested instance carries text overrides`);
     if ((p.nesting?.kind === 'nest-fixed' || p.nesting?.kind === 'nest-exposed') && p.nesting.follow) {
       const projected = [...(def.figmaProperties?.variantAxes ?? []), ...(def.figmaProperties?.stateAxis ? ['state'] : [])];
       for (const axis of p.nesting.follow)

@@ -465,6 +465,31 @@
     },
     "members": 9
   },
+  "password-field": {
+    "axes": {
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ],
+      "state": [
+        "disabled",
+        "filled",
+        "focus-visible",
+        "focus-visible-filled",
+        "hover",
+        "read-only",
+        "rest"
+      ],
+      "status": [
+        "default",
+        "error",
+        "success",
+        "warning"
+      ]
+    },
+    "members": 84
+  },
   "radio-control": {
     "axes": {
       "selection": [
