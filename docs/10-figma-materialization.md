@@ -486,7 +486,7 @@ border-width). The **4** uncovered — `motion`, `breakpoint`, `grid`, `containe
    `test:readback-parity` holds each to `out/<brand>.tokens.json`. A file still holding 0.235.0's FLOAT
    motion (owner decision Q293 A): in Prism3's own stamped `motion` collection, each planned name held as
    FLOAT where the plan writes TIMING is deleted and re-created as TIMING, and Apply's result line says
-   "replaced N motion variables (FLOAT ms → TIMING)" (`replacesOnRetype`, shared by the pre-flight and the
+   "Replaced N motion variables with the new timing type." (owner decision Q302) (`replacesOnRetype`, shared by the pre-flight and the
    executor). The new variable has a new id. Every other type mismatch still refuses.
 6. **✅ DONE (2026-07-04, #50) — Generalise** — emit aurora + wendys too (prove brand-agnostic).
    No fixtures for those, so gated on structural validity (every axis emits the right shape;

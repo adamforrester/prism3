@@ -32,7 +32,7 @@
  * reports the nodes as present. The facts here are authored fixtures — the executor's own collection of
  * them is gated against real host state in `test-write-components.ts`.
  */
-import { applyHeadline, APPLY_FAILED_HEADLINE, conflictHeadline, componentHeadline, staleNote, refsNote, refsItems, partialWriteHeadline, partialWriteNote, partialWriteItem, fromClauses } from './src/apply-summary';
+import { applyHeadline, APPLY_FAILED_HEADLINE, conflictHeadline, componentHeadline, staleNote, refsNote, refsItems, partialWriteHeadline, partialWriteNote, partialWriteItem, fromClauses, motionReplacedItem } from './src/apply-summary';
 import type { PartialWriteFacts } from './src/apply-summary';
 
 let failed = 0;
@@ -299,6 +299,15 @@ ok(rWorst.every((h) => h.length <= 24), `every repair headline fits the 24-char 
   const pf = facts({ loose: 2, parked: 2, frame: 'F' });
   ok(partialWriteNote(pf) === ` — ${partialWriteItem(pf)}` && partialWriteItem(facts({})) === '', '#2177 partialWriteItem: the clause without its " — ", and nothing when nothing was left');
 }
+
+// ---- #2412 (Q302): the motion-replacement clause, owner wording verbatim ---------------------------
+// Apply deletes and re-creates a stamped FLOAT motion variable as TIMING; this is the sentence that says so.
+// Literals typed here, not derived from the function, so a reworded clause fails by name.
+ok(motionReplacedItem(1) === 'Replaced 1 motion variable with the new timing type.',
+  `#2412 Q302: one replaced variable reads in the singular (${motionReplacedItem(1)})`);
+ok(motionReplacedItem(24) === 'Replaced 24 motion variables with the new timing type.',
+  `#2412 Q302: 24 replaced variables read in the plural (${motionReplacedItem(24)})`);
+ok(motionReplacedItem(0) === '', `#2412: nothing replaced, no clause (${JSON.stringify(motionReplacedItem(0))})`);
 
 console.log(`\nplugin apply-result headline: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'}`);
 if (failed) process.exit(1);

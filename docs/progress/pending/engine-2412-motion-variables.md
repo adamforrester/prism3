@@ -38,7 +38,7 @@ Owner decisions Q291, all A, after spike #2403 found Figma's own motion variable
 ### A file themed at 0.235.0 (owner decision Q293, all A)
 - **Apply replaces the old FLOAT motion.** Figma cannot retype a variable, so in Prism3's own stamped `motion`
   collection each planned name held as FLOAT where the plan writes TIMING is deleted and re-created as TIMING, and the
-  result line says "replaced N motion variables (FLOAT ms → TIMING)". One predicate, `replacesOnRetype` in
+  result line says "Replaced N motion variables with the new timing type." (owner decision Q302). One predicate, `replacesOnRetype` in
   `write-figma.ts`, is read by both the pre-flight (which stops reporting those) and the executor (which replaces
   them). The same FLOATs in an unstamped collection, and a FLOAT where the plan writes EASING, still refuse.
   **The cost, so nobody rediscovers it:** the new variable has a new id. Nothing in a file can be bound to the old one
