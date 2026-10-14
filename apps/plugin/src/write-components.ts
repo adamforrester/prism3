@@ -869,17 +869,34 @@ const pageBoxes = (page: CompPageTarget): PageBox[] =>
  * the same row rule, but it stays below the header and never takes a stray node's `y`. Its siblings then
  * top-align with it, as on a fresh page.
  *
+ * ONE RULE UNDER A HEADER, SETS OR NO SETS (#2598). On a page with a header, the set takes the FIRST FREE SLOT in
+ * its row, scanning right from the header's left edge. Before, a page that still held a sibling set put the new
+ * one right of everything in the row: live, a rebuilt `button` landed right of `button-neutral`, past the
+ * header's right edge (the header spans the row the first build laid out), while a set on a page with no
+ * sibling went under the header. Now a set deleted and rebuilt goes back into the gap it left, under the
+ * header, and the rebuilt sets read left to right in build order again. A slot is free when the set's box,
+ * widened `SET_GAP` on each side (its own row labels go on its left, the next set's on its right), meets no
+ * node in the row. When no slot fits, the first one past everything in the row is the same place the old rule
+ * chose. `y` is unchanged: the top of the sets already
+ * there, else the header's bottom plus the gap.
+ *
  * A SET THAT ALREADY EXISTS IS NEVER PASSED HERE: a rebuild keeps the set a designer may have moved, the
  * "designer's placement wins" rule `page-header.ts` follows for the header.
  */
-export const placeNewSet = (existing: readonly PageBox[], height: number): { x: number; y: number } | null => {
+export const placeNewSet = (existing: readonly PageBox[], height: number, width = 0): { x: number; y: number } | null => {
   if (existing.length === 0) return null;
   const sets = existing.filter((b) => !b.header && b.type === 'COMPONENT_SET');
   const h = existing.find((b) => b.header);
-  if (h && sets.length === 0) {
-    const y = h.y + h.height + PAGE_HEADER_GAP;
+  if (h) {
+    const y = sets.length ? Math.min(...sets.map((b) => b.y)) : h.y + h.height + PAGE_HEADER_GAP;
     const band = existing.filter((b) => b.y < y + height && b.y + b.height > y);
-    return { x: Math.max(h.x, ...band.map((b) => b.x + b.width + SET_GAP)), y };
+    let x = h.x;
+    for (let pushed = true; pushed;) {
+      pushed = false;
+      for (const b of band)
+        if (b.x < x + width + SET_GAP && b.x + b.width + SET_GAP > x) { x = b.x + b.width + SET_GAP; pushed = true; }
+    }
+    return { x, y };
   }
   const y = Math.min(...(sets.length ? sets : existing).map((b) => b.y));
   const band = existing.filter((b) => b.y < y + height && b.y + b.height > y);
@@ -2986,7 +3003,7 @@ const writeComponentSet = async (
   // AFTER the resize, because which nodes share the set's row depends on its height. A set's `x`/`y` moves
   // the set and not its members (theirs are relative to it), so this touches nothing the layout pass wrote.
   if (createdSet) {
-    const at = placeNewSet(priorContent, set.height ?? wantH);
+    const at = placeNewSet(priorContent, set.height ?? wantH, set.width ?? wantW);
     if (at) {
       const s = wr(set);
       s.x = at.x;

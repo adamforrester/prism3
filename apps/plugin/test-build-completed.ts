@@ -18,15 +18,31 @@
  *     (#1780, `axesChanged`), returns `set: null` through the SAME success-path post → `completed: false`
  *   · an unknown def: the early return → `completed: false`
  *
+ * And #2598's wiring, between the first two: this file has no `_Label`, so the build's `component-result` and the
+ * Update's `component-update-result` summary must each carry the missing-template line, literal, as `main.ts` posts
+ * them. The Update is driven through `ACTIONS.updateComponents` (check, then apply), the table the panel and the
+ * agent link both reach. The host's set search finds the sets on its pages, as Figma's does, and `getNodeByIdAsync`
+ * finds the set the build drew beside, so the furniture reaches its template lookup. Such a run is a warning (owner
+ * decision Q284.3 A): `ok: false` and a `⚠` headline. Then Set up file's template builder makes the templates, and the
+ * same build and Update read `✓`. The host holds the variables and styles Badge binds, so only the template can warn.
+ *
  * INDEPENDENCE (docs/34): the expected values are literals typed here, from the owner's definition of the
  * two results; the actual side is what `main.ts` posted. The refusal is reached by editing the HOST's file
  * (the member names, which are what a set's axes are), never by stubbing the executor.
  *
  * Mutation this fails by name: `completed: true` hard-coded on `main.ts`'s success-path post →
- * `C1: a build the executor refused (#1780) posts completed: false`.
+ * `C1: a build the executor refused (#1780) posts completed: false`. The template line dropped from the build's post
+ * (`main.ts`, `furnitureItems(furniture, 'build')`) → `templates/build verdict`; from the Update's
+ * (`withFurnitureItems(applyVerdict(r), …)`) → `templates/update verdict`. The warning (Q284.3 A) dropped from the
+ * build's post (`main.ts`, `withTemplateWarning({ type: 'component-result', … })`) → `templates/build warns`; from the
+ * Update's → `templates/update warns`; a warning with every template present → `templates/build clean`,
+ * `templates/update clean`.
  */
 import { makeShim } from './component-shim';
 import type { Node } from './component-shim';
+import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles } from '@prism3/engine/anatomy-figma';
+import { SWAP_TARGET } from './src/build-deps';
+import { componentDefs } from '@prism3/engine/components/index';
 
 let failed = 0;
 let executed = 0;
@@ -39,13 +55,14 @@ const ok = (cond: boolean, label: string): void => {
 /* ── the host: the component shim, a page list, and the UI channel ─────────────────────────────────── */
 
 type ShimPage = { id: string; name: string; type: 'PAGE'; isPageDivider: boolean; backgrounds?: readonly unknown[];
-  children: Node[]; appendChild(c: Node): void; findOne(p: (n: unknown) => boolean): unknown };
+  children: Node[]; appendChild(c: Node): void; insertChild(i: number, c: Node): void; findOne(p: (n: unknown) => boolean): unknown };
 const pages: ShimPage[] = [];
 let pageSeq = 0;
 const mkPage = (divider: boolean): ShimPage => {
   const p: ShimPage = {
     id: `PAGE:${++pageSeq}`, name: divider ? '---' : '', type: 'PAGE', isPageDivider: divider, children: [],
-    appendChild(c) { const i = this.children.indexOf(c); if (i >= 0) this.children.splice(i, 1); this.children.push(c); },
+    appendChild(c) { const i = this.children.indexOf(c); if (i >= 0) this.children.splice(i, 1); this.children.push(c); c.parent = this as unknown as Node; },
+    insertChild(at, c) { const i = this.children.indexOf(c); if (i >= 0) this.children.splice(i, 1); c.parent = this as unknown as Node; this.children.splice(Math.max(0, Math.min(at, this.children.length)), 0, c); },
     findOne(pred) { return this.children.find(pred) ?? null; },
   };
   pages.push(p);
@@ -53,7 +70,14 @@ const mkPage = (divider: boolean): ShimPage => {
 };
 
 const posted: any[] = [];
-const shim = makeShim() as Record<string, any>;
+// The variables and styles Badge binds are in the file, as after Apply Theme, so a build with every template present is
+// clean (✓) and Q284.3's ⚠ can only come from the missing template (`templates/build warns` and `… clean`).
+const badgePlans = figmaAnatomySet(componentDefs.find((d) => d.id === 'badge')!, { swapTarget: SWAP_TARGET });
+const shim = makeShim({
+  vars: [...new Set(badgePlans.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]))],
+  styles: [...new Set(badgePlans.flatMap((p) => planTextStyles(p.root)))],
+  effects: [...new Set(badgePlans.flatMap((p) => planEffectStyles(p.root)))],
+}) as Record<string, any>;
 const root = shim.root as Record<string, unknown>;
 Object.defineProperty(root, 'children', { get: () => pages });
 Object.assign(root, {
@@ -69,6 +93,10 @@ Object.assign(root, {
   getPluginData: () => '',
   setPluginData: () => undefined,
 });
+// A search for sets finds the ones on the pages, as Figma's does: the Update reads its targets this way.
+const shimFind = (root.findAllWithCriteria as (c?: { types?: string[] }) => unknown[]).bind(root);
+root.findAllWithCriteria = (c?: { types?: string[] }) => [...shimFind(c),
+  ...(c?.types?.includes('COMPONENT_SET') ? pages.flatMap((p) => p.children).filter((n) => n.type === 'COMPONENT_SET') : [])];
 const empty = async () => [];
 Object.assign(shim, {
   showUI: () => undefined,
@@ -78,6 +106,8 @@ Object.assign(shim, {
   createPage: () => mkPage(false),
   createPageDivider: () => mkPage(true),
   setCurrentPageAsync: async () => undefined,
+  // The set `furnishSet` draws beside, found by id on the pages, so the build reaches the furniture's template lookup.
+  getNodeByIdAsync: async (id: string) => pages.flatMap((p) => p.children).find((n) => n.id === id) ?? null,
   listAvailableFontsAsync: empty,
   getLocalPaintStylesAsync: shim.getLocalPaintStylesAsync ?? empty,
   getLocalGridStylesAsync: shim.getLocalGridStylesAsync ?? empty,
@@ -118,6 +148,58 @@ const badgePage = pages.find((p) => p.children.some((c) => c.type === 'COMPONENT
 const set = badgePage?.children.find((c) => c.type === 'COMPONENT_SET');
 ok(!!set && (set.children as Node[]).length > 1, `a real set reached the file (${set ? `${(set.children as Node[]).length} members on '${badgePage?.name}'` : 'none'})`);
 ok(first?.completed === true, `C1: a build that made its set posts completed: true (ok ${first?.ok}, completed ${first?.completed}, "${first?.headline}")`);
+
+// 1b. #2598: a file with no `_Label` is told so, in the verdict the build posts and in the Update's summary. The
+//     expected line is typed here, from the issue; the actual is what `main.ts` posted. This host has no `_Label`
+//     (nothing in it makes one), so the furniture `furnishSet` draws beside Badge finds no template.
+const NO_LABEL = 'No canvas labels drawn: this file has no _Label component. Run Set up file, then build again';
+ok(!!first && (first.lines as string[]).includes(NO_LABEL) && String(first.summary).includes(NO_LABEL),
+  `templates/build verdict: the build's component-result carries the missing-template line (${JSON.stringify(first?.lines)})`);
+// The Update, through the same action table the panel and the agent link reach: a check for its hash, then the apply.
+const { ACTIONS } = await import('./src/main');
+type Sink = { post(m: any): void; data(d: Record<string, unknown>): void };
+const runAction = async (go: (sink: Sink) => Promise<void>): Promise<{ posts: any[]; data: Record<string, unknown>[] }> => {
+  for (let i = 0; i < 1200; i++) {
+    const posts: any[] = []; const data: Record<string, unknown>[] = [];
+    await go({ post: (m) => posts.push(m), data: (d) => data.push(d) });
+    if (posts.some((m) => m?.type === 'refused')) { await new Promise((res) => realTimeout(res, 25)); continue; }
+    return { posts, data };
+  }
+  return { posts: [], data: [] };
+};
+const check = await runAction((sink) => ACTIONS.updateComponents('badge', null, undefined, sink as never));
+const hash = (check.data.find((d) => (d.update as { mode?: string })?.mode === 'preview')?.update as { previewHash?: string })?.previewHash;
+ok(typeof hash === 'string', `fixture: the Update's check finds Badge and returns its hash (${hash})`);
+const applied = (await runAction((sink) => ACTIONS.updateComponents('badge', hash ?? null, undefined, sink as never))).posts
+  .find((m) => m?.type === 'component-update-result');
+const NO_LABEL_UPDATE = 'No canvas labels drawn: this file has no _Label component. Run Set up file, then update again';
+ok(!!applied && String(applied.summary).includes(NO_LABEL_UPDATE) && (applied.lines as string[]).some((l) => l.startsWith(NO_LABEL_UPDATE)),
+  `templates/update verdict: the Update's component-update-result summary carries the missing-template line (${JSON.stringify(applied?.summary)})`);
+
+// 1c. Q284.3 A: a run that skipped furniture for a missing template is a WARNING, the state every partial result takes:
+//     `ok: false` and a `⚠` headline, never `✓`. The build still made its set, so it stays `completed`.
+ok(!!first && first.ok === false && first.completed === true && String(first.headline).startsWith('⚠'),
+  `templates/build warns: no _Label makes the build's verdict ⚠, ok false, completed (ok ${first?.ok}, "${first?.headline}")`);
+ok(!!applied && applied.ok === false && String(applied.headline).startsWith('⚠'),
+  `templates/update warns: no _Label makes the Update's verdict ⚠, ok false (ok ${applied?.ok}, "${applied?.headline}")`);
+// Then Set up file's own template builder makes them, as the line asks, and the same build and Update read ✓ again.
+const { ensureFurnitureTemplates } = await import('./src/furniture-templates');
+const componentsPage = mkPage(false);
+componentsPage.name = '↳ File Components';
+// Figma's `createComponent`, as the shim makes a component: a frame made one.
+const templatesApi = { ...shim, createComponent: () => shim.createComponentFromNode(shim.createFrame()) };
+const made = await ensureFurnitureTemplates(templatesApi as never, componentsPage as never);
+ok(made.built.includes('_Label'), `fixture: Set up file's template builder makes _Label in this host (${JSON.stringify(made)})`);
+const withTemplates = await build('badge');
+ok(!!withTemplates && withTemplates.ok === true && String(withTemplates.headline).startsWith('✓')
+  && !(withTemplates.lines as string[]).some((l) => l.startsWith('No canvas labels drawn')),
+  `templates/build clean: with the templates in the file, the same build stays ✓ (ok ${withTemplates?.ok}, "${withTemplates?.headline}", ${JSON.stringify(withTemplates?.lines)})`);
+const check2 = await runAction((sink) => ACTIONS.updateComponents('badge', null, undefined, sink as never));
+const hash2 = (check2.data.find((d) => (d.update as { mode?: string })?.mode === 'preview')?.update as { previewHash?: string })?.previewHash;
+const applied2 = (await runAction((sink) => ACTIONS.updateComponents('badge', hash2 ?? null, undefined, sink as never))).posts
+  .find((m) => m?.type === 'component-update-result');
+ok(!!applied2 && applied2.ok === true && String(applied2.headline).startsWith('✓') && !String(applied2.summary).includes('No canvas labels drawn'),
+  `templates/update clean: with the templates in the file, the same Update stays ✓ (ok ${applied2?.ok}, "${applied2?.headline}", ${JSON.stringify(applied2?.summary)})`);
 
 // 2. The same set, its members renamed onto a smaller axis list: refused, nothing built.
 const members = (set?.children ?? []) as Node[];
