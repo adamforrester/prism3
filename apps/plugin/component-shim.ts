@@ -435,6 +435,7 @@ export const makeShim = (opts: ShimOpts = {}) => {
   const names = new Set(opts.vars ?? []);
   // #2265 PR 2 — `identities`: one counter for node ids, one for component keys, never reused.
   let nodeSeq = 0;
+  let setSeq = 0;
   /** Every node `remove()` took out, in order — read by a test, never by the executor. */
   const removedNodes: Node[] = [];
   let keySeq = 0;
@@ -1611,7 +1612,10 @@ export const makeShim = (opts: ShimOpts = {}) => {
       if (parent !== undefined && typeof (parent as { id?: unknown }).id !== 'string')
         throw new Error('in combineAsVariants: Expected node id to be a string, got undefined');
       const set = mkNode('COMPONENT_SET');
-      set.id = 'SET:1';
+      // EACH SET ITS OWN ID, as on the host (#2593): under `identities` the one `mkNode` gave it from `nodeSeq`, and
+      // otherwise one of its own sequence. Every set read `SET:1` once, so a multi-set apply's identity check, which
+      // finds a set by its id, re-read the first set and failed a set it had updated correctly.
+      if (!opts.identities) set.id = `SET:${++setSeq}`;
       giveKey(set);
       set.children = members;
       // #1430 — HOST TRUTH, AS PROBED LIVE (2026-09-27, a scratch file and the owner's master file agree):

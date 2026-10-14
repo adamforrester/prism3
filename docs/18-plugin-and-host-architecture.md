@@ -45,13 +45,22 @@ Key fields (developers.figma.com/docs/plugins/manifest):
 
 - **`main`** / **`ui`** — the sandbox code file / the iframe HTML.
 - **`editorType`** — array of `"figma"` | `"figjam"` | `"dev"` | `"slides"` | `"buzz"` (note: `figjam` +
-  `dev` together are unsupported). We target `"figma"` (and likely `"dev"` for a read/inspect surface).
+  `dev` together are unsupported). We target `"figma"`: `apps/plugin/manifest.json` declares `["figma"]` only.
+  Whether to add `"dev"` for a read/inspect surface is still open (§7).
 - **`documentAccess: "dynamic-page"`** — **required for new plugins**. It's why the document getters are
   **async** (`getLocalVariableCollectionsAsync`, `getVariableByIdAsync`, …) — pages load on demand.
 - **`networkAccess`** — `{ allowedDomains: [...] , reasoning, devAllowedDomains }`. `allowedDomains` is
   required (`"none"` / `"*"` / wildcards / explicit URLs); `"*"` or localhost needs `reasoning`. An
-  unlisted request gets a CSP error. **Prism3 needs none of this at runtime** — the engine is bundled
-  in, no server call — so we can ship `allowedDomains: ["none"]`, a real trust/reliability win.
+  unlisted request gets a CSP error. **Theming needs none of this at runtime** — the engine is bundled
+  in, no server call — so the manifest ships `allowedDomains: ["none"]`, a real trust/reliability win.
+  The one exception is dev-only: the dev manifest also lists `devAllowedDomains: ["ws://localhost:17331"]`,
+  the agent link's local desktop-bridge socket (`apps/plugin/src/agent-bridge-relay.ts`), which Figma
+  honours only for a development import.
+- **Dev build vs release build (#2530).** `npm run -w @prism3/plugin build` writes `dist/` with
+  `PRISM3_DEV` true; `build:release` writes `release/` with `PRISM3_DEV` false, so esbuild drops every
+  dev-only branch (the bridge relay, the dev-only agent-link command), and writes a `manifest.json` beside
+  the bundles with `devAllowedDomains` removed (`apps/plugin/build.mjs`, `writeReleaseManifest`).
+  `apps/plugin/lint-release-bundle.ts` checks that each dev-only marker is in `dist/` and absent from `release/`.
 - **`permissions`** — `currentuser` / `activeusers` / `fileusers` / `payments` / `teamlibrary`.
 - **`capabilities`** — `textreview` / `codegen` / `inspect` / `vscode` (codegen/inspect = Dev-Mode surfaces).
 
@@ -159,9 +168,94 @@ via semantic roles). The Figma component is that same thing's visual shell.
 
 ## 7. Open decisions this grounding surfaces
 
-- **Bundling** — the engine + control UI must bundle into the plugin's iframe HTML (a browser/Figma bundle
-  is a packaging step, not a port — `09`). No `npm install` at runtime; `networkAccess: none`.
+- **Bundling** — ✅ resolved: `apps/plugin/build.mjs` bundles the engine + control UI into `dist/ui.html`
+  and the main-thread writer into `dist/main.js` (a packaging step, not a port — `09`). No `npm install` at
+  runtime; `allowedDomains: ["none"]` (§2 for the dev-only exception).
 - **Author our own headless primitives vs. wrap an existing lib** (React Aria / Radix / Ark) — a `14`-layer
   decision, deferred.
 - **Dev-Mode surface** — whether the plugin also ships a `dev`/`inspect` capability (read tokens/specs in
   Dev Mode) alongside the design-mode theming surface.
+- **Whether a Prism3 *widget* ships at all** — open, and the owner's call. What `§8` settles is narrower and
+  technical: the **theming surface** cannot be a widget, ruled out on the same reliability grounds as the
+  `.fig` route in `§4`. Candidate widget uses were explored and none is filed to build (`§8a` closes the one
+  that looked strongest).
+
+## 8. Widgets — a second host shape, and why the theming surface isn't one
+
+Sourced from the current Figma Widget API docs (developers.figma.com/docs/widgets, fetched 2026-09-27).
+`§1`–`§7` grounded the **plugin**. A widget is the other way code lives in a Figma file, and it was worth
+asking whether the theming surface should be one — a widget sits on the canvas rather than in a modal, so
+the hope was a larger view. **It is the opposite, and the reasons generalize past this one question.**
+
+**Three reasons the theming surface is not a widget:**
+
+1. **Widget rendering is not the DOM.** The whole vocabulary is eleven JSX components — `AutoLayout`,
+   `Frame`, `Text`, `Rectangle`, `Image`, `Ellipse`, `SVG`, `Line`, `Input`, `Fragment`, `Span` — and the
+   hooks `useEffect`, `usePropertyMenu`, `useStickable`, `useStickableHost`, `useSyncedState`,
+   `useSyncedMap`, `useWidgetId`. No HTML, no CSS. So the shared control UI of `§5` — the *same code* that
+   runs in the web dashboard and the plugin iframe — **cannot run in a widget's canvas rendering at all.**
+   A widget version is a rewrite that forfeits the one-UI-many-front-doors property `§5` exists to buy.
+2. **A widget's rich UI is the *same modal*.** `figma.showUI` from a widget *"creates a modal dialog with an
+   `<iframe>` containing the HTML markup in the html argument"* — the identical window the plugin already
+   opens. There is no size gain to have: the plugin opens at **1280×900** (`apps/plugin/src/main.ts`) and
+   persists whatever the designer drags it to (#144). Figma documents plugin-UI *minimums* (width 70,
+   height 0 at instantiation; ~100 on `resize`) and no maximum beyond the window, and docking is not a
+   native feature for either shape.
+3. **The execution model forbids reading the document during render.** *"The plugin API can only be used in
+   event handlers and hooks."* Render *"runs synchronously and should solely depend on a widget's state"*,
+   and *"widget rendering code won't be able to read and access data outside of the particular widget's
+   state."* Finally: *"Widgets only run in response to user interaction and only on the specific client that
+   initiated this interaction."*
+
+**Reason 3 is the architectural one, and it is the `§4` reliability argument again.** A widget cannot read
+the file's variables in order to display them. To show the current theme it must *mirror* the variables into
+its own synced state — at which point the file holds **two authorities for the theme**, and they diverge the
+moment anyone edits a variable directly. That is the same class of defect as a regenerable baseline agreeing
+with its own deletion (principle 5): a store allowed to answer for itself has no memory.
+
+**What widgets are genuinely good at**, kept here so the next person doesn't re-derive it: they **persist
+past the session**, they are **multiplayer** — *"Unlike plugins that run for a specific person, everyone can
+see and interact with the same widget"* — and `usePropertyMenu` supplies native `color-selector`, `dropdown`
+and `toggle` controls with no HTML. `findWidgetNodesByWidgetId(widgetId)` lets one instance aggregate across
+every sibling instance in the file. **If an idea does not need all three of persist / shared / glanceable,
+it is a plugin panel, not a widget.**
+
+**Two packaging facts that decide the shape of any widget we ever ship.** One manifest per widget — the
+"multiple widgets" page is about multiple *instances*, not several distinct widgets in a package — and synced
+state is id-scoped: *"The synced state on each widget node will only be visible to widgets that have the same
+`WidgetNode.widgetId`."* So a *set* of widgets is N Community submissions and N mutually blind islands. **One
+widget with modes selected from the property menu is the only coherent shape.** Also: `useStickable` /
+`useStickableHost` are *"only available in FigJam"*, so no widget can follow a node in Figma Design.
+
+### 8a. Widget synced state is unreachable from every write route we have
+
+Recorded because it is counter-intuitive and it killed a good idea. The appealing use for a widget was
+**agent memory**: the plugin route (`§4` route 1) or the MCP route (route 2) writes an agent's findings and
+plan into a durable, visible, in-file object that survives the session and the next agent reads back. Every
+step of that is blocked:
+
+- *"The plugin cannot create WidgetNodes. The only possible way is to clone already existing nodes in the
+  file."*
+- `WidgetNode.setWidgetSyncedState(...)` *"only sets the synced state for widgets with a matching
+  `node.widgetId`… this means that running this function only works inside of a widget."*
+- `WidgetNode.widgetSyncedState` *"is only readable by widgets created by the same `manifest.id`."*
+- `cloneWidget(...)` overrides *"are only applied if a widget is cloning itself or other widgets created by
+  the same `manifest.id`."*
+
+**A plugin's manifest id never matches a widget's** — they are separate manifests with separate published
+ids. So a plugin can neither create a widget, nor write its synced state, nor even *read* it. Widget synced
+state is reachable only from inside that widget.
+
+**The shape that does work, if the need ever justifies it:** `setSharedPluginData(namespace, key, value)` is
+the store — *"Any data you write using this API will be readable by any plugin"*, with a namespace mandatory
+and *"The total size of your entry (`namespace`, `key`, `value`) cannot exceed 100 kB"* — and the widget is a
+**read-only projection** of it, refreshed when someone clicks. That inverts cleanly: one authority, one
+viewer, no mirror.
+
+**But the trade is bad, and this is why nothing is filed to build it.** Because a widget only runs on
+interaction, the projection is **stale until clicked** — it shows the previous agent run's findings to
+someone who has not touched it. A node board *drawn* by the plugin (the same mechanism `applyComponentPlan`
+already uses) is current as of the last write, needs no Community publish, no review, and no second id. The
+widget buys buttons and costs a staleness class. **The underlying need is real — agent work has no durable,
+reviewable trace in the file where the work happened — and `sharedPluginData` plus a drawn board is the
+answer to it. A widget is not.**

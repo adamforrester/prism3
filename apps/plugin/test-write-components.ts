@@ -5057,4 +5057,42 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     `tab width held (Q226 A): with the emphasis label 8px wider, every selected tab measures exactly its unselected twin, so selecting never moves the neighbors (${members.length} members, ${by.size} pairs${moved.length ? ` — MOVED: ${moved.slice(0, 4).join(' | ')}` : ''}${footprint.length ? ` — ${footprint[0]}` : ''})`);
 }
 
+// =============================================================================================
+// #2418 Q269.6 A — A SEGMENTED CONTROL'S OPTIONS SHARE THE TRACK EQUALLY, read off the built set
+// =============================================================================================
+// Each option is a nested instance that GROWS along the track (`layoutGrow: 1`, written by the parent's pass since an
+// instance is never neutralized), its own main axis FIXED, and the track stretches across a control built at its
+// placement width. On a layout-model shim, every shown option must then measure the same width, the shares together
+// filling the track (less its 1px edge on each side), and each option must read `layoutGrow: 1` off the host. Expected
+// values are the decision's own words (equal shares of the track), never read off the def. Mutation: `grow` dropped
+// from the options → `segmented control equal widths (Q269.6)`.
+{
+  const project = (d: ComponentDef) => figmaAnatomySet(materializeForBrand(d, null), { swapTarget: SWAP });
+  const ctlDef = componentDefs.find((d) => d.id === 'segmented-control')!;
+  const all = componentDefs.flatMap((d) => { try { return project(d); } catch { return []; } });
+  const page: Page = { children: [] };
+  const shim = makeShim({ ...fullFor(all), comps: [], liveRoot: true, page, layoutModel: true });
+  const build = (d: ComponentDef) => applyComponentPlan(project(d), shim as any, { emitAsComponents: d.figmaProperties?.emitAsComponents });
+  await prebuildDependencies(ctlDef, { defs: componentDefs, project, host: shim as any, build });
+  await build(ctlDef);
+  const set = page.children.find((c) => c.name === 'segmented-control' && c.type === 'COMPONENT_SET') as Node | undefined;
+  const members = (set?.children ?? []) as Node[];
+  const child = (m: Node, name: string) => ((m.children as Node[]) ?? []).find((c) => c.name === name);
+  const wrong: string[] = [];
+  for (const m of members) {
+    const track = child(m, 'track');
+    const shown = ((track?.children as Node[]) ?? []).filter((c) => c.visible !== false);
+    const widths = shown.map((c) => Number(c.width));
+    const tw = Number(track?.width);
+    // The track's own padding and gaps as the HOST holds them (the shim's placeholder variables, not the def's tokens).
+    const bv = (track?.boundVariables ?? {}) as Record<string, { value?: number }>;
+    const frame = (bv.paddingLeft?.value ?? 0) + (bv.paddingRight?.value ?? 0) + Math.max(0, shown.length - 1) * (bv.itemSpacing?.value ?? 0);
+    const sum = widths.reduce((a, b) => a + b, 0);
+    if (!track || shown.length !== 3 || new Set(widths).size !== 1 || Math.abs(sum + frame - tw) > 0.5 || shown.some((c) => c.layoutGrow !== 1))
+      wrong.push(`${String(m.name)}: track ${tw} (padding and gaps ${frame}), ${shown.length} shown at ${widths.join('/')} (sum ${sum}), layoutGrow ${shown.map((c) => String(c.layoutGrow)).join('/')}`);
+  }
+  ok(members.length === 3 && wrong.length === 0,
+    `segmented control equal widths (Q269.6): at every size the three shown options grow along the track (layoutGrow 1 on the host) and measure the same width, their shares filling the track (${members.length} members${wrong.length ? ` — WRONG: ${wrong.join(' | ')}` : ''})`);
+}
+
 if (failed) process.exit(1);
