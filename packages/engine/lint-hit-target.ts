@@ -201,8 +201,16 @@ const flushRuleGap = (codeOnly: readonly string[]): string[] => {
 // Each listed def is also measured BELOW the floor at every size on comfortable, so a box later grown to 44 makes the
 // entry stale by name rather than leaving a code-side claim on a control that no longer needs one. The phrases are
 // literals here, never read off the def (docs/34): deleting either sentence from the def fails this gate by name.
-const CODE_SIDE_TARGETS: Record<string, { key: (size: string) => string; why: string }> = {
-  'flush-icon-button': { key: (s) => `size.${s}.side`, why: "the flush icon button's glyph square, with no padding" },
+// A def whose OTHER shape draws a box of its own lists it in `atFloor` (#2457 Q287 A, the round shape): those sizes
+// are measured the INTERACTIVE way, at or above the floor over the floor densities, so the circle's own box is held
+// to 44 where the owner's sizes put it there (medium 44, large 56). The sizes are literals here, never read off the
+// def; the size below them (small, 36) stays covered by the code-side rule, which the def states "at every size".
+type AtFloor = { key: (size: string) => string; sizes: readonly string[]; why: string };
+const CODE_SIDE_TARGETS: Record<string, { key: (size: string) => string; why: string; atFloor?: AtFloor }> = {
+  'flush-icon-button': {
+    key: (s) => `size.${s}.flush`, why: "the flush icon button's glyph square, with no padding",
+    atFloor: { key: (s) => `size.${s}.round`, sizes: ['medium', 'large'], why: "the round flush icon button's circle, the Counter's height" },
+  },
 };
 const CODE_SIDE_RULE = [/at least 44×44px at every size/, /::before`? inset outward/, /centered on the glyph/];
 const CODE_SIDE_DOC = [/hit area in code to at least 44×44px at every size/, /::before`? inset outward/];
@@ -491,6 +499,19 @@ for (const [id, target] of Object.entries(CODE_SIDE_TARGETS)) {
     const bad = violation(px, 'exception');
     rows.push(`${id}/${size} → ${path} = ${px}px (comfortable) [code-side hit area ≥ 44×44 at every size, #2457, Q283.3 A]${bad ? '  ✗' : ''}`);
     if (bad) failures.push(`${id}/${size} (${target.why}) ${bad} — a box at the floor is an INTERACTIVE control, measured on its own box; move it there.`);
+  }
+  if (target.atFloor) {
+    const at = target.atFloor;
+    for (const size of at.sizes) {
+      const path = (def.tokens as Record<string, string> | undefined)?.[at.key(size)];
+      const measured = floorBuilds.map((b) => ({ density: b.density, px: path ? resolvePx(b.tree, b.root, path) : undefined }));
+      if (!path || measured.some((m) => m.px === undefined)) { failures.push(`${id}/${size}: tokens['${at.key(size)}'] does not resolve to a px on every floor density (${at.why}) — the box binding moved. Re-point CODE_SIDE_TARGETS['${id}'].atFloor.key.`); continue; }
+      const minPx = Math.min(...measured.map((m) => m.px!));
+      floorCount++;
+      const bad = violation(minPx, 'floor');
+      rows.push(`${id}/${size} → ${path} = ${minPx}px (min over ${FLOOR_DENSITIES.join('+')}) [floor, ${at.why}, #2457 Q287 A]${bad ? '  ✗' : ''}`);
+      if (bad) failures.push(`${id}/${size} (${at.why}, ${path}) ${bad} on a ${measured.find((m) => m.px === minPx)!.density} brand — the round circle at this size is its own target and must meet the floor.`);
+    }
   }
   const ruleMiss = ruleGap(def.anatomy?.codeOnly ?? [], CODE_SIDE_RULE);
   if (ruleMiss.length) failures.push(`${id}: no codeOnly entry states the code-side hit area (missing: ${ruleMiss.join(', ')}) — its box is below the floor by design, so the rule is the only target it has. State that the hit area is at least 44×44px at every size in code, through a ::before inset outward and centered on the glyph (owner Q283.3 A, #2457).`);

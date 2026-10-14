@@ -430,7 +430,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
     axis: 'shape',
     values: ['square', 'circular'],
     defs: ['icon-button', 'icon-button-destructive', 'icon-button-neutral'],
-    relation: 'sole',
+    relation: 'canonical',
     reason:
       'The icon button\'s CORNER SILHOUETTE (#1353, owner-decided) — `square` a rounded rectangle at the '
       + 'button\'s normal radius (`radius.md`), `circular` a full-round disc (`radius.round`). PURE GEOMETRY: '
@@ -441,7 +441,22 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'and shared by the three icon-button components BY DESIGN — one shared anatomy through `makeIconButton`, '
       + 'so the three carry identical values and this one entry records all three. Distinct from `size` (a '
       + 'scale rung), `ratio` (a width-to-height proportion) and `style` (a line treatment) — argued in '
-      + '`VARIANT_AXES`.',
+      + '`VARIANT_AXES`. CANONICAL since #2457 added a second `shape` set (below): it came first and is shared by three '
+      + 'defs.',
+  },
+  {
+    axis: 'shape',
+    values: ['flush', 'round'],
+    defs: ['flush-icon-button'],
+    relation: 'disjoint',
+    reason:
+      'The flush icon button\'s two shapes (#2457, owner decision Q287 A: "one component with two shapes"). NOT pure '
+      + 'geometry, unlike the canonical set: `flush` is the bare glyph square with no paint, and `round` a circle with a '
+      + 'decorative edge and a hover wash, so the two differ in size, corner AND paint. DISJOINT, and the pair is named '
+      + 'here on purpose because it is the near-overlap this register exists to flag: `round` draws the same full-round '
+      + 'corner IconButton calls `circular`. The owner\'s decision spells it `round`, and the canonical set has no `flush`, '
+      + 'so the two sets are not one ladder; the spelling is held as an owner item on #2457 (`round` or `circular`). '
+      + '`flush` LEADS because it is the code default and the shape built first, so Figma\'s inserted member is flush.',
   },
   {
     axis: 'style',

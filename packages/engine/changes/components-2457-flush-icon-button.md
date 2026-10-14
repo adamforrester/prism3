@@ -9,3 +9,9 @@ in code the hit area extends to at least 44×44px at every size and Figma draws 
 `state` (rest, hover, pressed, focus-visible, disabled) = 15 members, carrying Rest → Hover → Pressed reactions
 through the existing mechanism (#2574). Its page is under Subcomponents. The three IconButton sets are unchanged.
 No new token, so CONTRACT is unchanged.
+
+A second shape (owner decision Q287 A on #2457): a `shape` axis, `flush | round`, flush first. `round` is a circle
+the Counter's height across (36 / 44 / 56px, `size.sm` / `md` / `lg.height`), full-round, with a decorative edge
+(`color.border.secondary`; `color.disabled.border` at disabled) and IconButton.Neutral's ghost wash at hover and
+pressed (`color.interactive.neutral.overlay.*`). The glyph stays 20 / 20 / 24 on both shapes, and flush paints exactly
+as before. `shape` × `size` × `state` = 30 members.

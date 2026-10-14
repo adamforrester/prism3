@@ -16200,44 +16200,77 @@ arm: {
   ok(!Object.values(button.tokens).some((v) => /color\.action\.|color\.foreground\.danger\.|foreground\.secondary/.test(String(v))), 'component: Button binds interactive.*/disabled.*, not the legacy action./danger./secondary roles');
   ok(iconButton.inherits === 'button' && !!iconButton.props.find((p) => p.name === 'aria-label')?.required, 'component: IconButton inherits button + REQUIRES an accessible name');
 
-  // ---- #2457: THE FLUSH ICON BUTTON — owner decision Q283.3 A (on #2427): ghost only, NO padding, COLOR-ONLY hover ----
-  // EXPECTED is the decision, transcribed here as literals and never read off the def (docs/34): the box is the
-  // glyph's own `icon.size.*` rung (Q283.13 A: 20 / 20 / 24 → sm / sm / md), it binds no padding of any kind, and
-  // at NO state does the box paint (no fill, no overlay wash, no edge) — hover and pressed move the glyph ink alone,
-  // on IconButton.Neutral's ghost roles. ACTUAL is every projected member's plan, so a padding added, a box rebound
-  // to a control rung, or a wash keyed at hover each fail one named arm.
+  // ---- #2457: THE FLUSH ICON BUTTON — owner decisions Q283.3 A (on #2427) and Q287 A (on #2457): two shapes ----
+  // EXPECTED is the decisions, transcribed here as literals and never read off the def (docs/34).
+  //   FLUSH (Q283.3 A): the box is the glyph's own `icon.size.*` rung (Q283.13 A: 20 / 20 / 24 → sm / sm / md), it
+  //   binds no padding of any kind, and at NO state does the box paint (no fill, no overlay wash, no edge) — hover
+  //   and pressed move the glyph ink alone, on IconButton.Neutral's ghost roles.
+  //   ROUND (Q287 A): a circle the Counter's height across (36 / 44 / 56 → `size.{sm,md,lg}.height`), full-round, a
+  //   DECORATIVE edge (`color.border.secondary`, the decorative rung, #2569) at every enabled state, the neutral
+  //   overlay wash at hover and pressed and no fill otherwise, and `color.disabled.border` at disabled.
+  // ACTUAL is every projected member's plan, so a padding added, a box rebound, a wash keyed on flush, a round edge
+  // dropped or a round hover without its fill each fail one named arm.
   {
     const FLUSH_SIDE: Record<string, string> = { small: 'icon/size/sm', medium: 'icon/size/sm', large: 'icon/size/md' };
+    const ROUND_SIDE: Record<string, string> = { small: 'size/sm/height', medium: 'size/md/height', large: 'size/lg/height' };
     const FLUSH_INK: Record<string, string> = {
       rest: 'color/interactive/neutral/icon/rest', hover: 'color/interactive/neutral/icon/hover', pressed: 'color/interactive/neutral/icon/pressed',
       'focus-visible': 'color/interactive/neutral/icon/rest', disabled: 'color/disabled/icon',
     };
+    const ROUND_EDGE = 'color/border/secondary';
+    const ROUND_PAINT: Record<string, string[]> = {
+      rest: [ROUND_EDGE], hover: ['color/interactive/neutral/overlay/hover', ROUND_EDGE], pressed: ['color/interactive/neutral/overlay/pressed', ROUND_EDGE],
+      'focus-visible': [ROUND_EDGE], disabled: ['color/disabled/border'],
+    };
+    const SHAPES = ['flush', 'round'];
     const plans = figmaAnatomySet(flushIconButton, { swapTarget: 'FPO-default-icon' });
-    // SCOPE FLOOR: every owner-decided size × state is a member, so a dropped state cannot shrink what is checked.
-    const coords = new Set(plans.map((p) => `${p.size}|${p.coord.state}`));
-    const missing = Object.keys(FLUSH_SIDE).flatMap((sz) => Object.keys(FLUSH_INK).map((st) => `${sz}|${st}`)).filter((c) => !coords.has(c));
-    ok(plans.length === 15 && missing.length === 0,
-      `#2457 flush-icon-button projects every size × state, 3 × 5 = 15 members (got ${plans.length}; missing: [${missing.join(', ')}])`);
+    // SCOPE FLOOR: every owner-decided shape × size × state is a member, so a dropped value cannot shrink what is checked.
+    const coords = new Set(plans.map((p) => `${p.coord.shape}|${p.size}|${p.coord.state}`));
+    const missing = SHAPES.flatMap((sh) => Object.keys(FLUSH_SIDE).flatMap((sz) => Object.keys(FLUSH_INK).map((st) => `${sh}|${sz}|${st}`))).filter((c) => !coords.has(c));
+    ok(plans.length === 30 && missing.length === 0,
+      `#2457 flush-icon-button projects every shape × size × state, 2 × 3 × 5 = 30 members (got ${plans.length}; missing: [${missing.join(', ')}])`);
+    ok(JSON.stringify(flushIconButton.variants?.shape) === JSON.stringify(SHAPES),
+      `#2457 flush-icon-button's shape axis is [flush, round], flush first (Q287 A) — got ${JSON.stringify(flushIconButton.variants?.shape)}`);
     const paddingBound: string[] = [], wrongSide: string[] = [], painted: string[] = [], wrongInk: string[] = [];
+    const roundSide: string[] = [], roundEdge: string[] = [], roundWash: string[] = [];
     for (const p of plans) {
       const name = planComponentName(p);
       const root = p.root;
-      // NO PADDING: no padding field on the box, bound or literal, and the box and the glyph bind the SAME rung.
+      const round = p.coord.shape === 'round';
+      // NO PADDING on either shape: no padding field on the box, bound or literal.
       const padKeys = [...Object.keys(root.bound ?? {}), ...Object.keys(root)].filter((k) => /padding/i.test(k) && (root as Record<string, unknown>)[k] !== 0);
       if (padKeys.length) paddingBound.push(`${name} [${padKeys.join(', ')}]`);
       const glyph = root.children.find((c) => c.name === 'icon');
-      const want = FLUSH_SIDE[String(p.size)];
-      if (root.bound?.width !== want || root.bound?.height !== want || glyph?.bound?.width !== want || glyph?.bound?.height !== want)
-        wrongSide.push(`${name} (box ${root.bound?.width}×${root.bound?.height}, glyph ${glyph?.bound?.width}×${glyph?.bound?.height}, want ${want})`);
-      // COLOR-ONLY HOVER: the box itself paints nothing at any state — its paint, children excluded, is empty.
-      const own = planPaintVars({ ...root, children: [] });
-      if (own.length) painted.push(`${name} [${own.join(', ')}]`);
+      const glyphWant = FLUSH_SIDE[String(p.size)];
+      if (glyph?.bound?.width !== glyphWant || glyph?.bound?.height !== glyphWant)
+        wrongSide.push(`${name} (glyph ${glyph?.bound?.width}×${glyph?.bound?.height}, want ${glyphWant})`);
       if (glyph?.descendantFills !== FLUSH_INK[String(p.coord.state)]) wrongInk.push(`${name} (${glyph?.descendantFills})`);
+      // The box's OWN paint, children excluded.
+      const own = planPaintVars({ ...root, children: [] });
+      if (!round) {
+        // FLUSH: the box and the glyph are one rung, and the box paints nothing at any state (color-only hover).
+        if (root.bound?.width !== glyphWant || root.bound?.height !== glyphWant) wrongSide.push(`${name} (box ${root.bound?.width}×${root.bound?.height}, want ${glyphWant})`);
+        if (own.length) painted.push(`${name} [${own.join(', ')}]`);
+        continue;
+      }
+      // ROUND: the Counter's height across, full-round.
+      const sideWant = ROUND_SIDE[String(p.size)];
+      if (root.bound?.width !== sideWant || root.bound?.height !== sideWant || root.bound?.topLeftRadius !== 'radius/round')
+        roundSide.push(`${name} (box ${root.bound?.width}×${root.bound?.height}, corner ${root.bound?.topLeftRadius}; want ${sideWant}, radius/round)`);
+      const want = ROUND_PAINT[String(p.coord.state)];
+      const edgeWant = want[want.length - 1];
+      if (!own.includes(edgeWant)) roundEdge.push(`${name} (paints [${own.join(', ')}], no ${edgeWant})`);
+      const wash = own.filter((v) => v !== edgeWant);
+      const washWant = want.slice(0, -1);
+      if (JSON.stringify(wash) !== JSON.stringify(washWant)) roundWash.push(`${name} (wash [${wash.join(', ')}], want [${washWant.join(', ')}])`);
     }
-    ok(paddingBound.length === 0, `#2457 flush-icon-button binds no padding at any member — the box is the glyph (Q283.3 A)${paddingBound.length ? ` — padded: ${paddingBound.join('; ')}` : ''}`);
-    ok(wrongSide.length === 0, `#2457 flush-icon-button's box and glyph are one rung, 20 / 20 / 24 (Q283.13 A)${wrongSide.length ? ` — ${wrongSide.join('; ')}` : ''}`);
-    ok(painted.length === 0, `#2457 flush-icon-button's box paints nothing at any state, hover and pressed included — no fill, no wash, no edge (color-only hover, Q283.3 A)${painted.length ? ` — painted: ${painted.join('; ')}` : ''}`);
-    ok(wrongInk.length === 0, `#2457 flush-icon-button's glyph walks the neutral ghost ink, rest → hover → pressed, and the disabled icon role at disabled${wrongInk.length ? ` — ${wrongInk.join('; ')}` : ''}`);
+    ok(paddingBound.length === 0, `#2457 flush-icon-button binds no padding at any member — flush is the glyph, round centers it (Q283.3 A)${paddingBound.length ? ` — padded: ${paddingBound.join('; ')}` : ''}`);
+    ok(wrongSide.length === 0, `#2457 flush-icon-button's glyph is 20 / 20 / 24, and the flush box is the same rung (Q283.13 A)${wrongSide.length ? ` — ${wrongSide.join('; ')}` : ''}`);
+    ok(painted.length === 0, `#2457 flush-icon-button's flush box paints nothing at any state, hover and pressed included — no fill, no wash, no edge (color-only hover, Q283.3 A)${painted.length ? ` — painted: ${painted.join('; ')}` : ''}`);
+    ok(wrongInk.length === 0, `#2457 flush-icon-button's glyph walks the neutral ghost ink, rest → hover → pressed, and the disabled icon role at disabled, on both shapes${wrongInk.length ? ` — ${wrongInk.join('; ')}` : ''}`);
+    ok(roundSide.length === 0, `#2457 flush-icon-button's round box is a circle the Counter's height across, 36 / 44 / 56 (Q287 A)${roundSide.length ? ` — ${roundSide.join('; ')}` : ''}`);
+    ok(roundEdge.length === 0, `#2457 flush-icon-button's round shape keeps its decorative edge at every state, color.border.secondary (disabled: color.disabled.border) (Q287 A)${roundEdge.length ? ` — ${roundEdge.join('; ')}` : ''}`);
+    ok(roundWash.length === 0, `#2457 flush-icon-button's round shape fills with the neutral overlay at hover and pressed, and at no other state (Q287 A)${roundWash.length ? ` — ${roundWash.join('; ')}` : ''}`);
   }
 
   // #1225 — INTENT IS THE COMPONENT NOW, NOT AN AXIS (the icon-only counterpart of #1223's Button split).
@@ -17244,8 +17277,10 @@ arm: {
     const binders = componentDefs.filter((d) => applyOutlineInteraction(d, 'none') !== d).map((d) => d.id).sort();
     // `tag` joins (2026-09-27): an unselected tag's hover and pressed are the neutral overlay wash on its outline,
     // Button's outline grammar, so a solid-tint or no-hover brand reaches it exactly as it reaches a button.
-    ok(JSON.stringify(binders) === JSON.stringify(['button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'select', 'tag', 'text-field', 'textarea']),
-      `#1608 the wash binders the lever reaches: button ×3, icon-button ×3, select, tag, text-field, textarea (${binders.join(', ')})`);
+    // `flush-icon-button` joins (#2457, Q287 A): its round shape's hover and pressed are IconButton.Neutral's ghost
+    // wash, so a solid-tint or no-hover brand reaches it as it reaches a ghost icon button. The flush shape binds none.
+    ok(JSON.stringify(binders) === JSON.stringify(['button', 'button-destructive', 'button-neutral', 'flush-icon-button', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'select', 'tag', 'text-field', 'textarea']),
+      `#1608 the wash binders the lever reaches: button ×3, flush-icon-button (round), icon-button ×3, select, tag, text-field, textarea (${binders.join(', ')})`);
 
     // BY-NAME MUTATION, in-suite: the RAW def (no wrap) under solid-tint misses the page wash — the 96-miss
     // shape the owner saw, outline's 48 and text's 48. Since #2324 the text appearance keys no wash by default, so the

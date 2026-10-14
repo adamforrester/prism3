@@ -269,6 +269,10 @@
   },
   "flush-icon-button": {
     "axes": {
+      "shape": [
+        "flush",
+        "round"
+      ],
       "size": [
         "large",
         "medium",
@@ -282,7 +286,7 @@
         "rest"
       ]
     },
-    "members": 15
+    "members": 30
   },
   "focus-ring": {
     "axes": {

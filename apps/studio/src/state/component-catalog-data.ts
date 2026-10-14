@@ -280,12 +280,12 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "id": "flush-icon-button",
     "name": "FlushIconButton",
     "category": "form",
-    "summary": "Icon-only action with no padding or fill, set inside another component. Needs an accessible name.",
+    "summary": "Icon-only action inside another component: a bare glyph or a light circle. Needs an accessible name.",
     "unit": "variants",
     "spacing": [],
     "buildable": true,
     "reason": null,
-    "members": 15,
+    "members": 30,
     "nests": [
       "icon",
       "focus-ring"

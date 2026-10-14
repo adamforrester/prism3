@@ -299,6 +299,8 @@ const EXPECT_PAINTERS = [
   'focus-ring', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive',
   'icon-button-neutral', 'text-field', 'textarea', 'checkbox-control', 'radio-control', 'switch-control', 'select', 'veil',
   'image-placeholder', 'badge', 'tag', 'tab', 'tabs', 'divider',
+  // #2457 Q287 A: the round shape's edge and wash. The flush shape's box resolves none of them.
+  'flush-icon-button',
 ];
 const closedSet = (what: string, expected: string[], live: string[], remedy: string): void => {
   for (const id of expected.filter((x) => !live.includes(x))) {

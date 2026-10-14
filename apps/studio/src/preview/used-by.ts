@@ -13,8 +13,12 @@ export const USED_BY = {
         "Button",
         "IconButton"
       ],
+      "radius.none": [
+        "FlushIconButton"
+      ],
       "radius.round": [
         "IconButton",
+        "FlushIconButton",
         "Radio.Control",
         "Switch.Control",
         "Badge",
@@ -32,8 +36,12 @@ export const USED_BY = {
         "Button",
         "IconButton"
       ],
+      "radius.none": [
+        "FlushIconButton"
+      ],
       "radius.round": [
         "IconButton",
+        "FlushIconButton",
         "Radio.Control",
         "Switch.Control",
         "Badge",
@@ -50,6 +58,7 @@ export const USED_BY = {
       "radius.none": [
         "Button",
         "IconButton",
+        "FlushIconButton",
         "TextField",
         "Textarea",
         "Checkbox.Control",
@@ -57,6 +66,7 @@ export const USED_BY = {
       ],
       "radius.round": [
         "IconButton",
+        "FlushIconButton",
         "Radio.Control",
         "Switch.Control",
         "Badge",
@@ -75,8 +85,12 @@ export const USED_BY = {
         "Checkbox.Control",
         "Select"
       ],
+      "radius.none": [
+        "FlushIconButton"
+      ],
       "radius.round": [
         "IconButton",
+        "FlushIconButton",
         "Radio.Control",
         "Switch.Control",
         "Badge",
@@ -91,6 +105,7 @@ export const USED_BY = {
     "size.lg.height": [
       "Button",
       "IconButton",
+      "FlushIconButton",
       "TextField",
       "Checkbox.Row",
       "Radio.Row",
@@ -103,6 +118,7 @@ export const USED_BY = {
       "FocusRing",
       "Button",
       "IconButton",
+      "FlushIconButton",
       "Checkbox.Row",
       "Radio.Row",
       "Switch.Row",
@@ -113,6 +129,7 @@ export const USED_BY = {
     "size.sm.height": [
       "Button",
       "IconButton",
+      "FlushIconButton",
       "Checkbox.Row",
       "Radio.Row",
       "Switch.Row",

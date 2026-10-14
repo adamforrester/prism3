@@ -166,8 +166,16 @@
       "sha256": "f858d2f9f7ad130ff0d46a543d4e97d64cdbc9f94fef7cee78789a1b9e8e72c2"
     },
     "flush-icon-button": {
-      "members": 15,
-      "sha256": "224f3ebce987cbcdd330f12134711aa03d98b09c977f0889bc0281bcdb6530be"
+      "members": 30,
+      "sha256": "80419c51ba173a4f8dc8ea2c427b5bf977af6d5e6ce2e79993d202d834c6a0c5"
+    },
+    "flush-icon-button@outline-solid-tint": {
+      "members": 30,
+      "sha256": "3eab973403b9764400f39961a7ceba4c2e0b036615d04ebcd7ac627de58a9812"
+    },
+    "flush-icon-button@outline-none": {
+      "members": 30,
+      "sha256": "3b3b08909641061c8557e72d6e47f5587ea96123ae0d4557569393a74d13467b"
     },
     "field-label": {
       "members": 24,

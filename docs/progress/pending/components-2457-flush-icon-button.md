@@ -38,3 +38,34 @@
 4. Size order: small, medium, large (the #2509 rule), so Figma's inserted default is small and code's is medium. Q283.6 B put the stepper itself in the field exception; this def is not a field.
 
 **A trap for whoever re-verifies the hover arm:** the paint the arm reads is the box's *own* paint, children excluded (`planPaintVars({ ...root, children: [] })`). Reading the whole member would see the glyph's ink at every state and could never pass; reading only the glyph would miss a wash on the box.
+
+### The round shape (owner decision Q287 A on #2457, a follow-up push on the same PR)
+
+**What it is:** "one component with two shapes." The Counter's outlined appearance nests `flush` and its ghost appearance (the wireframe's treatment B) nests `round`. No new def, no new token, and no executor change, so `EXECUTOR_REVISION` stays at main's 15.
+- `shape` [flush, round] × `size` [small, medium, large] × `state` = 30 members. `shape` is an existing `VARIANT_AXES` name (IconButton's), placed first in `variantAxes`; flush leads its values because it is the code default and the shape built first. Size and state keep the #2509 order.
+- **Flush is unchanged in every pixel.** Its box key was renamed (`size.{size}.side` → `size.{size}.flush`, the same `icon.size.*` rung), and because the shape axis now keys the corner and the stroke weight, a flush member also binds `radius.none` (a 0 corner) and `border-width.hairline` with no stroke paint, as a ghost IconButton does. The glyph's key is now `size.{size}.icon`, the name IconButton uses.
+- **Round** is a circle the Counter's height across: `size.sm.height` / `md` / `lg` = 36 / 44 / 56, `radius.round`. The glyph inside stays 20 / 20 / 24 (Q283.13 A).
+- **The edge is decorative:** `color.border.secondary`, the decorative rung of the edge ladder (#2569, Q259 C; about 2:1 against the page, no floor). The glyph identifies the control and carries the 3:1, as it does on flush. At disabled the edge takes `color.disabled.border`.
+- **Hover and pressed:** IconButton.Neutral's ghost wash, `color.interactive.neutral.overlay.{hover,pressed}`, over the glyph's ink walk. Rest paints no fill.
+- **How flush stays unpainted:** the box now declares `paintSlots: ['overlay', 'border']`, but the grammar leads with `{shape}` and every box key is `round.*`. The cross-cutting `disabled.border` applies only where the shape has an edge at rest (`restKey`), so a disabled flush member still paints nothing.
+
+**Why the diameter equals the Counter's height, not the wireframe's 8px inset.** The wireframe drew the circle at height − 8 (28 / 36 / 48). That puts medium on `size.sm.height`, a default one rung below `md`, which `lint-rung-names` refuses without a new owner exception, and 48 has no rung. The Counter's own heights are rungs (36 / 44 / 56), so the circle is the row: a ghost Counter needs no height of its own, and the medium circle clears 44px on its own box. Held as an owner item.
+
+**Gates (each mutation-proven by name):**
+- `test.ts` `#2457 flush-icon-button`, rewritten against literals for both shapes: 30 members; the axis is [flush, round]; no padding; the glyph 20 / 20 / 24 and the flush box on the same rung; the flush box paints nothing; the glyph ink walk on both shapes; the round box 36 / 44 / 56 and full-round; the round edge at every state; the round wash at hover and pressed only.
+- `lint-hit-target.ts` `CODE_SIDE_TARGETS`: the flush key re-pointed, and a new `atFloor` list measures the round circle at medium and large (literal sizes) against the 44px floor over comfortable and spacious. Small round (36) stays under the code-side rule the def states "at every size".
+- `lint-axis-values.ts`: a second `shape` set, `[flush, round]`, `disjoint`, and IconButton's `[square, circular]` moves from `sole` to `canonical`. The reason names the near-overlap (`round` draws IconButton's `circular` corner).
+
+**Owner items (DRAFT), the round shape:**
+5. Axis name and values: `shape: flush | round`, flush first. Alternative value `circular`, IconButton's word for the same full-round corner.
+6. Sizes: the circle is the Counter's height, 36 / 44 / 56 (`size.sm` / `md` / `lg.height`). Alternative: the wireframe's 8px inset, 28 / 36 / 48, which needs a default-rung exception and a rung for 48.
+7. Glyph: 20 / 20 / 24 on both shapes, per Q283.13 A (the wireframe drew 16 at small).
+8. Roles: the edge `color.border.secondary` (decorative), `color.disabled.border` at disabled; hover and pressed `color.interactive.neutral.overlay.hover` / `.pressed`; the glyph on IconButton.Neutral's ghost ink, as on flush.
+
+
+**Round-shape mutations** (each on a committed tree, restored with `git reset --hard`):
+- Round loses its edge (`round.border` deleted): `test.ts` fails `#2457 flush-icon-button's round shape keeps its decorative edge at every state` (every round member, disabled included, since the disabled edge needs a rest edge).
+- Round's hover drops its fill (`round.overlay.hover` deleted): `test.ts` fails `#2457 flush-icon-button's round shape fills with the neutral overlay at hover and pressed, and at no other state` (the three round hover members).
+- Flush gains a fill (a `flush.overlay.hover` key): `test.ts` fails `#2457 flush-icon-button's flush box paints nothing at any state` (the three flush hover members).
+
+**A trap:** a brand whose `outlineInteraction` is `none` drops the round shape's hover and pressed wash, as it does for every neutral wash (`applyOutlineInteraction`; `#1608` now names this def among the binders). On such a brand the round shape's hover moves the glyph ink only. The `test.ts` arm reads the default projection, where the wash is present.

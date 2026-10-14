@@ -1920,7 +1920,7 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
   const child = componentDefs.find((d) => d.id === 'flush-icon-button');
   ok(!!child, '#2457 two-nest: the flush-icon-button def is registered');
   if (child) {
-    const nestPart = { kind: 'nest', nests: 'flush-icon-button', nesting: { kind: 'nest-exposed', variant: { state: 'rest' }, expose: ['state'], follow: ['size'] } } as const;
+    const nestPart = { kind: 'nest', nests: 'flush-icon-button', nesting: { kind: 'nest-exposed', variant: { shape: 'flush', state: 'rest' }, expose: ['state'], follow: ['size'] } } as const;
     const host = {
       id: 'fixture-two-flush', name: 'FixtureTwoFlush', aliases: [], category: 'form', status: 'draft',
       summary: 'A fixture host nesting two flush icon buttons.', description: 'A fixture host nesting two flush icon buttons, each with its state exposed.',
