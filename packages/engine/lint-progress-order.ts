@@ -63,7 +63,9 @@
  * ── SCOPE ────────────────────────────────────────────────────────────────────────────────────────
  *
  * `docs/00-progress.md`, per #931, plus its pending fragments since #1807 (`docs/progress/pending/`,
- * the same log before it is folded) — other append-only dated logs (`_research/_inbound/` in the
+ * the same log before it is folded), plus its archive since #2583 (`docs/progress/archive/`, the same log
+ * after it is moved out: the log, then each archive file newest first, read as ONE sequence by every arm,
+ * so an archived entry is still date-ordered and still found by title) — other append-only dated logs (`_research/_inbound/` in the
  * knowledge-base repo has the same genre) are out of scope and were explicitly left there rather
  * than folded in.
  *
@@ -113,6 +115,14 @@
  *                    the entry and left the fragment, which the next fold would write again.
  *   NO PLACEHOLDER — the log never carries a literal `{{`: a folded entry still holding `{{ENGINE_VERSION}}`
  *                    was not folded by `fold.ts` (#1823 review).
+ *   ARCHIVE MOVE (#2583) — a diff that writes `docs/progress/archive/` is a PURE MOVE: the log and the archive,
+ *                    read at the merge base and at HEAD as one sequence cut at every `## ` line, hold the
+ *                    same sections in the same order, each byte-identical. Only the preamble above each file's
+ *                    first `## ` line may differ. A dropped, duplicated, edited, reordered or added section
+ *                    fails by name, and a pure move is the one diff besides a fold that ONE WRITER lets
+ *                    change the log. MUTATIONS VERIFIED (#2583, each fails ARCHIVE MOVE by name): one archived
+ *                    entry dropped · one duplicated · one byte changed inside one · two transposed. The same
+ *                    move without the archive half (entries only deleted from the log) fails ONE WRITER.
  *
  * A shallow clone is accepted as long as it reaches the commit that introduced the pending directory;
  * past that boundary every file looks ADDED at once, and merge order would be invented, so it refuses.
@@ -143,22 +153,33 @@ import { STAMP_PATHS, onlyFilledStamps } from './rename-stamp-audit';
 
 const repo = join(import.meta.dirname, '../..');
 const FILE = 'docs/00-progress.md';
+const ARCHIVE = 'docs/progress/archive';
 const HEADING_RE = /^## \((\d{4}-\d{2}-\d{2})\) — (.+?)\s*$/;
+/** An archive file is named for the months it holds: `2026-09.md`, or `2026-07-08.md` for July and August. */
+const ARCHIVE_NAME_RE = /^\d{4}-\d{2}(-\d{2})?\.md$/;
+const isArchiveFile = (name: string): boolean => name.endsWith('.md') && name !== 'README.md';
+/** The archive files, newest first: the order they continue the log in (#2583). */
+const archiveFiles = (names: string[]): string[] => names.filter(isArchiveFile).sort((a, b) => (a < b ? 1 : a > b ? -1 : 0));
 
-type Entry = { line: number; date: string; title: string };
+type Entry = { file: string; line: number; date: string; title: string; ord: number };
 
-const src = readFileSync(join(repo, FILE), 'utf8');
+// THE LOG AND ITS ARCHIVE ARE ONE SEQUENCE (#2583): the log, then each archive file newest first. Every arm
+// below reads that sequence, so an entry moved to the archive is still ordered, still found by title, and
+// still checked for a placeholder. `ord` is an entry's place in it, the order the folded-entries arm compares.
+const archiveNow = existsSync(join(repo, ARCHIVE)) ? archiveFiles(readdirSync(join(repo, ARCHIVE))).map((f) => `${ARCHIVE}/${f}`) : [];
+const sources = [FILE, ...archiveNow].map((file) => ({ file, src: readFileSync(join(repo, file), 'utf8') }));
 const entries: Entry[] = [];
-src.split('\n').forEach((line, i) => {
-  const m = HEADING_RE.exec(line);
-  if (m) entries.push({ line: i + 1, date: m[1], title: m[2] });
-});
+for (const { file, src } of sources)
+  src.split('\n').forEach((line, i) => {
+    const m = HEADING_RE.exec(line);
+    if (m) entries.push({ file, line: i + 1, date: m[1], title: m[2], ord: entries.length });
+  });
 
 console.log('Progress-log order gate (#931)');
 
 if (entries.length === 0) {
   console.error(
-    `\n✗ PARSE FLOOR: 0 heading(s) matched ${HEADING_RE} in ${FILE}. Either the file has genuinely ` +
+    `\n✗ PARSE FLOOR: 0 heading(s) matched ${HEADING_RE} in ${FILE} or ${ARCHIVE}/. Either the file has genuinely ` +
       `lost every dated entry (check by hand — it has not) or the heading format changed and this ` +
       `detector is looking at nothing. A pattern that stops matching must fail loudly, never pass ` +
       `over an empty set (docs/34 shape 9). Do not widen the pattern to make this pass — find out ` +
@@ -167,7 +188,8 @@ if (entries.length === 0) {
   process.exit(1);
 }
 
-console.log(`  ${entries.length} dated entr${entries.length === 1 ? 'y' : 'ies'} found`);
+const inLog = entries.filter((e) => e.file === FILE).length;
+console.log(`  ${entries.length} dated entr${entries.length === 1 ? 'y' : 'ies'} found (${inLog} in ${FILE}, ${entries.length - inLog} in ${archiveNow.length} archive file(s))`);
 
 const actual = entries.map((e) => e.date);
 // EXPECTED: a real transformation of ACTUAL, not a restatement of it — descending, ties stable.
@@ -185,8 +207,8 @@ const outOfOrder: string[] = [];
 for (let i = 1; i < entries.length; i++) {
   if (entries[i].date > entries[i - 1].date) {
     outOfOrder.push(
-      `${FILE}:${entries[i].line} — "(${entries[i].date}) — ${entries[i].title}" sits BELOW ` +
-        `${FILE}:${entries[i - 1].line} — "(${entries[i - 1].date}) — ${entries[i - 1].title}", ` +
+      `${entries[i].file}:${entries[i].line} — "(${entries[i].date}) — ${entries[i].title}" sits BELOW ` +
+        `${entries[i - 1].file}:${entries[i - 1].line} — "(${entries[i - 1].date}) — ${entries[i - 1].title}", ` +
         `but ${entries[i].date} is a LATER date. Move the newer entry above the older one.`,
     );
   }
@@ -220,6 +242,22 @@ const cannotRun = (why: string, detail: string): never => {
   process.exit(1);
 };
 const isFragment = (name: string): boolean => name.endsWith('.md') && name !== 'README.md';
+/** A file of the log or its archive cut at every `## ` line: the preamble above the first is dropped, and each
+ *  section's trailing blank lines and `---` separator are trimmed, since where a file ends is formatting. */
+const sectionsOf = (text: string): string[] => {
+  const out: string[] = [];
+  let cur: string[] | null = null;
+  const close = () => {
+    if (!cur) return;
+    while (cur.length > 1 && /^(---)?\s*$/.test(cur[cur.length - 1])) cur.pop();
+    out.push(cur.join('\n'));
+  };
+  for (const line of text.split('\n')) {
+    if (line.startsWith('## ')) { close(); cur = [line]; } else if (cur) cur.push(line);
+  }
+  close();
+  return out;
+};
 
 // FRAGMENT SHAPE
 const pendingNow = existsSync(join(repo, PENDING)) ? readdirSync(join(repo, PENDING)).filter(isFragment).sort() : [];
@@ -243,7 +281,7 @@ const loggedTitles = new Set(entries.map((e) => e.title));
 for (const f of pendingNow) {
   const h = HEADING_RE.exec(readFileSync(join(repo, `${PENDING}/${f}`), 'utf8').replace(/\r\n/g, '\n').trim().split('\n')[0] ?? '');
   if (h && loggedTitles.has(h[2]))
-    shapeFails.push(`${PENDING}/${f}: still pending, and "${h[2]}" is already an entry in ${FILE} — a fold wrote it and left the fragment behind (delete it), or the title repeats an old entry (retitle it)`);
+    shapeFails.push(`${PENDING}/${f}: still pending, and "${h[2]}" is already an entry in ${entries.find((e) => e.title === h[2])!.file} — a fold wrote it and left the fragment behind (delete it), or the title repeats an old entry (retitle it)`);
 }
 if (shapeFails.length) {
   failed = true;
@@ -322,25 +360,25 @@ const folded = gone
     return { path, landed, title: h ? h[2] : null };
   });
 const foldFails: string[] = [];
-const placed: { path: string; seq: number; line: number }[] = [];
+const placed: { path: string; seq: number; at: string; ord: number }[] = [];
 for (const f of folded) {
   if (!f.title) { foldFails.push(`${f.path}: it landed at ${f.landed.sha.slice(0, 8)} with no entry heading, so there is nothing to find in the log`); continue; }
   const byTitle = entries.filter((e) => e.title === f.title);
   const onDay = byTitle.filter((e) => e.date === f.landed.day);
   if (!byTitle.length)
-    foldFails.push(`${f.path}: landed ${f.landed.day} (${f.landed.sha.slice(0, 8)}) and is no longer pending, but no entry titled "${f.title}" is in ${FILE} — deleted without being folded`);
+    foldFails.push(`${f.path}: landed ${f.landed.day} (${f.landed.sha.slice(0, 8)}) and is no longer pending, but no entry titled "${f.title}" is in ${FILE} or ${ARCHIVE}/ — deleted without being folded`);
   else if (!onDay.length)
-    foldFails.push(`${f.path}: its entry is dated ${byTitle.map((e) => e.date).join(', ')} at ${FILE}:${byTitle[0].line}, but the fragment LANDED ${f.landed.day} (${f.landed.sha.slice(0, 8)}) — a folded entry carries its landing day`);
+    foldFails.push(`${f.path}: its entry is dated ${byTitle.map((e) => e.date).join(', ')} at ${byTitle[0].file}:${byTitle[0].line}, but the fragment LANDED ${f.landed.day} (${f.landed.sha.slice(0, 8)}) — a folded entry carries its landing day`);
   else if (onDay.length > 1)
-    foldFails.push(`${f.path}: ${onDay.length} entries share its title and landing day (${onDay.map((e) => `${FILE}:${e.line}`).join(', ')}) — the log carries it twice`);
-  else placed.push({ path: f.path, seq: f.landed.seq, line: onDay[0].line });
+    foldFails.push(`${f.path}: ${onDay.length} entries share its title and landing day (${onDay.map((e) => `${e.file}:${e.line}`).join(', ')}) — the log carries it twice`);
+  else placed.push({ path: f.path, seq: f.landed.seq, at: `${onDay[0].file}:${onDay[0].line}`, ord: onDay[0].ord });
 }
-// Newest merge first: sorted by landing (smaller seq = more recent), the lines must rise.
+// Newest merge first: sorted by landing (smaller seq = more recent), the places in the sequence must rise.
 placed.sort((a, b) => a.seq - b.seq);
 for (let i = 1; i < placed.length; i++)
-  if (placed[i].line < placed[i - 1].line)
+  if (placed[i].ord < placed[i - 1].ord)
     foldFails.push(
-      `${FILE}:${placed[i].line} (${placed[i].path}) sits ABOVE ${FILE}:${placed[i - 1].line} (${placed[i - 1].path}), ` +
+      `${placed[i].at} (${placed[i].path}) sits ABOVE ${placed[i - 1].at} (${placed[i - 1].path}), ` +
         `but it landed EARLIER — folded entries are newest merge first`,
     );
 if (foldFails.length) {
@@ -360,10 +398,10 @@ if (foldFails.length) {
 // NO PLACEHOLDER IN THE LOG (#1823 review). `{{ENGINE_VERSION}}` is filled in by the fold; the log never
 // carries a literal `{{`, so one here is a fold that did not substitute, or a fragment pasted in by hand.
 {
-  const hits = src.split('\n').map((l, i) => (l.includes('{{') ? i + 1 : 0)).filter(Boolean);
+  const hits = sources.flatMap(({ file, src }) => src.split('\n').map((l, i) => (l.includes('{{') ? `${file}:${i + 1}` : '')).filter(Boolean));
   if (hits.length) {
     failed = true;
-    console.error(`\n✗ PLACEHOLDER IN THE LOG — ${FILE} carries a literal \`{{\` at line(s) ${hits.slice(0, 8).join(', ')} (#1807).`);
+    console.error(`\n✗ PLACEHOLDER IN THE LOG — the log carries a literal \`{{\` at ${hits.slice(0, 8).join(', ')} (#1807).`);
     console.error('  The fold fills in `{{ENGINE_VERSION}}`; an entry still carrying it was not folded by fold.ts. Rerun the fold.\n');
   } else console.log('  ✓ no placeholder — the log carries no literal `{{`');
 }
@@ -438,9 +476,62 @@ if (foldFails.length) {
     // A correction to an old entry travels as a fragment of its own ("Correction to <date> <title>").
     // The line is drawn at FOLD-SHAPED rather than PURE on purpose: a fold that also fixes a semantic
     // conflict is not pure, and it still has to write the log.
+    // ARCHIVE MOVE (#2583) — the archive is written only by a PURE MOVE out of the log: the log and its
+    // archive, read at the base and at HEAD as one sequence of `## ` sections, are the same sections, in the
+    // same order, each byte-identical. Only the preambles above each file's first `## ` line may differ (the
+    // log's pointer to the archive, each archive file's own title). So an entry dropped, duplicated, edited,
+    // reordered or added on the way fails here by name, and any other write to the archive fails the same
+    // way. EXPECTED is the base's sequence and ACTUAL is HEAD's, read from two commits with this file's own
+    // split: nothing either side is derived from the other (docs/34 shape 1).
+    const ad = git('diff', '--name-status', '--no-renames', base, 'HEAD', '--', ARCHIVE);
+    if (!ad.ok) cannotRun(`git diff over ${ARCHIVE} failed.`, ad.err);
+    const archiveRows = ad.out.split('\n').map((l) => l.split('\t')).filter((r) => r.length === 2 && isArchiveFile(r[1].slice(ARCHIVE.length + 1)));
+    let archiveMove = false;
+    if (archiveRows.length) {
+      const moveFails: string[] = [];
+      for (const [st, path] of archiveRows)
+        if (st === 'A' && !ARCHIVE_NAME_RE.test(path.slice(ARCHIVE.length + 1)))
+          moveFails.push(`${path}: an archive file is named for its months, \`YYYY-MM.md\` or \`YYYY-MM-MM.md\``);
+      const sequenceAt = (ref: string): string[] => {
+        const ls = git('ls-tree', '--name-only', ref, '--', `${ARCHIVE}/`);
+        if (!ls.ok) cannotRun(`cannot list ${ARCHIVE}/ at ${ref}.`, ls.err);
+        const files = [FILE, ...archiveFiles(ls.out.split('\n').map((x) => x.trim().slice(ARCHIVE.length + 1)).filter(Boolean)).map((f) => `${ARCHIVE}/${f}`)];
+        return files.flatMap((f) => {
+          const r = git('show', `${ref}:${f}`);
+          if (!r.ok) cannotRun(`cannot read ${f} at ${ref}.`, r.err);
+          return sectionsOf(r.out);
+        });
+      };
+      const before = sequenceAt(base);
+      const after = sequenceAt('HEAD');
+      const tally = (xs: string[]) => xs.reduce((m, x) => m.set(x, (m.get(x) ?? 0) + 1), new Map<string, number>());
+      const tb = tally(before);
+      const ta = tally(after);
+      const head = (x: string) => x.split('\n')[0].slice(0, 110);
+      for (const [x, n] of tb) if ((ta.get(x) ?? 0) < n) moveFails.push(`lost: "${head(x)}" — ${n} at the base, ${ta.get(x) ?? 0} now (dropped, or its text changed on the way)`);
+      for (const [x, n] of ta) if ((tb.get(x) ?? 0) < n) moveFails.push(`added: "${head(x)}" — ${tb.get(x) ?? 0} at the base, ${n} now (duplicated, written new, or its text changed on the way)`);
+      if (!moveFails.length) {
+        const at = before.findIndex((x, i) => x !== after[i]);
+        if (at >= 0) moveFails.push(`reordered: section ${at + 1} was "${head(before[at])}" and is now "${head(after[at])}"`);
+      }
+      if (moveFails.length) {
+        failed = true;
+        console.error(`\n✗ ARCHIVE MOVE — this diff writes ${ARCHIVE}/ and is not a pure move (#2583):\n`);
+        for (const f of moveFails.slice(0, 12)) console.error(`  · ${f}`);
+        if (moveFails.length > 12) console.error(`  · … and ${moveFails.length - 12} more`);
+        console.error(`\n  The log and ${ARCHIVE}/, read as one sequence, must carry the same sections in the same order, byte`);
+        console.error('  for byte, at the base and at HEAD. Move whole entries from the bottom of the log to the top of the');
+        console.error('  newest archive file; change nothing in them. A correction to an archived entry travels as a fragment.\n');
+      } else {
+        archiveMove = true;
+        const moved = sectionsOf(git('show', `${base}:${FILE}`).out).length - sectionsOf(git('show', `HEAD:${FILE}`).out).length;
+        console.log(`  ✓ archive move — ${moved} section(s) moved out of ${FILE}; all ${after.length} sections of the log and archive byte-identical and in order`);
+      }
+    }
+
     const logDiff = git('diff', '--numstat', base, 'HEAD', '--', FILE);
     if (!logDiff.ok) cannotRun(`git diff over ${FILE} failed.`, logDiff.err);
-    if (logDiff.out.trim() && !foldShaped) {
+    if (logDiff.out.trim() && !foldShaped && !archiveMove) {
       failed = true;
       const [add, del] = logDiff.out.trim().split('\t');
       console.error(`\n✗ ONE WRITER (log) — this diff changes ${FILE} (+${add} −${del} line(s)) and is not a fold (#1807).`);

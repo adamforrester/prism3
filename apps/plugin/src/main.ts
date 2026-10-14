@@ -47,7 +47,7 @@ import { resolveAllModes } from '@prism3/engine/modes';
 import { TAXONOMY } from './file-taxonomy';
 import { ensurePageHeader, pageHeaderCopy, pageHeaderItems } from './page-header';
 import type { PageHeaderOutcome, HeaderPage } from './page-header';
-import { hasFurniture, clearFurniture, drawFurniture, furnitureLayout, furnitureItems, readTag, staleFurniture, pruneFurniture, furniturePruneText, FURNITURE_NS, FURNITURE_KEY } from './canvas-furniture';
+import { hasFurniture, clearFurniture, drawFurniture, furnitureLayout, furnitureItems, withFurnitureItems, withTemplateWarning, readTag, staleFurniture, pruneFurniture, furniturePruneText, FURNITURE_NS, FURNITURE_KEY } from './canvas-furniture';
 import type { FurnitureApi, FurnitureOutcome, FurnitureParent, FurnitureTag, XNode } from './canvas-furniture';
 import { ensureFurnitureTemplates } from './furniture-templates';
 import type { TemplatesApi } from './furniture-templates';
@@ -763,17 +763,18 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink): Pro
       // the STALE lines are in `misses` and are not counted in `skipped`, so the equality already fails.
       // Stated rather than left to be re-derived, because it is the one place where the right behaviour
       // comes out of an expression that does not mention the new field.
-      postVerdict({
-        type: 'component-result',
+      // A missing furniture template makes the run a warning (Q284.3 A, `withTemplateWarning`).
+      postVerdict(withTemplateWarning({
+        type: 'component-result' as const,
         ok: r.set !== null && r.misses.length === r.skipped,
         completed: r.set !== null,
         headline: componentHeadline(r.added, r.skipped, r.misses.length - r.skipped - r.stale, r.stale, r.refsRelinked),
         ...fromClauses([
           ...head.map((x) => [', ', x] as const), [', ', missNote], ['. ', staleItem],
           ['. ', alsoBuiltItem(alsoBuilt)], ...pageHeaderItems(headers).map((x) => ['. ', x] as const),
-          ...furnitureItems(furniture).map((x) => ['. ', x] as const),
+          ...furnitureItems(furniture, 'build').map((x) => ['. ', x] as const),
         ]),
-      }, sink);
+      }, furniture), sink);
       verdictPosted = true;
     });
     // BOTH CONSOLE BLOCKS RUN AFTER THE AWAIT, deliberately. They are the only two things left that need
@@ -935,9 +936,7 @@ const updateComponents = async (defId: string | undefined, previewHash: string |
       if (drawn) furniture.push(drawn);
     }
     sink.data({ update: { mode: 'apply', ...r, furniture } });
-    const verdict = applyVerdict(r);
-    const extra = furnitureItems(furniture);
-    postVerdict({ type: 'component-update-result', ...verdict, ...(extra.length ? { lines: [...verdict.lines, ...extra] } : {}) }, sink);
+    postVerdict({ type: 'component-update-result', ...withTemplateWarning(withFurnitureItems(applyVerdict(r), furnitureItems(furniture, 'update')), furniture) }, sink);
   } catch (e) {
     const why = (e as Error)?.message ?? String(e);
     postVerdict({ type: 'component-update-result', ok: false, headline: previewHash === null ? '✗ check failed' : '✗ update failed', summary: why, lines: [why] }, sink);
