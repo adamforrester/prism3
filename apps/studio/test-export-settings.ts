@@ -25,9 +25,10 @@ import {
   IMPORT_SLOTS, SAMPLE_CRITERIA, defaultSettings, visibleSettings, projectDtcg, mergeFiles,
   fileNames, previewFiles, sampleLeaves, leavesOf, rootKeyOf, renameSegment, unrenameSegment,
   availableImportSlots, declarationDefects, jargonDefects, admissionDefects, aliasDefects,
-  sampleDefects, METADATA_OPTION, exportDtcg, exportFileNames, exportPreview, metadataDefects,
+  sampleDefects, METADATA_OPTION, exportDtcg, exportFileNames, exportPreview, metadataDefects, groupMetaOf,
   type SettingDef, type SettingsState, type ExportSource,
 } from './src/export-settings';
+import { buildBase, stripExtensions } from '@prism3/engine/emit-dtcg-overlay';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -308,6 +309,67 @@ for (const { id, tree } of corpus) {
   ok(exportPreview(tree, id, defaultSettings()).every((f) => !f.text.includes('"$extensions"') && f.name.startsWith(`${id}.base`)),
     `${id}: the default preview samples the base file the download writes, with no $extensions`);
   none(metadataDefects(tree, id), `${id}: in all 16 setting combinations, metadata off is on minus $extensions, and no combination writes ${id}.tokens.json`);
+}
+
+// =============================================================================================
+// 7c. Group-level `$description` and `$extensions` survive the export (#2446)
+// =============================================================================================
+//
+// No committed tree carries group-level metadata today, so the corpus alone cannot show this: a
+// projection that drops every group `$`-key passes 2–7b over the real trees, which is how it shipped.
+// The fixture is therefore a REAL emitted tree with group metadata put on three groups: the root
+// wrapper (first key AND after its children), a top-level group (after its children) and a deep group
+// (both). The root wrapper's split keys, around descendants that carry their own, are the shape whose
+// `$`-keys the dotted inverse puts back in a different order (review of #2615): the check holds them
+// as a set. The expected side is the ENGINE's base projection of that fixture (`buildBase`, plus
+// `stripExtensions` for the default), serialized here: the engine path that writes `out/*.base.tokens.json`,
+// which runs no studio code, so a studio projection that drops or reorders a key cannot reach it.
+
+console.log('\n=== 7c. group metadata survives the export (#2446) ===');
+{
+  type N = Record<string, unknown>;
+  const src = corpus.find((c) => c.id === 'prism3') ?? corpus[0];
+  const fixture = JSON.parse(JSON.stringify(src.tree)) as N;
+  const root = rootKeyOf(fixture);
+  const wrapper = fixture[root] as N;
+  const groups = Object.keys(wrapper).filter((k) => !k.startsWith('$'));
+  const top = groups.find((k) => leavesOf({ [k]: wrapper[k] }).length > 10) ?? groups[0];
+  const deep = Object.keys(wrapper[top] as N).find((k) => !k.startsWith('$') && !('$value' in ((wrapper[top] as N)[k] as N)))!;
+  const deepNode = (wrapper[top] as N)[deep] as N;
+  (wrapper[top] as N)[deep] = { $description: `The ${deep} group.`, ...deepNode, $extensions: { fixture: { at: 'deep, after children' } } };
+  wrapper[top] = { ...(wrapper[top] as N), $extensions: { fixture: { at: 'top, after children' } } };
+  fixture[root] = { $description: 'The root wrapper.', ...wrapper, $extensions: { fixture: { at: 'root, after children' } } };
+  const metas = groupMetaOf(fixture);
+  ok(metas.length === 5, `fixture: ${metas.length} group $-keys on ${root}, ${root}.${top}, ${root}.${top}.${deep} (expected 5)`);
+
+  const ser = (v: unknown): string => JSON.stringify(v, null, 2) + '\n';
+  const base = (files: readonly { name: string; text: string }[]): string | undefined =>
+    files.find((f) => f.name === 'fx.base.tokens.json')?.text;
+  const on = base(exportDtcg(fixture, 'fx', defaultSettings(), true));
+  const off = base(exportDtcg(fixture, 'fx', defaultSettings()));
+  ok(on === ser(buildBase(fixture)), 'nested, metadata on: the base file is the engine\'s base of the fixture byte for byte — every group $description and $extensions in place');
+  ok(off === ser(stripExtensions(buildBase(fixture))), 'nested, metadata off: the base file is the engine\'s consumer base byte for byte — group $description kept, $extensions removed');
+  ok(!!off && off.includes('"$description": "The root wrapper."') && off.includes(`"$description": "The ${deep} group."`), 'nested, metadata off: both group $description lines are in the download');
+
+  // The dotted rule: a group's `$`-keys sit under the group's own dotted path, with no `$value`.
+  const dotted = JSON.parse(base(exportDtcg(fixture, 'fx', { ...defaultSettings(), formatDotNotation: 'dotted' }, true)) ?? '{}') as N;
+  const deepPath = `${root}.${top}.${deep}`;
+  ok(JSON.stringify(dotted[deepPath]) === JSON.stringify({ $description: `The ${deep} group.`, $extensions: { fixture: { at: 'deep, after children' } } }),
+    `dotted: ${deepPath} holds the group's own $description and $extensions, and no $value`);
+  ok(JSON.stringify(dotted[root]) === JSON.stringify({ $description: 'The root wrapper.', $extensions: { fixture: { at: 'root, after children' } } }),
+    `dotted: ${root} holds the root wrapper's $description and its trailing $extensions`);
+
+  // Every shape setting still round-trips with group metadata present, and the split merges back to it.
+  none(admissionDefects(fixture, 'fx'), 'every shape setting round-trips the fixture, group $-keys included');
+  // The minimal shape from the #2615 review: a group with `$`-keys on both sides of a child that has its own
+  // (`space` is only there so the per-group split has two files to make).
+  none(admissionDefects({ prism: { color: { $description: 'c', red: { $description: 'r', '100': { $value: '#f00', $type: 'color' } }, $extensions: { x: 1 } }, space: { '1': { $value: '1px', $type: 'dimension' } } } }, 'x'),
+    'a group\'s $-keys on both sides of a child with its own still round-trip: the dotted inverse may reorder them, not lose them');
+  const single = JSON.parse(projectDtcg(fixture, 'fx', defaultSettings())[0].text) as unknown;
+  const merged = mergeFiles(projectDtcg(fixture, 'fx', { ...defaultSettings(), fileStructure: 'per-group' }));
+  ok(JSON.stringify(groupMetaOf(merged)) === JSON.stringify(groupMetaOf(single)) && groupMetaOf(single).length === 5,
+    'per-group: the files merge back to every group $-key the single file holds');
+  none(aliasDefects(fixture, { ...defaultSettings(), formatDotNotation: 'dotted' }, 'fx'), 'dotted: a group entry is not read as a token, and every alias still resolves');
 }
 
 // =============================================================================================
