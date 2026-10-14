@@ -23,7 +23,7 @@ import { Theme } from './theme';
 import { buildTree, at } from './tree';
 import {
   figmaDimensionDescription, figmaSpaceDescription, figmaRadiusDescription, figmaSizeDescription, figmaIconSizeDescription,
-  figmaControlDescription, figmaBorderWidthDescription, figmaFocusDescription, figmaOpacityDescription,
+  figmaControlDescription, figmaLabelLineBoxDescription, figmaBorderWidthDescription, figmaFocusDescription, figmaOpacityDescription,
   figmaDurationPrimitiveDescription, figmaDurationDescription, figmaStaggerDescription,
   figmaBreakpointDescription, figmaContainerDescription, figmaGridVarDescription,
 } from './figma-description';
@@ -307,6 +307,24 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
         alias: isAlias ? { type: 'VARIABLE_ALIAS', name: aliasFigName(leaf.$value) } : null,
       });
     }
+  }
+
+  // `type/label/{rung}/line-box` with #2586 — a title row's glyph box binds it as a variable, exactly as
+  // `control/size/{rung}/line-box` above. It lives in this single-mode collection (Q282 A), not in the
+  // viewport-moded `type-sets`: it is one baked px per rung, and a Figma variable cannot multiply the
+  // composite's size by its line height.
+  for (const rung of byNumericKey(Object.keys(brand.type?.label ?? {}))) {
+    const leaf = brand.type.label[rung]?.['line-box'];
+    if (!leaf) continue;
+    const px = pxFromValue(tree, leaf.$value);
+    controlVars.push({
+      name: ns(`type/label/${rung}/line-box`),
+      resolvedType: 'FLOAT',
+      scopes: SIZE_HEIGHT_SCOPES,
+      description: figmaLabelLineBoxDescription(rung, px),
+      value: px,
+      alias: null,
+    });
   }
 
   const borderVars: FigmaVar[] = Object.keys(brand['border-width']).map((key) => {

@@ -807,6 +807,26 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
     bodyLineBox[rung] = px;
     lineBoxFrom[rung] ??= c.path;
   }
+  // #2586 — the same bake for the LABEL type (`type.label.{rung}.*`), the type a title beside a glyph
+  // is set in (Accordion's header, and the title row #2456 rescopes to). Same product, same rounding,
+  // same agreement assertion, kept as a second map rather than a parameter on the loop above so the
+  // error names the right token. It is emitted as `type.label.{rung}.line-box` (owner Q275.1 B): beside
+  // the type it measures, so `type.*` is no longer composites only and every walker of it must filter
+  // (`visualize.ts` `walkType`, the `ai-metadata.ts` role; Q282 A). A glyph centred in a box this tall sits on the title's first line at
+  // any label line height: no offset is subtracted, so nothing goes negative when the line outgrows
+  // the glyph (at 1.5, `md` is 21px against a 20px glyph). The glyph overflows the box equally on both
+  // sides when it is the taller of the two, which centring does on its own.
+  const labelLineBox: Record<string, number> = {};
+  const labelLineBoxFrom: Record<string, string> = {};
+  for (const c of theme.typography.composites) {
+    if (c.group !== 'label') continue;
+    const rung = c.path.split('.')[1]; // 'label.md.emphasis' → 'md'
+    const px = Math.round(c.sizePx * (lhRatio.get(c.lineHeight) ?? 1));
+    if (labelLineBox[rung] !== undefined && labelLineBox[rung] !== px)
+      throw new Error(`type.label.${rung}.line-box is ambiguous: ${labelLineBoxFrom[rung]} gives ${labelLineBox[rung]}px but ${c.path} gives ${px}px. Every label composite at one rung must share a size and line height (#2586, as #1220).`);
+    labelLineBox[rung] = px;
+    labelLineBoxFrom[rung] ??= c.path;
+  }
   for (const c of theme.dims.controls) {
     const heightLeaf = controlLeaf(c.height, `control.size.${c.name} — ${c.height}px box edge for a square control's own dimension: a checkbox square or a radio circle (density: ${theme.dims.density}). A square control reads this on both axes. A switch's track is not square and reads \`track\`/\`width\` instead.`);
     const widthLeaf = controlLeaf(c.width, `control.size.${c.name} width — ${c.width}px track width for a two-position control, i.e. a switch (2x the ${c.track}px \`track\` height, the common 2:1 track ratio). A square control uses \`height\` on both axes and does not read this.`);
@@ -1110,6 +1130,12 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
     let node: Record<string, any> = typeGroup;
     for (let i = 0; i < parts.length - 1; i++) node = (node[parts[i]] ??= {});
     node[parts[parts.length - 1]] = leaf;
+  }
+  // #2586 — the label's alignment box (see `labelLineBox` above), a dimension beside the composites it
+  // measures, baked and mode-free like `control.size.*.line-box`.
+  for (const [rung, px] of Object.entries(labelLineBox)) {
+    if (!typeGroup.label?.[rung]) continue;
+    typeGroup.label[rung]['line-box'] = dimLeaf(px, `type.label.${rung} line-box — ${px}px, the height of one line of the \`label.${rung}\` type (font size × line height). A glyph beside a title sits in a box this tall and centers within it, so it stays on the title's first line when the title wraps.`);
   }
 
   // ---- shadow / elevation axis (Phase A) ----

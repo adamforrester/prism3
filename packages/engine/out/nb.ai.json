@@ -7607,6 +7607,24 @@
     }
   },
   "layout": {
+    "type.label.sm.line-box": {
+      "$description": "type.label.sm line-box — 14px, the height of one line of the `label.sm` type (font size × line height). A glyph beside a title sits in a box this tall and centers within it, so it stays on the title's first line when the title wraps.",
+      "meaning": "Label line height, sm — one line of the label sm type",
+      "when_to_use": "The box a glyph beside a title centers in, so it stays on the title's first line.",
+      "resolves_to": "14px"
+    },
+    "type.label.md.line-box": {
+      "$description": "type.label.md line-box — 16px, the height of one line of the `label.md` type (font size × line height). A glyph beside a title sits in a box this tall and centers within it, so it stays on the title's first line when the title wraps.",
+      "meaning": "Label line height, md — one line of the label md type",
+      "when_to_use": "The box a glyph beside a title centers in, so it stays on the title's first line.",
+      "resolves_to": "16px"
+    },
+    "type.label.lg.line-box": {
+      "$description": "type.label.lg line-box — 21px, the height of one line of the `label.lg` type (font size × line height). A glyph beside a title sits in a box this tall and centers within it, so it stays on the title's first line when the title wraps.",
+      "meaning": "Label line height, lg — one line of the label lg type",
+      "when_to_use": "The box a glyph beside a title centers in, so it stays on the title's first line.",
+      "resolves_to": "21px"
+    },
     "icon.size.xs": {
       "$description": "icon.size.xs — 16px artboard (fixed grid; pairs with size.xs)",
       "meaning": "Icon size step xs",
