@@ -1029,6 +1029,12 @@ export const GATES: Gate[] = [
     cmd: engine('lint-component-docs.ts'),
   },
   {
+    // #2637 — reads docs/public/ecosystem/{ecosystem.json,index.html} and the code; needs no build and no `after`.
+    id: 'lint-ecosystem',
+    ciStep: "The ecosystem diagram's data matches the code (#2637)",
+    cmd: engine('lint-ecosystem.ts'),
+  },
+  {
     // The one `tools/` battery wired into CI (#1123), and the reason its NAME is about the DETECTOR
     // rather than about this tree: docs/34 shape 17 is explicit that nothing running inside a checkout
     // can tell whether that checkout is stale — a stale tree is internally consistent. So the subject

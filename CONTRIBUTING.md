@@ -1166,6 +1166,16 @@ npx tsx packages/engine/lint-component-docs.ts      # every registered component
                                                     # table), axis kinds included; codeOnly/notes are in
                                                     # the maintainer record and in neither payload form;
                                                     # no Prism 2 in the payload.
+npx tsx packages/engine/lint-ecosystem.ts           # the ecosystem diagram's data matches the code
+                                                    # (#2637): docs/public/ecosystem/ecosystem.json is
+                                                    # the SUBJECT, the code the ORACLE. Every source
+                                                    # path and docs link is git-tracked; every edge joins
+                                                    # known nodes and is never more built than either
+                                                    # end; every trace step is an edge; the component
+                                                    # defs, MCP tools, agent link commands, bridge tools
+                                                    # and skills it lists are exactly the code's, both
+                                                    # ways, each with a floor; the page fetches the
+                                                    # data; its text tokens clear 4.5:1 in light and dark.
                                                     # LIMIT: a claim phrased with neither `advis...`
                                                     # nor `continue-on-error` is not seen, and the run
                                                     # prints the whole census so a count that drops
