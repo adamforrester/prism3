@@ -351,27 +351,92 @@ export const leavesOf = (tree: unknown): Leaf[] => {
   return out;
 };
 
-/** Rebuild a nested tree from `{path, leaf}` pairs — the inverse of `leavesOf` for these purposes. */
-const nest = (leaves: readonly Leaf[]): Node => {
+/**
+ * A group's own `$`-keys (`$description`, `$extensions`, any other), one entry per key (#2446).
+ *
+ * DTCG lets a GROUP carry `$description` and `$extensions` (§6.3.2), and the engine's base keeps them
+ * (`buildBase` copies every `$`-key of a group). A projection rebuilt from `leavesOf` alone has nowhere
+ * to put them, so before this every group-level field was dropped from the download, silently: no
+ * committed tree carried one, so nothing noticed until #2411 tried to.
+ *
+ * One entry per KEY, in the order the walk meets it, rather than one per group: `nest` re-inserts in
+ * entry order, so a group whose `$extensions` follows its children comes back with it after them, byte
+ * for byte. The document's own `$`-keys (path `''`) are not here: `metaOf` carries those, as before.
+ */
+export interface GroupMeta {
+  readonly path: string;
+  readonly key: string;
+  readonly value: unknown;
+}
+
+/** One step of the walk: a token, or one `$`-key of a group. */
+type Entry = { readonly kind: 'leaf'; readonly path: string; readonly leaf: Node }
+  | { readonly kind: 'meta'; readonly path: string; readonly key: string; readonly value: unknown };
+
+/** Every token AND every group `$`-key, in document order — what a projection has to put back. */
+const entriesOf = (tree: unknown): Entry[] => {
+  const out: Entry[] = [];
+  const walk = (n: unknown, path: string): void => {
+    if (!isObj(n)) return;
+    if (isLeaf(n)) { out.push({ kind: 'leaf', path, leaf: n }); return; }
+    for (const [k, v] of Object.entries(n)) {
+      if (k.startsWith('$')) { if (path) out.push({ kind: 'meta', path, key: k, value: v }); continue; }
+      walk(v, path ? `${path}.${k}` : k);
+    }
+  };
+  walk(tree, '');
+  return out;
+};
+
+/** Every group's own `$`-keys, with the group's dot-joined path. The document's own are `metaOf`'s. */
+export const groupMetaOf = (tree: unknown): GroupMeta[] =>
+  entriesOf(tree).flatMap((e) => (e.kind === 'meta' ? [{ path: e.path, key: e.key, value: e.value }] : []));
+
+/** Rebuild a nested tree from walk entries — the inverse of `entriesOf`, group `$`-keys included. */
+const nestEntries = (entries: readonly Entry[]): Node => {
   const out: Node = {};
-  for (const { path, leaf } of leaves) {
-    const segs = path.split('.');
+  for (const e of entries) {
+    const segs = e.path.split('.');
+    const parents = e.kind === 'leaf' ? segs.slice(0, -1) : segs;
     let cur = out;
-    for (const seg of segs.slice(0, -1)) {
+    for (const seg of parents) {
       if (!isObj(cur[seg])) cur[seg] = {};
       cur = cur[seg] as Node;
     }
-    cur[segs[segs.length - 1]] = leaf;
+    if (e.kind === 'leaf') cur[segs[segs.length - 1]] = e.leaf;
+    else cur[e.key] = e.value;
   }
   return out;
 };
 
-/** A flat one-level object keyed by the full dotted path. */
-const flatten = (leaves: readonly Leaf[]): Node => {
+/** Rebuild a nested tree from `{path, leaf}` pairs — the inverse of `leavesOf` for these purposes. */
+const nest = (leaves: readonly Leaf[]): Node =>
+  nestEntries(leaves.map(({ path, leaf }) => ({ kind: 'leaf', path, leaf })));
+
+/**
+ * A flat one-level object keyed by the full dotted path.
+ *
+ * THE RULE FOR GROUP METADATA in this format (#2446): a group's own `$`-keys sit under the GROUP's
+ * dotted path, as an object with no `$value` (`"prism.color.status": { "$description": … }`). That is
+ * the flat format's existing rule, one entry per path, applied to the one node kind it had no entry
+ * for; a reader tells the two apart the way DTCG does, by `$value`. It inverts with `nestEntries`, so
+ * the setting stays a pure reshape (#720 rule 2) rather than one that quietly loses fields.
+ */
+const flattenEntries = (entries: readonly Entry[]): Node => {
   const out: Node = {};
-  for (const { path, leaf } of leaves) out[path] = leaf;
+  for (const e of entries) {
+    if (e.kind === 'leaf') out[e.path] = e.leaf;
+    else out[e.path] = { ...(isObj(out[e.path]) ? out[e.path] as Node : {}), [e.key]: e.value };
+  }
   return out;
 };
+
+/** A dotted document back to walk entries: an entry with `$value` is a token, one without is a group's
+ *  `$`-keys. The document's own `$`-keys are skipped, as `metaOf` holds them. */
+const dottedEntries = (doc: unknown): Entry[] =>
+  Object.entries(isObj(doc) ? doc : {}).filter(([k]) => !k.startsWith('$')).flatMap(([path, v]): Entry[] =>
+    isLeaf(v) ? [{ kind: 'leaf', path, leaf: v }]
+      : Object.entries(isObj(v) ? v : {}).map(([key, value]) => ({ kind: 'meta', path, key, value })));
 
 export interface OutFile {
   readonly name: string;
@@ -391,13 +456,12 @@ const groupOf = (path: string): string => path.split('.')[1] ?? '';
  */
 export const projectDtcg = (tree: unknown, slug: string, s: SettingsState): readonly OutFile[] => {
   const meta = metaOf(tree);
-  const renamed = leavesOf(tree).map(({ path, leaf }) => ({
-    path: renamePath(path, s.tokenNameCase),
-    leaf: renameLeaf(leaf, s.tokenNameCase),
-  }));
+  const renamed: Entry[] = entriesOf(tree).map((e) => e.kind === 'leaf'
+    ? { kind: 'leaf', path: renamePath(e.path, s.tokenNameCase), leaf: renameLeaf(e.leaf, s.tokenNameCase) }
+    : { ...e, path: renamePath(e.path, s.tokenNameCase) });
   const indent = s.prettyPrint === 'pretty' ? 2 : undefined;
-  const doc = (ls: readonly Leaf[]): Node =>
-    ({ ...(s.formatDotNotation === 'dotted' ? flatten(ls) : nest(ls)), ...meta });
+  const doc = (es: readonly Entry[]): Node =>
+    ({ ...(s.formatDotNotation === 'dotted' ? flattenEntries(es) : nestEntries(es)), ...meta });
   const ser = (v: unknown): string => JSON.stringify(v, null, indent) + '\n';
 
   if (s.fileStructure !== 'per-group') {
@@ -407,15 +471,21 @@ export const projectDtcg = (tree: unknown, slug: string, s: SettingsState): read
   // set merges straight back — paths unchanged, file count changed, which is the whole admission.
   // The root wrapper stays in each file (`nest` keeps it), so a file's own aliases still read as they
   // do in the single-file form; `admissionDefects` merges the set and compares it against that form.
-  const groups = new Map<string, Leaf[]>();
-  for (const l of renamed) {
-    const g = groupOf(l.path);
-    const bucket = groups.get(g);
-    if (bucket) bucket.push(l); else groups.set(g, [l]);
+  // The root wrapper's own `$`-keys (#2446) go into EVERY file with it, since every file carries that
+  // group; the merge then reads one copy, which is what the single file holds.
+  const groups = new Map<string, Entry[]>();
+  for (const e of renamed) {
+    const g = groupOf(e.path);
+    if (g && !groups.has(g)) groups.set(g, []);
   }
-  return [...groups.entries()].map(([group, ls]) => ({
+  for (const e of renamed) {
+    const g = groupOf(e.path);
+    if (g) groups.get(g)!.push(e);
+    else for (const bucket of groups.values()) bucket.push(e);
+  }
+  return [...groups.entries()].map(([group, es]) => ({
     name: `${slug}.${group}.tokens.json`,
-    text: ser(doc(ls)),
+    text: ser(doc(es)),
   }));
 };
 
@@ -803,6 +873,12 @@ export const admissionDefects = (tree: unknown, slug = 'brand'): string[] => {
         if (!sameJson(canonical(metaOf(doc)), canonical(metaOf(tree)))) {
           out.push(`${tag}: the document's own $extensions did not survive`);
         }
+        const invertedMeta = groupMetaOf(doc).map((m) => ({
+          ...m, path: m.path.split('.').map((x) => unrenameSegment(x, opt.value)).join('.'),
+        }));
+        if (!sameJson(canonical(invertedMeta), canonical(groupMetaOf(tree)))) {
+          out.push(`${tag}: a group's own $description or $extensions did not survive`);
+        }
       }
 
       if (setting.admits === 'nesting') {
@@ -810,13 +886,16 @@ export const admissionDefects = (tree: unknown, slug = 'brand'): string[] => {
         if (files.length !== 1) { out.push(`${tag}: expected one file, got ${files.length}`); continue; }
         const doc = JSON.parse(files[0].text) as Node;
         // Every token survives the reshape, and comes back with the same path and the same leaf.
-        const got = leavesOf(opt.value === 'dotted' ? nest(Object.entries(doc)
-          .filter(([k]) => !k.startsWith('$'))
-          .map(([path, leaf]) => ({ path, leaf: leaf as Node }))) : doc);
+        const back = opt.value === 'dotted' ? nestEntries(dottedEntries(doc)) : doc;
+        const got = leavesOf(back);
         const want = leavesOf(tree);
         if (got.length !== want.length) out.push(`${tag}: ${want.length} leaves in, ${got.length} out`);
         if (!sameJson(canonical(nest(got)), canonical(nest(want)))) out.push(`${tag}: leaves differ after the reshape`);
         if (!sameJson(canonical(metaOf(doc)), canonical(metaOf(tree)))) out.push(`${tag}: the document's own $extensions did not survive`);
+        // #2446: a group's own `$description` / `$extensions` come back on the same group.
+        if (!sameJson(canonical(groupMetaOf(back)), canonical(groupMetaOf(tree)))) {
+          out.push(`${tag}: a group's own $description or $extensions did not survive the reshape`);
+        }
       }
 
       if (setting.admits === 'file-count') {
@@ -853,13 +932,13 @@ export const admissionDefects = (tree: unknown, slug = 'brand'): string[] => {
 /** The token paths a projected file defines, whichever grouping it used. */
 const pathsIn = (doc: unknown, s: SettingsState): readonly string[] =>
   s.formatDotNotation === 'dotted'
-    ? Object.keys(isObj(doc) ? doc : {}).filter((k) => !k.startsWith('$'))
+    ? dottedEntries(doc).flatMap((e) => (e.kind === 'leaf' ? [e.path] : []))
     : leavesOf(doc).map((l) => l.path);
 
 /** Every leaf of a projected file, whichever grouping it used. */
 const leavesIn = (doc: unknown, s: SettingsState): readonly Leaf[] =>
   s.formatDotNotation === 'dotted'
-    ? Object.entries(isObj(doc) ? doc : {}).filter(([k]) => !k.startsWith('$')).map(([path, leaf]) => ({ path, leaf: leaf as Node }))
+    ? dottedEntries(doc).flatMap((e) => (e.kind === 'leaf' ? [{ path: e.path, leaf: e.leaf }] : []))
     : leavesOf(doc);
 
 /**
