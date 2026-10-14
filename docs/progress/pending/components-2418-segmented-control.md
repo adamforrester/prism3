@@ -29,7 +29,9 @@ no longer list them as contested.
 - **`grow` on a `nest` (Q269.6).** The validator refused it ("only a box grows"). Now a `nest` grows under the same
   precondition as a box (a bounded parent main axis). `fillsAxis` treats it as a filled main axis, so the plan carries
   `layoutGrow: 1` and `instanceSizing.primaryAxisSizingMode: FIXED`, and both executors write `layoutGrow` on the
-  instance from the PARENT's pass, beside `layoutAlign`, because the child neutralizer never reaches an instance.
+  instance from the PARENT's pass, beside `layoutAlign`. On the plugin path that write is load-bearing (its
+  `claimDefaults` returns early on an instance); on the paste path the generic write already covers an instance, and the
+  parent-side write stays there for lockstep only.
 - **Tab, Tabs and the rest of the corpus** name the segmented control instead of "not built yet". `component-refs`
   forced the move out of `planned` in Radio.Row, Radio.Group, Switch.Row and Select; those files' "not built yet" prose
   went with it, and Tabs' avoidWhen sentence also stopped calling Accordion unbuilt.

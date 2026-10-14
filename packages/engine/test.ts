@@ -3100,6 +3100,123 @@ for (const b of brands) {
       `#1220 a body composite that disagrees with its rung-mates fails the build by name, instead of the line box following composite order (${threw || 'no throw'})`);
   }
 
+  // ---- #2586: the LABEL line box is one line of the emitted label type ----------------------------
+  // `type.label.{rung}.line-box` (owner Q275.1 B) bakes `fontSize × lineHeight` of `type.label.{rung}.*`, because
+  // Figma variables cannot multiply. The EXPECTED px here comes from the emitted label composites, resolved
+  // through their own aliases (`fontSize` → a px, `lineHeight` → a ratio), never from the new token or from
+  // `theme.typography` (docs/34). So a token that drops the line height (14/16/18 for 14/16/21), or one
+  // baked from the body type (21/24/27), fails by name. A glyph centered in that box must also sit on the
+  // title's first line within 0.5px of the exact (unrounded) line, whatever the glyph's size (Accordion's
+  // are 16/20/24, larger than the line, so they overflow the box equally above and below).
+  // The synthetic row re-points the label composites at the 1.5 line height and nothing else: the token
+  // must MOVE to about 21px at md (14px × 1.5), which is the case #2586 was filed for.
+  {
+    const labelBoxRows: Array<[string, Theme]> = [...corpus().map(({ id, theme }) => [id.split(' ')[0], theme] as [string, Theme])];
+    const auroraTh = exampleTheme('aurora', () => brandTheme(exampleBrands()['aurora'] as BrandInput));
+    if (auroraTh) {
+      const lh150 = auroraTh.typography.lineHeights.find((l) => l.value === 1.5)?.key;
+      ok(!!lh150, `#2586 synthetic: the line-height ladder has a 1.5 step to re-point the label type at (got ${auroraTh.typography.lineHeights.map((l) => `${l.key}=${l.value}`).join(', ')})`);
+      if (lh150) labelBoxRows.push(['aurora (label line height 1.5)', { ...auroraTh, typography: { ...auroraTh.typography, composites: auroraTh.typography.composites.map((c) => (c.group === 'label' ? { ...c, lineHeight: lh150 } : c)) } }]);
+    }
+    const wrong: string[] = [];
+    const offLine: string[] = [];
+    const got: Record<string, Record<string, number>> = {};
+    for (const [id, th] of labelBoxRows) {
+      const tr = buildTree(th).tree as any;
+      const rootKey = Object.keys(tr)[0];
+      const byPath = (dotted: string): any => dotted.split('.').reduce((n: any, k) => n?.[k], tr);
+      const resolveNum = (v: any, hops = 0): number => {
+        if (typeof v === 'string' && /^\{.+\}$/.test(v) && hops < 10) {
+          const leaf = byPath(v.slice(1, -1));
+          return leaf?.$extensions?.prism3?.px ?? resolveNum(leaf?.$value, hops + 1);
+        }
+        return typeof v === 'number' ? v : parseFloat(String(v)) * (String(v).endsWith('rem') ? 16 : 1);
+      };
+      got[id] = {};
+      for (const rung of ['sm', 'md', 'lg']) {
+        const group = tr[rootKey].type?.label?.[rung] ?? {};
+        // Composites only: the line box itself is a dimension leaf in the same group (Q282 A).
+        const lines = Object.entries(group).filter(([k, n]: [string, any]) => !k.startsWith('$') && n?.$type === 'typography').map(([k, comp]: [string, any]) =>
+          ({ k, exact: resolveNum(comp.$value?.fontSize) * resolveNum(comp.$value?.lineHeight) }));
+        const expected = new Set(lines.map((l) => Math.round(l.exact)));
+        const leaf = group['line-box'];
+        const px = leaf ? parseFloat(String(leaf.$value)) : NaN;
+        got[id][rung] = px;
+        if (!lines.length || expected.size !== 1 || !expected.has(px))
+          wrong.push(`${id} ${rung}: token ${leaf?.$value ?? 'absent'}, label type gives ${[...expected].join('|') || 'nothing'}px (${lines.map((l) => `${l.k} ${l.exact.toFixed(2)}`).join(', ')})`);
+        // A centered glyph's center is the box's, whatever its size, so one check per rung covers every glyph.
+        // This RESTATES the construction rather than checking it independently: rounding bounds |px − exact|
+        // at 0.5, so the two centers are at most 0.25 apart whenever the value arm above passes. It is kept as
+        // the stated geometric claim, at the bound rounding actually guarantees.
+        for (const l of lines.slice(0, 1))
+          if (!(Math.abs(px / 2 - l.exact / 2) <= 0.25)) offLine.push(`${id} ${rung}: glyph center ${(px / 2).toFixed(2)} vs line one ${(l.exact / 2).toFixed(2)}`);
+      }
+    }
+    ok(labelBoxRows.length >= 5 && wrong.length === 0,
+      `#2586 type.label.{sm,md,lg}.line-box is one line of the emitted type.label.{rung} composites (font size × line height, rounded), in every brand and in a synthetic label line height (${labelBoxRows.length} rows)` + (wrong.length ? ` — WRONG: ${wrong.join('; ')}` : ''));
+    ok(offLine.length === 0,
+      `#2586 a glyph centered in the label line box sits on the title's first line within 0.25px, in every row` + (offLine.length ? ` — OFF: ${offLine.join('; ')}` : ''));
+    const syn = got['aurora (label line height 1.5)'];
+    ok(!!syn && Math.abs(syn.md - 21) <= 0.5 && syn.md !== got['nb']?.md,
+      `#2586 a label line-height change moves the token: at 1.5, md is about 21px (14px × 1.5), not the corpus ${got['nb']?.md}px (got ${syn?.md}px)`);
+  }
+
+  // ---- #2586: the label line box is unambiguous per rung, or the build says so (as #1220) ---------
+  arm: {
+    const th = exampleTheme('aurora', () => brandTheme(exampleBrands()['aurora'] as BrandInput));
+    if (!th) break arm;
+    const mdLabel = th.typography.composites.filter((c) => c.group === 'label' && c.path.split('.')[1] === 'md');
+    ok(mdLabel.length >= 2, `#2586 reachable: label.md has several composites to disagree (${mdLabel.map((c) => c.path).join(', ')})`);
+    const target = mdLabel[mdLabel.length - 1].path;
+    const bent: Theme = { ...th, typography: { ...th.typography, composites: th.typography.composites.map((c) => (c.path === target ? { ...c, sizePx: c.sizePx + 2 } : c)) } };
+    let threw = '';
+    try { buildTree(bent); } catch (e) { threw = (e as Error).message; }
+    ok(/type\.label\.md\.line-box is ambiguous/.test(threw) && threw.includes(target),
+      `#2586 a label composite that disagrees with its rung-mates fails the build by name, instead of the label line box following composite order (${threw || 'no throw'})`);
+  }
+
+  // ---- #2586: `type.*` is no longer composites only, so every reader of it filters (Q282 A) ---------
+  // `type.label.{rung}.line-box` is a dimension beside the composites. Two readers once walked all of
+  // `type.*` as composites: `visualize.ts` drew the leaf as a 0px type specimen in `out/tokens.html`, and
+  // `ai-metadata.ts` let it fall through to the primitive tier as "Private primitive — prefer a semantic
+  // token", telling an agent not to bind the token a title row is for. The expected set comes from the
+  // committed trees ($type per leaf), the specimens from the committed page, and the sidecar is built here.
+  {
+    const nonType: string[] = [];
+    const typeLeaves = (node: any, path: string) => {
+      if (!node || typeof node !== 'object') return;
+      if ('$value' in node) { if (node.$type !== 'typography') nonType.push(path); return; }
+      for (const k of Object.keys(node)) if (!k.startsWith('$')) typeLeaves(node[k], `${path}.${k}`);
+    };
+    for (const f of readdirSync(resolve(HERE, './out')).filter((f) => /^[a-z0-9-]+\.tokens\.json$/.test(f))) {
+      const tr = JSON.parse(readFileSync(resolve(HERE, './out', f), 'utf8'));
+      const root = Object.keys(tr).find((k) => !k.startsWith('$'))!;
+      for (const g of Object.keys(tr[root]?.type ?? {})) typeLeaves(tr[root].type[g], g);
+    }
+    const page = readFileSync(resolve(HERE, './out/tokens.html'), 'utf8');
+    const specimens = new Set([...page.matchAll(/<div class="trow"><div class="tmeta"><b>([^<]+)<\/b>/g)].map((m) => m[1]));
+    const drawn = [...new Set(nonType)].filter((p) => specimens.has(p));
+    ok(nonType.some((p) => /^label\.(sm|md|lg)\.line-box$/.test(p)) && specimens.size > 0 && drawn.length === 0,
+      `#2586 tokens.html draws no type specimen for a non-typography leaf under type.* (${new Set(nonType).size} such leaves, ${specimens.size} specimens)` + (drawn.length ? ` — DRAWN: ${drawn.join(', ')}` : ''));
+    const priv: string[] = [];
+    let roles = 0;
+    for (const { id, theme: th } of corpus()) {
+      const ai = buildAiMetadata(th, buildTree(th).tree) as any;
+      const scan = (o: any) => {
+        for (const [k, v] of Object.entries<any>(o ?? {})) {
+          if (!v || typeof v !== 'object') continue;
+          if (k.startsWith('type.') && typeof v.consume === 'string' && /Private primitive/.test(v.consume)) priv.push(`${id.split(' ')[0]} ${k}`);
+          else scan(v);
+        }
+      };
+      scan(ai);
+      for (const rung of ['sm', 'md', 'lg'])
+        if (ai.layout?.[`type.label.${rung}.line-box`]?.meaning === `Label line height, ${rung} — one line of the label ${rung} type`) roles++;
+    }
+    ok(priv.length === 0 && roles === corpus().length * 3,
+      `#2586 ai.json gives no type.* leaf the "Private primitive" consume line, and each type.label.{rung}.line-box its layout role (${roles} of ${corpus().length * 3})` + (priv.length ? ` — PRIVATE: ${priv.join(', ')}` : ''));
+  }
+
   // ---- VALUES × DENSITY: the window, and the clamping bug it exists to prevent -----------------
   // `componentSizes` once CLAMPED a shifted index instead of windowing, and aurora shipped with
   // `size.xs.height` and `size.sm.height` both resolving to `dimension.32` — five names, four values.
@@ -30243,46 +30360,81 @@ arm: {
     '#2417 drawnInside: on a non-absolute part, it is refused by name');
   ok(validateComponentDef(withRing({ drawnInside: undefined })).errors.some((m) => /binds no 'strokeInset'/.test(m)),
     '#2417 drawnInside: without it, the #801 rule refuses an uncompensated ring again');
-  // THE GLYPH CENTERS ON THE TITLE'S FIRST LINE (owner Q262 A, revising the QA's center-left): the header row is
-  // top-aligned, the indicator box is as tall as the row with its glyph at the top (Prism2's icon container), and the
-  // title sits 2px lower (Prism2's 2px icon offset, mirrored, because here the title's line is the shorter of the two).
-  // A layout model reads the PLAN's own alignments and each brand's EMITTED tokens, places a TWO-LINE title and the
-  // glyph, and measures line one's center against the glyph's. EXPECTED (within 1px) is typed here. Mutation: the
-  // header back to center alignment → this arm, by name (the glyph then centers on the two-line block).
+  // THE GLYPH CENTERS ON THE TITLE'S FIRST LINE (owner Q262 A, revising the QA's center-left; kept by Q276 A): the
+  // glyph and the title share a row whose items are top-aligned, the indicator box is as tall as that row with its
+  // glyph at the top (Prism2's icon container), and the title sits 2px lower (Prism2's 2px icon offset, mirrored,
+  // because here the title's line is the shorter of the two). A layout model reads the PLAN's own alignments and each
+  // brand's EMITTED tokens, places a one- and a TWO-LINE title and the glyph inside the indicator's parent row, and
+  // measures line one's center against the glyph's. EXPECTED (within 1px, and the row top-aligned as Q262 A and Q276 A
+  // state it) is typed here. Mutations: the row's items centered → this arm, by name (the alignment literal: with the
+  // indicator stretched and the title the taller box, centering moves nothing a model can measure); the indicator
+  // box centering its glyph → this arm (the glyph then centers on the two-line block).
   type PL = PN & { counterAxisAlignItems?: string; layoutAlign?: string };
   const emitted = (b: string) => { const t = JSON.parse(readFileSync(resolve(HERE, `out/${b}.tokens.json`), 'utf8')); return t[Object.keys(t).find((k) => !k.startsWith('$'))!]; };
   const at = (root: any, ref: string): any => ref.replace(/^\{|\}$/g, '').split('.').slice(ref.startsWith('{') ? 1 : 0).reduce((n: any, k) => n?.[k], root);
   const num = (root: any, v: any): number => { const leaf = typeof v === 'string' && v.startsWith('{') ? at(root, v) : v; if (leaf && typeof leaf === 'object' && '$value' in leaf) return leaf.$extensions?.prism3?.px ?? num(root, leaf.$value); return parseFloat(String(leaf)); };
-  const RUNG_OF: Record<string, string> = { small: 'sm', medium: 'md', large: 'lg' };
+  const parentOf = (n: PN, name: string): PN | undefined => (n.children.some((c) => c.name === name) ? n : n.children.map((c) => parentOf(c, name)).find(Boolean));
+  const varPx = (root: any, v: string | undefined) => (v ? num(root, at(root, v.replace(/\//g, '.'))) : 0);
+  const place = (align: string | undefined, h: number, inH: number) => (align === 'CENTER' ? (inH - h) / 2 : align === 'MAX' ? inH - h : 0);
   const off: string[] = [];
   let measured = 0;
   for (const b of ['nb', 'prism3', 'aurora', 'harbor', 'wendys']) {
     const root = emitted(b);
     for (const p of plans.filter((q) => coord(q).iconPosition === 'leading' && coord(q).state === 'rest' && coord(q).expansion === 'collapsed')) {
       const size = coord(p).size;
-      const header = find(p.root as PN, 'header') as PL, box = find(p.root as PN, 'leadingIndicator') as PL, tb = find(p.root as PN, 'titleBox') as PL;
+      const row = parentOf(p.root as PN, 'leadingIndicator') as PL | undefined, box = find(p.root as PN, 'leadingIndicator') as PL, tb = find(p.root as PN, 'titleBox') as PL;
       const glyph = num(root, at(root, ind.tokens[`size.${size}.icon`]));
       const type = at(root, acc.tokens[`size.${size}.type`]).$value;
       const line = num(root, type.fontSize) * num(root, type.lineHeight);
       // The offset the PLAN binds on the title's column, read back as a token path; absent means none.
-      const padVar = tb?.bound?.paddingTop;
-      const offset = padVar ? num(root, at(root, padVar.replace(/\//g, '.'))) : 0;
+      const offset = varPx(root, tb?.bound?.paddingTop);
       for (const lines of [1, 2]) {
       const title = offset + lines * line; // a one-line and a TWO-LINE title
       const H = Math.max(glyph, title);
-      const place = (align: string | undefined, h: number, inH: number) => (align === 'CENTER' ? (inH - h) / 2 : align === 'MAX' ? inH - h : 0);
-      // The indicator box stretches to the row (STRETCH) or sits at the header's alignment; the glyph sits in it at the box's own.
+      // The indicator box stretches to the row (STRETCH) or sits at the row's alignment; the glyph sits in it at the box's own.
       const boxH = box.layoutAlign === 'STRETCH' ? H : glyph;
-      const boxTop = box.layoutAlign === 'STRETCH' ? 0 : place(header.counterAxisAlignItems, glyph, H);
+      const boxTop = box.layoutAlign === 'STRETCH' ? 0 : place(row?.counterAxisAlignItems, glyph, H);
       const glyphMid = boxTop + place(box.counterAxisAlignItems, glyph, boxH) + glyph / 2;
-      const lineOneMid = place(header.counterAxisAlignItems, title, H) + offset + line / 2;
+      const lineOneMid = place(row?.counterAxisAlignItems, title, H) + offset + line / 2;
       measured++;
-      if (!(tb && header.counterAxisAlignItems === 'MIN' && Math.abs(glyphMid - lineOneMid) <= 1)) off.push(`${b} ${size} ${lines}-line (header ${header.counterAxisAlignItems}): glyph center ${glyphMid.toFixed(2)} vs line one ${lineOneMid.toFixed(2)}`);
+      if (!(tb && row?.counterAxisAlignItems === 'MIN' && Math.abs(glyphMid - lineOneMid) <= 1)) off.push(`${b} ${size} ${lines}-line (row ${row?.name} ${row?.counterAxisAlignItems}): glyph center ${glyphMid.toFixed(2)} vs line one ${lineOneMid.toFixed(2)}`);
       }
     }
   }
   ok(measured === 30 && off.length === 0,
-    `#2417 accordion header (Q262): top-aligned, and on a one- and a two-line title the glyph centers on line one, within 1px, at every size in every brand (${measured} measured${off.length ? `; OFF: ${off.join('; ')}` : ''})`);
+    `#2417 accordion header (Q262): the glyph's row is top-aligned, and on a one- and a two-line title the glyph centers on line one, within 1px, at every size in every brand (${measured} measured${off.length ? `; OFF: ${off.join('; ')}` : ''})`);
+  // A SINGLE LINE IS CENTERED IN THE HEADER (owner Q276 A, #2594): the header is top-aligned no more. It centers one
+  // row holding the indicator and the title, so the 44px floor's slack falls evenly above and below the content
+  // rather than all of it below (measured on a live build: 6px high at small). EXPECTED is the header's own middle,
+  // half of max(min-height, padding + content), from each brand's EMITTED min-height, padding, glyph size and label
+  // type; ACTUAL places the content with the PLAN's alignments. Within 0.5px, typed here. Mutation: the header back to
+  // top-aligned with no row → this arm, by name.
+  const offC: string[] = [];
+  let measuredC = 0;
+  for (const b of ['nb', 'prism3', 'aurora', 'harbor', 'wendys']) {
+    const root = emitted(b);
+    for (const p of plans.filter((q) => coord(q).state === 'rest' && coord(q).expansion === 'collapsed')) {
+      const size = coord(p).size, side = coord(p).iconPosition;
+      const header = find(p.root as PN, 'header') as PL;
+      const glyph = num(root, at(root, ind.tokens[`size.${size}.icon`]));
+      const type = at(root, acc.tokens[`size.${size}.type`]).$value;
+      const line = num(root, type.fontSize) * num(root, type.lineHeight);
+      const tb = find(p.root as PN, 'titleBox') as PL;
+      const offset = varPx(root, tb?.bound?.paddingTop);
+      const padT = varPx(root, header.bound?.paddingTop), padB = varPx(root, header.bound?.paddingBottom), floor = varPx(root, header.bound?.minHeight);
+      const content = Math.max(glyph, offset + line);
+      const hh = Math.max(floor, padT + content + padB);
+      // The content's top: the header places its flow child (the row, or on an older plan the tallest of its own
+      // children) at its alignment inside the padding.
+      const flow = header.children.filter((c) => c.name !== 'focusRing');
+      const top = padT + place(header.counterAxisAlignItems, content, hh - padT - padB);
+      const mid = top + content / 2;
+      measuredC++;
+      if (!(floor > 0 && Math.abs(mid - hh / 2) <= 0.5)) offC.push(`${b} ${size} ${side} (header ${header.counterAxisAlignItems} over [${flow.map((c) => c.name).join(', ')}]): content center ${mid.toFixed(2)} vs header middle ${(hh / 2).toFixed(2)} of ${hh.toFixed(2)}`);
+    }
+  }
+  ok(measuredC === 30 && offC.length === 0,
+    `#2594 accordion header (Q276): a single-line header's content is vertically centered, within 0.5px, at every size and icon position in every brand (${measuredC} measured${offC.length ? `; OFF: ${offC.join('; ')}` : ''})`);
   // THE FIGMA DISPLAY NAME OF A VARIANT AXIS (#2571): "icon position" in every member name, and in every key that
   // parses one, so the plugin's and the paste's layouts and footprint cohorts read the same string. Mutations: the
   // cohort key left on code names → `#2571 layout`; the name written raw in `planComponentName` → the iconPosition arm.

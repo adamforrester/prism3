@@ -16,8 +16,9 @@
  * A leading indicator stays beside the title under zoom and magnification (WCAG 1.4.10 reflow), where a trailing one
  * can drift off the visible area. `leading | trailing` (Q242) are Button's leading and trailing visuals and Switch
  * row's label position, and follow text direction. Node order is fixed per set, so the two positions are two parts,
- * `leadingIndicator` and `trailingIndicator`, each gated by `iconPosition`. The header row centers its children
- * (owner QA, 2026-10-12), so the title centers on the glyph; on a wrapping title the glyph centers on the whole title.
+ * `leadingIndicator` and `trailingIndicator`, each gated by `iconPosition`. The owner QA's centered header
+ * (2026-10-12), revised by Q262 A and Q276 A: the glyph and the title share a `titleRow`, top-aligned so the glyph stays beside a
+ * wrapped title's first line, and the header centers that row so a single line is centered under the 44px floor.
  * The axis is `iconPosition` because a bare `position` read as if it could be the label's (owner QA); its Figma name
  * reads `iconPosition` until variant axes can carry a display name ("icon position").
  *
@@ -127,25 +128,38 @@ export const accordion: ComponentDef = {
       header: {
         kind: 'box',
         role: 'target',
-        // Top-left (owner Q262 A, revising the QA's center-left): the glyph sits beside the title's FIRST line, so a
-        // wrapped title keeps it there (#1009), and the title's 2px offset (`titleBox`) centers line one on the glyph.
-        layout: { direction: 'row', align: 'start', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
+        // The header CENTERS its one flow child, `titleRow` (owner Q276 A): a single line is centered at every size,
+        // type and density, where top alignment put all of the 44px floor's slack under it (6px high at small). A
+        // wrapped title grows the row past the floor, and the header hugs it.
+        layout: { direction: 'row', align: 'center', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
         crossAxisFill: true,
         minHeight: 'size.{size}.min-height',
         padding: { block: 'size.{size}.pad-y', inlineLabel: 'size.{size}.pad-x' },
-        gap: 'size.{size}.gap',
-        children: ['leadingIndicator', 'titleBox', 'trailingIndicator', 'focusRing'],
+        children: ['titleRow', 'focusRing'],
         note: 'The header row and the hit target: the whole row is the button, so a click anywhere on it opens or closes the section.',
+      },
+      titleRow: {
+        kind: 'box',
+        role: 'presentation',
+        // The glyph and the title, top-aligned INSIDE the row (owner Q262 A, kept by Q276 A): the glyph sits beside
+        // the title's FIRST line, so a wrapped title keeps it there (#1009), and the title's 2px offset (`titleBox`)
+        // centers line one on the glyph. Named for the title-row building block (#2456, Q267 A), which can take this
+        // part's place as a nested instance.
+        layout: { direction: 'row', align: 'start', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
+        grow: true,
+        gap: 'size.{size}.gap',
+        children: ['leadingIndicator', 'titleBox', 'trailingIndicator'],
+        note: 'The indicator and the title, side by side. The header centers this row, and the glyph inside it stays beside the title\'s first line.',
       },
       leadingIndicator: {
         kind: 'box',
         role: 'presentation',
         presentWhen: { iconPosition: ['leading'] },
-        // Prism2's icon container (Q262): as tall as the row, its glyph at the top.
+        // Prism2's icon container (Q262): as tall as the title row, its glyph at the top.
         layout: { direction: 'row', align: 'start', justify: 'center', sizing: { x: 'hug', y: 'hug' } },
         crossAxisFill: true,
         children: ['leadingGlyph'],
-        note: 'The indicator before the title: as tall as the header row, with the glyph at its top, beside the title\'s first line.',
+        note: 'The indicator before the title: as tall as the title row, with the glyph at its top, beside the title\'s first line.',
       },
       leadingGlyph: {
         kind: 'nest',
@@ -175,11 +189,11 @@ export const accordion: ComponentDef = {
         kind: 'box',
         role: 'presentation',
         presentWhen: { iconPosition: ['trailing'] },
-        // Prism2's icon container (Q262): as tall as the row, its glyph at the top.
+        // Prism2's icon container (Q262): as tall as the title row, its glyph at the top.
         layout: { direction: 'row', align: 'start', justify: 'center', sizing: { x: 'hug', y: 'hug' } },
         crossAxisFill: true,
         children: ['trailingGlyph'],
-        note: 'The indicator after the title: as tall as the header row, with the glyph at its top, beside the title\'s first line.',
+        note: 'The indicator after the title: as tall as the title row, with the glyph at its top, beside the title\'s first line.',
       },
       trailingGlyph: {
         kind: 'nest',
@@ -321,7 +335,7 @@ export const accordion: ComponentDef = {
       'That the native slot behaves the same on a designer\'s instance in every Figma plan: slots were measured in one file; a plan without the feature keeps the panel as a plain frame, and the build says so.',
     ],
     evolution: [
-      'Owner decisions: Q180 (a design proposal), Q182 (one item, no group def; an indicator before or after the title, before the default; no hover; the content a swappable slot; a nested Divider; the expansion axis; the body type; the 44px floor; three sizes; reduced motion through the duration tokens; the two engine fixes), Q183 (the building-block indicator, 24 members, no disabled and no pressed), Q242 (the position values `leading | trailing`, as Button and Switch row name theirs), Q243 (the header\'s focus ring on its edge, `focus.ring.offset-field`), and the owner\'s QA of the live build (2026-10-12): the header centered, the glyphs one rung smaller (16/20/24), Q257 A (the ring drawn inside the header\'s edge), and `position` renamed `iconPosition`.',
+      'Owner decisions: Q180 (a design proposal), Q182 (one item, no group def; an indicator before or after the title, before the default; no hover; the content a swappable slot; a nested Divider; the expansion axis; the body type; the 44px floor; three sizes; reduced motion through the duration tokens; the two engine fixes), Q183 (the building-block indicator, 24 members, no disabled and no pressed), Q242 (the position values `leading | trailing`, as Button and Switch row name theirs), Q243 (the header\'s focus ring on its edge, `focus.ring.offset-field`), and the owner\'s QA of the live build (2026-10-12): the header centered, the glyphs one rung smaller (16/20/24), Q257 A (the ring drawn inside the header\'s edge), and `position` renamed `iconPosition`; Q262 A and Q266 A (the glyph beside the title\'s first line, the title padded 2px down); Q276 A (the glyph and the title in a `titleRow` the header centers, so a single line is centered under the 44px floor at every size).',
     ],
   },
 };

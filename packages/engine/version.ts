@@ -5465,7 +5465,14 @@ export const ENGINE_VERSION = '0.236.0';
  * the selected one. Until now they were brand-dependent (emitted only under `buttonLabelWeight: default`). An added path
  * cannot break a reference. Nothing is removed or retyped.
  */
-export const CONTRACT_VERSION = '14.6.0';
+/**
+ * 14.7.0 (#2586, owner Q266 A, Q267 A, Q275 and Q282 A, 2026-10-13): MINOR. `type.label.{sm,md,lg}.line-box` join
+ * the guaranteed surface: one line of the `type.label.{rung}` type (font size × line height), baked to px as
+ * `control.size.*.line-box` is for body, so a glyph beside a wrapping title can center on its first line. It sits with
+ * the type it measures, the first non-composite leaf under `type.*`. An added path cannot break a reference. Nothing
+ * is removed or retyped.
+ */
+export const CONTRACT_VERSION = '14.7.0';
 
 /** A guaranteed path that was removed, and where its consumers should point instead. */
 export type Deprecation = {
