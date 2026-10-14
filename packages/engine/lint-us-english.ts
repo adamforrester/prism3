@@ -127,13 +127,14 @@
  * **ONE CROSSING IS KNOWN, DECLARED AND CLOSED, AND YOU CAN RE-DERIVE ALL THREE FACTS.** Do not take
  * this paragraph's word for it — every claim below is a command whose output decides it:
  *
- *   1. `schema/shape-index.json` is in this gate's scope, and NO `docs/` file is. `--files` prints the
+ *   1. `schema/shape-index.json` is in this gate's scope, and NO `docs/` file is outside `docs/public/guides/`
+ *      (the designer guides, #2637, which the crossing does not reach). `--files` prints the
  *      set this gate actually walks, so the answer comes from the gate and not from this comment.
  *      Check the denominator first — a `grep -c` of 0 over an empty list is not evidence:
  *        npx tsx packages/engine/lint-us-english.ts --files | wc -l                    # -> 122
  *        npx tsx packages/engine/lint-us-english.ts --files | grep -c 'shape-index'    # -> 1
- *        npx tsx packages/engine/lint-us-english.ts --files | grep -c '^docs/'         # -> 0
- *        npx tsx packages/engine/lint-voice.ts      --files | grep -c '^docs/'         # -> 0
+ *        npx tsx packages/engine/lint-us-english.ts --files | grep '^docs/' | grep -vc '^docs/public/guides/'   # -> 0
+ *        npx tsx packages/engine/lint-voice.ts      --files | grep '^docs/' | grep -vc '^docs/public/guides/'   # -> 0
  *   2. `lint-shape-index.ts --accept` copies docs/34 headings into that file verbatim:
  *        grep -n 'baseline.shapes = ' packages/engine/lint-shape-index.ts
  *   3. The crossing is CHECKED AT THE SOURCE, by ARM C of that gate, using the rule this file uses —
@@ -302,6 +303,10 @@ const gated: string[] = [
   // does — and like the token contract above it is named by hand, because skills are not a `regen`
   // artifact and so inherit none of that list's coverage.
   ...walk(join(repo, 'skills')).filter((f) => f.endsWith('.md')),
+  // The designer guides (#2637): published docs a designer reads, served by the studio and readable on GitHub,
+  // so shipped prose like the READMEs above. REQUIRED, not walked: the directory is authored and committed, so
+  // its absence is a scope that shrank, not a tree that was never built. The one `docs/` directory in scope.
+  ...walkRequired(join(repo, 'docs/public/guides'), 'the designer guides are missing').filter((f) => f.endsWith('.md')),
 ];
 
 // ---- SELF-CHECK: does the scanner still detect what it claims to? ----
@@ -400,6 +405,8 @@ const REQUIRED_SURFACES: { label: string; test: (f: string) => boolean }[] = [
   // interchangeable (one is the sandbox controller, one is the document a designer looks at).
   { label: 'the built plugin controller (apps/plugin/dist/main.js)', test: (f) => f === join(repo, 'apps/plugin/dist/main.js') },
   { label: 'the built plugin UI document (apps/plugin/dist/ui.html)', test: (f) => f === join(repo, 'apps/plugin/dist/ui.html') },
+  // …and the EIGHTH (#2637), added with the surface: the designer guides, anchored at the repo root like skills.
+  { label: 'the designer guides (docs/public/guides/*.md)', test: (f) => f.startsWith(`${repo}/docs/public/guides/`) },
 ];
 const missingSurfaces = REQUIRED_SURFACES.filter((s) => !gated.some(s.test)).map((s) => s.label);
 if (missingSurfaces.length) {
@@ -430,11 +437,11 @@ if (selfFails.length) {
 }
 
 // ---- `--files`: the scanned set, printed (#1117) ----------------------------------------------
-// The scope crossing noted in the header claims "no docs/ file is in this gate's scope". A grep over
+// The scope crossing noted in the header claims "no docs/ file outside docs/public/guides/ is in this gate's scope". A grep over
 // this source cannot check that claim — it matches the comment making it. This prints the set the
 // gate actually walks, so the claim is decided by the gate rather than by prose about it:
 //
-//   npx tsx packages/engine/lint-us-english.ts --files | grep -c '^docs/'    # must be 0
+//   npx tsx packages/engine/lint-us-english.ts --files | grep '^docs/' | grep -vc '^docs/public/guides/'    # must be 0
 //
 // Exits before any scanning, so it is cheap and cannot be confused with a verdict.
 if (process.argv.includes('--files')) {
