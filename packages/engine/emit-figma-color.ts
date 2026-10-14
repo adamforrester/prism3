@@ -45,16 +45,13 @@ export type FigmaVar = {
    *  variable that holds it, which the executor aliases so the wash follows the opacity scale. Absent on
    *  every other variable: their alias is opaque. */
   aliasOpacity?: { value: number; name: string };
-  /** Present + `true` only on ref-tier PRIMITIVE variables (palette, dimension,
-   *  font/family, font/size, font/weight). (opacity is directly consumable — #79 —
-   *  so it is NOT hidden.) Figma's official mechanism
-   *  for "consumers of this file (as a library) shouldn't see this in the
-   *  picker." Note the limitation: this only narrows the picker across a
-   *  library-consumption boundary; in the file that DEFINES the primitives
-   *  they still appear in the local picker (Figma has no scopes-based
-   *  local-hide — see the module-level PRIMITIVE marker comment). Omitted on
-   *  semantic-tier vars → JSON stays free of the noise field (semantic bytes
-   *  are byte-identical to the pre-hide world modulo the new `description`s). */
+  /** Present + `true` only on the `core` collection's PRIMITIVE variables (palette, dimension, and every
+   *  `core/font/*` row) and the motion primitives. (opacity is directly consumable — #79 — so it is NOT
+   *  hidden.) Figma's official mechanism for "consumers of this file (as a library) shouldn't see this
+   *  in the picker." It works across the library boundary only; the LOCAL hide is the empty `scopes`
+   *  the `core` rows also carry, bar the font family and weight rows (#2602, Q292 A — see the
+   *  module-level PRIMITIVE marker comment). Omitted on
+   *  semantic-tier vars → JSON stays free of the noise field. */
   hiddenFromPublishing?: boolean;
 };
 export type FigmaCollectionFile = { $collection: string; $mode: string; variables: FigmaVar[] };
@@ -62,28 +59,32 @@ export type FigmaCollectionFile = { $collection: string; $mode: string; variable
 /* No `desc` helper any more (#1623 sign-off). Figma descriptions are the Figma register's own line, built
  * from structured data in `figma-description.ts`; nothing in the Figma emitters reads a `$description`. */
 
-/** Ref-tier PRIMITIVE marker. `hiddenFromPublishing: true` is Figma's OFFICIAL
- *  mechanism for "consumers of this file (as a library) shouldn't pick this."
- *  Applied to palette + dimension + font/family + font/size + font/weight so
- *  cross-file library consumers only see the semantic + directly-consumable layer.
- *  (opacity is NOT hidden — #79 — it has no semantic layer to prefer, so it stays
- *  a visible, directly-consumable collection.)
+/** Ref-tier PRIMITIVE marker (#2602). Every variable in the `core` collection — the palette,
+ *  `dimension/*`, and every `core/font/*` row — is written with:
  *
- *  LIMITATION worth naming: hidden-from-publishing only narrows the picker
- *  ACROSS a library-consumption boundary. In the file that DEFINES the
- *  primitives, they still show in the local picker. Figma DOES NOT expose a
- *  scopes-based way to hide a variable from local pickers — the enum is
- *  strictly typed per resolvedType (COLOR: ALL_FILLS/ALL_SCOPES/FRAME_FILL/
- *  SHAPE_FILL/TEXT_FILL/STROKE_COLOR/EFFECT_COLOR; FLOAT: TEXT_CONTENT/
- *  CORNER_RADIUS/WIDTH_HEIGHT/GAP/OPACITY/STROKE_FLOAT/EFFECT_FLOAT/FONT_*),
- *  and `scopes: []` behaves as ALL_SCOPES (probe-verified 2026-07-04:
- *  setBoundVariableForPaint succeeds on a var with scopes=[]). So a bogus
- *  non-matching scope like TEXT_CONTENT would be rejected by the API
- *  ("Invalid scope for this variable type") — there is no path to a
- *  local-picker hide. The production discipline: publish tokens as a
- *  library, author components in a separate consumer file, and
- *  hidden-from-publishing narrows the picker end-to-end. Definer-file
- *  authoring accepts primitive visibility as the trade. */
+ *  - `hiddenFromPublishing: true` — hides it from files that consume this one as a library; and
+ *  - `scopes: []` — hides it from every LOCAL property picker in the file that defines it.
+ *
+ *  ONE EXCEPTION (owner decision Q292 A, 2026-10-14): `core/font/family/*` keeps FONT_FAMILY, and
+ *  `core/font/weight/*` and `core/font/weight-role/*` keep FONT_WEIGHT (`emit-figma-font.ts`). TokenPress
+ *  types a font variable's DTCG `$type` from its scope, so unscoped they would export as `string` /
+ *  `dimension` / `number`. They still appear in the family and weight pickers, and nowhere else. Fully
+ *  unscoping them once TokenPress types font rows by name is #2616.
+ *
+ *  So a designer reaches for the semantic layer everywhere, and nobody de-scopes the primitives by hand
+ *  after each Apply. (opacity is NOT hidden — #79 — it has no semantic layer to prefer.)
+ *
+ *  Empty scopes hide a variable from local pickers. Verified live by the owner on 2026-10-13, on a copy
+ *  of a production file: a palette step set to `scopes = []` disappeared from the fill picker while its
+ *  neighbor, still scoped to fill, text and stroke, stayed. The plugin typings say the same thing: scopes
+ *  "only limits the variables that are shown in pickers within the Figma UI" and do not stop a bind
+ *  through the Plugin API. This comment used to claim the opposite — that `scopes: []` behaves as
+ *  ALL_SCOPES and nothing can hide a variable locally — on the strength of a 2026-07-04 probe in which
+ *  `setBoundVariableForPaint` succeeded on an unscoped variable. That probe tested an API bind, which
+ *  scopes never block; it said nothing about pickers. Prism3 binds primitives only through the API (a
+ *  Text Style's family/size/weight/cut, the semantic aliases), so an unscoped primitive still binds
+ *  everywhere it is bound today. The motion primitives (`emit-figma-dims.ts`) rely on the same fact. */
+export const PRIMITIVE_SCOPES: string[] = [];
 
 /** The canonical, ordered set of appearance modes emit-figma can produce. A
  *  given brand may opt out of `dark`/`hc-*` via `BrandInput.modes` — the
@@ -176,7 +177,6 @@ const colorScopes = (dotted: string): string[] => {
   if (seg[1] === 'field') return FIELD_SLOT_SCOPES[seg[2]] ?? ['FRAME_FILL', 'SHAPE_FILL'];
   return COLOR_SCOPES[seg[1]] ?? ['FRAME_FILL', 'SHAPE_FILL'];
 };
-const PALETTE_SCOPES = ['FRAME_FILL', 'SHAPE_FILL', 'TEXT_FILL', 'STROKE_COLOR'];
 
 /**
  * THE ONE CORE COLLECTION (#1097) — the primitive tier, whatever its type.
@@ -388,19 +388,13 @@ export const buildFigmaColor = (theme: Theme): { palette: FigmaCollectionFile; c
   const palette: FigmaCollectionFile = {
     $collection: CORE_COLLECTION,
     $mode: 'Default',
-    // Palette primitives are REF TIER — designers should reach for `color/*`
-    // semantics that alias these steps, not the raw palette. Set
-    // `hiddenFromPublishing: true` so consumers of this file as a library
-    // don't see them in the picker; the local picker in the definer file
-    // still shows them (Figma has no scopes-based local-hide — see the
-    // module-level PRIMITIVE marker comment for the API limitation).
-    // Scopes stay at the four color fill/stroke targets so, if a component
-    // author does need to bind a raw primitive for a bespoke case, the
-    // picker guidance is still correct per role family.
+    // Palette primitives are REF TIER — designers should reach for `color/*` semantics that alias these
+    // steps, not the raw palette. Hidden from publishing AND unscoped, so neither a library consumer nor
+    // the defining file's own picker offers them (#2602 — see the module-level PRIMITIVE marker comment).
     variables: leaves(tree[root].core.palette, `${root}.${CORE_TIER}.palette`, byNumericKey).map(([dotted, leaf]) => ({
       name: figName(dotted),
       resolvedType: 'COLOR',
-      scopes: PALETTE_SCOPES,
+      scopes: PRIMITIVE_SCOPES,
       description: paletteDescription(theme, dotted.split('.').slice(-2), leaf),
       value: parseColor(leaf.$value),
       alias: null,

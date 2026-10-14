@@ -118,21 +118,22 @@ variable's Figma id, then emit the `color` vars as `VARIABLE_ALIAS` pointing at 
   "codeSyntax": {} }
 ```
 
-**Ref-tier PRIMITIVES also carry `"hiddenFromPublishing": true`** (2026-07-04).
-Every var in `palette`, `dimension`, `opacity`, `font/family/*`, `font/size/*`,
-`font/weight/*` sets this flag so consumers of the file as a design-token
-library only see the semantic layer in the picker. **Limitation:** the flag
-narrows the picker only ACROSS a library-consumption boundary; in the file
-that defines the primitives they still appear in the local picker. Figma
-exposes no scopes-based mechanism to hide from local pickers — the enum
-is strictly typed per resolvedType (rejects "bogus" scopes with "Invalid
-scope for this variable type"), and `scopes: []` is documented + probe-
-verified as ALL_SCOPES (setBoundVariableForPaint succeeds on a var with
-scopes=[]). Production discipline: publish tokens as a library, author
-components in a separate consumer file. Scopes on primitives stay at
-their real role-family targets so, if a component author does need to
-bind a raw primitive for a bespoke case (after unhiding), guidance is
-still correct.
+**Every `core` PRIMITIVE carries `"hiddenFromPublishing": true`, and all but the font family and
+weight rows carry `"scopes": []`** (#2602, 2026-10-13). That is every var in the `core` collection:
+the palette, `dimension/*` and every `font/*` row (family, size, weight, weight-role, the style cuts).
+The flag hides them from files that consume this one as a library. The empty scope set hides them
+from every local picker in the file that defines them. The exception is the owner's decision Q292 A
+(2026-10-14): `font/family/*` keeps `FONT_FAMILY`, and `font/weight/*` and `font/weight-role/*` keep
+`FONT_WEIGHT`, because TokenPress types a font variable's DTCG `$type` from its scope and would
+export them unscoped as `string` / `dimension` / `number`. They show in the font-family and
+font-weight pickers only. Unscoping them too, once TokenPress types font rows by name, is #2616. The owner verified this live on 2026-10-13: a palette step set to `scopes = []`
+left the fill picker, and its neighbor, still scoped to fill, text and stroke, stayed. The plugin
+typings agree: scopes "only limits the variables that are shown in pickers within the Figma UI"
+and do not stop a bind through the Plugin API, so the Text Styles still bind the family, size and cut
+variables. This section said the opposite from 2026-07-04 until #2602: that `scopes: []` behaves as
+ALL_SCOPES and nothing can hide a variable locally. Its evidence was a successful
+`setBoundVariableForPaint` on an unscoped variable, which is an API bind and says nothing about
+pickers. (`opacity` is not hidden, #79: it has no semantic layer to prefer.)
 
 **Naming transform** (DTCG → Figma): strip the brand namespace (`nbds.`/`prism.`); dots →
 slashes; the first segment is the collection (`palette` / `color`); **zero-pad sub-100 scale
