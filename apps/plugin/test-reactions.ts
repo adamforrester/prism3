@@ -30,7 +30,8 @@
  *   all three/…  reactions to repair, sets to move (#2542) and pages to reorder (#2568) in ONE run: one named version,
  *                all of it done, and a change to any of the three after the check refuses the confirm. Mutations: the
  *                reactions dropped from a set's fingerprint → `all three/hash, reactions`; the set's move dropped from
- *                `previewHashOf` → `all three/hash, set`; the page list dropped from it → `all three/hash, page`.
+ *                `previewHashOf` → `all three/hash, set`; the page list dropped from it → `all three/hash, page`. The
+ *                three sets keep the ids the shim gave them (#2593); every set named `SET:1` again → `all three/converges`.
  *
  * Run: `npx tsx apps/plugin/test-reactions.ts`
  */
@@ -117,7 +118,7 @@ section('map — the per-def reaction map, literal (owner decision Q238 A, part 
     'button': [576, 192, 288], 'button-destructive': [576, 192, 288], 'button-neutral': [576, 192, 288],
     'icon-button': [216, 72, 108], 'icon-button-destructive': [216, 72, 108], 'icon-button-neutral': [216, 72, 108],
     'checkbox-control': [54, 18, 27], 'radio-control': [30, 12, 18], 'switch-control': [24, 8, 12],
-    'tag': [45, 18, 27], 'tab': [30, 12, 18],
+    'tag': [45, 18, 27], 'tab': [30, 12, 18], 'segmented-control-segment': [30, 12, 18],
   };
   const got: Record<string, [number, number, number]> = {};
   for (const d of componentDefs) {
@@ -126,7 +127,7 @@ section('map — the per-def reaction map, literal (owner decision Q238 A, part 
     const lists = [...map.values()];
     got[d.id] = [map.size, lists.filter((l) => l.length).length, lists.reduce((k, l) => k + l.length, 0)];
   }
-  ok(JSON.stringify(Object.keys(got).sort()) === JSON.stringify(Object.keys(want).sort()), `map/scope: exactly the 11 defs with rest, hover and pressed (${Object.keys(got).join(', ')})`);
+  ok(JSON.stringify(Object.keys(got).sort()) === JSON.stringify(Object.keys(want).sort()), `map/scope: exactly the 12 defs with rest, hover and pressed (${Object.keys(got).join(', ')})`);
   ok(Object.entries(want).every(([id, w]) => JSON.stringify(got[id]) === JSON.stringify(w)), `map/counts: members, sources and reactions per def (${JSON.stringify(got)})`);
   const btn = reactionMap(plansOf('button').map(planComponentName));
   const B = (state: string): string => `appearance=filled, surface=default, inset=default, size=medium, state=${state}, leading icon=false, trailing icon=false`;
@@ -309,8 +310,6 @@ section('all three — reactions, set moves and page reorders in one run: one ve
   for (const id of IDS) { const r = await applyComponentPlan(plansBy.get(id)!, api); if (r.misses.length) throw new Error(`premise: ${id} built with ${r.misses.length} miss(es): ${r.misses[0]}`); }
   const sets = page.children.filter((n) => n.type === 'COMPONENT_SET') as Node[];
   for (const set of sets) (set as { parent?: unknown }).parent = page;
-  // The shim names every set `SET:1`; the host gives each its own id, and the apply's identity check finds a set by it.
-  sets.forEach((s, k) => { s.id = `SET:${k + 1}`; });
   const fresh = sets.map((n) => [Number(n.x), Number(n.y)]);
   for (let k = 1; k < sets.length; k++) sets[k].x = Number(sets[k - 1].x) + Number(sets[k - 1].width) + 160;
   type P = { name: string; isPageDivider?: boolean; appendChild(): void };

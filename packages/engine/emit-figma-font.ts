@@ -24,7 +24,7 @@ import {
   figmaFontFamilyDescription, figmaFontSizeDescription, figmaFontWeightDescription, figmaWeightRoleDescription,
   figmaFontCutDescription, figmaFluidSizeDescription, figmaTextStyleDescription,
 } from './figma-description';
-import { nsName, coreName, CORE_COLLECTION } from './emit-figma-color';
+import { nsName, coreName, CORE_COLLECTION, PRIMITIVE_SCOPES } from './emit-figma-color';
 import type { FigmaResolvedType, FigmaVar, FigmaCollectionFile } from './emit-figma-color';
 
 // Named-instance derivation for fontStyle (fix #5). Numeric weight → the family's
@@ -167,6 +167,14 @@ export const buildFigmaFont = (theme: Theme): FigmaCollectionFile[] => {
    *  `<root>.core.font.size.16`. Bound once here because `varsFor` builds five of them. */
   const ns = (name: string): string => coreName(root, name);
 
+  // EVERY row in this collection is hidden from publishing (#2602), and every row is unscoped EXCEPT the
+  // family, weight and weight-role rows (owner decision Q292 A, 2026-10-14). Those three keep FONT_FAMILY /
+  // FONT_WEIGHT, so they stay in the font-family and font-weight pickers and nowhere else: TokenPress
+  // types a font variable's DTCG `$type` from that scope, and unscoped they export as `string`, `dimension`
+  // and `number` instead of `fontFamily` / `fontWeight` (the exporter agreement gate). The size and cut
+  // rows carry none; the Text Styles reach them through the API, which scopes do not limit. Fully
+  // unscoping the three once TokenPress types font rows by name is #2616. See the PRIMITIVE marker
+  // comment in `emit-figma-color.ts`.
   const varsFor = (mode: string): FigmaVar[] => {
     const variables: FigmaVar[] = [];
     // font/family/* — STRING PRIMITIVES (ref tier). Primary face is the bound value; full
@@ -207,7 +215,7 @@ export const buildFigmaFont = (theme: Theme): FigmaCollectionFile[] => {
       variables.push({
         name: ns(`font/size/${key}`),
         resolvedType: 'FLOAT',
-        scopes: ['FONT_SIZE'],
+        scopes: PRIMITIVE_SCOPES,
         description: figmaFontSizeDescription(Number(key), Number(leaf.$extensions?.prism3?.rem ?? Number(key) / 16)),
         value: Number(key),
         alias: null,
@@ -216,8 +224,8 @@ export const buildFigmaFont = (theme: Theme): FigmaCollectionFile[] => {
     }
 
     // font/weight/N — FLOAT numeric reference tier (union of the global tier + every per-mode
-    // weight value, so a per-mode weight-role alias always lands). PRIMITIVES; brand-facing
-    // consumers pick `font/weight-role/*`. hiddenFromPublishing hides from library consumers.
+    // weight value, so a per-mode weight-role alias always lands). PRIMITIVES;
+    // `font/weight-role/*` aliases into them.
     for (const key of Object.keys(font.weight)) {
       const leaf = font.weight[key];
       variables.push({
@@ -245,6 +253,7 @@ export const buildFigmaFont = (theme: Theme): FigmaCollectionFile[] => {
         description: figmaWeightRoleDescription(roleKey, numeric),
         value: numeric,
         alias: { type: 'VARIABLE_ALIAS', name: ns(`font/weight/${numeric}`) },
+        hiddenFromPublishing: true,
       });
     }
 
@@ -260,10 +269,11 @@ export const buildFigmaFont = (theme: Theme): FigmaCollectionFile[] => {
       variables.push({
         name: ns(slot.slug),
         resolvedType: 'STRING',
-        scopes: ['FONT_STYLE'],
+        scopes: PRIMITIVE_SCOPES,
         description: figmaFontCutDescription(slot.category, slot.weightRole, slot.italic),
         value: cutName(isMonoCategory(font, slot.category), numeric, slot.slanted, slot.facePin),
         alias: null,
+        hiddenFromPublishing: true,
       });
     }
     return variables;

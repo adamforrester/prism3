@@ -16,6 +16,9 @@
  *      and value present at the base and absent now must be claimed by a ledger entry, and every
  *      ledger `to` must exist in the tree.
  *
+ * On main's push run the merge base is HEAD itself, so there the first parent is the base instead
+ * (`comparison-base.ts`, #2556; replayed by `lint-push-base.ts`).
+ *
  * Arm B's `from` side is git, and must stay git. Recomputing it from the live engine would compare the
  * projection with itself and pass any rename (`docs/34` shape 11). Arm A is what makes the committed
  * file trustworthy enough for arm B to read.
@@ -44,6 +47,7 @@ import { dirname, resolve } from 'node:path';
 import { componentDefs } from './components/index';
 import { figmaAnatomySet, planComponentName } from './anatomy-figma';
 import { COMPONENT_RENAMES, coordKey, coordPairs, danglingTargets, unaccounted, type AxesBaseline as Baseline } from './component-renames';
+import { comparisonBase } from './comparison-base';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(HERE, '..', '..');
@@ -126,7 +130,10 @@ if (!baseRef)
 const mb = git('merge-base', 'HEAD', baseRef!);
 if (!mb.ok || !mb.out.trim())
   die([`no merge base between HEAD and ${baseRef} — this check CANNOT RUN.`, `    ${mb.err || '(git printed nothing)'}`, '  A shallow clone is the usual cause: `git fetch --unshallow`.']);
-const base = mb.out.trim();
+// On the base branch the merge base is HEAD itself, and the first parent is compared instead (#2556):
+// `comparison-base.ts` has the reason, and `lint-push-base.ts` replays it against this gate.
+const cmp = comparisonBase(git, mb.out.trim(), die);
+const base = cmp.base;
 
 const tracked = git('ls-tree', '--name-only', base, '--', REL);
 if (!tracked.ok) die([`could not list ${REL} at ${base.slice(0, 8)} — this check CANNOT RUN.`, `    ${tracked.err}`]);
@@ -169,8 +176,8 @@ const nAxes = Object.values(live).reduce((n, d) => n + Object.keys(d.axes).lengt
 const nValues = Object.values(live).reduce((n, d) => n + Object.values(d.axes).reduce((m, v) => m + v.length, 0), 0);
 console.log(`component renames (#2265) — ${nDefs} defs, ${nAxes} axes, ${nValues} values; ledger ${COMPONENT_RENAMES.length} entr${COMPONENT_RENAMES.length === 1 ? 'y' : 'ies'}`);
 console.log(before
-  ? `  base ${base.slice(0, 8)} (${baseRef}): ${Object.keys(before).length} defs compared`
-  : `  base ${base.slice(0, 8)} (${baseRef}) does not track ${REL} — BOOTSTRAP: arm B has nothing to compare at this base`);
+  ? `  base ${base.slice(0, 8)} (${baseRef}, ${cmp.label}): ${Object.keys(before).length} defs compared`
+  : `  base ${base.slice(0, 8)} (${baseRef}, ${cmp.label}) does not track ${REL} — BOOTSTRAP: arm B has nothing to compare at this base`);
 if (failures.length) {
   console.error(`\n❌ ${failures.length} failure(s):`);
   for (const f of failures) console.error(`  ${f}`);

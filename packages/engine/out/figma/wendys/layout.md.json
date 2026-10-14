@@ -55,9 +55,7 @@
     {
       "name": "wds/grid/columns",
       "resolvedType": "FLOAT",
-      "scopes": [
-        "ALL_SCOPES"
-      ],
+      "scopes": [],
       "description": "Grid columns by breakpoint: sm 4 · md 8 · lg–2xl 12",
       "value": 8,
       "alias": null
