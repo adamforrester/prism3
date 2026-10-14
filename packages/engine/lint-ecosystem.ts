@@ -32,12 +32,19 @@
  *                 is something the panel does too, so its feature must claim the figma lane; one that is not is
  *                 agent-only, so its feature must not. A figma message that is also an agent command needs the
  *                 agent lane.
- *               · Web versus Figma: the plugin imports the studio's whole entry, so the two share every UI
- *                 feature unless the code branches on `PRISM3_HOST`. A web-only feature must cite a source
- *                 with a `PRISM3_HOST !== 'figma'` branch; a figma-only feature with no message must cite one
- *                 with a `PRISM3_HOST === 'figma'` branch (or `isFigma`).
  *               · A lane entry's connections exist; one that sends agent commands names the agent link, and
  *                 one that calls MCP tools names MCP.
+ *   REACH     Which bundle can reach what, read from the import graph (each lane's build entry points, walked
+ *             through value imports and `@prism3/engine/*` via the engine's `exports` map):
+ *               · Agent tools, both directions: TOOL_MODULE below names the engine export each MCP tool runs
+ *                 (held against mcp.ts). A feature whose agent lane calls a tool may claim web or figma only if
+ *                 that lane's bundle imports the same export, and must claim it if the bundle does. So "only
+ *                 the agent scores code" holds only while no UI imports `scoreConsumption`.
+ *               · Web versus Figma: the plugin imports the studio's whole entry, so the two share every UI
+ *                 feature unless the code branches on `PRISM3_HOST`. A web-only feature, or a figma-only one
+ *                 with no plugin message, names an `anchor` that one of its sources holds within ANCHOR_SPAN
+ *                 lines after the matching branch: `PRISM3_HOST !== 'figma'` for web, `=== 'figma'` or
+ *                 `isFigma` for figma. Any branch anywhere in the file is not enough; it must guard the anchor.
  *   MEMBERS   Each list that ships in code matches it exactly, both directions, by name:
  *               component-defs node   ← `componentDefs` ids        (packages/engine/components)
  *               mcp connection        ← `toolDefs` names            (packages/engine/mcp.ts)
@@ -89,7 +96,7 @@ const PLUMBING = ['ui-ready', 'agent-command', 'agent-bridge', 'style-guide-cata
 
 const LANES = ['web', 'figma', 'agent'] as const;
 type LaneId = (typeof LANES)[number];
-type LaneEntry = { status: string; via: string; sources: string[]; mcpTools?: string[]; agentCommands?: string[]; messages?: string[]; connections?: string[] };
+type LaneEntry = { status: string; via: string; sources: string[]; anchor?: string; mcpTools?: string[]; agentCommands?: string[]; messages?: string[]; connections?: string[] };
 type Feature = { id: string; label: string; group: string; lanes: Partial<Record<string, LaneEntry>>; members?: { label: string; items: string[] } };
 type Node = {
   id: string; label: string; role: string; kind: string; status: string; column: string; parent?: string;
@@ -236,7 +243,6 @@ const mcpSet = new Set(mcpNames);
 const pluginEntry = read(PLUGIN_UI_ENTRY);
 const pluginImportsStudio = /import\s+['"][./]*studio\/src\/entry['"]/.test(pluginEntry);
 if (!pluginImportsStudio) fail('LANES', `${PLUGIN_UI_ENTRY} no longer imports the studio's entry whole, so "web and Figma share every UI feature unless PRISM3_HOST branches" no longer holds — rework this arm`);
-const hasBranch = (sources: string[], re: RegExp) => sources.some((p) => { try { return re.test(read(p)); } catch { return false; } });
 
 const claimedTools = new Set<string>();
 const cmdClaims = new Map<string, string[]>();
@@ -263,8 +269,6 @@ for (const f of data.features) {
     if (!uiSet.has(c) && has('figma')) fail('LANES', `feature '${f.id}' claims the Figma plugin, but '${c}' has no panel message (UiToMain) — only the agent can send it`);
   }
   for (const m of figmaMsgs) if (cmdSet.has(m) && !has('agent')) fail('LANES', `feature '${f.id}' is Figma-only, but '${m}' is also an agent link command, so the agent does it too`);
-  if (has('web') && !has('figma') && lanes.web!.status !== 'planned' && !hasBranch(lanes.web!.sources, /PRISM3_HOST\s*!==\s*'figma'/)) fail('LANES', `feature '${f.id}' claims the web studio only, but none of its web sources branches on PRISM3_HOST !== 'figma' — the plugin loads the studio's whole entry, so it has this too`);
-  if (has('figma') && !has('web') && lanes.figma!.status !== 'planned' && !figmaMsgs.length && !hasBranch(lanes.figma!.sources, /PRISM3_HOST\s*===\s*'figma'|isFigma/)) fail('LANES', `feature '${f.id}' claims the Figma plugin only, but it sends no plugin message and none of its sources branches on PRISM3_HOST === 'figma' — the web studio has this too`);
 }
 for (const t of mcpNames) if (!claimedTools.has(t)) fail('LANES', `MCP tool '${t}' is in no feature's agent lane`);
 for (const c of commands) {
@@ -274,6 +278,121 @@ for (const c of commands) {
 }
 for (const m of uiToMain) if (!claimedMsgs.has(m) && !PLUMBING.includes(m)) fail('LANES', `plugin message '${m}' is in no feature's figma lane and not listed as plumbing in ${TAG}.ts`);
 for (const m of PLUMBING) if (!uiSet.has(m)) fail('LANES', `PLUMBING lists '${m}', which UiToMain no longer has — drop it`);
+
+// ── REACH ────────────────────────────────────────────────────────────────────────────────────────
+/** What each MCP tool runs: the engine module that DEFINES the function its handler calls (`call`), and the export
+ *  a UI lane would have to import to offer the same thing (`symbol`, the same as `call` unless the call wraps it).
+ *  Authored here, never read from the data, and held against mcp.ts below (mcp.ts imports and calls `call` from
+ *  `module`, which defines both), so a tool that moves to other code fails here rather than keeping a stale answer.
+ *  A UI lane on a feature with agent tools must import `symbol` from `module`; a lane left out must not. */
+type Runs = { module: string; symbol: string; call?: string };
+const TOOL_MODULE: Record<string, Runs> = {
+  list_levers: { module: 'packages/engine/levers.ts', symbol: 'leverManifest', call: 'buildLeverManifest' },
+  theme_brand: { module: 'packages/engine/theme.ts', symbol: 'brandTheme' },
+  score_consumption: { module: 'packages/engine/eval.ts', symbol: 'scoreConsumption' },
+  theme_from_brief: { module: 'packages/engine/design-md.ts', symbol: 'parseDesignMd' },
+  export_theme: { module: 'packages/engine/tree.ts', symbol: 'buildTree' },
+  validate_brand: { module: 'packages/engine/emit-dtcg.ts', symbol: 'validateBrandInput' },
+};
+/** The bundles each UI lane ships, by their build entry points (apps/studio/build.mjs, apps/plugin/build.mjs). */
+const LANE_ROOTS: Record<'web' | 'figma', string[]> = {
+  web: ['apps/studio/src/entry.ts'],
+  figma: ['apps/plugin/src/ui/entry.ts', 'apps/plugin/src/main.ts'],
+};
+const engineExports = (JSON.parse(read('packages/engine/package.json')) as { exports: Record<string, string> }).exports;
+const resolveSpec = (from: string, spec: string): string | null => {
+  let base: string;
+  if (spec.startsWith('.')) base = resolve(repo, dirname(from), spec).slice(repo.length + 1);
+  else if (spec.startsWith('@prism3/engine/')) { const t = engineExports[`./${spec.slice('@prism3/engine/'.length)}`]; if (!t) return null; base = `packages/engine/${t.replace(/^\.\//, '')}`; }
+  else return null;
+  for (const c of [base, `${base}.ts`, `${base}/index.ts`]) if (/\.ts$/.test(c) && exists(c)) return c;
+  return null;
+};
+const exists = (p: string) => { try { readFileSync(resolve(repo, p)); return true; } catch { return false; } };
+/** A value import or re-export: the file it resolves to, and the names it takes (`*` for a namespace or `export *`). */
+type Imp = { target: string; names: string[] | '*'; reexport: boolean };
+const importsOf = new Map<string, Imp[]>();
+/** Every repo .ts file a bundle can reach from `roots` by a value import (`import type` ships nothing), recording
+ *  what each file takes from each. Comments are stripped first, so an import quoted in prose is not an edge. */
+const reach = (roots: string[]): Set<string> => {
+  const seen = new Set<string>();
+  const todo = [...roots];
+  while (todo.length) {
+    const f = todo.pop()!;
+    if (seen.has(f)) continue;
+    seen.add(f);
+    if (!importsOf.has(f)) {
+      // Only comments that open a line: a `/*` inside a string (a glob, a regex) would otherwise swallow real imports.
+      const src = read(f).replace(/^\s*\/\*[\s\S]*?\*\//gm, '').replace(/^\s*\/\/.*$/gm, '');
+      const imps: Imp[] = [];
+      for (const m of src.matchAll(/\b(import|export)\s+(type\s+)?([^'";]*?)\bfrom\s*['"]([^'"]+)['"]/g)) {
+        if (m[2]) continue;
+        const target = resolveSpec(f, m[4]);
+        if (!target) continue;
+        const clause = m[3];
+        const braced = /\{([^}]*)\}/.exec(clause)?.[1];
+        const names = /\*/.test(clause) ? '*' as const
+          : (braced ?? '').split(',').map((x) => x.trim()).filter((x) => x && !x.startsWith('type ')).map((x) => x.split(/\s+as\s+/)[0].trim());
+        imps.push({ target, names, reexport: m[1] === 'export' });
+      }
+      for (const m of src.matchAll(/\bimport\s*\(?\s*['"]([^'"]+)['"]/g)) { const target = resolveSpec(f, m[1]); if (target) imps.push({ target, names: '*', reexport: false }); }
+      importsOf.set(f, imps);
+    }
+    for (const i of importsOf.get(f)!) if (!seen.has(i.target)) todo.push(i.target);
+  }
+  return seen;
+};
+/** Does any file in `files` import `symbol` from `module`, directly or through a file that re-exports it from there? */
+const takes = (files: Set<string>, module: string, symbol: string): boolean => {
+  const via = new Set([module]);
+  for (const [f, imps] of importsOf) if (imps.some((i) => i.reexport && i.target === module && (i.names === '*' || i.names.includes(symbol)))) via.add(f);
+  for (const f of files) {
+    if (via.has(f)) continue;
+    if ((importsOf.get(f) ?? []).some((i) => via.has(i.target) && (i.names === '*' || i.names.includes(symbol)))) return true;
+  }
+  return false;
+};
+const laneReach = { web: reach(LANE_ROOTS.web), figma: reach(LANE_ROOTS.figma) };
+const mcpReach = reach(['packages/engine/mcp.ts']);
+for (const [l, set] of Object.entries(laneReach)) if (set.size < 50) fail('FLOOR', `the ${l} lane's bundle reaches ${set.size} files from ${LANE_ROOTS[l as 'web' | 'figma'].join(', ')}, under the floor of 50 — the import walk has gone blind`);
+if (!laneReach.figma.has('apps/studio/src/entry.ts')) fail('REACH', `the figma lane's bundle no longer reaches apps/studio/src/entry.ts — the walk or the plugin's entry has changed`);
+const mcpSrc = read('packages/engine/mcp.ts');
+for (const t of mcpNames) {
+  const m = TOOL_MODULE[t];
+  if (!m) { fail('REACH', `MCP tool '${t}' has no entry in TOOL_MODULE in ${TAG}.ts — say which engine module it runs, so its lane claims can be checked`); continue; }
+  const call = m.call ?? m.symbol;
+  if (!takes(mcpReach, m.module, call)) fail('REACH', `TOOL_MODULE maps '${t}' to ${call} from ${m.module}, which packages/engine/mcp.ts does not import`);
+  for (const sym of new Set([call, m.symbol])) if (!new RegExp(`export\\s+(?:const|function|class)\\s+${sym}\\b`).test(read(m.module))) fail('REACH', `TOOL_MODULE maps '${t}' to ${sym} in ${m.module}, which that file does not define`);
+  if (!new RegExp(`\\b${call}\\(`).test(mcpSrc)) fail('REACH', `TOOL_MODULE maps '${t}' to ${call}, which packages/engine/mcp.ts never calls`);
+}
+for (const t of Object.keys(TOOL_MODULE)) if (!mcpSet.has(t)) fail('REACH', `TOOL_MODULE lists '${t}', which toolDefs no longer has — drop it`);
+const HOST_BRANCH = { web: /PRISM3_HOST\s*!==\s*'figma'/, figma: /PRISM3_HOST\s*===\s*'figma'|isFigma/ };
+/** How far an anchor may sit from its host branch, in lines: the branch must guard the anchored code. */
+const ANCHOR_SPAN = 8;
+for (const f of data.features) {
+  const lanes = f.lanes ?? {};
+  const runs = (lanes.agent?.mcpTools ?? []).map((t) => TOOL_MODULE[t]).filter((m): m is Runs => !!m);
+  for (const l of ['web', 'figma'] as const) {
+    const e = lanes[l];
+    for (const { module: m, symbol: sym } of runs) {
+      const has = takes(laneReach[l], m, sym);
+      if (e && e.status !== 'planned' && !has) fail('REACH', `feature '${f.id}' claims the ${l === 'web' ? 'web studio' : 'Figma plugin'}, but its agent tools run ${sym} (${m}), which the ${l} bundle never imports`);
+      if (!e && has) fail('REACH', `feature '${f.id}' leaves out the ${l === 'web' ? 'web studio' : 'Figma plugin'}, but its agent tools run ${sym} (${m}), which the ${l} bundle imports — say how that lane offers it, or why not`);
+    }
+  }
+  // A host-only UI feature (no plugin message decides it) must point at the branch that makes it host-only.
+  for (const [l, other] of [['web', 'figma'], ['figma', 'web']] as const) {
+    const e = lanes[l];
+    if (!e || lanes[other] || e.status === 'planned' || (l === 'figma' && e.messages?.length)) continue;
+    if (!e.anchor) { fail('REACH', `feature '${f.id}' claims the ${l === 'web' ? 'web studio' : 'Figma plugin'} only, but names no 'anchor' — quote a string from the code its PRISM3_HOST branch guards (the plugin loads the studio's whole entry, so without a branch the other host has it too)`); continue; }
+    const hit = e.sources.some((p) => {
+      let lines: string[];
+      try { lines = read(p).split('\n'); } catch { return false; }
+      return lines.some((line, i) => line.includes(e.anchor!) && lines.slice(Math.max(0, i - ANCHOR_SPAN), i + 1).some((b) => HOST_BRANCH[l].test(b)));
+    });
+    if (!hit) fail('REACH', `feature '${f.id}' claims the ${l === 'web' ? 'web studio' : 'Figma plugin'} only, but its anchor '${e.anchor}' is in none of its sources within ${ANCHOR_SPAN} lines after a ${l === 'web' ? "PRISM3_HOST !== 'figma'" : "PRISM3_HOST === 'figma'"} branch`);
+  }
+}
 
 // ── MEMBERS ──────────────────────────────────────────────────────────────────────────────────────
 const skillsLs = spawnSync('git', ['-C', repo, 'ls-files', 'skills'], { encoding: 'utf8' });
@@ -362,4 +481,4 @@ if (fails.length) {
 }
 const memberCount = SURFACES.reduce((a, s) => a + s.code.length, 0);
 const shared = data.features.filter((f) => Object.keys(f.lanes).length > 1).length;
-console.log(`✅ ${TAG}: ${data.nodes.length} nodes, ${data.edges.length} edges, ${data.connections.length} connections, ${data.checks.length} checks, ${data.traces.length} traces; ${data.features.length} features (${shared} shared) whose lane claims match the code (${mcpNames.length} MCP tools, ${commands.length} agent commands, ${uiToMain.length} plugin messages); ${memberCount} members across ${SURFACES.length} lists match the code; ${checked} contrast pairs clear 4.5:1 in light and dark.`);
+console.log(`✅ ${TAG}: ${data.nodes.length} nodes, ${data.edges.length} edges, ${data.connections.length} connections, ${data.checks.length} checks, ${data.traces.length} traces; ${data.features.length} features (${shared} shared) whose lane claims match the code (${mcpNames.length} MCP tools, ${commands.length} agent commands, ${uiToMain.length} plugin messages; ${laneReach.web.size} web and ${laneReach.figma.size} figma bundle files walked); ${memberCount} members across ${SURFACES.length} lists match the code; ${checked} contrast pairs clear 4.5:1 in light and dark.`);

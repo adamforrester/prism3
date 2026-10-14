@@ -38,7 +38,8 @@ A feature lists the lanes that have it: `web`, `figma`, `agent`. Give the same f
 - **MCP tools are agent-only.** `mcpTools` may sit only in an agent lane.
 - **Plugin messages are Figma-only.** A feature whose figma lane sends a `UiToMain` message cannot claim the web studio.
 - **Agent commands decide shared or agent-only.** A command that is also a panel message (`apply-theme`, `build-components`, `prune`, `file-setup`, `style-guide`) is something the panel does too, so its feature must have a figma lane. A command with no panel message (`update-components`, `capture-baseline`, `adopt-members`, `status`, `readback`) is agent-only, so its feature must not.
-- **Web and Figma share the studio UI.** The plugin imports the studio's whole entry, so a UI feature is in both unless the code branches on `PRISM3_HOST`. A web-only feature must cite a source with `PRISM3_HOST !== 'figma'`; a figma-only feature with no message must cite one with `PRISM3_HOST === 'figma'` or `isFigma`.
+- **Web and Figma share the studio UI.** The plugin imports the studio's whole entry, so a UI feature is in both unless the code branches on `PRISM3_HOST`. A web-only or figma-only feature (with no plugin message) names an `anchor`: a string from the code that branch guards, found in one of its sources within a few lines after `PRISM3_HOST !== 'figma'` (web) or `PRISM3_HOST === 'figma'` / `isFigma` (figma).
+- **Agent tools decide whether the UI has it too.** The gate's `TOOL_MODULE` names the engine export each MCP tool runs. A feature whose agent lane calls a tool can claim web or figma only if that lane's bundle imports the same export, and must claim it if the bundle does. A new MCP tool fails until it has a `TOOL_MODULE` entry.
 
 What it cannot check: whether a `via` line is true, or whether a shared panel behaves the same on both hosts. Read the code before you claim either.
 
@@ -48,7 +49,7 @@ What it cannot check: whether a `via` line is true, or whether a shared panel be
 - **Edge:** `from`, `to`, `what` (what travels), `status`, optional `connection` (a connection id; only on an edge out of a lane) and optional `route: "under"` (pass below the engine column). Its id is `from>to`, plus `@connection` when it has one.
 - **Connection:** `id`, `label`, `status`, `purpose`, `sources`, `docs`, optional `members`. Drawn as a label on each edge that names it.
 - **Check:** `id`, `label`, `purpose`, `on` (node ids it sits on), `sources`, `docs`. Shown as badges with Show checks.
-- **Feature:** `id`, `label`, `group`, optional `members`, and `lanes`: per lane, `status`, `via` (how that interface does it), `sources`, and optionally `mcpTools`, `agentCommands`, `messages` and `connections`.
+- **Feature:** `id`, `label`, `group`, optional `members`, and `lanes`: per lane, `status`, `via` (how that interface does it), `sources`, and optionally `mcpTools`, `agentCommands`, `messages`, `connections` and `anchor`.
 - **Trace:** `id`, `label`, and `steps`, each an edge id and a `caption` shown while that step plays.
 
 Write `purpose`, `via`, `what` and `caption` text to `docs/voice-standard.md`: present tense, the system as the subject, US English, and no claim the code does not back.

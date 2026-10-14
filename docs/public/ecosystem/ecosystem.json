@@ -113,7 +113,7 @@
       "kind": "input",
       "status": "shipped",
       "column": "inputs",
-      "purpose": "A brand brief in Markdown with YAML front matter. It is a round-trip artifact: the studio exports it, and either lane can read it back in. Two dialects are read: the engine's own and the standard design.md.",
+      "purpose": "A brand brief in Markdown with YAML front matter. It is a round-trip artifact: the studio exports it, and any lane can read it back in. Two dialects are read: the engine's own and the standard design.md.",
       "inputs": [
         "Written by a person or an agent",
         "Exported from the studio"
@@ -428,7 +428,7 @@
       "status": "partial",
       "column": "outputs",
       "parent": "figma-file",
-      "purpose": "Durations and easing curves reach Figma today as number variables in milliseconds. Native TIMING and EASING variables, with springs, are in review in PR #2635.",
+      "purpose": "Durations and easing curves reach Figma today as number variables in milliseconds. Native TIMING and EASING variables, with springs, are not written yet.",
       "inputs": [
         "Apply theme"
       ],
@@ -1046,7 +1046,7 @@
         },
         "figma": {
           "status": "shipped",
-          "via": "Saved in the file and read back when the plugin opens",
+          "via": "Saved in the file on Apply, and read back when the plugin opens",
           "sources": [
             "apps/plugin/src/persist-figma.ts",
             "apps/plugin/src/main.ts"

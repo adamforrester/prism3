@@ -444,6 +444,8 @@ footer { color: var(--text-muted); font-size: 13px; padding: 8px 0 32px; }
 <script>
 (() => {
   'use strict';
+  // Served as a folder without its trailing slash, './ecosystem.json' would resolve one level up and 404.
+  if (!/\/$|\.html$/.test(location.pathname)) { location.replace(location.pathname + '/' + location.search + location.hash); return; }
   const $ = (s, r = document) => r.querySelector(s);
   const el = (tag, attrs = {}, ...kids) => {
     const n = document.createElement(tag);
