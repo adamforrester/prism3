@@ -401,6 +401,9 @@ const gated: string[] = [
   join(repo, 'packages/engine/schema/component-docs.schema.json'),
   // Shipped skills — prose an agent reads and follows, named by hand for the same reason.
   ...walk(join(repo, 'skills')).filter((f) => f.endsWith('.md')),
+  // The served docs (#2637): `docs/public/**`, which the studio serves at `/docs` and an agent reads from
+  // `llms.txt` on. Named by hand, as the skills are: nothing in `regen` emits them.
+  ...walk(join(repo, 'docs/public')),
 ];
 
 // ---- SELF-CHECK: does the scanner still detect what it claims to? ----
@@ -513,6 +516,10 @@ const REQUIRED_SURFACES: { label: string; test: (f: string) => boolean }[] = [
   { label: 'shipped skills (skills/**/SKILL.md)', test: (f) => f.startsWith(`${repo}/skills/`) },
   { label: 'the emitted reports (ENGINE_ARTIFACTS)', test: (f) => ENGINE_ARTIFACTS.some((a) => f.endsWith(`/${a}`)) },
   { label: 'the engine README', test: (f) => f.endsWith('/packages/engine/README.md') },
+  // The served docs (#2637), anchored at the repo root. `llms.txt` is required by name, so the surface cannot be
+  // represented by some other file under the directory while the agent entry point is gone.
+  { label: 'the served docs entry point (docs/public/llms.txt)', test: (f) => f === join(repo, 'docs/public/llms.txt') },
+  { label: 'the served docs (docs/public/**)', test: (f) => f.startsWith(`${repo}/docs/public/`) && f !== join(repo, 'docs/public/llms.txt') },
 ];
 const missingSurfaces = REQUIRED_SURFACES.filter((s) => !gated.some(s.test)).map((s) => s.label);
 if (missingSurfaces.length) {

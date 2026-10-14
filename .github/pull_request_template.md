@@ -45,6 +45,7 @@
 - [ ] `npx tsx packages/engine/emit-dtcg.ts` → every alias resolves + every mode contrast contract passes (_…/…_)
 - [ ] `npx tsx packages/engine/regen.ts --check` → _NN_ committed artifacts byte-match
 - [ ] `npx tsx packages/engine/token-contract.ts --check` → unchanged / bumped to _…_
+- [ ] `npx tsx packages/engine/emit-agent-reference.ts --check` → matches — _N_ MCP tools over 2 servers, _N_ agent-link commands, _N_ CLI entry points. `docs/public/reference/commands.json` is regenerated from the code and compared with the committed file (#2637); a tool, command or flag added or renamed without regenerating fails by name
 - [ ] `npx tsx packages/engine/lint-skills.ts` → clean
 - [ ] `npx tsx packages/engine/lint-doc-gates.ts` → clean
 - [ ] `npx tsx packages/engine/lint-layout-claims.ts` → clean — every claimed path resolves, every tracked layer is named in the layout tables (#670)
