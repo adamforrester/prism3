@@ -44,6 +44,17 @@ Owner decisions Q291, all A, after spike #2403 found Figma's own motion variable
   **The cost, so nobody rediscovers it:** the new variable has a new id. Nothing in a file can be bound to the old one
   (`scopes: []`, and Figma Motion binds no FLOAT); a library subscriber that bound a published `motion/duration/*`
   by hand loses that link.
+- **The CLI paste pass refuses instead (review finding 1).** `motion-vars` had no type check: over a 0.235.0 FLOAT it
+  wrote `0.2` into the FLOAT (read as 0.2ms), then threw on the first TIMING alias with 37 variables written. It now
+  checks every row's type before any write, and on any mismatch writes nothing and names each one
+  (`type:<name> is FLOAT, plan writes TIMING`). It does not apply Q293 1's replace: the pass neither reads nor writes
+  the stamp, so it cannot tell Prism3's collection from a look-alike. test.ts executes the pass against `FileShim`
+  seeded with that FLOAT and asserts the miss, the untouched 200 and the unrenamed mode, and runs a clean file too.
+- **#2602's no-ALL_SCOPES sweep exempts TIMING and EASING by resolved type (review finding 2),** never by name, and
+  holds those rows to exactly `['ALL_SCOPES']` on every typed path (emission, the plugin's motion plan, the committed
+  trees), each required to carry both types. A FLOAT in `motion` at ALL_SCOPES still fails.
+- **TokenPress's own `@figma/plugin-typings` floor is ^1.141.0 (review finding 3).** It had resolved only because
+  the workspace hoists one copy.
 - **Springs are published** (no role tier aliases one), and **TokenPress exports a spring as `$type: spring`
   `{ bounce }`**, both as built and confirmed.
 
@@ -51,5 +62,6 @@ Owner decisions Q291, all A, after spike #2403 found Figma's own motion variable
 Executor writes scopes on TIMING/EASING; emitter writes ms instead of seconds; bounce = damping; TokenPress types
 TIMING as `number`; the transition coverage line removed; the shim stops refusing scopes; TokenPress retypes a spring;
 the emission drops springs; the CLI paste pass writes scopes; the pre-flight drops the motion plan; and, for the retype,
-the stamp condition dropped, the pre-flight made strict again, and the executor never replacing. The PR body
+the stamp condition dropped, the pre-flight made strict again, and the executor never replacing; the paste pass's type
+check removed; and, in the #2602 sweep, a FLOAT in `motion` at ALL_SCOPES and a TIMING at `[]`. The PR body
 lists the failing line for each.

@@ -11,4 +11,4 @@ Figma refuses `scopes` on both types, so they stay `ALL_SCOPES` and no executor 
 collection through the new `buildMotionVarPlan` and the mixed-type executor, and the CLI paste path through a new
 `motion-vars` pass. On a file themed at 0.235.0, Apply replaces the FLOAT motion variables in Prism3's own stamped
 `motion` collection with TIMING ones under the same names, and says how many (owner decision Q293 A); every other
-type mismatch still refuses. Every brand's `out/figma/<brand>/motion.json` moves. The DTCG does not, so CONTRACT is unchanged.
+type mismatch still refuses. The CLI's `motion-vars` pass checks every row's type before any write and, on a mismatch, writes nothing and names it; it cannot see the stamp, so it never replaces. Every brand's `out/figma/<brand>/motion.json` moves. The DTCG does not, so CONTRACT is unchanged.

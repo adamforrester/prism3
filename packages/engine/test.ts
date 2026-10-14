@@ -57,11 +57,15 @@ import { validateComponentDef, VARIANT_AXES, axisKindOf, figmaPropertyErrors, fi
 import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, settleChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, figmaTextStyleName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, applySpacingDensity, applyMinWidthRatio, DEFAULT_BUTTON_LAYOUT, isButtonFamily, resolveWeightIntent, DEFAULT_WEIGHT_AVAILABILITY, isPillable, PILL_RADIUS_DERIVATION, PILL_RADIUS_RUNG, BOXED_RADIUS_RUNG, HAIRLINE_RADIUS_RUNG, CONTROL_SHAPE_RUNG, ROUNDED_RADIUS_RUNG, variantSetErrors, variantNameErrors, glyphLayerOpacities, type AnatomyPlan, type SwapFound } from './anatomy-figma';
 import type { ControlShape } from './scale';
 import { COMPONENT_RENAMES, coordKey, renameCoordinate, isDeclaredDrop, unaccounted as renamesUnaccounted, danglingTargets as renamesDangling, type ComponentRename, type AxesBaseline } from './component-renames';
-// The one import this suite makes ACROSS the engine/plugin boundary, and the parity gate (#487 step 5)
+// One of the two imports this suite makes ACROSS the engine/plugin boundary, and the parity gate (#487 step 5)
 // is why: with two executors for one `AnatomyPlan`, a gate that only ever sees one of them cannot say
 // they agree. `write-components.ts` is pure TypeScript against a declared port — it touches no `figma`
 // global at runtime — so importing it into a Node harness costs nothing and needs no shim of its own.
 import { applyComponentPlan } from '../../apps/plugin/src/write-components';
+// The second, for the same reason in the other direction (#2412): the CLI's `motion-vars` paste payload is EXECUTED
+// against the plugin suites' file model, so the two paste paths are judged by one model of Figma, not two. The shim
+// is a HOST that imports no executor (`file-shim.ts`'s header), so this brings no plugin code under test here.
+import { FileShim } from '../../apps/plugin/file-shim';
 import { readStamps, auditStamps, onlyFilledStamps } from './rename-stamp-audit';
 import { fillStamps, STAMP_FILES } from '../../fold-stamps';
 import type { AnatomyPlan, ButtonLayout } from './anatomy-figma';
@@ -13917,6 +13921,11 @@ arm: {
 //   · the paste payloads the CLI prints (`passPayloads` — palette, dims-create, font-vars), decoded from
 //     their compact scope codes, where an empty code is what decodes to `[]` and `*` is ALL_SCOPES;
 //   · the committed `out/figma/<brand>/` trees the paste path reads.
+// ONE EXEMPTION, KEYED BY RESOLVED TYPE (#2412): Figma refuses a `scopes` write on TIMING and EASING ("Cannot set
+// scopes on this variable type", spike #2403), so those rows hold ALL_SCOPES and nothing can change that. They are
+// held to exactly `['ALL_SCOPES']` instead, and must be REPRESENTED on every path that carries a type, so the
+// exemption cannot pass over nothing. Never keyed by name: a `/motion\//` exemption would hide a FLOAT that
+// wandered into `motion`, and that FLOAT is exactly what the no-ALL_SCOPES rule is for.
 // Expected values are LITERALS: the per-group scope sets in `CORE_SCOPES_2602` (and their paste codes, `m`
 // and `e`, in `CORE_CODES_2602`), `true`, `'ALL_SCOPES'`, `'*'`, `'core'` — never `PRIMITIVE_SCOPES` or
 // `CORE_COLLECTION` (docs/34 shape 1). Every `core` group is REPRESENTED per brand, so a renamed group
@@ -13933,8 +13942,9 @@ arm: {
     const std = parseStandardDesignMd(text);
     return brandTheme(isStandardDesignMd(std) ? standardToBrandInput(std).input : parseDesignMd(text).input);
   })])];
-  const coreBad: string[] = [], allScopes: string[] = [], unrepresented: string[] = [];
-  let brandsSwept = 0, coreSwept = 0, varsSwept = 0;
+  const UNSCOPED_2602 = ['TIMING', 'EASING']; // literal, never `UNSCOPED_TYPES` (docs/34 shape 1)
+  const coreBad: string[] = [], allScopes: string[] = [], unrepresented: string[] = [], unscopedBad: string[] = [], unscopedMissing: string[] = [];
+  let brandsSwept = 0, coreSwept = 0, varsSwept = 0, unscopedSwept = 0;
   const checkCore = (where: string, name: string, scopes: unknown, hidden: unknown, seen: Set<string>, paste = false): void => {
     coreSwept++;
     const g = CORE_GROUP.exec(name)?.[1];
@@ -13942,9 +13952,19 @@ arm: {
     const want = paste ? JSON.stringify(g && CORE_CODES_2602[g] ? [CORE_CODES_2602[g]] : []) : (g && CORE_SCOPES_2602[g]) || '[]';
     if (JSON.stringify(scopes) !== want || hidden !== true) coreBad.push(`${where}: ${name} scopes=${JSON.stringify(scopes)} (want ${want}) hidden=${JSON.stringify(hidden)}`);
   };
-  const checkAny = (where: string, name: string, scopes: unknown): void => {
+  const checkAny = (where: string, name: string, scopes: unknown, type?: string, types?: Set<string>): void => {
     varsSwept++;
+    if (type && UNSCOPED_2602.includes(type)) {
+      unscopedSwept++;
+      types?.add(type);
+      if (JSON.stringify(scopes) !== '["ALL_SCOPES"]') unscopedBad.push(`${where}: ${name} is ${type} with scopes=${JSON.stringify(scopes)}`);
+      return;
+    }
     if (Array.isArray(scopes) && scopes.includes('ALL_SCOPES')) allScopes.push(`${where}: ${name}`);
+  };
+  const typesRepresented = (where: string, types: Set<string>): void => {
+    const missing = UNSCOPED_2602.filter((t) => !types.has(t));
+    if (missing.length) unscopedMissing.push(`${where} [${missing.join(', ')}]`);
   };
   const represented = (where: string, seen: Set<string>): void => {
     const missing = GROUPS.filter((g) => !seen.has(g));
@@ -13953,16 +13973,17 @@ arm: {
   for (const [id, th] of loadedRows(brands)) {
     brandsSwept++;
     // the emission
-    const seenEmit = new Set<string>();
+    const seenEmit = new Set<string>(), typesEmit = new Set<string>();
     for (const a of figmaArtifacts(th!).artifacts) {
       const f = JSON.parse(a.content);
       if (!Array.isArray(f?.variables)) continue;
       for (const v of f.variables) {
-        checkAny(`${id} ${a.path}`, v.name, v.scopes);
+        checkAny(`${id} ${a.path}`, v.name, v.scopes, v.resolvedType, typesEmit);
         if (f.$collection === 'core') checkCore(`${id} ${a.path}`, v.name, v.scopes, v.hiddenFromPublishing, seenEmit);
       }
     }
     represented(`${id} emission`, seenEmit);
+    typesRepresented(`${id} emission`, typesEmit);
     // the plugin executor's plans
     const seenPlan = new Set<string>();
     for (const r of buildWritePlan(buildFigmaColor(th!)).palette) checkCore(`${id} plan palette`, r.name, r.scopes, r.hidden, seenPlan);
@@ -13971,24 +13992,28 @@ arm: {
       if (p.name === 'core') checkCore(`${id} plan ${p.name}`, r.name, r.scopes, r.hidden, seenPlan);
     }
     for (const p of buildFontVarPlan(th!)) for (const r of p.rows) {
-      checkAny(`${id} plan ${p.name}`, r.name, r.scopes);
+      checkAny(`${id} plan ${p.name}`, r.name, r.scopes, r.resolvedType);
       if (p.name === 'core') checkCore(`${id} plan ${p.name}`, r.name, r.scopes, r.hidden, seenPlan);
     }
     represented(`${id} plugin plan`, seenPlan);
+    const typesPlan = new Set<string>();
+    for (const p of buildMotionVarPlan(th!)) for (const r of p.rows) checkAny(`${id} plan ${p.name}`, r.name, r.scopes, r.resolvedType, typesPlan);
+    typesRepresented(`${id} plugin motion plan`, typesPlan);
   }
   // the committed trees + the paste payloads built from them
   const treeBrands = readdirSync(resolve(HERE, './out/figma'), { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name).sort();
   for (const b of treeBrands) {
-    const seenTree = new Set<string>();
+    const seenTree = new Set<string>(), typesTree = new Set<string>();
     for (const file of readdirSync(resolve(HERE, `./out/figma/${b}`)).filter((f) => f.endsWith('.json')).sort()) {
       const f = JSON.parse(readFileSync(resolve(HERE, `./out/figma/${b}/${file}`), 'utf8'));
       if (!Array.isArray(f?.variables)) continue;
       for (const v of f.variables) {
-        checkAny(`out/figma/${b}/${file}`, v.name, v.scopes);
+        checkAny(`out/figma/${b}/${file}`, v.name, v.scopes, v.resolvedType, typesTree);
         if (f.$collection === 'core') checkCore(`out/figma/${b}/${file}`, v.name, v.scopes, v.hiddenFromPublishing, seenTree);
       }
     }
     represented(`out/figma/${b}`, seenTree);
+    typesRepresented(`out/figma/${b}`, typesTree);
     // Paste payloads: the row literal each pass embeds. Palette rows are [name, code, desc, value, hidden];
     // dims-create and font-vars group rows per collection as [collection, axis, modes, rows], their rows
     // carrying the code at index 1 (dims) or 2 (font) and `hidden` at 3 (dims) or 4 (font).
@@ -14014,7 +14039,9 @@ arm: {
     `#2602 sweep floor: ${brandsSwept} brand(s) emitted (≥5), ${treeBrands.length} committed tree(s) (≥4), ${coreSwept} core row(s), ${varsSwept} variable row(s)`);
   ok(unrepresented.length === 0, '#2602 every `core` group (palette, dimension, font family/size/weight/weight-role/style) is represented on every path' + (unrepresented.length ? ` — MISSING: ${unrepresented.slice(0, 4).join('; ')}` : ''));
   ok(coreBad.length === 0, `#2602 every \`core\` variable is hidden from publishing and carries no scope, bar FONT_FAMILY on font/family and FONT_WEIGHT on font/weight and font/weight-role (Q292 A), in every brand and on every write path (${coreSwept} rows)` + (coreBad.length ? ` — ${coreBad.length} wrong: ${coreBad.slice(0, 4).join('; ')}` : ''));
-  ok(allScopes.length === 0, `#2602 no emitted variable carries ALL_SCOPES, in every brand and on every write path (${varsSwept} rows)` + (allScopes.length ? ` — ${allScopes.length} wrong: ${allScopes.slice(0, 4).join('; ')}` : ''));
+  ok(allScopes.length === 0, `#2602 no emitted variable carries ALL_SCOPES, in every brand and on every write path, bar TIMING and EASING (${varsSwept - unscopedSwept} rows)` + (allScopes.length ? ` — ${allScopes.length} wrong: ${allScopes.slice(0, 4).join('; ')}` : ''));
+  ok(unscopedMissing.length === 0 && unscopedSwept > 0, `#2412 TIMING and EASING rows are represented on every typed path, so the ALL_SCOPES exemption covers something (${unscopedSwept} rows)` + (unscopedMissing.length ? ` — MISSING: ${unscopedMissing.slice(0, 4).join('; ')}` : ''));
+  ok(unscopedBad.length === 0, `#2412 every TIMING and EASING row holds exactly ['ALL_SCOPES'], the only scope Figma lets it hold, in every brand and on every typed path (${unscopedSwept} rows)` + (unscopedBad.length ? ` — ${unscopedBad.length} wrong: ${unscopedBad.slice(0, 4).join('; ')}` : ''));
 }
 
 // ----------------------------------------- component-definition schema (docs/14 §2, DRAFT v0)
@@ -23484,6 +23511,37 @@ arm: {
   ok(/createVariable\(name,col,ty\)/.test(mv) && !/\.scopes\s*=/.test(mv),
     'materialise: motion-vars creates each variable with its own type and never writes scopes');
   ok(passOrder().includes('motion-vars'), 'materialise: motion-vars is in the paste order');
+}
+
+// The motion paste pass EXECUTED against the shared file model (#2412 review finding 1). A 0.235.0 file holds
+// `motion` as FLOAT ms. Before this check existed the pass wrote 0.2 into the FLOAT `duration-ms/200` (read as
+// 0.2ms) and then threw on the first TIMING alias, 37 variables in. Seeded with that one FLOAT, the pass must name
+// the mismatch and write nothing at all: no rename, no mode, no create, the FLOAT's 200 untouched. A clean file is
+// run too, so a pre-check that refused everything would fail here as well.
+{
+  type MotionPasteResult = { collections: { total: number; created: number }[]; bound: number; misses: string[] };
+  const AsyncFunction = Object.getPrototypeOf(async () => {}).constructor as new (...a: string[]) => (f: unknown) => Promise<MotionPasteResult>;
+  const run = (shim: FileShim) => new AsyncFunction('figma', passJs('nb', 'motion-vars'))(shim);
+  const name = 'nbds/motion/duration-ms/200';
+  const planned = buildMotionVarPlan(nbTheme()).flatMap((p) => p.rows);
+  ok(planned.find((r) => r.name === name)?.resolvedType === 'TIMING', `materialise: ${name} is a planned TIMING row (the seed below targets a real row)`);
+
+  const seeded = new FileShim();
+  const col = seeded.createVariableCollection('motion');
+  const legacy = seeded.createVariable(name, col, 'FLOAT');
+  legacy.setValueForMode(col.modes[0].modeId, 200);
+  let res: MotionPasteResult | undefined, threw = '';
+  try { res = await run(seeded); } catch (e) { threw = (e as Error).message; }
+  ok(!threw && !!res && res.misses.includes(`type:${name} is FLOAT, plan writes TIMING`) && res.collections.length === 0 && res.bound === 0,
+    `materialise: motion-vars over a FLOAT ${name} names the type mismatch and writes nothing (${threw ? `threw: ${threw}` : JSON.stringify(res?.misses)})`);
+  ok(seeded.vars.length === 1 && legacy.resolvedType === 'FLOAT' && legacy.valuesByMode[col.modes[0].modeId] === 200 && col.modes.length === 1 && col.modes[0].name === 'Mode 1',
+    `materialise: after the refusal the file is untouched — 1 variable, the FLOAT still 200, the collection's mode unrenamed (${seeded.vars.length} vars, value ${legacy.valuesByMode[col.modes[0].modeId]}, modes ${col.modes.map((m: any) => m.name)})`);
+
+  const clean = new FileShim();
+  let fresh: MotionPasteResult | undefined;
+  try { fresh = await run(clean); } catch (e) { threw = (e as Error).message; }
+  ok(!!fresh && fresh.misses.length === 0 && clean.vars.length === planned.length && fresh.bound > 0,
+    `materialise: motion-vars on a clean file creates all ${planned.length} motion variables with no miss (${fresh ? `${clean.vars.length} created, ${fresh.bound} bound, misses ${JSON.stringify(fresh.misses.slice(0, 3))}` : `threw: ${threw}`})`);
 }
 
 // ------------------------------------------- materialise-to-figma: the FLOAT paste path (#342)

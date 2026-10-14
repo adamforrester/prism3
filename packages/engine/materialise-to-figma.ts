@@ -691,6 +691,11 @@ return {collections:out,bound,misses};
 // Its own pass rather than a row type in `dims-create` or `font-vars`: TIMING and EASING are the two types Figma
 // refuses a `scopes` write on, and an EASING value is an object, so neither the FLOAT nor the font loop fits.
 // Create-then-bind in one payload, like `font-vars`: the roles alias curves in the same collection.
+// TYPES ARE CHECKED BEFORE ANY WRITE, and one mismatch writes nothing. Figma can't retype a variable, so a 0.235.0
+// file's FLOAT `motion/duration-ms/200` would otherwise take the seconds value (0.2, read as 0.2ms) and the bind
+// loop would then throw on the first TIMING alias, leaving the file half written. Apply replaces those FLOATs in
+// its own STAMPED collection (Q293 1, `replacesOnRetype`); this pass neither reads nor writes the stamp, so it
+// cannot tell Prism3's collection from a look-alike and refuses every mismatch, naming each one.
 const motionVarsPass = (brand: string): string => {
   // row: [collection, modes, [[name, type, description, hidden, [value per mode], [alias per mode]]]]
   const M = motionVarPlans(brand).map((p) => [
@@ -703,6 +708,13 @@ const motionVarsPass = (brand: string): string => {
   return `${PRELUDE}
 const M=${JSON.stringify(M)};
 const out=[];const byNameGlobal=new Map();const modeIdsByCol={};
+const typeMisses=[];
+for(const [cname,,rows] of M){
+  const col=await findCol(cname);if(!col)continue;
+  const have=new Map((await figma.variables.getLocalVariablesAsync()).filter(v=>v.variableCollectionId===col.id).map(v=>[v.name,v]));
+  for(const [name,ty] of rows){const v=have.get(name);if(v&&v.resolvedType!==ty)typeMisses.push('type:'+name+' is '+v.resolvedType+', plan writes '+ty);}
+}
+if(typeMisses.length)return {collections:[],bound:0,misses:typeMisses};
 for(const [cname,MODES,rows] of M){
   let col=await findCol(cname);
   if(!col)col=figma.variables.createVariableCollection(cname);
