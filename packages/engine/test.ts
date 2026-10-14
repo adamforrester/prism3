@@ -6012,11 +6012,11 @@ arm: {
 
   // THE PAINT TABLE (owner decisions, 2026-09-28), member by member. SUBTLE status: the tone's tint under the
   // tone's text ink, edged in the tone's border role; neutral is the second surface under the primary text,
-  // edged in the secondary border. BOLD status, count and dot: the solid tone fill under `text.on-<tone>`;
+  // edged in the TERTIARY border, the first neutral edge contracted at 3:1 on every ground (#2569). BOLD status, count and dot: the solid tone fill under `text.on-<tone>`;
   // bold neutral is the inverse surface under its ink. The count and dot have no subtle member.
   type Paint = { fill: string; label?: string; border?: string };
   const PAINT: Record<string, Paint> = {
-    'neutral.status.subtle': { fill: 'foreground.secondary', label: 'text.primary', border: 'border.secondary' },
+    'neutral.status.subtle': { fill: 'foreground.secondary', label: 'text.primary', border: 'border.tertiary' },
     'neutral.status.bold': { fill: 'inverse.foreground.tertiary', label: 'inverse.text.primary' },
     'neutral.count.bold': { fill: 'inverse.foreground.tertiary', label: 'inverse.text.primary' },
     'neutral.dot.bold': { fill: 'inverse.foreground.tertiary' },
@@ -6175,7 +6175,8 @@ arm: {
 // The badge block above MEASURES the neutral pairs in the example brands; this holds that the engine CONTRACTS
 // them, so a client brand is checked at generation time too. Three pairs, each written here as a literal rather
 // than read from `modes.ts`:
-//   1. `border.secondary` (the subtle neutral edge) against `background.primary` at the non-text bar;
+//   1. `border.tertiary` (the subtle neutral edge since #2569; `border.secondary` before it became decorative)
+//      against `background.primary` at the non-text bar;
 //   2. `inverse.foreground.tertiary` (the bold neutral fill) against `background.primary` at the same bar;
 //   3. `inverse.text.primary` (the bold neutral label) on that fill at 4.5:1 — the fill's SECOND pair, because
 //      the ink's own `against` is already the inverse band.
@@ -6196,13 +6197,13 @@ arm: {
   for (const [brand, th] of themes) for (const m of resolveAllModes(th)) {
     cells++;
     const bar = NON_TEXT[m.mode];
-    const edge = m.roles['border.secondary'], fill = m.roles['inverse.foreground.tertiary'];
-    if (edge?.against !== 'background.primary' || edge?.min !== bar) wrong.push(`${brand}/${m.mode} border.secondary ${edge?.against}@${edge?.min}`);
+    const edge = m.roles['border.tertiary'], fill = m.roles['inverse.foreground.tertiary'];
+    if (edge?.against !== 'background.primary' || edge?.min !== bar) wrong.push(`${brand}/${m.mode} border.tertiary ${edge?.against}@${edge?.min}`);
     if (fill?.against !== 'background.primary' || fill?.min !== bar) wrong.push(`${brand}/${m.mode} inverse.foreground.tertiary ${fill?.against}@${fill?.min}`);
     if (JSON.stringify(fill?.alsoAgainst) !== JSON.stringify({ against: 'inverse.text.primary', min: 4.5 })) wrong.push(`${brand}/${m.mode} inverse.foreground.tertiary second pair ${JSON.stringify(fill?.alsoAgainst)}`);
   }
   ok(cells === 20 && wrong.length === 0,
-    `#1745 the three neutral pairs are contracted in all ${cells} of 20 brand × mode cells: border.secondary and inverse.foreground.tertiary against background.primary at 3:1 (4.5:1 in HC), and inverse.text.primary on inverse.foreground.tertiary at 4.5:1${wrong.length ? ` — ${wrong.slice(0, 6).join('; ')}` : ''}`);
+    `#1745 the three neutral pairs are contracted in all ${cells} of 20 brand × mode cells: border.tertiary and inverse.foreground.tertiary against background.primary at 3:1 (4.5:1 in HC), and inverse.text.primary on inverse.foreground.tertiary at 4.5:1${wrong.length ? ` — ${wrong.slice(0, 6).join('; ')}` : ''}`);
 
   const ratioOf = (m: any, a: string, b: string): number => contrast(hexToRgb(m.roles[a].hex), hexToRgb(m.roles[b].hex));
   const lightOf = (bi: BrandInput) => resolveAllModes(brandTheme(bi)).find((m) => m.mode === 'light')!;
@@ -6210,7 +6211,7 @@ arm: {
   // One synthetic brand per pair. Named literally, so dropping one fails by name instead of shrinking the proof
   // (each arm below is guarded, so a dropped brand reads as this failure rather than a crash).
   const SYNTH: Record<string, BrandInput> = {
-    // A warm neutral on an off-white page: the neutral step closest to the edge target lands under 3:1.
+    // A warm neutral on an off-white page: the neutral step closest to the old edge target lands under 3:1.
     edge: { ...MINIMAL_BRAND, id: 't1745-edge', neutral: { hue: 60, chroma: 0.03 }, surfaces: { light: { base: 100 } } } as BrandInput,
     // A mid-dark band: the ink still clears its own 7:1 on the band, but not 4.5:1 on the band's third step.
     label: { ...MINIMAL_BRAND, id: 't1745-label', surfaces: { light: { inverseBase: 650 } } } as BrandInput,
@@ -6220,7 +6221,8 @@ arm: {
   ok(['edge', 'label', 'fill'].every((k) => k in SYNTH), `#1745 one synthetic brand per neutral pair: edge, label, fill (got ${Object.keys(SYNTH).join(', ')})`);
 
   // (1) THE EDGE — the solver repairs it. Live check first: the step the pre-#1745 rule picked (the neutral step
-  // whose contrast on the page is closest to 1.4 × 2.2 = 3.08) is under 3:1, recomputed here from the ramp.
+  // whose contrast on the page is closest to 1.4 × 2.2 = 3.08) is under 3:1, recomputed here from the ramp. The
+  // edge is `border.tertiary` since #2569, and the repair is the same: it clears 3:1 on the page, unwarned.
   if (SYNTH.edge) {
     const th = brandTheme(SYNTH.edge);
     const m = lightOf(SYNTH.edge);
@@ -6229,9 +6231,9 @@ arm: {
     const closest = neutral.map((s: any) => ({ key: s.key, r: contrast(s.rgb, page) })).sort((a: any, b: any) => Math.abs(a.r - 3.08) - Math.abs(b.r - 3.08))[0];
     ok(closest.r < 3,
       `#1745 edge fixture is live: under the old rule border.secondary took neutral.${closest.key} at ${closest.r.toFixed(2)}:1 on the page, below 3:1`);
-    const r = ratioOf(m, 'border.secondary', 'background.primary');
-    ok(r >= 3 && warnsOf(m, 'border.secondary').length === 0,
-      `#1745 edge repaired: border.secondary (${m.roles['border.secondary'].path.split('.').pop()}) clears 3:1 on the page at ${r.toFixed(2)} in the edge fixture, and no warning names it`);
+    const r = ratioOf(m, 'border.tertiary', 'background.primary');
+    ok(r >= 3 && warnsOf(m, 'border.tertiary').length === 0,
+      `#1745 edge repaired: border.tertiary (${m.roles['border.tertiary'].path.split('.').pop()}) clears 3:1 on the page at ${r.toFixed(2)} in the edge fixture, and no warning names it`);
   }
   // (2) THE LABEL ON THE BOLD NEUTRAL FILL — the contract catches it. The band is declared, so nothing moves it; the
   // shortfall is named, with the ink as the partner.
@@ -6620,7 +6622,7 @@ arm: {
     return { fill: plan.root.paints?.fills, stroke: plan.root.paints?.strokes, radius: plan.root.bound?.topLeftRadius, refs, names: planPartNames(plan.root) };
   };
   const BADGE_REST: Record<string, { fill: string; stroke?: string }> = {
-    'subtle.neutral': { fill: 'color/foreground/secondary', stroke: 'color/border/secondary' },
+    'subtle.neutral': { fill: 'color/foreground/secondary', stroke: 'color/border/tertiary' },
     ...Object.fromEntries(['info', 'success', 'warning', 'danger'].map((t) => [`subtle.${t}`, { fill: `color/foreground/${t}-subtle`, stroke: `color/border/${t}` }])),
     'bold.neutral': { fill: 'color/inverse/foreground/tertiary' },
     ...Object.fromEntries(['info', 'success', 'warning', 'danger'].map((t) => [`bold.${t}`, { fill: `color/foreground/${t}` }])),
@@ -10824,6 +10826,123 @@ arm: {
   }
 }
 
+// (10g-iii) #2569 — THE BORDER LADDER IS TWO DECORATIVE RUNGS, THEN THE FIRST ACCESSIBLE ONE (owner Q259 C).
+//
+// Four claims, each against an EXPECTED stated here as a literal and an ACTUAL measured from the emitted hexes —
+// never from a role's own `ratio`, `min` or `against`, and never from `modes.ts`'s target table, which is the
+// subject (`docs/34`):
+//   1. `border.secondary` is DECORATIVE: it lands near 2:1 on the page in light and near 2.4:1 in dark (owner
+//      Q270.2), UNDER 3:1 on every ground. A rung that regains the old 3:1 floor lands on step 400 (3.2–3.3:1)
+//      and fails here by name. In dark it is also a FULL 100 steps from `border.primary` (Q270.2: a half step
+//      reads as the same line), measured on the emitted step names against a literal spacing.
+//   2. `border.tertiary` clears the non-text bar against EVERY ground it can sit on — the three page tiers and
+//      the three surface tiers — in every mode of every brand (#2498). The grounds are listed here, not read
+//      from the role's `alsoAgainst`, so dropping one from the picker's list cannot shrink this proof.
+//   3. Badge's subtle neutral edge and a separator Divider bind `border.tertiary`; the decorative Divider and
+//      Tab's hover bar stay on `border.secondary`.
+//   4. `border.tertiary` is the FIRST step that clears: one notch toward the page misses the bar somewhere.
+//   (Distinct rungs are (10g-ii)'s, just above.)
+{
+  const NON_TEXT_2569: Record<string, number> = { light: 3, dark: 3, 'hc-light': 4.5, 'hc-dark': 4.5, wireframe: 3 };
+  const GROUNDS_2569 = ['background.primary', 'background.secondary', 'background.tertiary', 'foreground.primary', 'foreground.secondary', 'foreground.tertiary'];
+  const rows2569: { id: string; theme: any }[] = [
+    ...corpus(),
+    ...loadedRows([['prism3 (example)', exampleTheme('prism3', () => brandTheme(exampleBrands()['prism3'] as BrandInput))]]).map(([id, theme]) => ({ id: id as string, theme })),
+  ];
+  const SECONDARY_CENTER_2569: Record<string, number> = { light: 2, dark: 2.4 };
+  const DARK_RUNG_GAP_Q270 = 100;
+  const decorative: string[] = [], shortfall: string[] = [], tooClose: string[] = [];
+  let stdCells = 0, cells = 0, pairs = 0, darkCells = 0;
+  for (const { id, theme } of rows2569) for (const m of resolveAllModes(theme)) {
+    const bar = NON_TEXT_2569[m.mode];
+    if (bar === undefined) { shortfall.push(`${id}/${m.mode}: no bar stated for this mode`); continue; }
+    cells++;
+    const hexOf = (k: string) => m.roles[k]?.hex;
+    if (m.mode === 'light' || m.mode === 'dark') {
+      stdCells++;
+      const r = contrast(hexToRgb(hexOf('border.secondary')!), hexToRgb(hexOf('background.primary')!));
+      if (!(Math.abs(r - SECONDARY_CENTER_2569[m.mode]) <= 0.4)) decorative.push(`${id}/${m.mode} ${m.roles['border.secondary'].path.split('.').pop()} at ${r.toFixed(2)} on the page`);
+      for (const g of GROUNDS_2569) {
+        const rg = m.roles[g] ? contrast(hexToRgb(hexOf('border.secondary')!), hexToRgb(hexOf(g)!)) : NaN;
+        if (!(rg < 3)) decorative.push(`${id}/${m.mode} on ${g}: ${Number.isNaN(rg) ? 'absent' : rg.toFixed(2)}`);
+      }
+    }
+    if (m.mode === 'dark') {
+      darkCells++;
+      const stepOf = (k: string) => Number(m.roles[k]?.path.split('.').pop());
+      const gap = Math.abs(stepOf('border.primary') - stepOf('border.secondary'));
+      if (!(gap >= DARK_RUNG_GAP_Q270)) tooClose.push(`${id}: primary ${stepOf('border.primary')}, secondary ${stepOf('border.secondary')} (${gap} apart)`);
+    }
+    const edge = hexOf('border.tertiary');
+    for (const g of GROUNDS_2569) {
+      const gh = hexOf(g);
+      if (!edge || !gh) { shortfall.push(`${id}/${m.mode}: ${!edge ? 'border.tertiary' : g} absent`); continue; }
+      pairs++;
+      const r = contrast(hexToRgb(edge), hexToRgb(gh));
+      if (r < bar) shortfall.push(`${id}/${m.mode} on ${g}: ${r.toFixed(2)} < ${bar}`);
+    }
+  }
+  ok(decorative.length === 0 && stdCells >= 8,
+    `#2569 border.secondary is a decorative rung: ~2:1 on the page in light, ~2.4:1 in dark, and under 3:1 on every ground in every light and dark mode (${stdCells} cells, floor 8)${decorative.length ? ` — ${decorative.join('; ')}` : ''}`);
+  ok(tooClose.length === 0 && darkCells >= 4,
+    `#2569 Q270.2 dark border.primary and border.secondary sit at least ${DARK_RUNG_GAP_Q270} steps apart in every brand (${darkCells} cells, floor 4)${tooClose.length ? ` — ${tooClose.join('; ')}` : ''}`);
+  ok(shortfall.length === 0 && pairs === cells * GROUNDS_2569.length && cells >= 16,
+    `#2569 border.tertiary clears the non-text bar (3:1, 4.5:1 in HC) on every page and surface tier, in every mode of every brand (${pairs} pairs over ${cells} cells, floor 16 cells)${shortfall.length ? ` — ${shortfall.join('; ')}` : ''}`);
+
+  // 4. ...and it is the FIRST step that clears: in light and dark, the neutral step one notch toward the page
+  //    from tertiary's emitted step misses the literal bar on at least one of the six grounds. Without this a
+  //    tertiary back on the old ~6.8:1 pick passes claims 1–2 and makes the shipped "first edge" prose false.
+  //    "Toward the page" is measured (the neighbour quieter on `background.primary`), not read off a direction.
+  const notFirst: string[] = [];
+  let firstCells = 0;
+  for (const { id, theme } of rows2569) for (const m of resolveAllModes(theme)) {
+    if (m.mode !== 'light' && m.mode !== 'dark') continue;
+    firstCells++;
+    const role = m.roles['border.tertiary'], page = m.roles['background.primary'];
+    const segs = role?.path.split('.') ?? [];
+    const steps = [...(theme.palettes.find((p: any) => p.palette === segs[segs.length - 2])?.steps ?? [])].sort((a: any, b: any) => a.num - b.num);
+    const at = steps.findIndex((s: any) => s.key === segs[segs.length - 1]);
+    if (!role || !page || at < 0 || steps[at].hex.toLowerCase() !== role.hex.toLowerCase()) { notFirst.push(`${id}/${m.mode}: tertiary ${role?.path ?? 'absent'} not found on its ramp`); continue; }
+    const vsPage = (hex: string) => contrast(hexToRgb(hex), hexToRgb(page.hex));
+    const quieter = [steps[at - 1], steps[at + 1]].filter((s: any) => s && vsPage(s.hex) < vsPage(role.hex)).sort((a: any, b: any) => vsPage(b.hex) - vsPage(a.hex))[0];
+    if (!quieter) { notFirst.push(`${id}/${m.mode}: no quieter neighbour of ${role.path}`); continue; }
+    const misses = GROUNDS_2569.filter((g) => m.roles[g] && contrast(hexToRgb(quieter.hex), hexToRgb(m.roles[g].hex)) < NON_TEXT_2569[m.mode]);
+    if (misses.length === 0) notFirst.push(`${id}/${m.mode}: ${quieter.key} (one notch quieter than ${segs[segs.length - 1]}) already clears ${NON_TEXT_2569[m.mode]}:1 on all six grounds`);
+  }
+  ok(notFirst.length === 0 && firstCells >= 8,
+    `#2569 border.tertiary is the quietest step that clears every ground: one notch toward the page misses the bar on at least one of the six, in every light and dark mode (${firstCells} cells, floor 8)${notFirst.length ? ` — ${notFirst.join('; ')}` : ''}`);
+
+  const tokOf = (def: any, k: string) => def.tokens?.[k];
+  const BIND_2569: [string, any, string, string][] = [
+    ['badge subtle neutral edge', componentDefs.find((d) => d.id === 'badge'), 'neutral.status.subtle.border', 'color.border.tertiary'],
+    ['divider separator (decorative=false)', divider, 'separator.fill', 'color.border.tertiary'],
+    ['divider decorative default', divider, 'fill', 'color.border.secondary'],
+    ['tab hover bar', tab, 'unselected.fill.hover', 'color.border.secondary'],
+  ];
+  const wrongBind = BIND_2569.filter(([, def, k, want]) => tokOf(def, k) !== want).map(([what, def, k, want]) => `${what}: ${k} → ${tokOf(def, k) ?? 'unbound'} (want ${want})`);
+  ok(wrongBind.length === 0,
+    `#2569 the meaningful edges bind border.tertiary (badge's subtle neutral edge, a separator divider) and the decorative ones stay on border.secondary (the default divider, tab's hover bar)${wrongBind.length ? ` — ${wrongBind.join('; ')}` : ''}`);
+
+  // 5. Q270.6 — HC's `border.secondary` clears 4.5:1, so its description must not call it "decorative"; light
+  //    and dark's still must. Read from the EMITTED DTCG `$description` per mode file, against these literals —
+  //    both directions, so dropping the word everywhere fails as surely as putting it back in HC.
+  const WANT_DECORATIVE_Q270: [string, string, boolean][] = [
+    ['light', 'base', true], ['dark', 'dark.overlay', true], ['hc-light', 'hc-light.overlay', false], ['hc-dark', 'hc-dark.overlay', false],
+  ];
+  const wrongDesc: string[] = [];
+  let descCells = 0;
+  for (const brand of ['prism3', 'nb', 'aurora', 'harbor', 'wendys']) for (const [mode, file, want] of WANT_DECORATIVE_Q270) {
+    const tree: any = JSON.parse(readFileSync(resolve(HERE, 'out', `${brand}.${file}.tokens.json`), 'utf8'));
+    const root = Object.keys(tree).filter((k) => !k.startsWith('$'));
+    const desc = root.length === 1 ? tree[root[0]]?.color?.border?.secondary?.$description : undefined;
+    if (typeof desc !== 'string') { wrongDesc.push(`${brand}/${mode}: no emitted border.secondary description`); continue; }
+    descCells++;
+    if (/decorative/i.test(desc) !== want) wrongDesc.push(`${brand}/${mode}: "${desc}" (want ${want ? 'with' : 'without'} "decorative")`);
+  }
+  ok(wrongDesc.length === 0 && descCells >= 20,
+    `#2569 Q270.6 border.secondary's HC description drops "decorative" (and light and dark keep it), in the emitted DTCG of every brand (${descCells} cells, floor 20)${wrongDesc.length ? ` — ${wrongDesc.join('; ')}` : ''}`);
+}
+
 // (10h) #575 — the OUTLINE-METHOD contract: for every `outlineInteraction` value, the role
 // `outlineFillFamily` names is the role the engine actually emits, and the family it does NOT name
 // is absent.
@@ -11111,6 +11230,13 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   { mode: 'hc-dark', name: 'color/border/danger', nb: 'palette/red/500', engine: 'palette/red/450' },        // HC: 500 at 3.82:1 (clears 3:1)
   { mode: 'hc-dark', name: 'color/border/warning', nb: 'palette/amber/500', engine: 'palette/amber/450' },   // HC: 500 at 3.89:1 (clears 3:1)
   { mode: 'hc-dark', name: 'color/border/success', nb: 'palette/green/450', engine: 'palette/green/400' },   // HC: 450 at 4.26:1 (clears 3:1)
+  // EIGHTH group (#2569, owner Q259 C): `border/secondary` in the STANDARD modes. NB authored the second neutral
+  // rung at ~3:1 (400 light, 500 dark); the owner made it a DECORATIVE ~2:1 rung with no floor, so two
+  // decorative shades come before the accessible one, `border/tertiary` (an engine addition NB predates, not a
+  // divergence). HC is absent: its escalated targets are unchanged and still reproduce NB's authored steps.
+  // Dark lands on 650 (~2.4:1), a full 100 from `border/primary`'s 750 (owner Q270.2), not 700.
+  { mode: 'light', name: 'color/border/secondary', nb: 'palette/neutral/400', engine: 'palette/neutral/250' },
+  { mode: 'dark', name: 'color/border/secondary', nb: 'palette/neutral/500', engine: 'palette/neutral/650' },
 ];
 
 // Figma SCOPES the engine intentionally emits DIFFERENTLY from the frozen real-NB export (#1484).
@@ -15166,26 +15292,32 @@ arm: {
       ok(washes.length === 0 && bodyPaints.length === 0,
         `#2416 Q178.2 no hover wash: no tab member paints an overlay and the tab body paints nothing (${washes.length} overlay paint(s), ${bodyPaints.length} painted bod(ies) — ${[...washes, ...bodyPaints].slice(0, 3).join('; ') || 'none'})`);
 
-      // (3) THE NEUTRAL HOVER BAR CLEARS 3:1 AGAINST THE PAGE in every brand and mode with a committed Figma export.
-      // The variable is read off the PLAN (the subject); the values come from the committed exports; the floor and
-      // the represented cells are literals. Four brands × four modes, stated, so a missing export fails here.
+      // (3) THE NEUTRAL HOVER BAR PREVIEWS THE SELECTED BAR, LIGHTER, in every brand and mode with a committed Figma
+      // export. It cleared 3:1 until #2569 (owner Q259 C) made `border.secondary` a decorative ~2:1 rung; the bar
+      // stays on it, and reading lighter than the selected bar is what the owner kept (Q224/Q225). So the claim, in
+      // light and dark: visibly off the page (above 1.5:1) and below the selected bar's own contrast, cell by cell.
+      // HC's ladder did not move (its escalated target still lands near 10:1), so there the bar holds HC's 4.5:1
+      // non-text bar, as it always has, and is not lighter than the selected bar. The variables are
+      // read off the PLAN (the subject); the values come from the committed exports; the bound and the represented
+      // cells are literals. Four brands × four modes, stated, so a missing export fails here.
       const BAR_BRANDS = ['aurora', 'nb', 'prism3', 'wendys'];
       const BAR_MODES = ['light', 'dark', 'hc-light', 'hc-dark'];
       const hoverBar = findIn(memberOf('unselected', 'medium', 'hover')!.root, 'indicator')?.paints?.fills;
+      const selectedBar = findIn(memberOf('selected', 'medium', 'rest')!.root, 'indicator')?.paints?.fills;
       const toRgb = (c: { r: number; g: number; b: number }): RGB => ({ r: c.r * 255, g: c.g * 255, b: c.b * 255 });
-      const cells: { cell: string; ratio: number }[] = [];
+      const cells: { cell: string; ratio: number; selected: number }[] = [];
       const barMissing: string[] = [];
       for (const brand of BAR_BRANDS) for (const mode of BAR_MODES) {
         const f = resolve(HERE, `./out/figma/${brand}/color.${mode}.json`);
         if (!existsSync(f)) { barMissing.push(`${brand}/${mode}: no export`); continue; }
         const vars = new Map((JSON.parse(readFileSync(f, 'utf8')).variables as { name: string; value: { r: number; g: number; b: number; a?: number } }[]).map((v) => [v.name.replace(/^[^/]+\//, ''), v.value]));
-        const fg = hoverBar ? vars.get(hoverBar) : undefined, bg = vars.get('color/background/primary');
-        if (!fg || !bg || (fg.a ?? 1) !== 1) { barMissing.push(`${brand}/${mode}: ${String(hoverBar)} ${fg ? `alpha ${fg.a}` : 'missing'}`); continue; }
-        cells.push({ cell: `${brand}/${mode}`, ratio: contrast(toRgb(fg), toRgb(bg)) });
+        const fg = hoverBar ? vars.get(hoverBar) : undefined, sel = selectedBar ? vars.get(selectedBar) : undefined, bg = vars.get('color/background/primary');
+        if (!fg || !sel || !bg || (fg.a ?? 1) !== 1) { barMissing.push(`${brand}/${mode}: ${String(hoverBar)} ${fg ? `alpha ${fg.a}` : 'missing'}, ${String(selectedBar)} ${sel ? 'ok' : 'missing'}`); continue; }
+        cells.push({ cell: `${brand}/${mode}`, ratio: contrast(toRgb(fg), toRgb(bg)), selected: contrast(toRgb(sel), toRgb(bg)) });
       }
-      const lowest = cells.reduce((a, c) => (c.ratio < a.ratio ? c : a), { cell: 'none', ratio: Infinity });
-      ok(cells.length === 16 && barMissing.length === 0 && lowest.ratio >= 3,
-        `#2416 Q178.2 the neutral hover bar (${String(hoverBar)}) clears 3:1 against color/background/primary in all 16 brand × mode cells (${cells.length} measured, lowest ${lowest.ratio.toFixed(2)}:1 at ${lowest.cell}${barMissing.length ? `; ${barMissing.join('; ')}` : ''})`);
+      const offBar = cells.filter((c) => (c.cell.includes('/hc-') ? !(c.ratio >= 4.5) : !(c.ratio > 1.5 && c.ratio < c.selected))).map((c) => `${c.cell} ${c.ratio.toFixed(2)} vs selected ${c.selected.toFixed(2)}`);
+      ok(cells.length === 16 && barMissing.length === 0 && offBar.length === 0,
+        `#2416 Q178.2 / #2569 the neutral hover bar (${String(hoverBar)}) sits visibly off color/background/primary (above 1.5:1) and lighter than the selected bar (${String(selectedBar)}) in the 8 light and dark cells, and clears 4.5:1 in the 8 HC cells (${cells.length} measured${offBar.length ? ` — ${offBar.join('; ')}` : ''}${barMissing.length ? `; ${barMissing.join('; ')}` : ''})`);
 
       // (4) THE WEIGHT CUE, WITH NO WIDTH CHANGE (Q226 A, revising Q178.1 A's one weight). At every size and state the
       // selected and unselected members carry the same structure, every node's name, text style and bound geometry,
@@ -29927,46 +30059,81 @@ arm: {
     '#2417 drawnInside: on a non-absolute part, it is refused by name');
   ok(validateComponentDef(withRing({ drawnInside: undefined })).errors.some((m) => /binds no 'strokeInset'/.test(m)),
     '#2417 drawnInside: without it, the #801 rule refuses an uncompensated ring again');
-  // THE GLYPH CENTERS ON THE TITLE'S FIRST LINE (owner Q262 A, revising the QA's center-left): the header row is
-  // top-aligned, the indicator box is as tall as the row with its glyph at the top (Prism2's icon container), and the
-  // title sits 2px lower (Prism2's 2px icon offset, mirrored, because here the title's line is the shorter of the two).
-  // A layout model reads the PLAN's own alignments and each brand's EMITTED tokens, places a TWO-LINE title and the
-  // glyph, and measures line one's center against the glyph's. EXPECTED (within 1px) is typed here. Mutation: the
-  // header back to center alignment → this arm, by name (the glyph then centers on the two-line block).
+  // THE GLYPH CENTERS ON THE TITLE'S FIRST LINE (owner Q262 A, revising the QA's center-left; kept by Q276 A): the
+  // glyph and the title share a row whose items are top-aligned, the indicator box is as tall as that row with its
+  // glyph at the top (Prism2's icon container), and the title sits 2px lower (Prism2's 2px icon offset, mirrored,
+  // because here the title's line is the shorter of the two). A layout model reads the PLAN's own alignments and each
+  // brand's EMITTED tokens, places a one- and a TWO-LINE title and the glyph inside the indicator's parent row, and
+  // measures line one's center against the glyph's. EXPECTED (within 1px, and the row top-aligned as Q262 A and Q276 A
+  // state it) is typed here. Mutations: the row's items centered → this arm, by name (the alignment literal: with the
+  // indicator stretched and the title the taller box, centering moves nothing a model can measure); the indicator
+  // box centering its glyph → this arm (the glyph then centers on the two-line block).
   type PL = PN & { counterAxisAlignItems?: string; layoutAlign?: string };
   const emitted = (b: string) => { const t = JSON.parse(readFileSync(resolve(HERE, `out/${b}.tokens.json`), 'utf8')); return t[Object.keys(t).find((k) => !k.startsWith('$'))!]; };
   const at = (root: any, ref: string): any => ref.replace(/^\{|\}$/g, '').split('.').slice(ref.startsWith('{') ? 1 : 0).reduce((n: any, k) => n?.[k], root);
   const num = (root: any, v: any): number => { const leaf = typeof v === 'string' && v.startsWith('{') ? at(root, v) : v; if (leaf && typeof leaf === 'object' && '$value' in leaf) return leaf.$extensions?.prism3?.px ?? num(root, leaf.$value); return parseFloat(String(leaf)); };
-  const RUNG_OF: Record<string, string> = { small: 'sm', medium: 'md', large: 'lg' };
+  const parentOf = (n: PN, name: string): PN | undefined => (n.children.some((c) => c.name === name) ? n : n.children.map((c) => parentOf(c, name)).find(Boolean));
+  const varPx = (root: any, v: string | undefined) => (v ? num(root, at(root, v.replace(/\//g, '.'))) : 0);
+  const place = (align: string | undefined, h: number, inH: number) => (align === 'CENTER' ? (inH - h) / 2 : align === 'MAX' ? inH - h : 0);
   const off: string[] = [];
   let measured = 0;
   for (const b of ['nb', 'prism3', 'aurora', 'harbor', 'wendys']) {
     const root = emitted(b);
     for (const p of plans.filter((q) => coord(q).iconPosition === 'leading' && coord(q).state === 'rest' && coord(q).expansion === 'collapsed')) {
       const size = coord(p).size;
-      const header = find(p.root as PN, 'header') as PL, box = find(p.root as PN, 'leadingIndicator') as PL, tb = find(p.root as PN, 'titleBox') as PL;
+      const row = parentOf(p.root as PN, 'leadingIndicator') as PL | undefined, box = find(p.root as PN, 'leadingIndicator') as PL, tb = find(p.root as PN, 'titleBox') as PL;
       const glyph = num(root, at(root, ind.tokens[`size.${size}.icon`]));
       const type = at(root, acc.tokens[`size.${size}.type`]).$value;
       const line = num(root, type.fontSize) * num(root, type.lineHeight);
       // The offset the PLAN binds on the title's column, read back as a token path; absent means none.
-      const padVar = tb?.bound?.paddingTop;
-      const offset = padVar ? num(root, at(root, padVar.replace(/\//g, '.'))) : 0;
+      const offset = varPx(root, tb?.bound?.paddingTop);
       for (const lines of [1, 2]) {
       const title = offset + lines * line; // a one-line and a TWO-LINE title
       const H = Math.max(glyph, title);
-      const place = (align: string | undefined, h: number, inH: number) => (align === 'CENTER' ? (inH - h) / 2 : align === 'MAX' ? inH - h : 0);
-      // The indicator box stretches to the row (STRETCH) or sits at the header's alignment; the glyph sits in it at the box's own.
+      // The indicator box stretches to the row (STRETCH) or sits at the row's alignment; the glyph sits in it at the box's own.
       const boxH = box.layoutAlign === 'STRETCH' ? H : glyph;
-      const boxTop = box.layoutAlign === 'STRETCH' ? 0 : place(header.counterAxisAlignItems, glyph, H);
+      const boxTop = box.layoutAlign === 'STRETCH' ? 0 : place(row?.counterAxisAlignItems, glyph, H);
       const glyphMid = boxTop + place(box.counterAxisAlignItems, glyph, boxH) + glyph / 2;
-      const lineOneMid = place(header.counterAxisAlignItems, title, H) + offset + line / 2;
+      const lineOneMid = place(row?.counterAxisAlignItems, title, H) + offset + line / 2;
       measured++;
-      if (!(tb && header.counterAxisAlignItems === 'MIN' && Math.abs(glyphMid - lineOneMid) <= 1)) off.push(`${b} ${size} ${lines}-line (header ${header.counterAxisAlignItems}): glyph center ${glyphMid.toFixed(2)} vs line one ${lineOneMid.toFixed(2)}`);
+      if (!(tb && row?.counterAxisAlignItems === 'MIN' && Math.abs(glyphMid - lineOneMid) <= 1)) off.push(`${b} ${size} ${lines}-line (row ${row?.name} ${row?.counterAxisAlignItems}): glyph center ${glyphMid.toFixed(2)} vs line one ${lineOneMid.toFixed(2)}`);
       }
     }
   }
   ok(measured === 30 && off.length === 0,
-    `#2417 accordion header (Q262): top-aligned, and on a one- and a two-line title the glyph centers on line one, within 1px, at every size in every brand (${measured} measured${off.length ? `; OFF: ${off.join('; ')}` : ''})`);
+    `#2417 accordion header (Q262): the glyph's row is top-aligned, and on a one- and a two-line title the glyph centers on line one, within 1px, at every size in every brand (${measured} measured${off.length ? `; OFF: ${off.join('; ')}` : ''})`);
+  // A SINGLE LINE IS CENTERED IN THE HEADER (owner Q276 A, #2594): the header is top-aligned no more. It centers one
+  // row holding the indicator and the title, so the 44px floor's slack falls evenly above and below the content
+  // rather than all of it below (measured on a live build: 6px high at small). EXPECTED is the header's own middle,
+  // half of max(min-height, padding + content), from each brand's EMITTED min-height, padding, glyph size and label
+  // type; ACTUAL places the content with the PLAN's alignments. Within 0.5px, typed here. Mutation: the header back to
+  // top-aligned with no row → this arm, by name.
+  const offC: string[] = [];
+  let measuredC = 0;
+  for (const b of ['nb', 'prism3', 'aurora', 'harbor', 'wendys']) {
+    const root = emitted(b);
+    for (const p of plans.filter((q) => coord(q).state === 'rest' && coord(q).expansion === 'collapsed')) {
+      const size = coord(p).size, side = coord(p).iconPosition;
+      const header = find(p.root as PN, 'header') as PL;
+      const glyph = num(root, at(root, ind.tokens[`size.${size}.icon`]));
+      const type = at(root, acc.tokens[`size.${size}.type`]).$value;
+      const line = num(root, type.fontSize) * num(root, type.lineHeight);
+      const tb = find(p.root as PN, 'titleBox') as PL;
+      const offset = varPx(root, tb?.bound?.paddingTop);
+      const padT = varPx(root, header.bound?.paddingTop), padB = varPx(root, header.bound?.paddingBottom), floor = varPx(root, header.bound?.minHeight);
+      const content = Math.max(glyph, offset + line);
+      const hh = Math.max(floor, padT + content + padB);
+      // The content's top: the header places its flow child (the row, or on an older plan the tallest of its own
+      // children) at its alignment inside the padding.
+      const flow = header.children.filter((c) => c.name !== 'focusRing');
+      const top = padT + place(header.counterAxisAlignItems, content, hh - padT - padB);
+      const mid = top + content / 2;
+      measuredC++;
+      if (!(floor > 0 && Math.abs(mid - hh / 2) <= 0.5)) offC.push(`${b} ${size} ${side} (header ${header.counterAxisAlignItems} over [${flow.map((c) => c.name).join(', ')}]): content center ${mid.toFixed(2)} vs header middle ${(hh / 2).toFixed(2)} of ${hh.toFixed(2)}`);
+    }
+  }
+  ok(measuredC === 30 && offC.length === 0,
+    `#2594 accordion header (Q276): a single-line header's content is vertically centered, within 0.5px, at every size and icon position in every brand (${measuredC} measured${offC.length ? `; OFF: ${offC.join('; ')}` : ''})`);
   // THE FIGMA DISPLAY NAME OF A VARIANT AXIS (#2571): "icon position" in every member name, and in every key that
   // parses one, so the plugin's and the paste's layouts and footprint cohorts read the same string. Mutations: the
   // cohort key left on code names → `#2571 layout`; the name written raw in `planComponentName` → the iconPosition arm.
