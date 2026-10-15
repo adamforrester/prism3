@@ -657,19 +657,26 @@ export type ComponentUpdate = {
 };
 
 /** #2595 — the children an in-place update MOVES into a frame the plan inserts, rather than rebuilding them. Under a
- *  node the file already holds, a plan child FRAME with no child of its name in the file is built fresh; each child
- *  of that FRAME in the plan that the file holds directly under the node, under that name exactly once, and that no
- *  other plan child of the node claims by name, is moved into it and configured in place there, so it keeps its id.
- *  `blocked` names a file child that stays out of it (one a designer edited by hand): it is rebuilt, as before.
- *  Returns the file child's name → the new frame's name. One function, read by the executor and by the dry run, so
- *  the dry run lists exactly the moves the apply makes. */
-export const adoptions = (planKids: readonly { name: string; type: string; children?: readonly { name: string }[] }[], fileKids: readonly string[], blocked: (name: string) => boolean = () => false): Map<string, string> => {
+ *  node the file already holds (at `path`, `.` for the member), a plan child FRAME with no child of its name in the
+ *  file is built fresh; each child of that FRAME in the plan that the file holds directly under the node, under that
+ *  name exactly once, and that no other plan child of the node claims by name, is moved into it and configured in
+ *  place there, so it keeps its id. Two children stay out and are rebuilt, as before:
+ *  - one a designer edited by hand, at it or anywhere under it (`edited`, the dry run's hand-edit paths);
+ *  - an INSTANCE_SWAP, whose host type depends on whether its target is in the file, which the dry run cannot read.
+ *  Returns the file child's name → the new frame's name. ONE function, edit rule included, read by the executor and by
+ *  the dry run, so the dry run lists exactly the moves the apply makes. */
+export const adoptions = (planKids: readonly { name: string; type: string; children?: readonly { name: string; type: string }[] }[], fileKids: readonly string[], edited: ReadonlySet<string> = new Set(), path = '.'): Map<string, string> => {
   const claimed = new Set(planKids.map((c) => c.name));
   const once = (name: string): boolean => fileKids.filter((k) => k === name).length === 1;
+  const at = (name: string): string => (path === '.' ? name : `${path}/${name}`);
+  const blocked = (name: string): boolean => [...edited].some((e) => e === at(name) || e.startsWith(`${at(name)}/`));
   const out = new Map<string, string>();
   for (const c of planKids) {
     if (c.type !== 'FRAME' || fileKids.includes(c.name)) continue;
-    for (const g of c.children ?? []) if (!claimed.has(g.name) && !out.has(g.name) && once(g.name) && !blocked(g.name)) out.set(g.name, c.name);
+    for (const g of c.children ?? []) {
+      if (g.type === 'INSTANCE_SWAP' || claimed.has(g.name) || out.has(g.name) || !once(g.name) || blocked(g.name)) continue;
+      out.set(g.name, c.name);
+    }
   }
   return out;
 };
@@ -2266,9 +2273,7 @@ const writeComponentSet = async (
     const pool = ex && n.type !== 'GLYPH' && node.type !== 'INSTANCE' ? [...((node.children ?? []) as Wr[])] : adopt?.from ?? [];
     const paired = new Set<Wr>();
     const at$ = (name: string): string => (path === '.' ? name : `${path}/${name}`);
-    const moves = ex && pool.length
-      ? adoptions(n.children, pool.map((k) => String(k.name ?? '')), (g) => [...(edited ?? [])].some((e) => e === at$(g) || e.startsWith(`${at$(g)}/`)))
-      : new Map<string, string>();
+    const moves = ex && pool.length ? adoptions(n.children, pool.map((k) => String(k.name ?? '')), edited, path) : new Map<string, string>();
     let at = 0;
     for (const c of n.children) {
       const cand = pool.find((k) => !paired.has(k) && k.name === c.name);

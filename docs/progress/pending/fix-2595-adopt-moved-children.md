@@ -30,3 +30,17 @@ moved node read as in both places. No other suite moved with it.
 reads every node under the moved parts, by id, under the row; `acc/agree` checks the shim removed none of them;
 `acc/edited dry run` and `acc/edited agree` hold the hand-edited title listed removed on its member and rebuilt
 there, moved on the other 23.
+
+**Review round (CHANGES REQUESTED on `a63c505a`).** The edit rule was written out twice, once beside each
+`adoptions` call, and only its result was shared, so an edit *under* a moved node could stop blocking the move on
+one side alone with every test green (the review's M3). `adoptions` now takes `edited` and the parent path and
+applies the rule itself; the closure is gone from both callers. The hand-edit block runs twice, with the edit on
+`titleBox` and under it on `label` (`acc/edited under dry run` / `acc/edited under agree`). `acc/moved diffed`
+holds the claim that a moved subtree is diffed at its new path: a pre-#2594 title column with no top padding is
+listed as `paddingTop` at `header/titleRow/titleBox` on all 24 members beside its move (the review's M5 passed
+silently). `acc/adoptions …` drives the rule on hand-built inputs, one line per guard: the name held once, the frame
+already present, a name another plan child claims, an edit under a child, an edit on a sibling that only shares a
+prefix. The review's nit on the dry run's third type map is closed at the source: `adoptions` never moves an
+INSTANCE_SWAP, whose host type (an instance or a placeholder frame) depends on whether its target is in the file,
+which the dry run cannot read, so both sides rebuild it. No committed def moves a swap part, so nothing moves
+today. `EXECUTOR_REVISION` stays 23 (main is at 22).

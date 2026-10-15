@@ -196,7 +196,7 @@ const movesOf = (plan: AnatomyPlan['root'], node: SnapNode, path: string, edited
   if (plan.type === 'GLYPH' || node.type === 'INSTANCE') return;
   const kids = node.children ?? [];
   const at = (name: string): string => (path === '.' ? name : `${path}/${name}`);
-  const mv = adoptions(plan.children ?? [], kids.map((k) => k.name), (g) => [...edited].some((e) => e === at(g) || e.startsWith(`${at(g)}/`)));
+  const mv = adoptions(plan.children ?? [], kids.map((k) => k.name), edited, path);
   for (const [g, into] of mv) {
     const k = kids.find((x) => x.name === g)!;
     const pc = plan.children!.find((c) => c.name === into)!.children!.find((x) => x.name === g)!;

@@ -133,7 +133,7 @@
 import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, planComponentName } from '@prism3/engine/anatomy-figma';
 import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
 import { componentDefs } from '@prism3/engine/components/index';
-import { applyComponentPlan, respaceSets, STAMP_KEY } from './src/write-components';
+import { adoptions, applyComponentPlan, respaceSets, STAMP_KEY } from './src/write-components';
 import { SWAP_TARGET } from './src/build-deps';
 import { NS } from './src/persist-figma';
 import { materializeForBrand } from './src/brand-def';
@@ -2410,23 +2410,29 @@ section('accordion — a set built before the header row (#2594, owner Q276 A) t
   const reRow = membersOf(w.set()).filter((m) => rowIds(m) !== beforeRow.get(String(m.name))).map((m) => String(m.name));
   ok(reRow.length === 0, `acc/row adopted: a later update keeps the row and every node under it, by id, on every member (${reRow.slice(0, 2).join('; ') || 'all 24'})`);
 }
-{
-  // A NODE A DESIGNER EDITED IS NOT MOVED (#2595): the move is decided before the hand-edit choice is made, so a
-  // node with a hand edit at or under it is left out of the moves whatever the choice. The dry run lists it as
-  // removed on that member and moved on the rest, and the apply rebuilds it there, as before #2595, and moves it on
-  // the rest. (Its hand edit is not carried into the rebuilt node, as before #2595: #2673.) Mutation: the executor ignoring `edited` → `acc/edited agree`.
-  const ACC = 'accordion';
-  const now = componentDefs.find((x) => x.id === ACC)!;
+// A NODE A DESIGNER EDITED IS NOT MOVED (#2595): the move is decided before the hand-edit choice is made, so a node
+// with a hand edit at or under it is left out of the moves whatever the choice. The dry run lists it as removed on that
+// member and moved on the rest, and the apply rebuilds it there, as before #2595, and moves it on the rest. (Its hand
+// edit is not carried into the rebuilt node, as before #2595: #2673.) Twice: an edit ON the moved node, and one UNDER
+// it (its label), which must block the move as surely (#2595 review). Mutations: the executor ignoring `edited` →
+// `acc/edited agree`; `adoptions` dropping its under-a-node arm → `acc/edited under agree`, `acc/edited under dry run`.
+const ACC_BEFORE_ROW = (patch: (parts: Record<string, any>) => Record<string, any> = (x) => x) => {
+  const now = componentDefs.find((x) => x.id === 'accordion')!;
   const { titleRow, ...restParts } = now.anatomy.parts;
-  const before2594 = {
+  return {
     ...now,
-    anatomy: { ...now.anatomy, parts: { ...restParts, header: { ...now.anatomy.parts.header, layout: { ...now.anatomy.parts.header.layout!, align: 'start' }, gap: titleRow.gap, children: [...titleRow.children!, 'focusRing'] } } },
+    anatomy: { ...now.anatomy, parts: patch({ ...restParts, header: { ...now.anatomy.parts.header, layout: { ...now.anatomy.parts.header.layout!, align: 'start' }, gap: titleRow.gap, children: [...titleRow.children!, 'focusRing'] } }) },
   } as typeof now;
-  const w = await world(ACC, figmaAnatomySet(before2594, { swapTarget: SWAP_TARGET }));
+};
+for (const edit of [
+  { tag: 'edited', path: 'header/titleBox', on: (m: Node) => childNamed(childNamed(m, 'header'), 'titleBox'), apply: async (w: any, n: Node) => (n.setBoundVariable as (f: string, v: { id: string }) => void)('itemSpacing', { id: await varIdOf(w, 'space/0') }) },
+  { tag: 'edited under', path: 'header/titleBox/label', on: (m: Node) => childNamed(childNamed(childNamed(m, 'header'), 'titleBox'), 'label'), apply: async (_w: any, n: Node) => { (n as unknown as { opacity: number }).opacity = 0.5; } },
+]) {
+  const ACC = 'accordion';
+  const w = await world(ACC, figmaAnatomySet(ACC_BEFORE_ROW(), { swapTarget: SWAP_TARGET }));
   const m = membersOf(w.set())[0];
-  const box = childNamed(childNamed(m, 'header'), 'titleBox');
-  (box.setBoundVariable as (f: string, v: { id: string }) => void)('itemSpacing', { id: await varIdOf(w, 'space/0') });
-  const boxId = String(box.id);
+  await edit.apply(w, edit.on(m));
+  const boxId = String(childNamed(childNamed(m, 'header'), 'titleBox').id);
   const others = membersOf(w.set()).slice(1).map((x) => String(childNamed(childNamed(x, 'header'), 'titleBox').id));
   // Under the default choice (keep). The dry run is made before any choice, so it is the same under every one.
   const pre = await previewUpdate(w.host, [{ def: ACC, plans: plansOf(ACC) }]);
@@ -2434,14 +2440,42 @@ section('accordion — a set built before the header row (#2594, owner Q276 A) t
   const edits = p.handEdits.filter((h) => h.member === String(m.name)).map((h) => h.path);
   const move = p.changes.find((c) => c.part === 'header/titleBox' && c.field === 'moves into');
   const removed = p.changes.find((c) => c.part === 'header/titleBox' && /removed/.test(c.to));
-  ok(JSON.stringify(edits) === '["header/titleBox"]' && move?.members === 23 && removed?.members === 1 && removed.sample[0] === String(m.name),
-    `acc/edited dry run: the edited title is listed as removed on its member, moved on the other 23 (${JSON.stringify(edits)}; moves ${move?.members}; removed ${removed?.members} on ${removed?.sample.join(', ')})`);
+  ok(JSON.stringify(edits) === JSON.stringify([edit.path]) && move?.members === 23 && removed?.members === 1 && removed.sample[0] === String(m.name),
+    `acc/${edit.tag} dry run: with ${edit.path} edited, the title is listed as removed on its member, moved on the other 23 (${JSON.stringify(edits)}; moves ${move?.members}; removed ${removed?.members} on ${removed?.sample.join(', ')})`);
   const res = await applyUpdate(w.host, w.api as any, [{ def: ACC, plans: plansOf(ACC) }], previewHashOf(pre), { choices: { handEdits: 'keep' } });
+  void res;
   const row = (x: Node): Node | undefined => childNamed(childNamed(x, 'header'), 'titleRow');
   const nowBox = String(childNamed(row(m)!, 'titleBox')?.id);
   const kept = membersOf(w.set()).slice(1).map((x) => String(childNamed(row(x)!, 'titleBox')?.id));
   ok(nowBox !== boxId && (w.api._removed as Node[]).some((x) => String(x.id) === boxId) && JSON.stringify(kept) === JSON.stringify(others),
-    `acc/edited agree: the edited title is rebuilt in the row on its member, as the dry run listed it, and moved, by id, on the other 23 (${boxId} → ${nowBox}; ${kept.filter((id, i) => id !== others[i]).length} others changed)`);
+    `acc/${edit.tag} agree: with ${edit.path} edited, the title is rebuilt in the row on its member, as the dry run listed it, and moved, by id, on the other 23 (${boxId} → ${nowBox}; ${kept.filter((id, i) => id !== others[i]).length} others changed)`);
+}
+{
+  // A MOVED NODE IS STILL COMPARED TO ITS PLAN (#2595 review): the dry run diffs each moved subtree at its new path,
+  // so a field the apply changes on a moved node is listed beside the move line, never hidden by it. Here the file's
+  // title column has no top padding where the plan pads it, so `paddingTop` is a named difference at the title's NEW
+  // path on every member. Mutation: the moved subtrees not diffed → `acc/moved diffed`.
+  const ACC = 'accordion';
+  const w = await world(ACC, figmaAnatomySet(ACC_BEFORE_ROW((parts) => ({ ...parts, titleBox: { ...parts.titleBox, paddingTop: undefined } })), { swapTarget: SWAP_TARGET }));
+  const p = (await previewUpdate(w.host, [{ def: ACC, plans: plansOf(ACC) }])).sets[0];
+  const field = p.changes.filter((c) => c.part === 'header/titleRow/titleBox' && /paddingTop/.test(`${c.field} ${c.from} ${c.to}`));
+  const move = p.changes.find((c) => c.part === 'header/titleBox' && c.field === 'moves into');
+  ok(field.length > 0 && field.reduce((a, c) => a + c.members, 0) === 24 && move?.members === 24,
+    `acc/moved diffed: the title's missing top padding is listed at its new path on all 24 members, beside its move (${JSON.stringify(field.map((c) => [c.field, c.from, c.to, c.members]))}; moves ${move?.members})`);
+}
+{
+  // THE MOVE RULE ITSELF (#2595 review), on hand-built inputs whose answers are known in advance (docs/34). Each case
+  // is one guard of `adoptions`; dropping that guard fails its line by name.
+  const row = [{ name: 'row', type: 'FRAME', children: [{ name: 'a', type: 'FRAME' }, { name: 'b', type: 'TEXT' }] }];
+  const got = (m: Map<string, string>) => JSON.stringify([...m]);
+  ok(got(adoptions(row, ['a', 'b'])) === '[["a","row"],["b","row"]]', `acc/adoptions: both children the new row names move into it (${got(adoptions(row, ['a', 'b']))})`);
+  ok(got(adoptions(row, ['a', 'a', 'b'])) === '[["b","row"]]', `acc/adoptions once: a name the file holds twice moves neither, since picking one would be order deciding (${got(adoptions(row, ['a', 'a', 'b']))})`);
+  ok(got(adoptions(row, ['a', 'b', 'row'])) === '[]', `acc/adoptions present: a row the file already holds takes nothing (${got(adoptions(row, ['a', 'b', 'row']))})`);
+  ok(got(adoptions([...row, { name: 'a', type: 'TEXT' }], ['a', 'b'])) === '[["b","row"]]', `acc/adoptions claimed: a name another plan child claims stays (${got(adoptions([...row, { name: 'a', type: 'TEXT' }], ['a', 'b']))})`);
+  ok(got(adoptions(row, ['a', 'b'], new Set(['header/a/inner']), 'header')) === '[["b","row"]]', `acc/adoptions edited under: an edit under a child keeps it out (${got(adoptions(row, ['a', 'b'], new Set(['header/a/inner']), 'header'))})`);
+  ok(got(adoptions(row, ['a', 'b'], new Set(['header/ab']), 'header')) === '[["a","row"],["b","row"]]', `acc/adoptions edited prefix: an edit on a sibling whose name merely starts the same blocks nothing (${got(adoptions(row, ['a', 'b'], new Set(['header/ab']), 'header'))})`);
+  const swapRow = [{ name: 'row', type: 'FRAME', children: [{ name: 's', type: 'INSTANCE_SWAP' }] }];
+  ok(got(adoptions(swapRow, ['s'])) === '[]', `acc/adoptions swap: an INSTANCE_SWAP is never moved, since its host type depends on the file and the dry run cannot read it (${got(adoptions(swapRow, ['s']))})`);
 }
 
 void STYLE_FONT; void BASELINE_KEY;
