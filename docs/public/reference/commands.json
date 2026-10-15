@@ -616,7 +616,7 @@
             "source": "apps/plugin/src/agent-protocol.ts#parseCommand.style-guide"
           },
           {
-            "message": "style-guide takes args.tables: a non-empty array of table titles or keys, e.g. ['Primary — nbds']",
+            "message": "style-guide takes args.tables: a non-empty array of table titles or keys, e.g. ['Primary — prism']",
             "source": "apps/plugin/src/agent-protocol.ts#parseCommand.style-guide"
           }
         ],
@@ -864,6 +864,26 @@
         {
           "flag": "--dry-run",
           "source": "fold.ts#argv"
+        }
+      ]
+    },
+    {
+      "file": "packages/engine/visualize.ts",
+      "summary": "Prism3 engine — token visualizer.",
+      "usage": [
+        {
+          "text": "npx tsx packages/engine/visualize.ts               # writes out/tokens.html too",
+          "source": "packages/engine/visualize.ts#header"
+        },
+        {
+          "text": "npx tsx packages/engine/visualize.ts --out <dir>   # writes <dir>/tokens.html instead",
+          "source": "packages/engine/visualize.ts#header"
+        }
+      ],
+      "flags": [
+        {
+          "flag": "--out",
+          "source": "packages/engine/visualize.ts#argv"
         }
       ]
     },

@@ -1,5 +1,5 @@
 /**
- * Prism3 engine — token visualiser.
+ * Prism3 engine — token visualizer.
  *
  * Reads the emitted DTCG files (out/*.tokens.json) and renders a single
  * self-contained HTML page covering every generated axis: colour swatches per
@@ -15,7 +15,12 @@
  * dependencies, no network — open the file in any browser.
  * Also prints a plain-text taxonomy to stdout.
  *
- *   npx tsx packages/engine/visualize.ts   # writes out/tokens.html
+ *   npm run tokens-html                                # writes out/tokens.html
+ *   npx tsx packages/engine/visualize.ts               # writes out/tokens.html too
+ *   npx tsx packages/engine/visualize.ts --out <dir>   # writes <dir>/tokens.html instead
+ *
+ * The page is BUILT ON DEMAND and never committed (Q319.6, #2583): it is gitignored, `regen.ts` does not
+ * write it (`ON_DEMAND_OUT`), and `test.ts` renders its own copy into a temp dir with `--out`.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -29,6 +34,9 @@ import { at, deref, pxOf, subNode, numOf, remPxOf, familyOf } from './tree';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const outDir = resolve(here, 'out');
+// Where the page goes. The token trees are always read from `outDir`; only the write moves.
+const outFlag = process.argv.indexOf('--out');
+const pageDir = outFlag >= 0 && process.argv[outFlag + 1] ? resolve(process.argv[outFlag + 1]) : outDir;
 
 // Themes for the live component preview (B1b): the preview renders from the shared
 // preview spec + resolvePreview, dogfooding the same model the plugin/playground use.
@@ -596,6 +604,6 @@ ${html.join('\n')}
 </script>
 </body></html>`;
 
-writeFileSync(resolve(outDir, 'tokens.html'), page);
+writeFileSync(resolve(pageDir, 'tokens.html'), page);
 console.log(txt.join('\n'));
-console.log(`\n[written] ${resolve(outDir, 'tokens.html')}`);
+console.log(`\n[written] ${resolve(pageDir, 'tokens.html')}`);
