@@ -280,9 +280,7 @@
     {
       "name": "ads/core/font/weight/300",
       "resolvedType": "FLOAT",
-      "scopes": [
-        "FONT_WEIGHT"
-      ],
+      "scopes": [],
       "description": "Font weight 300",
       "value": 300,
       "alias": null,
@@ -291,9 +289,7 @@
     {
       "name": "ads/core/font/weight/400",
       "resolvedType": "FLOAT",
-      "scopes": [
-        "FONT_WEIGHT"
-      ],
+      "scopes": [],
       "description": "Font weight 400",
       "value": 400,
       "alias": null,
@@ -302,9 +298,7 @@
     {
       "name": "ads/core/font/weight/500",
       "resolvedType": "FLOAT",
-      "scopes": [
-        "FONT_WEIGHT"
-      ],
+      "scopes": [],
       "description": "Font weight 500",
       "value": 500,
       "alias": null,
@@ -313,9 +307,7 @@
     {
       "name": "ads/core/font/weight/700",
       "resolvedType": "FLOAT",
-      "scopes": [
-        "FONT_WEIGHT"
-      ],
+      "scopes": [],
       "description": "Font weight 700",
       "value": 700,
       "alias": null,
@@ -324,9 +316,7 @@
     {
       "name": "ads/core/font/weight/900",
       "resolvedType": "FLOAT",
-      "scopes": [
-        "FONT_WEIGHT"
-      ],
+      "scopes": [],
       "description": "Font weight 900",
       "value": 900,
       "alias": null,

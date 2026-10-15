@@ -119,14 +119,14 @@ variable's Figma id, then emit the `color` vars as `VARIABLE_ALIAS` pointing at 
 ```
 
 **Every `core` PRIMITIVE carries `"hiddenFromPublishing": true`, and all but the font family and
-weight rows carry `"scopes": []`** (#2602, 2026-10-13). That is every var in the `core` collection:
+weight-role rows carry `"scopes": []`** (#2602, 2026-10-13). That is every var in the `core` collection:
 the palette, `dimension/*` and every `font/*` row (family, size, weight, weight-role, the style cuts).
 The flag hides them from files that consume this one as a library. The empty scope set hides them
-from every local picker in the file that defines them. The exception is the owner's decision Q292 A
-(2026-10-14): `font/family/*` keeps `FONT_FAMILY`, and `font/weight/*` and `font/weight-role/*` keep
-`FONT_WEIGHT`, because TokenPress types a font variable's DTCG `$type` from its scope and would
-export them unscoped as `string` / `dimension` / `number`. They show in the font-family and
-font-weight pickers only. Unscoping them too, once TokenPress types font rows by name, is #2616. The owner verified this live on 2026-10-13: a palette step set to `scopes = []`
+from every local picker in the file that defines them. The exception is the owner's decisions Q292 A
+(2026-10-14) and Q334 A (2026-10-15): `font/family/*` keeps `FONT_FAMILY` and `font/weight-role/*`
+keeps `FONT_WEIGHT`, so the font-family and font-weight pickers offer the roles and nothing else. The
+numeric `font/weight/*` is unscoped. TokenPress types an unscoped font row by its path (#2616), so
+it still exports as `fontWeight`. The owner verified this live on 2026-10-13: a palette step set to `scopes = []`
 left the fill picker, and its neighbor, still scoped to fill, text and stroke, stayed. The plugin
 typings agree: scopes "only limits the variables that are shown in pickers within the Figma UI"
 and do not stop a bind through the Plugin API, so the Text Styles still bind the family, size and cut
