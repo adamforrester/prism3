@@ -2044,9 +2044,12 @@ const writeComponentSet = async (
         // in its own def is built at this width, so a wrapping text inside it reflows at it rather than
         // freezing at its default string's. BEFORE the modes below, because Figma switches a resized axis to
         // FIXED — the plan's modes are written after it and stand. Read back. Lockstep with the paste executor.
-        if (n.placementWidth) {
-          node.resize?.(n.placementWidth, node.height as number);
-          if (node.width !== n.placementWidth) misses.push(`${n.name}.placementWidth -> DISCARDED (set ${n.placementWidth}, reads ${String(node.width)})`);
+        // ITS HEIGHT TWIN (#2609, `FigmaNodePlan.placementHeight`), in the same resize: Dialog's full-screen panel is
+        // built at a phone's width AND height. Read back the same way. Lockstep with the paste executor.
+        if (n.placementWidth || n.placementHeight) {
+          node.resize?.(n.placementWidth ?? (node.width as number), n.placementHeight ?? (node.height as number));
+          if (n.placementWidth && node.width !== n.placementWidth) misses.push(`${n.name}.placementWidth -> DISCARDED (set ${n.placementWidth}, reads ${String(node.width)})`);
+          if (n.placementHeight && node.height !== n.placementHeight) misses.push(`${n.name}.placementHeight -> DISCARDED (set ${n.placementHeight}, reads ${String(node.height)})`);
         }
         node.layoutMode = n.layoutMode;
         node.primaryAxisAlignItems = n.primaryAxisAlignItems;
