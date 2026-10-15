@@ -74,7 +74,7 @@ import { dirname, resolve } from 'node:path';
 import type { FigmaCollectionFile } from './emit-figma';
 import { CORE_COLLECTION } from './emit-figma-color';
 import { ownedCoreGroup } from './figma-names';
-import { buildWritePlan, floatPlanFor, fontVarPlanFrom, stylesPlanFromFiles, textStylePlanFromFiles } from './write-plan';
+import { buildWritePlan, floatPlanFor, fontVarPlanFrom, motionVarPlanFrom, stylesPlanFromFiles, textStylePlanFromFiles } from './write-plan';
 import type { WritePlan, FloatCollectionPlan, VarCollectionPlan, StylesPlan, TextStylePlan } from './write-plan';
 import type { FigmaEffectStylesFile, FigmaPaintStylesFile } from './emit-figma-styles';
 import type { FigmaTextStylesFile } from './emit-figma-font';
@@ -212,9 +212,7 @@ const FLOAT_AXES: { stem: string; modes: string[] | null }[] = [
   { stem: 'focus', modes: null },
   { stem: 'opacity', modes: null },
   { stem: 'layout', modes: ['sm', 'md', 'lg', 'xl', '2xl'] },
-  // #2394 — per-mode only for a brand whose mode levers run a different tempo; every mode such a lever can
-  // name is probed, since a brand with no per-mode tempo emits the single `motion.json`.
-  { stem: 'motion', modes: ['Default', 'light', 'dark', 'hc-light', 'hc-dark', 'wireframe'] },
+  // `motion` left this list with #2412: TIMING + EASING, not FLOAT. It is the `motion-vars` pass.
 ];
 
 /** The files backing one float axis, in mode order. A single-mode axis is `<stem>.json`; a
@@ -284,6 +282,17 @@ const fontVarPlans = (brand: string): VarCollectionPlan[] => {
   const { font, fluid } = fontFiles(brand);
   return fontVarPlanFrom(font, fluid).filter((p) => p.rows.length > 0);
 };
+
+/** The `motion` files (#2394, #2412): per-mode only for a brand whose mode levers move its tempo or an easing role,
+ *  so every mode such a lever can name is probed before the single `motion.json`. */
+const MOTION_MODES = ['Default', 'light', 'dark', 'hc-light', 'hc-dark', 'wireframe'] as const;
+const motionVarPlans = (brand: string): VarCollectionPlan[] => {
+  const perMode = MOTION_MODES.map((m) => `motion.${m}.json`).filter((f) => has(brand, f));
+  const files = perMode.length ? perMode : has(brand, 'motion.json') ? ['motion.json'] : [];
+  return files.length ? motionVarPlanFrom(files.map((f) => load(brand, f))) : [];
+};
+/** Exported for the same drift assertion `floatCollections` carries. */
+export const motionCollections = (brand: string): string[] => motionVarPlans(brand).map((p) => p.name);
 
 /** Exported for the same drift assertion `floatCollections` carries. */
 export const fontCollections = (brand: string): string[] => fontVarPlans(brand).map((p) => p.name);
@@ -678,6 +687,71 @@ return {collections:out,bound,misses};
 `;
 };
 
+// ---- pass: motion-vars (#2412 — the `motion` collection, TIMING + EASING) ------------------------------
+// Its own pass rather than a row type in `dims-create` or `font-vars`: TIMING and EASING are the two types Figma
+// refuses a `scopes` write on, and an EASING value is an object, so neither the FLOAT nor the font loop fits.
+// Create-then-bind in one payload, like `font-vars`: the roles alias curves in the same collection.
+// TYPES ARE CHECKED BEFORE ANY WRITE, and one mismatch writes nothing. Figma can't retype a variable, so a 0.235.0
+// file's FLOAT `motion/duration-ms/200` would otherwise take the seconds value (0.2, read as 0.2ms) and the bind
+// loop would then throw on the first TIMING alias, leaving the file half written. Apply replaces those FLOATs in
+// its own STAMPED collection (Q293 1, `replacesOnRetype`); this pass neither reads nor writes the stamp, so it
+// cannot tell Prism3's collection from a look-alike and refuses every mismatch, naming each one.
+const motionVarsPass = (brand: string): string => {
+  // row: [collection, modes, [[name, type, description, hidden, [value per mode], [alias per mode]]]]
+  const M = motionVarPlans(brand).map((p) => [
+    p.name, p.modes,
+    p.rows.map((r) => {
+      if (r.resolvedType !== 'TIMING' && r.resolvedType !== 'EASING') throw new Error(`motion-vars: ${r.name} is ${r.resolvedType}, not TIMING or EASING`);
+      return [r.name, r.resolvedType, r.description, r.hidden ? 1 : 0, r.valuesByMode, r.aliasByMode];
+    }),
+  ]);
+  return `${PRELUDE}
+const M=${JSON.stringify(M)};
+const out=[];const byNameGlobal=new Map();const modeIdsByCol={};
+const typeMisses=[];
+for(const [cname,,rows] of M){
+  const col=await findCol(cname);if(!col)continue;
+  const have=new Map((await figma.variables.getLocalVariablesAsync()).filter(v=>v.variableCollectionId===col.id).map(v=>[v.name,v]));
+  for(const [name,ty] of rows){const v=have.get(name);if(v&&v.resolvedType!==ty)typeMisses.push('type:'+name+' is '+v.resolvedType+', plan writes '+ty);}
+}
+if(typeMisses.length)return {collections:[],bound:0,misses:typeMisses};
+for(const [cname,MODES,rows] of M){
+  let col=await findCol(cname);
+  if(!col)col=figma.variables.createVariableCollection(cname);
+  col.renameMode(col.modes[0].modeId,MODES[0]);
+  const modeIds={[MODES[0]]:col.modes[0].modeId};
+  for(let i=1;i<MODES.length;i++){const m=col.modes.find(x=>x.name===MODES[i]);modeIds[MODES[i]]=m?m.modeId:col.addMode(MODES[i]);}
+  modeIdsByCol[cname]=modeIds;
+  const have=new Map((await figma.variables.getLocalVariablesAsync()).filter(v=>v.variableCollectionId===col.id).map(v=>[v.name,v]));
+  let created=0;
+  for(const [name,ty,desc,hidden,vals] of rows){
+    let v=have.get(name);
+    if(!v){v=figma.variables.createVariable(name,col,ty);created++;}
+    // No scopes write: Figma refuses one on TIMING and EASING ("Cannot set scopes on this variable type").
+    v.description=desc;v.hiddenFromPublishing=!!hidden;
+    MODES.forEach((m,i)=>v.setValueForMode(modeIds[m],vals[i]));
+    byNameGlobal.set(name,v);
+  }
+  out.push({collection:cname,modes:MODES,total:rows.length,created});
+}
+let bound=0;const misses=[];
+for(const [cname,MODES,rows] of M){
+  const modeIds=modeIdsByCol[cname];
+  for(const [name,,,,,aliases] of rows){
+    const v=byNameGlobal.get(name);
+    if(!v){misses.push('var:'+name);continue;}
+    MODES.forEach((m,i)=>{
+      const t=aliases[i];if(!t)return;
+      const tv=byNameGlobal.get(t);
+      if(!tv){misses.push(name+' @'+m+' -> '+t);return;}
+      v.setValueForMode(modeIds[m],figma.variables.createVariableAlias(tv));bound++;
+    });
+  }
+}
+return {collections:out,bound,misses};
+`;
+};
+
 // ---- pass: styles (Effect Styles = shadows, Paint Styles = gradients) --------------------
 // The only pass that writes NO variables — Effect/Paint styles hold resolved values, so there's no
 // alias graph and no ordering constraint against the other passes. Both style sets are written
@@ -896,6 +970,7 @@ const PASSES: Record<string, (b: string) => string[]> = {
   'color-aliases': (b) => colorAliasesChunks(b).map((c) => c.js),
   'dims-create': (b) => [dimsCreatePass(b)], 'dims-aliases': (b) => [dimsAliasesPass(b)],
   'font-vars': (b) => [fontVarsPass(b)], 'text-styles': (b) => [textStylesPass(b)],
+  'motion-vars': (b) => [motionVarsPass(b)],
   styles: (b) => [stylesPass(b)], verify: (b) => [verifyJs(planFor(b), colourModes(b))],
 };
 // Colour, then floats, then typography, then styles — WITHIN each lane create-before-alias is a hard
@@ -905,7 +980,7 @@ const PASSES: Record<string, (b: string) => string[]> = {
 // `opacity/<n>` variable that `dims-create` writes.
 const ORDER = [
   'palette', 'color-create', 'dims-create', 'color-aliases', 'dims-aliases',
-  'font-vars', 'text-styles', 'styles', 'verify',
+  'font-vars', 'text-styles', 'motion-vars', 'styles', 'verify',
 ];
 
 /** The pass payloads, exposed so the suite can assert on what would actually be pasted rather than

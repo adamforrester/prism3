@@ -102,6 +102,8 @@
  * now ask `contractVersionDrift` first, and fail by name on a constant that is BEHIND the baseline, or
  * AHEAD of it with no surface change to record. A bump larger than the diff requires is not flagged:
  * `docs/30` says "at least", and that is policy, not this gate's to tighten. See `contractVersionDrift`.
+ * Both sides of that comparison are in the tree, so an old number written back into the constant AND the
+ * baseline passes it; `lint-contract-version.ts` reads the number at the merge base instead (#2334).
  *
  * NO `engineVersion` FIELD IN THE BASELINE (#1807), the same rule `lint-component-surface.ts` states for
  * its own baseline. The field was stamped from `ENGINE_VERSION` (docs/34 shape 1: a copy of the constant,

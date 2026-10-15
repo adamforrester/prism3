@@ -40,9 +40,9 @@ The plan says, for each set: <!-- src: apps/plugin/src/update-apply.ts:1-31 -->
 
 ### 3. Confirm
 
-The confirm applies exactly the plan you read, and only if the file has not changed since the check. Otherwise it stops: "Nothing was updated: the file changed since the check. Run the check again, then confirm the new one." <!-- src: apps/plugin/src/update-apply.ts:1-6 --> <!-- src: apps/plugin/src/update-apply.ts:528 --> <!-- src: apps/plugin/src/update-apply.ts:630 -->
+The confirm applies exactly the plan you read, and only if the file has not changed since the check. Otherwise it stops: "Nothing was updated: the file changed since the check. Run the check again, then confirm the new one." <!-- src: apps/plugin/src/update-apply.ts:1-6 --> <!-- src: apps/plugin/src/update-apply.ts:490 --> <!-- src: apps/plugin/src/update-apply.ts:590-591 -->
 
-Before its first write, the update saves a named version in the file's version history. If Figma won't save it, nothing is written. <!-- src: apps/plugin/src/update-apply.ts:564-571 -->
+Before its first write, the update saves a named version in the file's version history. If Figma won't save it, nothing is written. <!-- src: apps/plugin/src/update-apply.ts:524-531 -->
 
 ### What an update keeps
 
@@ -66,8 +66,8 @@ To bring variants Prism3 did not build under its updates, an agent can claim the
 | `✗ N conflicts`, "Nothing was written." | The file holds a same-named collection or style that Prism3 did not create, or a variable of another type. <!-- src: apps/plugin/src/preflight.ts:170-223 --> | Rename or remove the named items, then apply again. |
 | "*Name* is already running." | The same write is already running, from the panel or an agent. <!-- src: apps/plugin/src/run-guard.ts:39 --> | Wait for it to finish. |
 | Apply Theme and Prune stale off: "Off until a brand loads." | The brand saved in this file didn't open, and writing now would put the demo brand over it. <!-- src: apps/studio/src/main.ts:1698 --> <!-- src: apps/studio/src/main.ts:1778-1780 --> | Load the brand again, for example from its `design.md`. |
-| `✗ update refused`, "the file changed since the check" | Something in the file moved between the check and the confirm. <!-- src: apps/plugin/src/update-apply.ts:528 --> <!-- src: apps/plugin/src/update-apply.ts:631 --> | Run the check again and read the new plan. |
-| "the named version could not be saved" | Figma refused to save the safety version, so the update wrote nothing. <!-- src: apps/plugin/src/update-apply.ts:570 --> | Try again. Nothing in the file changed. |
+| `✗ update refused`, "the file changed since the check" | Something in the file moved between the check and the confirm. <!-- src: apps/plugin/src/update-apply.ts:490 --> <!-- src: apps/plugin/src/update-apply.ts:592 --> | Run the check again and read the new plan. |
+| "the named version could not be saved" | Figma refused to save the safety version, so the update wrote nothing. <!-- src: apps/plugin/src/update-apply.ts:531 --> | Try again. Nothing in the file changed. |
 | `nothing built — set '…' on this page varies by different axes and was left as it is` | A set with that name already exists on the page, built with different options. <!-- src: apps/plugin/src/main.ts:746 --> | Rename or move the existing set. |
 
 ## Remove what the brand no longer uses
@@ -88,5 +88,5 @@ What Prune can delete: <!-- src: apps/plugin/src/prune-figma.ts:18-32 --> <!-- s
 - **Text, effect, paint and grid styles** the brand no longer emits, when they sit in a style group the brand still uses. A style in a group of your own stays.
 - **Canvas labels** beside a component set that is no longer in the file.
 
-**Delete N items** recomputes the list before it deletes, from a fresh read of the file, so it never acts on a stale count. <!-- src: apps/plugin/src/main.ts:430-490 -->
+**Delete N items** recomputes the list from a fresh read of the file before it deletes. <!-- src: apps/plugin/src/main.ts:430-490 -->
 Prune stale is off while Apply Theme runs, since both work on the same variables. <!-- src: apps/studio/src/main.ts:1731-1732 -->

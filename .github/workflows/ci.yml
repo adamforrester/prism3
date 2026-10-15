@@ -154,6 +154,14 @@ jobs:
       - name: Token name contract (breaking-change gate)
         run: npx --yes tsx@4 packages/engine/token-contract.ts --check
 
+      # The step above holds the constant to the baseline's recorded number, and both are in the tree, so
+      # writing the old number back into both after an --accept passed it (#2334). This reads the baseline
+      # and CONTRACT_VERSION at the merge base (the first parent on main's push run) and requires a MAJOR
+      # increment for a removed or retyped guaranteed path, at least a MINOR for an added one, and the
+      # base's own number when nothing moved. Needs history: the job-level `fetch-depth: 0` above.
+      - name: "CONTRACT_VERSION moved by the increment the surface needs, against the base (#2334)"
+        run: npx --yes tsx@4 packages/engine/lint-contract-version.ts
+
       # esbuild (and therefore the Vercel build) does not typecheck. These do.
       - name: Typecheck web
         run: npm run -w @prism3/studio typecheck
@@ -436,8 +444,8 @@ jobs:
           count=$(npx --yes tsx@4 packages/engine/regen.ts --check | grep -oE '[0-9]+ committed artifacts')
           echo "reported: $count"
           case "$count" in
-            "184 committed artifacts") echo "✓ full set covered" ;;
-            *) echo "✗ artifact coverage changed — expected 184. If the set legitimately grew or shrank, update this check in the same PR."; exit 1 ;;
+            "194 committed artifacts") echo "✓ full set covered" ;;
+            *) echo "✗ artifact coverage changed — expected 194. If the set legitimately grew or shrank, update this check in the same PR."; exit 1 ;;
           esac
 
       # The RUNNER's own checks, not a second run of the gates (#789). `verify.ts` is what a contributor
