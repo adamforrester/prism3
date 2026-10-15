@@ -87,7 +87,8 @@
  *   recordfail/…   a member whose as-built record the host refuses after the update (an icon, and a set member) keeps
  *                  the stamp it had and its marker, reads out of date in the next dry run, and is named among the
  *                  outcome's misses (#2373). Mutation: the stamp written before the record → `recordfail/unstamped`,
- *                  `recordfail/out of date`, `recordfail/set member`. The verdict reading no misses is #2477.
+ *                  `recordfail/out of date`, `recordfail/set member`. The verdict reading no misses (#2477) →
+ *                  `recordfail/verdict`, `recordfail/set verdict`, `misses/other`.
  *   unrecorded single/…  the icons with no as-built record: updated and named by default, recorded after; under
  *                  `noBaseline: 'skip'`, left exactly and named (#2373). Mutations: the default skipping →
  *                  `unrecorded single/updated`; the choice ignored → `unrecorded single/skip`.
@@ -652,8 +653,8 @@ const reinked = (plans: AnatomyPlan[]): AnatomyPlan[] => plans.map((p) => { cons
   // (§7), so the icon keeps the stamp it had and its in-progress marker, reads out of date in the next dry run, and the
   // outcome names it among the build's misses. The refusal is the TEST's, installed on the shim's node. Mutation:
   // `finishUpdated` writing the stamp before the record → `recordfail/unstamped`, `recordfail/out of date`.
-  // NOT asserted: that the verdict fails. `applyVerdict` reads no `misses`, so today this run reads "✓ updated 44 in
-  // place" (#2477).
+  // The verdict reads the miss (#2477): no ✓, the set not verified, the icon out of the updated count and named.
+  // Mutation: `applyVerdict` reading no misses again → `recordfail/verdict`.
   const plans = plansOf('icon');
   const w = await singleWorld(plans, ['color/icon/secondary']);
   const t = { def: 'icon', plans: reinked(plans), single: true };
@@ -677,6 +678,10 @@ const reinked = (plans: AnatomyPlan[]): AnatomyPlan[] => plans.map((p) => { cons
   const post = (await previewUpdate(w.host, [t])).sets[0];
   ok(post.counts.current === 44 && post.counts.current + (post.counts.update ?? 0) + (post.counts.noBaseline ?? 0) === 45 && !post.handEdits.some((h) => h.member.endsWith(String(hit.name).split('/').pop()!)),
     `recordfail/out of date: the next dry run reads it out of date, never current, the other 44 current (${JSON.stringify(post.counts)})`);
+  const glyph = String(hit.name).split('/').pop();
+  ok(!v.ok && v.headline === '⚠ 1 set not verified' && v.lines[0] === 'icon: 44 updated in place.'
+    && v.lines.includes(`icon: 1 member not finished — name=${glyph} (its as-built record could not be written). It still reads as out of date; run the update again to finish it.`),
+    `recordfail/verdict: the verdict is not a ✓, counts 44 updated and names the icon not finished (${JSON.stringify(v)})`);
 }
 {
   // THE SAME FAILURE ON A SET MEMBER: `finishUpdated` is the set path's finish too, called from its own loop.
@@ -696,6 +701,21 @@ const reinked = (plans: AnatomyPlan[]): AnatomyPlan[] => plans.map((p) => { cons
   const named = res.outcomes[0]?.misses.filter((x) => x.startsWith(`${String(hit.name)}.asBuilt -> NOT RECORDED`)) ?? [];
   ok(pdOf(hit, STAMP_KEY) === stampWas && post.counts.current === 44 && post.counts.update === 1 && named.length === 1,
     `recordfail/set member: a set member whose record could not be written keeps its stamp, reads out of date and is named (stamp ${pdOf(hit, STAMP_KEY) === stampWas ? 'kept' : 'moved'}; ${JSON.stringify(post.counts)}; ${JSON.stringify(named)})`);
+  const v = applyVerdict(res);
+  ok(!v.ok && v.headline === '⚠ 1 set not verified' && v.lines[0] === `${TAG}: 44 updated in place.`
+    && v.lines.includes(`${TAG}: 1 member not finished — ${String(hit.name)} (its as-built record could not be written). It still reads as out of date; run the update again to finish it.`),
+    `recordfail/set verdict: the set member's verdict is not a ✓, counts 44 updated and names it not finished (${JSON.stringify(v)})`);
+}
+{
+  // ANY OTHER MISS FROM THE BUILD'S PASS (#2477): the set is not verified, the miss is quoted with its own reason, and
+  // the updated count stands (the miss names a part, not a member). An outcome written out by hand, so the expected
+  // lines are the test's, not the build's.
+  const o = { def: 'x', set: 'x', updated: ['a=1', 'a=2'], added: 0, renamed: 0, deprecated: [], skipped: [], kept: [], unrecorded: [], handEdits: 'keep' as const, identity: [], content: [],
+    misses: ['label.characters -> DISCARDED (set "Go", reads "")', 'a=3.asBuilt -> NOT RECORDED (the component is not in the file to read)'] };
+  const v = applyVerdict({ outcomes: [o], refused: [], missing: [] } as any);
+  ok(!v.ok && v.headline === '⚠ 1 set not verified' && v.lines[0] === 'x: 2 updated in place.'
+    && v.lines[1] === 'x: 2 parts not written as planned — label.characters -> DISCARDED (set "Go", reads ""); a=3.asBuilt -> NOT RECORDED (the component is not in the file to read).',
+    `misses/other: any other miss leaves the set not verified, quoted, the updated count as it was (${JSON.stringify(v)})`);
 }
 {
   // A RECORD-LESS SINGLE COMPONENT (#2373): the icons with no as-built record, as the NB master's unrecorded sets were.

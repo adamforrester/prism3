@@ -585,6 +585,21 @@ export const applyUpdate = async (
 
 const n = (k: number, one: string, many = `${one}s`): string => `${k} ${k === 1 ? one : many}`;
 
+const NOT_RECORDED = '.asBuilt -> NOT RECORDED';
+/** The members the build wrote but could not finish: each one's as-built record was refused, so `finishUpdated` left its
+ *  stamp as it was and the next dry run reads it out of date (#2477). Named only when the build also listed it as
+ *  updated in place; any other miss is the set's `others`. */
+const unfinishedOf = (o: SetOutcome): { members: string[]; others: string[] } => {
+  const members: string[] = [];
+  const others: string[] = [];
+  for (const m of o.misses) {
+    const at = m.lastIndexOf(NOT_RECORDED);
+    if (at > 0 && o.updated.includes(m.slice(0, at))) members.push(m.slice(0, at));
+    else others.push(m);
+  }
+  return { members, others };
+};
+
 /** The verdict for an applied update. `lines` is the Activity drawer's copy (#2177). */
 export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; summary: string; lines: string[] } => {
   if (r.refusedAll) {
@@ -592,13 +607,17 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
     return { ok: false, headline: '✗ update refused', summary: lines.join('\n'), lines };
   }
   const stopped = r.outcomes.find((o) => o.stopped);
-  const failed = r.outcomes.filter((o) => o.identity.length || o.content.length);
+  // A miss from the build's own pass is a set not verified, as an identity or content difference is (#2477): the set
+  // holds a write the build could not finish, so no ✓ while it is left (#2364's rule).
+  const failed = r.outcomes.filter((o) => o.identity.length || o.content.length || o.misses.length);
   // A set the apply entered and wrote nothing to, every member it would have written left as it is (`noBaseline:
   // 'skip'`, a layer added by hand, a member that would need replacing), still holds what its dry run listed. It is
   // NOT UPDATED, never "already up to date" (#2364 review; the owner's choice, 2026-10-08: the approved headline).
   const idle = r.outcomes.filter((o) => !o.refused && !o.stopped && o.skipped.length && !o.updated.length && !o.added && !o.renamed && !o.deprecated.length && !o.moved && !o.setMoved).length;
   const refused = r.outcomes.filter((o) => o.refused).length + r.refused.length + idle;
-  const updated = r.outcomes.reduce((k, o) => k + o.updated.length, 0);
+  // A member not finished is not counted as updated: the next dry run reads it out of date (#2477).
+  const done = (o: SetOutcome): number => o.updated.length - unfinishedOf(o).members.length;
+  const updated = r.outcomes.reduce((k, o) => k + done(o), 0);
   const added = r.outcomes.reduce((k, o) => k + o.added, 0);
   const deprecated = r.outcomes.reduce((k, o) => k + o.deprecated.length, 0);
   const renamed = r.outcomes.reduce((k, o) => k + o.renamed, 0);
@@ -613,7 +632,7 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
       continue;
     }
     const parts = [
-      o.updated.length ? `${o.updated.length} updated in place` : '',
+      done(o) ? `${done(o)} updated in place` : '',
       o.added ? `${o.added} added` : '',
       o.renamed ? `${o.renamed} renamed` : '',
       o.deprecated.length ? `${o.deprecated.length} marked deprecated` : '',
@@ -632,6 +651,15 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
     lines.push(parts.length ? `${o.set}: ${parts.join(', ')}.` : o.asPreviewed && !o.asPreviewed.upToDate ? o.asPreviewed.line : `${o.set}: already up to date.`);
     if (o.identity.length) lines.push(`${o.set}: component IDs changed — ${o.identity.slice(0, 3).join('; ')}${o.identity.length > 3 ? '; …' : ''}.`);
     if (o.content.length) lines.push(`${o.set}: ${n(o.content.length, 'field')} still differ from the plan — ${o.content.slice(0, 3).join('; ')}${o.content.length > 3 ? '; …' : ''}.`);
+    // DRAFT wording for the owner (#2477, the issue's option A): a member written but not finished, by name.
+    const { members, others } = unfinishedOf(o);
+    if (members.length) {
+      lines.push(members.length === 1
+        ? `${o.set}: 1 member not finished — ${members[0]} (its as-built record could not be written). It still reads as out of date; run the update again to finish it.`
+        : `${o.set}: ${members.length} members not finished — ${members.join(', ')} (their as-built records could not be written). They still read as out of date; run the update again to finish them.`);
+    }
+    // DRAFT wording for the owner (#2477): any other miss the build's pass reported, with its own reason.
+    if (others.length) lines.push(`${o.set}: ${n(others.length, 'part')} not written as planned — ${others.slice(0, 3).join('; ')}${others.length > 3 ? '; …' : ''}.`);
   }
   for (const x of r.refused) lines.push(`${x.def}: not updated. ${x.reason}.`);
   // Owner-approved wording (#2568, Q264 A), the dry run's "to reorder" as done.
