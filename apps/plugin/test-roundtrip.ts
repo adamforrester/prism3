@@ -48,6 +48,7 @@ import { applyComponentPlan } from './src/write-components';
 import { makeShim, varValue } from './component-shim';
 import { materializeForBrand } from './src/brand-def';
 import { planTargets, prebuildDependencies } from './src/build-deps';
+import { reactionMap } from './src/reactions';
 import type { ComponentDef } from '@prism3/engine/component-schema';
 import { validateComponentDef } from '@prism3/engine/component-schema';
 import type { Node, Page, ShimOpts } from './component-shim';
@@ -2138,7 +2139,7 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
   if (counterDef) {
     const all = componentDefs.flatMap((d) => { try { return project(d); } catch { return []; } });
     const page: Page = { children: [] };
-    const shim = makeShim({ ...fullFor(all), comps: [SWAP_TARGET], liveRoot: true, page, layoutModel: true });
+    const shim = makeShim({ ...fullFor(all), comps: [SWAP_TARGET], liveRoot: true, page, layoutModel: true, identities: true });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
     const build = (d: ComponentDef) => applyComponentPlan(project(d), shim as any, { emitAsComponents: d.figmaProperties?.emitAsComponents });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural
@@ -2183,6 +2184,37 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
     const closest = spacing.length ? Math.min(...spacing) : NaN;
     ok(spacing.length === 18 && closest >= 44,
       `#2427 counter: the two buttons' centers are at least 44px apart on every member, read off the shim's layout (Q296 A; closest ${closest}px over ${spacing.length})`);
+    // REACTIONS. The Counter's own `state` has no hover or pressed, so its members carry none. Its buttons react through
+    // the nested FlushIconButton.Neutral set, whose members must carry exactly the chain `reactionMap` plans for that
+    // set, so the Counter follows whichever chain `reactions.ts` holds (Q344 restored Rest's press). This arm checks
+    // that the set the Counter nests was written with that chain; the chain's own literal is `reactions read-back`'s.
+    const ownRx = members.reduce((n, m) => n + (((m as unknown as Node).reactions as unknown[] | undefined)?.length ?? 0), 0);
+    const nested = page.children.find((c) => c.name === 'flush-icon-button-neutral' && c.type === 'COMPONENT_SET') as Node | undefined;
+    const nm = ((nested?.children ?? []) as Node[]);
+    const nameOf = new Map(nm.map((m) => [String(m.id), String(m.name)] as const));
+    const planned = reactionMap(nm.map((m) => String(m.name)));
+    const rxOff: string[] = [];
+    let carried = 0;
+    for (const m of nm) {
+      const got = ((m.reactions ?? []) as { trigger: { type: string }; actions: { destinationId: string }[] }[])
+        .flatMap((r) => r.actions.map((a) => `${r.trigger.type}→${nameOf.get(a.destinationId) ?? '?'}`));
+      const want = (planned.get(String(m.name)) ?? []).map((r) => `${r.trigger}→${r.to}`);
+      carried += got.length;
+      if (JSON.stringify(got) !== JSON.stringify(want)) rxOff.push(`${String(m.name)}: ${got.join('; ') || 'none'}, want ${want.join('; ') || 'none'}`);
+    }
+    ok(members.length === 18 && ownRx === 0 && nm.length > 0 && planned.size === nm.length && carried > 0 && rxOff.length === 0,
+      `#2427 counter: the 18 members carry no reaction of their own (${ownRx}), and the nested FlushIconButton.Neutral set's ${nm.length} members carry exactly the chain reactions.ts plans for it (${carried} reactions; ${rxOff.length ? rxOff.slice(0, 3).join(' | ') : 'none off'})`);
+    // THE GLYPHS (#2645): each button's swap property, read off the built instance, names the icon set's minus or plus.
+    const glyphOff: string[] = [];
+    for (const m of members) for (const [side, glyph] of [['decrement', 'icon/minus'], ['increment', 'icon/plus']] as const) {
+      const props = (find(m, side)?.componentProperties ?? {}) as Record<string, { type?: string; value?: unknown }>;
+      const k = Object.keys(props).find((x) => x.split('#')[0] === 'swap icon' && props[x].type === 'INSTANCE_SWAP');
+      const v = k ? props[k].value : undefined;
+      const named = typeof v === 'string' ? ((await (shim as unknown as { getNodeByIdAsync: (id: string) => Promise<{ name: string } | null> }).getNodeByIdAsync(v))?.name ?? v) : v;
+      if (named !== glyph) glyphOff.push(`${String(m.name)}/${side}: ${String(named)}, want ${glyph}`);
+    }
+    ok(members.length === 18 && glyphOff.length === 0,
+      `#2427 counter: in all 18 members the minus button swaps to icon/minus and the plus button to icon/plus (${glyphOff.length ? glyphOff.slice(0, 3).join('; ') : 'none off'})`);
   }
 }
 
