@@ -2,7 +2,7 @@
 
 > A row of two to five options in one track, where exactly one is selected and all stay visible.
 
-A compact row of two to five short options in one outlined track, where exactly one is always selected and every option stays visible. Selecting an option changes a value in place: a parameter of the current view, such as list or grid, or a form value. The options share the track equally. A visible label, or an accessible name, says what is being chosen.
+A compact row of two to five short options in one neutral track, where exactly one is always selected and every option stays visible. Selecting an option changes a value in place: a parameter of the current view, such as list or grid, or a form value. The options share the track equally. A visible label, or an accessible name, says what is being chosen.
 
 - **ID:** `segmented-control`
 - **Category:** form
@@ -72,8 +72,9 @@ One or two words per option, nouns, sentence case: "List", not "Show list".
 - **WCAG:**
   - 1.3.1 Info and Relationships (the group and its label are exposed together)
   - 4.1.2 Name, Role, Value
-  - 1.4.1 Use of Color (the selected option has a 2px outline and a bold label as well as a tint)
-  - 1.4.11 Non-text Contrast (targets 3:1 for the selected outline and the track edge)
+  - 1.4.1 Use of Color (the selected option has a bold label as well as a pill)
+  - 1.4.3 Contrast (every label clears 4.5:1 on the pill and on the track at rest, hover and press)
+  - 1.4.11 Non-text Contrast (icons clear 3:1 on the pill and the track, and the focus ring 3:1 against the track; the pill and the track against the page have no floor, because the labels identify the options)
   - 2.4.7 Focus Visible
   - 2.4.13 Focus Appearance (the shared focus ring, as intent)
   - 2.5.8 Target Size (every option is a full-height cell)
@@ -84,7 +85,7 @@ One or two words per option, nouns, sentence case: "List", not "Show list".
 
 ## Motion
 
-- **Enter:** None. On selection the indicator moves to the new option, about 150–200ms, or the tint and outline cross-fade.
+- **Enter:** None. On selection the pill moves to the new option, about 150–200ms, or cross-fades.
 - **Exit:** None.
 - **Reduced motion:** The indicator moves at once; only the color change remains.
 
