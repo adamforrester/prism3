@@ -88,7 +88,8 @@
  *                  the stamp it had and its marker, reads out of date in the next dry run, and is named among the
  *                  outcome's misses (#2373). Mutation: the stamp written before the record → `recordfail/unstamped`,
  *                  `recordfail/out of date`, `recordfail/set member`. The verdict reading no misses (#2477) →
- *                  `recordfail/verdict`, `recordfail/set verdict`, `misses/other`.
+ *                  `recordfail/verdict`, `recordfail/set verdict`, `misses/other`. A skip on a member whose name is a
+ *                  prefix of a refused one's (`name=check` / `name=check-circle`) hiding that refusal → `recordfail/prefix`.
  *   unrecorded single/…  the icons with no as-built record: updated and named by default, recorded after; under
  *                  `noBaseline: 'skip'`, left exactly and named (#2373). Mutations: the default skipping →
  *                  `unrecorded single/updated`; the choice ignored → `unrecorded single/skip`.
@@ -143,7 +144,7 @@ import { makeShim, STYLE_FONT, type Node, type Page } from './component-shim';
 import { adoptMembers, captureBaselines, previewLine, previewUpdate, previewVerdict, type UpdateHost, type UpdateTarget } from './src/update-plan';
 import { drawnFaults, faultLine, varsById } from './src/drawn';
 import { BASELINE_V, baselineOf, resetStyleNames, snapshotMember } from './src/member-baseline';
-import { applyUpdate, applyVerdict, previewHashOf, DEPRECATED_PREFIX, RETAINED_KEY, nestedFirst, type ApplyHost } from './src/update-apply';
+import { applyUpdate, applyVerdict, previewHashOf, namesMember, DEPRECATED_PREFIX, RETAINED_KEY, nestedFirst, type ApplyHost } from './src/update-apply';
 
 let failed = 0;
 let executed = 0;
@@ -705,6 +706,53 @@ const reinked = (plans: AnatomyPlan[]): AnatomyPlan[] => plans.map((p) => { cons
   ok(!v.ok && v.headline === '⚠ 1 set not verified' && v.lines[0] === `${TAG}: 44 updated in place.`
     && v.lines.includes(`${TAG}: 1 member not finished — ${String(hit.name)} (its as-built record could not be written). It still reads as out of date; run the update again to finish it.`),
     `recordfail/set verdict: the set member's verdict is not a ✓, counts 44 updated and names it not finished (${JSON.stringify(v)})`);
+}
+{
+  // A SKIPPED MEMBER WHOSE NAME IS A PREFIX OF AN UPDATED ONE'S (#2477 review). The shipped icons hold such pairs
+  // (`name=check` / `name=check-circle`), and a miss names a member by its whole name, so the skip on `name=check` (a
+  // layer added by hand) must not swallow the record refused on `name=check-circle`. Mutation: the skipped-member
+  // filter matching by substring again → `recordfail/prefix`.
+  const plans = plansOf('icon');
+  const w = await singleWorld(plans, ['color/icon/secondary']);
+  const t = { def: 'icon', plans: reinked(plans), single: true };
+  const glyphOf = (c: Node): string => String(c.name).split('/').pop()!;
+  const skip = w.comps().find((c) => glyphOf(c) === 'check')!;
+  const hit = w.comps().find((c) => glyphOf(c) === 'check-circle')!;
+  const extra = (w.api.createFrame as () => Node)();
+  extra.name = 'designer note';
+  (skip.appendChild as (c: Node) => void)(extra);
+  const pre = await previewUpdate(w.host, [t]);
+  const real = hit.setSharedPluginData as (a: string, b: string, c: string) => void;
+  hit.setSharedPluginData = (ns: string, k: string, v: string): void => {
+    if (ns === NS && k === BASELINE_KEY) throw new Error('the host refused the write');
+    real.call(hit, ns, k, v);
+  };
+  const res = await applyUpdate(w.host, w.api as any, [t], previewHashOf(pre));
+  hit.setSharedPluginData = real;
+  const o = res.outcomes[0];
+  const v = applyVerdict(res);
+  ok(o?.skipped.some((x) => x.member === 'name=check') && o.misses.some((x) => x.startsWith('name=check-circle.asBuilt -> NOT RECORDED'))
+    && !v.ok && v.headline === '⚠ 1 set not verified' && v.lines[0] === 'icon: 43 updated in place, 1 left as they are.'
+    && v.lines.includes('icon: 1 member not finished — name=check-circle (its as-built record could not be written). It still reads as out of date; run the update again to finish it.'),
+    `recordfail/prefix: a skip on name=check leaves the refused record on name=check-circle in the misses and the verdict (skipped ${JSON.stringify(o?.skipped)}; misses ${JSON.stringify(o?.misses)}; ${JSON.stringify(v)})`);
+}
+{
+  // WHICH MEMBER A MISS NAMES, as whole names (#2477 review), on misses written out by hand in the build's own forms.
+  // `known` leaves `name=check-circle` out, as a member this run adds is left out of it, so the prefix rows rest on the
+  // boundary alone. Mutations: no boundary after the name → `misses/whole name` (the prefix rows); the longer-name rule
+  // dropped → the dotted row.
+  const known = ['name=check', 'size=1', 'size=1.5'];
+  const rows: [string, string, boolean][] = [
+    ['name=check.asBuilt -> NOT RECORDED (x)', 'name=check', true],
+    ['name=check-circle.asBuilt -> NOT RECORDED (x)', 'name=check', false],
+    ['name=check/label.slot -> NOT MADE (x)', 'name=check', true],
+    ['footprint -> name=check-circle measures 24x24 but name=check measures 20x20 (same g)', 'name=check', true],
+    ['footprint -> name=check-circle measures 24x24 but name=plus measures 20x20 (same g)', 'name=check', false],
+    ['size=1.5.asBuilt -> NOT RECORDED (x)', 'size=1', false],
+    ['size=1.5.asBuilt -> NOT RECORDED (x)', 'size=1.5', true],
+  ];
+  const wrong = rows.filter(([miss, m, want]) => namesMember(miss, m, known) !== want);
+  ok(!wrong.length, `misses/whole name: a miss names a member by its whole name, never a prefix of a longer one (wrong: ${JSON.stringify(wrong)})`);
 }
 {
   // ANY OTHER MISS FROM THE BUILD'S PASS (#2477): the set is not verified, the miss is quoted with its own reason, and

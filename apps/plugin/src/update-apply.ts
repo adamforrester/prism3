@@ -309,6 +309,24 @@ const restampMembers = async (live: LiveSet, names: readonly string[], plans: Re
 };
 
 /** One set: renames, property changes, deprecations, then the build's own pass in update mode, then verify. */
+/** Does a build miss name `member` as a WHOLE member name (#2477 review)? A substring test is not enough: members are
+ *  named `name=<glyph>`, and the shipped icon set has prefix pairs (`name=check` / `name=check-circle`, `name=eye` /
+ *  `name=eye-off`), so a skipped `name=check` would swallow every miss about `name=check-circle`. A name counts where it
+ *  starts the miss or follows a space, and ends it or meets a space, `.` or `/` — the ways a miss names a member
+ *  (`<member>.asBuilt -> …`, `<member>/<part>.slot -> …`, `footprint -> <member> measures … but <member> measures …`).
+ *  Where a longer name in `known` matches at the same place (a variant value with a dot, `size=1` / `size=1.5`), that
+ *  longer name is the one named. */
+export const namesMember = (miss: string, member: string, known: readonly string[]): boolean => {
+  const bounded = (at: number, name: string): boolean =>
+    (at === 0 || miss[at - 1] === ' ') && (at + name.length === miss.length || /[\s./]/.test(miss[at + name.length]));
+  for (let at = miss.indexOf(member); at >= 0; at = miss.indexOf(member, at + 1)) {
+    if (!bounded(at, member)) continue;
+    if (known.some((k) => k.length > member.length && k.startsWith(member) && miss.startsWith(k, at) && bounded(at, k))) continue;
+    return true;
+  }
+  return false;
+};
+
 const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, p: SetPreview, live: LiveSet, opts: { description?: string; yieldTo?: () => Promise<void>; handEdits: HandEditChoice; noBaseline: NoRecordChoice }): Promise<SetOutcome> => {
   const out: SetOutcome = { def: t.def, set: p.set, updated: [], added: 0, renamed: 0, deprecated: [], skipped: [], kept: [], unrecorded: [], handEdits: opts.handEdits, identity: [], content: [], misses: [] };
   const work = plan(p, opts.handEdits, opts.noBaseline);
@@ -402,7 +420,8 @@ const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, p:
   // The build's notes on the members it was told to leave alone are this run's skips, already reported above. So is a
   // miss that names one (#2477): the build's footprint check comparing a designer's own member, which the update left
   // as it is, with a sibling is about that member, not about a write the update could not finish.
-  out.misses = r.misses.filter((x) => !/^member .* -> (ALREADY PRESENT|STALE) /.test(x) && !out.skipped.some((k) => x.includes(k.member)));
+  const known = [...before.keys(), ...out.updated, ...out.skipped.map((k) => k.member)];
+  out.misses = r.misses.filter((x) => !/^member .* -> (ALREADY PRESENT|STALE) /.test(x) && !out.skipped.some((k) => namesMember(x, k.member, known)));
 
   // ── VERIFY (a): IDENTITY, OFF THE HOST ─────────────────────────────────────────────────────────────────────
   const now = t.single ? (await liveFor(host, t, p.set)) ?? live

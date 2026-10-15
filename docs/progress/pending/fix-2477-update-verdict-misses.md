@@ -28,3 +28,14 @@ every update read "not verified".
 **Tests.** `recordfail/verdict` and `recordfail/set verdict` hold the headline, the count and the named line on the
 icon and a set member; `misses/other` holds the set-level line from an outcome written out by hand; `unbuilt/relay
 left` holds the skipped member's miss left out.
+
+**The skipped-member match is by whole name (review).** The first cut matched with `includes`, and members are named
+`name=<glyph>`: the shipped icons hold 20 prefix pairs (`name=check` ⊂ `name=check-circle`, `name=eye` ⊂ `name=eye-off`),
+so a skip on `name=check` swallowed the refused record on `name=check-circle` and the verdict went back to ✓ with it
+counted, which is #2477 again. `namesMember` now takes a name only where it starts the miss or follows a space, and ends
+it or meets a space, `.` or `/` (the forms the build uses: `<member>.asBuilt`, `<member>/<part>.slot`, `footprint ->
+<member> measures … but <member> measures …`). A `.` boundary alone would let `size=1` claim `size=1.5.asBuilt`, so where
+a longer known member name matches at the same place, that one is named. Arms: `recordfail/prefix` (the review's probe
+through the shim) and `misses/whole name` (the forms, by hand). Left as it was, and an owner call: a footprint miss that
+names both a skipped and an updated member is still dropped whole, even when the updated member is the one whose size
+moved.
