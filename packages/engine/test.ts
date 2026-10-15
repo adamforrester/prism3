@@ -3185,7 +3185,8 @@ for (const b of brands) {
   // `type.*` as composites: `visualize.ts` drew the leaf as a 0px type specimen in `out/tokens.html`, and
   // `ai-metadata.ts` let it fall through to the primitive tier as "Private primitive — prefer a semantic
   // token", telling an agent not to bind the token a title row is for. The expected set comes from the
-  // committed trees ($type per leaf), the specimens from the committed page, and the sidecar is built here.
+  // committed trees ($type per leaf), the specimens from a page rendered here into a temp dir — the page is
+  // built on demand and not committed (Q319.6), so there is no committed copy to read — and the sidecar is built here.
   {
     const nonType: string[] = [];
     const typeLeaves = (node: any, path: string) => {
@@ -3198,7 +3199,13 @@ for (const b of brands) {
       const root = Object.keys(tr).find((k) => !k.startsWith('$'))!;
       for (const g of Object.keys(tr[root]?.type ?? {})) typeLeaves(tr[root].type[g], g);
     }
-    const page = readFileSync(resolve(HERE, './out/tokens.html'), 'utf8');
+    const pageDir = mkdtempSync(join(tmpdir(), 'prism3-tokens-html-'));
+    let page = '';
+    try {
+      const r = spawnSync('npx', ['tsx', resolve(HERE, 'visualize.ts'), '--out', pageDir], { cwd: HERE, encoding: 'utf8' });
+      if (r.status !== 0) console.error(r.stdout, r.stderr);
+      else if (existsSync(join(pageDir, 'tokens.html'))) page = readFileSync(join(pageDir, 'tokens.html'), 'utf8');
+    } finally { rmSync(pageDir, { recursive: true, force: true }); }
     const specimens = new Set([...page.matchAll(/<div class="trow"><div class="tmeta"><b>([^<]+)<\/b>/g)].map((m) => m[1]));
     const drawn = [...new Set(nonType)].filter((p) => specimens.has(p));
     ok(nonType.some((p) => /^label\.(sm|md|lg)\.line-box$/.test(p)) && specimens.size > 0 && drawn.length === 0,
