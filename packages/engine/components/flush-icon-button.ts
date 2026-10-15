@@ -278,7 +278,6 @@ const makeFlushIconButton = (id: string, name: string, summary: string, descript
   notes: {
     contested: [
       'TWO NESTS EXPOSING `state` ON ONE HOST are built and exposed on the shim (`test-roundtrip.ts`), but untested on a real host, where Figma lists each exposed instance\'s properties under its layer name.',
-      'THE DESTRUCTIVE ROUND EDGE (DRAFT, owner question on #2457): all three families keep the decorative `color.border.secondary` edge. IconButton\'s ghost draws no edge, so its precedent does not say whether a destructive circle should go red (`interactive.destructive.border.*`, IconButton.Destructive\'s outline edge).',
     ],
     evolution: [
       'Q283.3 A (2026-10-14): its own small def rather than an `inset` axis on IconButton\'s ghost appearance, so the three IconButton sets stay as they are.',
@@ -286,6 +285,7 @@ const makeFlushIconButton = (id: string, name: string, summary: string, descript
       'Q295 (2026-10-14): the name `FlushIconButton` / `flush-icon-button` (A); a 44×44 code-side hit area at every size, small included (A); sizes small, medium, large (A); `shape: flush | round` (A); round 36 / 44 / 56 (A); the glyph 20 / 20 / 24 on both shapes (A); the neutral roles as built (A).',
       'Q295.2 B (2026-10-14): primary and destructive beside neutral, on both shapes, as IconButton\'s three components: the bare id is primary, the siblings `-destructive` and `-neutral`, and each takes its IconButton\'s ghost ink and wash.',
       'Q296 A (2026-10-14): the 44px spacing between two flush icon buttons is center to center, so their 44×44 hit areas touch without overlapping.',
+      'Q305.1 A (2026-10-14): the round edge stays the decorative color.border.secondary (color.disabled.border at disabled) on all three families; the glyph carries the family color.',
     ],
     unverified: [
       'motion timing — no motion token is bound, so nothing gates the 100–150ms target.',
