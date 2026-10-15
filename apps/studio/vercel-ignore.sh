@@ -80,7 +80,8 @@ EXCLUDED=(
 )
 # --- end excluded
 
-PATHS=(apps/studio packages/engine/schema vercel.json package.json package-lock.json packages/engine)
+# `docs/public` is copied whole to the site's `/docs` by `build-site.mjs` (#2637), so a docs change is a site change.
+PATHS=(apps/studio packages/engine/schema vercel.json package.json package-lock.json packages/engine docs/public)
 for f in "${EXCLUDED[@]}"; do PATHS+=(":(exclude)packages/engine/$f"); done
 
 # WHAT THE DIFF IS AGAINST (#1953). Not `HEAD^`: a branch whose newest commit touches only docs (a progress

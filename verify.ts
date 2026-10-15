@@ -633,6 +633,13 @@ export const GATES: Gate[] = [
     cmd: engine('lint-contract-version.ts'),
   },
   {
+    // #2637 — docs/public/reference/commands.json against the code it is generated from. Reads the source
+    // files only, so it needs no `after`.
+    id: 'agent-reference',
+    ciStep: 'The agent reference matches the code (#2637)',
+    cmd: engine('emit-agent-reference.ts', '--check'),
+  },
+  {
     id: 'typecheck-web',
     ciStep: 'Typecheck web',
     cmd: ws('@prism3/studio', 'typecheck'),
