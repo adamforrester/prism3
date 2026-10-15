@@ -236,7 +236,7 @@ the log: merged entries wait there until the next fold.
 **The engine bump is a change note, not a number.** A PR that owes an `ENGINE_VERSION` bump
 adds `packages/engine/changes/<slug>.md` declaring `engine: patch|minor|major`. Check the
 declared class against the change (a MINOR when the projected surface grows or shrinks). A
-PR that edits `ENGINE_VERSION` or its changelog in `version.ts` is blocking unless it is a
+PR that edits `ENGINE_VERSION` or its changelog (`packages/engine/CHANGELOG.md`) is blocking unless it is a
 fold; `lint-emission-version.ts` fails it by name. `CONTRACT_VERSION` is still bumped per PR.
 
 **Verify a hand-edited log entry LANDED, not just that it exists.** A clean 3-way merge can

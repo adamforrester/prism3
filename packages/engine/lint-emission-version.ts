@@ -23,14 +23,13 @@
  * And three arms that exist because the version line now has exactly one writer:
  *
  *   NOTE SHAPE     — every change note at HEAD parses: the exact front matter, a level of patch, minor
- *                    or major, prose, no `*` + `/` (it is folded into a comment), and no line opening with
- *                    a version number AFTER `{{ENGINE_VERSION}}` is substituted (it would read as a
+ *                    or major, prose, and no line opening with a version number AFTER `{{ENGINE_VERSION}}` is substituted (it would read as a
  *                    changelog heading once folded). And the BUMP-CLASS POLICY: `minor` for any behavior
  *                    change; `patch` only when no committed artifact moved, so an added patch note over a
  *                    moved emission fails; `major` refused while ENGINE is 0.x (1.0 is the owner's call).
- *   ONE WRITER     — if `ENGINE_VERSION` or the ENGINE CHANGELOG (the text between this module's header
- *                    and the constant) changed, the diff must be a fold: it deletes at least one change
- *                    note. A change note may be deleted only by a fold, and a pending note (one the base
+ *   ONE WRITER     — if `ENGINE_VERSION` or the ENGINE CHANGELOG (`CHANGELOG.md` below its marker
+ *                    comment; until Q319.3 the comment above the constant in `version.ts`) changed, the
+ *                    diff must be a fold: it deletes at least one change note. A change note may be deleted only by a fold, and a pending note (one the base
  *                    already has) may not be edited at all. The changelog may never carry a literal `{{`,
  *                    which is an unsubstituted placeholder. A PR that picks a number, or a merge
  *                    resolution that drops or rewrites someone's pending note, fails here by name.
@@ -105,7 +104,7 @@
  * `lint-us-english.ts`: a new emitted artifact is covered the moment regen writes it, with no second
  * edit here to forget. `out/**` is taken wholesale because that is how regen writes it.
  *
- * ── TWO LIMITS, STATED BECAUSE A READER WILL ASSUME OTHERWISE ───────────────────────────────────
+ * ── THREE LIMITS, STATED BECAUSE A READER WILL ASSUME OTHERWISE ─────────────────────────────────
  *
  * 1. IT COMPARES COMMITS, NOT THE WORKING TREE. An uncommitted artifact change with no bump is
  *    invisible here and becomes visible the moment it is committed. That is deliberate — the question
@@ -118,6 +117,15 @@
  *    moving `ENGINE_VERSION`. The convention this gate enforces is the convention the history already
  *    follows; if a brand-only PR ever wants an exemption, it should be argued then, in the open,
  *    rather than pre-granted here by a carve-out nobody has needed.
+ * 3. A PARTIAL RESTAMP PASSES HERE (#2663). A fold moves `ENGINE_VERSION` forward, so the version route
+ *    passes it whatever `out/` holds: a fold that left one emitted tree at the old stamp is green here.
+ *    Only `regen.ts --check` (verify's `drift` row) fails it, by regenerating every artifact and finding
+ *    the stale one. That is the right home, since a stamp is derived from the constant and nothing in
+ *    this gate's two sides could see it (the section above), but it means `drift` is load-bearing for
+ *    every fold: drop it from the gate list and a half-restamped corpus merges green.
+ *    And this gate checks the class of the notes a fold CONSUMED, not that it consumed every note on the
+ *    tree it merges into. `lint-progress-order.ts`'s LEAVES NOTHING PENDING arm fails a fold that left a
+ *    note or a fragment pending.
  */
 import { spawnSync } from 'node:child_process';
 import { resolve } from 'node:path';
@@ -319,10 +327,9 @@ const parseNote = (src: string): ParsedNote => {
   if (!BUMP_LEVELS.includes(m[1])) return { level: null, prose, problem: `\`engine: ${m[1]}\` is not one of ${BUMP_LEVELS.join(' | ')} (a change that owes no bump carries no note)` };
   if (!prose) return { level: m[1], prose, problem: 'there is no changelog prose after the front matter' };
   if (prose.replace(/\{\{ENGINE_VERSION\}\}/g, '').includes('{{'))
-    return { level: m[1], prose, problem: 'a `{{` other than `{{ENGINE_VERSION}}` — the fold would copy it into version.ts, where a literal `{{` fails ONE WRITER' };
-  if (prose.includes('*/')) return { level: m[1], prose, problem: 'the prose contains `*/`, which would close the version.ts comment it is folded into' };
+    return { level: m[1], prose, problem: 'a `{{` other than `{{ENGINE_VERSION}}` — the fold would copy it into CHANGELOG.md, where a literal `{{` fails ONE WRITER' };
   // Checked AFTER substitution (#1823 review, HIGH): a line opening `{{ENGINE_VERSION}} —` passes a raw
-  // check and becomes ` * 0.216.0 — …` once folded, which reads as a changelog heading. Any version works
+  // check and becomes `0.216.0 — …` once folded, which reads as a changelog heading. Any version works
   // as the stand-in; the question is only whether the line would open with one.
   if (prose.replace(/\{\{ENGINE_VERSION\}\}/g, '9.9.9').split('\n').some((l) => /^\s*\d+\.\d+\.\d+\s*[—:-]/.test(l)))
     return { level: m[1], prose, problem: 'a line opens with a version number (or with `{{ENGINE_VERSION}}`), which reads as a changelog heading once folded — reword it, or give a second entry its own note' };
@@ -365,7 +372,7 @@ if (noteProblems.length)
     '      ---',
     '      engine: minor        # patch | minor | major',
     '      ---',
-    '      <the changelog prose, which the fold writes into version.ts>',
+    '      <the changelog prose, which the fold writes into CHANGELOG.md>',
     '  The fold refuses a malformed note, so it fails here, at the PR that wrote it.',
   ]);
 const bumpNotes = addedNotes.filter((p) => BUMP_LEVELS.includes(parsedAtHead.get(p)?.level ?? ''));
@@ -383,28 +390,57 @@ if (changed.length > 0 && patchOverEmission.length && !bumpNotes.some((p) => par
     '  Anything that moves the emission is a behavior change, and the class for that is `minor`.',
   ]);
 
-// ONE WRITER + FOLD INTEGRITY. The changelog region is everything between the end of this module's
-// header docblock and the end of the `ENGINE_VERSION` line — every entry, old or folded, plus the
-// constant. The module header itself is policy prose and stays editable by any PR.
-const MARKER_PREFIX = ' * ── FOLDED CHANGE NOTES (#1807)';
+// ONE WRITER + FOLD INTEGRITY. The changelog region is everything in `CHANGELOG.md` below its marker
+// comment — every entry, old or folded. The file's intro above the comment is description and stays
+// editable by any PR, as `version.ts`'s module header does. The constant is read separately below.
+//
+// TRANSITION (Q319.3). Until the move, the changelog was the comment between `version.ts`'s module
+// header and the constant. A base without `CHANGELOG.md` is read that way, and its region is put
+// through the move's transform, RESTATED here: drop the opening `/**`, the constant's own first line
+// and its spacer, and the closing `*/`; strip ` * ` / ` *`; and a block boundary (`*/` then `/**`)
+// becomes a blank line, `---`, a blank line. So the PR that made the move passes ONE WRITER only if
+// the move was byte-faithful under that transform, and any edit made along the way fails it by name.
+const MARKER_PREFIX = '── FOLDED CHANGE NOTES (#1807)';
+const CHANGELOG = 'packages/engine/CHANGELOG.md';
+const CHANGELOG_SENTINEL = '<!-- ENGINE CHANGELOG (#1807)';
 const changelogRegion = (src: string): string | null => {
-  const headerEnd = src.indexOf('*/');
-  const k = /^export const ENGINE_VERSION\s*=\s*'[^']*';[^\n]*$/m.exec(src);
-  if (headerEnd < 0 || !k) return null;
-  return src.slice(headerEnd + 2, k.index + k[0].length);
+  const lines = src.split('\n');
+  const at = lines.findIndex((l) => l.startsWith(CHANGELOG_SENTINEL));
+  return at < 0 ? null : lines.slice(at + 1).join('\n');
 };
+const legacyRegion = (versionSrc: string): string | null => {
+  const headerEnd = versionSrc.indexOf('*/');
+  const k = /^export const ENGINE_VERSION\s*=\s*'[^']*';[^\n]*$/m.exec(versionSrc);
+  if (headerEnd < 0 || !k) return null;
+  const lines = versionSrc.slice(headerEnd + 2, k.index).split('\n');
+  const open = lines.indexOf('/**');
+  if (open < 0 || !/^ \* The code\. /.test(lines[open + 1] ?? '') || lines[open + 2] !== ' *') return null;
+  const body = lines.slice(open + 3);
+  while (body.length && body[body.length - 1] === '') body.pop();
+  if (body.pop() !== ' */') return null;
+  const out: string[] = [''];
+  for (let i = 0; i < body.length; i++) {
+    if (body[i] === ' */' && body[i + 1] === '/**') { out.push('', '---', ''); i++; continue; }
+    if (body[i] !== ' *' && !body[i].startsWith(' * ')) return null;
+    out.push(body[i].slice(3));
+  }
+  return `${out.join('\n')}\n`;
+};
+const baseChangelog = git('show', `${base}:${CHANGELOG}`);
+const headChangelog = git('show', `HEAD:${CHANGELOG}`);
+if (!headChangelog.ok) die([`cannot read ${CHANGELOG} at HEAD — this check CANNOT RUN.`, `    ${headChangelog.err}`]);
 const headVersionSrc = git('show', 'HEAD:packages/engine/version.ts');
 if (!headVersionSrc.ok) die([`cannot read version.ts at HEAD — this check CANNOT RUN.`, `    ${headVersionSrc.err}`]);
 const headConst = /ENGINE_VERSION\s*=\s*'([^']+)'/.exec(headVersionSrc.out);
-const baseRegion = changelogRegion(baseSrc.out);
-const headRegion = changelogRegion(headVersionSrc.out);
+const baseRegion = baseChangelog.ok ? changelogRegion(baseChangelog.out) : legacyRegion(baseSrc.out);
+const headRegion = changelogRegion(headChangelog.out);
 if (!headConst || baseRegion === null || headRegion === null)
   die([
-    'cannot find the ENGINE changelog region (module header `*/` … `export const ENGINE_VERSION`) at the base or HEAD — this check CANNOT RUN.',
+    `cannot find the ENGINE changelog region (\`${CHANGELOG_SENTINEL} …\` in ${CHANGELOG}, or at a base before Q319.3 the comment above \`export const ENGINE_VERSION\` in version.ts) at the base or HEAD — this check CANNOT RUN.`,
     '  The file was restructured. Update `changelogRegion` in this gate in the same PR.',
   ]);
 const headVersion = headConst![1];
-const regionChanged = baseRegion !== headRegion;
+const regionChanged = baseRegion !== headRegion || headVersion !== baseVersion;
 const markerAtBase = baseRegion!.split('\n').some((l) => l.startsWith(MARKER_PREFIX));
 const isFold = deletedNotes.length > 0;
 
@@ -427,21 +463,21 @@ if (markerAtBase && modifiedNotes.length)
   ]);
 if (markerAtBase && headRegion!.includes('{{'))
   die([
-    'ONE WRITER — the ENGINE changelog in version.ts carries a literal `{{` (#1807).',
+    'ONE WRITER — the ENGINE changelog in CHANGELOG.md carries a literal `{{` (#1807).',
     `    ${where}`,
     '',
-    '  `{{ENGINE_VERSION}}` belongs in a change note, where the fold fills it in. In version.ts it means a',
+    '  `{{ENGINE_VERSION}}` belongs in a change note, where the fold fills it in. In the changelog it means a',
     '  fold wrote a note without substituting it, or a PR pasted a note in by hand. Rerun the fold.',
   ]);
 if (!markerAtBase) {
   writerLine = 'not yet in force — the base predates the FOLD MARKER, so this diff introduces the convention';
 } else if (!isFold && regionChanged) {
   die([
-    `ONE WRITER — this diff edits ${headVersion !== baseVersion ? `ENGINE_VERSION (${baseVersion} → ${headVersion})` : 'the ENGINE changelog in version.ts'} and is not a fold: it deletes no change note (#1807).`,
+    `ONE WRITER — this diff edits ${headVersion !== baseVersion ? `ENGINE_VERSION (${baseVersion} → ${headVersion})` : 'the ENGINE changelog in CHANGELOG.md'} and is not a fold: it deletes no change note (#1807).`,
     `    ${where}`,
     '',
     '  Since #1807 only `fold.ts` writes the constant and the changelog, so no two PRs ever write the same',
-    '  line. Revert the edit to version.ts and add `packages/engine/changes/<slug>.md` instead:',
+    '  line. Revert the edit to version.ts or CHANGELOG.md and add `packages/engine/changes/<slug>.md` instead:',
     '      ---',
     '      engine: minor        # patch | minor | major',
     '      ---',
@@ -455,7 +491,7 @@ if (!markerAtBase) {
     `    ${where}`,
     '',
     '  A pending note is another PR\'s declared bump. Only a fold consumes one, by writing its prose into',
-    '  version.ts in the same diff. The usual cause is a merge resolution that dropped the file; restore it.',
+    '  CHANGELOG.md in the same diff. The usual cause is a merge resolution that dropped the file; restore it.',
   ]);
 } else if (isFold) {
   const folded = deletedNotes.map((p) => {
@@ -472,7 +508,7 @@ if (!markerAtBase) {
     fails.push(`ENGINE_VERSION is ${headVersion}; ${folded.length} folded note(s) at a highest level of ${top} over ${baseVersion} make it exactly ${want} — one version per fold, no gaps`);
   const lines = headRegion!.split('\n');
   const at = lines.findIndex((l) => l.startsWith(MARKER_PREFIX));
-  const HEADER = /^ \* (\d+\.\d+\.\d+) — /;
+  const HEADER = /^(\d+\.\d+\.\d+) — /;
   const first = at < 0 ? -1 : lines.findIndex((l, i) => i > at && HEADER.test(l));
   if (at < 0) fails.push('the FOLD MARKER is gone from HEAD\'s changelog');
   else if (first < 0 || HEADER.exec(lines[first])![1] !== headVersion)
@@ -480,12 +516,12 @@ if (!markerAtBase) {
   else {
     // The section ends at the NEXT FOLD's header, at the first header of ANOTHER version (the first fold
     // is followed by the pre-#1807 entries, whose headers name older versions; #1823 re-review), or at
-    // the comment's end. A line naming THIS version never ends it: a note line led by the placeholder
+    // the file's end. A line naming THIS version never ends it: a note line led by the placeholder
     // becomes exactly that, which is the #1823 HIGH case (NOTE SHAPE refuses it too).
-    const FOLD_HEADER = /^ \* \d+\.\d+\.\d+ — folded \d{4}-\d{2}-\d{2} from /;
-    let end = lines.findIndex((l, i) => i > first && (FOLD_HEADER.test(l) || (HEADER.test(l) && HEADER.exec(l)![1] !== headVersion) || l.trim() === '*/'));
+    const FOLD_HEADER = /^\d+\.\d+\.\d+ — folded \d{4}-\d{2}-\d{2} from /;
+    let end = lines.findIndex((l, i) => i > first && (FOLD_HEADER.test(l) || (HEADER.test(l) && HEADER.exec(l)![1] !== headVersion)));
     if (end < 0) end = lines.length;
-    const section = squash(lines.slice(first, end).map((l) => l.replace(/^ \*( |$)/, '')).join('\n'));
+    const section = squash(lines.slice(first, end).join('\n'));
     for (const n of folded)
       if (!section.includes(squash(n.prose.replace(/\{\{ENGINE_VERSION\}\}/g, headVersion))))
         fails.push(`${n.path}: its prose is not in the ${headVersion} section — the fold deleted a note and dropped what it said`);
@@ -573,7 +609,7 @@ if (changed.length > 0 && !forward && !bumpNotes.length) {
     '      ---',
     '      engine: minor        # patch | minor | major',
     '      ---',
-    '      <the changelog prose; the fold writes it into version.ts under the version it assigns>',
+    '      <the changelog prose; the fold writes it into CHANGELOG.md under the version it assigns>',
     '  If you believe this emission change genuinely does not warrant a bump, that is a decision worth',
     '  arguing in the PR rather than working around here — see this gate\'s header, limit 2.',
   ]);

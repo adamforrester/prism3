@@ -624,20 +624,24 @@ section('rollout — every def that builds a set: drawn, converged, and clear of
   // properties builds a set, except the two that build single components (`emitAsComponents`), which have no grid.
   const withSet = componentDefs.filter((d) => d.figmaProperties && !d.figmaProperties.emitAsComponents).map((d) => d.id);
   const single = componentDefs.filter((d) => d.figmaProperties?.emitAsComponents).map((d) => d.id);
-  ok(withSet.length === 33 && withSet.every(hasFurniture) && JSON.stringify(single) === JSON.stringify(['icon', 'spinner']) && !single.some(hasFurniture),
-    `rollout/switch: all 33 defs that build a set have furniture; Icon and Spinner, single components, do not (off: ${JSON.stringify(withSet.filter((id) => !hasFurniture(id)))})`);
+  ok(withSet.length === 37 && withSet.every(hasFurniture) && JSON.stringify(single) === JSON.stringify(['icon', 'spinner']) && !single.some(hasFurniture),
+    `rollout/switch: all 37 defs that build a set have furniture; Icon and Spinner, single components, do not (off: ${JSON.stringify(withSet.filter((id) => !hasFurniture(id)))})`);
 
   // THE MEMBERS AN EARLIER LAYOUT HOLDS OFF THEIR GROUPED ROW, per def, worked out by hand. Only a def with a `surface`
   // ROW axis regroups. Button and its two siblings: 360, as `MOVES` above. The three icon buttons: 36 rows of 6
   // states; the earlier row order is appearance (3) × shape (2) × surface (2) × size (3), the grouped one surface ×
   // appearance × shape × size, so a row keeps its place only where 12a + 6s + 3u = 18u + 6a + 3s, that is 2a + s =
   // 5u: (filled, square?, default) — a = 0, s = 0, u = 0 — and a = 2, s = 1, u = 1. Six rows stay, 30 rows × 6 = 180
-  // move. Every other def: none, its layout is the one it had.
+  // move. Link (#2580): 24 rows of 4 states; the earlier row order is style (2) × weight (2) × surface (2) × size (3),
+  // the grouped one surface × style × weight × size, so a row stays only where 12s + 6w + 3u = 12u + 6s + 3w, that is
+  // 2s + w = 3u: (standalone, emphasis, default) and (inline, default, inverse). Six rows stay, 18 rows × 4 = 72 move.
+  // Every other def: none, its layout is the one it had.
   const MOVES_BY_DEF: Record<string, number> = {
     button: 360, 'button-destructive': 360, 'button-neutral': 360,
     'icon-button': 180, 'icon-button-destructive': 180, 'icon-button-neutral': 180,
+    link: 72,
   };
-  // THE DEFS WITH A BACKDROP: the six above, the only ones whose rows split by `surface`. Focus ring has `surface`
+  // THE DEFS WITH A BACKDROP: the seven above, the only ones whose rows split by `surface`. Focus ring has `surface`
   // too, but as its grid axis (two columns), so it gets two column labels and no backdrop (held for the owner, #2502).
   const BACKDROP = new Set(Object.keys(MOVES_BY_DEF));
   for (const id of withSet) {
@@ -694,9 +698,11 @@ section('rollout — every def that builds a set: drawn, converged, and clear of
     'Segmented control': ['segmented-control-segment', 'segmented-control'],
     Accordion: ['_accordion-indicator', 'accordion'],
     List: ['list-item', 'list'],
+    // #2457 Q295.2 B: the flush icon button's three families share one page, as IconButton's do.
+    'Flush Icon Button': ['flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral'],
   };
   const fromTaxonomy = Object.fromEntries(allLeaves().filter(({ leaf }) => leaf.defs.length > 1).map(({ leaf }) => [leaf.page, [...leaf.defs]]));
-  ok(JSON.stringify(fromTaxonomy) === JSON.stringify(SHARED), `clearance/pages: the eight pages that hold more than one set (${JSON.stringify(Object.keys(fromTaxonomy))})`);
+  ok(JSON.stringify(fromTaxonomy) === JSON.stringify(SHARED), `clearance/pages: the ten pages that hold more than one set (${JSON.stringify(Object.keys(fromTaxonomy))})`);
   const box = (n: FNode) => ({ x: Number(n.x), y: Number(n.y), w: Number(n.width), h: Number(n.height) });
   const meets = (a: ReturnType<typeof box>, b: ReturnType<typeof box>) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
   for (const [name, ids] of Object.entries(SHARED)) {
