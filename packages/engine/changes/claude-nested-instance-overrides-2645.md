@@ -9,4 +9,5 @@ or a glyph the icon set does not draw. Plans carry them as `nestOverrides`. Both
 `setProperties` on the nested instance once it exists (on Update, on the instance kept in place, unless a designer
 changed it by hand) and read each one back, through one shared writer; swap targets are pre-built as dependencies.
 The component read-back checks them off the instance's own `componentProperties`. List's items 2 to 8 now read
-"2." to "8." in Figma instead of "1.".
+"2." to "8." in Figma instead of "1.". EXECUTOR_REVISION 26:
+a file built earlier reads its List members "to update", and Update writes the overrides in place.

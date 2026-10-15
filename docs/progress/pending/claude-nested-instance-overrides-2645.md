@@ -1,8 +1,9 @@
 ## (2026-10-15) — Per-instance overrides on a nested instance: a text and a swap (#2645)
 
 **Status:** engine schema + projection, both executors, the component read-back, the plugin shim, List. ENGINE minor
-(change note). `EXECUTOR_REVISION` 24 → 25 (Dialog, #2652, took 23 and Password field, #2648, took 24 before this
-merged). CONTRACT unchanged: no token path moves.
+(change note). `EXECUTOR_REVISION` 25 → 26 (Dialog, #2652, took 23, Password field, #2648, took 24 and the prototype
+reactions fix, #2703, took 25 before this merged; git merged the two identical `25` lines without a conflict,
+which is the #2551 shape `lint-executor-revision.ts` checks against main's current number). CONTRACT unchanged: no token path moves.
 
 ### What changed
 
