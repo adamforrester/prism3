@@ -2352,6 +2352,9 @@ const main = async (): Promise<void> => {
       ['pds/dimension/4', [], 'FLOAT', 'scale'],
       ['pds3/core/dimension/4', ['WIDTH_HEIGHT', 'GAP', 'CORNER_RADIUS', 'STROKE_FLOAT'], 'FLOAT', 'scale'],
     ];
+    // Figma's motion types (#2412) are motion by TYPE, under any name, and so named as a later phase rather than dropped.
+    ok(kindOf('pds3/motion/stagger', ['ALL_SCOPES'], 'TIMING') === 'duration' && kindOf('pds3/motion/spring/snappy', ['ALL_SCOPES'], 'EASING') === 'motion',
+      `21: a TIMING is a duration and an EASING is motion, whatever the name (${kindOf('pds3/motion/stagger', ['ALL_SCOPES'], 'TIMING')}, ${kindOf('pds3/motion/spring/snappy', ['ALL_SCOPES'], 'EASING')})`);
     const wrong = shapes.filter(([n, sc, t, k]) => kindOf(n, sc, t) !== k).map(([n, sc, t, k]) => `${n} → ${kindOf(n, sc, t)}, not ${k}`);
     ok(wrong.length === 0, `21: each reviewed shape takes its own kind: durations, a shadow by scope and by name, gradient stops, a paragraph spacing by scope and by name, camelCase line heights and letter spacing (${wrong.join('; ')})`);
     ok(kindOf('misc/ratio/golden') === 'other' && kindOf('misc/ratio/golden', ['ALL_SCOPES']) === 'other',
@@ -3448,7 +3451,7 @@ const main = async (): Promise<void> => {
   {
     // THE FILE: §35b's, with focus's modes "Default" (its default, matched by border-width's one column by name),
     // "Compact" and "Spacious" (matched by none). The note's wording is the owner's, typed here.
-    const fileWith = async (focusModes: string[]) => {
+    const fileWith = async (focusModes: string[], strokeModes?: string[]) => {
       const f = await phase2File();
       type Em = { name: string; resolvedType: string; description: string; value: unknown; alias: { name: string } | null; scopes?: string[] };
       for (const [c, file] of [['border-width', 'border-width.json'], ['focus', 'focus.json']] as const) {
@@ -3460,6 +3463,15 @@ const main = async (): Promise<void> => {
             id: `VariableID:${c}:${i}`, name: v.name, variableCollectionId: `VariableCollectionId:${c}`, resolvedType: v.resolvedType, description: v.description, scopes: v.scopes,
             valuesByMode: Object.fromEntries(names.map((n) => [`${c}:${n}`, value])),
           });
+        });
+      }
+      // A SECOND BORROWED COLLECTION (#2581): one stroke width of a client's own, in a collection that is neither
+      // border-width's nor focus's. It joins the Border width table as focus's ring widths do, by its scope.
+      if (strokeModes) {
+        f.cols.push({ id: 'VariableCollectionId:stroke', name: 'stroke', modes: strokeModes.map((n) => ({ modeId: `stroke:${n}`, name: n })), defaultModeId: `stroke:${strokeModes[0]}` });
+        f.vars.push({
+          id: 'VariableID:stroke:0', name: 'client/stroke/heavy', variableCollectionId: 'VariableCollectionId:stroke', resolvedType: 'FLOAT', description: '', scopes: ['STROKE_FLOAT'],
+          valuesByMode: Object.fromEntries(strokeModes.map((n, i) => [`stroke:${n}`, 3 + i])),
         });
       }
       return f;
@@ -3476,6 +3488,16 @@ const main = async (): Promise<void> => {
     const one = await fileWith(['Default']);
     const quiet = planStyleGuide({ collections: one.cols, variables: one.vars, textStyles: one.styles }, contract).notes.filter((n) => n.includes('no column here'));
     ok(quiet.length === 0, `35d: with focus's one mode read by the Default column, the notes name no focus mode (${JSON.stringify(quiet)})`);
+    // THE COLLECTION'S NAME (#2581): the note names the collection the unread modes belong to, the generic wording owner
+    // decision Q261 1A chose for exactly this, a borrowed collection that is not focus. Every case above borrows only
+    // focus, so a note hard-coding "focus's" passed them all. Here focus leaves Compact and stroke leaves Heavy: each
+    // note names its own collection, and the note for stroke never says focus.
+    const both = await fileWith(['Default', 'Compact'], ['Default', 'Heavy']);
+    const named = planStyleGuide({ collections: both.cols, variables: both.vars, textStyles: both.styles }, contract).notes.filter((n) => n.includes('no column here')).sort();
+    ok(JSON.stringify(named) === JSON.stringify([
+      "Border width: focus's mode Compact has no column here, so its values aren't drawn",
+      "Border width: stroke's mode Heavy has no column here, so its values aren't drawn",
+    ]), `35d: with a second borrowed collection, each note names its own collection — focus's Compact and stroke's Heavy (${JSON.stringify(named)})`);
   }
 
   console.log("35c. #2549: a focus mode named like the column wins over focus's default mode");

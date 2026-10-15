@@ -18,10 +18,12 @@
  * Every action passed in carries its own `{ timeout: INPUT_MS }` where Playwright takes one, so nothing inside it
  * outlives the bound on its own clock.
  *
- * The debugger is enabled on each page at its FIRST bounded input, while the page still answers. `Debugger.enable`
- * runs on the page's main thread, so asked for only once the page is stuck it never completes and the pause never
- * lands (measured: an attach-after-the-stall version reported "no JavaScript was running" for a page stuck in a
- * JavaScript loop). Enabled early, `Debugger.pause` is an interrupt that stops even a busy loop.
+ * The debugger must be on before the page stops answering. `Debugger.enable` runs on the page's main thread, so asked
+ * for only once the page is stuck it never completes and the pause never lands (measured: an attach-after-the-stall
+ * version reported "no JavaScript was running" for a page stuck in a JavaScript loop). Enabled early, `Debugger.pause`
+ * is an interrupt that stops even a busy loop. A suite turns it on when it opens a page that will take bounded input
+ * (`watchStalls`, #2585), so a freeze started by an EARLIER step is still located; `bounded` turns it on at the
+ * page's first input otherwise, which locates a freeze the input itself starts.
  */
 
 /** The bound on one input. */
@@ -45,6 +47,18 @@ const debuggerOf = async (page) => {
   })();
   debuggers.set(page, pending);
   return pending;
+};
+
+/** Pages whose debugger `watchStalls` turned on. A reporter made with `requireWatched` refuses input on any other. */
+const watched = new WeakSet();
+
+/** Turn the debugger on now, while the page answers (#2585). Call it once the page has loaded, on any page that will
+ *  take bounded input; returns whether it is on. A page is marked watched only when it is on, so a failed attach is
+ *  reported by the page's first bounded input, the same as a missing call. */
+export const watchStalls = async (page) => {
+  const on = !!await debuggerOf(page);
+  if (on) watched.add(page);
+  return on;
 };
 
 /** Pause the page and say where it was. */
@@ -73,18 +87,27 @@ const stallStack = async (page) => {
  *     what happened; on the dead path it is left out and `label` already carries the input and the stack, so the
  *     suite's own words for a dead page follow (test-smoke's `closeDead` signature).
  * Returns whether the input went through; false with `onDead` not called only when the input threw and nothing is
- * left in flight. `stats` is the slowest input that went through, for a suite to print as its margin.
+ * left in flight. `stats` is the slowest input that went through, for a suite to print as its margin. `inputMs` is the
+ * bound, INPUT_MS unless a suite's self-check wants a short one.
+ *   · `requireWatched` — every page that takes bounded input must first have been given `watchStalls` with its
+ *     debugger on. An input on any other page fails one check by name and is not sent: without the early debugger a
+ *     freeze an earlier step started is reported as "where it stopped is unknown", which is the #2585 shape, and
+ *     nothing else would notice the missing call until a real stall (#2631 review). Both suites' reporters set it.
  */
-export const makeBounded = ({ ok, isDead = () => false, onDead }) => {
+export const makeBounded = ({ ok, isDead = () => false, onDead, inputMs = INPUT_MS, requireWatched = false }) => {
   const stats = { inputs: 0, slowestMs: 0, slowestLabel: '' };
   const bounded = async (page, label, act) => {
     if (isDead(page)) return false;
+    if (requireWatched && !watched.has(page)) {
+      ok(false, `${label}: the page was never given watchStalls, or its debugger did not turn on, so a freeze an earlier step started could not be located (#2585)`);
+      return false;
+    }
     await debuggerOf(page);
     let timer;
     const t0 = Date.now();
     const out = await Promise.race([
       act().then(() => 'ok', (e) => e),
-      new Promise((r) => { timer = setTimeout(() => r('timeout'), INPUT_MS); }),
+      new Promise((r) => { timer = setTimeout(() => r('timeout'), inputMs); }),
     ]);
     clearTimeout(timer);
     if (out === 'ok') {
@@ -93,7 +116,7 @@ export const makeBounded = ({ ok, isDead = () => false, onDead }) => {
       if (ms > stats.slowestMs) { stats.slowestMs = ms; stats.slowestLabel = label; }
       return true;
     }
-    const what = out === 'timeout' ? `did not return within ${INPUT_MS}ms` : `threw after ${Date.now() - t0}ms: ${String(out?.message ?? out).split('\n')[0].slice(0, 120)}`;
+    const what = out === 'timeout' ? `did not return within ${inputMs}ms` : `threw after ${Date.now() - t0}ms: ${String(out?.message ?? out).split('\n')[0].slice(0, 120)}`;
     if (await rendersFrame(page)) {
       if (out === 'timeout') await onDead(page, label, `the input ${what}; the page still renders frames, so it was busy, not stuck, but the input is still in flight`);
       else ok(false, `${label}: the input ${what}; the page still renders frames, so it was busy, not stuck`);

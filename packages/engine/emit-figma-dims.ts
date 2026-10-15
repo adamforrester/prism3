@@ -25,10 +25,11 @@ import {
   figmaDimensionDescription, figmaSpaceDescription, figmaRadiusDescription, figmaSizeDescription, figmaIconSizeDescription,
   figmaControlDescription, figmaLabelLineBoxDescription, figmaBorderWidthDescription, figmaFocusDescription, figmaOpacityDescription,
   figmaDurationPrimitiveDescription, figmaDurationDescription, figmaStaggerDescription,
+  figmaCurveDescription, figmaEasingRoleDescription, figmaSpringDescription,
   figmaBreakpointDescription, figmaContainerDescription, figmaGridVarDescription,
 } from './figma-description';
 import { figName, nsName, coreName, CORE_COLLECTION, PRIMITIVE_SCOPES } from './emit-figma-color';
-import type { FigmaVar, FigmaCollectionFile } from './emit-figma-color';
+import type { FigmaVar, FigmaCollectionFile, FigmaEasing } from './emit-figma-color';
 
 /** Numeric px from a `12px` or `"{alias}"` value. For alias targets we resolve via
  *  the DTCG tree — the resolved leaf's $value is `12px`. */
@@ -389,29 +390,52 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
 };
 
 // ---------------------------------------------------------------------------
-// MOTION (#2394, docs/10 §5) — ONE `motion` collection of FLOAT milliseconds.
-//   motion/duration-ms/<n>        → the literal primitives (hidden from publishing, like `core`).
-//   motion/duration/<role>        → aliases into duration-ms, as the DTCG aliases them.
-//   motion/duration-reduced/<role>→ the reduce-motion companion, same shape.
-//   motion/stagger                → aliases into duration-ms.
-// Names keep the DTCG path (`motion` is a top-level DTCG family, so the collection mirrors it 1:1 and
-// the export lands on the same paths with no renaming).
+// MOTION (#2394, #2412, docs/10 §5) — ONE `motion` collection in Figma's own motion types (owner Q291).
+//   motion/duration-ms/<n>         → TIMING primitives, in SECONDS (hidden from publishing, like `core`).
+//   motion/duration/<role>         → TIMING aliases into duration-ms, as the DTCG aliases them.
+//   motion/duration-reduced/<role> → the reduce-motion companion, same shape.
+//   motion/stagger                 → TIMING alias into duration-ms.
+//   motion/easing/<curve>          → EASING `CUSTOM_CUBIC_BEZIER` primitives (hidden from publishing).
+//   motion/easing-role/<role>      → EASING aliases into easing, re-pointed per mode where a mode lever moves one.
+//   motion/spring/<name>           → EASING `CUSTOM_SPRING`, `bounce` only. Published: no role tier aliases a
+//                                    spring, so hiding one would leave a library with no handle on it.
+//   motion/transition/*            → NOT EMITTED: Figma has no composite variable, and the nearest thing, an
+//                                    animation style, must also name WHAT animates, which a DTCG transition does
+//                                    not say (Q291 4). A transition is its duration plus its easing role, and
+//                                    both of those are here. `MOTION_FIGMA_COVERAGE` states it per family.
+// Names keep the DTCG path (`motion` is a top-level DTCG family, so the collection mirrors it 1:1 and the export
+// lands on the same paths with no renaming). That includes `duration-ms`, whose values are now seconds: the
+// name is the DTCG path, the value is in the unit Figma's TIMING holds (spike #2403: every field a TIMING
+// variable binds to is in seconds), and the description still says the milliseconds.
 //
-// NO SCOPE, deliberately: Figma's `VariableScope` has no time member (plugin-typings 1.131.0 and the
-// live API reference, both checked 2026-10-09), and no Figma property binds a duration. `scopes: []`
-// hides the variables from every property picker, which is the truth; `ALL_SCOPES` would offer 200 as a
-// width. Empty scopes hiding a variable from local pickers was verified live on 2026-10-13 (#2602), the
-// same fact the `core` primitives rely on (see the PRIMITIVE marker comment in `emit-figma-color.ts`). The number is milliseconds; TokenPress types `motion/…` FLOATs back to DTCG `duration`.
+// NO SCOPE WRITE, and it is not a choice: Figma refuses `scopes` on TIMING and EASING ("Cannot set scopes on this
+// variable type", spike #2403), so they stay `ALL_SCOPES`, and the emission says so rather than state a `[]`
+// the file can never hold. The executors skip the write for every `UNSCOPED_TYPES` row.
 //
-// MODES follow the radius precedent: a brand whose mode levers run a different tempo carries a
-// `$extensions.prism3.modes.<mode>` re-point on the semantic leaf (tree.ts), and each such mode becomes a
-// mode here, the semantic aliasing the mode's primitive. No per-mode tempo ⇒ one `Default` mode.
+// A spring's `bounce` is 1 − its damping RATIO, which is what the DTCG `spring.damping` holds; the spike
+// confirmed the identity against `figma.motion.physicalSpringToNormalized` (snappy 0.10, gentle 0.20, bouncy
+// 0.40). Stiffness has no place in an EASING value (Q291 3): in Figma a spring's length is its paired duration.
 //
-// easing / easing-role / spring / transition have no Figma variable type and are NOT emitted here: they
-// stay in the DTCG, which the style guide's motion table reads (#2353).
+// MODES follow the radius precedent: a brand whose mode levers run a different tempo, or re-point an easing
+// role, carries a `$extensions.prism3.modes.<mode>` re-point on the semantic leaf (tree.ts), and each such mode
+// becomes a mode here, the semantic aliasing the mode's primitive. Neither ⇒ one `Default` mode.
 // ---------------------------------------------------------------------------
 
-const MOTION_SCOPES: string[] = [];
+/** What Figma holds on a TIMING or EASING variable, since it refuses any other (`UNSCOPED_TYPES`). */
+const MOTION_SCOPES: string[] = ['ALL_SCOPES'];
+
+/** Every DTCG motion family and its Figma form, or the reason it has none (#2412 "done when"). Read by the
+ *  suite against the DTCG tree, so a family added to `motion` without a line here fails by name. */
+export const MOTION_FIGMA_COVERAGE: Record<string, { figma: 'TIMING' | 'EASING' } | { none: string }> = {
+  'duration-ms': { figma: 'TIMING' },
+  duration: { figma: 'TIMING' },
+  'duration-reduced': { figma: 'TIMING' },
+  stagger: { figma: 'TIMING' },
+  easing: { figma: 'EASING' },
+  'easing-role': { figma: 'EASING' },
+  spring: { figma: 'EASING' },
+  transition: { none: 'Figma has no composite variable; a transition is its duration and its easing role, both emitted' },
+};
 
 /** Milliseconds from a DTCG duration `$value` — a `"200ms"` literal or a `{…}` alias to one. */
 const msFromValue = (tree: any, v: unknown): number => {
@@ -423,15 +447,36 @@ const msFromValue = (tree: any, v: unknown): number => {
   }
   throw new Error(`emit-figma motion: not a millisecond duration: ${JSON.stringify(v)}`);
 };
+/** Seconds, the unit a TIMING variable holds, from milliseconds. Rounded so 260ms is 0.26, not float noise. */
+const secondsOf = (ms: number): number => Math.round(ms * 1000) / 1e6;
+/** The curve key a role or curve `$value` names — `{<root>.motion.easing.<curve>}` → `<curve>`. */
+const curveOf = (v: unknown): string => {
+  const m = typeof v === 'string' ? /\.motion\.easing\.([^.}]+)\}$/.exec(v) : null;
+  if (!m) throw new Error(`emit-figma motion: not an easing alias: ${JSON.stringify(v)}`);
+  return m[1];
+};
+/** A DTCG `cubicBezier` `[x1, y1, x2, y2]` as Figma's `CUSTOM_CUBIC_BEZIER`. */
+const bezierEasing = (b: number[]): FigmaEasing => ({
+  type: 'CUSTOM_CUBIC_BEZIER', easingFunctionCubicBezier: { x1: b[0], y1: b[1], x2: b[2], y2: b[3] },
+});
+/** Figma's normalized `bounce` from a DTCG spring's damping ratio: 1 − ζ. A ratio outside (0, 1] has no bounce
+ *  Figma would take for the same spring, so it throws rather than clamp. */
+export const springBounce = (damping: number): number => {
+  if (!(damping > 0 && damping <= 1)) throw new Error(`emit-figma motion: a spring damping ratio must be in (0, 1], got ${damping}`);
+  return Math.round((1 - damping) * 1e5) / 1e5;
+};
 
 export const buildFigmaMotion = (theme: Theme): FigmaCollectionFile[] => {
   const { tree } = buildTree(theme);
   const root = Object.keys(tree)[0];
   const ns = (name: string): string => nsName(root, name);
   const motion = tree[root].motion;
-  const modes = ['Default', ...Object.keys(theme.motion.motionByMode ?? {})];
+  // A mode is any mode a tempo lever or an easing-role lever moves, in the order the theme declares them.
+  const modes = ['Default', ...new Set([...Object.keys(theme.motion.motionByMode ?? {}), ...Object.keys(theme.motion.easingRolesByMode ?? {})])];
+  const isAlias = (v: unknown): v is string => typeof v === 'string' && /^\{.+\}$/.test(v);
+  const pick = (leaf: any, mode: string): any => (mode === 'Default' ? leaf : leaf.$extensions?.prism3?.modes?.[mode] ?? leaf);
 
-  // The semantic leaves, in DTCG order: every `duration` role, every `duration-reduced` role, then stagger.
+  // The semantic durations, in DTCG order: every `duration` role, every `duration-reduced` role, then stagger.
   const semantics: Array<{ name: string; leaf: any; describe: (ms: number, byMode: Array<[string, number]>) => string }> = [
     ...Object.keys(motion.duration).map((role) => ({
       name: `motion/duration/${role}`, leaf: motion.duration[role],
@@ -447,28 +492,61 @@ export const buildFigmaMotion = (theme: Theme): FigmaCollectionFile[] => {
   const varsFor = (mode: string): FigmaVar[] => {
     const prims: FigmaVar[] = byNumericKey(Object.keys(motion['duration-ms'])).map((key) => ({
       name: ns(`motion/duration-ms/${key}`),
-      resolvedType: 'FLOAT' as const,
+      resolvedType: 'TIMING' as const,
       scopes: MOTION_SCOPES,
       description: figmaDurationPrimitiveDescription(msFromValue(tree, motion['duration-ms'][key].$value)),
-      value: msFromValue(tree, motion['duration-ms'][key].$value),
+      value: secondsOf(msFromValue(tree, motion['duration-ms'][key].$value)),
       alias: null,
       hiddenFromPublishing: true,
     }));
     const sems: FigmaVar[] = semantics.map(({ name, leaf, describe }) => {
       const overrides: Record<string, any> = leaf.$extensions?.prism3?.modes ?? {};
-      const source: any = mode === 'Default' ? leaf : overrides[mode] ?? leaf;
-      const isAlias = typeof source.$value === 'string' && /^\{.+\}$/.test(source.$value);
+      const source = pick(leaf, mode);
       const byMode: Array<[string, number]> = modes.slice(1).filter((m) => overrides[m]).map((m) => [m, msFromValue(tree, overrides[m].$value)]);
       return {
         name: ns(name),
-        resolvedType: 'FLOAT' as const,
+        resolvedType: 'TIMING' as const,
         scopes: MOTION_SCOPES,
         description: describe(msFromValue(tree, leaf.$value), byMode),
-        value: msFromValue(tree, source.$value),
-        alias: isAlias ? { type: 'VARIABLE_ALIAS' as const, name: aliasFigName(source.$value) } : null,
+        value: secondsOf(msFromValue(tree, source.$value)),
+        alias: isAlias(source.$value) ? { type: 'VARIABLE_ALIAS' as const, name: aliasFigName(source.$value) } : null,
       };
     });
-    return [...prims, ...sems];
+    const curves: FigmaVar[] = Object.keys(motion.easing).map((curve) => ({
+      name: ns(`motion/easing/${curve}`),
+      resolvedType: 'EASING' as const,
+      scopes: MOTION_SCOPES,
+      description: figmaCurveDescription(motion.easing[curve].$value),
+      value: bezierEasing(motion.easing[curve].$value),
+      alias: null,
+      hiddenFromPublishing: true,
+    }));
+    const roles: FigmaVar[] = Object.keys(motion['easing-role']).map((role) => {
+      const leaf = motion['easing-role'][role];
+      const overrides: Record<string, any> = leaf.$extensions?.prism3?.modes ?? {};
+      const source = pick(leaf, mode);
+      const byMode: Array<[string, string]> = modes.slice(1).filter((m) => overrides[m]).map((m) => [m, curveOf(overrides[m].$value)]);
+      return {
+        name: ns(`motion/easing-role/${role}`),
+        resolvedType: 'EASING' as const,
+        scopes: MOTION_SCOPES,
+        description: figmaEasingRoleDescription(role, curveOf(leaf.$value), byMode),
+        value: bezierEasing(motion.easing[curveOf(source.$value)].$value),
+        alias: { type: 'VARIABLE_ALIAS' as const, name: aliasFigName(source.$value) },
+      };
+    });
+    const springs: FigmaVar[] = Object.keys(motion.spring).map((name) => {
+      const bounce = springBounce(motion.spring[name].$value.damping);
+      return {
+        name: ns(`motion/spring/${name}`),
+        resolvedType: 'EASING' as const,
+        scopes: MOTION_SCOPES,
+        description: figmaSpringDescription(name, bounce),
+        value: { type: 'CUSTOM_SPRING' as const, easingFunctionSpring: { bounce } },
+        alias: null,
+      };
+    });
+    return [...prims, ...sems, ...curves, ...roles, ...springs];
   };
   return modes.map((mode) => ({ $collection: 'motion', $mode: mode, variables: varsFor(mode) }));
 };
