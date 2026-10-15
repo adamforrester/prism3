@@ -312,8 +312,9 @@ const gated: string[] = [
   ...REPORT_ARTIFACTS.map((f) => join(repo, REPORTS_DIR, f)),
   // The served docs (#2637): `docs/public/**`, which the studio serves at `/docs` and an agent reads from
   // `llms.txt` on. Named by hand, as the skills are: nothing in `regen` emits them. The reports under it are
-  // regen's, scanned by name just above, so the walk leaves them to that list rather than reading them twice.
-  ...walk(join(repo, 'docs/public')).filter((f) => !f.startsWith(`${join(repo, REPORTS_DIR)}/`)),
+  // regen's, scanned by name just above, and the guides' `.md` files are the required walk's above that, so the
+  // walk leaves both to their own lists rather than reading them twice.
+  ...walk(join(repo, 'docs/public')).filter((f) => !f.startsWith(`${join(repo, REPORTS_DIR)}/`) && !(f.startsWith(`${repo}/docs/public/guides/`) && f.endsWith('.md'))),
 ];
 
 // ---- SELF-CHECK: does the scanner still detect what it claims to? ----
@@ -421,7 +422,7 @@ const REQUIRED_SURFACES: { label: string; test: (f: string) => boolean }[] = [
   // The served docs (#2637), anchored at the repo root. `llms.txt` is required by name, so the surface cannot be
   // represented by some other file under the directory while the agent entry point is gone.
   { label: 'the served docs entry point (docs/public/llms.txt)', test: (f) => f === join(repo, 'docs/public/llms.txt') },
-  { label: 'the served docs (docs/public/**)', test: (f) => f.startsWith(`${repo}/docs/public/`) && f !== join(repo, 'docs/public/llms.txt') && !f.startsWith(`${join(repo, REPORTS_DIR)}/`) },
+  { label: 'the served docs (docs/public/**)', test: (f) => f.startsWith(`${repo}/docs/public/`) && f !== join(repo, 'docs/public/llms.txt') && !f.startsWith(`${join(repo, REPORTS_DIR)}/`) && !f.startsWith(`${repo}/docs/public/guides/`) },
   // …and the SIXTH and SEVENTH (#937) — the Figma plugin's two shipped files, matched EXACTLY and
   // separately for the reason the root-README line above states: one predicate over the directory
   // would let either file vanish while the surface still read as covered, and these two are not
