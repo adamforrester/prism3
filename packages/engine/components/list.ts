@@ -17,12 +17,16 @@
  */
 import { ComponentDef } from '../component-schema';
 
-const item = (optional: boolean, note: string) => ({
+// THE ITEM'S NUMBER (#2645): the nth item overrides List.Item's `value` text to "n.", so an ordered List reads 1. to 8.
+// in Figma without a designer typing them. The first item keeps List.Item's own default, "1.". The text is set on every
+// member; the number shows only where the item's type is ordered.
+const item = (n: number, optional: boolean, note: string) => ({
   kind: 'nest' as const,
   nests: 'list-item',
   nesting: { kind: 'nest-fixed' as const, variant: { type: 'unordered', size: 'medium' }, follow: ['type', 'size'] },
   crossAxisFill: true,
   ...(optional ? { optional: true } : {}),
+  ...(n > 1 ? { overrides: { texts: { value: `${n}.` } } } : {}),
   note,
 });
 
@@ -78,21 +82,21 @@ export const list: ComponentDef = {
         children: ['item1', 'item2', 'item3', 'item4', 'item5', 'item6', 'item7', 'item8'],
         note: 'The list: a column of items with the item gap between them. It fills its column.',
       },
-      item1: item(false, 'The first item.'),
-      item2: item(false, 'The second item.'),
-      item3: item(false, 'The third item.'),
-      item4: item(true, 'A fourth item, off by default.'),
-      item5: item(true, 'A fifth item, off by default.'),
-      item6: item(true, 'A sixth item, off by default.'),
-      item7: item(true, 'A seventh item, off by default.'),
-      item8: item(true, 'An eighth item, off by default.'),
+      item1: item(1, false, 'The first item.'),
+      item2: item(2, false, 'The second item.'),
+      item3: item(3, false, 'The third item.'),
+      item4: item(4, true, 'A fourth item, off by default.'),
+      item5: item(5, true, 'A fifth item, off by default.'),
+      item6: item(6, true, 'A sixth item, off by default.'),
+      item7: item(7, true, 'A seventh item, off by default.'),
+      item8: item(8, true, 'An eighth item, off by default.'),
     },
     codeOnly: [
       'The element — <ul role="list"> for unordered and icon, <ol role="list"> for ordered, chosen from type. The explicit role is required: a list whose markers are styled off (list-style: none) loses its list role in WebKit, and VoiceOver stops announcing "list, 6 items". The component draws its own markers, so it always sets the role.',
       'Numbering — the <ol> counts its items through CSS (list-style-type: decimal, or a counter); numbers are never typed into the item text. start and reversed pass through to the <ol>. A locale with its own digits takes them through @counter-style.',
       'The item gap — row-gap on the list (or margin-block-start on every item after the first), from the size\'s gap token. Never a margin on the last item.',
       'Nested lists — a <ul> or <ol> inside an <li> indents by one marker column and uses the same size. Not drawn in Figma.',
-      'Figma numbering — a Figma list cannot count, so each item of an ordered List holds its own number as text. A designer types "2.", "3." and on into the items after the first.',
+      'Figma numbering — a Figma list cannot count, so each item of an ordered List holds its own number as text: the built items read "1." to "8.". A designer who adds or reorders items retypes the numbers.',
       'item count — Figma shows three items, with five more behind toggles; code takes any number of children.',
     ],
   },
@@ -165,13 +169,13 @@ export const list: ComponentDef = {
 
   notes: {
     contested: [
-      'The ordered numbers in Figma: the three nested items show "1." each until a designer types "2." and "3.". A nested instance with its own text needs a per-instance TEXT override that neither executor writes; held as a follow-up rather than built in this PR (#2319).',
       'DRAFT (#2646), for the owner: the proposed slot constraint (only List item, at least one) has no slot to sit on. The items are eight fixed nested `list-item` instances behind toggles, not a native slot, so making the column a slot that prefers `list-item` with a minimum of 1 would change how a designer adds items. That is a composition change, held for the owner rather than made here.',
     ],
     unverified: [
       'What Dev Mode shows for a native Figma text list (list spacing, the marker, bound paragraph variables) — not checked; the build lane has no Dev Mode (#2319, Q273.10).',
     ],
     evolution: [
+      '2026-10-15 (#2645): the nested items carry their own numbers, "2." to "8." after the first item\'s "1.", through a per-instance text override; they no longer all read "1." until a designer types them.',
       '2026-10-13 (#2319): owner decisions Q273 — the read list now (Q273.1), two components with every marker bound (Q273.2), the icon marker as a third type (Q273.3), body sm / md / lg (Q273.4), no nested list in Figma (Q273.5), no tone (Q273.6), names, category data and its own page (Q273.7), markers at the text\'s strength (Q273.8), and native text lists for running text, the component for UI lists (Q273.9). Native list fields verified against the plugin typings (Q273.10): paragraph spacing and indent bind, list spacing and the marker do not.',
     ],
   },
