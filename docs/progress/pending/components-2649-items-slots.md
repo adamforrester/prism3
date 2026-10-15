@@ -70,7 +70,7 @@ by name, never a silent pass. Nor the exposure question above.
 - **`EXECUTOR_REVISION` is not raised.** The component executor's code (`write-components.ts` and what it reaches) is
   unchanged; the migration lives in the update. The members re-apply through their plan stamps anyway. A raise would
   mark every member of every set in every file as built by an earlier plugin, with no field difference.
-- **Built on #2646.** Its branch appeared while this was in progress, so this branch sits on it (not yet merged) and
+- **Built on #2646.** Its branch appeared while this was in progress, so this branch was built on it (it has since merged) and
   uses its `slotSettings` and `preferred` rather than duplicating them: every `items` slot takes `minChildren` 1,
   `maxChildren` 6 on Tabs and 5 on Segmented control, `preferred` the item def and `allowPreferredValuesOnly`.
   `test-slot-constraints.ts`'s corpus table gained the five rows, and #2646's DRAFT note on List ("no slot to sit
@@ -94,3 +94,11 @@ plan that stopped deleting the old booleans read "current" there and was caught 
 `applySet` stops deleting `properties.remove` → `✗ converge/booleans gone: the next dry run has no property left to
 remove (Option 2, …, Option 8)`. The merge with `main` waits for fold #2582. Placed instances in files that consume a
 published library are an open owner question on #2660.
+
+**Delta round (CHANGES REQUESTED on `ed4935a`).** Merged `main` after the 0.237.0 fold. The five conflicts resolved as
+the review's table says; `update-plan.ts` runs main's `fileBlockers` and then the slot-migration block. Because the
+branch still carried #2646's pre-squash commits, a plain merge brought back #2646's pending fragment and change note,
+which the fold had already written into the log and the changelog: both are deleted, or the next fold writes #2646 a
+second time. `regen.ts` then moves the analysis reports main added after this branch's base (`docs/public/reports/**`),
+and the component surface and axes baselines are re-accepted so Link's sets join them. A merge rather than a rebase:
+the branch has been reviewed, and a merge keeps every review's SHA reachable.
