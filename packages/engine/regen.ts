@@ -175,6 +175,18 @@ const check = (): void => {
     const onDemandStamp = (f: string): number | null => (existsSync(join(outDir, f)) ? statSync(join(outDir, f)).mtimeMs : null);
     const onDemandBefore = ON_DEMAND_OUT.map(onDemandStamp);
 
+    // An on-demand file must not be tracked by git either (review on #2685). Both walks skip the name, so a copy
+    // committed by `git add -f`, a lost .gitignore line or a conflict resolved toward an older branch would otherwise
+    // go stale unseen. Read from the index, not the disk: a local, ignored copy is expected. A git that cannot answer
+    // fails closed, never passes.
+    const lsFiles = spawnSync('git', ['ls-files', '--', ...ON_DEMAND_OUT.map((f) => `packages/engine/out/${f}`)], { cwd: repoRoot, encoding: 'utf8' });
+    if (lsFiles.status !== 0) {
+      console.error(`\n✗ cannot tell whether an on-demand file is committed — git ls-files exited ${lsFiles.status}: ${(lsFiles.stderr || '').trim()}`);
+      rmSync(tmp, { recursive: true, force: true });
+      process.exit(1);
+    }
+    const onDemandTracked = lsFiles.stdout.split('\n').map((l) => l.trim()).filter(Boolean);
+
     regenerate();
 
     const drifted: string[] = [];
@@ -221,7 +233,7 @@ const check = (): void => {
     }
 
     const checked = after.size + SCHEMA_ARTIFACTS.length + MAINTAINER_ARTIFACTS.length + ENGINE_ARTIFACTS.length + REPORT_ARTIFACTS.length;
-    if (!drifted.length && !added.length && !removed.length && !onDemandWritten.length) {
+    if (!drifted.length && !added.length && !removed.length && !onDemandWritten.length && !onDemandTracked.length) {
       console.log(`\n✓ in sync — ${checked} committed artifacts byte-match what the engine emits.`);
       return;
     }
@@ -230,8 +242,10 @@ const check = (): void => {
     for (const f of added) console.error(`    missing  ${f}  (engine emits it; not committed)`);
     for (const f of removed) console.error(`    stale    ${f}  (committed; engine no longer emits it)`);
     for (const f of onDemandWritten) console.error(`    on-demand ${f}  (regen wrote it; it is built on demand and never committed — ON_DEMAND_OUT, Q319.6)`);
+    for (const f of onDemandTracked) console.error(`    on-demand ${f}  (git tracks it; it is built on demand and never committed — ON_DEMAND_OUT, Q319.6)`);
     if (drifted.length || added.length || removed.length) console.error('\n  Fix: npx tsx packages/engine/regen.ts   then commit the result.');
     if (onDemandWritten.length) console.error('\n  Fix: take the step that writes it out of STEPS; an on-demand file is built by its own command, never by regen.');
+    if (onDemandTracked.length) console.error('\n  Fix: git rm --cached <file>, and keep its line in .gitignore.');
     process.exit(1);
   } finally {
     rmSync(tmp, { recursive: true, force: true });
