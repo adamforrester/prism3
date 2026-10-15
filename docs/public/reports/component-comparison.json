@@ -806,6 +806,92 @@
       "sizeDefault": "medium"
     },
     {
+      "id": "dialog",
+      "name": "Dialog",
+      "category": "overlay",
+      "states": [],
+      "projectedStates": [],
+      "axes": {
+        "placement": [
+          "center",
+          "bottom",
+          "full"
+        ],
+        "size": [
+          "medium",
+          "small",
+          "large"
+        ],
+        "footer": [
+          "inline",
+          "stacked",
+          "none"
+        ]
+      },
+      "props": [
+        {
+          "name": "open",
+          "default": false
+        },
+        {
+          "name": "onOpenChange"
+        },
+        {
+          "name": "title"
+        },
+        {
+          "name": "description"
+        },
+        {
+          "name": "children"
+        },
+        {
+          "name": "actions"
+        },
+        {
+          "name": "role",
+          "default": "dialog",
+          "values": [
+            "dialog",
+            "alertdialog"
+          ]
+        },
+        {
+          "name": "placement",
+          "default": "center",
+          "values": [
+            "center",
+            "bottom",
+            "full"
+          ]
+        },
+        {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ]
+        },
+        {
+          "name": "footer",
+          "default": "inline",
+          "values": [
+            "inline",
+            "stacked",
+            "none"
+          ]
+        }
+      ],
+      "sizes": [
+        "medium",
+        "small",
+        "large"
+      ],
+      "sizeDefault": "medium"
+    },
+    {
       "id": "divider",
       "name": "Divider",
       "category": "foundations",
@@ -3434,6 +3520,18 @@
         ]
       }
     ],
+    "footer": [
+      {
+        "values": [
+          "inline",
+          "none",
+          "stacked"
+        ],
+        "components": [
+          "dialog"
+        ]
+      }
+    ],
     "iconPosition": [
       {
         "values": [
@@ -3510,6 +3608,18 @@
         ],
         "components": [
           "divider"
+        ]
+      }
+    ],
+    "placement": [
+      {
+        "values": [
+          "bottom",
+          "center",
+          "full"
+        ],
+        "components": [
+          "dialog"
         ]
       }
     ],
@@ -3610,6 +3720,7 @@
           "checkbox-control",
           "checkbox-group",
           "checkbox-row",
+          "dialog",
           "field-label",
           "flush-icon-button",
           "flush-icon-button-destructive",
@@ -3817,6 +3928,11 @@
     ]
   },
   "propVocabulary": {
+    "actions": [
+      {
+        "id": "dialog"
+      }
+    ],
     "activation": [
       {
         "id": "tabs",
@@ -3974,6 +4090,9 @@
         "id": "accordion"
       },
       {
+        "id": "dialog"
+      },
+      {
         "id": "list"
       },
       {
@@ -4029,6 +4148,9 @@
     "description": [
       {
         "id": "checkbox-row"
+      },
+      {
+        "id": "dialog"
       },
       {
         "id": "radio-row"
@@ -4157,6 +4279,17 @@
         "values": [
           "collapsed",
           "expanded"
+        ]
+      }
+    ],
+    "footer": [
+      {
+        "id": "dialog",
+        "default": "inline",
+        "values": [
+          "inline",
+          "stacked",
+          "none"
         ]
       }
     ],
@@ -4678,9 +4811,20 @@
         "id": "tag"
       }
     ],
+    "onOpenChange": [
+      {
+        "id": "dialog"
+      }
+    ],
     "onRemove": [
       {
         "id": "tag"
+      }
+    ],
+    "open": [
+      {
+        "id": "dialog",
+        "default": false
       }
     ],
     "options": [
@@ -4717,6 +4861,17 @@
       },
       {
         "id": "textarea"
+      }
+    ],
+    "placement": [
+      {
+        "id": "dialog",
+        "default": "center",
+        "values": [
+          "center",
+          "bottom",
+          "full"
+        ]
       }
     ],
     "prefix": [
@@ -4798,6 +4953,16 @@
       {
         "id": "list",
         "default": false
+      }
+    ],
+    "role": [
+      {
+        "id": "dialog",
+        "default": "dialog",
+        "values": [
+          "dialog",
+          "alertdialog"
+        ]
       }
     ],
     "rows": [
@@ -4978,6 +5143,15 @@
       },
       {
         "id": "checkbox-row",
+        "default": "medium",
+        "values": [
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      {
+        "id": "dialog",
         "default": "medium",
         "values": [
           "small",
@@ -5324,6 +5498,9 @@
     "title": [
       {
         "id": "accordion"
+      },
+      {
+        "id": "dialog"
       }
     ],
     "tone": [
@@ -5833,6 +6010,7 @@
         "checkbox-control",
         "checkbox-group",
         "checkbox-row",
+        "dialog",
         "field-label",
         "flush-icon-button",
         "flush-icon-button-destructive",
@@ -5858,7 +6036,7 @@
         "text-field",
         "textarea"
       ],
-      "detail": "the size axis takes 3 value sets — [large, medium, small] in _accordion-indicator, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, select, tab, tabs, tag, text-field, textarea; [medium, small] in switch-control, switch-row; [large, medium, small, x-small] in spinner"
+      "detail": "the size axis takes 3 value sets — [large, medium, small] in _accordion-indicator, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, select, tab, tabs, tag, text-field, textarea; [medium, small] in switch-control, switch-row; [large, medium, small, x-small] in spinner"
     },
     {
       "kind": "axis values",
@@ -5901,6 +6079,14 @@
     },
     {
       "kind": "size order",
+      "subject": "dialog",
+      "components": [
+        "dialog"
+      ],
+      "detail": "dialog declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
       "subject": "select",
       "components": [
         "select"
@@ -5929,7 +6115,7 @@
       "components": [
         "field-label"
       ],
-      "detail": "field-label defaults size to small; 31 of 32 sized components default to medium"
+      "detail": "field-label defaults size to small; 32 of 33 sized components default to medium"
     },
     {
       "kind": "axis without prop",
