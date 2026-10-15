@@ -11092,6 +11092,27 @@ for (const theme of ['light', 'dark']) {
 //     locator.click: Timeout 10000ms exceeded. · waiting for locator(…"italic-choice-only"…) · <div class="p3-veil"></div>
 //     intercepts pointer events`. Before #2460 that label ended at "exceeded.".
 console.log(`\nItalic styles chips (#2192)\n${'='.repeat(78)}`);
+/** #2486: Apply as it stood when a click on it did not land, read over 12 frames, bounded: its native and busy states, its
+ *  label, whether it is drawn, every box it took and every `data-bar-fit` step the bar took (`fitBar` re-fitting the bar
+ *  moves Apply, and Playwright then reports it as not stable). Distinct values only, in order. A page that draws no frame
+ *  says so. The flake's label so far: "waiting for element to be visible, enabled and stable", on figma dark 1280. */
+const applyAsItStood = (page) => Promise.race([
+  page.evaluate(async () => {
+    const boxes = [], fits = [];
+    const add = (a, v) => { if (a[a.length - 1] !== v) a.push(v); };
+    for (let i = 0; i < 12; i++) {
+      await new Promise((r) => requestAnimationFrame(r));
+      const n = document.querySelector('[data-p3="apply-to-figma"]');
+      const b = n?.getBoundingClientRect();
+      add(boxes, b ? `${b.x.toFixed(1)},${b.y.toFixed(1)} ${b.width.toFixed(1)}×${b.height.toFixed(1)}` : 'not in the page');
+      add(fits, document.querySelector('[data-p3="frame"]')?.dataset.barFit ?? 'none');
+    }
+    const n = document.querySelector('[data-p3="apply-to-figma"]');
+    return JSON.stringify({ disabled: n?.disabled ?? null, ariaDisabled: n?.getAttribute('aria-disabled') ?? null, busy: n?.getAttribute('aria-busy') ?? null,
+      label: n?.textContent?.trim() ?? null, drawn: !!n && n.getClientRects().length > 0, boxes, barFit: fits });
+  }).catch((e) => `unreadable (${String(e?.message ?? e).split('\n')[0].slice(0, 80)})`),
+  new Promise((r) => setTimeout(() => r('the page drew no frame within 5s'), 5000)),
+]);
 /** The text types, in order, and the three words (Q6's, unchanged by #2192). Literal. */
 const ITALIC_GROUPS = ['display', 'title', 'body', 'label', 'caption', 'eyebrow', 'code'];
 const ITALIC_WORDS = [['upright', 'Upright'], ['both', 'Upright + italic'], ['only', 'Italic only']];
@@ -11144,7 +11165,8 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) for (const hos
      *  main thread's reply, so the next Apply is not held as busy). */
     const saved = async () => {
       if (host === 'web') return persisted(page);
-      await hooks.click(page.locator('[data-p3="apply-to-figma"]'), WAIT);
+      // #2486: a click that does not land says what Apply was doing, read off the page, not Playwright's wait alone.
+      await hooks.click(page.locator('[data-p3="apply-to-figma"]'), WAIT).catch(async (e) => { e.applyState = await applyAsItStood(page); throw e; });
       const ws = (await takeWrites(page)).filter((m) => m.type === 'apply-theme');
       await postMsg(page, { type: 'apply-result', ok: true, headline: 'Applied', summary: 'Applied' });
       await settle(page);
@@ -11225,7 +11247,7 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) for (const hos
     ok(canon(sEnter) === canon(wantEnter), `${where}: KB1 A, Enter on "label"'s both chip saves italics ["body","label"] and no italicDefault — saved italics ${JSON.stringify(sEnter?.typography?.italics)}, italicDefault ${JSON.stringify(sEnter?.typography?.italicDefault)}; ${wireDiff({ input: sEnter }, { input: wantEnter })}`);
     ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
+    ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}${e.applyState ? ` · Apply as it stood (#2486): ${e.applyState}` : ''}`);
   } finally { await ctx.close(); }
 }
 
