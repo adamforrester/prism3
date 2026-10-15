@@ -21,7 +21,8 @@
  *             gate's CONSUMER-GAP. It fails when a cell moves in EITHER direction, so a Style
  *             Dictionary upgrade that fixes a cell fails too, and whoever upgraded updates the pin.
  *   [VALUE]   literal expected values per brand per platform, typed here by hand: a brand's primary
- *             hex, a px and a rem size, a ms duration, a unitless line height, a font family. Where
+ *             hex, a px and a rem size, an em letter spacing, a ms duration, a unitless line height,
+ *             a font family. Where
  *             stock Style Dictionary writes a wrong or uncompilable value, the literal is that
  *             measured value, tagged [GAP #N] with the issue that tracks it — a memory, not an
  *             endorsement.
@@ -72,7 +73,7 @@ const BRANDS = {
 };
 
 /** Issues tracking what stock Style Dictionary gets wrong on native platforms (#2426's arc). */
-const GAP = { pxScaled: 2430, unquoted: 2431, androidInteger: 2433 };
+const GAP = { pxScaled: 2430, unquoted: 2431, androidInteger: 2433, fontSizeDp: 2613, emUnit: 2434 };
 
 /** Expected value per platform for each literal token of one brand. Android values are `<tag>text`. */
 const expected = ({ root, color: [pal, hex, uiColor], ms, face: [slug, family, cssFamily] }) => ({
@@ -88,7 +89,18 @@ const expected = ({ root, color: [pal, hex, uiColor], ms, face: [slug, family, c
   },
   [`${root}.core.font.size.16`]: {
     label: 'font size 1rem',
-    css: '1rem', scss: '1rem', js: '1rem', ios: 'CGFloat(16.00)', android: '<dimen>16.00dp', compose: '16.00.dp',
+    css: '1rem', scss: '1rem', js: '1rem', ios: 'CGFloat(16.00)',
+    // [GAP] the stock sp transforms match only `$type: fontSize`, which DTCG does not have, so a font
+    // size reaches Android in dp and ignores the user's system font scale. Right would be 16.00sp.
+    android: '<dimen>16.00dp', compose: '16.00.dp', gap: { android: GAP.fontSizeDp, compose: GAP.fontSizeDp },
+  },
+  [`${root}.core.font.letter-spacing.neg-40`]: {
+    label: 'letter spacing -0.04em',
+    css: '-0.04em', scss: '-0.04em', js: '-0.04em',
+    // [GAP] native size transforms read every dimension as rem, so -0.04em becomes an absolute -0.64.
+    // `em` is not a DTCG dimension unit (#2434, ours); on Compose the stock `.em` transform also never
+    // fires, for the same `$type: fontSize` filter as the font size above (#2613).
+    ios: 'CGFloat(-0.64)', android: '<dimen>-0.64dp', compose: '-0.64.dp', gap: { ios: GAP.emUnit, android: GAP.emUnit, compose: GAP.fontSizeDp },
   },
   [`${root}.motion.duration-ms.${ms}`]: {
     label: `duration ${ms}ms`,

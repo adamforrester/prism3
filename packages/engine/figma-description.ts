@@ -250,6 +250,15 @@ export const figmaDurationDescription = (role: string, ms: number, byMode: Array
 };
 export const figmaStaggerDescription = (ms: number, byMode: Array<[string, number]>): string => `${msWithModes(ms, byMode)} between siblings`;
 
+// ── motion easing (#2412) ────────────────────────────────────────────────────────────────────────
+// A curve is a primitive named for its shape, a role names a use and points at a curve, and a spring holds
+// only Figma's `bounce`: its length comes from the duration it is played with, which is what the line says.
+export const figmaCurveDescription = (bezier: readonly number[]): string => `cubic-bezier(${bezier.join(', ')}) — curve primitive`;
+export const figmaEasingRoleDescription = (role: string, curve: string, byMode: Array<[string, string]>): string =>
+  `${curve}${byMode.length ? ` (${byMode.map(([m, c]) => `${c} in ${m}`).join('; ')})` : ''} — ${role} easing`;
+export const figmaSpringDescription = (name: string, bounce: number): string =>
+  `${name} spring, bounce ${bounce} — its length comes from the duration it plays with`;
+
 /** `size/<rung>/<prop>` — dimensions only; a component's padding and gaps bind `space/*` (the spacing model). */
 export const figmaSizeDescription = (prop: string, px: number): string => {
   switch (prop) {

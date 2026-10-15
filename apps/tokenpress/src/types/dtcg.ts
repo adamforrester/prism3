@@ -75,7 +75,9 @@ export type VariableConversionValue =
   | number
   | DTCGColor
   | DTCGDimension
-  | { value: number; unit: string };
+  | { value: number; unit: string }
+  | number[]
+  | { bounce: number };
 
 // Type for dynamic JSON object building
 export type JsonObject = Record<string, unknown>;

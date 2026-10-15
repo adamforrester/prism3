@@ -66,17 +66,23 @@
  * gradient stops (position, color within the tolerance above, and the variable each stop is bound to). Not
  * compared: a gradient's transform matrix, which the emission states as an angle in its description.
  *
- * ── motion: the round trip to the engine's DTCG (#2394) ─────────────────────────────────────────────
+ * ── motion: the round trip to the engine's DTCG (#2394, #2412) ─────────────────────────────────────
  *
- * Figma has no time scope, so motion goes into the file as plain FLOAT milliseconds, and the export is what turns
- * them back into DTCG durations. The two exports above are compared with each other, so a motion value both sides
- * carry wrong would pass. This arm takes its expected side from neither: every `duration` leaf under `<root>.motion`
- * in `out/<brand>.tokens.json`, the DTCG the engine writes through `emit-dtcg.ts`/`cli.ts`, which runs no Figma
- * emitter, no write plan and no executor. Each motion leaf in an export (`<mode>/motion.json`, or
- * `shared/motion.json` for one mode) must be one of those paths, typed `duration`, and hold the same value: the
- * same alias, or the same milliseconds. TokenPress writes `{ value: 200, unit: "ms" }` by default and the engine
- * writes `"200ms"`; both spell one duration (#697), so the comparison is in milliseconds, with no tolerance. A
- * mode other than `Default` reads the leaf's `$extensions.prism3.modes.<mode>` re-point, as the emitter does.
+ * Motion goes into the file in Figma's own motion types (#2412, owner Q291): durations as TIMING seconds, curves,
+ * easing roles and springs as EASING. The export is what turns them back into DTCG. The two exports above are
+ * compared with each other, so a motion value both sides carry wrong would pass. This arm takes its expected side
+ * from neither: every `duration`, `cubicBezier` and `spring` leaf under `<root>.motion` in `out/<brand>.tokens.json`,
+ * the DTCG the engine writes through `emit-dtcg.ts`/`cli.ts`, which runs no Figma emitter, no write plan and no
+ * executor. (`transition` composites have no Figma form, Q291 4, and are not expected.) Each motion leaf in an
+ * export (`<mode>/motion.json`, or `shared/motion.json` for one mode) must be one of those paths, carry the same
+ * `$type`, and hold the same value:
+ *   · duration    — the same alias, or the same MILLISECONDS. Figma holds seconds; TokenPress writes
+ *                   `{ value: 200, unit: "ms" }`, the engine `"200ms"`, one duration spelled two ways (#697). No tolerance.
+ *   · cubicBezier — the same alias, or the same four numbers.
+ *   · spring      — Figma keeps only `bounce` (Q291 3), so the export holds `{ bounce }` and the engine
+ *                   `{ damping, stiffness }`: the bounce must be 1 − the damping ratio (the identity spike #2403
+ *                   checked against `figma.motion.physicalSpringToNormalized`). Stiffness has no Figma form.
+ * A mode other than `Default` reads the leaf's `$extensions.prism3.modes.<mode>` re-point, as the emitter does.
  * It runs on the shim's export for every applied brand, and on the emission's export for every brand, nb included.
  *
  * ── which brands ──────────────────────────────────────────────────────────────────────────────────
@@ -222,14 +228,16 @@ const report = (where: string, diffs: Diff[], kinds: Diff['kind'][]): void => {
 };
 
 // ── motion: the round trip to the engine's DTCG (#2394) ─────────────────────────────────────────────
-/** Every DTCG `duration` leaf under `<root>.motion`, by dotted path, from the engine's own token tree. */
-const dtcgDurations = (brand: string): Map<string, any> => {
+/** The DTCG motion types with a Figma form (#2412). `transition` has none (Q291 4). */
+const MOTION_TYPES = new Set(['duration', 'cubicBezier', 'spring']);
+/** Every DTCG motion leaf with a Figma form under `<root>.motion`, by dotted path, from the engine's own token tree. */
+const dtcgMotion = (brand: string): Map<string, any> => {
   const tree = JSON.parse(readFileSync(join(REPO, 'packages/engine/out', `${brand}.tokens.json`), 'utf8'));
   const root = Object.keys(tree).find((k) => !k.startsWith('$'))!;
   const out = new Map<string, any>();
   const walk = (node: any, path: string[]): void => {
     if (!node || typeof node !== 'object') return;
-    if ('$value' in node) { if (node.$type === 'duration') out.set(path.join('.'), node); return; }
+    if ('$value' in node) { if (MOTION_TYPES.has(node.$type)) out.set(path.join('.'), node); return; }
     for (const [k, v] of Object.entries(node)) if (!k.startsWith('$')) walk(v, [...path, k]);
   };
   walk(tree[root]?.motion, [root, 'motion']);
@@ -246,7 +254,7 @@ const isRef = (v: unknown): v is string => typeof v === 'string' && /^\{.+\}$/.t
 const motionRoundTrip = (exported: Map<string, Leaf>, dtcg: Map<string, any>): Diff[] => {
   const out: Diff[] = [];
   const files = new Set([...exported.keys()].filter((k) => k.split('#')[0].endsWith('/motion.json')).map((k) => k.split('#')[0]));
-  if (!files.size) files.add('shared/motion.json'); // no motion file at all: every DTCG duration reads as missing
+  if (!files.size) files.add('shared/motion.json'); // no motion file at all: every DTCG motion token reads as missing
   for (const file of files) {
     // One mode exports as `shared/`; with more, the emitter's base mode is `Default` and the rest are re-points.
     const mode = file.split('/')[0];
@@ -255,18 +263,27 @@ const motionRoundTrip = (exported: Map<string, Leaf>, dtcg: Map<string, any>): D
       const [f, path] = k.split('#');
       if (f !== file) continue;
       const leaf = dtcg.get(path);
-      if (!leaf) { out.push({ kind: 'ADDED', key: k, detail: `${a.$type} ${J(a.$value)} — no duration at this path in the engine's DTCG` }); continue; }
-      if (a.$type !== 'duration') { out.push({ kind: 'RETYPED', key: k, detail: `export ${a.$type}, engine duration` }); continue; }
+      if (!leaf) { out.push({ kind: 'ADDED', key: k, detail: `${a.$type} ${J(a.$value)} — no motion token with a Figma form at this path in the engine's DTCG` }); continue; }
+      if (a.$type !== leaf.$type) { out.push({ kind: 'RETYPED', key: k, detail: `export ${a.$type}, engine ${leaf.$type}` }); continue; }
       const want = first ? leaf.$value : leaf.$extensions?.prism3?.modes?.[mode]?.$value ?? leaf.$value;
-      const agree = isRef(want) ? a.$value === want : msOf(a.$value) !== undefined && msOf(a.$value) === msOf(want);
+      const agree = isRef(want) ? a.$value === want
+        : leaf.$type === 'duration' ? msOf(a.$value) !== undefined && msOf(a.$value) === msOf(want)
+        : leaf.$type === 'cubicBezier' ? Array.isArray(a.$value) && Array.isArray(want) && a.$value.length === 4 && want.length === 4 && want.every((n: number, i: number) => a.$value[i] === n)
+        : typeof a.$value?.bounce === 'number' && typeof want?.damping === 'number' && Math.abs(a.$value.bounce - (1 - want.damping)) < 1e-4;
       if (!agree) out.push({ kind: 'VALUE', key: k, detail: `export ${J(a.$value)}, engine ${J(want)}` });
     }
     for (const path of dtcg.keys()) if (!exported.has(`${file}#${path}`)) out.push({ kind: 'REMOVED', key: `${file}#${path}`, detail: `engine ${J(dtcg.get(path).$value)}, not in the export` });
   }
   return out;
 };
-/** The floor: a brand whose DTCG has no motion durations would make every arm above vacuous. */
-const MIN_MOTION_DURATIONS = 20;
+/** The floors, per type: a brand whose DTCG has none of one would make that arm vacuous. */
+const MIN_MOTION: Record<string, number> = { duration: 20, cubicBezier: 10, spring: 3 };
+const motionFloors = (brand: string, motion: Map<string, any>): void => {
+  for (const [type, min] of Object.entries(MIN_MOTION)) {
+    const n = [...motion.values()].filter((l) => l.$type === type).length;
+    ok(n >= min, `${brand} motion: the engine's DTCG holds ${n} ${type} tokens with a Figma form (at least ${min})`);
+  }
+};
 
 // ── the brands: discovered, then placed ─────────────────────────────────────────────────────────────
 console.log(`Read-back parity (#2351 gap 2, offline) — Apply Theme's file vs the engine's Figma emission\n${'='.repeat(78)}`);
@@ -275,6 +292,25 @@ for (const id of discovered) ok(id in SOURCES || id in EXCLUDED, `brands: ${id} 
 for (const id of [...Object.keys(SOURCES), ...Object.keys(EXCLUDED)]) ok(discovered.includes(id), `brands: ${id} still has a Figma emission (out/figma/${id}/)`);
 for (const [id, why] of Object.entries(EXCLUDED)) console.log(`  · ${id}: excluded — ${why}`);
 const GATED = discovered.filter((id) => id in SOURCES);
+
+// ── the shim refuses what Figma refused (spike #2403), so a regression in the executor is caught here ──
+{
+  const f = new FileShim();
+  const col = f.createVariableCollection('motion');
+  const mode = col.modes[0].modeId;
+  const refuses = (fn: () => void): boolean => { try { fn(); return false; } catch { return true; } };
+  const t = f.createVariable('t', col, 'TIMING');
+  const e = f.createVariable('e', col, 'EASING');
+  const fl = f.createVariable('f', col, 'FLOAT');
+  ok(refuses(() => { t.scopes = []; }) && refuses(() => { e.scopes = []; }) && !refuses(() => { fl.scopes = []; }),
+    'shim (#2412): a scopes write throws on TIMING and EASING, as Figma does, and not on FLOAT');
+  ok(refuses(() => e.setValueForMode(mode, { type: 'CUSTOM_SPRING', easingFunctionSpring: { bounce: 0.1, stiffness: 700 } }))
+    && !refuses(() => e.setValueForMode(mode, { type: 'CUSTOM_SPRING', easingFunctionSpring: { bounce: 0.1 } })),
+    'shim (#2412): an EASING spring takes bounce alone; a stiffness key is refused');
+  ok(refuses(() => t.setValueForMode(mode, f.createVariableAlias(fl))) && !refuses(() => t.setValueForMode(mode, 0.2))
+    && refuses(() => t.setValueForMode(mode, { type: 'CUSTOM_SPRING', easingFunctionSpring: { bounce: 0.1 } })),
+    'shim (#2412): TIMING takes a number; an alias to a FLOAT and an easing object are refused');
+}
 ok(GATED.length >= MIN_BRANDS, `brands: ${GATED.length} gated (${GATED.join(', ')}), at least ${MIN_BRANDS}`);
 
 for (const brand of GATED) {
@@ -288,6 +324,15 @@ for (const brand of GATED) {
     file.faces = [...faces.values()];
     const applied = await runApplyTheme(input, file as any);
     ok(applied.guarded.ok === true, `${brand}: Apply Theme ran without a pre-flight refusal`);
+    // Motion in the file (#2412): every variable in `motion` is TIMING or EASING, left at ALL_SCOPES (no scopes write
+    // reached the host, which would have thrown), and the count is the plan's.
+    const motionCol = file.collections.find((c: any) => c.name === 'motion');
+    const motionVars = motionCol ? file.vars.filter((v: any) => v.variableCollectionId === motionCol.id) : [];
+    const planned = applied.plans.motionPlan.reduce((n, p) => n + p.rows.length, 0);
+    ok(motionVars.length === planned && planned > 0
+      && motionVars.every((v: any) => (v.resolvedType === 'TIMING' || v.resolvedType === 'EASING') && JSON.stringify(v.scopes) === '["ALL_SCOPES"]')
+      && motionVars.some((v: any) => v.resolvedType === 'TIMING') && motionVars.some((v: any) => v.resolvedType === 'EASING'),
+      `${brand} motion: Apply Theme wrote ${motionVars.length} of ${planned} motion variables, all TIMING or EASING at ALL_SCOPES`);
     ok(file.vars.length > 0 && file.styles.text.length > 0 && file.styles.effect.length > 0,
       `${brand}: the file holds what Apply Theme wrote (${file.vars.length} variables, ${file.styles.text.length} text, ${file.styles.effect.length} effect, ${file.styles.grid.length} grid, ${file.styles.paint.length} paint styles)`);
 
@@ -317,11 +362,11 @@ for (const brand of GATED) {
     ok(wrong.length === 0, `${brand} washes (#2365): each of the ${washes.length} is written as its color alias at its opacity alias, as the emission plans${wrong.length ? ` — ${wrong.slice(0, 4).join('; ')}` : ''}`);
     report(`${brand} export`, diffs.filter((d) => !carved.includes(d)), ['ADDED', 'REMOVED', 'RETYPED', 'VALUE', 'DESCRIPTION']);
 
-    // Motion, both exports against the engine's DTCG (#2394).
-    const durations = dtcgDurations(brand);
-    ok(durations.size >= MIN_MOTION_DURATIONS, `${brand} motion: the engine's DTCG holds ${durations.size} motion durations (at least ${MIN_MOTION_DURATIONS})`);
-    report(`${brand} motion, Apply Theme's file → DTCG`, motionRoundTrip(actual, durations), ['ADDED', 'REMOVED', 'RETYPED', 'VALUE']);
-    report(`${brand} motion, the emission → DTCG`, motionRoundTrip(expected, durations), ['ADDED', 'REMOVED', 'RETYPED', 'VALUE']);
+    // Motion, both exports against the engine's DTCG (#2394, #2412).
+    const motion = dtcgMotion(brand);
+    motionFloors(brand, motion);
+    report(`${brand} motion, Apply Theme's file → DTCG`, motionRoundTrip(actual, motion), ['ADDED', 'REMOVED', 'RETYPED', 'VALUE']);
+    report(`${brand} motion, the emission → DTCG`, motionRoundTrip(expected, motion), ['ADDED', 'REMOVED', 'RETYPED', 'VALUE']);
 
     // The two channels no exporter reads, compared as written.
     const varName = (id: string) => file.vars.find((v: any) => v.id === id)?.name;
@@ -338,10 +383,10 @@ for (const brand of GATED) {
 for (const brand of Object.keys(EXCLUDED).filter((id) => discovered.includes(id))) {
   console.log(`\n${brand} (emission only)`);
   try {
-    const durations = dtcgDurations(brand);
-    ok(durations.size >= MIN_MOTION_DURATIONS, `${brand} motion: the engine's DTCG holds ${durations.size} motion durations (at least ${MIN_MOTION_DURATIONS})`);
+    const motion = dtcgMotion(brand);
+    motionFloors(brand, motion);
     const emitted = leavesOf((await runTokenPress(adaptBrand(brand, join(FIGMA_OUT, brand)))).files);
-    report(`${brand} motion, the emission → DTCG`, motionRoundTrip(emitted, durations), ['ADDED', 'REMOVED', 'RETYPED', 'VALUE']);
+    report(`${brand} motion, the emission → DTCG`, motionRoundTrip(emitted, motion), ['ADDED', 'REMOVED', 'RETYPED', 'VALUE']);
   } catch (e) {
     ok(false, `${brand}: the motion comparison threw — ${(e as Error)?.message ?? String(e)}`);
   }
