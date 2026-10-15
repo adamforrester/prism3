@@ -391,6 +391,14 @@ npx tsx packages/engine/lint-component-renames.ts
                                                     # the baseline at the MERGE BASE, read with git,
                                                     # so it needs history and FAILS with no base ref;
                                                     # its in-tree arm checks the baseline is current
+npx tsx packages/engine/lint-push-base.ts      # on main's push run the merge base is HEAD, so
+                                                    # the four git-history gates above compared a
+                                                    # squash with itself and passed (#2556, the
+                                                    # #2551 gap). `comparison-base.ts` gives them
+                                                    # HEAD's first parent there; this replays main's
+                                                    # push run in a $TMPDIR clone against each real
+                                                    # gate: a squash breaking the gate's rule must
+                                                    # fail by its own assertion, one keeping it pass
 npx tsx apps/plugin/lint-executor-revision.ts
                                                     # the component executor's code (write-components
                                                     # and every file it reaches by a value import,

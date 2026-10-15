@@ -52,7 +52,7 @@ Verb-first, specific, sentence case, no terminal punctuation, ≤3 words to boun
 
 - **Purpose:** Trigger an action in place.
 - **Use when:** The user needs to DO something on this surface — submit, confirm, open, apply, or start async work.
-- **Avoid when:** The target is a different location/URL → use a link (or link-button if it must look like a button). A persistent on/off state → use Switch.Row. One-of-many selection → use Radio.Group (or a segmented control, not built yet). A toggle with pressed state → use a toggle button (not built yet). Icon-only with no visible text → use IconButton (the accessible name is required there at the type level). The action deletes or removes something → use Button.Destructive. The action carries no brand emphasis (a toolbar control, a dense row) → use Button.Neutral.
+- **Avoid when:** The target is a different location/URL → use a link (or link-button if it must look like a button). A persistent on/off state → use Switch.Row. One-of-many selection → use Radio.Group (or SegmentedControl). A toggle with pressed state → use a toggle button (not built yet). Icon-only with no visible text → use IconButton (the accessible name is required there at the type level). The action deletes or removes something → use Button.Destructive. The action carries no brand emphasis (a toolbar control, a dense row) → use Button.Neutral.
 - **Often used with:** `icon`, `spinner`, `focus-ring`
 
 ## Props
