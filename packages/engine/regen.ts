@@ -56,6 +56,20 @@ const STEPS: Array<{ label: string; args: string[] }> = [
 // by name rather than shrinking the universe silently.
 export const ON_DEMAND_OUT = ['tokens.html'];
 
+// The prose gates (`lint-us-english.ts`, `lint-voice.ts`) still scan the on-demand page: skipping it in their
+// `out/` walk keeps a local copy from changing their result, and this renders a fresh one into a temp dir for
+// them instead, so CI (no copy) and a laptop (stale or fresh copy) scan the same bytes. Returns the rendered
+// files, or an error the caller reports as blindness; the temp dir is removed when the process exits.
+export const renderOnDemand = (): { files: string[] } | { error: string } => {
+  const dir = mkdtempSync(join(tmpdir(), 'prism3-on-demand-'));
+  process.on('exit', () => rmSync(dir, { recursive: true, force: true }));
+  const r = spawnSync('npx', ['tsx', join(here, 'visualize.ts'), '--out', dir], { cwd: repoRoot, encoding: 'utf8' });
+  if (r.status !== 0) return { error: `visualize.ts --out exited ${r.status}: ${(r.stderr || r.stdout || '').trim().split('\n').slice(-3).join(' / ')}` };
+  const missing = ON_DEMAND_OUT.filter((f) => !existsSync(join(dir, f)));
+  if (missing.length) return { error: `visualize.ts --out wrote no ${missing.join(', ')}` };
+  return { files: ON_DEMAND_OUT.map((f) => join(dir, f)) };
+};
+
 // Committed generated artifacts that live at the ENGINE ROOT rather than under `out/`. Both were
 // outside the comparison until now: `modes-report.md` was regenerated (emit-dtcg writes it) but never
 // CHECKED, and `nb-regression-report.md` was neither regenerated nor checked — so this file's own
