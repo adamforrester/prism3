@@ -3763,6 +3763,8 @@ for (const b of brands) {
       button: BUTTONISH, 'button-destructive': BUTTONISH, 'button-neutral': BUTTONISH,
       // The three fields project `size` since #2266, so every spacing key is a per-size rung; the bare `md` keys are gone.
       'text-field': { keys: ['pad-x', 'pad-y', 'gap'], sizes: ['small', 'medium', 'large'] },
+      // #2317: the Password field binds text-field's token block exactly, through the shared field factory.
+      'password-field': { keys: ['pad-x', 'pad-y', 'gap'], sizes: ['small', 'medium', 'large'] },
       textarea: { keys: ['pad-x', 'pad-y'], sizes: ['small', 'medium', 'large'] },
       select: { keys: ['pad-x', 'pad-y', 'gap'], sizes: ['small', 'medium', 'large'] },
       'checkbox-row': { keys: ['gap'], sizes: ['small', 'medium', 'large'] },
@@ -3780,6 +3782,7 @@ for (const b of brands) {
     const EXPECTED: Record<string, Record<typeof densities[number], string>> = {
       button: BTN, 'button-destructive': BTN, 'button-neutral': BTN,
       'text-field': { compact: 'small 12/4/6 · medium 12/6/6 · large 20/6/6', comfortable: 'small 16/6/8 · medium 16/8/8 · large 24/8/8', spacious: 'small 20/8/12 · medium 20/12/12 · large 32/12/12' },
+      'password-field': { compact: 'small 12/4/6 · medium 12/6/6 · large 20/6/6', comfortable: 'small 16/6/8 · medium 16/8/8 · large 24/8/8', spacious: 'small 20/8/12 · medium 20/12/12 · large 32/12/12' },
       textarea: { compact: 'small 12/4 · medium 12/6 · large 20/6', comfortable: 'small 16/6 · medium 16/8 · large 24/8', spacious: 'small 20/8 · medium 20/12 · large 32/12' },
       select: { compact: 'small 12/4/6 · medium 12/6/6 · large 20/6/6', comfortable: 'small 16/6/8 · medium 16/8/8 · large 24/8/8', spacious: 'small 20/8/12 · medium 20/12/12 · large 32/12/12' },
       'checkbox-row': ROWS, 'radio-row': ROWS,
@@ -3869,6 +3872,7 @@ for (const b of brands) {
     const RULES: Record<string, { prefix: 'sized' | 'bare'; lt: [string, string][] }> = {
       button: { prefix: 'sized', lt: P326 }, 'button-destructive': { prefix: 'sized', lt: P326 }, 'button-neutral': { prefix: 'sized', lt: P326 },
       'text-field': { prefix: 'sized', lt: [['gap', 'pad-x']] },
+      'password-field': { prefix: 'sized', lt: [['gap', 'pad-x']] },
       select: { prefix: 'sized', lt: [['gap', 'pad-x']] },
       // Tag's icon→label is VISIBLE, the content gap plus the label row's leading inset (owner, 2026-09-29), per
       // type: the sum is what must stay under the padding. A `+` key is summed.
@@ -17895,8 +17899,8 @@ arm: {
     // The flush shape binds none.
     // `segmented-control-segment` joins (#2418, Q269.4): an unselected option's hover and pressed are the neutral wash,
     // and its selected tint is the subtle-fill Tag binds, so a solid-tint or no-hover brand reaches it as it reaches a tag.
-    ok(JSON.stringify(binders) === JSON.stringify(['button', 'button-destructive', 'button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'segmented-control-segment', 'select', 'tag', 'text-field', 'textarea']),
-      `#1608 the wash binders the lever reaches: button ×3, flush-icon-button ×3 (round), icon-button ×3, segmented-control-segment, select, tag, text-field, textarea (${binders.join(', ')})`);
+    ok(JSON.stringify(binders) === JSON.stringify(['button', 'button-destructive', 'button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'password-field', 'segmented-control-segment', 'select', 'tag', 'text-field', 'textarea']),
+      `#1608 the wash binders the lever reaches: button ×3, flush-icon-button ×3 (round), icon-button ×3, password-field, segmented-control-segment, select, tag, text-field, textarea (${binders.join(', ')})`);
 
     // BY-NAME MUTATION, in-suite: the RAW def (no wrap) under solid-tint misses the page wash — the 96-miss
     // shape the owner saw, outline's 48 and text's 48. Since #2324 the text appearance keys no wash by default, so the
@@ -18259,6 +18263,9 @@ arm: {
       // Three sizes, three styles; pointing two sizes at one role drops a count here BY NAME.
       { def: textField, part: 'placeholder', axes: { size: 3 } },
       { def: textField, part: 'value', axes: { size: 3 }, at: { state: 'filled' } },
+      // #2317: the Password field's two text layers are text-field's, through the shared field factory.
+      { def: componentDefs.find((d) => d.id === 'password-field')!, part: 'placeholder', axes: { size: 3 } },
+      { def: componentDefs.find((d) => d.id === 'password-field')!, part: 'value', axes: { size: 3 }, at: { state: 'filled' } },
       { def: select, part: 'placeholder', axes: { size: 3 } },
       { def: select, part: 'value', axes: { size: 3 }, at: { state: 'filled' } },
       { def: textarea, part: 'placeholder', axes: { size: 3 } },
@@ -18869,7 +18876,7 @@ arm: {
      *  Both exist because they answer different questions: `insetValue` is how the not-a-number case is
      *  reached (one bad value, whichever name asks), and `varOverrides` is how the two halves of the ring's
      *  coordinate are given DIFFERENT values, which is the only way to tell a sum from a doubling (#801). */
-    type StubOpts = { vars?: string[]; styles?: string[]; comps?: string[]; page?: StubPage; insetValue?: unknown; varOverrides?: Record<string, unknown>; varValues?: Record<string, number>; fileNodes?: StubFileNode[]; nestedInstanceParts?: string[]; effectStyles?: string[]; gradientDiscard?: 'paint' | 'bindings'; textMetrics?: { fontSize: number; lineHeight: { unit: string; value: number } }; setStrokes?: Record<string, unknown>[]; noSlots?: boolean; colors?: Record<string, { r: number; g: number; b: number; a: number }> };
+    type StubOpts = { vars?: string[]; styles?: string[]; comps?: string[]; page?: StubPage; insetValue?: unknown; varOverrides?: Record<string, unknown>; varValues?: Record<string, number>; fileNodes?: StubFileNode[]; nestedInstanceParts?: string[]; compTexts?: Record<string, Record<string, string>>; effectStyles?: string[]; gradientDiscard?: 'paint' | 'bindings'; textMetrics?: { fontSize: number; lineHeight: { unit: string; value: number } }; setStrokes?: Record<string, unknown>[]; noSlots?: boolean; colors?: Record<string, { r: number; g: number; b: number; a: number }> };
     /** The two halves of a focus ring's coordinate, the real NB values (`focus.ring.offset` /
      *  `focus.ring.width` — both 2 in every emitted brand). NAMED, and named HERE, because they are the
      *  stub's INPUT and the geometry assertions' EXPECTED at once, and #801 is what that costs when the
@@ -19446,6 +19453,21 @@ arm: {
               createInstance: () => {
                 const inst = mkNode('INSTANCE'); const vec = mkNode('VECTOR'); inst.findAll = () => [vec];
                 Object.defineProperty(inst, 'mainComponent', { configurable: true, enumerable: false, writable: true, value: { name, type: 'COMPONENT', parent: { ...owner } } });
+                // #2317 — the instance's own TEXT properties (`compTexts`, by component or set name), in Figma's
+                // `componentProperties` shape, and `setProperties`, which overrides a value and refuses a key the
+                // instance does not have. Mirrors `apps/plugin/component-shim.ts`.
+                const texts = opts.compTexts?.[owner.type === 'PAGE' ? name : owner.name] ?? {};
+                const overrides: Record<string, unknown> = {};
+                Object.defineProperty(inst, 'componentProperties', { configurable: true, enumerable: false,
+                  get: () => Object.fromEntries(Object.entries(texts).map(([k, v], i) => [`${k}#7:${i}`, { type: 'TEXT', value: `${k}#7:${i}` in overrides ? overrides[`${k}#7:${i}`] : v }])) });
+                Object.defineProperty(inst, 'setProperties', { configurable: true, enumerable: false, writable: true,
+                  value: (props: Record<string, unknown>) => {
+                    const have = inst.componentProperties as Record<string, unknown>;
+                    for (const [k, v] of Object.entries(props)) {
+                      if (!(k in have)) throw new Error(`in setProperties: Could not find a component property with name: '${k}'`);
+                      overrides[k] = v;
+                    }
+                  } });
                 // #1428 — model the instance's OWN parts as real children so a member's `findOne` descends
                 // into them and can collide with the host's own part names (select nests field-label AND
                 // field-message, both carrying a `text` part). Each refuses a reference write — it is a
@@ -21813,6 +21835,10 @@ arm: {
             // (#1426). Provisioning both mirrors the real build (the plugin builds each nested component and
             // the swap target first), where no node is dropped.
             comps: [...new Set(plans.flatMap((p) => walkPlan(p.root)).flatMap((n) => [n.swapTarget, n.nestTarget]).filter((c): c is string => !!c))],
+            // #2317 — each nested component's TEXT properties, from the NESTED def's own declaration (never from the
+            // host's `nestTexts`, the value under test), so a nested instance has the property a host overrides.
+            compTexts: Object.fromEntries(componentDefs.filter((d) => d.figmaProperties?.texts).map((d) =>
+              [d.id, Object.fromEntries(Object.entries(d.figmaProperties!.texts!).map(([k, t]) => [t.figmaName ?? k, t.default]))])),
           };
           // The exposure lives on a NODE deep in each member; no `runPayload` summary field carries it, so
           // it is read off the PAGE the payload appended the combined set to. Returns every nested instance
@@ -21852,6 +21878,22 @@ arm: {
           const unexposed = instances.filter((n) => n.isExposedInstance !== true);
           ok(unexposed.length === 0,
             `#1392 the paste payload marks every ${def.id} nest-exposed instance isExposedInstance=true — the payload executor's exposure write, UNGATED until #1386's review (${instances.length - unexposed.length}/${instances.length} exposed)`);
+
+          // #2317 — THE PAYLOAD'S NESTED TEXT OVERRIDE, read back off the built instances. Every instance whose plan
+          // node carries `nestTexts` must hold each named TEXT property at the planned value; the stub's default is
+          // the nested def's own ("Button"), so a payload that never calls `setProperties` fails here by name.
+          const textNodes = plans.flatMap((p) => walkPlan(p.root)).filter((n) => n.nestTexts !== undefined);
+          if (textNodes.length) {
+            const wants = Object.fromEntries(textNodes.map((n) => [n.name, n.nestTexts!]));
+            const built = instances.filter((n) => String(n.name) in wants);
+            const wrong = built.filter((n) => Object.entries(wants[String(n.name)]).some(([prop, v]) => {
+              const props = n.componentProperties as Record<string, { value?: unknown }>;
+              const key = Object.keys(props).find((k) => k.split('#')[0] === prop);
+              return !key || props[key].value !== v;
+            }));
+            ok(built.length === textNodes.length && wrong.length === 0,
+              `#2317 the paste payload writes every ${def.id} nested instance's nestTexts as an instance override (${built.length - wrong.length}/${textNodes.length} read back at the planned value)`);
+          }
         }
       }
 
@@ -23075,8 +23117,12 @@ arm: {
       // against #2501's 15 (25,157 → 25,460 bytes for a one-member payload). The slot helper itself ships only
       // when a set has a slot, so icon-button does not carry it. Re-pinned per the same standing instruction;
       // every chunk stays under budget.
+      //
+      // NOW 17, AS OF #2317 — a shell-byte move: the paste script gained the nested-instance TEXT override
+      // (`nestTexts`, the Password field's "Show"), compacted, in every chunk's shell. icon-button does not use it.
+      // Re-pinned per the same standing instruction; every chunk stays under budget.
       const ibChunks = planSetChunks(ibSet);
-      ok(ibChunks.length === 16, `anatomy/icon-button: the set packs into 16 chunks (${ibChunks.length})`);
+      ok(ibChunks.length === 17, `anatomy/icon-button: the set packs into 17 chunks (${ibChunks.length})`);
       ok(ibChunks.every((c) => c.bytes <= SET_CHUNK_BYTES),
         `anatomy/icon-button: no chunk exceeds the byte budget (${ibChunks.map((c) => c.bytes).join(', ')} vs ${SET_CHUNK_BYTES})`);
       // And the chunks partition the set — no member dropped, none written twice. A packer that lost a
@@ -26749,7 +26795,7 @@ arm: {
   // own constant.
   // `tag` joins (2026-09-27): its check mark is gated on `selection: ['selected']`, the checkbox mark's shape.
   // `link` joins (#2580, owner Q297.2): its trailing icon is gated on `style: ['standalone']`, so an inline link carries none.
-  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'radio-control', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion', 'list-item', 'link', 'dialog'];
+  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'radio-control', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion', 'list-item', 'link', 'dialog', 'password-field'];
   ok(GATED_EXPECTED.every((n) => gatedDefs.some((d) => d.id === n)) && gatedDefs.length === GATED_EXPECTED.length,
     `#910 the presentWhen projection rule below covers exactly [${GATED_EXPECTED.join(', ')}] — a def gaining a variant-gated part must be represented here, and a def losing one is a stale claim (found: ${gatedDefs.map((d) => d.id).join(', ') || 'none'})`);
   for (const def of gatedDefs) {
@@ -26879,7 +26925,7 @@ arm: {
   // both axes per orientation: a hairline thickness and a nominal length, two different variables.
   // List.Item's marker column (#2319) binds its width (the column) and its height (one body line), two different
   // variables: a fixed column one line tall.
-  const WIDTH_EXPECTED = ['text-field', 'textarea', 'switch-control', 'divider', 'list-item'];
+  const WIDTH_EXPECTED = ['text-field', 'textarea', 'switch-control', 'divider', 'list-item', 'password-field'];
   ok(WIDTH_EXPECTED.every((n) => widthDefs.some((d) => d.id === n)) && widthDefs.length === WIDTH_EXPECTED.length,
     `#990 the width projection rule below covers exactly [${WIDTH_EXPECTED.join(', ')}] — a def gaining a deliberately non-square box must be represented here, and a def losing one is a stale claim (found: ${widthDefs.map((d) => d.id).join(', ') || 'none'})`);
   for (const def of widthDefs) {
@@ -28188,6 +28234,9 @@ arm: {
     // host's own caret placement. The fixed control height is the mechanical half of the same fact.
     'text-field.entry':
       "text-field's entry row shows the single-line placeholder or value ellipsized to one line, so it does not wrap — the first line IS the block, and the caret, one line box tall, centred against it sits where a native caret sits. The control's fixed single-line height is the mechanical half of the same fact (as select.content).",
+    // #2317: the Password field's entry row is TextField's, from the shared field factory — the same design fact.
+    'password-field.entry':
+      "the Password field's entry row is text-field's, from the shared field factory: the single-line placeholder or masked value does not wrap, so the caret centred against its one line sits where a native caret sits (as text-field.entry).",
     // `badge`'s surface (the type axis, 2026-09-27, first named `genre`) lists a text part and the sized `dot` box as children,
     // but `presentWhen` on `type` puts exactly one of them in any member: no member pairs the dot with a
     // label, so there is no line for the dot to float against. The status label is one or two words and the
@@ -31008,6 +31057,8 @@ arm: {
     select: ['medium', 'small', 'large'],
     // Dialog (#2609): the proposal's axis table lists its sizes default first, approved by the owner's Q303.
     dialog: ['medium', 'small', 'large'],
+    // #2317: the field family's order, through the shared field factory.
+    'password-field': ['medium', 'small', 'large'],
   };
   const outOfOrder = (vals: readonly unknown[], ladder: readonly string[]): string | null => {
     const unknown = vals.filter((v) => !ladder.includes(String(v)));
@@ -31549,6 +31600,124 @@ arm: {
   let thrown = '';
   try { figmaEffectStyleName('color.scrim.default'); } catch (e) { thrown = (e as Error).message; }
   ok(figmaEffectStyleName('shadow.xl') === 'shadow/xl' && /not a shadow step/.test(thrown), `#2609 elevation names shadow/xl for shadow.xl and refuses a non-shadow ref (${thrown.slice(0, 80)})`);
+}
+
+// ------------------------------------------------------------------- #2317: the Password field
+// Each owner decision held against a literal (Q301): the 84 members and their exact axes with no visibility axis
+// (Q301.6 A), the anatomy with no trailing slot and the toggle OUTSIDE the box on the label row (Q301.2 B), the toggle's
+// look (a flush text Button, primary, emphasis weight: Q301.3 B), its state per field state (disabled with the field,
+// rest at read-only), the hidden default member ("••••••••", "Show"), and the factory: TextField byte-identical and the
+// two fields on one token block (Q301.8 A). EXPECTED is typed here; ACTUAL is the def and its projected plan.
+{
+  const pw = componentDefs.find((d) => d.id === 'password-field')!;
+  const pwPlans = figmaAnatomySet(pw, { swapTarget: 'FPO-default-icon' });
+  type PN = { name: string; type: string; children: PN[]; nestTarget?: string; nestVariant?: Record<string, string>; nestExpose?: readonly string[]; nestTexts?: Record<string, string>; textStyle?: string };
+  const find = (n: PN, name: string): PN | undefined => (n.name === name ? n : n.children.map((c) => find(c, name)).find(Boolean));
+  const kids = (n: PN | undefined): string[] => (n?.children ?? []).map((c) => c.name);
+  const STATES = ['rest', 'hover', 'filled', 'focus-visible', 'focus-visible-filled', 'disabled', 'read-only'];
+
+  // MEMBERS AND AXES (Q301.6 A): size × status × state = 84, and nothing else — a `visibility` axis fails here by name.
+  const names = new Set(pwPlans.map(planComponentName));
+  ok(pwPlans.length === 84 && names.size === 84
+    && JSON.stringify(pw.figmaProperties?.variantAxes) === JSON.stringify(['size', 'status'])
+    && JSON.stringify(pw.variants.size) === JSON.stringify(['medium', 'small', 'large'])
+    && JSON.stringify(pw.variants.status) === JSON.stringify(['default', 'error', 'warning', 'success'])
+    && JSON.stringify(pw.figmaProperties?.stateAxis?.values) === JSON.stringify(STATES)
+    && planComponentName(pwPlans[0]) === 'status=default, size=medium, state=rest'
+    && !Object.keys(pw.variants).includes('visibility'),
+    `#2317 password-field: 84 members, size [medium, small, large] × status [default, error, warning, success] × the seven field states, and no visibility axis (Q301.6 A) (got ${pwPlans.length} members, axes ${JSON.stringify(pw.figmaProperties?.variantAxes)}, variants ${JSON.stringify(Object.keys(pw.variants))}, first ${planComponentName(pwPlans[0])})`);
+
+  // ANATOMY (Q301.2 B): the label row above the box holds the label cell and the toggle; the box holds no toggle and
+  // no trailing slot. Read off every member, so a toggle moved back inside the box fails on all 84.
+  const anatomyBad = pwPlans.filter((p) => {
+    const root = p.root as PN;
+    return JSON.stringify(kids(root)) !== JSON.stringify(['labelRow', 'control', 'message'])
+      || JSON.stringify(kids(find(root, 'labelRow'))) !== JSON.stringify(['labelCell', 'toggle'])
+      || JSON.stringify(kids(find(root, 'labelCell'))) !== JSON.stringify(['label'])
+      // The focus ring is built only on the two focus members, so the box is [content] elsewhere.
+      || JSON.stringify(kids(find(root, 'control'))) !== JSON.stringify((p.coord as Record<string, string>).state.startsWith('focus-visible') ? ['content', 'focusRing'] : ['content'])
+      || find(find(root, 'control')!, 'toggle') !== undefined
+      || find(root, 'trailingVisual') !== undefined;
+  });
+  ok(anatomyBad.length === 0,
+    `#2317 password-field anatomy: [labelRow, control, message]; the label row holds [labelCell, toggle], the box [content] (and the focus ring when focused), so the toggle sits on the label row outside the box and there is no trailing slot (Q301.2 B)${anatomyBad.length ? ` — WRONG on ${anatomyBad.length}: ${planComponentName(anatomyBad[0])} ${JSON.stringify({ root: kids(anatomyBad[0].root as PN), labelRow: kids(find(anatomyBad[0].root as PN, 'labelRow')), control: kids(find(anatomyBad[0].root as PN, 'control')) })}` : ''}`);
+
+  // THE TOGGLE'S LOOK AND STATE (Q301.3 B, Q301 item 2 of the brief): the nested Button member per field coordinate,
+  // typed here. Status never reaches it; disabled is the only field state that moves it.
+  const BTN_RUNG: Record<string, string> = { small: 'sm', medium: 'md', large: 'lg' };
+  const btnPlans = figmaAnatomySet(button, { swapTarget: 'FPO-default-icon' });
+  const btnNames = btnPlans.map(planComponentName);
+  const toggleBad: string[] = [];
+  for (const p of pwPlans) {
+    const t = find(p.root as PN, 'toggle');
+    const state = (p.coord as Record<string, string>).state;
+    const want = { appearance: 'text', size: p.size!, surface: 'default', inset: 'flush', state: state === 'disabled' ? 'disabled' : 'rest', 'leading icon': 'false', 'trailing icon': 'false' };
+    const member = t?.nestVariant ? nestVariantMatch(t.nestVariant, btnNames) : null;
+    const label = member ? find(btnPlans[btnNames.indexOf(member)].root as PN, 'label') : undefined;
+    const sorted = (r: Record<string, string> | undefined) => JSON.stringify(Object.entries(r ?? {}).sort());
+    if (!t || t.nestTarget !== 'button' || sorted(t.nestVariant) !== sorted(want) || !member
+      || JSON.stringify(t.nestExpose) !== JSON.stringify(['label']) || JSON.stringify(t.nestTexts) !== JSON.stringify({ label: 'Show' })
+      || label?.textStyle !== `label/${BTN_RUNG[p.size!]}/emphasis-link`)
+      toggleBad.push(`${planComponentName(p)}: ${JSON.stringify({ target: t?.nestTarget, variant: t?.nestVariant, member, expose: t?.nestExpose, texts: t?.nestTexts, labelStyle: label?.textStyle })}`);
+  }
+  ok(toggleBad.length === 0,
+    `#2317 password-field toggle: on every member a nested Button (the primary component), text appearance, flush, default surface, no icons, size following the field, "Show", exposed for its label, its label in the emphasis weight (label/sm|md|lg/emphasis-link, Q301.3 B); disabled at the field's disabled member and rest at every other state, read-only included, whatever the status${toggleBad.length ? ` — WRONG on ${toggleBad.length}: ${toggleBad.slice(0, 2).join(' | ')}` : ''}`);
+
+  // THE HIDDEN DEFAULT MEMBER (Q301.6 A): the masked value and "Show" (DRAFT wording, Q301.5).
+  ok(pw.figmaProperties?.texts?.value?.default === '••••••••' && pw.figmaProperties?.texts?.placeholder?.default === 'Placeholder'
+    && JSON.stringify(Object.keys(pw.figmaProperties?.booleans ?? {})) === JSON.stringify(['leadingIcon', 'showMessage'])
+    && JSON.stringify(Object.keys(pw.figmaProperties?.swaps ?? {})) === JSON.stringify(['leadingIcon']),
+    `#2317 password-field properties: value "••••••••", placeholder "Placeholder", the leading icon and message toggles, and no trailing icon (got ${JSON.stringify(pw.figmaProperties?.texts)}, ${JSON.stringify(Object.keys(pw.figmaProperties?.booleans ?? {}))})`);
+
+  // THE FACTORY (Q301.8 A): the two fields bind one token block, key for key, and TextField keeps its trailing slot.
+  ok(JSON.stringify(pw.tokens) === JSON.stringify(textField.tokens) && textField.anatomy?.parts.trailingVisual !== undefined
+    && JSON.stringify(textField.anatomy?.parts.control.children) === JSON.stringify(['content', 'trailingVisual', 'focusRing'])
+    && textField.anatomy?.parts.labelRow === undefined && textField.anatomy?.parts.toggle === undefined,
+    `#2317 field factory: Password and TextField bind the same token block, and TextField keeps its own anatomy (a trailing slot in the box, no label row, no toggle)`);
+
+  // THE KEYBOARD MODEL is the Password field's own, not the shared entry: TextField's names Escape-to-clear, and this
+  // field has no clear button (review on #2648).
+  const pwKeyboard = pw.anatomy!.codeOnly.filter((e) => e.startsWith('the KEYBOARD MODEL '));
+  ok(pwKeyboard.length === 1 && !/escape|clear/i.test(pwKeyboard[0]),
+    `#2648 password-field: one KEYBOARD MODEL code-only entry, and it names no Escape-to-clear, because the field has no clear button (got ${JSON.stringify(pwKeyboard)})`);
+
+  // NO "DRAFT" IN SHIPPED PROSE (owner decision Q312.2 A): the marker stays in the file header and `notes`, which do not
+  // ship, and in `codeOnly`, the maintainer's list; every other string on the def reaches the emitted docs, the AI
+  // metadata or the plugin bundle. Walked off the def, not off a list of fields, so a new field is covered.
+  const draftHits: string[] = [];
+  const walkDraft = (v: unknown, path: string): void => {
+    if (path === 'notes' || path === 'anatomy.codeOnly') return;
+    if (typeof v === 'string') { if (/DRAFT/.test(v)) draftHits.push(path); return; }
+    if (Array.isArray(v)) { v.forEach((x, i) => walkDraft(x, `${path}[${i}]`)); return; }
+    if (v && typeof v === 'object') for (const [k, x] of Object.entries(v)) walkDraft(x, path ? `${path}.${k}` : k);
+  };
+  walkDraft(pw, '');
+  ok(draftHits.length === 0,
+    `#2648 password-field: no shipped string carries "DRAFT" (Q312.2 A), the file header, notes and codeOnly aside${draftHits.length ? ` — FOUND at ${draftHits.join(', ')}` : ''}`);
+
+  // THE SHARED CODE-ONLY ENTRIES are written out in each def (the plugin build needs a string literal per entry), so
+  // their identity is held here: each of TextField's entries on the shared anatomy, by its leading subject, appears
+  // verbatim in the Password field's list. The subjects are typed here, not read off either def.
+  const SHARED_CODE_ONLY = ['the SMALL field on a COARSE POINTER', 'style', 'pending', 'empty', 'the FOCUS CARET', 'the label / describedby WIRING', "the nested LABEL's disabled dimming"];
+  const bySubject = (list: readonly string[], subject: string) => list.filter((e) => e.startsWith(`${subject} `) || e.startsWith(`${subject} —`));
+  const sharedBad = SHARED_CODE_ONLY.filter((sub) => {
+    const t = bySubject(textField.anatomy!.codeOnly, sub); const p = bySubject(pw.anatomy!.codeOnly, sub);
+    return t.length !== 1 || p.length !== 1 || t[0] !== p[0];
+  });
+  ok(sharedBad.length === 0,
+    `#2317 field factory: the ${SHARED_CODE_ONLY.length} code-only entries on the shared anatomy read the same in TextField and the Password field${sharedBad.length ? ` — DIFFER or missing: ${sharedBad.join(', ')}` : ''}`);
+
+  // `atState` IS VALIDATED ON ITS OWN TERMS: a host state the def does not project, and an axis the variant does not name,
+  // are refused by name.
+  const withAtState = (atState: Record<string, Record<string, string>>): ComponentDef => {
+    const t = pw.anatomy!.parts.toggle;
+    return { ...pw, anatomy: { ...pw.anatomy!, parts: { ...pw.anatomy!.parts, toggle: { ...t, nesting: { ...(t.nesting as object), atState } as typeof t.nesting } } } };
+  };
+  ok(validateComponentDef(pw).errors.length === 0
+    && validateComponentDef(withAtState({ pressed: { state: 'disabled' } })).errors.some((m) => /atState.*'pressed'/.test(m))
+    && validateComponentDef(withAtState({ disabled: { tone: 'quiet' } })).errors.some((m) => /atState.*'tone'/.test(m))
+    && validateComponentDef(withAtState({ disabled: { size: 'small' } })).errors.some((m) => /atState.*'size'.*follows/.test(m)),
+    `#2317 atState: the Password field validates clean; a host state off the state axis, an axis the variant does not name, and a followed axis are each refused by name`);
 }
 
 // ------------------------------------------------------------------- report

@@ -622,6 +622,23 @@ export const FIELDS: Record<string, FieldCheck> = {
     show: (p) => `an EXPOSED nested instance (surfacing [${(p as readonly string[]).join(', ')}])`,
     check: (_p, n) => (n.isExposedInstance === true ? null : `isExposedInstance=${str(n.isExposedInstance)} — the nested instance was not marked exposed, so its properties do not surface on the parent`),
   },
+  // #2317 — HOST-TRUTH for a nested instance's own text. The plan's `nestTexts` names what the instance says
+  // instead of its set's default; this reads the instance's `componentProperties` back and compares each named
+  // TEXT property's VALUE, so an executor that never wrote the override (the instance still says "Button") fails
+  // here by name.
+  nestTexts: {
+    show: (p) => `a nested instance whose TEXT properties read ${JSON.stringify(p)}`,
+    check: (p, n) => {
+      const props = (n.componentProperties ?? {}) as Record<string, { type?: unknown; value?: unknown }>;
+      const bad: string[] = [];
+      for (const [prop, want] of Object.entries(p as Record<string, string>)) {
+        const key = Object.keys(props).find((k) => k.split('#')[0] === prop && props[k].type === 'TEXT');
+        if (!key) bad.push(`${prop}→NO TEXT PROPERTY`);
+        else if (props[key].value !== want) bad.push(`${prop}=${str(props[key].value)}`);
+      }
+      return bad.length ? bad.join(', ') : null;
+    },
+  },
 
   // ── paints ───────────────────────────────────────────────────────────────────────────────────
   paints: {

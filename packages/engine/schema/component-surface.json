@@ -665,6 +665,36 @@
         "dividers:BOOLEAN",
         "title:TEXT"
       ]
+    },
+    "password-field": {
+      "members": 84,
+      "sha256": "9430a9c0c84d97fef7bd7a66c2a734a32524dd5d8869b18326f2dcaa2434cfce",
+      "properties": [
+        "leading icon:BOOLEAN",
+        "message:BOOLEAN",
+        "placeholder:TEXT",
+        "value:TEXT"
+      ]
+    },
+    "password-field@outline-solid-tint": {
+      "members": 84,
+      "sha256": "5ca248ba2b9487f87c8fba480d52a652fbe8a4c89ffb4118baa582f91b24a10a",
+      "properties": [
+        "leading icon:BOOLEAN",
+        "message:BOOLEAN",
+        "placeholder:TEXT",
+        "value:TEXT"
+      ]
+    },
+    "password-field@outline-none": {
+      "members": 84,
+      "sha256": "771e3974cfb329db2abcf42bc98f0914a3851b1813a867dba8b83d0fa3c97946",
+      "properties": [
+        "leading icon:BOOLEAN",
+        "message:BOOLEAN",
+        "placeholder:TEXT",
+        "value:TEXT"
+      ]
     }
   }
 }

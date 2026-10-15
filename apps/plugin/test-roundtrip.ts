@@ -94,6 +94,13 @@ const fullFor = (plans: AnatomyPlan[]): ShimOpts => ({
   styles: [...new Set(plans.flatMap((p) => planTextStyles(p.root)))],
   effects: [...new Set(plans.flatMap((p) => planEffectStyles(p.root)))],
   comps: [...new Set(plans.flatMap((p) => planComps(p.root)))],
+  // #2317 — the TEXT properties each nested component's instances carry, from the NESTED def's own declaration
+  // (its `figmaProperties.texts`, under the Figma name), so a host def's `nestTexts` override is read back against
+  // a property the harness did not learn from that override.
+  compTexts: Object.fromEntries([...new Set(plans.flatMap((p) => planComps(p.root)))].flatMap((id) => {
+    const texts = componentDefs.find((d) => d.id === id)?.figmaProperties?.texts;
+    return texts ? [[id, Object.fromEntries(Object.entries(texts).map(([k, t]) => [t.figmaName ?? k, t.default]))]] : [];
+  })),
 });
 
 /**
@@ -342,6 +349,8 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
     'field-message': { parts: ['text'],  style: () => 'caption/md/default' },
     // #2266: the input type scales with the field's size, one body step above its label.
     'text-field':    { parts: fieldLayer, style: (c) => ({ small: 'body/sm/default', medium: 'body/md/default', large: 'body/lg/default' } as Record<string, string>)[c.size!] },
+    // #2317: the Password field's value and placeholder are TextField's, from the shared field factory.
+    'password-field': { parts: fieldLayer, style: (c) => ({ small: 'body/sm/default', medium: 'body/md/default', large: 'body/lg/default' } as Record<string, string>)[c.size!] },
     textarea:        { parts: fieldLayer, style: (c) => ({ small: 'body/sm/default', medium: 'body/md/default', large: 'body/lg/default' } as Record<string, string>)[c.size!] },
     select:          { parts: fieldLayer, style: (c) => ({ small: 'body/sm/default', medium: 'body/md/default', large: 'body/lg/default' } as Record<string, string>)[c.size!] },
     'checkbox-row':  { parts: ['label'], style: (c) => ({ small: 'body/sm/default', medium: 'body/md/default', large: 'body/lg/default' } as Record<string, string>)[c.size!] },
@@ -466,6 +475,9 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
     // the def where the pairing matters most (two icon slots): the old grouping would show both booleans,
     // then both swaps, detached — reordering `planSetProperties` back to it fails this BY NAME.
     'text-field': { componentProps: ['placeholder', 'value', 'leading icon', '↳ swap leading icon', 'trailing icon', '↳ swap trailing icon', 'message'], switches: [] },
+    // #2317: the Password field drops TextField's trailing slot, so its panel is TextField's without the trailing
+    // icon pair. The nested Button's `label` surfaces through the exposed instance, not as a property of this set.
+    'password-field': { componentProps: ['placeholder', 'value', 'leading icon', '↳ swap leading icon', 'message'], switches: [] },
     'icon-button': { componentProps: ['swap icon'], switches: [] },
   };
   for (const [id, want] of Object.entries(CANON)) {

@@ -216,6 +216,8 @@ const ZERO_OK: Record<string, string> = {
   'text-field.focusRing': FIELD_RING,
   'select.focusRing': FIELD_RING,
   'textarea.focusRing': FIELD_RING,
+  // #2317: the Password field's box and ring are TextField's, from the shared field factory.
+  'password-field.focusRing': FIELD_RING,
 };
 
 /**

@@ -459,6 +459,71 @@
       ]
     },
     {
+      "from": "password-field",
+      "to": "focus-ring",
+      "part": "focusRing",
+      "partKind": "absolute",
+      "relation": "nest-fixed",
+      "variant": {
+        "surface": "default"
+      }
+    },
+    {
+      "from": "password-field",
+      "to": "field-label",
+      "part": "label",
+      "partKind": "nest",
+      "relation": "nest-exposed",
+      "variant": {
+        "size": "medium",
+        "emphasis": "secondary",
+        "weight": "regular",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ],
+      "expose": [
+        "emphasis",
+        "weight"
+      ]
+    },
+    {
+      "from": "password-field",
+      "to": "field-message",
+      "part": "message",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "status": "default"
+      },
+      "follow": [
+        "status"
+      ]
+    },
+    {
+      "from": "password-field",
+      "to": "button",
+      "part": "toggle",
+      "partKind": "nest",
+      "relation": "nest-exposed",
+      "variant": {
+        "appearance": "text",
+        "size": "medium",
+        "surface": "default",
+        "inset": "flush",
+        "state": "rest",
+        "leading icon": "false",
+        "trailing icon": "false"
+      },
+      "follow": [
+        "size"
+      ],
+      "expose": [
+        "label"
+      ]
+    },
+    {
       "from": "radio-control",
       "to": "focus-ring",
       "part": "focusRing",
@@ -897,10 +962,12 @@
         "spinner"
       ],
       "nestedBy": [
-        "dialog"
+        "dialog",
+        "password-field"
       ],
       "affectedByChange": [
-        "dialog"
+        "dialog",
+        "password-field"
       ],
       "inheritedBy": [
         "icon-button"
@@ -1022,6 +1089,7 @@
       "nestsTransitively": [],
       "nestedBy": [
         "checkbox-group",
+        "password-field",
         "radio-group",
         "segmented-control",
         "select",
@@ -1030,6 +1098,7 @@
       ],
       "affectedByChange": [
         "checkbox-group",
+        "password-field",
         "radio-group",
         "segmented-control",
         "select",
@@ -1042,11 +1111,13 @@
       "nests": [],
       "nestsTransitively": [],
       "nestedBy": [
+        "password-field",
         "select",
         "text-field",
         "textarea"
       ],
       "affectedByChange": [
+        "password-field",
         "select",
         "text-field",
         "textarea"
@@ -1105,6 +1176,7 @@
         "icon-button-destructive",
         "icon-button-neutral",
         "link",
+        "password-field",
         "radio-control",
         "segmented-control-segment",
         "select",
@@ -1130,6 +1202,7 @@
         "icon-button-destructive",
         "icon-button-neutral",
         "link",
+        "password-field",
         "radio-control",
         "radio-group",
         "radio-row",
@@ -1245,6 +1318,24 @@
       ],
       "inheritedBy": []
     },
+    "password-field": {
+      "nests": [
+        "button",
+        "field-label",
+        "field-message",
+        "focus-ring"
+      ],
+      "nestsTransitively": [
+        "button",
+        "field-label",
+        "field-message",
+        "focus-ring",
+        "spinner"
+      ],
+      "nestedBy": [],
+      "affectedByChange": [],
+      "inheritedBy": []
+    },
     "radio-control": {
       "nests": [
         "focus-ring"
@@ -1355,7 +1446,8 @@
         "dialog",
         "icon-button",
         "icon-button-destructive",
-        "icon-button-neutral"
+        "icon-button-neutral",
+        "password-field"
       ],
       "inheritedBy": []
     },
@@ -1496,6 +1588,7 @@
     "link": 1,
     "list": 1,
     "list-item": 0,
+    "password-field": 2,
     "radio-control": 1,
     "radio-group": 3,
     "radio-row": 2,
