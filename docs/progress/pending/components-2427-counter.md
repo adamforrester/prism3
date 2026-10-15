@@ -44,7 +44,9 @@ The Counter's row itself is INTERACTIVE on `size.{size}.height` (44 at medium on
 
 **A name collision, recorded for the owner.** The KB's badge brief lists "Counter" as an alias for a count badge, a number shown on another element. `test.ts`'s no-brief arm matched the Counter to that brief by alias and failed it. The name is owner-approved with the quantity meaning, so the arm admits that one collision by name (`ALIAS_COLLISIONS`), and the Counter's `ai.avoidWhen` and `docs.dont` send a count badge to Badge. An agent asked for "a counter" can still mean either; the trigger keywords lean on quantity.
 
-**Waiting on #2683 (nested overrides).** The minus and plus glyphs are the nested buttons' icon swap. Until #2683's `overrides: { swaps: { icon: 'minus' } }` is on main, a built Counter shows the file's swap target in both buttons, and the designer swaps them by hand. `codeOnly` says so. Whichever of this PR and #2683 merges second adds `overrides` to the two parts.
+**The glyphs, now that #2683 is on main.** The minus and plus are the nested buttons' icon swap, written as a per-instance override on each part: `overrides: { swaps: { icon: 'minus' } }` and `'plus'`. The first host to swap a glyph on a NEST-EXPOSED child surfaced a gap in `test.ts`'s `#1392` paste-payload harness: it gave nested instances their text properties (#2317) but no swap properties, so both overrides read as misses. The harness now declares each nested def's own swaps (from the nested def, never from the host's `overrides`), and provisions the glyph components the overrides name, as the real build does.
+
+**`EXECUTOR_REVISION` 28.** The Counter's page entry in `file-taxonomy.ts` is reachable from the executor, so `lint-executor-revision` counts it as an executor change. Main is at 26 (#2683) and #2744 holds 27, so this takes 28.
 
 **Gates (each mutation-proven by name, see the PR):**
 - `test.ts`, the Counter's decisions against literals:
@@ -55,7 +57,7 @@ The Counter's row itself is INTERACTIVE on `size.{size}.height` (44 at medium on
   - `/ring`: the ghost ring at the control offset
   - `/label`: hidden by default
   - `/api`: min 0, `tabindex="-1"`, no remove prop
-- `test.ts` `#2427 variantWhen`: each of the six refusals fires on its own case (the follow-overlap fixture states its own `follow`), and the Counter validates clean.
+- `test.ts` `#2427 variantWhen`: each of the eight refusals fires on its own case (the follow-overlap fixture states its own `follow`; the no-values and empty-coordinate cases came in the second delta check), and the Counter validates clean.
 - `test.ts` `#2427 counter/label-dims`: the nested FieldLabel's coordinate on every member, disabled only on the Counter's disabled members (added in review; it was held only by the roundtrip and the surface digest).
 - `test-roundtrip.ts` `#2427 counter`: built over its really built nested sets with 0 misses. In every member both instances are exposed instances of the decided FlushIconButton.Neutral member. The FieldLabel dims on the 6 disabled members. The spacing is read off the host layout.
 - `lint-hit-target.ts`: `FLUSH_NESTS` and the INTERACTIVE row.

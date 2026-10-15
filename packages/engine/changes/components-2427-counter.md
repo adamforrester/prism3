@@ -10,11 +10,11 @@ Counter, a new component (#2427; owner decisions Q283, Q286 A and the wireframe 
 no box. The minus and plus are two nested FlushIconButton.Neutral instances, each with its `state` exposed so a
 designer sets one disabled at a limit: flush on outline, round on ghost (Q287 A). The value is at least 32px wide, in
 `type.body.{sm,md,lg}.default`. The label (FieldLabel) is hidden by default (Q283.9 B) and the message
-(FieldMessage) is off by default. No new token, so CONTRACT is unchanged.
+(FieldMessage) is off by default. The minus and plus glyphs are per-instance swap overrides on the two nested buttons (#2645). No new token, so CONTRACT is unchanged.
 
 A nest relation can now map a host value onto a differently named child axis: `variantWhen`, beside `variant` and
 `follow` on `nest-fixed` and `nest-exposed` (`{ appearance: { ghost: { shape: 'round' } } }`). The projector merges
 it between the fixed `variant` and `follow`; the validator refuses an unprojected host axis, an undeclared value, an
-empty map, a child axis also followed, a child axis set from two host axes, and a child axis the fixed `variant`
+empty map, an axis with no values, an empty coordinate, a child axis also followed, a child axis set from two host axes, and a child axis the fixed `variant`
 does not name. It replaces `atState` (#2317), which did one case of the same job: the Password field's Show button now
 says `variantWhen: { state: { disabled: { state: 'disabled' } } }`, and its projected plan is unchanged.

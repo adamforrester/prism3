@@ -22010,11 +22010,20 @@ arm: {
             // drops nodes — and a dropped `field-message` node orphans the `showMessage` visibility boolean
             // (#1426). Provisioning both mirrors the real build (the plugin builds each nested component and
             // the swap target first), where no node is dropped.
-            comps: [...new Set(plans.flatMap((p) => walkPlan(p.root)).flatMap((n) => [n.swapTarget, n.nestTarget]).filter((c): c is string => !!c))],
+            // A per-instance swap override (#2645) names a glyph component too, which the real build places first.
+            comps: [...new Set(plans.flatMap((p) => walkPlan(p.root)).flatMap((n) => [n.swapTarget, n.nestTarget,
+              ...(n.nestOverrides ?? []).filter((o) => o.type === 'INSTANCE_SWAP').map((o) => o.value)]).filter((c): c is string => !!c))],
             // #2317 — each nested component's TEXT properties, from the NESTED def's own declaration (never from the
             // host's `nestTexts`, the value under test), so a nested instance has the property a host overrides.
             compTexts: Object.fromEntries(componentDefs.filter((d) => d.figmaProperties?.texts).map((d) =>
               [d.id, Object.fromEntries(Object.entries(d.figmaProperties!.texts!).map(([k, t]) => [t.figmaName ?? k, t.default]))])),
+            // #2427 — a nested component with SWAP properties declares them, also from the nested def's own declaration
+            // (never the host's `overrides`), so the Counter's minus and plus land on a nested instance that has them.
+            componentProps: Object.fromEntries(componentDefs.filter((d) => Object.keys(d.figmaProperties?.swaps ?? {}).length).map((d) =>
+              [d.id, Object.fromEntries([
+                ...Object.entries(d.figmaProperties!.texts ?? {}).map(([k, t], i) => [`${t.figmaName ?? k}#7:${i}`, { type: 'TEXT', defaultValue: t.default }]),
+                ...Object.entries(d.figmaProperties!.swaps!).map(([k, s], i) => [`${s.figmaName ?? k}#8:${i}`, { type: 'INSTANCE_SWAP', defaultValue: '73:37' }]),
+              ])])),
           };
           // The exposure lives on a NODE deep in each member; no `runPayload` summary field carries it, so
           // it is read off the PAGE the payload appended the combined set to. Returns every nested instance

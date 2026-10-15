@@ -1269,7 +1269,7 @@
         "limits in Figma — min and max are code props. In Figma the designer shows a limit by setting that button's exposed state to disabled; in code the counter sets aria-disabled from min and max.",
         "no wheel — the value never changes on a mouse wheel or a scroll gesture.",
         "tabular figures — the value is set with font-variant-numeric: tabular-nums, so its width holds from one count to the next; the 32px minimum width holds two digits.",
-        "the glyphs — the minus and plus are the nested buttons' icon swap set to the icon set's minus and plus. Figma writes a nested instance's swap only once the nested-override mechanism lands (#2645); until then a built Counter shows the file's swap target in both buttons and the designer swaps them.",
+        "the glyphs — the minus and plus are the nested buttons' icon swap, set to the icon set's minus and plus as a per-instance override on each nested button (#2645).",
         "RTL — the row follows the reading direction, so the minus button sits at the right edge. The minus and plus glyphs are symmetric and are not mirrored."
       ],
       "notes": {
