@@ -616,7 +616,7 @@
             "source": "apps/plugin/src/agent-protocol.ts#parseCommand.style-guide"
           },
           {
-            "message": "style-guide takes args.tables: a non-empty array of table titles or keys, e.g. ['Primary — nbds']",
+            "message": "style-guide takes args.tables: a non-empty array of table titles or keys, e.g. ['Primary — prism']",
             "source": "apps/plugin/src/agent-protocol.ts#parseCommand.style-guide"
           }
         ],
