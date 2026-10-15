@@ -5,7 +5,7 @@
  *   npx tsx fold.ts --dry-run   # print the plan, write nothing
  *
  * WHY THIS EXISTS. Every PR used to write the same four places: the `ENGINE_VERSION` line, a changelog
- * entry in the comment above it, the top of `docs/00-progress.md`, and the version stamp in every
+ * entry in the comment above it (now `packages/engine/CHANGELOG.md`, Q319.3), the top of `docs/00-progress.md`, and the version stamp in every
  * emitted tree. So every open PR conflicted with every other, and merges ran one at a time (#1807
  * replayed 40 merges: 40 of 40 pairs conflicted, 35 of them only on those lines). Now a PR carries its
  * own FILES instead, and this script is the only thing that writes those lines:
@@ -27,8 +27,9 @@
  *      `ENGINE_VERSION` bumped once, by the HIGHEST level any note declares. A version names a state
  *      that existed on `main` and was stamped into every emitted tree by this fold's regen. One number
  *      per note would mint numbers no build ever ran as, and no artifact ever carried.
- *   5. Writes the constant, and the fold's changelog section directly below the FOLD MARKER in
- *      `version.ts` (newest fold first; each note under it, newest merge first).
+ *   5. Writes the constant in `version.ts`, and the fold's changelog section directly below the FOLD
+ *      MARKER in `packages/engine/CHANGELOG.md` (newest fold first; each note under it, newest merge
+ *      first). The changelog lived in a comment above the constant until Q319.3 moved it out verbatim.
  *   6. Prepends the fragments to `docs/00-progress.md` below its intro, newest merge first (older entries are
  *      archived under `docs/progress/archive/` by a pure move, #2583; the fold never writes there). Each
  *      entry's heading date becomes the UTC date its fragment LANDED on `main`, so the log reads in
@@ -61,12 +62,14 @@ const repo = dirname(fileURLToPath(import.meta.url));
 const NOTES_DIR = 'packages/engine/changes';
 const FRAGMENTS_DIR = 'docs/progress/pending';
 const VERSION_FILE = 'packages/engine/version.ts';
+/** The engine changelog, moved out of `version.ts` verbatim (Q319.3). Plain Markdown lines, no comment prefix. */
+const CHANGELOG_FILE = 'packages/engine/CHANGELOG.md';
 const LOG_FILE = 'docs/00-progress.md';
 /** Where older entries move, out of the log (#2583). Read only for the newest entry's date; never written. */
 const ARCHIVE_DIR = 'docs/progress/archive';
-/** The line in `version.ts` the fold writes directly below. Matched as a PREFIX, so the rest of the
+/** The line in `CHANGELOG.md` the fold writes directly below. Matched as a PREFIX, so the rest of the
  *  line may be reworded without breaking the fold; the gate matches the same prefix independently. */
-const MARKER_PREFIX = ' * ── FOLDED CHANGE NOTES (#1807)';
+const MARKER_PREFIX = '── FOLDED CHANGE NOTES (#1807)';
 const PLACEHOLDER = /\{\{ENGINE_VERSION\}\}/g;
 const LEVELS = ['patch', 'minor', 'major'] as const;
 type Level = typeof LEVELS[number];
@@ -183,9 +186,8 @@ for (const path of [...notePaths].sort(byMergeNewestFirst)) {
   if (!LEVELS.includes(level)) { problems.push(`${path}: \`engine: ${m[1]}\` — the level is one of ${LEVELS.join(' | ')}. A change that owes no bump carries no note.`); continue; }
   const prose = m[2].trim();
   if (!prose) { problems.push(`${path}: no changelog prose after the front matter`); continue; }
-  if (prose.replace(PLACEHOLDER, '').includes('{{')) { problems.push(`${path}: a \`{{\` other than the version placeholder, which would reach version.ts unsubstituted`); continue; }
-  if (prose.includes('*/')) { problems.push(`${path}: the prose contains \`*/\`, which would close the comment it is folded into`); continue; }
-  // After substitution, not before: `{{ENGINE_VERSION}} — …` becomes ` * 0.216.0 — …`, a heading.
+  if (prose.replace(PLACEHOLDER, '').includes('{{')) { problems.push(`${path}: a \`{{\` other than the version placeholder, which would reach the changelog unsubstituted`); continue; }
+  // After substitution, not before: `{{ENGINE_VERSION}} — …` becomes `0.216.0 — …`, a heading.
   const semverLead = prose.replace(PLACEHOLDER, '9.9.9').split('\n').find((l) => /^\s*\d+\.\d+\.\d+\s*[—:-]/.test(l));
   if (semverLead) { problems.push(`${path}: a line opens with a version number or the placeholder (\`${semverLead.trim().slice(0, 40)}…\`), which reads as a changelog heading once folded`); continue; }
   notes.push({ path, slug: slugOf(path), level, prose });
@@ -251,31 +253,35 @@ if (stamps.length && next === current)
 const today = new Date().toISOString().slice(0, 10);
 
 // ---- 6. the changelog section ------------------------------------------------------------------
+const changelogPath = join(repo, CHANGELOG_FILE);
+const changelogSrc = readFileSync(changelogPath, 'utf8');
 let newVersionSrc = versionSrc;
+let newChangelogSrc = changelogSrc;
 if (notes.length) {
-  const lines = versionSrc.split('\n');
+  const lines = changelogSrc.split('\n');
   const at = lines.findIndex((l) => l.startsWith(MARKER_PREFIX));
   if (at < 0)
     refuse([
-      `the fold marker is missing from ${VERSION_FILE} — no line starts with \`${MARKER_PREFIX.trim()}\`.`,
+      `the fold marker is missing from ${CHANGELOG_FILE} — no line starts with \`${MARKER_PREFIX}\`.`,
       '',
-      '  It sits at the top of the docblock directly above `export const ENGINE_VERSION`, and it is where',
-      '  every fold writes. Restore it rather than choosing a new place: the gate looks for it too.',
+      '  It sits above the newest fold, and it is where every fold writes. Restore it rather than',
+      '  choosing a new place: the gate looks for it too.',
     ]);
-  // Skip the marker line and the ` *` spacer beneath it; the section goes straight after.
-  const insertAt = lines[at + 1]?.trim() === '*' ? at + 2 : at + 1;
+  // Skip the marker line and the blank spacer beneath it; the section goes straight after.
+  const insertAt = lines[at + 1]?.trim() === '' ? at + 2 : at + 1;
   const section: string[] = [
-    ` * ${next} — folded ${today} from ${notes.length} change note${notes.length === 1 ? '' : 's'}, newest merge first.`,
-    ' *',
+    `${next} — folded ${today} from ${notes.length} change note${notes.length === 1 ? '' : 's'}, newest merge first.`,
+    '',
   ];
   for (const n of notes) {
     const body = fill(n.prose).split('\n');
     body[0] = `[${n.slug} · ${n.level} · ${landing.get(n.path)!.sha.slice(0, 8)}] ${body[0]}`;
-    for (const l of body) section.push(l.trim() ? ` * ${l.replace(/\s+$/, '')}` : ' *');
-    section.push(' *');
+    for (const l of body) section.push(l.trim() ? l.replace(/\s+$/, '') : '');
+    section.push('');
   }
   lines.splice(insertAt, 0, ...section);
-  newVersionSrc = lines.join('\n').replace(CONSTANT_RE, `export const ENGINE_VERSION = '${next}';`);
+  newChangelogSrc = lines.join('\n');
+  newVersionSrc = versionSrc.replace(CONSTANT_RE, `export const ENGINE_VERSION = '${next}';`);
 }
 
 // ---- 7. the progress log -----------------------------------------------------------------------
@@ -336,10 +342,11 @@ if (dryRun) {
 
 // ---- 8. write, delete, regen -------------------------------------------------------------------
 if (newVersionSrc !== versionSrc) writeFileSync(versionPath, newVersionSrc);
+if (newChangelogSrc !== changelogSrc) writeFileSync(changelogPath, newChangelogSrc);
 if (newLogSrc !== logSrc) writeFileSync(logPath, newLogSrc);
 for (const s of stamps) writeFileSync(join(repo, s.path), s.out);
 for (const p of [...notePaths, ...fragmentPaths]) unlinkSync(join(repo, p));
-console.log(`\n  wrote ${[newVersionSrc !== versionSrc && VERSION_FILE, newLogSrc !== logSrc && LOG_FILE, ...stamps.map((s) => s.path)].filter(Boolean).join(', ')}; deleted ${notePaths.length + fragmentPaths.length} pending file(s)`);
+console.log(`\n  wrote ${[newVersionSrc !== versionSrc && VERSION_FILE, newChangelogSrc !== changelogSrc && CHANGELOG_FILE, newLogSrc !== logSrc && LOG_FILE, ...stamps.map((s) => s.path)].filter(Boolean).join(', ')}; deleted ${notePaths.length + fragmentPaths.length} pending file(s)`);
 
 if (next !== current) {
   console.log('  running regen.ts so every emitted stamp reads the new version …');
