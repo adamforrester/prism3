@@ -115,12 +115,15 @@
  *                    the tree it merges into no fragment or note is still pending, except one the diff adds
  *                    itself. A fold cut on one commit of `main` and merged on a later one left the later
  *                    commits' files pending, and every other arm passed it as a pure fold. The merged tree is
- *                    HEAD on CI's merge ref, HEAD plus what the base ref added since the merge base on a
- *                    branch, and HEAD over its first parent on a push run, which this arm does NOT skip.
- *                    MUTATIONS VERIFIED (#2663, each fails LEAVES NOTHING PENDING by name, on a synthetic
- *                    fold in a throwaway clone): a fold whose base moved by one fragment and one note, read
- *                    on its merge ref · on its branch · as main's push run. A fold re-cut on the moved base
- *                    passes all three.
+ *                    HEAD on CI's merge ref; on a branch, HEAD less what the base ref consumed since the
+ *                    merge base, plus what it added; and HEAD over its first parent on a push run, which this
+ *                    arm does NOT skip.
+ *                    `test.ts` (f) runs it over a scratch history: a stale fold fails it on its branch, its
+ *                    merge ref and its squash's push run; the fold re-cut on the moved main passes; so does
+ *                    #1880's fixture (a), whose leftovers main's own fold consumed. MUTATIONS VERIFIED
+ *                    (#2663, each fails a named (f) case): the arm returning early · the push-run call
+ *                    removed · the base ref's additions dropped · main's consumption not subtracted (also
+ *                    fails #1880 (a)).
  *   ALREADY IN THE LOG — a pending fragment whose title is already an entry heading fails: a fold wrote
  *                    the entry and left the fragment, which the next fold would write again.
  *   NO PLACEHOLDER — the log never carries a literal `{{`: a folded entry still holding `{{ENGINE_VERSION}}`
@@ -425,9 +428,10 @@ if (foldFails.length) {
 // the oracle is the merged tree's listing of both pending directories, read with `ls-tree`. Neither side
 // is derived from the other, and neither reads `fold.ts` (docs/34 shape 2).
 //
-// "The merged tree" is HEAD's, plus, off CI's merge ref, every pending file the base ref ADDED since the
-// merge base: a fold branch has not seen those, and they are exactly what a merge would bring in. In CI
-// HEAD is the merge and the base ref is the merge base, so the second term is empty. On a push run the
+// "The merged tree" is HEAD's pending files, less those the base ref DELETED since the merge base (a fold on
+// main consumed them, and the merge deletes them), plus those the base ref ADDED since (a fold branch has
+// not seen them, and the merge brings them in). In CI HEAD is the merge and the base ref is the merge base,
+// so both corrections are empty. On a push run the
 // base is HEAD's first parent, the commit the squash landed on, and HEAD is the merged tree.
 // A file the diff ADDS is not left behind: it is the fold's own fragment (or note) for a fix it carries.
 const pendingAt = (ref: string, dir: string): string[] => {
@@ -449,11 +453,13 @@ const leavesNothingPending = (base: string, tip: string | null, whence: string):
   const own = new Set([PENDING, NOTES].flatMap((dir) => statusIn(base, dir, 'A')));
   const left = new Set<string>();
   for (const dir of [PENDING, NOTES]) {
-    for (const p of pendingAt('HEAD', dir)) left.add(p);
-    if (tip) {
-      const atBase = new Set(pendingAt(base, dir));
-      for (const p of pendingAt(tip, dir)) if (!atBase.has(p)) left.add(p);
-    }
+    const atBase = new Set(tip ? pendingAt(base, dir) : []);
+    const atTip = new Set(tip ? pendingAt(tip, dir) : []);
+    // HEAD's pending files, less those the base ref has consumed since the merge base (another fold): the
+    // merge deletes them. Plus those the base ref added since: the merge brings them in (#1880's fixture (a),
+    // a branch whose fold of what one merge of main brought sits beside main's own fold of the rest).
+    for (const p of pendingAt('HEAD', dir)) if (!(atBase.has(p) && !atTip.has(p))) left.add(p);
+    for (const p of atTip) if (!atBase.has(p)) left.add(p);
   }
   const missed = [...left].filter((p) => !own.has(p)).sort();
   if (missed.length) {

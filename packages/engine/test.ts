@@ -30144,6 +30144,34 @@ arm: {
     const archLogOnly = run('arch-log-only', PR);
     ok(archLogOnly.status === 1 && archLogOnly.lines.some((l) => l.startsWith('✗ ONE WRITER (log) — this diff changes docs/00-progress.md')),
       `#2583 archive move: entries cut from the log with no archive half fail ONE WRITER (exit ${archLogOnly.status})`);
+
+    // (f) #2663: LEAVES NOTHING PENDING. Branch (a) above folded Alpha and Bravo and still holds Pre one and Pre
+    // two, which main's own fold (m5) consumed since the merge base: merged, nothing is left, so it passes. Then
+    // a stale fold: `stale` folds all four at m4, while main moves to `ml` with one more fragment, Late. Read on
+    // its branch, on its PR merge ref and as main's push run of its squash, it leaves Late pending and fails by
+    // name. Re-cut at `ml` (`recut`, all five) it passes. Runs last: it moves origin/main to `ml`.
+    const nothingLeft = (n: number) => (l: string) => l.startsWith(`  ✓ leaves nothing pending — the fold consumes ${n} fragment(s) and 0 note(s), and the merged tree holds no other pending file`);
+    const aAgain = run('a', {});
+    ok(aAgain.status === 0 && aAgain.lines.some(nothingLeft(2)),
+      `#2663 leaves nothing pending: a branch's fold beside main's fold of the rest passes; main consumed Pre one and Pre two since the merge base (exit ${aAgain.status}: ${aAgain.lines.filter((l) => /leaves nothing|LEAVES NOTHING|lane-/.test(l)).join(' | ')})`);
+    git('checkout', '-q', '-b', 'ml', m4); fragment('lane-late', 'Late'); const ml = commit('ml: a late PR');
+    git('checkout', '-q', '-b', 'stale', m4);
+    for (const s of ['lane-pre-one', 'lane-pre-two', 'lane-alpha', 'lane-bravo']) rmSync(join(scratch, `docs/progress/pending/${s}.md`));
+    log(['Bravo', 'Alpha', 'Pre two', 'Pre one']); commit('stale fold');
+    git('checkout', '-q', '--detach', ml); git('merge', '-q', '--no-ff', '-m', 'merge ref of stale', 'stale'); const refStale = git('rev-parse', 'HEAD');
+    git('checkout', '-q', '--detach', ml); git('merge', '-q', '--squash', 'stale'); git('commit', '-q', '-m', 'stale fold, squashed on main'); const sqStale = git('rev-parse', 'HEAD');
+    git('checkout', '-q', '-b', 'recut', ml);
+    for (const s of ['lane-pre-one', 'lane-pre-two', 'lane-alpha', 'lane-bravo', 'lane-late']) rmSync(join(scratch, `docs/progress/pending/${s}.md`));
+    log(['Late', 'Bravo', 'Alpha', 'Pre two', 'Pre one']); commit('recut fold');
+    git('update-ref', 'refs/remotes/origin/main', ml);
+    const LEFT = '✗ LEAVES NOTHING PENDING — this diff is a fold (it consumes 4 fragment(s) and 0 note(s)), and 1 file(s) are still pending on the merged tree (#2663):';
+    const LATE = '  · docs/progress/pending/lane-late.md';
+    const stale = [run('stale', {}), run(refStale, PR), run(sqStale, PUSH)];
+    ok(stale.every((r) => r.status === 1 && r.lines.includes(LEFT) && r.lines.includes(LATE)),
+      `#2663 leaves nothing pending: a fold cut before main moved fails by name on its branch, its merge ref and main's push run, naming lane-late (exits ${stale.map((r) => r.status).join(', ')}: ${stale.map((r) => r.lines.filter((l) => /LEAVES NOTHING|lane-late/.test(l)).join(' ')).join(' | ')})`);
+    const recut = run('recut', {});
+    ok(recut.status === 0 && recut.lines.some(nothingLeft(5)),
+      `#2663 leaves nothing pending: the fold re-cut on the moved main passes (exit ${recut.status}: ${recut.lines.filter((l) => /leaves nothing|LEAVES NOTHING|✗/.test(l)).join(' | ')})`);
   } finally {
     rmSync(scratch, { recursive: true, force: true });
   }

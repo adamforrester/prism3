@@ -12,7 +12,8 @@ fragment or change note is a fold. On the tree it merges into, no fragment or no
 except one the diff adds itself (a fold's fragment for a semantic-conflict fix it carries). "The tree it
 merges into" depends on the run:
 - CI's merge ref: HEAD.
-- A fold branch run locally: HEAD, plus every pending file the base ref added since the merge base.
+- A fold branch run locally: HEAD's pending files, less those the base ref has consumed since the merge
+  base, plus those it has added.
 - Main's push run: HEAD, over its first parent.
 
 The push run is the one that sees the fold on the `main` it actually landed on. The arm is not skipped
@@ -37,6 +38,24 @@ control. Each scenario ran main's gate and the fixed gate side by side:
 | Fold B, branch / merge ref / push | exit 0 | exit 0, "leaves nothing pending" |
 | An ordinary PR on M1 | exit 0 | exit 0, n/a, not a fold |
 | Fold B plus its own fix fragment | exit 0 | exit 0, its own fragment is not left behind |
+
+**The first formula was wrong, and test.ts caught it.** The first version counted everything pending at
+HEAD. `test.ts`'s #1880 fixture (a) is a branch that merged main and folded what that merge brought in. It
+still holds two fragments that main's own fold had consumed since the merge base, so the merge deletes
+them, yet the arm reported them as left behind. The arm now subtracts what the base ref deleted since the
+merge base. **Committed cases**, in the same scratch-repo block (`test.ts` (f)): fixture (a) passes; a
+stale fold fails by name on its branch, its merge ref and its squash's push run, naming the late
+fragment; the re-cut fold passes. Each arm of the new code, mutated, fails a named case there:
+
+- The arm disabled (main's behavior) → three failures. "#2663 leaves nothing pending: a fold cut before main
+  moved fails by name on its branch, its merge ref and main's push run…" reads exits 0, 0, 0. The (a) case
+  and the re-cut case fail too, because their pass line is gone.
+- The push-run call removed → that same case, exits 1, 1, 0.
+- The base ref's additions dropped → the same case, exits 0, 1, 1.
+- Main's consumption not subtracted → "#1880 folded entries: one merge of main brings two fragments…" and
+  "#2663 leaves nothing pending: a branch's fold beside main's fold of the rest passes…".
+- Not in `test.ts`: the exemption for a fold's own added file. The synthetic harness above covers it
+  (row "Fold B plus its own fix fragment").
 
 **A trap for whoever reruns this.** A `node_modules` symlink in the clone shows as untracked, because
 `.gitignore`'s `node_modules/` matches directories only. `fold.ts` then refuses a dirty tree. Add it to
