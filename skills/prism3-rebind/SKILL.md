@@ -42,7 +42,8 @@ decision for the owner (section 6), and most become component work.
 - **Where Prism3 has no component** (a header, a footer, a product card, a carousel), rebuild with
   plain frames bound to Prism3 variables. Check the file's Prism3 components before deciding one is
   missing: the set grows, and tabs, accordions, lists, dividers and segmented controls now ship. The rule doesn't apply to pieces Prism3 doesn't have. Log the
-  missing component, and use Prism3 atoms inside it (`icon-button`, `button`, text styles) wherever they fit.
+  missing component, and use Prism3 atoms inside it (`icon-button`, `flush-icon-button`, `button`,
+  `link`, text styles) wherever they fit.
 
 ## 2. Before the first write
 

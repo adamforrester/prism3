@@ -301,14 +301,18 @@ whose actual value comes from the host, not from the plan.
   names its slots in precedence order in `paintSlots` (a box that names none paints nothing and
   is structure). Order is precedence: `['overlay', 'fill']` reads "the overlay if it resolves,
   otherwise the fill."
-- **Hit target → the 44px floor, with two named exceptions.** An interactive control's hit target
+- **Hit target → the 44px floor, with named exceptions.** An interactive control's hit target
   at its default size clears 44px on comfortable and spacious densities. A field control binds
   `size.md.min-height` (#1437), the emitted `max(size.md.height, 44)`, because the plain
   `size.md.height` rung is 36 on a compact brand; a labeled row binds its own `min-height` rung.
   `lint-hit-target` measures each control's default size. Its exceptions are compact density, the
-  small size of the defs in its `SMALL_SIZE` list, and the flush buttons in `FLUSH_MEMBERS`, whose
-  44×44 (24×24 at small) target is extended in code and must be stated in the def's `codeOnly` —
-  so in shipped prose, SC 2.5.5 is stated as intent, not as a guarantee for every size. See `packages/engine/components/select.ts` and
+  small size of the defs in its `SMALL_SIZE` list, the flush text buttons in `FLUSH_MEMBERS`, whose
+  44×44 (24×24 at small) target is extended in code and must be stated in the def's `codeOnly`, and
+  the flush icon buttons in `CODE_SIDE_TARGETS`, whose target is extended in code to 44×44 at every
+  size and must be stated in both `codeOnly` and the shipped docs' do list. A def that is not a
+  control of its own is listed in `EXCLUDED` in `packages/engine/lint-hit-target.ts` with a
+  reason, and a part inside a control that is a target of its own (Tag's ×) in `INNER_TARGETS`.
+  So in shipped prose, SC 2.5.5 is stated as intent, not as a guarantee for every size. See `packages/engine/components/select.ts` and
   `packages/engine/components/text-field.ts`.
 - **Selection → a tint and a 2px outline, at a constant label weight (the system pattern, owner decision
   2026-09-28).** A control the user selects and deselects in place — Tag's select type today; a segmented
@@ -402,7 +406,8 @@ So the rule is: **variant axis only when presence drives edge-hugging asymmetric
 boolean otherwise.** Verify which case a new component is in against the actual defs before wiring it.
 
 **Axis value order is a decision, and it is fixed (#2501, owner decision Q213).** Sizes run small to
-large; states run rest, hover, pressed, pending, focus-visible, disabled. Text field, textarea and select
+large; states run in ladder order, for example rest, hover, pressed, pending, focus-visible, disabled (the
+full ladder is `STATE_LADDER` in `packages/engine/test.ts`). Text field, textarea and select
 are the one named exception: they keep medium first (Q221 B), so an inserted field stays medium. Figma's
 default member is the one at the top left of the set on the canvas, not the first child, so axis order
 does not by itself pick the Figma default. The `#2501 <def>` test in `packages/engine/test.ts` fails a
@@ -441,9 +446,10 @@ the gate fails by name. Its `DEF_FLOOR` is a floor to raise as the catalog grows
 more committed artifact, so the count `packages/engine/regen.ts --check` expects moves too:
 `EXPECTED_ARTIFACTS` in `verify.ts` and the same number in the CI workflow, together.
 
-Three baselines also move with any new or changed projection and are rewritten only by an explicit
+Three baselines move with a new or changed projection and are rewritten only by an explicit
 `--accept`: `lint-component-surface` (member count and plan digest per def), `lint-paint` (the
-paint census) and `lint-component-renames` (`schema/component-axes.json`, each def's axes and values). Read the diff each prints before accepting it.
+paint census) and `lint-component-renames` (`schema/component-axes.json`, each def's axes and values,
+so it moves only when an axis, a value or a member count does). Read the diff each prints before accepting it.
 
 **Then run `npm run verify`** (`verify.ts`) — it runs every gate in a declared, checked order and
 prints a per-gate PASS/FAIL table. Run the whole list, never a subset chosen because the diff

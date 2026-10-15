@@ -89,7 +89,7 @@ the wrong control (WCAG 2.5.8). Beside the label, 22px is always enough at mediu
 
 **3. Let modes resolve — don't hardcode a mode's value.**
 A color role resolves differently per mode (`light` / `dark` / `hc-light` / `hc-dark`; a brand
-may ship fewer). Bind the **role**; the mode drives the value. Never copy a resolved hex into
+may ship fewer, or more, such as `wireframe` or its own custom modes). Bind the **role**; the mode drives the value. Never copy a resolved hex into
 your component — that pins one mode and breaks the others. For code, build from
 `<brand>.base.tokens.json` plus one `<brand>.<mode>.overlay.tokens.json` per extra mode: a
 stock DTCG reader (Style Dictionary 4 and later) resolves that pair with no custom code. The
@@ -115,8 +115,8 @@ that hold across brands:
   goes on a solid vivid fill such as `foreground.danger`.
 - **Disabled inks clear 3:1, not 4.5:1.** WCAG 1.4.3 exempts disabled controls, but Prism3 does not
   use that exemption: `disabled.text` (on `background.secondary`) and `disabled.on-fill` (on
-  `disabled.fill`) each carry a 3:1 contract in every mode. Score a disabled label as `ui` (3:1),
-  not `text`; it passes. `disabled.fill` itself carries no contract.
+  `disabled.fill`) each carry a 3:1 contract (4.5:1 in the high-contrast modes). Score a disabled
+  label as `ui` (3:1), not `text`; it passes. `disabled.fill` itself carries no contract.
 - **Tertiary and subtle inks are for large text.** A role with a `usage_limit` (`text.tertiary`,
   `text.*-subtle`, and their icon and inverse twins) clears 3:1, not 4.5:1: use it for large text,
   icons and non-essential text only, and its `body_text_alternative` for body-size text.
@@ -187,8 +187,11 @@ Get those two right and you match the engine's own compliance contract.
 
 ## If you have the MCP surface
 
-Call `export_theme` to write the brand's tree, `.ai.json` and Figma files to a directory (the host must grant file access), then
-apply everything above. `theme_brand` returns only the contract results and notes unless you
+Call `export_theme` to write the brand's tree (`tokens.json`), its metadata sidecar
+(`ai-metadata.json`) and its Figma files (`figma/`) to a directory (the host must grant file
+access), then apply everything above. It does not write the base + overlay set rule 3 builds
+from, so for a multi-mode code build compile the brand with `packages/engine/cli.ts --out <dir>`
+or download it from the studio's export, which both write it. `theme_brand` returns only the contract results and notes unless you
 ask for the tree with `include`, and the tree is too large to read through a tool result.
 When you finish, `score_consumption` runs the self-check above for you: it flags invented
 names and raw primitives, and scores each `{fg, bg, kind}` pair in every mode. The skill and
