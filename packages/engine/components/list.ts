@@ -166,6 +166,7 @@ export const list: ComponentDef = {
   notes: {
     contested: [
       'The ordered numbers in Figma: the three nested items show "1." each until a designer types "2." and "3.". A nested instance with its own text needs a per-instance TEXT override that neither executor writes; held as a follow-up rather than built in this PR (#2319).',
+      'DRAFT (#2646), for the owner: the proposed slot constraint (only List item, at least one) has no slot to sit on. The items are eight fixed nested `list-item` instances behind toggles, not a native slot, so making the column a slot that prefers `list-item` with a minimum of 1 would change how a designer adds items. That is a composition change, held for the owner rather than made here.',
     ],
     unverified: [
       'What Dev Mode shows for a native Figma text list (list spacing, the marker, bound paragraph variables) — not checked; the build lane has no Dev Mode (#2319, Q273.10).',

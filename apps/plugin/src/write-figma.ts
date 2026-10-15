@@ -80,7 +80,17 @@ export interface AliasWithOpacity { color: VariableAlias; opacity: number | Vari
  *  real Figma `VariableValue` union (alias | RGB(A) | number | string | boolean), so `figma.variables`
  *  structurally satisfies this port; `{ r; g; b; a? }` covers both RGB and RGBA. The write path only
  *  ever sets `Rgba | VariableAlias` (a subset), which is assignable here. */
-export type ReadVarValue = VariableAlias | AliasWithOpacity | { r: number; g: number; b: number; a?: number } | number | string | boolean;
+/** An EASING variable's value as the READ executor sees it (#2412): Figma's `MotionEasing`, whose `type` is a
+ *  wider union (built-in curves and spring presets) than the two the engine writes (`FigmaEasing`). */
+export interface ReadEasing {
+  type: string;
+  easingFunctionCubicBezier?: { x1: number; y1: number; x2: number; y2: number };
+  easingFunctionSpring?: { bounce: number };
+}
+/** A literal color laid at an ALIASED opacity — the other half of Figma's `VariableComposedColor`, declared since
+ *  plugin-typings 1.141 (#2412's bump). Prism3 never writes one; the reader's `isAliasWithOpacity` passes it by. */
+export interface ColorWithAliasedOpacity { color: { r: number; g: number; b: number; a?: number }; opacity: VariableAlias }
+export type ReadVarValue = VariableAlias | AliasWithOpacity | ColorWithAliasedOpacity | { r: number; g: number; b: number; a?: number } | number | string | boolean | ReadEasing;
 export interface Variable {
   id: string;
   name: string;
