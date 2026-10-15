@@ -32,7 +32,8 @@ scope removable for typing, so that call goes to the owner on #2616.
 
 **Not changed, and one deliberate change.** A variable with an explicit non-font scope on a font path (say
 `font/weight/700` scoped WIDTH_HEIGHT) now types by its name, `fontWeight`, where it was a `dimension`. That
-is unlikely in a real file, and the name is the better signal there, so no code guards it. A STRING
+is unlikely in a real file, and the name is the better signal there, so no code guards it. The one non-font scope
+checked before the name is OPACITY: a FLOAT `font/weight/*` scoped OPACITY stays `number`, as before. A STRING
 `font/weight/*` with no scope still types as `string`. Prism3 emits none, and the
 existing `FONT_STYLE` route covers Figma's own string-weight convention. The cut rows (`font/style/*`) stay
 `string`; they have no DTCG pair to agree with.
