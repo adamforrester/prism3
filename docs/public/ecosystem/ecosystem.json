@@ -281,6 +281,9 @@
           "icon-button",
           "icon-button-destructive",
           "icon-button-neutral",
+          "flush-icon-button",
+          "flush-icon-button-destructive",
+          "flush-icon-button-neutral",
           "field-label",
           "field-message",
           "text-field",
@@ -307,7 +310,8 @@
           "list-item",
           "list",
           "segmented-control-segment",
-          "segmented-control"
+          "segmented-control",
+          "link"
         ]
       }
     },
@@ -1265,9 +1269,10 @@
       "lanes": {
         "agent": {
           "status": "shipped",
-          "via": "Skills shipped in this repo",
+          "via": "Skills shipped in this repo, linked from .claude/skills so a session here loads them",
           "sources": [
-            "skills/"
+            "skills/",
+            ".claude/skills/"
           ]
         }
       }
