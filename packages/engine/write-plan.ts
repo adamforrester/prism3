@@ -23,7 +23,7 @@
  * the plugin main thread (which has no filesystem); the disk-read lives in the CLI shell that
  * calls this.
  */
-import type { FigmaCollectionFile, FigmaColor, FigmaVar } from './emit-figma-color';
+import type { FigmaCollectionFile, FigmaColor, FigmaVar, FigmaEasing } from './emit-figma-color';
 import { CORE_COLLECTION } from './emit-figma-color';
 import type { Theme } from './theme';
 import { buildFigmaDims, buildFigmaLayout, buildFigmaMotion } from './emit-figma-dims';
@@ -227,7 +227,8 @@ export const buildFloatWritePlan = (theme: Theme): FloatCollectionPlan[] => {
     named([dims.focus]),
     named([dims.opacity]),
     named(layout),
-    named(buildFigmaMotion(theme)), // #2394 — FLOAT ms, no scope; 1 mode, or 1 per per-mode tempo
+    // `motion` is not a FLOAT axis since #2412: TIMING and EASING, so it is a `VarCollectionPlan`
+    // (`buildMotionVarPlan`), written by the mixed-type executor.
   ];
 };
 
@@ -344,11 +345,12 @@ export const buildGridStylePlan = (theme: Theme): GridStylePlan =>
  *  per-mode alias target (weight-role → `font/weight/N`). */
 export type VarRow = {
   name: string;
-  resolvedType: 'FLOAT' | 'STRING';
+  /** TIMING and EASING since #2412 (the `motion` collection). Neither takes a `scopes` write. */
+  resolvedType: 'FLOAT' | 'STRING' | 'TIMING' | 'EASING';
   scopes: string[];
   description: string;
   hidden: boolean;
-  valuesByMode: (number | string)[];
+  valuesByMode: (number | string | FigmaEasing)[];
   aliasByMode: (string | null)[];
 };
 /** One variable collection's plan (a `core-font` per-mode or `type-sets` mobile/desktop collection). */
@@ -361,12 +363,14 @@ const varPlanFor = (name: string, files: FigmaCollectionFile[]): VarCollectionPl
   const base = files[0]?.variables ?? [];
   const rows: VarRow[] = base.map((v, i) => ({
     name: v.name,
-    resolvedType: v.resolvedType === 'STRING' ? 'STRING' : 'FLOAT',
+    resolvedType: v.resolvedType === 'STRING' || v.resolvedType === 'TIMING' || v.resolvedType === 'EASING' ? v.resolvedType : 'FLOAT',
     scopes: v.scopes,
     description: v.description,
     hidden: !!v.hiddenFromPublishing,
     valuesByMode: files.map((f) => {
       const val = f.variables[i].value;
+      // An EASING value is Figma's `MotionEasing` object, passed through whole (#2412).
+      if (v.resolvedType === 'EASING') return val as FigmaEasing;
       return typeof val === 'number' ? roundFloat(val) : String(val);
     }),
     aliasByMode: files.map((f) => (f.variables[i] as FigmaVar).alias?.name ?? null),
@@ -397,6 +401,17 @@ export const buildFontVarPlan = (theme: Theme): VarCollectionPlan[] => {
     varPlanFor(fluid[0].$collection, fluid),
   ];
 };
+
+/**
+ * The motion-variable plan (#2412) — the one `motion` collection: TIMING durations and EASING curves, roles and
+ * springs, 1 mode or 1 per mode a tempo or easing-role lever moves. PURE, like `buildFontVarPlan`.
+ */
+export const buildMotionVarPlan = (theme: Theme): VarCollectionPlan[] => {
+  const files = buildFigmaMotion(theme);
+  return [varPlanFor(files[0].$collection, files)];
+};
+/** The file-reading twin of `buildMotionVarPlan`, for the paste path (see `fontVarPlanFrom`). */
+export const motionVarPlanFrom = (files: FigmaCollectionFile[]): VarCollectionPlan[] => [varPlanFor(files[0].$collection, files)];
 
 /** One Text Style to materialise. Bound props name their target var + collection (the executor binds
  *  via `setBoundVariable`); the rest are baked. `fontStyle` + `fontFamilyPrimary` drive `loadFontAsync`

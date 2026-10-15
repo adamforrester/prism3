@@ -35,7 +35,7 @@
  */
 import { buildFigmaColor } from '@prism3/engine/emit-figma-color';
 import {
-  buildWritePlan, buildFloatWritePlan, buildFontVarPlan, buildStylesPlan, buildGridStylePlan, buildTextStylePlan,
+  buildWritePlan, buildFloatWritePlan, buildFontVarPlan, buildMotionVarPlan, buildStylesPlan, buildGridStylePlan, buildTextStylePlan,
 } from '@prism3/engine/write-plan';
 import { brandTheme, nbThemeFrom, type BrandInput } from '@prism3/engine/theme';
 import nbMeasured from '@prism3/engine/schema/nb-measured.json';
@@ -54,7 +54,7 @@ const ok = (cond: boolean, label: string): void => {
 };
 
 // ---- the file shim: variables + four style kinds + root plugin data, every write recorded -------------
-type VarType = 'COLOR' | 'FLOAT' | 'STRING' | 'BOOLEAN';
+type VarType = 'COLOR' | 'FLOAT' | 'STRING' | 'BOOLEAN' | 'TIMING' | 'EASING';
 class FileShim {
   writes: string[] = [];
   collections: any[] = [];
@@ -124,10 +124,14 @@ class FileShim {
         // Figma's own check: the value must match the variable's type (an alias is accepted here — the
         // host checks the alias target's type too, but the literal pass already throws first).
         const alias = value && typeof value === 'object' && value.type === 'VARIABLE_ALIAS';
-        const t = typeof value === 'number' ? 'FLOAT' : typeof value === 'string' ? 'STRING' : typeof value === 'boolean' ? 'BOOLEAN' : 'COLOR';
+        // A number fits FLOAT or TIMING, and an object with an easing `type` is an EASING value (#2412).
+        const t = typeof value === 'number' ? (this.resolvedType === 'TIMING' ? 'TIMING' : 'FLOAT') : typeof value === 'string' ? 'STRING' : typeof value === 'boolean' ? 'BOOLEAN'
+          : value && typeof value === 'object' && typeof value.type === 'string' && !alias ? 'EASING' : 'COLOR';
         if (!alias && t !== this.resolvedType) throw new Error(`in setValueForMode: Mismatched variable resolved type (${this.resolvedType}) and value type (${t})`);
         this.valuesByMode[modeId] = value;
       },
+      // The host's delete (#2412's motion retype is the one executor path that calls it).
+      remove(): void { shim.writes.push(`remove ${this.name}`); shim.vars = shim.vars.filter((x) => x.id !== this.id); },
     };
     const t = this.track(`var ${name}`, v);
     this.vars.push(t);
@@ -159,6 +163,7 @@ const plansFor = (theme: ReturnType<typeof brandTheme>) => {
     color: buildWritePlan(buildFigmaColor(theme)),
     float: buildFloatWritePlan(theme),
     font: buildFontVarPlan(theme),
+    motion: buildMotionVarPlan(theme),
     styles: buildStylesPlan(theme),
     grid: buildGridStylePlan(theme),
     text: buildTextStylePlan(theme),
@@ -174,10 +179,14 @@ const write = async (p: Plans, f: FileShim) => {
   const gs = await applyGridStylePlan(p.grid, api);
   const tv = await applyVarCollectionPlan(p.font, api, mig);
   const ts = await applyTextStylePlan(p.text, api);
+  const mv = await applyVarCollectionPlan(p.motion, api, mig);
   f.root.setSharedPluginData('prism3', 'brandInput', '{"stand-in":"persistInput"}');
   return {
+    // Host refusals the mixed-type executor recorded instead of throwing (#680): a healthy apply has none.
+    refused: [...tv.refused, ...mv.refused],
+    replaced: mv.replaced,
     created: r.paletteCreated + r.colorCreated + fl.collections.reduce((n, c) => n + c.created, 0) +
-      tv.collections.reduce((n, c) => n + c.created, 0) + s.effects.created + s.paints.created + gs.created + ts.created,
+      tv.collections.reduce((n, c) => n + c.created, 0) + mv.collections.reduce((n, c) => n + c.created, 0) + s.effects.created + s.paints.created + gs.created + ts.created,
   };
 };
 // A throw from inside the guarded write is CAUGHT and returned as a failed result, so a guard that lets the
@@ -222,6 +231,49 @@ const colorVar = plans.color.color.create[0].name;
     'the designer-facing summary says nothing was written and names the variable');
 }
 
+// ── MOTION RETYPE (#2412, owner decision Q293 A): a file themed at 0.235.0 holds `motion` as FLOAT ms ───────────
+// Figma cannot retype a variable. In Prism3's own STAMPED `motion` collection, a planned name held as FLOAT where the
+// plan writes TIMING is replaced (deleted, re-created as TIMING) rather than refused, and the result names each one.
+// Every other mismatch still refuses: the same FLOATs in an UNSTAMPED collection, and a FLOAT where the plan writes EASING.
+{
+  const motionRows = plans.motion.flatMap((c) => c.rows);
+  const timing = motionRows.filter((r) => r.resolvedType === 'TIMING');
+  const easing = motionRows.filter((r) => r.resolvedType === 'EASING');
+  const seed = (stamp: boolean, extra: string[] = []): { f: FileShim; ids: Map<string, string> } => {
+    const f = new FileShim();
+    const col = f.addCollection('motion', stamp ? 'stamp' : undefined);
+    const ids = new Map<string, string>();
+    for (const r of timing) ids.set(r.name, f.addVar(r.name, col, 'FLOAT').id);
+    for (const n of extra) f.addVar(n, col, 'FLOAT');
+    f.writes = [];
+    return { f, ids };
+  };
+
+  const { f, ids } = seed(true);
+  const g = await guarded(plans, f);
+  const now = new Map(f.vars.map((v: any) => [v.name, v]));
+  const retyped = timing.filter((r) => now.get(r.name)?.resolvedType === 'TIMING' && now.get(r.name)?.id !== ids.get(r.name));
+  ok(g.ok && g.result.replaced.length === timing.length && timing.length > 0,
+    `motion retype: on a stamped motion collection, each of the ${timing.length} FLOAT motion variables is replaced, not refused (${g.ok ? g.result.replaced.length : `refused: ${conflictSummary(g.conflicts, 2)}`})`);
+  ok(retyped.length === timing.length && !f.vars.some((v: any) => v.resolvedType === 'FLOAT' && timing.some((r) => r.name === v.name)),
+    `motion retype: every one is now TIMING under the same name and a new id, and no FLOAT of those names is left (${retyped.length})`);
+  const again = await guarded(plans, f);
+  ok(again.ok && again.result.replaced.length === 0, `motion retype: the next Apply replaces nothing (${again.ok ? again.result.replaced.length : 'refused'})`);
+
+  const { f: bare } = seed(false);
+  bare.root.setSharedPluginData('prism3', 'brandInput', '{"stand-in":"persistInput"}'); // the legacy presumption, so only the stamp differs
+  bare.writes = [];
+  const gb = await guarded(plans, bare);
+  const typed = gb.ok ? [] : gb.conflicts.filter((c) => c.kind === 'variable' && /is FLOAT in "motion"; Prism3 writes TIMING/.test(c.detail));
+  ok(!gb.ok && typed.length === timing.length && bare.writes.length === 0,
+    `motion retype: in an UNSTAMPED motion collection the same FLOATs are named conflicts and nothing is written (${typed.length}, ${bare.writes.length} writes)`);
+
+  const { f: ef } = seed(true, [easing[0].name]);
+  const ge = await guarded(plans, ef);
+  ok(!ge.ok && ge.conflicts.some((c) => c.kind === 'variable' && c.name === easing[0].name && /Prism3 writes EASING/.test(c.detail)) && ef.writes.length === 0,
+    `motion retype: a FLOAT where the plan writes EASING (${easing[0].name}) is still a conflict, and nothing is written`);
+}
+
 // ── FOREIGN-ADOPT: a same-named collection with no provenance, and a hand-made same-named style ────────
 {
   const f = new FileShim();
@@ -253,6 +305,8 @@ for (const [id, theme] of themes) {
   const g1 = await guarded(p, f);
   const g2 = await guarded(p, f);
   const second = g2.ok ? g2.result.created : -1;
+  ok(g1.ok && g1.result.refused.length === 0 && g2.ok && g2.result.refused.length === 0,
+    `idempotent (${id}): no write was refused by the host${g1.ok && g1.result.refused.length ? ` — ${g1.result.refused[0].name}: ${g1.result.refused[0].reason}` : ''}`);
   ok(g1.ok && g1.result.created > 0 && g2.ok && second === 0,
     `idempotent (${id}): fresh apply passes (+${g1.ok ? g1.result.created : '✗'}), re-apply has 0 conflicts and creates 0` +
       (g2.ok ? '' : ` — ${conflictSummary(g2.conflicts, 3)}`));

@@ -314,6 +314,29 @@ const prism3CutPaths = (brand: string): Set<string> => {
   return out;
 };
 
+/**
+ * #2412 — the SPRINGS: EASING `CUSTOM_SPRING` variables prism3 emits (`motion/spring/*`), which have no
+ * counterpart in prism3's CONFORMING projection BY DESIGN. DTCG has no spring type, so `base.tokens.json`
+ * omits `spring` (#642) while the canonical `<brand>.tokens.json` keeps it under `$extensions`. TokenPress exports
+ * every variable it scans, and exports a spring as `$type: spring` holding Figma's `bounce`. Same shape as the
+ * #1485 cut variables above, so the same treatment: ARM 2a exempts EXACTLY the springs prism3's own Figma
+ * emission holds (read from `motion*.json`, never from TokenPress), as a BIJECTION — a tokenpress-only
+ * `motion.spring.*` path prism3 did not emit fails, and a spring prism3 emitted that did not come back fails.
+ * Their values are held to the canonical DTCG by `apps/plugin/test-readback-parity.ts` (bounce = 1 − damping).
+ */
+const prism3SpringPaths = (brand: string): Set<string> => {
+  const dir = join(FIGMA_OUT, brand);
+  const out = new Set<string>();
+  if (!existsSync(dir)) return out;
+  for (const f of readdirSync(dir).filter((n) => /^motion(\.[^.]+)?\.json$/.test(n))) {
+    const doc = JSON.parse(readFileSync(join(dir, f), 'utf8')) as { variables?: Array<{ name?: string; resolvedType?: string; value?: { type?: string } }> };
+    for (const v of doc.variables ?? []) {
+      if (v.name && v.resolvedType === 'EASING' && v.value?.type === 'CUSTOM_SPRING') out.add(v.name.split('/').slice(1).join('.'));
+    }
+  }
+  return out;
+};
+
 const discoverBrands = (): string[] => {
   if (!existsSync(FIGMA_OUT)) return [];
   return readdirSync(FIGMA_OUT, { withFileTypes: true })
@@ -417,7 +440,9 @@ const main = async (): Promise<void> => {
     // representation gap (the cut lives in a Figma variable + `$extensions`, not a DTCG token), checked
     // as a BIJECTION so it cannot mask an invented or dropped token.
     const cutPaths = prism3CutPaths(brand);
+    const springPaths = prism3SpringPaths(brand);
     for (const p of r.paths.unpairedTokenPress) {
+      if (springPaths.has(p)) continue; // #2412 by-design: the conforming projection omits `spring` (#642); see `prism3SpringPaths`.
       if (cutPaths.has(p)) continue; // #1485 by-design: prism3 emits this cut as a Figma STRING variable with no DTCG token; TokenPress faithfully exports the variable (#1489 aligns the Text-Style reader).
       failures.push(
         `[${brand}] UNPAIRED (tokenpress-only): ${p} — TokenPress emits a path prism3 does not. ` +
@@ -436,6 +461,20 @@ const main = async (): Promise<void> => {
             'Either TokenPress dropped the variable, or prism3 now emits a matching DTCG token so the #1485 representation gap closed — revisit the ARM 2a exemption (prism3CutPaths).'
         );
       }
+    }
+    // The springs' BIJECTION, the other direction, and its floor: every brand's motion carries springs, so an
+    // empty set means the spring emission broke and the exemption is masking nothing.
+    const seenSpring = new Set(r.paths.unpairedTokenPress.filter((p) => springPaths.has(p)));
+    for (const p of springPaths) {
+      if (!seenSpring.has(p)) {
+        failures.push(
+          `[${brand}] SPRING BIJECTION BROKEN: prism3 emits the spring '${p}' as an EASING variable but it did not round-trip through TokenPress as a tokenpress-only token. ` +
+            'Either TokenPress dropped or retyped it, or the conforming projection now carries springs — revisit the #2412 exemption (prism3SpringPaths).'
+        );
+      }
+    }
+    if (springPaths.size === 0) {
+      failures.push(`[${brand}] SPRING EXEMPTION EMPTY: prism3's Figma motion emission holds no EASING spring — the #2412 spring emission may have broken (motion.json).`);
     }
     // Floor: a brand with text styles emits cut variables, so the exempt set must be NON-EMPTY — an
     // empty set would let the exemption pass over nothing while a real cut regression hid as "0 cuts".
@@ -469,7 +508,7 @@ const main = async (): Promise<void> => {
       }
     }
     lines.push(
-      `unpaired: ${r.paths.unpairedPrism3.length} prism3-only (${known.length} known) / ${r.paths.unpairedTokenPress.length} tokenpress-only (${cutPaths.size} #1485 cut var(s) exempt)`
+      `unpaired: ${r.paths.unpairedPrism3.length} prism3-only (${known.length} known) / ${r.paths.unpairedTokenPress.length} tokenpress-only (${cutPaths.size} #1485 cut var(s), ${springPaths.size} #2412 spring(s) exempt)`
     );
 
     // ---- ARM 2c: the brand namespace survives the round trip, a RULE (#1097) --------------------

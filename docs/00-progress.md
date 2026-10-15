@@ -10,6 +10,3729 @@
 
 ---
 
+## (2026-10-15) — Docs: a code-read inventory of every surface
+
+**STATUS: branch `docs/surface-inventory`.** Docs only: `docs/inventory/surfaces.md` and its machine-readable twin `docs/inventory/surfaces.json`. No code, no artifact moves, no ENGINE bump.
+
+**Why.** Machine-readable command docs, designer-facing docs and an architecture diagram all need one factual base first. The existing docs drift, so this one was read from the code at `b020716`, not from them.
+
+**What it covers.** Engine entry points and their flags, the 42 `lint-*.ts` gates, the MCP server (6 tools, with each description and input schema, and no resources or prompts), the Figma plugin (15 features, 10 agent commands plus the dev-only `run-code`, 39 message types, dev versus release build), the web studio (7 tabs and 9 places, 50 levers in 7 manifest groups, 2 exports), TokenPress, the 182 committed artifacts and who reads each, the 33 component defs, the 4 shipped skills, 81 data-flow edges and 86 rows where a doc disagrees with the code. Four more rows were checked and found no conflict; they sit apart in §10.6 (`docChecksNoConflict` in the JSON) and are not counted. Every fact cites `file:line`, and "(inferred)" marks the rest.
+
+**Findings worth knowing before you build on it:**
+- No code emits per-brand payload skills (#668). `CLAUDE.md`'s `skills/` row says the engine emits them; `docs/07` and `lint-payload-manifest.ts` say they are not built.
+- The engine MCP server has no component or Figma tool. Components reach Figma through the plugin, or through `tools/figma-mcp/plan.ts` scripts for `use_figma`, which bundle the plugin's own executors.
+- Update with dry run and confirm, capture-baseline and adopt-members are agent-only; the panel has no trigger for them.
+- `packages/engine/README.md`, `apps/studio/README.md`, `apps/plugin/README.md` and `docs/23` are the most out of date. Section 10 lists each disagreement, and none were fixed here (facts-only scope).
+
+**Traps.** Line numbers are a snapshot of `b020716`. `surfaces.json` is built from the tables in `surfaces.md` plus the per-surface records, so a later edit to one must be made in the other too; nothing gates that.
+
+**Review round.** An independent review checked all 656 explicit `path:line` cites mechanically and found 9 past the end of their file (`run-guard.ts`, `provenance.ts`, `agent-bridge-relay.ts`, `studio/build.mjs`); the facts were right, the line numbers were not. They now point at the lines that hold the fact, and the JSON twin carried one more (`agent-bridge-relay.ts:97-124`) that the same check caught. Also fixed: the schema count (16, not 17); the agent-link row, which restated `agent-link.ts`'s stale 7-command header comment as fact when the CLI sends any of the 10 in `AGENT_COMMANDS` (now §10.3 #18); four §10 rows that said "no contradiction" and were counted as contradictions, now apart in §10.6; and three drifted cites. **Trap for re-checking:** a cite written as bare `README.md:N` can mean the README of the surface the row is about, not the root one, so a resolver must take the row's surface into account before it calls a cite out of range.
+
+---
+
+## (2026-10-15) — Docs: generated analysis reports — token usage, dependencies, comparison, icons (#2651)
+
+Owner decision Q308.2 A, part of the docs effort (#2637). `packages/engine/emit-analysis-reports.ts` writes four reports to `docs/public/reports/`, each a Markdown page and a JSON twin, plus an index in both forms: **token usage** (every token: which components, parts, variants and states bind it; the inverse per component; the tokens nothing binds), **component dependencies** (what nests what, directly and transitively, and which components a change reaches), **component comparison** (state sets, axis and prop vocabularies, size rungs and defaults side by side, with every difference between peers listed as a finding) and **icon usage** (which glyphs each component draws). It is the last `regen.ts` step, so `regen.ts --check` names a stale report by path; `EXPECTED_ARTIFACTS` moves 184 → 194 in `verify.ts` and `ci.yml`.
+
+**Two sources, kept apart on purpose.** A def's `tokens` map is what the definition declares; `figmaAnatomySet` is where each binding lands, part by part and member by member. The token report carries both because they disagree by design: a host's `color.border.focus` is declared and never drawn (the ring is a nested instance), and the inverse-surface twins are drawn and never declared (the projection derives them). Merging the two into one list would hide exactly those gaps. Where a binding lands is summarized per axis with a member count, not listed per member: Button projects 576 members, and per-member rows would make the JSON tens of megabytes.
+
+**Why its own list in `regen.ts` (`REPORT_ARTIFACTS`) rather than `ENGINE_ARTIFACTS`.** `lint-emission-version.ts` reads `ENGINE_ARTIFACTS` and `SCHEMA_ARTIFACTS` as "a move here owes an engine bump", and a report carries no engine version, so a fold leaves it untouched; putting it in either list would demand a bump for documentation. The prose gates import the new list, so `lint-us-english.ts` and `lint-voice.ts` now scan the reports (a new promised surface in each, both directions), and their header claim "no `docs/` file is in scope" now reads "no design-record `docs/` file", with the check command narrowed to match.
+
+**Traps for whoever re-verifies this.** The emitter sorts by code unit, never `localeCompare`, so the bytes do not depend on the machine's locale. It writes its ten files and never clears the directory: `regen --check` restores only the files it names, so a wholesale clear would delete anything else kept in `docs/public/reports/`. Families in the comparison are derived from names (`X` and `X.<variant>`; role suffixes `.Control`, `.Row`, `.Group`, `.Item`, `.Segment`, `.Indicator`) and from `inherits`, never listed by hand; a new component lands in its groups with no edit here.
+
+**Mutations, each failing by name.** Badge's `status.radius` rebound without regenerating → `changed docs/public/reports/token-usage.md` and `.json`. Accordion's `divider` nest removed → `changed docs/public/reports/component-dependencies.md` and `.json`. `colour` in a page → lint-us-english names `docs/public/reports/icon-usage.md`; `simply` → lint-voice names it. The reports walk dropped from either prose gate → `SCOPE shrank — the analysis reports (REPORT_ARTIFACTS, docs/public/reports)`.
+
+**Not done here.** The `llms.txt` link waits on #2644, which creates that file; the integrator adds the line. The comparison's findings go to the owner as a list, unfixed.
+
+---
+
+## (2026-10-15) — Motion as Figma TIMING and EASING variables (#2412, Q291)
+
+**Status:** engine emission, write plan, the plugin's Apply Theme and paste paths, TokenPress, the exporter gate and
+read-back parity. ENGINE minor (change note). CONTRACT unchanged: the DTCG does not move, only its Figma form.
+Owner decisions Q291, all A, after spike #2403 found Figma's own motion variable types.
+
+### What changed
+- **Durations are TIMING, in seconds.** Same names (`motion/duration-ms/200` holds `0.2`): the name is the DTCG path,
+  the value is the unit TIMING stores. The owner confirmed on a live file that the API stores seconds and the panel
+  shows milliseconds, so the suite pins seconds by literal and a millisecond TIMING (1000× too slow) fails by name.
+- **Curves, roles and springs are EASING.** Curves are `CUSTOM_CUBIC_BEZIER`, hidden; roles alias them, per mode
+  where an easing-role lever moves one; springs are `CUSTOM_SPRING` with `bounce = 1 − damping ratio` only.
+- **Transitions have no Figma form,** stated per family in `MOTION_FIGMA_COVERAGE`, which the suite holds to the
+  DTCG's motion families so a new family without a line fails.
+- **`motion` left the FLOAT plan.** It is `buildMotionVarPlan`, written by the mixed-type executor (`applyVarCollectionPlan`)
+  and, on the paste paths, by its own `runMotion` step and `motion-vars` pass.
+- **TokenPress** reads TIMING as a `duration` in ms (the Q146 output, unchanged for a consumer), a bezier as
+  `cubicBezier`, a spring as `spring` `{ bounce }`, and types an EASING alias by what it resolves to.
+- **`@figma/plugin-typings` ^1.141.0** (the first to declare TIMING/EASING). It also declares a color literal at an
+  aliased opacity, so the read port's `ReadVarValue` gained that shape.
+
+### The traps, for whoever touches this next
+- **Figma refuses a `scopes` write on TIMING and EASING, and a refusal in pass A aborts the whole apply.** The
+  executors skip it by type (`UNSCOPED_TYPES`), the emission states `ALL_SCOPES` (what the file holds, not `[]`), and
+  `FileShim` throws on the write as Figma does. #2602's planned "no ALL_SCOPES anywhere" gate must exempt these two
+  types by type.
+- **`test-write-preflight.ts` has its own file shim, and its type check refused every TIMING write.** Nobody saw:
+  the mixed-type executor records a host refusal instead of throwing (#680), and that suite never read the record.
+  It now accepts TIMING and EASING values and asserts no refusals on every brand. Any suite driving
+  `applyVarCollectionPlan` should read `refused`.
+- **The engine's conforming projection omits `spring` (#642), so TokenPress's spring tokens are unpaired.** The
+  exporter gate exempts exactly the springs the emission holds, as a bijection (the #1485 cut-variable pattern), and
+  read-back parity holds their bounce and type to the canonical DTCG. The gate only checks paths; a spring exported
+  under the wrong type is caught by read-back parity (RETYPED), not the gate.
+- **`compare.ts` explained every prism3-only `motion.` path away** ("no motion collection is emitted at all"). Narrowed
+  to `motion.transition.`, so a motion path that stops round-tripping now surfaces.
+
+### A file themed at 0.235.0 (owner decision Q293, all A)
+- **Apply replaces the old FLOAT motion.** Figma cannot retype a variable, so in Prism3's own stamped `motion`
+  collection each planned name held as FLOAT where the plan writes TIMING is deleted and re-created as TIMING, and the
+  result line says "Replaced N motion variables with the new timing type." (owner decision Q302). One predicate, `replacesOnRetype` in
+  `write-figma.ts`, is read by both the pre-flight (which stops reporting those) and the executor (which replaces
+  them). The same FLOATs in an unstamped collection, and a FLOAT where the plan writes EASING, still refuse.
+  **The cost, so nobody rediscovers it:** the new variable has a new id. Nothing in a file can be bound to the old one
+  (`scopes: []`, and Figma Motion binds no FLOAT); a library subscriber that bound a published `motion/duration/*`
+  by hand loses that link.
+- **The CLI paste pass refuses instead (review finding 1).** `motion-vars` had no type check: over a 0.235.0 FLOAT it
+  wrote `0.2` into the FLOAT (read as 0.2ms), then threw on the first TIMING alias with 37 variables written. It now
+  checks every row's type before any write, and on any mismatch writes nothing and names each one
+  (`type:<name> is FLOAT, plan writes TIMING`). It does not apply Q293 1's replace: the pass neither reads nor writes
+  the stamp, so it cannot tell Prism3's collection from a look-alike. test.ts executes the pass against `FileShim`
+  seeded with that FLOAT and asserts the miss, the untouched 200 and the unrenamed mode, and runs a clean file too.
+- **#2602's no-ALL_SCOPES sweep exempts TIMING and EASING by resolved type (review finding 2),** never by name, and
+  holds those rows to exactly `['ALL_SCOPES']` on every typed path (emission, the plugin's motion plan, the committed
+  trees), each required to carry both types. A FLOAT in `motion` at ALL_SCOPES still fails.
+- **TokenPress's own `@figma/plugin-typings` floor is ^1.141.0 (review finding 3).** It had resolved only because
+  the workspace hoists one copy.
+- **Springs are published** (no role tier aliases one), and **TokenPress exports a spring as `$type: spring`
+  `{ bounce }`**, both as built and confirmed.
+
+### Mutations, each failing by name
+Executor writes scopes on TIMING/EASING; emitter writes ms instead of seconds; bounce = damping; TokenPress types
+TIMING as `number`; the transition coverage line removed; the shim stops refusing scopes; TokenPress retypes a spring;
+the emission drops springs; the CLI paste pass writes scopes; the pre-flight drops the motion plan; and, for the retype,
+the stamp condition dropped, the pre-flight made strict again, and the executor never replacing; the paste pass's type
+check removed; and, in the #2602 sweep, a FLOAT in `motion` at ALL_SCOPES and a TIMING at `[]`. The PR body
+lists the failing line for each.
+
+---
+
+## (2026-10-15) — Native slot constraints: min and max children, preferred components, written on Build and Update (#2646)
+
+Owner decision Q306.1 A. Figma's native slots carry constraints on their SLOT property since plugin typings 1.141
+(`slotSettings`, `preferredValues`), and Prism3's slots (#2417) set none. Now a `contentSlot` part can declare them, both
+executors write them, and the read-back and the round-trip read them back.
+
+**The shape.** `slotSettings` takes four of Figma's five fields: `minChildren`, `maxChildren`, `allowPreferredValuesOnly`,
+`displayEmptyByDefault`. `stretchChildOnInsert` is left out because no def needs it, and the validator refuses it by
+name so adding it later is a decision. `preferred` is a list of def ids, not keys: the key only exists once the
+preferred set is built in a file. The validator works without the registry, so it checks shape: the fields are on a
+native slot, the counts are whole numbers, min is not above max, max is not 0, preferred-only has something preferred,
+and the preferred list has no duplicate. The registry check is in the projection (`slotPreferredOf`, which throws like
+`nestedSwapTarget` does). A preferred id has to be a def that builds one set or one component under its own id. That
+rules out a building block (`_`, which a published library leaves out), a def refused alone, and a def that emits
+standalone components (Icon, Spinner), whose members have no one key.
+
+**Writing it.** Both executors write after the property phase with `editComponentProperty(key, { slotSettings,
+preferredValues })`. `editComponentProperty` is the only route: Figma refuses to add a SLOT property without a default,
+so the property only exists once the combine has merged the slot nodes. Each preferred id resolves to the key of the
+set built under its name, found fresh at write time. A preferred def not in the file is a named miss (`property
+dismiss.preferred -> badge (not in this file — build badge first …)`) and is not prebuilt. A dependency has to be built
+for the set to work, and a preferred set does not, so building it unasked would be a surprise. A preferred-only slot
+with none of its preferred sets in the file is written OPEN, with its own miss, because preferred-only with an empty
+list flags every child a designer adds. The plugin's Update also writes a slot whose def dropped its constraints back
+to Figma's defaults (the `hostHas` arm). The paste payload ships its pass only when a set declares constraints (the
+`MIN_LINES_SLOT` budget rule), so a re-paste does not clear old constraints. That gap is stated on
+`PAYLOAD_SLOT_SETTINGS`.
+
+**Reading it back.** The constraints live on the set's property, not on the slot node, so the two new read-back
+predicates (`slotSettings`, `slotPreferred`) walk up from the node to the set and read the property it references. Keys
+are named through a new optional port, `componentName`, built from the host's own catalog and never from the plan. A
+reader without the port reports a slot that prefers something as UNREADABLE instead of passing it.
+`test:roundtrip` gains one test-only row, `tag@slot-constraints`, and asserts both predicates compared something.
+Without it they would sit at zero: no committed def constrains a slot yet.
+
+**The shim models what the typings promise, not what a host was measured to do.** `editComponentProperty` takes
+`slotSettings` on a SLOT only and `preferredValues` on a SLOT or INSTANCE_SWAP, and a SLOT node reports
+`limitViolations` from its own children. None of this has been probed on a real host. A host that refuses the edit is
+named (`REFUSED`), and one that takes it and keeps something else is named too (`NOT KEPT`), but whether Figma keeps
+`minChildren: null` as "no limit" is unmeasured. That is the first thing to check on a real file.
+
+**The corpus has one native slot, and it stays open.** Only Accordion's panel (`content`) is a native slot. List's items
+are eight fixed nested instances behind toggles, not a slot, and Tabs draws no panel. So the proposed "List: only List
+item, at least 1" has nowhere to go without turning List's column into a slot, which changes how a designer adds items.
+That is a composition call, so it is held for the owner, with a DRAFT note in each def. `test-slot-constraints.ts`
+holds a literal row per slot and fails on a slot with no row. Dialog's body (#2609) and Password field (#2317) are being
+built in parallel and each needs a row when it lands.
+
+**EXECUTOR_REVISION 22.** Main is 20 and #2648 claims 21, so this takes 22. The typings bump brings the read-side widening
+#2635 also makes (`VarType`, `ReadVarValue` with TIMING and EASING values), in the same words, so whichever lands second
+gets an identical hunk.
+
+Mutations, each failing by name: Accordion's slot given `minChildren: 1` → `corpus/accordion.content`; min above max in
+the def → `corpus/accordion.content` plus registry validation, and the rule dropped → `#2646 validator: min above max`; an
+unknown preferred id in the def → `corpus/projects`, and the registry check dropped → `#2646 projection: an unknown
+preferred def`; the preferred list dropped from the write → `constraints/written`, `constraints/read back`, and the
+round-trip's `every def round-trips — tag@slot-constraints (15)`; the missing-preferred miss dropped → `constraints/missing
+preferred named`; the Update clear dropped → `constraints/cleared on update`; the paste pass not shipped → `#2646 paste:
+the payload writes …`.
+
+---
+
+## (2026-10-15) — CONTRACT_VERSION is held against the base's number, not only against its own baseline (#2334)
+
+**The gap.** `token-contract.ts --check` compares the live surface with the committed baseline, and
+`CONTRACT_VERSION` with the baseline's recorded `contractVersion` (#1768). Every side of both comparisons
+is in the tree under check. So after an `--accept`, writing the previous number back into `version.ts`
+and into the baseline's `contractVersion` left a tree that agreed with itself, and every gate passed.
+`--accept`'s refusal guards only the accept.
+
+**The fix.** New gate `lint-contract-version.ts`. It reads the committed baseline and `CONTRACT_VERSION`
+at the merge base with `git show`, the same pair in the tree, and requires a MAJOR increment over the
+base's number for a removed or retyped guaranteed path, at least a MINOR for an added one, and the base's
+exact number when nothing moved. On main's push run the merge base is HEAD itself, so there it compares
+with the first parent (#2551, #2556). The tree side is the files on disk, as `token-contract.ts --check`
+reads them. No engine behavior moved, so no change note.
+
+**Restated, not imported.** The path diff and the increment rule are written out in the gate rather than
+taken from `classify` and `satisfiesBump`, which are what `--accept` decides with (docs/34 shape 2). A
+self-check holds the gate's copy to 11 literal cases before the real run, including a numeric `9.9.0 →
+9.10.0`. A demotion leaves the guaranteed set, so it counts as a removal, which is how `classify` levels
+it too.
+
+**Proofs.**
+- *The issue's own mutation, done for real:* an engine edit that adds `core.palette.probe` to every
+  brand, `--accept` at 14.8.0, then 14.7.0 written back into `version.ts` and the baseline.
+  `token-contract.ts --check` prints "✓ token contract unchanged" and exits 0; this gate fails with
+  "CONTRACT_VERSION 14.7.0 needs at least a MINOR increment over the base's 14.7.0".
+- *Control:* the same change accepted at 14.8.0 passes.
+- *The rule mutated* (a MAJOR accepted at the same major number) fails the self-check by case name.
+- *History:* all 214 first-parent commits on main that touched the baseline were checked against their
+  parents with the same rule. None fails, so the rule matches how the repo has bumped and does not turn
+  main red on landing.
+
+**Two PRs, one number.** Two open PRs that each raise 14.7.0 to 14.8.0 for different additions make the
+identical edit to the number, so git merges them with no conflict, and each PR's run passed against a
+merge base at 14.7.0. Two arms, the #2555 shape: a branch that moved the surface is also held to the
+base branch's current number (in CI the base is fetched again at run time, and a failed fetch fails), and
+main's push run compares the squash with its first parent. Replayed once in a scratch clone: main at
+14.8.0 with one addition, a PR from the old base claiming 14.8.0 for another fails ("origin/main moved the
+number after this branch left it"); the same PR at 14.9.0 passes; and the clashing squash on main fails
+against its parent while `token-contract.ts --check` says unchanged.
+
+**The first-parent arm had no guard (review).** Forcing the gate's own `onBase` to false passed: on a
+push run the merge base is HEAD, so a squash that lowered 14.7.0 to 14.6.0 was compared with itself and
+printed `✓`, the #2556 shape. #2617 landed while this was open, so the gate now takes that step from
+`comparison-base.ts`, as the other four git-history gates do, and `lint-push-base.ts` replays main's push
+run against it with three cases: a squash that lowers the number must fail with "is BELOW the base's", a
+squash that drops a guaranteed path at the parent's number must fail with "needs a MAJOR increment", and
+the same drop with a MAJOR raise must pass (`EXPECTED_CASES` 8 → 11). Mutation: the gate's
+`comparisonBase(…)` call replaced by the merge base → `✗ lint-contract-version — a squash lowers
+CONTRACT_VERSION with no path moved: expected a failure …` and the same for the drop. An in-gate
+scratch-repo replay was written first, before #2617 landed, and then removed: two replays of one step would
+be two places to keep. The review's nit is fixed too: a raised number now reads `14.7.1 was raised over
+the base's 14.7.0`, where the number had landed after the clause.
+
+---
+
+## (2026-10-15) — Browser suites: the debugger is on from page open, so a freeze before the first bounded input is located (#2585)
+
+**STATUS: branch `claude/2585-debugger-at-open`.** Test only (`apps/studio/test-bounded.mjs`, `test-smoke.mjs`, `test-chrome.mjs`). No product code, no artifact moves, no ENGINE bump.
+
+**Why.** `makeBounded` turned the debugger on at a page's first bounded input. `Debugger.enable` needs the page's main thread, so a page that froze in an earlier step reported "no debugger session could be opened on the page, so where it stopped is unknown" (#2573 measured it). #2585 asked to measure the cost of turning it on at page open before adopting it.
+
+**The change:**
+- **`test-bounded.mjs`:**
+  - exports `watchStalls(page)`, which turns the debugger on now and returns whether it is on;
+  - `makeBounded` takes an optional `inputMs` (default `INPUT_MS`) so a self-check can use a short bound;
+  - `makeBounded` takes `requireWatched` (#2631 review). `watchStalls` marks a page watched only when its debugger turned on, and a reporter with `requireWatched` refuses bounded input on any other page, failing one check by name: "the page was never given watchStalls, or its debugger did not turn on". Both suites' reporters set it. Without it, test:chrome's `watchStalls` call had no check at all (removing it failed nothing on a clean run), and a new page in either suite that skipped the call would go unnoticed until a real stall read "unknown". It costs nothing at run time, and a failed attach is now reported instead of discarded.
+- **test-smoke:** `openBrand` calls `watchStalls` once the app is loaded. Every page that takes bounded input in smoke (S4c, S4d, S4e, S5a, S5b) comes from `openBrand`.
+- **test:chrome:** only S6.3's Type-edits case takes bounded input (`lh-swap`), and it calls `watchStalls` after `open()`. The suite's other pages don't, so they pay nothing.
+- **A self-check, new, in smoke** (after the corpus is read). It takes a page from `openBrand` and freezes it with a named loop, `frozenBeforeInput`. Then it sends one bounded key press with a 2 s bound, through its own reporter (`closeDead` and the dead-page set aren't touched). It expects exactly one report, naming `frozenBeforeInput`. This is the first check of what the stall report says. Until now that report was read only off mutations.
+
+**Cost, measured** on the same base (`77f3ecfc`), same container, back to back:
+- smoke without the change: 398 s and 383 s;
+- with it, self-check included: 420 s and 416 s.
+
+That's about +27 s, roughly 7% of smoke or about 0.5% of a full verify (4,808 s here). test:chrome turns it on for one page.
+
+**Mutation, from a commit:** `watchStalls` left out of `openBrand` → `✗ #2585 a page frozen before its first bounded input: the stall report names the function it was stuck in, frozenBeforeInput — reported ["probe: the input did not return within 2000ms; no debugger session could be opened on the page, so where it stopped is unknown"]`, the only failure of 12,007. That's #2573's limit, reproduced by the check itself.
+
+**A stall seen while measuring, filed as #2629.** One of the three runs with the change failed `S4d prism3: the Text color row inverse.text.brand in light: Escape closes the picker` with "the debugger could not pause it within 5s: it was not running JavaScript". It's a cloud stall, and the debugger was already on at that input with or without this change (that page had taken bounded inputs before it), so it's not this change's gap. The two re-runs passed. The report can't yet say why a renderer that isn't running JavaScript produces no frames. #2629 tracks that.
+
+---
+
+## (2026-10-15) — A "No KB brief" claim is checked against the knowledge base's catalogue (#2488)
+
+**The gap.** The #1700 arm in `test.ts` reads each def file's header: a def cites its brief as
+"KB brief: `components/<name>.md`" and takes the brief's category, or says "No KB brief" and states its
+own. The categories came from a hand table of the 17 briefs some def cited, so nothing checked a
+"No KB brief" claim at all. Divider said "No KB brief" and took `layout` while `components/divider.md`
+existed under Foundations, and it passed every gate (#2478 review).
+
+**The fix.** `schema/kb-briefs.json` is a committed snapshot of the knowledge base's component catalogue:
+every `components/*.md` whose front matter says `type: component-brief`, with its category (lowercased)
+and its aliases, plus the commit and date it was read at. `kb-briefs-refresh.ts <kb checkout>` writes it;
+CI cannot read the knowledge base, so the snapshot is what the test reads. It replaces the hand table, so
+a cited brief's category comes from the same place. A def that says "No KB brief" now fails when its id
+or one of its aliases names a brief file, or is one of a brief's own aliases. The first cut compared a
+brief's aliases with the def's id only, so a def aliased `image-overlay` passed while image.md listed that
+alias (review on #2621); both clauses now read the id and the aliases. The snapshot is
+classified in `lint-schema-classification.ts` as authored pure data (class 3). Read at knowledge-base
+`bdaedeb2`: 47 briefs. Test-only, so no change note.
+
+**Proof.** Divider's header back to "No KB brief" with its category kept, so only the new check can
+fire: `test.ts` fails once, by name: "#2488 divider: says "No KB brief", and the knowledge base has
+`components/divider.md` (category 'foundations')". The two defs that say "No KB brief" today, focus-ring
+and veil, match no brief by id, alias or brief alias. Every row the old table held matches the snapshot. With
+`image-overlay` added to image.md's aliases in the snapshot, `test.ts` fails once, by name, on veil, which
+carries that alias; before the fix it passed.
+
+**Trap.** The snapshot is as current as its last refresh. A brief added to the knowledge base after
+`bdaedeb2` is invisible here until someone reruns the script, which is the same gap in a smaller window.
+A brief alias that a later def legitimately shares with no brief of its own would also fail here; the
+message names the brief, and the answer then is a header that cites it or a def id that does not collide.
+
+**The knowledge base is readable from a cloud session, and CI still does not read it.** #2488 calls it
+private; it cloned from here. That is not a reason to wire it into CI: the test reads the committed
+snapshot so that no gate depends on another repository being reachable at run time.
+
+---
+
+## (2026-10-15) — The style guide's no-column note is tested on a second borrowed collection (#2581)
+
+**The gap.** The Border width table borrows every border-width variable in the run's collections, so the
+focus ring's widths sit in it (#2353). When a borrowed collection has a mode that no column reads, the
+notes name that mode and the collection it belongs to (#2505). The wording is generic on purpose (owner
+decision Q261 1A): it is meant for any borrowed collection, a client's stroke collection for example. But
+every test borrowed only focus, so a note that hard-coded "focus's" in place of the collection's name
+passed them all.
+
+**The fix.** §35d in `apps/plugin/test-style-guide.ts` gains a case with a second borrowed collection:
+`stroke`, holding one `STROKE_FLOAT` variable, with modes Default and Heavy. Focus keeps Default and
+Compact. The Default column reads both collections' Default, so the notes must carry exactly two lines:
+"focus's mode Compact" and "stroke's mode Heavy". Test-only, so no change note.
+
+**Proof.** With the note hard-coded to "focus's" in `style-guide.ts`, the new case fails by name:
+"35d: with a second borrowed collection, each note names its own collection — focus's Compact and
+stroke's Heavy", printing "focus's mode Heavy". The three existing §35d cases still pass under that
+mutation, which is the gap the issue describes.
+
+---
+
+## (2026-10-15) — test:chrome §42: a choice row drawn again already holds its words when its region goes in (#2472)
+
+**STATUS: branch `claude/2472-s42-redrawn-region`.** Test only (`apps/studio/test-chrome.mjs`). No product code, no artifact moves, no ENGINE bump.
+
+**Why.** `lever-kit.ts` says a choice row that leaves the page and is drawn again "gets a new region that already holds its words when it is put in the document, which is not announced". `syncLive` gets that from its order: `sayLines` fills the region, then the holder takes it. No arm held that order: with the two swapped, `test:chrome` passed in full (#2458 round 2's review), because no §42 case came back to Type while a warning showed.
+
+**The change: §42 arm (5)**, on Aurora, where Compact is refused for the title floor. After arm (3), the case:
+1. leaves Type for Shape;
+2. puts a `MutationObserver` on the live-region holder (`childList`, `characterData`, `subtree`);
+3. comes back to Type.
+
+It asserts four things:
+- the holder exists;
+- a record adds the Type scale row's region (`data-key` `typography.typeScale`);
+- that region now says exactly the refused-Compact sentence (a literal typed here);
+- no record targets anything but the holder itself.
+
+A region filled after it went in would make a record on that region, or on a paragraph inside it. The arm reads only the browser's records, never `lever-kit.ts`.
+
+**Mutation, from a commit:** the issue's own swap (`syncLive` puts a new region in the holder, then `sayLines` fills it), on rebuilt bundles → `✗ §42 web light 1280 Aurora: (5) back on Type, the Type scale row's new region is put in the document already saying the refused-Compact line, and nothing in a region already in the document changes (holder true, region added true, lines ["Compact can't be used …"], 1 record(s) inside a region — [{"type":"childList","onHolder":false,"target":"typography.typeScale","added":["P"]}])`, and the same line for figma. `39396/39398 chrome assertions passed`: arm (5) on both hosts, nothing else.
+- With the swap, the region still ends up saying the sentence, so a check on the final text alone would pass. Only the record inside the region shows the order.
+
+---
+
+## (2026-10-14) — test:chrome §41: Interactive is reached by pointer at 640 and 800, not by keyboard (#2463)
+
+**STATUS: branch `claude/2463-s41-pointer`.** Test only (`apps/studio/test-chrome.mjs`). No product code, no artifact moves, no ENGINE bump.
+
+**Why.** §41 (#2383) reached Color › Interactive at 640 and 800 by focusing the sub-nav's tab and pressing Enter, because before #2393 the sub-nav ran under the preview there and couldn't take a pointer (#1975). #2393 fixed the pointer path, so the workaround kept §41 from testing what a designer does.
+
+**The change.** §41 uses `goPlace`, as every other place in the section and the suite does, at every width. `goPlace` clicks the Color tab and the sub-tab, and Playwright's click refuses a target another element covers at its center. So a sub-nav under the preview again would stop §41's case by name, rather than being stepped around.
+
+**Mutation, from a commit:** #2441's own (the select's wrap given back `flex: 0 1 auto; min-width: 0`, the select `width: 100%`), on rebuilt bundles → 68 failures, every one of them §41's, including at the two widths that now go by pointer: `✗ #2383 web light 640 on color-interactive in light: the mode select shows its whole label, "Light · all pass" (94px of text in a 0px content box)` and `✗ #2383 web light 800 on color-interactive in light: … (94px of text in a 81.8px content box)`. `39328/39396 chrome assertions passed`, and there's no "case stopped" line, so the pointer reached Interactive in every case.
+
+---
+
+## (2026-10-14) — Canvas furniture: a set moved to another page or into a frame takes its labels and backdrop with it on the next Build or Update (#2485, build half)
+
+**What was wrong.** Furniture (`_Label` instances and the `_inverse-backdrop`) is drawn on the set's parent and
+tagged with its def and set id. Before drawing, `drawFurniture` cleared the def's furniture on that parent only. When
+a designer moved a set to another page, the next Build or Update drew it fresh on the new page and left the old copy
+on the old one, with no set beside it.
+
+**The fix.** `clearMovedFurniture` (`canvas-furniture.ts`) runs inside `drawFurniture` beside `clearFurniture`. It
+finds every tagged instance file-wide by the tag (`findAllWithCriteria` with `sharedPluginData`, the same root search
+the template lookup already makes, so the pages are already loaded), and removes those carrying **this set's id** on
+any parent but the one being drawn on. Matching is by set id, never def: a second set of the same def keeps its
+furniture, and an untagged node (a hand-placed `inverse-bg`, Q172.5) never matches. The build and the Update both
+reach it through `furnishSet`, which already passes `figma`, so `main.ts` doesn't change.
+
+**Held: the prune half.** The issue also asks prune to treat furniture off its set's parent as stale. Prune's
+sentence reads "left from a set no longer in this file", which is wrong for a set that moved, so it needs new
+wording, and that's the owner's call. The owner picked one sentence for both causes (Q294, option A); that lands as its own PR, and this one leaves prune as is.
+
+**A trap for re-verifying.** A mutation that drops the `c.parent === parent` skip passes every arm. That's not a gap:
+`clearFurniture` runs first and has already removed the set's furniture on its own parent, so the skip only saves a
+second look at removed nodes.
+
+**Tests.** `test-canvas-furniture.ts` `moved/…`: Button is furnished on one page, moved to a second, then into a frame,
+and redrawn each time. Mutations are in the PR.
+
+**The frame arm tested no frame (review).** Its fixture was `{ ...makePage('frame'), type: 'FRAME' }`. The spread
+copies `appendChild`, which closes over the inner page, so `frame.appendChild(set)` parented the set to a third
+PAGE-typed object, and the arm passed because the set had simply moved page again. A clear that skipped frames
+(`if (parent.type !== 'PAGE') return 0`) passed every arm. The frame now has its own closures, and the arm also
+asserts the set's parent is the frame. Mutations: that skip → `✗ moved/into a frame: … (in the frame: true; ↳ B 42,
+frame 42, cleared 0)`; the spread fixture restored → `✗ moved/into a frame: … (in the frame: false; …)`.
+
+---
+
+## (2026-10-14) — Figma widgets: capability grounding, and why the theming surface isn't one
+
+**Docs only — no code, no version bump.** `docs/18` gains `§8` + `§8a` and one `§7` bullet. Sourced from the
+current Figma Widget API docs (fetched 2026-09-27); nothing was tested in a live file, and the section says so.
+
+**The question was whether the theming plugin should be a widget**, on the hope that living on a page instead
+of in a modal would give a larger view. **It is the opposite**, for three reasons now recorded — but the one
+worth carrying is reason 3, because it is the `§4`/principle-5 argument wearing new clothes: *"widget
+rendering code won't be able to read and access data outside of the particular widget's state."* A widget
+cannot read the file's variables to display them, so it must mirror them into synced state, and the file then
+holds **two authorities for the theme**. Same defect class as a baseline allowed to rewrite what it reads.
+
+**The premise was also just wrong on size**, which is worth knowing before anyone re-asks: `showUI` from a
+widget *"creates a modal dialog with an `<iframe>`"* — the identical window — and the plugin already opens at
+1280×900 and persists the designer's resize (#144). There was no ceiling to escape.
+
+**`§8a` is the part that will save someone a day.** The strongest candidate use for a widget was **agent
+memory** — a durable, visible, in-file trace of what an agent found and changed, read back next session.
+Four separate API facts close it: a plugin *"cannot create WidgetNodes"*; `setWidgetSyncedState` *"only works
+inside of a widget"*; `widgetSyncedState` is *"only readable by widgets created by the same `manifest.id`"*;
+and `cloneWidget` overrides apply only within the same `manifest.id`. **A plugin's manifest id never matches a
+widget's, so widget synced state is unreachable from both write routes in `§4`.**
+
+**The approach tried and discarded**, since the diff cannot show it: `sharedPluginData` as the store (*"readable
+by any plugin"*, 100 kB per entry) with the widget as a read-only projection does work, and it inverts the
+mirror problem correctly — one authority, one viewer. It was still rejected, because a widget runs only on
+interaction, so the projection is **stale until clicked**, while a node board drawn by the plugin (the
+`applyComponentPlan` mechanism we already ship) is current as of the last write and needs no second published
+id. The widget buys buttons and costs a staleness class.
+
+**The trap for whoever revisits this:** `useStickable` reads like the obvious way to attach an annotation to a
+component instance, and it is *"only available in FigJam"*. Nothing in Figma Design can follow a node.
+
+**Nothing filed to build.** Owner's call, explicitly held: candidate uses were explored (drift sentinel,
+contract-delta notes, constraint cards, adoption board) and none became an issue. `§7`'s new bullet records
+that whether any widget ships is open while the theming-surface question is closed.
+
+**Reworked onto `main` (#2583, owner decision Q288.1).** First written as #1721, which sat 354 commits behind
+with its entry edited straight into the log. This PR carries the same `docs/18` text as new work, with the
+entry moved here (#1807). Every claim the section makes about this repo's code was checked again on
+2026-10-14 and still holds: the plugin opens at `DEFAULT_SIZE` 1280×900 and reopens at the designer's last
+size (#144, `apps/plugin/src/main.ts`); `applyComponentPlan` is still the node-building mechanism; `§4` still
+numbers the plugin and MCP routes 1 and 2. The quotes from the Widget API docs were not fetched again; the
+section dates them to 2026-09-27.
+
+---
+
+## (2026-10-14) — Update: the dry run makes the apply's file checks, fonts included (#2601)
+
+**What happened.** #2592 made the dry run and the apply share one refusal test (`setRefusal`), but the apply's
+`preflight` still made four checks of its own: a variable the plan binds, a text or effect style it names, a
+component it nests or swaps to (the dry run's `absentNests` read nests only), and a font that will not load. So a
+confirmed apply could still refuse a set its dry run had reported with no blocker.
+
+**The fix.** `fileBlockers` in `update-plan.ts` makes all of them, and `previewUpdate` lists each as a blocker on
+the set. The apply's `preflight` is now one line, `p.blockers`, so there is nothing left for the two to disagree on.
+The wording of each refusal is the preflight's, moved; the one change is that a swap target is named as one ("the
+plan swaps to"), since nests keep #2380's own line with what to build first.
+
+**Fonts, the trade-off the issue held back.** `UpdateHost` gains an optional `loadFontAsync`. The plugin's host is
+`figma`, which has it, so the dry run loads every font now; Figma caches loaded fonts, so the apply's own loads that
+follow cost nothing extra. A host without it (some test shims) checks no font. A set's blockers now go into
+`previewHashOf`: they come from the file's catalogues and installed fonts, which the per-set hash never read, so a
+font installed between the check and the confirm refuses the apply ("the file changed since the check"), and the
+designer confirms what they were shown.
+
+**A trap in the old test.** `fonts/refused` overrode the font on the executor's port only. The test's `host` is a
+spread copy of the shim, so its `loadFontAsync` kept the original. In the plugin both are the same `figma`; the test
+now overrides both.
+
+**Verification.** `test-update-apply.ts` `agree/file variable`, `agree/file text style`, `agree/file swap target`,
+`agree/file font`: each builds a set whole, asks the plan (or the host) for something the file lacks, and checks the
+apply's own refusal against the dry run's blockers, the #2592 harness. Mutation: the dry run's call to `fileBlockers`
+moved to a side field the apply's preflight reads (the pre-fix shape) fails all four by name, and #2380's
+`icons/absent`. No def names an effect style today, so that check has no arm, as before.
+
+**The hash claim had no arm (review).** Dropping `s.blockers` from `previewHashOf` passed every suite, so the claim
+above was unguarded. `fonts/installed since the check` takes the check with the font refused on both the host and
+the port, restores the real `loadFontAsync` on both, then confirms with the first check's hash: the apply's fresh
+preview has no blocker, and only the blockers in the hash tell the two apart. Mutation: `s.blockers` dropped from
+`previewHashOf` → `✗ fonts/installed since the check: … not refused`. The `agree` harness now compares a refusal
+against `p.blockers.join('; ')`, the preflight's own join, so a set with two blockers no longer reads as unlisted.
+
+---
+
+## (2026-10-14) — The token export keeps group-level `$description` and `$extensions` (#2446)
+
+**What moved.** `projectDtcg` (`apps/studio/src/export-settings.ts`), the projection both the web and the plugin download run, rebuilt every file from its leaves, so any `$`-key on a GROUP was dropped. It now walks tokens and group `$`-keys together (`entriesOf`), one entry per key in document order, and puts each back where it was. The nested download of a tree with group metadata is now the engine's own base projection of it byte for byte, key order included. No committed tree carries group metadata today, so no committed byte and no download moves; this is what lets one carry it.
+
+**The dotted rule.** The flat format had no node to hold a group's fields. It now keeps them under the group's own dotted path, as an object with no `$value` (`"root.color.status": { "$description": … }`). That is the format's existing rule, one entry per path, applied to the one node kind it lacked, and it inverts, so the setting stays a pure reshape under #720 rule 2. The other option the issue named, refusing group metadata in dotted output by name, was set aside because it makes a shape setting fail on valid input. The alias check and the dotted inverse now tell a group entry from a token by `$value`. The per-group split puts the root wrapper's own keys in every file, since every file carries that wrapper. Merged back, the split gives the single file.
+
+**Where the fixture lives, and why not in `test:export-parity`.** The issue asked for a fixture in `test:export-parity`'s scope. That gate drives both built UIs through a person's path and compares against `out/`. Neither UI can load a tree the engine did not emit, and no emitted tree has group metadata, so no fixture can reach it without a test-only hook in the shipped bundles. The fixture is `test-export-settings.ts` §7c instead: a real emitted tree with group metadata on three groups (the root wrapper with a key before AND after its children, a top-level group after its children, a deep group both), through `exportDtcg`, the function both downloads call. Its expected side is the engine's `buildBase` of the same fixture, which runs no studio code. The parity gate's header names the gap. Once a committed tree carries group metadata, that gate covers it unchanged.
+
+**Mutation.** Filtering the group entries out of `projectDtcg` fails seven §7c assertions by name. The admission check also reports the loss under all four nesting/case options.
+
+**The trap the review caught: walk order is not a claim.** The dotted inverse puts a group's `$`-keys back together, before its children, so a trailing `$extensions` changes place relative to them. The first cut compared `groupMetaOf` arrays in walk order, so a group with keys on both sides of a descendant that has its own (the natural engine shape: `$description` first, `$extensions` last) reported a loss on a correct export, and the first committed tree of that shape would have failed the studio `test`. Both round-trip checks now compare the keys as a set (`groupMetaSet`, sorted by path then key), and the dotted rule's comment says the inverse keeps fields, not their order relative to children. The first fixture missed it because its root wrapper had a leading key and no trailing one; it now has both, and the review's minimal repro is its own assertion. Mutation: restoring the ordered comparison fails both by name (`formatDotNotation=dotted: a group's own $description or $extensions did not survive the reshape`); dropping group entries from the dotted output still fails four.
+
+---
+
+## (2026-10-14) — The four engine git-history gates compare a squash on main with its parent (#2556)
+
+**What changed.** `lint-emission-version.ts`, `lint-component-surface.ts`, `lint-component-renames.ts`
+and `lint-materialization-renames.ts` read their "before" side at the merge base of HEAD and the base
+branch. On main's push run that merge base is HEAD itself, so each compared a squash commit with itself
+and passed whatever the squash merged: the gap #2551 found in `lint-executor-revision.ts`. Each gate now
+passes its merge base through `comparison-base.ts`, which returns HEAD's first parent when the merge base
+is HEAD, and fails by name when there is no parent. A PR run is unchanged: its merge base is not HEAD.
+New gate `lint-push-base.ts` replays main's push run against each real gate. No engine behavior moved,
+so no change note.
+
+**The replay.** A `git clone --shared` of the checkout in `$TMPDIR`, with the working tree on top as one
+commit, so an uncommitted gate edit is what gets replayed. Each case commits a squash on `main`, points
+`origin/main` at it, unsets `GITHUB_BASE_REF`, and runs the gate from the clone. Two cases per gate:
+a squash that breaks the rule must fail by the gate's own assertion, and the same shape with the rule kept
+must pass, so a gate that failed everything on main would not read as caught. The breaking squashes are an
+artifact moved with no note, a surface baseline moved with no note, a variant value gone with no ledger
+entry, and an emitted variable gone with no rule. Each squash restores or touches one file, so the gate's
+in-tree arms read a sound tree and only the cross-commit arm can answer. About 25 seconds.
+
+**Mutations, each failing by name.** The helper returning the merge base again fails all four breaking
+cases ("expected a failure containing …, got a pass"). Each gate's own call replaced by the merge base,
+one at a time, fails only that gate's case. Before landing, main's tip (#2596) was run through all four
+gates against its first parent and passes, so this does not turn main red.
+
+**Decisions inside the fix.**
+- *The parent replaces the merge base; #2555 kept both.* For a commit-to-commit gate the HEAD-vs-HEAD
+  comparison is empty by construction. For the tree-reading gates it sees only an uncommitted edit, and
+  the parent's comparison sees that edit too. One base per gate kept each gate's top-level flow as it was.
+- *No PR-time "freshest main" arm.* The issue asks for one where a gate claims a number. Since #1807 none
+  of the four has a PR claim one: a PR adds a change note named for its branch, and only a fold writes
+  `ENGINE_VERSION`. Two folds from one base either write the same text (the second squash is empty) or
+  different changelog text at the same lines, which git reports as a conflict. The push-run arm covers
+  the rest.
+- *Shared, unlike the base-ref ladders.* Which commit counts as "before" is not any gate's subject, and
+  four copies would drift. The replay runs the real gates, so a regression in the shared step fails all
+  four there.
+
+**Main's push runs are no longer cancelled.** Review found `ci.yml`'s `concurrency` block cancelled an
+in-flight run on `refs/heads/main` whenever the next squash landed: 19 of the last 40 push runs on main
+had ended `cancelled`. The next run compares only its own squash with its own parent, so a cancelled
+squash was never compared with anything, and the guarantee above (and #2555's for `EXECUTOR_REVISION`)
+held for about half of main's commits. `cancel-in-progress` is now
+true only when the run's event is `pull_request`, and a push run's concurrency group is keyed by its SHA
+rather than the ref: a PR's superseded run is still cancelled, and every main push run finishes. The
+group change is not optional. With one shared group and `cancel-in-progress: false`, GitHub keeps one
+run going and one pending, and cancels the pending run when a third arrives, so a burst of three
+squashes would still drop the middle one. The cost is CI minutes for push runs that would have been cancelled. No gate checks
+the setting; `lint-push-base.ts`'s header says the arm holds only for push runs that complete.
+
+**Trap for whoever re-verifies this.** On a fresh branch with no commits yet, HEAD is still on main, so a
+local run compares against main's last squash rather than against nothing. That is correct, but a fold
+that just landed will show up as the diff under review until the branch has its first commit.
+
+---
+
+## (2026-10-14) — lint-decisions-index scans an untracked decision doc too (#2358)
+
+**The trap.** `lint-decisions-index.ts` built its corpus from `git ls-files docs`, the tracked files
+only. A decision doc written and not yet `git add`ed was invisible to it: the gate printed the old heading
+count and "clean" over exactly the file its author had just written. CI was never affected, since
+everything there is tracked; the miss was local, and it surfaced later in CI or not at all.
+
+**The fix.** The corpus is now the tracked files plus the untracked ones git does not ignore
+(`git ls-files --others --exclude-standard docs`), with the same exemptions. The corpus line names any
+untracked file it scanned. Chosen over the issue's other option, a warning: a warning still prints
+"clean", and the point of running the gate locally is to get CI's answer before CI does. `.gitignore`
+still keeps scratch output out. No engine behavior moved, so no change note.
+
+**Proof.** An untracked `docs/99-review-probe.md` holding `## Decided (2026-10-14): an untracked probe
+decision`. The fixed gate exits 1 with "UNINDEXED DECISION: docs/99-review-probe.md" and a corpus line
+of 42 headings across 72 files, "1 of them untracked". The gate from `origin/main`, run over the same
+tree, exits 0 with "41 heading(s) found across 71 scanned file(s)" and "✓ clean". With the probe
+removed, the fixed gate is clean at 41 across 71.
+
+**Not covered.** A doc that is ignored by `.gitignore` is still not scanned; git will not commit it
+either.
+
+---
+
+## (2026-10-14) — File setup: a created section header lands at the end of the previous section's span, never inside Sandbox (#2605)
+
+**What was wrong.** When file setup or a build *creates* a missing section header, `file-setup.ts` anchored it after
+`lastExistingPageOfSection` of the previous section: the furthest of that section's pages in document order, wherever
+it sat. On the #2597 file, `↳ Grids & layouts` (a Foundations leaf) lives under Sandbox, so with the `Components`
+header deleted, a created `Components` went after it, inside Sandbox. #2600 (Q290: file setup never moves existing
+pages) left this path alone, since it concerns where a *created* page goes.
+
+**The fix.** `sectionEndAnchor` reads the previous section's **span**, the pages from its header to the next divider,
+the same span `reorderPages` reads. When a divider closes the span and the page after it is one of the created
+section's own leaves, the anchor is that divider: the header reuses it and lands where a deleted one stood, ahead of
+its own pages. Otherwise the anchor is the span's last page, so the header gets a new divider and the old one stays
+with whatever follows it. A section with no header has no span and keeps the old anchor, its furthest page; that is
+the issue's scope and nothing better is known for that case. Both callers use it: `scaffoldSkeleton`'s walk (passing
+the next section) and the build's `ensureSectionHeader` (passing the section it creates).
+
+**Why the divider is conditional (found in review).** The first cut always anchored on the closing divider. That is
+right when the created section's own pages follow it, and wrong when a designer's page or section does: with
+`Components` gone and `--- | Notes | --- | Subcomponents` after Foundations, the created header landed on the divider
+and took `Notes` into its span with no divider between. No page moved, so Q290 held, but the span `reorderPages` and
+the alphabetical anchor read was wrong for those pages. The issue's literal wording (the span's last page) and the
+first cut are each right in one case; the check on the page after the divider picks between them. The same shape
+with the Foundations header gone too still puts a created `Foundations` straight after Cover, ahead of its own leaves'
+divider: that is the walk's first-section path, older than #2605, not changed here and filed as
+#2634.
+
+**A block dropped.** The first cut also had the build path create a divider between a created header and the next
+section's header, because reusing the closing divider could leave the two adjacent. With the divider reused only when
+an own page follows it, that case no longer arises: a mutation removing the block fails nothing, and the only way to
+reach it is a file where a section header already sits with no divider before it. It is removed rather than kept
+untested.
+
+**Tests.** `test-file-setup.ts` `created header/…`, on the #2597 fixture under both host readings, via the build and
+file setup: (1) the header deleted, its divider and pages kept; (2) the whole section gone; (3) a designer's page
+(`Notes`) and (4) a designer's section (`Archive | ↳ old stuff`) after the divider that closed Foundations. Every
+expected list is a literal.
+
+---
+
+## (2026-10-14) — Segmented control: one option nested five times in a track, equal widths from a growing nested instance (#2418)
+
+**Status:** engine (two new defs and one validator/projector change), both executors, the plugin taxonomy. ENGINE minor
+(change note): two new projected surfaces, `segmented-control-segment` (30 members) and `segmented-control` (3).
+CONTRACT unchanged: every binding is an existing role. `EXECUTOR_REVISION` → 20: main reached 19 (#2604) before this landed, so it takes the next number.
+Built from the proposal branch's draft (`claude/segmented-control-proposal`, `74af810`) with the owner's decisions Q269
+1–8 A applied.
+
+**Owner decisions Q278 (2026-10-13), all A**, on the built PR: (1) the hover wash is kept, no longer provisional;
+(2) the shape is kept as built, the track `radius.md` and the selected pill `radius.sm` 4px inside, corners
+non-concentric with no derived radius token; (3) the default label "Option" is approved; (4) the control is built at 320
+and a standalone option at 120; (5) no track padding or gap, each option carrying its own 4px inset; (6) the page sorts
+alphabetically under Q260 A, between Radio and Select, no exception. The defs record them in their evolution notes and
+no longer list them as contested.
+
+### What changed
+
+- **`SegmentedControl.Segment`.** selection × size × five states. A cell on Button's height rung (the hit target) with
+  an indicator inset 4px inside it. Selected: the `interactive.primary.subtle-fill.selected` tint, a 2px
+  `interactive.primary.border.*` outline stepping at hover and pressed, and the label in the emphasis weight, held at
+  its bold width by Tab's clipped reserve (`labelBox` / `reserve` / `labelReserve`, `texts.also`). Unselected: clear at
+  rest, the neutral overlay wash at hover and pressed. The selected label keeps the NEUTRAL ink (Q269 QA note).
+  Disabled selected keeps a 2px `color.disabled.border` outline and loses the tint (the disabled branch does not carry
+  the overlay slot); disabled unselected shows nothing (0px edge).
+- **`SegmentedControl`.** size only. An optional nested FieldLabel (`Label`, on) above a 1px
+  `interactive.neutral.border.rest` track at `radius.md`, holding five nested options `nest-exposed` (`selection`,
+  `state`), following `size`, option 1 selected, `Segment 3` on and `Segment 4` / `Segment 5` off. `behavior`
+  (`view` default, `form`) is a code prop only, as Tabs' `activation` is.
+- **`grow` on a `nest` (Q269.6).** The validator refused it ("only a box grows"). Now a `nest` grows under the same
+  precondition as a box (a bounded parent main axis). `fillsAxis` treats it as a filled main axis, so the plan carries
+  `layoutGrow: 1` and `instanceSizing.primaryAxisSizingMode: FIXED`, and both executors write `layoutGrow` on the
+  instance from the PARENT's pass, beside `layoutAlign`. On the plugin path that write is load-bearing (its
+  `claimDefaults` returns early on an instance); on the paste path the generic write already covers an instance, and the
+  parent-side write stays there for lockstep only.
+- **Tab, Tabs and the rest of the corpus** name the segmented control instead of "not built yet". `component-refs`
+  forced the move out of `planned` in Radio.Row, Radio.Group, Switch.Row and Select; those files' "not built yet" prose
+  went with it, and Tabs' avoidWhen sentence also stopped calling Accordion unbuilt.
+
+### The diagnosis that shaped it
+
+Equal widths needed two fills, not one. The options growing along the track only widens each option's **cell**; the
+indicator inside it hugged its label, so the tint and outline would have sat label-wide in the middle of a wider cell.
+A box can only grow into a parent that bounds its main axis, and the option's root hugged. So the option's root is
+**built at a placement width** (`placementWidth: 120`, Q278.4 A, the #1757 mechanism the fields use) and the indicator
+`grow`s across it; inside the control, the host's FIXED share replaces the 120. That is why the standalone option set
+reads 120 wide.
+
+### Traps for whoever re-verifies this
+
+- **The shim binds placeholder values** (`space/0` reads 20 in `fullFor`), so the host equal-width arm sums the
+  track's padding and gaps as the host holds them rather than assuming zero.
+- **The primary ink on the tint** measures 3.01–4.75:1 over the 16 committed brand × mode cells (the skill quotes
+  2.70:1 from an earlier corpus). One brand clears 4.5:1, so the contrast arm fails the mutation on the others, not on
+  every cell.
+- **The outline against the tint inside it** is 3.01:1 at its tightest. It is not the cue on its own (the outline
+  against the track is 4.56:1 minimum, and the bold label carries the selection too), but it has no margin.
+- **Reactions (#2466).** #2574 was open at build time. Its reaction map derives scope from the `state` axis, so the
+  Segment set will be in scope once both land; its `map/` arm lists the defs literally. #2574 merged first, so this
+  PR adds the Segment to that list (30 members, 12 sources, 18 reactions) and the label reads 12 defs.
+- **The page sorts alphabetically** (#2568, Q260 A), so "after Tabs" holds in the taxonomy list but the file shows
+  `↳ Segmented control` between Radio and Select. The owner kept that order (Q278.6 A), no exception.
+- **The paste executor writes an instance's `layoutGrow` twice** (review BLOCK on 1946897c). The generic build line
+  (`if(n.layoutGrow)node.layoutGrow=n.layoutGrow;`) runs for every node the payload creates, instances included,
+  and the parent's pass writes it again. Remove either line alone and the paste host still reads grow 1, so no gate can
+  fail on one of them by itself. `test.ts`'s #1751 parity floor now has a segmented-control row: every `segment1`–`segment5`
+  instance must read `p:FIXED` and `grow:1` on the paste host, a literal. Remove both lines and that row and the parity line
+  fail by name for segmented-control and nothing else. The plugin side has no generic write (its `claimDefaults` returns
+  early on an instance), so its parent-side line is load-bearing and test-write-components' equal-widths arm holds it.
+  The paste-side parent write stays, for lockstep with the plugin path; its comment in `anatomy-figma.ts` says it is
+  redundant there rather than claiming the neutralizer never reaches an instance (delta check on 98df419e).
+
+---
+
+## (2026-10-14) — component-shim: each combined set gets its own id (#2593)
+
+**What happened.** `component-shim.ts`'s `combineAsVariants` set `set.id = 'SET:1'` on every set it made. The apply's
+identity check (VERIFY (a) in `update-apply.ts`) finds a set after the build's pass by its id or key, so with several
+sets on a page it found the first `SET:1` and reported the set it had just updated as replaced, every member "no
+longer in the set". A real host gives each set its own id, so only the harness was wrong, but every multi-set apply
+test had to assign ids by hand, as `test-reactions.ts`'s `all three/…` did.
+
+**The fix.** Under `identities`, a set keeps the `N:` id `mkNode` already gave it from `nodeSeq`, as every other node
+does; without `identities`, sets are numbered in their own sequence, so the first is still `SET:1` (the #1561 parent-id
+parity needs a string). No test pinned `SET:1`: the only literal was the workaround, now removed.
+
+**Verification.** `test-reactions.ts` `all three/converges` runs with no ids assigned by the test. Mutation: every set
+named `SET:1` again → `all three/converges` fails by name ("⚠ 1 set not verified … id SET:1 → SET:1").
+
+---
+
+## (2026-10-14) — Figma variables: `core` primitives are hidden and unscoped, bar the font family and weight rows; `grid/columns` leaves ALL_SCOPES (#2602, owner decision Q292 A)
+
+**What changed.** Every variable in the `core` collection is emitted with `hiddenFromPublishing: true`,
+in every brand: the palette, `dimension/*`, and every `core/font/*` row, the weight-role and style-cut
+rows included. Every one of them is emitted with `scopes: []` **except** `font/family/*`, which keeps
+`FONT_FAMILY`, and `font/weight/*` and `font/weight-role/*`, which keep `FONT_WEIGHT` (owner decision
+Q292 A, 2026-10-14). `layout`'s `grid/columns` goes from `ALL_SCOPES` to `[]`. Semantics keep their
+scopes. The change is made in the three emitters (`emit-figma-color.ts`, `-dims.ts`, `-font.ts`; the
+unscoped rows read one exported `PRIMITIVE_SCOPES`). The plugin's `write-figma.ts` and the paste path
+(`materialise-to-figma.ts`, `mcp-steps.ts`) both write `row.scopes`/`row.hidden` off the plans those
+emitters feed, so neither executor's code moved and `EXECUTOR_REVISION` is not claimed. An empty scope
+code decodes to `[]` in the paste payload (`[...''] → []`).
+
+**The diagnosis that made it small.** The PRIMITIVE comment had claimed since 2026-07-04 that
+`scopes: []` behaves as ALL_SCOPES, so nothing could hide a variable from local pickers. Its evidence
+was a probe in which `setBoundVariableForPaint` succeeded on an unscoped variable. That is an API bind,
+and the typings say scopes "only limit the variables that are shown in pickers within the Figma UI".
+The owner checked the pickers directly on 2026-10-13, on a copy of a production file: a palette step
+set to `[]` left the fill picker, and its scoped neighbor stayed. The motion emitter already relied on
+the correct reading. The comment, `docs/10` and the (23) test preamble are rewritten and cite the live
+check.
+
+**Why the font family and weight rows keep a scope (Q292 A).** The first build unscoped the whole
+collection and failed the exporter agreement gate (`tools/exporter-comparison/gate.ts`): TokenPress
+types a font variable's DTCG `$type` from its scope, so unscoped family, weight and weight-role rows
+exported as `string`, `dimension` and `number` instead of `fontFamily` / `fontWeight` (69 failures over
+four brands). The owner chose A over B (unscope everything and teach TokenPress to type font rows by
+name) and C (accept the divergence). So those three groups stay in the font-family and font-weight
+pickers and nowhere else, and the gate passes with no accepted divergence. B is filed as **#2616**,
+not done here: TokenPress is the public Community plugin and a guest in this repo, so it needs its own
+issue and release. Size and cut rows export the same either way, so they are unscoped now.
+
+**Other tradeoffs.**
+- **The whole collection is hidden, weight-role and cuts included.** Neither was hidden before. (23)
+  used to list `core/font/weight-role/*` as visible semantic tier; it lives in `core`, and the owner's
+  decision covers the collection.
+- **`grid/columns` gets `[]`, not a narrower scope.** `VariableScope` (plugin-typings 1.131.0) has no
+  layout-grid member, and no scope is known to show in the grid count picker. Nothing in Prism3 binds
+  the variable: the grid styles bake the count as a literal.
+
+**Gates.** A new test arm (23b) states the rules over everything that reaches a file, with literal
+expectations: per-group scope sets (`["FONT_FAMILY"]`, `["FONT_WEIGHT"]`, else `[]`) and their paste
+codes (`m`, `e`, else empty). It covers the in-memory emission for nb and every `examples/*.design.md`
+brief, the three plugin plans, the decoded paste payloads (palette, dims-create, font-vars) and the
+committed `out/figma/*` trees. Each `core` group must be represented on every path. (23), the NB font
+fixture arm, `lint-cut-binding` (a cut is held to `[]`, not to FONT_STYLE) and the plugin's
+`test-write` / `test-write-float` (palette and dimension primitives hidden and unscoped) moved to the
+decided rule with literal expectations. Mutations, each made on a committed tree and restored after:
+- `font/weight-role` drops FONT_WEIGHT → "#2602 every `core` variable is hidden from publishing and
+  carries no scope, bar FONT_FAMILY on font/family and FONT_WEIGHT on font/weight and font/weight-role
+  (Q292 A) … — 60 wrong", with the (23) and font-fixture arms.
+- `font/weight` drops FONT_WEIGHT → the same arm, 62 wrong.
+- `font/family` drops FONT_FAMILY → the same arm, 84 wrong.
+- The palette regains its four scopes → the same arm, 1808 wrong.
+- `grid/columns` back on ALL_SCOPES → "#2602 no emitted variable carries ALL_SCOPES …".
+- The cut rows scoped FONT_STYLE again → `lint-cut-binding` fails by name.
+
+**Trap for whoever re-verifies.** The NB palette fixture is the frozen real export, and it still
+scopes every step. The fixture arm states that divergence once, as two literals (fixture four-scope
+set, engine `[]`), rather than through 122 waiver rows. The font fixture is an engine snapshot, but its
+scopes are no longer the oracle: emitted `core` font rows are held to the per-group literals.
+
+**History.** The first build of this branch was made on a stale base and its single commit also
+reverted #2569 (the border ladder). It was rebuilt on current `main` carrying only the #2602 files, so
+#2569 is untouched here.
+
+---
+
+## (2026-10-14) — Studio smoke: the last picker clicks and Escapes in S4c and S4e are bounded (#2589)
+
+**STATUS: branch `claude/2589-smoke-bounded-pickers`.** Test only (`apps/studio/test-smoke.mjs`). No product code, no artifact moves, no ENGINE bump.
+
+**Why.** #2557 bounded the picker inputs that had hung, and #2573 moved `bounded()` into `test-bounded.mjs`. The same shape was still unbounded at the sites #2589 lists, so a stall there still waited 30 s per click (forever for a key press), then threw past every arm with no report.
+
+**The change.** Every picker input in these places now goes through `bounded()` with `{ timeout: INPUT_MS }`, and every wait for a picker to draw goes through `drawn()`:
+- **S4c, the Fields-row loop** (each of the eight rows, in Dark and in Light): the open, the step click and the Escape, with the `continue s4cArm` pattern its export loop already used.
+- **S4e** (the issue calls these "S4d's" pickers; they sit in the S4e arm on `main`):
+  - `groundOf`, which reads text.secondary's picker hint: open, `drawn()` in place of `hooks.need`, Escape. It now takes a label, so a stall says which read it was (before the pick, after it, or at a ladder-end Page).
+  - The Secondary pick and the ladder-end Page picks share a new local `pickStep(at, k, step)`: open, step, wait for the write, Escape.
+  - Return to Auto: open, `drawn()` on the Auto button, the press (when it's enabled), Escape. `isEnabled()` was Playwright's 30 s wait; it's now a one-shot read once the button is known to be drawn.
+  - `pickerPalettes`: open, `drawn()` on the palette select, Escape. It returns `null` on a failed input, and the inverse-tier check reads `pals?.` so a null fails that check rather than throwing.
+- After each helper, a retired page (`deadPages`) skips the brand through `continue s4eArm`. A thrown input on a page that still renders frames is already over, so the arm carries on, and the check that reads the result says what it got.
+
+**Not changed:** the arm-opening tab clicks (`tab-color`, `color-sub-fills`) and `hooks.need(fills-levers)` in every arm. They aren't picker inputs, #2589 doesn't list them, and nothing has stalled on them.
+
+**Measured.** Unmutated, on rebuilt bundles: `✅ ALL PASS — 12006 assertions executed`, `Bounded inputs (#2547, #2550): 498 went through, the slowest in 375ms of 15000ms`.
+
+**Mutation, from a commit, one stalled input of each kind, all in one run** (a capture listener that loops forever, as #2557's `reviewerFreezeA`):
+- **A click** (S4c, first brand, a loop on a Fields-row `fill-pick` click): `✗ S4c prism3: previewing dark, the Fields row field.fill: its picker opens: the input did not return within 15000ms; it was running JavaScript: freezeFieldRow (page):1: the page rendered no frame …, so it is treated as dead`.
+- **`groundOf`** (S4e, first brand, a loop on text.secondary's `fill-pick` click): `✗ S4e prism3: before the pick: text.secondary's picker opens: … it was running JavaScript: freezeGroundOf (page):1: …`.
+- **An Escape** (S4e, second brand, a `keydown` loop on Escape, installed before the Secondary pick): `✗ S4e aurora: the Secondary pick: Escape closes the secondary picker: … it was running JavaScript: freezeEscape (page):1: …`.
+- The suite reached its report with those three as its only failures: `❌ 3 FAILED of 11963 assertions`. On `main`, the same freezes sit on an unbounded `hooks.click` (a 30 s uncaught throw) or `keyboard.press` (no bound at all).
+
+**#2550.** Its step click (S4c surfaces) was bounded by #2557. #2589 bounds the rest of the S4c/S4e shape. Owner Q252 took the three local hangs as display-sleep. The fourth, a cloud one, was test:chrome S6.3's `lh-swap`, which #2573 bounded. So nothing in #2550 is left unbounded, and it's closed against this PR.
+
+---
+
+## (2026-10-14) — Paste payload: solid paints and gradient stops are based on their variable's color, not black (#2468)
+
+**What moved.** The MCP paste payload (`anatomy-figma.ts`) built every bound SOLID paint on a black base and every gradient stop (`PAYLOAD_GRADIENT`) on opaque black. The plugin executor stopped doing either in #2379 (solids) and #2391 (stops), because the host draws a paint's STORED color. The payload now does the same, in lockstep with `write-components.ts`: one helper, `__rgb`, reads `resolveForConsumer(node)` for the variable and returns null when nothing resolves. A solid takes the RGB plus the alpha as its opacity when below 1. A stop takes all four channels in its color. Black stays only where nothing resolves.
+
+**Not measured live, and why the fix does not wait on it.** The issue asks whether a fresh paste re-resolves gradient stops. That needs a live Figma file, which this lane did not have. The fix does not depend on the answer. A base equal to the resolved color is what the host would draw either way, so a host that re-resolves draws the same thing. A host that does not re-resolve now draws the right color instead of black. The live check stays open for whoever next pastes a veil. It should look for any stop drawing black.
+
+**Budget.** The solid path ships in every chunk. The helper is one line and the solid path grew by two. `test.ts`'s chunk-budget arms stay green, and no committed artifact moves (`regen` clean).
+
+**The gate.** The engine test's shared Figma stub never resolved a color variable to a color, so both executors fell back to black and the #1318 veil parity arm compared black with black. A new stub option, `colors`, gives the host's color truth per variable name. The new #2468 arm builds the 30-member veil through both executors with it, and holds every solid's RGB and every stop's RGBA to that table, never to either executor. Mutation: hard-coding the paste's stop base back to black fails `#2468 paste: every veil solid and every gradient stop is based on its variable's own resolved color` on `direction=from-top: stop base {"r":0,…}`. Doing the same to the solid fails it on `direction=full: solid base {"r":0,"g":0,"b":0}`.
+
+---
+
+## (2026-10-14) — Docs 07, 18, 30 and 34 match the code again (#2583 Q288.3)
+
+**Status:** docs only. No ENGINE bump: nothing emitted or projected moves.
+
+The housekeeping audit (#2583 §5) listed places where the four most-cited numbered docs no longer matched the code. The owner approved fixing them as mechanical corrections (Q288.3). Each change below says what the code does now; none changes a stated policy or decision.
+
+- **07:** the four-layer table marked layers 2 and 3 "⬜ future" and named an `AGENTS.md` that doesn't exist. Layer 2 is now "started" (`out/components/components.ai.json` and a doc per component), and layer 3 is "started" (`CLAUDE.md` plus the four shipped skills, no `AGENTS.md`). The audit also said the per-brand payload skills exist. They don't: #668 is still open, and the table says so. Open decisions 1 and 2 are marked done or moot, citing §9, which already said they were built. The component list in §9 named five defs. It now describes the component set and `out/components/`. Token Press was "private, different org, not provisioned here" in §11.1 and §11.7, but it's `apps/tokenpress/` now. Six `engine/*.ts` paths that predate the move to `packages/` are now spelled `packages/engine/*.ts`.
+- **18:** §2 said the plugin "needs none" of `networkAccess` and would "likely" add a `"dev"` editor type. It now says the manifest has `["figma"]` only (the dev surface is still §7's open question), and that the dev manifest lists `devAllowedDomains` for the agent link's local bridge socket. A new bullet covers the release build (#2530): `build:release`, `release/`, `PRISM3_DEV`, the manifest without `devAllowedDomains`, and `lint-release-bundle.ts`. §7 had bundling as an open decision. It is marked resolved, pointing at `build.mjs`.
+- **30:** the contract history stopped at 14.0.0, and `CONTRACT_VERSION` is 14.7.0. A new table lists the seven MINOR bumps since then, each with its PR and the paths it added. The added paths were measured by diffing the `guaranteed` keys of `token-contract.json` between the bump commits. None removed or retyped a path. The change-classification row said "bump `ENGINE_VERSION`", and it now says to declare a bump in a change note, which is the #1807 rule this doc already states. The corpus table was missing three members (`minimal-levers`, `minimal-bp2`, `minimal-weights`) that the prose and `token-contract.ts` both use. The 485 guaranteed and 234 brand-dependent counts are now dated and point at the baseline. Today's counts are 588 and 319, and the doc's own #1180 paragraph explains why it no longer quotes a live count. The Deprecations section called the three #531 renames "the table's three entries". The table now has 682 entries from nine MAJOR bumps.
+- **34:** all 23 `[in review]` markers are gone. Every cited fix has merged (#580, #581, #583, #627, #640, #793, #852, #920, #967, #1032, #1777), checked against `main`'s log. The paragraph that defines the marker stays, with a dated note. `apps/studio/mode-audit.mjs` is marked as deleted in #2094 where it is named. Left as is: the file:line citations (`test.ts:9238`, `lint-skills.ts:163`, `vercel-ignore-check.mjs:46`). They're part of dated incident records, and changing them would rewrite what was measured then.
+
+**Trap for whoever checks this again:** the audit's "6 bumps unrecorded" was already 7 by this PR (#2590 landed 14.7.0 the next day). Any count of contract bumps should come from `git log -G'"contractVersion"' -- packages/engine/schema/token-contract.json`, not from prose.
+
+---
+
+## (2026-10-14) — Progress log: July and August move to an archive, and a gate proves the move lost nothing (#2583)
+
+**What.** The 470 dated entries of `docs/00-progress.md` from before 2026-09-01, plus the seven undated
+sections of the July tail, moved unchanged to `docs/progress/archive/2026-07-08.md` (owner decision Q288.2,
+recorded on #2583). The live log keeps September onward: 515 entries, 21,569 lines, down from 55,411. The
+log's intro gained three lines pointing at the archive, and the archive has its own two-line preamble and a
+`README.md` saying how to archive the next month.
+
+**The proof of the move.** Byte level, once, for this PR: the old log is exactly the first 21,566 lines of
+the new log (less the three lines of the pointer) followed by one blank line and the archive below its preamble;
+`cmp` reports no difference. Structurally, from now on: `lint-progress-order.ts` gained an ARCHIVE MOVE
+arm. Any diff that writes `docs/progress/archive/` must leave the log and the archive, read at the merge
+base and at HEAD as one sequence cut at every `## ` line, holding the same sections in the same order,
+each byte-identical. Only each file's preamble may differ. A pure move is the one diff besides a fold
+that ONE WRITER lets change the log.
+
+**Every reader now reads both.** The gate's date arm, ALREADY IN THE LOG, FOLDED ENTRIES and NO
+PLACEHOLDER read the log and then each archive file newest first, so a folded title that has moved to the
+archive is still found, and still ordered. `fold.ts` never writes the archive; it reads it only for the
+newest entry's date if a move ever empties the log. The path exemptions in `lint-decisions-index.ts`,
+`lint-layout-claims.ts` and `lint-advisory-expiry.ts` were already the `docs/progress/` prefix, so they
+cover the archive with no change; `lint-voice.ts` and `lint-us-english.ts` scan no `docs/` file;
+`tools/forward-claim-check/measure.ts` lists the archive file in `JOURNALS`. The CI step is renamed
+"docs/00-progress.md and its archive stay newest-entry-first", in `ci.yml` and `verify.ts` together.
+
+**Mutations (docs/34), each committed first and then reset.** On the real archive: one entry dropped,
+one duplicated, one byte changed inside one, and two transposed each fail ARCHIVE MOVE by name. The same
+move without the archive half fails ONE WRITER. `test.ts` pins the same cases over a scratch repo.
+
+**Trap for whoever archives September.** Cut at a `## ` heading, never inside an entry, and paste at the
+TOP of the newest archive file (or a new `2026-09.md`): the archive continues straight on from the bottom
+of the log, so the date arm fails a file placed out of order. Code comments citing "docs/00-progress.md
+<date>" for July or August now resolve in the archive; the headings are unchanged, so a search for the
+date or title still finds them.
+
+---
+
+## (2026-10-14) — Build: a rebuilt set goes back under the page's header, and a file without the furniture templates is told so (#2598)
+
+Owner QA on a copy of a production file, plugin from main. Two defects: a build and an update in a file that had never
+run Set up file drew no row labels and no inverse backdrops and seemed to say nothing, and rebuilt sets landed
+inconsistently, `button` right of the page's `_section-header` and `icon-button` under it.
+
+### Why the two builds landed differently
+
+There was one rule, and the two pages met different branches of it. `placeNewSet` (#1750, #2405) puts a set under the
+header only on a page with a header and **no** set. On a page that still holds a set, it top-aligns with the sets and
+goes `SET_GAP` right of everything in the row. The owner deleted `button` and `button-destructive` but kept
+`button-neutral`, so the rebuilt `button` went right of `button-neutral`. The header spans the row the first build laid
+out, so the result reads as "right of the header".
+
+**The icon-button half is unexplained, not inferred.** This PR first said the same branch reads as "under" on
+`↳ Icon button` while the set stays inside the header's width. The replay below says otherwise: with the old rule
+restored, `icon-button` lands at `1992,0` against a header spanning `-324..1592`, right of the header; with no sibling
+left, it lands at `1980,-53`, also right, past the orphaned labels. Neither branch puts it under. One candidate, from
+the independent review and not checked against the live file: that file had no `_Label` at the first build, so the
+page had no labels to push the set right. The fix makes the rule the same under a header either way, so it holds
+whichever explanation is true.
+
+### The fix (`write-components.ts`)
+
+On a page with a header, a new set takes the **first free slot** in its row, scanning right from the header's left
+edge, whether or not sets remain. A slot is free when the set's box, widened `SET_GAP` on each side (its own row labels
+go on its left, the next set's on its right), meets no node in the row. `y` is unchanged. When no slot fits, the first
+one past everything in the row is where the old rule put the set. A page with no header keeps the old rule exactly. So
+a set deleted and rebuilt goes back into the gap it left, and the rebuilt sets read left to right in build order. The
+existing #2405 arms (f) to (i) in `test-write-components.ts` pass unchanged. The rebuilt set starts at the header's
+left edge, which on a page laid out by a first build is the left edge of the first set's row labels, so it sits about
+one label column left of where the first build put it. That is the #2405 rule as documented ("on the header's left
+edge"), and the owner accepted it (Q284.4 A).
+
+**Tried and dropped:** letting the set sit closer to a node that is itself canvas furniture (a label already in the
+gap). Its mutation survived: a rebuilt set sits a label column left of its old spot, so a real page always has the
+slack. That made it speculative code, and it came out.
+
+### The missing templates (`canvas-furniture.ts`, `main.ts`)
+
+The build already reported each missing template, one clause per set. The update put its clauses in its `lines` but
+not its `summary`, so an agent reading the summary was told nothing. A panel build is `ok` with the template missing,
+so the panel shows the headline and leaves the detail closed. Picked (a), a line, over (b), the build making the
+templates: the templates go on `↳ File Components`, a page only file setup may create (#2597), and an update's apply
+may write only what its dry run showed. Now a set records the templates it lacked (`missing`), and the run reports them
+**once**, first among the furniture items, naming each template and asking the designer to run Set up file, then
+build (or update) again. The update's furniture items reach its summary and its lines (`withFurnitureItems`). Wording
+approved, owner decision Q284.1 A: "No canvas labels or inverse backdrops drawn: this file has no _Label or
+_inverse-backdrop component. Run Set up file, then build again", each form naming only the missing template, and
+"then update again" on an update. Q284.2 A approved the other new string, "No inverse backdrop for {component}:
+_inverse-backdrop cannot be instanced", for a found template with no `createInstance`.
+
+**A missing template makes the run a warning (owner decision Q284.3 A).** The build or update worked, but the page is
+incomplete. `withTemplateWarning` turns the verdict `ok: false` and a `✓` headline into `⚠` over the same words
+("⚠ built 20 variants", "⚠ already up to date"), so there is no new pill copy. That's the state every partial result
+already takes: a build that made its set stays `completed`, so the panel marks the set "issues" and opens the detail
+where the line sits. A headline already `⚠` or `✗` is left alone. Only a missing template warns: a variant the found
+`_Label` lacks, or a template that cannot be instanced, stays a skipped line under a `✓`, as before.
+
+Gated where `main.ts` posts it, in the same host as the wiring arms (`test-build-completed.ts`). That host now holds the
+variables and styles Badge binds, as after Apply Theme, so the build is otherwise clean and the `⚠` can come only from
+the missing template; before, the build was already `⚠ 245 misses` and the Update refused, so a warning arm there
+could not fail. `templates/build warns` and `templates/update warns` read the posted verdicts in a file with no
+`_Label`. Then Set up file's own template builder (`ensureFurnitureTemplates`) makes the templates, and
+`templates/build clean` and `templates/update clean` read the same build and Update as `✓`. The shim's components
+cannot be instanced, so that second run still skips its labels (a skipped line, which stays `✓`); the arm pins only
+that a present template does not warn.
+
+### Item 3 (labels overlapping the next set)
+
+Not retested here. #2548's `page/set moves` and `page/converges` arms in `test-update-apply.ts` already replay this
+case: Buttons squeezed to the pre-#2502 160px gap, which the update re-spaces to 400. `clearance/Buttons` in
+`test-canvas-furniture.ts` holds that labels clear at 400. Confirm on the next copy run.
+
+### Verified
+
+`test-canvas-furniture.ts` `placement/…` replays both pages: the three sets built with their labels, a header over the
+content, the first two sets deleted with their labels left behind, then each rebuilt as `main.ts` builds. The first
+rebuilt set lands at the header's left edge, the second lands 400 right of it, and nothing overlaps. `placement/slot …`
+checks the slot on literal boxes. `templates/missing …` checks the run's one line, and `templates/update summary`
+checks the update's summary. Those arms read the helper's output, so the independent review found `main.ts` could
+drop the line from either verdict with every test green. `test-build-completed.ts` now reads it where it is posted:
+the real `main.ts` builds Badge in a file with no `_Label` (`templates/build verdict`), then runs the Update's check
+and apply through `ACTIONS.updateComponents` (`templates/update verdict`). That host needed two Figma behaviors it
+lacked: a set search that finds the sets on its pages, and `getNodeByIdAsync`. Without the second, the furniture
+never reached its template lookup and the build reported "Figma refused the write" instead. The review also found the
+width at `applyComponentPlan`'s call unguarded: the replay always leaves a label column of slack, so width 0 landed
+the set in the same place. `placement/narrow gap` moves the kept set, with its labels, into a slot that holds a
+zero-width set and not the real one, and the rebuilt set must land past it. Mutations, each committed first and then
+`git reset --hard`:
+- the old rule restored: all six `placement/Buttons|Icon button …` arms fail;
+- the right gap dropped, or the set's own width dropped: `placement/slot too narrow` and `placement/slot left gap` fail;
+- the left gap dropped: `placement/slot left gap` and both `placement/… second` arms fail;
+- the run's line dropped: `templates/missing build|update|label` and `templates/update summary` fail;
+- one line per set: `templates/missing build` fails;
+- the update summary left without the items: `templates/update summary` fails;
+- the template line dropped from the build's post in `main.ts`: `templates/build verdict` fails;
+- the Update's post back to `applyVerdict(r)` alone: `templates/update verdict` fails;
+- `applyComponentPlan` passing width 0 to `placeNewSet`: `placement/narrow gap` fails;
+- the warning dropped from the build's post in `main.ts`: `templates/build warns` fails;
+- the warning dropped from the Update's post: `templates/update warns` fails;
+- a warning with every template present (the condition made always true): `templates/build clean` and
+  `templates/update clean` fail;
+- a warning for a missing `_inverse-backdrop` only: `templates/build warns` and `templates/update warns` fail.
+
+`EXECUTOR_REVISION` 15 → 19: #2591 claims 16, and 17 and 18 were named for #2600 and #2592's fix.
+
+Not changed: the paste payload's copy of the placement (`anatomy-figma.ts`) never had #2405's header rule, so it
+still places right of the row.
+
+---
+
+## (2026-10-14) — Page order on the real file: only Prism3's own component pages move (#2597)
+
+**The defect.** On a copy of a production DS file, an update, file-setup and four builds left section headers (`Components`, `Subcomponents`, `Sandbox`), `↳ Grids & layouts`, `↳ Buttons` and `↳ Icon button` at the end of the file, and created three `---` pages. The issue's suspects were the reorder's index arithmetic, section detection, and a build creating a divider.
+
+**The diagnosis (posted on #2597 before the fix).** A shim replay of the real page list reproduces the observed list exactly, ids and dividers included, and only under one reading of the host's `insertChild`: the index counts in the list *before* the page is taken out, so a page moving forward lands one slot early, in front of its anchor. The module documented, and the shim modeled, remove-then-splice, which cannot produce the observed list from any of ~40k starting positions searched (a build's `placeAfter(page, header)` would always leave the page after its header, and the real list has `↳ Icon button` immediately before `Components`). On that host:
+- **file-setup** re-anchored each section header after the previous section's last existing page. `↳ Grids & layouts` sat under Sandbox, so `Components` was "before its anchor" and was pulled to the end, landing just before Grids; `Subcomponents` and `Sandbox` followed it, and `ensureDividerBefore` made the first `---`.
+- **the button and icon-button builds** ran `ensureDividerBefore` on the existing `Components` header (the page before it was now a leaf, so each made a `---`), then pulled their existing page forward toward the header, which landed in front of it.
+- **the update's `reorderPages`** was innocent on this file (all 7 of its moves were backward), but every forward move it makes has the same off-by-one.
+
+**The fix.** Three guards in `apps/plugin/src/file-setup.ts`, no product decision:
+1. `moveAfter`: one move primitive for every page move (`placeAfter`, `ensureDividerBefore`, `reorderPages`). It inserts at the anchor's index in the list as it stands, plus one, and if the page did not land there it makes one more move, which is now backward, a move both readings agree on.
+2. file-setup positions only the pages it creates. An existing header, divider, placeholder or component page is never moved, wherever the designer keeps it. (This reverses #1554's "pull an existing page that sits before its anchor".)
+3. A build never moves an existing page (the #2575 promise `:256` broke) and creates a divider only alongside a header it creates itself.
+
+**Two things the record and the replay disagree on, raised on the issue.** The replay needs `↳ Grids & layouts` under Sandbox when the sequence ran, not first under Foundations as the issue reconstructed. And only two of the four builds can have placed a page after file-setup: each build of an existing page sitting before its header makes a divider, so `button-destructive` and `icon-button-destructive` most likely ran before file-setup. Both worlds are replayed and both hold every guarantee.
+
+**The gate.** `test-file-setup.ts` 3d replays the file (and the issue's reconstruction) under both readings: the update's 7 pages, then the Accordion rebuild, file-setup and the four button builds. Each guarantee is its own arm: the sequence after the update leaves the list as it found it; each alphabetical section reads A to Z after its header; no header, divider, Foundations, Sandbox or designer page moved; only the component-section pages Prism3 owns moved; no page created; every set on its page. Three more arms pin a forward move, a build beside a header with no divider, and a build of a page kept above its header. The `order/permutations` arm now counts distinct pages handed to `insertChild`, since a forward move under remove-then-splice takes two calls.
+
+**Mutations** (committed, then `git reset --hard`): the reorder's old index fails `replay/forward move, host reading`; the correction dropped fails `replay/forward move, splice reading` plus #2575's `order/apply`, `order/permutations`, `order/sub designer page`; file-setup's old rule fails every `replay/file …` arm (under the host reading with the old index it recreates the issue's file-setup step, one new divider); the build's old existing-page pull fails `replay/existing page above its header`; the divider for an existing header fails `replay/no divider for an existing header`.
+
+**After independent review (findings A–C on #2600).** The 3d fixture is now the file's real pre-Update order, restored from its saved version (`↳ Buttons` and `↳ Icon button` interleaved, `↳ Grids & layouts` under Sandbox), replacing a hand reconstruction; the expected 7 and the A-to-Z spans did not move. Before that, flipping 3d's host shim to splice failed nothing, and paired with the old reorder index the defect shipped green: every host-reading arm stood on a shim nothing checked. `replay/shim pin` now asserts the shim against a literal from the live run (`[A,B,C]` plus `insertChild(2, A)` gives `[B,A,C]` on the host, `[B,C,A]` under splice). And "a build never moves an existing page" had no arm outside an alphabetical section: `replay/existing page outside its non-alphabetical section` keeps `↳ Icons & assets` under Sandbox and builds `icon`. Mutations: the shim flipped fails `replay/shim pin, host reading`, alone and with the reorder's splice index restored; `if (!created && section.alphabetical) return page;` fails the new arm under both readings. The reviewer's nit (a *created* header can still land inside Sandbox) is #2605.
+
+**Trap for whoever re-verifies.** The shim in sections 1–3c still models remove-then-splice, and its own setup moves (`moveAfter` in 3c, the hand shuffles in 3b) are written for it. Only 3d models the host. Changing the shared shim to the host's reading would silently change what 3b/3c's hand-shuffled worlds are.
+
+---
+
+## (2026-10-14) — List and List.Item: a read list on a fixed marker column one line tall (#2319, Q273)
+
+Built to the owner's decisions Q273 on #2319: `List.Item` (9 members, `type` [unordered, ordered, icon] × `size` [small,
+medium, large]) and `List` (9 members, three nested items shown and five behind Figma-only booleans, off). No states, no
+new tokens, no contract change. Category `data`, aliases `unordered-list`, `ordered-list`, `bullet-list`, on its own
+`↳ List` page with List.Item beside it.
+
+### Verified first (Q273.10)
+
+The native Figma list fields, read from `@figma/plugin-typings` 1.131.0 and posted on #2319: `paragraphSpacing` and
+`paragraphIndent` bind variables (on a node, a range and a text style); `listSpacing`, `indentation`, `hangingList` and
+`listOptions` do not. The marker has no field of its own (no glyph, size, color or start number), so its ink can only
+come from the text's fill, which does bind. The proposal's "can't bind" was right for size and for the list indent (only a
+first-line `paragraphIndent` binds), wrong for ink as stated. What Dev Mode shows for a native list stays UNVERIFIED: this lane cannot open it.
+
+### What the construction is
+
+- **The marker column** is a box with a bound width (`space.300/400/500`, 24/32/40, Q280.1 A) and a bound height
+  (`control.size.*.line-box`), both FIXED, in a top-aligned row: checkbox-row's #1201 construction, so a wrapping item
+  keeps its marker on line one. The text fills the rest of the row and wraps under itself (the hanging indent).
+- **One marker per type**, each a `presentWhen`-gated part: a round `control.size.*.dot` box on `color.icon.primary`, a
+  number text in the item's own body style on `color.text.primary`, or an icon swap slot.
+- **The icon starts at `check`** through a new `PartDef.swapDefault`: a slot naming an icon-set glyph builds and
+  defaults its swap property to `icon/<glyph>` instead of the file's nominated default. Projector-only (the executor
+  already reads `swapTarget`), so `EXECUTOR_REVISION` does not move. A name outside the icon set throws at projection.
+
+### Technical calls, and why
+
+- **Ordered numbers stay designer-typed in Figma.** A nested item showing "2." needs a per-instance TEXT override on a
+  `nest-fixed` part: a new plan field, an executor write (finding the nested component's suffixed TEXT property key),
+  the file shim, the in-place update and the read-back. That is executor work with its own revision bump, not a small
+  engine change, so every nested item shows "1." until typed. Code counts itself (CSS counters).
+- **Sizes run small, medium, large**, not the medium-first order in the build brief: `test.ts` #2501 (Q213, Q221) holds
+  every sized def smallest first, as Tabs is. Figma's default member is then `small`, the same as every other sized set.
+- **The icon marker is 16/20/24** (`icon.size.sm/md/lg`), not the proposal's 16/16/20: a medium default off the `md`
+  rung is an `ICON_OFFSET_DEFS` exception, which `lint-rung-names` reserves for the owner.
+- **The native-list rule** (Q273.9) is in `ai.avoidWhen` and `docs.usage` in the decision's words. The Figma
+  description is `summary`, at most 100 characters, so it carries a short form ("For running text, use a native text
+  list.") rather than the full test.
+
+### Owner decisions Q280 (all A, 2026-10-13)
+
+The draft values this PR built to are approved: the marker column 24/32/40 (`space.300/400/500`), fixed, not
+density-following; the item gap 8/12/16 (`space.100/150/200`), density-following (compact 6/8/12, spacious 12/16/20);
+the placeholder "List item" and the number default "1."; and the two Figma descriptions as built. Noted as stated: icon
+markers 16/20/24, ordered numbers typed by the designer, and Dev Mode's handling of a native list still unverified (the
+owner checks it by hand).
+
+Review fix: the `swapDefault` refusal of a component-owned glyph was removed as unreachable. `glyphPath` already throws
+for any name outside the icon vocabulary, and the only component-owned glyph (`spinner`) is outside it, so the second
+throw could never run and a mutation disabling it passed every test.
+
+### Traps
+
+- A `type` axis with an `icon` value collides with the `icon` paint slot in `lint-paint`'s provenance rule, which reads a
+  key's lead as an axis value. Admitted per key (`list-item|icon`) with the reason, rather than renaming the slot.
+- `lint-axis-values` and `typecheck-components` read git-TRACKED def files, so a new def file is invisible to them (and
+  `typecheck-components` fails on it) until it is staged.
+- The Divider listed `list` in `composition.planned`; `component-refs` fails once a planned id is registered, so it
+  moved to `ai.commonPartners`, which moves `divider.md`.
+
+---
+
+## (2026-10-14) — Update: the dry run lists what the apply refuses, and a display-renamed axis updates in place (#2592)
+
+**What happened.** On an owner's copy file, an Accordion set built from an early #2534 head held the axis `position`.
+The merged def shows it as `icon position`. The dry run read `position` as a removed axis and `icon position` as an
+added one, and reported 12 to rename and 12 to mark deprecated with no blocker. The confirmed apply refused the set
+for a collapse. Two defects: the dry run and the apply disagreed, and a renamed axis read as a removed one.
+
+**The diagnosis that made the fix small.** The dry run already found the collapse (`needsChoice: axisCollapse`); it
+just never made it a blocker. The apply's preflight restated three refusals that are pure functions of the dry run
+(a collapse, an axis change over members not built by Prism3, a rename onto another member's name). They now live in
+one function, `setRefusal` in `update-plan.ts`. `dryRunSet` lists what it returns as a blocker, and the preflight
+refuses any set with a blocker, so the two cannot drift. That is #2545's shape for layout ownership. The checks the
+dry run cannot make (fonts that will not load, variables or styles the file lacks) stay in the preflight. That gap
+is filed as #2601.
+
+**Ledger, not `variantAxisNames`.** The update maps the axis through `COMPONENT_RENAMES`. The ledger speaks the
+Figma panel's names, which are the names a set holds, and `component-axes.json` is keyed the same way. `position`
+appears in no def field, so `variantAxisNames` could never have mapped the live case. Two entries cover both
+pre-merge heads, `position` and `iconPosition`.
+
+**Should `lint-component-renames` have demanded an entry? No.** Every rename happened inside #2534, and that PR's
+merge base had no Accordion at all, so the gate compared nothing. Its contract runs from main to main. A display-only
+rename that lands on main for an existing def *is* caught, because the baseline is keyed by the Figma name. A new
+engine test pins that.
+
+**Found on the way.** `noChanges` left renames out, so a set whose only change was 24 renames read "up to date"
+while the apply renamed them. Renames now count as a change.
+
+**Adopt follows, with one exception.** A set with a rename onto a hand-made member's name was always refused by the
+update. It is now also refused by Adopt, which refuses any set the dry run blocks. The `adopt/held` arm keeps its path
+through a hand-made member that the ledger renames onto a stamped member's coordinate. The exception came from review:
+an axis change over members not built by Prism3 is the very refusal Adopt exists to clear. Once it became a blocker,
+Adopt refused the set for it, and the set was stuck for good. `setRefusal` now returns `{ reason, adoptClears }`, true
+only for that branch. The dry run still lists every reason as a blocker, and Adopt is refused only by the others. The
+`adopt/axis change` arm takes an Accordion on `position` with one member's stamp and record cleared. Adopt claims that
+one member, and the next dry run has no blocker. Mutation: Adopt refused by every blocker again fails it by name. The
+executor's code did not move, so `EXECUTOR_REVISION` stays.
+
+**Arms.** `agree/collapse` and `agree/rename onto a name` take the apply's own refusal, read off the confirmed run,
+and require the dry run to list that reason as a blocker in its own words. `display rename/position` and
+`display rename/iconPosition` require every member renamed in place, with keys and ids the test captured off the
+shim beforehand.
+
+---
+
+## (2026-10-14) — Label line-box tokens: a glyph on a title's first line, derived from the type (#2586)
+
+**Status:** engine tokens, the Figma `control` collection, two readers of `type.*` (`visualize.ts`,
+`ai-metadata.ts`) and `test.ts` arms. ENGINE minor (change note). CONTRACT 14.6.0 → 14.7.0, MINOR:
+`type.label.{sm,md,lg}.line-box` added, nothing removed or retyped (baseline rebuilt from main's 14.6.0, `--accept`
+run after the raise). Accordion is unchanged: moving its `title-offset` onto these tokens is a follow-up.
+
+**The name (owner Q275.1 B, Q282 A).** The draft was `control.size.{rung}.label-line-box`. The owner moved it to
+`type.label.{rung}.line-box`: it sits with the type it measures, and "label" no longer means two things on one rung
+(`control.size.*.line-box` is a checkbox label's line, set in body type). The Figma variable `type/label/{rung}/line-box`
+lives in the single-mode `control` collection, not the viewport-moded `type-sets`, since it is one baked px per rung.
+
+### What changed
+
+`tree.ts` bakes one line of `type.label.{rung}` (font size × line height, rounded) the way #1201 bakes the body
+`line-box`, with the same agreement throw as #1220, and emits it beside the label composites. The two maps are kept separate so the error names the right token.
+In all five brands today: 14/16/21px at sm/md/lg, against the exact 13.8/16.1/20.7.
+
+### Why the line box alone, and no offset token
+
+The issue left open whether the baked first-line offset per (glyph, rung) is needed too, since Figma cannot
+subtract either. It is not, and the line box is the smaller surface that builds:
+
+- **The construction:** the glyph sits in a box `type.label.{rung}.line-box` tall and centers in it, on a top-aligned row. This
+  is the selection controls' `controlBox` construction (#1201) with the label's line in place of the body's. The
+  glyph's center is the box's center whatever its size, so it lands within 0.15px of line one at every rung (only
+  the px rounding is left over).
+- **An offset can go negative.** `(glyph − line) ÷ 2` is 1.1/1.95/1.65px today but −0.5px at md with a 1.5 label
+  line height, which is exactly the lever #2586 must land ahead of (Q160). A negative padding does not exist in
+  Figma auto layout. An offset token would need a second construction (pad the glyph instead of the title) chosen
+  by sign, and nine tokens (3 glyphs × 3 rungs) rather than three.
+- **The cost:** when the glyph is taller than the line (every glyph Accordion uses today), it overflows its box
+  equally above and below, by 1/2/1.5px at sm/md/lg, into the row's block padding (8px or more on Accordion).
+  Centering does that on its own, in Figma and in CSS flex. The row's height comes from the title, not the glyph.
+
+### The gate
+
+- `#2586 type.label.{sm,md,lg}.line-box is one line of the emitted type.label.{rung} composites`: the expected px is
+  read from the emitted label composites (filtered to `$type: typography`, so the line box is not read as one) through their own aliases (font size → px, line-height role → ratio), never from the
+  token or `theme.typography`. It runs over nb, the contract corpus and a synthetic row: aurora with only its label
+  composites re-pointed at the 1.5 step.
+- `#2586 a label line-height change moves the token`: md must be about 21px in that row, and differ from the corpus.
+- `#2586 a glyph centered in the label line box sits on the title's first line within 0.25px`, against the unrounded
+  line. It restates the construction rather than checking it independently (review nit): rounding bounds the two
+  centers at 0.25px apart whenever the value arm passes, so it cannot fail alone. It is kept, commented, at that bound.
+- `#2586 a label composite that disagrees …`: the #1220 shape, for the new throw.
+- `#2586 tokens.html draws no type specimen for a non-typography leaf under type.*` and `#2586 ai.json gives no type.*
+  leaf the "Private primitive" consume line`: the guard for the standing cost below.
+- The control field pin is unchanged at eight fields, so an old-path leaf emitted beside the new one fails it by name.
+
+### Trap for whoever builds on this
+
+**`type.*` is no longer composites only.** Before this, every leaf under it was a typography composite, and two
+readers assumed so without saying: `visualize.ts` `walkType` drew the line box as a 0px specimen, and `ai-metadata.ts`
+let it fall through to the primitive tier as "Private primitive — prefer a semantic token", the opposite of what it is
+for. Neither failed a gate; both were found by hand. The sidecar role sits in the `layout` tier, beside its body twin
+`control.size.*.line-box`, not in `typography`: that tier's schema entry requires an `avoid_when` and a composite or
+alias value, and the line box is a literal box height. The schema's layout pattern was extended to admit
+`type.*.*.line-box`; a field was not added, so its `$id` is unchanged. Any new walker of `type.*` must filter on `$type`. The guard arms
+cover these two readers, not a reader not yet written.
+
+A title row should bind `type.label.{rung}.line-box` as the glyph box's HEIGHT and center the glyph in it, with the row
+top-aligned. Padding the title by a constant (Accordion's `space.025`) is what this replaces. Its error grows with
+the label line height.
+
+---
+
+## (2026-10-13) — Accordion: the header centers a title row, so one line sits centered under the 44px floor (#2594, owner decision Q276 A)
+
+**Status:** the accordion def plus tests. ENGINE minor (change note). CONTRACT unchanged. No executor change, so `EXECUTOR_REVISION` stays where main has it.
+
+**What it does:** the indicator (`leadingIndicator` / `trailingIndicator`) and `titleBox` move into a new `titleRow` frame. The header centers that row (counter-axis CENTER); inside the row the items stay top-aligned, so a wrapped title keeps the glyph on its first line (Q262 A, Q266 A). The gap moves from the header onto the row, which grows across the header. Padding (8/12/16), the focus ring drawn inside the header's edge (Q257 A) and the Divider are unchanged.
+
+**The diagnosis:** the header was a top-aligned row with a min-height, so whenever the floor added height, all of it landed below the content. At small, the 16px glyph plus 8 + 8 of padding left 12px under it; medium and large were exact only because glyph plus padding happened to equal the floor. Centering the header directly would have broken Q262 (a wrapped title would center the glyph on the whole block), which is why the row is its own frame.
+
+**The name:** `titleRow`, because the title-row subcomponent (#2456, Q267 A) is the thing that will take its place. When that lands, it can be a nested instance under the same part name, in the same position, with no other restructure. It's a layer name, not brand-facing.
+
+**Tests:**
+- `test.ts` `#2594 accordion header (Q276)`: places the content with the plan's alignments and each brand's emitted min-height, padding, glyph size and label type, and asserts it is centered within 0.5px against half the header's own height, at every size and icon position in all five brands (30 measured).
+- `test.ts` `#2417 accordion header (Q262)`, reworked: it now reads the alignment of the indicator's parent row rather than the header, and asserts that row is top-aligned.
+- `test-update-apply.ts` `accordion`: a set built from the def before this PR (reconstructed from today's def; its 24 plans are byte-identical to main's) is updated in place. The dry run names the centering and the added row and refuses nothing. Every member keeps its key and id, and so do each header and Divider. The structure is read off the shim's nodes, and the next dry run reads all 24 current. A later update keeps the row and every node under it, by id.
+
+**A cost worth knowing:** the in-place update pairs a node's children by name under the same parent. So the indicators and the title, which move into a frame the file didn't have, are built fresh inside the row and the old ones are removed. Their ids change. The title is a text property, so a placed instance's text carries over. A placed instance's own chevron or plus-minus choice on the nested indicator does not. The test states this (`acc/moved children`). Accordion is held off the NB master until this merges (Q276.2 A), so only QA builds pay it. Adopting moved children into an inserted frame would need an executor change and a dry run that lists moves: #2595.
+
+**Owner decisions Q279 A, A (2026-10-13):** the update cost above is accepted (placed instances keep their title text and lose a per-instance indicator choice; no shipped file has Accordion yet, per Q276.2 A; adopting moved children stays #2595), and the layer name `titleRow` is approved as the future slot for the title-row subcomponent (#2456).
+
+**A trap for whoever re-verifies the Q262 arm:** with the indicator stretched to the row and the title the taller box, centering the row's items moves nothing a layout model can measure. The arm holds the row's top alignment as a literal from Q262 A and Q276 A, and that literal is what fails if the items are centered.
+
+---
+
+## (2026-10-13) — Border ladder: two decorative rungs, then `border.tertiary` as the first accessible border (#2569)
+
+Owner decision Q259 C (with 1A, 2A, 3A); closes #2498. The neutral edge ladder was 100 / 400 / 600 on a typical light ramp, and the 100 → 400 jump came from `border.secondary`'s hard 3:1 floor (#1745, put there for Badge's subtle neutral edge). Now `border.secondary` is decorative at ~2:1 with no floor, and `border.tertiary` is the quietest neutral step that clears the mode's non-text bar against every page and surface tier (`background.*` and `foreground.*`). Light lands 100 / 250 / 550 (harbor 200 / 300 / 550), dark 750 / 700 / 500. HC keeps its escalated targets and its steps (500 / 700 / 950 and 500 / 250 / 025). The inverse ladder is unchanged.
+
+**The mechanism is two existing ones.** The targets moved into the mode table as data (`borderSecondaryTarget`, `borderTertiaryTarget`, beside `borderTarget`): 2 and 3 in the standard modes, the old `4.5 × 2.2` and `4.5 × 2.2 × 2.2` in HC. `pickClosest` gained the `alsoClear` list `pickBrand` already had, so tertiary is "closest to the target among the steps that clear the floor on all six grounds". With the target at the floor, that is the least-extreme step that clears it everywhere. One `against` cannot say "every ground", so tertiary is contracted twice: against the page, and through `alsoAgainst` against the ground it measures lowest on (the binding one, picked per mode from the emitted values). That puts a client brand whose ramp cannot clear every ground under the contrast sweep at generation time.
+
+**Components (3A).** Badge's subtle neutral edge binds `color.border.tertiary`. Divider gains a code-only `separator.fill` → `color.border.tertiary` for decorative=false, while the decorative default and the Figma set stay on `color.border.secondary`. `decorative` has no Figma property, so `lint-paint.ts` lists `divider|separator.fill` as a category (b) unreached binding, the second after `field-message|default.icon`. Tab's hover bar stays on secondary. Its #2416 test asserted 3:1, which the owner's decision retires, so it now asserts the bar sits visibly off the page and lighter than the selected bar in light and dark, and holds 4.5:1 in HC, where the ladder did not move.
+
+**What the narrow ladder costs, for the owner.** The ratio target puts secondary at 250 in light (2.07:1), not the 300 the issue estimated; harbor's lighter ramp gives 300. In dark, primary (750, ~1.65:1) and secondary (700, ~1.97:1) are adjacent steps, so they stay distinct but read close. Both follow from the ~2:1 target as written. A different target moves them, and it's a one-number change in `BUILTIN_MODES`.
+
+**NB.** `nb-regression` doesn't move: it compares ramps, dimensions and its own contrast contracts, not border roles. The real-NB Figma fixture comparison does move. `color/border/secondary` now diverges from NB's authored 400 (light) and 500 (dark), recorded as an eighth `NB_KNOWN_DIVERGENCES` group. NB's HC border steps are still reproduced exactly.
+
+**Gates.** A new `test.ts` block (10g-iii) measures from the emitted hexes with literal bars: secondary is ~2:1 and under 3:1 in every light and dark cell, tertiary clears 3:1 (4.5:1 in HC) on all six grounds in every mode of every corpus brand plus the prism3 example, and Badge, Divider and Tab bind as decided. The existing distinct-rungs test (10g-ii) still holds. Paint census and component surface were re-accepted for Badge (the edge variable) and Divider (its `codeOnly` prose only, since its paint did not move).
+
+**Review follow-up: tertiary is the first step, gated.** The review found that tertiary sitting on the *first* step that clears had no gate of its own. Putting it back on the old ~6.8:1 pick (`borderTarget * 2.2 * 2.2`) kept every arm green, and only artifact drift failed, which a plain `regen.ts` clears. That would leave the shipped "first edge that clears 3:1" prose false. A fourth (10g-iii) arm now takes the neutral step one notch toward the page from tertiary's emitted step and asserts that it misses the literal bar on at least one of the six literal grounds, in every light and dark cell. "Toward the page" is measured as the neighbour that is quieter on `background.primary`, so the arm encodes no ramp direction. `docs/20` §9.9 now notes that the ×2.2 ladder survives only in HC and on the inverse ladder.
+
+**Owner follow-up Q270: dark secondary moves a full step off primary.** In dark, primary (750) and secondary (700) were a half step apart, and the owner judged that visually unnoticeable. Both ways to widen the gap were measured across the corpus. Lightening secondary to 650 lands at 2.38–2.40:1 on the page and 1.70–1.72:1 on `foreground.tertiary`, under 3:1 on all six grounds and well clear of tertiary (500, 4.2:1). Darkening primary to 800 drops it to 1.39:1 on the page in three brands and 1.00:1 on `foreground.tertiary`, an edge that vanishes on that tier. So dark's `borderSecondaryTarget` is 2.4 (light's stays 2), and the pick lands on 650 in every brand. 600 would sit at 2.88–2.92, too close to the 3:1 line. Arm 1 now states a per-mode literal center (2 light, 2.4 dark) and checks "under 3:1" on all six grounds, not just the page. A new arm, `#2569 Q270.2 dark border.primary and border.secondary sit at least 100 steps apart`, reads the step names off the emitted paths against a literal 100. The NB divergence row for dark `border/secondary` is now 500→650. Separately, secondary's HC description drops "decorative" (Q270.6), since at ~9.9:1 the word misdescribes it. The dark description's number moves from ~2:1 to ~2.4:1 because it is generated from the target.
+
+---
+
+## (2026-10-13) — Style guides batch 2a: effect styles and gradient styles (#2353)
+
+The owner's items 3 and 4 from 2026-10-09: "Shadows: effect styles, following the existing style pattern. Gradient styles." Two new tables, drawn from the file, with the Text styles table as the pattern.
+
+- **Effect styles.** One table, "Effect styles", on Semantic tokens: one row per local effect style in the file's order. The specimen is the swatch set's `type=default` member, painted the cell white with its own layers hidden, with the style applied by id (`setEffectStyleIdAsync`). It is bound to the style, not a copy of its layers. The columns are Type · X · Y · Blur · Spread · Color, one line per layer, so a two-layer elevation reads as two aligned lines in every column. Color follows the Color value format.
+- **Gradient styles.** One table, "Gradient styles": one row per local paint style that holds a gradient. A solid paint style is drawn nowhere and isn't listed. The specimen is the same member filling its cell edge to edge, as a color's fill swatch does, with its fill the style (`setFillStyleIdAsync`). The columns are Type · Position · Color · Variable, one line per stop: the position as a percentage, the color, and the palette variable the stop is bound to ("—" for none). The Variable column follows the aliases option.
+- **Which styles.** Every local style, whoever made it. That is the Text styles rule (it reads `getLocalTextStylesAsync` with no provenance filter), so a style Prism3 didn't create gets a row like any other. A file with none of a kind draws no table of that kind.
+- **The phase boundary.** `PHASE_TYPES` gains `shadow` and `gradient`, so the "not in this phase" note lists them as drawn. Sections 3 and 19 used `shadow` as their out-of-phase example and now use `motion`, which still waits on #2412. The "Not drawn until a later phase" note counts variables only. No effect or paint style was ever in it, and an effect-scoped or gradient-named *variable* still is.
+- **The Build style guides page.** Two more entries after Text styles, "Effect styles" and "Gradient styles" (`effectStyles: true`, `gradientStyles: true`). Two more kinds (`effect`, `gradient`) have their own kind box, and the summary counts them apart ("3 effect styles, 1 gradient style"). The studio's catalog validator passes the two flags and kinds through.
+
+**The diagnosis that kept it small.** Every style-table need was already in the executor except applying the style. The text-style specimen already applies its style by id (`setTextStyleIdAsync`, with the property as fallback), the miss counting already names a text-style specimen that isn't bound, and `effectStyleId` and `fillStyleId` were already in the fingerprint's fields. So both tables are new planners that emit ordinary rows (the specimen column plus `extra` values printed once per row), plus a 30-line specimen branch. The per-layer and per-stop lines are plain `\n` joins in a default text cell, as the contrast cell already does.
+
+**Specimen padding.** A shadow drawn on a card in a 12 × 16 cell is cut at the cell's edge: `shadow/2xl` reaches 74px down (y 22 + blur 52). The cell is padded by the style's own reach (the widest layer's larger offset, plus blur, plus any positive spread), never less than the usual 12 × 16. The padding is the owner's to confirm.
+
+**Tests.** Section 36 of `test-style-guide.ts` adds the emission's 14 effect styles and 2 gradient styles (stops bound to the palette), plus three styles Prism3 didn't make: a blur-plus-shadow effect, a three-stop unbound gradient (a stop at 35%) and a solid paint style. It asserts typed literals: keys, titles, columns, descriptions, row order, every printed line of `shadow/2xl`, `shadow-dark/inset`, `Brand/Frost`, `gradient/brand`, `gradient/glow` and `Brand/Sunset`, the rgba format, aliases off, no table for a file with none, the boundary note, the page's catalog, and, drawn, the header row, each specimen's applied style id and member, the card's white fill, hidden layers and reach padding, the drawn cells, a rerun in place, and a refused style counted (18), named and not a pass. The shim gained `getLocalEffectStylesAsync`, `getLocalPaintStylesAsync`, and `setEffectStyleIdAsync`/`setFillStyleIdAsync`, which throw for a style the file doesn't hold.
+
+**Mutations, each on a committed head and restored with `git reset --hard`, each failing by name:** the style never applied to its specimen → "36: every Effect styles row's card is the type=default member with its effect style applied…", "36: every Gradient styles row's swatch is an instance filling its cell, its fill style the row's gradient…" and "36: a style the host refuses to apply is counted (18)…"; the second layer of a multi-layer shadow dropped → "36: shadow/2xl prints both its layers…", "36: a blur layer prints its type and blur…", "36: a shadow color follows the Color value format…" and "36: drawn, shadow/2xl's cells read its two layers…"; a stop's position printed off by a factor of ten → "36: gradient/brand prints its stops…", "36: gradient/glow is Radial…", "36: Brand/Sunset prints its three stops…" and "36: drawn, Brand/Sunset's stops read 0%, 35%, 100%…". No check outside section 36 failed under any of the three.
+
+**Review follow-up (two tests, no source change).** The studio catalog validator's pass-through of `effectStyles`/`gradientStyles` and the `effect` kind went untested: the `style-guide-catalog` round-trip in `apps/studio/test-write-adapter.ts` now carries an Effect styles and a Gradient styles collection, each with its table. Section 36 now plans a copy of the catalog with a style whose one layer is hidden and asserts its Type line reads "Drop shadow (hidden)". The copy keeps the counts above unchanged. Mutations, each failing by name: drop the validator's `effectStyles` pass-through → "accepts style-guide-catalog"; drop `'effect'` from `KINDS` → "accepts style-guide-catalog"; drop the " (hidden)" suffix → "36: a hidden layer's Type line reads \"Drop shadow (hidden)\"" (no other style-guide check failed).
+
+**Not covered offline.** The shim records an applied style id; it doesn't render a shadow or a gradient. How a dark-mode shadow reads on the white cell, and whether the reach padding looks right on the owner's file, are live checks. Both are owner items on the PR.
+
+**Owner decision Q272 A (2026-10-13).** Items 1–7 are approved, and the code and docs/45 now say so. The refused-style miss no longer shows the internal kind keys. It reads "15 effect styles are not bound to their style, so they show the cell component's own value (…)", and the gradient twin reads the same way. Only the effect and gradient output moved: the older kinds share the template and keep their approved wording, `text-style` included. A new section 36 check fails by name if `effect-style` or `gradient-style` shows up in a miss, the summary or its lines.
+
+---
+
+## (2026-10-13) — Interactive components: built sets carry Rest → Hover → Pressed reactions, recorded and kept current by the Update (#2466, owner decision Q238 A)
+
+**STATUS: branch `claude/2466-interactive-components`.** Plugin only, so no engine change note. `EXECUTOR_REVISION` 14 → 15: #2548 took 14 on main.
+
+**What it does.** Every set whose `state` axis holds `rest`, `hover` and `pressed` gets prototype reactions on its members. That's 11 defs, derived from the member names and never listed: the three buttons, the three icon buttons, tag, tab, and the checkbox, radio and switch controls.
+- Rest → Hover on `ON_HOVER`.
+- Rest and Hover → Pressed on `ON_PRESS`.
+- Each is `CHANGE_TO` the sibling matched on every other axis.
+- Every other state has none. That includes the ones Q238 named (Disabled, Pending, Read only, Focus visible) and Pressed and Error, because only Rest and Hover are sources.
+
+Button: 192 members, 288 reactions, the probe's own count.
+
+**The diagnosis that shaped it (docs/18 §3).** A reaction names its destination by node id. A member the Update re-adds comes back under a new id, and its siblings' reactions dangle at an orphan that still resolves (`parent: null`). So nothing is kept from the file:
+- The executor writes every built or in-place member's reactions from the plan, after every other write and before the record, resolved by name to the siblings as they stand.
+- The dry run reads a destination that is no sibling, and no node with a parent, as dangling. Like a drawn fault, that makes the member "to update", never a hand edit.
+
+**The record.** Reactions sit in the as-built record as one hash beside the node hashes (`Baseline.reactions`), not inside the root's. That was deliberate:
+- A record written before this hashes every node as before.
+- It makes no claim about reactions, so the owner's next Update reads no false hand edits and needs no `BASELINE_V` raise. Raising it would have turned every record into "no record".
+- Each destination is named by the axes it differs on (`state=hover`), never by id or full name. So a repaired reaction reads back exactly as recorded, and renaming an unrelated axis isn't an edit.
+- A change is a hand edit at `(prototype reactions)`, with the usual keep/overwrite/accept choice.
+
+**Approach discarded.** Folding reactions into the root node's hash. It would have changed every existing record's root hash, and a dangling destination would have read as the designer editing the member.
+
+**Traps for whoever re-verifies this:**
+- An existence check alone reads the orphan as fine. `orphan/dangling` pins the parent check.
+- On a recorded, unedited member, a dangle and a plain difference both read "to update", so `orphan/dangling` alone can't see the dangle override in the state. `orphan/no record` and `orphan/hand-renamed` pin it where no record or an edit elsewhere would otherwise decide.
+- Reactions are read only on the member itself, never on its descendants.
+- A set built before this, re-checked, reads every Rest and Hover member "to update", with a named line per family. That's on top of the revision bump.
+
+**A shim gap this exposed:** `component-shim.ts`'s combine set a member's parent to its set only where it had none. A member built onto a `file-shim.ts` page arrived with the page as its parent, kept it, and every reaction in that set read as dangling (`test-canvas-furniture.ts` caught it: 192 "to update"). The host's combine always reparents, so the shim now does too.
+
+**Found and filed, not fixed (one concern per PR):**
+- #2563 (pre-existing, reproduced on clean `main`): a member an update adds is appended, never combined, so a translucent overlay wash stays at 100%, and verify doesn't check added members. The apply reports success, and the next dry run reads it "to update". The test's replace case uses a family with no wash for that reason.
+- #2564: the `use_figma` paste path writes no reactions.
+
+**Gates.** `test-reactions.ts`, 41 assertions, run in the plugin's `test`. Each of these mutations fails by name:
+- the excluded-state filter dropped;
+- one fewer axis matched;
+- the executor skipping in-place members on apply;
+- reactions dropped from the record;
+- existence checked instead of parent;
+- the dangle dropped from the state's first test.
+- the reactions dropped from a set's fingerprint, the set's move dropped from `previewHashOf`, or the page list dropped from it (`all three/hash, …`).
+
+**After #2548, #2575 and #2534 merged.** The merge conflicted only on imports. The set moves (#2542) and the page order (#2568) fit around the reactions unchanged. A set's hash already carries its reactions (its fingerprint), and `previewHashOf` carries each set's hash, its move and the page list. `all three/…` runs all three kinds of work at once: reactions to repair (missing on one set, dangling on another), sets to move, and a page to reorder. It saves one named version and does all of it. A reaction, set or page changed after the check refuses the confirm. The reaction change is a transition, which is in a reaction's key but not its words, so only the hash can catch it. Accordion (#2534) has `rest` and `focus-visible` only, so the scope rule leaves it out. It's still 11 defs, and `map/scope` already checks every def, Accordion included.
+
+**Trap: the shim gives every set the id `SET:1`.** The apply's identity check finds a set by id, so on a page of several sets it re-reads the first one. The update then reads "component IDs changed" for a set it updated correctly. A real host gives each set its own id, so `all three/…` assigns distinct ids itself. Any future multi-set apply test needs the same (#2593).
+
+---
+
+## (2026-10-13) — Update: the sets Prism3 built on a page are re-spaced as a new build spaces them (#2542, owner decision Q245.2 A)
+
+**Status:** plugin only (the update's dry run and apply, and a pure placement rule in the executor). `EXECUTOR_REVISION` 13 → 14 against main (#2545 took 13). No engine file moves, so no engine bump is owed.
+
+**Why:** #2502 (#2538) widened the gap between side-by-side sets to 400 so a set's new row labels clear its neighbour, but `placeNewSet` places only new sets. In a file built before it, later sets stay 160 apart and their row brackets land on the set to their left. An Update now re-spaces them, so the owner's single Update leaves each page clean.
+
+**The rule (`respaceSets`, beside `placeNewSet`; owner decision Q248 A, "the re-spacing only makes room"):** a set moves only when it sits closer to its left neighbour (the nearest Prism3 set to its left in the same row, as already moved) than a fresh build's `SET_GAP`, and then to exactly `SET_GAP` clear of it. A set spaced wider stays; a set with no Prism3 set to its left in its row (the first of a row, a second row) stays, so a second row is never lifted and `y` never changes. If the spot a moving set needs overlaps something that stays put, it is pushed just past it. A set Prism3 didn't build (no stamped member), the page header and every other node never move. The canvas furniture follows the move, since it is redrawn after the update from where each set sits.
+
+**Approaches tried and discarded:** first, replaying `placeNewSet` for each set. It reproduces a fresh build only on a page with nothing else in the row: `placeNewSet` puts a NEW set right of everything in its band, so a designer's note far to the right, or a set they built, would pull every later set past it. Re-spacing an existing page keeps the order and moves as little as it takes. Then, laying every set out `SET_GAP` after the one before (the first review round): that also closed up a designer's wider spacing and would lift a second row, which Q248 A rules out: the re-spacing only makes room.
+
+**Scope and safety:** a page takes part only when every Prism3 set on it is a target of this update and none is blocked, so an update scoped to one def never moves a set it wasn't asked about. A set's move is in the preview hash, so a set moved between the check and the confirm refuses the apply. The apply recomputes the moves from the live sets after their members land (new sizes), writes only `x` and `y`, and keeps every set and member id.
+
+**Two fixes from review (the UI lane, on 43c4c45f):**
+- **A set never lands on another Prism3 set.** The push past an obstacle read only the nodes Prism3 didn't build. Repro: A at 0, B at 960 (too close), a designer's frame at 1800..1900, C at 1920, all 800 wide. B was pushed past the frame to 2300, over C, which stays because it is 1120 clear of A. Now the obstacles are the fixed nodes, every set already placed, and a set not reached yet once the spot is at or past its left edge: B goes to 3120. **Trap:** counting EVERY later set as an obstacle was tried first and is wrong. On a plain squeezed page, B's fresh spot overlaps C where C sits now, though C would move clear of B on its own turn, so B jumped past C. Short of a later set's left edge, that set still has the moving one as its left neighbour and clears it; past it, it doesn't.
+- **Set ownership reads the members' shared test.** This branch had a local `const builtByPrism3` (any stamp on any member), which after #2545 shadowed the shared import of that name (TS2440). At runtime, `ownedView` would have called the set-level function with a member list, and every dry run would throw. It is now `setBuiltByPrism3`: a set is Prism3's when one of its members passes #2545's `builtByPrism3`. So a set whose only stamps are malformed, or one copied with its record from another member, is a designer's set and an obstacle.
+
+**A trap:** the pass maps a move back to its set by the node, never by id. In the shim every set built into one shim is `SET:1`, and mapping by id sent all three sets' moves to one name.
+
+**Tests** (`test-update-apply.ts`, `page/…`), the button family on one page squeezed to the old 160:
+- `set moves`: the dry run moves the 2 later sets ("Would change 2 of 3");
+- `converges`: the apply puts each where a fresh build did, keeps every id, and the next dry run is up to date ("✓ 2 sets moved");
+- `untouched`: a frame Prism3 didn't build stays put;
+- `in order`: a note far right in the row pulls no set past it;
+- `around`: a set Prism3 didn't build stays put, and the set that would overlap it goes just past it;
+- `scoped`: an update reading one set of the page moves none, in the dry run or the apply;
+- `blocked`: a page holding a set the update can't touch (two members on one coordinate) moves no set, in the dry run or the apply;
+- `wider`: sets spaced 600 apart stay;
+- `second row`: a set below the first row stays, while the too-close set in the first row still moves;
+- `just enough`: a set 300 from its neighbour moves to exactly 400 clear, and the one beyond, already clear, stays.
+- `never onto a set`: the repro on the built sets (864 wide, so B lands at 3184), read from the page after the apply: no two nodes in the row overlap;
+- `not ours by its stamps`: a set whose stamps are all malformed, or whose one stamp is a copy, is gone around (2964);
+- `respace onto a set` (`respaceSets` itself): the repro exactly, 800 wide, B to 3120 and over nothing.
+
+`around` and `scoped` also check the apply, and the test page carries a section header, which stays put.
+
+Mutations, each failing by name: the set-move pass removed (`set moves`, `converges`, `in order`, `around`, `second row`, `just enough`); the push past an obstacle removed (`around`); every set treated as Prism3's (`around`); the scope rule removed (`scoped`); the blocked check removed (`blocked`, and the blocked set itself was moved); the "only when too close" check removed (`wider`, `just enough`, `converges`); the left neighbour from any row (`second row`); a fixed step instead of `SET_GAP` clear (`just enough`, `in order`, `second row`, `converges`).
+
+The review fixes' mutations, from the committed tree: the push reading only the nodes Prism3 didn't build again (`never onto a set`, `respace onto a set`); every later set counted as an obstacle (`set moves`, `converges`, `in order`); the set-level check reading "any member has a stamp" again (`not ours by its stamps`).
+
+The "every set already placed" arm had no test of its own: leaving `...placed` out of the obstacle list kept the suite green, because in every committed layout a moved set's spot already cleared the sets placed before it. The re-review's repro now has its own arm (`respace onto a moved set`): A at 0 (800 wide), B at 900, C at 1000 (900 wide), a designer's frame at 1500..1600. B goes to 2000, and C, pushed past the same frame, goes on past B to 3200. With `...placed` removed, C lands on B at 2000 and only that arm fails. Test only: no behavior change, `EXECUTOR_REVISION` stays 14.
+
+**With #2575 (#2568, the page order) merged in.** Both features add work to the same dry run and apply, and the merge conflicted in `update-plan.ts` and `update-apply.ts`. Resolved so they compose: the preview carries each set's `setMove` and the file's `pages`; `previewHashOf` covers both, so a set or a page moved after the check refuses the confirm; an apply whose only work is set moves, page reorders, or both saves ONE named version first, its title the existing composition (`Before Prism3 updated button-destructive, button-neutral, the page order`, the form #2575 approved for sets alongside the page order); the pages move first, then the sets update, then the sets move. `applyVerdict` keeps both counters. A run that does both needed a headline that hides neither: `✓ 2 sets moved, reordered 1 page`, the two approved headlines (Q246 A, Q264 A) joined, marked DRAFT for the owner. New arm `both/…` (dry run, version, done, verdict, hash for a set, hash for a page). Mutations from the committed tree: the set's move dropped from the hash fails only `both/hash, set`; the page list dropped fails `both/hash, page` and #2575's `pages/hash`. A trap in writing the arm: each hash arm first read `_versions.length === 1`, so the set mutation, by letting a confirm through, also failed the page arm. Each now counts from its own baseline, so a mutation fails only the arm it targets. `EXECUTOR_REVISION` stays 14 (main 13).
+
+---
+
+## (2026-10-13) — Browser suites: the bounded input is shared, and test:chrome's S6.3 `lh-swap` step uses it (#2550)
+
+**STATUS: branch `ui/2550-lh-swap-bounded`, on `main` after #2557 merged.** Test only. No product code, no artifact moves, no ENGINE bump. #2550 stays open for the cloud cause.
+
+**Why.** Owner Q252: the UI lane is a cloud session, so test:chrome S6.3's `lh-swap` `selectOption` timeout (#2555's first verify) can't be the laptop sleeping, unlike the three local hangs. It needs the same bound and the same report, so that its next occurrence names what the page was stuck on.
+
+**The change:**
+- **`apps/studio/test-bounded.mjs`**, new: #2557's `bounded()`, its debugger-pause report and `rendersFrame`, moved out of `test-smoke.mjs` into one module both suites import. It's a factory, `makeBounded({ ok, isDead, onDead })`.
+  - **It carries #2557's busy-path rule, as merged.** This branch was cut from #2557's earlier head, whose busy path reported the stall and carried on with the input still in flight. #2557's review rewrote it before merge: an input that did not return on a page that still renders frames is still in flight and would land on whatever runs next, so that page is retired the same way a dead one is. Taking this branch's side of the merge would have undone that silently, so the merge moved the merged `bounded()` into the module rather than keeping the copy cut earlier. The busy path calls `onDead(page, label, why)` with `why` saying the input is still in flight. A thrown input on a busy page is over, and only that case carries on.
+  - test-smoke passes its `closeDead`, so it behaves exactly as #2557 merged it.
+  - test:chrome's `onDead` reports the named stall and throws an error marked `reported`, on the dead path and the busy one alike. That ends the case, the case's own catch doesn't count it twice, and its `finally` closes the context, which cancels an input still in flight.
+- **test:chrome S6.3 Type edits:** both `lh-swap` `selectOption` calls (to `relaxed` and back) go through it, at `INPUT_MS`. If the first stalls, the rest of the swap is skipped, not timed out again.
+
+**Mutations, each from a commit, on rebuilt bundles:**
+- **A freeze the input triggers** (a `change` listener that loops, the realistic case: the page stuck processing the input): `✗ S6.3 Type edits: previewing Dark, the normal line height swaps to relaxed: the input threw after 15003ms: locator.selectOption: Timeout 15000ms exceeded.; it was running JavaScript: frozenOnPurpose (page):1 < selectOptions (page):7368 < …`. No "case stopped" line, and the suite finished at 39,156 of 39,159.
+  - The other two failures are the hook guard: `size-floor-warn` and `type-viewport-refused` render later in that case, which a dead page ends.
+
+**Re-run on the merged result** (all three mutations in one commit, smoke and test:chrome on rebuilt bundles, then `git reset --hard`):
+- **#2557's mutation B** (`pointer-events:none` on `step-picker-step` for 20 s, first brand, before the S5a step loop) takes the new busy path: `✗ S5a prism3: the interactive.primary.text.rest picker: its action runs: the input did not return within 15000ms; the page still renders frames, so it was busy, not stuck, but the input is still in flight — its context is closed and the rest of this arm is skipped`.
+- **#2557's mutation A** (`reviewerFreezeA`, a capture `click` listener that loops on a `step-picker-step` click, first brand, S4c): `✗ S4c prism3: previewing dark, the base picker takes its 100 step: the input did not return within 15000ms; it was running JavaScript: reviewerFreezeA (page):1: the page rendered no frame within 15000ms, so it is treated as dead — its context is closed and the rest of this arm is skipped`.
+  - Smoke reached its report with those two as its only failures: `❌ 2 FAILED of 11844 assertions`.
+- **This branch's `reviewerFreeze`** on `lh-swap` again fails by name, with the same two hook-guard lines, and the suite finishes at 39,356 of 39,359.
+
+**A limit, measured, not fixed:** a page that freezes *before* its first bounded input, a freeze started by an earlier step, reports "no debugger session could be opened on the page, so where it stopped is unknown". The debugger is enabled at a page's first bounded input, and `Debugger.enable` needs the page's main thread. Measured with a loop started just before the `lh-swap` step. Enabling it at page open would close the gap, at the cost of a debugger session on every page in both suites. Decided as a technical call and tracked as #2585.
+
+---
+
+## (2026-10-13) — Accordion: one expand and collapse section, built on a nested indicator, a native slot and the Divider (#2417)
+
+Built to the owner's decisions on #2417: Q180 as revised by Q182, then Q183, the title type revised on 2026-10-11, the review answers Q241 to Q243, and the owner's QA of the live build (2026-10-12). It lands after #2529, the native-slot engine feature, which it merges in.
+
+- **`accordion`, 24 members:** `expansion` [collapsed, expanded] × `iconPosition` [leading, trailing] × `size` [small, medium, large] × state [rest, focus-visible].
+  - No hover (Q182), and no disabled or pressed member (Q183).
+  - The header row is the button, with a 44px floor at every size.
+  - The title is in `type.label.*.emphasis`.
+  - The panel, present only when expanded, is a NATIVE SLOT holding placeholder text in page ink, with no top inset and a bottom one.
+  - A nested Divider is stretched under the section.
+  - The header row is top-aligned, and the glyph centers on the title's first line (Q262 A).
+  - Q266 A accepts that construction as built: the indicator box is the row's height with its glyph at the top, and the title is padded down `space.025`. Label line-box tokens with the offset derived from the type follow in #2586, before any label line-height lever.
+  - The shared focus ring is drawn inside the header's edge (Q257 A).
+- **`_accordion-indicator`, 12 members:** `indicator` [chevron, plus-minus] × `expansion` × `size`. It's the building block Q183 chose. Each member shows one glyph. The Accordion nests it on the leading or the trailing side, with `indicator` exposed and `expansion` and `size` followed.
+- **Engine:**
+  - two new variant axes, `expansion` and `iconPosition` (values `leading | trailing`, Q242; the name from the owner's QA);
+  - a def id may lead with `_` for a building block, which Figma leaves out of a published library;
+  - `PaddingDef.blockEnd` pads a box's bottom apart from its top;
+  - a new `body` paint slot, for page text inside a control.
+
+### Measured before it was built (a real host, the scratch file, every probe removed after)
+
+- **The premise of Q183's shape:**
+  - An exposed nested `indicator=plus-minus` held across the host's expansion switch both ways, Figma swapping the nested instance to the matching member.
+  - Native slots fit the content better than an instance-swap (Q182 asked to check): a designer's content survives an expansion switch, even through the collapsed member that has no slot.
+- **The Divider under a stretch:** in a 400px column, a stretched Divider instance becomes FILL at 400px, follows its parent, and drops its 720px width binding. So the plan carries no width on the nested instance, and the read-back expects none.
+
+### Measured after it was built (the same file, the real paste payload, the probe page removed after)
+
+- The Divider (5 members), then `_accordion-indicator` (12) and two Accordion members built with no misses. The panel is a SLOT holding the placeholder, the set carries one `content` SLOT property and the `title` TEXT property, and the nested Divider is FILL at 320px with no width binding.
+- On a placed instance, plus-minus picked on the exposed indicator held across expansion switches both ways (plus, minus, plus, minus).
+- **One defect, fixed here:** the placeholder ran one line 578px wide out of the 320px panel. `wrap: true` projected `layoutGrow`, which in a column grows the height. Under a column it now projects `layoutAlign: STRETCH`; written live, the text filled 288px and wrapped to two lines, on the member and on the instance. Accordion is the first def with a wrapping text under a column (all defs scanned), so no other plan moves.
+
+### Choices made on the way, for the owner
+
+- **The title type is `type.label.*.emphasis`, not Q182's `type.body.*.strong`** (owner, 2026-10-11). A brand emits body strong only if it adds that weight, and nb-redesign does not, so `#1601` failed for it.
+- **Two indicator parts.** Node order is fixed per set, so `leadingIndicator` and `trailingIndicator` are two parts, each gated by `iconPosition`. A designer's chevron or plus-minus choice survives an expansion switch (measured) but is expected to reset on a position switch, since it then sits on another nested instance.
+- **`iconPosition` is `leading | trailing`** (values Q242, name from the owner's QA), as Button names its leading and trailing visuals and Switch row its `labelPosition`, following text direction. The indicator parts are named for the values too: `leadingIndicator`, `leadingGlyph`, `trailingIndicator`, `trailingGlyph`. A bare `position` read as if it could be the label's.
+  - **Figma shows "icon position"** (#2571, closed here). Variant axes had no display name: the axis key was written straight into member names. A new `FigmaProperties.variantAxisNames` gives one, as `slotAxes[].figmaName` does for Button's "leading icon". The plan carries it only when set (`axisFigmaNames`), so no other def's plan moves.
+    - The display name is written by `planComponentName`, and read by every key that parses a member name: the grid axes, the cohort `group`, the `footprintVaries` handed to the chunked paste, `gridAxis`, and the axis-parity domain.
+    - The validator refuses a name for an axis the def doesn't have, and one that clashes with another panel name.
+    - A def that another def NESTS can't carry one yet, because a nest names its coordinate by code name and the projection can't see the nested def. `#2571 nesting` fails by name the day one is nested.
+  - The docs schema's axis-key pattern admits camelCase for the code name (`^[a-z][a-zA-Z0-9-]*$`).
+- **The live build and the owner's QA (2026-10-12).** Built on the NB master copy at `tree-5e5df81f`: the padding was approved, and four changes followed.
+  - **The header row is top-aligned, and the glyph centers on the title's first line** (owner Q262 A, revising the QA's center-left, which floated the glyph mid-block on a wrapped title, #1009). This is Prism2's construction:
+    - the indicator box is as tall as the row, with its glyph at the top;
+    - the title sits in its own column (`titleBox`), padded 2px down (`space.025`).
+    - Prism2 padded its icon 2px down because its icon was shorter than the line. Here every brand's title line (label type at the snug line height) is shorter than the glyph, so the 2px goes on the title instead.
+    - Line one's center is within 1px of the glyph's at every size in all five brands, and at medium it's within 0.05px. `#2417 accordion header (Q262)` measures that on a two-line title, from the plan's own alignments and each brand's emitted tokens.
+    - The body `line-box` binding is gone from both indicator boxes.
+  - **The glyphs are one rung smaller:** `icon.size.xs`, `sm`, `md` (16/20/24px), superseding Q241.3's 20/24/32. `lint-rung-names` admits the medium default's `sm` through `ICON_OFFSET_DEFS`, the owner-sanctioned offset Button already uses.
+  - **The focus ring is drawn inside the header's edge** (Q257 A, superseding Q243). Built live, Q243's ring still compensated its own 2px stroke outward, so it covered the Divider by 2px.
+    - Now: offset 0, no `strokeInset`, and a new `PartDef.drawnInside: true` stating that the uncompensated stroke is intended.
+    - The schema's #801 rule accepts `drawnInside` in place of `strokeInset`, and refuses the pair together or `drawnInside` on a non-absolute part.
+    - `lint-absolute-inset` requires a part drawn inside to sit at a gap of exactly 0 in every brand, with a `MUST_DRAW_INSIDE` floor. Accordion leaves `ZERO_OK` and `MUST_CLEAR_STROKE`.
+- **Approved in Q241 and the QA:** the padding steps (inline 12/16/24, block 8/12/16, gap 8/12/16), the panel insets (no top, then 12/16/24 below), the inks, the Figma copy ("Section title", and the panel placeholder), the property names, the display name `Accordion.Indicator`, both defs on one "Accordion" page under Components after Divider, and the prose.
+
+### Gates and tests
+
+- Joined:
+  - `lint-hit-target` (Accordion's header floor; the indicator excluded);
+  - `lint-rung-names`;
+  - `lint-axis-values` (`expansion`, `iconPosition` and `indicator` as sole sets; size canonical);
+  - `lint-standalone-floor`, `lint-paint-placement`, `lint-glyph-geometry`, `lint-absolute-inset`;
+  - `test.ts`'s brief category, gated-parts, type-grid and spacing tables;
+  - the file taxonomy.
+- A `wrap: true` text under a column projects the cross-axis stretch, not the grow (measured above).
+- **Canvas furniture on both sets** (owner decision Q212 A, every def that builds a set): `_accordion-indicator` and `accordion` join `CANVAS_FURNITURE`, which #2538's `rollout/switch` holds to the def registry. The Accordion page joins the `clearance/pages` register as the seventh page holding more than one set; its two sets clear each other by 141px.
+- `#910` now handles a part gated on several axes (AND-composed), asked over the whole projected set.
+- Both baselines are accepted under the change note. The docs schema allows a `_` id. `regen` expects 180 artifacts.
+- The `#2417 accordion …` arms in `test.ts` hold each decision against a literal. The mutations and their failing lines are in the Ready comment.
+
+---
+
+## (2026-10-13) — Studio smoke: a stalled click or key press fails one arm by name, and says what the page was doing (#2547, #2550)
+
+**STATUS: branch `ui/2547-2550-smoke-hangs`.** Test only (`apps/studio/test-smoke.mjs`). No product code, no artifact moves, no ENGINE bump.
+
+**The change.** A new `bounded(page, label, act)` runs a click or a key press against a 15 s limit (`INPUT_MS`). Playwright's own calls have none: a key press waits forever, and a click throws an uncaught error after 30 s that ends the suite. All 11 inputs at the three reported sites now run through it: the S4c surface pickers and the S4c Fields rows (#2550), the S4d icon-override rows (#2547's Escape), and `withPicker` on Interactive (#2550's 30 s click).
+
+A stall fails **one arm by name** and reports what the page was doing:
+- **if the page still renders a frame**, it was busy. If the input threw, it is over and the arm carries on. If it never returned, it is **still in flight**, so the page is retired like a dead one (below): its context is closed, which cancels the input, and the arm skips that brand. The first version carried on here, and review mutation B (below) showed why that's wrong;
+- **if it renders none**, the debugger **pauses** the renderer and the failure names the JavaScript stack it was in, or says no JavaScript was running. The page then goes through the suite's existing dead-page path (`closeDead`), and its brand is skipped through the arm's label (`s4cArm`, `s4dArm`, and the new `s5aArm` and `s5bArm`).
+
+Each action passed in carries its own `{ timeout: INPUT_MS }` where Playwright takes one, including the step clicks `withPicker`'s callers hand it. The wait for a picker to draw after a bounded open (S4c surfaces, `withPicker`) goes through `drawn()`, a caught `waitFor` bounded at `INPUT_MS` that fails the arm by name. `hooks.need` would throw past every arm, and its message blames a renamed hook. `withPicker` now takes the arm and brand (`S5a <brand>`, `S5b <brand>`), so its failures say which.
+
+The suite also prints how close the inputs came to the limit: `Bounded inputs (…): N went through, the slowest in X ms`.
+
+**A trap the mutation found:** the first diagnostic attached the debugger only after a stall, and against a page stuck in a JavaScript loop it reported "no JavaScript was running". That was wrong. `Debugger.enable` runs on the page's main thread, the very thing that's blocked, so it never completed and the pause never landed. The debugger is now enabled per page at its first bounded input, while the page still answers (`debuggerOf`), and the later `Debugger.pause` is an interrupt that stops even a busy loop.
+
+**The busy-path trap (independent review of the first head).** A busy stall made `bounded` return false while the click was still pending on Playwright's 30 s clock. The arm went on with the same page, the late click landed and moved the picker, and the next `withPicker`'s unbounded `hooks.need` threw uncaught. That ended the suite with no report and blamed a renamed hook. Fixed as above. S4e's `groundOf` still runs an unbounded open, `need` and Escape, but it is outside the three reported sites and was never bounded, so it stays out of this PR.
+
+**Mutations, each from a commit, failing by name, with the suite reaching its report each time:**
+- **Review mutation B, busy, not frozen** (`pointer-events:none` on `step-picker-step` for 20 s, first brand, before the S5a step loop). Before the fix it died uncaught. Now: `✗ S5a prism3: the interactive.primary.text.rest picker: its action runs: the input did not return within 15000ms; the page still renders frames, so it was busy, not stuck, but the input is still in flight — its context is closed and the rest of this arm is skipped`, the only failure of 11,879.
+- **Review mutation A** (a capture `click` listener, `reviewerFreezeA`, that loops forever on a `step-picker-step` click, first brand, S4c): `✗ S4c prism3: previewing dark, the base picker takes its 100 step: the input did not return within 15000ms; it was running JavaScript: reviewerFreezeA (page):1: the page rendered no frame …, so it is treated as dead`, the only failure of 11,971.
+- **A frozen renderer** (an endless loop started before the first S4d Escape): `✗ S4d prism3: the Foreground row inverse.foreground.secondary in dark: Escape closes the picker: the input did not return within 15000ms; it was running JavaScript: frozenOnPurpose (page):1: the page rendered no frame …, so it is treated as dead`. It's the only failure of 11,992 assertions.
+- **`INPUT_MS` at 1 ms** (on the first head, before the busy-path fix, so an arm then went on past its first stall): every bounded input fails by name (`…: the input did not return within 1ms; the page still renders frames, so it was busy, not stuck`), 126 arms, and the run still ends in its report (12,027 assertions) instead of dying at the first stall.
+
+**The cause, measured: not load, and not a race in our code.**
+- **Load doesn't reproduce it.** I ran three smoke suites at once (load averages 16.6–18.3), then five (a peak one-minute load of **32.7**, free memory down to about 55 MB). All 8 runs passed. Across the five-run batch's 1,350 bounded inputs, the slowest took **255 ms** against a 15 s bound, so loaded inputs are slow by milliseconds, not tens of seconds.
+- **Every reported hang happened with the display off or the Mac asleep** (`pmset -g log`):
+  - **#2537**, two hours idle (Oct 11, about 09:00–11:00 CDT): the display was off from 09:51 until 22:00;
+  - **#2547** (about 23:50–00:15): the display was off from 23:31;
+  - **#2550** (about 25 minutes into a verify reported 09:17 on Oct 12): the system entered sleep at 08:51, 08:52, 08:55 and 09:12, and woke fully at 09:13.
+- **A fourth instance doesn't fit, so the cause is not settled.** test:chrome S6.3's `selectOption` on `lh-swap` timed out on the UI lane's first verify of `db324bf8` (#2555), then passed on the rerun. That commit is from 09:42 CDT on Oct 12 and the passing verify started about 10:51, so the failing one ran between those times. The display was on throughout, with no sleep. If that run was on this Mac, the display-off pattern holds for three of four instances, not all.
+- **Why the display state could hang an input, for the three it fits:** Chromium handles input in step with frames, and on macOS frame timing follows the display. With the display off or the system asleep, no frames come, so a click that has already passed every readiness check waits on the input being taken. That's #2550's log exactly: "element is visible, enabled and stable — performing click action".
+- **Not confirmed by experiment, and not the whole story (the fourth instance above).** A smoke run with the display turned off was proposed as the confirmation. The owner ruled it unnecessary (Q252), so it won't be run.
+
+**Where it stands:** the hangs no longer end a run, and the next one names what the renderer was doing (a JavaScript stack, or none). That's the evidence the cause still needs. test:chrome's `lh-swap` `selectOption` is outside this PR, which stays on the smoke issues; `bounded()` is the shape to bring there. For the display-off cases, #2565 has since landed the runner change on main: a local verify on macOS runs under `caffeinate`, so a long run keeps the display and the system awake. CI runs on Linux without a display and isn't affected.
+
+---
+
+## (2026-10-13) — Component pages in alphabetical order; a thin row's label drawn without a bracket (#2568)
+
+Owner decisions Q260 A and Q258 A, from the live Accordion build.
+
+**Page order.** The Components section carries a new taxonomy flag, `alphabetical`. A new `↳ <Name>` page is inserted after the last of the section's own pages that sorts before it (visible name, `↳ ` stripped, case-insensitive, exact name as tie-break), the header when none does; a build never moves an existing page. The in-place Update reads the order once per file (`pagesOutOfOrder`), lists it as "Component pages: N to reorder (…)", folds it into the preview hash, and the apply moves the pages (`reorderPages`) after the named version, before any set, under the version title "the page order". A page counts as Prism3's only when its name is one of the section's taxonomy leaves; anything else is a designer's and is never passed to `insertChild`.
+
+**The diagnosis that changed the design.** The first cut filled the section's own slots with the sorted pages. One page dropped at the front then read as every page "to reorder", and a designer page's neighbors changed even where nothing near it was out of order. The shipped rule keeps the longest run already in order (an O(n²) LIS — a section holds tens of pages) and moves only the rest, each after the last placed page that sorts before it: the same rule as a new page, so the build and the Update agree by construction. Ties between equal-length runs go to the first found, so the answer is stable across reads. `test-file-setup.ts` 3b checks all 24 orders of four pages around two designer pages converge with only the listed pages moved.
+
+**Scope, decided (Q265 B, 2026-10-13).** Subcomponents (Image Placeholder, Focus Ring, Field Label, Field Message, Spinner) is alphabetical too: the one-line flip, `alphabetical: true` on its section. Each section is ordered within itself: `ownIn` reads only the section's own leaves inside its own span, so a page of one section dropped by hand into the other counts there as a designer's and never moves, let alone across. `test-file-setup.ts` 3c pins it: `order/sub new page`, `order/sub designer page`, `order/no crossing` (both sections shuffled, a stray page in each). Foundations is file-setup's placeholders and stays in config order. `test-update-apply.ts`'s `pages/…` world had asserted "Subcomponents untouched"; it now expects Field Label moved before Spinner, so the dry run and apply count 3 pages, not 2.
+
+**Wording, decided (Q264 A, 2026-10-13).** The five strings are approved as written and no longer DRAFT: `Component pages: N to reorder (…).`, `Would reorder N pages`, `Component pages: N reordered (…).`, `✓ reordered N pages`, and the version title `Before Prism3 updated the page order`. With Q265 B, the "Component pages" lines also count and name Subcomponents pages; no string was changed for that, and it is left to the owner.
+
+**Thin row.** Where a row is shorter than the `_Label`'s own height, the label is not resized to the row: it keeps its height, is centered on the row, and `Show bracket` is set off (by the instance property, found by name since Figma suffixes the key; else the `bracket` layer's visibility on an older `_Label`). The trap for whoever re-verifies: the component shim sizes members from their bindings, not their values, so most shim rows are 0–16px and now take the thin rule; the Tag/Text-field `labels/rows` arm accepts either shape, and the new `thin row/…` arm writes the Divider's live sizes (1px horizontal) onto the members as literals.
+
+---
+
+## (2026-10-13) — Plugin: a dev-only "run code" command on the agent link (#2530, Q239 A, PR 2 of 2)
+
+**STATUS: branch `plugin/run-code`, stacked on `plugin/release-build` (PR 1).** No engine change, no committed artifact moves, no ENGINE bump. `CONTRACT_VERSION` unchanged. The bridge server (`tools/figma-bridge/server.ts`) is unchanged: `figma_run` already passes any `cmd` through.
+
+**What it adds.** A dev build (`dist/`, `PRISM3_DEV` true) answers `run-code {code, timeoutMs?}` on both transports. `code` runs in the plugin's main thread as the body of an async function. The result is our envelope:
+- `result.data.value`: the returned value as JSON, or its string form;
+- `result.logs`: the console lines, through the dispatcher's existing `teeConsole`;
+- a syntax error, a throw or a timeout (30 s by default, up to 600000 ms) comes back as `handler-threw` with its message.
+
+It's about 90 lines in `apps/plugin/src/dev-commands.ts`, plus three `PRISM3_DEV &&` branches in `agent-dispatch.ts` and one in `main.ts`'s `status` list.
+
+**The sandbox, proven first, live.** On the scratch file's main thread (read-only, through the Desktop Bridge, 2026-10-12), an indirect `(0, eval)` of an async IIFE:
+- saw `figma` as a global, `await` worked, a throw rejected, and a syntax error threw at once;
+- once, in that session, refused code containing `import` + `(` when it was evaluated ("possible import expression rejected"). Lane A couldn't reproduce that in the hosted runner (#2544 review), so the shipped docs claim nothing about run time. What's verified is the load-time rule, which `lint-sandbox-reject` keeps out of our own bundles.
+
+The dev and release `main.js` both pass `lint-sandbox-reject`.
+
+**Two diagnoses that shaped it:**
+- **A direct eval keeps the whole module in the release.** The Console MCP's bridge uses a direct `eval`. With one in `dev-commands.ts`, esbuild warns and stops tree-shaking that module. Every call site was folded away, yet the release `main.js` still had the parser, the messages and the `eval`. So it's an indirect eval: it reaches `figma` the same way (global scope), and the module is dropped.
+- **The parse lives in the dispatcher, not `parseCommand`.** `agent-protocol.ts` is context-neutral and is imported by the Node-side tools, `tools/figma-bridge/server.ts` among them, which have no `PRISM3_DEV`. A `run-code` envelope passes every envelope check and stops at `unknown-command`. The dispatcher lets exactly that case through, only in a `PRISM3_DEV &&` branch. `agent-protocol.ts` gains types only.
+
+**Comments ship.** The bundles keep comments, so a comment outside `dev-commands.ts` that named the command put the name into the release `main.js`. The comments near the dev branches say "the dev command" instead.
+
+**Tests:**
+- `test-agent-link.ts` §run-code: a value, `await` with `figma` as a global, logs, a throw, a syntax error, a timeout, bad args, and with `PRISM3_DEV` false, `unknown-command`. Its `status` expectation now lists `run-code` after the stable commands.
+- `test-agent-bridge.ts` e2e: `figma_run run-code` through the real server and relay into the real `main.ts` returns the value and the log line in a bridge envelope, and a throw comes back as `handler-threw`.
+
+**The release gate gains two markers**, each found in `dist/main.js` and absent from `release/main.js`: `[dev-command-name]` (`run-code`) and `[dev-command-eval]` (`(0, eval)`).
+
+**Mutations, each from a `wip:` commit, failing by name:**
+- **the dispatcher's `PRISM3_DEV &&` guards forced true:** `✗ [dev-command-name] is absent from release/main.js`, `✗ [dev-command-eval] …`, and `✗ run-code release: … unknown-command`;
+- **a direct eval:** `✗ [dev-command-name] is absent from release/main.js` (the module kept);
+- **the handler no longer reporting its value:** `✗ run-code value`, `✗ run-code await + figma`, `✗ run-code logs` and `✗ e2e/run-code … bridge envelope`.
+
+**Not yet run live through our own plugin:** the command on a real file. That needs the owner to open this branch's dev build with the agent link on. The evaluation itself is proven live; only the plugin wiring around it is measured in the harness.
+
+**Review fixes (Lane A, BLOCK on `62417877`):**
+- **A timeout stops the waiting, not the code.** JavaScript can't stop an async function from outside, so a timed-out run may go on, and its writes can still land (Lane A saw one 200 ms after the report). The message now says so: "run-code: timed out after N ms; the code may still be running, and anything it writes may still land". So do both READMEs. An arm checks the wording, and that a write made after the timeout does land.
+- **Two argument checks are now tested:** a `timeoutMs` out of range (0, 600001, a string), and args that aren't an object (a string, an array). Each comes back `bad-args` with its own message.
+- **The `import(` claim is out of the shipped docs** (see the sandbox bullets above).
+- **Mutations, each failing by name:**
+  - the range check removed: `✗ run-code args: a timeoutMs of 0, 600001 or a string is bad-args, naming the range (0 → undefined, …)`;
+  - non-object args read as `{}`: `✗ run-code args: args that are a string or an array are bad-args, "args for 'run-code' must be an object"`;
+  - the old message restored: `✗ run-code timeout: a run past its timeoutMs is reported as timed out, saying its code may still be running ({… "run-code: timed out after 20 ms"})`.
+
+---
+
+## (2026-10-13) — The hamburger joins the icon set as `menu` (Q253 A)
+
+**Done.** Remix Icon's `menu-line`, three 2px bars, is the 45th name in the shared icon set, as `menu`: the plain
+noun, like `home` and `search`. The owner's SVG was titled `menu-fill`; in Remix the two are the same path, so the
+glyph is the same either way. It is normalized like every other source (`fill="currentColor"` on the path, the 24px
+artboard). Regen carries it into `icon-glyphs.ts`, the `icon` def's `name` axis (44 → 45 members) and the committed
+docs. No token moves, so CONTRACT is unchanged; a minor change note covers the projected surface.
+
+**What pinned the set size, and what didn't.** `lint-icon-count` derives its expectation from `ICON_NAMES`, so it
+needed nothing. The pins that did move:
+- `glyph-shape` in `test.ts`: 41 → 42 distinct rendered shapes (43 path strings). The three -fill/-line collisions
+  stay the only ones; `menu` collides with nothing.
+- The single-icon arms of `apps/plugin/test-update-apply.ts` (15) and `test-update-components.ts` (4): 44 → 45
+  icons, and "the other 43" → 44. These are Lane A's update-path tests, and the edits are count-only.
+- `apps/studio/test-component-catalog.ts`: Icon's "44 components" → 45.
+- `lint-axis-values.ts`: the icon `name` set's register entry gains `menu`, between `link` and `minus`.
+- The surface, renames and paint baselines, each by its own `--accept`, and Studio's catalog by its generator.
+
+**A trap worth knowing.** The plugin's `test` script chains its files with `&&`, so the first failing file hides
+every file after it. A pre-push run piped through `grep | head` also reported exit 0, because the pipe's status is
+`head`'s. The first full verify found 3 gates red; each pinned file was then run on its own until green.
+
+**Named, not counted.** A new `Q253 A menu` arm in `test.ts` checks that the set carries `menu` and that it draws the
+owner's three bars, typed from the SVG the owner sent rather than read from `icons/`. Every count above moves the same
+way whichever name joins or leaves, so none of them would say which.
+
+**NOTICE.md.** The Remix Icon License attribution covers `menu-line` as it covers the rest; the file keeps no list of
+names. Its "36 glyphs" was already stale (44 names before this PR), so it now reads "a few dozen", with no number to go
+stale again. Found while checking it: NOTICE says `resize-grip.svg` is the one glyph not from Remix, but
+`fpo-default-icon.svg`'s source is recorded nowhere. Filed as #2570.
+
+**The source, checked against the release.** The repo records no Remix Icon version. NOTICE.md, LICENSE (whose
+"Version 1.0 – January 2026" is the licence's version) and `icon-set.ts` name none. So the owner's paste was checked
+against the npm `remixicon` package, unpacked to `/tmp` by `npm pack` (no `node_modules` touched). `menu-line.svg` in
+4.9.1, the latest, is exactly the owner's path, and `menu-fill.svg` is the same path. It is also unchanged in every
+release from 4.3.0 to 4.8.0. **A trap for whoever pins the set's release later:** no npm release matches every
+committed glyph. 4.3–4.5 match 29 of the 43 Remix files and 4.6–4.9.1 match 27. The rest differ only in the fourth
+decimal place (`check-line` starts `M10.0007` here and `M9.9997` in 4.9.1). The `width`/`height`/`fill="none"` wrapper
+is the remixicon.com download's format, not the package's, so the set was probably taken from the site. Added to #2570.
+
+---
+
+## (2026-10-12) — Icon color roles are fills only in Figma: no stroke scope (#2566)
+
+**Status:** engine scope maps, the read-back contract, docs/10 §3 and two tests. ENGINE minor (change note): the
+committed `out/figma/**/color.*.json` move, scopes only. CONTRACT unchanged, since no token name moves
+(`token-contract.ts --check` clean, `--accept` never run).
+
+### What changed
+
+The owner decided that every Prism3 icon is a fill, never a stroke. `emit-figma-color.ts` scopes icon roles in three
+maps: `COLOR_SCOPES.icon`, `INTERACTIVE_SLOT_SCOPES.icon` and `DISABLED_SLOT_SCOPES.icon`. All three drop
+`STROKE_COLOR` and now read `[FRAME_FILL, SHAPE_FILL]`. The inverse marker is already stripped before dispatch (#1140),
+so the inverse twins follow without a separate edit. Regen moves 976 variables: 61 icon roles × 4 modes × 4 brands,
+one scope each, nothing else. `read-back.ts`'s `EXPECTED_SLOT_SCOPES['color/disabled/icon']` and the docs/10 §3 table
+move with it. The table also gains the `interactive.<c>.icon` row it was missing.
+
+### The gates
+
+- **Engine, `test.ts` (e5).** The role list comes from the DTCG tree (`buildTree`), and the Figma emission is built
+  live (not read from `out/figma`), so a mutated scope map fails before regen. The sweep covers every brief in
+  `examples/` plus the NB fixture, and expects the hand-written literal `[FRAME_FILL, SHAPE_FILL]` for every icon role
+  in every mode. Each failure names the brand, mode, variable and scopes. Floors: at least 5 brands, at least 61 roles
+  per brand, and all six kinds represented (page, interactive and disabled, each with its inverse twin).
+- **Plugin, `test-write.ts`.** This checks the update path, not only create. It seeds an applied file's 61 icon
+  variables back to the old `[FRAME_FILL, SHAPE_FILL, STROKE_COLOR]` and re-applies. Every one must come back
+  `[FRAME_FILL, SHAPE_FILL]` on the same variable id, with 0 created. `applyWritePlan` already assigns `v.scopes` on
+  update, so no executor change was needed. The test pins that behavior.
+
+### For the owner
+
+- **No icon role is used as text ink.** A walk of every projected component plan finds no TEXT node painted with an
+  icon role, so nothing carried `TEXT_FILL` and nothing had to be held.
+- **Two icon roles are bound as strokes.** `color.disabled.icon` and its inverse twin are the disabled border of the
+  Button family and the Icon button family (#1697 rebound the border to the icon ink for its 3:1 contract). The
+  binding still writes, because Figma scopes limit only the pickers, not `setBoundVariableForPaint` (probe-verified
+  2026-07-04, see the `emit-figma-color.ts` header). But a designer re-picking that border by hand will not find the
+  icon role in the stroke picker. This PR applies the decision as written and leaves the bindings alone.
+
+---
+
+## (2026-10-12) — verify: a local run on macOS keeps the display and the system awake (#2547, #2550, owner Q252)
+
+**STATUS: branch `tools/verify-caffeinate`.** Runner only (`verify.ts`). No engine change, no artifact moves, no ENGINE bump.
+
+**Why.** The owner's answer to Q252: Lanes A–D and the rebuild lane run on a laptop that sleeps when left. Three of the browser-gate hangs (#2537, #2547, #2550) fell in display-off or system-sleep windows (`pmset -g log`, measured in #2557), and with no frames a click or key press never completes. The fourth, test:chrome's `lh-swap` step, ran in a cloud session and is #2550's remaining part.
+
+**The change.** On macOS, `npm run verify` starts `caffeinate -dimsu -w <its own pid>` before the first gate. It holds the display (`-d`), idle sleep (`-i`), the disk (`-m`), system sleep on AC power (`-s`) and the user as active (`-u`). `-w` ends the assertion when verify exits, however it exits, so nothing outlives the run. The run prints one line saying so. On any other platform it does nothing, so CI (Linux) is unchanged. A missing `caffeinate` isn't an error.
+
+**Its check** is one of the runner's own checks, which run before any gate:
+- with a recording spawn, darwin starts exactly `caffeinate -dimsu -w 4242` once;
+- `linux` and `win32` start nothing.
+
+The expected argv is written in the check, not read from `CAFFEINATE_ARGS`.
+
+**Measured live:** `caffeinate -dimsu -w 82457` was running for verify pid 82457 during a run and was gone after it exited.
+
+**Mutations, each from a `wip:` commit:**
+- **the platform check removed:** `keepAwake on linux should start nothing (started [["caffeinate",["-dimsu","-w","4242"]]]): CI would run caffeinate`, and the same for win32;
+- **the darwin spawn removed:** `keepAwake on darwin should start "caffeinate -dimsu -w 4242" once (started []): a local run on the owner's Mac would sleep mid-verify`.
+
+Either way, verify refuses to run.
+
+---
+
+## (2026-10-12) — Style guides: the notes name the focus modes the Border width table has no column for (#2505 part 2, owner decisions Q247 A, Q261 A)
+
+**Status:** Plugin only (`apps/plugin/src/style-guide.ts` and its test). No artifact moves, no ENGINE bump, CONTRACT
+unchanged, and the executor is not touched. This is the follow-up to #2543, which proposed it.
+
+### What changed
+
+The Border width table's columns are border-width's modes. Its focus ring rows come from the focus collection and
+read each column's mode there by name, or else focus's default mode. A focus mode that no column reads either way was
+never drawn, and nothing said so.
+
+`planVariableTables` now adds one line to the plan's `notes` (which the page and the run's summary show) for each
+collection a table borrows rows from that has such modes. The wording is the owner's (Q247 A, amended by Q261):
+
+> Border width: focus's modes Compact, Spacious have no column here, so their values aren't drawn
+
+with the table's title, the collection's name and the actual mode names. One mode reads "focus's mode Spare has no
+column here, so its values aren't drawn", and there's no closing period, as in every other note (Q261 2 and 3).
+
+"Not drawn" is read from the same lookup the cells use (`modeIn`), not by matching names again. So a mode drawn as
+the fallback is not named. In #2543's §35b file, focus has Spare (first) and Base (default), and only Spare is named.
+
+**Why "their values" and not Q247's "their focus ring values" (Q261 1).** Any border-width variable in another
+collection is borrowed the same way (`varKind` reads `stroke`, `borderwidth` or a STROKE_FLOAT scope), so a client's
+`stroke` collection with an unmatched mode would have read "stroke's modes … their focus ring values". In Prism3's
+own emission focus is the only borrowed collection.
+
+### Tests and mutations
+
+- `test-style-guide.ts` §35b: the notes name Spare alone (singular), not Base, the fallback.
+- §35d (new; §35c is #2549's): focus with Default, Compact and Spacious. The plan's notes and the run's notes carry the approved line.
+  A control with focus's one mode Default says nothing.
+
+Mutations, each from a `wip:` commit, restored with `git checkout --`, each failing by name:
+
+- **The note never pushed:** `✗ 35b: the notes name Spare …` and both name-carrying §35d arms.
+- **"Drawn" read by name only, the fallback ignored:** `✗ 35b: … ("… focus's modes Spare, Base have no column here …")`,
+  alone.
+- **Always the plural form:** `✗ 35b: … ("… focus's modes Spare have no column here …")`, alone.
+- **A drawn mode named too:** both §35d note arms and `✗ 35d: with focus's one mode read by the Default column, the
+  notes name no focus mode`.
+
+---
+
+## (2026-10-12) — The base + overlay files are the clean consumer set (#2552, owner decision Q250 A)
+
+**What changed.** The conforming projection (`<brand>.base.tokens.json` plus one
+`<brand>.<mode>.overlay.tokens.json` per mode) now carries no `$extensions` anywhere: a token holds
+`$value`, `$type` and `$description`, and the base no longer carries the generator stamp or the
+`decisions` log. `buildOverlaySet(tree)` strips by default and `buildOverlaySet(tree, { metadata: true })`
+keeps everything. Studio's and the plugin's "Design tokens" export now downloads this set, one file per
+mode, byte-identical to the committed files; "Include build metadata" (internal, off by default, DRAFT
+wording) puts the metadata back. The single-file `<brand>.tokens.json` keeps every extension and is no
+longer offered by any export. ENGINE minor (change note), CONTRACT unchanged.
+
+**The approach, and the one tried first.** The first cut emitted a separate `out/consumer/` copy beside
+the projection. The owner preferred cleaning the projection itself, provided nothing internal read its
+`$extensions`. The answer was measured, not reasoned: strip the projection, run the full `verify`, and
+read what fails. Four readers did, and each moved to the canonical tree:
+- the chrome `[glyphs]` build check read decision notes from the base (`NOTE_TREES`): the full tree only now;
+- `lint-description-claims.ts` read each projected leaf's recorded contrast partner: it reads the partner
+  from the canonical tree for the same path and mode, and still checks the projection's own prose and value;
+- `lint-tool-neutral-prose.ts` promised `decisions[]` in the base: promised in the full tree only;
+- `lint-overlay-provenance.ts` (#1257) read provenance from the committed overlays, which no longer carry
+  any. Provenance still ships in one place, the internal metadata export, so the gate now builds that
+  overlay with `buildOverlay` from the committed canonical tree (the projector is the subject, so it is
+  ACTUAL), and EXPECTED stays the canonical tree's own mode entry.
+Nothing at runtime in Studio, the plugin, `packages/tokens` or `tools/` read them. The proving config in
+`packages/tokens` is untouched: it reads the same files with the same stock config, and still passes.
+
+**Proofs.** All 20 files are byte-identical to `origin/main`'s projection with `$extensions` removed,
+checked once by a separate script with its own strip. The durable check is `lint-consumer-build.ts`:
+EXTENSIONS, EXTRA-KEY and TOOL-NAME over every key and string, ALIAS against the base, SCOPE from the
+canonical trees, and EQUALS, which re-derives each file from the committed canonical tree with a
+derivation typed in the gate (DTCG type filter, per-mode value or description change, key order) and
+never calls the projector. `test-export-settings.ts` and `test:export-parity` hold the export default in
+both hosts against the committed files; `test-smoke.mjs`'s edit-reaches-export checks now read the
+overlay for a non-default mode.
+
+**Traps for whoever re-verifies this.**
+- A Playwright mismatch in a cloud container (pinned build 1234, installed 1194) can be bridged by a
+  scratch `PLAYWRIGHT_BROWSERS_PATH` whose `chromium_headless_shell-1234/chrome-headless-shell-linux64/`
+  symlinks the installed headless shell. Under that older browser `lint:live-css` reports
+  `font-language-override` lost on seven rules. That comes from the browser, not this change: no
+  stylesheet moved.
+- The MCP `export_theme` tool still writes the single-file tree as `tokens.json` for an agent. That is
+  an agent path, not a client handoff, and it is filed as #2553 rather than widened into this PR.
+
+---
+
+## (2026-10-12) — Canvas labels: the value goes into the `_Label`'s text layer whatever the file calls it (#2558)
+
+**Status:** plugin only (`apps/plugin/src/canvas-furniture.ts` and its test). No engine bump, CONTRACT unchanged,
+`EXECUTOR_REVISION` unchanged (`lint-executor-revision` names write-components, write-styles and provenance as the
+executor; this file is not among them).
+
+**What broke.** On a live build, every canvas label kept its "Label" placeholder. That file's `_Label` names its
+text layer `Text`, and the lookup asked for a TEXT layer named exactly `text`. The verdict did say so, through
+`fontMisses`, but the build still shipped every label unwritten.
+
+**The rule now** (`labelTextLayer`): the layer named `text` exactly, then `text` in any case, then the instance's
+only TEXT layer. Two or more TEXT layers with none named `text` is a miss, never a guess. The sentence is
+`_Label has 2 text layers and none named "text"`, and with none at all it is `_Label has no text layer`. The search
+walks the instance's descendants itself instead of relying on `findOne`, so the fallback can count them.
+
+**The same fragility, also fixed:** the `_Label` member was picked by its exact Figma name
+(`Text=Top, surface=default`). It now falls back to the same properties in any case and any order (`labelMember`),
+so a file's own `_Label` spelled `Surface=Default` or listing `surface` first still matches. A Bottom or inverse
+member never stands in for Top or Left.
+
+**Looked at and left alone:** the template pick (`pick`) already falls back to any case through `isTemplateSet`;
+file setup's `has` check uses the same rule; `gridMembers` parses the set's own members, which the build named;
+`bindBackdrop` matches a variable name, not a layer.
+
+**Not decided here:** the issue's other option, renaming the file's `_Label` layer, is not needed after this. The
+plugin-built `_Label` still names its layer `text`.
+
+Mutations, from a `wip:` commit and restored with `git reset --hard`:
+- exact-name lookup back → `label text/Text`, `label text/TEXT`, `label text/another name`;
+- the lone-layer fallback guessing among several → `label text/ambiguous`;
+- the case-insensitive step dropped → `label text/prefers the named layer`;
+- the variant matched by exact name only → `label text/variant spelling`;
+- a miss dropped silently → `label text/no layer`, `label text/ambiguous`.
+
+---
+
+## (2026-10-12) — lint-executor-revision: a revision already taken on main fails by name, on the PR and after a squash (#2551)
+
+**What happened.** #2529 and #2548 each raised `EXECUTOR_REVISION` 11 → 12 and each changed the
+executor. Git merges two identical `12` lines without a conflict. #2548's green run compared against a
+merge base at 11, from before #2529 landed, and GitHub does not re-run a PR's CI when the base moves. On
+main's push run after a squash, the gate's merge base of HEAD and `origin/main` is HEAD itself, so it
+compared the squash commit with itself and would have passed too.
+
+**The fix, in `apps/plugin/lint-executor-revision.ts`.** Two comparisons beside the merge base:
+
+- **The first parent, whenever HEAD is already on the base branch.** Main's push run now also compares
+  the tree with `HEAD^`, so a squash that changes the executor without raising the number above its
+  parent's fails as `did not rise (12 → 12) against the first parent …`. This one always runs, so it is
+  the backstop: the clash can still land, but main goes red on the run after it. `fetch-depth: 0` was
+  already on the checkout, so the parent is there.
+- **Main's current number, on a PR.** In CI on a pull request the gate fetches the base branch again at
+  run time and fails a branch that changed the executor with a number main already holds:
+  `EXECUTOR_REVISION 12 is already taken: origin/main reached revision 12 after this branch left it`,
+  naming the commit that set it and the number to raise to. A failed fetch is a failure, not a fall back
+  to the stale ref. Locally nothing is fetched. This narrows the window to the minutes between a run's
+  start and the merge; it cannot reach a run that already finished.
+
+On main the merge base (HEAD) is still compared too, so a local checkout of main with an uncommitted
+executor edit still needs a bump.
+
+**The self-check.** The gate first replays #2529/#2548 in a `$TMPDIR` repo (local `file://` git,
+`GIT_CONFIG_GLOBAL=/dev/null`, as `tools/claude-md-freshness/mutations.sh` does) and asserts six literal
+outcomes: B at 12 fails as taken at PR time and as not rising after its squash; B at 13 passes both ways;
+a docs-only commit passes both ways. The case count is hand-written (6), not derived. Run against #2548's
+real head (526ed662) with `GITHUB_BASE_REF=main`, the gate fails as taken, naming dc9523ce (#2529).
+
+**Not done, on purpose.** No repo setting changed. "Require branches to be up to date before merging"
+or a merge queue is what makes a PR's green run mean the merged tree; that is the owner's call and is in
+the PR as a recommendation. The sibling git-history gates (`lint-emission-version.ts`,
+`lint-component-surface.ts`, `lint-component-renames.ts`, `lint-materialization-renames.ts`) take their
+merge base the same way, so on main's push run they also compare HEAD with itself; reported, not fixed
+here.
+
+---
+
+## (2026-10-12) — Style guides test: a focus mode named like the column wins over focus's default mode (#2549)
+
+**STATUS: branch `plugin/2549-mode-name-precedence`.** Test only (`apps/plugin/test-style-guide.ts`). No product code, no artifact moves, no ENGINE bump.
+
+**The gap (found reviewing #2543).** `modeIn` (`apps/plugin/src/style-guide.ts`) reads a row from another collection in the column's mode **by its name**, and falls back to that collection's **default** mode only when no mode matches. Swapping the two rules passed the whole suite:
+- in §35, focus's one mode is named "Default" and is also its default, so both rules pick it;
+- in §35b (#2543), nothing matches by name.
+
+**The case, §35c.** Focus gets two modes:
+- **"Base"**, its default, holds 9 for every ring value;
+- **"Default"**, named like the Border width column, holds the emission's aliases.
+
+Each focus ring row must read `2px`, `2px` and `0px` `@focus:named`, typed as literals. Drawn, the ring width's outline must be pinned to `focus:named` and read 2px.
+
+**Mutation, from a `wip:` commit:** the rules swapped (`defaultMode(own) ?? …name match…`) fails both arms by name:
+- `✗ 35c: a focus mode named "Default", like the column, wins over focus's default mode (Base, 9) (["pds3/focus/ring/width=9px@focus:base", …])`;
+- `✗ 35c: drawn, … ({"VariableCollectionId:focus":"focus:base"}; "9px")`.
+
+---
+
+## (2026-10-12) — Tabs: the selected label in the emphasis weight, every tab held at its bold width; every brand ships the default label weight (Q225 A, Q226 A)
+
+**Status:** engine (typography emission, the schema's `texts.also`, the tab def) plus a test-only shim reuse. ENGINE minor (change note). CONTRACT 14.6.0 (MINOR): six added paths, `type.label.{sm,md,lg}.default` and `.default-link`, now guaranteed.
+
+**Why:** on NB a selected tab and a hovered tab looked almost the same (bars 1.09:1 apart, the same label weight; Q224). Q224 A as first written described the def as it already was, so the lane asked: bold selected, regular unselected, with the width held (Q226 A), and every brand shipping the regular label style (Q225 A), as its own PR after #2518.
+
+**How the width is held, with in-flow primitives only:** the label sits in a hugging column (`labelBox`) beside a zero-height, clipping box (`reserve`) holding a bold copy (`labelReserve`). A hugging column is as wide as its widest child, so every tab takes its bold label's width, and the copy is never seen. One Label property drives both texts through the new `texts.<prop>.also`. The code twin is the usual `::after { content: attr(data-label); font-weight: bold; height: 0; visibility: hidden }`.
+
+**Traps found on the way:**
+- NB's legacy theme (`nbThemeFrom`) builds its typography with no input, so the union never reached it: the contract counted the six paths as brand-dependent until it was routed through `withLabelDefault` too.
+- The union first turned an EMPTY label weight set into `['default']`, which silently disabled #1639's refusal. An empty set now passes through untouched.
+- `default-link` comes with `default`: six new styles, not three.
+
+**Tests:** `#2416 Q226 A the weight cue` (the label default/emphasis by selection, typed; the reserve emphasis, clipped, zero-height, driven by the same property; nothing else differs) and `#2416 Q226 A the selected bar clears 3:1` (all 16 brand × mode cells; lowest is aurora/light at 4.56:1 (an earlier draft said NB at 3.03:1, which was the NB copy's own variables, not the emission the gate reads)) in `test.ts`; `tab width held (Q226 A)` in `test-write-components.ts` (emphasis 8px wider via the shim's `textAdvance`; every selected tab measures its unselected twin; no footprint miss). Mutation, the reserve following `selection` instead of staying bold: both arms fail by name, and the executor reports `footprint ->`.
+
+---
+
+## (2026-10-12) — Update: the dry run and the re-lay share one test of which members Prism3 built (#2510)
+
+#2494 made the executor's LAY OUT pass leave a member with no stamp where it is. The dry run reads ownership more broadly. `ownedView` also reads two other cases as not built by Prism3: a stamp that fails `STAMP_SHAPE`, and a copy (a member whose as-built record names another member of the set, as a Figma Duplicate's does). So it listed no move for either, while the apply's re-lay still moved both whenever an update ran for another reason.
+
+- **The fix:** one predicate, `builtByPrism3` in `member-baseline.ts`, which both sides already import (`update-plan.ts` imports `write-components.ts`, so the executor could not import `ownedView` itself). `ownedView` blanks the stamp of every member it refuses. The LAY OUT pass leaves those members where they are, still counting their size toward their row and column, as #2494 does. `STAMP_SHAPE` moves with it and is re-exported from `update-plan.ts`. The test is unchanged: a record naming a node outside the set is still no evidence of a copy (#1473, #1516).
+- **`EXECUTOR_REVISION` 11 → 13**, for `lint-executor-revision`. #2538 took 11, and #2529 takes 12, so 13 is the next number nobody holds. The lint only asks that the number rises.
+- **Test:** `relay/not ours …` in `test-update-apply.ts`. On a `tag` set, one member's stamp is set to `not a stamp`, another's record is replaced with a third member's, and both are moved 300px off the grid. An update runs for another reason (the gap moves on every member). The dry run reads `unstamped: 2` and lists neither as a move; the apply updates the other 43, and both members keep their position, stamp and record byte for byte.
+- **Mutations, each failing by name:**
+  - `ownedView` without the check: `relay/not ours listed` and `relay/not ours left` (along with #2471's `unbuilt/stamp not ours` arms and `apply/copy`);
+  - the LAY OUT pass back to reading the stamp alone: `relay/not ours left`.
+
+---
+
+## (2026-10-12) — Style guides test: the focus ring rows fall back to focus's default mode, now exercised (#2505)
+
+**Status:** test only (`apps/plugin/test-style-guide.ts`). No product code moves, no engine bump, CONTRACT unchanged.
+
+**Part 1, the fallback.** The Border width table reads each focus ring row in "the column's mode by its name there,
+else that collection's default mode" (`modeIn` in `style-guide.ts`). No emission exercised the second half: in prism3
+and NB, border-width and focus both name their one mode "Default".
+
+The new case, §35b, is §35's file with focus's modes renamed:
+- a first mode, "Spare", holds 9 for every ring value;
+- its default mode, "Base", holds the emission's aliases (2, 2, 0).
+
+So no Border width column finds a focus mode by name. Each ring row must read focus's default mode: 2px, 2px and 0px
+at `focus:base`. And drawn, the ring width's outline must be pinned to `focus:base`. That tells the default apart from
+both wrong answers: the first mode (9px) and the column's own ID (nothing).
+
+Mutations, each from a `wip:` commit and restored with `git checkout --`:
+- **The fallback removed** (`?? defaultMode(own)` dropped):
+  `✗ 35b: … (["pds3/focus/ring/width=—@border-width:0", …])` and `✗ 35b: drawn, … ({"VariableCollectionId:focus":"border-width:0"}; "—")`.
+- **The fallback taking the first mode instead:**
+  `✗ 35b: … (["pds3/focus/ring/width=9px@focus:spare", …])` and `✗ 35b: drawn, … ({"VariableCollectionId:focus":"focus:spare"}; "9px")`.
+
+**Part 2, extra focus modes (not built; the proposal is on the PR).** The Border width table's columns are
+border-width's modes, so a focus mode with no counterpart there is never drawn, and nothing says so. No file does this
+today.
+
+---
+
+## (2026-10-12) — verify: a hung gate fails by name after a per-gate time limit (#2537)
+
+A full `npm run verify` sat in `smoke` for 7133s with its browser idle. `verify.ts` had no time limit, so one hung gate held the whole run, and the machine's single verify slot, until someone stopped it by hand.
+
+**The change.** Every command gate now runs under a time limit. A gate that reaches it is killed with everything it started. Its row reads `✗ FAIL <id> <elapsed>s  timed out`, and its buffered output is printed followed by a line naming the gate, its limit and its elapsed time. A time-out is a FAIL: never a SKIP (the gate ran and did not finish), never ADVISORY, never a pass. `classifyRun` checks for the time-out first. A killed gate also has `status === null`, and the launch-failure branch would have called it a SKIP.
+
+**The limits, measured.** These are the worst healthy durations in 131 full verify logs on the shared development machine: chrome 1965s, plugin-test 440s, smoke 360s, engine-test 348s, studio-test 234s, and every other gate under 160s.
+- **Default: 1200s.** That is 2.7x the slowest gate it covers, and a sixth of the hang that motivated it.
+- **`chrome`: 5400s.** That is 2.7x its worst run inside verify, and 1.6x the 55 minutes one standalone `test:chrome` once took under load.
+- **`VERIFY_TIMEOUT_SCALE`** scales every limit at once on a slower machine. A non-number or a value of 0 or below refuses to run. No value turns the limit off.
+
+**CI is unchanged.** `ci.yml` runs each gate as its own step and runs `verify.ts` only as `--list`, so its limits are still GitHub's job timeout.
+
+**Killing the whole tree, and why a group kill is not enough.** Each gate is spawned `detached`, in a process group of its own, so the group can be killed without killing the runner. That alone would miss the browser: Playwright launches Chromium with `detached: true` (checked in `playwright-core`'s process launcher), so the browser has a group of its own. `killTree` therefore does two things. It snapshots every descendant pid by walking the process table from the gate's pid (`/proc`, or `ps` off Linux), before anything is killed, because a reparented orphan cannot be found afterwards. Then it sends SIGTERM to the group and to each pid, waits 10s, and sends SIGKILL to both. The run settles only once that sequence is finished, so a pending SIGKILL is never left behind the next gate or the runner's exit. Gates now sit outside the terminal's process group, so the runner passes SIGINT/SIGTERM on to the running gate's tree.
+
+**The test** is `timeoutSelfCheck` in `verify.ts`. It runs on every `npm run verify` and in CI's existing `verify.ts --list` step, before the order check. It does not run when `lint-doc-gates.ts` imports `GATES`. The gate list is unchanged. The fixture is a real hang: a node process that never exits, plus one child in its group and one detached child. It writes all three pids to a file. With a 2.5s limit the check asserts:
+- FAIL, by name;
+- the row and the time-out line, as literals;
+- the pre-limit output kept;
+- a wall time inside `2.5s..6s`;
+- all three pids gone (a zombie counts as gone);
+- a fast gate that still PASSes with its output.
+
+An outer 15s guard bounds the check itself. When it fires, the check kills the fixture's own pids, so even a broken runner leaves nothing running. It adds about 3s to each run.
+
+**Mutations,** each from a `wip:` commit, restored with `git checkout -- verify.ts`, green afterwards:
+- **the timer removed:** `✗ hang-fixture: the runner did not return within 15s for a gate with a 2.5s limit — a hung gate hangs the whole run`, plus the three "still running" lines (exits at 18s).
+- **a time-out classified SKIP:** `✗ hang-fixture: a gate past its time limit is reported SKIP, not FAIL` and `✗ hang-fixture: the table row does not name the gate as a timed-out FAIL: "  ⊘ SKIP     hang-fixture               3.0s  timed out"`.
+- **only the direct child killed:** `✗ hang-fixture: its child in the same process group (pid …) is still running after the time-out` and `✗ hang-fixture: its detached child, in a process group of its own (pid …) is still running after the time-out`.
+- **the group killed but no descendant walk** (the Playwright case): `✗ hang-fixture: its detached child, in a process group of its own (pid …) is still running after the time-out`.
+
+**A trap for whoever changes this.** The first version settled the run on `close`. After SIGTERM the gate exits and its pipes close at once, so the run moved on while the SIGKILL pass was still waiting out its grace period. For the last gate, the runner's `process.exit` dropped that pass entirely. `close` now only marks the pipes done after a time-out.
+
+**Not done.** The cause of the smoke hang itself. One lead, not a finding: Playwright's `page.evaluate` has no timeout of its own, and `test-smoke.mjs` already records one such wait hanging for 25+ minutes (near its `SETTLE_CLICK_MS` helper). **It has already happened once.** The first full verify on this branch timed smoke out at 1200s (`✗ FAIL smoke 1210.1s  timed out`). When the browser closed, the pending call threw, and that pinned the step: `keyboard.press: Target page, context or browser has been closed at test-smoke.mjs:2424`. That is the `Escape` in the S4d loop that edits each icon row's override, after the sweep and Brand sections had printed. Smoke then passed alone in 232.5s, and the full verify on the merged head passed. The hang is intermittent, and its cause is still open.
+
+---
+
+## (2026-10-12) — Tabs: a centered alignment beside start (#2518, owner decision Q222 A)
+
+**Status:** engine (schema, projector, the tabs def) plus a test-only shim extension. ENGINE minor (change note): Tabs goes from 3 members to 6. CONTRACT unchanged.
+
+**What it does:** `tabs` gains `alignment: start | center`. At `center` the list keeps each tab hugging its label and sits centered in a bar that spans its placement, with the baseline full width; the Figma member is built 480 wide (DRAFT: six large tabs measured at about 420 on the NB copy). `start` is the approved list, byte for byte.
+
+**The diagnosis that kept it small:** in a hugging bar, centered and start tabs sit in the same place, so the axis needed a bar wider than its tabs. #1757's root build width (`placementWidth`, a fill root built at a literal width) already does that, and both executors already resize to it. So the new `PartDef.center` is a per-coordinate transform at the projector's entry (`centeredAt`): at `alignment=center` the root reads as `align: 'center'`, `sizing.x: 'fill'` and the build width, and every existing path (sizing modes, the bounded fill for the baseline, each executor's resize) does the rest. No executor change.
+
+**Held as owner items:** `alignment` joining the closed `VARIANT_AXES` list (the 22nd name, with its argument against `inset`, `width`, `direction` and `offset`); the `center` schema field; the 480 build width; the new prop wording.
+
+**Tests:** `test.ts` `#2518 tabs` (the centered plan, typed from the decision, and start byte-identical to the def with the axis removed); `test-write-components.ts` `centered tabs (#2518)` and `start tabs (#2518)`, read off a built set on the layout-model shim. The shim gained a column's cross-axis placement under `layoutModel` only, so no existing assertion moves.
+
+**A trap worth knowing:** the shim's `x` modelled horizontal flow only; in a column it summed sibling widths. Centered geometry can't be read without the cross-axis model, which is why it is gated behind `layoutModel`.
+
+**Review round (Lane D's BLOCK on `17d90da3`):** none of `center`'s refusals was tested; switched off, every test still passed. `test.ts` now has one arm per refusal (`#2518 schema: …`, nine in all: off the root; on a row root; on a root with no layout; on a root already sized across; an axis the def doesn't declare; an axis the set doesn't project; a value not on the axis; the axis's default; a build width of no size) and one that Tabs' own `center` validates clean. Each check, removed on its own, fails exactly its arm. And `main` gained Divider's `orientation` as the 22nd axis name on the same line, so `alignment` is now the 23rd.
+
+---
+
+## (2026-10-12) — Native Figma slots: a content region a designer fills on an instance (#2417)
+
+Accordion's panel holds the designer's own content (owner decision Q182: "a swappable slot … the build checks whether Figma's native slot feature fits better"). It does fit better, measured on a real host. An instance-swap `slot` swaps a whole component the designer must make first, and its target is one placeholder nominated per file. A native slot takes whatever the designer drops into it, in place. So this PR adds native slots to the engine, as its own PR before Accordion (owner's choice, two PRs). No def uses one yet.
+
+- **The schema.** `PartDef.contentSlot: true`, on a `box` with `layout` that is not the root. Its children are the slot's default content. It projects as plan type `CONTENT_SLOT`, and `planSetProperties` records one `SLOT` property per slot name for the read-back.
+- **The batch executor** (`write-components.ts`, `toSlots`). The build makes a frame tree first, and `createSlot` is a COMPONENT's method, so each slot is built as a frame and becomes a SLOT right after `createComponentFromNode`, before the combine. The slot takes the frame's place among its siblings and its children, and then has the plan written onto it the way an update writes a plan onto an existing node (`build` with the slot as the node). A parent's per-child fields (`layoutAlign`, `layoutGrow`, `layoutPositioning`) come over from the frame. An in-place update runs the same conversion after the member's build, so a slot the plan gains, or one a type change rebuilt, becomes a SLOT and the member keeps its id.
+- **One SLOT property per name.** The combine merges every member's slot of one name into one property, but a slot made on a member already in a set gets a property of its own. So the property phase keeps the first, re-points every slot of that name at it, and deletes the rest. A SLOT property is verified, never added: the host refuses one without a default.
+- **The paste executor** (`__slotsNow` in the payload) makes the same conversion. It cannot write a plan onto an existing node, so it carries the frame's fields, size before any binding, and re-binds the plan's variables by name. Shipped only in a payload whose plans hold a slot, since every byte of the build ships in every chunk: icon-button stays at 16 chunks.
+- **A host without `createSlot`** keeps the frame, and the build names it (`<member>/<part>.slot -> NOT MADE …`).
+- **A slot's text is literal copy** (`PartDef.characters`). Measured: Figma refuses a component-property reference on a slot sublayer ("Cannot set component property references on slot sublayer"), while plain text in a slot's default content shows on an instance and a designer edits it there. So a `text` part inside a `contentSlot` box carries its own `characters`, which projects as the node's copy. A TEXT property claiming such a part is refused, and so is literal copy anywhere outside a slot, where a TEXT property is still the one way copy is written.
+- **`EXECUTOR_REVISION` 10 → 11.**
+
+### Measured on a real host (the scratch file; every probe removed after)
+
+- `createSlot()` appends a SLOT to the component, named `Slot`. On a member already in a set, the set gains a SLOT property at once, named for the node and following its renames.
+- Before a combine, each member's slot of one name merges into ONE property, referenced as `slotContentId`. Two members already in a set each making a slot make TWO. A slotted component appended to an existing set merges into its property, so the chunked paste never makes duplicates.
+- Re-pointing a slot's `slotContentId` at another SLOT property is accepted, and the left-over property can be deleted. Deleting a slot node leaves its property, orphaned.
+- `addComponentProperty(name, 'SLOT')` without a default is refused ("Required value missing").
+- A designer's content dropped into an instance's slot survives a switch to another member with the slot, a switch to a member without one (collapsed), and back.
+- The shipped `__slotsNow`, run on two slotted Tag members with the real host: each cell a SLOT in its plan place, holding its default glyph, width and height still bound, layout and sizing carried; one property, both referencing it; a designer's rectangle kept across a state switch. The `build` around it was trimmed to fit the call, so this measures the conversion, not the whole payload.
+
+### Tests and mutations
+
+`apps/plugin/test-native-slots.ts` (12 assertions, joined to the plugin's `test`) builds a TEST-ONLY def, Tag with its `dismiss` cell declared a slot, through the plugin executor. `packages/engine/test.ts` runs the paste payload on the same def, and on a host without slots. The three host models (`component-shim.ts`, the engine stub, the real host) now agree on the measured behaviors above. Mutations, each failing by name:
+- `toSlots` not called after the conversion → `slots/fresh is a SLOT`, `slots/property`, `slots/read back`, `slots/clean`;
+- `toSlots` not called after an in-place member build → `slots/gained on update`, `slots/gained property`;
+- the consolidation skipped → `slots/gained property` (15 `dismiss` properties);
+- the no-host miss dropped → `slots/no host support named`;
+- the payload's slot code never shipped → `#2417 paste: …` (FRAME cells, no property);
+- the payload's SLOT skip dropped → `#2417 paste, no native slots: …`;
+- the in-slot TEXT-claim rule dropped → `#2417 validator: a TEXT property claiming a part inside a native slot is refused`;
+- the outside-a-slot rule dropped → `#2417 validator: literal copy outside a native slot is refused`;
+- the projection's literal fallback dropped → `slots/literal text` (the placeholder comes out empty).
+
+### Traps for whoever re-verifies
+
+- The shim's `guardRefs` used to start every node's references at null, which erased the slot reference the host writes at the combine. It is now seeded from what the node holds. The engine stub's twin got the same fix.
+- The shim's `appendChild` does not detach a node from its old parent. The conversion moves children with `insertChild`, which does, as the host's own move does.
+
+---
+
+## (2026-10-12) — Plugin: a release build with no dev-only code, and the gate that proves it (#2530, Q239 A, PR 1 of 2)
+
+**STATUS: branch `plugin/release-build`.** Plugin build and gates only. No engine change, no committed artifact moves, no ENGINE bump. `CONTRACT_VERSION` unchanged. It's the first half of owner decision Q239 A; PR 2 adds the dev-only "run code" command behind the same flag.
+
+**What it adds:**
+- **`npm run -w @prism3/plugin build:release`** writes `apps/plugin/release/` (gitignored), next to `dist/`:
+  - `main.js` and `ui.html`, built with `PRISM3_DEV` false;
+  - `manifest.json`: the plugin's own, with the bundle paths beside it and no `devAllowedDomains`.
+- **`dist/`, the dev build every lane imports, is unchanged** except that it now defines `PRISM3_DEV: true`.
+- **The first dev-only code behind the flag** is the agent link's desktop bridge relay (`agent-link-ui.ts`). Its one origin, `ws://localhost:17331`, is listed only under `devAllowedDomains`, which Figma honours only for a development import. So in a release it could only fail. The mailbox transport stays in both builds.
+- **`apps/plugin/lint-release-bundle.ts`**, wired into CI and `verify.ts`:
+  - each dev-only marker, authored in the gate (docs/34), must be **found in `dist/`**, so it names real code, and **absent from `release/`**;
+  - `release/manifest.json` must be `manifest.json` with only the bundle paths and `devAllowedDomains` changed, and `allowedDomains` must be `["none"]`, written as a literal.
+- **`lint-sandbox-reject.ts` now scans both `main.js` files**, and fails if either is missing.
+
+**The diagnosis that decided the shape: esbuild without minification keeps a dead branch's text.** `PRISM3_DEV ? createBridgeRelay(…) : null`, and the same as `if (PRISM3_DEV) { … }`, built to `false ? …` / `if (false) { … }`. The call still referenced the module, so tree-shaking kept it: the first release `ui.html` still had `BRIDGE_PORT = 17331` and the relay's factory.
+- The studio's deployed build lives with this. `test-prod-bundle.ts` accepts its hook's name once, as the dead body under `if (false) {`.
+- For a release, "carries no dev code" should mean absent, not unreachable. So the release build alone sets **`minifySyntax`**, which folds the dead branch away, and tree-shaking then drops the module.
+- It's syntax only, with no renaming and no whitespace change. Measured: the release `main.js` is 16,893 lines to the dev build's 21,388, with no `if (false)` left, and it still passes the sandbox scan.
+- **The tradeoff, stated:** the release bundles are not byte-for-byte the dev bundles less the dev code. The browser suites drive `dist/` only.
+
+**Mutations, each from a `wip:` commit, rebuilt, failing by name:**
+- **the relay's `if (PRISM3_DEV)` guard removed:** `✗ [bridge-relay-url] is absent from release/ui.html` and `✗ [bridge-relay] is absent from release/ui.html`;
+- **`minifySyntax` dropped from the release build:** the same two;
+- **the manifest's `delete … devAllowedDomains` removed:** `✗ release/manifest.json carries no devAllowedDomains` and the manifest-shape arm;
+- **the relay's factory renamed in the source:** `✗ [bridge-relay] is in the dev build's dist/ui.html, so its absence from a release means something`. A stale marker fails rather than checking for code nobody writes.
+
+**For PR 2:** the run-code command and its handler go behind `PRISM3_DEV`, and their markers join `DEV_ONLY` (in `main.js` as well as `ui.html`).
+
+---
+
+## (2026-10-12) — Build style guides: a quiet run's finish is announced once, ruled out as doubled and pinned (#2508)
+
+**Status:** test only (`apps/plugin/test-style-guides-page.mjs`, in `test:verdict`). No product code moves, no engine
+bump, CONTRACT unchanged.
+
+**The question (owner Q217.5).** A style guide run on the Build style guides page is quiet: it opens no drawer.
+Activity's status line still announces its finish (Q194). If the page announced its own result too, a screen reader
+would hear the finish twice. The rule: when a page announces a run's result itself, Activity stays silent for it.
+
+**Ruled out.**
+- **Reading:** the page's one live region (`sg-live`, `aria-live="polite"`) holds only the run line ("Drawing table N
+  of M…"), and `paint` empties it once the run is no longer pending. The page's other regions are none: the existing
+  `progress` arm already asserts there is no live or status region inside the page.
+- **Measured:** a MutationObserver the test installs just before the verdict lands watches every live region in the
+  document (`aria-live`, and the `status`, `alert` and `log` roles). It records exactly one announcement,
+  `{"region":"activity-status","text":"Style guides finished."}`. So the finish is heard once, from Activity, and the
+  rule needs no change here.
+
+**The arm**, `#2508: a quiet run's finish is announced exactly once, by Activity's status line, and the drawer stays
+closed`. Two mutations, each from a `wip:` commit and restored with `git checkout --`:
+- **The page also announces its result** (its live line takes the verdict's headline at the finish):
+  `✗ #2508: … ([{"region":"activity-status","text":"Style guides finished."},{"region":"sg-live","text":"✓ style guide: 2 tables"}], …)`,
+  beside the existing `✗ progress: the live region is emptied when the run ends`.
+- **Activity silent for a quiet run** (`said.push` gated on `loud`): `✗ #2508: … ([], drawer open false)`, beside the
+  two #2507 finish-line arms.
+
+**A trap for whoever re-verifies this.** A mutation keyed on the page's `S.pending` survived: the count is already zero
+by the paint that draws the verdict. Key a page-side announcement on the run's own state (`r.state`, `r.run`).
+
+---
+
+## (2026-10-12) — Comments and docs no longer name code #2533 removed (#2535)
+
+**Status:** comments and docs only. No ENGINE bump: nothing emitted or projected moves.
+
+#2533 (#2487 PR 6) removed `makeWriteHost`, `describeControl` and `tokenPill`, and renamed `semanticInk` to `semanticInkOn`. Prose still named them as current: the plugin README and `prism3-host.d.ts` (`makeWriteHost`), `main.ts` (`describeControl`, `tokenPill` ×3), `modes.ts` and `test.ts` (`semanticInk`). Each now names the code that exists, or says the thing went in #2487 PR 6.
+
+**Beyond the issue's list:** `preview/sections/kit.ts` (3 mentions of `main.ts`'s `tokenPill`), `styles.css` (2), and `docs/26`'s "reuse the component kit" list, which named five helpers of which only `selectEl` still exists. It now points at `selectEl`, the token pills (`tokenPillSpan`, `tokenPillBadged`) and the levers kit. Left as written, because they are history and say so: `docs/24` (a completed plan), the pending fragments, `test-removed-legacy.ts` (which lists removed names on purpose), `docs/26`'s `<wbr>` incident note, and the comments that already say the code "lived" here.
+
+---
+
+## (2026-10-12) — Canvas furniture on every component, 400px between side-by-side sets (#2502)
+
+Owner decision Q212 A (recorded on #2471): after the pilot on Button, Tag and Text field, the furniture goes on every
+component, and the gap between side-by-side sets widens so the row labels fit (#2471 item 10, a layout call).
+
+**The switch.** `CANVAS_FURNITURE_PILOT` is now `CANVAS_FURNITURE` (`anatomy-figma.ts`), listing all 27 defs that build
+a set. Icon and Spinner (`emitAsComponents`) build single components, so there is no grid to label and they stay off.
+Kept as a list of ids, not "every def": the tests plan an earlier layout by renaming a def's component, and
+`rollout/switch` holds the list to `componentDefs`, so a new def that is not added fails by name.
+
+**What moves.** Only defs with a `surface` row axis regroup: Button destructive and Button neutral (360 moves each, the
+same shape as Button) and the three icon buttons (180 each). The 180 is worked out by hand in the test: 36 rows, and a
+row keeps its place only where 12a + 6s + 3u = 18u + 6a + 3s, which holds for six rows. Every other def's layout is the
+one it had, so its dry run on an existing file reads up to date straight away. All 27 converge on the shim: earlier
+layout → dry run reports the moves and nothing else → apply → next dry run up to date (`rollout/<def> …`).
+
+**Focus ring needed a fix, found by the per-def arm.** Its `surface` is the grid axis: default and inverse are two
+columns. The pilot's check (draw only when the inverse members form one row block) read that as not grouped, and
+refused with "Run Update to move them", which an Update never fixes. The check now applies only when `surface` is a row
+axis. Focus ring gets the "Default" and "Inverse" column labels and no backdrop; whether its inverse column should get
+one is held for the owner.
+
+**The gap.** `SET_GAP` goes from 160 to 400, in the plugin and in the paste payload's copy of the rule. Measured with
+the shim's label model (7px a character plus the 22px bracket), Button's four bracket columns reach 317px left of the
+set and Icon button's 324px, so 160 put them on the neighboring set. At 400, the later sets' labels sit 83px (Buttons)
+and 76px (Icon button) clear of the set to their left. The test asks for 40, 2.5 × the 16px label gap, so labels sit
+nearer their own set than the neighbor. Pages whose later sets have only column labels (Checkbox, Radio, Switch,
+Tabs) clear by 424. `clearance/…` builds each shared page in page order with the real executor and draws the furniture
+after each set lands, as a build does. The templates on `↳ File Components` keep 160: they carry no labels.
+
+**Existing files keep their placement.** `placeNewSet` never moves a set that exists (the "designer's placement wins"
+rule), so a page built at 160 keeps 160, and on `↳ Buttons` and `↳ Icon button` the later sets' row labels will sit
+on the set to their left after the Update. That is held for the owner, not fixed here.
+
+**`EXECUTOR_REVISION` 10 → 11.** `SET_GAP` lives in `write-components.ts`, inside the executor's import walk, so the
+lint asks for the bump even though no member's output moves. The cost is the one the revision file names: the next dry
+run reports every member as needing a re-apply, on the same Update that does the moves.
+
+**Mutations,** each committed first and restored with `git reset --hard`:
+- `SET_GAP` back to 160 → `clearance/Buttons` (-157px) and `clearance/Icon button` (-164px);
+- `icon-button` dropped from the switch → `rollout/switch`, `rollout/icon-button dry run` (up to date, not 180 to
+  move), `… apply`, `… drawn`, `… backdrop`;
+- the contiguity check made unconditional again → `rollout/focus-ring drawn`.
+
+---
+
+## (2026-10-12) — Grid styles are named by the bare breakpoint, renamed in place in files that hold the old names (#2467)
+
+Owner decision Q185 A: the layout grid styles drop the `Grid /` group. They are now `sm`, `md`, `lg`, `xl`, `2xl`, plus
+`xs` where a brand has it, so Figma's styles panel no longer shows them inside a "Grid" group. The emitter change is one
+line (`buildFigmaGridStyles`, `name: g.bp`), and only `out/figma/<brand>/grid-styles.json` moves under regen. The DTCG
+trees, the `layout.grid.*` variables, the token contract and TokenPress are untouched: TokenPress reads grid variables,
+not grid style names, and the exporter gate and read-back parity both pass unchanged.
+
+**The work is in the plugin, because a file applied before this holds the old names.** Three places had to change:
+
+- **The executor renames in place** (`write-grid-styles.ts`). For each planned size it reuses Prism3's own `<bp>`, else
+  renames Prism3's own `Grid / <bp>` to `<bp>` (same object, same id, so every layer using it stays linked), else
+  creates. It never creates `<bp>` beside an old `Grid / <bp>`. `GridStyleApplyResult` gains `renamed`; no UI text moved.
+- **Ownership, not name.** A bare `sm` is a name anyone might give a grid style, so a style counts as Prism3's only by the
+  #1884 mark, else the engine's grid-description signature (`isPrism3GridStyle`). The description fallback is what keeps a
+  file written before the mark, or a host with no shared plugin data (the MCP ledger mode), from getting duplicates.
+  **A client's own `sm` skips that one size** (owner decision Q234 A): the executor leaves the client's style
+  untouched, writes nothing under that name, applies every other size, and the result line names the skip
+  (`⚠ 1 grid style skipped (already in this file, not created by Prism3: sm)`, `gridSkippedNote`). The pre-flight
+  raises no conflict for grid styles any more; other style kinds keep the whole-apply refusal. A file holding both a
+  client's `sm` and Prism3's own old `Grid / sm` skips `sm` too and leaves both as they are, because renaming the
+  old one would put a second `sm` beside the client's.
+- **Prune** (`prune-figma.ts`) spares an old `Grid / <bp>` whose size the plan still emits: it is waiting for its rename,
+  and deleting it would unlink its layers. An old name for a size the plan dropped is stale under either name, as before.
+
+**A trap the bare names set in the prune, found while writing the test.** The prune's namespace for a style is its
+top-level group, and `styleGroup('md')` is `md`. With bare planned names, a designer's own `md/wide` grid style read as
+in the engine's namespace and was offered for deletion. A planned name with no `/` now adds no group. The consequence: a
+stale grid style is admitted only by its engine description (and named in the review text as such). One with an edited
+description is spared; that is the conservative direction, and a mark-based admission would need the prune snapshot to
+carry the mark, which it does not today.
+
+**Owner decisions Q234, all A:** a client's colliding size is skipped, not refused (above); an old `Grid / xs` left
+after a brand drops `xs` is still offered for deletion and named in the review, never removed unseen; a stale grid
+style whose description a designer edited is not offered, a hand edit being protected as everywhere else. Each is
+pinned by name in `test-write-grid-styles.ts`, `test-write-preflight.ts` or `test-prune.ts`.
+
+**The check.** `test-write-grid-styles.ts` (rename keeps the object and id; pre-mark rename; a client's `sm` and
+`Grid / sm` untouched; the skip, its line, and the client-plus-old-name case), `test-write-preflight.ts` (the whole
+apply on a file with old names, marked and pre-mark: 0 created, 5 renamed, same objects; a client's `sm` skipped with
+the other four sizes applied, with and without the legacy presumption), `test-prune.ts` (old name spared, dropped size
+offered and named under either name, an edited stale description spared, `md/wide` spared), and `test.ts` #1480 (bare names, literals).
+Each expected name is typed as a literal. Mutations, each after a `wip:` commit and restored with `git checkout --`:
+the rename turned into create-plus-delete, and into create-beside; the executor matching by name alone; the whole
+apply refused again over a client's `sm`; the skip clause dropped from the result line; the prune's rename-pending spare removed; bare names read as groups again; the emitter back to
+`Grid / <bp>`. Each fails its arm by name.
+
+**Not done here:** a live check on the scratch file. The scratch-file cleanup step (`runCleanupTheme`) removes a style
+only when its name is in the plan, so on a file still holding old names it leaves them; the next apply renames them.
+`tools/conformance-scan` fixtures now spell the grid style `xs`, and its mutation battery passes (54 detected).
+
+---
+
+## (2026-10-12) — Style guides: the border-width specimen reuses the radius example, its stroke weight bound (#2506)
+
+Owner direction on #2490's design item ("the border-width specimen is the outline at the width"): a border width is drawn on the radius swatch's specimen, so border width and radius read as the same object with a different property shown.
+
+- **The specimen.** Each Border width row now draws the swatches set's `type=radius` member, found by `radiusLayer()` as the Radius table finds it, and binds that `radius-example` layer's `strokeWeight` to the row's variable. Its corners are not bound to the width; they stay at the member's own radius (8px in the set Set up file builds). A 0 width still draws no stroke: the layer's only stroke is the bound one, at 0.
+- **The pin is unchanged.** Each specimen is pinned to its own row's collection before it is bound, so the focus ring's width and offsets still resolve in the focus collection's mode. That pin was the one thing #2490 had to add for a row from another collection, and this change keeps it.
+- **`type=border` stays.** The Border width table no longer uses it, but every `border.*` color role still draws on it (`autoDisplay`, `bindTarget(inst, 'border')`, the Display override, and sections 2 and 5 of `test-style-guide.ts`). Only the Border width branch moved.
+
+**Tests.** Section 35 of `test-style-guide.ts` now types the seven Border width rows out and asserts, for each: the specimen is a `type=radius` instance holding a `radius-example`; that layer's `strokeWeight` is bound to the row's own variable; none of `cornerRadius` and the four per-corner radii is bound, and the radius is still 8. The three focus rows are pinned to `focus:0`. For the two 0 widths (`border-width/none`, `focus/ring/offset-field`), the bound weight is followed through the emission's alias to the core dimension's number and must be 0, and no other layer in the instance carries a stroke. The shim records a bound weight but does not render it, so the 0 is the variable's own value, not a drawn one.
+
+**Mutations, each on a committed head and restored from it, each failing by name:** the Border width rows drawn on `type=border` again → "35: every Border width row's specimen is a type=radius instance…", "35: every Border width row's radius-example has its strokeWeight bound…", "35: no Border width row binds the radius-example's corners…" and "35: a 0 width … draws no stroke"; the corners bound to the width too → "35: no Border width row binds the radius-example's corners to its width…" alone; a row from another collection left unpinned → "35: the focus ring rows' radius examples are pinned to the focus collection's mode" and "35: a 0 width … draws no stroke".
+
+**A stroke to weigh (owner decision Q233 B).** The set Set up file builds gives `radius-example` a 2px ink stroke inside, but the owner's own member, as measured live and modeled as `ownerRadiusMember`, is 256 × 96 at 8px with one fill and no stroke: its weight would bind and draw nothing. So a Border width specimen whose layer has no visible stroke is painted one, bound to the default border color, the engine's `border.primary` role ("Default border"), found by trailing path `border/primary` among the file's COLOR variables and never `inverse/border/primary`, bound with `setBoundVariableForPaint` as a border color row's swatch is. **How "already has one" is decided:** any paint in the layer's `strokes` whose `visible` is not false. A member with a stroke keeps it, unbound, so an owner who styles their own stroke is never overwritten; a hidden stroke counts as none. A file with no `border/primary` color counts the specimen under the existing unbound-specimen line ("border color"), never draws it silently.
+
+Section 35 runs the Border width table twice more on a file holding the emission's light border colors: once with the owner's stroke-less member swapped in (every row's `radius-example` has exactly one stroke, bound to `pds3/color/border/primary`, and its weight still bound to the row), and once with the Set up member (every row keeps its one unbound stroke). Q233 B mutations, each on a committed head: the paint dropped → "35: on the owner's stroke-less radius member, every Border width row's radius-example is painted one stroke bound to pds3/color/border/primary"; the paint added whether or not the member has a stroke → "35: on the Set up file's radius member, which has a stroke, every Border width row keeps that one stroke…" and "35: an open run draws every table, every specimen bound". The live render on the scratch file comes after review.
+
+---
+
+## (2026-10-11) — Export dialog: the preview draws the chrome's focus ring, inside its edge (#2523, owner decision Q229 A)
+
+The export dialog's preview (`pre.p3-export-pre`) has been a Tab stop of its own since #2124, and it drew the browser's ring: 1px `#005fcc`, no offset. PR 5's ring sweep with the dialog open found it (#2527) and pinned it as a known gap. The owner's Q229 A: draw the chrome's 2px ring INSIDE the preview's edge, as the two scrolling panes draw theirs, so scrolling never clips it.
+
+**The change.** `.p3-export-pre` joins the panes' inner-ring rule in `chrome.css` (`outline-offset: calc(-1 * var(--p3-focus-width))`). The preview gets the hook `export-preview`, which joins `INNER_RINGS` in `test-chrome.mjs`. The pinned gap in `PR5_RING_GAPS` is closed and removed.
+
+**Why inside, measured.** The preview fills its column (`p3-export-prevs`) exactly: same rect, 463 × 380 at 1280. It scrolls both ways itself: 1698 tall and 622 wide of content. Its column clips at its edges and does not scroll. So a ring 2px outside would be lost on every side, and one inside the edge is drawn whatever the scroll.
+
+**The test** (§47, PR 5's dialog case). The preview is focused by Tab and scrolled to each of its four corners. At each corner the ring is read by `FOCUS_RING_READ` and held to `ringMisses` as an inner ring: `color.border.focus`, 2px or more, `offset ≤ −width`, 3:1 against its own ground. The preview's box must also sit inside every ancestor that clips. It reads 2px `#1e1eff` at −2px, 6.44:1, at all four, on web and figma.
+
+**Mutations,** each from a `wip:` commit, with both bundles rebuilt, each failing by name:
+- **the preview dropped from the inner-ring rule:**
+  - `✗ … with the export dialog open, each of its 15 controls walked by Tab draws the chrome ring … — export-preview: color #005fcc …`
+  - `✗ … #2523 the export preview draws the chrome ring inside its edge … (start/start 1px #005fcc at 0px …)`
+- **the ring drawn 2px outside:**
+  - `… export-preview: an inner ring at offset 2px, want -2px or less`
+  - and the #2523 arm.
+- **the preview pushed past its column's edge:** the #2523 arm alone, `… clipped by p3-export-prevs`.
+
+**One existing arm moved with the hook.** S13.1's tab-order walk names each stop by its hook, or by its tag when it has none. So its "the export preview is a Tab stop of its own … and Tab reaches it" arm now looks for `export-preview` rather than `pre`. The first full verify caught it, on every host, theme and width.
+
+**A trap for whoever mutates this.** The chrome CSS build allows tokens only, so a raw `-6px` fails the build, and the suite then reports a stale bundle, not the arm. Write a mutation in tokens (`calc(-1 * var(--p3-space-075))`).
+
+---
+
+## (2026-10-11) — Update dry run test: the singular "Adopt can claim it." is pinned as a literal (#2520)
+
+**Status:** test only (`apps/plugin/test-update-components.ts`). No product code moves, no engine bump, CONTRACT and
+`EXECUTOR_REVISION` unchanged.
+
+#2476 shipped the dry run's Adopt clause, and its test pinned only the plural ("Adopt can claim them.").
+#2516's `unbuilt/apply as previewed` arm compares the apply's set line with `previewLine` itself, which can't
+fail on a wording change. So rewording the singular clause passed every suite.
+
+The new arm, `converged/adoptable one`:
+- **Setup:** builds the Button set (576 members) and takes the stamp and record off one member, so it holds its
+  planned coordinate and is adoptable.
+- **Assertion:** the set's line is the literal the UI lane gave:
+  `button: no changes (576 members). 1 not built by Prism3, left as they are. Adopt can claim it.`
+- **Premise:** pins the counts (576 members, 1 not built by Prism3, 1 adoptable, nothing to add, no change listed).
+
+Mutation, from a `wip:` commit and restored with `git checkout --` (the issue's own: `'it'` → `'that one'`):
+`✗ converged/adoptable one: a set with one member Adopt could claim reads "… Adopt can claim it." (got "button: no changes (576 members). 1 not built by Prism3, left as they are. Adopt can claim that one.")`.
+It is the only failure of 126.
+
+---
+
+## (2026-10-11) — Layout: a brand that arrives with eight breakpoints draws with its error, and Remove takes it back to seven (#2513)
+
+**Status:** Studio only (`apps/studio/src/state/layout-input.ts` and its tests). No engine change, no artifact moves,
+no ENGINE bump, CONTRACT unchanged. One visible label is new, DRAFT for the owner (below).
+
+### The diagnosis
+
+`namesFor` asks the engine to name a breakpoint list, and the engine refuses more than seven ("The brand can have at
+most seven breakpoints. This brand has 8.") without naming any of it.
+- **Drawing threw.** The Layout page names its rows through `namesFor`, so drawing an eight-breakpoint brand
+  threw.
+- **Remove was refused.** `commitBreakpoints` names the list as it stands before writing, and its `catch` refused
+  every change, Remove included. So a brand an agent wrote with eight breakpoints could neither be drawn nor brought
+  back.
+
+### What changed
+
+- **`namesFor` names a list longer than seven.** The first seven take the engine's names for seven, and each width
+  past them is named by its width (`2560px`). No engine name is restated, and none collides with one.
+- **`commitBreakpoints` refuses more than seven explicitly.** That refusal used to come from `namesFor` throwing,
+  which no longer happens. An eighth Add, or an edit at eight, is still refused and writes nothing. A Remove from
+  eight, which leaves seven, is written.
+
+**DRAFT for the owner:** the label of a width past the seventh. It's the row's name, as the page shows it (for
+example `breakpoint.2560px`, and "Remove 2560px"). It's drawn only for a brand that arrived with too many
+breakpoints, beside the engine's error line.
+
+### Tests and mutations
+
+- **`test-layout-input.ts` §7:**
+  - eight breakpoints are named without throwing (`["xs","sm","md","lg","xl","2xl","3xl","2560px"]`);
+  - one Remove (768) leaves a valid seven, and the brand resolves.
+
+  §6's existing "an eighth breakpoint is refused" arm now holds the explicit refusal.
+- **`test-smoke.mjs`** (every brand), with a live write of eight:
+  - the Layout page draws all eight rows with the error line and no page error;
+  - one Remove (480) clears the bar and stores `[0,320,768,1024,1440,1920,2560]`.
+
+Mutations, each from a `wip:` commit and restored with `git checkout --`:
+- **`namesFor`'s guard for more than seven removed** (the fix):
+  - `✗ #2513: eight breakpoints are named without throwing … — The brand can have at most seven breakpoints. This brand has 8.`
+  - `✗ #2513: one Remove (768) leaves a valid seven … — {"dropped":[],"refused":true}, [0,320,480,768,1024,1440,1920,2560], …`
+  - in test:smoke, on every brand: `✗ <brand>: #2513: eight breakpoints draw on the Layout page with the error line and no page error — … 1 page error(s) (page.evaluate: Error: The brand can have at most seven breakpoints …)`
+  - and `✗ <brand>: #2513: one Remove (480) leaves a valid seven: … bar still shown, stored [0,320,480,1024,1440,1920,2560], 2 page error(s)`
+- **`commitBreakpoints`' refusal of more than seven removed:** `✗ an eighth breakpoint is refused before anything is written, the seven and their settings byte-identical — {"dropped":[]}, {"breakpoints":[0,480,768,1024,1440,1920,2560,2816],…}` (§6's existing arm).
+
+### A trap for whoever re-verifies this
+
+**Without the fix, the draw throws inside the live write's own `page.evaluate`.** As first written, the smoke arm
+ended the whole suite on that throw rather than failing by name. It now counts the throw as a page error, and its
+Remove click is bounded, so the mutation run reaches the named lines.
+
+---
+
+## (2026-10-11) — One axis value order in every component def: sizes small to large; states Rest, Hover, Pressed, then Focus, then Disabled (#2501)
+
+**Status:** engine defs plus their pins. ENGINE minor (change note): the component docs and `components.ai.json` list the new orders, and the projected sets' member order moves. CONTRACT unchanged. Owner decision Q213, from the canvas furniture render (#2471).
+
+**What moved:**
+- `button`, `icon-button` (and, through their factories, the destructive and neutral siblings): `figmaProperties.stateAxis` → rest, hover, pressed, pending, focus-visible, disabled; `states` puts `inactive` after `disabled`.
+- The three fields and `switch-row`: `states` puts `pending` after the press group (code-only; their projected columns don't change).
+
+**What did not, by decision:** `text-field`, `textarea` and `select` keep `medium, small, large` (owner decision Q221 B). This PR first reordered them small first, with the owner's provisional go. Lane C then checked on a scratch file how Figma picks a set's default variant: it is the member at the top-left of the canvas, and layer order does not move it (the variant picker lists values in the order they were first combined). With that, the owner kept Medium first so the inserted field stays Medium. The #2501 test records the three as a named exception: an exact map, so any other def breaking small to large fails, and so does one of these three leaving medium first.
+
+**The trap worth knowing:** the projected state order is `figmaProperties.stateAxis`, a SECOND list. Reordering `states` alone left button's projected columns as they were (`rest, hover, focus-visible, pressed, …`), which is why the new `#2501` test reads the projected set's first-seen order as well as the def's three lists.
+
+**The test** (`packages/engine/test.ts`, `#2501 <def>`): both ladders are typed from Q213 in the test, never read from a def or `STATES`; a value neither ladder knows fails as "unplaced", so a new state or size has to be placed on purpose. A represented arm names the eight defs the decision was raised on.
+
+**Pins moved with the order, each with its reason:** `#656`'s button column literal; icon-button's paste chunk count 16 → 15 (no byte moved; the reordered members pack one chunk tighter); `lint-axis-values.ts`'s `reordered` entry for the fields now cites Q221 B instead of "held for the owner". Found only by the full verify, not the engine suite: Button's nests are now reached icon, spinner, focus-ring (Pending before Focus visible), which re-pins `#1633`'s pre-build order in `apps/plugin/test-write-components.ts` and two arms of `apps/studio/test-component-catalog.ts`, and moves the Studio Sets panel's "Contains Icon, Spinner, FocusRing" line; the committed catalog is regenerated by `gen-component-catalog.ts --write`.
+
+**Lands after #2471:** existing files see the reordered members as moves on their next Update, through #2471's regroup path.
+
+---
+
+## (2026-10-11) — Studio: the redesign's dead code goes, the typecheck reports an unused local, the copied page helpers and menu buttons are one each (#2487 PR 6)
+
+**Status:** Studio (`apps/studio/src`, its tests and `styles.css`), plus two unused locals in the engine that the
+studio typecheck reaches. No artifact moves (`regen --check` in sync), no ENGINE bump, CONTRACT unchanged. This closes
+B4, B5, D8, D11 and A17 from the merged #2487 review (comment 6098371348, §4 PR 6), and D12's `infoTip` half.
+
+### What changed
+
+- **`noUnusedLocals` is on** in `apps/studio/tsconfig.json`, so `npm run -w @prism3/studio typecheck` fails on a dead
+  local.
+  - It reaches the engine modules the studio imports, and found two there: `SizingMode` in `anatomy-figma.ts` and
+    `semanticInk` in `modes.ts`. Both went.
+  - `PageHostIsUnforgeable` is kept through an explicit use, `export type { PageHostIsUnforgeable }`, so the
+    compile-time proof still runs.
+  - `test-removed-legacy.ts` pins the flag (turning it off fails by name).
+- **Dead code removed:**
+  - **`main.ts` (B4, D8):** `apply`, `applyFull`, `addClass`, `tokenPill`, `addButton`, `swatchCell`,
+    `modeIsEditable`, `renderGeneratedNote`, and the mode-context section's `DERIVED_MODES` and `modeAllPass`. Also
+    nine dead imports.
+  - **Other modules (B4, D8):** `shell/theme.ts` `themePref`; `domains/shape.ts` `now`; `state/type-input.ts`
+    `LETTER_SPACING_KEYS`; `state/fills-input.ts` `inputGradientCss`; `state/interactive-input.ts` `LINK_FAMILIES`.
+  - **Interfaces and seams (A17):** `Frame.unmount`.
+  - **The CSS custom-property write seam** in `write-adapter.ts` (`cssVarAdapter`, `makeWriteHost`, `WriteAdapter`,
+    `cssVar`, `cssVarName`, `typeVar`, `TypeAtom`). Nothing in the UI read the variables, and its header now
+    describes what's left (the commit seam and the inbound validator).
+  - **`levers/controls.ts` `describeControl`** (#1675's chip/select descriptor), which no page read.
+
+  The exported names are added to `test-removed-legacy.ts`'s list, since `noUnusedLocals` can't see an export.
+- **Tests that tested only removed code:** `test-write-adapter.ts` keeps its inbound half (#1840), and its
+  `cssVarAdapter` half went. `test-lever-controls.ts` keeps `paletteRefOptions` and `leverHook`, and its
+  `describeControl` arms went.
+- **One menu button (B5).** `shell/dom.ts` `menuButton` now carries the open, close and keys for the bar's Theme menu,
+  the preview's Inspect menu and the plugin's Figma menu. The three copies had drifted. Now every menu:
+  - opens on ArrowDown;
+  - stops Escape from propagating (before, only Figma opened on ArrowDown, and Theme's Escape went on to whatever
+    sat under it);
+  - moves along its list with ArrowDown, ArrowUp, Home and End (Inspect's ArrowLeft and ArrowRight went with its
+    copy).
+- **Copied page helpers in one place** (`ui/lever-kit.ts`):
+  - `keepFocus`, the focus-keeping redraw nine pages carried;
+  - `pageEdit`, the edit body four pages carried word for word;
+  - `markRefused`, from Surfaces & fills and Interactive;
+  - `filterLevers`, the search filter Depth & motion and Shape carried word for word;
+  - `leverBlock` now draws its ⓘ through `infoTip`, which it duplicated (D12).
+- **The CSS (D11):** 50 rules of `styles.css` whose classes no source names anywhere (the old start screen, the
+  derived-mode note, the mode-strip badge, the add button and others), plus the comments that only described them.
+  `lint:live-css` holds the 325 live rules, untouched. A `--accept` afterwards wrote the baseline at 325 live and 49
+  drawn by no page (95 before: the 46 keys removed here, none of them live). The other 49 are left: their classes
+  are still named in the source, so a state no suite reaches may draw them.
+
+### Not done here, and why
+
+- **D12's host read** (a module reading `PRISM3_HOST` directly beside one handed `opts.host`). `PRISM3_HOST` is a
+  build-time define that lets each bundle drop the other host's branch, so swapping it for a runtime option is not
+  dead-code work.
+- **`pickerFor`, `pickButton` and `sectionShell`.** The two `pickerFor`s close over each page's own picker state.
+  The `pickButton` and `sectionShell` copies differ page to page. Folding either needs a state object rather than
+  a move.
+- **The remaining `search` filters** differ in their selectors per page.
+
+### Tests and mutations
+
+- `test-removed-legacy.ts` §2: the typecheck flag is on.
+- `test-chrome.mjs` §47 (new; §46 is #2522's): on the web and the plugin, light, 1280, for Theme, Inspect and (plugin)
+  Figma:
+  - ArrowDown on the closed button opens the menu with focus inside it;
+  - Escape closes it onto the button, and a `document` listener the test adds hears no Escape.
+
+Mutations, each from a `wip:` commit, restored with `git checkout --`, each failing only its own arms, by name:
+- **An unused local re-added** (`const unusedProbe = 1` in `shell/theme.ts`):
+  `src/shell/theme.ts(44,7): error TS6133: 'unusedProbe' is declared but its value is never read.`
+- **`menuButton`'s Escape `stopPropagation` removed:**
+  `✗ §47 web light 1280 Theme: Escape closes the menu onto its button and goes no further (… "heard":1)`, and the same
+  for Inspect (web, plugin) and Figma (plugin). 5 of 39196 fail.
+- **The Theme menu back on its own copy** (`shell/frame.ts` at `main`): the two Theme arms on each host (ArrowDown
+  `{"expanded":"false","menu":false,…}`, Escape `"heard":1`), and only those. 4 of 39196 fail.
+- **`menuButton`'s ArrowDown open removed:** every `ArrowDown opens` arm, and the older Figma-menu arms that open it
+  by ArrowDown.
+
+### A trap for whoever re-verifies this
+
+**The Escape arm first read the ArrowDown arm's failure.** With the menu never opened, Escape on the button
+propagates anyway, so a missing ArrowDown failed both arms. The Escape arm now opens the menu by a click when ArrowDown
+didn't, so each arm reads its own key.
+
+---
+
+## (2026-10-11) — Interactive components grounded: reactions on variants, measured on a plugin-built Button set (#2466)
+
+**STATUS: branch `docs/2466-interactive-grounding`.** Docs only (`docs/18` §3). No code, no artifact moves, no ENGINE bump. This is the grounding probe #2466's plan asked for first (comment 6102771910). Owner decisions on scope and transitions come next.
+
+**What was measured.** Live, on the scratch file's plugin-built Button set (576 members), in three passes: the Desktop Bridge for writing and reading reactions, the agent link (`tools/figma-bridge`) for the Update, and the owner in presentation mode. The owner approved the swap sequence (Q236 A). The findings are in `docs/18` §3.
+
+**The finding that decides the build.** The in-place Update's fingerprint doesn't include reactions:
+- the set read up to date, with an unchanged preview hash, with 288 reactions on it;
+- an overwritten member kept its id and its reactions;
+- a replaced member came back under a new id with none, and its siblings' reactions pointed at the old, orphaned id with no error.
+
+So reactions can't be kept "as built". They have to be written from the plan on every apply, by state. Whether the as-built record should include them, so an Update can report one removed by hand, is an owner question for #2466.
+
+**Traps for whoever builds it:**
+- `MOUSE_ENTER` / `MOUSE_LEAVE` need a `delay`, or `setReactionsAsync` refuses them.
+- After a member is deleted, `getNodeByIdAsync` still returns the old node (`removed: false`, `parent: null`). A check for dangling destinations has to test the parent, not only existence.
+- The agent link has no code-execution command, so the probe needed a plugin swap. #2530 is the spike on fixing that for development.
+
+**Cleanup, verified:** every reaction was removed (0 left on 576 members) and the probe page was deleted. The two test edits, the owner's fill change and a deleted member, were rebuilt to the plan by the Update. A version was saved before it ("Before Prism3 updated button").
+
+---
+
+## (2026-10-11) — Update: the grid's moves are read on both axes and for every def, and the apply counts every one (#2519)
+
+Found reviewing #2509 (one axis value order in every def). #2471's `gridMoves` read rows only, and only for the canvas-furniture pilot defs. A set laid out in another axis order therefore read "up to date" in the dry run while its members sat elsewhere:
+- button: 288 members at another x;
+- icon-button: 108 at another x;
+- select and textarea: 56 each at another y.
+
+The next update made for another reason re-laid them with no move counted.
+
+- **Both axes, every def.** `gridMoves` (`update-plan.ts`) lays the grid out as the executor's LAY OUT pass does, for every def, since that pass uses `planSetLayout` for every set. The grid starts 24 in, rows and columns sit 24 apart, a row is as tall as its tallest member, and a column is as wide as its widest. A member is a move when its x or its y is not its cell's. Members Prism3 didn't build stay out of the moves, and still count toward sizes. The pilot import is gone from `update-plan.ts`.
+- **The apply counts every member whose place changed** (`update-apply.ts`), not only when the dry run listed moves. An update that resizes members re-lays the grid by their new sizes, which the dry run, reading the file as it is, can't predict. Those moves are now counted in the verdict ("N moved", #2471's wording), never silent.
+- **Tests (`test-update-apply.ts`, `grid/…`).** Each set is built with one axis's values reversed in a copy of the def: the state columns of button and icon-button, the size rows of select and textarea. It is then updated to the plans as they are. Reversed rather than put in #2509's order, so the counts hold before #2509's reorder and after it. They were measured on both trees: a local merge with #2509's head runs all 190 assertions green. For each of the four defs:
+  - `… moves`: the dry run lists exactly 576, 216, 56 and 56 moves, and nothing else. `positions` is capped at `LIST_CAP` (500), so Button's count is checked with `truncated`.
+  - `… converges`: the apply reads `✓ moved N`, keeps every id, and the next dry run reads up to date.
+  - `… unrelated`: an update for another reason (a root gap) moves exactly the members the dry run listed, and counts them.
+
+  `grid/resized`: a padding change on `tag` widens members from 110 to 118, and the apply counts the 36 it moves, though the dry run listed none.
+
+### Mutations, each failing by name
+
+- **`gridMoves` reading rows only:** `grid/button moves`, `converges` and `unrelated`, and the same three for icon-button.
+- **`gridMoves` reading the pilot defs only:** `grid/icon-button …`, `grid/select …` and `grid/textarea …`, with each of the three arms failing for each def.
+- **The apply counting moves only when the dry run listed some:** `grid/resized`.
+
+### Traps for whoever re-verifies
+
+- Reordering the plans LIST is not the same as reordering a def's value lists. Sorting the plans moved 480 of Button's rows that #2509 never touched. The test reorders the def's `stateAxis`, `variants.size` and `states`, as #2509 does.
+- #2509's own reorder moves Button's 288 and icon-button's 108 at another x, and select's and textarea's 56 at another y. A test that builds in #2509's order reads nothing once #2509 is merged, since the defs are then in that order. This PR's first draft did exactly that, and failed all 12 `grid/…` arms on a local merge with #2509's head. Hence the reversal.
+- The column half of `gridMoves`' "an unstamped member still sizes the grid" had no test (UI lane, #2521 review): `if (m.stamp) colW[c.col] = …` passed everything. `unbuilt/column width` (`test-canvas-furniture.ts`, Lane C) is the twin of `unbuilt/row height`. Its member sits in the `rest` column because Rest leads Button's state columns before and after #2509, so `480 to move` (5 × 96) holds on both; member 10, the row arm's, is Focus visible, which #2509 moves from the third column to the fifth.
+
+---
+
+## (2026-10-11) — Studio tests: names, pressed states, rings in menus and dialogs, hover contrast, and the late-read and finish-line gaps (#2487 PR 5)
+
+PR 5 of the merged Studio redesign review on #2487 (comment 6098371348): test hardening. It closes B3, D4, D10, A16 and D12's `:1640` blind spot, and folds in #2504 and #2507. The mutations the review found surviving now fail by name: Lane D's M1, M2, M4 and M5, and Lane A's K2. Lane A's K4 stays the control. Only tests change, plus one stale line in #2496's fragment. No product code moves.
+
+- **B3: names and pressed states (M2, M4, M5).** A new test-chrome section reads the browser's accessibility tree (CDP `getFullAXTree`). Every control role, and every tablist, radiogroup, menu and dialog under the frame, must have a non-empty computed name. It covers every place, on both hosts, at 1280 and at 380 (both panes), plus once with Inspect open. Brand content and the lent legacy views are skipped by hook; the token list's own gaps are #2492. At 380, after each pane switch, the tree must report exactly one pane toggle pressed, and it must be the pane the layout draws.
+- **B3: rings with a menu or a dialog open (K2).** The brand, theme, Inspect and Figma menus are each opened by keyboard and walked by their own arrows until they come back to an item already read. The export dialog is walked by Tab the same way. Every ring is held to #2144's `ringMisses`. The ring reader is `focusRings`' own page function, hoisted unchanged into `FOCUS_RING_READ`, so the menu walk reads rings with exactly the same code.
+- **A16: hover contrast.** Each kind in `HOVER_KINDS`, plus a tab and a menu item, is hovered, and every text it draws must hold `TEXT_MIN` against the ground it is drawn on. Both hosts and both chrome themes; 12 kinds were read each time.
+- **D10.** The two `ok(true)` arms after unbounded waits in the Brand case are now bounded waits whose result is the assertion.
+- **D12's `:1640`.** The "no local switch between legacy pages" check matched `[aria-label$=" pages"]`, so it went blind exactly when that label regressed (M4). It now counts every tab list outside the frame's own hooked ones: the tab row, `color-sub-row` and Inspect.
+- **D4 (M1).** `test-brand-input.ts` seeds `overrides`, `modeLevers`, `modeAnchors` and `surfaces` for `custom-1`, with dark and light keeping entries of their own in two of them. It then removes the mode and asserts three things: each `custom-1` entry is gone, the other modes' entries stay, and the engine still builds.
+- **#2504.** Four arms in the start suite's held-read section, each leaving exactly one brand-menu guard to do the work. Reopening the menu, or choosing a second file, during the read leaves only the read generation to drop it. Closing with Escape or an outside click goes through `closeMenu` and leaves only the open state.
+- **#2507.** Two finish-line arms. In the Build style guides suite, a "⚠" run with a failed table must read "Style guides failed: …". The same "⚠" with nothing failed is the control, and must read "finished with a warning". In the verdict suite, a run that ends with no verdict (`agent-finished` with no result) must empty the status line, and the next start must be announced again.
+
+**Found, filed, not fixed: #2523.** The export dialog's preview (`pre.p3-export-pre`, a Tab stop since #2124) draws the browser's ring, 1px `#005fcc`. It sits in a scrolling container, so the fix has to choose an inside ring or make room for an outside one. The dialog arm keeps it as a pinned known gap (`PR5_RING_GAPS`): it must still be reached and still miss, so fixing it fails the pin and the entry comes out.
+
+**The trap in the pressed arm.** At 380 the preview pane's own element (`preview-pane`) is `display: contents`. A "drawn" check on it reads zero rects whichever pane shows, so the arm reads the pane's body (`preview-body`) instead.
+
+**Mutations.** Each ran after a `wip:` commit, on rebuilt bundles, and each fails by name:
+- **M1**, `removeCustomMode` keeps the data: `D4: removing custom-1 takes its entry out of overrides, modeLevers, modeAnchors and surfaces (still there: …)`.
+- **M2**, the pane toggle's `aria-pressed` pinned to Settings: `#2487 PR 5 … 380: after switching to Preview, the tree reports only its toggle pressed … (preview: pressed settings, shown preview …)`.
+- **M4**, the Color sub-row's `aria-label` removed: `… every control and composite under the frame has a computed name … — nameless: color-palettes: tablist color-sub-row; …`.
+- **M5**, Inspect's Back `aria-label` removed: the same arm at 380, `— 1 nameless: Inspect: button inspect-close`.
+- **K2**, `.p3-menu-item` dropped from the ring rule: `… with brand-menu open, each of its 5 items walked by ArrowDown draws the chrome ring … — brand-menu-example: color #005fcc …`. The theme, Inspect and Figma menus fail the same way, and so does the export dialog's `export-import`.
+- **K4**, the control, the ring width at hairline: #2144's sweep fails as it did in the review, `… brand-switcher: 1px wide, want 2px or more`.
+- **Hover**, a hovered filled button's fill made light: `… hover: every hovered control's text holds 4.5:1 … — filled button brand-continue on brand: "Continue to Color › Pale" 1.13:1`.
+- **D10**, `removeCustomMode` made a no-op: `custom modes: removing custom-1 takes it out of the preview's modes (modes light,dark,hc-light,custom-1)`. It now fails by name instead of timing out into the catch.
+- **`:1640`**, an unnamed tab list drawn in Layout's levers: `… / layout: no place draws a local switch between legacy pages`. The names arm fails too: `layout: tablist lever-section`.
+- **#2504**:
+  - `mine !== importGen` removed: `#2504 a brand-menu read across a close and reopen …` and `#2504 a second file chosen during a held read …`.
+  - The open-state check removed: `#2504 a brand-menu read after Escape closed the menu …` and `#2504 … after a click outside …`.
+- **#2507**:
+  - `finishLine` treats every "⚠" as a warning: `#2507 a "⚠" run with a failed table is announced as failed …`.
+  - `liveRunning = true` dropped at start: `#2507 a run that ends with no verdict empties the status line … after "Apply Theme, Writing to Figma…"`.
+
+**Floors** (docs/34 shape 9), each set under what was measured when this landed:
+- names: 10 named nodes in one sweep (the fewest measured was 12, web at 380);
+- menus: 2 items;
+- the export dialog: 3 controls (15 measured);
+- hover: 10 kinds (12 measured).
+
+**Also here:** `docs/progress/pending/claude-2487-a11y-basics.md` (#2496) said "Section 44 measures it". The merge with PR 1 renumbered that section to 45.
+
+---
+
+## (2026-10-11) — Studio: a drag rebuilds once a frame and stores once, Layout's sliders keep the drag, and the bar stops re-measuring on unchanged writes (#2487 PR 2)
+
+**Status:** Studio only (`apps/studio/src` and its tests). No engine change, no emitted artifact moves, no ENGINE bump,
+CONTRACT unchanged. This closes B1, A9, A10 and A13 from the merged #2487 review (comment 6098371348, §4 PR 2), and
+takes my own nit from #2500's review: `onCommitted` commits the value captured at `change`.
+
+### What changed
+
+- **A drag runs once a frame and stores once (B1).** Before, every slider tick ran the page's full edit: a
+  re-resolve, every `brand` subscriber, and a `localStorage` write. `ui/lever-kit.ts` gains `perFrame`, which:
+  - hands the page the latest value once per animation frame;
+  - holds the store's persist from the first `input` until the control is released (`change`, `pointerup`,
+    `pointercancel`, `blur`, a pointer release anywhere if a repaint replaced the control, or 400ms with no
+    `input`);
+  - leaves the slider's `aria-valuetext` written at once, as before.
+
+  The slider, `colorField`'s picker and Palettes' brand-color picker use it.
+- **The coalescing sits at the control, not in `rebuild()`.** That's a deliberate move from the review's wording.
+  Shape's, Components' and now Layout's in-place drag path (`sliding && dragging.sync()`) depends on `rebuild()`
+  telling `brand` synchronously while `sliding` is set. A `rebuild()` deferred to the next frame would tell it after
+  `sliding` cleared, and every drag would take the full re-render that loses the pointer. Throttling the control's
+  own `input` gives the same one-rebuild-per-frame, latest-value-wins result, and leaves every other `rebuild()`
+  caller (and `test-store`'s synchronous pins) as they were.
+- **`state/store.ts`:**
+  - `holdPersist` / `releasePersist`: while held, a good rebuild owes a write, and the release makes it once, with
+    the last-good brand. Unheld rebuilds write at once, as before.
+  - `loadInput` is one batch (A13): it resolves, sets the mode, sets the page, then tells `origin`, `brand`, `mode`
+    and `page` once each. Before, it told `page` before the new brand was resolved.
+- **`domains/layout.ts`:** the container sliders take the in-place path. Only the containers read those values, so
+  syncing both sliders in place is complete.
+- **A9:** `shell/bar.ts` and `shell/activity.ts` write the brand name, the Activity tip and its row text only when
+  they differ. A same-value write still replaced the text node, and the frame's observer then re-ran `measureFit`
+  on every brand repaint. Apply Theme's `disabled` is written only when it moves, for the same reason.
+- **A10:** `shell/bar.ts` rebuilds the export dialog only when what it shows changes (a key over the export view,
+  the import box's open state, its error and the confirm). The import text is left out of the key: typing stores it
+  without a repaint, and a text set from elsewhere is written into the box in place.
+- **`onCommitted` now passes the value read at `change`** to its commit. Every caller uses it.
+
+### Tests and mutations
+
+- **`test-store.ts`:**
+  - **#2487 A13:** `loadInput` tells `origin`, `brand`, `mode` and `page` once each, in that order, each against
+    the new theme, its first mode and the first page.
+  - **#2487 B1:** a held persist writes nothing over three rebuilds and once on release. After the release a
+    rebuild writes at once again, and a second release is a no-op.
+- **`test-chrome.mjs` §46 (web light 1280).** Write and re-measure counts come from wrappers on
+  `Storage.prototype.setItem` and `window.getComputedStyle`. `measureFit` is the one caller with
+  `[data-p3="bar-main"]`.
+  - A mouse drag from the thumb moves Shape's softness, and Layout's Maximum width, more than one step, with at most
+    one write each.
+  - A second keyboard step re-measures the bar zero times.
+  - A breakpoint committed at `change`, then written over in the same task, stores the value it held at `change`.
+  - 20 picker `input`s in one frame re-resolve the brand once (a MutationObserver counts the OKLCH readout's
+    changes), store once, and draw the last color.
+- **§46 figma light 1280, A10:** a host message (an Apply verdict) while the Export dialog is open leaves it as it
+  was: the same node (a marker the test sets), the import text, and its caret at 4. A premise reads that the message
+  reached the bar (its mutation records).
+
+Mutations, each from a `wip:` commit, restored with `git checkout --`, each failing only its own arm, by name:
+- **Shape's in-place sync removed (K3):**
+  `✗ §46 web light 1280 Shape: a mouse drag moves the softness more than one step (1 → 1.5, step 0.5)`.
+- **Layout's in-place path removed:**
+  `✗ §46 … Layout: a mouse drag moves the Maximum width more than one step, and stores where it ends (1440 → 1480, step 40, …)`.
+- **The persist hold removed** (per-tick persist):
+  - `✗ §46 … Shape: a drag stores at most one write (2 written …)`;
+  - `✗ §46 … Layout: … at most one write (9 written)`;
+  - `test-store`'s three `#2487 B1` arms.
+- **The bar's same-value guard removed:** `✗ §46 … A9: a brand repaint that changes nothing in the bar re-measures it zero times (1 measureFit call(s))`.
+- **`onCommitted` reading the field when its task runs:**
+  `✗ §46 … onCommitted: a committed field commits the value it held at change, not one written after it (stored [0,768,1200,1440,1920])`.
+- **`perFrame` running every input at once:** `✗ §46 … picker: 20 color inputs in one frame re-resolve the brand once … (20 readout change(s) …)`.
+- **The export dialog rebuilt on every paint:**
+  `✗ §46 figma light 1280 A10: a host message leaves the open Export dialog as it is, the import text and its caret in place ({"mark":null,…,"caret":24,…})`.
+- **`loadInput` back to its old order:**
+  `✗ #2487 A13 loadInput tells origin, brand, mode and page once each, in that order … (heard ["origin:old:…","page:old:…","brand:new:…","mode:new:…"])`.
+
+### Traps for whoever re-verifies this
+
+- **A value set with `input` alone, and no release, stores after `QUIET_MS` (400ms), not at once.** The first full
+  run failed test:chrome's Q22 depth arms for exactly that reason: their `slide` helper dispatched `input` and nothing
+  after it, then read the stored brand at once. The helper now dispatches `change` after `input`, as a user's set
+  ends.
+- **The same delay would have weakened a gate silently.** #2096's arm (a scripted `input` on a disabled slider
+  writes nothing) waited 150ms and then compared the stored brand. Under the quiet release, a write that got through
+  would land at 400ms, after the comparison, and the arm would pass on nothing. It now dispatches `change` too, so a
+  leaked write lands before the read (docs/34).
+- **test:chrome prints only failures.** A section header with nothing under it is a pass.
+- **A10's first trigger was vacuous.** It used the agent link turning on, which repaints the Agent tile but never
+  reaches the bar's `paint`, so the mutation (the dialog rebuilt on every paint) survived. An Apply verdict is a
+  `host` notification, which `paint` subscribes to. The premise arm now reads that the message reached the bar.
+
+---
+
+## (2026-10-11) — Update: the executor's re-lay leaves a member Prism3 didn't build where it is (#2494)
+
+The LAY OUT pass in `write-components.ts` measures and repositions the whole union, so an update run on a set for any other reason also moved a member with no stamp that sits on a planned coordinate (one Adopt could claim). The dry run listed no change for it, and the verdict named it among those "left as they are". Prism3 never touches a member it didn't build (#2325, #2464).
+
+- **The fix:** the pass leaves a member with no stamp exactly where it is. Its size still counts toward its row's height and its column's width, as the dry run's `gridMoves` (#2471) counts it, so every other member sits where the dry run said. The check applies only to a member that can carry a stamp: the port makes `getSharedPluginData` optional, and a node without it is laid out as before rather than taken for a member Prism3 didn't build.
+- **`EXECUTOR_REVISION` 9 → 10**, for `lint-executor-revision`.
+- **Test:** `relay/…` in `test-update-apply.ts`. A `tag` set's gap moves on every member, so the build's pass re-lays the grid. One member has its stamp cleared and is moved 300px off the grid. It stays at `[498,360]`, is named as "not built by Prism3", and the other 44 are updated with the new gap.
+- **Mutation, the guard removed:** `✗ relay/unbuilt left: … ([498,360] → [198,60]; 44 updated, 44 with the new gap)`.
+- **And with #2471's regroup** (merged in from `main`): on #2471's `unbuilt/…` Button, the unbuilt member is made 40px taller than its row and 500px off the grid. The dry run reads `558 to move, 1 not built by Prism3` (93 rows × 6 states below its row), and the apply reads `✓ moved 558`, `button: 558 moved, 1 left as they are.`, with that member byte-identical. Before this fix the same set read `✓ moved 559`. Test: `unbuilt/relay left` in `test-canvas-furniture.ts`, which also corrects #2471's fragment note on #2494.
+
+- **Its size still counts (Lane C's review):** `relay/unbuilt size counts`. The unstamped member, in its own cell, is made 300px wider and 30px taller than its neighbours, and an unrelated update re-lays the grid. The next member across starts one gap after its right edge (372), the next one down one gap below its bottom (122), and none lands on top of it. Mutations, each failing `relay/unbuilt size counts` by name:
+  - the measuring loop skipping unstamped members: next across 372 not 612, next down 92 not 122, and 5 land on top;
+  - skipping it for column widths only: 372 not 612;
+  - skipping it for row heights only: 92 not 122.
+
+### Not here
+
+- **A malformed or copied stamp:** `ownedView` reads both as not built by Prism3, but the re-lay still moves them: #2510. The executor can't import `ownedView` (`update-plan.ts` imports `write-components.ts`), and the brief scoped this to unstamped members.
+
+---
+
+## (2026-10-11) — Divider: a 1px rule, built before Accordion nests it (#2455)
+
+A new component, `divider`, after the KB brief `components/divider.md` (category `foundations`).
+`orientation` horizontal | vertical and `inset` none | inset | middle-inset, five members, no states. Its
+thickness is `border-width.hairline`, its color `color.border.secondary`. In code it is decorative by default
+(`decorative`, default true: `aria-hidden`), and with `decorative=false` an `<hr>` (or `role="separator"` with
+`aria-orientation="vertical"`). Its own Figma page, `↳ Divider`, under Components after Tabs. Owner decisions
+Q190 (2026-10-10) settled the semantics, the inset and the visible defaults; the inset steps and the new
+wording are DRAFT for the owner. The labelled divider is deferred to its own issue. No token name moves;
+`token-contract --check` is clean.
+
+### The diagnosis that kept it small
+
+- **A filled box, not a stroke.** A box's stroke draws on all four sides inside its bounds, and `PartDef`
+  cannot bind a one-side stroke weight, so a stroked rule would need machinery the schema lacks. A 1px box
+  with a fill is the same pixels and needs nothing new; the code projection is the same shape
+  (`block-size` + `background`).
+- **"Fills its parent" is a placement fact, not a root sizing mode.** The idiom for a root that fills
+  across is `sizing.x: 'fill'` + `placementWidth`, but the root's sizing is one mode for every member and a
+  vertical rule fills the other axis. So both dimensions are bound per orientation through
+  `{orientation}`-keyed tokens — the hairline on the thickness axis, a NOMINAL length on the other
+  (`container.narrow` across, veil's idiom; `size.md.height` tall, focus-ring's). A host stretches the
+  nested instance with `crossAxisFill`; the root declares a `layout` because `nestSizingOf` reads it.
+- **One new axis name.** `orientation` joins `VARIANT_AXES` as the twenty-second name, the word the
+  owner's issue uses and the ARIA attribute it drives. `lint-axis-values.ts` carries it as a
+  `sole` set; button's `inset` becomes `canonical`, now that the divider's disjoint `none | inset | middle-inset` shares the name.
+- **The inset is the root's padding, and the rule fills what is left.** The root keeps the footprint
+  (both dimensions bound per orientation) and pads by the inset; the one child, `rule`, paints and fills
+  the content box (`grow` along the row, `crossAxisFill` across). A host's stretch moves the root, so the
+  inset survives it. With no inset the pixels are the 1px box the first version shipped.
+- **A vertical rule takes no start-only inset.** `PaddingDef.block` pads both ends, and `paddingTop`
+  cannot sit beside `padding`, so a top-only inset is not expressible; `excludeCoordinates` drops
+  `vertical × inset`. Its keys still exist at `space.0`, because every binding key must resolve at every
+  coordinate, excluded ones included.
+- **`decorative` has no Figma property.** It changes no pixel, and a Figma boolean drives one node's
+  `visible`; the codeOnly entry leads with it.
+- **`commonPartners` is empty.** The brief's partners (list, menu, card, stack, toolbar) are not
+  registered defs, and the refs arm refuses an unregistered id there, so they sit in `composition.planned`.
+
+### Gate fallout
+
+The def joins `lint-hit-target` (EXCLUDED), `lint-rung-names` (NO_SIZE_AXIS), `lint-axis-values`,
+`lint-standalone-floor` (MUST_PROJECT), `lint-paint-placement` (both closed sets), the KB-brief table in
+`test.ts` (`divider.md: foundations`) and `test.ts`'s #990
+width cohort. That #990 arm assumed every def has a `rest` state and that only `{size}` templates a width
+key; it now reads a stateless def with no state coordinate and resolves any `{axis}` in the key. The
+regen count moves from 177 to 178 (`out/components/divider.md`), in `verify.ts` and `ci.yml` together.
+`lint-component-docs`' `DEF_FLOOR` rises to 29, the registry's count with Tab and Tabs.
+
+### Traps for whoever picks this up
+
+- **Not measured: a host's stretch over a bound length.** The standalone length is a bound variable; a
+  host's `crossAxisFill` projects the instance as STRETCH on that axis. That the stretch wins over the
+  inherited binding on the real Figma host is expected, not measured; Accordion (#2417) is the first
+  nesting host and the place to measure it.
+- **The first version said "No KB brief"** and chose `layout`; the brief existed (`foundations`). The #1700
+  arm accepts a "No KB brief" header without checking the catalogue, so no gate caught it. Check the KB
+  before writing that line.
+
+---
+
+## (2026-10-11) — Update apply: a set with nothing to write reads as its dry run read it (#2495, owner Q205 A)
+
+Take a set whose members are all current but one that Prism3 didn't build, sitting on a planned coordinate (one Adopt could claim). The dry run reads it as "no changes", never up to date (Q191 2B): `button: no changes (576 members). 1 not built by Prism3, left as they are. Adopt can claim it.`, headline `✓ No changes found`. The confirmed apply returned at its nothing-to-write check, and its verdict fell through to `✓ already up to date` / `button: already up to date.` The two surfaces disagreed, and the apply dropped the "not built by Prism3" count.
+
+- **The fix (owner Q205 A, no new strings).** For a set the apply entered with nothing to write, the outcome carries the dry run's own set line (`previewLine`) and whether the dry run called the set up to date (`setUpToDate`, the dry run's `upToDate`, now exported). The verdict then uses that line and the `✓ No changes found` headline whenever the dry run didn't call the set up to date.
+- **A set that is truly up to date still reads `✓ already up to date`** / `<set>: already up to date.` on the apply.
+- **Tests (`test-canvas-furniture.ts`, on #2471's `unbuilt/…` Button):**
+  - `unbuilt/apply as previewed`: the apply's headline and set line equal the dry run's.
+  - `unbuilt/up to date`: with the member Prism3's again, the dry run reads `up to date` and the apply `already up to date`.
+  - `unbuilt/verdict` now reads the dry run's words too.
+- **Mutation, the old fall-through restored (line and headline):** `✗ unbuilt/apply as previewed: the apply's headline and set line are the dry run's (✓ already up to date | button: already up to date. — the dry run: ✓ No changes found | button: no changes (576 members). 1 not built by Prism3, left as they are. Adopt can claim it.)`
+
+---
+
+## (2026-10-11) — Studio: accessibility basics — a named surface select, one main landmark, the focus floor on legacy controls, finish announcements (#2487 PR 4)
+
+PR 4 of the merged Studio redesign review on #2487. It closes D2, D5, B2 (D#7 and A#7), A15, and D6. The owner's decisions Q194–Q197 (2026-10-10) cover Activity's finish announcement, the selected-segment edge, the display-only specimens and the landmark names.
+
+- **D2.** Brand's "View style guide on" surface select (`style-guide-ground`) is named by its caption. `aria-labelledby` points at the `pfield` span, and the id is minted per draw.
+- **D5 and Q197.** The frame's panes (levers plus preview) carry `role="main"`. It's a role rather than the element, because the Build style guides page is already a `<main>` and the two never show together. The lever sections, the Interactive columns and the preview pane lose their names, so they are no longer regions. The preview body becomes a named `group` instead of a region: the scroller can take focus, so it keeps the preview's title as its name. Only Inspect and Activity remain named regions.
+- **B2.** One `styles.css` rule gives the chrome's ring (`--p3-focus-width`/`--p3-focus-ring`/`--p3-focus-offset`) to the legacy controls that drew the browser's 1px ring. They are `.seg-b` and `.pvseg-b`, `.pv-tscroll`, `.mo-replay`, `.mo-slowmo-sel` and every `.select`. `.pv-tscroll` is the token list's scrolling table, which Chrome makes focusable. The sweep found it, and no lane had named it. Section 27's sweep no longer skips the token list, Brand's Style guide, Depth & motion's preview or Interactive's. It also reads Inspect › Token list on Semantics, and requires the seven controls by hook (`B2_RING_NEEDS`). The token list's segments gained hooks for this (`token-tier-*`, `token-path-*`).
+- **Q195.** `.seg-b.on` gets a 2px `--ink` underline (inset box-shadow), which is how the same view's nested tier segment marks its selection. Section 45 measures it at 3:1 or more against its own fill and its neighbor's ground.
+- **Q196 (closes D6).** The Interactive specimens are `inert`. They're no longer Tab stops or AX buttons, and nothing about how they're drawn changes.
+- **Q194.** Activity's status line now announces a run's finish, not only its start: "‹Operation› finished." for a clean run, and "‹Operation› failed: ‹first line of the host's detail›." for a failure. A warning reads "‹Operation› finished with a warning: ‹reason›.", told apart the way the Activity button counts failures. All wording is DRAFT and held for the owner on the PR.
+- **A15.** The `.sg-failpill` border is the `:root` token `--fail-edge`, at the same value. `lint-contrast.mjs` gained an `UNHELD` list: colors drawn outside `:root` that it reads and prints but holds to no floor, each with its reason. A literal back in that rule fails the gate.
+
+### The trap in Q194: the line was wiped by the next reading
+
+The first version set the finish line and kept the old rule, which empties the line once nothing runs. It read `""` every time, because `closeDetail()` re-enters `onHost` straight away with a reading that has nothing to say, and that reading emptied the line. Now the line is emptied only when it still holds a start or a refusal (`liveRunning`). A finish line stands until the next start replaces it. A run that ends with no verdict still empties the line, as before, so the next start's words are a change.
+
+### Mutations
+
+Each mutation ran after a `wip:` commit, with both bundles rebuilt, and each fails by name:
+
+- `aria-labelledby` dropped → `#2487 … / brand: D2 … (read "")`
+- `role="main"` dropped → `D5 Q197 exactly one main landmark … (main 0, …)`
+- a lever section or the preview pane named again → the same arm (`regions ["Identity","Modes","Personality"]` or `["Preview"]`)
+- the underline dropped → `Q195 … (best null)`
+- `inert` dropped → `Q196 Tab never lands on a specimen (39 of 67 stops …)` and the AX arm
+- the ring rule dropped → `#2144 … 10 miss: brand style-guide-ground …`
+- the finish line not pushed, or the line emptied unconditionally → the four `Q194` arms in `test-build-verdict.mjs`
+- the reason dropped → the failure and warning arms
+- the border back to a literal → `lint:contrast FAILED — .sg-failpill border-color is #e6a2a2, not var(--fail-edge)`
+
+### Not done, on purpose
+
+- **No skip link.** It isn't decided, so it's held for the owner.
+- **Inspect › Token list's two selects have no name either, and its segments expose no selected state.** These are outside this PR's findings, filed as #2492.
+- **The fail pill's edge stays 2.09:1.** The text and the "!" carry the state. Whether the edge should reach 3:1 is the owner's call.
+
+---
+
+## (2026-10-10) — Studio: a late file read no longer swaps the brand a waiting Replace confirm names (#2503)
+
+**STATUS: branch `ui/2503-import-gen-confirm`.** Studio code only (`apps/studio/src/main.ts`), held by the plugin start
+suite. No engine change, no artifact moves, no ENGINE bump. `CONTRACT_VERSION` unchanged. No new copy.
+
+**The defect (found by Lane D reviewing #2493).**
+- Make an unsaved edit, choose a file in Import and let its read be held, then paste aurora's design.md and click Load.
+- The confirm reads "Replace the current brand with “aurora”?". When the read finishes, the same confirm reads “harbor”, with nothing to say it changed, and Replace loads harbor.
+- #2493's A14 guard drops a read whose box closed or took another file. A pasted Load and an example click do neither: the box stays open and `importGen` doesn't move.
+
+**The fix.** `stageImport` and `stageLoad` each bump `importGen`. Each is the newer choice, so a held read is stale by the time it finishes.
+- `stageLoad` covers the paste and the example.
+- `stageImport` covers a paste that fails to validate, which never reaches `stageLoad`. Without it, the late read loaded harbor straight over the paste's error (with no edits, nothing asks first).
+- The file read's own `stageImport` call bumps too. It's harmless: its check has already passed.
+
+**Tests** (`apps/plugin/test-start-screen.mjs` §5b, on #2493's held-`FileReader` harness):
+- **Pasted Load:** the confirm still names “aurora” after the read finishes, and Replace loads aurora.
+- **Example:** the confirm still names "the aurora example".
+- **Failed paste:** the error stays and the brand doesn't change.
+
+**Mutations,** each from a `wip:` commit against the rebuilt bundle, failing by name:
+- **Both bumps removed** (the code on `main`): 4 fail.
+  - `#2503 a pasted Load while a file read is held keeps its confirm naming aurora …`, with after "Replace the current brand with “harbor”? …";
+  - `#2503 Replace then loads the pasted brand, not the late read — brand "harbor"`;
+  - the example arm;
+  - the failed-paste arm (`error null, brand "harbor"`).
+- **`stageLoad`'s bump alone removed:** only the example arm fails.
+- **`stageImport`'s bump alone removed:** only the failed-paste arm fails.
+
+So each line of the fix is held on its own.
+
+---
+
+## (2026-10-10) — Layout: the studio refuses a breakpoint list that doesn't start at 0, and draws one that arrives that way (#2146 item 3)
+
+**STATUS: branch `ui/2146-studio-first-breakpoint`.** Studio state only. No engine change, no committed artifact moves, no ENGINE bump owed. `CONTRACT_VERSION` unchanged. **One new DRAFT label** (owner Q189 A, below). **Closes #2146**: items 1 and 2 landed in #2158 (2026-10-05).
+
+### Where the three surfaces stand
+
+1. **MCP `validate_brand`** (#2158): runs the build path and returns the engine's sentence for `[320, 768]`, which `mcp-test.ts` asserts over the wire. Unchanged here.
+2. **Schema and lever prose** (#2158, owner Q26 a): `theme-schema.json` says "The first must be 0."; `levers.ts` and the studio tooltip say "The first is always 0px." Unchanged here.
+3. **Studio (this PR):**
+   - **Refuses.** `commitBreakpoints` (`apps/studio/src/state/layout-input.ts`) returns `{ refused: true }` and writes nothing when the result wouldn't start at 0. That covers removing the 0px breakpoint, moving it, and adding to a list that already starts above 0. The page already puts a refused field back, and its row 0 is disabled with no Remove, so the page never asks for one. The guard covers the state API itself.
+   - **Doesn't throw.** `namesFor` names a list that starts above 0 by its count (names follow the count alone), so the page draws such a state instead of throwing mid-render. That was #2146's named risk.
+   - **Explains, where the studio already explains refusals.** Loading such a brand refuses: `initSession` throws the engine's sentence, and the import and restore paths catch it. An agent's live write keeps the last good theme and sets `lastError` to that sentence for the error line (`rebuild`; `studioMessage` passes it through unchanged). Both are now asserted.
+   - The module header no longer calls the 0px first breakpoint "the page's limit". Since #2139 it's the engine's rule.
+
+**The sentence is the owner-approved one from #2139**: "The first breakpoint must be 0px. This brand starts at ‹n›px." There's no new copy, and the Layout page gets no second line repeating the error line.
+
+### Tests (`apps/studio/test-layout-input.ts`, section 4; 25 → 32)
+
+- `removeBreakpoint(0)` and `editBreakpoint(0, 320)` are refused, and the brand stays byte-identical.
+- An edit that keeps 0 still writes.
+- Loading `[320, 768]` throws the sentence, as a literal.
+- A live write of `[320, 768]` keeps the last good theme `[0, 768]` and sets `lastError` to the sentence.
+- `namesFor` on that state gives `sm, md` without throwing.
+- Add on that state is refused without throwing.
+
+**Mutations:**
+- Drop the commit-time refusal: 4 assertions fail by name, showing `[768,1024]` and `[320,1024]` written.
+- Drop the `namesFor` guard: 2 fail by name, with the engine sentence thrown during the draw.
+
+### The way out: "Add a 0px breakpoint" (owner Q189 A)
+
+The first round left one state with no way out: a brand that arrives mid-session starting above 0 (only an agent's live write can make one). Row 0 is disabled and every write is refused, so the error line explained the problem but offered no fix. The owner chose A: a one-click action beside the error line.
+
+- **State:** `needsZeroBreakpoint()` checks whether the brand's own list starts above 0. `addZeroBreakpoint()` puts `{ px: 0 }` in front of the existing entries and commits through `commitBreakpoints`. Every other width stays, and each per-breakpoint override follows its breakpoint to its new name under D13 (`320: sm → md`, `768: md → lg`). It's refused, writing nothing, on a list that already starts at 0.
+- **Strip:** `errorStrip().show(text, action?)` (`shell/notices.ts`) mounts a `p3-btn` with the hook `error-fix` beside the line, and only while there's an action. The first draft kept a hidden `p3-btn-page` in every strip. `.p3-btn`'s `display` beat `hidden`, so `test:chrome` §29 measured an empty control at 2.7:1 and failed it by name. The plain `p3-btn` edge, measured shown on the strip's own ground, is 3.18:1 light and 3.93:1 dark, and the label is 19.4:1 and 18.1:1.
+- **Wiring:** `firstBreakpointFix(lastError)` in `domains/layout.ts` builds the action only when `needsZeroBreakpoint()` and the line's error IS the engine's own refusal of the list (`breakpointRefusal()`, #2139), so another error gets no button even with the list above 0. `syncErrorBar` (`main.ts`) passes it on the `lastError` branch only. The write stays in the Layout domain: `test-shell-imports.ts` holds that `main.ts` imports nothing from `state/layout-input`. The first draft wired the action in `main.ts` and that gate failed it by name, so it was moved.
+- **Copy:** the label "Add a 0px breakpoint" (`LAYOUT_DRAFT.addZero`), approved as written (owner Q203 A). No other new sentence; the error line is still the approved #2139 sentence.
+
+**Edges, kept as they are on purpose:**
+- **Seven breakpoints starting above 0 get no action (owner Q206 A).** One more would be eight, which the engine refuses, so `needsZeroBreakpoint()` is false at seven, the error line stays, and the brand removes a breakpoint first. A Remove that keeps a first breakpoint already above 0 is let through (`keepFirst`); it makes nothing worse, and at six the action is offered. No new wording.
+- **Mid-session only.** Importing or restoring such a brand still refuses at load (`initSession` throws the sentence). The action is for a brand that's already open.
+
+**Tests:**
+- `test-layout-input.ts` section 5 (32 → 38): not offered at 0; offered after a live `[320, 768]`; the click gives exactly `[0, 320, 768]`; column overrides re-keyed `{ md: 6, lg: 10 }`; after rebuild `lastError` is null and the action goes; refused and byte-identical on a list starting at 0.
+- `test-smoke.mjs` §2d, per brand:
+  - the title-floor refusal shows no action (through `absent()`, with the shown bar as its proof);
+  - a live `[320, 768]` shows the button with the literal label;
+  - one click clears the bar and stores `[0, 320, 768]`, with everything outside `layout` byte-identical.
+
+**Mutations, each failing by name:**
+- **The action missing:**
+  - `main.ts` passes no action: the hook guard (`"error-fix" … never appeared in the rendered DOM`) and smoke "…shows "Add a 0px breakpoint" beside the error line — no action shown" and "one click clears the bar…" fail for prism3, aurora and harbor.
+  - `needsZeroBreakpoint` is always false: 4 unit assertions fail.
+- **The action altering other breakpoints** (replacing the first with 0 instead of inserting): unit "inserts 0 in front and keeps 320 and 768 exactly — [0,768]" fails, plus 2 more. Smoke "…stores [0, 320, 768]… — breakpoints [0,768]" fails for all three brands.
+
+
+### Round 3, from the UI lane's review (owner Q206 A, Q207 A)
+
+- **A refusal writes nothing.** `commitBreakpoints` used to `setPath` the new list and only then work out its names with `namesFor`, which resolves through the engine. A list the engine can't name (eight breakpoints, or a brand at seven offered the action) was therefore written, then threw: the invalid list stayed stored, the D13 re-key never ran, and the page threw mid-click. Both lists' names are now worked out first, inside a `try`. A list that can't be named is refused and nothing is written.
+- **Focus after the click (Q207 A, as settled on this PR).** The click opens the Layout page if another page is in view, and focuses the first field that can take focus: the row after the new 0px row, which is the brand's old first breakpoint. The 0px row's own field stays `disabled`: the gates exempt its 3.05:1 ink from 4.5:1 only while it is disabled and takes no focus, and a first draft that made it read-only and focusable failed `test:smoke`'s exemption check by name, on all three brands.
+- **Tests.** `test-layout-input.ts` gains section 6 (38 → 45): an eighth breakpoint refused, byte-identical; seven at 320px not offered the action, `addZeroBreakpoint` refused without throwing; Remove at seven works and re-keys `columnOverrides` (`{ xs: 4, lg: 10, 3xl: 16 }` → `{ xs: 4, md: 10, 2xl: 16 }`, then `{ sm: 4, lg: 10, 3xl: 16 }` after the click); and another error beside an above-0 list is not the list's refusal. `test-smoke.mjs` §2d gains, per brand: focus after the click; no action beside a columns error with the list at 320px; and seven at 320px with no action, then Remove, then the action at six, then a clean bar.
+
+---
+
+## (2026-10-10) — Canvas furniture pilot: variant labels, an inverse backdrop and inverse rows grouped, on Button, Tag and Text field (#2406, #2188)
+
+Owner decisions Q171 (#2406), Q172 and Q173 A (#2188), built as one arc and piloted on three defs before the rollout.
+
+**What a build now leaves on a piloted page.** After a build or an in-place update lands the set, the plugin places
+`_Label` instances on the set's parent, outside the set: a column label above each value of the grid axis, nested row
+brackets to the left for the outer row axes (up to three, none for an on/off axis such as "leading icon"), one
+"Inverse" bracket outermost, and an `_inverse-backdrop` instance behind the inverse rows. Wording is the variant values
+in sentence case ("focus-visible" → "Focus visible"). Button gets 6 column labels, 35 row labels and 1 backdrop; Tag 5
+and 13; Text field 7 and 16. The switch is `CANVAS_FURNITURE_PILOT` in `anatomy-figma.ts`: one list, read by the engine
+for the grouping and by the plugin for the labels, so the rollout adds ids and nothing else.
+
+**The grouping is the engine's, and layout only.** For a piloted def with a `surface` row axis, `planSetLayout` moves
+`surface` to the front of the row keys and partitions the rows by it, stably, so Button's inverse rows are rows 48–95.
+Member names, keys and the plan order members are built and combined in are unchanged, and the properties panel's value
+order follows member order (#2386), so it holds: the test reads `surface`, `appearance`, `size` and `state` options in
+the def's order off a grouped build. Only Button has `surface` among the three, so only Button moves.
+
+**An existing set is regrouped by an in-place update, reported as moves (Q173).** The first version of this PR left
+the regrouping to the next Build: the dry run read an old-layout Button as 576 current members, while an apply with
+other work regrouped it anyway, unannounced, and then drew a backdrop and an "Inverse" bracket on each of its three
+inverse bands. The orchestrator's review blocked on that. Now `gridMoves` (`update-plan.ts`) works out, for a piloted
+def, each member's row top the way the executor's layout pass does (from the members' heights, 24 in and 24 apart) and
+reports every member whose `y` differs: an old-layout Button reads `576 members. 360 to move.` and nothing else
+(rows 12–71 change place, 60 rows × 6 states, worked out by hand in the test). The apply treats moves as work; the
+build's pass re-lays the grid and rewrites no member, so every id and key survives, the outcome reads `360 moved`
+(counted off the host), and the next dry run reads up to date. Both phrases are DRAFT wording for the owner, in the
+"N to …" form the dry run line already uses. Rows only, because the grouping moves rows.
+
+**Why no `EXECUTOR_REVISION` bump.** The executor's code is unchanged: `update-plan.ts`, `update-apply.ts` and
+`canvas-furniture.ts` are outside its import walk, and `lint-executor-revision.ts` passes at main's 8. Bumping it would
+have marked every member of every def as needing a re-apply to move one def's rows, which is the thing the move count
+avoids.
+
+**Labels follow the members as the host holds them, not the plan.** Rows are measured off the set's members and sorted
+by their `y`, and runs of adjacent rows make the brackets. Furniture is drawn only over one inverse block: on a set whose
+inverse rows are still split (an update that refused or stopped in it), the old furniture is cleared and none is drawn,
+with a DRAFT line saying to run Update. So an ungrouped set never gets three backdrops.
+
+**Lifecycle.** Each instance carries shared plugin data `prism3`/`furniture` naming its def and set. A build first
+clears that def's furniture on the page (so a deleted set's leftovers never push a new set's placement) and redraws it
+once the set lands; an update's apply redraws it for each piloted set it acted on. Prune removes furniture whose set is
+gone or whose def has left the pilot, and nothing untagged, so the owner's hand-placed `inverse-bg` rectangles stay
+(Q172.5). Furniture is never appended into the set, which is what keeps the hand-edit check and the as-built record
+blind to it: `drawFurniture` reads its parent off the set rather than taking one.
+
+**Templates.** File setup builds `_Label` (the owner's Prism 2 spec, colors as literals) and `_inverse-backdrop` (fill
+bound to `color/inverse/background/primary`, the ground the inverse contrast checks use) on `↳ File Components`, each
+looked for on its own. `ensureFileComponents` skips when either of its own two sets is there, so every file set up
+before this would never have got the new pair under that rule. A backdrop built before the theme is applied holds a
+placeholder fill; the build binds it once the variable exists, and only while it is still that placeholder.
+
+**Placement and the page header (#2405).** Labels and backdrops are drawn before the run's headers, so a first build's
+header measures them and sits above. On a page whose header is already there, the column labels take 53px above the set
+(16 gap + one 37px label), inside the header's 80px gap. #2435 (now merged) changed only `placeNewSet`'s header handling;
+this PR does not touch `placeNewSet`.
+
+**Held for the owner:** the 16px gap between labels and the set, the 8px between nested bracket columns, the backdrop's
+12px padding and 8px corner radius, whether the default block also gets a "Default" surface bracket, and Bottom's
+bracket rotated 180° (the spec says only that it comes before the text), and the DRAFT phrases "N to move", "N
+moved", "✓ moved N" and the no-labels line for a set not yet regrouped.
+
+**Known limit, for the rollout.** On a page with several sets side by side, a later set's row labels sit in the 160px
+`SET_GAP`, and Button's four bracket columns are wider than that. On the pilot pages only Buttons holds more than one
+set, and its first set is the piloted one, so nothing overlaps yet. Also filed: furniture stays on a set's old page when
+the set moves page, since prune keeps a live set's furniture (#2485).
+
+**A member Prism3 didn't build is never a move (review of the merge, 2026-10-10).** Once merged with main's unstamped and adoptable work (#2464, #2476), `gridMoves` counted a member by its planned name alone, stamped or not. A member with no stamp on a planned coordinate (one Adopt could claim), sitting off the grid, was then counted in the dry run as "1 to move, 1 not built by Prism3". The apply moved it and read "button: 1 moved, 1 left as they are.", one member counted both ways. Prism3 never touches a member it didn't build (#2325, #2464), so `gridMoves` now reports stamped members only. A member with no stamp still counts toward its row's height, as the executor's layout counts it, so the row tops the dry run works out stay the executor's. This fixes the case where that member is the only thing off the grid. When stamped members move too, the apply re-lays the grid, and the executor's own re-lay moved the unbuilt member with them, so the verdict read `✓ moved 559` with `1 left as they are`, one member counted both ways. That was the executor's flaw, #2494, fixed by #2511: the re-lay leaves a member with no stamp where it is, and the same set reads `✓ moved 558` (`unbuilt/relay left`).
+
+Two more arms from the UI lane's review:
+- **Its height still counts.** A member Prism3 didn't build, made taller than its row, pushes every row below it down. So the dry run reads `button: 576 members. 558 to move, 1 not built by Prism3.`, and it is not itself one of the 558. Its row's height is the executor's too.
+- **A stamp that isn't Prism3's** (malformed, so `ownedView` clears it), off the grid: it is not listed as a move, and the apply leaves it exactly where it is.
+
+Tests: `unbuilt/…` in `test-canvas-furniture.ts`. Mutations:
+- `gridMoves` reporting unstamped members → `unbuilt/no move`, `unbuilt/left in place`, `unbuilt/verdict`.
+- Its row heights skipping unstamped members → `unbuilt/row height`.
+- `gridMoves` handed the members as read, not as `ownedView` reads them → `unbuilt/stamp not ours`, `unbuilt/stamp not ours left`.
+
+---
+
+## (2026-10-10) — Style Dictionary platform gate: the plain-data rule's line says what it checks (#2491 follow-up)
+
+**Status:** test wording only (`packages/tokens/check-platforms.mjs`). No engine change, no artifact moves, no ENGINE
+bump, CONTRACT unchanged.
+
+The `[RULE]` line #2491 added said "so no option is a function". The check is wider than that. It compares the config
+with its own JSON round trip, which drops a function and an `undefined` and turns a RegExp into `{}`. So it also
+fails a RegExp-valued option and an option set to `undefined`. That was found in #2491's review, where a RegExp
+mutation failed the line that names only functions. The line and the header now read "no option is code or a non-JSON
+value".
+
+Mutations, each from a `wip:` commit, restored with `git checkout --`, each the only failure, exit 1:
+- a RegExp option on the Compose file entry (`match: /x/`):
+  `✗ [RULE] the platform config is plain data — it survives a JSON round trip unchanged, so no option is code or a non-JSON value`;
+- a `fileHeader: () => []` function on the SCSS file options: the same line.
+
+---
+
+## (2026-10-10) — `19` §9 described a closed decision as the gating one, for two months
+
+**Docs only — no emission movement, so no change note.** `docs/19-code-library-and-dx.md` §9 gains a
+`Decided (2026-08-07, #609)` heading and the row `42` owes it.
+
+**What was wrong.** §9's last two paragraphs read *"The mode decision this forces is filed as #609"*
+and, above, *"this is now the gating decision for this whole layer."* #609 closed **completed on
+2026-08-07** — option C of four — merged as #639 (*"Emit a conforming DTCG projection beside the
+canonical tree"*) and #631 (`packages/tokens`, the stock-Style-Dictionary consumability gate). So the
+one section a developer reads to learn whether Style Dictionary is in the pipeline described the
+answer as pending for two months after it landed.
+
+**Why nothing caught it, which is the part worth keeping.** `42`'s own argument is that **nothing in
+this repo catches a decision superseded by a later decision** — and until this PR, `42` held 40 rows
+and **not one of them was about the code layer**. Repos, frameworks, Storybook, Style Dictionary and
+AEM are all prose with no index row and no gate. This section was not an oversight in an otherwise
+covered area; it was the first instance found in an area with no coverage at all. The `Decided`
+heading added here is the code layer's first entry in either structure.
+
+**The substantive correction.** Style Dictionary is a **gate, not a dependency**: `packages/tokens`
+runs a stock SD over the emitted DTCG to prove a conforming consumer reads it with no custom code,
+and the engine neither imports it nor needs it. Finding 1's generalization survives but narrows — it
+is now a statement about the *canonical* tree, which nothing is pointed at, rather than about the
+emission as a whole.
+
+**Re-verified rather than recalled, 2026-10-09**, because §9's whole weight rests on one external
+claim: Style Dictionary's DTCG page documents first-class DTCG support as of v4, says format 2025.10
+*"is not fully supported yet — this is a work in progress in v5"*, and **does not mention
+`$extensions` anywhere**. A conforming consumer is still blind to the canonical tree.
+
+**Also re-verified, since `19` §3's platform ranking is the other thing a developer reads and its
+citations were two months old:** Adobe's Core Components page still says *"for new projects, Adobe
+recommends leveraging Edge Delivery Services"* (page dated 2026-09-08, a month newer than §3's
+citation); `aem.live/docs/faq` still says web components *"are not the default recommendation"*; and
+`drupal.org/project/code_component` is still `1.0.0-alpha1` and still *"not covered by Drupal's
+security advisory policy"*, which is the whole of §3's reason for ranking React 5 rather than 4.
+**§3 needed no change.** Recorded so the next reader knows it was checked and when.
+
+**The trap for whoever reads §9 next.** Two constraints in it are still live and are easy to read as
+superseded along with the rest: SD stays in a workspace and is never imported by the engine core (the
+buildless invariant is what lets the engine bundle into the Figma sandbox), and a **production** SD
+configuration must be a *second file*, never merged into the consumer one, because the consumer
+configuration's value is entirely conditional on staying naive.
+
+**Filed, not fixed here:** the code layer has no gated decision record beyond the single row this PR
+adds, and four live decisions (#252, #253, #254, and the tranche-4 behaviour wall in `41` §7) sit in
+prose with no index entry. One row does not close that.
+
+**A correction made in review.** The first draft of the new heading said the engine emits "flattened,
+mode-resolved trees that are valid standalone DTCG". That is the alternative #639 turned down. What
+shipped is a base tree plus one overlay per mode, holding only the tokens that differ. On main,
+`nb.dark.overlay.tokens.json` carries 244 of the base's 704 leaves, and 236 of the 244 are aliases that
+resolve through the base. The heading now says so, with #639's reason (overlays compose per axis, where
+full trees multiply) and its scope (the theme axis only).
+
+---
+
+## (2026-10-10) — Studio: a committed field writes once and keeps focus; page changes, host updates and the Activity sheet leave focus on a control (#2487 PR 1)
+
+The first fix PR from the merged Studio redesign review (#2487, Lane A's A1, A2, A5, A6, A8, A11, A12). It comes first because
+A1 lost data: Enter in a Layout breakpoint field committed twice, and the second commit deleted a different breakpoint.
+
+**The diagnosis that made the fix small.** A1 and A2 have one root, in `ui/lever-kit.ts`'s `textField`. It committed on
+`change` and again on an Enter `keydown`, but the browser already fires `change` on Enter. The first commit redrew the page
+(`root.replaceChildren`), and the second came from the replaced field, whose closure still held the old breakpoint, so its
+"unchanged" guard let it through: 1025 typed into 768 stored `[0,1025,1440,1920]` while the page drew `[0,1024,1025,…]`.
+For Tab, `change` fires *before* focus moves, so the commit's redraw ran while focus was still on the old field, and the
+browser's Tab target was then a detached node: focus went to BODY. Both are fixed by one helper, `onCommitted`: commit on
+`change` only, one task later. The kit's `textField` uses it, and so do the four hand-built fields A2 traced (a brand
+color's name, a gradient's name, center and stop position).
+
+**Tried and discarded: a microtask.** The review proposed `queueMicrotask`. Measured in the built app, it fixes Enter but not
+Tab: the microtask checkpoint runs right after the `change` listener, before the browser moves focus, so the redraw still
+removes the Tab target. A `setTimeout` runs after focus has moved, and the page's own focus-keeping redraw then finds the
+new focus by its hook. Mutation M3 (microtask instead of task) fails A2 by name, so the choice is held by a test.
+
+**Also discarded: a "last committed value" guard.** With the Enter listener gone, `change` fires once per edit, and no arm
+could be built that fails without the guard, so it was not added. **`colorField` is left as it was** (its Enter and
+`change` pair): Palettes repaints the hex field in place, and its `cur` guard already drops the second commit. Both
+mutations on it (Enter re-added, commit not deferred) passed every arm, so changing it would have been an untested edit.
+
+**The rest:**
+- **A5** (`shell/frame.ts`): a page change that no tab started (Layout's Continue, style guides' Close) now moves focus to
+  the selected sub-tab or tab, the tab select when narrow, or the menu page, but only when focus was in the panes or the
+  menu page and the render left it on BODY.
+- **A6** (`domains/type.ts`, `domains/color-fills.ts`): an empty viewport, center or stop field puts its value back
+  instead of writing 0px or 0%. A negative viewport is put back too, as Layout's breakpoints already were.
+- **A8** (`shell/activity.ts`): at 380, a failure that opens the sheet over a focused control moves focus to the sheet's
+  toggle; Escape closes the sheet and returns focus to the bar's Activity button. Escape is scoped to the narrow sheet.
+- **A11** (`shell/figma.ts`): a host update that re-mints or disables the focused item moves focus to the first item that
+  can run, or the button.
+- **A12** (`shell/style-guides.ts`): the "Draw by table title" summary has a `data-key`, so a repaint refocuses it, and
+  its open state is kept for the session, so a repaint doesn't close it while its field is empty.
+
+**The check** is `test:chrome` §44: one case each on the web host (Layout, Type, Palettes, Surfaces & fills), the plugin
+at 380 (the Activity sheet), and the plugin at 1280 (the Figma menu; then Build style guides). Writes are counted by a
+`Storage.prototype.setItem` wrapper, and focus is read as `document.activeElement`'s hook. The arms fail on the unfixed
+app, and each of the 14 mutations of a fix fails its arm by name; the list is in the PR.
+
+**A trap for whoever re-verifies this.** A committed field's work now lands one task after `change`. A test that types,
+blurs and reads state in the same tick reads the old state. §44 waits a task and two frames (`after`) before it reads.
+One existing check did not wait: the Palettes "renaming a brand color to primary is refused" arm read the field right
+after Tab. It passed two full runs on timing alone and failed the third, so it now waits (bounded) for the refusal
+before it reads. The other checks that type into these fields already waited on their result.
+
+---
+
+## (2026-10-10) — Style guides batch 1: border widths with the focus ring, icon size, opacity, font style (#2353)
+
+The first batch of #2353's gap tables, as the owner set it on 2026-10-09: four groups that sat in the "Not drawn until a later phase" note are drawn. For prism3 the note drops from "13 font style, 5 icon size, 7 border width, 12 opacity, 5 breakpoint, 3 grid variables" to "5 breakpoint, 3 grid variables". Breakpoints, grid, line height and letter spacing (Q160, deferred), shadows, gradients and motion stay out of scope.
+
+- **Border width.** One table, "Border width": the `border-width` collection's four widths, then the `focus` collection's ring width, offset and field offset as its last rows (owner direction: the focus ring goes in with the border widths, "not a table of their own"). Each row's specimen is the swatch set's `type=border` outline with its stroke weight bound to the variable, at the member's own size in a white ruled cell, as the radius swatch is. Px and REM.
+- **Icon size.** `iconSize` is a dimension kind now, so `icon/size/*` draws in the icon collection's dimension table ("Icon") with the spacing bar, as a size does. No type of its own.
+- **Opacity (Q159 A).** Its own table, "Opacity", on Primitive tokens: each value as a percentage ("40%") with a swatch drawn the way a translucent color is drawn since #2336, the `type=transparency` member filling its cell with its own layers hidden, painted black, its layer opacity bound to the variable. No REM column.
+- **Font style (Q161 A).** A Style column in the Text styles table, after Weight, with the bound `core/font/style/*` variable as its chip. The 13 font-style variables leave the note and no table of their own is drawn for them.
+
+**The diagnosis that kept the merge small.** Tables were built strictly per collection, and the focus ring lives in its own collection, so "the same table" needed rows from two collections. The planner gathers every border-width variable in the run's collections up front and hands them to the first collection that holds one (`border-width`, which keys the table: `borderWidth|<border-width id>|pds3`). The one thing that had to change for a row from another collection is its mode: its cells carry the mode ID of the row's own collection (the column's mode by name there, else that collection's default) and the row carries `collectionId`, so the executor pins the focus row's specimen to the focus collection, not border-width's. Pinned to the table's collection, a focus value that varied by mode would have drawn its default in every column with nothing to say so. A section 35 check asserts the focus outline's pin by collection.
+
+**Two choices that rode along, both flagged for the owner.** The Weight column printed "500 · Medium Italic" (weight and style) with the style variable's chip, because prism3's text styles bind `fontStyle` and not `fontWeight`. With a Style column beside it, that chip and the style would be printed twice, so Weight now prints the weight and its name, "500 · Medium", as the Font weight table does, with a chip only when the weight is bound. And the opacity sample is black, fixed like the cell white, since it is the style guide's own chrome and not a brand color. Both are in the PR's owner items.
+
+**Where they sit on the page and the Build style guides page.** Border width shares the dimension row (`categoryOfKey`); opacity is a category of its own and takes the row after the known ones. On the Build style guides page both are in the "Spacing and size" group, so the page keeps four kinds and the studio is untouched; the page lists each focus variable under Border width, each opacity under Opacity ("40%"), and each font style a text style binds under Text styles, as #2371 did for the type-sets sizes.
+
+**A font style no text style binds stays in the note.** The owner dropped font style from the later-phase list because the Text styles table shows it. A font-style variable that no text style binds is not printed anywhere, so it is still counted ("1 font style"), and the page lists it with no table. That keeps the inventory's rule: no variable falls through unlisted.
+
+**Tests.** Section 35 of `test-style-guide.ts` builds phase 2's file plus the emission's `border-width`, `focus`, `icon` and `layout` collections and one unbound font style, and asserts typed-out values: the Border width table's key, columns, description ("7 border width variables in border-width and focus") and its seven rows in order with px and REM; no table for the focus collection, planned or drawn; Icon's five sizes; Opacity's twelve percentages in ramp order with no REM; the Text styles column list and the Weight and Style cells; the exact note; the page's table for each group. Drawn, it checks the stroke-weight and opacity bindings, the pins, the black fill and the hidden member layers, and the white ruled cell. Existing literals that moved: phase 2 now draws 14 tables (Opacity added), the text-style columns gained Style, and section 19's note check now asserts that phase 2's file has nothing left for a later phase (the counts live in 21 and 35). `test-style-guide-page.ts` gained a breakpoint so its "later phase" arm still has a subject.
+
+**Mutations, each on a committed head and restored from it, each failing by name:** the border-width merge removed, so focus draws its own table → "35: the focus ring's width and offset are rows of the Border width table…" and "35: no table is keyed to or titled for the focus collection"; the opacity drawn with an empty cell in place of its swatch → "35: opacity 40's swatch is the transparency member filling its cell…"; the Style column dropped → "35: the Text styles table has a Style column after Weight".
+
+**Not covered offline.** The shim records a bound `strokeWeight` and `opacity` but does not render them. Whether Figma draws the bound outline at 0.5px or 0px cleanly, and how the black at each opacity reads on the owner's file, is a live check.
+
+---
+
+## (2026-10-10) — Studio: an edit that fixes a failed restore clears the strip and Apply at once, and a late file read loads nothing (#2487 A4, A14)
+
+Two findings from the merged Studio redesign review on #2487 (PR 3 of its six).
+
+**A4: store ordering.** `main.ts` had two module-level `brand` subscribers: the one that repaints the legacy chrome (`syncChrome()`, which paints the error strip) and, registered about 450 lines later, the one that cleared an `unresolved` restore failure once a rebuild resolved. `invalidate` calls subscribers in insertion order, so after an edit that fixed the brand the strip painted the failure that was about to be cleared. Apply Theme reads `restoreFailure` too, but the bar repaints it only on `bar`, which nothing sent. Both stayed stale until some later event. Now the one subscriber clears the failure first, paints, then calls `barChanged()` if it cleared. The second subscriber is gone. #1989's own control fixed the restore by loading another brand, which goes through `loadBrand` and `build()` and repaints everything, so it never reached this path.
+
+**A14: late file reads.** Both upload pickers read the file asynchronously. The start window (`shell/start.ts`) now keeps a read generation, bumped by each read and by `dismiss`, so a read that finishes after Close, after a load, or after another file was chosen loads nothing. The brand menu's import (`main.ts`, `importFile`) does the same with `importGen`, bumped by each read and by the two controls that can close and reopen the box (`toggleMenu`, `toggleImport`), and also checks that the menu and the box are still open. That covers every close path without a bump at each one, since the box can only reopen through those two controls.
+
+**Trap for whoever re-verifies this.** `syncStart()` replaces the start window when it switches between the first run and a reopened one (the #1197 empty-file answer). That replacement goes through `dismiss`, so a read in flight at that moment is dropped too. The window the file was chosen in has closed, so this follows the rule, but the designer sees a start window throughout.
+
+**Tests.** `apps/plugin/test-build-verdict.mjs`, a new A4 block: it restores a brand whose refused override sits in a custom mode, then removes that mode on the Brand page (an edit, not a load). The confirm is clicked by an in-page `dispatchEvent`, and the strip and Apply are read in the same task. Driving the click through Playwright would let a later repaint stand in for the subscriber. `apps/plugin/test-start-screen.mjs` §5b: `FileReader.readAsText` is held until the test releases it, so "late" is a fact of the harness rather than of machine speed. For each picker, a read released after the window closed must leave the file's brand, and a control read released with the window open must load harbor, so a hold that broke reading can't pass as "loads nothing".
+
+Mutations, each after a `wip:` commit, on a rebuilt plugin bundle, each failing by name:
+- the clear moved after `syncChrome()` fails `A4 an edit that fixes a refused restore clears the error strip … — strip "This file's saved brand didn't resolve: …"`;
+- the `barChanged()` removed fails the same arm, `— strip null, Apply disabled true`;
+- the `start.ts` generation check removed fails `A14 a start-window upload read after Close loads nothing … brand "harbor"`;
+- the `importFile` check removed fails `A14 a brand-menu upload read after the menu closed loads nothing … brand "harbor"`.
+
+---
+
+## (2026-10-10) — Style Dictionary platform gate: the config is plain data, a brand with no row fails cleanly, and the matrix report is fully generated (#2473)
+
+Follow-ups from the #2440 review, all in `packages/tokens/` and `tools/sd-version-matrix/`. No engine code or artifact moves, so there is no change note.
+
+**The [RULE] now covers what a source scan cannot see.** The scan reads names (`preprocessors`, `transforms:`, `registerFormat` …), so `filter: (t) => true` on a file entry passed it: no banned word, but custom code all the same. `check-platforms.mjs` now builds the config object with `platformsConfig(...)` and asserts it deep-equals its own JSON round trip (`isDeepStrictEqual`). JSON drops a function and `undefined` and flattens a RegExp to `{}`, so only plain data survives unchanged. The check calls the real `platformsConfig` rather than reading its source, so it needs no list of option names to stay true.
+
+**The provenance line was wrong, and now says what the literals are.** The header said the literals were checked against the engine's input and that the NB red was the hand-built reference's value. Neither is true. The literals are snapshots of the engine's output, verified by hand. The engine emits `#d53d44` (`rgb(213, 61, 68)`) for core-color red 500; `reference/New Balance` carries `#d83c43` (`rgb(216, 60, 67)`) for the same step. Independence still holds, because the literals are typed, never read from `out/` at run time.
+
+**A brand with no literals row.** It used to call `expected({})`, which throws a TypeError while destructuring `color`, before the failure list prints. Now the value loop and the dark-overlay check both skip a brand with no row. The run reaches its end and reports the `[SCOPE] … a new brand needs its own row` failure by name. Guarding the overlay check too keeps a second, unexplained failure (a lookup of `undefined.color.background.primary`) from appearing beside it.
+
+**`sd-version-matrix.md` is fully generated.** Its one hand-written clause, "(4.0.0 converts more colors in JavaScript)", is now computed by `matrix.mjs`. It lists the cells whose verdict matches the latest version's but whose counts don't. A fresh `--write` changed only the date and that sentence, which now reads "against 5.6.0, 4.0.0 differs in js / color". So the hand edit was the only drift.
+
+**Mutations, each failing by name:**
+- `filter: (t) => true` on the CSS file entry fails the new `[RULE] the platform config is plain data`, and only that rule.
+- Removing the `harbor` row fails `[SCOPE] \`harbor\` carries literal value assertions`, with no TypeError and no other failure.
+- Reverting the guard brings the TypeError back.
+
+---
+
+## (2026-10-10) — Studio: forced colors keep every state in the chrome (#1855; HC1 B)
+
+**What changed.** The studio chrome has a `@media (forced-colors: active)` block at the end of `chrome.css`, so Windows High Contrast keeps every state the chrome drew by a fill, an edge or an ink alone. A selected chip, segment, mode radio, step or value fills with `Highlight` and inks with `HighlightText`. A checked mode box and the weights matrix's check do the same, and so does the switch's track, with a `HighlightText` knob when on and a `CanvasText` knob when off. The selected tab's underline is `CanvasText`, and the other tabs' underlines are hidden in `Canvas`. Disabled controls ink and edge in `GrayText`, `aria-disabled` ones included; the held mode control's selected segment keeps its edge and the others hide theirs. The status dots (Activity, the Agent tile, a mode's verdict, Health) fill with `CanvasText`. Glyphs take the forced ink instead of the chrome color they name, and focus rings take `CanvasText`. The brand's color specimens keep their real colors (`forced-color-adjust: none`): the switcher's swatch, Palettes' squares, heroes and role dots, the fill swatches, the step picker's chips, the start window's dots, Build style guides' swatches, Layout's samples, and the previews' specimen grounds. UI only, so no ENGINE bump.
+
+**The audit, measured under Chromium's forced-colors emulation (CDP `Emulation.setEmulatedMedia`).** Before: every selection drew white on black like its neighbors. Only a ✓ or the font weight survived, and the segments and mode radios kept only the weight. Chromium draws a transparent border in the text color, so every tab looked underlined. The switch lost its knob in both states. Every status dot drew nothing. The held mode control's selected segment looked like the others. Specimens went white: 166 of 182 colored on Palettes, 155 of 179 on Surfaces & fills. Native `disabled` controls already got `GrayText` from Chromium; `aria-disabled` ones did not. Focus rings survived, drawn in `Highlight`. The verdict's glyphs kept the chrome's green and red, because Chromium's SVG `preserve-parent-color` keeps an explicit color.
+
+**The decision (HC1 B, owner, 2026-10-09).** The first build followed the brief literally: `Highlight` fill, `HighlightText` ink, and no control opting out. Every computed style was right and the label was invisible. Under forced colors Chromium paints a `Canvas` backplate behind every text run, whatever the fill under it, so a white label on a navy fill became a white box. The owner chose B from four options (A literal, B opt out, C `CanvasText` ink on the fill, D a `Highlight` edge only). A selected control with a label takes `forced-color-adjust: none`, and every color it and its children draw is set to a system color in the block. No other control opts out. The weights matrix's check draws only a glyph, so it needs no opt-out.
+
+**Tests.** `test:chrome` section 39 covers both hosts and both chrome themes at 1280, under the emulation. The expected colors are the system keywords' own resolved values, read off a probe node that sets each one inline, never from `chrome.css`. Each state is read against its unselected neighbor. Each selected label is also read **as drawn**: a screenshot of its text box, decoded by the page's own canvas, must show the `Highlight` fill (composited over `Canvas`) on at least 40% of its pixels and the `HighlightText` ink on at least 1.5%. The opt-out sweep fails a control that opts out while not selected, and a control that opts out and draws a non-system color. Specimens must draw the color they drew before the emulation started, with literal floors on how many there are and how many are colored. Section 39, the number left free: `main` holds 37, 38, 40, 41 and 42, and 39 sits between 41 and 42 at the end of the file.
+
+**What review found (#2450).** The opt-out sweep had run only on Palettes, Brand and Surfaces & fills, never with a picker open. Three of the five kinds that opt out (the step, the value, the type-ahead option) were never read, and making every step and value opt out passed silently. The gap also hid a real leak. A selected value's type or radius sample is marked `data-content` for its brand face, size or radius, and both the `HighlightText` rule for a selected control's contents and the test's color check had exempted all brand content. So the sample kept the chrome's ink on the `Highlight` fill, about 1.7:1 in light. Now the sample inks and edges in `HighlightText` (`GrayText` when held). The test exempts only a color specimen that paints its own inline background, and it sweeps with the step picker, the base radius, columns and weight pickers, and the plugin's font type-ahead open.
+
+**Trap for whoever re-verifies this.** The computed-style checks passed while the label was invisible (option A). Mutation (d), taking the opt-out off the selected chip, fails only the drawn check. Don't drop that check as redundant. Chromium's own stylesheet also sets `forced-color-adjust: none` on `input[type="color"]`, so the sweep leaves color inputs out, with that reason. And in the emulation `GrayText` resolves to a dark red (`rgb(96, 0, 0)`), not a gray: that is the emulation's palette, not a bug.
+
+**Filed, not done.** #2444: system-color keywords pass `chrome/tokens.mjs`'s raw scan outside a forced-colors block. #2445: the derived-mode hatch is lost under forced colors; Chromium drops background images. This is an owner question with options.
+
+---
+
+## (2026-10-10) — Update apply: a veil's gradient stops draw their own colors, and the draw check reads them (#2391)
+
+**The defect, confirmed live.** After an in-place update, 24 of the veil's 30 members (every directional one) drew solid black. Each `GRADIENT_LINEAR` fill's two stops stored `0,0,0` at 100% under intact bindings, and the host draws the stored stop color, as it drew a solid paint's before #2396. The component executor based every stop on `GRADIENT_STOP_PLACEHOLDER`. #2396 fixed the same shape for SOLID paints only. No check could see it: `drawn.ts`, which the dry run, capture and verify all share, read SOLID paints only, so the confirming dry run read every veil member current and the apply verified clean.
+
+**The fix, #2396's method applied to stops.**
+- `write-components.ts`, the `gradientFill` branch: each stop's base color is its variable's resolved color for the node, with the alpha in the stop's own color (a stop has no paint opacity). The placeholder is used only where nothing resolves. This applies on a fresh build and in place.
+- `drawn.ts`: a bound stop of any `GRADIENT_*` paint whose stored color or alpha differs from its variable's resolved value is a fault, in the existing wording (`stored #000000 at 100%`). Since the dry run, capture and verify all read this one check, a damaged veil now reads "to update", the apply repairs it, and verify fails a stop the host leaves wrong.
+- The shim: a veil variable resolves with the emitted veil's alpha (dark 50/60/70%, light 40/50/60%, clear 0). A combine does **not** re-resolve gradient stops, because what the host does to them on a combine is unmeasured. The stored stop is what draws, so the fresh-build test checks the executor and not the shim.
+
+**Tests** (`test-update-apply.ts`, `veil/…`, expected values authored in the test): built fresh, all 48 stops hold their variable's color and alpha, and one member's two stops are spelled out in hex. With black stops under a matching record and earlier-plugin stamps, the dry run reads the 24 members "to update", naming 48 stops `stored #000000 at 100%`. The apply updates the 24, verified, and the next dry run reads all 30 current. With the host keeping black behind the executor, verify names the stop. Mutations, each failing by name: stops based on the placeholder → `veil/fresh`, `veil/repaired`, `veil/current`, `corpus/in place`; gradient stops dropped from `drawn.ts` → `veil/dry run`, `veil/repaired`, `veil/verify`; verify's draw check dropped → `veil/verify`.
+
+**The alpha half, held on its own (review).** Without it, dropping the alpha comparison from the gradient branch of `drawn.ts` left every plugin test green: a stop at the right color but 100% alpha, a solid wash, read current. A new arm keeps every stop at its variable's RGB but at 100%, with the host keeping 100% on every stop it is given. The dry run reads the 24 "to update", naming `stored #b64d3c at 100% (the plan says color/veil/dark/strong, which resolves to #b64d3c at 70%)`, and verify fails on the same line. Mutation: the alpha comparison dropped → `veil/alpha dry run`, `veil/alpha verify`.
+
+`EXECUTOR_REVISION` 8 → 9. This PR first took 8, and #2435 merged with 8 before it, so the merged tree would have stamped two executor changes with one number. `lint-executor-revision.ts` caught that on the merged tree.
+
+**Still owed:** a live check on a scratch file, then a dry run on the master duplicate showing the 24 veil members "to update".
+
+**Not changed (trap for later):** the MCP paste payload's gradient splice (`anatomy-figma.ts`, `PAYLOAD_GRADIENT`) still writes black stop bases, as its solid paint still does after #2396. The paste path only builds fresh, and whether a fresh combine re-resolves stops on the host is unmeasured. Filed as #2468 rather than widened here.
+
+---
+
+## (2026-10-10) — Update dry run: a set whose only other members are not built by Prism3 reads up to date, unless Adopt could claim them (#2464)
+
+**Status:** plugin only (`apps/plugin/src/update-plan.ts` and its test). No engine change, no emitted artifact moves,
+no ENGINE bump, CONTRACT unchanged, `EXECUTOR_REVISION` unchanged (the executor is untouched). The headline wording is
+unchanged. Owner decisions Q191, recorded on #2476:
+- **1A:** the set-line sentence "N not built by Prism3, left as they are." is approved.
+- **2B:** a set with members Adopt could claim reads "no changes", never up to date. Its Adopt sentence is DRAFT
+  (below).
+
+### The diagnosis
+
+`noChanges` asked whether every member was `current` or `revisionUnknown`. A member not built by Prism3
+(`unstamped`) is neither, so a set holding one could never read as having no changes, even though the update never
+touches it and lists no change for it (the owner's rule, #2325). On the NB master duplicate, after a full apply,
+every Prism3 member of all 24 sets read current. The headline still read "Would change 1 of 24": the `icon` set and
+its 27 hand-added icons. So a converged file could not pass the dry run → apply → dry run check literally.
+
+### What changed
+
+- **`noChanges` counts `unstamped` beside `current` and `revisionUnknown`.** Nothing else moves: a set with an
+  add, a property change, or any member to update, re-apply, edited by hand or with no record still counts.
+  `upToDate` builds on `noChanges`, so such a set reads up to date and the headline reaches "✓ All sets up to date"
+  when every set does.
+- **The set line keeps the count.** An up-to-date (or no-changes) set with members not built by Prism3 reads
+  `tag: up to date (47 members). 2 not built by Prism3, left as they are.` The second sentence is new wording for
+  the owner. It's the issue's own phrase. Before, an up-to-date line had no room for the count, and a changing
+  set's line already said `N not built by Prism3`.
+
+- **Adoptable members (Q191 2B).** A member not built by Prism3 on a PLANNED coordinate is one Adopt could claim
+  (`adoptable`, #2283). `upToDate` now also requires `!p.adoptable.length`, so such a set reads
+  `tag: no changes (45 members). 2 not built by Prism3, left as they are. Adopt can claim them.`
+  - The headline for a file whose only non-current members are adoptable is the existing "✓ No changes found", not
+    "✓ All sets up to date".
+  - The Adopt sentence is new wording, DRAFT, because the dry run had no Adopt wording to reuse. Adopt's own verdict
+    speaks only after the fact ("N adopted"). It reads "Adopt can claim it" for one member, "them" when every member
+    not built by Prism3 is adoptable, and "Adopt can claim K of them" otherwise.
+  - Off-plan unstamped members (the NB icon case) still read up to date.
+
+### Tests and the mutation
+
+`test-update-components.ts`, a new `converged/` section, on TAG as built (45 current) plus two members not built by
+Prism3 off the plan:
+- **`converged/headline`:** that set beside an untouched one reads "✓ All sets up to date". This is the
+  existing headline, typed as a literal.
+- **`converged/set line`:** the set's line is exactly the sentence above.
+- **`converged/adoptable`:** two of TAG's own members with no stamp or record hold their planned coordinates, so
+  both are adoptable. The headline must be "✓ No changes found", and the set line must be exactly the Adopt line
+  above.
+- **`converged/real change`:** with the content gap moved on every member, the same set reads
+  "Would change 1 of 1", and its line still counts the 2.
+
+| Arm | Fails by name |
+|---|---|
+| `!p.adoptable.length` dropped from `upToDate` | `✗ converged/adoptable: … (✓ No changes found; tag: up to date (45 members). 2 not built by Prism3, left as they are.)`, the only failure of 124 |
+| the adoptable case dropped from the headline | `✗ converged/adoptable: … (✓ All sets up to date; tag: no changes (45 members). … Adopt can claim them.)`, the only failure of 124 |
+| `unstamped` left out of `noChanges` again | `✗ converged/headline: … (got "Would change 1 of 2")` and `✗ converged/set line: … (got "tag: 47 members. 2 not built by Prism3.")`, the only 2 failures of 122 (before the adoptable arms) |
+
+---
+
+## (2026-10-10) — Consumer prose names no tool, and the token trees carry no free-text note (#2411, #2422)
+
+**Status:** engine emitters, the component defs, a new gate. ENGINE minor (change note). CONTRACT unchanged:
+`token-contract.ts --check` is clean, since the contract baselines token paths and `$type` only and nothing here
+adds, removes or retypes a path. Owner decision **Q167, all recommended**, recorded on #2411 after two
+independent audits that agreed on every count.
+
+### What changed
+
+- **No free-text note in the token trees.** Every `note` under `$extensions` is gone:
+  - `figma.note` (9 distinct strings, 382 per tree in one brand): each clause was already a field (`kind`,
+    `styleType`, `binds`, `baked`, `unit`, `percent`, `collection`, `modes`) or rationale and roadmap. The
+    gradient note held two facts no field held, so they became `figma.requires: "plugin-api"` and
+    `figma.interpolation: "srgb"`.
+  - `prism3.note` on alpha steps and springs: dropped, since `alpha` and `customType: "spring"` say it.
+  - The mode-override notes (radius, density, tempo, easing, family, weight re-points): dropped. They emit in no
+    committed brand, so a represented-scope gate could never see them; `aliasOf`, `px`, `ms`, `face` and
+    `weight` beside them hold the fact.
+- **#2422 closed.** `a11y.note` on gradients is replaced by `a11y.floor` (4.5) and `a11y.clears.{white,black}`,
+  each computed from that ink's own un-rounded worst case. The old note tested `min(white, black) < 4.5`, so it
+  said "neither clears" whenever either side failed. `emit-figma-styles.ts` was the one reader of any token
+  note and now copies the structured verdict into `gradient-styles.json`.
+- **`hueSource` on every step of a status palette** (`"brand"` or `"default"`). Set for every status palette whose
+  source is known, including defaulted success and warning, not only the danger and info ramps the audits found;
+  the defaulted ramps' `$description` is now the purpose alone (`danger status`, `info status`). The field name
+  and its placement are drafts for the owner. Owner Q167 named the palette GROUP, and that was tried first:
+  `test:export-parity` showed both the studio and the plugin export drop it, because they rebuild the tree from
+  its leaves (`apps/studio/src/export-settings.ts`, `projectDtcg`), and the flat dotted format has no group to
+  hold it at all. So it sits on each step; group placement needs the export taught to carry group metadata.
+- **Tool names out of consumer prose:** the grid `$description`, two decision strings (gradient sampling,
+  responsive typography), the strikethrough guidance (its per-surface half now in
+  `modifiers.strikethrough.{code,figma}`, `.ai.json` schema 0.5), the component docs file note, and eleven
+  component strings, whose Figma half moved to a new maintainer-only `notes.projection`.
+
+### The gate: `lint-tool-neutral-prose.ts`
+
+Reads the committed `out/` files against a word list typed in the gate. Arms: `TOOL-NAME`, `NOTE-KEY`,
+`GRADIENT-CLEARS` (recomputes each ink's worst contrast from the sampled stops with its own WCAG formula, never
+reading `worstOnWhite` / `worstOnBlack`) and `UNREPRESENTED` (every promised field read in every brand and file,
+plus floors). Exempt by path, never by word. Run against `main`'s output before this change it reports 369
+`TOOL-NAME`, 7,194 `NOTE-KEY` and 36 `GRADIENT-CLEARS` lines. Mutations, each regenerated and failing by name:
+the grid description restored (78 `TOOL-NAME`), the `min()` condition restored (6 `GRADIENT-CLEARS`, white at
+5.36:1 and 4.56:1), an alpha `note` restored (220 `NOTE-KEY`).
+
+### Traps for whoever re-verifies this
+
+- A group-level `$extensions` is valid DTCG and still lost by this repo's own exports (above), and no gate but
+  `test:export-parity` notices. Keep metadata on leaves until the export carries groups.
+- `lint-component-docs.ts` types the maintainer record's `notes` keys, so `notes.projection` had to be added to
+  its `MAINTAINER_NOTES` list; the bundle strip (`strip-maintainer-prose.mjs`) drops `notes` whole and needed no
+  change.
+
+- A backticked dotted name in `.ai.json` prose is read as a token path by `test.ts`'s sidecar-paths arm, so
+  `` `modifiers.strikethrough` `` in `when_to_use` failed it. The prose names the field without backticks.
+- The prism3 brand's id is the product's name, so the `.ai.json` file note ("companion to prism3.tokens.json")
+  matches "Prism3". The gate strips file names before matching; that is its one textual carve-out.
+- Platform names (iOS, Safari, HTML, Jetpack Compose) stay allowed in prose (owner Q167 call 4); structured
+  platform notes are filed for later. The `prism3` extension key itself is out of scope (call 7).
+
+---
+
+## (2026-10-10) — Type: the title floor's and Italic only's refusal reasons are drawn as hint lines and describe their chips (#2451)
+
+Owner decision RS1 A. Three refused chips said their reason only in `title`, which a keyboard or screen-reader user never reaches, because a disabled chip takes no focus. Each reason is now also a hint line under its chips, drawn only while the chip is refused, and linked to the chips' group through `refuseOption(group, value, why, reasonId)` (#2458), so the group's description says it. The `title` stays. The words are the existing approved strings, unchanged:
+
+- Type › Scale limits › Smallest title size, **16px** under the Compact scale: `S63.titleFloorCompact`.
+- The same row, **18px** while title 2xs is set individually: `S63.titleFloorPinned`.
+- Type › Italic styles, **Italic only** on a text type that pins a font style: `S63.italicPinned`, under that text type's own chips.
+
+**Hint, not warning (Q184 B).** The lines are `stateLine(…)` hints (`p3-state-hint`), so the choice rows' live region, which reads only `.p3-state-warn`, never carries them. This differs from Type scale on purpose: its non-clash reasons are drawn as warnings and are announced; these three were asked for as hints.
+
+**The diagnosis that kept it small.** The two title floor refusals are mutually exclusive (one needs the floor at 18px, the other at 16px), so the row needs one line, and it goes in the lever's existing state slot, where Size floor's 8px warning already sits. `chips()` takes an optional refusal and does the `refuseOption` and the line itself, instead of the old pattern of reaching into the rendered chip afterward. Each italic row is a one-column grid, so the line is appended after its chips with no new CSS. No layout choice was left open.
+
+**Tests.** `test:chrome` §43: both hosts, light, at 1280 and 380, each refusal set up through the UI. For each: one line drawn under the group's chips with the approved sentence (typed as a literal), found by its words inside the row rather than through `aria-describedby`; the group's description in the accessibility tree (CDP) contains it; no live region carries it, read with the line proven drawn; and, with the refusal lifted, no such line remains and the description no longer says it, through `hooks.absent` with the line proven seen.
+
+Mutations, each after a `wip:` commit on both rebuilt bundles, each failing §43 by name on both hosts at both widths: the line not drawn (48 failures: (i), and (ii) to (iv) NOT MEASURED); the line not linked (the 12 description arms); the line drawn as a warning, so sent to the live region (the 12 live-region arms).
+
+**Not done, on purpose.** Type scale's own reason lines stay warnings. Other title-only refusals elsewhere in the Studio (the display ceiling's disabled options, a select) are out of scope for #2451.
+
+---
+
+## (2026-10-10) — test:chrome: a case that throws says why, and #2192's chips wait for their redraw by name (#2460)
+
+A flaky check on #2421 (job 114051289592, passed on retry): `✗ #2192 web dark 1280: the case stopped at a step that
+threw — locator.click: Timeout 10000ms exceeded.` That line is all CI kept. The catch kept only `split('\n')[0]` of the
+error, so Playwright's call log was dropped, including the line that says whether the chip was covered, moving, disabled
+or detached. Test code only.
+
+**The labels.** `stopped(e)` in `apps/studio/test-chrome.mjs` now keeps three parts: the error's first line, the locator
+it waited for, and the call log's last actionability line (`intercepts pointer events`, `element is not stable`, `not
+enabled`, `detached`, and so on). With no such line, it keeps the last step the log reached. The regex vocabulary is the
+one the #2194 pinned-clash catch already used. All 86 `String(e?.message ?? e).split('\n')[0]` catches in the file now
+call `stopped(e)`. Each part is capped at 200 characters, because an intercepting element's line carries its markup.
+
+**The wait.** §30b already waited for each pressed chip to read pressed, but under `.catch(() => {})`, so a redraw that
+never landed went unnoticed and the next step read stale state. That wait, and the same one after KB1 A's Enter, is now
+`drawnPressed`. It is the same condition with the same 5 s bound, shaped as `.then(() => true, () => false)` into an
+`ok()` that has its own name. The condition really is the redraw: a press redraws the whole levers pane as new nodes,
+and only the redraw draws the pressed chip. No sleep, no retry, no timeout changed.
+
+**What the measurements say, honestly.** The flake didn't reproduce. 632 cases of the unchanged block passed, run alone,
+4-wide, and under 6× CDP CPU throttling. A deliberately deferred redraw (the chip's pick run 400 ms late, in a scratch
+copy of the built bundle) shows the wait matters: with the wait removed, every case fails by name at `step 1 … saves
+italics`. That mutation fails through the step assertions, not through a catch, and that's built in rather than
+missing. A click Playwright can't act on retries until its own 10 s timeout, so a redraw short enough for the 5 s wait
+to pass can't time a click out. The click just lands on the stale row. The CI symptom therefore needed something
+blocking the chip for the full 10 s, which a 150–330 ms rebuild can't do alone. The new label is how the next
+occurrence will say what that was. To show it, a scratch bundle leaves a full-page layer over the chips after a press.
+The old label ends at `Timeout 10000ms exceeded.`, and the new one ends at `<div class="p3-veil"></div> intercepts
+pointer events`.
+
+**Trap for whoever re-measures:** a scratch bundle edited after the build fails `assertBundleFresh` if it is written
+into `dist/`. Serve it from a copy, as the harness for this entry did, and never rebuild `dist/` while a loop is reading
+it.
+
+---
+
+## (2026-10-10) — docs/46 cites #2259, and prism3-rebind states createAutoLayout plainly (#2357 follow-up)
+
+**STATUS: branch `docs/never-detach-cite-2259`.** Docs and skill text only. No engine code, no artifact moves, no ENGINE bump owed (the #1328 precedent, as #2357). `CONTRACT_VERSION` unchanged.
+
+Two non-blocking notes from Lane D's #2357 review. Both land here because CLAUDE.md says a correction to a branch under review goes in as a follow-up:
+- **The citation.** The orchestrator's record of owner decision Q131 (on #2357) gives the heading as `Decided (2026-10-06, #2259): …`, while #2357 had kept the issue-less form. Now `docs/46-never-detach.md`'s heading cites #2259, and so do `docs/42`'s row and `decisions-index.json`'s `issue`. The JSON is a **hand edit**: `lint-decisions-index --accept` only appends and refuses to rewrite an existing row, so changing a row is a superseding edit by design.
+- **`createAutoLayout`.** The skill's trap row said it "may not exist". It isn't in the plugin typings at all, so the row now says it isn't part of the plugin API.
+
+**Verified.** `lint-decisions-index` and `lint-skills` are clean. Mutation: setting the JSON row's issue to 2258 fails `lint-decisions-index` by name in both directions (`ROW NOT FOUND` for the row, `UNINDEXED DECISION` for the heading), so the citation is checked, not decorative.
+
+---
+
+## (2026-10-10) — Depth & motion: picking a role's default easing curve in Light unsets it (#2051)
+
+**STATUS: branch `ui/2051-easing-default`.** Studio state plus one engine export. No committed artifact moves (`regen --check`: 177 in sync), so no ENGINE change note is owed, the #2006 precedent. `CONTRACT_VERSION` unchanged. **Fixes #2051.**
+
+### What changed
+
+`setEasingRole` (`apps/studio/src/state/depth-motion-input.ts`) used to write `motionPersonality.easingRoles.<role>` in Light for every pick, the default included. So a brand that picked a role's default back wasn't byte-identical to one that never touched it, the same shape as #2006. Now:
+- a pick equal to the engine's default for that role (or `undefined`) removes the key;
+- an emptied `easingRoles` is removed;
+- an emptied `motionPersonality` is removed too, for a brand that never authored motion.
+
+A non-default pick still writes, and a mode's write through `modeLevers` is unchanged.
+
+The default is the engine's own, read rather than restated: `EASING_ROLE_DEFAULTS` in `packages/engine/theme.ts` is now exported (`const` → `export const`), as #2006 exported `TYPE_LINK_DEFAULT`. The emitted tokens can't change, because the engine fills an absent role with that same default. The header comments in `depth-motion-input.ts` and `domains/depth.ts` that described the old trap now describe this rule.
+
+### Tests (`apps/studio/test-depth-motion-input.ts`, section 4)
+
+- The four defaults restated as **literals**: default → `standard`, enter → `decelerate`, exit → `accelerate`, emphasized → `expressive`. A change to the engine's defaults fails here by name instead of moving the expectation with it.
+- Picking the default leaves the brand byte-identical to the one loaded.
+- calm, then back to the default, removes the key and the emptied `easingRoles`.
+- With two roles set, returning one removes only that key.
+- On a brand with no `motionPersonality`, set then reset removes `motionPersonality` itself, and the engine resolves the same motion as before (emission unchanged).
+- The old assertion that pinned "writes the default curve rather than unsetting (#2051 changes that)" is replaced.
+
+**Mutation:** restoring the old "always write" branch (`if (curve) {`) fails four assertions by name: the three byte-identity ones and the bare-brand one.
+
+---
+
+## (2026-10-10) — Update tests: a record write that fails after the update, record-less icons, and icons in a copy of their file (#2373, #2436)
+
+Test-only. These are three update-path gaps the reviews of #2367 and #2363 found, each now held by an arm in `test-update-apply.ts`. No product code moved, so `EXECUTOR_REVISION` is unchanged.
+
+- **`recordfail/…` (#2373 a).** One icon's host throws on its as-built record write, after the update has written the icon. The order in `finishUpdated` is record first, stamp last (§7), so the icon keeps the stamp it had and its in-progress marker. The next dry run reads it out of date, never current, and the outcome names it among the build's misses: `name=arrow-left.asBuilt -> NOT RECORDED (the host refused the write)`. The refusal is installed by the test, on the shim's node. `recordfail/set member` holds the same failure on a `tag` member, which `finishUpdated` reaches from the set path's own loop.
+- **`unrecorded single/…` (#2373 b).** The icons with no as-built record. By default all 44 are updated, named as updated without a record, take the plan's ink, and read current after. Under `noBaseline: 'skip'`, the one record-less icon is left exactly as it is and named ("no as-built record"), and the other 43 are updated.
+- **`duplicate single/…` (#2436).** The icons and the spinner, built in two shim files that differ only in `keyPrefix` and `styleIdPrefix`. Each component in the copy takes the original's stamp and record, with its own id. All of them read current, or, under a stamp with no executor revision, all read built by an earlier plugin. None reads as a hand edit. `singleWorld` takes the two prefixes for this.
+
+### Found on the way: the verdict reads no misses (#2477)
+
+`recordfail/named` first asserted that the verdict fails. It doesn't. `applyVerdict` builds its headline from `stopped`, `identity`, `content`, `refused` and the counts, and never reads `SetOutcome.misses`. So the run above reads **`✓ updated 44 in place`**, with arrow-left among the updated, while the next dry run calls it out of date. Saying it means new verdict wording, which is the owner's call, so it is filed as #2477. The arm asserts the node-level facts and the `misses` entry, and its comment names the gap.
+
+### Why `format/duplicate`'s mutations can't reach the single components
+
+v3 hashes an instance's main and a text or effect style by name. The icon and spinner defs build neither, and `premise: <def>: … nothing keyed` asserts it (0 instances, 0 styled text, in the copy). So the issue's mutation, an instance's main hashed by key, fails `format/duplicate` and leaves both `duplicate single/…` arms passing, by design. A def that gains a nested instance or a styled label fails the premise, and the arm then guards it as `format/duplicate` guards `tag`. The mutation these defs can feel is a node's own key hashed.
+
+### Mutations (a `wip:` commit first, each restored with `git checkout -- apps/plugin/src`)
+
+- **The stamp written before the record in `finishUpdated`:**
+  - `✗ recordfail/unstamped: … (stamp now 0.236.0|bbb895d3d2fb3763|8, record kept)`;
+  - `✗ recordfail/out of date: … ({"members":44,"current":44,"update":0,…})`;
+  - `✗ recordfail/set member: … (stamp moved; {"members":45,"current":45,…})`.
+- **`noRecordFor` defaulting to `skip`:** `✗ unrecorded single/updated: … (✗ 1 set not updated; 0 updated, 0 unrecorded)` and `unrecorded single/recorded`, plus the existing set arms (`unrecorded/updated`, `unrecorded/all`, `format/earlier …`).
+- **`noRecordFor` ignoring the choice:** `✗ unrecorded single/skip: … (44, [], written; …)`, plus `skip/listed`, `skip/untouched` and `unrecorded/skip`.
+- **A node's own `key` copied into the snapshot and hashed:** `✗ duplicate single/current: icon: … ({…"handEdited":44…})`, and `duplicate single/earlier`, both for the icon and the spinner, plus `format/duplicate`.
+- **An instance's main hashed by key (the issue's):** fails `format/duplicate` only, as described above.
+
+### Traps for whoever re-verifies
+
+- A single component's coordinate in the build's misses is `name=<glyph>` (#2296), not the node's `icon/<glyph>` name. A filter on the node name finds nothing and reads as "not named".
+- The in-progress marker holds the JSON list of the parts the update keeps, so an icon with none reads `[]`. "Kept" means it isn't the empty string the finish writes.
+
+---
+
+## (2026-10-10) — Style guides: the Token column prints the full variable path by default (#2372)
+
+Owner decision Q135 B. Each row's Token cell now reads the whole Figma variable or style name, `pds3/color/inverse/text/primary` or `pds3/core/palette/neutral/025`, the same form as the alias chips beside it. The old short names, the name below the table's shared prefix, are one option away: `tokenNames: 'short'` over the agent link, and *Token names* → *Short* on Build style guides (label, wording and placement are **DRAFT for the owner**). Absent means full, so an older agent-link caller gets full paths with no change to its call.
+
+**The diagnosis that kept it small.** The row already carried both forms: `name` (the full path) and `token` (the short name). `token` does two other jobs besides printing: ramp order sorts on it (`rampSort` only sorts when no token holds a `/`, so swapping it to the full path would have silently turned off numeric ordering for every palette), and a miss report names a row by it ("Space: 050, 100 …"). So `token` stays as it was and a new `tokenCell` holds the printed text, set per option in the three planners. The executor prints `tokenCell`; nothing else moved.
+
+**Widens, never clips.** No new layout code: since the owner's grid model (2026-09-29) every track HUGs its widest cell and every text hugs its words with truncation off, so a long path widens the Token column. The new check asserts it on Inverse (the longest paths, 59 characters in the test brand): no cell wider than its track, and the track holds the longest path by the shim's own 7px-a-character metric.
+
+**The rerun report.** Confirmed, and now tested: `snapshotOf` keys on variable ID and records `name` and the raw values, never the printed cell, so a rerun that switches the option reports every table updated with no row added, removed, changed or renamed, in both directions. A mutation that snapshots `tokenCell` instead fails that check by name.
+
+**Literal widths that moved, and why.** Four pinned geometry checks in `test-style-guide.ts` were re-pinned, each by the prefix the Token cell gained times 7px: the owner-cell Text table 2,828 → 2,940 (`pds3/color/text/`, 16 characters); Background 2,335 → 2,489 and Foreground 3,147 → 3,301 (`pds3/color/background/` and `pds3/color/foreground/`, 22 each); Dimension 602 → 728 (its Token column was held by the 5-character header "Token"; now by the 23 of `pds3/core/dimension/124`, 18 × 7) and Font family 968 → 1,122 (22). The arithmetic is written beside each constant so a reader can check it without running anything.
+
+**Tests.** Section 34 of `test-style-guide.ts` covers both modes with typed-out expected paths (plan and drawn; Inverse and a palette; a space step and a text style in phase 2), the no-clip check, and the rerun in both directions. `rowOf` now finds a row by its exact Token text or, failing that, the one full path ending in it, so the many locators written with short names still work and an ambiguous suffix finds no row rather than a wrong one. The agent link (passed through; `path` and a boolean refused as `bad-args`), the page state (`DEFAULT_OPTIONS`, `drawOptions`) and the built page (`test:verdict`: the two choices, Full path by default, Short reaching Draw) each have a check. Mutations, each failing by name: the planner always short, never short; the executor printing `token`; the snapshot keyed on `tokenCell`; the agent link dropping or not validating the field; the page dropping it from Draw, defaulting it to short, or losing the lever.
+
+**Not done here:** a code-form column (DTCG dot path or CSS variable) is a possible later option (#2372, out of scope).
+
+---
+
+## (2026-10-10) — A stock Style Dictionary builds every brand to CSS, SCSS, JS, Swift, Android and Compose, with literal values and a measured version floor (#2424)
+
+The consumability gate proved a stock Style Dictionary could read our DTCG, but for CSS only and by structure, not value. #2424 asked for every platform a product team ships to, value assertions independent of the engine, and, per the owner's note, the Style Dictionary version requirement measured rather than assumed. That's the evidence #2425's preset question needed.
+
+### What was built
+
+- **`packages/tokens/sd.platforms.mjs`.** The consumer config's rule, kept for six platforms: built-in transform groups and built-in formats only. It's plain data plus one build entry point, so a tool can hand the identical object to any version.
+- **`packages/tokens/platform-outcomes.mjs`.** Judges each token on each platform as emitted, transformed, broken or lost. It walks the DTCG and resolves aliases itself, then parses each written file. It never asks Style Dictionary, and it matches names by normalizing both sides (lowercase, letters and digits only) rather than by reimplementing Style Dictionary's name transforms.
+- **`packages/tokens/check-platforms.mjs`,** run by `check:consumability` after the existing gate, so CI's step list is unchanged:
+  - `[RULE]` source checks;
+  - `[READS]` (every file, every token, the `.d.ts`, the dark overlay moving the background on native);
+  - `[VALUE]` literals per brand: the primary hex in all six forms, `16px`, `1rem`, the brand's ms duration, a `1.5` line height and the display typeface;
+  - a pinned `[VERDICT]` table per platform × type.
+- **`tools/sd-version-matrix/`** (a tool, with the gate as its sibling). It runs the config under 3.9.2, 4.0.0, 4.4.0, 5.0.0, 5.5.0 and 5.6.0, each in its own temp install, and writes `packages/tokens/sd-version-matrix.md`. About three minutes and networked on first run, which is why CI runs only the lockfile's version.
+
+### The answer
+
+- **4.0.0 is the floor that needs no preset.** Every version from 4.0.0 to 5.6.0 carries every base token to every platform, with the same verdict in every cell.
+- **3.9.2 reads nothing:** 0 of 3,718 base tokens. The few variables it writes come from `value` keys inside `$extensions`.
+- **Renaming the keys isn't enough.** It's the least a 3.x preset could do, and it was measured as a not-stock experiment: the CSS and SCSS builds then throw on composites, and colors stay unconverted strings, because 3.x picks transforms by path and our paths start at the brand root.
+- **Web is whole** except gradient (the #642 gap). **Native is broken on every version,** in four Style Dictionary gaps filed as #2430–#2433 (px scaled ×16, raw text in Swift and Kotlin, composites as `[object Object]`, and Android `<integer>1.5`).
+- **One finding is ours,** #2434: letter spacing in `em` and the fluid container in `%` are dimension units DTCG 2025.10 doesn't allow.
+
+### Traps for whoever re-verifies
+
+- **The `[GAP]` literals pin wrong values on purpose.** `CGFloat(256.00)` for `16px` is the measured output, tagged with its issue. A Style Dictionary fix fails the gate by name, and the right response is to update the literal to the correct value, not to restore the old one.
+- **Swift comment style differs by version.** 4.0.0 writes `/* */` after a declaration, 5.x writes `/** */`. A parser keyed on one silently reads 4.0.0's iOS output as wrong, which is how the first matrix run reported 4.0.0 colors as broken.
+- **Build each platform on its own in the matrix.** One platform throwing (3.x's CSS on a composite) otherwise hides every other platform's result for that set.
+- **The report's example lines come from the first brand alphabetically.** It's a public repository, so check the regenerated file before committing it.
+
+---
+
+## (2026-10-10) — Choice rows: a refused chip's reason reaches the keyboard, warning lines are announced, arrows pass over a disabled chip, focus after Release (#2233)
+
+The four defects the review of #2225 found in the studio's choice rows (`choice()`, `chipChoice()` and `stateLine` in `apps/studio/src/ui/lever-kit.ts`), fixed with no new or reworded words and nothing visible changed.
+
+- **A refused chip's reason describes the group.** A disabled button takes no focus, so `title` was the only place its reason was said. `refuseOption(group, value, why, reasonId?)` disables the chip, keeps `title`, and, when the reason is also drawn as a line, adds that line's id to the group's `aria-describedby`. Type scale is the one choice row whose refusals have a drawn line: the clash line (`p3-tscale-clash`) and each other reason's line (`p3-tscale-why-<n>`).
+- **One polite region per choice row, updated in place.** Every lever block that holds a `choice` or `chipChoice` gets one `role="status"` `aria-live="polite"` `aria-atomic="false"` region (hook `choice-live`, `data-key` the lever's key). It says the block's visible WARNING lines (`stateLine(…, 'warn')`: clashes and refusals), one paragraph each, keeping a paragraph that already says a line. So only a line that appears is announced: one that stays through another edit is not said again, and one that goes is silently removed. Hint lines ("1 size is set individually…", "A pinned neutral sets the ramp: #hex…") stay visible and never reach the region (**owner decision Q184 B**, 2026-10-10).
+- **The arrows pass over a disabled option** in `choice()`, as a radio group does; with nothing else enabled, nothing moves. `chipChoice` keeps KB1 A (#2256): arrows do nothing there.
+- **Focus after Release pinned sizes** lands on Type scale's checked chip, the group's one Tab stop. The button is gone once it has worked, so focus used to fall to the page.
+
+### The diagnosis that decided where the regions live
+
+An edit redraws a page's levers whole (`root.replaceChildren`, as `type.ts`'s `render` does). Palettes and Brand instead update their blocks in place (`sync()`) while the page keeps its shape. Under a redraw, a region inside the block would be a new node on every edit, or the same node detached and put back, and a screen reader cannot be relied on to hear a change to either. So the regions sit in one visually hidden holder on `<body>`, as the style guides' run line does (#2171), and the redraw never touches them. `leverBlock` notes each block it makes. A microtask after the redraw (the redraw is synchronous, so by then the page has drawn, filtered and restored focus) syncs each region with its block's lines. A row that leaves the page is dropped from the map, with its region. Drawn again, it gets a new region that already holds its words when it is put in the document, which is not read, so returning to a page says nothing until something on it changes.
+
+**In-place updates need no sync of their own, today.** I checked every `setState` and every in-place `sync()` path: Palettes' and Brand's `sync()`, and Shape's and Components' slider `dragging.sync`. No warning line in a choice row changes in place:
+- Palettes' pinned-neutral line, the one `setState` an in-place sync makes in a choice row, is a hint, so under Q184 B it is never announced.
+- Brand's namespace warnings sit in a block with no choice, inside its own live region.
+- Type's viewport refusal (`type-viewport-refused`) is set in place, but in Scale limits' responsive block, which holds a switch and no choice.
+
+So no `setState` hook was added (the orchestrator's call on #2458: no speculative hook). A warning added to a choice row's in-place path later would need one.
+
+### Focus after Release: the checked chip, not "the chip just enabled"
+
+Release can enable more than one chip, and in a radio group focus belongs on the checked option. Landing on an unchecked chip would leave focus on an option that is not selected. The checked chip keeps focus inside Type scale, and the arrows then reach the chips the release enabled.
+
+### Tests (`test:chrome` §42, both hosts, light, 1280)
+
+Aurora (Compact refused for the title floor) and prism3 with display md pinned at 56px (Expressive refused for the clash). The accessibility tree via CDP reads the radiogroup's `description` and the region's `live`/`role`. A MutationObserver installed before the pin sees the region take the clash as added text and keep its node. The pinned count, a hint, is drawn but no live region carries it. An unrelated edit (caption floor 10px) while the clash shows makes no record. Release removes the clash with nothing added. On Shape, Type's rows are gone, and the holder's `data-rows` equals the regions in the document. Real `ArrowRight`/`ArrowLeft` presses pass over Compact in both directions. After clicking Release, `document.activeElement` is the Default chip.
+
+**Mutations** (a `wip:` commit before each, both bundles rebuilt, §42 run alone; web shown, figma fails the same lines):
+- (a) `aria-describedby` dropped → `§42 web light 1280 Aurora: (1) the refused Compact chip's reason describes the Type scale group, … (read {"role":"radiogroup","description":"",…}, lines [])` and the pinned clash's (4).
+- (b) a new region on every redraw → `§42 web light 1280 prism3 pinned clash: (2) the row's live region is the node it was before the edit, updated in place, never replaced (same node false, connected false, 1 for the row)` and the two other region arms (6).
+- (c) arrows to the next chip, disabled or not → `§42 web light 1280 Aurora: (3) ArrowRight from Expressive passes over the disabled Compact to Default, …` and ArrowLeft (4).
+- (d) no focus after Release → `§42 web light 1280 prism3: (4) after Release pinned sizes, focus is on Type scale's checked chip, Default (read {"focus":"BODY",…})` (2).
+- (M2, the review's) `sayLines` never keeps a paragraph → `§42 web light 1280 prism3 pinned clash: (2) a line that stays is not announced again: an unrelated edit (caption floor 10px) leaves the region untouched (… 2 record(s) …)` (2). Before this arm, M2 passed 26/26.
+- (e) a hint sent to the region → `§42 web light 1280 prism3 pinned clash: (2) a hint doesn't announce: "1 size is set individually. …" … (drawn true, 1 live region(s) carrying it, …)`, plus the warning and persisting arms (6).
+- (f) a row that left the page kept in the map → `§42 web light 1280 prism3 on Shape: (2) the rows Type drew are dropped with their regions, and every row held is a region in the document (read {…"rows":"8","regions":2…})` (2).
+
+### Not done, on purpose
+
+- **Rows with no drawn reason keep `title` alone:** the 16px and 18px title floor chips (`S63.titleFloorCompact`, `S63.titleFloorPinned`) and Italic styles' "Italic only" (`S63.italicPinned`). They have no visible line to point at, and drawing one would be new visible copy, which is the owner's call. Filed as #2451.
+- **The visible state lines stay where they are.** The region repeats a warning's words, so a browse-mode reader meets each one twice, once beside the chips and once at the end of the page. This is the same cost #2171's run line carries, and the owner accepted it (Q184 A).
+- **Focus after Release stays on the checked chip** (Q184 A).
+
+---
+
+## (2026-10-10) — Studio: the current page, Color page and previewed mode, read from the accessibility tree on both hosts (#1821)
+
+#1821 was filed during the redesign's F1 slice, against the legacy workspace: its rail marked the current page with
+`.active` and its mode strip marked the selected mode with `.on`, so neither reached assistive technology. The rail and
+the mode strip are both gone (H12, #2289). This entry applies the issue's intent to the shell that replaced them.
+
+### The audit: nothing to fix
+
+Every page and mode control in the redesigned shell already exposes its state through ARIA, and `chrome.css` styles each
+state from that ARIA attribute, not from a class (`shell/dom.ts`'s rule). Each one checked:
+
+- **The tab row** (`frame.ts`): `role=tablist`, each domain a `role=tab` button with `aria-selected` and a roving
+  `tabindex`. ArrowLeft and ArrowRight, Home and End move along the row and select as they go, which is the tab pattern's
+  automatic activation. At the narrow tier the row becomes a native select whose value is the current domain.
+- **Color's sub-row** (Palettes, Surfaces & fills, Interactive): the same tablist, keyboard and `aria-selected`.
+- **The preview header's mode control** (`preview.ts`): `role=radiogroup`, each mode a `role=radio` button with
+  `aria-checked` and a roving `tabindex`. The four arrow keys, Home and End move and check. Where the radios give way, a
+  native select carries the mode as its value. On Palettes the control is held, and it still reports Light checked
+  (#2321).
+- **Also looked at, and not page navigation:** the narrow Settings / Preview toggle (`aria-pressed`), Inspect's tablist,
+  the brand menu's current example (`aria-current="true"`), and the jump links on Surfaces & fills and Interactive (no
+  current state, drawn or exposed).
+
+The redesign closed the gap the issue describes, so the code needs no change. What was missing was a test: nothing
+read the current page or the previewed mode from the accessibility tree.
+
+### The test
+
+`test:chrome` section 40 checks both hosts, at 1280 and 380 on every place, and on the plugin's Build style guides page. It
+reads each control's node from CDP `Accessibility.getPartialAXTree`: a tab's `selected`, a radio's `checked`, a select's
+value. The tab row must report the place's domain and nothing else, Color's sub-row the place's Color page and nothing
+else, and the mode control the mode the test chose: Dark, or Light on Palettes. Page names, domain names and the mode
+are literals in the test. At 640 the four radios give way to the select, so 640 runs on three places, and each host must
+read the select at least once.
+
+**A trap, found by mutation (a).** Chrome reports a focused `role=tab` that has no `aria-selected` as selected. The first
+draft read each place right after the click that reached it. With the tab row's state removed, it still passed on every
+domain without sub-pages, because the clicked tab held focus. Each place is now read with nothing focused. Section 40's
+ArrowRight checks keep their focus on purpose, so they don't catch (a). They do catch (c).
+
+**Skipped at 640:** the other six places. On Color at that width, the sub-row runs under the preview, and Interactive's
+sub-tab can't be clicked. That defect is #1975's, already filed.
+
+---
+
+## (2026-10-10) — The verdict suite's #2177 drawer check waits for the narrow tier before it measures (#2459)
+
+A flaky CI check, about 3 failures in 40 runs: `✗ #2177 styleguide 380: every line stays inside the drawer, which
+does not scroll sideways — inside false, no side scroll false`. Test code only; the product is unchanged.
+
+**What changed:** `apps/plugin/test-build-verdict.mjs`, the #2177 arm. Before it measures, it now waits for three
+real conditions, one each, with the 5 s bound the arm already had: the frame's tier (`data-w`) is the one the width
+calls for (`narrow` at 380, `wide` at 1280, typed in the test); at 380, the Activity drawer is open as a direct child
+of the frame (the full-pane sheet at that tier); and the run's details are visible. Each wait's outcome is an `ok()`
+by name (the `.then(() => true, () => false)` shape the suite already uses at its #1890 collapse check), so the old
+`.catch(() => {})` on the visibility wait is gone and a wait that does not arrive fails as itself instead of letting a
+stale layout be measured. The containment assertion's label now carries the tier, the drawer body's width and right
+edge, its `scrollWidth` and `clientWidth`, and the widest line's right edge. No retries, and no timeout raised.
+
+**The cause, reproduced on a mutated bundle rather than by chance.** The tier is set only by the frame's
+ResizeObserver, a rendering step after `setViewportSize`; the old visibility wait was satisfied by the row as soon as
+it was posted, so nothing held the measurement until the tier changed. Locally the race never lost: the unchanged test passed 300 of 300 cases at 380
+unthrottled, 300 of 300 under 6× CPU throttling (CDP `Emulation.setCPUThrottlingRate`), and a 20× run stopped at
+its time limit with no failure; the mutant without the tier wait also passed 180 of 180 under 6×.
+A bundle whose ResizeObserver sets the tier 400 ms late makes the unchanged test fail on all three run kinds at 380
+with CI's exact message, a 220.4px drawer body inside a 380px frame and a 278 to 322 `scrollWidth`; the fixed test
+passes on that same bundle.
+
+**One condition per wait, on purpose.** The first draft's sheet wait used
+`[data-w="narrow"]:has(> drawer[data-open="true"])`, so it also waited for the tier. Removing the tier wait then
+changed nothing, and the mutation passed. The sheet wait now reads the drawer's own open state only, so the tier is
+waited on in one place and its removal is observable.
+
+**Mutations,** each after a `wip:` commit:
+- the tier wait removed, on the 400 ms late-tier bundle → `✗ #2177 styleguide 380: every line stays inside the drawer,
+  which does not scroll sideways — inside false, no side scroll false; tier wide, body 220.4px wide (right edge 380),
+  scrollWidth 322 of clientWidth 220, widest line's right edge 444.6` (and the same for apply and components);
+- the tier forced to `wide` in the bundle, against the fixed test → `✗ #2177 styleguide 380: the frame reaches the
+  narrow tier before the drawer is measured — read wide`.
+
+**Left open.** Why CI only ever failed `styleguide`, when a stale tier fails all three kinds here, is still unknown;
+the new label will say which layout a future failure measured. The one-frame flash of the wide grid at narrow widths
+after a resize is a product issue for the owner, filed as #2462.
+
+---
+
+## (2026-10-10) — Tab and Tabs: line tabs, a primary bar when selected, a neutral bar at hover (#2416)
+
+**Status:** engine (two new defs) and the plugin taxonomy. ENGINE minor (change note): two new projected
+surfaces, `tab` (30 members) and `tabs` (3). CONTRACT unchanged, since every binding is an existing role. Built from
+the proposal branch's draft (`claude/tabs-proposal`, `ca1c385`) with the owner's decisions on #2416 applied:
+- **Q177:** the nested shape, line tabs only, and its own `↳ Tabs` page;
+- **Q178.1 A:** a primary label plus a 2px primary bar, at the same weight;
+- **Q178.2 B:** no wash, with a neutral bar at hover;
+- **Q179 A:** the remaining calls, as recommended.
+
+### What changed
+
+- **`tab`.** The draft's wash is gone: the tab body paints nothing, and `paintSlots: ['overlay']` and the four
+  `*.overlay.*` keys were removed. The bar is one always-present 2px box (`indicator`) painting its `fill` slot:
+  - **selected:** primary border, stepping at hover and pressed;
+  - **unselected:** `color.border.secondary` at hover and pressed only;
+  - **disabled:** a disabled bar on a selected tab, and none on an unselected one.
+
+  The disabled half needs no special case. `fill` is structural, so the disabled branch paints it only where a
+  REST key exists, and the unselected bar deliberately has no rest key. The same absence keeps it off at
+  focus-visible.
+- **The neutral role is a technical pick** (the owner delegated it). The requirement was 3:1 against the page in
+  every brand and mode with a committed export. Measured on the four brands × four modes:
+
+  | Role | Range on the page | Note |
+  |---|---|---|
+  | `border.secondary` | **3.26–10.14** | **contracted** at 3:1 (#1745, `modes.ts` `cfg.nonTextMin`) |
+  | `interactive.neutral.border.hover` | 14.0–16.1 | contracted, but it is label ink |
+  | `border.tertiary` | 6.65–19.6 | `min 0`, unfloored |
+  | `field.border.rest` | 3.51–4.63 | a form-field role |
+
+  `border.secondary` is the only neutral edge whose floor the engine *guarantees* and that stays quieter than the
+  selected bar it previews in light and dark. In the HC modes it is darker than the primary bar (9.8–10.1 against
+  7.4–8.3). `interactive.neutral.border.hover` would have outweighed the selected bar in every non-HC mode.
+- **`tabs`.** As drafted: `size` (3 members), six nested `tab`s following its size, tab 1 selected, tabs 4–6 behind
+  the Figma-only booleans (#2344), over a 1px `color.border.primary` hairline.
+- **Code notes** lead with "code delivery pending: behavior layer (#2454)". The plugin strip cuts that entry to
+  "code delivery pending", so the issue number stays maintainer-only.
+- **Registrations:**
+  - `index.ts`; `file-taxonomy.ts` (a `Tabs` leaf under Components, after Tag);
+  - `lint-hit-target` (`tab` INTERACTIVE + SMALL_SIZE, `tabs` EXCLUDED as a container);
+  - `lint-rung-names` (both in MUST_COVER, `tabs` SIZE_BY_FOLLOW_ONLY);
+  - `lint-axis-values` (`tab` joins Tag's `selection` set, both join the canonical `size`);
+  - `lint-paint-placement` (both lists); `lint-standalone-floor`; `lint-absolute-inset` (`tab.focusRing`);
+    `lint-paint` (`tab|focus-ring` is a ring nomination, as for Tag);
+  - `test.ts`'s spacing, ordering, gap-floor, type-grid, KB-brief and #1009 centring tables;
+  - Badge's `planned` `tabs` moved to `ai.commonPartners` as `tab`;
+  - the regen artifact count, 175 → 177, in `verify.ts` and `ci.yml` together;
+  - the studio's two committed generators, the used-by index (`gen-used-by.ts --write`) and the component
+    catalog (`gen-component-catalog.ts --write`; Tab is the first `navigation` def, which shows only as the
+    "Navigation" meta label on its row), and the `component-axes.json` baseline (`--accept`, additions only).
+
+### Tests and mutations
+
+A new #2416 block in `test.ts`, with every expected value a literal:
+- the bar's height and fill at each of the 30 coordinates;
+- the label ink per selection and state;
+- no overlay paint anywhere, and an unpainted tab body;
+- the hover bar against `color/background/primary` in all 16 brand × mode exports, with the cell count stated, so a
+  missing export fails;
+- identical structure, text styles and bound dimensions between selections at every size and state;
+- the list's six nests, its toggles and its baseline.
+
+Mutations, each run in a detached worktree from a clean commit and restored to it. The runner refuses a run with no
+summary line. The first attempt had no `node_modules` and crashed silently with exit 1 (docs/34 shape 19), which is
+why that guard exists. Each mutation failed its named arm:
+- the wash restored at hover → `#2416 Q178.2 no hover wash`;
+- `{selection}`-keyed label type → `#2416 Q178.1 same weight in both states`;
+- `unselected.fill.hover` deleted → `#2416 Q178 tab bar` and the 3:1 arm;
+- `Tab 4` default true → `#2416 Q177.2 tabs` and `#2416 Q179 tabs`.
+
+A rebind of the hover bar to another resolving role fails `lint-paint` `census/tab.*` and `lint-component-surface`
+`surface/tab` by name.
+
+### Held for the owner
+
+- **The wording.** All of it is the proposal's §7 drafts, plus one new Tab description sentence about the hover bar.
+- **Pressed on an unselected tab** shows the same neutral bar as hover, with only the label ink stepping. Whether
+  pressed needs its own cue is held (`tab.ts` `notes.contested`), not invented.
+
+### Trap for whoever re-verifies
+
+The 3:1 arm reads the bar's variable off the plan and its value off `out/figma/*/color.*.json`. A new committed brand
+export is not picked up: the brand list is literal, on purpose. Add it there.
+
+---
+
+## (2026-10-10) — A rebuilt set lands under the page's section header, not beside it (#2405)
+
+Owner report: after the sets on a component page were deleted and rebuilt, every rebuilt set landed far right of
+the page's `_section-header` instance instead of under it, and had to be moved back by hand.
+
+**The diagnosis.** `placeNewSet` (#1750) measured every top-level node on the page as content. On a page whose
+only remaining node was the header, there was no COMPONENT_SET to top-align with, so the set took the header's
+`y` and went `SET_GAP` right of it; its siblings then top-aligned with that first set, so the whole family
+moved out beside the header. A first build never hit this because the header is placed after the run's builds
+(#1750), so the header was never on the page when the first set was placed.
+
+**The fix, in `write-components.ts` only.** `pageBoxes` marks the header (an INSTANCE or detached FRAME named
+`_section-header`, any case: an instance of a variant carries its set's name). `placeNewSet` leaves the header
+out of the content it measures, and when the page has a header and no set it places the set 80px below the
+header's bottom, on the header's left edge (pushed right only by a node in that row, never lifted to a stray
+node's `y`): where `page-header.ts` puts a header relative to the content, read
+in reverse. Siblings then follow the existing rule. An existing set is never passed to `placeNewSet`, so its
+position is untouched, as before.
+
+**A deliberate duplication.** The header's name and the 80px gap are restated in `write-components.ts` rather
+than imported from `page-header.ts`: a value import would pull `page-header.ts` (and `file-taxonomy.ts`,
+`file-components.ts`) into the executor's import walk, and every later edit to those would then need an
+`EXECUTOR_REVISION` bump. `test-page-header.ts` 2c holds the two copies equal. The executor itself changed,
+so `EXECUTOR_REVISION` goes 7 → 8 (5 and 6 landed on main while this was open, and #2398 took 7): the in-place update's dry run will report members as needing a re-apply
+once, with no field difference.
+
+**Verified.** `test-write-components.ts` (f)–(i), every expected position a literal. (f): a page holding only
+an instance header named `_Section-header` (capital S, as `file-components.ts` names the set) at 100,-300
+(1000x220) gets the rebuilt set at 100,0 and its sibling at 1040,0. (g): a header and a set the designer moved
+to 300,500 keeps it there and puts the new one at 1240,500. (h): a detached FRAME header gets the set at 100,0.
+(i): a header plus a stray note beside it and no set still gets the set at 100,0 (top-aligned with the stray it
+went to 1660,-300); a stray in the row under the header pushes it to 460,0. Mutations, each failing by name:
+the header's height dropped from the below-header `y` (got 1260,-220); a case-sensitive name match (got
+1260,-300); instances only (the FRAME case, got 1260,-300); the page with a stray node measured as content
+(got 1660,-300). The first review found the last three surviving against the original fixtures, which used a
+lowercase name, an instance only, and no stray node.
+
+**Not covered.** The header is found by name. A designer who renames the header instance makes it ordinary
+content again, and the old beside-it placement returns for that page. Matching by main component would need
+an async read per top-level node; not done until a renamed header is seen. And `pageBoxes` reads top-level
+nodes only, so a header a designer moved inside a Section is not seen as the header (`page-header.ts` does find
+it there): the Section is measured as ordinary content and the set lands beside it, the pre-fix shape. Live verification on a scratch
+file is still owed before use on a client file.
+
+---
+
+## (2026-10-10) — Flush text buttons: the skill states the spacing that keeps their hit areas apart, measured in a browser (#2437)
+
+Found in the review of #2421 (#2408). A flush text button keeps a hit area of at least 44×44 at medium and large and
+24×24 at small in code, drawn by a transparent `::before` past its label-width box (owner Q154 A, Q174 B). Nothing said
+how far apart two of them, or one and a neighbor, must sit, so overlapping targets (WCAG 2.5.8, taps landing on the
+wrong control) had no check. Stacked on #2421's branch, which carries the rule and the CSS sketch.
+
+**The sentence (DRAFT for the owner), in `skills/prism3-consume` after the sketch:** the extension reaches past the label
+by (44px − label width) / 2 on each side at medium and large, and (24px − label width) / 2 at small; leave that much
+between the label and the next control, and the two reaches added between two flush buttons; 22px beside the label is
+always enough at medium and large, and 12px at small. It's the sketch's own geometry: `inset: min(0px, (100% - 44px) / 2)`
+centers a 44px area on any label under 44px.
+
+**The check is a browser fixture in `test:chrome`, the one place the rule can be measured:** the engine emits no code
+layout. It reads the CSS sketch and the stated bounds out of `SKILL.md`, the floors (44, 24) typed from the owner's
+decision, and lays out two flush buttons and then a non-flush neighbor on a blank page, for labels from 1px to just under
+the floor, at the "always enough" gap and at the exact gap the skill states. Every whole pixel of each flush button's
+floor-wide hit area must hit that button, horizontally and vertically, and the neighbor's box must hit only the
+neighbor. A control arm puts the pair two pixels closer than their reaches and must see the overlap.
+
+**The sketch is size-aware, and hit-tested exactly as shipped (Lane D's review, option 1).** #2421's sketch drew one
+`inset: min(0px, (100% - 44px) / 2)` with a comment saying "24px at small", and the first fixture made its small arms
+pass by rewriting 44px to 24px in the text, so it tested a sketch no consumer was given. The sketch now sets the hit size
+as a custom property, `--flush-hit: 44px` on `.flush-button` and `24px` on `.flush-button.small`, and the `::before`
+insets by `(100% - var(--flush-hit)) / 2`. The fixture applies the classes of the sketch's own 24px rule to its small
+buttons, with no rewrite, so a sketch without that rule leaves the small buttons on the medium extension and the small
+arms fail. The owner's spacing sentence is unchanged.
+
+**A trap the first run hit:** probing at half pixels read EXACTLY touching areas as overlapping. Chrome's hit test rounds a
+fractional point, so 152.5 landed on the area that starts at 153. The fixture probes whole pixels fully inside each area,
+so the half pixel two abutting areas share is no one's. The controls still see a real two-pixel overlap.
+
+**Mutations,** through the #2272 harness against the section, each failing by name:
+- the sketch back to a fixed 44px, with no small rule: `✗ #2437 flush hit area small: two 1px flush buttons at the
+  skill's 12px bound (24px apart, a neighbor 12px on) keep their 24px hit areas apart — overlap …`, 9 small arms and no
+  medium one;
+- the skill's 22px bound lowered to 16px: `✗ #2437 flush hit area medium: two 1px flush buttons at the skill's 16px bound
+  … — overlap …` (and the 6px pair; from a 12px label on, 16px is enough, which is what the formula says);
+- the sketch's medium hit size raised to 48px (`--flush-hit: 48px`): the medium bound and exact-gap arms, the neighbor's
+  own box included (6 failures).
+
+---
+
+## (2026-10-10) — Studio: the preview header's mode select shows its whole label at 640 and 800 (#2383)
+
+**What changed.** Where the mode radios do not fit, the preview header shows the select of the same modes. At 640 that select drew only its caret: the chosen mode's name was cut to nothing on Interactive and to "Lig" on Palettes. It was cut at 800 as well, which the issue did not name (an 82px content box for 177px of "HC light (derived) · all pass"). The select is now never narrower than its longest option. Where the title, the select and Inspect do not fit one row, the select takes its own row under the title, Inspect stays on the title's row, and the title never truncates. In the default theme that is every select case at 640, 800 and 380; at 1280 the radios still fit and nothing moves. This layout is a DRAFT for the owner's screenshots.
+
+**The diagnosis.** The select was `width: 100%` inside a wrap that was `flex: 0 1 auto; min-width: 0`. A select is a compressible element: with a percentage width, its min-content contribution is zero, so the flex row could squeeze it to its padding. Setting `min-width` on the wrap alone does not fix that. The select needs `width: auto`, so it takes its widest option's width, and its wrap needs `flex: none`.
+
+**Why the wrap is decided in script, not CSS.** With `flex-wrap`, the browser breaks a row in source order, so the item that drops is Inspect and the select stays beside the title. The draft keeps Inspect beside the title and moves the select under it. CSS cannot reorder only when the row breaks, so the mode control's existing `fit` (which already chooses radios or the select) now also sets `data-row="own"` when title + select + Inspect + gaps exceed the header's content width. The header wraps through `:has()`. Every width it measures is the same on either row, so the answer cannot flip.
+
+**Two traps the fix ran into.** (1) Moving the select changes the header's height inside the header's own ResizeObserver callback. Chromium reports that as "ResizeObserver loop completed with undelivered notifications", a window `error` event that neither Playwright's `pageerror` nor the console catches. The first build raised it 7 times per case at 640 and 800. The observer now runs `fit` in the next animation frame, and section 41 counts that error explicitly. (2) A title change ("Palettes" to "Surfaces & fills") changes what is left for the control without resizing the header, and a new verdict count changes the select's width, so the header's observer alone missed both. The title and Inspect are observed too (never the control itself), and a redraw of the select's options re-runs `fit`.
+
+**Tests.** `test:chrome` section 41 (36, 37 and #2393's 38 are on `main`; #1855 claims 39 and #2449 holds 40): both hosts, both chrome themes, 640, 800, 380 and 1280, on Palettes (Light, held), Interactive and Surfaces & fills, those two in each of Light, Dark, HC light and HC dark. Where the select shows, its chosen option's text, measured in a probe span in the select's computed font, fits the select's content box, and it reads the mode's label, which is typed as a literal in the test. Where the radios show, the checked radio's name is not cut. In every case the header has no horizontal overflow, the title, the control and Inspect sit inside it, and the title is not cut. At 640 the select must be the control shown in every case, so the label check cannot pass because only radios were drawn. Before the fix: 68 failures at 640 and 800 on both hosts. The mutation (the wrap back to `flex: 0 1 auto; min-width: 0` and the select back to `width: 100%`) fails by name at 640.
+
+**Trap for whoever re-verifies this.** When this was written, a pointer could not reach the Interactive sub-page at 640 and 800, because the preview covered it (#1975). Section 41 reaches Interactive by keyboard at those widths, as section 19b does. #2393 has since fixed the pointer path (its section 38), so that branch can become a plain `goPlace` in a follow-up.
+
+---
+
 ## (2026-10-10) — image-placeholder: seven ratios, a marker that scales with the frame, and a Marker boolean (#2345)
 
 **What.** `ratio` is now `2:3, 3:4, 4:5, 1:1, 4:3, 3:2, 16:9`, the ratios a measured commerce file needed, tallest

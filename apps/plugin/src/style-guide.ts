@@ -592,9 +592,12 @@ const LATER_KIND: Partial<Record<VarKind, string>> = {
  *      `scale`, is a plain `scale` (`core/dimension/*`). ANYTHING ELSE IS `other`, a later phase: a FLOAT the name
  *      and scopes do not place is never drawn as a length (#259 review of `4faeb98a`: Prism2's unscoped
  *      `pds/motion/duration/*` drew as "200px · 12.5rem" brackets).
- * Not a FLOAT or STRING: null.
+ * A TIMING is a `duration` and an EASING is `motion` (#2412). Any other type that is not a FLOAT or STRING: null.
  */
 export const varKind = (v: SgVariable): VarKind | null => {
+  // Figma's motion types (#2412) are motion by type, whatever their name: a later phase, named in the note.
+  if (v.resolvedType === 'TIMING') return 'duration';
+  if (v.resolvedType === 'EASING') return 'motion';
   if (v.resolvedType !== 'FLOAT' && v.resolvedType !== 'STRING') return null;
   const scopes = (v.scopes ?? []).filter((s) => s !== 'ALL_SCOPES');
   // Each segment whole, separators dropped ("lineheight", "paragraphspacing"), and each word in it ("line", "height").
