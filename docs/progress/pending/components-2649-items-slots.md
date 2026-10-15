@@ -86,3 +86,11 @@ by name, never a silent pass. Nor the exposure question above.
   key its instances already read, as a real file's does, so the round-trip resolves a slot's preferred def.
 - **`minItems` 1 for Segmented control,** as Q307 A says for all five, although its own rule is two to five. Flagged
   on #2649.
+
+**Review round (CHANGES REQUESTED on `7178d04`).** The change note now names the breaking part outright: List's
+`children` prop becomes `items`, and the row booleans are removed from each Figma set. `test-slot-migration`'s
+converge step now also asserts the next dry run has no property left to remove; before, it compared counts only, so a
+plan that stopped deleting the old booleans read "current" there and was caught only by `test-update-apply`. Mutation:
+`applySet` stops deleting `properties.remove` → `✗ converge/booleans gone: the next dry run has no property left to
+remove (Option 2, …, Option 8)`. The merge with `main` waits for fold #2582. Placed instances in files that consume a
+published library are an open owner question on #2660.
