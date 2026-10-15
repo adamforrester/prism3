@@ -54,7 +54,7 @@ import { verifyReadback, verifyFloatReadback, verifyTypographyReadback, Readback
 import { tailOf } from './figma-names';
 import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION, UnrecognizedPersistedInputError } from './persist-input';
 import { validateComponentDef, VARIANT_AXES, axisKindOf, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, variantAxisFigmaName, isExcludedCoordinate, fillPaintKey, replacesCandidates, statesOf, PAINT_SLOTS, ComponentDef, AnatomyDef, type PartDef } from './component-schema';
-import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, settleChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, figmaTextStyleName, figmaEffectStyleName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, applySpacingDensity, applyMinWidthRatio, DEFAULT_BUTTON_LAYOUT, isButtonFamily, resolveWeightIntent, DEFAULT_WEIGHT_AVAILABILITY, isPillable, PILL_RADIUS_DERIVATION, PILL_RADIUS_RUNG, BOXED_RADIUS_RUNG, HAIRLINE_RADIUS_RUNG, CONTROL_SHAPE_RUNG, ROUNDED_RADIUS_RUNG, variantSetErrors, variantNameErrors, glyphLayerOpacities, type AnatomyPlan, type SwapFound } from './anatomy-figma';
+import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, settleChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, figmaTextStyleName, figmaEffectStyleName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, applySpacingDensity, applyMinWidthRatio, DEFAULT_BUTTON_LAYOUT, isButtonFamily, resolveWeightIntent, DEFAULT_WEIGHT_AVAILABILITY, isPillable, PILL_RADIUS_DERIVATION, PILL_RADIUS_RUNG, BOXED_RADIUS_RUNG, HAIRLINE_RADIUS_RUNG, CONTROL_SHAPE_RUNG, ROUNDED_RADIUS_RUNG, variantSetErrors, variantNameErrors, glyphLayerOpacities, applyNestOverrides, type AnatomyPlan, type SwapFound } from './anatomy-figma';
 import type { ControlShape } from './scale';
 import { COMPONENT_RENAMES, coordKey, renameCoordinate, isDeclaredDrop, unaccounted as renamesUnaccounted, danglingTargets as renamesDangling, type ComponentRename, type AxesBaseline } from './component-renames';
 // One of the two imports this suite makes ACROSS the engine/plugin boundary, and the parity gate (#487 step 5)
@@ -3185,7 +3185,8 @@ for (const b of brands) {
   // `type.*` as composites: `visualize.ts` drew the leaf as a 0px type specimen in `out/tokens.html`, and
   // `ai-metadata.ts` let it fall through to the primitive tier as "Private primitive — prefer a semantic
   // token", telling an agent not to bind the token a title row is for. The expected set comes from the
-  // committed trees ($type per leaf), the specimens from the committed page, and the sidecar is built here.
+  // committed trees ($type per leaf), the specimens from a page rendered here into a temp dir — the page is
+  // built on demand and not committed (Q319.6), so there is no committed copy to read — and the sidecar is built here.
   {
     const nonType: string[] = [];
     const typeLeaves = (node: any, path: string) => {
@@ -3198,7 +3199,13 @@ for (const b of brands) {
       const root = Object.keys(tr).find((k) => !k.startsWith('$'))!;
       for (const g of Object.keys(tr[root]?.type ?? {})) typeLeaves(tr[root].type[g], g);
     }
-    const page = readFileSync(resolve(HERE, './out/tokens.html'), 'utf8');
+    const pageDir = mkdtempSync(join(tmpdir(), 'prism3-tokens-html-'));
+    let page = '';
+    try {
+      const r = spawnSync('npx', ['tsx', resolve(HERE, 'visualize.ts'), '--out', pageDir], { cwd: HERE, encoding: 'utf8' });
+      if (r.status !== 0) console.error(r.stdout, r.stderr);
+      else if (existsSync(join(pageDir, 'tokens.html'))) page = readFileSync(join(pageDir, 'tokens.html'), 'utf8');
+    } finally { rmSync(pageDir, { recursive: true, force: true }); }
     const specimens = new Set([...page.matchAll(/<div class="trow"><div class="tmeta"><b>([^<]+)<\/b>/g)].map((m) => m[1]));
     const drawn = [...new Set(nonType)].filter((p) => specimens.has(p));
     ok(nonType.some((p) => /^label\.(sm|md|lg)\.line-box$/.test(p)) && specimens.size > 0 && drawn.length === 0,
@@ -16782,6 +16789,8 @@ arm: {
       { why: 'a child axis the variant does not name', vw: { appearance: { ghost: { tone: 'quiet' } } }, want: /setting the child's 'tone', which its 'variant' does not name/ },
       { why: 'one child axis set from two host axes', vw: { appearance: { ghost: { shape: 'round' } }, state: { disabled: { shape: 'flush' } } }, want: /from both 'appearance' and 'state'/ },
       { why: 'an empty map', vw: {}, want: /EMPTY nesting 'variantWhen'/ },
+      { why: 'an axis with no values', vw: { appearance: {} }, want: /'variantWhen\.appearance' with no values/ },
+      { why: 'an empty coordinate', vw: { appearance: { ghost: {} } }, want: /'variantWhen\.appearance\.ghost' with an empty coordinate/ },
     ];
     for (const c of CASES) {
       const errs = validateComponentDef(withNesting({ ...base, ...(c.follow ? { follow: c.follow } : {}), variantWhen: c.vw })).errors;
@@ -18921,7 +18930,7 @@ arm: {
      *  Both exist because they answer different questions: `insetValue` is how the not-a-number case is
      *  reached (one bad value, whichever name asks), and `varOverrides` is how the two halves of the ring's
      *  coordinate are given DIFFERENT values, which is the only way to tell a sum from a doubling (#801). */
-    type StubOpts = { vars?: string[]; styles?: string[]; comps?: string[]; page?: StubPage; insetValue?: unknown; varOverrides?: Record<string, unknown>; varValues?: Record<string, number>; fileNodes?: StubFileNode[]; nestedInstanceParts?: string[]; compTexts?: Record<string, Record<string, string>>; effectStyles?: string[]; gradientDiscard?: 'paint' | 'bindings'; textMetrics?: { fontSize: number; lineHeight: { unit: string; value: number } }; setStrokes?: Record<string, unknown>[]; noSlots?: boolean; colors?: Record<string, { r: number; g: number; b: number; a: number }> };
+    type StubOpts = { vars?: string[]; styles?: string[]; comps?: string[]; page?: StubPage; insetValue?: unknown; varOverrides?: Record<string, unknown>; varValues?: Record<string, number>; fileNodes?: StubFileNode[]; nestedInstanceParts?: string[]; compTexts?: Record<string, Record<string, string>>; effectStyles?: string[]; gradientDiscard?: 'paint' | 'bindings'; textMetrics?: { fontSize: number; lineHeight: { unit: string; value: number } }; setStrokes?: Record<string, unknown>[]; noSlots?: boolean; colors?: Record<string, { r: number; g: number; b: number; a: number }>; componentProps?: Record<string, Record<string, { type: string; defaultValue: string | boolean }>> };
     /** The two halves of a focus ring's coordinate, the real NB values (`focus.ring.offset` /
      *  `focus.ring.width` — both 2 in every emitted brand). NAMED, and named HERE, because they are the
      *  stub's INPUT and the geometry assertions' EXPECTED at once, and #801 is what that costs when the
@@ -19498,21 +19507,41 @@ arm: {
               createInstance: () => {
                 const inst = mkNode('INSTANCE'); const vec = mkNode('VECTOR'); inst.findAll = () => [vec];
                 Object.defineProperty(inst, 'mainComponent', { configurable: true, enumerable: false, writable: true, value: { name, type: 'COMPONENT', parent: { ...owner } } });
-                // #2317 — the instance's own TEXT properties (`compTexts`, by component or set name), in Figma's
-                // `componentProperties` shape, and `setProperties`, which overrides a value and refuses a key the
-                // instance does not have. Mirrors `apps/plugin/component-shim.ts`.
-                const texts = opts.compTexts?.[owner.type === 'PAGE' ? name : owner.name] ?? {};
-                const overrides: Record<string, unknown> = {};
-                Object.defineProperty(inst, 'componentProperties', { configurable: true, enumerable: false,
-                  get: () => Object.fromEntries(Object.entries(texts).map(([k, v], i) => [`${k}#7:${i}`, { type: 'TEXT', value: `${k}#7:${i}` in overrides ? overrides[`${k}#7:${i}`] : v }])) });
-                Object.defineProperty(inst, 'setProperties', { configurable: true, enumerable: false, writable: true,
-                  value: (props: Record<string, unknown>) => {
-                    const have = inst.componentProperties as Record<string, unknown>;
+                // #2645 — THE INSTANCE'S OWN COMPONENT PROPERTIES, for a component `componentProps` declares: each at the
+                // value it was given or its default, keyed `name#id` as the host keys them. `setProperties` refuses a key
+                // that is no definition's full key and a swap value that is no component id this stub hands out — the
+                // twin of the plugin shim's model, so the parity gate compares executors, not stubs. Undeclared, an
+                // instance has no properties, as an instance of a component with none.
+                const declared = opts.componentProps?.[name];
+                if (declared) {
+                  const given: Record<string, unknown> = {};
+                  Object.defineProperty(inst, 'componentProperties', { configurable: true, enumerable: false,
+                    get: () => Object.fromEntries(Object.entries(declared).map(([k, d]) => [k, { type: d.type, value: k in given ? given[k] : d.defaultValue }])) });
+                  inst.setProperties = (props: Record<string, unknown>) => {
                     for (const [k, v] of Object.entries(props)) {
-                      if (!(k in have)) throw new Error(`in setProperties: Could not find a component property with name: '${k}'`);
-                      overrides[k] = v;
+                      const d = declared[k];
+                      if (!d) throw new Error(`in setProperties: Could not find a component property with name: '${k}'`);
+                      if (d.type === 'INSTANCE_SWAP' && !(opts.comps ?? []).some((_c, ci) => `73:${37 + ci}` === v)) throw new Error(`in setProperties: Expected a component id, got ${JSON.stringify(v)}`);
                     }
-                  } });
+                    Object.assign(given, props);
+                  };
+                } else {
+                  // #2317 — the instance's own TEXT properties (`compTexts`, by component or set name), in Figma's
+                  // `componentProperties` shape, and `setProperties`, which overrides a value and refuses a key the
+                  // instance does not have. Mirrors `apps/plugin/component-shim.ts`.
+                  const texts = opts.compTexts?.[owner.type === 'PAGE' ? name : owner.name] ?? {};
+                  const overrides: Record<string, unknown> = {};
+                  Object.defineProperty(inst, 'componentProperties', { configurable: true, enumerable: false,
+                    get: () => Object.fromEntries(Object.entries(texts).map(([k, v], i) => [`${k}#7:${i}`, { type: 'TEXT', value: `${k}#7:${i}` in overrides ? overrides[`${k}#7:${i}`] : v }])) });
+                  Object.defineProperty(inst, 'setProperties', { configurable: true, enumerable: false, writable: true,
+                    value: (props: Record<string, unknown>) => {
+                      const have = inst.componentProperties as Record<string, unknown>;
+                      for (const [k, v] of Object.entries(props)) {
+                        if (!(k in have)) throw new Error(`in setProperties: Could not find a component property with name: '${k}'`);
+                        overrides[k] = v;
+                      }
+                    } });
+                }
                 // #1428 — model the instance's OWN parts as real children so a member's `findOne` descends
                 // into them and can collide with the host's own part names (select nests field-label AND
                 // field-message, both carrying a `text` part). Each refuses a reference write — it is a
@@ -20996,6 +21025,108 @@ arm: {
           && JSON.stringify(nSlot?.slotSettings) === '{"minChildren":1,"maxChildren":2,"allowPreferredValuesOnly":false,"displayEmptyByDefault":false}'
           && JSON.stringify(nSlot?.preferredValues) === '[]',
           `#2646 paste, preferred def not built: the payload names Badge as a miss and writes the slot open (${JSON.stringify(nRun.misses.filter((m) => /dismiss\./.test(m)))})`);
+      }
+
+      // ---- #2645: PER-INSTANCE OVERRIDES on a nested instance — validator, projection, and the PASTE executor ----
+      // List's items 2 to 8 override List.Item's `value` text to their own number. Expectations are literals (docs/34),
+      // never read back off the def. Mutations, each failing its own arm by name: the kind rule dropped →
+      // `#2645 validator: on a box part`; `nestOverridesOf`'s key check dropped → `#2645 projection: an unknown text
+      // key`; the plan field not projected → `#2645 projection: the plan carries`; `PAYLOAD_NEST_OVERRIDES` not
+      // shipped → `#2645 paste: the payload writes`; the payload's id lookup returning the name → `#2645 paste: a swap`.
+      {
+        const listDef = componentDefs.find((d) => d.id === 'list')!;
+        const lParts = listDef.anatomy!.parts;
+        const withPart = (part: string, patch: Record<string, unknown>): ComponentDef =>
+          ({ ...listDef, anatomy: { ...listDef.anatomy!, parts: { ...lParts, [part]: { ...lParts[part], ...patch } } } }) as ComponentDef;
+        const refusedBy = (d: ComponentDef, re: RegExp): string => { const e = validateComponentDef(d).errors; return e.some((x) => re.test(x)) ? '' : `(errors: ${e.join('; ') || 'none'})`; };
+        ok(validateComponentDef(listDef).errors.length === 0, `#2645 validator: List, whose items carry overrides, validates clean (${validateComponentDef(listDef).errors.slice(0, 1).join('')})`);
+        for (const [what, d, re] of [
+          ['on a box part', withPart('container', { overrides: { texts: { value: '2.' } } }), /'container' declares 'overrides' but is kind 'box'/],
+          ['an empty map', withPart('item1', { overrides: { texts: {} } }), /'item1' declares 'overrides' with an empty map/],
+          ['an empty value', withPart('item1', { overrides: { texts: { value: ' ' } } }), /'item1' overrides 'value' with an empty value/],
+        ] as [string, ComponentDef, RegExp][]) { const r = refusedBy(d, re); ok(r === '', `#2645 validator: an override ${what} is refused ${r}`); }
+        const lg = figmaAnatomySet(listDef, { swapTarget: 'FPO-default-icon' });
+        const kid = (n: { name: string; children: unknown[] }, name: string): Record<string, unknown> | undefined => (n.children as { name: string }[]).find((c) => c.name === name) as Record<string, unknown> | undefined;
+        const carried = lg.every((pl) => kid(pl.root, 'item1')?.nestOverrides === undefined
+          && [2, 3, 4, 5, 6, 7, 8].every((i) => JSON.stringify(kid(pl.root, `item${i}`)?.nestOverrides) === `[{"property":"number","type":"TEXT","value":"${i}."}]`));
+        ok(lg.length === 9 && carried, `#2645 projection: the plan carries each item's number as a TEXT override on List.Item's 'number', items 2 to 8, on all 9 members, and none on item 1 (${JSON.stringify(kid(lg[0].root, 'item2')?.nestOverrides)})`);
+        const throwsOn = (d: ComponentDef, re: RegExp): string => { try { figmaAnatomySet(d, { swapTarget: 'FPO-default-icon' }); return 'did not throw'; } catch (err) { return re.test((err as Error).message) ? '' : `threw ${(err as Error).message}`; } };
+        for (const [what, patch, re] of [
+          ['an unknown text key', { overrides: { texts: { nope: 'x' } } }, /overrides text 'nope', which 'list-item' does not declare/],
+          ['an unknown swap key', { overrides: { swaps: { nope: 'check' } } }, /overrides swap 'nope', which 'list-item' does not declare/],
+          ['a glyph the icon set does not draw', { overrides: { swaps: { icon: 'no-such-glyph' } } }, /swaps 'icon' to 'no-such-glyph', which is no glyph the icon set draws/],
+        ] as [string, Record<string, unknown>, RegExp][]) { const r = throwsOn(withPart('item1', patch), re); ok(r === '', `#2645 projection: ${what} is refused, naming it ${r}`); }
+        const swapDef = withPart('item1', { overrides: { swaps: { icon: 'check' } } });
+        const sg2 = figmaAnatomySet(swapDef, { swapTarget: 'FPO-default-icon' });
+        ok(JSON.stringify(kid(sg2[0].root, 'item1')?.nestOverrides) === '[{"property":"swap icon","type":"INSTANCE_SWAP","value":"icon/check"}]',
+          `#2645 projection: a swap names List.Item's 'swap icon' property and the icon set's component (${JSON.stringify(kid(sg2[0].root, 'item1')?.nestOverrides)})`);
+        // THE PASTE EXECUTOR. Only a payload whose plans override ships the writer (the shell budget, `SET_CHUNK_BYTES`).
+        const NUM = 'number#7:2', SWAP = 'swap icon#7:3';
+        const lOpts = (props: boolean, comps = ['list-item']) => ({
+          vars: lg.flatMap((pl) => [...planBoundVars(pl.root), ...planPaintVars(pl.root)]), styles: lg.flatMap((pl) => planTextStyles(pl.root)), comps,
+          ...(props ? { componentProps: { 'list-item': { 'text#7:1': { type: 'TEXT', defaultValue: 'List item' }, [NUM]: { type: 'TEXT', defaultValue: '1.' }, [SWAP]: { type: 'INSTANCE_SWAP', defaultValue: '73:37' } } } } : {}),
+        });
+        const lJs = planSetToPluginJs(lg);
+        const tagJs = planSetToPluginJs(figmaAnatomySet(componentDefs.find((d) => d.id === 'tag')!, { swapTarget: 'FPO-default-icon' }));
+        ok(lJs.includes('const applyNestOverrides=') && lJs.includes('applyNestOverrides(node,n.nestOverrides') && !tagJs.includes('applyNestOverrides'),
+          '#2645 paste: the override writer ships only in a payload whose plans carry overrides');
+        const find = (n: Record<string, unknown> | undefined, name: string): Record<string, unknown> | undefined => {
+          if (!n) return undefined;
+          if (n.name === name) return n;
+          for (const c of (n.children as Record<string, unknown>[] | undefined) ?? []) { const f = find(c, name); if (f) return f; }
+          return undefined;
+        };
+        const lPage = { children: [] as Record<string, unknown>[] };
+        const lRun = await runPayload(lJs, { ...lOpts(true), page: lPage });
+        const lSet = lPage.children.find((c) => c.type === 'COMPONENT_SET') as Record<string, unknown> | undefined;
+        const lMembers = (lSet?.children as Record<string, unknown>[] | undefined) ?? [];
+        const numbers = lMembers.map((m) => [1, 2, 3, 4, 5, 6, 7, 8].map((i) => ((find(m, `item${i}`)?.componentProperties as Record<string, { value: unknown }> | undefined)?.[NUM]?.value)).join(' '));
+        ok(lMembers.length === 9 && numbers.every((x) => x === '1. 2. 3. 4. 5. 6. 7. 8.') && !lRun.misses.some((m) => /nestOverrides/.test(m)),
+          `#2645 paste: the payload writes each item's number onto its nested instance (${numbers[0]}; ${lMembers.length} members${lRun.misses.length ? `; misses ${JSON.stringify(lRun.misses.slice(0, 2))}` : ''})`);
+        // NO PROPERTY ON THE HOST: a miss per item, worded as the plugin executor words it, and the plugin executor
+        // against the same host says the same (parity: one shared writer, two callers).
+        const bRun = await runPayload(lJs, { ...lOpts(false), page: { children: [] } });
+        const want = 'item2.nestOverrides -> number (no TEXT property of that name on the nested instance; it keeps its default)';
+        ok(bRun.misses.includes(want), `#2645 paste, no property on the host: the payload names the miss (${JSON.stringify(bRun.misses.filter((m) => /nestOverrides/.test(m)).slice(0, 1))})`);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the stub satisfies ComponentsApi
+        const bPlug = await applyComponentPlan(lg, makeFigmaStub({ ...lOpts(false), page: { children: [] } }) as any);
+        const ovr = (ms: readonly string[]) => JSON.stringify(ms.filter((m) => /nestOverrides/.test(m)).sort());
+        ok(ovr(bPlug.misses) === ovr(bRun.misses) && bPlug.misses.includes(want),
+          `#2645 parity: the plugin executor reports the same override misses as the payload (${bPlug.misses.filter((m) => /nestOverrides/.test(m)).length} vs ${bRun.misses.filter((m) => /nestOverrides/.test(m)).length})`);
+        // A SWAP: the payload resolves the component name to the id the host gave it.
+        const sPage = { children: [] as Record<string, unknown>[] };
+        const sRun = await runPayload(planSetToPluginJs(sg2), { ...lOpts(true, ['list-item', 'icon/check']), page: sPage });
+        const sMembers = ((sPage.children.find((c) => c.type === 'COMPONENT_SET') as Record<string, unknown> | undefined)?.children as Record<string, unknown>[] | undefined) ?? [];
+        const swaps = sMembers.map((m) => (find(m, 'item1')?.componentProperties as Record<string, { value: unknown }> | undefined)?.[SWAP]?.value);
+        ok(sMembers.length === 9 && swaps.every((v) => v === '73:38') && !sRun.misses.some((m) => /nestOverrides/.test(m)),
+          `#2645 paste: a swap override sets List.Item's swap to icon/check's id, 73:38 (${JSON.stringify([...new Set(swaps)])}${sRun.misses.length ? `; misses ${JSON.stringify(sRun.misses.filter((m) => /nestOverrides/.test(m)).slice(0, 2))}` : ''})`);
+        // TWO SAME-NAMED KEYS: an instance whose main declares two TEXT properties both named `number` is a named miss,
+        // and NEITHER is written — picking one would be creation order deciding (#656). A hand-built instance, so the
+        // expected answer is known in advance (docs/34); the writer is the one both executors call.
+        {
+          const writes: Record<string, string>[] = [];
+          const twin = {
+            componentProperties: { 'number#7:2': { type: 'TEXT', value: '1.' }, 'number#7:3': { type: 'TEXT', value: '1.' } } as Record<string, { type: string; value: string }>,
+            setProperties(w: Record<string, string>) { writes.push(w); for (const k of Object.keys(w)) this.componentProperties[k].value = w[k]; },
+          };
+          const misses = applyNestOverrides(twin, [{ property: 'number', type: 'TEXT', value: '2.' }], () => null);
+          ok(misses.length === 1 && misses[0] === '.nestOverrides -> number (2 TEXT properties of that name on the nested instance; it keeps its default)'
+            && writes.length === 0 && twin.componentProperties['number#7:2'].value === '1.' && twin.componentProperties['number#7:3'].value === '1.',
+            `#2645 two same-named keys: an instance with two TEXT properties named 'number' is a named miss and neither is written (misses ${JSON.stringify(misses)}; writes ${JSON.stringify(writes)})`);
+        }
+        // A WRITE THE HOST ACCEPTS AND DOES NOT KEEP: `setProperties` returns without throwing and the instance still
+        // reads its default. The writer reads each override back, so this is a named DISCARDED miss, never silence.
+        // A hand-built instance again, so the expected answer is known in advance (docs/34); no stub models a discard.
+        {
+          let calls = 0;
+          const deaf = {
+            componentProperties: { 'number#7:2': { type: 'TEXT', value: '1.' } } as Record<string, { type: string; value: string }>,
+            setProperties(_w: Record<string, string>) { calls++; },
+          };
+          const misses = applyNestOverrides(deaf, [{ property: 'number', type: 'TEXT', value: '2.' }], () => null);
+          ok(calls === 1 && misses.length === 1 && misses[0] === '.nestOverrides -> number DISCARDED (set "2.", reads "1.")',
+            `#2645 discarded write: a host that accepts the override and keeps its default is a named miss (calls ${calls}; misses ${JSON.stringify(misses)})`);
+        }
       }
 
       // ---- #1393: the PASTE executor leaves no Figma white default on an unclaimed or unresolvable fill ----

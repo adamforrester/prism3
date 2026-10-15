@@ -995,6 +995,26 @@ export type PartDef = {
    *  would be the tempting choice — and it would silently make every nested set fixed-at-its-first-
    *  variant, which is the #656 error this field exists to stop. See `NestingRelation`. */
   nesting?: NestingRelation;
+  /** PER-INSTANCE OVERRIDES on the nested instance (#2645): values this part sets on the instance it nests, through
+   *  the nested component's OWN component properties. A nested Button reading "Cancel", a List's second item reading
+   *  "2.", a close button showing the `close` glyph. Without it a nested instance shows its component's defaults
+   *  until a designer types over them, in every member.
+   *
+   *  KEYED BY THE NESTED DEF'S PROP KEY, never by a Figma name: `texts` by a key of the nested def's
+   *  `figmaProperties.texts`, `swaps` by a key of its `figmaProperties.swaps`. The projection resolves each to the
+   *  Figma property name the nested set declares (`figmaName`, falling back to the key), so a renamed panel label
+   *  moves both ends at once. A key the nested def does not declare is refused at projection, where the registry is
+   *  known (this module has none to check against).
+   *
+   *  A SWAP NAMES AN ICON GLYPH (`close`), never a component: the projection resolves it to the icon set's
+   *  component (`icon/close`), so the def stays brand-invariant and the executors find the component in the file by
+   *  that name. The glyph must be one the icon set draws.
+   *
+   *  ONE VALUE ON EVERY MEMBER. An override is not per coordinate: the instance shows the same copy whatever the
+   *  host's axes, which is what every case so far needs. On `nest-fixed` and `nest-exposed` only, on an `absolute` or
+   *  `nest` part: those are the kinds that build an instance of a named component. Each executor writes it with
+   *  `setProperties` after the instance is created (or, on Update, in place), and reads it back. */
+  overrides?: { texts?: Record<string, string>; swaps?: Record<string, string> };
   /** For a `nest` part: the nested instance's own TEXT property values, by the nested def's `figmaProperties.texts`
    *  key (#2317). A component set has ONE default per text property, so a host that needs its nested instance to
    *  say something else (the Password field's Button reading "Show", not "Button") states it here, and both
@@ -4638,6 +4658,21 @@ const anatomyErrors = (def: ComponentDef): string[] => {
           }
         }
       }
+    }
+    // PER-INSTANCE OVERRIDES (#2645) ride an instance of a NAMED component, so only a part that builds one may carry
+    // them: an `absolute` or `nest` that is `nest-fixed` or `nest-exposed`. Each map, when present, names at least one
+    // property, and every value is a non-empty string — an empty override would set the nested text to nothing, or
+    // name no glyph. That each key is the nested def's and each glyph is drawn is checked at projection (registry).
+    if (p.overrides !== undefined) {
+      const builds = (p.kind === 'absolute' || p.kind === 'nest') && (p.nesting?.kind === 'nest-fixed' || p.nesting?.kind === 'nest-exposed');
+      if (!builds)
+        e.push(`anatomy part '${n}' declares 'overrides' but is kind '${p.kind}'${p.nesting ? ` with nesting '${p.nesting.kind}'` : ''} — an override is set on an instance of a named component, so only an 'absolute' or 'nest' part that is 'nest-fixed' or 'nest-exposed' carries one (#2645)`);
+      const entries = [...Object.entries(p.overrides.texts ?? {}), ...Object.entries(p.overrides.swaps ?? {})];
+      if (!entries.length || (p.overrides.texts && !Object.keys(p.overrides.texts).length) || (p.overrides.swaps && !Object.keys(p.overrides.swaps).length))
+        e.push(`anatomy part '${n}' declares 'overrides' with an empty map — name at least one text or swap property, or drop the field (#2645)`);
+      for (const [k, v] of entries)
+        if (typeof v !== 'string' || !v.trim())
+          e.push(`anatomy part '${n}' overrides '${k}' with an empty value — a text override sets the nested text and a swap names a glyph; neither can be empty (#2645)`);
     }
     // An `absolute` part cannot be a `swap`: it materializes as an INSTANCE of the component `nests`
     // names, and a swap is the caller nominating a target per file. The two are different

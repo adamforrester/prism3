@@ -796,7 +796,14 @@ export const hostPorts = async (host: UpdateHost): Promise<UpdatePorts> => {
   const v = new Map(vars.map((x) => [x.id, x.name] as const));
   const st = new Map(styles.map((x) => [x.id, x.name] as const));
   const drawVars = new Map(vars.filter((x) => typeof (x as { resolveForConsumer?: unknown }).resolveForConsumer === 'function').map((x) => [x.id, x as unknown as DrawVar] as const));
-  return { varName: (id) => v.get(id) ?? null, styleName: (id) => st.get(id) ?? null, drawVars };
+  // A component's id → its name (#2645), for a swap override's value. Searched on first use, once: only a plan with a
+  // swap override reads it, and the search is document-wide.
+  let comps: Map<string, string> | undefined;
+  const componentById = (id: string): string | null => {
+    comps ??= new Map((host.root.findAllWithCriteria({ types: ['COMPONENT'] }) as readonly { id?: unknown; name?: unknown }[]).map((c) => [String(c.id ?? ''), String(c.name ?? '')] as const));
+    return comps.get(id) ?? null;
+  };
+  return { varName: (id) => v.get(id) ?? null, styleName: (id) => st.get(id) ?? null, componentById, drawVars };
 };
 
 type Located = { found: LiveSet[]; name: string };
