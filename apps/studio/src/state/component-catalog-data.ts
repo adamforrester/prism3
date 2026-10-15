@@ -277,6 +277,51 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     ]
   },
   {
+    "id": "flush-icon-button",
+    "name": "FlushIconButton",
+    "category": "form",
+    "summary": "Icon-only brand action inside a component: a bare glyph or a light circle. Needs an accessible name.",
+    "unit": "variants",
+    "spacing": [],
+    "buildable": true,
+    "reason": null,
+    "members": 30,
+    "nests": [
+      "icon",
+      "focus-ring"
+    ]
+  },
+  {
+    "id": "flush-icon-button-destructive",
+    "name": "FlushIconButton.Destructive",
+    "category": "form",
+    "summary": "Icon-only destructive action in a component: a bare glyph or light circle. Needs an accessible name.",
+    "unit": "variants",
+    "spacing": [],
+    "buildable": true,
+    "reason": null,
+    "members": 30,
+    "nests": [
+      "icon",
+      "focus-ring"
+    ]
+  },
+  {
+    "id": "flush-icon-button-neutral",
+    "name": "FlushIconButton.Neutral",
+    "category": "form",
+    "summary": "Icon-only action inside another component: a bare glyph or a light circle. Needs an accessible name.",
+    "unit": "variants",
+    "spacing": [],
+    "buildable": true,
+    "reason": null,
+    "members": 30,
+    "nests": [
+      "icon",
+      "focus-ring"
+    ]
+  },
+  {
     "id": "field-label",
     "name": "FieldLabel",
     "category": "form",

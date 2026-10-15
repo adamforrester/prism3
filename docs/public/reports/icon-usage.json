@@ -157,6 +157,24 @@
       ],
       "iconSlots": []
     },
+    "flush-icon-button": {
+      "glyphs": [],
+      "iconSlots": [
+        "icon"
+      ]
+    },
+    "flush-icon-button-destructive": {
+      "glyphs": [],
+      "iconSlots": [
+        "icon"
+      ]
+    },
+    "flush-icon-button-neutral": {
+      "glyphs": [],
+      "iconSlots": [
+        "icon"
+      ]
+    },
     "icon": {
       "glyphs": [
         {

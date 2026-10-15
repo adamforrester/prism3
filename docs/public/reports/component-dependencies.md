@@ -17,7 +17,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 | divider | accordion | accordion |
 | field-label | checkbox-group, radio-group, segmented-control, select, text-field, textarea | checkbox-group, radio-group, segmented-control, select, text-field, textarea |
 | field-message | select, text-field, textarea | select, text-field, textarea |
-| focus-ring | accordion, button, button-destructive, button-neutral, checkbox-control, icon-button, icon-button-destructive, icon-button-neutral, link, radio-control, segmented-control-segment, select, switch-control, tab, tag, text-field, textarea | accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, icon-button, icon-button-destructive, icon-button-neutral, link, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, select, switch-control, switch-row, tab, tabs, tag, text-field, textarea |
+| focus-ring | accordion, button, button-destructive, button-neutral, checkbox-control, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, radio-control, segmented-control-segment, select, switch-control, tab, tag, text-field, textarea | accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, select, switch-control, switch-row, tab, tabs, tag, text-field, textarea |
 | list-item | list | list |
 | radio-control | radio-row | radio-group, radio-row |
 | radio-row | radio-group | radio-group |
@@ -44,6 +44,9 @@ A component not in this table is nested by nothing; a change to it reaches only 
 | divider | 0 | — | — |
 | field-label | 0 | — | — |
 | field-message | 0 | — | — |
+| flush-icon-button | 1 | focus-ring | focus-ring |
+| flush-icon-button-destructive | 1 | focus-ring | focus-ring |
+| flush-icon-button-neutral | 1 | focus-ring | focus-ring |
 | focus-ring | 0 | — | — |
 | icon | 0 | — | — |
 | icon-button | 1 | focus-ring, spinner | focus-ring, spinner |
@@ -91,6 +94,9 @@ Depth is 0 for a component that nests nothing, and one more than its deepest chi
 | checkbox-group | row2 | nest | checkbox-row | nest-fixed | size=medium | size | — |
 | checkbox-group | row3 | nest | checkbox-row | nest-fixed | size=medium | size | — |
 | checkbox-row | control | nest | checkbox-control | nest-exposed | selection=unchecked, state=rest | size | selection, state |
+| flush-icon-button | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
+| flush-icon-button-destructive | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
+| flush-icon-button-neutral | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
 | icon-button | focusRing | absolute | focus-ring | nest-fixed | surface=default | surface | — |
 | icon-button | spinner | overlay | spinner | swap | — | — | — |
 | icon-button-destructive | focusRing | absolute | focus-ring | nest-fixed | surface=default | surface | — |
@@ -135,6 +141,9 @@ Depth is 0 for a component that nests nothing, and one more than its deepest chi
 | Component | Inherits from |
 |---|---|
 | checkbox-row | text-field |
+| flush-icon-button | icon-button |
+| flush-icon-button-destructive | icon-button-destructive |
+| flush-icon-button-neutral | icon-button-neutral |
 | icon-button | button |
 | icon-button-destructive | button-destructive |
 | icon-button-neutral | button-neutral |

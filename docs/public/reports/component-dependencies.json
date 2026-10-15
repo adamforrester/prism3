@@ -211,6 +211,36 @@
       ]
     },
     {
+      "from": "flush-icon-button",
+      "to": "focus-ring",
+      "part": "focusRing",
+      "partKind": "absolute",
+      "relation": "nest-fixed",
+      "variant": {
+        "surface": "default"
+      }
+    },
+    {
+      "from": "flush-icon-button-destructive",
+      "to": "focus-ring",
+      "part": "focusRing",
+      "partKind": "absolute",
+      "relation": "nest-fixed",
+      "variant": {
+        "surface": "default"
+      }
+    },
+    {
+      "from": "flush-icon-button-neutral",
+      "to": "focus-ring",
+      "part": "focusRing",
+      "partKind": "absolute",
+      "relation": "nest-fixed",
+      "variant": {
+        "surface": "default"
+      }
+    },
+    {
       "from": "icon-button",
       "to": "focus-ring",
       "part": "focusRing",
@@ -900,6 +930,42 @@
       ],
       "inheritedBy": []
     },
+    "flush-icon-button": {
+      "nests": [
+        "focus-ring"
+      ],
+      "nestsTransitively": [
+        "focus-ring"
+      ],
+      "nestedBy": [],
+      "affectedByChange": [],
+      "inherits": "icon-button",
+      "inheritedBy": []
+    },
+    "flush-icon-button-destructive": {
+      "nests": [
+        "focus-ring"
+      ],
+      "nestsTransitively": [
+        "focus-ring"
+      ],
+      "nestedBy": [],
+      "affectedByChange": [],
+      "inherits": "icon-button-destructive",
+      "inheritedBy": []
+    },
+    "flush-icon-button-neutral": {
+      "nests": [
+        "focus-ring"
+      ],
+      "nestsTransitively": [
+        "focus-ring"
+      ],
+      "nestedBy": [],
+      "affectedByChange": [],
+      "inherits": "icon-button-neutral",
+      "inheritedBy": []
+    },
     "focus-ring": {
       "nests": [],
       "nestsTransitively": [],
@@ -909,6 +975,9 @@
         "button-destructive",
         "button-neutral",
         "checkbox-control",
+        "flush-icon-button",
+        "flush-icon-button-destructive",
+        "flush-icon-button-neutral",
         "icon-button",
         "icon-button-destructive",
         "icon-button-neutral",
@@ -930,6 +999,9 @@
         "checkbox-control",
         "checkbox-group",
         "checkbox-row",
+        "flush-icon-button",
+        "flush-icon-button-destructive",
+        "flush-icon-button-neutral",
         "icon-button",
         "icon-button-destructive",
         "icon-button-neutral",
@@ -969,7 +1041,9 @@
       "nestedBy": [],
       "affectedByChange": [],
       "inherits": "button",
-      "inheritedBy": []
+      "inheritedBy": [
+        "flush-icon-button"
+      ]
     },
     "icon-button-destructive": {
       "nests": [
@@ -983,7 +1057,9 @@
       "nestedBy": [],
       "affectedByChange": [],
       "inherits": "button-destructive",
-      "inheritedBy": []
+      "inheritedBy": [
+        "flush-icon-button-destructive"
+      ]
     },
     "icon-button-neutral": {
       "nests": [
@@ -997,7 +1073,9 @@
       "nestedBy": [],
       "affectedByChange": [],
       "inherits": "button-neutral",
-      "inheritedBy": []
+      "inheritedBy": [
+        "flush-icon-button-neutral"
+      ]
     },
     "image-placeholder": {
       "nests": [],
@@ -1276,6 +1354,9 @@
     "divider": 0,
     "field-label": 0,
     "field-message": 0,
+    "flush-icon-button": 1,
+    "flush-icon-button-destructive": 1,
+    "flush-icon-button-neutral": 1,
     "focus-ring": 0,
     "icon": 0,
     "icon-button": 1,
