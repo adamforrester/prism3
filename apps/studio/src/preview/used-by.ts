@@ -6,7 +6,7 @@
  * never imports the definitions themselves (UI redesign S7, T4; the generator's header says why).
  */
 export const USED_BY = {
-  defs: 35,
+  defs: 39,
   radius: {
     rounded: {
       "radius.md": [
@@ -14,8 +14,12 @@ export const USED_BY = {
         "IconButton",
         "SegmentedControl"
       ],
+      "radius.none": [
+        "FlushIconButton"
+      ],
       "radius.round": [
         "IconButton",
+        "FlushIconButton",
         "Radio.Control",
         "Switch.Control",
         "Badge",
@@ -38,8 +42,12 @@ export const USED_BY = {
       "radius.md": [
         "SegmentedControl"
       ],
+      "radius.none": [
+        "FlushIconButton"
+      ],
       "radius.round": [
         "IconButton",
+        "FlushIconButton",
         "Radio.Control",
         "Switch.Control",
         "Badge",
@@ -61,6 +69,7 @@ export const USED_BY = {
       "radius.none": [
         "Button",
         "IconButton",
+        "FlushIconButton",
         "TextField",
         "Textarea",
         "Checkbox.Control",
@@ -68,6 +77,7 @@ export const USED_BY = {
       ],
       "radius.round": [
         "IconButton",
+        "FlushIconButton",
         "Radio.Control",
         "Switch.Control",
         "Badge",
@@ -91,8 +101,12 @@ export const USED_BY = {
       "radius.md": [
         "SegmentedControl"
       ],
+      "radius.none": [
+        "FlushIconButton"
+      ],
       "radius.round": [
         "IconButton",
+        "FlushIconButton",
         "Radio.Control",
         "Switch.Control",
         "Badge",
@@ -109,6 +123,7 @@ export const USED_BY = {
     "size.lg.height": [
       "Button",
       "IconButton",
+      "FlushIconButton",
       "TextField",
       "Checkbox.Row",
       "Radio.Row",
@@ -122,6 +137,7 @@ export const USED_BY = {
       "FocusRing",
       "Button",
       "IconButton",
+      "FlushIconButton",
       "Checkbox.Row",
       "Radio.Row",
       "Switch.Row",
@@ -133,6 +149,7 @@ export const USED_BY = {
     "size.sm.height": [
       "Button",
       "IconButton",
+      "FlushIconButton",
       "Checkbox.Row",
       "Radio.Row",
       "Switch.Row",

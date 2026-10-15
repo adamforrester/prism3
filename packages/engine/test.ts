@@ -75,7 +75,7 @@ import type { AnatomyPlan, ButtonLayout } from './anatomy-figma';
 // ABOUT one component (`button.variants.appearance`, `textField.tokens[...]`), which a find-by-id
 // over the set would only make weaker. Completeness of the set is NOT asserted here — that is
 // `typecheck-components.ts`'s registry arm, whose oracle is git's index.
-import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, checkboxControl, checkboxRow, checkboxGroup, radioGroup, textarea, radioControl, radioRow, switchControl, switchRow, select, spinner, tag, tab, divider } from './components/index';
+import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, checkboxControl, checkboxRow, checkboxGroup, radioGroup, textarea, radioControl, radioRow, switchControl, switchRow, select, spinner, tag, tab, divider } from './components/index';
 // The glyph vocabulary, for #864's geometry assertions. Imported so EXPECTED comes from the set rather
 // than from the projector that read it — the two halves `docs/34` requires.
 import { ICON_NAMES, ICON_PATHS, ICON_FILL_RULES, ICON_VIEWBOX } from './icon-glyphs';
@@ -3773,6 +3773,7 @@ for (const b of brands) {
       'segmented-control-segment': { keys: ['padding-x', 'gap'], sizes: ['small', 'medium', 'large'] },
       accordion: { keys: ['pad-x', 'pad-y', 'gap', 'panel-pad-end'], sizes: ['small', 'medium', 'large'] },
       list: { keys: ['gap'], sizes: ['small', 'medium', 'large'] },
+      link: { keys: ['gap'], sizes: ['small', 'medium', 'large'] },
     };
     const BTN = { compact: 'small 12/8/4/6 · medium 12/8/6/6 · large 20/12/6/8', comfortable: 'small 16/12/6/8 · medium 16/12/8/8 · large 24/16/8/12', spacious: 'small 20/16/8/12 · medium 20/16/12/12 · large 32/20/12/16' };
     const ROWS = { compact: 'small 6 · medium 6 · large 8', comfortable: 'small 8 · medium 8 · large 12', spacious: 'small 12 · medium 12 · large 16' };
@@ -3795,6 +3796,9 @@ for (const b of brands) {
       accordion: { compact: 'small 8/6/6/8 · medium 12/8/8/12 · large 20/12/12/20', comfortable: 'small 12/8/8/12 · medium 16/12/12/16 · large 24/16/16/24', spacious: 'small 16/12/12/16 · medium 20/16/16/20 · large 32/20/20/32' },
       // List (#2319, approved (Q280 A)): the item gap. Comfortable is 8/12/16.
       list: { compact: 'small 6 · medium 8 · large 12', comfortable: 'small 8 · medium 12 · large 16', spacious: 'small 12 · medium 16 · large 20' },
+      // Link (#2580, DRAFT): the icon-to-label gap. Comfortable is the proposal's space.050 / space.050 / space.100; compact
+      // clamps small and medium at space.050, the bottom of the density ladder, as Tab's small gap does.
+      link: { compact: 'small 4 · medium 4 · large 6', comfortable: 'small 4 · medium 4 · large 8', spacious: 'small 6 · medium 6 · large 12' },
     };
     const wrong: string[] = [];
     for (const [id, spec] of Object.entries(SPECS)) {
@@ -16536,6 +16540,158 @@ arm: {
   ok(!Object.values(button.tokens).some((v) => /color\.action\.|color\.foreground\.danger\.|foreground\.secondary/.test(String(v))), 'component: Button binds interactive.*/disabled.*, not the legacy action./danger./secondary roles');
   ok(iconButton.inherits === 'button' && !!iconButton.props.find((p) => p.name === 'aria-label')?.required, 'component: IconButton inherits button + REQUIRES an accessible name');
 
+  // ---- #2457: THE FLUSH ICON BUTTON — owner decisions Q283.3 A (on #2427), Q287 A and Q295.2 B (on #2457) ----
+  // EXPECTED is the decisions, transcribed here as literals and never read off the def (docs/34).
+  //   FLUSH (Q283.3 A): the box is the glyph's own `icon.size.*` rung (Q283.13 A: 20 / 20 / 24 → sm / sm / md), it
+  //   binds no padding of any kind, and at NO state does the box paint (no fill, no overlay wash, no edge) — hover
+  //   and pressed move the glyph ink alone, on the family's IconButton ghost roles.
+  //   ROUND (Q287 A): a circle the Counter's height across (36 / 44 / 56 → `size.{sm,md,lg}.height`), full-round, a
+  //   DECORATIVE edge (`color.border.secondary`, the decorative rung, #2569) at every enabled state, the family's
+  //   overlay wash at hover and pressed and no fill otherwise, and `color.disabled.border` at disabled.
+  //   FAMILIES (Q295.2 B): three components on IconButton's pattern, the bare id primary, each on its own family's
+  //   ghost ink and wash, and all three on the one decorative edge.
+  // ACTUAL is every projected member's plan, per family, so a padding added, a box rebound, a wash keyed on flush, a
+  // round edge dropped, a family's hover without its fill or a family's ink swapped each fail one named arm.
+  {
+    const FLUSH_SIDE: Record<string, string> = { small: 'icon/size/sm', medium: 'icon/size/sm', large: 'icon/size/md' };
+    const ROUND_SIDE: Record<string, string> = { small: 'size/sm/height', medium: 'size/md/height', large: 'size/lg/height' };
+    const ROUND_EDGE = 'color/border/secondary';
+    const FAMILIES: Array<{ def: ComponentDef; id: string; family: string; ink: Record<string, string>; wash: Record<string, string[]> }> = [
+      {
+        def: flushIconButton, id: 'flush-icon-button', family: 'primary',
+        ink: {
+          rest: 'color/interactive/primary/icon/rest', hover: 'color/interactive/primary/icon/hover', pressed: 'color/interactive/primary/icon/pressed',
+          'focus-visible': 'color/interactive/primary/icon/rest', disabled: 'color/disabled/icon',
+        },
+        wash: { rest: [], hover: ['color/interactive/primary/overlay/hover'], pressed: ['color/interactive/primary/overlay/pressed'], 'focus-visible': [], disabled: [] },
+      },
+      {
+        def: flushIconButtonDestructive, id: 'flush-icon-button-destructive', family: 'destructive',
+        ink: {
+          rest: 'color/interactive/destructive/icon/rest', hover: 'color/interactive/destructive/icon/hover', pressed: 'color/interactive/destructive/icon/pressed',
+          'focus-visible': 'color/interactive/destructive/icon/rest', disabled: 'color/disabled/icon',
+        },
+        wash: { rest: [], hover: ['color/interactive/destructive/overlay/hover'], pressed: ['color/interactive/destructive/overlay/pressed'], 'focus-visible': [], disabled: [] },
+      },
+      {
+        def: flushIconButtonNeutral, id: 'flush-icon-button-neutral', family: 'neutral',
+        ink: {
+          rest: 'color/interactive/neutral/icon/rest', hover: 'color/interactive/neutral/icon/hover', pressed: 'color/interactive/neutral/icon/pressed',
+          'focus-visible': 'color/interactive/neutral/icon/rest', disabled: 'color/disabled/icon',
+        },
+        wash: { rest: [], hover: ['color/interactive/neutral/overlay/hover'], pressed: ['color/interactive/neutral/overlay/pressed'], 'focus-visible': [], disabled: [] },
+      },
+    ];
+    const ROUND_EDGE_AT: Record<string, string> = { rest: ROUND_EDGE, hover: ROUND_EDGE, pressed: ROUND_EDGE, 'focus-visible': ROUND_EDGE, disabled: 'color/disabled/border' };
+    const SHAPES = ['flush', 'round'];
+    ok(JSON.stringify(FAMILIES.map((f) => f.def.id)) === JSON.stringify(['flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral']),
+      `#2457 the three flush icon-button families are registered, the bare id primary (Q295.2 B) — got [${FAMILIES.map((f) => f.def.id).join(', ')}]`);
+    for (const { def, id, family, ink, wash } of FAMILIES) {
+      const plans = figmaAnatomySet(def, { swapTarget: 'FPO-default-icon' });
+      // SCOPE FLOOR: every owner-decided shape × size × state is a member, so a dropped value cannot shrink what is checked.
+      const coords = new Set(plans.map((p) => `${p.coord.shape}|${p.size}|${p.coord.state}`));
+      const missing = SHAPES.flatMap((sh) => Object.keys(FLUSH_SIDE).flatMap((sz) => Object.keys(ink).map((st) => `${sh}|${sz}|${st}`))).filter((c) => !coords.has(c));
+      ok(plans.length === 30 && missing.length === 0,
+        `#2457 ${id} projects every shape × size × state, 2 × 3 × 5 = 30 members (got ${plans.length}; missing: [${missing.join(', ')}])`);
+      ok(JSON.stringify(def.variants?.shape) === JSON.stringify(SHAPES),
+        `#2457 ${id}'s shape axis is [flush, round], flush first (Q287 A) — got ${JSON.stringify(def.variants?.shape)}`);
+      const paddingBound: string[] = [], wrongSide: string[] = [], painted: string[] = [], wrongInk: string[] = [];
+      const roundSide: string[] = [], roundEdge: string[] = [], roundWash: string[] = [];
+      for (const p of plans) {
+        const name = planComponentName(p);
+        const root = p.root;
+        const round = p.coord.shape === 'round';
+        const state = String(p.coord.state);
+        // NO PADDING on either shape: no padding field on the box, bound or literal.
+        const padKeys = [...Object.keys(root.bound ?? {}), ...Object.keys(root)].filter((k) => /padding/i.test(k) && (root as Record<string, unknown>)[k] !== 0);
+        if (padKeys.length) paddingBound.push(`${name} [${padKeys.join(', ')}]`);
+        const glyph = root.children.find((c) => c.name === 'icon');
+        const glyphWant = FLUSH_SIDE[String(p.size)];
+        if (glyph?.bound?.width !== glyphWant || glyph?.bound?.height !== glyphWant)
+          wrongSide.push(`${name} (glyph ${glyph?.bound?.width}×${glyph?.bound?.height}, want ${glyphWant})`);
+        if (glyph?.descendantFills !== ink[state]) wrongInk.push(`${name} (${glyph?.descendantFills}, want ${ink[state]})`);
+        // The box's OWN paint, children excluded.
+        const own = planPaintVars({ ...root, children: [] });
+        if (!round) {
+          // FLUSH: the box and the glyph are one rung, and the box paints nothing at any state (color-only hover).
+          if (root.bound?.width !== glyphWant || root.bound?.height !== glyphWant) wrongSide.push(`${name} (box ${root.bound?.width}×${root.bound?.height}, want ${glyphWant})`);
+          if (own.length) painted.push(`${name} [${own.join(', ')}]`);
+          continue;
+        }
+        // ROUND: the Counter's height across, full-round.
+        const sideWant = ROUND_SIDE[String(p.size)];
+        if (root.bound?.width !== sideWant || root.bound?.height !== sideWant || root.bound?.topLeftRadius !== 'radius/round')
+          roundSide.push(`${name} (box ${root.bound?.width}×${root.bound?.height}, corner ${root.bound?.topLeftRadius}; want ${sideWant}, radius/round)`);
+        const edgeWant = ROUND_EDGE_AT[state];
+        if (!own.includes(edgeWant)) roundEdge.push(`${name} (paints [${own.join(', ')}], no ${edgeWant})`);
+        const gotWash = own.filter((v) => v !== edgeWant);
+        if (JSON.stringify(gotWash) !== JSON.stringify(wash[state])) roundWash.push(`${name} (wash [${gotWash.join(', ')}], want [${wash[state].join(', ')}])`);
+      }
+      ok(paddingBound.length === 0, `#2457 ${id} binds no padding at any member — flush is the glyph, round centers it (Q283.3 A)${paddingBound.length ? ` — padded: ${paddingBound.join('; ')}` : ''}`);
+      ok(wrongSide.length === 0, `#2457 ${id}'s glyph is 20 / 20 / 24, and the flush box is the same rung (Q283.13 A)${wrongSide.length ? ` — ${wrongSide.join('; ')}` : ''}`);
+      ok(painted.length === 0, `#2457 ${id}'s flush box paints nothing at any state, hover and pressed included — no fill, no wash, no edge (color-only hover, Q283.3 A)${painted.length ? ` — painted: ${painted.join('; ')}` : ''}`);
+      ok(wrongInk.length === 0, `#2457 ${id}'s glyph walks the ${family} ghost ink, rest → hover → pressed, and the disabled icon role at disabled, on both shapes (Q295.2 B)${wrongInk.length ? ` — ${wrongInk.join('; ')}` : ''}`);
+      ok(roundSide.length === 0, `#2457 ${id}'s round box is a circle the Counter's height across, 36 / 44 / 56 (Q287 A)${roundSide.length ? ` — ${roundSide.join('; ')}` : ''}`);
+      ok(roundEdge.length === 0, `#2457 ${id}'s round shape keeps its decorative edge at every state, color.border.secondary (disabled: color.disabled.border) (Q287 A, Q295.2 B)${roundEdge.length ? ` — ${roundEdge.join('; ')}` : ''}`);
+      ok(roundWash.length === 0, `#2457 ${id}'s round shape fills with the ${family} overlay at hover and pressed, and at no other state (Q287 A, Q295.2 B)${roundWash.length ? ` — ${roundWash.join('; ')}` : ''}`);
+    }
+
+    // THE GLYPH IDENTIFIES THE CONTROL, so each family's glyph ink clears SC 1.4.11's 3:1 against the page at rest,
+    // hover and pressed, in every example brand × mode. The ratio is measured by `resolveAllModes`, which never sees
+    // the def, on the role the family's literal ink above names; the flush box paints nothing, so the page is the ground.
+    let inkChecked = 0;
+    for (const { id, ink } of FAMILIES) {
+      for (const state of ['rest', 'hover', 'pressed']) {
+        const role = ink[state].replace(/^color\//, '').replace(/\//g, '.');
+        for (const ex of EXAMPLE_IDS) {
+          const th = exampleTheme(ex, () => brandTheme(exampleBrands()[ex] as BrandInput));
+          if (!th) continue;
+          for (const M of resolveAllModes(th)) {
+            const r = (M.roles as Record<string, { ratio?: number } | undefined>)[role];
+            ok(!!r && typeof r.ratio === 'number' && r.ratio >= 3,
+              `#2457 ${id} ${ex}/${M.mode}: the ${state} glyph (${role}) clears 3:1 against the page (ratio ${r?.ratio})`);
+            inkChecked++;
+          }
+        }
+      }
+    }
+    ok(inkChecked >= 3 * 3 * EXAMPLE_IDS.length, `#2457 the flush icon-button glyph contrast sweep actually ran (${inkChecked} family×state×brand×mode ratios)`);
+
+    // THE FACTORY'S SAFETY (#1225's guard, repeated for `makeFlushIconButton`). The three share every field but the
+    // `color.interactive.<family>` paint and the per-sibling selection fields (the #1697 mask, `sharedPart`).
+    const flushFamily = FAMILIES.map((f) => f.def);
+    for (const field of ['anatomy', 'props', 'states', 'variants', 'paintKeys', 'figmaProperties', 'accessibility', 'content', 'ai', 'composition', 'docs', 'motion', 'notes'] as const) {
+      const ref = JSON.stringify(sharedPart(flushIconButton, field));
+      const diverged = flushFamily.filter((d) => JSON.stringify(sharedPart(d, field)) !== ref).map((d) => d.id);
+      ok(diverged.length === 0, `#2457 the three flush icon-button components share byte-identical '${field}' — only color may differ (diverged: ${diverged.join(', ') || 'none'})`);
+    }
+    const FIB_FAMILY_RE = /^color\.interactive\.(primary|neutral|destructive)\./;
+    const nonFamily = (d: ComponentDef) => JSON.stringify(Object.fromEntries(Object.entries(d.tokens!).filter(([, v]) => !FIB_FAMILY_RE.test(v as string))));
+    const nfDiverged = flushFamily.filter((d) => nonFamily(d) !== nonFamily(flushIconButton)).map((d) => d.id);
+    ok(nfDiverged.length === 0, `#2457 the three flush icon-buttons share every NON-color token byte-for-byte — boxes, glyph, corner, edge, disabled (diverged: ${nfDiverged.join(', ') || 'none'})`);
+    for (const { def, id, family } of FAMILIES) {
+      const stray = Object.entries(def.tokens!).filter(([, v]) => FIB_FAMILY_RE.test(v as string) && !(v as string).startsWith(`color.interactive.${family}.`)).map(([k]) => k);
+      ok(stray.length === 0, `#2457 ${id} binds ONLY interactive.${family} — no other family's paint (stray: ${stray.join(', ') || 'none'})`);
+      // 8 = the glyph ink, rest + hover + pressed, on each of two shapes (6), and the round wash at hover and pressed (2).
+      const famCount = Object.values(def.tokens!).filter((v) => (v as string).startsWith(`color.interactive.${family}.`)).length;
+      ok(famCount === 8, `#2457 ${id} carries its full interactive.${family} skin — 8 bindings (got ${famCount})`);
+    }
+    const FIB_IB: Record<string, string> = { 'flush-icon-button': 'icon-button', 'flush-icon-button-destructive': 'icon-button-destructive', 'flush-icon-button-neutral': 'icon-button-neutral' };
+    for (const d of flushFamily)
+      ok(d.inherits === FIB_IB[d.id] && d.composition?.alternativeTo?.[0] === FIB_IB[d.id],
+        `#2457 ${d.id} inherits from, and names as its alternative, the IconButton of its own family (${FIB_IB[d.id]}; got ${d.inherits} / ${d.composition?.alternativeTo?.[0]})`);
+    for (const [a, b] of [[flushIconButton, flushIconButtonDestructive], [flushIconButton, flushIconButtonNeutral], [flushIconButtonDestructive, flushIconButtonNeutral]])
+      ok(kwSet(a) !== kwSet(b), `#2457 sibling triggerKeywords differ: ${a.id} vs ${b.id}`);
+    ok(['danger', 'destructive'].every((k) => (flushIconButtonDestructive.ai.triggerKeywords ?? []).some((t) => t.includes(k))),
+      `#2457 flush-icon-button-destructive carries danger / destructive (${JSON.stringify(flushIconButtonDestructive.ai.triggerKeywords)})`);
+    ok(flushIconButtonDestructive.docs.do!.some((l) => /neutral way out/.test(l)) && !flushIconButton.docs.do!.some((l) => /neutral way out/.test(l)) && !flushIconButtonNeutral.docs.do!.some((l) => /neutral way out/.test(l)),
+      '#2457 the confirmation rule is in flush-icon-button-destructive\'s docs.do, and only there');
+    // Q296 A: the spacing is center to center, in the shipped docs.do of all three.
+    for (const d of flushFamily)
+      ok(d.docs.do!.includes('Space two flush icon buttons at least 44px apart, center to center, so their tap areas don\'t overlap'),
+        `#2457 ${d.id}'s docs.do states the 44px spacing center to center (Q296 A)`);
+  }
+
   // #1225 — INTENT IS THE COMPONENT NOW, NOT AN AXIS (the icon-only counterpart of #1223's Button split).
   // The three semantic intents are three components (IconButton = primary, Destructive IconButton, Neutral
   // IconButton), built by one `makeIconButton` factory. IconButton carries NO `intent` prop, and hierarchy
@@ -17330,6 +17486,126 @@ arm: {
       `#1700 every registered def was found in a def file and its header read (${fileOf.size} of ${componentDefs.length}; unplaced: [${unplaced.join(', ')}])`);
   }
 
+  // ---- #2580: LINK, owner decisions Q289 (2026-10-14) — each held against a literal, read off the projected plans ----
+  // EXPECTED is typed here from the decisions, never read from `link.ts`: the def builds its type keys in a loop, so a
+  // check that walked `link.tokens` would only confirm the loop agrees with itself (docs/34). ACTUAL is each member's
+  // label text style in the real projection (`figmaAnatomySet`). Mutations, each failing the arm named:
+  //   standalone underlined at rest  → `#2580 link/standalone`;   inline not underlined at some state → `#2580 link/inline`;
+  //   emphasis bound to the default weight, or default first  → `#2580 link/weight`;   a third style value → `#2580 link/style`;
+  //   `{state}` allowed in a geometry key → `#2580 link/state-type-only`;
+  //   a 12px size (small bound to `type.body.xs`, or back to the label tier) → `#2580 link/body-tier` (Q297.1);
+  //   an icon on an inline link, or a leading icon → `#2580 link/icons` (Q297.2);
+  //   the `-link` suffix dropped when `weightIntent` repoints, or emphasis bound to a role nb-redesign lacks → `#2580 link/weight-intent`.
+  {
+    const linkDef = componentDefs.find((d) => d.id === 'link');
+    ok(!!linkDef, '#2580 link: the Link component is registered');
+    if (linkDef) {
+      const RUNG: Record<string, string> = { small: 'sm', medium: 'md', large: 'lg' };
+      // Q297.1: the body tier, the default brand's role per weight (emphasis → the heaviest body weight, `strong`).
+      const ROLE: Record<string, string> = { emphasis: 'strong', default: 'default' };
+      const UNDERLINED_STANDALONE = new Set(['hover', 'pressed', 'focus-visible']);
+      type LN = { name: string; textStyle?: string; children: LN[] };
+      const labelStyle = (n: LN): string | undefined => (n.name === 'label' ? n.textStyle : n.children.map(labelStyle).find(Boolean));
+      const plans = figmaAnatomySet(linkDef, { swapTarget: 'FPO-default-icon' });
+      const rows = plans.map((p) => ({ c: p.coord as Record<string, string>, size: String(p.size), style: labelStyle(p.root as unknown as LN) }));
+      ok(plans.length === 96, `#2580 link/members: style 2 × weight 2 × size 3 × surface 2 × 4 states = 96 members (got ${plans.length})`);
+      const want = (r: { c: Record<string, string>; size: string }, underlined: boolean) =>
+        figmaTextStyleName(`type.body.${RUNG[r.size]}.${ROLE[r.c.weight]}${underlined ? '-link' : ''}`);
+      const standalone = rows.filter((r) => r.c.style === 'standalone');
+      const sOff = standalone.filter((r) => r.style !== want(r, UNDERLINED_STANDALONE.has(r.c.state)));
+      ok(standalone.length === 48 && sOff.length === 0,
+        `#2580 link/standalone (Q289.2 A): a standalone link is plain at rest and underlined at hover, pressed and focus-visible, at every weight, size and surface (${standalone.length} members${sOff.length ? `; OFF: ${sOff.map((r) => `${JSON.stringify(r.c)} ${r.size} → ${r.style}`).join('; ')}` : ''})`);
+      const inline = rows.filter((r) => r.c.style === 'inline');
+      const iOff = inline.filter((r) => r.style !== want(r, true));
+      ok(inline.length === 48 && iOff.length === 0,
+        `#2580 link/inline (Q289.2 A): an inline link is underlined at every state, weight, size and surface (${inline.length} members${iOff.length ? `; OFF: ${iOff.map((r) => `${JSON.stringify(r.c)} ${r.size} → ${r.style}`).join('; ')}` : ''})`);
+      const restMd = (weight: string) => rows.find((r) => r.c.style === 'standalone' && r.c.weight === weight && r.c.surface === 'default' && r.size === 'medium' && r.c.state === 'rest')?.style;
+      const weightProp = linkDef.props.find((p) => p.name === 'weight');
+      ok(JSON.stringify(linkDef.variants.weight) === JSON.stringify(['emphasis', 'default'])
+        && restMd('emphasis') === 'body/md/strong' && restMd('default') === 'body/md/default' && weightProp?.default === 'emphasis'
+        && weightProp?.description === 'Emphasis is the starting value; choose Default for a lighter weight link.',
+        `#2580 link/weight (Q289.3 B, Q297.3): two weights, emphasis first and the default, emphasis binding the heavier body role and default the reading weight, with the owner's prop wording (axis ${JSON.stringify(linkDef.variants.weight)}, prop default ${weightProp?.default}, medium rest ${restMd('emphasis')} / ${restMd('default')})`);
+      // Q314 A — the owner's `size` wording, pinned as a literal: the icon sits inside the one-line box at the shipped
+      // line height, so the text no longer offers an "or as tall as the icon" case no brand reaches.
+      const sizeProp = linkDef.props.find((p) => p.name === 'size');
+      ok(sizeProp?.description === 'The body type size: 14, 16 or 18px. The box is one text line tall; the icon (16px at small and medium, 20px at large) sits inside it.',
+        `#2580 link/size-wording (Q314 A): the size prop carries the owner's text verbatim (got ${JSON.stringify(sizeProp?.description)})`);
+      // Q297.1 — the body tier at 14 / 16 / 18px for both styles, and no 12px link. The font sizes are read off the
+      // committed default-brand emission and compared to literals, so a rung moved to `type.body.xs` (12px) or back to the
+      // label tier (12 / 14 / 18px) fails here by name.
+      const emitted = JSON.parse(readFileSync(resolve(HERE, './out/prism3.tokens.json'), 'utf8'));
+      const eRoot = emitted[Object.keys(emitted).find((k) => !k.startsWith('$'))!];
+      const pxOf = (styleName: string): number | undefined => {
+        let v: unknown = styleName.split('/').reduce((n: any, k) => n?.[k], eRoot.type)?.$value?.fontSize;
+        while (typeof v === 'string' && v.startsWith('{')) v = v.slice(1, -1).split('.').reduce((n: any, k) => n?.[k], emitted)?.$value;
+        return typeof v === 'string' && v.endsWith('rem') ? parseFloat(v) * 16 : typeof v === 'string' ? parseFloat(v) : undefined;
+      };
+      const PX: Record<string, number> = { small: 14, medium: 16, large: 18 };
+      const tierOff = rows.filter((r) => !r.style?.startsWith('body/') || pxOf(r.style) !== PX[r.size]);
+      ok(rows.length === 96 && tierOff.length === 0,
+        `#2580 link/body-tier (Q297.1): every member, standalone and inline, sets body type at 14 / 16 / 18px, with no 12px link${tierOff.length ? `; OFF: ${tierOff.slice(0, 4).map((r) => `${JSON.stringify(r.c)} ${r.size} → ${r.style} (${pxOf(r.style ?? '')}px)`).join('; ')}` : ''}`);
+
+      // Q297.2 — a trailing icon only, on standalone members only, 16px with 14px and 16px text and 20px with 18px text.
+      type IN = { name: string; bound?: Record<string, string>; children?: IN[] };
+      const nodes = (n: IN): IN[] => [n, ...(n.children ?? []).flatMap(nodes)];
+      const ICON: Record<string, string> = { small: 'icon/size/xs', medium: 'icon/size/xs', large: 'icon/size/sm' };
+      const emittedIconPx = ['xs', 'sm'].map((k) => eRoot.icon.size[k].$value).map((v: string) => v.slice(1, -1).split('.').reduce((n: any, k) => n?.[k], emitted)?.$value);
+      const iconOff = plans.flatMap((p) => {
+        const c = p.coord as Record<string, string>;
+        const all = nodes(p.root as unknown as IN);
+        const trailing = all.filter((n) => n.name === 'trailingVisual');
+        const out: string[] = [];
+        if (all.some((n) => n.name === 'leadingVisual')) out.push(`${JSON.stringify(c)} ${p.size}: a leading icon`);
+        if (c.style === 'inline' && trailing.length) out.push(`${JSON.stringify(c)} ${p.size}: an inline link with an icon`);
+        if (c.style === 'standalone' && (trailing.length !== 1 || trailing[0].bound?.width !== ICON[String(p.size)] || trailing[0].bound?.height !== ICON[String(p.size)]))
+          out.push(`${JSON.stringify(c)} ${p.size}: trailing icon ${JSON.stringify(trailing.map((t) => t.bound))}`);
+        return out;
+      });
+      const figBools = Object.keys(linkDef.figmaProperties?.booleans ?? {});
+      ok(iconOff.length === 0 && JSON.stringify(figBools) === JSON.stringify(['trailingIcon']) && !linkDef.props.some((p) => p.name === 'leadingIcon')
+        && JSON.stringify(emittedIconPx) === JSON.stringify(['16px', '20px']),
+        `#2580 link/icons (Q297.2): trailing only, standalone only, 16px at small and medium and 20px at large (booleans ${JSON.stringify(figBools)}, icon xs/sm ${JSON.stringify(emittedIconPx)}${iconOff.length ? `; OFF: ${iconOff.slice(0, 4).join('; ')}` : ''})`);
+
+      // Q297.1 through `weightIntent` — a brand whose body weights are [default, emphasis] (nb-redesign's shape) binds
+      // its own emphasis role and keeps the underlined twin, rather than the `strong` it does not emit.
+      const nbShape = figmaAnatomySet(applyWeightIntent(linkDef, { ...DEFAULT_WEIGHT_AVAILABILITY, body: ['default', 'emphasis'] }), { swapTarget: 'FPO-default-icon' });
+      const nbAt = (state: string) => nbShape.map((p) => ({ c: p.coord as Record<string, string>, size: String(p.size), style: labelStyle(p.root as unknown as LN) }))
+        .find((r) => r.c.style === 'standalone' && r.c.weight === 'emphasis' && r.c.surface === 'default' && r.size === 'medium' && r.c.state === state)?.style;
+      ok(nbShape.length === 96 && nbAt('rest') === 'body/md/emphasis' && nbAt('hover') === 'body/md/emphasis-link',
+        `#2580 link/weight-intent (Q297.1, #1602): in a [default, emphasis] body brand, emphasis binds body/md/emphasis at rest and body/md/emphasis-link at hover (got ${nbShape.length} members, ${nbAt('rest')} / ${nbAt('hover')})`);
+
+      ok(JSON.stringify(linkDef.variants.style) === JSON.stringify(['standalone', 'inline'])
+        && JSON.stringify([...new Set(plans.map((p) => (p.coord as Record<string, string>).style))]) === JSON.stringify(['standalone', 'inline']),
+        `#2580 link/style (Q289.2 A): style is exactly standalone | inline, standalone first, and the projection carries no other (axis ${JSON.stringify(linkDef.variants.style)})`);
+      ok(JSON.stringify(linkDef.states) === JSON.stringify(['rest', 'hover', 'pressed', 'focus-visible']),
+        `#2580 link/states (Q289.5 A): rest, hover, pressed and focus-visible; visited and current are code only, and no disabled (got ${JSON.stringify(linkDef.states)})`);
+      const texts = linkDef.figmaProperties?.texts as Record<string, { default?: string }> | undefined;
+      ok(texts?.label?.default === 'Link text'
+        && linkDef.summary === 'Text that goes to another page, a place on the page or a file. Underlined in running text.'
+        && (linkDef.anatomy?.codeOnly ?? []).some((e) => e.includes('"(opens in new tab)"'))
+        && linkDef.name === 'Link' && linkDef.category === 'navigation'
+        && JSON.stringify(linkDef.aliases) === JSON.stringify(['text-link', 'anchor', 'hyperlink']),
+        '#2580 link/identity (Q289.7 A, Q289.8 A): Link / link, navigation, aliases text-link, anchor, hyperlink; label "Link text"; the approved summary; "(opens in new tab)"');
+
+      // `{state}` is a TYPE-key placeholder only (component-schema.ts, `keyAxes`). The footprint rule the schema comment
+      // leans on runs only against a live Figma file, so this refusal is the one guard against a state-keyed box. The
+      // clone moves the row's gap with the state AND supplies every slot that expansion would ask for, so a validator
+      // that let `{state}` reach a geometry key would find nothing missing and pass it. Mutation: widen `keyAxes` to every
+      // binding key → this arm fails by name, and nothing else in the suite does.
+      const STATE_GAP = 'size.{size}.gap.{state}';
+      const stateGapTokens: Record<string, string> = { ...linkDef.tokens };
+      for (const size of linkDef.variants.size ?? []) for (const st of statesOf(linkDef)) stateGapTokens[`size.${size}.gap.${st}`] = 'space.050';
+      const parts = linkDef.anatomy!.parts;
+      const stateGapErrs = validateComponentDef({
+        ...linkDef, tokens: stateGapTokens,
+        anatomy: { ...linkDef.anatomy!, parts: { ...parts, container: { ...parts.container, gap: STATE_GAP } } },
+      } as ComponentDef).errors;
+      const realErrs = validateComponentDef(linkDef).errors;
+      ok(realErrs.length === 0 && stateGapErrs.some((e) => e.includes(`binding key '${STATE_GAP}' names placeholder '{state}', which is not an axis`)),
+        `#2580 link/state-type-only: a type key may name {state}, a geometry key may not — Link validates clean, and a clone with a state-keyed gap is refused naming the placeholder (Link: ${realErrs.join('; ') || 'no errors'}; clone: ${stateGapErrs.join('; ') || 'no errors'})`);
+    }
+  }
+
   // ---- #1339: disabled is ONE mechanism (the STATE), not a state axis + a prop ----
   // The label dims when its field is disabled, carried by the `disabled` STATE (a paint change projected as a
   // Figma variant), with NO duplicating `disabled` prop. EXPECTED is the authored contract; ACTUAL is the
@@ -17557,10 +17833,13 @@ arm: {
     const binders = componentDefs.filter((d) => applyOutlineInteraction(d, 'none') !== d).map((d) => d.id).sort();
     // `tag` joins (2026-09-27): an unselected tag's hover and pressed are the neutral overlay wash on its outline,
     // Button's outline grammar, so a solid-tint or no-hover brand reaches it exactly as it reaches a button.
+    // `flush-icon-button` joins (#2457, Q287 A): its round shape's hover and pressed are its IconButton's ghost wash,
+    // so a solid-tint or no-hover brand reaches it as it reaches a ghost icon button, in all three families (Q295.2 B).
+    // The flush shape binds none.
     // `segmented-control-segment` joins (#2418, Q269.4): an unselected option's hover and pressed are the neutral wash,
     // and its selected tint is the subtle-fill Tag binds, so a solid-tint or no-hover brand reaches it as it reaches a tag.
-    ok(JSON.stringify(binders) === JSON.stringify(['button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'segmented-control-segment', 'select', 'tag', 'text-field', 'textarea']),
-      `#1608 the wash binders the lever reaches: button ×3, icon-button ×3, segmented-control-segment, select, tag, text-field, textarea (${binders.join(', ')})`);
+    ok(JSON.stringify(binders) === JSON.stringify(['button', 'button-destructive', 'button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'segmented-control-segment', 'select', 'tag', 'text-field', 'textarea']),
+      `#1608 the wash binders the lever reaches: button ×3, flush-icon-button ×3 (round), icon-button ×3, segmented-control-segment, select, tag, text-field, textarea (${binders.join(', ')})`);
 
     // BY-NAME MUTATION, in-suite: the RAW def (no wrap) under solid-tint misses the page wash — the 96-miss
     // shape the owner saw, outline's 48 and text's 48. Since #2324 the text appearance keys no wash by default, so the
@@ -17866,7 +18145,10 @@ arm: {
     // label type crosses size × appearance. A deliberate widening, recorded here so the next one has to be too.
     // `selection` joined with Q226 A (2026-10-10): a tab's label binds the default weight unselected and the emphasis
     // weight selected, so its type crosses size × selection.
-    const TYPE_KEY_AXES = ['size', 'weight', 'appearance', 'selection'] as const;
+    // `style` and `state` joined with Link (#2580, owner Q289.2 A): a standalone link binds its plain style at rest and the
+    // underlined twin at hover, pressed and focus, and an inline link the underlined twin throughout. `state` is the first
+    // non-variant axis here, and the schema admits it in a type key only (`component-schema.ts`, `keyAxes`).
+    const TYPE_KEY_AXES = ['size', 'weight', 'appearance', 'selection', 'style', 'state'] as const;
     // The (def, part) pairs that template a `type` key, and the axes each one names — authored from
     // reading the six defs, and asserted below to be exactly the set the corpus contains. Both
     // directions matter: a seventh binding added without a row here fails, and a row naming a binding
@@ -17932,6 +18214,9 @@ arm: {
       // ordered member.
       { def: componentDefs.find((d) => d.id === 'list-item')!, part: 'text', axes: { size: 3 } },
       { def: componentDefs.find((d) => d.id === 'list-item')!, part: 'number', axes: { size: 3 }, at: { type: 'ordered' } },
+      // LINK (#2580): the label crosses size, weight, style and, the first type key to do so, the interaction state. The
+      // underline is the state half: a standalone link is plain at rest and underlined at hover, pressed and focus.
+      { def: componentDefs.find((d) => d.id === 'link')!, part: 'label', axes: { size: 3, weight: 2, style: 2, state: 2 } },
     ];
 
     // DIRECTION 1 — the authored table is the corpus. Discovered by walking every def's anatomy for a
@@ -17979,7 +18264,8 @@ arm: {
       const base: Record<string, string> = { ...Object.fromEntries(
         Object.entries(variants).filter(([a]) => a !== 'size').map(([a, vs]) => [a, vs[0]])), ...(row.at ?? {}) };
       for (const [axis, expectedDistinct] of Object.entries(row.axes)) {
-        const values = variants[axis] ?? [];
+        // `state` is not a variant axis (#2580): its values are the def's declared states, and it rides in the coordinate.
+        const values = axis === 'state' ? [...statesOf(row.def)] : (variants[axis] ?? []);
         ok(values.length >= 2,
           `anatomy: ${row.def.id}'s '${axis}' axis declares at least two values, or the discrimination arm below cannot fail (#1248)`);
         // `size` is a positional argument to the projector, every other axis rides in the coordinate.
@@ -26405,7 +26691,8 @@ arm: {
   // supplies that key as the projected STATE, spelled here as a literal so the oracle is not the schema's
   // own constant.
   // `tag` joins (2026-09-27): its check mark is gated on `selection: ['selected']`, the checkbox mark's shape.
-  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'radio-control', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion', 'list-item'];
+  // `link` joins (#2580, owner Q297.2): its trailing icon is gated on `style: ['standalone']`, so an inline link carries none.
+  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'radio-control', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion', 'list-item', 'link'];
   ok(GATED_EXPECTED.every((n) => gatedDefs.some((d) => d.id === n)) && gatedDefs.length === GATED_EXPECTED.length,
     `#910 the presentWhen projection rule below covers exactly [${GATED_EXPECTED.join(', ')}] — a def gaining a variant-gated part must be represented here, and a def losing one is a stale claim (found: ${gatedDefs.map((d) => d.id).join(', ') || 'none'})`);
   for (const def of gatedDefs) {
@@ -27872,6 +28159,11 @@ arm: {
     // construction), so centring inside it lands the marker on the first line of a wrapping item, never mid-paragraph.
     'list-item.markerBox':
       "the marker column is one body line tall and its row is top-aligned, so centring the marker inside it puts the marker on the item's first line however far the text wraps; the bullet and the number are gated on type and never present together.",
+    // `link` (#2580): the row pairs the optional trailing icon with the label (Q297.2). In Figma a link is one text line
+    // tall (owner Q289.4 A) and its label is one line of placeholder text, so the icon centers against the only line. In code a
+    // link wraps, and the icon is inline with its word rather than centered on the block (link.ts codeOnly).
+    'link.container':
+      "a link is one text line tall in Figma and its label is one line there, so the trailing icon centers against the only line; in code the icon sits inline with the last word, never centered on a wrapped block (link.ts codeOnly).",
     'tag.labelCheck':
       "the tag's height is fixed at one line in Figma and its label is one line there, so the check mark (and, one row out, the leading icon) center against the only line; in code a wrapped label centers them on the label block, which is held for the owner (tag.ts notes.contested).",
   };
@@ -30285,6 +30577,34 @@ arm: {
     const archLogOnly = run('arch-log-only', PR);
     ok(archLogOnly.status === 1 && archLogOnly.lines.some((l) => l.startsWith('✗ ONE WRITER (log) — this diff changes docs/00-progress.md')),
       `#2583 archive move: entries cut from the log with no archive half fail ONE WRITER (exit ${archLogOnly.status})`);
+
+    // (f) #2663: LEAVES NOTHING PENDING. Branch (a) above folded Alpha and Bravo and still holds Pre one and Pre
+    // two, which main's own fold (m5) consumed since the merge base: merged, nothing is left, so it passes. Then
+    // a stale fold: `stale` folds all four at m4, while main moves to `ml` with one more fragment, Late. Read on
+    // its branch, on its PR merge ref and as main's push run of its squash, it leaves Late pending and fails by
+    // name. Re-cut at `ml` (`recut`, all five) it passes. Runs last: it moves origin/main to `ml`.
+    const nothingLeft = (n: number) => (l: string) => l.startsWith(`  ✓ leaves nothing pending — the fold consumes ${n} fragment(s) and 0 note(s), and the merged tree holds no other pending file`);
+    const aAgain = run('a', {});
+    ok(aAgain.status === 0 && aAgain.lines.some(nothingLeft(2)),
+      `#2663 leaves nothing pending: a branch's fold beside main's fold of the rest passes; main consumed Pre one and Pre two since the merge base (exit ${aAgain.status}: ${aAgain.lines.filter((l) => /leaves nothing|LEAVES NOTHING|lane-/.test(l)).join(' | ')})`);
+    git('checkout', '-q', '-b', 'ml', m4); fragment('lane-late', 'Late'); const ml = commit('ml: a late PR');
+    git('checkout', '-q', '-b', 'stale', m4);
+    for (const s of ['lane-pre-one', 'lane-pre-two', 'lane-alpha', 'lane-bravo']) rmSync(join(scratch, `docs/progress/pending/${s}.md`));
+    log(['Bravo', 'Alpha', 'Pre two', 'Pre one']); commit('stale fold');
+    git('checkout', '-q', '--detach', ml); git('merge', '-q', '--no-ff', '-m', 'merge ref of stale', 'stale'); const refStale = git('rev-parse', 'HEAD');
+    git('checkout', '-q', '--detach', ml); git('merge', '-q', '--squash', 'stale'); git('commit', '-q', '-m', 'stale fold, squashed on main'); const sqStale = git('rev-parse', 'HEAD');
+    git('checkout', '-q', '-b', 'recut', ml);
+    for (const s of ['lane-pre-one', 'lane-pre-two', 'lane-alpha', 'lane-bravo', 'lane-late']) rmSync(join(scratch, `docs/progress/pending/${s}.md`));
+    log(['Late', 'Bravo', 'Alpha', 'Pre two', 'Pre one']); commit('recut fold');
+    git('update-ref', 'refs/remotes/origin/main', ml);
+    const LEFT = '✗ LEAVES NOTHING PENDING — this diff is a fold (it consumes 4 fragment(s) and 0 note(s)), and 1 file(s) are still pending on the merged tree (#2663):';
+    const LATE = '  · docs/progress/pending/lane-late.md';
+    const stale = [run('stale', {}), run(refStale, PR), run(sqStale, PUSH)];
+    ok(stale.every((r) => r.status === 1 && r.lines.includes(LEFT) && r.lines.includes(LATE)),
+      `#2663 leaves nothing pending: a fold cut before main moved fails by name on its branch, its merge ref and main's push run, naming lane-late (exits ${stale.map((r) => r.status).join(', ')}: ${stale.map((r) => r.lines.filter((l) => /LEAVES NOTHING|lane-late/.test(l)).join(' ')).join(' | ')})`);
+    const recut = run('recut', {});
+    ok(recut.status === 0 && recut.lines.some(nothingLeft(5)),
+      `#2663 leaves nothing pending: the fold re-cut on the moved main passes (exit ${recut.status}: ${recut.lines.filter((l) => /leaves nothing|LEAVES NOTHING|✗/.test(l)).join(' | ')})`);
   } finally {
     rmSync(scratch, { recursive: true, force: true });
   }

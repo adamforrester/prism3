@@ -1,0 +1,11 @@
+## (2026-10-15) — The platform gate stops presenting dp font sizes as correct (#2613)
+
+`check-platforms.mjs` pinned `core.font.size.16` as `<dimen>16.00dp` on Android and `16.00.dp` on Compose with no `[GAP]` tag, so the gate read a font size that ignores the user's system font scale as the expected value. Both cells are now `[GAP #2613]`: the measured value, kept on purpose, tagged with the issue that tracks it. The iOS cell, `CGFloat(16.00)`, is right (points) and stays untagged.
+
+A new literal row covers `core.font.letter-spacing.neg-40` (`-0.04em`) on every brand. Web passes it through as `-0.04em`. All three native platforms write an absolute `-0.64`. iOS and Android are tagged `#2434` (`em` is not a DTCG dimension unit, which is ours). Compose is tagged `#2613`, because the stock `size/compose/em` transform would write `.em` but never fires: its filter, like the sp transforms', matches only `$type: fontSize`, which DTCG does not have.
+
+**What this is not.** No native value changes, and no fix is attempted. The arc's research on #2426 found that every remaining native fix needs either custom transforms, which the no-custom-code rule forbids, or a change to the emitted units or the contract. Those are owner calls, raised on #2426 as one question. The `[VERDICT]` table does not move: Android and Compose `dimension` were already pinned `broken` (#2430).
+
+**Mutations, each failing by name** (run against `out/`, restored after):
+- **The fix arriving.** Retype aurora's `core.font.size.16` and `letter-spacing.neg-40` as `$type: fontSize`, which makes the stock sp transforms fire. That fails 4 assertions: `aurora: [VALUE] [GAP #2613] font size 1rem on android — … = <dimen>16.00sp (expected <dimen>16.00dp)`, the same on compose (`16.00.sp`), and both letter-spacing cells on Android and Compose (`-0.64sp`, `-0.64.sp`). So the day a stock transform starts writing sp, the pin fails by name. Note that under `fontSize` Compose letter spacing comes out `.sp`, not `.em`: retyping is a probe, not a fix.
+- **A value moving.** harbor's `neg-40` set to `-0.05em` fails 6 assertions, one per platform, for example `harbor: [VALUE] [GAP #2434] letter spacing -0.04em on ios — … = CGFloat(-0.80) (expected CGFloat(-0.64))`.
