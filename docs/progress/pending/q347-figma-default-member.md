@@ -41,4 +41,14 @@ by reference, so this proves no member was rebuilt, not Figma's own instance res
 intensity order is now typed as the pre-#2752 one so "the set's first member" and "the code default" stay two
 coordinates in its refusal tests.
 
-**Mutations (each committed first, restored after), failing by name:** recorded in the PR.
+**Mutations (each committed first, restored after), failing by name:**
+- Each of the three axes back to its old order → `#2752 icon-button` (and `-destructive`, `-neutral`): "appearance:
+  Figma inserts filled, code defaults to ghost"; `#2752 veil`: "intensity: Figma inserts subtle, code defaults to
+  medium"; `#2752 image-placeholder`: "ratio: Figma inserts 2:3, code defaults to 4:3".
+- Icon button's prop default moved to `filled`, the order left ghost first → the three `#2752 icon-button…` arms
+  ("Figma inserts ghost, code defaults to filled"). The expected side reads the prop, not the order.
+- `dialog` added to the size exception, which it does not need → **did not fire at first.** The stale check asked
+  whether the axis was read on each named def, not whether the exception matched there, so a complying def passed. It
+  now tracks hits per def, and the same mutation fails `#2752 exception size small≠medium … STALE on: dialog`.
+- The apply's grid move skipped on an update (`write-components.ts`) → `default member/<def> inserted` and
+  `default member/<def> current`, on all three.
