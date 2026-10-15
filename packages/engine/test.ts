@@ -31,6 +31,7 @@ import { resolvePreview } from './resolve-preview';
 import { exampleBrands, exampleBrandsJson, EXAMPLE_IDS } from './emit-brandinput';
 import { buildFigmaColor, buildFigmaFont, buildFigmaFontFluid, buildFigmaTextStyles, buildFigmaDims, buildFigmaLayout, buildFigmaShadow, buildFigmaGradient, buildFigmaGridStyles, fontStyleName, figName, parseColor, figmaArtifacts, COLOR_MODES, FONT_FLUID_MODES, LAYOUT_MODES } from './emit-figma';
 import type { FigmaCollectionFile } from './emit-figma';
+import { MOTION_FIGMA_COVERAGE, springBounce } from './emit-figma-dims';
 import { buildBase, buildOverlay, overlayModes, buildOverlaySet, leafCount, DTCG_TYPES } from './emit-dtcg-overlay';
 import { callTool as mcpCallTool, unsafeOutDir, EXPORT_SECTIONS } from './mcp';
 import { buildTree, validateBrandInput, readExampleBrand } from './emit-dtcg';
@@ -47,8 +48,8 @@ import {
 import { buildContract, corpus as contractCorpus, pathsOf, MINIMAL_BRAND, MINIMAL_COMPACT_BRAND, readBaseline } from './token-contract';
 import { scoreConsumption, scoreContractCompliance, tokenPaths, normalizeRef, isPrimitiveRef, PRIMITIVE_TIER, PRIMITIVE_GROUPS } from './eval';
 import { runEval, buildPrompt, extractRefs, extractPairs, SAMPLE_TASKS } from './eval-run';
-import { aliasRows, colorAliasesJs, colorAliasesChunks, verifyJs, floatCollections, fontCollections, passJs, passOrder, passPayloads, colorCreateChunks, colorIndivisibleUnit, pruneReport, registerFigmaTree } from './materialise-to-figma';
-import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, gradientTransformFor, buildFontVarPlan, buildTextStylePlan, fontVarPlanFrom, stylesPlanFromFiles, textStylePlanFromFiles } from './write-plan';
+import { aliasRows, colorAliasesJs, colorAliasesChunks, verifyJs, floatCollections, fontCollections, motionCollections, passJs, passOrder, passPayloads, colorCreateChunks, colorIndivisibleUnit, pruneReport, registerFigmaTree } from './materialise-to-figma';
+import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, gradientTransformFor, buildFontVarPlan, buildMotionVarPlan, buildTextStylePlan, fontVarPlanFrom, stylesPlanFromFiles, textStylePlanFromFiles } from './write-plan';
 import { verifyReadback, verifyFloatReadback, verifyTypographyReadback, ReadbackSnapshot } from './read-back';
 import { tailOf } from './figma-names';
 import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION, UnrecognizedPersistedInputError } from './persist-input';
@@ -56,11 +57,15 @@ import { validateComponentDef, VARIANT_AXES, axisKindOf, figmaPropertyErrors, fi
 import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, settleChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, figmaTextStyleName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, applySpacingDensity, applyMinWidthRatio, DEFAULT_BUTTON_LAYOUT, isButtonFamily, resolveWeightIntent, DEFAULT_WEIGHT_AVAILABILITY, isPillable, PILL_RADIUS_DERIVATION, PILL_RADIUS_RUNG, BOXED_RADIUS_RUNG, HAIRLINE_RADIUS_RUNG, CONTROL_SHAPE_RUNG, ROUNDED_RADIUS_RUNG, variantSetErrors, variantNameErrors, glyphLayerOpacities, type AnatomyPlan, type SwapFound } from './anatomy-figma';
 import type { ControlShape } from './scale';
 import { COMPONENT_RENAMES, coordKey, renameCoordinate, isDeclaredDrop, unaccounted as renamesUnaccounted, danglingTargets as renamesDangling, type ComponentRename, type AxesBaseline } from './component-renames';
-// The one import this suite makes ACROSS the engine/plugin boundary, and the parity gate (#487 step 5)
+// One of the two imports this suite makes ACROSS the engine/plugin boundary, and the parity gate (#487 step 5)
 // is why: with two executors for one `AnatomyPlan`, a gate that only ever sees one of them cannot say
 // they agree. `write-components.ts` is pure TypeScript against a declared port — it touches no `figma`
 // global at runtime — so importing it into a Node harness costs nothing and needs no shim of its own.
 import { applyComponentPlan } from '../../apps/plugin/src/write-components';
+// The second, for the same reason in the other direction (#2412): the CLI's `motion-vars` paste payload is EXECUTED
+// against the plugin suites' file model, so the two paste paths are judged by one model of Figma, not two. The shim
+// is a HOST that imports no executor (`file-shim.ts`'s header), so this brings no plugin code under test here.
+import { FileShim } from '../../apps/plugin/file-shim';
 import { readStamps, auditStamps, onlyFilledStamps } from './rename-stamp-audit';
 import { fillStamps, STAMP_FILES } from '../../fold-stamps';
 import type { AnatomyPlan, ButtonLayout } from './anatomy-figma';
@@ -3768,6 +3773,7 @@ for (const b of brands) {
       'segmented-control-segment': { keys: ['padding-x', 'gap'], sizes: ['small', 'medium', 'large'] },
       accordion: { keys: ['pad-x', 'pad-y', 'gap', 'panel-pad-end'], sizes: ['small', 'medium', 'large'] },
       list: { keys: ['gap'], sizes: ['small', 'medium', 'large'] },
+      link: { keys: ['gap'], sizes: ['small', 'medium', 'large'] },
     };
     const BTN = { compact: 'small 12/8/4/6 · medium 12/8/6/6 · large 20/12/6/8', comfortable: 'small 16/12/6/8 · medium 16/12/8/8 · large 24/16/8/12', spacious: 'small 20/16/8/12 · medium 20/16/12/12 · large 32/20/12/16' };
     const ROWS = { compact: 'small 6 · medium 6 · large 8', comfortable: 'small 8 · medium 8 · large 12', spacious: 'small 12 · medium 12 · large 16' };
@@ -3790,6 +3796,9 @@ for (const b of brands) {
       accordion: { compact: 'small 8/6/6/8 · medium 12/8/8/12 · large 20/12/12/20', comfortable: 'small 12/8/8/12 · medium 16/12/12/16 · large 24/16/16/24', spacious: 'small 16/12/12/16 · medium 20/16/16/20 · large 32/20/20/32' },
       // List (#2319, approved (Q280 A)): the item gap. Comfortable is 8/12/16.
       list: { compact: 'small 6 · medium 8 · large 12', comfortable: 'small 8 · medium 12 · large 16', spacious: 'small 12 · medium 16 · large 20' },
+      // Link (#2580, DRAFT): the icon-to-label gap. Comfortable is the proposal's space.050 / space.050 / space.100; compact
+      // clamps small and medium at space.050, the bottom of the density ladder, as Tab's small gap does.
+      link: { compact: 'small 4 · medium 4 · large 6', comfortable: 'small 4 · medium 4 · large 8', spacious: 'small 6 · medium 6 · large 12' },
     };
     const wrong: string[] = [];
     for (const [id, spec] of Object.entries(SPECS)) {
@@ -4455,10 +4464,11 @@ arm: {
   // Nine collections, ten axes: #1097 merged `core-palette`/`core-dimension`/`core-font` into ONE `core`
   // collection, so `core/dimension` is a SLICE of a collection rather than a collection of its own. The
   // count moves 10 → 9 for that reason and no other.
-  // `motion` joined in #2394: FLOAT milliseconds, the first float collection with no scope.
-  const EXPECTED = ['core', 'space', 'radius', 'size', 'icon', 'control', 'border-width', 'focus', 'opacity', 'layout', 'motion'];
+  // `motion` joined in #2394 as FLOAT milliseconds and left with #2412: TIMING + EASING, so it is
+  // `buildMotionVarPlan`'s, not a FLOAT axis. Asserted absent here so it cannot be written twice.
+  const EXPECTED = ['core', 'space', 'radius', 'size', 'icon', 'control', 'border-width', 'focus', 'opacity', 'layout'];
   ok(EXPECTED.every((n) => names.includes(n)) && names.length === EXPECTED.length,
-    `float-plan: eleven collections present (${names.join(', ')})`);
+    `float-plan: ten collections present, motion not among them (${names.join(', ')})`);
 
   // Single-mode dims axes vs per-breakpoint layout.
   ok(auroraFloat.find((c) => c.name === 'core')!.modes.join(',') === 'Default',
@@ -13920,6 +13930,11 @@ arm: {
 //   · the paste payloads the CLI prints (`passPayloads` — palette, dims-create, font-vars), decoded from
 //     their compact scope codes, where an empty code is what decodes to `[]` and `*` is ALL_SCOPES;
 //   · the committed `out/figma/<brand>/` trees the paste path reads.
+// ONE EXEMPTION, KEYED BY RESOLVED TYPE (#2412): Figma refuses a `scopes` write on TIMING and EASING ("Cannot set
+// scopes on this variable type", spike #2403), so those rows hold ALL_SCOPES and nothing can change that. They are
+// held to exactly `['ALL_SCOPES']` instead, and must be REPRESENTED on every path that carries a type, so the
+// exemption cannot pass over nothing. Never keyed by name: a `/motion\//` exemption would hide a FLOAT that
+// wandered into `motion`, and that FLOAT is exactly what the no-ALL_SCOPES rule is for.
 // Expected values are LITERALS: the per-group scope sets in `CORE_SCOPES_2602` (and their paste codes, `m`
 // and `e`, in `CORE_CODES_2602`), `true`, `'ALL_SCOPES'`, `'*'`, `'core'` — never `PRIMITIVE_SCOPES` or
 // `CORE_COLLECTION` (docs/34 shape 1). Every `core` group is REPRESENTED per brand, so a renamed group
@@ -13936,8 +13951,9 @@ arm: {
     const std = parseStandardDesignMd(text);
     return brandTheme(isStandardDesignMd(std) ? standardToBrandInput(std).input : parseDesignMd(text).input);
   })])];
-  const coreBad: string[] = [], allScopes: string[] = [], unrepresented: string[] = [];
-  let brandsSwept = 0, coreSwept = 0, varsSwept = 0;
+  const UNSCOPED_2602 = ['TIMING', 'EASING']; // literal, never `UNSCOPED_TYPES` (docs/34 shape 1)
+  const coreBad: string[] = [], allScopes: string[] = [], unrepresented: string[] = [], unscopedBad: string[] = [], unscopedMissing: string[] = [];
+  let brandsSwept = 0, coreSwept = 0, varsSwept = 0, unscopedSwept = 0;
   const checkCore = (where: string, name: string, scopes: unknown, hidden: unknown, seen: Set<string>, paste = false): void => {
     coreSwept++;
     const g = CORE_GROUP.exec(name)?.[1];
@@ -13945,9 +13961,19 @@ arm: {
     const want = paste ? JSON.stringify(g && CORE_CODES_2602[g] ? [CORE_CODES_2602[g]] : []) : (g && CORE_SCOPES_2602[g]) || '[]';
     if (JSON.stringify(scopes) !== want || hidden !== true) coreBad.push(`${where}: ${name} scopes=${JSON.stringify(scopes)} (want ${want}) hidden=${JSON.stringify(hidden)}`);
   };
-  const checkAny = (where: string, name: string, scopes: unknown): void => {
+  const checkAny = (where: string, name: string, scopes: unknown, type?: string, types?: Set<string>): void => {
     varsSwept++;
+    if (type && UNSCOPED_2602.includes(type)) {
+      unscopedSwept++;
+      types?.add(type);
+      if (JSON.stringify(scopes) !== '["ALL_SCOPES"]') unscopedBad.push(`${where}: ${name} is ${type} with scopes=${JSON.stringify(scopes)}`);
+      return;
+    }
     if (Array.isArray(scopes) && scopes.includes('ALL_SCOPES')) allScopes.push(`${where}: ${name}`);
+  };
+  const typesRepresented = (where: string, types: Set<string>): void => {
+    const missing = UNSCOPED_2602.filter((t) => !types.has(t));
+    if (missing.length) unscopedMissing.push(`${where} [${missing.join(', ')}]`);
   };
   const represented = (where: string, seen: Set<string>): void => {
     const missing = GROUPS.filter((g) => !seen.has(g));
@@ -13956,16 +13982,17 @@ arm: {
   for (const [id, th] of loadedRows(brands)) {
     brandsSwept++;
     // the emission
-    const seenEmit = new Set<string>();
+    const seenEmit = new Set<string>(), typesEmit = new Set<string>();
     for (const a of figmaArtifacts(th!).artifacts) {
       const f = JSON.parse(a.content);
       if (!Array.isArray(f?.variables)) continue;
       for (const v of f.variables) {
-        checkAny(`${id} ${a.path}`, v.name, v.scopes);
+        checkAny(`${id} ${a.path}`, v.name, v.scopes, v.resolvedType, typesEmit);
         if (f.$collection === 'core') checkCore(`${id} ${a.path}`, v.name, v.scopes, v.hiddenFromPublishing, seenEmit);
       }
     }
     represented(`${id} emission`, seenEmit);
+    typesRepresented(`${id} emission`, typesEmit);
     // the plugin executor's plans
     const seenPlan = new Set<string>();
     for (const r of buildWritePlan(buildFigmaColor(th!)).palette) checkCore(`${id} plan palette`, r.name, r.scopes, r.hidden, seenPlan);
@@ -13974,24 +14001,28 @@ arm: {
       if (p.name === 'core') checkCore(`${id} plan ${p.name}`, r.name, r.scopes, r.hidden, seenPlan);
     }
     for (const p of buildFontVarPlan(th!)) for (const r of p.rows) {
-      checkAny(`${id} plan ${p.name}`, r.name, r.scopes);
+      checkAny(`${id} plan ${p.name}`, r.name, r.scopes, r.resolvedType);
       if (p.name === 'core') checkCore(`${id} plan ${p.name}`, r.name, r.scopes, r.hidden, seenPlan);
     }
     represented(`${id} plugin plan`, seenPlan);
+    const typesPlan = new Set<string>();
+    for (const p of buildMotionVarPlan(th!)) for (const r of p.rows) checkAny(`${id} plan ${p.name}`, r.name, r.scopes, r.resolvedType, typesPlan);
+    typesRepresented(`${id} plugin motion plan`, typesPlan);
   }
   // the committed trees + the paste payloads built from them
   const treeBrands = readdirSync(resolve(HERE, './out/figma'), { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name).sort();
   for (const b of treeBrands) {
-    const seenTree = new Set<string>();
+    const seenTree = new Set<string>(), typesTree = new Set<string>();
     for (const file of readdirSync(resolve(HERE, `./out/figma/${b}`)).filter((f) => f.endsWith('.json')).sort()) {
       const f = JSON.parse(readFileSync(resolve(HERE, `./out/figma/${b}/${file}`), 'utf8'));
       if (!Array.isArray(f?.variables)) continue;
       for (const v of f.variables) {
-        checkAny(`out/figma/${b}/${file}`, v.name, v.scopes);
+        checkAny(`out/figma/${b}/${file}`, v.name, v.scopes, v.resolvedType, typesTree);
         if (f.$collection === 'core') checkCore(`out/figma/${b}/${file}`, v.name, v.scopes, v.hiddenFromPublishing, seenTree);
       }
     }
     represented(`out/figma/${b}`, seenTree);
+    typesRepresented(`out/figma/${b}`, typesTree);
     // Paste payloads: the row literal each pass embeds. Palette rows are [name, code, desc, value, hidden];
     // dims-create and font-vars group rows per collection as [collection, axis, modes, rows], their rows
     // carrying the code at index 1 (dims) or 2 (font) and `hidden` at 3 (dims) or 4 (font).
@@ -14017,7 +14048,9 @@ arm: {
     `#2602 sweep floor: ${brandsSwept} brand(s) emitted (≥5), ${treeBrands.length} committed tree(s) (≥4), ${coreSwept} core row(s), ${varsSwept} variable row(s)`);
   ok(unrepresented.length === 0, '#2602 every `core` group (palette, dimension, font family/size/weight/weight-role/style) is represented on every path' + (unrepresented.length ? ` — MISSING: ${unrepresented.slice(0, 4).join('; ')}` : ''));
   ok(coreBad.length === 0, `#2602 every \`core\` variable is hidden from publishing and carries no scope, bar FONT_FAMILY on font/family and FONT_WEIGHT on font/weight and font/weight-role (Q292 A), in every brand and on every write path (${coreSwept} rows)` + (coreBad.length ? ` — ${coreBad.length} wrong: ${coreBad.slice(0, 4).join('; ')}` : ''));
-  ok(allScopes.length === 0, `#2602 no emitted variable carries ALL_SCOPES, in every brand and on every write path (${varsSwept} rows)` + (allScopes.length ? ` — ${allScopes.length} wrong: ${allScopes.slice(0, 4).join('; ')}` : ''));
+  ok(allScopes.length === 0, `#2602 no emitted variable carries ALL_SCOPES, in every brand and on every write path, bar TIMING and EASING (${varsSwept - unscopedSwept} rows)` + (allScopes.length ? ` — ${allScopes.length} wrong: ${allScopes.slice(0, 4).join('; ')}` : ''));
+  ok(unscopedMissing.length === 0 && unscopedSwept > 0, `#2412 TIMING and EASING rows are represented on every typed path, so the ALL_SCOPES exemption covers something (${unscopedSwept} rows)` + (unscopedMissing.length ? ` — MISSING: ${unscopedMissing.slice(0, 4).join('; ')}` : ''));
+  ok(unscopedBad.length === 0, `#2412 every TIMING and EASING row holds exactly ['ALL_SCOPES'], the only scope Figma lets it hold, in every brand and on every typed path (${unscopedSwept} rows)` + (unscopedBad.length ? ` — ${unscopedBad.length} wrong: ${unscopedBad.slice(0, 4).join('; ')}` : ''));
 }
 
 // ----------------------------------------- component-definition schema (docs/14 §2, DRAFT v0)
@@ -17301,6 +17334,126 @@ arm: {
       `#1700 every registered def was found in a def file and its header read (${fileOf.size} of ${componentDefs.length}; unplaced: [${unplaced.join(', ')}])`);
   }
 
+  // ---- #2580: LINK, owner decisions Q289 (2026-10-14) — each held against a literal, read off the projected plans ----
+  // EXPECTED is typed here from the decisions, never read from `link.ts`: the def builds its type keys in a loop, so a
+  // check that walked `link.tokens` would only confirm the loop agrees with itself (docs/34). ACTUAL is each member's
+  // label text style in the real projection (`figmaAnatomySet`). Mutations, each failing the arm named:
+  //   standalone underlined at rest  → `#2580 link/standalone`;   inline not underlined at some state → `#2580 link/inline`;
+  //   emphasis bound to the default weight, or default first  → `#2580 link/weight`;   a third style value → `#2580 link/style`;
+  //   `{state}` allowed in a geometry key → `#2580 link/state-type-only`;
+  //   a 12px size (small bound to `type.body.xs`, or back to the label tier) → `#2580 link/body-tier` (Q297.1);
+  //   an icon on an inline link, or a leading icon → `#2580 link/icons` (Q297.2);
+  //   the `-link` suffix dropped when `weightIntent` repoints, or emphasis bound to a role nb-redesign lacks → `#2580 link/weight-intent`.
+  {
+    const linkDef = componentDefs.find((d) => d.id === 'link');
+    ok(!!linkDef, '#2580 link: the Link component is registered');
+    if (linkDef) {
+      const RUNG: Record<string, string> = { small: 'sm', medium: 'md', large: 'lg' };
+      // Q297.1: the body tier, the default brand's role per weight (emphasis → the heaviest body weight, `strong`).
+      const ROLE: Record<string, string> = { emphasis: 'strong', default: 'default' };
+      const UNDERLINED_STANDALONE = new Set(['hover', 'pressed', 'focus-visible']);
+      type LN = { name: string; textStyle?: string; children: LN[] };
+      const labelStyle = (n: LN): string | undefined => (n.name === 'label' ? n.textStyle : n.children.map(labelStyle).find(Boolean));
+      const plans = figmaAnatomySet(linkDef, { swapTarget: 'FPO-default-icon' });
+      const rows = plans.map((p) => ({ c: p.coord as Record<string, string>, size: String(p.size), style: labelStyle(p.root as unknown as LN) }));
+      ok(plans.length === 96, `#2580 link/members: style 2 × weight 2 × size 3 × surface 2 × 4 states = 96 members (got ${plans.length})`);
+      const want = (r: { c: Record<string, string>; size: string }, underlined: boolean) =>
+        figmaTextStyleName(`type.body.${RUNG[r.size]}.${ROLE[r.c.weight]}${underlined ? '-link' : ''}`);
+      const standalone = rows.filter((r) => r.c.style === 'standalone');
+      const sOff = standalone.filter((r) => r.style !== want(r, UNDERLINED_STANDALONE.has(r.c.state)));
+      ok(standalone.length === 48 && sOff.length === 0,
+        `#2580 link/standalone (Q289.2 A): a standalone link is plain at rest and underlined at hover, pressed and focus-visible, at every weight, size and surface (${standalone.length} members${sOff.length ? `; OFF: ${sOff.map((r) => `${JSON.stringify(r.c)} ${r.size} → ${r.style}`).join('; ')}` : ''})`);
+      const inline = rows.filter((r) => r.c.style === 'inline');
+      const iOff = inline.filter((r) => r.style !== want(r, true));
+      ok(inline.length === 48 && iOff.length === 0,
+        `#2580 link/inline (Q289.2 A): an inline link is underlined at every state, weight, size and surface (${inline.length} members${iOff.length ? `; OFF: ${iOff.map((r) => `${JSON.stringify(r.c)} ${r.size} → ${r.style}`).join('; ')}` : ''})`);
+      const restMd = (weight: string) => rows.find((r) => r.c.style === 'standalone' && r.c.weight === weight && r.c.surface === 'default' && r.size === 'medium' && r.c.state === 'rest')?.style;
+      const weightProp = linkDef.props.find((p) => p.name === 'weight');
+      ok(JSON.stringify(linkDef.variants.weight) === JSON.stringify(['emphasis', 'default'])
+        && restMd('emphasis') === 'body/md/strong' && restMd('default') === 'body/md/default' && weightProp?.default === 'emphasis'
+        && weightProp?.description === 'Emphasis is the starting value; choose Default for a lighter weight link.',
+        `#2580 link/weight (Q289.3 B, Q297.3): two weights, emphasis first and the default, emphasis binding the heavier body role and default the reading weight, with the owner's prop wording (axis ${JSON.stringify(linkDef.variants.weight)}, prop default ${weightProp?.default}, medium rest ${restMd('emphasis')} / ${restMd('default')})`);
+      // Q314 A — the owner's `size` wording, pinned as a literal: the icon sits inside the one-line box at the shipped
+      // line height, so the text no longer offers an "or as tall as the icon" case no brand reaches.
+      const sizeProp = linkDef.props.find((p) => p.name === 'size');
+      ok(sizeProp?.description === 'The body type size: 14, 16 or 18px. The box is one text line tall; the icon (16px at small and medium, 20px at large) sits inside it.',
+        `#2580 link/size-wording (Q314 A): the size prop carries the owner's text verbatim (got ${JSON.stringify(sizeProp?.description)})`);
+      // Q297.1 — the body tier at 14 / 16 / 18px for both styles, and no 12px link. The font sizes are read off the
+      // committed default-brand emission and compared to literals, so a rung moved to `type.body.xs` (12px) or back to the
+      // label tier (12 / 14 / 18px) fails here by name.
+      const emitted = JSON.parse(readFileSync(resolve(HERE, './out/prism3.tokens.json'), 'utf8'));
+      const eRoot = emitted[Object.keys(emitted).find((k) => !k.startsWith('$'))!];
+      const pxOf = (styleName: string): number | undefined => {
+        let v: unknown = styleName.split('/').reduce((n: any, k) => n?.[k], eRoot.type)?.$value?.fontSize;
+        while (typeof v === 'string' && v.startsWith('{')) v = v.slice(1, -1).split('.').reduce((n: any, k) => n?.[k], emitted)?.$value;
+        return typeof v === 'string' && v.endsWith('rem') ? parseFloat(v) * 16 : typeof v === 'string' ? parseFloat(v) : undefined;
+      };
+      const PX: Record<string, number> = { small: 14, medium: 16, large: 18 };
+      const tierOff = rows.filter((r) => !r.style?.startsWith('body/') || pxOf(r.style) !== PX[r.size]);
+      ok(rows.length === 96 && tierOff.length === 0,
+        `#2580 link/body-tier (Q297.1): every member, standalone and inline, sets body type at 14 / 16 / 18px, with no 12px link${tierOff.length ? `; OFF: ${tierOff.slice(0, 4).map((r) => `${JSON.stringify(r.c)} ${r.size} → ${r.style} (${pxOf(r.style ?? '')}px)`).join('; ')}` : ''}`);
+
+      // Q297.2 — a trailing icon only, on standalone members only, 16px with 14px and 16px text and 20px with 18px text.
+      type IN = { name: string; bound?: Record<string, string>; children?: IN[] };
+      const nodes = (n: IN): IN[] => [n, ...(n.children ?? []).flatMap(nodes)];
+      const ICON: Record<string, string> = { small: 'icon/size/xs', medium: 'icon/size/xs', large: 'icon/size/sm' };
+      const emittedIconPx = ['xs', 'sm'].map((k) => eRoot.icon.size[k].$value).map((v: string) => v.slice(1, -1).split('.').reduce((n: any, k) => n?.[k], emitted)?.$value);
+      const iconOff = plans.flatMap((p) => {
+        const c = p.coord as Record<string, string>;
+        const all = nodes(p.root as unknown as IN);
+        const trailing = all.filter((n) => n.name === 'trailingVisual');
+        const out: string[] = [];
+        if (all.some((n) => n.name === 'leadingVisual')) out.push(`${JSON.stringify(c)} ${p.size}: a leading icon`);
+        if (c.style === 'inline' && trailing.length) out.push(`${JSON.stringify(c)} ${p.size}: an inline link with an icon`);
+        if (c.style === 'standalone' && (trailing.length !== 1 || trailing[0].bound?.width !== ICON[String(p.size)] || trailing[0].bound?.height !== ICON[String(p.size)]))
+          out.push(`${JSON.stringify(c)} ${p.size}: trailing icon ${JSON.stringify(trailing.map((t) => t.bound))}`);
+        return out;
+      });
+      const figBools = Object.keys(linkDef.figmaProperties?.booleans ?? {});
+      ok(iconOff.length === 0 && JSON.stringify(figBools) === JSON.stringify(['trailingIcon']) && !linkDef.props.some((p) => p.name === 'leadingIcon')
+        && JSON.stringify(emittedIconPx) === JSON.stringify(['16px', '20px']),
+        `#2580 link/icons (Q297.2): trailing only, standalone only, 16px at small and medium and 20px at large (booleans ${JSON.stringify(figBools)}, icon xs/sm ${JSON.stringify(emittedIconPx)}${iconOff.length ? `; OFF: ${iconOff.slice(0, 4).join('; ')}` : ''})`);
+
+      // Q297.1 through `weightIntent` — a brand whose body weights are [default, emphasis] (nb-redesign's shape) binds
+      // its own emphasis role and keeps the underlined twin, rather than the `strong` it does not emit.
+      const nbShape = figmaAnatomySet(applyWeightIntent(linkDef, { ...DEFAULT_WEIGHT_AVAILABILITY, body: ['default', 'emphasis'] }), { swapTarget: 'FPO-default-icon' });
+      const nbAt = (state: string) => nbShape.map((p) => ({ c: p.coord as Record<string, string>, size: String(p.size), style: labelStyle(p.root as unknown as LN) }))
+        .find((r) => r.c.style === 'standalone' && r.c.weight === 'emphasis' && r.c.surface === 'default' && r.size === 'medium' && r.c.state === state)?.style;
+      ok(nbShape.length === 96 && nbAt('rest') === 'body/md/emphasis' && nbAt('hover') === 'body/md/emphasis-link',
+        `#2580 link/weight-intent (Q297.1, #1602): in a [default, emphasis] body brand, emphasis binds body/md/emphasis at rest and body/md/emphasis-link at hover (got ${nbShape.length} members, ${nbAt('rest')} / ${nbAt('hover')})`);
+
+      ok(JSON.stringify(linkDef.variants.style) === JSON.stringify(['standalone', 'inline'])
+        && JSON.stringify([...new Set(plans.map((p) => (p.coord as Record<string, string>).style))]) === JSON.stringify(['standalone', 'inline']),
+        `#2580 link/style (Q289.2 A): style is exactly standalone | inline, standalone first, and the projection carries no other (axis ${JSON.stringify(linkDef.variants.style)})`);
+      ok(JSON.stringify(linkDef.states) === JSON.stringify(['rest', 'hover', 'pressed', 'focus-visible']),
+        `#2580 link/states (Q289.5 A): rest, hover, pressed and focus-visible; visited and current are code only, and no disabled (got ${JSON.stringify(linkDef.states)})`);
+      const texts = linkDef.figmaProperties?.texts as Record<string, { default?: string }> | undefined;
+      ok(texts?.label?.default === 'Link text'
+        && linkDef.summary === 'Text that goes to another page, a place on the page or a file. Underlined in running text.'
+        && (linkDef.anatomy?.codeOnly ?? []).some((e) => e.includes('"(opens in new tab)"'))
+        && linkDef.name === 'Link' && linkDef.category === 'navigation'
+        && JSON.stringify(linkDef.aliases) === JSON.stringify(['text-link', 'anchor', 'hyperlink']),
+        '#2580 link/identity (Q289.7 A, Q289.8 A): Link / link, navigation, aliases text-link, anchor, hyperlink; label "Link text"; the approved summary; "(opens in new tab)"');
+
+      // `{state}` is a TYPE-key placeholder only (component-schema.ts, `keyAxes`). The footprint rule the schema comment
+      // leans on runs only against a live Figma file, so this refusal is the one guard against a state-keyed box. The
+      // clone moves the row's gap with the state AND supplies every slot that expansion would ask for, so a validator
+      // that let `{state}` reach a geometry key would find nothing missing and pass it. Mutation: widen `keyAxes` to every
+      // binding key → this arm fails by name, and nothing else in the suite does.
+      const STATE_GAP = 'size.{size}.gap.{state}';
+      const stateGapTokens: Record<string, string> = { ...linkDef.tokens };
+      for (const size of linkDef.variants.size ?? []) for (const st of statesOf(linkDef)) stateGapTokens[`size.${size}.gap.${st}`] = 'space.050';
+      const parts = linkDef.anatomy!.parts;
+      const stateGapErrs = validateComponentDef({
+        ...linkDef, tokens: stateGapTokens,
+        anatomy: { ...linkDef.anatomy!, parts: { ...parts, container: { ...parts.container, gap: STATE_GAP } } },
+      } as ComponentDef).errors;
+      const realErrs = validateComponentDef(linkDef).errors;
+      ok(realErrs.length === 0 && stateGapErrs.some((e) => e.includes(`binding key '${STATE_GAP}' names placeholder '{state}', which is not an axis`)),
+        `#2580 link/state-type-only: a type key may name {state}, a geometry key may not — Link validates clean, and a clone with a state-keyed gap is refused naming the placeholder (Link: ${realErrs.join('; ') || 'no errors'}; clone: ${stateGapErrs.join('; ') || 'no errors'})`);
+    }
+  }
+
   // ---- #1339: disabled is ONE mechanism (the STATE), not a state axis + a prop ----
   // The label dims when its field is disabled, carried by the `disabled` STATE (a paint change projected as a
   // Figma variant), with NO duplicating `disabled` prop. EXPECTED is the authored contract; ACTUAL is the
@@ -17837,7 +17990,10 @@ arm: {
     // label type crosses size × appearance. A deliberate widening, recorded here so the next one has to be too.
     // `selection` joined with Q226 A (2026-10-10): a tab's label binds the default weight unselected and the emphasis
     // weight selected, so its type crosses size × selection.
-    const TYPE_KEY_AXES = ['size', 'weight', 'appearance', 'selection'] as const;
+    // `style` and `state` joined with Link (#2580, owner Q289.2 A): a standalone link binds its plain style at rest and the
+    // underlined twin at hover, pressed and focus, and an inline link the underlined twin throughout. `state` is the first
+    // non-variant axis here, and the schema admits it in a type key only (`component-schema.ts`, `keyAxes`).
+    const TYPE_KEY_AXES = ['size', 'weight', 'appearance', 'selection', 'style', 'state'] as const;
     // The (def, part) pairs that template a `type` key, and the axes each one names — authored from
     // reading the six defs, and asserted below to be exactly the set the corpus contains. Both
     // directions matter: a seventh binding added without a row here fails, and a row naming a binding
@@ -17903,6 +18059,9 @@ arm: {
       // ordered member.
       { def: componentDefs.find((d) => d.id === 'list-item')!, part: 'text', axes: { size: 3 } },
       { def: componentDefs.find((d) => d.id === 'list-item')!, part: 'number', axes: { size: 3 }, at: { type: 'ordered' } },
+      // LINK (#2580): the label crosses size, weight, style and, the first type key to do so, the interaction state. The
+      // underline is the state half: a standalone link is plain at rest and underlined at hover, pressed and focus.
+      { def: componentDefs.find((d) => d.id === 'link')!, part: 'label', axes: { size: 3, weight: 2, style: 2, state: 2 } },
     ];
 
     // DIRECTION 1 — the authored table is the corpus. Discovered by walking every def's anatomy for a
@@ -17950,7 +18109,8 @@ arm: {
       const base: Record<string, string> = { ...Object.fromEntries(
         Object.entries(variants).filter(([a]) => a !== 'size').map(([a, vs]) => [a, vs[0]])), ...(row.at ?? {}) };
       for (const [axis, expectedDistinct] of Object.entries(row.axes)) {
-        const values = variants[axis] ?? [];
+        // `state` is not a variant axis (#2580): its values are the def's declared states, and it rides in the coordinate.
+        const values = axis === 'state' ? [...statesOf(row.def)] : (variants[axis] ?? []);
         ok(values.length >= 2,
           `anatomy: ${row.def.id}'s '${axis}' axis declares at least two values, or the discrimination arm below cannot fail (#1248)`);
         // `size` is a positional argument to the projector, every other axis rides in the coordinate.
@@ -23747,6 +23907,57 @@ arm: {
   }
 }
 
+// ------------------------------------------- materialise-to-figma: the MOTION paste path (#2412)
+// `motion` left the FLOAT passes when it became TIMING + EASING. Its pass must cover the collection the plugin
+// writes, carry the same rows, and never write `scopes`: Figma refuses one on both types, and a refusal in a
+// pasted script aborts the script.
+{
+  const pluginMotion = buildMotionVarPlan(nbTheme());
+  ok(JSON.stringify(motionCollections('nb')) === JSON.stringify(pluginMotion.map((p) => p.name)) && !floatCollections('nb').includes('motion'),
+    `materialise: the paste path writes motion in its own pass, as the plugin does (${motionCollections('nb')}; float: ${floatCollections('nb').includes('motion') ? 'motion still there' : 'no motion'})`);
+  const mv = passJs('nb', 'motion-vars');
+  const rows = JSON.parse(/const M=(.*);\n/.exec(mv)?.[1] ?? '[]') as [string, string[], [string, string, string, number, unknown[], (string | null)[]][]][];
+  const planRows = pluginMotion.flatMap((p) => p.rows.map((r) => [r.name, r.resolvedType, r.description, r.hidden ? 1 : 0, r.valuesByMode, r.aliasByMode]));
+  ok(rows.length === 1 && JSON.stringify(rows[0][2]) === JSON.stringify(planRows),
+    `materialise: motion-vars carries the plugin's ${planRows.length} motion rows, typed and valued alike`);
+  ok(rows.length === 1 && rows[0][2].some((r) => r[1] === 'TIMING') && rows[0][2].some((r) => r[1] === 'EASING') && rows[0][2].every((r) => r[1] === 'TIMING' || r[1] === 'EASING'),
+    'materialise: motion-vars rows are TIMING and EASING, nothing else');
+  ok(/createVariable\(name,col,ty\)/.test(mv) && !/\.scopes\s*=/.test(mv),
+    'materialise: motion-vars creates each variable with its own type and never writes scopes');
+  ok(passOrder().includes('motion-vars'), 'materialise: motion-vars is in the paste order');
+}
+
+// The motion paste pass EXECUTED against the shared file model (#2412 review finding 1). A 0.235.0 file holds
+// `motion` as FLOAT ms. Before this check existed the pass wrote 0.2 into the FLOAT `duration-ms/200` (read as
+// 0.2ms) and then threw on the first TIMING alias, 37 variables in. Seeded with that one FLOAT, the pass must name
+// the mismatch and write nothing at all: no rename, no mode, no create, the FLOAT's 200 untouched. A clean file is
+// run too, so a pre-check that refused everything would fail here as well.
+{
+  type MotionPasteResult = { collections: { total: number; created: number }[]; bound: number; misses: string[] };
+  const AsyncFunction = Object.getPrototypeOf(async () => {}).constructor as new (...a: string[]) => (f: unknown) => Promise<MotionPasteResult>;
+  const run = (shim: FileShim) => new AsyncFunction('figma', passJs('nb', 'motion-vars'))(shim);
+  const name = 'nbds/motion/duration-ms/200';
+  const planned = buildMotionVarPlan(nbTheme()).flatMap((p) => p.rows);
+  ok(planned.find((r) => r.name === name)?.resolvedType === 'TIMING', `materialise: ${name} is a planned TIMING row (the seed below targets a real row)`);
+
+  const seeded = new FileShim();
+  const col = seeded.createVariableCollection('motion');
+  const legacy = seeded.createVariable(name, col, 'FLOAT');
+  legacy.setValueForMode(col.modes[0].modeId, 200);
+  let res: MotionPasteResult | undefined, threw = '';
+  try { res = await run(seeded); } catch (e) { threw = (e as Error).message; }
+  ok(!threw && !!res && res.misses.includes(`type:${name} is FLOAT, plan writes TIMING`) && res.collections.length === 0 && res.bound === 0,
+    `materialise: motion-vars over a FLOAT ${name} names the type mismatch and writes nothing (${threw ? `threw: ${threw}` : JSON.stringify(res?.misses)})`);
+  ok(seeded.vars.length === 1 && legacy.resolvedType === 'FLOAT' && legacy.valuesByMode[col.modes[0].modeId] === 200 && col.modes.length === 1 && col.modes[0].name === 'Mode 1',
+    `materialise: after the refusal the file is untouched — 1 variable, the FLOAT still 200, the collection's mode unrenamed (${seeded.vars.length} vars, value ${legacy.valuesByMode[col.modes[0].modeId]}, modes ${col.modes.map((m: any) => m.name)})`);
+
+  const clean = new FileShim();
+  let fresh: MotionPasteResult | undefined;
+  try { fresh = await run(clean); } catch (e) { threw = (e as Error).message; }
+  ok(!!fresh && fresh.misses.length === 0 && clean.vars.length === planned.length && fresh.bound > 0,
+    `materialise: motion-vars on a clean file creates all ${planned.length} motion variables with no miss (${fresh ? `${clean.vars.length} created, ${fresh.bound} bound, misses ${JSON.stringify(fresh.misses.slice(0, 3))}` : `threw: ${threw}`})`);
+}
+
 // ------------------------------------------- materialise-to-figma: the FLOAT paste path (#342)
 // The two write paths — the CLI paste string and the live plugin executor — are supposed to be
 // projections of ONE plan. They weren't: the plugin has written floats since #108 while the CLI
@@ -24855,32 +25066,54 @@ arm: {
     'figmaArtifacts: no two artifacts claim the same path (a collision would silently drop a file)');
 }
 
-// ---- motion in Figma (#2394): FLOAT milliseconds, no scope, the DTCG's names ---------------------------
+// ---- motion in Figma (#2394, #2412): TIMING seconds + EASING, the DTCG's names ---------------------------
 // EXPECTED is typed here, row by row, from the DTCG motion ramp of each brief (`out/<brand>.tokens.json`,
-// read once by hand) — never from the emitter. `[name below the root, ms, alias target below the root]`;
-// a primitive has no alias. NB runs the standard tempo; aurora runs snappy, so its ramp is a different
-// set of numbers, including a 30ms stagger and an 80ms primitive NB does not have.
+// read once by hand) — never from the emitter. A duration row is `[name below the root, SECONDS, alias target]`
+// (Figma's TIMING holds seconds, spike #2403, so 200ms is typed 0.2 here, not computed); a primitive has no
+// alias. NB runs the standard tempo; aurora runs snappy, so its ramp is a different set of numbers, including
+// a 30ms stagger and an 80ms primitive NB does not have. The easing rows are the same in both briefs.
 {
   type Row = [string, number, string | null];
-  const prim = (ms: number): Row => [`motion/duration-ms/${ms}`, ms, null];
-  const sem = (name: string, ms: number): Row => [`motion/${name}`, ms, `motion/duration-ms/${ms}`];
+  const prim = (key: number, sec: number): Row => [`motion/duration-ms/${key}`, sec, null];
+  const sem = (name: string, key: number, sec: number): Row => [`motion/${name}`, sec, `motion/duration-ms/${key}`];
   const NB_MOTION: Row[] = [
-    ...[0, 40, 50, 100, 200, 300, 500, 800, 2600].map(prim),
-    sem('duration/instant', 50), sem('duration/fast', 100), sem('duration/normal', 200), sem('duration/moderate', 300),
-    sem('duration/slow', 500), sem('duration/slower', 800), sem('duration/spin', 800),
-    sem('duration-reduced/instant', 50), sem('duration-reduced/fast', 100), sem('duration-reduced/normal', 50),
-    sem('duration-reduced/moderate', 0), sem('duration-reduced/slow', 0), sem('duration-reduced/slower', 0),
-    sem('duration-reduced/spin', 2600),
-    sem('stagger', 40),
+    prim(0, 0), prim(40, 0.04), prim(50, 0.05), prim(100, 0.1), prim(200, 0.2), prim(300, 0.3), prim(500, 0.5), prim(800, 0.8), prim(2600, 2.6),
+    sem('duration/instant', 50, 0.05), sem('duration/fast', 100, 0.1), sem('duration/normal', 200, 0.2), sem('duration/moderate', 300, 0.3),
+    sem('duration/slow', 500, 0.5), sem('duration/slower', 800, 0.8), sem('duration/spin', 800, 0.8),
+    sem('duration-reduced/instant', 50, 0.05), sem('duration-reduced/fast', 100, 0.1), sem('duration-reduced/normal', 50, 0.05),
+    sem('duration-reduced/moderate', 0, 0), sem('duration-reduced/slow', 0, 0), sem('duration-reduced/slower', 0, 0),
+    sem('duration-reduced/spin', 2600, 2.6),
+    sem('stagger', 40, 0.04),
   ];
   const AURORA_MOTION: Row[] = [
-    ...[0, 30, 40, 50, 80, 160, 240, 400, 640, 800, 2600].map(prim),
-    sem('duration/instant', 40), sem('duration/fast', 80), sem('duration/normal', 160), sem('duration/moderate', 240),
-    sem('duration/slow', 400), sem('duration/slower', 640), sem('duration/spin', 800),
-    sem('duration-reduced/instant', 40), sem('duration-reduced/fast', 80), sem('duration-reduced/normal', 50),
-    sem('duration-reduced/moderate', 0), sem('duration-reduced/slow', 0), sem('duration-reduced/slower', 0),
-    sem('duration-reduced/spin', 2600),
-    sem('stagger', 30),
+    prim(0, 0), prim(30, 0.03), prim(40, 0.04), prim(50, 0.05), prim(80, 0.08), prim(160, 0.16), prim(240, 0.24), prim(400, 0.4),
+    prim(640, 0.64), prim(800, 0.8), prim(2600, 2.6),
+    sem('duration/instant', 40, 0.04), sem('duration/fast', 80, 0.08), sem('duration/normal', 160, 0.16), sem('duration/moderate', 240, 0.24),
+    sem('duration/slow', 400, 0.4), sem('duration/slower', 640, 0.64), sem('duration/spin', 800, 0.8),
+    sem('duration-reduced/instant', 40, 0.04), sem('duration-reduced/fast', 80, 0.08), sem('duration-reduced/normal', 50, 0.05),
+    sem('duration-reduced/moderate', 0, 0), sem('duration-reduced/slow', 0, 0), sem('duration-reduced/slower', 0, 0),
+    sem('duration-reduced/spin', 2600, 2.6),
+    sem('stagger', 30, 0.03),
+  ];
+  // EASING: `[name, value, alias, hidden]`. Curves are hidden primitives, roles published aliases of a curve,
+  // springs published, `bounce` only: 1 − the damping ratio (0.9 / 0.8 / 0.6 → 0.1 / 0.2 / 0.4, spike #2403).
+  type ERow = [string, unknown, string | null, boolean];
+  const bez = (x1: number, y1: number, x2: number, y2: number) => ({ type: 'CUSTOM_CUBIC_BEZIER', easingFunctionCubicBezier: { x1, y1, x2, y2 } });
+  const spring = (bounce: number) => ({ type: 'CUSTOM_SPRING', easingFunctionSpring: { bounce } });
+  const EASING: ERow[] = [
+    ['motion/easing/linear', bez(0, 0, 1, 1), null, true],
+    ['motion/easing/standard', bez(0.2, 0, 0, 1), null, true],
+    ['motion/easing/decelerate', bez(0, 0, 0.2, 1), null, true],
+    ['motion/easing/accelerate', bez(0.4, 0, 1, 1), null, true],
+    ['motion/easing/expressive', bez(0.4, 0.14, 0.3, 1), null, true],
+    ['motion/easing/calm', bez(0.4, 0, 0.6, 1), null, true],
+    ['motion/easing-role/default', bez(0.2, 0, 0, 1), 'motion/easing/standard', false],
+    ['motion/easing-role/enter', bez(0, 0, 0.2, 1), 'motion/easing/decelerate', false],
+    ['motion/easing-role/exit', bez(0.4, 0, 1, 1), 'motion/easing/accelerate', false],
+    ['motion/easing-role/emphasized', bez(0.4, 0.14, 0.3, 1), 'motion/easing/expressive', false],
+    ['motion/spring/snappy', spring(0.1), null, false],
+    ['motion/spring/gentle', spring(0.2), null, false],
+    ['motion/spring/bouncy', spring(0.4), null, false],
   ];
 
   /** The emitted `motion.json` of a theme, through the same shell regen writes with. */
@@ -24896,46 +25129,85 @@ arm: {
       `motion (${brand}): one motion.json, collection motion, mode Default (${file ? `${file.$collection}/${file.$mode}` : 'absent'})`);
     if (!file) return;
     const byName = new Map(file.variables.map((v) => [v.name, v]));
-    for (const [tail, ms, alias] of expected) {
+    for (const [tail, sec, alias] of expected) {
       const v = byName.get(`${root}/${tail}`);
       ok(!!v, `motion (${brand}): ${tail} is emitted`);
       if (!v) continue;
-      ok(v.value === ms, `motion (${brand}): ${tail} is ${ms}ms (got ${v.value})`);
+      ok(v.value === sec, `motion (${brand}): ${tail} is ${sec}s (got ${v.value})`);
       ok((v.alias?.name ?? null) === (alias ? `${root}/${alias}` : null),
         `motion (${brand}): ${tail} aliases ${alias ?? 'nothing'} (got ${v.alias?.name ?? 'nothing'})`);
-      ok(v.resolvedType === 'FLOAT' && Array.isArray(v.scopes) && v.scopes.length === 0,
-        `motion (${brand}): ${tail} is a FLOAT with no scope (Figma has no time scope) — got ${v.resolvedType} [${v.scopes}]`);
+      ok(v.resolvedType === 'TIMING' && JSON.stringify(v.scopes) === '["ALL_SCOPES"]',
+        `motion (${brand}): ${tail} is TIMING at ALL_SCOPES (Figma refuses a scopes write on it) — got ${v.resolvedType} [${v.scopes}]`);
       ok(!!v.hiddenFromPublishing === (alias === null),
         `motion (${brand}): ${tail} is ${alias === null ? 'hidden from publishing (a primitive)' : 'published (a semantic)'}`);
     }
-    const extra = file.variables.map((v) => v.name).filter((n) => !expected.some(([t]) => `${root}/${t}` === n));
-    ok(extra.length === 0 && file.variables.length === expected.length,
-      `motion (${brand}): exactly the ${expected.length} expected variables${extra.length ? ` — extra: ${extra.join(', ')}` : ''}`);
+    for (const [tail, value, alias, hidden] of EASING) {
+      const v = byName.get(`${root}/${tail}`);
+      ok(!!v && v.resolvedType === 'EASING' && JSON.stringify(v.scopes) === '["ALL_SCOPES"]',
+        `motion (${brand}): ${tail} is EASING at ALL_SCOPES (got ${v ? `${v.resolvedType} [${v.scopes}]` : 'absent'})`);
+      if (!v) continue;
+      ok(JSON.stringify(v.value) === JSON.stringify(value), `motion (${brand}): ${tail} holds ${JSON.stringify(value)} (got ${JSON.stringify(v.value)})`);
+      ok((v.alias?.name ?? null) === (alias ? `${root}/${alias}` : null), `motion (${brand}): ${tail} aliases ${alias ?? 'nothing'} (got ${v.alias?.name ?? 'nothing'})`);
+      ok(!!v.hiddenFromPublishing === hidden, `motion (${brand}): ${tail} is ${hidden ? 'hidden from publishing' : 'published'}`);
+    }
+    const all = [...expected.map(([t]) => t), ...EASING.map(([t]) => t)];
+    const extra = file.variables.map((v) => v.name).filter((n) => !all.some((t) => `${root}/${t}` === n));
+    ok(extra.length === 0 && file.variables.length === all.length,
+      `motion (${brand}): exactly the ${all.length} expected variables, no transition among them${extra.length ? ` — extra: ${extra.join(', ')}` : ''}`);
   };
   check('nb', nbTheme(), NB_MOTION);
   check('aurora', exampleTheme('aurora', () => brandTheme(exampleBrands()['aurora'] as BrandInput)), AURORA_MOTION);
 
-  // Apply Theme writes it: the float plan carries the collection, same rows.
-  const nbMotionPlan = buildFloatWritePlan(nbTheme()).find((c) => c.name === 'motion');
-  ok(!!nbMotionPlan && nbMotionPlan.modes.join() === 'Default' && nbMotionPlan.create.length === NB_MOTION.length,
-    `motion: the float write plan carries the motion collection, one Default mode, ${NB_MOTION.length} rows (${nbMotionPlan?.create.length})`);
-  ok(!!nbMotionPlan && nbMotionPlan.aliases.find((a) => a.name === `${NB_ROOT}/motion/stagger`)?.targetsByMode[0] === `${NB_ROOT}/motion/duration-ms/40`,
-    'motion: the float plan binds nb stagger to the 40ms primitive');
+  // "Every DTCG motion token has a Figma form or a stated reason" (#2412 done-when): every family under
+  // `<root>.motion` in the DTCG is a key of MOTION_FIGMA_COVERAGE, and the one with no form says why.
+  const nbDtcgMotion = Object.keys(buildTree(nbTheme()).tree[NB_ROOT].motion);
+  const uncovered = nbDtcgMotion.filter((f) => !(f in MOTION_FIGMA_COVERAGE));
+  ok(uncovered.length === 0 && nbDtcgMotion.length === Object.keys(MOTION_FIGMA_COVERAGE).length,
+    `motion: every DTCG motion family has a Figma form or a stated reason (${nbDtcgMotion.join(', ')}${uncovered.length ? ` — UNCOVERED: ${uncovered.join(', ')}` : ''})`);
+  const transitionCover = MOTION_FIGMA_COVERAGE.transition as { none?: string };
+  ok(typeof transitionCover.none === 'string' && /composite/.test(transitionCover.none),
+    `motion: transition has no Figma form, and the reason names the composite (${transitionCover.none})`);
+
+  // A spring with no bounce Figma would take is refused, not clamped.
+  const threw = (fn: () => unknown): boolean => { try { fn(); return false; } catch { return true; } };
+  ok(springBounce(0.9) === 0.1 && springBounce(1) === 0 && threw(() => springBounce(1.2)) && threw(() => springBounce(0)),
+    'motion: springBounce is 1 − ζ on (0, 1] and throws outside it (0.9 → 0.1; 1.2 and 0 refused)');
+
+  // Apply Theme writes it: the motion var plan carries the collection, same rows, typed per row.
+  const nbMotionPlan = buildMotionVarPlan(nbTheme()).find((c) => c.name === 'motion');
+  ok(!!nbMotionPlan && nbMotionPlan.modes.join() === 'Default' && nbMotionPlan.rows.length === NB_MOTION.length + EASING.length,
+    `motion: the motion var plan carries the collection, one Default mode, ${NB_MOTION.length + EASING.length} rows (${nbMotionPlan?.rows.length})`);
+  ok(!!nbMotionPlan && nbMotionPlan.rows.find((r) => r.name === `${NB_ROOT}/motion/stagger`)?.aliasByMode[0] === `${NB_ROOT}/motion/duration-ms/40`,
+    'motion: the plan binds nb stagger to the 40ms primitive');
+  ok(!!nbMotionPlan && nbMotionPlan.rows.filter((r) => r.resolvedType === 'TIMING').length === NB_MOTION.length
+    && nbMotionPlan.rows.filter((r) => r.resolvedType === 'EASING').length === EASING.length,
+    `motion: the plan rows carry TIMING ×${NB_MOTION.length} and EASING ×${EASING.length}`);
 
   // A per-mode tempo (dark runs relaxed, ×1.3) becomes a mode, the radius way: the semantic re-points at the
   // mode's primitive, and the files switch to per-mode names. Relaxed normal is 260ms, stagger 50ms.
   const pm = brandTheme({ id: 'mm', modes: ['light', 'dark'], primary: { l: 0.55, c: 0.18, h: 285 }, neutral: { hue: 285, chroma: 0.01 }, modeLevers: { dark: { tempo: 'relaxed' } } } as unknown as BrandInput);
   const pmPaths = figmaArtifacts(pm).artifacts.map((a) => a.path).filter((p) => /^motion\./.test(p)).sort();
   ok(pmPaths.join() === 'motion.Default.json,motion.dark.json', `motion: a per-mode tempo switches to per-mode files (${pmPaths.join()})`);
-  const pmPlan = buildFloatWritePlan(pm).find((c) => c.name === 'motion');
-  const pmNormal = pmPlan?.create.find((r) => r.name === `${pm.root}/motion/duration/normal`);
-  const pmNormalAlias = pmPlan?.aliases.find((a) => a.name === `${pm.root}/motion/duration/normal`);
-  ok(pmPlan?.modes.join() === 'Default,dark' && pmNormal?.valuesByMode.join() === '200,260'
-    && pmNormalAlias?.targetsByMode.join() === `${pm.root}/motion/duration-ms/200,${pm.root}/motion/duration-ms/260`,
-    `motion: dark re-points duration/normal 200 → 260ms (modes ${pmPlan?.modes.join()}, values ${pmNormal?.valuesByMode.join()})`);
-  ok(pmPlan?.create.find((r) => r.name === `${pm.root}/motion/stagger`)?.valuesByMode.join() === '40,50',
-    'motion: dark re-points stagger 40 → 50ms');
+  const pmPlan = buildMotionVarPlan(pm).find((c) => c.name === 'motion');
+  const pmNormal = pmPlan?.rows.find((r) => r.name === `${pm.root}/motion/duration/normal`);
+  ok(pmPlan?.modes.join() === 'Default,dark' && pmNormal?.valuesByMode.join() === '0.2,0.26'
+    && pmNormal?.aliasByMode.join() === `${pm.root}/motion/duration-ms/200,${pm.root}/motion/duration-ms/260`,
+    `motion: dark re-points duration/normal 0.2 → 0.26s (modes ${pmPlan?.modes.join()}, values ${pmNormal?.valuesByMode.join()})`);
+  ok(pmPlan?.rows.find((r) => r.name === `${pm.root}/motion/stagger`)?.valuesByMode.join() === '0.04,0.05',
+    'motion: dark re-points stagger 0.04 → 0.05s');
   ok(/260ms in dark/.test(pmNormal?.description ?? ''), `motion: the one description names the dark value (${pmNormal?.description})`);
+
+  // A per-mode EASING ROLE (dark draws `emphasized` from `calm`) becomes a mode the same way: the role re-points
+  // at the mode's curve, the curves themselves stay mode-invariant. The mode exists with no tempo lever at all.
+  const er = brandTheme({ id: 'er', modes: ['light', 'dark'], primary: { l: 0.55, c: 0.18, h: 285 }, neutral: { hue: 285, chroma: 0.01 }, modeLevers: { dark: { easings: { emphasized: 'calm' } } } } as unknown as BrandInput);
+  const erPlan = buildMotionVarPlan(er).find((c) => c.name === 'motion');
+  const erRole = erPlan?.rows.find((r) => r.name === `${er.root}/motion/easing-role/emphasized`);
+  const erCurve = erPlan?.rows.find((r) => r.name === `${er.root}/motion/easing/calm`);
+  ok(erPlan?.modes.join() === 'Default,dark' && erRole?.aliasByMode.join() === `${er.root}/motion/easing/expressive,${er.root}/motion/easing/calm`,
+    `motion: a dark easing-role lever re-points easing-role/emphasized expressive → calm (modes ${erPlan?.modes.join()}, aliases ${erRole?.aliasByMode.join()})`);
+  ok(JSON.stringify(erCurve?.valuesByMode) === JSON.stringify([bez(0.4, 0, 0.6, 1), bez(0.4, 0, 0.6, 1)]) && erCurve?.aliasByMode.every((t) => t === null) === true,
+    'motion: the calm curve is the same literal in both modes (curves are mode-invariant)');
+  ok(/calm in dark/.test(erRole?.description ?? ''), `motion: the role's description names the dark curve (${erRole?.description})`);
 }
 
 // ---- export_theme: the manifest is the result, and outDir is model-controlled ------------------
@@ -26264,7 +26536,8 @@ arm: {
   // supplies that key as the projected STATE, spelled here as a literal so the oracle is not the schema's
   // own constant.
   // `tag` joins (2026-09-27): its check mark is gated on `selection: ['selected']`, the checkbox mark's shape.
-  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'radio-control', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion', 'list-item'];
+  // `link` joins (#2580, owner Q297.2): its trailing icon is gated on `style: ['standalone']`, so an inline link carries none.
+  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'radio-control', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion', 'list-item', 'link'];
   ok(GATED_EXPECTED.every((n) => gatedDefs.some((d) => d.id === n)) && gatedDefs.length === GATED_EXPECTED.length,
     `#910 the presentWhen projection rule below covers exactly [${GATED_EXPECTED.join(', ')}] — a def gaining a variant-gated part must be represented here, and a def losing one is a stale claim (found: ${gatedDefs.map((d) => d.id).join(', ') || 'none'})`);
   for (const def of gatedDefs) {
@@ -27731,6 +28004,11 @@ arm: {
     // construction), so centring inside it lands the marker on the first line of a wrapping item, never mid-paragraph.
     'list-item.markerBox':
       "the marker column is one body line tall and its row is top-aligned, so centring the marker inside it puts the marker on the item's first line however far the text wraps; the bullet and the number are gated on type and never present together.",
+    // `link` (#2580): the row pairs the optional trailing icon with the label (Q297.2). In Figma a link is one text line
+    // tall (owner Q289.4 A) and its label is one line of placeholder text, so the icon centers against the only line. In code a
+    // link wraps, and the icon is inline with its word rather than centered on the block (link.ts codeOnly).
+    'link.container':
+      "a link is one text line tall in Figma and its label is one line there, so the trailing icon centers against the only line; in code the icon sits inline with the last word, never centered on a wrapped block (link.ts codeOnly).",
     'tag.labelCheck':
       "the tag's height is fixed at one line in Figma and its label is one line there, so the check mark (and, one row out, the leading icon) center against the only line; in code a wrapped label centers them on the label block, which is held for the owner (tag.ts notes.contested).",
   };
@@ -30144,6 +30422,34 @@ arm: {
     const archLogOnly = run('arch-log-only', PR);
     ok(archLogOnly.status === 1 && archLogOnly.lines.some((l) => l.startsWith('✗ ONE WRITER (log) — this diff changes docs/00-progress.md')),
       `#2583 archive move: entries cut from the log with no archive half fail ONE WRITER (exit ${archLogOnly.status})`);
+
+    // (f) #2663: LEAVES NOTHING PENDING. Branch (a) above folded Alpha and Bravo and still holds Pre one and Pre
+    // two, which main's own fold (m5) consumed since the merge base: merged, nothing is left, so it passes. Then
+    // a stale fold: `stale` folds all four at m4, while main moves to `ml` with one more fragment, Late. Read on
+    // its branch, on its PR merge ref and as main's push run of its squash, it leaves Late pending and fails by
+    // name. Re-cut at `ml` (`recut`, all five) it passes. Runs last: it moves origin/main to `ml`.
+    const nothingLeft = (n: number) => (l: string) => l.startsWith(`  ✓ leaves nothing pending — the fold consumes ${n} fragment(s) and 0 note(s), and the merged tree holds no other pending file`);
+    const aAgain = run('a', {});
+    ok(aAgain.status === 0 && aAgain.lines.some(nothingLeft(2)),
+      `#2663 leaves nothing pending: a branch's fold beside main's fold of the rest passes; main consumed Pre one and Pre two since the merge base (exit ${aAgain.status}: ${aAgain.lines.filter((l) => /leaves nothing|LEAVES NOTHING|lane-/.test(l)).join(' | ')})`);
+    git('checkout', '-q', '-b', 'ml', m4); fragment('lane-late', 'Late'); const ml = commit('ml: a late PR');
+    git('checkout', '-q', '-b', 'stale', m4);
+    for (const s of ['lane-pre-one', 'lane-pre-two', 'lane-alpha', 'lane-bravo']) rmSync(join(scratch, `docs/progress/pending/${s}.md`));
+    log(['Bravo', 'Alpha', 'Pre two', 'Pre one']); commit('stale fold');
+    git('checkout', '-q', '--detach', ml); git('merge', '-q', '--no-ff', '-m', 'merge ref of stale', 'stale'); const refStale = git('rev-parse', 'HEAD');
+    git('checkout', '-q', '--detach', ml); git('merge', '-q', '--squash', 'stale'); git('commit', '-q', '-m', 'stale fold, squashed on main'); const sqStale = git('rev-parse', 'HEAD');
+    git('checkout', '-q', '-b', 'recut', ml);
+    for (const s of ['lane-pre-one', 'lane-pre-two', 'lane-alpha', 'lane-bravo', 'lane-late']) rmSync(join(scratch, `docs/progress/pending/${s}.md`));
+    log(['Late', 'Bravo', 'Alpha', 'Pre two', 'Pre one']); commit('recut fold');
+    git('update-ref', 'refs/remotes/origin/main', ml);
+    const LEFT = '✗ LEAVES NOTHING PENDING — this diff is a fold (it consumes 4 fragment(s) and 0 note(s)), and 1 file(s) are still pending on the merged tree (#2663):';
+    const LATE = '  · docs/progress/pending/lane-late.md';
+    const stale = [run('stale', {}), run(refStale, PR), run(sqStale, PUSH)];
+    ok(stale.every((r) => r.status === 1 && r.lines.includes(LEFT) && r.lines.includes(LATE)),
+      `#2663 leaves nothing pending: a fold cut before main moved fails by name on its branch, its merge ref and main's push run, naming lane-late (exits ${stale.map((r) => r.status).join(', ')}: ${stale.map((r) => r.lines.filter((l) => /LEAVES NOTHING|lane-late/.test(l)).join(' ')).join(' | ')})`);
+    const recut = run('recut', {});
+    ok(recut.status === 0 && recut.lines.some(nothingLeft(5)),
+      `#2663 leaves nothing pending: the fold re-cut on the moved main passes (exit ${recut.status}: ${recut.lines.filter((l) => /leaves nothing|LEAVES NOTHING|✗/.test(l)).join(' | ')})`);
   } finally {
     rmSync(scratch, { recursive: true, force: true });
   }

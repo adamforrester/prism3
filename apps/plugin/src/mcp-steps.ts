@@ -294,6 +294,13 @@ export const runFont = (raw: unknown) => writeStep(raw, 'font', async (host, d, 
   Object.assign(r, { migration: migrationOf(mig), created: res.collections.reduce((n, c) => n + c.created, 0), total: res.collections.reduce((n, c) => n + c.total, 0), bound: res.bound, misses: res.misses, refused: res.refused });
 });
 
+/** MOTION variables (#2412) — the `motion` collection, TIMING + EASING, through the same mixed-type executor. */
+export const runMotion = (raw: unknown) => writeStep(raw, 'motion', async (host, d, r) => {
+  const mig = await beginMigration(host.variables);
+  const res = await applyVarCollectionPlan(d.plans as VarCollectionPlan[], host.variables, mig);
+  Object.assign(r, { migration: migrationOf(mig), created: res.collections.reduce((n, c) => n + c.created, 0), total: res.collections.reduce((n, c) => n + c.total, 0), bound: res.bound, misses: res.misses, refused: res.refused, replaced: res.replaced });
+});
+
 /** TEXT styles (#237). */
 export const runText = (raw: unknown) => writeStep(raw, 'text', async (host, d, r) => {
   const res = await applyTextStylePlan(d.plan as TextStylePlan, textApiOf(host));

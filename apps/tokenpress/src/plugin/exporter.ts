@@ -600,11 +600,16 @@ export class TokenExporter {
         ? variable.scopes
         : this.resolveAliasSourceScopes(value, variableMap, variable.scopes);
 
-    const dtcgType = this.mapVariableTypeToDTCG(
+    let dtcgType = this.mapVariableTypeToDTCG(
       variable.resolvedType,
       effectiveScopes,
       variable.name
     );
+    // An EASING variable is a curve or a spring, and only its value says which:
+    // follow an alias to the variable that holds one.
+    if (variable.resolvedType === 'EASING') {
+      dtcgType = this.easingTypeOf(this.resolveAliasSourceValue(value, variableMap));
+    }
     const token: DTCGToken = {
       $type: dtcgType,
       $value: this.convertVariableValue(
@@ -695,6 +700,52 @@ export class TokenExporter {
     }
 
     return fallback;
+  }
+
+  // Walks an alias chain to the first non-alias value (the same walk as
+  // resolveAliasSourceScopes, for a value instead of scopes). Returns the
+  // starting value if the chain breaks or loops.
+  private resolveAliasSourceValue(
+    value: VariableValue,
+    variableMap: Map<string, Variable>
+  ): VariableValue {
+    let current: VariableValue = value;
+    const seen = new Set<string>();
+    for (let hops = 0; hops < 10 && isVariableAlias(current); hops++) {
+      if (seen.has(current.id)) {
+        return value;
+      }
+      seen.add(current.id);
+      const source = variableMap.get(current.id);
+      if (!source) {
+        return value;
+      }
+      const modeIds = Object.keys(source.valuesByMode);
+      if (modeIds.length === 0) {
+        return value;
+      }
+      current = source.valuesByMode[modeIds[0]];
+    }
+    return current;
+  }
+
+  // EASING (Figma motion variables). A CUSTOM_CUBIC_BEZIER is a DTCG
+  // `cubicBezier`. A spring has no DTCG type; it exports as `spring` holding
+  // Figma's own normalized `bounce`, the only thing an EASING spring stores.
+  // A built-in curve or spring preset (EASE_OUT, GENTLE, ...) exports as its
+  // name, a `string`.
+  private easingTypeOf(value: VariableValue): string {
+    if (typeof value !== 'object' || value === null || !('type' in value)) {
+      return 'string';
+    }
+    const easing = value as MotionEasing;
+    if (easing.type === 'CUSTOM_CUBIC_BEZIER' && easing.easingFunctionCubicBezier) {
+      return 'cubicBezier';
+    }
+    if (easing.type === 'CUSTOM_SPRING' && easing.easingFunctionSpring) {
+      return 'spring';
+    }
+    return 'string';
   }
 
   private mapVariableTypeToDTCG(
@@ -809,6 +860,13 @@ export class TokenExporter {
         return 'string';
       case 'BOOLEAN':
         return 'number';
+      // Figma's motion duration type. It holds seconds; it exports as a
+      // `duration`, in the same milliseconds a FLOAT motion duration does.
+      case 'TIMING':
+        return 'duration';
+      // Resolved from the value in the caller (easingTypeOf); a curve is the default.
+      case 'EASING':
+        return 'cubicBezier';
       default:
         return 'string';
     }
@@ -949,6 +1007,28 @@ export class TokenExporter {
         return String(value);
       case 'BOOLEAN':
         return value ? 1 : 0;
+      case 'TIMING':
+        // Seconds in Figma, milliseconds out: 0.2 → 200ms. Rounded after the
+        // multiply, so a float32 0.25999999 lands on 260.
+        return typeof value === 'number'
+          ? this.formatDurationValue(roundToPrecision(value * 1000))
+          : 0;
+      case 'EASING': {
+        const easing = value as MotionEasing;
+        if (dtcgType === 'cubicBezier' && easing.easingFunctionCubicBezier) {
+          const b = easing.easingFunctionCubicBezier;
+          return [
+            roundToPrecision(b.x1),
+            roundToPrecision(b.y1),
+            roundToPrecision(b.x2),
+            roundToPrecision(b.y2),
+          ];
+        }
+        if (dtcgType === 'spring' && easing.easingFunctionSpring) {
+          return { bounce: roundToPrecision(easing.easingFunctionSpring.bounce) };
+        }
+        return String(easing.type);
+      }
       default:
         return value;
     }
