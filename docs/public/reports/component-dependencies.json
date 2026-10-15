@@ -142,7 +142,7 @@
       "to": "field-label",
       "part": "label",
       "partKind": "nest",
-      "relation": "nest-fixed",
+      "relation": "nest-exposed",
       "variant": {
         "size": "medium",
         "emphasis": "secondary",
@@ -151,6 +151,10 @@
       },
       "follow": [
         "size"
+      ],
+      "expose": [
+        "emphasis",
+        "weight"
       ]
     },
     {
@@ -678,7 +682,7 @@
       "to": "field-label",
       "part": "label",
       "partKind": "nest",
-      "relation": "nest-fixed",
+      "relation": "nest-exposed",
       "variant": {
         "size": "medium",
         "emphasis": "secondary",
@@ -687,6 +691,10 @@
       },
       "follow": [
         "size"
+      ],
+      "expose": [
+        "emphasis",
+        "weight"
       ]
     },
     {
@@ -816,7 +824,7 @@
       "to": "field-label",
       "part": "label",
       "partKind": "nest",
-      "relation": "nest-fixed",
+      "relation": "nest-exposed",
       "variant": {
         "size": "medium",
         "emphasis": "secondary",
@@ -825,6 +833,10 @@
       },
       "follow": [
         "size"
+      ],
+      "expose": [
+        "emphasis",
+        "weight"
       ]
     },
     {

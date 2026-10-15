@@ -251,7 +251,7 @@
     },
     "checkbox-group": {
       "members": 3,
-      "sha256": "16d9070db3a10c20011902f4359bb66d408c578b08146702f5f2b4dc7b5d0d10"
+      "sha256": "df06acca6e54e5725cb6a2d994e95215419d9962896d146c17d6a2274133d4c4"
     },
     "radio-control": {
       "members": 30,
@@ -263,7 +263,7 @@
     },
     "radio-group": {
       "members": 3,
-      "sha256": "fe79e8ef33f864b75e775e9da9faa72421d0e12900a4709c23662e67140df9c6"
+      "sha256": "294d286611e1f0fef9fe27a17a919bbbf9a409b4488eb78ceed5491518d9be97"
     },
     "switch-control": {
       "members": 24,
@@ -355,7 +355,7 @@
     },
     "segmented-control": {
       "members": 3,
-      "sha256": "f9e21c4d8cccf6f57235b1106105996eb72bb3a25c4a4dc7b4b3c731d95f974e"
+      "sha256": "c0bb4cb5e319e01fe8cb6174725042a81f3d964b8672424e9071e8e26430e996"
     },
     "link": {
       "members": 96,

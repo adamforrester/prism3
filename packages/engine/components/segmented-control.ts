@@ -35,7 +35,7 @@
  * ink because it has no tint.
  *
  * ── THE CONTROL ────────────────────────────────────────────────────────────────────────────────────────
- * `size` only = 3 members. An optional nested FieldLabel above a 1px outlined TRACK holding five nested segments,
+ * `size` only = 3 members. An optional nested FieldLabel (emphasis and weight exposed, bold by default; Q348 A) above a 1px outlined TRACK holding five nested segments,
  * `nest-exposed` (`selection`, `state`) and following `size`. Segments 1 and 2 always show; 3 (on), 4 and 5 (off)
  * sit behind Figma-only booleans (#2344). Segment 1 is selected. Each segment GROWS along the track (Q269.6), and
  * the track stretches across the control, so the segments share its width equally.
@@ -357,10 +357,10 @@ export const segmentedControl: ComponentDef = {
       label: {
         kind: 'nest',
         nests: 'field-label',
-        nesting: { kind: 'nest-fixed', variant: { size: 'medium', emphasis: 'secondary', weight: 'bold', state: 'rest' }, follow: ['size'] },
+        nesting: { kind: 'nest-exposed', variant: { size: 'medium', emphasis: 'secondary', weight: 'bold', state: 'rest' }, expose: ['emphasis', 'weight'], follow: ['size'] },
         crossAxisFill: true,
         optional: true,
-        note: 'The visible label, naming what is being chosen. Shown by default.',
+        note: 'The visible label, naming what is being chosen. Shown by default. Starts secondary and bold; its label text, required marker, emphasis and weight surface on the control (Q348 A).',
       },
       track: {
         kind: 'box',
