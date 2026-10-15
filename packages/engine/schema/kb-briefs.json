@@ -1,0 +1,521 @@
+{
+  "source": {
+    "repo": "adamforrester/knowledge-base",
+    "commit": "bdaedeb2b868a330c5bac417621dfcb4bb42dc77",
+    "read": "2026-10-14"
+  },
+  "briefs": {
+    "accordion.md": {
+      "category": "navigation",
+      "aliases": [
+        "disclosure",
+        "collapse",
+        "expander",
+        "details",
+        "expansion-panel"
+      ]
+    },
+    "avatar.md": {
+      "category": "foundations",
+      "aliases": [
+        "Persona",
+        "UserAvatar",
+        "Gravatar",
+        "ProfilePicture",
+        "AvatarStack",
+        "Avatar.Group",
+        "AvatarToken",
+        "Face pile",
+        "s-avatar"
+      ]
+    },
+    "badge.md": {
+      "category": "foundations",
+      "aliases": [
+        "CounterBadge",
+        "PresenceBadge",
+        "NotificationBadge",
+        "Label",
+        "CounterLabel",
+        "StateLabel",
+        "Counter",
+        "Notification dot",
+        "Pill",
+        "Indicator",
+        "Status"
+      ]
+    },
+    "banner.md": {
+      "category": "feedback",
+      "aliases": [
+        "alert",
+        "callout",
+        "section-message",
+        "message-bar",
+        "inline-notification",
+        "inline-alert",
+        "flash"
+      ]
+    },
+    "box.md": {
+      "category": "layout",
+      "aliases": [
+        "View",
+        "Block",
+        "Frame",
+        "Primitive"
+      ]
+    },
+    "breadcrumbs.md": {
+      "category": "navigation",
+      "aliases": [
+        "breadcrumb",
+        "breadcrumb-trail",
+        "crumb"
+      ]
+    },
+    "button.md": {
+      "category": "form",
+      "aliases": [
+        "btn",
+        "cta"
+      ]
+    },
+    "card.md": {
+      "category": "layout",
+      "aliases": [
+        "Tile",
+        "Panel",
+        "Well",
+        "Surface",
+        "ClickableTile",
+        "SelectableTile",
+        "ExpandableTile",
+        "CardView"
+      ]
+    },
+    "checkbox.md": {
+      "category": "form",
+      "aliases": [
+        "check",
+        "tickbox",
+        "checkbox-field",
+        "checkbox-list",
+        "choice-list",
+        "multiselect"
+      ]
+    },
+    "combobox.md": {
+      "category": "form",
+      "aliases": [
+        "autocomplete",
+        "autosuggest",
+        "typeahead",
+        "searchable-select",
+        "filterable-select",
+        "combo-box"
+      ]
+    },
+    "date-picker.md": {
+      "category": "form",
+      "aliases": [
+        "DatePicker",
+        "DateField",
+        "Calendar",
+        "DateRangePicker",
+        "RangeCalendar",
+        "DateInput",
+        "DatePickerDialog",
+        "TimeField",
+        "DateTimePicker"
+      ]
+    },
+    "dialog.md": {
+      "category": "overlay",
+      "aliases": [
+        "modal",
+        "modal-dialog",
+        "alert-dialog",
+        "confirm-dialog"
+      ]
+    },
+    "divider.md": {
+      "category": "foundations",
+      "aliases": [
+        "separator",
+        "rule",
+        "hr"
+      ]
+    },
+    "drawer.md": {
+      "category": "overlay",
+      "aliases": [
+        "sheet",
+        "side-panel",
+        "panel",
+        "bottom-sheet",
+        "tray",
+        "flyout"
+      ]
+    },
+    "empty-state.md": {
+      "category": "feedback",
+      "aliases": [
+        "empty",
+        "blankslate",
+        "illustrated-message",
+        "zero-state",
+        "no-results"
+      ]
+    },
+    "file-upload.md": {
+      "category": "form",
+      "aliases": [
+        "FileUpload",
+        "FileUploader",
+        "Upload",
+        "Dragger",
+        "DropZone",
+        "FileTrigger",
+        "FileInput",
+        "Uploader"
+      ]
+    },
+    "form.md": {
+      "category": "form",
+      "aliases": [
+        "Form",
+        "FormField",
+        "Field",
+        "FormGroup",
+        "Fieldset",
+        "FormControl",
+        "FormProvider"
+      ]
+    },
+    "grid.md": {
+      "category": "layout",
+      "aliases": [
+        "GridItem",
+        "Grid.Cell",
+        "SimpleGrid",
+        "Columns",
+        "Column",
+        "Row",
+        "Col",
+        "InlineGrid",
+        "Tiles",
+        "PageLayout",
+        "AppShell"
+      ]
+    },
+    "icon.md": {
+      "category": "foundations",
+      "aliases": [
+        "glyph",
+        "symbol",
+        "svg-icon"
+      ]
+    },
+    "image.md": {
+      "category": "foundations",
+      "aliases": [
+        "img",
+        "picture",
+        "media",
+        "thumbnail",
+        "figure"
+      ]
+    },
+    "inline-message.md": {
+      "category": "feedback",
+      "aliases": [
+        "inline-error",
+        "help-text",
+        "form-helper-text",
+        "error-message",
+        "field-error",
+        "validation-message",
+        "supporting-text"
+      ]
+    },
+    "link.md": {
+      "category": "navigation",
+      "aliases": [
+        "text-link",
+        "anchor",
+        "hyperlink",
+        "link-button"
+      ]
+    },
+    "list.md": {
+      "category": "data",
+      "aliases": [
+        "ListBox",
+        "ListView",
+        "GridList",
+        "ActionList",
+        "ResourceList",
+        "ResourceItem",
+        "List.Item",
+        "ListItem",
+        "ContainedList"
+      ]
+    },
+    "menu.md": {
+      "category": "overlay",
+      "aliases": [
+        "dropdown-menu",
+        "action-menu",
+        "action-list",
+        "overflow-menu",
+        "kebab-menu",
+        "popup-menu",
+        "context-menu",
+        "menubar"
+      ]
+    },
+    "pagination.md": {
+      "category": "navigation",
+      "aliases": [
+        "pager",
+        "pagination-nav",
+        "page-controls",
+        "table-pagination"
+      ]
+    },
+    "popover.md": {
+      "category": "overlay",
+      "aliases": [
+        "popup",
+        "overlay",
+        "anchored-overlay",
+        "floating-panel",
+        "flyout"
+      ]
+    },
+    "progress.md": {
+      "category": "feedback",
+      "aliases": [
+        "progress-bar",
+        "progress-indicator",
+        "linear-progress",
+        "circular-progress",
+        "loader"
+      ]
+    },
+    "radio.md": {
+      "category": "form",
+      "aliases": [
+        "radio-button",
+        "radio-group",
+        "option",
+        "choice-list"
+      ]
+    },
+    "section.md": {
+      "category": "layout",
+      "aliases": [
+        "Container",
+        "Region",
+        "PageLayout",
+        "Layout.Section",
+        "Panel",
+        "ContentBlock",
+        "Band"
+      ]
+    },
+    "segmented-control.md": {
+      "category": "form",
+      "aliases": [
+        "segmented-control",
+        "toggle-button-group",
+        "connected-button-group",
+        "content-switcher",
+        "segmented-buttons"
+      ]
+    },
+    "select.md": {
+      "category": "form",
+      "aliases": [
+        "dropdown",
+        "picker",
+        "listbox",
+        "select-panel",
+        "exposed-dropdown-menu"
+      ]
+    },
+    "side-navigation.md": {
+      "category": "navigation",
+      "aliases": [
+        "sidebar",
+        "side-nav",
+        "nav",
+        "nav-list",
+        "navigation",
+        "navigation-rail",
+        "navigation-drawer"
+      ]
+    },
+    "skeleton.md": {
+      "category": "foundations",
+      "aliases": [
+        "placeholder",
+        "shimmer",
+        "ghost",
+        "skeleton-text",
+        "skeleton-avatar",
+        "skeleton-image",
+        "loading-placeholder"
+      ]
+    },
+    "slider.md": {
+      "category": "form",
+      "aliases": [
+        "range-slider",
+        "range-input",
+        "range",
+        "track"
+      ]
+    },
+    "spinner.md": {
+      "category": "foundations",
+      "aliases": [
+        "loading",
+        "inline-loading",
+        "circular-progress",
+        "progress-circle",
+        "spin",
+        "loader",
+        "busy-indicator",
+        "activity-indicator"
+      ]
+    },
+    "stack.md": {
+      "category": "layout",
+      "aliases": [
+        "VStack",
+        "HStack",
+        "Inline",
+        "BlockStack",
+        "InlineStack",
+        "Flex",
+        "FlexStack",
+        "Row",
+        "Column"
+      ]
+    },
+    "switch.md": {
+      "category": "form",
+      "aliases": [
+        "toggle",
+        "toggle-switch",
+        "on-off"
+      ]
+    },
+    "table.md": {
+      "category": "data",
+      "aliases": [
+        "DataTable",
+        "DataGrid",
+        "Grid (data-grid sense)",
+        "IndexTable",
+        "TableView",
+        "DynamicTable"
+      ]
+    },
+    "tabs.md": {
+      "category": "navigation",
+      "aliases": [
+        "tab-list",
+        "tab-panel",
+        "tab-group",
+        "tab-bar"
+      ]
+    },
+    "tag.md": {
+      "category": "foundations",
+      "aliases": [
+        "Chip",
+        "Token",
+        "AvatarToken",
+        "IssueLabelToken",
+        "InteractionTag",
+        "CheckableTag",
+        "Pill",
+        "Label",
+        "Keyword",
+        "Facet",
+        "Lozenge"
+      ]
+    },
+    "text-field.md": {
+      "category": "form",
+      "aliases": [
+        "text-input",
+        "input",
+        "textbox",
+        "formfield"
+      ]
+    },
+    "text.md": {
+      "category": "foundations",
+      "aliases": [
+        "typography",
+        "heading",
+        "paragraph",
+        "type",
+        "prose",
+        "title"
+      ]
+    },
+    "textarea.md": {
+      "category": "form",
+      "aliases": [
+        "text-area",
+        "multiline-input",
+        "multiline-text-field",
+        "textbox",
+        "comment-box"
+      ]
+    },
+    "toast.md": {
+      "category": "feedback",
+      "aliases": [
+        "snackbar",
+        "notification",
+        "flag",
+        "flash",
+        "message"
+      ]
+    },
+    "toggle-button.md": {
+      "category": "form",
+      "aliases": [
+        "toggle",
+        "pressable-button",
+        "selectable-button"
+      ]
+    },
+    "tooltip.md": {
+      "category": "overlay",
+      "aliases": [
+        "hint",
+        "infotip",
+        "info-tip"
+      ]
+    },
+    "tree.md": {
+      "category": "data",
+      "aliases": [
+        "TreeView",
+        "TreeViewItem",
+        "TreeGrid",
+        "DirectoryTree",
+        "RichTreeView",
+        "SimpleTreeView",
+        "FileTree"
+      ]
+    }
+  }
+}

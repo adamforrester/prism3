@@ -475,7 +475,7 @@ import { dirname, extname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import { hookGuard } from './test-hooks.mjs';
-import { INPUT_MS, makeBounded } from './test-bounded.mjs';
+import { INPUT_MS, makeBounded, watchStalls } from './test-bounded.mjs';
 import { P, loadModes, resolve as resolveToken } from './chrome/tokens.mjs';
 import { assertBundleFresh, PLUGIN_UI_SOURCE_ROOTS, STUDIO_SOURCE_ROOTS } from './test-bundle-freshness.mjs';
 
@@ -497,7 +497,7 @@ const ok = (cond, label) => {
 // the page was doing. A page that renders no frame, or a busy one whose input is still in flight (#2557 review), ends
 // its case with that named failure: `onDead` reports it and throws an error marked `reported`, so the case's own catch
 // does not count it twice, and the case's `finally` closes its context, which retires the page and cancels the input.
-const { bounded } = makeBounded({ ok, onDead: async (_page, label, why) => { const message = why ? `${label}: ${why}` : label; ok(false, message); const e = new Error(message); e.reported = true; throw e; } });
+const { bounded } = makeBounded({ ok, requireWatched: true, onDead: async (_page, label, why) => { const message = why ? `${label}: ${why}` : label; ok(false, message); const e = new Error(message); e.reported = true; throw e; } });
 
 // ── the literal floors ───────────────────────────────────────────────────────────────────────────
 const TEXT_MIN = 4.5;
@@ -5884,6 +5884,8 @@ for (const host of ['web', 'figma']) {
 // disabled with its reason and writes nothing; the style count follows a weight tick at once (#831).
 {
   const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  // This case's `lh-swap` inputs are bounded: the debugger on now, so a freeze an earlier step starts is located (#2585).
+  await watchStalls(page);
   try {
     await goPlace(page, 'type');
     await openTypeAdvanced(page);
