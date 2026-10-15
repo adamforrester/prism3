@@ -626,6 +626,13 @@ export const GATES: Gate[] = [
     cmd: engine('token-contract.ts', '--check'),
   },
   {
+    // The number against the merge base's (#2334): the step above compares two things in the tree,
+    // which agree after an old number is written back into both. Reads git, so it needs history.
+    id: 'lint-contract-version',
+    ciStep: "CONTRACT_VERSION moved by the increment the surface needs, against the base (#2334)",
+    cmd: engine('lint-contract-version.ts'),
+  },
+  {
     id: 'typecheck-web',
     ciStep: 'Typecheck web',
     cmd: ws('@prism3/studio', 'typecheck'),
