@@ -19730,7 +19730,7 @@ arm: {
       // returns a Promise that figma_execute drops). Constructed rather than eval'd so the payload
       // sees exactly one binding, `figma`, and nothing from this module's scope.
       const AsyncFunction = Object.getPrototypeOf(async () => {}).constructor as new (...a: string[]) => (f: unknown) => Promise<PayloadResult>;
-      // FAILS SOFT, and this is not defensive habit — it is the trap in `review-pr.md:133`, which I
+      // FAILS SOFT, and this is not defensive habit — it is the fail-soft trap in `review-pr.md` (Independent verification), which I
       // walked straight into: narrowing the lookup to `figma.currentPage` (a real degrade this block
       // gates against) threw inside the payload, and an uncaught throw here takes the WHOLE suite down
       // and reports zero failures rather than one. A harness that dies cannot tell you which assertion
