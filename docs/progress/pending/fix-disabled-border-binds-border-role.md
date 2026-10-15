@@ -1,0 +1,15 @@
+## (2026-10-15) — A border never binds an icon or text color role (Q346, #2749)
+
+The owner's decision Q346 (audit finding O2 on #2706): a border or stroke never binds an icon or text color role, every disabled edge binds `color.disabled.border`, and the disabled edge's strength is set by the theme, not chosen per component. It supersedes #1349 and #1697.
+
+**Where the corpus broke it, measured.** Every stroke at every coordinate of the full grid, against the scopes the committed Figma emission gives each variable. The only strokes not scoped `STROKE_COLOR` were the disabled outline edges of Button ×3, IconButton ×3 and Tag, bound to `color.disabled.icon` and, on an inverse surface, `color.inverse.disabled.icon`. Nothing else in the corpus binds a stroke to an ink or fill role. All seven now bind `color.disabled.border`. The paint census moved for exactly those seven defs: same assignment counts, different hashes.
+
+**The gate is `lint-paint.ts` arm 5.** ACTUAL is every `paints.strokes` variable off the emitted plans. EXPECTED is the token tier's own scope for that variable, read from the committed `out/figma/<brand>/color.<mode>.json` (16 collections), never from the scope table in `emit-figma-color.ts`. Text roles are scoped `TEXT_FILL` and icon roles fill-only (#2566), so neither can sit on a stroke. The arm is one step wider than the owner's words: a stroke on a fill role fails too. The corpus had none, so the wider form needs no exception list, and the narrower one would have needed a second classification of roles that the token tier already makes. It fails on an empty scope and on a variable missing from any emission.
+
+**The 3:1 floor went with the binding.** `test.ts` measured the disabled edge's role at ≥3:1 against the page for Button and IconButton. It measured the icon role only to justify binding it to an edge. Disabled controls are outside SC 1.4.11, so the floor is removed rather than lowered. A by-name pin on all seven defs replaces it. The edge now measures 1.48–1.80:1 against the page, the same as every other bordered control's disabled edge.
+
+**No lever drives `color.disabled.border` yet, and this PR does not pick one.** It resolves a fixed neutral step (`neutralLow()`, `min: 0`) matched to `disabled.fill`. Sweeping `disabledStrategy` and `disabledMin` moves the disabled inks and leaves the border unchanged. How the lever should set it is a contrast-target decision for every bordered control at once, so it is filed as an owner question, #2750.
+
+**Update corrects existing files in place.** `test-update-apply.ts` section `edge/…` builds Tag, Button and IconButton from a def copy that still binds the icon role, then updates to the current def. Each disabled edge is rebound to the disabled border on its own surface, every key and id is kept, and the next dry run reads every member current.
+
+**Also changed.** `tools/binding-audit` no longer admits the border-on-icon binding as "by design". Its README and `tools/CLAUDE.md` say so. `skills/prism3-build-component` states the rule.

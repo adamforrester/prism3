@@ -140,9 +140,9 @@ ENGINE projection change, not a reconciler one.
 **No gate sibling, on purpose, and the reason is the mis-bind pass's nature rather than its youth.**
 It is a HEURISTIC: `ALLOWED` (slot-kind → role-family) is authored from design semantics, and the
 corpus carries deliberate cross-slot bindings that a first-principles map would flag but that are
-already pinned elsewhere — the disabled outline edge binding `color.disabled.icon` not
-`color.disabled.border` (#1349, pinned by name in `packages/engine/test.ts`), the switch thumb's
-`on-fill` fill, the switch glyphs' `fill` ink. `ALLOWED` admits those *with a stated reason*, so a run
+already pinned elsewhere — the switch thumb's `on-fill` fill and the switch glyphs' `fill` ink. (The
+disabled outline edge on `color.disabled.icon`, #1349, was retired by Q346 and is refused by
+`lint-paint.ts` arm 5.) `ALLOWED` admits those *with a stated reason*, so a run
 over today's corpus is clean; a gate here would either re-encode those exemptions (duplicating
 `test.ts`/`lint-paint.ts`) or assert a bare zero. The unbound half deliberately OVERLAPS
 `lint-paint.ts`'s arm-3 reachability — the value is one consolidated ledger + survey, not a second

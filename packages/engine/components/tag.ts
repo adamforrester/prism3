@@ -252,12 +252,13 @@ export const tag: ComponentDef = {
     'selected.icon.hover': 'color.interactive.neutral.icon.hover',
     'selected.icon.pressed': 'color.interactive.neutral.icon.pressed',
 
-    // Cross-cutting disabled — Button's outline block: the edge tracks the disabled glyph ink (#1349). No member
+    // Cross-cutting disabled — Button's outline block: the edge binds `color.disabled.border`, since a border
+    // never binds an icon or text role (Q346, #2749; supersedes #1349 here). No member
     // has a fill at rest any more (the selected tint is the overlay slot, which the disabled branch does not
     // carry), so there is no `disabled.fill` and no on-fill ink: a disabled tag is a dimmed outline.
     'disabled.label': 'color.disabled.text',
     'disabled.icon': 'color.disabled.icon',
-    'disabled.border': 'color.disabled.icon',
+    'disabled.border': 'color.disabled.border',
   },
 
   anatomy: {

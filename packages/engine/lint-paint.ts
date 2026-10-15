@@ -225,8 +225,37 @@
  * is printed too, because that count being zero is a fact about today's corpus, not a property of the
  * rule. Finally, the arm FAILS if it measured no pair at all: a rule whose scope has gone empty
  * reports a pass, and this one has to be able to say it stopped asking.
+ *
+ * ── ARM 5: AN EDGE NEVER BINDS INK (a rule, asserted at zero — Q346, #2749) ─────────────────────
+ *
+ * The owner's rule: a border or stroke never binds an icon or text color role. Every disabled edge
+ * binds `color.disabled.border`, and how strong it reads is the theme's disabled setting, not a
+ * per-component choice. Before this arm, Button ×3, IconButton ×3 and Tag bound their disabled outline
+ * to `color.disabled.icon` (#1349, #1697, both superseded), and nothing could object: the role
+ * resolves, carries no intent for arm 1 to check, is reached, and the census pinned it as correct.
+ *
+ * INDEPENDENCE (`docs/34`). ACTUAL is every `paints.strokes` variable read off the emitted plans, at
+ * every coordinate of the full grid. EXPECTED is the token tier's OWN statement of what each variable
+ * is for: the `scopes` array on that variable in the COMMITTED Figma emission
+ * (`out/figma/<brand>/color.<mode>.json`, every brand, every mode). A stroke must bind a variable
+ * scoped `STROKE_COLOR`. Text roles are scoped `TEXT_FILL`, and icon roles fill-only (#2566: every icon
+ * is a fill, so an icon role stays out of the border picker), so either one on a stroke fails. Nothing
+ * here asks the def what its key means, and nothing asks the projector which slot it resolved: the
+ * def's key spelling, the projector's dispatch and the emitter's scope table are three different files,
+ * and only the last one is read for EXPECTED. Reading the emission rather than importing the scope
+ * function means a scope table edit that would quietly admit an ink to the border picker has to land
+ * in a regenerated, reviewed artifact first.
+ *
+ * ITS SCOPE IS ONE STEP WIDER THAN THE OWNER'S WORDS, and that is measured, not assumed: a stroke on a
+ * FILL role fails too, because a fill role is not scoped for strokes either. The corpus had zero such
+ * strokes when this arm was written, so the wider form costs no exception, and the narrower form would
+ * have needed a second classification of roles that the token tier already makes.
+ *
+ * ITS LIMITS, STATED. Defs with no `anatomy` cannot be planned (arm 3 prints them). A stroke variable
+ * missing from any brand's emission fails rather than skips, so an unresolvable binding cannot pass by
+ * being unknown. And the arm fails if it measured no stroke at all.
  */
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 import { componentDefs } from './components/index';
@@ -950,6 +979,64 @@ const redundantEdges = (): { fails: string[]; notes: string[]; checked: number; 
   return { fails, notes, checked, pairs: pairs.size };
 };
 
+/**
+ * Arm 5. Every stroke the projector emits, against the scopes the committed Figma emission gives that
+ * variable in every brand and mode. Collapsed to (def, node, variable) with the coordinate count, like arm 4.
+ */
+const STROKE_SCOPE = 'STROKE_COLOR';
+const strokeScopes = (): { fails: string[]; checked: number; sources: number } => {
+  // EXPECTED — read from the committed emission, never from `emit-figma-color.ts`'s scope table.
+  const figmaDir = join(repo, 'packages/engine/out/figma');
+  const scopes: { source: string; byName: Map<string, string[]> }[] = [];
+  for (const brand of readdirSync(figmaDir).sort())
+    for (const f of readdirSync(join(figmaDir, brand)).filter((n) => /^color\..+\.json$/.test(n)).sort()) {
+      const vars = (JSON.parse(readFileSync(join(figmaDir, brand, f), 'utf8')) as { variables: { name: string; scopes: string[] }[] }).variables;
+      // The emission prefixes the brand's root (`pds3/color/…`); a plan names the variable below it.
+      scopes.push({ source: `${brand}/${f}`, byName: new Map(vars.map((v) => [v.name.slice(v.name.indexOf('/') + 1), v.scopes])) });
+    }
+
+  // ACTUAL — every stroke on every node at every coordinate of the full grid.
+  const strokes = new Map<string, { def: string; node: string; v: string; coords: number }>();
+  for (const def of censusable()) {
+    const walk = (n: FigmaNodePlan, path: string): void => {
+      const here = `${path}/${n.name}`;
+      if (n.paints?.strokes) {
+        const k = `${def.id}|${here}|${n.paints.strokes}`;
+        const e = strokes.get(k) ?? { def: def.id, node: here, v: n.paints.strokes, coords: 0 };
+        e.coords++;
+        strokes.set(k, e);
+      }
+      for (const c of n.children) walk(c, here);
+    };
+    const sizes = (def.variants?.size ?? []).length ? def.variants!.size! : [undefined];
+    const axes = Object.entries(def.variants ?? {}).filter(([a]) => a !== 'size');
+    let combos: Record<string, string>[] = [{}];
+    for (const [a, vs] of axes) combos = combos.flatMap((c) => vs.map((v) => ({ ...c, [a]: v })));
+    const states: (string | undefined)[] = [undefined, ...(def.states ?? [])];
+    for (const size of sizes) for (const c of combos) for (const st of states)
+      if (!excludedFromSet(def, size, c)) for (const leading of [false, true]) for (const trailing of [false, true])
+        walk(figmaAnatomyPlan(def, size, { ...c, ...(st ? { state: st } : {}), leading, trailing, swapTarget: 'FPO-default-icon' } as never).root, '');
+  }
+
+  const fails: string[] = [];
+  for (const e of [...strokes.values()].sort((a, b) => `${a.def}${a.node}${a.v}`.localeCompare(`${b.def}${b.node}${b.v}`))) {
+    const missing = scopes.filter((s) => !s.byName.has(e.v)).map((s) => s.source);
+    if (missing.length) {
+      fails.push(`edge binds ink: ${e.def}${e.node} strokes '${e.v}', which is not in the emitted color collection (${missing.join(', ')}) — a stroke must bind a variable the token tier emits`);
+      continue;
+    }
+    const wrong = scopes.filter((s) => !s.byName.get(e.v)!.includes(STROKE_SCOPE));
+    if (wrong.length) {
+      const got = scopes.find((s) => s === wrong[0])!.byName.get(e.v)!;
+      const kind = got.includes('TEXT_FILL') ? 'a text role' : got.some((x) => x.endsWith('_FILL')) ? 'an icon or fill role' : 'a role with no stroke scope';
+      fails.push(`edge binds ink: ${e.def}${e.node} strokes '${e.v}' at ${e.coords} coordinate(s), ${kind} scoped [${got.join(', ')}] in ${wrong.length} of ${scopes.length} emitted collection(s). A border never binds an icon or text color role (Q346) — bind a border role (a disabled edge is \`color.disabled.border\`).`);
+    }
+  }
+  if (strokes.size === 0) fails.push('edge binds ink: the arm measured ZERO strokes — its scope has gone empty, and a pass over nothing is not a pass');
+  if (scopes.length === 0) fails.push('edge binds ink: no emitted color collection found under out/figma — EXPECTED is missing, so nothing was checked');
+  return { fails, checked: strokes.size, sources: scopes.length };
+};
+
 const main = (): void => {
   const accept = process.argv.includes('--accept');
   const fails: string[] = [];
@@ -1047,12 +1134,18 @@ const main = (): void => {
   // a scope that quietly stops asking is indistinguishable from a corpus that is quietly clean.
   for (const n of edges.notes) console.log(`  redundant edge/ not measured: ${n}`);
 
+  // ── ARM 5 ─────────────────────────────────────────────────────────────────────────────────────
+  const edgeInk = strokeScopes();
+  fails.push(...edgeInk.fails);
+  console.log(`  edge binds ink … ${edgeInk.fails.length === 0 ? 'ok' : `${edgeInk.fails.length} violation(s)`} (${edgeInk.checked} distinct stroke binding(s) against ${STROKE_SCOPE} in ${edgeInk.sources} emitted color collection(s))`);
+
   if (fails.length) {
     console.error(`\n✗ ${fails.length} failure(s):`);
     for (const f of fails) console.error(`  · ${f}`);
     console.error('\n  A provenance failure is a WRONG binding — fix the def.');
     console.error('  A reachability failure is an UNREACHABLE binding — fix the KEY (see PAINT_SLOTS), not the list.');
     console.error('  A census failure is a CHANGED projection — read the diff, then: npx tsx packages/engine/lint-paint.ts --accept');
+    console.error('  An edge-binds-ink failure is a border bound to an icon or text role — rebind it to a border role (Q346), never by widening the scope table.');
     console.error('  A redundant-edge failure is a PAIR of bindings that disagree about the box\'s boundary — remove the BORDER at that coordinate, not the fill, and never by adding a token.');
     process.exit(1);
   }
