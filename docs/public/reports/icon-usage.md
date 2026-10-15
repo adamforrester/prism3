@@ -45,6 +45,7 @@ Parts that take any icon from the set. The file nominates the default unless the
 | icon-button-neutral | icon |
 | link | trailingVisual |
 | list-item | icon |
+| password-field | leadingVisual |
 | segmented-control-segment | leadingVisual |
 | select | leadingVisual |
 | tab | leadingVisual |
