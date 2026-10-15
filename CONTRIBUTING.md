@@ -298,6 +298,18 @@ npx tsx packages/engine/lint-contract-version.ts    # CONTRACT_VERSION against t
                                                     # no base ref; first parent on main's push run
                                                     # (`comparison-base.ts`, replayed by
                                                     # `lint-push-base.ts` below)
+npx tsx packages/engine/emit-agent-reference.ts --check
+                                                    # docs/public/reference/commands.json matches the
+                                                    # code (#2637): every MCP tool of both servers, every
+                                                    # agent-link command (args, what it writes, what it
+                                                    # refuses) and every CLI entry point, regenerated in
+                                                    # memory from the code and compared with the
+                                                    # committed file, reported per tool, command and
+                                                    # flag. Not a regen step: the file is served docs,
+                                                    # not emission, and carries no engine version. The
+                                                    # CLI list is checked both ways against every file
+                                                    # that reads process.argv. Regenerate with the same
+                                                    # command without --check, then review the diff.
 npx tsx packages/engine/lint-skills.ts              # shipped skills still make true claims
 npx tsx packages/engine/lint-doc-gates.ts           # this checklist stays in sync with ci.yml (#613)
                                                     # and names no RETIRED gate: a deleted gate's line

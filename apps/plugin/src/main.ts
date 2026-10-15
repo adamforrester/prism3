@@ -895,7 +895,7 @@ const furnishSet = async (defId: string, setId: string, plans: AnatomyPlan[]): P
     if (!set || set.type !== 'COMPONENT_SET') return null;
     return await drawFurniture(figma as unknown as FurnitureApi, set as unknown as XNode, furnitureLayout(plans), defId);
   } catch (e) {
-    return { def: defId, parent: '', columns: 0, rows: 0, backdrops: 0, cleared: 0, skipped: [`No canvas labels for ${defId}: Figma refused the write (${(e as Error)?.message ?? String(e)})`], fontMisses: [] };
+    return { def: defId, parent: '', columns: 0, rows: 0, backdrops: 0, scrims: 0, cleared: 0, skipped: [`No canvas labels for ${defId}: Figma refused the write (${(e as Error)?.message ?? String(e)})`], fontMisses: [] };
   }
 };
 
@@ -1025,6 +1025,7 @@ const fileSetup = async (sink: ActionSink): Promise<void> => {
       assets = { ...assets, furnitureTemplates: tpl };
       if (tpl.built.length) assetNote += `, built ${tpl.built.join(' + ')}` +
         (tpl.backdropBinding === 'no-variable' ? ' (the backdrop binds to the inverse background once the theme is applied)' : '') +
+        (tpl.scrimBinding === 'no-variable' ? ' (the scrim binds to the scrim color once the theme is applied)' : '') +
         (tpl.fontMisses.length ? ` (⚠ ${tpl.fontMisses.slice(0, 2).join('; ')})` : '');
       // The style-guide cell sets (#259) beside them — adopted wherever the file already has them, in any case.
       const cells = await ensureStyleGuideCells(figma, page);

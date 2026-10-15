@@ -45,6 +45,9 @@ console.log('native slot constraints (#2646) — against the in-memory shim\n');
 const EXPECTED: Record<string, { slotSettings?: Record<string, unknown>; preferred?: string[] }> = {
   // Open: a section holds whatever its content is, so no limit, no preferred component, the placeholder shown.
   'accordion.content': {},
+  // Open (#2609, as built): the body holds whatever the dialog needs — text or any components — so no limit and no
+  // preferred component. The footer's actions are fixed nested Buttons, not a slot (Q311), so they have no row.
+  'dialog.body': {},
 };
 console.log('the corpus');
 {
