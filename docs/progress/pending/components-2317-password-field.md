@@ -29,8 +29,8 @@ shared entries identical in both defs instead, so a fix to one that misses the o
 - `PartDef.nestTexts`, the technical risk the proposal named. Exposing the nested Button surfaces its `label` on the
   field's panel (how a designer sets "Hide"), but a set has ONE default per text property, so the nested Button read
   "Button" on every member. Both executors now write `nestTexts` onto the instance with `setProperties` (the property
-  found by its name before Figma's `#id`, TEXT only; a missing one is a named miss). `EXECUTOR_REVISION` 23: main reached 22
-  (#2591, #2657) before this landed. The round-trip reads the value back (`nestTexts` predicate, 168 instances), the paste payload's
+  found by its name before Figma's `#id`, TEXT only; a missing one is a named miss). `EXECUTOR_REVISION` 24: main reached 23
+  (#2591, #2657, #2652) before this landed. The round-trip reads the value back (`nestTexts` predicate, 168 instances), the paste payload's
   own read-back is in `test.ts` beside the exposure write, and both shims model `componentProperties` from the NESTED
   def's declared texts, never from the host's override. This also unblocks List's ordered numbers (#2319's held
   follow-up), not taken here.

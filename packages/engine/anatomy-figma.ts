@@ -432,6 +432,11 @@ export type FigmaNodePlan = {
    *  overrides the width. Carried ONLY on such a root (`PartDef.placementWidth`), so every other plan is
    *  byte-identical; the paste twin splices its line in only for a payload that carries it. */
   placementWidth?: number;
+  /** For a ROOT `box` built at a literal HEIGHT too (#2609, Dialog's `full` placement, `PartDef.builtSize`): the
+   *  height twin of `placementWidth`. The root's y mode projects FIXED beside it and each executor resizes the
+   *  frame to it in the same write as the width, before the layout is written. Carried ONLY on such a root, so
+   *  every other plan is byte-identical; the paste twin splices its line in only for a payload that carries it. */
+  placementHeight?: number;
   /** For a `box`: inline padding written as LITERAL px, replacing that side's binding (#1667). The side a
    *  PINNED child (below) sits on: the pinned node is out of flow, so the padding reserves its room — edge
    *  inset + icon + gap, a sum Figma cannot bind to one variable. Keyed by Figma's own property names so the
@@ -692,6 +697,14 @@ export const figmaVarName = (ref: string): string => ref.replace(/\./g, '/');
  *  `label/md/emphasis`) because they live in their own namespace rather than a variable
  *  collection. Stating it here is what stops the two mappings being assumed identical. */
 export const figmaTextStyleName = (ref: string): string => ref.replace(/^type\./, '').replace(/\./g, '/');
+
+/** Shadow ref → the emitted Figma EFFECT STYLE name (#2609): `shadow.xl` → `shadow/xl`, the LIGHT-mode style
+ *  `emit-figma-styles.ts` writes for that step. A ref outside `shadow.` has no effect style, so it throws here
+ *  rather than naming a style no file holds. */
+export const figmaEffectStyleName = (ref: string): string => {
+  if (!/^shadow\.[a-z0-9-]+$/.test(ref)) throw new Error(`elevation binds '${ref}', which is not a shadow step — only a 'shadow.<step>' ref has an effect style`);
+  return ref.replace(/\./g, '/');
+};
 
 /**
  * A `vector` part's glyph name → its path data (#864).
@@ -972,7 +985,8 @@ export const fillsAxis = (def: ComponentDef, name: string, axis: Axis): boolean 
   // A ROOT BUILT AT ITS PLACEMENT WIDTH (#1757) is bounded across: it is FIXED at that width until a host's
   // stretch overrides it (#2292) — the validator's `boundsX` reads it the same way.
   const bounded = pp.layout.sizing[axis] === 'fixed' || (axis === 'x' && pp.minWidth !== undefined)
-    || (axis === 'x' && parent === a.root && pp.placementWidth !== undefined) || fillsAxis(def, parent!, axis);
+    || (axis === 'x' && parent === a.root && pp.placementWidth !== undefined)
+    || (axis === 'y' && parent === a.root && pp.placementHeight !== undefined) || fillsAxis(def, parent!, axis);
   if (bounded) return true;
   return !onMain && !floored(def, name, axis) && (pp.children ?? []).some((s) => s !== name && floored(def, s, axis));
 };
@@ -1018,12 +1032,37 @@ const centeredAt = (def: ComponentDef, slots: PlanSlots): ComponentDef => {
   };
 };
 
+/** THE MEMBER'S BUILT SIZE (#2609, `PartDef.builtSize`): at the root's `builtSize.axis` value, the root reads as if
+ *  it declared `sizing.x: 'fill'` and the `placementWidth` that value names (a number, or one per `size`), and, where
+ *  the value names a height too, `sizing.y: 'fill'` with that `placementHeight` and its `grow` part growing down the
+ *  column. A coordinate that gives no value for the axis (a structure-only plan) returns the def itself. Applied
+ *  before anything reads the anatomy, as `centeredAt` is, so every path below sees one consistent root. */
+const builtSizeAt = (def: ComponentDef, size: string | undefined, slots: PlanSlots): ComponentDef => {
+  const a = def.anatomy;
+  const root = a?.parts[a.root];
+  const b = root?.kind === 'box' ? root.builtSize : undefined;
+  const value = b ? slots[b.axis] : undefined;
+  if (!a || !root || !b || !root.layout || typeof value !== 'string' || !(value in b.widths)) return def;
+  const w = b.widths[value];
+  const width = typeof w === 'number' ? w : size !== undefined ? w[size] : undefined;
+  const height = b.heights?.[value];
+  const parts = { ...a.parts };
+  parts[a.root] = {
+    ...root,
+    layout: { ...root.layout, sizing: { x: width !== undefined ? 'fill' : root.layout.sizing.x, y: height !== undefined ? 'fill' : root.layout.sizing.y } },
+    ...(width !== undefined ? { placementWidth: width } : {}),
+    ...(height !== undefined ? { placementHeight: height } : {}),
+  };
+  if (height !== undefined && b.grow && parts[b.grow]) parts[b.grow] = { ...parts[b.grow], grow: true };
+  return { ...def, anatomy: { ...a, parts } };
+};
+
 export const figmaAnatomyPlan = (
   authored: ComponentDef,
   size: string | undefined,
   slots: PlanSlots = {},
 ): AnatomyPlan => {
-  const def = centeredAt(authored, slots);
+  const def = builtSizeAt(centeredAt(authored, slots), size, slots);
   const a = def.anatomy;
   if (!a) throw new Error(`${def.id}: no anatomy block to project`);
   // A DEF WITH ONE TYPE SCALE HAS NO SIZE COORDINATE (#795), and `undefined` is how it says so.
@@ -1199,6 +1238,9 @@ export const figmaAnatomyPlan = (
   // the prop unset. It reaches binding keys only — paints and the member's coordinate stay structure-only — and only
   // an axis the coordinate does not give at all, so a real member, which gives every axis, never takes it.
   const propDefault = (axis: string): string | undefined => {
+    // A type key naming `{state}` (#2580) resolves a structure-only plan, which has no state, at the def's first
+    // declared state: the resting look, which is what an instance shows before anyone points at it.
+    if (axis === 'state') return statesOf(def)[0];
     const d = def.props?.find((p) => p.name === axis)?.default;
     return typeof d === 'string' && (def.variants as Record<string, readonly string[]> | undefined)?.[axis]?.includes(d) ? d : undefined;
   };
@@ -1562,7 +1604,8 @@ export const figmaAnatomyPlan = (
     const fillAxes = (['x', 'y'] as const).filter((a) => fillsAxis(def, name, a));
     // A ROOT BUILT AT ITS PLACEMENT WIDTH (#1757) is FIXED across as well — see `placementWidth`.
     const ownMode = (ax: Axis): 'AUTO' | 'FIXED' =>
-      (p.layout?.sizing[ax] === 'fixed' || fillAxes.includes(ax) || (ax === 'x' && name === a.root && p.placementWidth !== undefined) ? 'FIXED' : 'AUTO');
+      (p.layout?.sizing[ax] === 'fixed' || fillAxes.includes(ax) || (ax === 'x' && name === a.root && p.placementWidth !== undefined)
+        || (ax === 'y' && name === a.root && p.placementHeight !== undefined) ? 'FIXED' : 'AUTO');
     const bound: Record<string, string> = {};
     const paddingPx: NonNullable<FigmaNodePlan['paddingPx']> = {};
     // THE ASPECT-RATIO LOCK for a box (#1316), as the numeric proportion parsed from THIS member's own
@@ -1612,6 +1655,11 @@ export const figmaAnatomyPlan = (
       // needed here — but the reason it is safe is that call, not the arithmetic.
       if (p.width) bound.width = varOf(p.width);
       if (p.radius) for (const c of ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius']) bound[c] = varOf(p.radius);
+      // THE TOP AND BOTTOM CORNERS APART (#2609, `PartDef.radiusEdges`): a bottom sheet rounds its top two only.
+      if (p.radiusEdges) {
+        for (const c of ['topLeftRadius', 'topRightRadius']) bound[c] = varOf(p.radiusEdges.top);
+        for (const c of ['bottomLeftRadius', 'bottomRightRadius']) bound[c] = varOf(p.radiusEdges.bottom);
+      }
       // THE PART'S OWN STROKE (#1266, #740's field). One property, and the only one Figma offers: a
       // stroke's color is a bound PAINT (`paintSlots`) and its style is a `dashPattern`, so `strokeWeight`
       // is the whole of what a `strokeWidth` key can reach. Both executors' `if (!node.strokeWeight) … = 1`
@@ -1894,6 +1942,10 @@ export const figmaAnatomyPlan = (
       ...(p.kind === 'box' && p.clipsContent ? { clipsContent: true as const } : {}),
       // THE ROOT'S BUILD WIDTH (#1757), carried ONLY on a root that declares it — see `placementWidth`.
       ...(p.kind === 'box' && name === a.root && p.placementWidth !== undefined ? { placementWidth: p.placementWidth } : {}),
+      // ITS HEIGHT TWIN (#2609), carried ONLY on a root built at a height too — see `PartDef.builtSize`.
+      ...(p.kind === 'box' && name === a.root && p.placementHeight !== undefined ? { placementHeight: p.placementHeight } : {}),
+      // THE ELEVATION (#2609), an effect style named for the shadow token the part binds — see `PartDef.elevation`.
+      ...(p.kind === 'box' && p.elevation ? { effectStyle: figmaEffectStyleName(resolveKey(p.elevation, 'elevation')) } : {}),
       // The auto-layout width floor (#1343a, #1345), carried ONLY when the def sets it so every other
       // box's plan is byte-identical — a literal px the def states, not a bound token (`PartDef.minWidth`).
       // A FLUSH box (#2350) has none: it hugs its content, so a floor wider than the label never leaves slack
@@ -2503,7 +2555,8 @@ export const applyWeightIntent = (def: ComponentDef, avail: WeightAvailability):
   const axisValues = def.variants?.[wi.axis] ?? [];
   if (!axisValues.length)
     throw new Error(`${def.id}: weightIntent.axis '${wi.axis}' names no values in \`variants\` — the intents to resolve are the axis values`);
-  const roleFor = new Map(axisValues.map((v) => [v, resolveWeightIntent(v, groupAvail)] as const));
+  // `intents` (#2580) names the intent for an axis that keeps its own value names (Link: emphasis → bold).
+  const roleFor = new Map(axisValues.map((v) => [v, resolveWeightIntent(wi.intents ? wi.intents[v] : v, groupAvail)] as const));
 
   // A type token entry keyed under this axis: its ref is a `type.<group>.<variant>.<role>` and the key
   // carries one of the axis values. The repoint replaces the ref's role tail with the brand's role.
@@ -2514,7 +2567,9 @@ export const applyWeightIntent = (def: ComponentDef, avail: WeightAvailability):
     const segs = ref.split('.');
     if (segs[1] !== wi.group)
       throw new Error(`${def.id}: weight-intent type ref '${ref}' is in category '${segs[1]}' but weightIntent.group is '${wi.group}' — one weight axis cannot span two categories' availabilities`);
-    segs[segs.length - 1] = roleFor.get(intent)!;
+    // The underlined twin keeps its `-link` suffix (#2580): `strong-link` → `emphasis-link`, not `emphasis`.
+    const link = segs[segs.length - 1].endsWith('-link') ? '-link' : '';
+    segs[segs.length - 1] = roleFor.get(intent)! + link;
     return segs.join('.');
   };
 
@@ -3678,8 +3733,8 @@ const hasInset = (n: FigmaNodePlan): boolean => n.glyphInset !== undefined || n.
  * here. Lockstep with the plugin executor (`write-components.ts`).
  */
 const PLACEMENT_SLOT = '__PLACEMENT__';
-const PAYLOAD_PLACEMENT = `    if(n.placementWidth){node.resize(n.placementWidth,node.height);if(node.width!==n.placementWidth)misses.push(n.name+'.placementWidth -> DISCARDED');}`;
-const hasPlacement = (n: FigmaNodePlan): boolean => n.placementWidth !== undefined || n.children.some(hasPlacement);
+const PAYLOAD_PLACEMENT = `    if(n.placementWidth||n.placementHeight){node.resize(n.placementWidth||node.width,n.placementHeight||node.height);if(n.placementWidth&&node.width!==n.placementWidth)misses.push(n.name+'.placementWidth -> DISCARDED');if(n.placementHeight&&node.height!==n.placementHeight)misses.push(n.name+'.placementHeight -> DISCARDED');}`;
+const hasPlacement = (n: FigmaNodePlan): boolean => n.placementWidth !== undefined || n.placementHeight !== undefined || n.children.some(hasPlacement);
 /**
  * THE HUGGING WRAP'S MAX WIDTH (#1762, `maxWidth`), spliced into the child loop ONLY for a payload whose plans
  * carry one, and on the reserved-lines slot's own line so a payload without it gains no byte — the
@@ -4553,7 +4608,9 @@ export const CANVAS_FURNITURE: ReadonlySet<string> = new Set([
   'focus-ring', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral',
   'field-label', 'field-message', 'text-field', 'textarea', 'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control',
   'radio-row', 'radio-group', 'switch-control', 'switch-row', 'select', 'veil', 'image-placeholder', 'badge', 'tag', 'tab', 'tabs',
-  'divider', '_accordion-indicator', 'accordion', 'list-item', 'list', 'segmented-control-segment', 'segmented-control', 'password-field',
+  'divider', '_accordion-indicator', 'accordion', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'list-item',
+  'list', 'segmented-control-segment', 'segmented-control', 'link',
+  'dialog', 'password-field',
 ]);
 
 export const planSetLayout = (plans: AnatomyPlan[], fn: string) => {

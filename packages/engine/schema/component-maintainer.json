@@ -74,7 +74,6 @@
           "native disabled vs focusable isInactive — the practice defaults to isInactive for relevant-but-blocked, but focusable aria-disabled is not yet the field-wide default (per-engagement decision).",
           "a low-emphasis destructive (\"quiet Delete\") is expressed as the Destructive Button at appearance=text rather than a fully orthogonal emphasis×tone split — tone is the component (#1223), emphasis is the appearance axis within it.",
           "outline/text hover uses the interactive overlay wash, which assumes outlineInteraction=overlay-neutral (the default); a solid-tint / none brand rebinds those slots before projection (`applyOutlineInteraction`, #1608: the tinted-wash variable interactive.<color>.subtle-fill, the control's own fill at an opacity step (#1614, #1646) / no hover fill), on the inverse band too.",
-          "polymorphism (brief §3) — a separate link-button over a generic `as` prop, and where polymorphism is unavoidable, infer `<a>` from `href`. This def keeps `href` as a discouraged escape hatch and lists link-button as planned.",
           "the `modifiers` axis (brief §4, §15) — the brief lists leading-visual / trailing-visual / icon-only / pending as one modifiers axis. This def omits it (#845): the two visuals are slot-presence axes, pending is a state, and icon-only is the separate icon-button."
         ],
         "unverified": [
@@ -82,6 +81,7 @@
           "motion timing — the brief's ~100–150ms state transition is carried in `motion.reduceMotion` as the target. No motion token is bound, so nothing gates it."
         ],
         "evolution": [
+          "2026-10-14 (#2580, owner decision Q289.6 A): polymorphism (brief §3) — no separate link-button. Button takes href and renders <a>, and the href prop is no longer discouraged; a lighter navigation is Link.",
           "ghost vs plain (brief §3) — the brief flagged `ghost` (an intent) and `plain` (an appearance) as overlapping at the low-emphasis end. Resolved by retiring `ghost` as a color: the quiet button is Button.Neutral at appearance=text (docs/20). Icon-button reuses the word as its appearance value (#1432), where there is no text to name.",
           "RESOLVED (was the v1 HIGH finding): interaction states existed only on the solid action/danger roles, so the default (neutral) button was hover-less. The interactive color system (docs/20) gives every color — primary/neutral/destructive — the full fill+states/on-fill/border/text/overlay shape, so the matrix is now uniform and the default button has proper hover/pressed. Disabled is the cross-cutting disabled.* family, no longer scattered per-color.",
           "RESOLVED (#1260): type.label.lg now exists (18px / emphasis) and size.large.type binds it, so a large button label is one rung above medium (14 → 18) rather than reusing type.label.md.",
@@ -112,7 +112,6 @@
           "native disabled vs focusable isInactive — the practice defaults to isInactive for relevant-but-blocked, but focusable aria-disabled is not yet the field-wide default (per-engagement decision).",
           "a low-emphasis destructive (\"quiet Delete\") is expressed as the Destructive Button at appearance=text rather than a fully orthogonal emphasis×tone split — tone is the component (#1223), emphasis is the appearance axis within it.",
           "outline/text hover uses the interactive overlay wash, which assumes outlineInteraction=overlay-neutral (the default); a solid-tint / none brand rebinds those slots before projection (`applyOutlineInteraction`, #1608: the tinted-wash variable interactive.<color>.subtle-fill, the control's own fill at an opacity step (#1614, #1646) / no hover fill), on the inverse band too.",
-          "polymorphism (brief §3) — a separate link-button over a generic `as` prop, and where polymorphism is unavoidable, infer `<a>` from `href`. This def keeps `href` as a discouraged escape hatch and lists link-button as planned.",
           "the `modifiers` axis (brief §4, §15) — the brief lists leading-visual / trailing-visual / icon-only / pending as one modifiers axis. This def omits it (#845): the two visuals are slot-presence axes, pending is a state, and icon-only is the separate icon-button."
         ],
         "unverified": [
@@ -120,6 +119,7 @@
           "motion timing — the brief's ~100–150ms state transition is carried in `motion.reduceMotion` as the target. No motion token is bound, so nothing gates it."
         ],
         "evolution": [
+          "2026-10-14 (#2580, owner decision Q289.6 A): polymorphism (brief §3) — no separate link-button. Button takes href and renders <a>, and the href prop is no longer discouraged; a lighter navigation is Link.",
           "ghost vs plain (brief §3) — the brief flagged `ghost` (an intent) and `plain` (an appearance) as overlapping at the low-emphasis end. Resolved by retiring `ghost` as a color: the quiet button is Button.Neutral at appearance=text (docs/20). Icon-button reuses the word as its appearance value (#1432), where there is no text to name.",
           "RESOLVED (was the v1 HIGH finding): interaction states existed only on the solid action/danger roles, so the default (neutral) button was hover-less. The interactive color system (docs/20) gives every color — primary/neutral/destructive — the full fill+states/on-fill/border/text/overlay shape, so the matrix is now uniform and the default button has proper hover/pressed. Disabled is the cross-cutting disabled.* family, no longer scattered per-color.",
           "RESOLVED (#1260): type.label.lg now exists (18px / emphasis) and size.large.type binds it, so a large button label is one rung above medium (14 → 18) rather than reusing type.label.md.",
@@ -150,7 +150,6 @@
           "native disabled vs focusable isInactive — the practice defaults to isInactive for relevant-but-blocked, but focusable aria-disabled is not yet the field-wide default (per-engagement decision).",
           "a low-emphasis destructive (\"quiet Delete\") is expressed as the Destructive Button at appearance=text rather than a fully orthogonal emphasis×tone split — tone is the component (#1223), emphasis is the appearance axis within it.",
           "outline/text hover uses the interactive overlay wash, which assumes outlineInteraction=overlay-neutral (the default); a solid-tint / none brand rebinds those slots before projection (`applyOutlineInteraction`, #1608: the tinted-wash variable interactive.<color>.subtle-fill, the control's own fill at an opacity step (#1614, #1646) / no hover fill), on the inverse band too.",
-          "polymorphism (brief §3) — a separate link-button over a generic `as` prop, and where polymorphism is unavoidable, infer `<a>` from `href`. This def keeps `href` as a discouraged escape hatch and lists link-button as planned.",
           "the `modifiers` axis (brief §4, §15) — the brief lists leading-visual / trailing-visual / icon-only / pending as one modifiers axis. This def omits it (#845): the two visuals are slot-presence axes, pending is a state, and icon-only is the separate icon-button."
         ],
         "unverified": [
@@ -158,6 +157,7 @@
           "motion timing — the brief's ~100–150ms state transition is carried in `motion.reduceMotion` as the target. No motion token is bound, so nothing gates it."
         ],
         "evolution": [
+          "2026-10-14 (#2580, owner decision Q289.6 A): polymorphism (brief §3) — no separate link-button. Button takes href and renders <a>, and the href prop is no longer discouraged; a lighter navigation is Link.",
           "ghost vs plain (brief §3) — the brief flagged `ghost` (an intent) and `plain` (an appearance) as overlapping at the low-emphasis end. Resolved by retiring `ghost` as a color: the quiet button is Button.Neutral at appearance=text (docs/20). Icon-button reuses the word as its appearance value (#1432), where there is no text to name.",
           "RESOLVED (was the v1 HIGH finding): interaction states existed only on the solid action/danger roles, so the default (neutral) button was hover-less. The interactive color system (docs/20) gives every color — primary/neutral/destructive — the full fill+states/on-fill/border/text/overlay shape, so the matrix is now uniform and the default button has proper hover/pressed. Disabled is the cross-cutting disabled.* family, no longer scattered per-color.",
           "RESOLVED (#1260): type.label.lg now exists (18px / emphasis) and size.large.type binds it, so a large button label is one rung above medium (14 → 18) rather than reusing type.label.md.",
@@ -252,6 +252,93 @@
           "RESOLVED (#1427): a `surface` axis (default | inverse), following Button, and the glyph ink walks state on outline/ghost as Button's label does.",
           "RESOLVED (#1350, owner-decided 2026-09-08): icon-button keeps the 1:1 glyph rung (medium → icon.size.md, 24px), matching a standalone icon, where the text-bearing Button moved one rung smaller.",
           "RESOLVED (#1697): the disabled edge binds the disabled icon ink (as #1349 did for Button) instead of `color.disabled.border`, which measured 1.48–1.80:1 against the page; the pending member swaps in the real spinner."
+        ],
+        "projection": []
+      }
+    },
+    "flush-icon-button": {
+      "codeOnly": [
+        "touch-target-expansion — the visible box is the glyph square (20px at small and medium, 24px at large) and carries no padding, so the hit area is at least 44×44px at every size in code: an invisible extension, such as a transparent `::before` inset outward and centered on the glyph, reaches past the glyph into the space around it, while the box stays glyph-sized so the glyph still lines up with the content edge. Figma has no hit areas, so it draws the glyph square only. A host must leave the extension room: two flush icon buttons closer than 44px apart, center to center, overlap their hit areas.",
+        "focus-ring-offset — the ring geometry projects (an absolute sibling nesting the shared `focus-ring`), and its position is frozen at paste, as on IconButton: Figma's x and y accept no variable binding, so the build writes the sum of `focus.ring.offset` and `focus.ring.width`.",
+        "aria-label — the required accessible name, held at the type level in code. Figma cannot hold \"required\", and a text property named for it would read as a name already given.",
+        "Exposed state in a host — a host such as a counter nests this button with its `state` exposed, so the designer can show one side disabled at a limit. In code the host sets `aria-disabled=\"true\"` on that button at the limit rather than native disabled, so it stays in the accessibility tree.",
+        "RTL mirroring — only a directional glyph flips under RTL (a back or forward chevron); close, minus and plus stay as drawn.",
+        "the round focus ring — on the circle, the ring is round too: its radius is the host radius plus the ring offset, derived in code as on IconButton's circular shape, since the shared ring binds no radius of its own."
+      ],
+      "notes": {
+        "contested": [
+          "TWO NESTS EXPOSING `state` ON ONE HOST are built and exposed on the shim (`test-roundtrip.ts`), but untested on a real host, where Figma lists each exposed instance's properties under its layer name."
+        ],
+        "unverified": [
+          "motion timing — no motion token is bound, so nothing gates the 100–150ms target.",
+          "The focus ring clears 3:1 against the page (gated, focus-ring.ts); against a host's fill it is not measured.",
+          "The round edge, `color.border.secondary`, is about 2:1 against the page by design (decorative, no floor). The glyph ink clears 3:1 against the page per family (gated, `test.ts` #2457); on the round shape's hover and pressed wash it keeps its contrast through the overlay contract (`interactive.<family>.overlay.*` against the family's text ink), which is gated for text ink, not the icon ink."
+        ],
+        "evolution": [
+          "Q283.3 A (2026-10-14): its own small def rather than an `inset` axis on IconButton's ghost appearance, so the three IconButton sets stay as they are.",
+          "Q287 A (2026-10-14): one component with two shapes, `flush` and `round`, rather than a second def. The Counter's outlined appearance nests flush and its ghost appearance nests round.",
+          "Q295 (2026-10-14): the name `FlushIconButton` / `flush-icon-button` (A); a 44×44 code-side hit area at every size, small included (A); sizes small, medium, large (A); `shape: flush | round` (A); round 36 / 44 / 56 (A); the glyph 20 / 20 / 24 on both shapes (A); the neutral roles as built (A).",
+          "Q295.2 B (2026-10-14): primary and destructive beside neutral, on both shapes, as IconButton's three components: the bare id is primary, the siblings `-destructive` and `-neutral`, and each takes its IconButton's ghost ink and wash.",
+          "Q296 A (2026-10-14): the 44px spacing between two flush icon buttons is center to center, so their 44×44 hit areas touch without overlapping.",
+          "Q305.1 A (2026-10-14): the round edge stays the decorative color.border.secondary (color.disabled.border at disabled) on all three families; the glyph carries the family color."
+        ],
+        "projection": []
+      }
+    },
+    "flush-icon-button-destructive": {
+      "codeOnly": [
+        "touch-target-expansion — the visible box is the glyph square (20px at small and medium, 24px at large) and carries no padding, so the hit area is at least 44×44px at every size in code: an invisible extension, such as a transparent `::before` inset outward and centered on the glyph, reaches past the glyph into the space around it, while the box stays glyph-sized so the glyph still lines up with the content edge. Figma has no hit areas, so it draws the glyph square only. A host must leave the extension room: two flush icon buttons closer than 44px apart, center to center, overlap their hit areas.",
+        "focus-ring-offset — the ring geometry projects (an absolute sibling nesting the shared `focus-ring`), and its position is frozen at paste, as on IconButton: Figma's x and y accept no variable binding, so the build writes the sum of `focus.ring.offset` and `focus.ring.width`.",
+        "aria-label — the required accessible name, held at the type level in code. Figma cannot hold \"required\", and a text property named for it would read as a name already given.",
+        "Exposed state in a host — a host such as a counter nests this button with its `state` exposed, so the designer can show one side disabled at a limit. In code the host sets `aria-disabled=\"true\"` on that button at the limit rather than native disabled, so it stays in the accessibility tree.",
+        "RTL mirroring — only a directional glyph flips under RTL (a back or forward chevron); close, minus and plus stay as drawn.",
+        "the round focus ring — on the circle, the ring is round too: its radius is the host radius plus the ring offset, derived in code as on IconButton's circular shape, since the shared ring binds no radius of its own."
+      ],
+      "notes": {
+        "contested": [
+          "TWO NESTS EXPOSING `state` ON ONE HOST are built and exposed on the shim (`test-roundtrip.ts`), but untested on a real host, where Figma lists each exposed instance's properties under its layer name."
+        ],
+        "unverified": [
+          "motion timing — no motion token is bound, so nothing gates the 100–150ms target.",
+          "The focus ring clears 3:1 against the page (gated, focus-ring.ts); against a host's fill it is not measured.",
+          "The round edge, `color.border.secondary`, is about 2:1 against the page by design (decorative, no floor). The glyph ink clears 3:1 against the page per family (gated, `test.ts` #2457); on the round shape's hover and pressed wash it keeps its contrast through the overlay contract (`interactive.<family>.overlay.*` against the family's text ink), which is gated for text ink, not the icon ink."
+        ],
+        "evolution": [
+          "Q283.3 A (2026-10-14): its own small def rather than an `inset` axis on IconButton's ghost appearance, so the three IconButton sets stay as they are.",
+          "Q287 A (2026-10-14): one component with two shapes, `flush` and `round`, rather than a second def. The Counter's outlined appearance nests flush and its ghost appearance nests round.",
+          "Q295 (2026-10-14): the name `FlushIconButton` / `flush-icon-button` (A); a 44×44 code-side hit area at every size, small included (A); sizes small, medium, large (A); `shape: flush | round` (A); round 36 / 44 / 56 (A); the glyph 20 / 20 / 24 on both shapes (A); the neutral roles as built (A).",
+          "Q295.2 B (2026-10-14): primary and destructive beside neutral, on both shapes, as IconButton's three components: the bare id is primary, the siblings `-destructive` and `-neutral`, and each takes its IconButton's ghost ink and wash.",
+          "Q296 A (2026-10-14): the 44px spacing between two flush icon buttons is center to center, so their 44×44 hit areas touch without overlapping.",
+          "Q305.1 A (2026-10-14): the round edge stays the decorative color.border.secondary (color.disabled.border at disabled) on all three families; the glyph carries the family color."
+        ],
+        "projection": []
+      }
+    },
+    "flush-icon-button-neutral": {
+      "codeOnly": [
+        "touch-target-expansion — the visible box is the glyph square (20px at small and medium, 24px at large) and carries no padding, so the hit area is at least 44×44px at every size in code: an invisible extension, such as a transparent `::before` inset outward and centered on the glyph, reaches past the glyph into the space around it, while the box stays glyph-sized so the glyph still lines up with the content edge. Figma has no hit areas, so it draws the glyph square only. A host must leave the extension room: two flush icon buttons closer than 44px apart, center to center, overlap their hit areas.",
+        "focus-ring-offset — the ring geometry projects (an absolute sibling nesting the shared `focus-ring`), and its position is frozen at paste, as on IconButton: Figma's x and y accept no variable binding, so the build writes the sum of `focus.ring.offset` and `focus.ring.width`.",
+        "aria-label — the required accessible name, held at the type level in code. Figma cannot hold \"required\", and a text property named for it would read as a name already given.",
+        "Exposed state in a host — a host such as a counter nests this button with its `state` exposed, so the designer can show one side disabled at a limit. In code the host sets `aria-disabled=\"true\"` on that button at the limit rather than native disabled, so it stays in the accessibility tree.",
+        "RTL mirroring — only a directional glyph flips under RTL (a back or forward chevron); close, minus and plus stay as drawn.",
+        "the round focus ring — on the circle, the ring is round too: its radius is the host radius plus the ring offset, derived in code as on IconButton's circular shape, since the shared ring binds no radius of its own."
+      ],
+      "notes": {
+        "contested": [
+          "TWO NESTS EXPOSING `state` ON ONE HOST are built and exposed on the shim (`test-roundtrip.ts`), but untested on a real host, where Figma lists each exposed instance's properties under its layer name."
+        ],
+        "unverified": [
+          "motion timing — no motion token is bound, so nothing gates the 100–150ms target.",
+          "The focus ring clears 3:1 against the page (gated, focus-ring.ts); against a host's fill it is not measured.",
+          "The round edge, `color.border.secondary`, is about 2:1 against the page by design (decorative, no floor). The glyph ink clears 3:1 against the page per family (gated, `test.ts` #2457); on the round shape's hover and pressed wash it keeps its contrast through the overlay contract (`interactive.<family>.overlay.*` against the family's text ink), which is gated for text ink, not the icon ink."
+        ],
+        "evolution": [
+          "Q283.3 A (2026-10-14): its own small def rather than an `inset` axis on IconButton's ghost appearance, so the three IconButton sets stay as they are.",
+          "Q287 A (2026-10-14): one component with two shapes, `flush` and `round`, rather than a second def. The Counter's outlined appearance nests flush and its ghost appearance nests round.",
+          "Q295 (2026-10-14): the name `FlushIconButton` / `flush-icon-button` (A); a 44×44 code-side hit area at every size, small included (A); sizes small, medium, large (A); `shape: flush | round` (A); round 36 / 44 / 56 (A); the glyph 20 / 20 / 24 on both shapes (A); the neutral roles as built (A).",
+          "Q295.2 B (2026-10-14): primary and destructive beside neutral, on both shapes, as IconButton's three components: the bare id is primary, the siblings `-destructive` and `-neutral`, and each takes its IconButton's ghost ink and wash.",
+          "Q296 A (2026-10-14): the 44px spacing between two flush icon buttons is center to center, so their 44×44 hit areas touch without overlapping.",
+          "Q305.1 A (2026-10-14): the round edge stays the decorative color.border.secondary (color.disabled.border at disabled) on all three families; the glyph carries the family color."
         ],
         "projection": []
       }
@@ -1074,6 +1161,70 @@
         "evolution": [
           "2026-10-13 (#2418): owner decisions Q269 1–8 A. Two defs, Segment (30 members) nested in the control (3); view behavior by default; bold selected label with its width held; neutral hover wash and radius.md / radius.sm, both provisional; grow on a nested instance for equal widths; Segment 3 on, 4 and 5 off.",
           "2026-10-13 (#2418): owner decisions Q278 1–6 A, on the built control: hover and shape kept; built at 320, which fits three options at every size (with all five shown at large the options can run narrower than their labels until a designer widens the control); no track padding or gap, each option carrying its own 4px inset; the page sorts alphabetically, between Radio and Select."
+        ],
+        "projection": []
+      }
+    },
+    "link": {
+      "codeOnly": [
+        "code delivery pending: behavior layer. The entries below are a framework-neutral behavior contract for whichever layer the project's developers choose.",
+        "The anchor — always a real <a href> with the label text inside it; Enter activates and Space scrolls the page. With no href, render plain text: never an <a> without one, href=\"#\", javascript:void(0) or a click handler on a div.",
+        "Router integration — asChild merges the link's classes, ref and handlers onto the router's own link child, so one <a href> renders and the design system depends on no router.",
+        "The external link — isExternal adds target=\"_blank\", rel=\"noopener noreferrer\", the trailing external icon and visually hidden \"(opens in new tab)\" text.",
+        "The visited color — :visited uses color.text.link.visited for content and docs links, usually omitted in app navigation. Browsers allow only color properties under :visited. Figma carries no visited member.",
+        "The current page — aria-current=\"page\" on the current item in a navigation and on a breadcrumb's last item; a visual style alone is not enough. Figma carries no current member.",
+        "The underline — text-decoration-skip-ink: auto and a text-underline-offset, so the line clears descenders. Standalone shows it at :hover, :active and :focus-visible; inline at every state.",
+        "The hit-target expansion — the box is one text line tall; where the line is under 24px, a code-side hit area (padding with a matching negative margin, or a pseudo-element) reaches 24px without moving the text around it. An inline link in a sentence is exempt.",
+        "The skip link — \"Skip to main content\", the first focusable element, href=\"#main\", visually hidden by clipping until it has focus. A pattern built from Link, not a separate component.",
+        "The color transition — about 150ms on color and the underline at hover and focus; under prefers-reduced-motion it snaps.",
+        "RTL — logical properties move the trailing icon to the leading edge, and directional glyphs (the arrow, the external icon) mirror.",
+        "text expansion — links wrap across lines and keep the underline, and the trailing icon stays inline with the last word rather than centered on the wrapped block (Figma shows one line, so it centers there); never white-space: nowrap on a link."
+      ],
+      "notes": {
+        "contested": [
+          "The brief lists a quiet style (no underline, muted) and an inverse static-color style. Q289.2 A: no quiet for now; inverse is the `surface` axis, which takes the theme's inverse link roles rather than forced white or black.",
+          "The brief lists a link-button alias. Q289.6 A: Button takes href and renders <a>, so link-button is not an alias of this component."
+        ],
+        "unverified": [
+          "The contrast floors (4.94:1 lowest at rest on background.primary, 4.56:1 on background.secondary) were measured for the proposal from the committed emission; no gate holds Link's ink to them beyond the shared link roles' own contracts."
+        ],
+        "evolution": [
+          "2026-10-14 (#2580, owner decisions Q289): a standalone Link plus an inline look (1 A); style standalone | inline, standalone underlined at hover, pressed and focus, inline always (2 A); two weights, emphasis first and the default (3 B); one line tall with a code-side 24px hit area (4 A); visited and current code only (5 A); Button takes href, no LinkButton (6 A); Link / link, navigation, aliases text-link, anchor, hyperlink (7 A); the wording \"Link text\", \"(opens in new tab)\" and the summary (8 A).",
+          "2026-10-14 (#2580, owner decisions Q297): the body type tier for both styles, 14 / 16 / 18px, with no 12px link (1); a trailing icon only, on standalone links only, 16px with 14px and 16px text and 20px with 18px text (2); the weight wording, with the values kept as emphasis | default (3)."
+        ],
+        "projection": []
+      }
+    },
+    "dialog": {
+      "codeOnly": [
+        "role — `role=\"dialog\"` with `aria-modal=\"true\"`; the native `<dialog>` opened with `showModal()` provides both. `role: \"alertdialog\"` is a code prop with no Figma property: set it for a confirmation that interrupts and needs an answer. An alertdialog hides the close button (the Figma `close` toggle shows the result), keeps a backdrop click from closing it, and must hold at least one focusable control.",
+        "labeling — `aria-labelledby` points at the title, made a heading (`<h2>`); `aria-describedby` points at the description when there is one.",
+        "focus in — on open, focus moves into the dialog: to the first control in the body for a short form; to the title (`tabindex=\"-1\"`) when the body is long reading content, so a screen reader starts at the top; for an alertdialog, to the least destructive action (Cancel). Never to a destructive button.",
+        "focus held — Tab and Shift+Tab cycle inside the dialog, and the page behind is inert. A modal `<dialog>` makes the page inert natively.",
+        "focus returned — on close, focus goes back to the control that opened the dialog. If that control is gone, to the nearest control that still makes sense, never to the page body.",
+        "Escape — closes a dialog, and closes an alertdialog as Cancel. The close button is always reachable by keyboard, so the dialog is never a keyboard trap (SC 2.1.2).",
+        "backdrop click — closes a dialog, never an alertdialog. Close only when the press started on the backdrop (`mousedown` target is the dialog element itself), so a text selection dragged out of the panel does not close it. A full-screen dialog has no visible backdrop; Escape and the close button still apply.",
+        "scroll lock — the page behind does not scroll while the dialog is open (`html:has(dialog[open]) { overflow: hidden }`, with the scrollbar width added back as padding so the page does not shift). The body scrolls with `overscroll-behavior: contain`, so a scroll at its end does not move the page.",
+        "only the body scrolls — the header and footer stay put and the body scrolls between them, so a focused field in the body is never hidden under the footer (SC 2.4.11). Show the two dividers only while the body overflows; in Figma they are the `dividers` toggle.",
+        "placement per breakpoint, no automatic switch — `placement` can take a value per breakpoint, but nothing switches on its own: a dialog stays centered on a phone unless the product chooses bottom or full. A centered panel on a small screen is the viewport width less the grid margins. Bottom and full are full width; full is also full height. A bottom sheet is at most 90% of the viewport height, so the page shows above it; a centered panel at most the viewport height less the grid margin top and bottom. Above that, the body scrolls.",
+        "the panel padding below 480px — `space.200` instead of `space.300` on a centered panel when the viewport is narrower than 480px. Figma builds the bottom and full members, which are small-screen placements, with `space.200`.",
+        "motion — opening: a centered panel fades in and scales up a little; a bottom sheet and a full-screen dialog slide up from the bottom edge; the backdrop fades. On `motion.duration.moderate` with `motion.easing-role.enter`, and `motion.easing-role.exit` to close. Under `prefers-reduced-motion`, a fade only, at `motion.duration-reduced.moderate`, with no movement. Figma shows the panel at rest.",
+        "the backdrop — `color.scrim.default` on `::backdrop`. It is not part of the component: the Figma page draws it behind each example as canvas furniture.",
+        "stacking — a modal `<dialog>` renders in the top layer, so it needs no z-index. Avoid opening a dialog from a dialog: replace the content or close the first.",
+        "right-to-left — the layout mirrors through logical properties: the close button moves to the start edge and the footer order mirrors.",
+        "code delivery pending: behavior layer (#2454) — initial focus placement, backdrop-click dismissal and focus return wait on that decision. The contract above holds under any answer to it."
+      ],
+      "notes": {
+        "contested": [
+          "HELD FOR THE OWNER (#2609): the bottom and full members' build size (360 wide, and 640 tall for full), the title-to-description gap (space.100) and the title-to-close gap (space.200), the body placeholder copy, the description text property's Figma name (\"description text\"), the `actions` prop, and Cancel as an outline Button beside a filled Save.",
+          "The close button sits at the header's top edge, beside the first line of the title, without an offset that centers it on that line: whether the title moves down to center on the 44px button is held for the owner's visual QA."
+        ],
+        "unverified": [
+          "The nested close button shows the file's default icon until a designer swaps it to close, and the nested footer buttons read \"Button\" until a designer types \"Cancel\" and \"Save\": a per-instance override on a nested instance is executor work no def can ask for yet (#2645).",
+          "That the native slot keeps a designer's body content across a placement or footer switch in every Figma plan, as it does across the accordion's expansion switch."
+        ],
+        "evolution": [
+          "Owner decisions: the proposal on #2609 (one component, the anatomy, the tokens, the accessibility contract), and Q303 (2026-10-14): no side or drawer placement; `placement` center, bottom or full, with no automatic switch; the backdrop `color.scrim.default` as canvas furniture and `::backdrop`; def-level widths; footer inline, stacked or none; Escape, close and backdrop click dismiss a dialog, and an alertdialog only through its buttons or Escape; `role` a code prop that hides close on an alertdialog; close on by default; corners per placement; the names and aliases; the placeholder wording."
         ],
         "projection": []
       }

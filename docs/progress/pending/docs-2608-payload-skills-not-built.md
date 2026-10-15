@@ -1,0 +1,7 @@
+## (2026-10-15) — CLAUDE.md: per-brand payload skills are planned, not emitted (#2608, Q320.3)
+
+**What changed.** One clause in `CLAUDE.md`'s `skills/` row. It said per-brand payload skills "are emitted by the engine (#668)". They are not: #668 is open and nothing emits them yet. The row now says they "will be emitted by the engine (#668, not yet built)".
+
+**Evidence, for whoever re-checks this.** `git ls-files packages/engine/out | grep -iE 'skill|agents|claude|instruction'` returns nothing. No engine source writes a `SKILL.md` or an instruction file: the only engine files that name `skills/` are gates and tests that read the four hand-authored skills in this repo (`lint-skills.ts`, `test.ts`, `lint-us-english.ts`, `lint-voice.ts`, `lint-layout-claims.ts`). `schema/payload-manifest.json` has no skill or instruction kind. What does travel today is the agent *metadata* that #668 builds on: `out/{brand}.ai.json` (kind `agent-metadata`), `out/components/components.ai.json`, and the per-component pages in `out/components/*.md`, which the manifest calls "the seed for the per-brand payload skills (#668)". So the missing emission is already filed as #668, and this PR files nothing new.
+
+**Trap.** The open CLAUDE.md trim (#2672) rewrites the same table row and keeps the old present-tense clause. Whichever of the two merges second must keep "not yet built", or the wrong claim comes back.

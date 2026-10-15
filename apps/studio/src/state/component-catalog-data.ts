@@ -277,6 +277,51 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     ]
   },
   {
+    "id": "flush-icon-button",
+    "name": "FlushIconButton",
+    "category": "form",
+    "summary": "Icon-only brand action inside a component: a bare glyph or a light circle. Needs an accessible name.",
+    "unit": "variants",
+    "spacing": [],
+    "buildable": true,
+    "reason": null,
+    "members": 30,
+    "nests": [
+      "icon",
+      "focus-ring"
+    ]
+  },
+  {
+    "id": "flush-icon-button-destructive",
+    "name": "FlushIconButton.Destructive",
+    "category": "form",
+    "summary": "Icon-only destructive action in a component: a bare glyph or light circle. Needs an accessible name.",
+    "unit": "variants",
+    "spacing": [],
+    "buildable": true,
+    "reason": null,
+    "members": 30,
+    "nests": [
+      "icon",
+      "focus-ring"
+    ]
+  },
+  {
+    "id": "flush-icon-button-neutral",
+    "name": "FlushIconButton.Neutral",
+    "category": "form",
+    "summary": "Icon-only action inside another component: a bare glyph or a light circle. Needs an accessible name.",
+    "unit": "variants",
+    "spacing": [],
+    "buildable": true,
+    "reason": null,
+    "members": 30,
+    "nests": [
+      "icon",
+      "focus-ring"
+    ]
+  },
+  {
     "id": "field-label",
     "name": "FieldLabel",
     "category": "form",
@@ -969,6 +1014,50 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "nests": [
       "field-label",
       "segmented-control-segment"
+    ]
+  },
+  {
+    "id": "link",
+    "name": "Link",
+    "category": "navigation",
+    "summary": "Text that goes to another page, a place on the page or a file. Underlined in running text.",
+    "unit": "variants",
+    "spacing": [
+      {
+        "key": "size.small.gap",
+        "ref": "space.050"
+      },
+      {
+        "key": "size.medium.gap",
+        "ref": "space.050"
+      },
+      {
+        "key": "size.large.gap",
+        "ref": "space.100"
+      }
+    ],
+    "buildable": true,
+    "reason": null,
+    "members": 96,
+    "nests": [
+      "icon",
+      "focus-ring"
+    ]
+  },
+  {
+    "id": "dialog",
+    "name": "Dialog",
+    "category": "overlay",
+    "summary": "A panel over the page for a short task or a decision. Centered, a bottom sheet, or full screen.",
+    "unit": "variants",
+    "spacing": [],
+    "buildable": true,
+    "reason": null,
+    "members": 15,
+    "nests": [
+      "icon-button-neutral",
+      "divider",
+      "button"
     ]
   },
   {
