@@ -330,6 +330,7 @@ export const accordion: ComponentDef = {
     contested: [
       'PENDING THE OWNER\'S VISUAL QA (Q241): the padding steps (inline 12/16/24, block 8/12/16, gap 8/12/16) and the panel insets (no top, then 12/16/24 below, with the content aligned to the header edge rather than to the title). Approved in Q241: the inks (`interactive.neutral.text.rest` for the title, `text.primary` for the panel placeholder), the Figma copy ("Section title", and the panel placeholder), the property names, the page placement and the prose.',
       'A flush style only: the brief\'s contained (boxed card) variant is not built.',
+      'DRAFT (#2646), for the owner: the panel slot (`content`) declares no constraint. No minimum or maximum child count, no preferred components and not preferred-only, and a new instance shows the placeholder. A section holds whatever its content is (text, a list, a form, an image), so any limit here would flag ordinary use.',
     ],
     unverified: [
       'That the native slot behaves the same on a designer\'s instance in every Figma plan: slots were measured in one file; a plan without the feature keeps the panel as a plain frame, and the build says so.',

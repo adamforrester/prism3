@@ -769,7 +769,7 @@
     },
     {
       "file": "packages/engine/regen.ts",
-      "summary": "regen.ts — the single entry point for regenerating EVERY committed generated artifact — `out/**`, the three emitted `schema/` contracts, and the two engine-root reports — plus the drift gate that proves the committed copies still match what the engine emits (#281).",
+      "summary": "regen.ts — the single entry point for regenerating EVERY committed generated artifact — `out/**`, the three emitted `schema/` contracts, and the two engine-root reports, and the analysis reports under `docs/public/reports/` (#2651) — plus the drift gate that proves the committed copies still match what the engine emits (#281).",
       "usage": [
         {
           "text": "npx tsx packages/engine/regen.ts            # regenerate everything, in place",

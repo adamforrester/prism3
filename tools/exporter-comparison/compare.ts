@@ -818,10 +818,11 @@ const explainViaModeOverlay = (
 //  THE PREFIXES ARE DTCG PATHS ON PRISM3'S SIDE, so #1102's `core` tier moved three of them: the font
 //  primitives are now `core.font.*`, not `font.*`. A prefix that no longer matches anything does not
 //  go quiet here — the paths it used to explain reappear as unexplained failures, which is how these
-//  were found (29 on aurora, 28 on nb, 29 on wendys). `motion.` is unchanged: motion is not a core
-//  primitive tier and did not move.
+//  were found (29 on aurora, 28 on nb, 29 on wendys). `motion.` did not move with #1102; #2412 narrowed it
+//  to `motion.transition.` when the rest of motion became Figma variables.
 const NOT_IN_EMISSION = [
-  { prefix: 'motion.', why: 'no motion collection is emitted at all (Figma has no duration/easing variable type)' },
+  // Narrowed from `motion.` by #2412: durations, curves, roles and springs are Figma variables now.
+  { prefix: 'motion.transition.', why: 'a transition is a composite and Figma has no composite variable (owner Q291 4): its duration and easing role are emitted, the transition is not' },
   { prefix: 'core.font.line-height', why: 'line-height reaches Figma only inside a text style, never as its own variable' },
   { prefix: 'core.font.letter-spacing', why: 'letter-spacing reaches Figma only inside a text style, never as its own variable' },
   { prefix: 'core.font.typeface.', why: 'the typeface primitive tier is collapsed: the emission writes the resolved face onto `<root>/core/font/family/*`' },

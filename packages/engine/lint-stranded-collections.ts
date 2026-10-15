@@ -49,7 +49,7 @@
  *
  *   ARM 1 COVERAGE   The plan's MEMBERSHIP is hand-authored even though its spellings are derived:
  *                    `buildFloatWritePlan` returns ten hand-written `named([dims.…])` entries, and
- *                    `buildFontVarPlan` two. An eleventh emitted axis gets a plan only if somebody
+ *                    `buildFontVarPlan` two, `buildMotionVarPlan` one (#2412). An eleventh emitted axis gets a plan only if somebody
  *                    writes one. So "is every emitted variable collection named by SOME plan?" is a
  *                    real question with a hand-authored answer — the one this arm asks. Deleting a
  *                    line from that list strands the axis from birth.
@@ -106,7 +106,7 @@ import { readExampleBrand } from './emit-dtcg.ts';
 import { parseStandardDesignMd, standardToBrandInput } from './standard-design-md.ts';
 import { buildFigmaColor } from './emit-figma-color.ts';
 import { figmaArtifacts } from './emit-figma.ts';
-import { buildFloatWritePlan, buildFontVarPlan } from './write-plan.ts';
+import { buildFloatWritePlan, buildFontVarPlan, buildMotionVarPlan } from './write-plan.ts';
 import { COLLECTION_RENAMES } from './rename-map.ts';
 
 const HERE = import.meta.dirname;
@@ -187,6 +187,7 @@ const planOwned = (theme: Theme): Set<string> => {
     ...color.color.map((c) => c.$collection),
     ...buildFloatWritePlan(theme).map((p) => p.name),
     ...buildFontVarPlan(theme).map((p) => p.name),
+    ...buildMotionVarPlan(theme).map((p) => p.name), // #2412 — `motion` is TIMING + EASING, not a FLOAT axis
   ]);
 };
 
@@ -234,7 +235,7 @@ for (const brand of brands) {
       failures.push(
         `${brand}: STRANDED — the ${source} emission declares variable collection '${c}', and no write ` +
         `plan names it. Nothing writes it into a designer's file, and because no executor walks it, ` +
-        `nothing reports that either. Give it a plan (buildFloatWritePlan / buildFontVarPlan), or stop ` +
+        `nothing reports that either. Give it a plan (buildFloatWritePlan / buildFontVarPlan / buildMotionVarPlan), or stop ` +
         `emitting it.`,
       );
     }

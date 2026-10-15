@@ -275,6 +275,17 @@ npx tsx packages/engine/emit-dtcg.ts                # every alias resolves + eve
 npx tsx packages/engine/emit-figma.ts               # the Figma import artifact
 npx tsx packages/engine/regen.ts --check            # no committed artifact has drifted (#281) — the only gate reading the committed tree
 npx tsx packages/engine/token-contract.ts --check   # the token-NAME contract hasn't broken (#464)
+npx tsx packages/engine/lint-contract-version.ts    # CONTRACT_VERSION against the MERGE BASE's (#2334):
+                                                    # the line above compares the constant with the
+                                                    # baseline's number, both in the tree, so writing
+                                                    # an old number back into both passed it. This
+                                                    # reads both at the base with git: MAJOR for a
+                                                    # removed or retyped guaranteed path, at least
+                                                    # MINOR for an added one, the base's own number
+                                                    # when nothing moved. Needs history, FAILS with
+                                                    # no base ref; first parent on main's push run
+                                                    # (`comparison-base.ts`, replayed by
+                                                    # `lint-push-base.ts` below)
 npx tsx packages/engine/emit-agent-reference.ts --check
                                                     # docs/public/reference/commands.json matches the
                                                     # code (#2637): every MCP tool of both servers, every
@@ -392,7 +403,7 @@ npx tsx packages/engine/lint-component-renames.ts
                                                     # so it needs history and FAILS with no base ref;
                                                     # its in-tree arm checks the baseline is current
 npx tsx packages/engine/lint-push-base.ts      # on main's push run the merge base is HEAD, so
-                                                    # the four git-history gates above compared a
+                                                    # the five git-history gates above compared a
                                                     # squash with itself and passed (#2556, the
                                                     # #2551 gap). `comparison-base.ts` gives them
                                                     # HEAD's first parent there; this replays main's
