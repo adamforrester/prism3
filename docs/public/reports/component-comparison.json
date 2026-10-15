@@ -956,6 +956,237 @@
       "sizes": []
     },
     {
+      "id": "flush-icon-button",
+      "name": "FlushIconButton",
+      "category": "form",
+      "states": [
+        "rest",
+        "hover",
+        "pressed",
+        "focus-visible",
+        "disabled"
+      ],
+      "projectedStates": [
+        "rest",
+        "hover",
+        "pressed",
+        "focus-visible",
+        "disabled"
+      ],
+      "axes": {
+        "shape": [
+          "flush",
+          "round"
+        ],
+        "size": [
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      "props": [
+        {
+          "name": "icon"
+        },
+        {
+          "name": "aria-label"
+        },
+        {
+          "name": "onClick"
+        },
+        {
+          "name": "type",
+          "default": "button",
+          "values": [
+            "button",
+            "submit",
+            "reset"
+          ]
+        },
+        {
+          "name": "shape",
+          "default": "flush",
+          "values": [
+            "flush",
+            "round"
+          ]
+        },
+        {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ]
+        },
+        {
+          "name": "disabled",
+          "default": false
+        }
+      ],
+      "sizes": [
+        "small",
+        "medium",
+        "large"
+      ],
+      "sizeDefault": "medium"
+    },
+    {
+      "id": "flush-icon-button-destructive",
+      "name": "FlushIconButton.Destructive",
+      "category": "form",
+      "states": [
+        "rest",
+        "hover",
+        "pressed",
+        "focus-visible",
+        "disabled"
+      ],
+      "projectedStates": [
+        "rest",
+        "hover",
+        "pressed",
+        "focus-visible",
+        "disabled"
+      ],
+      "axes": {
+        "shape": [
+          "flush",
+          "round"
+        ],
+        "size": [
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      "props": [
+        {
+          "name": "icon"
+        },
+        {
+          "name": "aria-label"
+        },
+        {
+          "name": "onClick"
+        },
+        {
+          "name": "type",
+          "default": "button",
+          "values": [
+            "button",
+            "submit",
+            "reset"
+          ]
+        },
+        {
+          "name": "shape",
+          "default": "flush",
+          "values": [
+            "flush",
+            "round"
+          ]
+        },
+        {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ]
+        },
+        {
+          "name": "disabled",
+          "default": false
+        }
+      ],
+      "sizes": [
+        "small",
+        "medium",
+        "large"
+      ],
+      "sizeDefault": "medium"
+    },
+    {
+      "id": "flush-icon-button-neutral",
+      "name": "FlushIconButton.Neutral",
+      "category": "form",
+      "states": [
+        "rest",
+        "hover",
+        "pressed",
+        "focus-visible",
+        "disabled"
+      ],
+      "projectedStates": [
+        "rest",
+        "hover",
+        "pressed",
+        "focus-visible",
+        "disabled"
+      ],
+      "axes": {
+        "shape": [
+          "flush",
+          "round"
+        ],
+        "size": [
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      "props": [
+        {
+          "name": "icon"
+        },
+        {
+          "name": "aria-label"
+        },
+        {
+          "name": "onClick"
+        },
+        {
+          "name": "type",
+          "default": "button",
+          "values": [
+            "button",
+            "submit",
+            "reset"
+          ]
+        },
+        {
+          "name": "shape",
+          "default": "flush",
+          "values": [
+            "flush",
+            "round"
+          ]
+        },
+        {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ]
+        },
+        {
+          "name": "disabled",
+          "default": false
+        }
+      ],
+      "sizes": [
+        "small",
+        "medium",
+        "large"
+      ],
+      "sizeDefault": "medium"
+    },
+    {
       "id": "focus-ring",
       "name": "FocusRing",
       "category": "foundations",
@@ -2853,6 +3084,16 @@
     },
     {
       "kind": "variant family",
+      "name": "FlushIconButton",
+      "members": [
+        "flush-icon-button",
+        "flush-icon-button-destructive",
+        "flush-icon-button-neutral"
+      ],
+      "basis": "components named FlushIconButton or FlushIconButton.<variant>, where the suffix is not a role"
+    },
+    {
+      "kind": "variant family",
       "name": "IconButton",
       "members": [
         "icon-button",
@@ -2895,6 +3136,7 @@
       "name": "button",
       "members": [
         "button",
+        "flush-icon-button",
         "icon-button"
       ],
       "basis": "button and every component that inherits from it, directly or through another"
@@ -2904,6 +3146,7 @@
       "name": "button-destructive",
       "members": [
         "button-destructive",
+        "flush-icon-button-destructive",
         "icon-button-destructive"
       ],
       "basis": "button-destructive and every component that inherits from it, directly or through another"
@@ -2913,6 +3156,7 @@
       "name": "button-neutral",
       "members": [
         "button-neutral",
+        "flush-icon-button-neutral",
         "icon-button-neutral"
       ],
       "basis": "button-neutral and every component that inherits from it, directly or through another"
@@ -2938,6 +3182,9 @@
       "checkbox-control",
       "checkbox-row",
       "field-label",
+      "flush-icon-button",
+      "flush-icon-button-destructive",
+      "flush-icon-button-neutral",
       "icon-button",
       "icon-button-destructive",
       "icon-button-neutral",
@@ -2975,6 +3222,9 @@
       "button-neutral",
       "checkbox-control",
       "checkbox-row",
+      "flush-icon-button",
+      "flush-icon-button-destructive",
+      "flush-icon-button-neutral",
       "icon-button",
       "icon-button-destructive",
       "icon-button-neutral",
@@ -3001,6 +3251,9 @@
       "button-neutral",
       "checkbox-control",
       "checkbox-row",
+      "flush-icon-button",
+      "flush-icon-button-destructive",
+      "flush-icon-button-neutral",
       "icon-button",
       "icon-button-destructive",
       "icon-button-neutral",
@@ -3042,6 +3295,9 @@
       "button-neutral",
       "checkbox-control",
       "checkbox-row",
+      "flush-icon-button",
+      "flush-icon-button-destructive",
+      "flush-icon-button-neutral",
       "icon-button",
       "icon-button-destructive",
       "icon-button-neutral",
@@ -3072,6 +3328,9 @@
       "checkbox-group",
       "checkbox-row",
       "field-label",
+      "flush-icon-button",
+      "flush-icon-button-destructive",
+      "flush-icon-button-neutral",
       "icon-button",
       "icon-button-destructive",
       "icon-button-neutral",
@@ -3322,6 +3581,17 @@
           "icon-button-destructive",
           "icon-button-neutral"
         ]
+      },
+      {
+        "values": [
+          "flush",
+          "round"
+        ],
+        "components": [
+          "flush-icon-button",
+          "flush-icon-button-destructive",
+          "flush-icon-button-neutral"
+        ]
       }
     ],
     "size": [
@@ -3341,6 +3611,9 @@
           "checkbox-group",
           "checkbox-row",
           "field-label",
+          "flush-icon-button",
+          "flush-icon-button-destructive",
+          "flush-icon-button-neutral",
           "icon-button",
           "icon-button-destructive",
           "icon-button-neutral",
@@ -3634,6 +3907,15 @@
         "id": "checkbox-control"
       },
       {
+        "id": "flush-icon-button"
+      },
+      {
+        "id": "flush-icon-button-destructive"
+      },
+      {
+        "id": "flush-icon-button-neutral"
+      },
+      {
         "id": "icon-button"
       },
       {
@@ -3790,6 +4072,18 @@
         "default": false
       },
       {
+        "id": "flush-icon-button",
+        "default": false
+      },
+      {
+        "id": "flush-icon-button-destructive",
+        "default": false
+      },
+      {
+        "id": "flush-icon-button-neutral",
+        "default": false
+      },
+      {
         "id": "icon-button",
         "default": false
       },
@@ -3923,6 +4217,15 @@
     "icon": [
       {
         "id": "field-message"
+      },
+      {
+        "id": "flush-icon-button"
+      },
+      {
+        "id": "flush-icon-button-destructive"
+      },
+      {
+        "id": "flush-icon-button-neutral"
       },
       {
         "id": "icon-button"
@@ -4354,6 +4657,15 @@
         "id": "button-neutral"
       },
       {
+        "id": "flush-icon-button"
+      },
+      {
+        "id": "flush-icon-button-destructive"
+      },
+      {
+        "id": "flush-icon-button-neutral"
+      },
+      {
         "id": "icon-button"
       },
       {
@@ -4510,6 +4822,30 @@
     ],
     "shape": [
       {
+        "id": "flush-icon-button",
+        "default": "flush",
+        "values": [
+          "flush",
+          "round"
+        ]
+      },
+      {
+        "id": "flush-icon-button-destructive",
+        "default": "flush",
+        "values": [
+          "flush",
+          "round"
+        ]
+      },
+      {
+        "id": "flush-icon-button-neutral",
+        "default": "flush",
+        "values": [
+          "flush",
+          "round"
+        ]
+      },
+      {
         "id": "icon-button",
         "default": "square",
         "values": [
@@ -4652,6 +4988,33 @@
       {
         "id": "field-label",
         "default": "small",
+        "values": [
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      {
+        "id": "flush-icon-button",
+        "default": "medium",
+        "values": [
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      {
+        "id": "flush-icon-button-destructive",
+        "default": "medium",
+        "values": [
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      {
+        "id": "flush-icon-button-neutral",
+        "default": "medium",
         "values": [
           "small",
           "medium",
@@ -5048,6 +5411,33 @@
         ]
       },
       {
+        "id": "flush-icon-button",
+        "default": "button",
+        "values": [
+          "button",
+          "submit",
+          "reset"
+        ]
+      },
+      {
+        "id": "flush-icon-button-destructive",
+        "default": "button",
+        "values": [
+          "button",
+          "submit",
+          "reset"
+        ]
+      },
+      {
+        "id": "flush-icon-button-neutral",
+        "default": "button",
+        "values": [
+          "button",
+          "submit",
+          "reset"
+        ]
+      },
+      {
         "id": "icon-button",
         "default": "button",
         "values": [
@@ -5258,6 +5648,30 @@
     },
     {
       "kind": "state set",
+      "subject": "substrate: button",
+      "components": [
+        "flush-icon-button"
+      ],
+      "detail": "flush-icon-button differs from the group's common set [disabled, focus-visible, hover, inactive, pending, pressed, rest] — lacks inactive, pending"
+    },
+    {
+      "kind": "state set",
+      "subject": "substrate: button-destructive",
+      "components": [
+        "flush-icon-button-destructive"
+      ],
+      "detail": "flush-icon-button-destructive differs from the group's common set [disabled, focus-visible, hover, inactive, pending, pressed, rest] — lacks inactive, pending"
+    },
+    {
+      "kind": "state set",
+      "subject": "substrate: button-neutral",
+      "components": [
+        "flush-icon-button-neutral"
+      ],
+      "detail": "flush-icon-button-neutral differs from the group's common set [disabled, focus-visible, hover, inactive, pending, pressed, rest] — lacks inactive, pending"
+    },
+    {
+      "kind": "state set",
       "subject": "substrate: text-field",
       "components": [
         "checkbox-row",
@@ -5396,6 +5810,19 @@
     },
     {
       "kind": "axis values",
+      "subject": "axis shape",
+      "components": [
+        "flush-icon-button",
+        "flush-icon-button-destructive",
+        "flush-icon-button-neutral",
+        "icon-button",
+        "icon-button-destructive",
+        "icon-button-neutral"
+      ],
+      "detail": "the shape axis takes 2 value sets — [circular, square] in icon-button, icon-button-destructive, icon-button-neutral; [flush, round] in flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral"
+    },
+    {
+      "kind": "axis values",
       "subject": "axis size",
       "components": [
         "_accordion-indicator",
@@ -5407,6 +5834,9 @@
         "checkbox-group",
         "checkbox-row",
         "field-label",
+        "flush-icon-button",
+        "flush-icon-button-destructive",
+        "flush-icon-button-neutral",
         "icon-button",
         "icon-button-destructive",
         "icon-button-neutral",
@@ -5428,7 +5858,7 @@
         "text-field",
         "textarea"
       ],
-      "detail": "the size axis takes 3 value sets — [large, medium, small] in _accordion-indicator, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, field-label, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, select, tab, tabs, tag, text-field, textarea; [medium, small] in switch-control, switch-row; [large, medium, small, x-small] in spinner"
+      "detail": "the size axis takes 3 value sets — [large, medium, small] in _accordion-indicator, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, select, tab, tabs, tag, text-field, textarea; [medium, small] in switch-control, switch-row; [large, medium, small, x-small] in spinner"
     },
     {
       "kind": "axis values",
@@ -5499,7 +5929,7 @@
       "components": [
         "field-label"
       ],
-      "detail": "field-label defaults size to small; 28 of 29 sized components default to medium"
+      "detail": "field-label defaults size to small; 31 of 32 sized components default to medium"
     },
     {
       "kind": "axis without prop",
