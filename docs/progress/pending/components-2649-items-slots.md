@@ -102,3 +102,8 @@ which the fold had already written into the log and the changelog: both are dele
 second time. `regen.ts` then moves the analysis reports main added after this branch's base (`docs/public/reports/**`),
 and the component surface and axes baselines are re-accepted so Link's sets join them. A merge rather than a rebase:
 the branch has been reviewed, and a merge keeps every review's SHA reachable.
+
+A third merge of `main` (Dialog #2652, the agent reference #2644) conflicted on the slot-constraints corpus, where
+both sides' rows are kept, and on the component surface baseline and comparison report, which are re-accepted and
+regenerated. One step git does not flag: `component-axes.json` merges cleanly but is stale, because Dialog's entry
+lacks the component properties this branch records, so `lint-component-renames` fails until it is re-accepted.
