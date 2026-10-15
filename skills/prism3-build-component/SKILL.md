@@ -244,6 +244,14 @@ the validator refuses `swap` on either. Every absolute in the corpus is a focus 
 shared component every host points at. `lint-nesting` fails by name on a `nests` id no def has, and
 on a cycle.
 
+**Overrides on a nested instance** (#2645). A nested instance shows its component's defaults: a nested
+Button reads "Button". To set its text or its glyph, give the `nest` or `absolute` part `overrides`:
+`texts` keyed by a key of the nested def's `figmaProperties.texts`, `swaps` keyed by a key of its
+`figmaProperties.swaps`, each swap naming an icon glyph (`{ swaps: { icon: 'close' } }`). The same value
+lands on every member. The projection refuses a key the nested def does not declare and a glyph the
+icon set does not draw. List sets its items' numbers this way (`{ texts: { value: '2.' } }`). Use it
+only for copy or a glyph that is already decided; a new string is the owner's.
+
 **Overlays.** An overlay declares the state that shows it (`when`) and what it `replaces` — an
 ordered candidate list, resolved to the first part present at each coordinate, with a required
 candidate allowed only last. `overlaysWhenAbsent` names the fallback part to overlay out of flow, and
