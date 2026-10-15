@@ -4,8 +4,10 @@
   "variables": [
     {
       "name": "ads/motion/duration-ms/0",
-      "resolvedType": "FLOAT",
-      "scopes": [],
+      "resolvedType": "TIMING",
+      "scopes": [
+        "ALL_SCOPES"
+      ],
       "description": "0ms — duration primitive",
       "value": 0,
       "alias": null,
@@ -13,100 +15,122 @@
     },
     {
       "name": "ads/motion/duration-ms/30",
-      "resolvedType": "FLOAT",
-      "scopes": [],
+      "resolvedType": "TIMING",
+      "scopes": [
+        "ALL_SCOPES"
+      ],
       "description": "30ms — duration primitive",
-      "value": 30,
+      "value": 0.03,
       "alias": null,
       "hiddenFromPublishing": true
     },
     {
       "name": "ads/motion/duration-ms/40",
-      "resolvedType": "FLOAT",
-      "scopes": [],
+      "resolvedType": "TIMING",
+      "scopes": [
+        "ALL_SCOPES"
+      ],
       "description": "40ms — duration primitive",
-      "value": 40,
+      "value": 0.04,
       "alias": null,
       "hiddenFromPublishing": true
     },
     {
       "name": "ads/motion/duration-ms/50",
-      "resolvedType": "FLOAT",
-      "scopes": [],
+      "resolvedType": "TIMING",
+      "scopes": [
+        "ALL_SCOPES"
+      ],
       "description": "50ms — duration primitive",
-      "value": 50,
+      "value": 0.05,
       "alias": null,
       "hiddenFromPublishing": true
     },
     {
       "name": "ads/motion/duration-ms/80",
-      "resolvedType": "FLOAT",
-      "scopes": [],
+      "resolvedType": "TIMING",
+      "scopes": [
+        "ALL_SCOPES"
+      ],
       "description": "80ms — duration primitive",
-      "value": 80,
+      "value": 0.08,
       "alias": null,
       "hiddenFromPublishing": true
     },
     {
       "name": "ads/motion/duration-ms/160",
-      "resolvedType": "FLOAT",
-      "scopes": [],
+      "resolvedType": "TIMING",
+      "scopes": [
+        "ALL_SCOPES"
+      ],
       "description": "160ms — duration primitive",
-      "value": 160,
+      "value": 0.16,
       "alias": null,
       "hiddenFromPublishing": true
     },
     {
       "name": "ads/motion/duration-ms/240",
-      "resolvedType": "FLOAT",
-      "scopes": [],
+      "resolvedType": "TIMING",
+      "scopes": [
+        "ALL_SCOPES"
+      ],
       "description": "240ms — duration primitive",
-      "value": 240,
+      "value": 0.24,
       "alias": null,
       "hiddenFromPublishing": true
     },
     {
       "name": "ads/motion/duration-ms/400",
-      "resolvedType": "FLOAT",
-      "scopes": [],
+      "resolvedType": "TIMING",
+      "scopes": [
+        "ALL_SCOPES"
+      ],
       "description": "400ms — duration primitive",
-      "value": 400,
+      "value": 0.4,
       "alias": null,
       "hiddenFromPublishing": true
     },
     {
       "name": "ads/motion/duration-ms/640",
-      "resolvedType": "FLOAT",
-      "scopes": [],
+      "resolvedType": "TIMING",
+      "scopes": [
+        "ALL_SCOPES"
+      ],
       "description": "640ms — duration primitive",
-      "value": 640,
+      "value": 0.64,
       "alias": null,
       "hiddenFromPublishing": true
     },
     {
       "name": "ads/motion/duration-ms/800",
-      "resolvedType": "FLOAT",
-      "scopes": [],
+      "resolvedType": "TIMING",
+      "scopes": [
+        "ALL_SCOPES"
+      ],
       "description": "800ms — duration primitive",
-      "value": 800,
+      "value": 0.8,
       "alias": null,
       "hiddenFromPublishing": true
     },
     {
       "name": "ads/motion/duration-ms/2600",
-      "resolvedType": "FLOAT",
-      "scopes": [],
+      "resolvedType": "TIMING",
+      "scopes": [
+        "ALL_SCOPES"
+      ],
       "description": "2600ms — duration primitive",
-      "value": 2600,
+      "value": 2.6,
       "alias": null,
       "hiddenFromPublishing": true
     },
     {
       "name": "ads/motion/duration/instant",
-      "resolvedType": "FLOAT",
-      "scopes": [],
+      "resolvedType": "TIMING",
+      "scopes": [
+        "ALL_SCOPES"
+      ],
       "description": "40ms — instant duration",
-      "value": 40,
+      "value": 0.04,
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "ads/motion/duration-ms/40"
@@ -114,10 +138,12 @@
     },
     {
       "name": "ads/motion/duration/fast",
-      "resolvedType": "FLOAT",
-      "scopes": [],
+      "resolvedType": "TIMING",
+      "scopes": [
+        "ALL_SCOPES"
+      ],
       "description": "80ms — fast duration",
-      "value": 80,
+      "value": 0.08,
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "ads/motion/duration-ms/80"
@@ -125,10 +151,12 @@
     },
     {
       "name": "ads/motion/duration/normal",
-      "resolvedType": "FLOAT",
-      "scopes": [],
+      "resolvedType": "TIMING",
+      "scopes": [
+        "ALL_SCOPES"
+      ],
       "description": "160ms — normal duration",
-      "value": 160,
+      "value": 0.16,
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "ads/motion/duration-ms/160"
@@ -136,10 +164,12 @@
     },
     {
       "name": "ads/motion/duration/moderate",
-      "resolvedType": "FLOAT",
-      "scopes": [],
+      "resolvedType": "TIMING",
+      "scopes": [
+        "ALL_SCOPES"
+      ],
       "description": "240ms — moderate duration",
-      "value": 240,
+      "value": 0.24,
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "ads/motion/duration-ms/240"
@@ -147,10 +177,12 @@
     },
     {
       "name": "ads/motion/duration/slow",
-      "resolvedType": "FLOAT",
-      "scopes": [],
+      "resolvedType": "TIMING",
+      "scopes": [
+        "ALL_SCOPES"
+      ],
       "description": "400ms — slow duration",
-      "value": 400,
+      "value": 0.4,
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "ads/motion/duration-ms/400"
@@ -158,10 +190,12 @@
     },
     {
       "name": "ads/motion/duration/slower",
-      "resolvedType": "FLOAT",
-      "scopes": [],
+      "resolvedType": "TIMING",
+      "scopes": [
+        "ALL_SCOPES"
+      ],
       "description": "640ms — slower duration",
-      "value": 640,
+      "value": 0.64,
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "ads/motion/duration-ms/640"
@@ -169,10 +203,12 @@
     },
     {
       "name": "ads/motion/duration/spin",
-      "resolvedType": "FLOAT",
-      "scopes": [],
+      "resolvedType": "TIMING",
+      "scopes": [
+        "ALL_SCOPES"
+      ],
       "description": "800ms per spinner turn, at every tempo",
-      "value": 800,
+      "value": 0.8,
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "ads/motion/duration-ms/800"
@@ -180,10 +216,12 @@
     },
     {
       "name": "ads/motion/duration-reduced/instant",
-      "resolvedType": "FLOAT",
-      "scopes": [],
+      "resolvedType": "TIMING",
+      "scopes": [
+        "ALL_SCOPES"
+      ],
       "description": "40ms — instant duration with reduce motion on",
-      "value": 40,
+      "value": 0.04,
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "ads/motion/duration-ms/40"
@@ -191,10 +229,12 @@
     },
     {
       "name": "ads/motion/duration-reduced/fast",
-      "resolvedType": "FLOAT",
-      "scopes": [],
+      "resolvedType": "TIMING",
+      "scopes": [
+        "ALL_SCOPES"
+      ],
       "description": "80ms — fast duration with reduce motion on",
-      "value": 80,
+      "value": 0.08,
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "ads/motion/duration-ms/80"
@@ -202,10 +242,12 @@
     },
     {
       "name": "ads/motion/duration-reduced/normal",
-      "resolvedType": "FLOAT",
-      "scopes": [],
+      "resolvedType": "TIMING",
+      "scopes": [
+        "ALL_SCOPES"
+      ],
       "description": "50ms — normal duration with reduce motion on",
-      "value": 50,
+      "value": 0.05,
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "ads/motion/duration-ms/50"
@@ -213,8 +255,10 @@
     },
     {
       "name": "ads/motion/duration-reduced/moderate",
-      "resolvedType": "FLOAT",
-      "scopes": [],
+      "resolvedType": "TIMING",
+      "scopes": [
+        "ALL_SCOPES"
+      ],
       "description": "0ms — moderate duration with reduce motion on",
       "value": 0,
       "alias": {
@@ -224,8 +268,10 @@
     },
     {
       "name": "ads/motion/duration-reduced/slow",
-      "resolvedType": "FLOAT",
-      "scopes": [],
+      "resolvedType": "TIMING",
+      "scopes": [
+        "ALL_SCOPES"
+      ],
       "description": "0ms — slow duration with reduce motion on",
       "value": 0,
       "alias": {
@@ -235,8 +281,10 @@
     },
     {
       "name": "ads/motion/duration-reduced/slower",
-      "resolvedType": "FLOAT",
-      "scopes": [],
+      "resolvedType": "TIMING",
+      "scopes": [
+        "ALL_SCOPES"
+      ],
       "description": "0ms — slower duration with reduce motion on",
       "value": 0,
       "alias": {
@@ -246,10 +294,12 @@
     },
     {
       "name": "ads/motion/duration-reduced/spin",
-      "resolvedType": "FLOAT",
-      "scopes": [],
+      "resolvedType": "TIMING",
+      "scopes": [
+        "ALL_SCOPES"
+      ],
       "description": "2600ms per spinner turn with reduce motion on",
-      "value": 2600,
+      "value": 2.6,
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "ads/motion/duration-ms/2600"
@@ -257,14 +307,259 @@
     },
     {
       "name": "ads/motion/stagger",
-      "resolvedType": "FLOAT",
-      "scopes": [],
+      "resolvedType": "TIMING",
+      "scopes": [
+        "ALL_SCOPES"
+      ],
       "description": "30ms between siblings",
-      "value": 30,
+      "value": 0.03,
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "ads/motion/duration-ms/30"
       }
+    },
+    {
+      "name": "ads/motion/easing/linear",
+      "resolvedType": "EASING",
+      "scopes": [
+        "ALL_SCOPES"
+      ],
+      "description": "cubic-bezier(0, 0, 1, 1) — curve primitive",
+      "value": {
+        "type": "CUSTOM_CUBIC_BEZIER",
+        "easingFunctionCubicBezier": {
+          "x1": 0,
+          "y1": 0,
+          "x2": 1,
+          "y2": 1
+        }
+      },
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "ads/motion/easing/standard",
+      "resolvedType": "EASING",
+      "scopes": [
+        "ALL_SCOPES"
+      ],
+      "description": "cubic-bezier(0.2, 0, 0, 1) — curve primitive",
+      "value": {
+        "type": "CUSTOM_CUBIC_BEZIER",
+        "easingFunctionCubicBezier": {
+          "x1": 0.2,
+          "y1": 0,
+          "x2": 0,
+          "y2": 1
+        }
+      },
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "ads/motion/easing/decelerate",
+      "resolvedType": "EASING",
+      "scopes": [
+        "ALL_SCOPES"
+      ],
+      "description": "cubic-bezier(0, 0, 0.2, 1) — curve primitive",
+      "value": {
+        "type": "CUSTOM_CUBIC_BEZIER",
+        "easingFunctionCubicBezier": {
+          "x1": 0,
+          "y1": 0,
+          "x2": 0.2,
+          "y2": 1
+        }
+      },
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "ads/motion/easing/accelerate",
+      "resolvedType": "EASING",
+      "scopes": [
+        "ALL_SCOPES"
+      ],
+      "description": "cubic-bezier(0.4, 0, 1, 1) — curve primitive",
+      "value": {
+        "type": "CUSTOM_CUBIC_BEZIER",
+        "easingFunctionCubicBezier": {
+          "x1": 0.4,
+          "y1": 0,
+          "x2": 1,
+          "y2": 1
+        }
+      },
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "ads/motion/easing/expressive",
+      "resolvedType": "EASING",
+      "scopes": [
+        "ALL_SCOPES"
+      ],
+      "description": "cubic-bezier(0.4, 0.14, 0.3, 1) — curve primitive",
+      "value": {
+        "type": "CUSTOM_CUBIC_BEZIER",
+        "easingFunctionCubicBezier": {
+          "x1": 0.4,
+          "y1": 0.14,
+          "x2": 0.3,
+          "y2": 1
+        }
+      },
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "ads/motion/easing/calm",
+      "resolvedType": "EASING",
+      "scopes": [
+        "ALL_SCOPES"
+      ],
+      "description": "cubic-bezier(0.4, 0, 0.6, 1) — curve primitive",
+      "value": {
+        "type": "CUSTOM_CUBIC_BEZIER",
+        "easingFunctionCubicBezier": {
+          "x1": 0.4,
+          "y1": 0,
+          "x2": 0.6,
+          "y2": 1
+        }
+      },
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "ads/motion/easing-role/default",
+      "resolvedType": "EASING",
+      "scopes": [
+        "ALL_SCOPES"
+      ],
+      "description": "standard — default easing",
+      "value": {
+        "type": "CUSTOM_CUBIC_BEZIER",
+        "easingFunctionCubicBezier": {
+          "x1": 0.2,
+          "y1": 0,
+          "x2": 0,
+          "y2": 1
+        }
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/motion/easing/standard"
+      }
+    },
+    {
+      "name": "ads/motion/easing-role/enter",
+      "resolvedType": "EASING",
+      "scopes": [
+        "ALL_SCOPES"
+      ],
+      "description": "decelerate — enter easing",
+      "value": {
+        "type": "CUSTOM_CUBIC_BEZIER",
+        "easingFunctionCubicBezier": {
+          "x1": 0,
+          "y1": 0,
+          "x2": 0.2,
+          "y2": 1
+        }
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/motion/easing/decelerate"
+      }
+    },
+    {
+      "name": "ads/motion/easing-role/exit",
+      "resolvedType": "EASING",
+      "scopes": [
+        "ALL_SCOPES"
+      ],
+      "description": "accelerate — exit easing",
+      "value": {
+        "type": "CUSTOM_CUBIC_BEZIER",
+        "easingFunctionCubicBezier": {
+          "x1": 0.4,
+          "y1": 0,
+          "x2": 1,
+          "y2": 1
+        }
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/motion/easing/accelerate"
+      }
+    },
+    {
+      "name": "ads/motion/easing-role/emphasized",
+      "resolvedType": "EASING",
+      "scopes": [
+        "ALL_SCOPES"
+      ],
+      "description": "expressive — emphasized easing",
+      "value": {
+        "type": "CUSTOM_CUBIC_BEZIER",
+        "easingFunctionCubicBezier": {
+          "x1": 0.4,
+          "y1": 0.14,
+          "x2": 0.3,
+          "y2": 1
+        }
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/motion/easing/expressive"
+      }
+    },
+    {
+      "name": "ads/motion/spring/snappy",
+      "resolvedType": "EASING",
+      "scopes": [
+        "ALL_SCOPES"
+      ],
+      "description": "snappy spring, bounce 0.1 — its length comes from the duration it plays with",
+      "value": {
+        "type": "CUSTOM_SPRING",
+        "easingFunctionSpring": {
+          "bounce": 0.1
+        }
+      },
+      "alias": null
+    },
+    {
+      "name": "ads/motion/spring/gentle",
+      "resolvedType": "EASING",
+      "scopes": [
+        "ALL_SCOPES"
+      ],
+      "description": "gentle spring, bounce 0.2 — its length comes from the duration it plays with",
+      "value": {
+        "type": "CUSTOM_SPRING",
+        "easingFunctionSpring": {
+          "bounce": 0.2
+        }
+      },
+      "alias": null
+    },
+    {
+      "name": "ads/motion/spring/bouncy",
+      "resolvedType": "EASING",
+      "scopes": [
+        "ALL_SCOPES"
+      ],
+      "description": "bouncy spring, bounce 0.4 — its length comes from the duration it plays with",
+      "value": {
+        "type": "CUSTOM_SPRING",
+        "easingFunctionSpring": {
+          "bounce": 0.4
+        }
+      },
+      "alias": null
     }
   ]
 }

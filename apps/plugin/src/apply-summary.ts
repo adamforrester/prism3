@@ -240,6 +240,12 @@ export const partialWriteItem = (f: PartialWriteFacts): string => {
   if (parts.length === 0) return '';
   return `${parts.join('; ')}. One undo removes the whole build.`;
 };
+/**
+ * #2412 (Q293 A): the one deletion Apply makes, so it is always said. Wording is owner decision Q302,
+ * asserted verbatim in `test-apply-summary.ts`. Empty when nothing was replaced, so the clause drops out.
+ */
+export const motionReplacedItem = (n: number): string =>
+  n ? `Replaced ${n} motion variable${n === 1 ? '' : 's'} with the new timing type.` : '';
 /** The same clause as `partialWriteItem`, joined to the failure's cause by its ` — ` (#2177 split the two). */
 export const partialWriteNote = (f: PartialWriteFacts): string => {
   const item = partialWriteItem(f);
