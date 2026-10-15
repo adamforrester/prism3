@@ -39,6 +39,12 @@
  *     the icon def has no member for fails THIS arm by name. The edges join the acyclic walk, so a def that
  *     `icon` nested would be caught as a cycle. Floor: at least one glyph edge exists.
  *
+ *  ── nest-coordinate-resolves ──  (#2427) every nested instance a projected member asks for (`nestVariant`, which
+ *     since `variantWhen` can vary per member) names exactly ONE member of the nested def's own projected set,
+ *     matched with the executors' own `nestVariantMatch`. EXPECTED is the nested def's member names; SUBJECT is the
+ *     host's resolved coordinate. Mapping the Counter's ghost onto a `shape` the flush icon button lacks fails THIS
+ *     arm by name. Floor: at least one coordinate is checked.
+ *
  * NOT an ORDERING gate. #1226 PR-A considered and REJECTED a gate asserting `components/index.ts`'s array
  * order matches the nest graph, because nothing reads that order (the file's own header says so, and the
  * plugin builds one def per invocation) — a gate that fails on a reorder while protecting no consumer is
@@ -46,6 +52,8 @@
  * it guarantees an order EXISTS without pinning the array to one.
  */
 import { componentDefs } from './components/index';
+import { figmaAnatomySet, planComponentName, nestVariantMatch } from './anatomy-figma';
+import type { ComponentDef } from './component-schema';
 import { ICON_NAMES } from './icon-glyphs';
 import { COMPONENT_GLYPHS } from './component-glyphs';
 
@@ -100,6 +108,49 @@ for (const e of glyphEdges)
     fail.push(`glyph-resolves: ${e.from}.${e.part} draws '${e.glyph}' as an instance of '${ICON}/${e.glyph}', and the '${ICON}' def builds no member named '${e.glyph}' — the instance would resolve to nothing`);
 edges.push(...glyphEdges);
 
+// ── ARM 1c: nest-coordinate-resolves (#2427) ───────────────────────────────────────────────────────
+// Every nested instance a projected member asks for names exactly ONE member of the nested set. SUBJECT is the
+// coordinate on each host plan (`nestVariant`: the def's `variant`, its `variantWhen` mapping and its `follow`,
+// resolved per member); EXPECTED is the nested def's OWN projected member names. A coordinate naming no member, or
+// several, builds nothing at paste and reports a miss a designer meets in the file; `variantWhen` made the
+// coordinate vary per member, so a mapping onto a value the child does not have (the Counter's ghost mapped to a
+// `shape` the flush icon button lacks) fails THIS arm by name, per member. `nestVariantMatch` is the executors' own
+// matcher, so this asks the question they will ask.
+const SWAP = 'lint-nesting-swap';
+const membersOf = new Map<string, string[]>();
+const projectedMembers = (d: ComponentDef): string[] => {
+  if (!membersOf.has(d.id)) {
+    let names: string[] = [];
+    try { names = d.figmaProperties && !d.figmaProperties.emitAsComponents ? figmaAnatomySet(d, { swapTarget: SWAP }).map(planComponentName) : []; } catch { names = []; }
+    membersOf.set(d.id, names);
+  }
+  return membersOf.get(d.id)!;
+};
+type PlanNode = { name: string; nestTarget?: string; nestVariant?: Record<string, string>; children?: PlanNode[] };
+let coordChecks = 0;
+for (const host of componentDefs) {
+  if (!host.figmaProperties || host.figmaProperties.emitAsComponents) continue;
+  let plans: ReturnType<typeof figmaAnatomySet> = [];
+  try { plans = figmaAnatomySet(host, { swapTarget: SWAP }); } catch { continue; }
+  for (const plan of plans) {
+    const walk = (n: PlanNode): void => {
+      if (n.nestTarget && n.nestVariant) {
+        const child = componentDefs.find((d) => d.id === n.nestTarget);
+        const members = child ? projectedMembers(child) : [];
+        if (child && members.length) {
+          coordChecks++;
+          if (!nestVariantMatch(n.nestVariant, members))
+            fail.push(`nest-coordinate-resolves: ${host.id} @ ${planComponentName(plan)} — '${n.name}' nests ${n.nestTarget} at ${JSON.stringify(n.nestVariant)}, which names no single member of ${n.nestTarget}'s projected set (members look like '${members[0]}') — at paste the instance resolves nothing`);
+        }
+      }
+      for (const c of n.children ?? []) walk(c);
+    };
+    walk(plan.root as unknown as PlanNode);
+  }
+}
+if (coordChecks === 0)
+  fail.push(`nest-coordinate-resolves floor: no projected member nests an instance at a coordinate — the arm above passes vacuously over none`);
+
 // ── ARM 2: acyclic ───────────────────────────────────────────────────────────────────────────────
 // Standard DFS three-colour cycle detection over the nests graph. Only edges whose target resolves are
 // walked (an unresolved edge is arm 1's finding, not a cycle); a self-edge is a cycle of length one.
@@ -124,4 +175,4 @@ if (fail.length) {
   for (const f of fail) console.error(`  · ${f}`);
   process.exit(1);
 }
-console.log(`✓ lint-nesting: ${edges.length - glyphEdges.length} nest edge(s) and ${glyphEdges.length} icon-instance edge(s) across ${componentDefs.length} defs — every target resolves and the graph is acyclic.`);
+console.log(`✓ lint-nesting: ${edges.length - glyphEdges.length} nest edge(s) and ${glyphEdges.length} icon-instance edge(s) across ${componentDefs.length} defs — every target resolves, ${coordChecks} nested coordinate(s) each name one member of their set, and the graph is acyclic.`);

@@ -75,7 +75,7 @@ import type { AnatomyPlan, ButtonLayout } from './anatomy-figma';
 // ABOUT one component (`button.variants.appearance`, `textField.tokens[...]`), which a find-by-id
 // over the set would only make weaker. Completeness of the set is NOT asserted here — that is
 // `typecheck-components.ts`'s registry arm, whose oracle is git's index.
-import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, checkboxControl, checkboxRow, checkboxGroup, radioGroup, textarea, radioControl, radioRow, switchControl, switchRow, select, spinner, tag, tab, divider } from './components/index';
+import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, checkboxControl, checkboxRow, checkboxGroup, radioGroup, textarea, radioControl, radioRow, switchControl, switchRow, select, spinner, tag, tab, divider, counter } from './components/index';
 // The glyph vocabulary, for #864's geometry assertions. Imported so EXPECTED comes from the set rather
 // than from the projector that read it — the two halves `docs/34` requires.
 import { ICON_NAMES, ICON_PATHS, ICON_FILL_RULES, ICON_VIEWBOX } from './icon-glyphs';
@@ -16692,6 +16692,90 @@ arm: {
         `#2457 ${d.id}'s docs.do states the 44px spacing center to center (Q296 A)`);
   }
 
+  // ---- #2427: THE COUNTER — owner decisions Q283, Q286 A and the wireframe decisions (on #2427), Q287 A (on #2457) ----
+  // EXPECTED is the decisions, typed here as literals and never read off the def (docs/34). ACTUAL is every projected
+  // member's plan. Each arm names the decision it holds, so a mutation of the def fails the arm by name:
+  //   axes        Q283.4 A `appearance: outline | ghost`; Q283.6 B sizes medium first; state rest / focus-visible / disabled
+  //   nests       Q287 A outline → flush, ghost → round; Q283.7 buttons start at rest, disabled only on a disabled Counter;
+  //               both exposing `state`, on FlushIconButton.Neutral, the size followed
+  //   row         Q287 A the row is the round button's diameter, 36 / 44 / 56; Q283.13 A insets 12 / 12 / 16 on outline,
+  //               0 on ghost, and the value at least 32 wide
+  //   paint       outline: the field's fill and edge, the disabled edge at disabled; ghost: no box paint at any state
+  //   ring        Q283.10 A the ghost ring at the control offset (2px); outline at the field offset, as Text field
+  //   label       Q283.9 B hidden by default; the message off by default
+  //   api         Q283.7 min defaults to 0; Q283.8 A the buttons are tabindex="-1"; Q283.7 C no remove-at-min prop
+  {
+    const SIZES = ['medium', 'small', 'large'];
+    const STATES = ['rest', 'focus-visible', 'disabled'];
+    const SHAPE: Record<string, string> = { outline: 'flush', ghost: 'round' };
+    const HEIGHT: Record<string, string> = { small: 'size/sm/height', medium: 'size/md/height', large: 'size/lg/height' };
+    const INSET: Record<string, Record<string, string>> = {
+      outline: { small: 'space/150', medium: 'space/150', large: 'space/200' },
+      ghost: { small: 'space/0', medium: 'space/0', large: 'space/0' },
+    };
+    const RING: Record<string, string> = { outline: 'focus/ring/offset-field', ghost: 'focus/ring/offset' };
+    const plans = figmaAnatomySet(counter, { swapTarget: 'FPO-default-icon' });
+    ok(JSON.stringify(counter.variants?.appearance) === JSON.stringify(['outline', 'ghost']) && JSON.stringify(counter.variants?.size) === JSON.stringify(SIZES)
+      && JSON.stringify(counter.figmaProperties?.stateAxis?.values) === JSON.stringify(STATES) && plans.length === 18,
+      `#2427 counter/axes: appearance [outline, ghost] (Q283.4 A), size medium first (Q283.6 B), state [rest, focus-visible, disabled], 18 members (got ${JSON.stringify(counter.variants)} × ${JSON.stringify(counter.figmaProperties?.stateAxis?.values)} = ${plans.length})`);
+    const offNest: string[] = [], offRow: string[] = [], offPaint: string[] = [], offRing: string[] = [];
+    for (const p of plans) {
+      const name = planComponentName(p);
+      const ap = String(p.coord.appearance), st = String(p.coord.state), sz = String(p.size);
+      const control = p.root.children.find((c) => c.name === 'control');
+      for (const side of ['decrement', 'increment']) {
+        const n = control?.children.find((c) => c.name === side);
+        const want = { shape: SHAPE[ap], size: sz, state: st === 'disabled' ? 'disabled' : 'rest' };
+        if (n?.nestTarget !== 'flush-icon-button-neutral' || JSON.stringify(n?.nestVariant) !== JSON.stringify(want) || JSON.stringify(n?.nestExpose) !== JSON.stringify(['state']))
+          offNest.push(`${name}/${side}: ${n?.nestTarget} ${JSON.stringify(n?.nestVariant)} exposing ${JSON.stringify(n?.nestExpose)}, want ${JSON.stringify(want)}`);
+      }
+      const entry = control?.children.find((c) => c.name === 'entry');
+      if (control?.bound?.height !== HEIGHT[sz] || control?.bound?.paddingLeft !== INSET[ap][sz] || control?.bound?.paddingRight !== INSET[ap][sz] || entry?.minWidth !== 32)
+        offRow.push(`${name}: height ${control?.bound?.height}, insets ${control?.bound?.paddingLeft}/${control?.bound?.paddingRight}, value ${entry?.minWidth} wide`);
+      const own = control ? planPaintVars({ ...control, children: [] }) : [];
+      const wantPaint = ap === 'ghost' ? [] : st === 'disabled' ? ['color/disabled/border'] : ['color/field/fill', 'color/field/border/rest'];
+      if (JSON.stringify([...own].sort()) !== JSON.stringify([...wantPaint].sort())) offPaint.push(`${name}: box paints [${own.join(', ')}], want [${wantPaint.join(', ')}]`);
+      const value = entry?.children.find((c) => c.name === 'value');
+      const ink = st === 'disabled' ? 'color/disabled/text' : 'color/text/primary';
+      if (value?.paints?.fills !== ink) offPaint.push(`${name}: value ${value?.paints?.fills}, want ${ink}`);
+      const ring = control?.children.find((c) => c.name === 'focusRing');
+      if ((st === 'focus-visible') !== !!ring || (ring && ring.absoluteInset !== RING[ap])) offRing.push(`${name}: ring ${ring ? ring.absoluteInset : 'absent'}`);
+    }
+    ok(offNest.length === 0, `#2427 counter/nests: both buttons nest FlushIconButton.Neutral exposing [state], outline → flush and ghost → round (Q287 A), at rest unless the Counter is disabled (Q283.7)${offNest.length ? ` — ${offNest.slice(0, 3).join('; ')}` : ''}`);
+    ok(offRow.length === 0, `#2427 counter/row: the row is 36 / 44 / 56 tall (Q287 A), inset 12 / 12 / 16 on outline and 0 on ghost, the value at least 32 wide (Q283.13 A)${offRow.length ? ` — ${offRow.slice(0, 3).join('; ')}` : ''}`);
+    ok(offPaint.length === 0, `#2427 counter/paint: outline draws the field fill and edge (the disabled edge at disabled), ghost paints no box at any state, the value full contrast until disabled${offPaint.length ? ` — ${offPaint.slice(0, 3).join('; ')}` : ''}`);
+    ok(offRing.length === 0, `#2427 counter/ring: the ring at focus-visible only, at the control offset on ghost (Q283.10 A) and the field offset on outline${offRing.length ? ` — ${offRing.slice(0, 3).join('; ')}` : ''}`);
+    const b = counter.figmaProperties?.booleans ?? {};
+    ok(b.showLabel?.part === 'label' && b.showLabel.default === false && b.showMessage?.part === 'message' && b.showMessage.default === false
+      && counter.props.find((x) => x.name === 'showLabel')?.default === false,
+      `#2427 counter/label: the label is hidden by default in Figma and in code (Q283.9 B), and the message is off (got ${JSON.stringify(b)})`);
+    const keyboardSays = /tabindex="-1"/.test(counter.accessibility.keyboard ?? '') && (counter.anatomy?.codeOnly ?? []).some((e) => /<button type="button" tabindex="-1">/.test(e));
+    ok(counter.props.find((x) => x.name === 'min')?.default === 0 && keyboardSays && !counter.props.some((x) => /remove/i.test(x.name)),
+      `#2427 counter/api: min defaults to 0 (Q283.7), the buttons are tabindex="-1" in the shipped keyboard text and in codeOnly (Q283.8 A), and no remove-at-min prop (Q283.7 C)`);
+  }
+
+  // ---- #2427: `variantWhen` — a host value picking a child value on a differently named axis. Each refusal fires on a
+  // case built for it, and the Counter's own declaration is clean (the projection half is `#2427 counter/nests` above).
+  {
+    const withNesting = (nesting: Record<string, unknown>) => ({
+      ...counter,
+      anatomy: { ...counter.anatomy!, parts: { ...counter.anatomy!.parts, decrement: { ...counter.anatomy!.parts.decrement!, nesting } } },
+    }) as unknown as ComponentDef;
+    const base = counter.anatomy!.parts.decrement!.nesting as Record<string, unknown>;
+    const CASES: Array<{ why: string; vw: unknown; want: RegExp }> = [
+      { why: 'an axis the host does not project', vw: { tone: { a: { shape: 'round' } } }, want: /variantWhen' on 'tone', which is not an axis this def PROJECTS/ },
+      { why: 'a value the axis does not have', vw: { appearance: { filled: { shape: 'round' } } }, want: /'filled' is not a projected value of 'appearance'/ },
+      { why: 'a child axis also followed', vw: { appearance: { ghost: { size: 'large' } } }, want: /also in 'follow'/ },
+      { why: 'one child axis set from two host axes', vw: { appearance: { ghost: { shape: 'round' } }, state: { disabled: { shape: 'flush' } } }, want: /from both 'appearance' and 'state'/ },
+      { why: 'an empty map', vw: {}, want: /EMPTY nesting 'variantWhen'/ },
+    ];
+    for (const c of CASES) {
+      const errs = validateComponentDef(withNesting({ ...base, variantWhen: c.vw })).errors;
+      ok(errs.some((e) => c.want.test(e)), `#2427 variantWhen refuses ${c.why} (errors: ${errs.join(' | ') || 'none'})`);
+    }
+    ok(validateComponentDef(counter).errors.length === 0, `#2427 variantWhen: the Counter's own mapping validates clean (${validateComponentDef(counter).errors.join(' | ') || 'none'})`);
+  }
+
   // #1225 — INTENT IS THE COMPONENT NOW, NOT AN AXIS (the icon-only counterpart of #1223's Button split).
   // The three semantic intents are three components (IconButton = primary, Destructive IconButton, Neutral
   // IconButton), built by one `makeIconButton` factory. IconButton carries NO `intent` prop, and hierarchy
@@ -17473,7 +17557,13 @@ arm: {
           ok(want !== undefined, `#1700 ${d.id}: cites \`components/${cites[0]}\`, which \`schema/kb-briefs.json\` lacks — refresh it with \`npx tsx packages/engine/kb-briefs-refresh.ts <kb checkout>\`, never by hand`);
           ok(d.category === want, `#1700 ${d.id}: category is '${d.category}', and its brief \`components/${cites[0]}\` files it under '${want}' — a def takes its brief's category`);
         } else if (noBrief) {
-          const exists = briefFor(d);
+          // A NAME COLLISION, admitted by name and never by pattern (#2427): the KB's badge brief lists "Counter" as
+          // an alias for a count badge (a number shown on another element). The Counter def is the quantity control,
+          // a different component with no brief; the owner approved the name with that meaning. Any other def whose id
+          // or alias meets a brief still fails here.
+          const ALIAS_COLLISIONS: Record<string, string> = { counter: 'badge.md' };
+          const found = briefFor(d);
+          const exists = found !== undefined && ALIAS_COLLISIONS[d.id] === found ? undefined : found;
           ok(exists === undefined,
             `#2488 ${d.id}: says "No KB brief", and the knowledge base has \`components/${exists}\` (category '${exists && kbBriefs[exists].category}') — cite it as "KB brief: \`components/${exists}\`" and take its category`);
           const stated = header.match(/No KB brief[\s\S]{0,400}?Category[\s*]+`([a-z]+)`/)?.[1];
@@ -18206,6 +18296,8 @@ arm: {
       { def: select, part: 'value', axes: { size: 3 }, at: { state: 'filled' } },
       { def: textarea, part: 'placeholder', axes: { size: 3 } },
       { def: textarea, part: 'value', axes: { size: 3 }, at: { state: 'filled' } },
+      // COUNTER (#2427): the value binds the field's three body rungs, one per size.
+      { def: counter, part: 'value', axes: { size: 3 } },
       // ACCORDION (#2417): the title binds Button's three label rungs (owner, 2026-10-11), and the panel placeholder the
       // three body rungs. The placeholder exists only on an expanded member.
       { def: componentDefs.find((d) => d.id === 'accordion')!, part: 'label', axes: { size: 3 } },
@@ -30916,6 +31008,8 @@ arm: {
     'text-field': ['medium', 'small', 'large'],
     textarea: ['medium', 'small', 'large'],
     select: ['medium', 'small', 'large'],
+    // #2427: the Counter joins the field family's exception by owner decision Q283.6 B.
+    counter: ['medium', 'small', 'large'],
   };
   const outOfOrder = (vals: readonly unknown[], ladder: readonly string[]): string | null => {
     const unknown = vals.filter((v) => !ladder.includes(String(v)));
