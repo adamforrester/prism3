@@ -1,0 +1,1064 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prism3 Ecosystem</title>
+<meta name="description" content="Three interfaces, one engine: how a brand input becomes tokens, Figma artifacts and code in Prism3, and which interface offers which feature.">
+<style>
+/* Color tokens. packages/engine/lint-ecosystem.ts reads these three blocks and checks every text pair at 4.5:1.
+   The two dark blocks must stay identical: one serves prefers-color-scheme, the other the toggle. */
+:root {
+  --bg: #f6f6f3;
+  --surface: #ffffff;
+  --surface-raised: #fbfbf9;
+  --text: #16181d;
+  --text-muted: #545a65;
+  --border: #c9ccd2;
+  --edge: #80868f;
+  --edge-strong: #2b2f36;
+  --link: #1f4fbf;
+  --focus: #1f4fbf;
+  --accent: #16181d;
+  --on-accent: #ffffff;
+  --trace: #c2410c;
+  --on-trace: #ffffff;
+  --hub-bg: #1b1d22;
+  --hub-text: #ffffff;
+  --hub-muted: #c9ccd3;
+  --role-theming: #2f6fe4;
+  --role-theming-ink: #1d4fb3;
+  --role-theming-tint: #e9f0fd;
+  --role-agent: #7c4ddb;
+  --role-agent-ink: #5b2fb8;
+  --role-agent-tint: #f1ebfc;
+  --role-engine: #1b1d22;
+  --role-engine-ink: #1b1d22;
+  --role-engine-tint: #ececee;
+  --role-output: #2f8584;
+  --role-output-ink: #1d6463;
+  --role-output-tint: #e4f2f1;
+  --role-verification: #c98a0b;
+  --role-verification-ink: #845500;
+  --role-verification-tint: #fcf2dc;
+  --role-code: #3f8f4f;
+  --role-code-ink: #2b6b39;
+  --role-code-tint: #e6f3e8;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1115;
+    --surface: #171a20;
+    --surface-raised: #1e222a;
+    --text: #eceef2;
+    --text-muted: #a8aeb9;
+    --border: #3a404b;
+    --edge: #7a818d;
+    --edge-strong: #dfe2e8;
+    --link: #8db4ff;
+    --focus: #8db4ff;
+    --accent: #eceef2;
+    --on-accent: #0f1115;
+    --trace: #ff8a4c;
+    --on-trace: #111317;
+    --hub-bg: #e9ebef;
+    --hub-text: #111317;
+    --hub-muted: #3d424b;
+    --role-theming: #6f9cff;
+    --role-theming-ink: #9dbcff;
+    --role-theming-tint: #18233a;
+    --role-agent: #a987f5;
+    --role-agent-ink: #c6b0ff;
+    --role-agent-tint: #231c38;
+    --role-engine: #e9ebef;
+    --role-engine-ink: #e9ebef;
+    --role-engine-tint: #262a32;
+    --role-output: #5cc2be;
+    --role-output-ink: #86d7d3;
+    --role-output-tint: #132a2a;
+    --role-verification: #f0b43c;
+    --role-verification-ink: #f5c766;
+    --role-verification-tint: #2d2310;
+    --role-code: #6fcf83;
+    --role-code-ink: #96e0a6;
+    --role-code-tint: #152d1b;
+  }
+}
+:root[data-theme="dark"] {
+    --bg: #0f1115;
+    --surface: #171a20;
+    --surface-raised: #1e222a;
+    --text: #eceef2;
+    --text-muted: #a8aeb9;
+    --border: #3a404b;
+    --edge: #7a818d;
+    --edge-strong: #dfe2e8;
+    --link: #8db4ff;
+    --focus: #8db4ff;
+    --accent: #eceef2;
+    --on-accent: #0f1115;
+    --trace: #ff8a4c;
+    --on-trace: #111317;
+    --hub-bg: #e9ebef;
+    --hub-text: #111317;
+    --hub-muted: #3d424b;
+    --role-theming: #6f9cff;
+    --role-theming-ink: #9dbcff;
+    --role-theming-tint: #18233a;
+    --role-agent: #a987f5;
+    --role-agent-ink: #c6b0ff;
+    --role-agent-tint: #231c38;
+    --role-engine: #e9ebef;
+    --role-engine-ink: #e9ebef;
+    --role-engine-tint: #262a32;
+    --role-output: #5cc2be;
+    --role-output-ink: #86d7d3;
+    --role-output-tint: #132a2a;
+    --role-verification: #f0b43c;
+    --role-verification-ink: #f5c766;
+    --role-verification-tint: #2d2310;
+    --role-code: #6fcf83;
+    --role-code-ink: #96e0a6;
+    --role-code-tint: #152d1b;
+}
+:root { color-scheme: light dark; }
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"] { color-scheme: dark; }
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-text-size-adjust: 100%;
+}
+a { color: var(--link); }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.wrap { max-width: 1480px; margin: 0 auto; padding: 0 16px; }
+[hidden] { display: none !important; }
+
+header.top { padding: 20px 0 8px; display: flex; gap: 16px; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; }
+header.top h1 { font-size: 22px; line-height: 1.25; margin: 0 0 4px; letter-spacing: -0.01em; }
+header.top p { margin: 0; color: var(--text-muted); max-width: 72ch; }
+.btn {
+  font: inherit; font-size: 14px; color: var(--text); background: var(--surface);
+  border: 1px solid var(--border); border-radius: 8px; padding: 6px 12px; min-height: 36px; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.btn:hover { border-color: var(--edge-strong); }
+.btn[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.btn:disabled { color: var(--text-muted); cursor: default; border-style: dashed; }
+.btn.primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-top: 8px; }
+.tabs [role="tab"] {
+  font: inherit; font-size: 15px; font-weight: 600; color: var(--text-muted); background: none; border: 0;
+  border-bottom: 3px solid transparent; padding: 8px 12px 6px; cursor: pointer; min-height: 40px;
+}
+.tabs [role="tab"][aria-selected="true"] { color: var(--text); border-bottom-color: var(--accent); }
+
+.controls { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: flex-end; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.control-group { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.control-group > .lbl { font-size: 13px; color: var(--text-muted); width: 100%; }
+select.btn { padding-right: 28px; max-width: 100%; }
+.filter .btn[aria-pressed="false"] { text-decoration: line-through; color: var(--text-muted); }
+.filter .btn[aria-pressed="true"] { background: var(--surface); color: var(--text); border-color: var(--edge-strong); }
+.swatch-status { width: 18px; height: 12px; border-radius: 3px; border: 2px solid currentColor; display: inline-block; }
+.swatch-status.partial { border-style: dashed; }
+.swatch-status.planned { border-style: dotted; }
+
+.trace-bar { position: sticky; top: 0; z-index: 5; background: var(--bg); padding: 10px 0 8px; }
+.trace-bar.active { border-bottom: 1px solid var(--border); }
+.trace-row { display: flex; gap: 8px 16px; align-items: flex-start; flex-wrap: wrap; }
+.trace-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
+.trace-row .caption { flex: 1 1 320px; padding-top: 6px; }
+.caption { margin: 0; font-size: 15px; }
+.caption .step-no { font-weight: 600; color: var(--text); }
+.caption .what { color: var(--text-muted); font-size: 14px; display: block; }
+.steps { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.steps button {
+  font: inherit; font-size: 13px; color: var(--text-muted); background: var(--surface);
+  border: 1px solid var(--border); border-radius: 999px; padding: 3px 10px 3px 4px; cursor: pointer; display: inline-flex; gap: 6px; align-items: center; min-height: 30px;
+}
+.steps button .n { width: 22px; height: 22px; border-radius: 50%; display: inline-grid; place-items: center; background: var(--bg); color: var(--text); font-weight: 600; font-size: 12px; }
+.steps button.done { color: var(--text); }
+.steps button.current { color: var(--text); border-color: var(--trace); box-shadow: inset 0 0 0 1px var(--trace); }
+.steps button.current .n, .steps button.done .n { background: var(--accent); color: var(--on-accent); }
+@media (max-width: 899px) { .trace-bar .steps { display: none; } }
+
+/* ── The board: inputs → lanes → engine → outputs ──────────────────────────────────────────── */
+.board {
+  position: relative; display: grid; padding: 8px 0 64px;
+  grid-template-columns: 124px 40px minmax(300px, 1fr) 132px 172px 60px minmax(210px, 250px) 64px;
+  grid-template-rows: auto auto 64px auto 64px auto;
+}
+.col-head { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); padding: 4px 0 10px; grid-row: 1; }
+.phone-head { display: none; }
+.lane-in { grid-column: 1; display: flex; flex-direction: column; justify-content: center; gap: 10px; }
+.lane-in .lbl { display: none; }
+.lane { grid-column: 3; }
+.engine-col { grid-column: 5; grid-row: 2 / 7; display: flex; flex-direction: column; justify-content: center; gap: 28px; }
+.out-col { grid-column: 7; grid-row: 2 / 7; display: flex; flex-direction: column; justify-content: center; gap: 14px; }
+svg.wires { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+
+.node {
+  font: inherit; font-size: 14px; line-height: 1.25; font-weight: 600; width: 100%; text-align: left;
+  color: var(--text); background: var(--tint); border: 2px solid var(--stroke); border-radius: 10px;
+  padding: 8px 10px; cursor: pointer; display: block; transition: box-shadow .2s, background .2s, border-color .2s, color .2s;
+}
+.node:hover { box-shadow: 0 2px 10px rgb(0 0 0 / 0.12); }
+.node .meta { display: block; font-weight: 500; font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.node.partial { border-style: dashed; }
+.node.planned { border-style: dotted; border-width: 2.5px; background: var(--bg); color: var(--text-muted); }
+.node.k-input { border-radius: 999px; background: var(--surface); border-color: var(--edge); font-size: 13px; padding: 6px 12px; }
+.node.k-hub { background: var(--hub-bg); color: var(--hub-text); border-color: var(--hub-bg); border-radius: 16px; padding: 16px 14px; font-size: 18px; text-align: center; }
+.node.k-hub .meta { color: var(--hub-muted); font-size: 12px; line-height: 1.4; margin-top: 6px; }
+.node.selected { box-shadow: 0 0 0 3px var(--bg), 0 0 0 5px var(--stroke); }
+
+.lane { background: var(--tint); border: 2px solid var(--stroke); border-radius: 14px; padding: 10px 12px 12px; }
+.lane .node.lane-head { background: transparent; border: 0; padding: 2px 0 6px; font-size: 17px; border-radius: 6px; }
+.lane .node.lane-head .meta { font-size: 13px; }
+.lane h3 { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); margin: 8px 0 4px; }
+.lane .none { margin: 0; font-size: 13px; color: var(--text-muted); }
+.feats { list-style: none; margin: 0; padding: 0; columns: 2 160px; column-gap: 8px; }
+.feats li { break-inside: avoid; margin: 0 0 4px; }
+.feat {
+  font: inherit; font-size: 13px; line-height: 1.3; color: var(--text); background: var(--surface); text-align: left; width: 100%;
+  border: 1px solid var(--border); border-radius: 7px; padding: 4px 8px; cursor: pointer; min-height: 28px;
+}
+.feat:hover, .feat.same { border-color: var(--stroke); box-shadow: inset 0 0 0 1px var(--stroke); }
+.feats.only .feat { border-color: var(--stroke); border-width: 2px; font-weight: 600; }
+.feat.planned { border-style: dotted; color: var(--text-muted); }
+.feat.partial { border-style: dashed; }
+.feat .st { font-weight: 500; color: var(--text-muted); }
+.phone-conns { display: none; }
+
+.group { border: 1.5px dashed var(--border); border-radius: 14px; padding: 6px 8px 8px; display: flex; flex-direction: column; gap: 8px; }
+.group.partial-group { background: repeating-linear-gradient(135deg, transparent 0 7px, color-mix(in srgb, var(--role-code) 9%, transparent) 7px 9px); }
+.group > .node.group-head { background: transparent; border: 0; padding: 2px 4px; font-size: 13px; color: var(--text-muted); }
+.nwrap { display: flex; flex-direction: column; gap: 4px; }
+
+.badges { display: none; flex-wrap: wrap; gap: 4px; }
+.show-checks .badges { display: flex; }
+.badge-btn {
+  font: inherit; font-size: 12px; font-weight: 600; line-height: 1.2; color: var(--text); background: var(--role-verification-tint);
+  border: 1.5px solid var(--role-verification); border-radius: 999px; padding: 3px 9px; cursor: pointer; min-height: 26px;
+}
+.badge-btn::before { content: "✓ "; }
+
+.wire-label {
+  position: absolute; transform: translate(-50%, -50%); z-index: 2; white-space: nowrap;
+  font: inherit; font-size: 12px; font-weight: 600; color: var(--text); background: var(--surface);
+  border: 1.5px solid var(--role-agent); border-radius: 999px; padding: 2px 9px; cursor: pointer; min-height: 26px;
+}
+.wire-label.partial { border-style: dashed; }
+.wire-label.hi, .wire-label.cur { box-shadow: 0 0 0 2px var(--trace); }
+
+path.wire { fill: none; stroke: var(--edge); stroke-width: 1.6; transition: stroke .2s, opacity .2s, stroke-width .2s; }
+path.wire.partial { stroke-dasharray: 7 5; }
+path.wire.planned { stroke-dasharray: 1.5 5; stroke-linecap: round; }
+path.wire.conn { stroke: var(--role-agent); }
+.board.focusing path.wire:not(.hi) { opacity: .15; }
+path.wire.hi { stroke: var(--edge-strong); stroke-width: 2.4; }
+.flow path.wire.hi { animation: flow 1s linear infinite; }
+.flow path.wire.hi:not(.partial):not(.planned) { stroke-dasharray: 8 5; }
+@keyframes flow { to { stroke-dashoffset: -13; } }
+.board.tracing path.wire { opacity: .1; }
+.board.tracing path.wire.upcoming { opacity: .4; }
+.board.tracing path.wire.traced { opacity: 1; stroke: var(--edge-strong); stroke-width: 2.4; }
+.board.tracing path.wire.current { opacity: 1; stroke: var(--trace); stroke-width: 3.4; }
+marker path { fill: var(--edge); }
+#arrow-conn path { fill: var(--role-agent); }
+#arrow-hi path { fill: var(--edge-strong); }
+#arrow-trace path { fill: var(--trace); }
+.dot { fill: var(--trace); }
+.stepno circle { fill: var(--accent); }
+.stepno text { fill: var(--on-accent); font-size: 12px; font-weight: 700; text-anchor: middle; dominant-baseline: central; }
+.stepno.current circle { fill: var(--trace); }
+.stepno.current text { fill: var(--on-trace); }
+
+.board.focusing .node.far, .board.tracing .node:not(.in-trace):not(.lane-head):not(.group-head) { background: var(--bg); color: var(--text-muted); border-color: var(--border); }
+.board.focusing .node.far .meta, .board.tracing .node:not(.in-trace) .meta { color: var(--text-muted); }
+.board.tracing .group.in-trace .node:not(.group-head) { background: var(--tint); color: var(--text); border-color: var(--stroke); }
+.board.tracing .lane:not(.in-trace) { background: var(--bg); border-color: var(--border); }
+.board.tracing .node.cur, .board.tracing .lane.cur, .board.tracing .group.cur { box-shadow: 0 0 0 3px var(--bg), 0 0 0 5px var(--trace); }
+.board.tracing .node.arrive, .board.tracing .lane.arrive, .board.tracing .group.arrive { animation: arrive .6s ease-out; }
+@keyframes arrive { 0% { transform: scale(1); } 40% { transform: scale(1.04); } 100% { transform: scale(1); } }
+[data-hide~="shipped"] .is-shipped, [data-hide~="partial"] .is-partial, [data-hide~="planned"] .is-planned { display: none; }
+
+/* ── Phone: a stacked lane view; the arrows give way to order ─────────────────────────────── */
+@media (max-width: 899px) {
+  .board { display: block; padding-bottom: 24px; }
+  svg.wires, .col-head, .wire-label { display: none; }
+  .phone-head { display: block; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); margin: 20px 0 8px; }
+  .lane-in { flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: flex-start; gap: 6px; margin: 14px 0 6px; }
+  .lane-in .lbl { display: inline; font-size: 13px; color: var(--text-muted); }
+  .lane-in .node.k-input { width: auto; }
+  .engine-col, .out-col { gap: 10px; }
+  .feats { columns: 1; }
+  .phone-conns { display: block; margin-top: 10px; }
+  .phone-conns .chips { margin-top: 4px; }
+}
+
+/* ── Compare interfaces ───────────────────────────────────────────────────────────────────── */
+.compare { padding: 12px 0 24px; }
+.compare .summary { margin: 0 0 12px; color: var(--text-muted); }
+table.cmp { width: 100%; border-collapse: collapse; font-size: 14px; table-layout: fixed; }
+table.cmp col.feat-col { width: 40%; }
+table.cmp th, table.cmp td { padding: 8px 8px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }
+table.cmp thead th { font-size: 13px; color: var(--text-muted); font-weight: 600; position: sticky; top: 0; background: var(--bg); z-index: 1; }
+table.cmp thead th .sw { display: inline-block; width: 10px; height: 10px; border-radius: 3px; background: var(--stroke); margin-right: 6px; }
+table.cmp tbody th[scope="rowgroup"] { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); padding-top: 18px; }
+table.cmp .fname { font: inherit; font-weight: 600; color: var(--link); background: none; border: 0; padding: 0; text-align: left; cursor: pointer; text-decoration: underline; }
+table.cmp .pill { display: inline-block; font-size: 12px; font-weight: 600; border-radius: 999px; padding: 0 8px; margin-top: 4px; border: 1px solid var(--border); color: var(--text-muted); background: var(--surface); }
+table.cmp .pill.lone { color: var(--text); border-color: var(--edge-strong); }
+table.cmp td .mark { font-weight: 600; }
+table.cmp td .via { display: block; font-size: 12px; color: var(--text-muted); line-height: 1.35; }
+table.cmp td.no .mark { color: var(--text-muted); font-weight: 400; }
+table.cmp td.planned .mark { color: var(--text-muted); }
+table.cmp tr.diff-hidden { display: none; }
+@media (max-width: 599px) {
+  table.cmp { font-size: 13px; }
+  table.cmp th, table.cmp td { padding: 6px 4px; }
+  table.cmp td .via { display: none; }
+}
+
+/* ── Detail panel ─────────────────────────────────────────────────────────────────────────── */
+#panel {
+  position: fixed; top: 0; right: 0; bottom: 0; width: min(420px, 100vw); background: var(--surface); color: var(--text);
+  border-left: 1px solid var(--border); box-shadow: -8px 0 24px rgb(0 0 0 / 0.14); padding: 20px 20px 32px; overflow-y: auto; z-index: 10;
+}
+#panel h2 { font-size: 20px; margin: 4px 0 6px; line-height: 1.25; }
+#panel h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); margin: 18px 0 6px; }
+#panel p { margin: 0 0 8px; }
+#panel ul { margin: 0; padding-left: 18px; }
+#panel li { margin: 2px 0; }
+#panel .close { position: absolute; top: 12px; right: 12px; }
+#panel-body > .chips:first-child { padding-right: 84px; }
+#panel .muted { color: var(--text-muted); font-size: 14px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font-size: 12px; font-weight: 600; border-radius: 999px; padding: 2px 9px; border: 1px solid var(--border); color: var(--text); background: var(--surface); }
+.chip.role { color: var(--ink); border-color: var(--stroke); }
+button.chip { font-family: inherit; cursor: pointer; min-height: 28px; }
+.links { list-style: none; padding: 0 !important; }
+.links button { font: inherit; color: var(--link); background: none; border: 0; padding: 0; cursor: pointer; text-align: left; text-decoration: underline; }
+.links .what { color: var(--text-muted); font-size: 13px; display: block; }
+.members { display: flex; flex-wrap: wrap; gap: 4px; list-style: none; padding: 0 !important; }
+.members li { font: 12px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 1px 6px; margin: 0 !important; }
+.lanes-list { list-style: none; padding: 0 !important; }
+.lanes-list > li { border-top: 1px solid var(--border); padding: 8px 0; }
+code, .src { font: 13px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+/* ── Legend ───────────────────────────────────────────────────────────────────────────────── */
+.legend { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px 32px; padding: 16px 0; border-top: 1px solid var(--border); }
+.legend h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); margin: 0 0 8px; }
+.legend ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.legend li { display: grid; grid-template-columns: 26px 1fr; gap: 8px; align-items: start; font-size: 14px; }
+.legend .sw { width: 22px; height: 16px; border-radius: 4px; border: 2px solid var(--stroke); background: var(--tint); margin-top: 3px; }
+.legend .sw.hubsw { background: var(--hub-bg); border-color: var(--hub-bg); }
+.legend .sw.insw { background: var(--surface); border-color: var(--edge); border-radius: 999px; }
+.legend .sub { color: var(--text-muted); font-size: 13px; display: block; }
+.legend svg { width: 26px; height: 16px; margin-top: 3px; }
+.legend svg line { stroke: var(--edge-strong); stroke-width: 2; }
+.legend svg line.conn { stroke: var(--role-agent); }
+footer { color: var(--text-muted); font-size: 13px; padding: 8px 0 32px; }
+.notice { padding: 16px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+
+[data-role="input"] { --stroke: var(--edge); --ink: var(--text); --tint: var(--surface); }
+[data-role="theming"] { --stroke: var(--role-theming); --ink: var(--role-theming-ink); --tint: var(--role-theming-tint); }
+[data-role="agent"] { --stroke: var(--role-agent); --ink: var(--role-agent-ink); --tint: var(--role-agent-tint); }
+[data-role="engine"] { --stroke: var(--role-engine); --ink: var(--role-engine-ink); --tint: var(--role-engine-tint); }
+[data-role="output"] { --stroke: var(--role-output); --ink: var(--role-output-ink); --tint: var(--role-output-tint); }
+[data-role="verification"] { --stroke: var(--role-verification); --ink: var(--role-verification-ink); --tint: var(--role-verification-tint); }
+[data-role="code"] { --stroke: var(--role-code); --ink: var(--role-code-ink); --tint: var(--role-code-tint); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Prism3 ecosystem</h1>
+      <p>Three interfaces, one engine. A brand starts as levers, a design.md or tool arguments, goes through the web studio, the Figma plugin or an agent, and becomes tokens, Figma artifacts and code.</p>
+    </div>
+    <button class="btn" id="theme" type="button" aria-pressed="false">Dark theme</button>
+  </header>
+
+  <div class="tabs" role="tablist" aria-label="Views">
+    <button role="tab" type="button" id="tab-diagram" aria-controls="view-diagram" aria-selected="true">Diagram</button>
+    <button role="tab" type="button" id="tab-compare" aria-controls="view-compare" aria-selected="false" tabindex="-1">Compare interfaces</button>
+  </div>
+
+  <div id="view-diagram" role="tabpanel" aria-labelledby="tab-diagram">
+    <div class="controls">
+      <div class="control-group">
+        <label class="lbl" for="trace">Trace a path</label>
+        <select class="btn" id="trace"><option value="">Choose a path…</option></select>
+      </div>
+      <div class="control-group">
+        <span class="lbl">Layers</span>
+        <button class="btn" id="checks" type="button" aria-pressed="false">Show checks</button>
+      </div>
+      <div class="control-group filter" role="group" aria-labelledby="filter-lbl">
+        <span class="lbl" id="filter-lbl">Show</span>
+      </div>
+    </div>
+
+    <div class="trace-bar" id="trace-bar">
+      <div class="trace-row">
+        <div class="trace-buttons" id="trace-buttons" hidden>
+          <button class="btn primary" id="play" type="button">Play</button>
+          <button class="btn" id="prev" type="button" aria-label="Previous step">Back</button>
+          <button class="btn" id="next" type="button" aria-label="Next step">Next</button>
+          <button class="btn" id="clear" type="button">Clear</button>
+        </div>
+        <p class="caption" id="caption" aria-live="polite">Select anything for details. Labeled arrows are the ways an agent connects. Arrow keys move between boxes; Escape closes details.</p>
+      </div>
+      <ol class="steps" id="steps" aria-label="Steps in this path"></ol>
+    </div>
+
+    <main class="board" id="board" aria-label="Ecosystem diagram">
+      <svg class="wires" id="svg" aria-hidden="true" focusable="false"></svg>
+    </main>
+
+    <section class="legend" aria-label="Legend" id="legend"></section>
+  </div>
+
+  <div id="view-compare" role="tabpanel" aria-labelledby="tab-compare" hidden>
+    <div class="compare" id="compare"></div>
+  </div>
+
+  <footer id="footer"></footer>
+</div>
+
+<aside id="panel" hidden aria-labelledby="panel-title" tabindex="-1">
+  <button class="btn close" type="button" id="panel-close">Close</button>
+  <div id="panel-body"></div>
+</aside>
+
+<script>
+(() => {
+  'use strict';
+  // Served as a folder without its trailing slash, './ecosystem.json' would resolve one level up and 404.
+  if (!/\/$|\.html$/.test(location.pathname)) { location.replace(location.pathname + '/' + location.search + location.hash); return; }
+  const $ = (s, r = document) => r.querySelector(s);
+  const el = (tag, attrs = {}, ...kids) => {
+    const n = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs)) {
+      if (v === undefined || v === null || v === false) continue;
+      if (k === 'class') n.className = v; else if (k === 'text') n.textContent = v; else if (k.startsWith('on')) n.addEventListener(k.slice(2), v); else n.setAttribute(k, v === true ? '' : v);
+    }
+    for (const c of kids.flat(3)) if (c != null && c !== false) n.append(c);
+    return n;
+  };
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const sv = (tag, attrs = {}) => { const n = document.createElementNS(SVGNS, tag); for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v); return n; };
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+  const phone = matchMedia('(max-width: 899px)');
+  const store = { get(k) { try { return localStorage.getItem(k); } catch { return null; } }, set(k, v) { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch {} } };
+
+  /* ── Theme ──────────────────────────────────────────────────────────────────────────────── */
+  const themeBtn = $('#theme');
+  const sysDark = matchMedia('(prefers-color-scheme: dark)');
+  const effectiveDark = () => { const t = document.documentElement.dataset.theme; return t ? t === 'dark' : sysDark.matches; };
+  const syncThemeBtn = () => themeBtn.setAttribute('aria-pressed', String(effectiveDark()));
+  const saved = store.get('p3-eco-theme');
+  if (saved === 'light' || saved === 'dark') document.documentElement.dataset.theme = saved;
+  syncThemeBtn();
+  sysDark.addEventListener('change', syncThemeBtn);
+  themeBtn.addEventListener('click', () => {
+    const next = effectiveDark() ? 'light' : 'dark';
+    document.documentElement.dataset.theme = next; store.set('p3-eco-theme', next); syncThemeBtn();
+  });
+
+  fetch('./ecosystem.json').then((r) => { if (!r.ok) throw new Error(r.status + ' ' + r.statusText); return r.json(); }).then(render).catch((e) => {
+    $('#board').replaceChildren(el('div', { class: 'notice', role: 'alert' },
+      el('p', { text: 'The diagram could not load ecosystem.json (' + e.message + ').' }),
+      el('p', { text: 'It reads the file from the same folder, so it needs a web server rather than a file:// address. From the repo root: python3 -m http.server, then open /docs/public/ecosystem/.' })));
+  });
+
+  function render(data) {
+    const LANES = data.nodes.filter((n) => n.kind === 'lane');
+    const nodes = new Map(data.nodes.map((n) => [n.id, n]));
+    const roles = new Map(data.roles.map((r) => [r.id, r]));
+    const statuses = new Map(data.statuses.map((s) => [s.id, s]));
+    const conns = new Map(data.connections.map((c) => [c.id, c]));
+    const checks = new Map(data.checks.map((c) => [c.id, c]));
+    const features = new Map(data.features.map((f) => [f.id, f]));
+    const edgeId = (e) => e.from + '>' + e.to + (e.connection ? '@' + e.connection : '');
+    const edges = data.edges.map((e) => ({ ...e, id: edgeId(e) }));
+    const edgeById = new Map(edges.map((e) => [e.id, e]));
+    const traces = new Map(data.traces.map((t) => [t.id, t]));
+    const repo = data.repo, gh = (p) => repo + p;
+    const board = $('#board'), svg = $('#svg');
+    const statusLabel = (s) => statuses.get(s)?.label ?? s;
+    const hidden = new Set();
+    const nodeEls = new Map();      // node id → [element, …]; an input appears once per lane it feeds
+    const laneEls = new Map();      // lane id → the lane card
+    const featEls = new Map();      // feature id → [button, …]
+    const labelEls = new Map();     // edge id → its connection label
+    const pathEls = new Map();      // edge id → path
+    const laneCount = (f) => Object.keys(f.lanes).length;
+    const lanesOf = (f) => LANES.filter((l) => f.lanes[l.id]);
+    const shareText = (f) => {
+      const ls = lanesOf(f);
+      if (ls.length === LANES.length) return 'All three';
+      if (ls.length === 1) return ls[0].label + ' only';
+      return ls.map((l) => l.label).join(' and ');
+    };
+
+    /* ── Build the board ─────────────────────────────────────────────────────────────────── */
+    const defs = sv('defs');
+    for (const id of ['arrow', 'arrow-conn', 'arrow-hi', 'arrow-trace']) {
+      const m = sv('marker', { id, viewBox: '0 0 10 10', refX: '9', refY: '5', markerWidth: '9', markerHeight: '9', orient: 'auto-start-reverse', markerUnits: 'userSpaceOnUse' });
+      m.append(sv('path', { d: 'M0,1 L10,5 L0,9 z' }));
+      defs.append(m);
+    }
+    svg.append(defs);
+    const wireLayer = sv('g'), noLayer = sv('g'); svg.append(wireLayer, noLayer);
+    const dot = sv('circle', { r: '6', class: 'dot', opacity: '0' }); svg.append(dot);
+
+    data.columns.forEach((c, i) => board.append(el('div', { class: 'col-head', style: `grid-column:${[1, 3, 5, 7][i]}`, text: c.label })));
+
+    const register = (id, b) => { if (!nodeEls.has(id)) nodeEls.set(id, []); nodeEls.get(id).push(b); return b; };
+    const nodeBtn = (n, extra = '') => {
+      const st = n.status;
+      const b = el('button', {
+        type: 'button', class: `node k-${n.kind} ${st} is-${st} ${extra}`.trim(), 'data-role': n.role, 'data-id': n.id, 'data-nav': '',
+        'aria-label': `${n.label}. ${roles.get(n.role).label}${st !== 'shipped' ? ', ' + statusLabel(st).toLowerCase() : ''}.`,
+        onclick: () => openNode(n.id, b),
+        onmouseenter: () => focusNode(n.id), onmouseleave: () => focusNode(null),
+        onfocus: () => focusNode(n.id), onblur: () => focusNode(null),
+        onkeydown: (ev) => spatial(ev, b),
+      }, el('span', { text: n.label }),
+        n.kind === 'hub' ? [el('span', { class: 'meta', text: 'Dependency-free TypeScript' }), el('span', { class: 'meta', text: data.modes.appearance.length + ' appearance modes × viewport' })]
+          : st !== 'shipped' ? el('span', { class: 'meta', text: statusLabel(st) }) : null);
+      return register(n.id, b);
+    };
+    const badgesFor = (id) => {
+      const on = data.checks.filter((c) => c.on.includes(id));
+      return on.length ? el('div', { class: 'badges' }, on.map((c) => el('button', { type: 'button', class: 'badge-btn', onclick: (ev) => openCheck(c.id, ev.currentTarget), text: c.label }))) : null;
+    };
+    const wrapNode = (n) => el('div', { class: `nwrap is-${n.status}` }, nodeBtn(n), badgesFor(n.id));
+
+    /* Lanes, each with its inputs at its start. */
+    LANES.forEach((lane, i) => {
+      const row = 2 + i * 2;
+      const ins = edges.filter((e) => e.to === lane.id && nodes.get(e.from).kind === 'input');
+      const inCell = el('div', { class: 'lane-in', style: `grid-row:${row}` }, el('span', { class: 'lbl', text: 'Starts from' }),
+        ins.map((e) => { const b = nodeBtn(nodes.get(e.from)); b.dataset.lane = lane.id; return b; }));
+      const shared = data.features.filter((f) => f.lanes[lane.id] && laneCount(f) > 1);
+      const only = data.features.filter((f) => f.lanes[lane.id] && laneCount(f) === 1);
+      const featList = (list, cls) => el('ul', { class: 'feats' + (cls ? ' ' + cls : '') }, list.map((f) => {
+        const st = f.lanes[lane.id].status;
+        const b = el('button', {
+          type: 'button', class: `feat ${st}`, 'data-feature': f.id,
+          onclick: () => openFeature(f.id, b),
+          onmouseenter: () => sameFeature(f.id), onmouseleave: () => sameFeature(null), onfocus: () => sameFeature(f.id), onblur: () => sameFeature(null),
+        }, f.label, st !== 'shipped' ? el('span', { class: 'st', text: ' · ' + statusLabel(st).toLowerCase() }) : null);
+        if (!featEls.has(f.id)) featEls.set(f.id, []); featEls.get(f.id).push(b);
+        return el('li', { class: 'is-' + st }, b);
+      }));
+      const head = nodeBtn(lane, 'lane-head');
+      head.append(el('span', { class: 'meta', text: `${shared.length + only.length} features: ${shared.length} shared, ${only.length} only here` }));
+      const outConns = edges.filter((e) => e.from === lane.id && e.connection);
+      const card = el('section', { class: 'lane is-shipped', 'data-role': lane.role, 'data-lane': lane.id, style: `grid-row:${row}`, 'aria-label': lane.label },
+        head, badgesFor(lane.id),
+        el('h3', { text: 'Shared' }), shared.length ? featList(shared) : el('p', { class: 'none', text: 'None.' }),
+        el('h3', { text: 'Only here' }), only.length ? featList(only, 'only') : el('p', { class: 'none', text: 'Nothing. Everything here is in another interface too.' }),
+        outConns.length ? el('div', { class: 'phone-conns' }, el('h3', { text: 'Connects through' }),
+          el('div', { class: 'chips' }, outConns.map((e) => el('button', { type: 'button', class: 'chip is-' + e.status, onclick: (ev) => openConn(e.connection, ev.currentTarget), text: conns.get(e.connection).label + (e.status !== 'shipped' ? ' (' + statusLabel(e.status).toLowerCase() + ')' : '') })))) : null);
+      laneEls.set(lane.id, card);
+      if (i === 0) board.append(el('h2', { class: 'phone-head', text: 'Interfaces' }));
+      board.append(inCell, card);
+    });
+
+    /* Engine and outputs. */
+    board.append(el('h2', { class: 'phone-head', text: 'Engine' }),
+      el('div', { class: 'engine-col' }, data.nodes.filter((n) => n.column === 'engine').map(wrapNode)));
+    const outCol = el('div', { class: 'out-col' });
+    for (const n of data.nodes.filter((x) => x.column === 'outputs' && !x.parent)) {
+      if (n.kind === 'group') {
+        const kids = data.nodes.filter((x) => x.parent === n.id);
+        outCol.append(el('div', { class: `group is-${n.status}` + (n.status !== 'shipped' ? ' partial-group' : ''), 'data-role': n.role, 'data-group': n.id },
+          nodeBtn(n, 'group-head'), badgesFor(n.id), kids.map(wrapNode)));
+      } else outCol.append(wrapNode(n));
+    }
+    board.append(el('h2', { class: 'phone-head', text: 'Outputs' }), outCol);
+
+    /* Connection labels: one per edge that carries a connection. */
+    for (const e of edges.filter((x) => x.connection)) {
+      const c = conns.get(e.connection);
+      const b = el('button', { type: 'button', class: `wire-label ${e.status} is-${e.status}`, 'data-edge': e.id, 'data-nav': '',
+        'aria-label': `${c.label}: ${nodes.get(e.from).label} to ${nodes.get(e.to).label}. ${statusLabel(e.status)}.`,
+        onclick: () => openConn(c.id, b), onfocus: () => focusEdge(e.id), onblur: () => focusEdge(null),
+        onmouseenter: () => focusEdge(e.id), onmouseleave: () => focusEdge(null), onkeydown: (ev) => spatial(ev, b) }, c.label);
+      labelEls.set(e.id, b); board.append(b);
+    }
+
+    /* ── Wires: measured from the laid-out boxes, redrawn on every layout change ────────── */
+    const elFor = (id, viaLane) => {
+      if (laneEls.has(id)) return laneEls.get(id);
+      const list = nodeEls.get(id) || [];
+      if (nodes.get(id)?.kind === 'group') return list[0]?.parentElement;
+      return (viaLane && list.find((b) => b.dataset.lane === viaLane)) || list[0];
+    };
+    const visible = (x) => x && x.getClientRects().length > 0;
+    function layoutWires() {
+      wireLayer.replaceChildren(); pathEls.clear();
+      if (phone.matches) return;
+      const B = board.getBoundingClientRect();
+      const R = (x) => { const r = x.getBoundingClientRect(); return { l: r.left - B.left, t: r.top - B.top, r: r.right - B.left, b: r.bottom - B.top, w: r.width, h: r.height, cx: r.left - B.left + r.width / 2, cy: r.top - B.top + r.height / 2 }; };
+      svg.setAttribute('viewBox', `0 0 ${B.width} ${B.height}`);
+      const live = [];
+      for (const e of edges) {
+        const a = elFor(e.from, null), b = elFor(e.to, nodes.get(e.from).kind === 'input' ? null : null);
+        const src = nodes.get(e.from).kind === 'input' ? (nodeEls.get(e.from) || []).find((x) => x.dataset.lane === e.to) : a;
+        if (!visible(src) || !visible(b)) continue;
+        const s = R(src), t = R(b);
+        let kind;
+        if (e.route === 'under') kind = 'under';
+        else if (t.l >= s.r - 2) kind = 'right';
+        else if (Math.min(s.r, t.r) - Math.max(s.l, t.l) > 20) kind = (t.t >= s.b ? t.t - s.b : s.t - t.b) < 80 ? 'vert' : 'bracket';
+        else kind = 'right';
+        live.push({ e, s, t, kind });
+      }
+      /* Ports: edges leaving a right side or entering a left side are spread along it, ordered by where the other end is. */
+      const spread = (items, key, side, end) => {
+        const groups = new Map();
+        for (const it of items) { const k = key(it); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(it); }
+        for (const list of groups.values()) {
+          list.sort((x, y) => side(x) - side(y));
+          list.forEach((it, i) => { const r = end === 'from' ? it.s : it.t; it[end + 'Y'] = list.length === 1 ? r.cy : r.t + r.h * (0.22 + 0.56 * i / (list.length - 1)); });
+        }
+      };
+      const horiz = live.filter((x) => x.kind === 'right' || x.kind === 'under');
+      spread(horiz, (x) => 'f' + x.e.from + (nodes.get(x.e.from).kind === 'input' ? x.e.to : ''), (x) => x.kind === 'under' ? 1e6 : x.t.cy, 'from');
+      spread(horiz, (x) => 't' + x.e.to, (x) => x.kind === 'under' ? 1e6 : x.s.cy, 'to');
+      const vert = live.filter((x) => x.kind === 'vert');
+      const pairs = new Map();
+      for (const v of vert) { const k = v.e.from + '>' + v.e.to; if (!pairs.has(k)) pairs.set(k, []); pairs.get(k).push(v); }
+      for (const list of pairs.values()) list.forEach((v, i) => { const l = Math.max(v.s.l, v.t.l), r = Math.min(v.s.r, v.t.r); v.x = list.length === 1 ? (l + r) / 2 : l + (r - l) * (i + 1) / (list.length + 1); });
+      let bracketN = 0;
+      const H = B.height;
+      for (const x of live) {
+        const { e, s, t } = x;
+        let d;
+        if (x.kind === 'right') {
+          const sx = s.r, sy = x.fromY, ex = t.l - 1, ey = x.toY, k = Math.max(30, (ex - sx) / 2);
+          d = `M${sx},${sy} C${sx + k},${sy} ${ex - k},${ey} ${ex},${ey}`;
+        } else if (x.kind === 'under') {
+          const gx1 = s.r + 22, ybot = H - 26, gx2 = t.l - 22, sy = x.fromY, ey = x.toY;
+          d = `M${s.r},${sy} H${gx1 - 10} Q${gx1},${sy} ${gx1},${sy + 10} V${ybot - 10} Q${gx1},${ybot} ${gx1 + 10},${ybot} H${gx2 - 10} Q${gx2},${ybot} ${gx2},${ybot - 10} V${ey + 10} Q${gx2},${ey} ${gx2 + 10},${ey} H${t.l - 1}`;
+        } else if (x.kind === 'vert') {
+          d = t.t >= s.b ? `M${x.x},${s.b} V${t.t - 1}` : `M${x.x},${s.t} V${t.b + 1}`;
+        } else {
+          const gx = Math.max(s.r, t.r) + 16 + 14 * (bracketN++), sy = s.cy, ey = t.cy, dir = ey > sy ? 1 : -1;
+          d = `M${s.r},${sy} H${gx - 10} Q${gx},${sy} ${gx},${sy + 10 * dir} V${ey - 10 * dir} Q${gx},${ey} ${gx - 10},${ey} H${t.r + 1}`;
+        }
+        const p = sv('path', { d, class: `wire ${e.status} is-${e.status}` + (e.connection ? ' conn' : ''), 'marker-end': e.connection ? 'url(#arrow-conn)' : 'url(#arrow)' });
+        wireLayer.append(p); pathEls.set(e.id, p);
+        const lab = labelEls.get(e.id);
+        if (lab) { const L = p.getTotalLength(), m = p.getPointAtLength(L * (x.kind === 'under' ? 0.62 : 0.5)); lab.style.left = m.x + 'px'; lab.style.top = m.y + 'px'; }
+      }
+      for (const [id, lab] of labelEls) lab.style.display = pathEls.has(id) ? '' : 'none';
+      if (state.trace) paintTrace(false);
+    }
+    let raf = 0;
+    const relayout = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(layoutWires); };
+    new ResizeObserver(relayout).observe(board);
+    phone.addEventListener('change', relayout);
+
+    /* ── Filter and checks layer ─────────────────────────────────────────────────────────── */
+    const filter = $('.filter');
+    for (const s of data.statuses) {
+      const b = el('button', { type: 'button', class: 'btn', 'aria-pressed': 'true', title: s.meaning },
+        el('span', { class: `swatch-status ${s.id}`, 'aria-hidden': 'true' }), s.label);
+      b.addEventListener('click', () => {
+        const on = b.getAttribute('aria-pressed') === 'true';
+        b.setAttribute('aria-pressed', String(!on));
+        on ? hidden.add(s.id) : hidden.delete(s.id);
+        applyFilter();
+      });
+      filter.append(b);
+    }
+    function applyFilter() {
+      const v = [...hidden].join(' ');
+      v ? board.setAttribute('data-hide', v) : board.removeAttribute('data-hide');
+      const shown = data.nodes.filter((n) => !hidden.has(n.status)).length;
+      $('#footer-count').textContent = `Showing ${shown} of ${data.nodes.length} boxes.`;
+      relayout();
+    }
+    const checksBtn = $('#checks');
+    const setChecks = (on) => { checksBtn.setAttribute('aria-pressed', String(on)); board.classList.toggle('show-checks', on); store.set('p3-eco-checks', on ? '1' : null); relayout(); };
+    checksBtn.addEventListener('click', () => setChecks(checksBtn.getAttribute('aria-pressed') !== 'true'));
+    if (store.get('p3-eco-checks') === '1') setChecks(true);
+
+    /* ── Hover and focus ─────────────────────────────────────────────────────────────────── */
+    function highlight(ids, nodeSet) {
+      board.classList.toggle('focusing', !!ids);
+      board.classList.toggle('flow', !!ids && !reduced.matches);
+      for (const [id, p] of pathEls) {
+        const on = !!ids && ids.has(id);
+        p.classList.toggle('hi', on);
+        p.setAttribute('marker-end', on ? 'url(#arrow-hi)' : edgeById.get(id).connection ? 'url(#arrow-conn)' : 'url(#arrow)');
+      }
+      for (const [id, l] of labelEls) l.classList.toggle('hi', !!ids && ids.has(id));
+      for (const [nid, list] of nodeEls) for (const b of list) b.classList.toggle('far', !!ids && !nodeSet.has(nid));
+    }
+    function focusNode(id) {
+      if (state.trace) return;
+      if (!id) return highlight(null);
+      const ids = new Set(), near = new Set([id]);
+      for (const e of edges) if (e.from === id || e.to === id) { ids.add(e.id); near.add(e.from); near.add(e.to); }
+      for (const n of data.nodes) if (n.parent && near.has(n.parent)) near.add(n.id);
+      const kidOf = nodes.get(id)?.parent; if (kidOf) near.add(kidOf);
+      highlight(ids, near);
+    }
+    function focusEdge(id) {
+      if (state.trace) return;
+      if (!id) return highlight(null);
+      const e = edgeById.get(id);
+      highlight(new Set([id]), new Set([e.from, e.to]));
+    }
+    function sameFeature(id) { for (const [fid, list] of featEls) for (const b of list) b.classList.toggle('same', fid === id); }
+
+    /* ── Keyboard: arrow keys move to the nearest box in that direction ─────────────────── */
+    function spatial(ev, from) {
+      const dir = { ArrowRight: [1, 0], ArrowLeft: [-1, 0], ArrowDown: [0, 1], ArrowUp: [0, -1] }[ev.key];
+      if (!dir) return;
+      ev.preventDefault();
+      const c = (x) => { const r = x.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; };
+      const a = c(from);
+      let best = null, bestScore = Infinity;
+      for (const b of board.querySelectorAll('[data-nav]')) {
+        if (b === from || !visible(b) || b.style.display === 'none') continue;
+        const p = c(b), dx = p[0] - a[0], dy = p[1] - a[1];
+        const along = dx * dir[0] + dy * dir[1];
+        if (along <= 4) continue;
+        const score = along + (Math.abs(dx * dir[1]) + Math.abs(dy * dir[0])) * 2.2;
+        if (score < bestScore) { bestScore = score; best = b; }
+      }
+      if (best) best.focus();
+    }
+
+    /* ── Detail panel ───────────────────────────────────────────────────────────────────── */
+    const panel = $('#panel'), body = $('#panel-body');
+    let returnTo = null;
+    const sec = (title, ...kids) => [el('h3', { text: title }), ...kids];
+    const srcList = (sources) => el('ul', {}, sources.map((s) => el('li', {}, el('a', { class: 'src', href: gh(s), text: s }))));
+    const nodeLink = (id, what) => el('li', {}, el('button', { type: 'button', onclick: () => openNode(id), text: nodes.get(id).label }), what ? el('span', { class: 'what', text: what }) : null);
+    const statusNote = (st) => st !== 'shipped' ? el('p', { class: 'muted', text: statusLabel(st) + ': ' + statuses.get(st).meaning }) : null;
+    const showPanel = (from, hash, kids) => {
+      if (from) returnTo = from;
+      body.replaceChildren(...kids.flat(3).filter(Boolean));
+      panel.hidden = false; setHash(hash);
+      $('#panel-title').focus();
+    };
+    const sel = (id) => { for (const list of nodeEls.values()) for (const b of list) b.classList.toggle('selected', b.dataset.id === id); };
+    const tracesThrough = (pred) => data.traces.filter((t) => t.steps.some((s) => pred(edgeById.get(s.edge))));
+    const traceLinks = (list) => list.length ? sec('Paths through it', el('ul', { class: 'links' }, list.map((t) => el('li', {}, el('button', { type: 'button', text: t.label, onclick: () => { closePanel(); startTrace(t.id); } }))))) : null;
+    const edgeLine = (e, other) => (e.connection ? conns.get(e.connection).label + ': ' : '') + e.what + (e.status !== 'shipped' ? ' (' + statusLabel(e.status).toLowerCase() + ')' : '');
+
+    function openNode(id, from) {
+      const n = nodes.get(id); sel(id);
+      const incoming = edges.filter((e) => e.to === id), outgoing = edges.filter((e) => e.from === id);
+      const kids = data.nodes.filter((x) => x.parent === id);
+      const lane = n.kind === 'lane';
+      const onChecks = data.checks.filter((c) => c.on.includes(id));
+      showPanel(from, 'node=' + id, [
+        el('div', { class: 'chips', 'data-role': n.role }, el('span', { class: 'chip role', text: roles.get(n.role).label }), el('span', { class: 'chip', text: statusLabel(n.status) })),
+        el('h2', { id: 'panel-title', tabindex: '-1', text: n.label }),
+        el('p', { text: n.purpose }), statusNote(n.status),
+        n.kind === 'hub' ? sec('Modes', el('p', { text: 'Appearance: ' + data.modes.appearance.join(', ') + '. ' + data.modes.viewport })) : null,
+        lane ? sec('Features', el('ul', { class: 'links' }, data.features.filter((f) => f.lanes[id]).map((f) => el('li', {}, el('button', { type: 'button', text: f.label, onclick: () => openFeature(f.id) }), el('span', { class: 'what', text: f.lanes[id].via + ' · ' + shareText(f) }))))) : null,
+        kids.length ? sec('Holds', el('ul', { class: 'links' }, kids.map((k) => nodeLink(k.id, k.status !== 'shipped' ? statusLabel(k.status) : '')))) : null,
+        n.parent ? sec('Part of', el('ul', { class: 'links' }, nodeLink(n.parent))) : null,
+        sec('Inputs', el('ul', {}, n.inputs.map((t) => el('li', { text: t })))),
+        sec('Outputs', el('ul', {}, n.outputs.map((t) => el('li', { text: t })))),
+        incoming.length ? sec('Receives from', el('ul', { class: 'links' }, incoming.map((e) => nodeLink(e.from, edgeLine(e))))) : null,
+        outgoing.length ? sec('Sends to', el('ul', { class: 'links' }, outgoing.map((e) => nodeLink(e.to, edgeLine(e))))) : null,
+        onChecks.length ? sec('Checked by', el('ul', { class: 'links' }, onChecks.map((c) => el('li', {}, el('button', { type: 'button', text: c.label, onclick: () => openCheck(c.id) }))))) : null,
+        n.members ? sec(`${n.members.label} (${n.members.items.length})`, el('ul', { class: 'members' }, n.members.items.map((m) => el('li', { text: m })))) : null,
+        traceLinks(tracesThrough((e) => e && (e.from === id || e.to === id))),
+        n.sources.length ? sec('Source', srcList(n.sources)) : null,
+        n.docs ? sec('Read more', el('p', {}, el('a', { href: gh(n.docs), text: n.docs }))) : null,
+      ]);
+    }
+    function openFeature(id, from) {
+      const f = features.get(id); sel(null);
+      showPanel(from, 'feature=' + id, [
+        el('div', { class: 'chips' }, el('span', { class: 'chip', text: f.group }), el('span', { class: 'chip', text: shareText(f) })),
+        el('h2', { id: 'panel-title', tabindex: '-1', text: f.label }),
+        sec('Where', el('ul', { class: 'lanes-list' }, LANES.map((l) => {
+          const x = f.lanes[l.id];
+          if (!x) return el('li', {}, el('strong', { text: l.label + ': ' }), el('span', { class: 'muted', text: 'Not here.' }));
+          return el('li', {}, el('strong', { text: l.label + ': ' }), x.via, x.status !== 'shipped' ? el('span', { class: 'muted', text: ' (' + statusLabel(x.status).toLowerCase() + ')' }) : null,
+            x.connections ? el('div', { class: 'chips', style: 'margin-top:4px' }, x.connections.map((c) => el('button', { type: 'button', class: 'chip', text: conns.get(c).label, onclick: () => openConn(c) }))) : null,
+            el('div', { style: 'margin-top:4px' }, x.sources.map((s) => [el('a', { class: 'src', href: gh(s), text: s }), ' '])));
+        }))),
+        f.members ? sec(`${f.members.label} (${f.members.items.length})`, el('ul', { class: 'members' }, f.members.items.map((m) => el('li', { text: m })))) : null,
+      ]);
+    }
+    function openConn(id, from) {
+      const c = conns.get(id); sel(null);
+      const carried = edges.filter((e) => e.connection === id);
+      showPanel(from, 'conn=' + id, [
+        el('div', { class: 'chips', 'data-role': 'agent' }, el('span', { class: 'chip role', text: 'Connection' }), el('span', { class: 'chip', text: statusLabel(c.status) })),
+        el('h2', { id: 'panel-title', tabindex: '-1', text: c.label }),
+        el('p', { text: c.purpose }), statusNote(c.status),
+        sec('Carries', el('ul', { class: 'links' }, carried.map((e) => el('li', {}, nodes.get(e.from).label + ' → ', el('button', { type: 'button', text: nodes.get(e.to).label, onclick: () => openNode(e.to) }), el('span', { class: 'what', text: e.what }))))),
+        sec('Used for', el('ul', { class: 'links' }, data.features.filter((f) => Object.values(f.lanes).some((x) => (x.connections || []).includes(id))).map((f) => el('li', {}, el('button', { type: 'button', text: f.label, onclick: () => openFeature(f.id) }))))),
+        c.members ? sec(`${c.members.label} (${c.members.items.length})`, el('ul', { class: 'members' }, c.members.items.map((m) => el('li', { text: m })))) : null,
+        traceLinks(tracesThrough((e) => e && e.connection === id)),
+        sec('Source', srcList(c.sources)),
+        c.docs ? sec('Read more', el('p', {}, el('a', { href: gh(c.docs), text: c.docs }))) : null,
+      ]);
+    }
+    function openCheck(id, from) {
+      const c = checks.get(id); sel(null);
+      showPanel(from, 'check=' + id, [
+        el('div', { class: 'chips', 'data-role': 'verification' }, el('span', { class: 'chip role', text: 'Check' })),
+        el('h2', { id: 'panel-title', tabindex: '-1', text: c.label }),
+        el('p', { text: c.purpose }),
+        sec('Acts on', el('ul', { class: 'links' }, c.on.map((o) => nodeLink(o)))),
+        sec('Source', srcList(c.sources)),
+        c.docs ? sec('Read more', el('p', {}, el('a', { href: gh(c.docs), text: c.docs }))) : null,
+      ]);
+    }
+    function closePanel() {
+      if (panel.hidden) return;
+      panel.hidden = true; sel(null);
+      if (/^#(node|feature|conn|check)=/.test(location.hash)) setHash(view === 'compare' ? 'view=compare' : null);
+      if (returnTo && visible(returnTo)) returnTo.focus();
+    }
+    $('#panel-close').addEventListener('click', closePanel);
+    document.addEventListener('keydown', (ev) => {
+      if (ev.key !== 'Escape') return;
+      if (!panel.hidden) closePanel(); else if (state.trace) clearTrace();
+    });
+
+    /* ── Trace a path ───────────────────────────────────────────────────────────────────── */
+    const traceSel = $('#trace'), play = $('#play'), prev = $('#prev'), next = $('#next'), clear = $('#clear');
+    const caption = $('#caption'), stepsEl = $('#steps');
+    const defaultCaption = caption.textContent;
+    for (const t of data.traces) traceSel.append(el('option', { value: t.id, text: t.label }));
+    const state = { trace: null, i: -1, timer: 0, playing: false, raf: 0 };
+    const STEP_MS = 3000, DRAW_MS = 1100;
+    traceSel.addEventListener('change', () => traceSel.value ? startTrace(traceSel.value) : clearTrace());
+    play.addEventListener('click', () => state.playing ? pause() : resume());
+    prev.addEventListener('click', () => { pause(); goStep(state.i - 1, false); });
+    next.addEventListener('click', () => { pause(); goStep(state.i + 1, !reduced.matches); });
+    clear.addEventListener('click', () => clearTrace());
+
+    const boxesOf = (id, other) => {
+      if (laneEls.has(id)) return [laneEls.get(id)];
+      const list = nodeEls.get(id) || [];
+      if (nodes.get(id).kind === 'input') return list.filter((b) => b.dataset.lane === other);
+      if (nodes.get(id).kind === 'group') return list.map((b) => b.parentElement);
+      return list;
+    };
+    function startTrace(id) {
+      clearTrace(true);
+      const t = traces.get(id); if (!t) return;
+      if (view !== 'diagram') setView('diagram');
+      state.trace = t; traceSel.value = id;
+      highlight(null); board.classList.add('tracing');
+      for (const s of t.steps) { const e = edgeById.get(s.edge); for (const b of [...boxesOf(e.from, e.to), ...boxesOf(e.to, e.from)]) b.classList.add('in-trace'); }
+      stepsEl.replaceChildren(...t.steps.map((s, i) => {
+        const e = edgeById.get(s.edge);
+        return el('li', {}, el('button', { type: 'button', 'data-i': i, onclick: () => { pause(); goStep(i, !reduced.matches); } },
+          el('span', { class: 'n', text: String(i + 1) }), `${nodes.get(e.from).label} → ${nodes.get(e.to).label}`));
+      }));
+      $('#trace-buttons').hidden = false; $('#trace-bar').classList.add('active');
+      setHash('trace=' + id);
+      play.hidden = reduced.matches;
+      goStep(0, !reduced.matches);
+      if (!reduced.matches) resume(true);
+    }
+    /* Paints the current step on the wires; re-run after a relayout so the paint follows the new paths. */
+    function paintTrace(animate) {
+      const t = state.trace, i = state.i; if (!t) return;
+      noLayer.replaceChildren();
+      const staticAll = reduced.matches;
+      for (const [eid, p] of pathEls) p.classList.remove('traced', 'current', 'upcoming');
+      t.steps.forEach((s, k) => {
+        const p = pathEls.get(s.edge); if (!p) return;
+        p.classList.toggle('traced', k < i || (staticAll && k !== i));
+        p.classList.toggle('current', k === i);
+        p.classList.toggle('upcoming', !staticAll && k > i);
+        p.setAttribute('marker-end', k === i ? 'url(#arrow-trace)' : (k < i || staticAll) ? 'url(#arrow-hi)' : 'url(#arrow)');
+        if (k <= i || staticAll) {
+          const L = p.getTotalLength(), m = p.getPointAtLength(L * (labelEls.has(s.edge) ? 0.25 : 0.5));
+          const g = sv('g', { class: 'stepno' + (k === i ? ' current' : '') });
+          g.append(sv('circle', { cx: m.x, cy: m.y, r: '11' }));
+          const tx = sv('text', { x: m.x, y: m.y }); tx.textContent = String(k + 1); g.append(tx);
+          noLayer.append(g);
+        }
+      });
+      for (const [eid, l] of labelEls) l.classList.toggle('cur', t.steps[i].edge === eid);
+      const e = edgeById.get(t.steps[i].edge);
+      if (animate && pathEls.get(t.steps[i].edge)) draw(pathEls.get(t.steps[i].edge), e);
+    }
+    function goStep(i, animate) {
+      const t = state.trace; if (!t) return;
+      i = Math.max(0, Math.min(t.steps.length - 1, i));
+      state.i = i;
+      cancelAnimationFrame(state.raf); dot.setAttribute('opacity', '0');
+      for (const b of stepsEl.querySelectorAll('button')) {
+        const k = +b.dataset.i;
+        b.classList.toggle('current', k === i); b.classList.toggle('done', k < i);
+        k === i ? b.setAttribute('aria-current', 'step') : b.removeAttribute('aria-current');
+      }
+      const s = t.steps[i], e = edgeById.get(s.edge);
+      board.querySelectorAll('.cur, .arrive').forEach((x) => x.classList.remove('cur', 'arrive'));
+      const ends = [...boxesOf(e.from, e.to), ...boxesOf(e.to, e.from)];
+      for (const b of ends) b.classList.add('cur');
+      caption.replaceChildren(
+        el('span', { class: 'step-no', text: `Step ${i + 1} of ${t.steps.length} · ${nodes.get(e.from).label} → ${nodes.get(e.to).label}${e.connection ? ', through ' + conns.get(e.connection).label : ''}. ` }),
+        s.caption,
+        el('span', { class: 'what', text: 'Carries: ' + e.what + (e.status !== 'shipped' ? ' (' + statusLabel(e.status).toLowerCase() + ')' : '') }));
+      prev.disabled = i === 0; next.disabled = i === t.steps.length - 1;
+      if (phone.matches) { const to = boxesOf(e.to, e.from)[0]; if (to) to.scrollIntoView({ block: 'nearest', behavior: reduced.matches ? 'auto' : 'smooth' }); }
+      paintTrace(animate);
+    }
+    /* The motion: the step's wire draws in the direction tokens travel, a dot rides it, and the box it reaches
+       pulses once. It explains direction and order; nothing else on the page moves. */
+    function draw(p, e) {
+      const L = p.getTotalLength();
+      p.style.strokeDasharray = `${L} ${L}`;
+      const anim = p.animate([{ strokeDashoffset: L }, { strokeDashoffset: 0 }], { duration: DRAW_MS, easing: 'cubic-bezier(.45,0,.25,1)', fill: 'forwards' });
+      anim.onfinish = () => { anim.cancel(); p.style.strokeDasharray = ''; };
+      const t0 = performance.now();
+      const ease = (x) => x < .5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2;
+      dot.setAttribute('opacity', '1');
+      const tick = (now) => {
+        const k = Math.min(1, (now - t0) / DRAW_MS);
+        const pt = p.getPointAtLength(L * ease(k));
+        dot.setAttribute('cx', pt.x); dot.setAttribute('cy', pt.y);
+        if (k < 1) state.raf = requestAnimationFrame(tick);
+        else { dot.setAttribute('opacity', '0'); for (const b of boxesOf(e.to, e.from)) { b.classList.remove('arrive'); void b.offsetWidth; b.classList.add('arrive'); } }
+      };
+      state.raf = requestAnimationFrame(tick);
+    }
+    function resume(fromStart) {
+      if (!state.trace || reduced.matches) return;
+      if (!fromStart && state.i >= state.trace.steps.length - 1) goStep(0, true);
+      else if (!fromStart) goStep(state.i + 1, true);
+      state.playing = true; play.textContent = 'Pause';
+      clearInterval(state.timer);
+      state.timer = setInterval(() => {
+        if (state.i >= state.trace.steps.length - 1) { pause(); return; }
+        goStep(state.i + 1, true);
+      }, STEP_MS);
+    }
+    function pause() {
+      clearInterval(state.timer); state.playing = false;
+      play.textContent = state.trace && state.i >= state.trace.steps.length - 1 ? 'Replay' : 'Play';
+    }
+    function clearTrace(keepUi) {
+      pause(); cancelAnimationFrame(state.raf); dot.setAttribute('opacity', '0');
+      state.trace = null; state.i = -1;
+      board.classList.remove('tracing');
+      board.querySelectorAll('.in-trace, .cur, .arrive').forEach((x) => x.classList.remove('in-trace', 'cur', 'arrive'));
+      for (const [id, p] of pathEls) { p.getAnimations?.().forEach((a) => a.cancel()); p.style.strokeDasharray = ''; p.classList.remove('traced', 'current', 'upcoming'); p.setAttribute('marker-end', edgeById.get(id).connection ? 'url(#arrow-conn)' : 'url(#arrow)'); }
+      for (const l of labelEls.values()) l.classList.remove('cur');
+      noLayer.replaceChildren(); stepsEl.replaceChildren();
+      if (keepUi === true) return;
+      traceSel.value = ''; caption.textContent = defaultCaption; play.textContent = 'Play';
+      $('#trace-buttons').hidden = true; $('#trace-bar').classList.remove('active');
+      if (location.hash.startsWith('#trace=')) setHash(null);
+    }
+    reduced.addEventListener('change', () => { if (state.trace) startTrace(state.trace.id); });
+
+    /* ── Compare interfaces: the same features, as a table ──────────────────────────────── */
+    const compare = $('#compare');
+    const all = data.features.filter((f) => laneCount(f) === LANES.length).length;
+    const one = data.features.filter((f) => laneCount(f) === 1).length;
+    const onlyDiff = el('button', { type: 'button', class: 'btn', 'aria-pressed': 'false', id: 'only-diff' }, 'Only differences');
+    const table = el('table', { class: 'cmp' },
+      el('caption', { class: 'sr-only', text: 'Each feature, and which interface offers it.' }),
+      el('colgroup', {}, el('col', { class: 'feat-col' }), LANES.map(() => el('col'))),
+      el('thead', {}, el('tr', {}, el('th', { scope: 'col', text: 'Feature' }), LANES.map((l) => el('th', { scope: 'col', 'data-role': l.role }, el('span', { class: 'sw', 'aria-hidden': 'true' }), l.label)))),
+      [...new Set(data.features.map((f) => f.group))].map((g) => el('tbody', {},
+        el('tr', {}, el('th', { scope: 'rowgroup', colspan: String(LANES.length + 1), text: g })),
+        data.features.filter((f) => f.group === g).map((f) => el('tr', { 'data-all': String(laneCount(f) === LANES.length) },
+          el('th', { scope: 'row' }, el('button', { type: 'button', class: 'fname', text: f.label, onclick: (ev) => openFeature(f.id, ev.currentTarget) }), el('br'),
+            el('span', { class: 'pill' + (laneCount(f) === 1 ? ' lone' : ''), text: shareText(f) })),
+          LANES.map((l) => {
+            const x = f.lanes[l.id];
+            if (!x) return el('td', { class: 'no' }, el('span', { class: 'mark', 'aria-hidden': 'true', text: '—' }), el('span', { class: 'sr-only', text: 'No' }));
+            return el('td', { class: x.status }, el('span', { class: 'mark', text: x.status === 'shipped' ? '✓ Yes' : statusLabel(x.status) }), el('span', { class: 'via', text: x.via }));
+          }))))));
+    compare.append(
+      el('p', { class: 'summary', text: `${data.features.length} features. ${all} are in all three interfaces, ${data.features.length - all - one} in two, and ${one} in one. Built from the same data as the diagram.` }),
+      el('div', { class: 'controls', style: 'border:0;padding-top:0' }, onlyDiff), table);
+    onlyDiff.addEventListener('click', () => {
+      const on = onlyDiff.getAttribute('aria-pressed') !== 'true';
+      onlyDiff.setAttribute('aria-pressed', String(on));
+      for (const tr of table.querySelectorAll('tr[data-all="true"]')) tr.classList.toggle('diff-hidden', on);
+    });
+
+    /* ── Views ──────────────────────────────────────────────────────────────────────────── */
+    let view = 'diagram';
+    const tabs = [$('#tab-diagram'), $('#tab-compare')];
+    function setView(v, focus) {
+      view = v;
+      tabs.forEach((t) => { const on = t.id === 'tab-' + v; t.setAttribute('aria-selected', String(on)); t.tabIndex = on ? 0 : -1; if (on && focus) t.focus(); });
+      $('#view-diagram').hidden = v !== 'diagram'; $('#view-compare').hidden = v !== 'compare';
+      if (v === 'compare' && state.trace) clearTrace();
+      if (!/^#(node|feature|conn|check|trace)=/.test(location.hash)) setHash(v === 'compare' ? 'view=compare' : null);
+      relayout();
+    }
+    tabs.forEach((t, i) => {
+      t.addEventListener('click', () => setView(t.id.slice(4)));
+      t.addEventListener('keydown', (ev) => {
+        const k = { ArrowRight: 1, ArrowLeft: -1, Home: -9, End: 9 }[ev.key]; if (!k) return;
+        ev.preventDefault(); const j = Math.max(0, Math.min(tabs.length - 1, Math.abs(k) === 9 ? (k > 0 ? tabs.length - 1 : 0) : i + k));
+        setView(tabs[j].id.slice(4), true);
+      });
+    });
+
+    /* ── Legend and footer ──────────────────────────────────────────────────────────────── */
+    const line = (cls, dash) => { const s = sv('svg', { viewBox: '0 0 26 16', 'aria-hidden': 'true' }); const ln = sv('line', { x1: '1', y1: '8', x2: '25', y2: '8', class: cls || '' }); if (dash) ln.setAttribute('stroke-dasharray', dash); s.append(ln); return s; };
+    $('#legend').append(
+      el('div', {}, el('h2', { text: 'Roles' }), el('ul', {}, data.roles.map((r) => el('li', { 'data-role': r.id },
+        el('span', { class: 'sw' + (r.id === 'engine' ? ' hubsw' : r.id === 'input' ? ' insw' : ''), 'aria-hidden': 'true' }), el('span', {}, r.label, el('span', { class: 'sub', text: r.note })))))),
+      el('div', {}, el('h2', { text: 'Build status' }), el('ul', {}, data.statuses.map((s) => el('li', { 'data-role': 'engine' },
+        el('span', { class: 'swatch-status ' + s.id, style: 'width:22px;height:16px;margin-top:3px;color:var(--edge-strong)', 'aria-hidden': 'true' }), el('span', {}, s.label, el('span', { class: 'sub', text: s.meaning })))))),
+      el('div', {}, el('h2', { text: 'Arrows' }), el('ul', {},
+        el('li', {}, line(''), el('span', { text: 'What travels between two boxes. Select a box to read it.' })),
+        el('li', {}, line('conn'), el('span', {}, 'A connection: how an agent reaches the engine or Figma. Select its label for details.')),
+        el('li', {}, line('', '5 3'), el('span', { text: 'Partial' })),
+        el('li', {}, line('', '1.5 4'), el('span', { text: 'Planned' })))),
+      el('div', {}, el('h2', { text: 'Modes' }), el('p', { style: 'margin:0', text: 'Appearance: ' + data.modes.appearance.join(', ') + '. ' + data.modes.viewport })),
+    );
+    $('#footer').append(
+      el('p', { style: 'margin:0' }, el('span', { id: 'footer-count' }), ' ',
+        'Drawn from ', el('a', { href: gh('docs/public/ecosystem/ecosystem.json'), text: 'ecosystem.json' }),
+        '. A CI check, ', el('code', { text: 'lint-ecosystem.ts' }), ', fails when its paths, components, MCP tools, agent link commands, plugin messages or skills stop matching the code, or when a feature claims an interface the code says it cannot reach. ',
+        el('a', { href: gh('docs/public/ecosystem/README.md'), text: 'How to update it' }), '.'));
+    applyFilter();
+
+    /* ── Deep links ─────────────────────────────────────────────────────────────────────── */
+    function setHash(h) { try { history.replaceState(null, '', h ? '#' + h : location.pathname + location.search); } catch {} }
+    const m = /^#(node|trace|feature|conn|check|view)=([\w-]+)$/.exec(location.hash);
+    if (m) {
+      const [, k, id] = m;
+      if (k === 'view' && id === 'compare') setView('compare');
+      else if (k === 'trace' && traces.has(id)) requestAnimationFrame(() => startTrace(id));
+      else if (k === 'node' && nodes.has(id)) openNode(id, (nodeEls.get(id) || [])[0]);
+      else if (k === 'feature' && features.has(id)) openFeature(id, (featEls.get(id) || [])[0]);
+      else if (k === 'conn' && conns.has(id)) openConn(id);
+      else if (k === 'check' && checks.has(id)) openCheck(id);
+    }
+  }
+})();
+</script>
+</body>
+</html>

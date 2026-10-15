@@ -1,0 +1,1740 @@
+{
+  "$comment": "The one source for docs/public/ecosystem/index.html, both views. Hand-authored on purpose: packages/engine/lint-ecosystem.ts checks it against the code (paths, members, which lane can reach what), so the code is the oracle and this file is the subject. How to update it: README.md in this folder.",
+  "version": 2,
+  "repo": "https://github.com/adamforrester/prism3/blob/main/",
+  "statuses": [
+    {
+      "id": "shipped",
+      "label": "Shipped",
+      "meaning": "On main and in use."
+    },
+    {
+      "id": "partial",
+      "label": "Partial",
+      "meaning": "Some of it works today; the rest is in review or limited to a development build."
+    },
+    {
+      "id": "planned",
+      "label": "Planned",
+      "meaning": "Decided or described in the design record, not built."
+    }
+  ],
+  "roles": [
+    {
+      "id": "input",
+      "label": "Input",
+      "note": "What a lane starts from."
+    },
+    {
+      "id": "theming",
+      "label": "Theming UI",
+      "note": "A person sets the brand, on the web or in Figma."
+    },
+    {
+      "id": "agent",
+      "label": "Agent",
+      "note": "A coding agent drives the same engine."
+    },
+    {
+      "id": "engine",
+      "label": "Engine",
+      "note": "The hub. Everything else reads what it generates."
+    },
+    {
+      "id": "output",
+      "label": "Output",
+      "note": "Files and Figma artifacts the engine's output becomes."
+    },
+    {
+      "id": "verification",
+      "label": "Check",
+      "note": "Shown with Show checks, where each check acts."
+    },
+    {
+      "id": "code",
+      "label": "Code library",
+      "note": "The path from tokens to coded components."
+    }
+  ],
+  "columns": [
+    {
+      "id": "inputs",
+      "label": "Inputs"
+    },
+    {
+      "id": "lanes",
+      "label": "Interfaces"
+    },
+    {
+      "id": "engine",
+      "label": "Engine"
+    },
+    {
+      "id": "outputs",
+      "label": "Outputs"
+    }
+  ],
+  "modes": {
+    "appearance": [
+      "light",
+      "dark",
+      "high-contrast light",
+      "high-contrast dark",
+      "wireframe"
+    ],
+    "viewport": "An independent viewport axis: type sets per viewport and a layout mode per breakpoint.",
+    "source": "packages/engine/modes.ts"
+  },
+  "nodes": [
+    {
+      "id": "levers",
+      "label": "Levers, set by hand",
+      "role": "input",
+      "kind": "input",
+      "status": "shipped",
+      "column": "inputs",
+      "purpose": "Brand colors, fonts and the levers for type, shape, depth, motion and layout, set in the panels. The lever manifest describes every knob once, and both interfaces render from it.",
+      "inputs": [
+        "A person"
+      ],
+      "outputs": [
+        "A brand input"
+      ],
+      "sources": [
+        "packages/engine/levers.ts",
+        "packages/engine/schema/lever-manifest.json"
+      ],
+      "docs": "docs/08-theming-interfaces.md"
+    },
+    {
+      "id": "design-md",
+      "label": "design.md",
+      "role": "input",
+      "kind": "input",
+      "status": "shipped",
+      "column": "inputs",
+      "purpose": "A brand brief in Markdown with YAML front matter. It is a round-trip artifact: the studio exports it, and any lane can read it back in. Two dialects are read: the engine's own and the standard design.md.",
+      "inputs": [
+        "Written by a person or an agent",
+        "Exported from the studio"
+      ],
+      "outputs": [
+        "A BrandInput, through the parser"
+      ],
+      "sources": [
+        "packages/engine/design-md.ts",
+        "packages/engine/standard-design-md.ts",
+        "packages/engine/classify-colors.ts",
+        "packages/engine/examples/"
+      ],
+      "docs": "docs/07-e2e-journey.md"
+    },
+    {
+      "id": "tool-args",
+      "label": "Tool arguments",
+      "role": "input",
+      "kind": "input",
+      "status": "shipped",
+      "column": "inputs",
+      "purpose": "A brand input passed as arguments to a tool call. list_levers says what is accepted; validate_brand checks it before anything is generated.",
+      "inputs": [
+        "The agent"
+      ],
+      "outputs": [
+        "A brand input"
+      ],
+      "sources": [
+        "packages/engine/schema/theme-schema.json",
+        "packages/engine/mcp.ts"
+      ],
+      "docs": "docs/43-agent-instruction-surface.md"
+    },
+    {
+      "id": "web",
+      "label": "Web studio",
+      "role": "theming",
+      "kind": "lane",
+      "status": "shipped",
+      "column": "lanes",
+      "purpose": "The theme studio in a browser. The engine runs in the page, so there is no backend. A person sets levers or imports a design.md, sees the result live with contrast checks per mode, and downloads tokens or a design.md.",
+      "inputs": [
+        "Levers set by hand",
+        "A design.md"
+      ],
+      "outputs": [
+        "A brand input",
+        "Token downloads",
+        "An exported design.md"
+      ],
+      "sources": [
+        "apps/studio/src/",
+        "apps/studio/build.mjs"
+      ],
+      "docs": "apps/studio/README.md"
+    },
+    {
+      "id": "figma",
+      "label": "Figma plugin",
+      "role": "theming",
+      "kind": "lane",
+      "status": "shipped",
+      "column": "lanes",
+      "purpose": "The same studio UI, running inside Figma. On top of everything the web studio does, it writes into the open file: variables, styles, component sets and style guides, and it keeps them current.",
+      "inputs": [
+        "Levers set by hand",
+        "A design.md",
+        "Agent link commands"
+      ],
+      "outputs": [
+        "Variables and styles",
+        "Component sets",
+        "Style guide pages",
+        "The brand, saved in the file"
+      ],
+      "sources": [
+        "apps/plugin/src/main.ts",
+        "apps/plugin/src/ui/entry.ts",
+        "apps/plugin/manifest.json"
+      ],
+      "docs": "apps/plugin/README.md"
+    },
+    {
+      "id": "agent",
+      "label": "Agent",
+      "role": "agent",
+      "kind": "lane",
+      "status": "shipped",
+      "column": "lanes",
+      "purpose": "Any MCP client, such as Claude Code. It themes a brand from tool arguments or a design.md, scores the UI code it writes, and drives the Figma plugin by command.",
+      "inputs": [
+        "Tool arguments",
+        "A design.md",
+        "Shipped skills"
+      ],
+      "outputs": [
+        "MCP tool calls",
+        "Agent link commands",
+        "use_figma scripts"
+      ],
+      "sources": [
+        "packages/engine/mcp.ts",
+        "skills/"
+      ],
+      "docs": "docs/43-agent-instruction-surface.md"
+    },
+    {
+      "id": "engine",
+      "label": "Prism3 engine",
+      "role": "engine",
+      "kind": "hub",
+      "status": "shipped",
+      "column": "engine",
+      "purpose": "Generates the whole token layer from the brand input: color ramps and roles, type, space, radius, shadow, motion and layout. Dependency-free TypeScript with no LLM: the same input always gives the same output.",
+      "inputs": [
+        "A brand input from any lane"
+      ],
+      "outputs": [
+        "DTCG token trees",
+        "Agent metadata",
+        "Figma write plans",
+        "Contrast results"
+      ],
+      "sources": [
+        "packages/engine/theme.ts",
+        "packages/engine/tree.ts",
+        "packages/engine/modes.ts",
+        "packages/engine/emit-dtcg.ts",
+        "packages/engine/emit-figma.ts",
+        "packages/engine/write-plan.ts"
+      ],
+      "docs": "packages/engine/README.md"
+    },
+    {
+      "id": "component-defs",
+      "label": "Component definitions",
+      "role": "engine",
+      "kind": "content",
+      "status": "shipped",
+      "column": "engine",
+      "purpose": "One TypeScript definition per component: anatomy, variants, states, token bindings, accessibility and usage prose. Figma sets, component docs and the planned coded components are projections of these.",
+      "inputs": [
+        "Authored with the prism3-build-component skill"
+      ],
+      "outputs": [
+        "Component plans for Figma",
+        "Component docs",
+        "The component contract for code"
+      ],
+      "sources": [
+        "packages/engine/components/",
+        "packages/engine/component-schema.ts"
+      ],
+      "docs": "docs/28-component-anatomy-schema.md",
+      "members": {
+        "label": "Definitions",
+        "items": [
+          "icon",
+          "focus-ring",
+          "button",
+          "button-destructive",
+          "button-neutral",
+          "icon-button",
+          "icon-button-destructive",
+          "icon-button-neutral",
+          "flush-icon-button",
+          "flush-icon-button-destructive",
+          "flush-icon-button-neutral",
+          "field-label",
+          "field-message",
+          "text-field",
+          "textarea",
+          "checkbox-control",
+          "checkbox-row",
+          "checkbox-group",
+          "radio-control",
+          "radio-row",
+          "radio-group",
+          "switch-control",
+          "switch-row",
+          "select",
+          "veil",
+          "image-placeholder",
+          "spinner",
+          "badge",
+          "tag",
+          "tab",
+          "tabs",
+          "divider",
+          "_accordion-indicator",
+          "accordion",
+          "list-item",
+          "list",
+          "segmented-control-segment",
+          "segmented-control",
+          "link",
+          "dialog",
+          "password-field"
+        ]
+      }
+    },
+    {
+      "id": "dtcg",
+      "label": "DTCG tokens",
+      "role": "output",
+      "kind": "artifact",
+      "status": "shipped",
+      "column": "outputs",
+      "purpose": "W3C design tokens. Two forms: one canonical tree, and a consumer set of a base file plus one overlay per mode with no build metadata. Two producers: the engine, and TokenPress reading a Figma file.",
+      "inputs": [
+        "The engine",
+        "TokenPress"
+      ],
+      "outputs": [
+        "Files a build tool consumes"
+      ],
+      "sources": [
+        "packages/engine/emit-dtcg.ts",
+        "packages/engine/emit-dtcg-overlay.ts",
+        "packages/engine/out/"
+      ],
+      "docs": "docs/01-token-architecture.md"
+    },
+    {
+      "id": "ai-json",
+      "label": "Agent metadata (.ai.json)",
+      "role": "output",
+      "kind": "artifact",
+      "status": "shipped",
+      "column": "outputs",
+      "purpose": "A *.ai.json file beside each token tree: what each token means, when to use it and when not to, and which pairs it is measured against. It keeps the token files plain DTCG.",
+      "inputs": [
+        "The generated token tree"
+      ],
+      "outputs": [
+        "Metadata an agent reads before writing UI"
+      ],
+      "sources": [
+        "packages/engine/ai-metadata.ts",
+        "packages/engine/schema/ai-metadata.schema.json"
+      ],
+      "docs": "docs/36-ai-readiness.md"
+    },
+    {
+      "id": "component-docs",
+      "label": "Component docs",
+      "role": "output",
+      "kind": "artifact",
+      "status": "shipped",
+      "column": "outputs",
+      "purpose": "One Markdown page per component and one components.ai.json, both generated from the definitions. Maintainer notes stay out of both.",
+      "inputs": [
+        "Component definitions"
+      ],
+      "outputs": [
+        "Pages for people",
+        "JSON for agents"
+      ],
+      "sources": [
+        "packages/engine/emit-component-docs.ts",
+        "packages/engine/out/components/"
+      ],
+      "docs": "docs/41-internal-and-ejected.md"
+    },
+    {
+      "id": "figma-file",
+      "label": "The Figma file",
+      "role": "output",
+      "kind": "group",
+      "status": "shipped",
+      "column": "outputs",
+      "purpose": "What the plugin, or the Figma MCP scripts, write into a file. Every item is bound to the generated variables, so a new brand repaints it.",
+      "inputs": [
+        "Write plans and component plans"
+      ],
+      "outputs": [
+        "What designers work with",
+        "What TokenPress reads"
+      ],
+      "sources": [
+        "apps/plugin/src/apply-theme.ts",
+        "apps/plugin/src/write-components.ts"
+      ],
+      "docs": "docs/10-figma-materialization.md"
+    },
+    {
+      "id": "figma-variables",
+      "label": "Variables and styles",
+      "role": "output",
+      "kind": "artifact",
+      "status": "shipped",
+      "column": "outputs",
+      "parent": "figma-file",
+      "purpose": "Figma variable collections with a mode per appearance and breakpoint, plus text, shadow, gradient and grid styles, all bound to the generated tokens.",
+      "inputs": [
+        "Apply theme, from the plugin or the MCP scripts"
+      ],
+      "outputs": [
+        "What designers bind to",
+        "What TokenPress exports"
+      ],
+      "sources": [
+        "apps/plugin/src/write-figma.ts",
+        "apps/plugin/src/write-styles.ts",
+        "apps/plugin/src/write-text-styles.ts",
+        "apps/plugin/src/write-grid-styles.ts",
+        "packages/engine/out/figma/"
+      ],
+      "docs": "docs/10-figma-materialization.md"
+    },
+    {
+      "id": "figma-motion",
+      "label": "Motion variables",
+      "role": "output",
+      "kind": "artifact",
+      "status": "shipped",
+      "column": "outputs",
+      "parent": "figma-file",
+      "purpose": "Durations reach Figma as TIMING variables in seconds; curves, easing roles and springs as EASING variables. A transition has no Figma form, so its duration and its easing role are written instead.",
+      "inputs": [
+        "Apply theme"
+      ],
+      "outputs": [
+        "Motion variables in the file"
+      ],
+      "sources": [
+        "packages/engine/emit-figma.ts",
+        "packages/engine/emit-figma-dims.ts",
+        "packages/engine/write-plan.ts"
+      ],
+      "docs": "docs/10-figma-materialization.md"
+    },
+    {
+      "id": "figma-components",
+      "label": "Component sets",
+      "role": "output",
+      "kind": "artifact",
+      "status": "shipped",
+      "column": "outputs",
+      "parent": "figma-file",
+      "purpose": "A component set per definition, with each family on its own page, bound to the variables. An update checks first and writes nothing, then applies after the agent confirms. Prune previews before it deletes. Labels and inverse backdrops are drawn around each set as canvas furniture, and a scrim behind the centered and bottom-sheet Dialog examples.",
+      "inputs": [
+        "Component plans, through the plugin or the MCP scripts"
+      ],
+      "outputs": [
+        "Components designers use",
+        "An as-built record for safe updates"
+      ],
+      "sources": [
+        "apps/plugin/src/write-components.ts",
+        "apps/plugin/src/update-plan.ts",
+        "apps/plugin/src/canvas-furniture.ts",
+        "apps/plugin/src/page-header.ts"
+      ],
+      "docs": "docs/39-component-projection.md"
+    },
+    {
+      "id": "style-guides",
+      "label": "Style guides",
+      "role": "output",
+      "kind": "artifact",
+      "status": "shipped",
+      "column": "outputs",
+      "parent": "figma-file",
+      "purpose": "Tables drawn onto the file's token pages for color, dimensions, border widths, opacity, font variables, and text, effect and gradient styles. Each specimen is bound to the variable it shows, so it repaints when a value changes. Motion, grid and breakpoint tables are specified, not built.",
+      "inputs": [
+        "The plugin's Build style guides page",
+        "The agent link's style-guide command"
+      ],
+      "outputs": [
+        "Pages a team reviews the brand on"
+      ],
+      "sources": [
+        "apps/plugin/src/style-guide.ts",
+        "apps/plugin/src/style-guide-cells.ts",
+        "apps/studio/src/shell/style-guides.ts"
+      ],
+      "docs": "docs/45-style-guide-generator.md"
+    },
+    {
+      "id": "tokenpress",
+      "label": "TokenPress",
+      "role": "output",
+      "kind": "surface",
+      "status": "shipped",
+      "column": "outputs",
+      "purpose": "A Figma plugin, in this repo and published in the Figma Community, that exports any file's variables and styles to DTCG. It runs the opposite direction from the engine and shares no code with it, so its output is an independent check.",
+      "inputs": [
+        "Variables and styles in a Figma file"
+      ],
+      "outputs": [
+        "DTCG token files"
+      ],
+      "sources": [
+        "apps/tokenpress/src/",
+        "apps/tokenpress/manifest.json"
+      ],
+      "docs": "apps/tokenpress/README.md"
+    },
+    {
+      "id": "code-library",
+      "label": "Code library",
+      "role": "code",
+      "kind": "group",
+      "status": "partial",
+      "column": "outputs",
+      "purpose": "The path from tokens to coded components. The token build runs in CI today; the components and their stories are planned.",
+      "inputs": [
+        "The consumer token set",
+        "Component definitions"
+      ],
+      "outputs": [
+        "Packages a product team installs"
+      ],
+      "sources": [
+        "packages/tokens/"
+      ],
+      "docs": "docs/19-code-library-and-dx.md"
+    },
+    {
+      "id": "style-dictionary",
+      "label": "Style Dictionary build",
+      "role": "code",
+      "kind": "surface",
+      "status": "partial",
+      "column": "outputs",
+      "parent": "code-library",
+      "purpose": "A stock Style Dictionary, with no custom code, builds every brand to CSS, SCSS, JavaScript, iOS and Android in CI. It proves the tokens are consumable. No package is published yet.",
+      "inputs": [
+        "The consumer token set"
+      ],
+      "outputs": [
+        "Platform files"
+      ],
+      "sources": [
+        "packages/tokens/check-consumability.mjs",
+        "packages/tokens/check-platforms.mjs",
+        "packages/tokens/sd.platforms.mjs"
+      ],
+      "docs": "packages/tokens/README.md"
+    },
+    {
+      "id": "css",
+      "label": "CSS variables",
+      "role": "code",
+      "kind": "artifact",
+      "status": "partial",
+      "column": "outputs",
+      "parent": "code-library",
+      "purpose": "CSS custom properties. Built and checked in CI; not yet shipped as a package a product can install.",
+      "inputs": [
+        "Style Dictionary"
+      ],
+      "outputs": [
+        "Variables coded components bind to"
+      ],
+      "sources": [
+        "packages/tokens/sd.consumer.mjs"
+      ],
+      "docs": "docs/19-code-library-and-dx.md"
+    },
+    {
+      "id": "coded-components",
+      "label": "Coded components",
+      "role": "code",
+      "kind": "artifact",
+      "status": "planned",
+      "column": "outputs",
+      "parent": "code-library",
+      "purpose": "Web components and React components projected from the same definitions as the Figma sets, vanilla HTML and CSS first. Not built.",
+      "inputs": [
+        "The component contract",
+        "CSS variables"
+      ],
+      "outputs": [
+        "Components a product team installs"
+      ],
+      "sources": [],
+      "docs": "docs/19-code-library-and-dx.md"
+    },
+    {
+      "id": "storybook",
+      "label": "Storybook",
+      "role": "code",
+      "kind": "artifact",
+      "status": "planned",
+      "column": "outputs",
+      "parent": "code-library",
+      "purpose": "Generated stories for each coded component. Not built.",
+      "inputs": [
+        "Coded components"
+      ],
+      "outputs": [
+        "A browsable component reference"
+      ],
+      "sources": [],
+      "docs": "docs/19-code-library-and-dx.md"
+    }
+  ],
+  "edges": [
+    {
+      "from": "levers",
+      "to": "web",
+      "what": "Levers set in the panels",
+      "status": "shipped"
+    },
+    {
+      "from": "design-md",
+      "to": "web",
+      "what": "A brief, pasted or uploaded on the start screen",
+      "status": "shipped"
+    },
+    {
+      "from": "levers",
+      "to": "figma",
+      "what": "Levers set in the panels",
+      "status": "shipped"
+    },
+    {
+      "from": "design-md",
+      "to": "figma",
+      "what": "A brief, pasted or uploaded on the start screen",
+      "status": "shipped"
+    },
+    {
+      "from": "tool-args",
+      "to": "agent",
+      "what": "A brand input, as tool arguments",
+      "status": "shipped"
+    },
+    {
+      "from": "design-md",
+      "to": "agent",
+      "what": "A brief, for theme_from_brief or the command line",
+      "status": "shipped"
+    },
+    {
+      "from": "web",
+      "to": "engine",
+      "what": "The brand input. The engine runs in the page and rebuilds on every change.",
+      "status": "shipped"
+    },
+    {
+      "from": "figma",
+      "to": "engine",
+      "what": "The brand input. The engine is bundled into the plugin.",
+      "status": "shipped"
+    },
+    {
+      "from": "agent",
+      "to": "engine",
+      "what": "Tool calls in; tokens, check results and the decisions log back",
+      "status": "shipped",
+      "connection": "mcp"
+    },
+    {
+      "from": "agent",
+      "to": "engine",
+      "what": "A design.md compiled into token files",
+      "status": "shipped",
+      "connection": "cli"
+    },
+    {
+      "from": "agent",
+      "to": "figma",
+      "what": "Commands written to the file's mailbox through use_figma",
+      "status": "shipped",
+      "connection": "agent-link"
+    },
+    {
+      "from": "agent",
+      "to": "figma",
+      "what": "Commands over a localhost WebSocket",
+      "status": "partial",
+      "connection": "desktop-bridge"
+    },
+    {
+      "from": "agent",
+      "to": "figma-file",
+      "what": "Plan scripts run by use_figma, with the plugin closed",
+      "status": "shipped",
+      "connection": "figma-scripts",
+      "route": "under"
+    },
+    {
+      "from": "engine",
+      "to": "dtcg",
+      "what": "The canonical tree, plus a base and an overlay per mode",
+      "status": "shipped"
+    },
+    {
+      "from": "engine",
+      "to": "ai-json",
+      "what": "Meaning, usage and measured pairs for each token",
+      "status": "shipped"
+    },
+    {
+      "from": "component-defs",
+      "to": "component-docs",
+      "what": "One page and one JSON entry per component",
+      "status": "shipped"
+    },
+    {
+      "from": "engine",
+      "to": "figma-file",
+      "what": "Write plans for variables, styles and style guides, run by the plugin",
+      "status": "shipped"
+    },
+    {
+      "from": "component-defs",
+      "to": "figma-file",
+      "what": "A component plan per definition",
+      "status": "shipped"
+    },
+    {
+      "from": "figma-file",
+      "to": "tokenpress",
+      "what": "Variables and styles, read from the file",
+      "status": "shipped"
+    },
+    {
+      "from": "tokenpress",
+      "to": "dtcg",
+      "what": "A DTCG export, compared with the engine's own in CI",
+      "status": "shipped"
+    },
+    {
+      "from": "dtcg",
+      "to": "style-dictionary",
+      "what": "The consumer set, with no custom transforms",
+      "status": "partial"
+    },
+    {
+      "from": "style-dictionary",
+      "to": "css",
+      "what": "CSS custom properties",
+      "status": "partial"
+    },
+    {
+      "from": "css",
+      "to": "coded-components",
+      "what": "Variables to bind to",
+      "status": "planned"
+    },
+    {
+      "from": "coded-components",
+      "to": "storybook",
+      "what": "Generated stories",
+      "status": "planned"
+    }
+  ],
+  "connections": [
+    {
+      "id": "mcp",
+      "label": "MCP",
+      "status": "shipped",
+      "purpose": "The engine over MCP: stdio JSON-RPC, no dependencies. An agent lists levers, validates and themes a brand, themes from a brief, scores UI code, and exports files.",
+      "sources": [
+        "packages/engine/mcp.ts",
+        "packages/engine/mcp-served.ts"
+      ],
+      "docs": "packages/engine/README.md",
+      "members": {
+        "label": "Tools",
+        "items": [
+          "list_levers",
+          "validate_brand",
+          "theme_brand",
+          "theme_from_brief",
+          "score_consumption",
+          "export_theme"
+        ]
+      }
+    },
+    {
+      "id": "cli",
+      "label": "Command line",
+      "status": "shipped",
+      "purpose": "Compiles a design.md into tokens from the command line. Exits non-zero on a schema violation, a broken alias or a failed contrast contract. An optional fidelity report compares the brief's values with what the engine generated.",
+      "sources": [
+        "packages/engine/cli.ts",
+        "packages/engine/fidelity.ts"
+      ],
+      "docs": "packages/engine/README.md"
+    },
+    {
+      "id": "agent-link",
+      "label": "Agent link",
+      "status": "shipped",
+      "purpose": "One versioned command protocol for driving the open plugin. Commands arrive through the file's mailbox or the desktop bridge and run through the same handlers as the panel's buttons. Off by default and never persisted. In the release build nothing in a command is evaluated; the development build adds one command, run-code, for testing.",
+      "sources": [
+        "apps/plugin/src/agent-protocol.ts",
+        "apps/plugin/src/agent-link.ts",
+        "apps/plugin/src/agent-dispatch.ts",
+        "apps/plugin/agent-snippets.ts",
+        "tools/figma-mcp/agent-link.ts"
+      ],
+      "docs": "apps/plugin/README.md",
+      "members": {
+        "label": "Commands",
+        "items": [
+          "status",
+          "apply-theme",
+          "build-components",
+          "file-setup",
+          "style-guide",
+          "prune",
+          "readback",
+          "update-components",
+          "capture-baseline",
+          "adopt-members"
+        ]
+      }
+    },
+    {
+      "id": "desktop-bridge",
+      "label": "Desktop bridge",
+      "status": "partial",
+      "purpose": "A local MCP server that relays agent link commands to the open plugin over a localhost WebSocket and streams progress back. Only the development build of the plugin may open that socket; the release build has no network access.",
+      "sources": [
+        "tools/figma-bridge/server.ts",
+        "apps/plugin/src/agent-bridge-relay.ts"
+      ],
+      "docs": "tools/figma-bridge/README.md",
+      "members": {
+        "label": "Tools",
+        "items": [
+          "figma_status",
+          "figma_run",
+          "figma_logs"
+        ]
+      }
+    },
+    {
+      "id": "figma-scripts",
+      "label": "Figma MCP scripts",
+      "status": "shipped",
+      "purpose": "Plain Plugin API scripts for the Figma MCP's use_figma tool. They apply a theme and build components with the plugin closed, and carry the plugin's own executors, so both paths write the same file. Runs only against a designated scratch file.",
+      "sources": [
+        "tools/figma-mcp/plan.ts",
+        "tools/figma-mcp/report.ts",
+        "apps/plugin/mcp-paste.ts",
+        "apps/plugin/src/mcp-steps.ts"
+      ],
+      "docs": "tools/figma-mcp/README.md"
+    }
+  ],
+  "checks": [
+    {
+      "id": "contrast",
+      "label": "Contrast contracts",
+      "purpose": "Every text, icon and border role is resolved by contrast against its own surface, in every mode, and checked. A failure stops the run; a role below its floor is warned, never silent.",
+      "on": [
+        "engine"
+      ],
+      "sources": [
+        "packages/engine/modes.ts",
+        "packages/engine/color.ts",
+        "packages/engine/lint-ratio-truth.ts"
+      ],
+      "docs": "docs/06-surface-and-content-color-model.md"
+    },
+    {
+      "id": "scoring",
+      "label": "Code scoring",
+      "purpose": "Scores UI code an agent wrote against the brand's tokens: the rate of invented tokens, primitive leaks, and contrast for the pairs it used. The score goes back to the agent.",
+      "on": [
+        "agent"
+      ],
+      "sources": [
+        "packages/engine/eval.ts"
+      ],
+      "docs": "docs/17-consumption-eval.md"
+    },
+    {
+      "id": "token-contract",
+      "label": "Token contract",
+      "purpose": "Names are versioned; values are not. A committed baseline lists the guaranteed token names. Removing or retyping one is a major contract change, and the baseline refuses to move until the version does.",
+      "on": [
+        "dtcg"
+      ],
+      "sources": [
+        "packages/engine/token-contract.ts",
+        "packages/engine/schema/token-contract.json",
+        "packages/engine/version.ts"
+      ],
+      "docs": "docs/30-versioning-and-compatibility.md"
+    },
+    {
+      "id": "ci-gates",
+      "label": "CI gates",
+      "purpose": "Every pull request regenerates every committed artifact and runs the full gate list: drift, contrast, naming, prose, builds and round trips. npm run verify runs the same list locally. Among them: the exporter agreement between TokenPress and the engine, and the Style Dictionary build.",
+      "on": [
+        "engine",
+        "tokenpress",
+        "style-dictionary"
+      ],
+      "sources": [
+        ".github/workflows/ci.yml",
+        "verify.ts",
+        "packages/engine/regen.ts",
+        "tools/exporter-comparison/gate.ts"
+      ],
+      "docs": "CONTRIBUTING.md"
+    }
+  ],
+  "features": [
+    {
+      "id": "start-brand",
+      "label": "Start from a color or an example",
+      "group": "Set the brand",
+      "lanes": {
+        "web": {
+          "status": "shipped",
+          "via": "Start screen",
+          "sources": [
+            "apps/studio/src/shell/start.ts"
+          ]
+        },
+        "figma": {
+          "status": "shipped",
+          "via": "Start screen, titled for the open file",
+          "sources": [
+            "apps/studio/src/shell/start.ts"
+          ]
+        }
+      }
+    },
+    {
+      "id": "set-levers",
+      "label": "Set brand levers",
+      "group": "Set the brand",
+      "lanes": {
+        "web": {
+          "status": "shipped",
+          "via": "Lever panels, by hand",
+          "sources": [
+            "apps/studio/src/shell/pages.ts",
+            "packages/engine/levers.ts"
+          ]
+        },
+        "figma": {
+          "status": "shipped",
+          "via": "Lever panels, by hand",
+          "sources": [
+            "apps/studio/src/shell/pages.ts",
+            "packages/engine/levers.ts"
+          ]
+        },
+        "agent": {
+          "status": "shipped",
+          "via": "list_levers says what theme_brand accepts",
+          "sources": [
+            "packages/engine/mcp.ts"
+          ],
+          "mcpTools": [
+            "list_levers"
+          ],
+          "connections": [
+            "mcp"
+          ]
+        }
+      }
+    },
+    {
+      "id": "read-design-md",
+      "label": "Read a design.md brief",
+      "group": "Set the brand",
+      "lanes": {
+        "web": {
+          "status": "shipped",
+          "via": "Paste or upload on the start screen",
+          "sources": [
+            "apps/studio/src/shell/start.ts",
+            "packages/engine/design-md.ts"
+          ]
+        },
+        "figma": {
+          "status": "shipped",
+          "via": "Paste or upload on the start screen",
+          "sources": [
+            "apps/studio/src/shell/start.ts",
+            "packages/engine/design-md.ts"
+          ]
+        },
+        "agent": {
+          "status": "shipped",
+          "via": "theme_from_brief, or the command line",
+          "sources": [
+            "packages/engine/mcp.ts",
+            "packages/engine/cli.ts"
+          ],
+          "mcpTools": [
+            "theme_from_brief"
+          ],
+          "connections": [
+            "mcp",
+            "cli"
+          ]
+        }
+      }
+    },
+    {
+      "id": "validate-brand",
+      "label": "Validate a brand without generating",
+      "group": "Set the brand",
+      "lanes": {
+        "agent": {
+          "status": "shipped",
+          "via": "validate_brand",
+          "sources": [
+            "packages/engine/mcp.ts"
+          ],
+          "mcpTools": [
+            "validate_brand"
+          ],
+          "connections": [
+            "mcp"
+          ]
+        }
+      }
+    },
+    {
+      "id": "remember-brand",
+      "label": "Keep the brand between sessions",
+      "group": "Set the brand",
+      "lanes": {
+        "web": {
+          "status": "shipped",
+          "via": "In this browser's storage",
+          "sources": [
+            "apps/studio/src/entry.ts",
+            "apps/studio/src/persist-local.ts"
+          ]
+        },
+        "figma": {
+          "status": "shipped",
+          "via": "Saved in the file on Apply, and read back when the plugin opens",
+          "sources": [
+            "apps/plugin/src/persist-figma.ts",
+            "apps/plugin/src/main.ts"
+          ]
+        }
+      }
+    },
+    {
+      "id": "load-from-figma",
+      "label": "Load a brand from an existing Figma file",
+      "group": "Set the brand",
+      "lanes": {
+        "figma": {
+          "status": "planned",
+          "via": "Planned in #677: rebuilding a brand from its tokens is not yet decided",
+          "sources": [
+            "apps/studio/src/export-settings.ts"
+          ]
+        }
+      }
+    },
+    {
+      "id": "generate",
+      "label": "Generate the token system",
+      "group": "Generate and check",
+      "lanes": {
+        "web": {
+          "status": "shipped",
+          "via": "Live, on every change",
+          "sources": [
+            "apps/studio/src/state/store.ts"
+          ]
+        },
+        "figma": {
+          "status": "shipped",
+          "via": "Live, on every change",
+          "sources": [
+            "apps/studio/src/state/store.ts"
+          ]
+        },
+        "agent": {
+          "status": "shipped",
+          "via": "theme_brand",
+          "sources": [
+            "packages/engine/mcp.ts"
+          ],
+          "mcpTools": [
+            "theme_brand"
+          ],
+          "connections": [
+            "mcp"
+          ]
+        }
+      }
+    },
+    {
+      "id": "preview",
+      "label": "See a live preview",
+      "group": "Generate and check",
+      "lanes": {
+        "web": {
+          "status": "shipped",
+          "via": "Preview beside each page",
+          "sources": [
+            "apps/studio/src/shell/preview.ts",
+            "apps/studio/src/preview/"
+          ]
+        },
+        "figma": {
+          "status": "shipped",
+          "via": "Preview beside each page",
+          "sources": [
+            "apps/studio/src/shell/preview.ts",
+            "apps/studio/src/preview/"
+          ]
+        }
+      }
+    },
+    {
+      "id": "contrast-results",
+      "label": "See contrast results per mode",
+      "group": "Generate and check",
+      "lanes": {
+        "web": {
+          "status": "shipped",
+          "via": "Inspect, Contrast",
+          "sources": [
+            "apps/studio/src/shell/preview.ts"
+          ]
+        },
+        "figma": {
+          "status": "shipped",
+          "via": "Inspect, Contrast",
+          "sources": [
+            "apps/studio/src/shell/preview.ts"
+          ]
+        },
+        "agent": {
+          "status": "shipped",
+          "via": "In every theme_brand result",
+          "sources": [
+            "packages/engine/mcp.ts"
+          ],
+          "mcpTools": [
+            "theme_brand"
+          ],
+          "connections": [
+            "mcp"
+          ]
+        }
+      }
+    },
+    {
+      "id": "inspect-tokens",
+      "label": "Inspect the tokens",
+      "group": "Generate and check",
+      "lanes": {
+        "web": {
+          "status": "shipped",
+          "via": "Inspect, Tokens",
+          "sources": [
+            "apps/studio/src/shell/preview.ts"
+          ]
+        },
+        "figma": {
+          "status": "shipped",
+          "via": "Inspect, Tokens",
+          "sources": [
+            "apps/studio/src/shell/preview.ts"
+          ]
+        },
+        "agent": {
+          "status": "shipped",
+          "via": "theme_brand with tokens included",
+          "sources": [
+            "packages/engine/mcp.ts"
+          ],
+          "mcpTools": [
+            "theme_brand"
+          ],
+          "connections": [
+            "mcp"
+          ]
+        }
+      }
+    },
+    {
+      "id": "decisions-log",
+      "label": "Read the decisions log",
+      "group": "Generate and check",
+      "lanes": {
+        "web": {
+          "status": "shipped",
+          "via": "Inspect, Decisions log",
+          "sources": [
+            "apps/studio/src/shell/pages.ts"
+          ]
+        },
+        "figma": {
+          "status": "shipped",
+          "via": "Inspect, Decisions log",
+          "sources": [
+            "apps/studio/src/shell/pages.ts"
+          ]
+        },
+        "agent": {
+          "status": "shipped",
+          "via": "In theme_brand results by default",
+          "sources": [
+            "packages/engine/mcp.ts"
+          ],
+          "mcpTools": [
+            "theme_brand"
+          ],
+          "connections": [
+            "mcp"
+          ]
+        }
+      }
+    },
+    {
+      "id": "score-code",
+      "label": "Score UI code against the brand",
+      "group": "Generate and check",
+      "lanes": {
+        "agent": {
+          "status": "shipped",
+          "via": "score_consumption",
+          "sources": [
+            "packages/engine/mcp.ts",
+            "packages/engine/eval.ts"
+          ],
+          "mcpTools": [
+            "score_consumption"
+          ],
+          "connections": [
+            "mcp"
+          ]
+        }
+      }
+    },
+    {
+      "id": "load-skills",
+      "label": "Load task skills",
+      "group": "Generate and check",
+      "members": {
+        "label": "Skills",
+        "items": [
+          "prism3-build-component",
+          "prism3-consume",
+          "prism3-rebind",
+          "prism3-theme"
+        ]
+      },
+      "lanes": {
+        "agent": {
+          "status": "shipped",
+          "via": "Skills shipped in this repo, linked from .claude/skills so a session here loads them",
+          "sources": [
+            "skills/",
+            ".claude/skills/"
+          ]
+        }
+      }
+    },
+    {
+      "id": "export-tokens",
+      "label": "Export DTCG tokens",
+      "group": "Export",
+      "lanes": {
+        "web": {
+          "status": "shipped",
+          "via": "Export menu: a base file plus one overlay per mode",
+          "sources": [
+            "apps/studio/src/export-settings.ts"
+          ]
+        },
+        "figma": {
+          "status": "shipped",
+          "via": "Export menu: a base file plus one overlay per mode",
+          "sources": [
+            "apps/studio/src/export-settings.ts"
+          ]
+        },
+        "agent": {
+          "status": "shipped",
+          "via": "export_theme writes tokens, metadata and Figma payloads to a folder",
+          "sources": [
+            "packages/engine/mcp.ts"
+          ],
+          "mcpTools": [
+            "export_theme"
+          ],
+          "connections": [
+            "mcp"
+          ]
+        }
+      }
+    },
+    {
+      "id": "export-design-md",
+      "label": "Export a design.md",
+      "group": "Export",
+      "lanes": {
+        "web": {
+          "status": "shipped",
+          "via": "Export menu",
+          "sources": [
+            "apps/studio/src/export-settings.ts",
+            "packages/engine/design-md.ts"
+          ]
+        },
+        "figma": {
+          "status": "shipped",
+          "via": "Export menu",
+          "sources": [
+            "apps/studio/src/export-settings.ts",
+            "packages/engine/design-md.ts"
+          ]
+        }
+      }
+    },
+    {
+      "id": "apply-theme",
+      "label": "Apply the theme to a file",
+      "group": "Write to Figma",
+      "lanes": {
+        "figma": {
+          "status": "shipped",
+          "via": "Apply Theme, after a pre-flight check",
+          "sources": [
+            "apps/plugin/src/apply-theme.ts",
+            "apps/plugin/src/preflight.ts"
+          ],
+          "messages": [
+            "apply-theme"
+          ]
+        },
+        "agent": {
+          "status": "shipped",
+          "via": "apply-theme command, or a plan script with the plugin closed",
+          "sources": [
+            "apps/plugin/src/agent-protocol.ts",
+            "tools/figma-mcp/plan.ts"
+          ],
+          "agentCommands": [
+            "apply-theme"
+          ],
+          "connections": [
+            "agent-link",
+            "desktop-bridge",
+            "figma-scripts"
+          ]
+        }
+      }
+    },
+    {
+      "id": "build-components",
+      "label": "Build component sets",
+      "group": "Write to Figma",
+      "lanes": {
+        "figma": {
+          "status": "shipped",
+          "via": "Components page, Build",
+          "sources": [
+            "apps/plugin/src/write-components.ts"
+          ],
+          "messages": [
+            "build-components"
+          ]
+        },
+        "agent": {
+          "status": "shipped",
+          "via": "build-components command, or a plan script with the plugin closed",
+          "sources": [
+            "apps/plugin/src/agent-protocol.ts",
+            "tools/figma-mcp/plan.ts"
+          ],
+          "agentCommands": [
+            "build-components"
+          ],
+          "connections": [
+            "agent-link",
+            "desktop-bridge",
+            "figma-scripts"
+          ]
+        }
+      }
+    },
+    {
+      "id": "update-components",
+      "label": "Update built sets after a dry run",
+      "group": "Write to Figma",
+      "lanes": {
+        "agent": {
+          "status": "shipped",
+          "via": "update-components: check first, then confirm",
+          "sources": [
+            "apps/plugin/src/update-apply.ts",
+            "apps/plugin/src/update-plan.ts"
+          ],
+          "agentCommands": [
+            "update-components"
+          ],
+          "connections": [
+            "agent-link",
+            "desktop-bridge"
+          ]
+        }
+      }
+    },
+    {
+      "id": "capture-baseline",
+      "label": "Record sets as built",
+      "group": "Write to Figma",
+      "lanes": {
+        "agent": {
+          "status": "shipped",
+          "via": "capture-baseline",
+          "sources": [
+            "apps/plugin/src/update-plan.ts",
+            "apps/plugin/src/member-baseline.ts"
+          ],
+          "agentCommands": [
+            "capture-baseline"
+          ],
+          "connections": [
+            "agent-link",
+            "desktop-bridge"
+          ]
+        }
+      }
+    },
+    {
+      "id": "adopt-members",
+      "label": "Adopt members built by hand",
+      "group": "Write to Figma",
+      "lanes": {
+        "agent": {
+          "status": "shipped",
+          "via": "adopt-members, once per set",
+          "sources": [
+            "apps/plugin/src/update-plan.ts"
+          ],
+          "agentCommands": [
+            "adopt-members"
+          ],
+          "connections": [
+            "agent-link",
+            "desktop-bridge"
+          ]
+        }
+      }
+    },
+    {
+      "id": "prune",
+      "label": "Remove what the brand no longer has",
+      "group": "Write to Figma",
+      "lanes": {
+        "figma": {
+          "status": "shipped",
+          "via": "Prune stale: a preview, then Delete",
+          "sources": [
+            "apps/plugin/src/prune-figma.ts"
+          ],
+          "messages": [
+            "prune"
+          ]
+        },
+        "agent": {
+          "status": "shipped",
+          "via": "prune: confirm false previews, true deletes",
+          "sources": [
+            "apps/plugin/src/agent-protocol.ts"
+          ],
+          "agentCommands": [
+            "prune"
+          ],
+          "connections": [
+            "agent-link",
+            "desktop-bridge"
+          ]
+        }
+      }
+    },
+    {
+      "id": "file-setup",
+      "label": "Set up the file's pages",
+      "group": "Write to Figma",
+      "lanes": {
+        "figma": {
+          "status": "shipped",
+          "via": "Set up file",
+          "sources": [
+            "apps/plugin/src/file-setup.ts",
+            "apps/plugin/src/file-taxonomy.ts"
+          ],
+          "messages": [
+            "file-setup"
+          ]
+        },
+        "agent": {
+          "status": "shipped",
+          "via": "file-setup command",
+          "sources": [
+            "apps/plugin/src/agent-protocol.ts"
+          ],
+          "agentCommands": [
+            "file-setup"
+          ],
+          "connections": [
+            "agent-link",
+            "desktop-bridge"
+          ]
+        }
+      }
+    },
+    {
+      "id": "draw-style-guides",
+      "label": "Draw style guides",
+      "group": "Write to Figma",
+      "lanes": {
+        "figma": {
+          "status": "shipped",
+          "via": "Build style guides page",
+          "sources": [
+            "apps/studio/src/shell/style-guides.ts",
+            "apps/plugin/src/style-guide.ts"
+          ],
+          "messages": [
+            "style-guide"
+          ]
+        },
+        "agent": {
+          "status": "shipped",
+          "via": "style-guide command",
+          "sources": [
+            "apps/plugin/src/agent-protocol.ts"
+          ],
+          "agentCommands": [
+            "style-guide"
+          ],
+          "connections": [
+            "agent-link",
+            "desktop-bridge"
+          ]
+        }
+      }
+    },
+    {
+      "id": "read-file",
+      "label": "Read back what the file holds",
+      "group": "Write to Figma",
+      "lanes": {
+        "agent": {
+          "status": "shipped",
+          "via": "status and readback commands",
+          "sources": [
+            "apps/plugin/src/agent-dispatch.ts"
+          ],
+          "agentCommands": [
+            "status",
+            "readback"
+          ],
+          "connections": [
+            "agent-link",
+            "desktop-bridge"
+          ]
+        }
+      }
+    },
+    {
+      "id": "agent-link-switch",
+      "label": "Let an agent drive the plugin",
+      "group": "Write to Figma",
+      "lanes": {
+        "figma": {
+          "status": "shipped",
+          "via": "Agent switch in the top bar; off each time the plugin opens",
+          "sources": [
+            "apps/plugin/src/agent-link-ui.ts"
+          ],
+          "messages": [
+            "agent-link"
+          ]
+        }
+      }
+    }
+  ],
+  "traces": [
+    {
+      "id": "designer-figma",
+      "label": "A designer themes a brand in Figma",
+      "steps": [
+        {
+          "edge": "levers>figma",
+          "caption": "A designer opens the plugin and sets brand colors, fonts and levers."
+        },
+        {
+          "edge": "figma>engine",
+          "caption": "The engine, bundled in the plugin, generates every token and checks contrast in every mode."
+        },
+        {
+          "edge": "engine>figma-file",
+          "caption": "Apply Theme writes the variables, then the styles bound to them."
+        },
+        {
+          "edge": "component-defs>figma-file",
+          "caption": "Build turns each definition into a component set on its own page."
+        }
+      ]
+    },
+    {
+      "id": "web-brief",
+      "label": "A person themes a brand on the web",
+      "steps": [
+        {
+          "edge": "design-md>web",
+          "caption": "They paste a design.md on the start screen."
+        },
+        {
+          "edge": "web>engine",
+          "caption": "The engine runs in the page and rebuilds on every change, with contrast checked per mode."
+        },
+        {
+          "edge": "engine>dtcg",
+          "caption": "Export downloads DTCG: a base file plus one overlay per mode."
+        }
+      ]
+    },
+    {
+      "id": "agent-theme",
+      "label": "An agent themes a brand",
+      "steps": [
+        {
+          "edge": "tool-args>agent",
+          "caption": "The agent loads the prism3-theme skill and assembles a brand input."
+        },
+        {
+          "edge": "agent>engine@mcp",
+          "caption": "It calls list_levers, then theme_brand, over MCP. The results carry the contrast checks and the decisions log."
+        },
+        {
+          "edge": "engine>dtcg",
+          "caption": "export_theme writes the token files to a folder."
+        },
+        {
+          "edge": "engine>ai-json",
+          "caption": "The metadata beside them says what each token is for, so the UI the agent writes uses them by name."
+        }
+      ]
+    },
+    {
+      "id": "agent-components",
+      "label": "An agent builds components in Figma",
+      "steps": [
+        {
+          "edge": "agent>figma@agent-link",
+          "caption": "With the agent link switched on, the agent sends build-components."
+        },
+        {
+          "edge": "figma>engine",
+          "caption": "The plugin runs it through the same handler as the Build button, with the engine bundled inside."
+        },
+        {
+          "edge": "component-defs>figma-file",
+          "caption": "The sets are built on their own pages. Later updates check first, then apply after the agent confirms."
+        }
+      ]
+    },
+    {
+      "id": "figma-roundtrip",
+      "label": "Round trip through Figma and TokenPress",
+      "steps": [
+        {
+          "edge": "figma>engine",
+          "caption": "The plugin generates the tokens."
+        },
+        {
+          "edge": "engine>figma-file",
+          "caption": "Variables and styles land in the file."
+        },
+        {
+          "edge": "figma-file>tokenpress",
+          "caption": "TokenPress reads them back out of the file."
+        },
+        {
+          "edge": "tokenpress>dtcg",
+          "caption": "Its DTCG export must match the engine's own. CI compares the two."
+        }
+      ]
+    },
+    {
+      "id": "token-to-code",
+      "label": "A token on its way to code",
+      "steps": [
+        {
+          "edge": "web>engine",
+          "caption": "A brand input enters the engine."
+        },
+        {
+          "edge": "engine>dtcg",
+          "caption": "The engine writes DTCG, and every token name is checked against the contract baseline."
+        },
+        {
+          "edge": "dtcg>style-dictionary",
+          "caption": "A stock Style Dictionary reads the files with no custom code."
+        },
+        {
+          "edge": "style-dictionary>css",
+          "caption": "It builds CSS variables, checked in CI but not yet published."
+        },
+        {
+          "edge": "css>coded-components",
+          "caption": "Planned: coded components bind to those variables."
+        },
+        {
+          "edge": "coded-components>storybook",
+          "caption": "Planned: stories are generated for each component."
+        }
+      ]
+    }
+  ]
+}

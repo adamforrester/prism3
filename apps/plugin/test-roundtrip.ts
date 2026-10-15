@@ -2005,5 +2005,46 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
   }
 }
 
+// ── PROTOTYPE REACTIONS READ-BACK (owner decision 2026-10-15) — THE CHAIN, AS THE HOST HOLDS IT ────────────
+//
+// Interactive sets chain rest → hover → pressed: a Rest member's only reaction is While hovering → its Hover sibling,
+// a Hover member's only one While pressing → its Pressed sibling, every other member none. Each def is built with node
+// ids on, and every member's reactions are read back off the shim, each destination id looked up among the set's own
+// members HERE. The expectation is literal per state, authored here and nowhere else, never the reaction map, so a
+// map that plans Rest a press reaction again fails `reactions read-back` by name (docs/34).
+{
+  const WANT: Record<string, string[]> = { rest: ['ON_HOVER→state=hover'], hover: ['ON_PRESS→state=pressed'] };
+  const INTERACTIVE = ['button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral',
+    'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'checkbox-control', 'radio-control', 'switch-control',
+    'tag', 'tab', 'segmented-control-segment', 'link'];
+  const off: string[] = [];
+  let read = 0;
+  for (const id of INTERACTIVE) {
+    const def = componentDefs.find((d) => d.id === id);
+    if (!def) { off.push(`${id}: not registered`); continue; }
+    const plans = figmaAnatomySet(def, { swapTarget: SWAP_TARGET });
+    const page: Page = { children: [] };
+    const shim = makeShim({ ...fullFor(plans), page, identities: true });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
+    await applyComponentPlan(plans, shim as any, {});
+    const members = (page.children.find((n) => n.type === 'COMPONENT_SET')?.children ?? []) as Node[];
+    const byId = new Map(members.map((m) => [String(m.id), String(m.name)] as const));
+    const stateOf = (name: string): string => name.split(', ').find((x) => x.startsWith('state='))?.slice(6) ?? '';
+    for (const m of members) {
+      const name = String(m.name);
+      const rx = (m.reactions ?? []) as { trigger: { type: string }; actions: { destinationId: string }[] }[];
+      const got = rx.flatMap((r) => r.actions.map((a) => {
+        const to = byId.get(a.destinationId);
+        // the destination must differ on state alone
+        const same = to !== undefined && name.split(', ').filter((x) => !x.startsWith('state=')).join(', ') === to.split(', ').filter((x) => !x.startsWith('state=')).join(', ');
+        return `${r.trigger.type}→${to === undefined ? '?' : same ? `state=${stateOf(to)}` : to}`;
+      }));
+      read++;
+      if (JSON.stringify(got) !== JSON.stringify(WANT[stateOf(name)] ?? [])) off.push(`${id}: ${name}: ${got.join('; ') || 'none'}`);
+    }
+  }
+  ok(read > 0 && off.length === 0, `reactions read-back: on ${INTERACTIVE.length} interactive defs (${read} members read off the host) Rest goes to Hover while hovering only, Hover to Pressed while pressing only, nothing else reacts (${off.length} off${off.length ? `: ${off.slice(0, 3).join(' | ')}` : ''})`);
+}
+
 console.log(failed ? `\n❌ ${failed} FAILED` : '\n✅ component round-trip: ALL PASS');
 process.exit(failed ? 1 : 0);
