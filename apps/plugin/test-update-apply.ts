@@ -2414,7 +2414,7 @@ section('accordion — a set built before the header row (#2594, owner Q276 A) t
   // A NODE A DESIGNER EDITED IS NOT MOVED (#2595): the move is decided before the hand-edit choice is made, so a
   // node with a hand edit at or under it is left out of the moves whatever the choice. The dry run lists it as
   // removed on that member and moved on the rest, and the apply rebuilds it there, as before #2595, and moves it on
-  // the rest. (Its hand edit is not carried into the rebuilt node, as before #2595: filed separately.) Mutation: the executor ignoring `edited` → `acc/edited agree`.
+  // the rest. (Its hand edit is not carried into the rebuilt node, as before #2595: #2673.) Mutation: the executor ignoring `edited` → `acc/edited agree`.
   const ACC = 'accordion';
   const now = componentDefs.find((x) => x.id === ACC)!;
   const { titleRow, ...restParts } = now.anatomy.parts;
