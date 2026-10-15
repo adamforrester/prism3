@@ -25,6 +25,15 @@
  *                 default member. Mutation: the backdrop not drawn → `backdrop/covers`.
  *   pilot/…       Button, Tag and Text field (the pilot's three): the label texts and counts, literal, and each column label over its
  *                 column as the shim's nodes place it.
+ *   columns/…     radio-control, the narrowest set (#2705): every column label at least as wide as its own text, no two
+ *                 meeting, each centered over its column; the columns 91 wide (the widest label, 7px a character in the
+ *                 fake) with the members centered, worked out by hand; on a set built before the fix, through the
+ *                 update as `main.ts` runs it, in place with every id kept; the next dry run up to date and the next
+ *                 apply keeping the widened grid; a set laid out by hand not moved. On the Radio page, the widening
+ *                 Update, then the one that moves the later sets clear, leave no label on another set. Mutations: the
+ *                 label fixed to its column → `columns/full text`; the columns not widened → `columns/clear`,
+ *                 `columns/grid`; `gridMoves` blind to the record → `columns/converges`; the executor blind to it →
+ *                 `columns/apply keeps`; the off-grid guard dropped → `columns/hand laid`.
  *   rollout/…     every def that builds a set (#2502, Q212 A): the switch covers each one, held to `componentDefs`; on
  *                 an earlier layout its dry run reports the moves worked out by hand here (360 for the three buttons,
  *                 180 for the three icon buttons, none for the rest), the apply moves them, and the next dry run reads
@@ -620,6 +629,126 @@ section('thin row — Divider: a 1px row draws its label centered, with no brack
   ok(centered, `thin row/centered: each label's middle sits on its row's middle (${thin.map((n) => `${n.y}+${n.height}`).join(', ')})`);
   ok(tall.length > 0 && tall.every((n) => bracketOn(n) && rowOf(n).some((m) => boxOf(set, m).y === Number(n.y))),
     `thin row/others unchanged: a row as tall as its label keeps its bracket and spans its row (${tall.length}: ${tall.map(textOf).join(', ')})`);
+}
+
+/* ── column labels read in full on a narrow set (#2705) ─────────────────────────────────────────────────── */
+section('columns — radio-control: every column label reads in full, the columns widen to the widest, and Update keeps it');
+{
+  // The narrowest set: radio-control's members are at most 32px wide in the shim (every size, every column), so a label
+  // fixed to its column was 32px and "Focus visible" read as "is vis" (the owner's QA, 2026-10-15). The fake `_Label`
+  // measures 7px a character (`labelInstance`), so the widest, "Focus visible", is 91px: each column widens to 91, its
+  // 32px members centered in it, 30px in (59 spare, rounded), and the columns sit 91 + 24 apart from 24 in. All by hand.
+  const STATES = ['Rest', 'Hover', 'Pressed', 'Focus visible', 'Disabled'];
+  const TEXT_W = (t: string) => 7 * t.length;
+  const MEMBER_X = [54, 169, 284, 399, 514];
+  const SET_W = 5 * 91 + 4 * 24 + 2 * 24;
+  const { plans, page, api, set } = await buildOnPage('radio-control');
+  const members = set.children as FNode[];
+  const ids = new Map(members.map((m) => [String(m.name), String(m.id)] as const));
+  const host = {
+    ...api,
+    root: { ...(api.root as object), findAllWithCriteria: (c: { types: string[] }) => (c.types.length === 1 && c.types[0] === 'COMPONENT_SET' ? page.children.filter((n) => n.type === 'COMPONENT_SET') : (api.root as { findAllWithCriteria: (c: unknown) => unknown[] }).findAllWithCriteria(c)) },
+  } as unknown as UpdateHost;
+  const targets = [{ def: 'radio-control', plans }];
+  const colOf = (m: FNode) => STATES.indexOf(sentenceCase(valuesOf(String(m.name)).state));
+  ok(members.every((m) => Number(m.width) <= 32) && members.every((m) => colOf(m) >= 0),
+    `premise: radio-control's members are 32px wide or less, one state column each (${Math.max(...members.map((m) => Number(m.width)))})`);
+  // AN EXISTING FILE: the set as a build before this fix left it, its grid unwidened. The update corrects it in place:
+  // the apply (nothing to write) then the furniture, as `main.ts` runs an update.
+  const pre = (await previewUpdate(host, targets)).sets[0];
+  ok(!!pre && previewLine(pre) === `radio-control: up to date (${members.length} members).`, `premise: a set built before the fix reads up to date (${pre ? previewLine(pre) : 'no set read'})`);
+  await applyUpdate(host as never, api as never, targets, previewHashOf(await previewUpdate(host, targets)));
+  const o = await drawFurniture(fakeTemplates(), set, furnitureLayout(plans), 'radio-control');
+  const cols = furnitureOn(page).filter((n) => Number(n.y) < Number(set.y));
+  ok(JSON.stringify(cols.map(textOf)) === JSON.stringify(STATES) && o.columns === 5, `columns/texts: ${JSON.stringify(cols.map(textOf))}`);
+  // THE ISSUE'S CHECK: each label at least as wide as its own text, measured off the label against the text.
+  ok(cols.every((c) => Number(c.width) >= TEXT_W(textOf(c))),
+    `columns/full text: every column label is at least as wide as its text (${cols.map((c) => `${textOf(c)} ${c.width}/${TEXT_W(textOf(c))}`).join(', ')})`);
+  const sorted = [...cols].sort((a, b) => Number(a.x) - Number(b.x));
+  const gaps = sorted.slice(1).map((c, i) => Number(c.x) - (Number(sorted[i].x) + Number(sorted[i].width)));
+  ok(gaps.every((g) => g >= 24), `columns/clear: no two column labels meet, each 24px or more from the next (${gaps.join(', ')})`);
+  // Each label centered over its own column's members.
+  const centered = cols.every((c) => {
+    const ms = members.filter((m) => STATES[colOf(m)] === textOf(c));
+    const left = Math.min(...ms.map((m) => boxOf(set, m).x));
+    const right = Math.max(...ms.map((m) => boxOf(set, m).x + boxOf(set, m).w));
+    return ms.length > 0 && Number(c.x) + Number(c.width) / 2 === (left + right) / 2;
+  });
+  ok(centered, `columns/centered: each label is centered over its column's members`);
+  ok(members.every((m) => Number(m.x) === MEMBER_X[colOf(m)]) && Number(set.width) === SET_W,
+    `columns/grid: each column 91 wide, its members 30 in, the set ${SET_W} wide (${[...new Set(members.map((m) => Number(m.x)))].join(', ')}; ${set.width})`);
+  ok(members.every((m) => ids.get(String(m.name)) === String(m.id)), `columns/in place: every member keeps its id`);
+  // THE NEXT DRY RUN READS THE WIDENED GRID AS UP TO DATE: no member to move back.
+  const next = (await previewUpdate(host, targets)).sets[0];
+  ok(!!next && previewLine(next) === `radio-control: up to date (${members.length} members).` && !next.counts.move,
+    `columns/converges: the next dry run reads up to date, nothing to move (${next ? previewLine(next) : 'no set read'})`);
+  // AND THE NEXT UPDATE'S LAY OUT PASS KEEPS IT: the executor reads the recorded width, before any furniture redraw.
+  // An update with nothing to write never lays the grid out, so one member is stamped by an earlier executor revision:
+  // the update writes it again, and its lay out pass re-lays the whole set.
+  const stamp = String((members[0].getSharedPluginData as (a: string, b: string) => string)(NS, STAMP_KEY));
+  (members[0].setSharedPluginData as (a: string, b: string, c: string) => void)(NS, STAMP_KEY, `${stamp.split('|').slice(0, 2).join('|')}|1`);
+  const again = (await previewUpdate(host, targets)).sets[0];
+  const res = await applyUpdate(host as never, api as never, targets, previewHashOf(await previewUpdate(host, targets)));
+  ok(again?.counts.update === 1 && res.outcomes[0]?.updated.length === 1 && members.every((m) => Number(m.x) === MEMBER_X[colOf(m)]) && Number(set.width) === SET_W,
+    `columns/apply keeps: an update that writes a member lays the widened grid (${again?.counts.update} to update, ${res.outcomes[0]?.updated.length} updated; ${[...new Set(members.map((m) => Number(m.x)))].join(', ')}; ${set.width})`);
+
+  // A SET LAID OUT BY HAND: one member off the grid, so nothing moves; the labels still read in full.
+  const hand = await buildOnPage('radio-control');
+  const hm = hand.set.children as FNode[];
+  hm[0].x = Number(hm[0].x) + 5;
+  const handX = hm.map((m) => Number(m.x));
+  await drawFurniture(fakeTemplates(), hand.set, furnitureLayout(hand.plans), 'radio-control');
+  const handCols = furnitureOn(hand.page).filter((n) => Number(n.y) < Number(hand.set.y));
+  ok(hm.every((m, i) => Number(m.x) === handX[i]) && handCols.every((c) => Number(c.width) >= TEXT_W(textOf(c))),
+    `columns/hand laid: a member off the grid, so no member moves, and every label still reads in full`);
+}
+
+section('columns — the Radio page, built before the fix: Update widens each set in place and keeps the page clear');
+{
+  const IDS = ['radio-control', 'radio-row', 'radio-group'];
+  const plansBy = new Map(IDS.map((id) => [id, plansOf(id)] as const));
+  const all = [...plansBy.values()].flat();
+  const page = makePage('↳ Radio');
+  const api = makeShim({
+    vars: [...new Set(all.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]))],
+    styles: [...new Set(all.flatMap((p) => planTextStyles(p.root)))],
+    effects: [...new Set(all.flatMap((p) => planEffectStyles(p.root)))],
+    comps: [...new Set([SWAP_TARGET, 'focus-ring', ...all.flatMap((p) => planComps(p.root))])],
+    page: page as unknown as { children: Node[] },
+    liveRoot: true,
+    identities: true,
+  }) as Record<string, unknown>;
+  for (const id of IDS) await applyComponentPlan(plansBy.get(id)!, api as never, { targetPage: page as never });
+  const sets = IDS.map((id) => page.children.find((c) => c.type === 'COMPONENT_SET' && c.name === id) as FNode);
+  const host = {
+    ...api,
+    root: { ...(api.root as object), findAllWithCriteria: (c: { types: string[] }) => (c.types.length === 1 && c.types[0] === 'COMPONENT_SET' ? page.children.filter((n) => n.type === 'COMPONENT_SET') : (api.root as { findAllWithCriteria: (c: unknown) => unknown[] }).findAllWithCriteria(c)) },
+  } as unknown as UpdateHost;
+  const targets = IDS.map((id) => ({ def: id, plans: plansBy.get(id)! }));
+  const update = async () => {
+    await applyUpdate(host as never, api as never, targets, previewHashOf(await previewUpdate(host, targets)));
+    for (const [i, id] of IDS.entries()) await drawFurniture(fakeTemplates(), sets[i], furnitureLayout(plansBy.get(id)!), id);
+  };
+  const box = (n: FNode) => ({ x: Number(n.x), y: Number(n.y), w: Number(n.width), h: Number(n.height) });
+  const meets = (a: ReturnType<typeof box>, b: ReturnType<typeof box>) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+  const hitsOf = (): string[] => {
+    const furn = furnitureOn(page);
+    const out: string[] = [];
+    for (const f of furn) {
+      for (const st of sets) if (st.name !== tagOf(f).def && meets(box(f), box(st))) out.push(`"${textOf(f)}" of ${tagOf(f).def} on ${String(st.name)}`);
+      for (const g of furn) if (tagOf(g).def !== tagOf(f).def && meets(box(f), box(g))) out.push(`"${textOf(f)}" of ${tagOf(f).def} on "${textOf(g)}" of ${tagOf(g).def}`);
+    }
+    return out;
+  };
+  await update();
+  const between = hitsOf();
+  const first = await previewUpdate(host, targets);
+  const moving = first.sets.filter((p) => p.setMove).map((p) => p.set);
+  await update();
+  const hits = hitsOf();
+  const last = await previewUpdate(host, targets);
+  ok(JSON.stringify(moving) === JSON.stringify(['radio-row', 'radio-group']) && hits.length === 0 && previewVerdict(last).headline === '✓ All sets up to date',
+    `columns/shared page: after the widening Update (${between.length} label overlaps), the next dry run moves ${JSON.stringify(moving)} clear; after that Update no label meets another set or its labels, and the page reads up to date (${hits.slice(0, 3).join('; ')}; ${previewVerdict(last).headline})`);
 }
 
 /* ── the scrim behind each Dialog example (#2609, owner decisions Q303.2 A and Q303.3 A) ───────────────────── */
