@@ -243,10 +243,12 @@ The full tables are in [`sd-version-matrix.md`](sd-version-matrix.md). In short:
 - **Native is not, on any version.** iOS, Android and Compose each break several types: px sizes
   come out 16 times too large (#2430); durations, font families, stroke styles and cubic beziers are
   written as raw text that does not compile in Swift or Kotlin (#2431); every composite becomes
-  `[object Object]` (#2432); Android refuses `<integer>1.5</integer>` (#2433). Each is stock Style
-  Dictionary's gap, not a DTCG defect.
+  `[object Object]` (#2432); Android refuses `<integer>1.5</integer>` (#2433); Android and Compose
+  write font sizes in `dp`, not `sp`, so text ignores the user's system font scale (#2613). Each is
+  stock Style Dictionary's gap, not a DTCG defect.
 - **One finding is ours:** letter spacing in `em` and the fluid container in `%` are dimension
-  tokens in units DTCG 2025.10 does not allow (#2434).
+  tokens in units DTCG 2025.10 does not allow (#2434). On native, `-0.04em` becomes an absolute
+  `-0.64`, pinned as a `[GAP]` literal beside the font size.
 
 ### Which Style Dictionary version (#2425's preset question)
 
