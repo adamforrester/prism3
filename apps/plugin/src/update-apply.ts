@@ -399,8 +399,10 @@ const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, p:
   }
   out.updated = r.updatedInPlace ?? [];
   out.added = r.added;
-  // The build's notes on the members it was told to leave alone are this run's skips, already reported above.
-  out.misses = r.misses.filter((x) => !/^member .* -> (ALREADY PRESENT|STALE) /.test(x));
+  // The build's notes on the members it was told to leave alone are this run's skips, already reported above. So is a
+  // miss that names one (#2477): the build's footprint check comparing a designer's own member, which the update left
+  // as it is, with a sibling is about that member, not about a write the update could not finish.
+  out.misses = r.misses.filter((x) => !/^member .* -> (ALREADY PRESENT|STALE) /.test(x) && !out.skipped.some((k) => x.includes(k.member)));
 
   // ── VERIFY (a): IDENTITY, OFF THE HOST ─────────────────────────────────────────────────────────────────────
   const now = t.single ? (await liveFor(host, t, p.set)) ?? live

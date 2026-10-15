@@ -16,9 +16,15 @@ The verdict now says what the next dry run will say, which is the agreement that
 
 **Trap for whoever re-verifies.** Misses are named by node, not by member (`label.characters -> …`), so only the
 record miss can be pinned to a member. The others stay at set level on purpose: guessing a member from a node name
-would mis-count a set with two members sharing a part name. No test in the plugin suites produces a benign miss
-during an update, so no existing verdict moved; a real file with an unnominated swap target would now read
-"not verified" on every update, as its build already reads "⚠ 1 miss".
+would mis-count a set with two members sharing a part name.
+
+**Found by the full suite, not by the arms written for it.** `unbuilt/relay left` (`test-canvas-furniture.ts`) went
+to "⚠ 1 set not verified": the build's footprint check compared a member Prism3 didn't build, which the update left
+as it is, with its sibling, and reported the size difference. That miss is about a member the update never touched,
+the same class the outcome already dropped (`ALREADY PRESENT`, `STALE`). So `out.misses` now also drops any miss that
+names a member this run skipped. On a real file, a designer's own member of another size would otherwise have made
+every update read "not verified".
 
 **Tests.** `recordfail/verdict` and `recordfail/set verdict` hold the headline, the count and the named line on the
-icon and a set member; `misses/other` holds the set-level line from an outcome written out by hand.
+icon and a set member; `misses/other` holds the set-level line from an outcome written out by hand; `unbuilt/relay
+left` holds the skipped member's miss left out.
