@@ -336,6 +336,19 @@
       "relation": "swap"
     },
     {
+      "from": "link",
+      "to": "focus-ring",
+      "part": "focusRing",
+      "partKind": "absolute",
+      "relation": "nest-fixed",
+      "variant": {
+        "surface": "default"
+      },
+      "follow": [
+        "surface"
+      ]
+    },
+    {
       "from": "list",
       "to": "list-item",
       "part": "item1",
@@ -1199,6 +1212,7 @@
         "icon-button",
         "icon-button-destructive",
         "icon-button-neutral",
+        "link",
         "radio-control",
         "segmented-control-segment",
         "select",
@@ -1219,6 +1233,7 @@
         "icon-button",
         "icon-button-destructive",
         "icon-button-neutral",
+        "link",
         "radio-control",
         "radio-group",
         "radio-row",
@@ -1287,6 +1302,17 @@
     "image-placeholder": {
       "nests": [],
       "nestsTransitively": [],
+      "nestedBy": [],
+      "affectedByChange": [],
+      "inheritedBy": []
+    },
+    "link": {
+      "nests": [
+        "focus-ring"
+      ],
+      "nestsTransitively": [
+        "focus-ring"
+      ],
       "nestedBy": [],
       "affectedByChange": [],
       "inheritedBy": []
@@ -1556,6 +1582,7 @@
     "icon-button-destructive": 1,
     "icon-button-neutral": 1,
     "image-placeholder": 0,
+    "link": 1,
     "list": 1,
     "list-item": 0,
     "radio-control": 1,

@@ -118,7 +118,7 @@ section('map — the per-def reaction map, literal (owner decision Q238 A, part 
     'button': [576, 192, 288], 'button-destructive': [576, 192, 288], 'button-neutral': [576, 192, 288],
     'icon-button': [216, 72, 108], 'icon-button-destructive': [216, 72, 108], 'icon-button-neutral': [216, 72, 108],
     'checkbox-control': [54, 18, 27], 'radio-control': [30, 12, 18], 'switch-control': [24, 8, 12],
-    'tag': [45, 18, 27], 'tab': [30, 12, 18], 'segmented-control-segment': [30, 12, 18],
+    'tag': [45, 18, 27], 'tab': [30, 12, 18], 'segmented-control-segment': [30, 12, 18], 'link': [96, 48, 72],
   };
   const got: Record<string, [number, number, number]> = {};
   for (const d of componentDefs) {

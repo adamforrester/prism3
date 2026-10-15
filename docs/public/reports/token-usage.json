@@ -9,10 +9,10 @@
   "note": "tokens: every token a definition declares or the design-file projection binds, keyed by path below the root. components.<id>.keys are the definition binding keys that name it; parts.<part>.where lists, per axis, the values the part is bound at — an axis bound at every value is left out, so an empty where means every member. byComponent is the inverse. unused lists emitted tokens nothing binds.",
   "summary": {
     "emitted": 787,
-    "used": 219,
-    "unusedSemantic": 288,
+    "used": 242,
+    "unusedSemantic": 265,
     "unusedPrimitive": 280,
-    "components": 35
+    "components": 36
   },
   "tokens": {
     "border-width.hairline": {
@@ -2822,6 +2822,110 @@
             "tone.info"
           ],
           "parts": {}
+        }
+      }
+    },
+    "color.icon.link.default": {
+      "type": "color",
+      "components": {
+        "link": {
+          "keys": [
+            "icon"
+          ],
+          "parts": {
+            "trailingVisual": {
+              "members": 6,
+              "where": {
+                "state": [
+                  "rest"
+                ],
+                "style": [
+                  "standalone"
+                ],
+                "surface": [
+                  "default"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "color.icon.link.focused": {
+      "type": "color",
+      "components": {
+        "link": {
+          "keys": [
+            "icon.focus-visible"
+          ],
+          "parts": {
+            "trailingVisual": {
+              "members": 6,
+              "where": {
+                "state": [
+                  "focus-visible"
+                ],
+                "style": [
+                  "standalone"
+                ],
+                "surface": [
+                  "default"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "color.icon.link.hover": {
+      "type": "color",
+      "components": {
+        "link": {
+          "keys": [
+            "icon.hover"
+          ],
+          "parts": {
+            "trailingVisual": {
+              "members": 6,
+              "where": {
+                "state": [
+                  "hover"
+                ],
+                "style": [
+                  "standalone"
+                ],
+                "surface": [
+                  "default"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "color.icon.link.pressed": {
+      "type": "color",
+      "components": {
+        "link": {
+          "keys": [
+            "icon.pressed"
+          ],
+          "parts": {
+            "trailingVisual": {
+              "members": 6,
+              "where": {
+                "state": [
+                  "pressed"
+                ],
+                "style": [
+                  "standalone"
+                ],
+                "surface": [
+                  "default"
+                ]
+              }
+            }
+          }
         }
       }
     },
@@ -7798,6 +7902,102 @@
         }
       }
     },
+    "color.inverse.icon.link.default": {
+      "type": "color",
+      "components": {
+        "link": {
+          "keys": [],
+          "parts": {
+            "trailingVisual": {
+              "members": 6,
+              "where": {
+                "state": [
+                  "rest"
+                ],
+                "style": [
+                  "standalone"
+                ],
+                "surface": [
+                  "inverse"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "color.inverse.icon.link.focused": {
+      "type": "color",
+      "components": {
+        "link": {
+          "keys": [],
+          "parts": {
+            "trailingVisual": {
+              "members": 6,
+              "where": {
+                "state": [
+                  "focus-visible"
+                ],
+                "style": [
+                  "standalone"
+                ],
+                "surface": [
+                  "inverse"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "color.inverse.icon.link.hover": {
+      "type": "color",
+      "components": {
+        "link": {
+          "keys": [],
+          "parts": {
+            "trailingVisual": {
+              "members": 6,
+              "where": {
+                "state": [
+                  "hover"
+                ],
+                "style": [
+                  "standalone"
+                ],
+                "surface": [
+                  "inverse"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "color.inverse.icon.link.pressed": {
+      "type": "color",
+      "components": {
+        "link": {
+          "keys": [],
+          "parts": {
+            "trailingVisual": {
+              "members": 6,
+              "where": {
+                "state": [
+                  "pressed"
+                ],
+                "style": [
+                  "standalone"
+                ],
+                "surface": [
+                  "inverse"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
     "color.inverse.interactive.destructive.border.hover": {
       "type": "color",
       "components": {
@@ -10252,6 +10452,90 @@
         }
       }
     },
+    "color.inverse.text.link.default": {
+      "type": "color",
+      "components": {
+        "link": {
+          "keys": [],
+          "parts": {
+            "label": {
+              "members": 12,
+              "where": {
+                "state": [
+                  "rest"
+                ],
+                "surface": [
+                  "inverse"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "color.inverse.text.link.focused": {
+      "type": "color",
+      "components": {
+        "link": {
+          "keys": [],
+          "parts": {
+            "label": {
+              "members": 12,
+              "where": {
+                "state": [
+                  "focus-visible"
+                ],
+                "surface": [
+                  "inverse"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "color.inverse.text.link.hover": {
+      "type": "color",
+      "components": {
+        "link": {
+          "keys": [],
+          "parts": {
+            "label": {
+              "members": 12,
+              "where": {
+                "state": [
+                  "hover"
+                ],
+                "surface": [
+                  "inverse"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "color.inverse.text.link.pressed": {
+      "type": "color",
+      "components": {
+        "link": {
+          "keys": [],
+          "parts": {
+            "label": {
+              "members": 12,
+              "where": {
+                "state": [
+                  "pressed"
+                ],
+                "surface": [
+                  "inverse"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
     "color.inverse.text.primary": {
       "type": "color",
       "components": {
@@ -10353,6 +10637,98 @@
                 ],
                 "type": [
                   "status"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "color.text.link.default": {
+      "type": "color",
+      "components": {
+        "link": {
+          "keys": [
+            "label"
+          ],
+          "parts": {
+            "label": {
+              "members": 12,
+              "where": {
+                "state": [
+                  "rest"
+                ],
+                "surface": [
+                  "default"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "color.text.link.focused": {
+      "type": "color",
+      "components": {
+        "link": {
+          "keys": [
+            "label.focus-visible"
+          ],
+          "parts": {
+            "label": {
+              "members": 12,
+              "where": {
+                "state": [
+                  "focus-visible"
+                ],
+                "surface": [
+                  "default"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "color.text.link.hover": {
+      "type": "color",
+      "components": {
+        "link": {
+          "keys": [
+            "label.hover"
+          ],
+          "parts": {
+            "label": {
+              "members": 12,
+              "where": {
+                "state": [
+                  "hover"
+                ],
+                "surface": [
+                  "default"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "color.text.link.pressed": {
+      "type": "color",
+      "components": {
+        "link": {
+          "keys": [
+            "label.pressed"
+          ],
+          "parts": {
+            "label": {
+              "members": 12,
+              "where": {
+                "state": [
+                  "pressed"
+                ],
+                "surface": [
+                  "default"
                 ]
               }
             }
@@ -12294,6 +12670,21 @@
             }
           }
         },
+        "link": {
+          "keys": [
+            "ring-offset"
+          ],
+          "parts": {
+            "focusRing": {
+              "members": 24,
+              "where": {
+                "state": [
+                  "focus-visible"
+                ]
+              }
+            }
+          }
+        },
         "radio-control": {
           "keys": [
             "ring-offset"
@@ -12567,6 +12958,21 @@
           "parts": {
             "focusRing": {
               "members": 36,
+              "where": {
+                "state": [
+                  "focus-visible"
+                ]
+              }
+            }
+          }
+        },
+        "link": {
+          "keys": [
+            "ring-width"
+          ],
+          "parts": {
+            "focusRing": {
+              "members": 24,
               "where": {
                 "state": [
                   "focus-visible"
@@ -13680,6 +14086,24 @@
             }
           }
         },
+        "link": {
+          "keys": [
+            "size.large.icon"
+          ],
+          "parts": {
+            "trailingVisual": {
+              "members": 16,
+              "where": {
+                "size": [
+                  "large"
+                ],
+                "style": [
+                  "standalone"
+                ]
+              }
+            }
+          }
+        },
         "list-item": {
           "keys": [
             "size.small.icon"
@@ -14081,6 +14505,26 @@
             "size.x-small"
           ],
           "parts": {}
+        },
+        "link": {
+          "keys": [
+            "size.medium.icon",
+            "size.small.icon"
+          ],
+          "parts": {
+            "trailingVisual": {
+              "members": 32,
+              "where": {
+                "size": [
+                  "medium",
+                  "small"
+                ],
+                "style": [
+                  "standalone"
+                ]
+              }
+            }
+          }
         },
         "spinner": {
           "keys": [
@@ -15375,6 +15819,23 @@
             }
           }
         },
+        "link": {
+          "keys": [
+            "size.medium.gap",
+            "size.small.gap"
+          ],
+          "parts": {
+            "container": {
+              "members": 64,
+              "where": {
+                "size": [
+                  "medium",
+                  "small"
+                ]
+              }
+            }
+          }
+        },
         "segmented-control-segment": {
           "keys": [
             "inset"
@@ -15726,6 +16187,21 @@
                 ],
                 "orientation": [
                   "vertical"
+                ]
+              }
+            }
+          }
+        },
+        "link": {
+          "keys": [
+            "size.large.gap"
+          ],
+          "parts": {
+            "container": {
+              "members": 32,
+              "where": {
+                "size": [
+                  "large"
                 ]
               }
             }
@@ -16613,6 +17089,30 @@
             }
           }
         },
+        "link": {
+          "keys": [
+            "size.large.type.default.standalone.rest"
+          ],
+          "parts": {
+            "label": {
+              "members": 2,
+              "where": {
+                "size": [
+                  "large"
+                ],
+                "state": [
+                  "rest"
+                ],
+                "style": [
+                  "standalone"
+                ],
+                "weight": [
+                  "default"
+                ]
+              }
+            }
+          }
+        },
         "list-item": {
           "keys": [
             "size.large.text"
@@ -16751,6 +17251,93 @@
                   "filled",
                   "focus-visible-filled",
                   "read-only"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "type.body.lg.default-link": {
+      "type": "typography",
+      "components": {
+        "link": {
+          "keys": [
+            "size.large.type.default.inline.focus-visible",
+            "size.large.type.default.inline.hover",
+            "size.large.type.default.inline.pressed",
+            "size.large.type.default.inline.rest",
+            "size.large.type.default.standalone.focus-visible",
+            "size.large.type.default.standalone.hover",
+            "size.large.type.default.standalone.pressed"
+          ],
+          "parts": {
+            "label": {
+              "members": 14,
+              "where": {
+                "size": [
+                  "large"
+                ],
+                "weight": [
+                  "default"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "type.body.lg.strong": {
+      "type": "typography",
+      "components": {
+        "link": {
+          "keys": [
+            "size.large.type.emphasis.standalone.rest"
+          ],
+          "parts": {
+            "label": {
+              "members": 2,
+              "where": {
+                "size": [
+                  "large"
+                ],
+                "state": [
+                  "rest"
+                ],
+                "style": [
+                  "standalone"
+                ],
+                "weight": [
+                  "emphasis"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "type.body.lg.strong-link": {
+      "type": "typography",
+      "components": {
+        "link": {
+          "keys": [
+            "size.large.type.emphasis.inline.focus-visible",
+            "size.large.type.emphasis.inline.hover",
+            "size.large.type.emphasis.inline.pressed",
+            "size.large.type.emphasis.inline.rest",
+            "size.large.type.emphasis.standalone.focus-visible",
+            "size.large.type.emphasis.standalone.hover",
+            "size.large.type.emphasis.standalone.pressed"
+          ],
+          "parts": {
+            "label": {
+              "members": 14,
+              "where": {
+                "size": [
+                  "large"
+                ],
+                "weight": [
+                  "emphasis"
                 ]
               }
             }
@@ -16823,6 +17410,30 @@
             }
           }
         },
+        "link": {
+          "keys": [
+            "size.medium.type.default.standalone.rest"
+          ],
+          "parts": {
+            "label": {
+              "members": 2,
+              "where": {
+                "size": [
+                  "medium"
+                ],
+                "state": [
+                  "rest"
+                ],
+                "style": [
+                  "standalone"
+                ],
+                "weight": [
+                  "default"
+                ]
+              }
+            }
+          }
+        },
         "list-item": {
           "keys": [
             "size.medium.text"
@@ -16983,6 +17594,35 @@
         }
       }
     },
+    "type.body.md.default-link": {
+      "type": "typography",
+      "components": {
+        "link": {
+          "keys": [
+            "size.medium.type.default.inline.focus-visible",
+            "size.medium.type.default.inline.hover",
+            "size.medium.type.default.inline.pressed",
+            "size.medium.type.default.inline.rest",
+            "size.medium.type.default.standalone.focus-visible",
+            "size.medium.type.default.standalone.hover",
+            "size.medium.type.default.standalone.pressed"
+          ],
+          "parts": {
+            "label": {
+              "members": 14,
+              "where": {
+                "size": [
+                  "medium"
+                ],
+                "weight": [
+                  "default"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
     "type.body.md.strong": {
       "type": "typography",
       "components": {
@@ -17010,6 +17650,59 @@
                 ],
                 "weight": [
                   "bold"
+                ]
+              }
+            }
+          }
+        },
+        "link": {
+          "keys": [
+            "size.medium.type.emphasis.standalone.rest"
+          ],
+          "parts": {
+            "label": {
+              "members": 2,
+              "where": {
+                "size": [
+                  "medium"
+                ],
+                "state": [
+                  "rest"
+                ],
+                "style": [
+                  "standalone"
+                ],
+                "weight": [
+                  "emphasis"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "type.body.md.strong-link": {
+      "type": "typography",
+      "components": {
+        "link": {
+          "keys": [
+            "size.medium.type.emphasis.inline.focus-visible",
+            "size.medium.type.emphasis.inline.hover",
+            "size.medium.type.emphasis.inline.pressed",
+            "size.medium.type.emphasis.inline.rest",
+            "size.medium.type.emphasis.standalone.focus-visible",
+            "size.medium.type.emphasis.standalone.hover",
+            "size.medium.type.emphasis.standalone.pressed"
+          ],
+          "parts": {
+            "label": {
+              "members": 14,
+              "where": {
+                "size": [
+                  "medium"
+                ],
+                "weight": [
+                  "emphasis"
                 ]
               }
             }
@@ -17082,6 +17775,30 @@
             }
           }
         },
+        "link": {
+          "keys": [
+            "size.small.type.default.standalone.rest"
+          ],
+          "parts": {
+            "label": {
+              "members": 2,
+              "where": {
+                "size": [
+                  "small"
+                ],
+                "state": [
+                  "rest"
+                ],
+                "style": [
+                  "standalone"
+                ],
+                "weight": [
+                  "default"
+                ]
+              }
+            }
+          }
+        },
         "list-item": {
           "keys": [
             "size.small.text"
@@ -17242,6 +17959,35 @@
         }
       }
     },
+    "type.body.sm.default-link": {
+      "type": "typography",
+      "components": {
+        "link": {
+          "keys": [
+            "size.small.type.default.inline.focus-visible",
+            "size.small.type.default.inline.hover",
+            "size.small.type.default.inline.pressed",
+            "size.small.type.default.inline.rest",
+            "size.small.type.default.standalone.focus-visible",
+            "size.small.type.default.standalone.hover",
+            "size.small.type.default.standalone.pressed"
+          ],
+          "parts": {
+            "label": {
+              "members": 14,
+              "where": {
+                "size": [
+                  "small"
+                ],
+                "weight": [
+                  "default"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
     "type.body.sm.strong": {
       "type": "typography",
       "components": {
@@ -17269,6 +18015,59 @@
                 ],
                 "weight": [
                   "bold"
+                ]
+              }
+            }
+          }
+        },
+        "link": {
+          "keys": [
+            "size.small.type.emphasis.standalone.rest"
+          ],
+          "parts": {
+            "label": {
+              "members": 2,
+              "where": {
+                "size": [
+                  "small"
+                ],
+                "state": [
+                  "rest"
+                ],
+                "style": [
+                  "standalone"
+                ],
+                "weight": [
+                  "emphasis"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "type.body.sm.strong-link": {
+      "type": "typography",
+      "components": {
+        "link": {
+          "keys": [
+            "size.small.type.emphasis.inline.focus-visible",
+            "size.small.type.emphasis.inline.hover",
+            "size.small.type.emphasis.inline.pressed",
+            "size.small.type.emphasis.inline.rest",
+            "size.small.type.emphasis.standalone.focus-visible",
+            "size.small.type.emphasis.standalone.hover",
+            "size.small.type.emphasis.standalone.pressed"
+          ],
+          "parts": {
+            "label": {
+              "members": 14,
+              "where": {
+                "size": [
+                  "small"
+                ],
+                "weight": [
+                  "emphasis"
                 ]
               }
             }
@@ -19270,6 +20069,81 @@
       "declaredNotDrawn": [],
       "drawnNotDeclared": []
     },
+    "link": {
+      "members": 96,
+      "axes": {
+        "size": [
+          "large",
+          "medium",
+          "small"
+        ],
+        "state": [
+          "focus-visible",
+          "hover",
+          "pressed",
+          "rest"
+        ],
+        "style": [
+          "inline",
+          "standalone"
+        ],
+        "surface": [
+          "default",
+          "inverse"
+        ],
+        "weight": [
+          "default",
+          "emphasis"
+        ]
+      },
+      "tokens": [
+        "color.icon.link.default",
+        "color.icon.link.focused",
+        "color.icon.link.hover",
+        "color.icon.link.pressed",
+        "color.inverse.icon.link.default",
+        "color.inverse.icon.link.focused",
+        "color.inverse.icon.link.hover",
+        "color.inverse.icon.link.pressed",
+        "color.inverse.text.link.default",
+        "color.inverse.text.link.focused",
+        "color.inverse.text.link.hover",
+        "color.inverse.text.link.pressed",
+        "color.text.link.default",
+        "color.text.link.focused",
+        "color.text.link.hover",
+        "color.text.link.pressed",
+        "focus.ring.offset",
+        "focus.ring.width",
+        "icon.size.sm",
+        "icon.size.xs",
+        "space.050",
+        "space.100",
+        "type.body.lg.default",
+        "type.body.lg.default-link",
+        "type.body.lg.strong",
+        "type.body.lg.strong-link",
+        "type.body.md.default",
+        "type.body.md.default-link",
+        "type.body.md.strong",
+        "type.body.md.strong-link",
+        "type.body.sm.default",
+        "type.body.sm.default-link",
+        "type.body.sm.strong",
+        "type.body.sm.strong-link"
+      ],
+      "declaredNotDrawn": [],
+      "drawnNotDeclared": [
+        "color.inverse.icon.link.default",
+        "color.inverse.icon.link.focused",
+        "color.inverse.icon.link.hover",
+        "color.inverse.icon.link.pressed",
+        "color.inverse.text.link.default",
+        "color.inverse.text.link.focused",
+        "color.inverse.text.link.hover",
+        "color.inverse.text.link.pressed"
+      ]
+    },
     "list": {
       "members": 9,
       "axes": {
@@ -20003,10 +20877,6 @@
       "color.icon.brand-subtle",
       "color.icon.danger-subtle",
       "color.icon.info-subtle",
-      "color.icon.link.default",
-      "color.icon.link.focused",
-      "color.icon.link.hover",
-      "color.icon.link.pressed",
       "color.icon.link.visited",
       "color.icon.on-brand",
       "color.icon.on-danger",
@@ -20057,10 +20927,6 @@
       "color.inverse.icon.danger-subtle",
       "color.inverse.icon.info",
       "color.inverse.icon.info-subtle",
-      "color.inverse.icon.link.default",
-      "color.inverse.icon.link.focused",
-      "color.inverse.icon.link.hover",
-      "color.inverse.icon.link.pressed",
       "color.inverse.icon.link.visited",
       "color.inverse.icon.primary",
       "color.inverse.icon.secondary",
@@ -20084,10 +20950,6 @@
       "color.inverse.text.danger-subtle",
       "color.inverse.text.info",
       "color.inverse.text.info-subtle",
-      "color.inverse.text.link.default",
-      "color.inverse.text.link.focused",
-      "color.inverse.text.link.hover",
-      "color.inverse.text.link.pressed",
       "color.inverse.text.link.visited",
       "color.inverse.text.secondary",
       "color.inverse.text.success",
@@ -20100,10 +20962,6 @@
       "color.text.brand-subtle",
       "color.text.danger-subtle",
       "color.text.info-subtle",
-      "color.text.link.default",
-      "color.text.link.focused",
-      "color.text.link.hover",
-      "color.text.link.pressed",
       "color.text.link.visited",
       "color.text.on-brand",
       "color.text.success-subtle",
@@ -20211,23 +21069,16 @@
       "space.900",
       "type.body.lg.default-italic",
       "type.body.lg.default-italic-link",
-      "type.body.lg.default-link",
-      "type.body.lg.strong",
       "type.body.lg.strong-italic",
       "type.body.lg.strong-italic-link",
-      "type.body.lg.strong-link",
       "type.body.md.default-italic",
       "type.body.md.default-italic-link",
-      "type.body.md.default-link",
       "type.body.md.strong-italic",
       "type.body.md.strong-italic-link",
-      "type.body.md.strong-link",
       "type.body.sm.default-italic",
       "type.body.sm.default-italic-link",
-      "type.body.sm.default-link",
       "type.body.sm.strong-italic",
       "type.body.sm.strong-italic-link",
-      "type.body.sm.strong-link",
       "type.body.xs.default-italic",
       "type.body.xs.default-italic-link",
       "type.body.xs.default-link",
