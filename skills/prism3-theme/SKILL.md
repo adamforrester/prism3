@@ -84,7 +84,7 @@ minimal — read both, they are the reference; the directory also holds a standa
 | `shadow` | `{ softness, tint: { hue, amount } }` | softer marketing elevation, tinted to the brand |
 | `layout` | `{ breakpoints: [...], containerMax }` | a non-default breakpoint ladder / content cap |
 | `gradients` | `[{ name, kind: linear\|radial, angle/center/shape, stops: [{ palette, step, position }] }]` | opt-in brand gradients (most systems ship none — omit) |
-| `disabledStrategy` | `full` \| `reduced` | `reduced` (default) — disabled ink clears a dialable `disabledMin` floor (3–4.5, default 3); `full` promises a fixed 4.5:1 (AA text) instead. Neither goes below 3:1 — this system does not use the WCAG 1.4.3/1.4.11 inactive-component exemption, so there is no sub-AA "exempt" look to select. (`accessible`/`conventional` are accepted as legacy aliases; both normalize to `reduced` — they do not select `full` and `conventional` no longer means low-contrast.) |
+| `disabledStrategy` | `full` \| `reduced` (legacy aliases: `accessible`, `conventional`) | `reduced` (default) — disabled ink clears a dialable `disabledMin` floor (3–4.5, default 3); `full` promises a fixed 4.5:1 (AA text) instead. Neither goes below 3:1 — this system does not use the WCAG 1.4.3/1.4.11 inactive-component exemption, so there is no sub-AA "exempt" look to select. (`accessible`/`conventional` are accepted as legacy aliases; both normalize to `reduced` — they do not select `full` and `conventional` no longer means low-contrast.) |
 
 ## How to author
 

@@ -418,12 +418,15 @@ export const scanCoverage = (text: string, rel: string, findings: Finding[]): vo
     // `hairline` (#1371) while the theme skill's row kept saying `rounded | pill`.
     // A dotted first cell (`typography.captionFloor`) is a nested property, resolved one `properties` level per
     // segment: the plain-word pattern skipped those rows, so their enums were never checked (review on #2681).
-    for (const row of body.matchAll(/^\|\s*`([A-Za-z]+(?:\.[A-Za-z]+)*)`\s*\|.*$/gm)) {
+    // The values are read from the row's SECOND cell only (escaped `\|` stays inside it): a description cell
+    // that quotes a value (`captionFloor`'s "`10` adds caption.sm") kept a row whose values cell had lost
+    // that value reading as complete (review on #2681, mutation M-A).
+    for (const row of body.matchAll(/^\|\s*`([A-Za-z]+(?:\.[A-Za-z]+)*)`\s*\|((?:\\\||[^|\n])*)\|.*$/gm)) {
       const def = row[1].split('.').reduce<{ properties?: Record<string, unknown> } | undefined>(
         (node, key) => node?.properties?.[key] as { properties?: Record<string, unknown> } | undefined, schema,
       ) as { enum?: unknown[] } | undefined;
       if (rel !== 'self-check') enumRowsRead++;
-      for (const v of def?.enum ?? []) if (!row[0].includes(`\`${String(v)}\``)) findings.push({ file: rel, kind: 'incomplete enum', detail: `the \`${row[1]}\` row does not list \`${String(v)}\`, one of the values the schema accepts (${(def!.enum ?? []).join(', ')})` });
+      for (const v of def?.enum ?? []) if (!row[2].includes(`\`${String(v)}\``)) findings.push({ file: rel, kind: 'incomplete enum', detail: `the \`${row[1]}\` row does not list \`${String(v)}\`, one of the values the schema accepts (${(def!.enum ?? []).join(', ')})` });
     }
     for (const prop of Object.keys(schema.properties)) {
       if (declaredOmit.has(prop)) continue;
@@ -590,6 +593,7 @@ const selfCheck = (): string[] => {
     if (cov('---\n| `density` | `comfortable` \\| `compact` \\| `spacious` | x |\n').includes('incomplete enum')) bad.push('a complete enum row is flagged');
     if (!cov('---\n| `typography.captionFloor` | `11` | x |\n').includes('incomplete enum')) bad.push('a nested enum row missing a value (`typography.captionFloor` without `10`) passes');
     if (cov('---\n| `typography.captionFloor` | `11` \\| `10` | x |\n').includes('incomplete enum')) bad.push('a complete nested enum row is flagged');
+    if (!cov('---\n| `density` | `comfortable` \\| `compact` | `spacious` is for reading |\n').includes('incomplete enum')) bad.push('a value quoted only in the description cell (`spacious`) counts as listed');
   }
   const everyProp = Object.keys(
     JSON.parse(readFileSync(resolve(repo, 'packages/engine/schema/theme-schema.json'), 'utf8')).properties,
