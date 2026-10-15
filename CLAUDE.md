@@ -32,7 +32,7 @@ Workflow: one PR per feature branch off `main` → squash-merge → delete branc
 
 **When more than one agent may be working, use a git worktree, not the shared checkout:** `git worktree add /tmp/p3-<lane> -b <branch> origin/main`, then `npm ci` — never a bare `npm install`, never a hand-rolled symlink loop. **Never point a package manager at a worktree whose `node_modules` is links** (not `--prefix`, not `--no-save`, not for one dependency): it writes through into the shared checkout. `.claude/hooks/session-start-npm-ci.sh` populates a fresh worktree; its header and `.claude/commands/review-pr.md` hold the incidents and the repair. A one-off `npx playwright install chromium` is fine.
 
-**Checking out a branch in a tree someone else is editing destroys their uncommitted work** (recovery: `.claude/commands/review-pr.md`). **`git checkout <ref> -- <path>` is a destructive write spelled like a read** — use `git show <ref>:<path>` and `git diff <ref> -- <path>`. **When mutation-testing a gate, commit before every mutation, not just the first** — each restore reaches back to `HEAD` and silently deletes work done in between; a `wip:` commit is enough, `--amend` once green.
+**Checking out a branch in a tree someone else is editing destroys their uncommitted work** (recovery: `.claude/commands/review-pr.md`). **`git checkout <ref> -- <path>` is a destructive write spelled like a read, and nothing stashes it, so there is no recovery** — use `git show <ref>:<path>` and `git diff <ref> -- <path>`. **When mutation-testing a gate, commit before every mutation, not just the first** — each restore reaches back to `HEAD` and silently deletes work done in between; a `wip:` commit is enough, `--amend` once green.
 
 `regen --check`'s expected artifact count lives in **two** places that move together: `EXPECTED_ARTIFACTS` in `verify.ts` and the same number in `ci.yml`. This file deliberately does not restate it (#1110; why: `.claude/hooks/session-start-claude-md-freshness.sh`). If `regen --check` disagrees with `verify.ts`, check for an untracked file under `packages/engine/out/` before assuming drift.
 
@@ -55,6 +55,8 @@ Workflow: one PR per feature branch off `main` → squash-merge → delete branc
 ## Working principles (agent behavior)
 
 Adapted from the Karpathy coding guidelines (github.com/multica-ai/andrej-karpathy-skills): turn imperative requests into declarative goals with verification loops.
+
+Quote paths that contain spaces; use repo-relative paths, because the absolute root differs per checkout.
 
 1. **Think before coding.** State assumptions; surface ambiguities and tradeoffs *before* writing code. When a choice is genuinely the user's to make, ask — don't guess. Decisions get confirmed before they're built.
 2. **Simple implementation, rigorous correctness.** Minimum code, no speculative abstractions, stay dependency-free (own the math). BUT hold the *correctness* bar high — contrast contracts, field research and "better than the examples" are the standard, not gold-plating.

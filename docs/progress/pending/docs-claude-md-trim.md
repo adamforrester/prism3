@@ -1,6 +1,6 @@
 ## (2026-10-15) — CLAUDE.md trimmed to its rules, narrative moved to where each rule points (Q319.1)
 
-**STATUS: docs only.** `CLAUDE.md` goes from 28,683 to about 17,100 bytes. No code, no gate, no emitted
+**STATUS: docs only.** `CLAUDE.md` goes from 28,683 to about 17,300 bytes. No code, no gate, no emitted
 artifact. Owner decision Q319.1 A; the owner reviews the diff before merge.
 
 ### What moved, and what did not need to
