@@ -307,7 +307,7 @@ export const TOOLS = [
       properties: {
         cmd: { type: 'string', enum: [...AGENT_COMMANDS] },
         args: { type: 'object', description: "apply-theme: {input: BrandInput}; build-components: {def?}; prune: {input, confirm}; others: {}" },
-        timeoutMs: { type: 'number', description: 'Default 600000 (a full catalogue build takes minutes).' },
+        timeoutMs: { type: 'number', description: 'Default 600000 (a full catalog build takes minutes).' },
       },
       required: ['cmd'],
       additionalProperties: false,
