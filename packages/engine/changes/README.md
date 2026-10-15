@@ -7,7 +7,7 @@ The note declares the bump class. The fold picks the number.
 ---
 engine: minor
 ---
-The changelog prose that used to go above ENGINE_VERSION in version.ts. Write {{ENGINE_VERSION}}
+The changelog prose. The fold writes it into `packages/engine/CHANGELOG.md`. Write {{ENGINE_VERSION}}
 where the number goes; the fold fills it in.
 ```
 
@@ -26,7 +26,7 @@ where the number goes; the fold fills it in.
 - **Once merged, a note is not edited.** It is another PR's declaration until the fold consumes it, and
   `lint-emission-version.ts` fails a diff that changes it. To correct it, add a note of your own.
 
-Do not edit `ENGINE_VERSION` or the changelog in `version.ts`: `lint-emission-version.ts` fails a PR
+Do not edit `ENGINE_VERSION` (in `version.ts`) or the changelog (`packages/engine/CHANGELOG.md`): `lint-emission-version.ts` fails a PR
 that is not a fold for doing so. That gate and `lint-component-surface.ts` accept an added note as
 the bump. `CONTRACT_VERSION` is not covered here: a PR still bumps it itself.
 

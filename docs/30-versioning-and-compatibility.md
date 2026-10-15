@@ -36,7 +36,8 @@ numbers to avoid colliding, and `main`'s sequence landed with gaps and out of or
 > **A PR never edits `ENGINE_VERSION`.** A PR that owes a bump adds a change note,
 > `packages/engine/changes/<slug>.md`, whose front matter declares the class
 > (`engine: patch|minor|major`) and whose body is the changelog prose. After a batch of merges,
-> `fold.ts` assigns **one version per fold**, at the highest class declared, writes the changelog,
+> `fold.ts` assigns **one version per fold**, at the highest class declared, writes the changelog
+> (`packages/engine/CHANGELOG.md`, moved out of `version.ts` by Q319.3, #2583),
 > deletes the notes and restamps the corpus.
 
 What this changes about the rule above, stated plainly, because the owner accepted it as a cost:

@@ -57,14 +57,14 @@ one at a time. Now:
   ---
   engine: minor          # patch | minor | major
   ---
-  The changelog prose that used to go into version.ts. Write {{ENGINE_VERSION}} where the number goes.
+  The changelog prose, which the fold writes into packages/engine/CHANGELOG.md. Write {{ENGINE_VERSION}} where the number goes.
   ```
 
   It declares the class and never picks a number. **The class:** `minor` for any behavior change;
   `patch` only when no committed artifact and no projected component surface moves (`regen --check`
   clean before and after, `lint-component-surface.ts` baseline unchanged); `major` is
   refused while `ENGINE_VERSION` is below 1.0, because going to 1.0 is the owner's decision. The fold
-  takes the highest class in the batch. **Do not edit `ENGINE_VERSION`, its changelog, the version
+  takes the highest class in the batch. **Do not edit `ENGINE_VERSION`, its changelog (`packages/engine/CHANGELOG.md`), the version
   stamps in `out/`, or a note another PR merged.** `lint-emission-version.ts` fails a PR that is not a fold for editing
   the constant or its changelog, and both version gates accept the note as the bump. Run `regen.ts`
   as usual; your `out/` diff carries your real changes under the old stamp, and the fold restamps.
@@ -134,8 +134,8 @@ Then push and open the PR. What the fold does, in order:
    order.
 4. It assigns **one version per fold**: the current `ENGINE_VERSION` bumped once, by the highest class
    any note declares. With no notes the version does not move.
-5. It writes the constant and a changelog section under the FOLD MARKER in `version.ts`, newest merge
-   first. Then it puts the fragments at the top of the log, newest merge first, each dated with the UTC
+5. It writes the constant in `version.ts`, and a changelog section under the FOLD MARKER in
+   `packages/engine/CHANGELOG.md` (moved out of `version.ts` by Q319.3, #2583), newest merge first. Then it puts the fragments at the top of the log, newest merge first, each dated with the UTC
    day it landed. It fills in `{{ENGINE_VERSION}}` in both, and in every pending rename stamp (#1816).
 6. It deletes the folded files and, when the version moved, runs `regen.ts` to restamp the corpus.
 
