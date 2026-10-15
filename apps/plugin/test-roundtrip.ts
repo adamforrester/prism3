@@ -213,10 +213,13 @@ const SLOT_CONSTRAINED = [{ ...tagDef, id: 'tag@slot-constraints', anatomy: { ..
 const SLOT_FILE: Partial<ShimOpts> = { fileNodes: [{ name: 'badge', type: 'COMPONENT_SET', variants: ['tone=neutral'] }] };
 // …and one SWAP override (#2645). No committed def swaps a nested glyph yet (Dialog's close button is an open PR), so
 // without this row the INSTANCE_SWAP half of `nestOverrides` compares nothing. Test-only: List with its first item's
-// icon swapped to `check` — List.Item's own `swap icon` property, set to the icon set's component, built first.
+// icon swapped to `close` — List.Item's own `swap icon` property, set to the icon set's component, built first. The
+// glyph must NOT be List.Item's `swapDefault` (`check`): the writer skips a value the instance already holds, so a swap
+// to the default writes nothing and the read-back reads the default back as a pass (docs/34). Asserted below.
 const listDef = PROJECTED.find((d) => d.id === 'list')!;
+const SWAP_GLYPH = 'close';
 const SWAP_OVERRIDE = [{ ...listDef, id: 'list@swap-override', anatomy: { ...listDef.anatomy!, parts: { ...listDef.anatomy!.parts,
-  item1: { ...listDef.anatomy!.parts.item1, overrides: { swaps: { icon: 'check' } } } } } }];
+  item1: { ...listDef.anatomy!.parts.item1, overrides: { swaps: { icon: SWAP_GLYPH } } } } } }];
 for (const def of [...PROJECTED, ...TINTED, ...BUTTON_LAID, ...SLOT_CONSTRAINED, ...SWAP_OVERRIDE]) {
   try {
     const r = await roundTrip(def, SLOT_CONSTRAINED.includes(def as (typeof SLOT_CONSTRAINED)[number]) ? SLOT_FILE : {});
@@ -234,14 +237,18 @@ ok(BUTTON_LAID.length === 6 && (EXERCISED.pin ?? 0) > 0 && (EXERCISED.paddingPx 
 
 {
   const swapPlans = SWAP_OVERRIDE.flatMap((d) => figmaAnatomySet(d, { swapTarget: SWAP_TARGET }));
-  const swapNodes = swapPlans.flatMap((p) => JSON.stringify(p.root).match(/"type":"INSTANCE_SWAP","value":"icon\/check"/g) ?? []).length;
+  const swapNodes = swapPlans.flatMap((p) => JSON.stringify(p.root).match(/"type":"INSTANCE_SWAP","value":"icon\/close"/g) ?? []).length;
+  // THE PREMISE (#2645 review): the swap moves the instance OFF its default, so the write is exercised, not skipped.
+  const itemDefault = (PROJECTED.find((d) => d.id === 'list-item')!.anatomy!.parts.icon as { swapDefault?: string }).swapDefault;
+  ok(typeof itemDefault === 'string' && itemDefault !== SWAP_GLYPH,
+    `#2645 premise: the swap row's glyph (${SWAP_GLYPH}) is not List.Item's swapDefault (${itemDefault}), so the swap is written, not skipped`);
   const listRows = inventory.filter((i) => i.def === 'list' || i.def === 'list@swap-override');
   // THE SWAP TARGET IS A DEPENDENCY (#2645), asserted on the list itself: the round-trip cannot see it, because the icon
-  // set is built anyway as a dependency of List.Item. List's own plans reach icon/check through the override alone.
+  // set is built anyway as a dependency of List.Item. List's own plans reach icon/close through the override alone.
   const targets = planTargets(swapPlans);
-  ok(JSON.stringify(targets) === '["list-item","icon/check"]', `#2645 build-deps: a swap override's component is a build target of the def that declares it (${JSON.stringify(targets)})`);
+  ok(JSON.stringify(targets) === '["list-item","icon/close"]', `#2645 build-deps: a swap override's component is a build target of the def that declares it (${JSON.stringify(targets)})`);
   ok((EXERCISED.nestOverrides ?? 0) > 0 && swapNodes > 0 && listRows.length === 2 && listRows.every((i) => i.members > 0),
-    `#2645 per-instance overrides round-trip: ${EXERCISED.nestOverrides ?? 0} nested instance(s) read their overrides back off their own componentProperties, ${swapNodes} of them a swap to icon/check (rows: ${listRows.map((i) => `${i.def} ${i.members} members, ${i.divergences.length} divergences`).join('; ')})`);
+    `#2645 per-instance overrides round-trip: ${EXERCISED.nestOverrides ?? 0} nested instance(s) read their overrides back off their own componentProperties, ${swapNodes} of them a swap to icon/close (rows: ${listRows.map((i) => `${i.def} ${i.members} members, ${i.divergences.length} divergences`).join('; ')})`);
 }
 
 // THE PREDICATE SPEAKS (#2645): an instance holding its nested default where the plan names an override is reported,

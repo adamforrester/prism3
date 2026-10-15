@@ -54,7 +54,7 @@ import { verifyReadback, verifyFloatReadback, verifyTypographyReadback, Readback
 import { tailOf } from './figma-names';
 import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION, UnrecognizedPersistedInputError } from './persist-input';
 import { validateComponentDef, VARIANT_AXES, axisKindOf, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, variantAxisFigmaName, isExcludedCoordinate, fillPaintKey, replacesCandidates, statesOf, PAINT_SLOTS, ComponentDef, AnatomyDef } from './component-schema';
-import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, settleChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, figmaTextStyleName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, applySpacingDensity, applyMinWidthRatio, DEFAULT_BUTTON_LAYOUT, isButtonFamily, resolveWeightIntent, DEFAULT_WEIGHT_AVAILABILITY, isPillable, PILL_RADIUS_DERIVATION, PILL_RADIUS_RUNG, BOXED_RADIUS_RUNG, HAIRLINE_RADIUS_RUNG, CONTROL_SHAPE_RUNG, ROUNDED_RADIUS_RUNG, variantSetErrors, variantNameErrors, glyphLayerOpacities, type AnatomyPlan, type SwapFound } from './anatomy-figma';
+import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, settleChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, figmaTextStyleName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, applySpacingDensity, applyMinWidthRatio, DEFAULT_BUTTON_LAYOUT, isButtonFamily, resolveWeightIntent, DEFAULT_WEIGHT_AVAILABILITY, isPillable, PILL_RADIUS_DERIVATION, PILL_RADIUS_RUNG, BOXED_RADIUS_RUNG, HAIRLINE_RADIUS_RUNG, CONTROL_SHAPE_RUNG, ROUNDED_RADIUS_RUNG, variantSetErrors, variantNameErrors, glyphLayerOpacities, applyNestOverrides, type AnatomyPlan, type SwapFound } from './anatomy-figma';
 import type { ControlShape } from './scale';
 import { COMPONENT_RENAMES, coordKey, renameCoordinate, isDeclaredDrop, unaccounted as renamesUnaccounted, danglingTargets as renamesDangling, type ComponentRename, type AxesBaseline } from './component-renames';
 // One of the two imports this suite makes ACROSS the engine/plugin boundary, and the parity gate (#487 step 5)
@@ -20811,6 +20811,20 @@ arm: {
         const swaps = sMembers.map((m) => (find(m, 'item1')?.componentProperties as Record<string, { value: unknown }> | undefined)?.[SWAP]?.value);
         ok(sMembers.length === 9 && swaps.every((v) => v === '73:38') && !sRun.misses.some((m) => /nestOverrides/.test(m)),
           `#2645 paste: a swap override sets List.Item's swap to icon/check's id, 73:38 (${JSON.stringify([...new Set(swaps)])}${sRun.misses.length ? `; misses ${JSON.stringify(sRun.misses.filter((m) => /nestOverrides/.test(m)).slice(0, 2))}` : ''})`);
+        // TWO SAME-NAMED KEYS: an instance whose main declares two TEXT properties both named `number` is a named miss,
+        // and NEITHER is written — picking one would be creation order deciding (#656). A hand-built instance, so the
+        // expected answer is known in advance (docs/34); the writer is the one both executors call.
+        {
+          const writes: Record<string, string>[] = [];
+          const twin = {
+            componentProperties: { 'number#7:2': { type: 'TEXT', value: '1.' }, 'number#7:3': { type: 'TEXT', value: '1.' } } as Record<string, { type: string; value: string }>,
+            setProperties(w: Record<string, string>) { writes.push(w); for (const k of Object.keys(w)) this.componentProperties[k].value = w[k]; },
+          };
+          const misses = applyNestOverrides(twin, [{ property: 'number', type: 'TEXT', value: '2.' }], () => null);
+          ok(misses.length === 1 && misses[0] === '.nestOverrides -> number (2 TEXT properties of that name on the nested instance; it keeps its default)'
+            && writes.length === 0 && twin.componentProperties['number#7:2'].value === '1.' && twin.componentProperties['number#7:3'].value === '1.',
+            `#2645 two same-named keys: an instance with two TEXT properties named 'number' is a named miss and neither is written (misses ${JSON.stringify(misses)}; writes ${JSON.stringify(writes)})`);
+        }
       }
 
       // ---- #1393: the PASTE executor leaves no Figma white default on an unclaimed or unresolvable fill ----

@@ -66,3 +66,5 @@ second takes 24). CONTRACT unchanged: no token path moves.
 - **A catalog name answers before the live set.** With `liveRoot`, a `comps` entry named like a def resolves as a bare
   component first, with no properties. The round-trip's override rows therefore pass only the FPO swap target as a
   catalog name.
+
+**Review round.** The test-only swap row first swapped to `check`, which is already List.Item's `swapDefault`. The writer skips a value the instance already holds, so the plugin executor's swap write never ran and the read-back passed on the default — an expected value equal to the subject's starting state (docs/34). It now swaps to `close`, and a premise line fails if the row's glyph ever equals the default again. The "two same-named keys is a miss" guard had no test; `test.ts` now drives the shared writer with a hand-built instance holding two TEXT properties named `number`.
