@@ -1,0 +1,5601 @@
+{
+  "$schema": "prism3-report/component-comparison/1",
+  "generated": true,
+  "sources": [
+    "packages/engine/components/*.ts",
+    "packages/engine/component-schema.ts",
+    "packages/engine/out/prism3.tokens.json"
+  ],
+  "note": "components: each definition's states, projected design-file states, variant axes, props (name, default, values), size rungs and size default. peerGroups: the three derived groupings. findings: every difference between peers, for the owner to judge — a finding is a difference, not a verdict.",
+  "components": [
+    {
+      "id": "_accordion-indicator",
+      "name": "Accordion.Indicator",
+      "category": "navigation",
+      "states": [],
+      "projectedStates": [],
+      "axes": {
+        "indicator": [
+          "chevron",
+          "plus-minus"
+        ],
+        "expansion": [
+          "collapsed",
+          "expanded"
+        ],
+        "size": [
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      "props": [
+        {
+          "name": "indicator",
+          "default": "chevron",
+          "values": [
+            "chevron",
+            "plus-minus"
+          ]
+        },
+        {
+          "name": "expansion",
+          "default": "collapsed",
+          "values": [
+            "collapsed",
+            "expanded"
+          ]
+        },
+        {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ]
+        }
+      ],
+      "sizes": [
+        "small",
+        "medium",
+        "large"
+      ],
+      "sizeDefault": "medium"
+    },
+    {
+      "id": "accordion",
+      "name": "Accordion",
+      "category": "navigation",
+      "states": [
+        "rest",
+        "focus-visible"
+      ],
+      "projectedStates": [
+        "rest",
+        "focus-visible"
+      ],
+      "axes": {
+        "expansion": [
+          "collapsed",
+          "expanded"
+        ],
+        "iconPosition": [
+          "leading",
+          "trailing"
+        ],
+        "size": [
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      "props": [
+        {
+          "name": "title"
+        },
+        {
+          "name": "children"
+        },
+        {
+          "name": "value"
+        },
+        {
+          "name": "defaultExpanded",
+          "default": false
+        },
+        {
+          "name": "headingLevel",
+          "default": "3",
+          "values": [
+            "2",
+            "3",
+            "4",
+            "5",
+            "6"
+          ]
+        },
+        {
+          "name": "indicator",
+          "default": "chevron",
+          "values": [
+            "chevron",
+            "plus-minus"
+          ]
+        },
+        {
+          "name": "iconPosition",
+          "default": "leading",
+          "values": [
+            "leading",
+            "trailing"
+          ]
+        },
+        {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ]
+        }
+      ],
+      "sizes": [
+        "small",
+        "medium",
+        "large"
+      ],
+      "sizeDefault": "medium"
+    },
+    {
+      "id": "badge",
+      "name": "Badge",
+      "category": "foundations",
+      "states": [],
+      "projectedStates": [],
+      "axes": {
+        "type": [
+          "status",
+          "count",
+          "dot"
+        ],
+        "emphasis": [
+          "subtle",
+          "bold"
+        ],
+        "tone": [
+          "neutral",
+          "info",
+          "success",
+          "warning",
+          "danger"
+        ]
+      },
+      "props": [
+        {
+          "name": "type",
+          "default": "status",
+          "values": [
+            "status",
+            "count",
+            "dot"
+          ]
+        },
+        {
+          "name": "emphasis",
+          "default": "subtle",
+          "values": [
+            "subtle",
+            "bold"
+          ]
+        },
+        {
+          "name": "tone",
+          "default": "neutral",
+          "values": [
+            "neutral",
+            "info",
+            "success",
+            "warning",
+            "danger"
+          ]
+        },
+        {
+          "name": "label"
+        },
+        {
+          "name": "value"
+        },
+        {
+          "name": "max",
+          "default": "99"
+        },
+        {
+          "name": "showZero",
+          "default": "false"
+        },
+        {
+          "name": "overlap",
+          "default": "rectangular",
+          "values": [
+            "rectangular",
+            "circular"
+          ]
+        }
+      ],
+      "sizes": []
+    },
+    {
+      "id": "button",
+      "name": "Button",
+      "category": "form",
+      "states": [
+        "rest",
+        "hover",
+        "pressed",
+        "pending",
+        "focus-visible",
+        "disabled",
+        "inactive"
+      ],
+      "projectedStates": [
+        "rest",
+        "hover",
+        "pressed",
+        "pending",
+        "focus-visible",
+        "disabled"
+      ],
+      "axes": {
+        "appearance": [
+          "filled",
+          "outline",
+          "text"
+        ],
+        "size": [
+          "small",
+          "medium",
+          "large"
+        ],
+        "width": [
+          "auto",
+          "full"
+        ],
+        "surface": [
+          "default",
+          "inverse"
+        ],
+        "inset": [
+          "default",
+          "flush"
+        ]
+      },
+      "props": [
+        {
+          "name": "label"
+        },
+        {
+          "name": "onClick"
+        },
+        {
+          "name": "appearance",
+          "default": "filled",
+          "values": [
+            "filled",
+            "outline",
+            "text"
+          ]
+        },
+        {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ]
+        },
+        {
+          "name": "surface",
+          "default": "default",
+          "values": [
+            "default",
+            "inverse"
+          ]
+        },
+        {
+          "name": "inset",
+          "default": "default",
+          "values": [
+            "default",
+            "flush"
+          ]
+        },
+        {
+          "name": "fullWidth",
+          "default": false
+        },
+        {
+          "name": "type",
+          "default": "button",
+          "values": [
+            "button",
+            "submit",
+            "reset"
+          ]
+        },
+        {
+          "name": "isPending",
+          "default": false
+        },
+        {
+          "name": "isInactive",
+          "default": false
+        },
+        {
+          "name": "disabled",
+          "default": false
+        },
+        {
+          "name": "leadingVisual"
+        },
+        {
+          "name": "trailingVisual"
+        },
+        {
+          "name": "href"
+        },
+        {
+          "name": "aria-label"
+        }
+      ],
+      "sizes": [
+        "small",
+        "medium",
+        "large"
+      ],
+      "sizeDefault": "medium"
+    },
+    {
+      "id": "button-destructive",
+      "name": "Button.Destructive",
+      "category": "form",
+      "states": [
+        "rest",
+        "hover",
+        "pressed",
+        "pending",
+        "focus-visible",
+        "disabled",
+        "inactive"
+      ],
+      "projectedStates": [
+        "rest",
+        "hover",
+        "pressed",
+        "pending",
+        "focus-visible",
+        "disabled"
+      ],
+      "axes": {
+        "appearance": [
+          "filled",
+          "outline",
+          "text"
+        ],
+        "size": [
+          "small",
+          "medium",
+          "large"
+        ],
+        "width": [
+          "auto",
+          "full"
+        ],
+        "surface": [
+          "default",
+          "inverse"
+        ],
+        "inset": [
+          "default",
+          "flush"
+        ]
+      },
+      "props": [
+        {
+          "name": "label"
+        },
+        {
+          "name": "onClick"
+        },
+        {
+          "name": "appearance",
+          "default": "filled",
+          "values": [
+            "filled",
+            "outline",
+            "text"
+          ]
+        },
+        {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ]
+        },
+        {
+          "name": "surface",
+          "default": "default",
+          "values": [
+            "default",
+            "inverse"
+          ]
+        },
+        {
+          "name": "inset",
+          "default": "default",
+          "values": [
+            "default",
+            "flush"
+          ]
+        },
+        {
+          "name": "fullWidth",
+          "default": false
+        },
+        {
+          "name": "type",
+          "default": "button",
+          "values": [
+            "button",
+            "submit",
+            "reset"
+          ]
+        },
+        {
+          "name": "isPending",
+          "default": false
+        },
+        {
+          "name": "isInactive",
+          "default": false
+        },
+        {
+          "name": "disabled",
+          "default": false
+        },
+        {
+          "name": "leadingVisual"
+        },
+        {
+          "name": "trailingVisual"
+        },
+        {
+          "name": "href"
+        },
+        {
+          "name": "aria-label"
+        }
+      ],
+      "sizes": [
+        "small",
+        "medium",
+        "large"
+      ],
+      "sizeDefault": "medium"
+    },
+    {
+      "id": "button-neutral",
+      "name": "Button.Neutral",
+      "category": "form",
+      "states": [
+        "rest",
+        "hover",
+        "pressed",
+        "pending",
+        "focus-visible",
+        "disabled",
+        "inactive"
+      ],
+      "projectedStates": [
+        "rest",
+        "hover",
+        "pressed",
+        "pending",
+        "focus-visible",
+        "disabled"
+      ],
+      "axes": {
+        "appearance": [
+          "filled",
+          "outline",
+          "text"
+        ],
+        "size": [
+          "small",
+          "medium",
+          "large"
+        ],
+        "width": [
+          "auto",
+          "full"
+        ],
+        "surface": [
+          "default",
+          "inverse"
+        ],
+        "inset": [
+          "default",
+          "flush"
+        ]
+      },
+      "props": [
+        {
+          "name": "label"
+        },
+        {
+          "name": "onClick"
+        },
+        {
+          "name": "appearance",
+          "default": "filled",
+          "values": [
+            "filled",
+            "outline",
+            "text"
+          ]
+        },
+        {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ]
+        },
+        {
+          "name": "surface",
+          "default": "default",
+          "values": [
+            "default",
+            "inverse"
+          ]
+        },
+        {
+          "name": "inset",
+          "default": "default",
+          "values": [
+            "default",
+            "flush"
+          ]
+        },
+        {
+          "name": "fullWidth",
+          "default": false
+        },
+        {
+          "name": "type",
+          "default": "button",
+          "values": [
+            "button",
+            "submit",
+            "reset"
+          ]
+        },
+        {
+          "name": "isPending",
+          "default": false
+        },
+        {
+          "name": "isInactive",
+          "default": false
+        },
+        {
+          "name": "disabled",
+          "default": false
+        },
+        {
+          "name": "leadingVisual"
+        },
+        {
+          "name": "trailingVisual"
+        },
+        {
+          "name": "href"
+        },
+        {
+          "name": "aria-label"
+        }
+      ],
+      "sizes": [
+        "small",
+        "medium",
+        "large"
+      ],
+      "sizeDefault": "medium"
+    },
+    {
+      "id": "checkbox-control",
+      "name": "Checkbox.Control",
+      "category": "form",
+      "states": [
+        "rest",
+        "hover",
+        "pressed",
+        "focus-visible",
+        "disabled",
+        "error"
+      ],
+      "projectedStates": [
+        "rest",
+        "hover",
+        "pressed",
+        "focus-visible",
+        "disabled",
+        "error"
+      ],
+      "axes": {
+        "size": [
+          "small",
+          "medium",
+          "large"
+        ],
+        "selection": [
+          "unchecked",
+          "checked",
+          "indeterminate"
+        ]
+      },
+      "props": [
+        {
+          "name": "checked"
+        },
+        {
+          "name": "indeterminate",
+          "default": false
+        },
+        {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ]
+        },
+        {
+          "name": "disabled",
+          "default": false
+        },
+        {
+          "name": "aria-label"
+        }
+      ],
+      "sizes": [
+        "small",
+        "medium",
+        "large"
+      ],
+      "sizeDefault": "medium"
+    },
+    {
+      "id": "checkbox-group",
+      "name": "Checkbox.Group",
+      "category": "form",
+      "states": [
+        "rest"
+      ],
+      "projectedStates": [],
+      "axes": {
+        "size": [
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      "props": [
+        {
+          "name": "label"
+        },
+        {
+          "name": "value"
+        },
+        {
+          "name": "defaultValue"
+        },
+        {
+          "name": "onChange"
+        },
+        {
+          "name": "required",
+          "default": false
+        },
+        {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ]
+        },
+        {
+          "name": "name"
+        },
+        {
+          "name": "disabled",
+          "default": false
+        }
+      ],
+      "sizes": [
+        "small",
+        "medium",
+        "large"
+      ],
+      "sizeDefault": "medium"
+    },
+    {
+      "id": "checkbox-row",
+      "name": "Checkbox.Row",
+      "category": "form",
+      "states": [
+        "rest",
+        "hover",
+        "pressed",
+        "focus-visible",
+        "disabled",
+        "read-only",
+        "error"
+      ],
+      "projectedStates": [],
+      "axes": {
+        "size": [
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      "props": [
+        {
+          "name": "checked"
+        },
+        {
+          "name": "defaultChecked",
+          "default": false
+        },
+        {
+          "name": "indeterminate",
+          "default": false
+        },
+        {
+          "name": "label"
+        },
+        {
+          "name": "description"
+        },
+        {
+          "name": "onChange"
+        },
+        {
+          "name": "value"
+        },
+        {
+          "name": "readOnly",
+          "default": false
+        },
+        {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ]
+        }
+      ],
+      "sizes": [
+        "small",
+        "medium",
+        "large"
+      ],
+      "sizeDefault": "medium"
+    },
+    {
+      "id": "dialog",
+      "name": "Dialog",
+      "category": "overlay",
+      "states": [],
+      "projectedStates": [],
+      "axes": {
+        "placement": [
+          "center",
+          "bottom",
+          "full"
+        ],
+        "size": [
+          "medium",
+          "small",
+          "large"
+        ],
+        "footer": [
+          "inline",
+          "stacked",
+          "none"
+        ]
+      },
+      "props": [
+        {
+          "name": "open",
+          "default": false
+        },
+        {
+          "name": "onOpenChange"
+        },
+        {
+          "name": "title"
+        },
+        {
+          "name": "description"
+        },
+        {
+          "name": "children"
+        },
+        {
+          "name": "actions"
+        },
+        {
+          "name": "role",
+          "default": "dialog",
+          "values": [
+            "dialog",
+            "alertdialog"
+          ]
+        },
+        {
+          "name": "placement",
+          "default": "center",
+          "values": [
+            "center",
+            "bottom",
+            "full"
+          ]
+        },
+        {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ]
+        },
+        {
+          "name": "footer",
+          "default": "inline",
+          "values": [
+            "inline",
+            "stacked",
+            "none"
+          ]
+        }
+      ],
+      "sizes": [
+        "medium",
+        "small",
+        "large"
+      ],
+      "sizeDefault": "medium"
+    },
+    {
+      "id": "divider",
+      "name": "Divider",
+      "category": "foundations",
+      "states": [],
+      "projectedStates": [],
+      "axes": {
+        "orientation": [
+          "horizontal",
+          "vertical"
+        ],
+        "inset": [
+          "none",
+          "inset",
+          "middle-inset"
+        ]
+      },
+      "props": [
+        {
+          "name": "orientation",
+          "default": "horizontal",
+          "values": [
+            "horizontal",
+            "vertical"
+          ]
+        },
+        {
+          "name": "inset",
+          "default": "none",
+          "values": [
+            "none",
+            "inset",
+            "middle-inset"
+          ]
+        },
+        {
+          "name": "decorative",
+          "default": true
+        }
+      ],
+      "sizes": []
+    },
+    {
+      "id": "field-label",
+      "name": "FieldLabel",
+      "category": "form",
+      "states": [
+        "rest",
+        "disabled"
+      ],
+      "projectedStates": [
+        "rest",
+        "disabled"
+      ],
+      "axes": {
+        "size": [
+          "small",
+          "medium",
+          "large"
+        ],
+        "emphasis": [
+          "secondary",
+          "primary"
+        ],
+        "weight": [
+          "regular",
+          "bold"
+        ]
+      },
+      "props": [
+        {
+          "name": "label"
+        },
+        {
+          "name": "htmlFor"
+        },
+        {
+          "name": "required",
+          "default": false
+        },
+        {
+          "name": "size",
+          "default": "small",
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ]
+        },
+        {
+          "name": "emphasis",
+          "default": "secondary",
+          "values": [
+            "secondary",
+            "primary"
+          ]
+        },
+        {
+          "name": "weight",
+          "default": "regular",
+          "values": [
+            "regular",
+            "bold"
+          ]
+        }
+      ],
+      "sizes": [
+        "small",
+        "medium",
+        "large"
+      ],
+      "sizeDefault": "small"
+    },
+    {
+      "id": "field-message",
+      "name": "FieldMessage",
+      "category": "feedback",
+      "states": [],
+      "projectedStates": [],
+      "axes": {
+        "status": [
+          "default",
+          "error",
+          "warning",
+          "success"
+        ]
+      },
+      "props": [
+        {
+          "name": "status",
+          "default": "default",
+          "values": [
+            "default",
+            "error",
+            "warning",
+            "success"
+          ]
+        },
+        {
+          "name": "message"
+        },
+        {
+          "name": "icon"
+        },
+        {
+          "name": "id"
+        }
+      ],
+      "sizes": []
+    },
+    {
+      "id": "focus-ring",
+      "name": "FocusRing",
+      "category": "foundations",
+      "states": [],
+      "projectedStates": [],
+      "axes": {
+        "surface": [
+          "default",
+          "inverse"
+        ],
+        "offset": [
+          "control",
+          "field"
+        ]
+      },
+      "props": [
+        {
+          "name": "surface",
+          "default": "default",
+          "values": [
+            "default",
+            "inverse"
+          ]
+        },
+        {
+          "name": "offset",
+          "default": "control",
+          "values": [
+            "control",
+            "field"
+          ]
+        }
+      ],
+      "sizes": []
+    },
+    {
+      "id": "icon",
+      "name": "Icon",
+      "category": "foundations",
+      "states": [],
+      "projectedStates": [],
+      "axes": {
+        "name": [
+          "arrow-down",
+          "arrow-down-left",
+          "arrow-down-right",
+          "arrow-left",
+          "arrow-right",
+          "arrow-up",
+          "arrow-up-left",
+          "arrow-up-right",
+          "check",
+          "check-circle",
+          "check-circle-filled",
+          "chevron-down",
+          "chevron-left",
+          "chevron-right",
+          "chevron-up",
+          "close",
+          "close-filled",
+          "error-circle",
+          "error-circle-filled",
+          "external-link-filled",
+          "eye",
+          "eye-filled",
+          "eye-off",
+          "eye-off-filled",
+          "FPO-default-icon",
+          "home",
+          "image",
+          "info-circle",
+          "info-circle-filled",
+          "link",
+          "menu",
+          "minus",
+          "minus-filled",
+          "more-horizontal-filled",
+          "more-vertical-filled",
+          "pause-circle",
+          "play-circle",
+          "plus",
+          "plus-circle",
+          "plus-circle-filled",
+          "plus-filled",
+          "resize-grip",
+          "search",
+          "warning-triangle",
+          "warning-triangle-filled"
+        ],
+        "tone": [
+          "inherit",
+          "primary",
+          "secondary",
+          "tertiary",
+          "brand",
+          "success",
+          "warning",
+          "danger",
+          "info"
+        ]
+      },
+      "props": [
+        {
+          "name": "name",
+          "values": [
+            "arrow-down",
+            "arrow-down-left",
+            "arrow-down-right",
+            "arrow-left",
+            "arrow-right",
+            "arrow-up",
+            "arrow-up-left",
+            "arrow-up-right",
+            "check",
+            "check-circle",
+            "check-circle-filled",
+            "chevron-down",
+            "chevron-left",
+            "chevron-right",
+            "chevron-up",
+            "close",
+            "close-filled",
+            "error-circle",
+            "error-circle-filled",
+            "external-link-filled",
+            "eye",
+            "eye-filled",
+            "eye-off",
+            "eye-off-filled",
+            "FPO-default-icon",
+            "home",
+            "image",
+            "info-circle",
+            "info-circle-filled",
+            "link",
+            "menu",
+            "minus",
+            "minus-filled",
+            "more-horizontal-filled",
+            "more-vertical-filled",
+            "pause-circle",
+            "play-circle",
+            "plus",
+            "plus-circle",
+            "plus-circle-filled",
+            "plus-filled",
+            "resize-grip",
+            "search",
+            "warning-triangle",
+            "warning-triangle-filled"
+          ]
+        },
+        {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "x-small",
+            "small",
+            "medium",
+            "large"
+          ]
+        },
+        {
+          "name": "tone",
+          "default": "inherit",
+          "values": [
+            "inherit",
+            "primary",
+            "secondary",
+            "tertiary",
+            "brand",
+            "success",
+            "warning",
+            "danger",
+            "info"
+          ]
+        },
+        {
+          "name": "label"
+        }
+      ],
+      "sizes": [],
+      "sizeDefault": "medium"
+    },
+    {
+      "id": "icon-button",
+      "name": "IconButton",
+      "category": "form",
+      "states": [
+        "rest",
+        "hover",
+        "pressed",
+        "pending",
+        "focus-visible",
+        "disabled",
+        "inactive"
+      ],
+      "projectedStates": [
+        "rest",
+        "hover",
+        "pressed",
+        "pending",
+        "focus-visible",
+        "disabled"
+      ],
+      "axes": {
+        "appearance": [
+          "filled",
+          "outline",
+          "ghost"
+        ],
+        "size": [
+          "small",
+          "medium",
+          "large"
+        ],
+        "shape": [
+          "square",
+          "circular"
+        ],
+        "surface": [
+          "default",
+          "inverse"
+        ]
+      },
+      "props": [
+        {
+          "name": "icon"
+        },
+        {
+          "name": "aria-label"
+        },
+        {
+          "name": "onClick"
+        },
+        {
+          "name": "type",
+          "default": "button",
+          "values": [
+            "button",
+            "submit",
+            "reset"
+          ]
+        },
+        {
+          "name": "appearance",
+          "default": "ghost",
+          "values": [
+            "filled",
+            "outline",
+            "ghost"
+          ]
+        },
+        {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ]
+        },
+        {
+          "name": "shape",
+          "default": "square",
+          "values": [
+            "square",
+            "circular"
+          ]
+        },
+        {
+          "name": "surface",
+          "default": "default",
+          "values": [
+            "default",
+            "inverse"
+          ]
+        },
+        {
+          "name": "isPending",
+          "default": false
+        },
+        {
+          "name": "isInactive",
+          "default": false
+        },
+        {
+          "name": "disabled",
+          "default": false
+        }
+      ],
+      "sizes": [
+        "small",
+        "medium",
+        "large"
+      ],
+      "sizeDefault": "medium"
+    },
+    {
+      "id": "icon-button-destructive",
+      "name": "IconButton.Destructive",
+      "category": "form",
+      "states": [
+        "rest",
+        "hover",
+        "pressed",
+        "pending",
+        "focus-visible",
+        "disabled",
+        "inactive"
+      ],
+      "projectedStates": [
+        "rest",
+        "hover",
+        "pressed",
+        "pending",
+        "focus-visible",
+        "disabled"
+      ],
+      "axes": {
+        "appearance": [
+          "filled",
+          "outline",
+          "ghost"
+        ],
+        "size": [
+          "small",
+          "medium",
+          "large"
+        ],
+        "shape": [
+          "square",
+          "circular"
+        ],
+        "surface": [
+          "default",
+          "inverse"
+        ]
+      },
+      "props": [
+        {
+          "name": "icon"
+        },
+        {
+          "name": "aria-label"
+        },
+        {
+          "name": "onClick"
+        },
+        {
+          "name": "type",
+          "default": "button",
+          "values": [
+            "button",
+            "submit",
+            "reset"
+          ]
+        },
+        {
+          "name": "appearance",
+          "default": "ghost",
+          "values": [
+            "filled",
+            "outline",
+            "ghost"
+          ]
+        },
+        {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ]
+        },
+        {
+          "name": "shape",
+          "default": "square",
+          "values": [
+            "square",
+            "circular"
+          ]
+        },
+        {
+          "name": "surface",
+          "default": "default",
+          "values": [
+            "default",
+            "inverse"
+          ]
+        },
+        {
+          "name": "isPending",
+          "default": false
+        },
+        {
+          "name": "isInactive",
+          "default": false
+        },
+        {
+          "name": "disabled",
+          "default": false
+        }
+      ],
+      "sizes": [
+        "small",
+        "medium",
+        "large"
+      ],
+      "sizeDefault": "medium"
+    },
+    {
+      "id": "icon-button-neutral",
+      "name": "IconButton.Neutral",
+      "category": "form",
+      "states": [
+        "rest",
+        "hover",
+        "pressed",
+        "pending",
+        "focus-visible",
+        "disabled",
+        "inactive"
+      ],
+      "projectedStates": [
+        "rest",
+        "hover",
+        "pressed",
+        "pending",
+        "focus-visible",
+        "disabled"
+      ],
+      "axes": {
+        "appearance": [
+          "filled",
+          "outline",
+          "ghost"
+        ],
+        "size": [
+          "small",
+          "medium",
+          "large"
+        ],
+        "shape": [
+          "square",
+          "circular"
+        ],
+        "surface": [
+          "default",
+          "inverse"
+        ]
+      },
+      "props": [
+        {
+          "name": "icon"
+        },
+        {
+          "name": "aria-label"
+        },
+        {
+          "name": "onClick"
+        },
+        {
+          "name": "type",
+          "default": "button",
+          "values": [
+            "button",
+            "submit",
+            "reset"
+          ]
+        },
+        {
+          "name": "appearance",
+          "default": "ghost",
+          "values": [
+            "filled",
+            "outline",
+            "ghost"
+          ]
+        },
+        {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ]
+        },
+        {
+          "name": "shape",
+          "default": "square",
+          "values": [
+            "square",
+            "circular"
+          ]
+        },
+        {
+          "name": "surface",
+          "default": "default",
+          "values": [
+            "default",
+            "inverse"
+          ]
+        },
+        {
+          "name": "isPending",
+          "default": false
+        },
+        {
+          "name": "isInactive",
+          "default": false
+        },
+        {
+          "name": "disabled",
+          "default": false
+        }
+      ],
+      "sizes": [
+        "small",
+        "medium",
+        "large"
+      ],
+      "sizeDefault": "medium"
+    },
+    {
+      "id": "image-placeholder",
+      "name": "ImagePlaceholder",
+      "category": "foundations",
+      "states": [],
+      "projectedStates": [],
+      "axes": {
+        "ratio": [
+          "2:3",
+          "3:4",
+          "4:5",
+          "1:1",
+          "4:3",
+          "3:2",
+          "16:9"
+        ]
+      },
+      "props": [
+        {
+          "name": "ratio",
+          "default": "4:3",
+          "values": [
+            "2:3",
+            "3:4",
+            "4:5",
+            "1:1",
+            "4:3",
+            "3:2",
+            "16:9"
+          ]
+        }
+      ],
+      "sizes": []
+    },
+    {
+      "id": "list",
+      "name": "List",
+      "category": "data",
+      "states": [],
+      "projectedStates": [],
+      "axes": {
+        "type": [
+          "unordered",
+          "ordered",
+          "icon"
+        ],
+        "size": [
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      "props": [
+        {
+          "name": "type",
+          "default": "unordered",
+          "values": [
+            "unordered",
+            "ordered",
+            "icon"
+          ]
+        },
+        {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ]
+        },
+        {
+          "name": "start",
+          "default": 1
+        },
+        {
+          "name": "reversed",
+          "default": false
+        },
+        {
+          "name": "children"
+        }
+      ],
+      "sizes": [
+        "small",
+        "medium",
+        "large"
+      ],
+      "sizeDefault": "medium"
+    },
+    {
+      "id": "list-item",
+      "name": "List.Item",
+      "category": "data",
+      "states": [],
+      "projectedStates": [],
+      "axes": {
+        "type": [
+          "unordered",
+          "ordered",
+          "icon"
+        ],
+        "size": [
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      "props": [
+        {
+          "name": "children"
+        },
+        {
+          "name": "type",
+          "default": "unordered",
+          "values": [
+            "unordered",
+            "ordered",
+            "icon"
+          ]
+        },
+        {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ]
+        },
+        {
+          "name": "value"
+        },
+        {
+          "name": "icon"
+        }
+      ],
+      "sizes": [
+        "small",
+        "medium",
+        "large"
+      ],
+      "sizeDefault": "medium"
+    },
+    {
+      "id": "radio-control",
+      "name": "Radio.Control",
+      "category": "form",
+      "states": [
+        "rest",
+        "hover",
+        "pressed",
+        "focus-visible",
+        "disabled"
+      ],
+      "projectedStates": [
+        "rest",
+        "hover",
+        "pressed",
+        "focus-visible",
+        "disabled"
+      ],
+      "axes": {
+        "size": [
+          "small",
+          "medium",
+          "large"
+        ],
+        "selection": [
+          "unchecked",
+          "checked"
+        ]
+      },
+      "props": [
+        {
+          "name": "checked"
+        },
+        {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ]
+        },
+        {
+          "name": "disabled",
+          "default": false
+        },
+        {
+          "name": "aria-label"
+        }
+      ],
+      "sizes": [
+        "small",
+        "medium",
+        "large"
+      ],
+      "sizeDefault": "medium"
+    },
+    {
+      "id": "radio-group",
+      "name": "Radio.Group",
+      "category": "form",
+      "states": [
+        "rest"
+      ],
+      "projectedStates": [],
+      "axes": {
+        "size": [
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      "props": [
+        {
+          "name": "label"
+        },
+        {
+          "name": "value"
+        },
+        {
+          "name": "defaultValue"
+        },
+        {
+          "name": "onChange"
+        },
+        {
+          "name": "required",
+          "default": false
+        },
+        {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ]
+        },
+        {
+          "name": "name"
+        },
+        {
+          "name": "disabled",
+          "default": false
+        }
+      ],
+      "sizes": [
+        "small",
+        "medium",
+        "large"
+      ],
+      "sizeDefault": "medium"
+    },
+    {
+      "id": "radio-row",
+      "name": "Radio.Row",
+      "category": "form",
+      "states": [
+        "rest",
+        "hover",
+        "pressed",
+        "focus-visible",
+        "disabled",
+        "read-only"
+      ],
+      "projectedStates": [],
+      "axes": {
+        "size": [
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      "props": [
+        {
+          "name": "value"
+        },
+        {
+          "name": "label"
+        },
+        {
+          "name": "description"
+        },
+        {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ]
+        }
+      ],
+      "sizes": [
+        "small",
+        "medium",
+        "large"
+      ],
+      "sizeDefault": "medium"
+    },
+    {
+      "id": "segmented-control",
+      "name": "SegmentedControl",
+      "category": "form",
+      "states": [
+        "rest"
+      ],
+      "projectedStates": [],
+      "axes": {
+        "size": [
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      "props": [
+        {
+          "name": "label"
+        },
+        {
+          "name": "value"
+        },
+        {
+          "name": "defaultValue"
+        },
+        {
+          "name": "onChange"
+        },
+        {
+          "name": "behavior",
+          "default": "view",
+          "values": [
+            "view",
+            "form"
+          ]
+        },
+        {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ]
+        },
+        {
+          "name": "width",
+          "default": "auto",
+          "values": [
+            "auto",
+            "full"
+          ]
+        },
+        {
+          "name": "name"
+        },
+        {
+          "name": "disabled",
+          "default": "false"
+        }
+      ],
+      "sizes": [
+        "small",
+        "medium",
+        "large"
+      ],
+      "sizeDefault": "medium"
+    },
+    {
+      "id": "segmented-control-segment",
+      "name": "SegmentedControl.Segment",
+      "category": "form",
+      "states": [
+        "rest",
+        "hover",
+        "pressed",
+        "focus-visible",
+        "disabled"
+      ],
+      "projectedStates": [
+        "rest",
+        "hover",
+        "pressed",
+        "focus-visible",
+        "disabled"
+      ],
+      "axes": {
+        "selection": [
+          "unselected",
+          "selected"
+        ],
+        "size": [
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      "props": [
+        {
+          "name": "label"
+        },
+        {
+          "name": "value"
+        },
+        {
+          "name": "selected",
+          "default": "false"
+        },
+        {
+          "name": "leadingIcon"
+        },
+        {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ]
+        },
+        {
+          "name": "disabled",
+          "default": "false"
+        }
+      ],
+      "sizes": [
+        "small",
+        "medium",
+        "large"
+      ],
+      "sizeDefault": "medium"
+    },
+    {
+      "id": "select",
+      "name": "Select",
+      "category": "form",
+      "states": [
+        "rest",
+        "hover",
+        "pending",
+        "filled",
+        "focus-visible",
+        "focus-visible-filled",
+        "disabled",
+        "read-only",
+        "empty"
+      ],
+      "projectedStates": [
+        "rest",
+        "hover",
+        "filled",
+        "focus-visible",
+        "focus-visible-filled",
+        "disabled",
+        "read-only"
+      ],
+      "axes": {
+        "size": [
+          "medium",
+          "small",
+          "large"
+        ],
+        "status": [
+          "default",
+          "error",
+          "warning",
+          "success"
+        ]
+      },
+      "props": [
+        {
+          "name": "label"
+        },
+        {
+          "name": "value"
+        },
+        {
+          "name": "placeholder"
+        },
+        {
+          "name": "options"
+        },
+        {
+          "name": "onChange"
+        },
+        {
+          "name": "helpText"
+        },
+        {
+          "name": "validation",
+          "default": "default",
+          "values": [
+            "default",
+            "error",
+            "warning",
+            "success"
+          ]
+        },
+        {
+          "name": "validationMessage"
+        },
+        {
+          "name": "showMessage",
+          "default": true
+        },
+        {
+          "name": "leadingIcon"
+        },
+        {
+          "name": "required",
+          "default": false
+        },
+        {
+          "name": "disabled",
+          "default": false
+        },
+        {
+          "name": "readOnly",
+          "default": false
+        },
+        {
+          "name": "isPending",
+          "default": false
+        },
+        {
+          "name": "id"
+        },
+        {
+          "name": "name"
+        },
+        {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ]
+        }
+      ],
+      "sizes": [
+        "medium",
+        "small",
+        "large"
+      ],
+      "sizeDefault": "medium"
+    },
+    {
+      "id": "spinner",
+      "name": "Spinner",
+      "category": "foundations",
+      "states": [],
+      "projectedStates": [],
+      "axes": {
+        "size": [
+          "x-small",
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      "props": [
+        {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "x-small",
+            "small",
+            "medium",
+            "large"
+          ]
+        },
+        {
+          "name": "label",
+          "default": "Loading"
+        }
+      ],
+      "sizes": [
+        "x-small",
+        "small",
+        "medium",
+        "large"
+      ],
+      "sizeDefault": "medium"
+    },
+    {
+      "id": "switch-control",
+      "name": "Switch.Control",
+      "category": "form",
+      "states": [
+        "rest",
+        "hover",
+        "pressed",
+        "focus-visible",
+        "disabled",
+        "error"
+      ],
+      "projectedStates": [
+        "rest",
+        "hover",
+        "pressed",
+        "focus-visible",
+        "disabled",
+        "error"
+      ],
+      "axes": {
+        "size": [
+          "small",
+          "medium"
+        ],
+        "selection": [
+          "off",
+          "on"
+        ]
+      },
+      "props": [
+        {
+          "name": "checked"
+        },
+        {
+          "name": "showStateLabel",
+          "default": true
+        },
+        {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "small",
+            "medium"
+          ]
+        },
+        {
+          "name": "disabled",
+          "default": false
+        },
+        {
+          "name": "aria-label"
+        }
+      ],
+      "sizes": [
+        "small",
+        "medium"
+      ],
+      "sizeDefault": "medium"
+    },
+    {
+      "id": "switch-row",
+      "name": "Switch.Row",
+      "category": "form",
+      "states": [
+        "rest",
+        "hover",
+        "pressed",
+        "pending",
+        "focus-visible",
+        "disabled",
+        "read-only",
+        "error"
+      ],
+      "projectedStates": [],
+      "axes": {
+        "size": [
+          "small",
+          "medium"
+        ]
+      },
+      "props": [
+        {
+          "name": "checked"
+        },
+        {
+          "name": "label"
+        },
+        {
+          "name": "description"
+        },
+        {
+          "name": "labelPosition",
+          "default": "leading",
+          "values": [
+            "leading",
+            "trailing"
+          ]
+        },
+        {
+          "name": "isPending",
+          "default": false
+        },
+        {
+          "name": "readOnly",
+          "default": false
+        },
+        {
+          "name": "showStateLabel",
+          "default": true
+        },
+        {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "small",
+            "medium"
+          ]
+        }
+      ],
+      "sizes": [
+        "small",
+        "medium"
+      ],
+      "sizeDefault": "medium"
+    },
+    {
+      "id": "tab",
+      "name": "Tab",
+      "category": "navigation",
+      "states": [
+        "rest",
+        "hover",
+        "pressed",
+        "focus-visible",
+        "disabled"
+      ],
+      "projectedStates": [
+        "rest",
+        "hover",
+        "pressed",
+        "focus-visible",
+        "disabled"
+      ],
+      "axes": {
+        "selection": [
+          "unselected",
+          "selected"
+        ],
+        "size": [
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      "props": [
+        {
+          "name": "label"
+        },
+        {
+          "name": "value"
+        },
+        {
+          "name": "selected",
+          "default": "false"
+        },
+        {
+          "name": "leadingIcon"
+        },
+        {
+          "name": "count"
+        },
+        {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ]
+        },
+        {
+          "name": "disabled",
+          "default": "false"
+        }
+      ],
+      "sizes": [
+        "small",
+        "medium",
+        "large"
+      ],
+      "sizeDefault": "medium"
+    },
+    {
+      "id": "tabs",
+      "name": "Tabs",
+      "category": "navigation",
+      "states": [
+        "rest"
+      ],
+      "projectedStates": [],
+      "axes": {
+        "size": [
+          "small",
+          "medium",
+          "large"
+        ],
+        "alignment": [
+          "start",
+          "center"
+        ]
+      },
+      "props": [
+        {
+          "name": "value"
+        },
+        {
+          "name": "defaultValue"
+        },
+        {
+          "name": "onChange"
+        },
+        {
+          "name": "activation",
+          "default": "automatic",
+          "values": [
+            "automatic",
+            "manual"
+          ]
+        },
+        {
+          "name": "label"
+        },
+        {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ]
+        },
+        {
+          "name": "alignment",
+          "default": "start",
+          "values": [
+            "start",
+            "center"
+          ]
+        }
+      ],
+      "sizes": [
+        "small",
+        "medium",
+        "large"
+      ],
+      "sizeDefault": "medium"
+    },
+    {
+      "id": "tag",
+      "name": "Tag",
+      "category": "foundations",
+      "states": [
+        "rest",
+        "hover",
+        "pressed",
+        "focus-visible",
+        "disabled",
+        "read-only"
+      ],
+      "projectedStates": [
+        "rest",
+        "hover",
+        "pressed",
+        "focus-visible",
+        "disabled"
+      ],
+      "axes": {
+        "type": [
+          "select",
+          "dismissible"
+        ],
+        "selection": [
+          "unselected",
+          "selected"
+        ],
+        "size": [
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      "props": [
+        {
+          "name": "label"
+        },
+        {
+          "name": "type",
+          "default": "select",
+          "values": [
+            "select",
+            "dismissible"
+          ]
+        },
+        {
+          "name": "selected",
+          "default": "false"
+        },
+        {
+          "name": "showCheck",
+          "default": "true"
+        },
+        {
+          "name": "onClick"
+        },
+        {
+          "name": "onRemove"
+        },
+        {
+          "name": "leadingIcon"
+        },
+        {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ]
+        },
+        {
+          "name": "disabled",
+          "default": "false"
+        },
+        {
+          "name": "readOnly",
+          "default": "false"
+        }
+      ],
+      "sizes": [
+        "small",
+        "medium",
+        "large"
+      ],
+      "sizeDefault": "medium"
+    },
+    {
+      "id": "text-field",
+      "name": "TextField",
+      "category": "form",
+      "states": [
+        "rest",
+        "hover",
+        "pending",
+        "filled",
+        "focus-visible",
+        "focus-visible-filled",
+        "disabled",
+        "read-only",
+        "empty"
+      ],
+      "projectedStates": [
+        "rest",
+        "hover",
+        "filled",
+        "focus-visible",
+        "focus-visible-filled",
+        "disabled",
+        "read-only"
+      ],
+      "axes": {
+        "size": [
+          "medium",
+          "small",
+          "large"
+        ],
+        "style": [
+          "outline"
+        ],
+        "status": [
+          "default",
+          "error",
+          "warning",
+          "success"
+        ]
+      },
+      "props": [
+        {
+          "name": "label"
+        },
+        {
+          "name": "value"
+        },
+        {
+          "name": "defaultValue"
+        },
+        {
+          "name": "onChange"
+        },
+        {
+          "name": "type",
+          "default": "text",
+          "values": [
+            "text",
+            "email",
+            "url",
+            "tel",
+            "search",
+            "password"
+          ]
+        },
+        {
+          "name": "placeholder"
+        },
+        {
+          "name": "helpText"
+        },
+        {
+          "name": "validation",
+          "default": "default",
+          "values": [
+            "default",
+            "error",
+            "warning",
+            "success"
+          ]
+        },
+        {
+          "name": "validationMessage"
+        },
+        {
+          "name": "showMessage",
+          "default": true
+        },
+        {
+          "name": "required",
+          "default": false
+        },
+        {
+          "name": "disabled",
+          "default": false
+        },
+        {
+          "name": "readOnly",
+          "default": false
+        },
+        {
+          "name": "autoComplete"
+        },
+        {
+          "name": "inputMode",
+          "values": [
+            "text",
+            "numeric",
+            "decimal",
+            "tel",
+            "email",
+            "url",
+            "search"
+          ]
+        },
+        {
+          "name": "prefix"
+        },
+        {
+          "name": "suffix"
+        },
+        {
+          "name": "leadingIcon"
+        },
+        {
+          "name": "trailingIcon"
+        },
+        {
+          "name": "clearable",
+          "default": false
+        },
+        {
+          "name": "isPending",
+          "default": false
+        },
+        {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ]
+        },
+        {
+          "name": "id"
+        },
+        {
+          "name": "name"
+        }
+      ],
+      "sizes": [
+        "medium",
+        "small",
+        "large"
+      ],
+      "sizeDefault": "medium"
+    },
+    {
+      "id": "textarea",
+      "name": "Textarea",
+      "category": "form",
+      "states": [
+        "rest",
+        "hover",
+        "pending",
+        "filled",
+        "focus-visible",
+        "focus-visible-filled",
+        "disabled",
+        "read-only",
+        "empty"
+      ],
+      "projectedStates": [
+        "rest",
+        "hover",
+        "filled",
+        "focus-visible",
+        "focus-visible-filled",
+        "disabled",
+        "read-only"
+      ],
+      "axes": {
+        "size": [
+          "medium",
+          "small",
+          "large"
+        ],
+        "style": [
+          "outline"
+        ],
+        "status": [
+          "default",
+          "error",
+          "warning",
+          "success"
+        ]
+      },
+      "props": [
+        {
+          "name": "value"
+        },
+        {
+          "name": "placeholder"
+        },
+        {
+          "name": "showMessage",
+          "default": true
+        },
+        {
+          "name": "rows",
+          "default": 3
+        },
+        {
+          "name": "resize",
+          "default": "vertical",
+          "values": [
+            "none",
+            "vertical",
+            "auto"
+          ]
+        },
+        {
+          "name": "minRows"
+        },
+        {
+          "name": "maxRows"
+        },
+        {
+          "name": "maxLength"
+        },
+        {
+          "name": "showCount",
+          "default": false
+        },
+        {
+          "name": "spellCheck"
+        },
+        {
+          "name": "submitOnEnter",
+          "default": false
+        },
+        {
+          "name": "validation",
+          "default": "default",
+          "values": [
+            "default",
+            "error",
+            "warning",
+            "success"
+          ]
+        },
+        {
+          "name": "validationMessage"
+        },
+        {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ]
+        }
+      ],
+      "sizes": [
+        "medium",
+        "small",
+        "large"
+      ],
+      "sizeDefault": "medium"
+    },
+    {
+      "id": "veil",
+      "name": "Veil",
+      "category": "foundations",
+      "states": [],
+      "projectedStates": [],
+      "axes": {
+        "value": [
+          "dark",
+          "light"
+        ],
+        "intensity": [
+          "subtle",
+          "medium",
+          "strong"
+        ],
+        "direction": [
+          "full",
+          "from-top",
+          "from-bottom",
+          "from-left",
+          "from-right"
+        ]
+      },
+      "props": [
+        {
+          "name": "value",
+          "default": "dark",
+          "values": [
+            "dark",
+            "light"
+          ]
+        },
+        {
+          "name": "intensity",
+          "default": "medium",
+          "values": [
+            "subtle",
+            "medium",
+            "strong"
+          ]
+        },
+        {
+          "name": "direction",
+          "default": "full",
+          "values": [
+            "full",
+            "from-top",
+            "from-bottom",
+            "from-left",
+            "from-right"
+          ]
+        }
+      ],
+      "sizes": []
+    }
+  ],
+  "peerGroups": [
+    {
+      "kind": "variant family",
+      "name": "Button",
+      "members": [
+        "button",
+        "button-destructive",
+        "button-neutral"
+      ],
+      "basis": "components named Button or Button.<variant>, where the suffix is not a role"
+    },
+    {
+      "kind": "variant family",
+      "name": "IconButton",
+      "members": [
+        "icon-button",
+        "icon-button-destructive",
+        "icon-button-neutral"
+      ],
+      "basis": "components named IconButton or IconButton.<variant>, where the suffix is not a role"
+    },
+    {
+      "kind": "role peers",
+      "name": "*.Control",
+      "members": [
+        "checkbox-control",
+        "radio-control",
+        "switch-control"
+      ],
+      "basis": "components whose name ends in .Control"
+    },
+    {
+      "kind": "role peers",
+      "name": "*.Row",
+      "members": [
+        "checkbox-row",
+        "radio-row",
+        "switch-row"
+      ],
+      "basis": "components whose name ends in .Row"
+    },
+    {
+      "kind": "role peers",
+      "name": "*.Group",
+      "members": [
+        "checkbox-group",
+        "radio-group"
+      ],
+      "basis": "components whose name ends in .Group"
+    },
+    {
+      "kind": "substrate",
+      "name": "button",
+      "members": [
+        "button",
+        "icon-button"
+      ],
+      "basis": "button and every component that inherits from it, directly or through another"
+    },
+    {
+      "kind": "substrate",
+      "name": "button-destructive",
+      "members": [
+        "button-destructive",
+        "icon-button-destructive"
+      ],
+      "basis": "button-destructive and every component that inherits from it, directly or through another"
+    },
+    {
+      "kind": "substrate",
+      "name": "button-neutral",
+      "members": [
+        "button-neutral",
+        "icon-button-neutral"
+      ],
+      "basis": "button-neutral and every component that inherits from it, directly or through another"
+    },
+    {
+      "kind": "substrate",
+      "name": "text-field",
+      "members": [
+        "checkbox-row",
+        "radio-row",
+        "switch-row",
+        "text-field",
+        "textarea"
+      ],
+      "basis": "text-field and every component that inherits from it, directly or through another"
+    }
+  ],
+  "stateVocabulary": {
+    "disabled": [
+      "button",
+      "button-destructive",
+      "button-neutral",
+      "checkbox-control",
+      "checkbox-row",
+      "field-label",
+      "icon-button",
+      "icon-button-destructive",
+      "icon-button-neutral",
+      "radio-control",
+      "radio-row",
+      "segmented-control-segment",
+      "select",
+      "switch-control",
+      "switch-row",
+      "tab",
+      "tag",
+      "text-field",
+      "textarea"
+    ],
+    "empty": [
+      "select",
+      "text-field",
+      "textarea"
+    ],
+    "error": [
+      "checkbox-control",
+      "checkbox-row",
+      "switch-control",
+      "switch-row"
+    ],
+    "filled": [
+      "select",
+      "text-field",
+      "textarea"
+    ],
+    "focus-visible": [
+      "accordion",
+      "button",
+      "button-destructive",
+      "button-neutral",
+      "checkbox-control",
+      "checkbox-row",
+      "icon-button",
+      "icon-button-destructive",
+      "icon-button-neutral",
+      "radio-control",
+      "radio-row",
+      "segmented-control-segment",
+      "select",
+      "switch-control",
+      "switch-row",
+      "tab",
+      "tag",
+      "text-field",
+      "textarea"
+    ],
+    "focus-visible-filled": [
+      "select",
+      "text-field",
+      "textarea"
+    ],
+    "hover": [
+      "button",
+      "button-destructive",
+      "button-neutral",
+      "checkbox-control",
+      "checkbox-row",
+      "icon-button",
+      "icon-button-destructive",
+      "icon-button-neutral",
+      "radio-control",
+      "radio-row",
+      "segmented-control-segment",
+      "select",
+      "switch-control",
+      "switch-row",
+      "tab",
+      "tag",
+      "text-field",
+      "textarea"
+    ],
+    "inactive": [
+      "button",
+      "button-destructive",
+      "button-neutral",
+      "icon-button",
+      "icon-button-destructive",
+      "icon-button-neutral"
+    ],
+    "pending": [
+      "button",
+      "button-destructive",
+      "button-neutral",
+      "icon-button",
+      "icon-button-destructive",
+      "icon-button-neutral",
+      "select",
+      "switch-row",
+      "text-field",
+      "textarea"
+    ],
+    "pressed": [
+      "button",
+      "button-destructive",
+      "button-neutral",
+      "checkbox-control",
+      "checkbox-row",
+      "icon-button",
+      "icon-button-destructive",
+      "icon-button-neutral",
+      "radio-control",
+      "radio-row",
+      "segmented-control-segment",
+      "switch-control",
+      "switch-row",
+      "tab",
+      "tag"
+    ],
+    "read-only": [
+      "checkbox-row",
+      "radio-row",
+      "select",
+      "switch-row",
+      "tag",
+      "text-field",
+      "textarea"
+    ],
+    "rest": [
+      "accordion",
+      "button",
+      "button-destructive",
+      "button-neutral",
+      "checkbox-control",
+      "checkbox-group",
+      "checkbox-row",
+      "field-label",
+      "icon-button",
+      "icon-button-destructive",
+      "icon-button-neutral",
+      "radio-control",
+      "radio-group",
+      "radio-row",
+      "segmented-control",
+      "segmented-control-segment",
+      "select",
+      "switch-control",
+      "switch-row",
+      "tab",
+      "tabs",
+      "tag",
+      "text-field",
+      "textarea"
+    ]
+  },
+  "axisVocabulary": {
+    "alignment": [
+      {
+        "values": [
+          "center",
+          "start"
+        ],
+        "components": [
+          "tabs"
+        ]
+      }
+    ],
+    "appearance": [
+      {
+        "values": [
+          "filled",
+          "ghost",
+          "outline"
+        ],
+        "components": [
+          "icon-button",
+          "icon-button-destructive",
+          "icon-button-neutral"
+        ]
+      },
+      {
+        "values": [
+          "filled",
+          "outline",
+          "text"
+        ],
+        "components": [
+          "button",
+          "button-destructive",
+          "button-neutral"
+        ]
+      }
+    ],
+    "direction": [
+      {
+        "values": [
+          "from-bottom",
+          "from-left",
+          "from-right",
+          "from-top",
+          "full"
+        ],
+        "components": [
+          "veil"
+        ]
+      }
+    ],
+    "emphasis": [
+      {
+        "values": [
+          "bold",
+          "subtle"
+        ],
+        "components": [
+          "badge"
+        ]
+      },
+      {
+        "values": [
+          "primary",
+          "secondary"
+        ],
+        "components": [
+          "field-label"
+        ]
+      }
+    ],
+    "expansion": [
+      {
+        "values": [
+          "collapsed",
+          "expanded"
+        ],
+        "components": [
+          "_accordion-indicator",
+          "accordion"
+        ]
+      }
+    ],
+    "footer": [
+      {
+        "values": [
+          "inline",
+          "none",
+          "stacked"
+        ],
+        "components": [
+          "dialog"
+        ]
+      }
+    ],
+    "iconPosition": [
+      {
+        "values": [
+          "leading",
+          "trailing"
+        ],
+        "components": [
+          "accordion"
+        ]
+      }
+    ],
+    "indicator": [
+      {
+        "values": [
+          "chevron",
+          "plus-minus"
+        ],
+        "components": [
+          "_accordion-indicator"
+        ]
+      }
+    ],
+    "inset": [
+      {
+        "values": [
+          "default",
+          "flush"
+        ],
+        "components": [
+          "button",
+          "button-destructive",
+          "button-neutral"
+        ]
+      },
+      {
+        "values": [
+          "inset",
+          "middle-inset",
+          "none"
+        ],
+        "components": [
+          "divider"
+        ]
+      }
+    ],
+    "intensity": [
+      {
+        "values": [
+          "medium",
+          "strong",
+          "subtle"
+        ],
+        "components": [
+          "veil"
+        ]
+      }
+    ],
+    "offset": [
+      {
+        "values": [
+          "control",
+          "field"
+        ],
+        "components": [
+          "focus-ring"
+        ]
+      }
+    ],
+    "orientation": [
+      {
+        "values": [
+          "horizontal",
+          "vertical"
+        ],
+        "components": [
+          "divider"
+        ]
+      }
+    ],
+    "placement": [
+      {
+        "values": [
+          "bottom",
+          "center",
+          "full"
+        ],
+        "components": [
+          "dialog"
+        ]
+      }
+    ],
+    "ratio": [
+      {
+        "values": [
+          "16:9",
+          "1:1",
+          "2:3",
+          "3:2",
+          "3:4",
+          "4:3",
+          "4:5"
+        ],
+        "components": [
+          "image-placeholder"
+        ]
+      }
+    ],
+    "selection": [
+      {
+        "values": [
+          "selected",
+          "unselected"
+        ],
+        "components": [
+          "segmented-control-segment",
+          "tab",
+          "tag"
+        ]
+      },
+      {
+        "values": [
+          "checked",
+          "indeterminate",
+          "unchecked"
+        ],
+        "components": [
+          "checkbox-control"
+        ]
+      },
+      {
+        "values": [
+          "checked",
+          "unchecked"
+        ],
+        "components": [
+          "radio-control"
+        ]
+      },
+      {
+        "values": [
+          "off",
+          "on"
+        ],
+        "components": [
+          "switch-control"
+        ]
+      }
+    ],
+    "shape": [
+      {
+        "values": [
+          "circular",
+          "square"
+        ],
+        "components": [
+          "icon-button",
+          "icon-button-destructive",
+          "icon-button-neutral"
+        ]
+      }
+    ],
+    "size": [
+      {
+        "values": [
+          "large",
+          "medium",
+          "small"
+        ],
+        "components": [
+          "_accordion-indicator",
+          "accordion",
+          "button",
+          "button-destructive",
+          "button-neutral",
+          "checkbox-control",
+          "checkbox-group",
+          "checkbox-row",
+          "dialog",
+          "field-label",
+          "icon-button",
+          "icon-button-destructive",
+          "icon-button-neutral",
+          "list",
+          "list-item",
+          "radio-control",
+          "radio-group",
+          "radio-row",
+          "segmented-control",
+          "segmented-control-segment",
+          "select",
+          "tab",
+          "tabs",
+          "tag",
+          "text-field",
+          "textarea"
+        ]
+      },
+      {
+        "values": [
+          "medium",
+          "small"
+        ],
+        "components": [
+          "switch-control",
+          "switch-row"
+        ]
+      },
+      {
+        "values": [
+          "large",
+          "medium",
+          "small",
+          "x-small"
+        ],
+        "components": [
+          "spinner"
+        ]
+      }
+    ],
+    "status": [
+      {
+        "values": [
+          "default",
+          "error",
+          "success",
+          "warning"
+        ],
+        "components": [
+          "field-message",
+          "select",
+          "text-field",
+          "textarea"
+        ]
+      }
+    ],
+    "style": [
+      {
+        "values": [
+          "outline"
+        ],
+        "components": [
+          "text-field",
+          "textarea"
+        ]
+      }
+    ],
+    "surface": [
+      {
+        "values": [
+          "default",
+          "inverse"
+        ],
+        "components": [
+          "button",
+          "button-destructive",
+          "button-neutral",
+          "focus-ring",
+          "icon-button",
+          "icon-button-destructive",
+          "icon-button-neutral"
+        ]
+      }
+    ],
+    "tone": [
+      {
+        "values": [
+          "brand",
+          "danger",
+          "info",
+          "inherit",
+          "primary",
+          "secondary",
+          "success",
+          "tertiary",
+          "warning"
+        ],
+        "components": [
+          "icon"
+        ]
+      },
+      {
+        "values": [
+          "danger",
+          "info",
+          "neutral",
+          "success",
+          "warning"
+        ],
+        "components": [
+          "badge"
+        ]
+      }
+    ],
+    "type": [
+      {
+        "values": [
+          "icon",
+          "ordered",
+          "unordered"
+        ],
+        "components": [
+          "list",
+          "list-item"
+        ]
+      },
+      {
+        "values": [
+          "count",
+          "dot",
+          "status"
+        ],
+        "components": [
+          "badge"
+        ]
+      },
+      {
+        "values": [
+          "dismissible",
+          "select"
+        ],
+        "components": [
+          "tag"
+        ]
+      }
+    ],
+    "value": [
+      {
+        "values": [
+          "dark",
+          "light"
+        ],
+        "components": [
+          "veil"
+        ]
+      }
+    ],
+    "weight": [
+      {
+        "values": [
+          "bold",
+          "regular"
+        ],
+        "components": [
+          "field-label"
+        ]
+      }
+    ],
+    "width": [
+      {
+        "values": [
+          "auto",
+          "full"
+        ],
+        "components": [
+          "button",
+          "button-destructive",
+          "button-neutral"
+        ]
+      }
+    ]
+  },
+  "propVocabulary": {
+    "actions": [
+      {
+        "id": "dialog"
+      }
+    ],
+    "activation": [
+      {
+        "id": "tabs",
+        "default": "automatic",
+        "values": [
+          "automatic",
+          "manual"
+        ]
+      }
+    ],
+    "alignment": [
+      {
+        "id": "tabs",
+        "default": "start",
+        "values": [
+          "start",
+          "center"
+        ]
+      }
+    ],
+    "appearance": [
+      {
+        "id": "button",
+        "default": "filled",
+        "values": [
+          "filled",
+          "outline",
+          "text"
+        ]
+      },
+      {
+        "id": "button-destructive",
+        "default": "filled",
+        "values": [
+          "filled",
+          "outline",
+          "text"
+        ]
+      },
+      {
+        "id": "button-neutral",
+        "default": "filled",
+        "values": [
+          "filled",
+          "outline",
+          "text"
+        ]
+      },
+      {
+        "id": "icon-button",
+        "default": "ghost",
+        "values": [
+          "filled",
+          "outline",
+          "ghost"
+        ]
+      },
+      {
+        "id": "icon-button-destructive",
+        "default": "ghost",
+        "values": [
+          "filled",
+          "outline",
+          "ghost"
+        ]
+      },
+      {
+        "id": "icon-button-neutral",
+        "default": "ghost",
+        "values": [
+          "filled",
+          "outline",
+          "ghost"
+        ]
+      }
+    ],
+    "aria-label": [
+      {
+        "id": "button"
+      },
+      {
+        "id": "button-destructive"
+      },
+      {
+        "id": "button-neutral"
+      },
+      {
+        "id": "checkbox-control"
+      },
+      {
+        "id": "icon-button"
+      },
+      {
+        "id": "icon-button-destructive"
+      },
+      {
+        "id": "icon-button-neutral"
+      },
+      {
+        "id": "radio-control"
+      },
+      {
+        "id": "switch-control"
+      }
+    ],
+    "autoComplete": [
+      {
+        "id": "text-field"
+      }
+    ],
+    "behavior": [
+      {
+        "id": "segmented-control",
+        "default": "view",
+        "values": [
+          "view",
+          "form"
+        ]
+      }
+    ],
+    "checked": [
+      {
+        "id": "checkbox-control"
+      },
+      {
+        "id": "checkbox-row"
+      },
+      {
+        "id": "radio-control"
+      },
+      {
+        "id": "switch-control"
+      },
+      {
+        "id": "switch-row"
+      }
+    ],
+    "children": [
+      {
+        "id": "accordion"
+      },
+      {
+        "id": "dialog"
+      },
+      {
+        "id": "list"
+      },
+      {
+        "id": "list-item"
+      }
+    ],
+    "clearable": [
+      {
+        "id": "text-field",
+        "default": false
+      }
+    ],
+    "count": [
+      {
+        "id": "tab"
+      }
+    ],
+    "decorative": [
+      {
+        "id": "divider",
+        "default": true
+      }
+    ],
+    "defaultChecked": [
+      {
+        "id": "checkbox-row",
+        "default": false
+      }
+    ],
+    "defaultExpanded": [
+      {
+        "id": "accordion",
+        "default": false
+      }
+    ],
+    "defaultValue": [
+      {
+        "id": "checkbox-group"
+      },
+      {
+        "id": "radio-group"
+      },
+      {
+        "id": "segmented-control"
+      },
+      {
+        "id": "tabs"
+      },
+      {
+        "id": "text-field"
+      }
+    ],
+    "description": [
+      {
+        "id": "checkbox-row"
+      },
+      {
+        "id": "dialog"
+      },
+      {
+        "id": "radio-row"
+      },
+      {
+        "id": "switch-row"
+      }
+    ],
+    "direction": [
+      {
+        "id": "veil",
+        "default": "full",
+        "values": [
+          "full",
+          "from-top",
+          "from-bottom",
+          "from-left",
+          "from-right"
+        ]
+      }
+    ],
+    "disabled": [
+      {
+        "id": "button",
+        "default": false
+      },
+      {
+        "id": "button-destructive",
+        "default": false
+      },
+      {
+        "id": "button-neutral",
+        "default": false
+      },
+      {
+        "id": "checkbox-control",
+        "default": false
+      },
+      {
+        "id": "checkbox-group",
+        "default": false
+      },
+      {
+        "id": "icon-button",
+        "default": false
+      },
+      {
+        "id": "icon-button-destructive",
+        "default": false
+      },
+      {
+        "id": "icon-button-neutral",
+        "default": false
+      },
+      {
+        "id": "radio-control",
+        "default": false
+      },
+      {
+        "id": "radio-group",
+        "default": false
+      },
+      {
+        "id": "segmented-control",
+        "default": "false"
+      },
+      {
+        "id": "segmented-control-segment",
+        "default": "false"
+      },
+      {
+        "id": "select",
+        "default": false
+      },
+      {
+        "id": "switch-control",
+        "default": false
+      },
+      {
+        "id": "tab",
+        "default": "false"
+      },
+      {
+        "id": "tag",
+        "default": "false"
+      },
+      {
+        "id": "text-field",
+        "default": false
+      }
+    ],
+    "emphasis": [
+      {
+        "id": "badge",
+        "default": "subtle",
+        "values": [
+          "subtle",
+          "bold"
+        ]
+      },
+      {
+        "id": "field-label",
+        "default": "secondary",
+        "values": [
+          "secondary",
+          "primary"
+        ]
+      }
+    ],
+    "expansion": [
+      {
+        "id": "_accordion-indicator",
+        "default": "collapsed",
+        "values": [
+          "collapsed",
+          "expanded"
+        ]
+      }
+    ],
+    "footer": [
+      {
+        "id": "dialog",
+        "default": "inline",
+        "values": [
+          "inline",
+          "stacked",
+          "none"
+        ]
+      }
+    ],
+    "fullWidth": [
+      {
+        "id": "button",
+        "default": false
+      },
+      {
+        "id": "button-destructive",
+        "default": false
+      },
+      {
+        "id": "button-neutral",
+        "default": false
+      }
+    ],
+    "headingLevel": [
+      {
+        "id": "accordion",
+        "default": "3",
+        "values": [
+          "2",
+          "3",
+          "4",
+          "5",
+          "6"
+        ]
+      }
+    ],
+    "helpText": [
+      {
+        "id": "select"
+      },
+      {
+        "id": "text-field"
+      }
+    ],
+    "href": [
+      {
+        "id": "button"
+      },
+      {
+        "id": "button-destructive"
+      },
+      {
+        "id": "button-neutral"
+      }
+    ],
+    "htmlFor": [
+      {
+        "id": "field-label"
+      }
+    ],
+    "icon": [
+      {
+        "id": "field-message"
+      },
+      {
+        "id": "icon-button"
+      },
+      {
+        "id": "icon-button-destructive"
+      },
+      {
+        "id": "icon-button-neutral"
+      },
+      {
+        "id": "list-item"
+      }
+    ],
+    "iconPosition": [
+      {
+        "id": "accordion",
+        "default": "leading",
+        "values": [
+          "leading",
+          "trailing"
+        ]
+      }
+    ],
+    "id": [
+      {
+        "id": "field-message"
+      },
+      {
+        "id": "select"
+      },
+      {
+        "id": "text-field"
+      }
+    ],
+    "indeterminate": [
+      {
+        "id": "checkbox-control",
+        "default": false
+      },
+      {
+        "id": "checkbox-row",
+        "default": false
+      }
+    ],
+    "indicator": [
+      {
+        "id": "_accordion-indicator",
+        "default": "chevron",
+        "values": [
+          "chevron",
+          "plus-minus"
+        ]
+      },
+      {
+        "id": "accordion",
+        "default": "chevron",
+        "values": [
+          "chevron",
+          "plus-minus"
+        ]
+      }
+    ],
+    "inputMode": [
+      {
+        "id": "text-field",
+        "values": [
+          "text",
+          "numeric",
+          "decimal",
+          "tel",
+          "email",
+          "url",
+          "search"
+        ]
+      }
+    ],
+    "inset": [
+      {
+        "id": "button",
+        "default": "default",
+        "values": [
+          "default",
+          "flush"
+        ]
+      },
+      {
+        "id": "button-destructive",
+        "default": "default",
+        "values": [
+          "default",
+          "flush"
+        ]
+      },
+      {
+        "id": "button-neutral",
+        "default": "default",
+        "values": [
+          "default",
+          "flush"
+        ]
+      },
+      {
+        "id": "divider",
+        "default": "none",
+        "values": [
+          "none",
+          "inset",
+          "middle-inset"
+        ]
+      }
+    ],
+    "intensity": [
+      {
+        "id": "veil",
+        "default": "medium",
+        "values": [
+          "subtle",
+          "medium",
+          "strong"
+        ]
+      }
+    ],
+    "isInactive": [
+      {
+        "id": "button",
+        "default": false
+      },
+      {
+        "id": "button-destructive",
+        "default": false
+      },
+      {
+        "id": "button-neutral",
+        "default": false
+      },
+      {
+        "id": "icon-button",
+        "default": false
+      },
+      {
+        "id": "icon-button-destructive",
+        "default": false
+      },
+      {
+        "id": "icon-button-neutral",
+        "default": false
+      }
+    ],
+    "isPending": [
+      {
+        "id": "button",
+        "default": false
+      },
+      {
+        "id": "button-destructive",
+        "default": false
+      },
+      {
+        "id": "button-neutral",
+        "default": false
+      },
+      {
+        "id": "icon-button",
+        "default": false
+      },
+      {
+        "id": "icon-button-destructive",
+        "default": false
+      },
+      {
+        "id": "icon-button-neutral",
+        "default": false
+      },
+      {
+        "id": "select",
+        "default": false
+      },
+      {
+        "id": "switch-row",
+        "default": false
+      },
+      {
+        "id": "text-field",
+        "default": false
+      }
+    ],
+    "label": [
+      {
+        "id": "badge"
+      },
+      {
+        "id": "button"
+      },
+      {
+        "id": "button-destructive"
+      },
+      {
+        "id": "button-neutral"
+      },
+      {
+        "id": "checkbox-group"
+      },
+      {
+        "id": "checkbox-row"
+      },
+      {
+        "id": "field-label"
+      },
+      {
+        "id": "icon"
+      },
+      {
+        "id": "radio-group"
+      },
+      {
+        "id": "radio-row"
+      },
+      {
+        "id": "segmented-control"
+      },
+      {
+        "id": "segmented-control-segment"
+      },
+      {
+        "id": "select"
+      },
+      {
+        "id": "spinner",
+        "default": "Loading"
+      },
+      {
+        "id": "switch-row"
+      },
+      {
+        "id": "tab"
+      },
+      {
+        "id": "tabs"
+      },
+      {
+        "id": "tag"
+      },
+      {
+        "id": "text-field"
+      }
+    ],
+    "labelPosition": [
+      {
+        "id": "switch-row",
+        "default": "leading",
+        "values": [
+          "leading",
+          "trailing"
+        ]
+      }
+    ],
+    "leadingIcon": [
+      {
+        "id": "segmented-control-segment"
+      },
+      {
+        "id": "select"
+      },
+      {
+        "id": "tab"
+      },
+      {
+        "id": "tag"
+      },
+      {
+        "id": "text-field"
+      }
+    ],
+    "leadingVisual": [
+      {
+        "id": "button"
+      },
+      {
+        "id": "button-destructive"
+      },
+      {
+        "id": "button-neutral"
+      }
+    ],
+    "max": [
+      {
+        "id": "badge",
+        "default": "99"
+      }
+    ],
+    "maxLength": [
+      {
+        "id": "textarea"
+      }
+    ],
+    "maxRows": [
+      {
+        "id": "textarea"
+      }
+    ],
+    "message": [
+      {
+        "id": "field-message"
+      }
+    ],
+    "minRows": [
+      {
+        "id": "textarea"
+      }
+    ],
+    "name": [
+      {
+        "id": "checkbox-group"
+      },
+      {
+        "id": "icon",
+        "values": [
+          "arrow-down",
+          "arrow-down-left",
+          "arrow-down-right",
+          "arrow-left",
+          "arrow-right",
+          "arrow-up",
+          "arrow-up-left",
+          "arrow-up-right",
+          "check",
+          "check-circle",
+          "check-circle-filled",
+          "chevron-down",
+          "chevron-left",
+          "chevron-right",
+          "chevron-up",
+          "close",
+          "close-filled",
+          "error-circle",
+          "error-circle-filled",
+          "external-link-filled",
+          "eye",
+          "eye-filled",
+          "eye-off",
+          "eye-off-filled",
+          "FPO-default-icon",
+          "home",
+          "image",
+          "info-circle",
+          "info-circle-filled",
+          "link",
+          "menu",
+          "minus",
+          "minus-filled",
+          "more-horizontal-filled",
+          "more-vertical-filled",
+          "pause-circle",
+          "play-circle",
+          "plus",
+          "plus-circle",
+          "plus-circle-filled",
+          "plus-filled",
+          "resize-grip",
+          "search",
+          "warning-triangle",
+          "warning-triangle-filled"
+        ]
+      },
+      {
+        "id": "radio-group"
+      },
+      {
+        "id": "segmented-control"
+      },
+      {
+        "id": "select"
+      },
+      {
+        "id": "text-field"
+      }
+    ],
+    "offset": [
+      {
+        "id": "focus-ring",
+        "default": "control",
+        "values": [
+          "control",
+          "field"
+        ]
+      }
+    ],
+    "onChange": [
+      {
+        "id": "checkbox-group"
+      },
+      {
+        "id": "checkbox-row"
+      },
+      {
+        "id": "radio-group"
+      },
+      {
+        "id": "segmented-control"
+      },
+      {
+        "id": "select"
+      },
+      {
+        "id": "tabs"
+      },
+      {
+        "id": "text-field"
+      }
+    ],
+    "onClick": [
+      {
+        "id": "button"
+      },
+      {
+        "id": "button-destructive"
+      },
+      {
+        "id": "button-neutral"
+      },
+      {
+        "id": "icon-button"
+      },
+      {
+        "id": "icon-button-destructive"
+      },
+      {
+        "id": "icon-button-neutral"
+      },
+      {
+        "id": "tag"
+      }
+    ],
+    "onOpenChange": [
+      {
+        "id": "dialog"
+      }
+    ],
+    "onRemove": [
+      {
+        "id": "tag"
+      }
+    ],
+    "open": [
+      {
+        "id": "dialog",
+        "default": false
+      }
+    ],
+    "options": [
+      {
+        "id": "select"
+      }
+    ],
+    "orientation": [
+      {
+        "id": "divider",
+        "default": "horizontal",
+        "values": [
+          "horizontal",
+          "vertical"
+        ]
+      }
+    ],
+    "overlap": [
+      {
+        "id": "badge",
+        "default": "rectangular",
+        "values": [
+          "rectangular",
+          "circular"
+        ]
+      }
+    ],
+    "placeholder": [
+      {
+        "id": "select"
+      },
+      {
+        "id": "text-field"
+      },
+      {
+        "id": "textarea"
+      }
+    ],
+    "placement": [
+      {
+        "id": "dialog",
+        "default": "center",
+        "values": [
+          "center",
+          "bottom",
+          "full"
+        ]
+      }
+    ],
+    "prefix": [
+      {
+        "id": "text-field"
+      }
+    ],
+    "ratio": [
+      {
+        "id": "image-placeholder",
+        "default": "4:3",
+        "values": [
+          "2:3",
+          "3:4",
+          "4:5",
+          "1:1",
+          "4:3",
+          "3:2",
+          "16:9"
+        ]
+      }
+    ],
+    "readOnly": [
+      {
+        "id": "checkbox-row",
+        "default": false
+      },
+      {
+        "id": "select",
+        "default": false
+      },
+      {
+        "id": "switch-row",
+        "default": false
+      },
+      {
+        "id": "tag",
+        "default": "false"
+      },
+      {
+        "id": "text-field",
+        "default": false
+      }
+    ],
+    "required": [
+      {
+        "id": "checkbox-group",
+        "default": false
+      },
+      {
+        "id": "field-label",
+        "default": false
+      },
+      {
+        "id": "radio-group",
+        "default": false
+      },
+      {
+        "id": "select",
+        "default": false
+      },
+      {
+        "id": "text-field",
+        "default": false
+      }
+    ],
+    "resize": [
+      {
+        "id": "textarea",
+        "default": "vertical",
+        "values": [
+          "none",
+          "vertical",
+          "auto"
+        ]
+      }
+    ],
+    "reversed": [
+      {
+        "id": "list",
+        "default": false
+      }
+    ],
+    "role": [
+      {
+        "id": "dialog",
+        "default": "dialog",
+        "values": [
+          "dialog",
+          "alertdialog"
+        ]
+      }
+    ],
+    "rows": [
+      {
+        "id": "textarea",
+        "default": 3
+      }
+    ],
+    "selected": [
+      {
+        "id": "segmented-control-segment",
+        "default": "false"
+      },
+      {
+        "id": "tab",
+        "default": "false"
+      },
+      {
+        "id": "tag",
+        "default": "false"
+      }
+    ],
+    "shape": [
+      {
+        "id": "icon-button",
+        "default": "square",
+        "values": [
+          "square",
+          "circular"
+        ]
+      },
+      {
+        "id": "icon-button-destructive",
+        "default": "square",
+        "values": [
+          "square",
+          "circular"
+        ]
+      },
+      {
+        "id": "icon-button-neutral",
+        "default": "square",
+        "values": [
+          "square",
+          "circular"
+        ]
+      }
+    ],
+    "showCheck": [
+      {
+        "id": "tag",
+        "default": "true"
+      }
+    ],
+    "showCount": [
+      {
+        "id": "textarea",
+        "default": false
+      }
+    ],
+    "showMessage": [
+      {
+        "id": "select",
+        "default": true
+      },
+      {
+        "id": "text-field",
+        "default": true
+      },
+      {
+        "id": "textarea",
+        "default": true
+      }
+    ],
+    "showStateLabel": [
+      {
+        "id": "switch-control",
+        "default": true
+      },
+      {
+        "id": "switch-row",
+        "default": true
+      }
+    ],
+    "showZero": [
+      {
+        "id": "badge",
+        "default": "false"
+      }
+    ],
+    "size": [
+      {
+        "id": "_accordion-indicator",
+        "default": "medium",
+        "values": [
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      {
+        "id": "accordion",
+        "default": "medium",
+        "values": [
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      {
+        "id": "button",
+        "default": "medium",
+        "values": [
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      {
+        "id": "button-destructive",
+        "default": "medium",
+        "values": [
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      {
+        "id": "button-neutral",
+        "default": "medium",
+        "values": [
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      {
+        "id": "checkbox-control",
+        "default": "medium",
+        "values": [
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      {
+        "id": "checkbox-group",
+        "default": "medium",
+        "values": [
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      {
+        "id": "checkbox-row",
+        "default": "medium",
+        "values": [
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      {
+        "id": "dialog",
+        "default": "medium",
+        "values": [
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      {
+        "id": "field-label",
+        "default": "small",
+        "values": [
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      {
+        "id": "icon",
+        "default": "medium",
+        "values": [
+          "x-small",
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      {
+        "id": "icon-button",
+        "default": "medium",
+        "values": [
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      {
+        "id": "icon-button-destructive",
+        "default": "medium",
+        "values": [
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      {
+        "id": "icon-button-neutral",
+        "default": "medium",
+        "values": [
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      {
+        "id": "list",
+        "default": "medium",
+        "values": [
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      {
+        "id": "list-item",
+        "default": "medium",
+        "values": [
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      {
+        "id": "radio-control",
+        "default": "medium",
+        "values": [
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      {
+        "id": "radio-group",
+        "default": "medium",
+        "values": [
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      {
+        "id": "radio-row",
+        "default": "medium",
+        "values": [
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      {
+        "id": "segmented-control",
+        "default": "medium",
+        "values": [
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      {
+        "id": "segmented-control-segment",
+        "default": "medium",
+        "values": [
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      {
+        "id": "select",
+        "default": "medium",
+        "values": [
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      {
+        "id": "spinner",
+        "default": "medium",
+        "values": [
+          "x-small",
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      {
+        "id": "switch-control",
+        "default": "medium",
+        "values": [
+          "small",
+          "medium"
+        ]
+      },
+      {
+        "id": "switch-row",
+        "default": "medium",
+        "values": [
+          "small",
+          "medium"
+        ]
+      },
+      {
+        "id": "tab",
+        "default": "medium",
+        "values": [
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      {
+        "id": "tabs",
+        "default": "medium",
+        "values": [
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      {
+        "id": "tag",
+        "default": "medium",
+        "values": [
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      {
+        "id": "text-field",
+        "default": "medium",
+        "values": [
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      {
+        "id": "textarea",
+        "default": "medium",
+        "values": [
+          "small",
+          "medium",
+          "large"
+        ]
+      }
+    ],
+    "spellCheck": [
+      {
+        "id": "textarea"
+      }
+    ],
+    "start": [
+      {
+        "id": "list",
+        "default": 1
+      }
+    ],
+    "status": [
+      {
+        "id": "field-message",
+        "default": "default",
+        "values": [
+          "default",
+          "error",
+          "warning",
+          "success"
+        ]
+      }
+    ],
+    "submitOnEnter": [
+      {
+        "id": "textarea",
+        "default": false
+      }
+    ],
+    "suffix": [
+      {
+        "id": "text-field"
+      }
+    ],
+    "surface": [
+      {
+        "id": "button",
+        "default": "default",
+        "values": [
+          "default",
+          "inverse"
+        ]
+      },
+      {
+        "id": "button-destructive",
+        "default": "default",
+        "values": [
+          "default",
+          "inverse"
+        ]
+      },
+      {
+        "id": "button-neutral",
+        "default": "default",
+        "values": [
+          "default",
+          "inverse"
+        ]
+      },
+      {
+        "id": "focus-ring",
+        "default": "default",
+        "values": [
+          "default",
+          "inverse"
+        ]
+      },
+      {
+        "id": "icon-button",
+        "default": "default",
+        "values": [
+          "default",
+          "inverse"
+        ]
+      },
+      {
+        "id": "icon-button-destructive",
+        "default": "default",
+        "values": [
+          "default",
+          "inverse"
+        ]
+      },
+      {
+        "id": "icon-button-neutral",
+        "default": "default",
+        "values": [
+          "default",
+          "inverse"
+        ]
+      }
+    ],
+    "title": [
+      {
+        "id": "accordion"
+      },
+      {
+        "id": "dialog"
+      }
+    ],
+    "tone": [
+      {
+        "id": "badge",
+        "default": "neutral",
+        "values": [
+          "neutral",
+          "info",
+          "success",
+          "warning",
+          "danger"
+        ]
+      },
+      {
+        "id": "icon",
+        "default": "inherit",
+        "values": [
+          "inherit",
+          "primary",
+          "secondary",
+          "tertiary",
+          "brand",
+          "success",
+          "warning",
+          "danger",
+          "info"
+        ]
+      }
+    ],
+    "trailingIcon": [
+      {
+        "id": "text-field"
+      }
+    ],
+    "trailingVisual": [
+      {
+        "id": "button"
+      },
+      {
+        "id": "button-destructive"
+      },
+      {
+        "id": "button-neutral"
+      }
+    ],
+    "type": [
+      {
+        "id": "badge",
+        "default": "status",
+        "values": [
+          "status",
+          "count",
+          "dot"
+        ]
+      },
+      {
+        "id": "button",
+        "default": "button",
+        "values": [
+          "button",
+          "submit",
+          "reset"
+        ]
+      },
+      {
+        "id": "button-destructive",
+        "default": "button",
+        "values": [
+          "button",
+          "submit",
+          "reset"
+        ]
+      },
+      {
+        "id": "button-neutral",
+        "default": "button",
+        "values": [
+          "button",
+          "submit",
+          "reset"
+        ]
+      },
+      {
+        "id": "icon-button",
+        "default": "button",
+        "values": [
+          "button",
+          "submit",
+          "reset"
+        ]
+      },
+      {
+        "id": "icon-button-destructive",
+        "default": "button",
+        "values": [
+          "button",
+          "submit",
+          "reset"
+        ]
+      },
+      {
+        "id": "icon-button-neutral",
+        "default": "button",
+        "values": [
+          "button",
+          "submit",
+          "reset"
+        ]
+      },
+      {
+        "id": "list",
+        "default": "unordered",
+        "values": [
+          "unordered",
+          "ordered",
+          "icon"
+        ]
+      },
+      {
+        "id": "list-item",
+        "default": "unordered",
+        "values": [
+          "unordered",
+          "ordered",
+          "icon"
+        ]
+      },
+      {
+        "id": "tag",
+        "default": "select",
+        "values": [
+          "select",
+          "dismissible"
+        ]
+      },
+      {
+        "id": "text-field",
+        "default": "text",
+        "values": [
+          "text",
+          "email",
+          "url",
+          "tel",
+          "search",
+          "password"
+        ]
+      }
+    ],
+    "validation": [
+      {
+        "id": "select",
+        "default": "default",
+        "values": [
+          "default",
+          "error",
+          "warning",
+          "success"
+        ]
+      },
+      {
+        "id": "text-field",
+        "default": "default",
+        "values": [
+          "default",
+          "error",
+          "warning",
+          "success"
+        ]
+      },
+      {
+        "id": "textarea",
+        "default": "default",
+        "values": [
+          "default",
+          "error",
+          "warning",
+          "success"
+        ]
+      }
+    ],
+    "validationMessage": [
+      {
+        "id": "select"
+      },
+      {
+        "id": "text-field"
+      },
+      {
+        "id": "textarea"
+      }
+    ],
+    "value": [
+      {
+        "id": "accordion"
+      },
+      {
+        "id": "badge"
+      },
+      {
+        "id": "checkbox-group"
+      },
+      {
+        "id": "checkbox-row"
+      },
+      {
+        "id": "list-item"
+      },
+      {
+        "id": "radio-group"
+      },
+      {
+        "id": "radio-row"
+      },
+      {
+        "id": "segmented-control"
+      },
+      {
+        "id": "segmented-control-segment"
+      },
+      {
+        "id": "select"
+      },
+      {
+        "id": "tab"
+      },
+      {
+        "id": "tabs"
+      },
+      {
+        "id": "text-field"
+      },
+      {
+        "id": "textarea"
+      },
+      {
+        "id": "veil",
+        "default": "dark",
+        "values": [
+          "dark",
+          "light"
+        ]
+      }
+    ],
+    "weight": [
+      {
+        "id": "field-label",
+        "default": "regular",
+        "values": [
+          "regular",
+          "bold"
+        ]
+      }
+    ],
+    "width": [
+      {
+        "id": "segmented-control",
+        "default": "auto",
+        "values": [
+          "auto",
+          "full"
+        ]
+      }
+    ]
+  },
+  "findings": [
+    {
+      "kind": "state set",
+      "subject": "role peers: *.Control",
+      "components": [
+        "radio-control"
+      ],
+      "detail": "radio-control differs from the group's common set [disabled, error, focus-visible, hover, pressed, rest] — lacks error"
+    },
+    {
+      "kind": "state set",
+      "subject": "role peers: *.Row",
+      "components": [
+        "checkbox-row",
+        "radio-row",
+        "switch-row"
+      ],
+      "detail": "no state set is shared by most of the group — checkbox-row [rest, hover, pressed, focus-visible, disabled, read-only, error]; radio-row [rest, hover, pressed, focus-visible, disabled, read-only]; switch-row [rest, hover, pressed, pending, focus-visible, disabled, read-only, error]"
+    },
+    {
+      "kind": "state set",
+      "subject": "substrate: text-field",
+      "components": [
+        "checkbox-row",
+        "radio-row",
+        "switch-row",
+        "text-field",
+        "textarea"
+      ],
+      "detail": "no state set is shared by most of the group — checkbox-row [rest, hover, pressed, focus-visible, disabled, read-only, error]; radio-row [rest, hover, pressed, focus-visible, disabled, read-only]; switch-row [rest, hover, pressed, pending, focus-visible, disabled, read-only, error]; text-field [rest, hover, pending, filled, focus-visible, focus-visible-filled, disabled, read-only, empty]; textarea [rest, hover, pending, filled, focus-visible, focus-visible-filled, disabled, read-only, empty]"
+    },
+    {
+      "kind": "state not drawn",
+      "subject": "button",
+      "components": [
+        "button"
+      ],
+      "detail": "button declares the state inactive, which the design-file state axis does not draw"
+    },
+    {
+      "kind": "state not drawn",
+      "subject": "button-destructive",
+      "components": [
+        "button-destructive"
+      ],
+      "detail": "button-destructive declares the state inactive, which the design-file state axis does not draw"
+    },
+    {
+      "kind": "state not drawn",
+      "subject": "button-neutral",
+      "components": [
+        "button-neutral"
+      ],
+      "detail": "button-neutral declares the state inactive, which the design-file state axis does not draw"
+    },
+    {
+      "kind": "state not drawn",
+      "subject": "icon-button",
+      "components": [
+        "icon-button"
+      ],
+      "detail": "icon-button declares the state inactive, which the design-file state axis does not draw"
+    },
+    {
+      "kind": "state not drawn",
+      "subject": "icon-button-destructive",
+      "components": [
+        "icon-button-destructive"
+      ],
+      "detail": "icon-button-destructive declares the state inactive, which the design-file state axis does not draw"
+    },
+    {
+      "kind": "state not drawn",
+      "subject": "icon-button-neutral",
+      "components": [
+        "icon-button-neutral"
+      ],
+      "detail": "icon-button-neutral declares the state inactive, which the design-file state axis does not draw"
+    },
+    {
+      "kind": "state not drawn",
+      "subject": "select",
+      "components": [
+        "select"
+      ],
+      "detail": "select declares the states pending and empty, which the design-file state axis does not draw"
+    },
+    {
+      "kind": "state not drawn",
+      "subject": "tag",
+      "components": [
+        "tag"
+      ],
+      "detail": "tag declares the state read-only, which the design-file state axis does not draw"
+    },
+    {
+      "kind": "state not drawn",
+      "subject": "text-field",
+      "components": [
+        "text-field"
+      ],
+      "detail": "text-field declares the states pending and empty, which the design-file state axis does not draw"
+    },
+    {
+      "kind": "state not drawn",
+      "subject": "textarea",
+      "components": [
+        "textarea"
+      ],
+      "detail": "textarea declares the states pending and empty, which the design-file state axis does not draw"
+    },
+    {
+      "kind": "axis values",
+      "subject": "axis appearance",
+      "components": [
+        "button",
+        "button-destructive",
+        "button-neutral",
+        "icon-button",
+        "icon-button-destructive",
+        "icon-button-neutral"
+      ],
+      "detail": "the appearance axis takes 2 value sets — [filled, ghost, outline] in icon-button, icon-button-destructive, icon-button-neutral; [filled, outline, text] in button, button-destructive, button-neutral"
+    },
+    {
+      "kind": "axis values",
+      "subject": "axis emphasis",
+      "components": [
+        "badge",
+        "field-label"
+      ],
+      "detail": "the emphasis axis takes 2 value sets — [bold, subtle] in badge; [primary, secondary] in field-label"
+    },
+    {
+      "kind": "axis values",
+      "subject": "axis inset",
+      "components": [
+        "button",
+        "button-destructive",
+        "button-neutral",
+        "divider"
+      ],
+      "detail": "the inset axis takes 2 value sets — [default, flush] in button, button-destructive, button-neutral; [inset, middle-inset, none] in divider"
+    },
+    {
+      "kind": "axis values",
+      "subject": "axis selection",
+      "components": [
+        "checkbox-control",
+        "radio-control",
+        "segmented-control-segment",
+        "switch-control",
+        "tab",
+        "tag"
+      ],
+      "detail": "the selection axis takes 4 value sets — [selected, unselected] in segmented-control-segment, tab, tag; [checked, indeterminate, unchecked] in checkbox-control; [checked, unchecked] in radio-control; [off, on] in switch-control"
+    },
+    {
+      "kind": "axis values",
+      "subject": "axis size",
+      "components": [
+        "_accordion-indicator",
+        "accordion",
+        "button",
+        "button-destructive",
+        "button-neutral",
+        "checkbox-control",
+        "checkbox-group",
+        "checkbox-row",
+        "dialog",
+        "field-label",
+        "icon-button",
+        "icon-button-destructive",
+        "icon-button-neutral",
+        "list",
+        "list-item",
+        "radio-control",
+        "radio-group",
+        "radio-row",
+        "segmented-control",
+        "segmented-control-segment",
+        "select",
+        "spinner",
+        "switch-control",
+        "switch-row",
+        "tab",
+        "tabs",
+        "tag",
+        "text-field",
+        "textarea"
+      ],
+      "detail": "the size axis takes 3 value sets — [large, medium, small] in _accordion-indicator, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, dialog, field-label, icon-button, icon-button-destructive, icon-button-neutral, list, list-item, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, select, tab, tabs, tag, text-field, textarea; [medium, small] in switch-control, switch-row; [large, medium, small, x-small] in spinner"
+    },
+    {
+      "kind": "axis values",
+      "subject": "axis tone",
+      "components": [
+        "badge",
+        "icon"
+      ],
+      "detail": "the tone axis takes 2 value sets — [brand, danger, info, inherit, primary, secondary, success, tertiary, warning] in icon; [danger, info, neutral, success, warning] in badge"
+    },
+    {
+      "kind": "axis values",
+      "subject": "axis type",
+      "components": [
+        "badge",
+        "list",
+        "list-item",
+        "tag"
+      ],
+      "detail": "the type axis takes 3 value sets — [icon, ordered, unordered] in list, list-item; [count, dot, status] in badge; [dismissible, select] in tag"
+    },
+    {
+      "kind": "size order",
+      "subject": "dialog",
+      "components": [
+        "dialog"
+      ],
+      "detail": "dialog declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "select",
+      "components": [
+        "select"
+      ],
+      "detail": "select declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "text-field",
+      "components": [
+        "text-field"
+      ],
+      "detail": "text-field declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "textarea",
+      "components": [
+        "textarea"
+      ],
+      "detail": "textarea declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size default",
+      "subject": "field-label",
+      "components": [
+        "field-label"
+      ],
+      "detail": "field-label defaults size to small; 28 of 29 sized components default to medium"
+    },
+    {
+      "kind": "axis without prop",
+      "subject": "accordion",
+      "components": [
+        "accordion"
+      ],
+      "detail": "accordion has the variant axis expansion and no prop of that name"
+    },
+    {
+      "kind": "axis without prop",
+      "subject": "button",
+      "components": [
+        "button"
+      ],
+      "detail": "button has the variant axis width and no prop of that name"
+    },
+    {
+      "kind": "axis without prop",
+      "subject": "button-destructive",
+      "components": [
+        "button-destructive"
+      ],
+      "detail": "button-destructive has the variant axis width and no prop of that name"
+    },
+    {
+      "kind": "axis without prop",
+      "subject": "button-neutral",
+      "components": [
+        "button-neutral"
+      ],
+      "detail": "button-neutral has the variant axis width and no prop of that name"
+    },
+    {
+      "kind": "axis without prop",
+      "subject": "checkbox-control",
+      "components": [
+        "checkbox-control"
+      ],
+      "detail": "checkbox-control has the variant axis selection and no prop of that name"
+    },
+    {
+      "kind": "axis without prop",
+      "subject": "radio-control",
+      "components": [
+        "radio-control"
+      ],
+      "detail": "radio-control has the variant axis selection and no prop of that name"
+    },
+    {
+      "kind": "axis without prop",
+      "subject": "segmented-control-segment",
+      "components": [
+        "segmented-control-segment"
+      ],
+      "detail": "segmented-control-segment has the variant axis selection and no prop of that name"
+    },
+    {
+      "kind": "axis without prop",
+      "subject": "select",
+      "components": [
+        "select"
+      ],
+      "detail": "select has the variant axis status and no prop of that name"
+    },
+    {
+      "kind": "axis without prop",
+      "subject": "switch-control",
+      "components": [
+        "switch-control"
+      ],
+      "detail": "switch-control has the variant axis selection and no prop of that name"
+    },
+    {
+      "kind": "axis without prop",
+      "subject": "tab",
+      "components": [
+        "tab"
+      ],
+      "detail": "tab has the variant axis selection and no prop of that name"
+    },
+    {
+      "kind": "axis without prop",
+      "subject": "tag",
+      "components": [
+        "tag"
+      ],
+      "detail": "tag has the variant axis selection and no prop of that name"
+    },
+    {
+      "kind": "axis without prop",
+      "subject": "text-field",
+      "components": [
+        "text-field"
+      ],
+      "detail": "text-field has the variant axes style and status and no props of those names"
+    },
+    {
+      "kind": "axis without prop",
+      "subject": "textarea",
+      "components": [
+        "textarea"
+      ],
+      "detail": "textarea has the variant axes style and status and no props of those names"
+    }
+  ]
+}

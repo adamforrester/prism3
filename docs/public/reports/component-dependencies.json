@@ -1,0 +1,1707 @@
+{
+  "$schema": "prism3-report/component-dependencies/1",
+  "generated": true,
+  "sources": [
+    "packages/engine/components/*.ts",
+    "packages/engine/component-schema.ts",
+    "packages/engine/out/prism3.tokens.json"
+  ],
+  "note": "edges: every part that nests another component (anatomy part with `nests`), with its nesting relation. components.<id>.affectedByChange lists every component that nests it directly or transitively — the components a change to it reaches. inherits is a reading reference only: the engine copies no fields across it, so it does not appear in affectedByChange.",
+  "edges": [
+    {
+      "from": "accordion",
+      "to": "divider",
+      "part": "divider",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "orientation": "horizontal",
+        "inset": "none"
+      }
+    },
+    {
+      "from": "accordion",
+      "to": "focus-ring",
+      "part": "focusRing",
+      "partKind": "absolute",
+      "relation": "nest-fixed",
+      "variant": {
+        "surface": "default"
+      }
+    },
+    {
+      "from": "accordion",
+      "to": "_accordion-indicator",
+      "part": "leadingGlyph",
+      "partKind": "nest",
+      "relation": "nest-exposed",
+      "variant": {
+        "indicator": "chevron",
+        "expansion": "collapsed",
+        "size": "medium"
+      },
+      "follow": [
+        "expansion",
+        "size"
+      ],
+      "expose": [
+        "indicator"
+      ]
+    },
+    {
+      "from": "accordion",
+      "to": "_accordion-indicator",
+      "part": "trailingGlyph",
+      "partKind": "nest",
+      "relation": "nest-exposed",
+      "variant": {
+        "indicator": "chevron",
+        "expansion": "collapsed",
+        "size": "medium"
+      },
+      "follow": [
+        "expansion",
+        "size"
+      ],
+      "expose": [
+        "indicator"
+      ]
+    },
+    {
+      "from": "button",
+      "to": "focus-ring",
+      "part": "focusRing",
+      "partKind": "absolute",
+      "relation": "nest-fixed",
+      "variant": {
+        "surface": "default"
+      },
+      "follow": [
+        "surface"
+      ]
+    },
+    {
+      "from": "button",
+      "to": "spinner",
+      "part": "spinner",
+      "partKind": "overlay",
+      "relation": "swap"
+    },
+    {
+      "from": "button-destructive",
+      "to": "focus-ring",
+      "part": "focusRing",
+      "partKind": "absolute",
+      "relation": "nest-fixed",
+      "variant": {
+        "surface": "default"
+      },
+      "follow": [
+        "surface"
+      ]
+    },
+    {
+      "from": "button-destructive",
+      "to": "spinner",
+      "part": "spinner",
+      "partKind": "overlay",
+      "relation": "swap"
+    },
+    {
+      "from": "button-neutral",
+      "to": "focus-ring",
+      "part": "focusRing",
+      "partKind": "absolute",
+      "relation": "nest-fixed",
+      "variant": {
+        "surface": "default"
+      },
+      "follow": [
+        "surface"
+      ]
+    },
+    {
+      "from": "button-neutral",
+      "to": "spinner",
+      "part": "spinner",
+      "partKind": "overlay",
+      "relation": "swap"
+    },
+    {
+      "from": "checkbox-control",
+      "to": "focus-ring",
+      "part": "focusRing",
+      "partKind": "absolute",
+      "relation": "nest-fixed",
+      "variant": {
+        "surface": "default"
+      }
+    },
+    {
+      "from": "checkbox-group",
+      "to": "field-label",
+      "part": "label",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "size": "medium",
+        "emphasis": "secondary",
+        "weight": "bold",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "checkbox-group",
+      "to": "checkbox-row",
+      "part": "row1",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "size": "medium"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "checkbox-group",
+      "to": "checkbox-row",
+      "part": "row2",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "size": "medium"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "checkbox-group",
+      "to": "checkbox-row",
+      "part": "row3",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "size": "medium"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "checkbox-group",
+      "to": "checkbox-row",
+      "part": "row4",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "size": "medium"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "checkbox-group",
+      "to": "checkbox-row",
+      "part": "row5",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "size": "medium"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "checkbox-group",
+      "to": "checkbox-row",
+      "part": "row6",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "size": "medium"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "checkbox-group",
+      "to": "checkbox-row",
+      "part": "row7",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "size": "medium"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "checkbox-group",
+      "to": "checkbox-row",
+      "part": "row8",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "size": "medium"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "checkbox-row",
+      "to": "checkbox-control",
+      "part": "control",
+      "partKind": "nest",
+      "relation": "nest-exposed",
+      "variant": {
+        "selection": "unchecked",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ],
+      "expose": [
+        "selection",
+        "state"
+      ]
+    },
+    {
+      "from": "dialog",
+      "to": "button",
+      "part": "cancelInline",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "appearance": "outline",
+        "size": "medium",
+        "surface": "default",
+        "inset": "default",
+        "state": "rest",
+        "leading icon": "false",
+        "trailing icon": "false"
+      }
+    },
+    {
+      "from": "dialog",
+      "to": "button",
+      "part": "cancelStacked",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "appearance": "outline",
+        "size": "medium",
+        "surface": "default",
+        "inset": "default",
+        "state": "rest",
+        "leading icon": "false",
+        "trailing icon": "false"
+      }
+    },
+    {
+      "from": "dialog",
+      "to": "icon-button-neutral",
+      "part": "close",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "appearance": "ghost",
+        "size": "medium",
+        "shape": "square",
+        "surface": "default",
+        "state": "rest"
+      }
+    },
+    {
+      "from": "dialog",
+      "to": "button",
+      "part": "confirmInline",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "appearance": "filled",
+        "size": "medium",
+        "surface": "default",
+        "inset": "default",
+        "state": "rest",
+        "leading icon": "false",
+        "trailing icon": "false"
+      }
+    },
+    {
+      "from": "dialog",
+      "to": "button",
+      "part": "confirmStacked",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "appearance": "filled",
+        "size": "medium",
+        "surface": "default",
+        "inset": "default",
+        "state": "rest",
+        "leading icon": "false",
+        "trailing icon": "false"
+      }
+    },
+    {
+      "from": "dialog",
+      "to": "divider",
+      "part": "footerDivider",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "orientation": "horizontal",
+        "inset": "none"
+      }
+    },
+    {
+      "from": "dialog",
+      "to": "divider",
+      "part": "headerDivider",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "orientation": "horizontal",
+        "inset": "none"
+      }
+    },
+    {
+      "from": "icon-button",
+      "to": "focus-ring",
+      "part": "focusRing",
+      "partKind": "absolute",
+      "relation": "nest-fixed",
+      "variant": {
+        "surface": "default"
+      },
+      "follow": [
+        "surface"
+      ]
+    },
+    {
+      "from": "icon-button",
+      "to": "spinner",
+      "part": "spinner",
+      "partKind": "overlay",
+      "relation": "swap"
+    },
+    {
+      "from": "icon-button-destructive",
+      "to": "focus-ring",
+      "part": "focusRing",
+      "partKind": "absolute",
+      "relation": "nest-fixed",
+      "variant": {
+        "surface": "default"
+      },
+      "follow": [
+        "surface"
+      ]
+    },
+    {
+      "from": "icon-button-destructive",
+      "to": "spinner",
+      "part": "spinner",
+      "partKind": "overlay",
+      "relation": "swap"
+    },
+    {
+      "from": "icon-button-neutral",
+      "to": "focus-ring",
+      "part": "focusRing",
+      "partKind": "absolute",
+      "relation": "nest-fixed",
+      "variant": {
+        "surface": "default"
+      },
+      "follow": [
+        "surface"
+      ]
+    },
+    {
+      "from": "icon-button-neutral",
+      "to": "spinner",
+      "part": "spinner",
+      "partKind": "overlay",
+      "relation": "swap"
+    },
+    {
+      "from": "list",
+      "to": "list-item",
+      "part": "item1",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "type": "unordered",
+        "size": "medium"
+      },
+      "follow": [
+        "type",
+        "size"
+      ]
+    },
+    {
+      "from": "list",
+      "to": "list-item",
+      "part": "item2",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "type": "unordered",
+        "size": "medium"
+      },
+      "follow": [
+        "type",
+        "size"
+      ]
+    },
+    {
+      "from": "list",
+      "to": "list-item",
+      "part": "item3",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "type": "unordered",
+        "size": "medium"
+      },
+      "follow": [
+        "type",
+        "size"
+      ]
+    },
+    {
+      "from": "list",
+      "to": "list-item",
+      "part": "item4",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "type": "unordered",
+        "size": "medium"
+      },
+      "follow": [
+        "type",
+        "size"
+      ]
+    },
+    {
+      "from": "list",
+      "to": "list-item",
+      "part": "item5",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "type": "unordered",
+        "size": "medium"
+      },
+      "follow": [
+        "type",
+        "size"
+      ]
+    },
+    {
+      "from": "list",
+      "to": "list-item",
+      "part": "item6",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "type": "unordered",
+        "size": "medium"
+      },
+      "follow": [
+        "type",
+        "size"
+      ]
+    },
+    {
+      "from": "list",
+      "to": "list-item",
+      "part": "item7",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "type": "unordered",
+        "size": "medium"
+      },
+      "follow": [
+        "type",
+        "size"
+      ]
+    },
+    {
+      "from": "list",
+      "to": "list-item",
+      "part": "item8",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "type": "unordered",
+        "size": "medium"
+      },
+      "follow": [
+        "type",
+        "size"
+      ]
+    },
+    {
+      "from": "radio-control",
+      "to": "focus-ring",
+      "part": "focusRing",
+      "partKind": "absolute",
+      "relation": "nest-fixed",
+      "variant": {
+        "surface": "default"
+      }
+    },
+    {
+      "from": "radio-group",
+      "to": "field-label",
+      "part": "label",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "size": "medium",
+        "emphasis": "secondary",
+        "weight": "bold",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "radio-group",
+      "to": "radio-row",
+      "part": "row1",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "size": "medium"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "radio-group",
+      "to": "radio-row",
+      "part": "row2",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "size": "medium"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "radio-group",
+      "to": "radio-row",
+      "part": "row3",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "size": "medium"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "radio-group",
+      "to": "radio-row",
+      "part": "row4",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "size": "medium"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "radio-group",
+      "to": "radio-row",
+      "part": "row5",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "size": "medium"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "radio-group",
+      "to": "radio-row",
+      "part": "row6",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "size": "medium"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "radio-group",
+      "to": "radio-row",
+      "part": "row7",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "size": "medium"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "radio-group",
+      "to": "radio-row",
+      "part": "row8",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "size": "medium"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "radio-row",
+      "to": "radio-control",
+      "part": "control",
+      "partKind": "nest",
+      "relation": "nest-exposed",
+      "variant": {
+        "selection": "unchecked",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ],
+      "expose": [
+        "selection",
+        "state"
+      ]
+    },
+    {
+      "from": "segmented-control",
+      "to": "field-label",
+      "part": "label",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "size": "medium",
+        "emphasis": "secondary",
+        "weight": "bold",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "segmented-control",
+      "to": "segmented-control-segment",
+      "part": "segment1",
+      "partKind": "nest",
+      "relation": "nest-exposed",
+      "variant": {
+        "selection": "selected",
+        "size": "medium",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ],
+      "expose": [
+        "selection",
+        "state"
+      ]
+    },
+    {
+      "from": "segmented-control",
+      "to": "segmented-control-segment",
+      "part": "segment2",
+      "partKind": "nest",
+      "relation": "nest-exposed",
+      "variant": {
+        "selection": "unselected",
+        "size": "medium",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ],
+      "expose": [
+        "selection",
+        "state"
+      ]
+    },
+    {
+      "from": "segmented-control",
+      "to": "segmented-control-segment",
+      "part": "segment3",
+      "partKind": "nest",
+      "relation": "nest-exposed",
+      "variant": {
+        "selection": "unselected",
+        "size": "medium",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ],
+      "expose": [
+        "selection",
+        "state"
+      ]
+    },
+    {
+      "from": "segmented-control",
+      "to": "segmented-control-segment",
+      "part": "segment4",
+      "partKind": "nest",
+      "relation": "nest-exposed",
+      "variant": {
+        "selection": "unselected",
+        "size": "medium",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ],
+      "expose": [
+        "selection",
+        "state"
+      ]
+    },
+    {
+      "from": "segmented-control",
+      "to": "segmented-control-segment",
+      "part": "segment5",
+      "partKind": "nest",
+      "relation": "nest-exposed",
+      "variant": {
+        "selection": "unselected",
+        "size": "medium",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ],
+      "expose": [
+        "selection",
+        "state"
+      ]
+    },
+    {
+      "from": "segmented-control-segment",
+      "to": "focus-ring",
+      "part": "focusRing",
+      "partKind": "absolute",
+      "relation": "nest-fixed",
+      "variant": {
+        "surface": "default"
+      }
+    },
+    {
+      "from": "select",
+      "to": "focus-ring",
+      "part": "focusRing",
+      "partKind": "absolute",
+      "relation": "nest-fixed",
+      "variant": {
+        "surface": "default"
+      }
+    },
+    {
+      "from": "select",
+      "to": "field-label",
+      "part": "label",
+      "partKind": "nest",
+      "relation": "nest-exposed",
+      "variant": {
+        "size": "medium",
+        "emphasis": "secondary",
+        "weight": "regular",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ],
+      "expose": [
+        "emphasis",
+        "weight"
+      ]
+    },
+    {
+      "from": "select",
+      "to": "field-message",
+      "part": "message",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "status": "default"
+      },
+      "follow": [
+        "status"
+      ]
+    },
+    {
+      "from": "switch-control",
+      "to": "focus-ring",
+      "part": "focusRing",
+      "partKind": "absolute",
+      "relation": "nest-fixed",
+      "variant": {
+        "surface": "default"
+      }
+    },
+    {
+      "from": "switch-row",
+      "to": "switch-control",
+      "part": "control",
+      "partKind": "nest",
+      "relation": "nest-exposed",
+      "variant": {
+        "selection": "off",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ],
+      "expose": [
+        "selection",
+        "state",
+        "showStateLabel"
+      ]
+    },
+    {
+      "from": "tab",
+      "to": "badge",
+      "part": "count",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "type": "count",
+        "emphasis": "bold",
+        "tone": "neutral"
+      }
+    },
+    {
+      "from": "tab",
+      "to": "focus-ring",
+      "part": "focusRing",
+      "partKind": "absolute",
+      "relation": "nest-fixed",
+      "variant": {
+        "surface": "default"
+      }
+    },
+    {
+      "from": "tabs",
+      "to": "tab",
+      "part": "tab1",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "selection": "selected",
+        "size": "medium",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "tabs",
+      "to": "tab",
+      "part": "tab2",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "selection": "unselected",
+        "size": "medium",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "tabs",
+      "to": "tab",
+      "part": "tab3",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "selection": "unselected",
+        "size": "medium",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "tabs",
+      "to": "tab",
+      "part": "tab4",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "selection": "unselected",
+        "size": "medium",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "tabs",
+      "to": "tab",
+      "part": "tab5",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "selection": "unselected",
+        "size": "medium",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "tabs",
+      "to": "tab",
+      "part": "tab6",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "selection": "unselected",
+        "size": "medium",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "tag",
+      "to": "focus-ring",
+      "part": "focusRing",
+      "partKind": "absolute",
+      "relation": "nest-fixed",
+      "variant": {
+        "surface": "default"
+      }
+    },
+    {
+      "from": "text-field",
+      "to": "focus-ring",
+      "part": "focusRing",
+      "partKind": "absolute",
+      "relation": "nest-fixed",
+      "variant": {
+        "surface": "default"
+      }
+    },
+    {
+      "from": "text-field",
+      "to": "field-label",
+      "part": "label",
+      "partKind": "nest",
+      "relation": "nest-exposed",
+      "variant": {
+        "size": "medium",
+        "emphasis": "secondary",
+        "weight": "regular",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ],
+      "expose": [
+        "emphasis",
+        "weight"
+      ]
+    },
+    {
+      "from": "text-field",
+      "to": "field-message",
+      "part": "message",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "status": "default"
+      },
+      "follow": [
+        "status"
+      ]
+    },
+    {
+      "from": "textarea",
+      "to": "focus-ring",
+      "part": "focusRing",
+      "partKind": "absolute",
+      "relation": "nest-fixed",
+      "variant": {
+        "surface": "default"
+      }
+    },
+    {
+      "from": "textarea",
+      "to": "field-label",
+      "part": "label",
+      "partKind": "nest",
+      "relation": "nest-exposed",
+      "variant": {
+        "size": "medium",
+        "emphasis": "secondary",
+        "weight": "regular",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ],
+      "expose": [
+        "emphasis",
+        "weight"
+      ]
+    },
+    {
+      "from": "textarea",
+      "to": "field-message",
+      "part": "message",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "status": "default"
+      },
+      "follow": [
+        "status"
+      ]
+    }
+  ],
+  "components": {
+    "_accordion-indicator": {
+      "nests": [],
+      "nestsTransitively": [],
+      "nestedBy": [
+        "accordion"
+      ],
+      "affectedByChange": [
+        "accordion"
+      ],
+      "inheritedBy": []
+    },
+    "accordion": {
+      "nests": [
+        "_accordion-indicator",
+        "divider",
+        "focus-ring"
+      ],
+      "nestsTransitively": [
+        "_accordion-indicator",
+        "divider",
+        "focus-ring"
+      ],
+      "nestedBy": [],
+      "affectedByChange": [],
+      "inheritedBy": []
+    },
+    "badge": {
+      "nests": [],
+      "nestsTransitively": [],
+      "nestedBy": [
+        "tab"
+      ],
+      "affectedByChange": [
+        "tab",
+        "tabs"
+      ],
+      "inheritedBy": []
+    },
+    "button": {
+      "nests": [
+        "focus-ring",
+        "spinner"
+      ],
+      "nestsTransitively": [
+        "focus-ring",
+        "spinner"
+      ],
+      "nestedBy": [
+        "dialog"
+      ],
+      "affectedByChange": [
+        "dialog"
+      ],
+      "inheritedBy": [
+        "icon-button"
+      ]
+    },
+    "button-destructive": {
+      "nests": [
+        "focus-ring",
+        "spinner"
+      ],
+      "nestsTransitively": [
+        "focus-ring",
+        "spinner"
+      ],
+      "nestedBy": [],
+      "affectedByChange": [],
+      "inheritedBy": [
+        "icon-button-destructive"
+      ]
+    },
+    "button-neutral": {
+      "nests": [
+        "focus-ring",
+        "spinner"
+      ],
+      "nestsTransitively": [
+        "focus-ring",
+        "spinner"
+      ],
+      "nestedBy": [],
+      "affectedByChange": [],
+      "inheritedBy": [
+        "icon-button-neutral"
+      ]
+    },
+    "checkbox-control": {
+      "nests": [
+        "focus-ring"
+      ],
+      "nestsTransitively": [
+        "focus-ring"
+      ],
+      "nestedBy": [
+        "checkbox-row"
+      ],
+      "affectedByChange": [
+        "checkbox-group",
+        "checkbox-row"
+      ],
+      "inheritedBy": []
+    },
+    "checkbox-group": {
+      "nests": [
+        "checkbox-row",
+        "field-label"
+      ],
+      "nestsTransitively": [
+        "checkbox-control",
+        "checkbox-row",
+        "field-label",
+        "focus-ring"
+      ],
+      "nestedBy": [],
+      "affectedByChange": [],
+      "inheritedBy": []
+    },
+    "checkbox-row": {
+      "nests": [
+        "checkbox-control"
+      ],
+      "nestsTransitively": [
+        "checkbox-control",
+        "focus-ring"
+      ],
+      "nestedBy": [
+        "checkbox-group"
+      ],
+      "affectedByChange": [
+        "checkbox-group"
+      ],
+      "inherits": "text-field",
+      "inheritedBy": [
+        "radio-row",
+        "switch-row"
+      ]
+    },
+    "dialog": {
+      "nests": [
+        "button",
+        "divider",
+        "icon-button-neutral"
+      ],
+      "nestsTransitively": [
+        "button",
+        "divider",
+        "focus-ring",
+        "icon-button-neutral",
+        "spinner"
+      ],
+      "nestedBy": [],
+      "affectedByChange": [],
+      "inheritedBy": []
+    },
+    "divider": {
+      "nests": [],
+      "nestsTransitively": [],
+      "nestedBy": [
+        "accordion",
+        "dialog"
+      ],
+      "affectedByChange": [
+        "accordion",
+        "dialog"
+      ],
+      "inheritedBy": []
+    },
+    "field-label": {
+      "nests": [],
+      "nestsTransitively": [],
+      "nestedBy": [
+        "checkbox-group",
+        "radio-group",
+        "segmented-control",
+        "select",
+        "text-field",
+        "textarea"
+      ],
+      "affectedByChange": [
+        "checkbox-group",
+        "radio-group",
+        "segmented-control",
+        "select",
+        "text-field",
+        "textarea"
+      ],
+      "inheritedBy": []
+    },
+    "field-message": {
+      "nests": [],
+      "nestsTransitively": [],
+      "nestedBy": [
+        "select",
+        "text-field",
+        "textarea"
+      ],
+      "affectedByChange": [
+        "select",
+        "text-field",
+        "textarea"
+      ],
+      "inheritedBy": []
+    },
+    "focus-ring": {
+      "nests": [],
+      "nestsTransitively": [],
+      "nestedBy": [
+        "accordion",
+        "button",
+        "button-destructive",
+        "button-neutral",
+        "checkbox-control",
+        "icon-button",
+        "icon-button-destructive",
+        "icon-button-neutral",
+        "radio-control",
+        "segmented-control-segment",
+        "select",
+        "switch-control",
+        "tab",
+        "tag",
+        "text-field",
+        "textarea"
+      ],
+      "affectedByChange": [
+        "accordion",
+        "button",
+        "button-destructive",
+        "button-neutral",
+        "checkbox-control",
+        "checkbox-group",
+        "checkbox-row",
+        "dialog",
+        "icon-button",
+        "icon-button-destructive",
+        "icon-button-neutral",
+        "radio-control",
+        "radio-group",
+        "radio-row",
+        "segmented-control",
+        "segmented-control-segment",
+        "select",
+        "switch-control",
+        "switch-row",
+        "tab",
+        "tabs",
+        "tag",
+        "text-field",
+        "textarea"
+      ],
+      "inheritedBy": []
+    },
+    "icon": {
+      "nests": [],
+      "nestsTransitively": [],
+      "nestedBy": [],
+      "affectedByChange": [],
+      "inheritedBy": []
+    },
+    "icon-button": {
+      "nests": [
+        "focus-ring",
+        "spinner"
+      ],
+      "nestsTransitively": [
+        "focus-ring",
+        "spinner"
+      ],
+      "nestedBy": [],
+      "affectedByChange": [],
+      "inherits": "button",
+      "inheritedBy": []
+    },
+    "icon-button-destructive": {
+      "nests": [
+        "focus-ring",
+        "spinner"
+      ],
+      "nestsTransitively": [
+        "focus-ring",
+        "spinner"
+      ],
+      "nestedBy": [],
+      "affectedByChange": [],
+      "inherits": "button-destructive",
+      "inheritedBy": []
+    },
+    "icon-button-neutral": {
+      "nests": [
+        "focus-ring",
+        "spinner"
+      ],
+      "nestsTransitively": [
+        "focus-ring",
+        "spinner"
+      ],
+      "nestedBy": [
+        "dialog"
+      ],
+      "affectedByChange": [
+        "dialog"
+      ],
+      "inherits": "button-neutral",
+      "inheritedBy": []
+    },
+    "image-placeholder": {
+      "nests": [],
+      "nestsTransitively": [],
+      "nestedBy": [],
+      "affectedByChange": [],
+      "inheritedBy": []
+    },
+    "list": {
+      "nests": [
+        "list-item"
+      ],
+      "nestsTransitively": [
+        "list-item"
+      ],
+      "nestedBy": [],
+      "affectedByChange": [],
+      "inheritedBy": []
+    },
+    "list-item": {
+      "nests": [],
+      "nestsTransitively": [],
+      "nestedBy": [
+        "list"
+      ],
+      "affectedByChange": [
+        "list"
+      ],
+      "inheritedBy": []
+    },
+    "radio-control": {
+      "nests": [
+        "focus-ring"
+      ],
+      "nestsTransitively": [
+        "focus-ring"
+      ],
+      "nestedBy": [
+        "radio-row"
+      ],
+      "affectedByChange": [
+        "radio-group",
+        "radio-row"
+      ],
+      "inheritedBy": []
+    },
+    "radio-group": {
+      "nests": [
+        "field-label",
+        "radio-row"
+      ],
+      "nestsTransitively": [
+        "field-label",
+        "focus-ring",
+        "radio-control",
+        "radio-row"
+      ],
+      "nestedBy": [],
+      "affectedByChange": [],
+      "inheritedBy": []
+    },
+    "radio-row": {
+      "nests": [
+        "radio-control"
+      ],
+      "nestsTransitively": [
+        "focus-ring",
+        "radio-control"
+      ],
+      "nestedBy": [
+        "radio-group"
+      ],
+      "affectedByChange": [
+        "radio-group"
+      ],
+      "inherits": "checkbox-row",
+      "inheritedBy": []
+    },
+    "segmented-control": {
+      "nests": [
+        "field-label",
+        "segmented-control-segment"
+      ],
+      "nestsTransitively": [
+        "field-label",
+        "focus-ring",
+        "segmented-control-segment"
+      ],
+      "nestedBy": [],
+      "affectedByChange": [],
+      "inheritedBy": []
+    },
+    "segmented-control-segment": {
+      "nests": [
+        "focus-ring"
+      ],
+      "nestsTransitively": [
+        "focus-ring"
+      ],
+      "nestedBy": [
+        "segmented-control"
+      ],
+      "affectedByChange": [
+        "segmented-control"
+      ],
+      "inheritedBy": []
+    },
+    "select": {
+      "nests": [
+        "field-label",
+        "field-message",
+        "focus-ring"
+      ],
+      "nestsTransitively": [
+        "field-label",
+        "field-message",
+        "focus-ring"
+      ],
+      "nestedBy": [],
+      "affectedByChange": [],
+      "inheritedBy": []
+    },
+    "spinner": {
+      "nests": [],
+      "nestsTransitively": [],
+      "nestedBy": [
+        "button",
+        "button-destructive",
+        "button-neutral",
+        "icon-button",
+        "icon-button-destructive",
+        "icon-button-neutral"
+      ],
+      "affectedByChange": [
+        "button",
+        "button-destructive",
+        "button-neutral",
+        "dialog",
+        "icon-button",
+        "icon-button-destructive",
+        "icon-button-neutral"
+      ],
+      "inheritedBy": []
+    },
+    "switch-control": {
+      "nests": [
+        "focus-ring"
+      ],
+      "nestsTransitively": [
+        "focus-ring"
+      ],
+      "nestedBy": [
+        "switch-row"
+      ],
+      "affectedByChange": [
+        "switch-row"
+      ],
+      "inheritedBy": []
+    },
+    "switch-row": {
+      "nests": [
+        "switch-control"
+      ],
+      "nestsTransitively": [
+        "focus-ring",
+        "switch-control"
+      ],
+      "nestedBy": [],
+      "affectedByChange": [],
+      "inherits": "checkbox-row",
+      "inheritedBy": []
+    },
+    "tab": {
+      "nests": [
+        "badge",
+        "focus-ring"
+      ],
+      "nestsTransitively": [
+        "badge",
+        "focus-ring"
+      ],
+      "nestedBy": [
+        "tabs"
+      ],
+      "affectedByChange": [
+        "tabs"
+      ],
+      "inheritedBy": []
+    },
+    "tabs": {
+      "nests": [
+        "tab"
+      ],
+      "nestsTransitively": [
+        "badge",
+        "focus-ring",
+        "tab"
+      ],
+      "nestedBy": [],
+      "affectedByChange": [],
+      "inheritedBy": []
+    },
+    "tag": {
+      "nests": [
+        "focus-ring"
+      ],
+      "nestsTransitively": [
+        "focus-ring"
+      ],
+      "nestedBy": [],
+      "affectedByChange": [],
+      "inheritedBy": []
+    },
+    "text-field": {
+      "nests": [
+        "field-label",
+        "field-message",
+        "focus-ring"
+      ],
+      "nestsTransitively": [
+        "field-label",
+        "field-message",
+        "focus-ring"
+      ],
+      "nestedBy": [],
+      "affectedByChange": [],
+      "inheritedBy": [
+        "checkbox-row",
+        "textarea"
+      ]
+    },
+    "textarea": {
+      "nests": [
+        "field-label",
+        "field-message",
+        "focus-ring"
+      ],
+      "nestsTransitively": [
+        "field-label",
+        "field-message",
+        "focus-ring"
+      ],
+      "nestedBy": [],
+      "affectedByChange": [],
+      "inherits": "text-field",
+      "inheritedBy": []
+    },
+    "veil": {
+      "nests": [],
+      "nestsTransitively": [],
+      "nestedBy": [],
+      "affectedByChange": [],
+      "inheritedBy": []
+    }
+  },
+  "depth": {
+    "_accordion-indicator": 0,
+    "accordion": 1,
+    "badge": 0,
+    "button": 1,
+    "button-destructive": 1,
+    "button-neutral": 1,
+    "checkbox-control": 1,
+    "checkbox-group": 3,
+    "checkbox-row": 2,
+    "dialog": 2,
+    "divider": 0,
+    "field-label": 0,
+    "field-message": 0,
+    "focus-ring": 0,
+    "icon": 0,
+    "icon-button": 1,
+    "icon-button-destructive": 1,
+    "icon-button-neutral": 1,
+    "image-placeholder": 0,
+    "list": 1,
+    "list-item": 0,
+    "radio-control": 1,
+    "radio-group": 3,
+    "radio-row": 2,
+    "segmented-control": 2,
+    "segmented-control-segment": 1,
+    "select": 1,
+    "spinner": 0,
+    "switch-control": 1,
+    "switch-row": 2,
+    "tab": 1,
+    "tabs": 2,
+    "tag": 1,
+    "text-field": 1,
+    "textarea": 1,
+    "veil": 0
+  }
+}

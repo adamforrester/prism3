@@ -88,7 +88,7 @@ export interface CompStyle { id: string; name: string; fontName?: { family: stri
 
 /** A component already in the file, resolved by NAME — the swap targets and the nested shared
  *  components a plan nominates. `id` because an `INSTANCE_SWAP` property's default must be a node id. */
-export interface CompRef { id: string; name: string; createInstance(): CompNode }
+export interface CompRef { id: string; name: string; createInstance(): CompNode; /** Figma's identity for the component, which a slot's preferred value names (#2646). */ readonly key?: string }
 
 /** A component SET already in the file, resolved by NAME — a `nest-fixed` part's target (#681).
  *
@@ -97,7 +97,7 @@ export interface CompRef { id: string; name: string; createInstance(): CompNode 
  *  matching against Figma's property order is not. `defaultVariant` is deliberately NOT in this port —
  *  Figma offers it, and reading it is `#656`: its value is the set's first child, an artifact of creation
  *  order. A port that cannot name it cannot accidentally fall back to it. */
-export interface CompSetRef { id: string; name: string; children?: readonly CompMemberRef[] }
+export interface CompSetRef { id: string; name: string; children?: readonly CompMemberRef[]; /** Figma's identity for the set, which a slot's preferred value names (#2646). */ readonly key?: string }
 
 /** A MEMBER of a set, as its set's own `children` hand it back (#1781). The member is instantiated from
  *  HERE — out of the set the def named — and never re-looked-up by name in the document-wide COMPONENT
@@ -309,9 +309,15 @@ export interface CompSet extends CompNode {
   readonly componentPropertyDefinitions?: Record<string, { type?: string; variantOptions?: readonly string[] }>;
   addComponentProperty?(name: string, type: string, defaultValue: string | boolean): string;
   /** #2265 PR 2 — a default changed in place (the property keeps its id), and a property removed. */
-  editComponentProperty?(key: string, edit: { name?: string; defaultValue?: string | boolean }): string;
+  editComponentProperty?(key: string, edit: { name?: string; defaultValue?: string | boolean; slotSettings?: SlotSettingsWrite; preferredValues?: SlotPreferredValue[] }): string;
   deleteComponentProperty?(key: string): void;
 }
+
+/** A native slot's constraints as written (#2646): every declared field, an unset count as `null` (no limit), so a
+ *  write also clears what an earlier build set. Figma's `SlotSettings`, less `stretchChildOnInsert`, which no def sets. */
+export type SlotSettingsWrite = { minChildren: number | null; maxChildren: number | null; allowPreferredValuesOnly: boolean; displayEmptyByDefault: boolean };
+/** One preferred value on a SLOT property (#2646): Figma's `InstanceSwapPreferredValue`. */
+export type SlotPreferredValue = { type: 'COMPONENT' | 'COMPONENT_SET'; key: string };
 
 /** The minimal `figma` surface the component executor needs — declared as a port so the Node harness
  *  can drive it with a shim. The real `figma` satisfies it structurally, checked on every typecheck by
@@ -3166,6 +3172,59 @@ const writeComponentSet = async (
     } catch (err) {
       misses.push(`property ${p.name} -> ${p.type} REFUSED (${(err as Error).message})`);
     }
+  }
+
+  // ---- NATIVE SLOT CONSTRAINTS (#2646), on the SLOT property each slot's name merged into ----------------------
+  // Written on Build and on Update (the update's own pass runs this executor), and only where the plan declares them
+  // or the set still holds some, so a slot that declares none is never touched on a host without the API. Each
+  // preferred def id resolves to the set built under its name, found fresh because the set's key is what Figma
+  // stores; a def not built in this file is a named miss and the rest are written. A preferred-only slot with none
+  // of its preferred sets built is written open, since preferred-only with nothing preferred flags every child.
+  for (const p of readable ? props : []) {
+    if (p.type !== 'SLOT') continue;
+    const key = propIds.get(p.name);
+    if (!key) continue; // reported as not on the set, above
+    const had = (defs[key] ?? {}) as { slotSettings?: Record<string, unknown>; preferredValues?: readonly unknown[] };
+    const hs = had.slotSettings ?? {};
+    const hostHas = hs.minChildren != null || hs.maxChildren != null || hs.allowPreferredValuesOnly === true || hs.displayEmptyByDefault === true || (had.preferredValues ?? []).length > 0;
+    if (!p.slotSettings && !p.preferred && !hostHas) continue;
+    const preferredValues: SlotPreferredValue[] = [];
+    if (p.preferred?.length) {
+      // A def with variants builds a set under its id; a single-component def (#2296) builds one component under it.
+      const sets = api.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as readonly CompSetRef[];
+      const singles = api.root.findAllWithCriteria({ types: ['COMPONENT'] }) as readonly CompRef[];
+      for (const id of p.preferred) {
+        const asSet = sets.filter((x) => x.name === id);
+        const named: { key?: string }[] = asSet.length ? asSet : singles.filter((x) => x.name === id);
+        if (named.length === 1 && named[0].key) { preferredValues.push({ type: asSet.length ? 'COMPONENT_SET' : 'COMPONENT', key: named[0].key }); continue; }
+        misses.push(named.length > 1
+          ? `property ${p.name}.preferred -> ${id} (found ${named.length} components named ${id}; not offered in the slot. Rename or remove the stale copy, then rebuild)`
+          : named.length === 1
+            ? `property ${p.name}.preferred -> ${id} (the set carries no key on this host; not offered in the slot)`
+            : `property ${p.name}.preferred -> ${id} (not in this file — build ${id} first, then rebuild this one; until then the slot does not offer it)`);
+      }
+    }
+    const preferredOnly = p.slotSettings?.allowPreferredValuesOnly === true && preferredValues.length > 0;
+    if (p.slotSettings?.allowPreferredValuesOnly && !preferredOnly)
+      misses.push(`property ${p.name}.slotSettings.allowPreferredValuesOnly -> WRITTEN false (none of its preferred sets is in this file, and preferred-only with nothing preferred would flag every child)`);
+    const slotSettings: SlotSettingsWrite = {
+      minChildren: p.slotSettings?.minChildren ?? null,
+      maxChildren: p.slotSettings?.maxChildren ?? null,
+      allowPreferredValuesOnly: preferredOnly,
+      displayEmptyByDefault: p.slotSettings?.displayEmptyByDefault === true,
+    };
+    const edit = liveSet().editComponentProperty;
+    if (!edit) { misses.push(`property ${p.name}.slotSettings -> NOT WRITTEN (this host cannot edit a component property)`); continue; }
+    try { edit.call(liveSet(), key, { slotSettings, preferredValues }); }
+    catch (err) { misses.push(`property ${p.name}.slotSettings -> REFUSED (${(err as Error)?.message ?? String(err)})`); continue; }
+    // READ BACK off the set, so a host that took the write and kept something else is named.
+    let back: { slotSettings?: Record<string, unknown>; preferredValues?: readonly { key?: unknown }[] } | undefined;
+    try { back = (liveSet().componentPropertyDefinitions ?? {})[key] as typeof back; } catch { back = undefined; }
+    const bs = back?.slotSettings ?? {};
+    const gotSettings: SlotSettingsWrite = { minChildren: (bs.minChildren as number | null | undefined) ?? null, maxChildren: (bs.maxChildren as number | null | undefined) ?? null, allowPreferredValuesOnly: bs.allowPreferredValuesOnly === true, displayEmptyByDefault: bs.displayEmptyByDefault === true };
+    const gotKeys = (back?.preferredValues ?? []).map((v) => String(v.key));
+    if (JSON.stringify(gotSettings) !== JSON.stringify(slotSettings) || JSON.stringify(gotKeys) !== JSON.stringify(preferredValues.map((v) => v.key)))
+      misses.push(`property ${p.name}.slotSettings -> NOT KEPT (wrote ${JSON.stringify(slotSettings)} with ${preferredValues.length} preferred; the set holds ${JSON.stringify(gotSettings)} with ${gotKeys.length})`);
   }
 
   // WIRE the references, per MEMBER. They do NOT propagate: setting one on the first variant leaves

@@ -103,7 +103,7 @@ const fullFor = (plans: AnatomyPlan[]): ShimOpts => ({
  * built from the plan would map every id to the name the diff was hoping for, which is the whole
  * failure mode in one line.
  */
-const roundTrip = async (def: (typeof componentDefs)[number]): Promise<{ plans: AnatomyPlan[]; divergences: Divergence[]; members: number }> => {
+const roundTrip = async (def: (typeof componentDefs)[number], extra: Partial<ShimOpts> = {}): Promise<{ plans: AnatomyPlan[]; divergences: Divergence[]; members: number }> => {
   // NOMINATED, exactly as the real caller does (`apps/plugin/src/main.ts` — `SWAP_TARGET`). Building
   // the plan set without it is not a smaller version of the same build: the executor then reports
   // `swapTarget -> (none nominated; built as a placeholder frame)` and puts a FRAME where the plan
@@ -111,10 +111,14 @@ const roundTrip = async (def: (typeof componentDefs)[number]): Promise<{ plans: 
   // subject. That misconfiguration produced 2,970 findings on its first run and every one was mine.
   const plans = figmaAnatomySet(def, { swapTarget: SWAP_TARGET });
   const page: Page = { children: [] };
-  const shim = makeShim({ ...fullFor(plans), page });
+  const shim = makeShim({ ...fullFor(plans), page, ...extra });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
   await applyComponentPlan(plans, shim as any, {});
 
+  // A component key → its name, off the file's own catalog (#2646), for a slot's preferred values.
+  const catalog = (shim as unknown as { root: { findAllWithCriteria: (c: { types: string[] }) => { name: string; key?: string }[] } }).root;
+  const nameByKey = new Map([...catalog.findAllWithCriteria({ types: ['COMPONENT_SET'] }), ...catalog.findAllWithCriteria({ types: ['COMPONENT'] })]
+    .filter((c) => c.key).map((c) => [String(c.key), c.name] as const));
   const vars = await (shim as unknown as { variables: { getLocalVariablesAsync: () => Promise<{ id: string; name: string }[]> } }).variables.getLocalVariablesAsync();
   const texts = await (shim as unknown as { getLocalTextStylesAsync: () => Promise<{ id: string; name: string }[]> }).getLocalTextStylesAsync();
   const effects = await (shim as unknown as { getLocalEffectStylesAsync: () => Promise<{ id: string; name: string }[]> }).getLocalEffectStylesAsync();
@@ -123,6 +127,7 @@ const roundTrip = async (def: (typeof componentDefs)[number]): Promise<{ plans: 
   const ports: ReadPorts = {
     varName: (id) => varById.get(id) ?? null,
     styleName: (id) => styleById.get(id) ?? null,
+    componentName: (key) => nameByKey.get(key) ?? null,
   };
 
   const set = page.children[0];
@@ -165,9 +170,17 @@ const BUTTON_LAID = PROJECTED.flatMap((d) => ([
   ['edges', { ...DEFAULT_BUTTON_LAYOUT, icons: 'edges' }],
   ['smaller', { ...DEFAULT_BUTTON_LAYOUT, content: 'smaller' }],
 ] as const).flatMap(([tag, layout]) => { const m = applyButtonLayout(d, layout, nbPx); return m === d ? [] : [{ ...m, id: `${d.id}@${tag}` }]; }));
-for (const def of [...PROJECTED, ...TINTED, ...BUTTON_LAID]) {
+// …and one CONSTRAINED native slot (#2646). No committed def constrains a slot yet (Accordion's panel is open, a DRAFT
+// owner item), so without this row `slotSettings` and `slotPreferred` compare nothing. Test-only, as
+// `test-native-slots.ts` builds it: Tag with its dismiss cell a slot holding 1 to 2 children, preferring Badge, which
+// the file holds as a set.
+const tagDef = PROJECTED.find((d) => d.id === 'tag')!;
+const SLOT_CONSTRAINED = [{ ...tagDef, id: 'tag@slot-constraints', anatomy: { ...tagDef.anatomy!, parts: { ...tagDef.anatomy!.parts,
+  dismiss: { ...tagDef.anatomy!.parts.dismiss, contentSlot: true as const, slotSettings: { minChildren: 1, maxChildren: 2, allowPreferredValuesOnly: true }, preferred: ['badge'] } } } }];
+const SLOT_FILE: Partial<ShimOpts> = { fileNodes: [{ name: 'badge', type: 'COMPONENT_SET', variants: ['tone=neutral'] }] };
+for (const def of [...PROJECTED, ...TINTED, ...BUTTON_LAID, ...SLOT_CONSTRAINED]) {
   try {
-    const r = await roundTrip(def);
+    const r = await roundTrip(def, SLOT_CONSTRAINED.includes(def as (typeof SLOT_CONSTRAINED)[number]) ? SLOT_FILE : {});
     inventory.push({ def: def.id, divergences: r.divergences, members: r.members, plans: r.plans.length });
   } catch (e) {
     inventory.push({ def: def.id, divergences: [{ member: '(build)', path: '', field: 'THREW', expected: 'a built set', actual: (e as Error).message }], members: 0, plans: 0 });
@@ -179,6 +192,9 @@ ok(TINTED.length > 0 && washPaints > 0,
 
 ok(BUTTON_LAID.length === 6 && (EXERCISED.pin ?? 0) > 0 && (EXERCISED.paddingPx ?? 0) > 0 && (EXERCISED.minWidth ?? 0) > 0,
   `#1667 the button-lever materializations round-trip too — ${BUTTON_LAID.length} def(s); ${EXERCISED.pin ?? 0} pinned icons (ABSOLUTE + edge constraint + inset), ${EXERCISED.paddingPx ?? 0} reserved paddings, ${EXERCISED.minWidth ?? 0} floors read back off the host`);
+
+ok((EXERCISED.slotSettings ?? 0) > 0 && (EXERCISED.slotPreferred ?? 0) > 0,
+  `#2646 a constrained native slot round-trips: ${EXERCISED.slotSettings ?? 0} slot(s) read their constraints, ${EXERCISED.slotPreferred ?? 0} their preferred sets, back off the set's SLOT property`);
 
 // ---- THE REPORT --------------------------------------------------------------------------------
 const clean = inventory.filter((i) => !i.divergences.length);

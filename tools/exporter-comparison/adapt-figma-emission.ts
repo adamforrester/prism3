@@ -83,7 +83,7 @@ export type FigmaAlias = { type: 'VARIABLE_ALIAS'; id: string };
 export type AdaptedVariable = {
   id: string;
   name: string;
-  resolvedType: 'COLOR' | 'FLOAT' | 'STRING' | 'BOOLEAN';
+  resolvedType: 'COLOR' | 'FLOAT' | 'STRING' | 'BOOLEAN' | 'TIMING' | 'EASING';
   valuesByMode: Record<string, unknown>;
   scopes: string[];
   description: string;
