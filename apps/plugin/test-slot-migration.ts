@@ -24,7 +24,7 @@
  *   tabs/…      a Tabs instance with four tabs, the third selected, keeps the count, order and selection.
  *   list/…      a List instance with every item on carries all eight.
  *   segmented/… rows that sat in a layer the update keeps (`track`): four options, the second selected, each growing.
- *   converge/…  the next dry run has nothing to carry: the set reads current.
+ *   converge/…  the next dry run has nothing to carry: the set reads current, and no old boolean is left to remove.
  *   untouched/… an instance left at its defaults carries its three default rows as three items.
  *
  * Mutations, each failing by name:
@@ -33,6 +33,7 @@
  *   · the apply's capture-then-fill removed (`o.carried` not set) → `carry/count`, `tabs/carried`;
  *   · the dry run's migration lines dropped → `dry run/lines`;
  *   · the lost-override read dropped → `lost/named`.
+ *   · the apply stops deleting removed properties → `converge/booleans gone`.
  */
 import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles } from '@prism3/engine/anatomy-figma';
 import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
@@ -291,6 +292,8 @@ section('carry — a Checkbox group instance with five visible rows becomes five
   const again = await previewUpdate(w.host, [target]);
   ok(!again.sets[0].slotMigration && again.sets[0].counts.current === again.sets[0].counts.members,
     `converge/checkbox: the next dry run has nothing to carry and every member reads current (${JSON.stringify(again.sets[0].counts)})`);
+  ok(again.sets[0].properties.remove.length === 0,
+    `converge/booleans gone: the next dry run has no property left to remove (${again.sets[0].properties.remove.map((p) => p.name).join(', ')})`);
 }
 
 // ---- tabs ----------------------------------------------------------------------------------------------------
