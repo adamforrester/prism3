@@ -425,10 +425,10 @@
       "label": "Motion variables",
       "role": "output",
       "kind": "artifact",
-      "status": "partial",
+      "status": "shipped",
       "column": "outputs",
       "parent": "figma-file",
-      "purpose": "Durations and easing curves reach Figma today as number variables in milliseconds. Native TIMING and EASING variables, with springs, are not written yet.",
+      "purpose": "Durations reach Figma as TIMING variables in seconds; curves, easing roles and springs as EASING variables. A transition has no Figma form, so its duration and its easing role are written instead.",
       "inputs": [
         "Apply theme"
       ],
@@ -437,6 +437,7 @@
       ],
       "sources": [
         "packages/engine/emit-figma.ts",
+        "packages/engine/emit-figma-dims.ts",
         "packages/engine/write-plan.ts"
       ],
       "docs": "docs/10-figma-materialization.md"
@@ -449,7 +450,7 @@
       "status": "shipped",
       "column": "outputs",
       "parent": "figma-file",
-      "purpose": "A component set per definition, each on its own page, bound to the variables. An update checks first and writes nothing, then applies after the agent confirms. Prune previews before it deletes. Labels and inverse backdrops are drawn around each set as canvas furniture.",
+      "purpose": "A component set per definition, with each family on its own page, bound to the variables. An update checks first and writes nothing, then applies after the agent confirms. Prune previews before it deletes. Labels and inverse backdrops are drawn around each set as canvas furniture.",
       "inputs": [
         "Component plans, through the plugin or the MCP scripts"
       ],
@@ -473,7 +474,7 @@
       "status": "shipped",
       "column": "outputs",
       "parent": "figma-file",
-      "purpose": "Tables drawn onto the file's token pages for color, dimensions, font variables and text styles. Each specimen is bound to the variable it shows, so it repaints when a value changes. A further phase is specified, not built.",
+      "purpose": "Tables drawn onto the file's token pages for color, dimensions, border widths, opacity, font variables, and text, effect and gradient styles. Each specimen is bound to the variable it shows, so it repaints when a value changes. Motion, grid and breakpoint tables are specified, not built.",
       "inputs": [
         "The plugin's Build style guides page",
         "The agent link's style-guide command"
@@ -798,7 +799,7 @@
       "id": "agent-link",
       "label": "Agent link",
       "status": "shipped",
-      "purpose": "One versioned command protocol for driving the open plugin. Commands arrive through the file's mailbox or the desktop bridge and run through the same handlers as the panel's buttons. Off by default, never persisted, and nothing in a command is evaluated.",
+      "purpose": "One versioned command protocol for driving the open plugin. Commands arrive through the file's mailbox or the desktop bridge and run through the same handlers as the panel's buttons. Off by default and never persisted. In the release build nothing in a command is evaluated; the development build adds one command, run-code, for testing.",
       "sources": [
         "apps/plugin/src/agent-protocol.ts",
         "apps/plugin/src/agent-link.ts",
@@ -1214,7 +1215,7 @@
         },
         "agent": {
           "status": "shipped",
-          "via": "In every theme_brand result",
+          "via": "In theme_brand results by default",
           "sources": [
             "packages/engine/mcp.ts"
           ],
