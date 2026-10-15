@@ -260,6 +260,7 @@ export const CLI_EXCLUDED: Record<string, string> = {
   'packages/engine/emit-figma.ts': 'a regen step; run regen.ts',
   'packages/engine/emit-brandinput.ts': 'a regen step; run regen.ts',
   'packages/engine/emit-component-docs.ts': 'a regen step; run regen.ts',
+  'packages/engine/kb-briefs-refresh.ts': 'a maintainer refresh of schema/kb-briefs.json that reads a knowledge-base checkout outside this repository (#2488); nothing an agent can run here',
 };
 /** Gates are excluded by name pattern: there are dozens, and `verify.ts --list` is their reference. */
 const GATE = /^packages\/engine\/lint-[a-z0-9-]+\.ts$/;
