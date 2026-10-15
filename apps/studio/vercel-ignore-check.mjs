@@ -182,6 +182,7 @@ try {
   expect('a studio change BUILDS', decide(step('apps/studio/src/main.ts', 'studio')), 1);
   expect('a plugin-only change is SKIPPED', decide(step('apps/plugin/src/x.ts', 'plugin')), 0);
   expect('a vercel.json change BUILDS', decide(step('vercel.json', 'vercel')), 1);
+  expect('a docs/public change BUILDS — the site serves it at /docs (#2637)', decide(step('docs/public/llms.txt', 'served docs')), 1);
   // #1953: the branch's newest commit is docs-only, but a commit since the last deployment changed the app.
   const deployed = git('rev-parse', 'HEAD');
   touch('apps/studio/src/main.ts', 'b\n'); git('add', '-A'); git('commit', '-qm', 'studio again');
