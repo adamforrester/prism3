@@ -187,7 +187,7 @@ const INNER_TARGETS: Record<string, { key: (size: string) => string; why: string
 // ── HOSTS OF A NESTED FLUSH BUTTON (#2317): a host whose nested Button is flush owes the same code-side hit area ────
 // The nested Button's own def states the rule (FLUSH_MEMBERS), but a designer or agent reads the HOST, so the host
 // states it too, with the same phrases. Compared both ways with the defs' nested coordinates.
-const FLUSH_NESTS = new Set(['password-field']);
+const FLUSH_BUTTON_HOSTS = new Set(['password-field']);
 
 // ── FLUSH MEMBERS (#2408): the defs whose flush member drops its width floor, so its hit area is code-side ────
 // Authored here and compared both ways with the defs' own `flush` fields, so a new flush def cannot arrive with
@@ -538,15 +538,15 @@ for (const def of componentDefs) {
   if (!flushes && FLUSH_MEMBERS.has(def.id))
     failures.push(`FLUSH_MEMBERS names '${def.id}', which has no flush part — a stale entry.`);
 }
-// The hosts of a nested flush Button, both ways, and each states the code-side rule in its own codeOnly.
+// The hosts of a nested flush Button (FLUSH_BUTTON_HOSTS; FLUSH_NESTS below is the Counter's different rule), both ways, and each states the code-side rule in its own codeOnly.
 for (const def of componentDefs) {
   if (!(def.id in INTERACTIVE)) continue;
   const nestsFlush = Object.values(def.anatomy?.parts ?? {}).some((p) => p.kind === 'nest' && !!p.nests && p.nests in INTERACTIVE
     && (p.nesting as { variant?: Record<string, string> } | undefined)?.variant?.inset === 'flush');
-  if (nestsFlush && !FLUSH_NESTS.has(def.id))
-    failures.push(`${def.id}: nests a flush Button, whose width floor is code-side, and FLUSH_NESTS does not list it — state the 44×44 code-side hit area in its codeOnly and list it.`);
-  if (!nestsFlush && FLUSH_NESTS.has(def.id))
-    failures.push(`FLUSH_NESTS names '${def.id}', which nests no flush Button — a stale entry.`);
+  if (nestsFlush && !FLUSH_BUTTON_HOSTS.has(def.id))
+    failures.push(`${def.id}: nests a flush Button, whose width floor is code-side, and FLUSH_BUTTON_HOSTS does not list it — state the 44×44 code-side hit area in its codeOnly and list it.`);
+  if (!nestsFlush && FLUSH_BUTTON_HOSTS.has(def.id))
+    failures.push(`FLUSH_BUTTON_HOSTS names '${def.id}', which nests no flush Button — a stale entry.`);
   if (nestsFlush) {
     const gap = flushRuleGap(def.anatomy?.codeOnly ?? []);
     rows.push(`${def.id} → a nested flush Button; hit area ≥ 44×44 in code at ${FLUSH_SIZES.join(' and ')}, ≥ 24×24 at ${FLUSH_SMALL_SIZES.join(', ')} (codeOnly) [code-side rule, #2317]${gap.length ? '  ✗' : ''}`);

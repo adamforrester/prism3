@@ -2044,6 +2044,8 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
     }
   }
   ok(read > 0 && off.length === 0, `reactions read-back: on ${INTERACTIVE.length} interactive defs (${read} members read off the host) Rest goes to Hover while hovering only, Hover to Pressed while pressing only, nothing else reacts (${off.length} off${off.length ? `: ${off.slice(0, 3).join(' | ')}` : ''})`);
+}
+
 // ── #2427 — THE COUNTER'S TWO BUTTONS, BUILT AND READ BACK OFF THE HOST ──────────────────────────────────
 //
 // The Counter nests FlushIconButton.Neutral twice (decrement, increment), each `nest-exposed` with `state`, and maps
