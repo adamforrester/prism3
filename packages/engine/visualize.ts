@@ -1,5 +1,5 @@
 /**
- * Prism3 engine — token visualiser.
+ * Prism3 engine — token visualizer.
  *
  * Reads the emitted DTCG files (out/*.tokens.json) and renders a single
  * self-contained HTML page covering every generated axis: colour swatches per
@@ -16,7 +16,7 @@
  * Also prints a plain-text taxonomy to stdout.
  *
  *   npm run tokens-html                                # writes out/tokens.html
- *   npx tsx packages/engine/visualize.ts               # the same
+ *   npx tsx packages/engine/visualize.ts               # writes out/tokens.html too
  *   npx tsx packages/engine/visualize.ts --out <dir>   # writes <dir>/tokens.html instead
  *
  * The page is BUILT ON DEMAND and never committed (Q319.6, #2583): it is gitignored, `regen.ts` does not
