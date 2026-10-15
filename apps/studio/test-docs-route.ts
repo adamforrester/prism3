@@ -13,7 +13,8 @@
  *
  * Mutations this fails by name: `DOCS_ROUTE` changed to `/doc/` → `GET /docs/llms.txt answers 200`; `DOCS_DIR`
  * pointed at another directory → the same two lines; the traversal guard removed from `docsPath` →
- * `GET /docs/%2e%2e/%2e%2e/package.json is refused`.
+ * `GET /docs/%2e%2e/%2e%2e/package.json is refused`; the redirect dropped from `serveDocs` →
+ * `GET /docs/reference redirects 301 to /docs/reference/`.
  */
 import { createServer, request } from 'node:http';
 import { readFileSync } from 'node:fs';
@@ -64,6 +65,19 @@ try {
   try { parsed = JSON.parse(json.body.toString('utf8')); } catch { /* reported below */ }
   ok(Array.isArray(parsed.mcp) && Array.isArray(parsed.agentLink?.commands), 'commands.json parses and carries mcp and agentLink.commands');
 
+  // A directory asked for without its trailing slash moves to the slash path, so a page in it resolves its
+  // relative URLs inside the directory. `docs/public/reference/` is a directory on disk today; `/docs` is the root.
+  for (const [path, to] of [['/docs/reference', '/docs/reference/'], ['/docs/reference?x=1', '/docs/reference/?x=1'], ['/docs', '/docs/']]) {
+    const r = await new Promise<{ status: number; location: string }>((done, fail) => {
+      const q = request({ host: '127.0.0.1', port, path, method: 'GET' }, (res) => { res.resume(); res.on('end', () => done({ status: res.statusCode ?? 0, location: String(res.headers.location ?? '') })); });
+      q.on('error', fail);
+      q.end();
+    });
+    ok(r.status === 301 && r.location === to, `GET ${path} redirects 301 to ${to}`, `got ${r.status} ${r.location}`);
+  }
+  const file = await get('/docs/llms.txt');
+  ok(file.status === 200, 'a file is not redirected: GET /docs/llms.txt still answers 200', `got ${file.status}`);
+
   const miss = await get('/docs/no-such-file.txt');
   ok(miss.status === 404, 'GET /docs/no-such-file.txt answers 404', `got ${miss.status}`);
   for (const path of ['/docs/%2e%2e/%2e%2e/package.json', '/docs/../../package.json']) {
@@ -77,4 +91,4 @@ try {
 }
 
 console.log(`\n${executed - failed}/${executed} passed`);
-if (failed || executed < 11) process.exit(1);
+if (failed || executed < 15) process.exit(1);

@@ -11,7 +11,7 @@
         "2026-07-28",
         "2024-11-05"
       ],
-      "source": "packages/engine/mcp.ts:732",
+      "source": "packages/engine/mcp.ts#isMain",
       "tools": [
         {
           "name": "list_levers",
@@ -89,7 +89,7 @@
             },
             "text": "the same object as JSON in content[0].text"
           },
-          "source": "packages/engine/mcp.ts:236"
+          "source": "packages/engine/mcp.ts#name: 'list_levers'"
         },
         {
           "name": "theme_brand",
@@ -100,7 +100,7 @@
             "properties": {
               "brand": {
                 "$ref": "packages/engine/schema/theme-schema.json",
-                "description": "A BrandInput, the shape in packages/engine/schema/theme-schema.json."
+                "description": "A BrandInput, the shape in packages/engine/schema/theme-schema.json, which tools/list sends compacted: each description cut to its one-line summary, every other keyword unchanged."
               },
               "include": {
                 "type": "array",
@@ -124,7 +124,7 @@
             "structuredContent": null,
             "text": "a JSON object in content[0].text; this tool declares no outputSchema"
           },
-          "source": "packages/engine/mcp.ts:265"
+          "source": "packages/engine/mcp.ts#name: 'theme_brand'"
         },
         {
           "name": "score_consumption",
@@ -198,7 +198,7 @@
             },
             "text": "the same object as JSON in content[0].text"
           },
-          "source": "packages/engine/mcp.ts:284"
+          "source": "packages/engine/mcp.ts#name: 'score_consumption'"
         },
         {
           "name": "theme_from_brief",
@@ -233,7 +233,7 @@
             "structuredContent": null,
             "text": "a JSON object in content[0].text; this tool declares no outputSchema"
           },
-          "source": "packages/engine/mcp.ts:321"
+          "source": "packages/engine/mcp.ts#name: 'theme_from_brief'"
         },
         {
           "name": "export_theme",
@@ -315,7 +315,7 @@
             },
             "text": "the same object as JSON in content[0].text"
           },
-          "source": "packages/engine/mcp.ts:336"
+          "source": "packages/engine/mcp.ts#name: 'export_theme'"
         },
         {
           "name": "validate_brand",
@@ -346,7 +346,7 @@
             },
             "text": "the same object as JSON in content[0].text"
           },
-          "source": "packages/engine/mcp.ts:372"
+          "source": "packages/engine/mcp.ts#name: 'validate_brand'"
         }
       ]
     },
@@ -358,7 +358,7 @@
         "2026-07-28",
         "2024-11-05"
       ],
-      "source": "tools/figma-bridge/server.ts:404",
+      "source": "tools/figma-bridge/server.ts#isMain",
       "tools": [
         {
           "name": "figma_status",
@@ -372,7 +372,7 @@
             "structuredContent": null,
             "text": "a JSON object in content[0].text; this tool declares no outputSchema"
           },
-          "source": "tools/figma-bridge/server.ts:298"
+          "source": "tools/figma-bridge/server.ts#name: 'figma_status'"
         },
         {
           "name": "figma_run",
@@ -413,7 +413,7 @@
             "structuredContent": null,
             "text": "a JSON object in content[0].text; this tool declares no outputSchema"
           },
-          "source": "tools/figma-bridge/server.ts:303"
+          "source": "tools/figma-bridge/server.ts#name: 'figma_run'"
         },
         {
           "name": "figma_logs",
@@ -434,23 +434,23 @@
             "structuredContent": null,
             "text": "a JSON object in content[0].text; this tool declares no outputSchema"
           },
-          "source": "tools/figma-bridge/server.ts:317"
+          "source": "tools/figma-bridge/server.ts#name: 'figma_logs'"
         }
       ]
     }
   ],
   "agentLink": {
     "protocolVersion": 1,
-    "source": "apps/plugin/src/agent-protocol.ts:41",
+    "source": "apps/plugin/src/agent-protocol.ts#AGENT_COMMANDS",
     "precondition": "The owner has switched the agent link on in the plugin, in the file the agent is working in.",
     "command": {
       "shape": "{ v, id, cmd, args, issuedAt }",
       "id": "1 to 64 characters of A-Z, a-z, 0-9, dot, underscore or hyphen",
-      "source": "apps/plugin/src/agent-protocol.ts:106"
+      "source": "apps/plugin/src/agent-protocol.ts#AgentCommand"
     },
     "result": {
       "shape": "{ v, id, cmd, ok, startedAt, finishedAt, engineVersion, transport, result: { verdict, data, logs } | error: { code, message }, progress? }",
-      "source": "apps/plugin/src/agent-protocol.ts:152"
+      "source": "apps/plugin/src/agent-protocol.ts#AgentResult"
     },
     "transports": {
       "mailbox": {
@@ -467,54 +467,54 @@
         "pollMs": 1000,
         "keep": 20,
         "chunkBytes": 90000,
-        "source": "apps/plugin/src/agent-protocol.ts:312"
+        "source": "apps/plugin/src/agent-protocol.ts#MAILBOX"
       },
       "bridge": {
         "about": "A local WebSocket the plugin panel connects to, driven through the figma-bridge MCP server's figma_run tool.",
         "port": 17331,
-        "source": "apps/plugin/src/agent-bridge-relay.ts:20"
+        "source": "apps/plugin/src/agent-bridge-relay.ts#BRIDGE_PORT"
       }
     },
     "errors": [
       {
         "code": "bad-envelope",
         "meaning": "Not an object, or `id`/`issuedAt` missing or unusable.",
-        "source": "apps/plugin/src/agent-protocol.ts:113"
+        "source": "apps/plugin/src/agent-protocol.ts#AgentErrorCode.bad-envelope"
       },
       {
         "code": "bad-version",
         "meaning": "`v` is not `AGENT_PROTOCOL_VERSION`.",
-        "source": "apps/plugin/src/agent-protocol.ts:115"
+        "source": "apps/plugin/src/agent-protocol.ts#AgentErrorCode.bad-version"
       },
       {
         "code": "unknown-command",
         "meaning": "`cmd` is not in `AGENT_COMMANDS`.",
-        "source": "apps/plugin/src/agent-protocol.ts:117"
+        "source": "apps/plugin/src/agent-protocol.ts#AgentErrorCode.unknown-command"
       },
       {
         "code": "bad-args",
         "meaning": "`args` is not the shape that cmd takes.",
-        "source": "apps/plugin/src/agent-protocol.ts:119"
+        "source": "apps/plugin/src/agent-protocol.ts#AgentErrorCode.bad-args"
       },
       {
         "code": "stale",
         "meaning": "The command was already queued when the owner switched the link on, so it was not run.",
-        "source": "apps/plugin/src/agent-protocol.ts:121"
+        "source": "apps/plugin/src/agent-protocol.ts#AgentErrorCode.stale"
       },
       {
         "code": "handler-threw",
         "meaning": "The handler threw past its own catch — a defect in the plugin, reported rather than swallowed.",
-        "source": "apps/plugin/src/agent-protocol.ts:123"
+        "source": "apps/plugin/src/agent-protocol.ts#AgentErrorCode.handler-threw"
       },
       {
         "code": "link-off",
         "meaning": "A bridge command reached the plugin after the owner switched the link off.",
-        "source": "apps/plugin/src/agent-protocol.ts:125"
+        "source": "apps/plugin/src/agent-protocol.ts#AgentErrorCode.link-off"
       },
       {
         "code": "busy",
         "meaning": "A run of the same write was already going, the panel's or an agent's, so this one was not run (#1957).",
-        "source": "apps/plugin/src/agent-protocol.ts:127"
+        "source": "apps/plugin/src/agent-protocol.ts#AgentErrorCode.busy"
       }
     ],
     "commands": [
@@ -522,7 +522,7 @@
         "name": "status",
         "args": "Record<string, never>",
         "description": "Engine version, plugin build, the file's themed state, and which transports are listening.",
-        "source": "apps/plugin/src/agent-protocol.ts:51",
+        "source": "apps/plugin/src/agent-protocol.ts#AgentArgs.status",
         "writes": "Nothing. Reads the link state, the plugin build and the file's themed state.",
         "refuses": [],
         "devOnly": false
@@ -531,12 +531,12 @@
         "name": "apply-theme",
         "args": "{ input: BrandInput }",
         "description": "A full `BrandInput`, as the UI's Apply sends it.",
-        "source": "apps/plugin/src/agent-protocol.ts:53",
+        "source": "apps/plugin/src/agent-protocol.ts#AgentArgs.apply-theme",
         "writes": "Variables, collections, text styles and effect styles for the brand, as the panel's Apply does.",
         "refuses": [
           {
             "message": "apply-theme needs args.input: a BrandInput object, as the UI's Apply sends it",
-            "source": "apps/plugin/src/agent-protocol.ts:218"
+            "source": "apps/plugin/src/agent-protocol.ts#parseCommand.apply-theme"
           }
         ],
         "devOnly": false
@@ -545,12 +545,12 @@
         "name": "build-components",
         "args": "{ def?: string }",
         "description": "A `componentDefs` id; absent means Button, as for the UI message.",
-        "source": "apps/plugin/src/agent-protocol.ts:55",
+        "source": "apps/plugin/src/agent-protocol.ts#AgentArgs.build-components",
         "writes": "Component sets on their component pages, creating a page when it is missing.",
         "refuses": [
           {
             "message": "build-components takes args.def: a component def id, or no def for Button",
-            "source": "apps/plugin/src/agent-protocol.ts:226"
+            "source": "apps/plugin/src/agent-protocol.ts#parseCommand.build-components"
           }
         ],
         "devOnly": false
@@ -559,7 +559,7 @@
         "name": "file-setup",
         "args": "Record<string, never>",
         "description": "The page scaffold + the two template assets. No payload.",
-        "source": "apps/plugin/src/agent-protocol.ts:57",
+        "source": "apps/plugin/src/agent-protocol.ts#AgentArgs.file-setup",
         "writes": "The page structure (cover, dividers, section pages) and the two template assets. Idempotent.",
         "refuses": [],
         "devOnly": false
@@ -568,56 +568,56 @@
         "name": "style-guide",
         "args": "StyleGuideOptions",
         "description": "The color style-guide tables (#259) — every field optional, as the panel's Customize options.",
-        "source": "apps/plugin/src/agent-protocol.ts:59",
+        "source": "apps/plugin/src/agent-protocol.ts#AgentArgs.style-guide",
         "writes": "Style-guide tables on the canvas.",
         "refuses": [
           {
             "message": "style-guide takes args.collections: an array of collection names",
-            "source": "apps/plugin/src/agent-protocol.ts:233"
+            "source": "apps/plugin/src/agent-protocol.ts#parseCommand.style-guide"
           },
           {
             "message": "style-guide takes args.types: an array of token types, e.g. ['color']",
-            "source": "apps/plugin/src/agent-protocol.ts:234"
+            "source": "apps/plugin/src/agent-protocol.ts#parseCommand.style-guide"
           },
           {
             "message": "style-guide takes args.valueFormat: hex, rgba, hsl or hsb",
-            "source": "apps/plugin/src/agent-protocol.ts:235"
+            "source": "apps/plugin/src/agent-protocol.ts#parseCommand.style-guide"
           },
           {
             "message": "style-guide takes args.header: dark or light",
-            "source": "apps/plugin/src/agent-protocol.ts:236"
+            "source": "apps/plugin/src/agent-protocol.ts#parseCommand.style-guide"
           },
           {
             "message": "style-guide takes args.display: auto, default, text, icon, border or transparency",
-            "source": "apps/plugin/src/agent-protocol.ts:237"
+            "source": "apps/plugin/src/agent-protocol.ts#parseCommand.style-guide"
           },
           {
             "message": "style-guide takes args.aliases and args.description as booleans",
-            "source": "apps/plugin/src/agent-protocol.ts:238"
+            "source": "apps/plugin/src/agent-protocol.ts#parseCommand.style-guide"
           },
           {
             "message": "style-guide takes args.dimensionDisplay: filled or line (auto means filled)",
-            "source": "apps/plugin/src/agent-protocol.ts:240"
+            "source": "apps/plugin/src/agent-protocol.ts#parseCommand.style-guide"
           },
           {
             "message": "style-guide takes args.fontDisplay: auto, generic, family, size, weight, letterSpacing or lineHeight",
-            "source": "apps/plugin/src/agent-protocol.ts:241"
+            "source": "apps/plugin/src/agent-protocol.ts#parseCommand.style-guide"
           },
           {
             "message": "style-guide takes args.rem, args.paragraphSpacing and args.textDecoration as booleans",
-            "source": "apps/plugin/src/agent-protocol.ts:242"
+            "source": "apps/plugin/src/agent-protocol.ts#parseCommand.style-guide"
           },
           {
             "message": "style-guide takes args.titleCell as a boolean",
-            "source": "apps/plugin/src/agent-protocol.ts:243"
+            "source": "apps/plugin/src/agent-protocol.ts#parseCommand.style-guide"
           },
           {
             "message": "style-guide takes args.tokenNames: full (the whole variable name) or short (the name below the table's shared prefix)",
-            "source": "apps/plugin/src/agent-protocol.ts:244"
+            "source": "apps/plugin/src/agent-protocol.ts#parseCommand.style-guide"
           },
           {
             "message": "style-guide takes args.tables: a non-empty array of table titles or keys, e.g. ['Primary — nbds']",
-            "source": "apps/plugin/src/agent-protocol.ts:247"
+            "source": "apps/plugin/src/agent-protocol.ts#parseCommand.style-guide"
           }
         ],
         "devOnly": false
@@ -626,16 +626,16 @@
         "name": "prune",
         "args": "{ input: BrandInput; confirm: boolean }",
         "description": "`confirm: false` previews, `confirm: true` deletes — the UI's two-step prune, in one field.",
-        "source": "apps/plugin/src/agent-protocol.ts:61",
+        "source": "apps/plugin/src/agent-protocol.ts#AgentArgs.prune",
         "writes": "With confirm: false, nothing (a preview of what would go). With confirm: true, deletes the variables and styles the brand no longer emits, recomputed from a fresh read.",
         "refuses": [
           {
             "message": "prune needs args.input: a BrandInput object",
-            "source": "apps/plugin/src/agent-protocol.ts:221"
+            "source": "apps/plugin/src/agent-protocol.ts#parseCommand.prune"
           },
           {
             "message": "prune needs args.confirm: false to preview, true to delete",
-            "source": "apps/plugin/src/agent-protocol.ts:222"
+            "source": "apps/plugin/src/agent-protocol.ts#parseCommand.prune"
           }
         ],
         "devOnly": false
@@ -644,7 +644,7 @@
         "name": "readback",
         "args": "Record<string, never>",
         "description": "The boot read-back (`seed-info`) plus a census of every component page. Read-only.",
-        "source": "apps/plugin/src/agent-protocol.ts:63",
+        "source": "apps/plugin/src/agent-protocol.ts#AgentArgs.readback",
         "writes": "Nothing. Reads the file's themed state and a census of every component page.",
         "refuses": [],
         "devOnly": false
@@ -653,24 +653,24 @@
         "name": "update-components",
         "args": "{ def?: string; confirm: false } | { def?: string; confirm: true; previewHash: string; choices?: UpdateChoiceArgs }",
         "description": "#2265: the in-place update. `confirm: false` (or absent) checks and writes nothing, and its result carries a `previewHash`; `confirm: true` applies the update that check described, and must echo that `previewHash` (PR 2). The plugin reads the file again and refuses when it no longer hashes the same. No `def` means every def that projects a set.",
-        "source": "apps/plugin/src/agent-protocol.ts:68",
+        "source": "apps/plugin/src/agent-protocol.ts#AgentArgs.update-components",
         "writes": "With confirm: false (or none), nothing: a check whose result carries a previewHash. With confirm: true and that previewHash, updates the sets in place; refused when the file no longer hashes the same.",
         "refuses": [
           {
             "message": "update-components takes args.def: a component def id, or no def for every set",
-            "source": "apps/plugin/src/agent-protocol.ts:259"
+            "source": "apps/plugin/src/agent-protocol.ts#parseCommand.update-components"
           },
           {
             "message": "update-components takes args.confirm: false (or none) to check, true to apply",
-            "source": "apps/plugin/src/agent-protocol.ts:262"
+            "source": "apps/plugin/src/agent-protocol.ts#parseCommand.update-components"
           },
           {
             "message": "update-components with confirm: true needs args.previewHash: the previewHash its check returned",
-            "source": "apps/plugin/src/agent-protocol.ts:266"
+            "source": "apps/plugin/src/agent-protocol.ts#parseCommand.update-components"
           },
           {
             "computed": "choices",
-            "source": "apps/plugin/src/agent-protocol.ts:269"
+            "source": "apps/plugin/src/agent-protocol.ts#parseCommand.update-components"
           }
         ],
         "devOnly": false
@@ -679,12 +679,12 @@
         "name": "capture-baseline",
         "args": "{ def?: string }",
         "description": "#2265: record the as-built baseline on members built before it existed. No `def` means every set.",
-        "source": "apps/plugin/src/agent-protocol.ts:70",
+        "source": "apps/plugin/src/agent-protocol.ts#AgentArgs.capture-baseline",
         "writes": "Plugin data only: the as-built record on members built before it existed.",
         "refuses": [
           {
             "message": "capture-baseline takes args.def: a component def id, or no def for every set",
-            "source": "apps/plugin/src/agent-protocol.ts:275"
+            "source": "apps/plugin/src/agent-protocol.ts#parseCommand.capture-baseline"
           }
         ],
         "devOnly": false
@@ -693,12 +693,12 @@
         "name": "adopt-members",
         "args": "{ def?: string }",
         "description": "#2283: the one-time Adopt (§10 Q4). Records and stamps members Prism3 did not build, so an update can bring them to the plan in place. No `def` means every set.",
-        "source": "apps/plugin/src/agent-protocol.ts:73",
+        "source": "apps/plugin/src/agent-protocol.ts#AgentArgs.adopt-members",
         "writes": "Plugin data only: records and stamps members Prism3 did not build, so an update can bring them to the plan.",
         "refuses": [
           {
             "message": "adopt-members takes args.def: a component def id, or no def for every set",
-            "source": "apps/plugin/src/agent-protocol.ts:280"
+            "source": "apps/plugin/src/agent-protocol.ts#parseCommand.adopt-members"
           }
         ],
         "devOnly": false
@@ -707,16 +707,16 @@
         "name": "run-code",
         "args": "{ code: string; timeoutMs?: number }",
         "description": "#2530, dev builds only: the body of an async function to run in the main thread (`dev-commands.ts`).",
-        "source": "apps/plugin/src/dev-commands.ts:27",
+        "source": "apps/plugin/src/dev-commands.ts#RunCodeArgs",
         "writes": "Whatever the code writes. Dev builds only; a release build answers unknown-command.",
         "refuses": [
           {
             "message": "run-code needs args.code: the body of an async function, as a string",
-            "source": "apps/plugin/src/dev-commands.ts:37"
+            "source": "apps/plugin/src/dev-commands.ts#runCode"
           },
           {
             "message": "run-code takes args.timeoutMs: milliseconds from 1 to ${MAX_TIMEOUT_MS}",
-            "source": "apps/plugin/src/dev-commands.ts:40"
+            "source": "apps/plugin/src/dev-commands.ts#runCode"
           }
         ],
         "devOnly": true
@@ -730,29 +730,29 @@
       "usage": [
         {
           "text": "npx tsx packages/engine/cli.ts <design.md> [--out <dir>] [--fidelity]",
-          "source": "packages/engine/cli.ts:4"
+          "source": "packages/engine/cli.ts#header"
         }
       ],
       "flags": [
         {
           "flag": "--fidelity",
-          "source": "packages/engine/cli.ts:86"
+          "source": "packages/engine/cli.ts#argv"
         },
         {
           "flag": "--help",
-          "source": "packages/engine/cli.ts:87"
+          "source": "packages/engine/cli.ts#argv"
         },
         {
           "flag": "--out",
-          "source": "packages/engine/cli.ts:78"
+          "source": "packages/engine/cli.ts#argv"
         },
         {
           "flag": "-h",
-          "source": "packages/engine/cli.ts:87"
+          "source": "packages/engine/cli.ts#argv"
         },
         {
           "flag": "-o",
-          "source": "packages/engine/cli.ts:78"
+          "source": "packages/engine/cli.ts#argv"
         }
       ]
     },
@@ -762,7 +762,7 @@
       "usage": [
         {
           "text": "npx tsx packages/engine/mcp.ts",
-          "source": "packages/engine/mcp.ts:41"
+          "source": "packages/engine/mcp.ts#header"
         }
       ],
       "flags": []
@@ -773,17 +773,17 @@
       "usage": [
         {
           "text": "npx tsx packages/engine/regen.ts            # regenerate everything, in place",
-          "source": "packages/engine/regen.ts:11"
+          "source": "packages/engine/regen.ts#header"
         },
         {
           "text": "npx tsx packages/engine/regen.ts --check    # fail (exit 1) if the committed artifacts have drifted",
-          "source": "packages/engine/regen.ts:12"
+          "source": "packages/engine/regen.ts#header"
         }
       ],
       "flags": [
         {
           "flag": "--check",
-          "source": "packages/engine/regen.ts:186"
+          "source": "packages/engine/regen.ts#argv"
         }
       ]
     },
@@ -793,21 +793,21 @@
       "usage": [
         {
           "text": "npx tsx packages/engine/token-contract.ts --check    # fail (exit 1) if the surface moved",
-          "source": "packages/engine/token-contract.ts:4"
+          "source": "packages/engine/token-contract.ts#header"
         },
         {
           "text": "npx tsx packages/engine/token-contract.ts --accept   # rewrite the baseline (requires the bump)",
-          "source": "packages/engine/token-contract.ts:5"
+          "source": "packages/engine/token-contract.ts#header"
         }
       ],
       "flags": [
         {
           "flag": "--accept",
-          "source": "packages/engine/token-contract.ts:286"
+          "source": "packages/engine/token-contract.ts#argv"
         },
         {
           "flag": "--check",
-          "source": "packages/engine/token-contract.ts:287"
+          "source": "packages/engine/token-contract.ts#argv"
         }
       ]
     },
@@ -817,33 +817,33 @@
       "usage": [
         {
           "text": "npx tsx packages/engine/materialise-to-figma.ts <brand>            # manifest: passes + byte sizes",
-          "source": "packages/engine/materialise-to-figma.ts:56"
+          "source": "packages/engine/materialise-to-figma.ts#header"
         },
         {
           "text": "npx tsx packages/engine/materialise-to-figma.ts <brand> --pass palette",
-          "source": "packages/engine/materialise-to-figma.ts:57"
+          "source": "packages/engine/materialise-to-figma.ts#header"
         },
         {
           "text": "npx tsx packages/engine/materialise-to-figma.ts <brand> --pass color-create",
-          "source": "packages/engine/materialise-to-figma.ts:58"
+          "source": "packages/engine/materialise-to-figma.ts#header"
         },
         {
           "text": "npx tsx packages/engine/materialise-to-figma.ts <brand> --pass color-aliases",
-          "source": "packages/engine/materialise-to-figma.ts:59"
+          "source": "packages/engine/materialise-to-figma.ts#header"
         },
         {
           "text": "npx tsx packages/engine/materialise-to-figma.ts <brand> --pass verify",
-          "source": "packages/engine/materialise-to-figma.ts:60"
+          "source": "packages/engine/materialise-to-figma.ts#header"
         }
       ],
       "flags": [
         {
           "flag": "--chunk",
-          "source": "packages/engine/materialise-to-figma.ts:938"
+          "source": "packages/engine/materialise-to-figma.ts#argv"
         },
         {
           "flag": "--pass",
-          "source": "packages/engine/materialise-to-figma.ts:932"
+          "source": "packages/engine/materialise-to-figma.ts#argv"
         }
       ]
     },
@@ -853,17 +853,17 @@
       "usage": [
         {
           "text": "npx tsx fold.ts             # fold everything pending, then regen",
-          "source": "fold.ts:4"
+          "source": "fold.ts#header"
         },
         {
           "text": "npx tsx fold.ts --dry-run   # print the plan, write nothing",
-          "source": "fold.ts:5"
+          "source": "fold.ts#header"
         }
       ],
       "flags": [
         {
           "flag": "--dry-run",
-          "source": "fold.ts:74"
+          "source": "fold.ts#argv"
         }
       ]
     },
@@ -873,21 +873,21 @@
       "usage": [
         {
           "text": "npx tsx verify.ts            # every gate, in order, with a PASS/FAIL table",
-          "source": "verify.ts:4"
+          "source": "verify.ts#header"
         },
         {
           "text": "npx tsx verify.ts --list     # the authored list, run nothing",
-          "source": "verify.ts:6"
+          "source": "verify.ts#header"
         }
       ],
       "flags": [
         {
           "flag": "--list",
-          "source": "verify.ts:1453"
+          "source": "verify.ts#argv"
         },
         {
           "flag": "--verbose",
-          "source": "verify.ts:1427"
+          "source": "verify.ts#argv"
         }
       ]
     },
@@ -897,13 +897,13 @@
       "usage": [
         {
           "text": "npx tsx tools/figma-bridge/server.ts [--port 17331]      (or PRISM3_BRIDGE_PORT)",
-          "source": "tools/figma-bridge/server.ts:9"
+          "source": "tools/figma-bridge/server.ts#header"
         }
       ],
       "flags": [
         {
           "flag": "--port",
-          "source": "tools/figma-bridge/server.ts:407"
+          "source": "tools/figma-bridge/server.ts#argv"
         }
       ]
     },
@@ -913,33 +913,33 @@
       "usage": [
         {
           "text": "npx tsx tools/figma-mcp/agent-link.ts send <cmd> [<args.json> | '<json>'] [--brand <id|path>] [--id <id>]",
-          "source": "tools/figma-mcp/agent-link.ts:5"
+          "source": "tools/figma-mcp/agent-link.ts#header"
         },
         {
           "text": "npx tsx tools/figma-mcp/agent-link.ts read <id> [--path result.data.apply.misses]",
-          "source": "tools/figma-mcp/agent-link.ts:6"
+          "source": "tools/figma-mcp/agent-link.ts#header"
         },
         {
           "text": "npx tsx tools/figma-mcp/agent-link.ts link",
-          "source": "tools/figma-mcp/agent-link.ts:7"
+          "source": "tools/figma-mcp/agent-link.ts#header"
         }
       ],
       "flags": [
         {
           "flag": "--brand",
-          "source": "tools/figma-mcp/agent-link.ts:64"
+          "source": "tools/figma-mcp/agent-link.ts#opt('brand')"
         },
         {
           "flag": "--help",
-          "source": "tools/figma-mcp/agent-link.ts:34"
+          "source": "tools/figma-mcp/agent-link.ts#argv"
         },
         {
           "flag": "--id",
-          "source": "tools/figma-mcp/agent-link.ts:66"
+          "source": "tools/figma-mcp/agent-link.ts#opt('id')"
         },
         {
           "flag": "--path",
-          "source": "tools/figma-mcp/agent-link.ts:72"
+          "source": "tools/figma-mcp/agent-link.ts#opt('path')"
         }
       ]
     },
@@ -949,33 +949,33 @@
       "usage": [
         {
           "text": "npx tsx tools/figma-mcp/plan.ts --brand <file.design.md | example id> [--apply] [--build all|<id>,<id>]",
-          "source": "tools/figma-mcp/plan.ts:4"
+          "source": "tools/figma-mcp/plan.ts#header"
         }
       ],
       "flags": [
         {
           "flag": "--apply",
-          "source": "tools/figma-mcp/plan.ts:4"
+          "source": "tools/figma-mcp/plan.ts#header"
         },
         {
           "flag": "--brand",
-          "source": "tools/figma-mcp/plan.ts:41"
+          "source": "tools/figma-mcp/plan.ts#opt('brand')"
         },
         {
           "flag": "--build",
-          "source": "tools/figma-mcp/plan.ts:44"
+          "source": "tools/figma-mcp/plan.ts#opt('build')"
         },
         {
           "flag": "--cleanup",
-          "source": "tools/figma-mcp/plan.ts:14"
+          "source": "tools/figma-mcp/plan.ts#header"
         },
         {
           "flag": "--ledger",
-          "source": "tools/figma-mcp/plan.ts:59"
+          "source": "tools/figma-mcp/plan.ts#opt('ledger')"
         },
         {
           "flag": "--out",
-          "source": "tools/figma-mcp/plan.ts:42"
+          "source": "tools/figma-mcp/plan.ts#opt('out')"
         }
       ]
     },
@@ -985,25 +985,25 @@
       "usage": [
         {
           "text": "npx tsx tools/figma-mcp/report.ts --manifest <out>/manifest.json --results <out>/results",
-          "source": "tools/figma-mcp/report.ts:4"
+          "source": "tools/figma-mcp/report.ts#header"
         }
       ],
       "flags": [
         {
           "flag": "--json",
-          "source": "tools/figma-mcp/report.ts:59"
+          "source": "tools/figma-mcp/report.ts#argv"
         },
         {
           "flag": "--ledger-out",
-          "source": "tools/figma-mcp/report.ts:53"
+          "source": "tools/figma-mcp/report.ts#opt('ledger-out')"
         },
         {
           "flag": "--manifest",
-          "source": "tools/figma-mcp/report.ts:31"
+          "source": "tools/figma-mcp/report.ts#opt('manifest')"
         },
         {
           "flag": "--results",
-          "source": "tools/figma-mcp/report.ts:32"
+          "source": "tools/figma-mcp/report.ts#opt('results')"
         }
       ]
     },
@@ -1013,17 +1013,17 @@
       "usage": [
         {
           "text": "npx tsx packages/engine/emit-agent-reference.ts            # write the reference",
-          "source": "packages/engine/emit-agent-reference.ts:6"
+          "source": "packages/engine/emit-agent-reference.ts#header"
         },
         {
           "text": "npx tsx packages/engine/emit-agent-reference.ts --check    # fail (exit 1) if it no longer matches the code",
-          "source": "packages/engine/emit-agent-reference.ts:7"
+          "source": "packages/engine/emit-agent-reference.ts#header"
         }
       ],
       "flags": [
         {
           "flag": "--check",
-          "source": "packages/engine/emit-agent-reference.ts:370"
+          "source": "packages/engine/emit-agent-reference.ts#argv"
         }
       ]
     }

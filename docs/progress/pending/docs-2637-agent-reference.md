@@ -7,7 +7,12 @@ servers' tools (`toolDefs()` in `mcp.ts`, `TOOLS` in `tools/figma-bridge/server.
 (`AGENT_COMMANDS`, each `AgentArgs` member and its doc comment, the `bad-args` refusals `parseCommand` gives it, the
 `AgentErrorCode` list, the `MAILBOX` layout, and the dev-only `run-code` from `dev-commands.ts`), and twelve CLI entry
 points (each file's header usage lines and the flags its code compares `argv` against). Every entry carries its
-`file:line`. The one authored part is `WRITES`, what each command writes to the file, because the handlers hold that in
+source as `file#anchor`, the file plus the symbol to search for (`AgentArgs.readback`, `name: 'theme_brand'`,
+`argv`). An earlier push wrote `file:line`, and review found the trap: main moved `verify.ts` by seven lines and
+`--check` went red on a tree where no command had changed, and every PR that shifts a line in `mcp.ts`,
+`agent-protocol.ts` or a CLI would do the same, and conflict on `commands.json` with every other such PR. The
+noise also buried the signal: a fake tool reported itself plus six `changed in the code` lines for untouched tools.
+The anchor still refuses to generate when its symbol is gone. The one authored part is `WRITES`, what each command writes to the file, because the handlers hold that in
 code rather than data; a command with no entry, or an entry for a gone command, refuses to generate.
 
 **Its own gate, not a regen step.** `--check` regenerates in memory and compares with the committed file, reporting
@@ -24,11 +29,18 @@ entry; an entry for a gone command); with `WRITES` and `AgentArgs` renamed too â
 reference: agent-link command adopt-memberz` and `in the reference, gone from the code: agent-link command
 adopt-members`; a flag added to `fold.ts` â†’ `in the code, missing from the reference: cli fold.ts --fake`.
 
+**`theme_brand.brand` is the one schema not as sent.** The reference gives it as a `$ref` to `theme-schema.json`;
+the wire carries `compactSchema(theme-schema)`, descriptions cut to their summaries. The header and the `$ref`'s own
+description say so, in one sentence, because `compactSchema` runs over the `$ref` object too and keeps only a
+description's first sentence.
+
 **Serving.** `apps/studio/docs-route.mjs` is the one definition of `/docs`: the dev server (`build.mjs --dev`, now a
 small front server over esbuild's) answers `/docs/*` from `docs/public/`, and `build-site.mjs` copies the directory to
 `public/docs/` and lists each file in its publish manifest. `vercel-ignore.sh` now builds on a `docs/public` change,
 with a case in its gate. `test-docs-route.ts` fetches both files through the dev route (byte-equal, typed, traversal
-refused); `test-prod-bundle.ts` checks the deploy build copied both. The studio's Inspect menu gains a **Docs** item
+refused). A directory asked for without its trailing slash answers `301` to the slash path: served at
+`/docs/ecosystem`, a page's relative `./ecosystem.json` resolves to `/docs/ecosystem.json` and 404s, which review
+found with the ecosystem lane merged in. The deployed site's handling of the same path is not measured here; `test-prod-bundle.ts` checks the deploy build copied both. The studio's Inspect menu gains a **Docs** item
 on the web host only, opening `/docs/llms.txt` in a new tab; its place and label are an owner item.
 
 **Prose gates.** `lint-us-english.ts` and `lint-voice.ts` now scan `docs/public/**`, with `llms.txt` required by name.

@@ -9,7 +9,9 @@
  * READ FROM THE CODE, NEVER FROM PROSE. Each section comes from the module that defines the surface:
  *
  *   · MCP tools — `toolDefs()` in `mcp.ts` and `TOOLS` in `tools/figma-bridge/server.ts`, the same arrays
- *     `tools/list` answers with, so a name, description or schema here is the one a client receives.
+ *     `tools/list` answers with, so a name, description or schema here is the one a client receives. One
+ *     exception: `theme_brand.brand` is a `$ref` to `theme-schema.json`, and the wire carries that schema
+ *     compacted (`compactSchema` in `mcp.ts`: descriptions cut to their summaries), not the file itself.
  *   · agent-link commands — `AGENT_COMMANDS` and the `AgentArgs` type in `apps/plugin/src/agent-protocol.ts`
  *     (each command's args and its doc comment), the `bad-args` refusals in `parseCommand`, the error codes
  *     of `AgentErrorCode`, and the mailbox layout `MAILBOX`. The dev-only `run-code` comes from
@@ -55,18 +57,24 @@ export const REFERENCE = 'docs/public/reference/commands.json';
 const rel = (abs: string): string => relative(repo, abs).split('\\').join('/');
 const read = (p: string): string => readFileSync(join(repo, p), 'utf8');
 const lines = (p: string): string[] => read(p).split('\n');
-/** `file:line` of the first line matching `re`, or a refusal: a source the reference cannot point at is a defect. */
-const at = (p: string, re: RegExp): string => {
-  const i = lines(p).findIndex((l) => re.test(l));
-  if (i < 0) throw new Error(`emit-agent-reference: no line in ${p} matches ${re}`);
-  return `${p}:${i + 1}`;
+/** `file#anchor`: the file and the symbol a reader searches for. No line number: a line moves whenever anything
+ *  above it does, so a `file:line` source would fail `--check` on a tree where no command changed. */
+const anchor = (p: string, name: string): string => `${p}#${name}`;
+/** `anchor`, once a line in `p` matches `re`, or a refusal: a source the reference cannot point at is a defect. */
+const at = (p: string, re: RegExp, name: string): string => {
+  if (!lines(p).some((l) => re.test(l))) throw new Error(`emit-agent-reference: no line in ${p} matches ${re}`);
+  return anchor(p, name);
 };
 const esc = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 /* ── MCP ─────────────────────────────────────────────────────────────────────────────────────────────── */
 
-/** The BrandInput schema is 40 KB inlined; the reference points at it instead, by the path a reader can open. */
-const BRAND_SCHEMA_REF = { $ref: 'packages/engine/schema/theme-schema.json', description: 'A BrandInput, the shape in packages/engine/schema/theme-schema.json.' };
+/** The BrandInput schema is 40 KB inlined; the reference points at it instead, by the path a reader can open.
+ *  `theme_brand.brand` is the one place it appears, and the wire does not carry the file as it stands: `mcp.ts`
+ *  sends `compactSchema(theme-schema)`, each description cut to its one-line summary and every other keyword
+ *  unchanged. The description says so, in one sentence, because `compactSchema` runs over this object too and
+ *  keeps only a description's first sentence. */
+const BRAND_SCHEMA_REF = { $ref: 'packages/engine/schema/theme-schema.json', description: 'A BrandInput, the shape in packages/engine/schema/theme-schema.json, which tools/list sends compacted: each description cut to its one-line summary, every other keyword unchanged.' };
 
 type Tool = { name: string; title?: string; description: string; inputSchema: unknown; outputSchema?: unknown };
 const mcpTool = (file: string, t: Tool) => ({
@@ -77,7 +85,7 @@ const mcpTool = (file: string, t: Tool) => ({
   output: t.outputSchema
     ? { structuredContent: t.outputSchema, text: 'the same object as JSON in content[0].text' }
     : { structuredContent: null, text: 'a JSON object in content[0].text; this tool declares no outputSchema' },
-  source: at(file, new RegExp(`name: '${esc(t.name)}'`)),
+  source: at(file, new RegExp(`name: '${esc(t.name)}'`), `name: '${t.name}'`),
 });
 
 const mcp = () => [
@@ -86,7 +94,7 @@ const mcp = () => [
     run: 'npx tsx packages/engine/mcp.ts',
     transport: 'stdio, newline-delimited JSON-RPC 2.0',
     protocolVersions: [...PROTOCOL_VERSIONS],
-    source: at('packages/engine/mcp.ts', /^const isMain/),
+    source: at('packages/engine/mcp.ts', /^const isMain/, 'isMain'),
     tools: (toolDefs(BRAND_SCHEMA_REF) as Tool[]).map((t) => mcpTool('packages/engine/mcp.ts', t)),
   },
   {
@@ -94,7 +102,7 @@ const mcp = () => [
     run: 'npx tsx tools/figma-bridge/server.ts [--port 17331]',
     transport: `stdio, newline-delimited JSON-RPC 2.0; drives the running plugin over a WebSocket on 127.0.0.1:${BRIDGE_PORT}`,
     protocolVersions: [...PROTOCOL_VERSIONS],
-    source: at('tools/figma-bridge/server.ts', /^const isMain/),
+    source: at('tools/figma-bridge/server.ts', /^const isMain/, 'isMain'),
     tools: (BRIDGE_TOOLS as Tool[]).map((t) => mcpTool('tools/figma-bridge/server.ts', t)),
   },
 ];
@@ -136,7 +144,7 @@ const argsOf = (cmd: string): { args: string; description: string; source: strin
   const re = new RegExp(`^\\s*(?:'${esc(cmd)}'|${esc(cmd)}): (.+);\\s*$`);
   for (let i = start + 1; i < end; i++) {
     const m = re.exec(src[i]);
-    if (m) return { args: m[1], description: docAbove(src, i), source: `${PROTOCOL}:${i + 1}` };
+    if (m) return { args: m[1], description: docAbove(src, i), source: anchor(PROTOCOL, `AgentArgs.${cmd}`) };
   }
   throw new Error(`emit-agent-reference: AgentArgs has no member for '${cmd}' in ${PROTOCOL}`);
 };
@@ -156,8 +164,8 @@ const refusalsOf = (cmd: string): Array<{ message: string; source: string } | { 
     for (let m = re.exec(src[i]); m; m = re.exec(src[i])) {
       const rest = src[i].slice(m.index + m[0].length);
       const lit = STRING.exec(rest);
-      if (lit && lit.index === 0) out.push({ message: unquote(lit[0]), source: `${PROTOCOL}:${i + 1}` });
-      else out.push({ computed: rest.slice(0, rest.search(/[),]/)), source: `${PROTOCOL}:${i + 1}` });
+      if (lit && lit.index === 0) out.push({ message: unquote(lit[0]), source: anchor(PROTOCOL, `parseCommand.${cmd}`) });
+      else out.push({ computed: rest.slice(0, rest.search(/[),]/)), source: anchor(PROTOCOL, `parseCommand.${cmd}`) });
     }
   }
   return out;
@@ -171,15 +179,15 @@ const errorCodes = () => {
   for (let i = start + 1; i < src.length; i++) {
     const m = /^\s*\| '([a-z-]+)'(;?)/.exec(src[i]);
     if (!m) continue;
-    out.push({ code: m[1], meaning: docAbove(src, i), source: `${PROTOCOL}:${i + 1}` });
+    out.push({ code: m[1], meaning: docAbove(src, i), source: anchor(PROTOCOL, `AgentErrorCode.${m[1]}`) });
     if (m[2]) break;
   }
   return out;
 };
 
-const runCodeRefusals = () => lines(DEV).flatMap((l, i) => {
+const runCodeRefusals = () => lines(DEV).flatMap((l) => {
   const m = /return (['`])(run-code[^'`]*)\1;/.exec(l);
-  return m ? [{ message: m[2], source: `${DEV}:${i + 1}` }] : [];
+  return m ? [{ message: m[2], source: anchor(DEV, 'runCode') }] : [];
 });
 
 const agentLink = () => {
@@ -189,13 +197,12 @@ const agentLink = () => {
   if (unwritten.length || stale.length) {
     throw new Error(`emit-agent-reference: WRITES is out of step with AGENT_COMMANDS — ${unwritten.length ? `no entry for ${unwritten.join(', ')}` : ''}${unwritten.length && stale.length ? '; ' : ''}${stale.length ? `an entry for a command that is gone: ${stale.join(', ')}` : ''}. Say what each command writes.`);
   }
-  const devLine = lines(DEV).findIndex((l) => /export type RunCodeArgs/.test(l));
   return {
     protocolVersion: AGENT_PROTOCOL_VERSION,
-    source: at(PROTOCOL, /^export const AGENT_COMMANDS/),
+    source: at(PROTOCOL, /^export const AGENT_COMMANDS/, 'AGENT_COMMANDS'),
     precondition: 'The owner has switched the agent link on in the plugin, in the file the agent is working in.',
-    command: { shape: '{ v, id, cmd, args, issuedAt }', id: '1 to 64 characters of A-Z, a-z, 0-9, dot, underscore or hyphen', source: at(PROTOCOL, /^export type AgentCommand = /) },
-    result: { shape: '{ v, id, cmd, ok, startedAt, finishedAt, engineVersion, transport, result: { verdict, data, logs } | error: { code, message }, progress? }', source: at(PROTOCOL, /^export type AgentResult = /) },
+    command: { shape: '{ v, id, cmd, args, issuedAt }', id: '1 to 64 characters of A-Z, a-z, 0-9, dot, underscore or hyphen', source: at(PROTOCOL, /^export type AgentCommand = /, 'AgentCommand') },
+    result: { shape: '{ v, id, cmd, ok, startedAt, finishedAt, engineVersion, transport, result: { verdict, data, logs } | error: { code, message }, progress? }', source: at(PROTOCOL, /^export type AgentResult = /, 'AgentResult') },
     transports: {
       mailbox: {
         about: 'The file\'s root shared plugin data, for an agent whose only Figma access is a use_figma call. The agent writes the inbox; the plugin writes everything else.',
@@ -204,12 +211,12 @@ const agentLink = () => {
         pollMs: MAILBOX.pollMs,
         keep: MAILBOX.keep,
         chunkBytes: MAILBOX.chunkBytes,
-        source: at(PROTOCOL, /^export const MAILBOX = /),
+        source: at(PROTOCOL, /^export const MAILBOX = /, 'MAILBOX'),
       },
       bridge: {
         about: 'A local WebSocket the plugin panel connects to, driven through the figma-bridge MCP server\'s figma_run tool.',
         port: BRIDGE_PORT,
-        source: at('apps/plugin/src/agent-bridge-relay.ts', /^export const BRIDGE_PORT/),
+        source: at('apps/plugin/src/agent-bridge-relay.ts', /^export const BRIDGE_PORT/, 'BRIDGE_PORT'),
       },
     },
     errors: errorCodes(),
@@ -219,7 +226,7 @@ const agentLink = () => {
         name: RUN_CODE,
         args: '{ code: string; timeoutMs?: number }',
         description: docAbove(lines(PROTOCOL), lines(PROTOCOL).findIndex((l) => l.includes(`'${RUN_CODE}': RunCodeArgs`))),
-        source: `${DEV}:${devLine + 1}`,
+        source: at(DEV, /export type RunCodeArgs/, 'RunCodeArgs'),
         writes: WRITES[RUN_CODE],
         refuses: runCodeRefusals(),
         devOnly: true,
@@ -305,16 +312,16 @@ const cliEntry = (p: string) => {
     // A usage line opens with the command (`  npx tsx regen.ts --check   # …`), or is a `Run:` line quoting it.
     // A mention inside a sentence is not one, so neither form matches prose that merely names a command.
     const m = /^\s*(npx tsx \S.*)$/.exec(h.text) ?? /^\s*Run: `(npx tsx [^`]+)`/.exec(h.text);
-    return m ? [{ text: m[1].trim(), source: `${p}:${h.line}` }] : [];
+    return m ? [{ text: m[1].trim(), source: anchor(p, 'header') }] : [];
   });
   const flags = new Map<string, string>();
-  src.forEach((l, i) => {
+  src.forEach((l) => {
     if (/^\s*(\*|\/\/|\/\*)/.test(l)) return; // a comment, which reads no argv
-    for (const m of l.matchAll(FLAG_IN_CODE)) if (!flags.has(m[1])) flags.set(m[1], `${p}:${i + 1}`);
-    for (const m of l.matchAll(FLAG_BY_OPT)) if (!flags.has(`--${m[1]}`)) flags.set(`--${m[1]}`, `${p}:${i + 1}`);
+    for (const m of l.matchAll(FLAG_IN_CODE)) if (!flags.has(m[1])) flags.set(m[1], anchor(p, 'argv'));
+    for (const m of l.matchAll(FLAG_BY_OPT)) if (!flags.has(`--${m[1]}`)) flags.set(`--${m[1]}`, anchor(p, `opt('${m[1]}')`));
   });
   for (const u of usage) for (const m of u.text.split('#')[0].matchAll(FLAG_IN_USAGE)) if (!flags.has(m[1])) flags.set(m[1], u.source);
-  for (const h of head) { const m = FLAG_DOC.exec(h.text); if (m && !flags.has(m[1])) flags.set(m[1], `${p}:${h.line}`); }
+  for (const h of head) { const m = FLAG_DOC.exec(h.text); if (m && !flags.has(m[1])) flags.set(m[1], anchor(p, 'header')); }
   return {
     file: p,
     summary,

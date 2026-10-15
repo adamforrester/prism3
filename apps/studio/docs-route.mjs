@@ -33,13 +33,31 @@ export const docsFiles = () => readdirSync(DOCS_DIR, { recursive: true, withFile
   .map((e) => relative(DOCS_DIR, join(e.parentPath, e.name)).split(sep).join('/'))
   .sort();
 
-/** The file a request path names under `docs/public/`, or null: outside the route, outside the directory, or absent.
- *  A directory answers with its `index.html` when it has one. */
-export const docsPath = (urlPath) => {
+/** What a request path names under `docs/public/`, or null when it is outside the route or outside the directory. */
+const docsTarget = (urlPath) => {
   const path = decodeURIComponent(urlPath.split('?')[0]);
   if (path !== '/docs' && !path.startsWith(DOCS_ROUTE)) return null;
   const file = normalize(join(DOCS_DIR, path.slice('/docs'.length)));
   if (file !== DOCS_DIR && !file.startsWith(DOCS_DIR + sep)) return null;
+  return file;
+};
+
+/** Where a directory requested without its trailing slash moves to, or null. A page served at `/docs/ecosystem`
+ *  would resolve its relative `./ecosystem.json` against `/docs/`, so the slashless path redirects instead. */
+export const docsRedirect = (urlPath) => {
+  const [path, query] = urlPath.split(/\?(.*)/s);
+  if (path.endsWith('/')) return null;
+  const file = docsTarget(urlPath);
+  if (!file) return null;
+  try { if (statSync(file).isDirectory()) return `${path}/${query ? `?${query}` : ''}`; } catch { /* absent */ }
+  return null;
+};
+
+/** The file a request path names under `docs/public/`, or null: outside the route, outside the directory, or absent.
+ *  A directory answers with its `index.html` when it has one. */
+export const docsPath = (urlPath) => {
+  const file = docsTarget(urlPath);
+  if (!file) return null;
   try {
     const st = statSync(file);
     if (st.isFile()) return file;
@@ -52,6 +70,8 @@ export const docsPath = (urlPath) => {
 export const serveDocs = (req, res) => {
   const path = req.url.split('?')[0];
   if (path !== '/docs' && !path.startsWith(DOCS_ROUTE)) return false;
+  const moved = docsRedirect(req.url);
+  if (moved) { res.writeHead(301, { location: moved }); res.end(); return true; }
   const file = docsPath(req.url);
   if (!file) { res.writeHead(404, { 'content-type': 'text/plain; charset=utf-8' }); res.end(`not found: ${path}\n`); return true; }
   res.writeHead(200, { 'content-type': contentType(file), 'cache-control': 'no-store' });
