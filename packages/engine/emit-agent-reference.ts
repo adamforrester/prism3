@@ -362,6 +362,27 @@ const names = (ref: any): Map<string, string> => {
   return m;
 };
 
+/**
+ * NO LEGACY NAMESPACE IN AN EXAMPLE (owner Q313.2 A, #2644). A refusal quoted from the plugin once taught an agent
+ * to name a table `Primary — <legacy root>`: a client's namespace from before the engine generated one, served to
+ * every agent as if it were the way to spell a Prism3 table. The default brand's root is `prism`; a reference that
+ * reaches for another brand's root to illustrate a generic argument is wrong for every reader but one.
+ *
+ * The list is typed here, not read from the engine's brands: a list derived from what the engine emits today would
+ * shrink the moment a brand input was retired, and stop catching the very name it exists to catch (docs/34).
+ * Matched as a whole word in any case, so `pds3` (a scale name) and `prism` do not hit.
+ */
+export const LEGACY_NAMESPACES = ['nbds', 'pds'] as const;
+const LEGACY_RE = new RegExp(`(?<![\\w-])(${LEGACY_NAMESPACES.join('|')})(?![\\w-])`, 'i');
+
+/** Each named entry (or the whole text, when no entry holds it) that spells a legacy namespace, by name. */
+export const legacyNamespaceHits = (ref: unknown, text: string): string[] => {
+  const out: string[] = [];
+  for (const [k, v] of names(ref)) { const m = LEGACY_RE.exec(v); if (m) out.push(`legacy namespace '${m[1]}' in ${k}`); }
+  if (!out.length) { const m = LEGACY_RE.exec(text); if (m) out.push(`legacy namespace '${m[1]}' outside any named entry`); }
+  return out;
+};
+
 export const diffByName = (committed: unknown, fresh: unknown): string[] => {
   const a = names(committed);
   const b = names(fresh);
@@ -376,6 +397,12 @@ if (isMain) {
   const target = join(repo, REFERENCE);
   let fresh: string;
   try { fresh = serialize(buildReference()); } catch (e) { console.error(`❌ ${(e as Error).message}`); process.exit(1); }
+  const legacy = legacyNamespaceHits(JSON.parse(fresh), fresh);
+  if (legacy.length) {
+    console.error(`❌ the agent reference would ship a legacy brand namespace as an example — change it at the source:`);
+    for (const h of legacy) console.error(`    ${h}`);
+    process.exit(1);
+  }
   if (process.argv.includes('--check')) {
     const committed = existsSync(target) ? readFileSync(target, 'utf8') : '';
     if (committed === fresh) {
