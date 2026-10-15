@@ -115,6 +115,9 @@ export const TAXONOMY: Taxonomy = {
         // Link (#2580) — its own page under Components. The proposal named a navigation section; none exists (Tabs
         // went under Components, Q177.14), so the section is held as an owner item in the PR.
         { page: 'Link', defs: ['link'] },
+        // Dialog (#2609, owner decision Q303.12 A) — its own page under Components, every placement on it. It nests the
+        // Neutral IconButton, the Divider and the Button, which the build places first wherever their pages sort.
+        { page: 'Dialog', defs: ['dialog'] },
       ],
     },
     {
@@ -127,6 +130,10 @@ export const TAXONOMY: Taxonomy = {
         { page: 'Focus Ring', defs: ['focus-ring'] },
         { page: 'Field Label', defs: ['field-label'] },
         { page: 'Field Message', defs: ['field-message'] },
+        // #2457 — the flush icon button, under Subcomponents (owner decision Q283.14 A on #2427): it is made to be nested,
+        // in a counter first. Placed alphabetically in the file by the section's own rule. Three families on one page, as
+        // the Icon button page carries IconButton's three (Q295.2 B).
+        { page: 'Flush Icon Button', defs: ['flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral'] },
         // #1670 — owner-decided 2026-09-26: the spinner sits under Subcomponents, beside the other parts a
         // host swaps or nests in (the button's pending state swaps it into its icon slot).
         { page: 'Spinner', defs: ['spinner'] },
