@@ -288,6 +288,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | button-neutral | false | — |
 |  | checkbox-control | false | — |
 |  | checkbox-group | false | — |
+|  | checkbox-row | false | — |
 |  | flush-icon-button | false | — |
 |  | flush-icon-button-destructive | false | — |
 |  | flush-icon-button-neutral | false | — |
@@ -297,13 +298,16 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | password-field | false | — |
 |  | radio-control | false | — |
 |  | radio-group | false | — |
+|  | radio-row | false | — |
 |  | segmented-control | false | — |
 |  | segmented-control-segment | false | — |
 |  | select | false | — |
 |  | switch-control | false | — |
+|  | switch-row | false | — |
 |  | tab | false | — |
 |  | tag | false | — |
 |  | text-field | false | — |
+|  | textarea | false | — |
 | emphasis | badge | subtle | subtle, bold |
 |  | field-label | secondary | secondary, primary |
 | fullWidth | button | false | — |
@@ -312,6 +316,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 | helpText | password-field | — | — |
 |  | select | — | — |
 |  | text-field | — | — |
+|  | textarea | — | — |
 | href | button | — | — |
 |  | button-destructive | — | — |
 |  | button-neutral | — | — |
@@ -328,6 +333,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | password-field | — | — |
 |  | select | — | — |
 |  | text-field | — | — |
+|  | textarea | — | — |
 | indeterminate | checkbox-control | false | — |
 |  | checkbox-row | false | — |
 | indicator | _accordion-indicator | chevron | chevron, plus-minus |
@@ -352,6 +358,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | select | false | — |
 |  | switch-row | false | — |
 |  | text-field | false | — |
+|  | textarea | false | — |
 | label | badge | — | — |
 |  | button | — | — |
 |  | button-destructive | — | — |
@@ -373,6 +380,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | tabs | — | — |
 |  | tag | — | — |
 |  | text-field | — | — |
+|  | textarea | — | — |
 | leadingIcon | password-field | — | — |
 |  | segmented-control-segment | — | — |
 |  | select | — | — |
@@ -389,6 +397,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | segmented-control | — | — |
 |  | select | — | — |
 |  | text-field | — | — |
+|  | textarea | — | — |
 | onChange | checkbox-group | — | — |
 |  | checkbox-row | — | — |
 |  | password-field | — | — |
@@ -397,6 +406,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | select | — | — |
 |  | tabs | — | — |
 |  | text-field | — | — |
+|  | textarea | — | — |
 | onClick | button | — | — |
 |  | button-destructive | — | — |
 |  | button-neutral | — | — |
@@ -413,16 +423,19 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | textarea | — | — |
 | readOnly | checkbox-row | false | — |
 |  | password-field | false | — |
+|  | radio-row | false | — |
 |  | select | false | — |
 |  | switch-row | false | — |
 |  | tag | false | — |
 |  | text-field | false | — |
+|  | textarea | false | — |
 | required | checkbox-group | false | — |
 |  | field-label | false | — |
 |  | password-field | false | — |
 |  | radio-group | false | — |
 |  | select | false | — |
 |  | text-field | false | — |
+|  | textarea | false | — |
 | selected | segmented-control-segment | false | — |
 |  | tab | false | — |
 |  | tag | false | — |
