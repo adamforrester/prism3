@@ -402,7 +402,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'size',
     values: ['medium', 'small', 'large'],
-    defs: ['text-field', 'select', 'textarea', 'dialog'],
+    defs: ['text-field', 'select', 'textarea', 'dialog', 'password-field'],
     relation: 'reordered',
     reason:
       'The canonical ladder, led by `medium` (#2266, the field sizing system). The first value is the set\'s '
@@ -479,7 +479,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'style',
     values: ['outline'],
-    defs: ['text-field', 'textarea'],
+    defs: ['text-field', 'textarea', 'password-field'],
     relation: 'canonical',
     reason:
       'An axis of ONE, declared rather than dropped: the field substrate has a single treatment today, and '
@@ -552,7 +552,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'status',
     values: ['default', 'error', 'warning', 'success'],
-    defs: ['field-message', 'select', 'text-field', 'textarea'],
+    defs: ['field-message', 'select', 'text-field', 'textarea', 'password-field'],
     relation: 'sole',
     reason:
       'A form field\'s VALIDATION OUTCOME. RENAMED from `tone` to `status` in #1334 (the owner\'s split of '
