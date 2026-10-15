@@ -1517,6 +1517,100 @@
       "sizes": []
     },
     {
+      "id": "link",
+      "name": "Link",
+      "category": "navigation",
+      "states": [
+        "rest",
+        "hover",
+        "pressed",
+        "focus-visible"
+      ],
+      "projectedStates": [
+        "rest",
+        "hover",
+        "pressed",
+        "focus-visible"
+      ],
+      "axes": {
+        "style": [
+          "standalone",
+          "inline"
+        ],
+        "weight": [
+          "emphasis",
+          "default"
+        ],
+        "size": [
+          "small",
+          "medium",
+          "large"
+        ],
+        "surface": [
+          "default",
+          "inverse"
+        ]
+      },
+      "props": [
+        {
+          "name": "label"
+        },
+        {
+          "name": "href"
+        },
+        {
+          "name": "style",
+          "default": "standalone",
+          "values": [
+            "standalone",
+            "inline"
+          ]
+        },
+        {
+          "name": "weight",
+          "default": "emphasis",
+          "values": [
+            "emphasis",
+            "default"
+          ]
+        },
+        {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ]
+        },
+        {
+          "name": "surface",
+          "default": "default",
+          "values": [
+            "default",
+            "inverse"
+          ]
+        },
+        {
+          "name": "isExternal",
+          "default": "false"
+        },
+        {
+          "name": "asChild",
+          "default": "false"
+        },
+        {
+          "name": "trailingIcon"
+        }
+      ],
+      "sizes": [
+        "small",
+        "medium",
+        "large"
+      ],
+      "sizeDefault": "medium"
+    },
+    {
       "id": "list",
       "name": "List",
       "category": "data",
@@ -2884,6 +2978,7 @@
       "icon-button",
       "icon-button-destructive",
       "icon-button-neutral",
+      "link",
       "radio-control",
       "radio-row",
       "segmented-control-segment",
@@ -2909,6 +3004,7 @@
       "icon-button",
       "icon-button-destructive",
       "icon-button-neutral",
+      "link",
       "radio-control",
       "radio-row",
       "segmented-control-segment",
@@ -2949,6 +3045,7 @@
       "icon-button",
       "icon-button-destructive",
       "icon-button-neutral",
+      "link",
       "radio-control",
       "radio-row",
       "segmented-control-segment",
@@ -2978,6 +3075,7 @@
       "icon-button",
       "icon-button-destructive",
       "icon-button-neutral",
+      "link",
       "radio-control",
       "radio-group",
       "radio-row",
@@ -3246,6 +3344,7 @@
           "icon-button",
           "icon-button-destructive",
           "icon-button-neutral",
+          "link",
           "list",
           "list-item",
           "radio-control",
@@ -3308,6 +3407,15 @@
           "text-field",
           "textarea"
         ]
+      },
+      {
+        "values": [
+          "inline",
+          "standalone"
+        ],
+        "components": [
+          "link"
+        ]
       }
     ],
     "surface": [
@@ -3323,7 +3431,8 @@
           "focus-ring",
           "icon-button",
           "icon-button-destructive",
-          "icon-button-neutral"
+          "icon-button-neutral",
+          "link"
         ]
       }
     ],
@@ -3408,6 +3517,15 @@
         ],
         "components": [
           "field-label"
+        ]
+      },
+      {
+        "values": [
+          "default",
+          "emphasis"
+        ],
+        "components": [
+          "link"
         ]
       }
     ],
@@ -3529,6 +3647,12 @@
       },
       {
         "id": "switch-control"
+      }
+    ],
+    "asChild": [
+      {
+        "id": "link",
+        "default": "false"
       }
     ],
     "autoComplete": [
@@ -3786,6 +3910,9 @@
       },
       {
         "id": "button-neutral"
+      },
+      {
+        "id": "link"
       }
     ],
     "htmlFor": [
@@ -3919,6 +4046,12 @@
         ]
       }
     ],
+    "isExternal": [
+      {
+        "id": "link",
+        "default": "false"
+      }
+    ],
     "isInactive": [
       {
         "id": "button",
@@ -4007,6 +4140,9 @@
       },
       {
         "id": "icon"
+      },
+      {
+        "id": "link"
       },
       {
         "id": "radio-group"
@@ -4560,6 +4696,15 @@
         ]
       },
       {
+        "id": "link",
+        "default": "medium",
+        "values": [
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      {
         "id": "list",
         "default": "medium",
         "values": [
@@ -4726,6 +4871,16 @@
         ]
       }
     ],
+    "style": [
+      {
+        "id": "link",
+        "default": "standalone",
+        "values": [
+          "standalone",
+          "inline"
+        ]
+      }
+    ],
     "submitOnEnter": [
       {
         "id": "textarea",
@@ -4793,6 +4948,14 @@
           "default",
           "inverse"
         ]
+      },
+      {
+        "id": "link",
+        "default": "default",
+        "values": [
+          "default",
+          "inverse"
+        ]
       }
     ],
     "title": [
@@ -4829,6 +4992,9 @@
       }
     ],
     "trailingIcon": [
+      {
+        "id": "link"
+      },
       {
         "id": "text-field"
       }
@@ -5050,6 +5216,14 @@
           "regular",
           "bold"
         ]
+      },
+      {
+        "id": "link",
+        "default": "emphasis",
+        "values": [
+          "emphasis",
+          "default"
+        ]
       }
     ],
     "width": [
@@ -5236,6 +5410,7 @@
         "icon-button",
         "icon-button-destructive",
         "icon-button-neutral",
+        "link",
         "list",
         "list-item",
         "radio-control",
@@ -5253,7 +5428,17 @@
         "text-field",
         "textarea"
       ],
-      "detail": "the size axis takes 3 value sets — [large, medium, small] in _accordion-indicator, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, field-label, icon-button, icon-button-destructive, icon-button-neutral, list, list-item, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, select, tab, tabs, tag, text-field, textarea; [medium, small] in switch-control, switch-row; [large, medium, small, x-small] in spinner"
+      "detail": "the size axis takes 3 value sets — [large, medium, small] in _accordion-indicator, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, field-label, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, select, tab, tabs, tag, text-field, textarea; [medium, small] in switch-control, switch-row; [large, medium, small, x-small] in spinner"
+    },
+    {
+      "kind": "axis values",
+      "subject": "axis style",
+      "components": [
+        "link",
+        "text-field",
+        "textarea"
+      ],
+      "detail": "the style axis takes 2 value sets — [outline] in text-field, textarea; [inline, standalone] in link"
     },
     {
       "kind": "axis values",
@@ -5274,6 +5459,15 @@
         "tag"
       ],
       "detail": "the type axis takes 3 value sets — [icon, ordered, unordered] in list, list-item; [count, dot, status] in badge; [dismissible, select] in tag"
+    },
+    {
+      "kind": "axis values",
+      "subject": "axis weight",
+      "components": [
+        "field-label",
+        "link"
+      ],
+      "detail": "the weight axis takes 2 value sets — [bold, regular] in field-label; [default, emphasis] in link"
     },
     {
       "kind": "size order",
@@ -5305,7 +5499,7 @@
       "components": [
         "field-label"
       ],
-      "detail": "field-label defaults size to small; 27 of 28 sized components default to medium"
+      "detail": "field-label defaults size to small; 28 of 29 sized components default to medium"
     },
     {
       "kind": "axis without prop",

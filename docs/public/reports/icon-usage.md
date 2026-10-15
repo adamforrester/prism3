@@ -40,6 +40,7 @@ Parts that take any icon from the set. The file nominates the default unless the
 | icon-button | icon |
 | icon-button-destructive | icon |
 | icon-button-neutral | icon |
+| link | trailingVisual |
 | list-item | icon |
 | segmented-control-segment | leadingVisual |
 | select | leadingVisual |
