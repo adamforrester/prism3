@@ -1,0 +1,35 @@
+{
+  "$schema": "prism3-report/index/1",
+  "generated": true,
+  "components": 38,
+  "reports": [
+    {
+      "id": "token-usage",
+      "title": "Token usage",
+      "covers": "every token: which components, parts, variants and states bind it, the inverse per component, and the tokens no component binds",
+      "page": "token-usage.md",
+      "data": "token-usage.json"
+    },
+    {
+      "id": "component-dependencies",
+      "title": "Component dependencies",
+      "covers": "what nests what, directly and transitively, and which components a change reaches",
+      "page": "component-dependencies.md",
+      "data": "component-dependencies.json"
+    },
+    {
+      "id": "component-comparison",
+      "title": "Component comparison",
+      "covers": "state sets, variant axes, props, size rungs and defaults side by side, with every difference between peers",
+      "page": "component-comparison.md",
+      "data": "component-comparison.json"
+    },
+    {
+      "id": "icon-usage",
+      "title": "Icon usage",
+      "covers": "which glyphs each component draws, and which icon-set glyphs no component names",
+      "page": "icon-usage.md",
+      "data": "icon-usage.json"
+    }
+  ]
+}

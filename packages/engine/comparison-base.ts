@@ -1,9 +1,9 @@
 /**
  * THE BASE A GIT-HISTORY GATE COMPARES AGAINST, ON THE BASE BRANCH ITSELF (#2556).
  *
- * Four engine gates read a "before" out of git at the merge base of HEAD and the base branch:
- * `lint-emission-version.ts`, `lint-component-surface.ts`, `lint-component-renames.ts` and
- * `lint-materialization-renames.ts`. Each resolves its base ref with its own ladder and keeps doing so
+ * Five engine gates read a "before" out of git at the merge base of HEAD and the base branch:
+ * `lint-emission-version.ts`, `lint-component-surface.ts`, `lint-component-renames.ts`,
+ * `lint-materialization-renames.ts` and `lint-contract-version.ts` (#2334). Each resolves its base ref with its own ladder and keeps doing so
  * (the reasons are in `lint-materialization-renames.ts`); this file holds only the one step after it.
  *
  * On main's push run the merge base of HEAD and `origin/main` is HEAD itself, so a gate that compares
@@ -22,10 +22,10 @@
  * which would be the self-comparison this file exists to stop. In CI, `ci.yml`'s `fetch-depth: 0`
  * provides the history.
  *
- * Shared on purpose, unlike the ladders: this is not a gate's subject, and four copies of one rule
- * about which commit is "before" would drift exactly as the four ladders' wording has. What keeps the
- * sharing honest is `lint-push-base.ts`, which replays a squash on main against each of the four real
- * gates and requires each to fail by its own named assertion; a regression here fails all four there.
+ * Shared on purpose, unlike the ladders: this is not a gate's subject, and five copies of one rule
+ * about which commit is "before" would drift exactly as the five ladders' wording has. What keeps the
+ * sharing honest is `lint-push-base.ts`, which replays a squash on main against each of the five real
+ * gates and requires each to fail by its own named assertion; a regression here fails all five there.
  */
 
 export type Git = (...args: string[]) => { ok: boolean; out: string; err: string };

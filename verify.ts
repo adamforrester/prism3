@@ -509,7 +509,7 @@ export const environmentProblems = async (): Promise<string[]> => {
 /** The artifact-count meta-check, taken from the drift gate's ALREADY-CAPTURED output rather than by
  *  running `regen.ts --check` a second time (it is among the slowest gates here). This is what
  *  buffering per gate buys — point 2 paying for itself. Mirrors `ci.yml`'s own step. */
-const EXPECTED_ARTIFACTS = 187;
+const EXPECTED_ARTIFACTS = 197;
 
 /* #775's window closed 2026-08-20 and the smoke suite gates in both CI and this runner, so the
  * date constant and its clock read are GONE rather than left at a passed date. They existed to stop
@@ -624,6 +624,13 @@ export const GATES: Gate[] = [
     id: 'token-contract',
     ciStep: 'Token name contract (breaking-change gate)',
     cmd: engine('token-contract.ts', '--check'),
+  },
+  {
+    // The number against the merge base's (#2334): the step above compares two things in the tree,
+    // which agree after an old number is written back into both. Reads git, so it needs history.
+    id: 'lint-contract-version',
+    ciStep: "CONTRACT_VERSION moved by the increment the surface needs, against the base (#2334)",
+    cmd: engine('lint-contract-version.ts'),
   },
   {
     id: 'typecheck-web',

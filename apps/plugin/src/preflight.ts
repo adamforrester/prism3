@@ -43,7 +43,9 @@
  * items are presumed Prism3's: exactly today's behavior, frozen for files that predate the record. The
  * first apply that passes stamps every collection it writes and marks every style (#1884), and from then
  * on the presumption is off and the strict rule holds. A file with neither record — the foreign case this exists for — is never presumed.
- * `resolvedType` is checked in every era; a type mismatch is a conflict whoever made the variable.
+ * `resolvedType` is checked in every era; a type mismatch is a conflict whoever made the variable, with one exception:
+ * a FLOAT in Prism3's own stamped `motion` collection where the plan writes TIMING is replaced by the write
+ * (#2412, Q293 A, `replacesOnRetype` in `write-figma.ts`), so it is not reported here.
  * Reversing the presumption is one line — see `legacy` in `preflightApply`.
  *
  * Read-only by construction: the port has no create/set members, so a pre-flight that tried to write
@@ -57,11 +59,11 @@
 import type { WritePlan, FloatCollectionPlan, VarCollectionPlan, StylesPlan, GridStylePlan, TextStylePlan } from '@prism3/engine/write-plan';
 import { renameMap, validateRenameMap, planCollectionRenames, isRefusal, type RenameMap } from '@prism3/engine/rename-map';
 import { CORE_COLLECTION } from '@prism3/engine/emit-figma-color';
-import { ownedModeIds, type VarCollection } from './write-figma';
+import { ownedModeIds, replacesOnRetype, type VarCollection } from './write-figma';
 import { isEngineDescription, type StyleKind } from './prune-figma';
 import { isMarkedOwned, type Markable } from './provenance';
 
-export type VarType = 'COLOR' | 'FLOAT' | 'STRING' | 'BOOLEAN';
+export type VarType = 'COLOR' | 'FLOAT' | 'STRING' | 'BOOLEAN' | 'TIMING' | 'EASING';
 
 /** Everything an apply will touch, by name — the pre-flight's half of the plan. */
 export type PreflightPlan = {
@@ -100,6 +102,8 @@ export const preflightPlanOf = (p: {
   color: WritePlan;
   float: FloatCollectionPlan[];
   font: VarCollectionPlan[];
+  /** `motion` (#2412) — TIMING + EASING rows, so a file still holding 0.235.0's FLOAT motion reads as a type conflict. */
+  motion: VarCollectionPlan[];
   styles: StylesPlan;
   grid: GridStylePlan;
   text: TextStylePlan;
@@ -108,7 +112,7 @@ export const preflightPlanOf = (p: {
     { collection: CORE_COLLECTION, rows: p.color.palette.map((r) => ({ name: r.name, type: 'COLOR' as const })) },
     { collection: 'color', rows: p.color.color.create.map((r) => ({ name: r.name, type: 'COLOR' as const })) },
     ...p.float.map((c) => ({ collection: c.name, rows: c.create.map((r) => ({ name: r.name, type: 'FLOAT' as const })) })),
-    ...p.font.map((c) => ({ collection: c.name, rows: c.rows.map((r) => ({ name: r.name, type: r.resolvedType })) })),
+    ...[...p.font, ...p.motion].map((c) => ({ collection: c.name, rows: c.rows.map((r) => ({ name: r.name, type: r.resolvedType })) })),
   ],
   styles: {
     effect: p.styles.effects.map((r) => r.name),
@@ -173,7 +177,8 @@ export const preflightApply = async (
     const byName = new Map(vars.filter((v) => v.variableCollectionId === col.id).map((v) => [v.name, v] as const));
     for (const row of group.rows) {
       const v = byName.get(row.name);
-      if (v && v.resolvedType !== row.type) {
+      // The one mismatch Apply resolves (#2412, Q293 A): a stamped `motion` collection's FLOAT, replaced as TIMING.
+      if (v && v.resolvedType !== row.type && !replacesOnRetype(group.collection, stamped(col), v.resolvedType, row.type)) {
         conflicts.push({ kind: 'variable', name: row.name, detail: `is ${v.resolvedType} in "${current}"; Prism3 writes ${row.type}` });
       }
     }

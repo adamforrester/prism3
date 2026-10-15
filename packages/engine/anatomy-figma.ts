@@ -503,8 +503,17 @@ export type FigmaNodePlan = {
    *  it after the SVG import (the outline's SCALE constraints scale the drawn grid to fill), instead of
    *  binding a token via `size`. See `PartDef.glyphPx` for why a literal and not a bound size. */
   glyphPx?: number;
+  /** For a `CONTENT_SLOT` (#2646): the part's `slotSettings`, copied as declared. Written on the set's SLOT property,
+   *  not on the node; carried here because the set's properties are derived from the nodes the plans build. */
+  slotSettings?: SlotSettingsPlan;
+  /** For a `CONTENT_SLOT` (#2646): the part's `preferred`, as DEF IDS (each the name of the set it builds). The
+   *  executors resolve each to that set's key when they write the SLOT property, and name any that is not built. */
+  slotPreferred?: string[];
   children: FigmaNodePlan[];
 };
+
+/** A native slot's constraints (#2646), the four Figma `SlotSettings` fields a def may declare. */
+export type SlotSettingsPlan = { minChildren?: number; maxChildren?: number; allowPreferredValuesOnly?: boolean; displayEmptyByDefault?: boolean };
 
 /**
  * Where in the variant grid a plan sits. A coordinate carrying none of the axes a def's `paintKeys`
@@ -554,7 +563,7 @@ export type FigmaPropertyPlan =
   | { name: string; type: 'INSTANCE_SWAP'; swapTarget: string }
   /** A NATIVE SLOT (#2417): no default (Figma refuses one for SLOT), and declared by the slot node itself, which
    *  `createSlot` makes and the combine merges by name. The executors verify it rather than add it. */
-  | { name: string; type: 'SLOT' };
+  | { name: string; type: 'SLOT'; slotSettings?: SlotSettingsPlan; preferred?: string[] };
 
 export type AnatomyPlan = {
   component: string;
@@ -857,6 +866,30 @@ const nestedSwapTarget = (defId: string, part: string, nests: string, sizeRef: s
   if (!member)
     throw new Error(`${defId}: anatomy part '${part}' binds '${sizeRef}', and '${nests}' has no size member on that rung (its sizes bind ${(nested.variants.size ?? []).map((v) => nested.tokens[`size.${v}`]).join(', ')})`);
   return `${nests}/${member}`;
+};
+
+/**
+ * A native slot's `preferred` def ids (#2646), each checked against the registry: the schema validates a def alone and
+ * has no registry to look in. A preferred value is one component or one set Figma offers in the slot, found by the
+ * set's name, which is the def's id. So each id must be a registered def that builds exactly that on its own: it
+ * projects to Figma (`figmaProperties`), is not refused alone (`notStandalone`), builds one set rather than a family of
+ * standalone components (`emitAsComponents`, whose members have no one key), and is not a building block (a `_` id,
+ * which Figma leaves out of a published library, so a file using the library could not insert it). Nor the def itself.
+ * Every failure THROWS, naming the def, the part and the id.
+ */
+const slotPreferredOf = (defId: string, part: string, ids: readonly string[]): string[] => {
+  for (const id of ids) {
+    const d = componentDefs.find((x) => x.id === id);
+    const why = !d ? 'is not a registered component def'
+      : id === defId ? 'is this def itself — a set cannot be offered inside its own slot'
+      : id.startsWith('_') ? 'is a building block, which Figma leaves out of a published library'
+      : !d.figmaProperties ? 'does not project to Figma (no figmaProperties), so there is no set to offer'
+      : d.figmaProperties.notStandalone ? `cannot be built on its own (${d.figmaProperties.notStandalone})`
+      : d.figmaProperties.emitAsComponents ? 'builds standalone components rather than one set, so it has no one key to offer'
+      : null;
+    if (why) throw new Error(`${defId}: anatomy part '${part}' prefers '${id}', which ${why}`);
+  }
+  return [...ids];
 };
 
 const ALIGN: Record<string, 'MIN' | 'CENTER' | 'MAX' | 'BASELINE'> = {
@@ -1821,6 +1854,9 @@ export const figmaAnatomyPlan = (
       // The icon component, on the instance itself when it is the part's own node (#2380). An inset instance
       // carries it one level down, on the child the wrapper is given below.
       ...(iconTarget && glyphInset === undefined ? { nestTarget: iconTarget } : {}),
+      // A NATIVE SLOT'S CONSTRAINTS (#2646), each preferred id checked against the registry here, where it is known.
+      ...(p.contentSlot && p.slotSettings ? { slotSettings: { ...p.slotSettings } } : {}),
+      ...(p.contentSlot && p.preferred ? { slotPreferred: slotPreferredOf(def.id, name, p.preferred) } : {}),
       // THE GEOMETRY, resolved from the vocabulary at projection (#864). A name that no longer resolves
       // THROWS rather than projecting an empty outline, which is the whole reason the def carries a name
       // instead of path data: #864 was four artboards that built without throwing and contained nothing,
@@ -2807,7 +2843,14 @@ export const planSetProperties = (plans: AnatomyPlan[]): FigmaPropertyPlan[] => 
     }
     // NATIVE SLOTS (#2417): one SLOT property per slot node NAME, which is what Figma's combine merges by. The
     // node declares it (`createSlot`), so this records what the set will hold for the read-back, not a write.
-    for (const n of slotNodes(plan.root)) byName.set(n.name, { name: n.name, type: 'SLOT' });
+    // Its constraints (#2646) ride the property, and two members declaring the slot two ways is refused as above.
+    for (const n of slotNodes(plan.root)) {
+      const prop: FigmaPropertyPlan = { name: n.name, type: 'SLOT', ...(n.slotSettings ? { slotSettings: n.slotSettings } : {}), ...(n.slotPreferred ? { preferred: n.slotPreferred } : {}) };
+      const prev = byName.get(prop.name);
+      if (prev && JSON.stringify(prev) !== JSON.stringify(prop))
+        throw new Error(`planSetProperties: '${prop.name}' is declared two different ways across the set — ${JSON.stringify(prev)} vs ${JSON.stringify(prop)}`);
+      byName.set(prop.name, prop);
+    }
   }
   // ORDERED text → each PRESENCE boolean immediately followed by the swap it gates → any unpaired swap
   // (#1380, #1331, #1519), which is the property CREATION order the executor applies and therefore the
@@ -4216,6 +4259,30 @@ for(const p of PROPS){
 }`;
 
 /**
+ * NATIVE SLOT CONSTRAINTS (#2646), the paste twin of the plugin executor's pass of the same name: each SLOT property
+ * that declares constraints gets them, its preferred def ids resolved to the sets built under them, any not built named
+ * in the same words. Expects `set`, `PROPS`, `propIds` and `misses`. Shipped only in a payload whose properties declare
+ * some (`hasSlotConstraints`), the `MIN_LINES_SLOT` budget decision again, so unlike the plugin's pass a re-paste does
+ * not clear constraints an earlier paste set and the def has since dropped; the plugin's Update does.
+ */
+const PAYLOAD_SLOT_SETTINGS = `// #2646 — NATIVE SLOT CONSTRAINTS on each SLOT property; a preferred def not in this file is named, never dropped.
+for(const p of PROPS){if(p.type!=='SLOT'||(!p.slotSettings&&!p.preferred))continue;const key=propIds.get(p.name);if(!key)continue;
+const pv=[];if(p.preferred&&p.preferred.length){const sets=figma.root.findAllWithCriteria({types:['COMPONENT_SET']});const singles=figma.root.findAllWithCriteria({types:['COMPONENT']});
+for(const id of p.preferred){const asSet=sets.filter(x=>x.name===id);const named=asSet.length?asSet:singles.filter(x=>x.name===id);
+if(named.length===1&&named[0].key){pv.push({type:asSet.length?'COMPONENT_SET':'COMPONENT',key:named[0].key});continue;}
+misses.push(named.length>1?'property '+p.name+'.preferred -> '+id+' (found '+named.length+' components named '+id+'; not offered in the slot. Rename or remove the stale copy, then rebuild)':named.length===1?'property '+p.name+'.preferred -> '+id+' (the set carries no key on this host; not offered in the slot)':'property '+p.name+'.preferred -> '+id+' (not in this file — build '+id+' first, then rebuild this one; until then the slot does not offer it)');}}
+const ss=p.slotSettings||{};const only=ss.allowPreferredValuesOnly===true&&pv.length>0;
+if(ss.allowPreferredValuesOnly&&!only)misses.push('property '+p.name+'.slotSettings.allowPreferredValuesOnly -> WRITTEN false (none of its preferred sets is in this file, and preferred-only with nothing preferred would flag every child)');
+const w={minChildren:ss.minChildren!=null?ss.minChildren:null,maxChildren:ss.maxChildren!=null?ss.maxChildren:null,allowPreferredValuesOnly:only,displayEmptyByDefault:ss.displayEmptyByDefault===true};
+try{set.editComponentProperty(key,{slotSettings:w,preferredValues:pv});}catch(err){misses.push('property '+p.name+'.slotSettings -> REFUSED ('+(err&&err.message?err.message:String(err))+')');continue;}
+let b;try{b=(set.componentPropertyDefinitions||{})[key];}catch(e){b=undefined;}const bs=(b&&b.slotSettings)||{};
+const g={minChildren:bs.minChildren!=null?bs.minChildren:null,maxChildren:bs.maxChildren!=null?bs.maxChildren:null,allowPreferredValuesOnly:bs.allowPreferredValuesOnly===true,displayEmptyByDefault:bs.displayEmptyByDefault===true};const gk=((b&&b.preferredValues)||[]).map(v=>String(v.key));
+if(JSON.stringify(g)!==JSON.stringify(w)||JSON.stringify(gk)!==JSON.stringify(pv.map(v=>v.key)))misses.push('property '+p.name+'.slotSettings -> NOT KEPT (wrote '+JSON.stringify(w)+' with '+pv.length+' preferred; the set holds '+JSON.stringify(g)+' with '+gk.length+')');}`;
+/** Does any SLOT property in a set declare constraints (#2646)? Gates `PAYLOAD_SLOT_SETTINGS` into a payload. */
+export const hasSlotConstraints = (props: readonly FigmaPropertyPlan[]): boolean =>
+  props.some((p) => p.type === 'SLOT' && (p.slotSettings !== undefined || p.preferred !== undefined));
+
+/**
  * WIRE the part→property references, per member, then read every one back. Expects `set`, `REFS`, `PROPS`
  * (for each TEXT property's DECLARED default — #1567's drift check), `propIds` and `misses`; leaves
  * `wiredRefs`.
@@ -4716,7 +4783,7 @@ claimDefaults(set,null,'created');
 built.forEach((c,i)=>{const {row,col}=PLANS[i];c.x=at(colW,col);c.y=at(rowH,row);});
 set.resize(at(colW,colW.length)-GAP+PAD,at(rowH,rowH.length)-GAP+PAD);
 ${PAYLOAD_DECLARE_PROPS}
-${PAYLOAD_WIRE_REFS}
+${hasSlotConstraints(props) ? PAYLOAD_SLOT_SETTINGS + '\n' : ''}${PAYLOAD_WIRE_REFS}
 // READ BACK the axes Figma actually derived. A name it cannot parse is dropped silently, so a set can
 // come back with fewer properties than the names claimed — present is not parsed.
 const defs=set.componentPropertyDefinitions||{};
@@ -5113,7 +5180,7 @@ ${PAYLOAD_PREAMBLE}
 ${payloadBuildFor((slice.length ? slice : specs).map((x) => x.root))}
 ${PAYLOAD_CHUNK_BODY}
 ${PAYLOAD_DECLARE_PROPS}
-${PAYLOAD_WIRE_REFS}
+${last && hasSlotConstraints(props) ? PAYLOAD_SLOT_SETTINGS + '\n' : ''}${PAYLOAD_WIRE_REFS}
 // RE-READ the definitions, because the read above happened BEFORE the properties existed.
 // The single-shot payload reads once, after declaring, and gets this for free; the chunked one
 // has to read early — the guarded read is how it learns whether the set is coherent enough to declare
