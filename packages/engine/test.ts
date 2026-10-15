@@ -17248,14 +17248,28 @@ arm: {
     // (B) THE BRIEF CITATION, read off each def file's HEADER (the leading `/** … */`), per the focus-ring
     //     header arm's lesson: a whole-file scan is satisfied by any passing mention. Each header names its
     //     brief exactly once as "KB brief: `components/<name>.md`", or says "No KB brief" and states its
-    //     category choice beside it. EXPECTED for the category is this TABLE, authored from the KB's own
-    //     frontmatter (knowledge-base `components/<name>.md`, `category:`, read 2026-09-27) — never from a
-    //     def — so a def whose category drifts from its brief's fails here by name. A def that cites a brief
-    //     missing from the table fails too: add the row with the brief's category, read from the KB.
-    const KB_BRIEF_CATEGORY: Record<string, string> = {
-      'badge.md': 'foundations', 'button.md': 'form', 'checkbox.md': 'form', 'icon.md': 'foundations', 'image.md': 'foundations',
-      'inline-message.md': 'feedback', 'radio.md': 'form', 'select.md': 'form', 'spinner.md': 'foundations', 'divider.md': 'foundations', 'accordion.md': 'navigation', 'list.md': 'data', 'segmented-control.md': 'form',
-      'switch.md': 'form', 'tabs.md': 'navigation', 'tag.md': 'foundations', 'text-field.md': 'form', 'textarea.md': 'form',
+    //     category choice beside it. EXPECTED for the category is the KB's CATALOGUE: `schema/kb-briefs.json`,
+    //     every component brief's front-matter `category` and `aliases`, written by `kb-briefs-refresh.ts`
+    //     from a knowledge-base checkout (#2488; CI cannot read the KB) — never from a def — so a def whose
+    //     category drifts from its brief's fails here by name. A def that cites a brief the catalogue lacks
+    //     fails too: refresh the snapshot. And a "No KB brief" claim is checked against the same catalogue,
+    //     which the hand table this replaced could not do: divider said "No KB brief" while
+    //     `components/divider.md` existed, and passed (#2488).
+    const kbBriefs = (JSON.parse(readFileSync(resolve(HERE, 'schema', 'kb-briefs.json'), 'utf8')) as {
+      briefs: Record<string, { category: string; aliases: string[] }>;
+    }).briefs;
+    const KB_BRIEF_CATEGORY: Record<string, string> = Object.fromEntries(Object.entries(kbBriefs).map(([f, b]) => [f, b.category]));
+    // A floor, not a count (docs/34 shape 9): an empty or truncated snapshot would let every "No KB brief"
+    // stand. 47 briefs at bdaedeb2; the KB's seven categories, which the def validator also holds.
+    ok(Object.keys(kbBriefs).length >= 40 && Object.values(kbBriefs).every((b) => ['foundations', 'form', 'feedback', 'navigation', 'overlay', 'layout', 'data'].includes(b.category)),
+      `#2488 schema/kb-briefs.json holds the KB's component catalogue: at least 40 briefs, each in one of the seven categories (${Object.keys(kbBriefs).length} read)`);
+    /** The brief a def's id or aliases name, by file name or by a brief's own alias. Both clauses read the
+     *  def's id AND its aliases: a def whose id is outside the catalogue but whose alias is a brief's alias
+     *  (a `busy-indicator` aliased `activity-indicator`, which spinner.md lists) names that brief too. */
+    const briefFor = (d: ComponentDef): string | undefined => {
+      const names = [d.id, ...(d.aliases ?? [])].map((n) => n.toLowerCase());
+      return Object.keys(kbBriefs).find((f) => names.includes(f.slice(0, -3)))
+        ?? Object.keys(kbBriefs).find((f) => kbBriefs[f].aliases.some((a) => names.includes(a.toLowerCase())));
     };
     const defDir = resolve(HERE, './components');
     const defFiles = readdirSync(defDir).filter((f) => f.endsWith('.ts') && f !== 'index.ts').sort();
@@ -17275,9 +17289,12 @@ arm: {
         fileOf.set(d.id, f);
         if (cites.length === 1) {
           const want = KB_BRIEF_CATEGORY[cites[0]];
-          ok(want !== undefined, `#1700 ${d.id}: cites \`components/${cites[0]}\`, which is not in the test's KB-brief table — add the row with the brief's own category`);
+          ok(want !== undefined, `#1700 ${d.id}: cites \`components/${cites[0]}\`, which \`schema/kb-briefs.json\` lacks — refresh it with \`npx tsx packages/engine/kb-briefs-refresh.ts <kb checkout>\`, never by hand`);
           ok(d.category === want, `#1700 ${d.id}: category is '${d.category}', and its brief \`components/${cites[0]}\` files it under '${want}' — a def takes its brief's category`);
         } else if (noBrief) {
+          const exists = briefFor(d);
+          ok(exists === undefined,
+            `#2488 ${d.id}: says "No KB brief", and the knowledge base has \`components/${exists}\` (category '${exists && kbBriefs[exists].category}') — cite it as "KB brief: \`components/${exists}\`" and take its category`);
           const stated = header.match(/No KB brief[\s\S]{0,400}?Category[\s*]+`([a-z]+)`/)?.[1];
           ok(stated === d.category, `#1700 ${d.id}: has no KB brief, so its header states the category choice ("Category \`${d.category}\`") beside the "No KB brief" line — got ${stated ?? 'none'}`);
         }
