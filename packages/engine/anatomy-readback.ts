@@ -91,6 +91,10 @@ export type ReadPorts = {
   varName: (id: string) => string | null;
   /** A text- or effect-style id → the style's name. */
   styleName: (id: string) => string | null;
+  /** A component or component set's KEY → its name as the file holds it (#2646), for a native slot's preferred
+   *  values. `null` when the file holds nothing under the key. Optional: only a slot that prefers something reads it,
+   *  and a reader without it reports that slot as unreadable rather than passing it. */
+  componentName?: (key: string) => string | null;
 };
 
 export type Divergence = {
@@ -173,6 +177,24 @@ type FieldCheck = {
   /** How the plan's value reads in a failure message. */
   show?: (planned: unknown) => string;
 };
+
+/** The SLOT property a slot node references (#2646), read off the set it sits in; a string says why there is none. */
+const slotPropertyOf = (n: HostNode): Record<string, unknown> | string => {
+  const key = (n.componentPropertyReferences as Record<string, unknown> | null | undefined)?.slotContentId;
+  if (key === undefined || key === null) return 'no slot property referenced (slotContentId unset)';
+  let up = n.parent as HostNode | null | undefined;
+  while (up && up.type !== 'COMPONENT_SET') up = up.parent as HostNode | null | undefined;
+  if (!up) return `no component set above the slot to read ${String(key)} from`;
+  let defs: Record<string, Record<string, unknown>>;
+  try { defs = (up.componentPropertyDefinitions ?? {}) as Record<string, Record<string, unknown>>; }
+  catch (err) { return `the set's definitions are unreadable (${(err as Error)?.message ?? String(err)})`; }
+  return defs[String(key)] ?? `the set holds no property ${String(key)}`;
+};
+/** A `SlotSettings` reduced to the four fields a def declares, each at Figma's default when unset (no limit, false). */
+const slotSettingsNormal = (s: Record<string, unknown>): Record<string, unknown> => ({
+  minChildren: s.minChildren ?? null, maxChildren: s.maxChildren ?? null,
+  allowPreferredValuesOnly: s.allowPreferredValuesOnly === true, displayEmptyByDefault: s.displayEmptyByDefault === true,
+});
 
 export const FIELDS: Record<string, FieldCheck> = {
   // ── matched, not compared: these two ARE the identity the diff walks by ────────────────────────
@@ -493,6 +515,32 @@ export const FIELDS: Record<string, FieldCheck> = {
       if (got === undefined || got === null) return `${want.field} → DISCARDED (host holds ${refs ? JSON.stringify(refs) : 'no references'})`;
       const stem = String(got).split('#')[0];
       return stem === want.prop ? null : `${want.field} → ${String(got)}`;
+    },
+  },
+
+  // ── a native slot's constraints (#2646) ────────────────────────────────────────────────────────
+  // Written on the set's SLOT property, not the node, so both are read off the property the node references
+  // (`slotContentId`), found by walking up to the set. `slotSettings` compares the four fields a def declares, a
+  // field the plan leaves out reading as Figma's default; `slotPreferred` names each key through the file's own
+  // catalog (`componentName`), never through the plan.
+  slotSettings: {
+    show: (p) => JSON.stringify(p),
+    check: (p, n) => {
+      const d = slotPropertyOf(n);
+      if (typeof d === 'string') return d;
+      const want = slotSettingsNormal(p as Record<string, unknown>), got = slotSettingsNormal((d.slotSettings ?? {}) as Record<string, unknown>);
+      return JSON.stringify(want) === JSON.stringify(got) ? null : JSON.stringify(got);
+    },
+  },
+  slotPreferred: {
+    show: (p) => JSON.stringify(p),
+    check: (p, n, ports) => {
+      const d = slotPropertyOf(n);
+      if (typeof d === 'string') return d;
+      const keys = ((d.preferredValues ?? []) as { key?: unknown }[]).map((v) => String(v.key));
+      if (!ports.componentName) return `UNREADABLE (no port names a component key; host holds ${keys.length} key(s))`;
+      const names = keys.map((k) => ports.componentName!(k) ?? `(nothing under ${k})`);
+      return JSON.stringify(names) === JSON.stringify(p) ? null : JSON.stringify(names);
     },
   },
 

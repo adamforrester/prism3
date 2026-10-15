@@ -470,6 +470,19 @@ export type PartDef = {
    *  `slot` part: that one swaps a whole component the designer must have made, and its target is the one
    *  nominated per file. A `box` with `layout` only, and never the root (a slot is a region inside a member). */
   contentSlot?: true;
+  /** For a `contentSlot` box (#2646): the constraints Figma's own slot carries on its SLOT property, written on Build
+   *  and Update. `minChildren` and `maxChildren` bound how many children a designer's content may hold; a slot outside
+   *  them still takes the content and flags it on the instance (`BELOW_MIN` / `ABOVE_MAX`), it does not refuse it.
+   *  `allowPreferredValuesOnly` makes `preferred` the only components the slot offers, and flags anything else
+   *  (`HAS_NON_PREFERRED`). `displayEmptyByDefault` shows a new instance's slot empty rather than with its default
+   *  content. Absent means Figma's own default for that field, which is no limit, any content, default content shown.
+   *  Refused on anything but a `contentSlot` box, and on a count that is not a whole number or a min above its max. */
+  slotSettings?: { minChildren?: number; maxChildren?: number; allowPreferredValuesOnly?: boolean; displayEmptyByDefault?: boolean };
+  /** For a `contentSlot` box (#2646): the components the slot offers first, by DEF ID. Resolved to the built set's key
+   *  when the slot is written, so a preferred def not yet built in the file is a named miss, never a silent drop. Each
+   *  id must be a registered def that builds one component or one set on its own; `figmaAnatomyPlan` refuses any
+   *  other, naming it (the schema has no registry to check against). Refused on anything but a `contentSlot` box. */
+  preferred?: readonly string[];
   /** For `text` parts INSIDE a `contentSlot` box (#2417): the placeholder copy, written as it is. A text node in a
    *  native slot's default content can carry no component-property reference (measured: Figma refuses one on a slot
    *  sublayer), so a slot's placeholder is literal text, which a designer edits or replaces on the instance. Refused
@@ -4248,6 +4261,30 @@ const anatomyErrors = (def: ComponentDef): string[] => {
       if (p.kind !== 'box') e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'contentSlot' — only a 'box' can be a native slot (Figma's slot is a frame)`);
       else if (!p.layout) e.push(`anatomy part '${n}' declares 'contentSlot' but binds no 'layout' — a slot holds a designer's content, and only an auto-layout frame flows it`);
       if (n === a.root) e.push(`anatomy part '${n}' declares 'contentSlot' on the root — a slot is a region inside a member, never the member itself`);
+    }
+    // ---- SLOT CONSTRAINTS (`slotSettings`, `preferred`, #2646) ----
+    if ((p.slotSettings !== undefined || p.preferred !== undefined) && !p.contentSlot)
+      e.push(`anatomy part '${n}' declares ${p.slotSettings !== undefined ? "'slotSettings'" : "'preferred'"} but is not a native slot — only a \`contentSlot\` box has a SLOT property to carry it`);
+    if (p.slotSettings) {
+      const ss = p.slotSettings;
+      for (const k of Object.keys(ss))
+        if (!['minChildren', 'maxChildren', 'allowPreferredValuesOnly', 'displayEmptyByDefault'].includes(k)) e.push(`anatomy part '${n}' slotSettings.${k} is not a slot setting (minChildren | maxChildren | allowPreferredValuesOnly | displayEmptyByDefault)`);
+      for (const k of ['minChildren', 'maxChildren'] as const)
+        if (ss[k] !== undefined && !(Number.isInteger(ss[k]) && ss[k]! >= 0)) e.push(`anatomy part '${n}' slotSettings.${k} is ${String(ss[k])} — a child count is a whole number, 0 or more`);
+      if (ss.minChildren !== undefined && ss.maxChildren !== undefined && ss.minChildren > ss.maxChildren)
+        e.push(`anatomy part '${n}' slotSettings.minChildren (${ss.minChildren}) is above maxChildren (${ss.maxChildren}) — no content could satisfy the slot`);
+      if (ss.maxChildren === 0) e.push(`anatomy part '${n}' slotSettings.maxChildren is 0 — a slot that may hold nothing is not a slot`);
+      if (ss.allowPreferredValuesOnly && !(p.preferred ?? []).length)
+        e.push(`anatomy part '${n}' slotSettings.allowPreferredValuesOnly is true with no 'preferred' — the slot would flag every component a designer puts in it`);
+    }
+    if (p.preferred !== undefined) {
+      if (!p.preferred.length) e.push(`anatomy part '${n}' declares an empty 'preferred' — leave it out for a slot that prefers nothing`);
+      const seen = new Set<string>();
+      for (const id of p.preferred) {
+        if (seen.has(id)) e.push(`anatomy part '${n}' names '${id}' twice in 'preferred'`);
+        seen.add(id);
+        if (!/^_?[a-z][a-z0-9-]*$/.test(id)) e.push(`anatomy part '${n}' preferred '${id}' is not a def id`);
+      }
     }
     // ---- TOP-ONLY PADDING (`paddingTop`) ----
     if (p.paddingTop !== undefined) {

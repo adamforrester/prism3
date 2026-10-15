@@ -61,7 +61,7 @@ import { ownedModeIds, type VarCollection } from './write-figma';
 import { isEngineDescription, type StyleKind } from './prune-figma';
 import { isMarkedOwned, type Markable } from './provenance';
 
-export type VarType = 'COLOR' | 'FLOAT' | 'STRING' | 'BOOLEAN';
+export type VarType = 'COLOR' | 'FLOAT' | 'STRING' | 'BOOLEAN' | 'TIMING' | 'EASING';
 
 /** Everything an apply will touch, by name — the pre-flight's half of the plan. */
 export type PreflightPlan = {

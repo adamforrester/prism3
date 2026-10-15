@@ -10,4 +10,4 @@ field's. size x status x state = 84 members, no visibility axis (Q301.6 A); the 
 and "Show". Its own page under Components (Q301.9 B). Engine: `NestingRelation.atState` maps a host state to nested
 axis values (the toggle nests Button's disabled member at the field's disabled member and rest everywhere else), and
 `PartDef.nestTexts` sets a nested instance's own TEXT property; both executors write it with `setProperties`
-(EXECUTOR_REVISION 21), and the round-trip reads it back. No token is added or renamed, so CONTRACT is unchanged.
+(EXECUTOR_REVISION 23), and the round-trip reads it back. No token is added or renamed, so CONTRACT is unchanged.

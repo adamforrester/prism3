@@ -1501,7 +1501,8 @@ export const makeShim = (opts: ShimOpts = {}) => {
         // and that re-lookup across every set in the file is the defect. A set whose children cannot be
         // instantiated would make the fixed executor's success path unreachable, so the shim now answers the
         // question the real host answers: a ComponentSetNode's children ARE ComponentNodes.
-        const mkSet = (name: string, members: ReturnType<typeof mkRef>[]) => ({ name, id: `73:${37 + seq++}`, type: 'COMPONENT_SET', children: members });
+        // Its KEY (#2646), which a slot's preferred value names: the live set's own where it has one, else one per name.
+        const mkSet = (name: string, members: ReturnType<typeof mkRef>[], live?: Node) => ({ name, id: `73:${37 + seq++}`, type: 'COMPONENT_SET', children: members, key: String((live as Record<string, unknown> | undefined)?.key ?? `SK:${name}`) });
         for (const name of opts.comps ?? []) if (types.includes('COMPONENT')) found.push(mkRef(name, seq++));
         for (const fn of opts.fileNodes ?? []) {
           if (fn.type === 'COMPONENT_SET') {
@@ -1522,7 +1523,7 @@ export const makeShim = (opts: ShimOpts = {}) => {
           if (n.type === 'COMPONENT_SET') {
             const owner = { name: String(n.name), type: 'COMPONENT_SET' };
             const members = live.map((c) => mkRef(String(c.name), seq++, c, owner));
-            if (types.includes('COMPONENT_SET')) found.push(mkSet(String(n.name), members));
+            if (types.includes('COMPONENT_SET')) found.push(mkSet(String(n.name), members, n));
             if (types.includes('COMPONENT')) for (const m of members) found.push(m);
           } else if (n.type === 'COMPONENT' && types.includes('COMPONENT')) {
             if (opts.liveComponents) {
@@ -1624,6 +1625,31 @@ export const makeShim = (opts: ShimOpts = {}) => {
       // combine merges by name). Before the combine, the combine registers it (below).
       n.createSlot = () => {
         const sl = mkNode('FRAME'); sl.type = 'SLOT'; sl.name = 'Slot';
+        // WHAT THE SLOT'S CONTENT VIOLATES (#2646), as the typings describe `SlotNode.limitViolations`: read off the SLOT
+        // property the node references, on the set above it. A child is preferred when its main component, or the set
+        // that main sits in, is one the property names by key (a set's key is `SK:<name>` or its live key).
+        Object.defineProperty(sl, 'limitViolations', { configurable: true, enumerable: false, get: () => {
+          let up = sl.parent as Node | null | undefined;
+          while (up && up.type !== 'COMPONENT_SET') up = up.parent as Node | null | undefined;
+          const key = (sl.componentPropertyReferences as Record<string, string> | null | undefined)?.slotContentId;
+          const d = up && key ? ((up.componentPropertyDefinitions as Record<string, Record<string, unknown>>) ?? {})[key] : undefined;
+          const ss = (d?.slotSettings ?? {}) as { minChildren?: number | null; maxChildren?: number | null; allowPreferredValuesOnly?: boolean };
+          const kids = (sl.children as Node[]) ?? [];
+          const out: string[] = [];
+          if (ss.minChildren != null && kids.length < ss.minChildren) out.push('BELOW_MIN');
+          else if (ss.maxChildren != null && kids.length > ss.maxChildren) out.push('ABOVE_MAX');
+          if (ss.allowPreferredValuesOnly) {
+            const keys = new Set(((d?.preferredValues ?? []) as { key: string }[]).map((v) => v.key));
+            const preferred = (c: Node): boolean => {
+              const m = c.mainComponent as { name?: string; key?: string; parent?: { name?: string; type?: string; key?: string } } | undefined;
+              if (c.type !== 'INSTANCE' || !m) return false;
+              const setKeys = m.parent?.type === 'COMPONENT_SET' ? [m.parent.key, `SK:${String(m.parent.name)}`] : [];
+              return [m.key, ...setKeys].some((k) => k !== undefined && keys.has(k));
+            };
+            if (kids.some((c) => !preferred(c))) out.push('HAS_NON_PREFERRED');
+          }
+          return out;
+        } });
         (n.appendChild as (c: Node) => void)(sl);
         const set = n.parent as Node | null;
         const register = set?.type === 'COMPONENT_SET' ? (set as Record<string, unknown>)._slotProp as ((x: Node) => void) | undefined : undefined;
@@ -1910,6 +1936,7 @@ export const makeShim = (opts: ShimOpts = {}) => {
         const twin = Object.create(set) as Node;
         Object.defineProperty(twin, 'componentPropertyDefinitions', { configurable: true, get: () => readDefs() });
         twin.addComponentProperty = (n: string, t: string, d: unknown) => addProp(n, t, d);
+        twin.editComponentProperty = (k: string, edit: Record<string, unknown>) => editProp(k, edit);
         // `declaredIds` and the members' own reference guards are NOT re-installed: both close over this
         // same `defs`, so an id declared through the twin is already valid to the guards the original
         // installed. Re-running `guardRefs` here would re-walk every member and re-install setters over
@@ -1938,16 +1965,27 @@ export const makeShim = (opts: ShimOpts = {}) => {
       // #2265 PR 2 — EDIT AND DELETE, the other two property methods an in-place update needs. An edit keeps the
       // property's id (`#…` suffix), so references to it and consumer overrides of it survive; a delete drops the
       // property and every reference to it, which is why the update lists a retype as lost overrides.
-      set.editComponentProperty = (key: string, edit: { name?: string; defaultValue?: unknown }) => {
-        if (dead) throw staleErr('editComponentProperty');
-        const d = defs[key];
+      // #2646 — and a SLOT property's constraints and preferred values, as the typings bound the edit: `slotSettings` on a
+      // SLOT only, `preferredValues` on a SLOT or an INSTANCE_SWAP, and no `defaultValue` on a SLOT. Stored as written,
+      // so the read-back reads what the host kept rather than what the executor meant.
+      const editProp = (key: string, edit: { name?: string; defaultValue?: unknown; slotSettings?: unknown; preferredValues?: unknown }): string => {
+        const d = defs[key] as Record<string, unknown> | undefined;
         if (!d) throw new Error(`in editComponentProperty: Could not find a component property with name: '${key}'`);
+        if (edit.slotSettings !== undefined && d.type !== 'SLOT') throw new Error('in editComponentProperty: slotSettings is only supported for SLOT properties');
+        if (edit.preferredValues !== undefined && d.type !== 'SLOT' && d.type !== 'INSTANCE_SWAP') throw new Error('in editComponentProperty: preferredValues is only supported for INSTANCE_SWAP and SLOT properties');
+        if (edit.defaultValue !== undefined && d.type === 'SLOT') throw new Error('in editComponentProperty: defaultValue is not supported for SLOT properties');
+        if (edit.slotSettings !== undefined) d.slotSettings = { ...(edit.slotSettings as Record<string, unknown>) };
+        if (edit.preferredValues !== undefined) d.preferredValues = (edit.preferredValues as Record<string, unknown>[]).map((v) => ({ ...v }));
         if (edit.defaultValue !== undefined) d.defaultValue = edit.defaultValue;
         if (edit.name === undefined) return key;
         const renamed = `${edit.name}#${key.split('#')[1]}`;
         delete defs[key];
-        defs[renamed] = d;
+        defs[renamed] = d as (typeof defs)[string];
         return renamed;
+      };
+      set.editComponentProperty = (key: string, edit: { name?: string; defaultValue?: unknown; slotSettings?: unknown; preferredValues?: unknown }) => {
+        if (dead) throw staleErr('editComponentProperty');
+        return editProp(key, edit);
       };
       set.deleteComponentProperty = (key: string) => {
         if (dead) throw staleErr('deleteComponentProperty');
