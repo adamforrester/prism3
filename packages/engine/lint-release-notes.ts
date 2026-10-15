@@ -11,12 +11,18 @@
  *   CLAIMED, NOT IN THE DIFF  an item names a change the diff does not show.
  *   MISCLASSIFIED             an item's class is not the class the rule gives its kind (a removal is
  *                             breaking whatever the notes call it).
- *   TEXT                      an item's sentence does not name the set, property, value or token it is about.
+ *   TEXT                      an item's sentence does not name the set, property, value or token it is about,
+ *                             or does not say what its kind says happened (SAYS, below): a sentence that
+ *                             reverses its item, names kept, fails here.
+ *   DATE                      a release's date is not a day git allows: before the fold that set the version
+ *                             before it, or after its own fold (the working tree: after today, UTC).
  *   MARKDOWN                  the `.md` page's list lines are not exactly the `.json` items' sentences.
  *   NOTES                     the folded change notes are not exactly the ones that version's fold deleted.
  *   INDEX                     `index.json` and the release files disagree, in either direction, or an index
  *                             entry's counts or highlights (what the plugin shows) are not the release's.
  *   REPRESENTED               a version assigned at or after FLOOR has no release.
+ *
+ * A shallow clone CANNOT RUN rather than reporting its missing history as notes that disagree with git.
  *
  * ── WHERE THE TWO SIDES COME FROM (docs/34) ─────────────────────────────────────────────────────────
  *
@@ -34,8 +40,10 @@
  *
  * ── LIMITS ───────────────────────────────────────────────────────────────────────────────────────────
  *
- * 1. It checks WHAT each item says changed, its class and that its sentence names its subject. It does
- *    not judge the wording; `lint-voice.ts` and `lint-us-english.ts` scan `docs/public/**` for that.
+ * 1. It checks WHAT each item says changed, its class, that its sentence names its subject and that it
+ *    carries its kind's phrase (SAYS) and no phrase of another class. It does not judge the wording;
+ *    `lint-voice.ts` and `lint-us-english.ts` scan `docs/public/**` for that. SAYS restates the
+ *    generator's sentence templates as phrases, so a reworded template moves SAYS in the same PR.
  * 2. A fold PR that merges `main` sees `main`'s record changes in its own range and fails until
  *    `release-notes.ts --refresh` rewrites its notes. That is the gate working: the squash would ship
  *    those changes under this version.
@@ -50,6 +58,13 @@
  *   M3  a removal's class set to `fix`, in both → MISCLASSIFIED.
  *   M4  one breaking line dropped from the `.md` only → MARKDOWN.
  *   M5  the newest release's files deleted → REPRESENTED and INDEX.
+ *
+ * Run over the committed releases:
+ *
+ *   M6  a `value-added` sentence inverted to "lost its value", names kept, in the `.json`, `.md` and
+ *       `index.json` → TEXT.
+ *   M7  a release's date set to 2026-01-01 in its `.json` and `index.json` → DATE.
+ *   M8  the gate run in a `--depth 50` clone → CANNOT RUN, naming `git fetch --unshallow`.
  */
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
@@ -78,6 +93,7 @@ const fileAt = (at: string | null, rel: string): string | null => {
   const r = git('show', `${at}:${rel}`);
   return r.ok ? r.out : null;
 };
+if (git('rev-parse', '--is-shallow-repository').out.trim() !== 'false') cannotRun('this clone is shallow (or not a git work tree), so the fold history the notes are checked against is not all here');
 const versionIn = (src: string | null): string | null => (src ? /ENGINE_VERSION = '(\d+\.\d+\.\d+)'/.exec(src)?.[1] ?? null : null);
 const cmpVersion = (a: string, b: string): number => {
   const x = a.split('.').map(Number), y = b.split('.').map(Number);
@@ -92,6 +108,27 @@ const CLASS_OF: Record<string, 'breaking' | 'new' | 'fix'> = {
   'set-added': 'new', 'axis-added': 'new', 'value-added': 'new', 'component-added': 'new', 'prop-added': 'new', 'prop-value-added': 'new', 'token-added': 'new',
   'set-rebuilt': 'fix', 'prop-default': 'fix',
 };
+
+/** What each kind's sentence must say happened, restated from the rule rather than read from the
+ *  generator. Code spans are stripped first, so a name never supplies the phrase. */
+const SAYS: Record<string, RegExp> = {
+  'set-added': /is a new (component set|building block)/, 'set-removed': /no longer builds/,
+  'axis-added': /has a new property/, 'axis-removed': /the +property is gone/, 'axis-renamed': /the +property is now called/,
+  'value-added': /has (a new value,|new values:)/, 'value-removed': /no longer has the values?/, 'value-renamed': /the +value +is now called/,
+  'set-rebuilt': /builds differently/,
+  'component-added': /is a new component/, 'component-removed': /is gone/,
+  'prop-added': /has a new prop/, 'prop-removed': /no longer has the +prop/, 'prop-retyped': /changes type, from/,
+  'prop-value-added': /takes (a new value,|new values:)/, 'prop-value-removed': /no longer takes/, 'prop-default': /now defaults to/,
+  'token-added': /is a new .*token/, 'token-removed': /is gone/, 'token-retyped': /changes type, from/,
+};
+/** A phrase that belongs to another class: a new or fix sentence that says something went away, or a
+ *  breaking one that says something arrived. */
+const NOT_IN: Record<string, RegExp> = {
+  breaking: /\bnew\b|builds differently|now defaults/,
+  new: /no longer|is gone|is now called|changes type|lost|removed/,
+  fix: /no longer|is gone|is now called|changes type|lost|removed|\bnew\b/,
+};
+const prose = (t: string): string => t.replace(/`[^`]*`/g, '');
 
 type Item = { class?: string; area: string; kind: string; component?: string; property?: string; values?: string[]; token?: string; from?: string; to?: string; text?: string };
 const identity = (i: Item): string =>
@@ -242,6 +279,11 @@ for (const v of onDisk.sort(cmpVersion)) {
   if (!from || rel.from !== from) { fail('NOTES', `${v}: the notes say they follow ${rel.from}; git says ${from ?? '(unreadable)'}`); continue; }
   const base = folds.get(from);
   if (!base) { fail('NOTES', `${v}: no fold commit sets ${from}`); continue; }
+  // The date: no earlier than the fold this one follows, no later than its own fold (UTC days, as the
+  // fold writes them). A fold not yet committed is bounded by today.
+  const day = (sha: string): string => new Date(git('show', '-s', '--format=%cI', sha).out.trim()).toISOString().slice(0, 10);
+  const lo = day(base), hi = at === null ? new Date().toISOString().slice(0, 10) : day(at);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(rel.date ?? '') || rel.date < lo || rel.date > hi) fail('DATE', `${v}: the notes are dated ${rel.date}; git puts this fold between ${lo} (${from}'s fold, ${base.slice(0, 8)}) and ${hi} (${at === null ? 'today, the working tree' : `its own fold, ${at.slice(0, 8)}`})`);
   if (rel.base !== base) fail('NOTES', `${v}: the notes start from ${rel.base?.slice(0, 8)}; the fold that set ${from} is ${base.slice(0, 8)}`);
 
   const expected = changes(await recordsAt(base), await recordsAt(at));
@@ -260,6 +302,9 @@ for (const v of onDisk.sort(cmpVersion)) {
     const subject = i.area === 'code' ? (names[i.component!] ?? baseNames[i.component!])?.name : i.component;
     const must = [subject, i.property, i.token, i.kind.endsWith('renamed') || i.kind === 'token-removed' ? i.to : undefined, ...(i.values ?? [])].filter((x): x is string => !!x);
     for (const m of must) if (!(i.text ?? '').includes(m)) fail('TEXT', `${v}: "${i.text}" does not name ${m}`);
+    const said = prose(i.text ?? ''), cls = CLASS_OF[i.kind];
+    if (!SAYS[i.kind]?.test(said)) fail('TEXT', `${v}: "${i.text}" does not say what ${i.kind} says happened (${SAYS[i.kind] ?? 'no such kind'})`);
+    else if (cls && NOT_IN[cls].test(said)) fail('TEXT', `${v}: "${i.text}" is ${i.kind}, ${cls}, and says ${NOT_IN[cls].exec(said)![0]}`);
   }
   const counts = { breaking: 0, new: 0, fix: 0 } as Record<string, number>;
   for (const i of rel.items) counts[i.class!] = (counts[i.class!] ?? 0) + 1;
