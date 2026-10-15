@@ -1,5 +1,5 @@
 /**
- * Unscoped font variables export as `fontFamily` / `fontWeight`, typed by their path (prism3 #2616).
+ * Font variables with no font scope export as `fontFamily` / `fontWeight`, typed by their path (prism3 #2616).
  *
  * TokenPress typed a font variable only from its Figma scope. prism3 leaves its primitives unscoped so they
  * stay out of the pickers, and unscoped `font/family/*` came back as `string`, `font/weight/700` as
@@ -43,9 +43,13 @@ const vars = [
   mkVar('v5', 'ds/core/font/size/16', 'FLOAT', 16),
   mkVar('v6', 'ds/icon/stroke-weight/2', 'FLOAT', 2),
   mkVar('v7', 'ds/brand/family/name', 'STRING', 'Acme'),
+  mkVar('v8', 'ds/type/font/weight/600', 'FLOAT', 600, ['ALL_SCOPES']),
+  mkVar('v9', 'ds/type/font/family/display', 'STRING', 'Inter', ['ALL_SCOPES']),
+  mkVar('v10', 'ds/odd/font/weight/14', 'FLOAT', 14, ['FONT_SIZE']),
+  mkVar('v11', 'ds/odd/font/family/bold', 'STRING', 'Bold', ['FONT_STYLE']),
 ];
 
-describe('unscoped font variables are typed by path', () => {
+describe('font variables with no font scope are typed by path', () => {
   test('a numeric weight primitive is a fontWeight, not a dimension', () => {
     const file = build(vars);
     expect(file.ds.core.font.weight['700'].$type).toBe('fontWeight');
@@ -67,6 +71,18 @@ describe('unscoped font variables are typed by path', () => {
   test('a single fontWeight segment is a fontWeight', () => {
     const file = build(vars);
     expect(file.ds.type.fontWeight.bold.$type).toBe('fontWeight');
+  });
+
+  test("Figma's default ALL_SCOPES is not a font scope, so the path types it", () => {
+    const file = build(vars);
+    expect(file.ds.type.font.weight['600'].$type).toBe('fontWeight');
+    expect(file.ds.type.font.family.display.$type).toBe('fontFamily');
+  });
+
+  test('a font scope still wins over the path', () => {
+    const file = build(vars);
+    expect(file.ds.odd.font.weight['14'].$type).toBe('dimension');
+    expect(file.ds.odd.font.family.bold.$type).toBe('fontWeight');
   });
 
   test('a path with no font segment keeps its old type', () => {
