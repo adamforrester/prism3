@@ -4,6 +4,11 @@ Each file here is one entry of `docs/00-progress.md`, carried by the PR that wro
 adds its own file instead of writing at the top of the log, so no two PRs write the same line.
 **Every PR adds one, except a fold;** `lint-progress-order.ts` fails a PR that does not.
 
+Write it as part of the work, while the reasoning is still in hand: the entry is worth most for what
+a diff cannot show — the diagnosis that made the fix small, the tradeoff that was deliberate, the
+approach tried and discarded, and any trap waiting for whoever re-verifies the change later. PRs that
+merged without one needed a separate docs PR to catch up.
+
 - **Name:** your branch name with `/` turned into `-`, for example `lane-merge-independence.md`.
 - **Content:** exactly one entry, the same shape as the log's. The first line is
   `## (YYYY-MM-DD) — <title>`, and any subsections inside it use `###`.
