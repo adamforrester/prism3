@@ -557,6 +557,43 @@ for (const [w, why] of Object.entries(NOT_DECLARED)) {
   else if (!admittedSeen.has(w)) findings.push({ file: 'packages/engine/lint-skills.ts', kind: 'stale admission', detail: `NOT_DECLARED admits \`${w}\`, which no skill quotes any more. Remove it` });
 }
 
+// ---- 7. THE REVIEW COMMAND'S FILE NAMES (#2677) --------------------------------------------------
+// `.claude/commands/review-pr.md` is not a skill, but review lanes follow it (owner decision Q320), and it
+// had sent reviewers to `docs/01-architecture` and `docs/06-surface-model`, two names that never existed
+// as files, with nothing reading it. This check holds it to the floor every skill gets from scan 3: each
+// backticked file name resolves. A name with a `/` resolves from the repo root; a bare one (`verify.ts`,
+// `lint-skills.ts`) must exist in one of the places the command's readers look. Its advice is out of reach
+// here, as the skills' is.
+let commandNamesRead = 0;
+export const commandFileFindings = (text: string, rel: string, exists: (p: string) => boolean): Finding[] => {
+  const out: Finding[] = [];
+  const BARE_HOMES = ['', 'docs/', 'packages/engine/', 'apps/plugin/', 'apps/plugin/src/', 'apps/studio/', '.claude/commands/', 'docs/progress/pending/'];
+  for (const m of text.matchAll(/`([A-Za-z0-9_./-]+\.(?:ts|md|mjs|json))`/g)) {
+    const name = m[1];
+    if (name.startsWith('.')) continue; // an extension named as a kind (`.ai.json`), not a file
+    commandNamesRead++;
+    const ok = name.includes('/') ? exists(name) : BARE_HOMES.some((h) => exists(h + name));
+    if (!ok) out.push({ file: rel, kind: 'missing file', detail: `\`${name}\` does not exist${name.includes('/') ? '' : ` in any of: ${BARE_HOMES.map((h) => h || '(repo root)').join(', ')}`}` });
+  }
+  return out;
+};
+const COMMAND = '.claude/commands/review-pr.md';
+{
+  const real = (p: string) => existsSync(resolve(repo, p));
+  const self = commandFileFindings('`docs/no-such-doc.md` and `no-such-gate.ts` and `verify.ts` and `.ai.json`', 'self-check', real);
+  const before7 = commandNamesRead;
+  if (self.length !== 2 || !self.some((f) => f.detail.includes('docs/no-such-doc.md')) || !self.some((f) => f.detail.includes('no-such-gate.ts'))) {
+    console.error(`\n❌ the review-command file check is broken: expected exactly the two dead names, got ${self.length}: ${self.map((f) => f.detail).join(' | ')}`);
+    process.exit(1);
+  }
+  const text = existsSync(resolve(repo, COMMAND)) ? readFileSync(resolve(repo, COMMAND), 'utf8') : '';
+  if (!text) findings.push({ file: COMMAND, kind: 'missing file', detail: 'the review command is gone; this check reads nothing' });
+  findings.push(...commandFileFindings(text, COMMAND, real));
+  // A floor, not a count: the command names a dozen-plus files today. Fewer than five read means the pattern
+  // stopped matching the command's backticked names, and every one would then pass by never being looked at.
+  if (text && commandNamesRead - before7 < 5) findings.push({ file: COMMAND, kind: 'scan went dark', detail: `only ${commandNamesRead - before7} backticked file name(s) read from the review command, below the floor of 5` });
+}
+
 console.log(`Skills gate — ${dirs.length} skill(s) scanned (${dirs.join(', ')}).`);
 // A scan that goes dark reports success forever. Zero skills means the layout moved, not that the
 // skills are clean.
