@@ -339,6 +339,8 @@ const DEFAULT_FIRST: Record<string, string> = {
   'text-field': 'the Figma default and the in-place-update landing value are `medium`, the field before #2266',
   select: 'the Figma default and the in-place-update landing value are `medium`, the select before #2266',
   textarea: 'the Figma default and the in-place-update landing value are `medium`, the textarea before #2266',
+  // #2427: owner Q283.6 B, "medium first, joining the field-family exception": Figma's inserted Counter is the code default.
+  counter: 'the Figma default is `medium`, the code default, by owner decision Q283.6 B (the field family\'s exception)',
 };
 
 const SIZE_BY_FOLLOW_ONLY: Record<string, string> = {
@@ -364,7 +366,7 @@ const MUST_COVER = [
   'button', 'button-destructive', 'button-neutral',
   'icon-button', 'icon-button-destructive', 'icon-button-neutral',
   'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral',
-  'field-label', 'text-field', 'textarea', 'select', 'tag',
+  'field-label', 'text-field', 'textarea', 'select', 'tag', 'counter',
   'tab', 'tabs',
   'checkbox-control', 'checkbox-row', 'checkbox-group',
   'radio-control', 'radio-row', 'radio-group',

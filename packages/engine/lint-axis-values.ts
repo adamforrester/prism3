@@ -208,6 +208,19 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'three `makeIconButton` siblings, so one entry records all three.',
   },
   {
+    axis: 'appearance',
+    values: ['outline', 'ghost'],
+    defs: ['counter'],
+    relation: 'overlapping',
+    reason:
+      'The Counter\'s two treatments (#2427; owner Q283.4 A, `outline | ghost`, and the wireframe decision keeping '
+      + 'both). OVERLAPPING with the canonical button ladder: `outline` is the same word for the same thing (an '
+      + 'edged control), and `ghost` is IconButton\'s word for a control with no box, here the row with no edge and '
+      + 'round buttons at its ends. No `filled` rung: the wireframe\'s filled square buttons (C) are not built now, '
+      + 'and adding them is a third value here. `outline` LEADS as Q283.4 A spells it, so the Figma default is '
+      + 'outline, while ghost is the MVP the wireframe named; which one leads is an open owner call on the PR.',
+  },
+  {
     axis: 'emphasis',
     values: ['secondary', 'primary'],
     defs: ['field-label'],
@@ -402,7 +415,8 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'size',
     values: ['medium', 'small', 'large'],
-    defs: ['text-field', 'select', 'textarea'],
+    // #2427: the Counter joins the field family's exception (owner Q283.6 B).
+    defs: ['text-field', 'select', 'textarea', 'counter'],
     relation: 'reordered',
     reason:
       'The canonical ladder, led by `medium` (#2266, the field sizing system). The first value is the set\'s '

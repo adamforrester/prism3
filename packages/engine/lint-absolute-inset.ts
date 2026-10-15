@@ -216,6 +216,11 @@ const ZERO_OK: Record<string, string> = {
   'text-field.focusRing': FIELD_RING,
   'select.focusRing': FIELD_RING,
   'textarea.focusRing': FIELD_RING,
+  // #2427: the Counter's OUTLINE members take the field offset for the same reason (their edge is the field's); its
+  // GHOST members take the control offset, 2px (owner Q283.10 A), so they never reach this admission at gap 0.
+  // `test.ts` holds the ghost offset against a literal, since a ghost member rebound to the field offset would be
+  // admitted here.
+  'counter.focusRing': `on appearance=outline only: ${FIELD_RING}`,
 };
 
 /**
@@ -224,7 +229,7 @@ const ZERO_OK: Record<string, string> = {
  * covered — including by being deleted — this file fails rather than reporting clean over a smaller
  * set. A count would read that as a pass.
  */
-const MUST_COVER = ['button.focusRing', 'icon-button.focusRing', 'checkbox-control.focusRing', 'tab.focusRing', 'accordion.focusRing', 'segmented-control-segment.focusRing', 'link.focusRing'];
+const MUST_COVER = ['button.focusRing', 'icon-button.focusRing', 'checkbox-control.focusRing', 'tab.focusRing', 'accordion.focusRing', 'segmented-control-segment.focusRing', 'link.focusRing', 'counter.focusRing'];
 
 /**
  * The floor for the COMPENSATION specifically — every part above whose gap must be computed against a
@@ -234,7 +239,7 @@ const MUST_COVER = ['button.focusRing', 'icon-button.focusRing', 'checkbox-contr
  * — the arithmetic degrades to `gap = offset`, every other check here still passes, and the ring goes
  * flush again.
  */
-const MUST_CLEAR_STROKE = ['button.focusRing', 'icon-button.focusRing', 'checkbox-control.focusRing', 'tab.focusRing', 'segmented-control-segment.focusRing', 'link.focusRing'];
+const MUST_CLEAR_STROKE = ['button.focusRing', 'icon-button.focusRing', 'checkbox-control.focusRing', 'tab.focusRing', 'segmented-control-segment.focusRing', 'link.focusRing', 'counter.focusRing'];
 
 /**
  * THE PARTS DRAWN INSIDE THEIR HOST'S EDGE (`PartDef.drawnInside`, #2417, owner decision Q257 A). Each declares no
@@ -422,7 +427,10 @@ for (const def of componentDefs) {
         }
 
         // ---- A: the name on the plan is the one the DEF's own key resolves to -------------------
-        const refOf = (key: string): string | undefined => def.tokens[key.includes('{size}') ? key.replace('{size}', size) : key];
+        // `{size}` from the size, and any other `{axis}` from the member's own coordinate (#2427: the Counter keys
+        // its ring offset by `{appearance}`). An axis the coordinate lacks stays unfilled and resolves no key.
+        const refOf = (key: string): string | undefined =>
+          def.tokens[key.replace(/\{([a-zA-Z]+)\}/g, (m, axis: string) => (axis === 'size' ? size : (plan.coord as Record<string, string | undefined>)[axis] ?? m))];
         const ref = refOf(d.insetKey);
         if (!ref) {
           failures.push(`${at}: '${node.name}' declares inset key '${d.insetKey}' and def.tokens binds no such key — the plan carries '${node.absoluteInset}' from somewhere this gate cannot corroborate`);
