@@ -15,7 +15,7 @@ documents: brandInput
 # fine-tuning knobs are studio work done after a theme exists, not things a brand brief states.
 omits: customModes, overrides, modeAnchors, modeLevers, roleColors, disabledMin, baseMd,
   actionAnchorStep, destructiveAnchorStep, linkStateRungs, accentPalette, interactivePalettes,
-  outlineInteraction, neutralEmphasis, strictInteractiveContrast, inverse
+  outlineInteraction, neutralEmphasis, strictInteractiveContrast
 when_to_use: >-
   When creating or refining a Prism3 brand from a brief, brand guidelines, or an
   existing palette — producing the `design.md` that `packages/engine/cli.ts`
@@ -56,8 +56,8 @@ and **omitting a lever selects its default** — a plain brief is a valid brief 
 "plain-spec guarantee"). Add a lever only when the brand actually calls for it.
 
 **The levers** (authoritative list + constraints: `packages/engine/schema/theme-schema.json`;
-two worked briefs: `packages/engine/examples/aurora.design.md` maximal, `harbor.design.md`
-minimal — read both, they are the reference):
+worked briefs in `packages/engine/examples/`: `aurora.design.md` maximal, `harbor.design.md`
+minimal — read both, they are the reference; the directory also holds a standard-dialect example, below):
 
 | Lever | Shape / values | Use it when |
 |---|---|---|
@@ -69,13 +69,13 @@ minimal — read both, they are the reference):
 | `surfaces` | `{ light: { base: 50 } }` | the page is a **tinted off-white**, not pure white (the contrast floor moves with it) |
 | `density` | `comfortable` \| `compact` \| `spacious` | a dense tool vs a roomy reading product |
 | `radiusScale` | number, or a named stop: `sharp` \| `modest` \| `standard` \| `soft` \| `round` | radius softness |
-| `controlShape` | `rounded` \| `pill` | pill-able controls (buttons) read as full **pills** (height ÷ 2) rather than rounded — a brand-identity choice, orthogonal to softness |
+| `controlShape` | `rounded` \| `pill` \| `boxed` \| `hairline` | the corner shape of buttons, fields and checkboxes — a brand-identity choice, orthogonal to softness. `rounded` (default) follows `radiusScale`; `boxed` gives them a sharp 0px corner; `hairline` a 1px corner; `pill` rounds the ends of **buttons** fully (height ÷ 2) whatever the softness, while fields and checkboxes keep their own corner |
 | `buttonIcons` | `attached` \| `edges` | the brand pins button icons to the button's **edges** (Locked to edges), with the label centered in the space between them and the button still growing with a long label; `attached` (Attached to label, default) keeps them beside the label. Buttons only, not icon buttons |
 | `buttonMinWidthMultiplier` | number, 1–4 (default `2.25`) | a button's minimum width is its height × this, rounded up to the 8px grid (88/104/128px at 36/44/56px heights by default) — raise it for wider short-label buttons (`2.5` gives 96/112/144px) |
 | `buttonContentSize` | `match` \| `smaller` | `smaller` (One step smaller) gives a **medium** button the small label and icon (`type.label.sm.emphasis`, `icon.size.xs`) at medium height and padding — New Balance's 44px button with a 12px label; `match` (default) leaves every size its own |
 | `buttonLabelWeight` | `emphasis` \| `default` | `default` (Default) sets every button label in its label style's **default** weight role instead of emphasis, and the brand then ships that weight for the label styles; with `smaller`, a medium button takes the small label at that weight. Buttons only: tags and badges keep emphasis. `emphasis` (default) leaves the labels as they are |
 | `buttonTextHover` | `text` \| `fill` | What a button at the text appearance does on hover and when pressed. `text` (Text & icon only, the default) changes its label and icon colors; `fill` also gives it the outline appearance's wash. A text button is never filled at rest, and its label is always underlined (fixed, not a setting). Buttons only |
-| `radiusHairline` | `true` \| `false` | opt-in (off by default) — adds a fixed **1px** hairline radius rung for a near-sharp brand. The scaled ramp only lands on even values, so this is the way to a 1px corner; the scaled rungs are untouched |
+| `radiusHairline` | `true` \| `false` | **retired — do not set it.** The fixed 1px `radius.hairline` rung now ships for every brand, so this changes nothing; it is accepted only so older brand files still load. For 1px-cornered controls, use `controlShape: hairline` |
 | `iconContrast` | `text` \| `3:1` | let non-text icons run lighter (WCAG 1.4.11 floor) |
 | `motionPersonality` | `{ tempo: snappy \| standard \| relaxed }` | brand energy → motion pace |
 | `typography` | `{ families, weightRoles, typeScale: compact\|default\|expressive, displayCeiling, titleFloor, captionFloor, sizeFloor, responsive: { fluid, minViewport, maxViewport } }` | custom faces / weight remap / fluid type; `families` is keyed by CATEGORY (`display`/`title`/`body`/`label`/`caption`/`eyebrow`/`code`), and **an omitted category takes the engine default (Inter, or JetBrains Mono for `code`), with a system fallback stack appended** |
@@ -84,7 +84,7 @@ minimal — read both, they are the reference):
 | `shadow` | `{ softness, tint: { hue, amount } }` | softer marketing elevation, tinted to the brand |
 | `layout` | `{ breakpoints: [...], containerMax }` | a non-default breakpoint ladder / content cap |
 | `gradients` | `[{ name, kind: linear\|radial, angle/center/shape, stops: [{ palette, step, position }] }]` | opt-in brand gradients (most systems ship none — omit) |
-| `disabledStrategy` | `full` \| `reduced` | `reduced` (default) — disabled ink clears a dialable `disabledMin` floor (3–4.5, default 3); `full` promises a fixed 4.5:1 (AA text) instead. Neither goes below 3:1 — this system does not use the WCAG 1.4.3/1.4.11 inactive-component exemption, so there is no sub-AA "exempt" look to select. (`accessible`/`conventional` are accepted as legacy aliases; both normalize to `reduced` — they do not select `full` and `conventional` no longer means low-contrast.) |
+| `disabledStrategy` | `full` \| `reduced` (legacy aliases: `accessible`, `conventional`) | `reduced` (default) — disabled ink clears a dialable `disabledMin` floor (3–4.5, default 3); `full` promises a fixed 4.5:1 (AA text) instead. Neither goes below 3:1 — this system does not use the WCAG 1.4.3/1.4.11 inactive-component exemption, so there is no sub-AA "exempt" look to select. (`accessible`/`conventional` are accepted as legacy aliases; both normalize to `reduced` — they do not select `full` and `conventional` no longer means low-contrast.) |
 
 ## How to author
 
@@ -94,7 +94,8 @@ minimal — read both, they are the reference):
    fidelity to the brand comes from accurate anchors, not from you placing steps.
 2. **Choose the neutral cast.** `neutral: { hue, chroma }` derives a gray with a hint of
    the brand (low chroma — 0.004–0.01). If the brand ships a *specific* gray, pin it with
-   `neutral: { anchor: {l,c,h} }` instead.
+   `neutral: { hue, chroma, anchor: {l,c,h} }`. `hue` and `chroma` are still required; the
+   anchor overrides them, so set them to the anchor's own hue and chroma.
 3. **Decide action.** If the brand's interactive color *is* the hero, do nothing
    (`action` defaults to `primary` — the engine notes it so it stays a confirmed choice).
    If interactive UI uses an accent, set `actionPalette: <accent-name>`. Links follow the action
@@ -133,7 +134,7 @@ Read the output — it is the contract:
 
 - **`aliases: N/N resolve | mode contracts: M/M pass`** — every reference resolved and
   every per-mode contrast contract held. This is the pass bar.
-- **`notes`** — confirmed choices and warnings: `action ← primary (default)`, a pinned
+- **`notes`** — confirmed choices and warnings: `action: the primary palette, by default — actionPalette is not set.`, a pinned
   anchor that fell **out of gamut** (the engine clamps + flags it — nudge the anchor's
   chroma down if you meant it to be exact), the tinted-surface floor, etc. Read every
   note; each is a decision to confirm or fix.
@@ -156,11 +157,19 @@ platform.
   to derive the anchors. When you're *starting from an extraction*, keep that shape and add
   an `x-prism3:` block for the levers; run with `--fidelity` to get an observed-vs-generated
   report (which brand values the engine reproduced vs. intentionally regularized).
+  **The block reads ten keys only**: `root`, `personality`, `radiusScale`, `typeScale`, `density`,
+  `motionTempo`, `actionPalette`, `iconContrast`, `surfaces`, `gradients`. Two of them are spelled
+  differently from the engine-native field: `typeScale` sets `typography.typeScale` and `motionTempo`
+  sets `motionPersonality.tempo`. **Any other key is dropped without a warning**, so check the
+  applied list the CLI prints. A lever outside these ten needs the engine-native dialect.
 
 ## If you have the MCP surface
 
-`list_levers` enumerates the knobs (the same contract this table is drawn from) and
-`theme_brand` compiles a `BrandInput` and returns the tree + `.ai.json` + the contract
-results — the programmatic form of the compile loop. `validate_brand` checks an input
-against the schema without emitting. Same discipline either way; the CLI is the
-file-based path, the MCP the callable one.
+`list_levers` enumerates the knobs and their allowed values. `theme_from_brief` takes a
+`design.md` brief (frontmatter and prose) directly — the callable form of this skill's loop.
+`theme_brand` compiles a `BrandInput` you already hold. Both return the contract results,
+alias integrity and the notes by default; the token tree and the `.ai.json` come back only
+when asked for with `include`, and they are large. To get the actual files, call
+`export_theme`, which writes them to a directory and returns a manifest. `validate_brand`
+checks an input against the schema without emitting. Same discipline either way; the CLI
+is the file-based path, the MCP the callable one.

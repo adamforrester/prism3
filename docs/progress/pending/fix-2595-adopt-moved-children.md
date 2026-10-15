@@ -14,7 +14,7 @@ once. In `build`, the fresh frame pairs them as an in-place node pairs its own, 
 which removes it, as before.  The dry run (`movesOf` in `update-plan.ts`) lists each move as `<part> · moves
 into <frame>, kept` (the issue's option A, DRAFT wording, an owner item), drops it from the "removed" lines,
 and diffs the moved subtree against its plan at the new path, so a field the apply changes on a moved node is
-still listed. `EXECUTOR_REVISION` 22 → 24 (main took 23 with #2652).
+still listed. `EXECUTOR_REVISION` 22 → 26 (main took 23 to 25 with #2652, #2648 and #2703 while this was open).
 
 **The trade-off.** The dry run runs before the designer picks keep, overwrite or accept, so the move cannot depend
 on the choice. A node with a hand edit at or under it is never moved (`edited`, every hand-edited path whatever
@@ -32,15 +32,15 @@ reads every node under the moved parts, by id, under the row; `acc/agree` checks
 there, moved on the other 23.
 
 **Review round (CHANGES REQUESTED on `a63c505a`).** The edit rule was written out twice, once beside each
-`adoptions` call, and only its result was shared, so an edit *under* a moved node could stop blocking the move on
-one side alone with every test green (the review's M3). `adoptions` now takes `edited` and the parent path and
+`adoptions` call, and only its result was shared, so an edit *under* a moved node could stop blocking the move
+on one side alone with every test green (the review's M3). `adoptions` now takes `edited` and the parent path and
 applies the rule itself; the closure is gone from both callers. The hand-edit block runs twice, with the edit on
 `titleBox` and under it on `label` (`acc/edited under dry run` / `acc/edited under agree`). `acc/moved diffed`
 holds the claim that a moved subtree is diffed at its new path: a pre-#2594 title column with no top padding is
 listed as `paddingTop` at `header/titleRow/titleBox` on all 24 members beside its move (the review's M5 passed
-silently). `acc/adoptions …` drives the rule on hand-built inputs, one line per guard: the name held once, the frame
-already present, a name another plan child claims, an edit under a child, an edit on a sibling that only shares a
-prefix. The review's nit on the dry run's third type map is closed at the source: `adoptions` never moves an
-INSTANCE_SWAP, whose host type (an instance or a placeholder frame) depends on whether its target is in the file,
-which the dry run cannot read, so both sides rebuild it. No committed def moves a swap part, so nothing moves
-today. `EXECUTOR_REVISION` is 24: main took 23 with Dialog (#2652) while this round was in flight.
+silently). `acc/adoptions …` drives the rule on hand-built inputs, one line per guard: the name held once,
+the frame already present, a name another plan child claims, an edit under a child, an edit on a sibling that
+only shares a prefix. The review's nit on the dry run's third type map is closed at the source: `adoptions`
+never moves an INSTANCE_SWAP, whose host type (an instance or a placeholder frame) depends on whether its target
+is in the file, which the dry run cannot read, so both sides rebuild it. No committed def moves a swap part,
+so nothing moves today. `EXECUTOR_REVISION` is 26: main took 23 to 25 (#2652, #2648, #2703) while this was in flight.

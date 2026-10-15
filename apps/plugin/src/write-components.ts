@@ -204,6 +204,11 @@ export interface CompNode {
    *  properties surface at the parent's level. Writeable only on a primary instance inside a
    *  component/set (Figma's own constraint), which is what a member's nested instance is. */
   isExposedInstance?: boolean;
+  /** A nested INSTANCE's own component properties, keyed `name#id` (#2317). Read to find the TEXT property a
+   *  plan's `nestTexts` names, then written through `setProperties`, the one way the host takes an instance's
+   *  property override. */
+  readonly componentProperties?: Record<string, { type?: string; value?: unknown }>;
+  setProperties?(properties: Record<string, string>): void;
   /** THE #865 SURFACE — properties this executor writes only to state Figma's default EXPLICITLY, so
    *  that nothing a built node carries is a default nobody decided. None of these existed on the port
    *  before, and their absence is why the defect was invisible from inside the type: a port that cannot
@@ -1892,6 +1897,23 @@ const writeComponentSet = async (
       // the same reason — per member, since one array shared across the set would carry members' handles into
       // each other's marking pass.
       if (node && n.nestExpose && n.nestExpose.length) expose?.push(node);
+      // THE NESTED INSTANCE'S OWN TEXT (#2317). A set has one default per text property, so the Password field's
+      // nested Button would read its set's "Button"; the plan's `nestTexts` names what this instance says instead,
+      // written as an instance override. The property is found by its name before the `#id` Figma appends, and
+      // only among TEXT properties; one the instance does not have is a miss, and the instance keeps its default.
+      if (node && n.nestTexts) {
+        const props = node.componentProperties ?? {};
+        const set: Record<string, string> = {};
+        for (const [prop, value] of Object.entries(n.nestTexts)) {
+          const key = Object.keys(props).find((k) => k.split('#')[0] === prop && props[k].type === 'TEXT');
+          if (key) set[key] = value;
+          else misses.push(`${n.name}.nestTexts.${prop} -> the nested instance has no TEXT property ${JSON.stringify(prop)}; it keeps its set default`);
+        }
+        if (Object.keys(set).length) {
+          try { node.setProperties?.(set); }
+          catch (err) { misses.push(`${n.name}.nestTexts -> REFUSED (${(err as Error)?.message ?? String(err)})`); }
+        }
+      }
     } else if (n.type === 'GLYPH') {
       // THE GLYPH (#864). The only node here whose content is geometry rather than a box, a binding or a
       // nomination — so it is also the only one that can be built successfully and contain nothing, which

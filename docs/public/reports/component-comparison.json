@@ -2038,6 +2038,131 @@
       "sizeDefault": "medium"
     },
     {
+      "id": "password-field",
+      "name": "PasswordField",
+      "category": "form",
+      "states": [
+        "rest",
+        "hover",
+        "pending",
+        "filled",
+        "focus-visible",
+        "focus-visible-filled",
+        "disabled",
+        "read-only",
+        "empty"
+      ],
+      "projectedStates": [
+        "rest",
+        "hover",
+        "filled",
+        "focus-visible",
+        "focus-visible-filled",
+        "disabled",
+        "read-only"
+      ],
+      "axes": {
+        "size": [
+          "medium",
+          "small",
+          "large"
+        ],
+        "style": [
+          "outline"
+        ],
+        "status": [
+          "default",
+          "error",
+          "warning",
+          "success"
+        ]
+      },
+      "props": [
+        {
+          "name": "label"
+        },
+        {
+          "name": "value"
+        },
+        {
+          "name": "defaultValue"
+        },
+        {
+          "name": "onChange"
+        },
+        {
+          "name": "placeholder"
+        },
+        {
+          "name": "helpText"
+        },
+        {
+          "name": "validation",
+          "default": "default",
+          "values": [
+            "default",
+            "error",
+            "warning",
+            "success"
+          ]
+        },
+        {
+          "name": "validationMessage"
+        },
+        {
+          "name": "showMessage",
+          "default": true
+        },
+        {
+          "name": "required",
+          "default": false
+        },
+        {
+          "name": "disabled",
+          "default": false
+        },
+        {
+          "name": "readOnly",
+          "default": false
+        },
+        {
+          "name": "autoComplete",
+          "values": [
+            "current-password",
+            "new-password"
+          ]
+        },
+        {
+          "name": "leadingIcon"
+        },
+        {
+          "name": "isPending",
+          "default": false
+        },
+        {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ]
+        },
+        {
+          "name": "id"
+        },
+        {
+          "name": "name"
+        }
+      ],
+      "sizes": [
+        "medium",
+        "small",
+        "large"
+      ],
+      "sizeDefault": "medium"
+    },
+    {
       "id": "radio-control",
       "name": "Radio.Control",
       "category": "form",
@@ -3274,6 +3399,7 @@
       "icon-button",
       "icon-button-destructive",
       "icon-button-neutral",
+      "password-field",
       "radio-control",
       "radio-row",
       "segmented-control-segment",
@@ -3286,6 +3412,7 @@
       "textarea"
     ],
     "empty": [
+      "password-field",
       "select",
       "text-field",
       "textarea"
@@ -3297,6 +3424,7 @@
       "switch-row"
     ],
     "filled": [
+      "password-field",
       "select",
       "text-field",
       "textarea"
@@ -3315,6 +3443,7 @@
       "icon-button-destructive",
       "icon-button-neutral",
       "link",
+      "password-field",
       "radio-control",
       "radio-row",
       "segmented-control-segment",
@@ -3327,6 +3456,7 @@
       "textarea"
     ],
     "focus-visible-filled": [
+      "password-field",
       "select",
       "text-field",
       "textarea"
@@ -3344,6 +3474,7 @@
       "icon-button-destructive",
       "icon-button-neutral",
       "link",
+      "password-field",
       "radio-control",
       "radio-row",
       "segmented-control-segment",
@@ -3370,6 +3501,7 @@
       "icon-button",
       "icon-button-destructive",
       "icon-button-neutral",
+      "password-field",
       "select",
       "switch-row",
       "text-field",
@@ -3398,6 +3530,7 @@
     ],
     "read-only": [
       "checkbox-row",
+      "password-field",
       "radio-row",
       "select",
       "switch-row",
@@ -3421,6 +3554,7 @@
       "icon-button-destructive",
       "icon-button-neutral",
       "link",
+      "password-field",
       "radio-control",
       "radio-group",
       "radio-row",
@@ -3731,6 +3865,7 @@
           "link",
           "list",
           "list-item",
+          "password-field",
           "radio-control",
           "radio-group",
           "radio-row",
@@ -3776,6 +3911,7 @@
         ],
         "components": [
           "field-message",
+          "password-field",
           "select",
           "text-field",
           "textarea"
@@ -3788,6 +3924,7 @@
           "outline"
         ],
         "components": [
+          "password-field",
           "text-field",
           "textarea"
         ]
@@ -4055,6 +4192,13 @@
     ],
     "autoComplete": [
       {
+        "id": "password-field",
+        "values": [
+          "current-password",
+          "new-password"
+        ]
+      },
+      {
         "id": "text-field"
       }
     ],
@@ -4131,6 +4275,9 @@
     "defaultValue": [
       {
         "id": "checkbox-group"
+      },
+      {
+        "id": "password-field"
       },
       {
         "id": "radio-group"
@@ -4215,6 +4362,10 @@
       },
       {
         "id": "icon-button-neutral",
+        "default": false
+      },
+      {
+        "id": "password-field",
         "default": false
       },
       {
@@ -4322,6 +4473,9 @@
     ],
     "helpText": [
       {
+        "id": "password-field"
+      },
+      {
         "id": "select"
       },
       {
@@ -4386,6 +4540,9 @@
     "id": [
       {
         "id": "field-message"
+      },
+      {
+        "id": "password-field"
       },
       {
         "id": "select"
@@ -4540,6 +4697,10 @@
         "default": false
       },
       {
+        "id": "password-field",
+        "default": false
+      },
+      {
         "id": "select",
         "default": false
       },
@@ -4579,6 +4740,9 @@
       },
       {
         "id": "link"
+      },
+      {
+        "id": "password-field"
       },
       {
         "id": "radio-group"
@@ -4626,6 +4790,9 @@
       }
     ],
     "leadingIcon": [
+      {
+        "id": "password-field"
+      },
       {
         "id": "segmented-control-segment"
       },
@@ -4734,6 +4901,9 @@
         ]
       },
       {
+        "id": "password-field"
+      },
+      {
         "id": "radio-group"
       },
       {
@@ -4762,6 +4932,9 @@
       },
       {
         "id": "checkbox-row"
+      },
+      {
+        "id": "password-field"
       },
       {
         "id": "radio-group"
@@ -4854,6 +5027,9 @@
     ],
     "placeholder": [
       {
+        "id": "password-field"
+      },
+      {
         "id": "select"
       },
       {
@@ -4900,6 +5076,10 @@
         "default": false
       },
       {
+        "id": "password-field",
+        "default": false
+      },
+      {
         "id": "select",
         "default": false
       },
@@ -4923,6 +5103,10 @@
       },
       {
         "id": "field-label",
+        "default": false
+      },
+      {
+        "id": "password-field",
         "default": false
       },
       {
@@ -5048,6 +5232,10 @@
       }
     ],
     "showMessage": [
+      {
+        "id": "password-field",
+        "default": true
+      },
       {
         "id": "select",
         "default": true
@@ -5252,6 +5440,15 @@
       },
       {
         "id": "list-item",
+        "default": "medium",
+        "values": [
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      {
+        "id": "password-field",
         "default": "medium",
         "values": [
           "small",
@@ -5682,6 +5879,16 @@
     ],
     "validation": [
       {
+        "id": "password-field",
+        "default": "default",
+        "values": [
+          "default",
+          "error",
+          "warning",
+          "success"
+        ]
+      },
+      {
         "id": "select",
         "default": "default",
         "values": [
@@ -5714,6 +5921,9 @@
     ],
     "validationMessage": [
       {
+        "id": "password-field"
+      },
+      {
         "id": "select"
       },
       {
@@ -5738,6 +5948,9 @@
       },
       {
         "id": "list-item"
+      },
+      {
+        "id": "password-field"
       },
       {
         "id": "radio-group"
@@ -5909,6 +6122,14 @@
     },
     {
       "kind": "state not drawn",
+      "subject": "password-field",
+      "components": [
+        "password-field"
+      ],
+      "detail": "password-field declares the states pending and empty, which the design-file state axis does not draw"
+    },
+    {
+      "kind": "state not drawn",
       "subject": "select",
       "components": [
         "select"
@@ -6021,6 +6242,7 @@
         "link",
         "list",
         "list-item",
+        "password-field",
         "radio-control",
         "radio-group",
         "radio-row",
@@ -6036,17 +6258,18 @@
         "text-field",
         "textarea"
       ],
-      "detail": "the size axis takes 3 value sets — [large, medium, small] in _accordion-indicator, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, select, tab, tabs, tag, text-field, textarea; [medium, small] in switch-control, switch-row; [large, medium, small, x-small] in spinner"
+      "detail": "the size axis takes 3 value sets — [large, medium, small] in _accordion-indicator, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, password-field, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, select, tab, tabs, tag, text-field, textarea; [medium, small] in switch-control, switch-row; [large, medium, small, x-small] in spinner"
     },
     {
       "kind": "axis values",
       "subject": "axis style",
       "components": [
         "link",
+        "password-field",
         "text-field",
         "textarea"
       ],
-      "detail": "the style axis takes 2 value sets — [outline] in text-field, textarea; [inline, standalone] in link"
+      "detail": "the style axis takes 2 value sets — [outline] in password-field, text-field, textarea; [inline, standalone] in link"
     },
     {
       "kind": "axis values",
@@ -6087,6 +6310,14 @@
     },
     {
       "kind": "size order",
+      "subject": "password-field",
+      "components": [
+        "password-field"
+      ],
+      "detail": "password-field declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
       "subject": "select",
       "components": [
         "select"
@@ -6115,7 +6346,7 @@
       "components": [
         "field-label"
       ],
-      "detail": "field-label defaults size to small; 32 of 33 sized components default to medium"
+      "detail": "field-label defaults size to small; 33 of 34 sized components default to medium"
     },
     {
       "kind": "axis without prop",
@@ -6156,6 +6387,14 @@
         "checkbox-control"
       ],
       "detail": "checkbox-control has the variant axis selection and no prop of that name"
+    },
+    {
+      "kind": "axis without prop",
+      "subject": "password-field",
+      "components": [
+        "password-field"
+      ],
+      "detail": "password-field has the variant axes style and status and no props of those names"
     },
     {
       "kind": "axis without prop",

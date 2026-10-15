@@ -245,6 +245,13 @@ export type ShimOpts = {
    */
   nestedInstanceParts?: string[];
   /**
+   * THE TEXT PROPERTIES AN OPAQUE COMPONENT'S INSTANCES CARRY (#2317), by component or set name: property name →
+   * its default. A component this run builds reports its set's real definitions; one named only in `comps` or
+   * `fileNodes` has none to report, so a harness states them here, from the NESTED def's own
+   * `figmaProperties.texts` — never from the host def's `nestTexts`, which is the value under test.
+   */
+  compTexts?: Record<string, Record<string, string>>;
+  /**
    * MEMBER-LEVEL id-settle AFTER COMBINE (#1473) — the host behavior `detachPartsOnCombine` above stops one
    * level short of. `detachPartsOnCombine` detaches a member's DESCENDANTS while keeping the member's own
    * identity, so a handle snapshotted from `set.children` right after combine still re-finds an attached
@@ -1421,6 +1428,35 @@ export const makeShim = (opts: ShimOpts = {}) => {
             // not grow a field the executor never wrote. The read-back reads it to tell `checkbox-row/size=small`
             // from `switch-row/size=small`, which share every other property this shim models.
             Object.defineProperty(inst, 'mainComponent', { configurable: true, enumerable: false, writable: true, value: { name, type: 'COMPONENT', parent: { ...owner }, ...(opts.identities ? { key: `${opts.keyPrefix ?? 'K'}:${name}` } : {}) } });
+            // #2317 — AN INSTANCE'S OWN COMPONENT PROPERTIES, in Figma's `InstanceNode.componentProperties` shape
+            // (`name#id` → `{ type, value }`), and `setProperties`, the one way the host takes an override. The
+            // definitions are the live set's when this run built it, else the harness's `compTexts`; an override
+            // replaces a value, and a key the instance does not have is refused with the host's message. Both
+            // NON-ENUMERABLE, like `mainComponent`, so a node tree's own keys do not grow.
+            const ownerName = owner === PAGE_OWNER ? name : owner.name;
+            const overrides: Record<string, unknown> = {};
+            const defsOf = (): Record<string, { type?: string; defaultValue?: unknown }> => {
+              const set = main?.parent as Node | undefined;
+              if (set && set.type === 'COMPONENT_SET') {
+                try { return set.componentPropertyDefinitions as Record<string, { type?: string; defaultValue?: unknown }>; } catch { return {}; }
+              }
+              return Object.fromEntries(Object.entries(opts.compTexts?.[ownerName] ?? {}).map(([k, v], i) => [`${k}#7:${i}`, { type: 'TEXT', defaultValue: v }]));
+            };
+            Object.defineProperty(inst, 'componentProperties', {
+              configurable: true, enumerable: false,
+              get: () => Object.fromEntries(Object.entries(defsOf()).filter(([, d]) => d.type !== 'VARIANT')
+                .map(([k, d]) => [k, { type: d.type, value: k in overrides ? overrides[k] : d.defaultValue }])),
+            });
+            Object.defineProperty(inst, 'setProperties', {
+              configurable: true, enumerable: false, writable: true,
+              value: (props: Record<string, unknown>) => {
+                const have = inst.componentProperties as Record<string, unknown>;
+                for (const [k, v] of Object.entries(props)) {
+                  if (!(k in have)) throw new Error(`in setProperties: Could not find a component property with name: '${k}'`);
+                  overrides[k] = v;
+                }
+              },
+            });
             // An instance measures what its MAIN measures (`layoutModel`, a member this run built).
             // A FILLED instance (#1751) measures the width its parent gives it, and is as tall as its main
             // laid out at that width — so a message that wraps in a narrower field reads taller here too.
