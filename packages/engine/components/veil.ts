@@ -116,7 +116,9 @@ export const veil: ComponentDef = {
   // wash, and the four edges are the gradient forms `anatomy.parts.wash.gradient` projects.
   variants: {
     value: ['dark', 'light'],
-    intensity: ['subtle', 'medium', 'strong'],
+    // #2752 (owner decision Q347 A) — `medium` LEADS because it is the code default, and Figma inserts the
+    // set's top-left member. The magnitude ramp then reads subtle, strong.
+    intensity: ['medium', 'subtle', 'strong'],
     direction: ['full', 'from-top', 'from-bottom', 'from-left', 'from-right'],
   },
   // WHEN each axis changes (#1611): runtime axes are held to one footprint, authoring axes are not. A

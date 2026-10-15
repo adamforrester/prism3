@@ -86,8 +86,9 @@ export const imagePlaceholder: ComponentDef = {
   variants: {
     // Tallest to widest (#2345): the three portrait ratios the commerce measurement needed, the square, then
     // the landscape ratios. The three that shipped first (1:1, 4:3, 16:9) keep their names, so an existing
-    // set gains members and loses none.
-    ratio: ['2:3', '3:4', '4:5', '1:1', '4:3', '3:2', '16:9'],
+    // set gains members and loses none. #2752 (owner decision Q347 A): `4:3` LEADS, because it is the code
+    // default and Figma inserts the set's top-left member; the others keep the tallest-to-widest order.
+    ratio: ['4:3', '2:3', '3:4', '4:5', '1:1', '3:2', '16:9'],
   },
   // WHEN each axis changes (#1611): runtime axes are held to one footprint, authoring axes are not.
   axisKinds: { ratio: 'authoring' },
