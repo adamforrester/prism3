@@ -33,7 +33,7 @@ On `↳ File Components`, Set up file builds the components the plugin draws pag
 | `_Label`, `_inverse-backdrop` | The labels and backdrops placed beside a component set on the canvas. |
 | `_style-guide-swatches`, `_style-guide-text-cells`, `_style-guide-spacing-cells` | The cells [Build style guides](style-guides.md) draws its tables from. |
 
-The names start with `_` so they read as private parts rather than library components. If the file already holds these sets, Set up file uses them rather than building new ones. <!-- src: apps/plugin/src/main.ts:1001-1005 --> <!-- src: apps/plugin/src/main.ts:1019-1022 -->
+The names start with `_` because Figma treats such components as private and doesn't publish them to the library. If the file already holds these sets, Set up file uses them rather than building new ones. <!-- src: apps/plugin/src/main.ts:1001-1005 --> <!-- src: apps/plugin/src/main.ts:1019-1022 -->
 
 ## The result
 

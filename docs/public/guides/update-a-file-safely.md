@@ -4,7 +4,7 @@
 
 A file that people already work in holds things Prism3 did not make: your own variables and styles, hand edits on components, instances placed across other files. This guide covers how each Prism3 write treats them, and how to check a change before it happens.
 
-The plugin writes to whichever file it is open in. Try a change on a duplicate of the file first when you can, and keep Figma's version history in mind as the way back.
+The plugin writes to whichever file it is open in. Try a change on a duplicate of the file first when you can, and if a change goes wrong, restore an earlier version from the file's version history in Figma.
 
 ## The rules every write follows
 
@@ -88,5 +88,5 @@ What Prune can delete: <!-- src: apps/plugin/src/prune-figma.ts:18-32 --> <!-- s
 - **Text, effect, paint and grid styles** the brand no longer emits, when they sit in a style group the brand still uses. A style in a group of your own stays.
 - **Canvas labels** beside a component set that is no longer in the file.
 
-The delete works out the list again from a fresh read of the file, so it never acts on a stale count. <!-- src: apps/plugin/src/main.ts:430-490 -->
+**Delete N items** recomputes the list before it deletes, from a fresh read of the file, so it never acts on a stale count. <!-- src: apps/plugin/src/main.ts:430-490 -->
 Prune stale is off while Apply Theme runs, since both work on the same variables. <!-- src: apps/studio/src/main.ts:1731-1732 -->

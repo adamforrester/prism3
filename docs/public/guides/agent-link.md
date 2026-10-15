@@ -8,7 +8,7 @@ It is off every time the plugin opens, and only you can turn it on. <!-- src: ap
 
 ## How it works
 
-An agent working through Figma's own MCP connection can read and write a file's data, but it can't press the plugin's buttons. The agent link gives the two a shared place to meet: the agent leaves a request in the file's plugin data, and the plugin, while the link is on, checks for requests about once a second, runs one, and writes the result back beside it. <!-- src: apps/plugin/src/agent-link.ts:9-21 --> <!-- src: apps/plugin/src/agent-protocol.ts:312-325 -->
+An agent working through Figma's own MCP connection can read and write a file's data, but it can't press the plugin's buttons. The agent link passes requests through the file's plugin data: the agent writes a request there, and the plugin, while the link is on, checks for requests about once a second, runs one, and writes the result back beside it. <!-- src: apps/plugin/src/agent-link.ts:9-21 --> <!-- src: apps/plugin/src/agent-protocol.ts:312-325 -->
 
 MCP (Model Context Protocol) is the standard way an AI agent connects to a tool such as Figma. You don't need to set anything up in Prism3 for it; the agent's own setup handles the connection to Figma.
 

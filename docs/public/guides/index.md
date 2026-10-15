@@ -10,7 +10,7 @@ The same brand exports as DTCG token files or as a `design.md` brief, so develop
 
 ## Guides
 
-Each guide covers one task, in the order you meet it.
+Each guide covers one task. The list runs from starting a brand to exporting its tokens, then the agent link.
 
 1. [Theme a brand](theme-a-brand.md): start a brand, set its levers, import or export a `design.md` brief.
 2. [Apply a theme to a Figma file](apply-a-theme.md): what Apply Theme writes, and what makes it refuse.
