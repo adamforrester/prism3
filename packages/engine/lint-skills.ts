@@ -78,11 +78,45 @@ const tokenPathSet = (): Set<string> => {
 };
 const TOKEN_PATHS = tokenPathSet();
 
+/** The same paths, except a `core.*` path counts only WHOLE (and its families from `core` down), never by a
+ *  suffix (#2677). The primitives live under `core` (`core.palette.primary.600`, `core.dimension.16`,
+ *  `core.font.weight-role.emphasis`), and a skill that writes `palette.primary.600` hands an agent a name
+ *  that resolves to nothing at the tree root. The suffix rule above exists so a skill can say `border.primary`
+ *  for `color.border.primary`; `color.` is a role namespace a reader expects to drop, and the `.ai.json`
+ *  drops it too. `core.` is not: it is what marks a token as a private primitive. The consume skill named
+ *  three primitives without it for as long as the tree has had a `core` level, and every scan passed. */
+const QUALIFIED_PATHS = ((): Set<string> => {
+  const out = new Set<string>();
+  const walk = (node: unknown, prefix: string): void => {
+    for (const [k, v] of Object.entries(node as Record<string, unknown>)) {
+      if (k.startsWith('$')) continue;
+      const path = prefix ? `${prefix}.${k}` : k;
+      const segs = path.split('.');
+      if (segs[0] === 'core') out.add(path);
+      else for (let i = 0; i < segs.length; i++) out.add(segs.slice(i).join('.'));
+      if (v && typeof v === 'object' && !('$value' in (v as object))) walk(v, path);
+    }
+  };
+  walk((tree as Record<string, unknown>)[root], '');
+  return out;
+})();
+/** Does a quoted dotted name resolve in `set`? Shared by the dead-path scan and the core-prefix scan. */
+const resolvesIn = (raw: string, set: Set<string>): boolean =>
+  raw.endsWith('.*')
+    ? [...set].some((p) => p.startsWith(raw.slice(0, -1)))
+    : raw.includes('*')
+      ? [...set].some((p) => new RegExp(`^${raw.replace(/[.]/g, '\\.').replace(/\*/g, '[a-z0-9-]+')}$`).test(p))
+      : set.has(raw);
+
 /** Lever KEYS are dotted too (`neutral.hue`, `typography.typeScale`) and are a legitimate thing for
  *  an authoring skill to quote — they are just not token paths. Accepted alongside them, because the
  *  first run flagged `neutral.hue` as dead when it is a required input field. A dotted name is a
  *  claim about *some* engine surface; the gate's job is that it resolves against one of them. */
 const LEVER_KEYS = new Set(leverManifest.map((l) => l.key));
+/** Retired levers (#2677): `deprecated` in the manifest, still accepted so old brand files load, and changing
+ *  nothing. A skill that quotes one must say so on the same line, or it teaches an author a no-op as a live
+ *  setting. Read from the manifest, never listed here, so the next retirement is covered the day it lands. */
+const RETIRED_LEVERS = new Set(leverManifest.filter((l) => (l as { deprecated?: unknown }).deprecated).map((l) => l.key));
 
 const TOOL_NAMES = new Set(toolDefs({}).map((d) => d.name));
 /** `.ai.json` field names — the metadata vocabulary a consume-side skill legitimately quotes. */
@@ -273,14 +307,19 @@ export const scanText = (text: string, rel: string, findings: Finding[], ctx: Id
     // against real skills, which is the argument for running a new gate before trusting its design.
     if (/\b(?:not|never|rather than|instead of)\s+$/i.test(text.slice(Math.max(0, m.index - 16), m.index))) continue;
 
+    // 6. a retired lever is named as retired (#2677), on the line that names it
+    if (RETIRED_LEVERS.has(raw)) {
+      const lineStart = text.lastIndexOf('\n', m.index) + 1, lineEnd = text.indexOf('\n', m.index);
+      const line = text.slice(lineStart, lineEnd < 0 ? undefined : lineEnd);
+      if (!/\b(?:retired|deprecated)\b/i.test(line)) findings.push({ file: rel, kind: 'retired lever', detail: `\`${raw}\` is retired (deprecated in levers.ts: it changes nothing), and this line names it as a live setting. Say it is retired, or name the lever that replaced it` });
+    }
+
     // 1. token-path claims must still resolve (wildcards resolve as a family prefix)
     if (DOTTED.test(raw)) {
-      const hit = raw.endsWith('.*')
-        ? [...TOKEN_PATHS].some((p) => p.startsWith(raw.slice(0, -1)))
-        : raw.includes('*')
-          ? [...TOKEN_PATHS].some((p) => new RegExp(`^${raw.replace(/[.]/g, '\\.').replace(/\*/g, '[a-z0-9-]+')}$`).test(p))
-          : TOKEN_PATHS.has(raw) || LEVER_KEYS.has(raw);
+      const hit = resolvesIn(raw, TOKEN_PATHS) || LEVER_KEYS.has(raw);
       if (!hit) findings.push({ file: rel, kind: 'dead token path', detail: `\`${raw}\` does not resolve in the generated tree` });
+      // 1b. a primitive is named with its `core.` prefix (#2677)
+      else if (!LEVER_KEYS.has(raw) && !resolvesIn(raw, QUALIFIED_PATHS)) findings.push({ file: rel, kind: 'primitive without core', detail: `\`${raw}\` resolves only as the tail of a \`core.*\` primitive. Write the full path, \`core.${raw}\`: without the prefix it names nothing at the tree root` });
       continue;
     }
 
@@ -342,6 +381,8 @@ export const scanText = (text: string, rel: string, findings: Finding[], ctx: Id
  * surface — and the untested scan is disproportionately likely to be the interesting one, because the
  * interesting one is usually the one shaped differently enough to sit outside the common path.
  */
+/** Enum rows the coverage scan read from REAL skills (the self-check's samples are not counted). */
+let enumRowsRead = 0;
 export const scanCoverage = (text: string, rel: string, findings: Finding[]): void => {
   if (/^documents:\s*brandInput\s*$/m.test(text)) {
     ran.coverage++;
@@ -368,6 +409,25 @@ export const scanCoverage = (text: string, rel: string, findings: Finding[]): vo
     // check it exempts you from makes the exemption unfalsifiable.** Keep the two inputs disjoint —
     // frontmatter DECLARES, body DOCUMENTS — and each one is testable on its own.
     const body = text.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, '');
+    // An `omits:` entry must be a property (#2677). An entry naming nothing exempts nothing, and reads as a
+    // decision about a surface that does not exist: `prism3-theme` carried `inverse` for months.
+    for (const o of declaredOmit) if (!(o in schema.properties)) findings.push({ file: rel, kind: 'dead omission', detail: `\`omits:\` names \`${o}\`, which is not a BrandInput property. Remove it` });
+    // A table row documenting an ENUM property lists every value (#2677). A row whose first cell is the
+    // backticked property is the skill's statement of what the property takes; a value the schema gained
+    // later and the row never learned is a choice the skill hides. `controlShape` gained `boxed` and
+    // `hairline` (#1371) while the theme skill's row kept saying `rounded | pill`.
+    // A dotted first cell (`typography.captionFloor`) is a nested property, resolved one `properties` level per
+    // segment: the plain-word pattern skipped those rows, so their enums were never checked (review on #2681).
+    // The values are read from the row's SECOND cell only (escaped `\|` stays inside it): a description cell
+    // that quotes a value (`captionFloor`'s "`10` adds caption.sm") kept a row whose values cell had lost
+    // that value reading as complete (review on #2681, mutation M-A).
+    for (const row of body.matchAll(/^\|\s*`([A-Za-z]+(?:\.[A-Za-z]+)*)`\s*\|((?:\\\||[^|\n])*)\|.*$/gm)) {
+      const def = row[1].split('.').reduce<{ properties?: Record<string, unknown> } | undefined>(
+        (node, key) => node?.properties?.[key] as { properties?: Record<string, unknown> } | undefined, schema,
+      ) as { enum?: unknown[] } | undefined;
+      if (rel !== 'self-check') enumRowsRead++;
+      for (const v of def?.enum ?? []) if (!row[2].includes(`\`${String(v)}\``)) findings.push({ file: rel, kind: 'incomplete enum', detail: `the \`${row[1]}\` row does not list \`${String(v)}\`, one of the values the schema accepts (${(def!.enum ?? []).join(', ')})` });
+    }
     for (const prop of Object.keys(schema.properties)) {
       if (declaredOmit.has(prop)) continue;
       // Word-boundary match so `surfaces` does not satisfy `surface`.
@@ -511,6 +571,30 @@ const selfCheck = (): string[] => {
   // Scan 4, driven through the shipping `scanCoverage`. Left out of the first fix, which is exactly
   // why it is here: the scan the self-check does not reach is the one that goes quiet.
   const sampleCoverage = (body: string): Finding[] => { const f: Finding[] = []; scanCoverage(body, 'self-check', f); return f; };
+  // #2677 checks, each both ways, through the shipping functions.
+  {
+    const kinds = (body: string) => sampleScan(body).map((f) => f.kind);
+    const prim = [...TOKEN_PATHS].find((p) => p.includes(".") && DOTTED.test(p) && !QUALIFIED_PATHS.has(p) && TOKEN_PATHS.has(`core.${p}`))!;
+    if (!prim) bad.push('no core primitive suffix found to drive the core-prefix check — the tree lost its `core` level or the set is empty');
+    else {
+      if (!kinds(`use \`${prim}\` here`).includes('primitive without core')) bad.push(`a primitive quoted without \`core.\` (${prim}) passes`);
+      if (kinds(`use \`core.${prim}\` here`).includes('primitive without core')) bad.push(`a fully qualified primitive (core.${prim}) is flagged`);
+    }
+    if (kinds('use `border.primary` here').includes('primitive without core')) bad.push('a role named without `color.` is flagged as a primitive — the `color.` suffix rule broke');
+    const retired = [...RETIRED_LEVERS][0];
+    if (retired) {
+      if (!kinds(`set \`${retired}\` for this`).includes('retired lever')) bad.push(`a retired lever (${retired}) named as a live setting passes`);
+      if (kinds(`\`${retired}\` is retired`).includes('retired lever')) bad.push(`a retired lever named as retired (${retired}) is flagged`);
+    }
+    const cov = (b: string) => sampleCoverage(`---\ndocuments: brandInput\n${b}`).map((f) => f.kind);
+    if (!cov('omits: notAProperty\n---\n').includes('dead omission')) bad.push('an `omits:` entry that is not a BrandInput property passes');
+    if (cov('omits: density\n---\n').includes('dead omission')) bad.push('a real property in `omits:` is flagged as dead');
+    if (!cov('---\n| `density` | `comfortable` \\| `compact` | x |\n').includes('incomplete enum')) bad.push('an enum row missing a value (`spacious`) passes');
+    if (cov('---\n| `density` | `comfortable` \\| `compact` \\| `spacious` | x |\n').includes('incomplete enum')) bad.push('a complete enum row is flagged');
+    if (!cov('---\n| `typography.captionFloor` | `11` | x |\n').includes('incomplete enum')) bad.push('a nested enum row missing a value (`typography.captionFloor` without `10`) passes');
+    if (cov('---\n| `typography.captionFloor` | `11` \\| `10` | x |\n').includes('incomplete enum')) bad.push('a complete nested enum row is flagged');
+    if (!cov('---\n| `density` | `comfortable` \\| `compact` | `spacious` is for reading |\n').includes('incomplete enum')) bad.push('a value quoted only in the description cell (`spacious`) counts as listed');
+  }
   const everyProp = Object.keys(
     JSON.parse(readFileSync(resolve(repo, 'packages/engine/schema/theme-schema.json'), 'utf8')).properties,
   ).join(', ');
@@ -625,6 +709,43 @@ for (const [w, why] of Object.entries(NOT_DECLARED)) {
   else if (!admittedSeen.has(w)) findings.push({ file: 'packages/engine/lint-skills.ts', kind: 'stale admission', detail: `NOT_DECLARED admits \`${w}\`, which no skill quotes any more. Remove it` });
 }
 
+// ---- 7. THE REVIEW COMMAND'S FILE NAMES (#2677) --------------------------------------------------
+// `.claude/commands/review-pr.md` is not a skill, but review lanes follow it (owner decision Q320), and it
+// had sent reviewers to `docs/01-architecture` and `docs/06-surface-model`, two names that never existed
+// as files, with nothing reading it. This check holds it to the floor every skill gets from scan 3: each
+// backticked file name resolves. A name with a `/` resolves from the repo root; a bare one (`verify.ts`,
+// `lint-skills.ts`) must exist in one of the places the command's readers look. Its advice is out of reach
+// here, as the skills' is.
+let commandNamesRead = 0;
+export const commandFileFindings = (text: string, rel: string, exists: (p: string) => boolean): Finding[] => {
+  const out: Finding[] = [];
+  const BARE_HOMES = ['', 'docs/', 'packages/engine/', 'apps/plugin/', 'apps/plugin/src/', 'apps/studio/', '.claude/commands/', 'docs/progress/pending/'];
+  for (const m of text.matchAll(/`([A-Za-z0-9_./-]+\.(?:ts|md|mjs|json))`/g)) {
+    const name = m[1];
+    if (name.startsWith('.')) continue; // an extension named as a kind (`.ai.json`), not a file
+    commandNamesRead++;
+    const ok = name.includes('/') ? exists(name) : BARE_HOMES.some((h) => exists(h + name));
+    if (!ok) out.push({ file: rel, kind: 'missing file', detail: `\`${name}\` does not exist${name.includes('/') ? '' : ` in any of: ${BARE_HOMES.map((h) => h || '(repo root)').join(', ')}`}` });
+  }
+  return out;
+};
+const COMMAND = '.claude/commands/review-pr.md';
+{
+  const real = (p: string) => existsSync(resolve(repo, p));
+  const self = commandFileFindings('`docs/no-such-doc.md` and `no-such-gate.ts` and `verify.ts` and `.ai.json`', 'self-check', real);
+  const before7 = commandNamesRead;
+  if (self.length !== 2 || !self.some((f) => f.detail.includes('docs/no-such-doc.md')) || !self.some((f) => f.detail.includes('no-such-gate.ts'))) {
+    console.error(`\n❌ the review-command file check is broken: expected exactly the two dead names, got ${self.length}: ${self.map((f) => f.detail).join(' | ')}`);
+    process.exit(1);
+  }
+  const text = existsSync(resolve(repo, COMMAND)) ? readFileSync(resolve(repo, COMMAND), 'utf8') : '';
+  if (!text) findings.push({ file: COMMAND, kind: 'missing file', detail: 'the review command is gone; this check reads nothing' });
+  findings.push(...commandFileFindings(text, COMMAND, real));
+  // A floor, not a count: the command names a dozen-plus files today. Fewer than five read means the pattern
+  // stopped matching the command's backticked names, and every one would then pass by never being looked at.
+  if (text && commandNamesRead - before7 < 5) findings.push({ file: COMMAND, kind: 'scan went dark', detail: `only ${commandNamesRead - before7} backticked file name(s) read from the review command, below the floor of 5` });
+}
+
 console.log(`Skills gate — ${dirs.length} skill(s) scanned (${dirs.join(', ')}).`);
 // A scan that goes dark reports success forever. Zero skills means the layout moved, not that the
 // skills are clean.
@@ -657,6 +778,11 @@ if (ran.text - before.text !== dirs.length) {
 const PLACED_FLOOR = 31;
 if (ran.placed - before.placed < PLACED_FLOOR) {
   wiring.push(`only ${ran.placed - before.placed} quoted identifier(s) in the real skills carry a placement, below the floor of ${PLACED_FLOOR}. A table row or an "\`X\` in \`file\`" sentence stopped reading as one, so its names fell back to the unplaced rule`);
+}
+// The enum-row scan reads table rows inside the coverage scan; a theme skill with no row read means the row
+// shape stopped matching, and every row would then pass by never being looked at.
+if (optedIn.length && enumRowsRead === 0) {
+  wiring.push(`the enum-row check read no table row in ${optedIn.join(', ')} — the row pattern no longer matches the lever table`);
 }
 if (ran.discovery - before.discovery !== dirs.length) {
   wiring.push(`the discovery check ran ${ran.discovery - before.discovery}× over ${dirs.length} skill(s) — it is no longer called for every skill`);
