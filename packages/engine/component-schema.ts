@@ -1570,8 +1570,12 @@ export type ComponentDef = {
    *  `type.body.*.strong` for `bold`); the materializer repoints that role per brand and DROPS the axis
    *  when every intent coincides (a single-weight brand). Present only on a def whose weight varies —
    *  `field-label` is the first. `group` is a `TypeGroup`; `axis` must be a declared `variants` axis
-   *  whose values are the intents. Validated in `validateComponentDef`. */
-  weightIntent?: { axis: VariantAxis; group: TypeGroup };
+   *  whose values are the intents. Validated in `validateComponentDef`.
+   *
+   *  `intents` (#2580) maps axis values to intents for a def whose axis keeps its own value names: Link's
+   *  `weight` is `emphasis | default` (owner Q297.3) and binds the body tier (Q297.1), so `emphasis` reads as
+   *  `bold` and `default` as `regular`. Without it, the axis values must themselves be intents. */
+  weightIntent?: { axis: VariantAxis; group: TypeGroup; intents?: Record<string, WeightIntent> };
 
   /** THE SPACING THAT FOLLOWS DENSITY (the spacing model, 2026-09-29: "size is for size, space is for
    *  space"). The `tokens` keys whose `space.*` step is this def's COMFORTABLE padding or gap. Before
@@ -1901,9 +1905,15 @@ export const validateComponentDef = (
     if (!axisValues || !axisValues.length) {
       errors.push(`weightIntent.axis '${axis}' is not a declared \`variants\` axis — the intents to resolve are that axis's values`);
     } else {
-      for (const v of axisValues)
-        if (!(WEIGHT_INTENTS as readonly string[]).includes(v))
-          errors.push(`weightIntent: axis '${axis}' value '${v}' is not a weight intent [${WEIGHT_INTENTS.join(', ')}] — a value the projector has no resolution rule for would resolve to a bogus text style`);
+      const intents = def.weightIntent.intents;
+      for (const v of axisValues) {
+        const intent = intents ? intents[v] : v;
+        if (!(WEIGHT_INTENTS as readonly string[]).includes(intent as string))
+          errors.push(`weightIntent: axis '${axis}' value '${v}' ${intents ? `maps to '${intent}', which` : ''} is not a weight intent [${WEIGHT_INTENTS.join(', ')}] — a value the projector has no resolution rule for would resolve to a bogus text style`);
+      }
+      for (const k of Object.keys(intents ?? {}))
+        if (!axisValues.includes(k))
+          errors.push(`weightIntent.intents names '${k}', which is not a value of axis '${axis}' [${axisValues.join(', ')}]`);
       // Every type token entry keyed under an intent value must name the declared category, and there
       // must be at least one — a weightIntent that binds nothing under its axis is inert.
       const typeUnderAxis = Object.entries(def.tokens ?? {}).filter(
@@ -3821,9 +3831,15 @@ const anatomyErrors = (def: ComponentDef): string[] => {
   const bindingKeys = (p: PartDef): string[] =>
     [p.gap, p.height, p.minHeight, p.minWidthKey, p.radius, p.strokeWidth, p.size, p.width, p.type, p.inset, p.padding?.block, p.padding?.blockEnd, p.padding?.inlineLabel, p.padding?.inlineVisual, p.padding?.inlineEnd, p.paddingTop, p.flush?.key]
       .filter((k): k is string => typeof k === 'string');
+  // A TYPE KEY MAY ALSO NAME `{state}` (#2580): a standalone Link sets its label in the underlined style at hover,
+  // pressed and focus-visible and the plain one at rest, so its text style moves with the interaction state while
+  // its geometry does not. Type only: a state-keyed height or padding would move a box between one instance's before
+  // and after, which the footprint rule exists to refuse. Expanded over the def's declared states like an axis.
+  const keyAxes = (p: PartDef, key: string): Record<string, readonly string[]> =>
+    key === p.type ? { ...(def.variants ?? {}), state: statesOf(def) } : (def.variants ?? {});
   for (const n of names)
     for (const key of bindingKeys(parts[n]))
-      for (const expanded of expandKey(key, def.variants ?? {}))
+      for (const expanded of expandKey(key, keyAxes(parts[n], key)))
         if (!(expanded in (def.tokens ?? {})))
           e.push(`anatomy part '${n}': binding key '${expanded}'${expanded === key ? '' : ` (from '${key}')`} is not a slot in tokens`);
   // A placeholder naming no declared axis expands to NOTHING and would otherwise reach the loop above
@@ -3833,7 +3849,7 @@ const anatomyErrors = (def: ComponentDef): string[] => {
   for (const n of names)
     for (const key of bindingKeys(parts[n]))
       for (const ph of paintKeyPlaceholders(key))
-        if (!(ph in (def.variants ?? {})))
+        if (!(ph in keyAxes(parts[n], key)))
           e.push(`anatomy part '${n}': binding key '${key}' names placeholder '{${ph}}', which is not an axis in variants — the projector fills a binding key from the member's coordinate, so a placeholder no axis supplies can never be filled`);
   if (sizes.length === 0 && names.some((n) => bindingKeys(parts[n]).some((k) => k.includes('{size}'))))
     e.push("anatomy uses the {size} placeholder but variants.size is empty — nothing to expand over");

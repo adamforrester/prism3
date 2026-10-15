@@ -435,6 +435,34 @@
     },
     "members": 7
   },
+  "link": {
+    "axes": {
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ],
+      "state": [
+        "focus-visible",
+        "hover",
+        "pressed",
+        "rest"
+      ],
+      "style": [
+        "inline",
+        "standalone"
+      ],
+      "surface": [
+        "default",
+        "inverse"
+      ],
+      "weight": [
+        "default",
+        "emphasis"
+      ]
+    },
+    "members": 96
+  },
   "list": {
     "axes": {
       "size": [

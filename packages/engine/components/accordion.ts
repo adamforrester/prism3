@@ -317,7 +317,7 @@ export const accordion: ComponentDef = {
     alternativeTo: ['tabs'],
     replacesPatterns: ['a show/hide div with no aria-expanded or heading', 'a tablist used for vertical sections that open together'],
     supersededBy: [],
-    planned: ['tree', 'link'],
+    planned: ['tree'],
   },
 
   motion: {

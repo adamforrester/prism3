@@ -255,6 +255,14 @@
  *     gradient/brand prints its stops…", "36: gradient/glow is Radial…", "36: Brand/Sunset prints its three stops…" and "36:
  *     drawn, Brand/Sunset's stops read 0%, 35%, 100%…" fail.
  *
+ *   - (#2659, each on a committed head, restored from it) in `planEffectStyles` and in `planGradientStyles`, the common
+ *     prefix capped at one segment (`commonPrefix(…).slice(0, 1)`) → "36: short: effect styles under one root print the
+ *     name below it…" (or gradient) fails; the short name always dropping the first segment (`.slice(1)` for
+ *     `.slice(prefix.length)`) → "36: short: effect styles that share no root print their whole name…" (or gradient)
+ *     fails. Both passed silently before. In `planVariableTables` both were already caught by name, also in the form that
+ *     touches only the Token cell: "34: short: the space step prints 025 (space/025)", because `pds3/space/` is two
+ *     segments deep.
+ *
  * THE SHIM IGNORES A RESIZE THE HOST IGNORES: a FIXED text inside an instance keeps its main component's width under
  * `resize` (live, 2026-09-28). Before the shim modeled it, every width assertion passed over one-word-a-line text.
  *
@@ -3222,6 +3230,22 @@ const main = async (): Promise<void> => {
     const p34s = await phase2File();
     await draw(p34s.api, contract, { types: ['dimension'], tokenNames: 'short' });
     ok(tokenCol(tableFrame(p34s.sem, 'Space'))[1] === '025', `34: short: the space step prints 025 (${tokenCol(tableFrame(p34s.sem, 'Space'))[1]})`);
+
+    // TEXT STYLES THAT SHARE A ROOT (#2475): the fixture's styles start at `body/…` and `display/…`, which share no
+    // prefix, so short and full printed the same text and a planner that always printed the full name passed. Here
+    // the same styles sit under one root, `nbds/type/`, as a brand's text styles do: short drops the root, full keeps
+    // it. The root is TWO segments deep so "strip the common prefix" and "strip one segment" print different text.
+    const p34r = await phase2File();
+    const rooted = { collections: p34r.cols, variables: p34r.vars, textStyles: p34r.styles.map((st) => ({ ...st, name: `nbds/type/${st.name}` })) };
+    const tsOf = (file: SgCatalog, name: string, o: StyleGuideOptions): string | undefined => planStyleGuide(file, contract, o).tables.find((t) => t.title === 'Text styles')?.rows.find((r) => r.name === name)?.tokenCell;
+    const ts = (o: StyleGuideOptions): string | undefined => tsOf(rooted, 'nbds/type/body/lg/default', o);
+    ok(ts({ tokenNames: 'short' }) === 'body/lg/default',
+      `34: short: text styles under one root print the name below it, body/lg/default for nbds/type/body/lg/default (${ts({ tokenNames: 'short' })})`);
+    ok(ts({}) === 'nbds/type/body/lg/default', `34: default: the same style prints its whole name, nbds/type/body/lg/default (${ts({})})`);
+    // And the mirror: the plain fixture's styles share no root, so short mode has nothing to drop.
+    const plain = { collections: p34r.cols, variables: p34r.vars, textStyles: p34r.styles };
+    const plainTok = tsOf(plain, 'body/lg/default', { tokenNames: 'short' });
+    ok(plainTok === 'body/lg/default', `34: short: text styles that share no root print their whole name, body/lg/default (${plainTok})`);
   }
 
   console.log('35. batch 1 (#2353): border widths with the focus ring, icon size as a dimension, opacity with its swatch, font style as a Text styles column');
@@ -3602,6 +3626,23 @@ const main = async (): Promise<void> => {
     const noAlias = planStyleGuide(cat36, contract, { types: ['gradient'], aliases: false }).tables[0];
     ok(JSON.stringify(noAlias?.columns) === JSON.stringify(['Token', 'Specimen', 'Type', 'Position', 'Color', 'Description']) && grRow('gradient/brand', noAlias).length === 3,
       `36: aliases off, the Variable column goes (${noAlias?.columns.join(', ')})`);
+
+    // SHORT NAMES (#2659, the #2623 shape): the fixture's effect and gradient styles share no root (`shadow/…` beside
+    // `Brand/…`), and the default prints the whole name, so a planner that printed the full name, capped the common
+    // prefix at one segment, or always dropped the first segment passed. Here the same styles sit under one root TWO
+    // segments deep, `lib/fx/`: short drops the whole root, which a one-segment cap cannot, and the default keeps it.
+    // And short mode on the plain fixture, whose names share no root: nothing to drop, which "drop one segment" fails.
+    const rootedFx: SgCatalog = { ...cat36, effectStyles: f.effectStyles.map((s) => ({ ...s, name: `lib/fx/${s.name}` })), paintStyles: f.paintStyles.map((s) => ({ ...s, name: `lib/fx/${s.name}` })) };
+    const cellOf = (c: SgCatalog, type: string, name: string, o: StyleGuideOptions): string | undefined =>
+      planStyleGuide(c, contract, { ...o, types: [type] }).tables.find((t) => t.type === type)?.rows.find((r) => r.name === name)?.tokenCell;
+    for (const [type, kind, name] of [['shadow', 'effect', 'shadow/xs'], ['gradient', 'gradient', 'gradient/brand']] as const) {
+      const rootedShort = cellOf(rootedFx, type, `lib/fx/${name}`, { tokenNames: 'short' });
+      ok(rootedShort === name, `36: short: ${kind} styles under one root print the name below it, ${name} for lib/fx/${name} (${rootedShort})`);
+      const rootedFull = cellOf(rootedFx, type, `lib/fx/${name}`, {});
+      ok(rootedFull === `lib/fx/${name}`, `36: default: the same ${kind} style prints its whole name, lib/fx/${name} (${rootedFull})`);
+      const plainShort = cellOf(cat36, type, name, { tokenNames: 'short' });
+      ok(plainShort === name, `36: short: ${kind} styles that share no root print their whole name, ${name} (${plainShort})`);
+    }
 
     // ONLY WHAT EXISTS: a file with no effect or paint style draws neither table; a collections filter leaves them out.
     const bare = planStyleGuide({ collections: f.cols, variables: f.vars, textStyles: f.styles }, contract, { types: ['shadow', 'gradient'] });
