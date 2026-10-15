@@ -21003,6 +21003,19 @@ arm: {
             && writes.length === 0 && twin.componentProperties['number#7:2'].value === '1.' && twin.componentProperties['number#7:3'].value === '1.',
             `#2645 two same-named keys: an instance with two TEXT properties named 'number' is a named miss and neither is written (misses ${JSON.stringify(misses)}; writes ${JSON.stringify(writes)})`);
         }
+        // A WRITE THE HOST ACCEPTS AND DOES NOT KEEP: `setProperties` returns without throwing and the instance still
+        // reads its default. The writer reads each override back, so this is a named DISCARDED miss, never silence.
+        // A hand-built instance again, so the expected answer is known in advance (docs/34); no stub models a discard.
+        {
+          let calls = 0;
+          const deaf = {
+            componentProperties: { 'number#7:2': { type: 'TEXT', value: '1.' } } as Record<string, { type: string; value: string }>,
+            setProperties(_w: Record<string, string>) { calls++; },
+          };
+          const misses = applyNestOverrides(deaf, [{ property: 'number', type: 'TEXT', value: '2.' }], () => null);
+          ok(calls === 1 && misses.length === 1 && misses[0] === '.nestOverrides -> number DISCARDED (set "2.", reads "1.")',
+            `#2645 discarded write: a host that accepts the override and keeps its default is a named miss (calls ${calls}; misses ${JSON.stringify(misses)})`);
+        }
       }
 
       // ---- #1393: the PASTE executor leaves no Figma white default on an unclaimed or unresolvable fill ----
