@@ -192,7 +192,7 @@ export const MOVES = 'moves into';
 const HOST_TYPE: Record<string, string> = { TEXT: 'TEXT', NESTED_INSTANCE: 'INSTANCE', CONTENT_SLOT: 'SLOT', GLYPH: 'FRAME', FRAME: 'FRAME' };
 const fits = (plan: AnatomyPlan['root'], node: SnapNode): boolean =>
   plan.type === 'INSTANCE_SWAP' ? node.type === 'INSTANCE' || node.type === 'FRAME' : node.type === HOST_TYPE[plan.type];
-const movesOf = (plan: AnatomyPlan['root'], node: SnapNode, path: string, edited: ReadonlySet<string>, out: { from: string; to: string; plan: AnatomyPlan['root']; node: SnapNode }[]): void => {
+const movesOf = (plan: AnatomyPlan['root'], node: SnapNode, path: string, edited: ReadonlySet<string>, out: { from: string; to: string; plan: AnatomyPlan['root']; host: SnapNode }[]): void => {
   if (plan.type === 'GLYPH' || node.type === 'INSTANCE') return;
   const kids = node.children ?? [];
   const at = (name: string): string => (path === '.' ? name : `${path}/${name}`);
@@ -200,7 +200,7 @@ const movesOf = (plan: AnatomyPlan['root'], node: SnapNode, path: string, edited
   for (const [g, into] of mv) {
     const k = kids.find((x) => x.name === g)!;
     const pc = plan.children!.find((c) => c.name === into)!.children!.find((x) => x.name === g)!;
-    if (fits(pc, k)) out.push({ from: at(g), to: `${at(into)}/${g}`, plan: pc, node: k });
+    if (fits(pc, k)) out.push({ from: at(g), to: `${at(into)}/${g}`, plan: pc, host: k });
   }
   for (const c of plan.children ?? []) {
     const k = kids.find((x) => x.name === c.name);
@@ -464,12 +464,12 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
     const touched = new Set<string>();
     // #2595 — the children the update moves into a frame the plan inserts: each is compared to its plan where it
     // lands, and listed as a move rather than as removed. `edited` is what the apply passes the executor.
-    const moves: { from: string; to: string; plan: AnatomyPlan['root']; node: SnapNode }[] = [];
+    const moves: { from: string; to: string; plan: AnatomyPlan['root']; host: SnapNode }[] = [];
     movesOf(plan.root, m.snap, '.', new Set([...(edit?.changed ?? []), ...(edit?.added ?? []), ...(edit?.removed ?? [])].map((p) => p.replace(/#\d+$/, ''))), moves);
     const divs = diffAnatomy([plan], [m.snap as unknown as HostNode], () => m.name, ports).filter((d) => d.field !== 'member');
     const placed = [
       ...divs.map((d) => ({ d, part: rel(d.path) })),
-      ...moves.flatMap((mv) => diffAnatomy([{ ...plan, root: mv.plan }], [mv.node as unknown as HostNode], () => mv.node.name, ports)
+      ...moves.flatMap((mv) => diffAnatomy([{ ...plan, root: mv.plan }], [mv.host as unknown as HostNode], () => mv.host.name, ports)
         .filter((d) => d.field !== 'member')
         .map((d) => ({ d, part: `${mv.to.slice(0, mv.to.lastIndexOf('/'))}/${d.path}` }))),
     ];
@@ -501,7 +501,7 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
     const movedFrom = new Set(moves.map((mv) => mv.from));
     const extras: string[] = [];
     extraChildren(plan.root, m.snap, '.', extras);
-    for (const mv of moves) extraChildren(mv.plan, mv.node, mv.to, extras);
+    for (const mv of moves) extraChildren(mv.plan, mv.host, mv.to, extras);
     for (const part of extras.filter((x) => !movedFrom.has(x))) {
       const parent = part.includes('/') ? part.slice(0, part.lastIndexOf('/')) : '.';
       touched.add(parent);
@@ -513,7 +513,7 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
     }
     const dropped: { part: string; file: string }[] = [];
     droppedFills(plan.root, m.snap, '.', ports, dropped);
-    for (const mv of moves) droppedFills(mv.plan, mv.node, mv.to, ports, dropped);
+    for (const mv of moves) droppedFills(mv.plan, mv.host, mv.to, ports, dropped);
     for (const { part, file } of dropped) {
       touched.add(part);
       const k = `${part}\u0000fill\u0000${file}\u0000none`;
