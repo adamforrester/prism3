@@ -30903,10 +30903,30 @@ arm: {
     && textField.anatomy?.parts.labelRow === undefined && textField.anatomy?.parts.toggle === undefined,
     `#2317 field factory: Password and TextField bind the same token block, and TextField keeps its own anatomy (a trailing slot in the box, no label row, no toggle)`);
 
+  // THE KEYBOARD MODEL is the Password field's own, not the shared entry: TextField's names Escape-to-clear, and this
+  // field has no clear button (review on #2648).
+  const pwKeyboard = pw.anatomy!.codeOnly.filter((e) => e.startsWith('the KEYBOARD MODEL '));
+  ok(pwKeyboard.length === 1 && !/escape|clear/i.test(pwKeyboard[0]),
+    `#2648 password-field: one KEYBOARD MODEL code-only entry, and it names no Escape-to-clear, because the field has no clear button (got ${JSON.stringify(pwKeyboard)})`);
+
+  // NO "DRAFT" IN SHIPPED PROSE (owner decision Q312.2 A): the marker stays in the file header and `notes`, which do not
+  // ship, and in `codeOnly`, the maintainer's list; every other string on the def reaches the emitted docs, the AI
+  // metadata or the plugin bundle. Walked off the def, not off a list of fields, so a new field is covered.
+  const draftHits: string[] = [];
+  const walkDraft = (v: unknown, path: string): void => {
+    if (path === 'notes' || path === 'anatomy.codeOnly') return;
+    if (typeof v === 'string') { if (/DRAFT/.test(v)) draftHits.push(path); return; }
+    if (Array.isArray(v)) { v.forEach((x, i) => walkDraft(x, `${path}[${i}]`)); return; }
+    if (v && typeof v === 'object') for (const [k, x] of Object.entries(v)) walkDraft(x, path ? `${path}.${k}` : k);
+  };
+  walkDraft(pw, '');
+  ok(draftHits.length === 0,
+    `#2648 password-field: no shipped string carries "DRAFT" (Q312.2 A), the file header, notes and codeOnly aside${draftHits.length ? ` — FOUND at ${draftHits.join(', ')}` : ''}`);
+
   // THE SHARED CODE-ONLY ENTRIES are written out in each def (the plugin build needs a string literal per entry), so
   // their identity is held here: each of TextField's entries on the shared anatomy, by its leading subject, appears
   // verbatim in the Password field's list. The subjects are typed here, not read off either def.
-  const SHARED_CODE_ONLY = ['the SMALL field on a COARSE POINTER', 'style', 'pending', 'empty', 'the FOCUS CARET', 'the label / describedby WIRING', "the nested LABEL's disabled dimming", 'the KEYBOARD MODEL'];
+  const SHARED_CODE_ONLY = ['the SMALL field on a COARSE POINTER', 'style', 'pending', 'empty', 'the FOCUS CARET', 'the label / describedby WIRING', "the nested LABEL's disabled dimming"];
   const bySubject = (list: readonly string[], subject: string) => list.filter((e) => e.startsWith(`${subject} `) || e.startsWith(`${subject} —`));
   const sharedBad = SHARED_CODE_ONLY.filter((sub) => {
     const t = bySubject(textField.anatomy!.codeOnly, sub); const p = bySubject(pw.anatomy!.codeOnly, sub);

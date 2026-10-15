@@ -71,7 +71,7 @@ export const passwordField: ComponentDef = makeTextField({
     'RIGHT TO LEFT — the label row mirrors, so the button sits at the row\'s left end; the masked value follows the input\'s direction.',
     'the label / describedby WIRING — the host generates ids (useId), ties the FieldLabel to the input, stitches the FieldMessage into aria-describedby, and sets aria-invalid on error. Figma has no accessibility tree and no node-to-node reference, so the nested label and message sit near the input and are associated by proximity alone (the same ceiling `field-label` and `field-message` each hit).',
     'the nested LABEL\'s disabled dimming — the field fixes the FieldLabel to `state=rest` because field-label\'s state vocabulary (rest / disabled) is not the field\'s, so it cannot be followed by value. In code a disabled field dims its label; in Figma the nested label reads at its rest configuration regardless. A projection limit, not a design choice.',
-    'the KEYBOARD MODEL — native text editing, Escape-to-clear when clearable, and IME composition guards (do not validate mid-composition). All of it is runtime interaction the closed static member cannot carry.',
+    'the KEYBOARD MODEL — native text editing and IME composition guards (do not validate mid-composition). All of it is runtime interaction the closed static member cannot carry.',
   ],
 
   accessibility: {
@@ -88,7 +88,7 @@ export const passwordField: ComponentDef = makeTextField({
     ],
     keyboard: 'Tab reaches the input, then the Show/Hide button. Enter or Space on the button shows or hides the password, and focus stays on the button. Tab order follows the visual order in left-to-right and right-to-left layouts.',
     focus: 'The input takes TextField\'s focus ring. The button takes Button\'s own focus ring. Pressing the button never moves focus.',
-    aria: 'The host wires the label, aria-describedby and aria-invalid as TextField does. The button carries aria-controls naming the input and a name that changes ("Show password" / "Hide password"), not aria-pressed. Each change is announced once through the app\'s shared polite live region: "Your password is shown" / "Your password is hidden" (DRAFT).',
+    aria: 'The host wires the label, aria-describedby and aria-invalid as TextField does. The button carries aria-controls naming the input and a name that changes ("Show password" / "Hide password"), not aria-pressed. Each change is announced once through the app\'s shared polite live region: "Your password is shown" / "Your password is hidden".',
   },
 
   content: {
@@ -111,7 +111,7 @@ export const passwordField: ComponentDef = makeTextField({
       'Use this for a one-time code in separate boxes',
       'Put the password rules in the placeholder',
     ],
-    contentGuidelines: 'Label = noun phrase, sentence case, no trailing colon. Button = "Show" / "Hide", with " password" in visually hidden text (DRAFT). Error says what is wrong and how to fix it.',
+    contentGuidelines: 'Label = noun phrase, sentence case, no trailing colon. Button = "Show" / "Hide", with " password" in visually hidden text. Error says what is wrong and how to fix it.',
   },
 
   ai: {

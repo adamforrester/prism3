@@ -50,3 +50,12 @@ chunks, not 16 (re-pinned with a note). The label row is `align: 'center'`: righ
 content rule, so this was left as is and is the place to look if a long label reads oddly. Whether the live host keeps
 a nested instance's text override when a designer swaps a placed field's variant is unverified (the standing nesting
 caveat; `notes.unverified`).
+
+Fix round (owner decision Q312, 2026-10-15). Q312.2 A: the "(DRAFT)" marker leaves the two strings that ship
+(`accessibility.aria` and `docs.contentGuidelines`, which reach `password-field.md` and `components.ai.json`); it stays
+in the file header, `notes` and `codeOnly`. `test.ts` walks every string on the def except `notes` and
+`anatomy.codeOnly` and fails on "DRAFT", so a new field is covered without a list to keep. The review's keyboard nit
+was mechanical: the KEYBOARD MODEL entry was TextField's copy and named Escape-to-clear, which this field does not
+have; the clause is removed (nothing added), and the entry leaves the factory's shared code-only list in the test with
+an assertion of its own. Q312.1 A (layer name `toggle`) and Q312.3 A (weight follows Button) needed no change. The
+`codeOnly` "(DRAFT)" still reaches `schema/component-maintainer.json`, a maintainer file; left per the decision's scope.

@@ -29,7 +29,7 @@ Use for a password, a PIN typed as text, or any other secret a user types. The f
 
 ### Content guidelines
 
-Label = noun phrase, sentence case, no trailing colon. Button = "Show" / "Hide", with " password" in visually hidden text (DRAFT). Error says what is wrong and how to fix it.
+Label = noun phrase, sentence case, no trailing colon. Button = "Show" / "Hide", with " password" in visually hidden text. Error says what is wrong and how to fix it.
 
 ### Copy patterns
 
@@ -93,7 +93,7 @@ Label = noun phrase, sentence case, no trailing colon. Button = "Show" / "Hide",
   - 2.4.13 Focus Appearance (intent)
 - **Keyboard:** Tab reaches the input, then the Show/Hide button. Enter or Space on the button shows or hides the password, and focus stays on the button. Tab order follows the visual order in left-to-right and right-to-left layouts.
 - **Focus:** The input takes TextField's focus ring. The button takes Button's own focus ring. Pressing the button never moves focus.
-- **ARIA:** The host wires the label, aria-describedby and aria-invalid as TextField does. The button carries aria-controls naming the input and a name that changes ("Show password" / "Hide password"), not aria-pressed. Each change is announced once through the app's shared polite live region: "Your password is shown" / "Your password is hidden" (DRAFT).
+- **ARIA:** The host wires the label, aria-describedby and aria-invalid as TextField does. The button carries aria-controls naming the input and a name that changes ("Show password" / "Hide password"), not aria-pressed. Each change is announced once through the app's shared polite live region: "Your password is shown" / "Your password is hidden".
 
 ## Motion
 
