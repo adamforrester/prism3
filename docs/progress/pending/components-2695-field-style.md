@@ -41,6 +41,12 @@ recomputed from the roles' colors: the rest, hover, focus and three status lines
 `background.primary` and `background.secondary`, in every mode of every example brand. That agrees with the
 proposal's measured floor of 3.16:1.
 
+**One decision read two ways once in the code (Owner question on #2695).** Q14 A says the defs' `style` entry lists
+both values as brand-set, and also that there is no per-instance prop. Listing `underline` in `variants.style` made it a
+code coordinate: `lint-paint`'s census doubled each field's grid (108 → 216 coordinates) and `lint-axis-values` read a
+two-value variant. Built: `variants.style` stays `['outline']`, and the codeOnly `style` entry names both values as the
+brand's Field style setting. The register's reason now says why underline lives on the lever.
+
 **Deferred, filed.** Password field's corner ignores Control shape's Boxed and Hairline on Outline brands (#2718,
 pre-existing from #2648). Number input and Code input join the lever when they are built (#2719). The studio's Shape
 preview has no field, so the lever has no preview effect there (#2720, an owner question).

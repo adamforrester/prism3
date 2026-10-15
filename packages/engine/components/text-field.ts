@@ -122,10 +122,10 @@ export const makeTextField = (spec: FieldSpec): ComponentDef => {
   // large; the variant picker lists the values in the order they were first combined.
   variants: {
     size: ['medium', 'small', 'large'],
-    // Both values BRAND-SET (#2695, owner Q333 taking Q14 A): the Field style lever picks one per brand, before
-    // projection (`applyFieldStyle`). Still a theme lever, not a component axis: not projected (`variantAxes` omits
-    // it) and not a prop.
-    style: ['outline', 'underline'],
+    // ONE value, though the brand may set `underline` (#2695, Field style; `applyFieldStyle` rewrites the def before
+    // projection). A second value here would be a code coordinate: the paint census and the axis register read
+    // `variants` as the code surface, and Q14 A rules out a per-instance prop. The codeOnly `style` entry names both.
+    style: ['outline'],
     status: ['default', 'error', 'warning', 'success'],
   },
   // WHEN each axis changes (#1611): runtime axes are held to one footprint, authoring axes are not.

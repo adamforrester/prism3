@@ -2920,8 +2920,7 @@
         },
         "style": {
           "values": [
-            "outline",
-            "underline"
+            "outline"
           ],
           "kind": "authoring"
         },
@@ -3174,8 +3173,7 @@
         },
         "style": {
           "values": [
-            "outline",
-            "underline"
+            "outline"
           ],
           "kind": "authoring"
         },
@@ -7625,8 +7623,7 @@
         },
         "style": {
           "values": [
-            "outline",
-            "underline"
+            "outline"
           ],
           "kind": "authoring"
         },
