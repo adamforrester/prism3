@@ -1993,5 +1993,70 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
   }
 }
 
+// ── #2427 — THE COUNTER'S TWO BUTTONS, BUILT AND READ BACK OFF THE HOST ──────────────────────────────────
+//
+// The Counter nests FlushIconButton.Neutral twice (decrement, increment), each `nest-exposed` with `state`, and maps
+// its own coordinate onto the button's through `variantWhen`. EXPECTED is typed here from the owner decisions, never
+// read off the def or the plan: Q287 A (on #2457) — outline nests the flush shape, ghost the round one; Q283.7 — the
+// buttons start at rest and the designer sets one disabled at a limit, so only the Counter's own disabled member
+// starts them disabled; and the size follows. ACTUAL is the member each built instance is an instance of, read off
+// the shim after the nested set was really built (`prebuildDependencies`), plus its exposure flag. The geometry arm
+// reads the two instances' centers off the shim's layout model: at least 44px apart (Q296 A), so the code-side hit
+// areas never overlap.
+{
+  const project = (d: ComponentDef) => figmaAnatomySet(materializeForBrand(d, null), { swapTarget: SWAP_TARGET });
+  const counterDef = componentDefs.find((d) => d.id === 'counter');
+  ok(!!counterDef, '#2427 counter: the def is registered');
+  if (counterDef) {
+    const all = componentDefs.flatMap((d) => { try { return project(d); } catch { return []; } });
+    const page: Page = { children: [] };
+    const shim = makeShim({ ...fullFor(all), comps: [SWAP_TARGET], liveRoot: true, page, layoutModel: true });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
+    const build = (d: ComponentDef) => applyComponentPlan(project(d), shim as any, { emitAsComponents: d.figmaProperties?.emitAsComponents });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural
+    await prebuildDependencies(counterDef, { defs: componentDefs, project, host: shim as any, build });
+    const r = await build(counterDef);
+    const set = page.children.find((c) => c.name === 'counter' && c.type === 'COMPONENT_SET') as Node | undefined;
+    const members = ((set?.children as Node[] | undefined) ?? []) as unknown as HostNode[];
+    ok(members.length === 18 && r.misses.length === 0, `#2427 counter: builds 18 members over its nested sets with 0 misses (${members.length}; ${r.misses[0] ?? 'none'})`);
+    const SHAPE: Record<string, string> = { outline: 'flush', ghost: 'round' };
+    const find = (n: HostNode | undefined, name: string): HostNode | undefined => {
+      if (!n) return undefined;
+      if (n.name === name) return n;
+      for (const c of (Array.isArray(n.children) ? n.children : []) as HostNode[]) { const f = find(c, name); if (f) return f; }
+      return undefined;
+    };
+    const coordOf = (name: string): Record<string, string> => Object.fromEntries(name.split(', ').map((kv) => kv.split('=') as [string, string]));
+    const off: string[] = [];
+    const spacing: number[] = [];
+    for (const m of members) {
+      const c = coordOf(String(m.name));
+      const want = `shape=${SHAPE[c.appearance]}, size=${c.size}, state=${c.state === 'disabled' ? 'disabled' : 'rest'}`;
+      const centers: number[] = [];
+      for (const side of ['decrement', 'increment']) {
+        const inst = find(m, side);
+        const main = inst?.mainComponent as { name?: string; parent?: { name?: string } } | undefined;
+        if (!inst || inst.type !== 'INSTANCE') { off.push(`${String(m.name)}/${side}: not an instance`); continue; }
+        if (main?.parent?.name !== 'flush-icon-button-neutral') off.push(`${String(m.name)}/${side}: an instance of ${main?.parent?.name ?? 'nothing'}`);
+        else if (main.name !== want) off.push(`${String(m.name)}/${side}: is ${main.name}, want ${want}`);
+        if (inst.isExposedInstance !== true) off.push(`${String(m.name)}/${side}: not exposed`);
+        let x = Number(inst.x); let p = inst.parent as HostNode | undefined;
+        while (p && p !== m) { x += Number(p.x); p = p.parent as HostNode | undefined; }
+        centers.push(x + Number(inst.width) / 2);
+      }
+      if (centers.length === 2) spacing.push(centers[1] - centers[0]);
+    }
+    ok(members.length === 18 && off.length === 0,
+      `#2427 counter: in all 18 members both buttons are exposed instances of FlushIconButton.Neutral at the decided member — outline → flush, ghost → round (Q287 A), the size followed, disabled only on the Counter's disabled members (${off.length ? off.slice(0, 4).join('; ') : 'none off'})`);
+    const label = members.map((m) => (find(m, 'label')?.mainComponent as { name?: string } | undefined)?.name ?? '');
+    const dimmed = members.filter((m, i) => coordOf(String(m.name)).state === 'disabled' && /state=disabled/.test(label[i])).length;
+    const lit = members.filter((m, i) => coordOf(String(m.name)).state !== 'disabled' && /state=rest/.test(label[i])).length;
+    ok(dimmed === 6 && lit === 12, `#2427 counter: the nested FieldLabel dims on the 6 disabled members and rests on the other 12 (${dimmed} dimmed, ${lit} at rest)`);
+    const closest = spacing.length ? Math.min(...spacing) : NaN;
+    ok(spacing.length === 18 && closest >= 44,
+      `#2427 counter: the two buttons' centers are at least 44px apart on every member, read off the shim's layout (Q296 A; closest ${closest}px over ${spacing.length})`);
+  }
+}
+
 console.log(failed ? `\n❌ ${failed} FAILED` : '\n✅ component round-trip: ALL PASS');
 process.exit(failed ? 1 : 0);
