@@ -43,7 +43,8 @@ import {
   type RenameMap, type RenameOutcome, type MaterializationStep,
 } from '@prism3/engine/rename-map';
 import { MATERIALIZATION_RENAMES } from '@prism3/engine/materialization-renames';
-import { CORE_COLLECTION } from '@prism3/engine/emit-figma-color';
+import { CORE_COLLECTION, UNSCOPED_TYPES } from '@prism3/engine/emit-figma-color';
+import type { FigmaEasing } from '@prism3/engine/emit-figma-color';
 import { coreGroupOf, ownedCoreGroup, rootOf } from '@prism3/engine/figma-names';
 
 /** The minimal `figma.variables` surface the executor needs. Declaring it as a port (rather than
@@ -53,7 +54,7 @@ export interface VariablesApi {
   getLocalVariableCollectionsAsync(): Promise<VarCollection[]>;
   getLocalVariablesAsync(type?: string): Promise<Variable[]>;
   createVariableCollection(name: string): VarCollection;
-  createVariable(name: string, collection: VarCollection, resolvedType: 'COLOR' | 'FLOAT' | 'STRING'): Variable;
+  createVariable(name: string, collection: VarCollection, resolvedType: 'COLOR' | 'FLOAT' | 'STRING' | 'TIMING' | 'EASING'): Variable;
   createVariableAlias(target: Variable): VariableAlias;
 }
 export interface VarMode { modeId: string; name: string }
@@ -95,13 +96,18 @@ export interface Variable {
   id: string;
   name: string;
   variableCollectionId: string;
+  /** Read only by the motion retype (#2412, `replacesOnRetype`). Optional so a shim that never models a type
+   *  still satisfies the port; the real `Variable` always has it. */
+  resolvedType?: string;
+  /** The real `Variable`'s delete. Called only by the motion retype (#2412). */
+  remove?(): void;
   scopes: string[];
   description: string;
   hiddenFromPublishing: boolean;
   // Per-mode values as Figma stores them — read by the READ executor (#109); the write path sets
   // them via setValueForMode (which takes the narrow Rgba | VariableAlias the writer produces).
   valuesByMode: Record<string, ReadVarValue>;
-  setValueForMode(modeId: string, value: Rgba | VariableAlias | number | string): void;
+  setValueForMode(modeId: string, value: Rgba | VariableAlias | number | string | FigmaEasing): void;
 }
 
 /** What the executor did — surfaced to the UI + asserted by the harness. */
@@ -779,8 +785,29 @@ export const applyFloatPlan = async (
 };
 
 /** What the var-collection executor did (#237 — `core/font`/`type-sets`). */
+/**
+ * THE ONE TYPE MISMATCH APPLY RESOLVES INSTEAD OF REFUSING (#2412, owner decision Q293 A).
+ *
+ * 0.235.0 wrote `motion` as FLOAT milliseconds (#2394); #2412 writes the same names as TIMING seconds. Figma cannot
+ * change a variable's type, so the only way to TIMING under the same name is to delete the FLOAT one and create the
+ * TIMING one. Apply does that, and only for this exact case: the plan's `motion` collection, already carrying
+ * Prism3's #1581 mode stamp (so Prism3 made it), a variable whose name is a planned row (so it is in the brand's own
+ * namespace), held as FLOAT where the plan writes TIMING. Every other mismatch is still a pre-flight conflict.
+ *
+ * What a deletion costs, stated so it is not rediscovered: the new variable has a new id. Nothing in the file
+ * can have been bound to the old one through a picker (`scopes: []`), and Figma Motion binds no FLOAT; a library
+ * subscriber that bound a published `motion/duration/*` by hand loses that link. The result line names the count.
+ *
+ * Shared by `preflight.ts` (which therefore does not report these) and `applyVarCollectionPlan` (which replaces
+ * them), so the two cannot disagree about which variables are replaced.
+ */
+export const replacesOnRetype = (collection: string, stamped: boolean, have: string | undefined, want: string): boolean =>
+  collection === 'motion' && stamped && have === 'FLOAT' && want === 'TIMING';
+
 export type VarCollectionApplyResult = {
   collections: { name: string; total: number; created: number; orphans: string[] }[];
+  /** FLOAT motion variables a 0.235.0 file held, deleted and re-created as TIMING (#2412, `replacesOnRetype`). */
+  replaced: string[];
   bound: number;      // weight-role → font/weight/N aliases written
   misses: string[];
   /** Per-value writes the HOST refused (#680) — recorded and stepped over, never thrown. Empty on every
@@ -813,7 +840,7 @@ const setSurviving = (
   v: Variable,
   modeId: string,
   mode: string,
-  value: Rgba | VariableAlias | number | string,
+  value: Rgba | VariableAlias | number | string | FigmaEasing,
   refused: VarCollectionApplyResult['refused'],
 ): void => {
   try {
@@ -825,7 +852,8 @@ const setSurviving = (
 
 /**
  * Materialise mixed-type variable collections into `figma.variables` (#237 — `core/font` STRING family
- * + FLOAT size/weight + FLOAT weight-role aliased, per-mode; `type-sets` FLOAT mobile/desktop). Same
+ * + FLOAT size/weight + FLOAT weight-role aliased, per-mode; `type-sets` FLOAT mobile/desktop; and since #2412
+ * `motion`, TIMING durations + EASING curves/roles/springs, the roles aliasing the curves per mode). Same
  * two-pass shape as `applyFloatPlan`, but each row carries its own `resolvedType` (STRING vs FLOAT) and
  * a string|number literal, and the alias target lives per-row (`aliasByMode`) rather than a separate
  * array. Pass A creates/updates every var (literal per-mode); pass B binds the per-mode aliases against
@@ -842,10 +870,13 @@ export const applyVarCollectionPlan = async (
   const byNameGlobal = new Map<string, Variable>();
   // Host refusals (#680) — collected across both passes, reported rather than thrown.
   const refused: VarCollectionApplyResult['refused'] = [];
+  const replaced: string[] = [];
 
   // ---- pass A: create/update every var (STRING or FLOAT) with its literal per-mode value ----
   for (const p of plans) {
     const { collection, byName } = await upsertCollection(vars, p.name, p.rows.map((r) => r.name), mig);
+    // Read BEFORE `reconcileModes` stamps the collection: the retype is for a collection Prism3 had already made.
+    const stamped = ownedModeIds(collection).length > 0;
     // Snapshot BEFORE the row loop — `byName` gains every var this pass creates, and a set read after
     // the fact would be existing+created, which still happens to give the right answer today only
     // because created names are by definition planned. Snapshotting says what we mean.
@@ -858,8 +889,17 @@ export const applyVarCollectionPlan = async (
     let created = 0;
     for (const row of p.rows) {
       let v = byName.get(row.name);
+      // The motion retype (#2412, Q293 A): delete the 0.235.0 FLOAT and create the TIMING under the same name.
+      if (v && v.remove && replacesOnRetype(p.name, stamped, v.resolvedType, row.resolvedType)) {
+        v.remove();
+        byName.delete(row.name);
+        replaced.push(row.name);
+        v = undefined;
+      }
       if (!v) { v = vars.createVariable(row.name, collection, row.resolvedType); byName.set(row.name, v); created++; }
-      v.scopes = row.scopes;
+      // Figma refuses a `scopes` write on TIMING and EASING (#2412, spike #2403), and a refusal here would abort
+      // the apply, so those rows never write one: they stay `ALL_SCOPES`, which is what the emission states.
+      if (!UNSCOPED_TYPES.includes(row.resolvedType)) v.scopes = row.scopes;
       v.description = row.description;
       v.hiddenFromPublishing = row.hidden;
       p.modes.forEach((m, i) => setSurviving(v!, modeIds[m], m, row.valuesByMode[i], refused));
@@ -891,5 +931,5 @@ export const applyVarCollectionPlan = async (
     }
   }
 
-  return { collections, bound, misses, refused };
+  return { collections, replaced, bound, misses, refused };
 };
