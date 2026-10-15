@@ -2351,6 +2351,16 @@ section('accordion — a set built before the header row (#2594, owner Q276 A) t
     `acc/dry run: all 24 members read update, none added, dropped, renamed or replaced, and nothing refused (${JSON.stringify(p.counts)}, ${p.blockers.join('; ') || 'no blockers'}, ${p.replacements.length} replacements)`);
   ok(p.changes.some((c) => c.part === 'header' && c.field === 'counterAxisAlignItems' && c.from === 'MIN' && c.to === 'CENTER' && c.members === 24) && p.changes.some((c) => c.part === 'header/titleRow' && c.field === 'children' && c.to === 'present'),
     `acc/dry run: the header's centering and the added row are named differences (${JSON.stringify(p.changes.map((c) => [c.part, c.field, c.members])).slice(0, 240)})`);
+  // THE MOVES, as the dry run lists them (#2595): the indicators and the title move into the row and are kept, never
+  // listed as removed. Typed here from the def's anatomy (the leading or trailing indicator on half the members each,
+  // the title on all 24) and the issue's option A wording.
+  const lines = previewVerdict(pre).lines;
+  const moveLines = ['header/leadingIndicator', 'header/titleBox', 'header/trailingIndicator'].map((part) => p.changes.find((c) => c.part === part));
+  ok(JSON.stringify(moveLines.map((c) => [c?.field, c?.to, c?.members])) === JSON.stringify([['moves into', 'header/titleRow', 12], ['moves into', 'header/titleRow', 24], ['moves into', 'header/titleRow', 12]])
+    && lines.includes('accordion · header/titleBox · moves into header/titleRow, kept (24 members).')
+    && lines.includes('accordion · header/leadingIndicator · moves into header/titleRow, kept (12 members).')
+    && !p.changes.some((c) => /removed/.test(c.to)),
+    `acc/dry run moves: the indicators and the title are listed as moving into the row, kept, and nothing as removed (${JSON.stringify(p.changes.map((c) => [c.part, c.field, c.to, c.members]))})`);
   const v = applyVerdict(res);
   ok(v.ok, `acc/verdict: ${v.headline} (${v.lines.slice(0, 2).join(' | ').slice(0, 240)})`);
   const after = identityOf(w.set());
@@ -2370,16 +2380,22 @@ section('accordion — a set built before the header row (#2594, owner Q276 A) t
   ok(shape.every((x) => x.ok), `acc/structure: every header is centered and holds the row, which holds the indicator and the title top-aligned (${shape.filter((x) => !x.ok).slice(0, 2).map((x) => `${x.m}: ${x.got}`).join('; ') || 'all 24'})`);
   const post = (await previewUpdate(w.host, [{ def: ACC, plans: newPlans }])).sets[0];
   ok(post.counts.current === 24 && post.handEdits.length === 0, `acc/current: the next dry run reads all 24 current (${JSON.stringify(post.counts)})`);
-  // THE COST, stated rather than hidden: the indicators and the title move into a frame the file did not have, and
-  // the in-place update pairs a node's children by name under the SAME parent, so they are built fresh inside the row
-  // and the old ones removed. Their ids change; a placed instance's own choice on the nested indicator does not carry
-  // over (the title is a text property, so its text does). Typed here so a change to that pairing is seen.
-  const rebuilt = [...before.members].every(([name, b]) => {
-    const now2 = new Set(after.members.get(name)?.kids.values() ?? []);
-    const was = [...b.kids].filter(([path]) => /^header#0\/(titleBox|leadingIndicator|trailingIndicator)#/.test(path)).map(([, id]) => id);
-    return was.length > 0 && was.every((id) => !now2.has(id));
-  });
-  ok(rebuilt, 'acc/moved children: the indicator and the title are built fresh inside the row, so their ids change');
+  // MOVED, NOT REBUILT (#2595): the indicators and the title move into the row the update inserts, so every node in
+  // them, their nested glyph instances included, keeps its id, now under the row. A placed instance's override on
+  // them carries over. Read off the shim's nodes by id. Mutation: the executor offering a new frame no children
+  // (`adopt` dropped) → `acc/moved children`, `acc/dry run moves` stays green, `acc/agree` fails.
+  const lost: string[] = [];
+  for (const [name, b] of before.members) {
+    const was = [...b.kids].filter(([path]) => /^header#0\/(titleBox|leadingIndicator|trailingIndicator)#/.test(path));
+    const underRow = new Set([...(after.members.get(name)?.kids ?? [])].filter(([path]) => /^header#0\/titleRow#\d+\//.test(path)).map(([, id]) => id));
+    if (!was.length || !was.every(([, id]) => underRow.has(id))) lost.push(`${name}: ${was.filter(([, id]) => !underRow.has(id)).map(([path]) => path).slice(0, 2).join(', ') || 'nothing to move'}`);
+  }
+  ok(lost.length === 0, `acc/moved children: the indicator and the title, and every node in them, keep their ids under the row (${lost.slice(0, 2).join('; ') || 'all 24'})`);
+  // THE DRY RUN SAID SO: no node under a part the dry run listed as moving was removed. Counted off the shim's own
+  // removals, by id.
+  const movedIds = new Set([...before.members.values()].flatMap((b) => [...b.kids].filter(([path]) => /^header#0\/(titleBox|leadingIndicator|trailingIndicator)#/.test(path)).map(([, id]) => id)));
+  const gone = (w.api._removed as Node[]).filter((x) => movedIds.has(String(x.id)));
+  ok(movedIds.size > 0 && gone.length === 0, `acc/agree: the apply removed none of the ${movedIds.size} nodes the dry run listed as moving (${gone.slice(0, 3).map((x) => `${String(x.name)} ${String(x.id)}`).join(', ') || 'none removed'})`);
   // ADOPTED, NOT RE-CREATED, ONCE THERE: a later update (here an executor revision bump, every member out of date
   // with nothing else moved) pairs the row the first update added, and every node under it keeps its id.
   for (const m of membersOf(w.set())) {
@@ -2392,6 +2408,39 @@ section('accordion — a set built before the header row (#2594, owner Q276 A) t
   ok(again.pre.sets[0].counts.update === 24 && applyVerdict(again.res).ok, `acc/again: a revision bump reads all 24 out of date and updates them (${JSON.stringify(again.pre.sets[0].counts)}; ${applyVerdict(again.res).headline})`);
   const reRow = membersOf(w.set()).filter((m) => rowIds(m) !== beforeRow.get(String(m.name))).map((m) => String(m.name));
   ok(reRow.length === 0, `acc/row adopted: a later update keeps the row and every node under it, by id, on every member (${reRow.slice(0, 2).join('; ') || 'all 24'})`);
+}
+{
+  // A NODE A DESIGNER EDITED IS NOT MOVED (#2595): the move is decided before the hand-edit choice is made, so a
+  // node with a hand edit at or under it is left out of the moves whatever the choice. The dry run lists it as
+  // removed on that member and moved on the rest, and the apply rebuilds it there, as before #2595, and moves it on
+  // the rest. (Its hand edit is not carried into the rebuilt node, as before #2595: filed separately.) Mutation: the executor ignoring `edited` → `acc/edited agree`.
+  const ACC = 'accordion';
+  const now = componentDefs.find((x) => x.id === ACC)!;
+  const { titleRow, ...restParts } = now.anatomy.parts;
+  const before2594 = {
+    ...now,
+    anatomy: { ...now.anatomy, parts: { ...restParts, header: { ...now.anatomy.parts.header, layout: { ...now.anatomy.parts.header.layout!, align: 'start' }, gap: titleRow.gap, children: [...titleRow.children!, 'focusRing'] } } },
+  } as typeof now;
+  const w = await world(ACC, figmaAnatomySet(before2594, { swapTarget: SWAP_TARGET }));
+  const m = membersOf(w.set())[0];
+  const box = childNamed(childNamed(m, 'header'), 'titleBox');
+  (box.setBoundVariable as (f: string, v: { id: string }) => void)('itemSpacing', { id: await varIdOf(w, 'space/0') });
+  const boxId = String(box.id);
+  const others = membersOf(w.set()).slice(1).map((x) => String(childNamed(childNamed(x, 'header'), 'titleBox').id));
+  // Under the default choice (keep). The dry run is made before any choice, so it is the same under every one.
+  const pre = await previewUpdate(w.host, [{ def: ACC, plans: plansOf(ACC) }]);
+  const p = pre.sets[0];
+  const edits = p.handEdits.filter((h) => h.member === String(m.name)).map((h) => h.path);
+  const move = p.changes.find((c) => c.part === 'header/titleBox' && c.field === 'moves into');
+  const removed = p.changes.find((c) => c.part === 'header/titleBox' && /removed/.test(c.to));
+  ok(JSON.stringify(edits) === '["header/titleBox"]' && move?.members === 23 && removed?.members === 1 && removed.sample[0] === String(m.name),
+    `acc/edited dry run: the edited title is listed as removed on its member, moved on the other 23 (${JSON.stringify(edits)}; moves ${move?.members}; removed ${removed?.members} on ${removed?.sample.join(', ')})`);
+  const res = await applyUpdate(w.host, w.api as any, [{ def: ACC, plans: plansOf(ACC) }], previewHashOf(pre), { choices: { handEdits: 'keep' } });
+  const row = (x: Node): Node | undefined => childNamed(childNamed(x, 'header'), 'titleRow');
+  const nowBox = String(childNamed(row(m)!, 'titleBox')?.id);
+  const kept = membersOf(w.set()).slice(1).map((x) => String(childNamed(row(x)!, 'titleBox')?.id));
+  ok(nowBox !== boxId && (w.api._removed as Node[]).some((x) => String(x.id) === boxId) && JSON.stringify(kept) === JSON.stringify(others),
+    `acc/edited agree: the edited title is rebuilt in the row on its member, as the dry run listed it, and moved, by id, on the other 23 (${boxId} → ${nowBox}; ${kept.filter((id, i) => id !== others[i]).length} others changed)`);
 }
 
 void STYLE_FONT; void BASELINE_KEY;
