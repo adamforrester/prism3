@@ -69,3 +69,5 @@ so once, in the existing missing-template line.
 - A def file the gates read from git (`lint-axis-values`, `typecheck-components`) is invisible to them until it is
   staged, as the List lane found.
 - `title.sm.strong` resolves in four corpus brands and misses in the fifth; only `test.ts` #1601 sees it.
+
+**After merging the slot-constraints work (#2646).** `test-slot-constraints.ts` requires a constraints decision for every native slot, and Dialog's body is the second one. Its row is `{}`: open, no limit and no preferred component, the same as the accordion's panel and the same as the def as built. Like every row there, it is a draft owner item. The footer's actions stay fixed nested Buttons (Q311), so they have no row until the items-slot follow-up.
