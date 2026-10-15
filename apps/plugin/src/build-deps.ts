@@ -15,6 +15,8 @@
  *     (`plan.component`), which is why the id IS the name the executor looks up.
  *   · `swapTarget` — a component NAME (`icon/FPO-default-icon`). An `emitAsComponents` def (#1012) builds
  *     one `<id>/<glyph>` component per glyph, so the prefix names the def.
+ *   · `nestOverrides` (#2645) — an `INSTANCE_SWAP` override's value is a component NAME (`icon/close`), set on
+ *     a nested instance after it is made, so the component must exist by then like any swap target.
  *
  * A name that maps to no def is left alone — it is the file's to supply (a hand-built component), and the
  * executor's own miss still reports it.
@@ -35,7 +37,7 @@ import type { ComponentDef } from '@prism3/engine/component-schema';
 /** The one host call this module makes — the executor's own criteria search. */
 export type DepHost = { root: { findAllWithCriteria(criteria: { types: string[] }): readonly { name?: string }[] } };
 
-type PlanNode = { nestTarget?: string; swapTarget?: string; children?: readonly unknown[] };
+type PlanNode = { nestTarget?: string; swapTarget?: string; nestOverrides?: readonly { type: string; value: string }[]; children?: readonly unknown[] };
 
 /** Every component name the plans nest or swap to, deduplicated, in first-seen order. */
 export const planTargets = (plans: readonly AnatomyPlan[]): string[] => {
@@ -43,6 +45,7 @@ export const planTargets = (plans: readonly AnatomyPlan[]): string[] => {
   const walk = (n: PlanNode): void => {
     if (n.nestTarget) out.add(n.nestTarget);
     if (n.swapTarget) out.add(n.swapTarget);
+    for (const o of n.nestOverrides ?? []) if (o.type === 'INSTANCE_SWAP') out.add(o.value);
     for (const c of (n.children ?? []) as PlanNode[]) walk(c);
   };
   for (const p of plans) walk(p.root as unknown as PlanNode);

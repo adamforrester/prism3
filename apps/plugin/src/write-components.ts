@@ -54,7 +54,7 @@
  * assertion instead, because with no caller the port could have drifted out of satisfaction with the
  * whole suite green; the trigger retired it rather than leaving two mechanisms for one guarantee.
  */
-import { planSetLayout, nestMissAdvice, nestVariantMatch, nestVariantMissAdvice, resolveNestMember, swapMissAdvice, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, planComponentName, planStamp, glyphLayerOpacities } from '@prism3/engine/anatomy-figma';
+import { planSetLayout, nestMissAdvice, nestVariantMatch, nestVariantMissAdvice, resolveNestMember, applyNestOverrides, swapMissAdvice, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, planComponentName, planStamp, glyphLayerOpacities } from '@prism3/engine/anatomy-figma';
 import type { AnatomyPlan, FigmaNodePlan, SwapFound } from '@prism3/engine/anatomy-figma';
 import { ENGINE_VERSION } from '@prism3/engine/version';
 import { tailOf } from '@prism3/engine/figma-names';
@@ -1872,6 +1872,13 @@ const writeComponentSet = async (
       // the same reason — per member, since one array shared across the set would carry members' handles into
       // each other's marking pass.
       if (node && n.nestExpose && n.nestExpose.length) expose?.push(node);
+      // THE PER-INSTANCE OVERRIDES (#2645), written NOW and read back — `setProperties` needs no containing component,
+      // unlike the exposure above. On Update the same write lands on the instance kept in place, so a nested instance
+      // that has no override yet gains it without a rebuild; one a designer changed by hand (`kept`) is left as it is.
+      // `applyNestOverrides` is shared with the paste payload, decision and wording.
+      if (node && n.nestOverrides && !kept)
+        for (const m of applyNestOverrides(node as Parameters<typeof applyNestOverrides>[0], n.nestOverrides, (name) => { const c = compByName.get(name); return c?.id ? String(c.id) : null; }))
+          misses.push(`${n.name}${m}`);
       // THE NESTED INSTANCE'S OWN TEXT (#2317). A set has one default per text property, so the Password field's
       // nested Button would read its set's "Button"; the plan's `nestTexts` names what this instance says instead,
       // written as an instance override. The property is found by its name before the `#id` Figma appends, and
