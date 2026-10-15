@@ -32,7 +32,7 @@ With **One per mode**, the download is a base file plus one overlay file per ext
 - `<brand>.<mode>.overlay.tokens.json`, for example `<brand>.dark.overlay.tokens.json`, holds only the tokens whose value changes in that mode.
 
 A build reads the base and then the overlay for the mode it wants. Style Dictionary does this with its stock setup, and CI checks that it still does. <!-- src: packages/engine/emit-dtcg-overlay.ts:22-25 --> <!-- src: packages/tokens/check-consumability.mjs:261-270 -->
-The modes here are the appearance modes (such as dark and the high-contrast pair). Breakpoint values travel inside the tokens themselves. <!-- src: packages/engine/emit-dtcg-overlay.ts:37-41 -->
+The modes here are the appearance modes (such as dark and the high-contrast pair). Breakpoint values travel inside the layout tokens themselves; the per-breakpoint detail the engine keeps for its own use is left out of these files. <!-- src: packages/engine/emit-dtcg-overlay.ts:37-41 -->
 
 Several files arrive as several downloads, not as one ZIP. <!-- src: apps/studio/src/main.ts:1288-1295 -->
 

@@ -41,7 +41,7 @@ The **Activity** drawer reports `✓ file set up` and lists the pages it created
 
 | Result | Meaning |
 |---|---|
-| `⚠ no File Components page — assets not built` | The pages were set up, but the helper components were not. <!-- src: apps/plugin/src/main.ts:1022-1023 --> |
+| `✓ file set up`, with "⚠ no File Components page — assets not built" in the detail | The pages were set up, but the helper components were not. <!-- src: apps/plugin/src/main.ts:1022-1026 --> |
 | `✗ setup failed` | Figma refused a write. The detail starts "file setup failed:" and gives Figma's message. <!-- src: apps/plugin/src/main.ts:1027-1028 --> |
 
 While Set up file runs, a second run is refused: "Set up file is already running. Try again when it finishes." <!-- src: apps/plugin/src/run-guard.ts:21-23 --> <!-- src: apps/plugin/src/run-guard.ts:39 -->

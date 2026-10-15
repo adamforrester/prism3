@@ -16,7 +16,7 @@ Apply the theme first if you want the color tables to show contrast. The contras
 ## Draw the tables
 
 1. In the **Figma** menu, choose **Build style guides…**. The page opens full width. <!-- src: apps/studio/src/main.ts:1784-1785 --> <!-- src: apps/studio/src/shell/frame.ts:434 -->
-2. Under **What to draw**, choose a **Collection** (or **Every collection**) and the **Kinds** to include, then tick the groups you want. **Select all** and **Deselect all** work on the list in view. <!-- src: apps/studio/src/shell/style-guides.ts:257-301 -->
+2. Under **What to draw**, choose a **Collection** (or **Every collection**) and the **Kinds** to include, then tick the groups you want. One button works on the list in view: it reads **Select all**, or **Deselect all** once anything in view is ticked. <!-- src: apps/studio/src/shell/style-guides.ts:257-301 -->
 3. To draw only some tables, open **Draw by table title** and enter one title per line. Empty draws every table. <!-- src: apps/studio/src/shell/style-guides.ts:320-337 -->
 4. Set the **Options**, then choose **Draw *N* tables**. <!-- src: apps/studio/src/shell/style-guides.ts:520 --> <!-- src: apps/studio/src/state/style-guides.ts:129 -->
 

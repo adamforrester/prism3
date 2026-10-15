@@ -2,7 +2,7 @@
 
 <!-- DRAFT for owner review (#2637, lane 4). -->
 
-The agent link lets an AI agent drive the Prism3 plugin you have open in Figma. The agent asks for an action, such as Apply Theme or a component build, and the plugin runs it exactly as if you had chosen it in the panel, then hands back the same result you would see. <!-- src: apps/plugin/src/main.ts:1211-1221 --> <!-- src: tools/figma-mcp/README.md:124-128 -->
+The agent link lets an AI agent drive the Prism3 plugin you have open in Figma. The agent asks for an action, such as Apply Theme or a component build, and the plugin runs it the way the panel's button would, then hands back the same result you would see. Two things differ: an agent's Apply Theme uses the brand settings the agent supplies, and an agent's prune preview never opens the delete dialog on your screen. <!-- src: apps/plugin/src/main.ts:1211-1221 --> <!-- src: tools/figma-mcp/README.md:124-128 -->
 
 It is off every time the plugin opens, and only you can turn it on. <!-- src: apps/plugin/src/agent-link.ts:5-8 -->
 
@@ -34,7 +34,7 @@ The **Activity** drawer shows the link's state: "Agent listening" while it waits
 | `file-setup` | [Set up file](file-setup.md). <!-- src: apps/plugin/src/agent-protocol.ts:284-286 --> |
 | `style-guide` | [Build style guides](style-guides.md), with the same options as the page. <!-- src: apps/plugin/src/agent-protocol.ts:229-256 --> |
 | `prune` | [Prune stale](update-a-file-safely.md#remove-what-the-brand-no-longer-uses): a preview, or with a confirm, the delete. <!-- src: apps/plugin/src/agent-protocol.ts:220-223 --> |
-| `readback` | Reads the file's variables back, checks their contrast, and lists every component page. Writes nothing. <!-- src: apps/plugin/src/agent-dispatch.ts:85-120 --> |
+| `readback` | Reads the file's color variables back and checks they were written correctly: each mode distinct, every alias resolving, the brand's modes present and scopes set. It also lists every component page. Writes nothing. It does not check contrast. <!-- src: apps/plugin/src/agent-dispatch.ts:85-120 --> |
 | `update-components` | The [component update](update-a-file-safely.md#component-changes-check-read-then-confirm): a check first, then a confirm that carries the check's fingerprint. <!-- src: apps/plugin/src/agent-protocol.ts:68 --> <!-- src: apps/plugin/src/agent-protocol.ts:78-103 --> |
 | `capture-baseline` | Records how each variant looks now, so a later update can tell your edits apart. Plugin data only. <!-- src: apps/plugin/src/main.ts:946-959 --> |
 | `adopt-members` | Claims variants Prism3 did not build, so updates can reach them. Plugin data only. <!-- src: apps/plugin/src/main.ts:961-976 --> |

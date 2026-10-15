@@ -17,7 +17,7 @@ What each Prism3 surface can do. The ecosystem diagram (`docs/public/ecosystem/`
 |---|---|---|---|---|
 | Start from a color, an example or a `design.md` | ✓ | ✓ | – | ✓ from a `design.md` (`theme_from_brief`) |
 | Set levers with a live preview | ✓ | ✓ | – | ✓ list the levers (`list_levers`), no preview |
-| Check contrast in every mode | ✓ Inspect › Contrast | ✓ Inspect › Contrast | ✓ `readback`, on the file's variables | ✓ `theme_brand`, `validate_brand` |
+| Check contrast in every mode | ✓ Inspect › Contrast | ✓ Inspect › Contrast | – | ✓ `theme_brand`, `validate_brand` |
 | Read the engine's decisions for a brand | ✓ Inspect › Decisions log | ✓ Inspect › Decisions log | – | ✓ `theme_brand` |
 | Keep the working brand | ✓ in this browser | ✓ in the Figma file | – | – |
 | Import a `design.md` brief | ✓ | ✓ | – | ✓ `theme_from_brief` |
@@ -43,7 +43,7 @@ What each Prism3 surface can do. The ecosystem diagram (`docs/public/ecosystem/`
 
 | Feature | Web studio | Figma plugin | Agent link | MCP server |
 |---|---|---|---|---|
-| [Download DTCG token files](export-tokens.md): a base file and one overlay per mode | ✓ | ✓ | – | ✓ written to a folder (`export_theme`) |
+| [Download DTCG token files](export-tokens.md): a base file and one overlay per mode | ✓ | ✓ | – | – |
 | Write the Figma variable files to a folder | – | – | – | ✓ `export_theme` |
 | Score how generated UI used the tokens | – | – | – | ✓ `score_consumption` |
 
