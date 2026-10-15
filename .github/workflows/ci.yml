@@ -161,6 +161,14 @@ jobs:
       # base's own number when nothing moved. Needs history: the job-level `fetch-depth: 0` above.
       - name: "CONTRACT_VERSION moved by the increment the surface needs, against the base (#2334)"
         run: npx --yes tsx@4 packages/engine/lint-contract-version.ts
+      # #2637 — the agent reference, docs/public/reference/commands.json, still matches the code: every MCP
+      # tool of both servers, every agent-link command and every CLI entry point, regenerated in memory from
+      # the code (toolDefs, TOOLS, AGENT_COMMANDS/AgentArgs/parseCommand, each CLI's usage and argv reads)
+      # and compared with the committed file. Its own gate rather than a regen step: the file is served docs,
+      # not engine emission, and carries no engine version. A tool or command added or renamed in code fails
+      # here by name until the reference is regenerated.
+      - name: The agent reference matches the code (#2637)
+        run: npx --yes tsx@4 packages/engine/emit-agent-reference.ts --check
 
       # esbuild (and therefore the Vercel build) does not typecheck. These do.
       - name: Typecheck web
@@ -444,8 +452,8 @@ jobs:
           count=$(npx --yes tsx@4 packages/engine/regen.ts --check | grep -oE '[0-9]+ committed artifacts')
           echo "reported: $count"
           case "$count" in
-            "195 committed artifacts") echo "✓ full set covered" ;;
-            *) echo "✗ artifact coverage changed — expected 195. If the set legitimately grew or shrank, update this check in the same PR."; exit 1 ;;
+            "199 committed artifacts") echo "✓ full set covered" ;;
+            *) echo "✗ artifact coverage changed — expected 199. If the set legitimately grew or shrank, update this check in the same PR."; exit 1 ;;
           esac
 
       # The RUNNER's own checks, not a second run of the gates (#789). `verify.ts` is what a contributor
