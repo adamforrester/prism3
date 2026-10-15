@@ -27,7 +27,7 @@
  * ── WHERE THE TWO SIDES COME FROM (docs/34) ─────────────────────────────────────────────────────────
  *
  * SUBJECT: the committed `docs/public/releases/*`, written by `release-notes.ts` (called from `fold.ts`).
- * ORACLE: git. For a version V, HEAD is the commit on HEAD's first-parent history that set
+ * ORACLE: git. For a version V, HEAD is the single-parent commit in HEAD's history that set
  * `ENGINE_VERSION` to V (its fold), or the working tree when no commit has yet (a fold being written).
  * BASE is the commit that set the version before it. At each, this file reads the same four committed
  * records the generator reads and the rename ledger, and derives the changes with ITS OWN CODE.
@@ -44,7 +44,9 @@
  *    carries its kind's phrase (SAYS) and no phrase of another class. It does not judge the wording;
  *    `lint-voice.ts` and `lint-us-english.ts` scan `docs/public/**` for that. SAYS restates the
  *    generator's sentence templates as phrases, so a reworded template moves SAYS in the same PR.
- * 2. A fold PR that merges `main` sees `main`'s record changes in its own range and fails until
+ * 2. A merge is never a fold (`main` is squash-only), so a feature branch that merges `main` across a
+ *    fold is checked against the fold on `main`'s side, and sees the same releases CI does.
+ * 3. A fold PR that merges `main` sees `main`'s record changes in its own range and fails until
  *    `release-notes.ts --refresh` rewrites its notes. That is the gate working: the squash would ship
  *    those changes under this version.
  *
@@ -65,6 +67,9 @@
  *       `index.json` → TEXT.
  *   M7  a release's date set to 2026-01-01 in its `.json` and `index.json` → DATE.
  *   M8  the gate run in a `--depth 50` clone → CANNOT RUN, naming `git fetch --unshallow`.
+ *   M9  the fold walk back on `--first-parent` with merges kept, on a branch that merged `main` across the
+ *       0.237.0 fold → NOTES: the merge is read as the fold, and the notes carry change notes it did not fold.
+ *   M10 a `token-added` sentence's type word changed (dimension → color) in the `.json` and `.md` → TEXT.
  */
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
@@ -236,17 +241,23 @@ const changes = (b: Recs, h: Recs): Item[] => {
 };
 
 // ---- the history ---------------------------------------------------------------------------------
+// A fold is a commit with ONE parent that sets the version. `main` is squash-only, so a commit with two
+// parents is a feature branch merging `main`; read against its first parent (the branch) it moves the
+// version, and `--first-parent` took it for the fold, so a branch that merged `main` across a fold was
+// checked against a diff holding the branch's own changes. So: the whole history, each record's parents
+// printed, and any record with more than one parent skipped here rather than trusted to a git flag.
 const folds = new Map<string, string>();
 {
-  const r = git('log', '--first-parent', '-U0', '--format=%x00%H', '-G', 'ENGINE_VERSION = ', 'HEAD', '--', 'packages/engine/version.ts');
+  const r = git('log', '-U0', '--format=%x00%H %P', '-G', 'ENGINE_VERSION = ', 'HEAD', '--', 'packages/engine/version.ts');
   if (!r.ok) cannotRun('git log failed');
   for (const rec of r.out.split('\0')) {
-    const sha = rec.split('\n')[0].trim();
+    const [sha, ...parents] = rec.split('\n')[0].trim().split(/\s+/);
+    if (!sha || parents.length !== 1) continue;
     const v = /^\+export const ENGINE_VERSION = '(\d+\.\d+\.\d+)'/m.exec(rec)?.[1];
-    if (sha && v && !folds.has(v)) folds.set(v, sha);
+    if (v && !folds.has(v)) folds.set(v, sha);
   }
 }
-if (!folds.size) cannotRun('no commit on HEAD\'s first-parent history sets ENGINE_VERSION');
+if (!folds.size) cannotRun('no single-parent commit in HEAD\'s history sets ENGINE_VERSION');
 const working = versionIn(fileAt(null, 'packages/engine/version.ts'));
 if (!working) cannotRun('cannot read ENGINE_VERSION in the working tree');
 /** Where a version's tree is: its fold commit, or the working tree for a fold not yet committed. */
@@ -273,7 +284,7 @@ const report: string[] = [];
 for (const v of onDisk.sort(cmpVersion)) {
   const rel = JSON.parse(readFileSync(join(repo, DIR, `${v}.json`), 'utf8')) as { version: string; from: string; base: string; date: string; counts: Record<string, number>; items: Item[]; notes: { slug: string; level: string; prose: string }[] };
   const at = headOf(v);
-  if (at === undefined) { fail('CLAIMED, NOT IN THE DIFF', `${v}: no commit on HEAD's first-parent history sets ENGINE_VERSION to ${v}, and the working tree is ${working}`); continue; }
+  if (at === undefined) { fail('CLAIMED, NOT IN THE DIFF', `${v}: no single-parent commit in HEAD's history sets ENGINE_VERSION to ${v}, and the working tree is ${working}`); continue; }
   const from = versionIn(fileAt(at === null ? 'HEAD' : `${at}^1`, 'packages/engine/version.ts'));
   if (rel.version !== v) fail('INDEX', `${v}.json says it is ${rel.version}`);
   if (!from || rel.from !== from) { fail('NOTES', `${v}: the notes say they follow ${rel.from}; git says ${from ?? '(unreadable)'}`); continue; }
@@ -296,7 +307,8 @@ for (const v of onDisk.sort(cmpVersion)) {
   }
   for (const [k, h] of have) if (!want.has(k)) fail('CLAIMED, NOT IN THE DIFF', `${v}: ${h.class} ${k}`);
   // The sentence names what it is about: the set or the coded component's name, the property, each value, the token.
-  const names = (await recordsAt(at)).comps;
+  const headRecs = await recordsAt(at);
+  const names = headRecs.comps;
   const baseNames = (await recordsAt(base)).comps;
   for (const i of rel.items) {
     const subject = i.area === 'code' ? (names[i.component!] ?? baseNames[i.component!])?.name : i.component;
@@ -305,6 +317,11 @@ for (const v of onDisk.sort(cmpVersion)) {
     const said = prose(i.text ?? ''), cls = CLASS_OF[i.kind];
     if (!SAYS[i.kind]?.test(said)) fail('TEXT', `${v}: "${i.text}" does not say what ${i.kind} says happened (${SAYS[i.kind] ?? 'no such kind'})`);
     else if (cls && NOT_IN[cls].test(said)) fail('TEXT', `${v}: "${i.text}" is ${i.kind}, ${cls}, and says ${NOT_IN[cls].exec(said)![0]}`);
+    // A token's type, read from the contract at the fold rather than from the item: `is a new .*token`
+    // accepted any type word, so a dimension token called a color token passed.
+    const typed = i.kind === 'token-added' ? [`is a new ${headRecs.guaranteed[i.token!]} token`]
+      : i.kind.endsWith('-retyped') ? [`from ${i.from}`, `to ${i.to}`] : [];
+    for (const t of typed) if (!(i.text ?? '').replace(/`/g, '').includes(t)) fail('TEXT', `${v}: "${i.text}" does not say "${t}"`);
   }
   const counts = { breaking: 0, new: 0, fix: 0 } as Record<string, number>;
   for (const i of rel.items) counts[i.class!] = (counts[i.class!] ?? 0) + 1;

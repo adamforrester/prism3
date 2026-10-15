@@ -1025,7 +1025,7 @@ jobs:
       # records at both folds with its OWN code, never the generator (release-notes.ts). Fails by name on a
       # breaking change missing from the notes, a claimed change the diff does not show, a misclassified
       # item, a sentence that does not say what its kind says, a date git rules out, a page that drifts from
-      # its JSON, the wrong folded notes, or a version from 0.234.0 on with no release. Reads git HISTORY (`git log --first-parent`), covered by the job-level `fetch-depth: 0` above.
+      # its JSON, the wrong folded notes, or a version from 0.234.0 on with no release. Reads git HISTORY (`git log`, merges never read as folds), covered by the job-level `fetch-depth: 0` above.
       - name: Release notes match the diff between folds (#2650)
         run: npx --yes tsx@4 packages/engine/lint-release-notes.ts
 

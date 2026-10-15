@@ -10,7 +10,7 @@
  *
  * ── WHAT A RELEASE IS COMPUTED FROM ──────────────────────────────────────────────────────────────────
  *
- * Two trees: the BASE is the commit on the first-parent history that set `ENGINE_VERSION` to the version
+ * Two trees: the BASE is the commit in HEAD's history (merges excluded) that set `ENGINE_VERSION` to the version
  * before (the previous fold), and the HEAD is the tree that carries this version (the fold being written,
  * or, for a version already folded, the commit that set it). From each, four committed records, read with
  * `git show` and never recomputed, because a release names what shipped and these are what shipped:
@@ -141,9 +141,13 @@ export const versionAt = (ref: string | null): string | null => {
   return src ? (VERSION_LINE.exec(src)?.[1] ?? null) : null;
 };
 
-/** Each version, mapped to the newest commit on HEAD's first-parent history that set it: its fold. */
+/** Each version, mapped to the newest commit in HEAD's history that set it: its fold. A merge is never a
+ *  fold. `main` is squash-only, so every fold is an ordinary commit; a feature branch that merged `main`
+ *  across a fold has a merge commit that moves `ENGINE_VERSION` against its first parent (the branch), and
+ *  `--first-parent` read that merge as the fold, so the notes took the branch's own changes for the fold's.
+ *  `--no-merges` over the whole history finds the fold on `main`'s side instead. */
 export const foldCommits = (): Map<string, string> => {
-  const r = git('log', '--first-parent', '-U0', '--format=%x00%H', '-G', '^export const ENGINE_VERSION = ', 'HEAD', '--', VERSION_FILE);
+  const r = git('log', '--no-merges', '-U0', '--format=%x00%H', '-G', '^export const ENGINE_VERSION = ', 'HEAD', '--', VERSION_FILE);
   if (!r.ok) throw new Error(`git log failed while finding the folds: ${r.err}`);
   const out = new Map<string, string>();
   for (const rec of r.out.split('\0').filter((x) => x.trim())) {
@@ -440,14 +444,14 @@ const pendingNotes = (version: string): ReleaseNote[] => {
 
 const dayOf = (sha: string): string => new Date(git('show', '-s', '--format=%cI', sha).out.trim()).toISOString().slice(0, 10);
 
-/** The release for a version already folded on HEAD's first-parent history, read entirely from git. */
+/** The release for a version already folded in HEAD's history, read entirely from git. */
 export const releaseFromHistory = async (version: string, folds = foldCommits()): Promise<Release> => {
   const head = folds.get(version);
-  if (!head) throw new Error(`no commit on HEAD's first-parent history sets ENGINE_VERSION to ${version}`);
+  if (!head) throw new Error(`no commit in HEAD's history (merges excluded) sets ENGINE_VERSION to ${version}`);
   const from = versionAt(`${head}^1`);
   if (!from) throw new Error(`cannot read ENGINE_VERSION at ${head.slice(0, 8)}^1`);
   const base = folds.get(from);
-  if (!base) throw new Error(`no commit on HEAD's first-parent history sets ENGINE_VERSION to ${from}, the version before ${version}`);
+  if (!base) throw new Error(`no commit in HEAD's history (merges excluded) sets ENGINE_VERSION to ${from}, the version before ${version}`);
   return buildRelease({ version, from, base, head, notes: notesFoldedBy(head, version), date: dayOf(head) });
 };
 
@@ -460,7 +464,7 @@ if (isMain) {
   try {
     if (process.argv.includes('--pending')) {
       const current = versionAt(null) ?? fail('cannot read ENGINE_VERSION');
-      const base = foldCommits().get(current) ?? fail(`no first-parent commit sets ENGINE_VERSION to ${current}`);
+      const base = foldCommits().get(current) ?? fail(`no commit (merges excluded) sets ENGINE_VERSION to ${current}`);
       const r = await buildRelease({ version: 'the next version', from: current, base, head: null, notes: pendingNotes('the next version'), date: new Date().toISOString().slice(0, 10) });
       process.stdout.write(releaseMarkdown(r));
     } else if (arg('--version')) {
@@ -471,7 +475,7 @@ if (isMain) {
       const p = join(REPO, RELEASES_DIR, `${version}.json`);
       if (!existsSync(p)) fail(`${RELEASES_DIR}/${version}.json does not exist; --refresh rewrites the notes a fold already wrote`);
       const was = JSON.parse(readFileSync(p, 'utf8')) as Release;
-      const base = foldCommits().get(was.from) ?? fail(`no first-parent commit sets ENGINE_VERSION to ${was.from}`);
+      const base = foldCommits().get(was.from) ?? fail(`no commit (merges excluded) sets ENGINE_VERSION to ${was.from}`);
       const r = await buildRelease({ version, from: was.from, base, head: null, notes: was.notes, date: was.date });
       console.log(`wrote ${writeRelease(r).join(', ')} — ${r.counts.breaking} breaking, ${r.counts.new} new, ${r.counts.fix} fix(es)`);
     } else {
