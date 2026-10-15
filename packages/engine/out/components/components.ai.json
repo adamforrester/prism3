@@ -6578,7 +6578,7 @@
             "medium",
             "large"
           ],
-          "description": "The body type size: 14, 16 or 18px. The box is one text line tall, or as tall as the icon where the icon is taller: 16px at small and medium, 20px at large."
+          "description": "The body type size: 14, 16 or 18px. The box is one text line tall; the icon (16px at small and medium, 20px at large) sits inside it."
         },
         {
           "name": "surface",

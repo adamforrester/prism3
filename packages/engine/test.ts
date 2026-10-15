@@ -17344,6 +17344,11 @@ arm: {
         && restMd('emphasis') === 'body/md/strong' && restMd('default') === 'body/md/default' && weightProp?.default === 'emphasis'
         && weightProp?.description === 'Emphasis is the starting value; choose Default for a lighter weight link.',
         `#2580 link/weight (Q289.3 B, Q297.3): two weights, emphasis first and the default, emphasis binding the heavier body role and default the reading weight, with the owner's prop wording (axis ${JSON.stringify(linkDef.variants.weight)}, prop default ${weightProp?.default}, medium rest ${restMd('emphasis')} / ${restMd('default')})`);
+      // Q314 A — the owner's `size` wording, pinned as a literal: the icon sits inside the one-line box at the shipped
+      // line height, so the text no longer offers an "or as tall as the icon" case no brand reaches.
+      const sizeProp = linkDef.props.find((p) => p.name === 'size');
+      ok(sizeProp?.description === 'The body type size: 14, 16 or 18px. The box is one text line tall; the icon (16px at small and medium, 20px at large) sits inside it.',
+        `#2580 link/size-wording (Q314 A): the size prop carries the owner's text verbatim (got ${JSON.stringify(sizeProp?.description)})`);
       // Q297.1 — the body tier at 14 / 16 / 18px for both styles, and no 12px link. The font sizes are read off the
       // committed default-brand emission and compared to literals, so a rung moved to `type.body.xs` (12px) or back to the
       // label tier (12 / 14 / 18px) fails here by name.

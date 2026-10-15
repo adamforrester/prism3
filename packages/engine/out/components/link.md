@@ -50,7 +50,7 @@ Descriptive text that stands alone, sentence case. Front-load the words that nam
 | `href` | string | — | yes | The destination: a URL, a fragment such as "#main", or a file. With no href, render plain text rather than a link. |
 | `style` | enum: 'standalone' \| 'inline' | `standalone` | no | Standalone shows its underline at hover, pressed and focus; inline is underlined at every state, for a link in body copy. |
 | `weight` | enum: 'emphasis' \| 'default' | `emphasis` | no | Emphasis is the starting value; choose Default for a lighter weight link. |
-| `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | The body type size: 14, 16 or 18px. The box is one text line tall, or as tall as the icon where the icon is taller: 16px at small and medium, 20px at large. |
+| `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | The body type size: 14, 16 or 18px. The box is one text line tall; the icon (16px at small and medium, 20px at large) sits inside it. |
 | `surface` | enum: 'default' \| 'inverse' | `default` | no | The ground the link sits on: the page, or a dark or brand-filled band, which takes the inverse link colors. |
 | `isExternal` | boolean | `false` | no | Opens in a new tab: adds the trailing external icon, visually hidden "(opens in new tab)" text and rel="noopener noreferrer". Keep it for narrow cases. |
 | `asChild` | boolean | `false` | no | Merges the link's styling and accessibility onto a router's link child, so one anchor renders and the component depends on no router. |
