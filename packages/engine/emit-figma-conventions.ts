@@ -26,9 +26,11 @@
  * The one authored part is each section's `rule`: a sentence saying what the data means. It states what the cited
  * code enforces and nothing beyond it.
  *
- * WHY ITS OWN GATE AND NOT A `regen.ts` STEP: the reason `emit-agent-reference.ts` gives. This is documentation
- * served by the studio, it carries no engine version, and `lint-emission-version.ts` would otherwise demand an
- * engine bump for a reworded rule.
+ * A `regen.ts` STEP AND ITS OWN GATE. Every component PR moves this file, so regen writes it: the documented path
+ * (regen, then commit) keeps it current without a second command. It sits in its own regen list,
+ * `REFERENCE_ARTIFACTS`, as the analysis reports do in theirs: it is documentation served by the studio, it carries
+ * no engine version, and the lists `lint-emission-version.ts` reads would otherwise demand an engine bump for a
+ * reworded rule. `regen.ts --check` says the file drifted; `--check` here says which convention moved.
  *
  * INDEPENDENCE (docs/34). The expected value is the committed file; the actual is the code read now. The generator
  * never reads the committed file to decide what to write, so a page renamed in `TAXONOMY`, a def added, a collection
@@ -144,7 +146,7 @@ const components = () => ({
     source: src(SCHEMA_SRC, "optionally led by '_' for a building block"),
   },
   placement: {
-    rule: 'A component builds onto the one page its family maps to. A part made for one component sits on that component\'s page; a part shared by several sits on its own page under the Subcomponents section.',
+    rule: 'A component builds onto the one page its family maps to in the taxonomy. A building block made for one component sits on that component\'s page. The Subcomponents section holds the parts placed there to be nested or swapped in elsewhere. Section membership is set in the taxonomy, not derived from what nests what.',
     source: src(TAXONOMY_SRC, 'export const leafForDef'),
   },
   codeOnly: {

@@ -227,7 +227,7 @@
       "source": "packages/engine/component-schema.ts#optionally led by '_' for a building block"
     },
     "placement": {
-      "rule": "A component builds onto the one page its family maps to. A part made for one component sits on that component's page; a part shared by several sits on its own page under the Subcomponents section.",
+      "rule": "A component builds onto the one page its family maps to in the taxonomy. A building block made for one component sits on that component's page. The Subcomponents section holds the parts placed there to be nested or swapped in elsewhere. Section membership is set in the taxonomy, not derived from what nests what.",
       "source": "apps/plugin/src/file-taxonomy.ts#export const leafForDef"
     },
     "codeOnly": {

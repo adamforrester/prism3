@@ -309,7 +309,9 @@ npx tsx packages/engine/emit-figma-conventions.ts --check
                                                     # glyph, slot, collection and template. A promised
                                                     # section that comes out empty fails by name. Same
                                                     # posture as the agent reference: served docs, not
-                                                    # emission. Regenerate without --check.
+                                                    # emission. regen.ts also writes it, in its own list
+                                                    # (REFERENCE_ARTIFACTS), so the habitual regenerate
+                                                    # moves it.
 npx tsx packages/engine/lint-skills.ts              # shipped skills still make true claims
 npx tsx packages/engine/lint-doc-gates.ts           # this checklist stays in sync with ci.yml (#613)
                                                     # and names no RETIRED gate: a deleted gate's line
