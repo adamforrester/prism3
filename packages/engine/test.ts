@@ -14501,6 +14501,17 @@ arm: {
         && order.indexOf('fieldStyle') === order.indexOf('controlShape') + 1,
         `#2695 lever (Q1): "Field style", Outline / Underline, default Outline, not advanced, in Form right after Control shape (form order: ${order.join(', ')})`);
 
+      // The schema field (`PartDef.strokeEdges`): the underline def validates clean, a `{state}` key on it is admitted,
+      // and the two refusals fire by name, a width stated twice and the field on a part that is not a box.
+      const uDef = applyFieldStyle(def('text-field'), 'underline');
+      const errsOf = (d: ComponentDef) => (validateComponentDef(d) as { errors: string[] }).errors;
+      const withControl = (patch: Record<string, unknown>): ComponentDef => ({ ...uDef, anatomy: { ...uDef.anatomy!, parts: { ...uDef.anatomy!.parts, control: { ...uDef.anatomy!.parts.control, ...patch } as PartDef } } });
+      const withValue = (patch: Record<string, unknown>): ComponentDef => ({ ...uDef, anatomy: { ...uDef.anatomy!, parts: { ...uDef.anatomy!.parts, value: { ...uDef.anatomy!.parts.value, ...patch } as PartDef } } });
+      ok(errsOf(uDef).length === 0, `#2695 schema: the underline Text field validates, its {state}-keyed bottom weight admitted (${errsOf(uDef).slice(0, 2).join('; ') || 'clean'})`);
+      ok(errsOf(withControl({ strokeWidth: 'border-width' })).some((m) => /both 'strokeWidth' and 'strokeEdges'/.test(m)),
+        "#2695 schema: 'strokeEdges' beside 'strokeWidth' is refused by name");
+      ok(errsOf(withValue({ strokeEdges: uDef.anatomy!.parts.control.strokeEdges })).some((m) => /declares 'strokeEdges' — only a 'box'/.test(m)),
+        "#2695 schema: 'strokeEdges' on a part that is not a box is refused by name");
       const FOCUS = ['focus-visible', 'focus-visible-filled'];
       const STATUS_LINE: Record<string, string> = { error: 'color/border/danger', warning: 'color/border/warning', success: 'color/border/success' };
       const DEFAULT_LINE: Record<string, string> = {
