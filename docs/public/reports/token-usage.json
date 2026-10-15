@@ -12,7 +12,7 @@
     "used": 243,
     "unusedSemantic": 264,
     "unusedPrimitive": 280,
-    "components": 39
+    "components": 40
   },
   "tokens": {
     "border-width.hairline": {
@@ -58,6 +58,17 @@
           "parts": {
             "container": {
               "members": 576,
+              "where": {}
+            }
+          }
+        },
+        "counter": {
+          "keys": [
+            "border-width"
+          ],
+          "parts": {
+            "control": {
+              "members": 18,
               "where": {}
             }
           }
@@ -1114,6 +1125,24 @@
               "where": {
                 "selection": [
                   "unchecked"
+                ],
+                "state": [
+                  "disabled"
+                ]
+              }
+            }
+          }
+        },
+        "counter": {
+          "keys": [
+            "disabled.border"
+          ],
+          "parts": {
+            "control": {
+              "members": 3,
+              "where": {
+                "appearance": [
+                  "outline"
                 ],
                 "state": [
                   "disabled"
@@ -2363,6 +2392,21 @@
           ],
           "parts": {}
         },
+        "counter": {
+          "keys": [
+            "disabled.label"
+          ],
+          "parts": {
+            "value": {
+              "members": 6,
+              "where": {
+                "state": [
+                  "disabled"
+                ]
+              }
+            }
+          }
+        },
         "field-label": {
           "keys": [
             "disabled.indicator",
@@ -2595,6 +2639,25 @@
             }
           }
         },
+        "counter": {
+          "keys": [
+            "outline.border"
+          ],
+          "parts": {
+            "control": {
+              "members": 6,
+              "where": {
+                "appearance": [
+                  "outline"
+                ],
+                "state": [
+                  "focus-visible",
+                  "rest"
+                ]
+              }
+            }
+          }
+        },
         "radio-control": {
           "keys": [
             "unchecked.border"
@@ -2683,6 +2746,25 @@
     "color.field.fill": {
       "type": "color",
       "components": {
+        "counter": {
+          "keys": [
+            "outline.fill"
+          ],
+          "parts": {
+            "control": {
+              "members": 6,
+              "where": {
+                "appearance": [
+                  "outline"
+                ],
+                "state": [
+                  "focus-visible",
+                  "rest"
+                ]
+              }
+            }
+          }
+        },
         "select": {
           "keys": [
             "fill"
@@ -11400,6 +11482,23 @@
             }
           }
         },
+        "counter": {
+          "keys": [
+            "ghost.label",
+            "outline.label"
+          ],
+          "parts": {
+            "value": {
+              "members": 12,
+              "where": {
+                "state": [
+                  "focus-visible",
+                  "rest"
+                ]
+              }
+            }
+          }
+        },
         "field-label": {
           "keys": [
             "primary.indicator",
@@ -13069,6 +13168,24 @@
             }
           }
         },
+        "counter": {
+          "keys": [
+            "ghost.ring-offset"
+          ],
+          "parts": {
+            "focusRing": {
+              "members": 3,
+              "where": {
+                "appearance": [
+                  "ghost"
+                ],
+                "state": [
+                  "focus-visible"
+                ]
+              }
+            }
+          }
+        },
         "flush-icon-button": {
           "keys": [
             "ring-offset"
@@ -13275,6 +13392,24 @@
             }
           }
         },
+        "counter": {
+          "keys": [
+            "outline.ring-offset"
+          ],
+          "parts": {
+            "focusRing": {
+              "members": 3,
+              "where": {
+                "appearance": [
+                  "outline"
+                ],
+                "state": [
+                  "focus-visible"
+                ]
+              }
+            }
+          }
+        },
         "focus-ring": {
           "keys": [
             "offset.field"
@@ -13397,6 +13532,21 @@
           "parts": {
             "focusRing": {
               "members": 9,
+              "where": {
+                "state": [
+                  "focus-visible"
+                ]
+              }
+            }
+          }
+        },
+        "counter": {
+          "keys": [
+            "ring-width"
+          ],
+          "parts": {
+            "focusRing": {
+              "members": 6,
               "where": {
                 "state": [
                   "focus-visible"
@@ -15613,6 +15763,17 @@
             }
           }
         },
+        "counter": {
+          "keys": [
+            "radius"
+          ],
+          "parts": {
+            "control": {
+              "members": 18,
+              "where": {}
+            }
+          }
+        },
         "segmented-control-segment": {
           "keys": [
             "indicator-radius"
@@ -15727,6 +15888,21 @@
             "size.large.min-height"
           ],
           "parts": {}
+        },
+        "counter": {
+          "keys": [
+            "size.large.height"
+          ],
+          "parts": {
+            "control": {
+              "members": 6,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
         },
         "flush-icon-button": {
           "keys": [
@@ -15977,6 +16153,21 @@
             "size.medium.min-height"
           ],
           "parts": {}
+        },
+        "counter": {
+          "keys": [
+            "size.medium.height"
+          ],
+          "parts": {
+            "control": {
+              "members": 6,
+              "where": {
+                "size": [
+                  "medium"
+                ]
+              }
+            }
+          }
         },
         "divider": {
           "keys": [
@@ -16290,6 +16481,21 @@
           ],
           "parts": {}
         },
+        "counter": {
+          "keys": [
+            "size.small.height"
+          ],
+          "parts": {
+            "control": {
+              "members": 6,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
         "flush-icon-button": {
           "keys": [
             "size.small.round"
@@ -16578,6 +16784,24 @@
             }
           }
         },
+        "counter": {
+          "keys": [
+            "ghost.size.large.pad-x",
+            "ghost.size.medium.pad-x",
+            "ghost.size.small.pad-x",
+            "pad-y"
+          ],
+          "parts": {
+            "control": {
+              "members": 18,
+              "where": {}
+            },
+            "entry": {
+              "members": 18,
+              "where": {}
+            }
+          }
+        },
         "divider": {
           "keys": [
             "horizontal.inset.pad-block",
@@ -16779,6 +17003,23 @@
     "space.050": {
       "type": "dimension",
       "components": {
+        "counter": {
+          "keys": [
+            "size.medium.value-pad",
+            "size.small.value-pad"
+          ],
+          "parts": {
+            "entry": {
+              "members": 12,
+              "where": {
+                "size": [
+                  "medium",
+                  "small"
+                ]
+              }
+            }
+          }
+        },
         "field-label": {
           "keys": [
             "gap"
@@ -17145,6 +17386,26 @@
             }
           }
         },
+        "counter": {
+          "keys": [
+            "root-gap",
+            "size.large.value-pad"
+          ],
+          "parts": {
+            "container": {
+              "members": 18,
+              "where": {}
+            },
+            "entry": {
+              "members": 6,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
+        },
         "divider": {
           "keys": [
             "vertical.middle-inset.pad-block"
@@ -17499,6 +17760,26 @@
             }
           }
         },
+        "counter": {
+          "keys": [
+            "outline.size.medium.pad-x",
+            "outline.size.small.pad-x"
+          ],
+          "parts": {
+            "control": {
+              "members": 6,
+              "where": {
+                "appearance": [
+                  "outline"
+                ],
+                "size": [
+                  "medium",
+                  "small"
+                ]
+              }
+            }
+          }
+        },
         "list": {
           "keys": [
             "size.medium.gap"
@@ -17663,6 +17944,24 @@
               "where": {
                 "inset": [
                   "default"
+                ]
+              }
+            }
+          }
+        },
+        "counter": {
+          "keys": [
+            "outline.size.large.pad-x"
+          ],
+          "parts": {
+            "control": {
+              "members": 3,
+              "where": {
+                "appearance": [
+                  "outline"
+                ],
+                "size": [
+                  "large"
                 ]
               }
             }
@@ -18060,6 +18359,21 @@
             }
           }
         },
+        "counter": {
+          "keys": [
+            "size.large.type"
+          ],
+          "parts": {
+            "value": {
+              "members": 6,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
+        },
         "link": {
           "keys": [
             "size.large.type.default.standalone.rest"
@@ -18344,6 +18658,21 @@
           "parts": {
             "label": {
               "members": 1,
+              "where": {
+                "size": [
+                  "medium"
+                ]
+              }
+            }
+          }
+        },
+        "counter": {
+          "keys": [
+            "size.medium.type"
+          ],
+          "parts": {
+            "value": {
+              "members": 6,
               "where": {
                 "size": [
                   "medium"
@@ -18709,6 +19038,21 @@
           "parts": {
             "label": {
               "members": 1,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
+        "counter": {
+          "keys": [
+            "size.small.type"
+          ],
+          "parts": {
+            "value": {
+              "members": 6,
               "where": {
                 "size": [
                   "small"
@@ -20543,6 +20887,50 @@
         "size.md.height",
         "size.sm.height"
       ],
+      "drawnNotDeclared": []
+    },
+    "counter": {
+      "members": 18,
+      "axes": {
+        "appearance": [
+          "ghost",
+          "outline"
+        ],
+        "size": [
+          "large",
+          "medium",
+          "small"
+        ],
+        "state": [
+          "disabled",
+          "focus-visible",
+          "rest"
+        ]
+      },
+      "tokens": [
+        "border-width.hairline",
+        "color.disabled.border",
+        "color.disabled.text",
+        "color.field.border.rest",
+        "color.field.fill",
+        "color.text.primary",
+        "focus.ring.offset",
+        "focus.ring.offset-field",
+        "focus.ring.width",
+        "radius.sm",
+        "size.lg.height",
+        "size.md.height",
+        "size.sm.height",
+        "space.0",
+        "space.050",
+        "space.100",
+        "space.150",
+        "space.200",
+        "type.body.lg.default",
+        "type.body.md.default",
+        "type.body.sm.default"
+      ],
+      "declaredNotDrawn": [],
       "drawnNotDeclared": []
     },
     "divider": {

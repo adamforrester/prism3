@@ -15,9 +15,10 @@ Generated from the component definitions and the emission by `packages/engine/em
 | checkbox-control | checkbox-row | checkbox-group, checkbox-row |
 | checkbox-row | checkbox-group | checkbox-group |
 | divider | accordion | accordion |
-| field-label | checkbox-group, radio-group, segmented-control, select, text-field, textarea | checkbox-group, radio-group, segmented-control, select, text-field, textarea |
-| field-message | select, text-field, textarea | select, text-field, textarea |
-| focus-ring | accordion, button, button-destructive, button-neutral, checkbox-control, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, radio-control, segmented-control-segment, select, switch-control, tab, tag, text-field, textarea | accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, select, switch-control, switch-row, tab, tabs, tag, text-field, textarea |
+| field-label | checkbox-group, counter, radio-group, segmented-control, select, text-field, textarea | checkbox-group, counter, radio-group, segmented-control, select, text-field, textarea |
+| field-message | counter, select, text-field, textarea | counter, select, text-field, textarea |
+| flush-icon-button-neutral | counter | counter |
+| focus-ring | accordion, button, button-destructive, button-neutral, checkbox-control, counter, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, radio-control, segmented-control-segment, select, switch-control, tab, tag, text-field, textarea | accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, counter, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, select, switch-control, switch-row, tab, tabs, tag, text-field, textarea |
 | list-item | list | list |
 | radio-control | radio-row | radio-group, radio-row |
 | radio-row | radio-group | radio-group |
@@ -41,6 +42,7 @@ A component not in this table is nested by nothing; a change to it reaches only 
 | checkbox-control | 1 | focus-ring | focus-ring |
 | checkbox-group | 3 | checkbox-row, field-label | checkbox-control, checkbox-row, field-label, focus-ring |
 | checkbox-row | 2 | checkbox-control | checkbox-control, focus-ring |
+| counter | 2 | field-label, field-message, flush-icon-button-neutral, focus-ring | field-label, field-message, flush-icon-button-neutral, focus-ring |
 | divider | 0 | — | — |
 | field-label | 0 | — | — |
 | field-message | 0 | — | — |
@@ -99,6 +101,11 @@ Depth is 0 for a component that nests nothing, and one more than its deepest chi
 | checkbox-group | row7 | nest | checkbox-row | nest-fixed | size=medium | size | — |
 | checkbox-group | row8 | nest | checkbox-row | nest-fixed | size=medium | size | — |
 | checkbox-row | control | nest | checkbox-control | nest-exposed | selection=unchecked, state=rest | size | selection, state |
+| counter | decrement | nest | flush-icon-button-neutral | nest-exposed | shape=flush, size=medium, state=rest | size | state |
+| counter | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
+| counter | increment | nest | flush-icon-button-neutral | nest-exposed | shape=flush, size=medium, state=rest | size | state |
+| counter | label | nest | field-label | nest-fixed | size=medium, emphasis=secondary, weight=regular, state=rest | size | — |
+| counter | message | nest | field-message | nest-fixed | status=default | — | — |
 | flush-icon-button | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
 | flush-icon-button-destructive | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
 | flush-icon-button-neutral | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |

@@ -39,7 +39,7 @@ Say what is wrong and how to fix it, with the constraint stated: "Enter a valid 
 - **Purpose:** Carry helper guidance or a validation result below a form field, as icon + caption.
 - **Use when:** Under any field control that needs persistent guidance or an error/warning/success message.
 - **Avoid when:** As a standalone alert or toast (use an alert/banner) — this is field-scoped and associated to one control. Never as the sole color-coded error signal without text.
-- **Often used with:** `text-field`, `textarea`, `select`, `checkbox-row`, `field-label`, `icon`
+- **Often used with:** `text-field`, `textarea`, `select`, `checkbox-row`, `counter`, `field-label`, `icon`
 
 ## Props
 

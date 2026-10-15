@@ -276,6 +276,78 @@
       ]
     },
     {
+      "from": "counter",
+      "to": "flush-icon-button-neutral",
+      "part": "decrement",
+      "partKind": "nest",
+      "relation": "nest-exposed",
+      "variant": {
+        "shape": "flush",
+        "size": "medium",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ],
+      "expose": [
+        "state"
+      ]
+    },
+    {
+      "from": "counter",
+      "to": "focus-ring",
+      "part": "focusRing",
+      "partKind": "absolute",
+      "relation": "nest-fixed",
+      "variant": {
+        "surface": "default"
+      }
+    },
+    {
+      "from": "counter",
+      "to": "flush-icon-button-neutral",
+      "part": "increment",
+      "partKind": "nest",
+      "relation": "nest-exposed",
+      "variant": {
+        "shape": "flush",
+        "size": "medium",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ],
+      "expose": [
+        "state"
+      ]
+    },
+    {
+      "from": "counter",
+      "to": "field-label",
+      "part": "label",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "size": "medium",
+        "emphasis": "secondary",
+        "weight": "regular",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "counter",
+      "to": "field-message",
+      "part": "message",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "status": "default"
+      }
+    },
+    {
       "from": "flush-icon-button",
       "to": "focus-ring",
       "part": "focusRing",
@@ -1183,6 +1255,23 @@
         "switch-row"
       ]
     },
+    "counter": {
+      "nests": [
+        "field-label",
+        "field-message",
+        "flush-icon-button-neutral",
+        "focus-ring"
+      ],
+      "nestsTransitively": [
+        "field-label",
+        "field-message",
+        "flush-icon-button-neutral",
+        "focus-ring"
+      ],
+      "nestedBy": [],
+      "affectedByChange": [],
+      "inheritedBy": []
+    },
     "divider": {
       "nests": [],
       "nestsTransitively": [],
@@ -1199,6 +1288,7 @@
       "nestsTransitively": [],
       "nestedBy": [
         "checkbox-group",
+        "counter",
         "radio-group",
         "segmented-control",
         "select",
@@ -1207,6 +1297,7 @@
       ],
       "affectedByChange": [
         "checkbox-group",
+        "counter",
         "radio-group",
         "segmented-control",
         "select",
@@ -1219,11 +1310,13 @@
       "nests": [],
       "nestsTransitively": [],
       "nestedBy": [
+        "counter",
         "select",
         "text-field",
         "textarea"
       ],
       "affectedByChange": [
+        "counter",
         "select",
         "text-field",
         "textarea"
@@ -1261,8 +1354,12 @@
       "nestsTransitively": [
         "focus-ring"
       ],
-      "nestedBy": [],
-      "affectedByChange": [],
+      "nestedBy": [
+        "counter"
+      ],
+      "affectedByChange": [
+        "counter"
+      ],
       "inherits": "icon-button-neutral",
       "inheritedBy": []
     },
@@ -1275,6 +1372,7 @@
         "button-destructive",
         "button-neutral",
         "checkbox-control",
+        "counter",
         "flush-icon-button",
         "flush-icon-button-destructive",
         "flush-icon-button-neutral",
@@ -1299,6 +1397,7 @@
         "checkbox-control",
         "checkbox-group",
         "checkbox-row",
+        "counter",
         "flush-icon-button",
         "flush-icon-button-destructive",
         "flush-icon-button-neutral",
@@ -1651,6 +1750,7 @@
     "checkbox-control": 1,
     "checkbox-group": 3,
     "checkbox-row": 2,
+    "counter": 2,
     "divider": 0,
     "field-label": 0,
     "field-message": 0,
