@@ -4,7 +4,7 @@
 
 **What moved (Q337 A):** `size.{small,medium,large}.icon` on `segmented-control-segment`, `tab` and `tag` now bind `icon.size.xs` / `sm` / `md` (16 / 20 / 24px), where they bound the 1:1 rung `sm` / `md` / `lg` (20 / 24 / 32px). Button has done this since #1350. Icon button and Flush icon button keep their own rung.
 
-**Tag's one rung sizes three parts.** `size.{size}.icon` sizes the leading icon, the check and the ×, so all three step down together; the rung was not split. Splitting it would need a new token key per glyph, which is a naming call, and a check larger than the leading icon beside it would be a design call. Listed as an owner item on the PR. The ×'s size in its 44px slot was already held for the owner (`notes.contested`); that note now says 20px at medium.
+**Tag's one rung sizes three parts.** `size.{size}.icon` sizes the leading icon, the check and the ×, so all three step down together; the rung was not split. Splitting it would need a new token key per glyph, which is a naming call, and a check larger than the leading icon beside it would be a design call. The owner confirmed this as Q356 A: all three step down together, and the ×'s 44px hit slot is unchanged. The `notes.contested` entry that held the ×'s size in its slot is removed, and Tag's `evolution` line cites Q356 A.
 
 **Gates.** `lint-rung-names.ts` arm 3 expects every def's medium default on `md` unless the def is in `ICON_OFFSET_DEFS`; the three defs are added there, so a revert to `md` or a slip to `xs` still fails it by name. `lint-component-surface.ts` baseline accepted over the change note (7 surfaces drifted: tag ×3, tab, segment ×3).
 
