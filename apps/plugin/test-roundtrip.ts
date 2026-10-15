@@ -49,6 +49,7 @@ import { makeShim, varValue } from './component-shim';
 import { materializeForBrand } from './src/brand-def';
 import { planTargets, prebuildDependencies } from './src/build-deps';
 import type { ComponentDef } from '@prism3/engine/component-schema';
+import { validateComponentDef } from '@prism3/engine/component-schema';
 import type { Node, Page, ShimOpts } from './component-shim';
 
 const INVENTORY = process.argv.includes('--inventory');
@@ -93,6 +94,13 @@ const fullFor = (plans: AnatomyPlan[]): ShimOpts => ({
   styles: [...new Set(plans.flatMap((p) => planTextStyles(p.root)))],
   effects: [...new Set(plans.flatMap((p) => planEffectStyles(p.root)))],
   comps: [...new Set(plans.flatMap((p) => planComps(p.root)))],
+  // #2317 — the TEXT properties each nested component's instances carry, from the NESTED def's own declaration
+  // (its `figmaProperties.texts`, under the Figma name), so a host def's `nestTexts` override is read back against
+  // a property the harness did not learn from that override.
+  compTexts: Object.fromEntries([...new Set(plans.flatMap((p) => planComps(p.root)))].flatMap((id) => {
+    const texts = componentDefs.find((d) => d.id === id)?.figmaProperties?.texts;
+    return texts ? [[id, Object.fromEntries(Object.entries(texts).map(([k, t]) => [t.figmaName ?? k, t.default]))]] : [];
+  })),
 });
 
 /** Every projected def's plans, once — the catalog a build that pre-builds its nested sets binds from. */
@@ -413,6 +421,8 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
     'field-message': { parts: ['text'],  style: () => 'caption/md/default' },
     // #2266: the input type scales with the field's size, one body step above its label.
     'text-field':    { parts: fieldLayer, style: (c) => ({ small: 'body/sm/default', medium: 'body/md/default', large: 'body/lg/default' } as Record<string, string>)[c.size!] },
+    // #2317: the Password field's value and placeholder are TextField's, from the shared field factory.
+    'password-field': { parts: fieldLayer, style: (c) => ({ small: 'body/sm/default', medium: 'body/md/default', large: 'body/lg/default' } as Record<string, string>)[c.size!] },
     textarea:        { parts: fieldLayer, style: (c) => ({ small: 'body/sm/default', medium: 'body/md/default', large: 'body/lg/default' } as Record<string, string>)[c.size!] },
     select:          { parts: fieldLayer, style: (c) => ({ small: 'body/sm/default', medium: 'body/md/default', large: 'body/lg/default' } as Record<string, string>)[c.size!] },
     'checkbox-row':  { parts: ['label'], style: (c) => ({ small: 'body/sm/default', medium: 'body/md/default', large: 'body/lg/default' } as Record<string, string>)[c.size!] },
@@ -537,6 +547,9 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
     // the def where the pairing matters most (two icon slots): the old grouping would show both booleans,
     // then both swaps, detached — reordering `planSetProperties` back to it fails this BY NAME.
     'text-field': { componentProps: ['placeholder', 'value', 'leading icon', '↳ swap leading icon', 'trailing icon', '↳ swap trailing icon', 'message'], switches: [] },
+    // #2317: the Password field drops TextField's trailing slot, so its panel is TextField's without the trailing
+    // icon pair. The nested Button's `label` surfaces through the exposed instance, not as a property of this set.
+    'password-field': { componentProps: ['placeholder', 'value', 'leading icon', '↳ swap leading icon', 'message'], switches: [] },
     'icon-button': { componentProps: ['swap icon'], switches: [] },
   };
   for (const [id, want] of Object.entries(CANON)) {
@@ -1988,6 +2001,82 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
     ok(!!inst && inst.type === 'INSTANCE' && got.length === 1 && got[0].member === 'size=medium' && got[0].path.endsWith('/control')
       && got[0].actual === UNNAMED,
       `#1781 read-back: an INSTANCE with ${label} fails with "${UNNAMED}" — ${got.map((d) => `${d.member} :: ${d.path} — host: ${d.actual}`).join(' | ') || 'NOTHING REPORTED'}`);
+  }
+}
+
+// ── #2457 — TWO FLUSH ICON BUTTONS IN ONE HOST, EACH EXPOSING `state` ─────────────────────────────
+//
+// The flush icon button is built to be nested (owner Q283.3 A), and its first host — the Counter (#2427, Q286) —
+// nests two of them, each with its `state` exposed, so a designer sets one side to `disabled` at a limit (Q283.7
+// note). No such host is registered yet, so this block builds the shape with a FIXTURE host, never registered:
+// a row nesting `flush-icon-button-neutral` twice (`decrement`, `increment`), both `nest-exposed` with `expose: ['state']`
+// and `follow: ['size']`. It is built against the flush icon button's own SET (its real member names), and read
+// back off the shim. The Counter nests the NEUTRAL family (Q295.2 B: three families, IconButton's pattern), so the
+// fixture does too.
+//
+// EXPECTED is authored here: both instances exposed in every member, each an instance of the flush icon button
+// set, and the nested set offering the five owner-decided states as literals, `disabled` among them. The open
+// question #2427 recorded — "two nests exposing the same axis is untested" — is answered for the SHIM only: both
+// coexist, each marked exposed, with no miss. On a real host Figma lists each exposed instance's properties under
+// its own layer name; that is not measured here.
+{
+  const FLUSH_STATES = ['rest', 'hover', 'pressed', 'focus-visible', 'disabled'];
+  const child = componentDefs.find((d) => d.id === 'flush-icon-button-neutral');
+  ok(!!child, '#2457 two-nest: the flush-icon-button-neutral def is registered');
+  if (child) {
+    const nestPart = { kind: 'nest', nests: 'flush-icon-button-neutral', nesting: { kind: 'nest-exposed', variant: { shape: 'flush', state: 'rest' }, expose: ['state'], follow: ['size'] } } as const;
+    const host = {
+      id: 'fixture-two-flush', name: 'FixtureTwoFlush', aliases: [], category: 'form', status: 'draft',
+      summary: 'A fixture host nesting two flush icon buttons.', description: 'A fixture host nesting two flush icon buttons, each with its state exposed.',
+      props: [{ name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'Size.' }],
+      states: [], variants: { size: ['small', 'medium', 'large'] }, axisKinds: { size: 'authoring' },
+      tokens: { gap: 'space.100' },
+      anatomy: {
+        root: 'row',
+        parts: {
+          row: { kind: 'box', role: 'target', layout: { direction: 'row', align: 'center', sizing: { x: 'hug', y: 'hug' } }, gap: 'gap', children: ['decrement', 'increment'] },
+          decrement: nestPart,
+          increment: nestPart,
+        },
+        codeOnly: ['fixture — not a component.'],
+      },
+      figmaProperties: { variantAxes: ['size'], booleans: {} },
+      accessibility: { role: 'group' }, docs: { usage: 'Fixture.', do: [], dont: [] },
+      ai: { primaryPurpose: 'Fixture.', whenToUse: 'Never.', avoidWhen: 'Always.' },
+      composition: { composesWith: ['flush-icon-button-neutral'] },
+    } as unknown as ComponentDef;
+    const errs = validateComponentDef(host).errors;
+    ok(errs.length === 0, `#2457 two-nest: a host nesting flush-icon-button-neutral twice with \`state\` exposed validates clean${errs.length ? ` — ${errs.join('; ')}` : ''}`);
+    const childPlans = figmaAnatomySet(child, { swapTarget: SWAP_TARGET });
+    const childStates = [...new Set(childPlans.map((p) => p.coord.state))];
+    ok(JSON.stringify(childStates) === JSON.stringify(FLUSH_STATES),
+      `#2457 two-nest: the nested set offers the owner-decided states [${FLUSH_STATES.join(', ')}] to expose, disabled among them (got [${childStates.join(', ')}])`);
+    const plans = figmaAnatomySet(host, { swapTarget: SWAP_TARGET });
+    const f = fullFor(plans);
+    const page: Page = { children: [] };
+    const fileNodes = [{ name: 'flush-icon-button-neutral', type: 'COMPONENT_SET' as const, variants: childPlans.map(planComponentName) }];
+    const shim = makeShim({ ...f, comps: (f.comps ?? []).filter((c) => c !== 'flush-icon-button-neutral'), fileNodes, page });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
+    const r = await applyComponentPlan(plans, shim as any, {}) as { misses?: string[] };
+    const members = ((page.children[0]?.children ?? []) as unknown as HostNode[]);
+    const kid = (m: HostNode, name: string): HostNode | undefined => ((Array.isArray(m.children) ? m.children : []) as HostNode[]).find((c) => c.name === name);
+    const off: string[] = [];
+    for (const m of members) {
+      for (const side of ['decrement', 'increment']) {
+        const inst = kid(m, side);
+        const main = inst?.mainComponent as { parent?: { name?: string } } | undefined;
+        if (!inst || inst.type !== 'INSTANCE') off.push(`${String(m.name)}/${side}: not built as an instance`);
+        else if (inst.isExposedInstance !== true) off.push(`${String(m.name)}/${side}: not exposed (isExposedInstance=${String(inst.isExposedInstance)})`);
+        else if (main?.parent?.name !== 'flush-icon-button-neutral') off.push(`${String(m.name)}/${side}: an instance of ${main?.parent?.name ?? 'nothing named'}, not flush-icon-button-neutral`);
+      }
+    }
+    const planned = plans.flatMap((p) => p.root.children.filter((c) => c.nestTarget === 'flush-icon-button-neutral').map((c) => (c.nestExpose ?? []).join(',')));
+    const misses = (r.misses ?? []).filter((m) => /nestExpose|decrement|increment/.test(m));
+    ok(members.length === 3 && off.length === 0 && misses.length === 0 && planned.length === 6 && planned.every((e) => e === 'state'),
+      `#2457 two-nest: both flush icon buttons, in all 3 members, are instances of the flush-icon-button-neutral set marked exposed, each exposing [state], with no miss — two nests exposing one axis coexist on the shim (${members.length} members; ${off.length ? off.join('; ') : 'none off'}; plan exposes [${[...new Set(planned)].join(' | ')}] on ${planned.length} nests; misses: ${misses.join(' | ') || 'none'})`);
+    const ports: ReadPorts = { varName: (id) => id.replace(/^V:/, ''), styleName: (id) => id };
+    const div = diffAnatomy(plans, members, planComponentName, ports, {}).filter((d) => d.field === 'nestExpose' || d.field === 'nestTarget');
+    ok(div.length === 0, `#2457 two-nest: the read-back agrees with the plan on every nest and exposure (${div.length} divergent${div.length ? `: ${div[0].member} :: ${div[0].path} — ${div[0].actual}` : ''})`);
   }
 }
 

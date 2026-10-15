@@ -157,6 +157,24 @@
       ],
       "iconSlots": []
     },
+    "flush-icon-button": {
+      "glyphs": [],
+      "iconSlots": [
+        "icon"
+      ]
+    },
+    "flush-icon-button-destructive": {
+      "glyphs": [],
+      "iconSlots": [
+        "icon"
+      ]
+    },
+    "flush-icon-button-neutral": {
+      "glyphs": [],
+      "iconSlots": [
+        "icon"
+      ]
+    },
     "icon": {
       "glyphs": [
         {
@@ -219,6 +237,12 @@
       ],
       "iconSlots": [
         "icon"
+      ]
+    },
+    "password-field": {
+      "glyphs": [],
+      "iconSlots": [
+        "leadingVisual"
       ]
     },
     "segmented-control-segment": {

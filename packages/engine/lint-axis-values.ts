@@ -391,7 +391,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'size',
     values: ['small', 'medium', 'large'],
-    defs: ['_accordion-indicator', 'accordion', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'field-label', 'tag', 'tab', 'tabs', 'list-item', 'list', 'segmented-control-segment', 'segmented-control', 'link'],
+    defs: ['_accordion-indicator', 'accordion', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'field-label', 'tag', 'tab', 'tabs', 'list-item', 'list', 'segmented-control-segment', 'segmented-control', 'link'],
     relation: 'canonical',
     reason:
       'The three-rung ladder, and canonical on weight of use — every def with a size axis except the two switch defs below, the '
@@ -402,7 +402,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'size',
     values: ['medium', 'small', 'large'],
-    defs: ['text-field', 'select', 'textarea'],
+    defs: ['text-field', 'select', 'textarea', 'dialog', 'password-field'],
     relation: 'reordered',
     reason:
       'The canonical ladder, led by `medium` (#2266, the field sizing system). The first value is the set\'s '
@@ -411,7 +411,9 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'medium first keeps those members\' look as well as their keys; `small` first would rewrite them as '
       + 'the small field in place. The code enum (`props.size`) keeps the ladder\'s own order; '
       + '`lint-rung-names.ts` DEFAULT_FIRST admits the split. Decided by the owner: Q221 B (2026-10-10), the named '
-      + 'exception to #2501\'s smallest-to-largest, because Figma takes the default from the top-left member.',
+      + 'exception to #2501\'s smallest-to-largest, because Figma takes the default from the top-left member. '
+      + 'Dialog (#2609) joins on the owner\'s Q303, which approved the proposal\'s axis table listing its sizes '
+      + 'default first: a dialog inserted from the assets panel is the 560px medium panel.',
   },
   {
     axis: 'size',
@@ -445,7 +447,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
     axis: 'shape',
     values: ['square', 'circular'],
     defs: ['icon-button', 'icon-button-destructive', 'icon-button-neutral'],
-    relation: 'sole',
+    relation: 'canonical',
     reason:
       'The icon button\'s CORNER SILHOUETTE (#1353, owner-decided) — `square` a rounded rectangle at the '
       + 'button\'s normal radius (`radius.md`), `circular` a full-round disc (`radius.round`). PURE GEOMETRY: '
@@ -456,12 +458,28 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'and shared by the three icon-button components BY DESIGN — one shared anatomy through `makeIconButton`, '
       + 'so the three carry identical values and this one entry records all three. Distinct from `size` (a '
       + 'scale rung), `ratio` (a width-to-height proportion) and `style` (a line treatment) — argued in '
-      + '`VARIANT_AXES`.',
+      + '`VARIANT_AXES`. CANONICAL since #2457 added a second `shape` set (below): it came first and is shared by three '
+      + 'defs.',
+  },
+  {
+    axis: 'shape',
+    values: ['flush', 'round'],
+    defs: ['flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral'],
+    relation: 'disjoint',
+    reason:
+      'The flush icon button\'s two shapes (#2457, owner decision Q287 A: "one component with two shapes"). NOT pure '
+      + 'geometry, unlike the canonical set: `flush` is the bare glyph square with no paint, and `round` a circle with a '
+      + 'decorative edge and a hover wash, so the two differ in size, corner AND paint. DISJOINT, and the pair is named '
+      + 'here on purpose because it is the near-overlap this register exists to flag: `round` draws the same full-round '
+      + 'corner IconButton calls `circular`. The owner\'s decision spells it `round`, and the canonical set has no `flush`, '
+      + 'so the two sets are not one ladder; the owner kept `round` (Q295.5 A). Shared by the three flush icon-button '
+      + 'components BY DESIGN (Q295.2 B, one anatomy through `makeFlushIconButton`), so this one entry records all three. '
+      + '`flush` LEADS because it is the code default and the shape built first, so Figma\'s inserted member is flush.',
   },
   {
     axis: 'style',
     values: ['outline'],
-    defs: ['text-field', 'textarea'],
+    defs: ['text-field', 'textarea', 'password-field'],
     relation: 'canonical',
     reason:
       'An axis of ONE, declared rather than dropped: the field substrate has a single treatment today, and '
@@ -534,7 +552,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'status',
     values: ['default', 'error', 'warning', 'success'],
-    defs: ['field-message', 'select', 'text-field', 'textarea'],
+    defs: ['field-message', 'select', 'text-field', 'textarea', 'password-field'],
     relation: 'sole',
     reason:
       'A form field\'s VALIDATION OUTCOME. RENAMED from `tone` to `status` in #1334 (the owner\'s split of '
@@ -669,6 +687,27 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'leading and trailing visuals and Switch row\'s `labelPosition`, a prop there and not an axis, so this set has no '
       + 'other def to stand in a relation with. In right-to-left text leading is the right edge and nothing mirrors. '
       + 'Distinct from `direction` and `orientation`, argued in `VARIANT_AXES`.',
+  },
+  {
+    axis: 'placement',
+    values: ['center', 'bottom', 'full'],
+    defs: ['dialog'],
+    relation: 'sole',
+    reason:
+      'Where a layer sits over the page (#2609, owner decision Q303.1): centered, attached to the bottom edge as a bottom '
+      + 'sheet, or filling a small screen. No side placement, by the same decision. `center` LEADS because it is the code '
+      + 'default on every screen and Figma\'s default member. One def carries it, so there is no other to stand in a '
+      + 'relation with. Distinct from `alignment` and `direction`, argued in `VARIANT_AXES`.',
+  },
+  {
+    axis: 'footer',
+    values: ['inline', 'stacked', 'none'],
+    defs: ['dialog'],
+    relation: 'sole',
+    reason:
+      'How a panel lays out its actions (#2609, owner decision Q303.6 A): a row at the end edge, full-width buttons '
+      + 'stacked, or no footer. `inline` LEADS because it is the code default and Figma\'s default member. One def '
+      + 'carries it. Distinct from `orientation` and `alignment`, argued in `VARIANT_AXES`.',
   },
   {
     axis: 'indicator',

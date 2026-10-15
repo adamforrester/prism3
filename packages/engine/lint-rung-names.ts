@@ -214,6 +214,11 @@ const ICON_OFFSET_DEFS: Record<string, string> = {
   // The Accordion's glyph, one rung below its control (owner QA of the live build, 2026-10-12, #2417): 16/20/24, so
   // its medium default is `sm`, as Button's is.
   '_accordion-indicator': 'icon.size.*',
+  // The flush icon button (#2457): its box IS the glyph, 20/20/24 (owner Q283.13 A, on #2427), so its medium
+  // default is `sm`, as the Accordion's glyph is.
+  'flush-icon-button': 'icon.size.*',
+  'flush-icon-button-destructive': 'icon.size.*',
+  'flush-icon-button-neutral': 'icon.size.*',
 };
 
 /**
@@ -334,6 +339,9 @@ const DEFAULT_FIRST: Record<string, string> = {
   'text-field': 'the Figma default and the in-place-update landing value are `medium`, the field before #2266',
   select: 'the Figma default and the in-place-update landing value are `medium`, the select before #2266',
   textarea: 'the Figma default and the in-place-update landing value are `medium`, the textarea before #2266',
+  dialog: 'the Figma default is the 560px medium panel, the proposal\'s table approved by the owner\'s Q303 (#2609)',
+  // #2317: TextField's size order through the shared field factory (Q301 builds it medium first, the field family's order).
+  'password-field': 'the Figma default is `medium`, the field family\'s order from the shared field factory (#2317)',
 };
 
 const SIZE_BY_FOLLOW_ONLY: Record<string, string> = {
@@ -341,6 +349,17 @@ const SIZE_BY_FOLLOW_ONLY: Record<string, string> = {
   'radio-group': 'mirrors checkbox-group — a 0px inter-row gap (`space.0`, #1623 sign-off), so the size axis reaches the nested field-label and radio rows by `follow` only',
   'tabs': 'the tab list binds no size.* key of its own — its gap is 0px (`space.0`, each tab carries its own padding) and the baseline is a fixed 1px hairline — so the size axis reaches the six nested tabs by `follow` only (#2416)',
   'segmented-control': 'the control binds no size.* key of its own — its label gap is a fixed `space.100`, the track a 1px hairline with no padding, and each option carries its own height and padding — so the size axis reaches the nested label and the five options by `follow` only (#2418)',
+};
+
+/**
+ * DEFS WHOSE SIZE IS A LITERAL BUILT WIDTH (#2609). Dialog's `size` binds no token at all: it is the centered panel's
+ * width, 400 / 560 / 720px, a def-level literal by owner decision Q303.5 A ("no new token"), read through the root's
+ * `builtSize`. So arm 2 has no binding to read, and this checks what the size does reach instead: a per-size width map
+ * naming exactly the enum's values, each wider than the size below it on the enum's own ladder. Both directions: an
+ * admitted def whose size now binds a key is stale, and one with no per-size width fails.
+ */
+const SIZE_BY_BUILT_WIDTH: Record<string, string> = {
+  dialog: 'the centered panel\'s width per size, 400 / 560 / 720px, def-level literals with no token (owner decision Q303.5 A)',
 };
 
 /**
@@ -358,6 +377,7 @@ const MUST_COVER = [
   'icon', 'spinner',
   'button', 'button-destructive', 'button-neutral',
   'icon-button', 'icon-button-destructive', 'icon-button-neutral',
+  'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral',
   'field-label', 'text-field', 'textarea', 'select', 'tag',
   'tab', 'tabs',
   'checkbox-control', 'checkbox-row', 'checkbox-group',
@@ -366,6 +386,7 @@ const MUST_COVER = [
   '_accordion-indicator', 'accordion',
   'list-item', 'list',
   'segmented-control-segment', 'segmented-control', 'link',
+  'dialog', 'password-field',
 ];
 
 /** Every token path in a brand's canonical tree, below the root — `icon.size.md`, `size.lg.height`. */
@@ -524,6 +545,26 @@ for (const def of componentDefs) {
     continue;
   }
 
+  if (def.id in SIZE_BY_BUILT_WIDTH) {
+    if (parsed.length || rungless.length) {
+      failures.push(`${def.id}: admitted in SIZE_BY_BUILT_WIDTH as binding no size.* key of its own, but it now binds ${parsed.length + rungless.length}. The admission is STALE — remove it in the same PR and let arm 2 check the ladder.`);
+      continue;
+    }
+    const root = def.anatomy?.parts[def.anatomy.root];
+    const maps = Object.values(root?.builtSize?.widths ?? {}).filter((w): w is Record<string, number> => typeof w === 'object');
+    if (!maps.length) failures.push(`${def.id}: admitted in SIZE_BY_BUILT_WIDTH, but its root's builtSize has no per-size width — the size axis reaches nothing.`);
+    for (const w of maps) {
+      const missing = values.filter((v) => typeof w[v] !== 'number');
+      const extra = Object.keys(w).filter((k) => !values.includes(k));
+      const ladder = [...values].sort((a, b) => enumOf(def).values.indexOf(a) - enumOf(def).values.indexOf(b));
+      const rising = ladder.every((v, i) => i === 0 || w[v] > w[ladder[i - 1]]);
+      if (missing.length || extra.length || !rising)
+        failures.push(`${def.id}: builtSize widths ${JSON.stringify(w)} must name exactly [${values.join(', ')}], each wider than the size below it on the enum's ladder (missing ${missing.join(', ') || 'none'}, extra ${extra.join(', ') || 'none'}${rising ? '' : ', not rising'})`);
+    }
+    notes.push(`${def.id}: [${values.join(', ')}] — size by built width ${JSON.stringify(maps[0] ?? {})}; admitted: ${SIZE_BY_BUILT_WIDTH[def.id]}`);
+    continue;
+  }
+
   // ---- ARM 1: every enum value names a real rung, per brand ------------------------------------
   // The enum value is the COMPONENT's vocabulary (`small`), the tier's is the ENGINE's (`sm`), so the
   // path checked is the one the def's own binding points at — read from `tokens`, never rebuilt from
@@ -632,6 +673,9 @@ for (const id of Object.keys(NO_SIZE_AXIS))
   if (!componentDefs.some((d) => d.id === id))
     failures.push(`STALE ADMISSION: NO_SIZE_AXIS names '${id}', which is not a def any more. Remove it — an admission for a def that does not exist is a memory of something no longer true.`);
 
+for (const id of Object.keys(SIZE_BY_BUILT_WIDTH))
+  if (!componentDefs.some((d) => d.id === id))
+    failures.push(`STALE ADMISSION: SIZE_BY_BUILT_WIDTH names '${id}', which is not a def any more. Remove it.`);
 for (const id of Object.keys(SIZE_BY_FOLLOW_ONLY))
   if (!componentDefs.some((d) => d.id === id))
     failures.push(`STALE ADMISSION: SIZE_BY_FOLLOW_ONLY names '${id}', which is not a def any more. Remove it — same reason as above.`);

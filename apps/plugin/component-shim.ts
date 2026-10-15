@@ -245,6 +245,13 @@ export type ShimOpts = {
    */
   nestedInstanceParts?: string[];
   /**
+   * THE TEXT PROPERTIES AN OPAQUE COMPONENT'S INSTANCES CARRY (#2317), by component or set name: property name →
+   * its default. A component this run builds reports its set's real definitions; one named only in `comps` or
+   * `fileNodes` has none to report, so a harness states them here, from the NESTED def's own
+   * `figmaProperties.texts` — never from the host def's `nestTexts`, which is the value under test.
+   */
+  compTexts?: Record<string, Record<string, string>>;
+  /**
    * MEMBER-LEVEL id-settle AFTER COMBINE (#1473) — the host behavior `detachPartsOnCombine` above stops one
    * level short of. `detachPartsOnCombine` detaches a member's DESCENDANTS while keeping the member's own
    * identity, so a handle snapshotted from `set.children` right after combine still re-finds an attached
@@ -1480,14 +1487,21 @@ export const makeShim = (opts: ShimOpts = {}) => {
           createInstance: () => {
             const inst = mkNode('INSTANCE'); const vec = mkNode('VECTOR'); inst.findAll = () => [vec]; inst.findOne = () => null;
             // #2645 — ITS PROPERTIES: a live member's are its set's (a plain live component's, its own), read when
-            // asked, so a property the executor declares later is there; a catalog name's are `componentProps`'.
+            // asked, so a property the executor declares later is there; a catalog name's are `componentProps'`.
+            // #2317 — an opaque component this run did not build, and `componentProps` does not declare, carries
+            // the harness's `compTexts` (by component or set name) as TEXT definitions. One model for both, so
+            // `setProperties` refuses the same way whichever harness named the properties.
+            const ownerName = owner === PAGE_OWNER ? name : owner.name;
             installProps(inst, () => {
               const declared = opts.componentProps?.[name];
               if (declared) return declared;
-              if (!main) return {};
-              const up = main.parent as Node | null | undefined;
-              const holder = up && up.type === 'COMPONENT_SET' ? up : main;
-              return (holder.componentPropertyDefinitions as Record<string, { type: string; defaultValue?: unknown }> | undefined) ?? {};
+              if (main) {
+                const up = main.parent as Node | null | undefined;
+                const holder = up && up.type === 'COMPONENT_SET' ? up : main;
+                const live = (holder.componentPropertyDefinitions as Record<string, { type: string; defaultValue?: unknown }> | undefined) ?? {};
+                if (Object.keys(live).length) return live;
+              }
+              return Object.fromEntries(Object.entries(opts.compTexts?.[ownerName] ?? {}).map(([k, v], i) => [`${k}#7:${i}`, { type: 'TEXT', defaultValue: v }]));
             }, {});
             // WHICH COMPONENT THIS IS AN INSTANCE OF, in Figma's own shape (`InstanceNode.mainComponent`, whose
             // `parent` is the COMPONENT_SET for a variant). A plain descriptor — no live back-references, so a

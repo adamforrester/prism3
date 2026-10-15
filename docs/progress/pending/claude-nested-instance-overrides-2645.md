@@ -1,8 +1,8 @@
 ## (2026-10-15) — Per-instance overrides on a nested instance: a text and a swap (#2645)
 
 **Status:** engine schema + projection, both executors, the component read-back, the plugin shim, List. ENGINE minor
-(change note). `EXECUTOR_REVISION` 22 → 23 (the open Password field PR, #2648, also claims 23; whichever merges
-second takes 24). CONTRACT unchanged: no token path moves.
+(change note). `EXECUTOR_REVISION` 24 → 25 (Dialog, #2652, took 23 and Password field, #2648, took 24 before this
+merged). CONTRACT unchanged: no token path moves.
 
 ### What changed
 
@@ -49,15 +49,17 @@ second takes 24). CONTRACT unchanged: no token path moves.
 - `test.ts` `#2645 …`: validator refusals, the projected plan (literals), projection refusals, the payload shipped
   only when needed, the payload's writes and its swap id, and plugin/payload miss parity.
 
-### For whoever lands Dialog (#2652) and Password field (#2648)
+### Dialog (#2652) and Password field (#2648), both merged before this PR
 
+- **Not applied here** (filed as #2671): this PR's merge of `main` keeps both mechanisms side by side and moves no
+  Dialog or Password field output.
 - **Dialog:** `close` → `overrides: { swaps: { icon: 'close' } }` (IconButton.Neutral's `swap icon`); `cancelInline`
   and `cancelStacked` → `overrides: { texts: { label: 'Cancel' } }`; `confirmInline` and `confirmStacked` →
   `overrides: { texts: { label: 'Save' } }` (Q303.13's placeholder copy).
-- **Password field:** #2648 carries its own text-only `nestTexts` (plan field, two executor branches, no read-back).
-  The toggle's `nestTexts: { label: 'Show' }` becomes `overrides: { texts: { label: 'Show' } }`, and the parallel
-  `nestTexts` field, validator rule and executor branches go, so there is one mechanism with a read-back. If #2648
-  lands first, the reconciliation falls to this PR's rebase; if this lands first, to #2648's.
+- **Password field:** #2648 landed its own text-only `nestTexts` (schema field, plan field, a branch in each
+  executor, a `nestTexts` read-back predicate, a `compTexts` payload-stub model). The toggle's
+  `nestTexts: { label: 'Show' }` becomes `overrides: { texts: { label: 'Show' } }`, and `nestTexts` with its rule,
+  branches, predicate and stub model goes, leaving one mechanism. That is #2671's work.
 
 ### Traps
 

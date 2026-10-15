@@ -277,6 +277,51 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     ]
   },
   {
+    "id": "flush-icon-button",
+    "name": "FlushIconButton",
+    "category": "form",
+    "summary": "Icon-only brand action inside a component: a bare glyph or a light circle. Needs an accessible name.",
+    "unit": "variants",
+    "spacing": [],
+    "buildable": true,
+    "reason": null,
+    "members": 30,
+    "nests": [
+      "icon",
+      "focus-ring"
+    ]
+  },
+  {
+    "id": "flush-icon-button-destructive",
+    "name": "FlushIconButton.Destructive",
+    "category": "form",
+    "summary": "Icon-only destructive action in a component: a bare glyph or light circle. Needs an accessible name.",
+    "unit": "variants",
+    "spacing": [],
+    "buildable": true,
+    "reason": null,
+    "members": 30,
+    "nests": [
+      "icon",
+      "focus-ring"
+    ]
+  },
+  {
+    "id": "flush-icon-button-neutral",
+    "name": "FlushIconButton.Neutral",
+    "category": "form",
+    "summary": "Icon-only action inside another component: a bare glyph or a light circle. Needs an accessible name.",
+    "unit": "variants",
+    "spacing": [],
+    "buildable": true,
+    "reason": null,
+    "members": 30,
+    "nests": [
+      "icon",
+      "focus-ring"
+    ]
+  },
+  {
     "id": "field-label",
     "name": "FieldLabel",
     "category": "form",
@@ -996,6 +1041,77 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "members": 96,
     "nests": [
       "icon",
+      "focus-ring"
+    ]
+  },
+  {
+    "id": "dialog",
+    "name": "Dialog",
+    "category": "overlay",
+    "summary": "A panel over the page for a short task or a decision. Centered, a bottom sheet, or full screen.",
+    "unit": "variants",
+    "spacing": [],
+    "buildable": true,
+    "reason": null,
+    "members": 15,
+    "nests": [
+      "icon-button-neutral",
+      "divider",
+      "button"
+    ]
+  },
+  {
+    "id": "password-field",
+    "name": "PasswordField",
+    "category": "form",
+    "summary": "Password field: a text field with a Show button on its label row that reveals the characters.",
+    "unit": "variants",
+    "spacing": [
+      {
+        "key": "size.medium.gap",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.small.gap",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.large.gap",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.medium.pad-x",
+        "ref": "space.200"
+      },
+      {
+        "key": "size.small.pad-x",
+        "ref": "space.200"
+      },
+      {
+        "key": "size.large.pad-x",
+        "ref": "space.300"
+      },
+      {
+        "key": "size.medium.pad-y",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.small.pad-y",
+        "ref": "space.075"
+      },
+      {
+        "key": "size.large.pad-y",
+        "ref": "space.100"
+      }
+    ],
+    "buildable": true,
+    "reason": null,
+    "members": 84,
+    "nests": [
+      "field-label",
+      "button",
+      "icon",
+      "field-message",
       "focus-ring"
     ]
   }

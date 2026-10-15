@@ -339,6 +339,12 @@ export const FIELDS: Record<string, FieldCheck> = {
     show: (p) => `width ${String(p)}`,
     check: (p, n) => (n.width === p ? null : `width ${str(n.width)}`),
   },
+  // ── its height twin (#2609) ───────────────────────────────────────────────────────────────────
+  // Read off the measured `height` for the same reason: a root that went on hugging measures its content.
+  placementHeight: {
+    show: (p) => `height ${String(p)}`,
+    check: (p, n) => (n.height === p ? null : `height ${str(n.height)}`),
+  },
   // ── the hugging wrap's max width (#1762) ──────────────────────────────────────────────────────
   // Echoed verbatim by the host, so compared directly; an executor that never wrote it reads `null`.
   maxWidth: {
@@ -633,6 +639,23 @@ export const FIELDS: Record<string, FieldCheck> = {
         if (!ports.componentById) { bad.push(`${o.property}: unreadable (no component-by-id port)`); continue; }
         const name = ports.componentById(String(v));
         if (name !== o.value) bad.push(`${o.property}=${name ?? `id ${str(v)}, which names no component`}`);
+      }
+      return bad.length ? bad.join(', ') : null;
+    },
+  },
+  // #2317 — HOST-TRUTH for a nested instance's own text. The plan's `nestTexts` names what the instance says
+  // instead of its set's default; this reads the instance's `componentProperties` back and compares each named
+  // TEXT property's VALUE, so an executor that never wrote the override (the instance still says "Button") fails
+  // here by name.
+  nestTexts: {
+    show: (p) => `a nested instance whose TEXT properties read ${JSON.stringify(p)}`,
+    check: (p, n) => {
+      const props = (n.componentProperties ?? {}) as Record<string, { type?: unknown; value?: unknown }>;
+      const bad: string[] = [];
+      for (const [prop, want] of Object.entries(p as Record<string, string>)) {
+        const key = Object.keys(props).find((k) => k.split('#')[0] === prop && props[k].type === 'TEXT');
+        if (!key) bad.push(`${prop}→NO TEXT PROPERTY`);
+        else if (props[key].value !== want) bad.push(`${prop}=${str(props[key].value)}`);
       }
       return bad.length ? bad.join(', ') : null;
     },
