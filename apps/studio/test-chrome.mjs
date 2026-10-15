@@ -475,7 +475,7 @@ import { dirname, extname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import { hookGuard } from './test-hooks.mjs';
-import { INPUT_MS, makeBounded } from './test-bounded.mjs';
+import { INPUT_MS, makeBounded, watchStalls } from './test-bounded.mjs';
 import { P, loadModes, resolve as resolveToken } from './chrome/tokens.mjs';
 import { assertBundleFresh, PLUGIN_UI_SOURCE_ROOTS, STUDIO_SOURCE_ROOTS } from './test-bundle-freshness.mjs';
 
@@ -497,7 +497,7 @@ const ok = (cond, label) => {
 // the page was doing. A page that renders no frame, or a busy one whose input is still in flight (#2557 review), ends
 // its case with that named failure: `onDead` reports it and throws an error marked `reported`, so the case's own catch
 // does not count it twice, and the case's `finally` closes its context, which retires the page and cancels the input.
-const { bounded } = makeBounded({ ok, onDead: async (_page, label, why) => { const message = why ? `${label}: ${why}` : label; ok(false, message); const e = new Error(message); e.reported = true; throw e; } });
+const { bounded } = makeBounded({ ok, requireWatched: true, onDead: async (_page, label, why) => { const message = why ? `${label}: ${why}` : label; ok(false, message); const e = new Error(message); e.reported = true; throw e; } });
 
 // ── the literal floors ───────────────────────────────────────────────────────────────────────────
 const TEXT_MIN = 4.5;
@@ -5884,6 +5884,8 @@ for (const host of ['web', 'figma']) {
 // disabled with its reason and writes nothing; the style count follows a weight tick at once (#831).
 {
   const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  // This case's `lh-swap` inputs are bounded: the debugger on now, so a freeze an earlier step starts is located (#2585).
+  await watchStalls(page);
   try {
     await goPlace(page, 'type');
     await openTypeAdvanced(page);
@@ -12721,14 +12723,8 @@ for (const host of ['web', 'figma']) {
         for (const [place, modes] of Object.entries(MS_PLACES)) {
           for (const mode of modes) {
             step = `${place} in ${mode}`;
-            if (place === 'color-interactive' && (w === 640 || w === 800)) {
-              // As in section 19b: at 640 and 800 the preview covers the sub-nav's last tab, so the keyboard reaches Interactive.
-              await hooks.click(page.locator('[data-p3="tab-color"]'));
-              await page.locator('[data-p3="color-sub-interactive"]').focus();
-              await page.keyboard.press('Enter');
-              await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.place === 'color-interactive');
-              await page.evaluate(() => document.fonts.ready);
-            } else await goPlace(page, place);
+            // By pointer at every width (#2463): since #2393 the sub-nav takes a pointer at 640 and 800 too.
+            await goPlace(page, place);
             if (place !== 'color-palettes') await roShowMode(page, mode);
             await toPreview();
             await settle();
@@ -13202,7 +13198,7 @@ for (const host of ['web', 'figma']) {
 }
 // =============================================================================================
 // 42. #2233: the choice rows' accessibility, on Type › Type scale (the rows `choice()` draws and `stateLine` annotates).
-//     Both hosts, light, 1280. Four arms, one per defect:
+//     Both hosts, light, 1280. Five arms, one per defect:
 //   · (1) THE REASON REACHES THE KEYBOARD. A disabled chip takes no focus, so its reason, drawn as a line under the chips,
 //     describes the GROUP: Aurora's refused Compact (the title floor's sentence) and prism3's pinned clash (the clash
 //     sentence on Expressive). Read from CDP `Accessibility.getPartialAXTree`, the radiogroup's own `description`, never the
@@ -13220,6 +13216,10 @@ for (const host of ['web', 'figma']) {
 //     focus and the checked chip moving together. (The chip rows, `chipChoice`, keep KB1 A: no arrows; section 30b.)
 //   · (4) FOCUS AFTER RELEASE PINNED SIZES. The button goes once it has worked; focus lands on Type scale's checked chip
 //     (prism3's Default), the group's Tab stop, never on the page.
+//   · (5) A ROW DRAWN AGAIN ALREADY HOLDS ITS WORDS (#2472; `lever-kit.ts` says it, `syncLive`'s order makes it). On Aurora,
+//     leave Type for Shape with the refused-Compact line showing, put a MutationObserver on the holder (childList,
+//     characterData, subtree), come back: the Type scale region is added to the holder already saying that line, and no
+//     record targets a node inside a region (a region filled after it went in would make one).
 //
 // INDEPENDENCE (docs/34). EXPECTED is typed here: the two approved sentences (S63.scaleTitleFloor and S63.scaleClash),
 // the pinned count's words for one size, the chip order and which chip each press reaches, and the chip focus lands on,
@@ -13246,6 +13246,8 @@ for (const host of ['web', 'figma']) {
 //     1 live region(s) carrying it, …)`, the warning arm and the persisting arm (6);
 //   · (f) a row that left the page kept (`LIVE.delete` dropped) → `§42 web light 1280 prism3 on Shape: (2) the rows Type
 //     drew are dropped with their regions, and every row held is a region in the document (read {…"rows":"8","regions":2…})` (2).
+//   #2472: (g) `syncLive` puts a new region in the holder before `sayLines` fills it → `§42 web light 1280 Aurora: (5) back
+//     on Type, the Type scale row's new region is put in the document already saying the refused-Compact line, …`.
 // =============================================================================================
 console.log(`\nChoice rows: reasons, announced state lines, arrows, focus after Release (#2233)\n${'='.repeat(78)}`);
 {
@@ -13303,6 +13305,29 @@ console.log(`\nChoice rows: reasons, announced state lines, arrows, focus after 
         const s2 = await at();
         ok(s1.focus === 'type-scale-default' && s1.compactOff === true && s2.focus === 'type-scale-expressive' && s2.checked === 'type-scale-expressive',
           `${where0} Aurora: (3) ArrowLeft from Default passes over the disabled Compact to Expressive, focus and the checked chip together (from ${JSON.stringify(s1)}, read ${JSON.stringify(s2)})`);
+        // (5) A ROW DRAWN AGAIN ALREADY HOLDS ITS WORDS (#2472). Leave Type while the refused-Compact line shows, watch the
+        // holder, come back: the Type scale row's region is put in the document already saying FLOOR, so no record
+        // targets anything but the holder (a region filled after it went in would be a record on that region).
+        step = 'leave Type and come back';
+        await goPlace(page, 'shape');
+        await settle(page);
+        await page.evaluate(() => {
+          const holder = document.querySelector('[data-p3="choice-live-holder"]');
+          window.__p3back = { holder: !!holder, recs: [] };
+          if (holder) new MutationObserver((rs) => { for (const r of rs) window.__p3back.recs.push({ type: r.type, onHolder: r.target === holder,
+            target: r.target.nodeType === 1 ? (r.target.dataset?.key ?? r.target.tagName) : '#text',
+            added: [...r.addedNodes].map((n) => n.dataset?.key ?? n.nodeName) }); })
+            .observe(holder, { childList: true, characterData: true, subtree: true });
+        });
+        await goPlace(page, 'type');
+        await page.waitForFunction((sel) => !!document.querySelector(sel), LIVE, BOUND).catch(() => {});
+        await settle(page);
+        const back = await page.evaluate((sel) => ({ ...window.__p3back,
+          lines: [...(document.querySelector(sel)?.children ?? [])].map((p) => p.textContent) }), LIVE);
+        const off = back.recs.filter((r) => !r.onHolder);
+        const came = back.recs.some((r) => r.onHolder && r.added.includes('typography.typeScale'));
+        ok(back.holder && came && JSON.stringify(back.lines) === JSON.stringify([FLOOR]) && off.length === 0,
+          `${where0} Aurora: (5) back on Type, the Type scale row's new region is put in the document already saying the refused-Compact line, and nothing in a region already in the document changes (holder ${back.holder}, region added ${came}, lines ${JSON.stringify(back.lines)}, ${off.length} record(s) inside a region${off.length ? ` — ${JSON.stringify(off.slice(0, 3))}` : ''})`);
         ok(errors.length === 0, `${where0} Aurora: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
       } catch (e) {
         ok(false, `${where0} Aurora: the case stopped at "${step}" — ${stopped(e)}`);

@@ -150,6 +150,15 @@ const EXEMPT: { file: string; why: string }[] = [
       'itself to agree with a removal. It ships in no payload. If it ever gains a $comment or a ' +
       'note, move it to class 2 rather than widening this reason.',
   },
+  {
+    file: 'kb-briefs.json',
+    why:
+      'The knowledge base\'s component-brief catalogue as test.ts reads it (#2488) — pure DATA: per ' +
+      'brief file, its category and its alias list, plus the commit and date it was read at, with no ' +
+      'prose field. Written only by kb-briefs-refresh.ts from a knowledge-base checkout, and kept out ' +
+      'of regen because regen cannot read that repository. It ships in no payload. If it ever gains a ' +
+      '$comment or a note, move it to class 2 rather than widening this reason.',
+  },
 ];
 
 /**

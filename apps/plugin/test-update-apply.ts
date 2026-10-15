@@ -63,6 +63,13 @@
  *                  (an Accordion built on `position`, no ledger entry) and a rename onto a hand-made member's name. The
  *                  expected side is the apply's own refusal, read off the confirmed run. Mutation: the dry run's call to
  *                  `setRefusal` dropped, the apply's own copy restored → `agree/collapse`, `agree/rename onto a name`.
+ *   agree/file …   the same for what the file lacks (#2601): a variable the plan binds, a text style it names, a
+ *                  component it swaps to, a font that will not load. Each was the apply's preflight alone. Mutation: the
+ *                  dry run's call to `fileBlockers` dropped, the apply's own preflight checks restored → `agree/file
+ *                  variable`, `agree/file text style`, `agree/file swap target`, `agree/file font`.
+ *   fonts/installed since the check  a check that ran with a font missing, confirmed after the font loads: the set's
+ *                  blockers are in the hash, so the confirm is refused with "the file changed since the check" and no stamp
+ *                  moves (#2601 review). Mutation: `s.blockers` dropped from `previewHashOf` → `fonts/installed since the check`.
  *   adopt/axis change  an Accordion on `position` (a declared display rename) with one member's stamp and record
  *                  cleared: the dry run blocks the axis change, and Adopt, which exists to clear that blocker, claims the
  *                  member, so the next dry run has none (#2603 review). Mutation: Adopt refused by every blocker again →
@@ -475,7 +482,7 @@ const agrees = async (w: World, targets: UpdateTarget[], ledger?: Parameters<typ
   const refused = res.outcomes.filter((o) => o.refused).map((o) => o.set);
   const unlisted = res.outcomes.filter((o) => o.refused).filter((o) => {
     const p = pre.sets.find((x) => x.set === o.set);
-    return !p || !p.blockers.includes(o.refused!) || !previewVerdict(pre).lines.some((l) => l.startsWith(`${o.set}: can't be checked.`) && l.includes(o.refused!));
+    return !p || p.blockers.join('; ') !== o.refused || !previewVerdict(pre).lines.some((l) => l.startsWith(`${o.set}: can't be checked.`) && l.includes(o.refused!));
   }).map((o) => `${o.set}: ${o.refused}`);
   return { pre, refused, unlisted, untouched: dumpSet(w.set()) === before && w.api._versions.length === 0 };
 };
@@ -500,6 +507,35 @@ const agrees = async (w: World, targets: UpdateTarget[], ledger?: Parameters<typ
   const r = await agrees(w, [{ def: TAG, plans: w.plans }], [{ def: TAG, kind: 'value', axis: 'size', from: 'sm', to: 'small', issue: 2265 }]);
   ok(r.refused.length === 1 && r.unlisted.length === 0 && r.untouched,
     `agree/rename onto a name: the apply refuses the set, and the dry run listed that reason as its blocker (${r.refused.length} refused; unlisted ${JSON.stringify(r.unlisted).slice(0, 160)})`);
+}
+
+{
+  // WHAT THE FILE LACKS (#2601): a variable the plan binds, a text style it names, a component it swaps to, and a font
+  // that will not load. Each was the apply's preflight alone, so a confirmed apply refused a set the dry run had listed
+  // with no blocker. Each world is built whole, then the plan (or the host) asks for something the file does not have.
+  const swapTo = (plans: AnatomyPlan[], to: string): AnatomyPlan[] => plans.map((p) => {
+    const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan;
+    const walk = (n: { swapTarget?: string; children?: unknown[] }): void => { if (n.swapTarget === SWAP_TARGET) n.swapTarget = to; for (const c of (n.children ?? []) as (typeof n)[]) walk(c); };
+    walk(q.root as never);
+    return q;
+  });
+  const restyle = (plans: AnatomyPlan[], to: string): AnatomyPlan[] => plans.map((p) => JSON.parse(JSON.stringify(p).replaceAll(`"${planTextStyles(p.root)[0]}"`, `"${to}"`)) as AnatomyPlan);
+  const cases: { name: string; def: string; mk: (w: World) => AnatomyPlan[]; says: RegExp }[] = [
+    { name: 'variable', def: TAG, mk: (w) => moveGap(w.plans), says: /variable the plan binds is not in this file \(space\/999\)/ },
+    { name: 'text style', def: TAG, mk: (w) => restyle(w.plans, 'label/absent'), says: /text style not in this file: label\/absent/ },
+    { name: 'swap target', def: 'button', mk: (w) => swapTo(w.plans, 'icon/absent'), says: /component the plan swaps to is not in this file: icon\/absent/ },
+    { name: 'font', def: TAG, mk: (w) => {
+      const real = w.api.loadFontAsync as (f: { family: string; style: string }) => Promise<void>;
+      w.api.loadFontAsync = (w.host as { loadFontAsync?: unknown }).loadFontAsync = async (f: { family: string; style: string }) => { if (f.family === STYLE_FONT.family && f.style === STYLE_FONT.style) throw new Error('not installed'); return real(f); };
+      return w.plans;
+    }, says: /fonts: Inter Semi Bold will not load/ },
+  ];
+  for (const c of cases) {
+    const w = await world(c.def);
+    const r = await agrees(w, [{ def: c.def, plans: c.mk(w) }]);
+    ok(r.refused.length === 1 && r.unlisted.length === 0 && r.untouched && c.says.test(r.pre.sets[0]?.blockers.join('; ') ?? ''),
+      `agree/file ${c.name}: the apply refuses the set, and the dry run listed that reason as its blocker (${r.refused.length} refused; unlisted ${JSON.stringify(r.unlisted).slice(0, 160)}; blockers: ${r.pre.sets[0]?.blockers.join('; ').slice(0, 120) || 'none'})`);
+  }
 }
 
 {
@@ -849,11 +885,31 @@ section('fonts — a typeface that will not load refuses the set before anything
 {
   const w = await world(TAG, plansOf(TAG), { extraVars: ['space/999'] });
   const real = w.api.loadFontAsync as (f: { family: string; style: string }) => Promise<void>;
-  w.api.loadFontAsync = async (f: { family: string; style: string }) => { if (f.family === STYLE_FONT.family && f.style === STYLE_FONT.style) throw new Error('not installed'); return real(f); };
+  // The dry run's host and the executor's port are the same `figma` in the plugin, so the font is refused on both.
+  w.api.loadFontAsync = (w.host as { loadFontAsync?: unknown }).loadFontAsync = async (f: { family: string; style: string }) => { if (f.family === STYLE_FONT.family && f.style === STYLE_FONT.style) throw new Error('not installed'); return real(f); };
   const stamps = membersOf(w.set()).map((m) => (m.getSharedPluginData as (a: string, b: string) => string)(NS, STAMP_KEY)).join();
   const { res } = await confirm(w, [{ def: TAG, plans: moveGap(w.plans) }]);
   ok(/^fonts: Inter Semi Bold will not load/.test(res.outcomes[0]?.refused ?? ''), `fonts/refused: ${res.outcomes[0]?.refused}`);
   ok(membersOf(w.set()).map((m) => (m.getSharedPluginData as (a: string, b: string) => string)(NS, STAMP_KEY)).join() === stamps && w.api._versions.length === 0, 'fonts/nothing written: no stamp moved, no version saved');
+}
+
+{
+  // A font installed between the check and the confirm (#2601 review). The check ran with it missing, so the set read
+  // "can't be checked" and the designer was never shown its changes. The apply's fresh preview has no blocker; only the
+  // blockers in the hash tell the two apart, so the confirm must refuse rather than write changes nobody saw.
+  const w = await world(TAG, plansOf(TAG), { extraVars: ['space/999'] });
+  const realApi = w.api.loadFontAsync, realHost = (w.host as { loadFontAsync?: unknown }).loadFontAsync;
+  const real = realApi as (f: { family: string; style: string }) => Promise<void>;
+  w.api.loadFontAsync = (w.host as { loadFontAsync?: unknown }).loadFontAsync = async (f: { family: string; style: string }) => { if (f.family === STYLE_FONT.family && f.style === STYLE_FONT.style) throw new Error('not installed'); return real(f); };
+  const targets = [{ def: TAG, plans: moveGap(w.plans) }];
+  const pre = await previewUpdate(w.host, targets);
+  w.api.loadFontAsync = realApi;
+  (w.host as { loadFontAsync?: unknown }).loadFontAsync = realHost;
+  const stamps = membersOf(w.set()).map((m) => (m.getSharedPluginData as (a: string, b: string) => string)(NS, STAMP_KEY)).join();
+  const res = await applyUpdate(w.host, w.api as any, targets, previewHashOf(pre));
+  ok(/font/.test(pre.sets[0]?.blockers.join('; ') ?? '') && !!res.refusedAll && /the file changed since the check/.test(res.refusedAll)
+    && membersOf(w.set()).map((m) => (m.getSharedPluginData as (a: string, b: string) => string)(NS, STAMP_KEY)).join() === stamps && w.api._versions.length === 0,
+    `fonts/installed since the check: the confirm is refused and no stamp moved (blockers at the check: ${pre.sets[0]?.blockers.join('; ').slice(0, 80) || 'none'}; ${res.refusedAll ?? 'not refused'})`);
 }
 
 /* ── skip ────────────────────────────────────────────────────────────────────────────────────────────── */

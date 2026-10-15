@@ -154,6 +154,14 @@ jobs:
       - name: Token name contract (breaking-change gate)
         run: npx --yes tsx@4 packages/engine/token-contract.ts --check
 
+      # The step above holds the constant to the baseline's recorded number, and both are in the tree, so
+      # writing the old number back into both after an --accept passed it (#2334). This reads the baseline
+      # and CONTRACT_VERSION at the merge base (the first parent on main's push run) and requires a MAJOR
+      # increment for a removed or retyped guaranteed path, at least a MINOR for an added one, and the
+      # base's own number when nothing moved. Needs history: the job-level `fetch-depth: 0` above.
+      - name: "CONTRACT_VERSION moved by the increment the surface needs, against the base (#2334)"
+        run: npx --yes tsx@4 packages/engine/lint-contract-version.ts
+
       # esbuild (and therefore the Vercel build) does not typecheck. These do.
       - name: Typecheck web
         run: npm run -w @prism3/studio typecheck
@@ -1016,8 +1024,8 @@ jobs:
       # fold before it and its own fold, classified by docs/30's rule. Re-derives each diff from the committed
       # records at both folds with its OWN code, never the generator (release-notes.ts). Fails by name on a
       # breaking change missing from the notes, a claimed change the diff does not show, a misclassified
-      # item, a page that drifts from its JSON, the wrong folded notes, or a version from 0.234.0 on with no
-      # release. Reads git HISTORY (`git log --first-parent`), covered by the job-level `fetch-depth: 0` above.
+      # item, a sentence that does not say what its kind says, a date git rules out, a page that drifts from
+      # its JSON, the wrong folded notes, or a version from 0.234.0 on with no release. Reads git HISTORY (`git log --first-parent`), covered by the job-level `fetch-depth: 0` above.
       - name: Release notes match the diff between folds (#2650)
         run: npx --yes tsx@4 packages/engine/lint-release-notes.ts
 

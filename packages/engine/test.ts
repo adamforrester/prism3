@@ -17244,14 +17244,28 @@ arm: {
     // (B) THE BRIEF CITATION, read off each def file's HEADER (the leading `/** … */`), per the focus-ring
     //     header arm's lesson: a whole-file scan is satisfied by any passing mention. Each header names its
     //     brief exactly once as "KB brief: `components/<name>.md`", or says "No KB brief" and states its
-    //     category choice beside it. EXPECTED for the category is this TABLE, authored from the KB's own
-    //     frontmatter (knowledge-base `components/<name>.md`, `category:`, read 2026-09-27) — never from a
-    //     def — so a def whose category drifts from its brief's fails here by name. A def that cites a brief
-    //     missing from the table fails too: add the row with the brief's category, read from the KB.
-    const KB_BRIEF_CATEGORY: Record<string, string> = {
-      'badge.md': 'foundations', 'button.md': 'form', 'checkbox.md': 'form', 'icon.md': 'foundations', 'image.md': 'foundations',
-      'inline-message.md': 'feedback', 'radio.md': 'form', 'select.md': 'form', 'spinner.md': 'foundations', 'divider.md': 'foundations', 'accordion.md': 'navigation', 'list.md': 'data', 'segmented-control.md': 'form',
-      'switch.md': 'form', 'tabs.md': 'navigation', 'tag.md': 'foundations', 'text-field.md': 'form', 'textarea.md': 'form',
+    //     category choice beside it. EXPECTED for the category is the KB's CATALOGUE: `schema/kb-briefs.json`,
+    //     every component brief's front-matter `category` and `aliases`, written by `kb-briefs-refresh.ts`
+    //     from a knowledge-base checkout (#2488; CI cannot read the KB) — never from a def — so a def whose
+    //     category drifts from its brief's fails here by name. A def that cites a brief the catalogue lacks
+    //     fails too: refresh the snapshot. And a "No KB brief" claim is checked against the same catalogue,
+    //     which the hand table this replaced could not do: divider said "No KB brief" while
+    //     `components/divider.md` existed, and passed (#2488).
+    const kbBriefs = (JSON.parse(readFileSync(resolve(HERE, 'schema', 'kb-briefs.json'), 'utf8')) as {
+      briefs: Record<string, { category: string; aliases: string[] }>;
+    }).briefs;
+    const KB_BRIEF_CATEGORY: Record<string, string> = Object.fromEntries(Object.entries(kbBriefs).map(([f, b]) => [f, b.category]));
+    // A floor, not a count (docs/34 shape 9): an empty or truncated snapshot would let every "No KB brief"
+    // stand. 47 briefs at bdaedeb2; the KB's seven categories, which the def validator also holds.
+    ok(Object.keys(kbBriefs).length >= 40 && Object.values(kbBriefs).every((b) => ['foundations', 'form', 'feedback', 'navigation', 'overlay', 'layout', 'data'].includes(b.category)),
+      `#2488 schema/kb-briefs.json holds the KB's component catalogue: at least 40 briefs, each in one of the seven categories (${Object.keys(kbBriefs).length} read)`);
+    /** The brief a def's id or aliases name, by file name or by a brief's own alias. Both clauses read the
+     *  def's id AND its aliases: a def whose id is outside the catalogue but whose alias is a brief's alias
+     *  (a `busy-indicator` aliased `activity-indicator`, which spinner.md lists) names that brief too. */
+    const briefFor = (d: ComponentDef): string | undefined => {
+      const names = [d.id, ...(d.aliases ?? [])].map((n) => n.toLowerCase());
+      return Object.keys(kbBriefs).find((f) => names.includes(f.slice(0, -3)))
+        ?? Object.keys(kbBriefs).find((f) => kbBriefs[f].aliases.some((a) => names.includes(a.toLowerCase())));
     };
     const defDir = resolve(HERE, './components');
     const defFiles = readdirSync(defDir).filter((f) => f.endsWith('.ts') && f !== 'index.ts').sort();
@@ -17271,9 +17285,12 @@ arm: {
         fileOf.set(d.id, f);
         if (cites.length === 1) {
           const want = KB_BRIEF_CATEGORY[cites[0]];
-          ok(want !== undefined, `#1700 ${d.id}: cites \`components/${cites[0]}\`, which is not in the test's KB-brief table — add the row with the brief's own category`);
+          ok(want !== undefined, `#1700 ${d.id}: cites \`components/${cites[0]}\`, which \`schema/kb-briefs.json\` lacks — refresh it with \`npx tsx packages/engine/kb-briefs-refresh.ts <kb checkout>\`, never by hand`);
           ok(d.category === want, `#1700 ${d.id}: category is '${d.category}', and its brief \`components/${cites[0]}\` files it under '${want}' — a def takes its brief's category`);
         } else if (noBrief) {
+          const exists = briefFor(d);
+          ok(exists === undefined,
+            `#2488 ${d.id}: says "No KB brief", and the knowledge base has \`components/${exists}\` (category '${exists && kbBriefs[exists].category}') — cite it as "KB brief: \`components/${exists}\`" and take its category`);
           const stated = header.match(/No KB brief[\s\S]{0,400}?Category[\s*]+`([a-z]+)`/)?.[1];
           ok(stated === d.category, `#1700 ${d.id}: has no KB brief, so its header states the category choice ("Category \`${d.category}\`") beside the "No KB brief" line — got ${stated ?? 'none'}`);
         }
@@ -19094,7 +19111,8 @@ arm: {
                 // (#1781) — a ComponentSetNode's children are ComponentNodes, and the payload now
                 // instantiates the member out of the set it matched rather than re-looking it up by name.
                 const members = (f.variants ?? []).map((v) => mk(v, seq++, { name: f.name, type: 'COMPONENT_SET' }));
-                if (types.includes('COMPONENT_SET')) found.push({ name: f.name, id: `73:${37 + seq++}`, type: 'COMPONENT_SET', children: members });
+                // Its KEY (#2646), which a native slot's preferred value names; `SK:<name>`, as `component-shim.ts` keys a set.
+                if (types.includes('COMPONENT_SET')) found.push({ name: f.name, id: `73:${37 + seq++}`, type: 'COMPONENT_SET', children: members, key: `SK:${f.name}` });
                 if (types.includes('COMPONENT')) for (const m of members) found.push(m);
               } else if (types.includes(f.type)) found.push(mk(f.name, seq++));
             }
@@ -19251,6 +19269,18 @@ arm: {
             while (Object.keys(defs).some((k) => k.split('#')[0] === bare)) bare = /\d$/.test(bare) ? bare.replace(/\d$/, (d) => String(+d + 1)) : `${bare}2`;
             const key = `${bare}#103:${seq++}`;
             defs[key] = { type, defaultValue };
+            return key;
+          };
+          // #2646 — a SLOT property's constraints and preferred values, bounded as `component-shim.ts` bounds them (the
+          // typings' rules), and stored as written so the payload's read-back reads what the host kept.
+          set.editComponentProperty = (key: string, edit: { slotSettings?: unknown; preferredValues?: unknown; defaultValue?: unknown }) => {
+            const d = defs[key] as Record<string, unknown> | undefined;
+            if (!d) throw new Error(`in editComponentProperty: Could not find a component property with name: '${key}'`);
+            if (edit.slotSettings !== undefined && d.type !== 'SLOT') throw new Error('in editComponentProperty: slotSettings is only supported for SLOT properties');
+            if (edit.preferredValues !== undefined && d.type !== 'SLOT' && d.type !== 'INSTANCE_SWAP') throw new Error('in editComponentProperty: preferredValues is only supported for INSTANCE_SWAP and SLOT properties');
+            if (edit.slotSettings !== undefined) d.slotSettings = { ...(edit.slotSettings as Record<string, unknown>) };
+            if (edit.preferredValues !== undefined) d.preferredValues = (edit.preferredValues as Record<string, unknown>[]).map((v) => ({ ...v }));
+            if (edit.defaultValue !== undefined) d.defaultValue = edit.defaultValue;
             return key;
           };
           set.declaredIds = () => Object.keys(defs);
@@ -20458,6 +20488,75 @@ arm: {
         const bare = await runPayload(planSetToPluginJs(sg), { vars: sg.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]), styles: sg.flatMap((p) => planTextStyles(p.root)), comps: [...new Set(sg.flatMap((p) => { const walk = (n: { swapTarget?: string; nestTarget?: string; children: unknown[] }): string[] => [...(n.swapTarget ? [n.swapTarget] : []), ...(n.nestTarget ? [n.nestTarget] : []), ...(n.children as (typeof n)[]).flatMap(walk)]; return walk(p.root); }))], noSlots: true });
         ok(bare.misses.some((m) => /dismiss\.slot -> NOT MADE/.test(m)) && bare.misses.some((m) => /property dismiss -> SLOT not on the set/.test(m)) && !bare.misses.some((m) => /SLOT REFUSED/.test(m)),
           `#2417 paste, no native slots: the cells stay frames and the payload names the slot it could not make and the property that never existed (${JSON.stringify(bare.misses.filter((m) => /slot|SLOT/.test(m)).slice(0, 2))})`);
+
+        // ---- #2646: A NATIVE SLOT'S CONSTRAINTS — validator, projection, and the PASTE executor ----
+        // The same test-only slotted Tag, its slot constrained: 1 to 2 children, preferred-only, Badge preferred. The
+        // expectations are literals (docs/34), never the def read back. Mutations, each failing its own arm by name:
+        // the min-above-max rule dropped → `#2646 validator: min above max`; `slotPreferredOf`'s registry check dropped →
+        // `#2646 projection: an unknown preferred def`; `slotPreferred` left off the plan node → `#2646 projection:
+        // the plan carries`; `PAYLOAD_SLOT_SETTINGS` not shipped → `#2646 paste: the payload writes`.
+        const SS = { minChildren: 1, maxChildren: 2, allowPreferredValuesOnly: true };
+        const constrained = (patch: Record<string, unknown> = {}): ComponentDef => ({ ...slottedTag, anatomy: { ...slottedTag.anatomy!, parts: { ...tagParts,
+          dismiss: { ...tagParts.dismiss, slotSettings: SS, preferred: ['badge'], ...patch } } } });
+        ok(errs(constrained()).length === 0, `#2646 validator: a constrained native slot is valid (${errs(constrained()).slice(0, 1).join('')})`);
+        const refusals: [string, ComponentDef, RegExp][] = [
+          ['on a part that is not a slot', patched({ label: { ...tagParts.label, slotSettings: { minChildren: 1 } } }), /declares 'slotSettings' but is not a native slot/],
+          ['preferred on a part that is not a slot', patched({ label: { ...tagParts.label, preferred: ['badge'] } }), /declares 'preferred' but is not a native slot/],
+          ['min above max', constrained({ slotSettings: { minChildren: 3, maxChildren: 1 } }), /minChildren \(3\) is above maxChildren \(1\)/],
+          ['a fractional count', constrained({ slotSettings: { minChildren: 1.5 } }), /minChildren is 1\.5 — a child count is a whole number/],
+          ['a negative count', constrained({ slotSettings: { maxChildren: -1 } }), /maxChildren is -1 — a child count is a whole number/],
+          ['a max of zero', constrained({ slotSettings: { maxChildren: 0 } }), /maxChildren is 0 — a slot that may hold nothing/],
+          ['preferred-only with nothing preferred', constrained({ preferred: undefined }), /allowPreferredValuesOnly is true with no 'preferred'/],
+          ['an unknown setting', constrained({ slotSettings: { ...SS, stretchChildOnInsert: true } }), /slotSettings\.stretchChildOnInsert is not a slot setting/],
+          ['an empty preferred list', constrained({ slotSettings: undefined, preferred: [] }), /declares an empty 'preferred'/],
+          ['a preferred id named twice', constrained({ preferred: ['badge', 'badge'] }), /names 'badge' twice/],
+        ];
+        for (const [what, d, re] of refusals) { const r = refused(d, re); ok(r === '', `#2646 validator: ${what} is refused ${r}`); }
+        // PROJECTION: the plan's slot node carries the constraints as declared, and the set's SLOT property with them.
+        const cg = figmaAnatomySet(constrained(), { swapTarget: 'FPO-default-icon' });
+        const slotNode = (n: { name: string; type: string; children: unknown[] } & Record<string, unknown>): (typeof n) | undefined => n.type === 'CONTENT_SLOT' ? n : (n.children as (typeof n)[]).map(slotNode).find(Boolean);
+        const sn = cg.map((pl) => slotNode(pl.root as never) as Record<string, unknown> | undefined).filter(Boolean) as Record<string, unknown>[];
+        ok(sn.length === 15 && sn.every((n) => JSON.stringify(n.slotSettings) === '{"minChildren":1,"maxChildren":2,"allowPreferredValuesOnly":true}' && JSON.stringify(n.slotPreferred) === '["badge"]'),
+          `#2646 projection: the plan carries each slot's constraints and preferred ids as declared (${sn.length} slot nodes; ${JSON.stringify(sn[0]?.slotSettings)} ${JSON.stringify(sn[0]?.slotPreferred)})`);
+        const slotProp = planSetProperties(cg).find((pp) => pp.type === 'SLOT');
+        ok(JSON.stringify(slotProp) === '{"name":"dismiss","type":"SLOT","slotSettings":{"minChildren":1,"maxChildren":2,"allowPreferredValuesOnly":true},"preferred":["badge"]}',
+          `#2646 projection: the set's SLOT property carries them (${JSON.stringify(slotProp)})`);
+        const throwsWith = (d: ComponentDef, re: RegExp): string => { try { figmaAnatomySet(d, { swapTarget: 'FPO-default-icon' }); return 'did not throw'; } catch (err) { return re.test((err as Error).message) ? '' : `threw ${(err as Error).message}`; } };
+        for (const [what, id, re] of [
+          ['an unknown preferred def', 'no-such-def', /prefers 'no-such-def', which is not a registered component def/],
+          ['the def preferring itself', 'tag', /prefers 'tag', which is this def itself/],
+          ['a building block', '_accordion-indicator', /prefers '_accordion-indicator', which is a building block/],
+          ['a def that builds standalone components', 'icon', /prefers 'icon', which builds standalone components/],
+        ] as [string, string, RegExp][]) {
+          const r = throwsWith(constrained({ preferred: [id] }), re);
+          ok(r === '', `#2646 projection: ${what} is refused, naming it ${r}`);
+        }
+        // THE PASTE EXECUTOR: with Badge in the file the SLOT property holds exactly what was declared, Badge by its
+        // set's key; without it the payload names the miss and writes the slot open rather than flag every child.
+        const cOpts = (withBadge: boolean) => ({
+          vars: cg.flatMap((pl) => [...planBoundVars(pl.root), ...planPaintVars(pl.root)]), styles: cg.flatMap((pl) => planTextStyles(pl.root)),
+          comps: [...new Set(cg.flatMap((pl) => { const walk = (n: { swapTarget?: string; nestTarget?: string; children: unknown[] }): string[] => [...(n.swapTarget ? [n.swapTarget] : []), ...(n.nestTarget ? [n.nestTarget] : []), ...(n.children as (typeof n)[]).flatMap(walk)]; return walk(pl.root); }))],
+          ...(withBadge ? { fileNodes: [{ name: 'badge', type: 'COMPONENT_SET' as const, variants: ['tone=neutral'] }] } : {}),
+        });
+        const js = planSetToPluginJs(cg);
+        // Read by a line of its CODE: the payload ships with its comments stripped.
+        ok(js.includes('editComponentProperty(key,{slotSettings:w') && !planSetToPluginJs(sg).includes('editComponentProperty(key,{slotSettings:w'),
+          '#2646 paste: the constraint pass ships only in a payload whose slots declare constraints');
+        const cPage = { children: [] as Record<string, unknown>[] };
+        const cRun = await runPayload(js, { ...cOpts(true), page: cPage });
+        const cSet = cPage.children.find((c) => c.type === 'COMPONENT_SET') as Record<string, unknown> | undefined;
+        const cSlot = Object.values(((cSet?.componentPropertyDefinitions ?? {}) as Record<string, Record<string, unknown>>)).find((d) => d.type === 'SLOT');
+        ok(cRun.misses.length === 0 && JSON.stringify(cSlot?.slotSettings) === '{"minChildren":1,"maxChildren":2,"allowPreferredValuesOnly":true,"displayEmptyByDefault":false}'
+          && JSON.stringify(cSlot?.preferredValues) === '[{"type":"COMPONENT_SET","key":"SK:badge"}]',
+          `#2646 paste: the payload writes the slot's constraints and Badge's key onto the SLOT property (${JSON.stringify(cSlot?.slotSettings)} ${JSON.stringify(cSlot?.preferredValues)}${cRun.misses.length ? `; misses ${JSON.stringify(cRun.misses.slice(0, 2))}` : ''})`);
+        const nPage = { children: [] as Record<string, unknown>[] };
+        const nRun = await runPayload(js, { ...cOpts(false), page: nPage });
+        const nSlot = Object.values((((nPage.children.find((c) => c.type === 'COMPONENT_SET') ?? {}) as Record<string, unknown>).componentPropertyDefinitions ?? {}) as Record<string, Record<string, unknown>>).find((d) => d.type === 'SLOT');
+        ok(nRun.misses.some((m) => m.startsWith('property dismiss.preferred -> badge (not in this file — build badge first'))
+          && nRun.misses.some((m) => m.startsWith('property dismiss.slotSettings.allowPreferredValuesOnly -> WRITTEN false'))
+          && JSON.stringify(nSlot?.slotSettings) === '{"minChildren":1,"maxChildren":2,"allowPreferredValuesOnly":false,"displayEmptyByDefault":false}'
+          && JSON.stringify(nSlot?.preferredValues) === '[]',
+          `#2646 paste, preferred def not built: the payload names Badge as a miss and writes the slot open (${JSON.stringify(nRun.misses.filter((m) => /dismiss\./.test(m)))})`);
       }
 
       // ---- #1393: the PASTE executor leaves no Figma white default on an unclaimed or unresolvable fill ----
