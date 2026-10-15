@@ -128,6 +128,10 @@
  *                  current. FieldLabel's real set is in the file, so the coordinate is read off the host. Mutations:
  *                  the in-place branch's expose pass skipped → `<group>/exposed`; a group label's starting weight
  *                  moved to regular → `<group>/bold kept`.
+ *   overrides/…    a List built before its items carried their numbers (#2645): the dry run lists the override on
+ *                  items 2 to 8 as a change and replaces nothing; Update writes each in place, every key and id kept,
+ *                  and a number a designer typed is kept as a hand edit. Mutation: the in-place branch skipping the
+ *                  override write → `overrides/written in place`.
  *   noop/…         a set already current: no version, no write.
  *   order/…        nested sets are updated first.
  *
@@ -175,7 +179,7 @@ const planChild = (n: PlanNode, name: string): PlanNode => n.children!.find((c) 
 type World = { host: ApplyHost; api: Record<string, any>; page: Page; set: () => Node; plans: AnatomyPlan[] };
 /** A fresh file holding one set, built by the executor, with identities on. `extraVars` are variables the file
  *  holds beyond the plans', for a later plan to bind. */
-const world = async (id: string, plans = plansOf(id), o: { extraVars?: string[]; extraStyles?: string[]; extraComps?: string[]; fileSets?: { name: string; variants: string[] }[]; keyPrefix?: string; styleIdPrefix?: string; unavailableFonts?: { family: string; style: string }[]; refuseVersion?: boolean; allowMisses?: string[] } = {}): Promise<World> => {
+const world = async (id: string, plans = plansOf(id), o: { extraVars?: string[]; extraStyles?: string[]; extraComps?: string[]; componentProps?: Record<string, Record<string, { type: string; defaultValue: string | boolean }>>; fileSets?: { name: string; variants: string[] }[]; keyPrefix?: string; styleIdPrefix?: string; unavailableFonts?: { family: string; style: string }[]; refuseVersion?: boolean; allowMisses?: string[] } = {}): Promise<World> => {
   const page: Page = { children: [] };
   const api = makeShim({
     vars: [...new Set([...plans.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]), 'space/0', ...(o.extraVars ?? [])])],
@@ -191,6 +195,7 @@ const world = async (id: string, plans = plansOf(id), o: { extraVars?: string[];
     keyPrefix: o.keyPrefix,
     styleIdPrefix: o.styleIdPrefix,
     refuseVersion: o.refuseVersion,
+    componentProps: o.componentProps,
   }) as any;
   const built = await applyComponentPlan(plans, api);
   if (o.allowMisses) o.allowMisses.push(...built.misses);
@@ -2440,6 +2445,51 @@ for (const G of ['checkbox-group', 'radio-group', 'segmented-control']) {
     `${G}/bold kept: every label still instances the secondary, bold member at its group's size (${[...new Set(read.map((x) => x.main))].join(' | ')})`);
   const post = (await previewUpdate(w.host, [{ def: G, plans: newPlans }])).sets[0];
   ok(post.counts.current === 3 && post.handEdits.length === 0, `${G}/current: the next dry run reads all 3 current (${JSON.stringify(post.counts)})`);
+}
+
+/* ── overrides (#2645) ──────────────────────────────────────────────────────────────────────────────── */
+section('overrides — a nested instance with no override yet gains it in place on Update; a hand edit is kept (#2645)');
+{
+  // A List built BEFORE its items carried their numbers: the same plans with every `nestOverrides` taken out, built by
+  // the real executor. List.Item's two TEXT properties are declared on the host with ids the plan cannot know.
+  const LIST = 'list';
+  const planned = plansOf(LIST);
+  const strip = (n: PlanNode): PlanNode => {
+    const { nestOverrides: _drop, ...rest } = n as PlanNode & { nestOverrides?: unknown };
+    void _drop;
+    return { ...rest, children: (n.children ?? []).map(strip) } as PlanNode;
+  };
+  const old = planned.map((p) => ({ ...p, root: strip(p.root) }));
+  ok(planned.every((p) => JSON.stringify(p).includes('"nestOverrides"')) && old.every((p) => !JSON.stringify(p).includes('nestOverrides')),
+    'premise: every List plan carries overrides, and the plans the file was built from carry none');
+  const NUM = 'number#7:2';
+  const w = await world(LIST, old, { componentProps: { 'list-item': { 'text#7:1': { type: 'TEXT', defaultValue: 'List item' }, [NUM]: { type: 'TEXT', defaultValue: '1.' } } } });
+  const items = (m: Node): Node[] => [1, 2, 3, 4, 5, 6, 7, 8].map((i) => childNamed(m, `item${i}`));
+  const numberOf = (n: Node): unknown => (n.componentProperties as Record<string, { value: unknown }>)[NUM]?.value;
+  ok(membersOf(w.set()).every((m) => items(m).every((n) => numberOf(n) === '1.')), 'premise: as built, every item of every member reads "1."');
+  // A designer's own number on ONE item of ONE member, typed before the update.
+  const edited = membersOf(w.set())[0];
+  (childNamed(edited, 'item2').setProperties as (p: Record<string, string>) => void)({ [NUM]: '2)' });
+  const before = identityOf(w.set());
+  const { pre, res } = await confirm(w, [{ def: LIST, plans: planned }]);
+  const set0 = pre.sets[0];
+  const fields = new Set(set0.changes.map((c) => `${c.part}:${c.field}`));
+  ok([2, 3, 4, 5, 6, 7, 8].every((i) => fields.has(`item${i}:nestOverrides`)) && !fields.has('item1:nestOverrides') && set0.replacements.length === 0,
+    `overrides/dry run: the dry run lists the override on items 2 to 8 as a change, not on item 1, and replaces nothing (${[...fields].filter((f) => f.endsWith('nestOverrides')).join(', ')}; ${set0.replacements.length} replacements)`);
+  ok(set0.handEdits.some((h) => h.member === String(edited.name) && h.path === 'item2'),
+    `overrides/hand edit reported: the typed number reads as a hand edit (${JSON.stringify(set0.handEdits).slice(0, 200)})`);
+  ok(applyVerdict(res).ok, `overrides/verdict: ${applyVerdict(res).headline} (${applyVerdict(res).lines.slice(0, 2).join(' | ').slice(0, 240)})`);
+  const wrong = membersOf(w.set()).flatMap((m) => items(m).map((n, i) => {
+    const want = m === edited && i === 1 ? '2)' : `${i + 1}.`;
+    return numberOf(n) === want ? null : `${String(m.name)}/item${i + 1}=${String(numberOf(n))} (want ${want})`;
+  })).filter(Boolean);
+  ok(wrong.length === 0, `overrides/written in place: every item now reads its own number, "1." to "8.", and the hand-typed "2)" is kept (${wrong.length} off: ${wrong.slice(0, 3).join('; ')})`);
+  const after = identityOf(w.set());
+  ok([...before.members].every(([name, b]) => after.members.get(name)?.key === b.key && [...b.kids].every(([p, id]) => after.members.get(name)?.kids.get(p) === id)),
+    'overrides/ids: every member and every nested item keeps its key and id: nothing was rebuilt');
+  const post = (await previewUpdate(w.host, [{ def: LIST, plans: planned }])).sets[0];
+  ok(post.counts.update === 0 && post.counts.current === 8 && post.handEdits.some((h) => h.member === String(edited.name) && h.path === 'item2'),
+    `overrides/current: the next dry run reads the other 8 members current and still reports the hand edit (${JSON.stringify(post.counts)}; ${JSON.stringify(post.changes).slice(0, 200)})`);
 }
 
 void STYLE_FONT; void BASELINE_KEY;
