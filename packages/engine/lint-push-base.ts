@@ -1,9 +1,9 @@
 /**
  * THE GIT-HISTORY GATES SEE A SQUASH ON MAIN'S PUSH RUN (#2556).
  *
- * `lint-emission-version.ts`, `lint-component-surface.ts`, `lint-component-renames.ts` and
- * `lint-materialization-renames.ts` each read a "before" out of git at the merge base of HEAD and the
- * base branch. On main's push run that merge base is HEAD itself, so each compared a squash commit with
+ * `lint-emission-version.ts`, `lint-component-surface.ts`, `lint-component-renames.ts`,
+ * `lint-materialization-renames.ts` and `lint-contract-version.ts` (#2334) each read a "before" out of
+ * git at the merge base of HEAD and the base branch. On main's push run that merge base is HEAD itself, so each compared a squash commit with
  * itself and passed. A squash whose own diff breaks a gate's rule — two PRs that each passed against a
  * base that no longer exists, merged with no git conflict, as #2529 and #2548 were for the executor
  * revision (#2551) — landed green, and GitHub does not re-run a PR's CI when its base moves.
@@ -19,7 +19,7 @@
  * on `main` at this checkout's HEAD with the working tree on top as one commit, so an uncommitted edit to
  * a gate is what gets replayed. Each case then commits on `main`, points `origin/main` at the result,
  * unsets `GITHUB_BASE_REF`, and runs the gate from the clone: the state of main's push run, where the
- * merge base is HEAD. Two cases per gate, with literal expectations:
+ * merge base is HEAD. At least two cases per gate, with literal expectations:
  *
  *   - **the squash breaks the rule** — its diff against its parent is one the gate exists to refuse, and
  *     the gate must fail with its own named assertion. Compared with the merge base, each of these passes.
@@ -32,10 +32,10 @@
  * ── WHAT IT DOES NOT COVER ───────────────────────────────────────────────────────────────────────────
  *
  * The pull-request side. On a PR the merge base is not HEAD and `comparison-base.ts` returns it
- * unchanged; that path is what every PR's own run of the four gates exercises. Nor does any gate re-check
+ * unchanged; that path is what every PR's own run of the five gates exercises. Nor does any gate re-check
  * a stale PR run after its base moves: nothing in a gate can. The push run is where that is caught.
  *
- * A push run that does not complete. The push-run arm holds only for a run that reaches the four
+ * A push run that does not complete. The push-run arm holds only for a run that reaches the five
  * gates: a cancelled run compares its squash with nothing, and the next run compares only its own
  * squash with its own parent. `ci.yml` therefore gives each push run on main its own concurrency
  * group and cancels in-progress runs on pull requests only; nothing here checks that setting.
@@ -74,6 +74,9 @@ const EMITTED = 'packages/engine/out/figma/prism3/focus.json';
 const SURFACE = 'packages/engine/schema/component-surface.json';
 const AXES = 'packages/engine/schema/component-axes.json';
 const NOTE = 'packages/engine/changes/replay-push-base.md';
+const VERSION = 'packages/engine/version.ts';
+const CONTRACT = 'packages/engine/schema/token-contract.json';
+const CONTRACT_RE = /^export const CONTRACT_VERSION = '(\d+)\.(\d+)\.(\d+)';/m;
 const NOTE_TEXT = '---\nengine: minor\n---\nA replayed squash on main (lint-push-base.ts).\n';
 
 type Edit = (dir: string) => void;
@@ -87,6 +90,13 @@ const edit = (path: string, f: (text: string) => string): Edit => (dir) => {
 };
 const addNote: Edit = (dir) => writeFileSync(join(dir, NOTE), NOTE_TEXT);
 const json = (path: string, f: (v: any) => void): Edit => edit(path, (t) => { const v = JSON.parse(t); f(v); return `${JSON.stringify(v, null, 2)}\n`; });
+
+/** `CONTRACT_VERSION` with its MAJOR moved by `by`, the rest kept: a lowered or raised number. */
+const contractMajor = (by: number): Edit => edit(VERSION, (t) => {
+  if (!CONTRACT_RE.test(t)) return die([`${VERSION} has no \`export const CONTRACT_VERSION = 'M.m.p';\` — this check CANNOT RUN.`]);
+  return t.replace(CONTRACT_RE, (_, a, i, p) => `export const CONTRACT_VERSION = '${Number(a) + by}.${i}.${p}';`);
+});
+const GHOST_PATH = 'replay.ghost';
 
 /** The first def in the surface baseline that projects a set. */
 const firstSurfaceDef = (v: { defs: Record<string, { sha256: string } | null> }): { sha256: string } => {
@@ -157,6 +167,21 @@ const CASES: Case[] = [
     parent: [json(EMITTED, (v) => { v.variables.shift(); })], squash: [restore(EMITTED)],
     expect: 'passes',
   },
+  {
+    gate: 'lint-contract-version', label: 'a squash lowers CONTRACT_VERSION with no path moved',
+    parent: [], squash: [contractMajor(-1)],
+    expect: { fails: 'is BELOW the base\'s' },
+  },
+  {
+    gate: 'lint-contract-version', label: 'a squash drops a guaranteed path at the parent\'s number',
+    parent: [json(CONTRACT, (v) => { v.guaranteed[GHOST_PATH] = 'color'; })], squash: [restore(CONTRACT)],
+    expect: { fails: 'needs a MAJOR increment over the base\'s' },
+  },
+  {
+    gate: 'lint-contract-version', label: 'a squash drops a guaranteed path with a MAJOR increment',
+    parent: [json(CONTRACT, (v) => { v.guaranteed[GHOST_PATH] = 'color'; })], squash: [restore(CONTRACT), contractMajor(1)],
+    expect: 'passes',
+  },
 ];
 
 /** Put `path` back as `main` has it: the squash that undoes the parent's edit. */
@@ -165,8 +190,8 @@ function restore(path: string): Edit {
 }
 
 /** Hand-counted, not derived: a replay that lost a case would otherwise report its smaller count as whole. */
-const EXPECTED_CASES = 8;
-const GATES = ['lint-emission-version', 'lint-component-surface', 'lint-component-renames', 'lint-materialization-renames'];
+const EXPECTED_CASES = 11;
+const GATES = ['lint-emission-version', 'lint-component-surface', 'lint-component-renames', 'lint-materialization-renames', 'lint-contract-version'];
 
 // ---- the clone -------------------------------------------------------------------------------------------
 
