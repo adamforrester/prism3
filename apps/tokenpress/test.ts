@@ -93,7 +93,7 @@ const ADDED: Record<string, number> = {
   'tests/unit/motion-timing-easing.test.ts': 8,
   // prism3 #2616 — an unscoped `font/family/*`, `font/weight/*` or `font/weight-role/*` variable is typed
   // `fontFamily` / `fontWeight` by its path, as a font-scoped one is by its scope.
-  'tests/unit/font-type-by-name.test.ts': 5,
+  'tests/unit/font-type-by-name.test.ts': 7,
 };
 
 // ---- the harness checks itself first -------------------------------------------------------
