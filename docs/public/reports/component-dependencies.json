@@ -376,6 +376,36 @@
       }
     },
     {
+      "from": "flush-icon-button",
+      "to": "focus-ring",
+      "part": "focusRing",
+      "partKind": "absolute",
+      "relation": "nest-fixed",
+      "variant": {
+        "surface": "default"
+      }
+    },
+    {
+      "from": "flush-icon-button-destructive",
+      "to": "focus-ring",
+      "part": "focusRing",
+      "partKind": "absolute",
+      "relation": "nest-fixed",
+      "variant": {
+        "surface": "default"
+      }
+    },
+    {
+      "from": "flush-icon-button-neutral",
+      "to": "focus-ring",
+      "part": "focusRing",
+      "partKind": "absolute",
+      "relation": "nest-fixed",
+      "variant": {
+        "surface": "default"
+      }
+    },
+    {
       "from": "icon-button",
       "to": "focus-ring",
       "part": "focusRing",
@@ -434,6 +464,19 @@
       "part": "spinner",
       "partKind": "overlay",
       "relation": "swap"
+    },
+    {
+      "from": "link",
+      "to": "focus-ring",
+      "part": "focusRing",
+      "partKind": "absolute",
+      "relation": "nest-fixed",
+      "variant": {
+        "surface": "default"
+      },
+      "follow": [
+        "surface"
+      ]
     },
     {
       "from": "list",
@@ -1310,6 +1353,42 @@
       ],
       "inheritedBy": []
     },
+    "flush-icon-button": {
+      "nests": [
+        "focus-ring"
+      ],
+      "nestsTransitively": [
+        "focus-ring"
+      ],
+      "nestedBy": [],
+      "affectedByChange": [],
+      "inherits": "icon-button",
+      "inheritedBy": []
+    },
+    "flush-icon-button-destructive": {
+      "nests": [
+        "focus-ring"
+      ],
+      "nestsTransitively": [
+        "focus-ring"
+      ],
+      "nestedBy": [],
+      "affectedByChange": [],
+      "inherits": "icon-button-destructive",
+      "inheritedBy": []
+    },
+    "flush-icon-button-neutral": {
+      "nests": [
+        "focus-ring"
+      ],
+      "nestsTransitively": [
+        "focus-ring"
+      ],
+      "nestedBy": [],
+      "affectedByChange": [],
+      "inherits": "icon-button-neutral",
+      "inheritedBy": []
+    },
     "focus-ring": {
       "nests": [],
       "nestsTransitively": [],
@@ -1319,9 +1398,13 @@
         "button-destructive",
         "button-neutral",
         "checkbox-control",
+        "flush-icon-button",
+        "flush-icon-button-destructive",
+        "flush-icon-button-neutral",
         "icon-button",
         "icon-button-destructive",
         "icon-button-neutral",
+        "link",
         "radio-control",
         "segmented-control-segment",
         "select",
@@ -1340,9 +1423,13 @@
         "checkbox-group",
         "checkbox-row",
         "dialog",
+        "flush-icon-button",
+        "flush-icon-button-destructive",
+        "flush-icon-button-neutral",
         "icon-button",
         "icon-button-destructive",
         "icon-button-neutral",
+        "link",
         "radio-control",
         "radio-group",
         "radio-row",
@@ -1378,7 +1465,9 @@
       "nestedBy": [],
       "affectedByChange": [],
       "inherits": "button",
-      "inheritedBy": []
+      "inheritedBy": [
+        "flush-icon-button"
+      ]
     },
     "icon-button-destructive": {
       "nests": [
@@ -1392,7 +1481,9 @@
       "nestedBy": [],
       "affectedByChange": [],
       "inherits": "button-destructive",
-      "inheritedBy": []
+      "inheritedBy": [
+        "flush-icon-button-destructive"
+      ]
     },
     "icon-button-neutral": {
       "nests": [
@@ -1410,11 +1501,24 @@
         "dialog"
       ],
       "inherits": "button-neutral",
-      "inheritedBy": []
+      "inheritedBy": [
+        "flush-icon-button-neutral"
+      ]
     },
     "image-placeholder": {
       "nests": [],
       "nestsTransitively": [],
+      "nestedBy": [],
+      "affectedByChange": [],
+      "inheritedBy": []
+    },
+    "link": {
+      "nests": [
+        "focus-ring"
+      ],
+      "nestsTransitively": [
+        "focus-ring"
+      ],
       "nestedBy": [],
       "affectedByChange": [],
       "inheritedBy": []
@@ -1680,12 +1784,16 @@
     "divider": 0,
     "field-label": 0,
     "field-message": 0,
+    "flush-icon-button": 1,
+    "flush-icon-button-destructive": 1,
+    "flush-icon-button-neutral": 1,
     "focus-ring": 0,
     "icon": 0,
     "icon-button": 1,
     "icon-button-destructive": 1,
     "icon-button-neutral": 1,
     "image-placeholder": 0,
+    "link": 1,
     "list": 1,
     "list-item": 0,
     "radio-control": 1,
