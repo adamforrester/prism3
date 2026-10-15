@@ -326,7 +326,10 @@
         "rest"
       ]
     },
-    "members": 30
+    "members": 30,
+    "properties": {
+      "swap icon": "INSTANCE_SWAP"
+    }
   },
   "flush-icon-button-destructive": {
     "axes": {
@@ -347,7 +350,10 @@
         "rest"
       ]
     },
-    "members": 30
+    "members": 30,
+    "properties": {
+      "swap icon": "INSTANCE_SWAP"
+    }
   },
   "flush-icon-button-neutral": {
     "axes": {
@@ -368,7 +374,10 @@
         "rest"
       ]
     },
-    "members": 30
+    "members": 30,
+    "properties": {
+      "swap icon": "INSTANCE_SWAP"
+    }
   },
   "focus-ring": {
     "axes": {
