@@ -1,0 +1,46 @@
+## (2026-10-15) — Field style lever: Outline or Underline for every field (#2695, Q332 A, Q333)
+
+**What landed.** A Form lever, `fieldStyle` ("Field style", Outline / Underline, default Outline), placed right after
+Control shape in the manifest and on the studio's Shape page. Built exactly as the owner's sixteen calls (Q333, each
+option A) say. Under Underline, Text field, Password field, Select and Textarea draw a 1px bottom line in the field's
+own border roles (rest, hover, focus, the three status borders, read-only, disabled), thickened to 2px at both
+focus-visible states, with the shared ring moved out to `focus.ring.offset` (2px). Inline padding goes to `space.0`,
+corners go to `radius.none` whatever Control shape says, the hover wash and the disabled plate are dropped, and
+Textarea's grip is inset 2px so it sits above the line. No token is added (Q15 A), and no Figma axis (Q14 A): 84 members
+per field either way. Apply Theme now says "Field style is now Underline. Update components to redraw the field sets."
+when the stored brand's style changed (Q16 A).
+
+**The mechanism is Control shape's.** `applyFieldStyle(def, style)` rewrites a field def before projection and is the
+identity under Outline, so every Outline plan is byte-identical and nothing brand-specific reaches the projector. It
+runs right after `applyControlShape` in the plugin's `materializeForBrand` and in `lint-lever-sweep.ts`'s restated
+composition, so its square corner wins. It reads the frame part's own keys (its corner key, the ring's inset key, any
+corner-pinned child) rather than naming keys, and new keys (`underline.side`, `underline.line.<state>`,
+`underline.pad-x`) carry the rungs. So density can't move the zero padding: density moves the old `pad-x` keys, which
+the frame no longer binds. The field family is `FIELD_FRAME_PARTS`, keyed by def id as `FIELD_CORNER_REFS` is.
+
+**One schema field, and why it's per side.** `PartDef.strokeEdges` binds the four stroke sides apart. Figma binds a
+weight per side anyway (#1332: a scalar binding lands on the four per-side keys), so the read-back already reads those
+keys and needed no change. The validator now admits `{state}` on a `strokeEdges` key, as it does on a type key. The
+footprint rule refuses state-keyed geometry because it moves a box, and an inside-drawn stroke left out of the layout
+size moves none. The focus-ring wall in `test.ts` that held `strokeWidth` as the only stroke field now holds exactly
+two, both width.
+
+**The trap, and the shim change that witnesses it.** Both executors write a literal `strokeWeight = 1` on a stroked
+node whose weight was not written, and a literal write after a binding unbinds it (#1266). Their guards checked only
+the scalar `strokeWeight`, so an underline control would have had its per-side bindings overwritten to a 1px box. Four
+guards (two per executor) now check the scalar and all four sides. The component shim didn't model that unbinding: a
+literal write left the per-side bindings in place, so the bug was invisible offline. The shim now models it, as the
+host does. EXECUTOR_REVISION 24 → 25. The paste script grew by the five-key list, so icon-button packs into 18 chunks
+(re-pinned, every chunk under budget).
+
+**How the tests stay independent.** Every expected name in the `#2695` arms (`border-width/hairline`, `/thick`,
+`/none`, `space/0`, `radius/none`, `focus/ring/offset`, the border roles, `disabled/text`) is typed from the
+decisions, never read off the materializer. The family is held by `color.field.fill`, the field chrome only the four
+fields bind. `color.field.border.rest` was tried first and also matches Checkbox and Radio's unchecked box. Contrast is
+recomputed from the roles' colors: the rest, hover, focus and three status lines each clear 3:1 on
+`background.primary` and `background.secondary`, in every mode of every example brand. That agrees with the
+proposal's measured floor of 3.16:1.
+
+**Deferred, filed.** Password field's corner ignores Control shape's Boxed and Hairline on Outline brands (#2718,
+pre-existing from #2648). Number input and Code input join the lever when they are built (#2719). The studio's Shape
+preview has no field, so the lever has no preview effect there (#2720, an owner question).

@@ -108,7 +108,12 @@ export const leverManifest: Lever[] = [
   { key: 'controlShape', group: 'form', label: 'Control shape', control: 'enum', default: 'rounded',
     options: enumOpts(['boxed', 'Boxed'], ['hairline', 'Hairline'], ['rounded', 'Rounded'], ['pill', 'Pill']),
     // #2361 — Hairline's sentence is the owner's (Q139); Boxed's reach (Q139 item 3) is a DRAFT for the owner.
-    description: 'The corner shape of buttons, fields and checkboxes. Hairline gives buttons, fields and checkboxes a 1px corner, and Boxed gives them a sharp 0px corner. Rounded follows radius softness. Pill rounds the ends of buttons fully, whatever the softness; fields and checkboxes keep their own corner.' },
+    // #2695 (owner Q333, taking Q6 A) — the last sentence is the proposal's, approved with option A.
+    description: 'The corner shape of buttons, fields and checkboxes. Hairline gives buttons, fields and checkboxes a 1px corner, and Boxed gives them a sharp 0px corner. Rounded follows radius softness. Pill rounds the ends of buttons fully, whatever the softness; fields and checkboxes keep their own corner. An underline field has no corners.' },
+  // #2695 — label, option labels and description are the proposal's Q1 option A, which the owner took (Q333).
+  { key: 'fieldStyle', group: 'form', label: 'Field style', control: 'enum', default: 'outline',
+    options: enumOpts(['outline', 'Outline'], ['underline', 'Underline']),
+    description: 'The edge of every form field. Outline draws a box; Underline draws one line under the value, with no side padding. Either way the line clears 3:1.' },
   // The button levers (#1667). Labels and option labels are the owner's exact words.
   { key: 'buttonIcons', group: 'form', label: 'Button icons', control: 'enum', default: 'attached',
     options: enumOpts(['attached', 'Attached to label'], ['edges', 'Locked to edges']),

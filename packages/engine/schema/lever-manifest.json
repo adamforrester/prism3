@@ -224,7 +224,25 @@
           "label": "Pill"
         }
       ],
-      "description": "The corner shape of buttons, fields and checkboxes. Hairline gives buttons, fields and checkboxes a 1px corner, and Boxed gives them a sharp 0px corner. Rounded follows radius softness. Pill rounds the ends of buttons fully, whatever the softness; fields and checkboxes keep their own corner."
+      "description": "The corner shape of buttons, fields and checkboxes. Hairline gives buttons, fields and checkboxes a 1px corner, and Boxed gives them a sharp 0px corner. Rounded follows radius softness. Pill rounds the ends of buttons fully, whatever the softness; fields and checkboxes keep their own corner. An underline field has no corners."
+    },
+    {
+      "key": "fieldStyle",
+      "group": "form",
+      "label": "Field style",
+      "control": "enum",
+      "default": "outline",
+      "options": [
+        {
+          "value": "outline",
+          "label": "Outline"
+        },
+        {
+          "value": "underline",
+          "label": "Underline"
+        }
+      ],
+      "description": "The edge of every form field. Outline draws a box; Underline draws one line under the value, with no side padding. Either way the line clears 3:1."
     },
     {
       "key": "buttonIcons",

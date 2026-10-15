@@ -34,6 +34,9 @@
  */
 import { applyHeadline, APPLY_FAILED_HEADLINE, conflictHeadline, componentHeadline, staleNote, refsNote, refsItems, partialWriteHeadline, partialWriteNote, partialWriteItem, fromClauses, motionReplacedItem } from './src/apply-summary';
 import type { PartialWriteFacts } from './src/apply-summary';
+import { fieldStyleNote } from './src/field-style-note';
+import type { BrandInput } from '@prism3/engine/theme';
+import { readFileSync as readSrc } from 'node:fs';
 
 let failed = 0;
 const ok = (cond: boolean, label: string): void => {
@@ -308,6 +311,29 @@ ok(motionReplacedItem(1) === 'Replaced 1 motion variable with the new timing typ
 ok(motionReplacedItem(24) === 'Replaced 24 motion variables with the new timing type.',
   `#2412 Q302: 24 replaced variables read in the plural (${motionReplacedItem(24)})`);
 ok(motionReplacedItem(0) === '', `#2412: nothing replaced, no clause (${JSON.stringify(motionReplacedItem(0))})`);
+
+// ---- #2695 (Q333, taking Q16 A): the field style notice, the proposal's draft verbatim ------------------
+// Apply writes variables only, so a field style switch is said and pointed at Update. Literals typed here.
+{
+  const b = { brandColors: [] } as unknown as BrandInput;
+  const under = { ...b, fieldStyle: 'underline' } as BrandInput;
+  const outline = { ...b, fieldStyle: 'outline' } as BrandInput;
+  ok(fieldStyleNote(outline, under) === 'Field style is now Underline. Update components to redraw the field sets.',
+    `#2695 Q16: outline → underline says so and points at Update (${fieldStyleNote(outline, under)})`);
+  ok(fieldStyleNote(under, b) === 'Field style is now Outline. Update components to redraw the field sets.',
+    `#2695 Q16: underline → unset reads as Outline, the default (${fieldStyleNote(under, b)})`);
+  ok(fieldStyleNote(null, under) === 'Field style is now Underline. Update components to redraw the field sets.',
+    '#2695 Q16: a file with no stored brand was built in outline, so underline is a change');
+  ok(fieldStyleNote(under, under) === '' && fieldStyleNote(null, b) === '' && fieldStyleNote(b, outline) === '',
+    '#2695 Q16: no change, no clause (unset and outline are the same style)');
+  // `main.ts` cannot be imported (it calls `figma.showUI` at load), so its wiring is read as text: the clause is in
+  // Apply's list, off the brand `runApplyTheme` read BEFORE it persisted the new one.
+  const main = readSrc(new URL('./src/main.ts', import.meta.url), 'utf8');
+  const apply = readSrc(new URL('./src/apply-theme.ts', import.meta.url), 'utf8');
+  ok(/fieldStyleNote\(before, input\),\n\s*\]\.map/.test(main) && apply.indexOf('before = restoreInput(host.root)') > 0
+    && apply.indexOf('before = restoreInput(host.root)') < apply.indexOf('persistInput(host.root, input)'),
+    '#2695 Q16: Apply reads the stored brand before persisting the new one, and its clause list carries the notice');
+}
 
 console.log(`\nplugin apply-result headline: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'}`);
 if (failed) process.exit(1);

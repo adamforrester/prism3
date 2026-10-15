@@ -108,6 +108,8 @@ export interface CompMemberRef { name?: string; type?: string; createInstance?()
 
 /** The four PER-SIDE stroke-weight keys the real host binds a `strokeWeight` variable onto (#1332). */
 const STROKE_WEIGHT_SIDES = ['strokeTopWeight', 'strokeRightWeight', 'strokeBottomWeight', 'strokeLeftWeight'];
+/** Every key a stroke weight can be bound on: the scalar and its four sides (#2695, `PartDef.strokeEdges`). */
+const STROKE_WEIGHT_KEYS = ['strokeWeight', ...STROKE_WEIGHT_SIDES];
 
 /**
  * Does the host hold a binding for `field`? (#1332)
@@ -1302,7 +1304,8 @@ const claimDefaults = (node: Wr, n: FigmaNodePlan | null, misses: string[], mode
         // three selection controls do: checkbox at `checked`/`indeterminate` and switch at `on` bind a
         // thickness and paint no border. `strokeAlign` needs no gate — no def can bind it, and INSIDE here
         // agrees with the two sites that write it beside a stroke.
-        if (!('strokeWeight' in (n?.bound ?? {}))) set('strokeWeight', 1);
+        // A per-side weight (#2695, `strokeEdges`) is a binding this would unbind too.
+        if (!STROKE_WEIGHT_KEYS.some((k) => k in (n?.bound ?? {}))) set('strokeWeight', 1);
         set('strokeAlign', 'INSIDE');
       }
       set('dashPattern', []);
@@ -2210,7 +2213,8 @@ const writeComponentSet = async (
           // right paint at a hardcoded 1px, re-theming on color and frozen on width. That is what the focus
           // ring shipped as. `wrote` rather than `n.bound`, so a name that failed to resolve still gets the
           // fallback and paints something.
-          if (!node.strokeWeight && !wrote.includes('strokeWeight')) node.strokeWeight = 1;
+          // A per-side weight (#2695, `strokeEdges`) counts as written: the literal would overwrite all four sides.
+          if (!node.strokeWeight && !STROKE_WEIGHT_KEYS.some((k) => wrote.includes(k))) node.strokeWeight = 1;
           node.strokeAlign = 'INSIDE';
           // BORDER-BOX, and Figma defaults the other way: left alone, the stroke is ADDED to the
           // auto-layout size, so an outline button measured 62 where its filled sibling measured 60 —

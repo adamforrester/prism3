@@ -30,8 +30,8 @@
  */
 import { brandState, currentMode, getPath, lastError, searchQuery, setPage, setSearchHits, subscribe } from '../state/store';
 import { isDerived } from '../state/verdict';
-import { brandBaseMd, brandControlShape, densityIn, radiusScaleIn, setBaseMd, setControlShape, setDensity, setRadiusScale } from '../state/shape-input';
-import type { ControlShape, Density } from '@prism3/engine/scale';
+import { brandBaseMd, brandControlShape, brandFieldStyle, densityIn, radiusScaleIn, setBaseMd, setControlShape, setDensity, setFieldStyle, setRadiusScale } from '../state/shape-input';
+import type { ControlShape, Density, FieldStyle } from '@prism3/engine/scale';
 import { DOMAINS, pageOfTab, type PageData, type Section } from '../shell/pages';
 import { modeLabel } from '../shell/preview';
 import { glyph, h, hook } from '../shell/dom';
@@ -57,7 +57,8 @@ export const SHAPE_COPY = {
   softnessLabel: 'Radius softness',
   softnessTip: 'How round every radius size is, from sharp (0) to round (2). The pill sizes and the 1px radius stay fixed.',
   // #2361 — DRAFT for the owner: leads with what the shape reaches (Q139); Boxed reaches fields and checkboxes too.
-  shapeTip: 'Hairline gives buttons, fields and checkboxes a 1px corner, and Boxed gives them a sharp 0px corner. Rounded follows radius softness. Pill rounds buttons fully at any height; fields and checkboxes keep their own corner.',
+  // #2695 (Q333, taking Q6 A) adds the last sentence, as on the engine's own description.
+  shapeTip: 'Hairline gives buttons, fields and checkboxes a 1px corner, and Boxed gives them a sharp 0px corner. Rounded follows radius softness. Pill rounds buttons fully at any height; fields and checkboxes keep their own corner. An underline field has no corners.',
   baseLabel: 'Base radius',
   baseTip: 'The medium radius at standard softness, from 2 to 12px. Every other radius size is a multiple of it.',
   baseHint: 'The medium radius at standard softness. The other sizes scale from it.',
@@ -165,6 +166,18 @@ export const mountShapeLevers = (hostEl: HTMLElement, cleanups: (() => void)[], 
     return { el: b.el, said: `${b.said} ${opts.map((o) => o.l).join(' ')}`.toLowerCase(), key: 'controlShape', block: b };
   };
 
+  // Field style (#2695, owner Q333): brand-wide chips, after Control shape. Its label, options and description are
+  // the manifest's (Q1 A), so the block reads them there.
+  const fieldStyle = (): Item => {
+    const L = leverOf('fieldStyle');
+    const b = leverBlock('fieldStyle', { group: true });
+    const opts = (L?.options ?? []).map((o) => ({ v: String(o.value) as FieldStyle, l: o.label }));
+    const c = choice(L?.label ?? 'Field style', 'field-style-choice', opts, (v) => edit('fieldStyle', () => setFieldStyle(v)));
+    c.set(brandFieldStyle());
+    b.ctl.append(c.el);
+    return { el: b.el, said: `${b.said} ${opts.map((o) => o.l).join(' ')}`.toLowerCase(), key: 'fieldStyle', block: b };
+  };
+
   // ── Base radius (advanced) ──────────────────────────────────────────────────────────────────────
   const baseRadius = (): Item => {
     const b = leverBlock('baseMd', { label: SHAPE_COPY.baseLabel, desc: SHAPE_COPY.baseTip, forId: 'p3-base-radius' });
@@ -206,7 +219,7 @@ export const mountShapeLevers = (hostEl: HTMLElement, cleanups: (() => void)[], 
   };
   /** Each lever key the page data places, drawn by its builder. A key with no builder draws nothing, and
    *  `test:chrome`'s rendered coverage then fails it by name. */
-  const BUILDERS: Record<string, () => Item> = { density, radiusScale: softness, controlShape, baseMd: baseRadius };
+  const BUILDERS: Record<string, () => Item> = { density, radiusScale: softness, controlShape, fieldStyle, baseMd: baseRadius };
   const section = (s: Section, i: number): { el: HTMLElement; items: Item[] } => {
     const el = sectionShell(s, i);
     const out: Item[] = [];

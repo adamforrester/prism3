@@ -76,7 +76,7 @@ Label = noun phrase, sentence case, no trailing colon. Button = "Show" / "Hide",
 | Axis | Values | Changes |
 | --- | --- | --- |
 | `size` | `medium`, `small`, `large` | once, when authored |
-| `style` | `outline` | once, when authored |
+| `style` | `outline`, `underline` | once, when authored |
 | `status` | `default`, `error`, `warning`, `success` | at runtime |
 
 ## Accessibility

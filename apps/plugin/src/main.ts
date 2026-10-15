@@ -33,6 +33,7 @@ import { isRefusal } from '@prism3/engine/rename-map';
 import { rootOf } from '@prism3/engine/figma-names';
 import { conflictSummary } from './preflight';
 import { runApplyTheme } from './apply-theme';
+import { fieldStyleNote } from './field-style-note';
 import { gridSkippedNote } from './write-grid-styles';
 import { applyComponentPlan, partialWriteOf } from './write-components';
 import type { ComponentProgress, CompPageTarget, CompNode, ComponentsApi } from './write-components';
@@ -199,7 +200,7 @@ const applyTheme = async (input: BrandInput, sink: ActionSink): Promise<void> =>
     // The write sequence — fonts first, pre-flight, then the guarded executor calls — lives in
     // `apply-theme.ts` since #111, so the MCP paste harness can prove parity against this exact path. The
     // global `figma` is the host; everything below this line (the report) is unchanged.
-    const { plans, pf, guarded } = await runApplyTheme(input, figma);
+    const { plans, pf, guarded, before } = await runApplyTheme(input, figma);
     const { colorFiles, floatPlan, fontPlan, motionPlan } = plans;
     if (!guarded.ok) {
       sink.data({ conflicts: guarded.conflicts });
@@ -322,6 +323,8 @@ const applyTheme = async (input: BrandInput, sink: ActionSink): Promise<void> =>
       motionReplacedItem(mv.replaced.length),
       `${r.bound + f.bound + tv.bound + mv.bound + ts.bound} bindings`, misses ? `${misses} misses` : '',
       ...renameNotes, orphanNote, strandedNote, resolvedNote, skippedNote, gridSkippedNote(gs.skipped), fontNote, refusedNote,
+      // #2695 (Q16 A): a field style switch reaches the field sets through Update, so Apply says so.
+      fieldStyleNote(before, input),
     ].map((x) => [', ', x] as const));
     // Skipped fonts aren't a "failure" (variables still wrote); only true misses flip ok=false. The
     // pill's headline is derived from the COUNTS (see `apply-summary.ts`), never from `summary` — the
