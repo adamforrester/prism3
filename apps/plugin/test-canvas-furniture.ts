@@ -45,6 +45,11 @@
  *   update/…      Tag with its labels drawn: the dry run reads all 45 members current with no hand edit and nothing
  *                 unstamped, and the as-built record covers 45 members. Mutations: the labels drawn into a member,
  *                 which the dry run then reads as 19 hand edits, or into the set → `update/ignores furniture`.
+ *   moved/…       a set moved to another page, then into a frame (#2485): the next draw leaves none of its furniture
+ *                 where it was and redraws all of it beside the set; another set's furniture, of the same def or
+ *                 another, and an untagged node stay. Mutations: the moved set's clear dropped → `moved/to another
+ *                 page`, `moved/into a frame`; matching by def instead of set id → `moved/others stay`; no clear when
+ *                 drawing into a frame → `moved/into a frame` (its fixture is a frame with its own closures, #2485 review).
  *   prune/…       furniture whose set is gone is removed; a live set's furniture and an untagged node stay.
  *   templates/…   `_Label` and `_inverse-backdrop` as file setup builds them, against the spec in #2406's Q171
  *                 comment, transcribed by hand here; each built on its own on a page that already has the other
@@ -619,20 +624,24 @@ section('rollout — every def that builds a set: drawn, converged, and clear of
   // properties builds a set, except the two that build single components (`emitAsComponents`), which have no grid.
   const withSet = componentDefs.filter((d) => d.figmaProperties && !d.figmaProperties.emitAsComponents).map((d) => d.id);
   const single = componentDefs.filter((d) => d.figmaProperties?.emitAsComponents).map((d) => d.id);
-  ok(withSet.length === 33 && withSet.every(hasFurniture) && JSON.stringify(single) === JSON.stringify(['icon', 'spinner']) && !single.some(hasFurniture),
-    `rollout/switch: all 33 defs that build a set have furniture; Icon and Spinner, single components, do not (off: ${JSON.stringify(withSet.filter((id) => !hasFurniture(id)))})`);
+  ok(withSet.length === 34 && withSet.every(hasFurniture) && JSON.stringify(single) === JSON.stringify(['icon', 'spinner']) && !single.some(hasFurniture),
+    `rollout/switch: all 34 defs that build a set have furniture; Icon and Spinner, single components, do not (off: ${JSON.stringify(withSet.filter((id) => !hasFurniture(id)))})`);
 
   // THE MEMBERS AN EARLIER LAYOUT HOLDS OFF THEIR GROUPED ROW, per def, worked out by hand. Only a def with a `surface`
   // ROW axis regroups. Button and its two siblings: 360, as `MOVES` above. The three icon buttons: 36 rows of 6
   // states; the earlier row order is appearance (3) × shape (2) × surface (2) × size (3), the grouped one surface ×
   // appearance × shape × size, so a row keeps its place only where 12a + 6s + 3u = 18u + 6a + 3s, that is 2a + s =
   // 5u: (filled, square?, default) — a = 0, s = 0, u = 0 — and a = 2, s = 1, u = 1. Six rows stay, 30 rows × 6 = 180
-  // move. Every other def: none, its layout is the one it had.
+  // move. Link (#2580): 24 rows of 4 states; the earlier row order is style (2) × weight (2) × surface (2) × size (3),
+  // the grouped one surface × style × weight × size, so a row stays only where 12s + 6w + 3u = 12u + 6s + 3w, that is
+  // 2s + w = 3u: (standalone, emphasis, default) and (inline, default, inverse). Six rows stay, 18 rows × 4 = 72 move.
+  // Every other def: none, its layout is the one it had.
   const MOVES_BY_DEF: Record<string, number> = {
     button: 360, 'button-destructive': 360, 'button-neutral': 360,
     'icon-button': 180, 'icon-button-destructive': 180, 'icon-button-neutral': 180,
+    link: 72,
   };
-  // THE DEFS WITH A BACKDROP: the six above, the only ones whose rows split by `surface`. Focus ring has `surface`
+  // THE DEFS WITH A BACKDROP: the seven above, the only ones whose rows split by `surface`. Focus ring has `surface`
   // too, but as its grid axis (two columns), so it gets two column labels and no backdrop (held for the owner, #2502).
   const BACKDROP = new Set(Object.keys(MOVES_BY_DEF));
   for (const id of withSet) {
@@ -856,6 +865,50 @@ section('update — the dry run and the as-built record ignore the labels');
 }
 
 /* ── prune: stale furniture goes, live furniture stays ──────────────────────────────────────────────────── */
+section('moved — a set moved to another page or into a frame takes its furniture with it on the next draw (#2485)');
+{
+  // Button built and furnished on `↳ A`, then moved by a designer: first to `↳ B`, then into a frame on `↳ B`. Each
+  // redraw is the build's and the Update's (`furnishSet` → `drawFurniture`). The host's search for tagged instances
+  // is file-wide and deep, as Figma's is: it reads both pages and the frame. Beside the set on `↳ A` sit three nodes
+  // that must stay: another Button set's label (same def, another set id), Tag's label, and an untagged label.
+  // Mutations: the moved set's clear dropped from `drawFurniture` → `moved/to another page`, `moved/into a frame`;
+  // the clear matching by def instead of set id → `moved/others stay`.
+  const { plans, page: a, set } = await buildOnPage('button');
+  const b = makePage('↳ B');
+  // Its own closures, not a spread of a page's: a spread copies `appendChild`, which parents the child to the page it
+  // was made for, so the set would land on a third page and the frame case would go untested (#2485 review).
+  const frame = makePage('frame') as ReturnType<typeof makePage> & { type: string };
+  frame.type = 'FRAME';
+  const tagged = (p: { children: FNode[] }) => p.children.filter((c) => (c.getSharedPluginData as ((x: string, y: string) => string) | undefined)?.('prism3', 'furniture'));
+  const api = fakeTemplates();
+  const templates = api.root.findAllWithCriteria;
+  api.root.findAllWithCriteria = (c) => (c.sharedPluginData ? [...tagged(a), ...tagged(b), ...tagged(frame)] : templates(c));
+  const first = await drawFurniture(api, set, furnitureLayout(plans), 'button');
+  const n = first.columns + first.rows + first.backdrops;
+  const stray = (def: string, setId: string) => {
+    const x = labelInstance('Top');
+    a.appendChild(x);
+    if (setId) (x.setSharedPluginData as (p: string, q: string, r: string) => void)('prism3', 'furniture', JSON.stringify({ v: 1, def, set: setId, kind: 'label' }));
+    return x;
+  };
+  const others = [stray('button', 'S:another-button'), stray('tag', 'S:tag'), stray('', '')];
+  const ofSet = (p: { children: FNode[] }) => tagged(p).filter((f) => tagOf(f).set === String(set.id));
+  ok(n > 0 && first.backdrops === 1 && ofSet(a).length === n, `moved/drawn: Button furnished on ↳ A, ${n} instances with its one backdrop (${ofSet(a).length})`);
+
+  b.appendChild(set);
+  const toB = await drawFurniture(api, set, furnitureLayout(plans), 'button');
+  ok(ofSet(a).length === 0 && ofSet(b).length === n && toB.cleared === n,
+    `moved/to another page: nothing of the set left on ↳ A, its ${n} instances on ↳ B, ${n} cleared (↳ A ${ofSet(a).length}, ↳ B ${ofSet(b).length}, cleared ${toB.cleared})`);
+  ok(others.every((o) => a.children.includes(o) && !o.removed),
+    `moved/others stay: another Button set's label, Tag's label and an untagged label stay on ↳ A (${others.filter((o) => a.children.includes(o)).length} of 3)`);
+
+  frame.appendChild(set);
+  b.appendChild(frame as unknown as FNode);
+  const toFrame = await drawFurniture(api, set, furnitureLayout(plans), 'button');
+  ok(set.parent === (frame as unknown) && ofSet(b).length === 0 && ofSet(frame).length === n && toFrame.cleared === n,
+    `moved/into a frame: the set sits in the frame, nothing of it left on ↳ B, its ${n} instances in the frame beside it, ${n} cleared (in the frame: ${set.parent === (frame as unknown)}; ↳ B ${ofSet(b).length}, frame ${ofSet(frame).length}, cleared ${toFrame.cleared})`);
+}
+
 section('prune — furniture whose set is gone');
 {
   const page = makePage();

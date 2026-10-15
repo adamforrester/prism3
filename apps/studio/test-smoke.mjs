@@ -48,7 +48,7 @@ import { dirname, extname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import { hookGuard } from './test-hooks.mjs';
-import { INPUT_MS, makeBounded, rendersFrame } from './test-bounded.mjs';
+import { INPUT_MS, makeBounded, rendersFrame, watchStalls } from './test-bounded.mjs';
 import { assertBundleFresh, STUDIO_SOURCE_ROOTS } from './test-bundle-freshness.mjs';
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
@@ -877,6 +877,9 @@ const openBrand = async (brand, scheme, { interInstalled = false } = {}) => {
   await hooks.click(page.locator('[data-p3="start-example"]').filter({ hasText: brand }));
   await hooks.need(page, '[data-p3="frame"]');   // the app view (Color › Palettes draws the two panes from S2)
   await page.evaluate(() => document.fonts.ready);
+  // The debugger on now, while the page answers (#2585): a freeze an arm's earlier step starts is then located by the
+  // first bounded input after it, not reported as "where it stopped is unknown".
+  await watchStalls(page);
   return { ctx, page, drain };
 };
 
@@ -893,6 +896,23 @@ const BRANDS = await (async () => {
   return names.map((n) => n.trim());
 })();
 ok(BRANDS.length >= 2, `the start screen offers at least the two corpus brands (found ${BRANDS.length}: ${BRANDS.join(', ')})`);
+
+// The bounded input's own report, checked (#2585): a page that freezes BEFORE its first bounded input still says where
+// it stopped. A page from `openBrand` is frozen by a loop the test names, then given one bounded key press on a short
+// bound, through a reporter of its own (the suite's `closeDead` and dead-page set are not touched). EXPECTED: the one
+// report names that function, a literal here. MUTATION: `watchStalls` left out of `openBrand` → the debugger is asked
+// for only once the page is stuck, and the report reads "no debugger session could be opened" → this check fails.
+{
+  const { ctx, page } = await openBrand(BRANDS[0]);
+  const said = [];
+  const probe = makeBounded({ ok: (c, label) => { if (!c) said.push(label); }, onDead: async (_p, label, why) => { said.push(why ? `${label}: ${why}` : label); }, inputMs: 2000 });
+  await page.evaluate(() => { setTimeout(function frozenBeforeInput() { for (;;) {} }, 0); });
+  await new Promise((r) => setTimeout(r, 300));
+  await probe.bounded(page, 'probe', () => page.keyboard.press('Escape'));
+  ok(said.length === 1 && /running JavaScript: frozenBeforeInput /.test(said[0]),
+    `#2585 a page frozen before its first bounded input: the stall report names the function it was stuck in, frozenBeforeInput — reported ${JSON.stringify(said)}`);
+  await Promise.race([ctx.close().catch(() => {}), new Promise((r) => setTimeout(r, 10000))]);
+}
 
 // =============================================================================================
 // 1. The sweep — every page, in every mode, on every corpus brand
@@ -2111,7 +2131,7 @@ const closeDead = async (page, label, why = `the page rendered no frame within $
 // Every bounded input (#2547, #2550) goes through the shared helper in `test-bounded.mjs`: a stall fails one arm by
 // name and says what the page was doing. A page that renders no frame, or a busy one whose input is still in flight
 // (#2557 review), goes through `closeDead`: its context is closed and its brand is skipped.
-const { bounded, stats: inputStats } = makeBounded({ ok, isDead: (p) => deadPages.has(p), onDead: closeDead });
+const { bounded, stats: inputStats } = makeBounded({ ok, isDead: (p) => deadPages.has(p), onDead: closeDead, requireWatched: true });
 /** The wait after a bounded open (#2557 review): bounded at INPUT_MS on Playwright's clock and caught, so a picker
  *  that opened but never drew fails its arm by name, rather than as `hooks.need`'s throw past every arm (which also
  *  blames a renamed hook). Returns whether it drew. */

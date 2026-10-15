@@ -1,6 +1,8 @@
 # Prism3 — Concept v4: Workbench, revised
 
-Prototype: `concept-v4.html` (self-contained, offline, 853 KB). It is generated from the hand-written `concept-v4.src.html` plus the real engine, by `build-v4.mjs`. It is a design direction for owner review, not product code.
+Prototype: `concept-v4.html` (self-contained, offline, 853 KB), built by `build-v4.mjs` from the hand-written `concept-v4.src.html` plus the real engine. It is a design direction for owner review, not product code.
+
+**The built file is no longer committed** (Q319.4, #2583). Build it from the commit that shipped it: `git worktree add --detach /tmp/v4 46574c08 && node /tmp/v4/docs/superpowers/ui-redesign/build-v4.mjs`. At a later commit the build refuses by design, because its coverage oracle (`lever-manifest.json`) has gained levers this mockup has no home for. The reviewed bytes are in history: `git show 46574c08:docs/superpowers/ui-redesign/concept-v4.html`.
 
 Harness bar (outside the product): **Host** Studio / Plugin · **Frame** Fill / 1280×900 / 380×420 · **State** First run, Apply running, Build with errors, Agent working, Refused edit, Reset · **Plugin file** Empty / Empty with a saved brand / Has a theme (drives the plugin start and Read-back outcomes). The divider drags between 28% and 62% and takes arrow keys, Home and End; the split is remembered in browser storage.
 

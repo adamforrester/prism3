@@ -1,7 +1,8 @@
 /**
  * Motion FLOATs export as DTCG durations, `motion/stagger` included (prism3 #2394).
  *
- * prism3 writes motion into Figma as plain FLOAT milliseconds with no scope (Figma has no time scope).
+ * prism3 wrote motion into Figma as plain FLOAT milliseconds with no scope until #2412 moved it to TIMING
+ * (motion-timing-easing.test.ts). A file written before that, or any file keeping motion as FLOAT ms, exports this way.
  * Names under `motion/duration…` were already typed `duration` by name; `motion/stagger` carries none
  * of the MOTION patterns and came back as a plain number. Driven through the real exporter, so the
  * type, the value shape and the alias are checked together.

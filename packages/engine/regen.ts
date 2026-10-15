@@ -1,6 +1,7 @@
 // regen.ts — the single entry point for regenerating EVERY committed generated artifact — `out/**`,
-// the three emitted `schema/` contracts, and the two engine-root reports — plus the drift gate that
-// proves the committed copies still match what the engine emits (#281).
+// the three emitted `schema/` contracts, and the two engine-root reports, and the analysis reports
+// under `docs/public/reports/` (#2651) — plus the drift gate that proves the committed copies still
+// match what the engine emits (#281).
 //
 // Why this exists: regeneration used to be four separate commands, and only `emit-dtcg.ts`
 // (nb/aurora/harbor) was in the habitual path — so `tokens.html` and the wendys artifacts rotted
@@ -17,7 +18,7 @@
 // exactly "does the committed `out/` match the committed sources".
 
 import { spawnSync } from 'node:child_process';
-import { cpSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -43,6 +44,8 @@ const STEPS: Array<{ label: string; args: string[] }> = [
   { label: 'emit-icons     (icon-glyphs.ts)', args: ['packages/engine/emit-icons.ts'] },
   // #1701 — the component docs projection. Reads the def registry only, so it has no ordering dependency.
   { label: 'emit-component-docs (out/components/** + component-maintainer)', args: ['packages/engine/emit-component-docs.ts'] },
+  // #2651 — the analysis reports. Last, because the token report reads `out/prism3.tokens.json`, which emit-dtcg writes.
+  { label: 'emit-analysis-reports (docs/public/reports/**)', args: ['packages/engine/emit-analysis-reports.ts'] },
 ];
 
 // Committed generated artifacts that live at the ENGINE ROOT rather than under `out/`. Both were
@@ -81,6 +84,22 @@ export const SCHEMA_ARTIFACTS = ['lever-manifest.json', 'preview-spec.json', 'ex
 // into `SCHEMA_ARTIFACTS` would put issue numbers and brief references under the shipped-prose gates.
 export const MAINTAINER_ARTIFACTS = ['component-maintainer.json'];
 
+// The ANALYSIS REPORTS (#2651): token usage, component dependencies, the cross-component comparison and icon
+// usage, each a page and a JSON twin, under `docs/public/reports/` where the docs are served (#2637). Generated
+// and drift-checked like every list above, and a list of its own for two reasons. They live outside the engine
+// package, so neither `out/` nor `schema/` reaches them. And they are documentation about the emission rather
+// than emission: `lint-emission-version.ts` reads `ENGINE_ARTIFACTS` and `SCHEMA_ARTIFACTS` as "a move here
+// owes an engine bump", which is not true of a report (it carries no engine version, so a fold leaves it
+// alone). The prose gates import this list, so a report added here is scanned without a second edit.
+export const REPORTS_DIR = 'docs/public/reports';
+export const REPORT_ARTIFACTS = [
+  'index.md', 'index.json',
+  'token-usage.md', 'token-usage.json',
+  'component-dependencies.md', 'component-dependencies.json',
+  'component-comparison.md', 'component-comparison.json',
+  'icon-usage.md', 'icon-usage.json',
+];
+
 // Every file under `out/`, repo-relative, sorted — the comparison universe. Walks rather than
 // globbing so `out/figma/<brand>/*.json` is covered without naming each brand.
 const walk = (dir: string): string[] => {
@@ -118,12 +137,18 @@ const check = (): void => {
   const outSnap = join(tmp, 'out');
   const schemaSnap = join(tmp, 'schema');
   const engineSnap = join(tmp, 'engine');
+  const reportSnap = join(tmp, 'reports');
+  const reportDir = join(repoRoot, REPORTS_DIR);
   try {
     cpSync(outDir, outSnap, { recursive: true, preserveTimestamps: true });
     mkdirSync(schemaSnap, { recursive: true });
     for (const f of [...SCHEMA_ARTIFACTS, ...MAINTAINER_ARTIFACTS]) cpSync(join(schemaDir, f), join(schemaSnap, f), { preserveTimestamps: true });
     mkdirSync(engineSnap, { recursive: true });
     for (const f of ENGINE_ARTIFACTS) cpSync(join(here, f), join(engineSnap, f), { preserveTimestamps: true });
+    // A report that is not committed yet is a `missing` artifact, not a crash: snapshot only what exists.
+    mkdirSync(reportSnap, { recursive: true });
+    const reportsBefore = REPORT_ARTIFACTS.filter((f) => existsSync(join(reportDir, f)));
+    for (const f of reportsBefore) cpSync(join(reportDir, f), join(reportSnap, f), { preserveTimestamps: true });
 
     regenerate();
 
@@ -149,6 +174,11 @@ const check = (): void => {
     for (const f of ENGINE_ARTIFACTS) {
       if (!readFileSync(join(engineSnap, f)).equals(readFileSync(join(here, f)))) drifted.push(`packages/engine/${f}`);
     }
+    // docs/public/reports — the named reports (#2651); anything else in that directory is not ours to judge.
+    for (const f of REPORT_ARTIFACTS) {
+      if (!reportsBefore.includes(f)) { added.push(`${REPORTS_DIR}/${f}`); continue; }
+      if (!readFileSync(join(reportSnap, f)).equals(readFileSync(join(reportDir, f)))) drifted.push(`${REPORTS_DIR}/${f}`);
+    }
 
     // Restore the committed state either way — the gate reports, it never rewrites. Every copy, the
     // snapshot and the restore, keeps its timestamps (#2067): without that, a clean `--check` left each
@@ -158,8 +188,12 @@ const check = (): void => {
     cpSync(outSnap, outDir, { recursive: true, preserveTimestamps: true });
     for (const f of [...SCHEMA_ARTIFACTS, ...MAINTAINER_ARTIFACTS]) cpSync(join(schemaSnap, f), join(schemaDir, f), { preserveTimestamps: true });
     for (const f of ENGINE_ARTIFACTS) cpSync(join(engineSnap, f), join(here, f), { preserveTimestamps: true });
+    for (const f of REPORT_ARTIFACTS) {
+      if (reportsBefore.includes(f)) cpSync(join(reportSnap, f), join(reportDir, f), { preserveTimestamps: true });
+      else rmSync(join(reportDir, f), { force: true });
+    }
 
-    const checked = after.size + SCHEMA_ARTIFACTS.length + MAINTAINER_ARTIFACTS.length + ENGINE_ARTIFACTS.length;
+    const checked = after.size + SCHEMA_ARTIFACTS.length + MAINTAINER_ARTIFACTS.length + ENGINE_ARTIFACTS.length + REPORT_ARTIFACTS.length;
     if (!drifted.length && !added.length && !removed.length) {
       console.log(`\n✓ in sync — ${checked} committed artifacts byte-match what the engine emits.`);
       return;

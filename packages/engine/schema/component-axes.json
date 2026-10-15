@@ -489,6 +489,39 @@
       "Marker": "BOOLEAN"
     }
   },
+  "link": {
+    "axes": {
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ],
+      "state": [
+        "focus-visible",
+        "hover",
+        "pressed",
+        "rest"
+      ],
+      "style": [
+        "inline",
+        "standalone"
+      ],
+      "surface": [
+        "default",
+        "inverse"
+      ],
+      "weight": [
+        "default",
+        "emphasis"
+      ]
+    },
+    "members": 96,
+    "properties": {
+      "label": "TEXT",
+      "trailing icon": "BOOLEAN",
+      "↳ swap trailing icon": "INSTANCE_SWAP"
+    }
+  },
   "list": {
     "axes": {
       "size": [

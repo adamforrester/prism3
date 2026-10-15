@@ -294,7 +294,7 @@ const EXPECT_ANATOMY = [
   'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'switch-control', 'switch-row', 'select', 'veil',
   'image-placeholder', 'spinner', 'badge', 'tag', 'tab', 'tabs', 'divider', '_accordion-indicator', 'accordion',
   'list-item', 'list',
-  'segmented-control-segment', 'segmented-control',
+  'segmented-control-segment', 'segmented-control', 'link',
 ];
 const EXPECT_PAINTERS = [
   'focus-ring', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive',

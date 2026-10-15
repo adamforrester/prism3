@@ -36,7 +36,8 @@ The PR template's Gates block is the load-bearing part — fill it in with real 
 not ticks.
 
 **A PR writes its own files, never the shared lines (#1807).** Every PR used to write the same
-four places: the top of `docs/00-progress.md`, `ENGINE_VERSION`, the changelog above it, and the
+four places: the top of `docs/00-progress.md`, `ENGINE_VERSION`, the changelog above it (since
+Q319.3, `packages/engine/CHANGELOG.md`), and the
 version stamp in every emitted tree. So every open PR conflicted with every other, and merges ran
 one at a time. Now:
 
@@ -48,7 +49,7 @@ one at a time. Now:
   existing entry; a correction travels as a fragment of its own ("Correction to <date> <title>").
   A **pure** fold is exempt because it
   consumes fragments rather than adding one: it deletes pending files, every entry it consumed reached
-  the log, and it touches nothing but the log, the pending directories, `version.ts`, `out/` and the
+  the log, and it touches nothing but the log, the pending directories, `version.ts`, `CHANGELOG.md`, `out/` and the
   rename stamps it fills (below). A fold PR that also fixes a semantic conflict carries a fragment for
   the fix.
 - **The engine bump**, when one is owed, is a change note, `packages/engine/changes/<slug>.md`:
@@ -57,14 +58,14 @@ one at a time. Now:
   ---
   engine: minor          # patch | minor | major
   ---
-  The changelog prose that used to go into version.ts. Write {{ENGINE_VERSION}} where the number goes.
+  The changelog prose; the fold writes it into CHANGELOG.md. Write {{ENGINE_VERSION}} where the number goes.
   ```
 
   It declares the class and never picks a number. **The class:** `minor` for any behavior change;
   `patch` only when no committed artifact and no projected component surface moves (`regen --check`
   clean before and after, `lint-component-surface.ts` baseline unchanged); `major` is
   refused while `ENGINE_VERSION` is below 1.0, because going to 1.0 is the owner's decision. The fold
-  takes the highest class in the batch. **Do not edit `ENGINE_VERSION`, its changelog, the version
+  takes the highest class in the batch. **Do not edit `ENGINE_VERSION`, its changelog (`packages/engine/CHANGELOG.md`), the version
   stamps in `out/`, or a note another PR merged.** `lint-emission-version.ts` fails a PR that is not a fold for editing
   the constant or its changelog, and both version gates accept the note as the bump. Run `regen.ts`
   as usual; your `out/` diff carries your real changes under the old stamp, and the fold restamps.
@@ -134,8 +135,8 @@ Then push and open the PR. What the fold does, in order:
    order.
 4. It assigns **one version per fold**: the current `ENGINE_VERSION` bumped once, by the highest class
    any note declares. With no notes the version does not move.
-5. It writes the constant and a changelog section under the FOLD MARKER in `version.ts`, newest merge
-   first. Then it puts the fragments at the top of the log, newest merge first, each dated with the UTC
+5. It writes the constant in `version.ts` and a changelog section under the FOLD MARKER in
+   `packages/engine/CHANGELOG.md`, newest merge first. Then it puts the fragments at the top of the log, newest merge first, each dated with the UTC
    day it landed. It fills in `{{ENGINE_VERSION}}` in both, and in every pending rename stamp (#1816).
 6. It deletes the folded files and, when the version moved, runs `regen.ts` to restamp the corpus.
 
@@ -177,8 +178,8 @@ resolving takes `main`'s side of the lines your text is on.
 2. `git merge origin/main`, then resolve:
    - **`docs/00-progress.md`:** keep `main`'s side and drop your old entry from the top. It is in the
      fragment now.
-   - **`version.ts`:** keep `main`'s `ENGINE_VERSION` line and `main`'s changelog, and drop your old
-     entry there. Keep any other edit of yours in the file, such as a `CONTRACT_VERSION` bump, its
+   - **`version.ts`:** keep `main`'s `ENGINE_VERSION` line and `main`'s changelog (in
+     `CHANGELOG.md` since Q319.3), and drop your old entry there. Keep any other edit of yours in the file, such as a `CONTRACT_VERSION` bump, its
      changelog or a `DEPRECATIONS` row. Those are still per-PR.
    - **Version stamps in `out/` and `components.ai.json`:** take either side. The next step rewrites
      them.
@@ -275,6 +276,17 @@ npx tsx packages/engine/emit-dtcg.ts                # every alias resolves + eve
 npx tsx packages/engine/emit-figma.ts               # the Figma import artifact
 npx tsx packages/engine/regen.ts --check            # no committed artifact has drifted (#281) — the only gate reading the committed tree
 npx tsx packages/engine/token-contract.ts --check   # the token-NAME contract hasn't broken (#464)
+npx tsx packages/engine/lint-contract-version.ts    # CONTRACT_VERSION against the MERGE BASE's (#2334):
+                                                    # the line above compares the constant with the
+                                                    # baseline's number, both in the tree, so writing
+                                                    # an old number back into both passed it. This
+                                                    # reads both at the base with git: MAJOR for a
+                                                    # removed or retyped guaranteed path, at least
+                                                    # MINOR for an added one, the base's own number
+                                                    # when nothing moved. Needs history, FAILS with
+                                                    # no base ref; first parent on main's push run
+                                                    # (`comparison-base.ts`, replayed by
+                                                    # `lint-push-base.ts` below)
 npx tsx packages/engine/lint-skills.ts              # shipped skills still make true claims
 npx tsx packages/engine/lint-doc-gates.ts           # this checklist stays in sync with ci.yml (#613)
                                                     # and names no RETIRED gate: a deleted gate's line
@@ -380,7 +392,7 @@ npx tsx packages/engine/lint-component-renames.ts
                                                     # so it needs history and FAILS with no base ref;
                                                     # its in-tree arm checks the baseline is current
 npx tsx packages/engine/lint-push-base.ts      # on main's push run the merge base is HEAD, so
-                                                    # the four git-history gates above compared a
+                                                    # the five git-history gates above compared a
                                                     # squash with itself and passed (#2556, the
                                                     # #2551 gap). `comparison-base.ts` gives them
                                                     # HEAD's first parent there; this replays main's

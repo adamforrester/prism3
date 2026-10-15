@@ -29,9 +29,9 @@
  *
  * ── THE ORDER (§7) ────────────────────────────────────────────────────────────────────────────────────────
  *
- * Preflight first, writing nothing: the hash, every font the plans' text styles and the members' text nodes
- * need, and every variable, style and nested or swapped component the plans name. A set that fails any of it is
- * refused by name. Then a named version (Q7), once, before the first write; if the host refuses it, nothing is
+ * Preflight first, writing nothing: the hash, then the dry run's blockers, which include every font the plans' text
+ * styles and the members' text nodes need, and every variable, style and nested or swapped component the plans name
+ * (#2601). A set with any is refused by name, in the dry run's words. Then a named version (Q7), once, before the first write; if the host refuses it, nothing is
  * written. Then each set, nested sets first (Q8): member renames in one synchronous block (the set never holds
  * two axis lists at a host boundary, #1780), property deletes and default edits, the deprecation marks, and the
  * build's own pass, which configures the members, builds the new ones, declares and wires properties, lays out
@@ -48,11 +48,10 @@
  * were kept as a hand edit. Either failing makes the verdict a failure.
  */
 import { diffAnatomy, type HostNode } from '@prism3/engine/anatomy-readback';
-import { planBoundVars, planComponentName, planEffectStyles, planPaintVars, planSetProperties, planTextStyles, type AnatomyPlan } from '@prism3/engine/anatomy-figma';
-import { tailOf } from '@prism3/engine/figma-names';
+import { planComponentName, planSetProperties, type AnatomyPlan } from '@prism3/engine/anatomy-figma';
 import type { ComponentRename } from '@prism3/engine/component-renames';
 import { applyComponentPlan, emitCoordValue, memberStamp, STAMP_KEY, type ComponentApplyResult, type ComponentsApi, type CompPageTarget } from './write-components';
-import { planTargets, presentNames } from './build-deps';
+import { planTargets } from './build-deps';
 import { NS } from './persist-figma';
 import { baselineDiff, baselineOf, readBaseline, snapshotMember } from './member-baseline';
 import { drawnFaults, faultLine, varsById } from './drawn';
@@ -77,9 +76,9 @@ const fnv = (s: string): string => {
 
 /** The one hash a confirm echoes: every set's own hash, and what was missing or refused. */
 export const previewHashOf = (r: UpdatePreview): string =>
-  // A set's move (#2542) and the page list (#2568) are in the hash, so a set or a page someone moves between the check
-  // and the confirm refuses the apply.
-  fnv(JSON.stringify([r.sets.map((s) => (s.setMove ? [s.set, s.previewHash, s.setMove] : [s.set, s.previewHash])), r.missing, r.refused, ...(r.pages ? [r.pages] : [])]));
+  // A set's move (#2542), the page list (#2568) and the set's blockers are in the hash, so a set or a page someone moves,
+  // or a font or variable that comes or goes (#2601), between the check and the confirm refuses the apply.
+  fnv(JSON.stringify([r.sets.map((s) => [s.set, s.previewHash, ...(s.setMove ? [s.setMove] : []), ...(s.blockers.length ? [s.blockers] : [])]), r.missing, r.refused, ...(r.pages ? [r.pages] : [])]));
 
 /** The host an apply needs: the file the dry run reads, and the executor's port, which are the same `figma` in
  *  the plugin. Two parameters because they are two surfaces, and the offline host models each separately. */
@@ -240,49 +239,12 @@ export const nestedFirst = (targets: readonly UpdateTarget[]): UpdateTarget[] =>
 };
 
 /**
- * PREFLIGHT, one set, writing nothing. `null` when the set can be updated; otherwise the reason it cannot.
+ * PREFLIGHT, one set, writing nothing: the dry run's blockers, read again here. `null` when the set can be updated;
+ * otherwise the reason it cannot. Every refusal is one the dry run lists (#2592, #2601): a collapse, an axis change
+ * over members not built by Prism3 and a rename onto another member's name (`setRefusal`), and every variable, style,
+ * nested or swapped component and font the plans need that the file lacks or will not load (`fileBlockers`).
  */
-const preflight = async (api: ComponentsApi, t: UpdateTarget, p: SetPreview, live: LiveSet, present: Set<string>): Promise<string | null> => {
-  // A collapse, an axis change over members not built by Prism3, and a rename onto another member's name are the dry
-  // run's blockers (`setRefusal`, #2592): one test, so the confirm step lists every set this refuses for them.
-  if (p.blockers.length) return p.blockers.join('; ');
-  // EVERY NAME THE PLANS REACH FOR, resolved in this file before anything is written. A build would report each
-  // as a miss and write the rest; an update would leave a published set half-changed, which is worse (§7).
-  const roots = t.plans.map((x) => x.root);
-  const vars = new Set((await api.variables.getLocalVariablesAsync()).map((v) => tailOf(v.name)).filter(Boolean) as string[]);
-  const wantVars = [...new Set(roots.flatMap((r) => [...planBoundVars(r), ...planPaintVars(r)]))];
-  const noVar = wantVars.filter((v) => !vars.has(v));
-  if (noVar.length) return `${noVar.length} variable${noVar.length === 1 ? '' : 's'} the plan binds ${noVar.length === 1 ? 'is' : 'are'} not in this file (${noVar.slice(0, 3).join(', ')})`;
-  const styles = await api.getLocalTextStylesAsync();
-  const byName = new Map(styles.map((s) => [s.name, s] as const));
-  const wantStyles = [...new Set(roots.flatMap(planTextStyles))];
-  const noStyle = wantStyles.filter((s) => !byName.has(s));
-  if (noStyle.length) return `text style${noStyle.length === 1 ? '' : 's'} not in this file: ${noStyle.slice(0, 3).join(', ')}`;
-  const effects = new Set((await api.getLocalEffectStylesAsync()).map((s) => s.name));
-  const noEffect = [...new Set(roots.flatMap(planEffectStyles))].filter((s) => !effects.has(s));
-  if (noEffect.length) return `effect style${noEffect.length === 1 ? '' : 's'} not in this file: ${noEffect.slice(0, 3).join(', ')}`;
-  const noComp = planTargets(t.plans).filter((n) => !present.has(n));
-  if (noComp.length) return `component${noComp.length === 1 ? '' : 's'} the plan nests or swaps ${noComp.length === 1 ? 'is' : 'are'} not in this file: ${noComp.slice(0, 3).join(', ')}`;
-  // FONTS, the two failures seen in practice (#913, #1599): a style's typeface that is not installed, and a text
-  // node's own font. Every one is loaded now; any that will not load refuses the set.
-  const fonts = new Map<string, { family: string; style: string }>();
-  for (const s of wantStyles) { const f = byName.get(s)?.fontName; if (f) fonts.set(`${f.family}|${f.style}`, f); }
-  const walk = (n: unknown): void => {
-    const x = n as { type?: unknown; fontName?: unknown };
-    if (x.type === 'TEXT' && x.fontName && typeof x.fontName === 'object') {
-      const f = x.fontName as { family: string; style: string };
-      fonts.set(`${f.family}|${f.style}`, f);
-    }
-    if (x.type !== 'INSTANCE') for (const k of kidsOf(n)) walk(k);
-  };
-  for (const c of kidsOf(live)) walk(c);
-  const failed: string[] = [];
-  for (const f of fonts.values()) {
-    try { await api.loadFontAsync(f); } catch { failed.push(`${f.family} ${f.style}`); }
-  }
-  if (failed.length) return `fonts: ${failed.join(', ')} will not load, so text could not be written`;
-  return null;
-};
+const preflight = (p: SetPreview): string | null => (p.blockers.length ? p.blockers.join('; ') : null);
 
 /** Which members this update configures, which it leaves, and why, from the dry run alone. */
 const plan = (p: SetPreview, choice: HandEditChoice, noRecord: NoRecordChoice): { members: Map<string, { keep: Set<string>; accept?: boolean }>; skipped: { member: string; reason: string }[]; kept: { member: string; path: string }[]; unrecorded: string[]; restamp: string[]; earlierRecord: string[] } => {
@@ -536,14 +498,13 @@ export const applyUpdate = async (
     return res;
   }
   // PREFLIGHT EVERY SET, before anything is written anywhere.
-  const present = presentNames(api as unknown as Parameters<typeof presentNames>[0]);
   const ordered = nestedFirst(targets);
   const ready: { t: UpdateTarget; p: SetPreview; live: LiveSet; stampOnly?: boolean }[] = [];
   for (const t of ordered) {
     const p = preview.sets.find((s) => s.set === (t.plans[0]?.component ?? t.def));
     const live = p ? await liveFor(host, t, p.set) : undefined;
     if (!p || !live) continue;
-    const why = await preflight(api, t, p, live, present);
+    const why = preflight(p);
     if (why) { res.outcomes.push({ def: t.def, set: p.set, refused: why, updated: [], added: 0, renamed: 0, deprecated: [], skipped: [], kept: [], unrecorded: [], handEdits: choiceFor(opts.choices, p.set), identity: [], content: [], misses: [] }); continue; }
     // Nothing for the build's pass to do. `noBaseline` counts (#2364): a set whose members all lack a record reads no
     // `update`, and was called already up to date. A member from an earlier plugin (`revisionUnknown`) does not (#2379):

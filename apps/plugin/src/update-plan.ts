@@ -43,7 +43,9 @@
  * of the set DANGLES, which, like a drawn fault, makes the member "to update" whatever its record says. Its blind spots are this module's (`anatomy-readback.ts` lists them). A member whose stamp
  * moved and that shows no field difference is listed as re-applied rather than left out.
  */
-import { planComponentName, planSetLayout, planSetProperties } from '@prism3/engine/anatomy-figma';
+import { planBoundVars, planComponentName, planEffectStyles, planPaintVars, planSetLayout, planSetProperties, planTextStyles } from '@prism3/engine/anatomy-figma';
+import { tailOf } from '@prism3/engine/figma-names';
+import { planTargets } from './build-deps';
 import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
 import { diffAnatomy, type HostNode, type ReadPorts } from '@prism3/engine/anatomy-readback';
 import { COMPONENT_RENAMES, coordKey, coordPairs, renameCoordinate, slotMigrationOf, type ComponentRename } from '@prism3/engine/component-renames';
@@ -272,8 +274,8 @@ export const gridMoves = (plans: AnatomyPlan[], members: readonly HostMember[]):
  * returns as a blocker on the set, and so by the apply, whose preflight refuses every set with a blocker. Two copies
  * drifted once: the dry run counted a collapse as members to mark deprecated, and the confirmed apply refused the set.
  * `names` are every child of the set as the file holds it, for a rename that would land on another child's name.
- * `null` when nothing here refuses the set. What the dry run cannot see (a font that will not load, a variable or style
- * the file lacks) stays the apply's preflight (#2601).
+ * `null` when nothing here refuses the set. What the file lacks for the plans (a variable, a style, a nested or swapped
+ * component, a font that will not load) is the dry run's other blocker list, `fileBlockers` (#2601).
  * `adoptClears` is true for the one refusal Adopt exists to clear: an axis change over members not built by Prism3.
  * Adopt claims them, so it must not be refused by it, or the set could never be updated (#2603 review).
  */
@@ -777,8 +779,10 @@ export type UpdateHost = {
    *  shim) has no page order to check. */
   root: { findAllWithCriteria(c: { types: string[] }): readonly unknown[]; readonly children?: readonly PageLike[]; insertChild?(index: number, child: PageLike): void };
   variables: { getLocalVariablesAsync(): Promise<readonly { id: string; name: string }[]> };
-  getLocalTextStylesAsync(): Promise<readonly { id: string; name: string }[]>;
+  getLocalTextStylesAsync(): Promise<readonly { id: string; name: string; fontName?: { family: string; style: string } }[]>;
   getLocalEffectStylesAsync(): Promise<readonly { id: string; name: string }[]>;
+  /** The dry run loads every font a set's text needs, so a font that will not load blocks the set there (#2601). */
+  loadFontAsync?(font: { family: string; style: string }): Promise<void>;
 };
 
 /** One def to check: its id and the plans the engine would build for it today. */
@@ -939,13 +943,13 @@ export const previewUpdate = async (host: UpdateHost, targets: readonly UpdateTa
     if (v.kind === 'missing') { out.missing.push(t.def); continue; }
     if (v.kind === 'refused') { out.refused.push({ def: t.def, reason: v.reason }); continue; }
     const preview = dryRunSet(t.def, t.plans, v.view, ports, ledger);
-    // A NESTED COMPONENT THE FILE DOES NOT HAVE (#2380). Since every icon-set glyph is an instance of
+    // WHAT THE FILE LACKS (#2601), the apply's checks made here, so the confirm lists every set the apply refuses.
+    // A NESTED COMPONENT THE FILE DOES NOT HAVE (#2380) is one: since every icon-set glyph is an instance of
     // `icon/<glyph>`, an update can need a component the file was built without — an older field-message
     // drew its glyphs inline. The executor would report a miss for each and leave the old glyph where it
     // was, so the set is refused here instead, naming what to build first. The build path pre-builds these
     // (`prebuildDependencies`); an update does not build other components.
-    const absent = absentNests(host, t.plans);
-    if (absent.length) preview.blockers.push(`Not in this file: ${absent.join(', ')}. Build ${[...new Set(absent.map((a) => a.split('/')[0]))].join(', ')} first, then run the update again`);
+    preview.blockers.push(...await fileBlockers(host, t.plans, v.set));
     // REPEATING ROWS INTO A SLOT (#2649): a set still holding them the old way lists every placed instance it carries.
     if (!t.single) {
       const mig = await slotMigrationFor(t, v.set as MigNode, ledger, breathe);
@@ -986,16 +990,66 @@ export const slotMigrationFor = async (t: UpdateTarget, set: MigNode, ledger: re
 };
 
 /** The components the plans nest that no COMPONENT or COMPONENT_SET in the file is named (#2380). */
-const absentNests = (host: UpdateHost, plans: readonly AnatomyPlan[]): string[] => {
+const absentNests = (have: ReadonlySet<string>, plans: readonly AnatomyPlan[]): string[] => {
   const want = new Set<string>();
   const walk = (n: { nestTarget?: string; children?: readonly unknown[] }): void => {
     if (n.nestTarget) want.add(n.nestTarget);
     for (const c of (n.children ?? []) as { nestTarget?: string; children?: readonly unknown[] }[]) walk(c);
   };
   for (const p of plans) walk(p.root);
-  if (!want.size) return [];
-  const have = new Set(host.root.findAllWithCriteria({ types: ['COMPONENT', 'COMPONENT_SET'] }).map((n) => String((n as { name?: unknown }).name ?? '')));
   return [...want].filter((w) => !have.has(w)).sort();
+};
+
+/**
+ * WHAT THE FILE LACKS FOR A SET'S PLANS (#2601), each a blocker. These were the apply's preflight alone, so a confirmed
+ * apply could refuse a set its dry run had listed with no blocker. Now the dry run makes every check, and the apply
+ * refuses exactly the sets the dry run blocks. In the order a build would meet them: a nested component (#2380), with
+ * what to build first; a variable the plans bind; a text or effect style they name; a component they swap to; and
+ * every font the plans' text styles and the set's own text nodes use, loaded now (#913, #1599). A build would write
+ * the rest and report each as a miss; an update would leave a published set half-changed, which is worse (§7).
+ * A host with no `loadFontAsync` checks no font: the plugin's host is `figma`, which always has it.
+ */
+const fileBlockers = async (host: UpdateHost, plans: readonly AnatomyPlan[], set: LiveSet): Promise<string[]> => {
+  const out: string[] = [];
+  const have = new Set(host.root.findAllWithCriteria({ types: ['COMPONENT', 'COMPONENT_SET'] }).map((n) => String((n as { name?: unknown }).name ?? '')));
+  const absent = absentNests(have, plans);
+  if (absent.length) out.push(`Not in this file: ${absent.join(', ')}. Build ${[...new Set(absent.map((a) => a.split('/')[0]))].join(', ')} first, then run the update again`);
+  const roots = plans.map((x) => x.root);
+  const vars = new Set((await host.variables.getLocalVariablesAsync()).map((v) => tailOf(v.name)).filter(Boolean) as string[]);
+  const noVar = [...new Set(roots.flatMap((r) => [...planBoundVars(r), ...planPaintVars(r)]))].filter((v) => !vars.has(v));
+  if (noVar.length) out.push(`${noVar.length} variable${noVar.length === 1 ? '' : 's'} the plan binds ${noVar.length === 1 ? 'is' : 'are'} not in this file (${noVar.slice(0, 3).join(', ')})`);
+  const styles = await host.getLocalTextStylesAsync();
+  const byName = new Map(styles.map((s) => [s.name, s] as const));
+  const wantStyles = [...new Set(roots.flatMap(planTextStyles))];
+  const noStyle = wantStyles.filter((s) => !byName.has(s));
+  if (noStyle.length) out.push(`text style${noStyle.length === 1 ? '' : 's'} not in this file: ${noStyle.slice(0, 3).join(', ')}`);
+  const effects = new Set((await host.getLocalEffectStylesAsync()).map((s) => s.name));
+  const noEffect = [...new Set(roots.flatMap(planEffectStyles))].filter((s) => !effects.has(s));
+  if (noEffect.length) out.push(`effect style${noEffect.length === 1 ? '' : 's'} not in this file: ${noEffect.slice(0, 3).join(', ')}`);
+  // Nests are named above, with what to build first; a swap target is named here.
+  const noSwap = planTargets(plans).filter((n) => !have.has(n) && !absent.includes(n));
+  if (noSwap.length) out.push(`component${noSwap.length === 1 ? '' : 's'} the plan swaps to ${noSwap.length === 1 ? 'is' : 'are'} not in this file: ${noSwap.slice(0, 3).join(', ')}`);
+  if (!host.loadFontAsync) return out;
+  const fonts = new Map<string, { family: string; style: string }>();
+  for (const s of wantStyles) { const f = byName.get(s)?.fontName; if (f) fonts.set(`${f.family}|${f.style}`, f); }
+  const walk = (n: unknown): void => {
+    const x = n as { type?: unknown; fontName?: unknown; children?: readonly unknown[] };
+    // A text node whose characters span fonts reads `figma.mixed`, a symbol, never an object: skipped (#1599).
+    if (x.type === 'TEXT' && x.fontName && typeof x.fontName === 'object') {
+      const f = x.fontName as { family: string; style: string };
+      fonts.set(`${f.family}|${f.style}`, f);
+    }
+    let kids: readonly unknown[] = [];
+    try { kids = x.children ?? []; } catch { kids = []; }
+    if (x.type !== 'INSTANCE') for (const k of kids) walk(k);
+  };
+  for (const c of set.children ?? []) walk(c);
+  const failed: string[] = [];
+  for (const f of fonts.values()) {
+    try { await host.loadFontAsync(f); } catch { failed.push(`${f.family} ${f.style}`); }
+  }
+  if (failed.length) out.push(`fonts: ${failed.join(', ')} will not load, so text could not be written`);
+  return out;
 };
 
 export type CaptureResult = { sets: { def: string; set: string; recorded: number; skipped: { member: string; reason: string; differences?: Difference[] }[] }[]; missing: string[]; refused: { def: string; reason: string }[] };

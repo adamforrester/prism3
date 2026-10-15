@@ -255,6 +255,14 @@
  *     gradient/brand prints its stops…", "36: gradient/glow is Radial…", "36: Brand/Sunset prints its three stops…" and "36:
  *     drawn, Brand/Sunset's stops read 0%, 35%, 100%…" fail.
  *
+ *   - (#2659, each on a committed head, restored from it) in `planEffectStyles` and in `planGradientStyles`, the common
+ *     prefix capped at one segment (`commonPrefix(…).slice(0, 1)`) → "36: short: effect styles under one root print the
+ *     name below it…" (or gradient) fails; the short name always dropping the first segment (`.slice(1)` for
+ *     `.slice(prefix.length)`) → "36: short: effect styles that share no root print their whole name…" (or gradient)
+ *     fails. Both passed silently before. In `planVariableTables` both were already caught by name, also in the form that
+ *     touches only the Token cell: "34: short: the space step prints 025 (space/025)", because `pds3/space/` is two
+ *     segments deep.
+ *
  * THE SHIM IGNORES A RESIZE THE HOST IGNORES: a FIXED text inside an instance keeps its main component's width under
  * `resize` (live, 2026-09-28). Before the shim modeled it, every width assertion passed over one-word-a-line text.
  *
@@ -2352,6 +2360,9 @@ const main = async (): Promise<void> => {
       ['pds/dimension/4', [], 'FLOAT', 'scale'],
       ['pds3/core/dimension/4', ['WIDTH_HEIGHT', 'GAP', 'CORNER_RADIUS', 'STROKE_FLOAT'], 'FLOAT', 'scale'],
     ];
+    // Figma's motion types (#2412) are motion by TYPE, under any name, and so named as a later phase rather than dropped.
+    ok(kindOf('pds3/motion/stagger', ['ALL_SCOPES'], 'TIMING') === 'duration' && kindOf('pds3/motion/spring/snappy', ['ALL_SCOPES'], 'EASING') === 'motion',
+      `21: a TIMING is a duration and an EASING is motion, whatever the name (${kindOf('pds3/motion/stagger', ['ALL_SCOPES'], 'TIMING')}, ${kindOf('pds3/motion/spring/snappy', ['ALL_SCOPES'], 'EASING')})`);
     const wrong = shapes.filter(([n, sc, t, k]) => kindOf(n, sc, t) !== k).map(([n, sc, t, k]) => `${n} → ${kindOf(n, sc, t)}, not ${k}`);
     ok(wrong.length === 0, `21: each reviewed shape takes its own kind: durations, a shadow by scope and by name, gradient stops, a paragraph spacing by scope and by name, camelCase line heights and letter spacing (${wrong.join('; ')})`);
     ok(kindOf('misc/ratio/golden') === 'other' && kindOf('misc/ratio/golden', ['ALL_SCOPES']) === 'other',
@@ -3219,6 +3230,22 @@ const main = async (): Promise<void> => {
     const p34s = await phase2File();
     await draw(p34s.api, contract, { types: ['dimension'], tokenNames: 'short' });
     ok(tokenCol(tableFrame(p34s.sem, 'Space'))[1] === '025', `34: short: the space step prints 025 (${tokenCol(tableFrame(p34s.sem, 'Space'))[1]})`);
+
+    // TEXT STYLES THAT SHARE A ROOT (#2475): the fixture's styles start at `body/…` and `display/…`, which share no
+    // prefix, so short and full printed the same text and a planner that always printed the full name passed. Here
+    // the same styles sit under one root, `nbds/type/`, as a brand's text styles do: short drops the root, full keeps
+    // it. The root is TWO segments deep so "strip the common prefix" and "strip one segment" print different text.
+    const p34r = await phase2File();
+    const rooted = { collections: p34r.cols, variables: p34r.vars, textStyles: p34r.styles.map((st) => ({ ...st, name: `nbds/type/${st.name}` })) };
+    const tsOf = (file: SgCatalog, name: string, o: StyleGuideOptions): string | undefined => planStyleGuide(file, contract, o).tables.find((t) => t.title === 'Text styles')?.rows.find((r) => r.name === name)?.tokenCell;
+    const ts = (o: StyleGuideOptions): string | undefined => tsOf(rooted, 'nbds/type/body/lg/default', o);
+    ok(ts({ tokenNames: 'short' }) === 'body/lg/default',
+      `34: short: text styles under one root print the name below it, body/lg/default for nbds/type/body/lg/default (${ts({ tokenNames: 'short' })})`);
+    ok(ts({}) === 'nbds/type/body/lg/default', `34: default: the same style prints its whole name, nbds/type/body/lg/default (${ts({})})`);
+    // And the mirror: the plain fixture's styles share no root, so short mode has nothing to drop.
+    const plain = { collections: p34r.cols, variables: p34r.vars, textStyles: p34r.styles };
+    const plainTok = tsOf(plain, 'body/lg/default', { tokenNames: 'short' });
+    ok(plainTok === 'body/lg/default', `34: short: text styles that share no root print their whole name, body/lg/default (${plainTok})`);
   }
 
   console.log('35. batch 1 (#2353): border widths with the focus ring, icon size as a dimension, opacity with its swatch, font style as a Text styles column');
@@ -3448,7 +3475,7 @@ const main = async (): Promise<void> => {
   {
     // THE FILE: §35b's, with focus's modes "Default" (its default, matched by border-width's one column by name),
     // "Compact" and "Spacious" (matched by none). The note's wording is the owner's, typed here.
-    const fileWith = async (focusModes: string[]) => {
+    const fileWith = async (focusModes: string[], strokeModes?: string[]) => {
       const f = await phase2File();
       type Em = { name: string; resolvedType: string; description: string; value: unknown; alias: { name: string } | null; scopes?: string[] };
       for (const [c, file] of [['border-width', 'border-width.json'], ['focus', 'focus.json']] as const) {
@@ -3460,6 +3487,15 @@ const main = async (): Promise<void> => {
             id: `VariableID:${c}:${i}`, name: v.name, variableCollectionId: `VariableCollectionId:${c}`, resolvedType: v.resolvedType, description: v.description, scopes: v.scopes,
             valuesByMode: Object.fromEntries(names.map((n) => [`${c}:${n}`, value])),
           });
+        });
+      }
+      // A SECOND BORROWED COLLECTION (#2581): one stroke width of a client's own, in a collection that is neither
+      // border-width's nor focus's. It joins the Border width table as focus's ring widths do, by its scope.
+      if (strokeModes) {
+        f.cols.push({ id: 'VariableCollectionId:stroke', name: 'stroke', modes: strokeModes.map((n) => ({ modeId: `stroke:${n}`, name: n })), defaultModeId: `stroke:${strokeModes[0]}` });
+        f.vars.push({
+          id: 'VariableID:stroke:0', name: 'client/stroke/heavy', variableCollectionId: 'VariableCollectionId:stroke', resolvedType: 'FLOAT', description: '', scopes: ['STROKE_FLOAT'],
+          valuesByMode: Object.fromEntries(strokeModes.map((n, i) => [`stroke:${n}`, 3 + i])),
         });
       }
       return f;
@@ -3476,6 +3512,16 @@ const main = async (): Promise<void> => {
     const one = await fileWith(['Default']);
     const quiet = planStyleGuide({ collections: one.cols, variables: one.vars, textStyles: one.styles }, contract).notes.filter((n) => n.includes('no column here'));
     ok(quiet.length === 0, `35d: with focus's one mode read by the Default column, the notes name no focus mode (${JSON.stringify(quiet)})`);
+    // THE COLLECTION'S NAME (#2581): the note names the collection the unread modes belong to, the generic wording owner
+    // decision Q261 1A chose for exactly this, a borrowed collection that is not focus. Every case above borrows only
+    // focus, so a note hard-coding "focus's" passed them all. Here focus leaves Compact and stroke leaves Heavy: each
+    // note names its own collection, and the note for stroke never says focus.
+    const both = await fileWith(['Default', 'Compact'], ['Default', 'Heavy']);
+    const named = planStyleGuide({ collections: both.cols, variables: both.vars, textStyles: both.styles }, contract).notes.filter((n) => n.includes('no column here')).sort();
+    ok(JSON.stringify(named) === JSON.stringify([
+      "Border width: focus's mode Compact has no column here, so its values aren't drawn",
+      "Border width: stroke's mode Heavy has no column here, so its values aren't drawn",
+    ]), `35d: with a second borrowed collection, each note names its own collection — focus's Compact and stroke's Heavy (${JSON.stringify(named)})`);
   }
 
   console.log("35c. #2549: a focus mode named like the column wins over focus's default mode");
@@ -3580,6 +3626,23 @@ const main = async (): Promise<void> => {
     const noAlias = planStyleGuide(cat36, contract, { types: ['gradient'], aliases: false }).tables[0];
     ok(JSON.stringify(noAlias?.columns) === JSON.stringify(['Token', 'Specimen', 'Type', 'Position', 'Color', 'Description']) && grRow('gradient/brand', noAlias).length === 3,
       `36: aliases off, the Variable column goes (${noAlias?.columns.join(', ')})`);
+
+    // SHORT NAMES (#2659, the #2623 shape): the fixture's effect and gradient styles share no root (`shadow/…` beside
+    // `Brand/…`), and the default prints the whole name, so a planner that printed the full name, capped the common
+    // prefix at one segment, or always dropped the first segment passed. Here the same styles sit under one root TWO
+    // segments deep, `lib/fx/`: short drops the whole root, which a one-segment cap cannot, and the default keeps it.
+    // And short mode on the plain fixture, whose names share no root: nothing to drop, which "drop one segment" fails.
+    const rootedFx: SgCatalog = { ...cat36, effectStyles: f.effectStyles.map((s) => ({ ...s, name: `lib/fx/${s.name}` })), paintStyles: f.paintStyles.map((s) => ({ ...s, name: `lib/fx/${s.name}` })) };
+    const cellOf = (c: SgCatalog, type: string, name: string, o: StyleGuideOptions): string | undefined =>
+      planStyleGuide(c, contract, { ...o, types: [type] }).tables.find((t) => t.type === type)?.rows.find((r) => r.name === name)?.tokenCell;
+    for (const [type, kind, name] of [['shadow', 'effect', 'shadow/xs'], ['gradient', 'gradient', 'gradient/brand']] as const) {
+      const rootedShort = cellOf(rootedFx, type, `lib/fx/${name}`, { tokenNames: 'short' });
+      ok(rootedShort === name, `36: short: ${kind} styles under one root print the name below it, ${name} for lib/fx/${name} (${rootedShort})`);
+      const rootedFull = cellOf(rootedFx, type, `lib/fx/${name}`, {});
+      ok(rootedFull === `lib/fx/${name}`, `36: default: the same ${kind} style prints its whole name, lib/fx/${name} (${rootedFull})`);
+      const plainShort = cellOf(cat36, type, name, { tokenNames: 'short' });
+      ok(plainShort === name, `36: short: ${kind} styles that share no root print their whole name, ${name} (${plainShort})`);
+    }
 
     // ONLY WHAT EXISTS: a file with no effect or paint style draws neither table; a collections filter leaves them out.
     const bare = planStyleGuide({ collections: f.cols, variables: f.vars, textStyles: f.styles }, contract, { types: ['shadow', 'gradient'] });

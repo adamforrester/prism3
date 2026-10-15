@@ -7,7 +7,7 @@ The note declares the bump class. The fold picks the number.
 ---
 engine: minor
 ---
-The changelog prose that used to go above ENGINE_VERSION in version.ts. Write {{ENGINE_VERSION}}
+The changelog prose, which the fold writes into ../CHANGELOG.md. Write {{ENGINE_VERSION}}
 where the number goes; the fold fills it in.
 ```
 
@@ -20,13 +20,13 @@ where the number goes; the fold fills it in.
   - **`major`** is refused while `ENGINE_VERSION` is below 1.0, by the gate and by the fold. Going to 1.0
     is the owner's decision.
   - The fold takes the highest class in the batch. A change that owes no bump carries no note.
-- **Prose:** plain text for a code comment. No `*/`, no `{{` other than the placeholder, and no line that opens with a version number or
+- **Prose:** plain text, folded into `CHANGELOG.md` as written. No `{{` other than the placeholder, and no line that opens with a version number or
   with the placeholder, which becomes one once folded. Two changelog entries take two notes
   (`<slug>.md`, `<slug>-2.md`).
 - **Once merged, a note is not edited.** It is another PR's declaration until the fold consumes it, and
   `lint-emission-version.ts` fails a diff that changes it. To correct it, add a note of your own.
 
-Do not edit `ENGINE_VERSION` or the changelog in `version.ts`: `lint-emission-version.ts` fails a PR
+Do not edit `ENGINE_VERSION` in `version.ts` or the changelog in `CHANGELOG.md`: `lint-emission-version.ts` fails a PR
 that is not a fold for doing so. That gate and `lint-component-surface.ts` accept an added note as
 the bump. `CONTRACT_VERSION` is not covered here: a PR still bumps it itself.
 
