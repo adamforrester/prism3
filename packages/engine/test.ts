@@ -53,8 +53,8 @@ import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, gradientTransform
 import { verifyReadback, verifyFloatReadback, verifyTypographyReadback, ReadbackSnapshot } from './read-back';
 import { tailOf } from './figma-names';
 import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION, UnrecognizedPersistedInputError } from './persist-input';
-import { validateComponentDef, VARIANT_AXES, axisKindOf, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, variantAxisFigmaName, isExcludedCoordinate, fillPaintKey, replacesCandidates, statesOf, PAINT_SLOTS, ComponentDef, AnatomyDef } from './component-schema';
-import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, settleChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, figmaTextStyleName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, applySpacingDensity, applyMinWidthRatio, DEFAULT_BUTTON_LAYOUT, isButtonFamily, resolveWeightIntent, DEFAULT_WEIGHT_AVAILABILITY, isPillable, PILL_RADIUS_DERIVATION, PILL_RADIUS_RUNG, BOXED_RADIUS_RUNG, HAIRLINE_RADIUS_RUNG, CONTROL_SHAPE_RUNG, ROUNDED_RADIUS_RUNG, variantSetErrors, variantNameErrors, glyphLayerOpacities, type AnatomyPlan, type SwapFound } from './anatomy-figma';
+import { validateComponentDef, VARIANT_AXES, axisKindOf, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, variantAxisFigmaName, isExcludedCoordinate, fillPaintKey, replacesCandidates, statesOf, PAINT_SLOTS, ComponentDef, AnatomyDef, type PartDef } from './component-schema';
+import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, settleChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, figmaTextStyleName, figmaEffectStyleName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, applySpacingDensity, applyMinWidthRatio, DEFAULT_BUTTON_LAYOUT, isButtonFamily, resolveWeightIntent, DEFAULT_WEIGHT_AVAILABILITY, isPillable, PILL_RADIUS_DERIVATION, PILL_RADIUS_RUNG, BOXED_RADIUS_RUNG, HAIRLINE_RADIUS_RUNG, CONTROL_SHAPE_RUNG, ROUNDED_RADIUS_RUNG, variantSetErrors, variantNameErrors, glyphLayerOpacities, type AnatomyPlan, type SwapFound } from './anatomy-figma';
 import type { ControlShape } from './scale';
 import { COMPONENT_RENAMES, coordKey, renameCoordinate, isDeclaredDrop, unaccounted as renamesUnaccounted, danglingTargets as renamesDangling, type ComponentRename, type AxesBaseline } from './component-renames';
 // One of the two imports this suite makes ACROSS the engine/plugin boundary, and the parity gate (#487 step 5)
@@ -26692,7 +26692,7 @@ arm: {
   // own constant.
   // `tag` joins (2026-09-27): its check mark is gated on `selection: ['selected']`, the checkbox mark's shape.
   // `link` joins (#2580, owner Q297.2): its trailing icon is gated on `style: ['standalone']`, so an inline link carries none.
-  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'radio-control', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion', 'list-item', 'link'];
+  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'radio-control', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion', 'list-item', 'link', 'dialog'];
   ok(GATED_EXPECTED.every((n) => gatedDefs.some((d) => d.id === n)) && gatedDefs.length === GATED_EXPECTED.length,
     `#910 the presentWhen projection rule below covers exactly [${GATED_EXPECTED.join(', ')}] — a def gaining a variant-gated part must be represented here, and a def losing one is a stale claim (found: ${gatedDefs.map((d) => d.id).join(', ') || 'none'})`);
   for (const def of gatedDefs) {
@@ -30916,6 +30916,8 @@ arm: {
     'text-field': ['medium', 'small', 'large'],
     textarea: ['medium', 'small', 'large'],
     select: ['medium', 'small', 'large'],
+    // Dialog (#2609): the proposal's axis table lists its sizes default first, approved by the owner's Q303.
+    dialog: ['medium', 'small', 'large'],
   };
   const outOfOrder = (vals: readonly unknown[], ladder: readonly string[]): string | null => {
     const unknown = vals.filter((v) => !ladder.includes(String(v)));
@@ -31337,6 +31339,123 @@ arm: {
   let threw = '';
   try { figmaAnatomySet(withDefault('icon', 'not-an-icon'), { swapTarget: 'FPO-default-icon' }); } catch (e) { threw = (e as Error).message; }
   ok(/not-an-icon/.test(threw), `#2319 swapDefault: a glyph outside the icon set throws at projection, naming it (got ${threw.slice(0, 120) || 'no throw'})`);
+}
+
+// ------------------------------------------------------------------- #2609: the dialog
+// Each owner decision held against a literal (the proposal on #2609 and Q303): the 15 members and their exact axes with
+// no side placement, the width and height per placement, the corners per placement, the padding, the panel's fill and
+// shadow with no scrim anywhere in the set (the backdrop is canvas furniture), the close button and the footers, the
+// three toggles, and the alertdialog's hidden close in the docs. EXPECTED is typed here; ACTUAL is the projected plan,
+// so a def that moved fails the arm by name.
+{
+  const dg = componentDefs.find((d) => d.id === 'dialog')!;
+  const plans = figmaAnatomySet(dg, { swapTarget: 'FPO-default-icon' });
+  type DN = { name: string; type: string; children: DN[]; bound?: Record<string, string>; paints?: Record<string, string>; nestTarget?: string; nestVariant?: Record<string, string>; effectStyle?: string; placementWidth?: number; placementHeight?: number; primaryAxisSizingMode?: string; counterAxisSizingMode?: string; layoutGrow?: number; visibleProp?: string; visible?: boolean; textStyle?: string };
+  const find = (n: DN, name: string): DN | undefined => (n.name === name ? n : n.children.map((c) => find(c, name)).find(Boolean));
+  const all = (n: DN): DN[] => [n, ...n.children.flatMap(all)];
+  const coord = (p: AnatomyPlan): Record<string, string> => ({ ...(p.coord as Record<string, string>), ...(p.size ? { size: p.size } : {}) });
+
+  // THE SHAPE (Q303.1, Q303.5, Q303.6): placement center, bottom, full and NO side; size on center only; 15 members.
+  const MEMBERS = [
+    'placement=center, footer=inline, size=medium', 'placement=center, footer=inline, size=small', 'placement=center, footer=inline, size=large',
+    'placement=center, footer=stacked, size=medium', 'placement=center, footer=stacked, size=small', 'placement=center, footer=stacked, size=large',
+    'placement=center, footer=none, size=medium', 'placement=center, footer=none, size=small', 'placement=center, footer=none, size=large',
+    'placement=bottom, footer=inline, size=medium', 'placement=bottom, footer=stacked, size=medium', 'placement=bottom, footer=none, size=medium',
+    'placement=full, footer=inline, size=medium', 'placement=full, footer=stacked, size=medium', 'placement=full, footer=none, size=medium',
+  ];
+  ok(JSON.stringify(plans.map(planComponentName)) === JSON.stringify(MEMBERS) && figmaVariantCount(dg) === 15,
+    `#2609 dialog: 15 members, center at three sizes and bottom and full at the default size only, in this order (got ${plans.length}: ${plans.map(planComponentName).slice(9).join(' | ')})`);
+  ok(JSON.stringify(dg.variants) === JSON.stringify({ placement: ['center', 'bottom', 'full'], size: ['medium', 'small', 'large'], footer: ['inline', 'stacked', 'none'] })
+    && JSON.stringify(dg.figmaProperties?.variantAxes) === JSON.stringify(['placement', 'size', 'footer']),
+    `#2609 dialog axes: placement [center, bottom, full] with no side (Q303.1), size [medium, small, large], footer [inline, stacked, none] (got ${JSON.stringify(dg.variants)})`);
+  const sideWords = [...Object.values(dg.variants).flat(), ...(dg.props.find((x) => x.name === 'placement')?.values ?? []), ...Object.keys(dg.tokens), ...Object.keys(dg.anatomy!.parts), ...Object.keys(dg.anatomy!.parts.panel.builtSize!.widths)];
+  ok(!sideWords.some((w) => /\bside\b|drawer/.test(String(w))) && !(dg.aliases ?? []).some((a) => /drawer|side/.test(a)),
+    '#2609 dialog: no side placement anywhere in the def, and no drawer or side-sheet alias (Q303.1, Q303.12)');
+  ok(dg.states.length === 0 && !dg.figmaProperties?.stateAxis, `#2609 dialog: no states and no state axis (got ${JSON.stringify(dg.states)})`);
+  ok(dg.name === 'Dialog' && dg.category === 'overlay' && JSON.stringify(dg.aliases) === JSON.stringify(['modal', 'sheet', 'bottom-sheet', 'full-screen-dialog']),
+    `#2609 dialog: named Dialog, category overlay, aliases modal, sheet, bottom-sheet and full-screen-dialog (Q303.12) (got ${dg.name}, ${dg.category}, ${JSON.stringify(dg.aliases)})`);
+
+  // THE SIZE AND THE CORNERS PER PLACEMENT (Q303.5 A, Q303.11 A as adjusted): [width, height or null, top corners,
+  // bottom corners, padding]. Center rounds all four, bottom its top two, full none.
+  const WIDTH: Record<string, number> = { small: 400, medium: 560, large: 720 };
+  const SHAPE: Record<string, [number | null, number | null, string, string, string]> = {
+    center: [null, null, 'radius/2xl', 'radius/2xl', 'space/300'],
+    bottom: [360, null, 'radius/2xl', 'radius/none', 'space/200'],
+    full: [360, 640, 'radius/none', 'radius/none', 'space/200'],
+  };
+  const shapeBad: string[] = [];
+  for (const p of plans) {
+    const c = coord(p), r = p.root as DN, sh = SHAPE[c.placement];
+    // A placement outside the three (a side placement, Q303.1) has no expected shape and fails here, not throws.
+    if (!sh) { shapeBad.push(`${planComponentName(p)}: placement '${c.placement}' is not center, bottom or full`); continue; }
+    const [w, h, top, bottom, pad] = sh;
+    const wantW = w ?? WIDTH[c.size];
+    const body = find(r, 'body')!;
+    const okSize = r.placementWidth === wantW && r.counterAxisSizingMode === 'FIXED'
+      && (h === null ? r.placementHeight === undefined && r.primaryAxisSizingMode === 'AUTO' && body.layoutGrow === undefined
+        : r.placementHeight === h && r.primaryAxisSizingMode === 'FIXED' && body.layoutGrow === 1);
+    const okCorners = r.bound?.topLeftRadius === top && r.bound?.topRightRadius === top && r.bound?.bottomLeftRadius === bottom && r.bound?.bottomRightRadius === bottom;
+    const okPad = r.bound?.paddingTop === pad && r.bound?.paddingBottom === pad && find(r, 'header')!.bound?.paddingLeft === pad && body.bound?.paddingRight === pad;
+    if (!okSize || !okCorners || !okPad) shapeBad.push(`${planComponentName(p)}: ${r.placementWidth}×${r.placementHeight ?? 'hug'} corners ${r.bound?.topLeftRadius}/${r.bound?.bottomLeftRadius} pad ${r.bound?.paddingTop}`);
+  }
+  ok(shapeBad.length === 0,
+    `#2609 dialog size, corners and padding: center 400/560/720 wide hugging its content, every corner radius/2xl, padding space/300; bottom 360 wide, its top corners radius/2xl and bottom none, padding space/200; full 360×640 with the body taking the height, every corner square, padding space/200${shapeBad.length ? ` — WRONG: ${shapeBad.slice(0, 3).join('; ')}` : ''}`);
+
+  // THE PANEL, AND NO BACKDROP IN THE SET (Q303.2 A, Q303.3 A): the panel is foreground.primary with the shadow.xl
+  // effect style, and no node of any member paints the scrim or any wash: the scrim is canvas furniture.
+  const scrimIn = plans.flatMap((p) => all(p.root as DN).filter((n) => Object.values(n.paints ?? {}).some((v) => /scrim|veil/.test(v)) || /scrim|backdrop|veil/i.test(n.name) || n.nestTarget === 'veil').map((n) => `${planComponentName(p)} ${n.name}`));
+  ok(scrimIn.length === 0 && plans.every((p) => (p.root as DN).paints?.fills === 'color/foreground/primary' && (p.root as DN).effectStyle === 'shadow/xl'),
+    `#2609 dialog panel: foreground.primary with the shadow.xl effect style on every member, and no scrim, veil or backdrop node anywhere in the set${scrimIn.length ? ` — FOUND: ${scrimIn.slice(0, 3).join('; ')}` : ''}`);
+
+  // THE HEADER: the title, the description (off), and the close (on): IconButton.Neutral, ghost, medium.
+  const hdrBad = plans.filter((p) => {
+    const r = p.root as DN, close = find(r, 'close'), desc = find(r, 'description'), title = find(r, 'title');
+    return !(close?.nestTarget === 'icon-button-neutral' && JSON.stringify(close.nestVariant) === JSON.stringify({ appearance: 'ghost', size: 'medium', shape: 'square', surface: 'default', state: 'rest' })
+      && close.visibleProp === 'close' && close.visible !== false && desc?.visible === false && desc.paints?.fills === 'color/text/secondary' && title?.paints?.fills === 'color/text/primary');
+  });
+  ok(hdrBad.length === 0, `#2609 dialog header: the close is IconButton.Neutral ghost medium and shown, the description hidden in secondary text, the title in primary text (${hdrBad.length ? `WRONG: ${hdrBad.map(planComponentName).slice(0, 2).join('; ')}` : 'all 15'})`);
+
+  // THE FOOTERS (Q303.6 A): inline Cancel (outline) then Save (filled), 12px apart; stacked Save over Cancel, 8px apart;
+  // none has no footer and no rule above it.
+  const btn = (n: DN | undefined) => (n?.nestTarget === 'button' ? n.nestVariant?.appearance : undefined);
+  const footBad = plans.filter((p) => {
+    const c = coord(p), r = p.root as DN, inl = find(r, 'footerInline'), st = find(r, 'footerStacked'), rule = find(r, 'footerDivider');
+    if (c.footer === 'inline') return !(inl && !st && rule && inl.bound?.itemSpacing === 'space/150' && JSON.stringify(inl.children.map(btn)) === JSON.stringify(['outline', 'filled']));
+    if (c.footer === 'stacked') return !(st && !inl && rule && st.bound?.itemSpacing === 'space/100' && JSON.stringify(st.children.map(btn)) === JSON.stringify(['filled', 'outline']));
+    return !!(inl || st || rule);
+  });
+  ok(footBad.length === 0, `#2609 dialog footers: inline is outline then filled 12px apart, stacked is filled over outline 8px apart, none has no footer and no rule (${footBad.length ? `WRONG: ${footBad.map(planComponentName).slice(0, 3).join('; ')}` : 'all 15'})`);
+
+  // THE PROPERTIES: two texts and three toggles, `dividers` driving both rules together, off.
+  ok(JSON.stringify(planSetProperties(plans).filter((x) => x.type !== 'SLOT')) === JSON.stringify([
+    { name: 'title', type: 'TEXT', default: 'Dialog title' }, { name: 'description text', type: 'TEXT', default: 'Supporting text' },
+    { name: 'description', type: 'BOOLEAN', default: false }, { name: 'close', type: 'BOOLEAN', default: true }, { name: 'dividers', type: 'BOOLEAN', default: false },
+  ]) && plans.every((p) => find(p.root as DN, 'headerDivider')?.visibleProp === 'dividers'),
+    `#2609 dialog properties: title "Dialog title", description text "Supporting text", description off, close on, dividers off over both rules (got ${JSON.stringify(planSetProperties(plans))})`);
+
+  // THE ALERTDIALOG HIDES CLOSE, in the docs: the role prop and the code contract both say so (Q303.9 A).
+  const role = dg.props.find((x) => x.name === 'role');
+  ok(JSON.stringify(role?.values) === JSON.stringify(['dialog', 'alertdialog']) && role?.default === 'dialog' && /hides the close button/.test(role?.description ?? '')
+    && dg.anatomy!.codeOnly.some((e) => /^role — /.test(e) && /alertdialog hides the close button/.test(e))
+    && dg.anatomy!.codeOnly.some((e) => /^backdrop click — closes a dialog, never an alertdialog/.test(e))
+    && dg.anatomy!.codeOnly.some((e) => /code delivery pending: behavior layer \(#2454\)/.test(e)),
+    '#2609 dialog docs: role is dialog or alertdialog, an alertdialog hides the close button and a backdrop click never closes it, and code delivery waits on #2454');
+
+  // THE NEW SCHEMA FIELDS ARE REFUSED WHERE THEY CANNOT MEAN ANYTHING.
+  const withPart = (part: string, patch: Record<string, unknown>): ComponentDef => ({ ...dg, anatomy: { ...dg.anatomy!, parts: { ...dg.anatomy!.parts, [part]: { ...dg.anatomy!.parts[part], ...patch } as PartDef } } });
+  const errs = (d: ComponentDef) => validateComponentDef(d).errors;
+  ok(errs(dg).length === 0, `#2609 dialog validates clean (${errs(dg).slice(0, 2).join('; ')})`);
+  ok(errs(withPart('header', { builtSize: dg.anatomy!.parts.panel.builtSize })).some((m) => /builtSize' but is not the anatomy ROOT/.test(m)), '#2609 builtSize off the root is refused');
+  ok(errs(withPart('panel', { builtSize: { ...dg.anatomy!.parts.panel.builtSize!, widths: { center: 560, bottom: 360 } } })).some((m) => /names no width for 'placement=full'/.test(m)), '#2609 builtSize missing a placement\'s width is refused');
+  ok(errs(withPart('panel', { radius: 'placement.{placement}.radius-top' })).some((m) => /both 'radius' and 'radiusEdges'/.test(m)), '#2609 radius beside radiusEdges is refused');
+  ok(errs(withPart('title', { elevation: 'shadow' })).some((m) => /declares 'elevation'/.test(m)), '#2609 elevation on a text part is refused');
+  const oneTogether = { ...dg, figmaProperties: { ...dg.figmaProperties!, booleans: { ...dg.figmaProperties!.booleans, dividers: { part: ['headerDivider'], default: false, figmaName: 'dividers', figmaOnly: true, together: true as const } } } };
+  ok(errs(oneTogether).some((m) => /'together' over 1 part/.test(m)), '#2609 together over one part is refused');
+  const noTogether = { ...dg, figmaProperties: { ...dg.figmaProperties!, booleans: { ...dg.figmaProperties!.booleans, dividers: { part: ['headerDivider', 'footerDivider'], default: false, figmaName: 'dividers', figmaOnly: true } } } };
+  ok(errs(noTogether).some((m) => /both build at/.test(m)), '#2609 without together, two rules on one toggle are still refused as an overlap');
+  let thrown = '';
+  try { figmaEffectStyleName('color.scrim.default'); } catch (e) { thrown = (e as Error).message; }
+  ok(figmaEffectStyleName('shadow.xl') === 'shadow/xl' && /not a shadow step/.test(thrown), `#2609 elevation names shadow/xl for shadow.xl and refuses a non-shadow ref (${thrown.slice(0, 80)})`);
 }
 
 // ------------------------------------------------------------------- report

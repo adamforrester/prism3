@@ -43,7 +43,7 @@
 import { planSetLayout, CANVAS_FURNITURE } from '@prism3/engine/anatomy-figma';
 import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
 import { isTemplateSet } from './file-components';
-import { LABEL_SET, BACKDROP_COMPONENT, BRACKET_PROPERTY, labelVariant, bindBackdrop } from './furniture-templates';
+import { LABEL_SET, BACKDROP_COMPONENT, SCRIM_COMPONENT, SCRIM_BACKDROP, BRACKET_PROPERTY, labelVariant, bindBackdrop } from './furniture-templates';
 import type { BackdropVariables } from './furniture-templates';
 
 export { CANVAS_FURNITURE };
@@ -59,6 +59,19 @@ export const LEVEL_GAP = 8;
 export const BACKDROP_PAD = 12;
 /** How many outer row axes are labeled (Q171.1: "the outer two or three"). The inverse bracket is extra. */
 export const ROW_LABEL_DEPTH = 3;
+
+/**
+ * THE SCRIM BEHIND EACH EXAMPLE (#2609, owner decisions Q303.2 A and Q303.3 A). A Dialog is the panel alone; the
+ * modal backdrop, `color.scrim.default`, is drawn here, one `_scrim-backdrop` instance behind each member, keyed by
+ * the def's placement value. Each entry is how far the scrim reaches past the member on each side, `[top, right,
+ * bottom, left]` in px: a centered panel floats with scrim all round; a bottom sheet sits on the screen's bottom edge
+ * at its full width, so the scrim shows above it only. A full-screen dialog covers the page and has no visible
+ * backdrop (Q303.8), so it has no entry. Every reach is at most half the grid's 24px gap, `BACKDROP_PAD`, so a
+ * scrim never reaches the neighboring member's. HELD FOR THE OWNER, every number here.
+ */
+export const SCRIM_BACKDROPS: Readonly<Record<string, { axis: string; reach: Readonly<Record<string, readonly [number, number, number, number]>> }>> = {
+  dialog: { axis: 'placement', reach: { center: [BACKDROP_PAD, BACKDROP_PAD, BACKDROP_PAD, BACKDROP_PAD], bottom: [BACKDROP_PAD, 0, 0, 0] } },
+};
 
 /** A def's furniture switch: the engine's list, the one switch `planSetLayout` reads too. */
 export const hasFurniture = (defId: string): boolean => CANVAS_FURNITURE.has(defId);
@@ -90,6 +103,8 @@ export interface FurniturePlan {
   /** Where the row labels' innermost column ends: its right edge. */
   rowsRight: number;
   backdrops: { x: number; y: number; width: number; height: number }[];
+  /** One scrim behind each member a `SCRIM_BACKDROPS` entry names (#2609); empty for every other def. */
+  scrims: { x: number; y: number; width: number; height: number }[];
   /** The row axes that are labeled, outermost first (`surface` first where it is). */
   rowAxes: string[];
 }
@@ -104,6 +119,7 @@ export const planFurniture = (
   set: { x: number; y: number },
   members: readonly GridMember[],
   layout: { rowKeys: readonly string[]; colKey: string; colVals: readonly string[] },
+  defId?: string,
 ): FurniturePlan => {
   // THE ROWS IN THE ORDER THEY SIT, top to bottom — not by index, which on a set an earlier plugin laid out may not
   // be the order on the canvas.
@@ -182,7 +198,18 @@ export const planFurniture = (
       });
     }
   }
-  return { columns, rows: rowLabels, rowsRight: set.x - LABEL_GAP, backdrops, rowAxes };
+  // ONE SCRIM BEHIND EACH MEMBER whose placement has a reach (#2609), in member order.
+  const scrims: FurniturePlan['scrims'] = [];
+  const spec = defId ? SCRIM_BACKDROPS[defId] : undefined;
+  if (spec) {
+    for (const m of members) {
+      const reach = spec.reach[m.values[spec.axis] ?? ''];
+      if (!reach) continue;
+      const [top, right, bottom, left] = reach;
+      scrims.push({ x: set.x + m.x - left, y: set.y + m.y - top, width: m.width + left + right, height: m.height + top + bottom });
+    }
+  }
+  return { columns, rows: rowLabels, rowsRight: set.x - LABEL_GAP, backdrops, scrims, rowAxes };
 };
 
 /* ── the executor ──────────────────────────────────────────────────────────────────────────────────────── */
@@ -240,6 +267,8 @@ export interface FurnitureOutcome {
   columns: number;
   rows: number;
   backdrops: number;
+  /** Scrims drawn behind the members (#2609); 0 for a def with none. */
+  scrims: number;
   /** Instances of this def's earlier furniture removed first: on the set's parent, and this set's on any other. */
   cleared: number;
   /** A part not drawn, as the verdict sentence: a missing variant, a set with no parent, an ungrouped set. */
@@ -249,6 +278,8 @@ export interface FurnitureOutcome {
   fontMisses: string[];
   /** `bound` when this run bound the backdrop template to the inverse ground; `no-variable` before a theme. */
   backdropBinding?: 'bound' | 'kept' | 'no-variable';
+  /** The same for the scrim template and `color/scrim/default` (#2609). */
+  scrimBinding?: 'bound' | 'kept' | 'no-variable';
 }
 
 /** What the executor reads of `planSetLayout`: each member's cell by name, and the axis lists. */
@@ -396,8 +427,8 @@ export const drawFurniture = async (
 ): Promise<FurnitureOutcome> => {
   const parent = set.parent as FurnitureParent | null | undefined;
   if (!parent || typeof parent.insertChild !== 'function')
-    return { def: defId, parent: '', columns: 0, rows: 0, backdrops: 0, cleared: 0, skipped: [`No canvas labels for ${defId}: the set has no parent to place them on`], fontMisses: [] };
-  const out: FurnitureOutcome = { def: defId, parent: parent.name ?? '', columns: 0, rows: 0, backdrops: 0, cleared: clearFurniture(parent, defId) + clearMovedFurniture(api, set, parent), skipped: [], fontMisses: [] };
+    return { def: defId, parent: '', columns: 0, rows: 0, backdrops: 0, scrims: 0, cleared: 0, skipped: [`No canvas labels for ${defId}: the set has no parent to place them on`], fontMisses: [] };
+  const out: FurnitureOutcome = { def: defId, parent: parent.name ?? '', columns: 0, rows: 0, backdrops: 0, scrims: 0, cleared: clearFurniture(parent, defId) + clearMovedFurniture(api, set, parent), skipped: [], fontMisses: [] };
   const members = gridMembers(set, layout.cells);
   if (!members.length) { out.skipped.push(`No canvas labels for ${defId}: the set has no member this plan lays out`); return out; }
   // ONLY OVER ONE INVERSE BLOCK (#2188 Q173): a set still laid out the earlier way has a band of inverse rows per
@@ -406,7 +437,7 @@ export const drawFurniture = async (
   // A def whose `surface` is the GRID axis (Focus ring) has its inverse members in a column, beside the default ones,
   // never in rows of their own; there is no row block to wait for, and no backdrop is planned (#2502).
   if (layout.rowKeys.includes('surface') && !inverseContiguous(members)) { out.skipped.push(`No canvas labels for ${defId}: its inverse rows are not in one block yet. Run Update to move them, then the labels are drawn`); return out; }
-  const plan = planFurniture({ x: set.x ?? 0, y: set.y ?? 0 }, members, layout);
+  const plan = planFurniture({ x: set.x ?? 0, y: set.y ?? 0 }, members, layout, defId);
   const setTag = { v: 1 as const, def: defId, set: String(set.id ?? '') };
 
   const templates = api.root.findAllWithCriteria({ types: ['COMPONENT_SET', 'COMPONENT'] }) as readonly XNode[];
@@ -484,6 +515,26 @@ export const drawFurniture = async (
       }
     }
   }
+
+  // THE SCRIMS (#2609), behind the set like the inverse backdrop, one per member that has one.
+  if (plan.scrims.length) {
+    const scrim = pick('COMPONENT', SCRIM_COMPONENT);
+    if (!scrim) out.missing = [...(out.missing ?? []), SCRIM_COMPONENT];
+    else if (!scrim.createInstance) out.skipped.push(`No scrim backdrop for ${defId}: ${SCRIM_COMPONENT} cannot be instanced`);
+    else {
+      out.scrimBinding = await bindBackdrop(api.variables, scrim, SCRIM_BACKDROP);
+      for (const b of plan.scrims) {
+        const inst = scrim.createInstance();
+        const at = (parent.children as readonly unknown[]).indexOf(set);
+        parent.insertChild(at < 0 ? 0 : at, inst);
+        inst.resize?.(b.width, b.height);
+        inst.x = b.x;
+        inst.y = b.y;
+        tag(inst, { ...setTag, kind: 'backdrop' });
+        out.scrims++;
+      }
+    }
+  }
   return out;
 };
 
@@ -523,9 +574,9 @@ export const furniturePruneText = (n: number, applied: boolean): string => {
  * do: run Set up file, then the same action again. Empty when nothing is missing. Wording approved, Q284.1 A.
  */
 export const templatesLine = (outcomes: readonly FurnitureOutcome[], action: 'build' | 'update'): string => {
-  const missing = [LABEL_SET, BACKDROP_COMPONENT].filter((t) => outcomes.some((o) => o.missing?.includes(t)));
+  const missing = [LABEL_SET, BACKDROP_COMPONENT, SCRIM_COMPONENT].filter((t) => outcomes.some((o) => o.missing?.includes(t)));
   if (!missing.length) return '';
-  const what = missing.map((t) => (t === LABEL_SET ? 'canvas labels' : 'inverse backdrops')).join(' or ');
+  const what = missing.map((t) => (t === LABEL_SET ? 'canvas labels' : t === SCRIM_COMPONENT ? 'scrim backdrops' : 'inverse backdrops')).join(' or ');
   const names = missing.join(' or ');
   return `No ${what} drawn: this file has no ${names} component. Run Set up file, then ${action === 'build' ? 'build' : 'update'} again`;
 };
@@ -539,6 +590,7 @@ export const furnitureItems = (outcomes: readonly FurnitureOutcome[], action: 'b
     parts.push(...o.skipped);
     if (o.fontMisses.length) parts.push(`Some canvas labels for ${o.def} kept their placeholder text (${[...new Set(o.fontMisses)].join('; ')})`);
     if (o.backdropBinding === 'no-variable') parts.push(`The inverse backdrop for ${o.def} is not bound yet: apply the theme, then build again`);
+    if (o.scrimBinding === 'no-variable') parts.push(`The scrim backdrop for ${o.def} is not bound yet: apply the theme, then build again`);
   }
   return parts;
 };
