@@ -17,3 +17,5 @@
 **What the next fold does differently.** Nothing by hand: `fold.ts --dry-run` prints the counts and each breaking item, and `fold.ts` writes the four files. A fold branch that merges `main` runs `release-notes.ts --refresh`, because the range then includes `main`'s newer record changes. The open fold PR from before this change (#2582) has no notes and fails `REPRESENTED` once this lands, so it is refolded on top.
 
 **Limits.** Figma's boolean, text and instance-swap properties are in no baseline, so a change to one shows only as "builds differently". A coded prop rename has no ledger, so it reads as one removal and one addition, which is the right class but not paired. The plugin shows the notes for the version it builds at only, not for every version since a set was built.
+
+**Merging #2644.** The agent reference (`emit-agent-reference.ts --check`) requires every file that reads `process.argv` to be listed as a CLI or excluded with a reason. `release-notes.ts` is a hand-run entry point (`--pending`, `--version`, `--refresh`), so it joins `CLI`, and `docs/public/reference/commands.json` lists its usage and flags.

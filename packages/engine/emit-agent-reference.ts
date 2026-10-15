@@ -245,6 +245,7 @@ export const CLI = [
   'packages/engine/token-contract.ts',
   'packages/engine/materialise-to-figma.ts',
   'fold.ts',
+  'packages/engine/release-notes.ts',
   'verify.ts',
   'tools/figma-bridge/server.ts',
   'tools/figma-mcp/agent-link.ts',
