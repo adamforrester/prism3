@@ -30,7 +30,7 @@ On `↳ File Components`, Set up file builds the components the plugin draws pag
 | Component | What it is for |
 |---|---|
 | `_Section-header`, `_Headings` | The header at the top of each component page. |
-| `_Label`, `_inverse-backdrop` | The labels and backdrops placed beside a component set on the canvas. |
+| `_Label`, `_inverse-backdrop`, `_scrim-backdrop` | The labels and backdrops placed beside a component set on the canvas. The scrim is the modal backdrop drawn behind the centered and bottom-sheet Dialog examples. <!-- src: apps/plugin/src/furniture-templates.ts:61-69 --> |
 | `_style-guide-swatches`, `_style-guide-text-cells`, `_style-guide-spacing-cells` | The cells [Build style guides](style-guides.md) draws its tables from. |
 
 The names start with `_` because Figma treats such components as private and doesn't publish them to the library. If the file already holds these sets, Set up file uses them rather than building new ones. <!-- src: apps/plugin/src/main.ts:1001-1005 --> <!-- src: apps/plugin/src/main.ts:1019-1022 -->

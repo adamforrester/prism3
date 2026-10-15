@@ -3,7 +3,7 @@
 <!-- DRAFT for owner review (#2637, lane 4). -->
 
 Prism3 defines its components once, and the plugin builds each one as a Figma component set bound to the brand's variables. <!-- src: packages/engine/components/index.ts:87-197 --> <!-- src: apps/plugin/src/main.ts:568-606 -->
-The engine currently defines 39 component sets, from Button and Checkbox to Tabs, Accordion and List. <!-- src: packages/engine/components/index.ts:89-206 --> <!-- src: apps/plugin/src/file-taxonomy.ts:85-137 -->
+The engine currently defines 40 component sets, from Button and Checkbox to Tabs, Accordion and List. <!-- src: packages/engine/components/index.ts:90-210 --> <!-- src: apps/plugin/src/file-taxonomy.ts:85-140 -->
 
 Building needs the Figma plugin. On the web, the Components tab lists the same sets and says "Building sets needs the Figma plugin." <!-- src: apps/studio/src/preview/sections/component-sets.ts:34 -->
 
