@@ -22,7 +22,7 @@
  * runs it without a live file. Verification against what the engine actually emits is a separate,
  * also-pure step (`planBindingErrors`) that takes the emitted Figma variable names as a Set.
  */
-import type { AxisKind, ComponentDef, PartDef } from './component-schema';
+import type { AxisKind, ComponentDef, NestVariantWhen, PartDef } from './component-schema';
 import { axisKindOf, densitySizeValues, densitySpacingKeys, visibleGapKeys, fillKey, gridColumnAxis, fillPaintKey, paintKeyPlaceholders, parseRatio, PRIMARY_PAINT_SLOTS, replacesCandidates, STATE_GATE, statesOf, whenStates, variantsOf, slotAxisFigmaName, variantAxisFigmaName, swapPart, swapFigmaName, textFigmaName, booleanPartsOf, booleanFigmaName, booleanDefault, figmaVariantCount, figmaAxisNames, isExcludedCoordinate, WEIGHT_INTENTS } from './component-schema';
 import type { ControlShape, ButtonIcons, ButtonContentSize, ButtonLabelWeight, ButtonTextHover, Density } from './scale';
 import { buttonMinWidth, DEFAULT_MIN_WIDTH_MULTIPLIER, densitySpacingStep, ratioMinWidth, spacePx, visibleGapStep } from './scale';
@@ -1143,8 +1143,15 @@ export const figmaAnatomyPlan = (
   // `axisValue` is deliberately NOT widened to cover this: `size` is a key of `def.variants`, so folding
   // it in there would put `size` into `coord` and retire the "structure-only plan ⇒ empty coord"
   // invariant that `lint-paint` depends on (see `coord`'s own note).
-  const nestVariantOf = (nesting: { variant: Record<string, string>; follow?: readonly string[] }): Record<string, string> => {
+  // `variantWhen` (#2427) is merged between the fixed `variant` and `follow`: the host member's value of each listed
+  // axis picks a partial child coordinate (the Counter's `appearance=ghost` nests `shape=round`). The validator keeps
+  // a mapped child axis out of `follow`, so the order below never lets one overwrite the other.
+  const nestVariantOf = (nesting: { variant: Record<string, string>; follow?: readonly string[]; variantWhen?: NestVariantWhen }): Record<string, string> => {
     const out: Record<string, string> = { ...nesting.variant };
+    for (const [axis, byValue] of Object.entries(nesting.variantWhen ?? {})) {
+      const v = paintCoord[axis];
+      if (v !== undefined && byValue[v]) Object.assign(out, byValue[v]);
+    }
     for (const axis of nesting.follow ?? []) {
       const v = paintCoord[axis];
       if (v !== undefined) out[axis] = v;
