@@ -251,6 +251,34 @@
       "label": "TEXT"
     }
   },
+  "dialog": {
+    "axes": {
+      "footer": [
+        "inline",
+        "none",
+        "stacked"
+      ],
+      "placement": [
+        "bottom",
+        "center",
+        "full"
+      ],
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ]
+    },
+    "members": 15,
+    "properties": {
+      "body": "SLOT",
+      "close": "BOOLEAN",
+      "description": "BOOLEAN",
+      "description text": "TEXT",
+      "dividers": "BOOLEAN",
+      "title": "TEXT"
+    }
+  },
   "divider": {
     "axes": {
       "inset": [

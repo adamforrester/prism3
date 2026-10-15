@@ -653,6 +653,18 @@
         "label:TEXT",
         "trailing icon:BOOLEAN"
       ]
+    },
+    "dialog": {
+      "members": 15,
+      "sha256": "52e5b73053983f2cea897178e46d02f0c32027a37f31f1a72d5b334f8cdb4dad",
+      "properties": [
+        "body:SLOT",
+        "close:BOOLEAN",
+        "description text:TEXT",
+        "description:BOOLEAN",
+        "dividers:BOOLEAN",
+        "title:TEXT"
+      ]
     }
   }
 }

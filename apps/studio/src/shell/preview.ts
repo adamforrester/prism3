@@ -218,7 +218,7 @@ export const verdictButton = (open: (opener: HTMLElement) => void, cleanups: (()
 // ── the Inspect menu, in the preview header ────────────────────────────────────────────────────────
 /** "Inspect", a button that opens a menu of the three views (concept v6). Contrast's item says how the
  *  verdict stands. */
-export const inspectMenu = (open: (v: InspectId, opener: HTMLElement) => void, cleanups: (() => void)[]): HTMLElement => {
+export const inspectMenu = (open: (v: InspectId, opener: HTMLElement) => void, cleanups: (() => void)[], docsHref: string | null = null): HTMLElement => {
   const wrap = h('div', 'p3-popwrap');
   const btn = hook(h('button', 'p3-btn p3-btn-page'), 'inspect-open');
   btn.type = 'button';
@@ -240,6 +240,20 @@ export const inspectMenu = (open: (v: InspectId, opener: HTMLElement) => void, c
     return it;
   });
   menu.append(...items);
+  // DOCS (#2637): the site's `/docs`, on the web host only, where that route exists. A link, so it opens in a new tab
+  // and the brand being edited stays put; an item, so the arrow keys reach it. Its place and its label are the owner's.
+  const docs = docsHref ? hook(h('a', 'p3-menu-item'), 'docs-link') : null;
+  if (docs && docsHref) {
+    docs.setAttribute('role', 'menuitem');
+    docs.tabIndex = -1;
+    docs.setAttribute('href', docsHref);
+    docs.setAttribute('target', '_blank');
+    docs.setAttribute('rel', 'noopener');
+    docs.append(h('span', 'p3-menu-label', 'Docs'));
+    // Closed after the click, not during it: an anchor removed from the page before its click finishes does not navigate.
+    docs.onclick = () => { setTimeout(() => close(false), 0); };
+    menu.append(docs);
+  }
   // THE BUILD STAMP (#474; owner decision C3 A, 2026-10-05): which engine and which build this is, at the foot of the
   // menu in small text. It stood at the foot of the Pages menu until S8.2 removed that menu on the web (G19); it moved
   // here on both hosts, since the plugin showed it too. Its text is unchanged: `engine <version>`, then the build chip
@@ -253,7 +267,7 @@ export const inspectMenu = (open: (v: InspectId, opener: HTMLElement) => void, c
   const note = items[0].querySelector('.p3-menu-note')!;
   const paint = (): void => { const v = verdict(); note.textContent = v.fail ? `${v.fail} below floor` : 'all pass'; };
   // Open, close and keys: the shared menu button (#2487 B5), which now opens on ArrowDown.
-  const { close } = menuButton({ wrap, btn, menu, list: () => items, first: () => items[0], before: paint, cleanups });
+  const { close } = menuButton({ wrap, btn, menu, list: () => (docs ? [...items, docs] : items), first: () => items[0], before: paint, cleanups });
   wrap.append(btn);
   return wrap;
 };

@@ -51,6 +51,9 @@ const EXPECTED: Record<string, { slotSettings?: Record<string, unknown>; preferr
   'tabs.items': { slotSettings: { minChildren: 1, maxChildren: 6, allowPreferredValuesOnly: true }, preferred: ['tab'] },
   'list.items': { slotSettings: { minChildren: 1, allowPreferredValuesOnly: true }, preferred: ['list-item'] },
   'segmented-control.items': { slotSettings: { minChildren: 1, maxChildren: 5, allowPreferredValuesOnly: true }, preferred: ['segmented-control-segment'] },
+  // Open (#2609, as built): the body holds whatever the dialog needs — text or any components — so no limit and no
+  // preferred component. The footer's actions are fixed nested Buttons, not a slot (Q311), so they have no row.
+  'dialog.body': {},
 };
 console.log('the corpus');
 {

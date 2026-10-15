@@ -211,6 +211,106 @@
       ]
     },
     {
+      "from": "dialog",
+      "to": "button",
+      "part": "cancelInline",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "appearance": "outline",
+        "size": "medium",
+        "surface": "default",
+        "inset": "default",
+        "state": "rest",
+        "leading icon": "false",
+        "trailing icon": "false"
+      }
+    },
+    {
+      "from": "dialog",
+      "to": "button",
+      "part": "cancelStacked",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "appearance": "outline",
+        "size": "medium",
+        "surface": "default",
+        "inset": "default",
+        "state": "rest",
+        "leading icon": "false",
+        "trailing icon": "false"
+      }
+    },
+    {
+      "from": "dialog",
+      "to": "icon-button-neutral",
+      "part": "close",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "appearance": "ghost",
+        "size": "medium",
+        "shape": "square",
+        "surface": "default",
+        "state": "rest"
+      }
+    },
+    {
+      "from": "dialog",
+      "to": "button",
+      "part": "confirmInline",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "appearance": "filled",
+        "size": "medium",
+        "surface": "default",
+        "inset": "default",
+        "state": "rest",
+        "leading icon": "false",
+        "trailing icon": "false"
+      }
+    },
+    {
+      "from": "dialog",
+      "to": "button",
+      "part": "confirmStacked",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "appearance": "filled",
+        "size": "medium",
+        "surface": "default",
+        "inset": "default",
+        "state": "rest",
+        "leading icon": "false",
+        "trailing icon": "false"
+      }
+    },
+    {
+      "from": "dialog",
+      "to": "divider",
+      "part": "footerDivider",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "orientation": "horizontal",
+        "inset": "none"
+      }
+    },
+    {
+      "from": "dialog",
+      "to": "divider",
+      "part": "headerDivider",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "orientation": "horizontal",
+        "inset": "none"
+      }
+    },
+    {
       "from": "flush-icon-button",
       "to": "focus-ring",
       "part": "focusRing",
@@ -796,8 +896,12 @@
         "focus-ring",
         "spinner"
       ],
-      "nestedBy": [],
-      "affectedByChange": [],
+      "nestedBy": [
+        "dialog"
+      ],
+      "affectedByChange": [
+        "dialog"
+      ],
       "inheritedBy": [
         "icon-button"
       ]
@@ -883,14 +987,33 @@
         "switch-row"
       ]
     },
+    "dialog": {
+      "nests": [
+        "button",
+        "divider",
+        "icon-button-neutral"
+      ],
+      "nestsTransitively": [
+        "button",
+        "divider",
+        "focus-ring",
+        "icon-button-neutral",
+        "spinner"
+      ],
+      "nestedBy": [],
+      "affectedByChange": [],
+      "inheritedBy": []
+    },
     "divider": {
       "nests": [],
       "nestsTransitively": [],
       "nestedBy": [
-        "accordion"
+        "accordion",
+        "dialog"
       ],
       "affectedByChange": [
-        "accordion"
+        "accordion",
+        "dialog"
       ],
       "inheritedBy": []
     },
@@ -999,6 +1122,7 @@
         "checkbox-control",
         "checkbox-group",
         "checkbox-row",
+        "dialog",
         "flush-icon-button",
         "flush-icon-button-destructive",
         "flush-icon-button-neutral",
@@ -1070,8 +1194,12 @@
         "focus-ring",
         "spinner"
       ],
-      "nestedBy": [],
-      "affectedByChange": [],
+      "nestedBy": [
+        "dialog"
+      ],
+      "affectedByChange": [
+        "dialog"
+      ],
       "inherits": "button-neutral",
       "inheritedBy": [
         "flush-icon-button-neutral"
@@ -1224,6 +1352,7 @@
         "button",
         "button-destructive",
         "button-neutral",
+        "dialog",
         "icon-button",
         "icon-button-destructive",
         "icon-button-neutral"
@@ -1351,6 +1480,7 @@
     "checkbox-control": 1,
     "checkbox-group": 3,
     "checkbox-row": 2,
+    "dialog": 2,
     "divider": 0,
     "field-label": 0,
     "field-message": 0,
