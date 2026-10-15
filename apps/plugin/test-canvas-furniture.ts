@@ -30,9 +30,16 @@
  *                 180 for the three icon buttons, none for the rest), the apply moves them, and the next dry run reads
  *                 up to date; its furniture is drawn with nothing skipped, a backdrop only for the six with `surface`
  *                 rows, and no label inside its own set.
- *   clearance/…   every page that holds more than one set, built in page order with each set's furniture drawn after
- *                 it lands: no label enters another set or its labels, and each later set's labels keep 40px from the
- *                 set to their left. Mutation: `SET_GAP` back to 160 → `clearance/Buttons`, `clearance/Icon button`.
+ *   clearance/…   every page that holds more than one set, built in page order as `main.ts` builds (the set lands,
+ *                 its furniture is drawn, a set the run created is placed again, `seatNewSet`): no label enters another
+ *                 set or its labels, and the white space from one set's frame-and-furniture to the next one's is
+ *                 exactly 160 (#2723, owner decision Q335 A), Button included. Mutations: `SET_GAP` back to 400 →
+ *                 every `clearance/<page>`; the new set placed again without its reach → the same.
+ *   respace/…     Buttons and Checkbox in one file, laid out as the #2502 rule built them (400 frame to frame) with
+ *                 their labels drawn: the update's dry run moves every later set, the apply and the labels' redraw
+ *                 leave exactly 160 between each set's labels and its neighbor's, where a fresh build puts them, every id
+ *                 kept, and the next dry run moves nothing (#2723). Mutations: the old rule's spot not recognized →
+ *                 `respace/<page> dry run`; the furniture left out of the visible box → `respace/<page> gap`.
  *   templates/missing…  a file without `_Label` or `_inverse-backdrop` (#2598): one line for the run, naming each
  *                 missing template and Set up file, and the update's summary carries it. Mutations: the line dropped →
  *                 `templates/missing build`; one line per set → the same; the summary left out → `templates/update summary`.
@@ -70,7 +77,7 @@ import { captureBaselines, previewUpdate, previewLine, previewVerdict, type Upda
 import { applyUpdate, applyVerdict, previewHashOf } from './src/update-apply';
 import { BASELINE_KEY } from './src/member-baseline';
 import { NS } from './src/persist-figma';
-import { planFurniture, drawFurniture, furnitureLayout, furnitureItems, withFurnitureItems, sentenceCase, pruneFurniture, clearFurniture, hasFurniture, SCRIM_BACKDROPS, type GridMember, type FurnitureApi, type XNode } from './src/canvas-furniture';
+import { planFurniture, drawFurniture, seatNewSet, furnitureLayout, furnitureItems, withFurnitureItems, sentenceCase, pruneFurniture, clearFurniture, hasFurniture, SCRIM_BACKDROPS, type GridMember, type FurnitureApi, type XNode } from './src/canvas-furniture';
 import { ensureFurnitureTemplates } from './src/furniture-templates';
 import { allLeaves } from './src/file-taxonomy';
 import type { TemplatesApi } from './src/furniture-templates';
@@ -773,10 +780,12 @@ section('rollout — every def that builds a set: drawn, converged, and clear of
         identities: true,
         keyPrefix: id,
       }) as Record<string, unknown>;
-      await applyComponentPlan(plans, api as never, { targetPage: page as never });
+      const built = await applyComponentPlan(plans, api as never, { targetPage: page as never });
       // By name: each def's shim numbers its own node ids, so two sets on this page can share one.
       const set = page.children.find((c) => c.type === 'COMPONENT_SET' && c.name === id) as FNode;
       await drawFurniture(fakeTemplates(), set, furnitureLayout(plans), id);
+      // As `main.ts` builds: a set the run created is placed again once its labels are drawn (#2723).
+      if (built.placed) seatNewSet(set as never, id);
     }
     const sets = page.children.filter((c) => c.type === 'COMPONENT_SET').sort((a, b) => Number(a.x) - Number(b.x));
     const furn = furnitureOn(page);
@@ -785,12 +794,15 @@ section('rollout — every def that builds a set: drawn, converged, and clear of
       for (const s of sets) if (s.name !== tagOf(f).def && meets(box(f), box(s))) hits.push(`"${textOf(f) || 'backdrop'}" of ${tagOf(f).def} on ${String(s.name)}`);
       for (const g of furn) if (tagOf(g).def !== tagOf(f).def && meets(box(f), box(g))) hits.push(`"${textOf(f) || 'backdrop'}" of ${tagOf(f).def} on "${textOf(g) || 'backdrop'}" of ${tagOf(g).def}`);
     }
-    const clear = sets.slice(1).map((s, i) => {
-      const own = furn.filter((f) => tagOf(f).def === s.name);
-      return Math.min(...own.map((f) => Number(f.x))) - (Number(sets[i].x) + Number(sets[i].width));
-    });
-    ok(sets.length === ids.length && hits.length === 0 && clear.every((c) => c >= 40),
-      `clearance/${name}: ${sets.length} sets, no label on a neighboring set or its labels, and each later set's labels ${clear.join(', ')}px clear of the set to their left (${hits.slice(0, 3).join('; ')})`);
+    // THE VISIBLE GAP (#2723, owner decision Q335 A): from the right edge of one set's frame and furniture together to
+    // the left edge of the next one's, 160 on every page, measured here off the shim's nodes.
+    const seen = (s: FNode) => {
+      const all = [s, ...furn.filter((f) => tagOf(f).def === s.name)];
+      return { left: Math.min(...all.map((n) => Number(n.x))), right: Math.max(...all.map((n) => Number(n.x) + Number(n.width))) };
+    };
+    const gaps = sets.slice(1).map((s, i) => seen(s).left - seen(sets[i]).right);
+    ok(sets.length === ids.length && hits.length === 0 && gaps.every((g) => g === 160),
+      `clearance/${name}: ${sets.length} sets, no label on a neighboring set or its labels, and 160px of white space between each set's labels and the set to their left (${gaps.join(', ')}; ${hits.slice(0, 3).join('; ')})`);
   }
 }
 
@@ -804,17 +816,28 @@ section('placement — sets deleted and rebuilt on a page that keeps its header 
   // width), the first two sets deleted with their labels left behind (deleting a set does not delete them), then
   // each rebuilt as `main.ts` builds: its own old labels cleared, the set built, its labels drawn.
   // THE SLOT, on literal boxes: a header at 0,-300 (3000 × 220) and a set the designer left at 1000,0 (500 × 200). A
-  // slot is free when the new set, with 400 on each side for its own labels and its neighbor's, meets nothing. A 500-wide
-  // set fits left of it (0 + 500 + 400 = 900, short of 1000); a 700-wide one does not (1100), and goes 400 past it, to
-  // 1500 + 400 = 1900. A 500-wide one with a node at -300..-100 in its row starts 400 past that node, at 300, where
-  // 300 + 500 + 400 = 1200 passes 1000, so it goes to 1900 too.
+  // slot is free when the new set, with 160 on each side (#2723), meets nothing. A 500-wide set fits left of it
+  // (0 + 500 + 160 = 660, short of 1000); a 900-wide one does not (1060), and goes 160 past it, to 1500 + 160 = 1660.
+  // An 800-wide one fits at 0 (960), but with a node at -300..-100 in its row it starts 160 past that node, at 60,
+  // where 60 + 800 + 160 = 1020 passes 1000, so it goes to 1660 too.
   const hdr = { type: 'INSTANCE', x: 0, y: -300, width: 3000, height: 220, header: true };
   const kept = { type: 'COMPONENT_SET', x: 1000, y: 0, width: 500, height: 200 };
   const at = (p: { x: number; y: number } | null) => (p ? `${p.x},${p.y}` : 'null');
   ok(at(placeNewSet([hdr, kept], 200, 500)) === '0,0', `placement/slot fits: a 500-wide set takes the gap left of the kept set, at 0,0 (got ${at(placeNewSet([hdr, kept], 200, 500))})`);
-  ok(at(placeNewSet([hdr, kept], 200, 700)) === '1900,0', `placement/slot too narrow: a 700-wide set leaves 400 for the kept set's labels, so it goes past it, at 1900,0 (got ${at(placeNewSet([hdr, kept], 200, 700))})`);
+  ok(at(placeNewSet([hdr, kept], 200, 900)) === '1660,0', `placement/slot too narrow: a 900-wide set leaves less than 160 before the kept set, so it goes past it, at 1660,0 (got ${at(placeNewSet([hdr, kept], 200, 900))})`);
   const stray = { type: 'FRAME', x: -300, y: 50, width: 200, height: 50 };
-  ok(at(placeNewSet([hdr, kept, stray], 200, 500)) === '1900,0', `placement/slot left gap: a node at -300..-100 pushes the slot to 300, where 500 wide no longer fits before the kept set, so 1900,0 (got ${at(placeNewSet([hdr, kept, stray], 200, 500))})`);
+  ok(at(placeNewSet([hdr, kept], 200, 800)) === '0,0' && at(placeNewSet([hdr, kept, stray], 200, 800)) === '1660,0',
+    `placement/slot left gap: an 800-wide set fits at 0,0, but a node at -300..-100 pushes the slot to 60, where it no longer fits before the kept set, so 1660,0 (got ${at(placeNewSet([hdr, kept], 200, 800))}, then ${at(placeNewSet([hdr, kept, stray], 200, 800))})`);
+  // THE NEW SET'S OWN REACH (#2723): its labels hang `left` past its frame, a backdrop `right`. Under the header, a
+  // 500-wide set reaching 400 right needs 0 + 500 + 400 + 160 = 1060, past the kept set at 1000, so its labels start
+  // 160 past it: 1660, plus a 300 left reach puts the frame at 1960. With no header, the frame goes 160 + its left
+  // reach past the furthest node in the row, here a neighbor's label ending at 500: 500 + 160 + 120 = 780.
+  ok(at(placeNewSet([hdr, kept], 200, 500, { left: 300, right: 400 })) === '1960,0',
+    `placement/reach under a header: a set whose furniture reaches 300 left and 400 right goes past the kept set, its labels 160 clear, frame at 1960,0 (got ${at(placeNewSet([hdr, kept], 200, 500, { left: 300, right: 400 }))})`);
+  const nbr = { type: 'COMPONENT_SET', x: 0, y: 0, width: 400, height: 200 };
+  const nbrLabel = { type: 'INSTANCE', x: 320, y: 20, width: 180, height: 40 };
+  ok(at(placeNewSet([nbr, nbrLabel], 200, 300, { left: 120, right: 0 })) === '780,0',
+    `placement/reach in a row: the frame lands 160 + 120 past the neighbor's furthest node, at 780,0 (got ${at(placeNewSet([nbr, nbrLabel], 200, 300, { left: 120, right: 0 }))})`);
 
   const buildOne = async (page: ReturnType<typeof makePage>, id: string): Promise<FNode> => {
     const plans = plansOf(id);
@@ -829,13 +852,19 @@ section('placement — sets deleted and rebuilt on a page that keeps its header 
       identities: true,
       keyPrefix: id,
     }) as Record<string, unknown>;
-    await applyComponentPlan(plans, api as never, { targetPage: page as never });
+    const built = await applyComponentPlan(plans, api as never, { targetPage: page as never });
     const set = page.children.find((c) => c.type === 'COMPONENT_SET' && c.name === id) as FNode;
     await drawFurniture(fakeTemplates(), set, furnitureLayout(plans), id);
+    if (built.placed) seatNewSet(set as never, id);
     return set;
   };
   const box = (n: FNode) => ({ x: Number(n.x), y: Number(n.y), w: Number(n.width), h: Number(n.height) });
   const meets = (a: ReturnType<typeof box>, b: ReturnType<typeof box>) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+  // A set's frame and its own furniture together, as a designer sees them, measured off the page's nodes.
+  const seenOf = (page: { children: FNode[] }, id: string) => {
+    const all = [page.children.find((c) => c.type === 'COMPONENT_SET' && c.name === id)!, ...furnitureOn(page).filter((f) => tagOf(f).def === id)];
+    return { left: Math.min(...all.map((n) => Number(n.x))), right: Math.max(...all.map((n) => Number(n.x) + Number(n.width))) };
+  };
   for (const [name, ids] of [['Buttons', ['button', 'button-destructive', 'button-neutral']], ['Icon button', ['icon-button', 'icon-button-destructive', 'icon-button-neutral']]] as const) {
     const page = makePage(`↳ ${name}`);
     const first: Record<string, ReturnType<typeof box>> = {};
@@ -852,8 +881,9 @@ section('placement — sets deleted and rebuilt on a page that keeps its header 
     ok(a.x === hb.x && a.y === first[ids[2]].y && a.x + a.w <= hb.x + hb.w,
       `placement/${name} first: the rebuilt ${ids[0]} lands under the header on its left edge, top-aligned with ${ids[2]}, at ${hb.x},${first[ids[2]].y} (got ${a.x},${a.y}; the header spans ${hb.x}..${hb.x + hb.w})`);
     const b = box(await buildOne(page, ids[1]));
-    ok(b.x === a.x + a.w + 400 && b.y === a.y && b.x + b.w <= hb.x + hb.w,
-      `placement/${name} second: the rebuilt ${ids[1]} lands 400 right of ${ids[0]}, top-aligned, still under the header, at ${a.x + a.w + 400},${a.y} (got ${b.x},${b.y})`);
+    const gap = seenOf(page, ids[1]).left - seenOf(page, ids[0]).right;
+    ok(gap === 160 && b.y === a.y && b.x + b.w <= hb.x + hb.w,
+      `placement/${name} second: the rebuilt ${ids[1]} lands with 160 of white space between its labels and ${ids[0]}'s, top-aligned, still under the header (got ${gap}; at ${b.x},${b.y})`);
     // NOTHING MEETS ANYTHING ELSE'S: no set on another set or on another set's labels, the header on nothing.
     const sets = page.children.filter((c) => c.type === 'COMPONENT_SET');
     const furn = furnitureOn(page);
@@ -869,7 +899,7 @@ section('placement — sets deleted and rebuilt on a page that keeps its header 
   }
   // THE WIDTH AT THE CALL SITE (#2598 review): the replay above always leaves a label column of slack, so a rebuilt set
   // placed as if it had no width lands in the same spot. Here the kept set is moved left, with its labels, until its
-  // leftmost node sits half the rebuilt set's width short of `width + 400` past the header's left edge: a slot
+  // leftmost node sits half the rebuilt set's width short of `width + 160` past the header's left edge: a slot
   // that holds a zero-width set and not the real one. The rebuilt set must go past the kept set, as the slot rule
   // says, not under its labels. Mutation: `applyComponentPlan` passing width 0 → `placement/narrow gap`.
   {
@@ -885,16 +915,75 @@ section('placement — sets deleted and rebuilt on a page that keeps its header 
     detach(page.children.find((c) => c.type === 'COMPONENT_SET' && c.name === 'button')!);
     const keptSet = page.children.find((c) => c.type === 'COMPONENT_SET' && c.name === 'button-neutral')!;
     const keptNodes = [keptSet, ...furnitureOn(page).filter((f) => tagOf(f).def === 'button-neutral')];
-    const dx = left + 400 + Math.round(w / 2) - Math.min(...keptNodes.map((n) => Number(n.x)));
+    const dx = left + 160 + Math.round(w / 2) - Math.min(...keptNodes.map((n) => Number(n.x)));
     for (const n of keptNodes) n.x = Number(n.x) + dx;
     const keptLeft = Math.min(...keptNodes.map((n) => Number(n.x)));
     const keptRight = Math.max(...keptNodes.map((n) => Number(n.x) + Number(n.width)));
-    const ok1 = keptLeft >= left + 400 && keptLeft < left + w + 800;
+    const ok1 = keptLeft >= left + 160 && keptLeft < left + w + 160;
     const a = box(await buildOne(page, 'button'));
     const hitsKept = keptNodes.filter((n) => meets(a, box(n))).length;
-    ok(ok1 && a.x >= keptRight + 400 && hitsKept === 0,
-      `placement/narrow gap: the kept set's nodes start at ${keptLeft}, ${keptLeft - left} past the header's left edge, short of the rebuilt set's ${w} + 800, so it lands past them, at ${keptRight + 400} or right (got ${a.x}; ${hitsKept} kept node(s) met)`);
+    const aLeft = seenOf(page, 'button').left;
+    ok(ok1 && aLeft === keptRight + 160 && hitsKept === 0,
+      `placement/narrow gap: the kept set's nodes start at ${keptLeft}, ${keptLeft - left} past the header's left edge, short of the rebuilt set's ${w} + 160, so it lands past them, its labels at ${keptRight + 160} (got ${aLeft}; ${hitsKept} kept node(s) met)`);
   }
+}
+
+/* ── respace: Update re-spaces a page laid out under the #2502 rule (#2723) ─────────────────────────────────── */
+section('respace — an update moves sets laid out 400 apart, frame to frame, to 160 of white space between their labels (#2723)');
+for (const [name, ids] of [['Buttons', ['button', 'button-destructive', 'button-neutral']], ['Checkbox', ['checkbox-control', 'checkbox-row', 'checkbox-group']]] as const) {
+  // One file, one shim, the page's sets built in page order as `main.ts` builds them (set, labels, placed again), so
+  // the fresh layout is measured first. Then each later set is put where the #2502 rule built it, 400 right of the one
+  // before frame to frame, and its labels redrawn there, as that build drew them. The update's dry run and apply run
+  // over that page, then the labels are redrawn for every set the apply acted on, as `main.ts` does after an update.
+  // Mutations: the old rule's spot not recognized in `respaceSets` → `respace/<page> dry run`; the furniture left out
+  // of the visible box → `respace/<page> gap`.
+  const page = makePage(`↳ ${name} (respace)`);
+  const plansBy = new Map(ids.map((id) => [id, plansOf(id)] as const));
+  const all = [...plansBy.values()].flat();
+  const api = makeShim({
+    vars: [...new Set(all.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]))],
+    styles: [...new Set(all.flatMap((p) => planTextStyles(p.root)))],
+    effects: [...new Set(all.flatMap((p) => planEffectStyles(p.root)))],
+    comps: [...new Set([SWAP_TARGET, 'focus-ring', ...all.flatMap((p) => planComps(p.root))])],
+    page: page as unknown as { children: Node[] },
+    liveRoot: true,
+    identities: true,
+  }) as Record<string, unknown>;
+  const setOf = (id: string) => page.children.find((c) => c.type === 'COMPONENT_SET' && c.name === id) as FNode;
+  const draw = async (id: string) => drawFurniture(fakeTemplates(), setOf(id), furnitureLayout(plansBy.get(id)!), id);
+  for (const id of ids) {
+    const built = await applyComponentPlan(plansBy.get(id)!, api as never, { targetPage: page as never });
+    await draw(id);
+    if (built.placed) seatNewSet(setOf(id) as never, id);
+  }
+  const seen = (id: string) => {
+    const all2 = [setOf(id), ...furnitureOn(page).filter((f) => tagOf(f).def === id)];
+    return { left: Math.min(...all2.map((n) => Number(n.x))), right: Math.max(...all2.map((n) => Number(n.x) + Number(n.width))) };
+  };
+  const gaps = () => ids.slice(1).map((id, i) => seen(id).left - seen(ids[i]).right);
+  const fresh = ids.map((id) => Number(setOf(id).x));
+  // The #2502 layout.
+  for (let k = 1; k < ids.length; k++) { setOf(ids[k]).x = Number(setOf(ids[k - 1]).x) + Number(setOf(ids[k - 1]).width) + 400; await draw(ids[k]); }
+  const oldGaps = gaps();
+  const host = {
+    ...api,
+    root: { ...(api.root as object), findAllWithCriteria: (c: { types: string[] }) => (c.types.length === 1 && c.types[0] === 'COMPONENT_SET' ? page.children.filter((n) => n.type === 'COMPONENT_SET') : (api.root as { findAllWithCriteria: (c: unknown) => unknown[] }).findAllWithCriteria(c)) },
+  } as unknown as UpdateHost;
+  const targets = ids.map((id) => ({ def: id, plans: plansBy.get(id)! }));
+  const idsOf = () => JSON.stringify(ids.map((id) => [setOf(id).id, ...((setOf(id).children ?? []) as FNode[]).map((m) => m.id)]));
+  const idsWas = idsOf();
+  const pre = await previewUpdate(host, targets);
+  const moving = pre.sets.filter((x) => x.setMove).map((x) => x.set);
+  ok(JSON.stringify(moving) === JSON.stringify(ids.slice(1)) && pre.sets.every((x) => !x.blockers.length),
+    `respace/${name} dry run: with ${oldGaps.join(', ')}px between their labels, the ${ids.length - 1} later sets move (${JSON.stringify(moving)})`);
+  const res = await applyUpdate(host as never, api as never, targets, previewHashOf(pre));
+  for (const o of res.outcomes) await draw(o.def);
+  const after = gaps();
+  ok(after.every((g) => g === 160) && JSON.stringify(ids.map((id) => Number(setOf(id).x))) === JSON.stringify(fresh),
+    `respace/${name} gap: after the apply and the labels' redraw, 160 between each set's labels and the set to their left, every set where a fresh build put it (${after.join(', ')}; at ${JSON.stringify(ids.map((id) => Number(setOf(id).x)))}, fresh ${JSON.stringify(fresh)})`);
+  const next = await previewUpdate(host, targets);
+  ok(idsOf() === idsWas && next.sets.every((x) => !x.setMove) && previewVerdict(next).headline === '✓ All sets up to date',
+    `respace/${name} converges: every set and member id kept, and the next dry run moves nothing (${previewVerdict(next).headline})`);
 }
 
 /* ── update: furniture is invisible to the dry run and the as-built record ──────────────────────────────── */

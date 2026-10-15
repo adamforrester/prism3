@@ -45,6 +45,7 @@ import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
 import { isTemplateSet } from './file-components';
 import { LABEL_SET, BACKDROP_COMPONENT, SCRIM_COMPONENT, SCRIM_BACKDROP, BRACKET_PROPERTY, labelVariant, bindBackdrop } from './furniture-templates';
 import type { BackdropVariables } from './furniture-templates';
+import { placeNewSet, pageBox, reachOf } from './write-components';
 
 export { CANVAS_FURNITURE };
 /** Shared plugin data namespace and key the tag lives under. The namespace is `persist-figma.ts`'s `NS`. */
@@ -536,6 +537,36 @@ export const drawFurniture = async (
     }
   }
   return out;
+};
+
+/**
+ * A NEW SET, PLACED AGAIN ONCE ITS LABELS ARE DRAWN (#2723, owner decision Q335 A). The gap between sets is measured
+ * from each set's furniture, and a label's width is its text's, which only the host knows once the label is drawn.
+ * So the build places a new set with no furniture (`placeNewSet`, in the executor), draws the furniture, then calls
+ * this: the set's own furniture is measured as its reach, and the set is placed again by the same rule against every
+ * other node on its parent. The set and its furniture move together, by `x` only, so nothing is redrawn and the
+ * labels keep their place against the members. Returns how far they moved; 0 when the set has no furniture or is
+ * already where the rule puts it.
+ *
+ * ONLY FOR A SET THIS RUN CREATED (`ComponentApplyResult.placed`). A set that was already there is the designer's to
+ * place; Update's re-spacing (`respaceSets`) is the only thing that moves it.
+ */
+export const seatNewSet = (set: XNode, defId: string): number => {
+  const parent = set.parent as FurnitureParent | null | undefined;
+  if (!parent) return 0;
+  const setId = String(set.id ?? '');
+  const kids = parent.children as readonly XNode[];
+  // By the set's id and its def, the pair `drawFurniture` tagged it with.
+  const own = kids.filter((c) => { const t = c === set ? null : readTag(c); return !!t && t.set === setId && t.def === defId; });
+  if (!own.length) return 0;
+  const frame = pageBox(set as Parameters<typeof pageBox>[0]);
+  const others = kids.filter((c) => c !== set && !own.includes(c)).map((c) => pageBox(c as Parameters<typeof pageBox>[0]));
+  const at = placeNewSet(others, frame.height, frame.width, reachOf(frame, own.map((c) => pageBox(c as Parameters<typeof pageBox>[0]))));
+  const dx = at ? at.x - frame.x : 0;
+  if (!dx) return 0;
+  set.x = frame.x + dx;
+  for (const c of own) c.x = (c.x ?? 0) + dx;
+  return dx;
 };
 
 /**

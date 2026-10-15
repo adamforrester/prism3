@@ -135,7 +135,7 @@ export type SetPreview = {
   /** #2188 Q173 — the members an update moves to their place in the grid, by name (`gridMoves`). Absent when none. */
   positions?: string[];
   /** #2542 (owner decision Q245.2 A) — the WHOLE SET moves on its page, to where a fresh build would place it
-   *  (`respaceSets`), so sets sit `SET_GAP` apart. Absent when it stays. */
+   *  (`respaceSets`), so the visible gap between sets, furniture included, is `SET_GAP` (#2723). Absent when it stays. */
   setMove?: { from: { x: number; y: number }; to: { x: number; y: number } };
   needsChoice: Choice[];
   /** Of `blockers`, those Adopt clears by claiming the members they name (`setRefusal`), so it is not refused for
@@ -903,11 +903,14 @@ export const pageSetMoves = (found: readonly { name: string; set: LiveSet; block
     const ours = kids.filter((k) => k.type === 'COMPONENT_SET' && setBuiltByPrism3(k));
     if (here.some((f) => f.blocked) || !ours.every((k) => read.has(k as LiveSet))) continue;
     // Keyed by the node's place on the page, never by its id: what maps a move back to its set is the node itself.
+    // Furniture names its set by node id (#2723): mapped to that set's place on the page, its `id` here.
+    const at = new Map(kids.map((k, i) => [String(k.id ?? ''), String(i)] as const));
     const boxes: RespaceBox[] = kids.map((k, i) => ({
       id: String(i), type: String(k.type ?? ''), x: Number(k.x ?? 0), y: Number(k.y ?? 0), width: Number(k.width ?? 0), height: Number(k.height ?? 0),
       header: (k.type === 'INSTANCE' || k.type === 'FRAME') && String(k.name ?? '').toLowerCase() === '_section-header',
       prism3: k.type === 'COMPONENT_SET' && setBuiltByPrism3(k),
       furniture: !!readTag(k as never),
+      of: at.get(readTag(k as never)?.set ?? ''),
     }));
     for (const m of respaceSets(boxes)) {
       const f = here.find((x) => x.set === (kids[Number(m.id)] as LiveSet));
