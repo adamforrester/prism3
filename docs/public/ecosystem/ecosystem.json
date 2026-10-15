@@ -311,7 +311,8 @@
           "list",
           "segmented-control-segment",
           "segmented-control",
-          "link"
+          "link",
+          "dialog"
         ]
       }
     },
@@ -454,7 +455,7 @@
       "status": "shipped",
       "column": "outputs",
       "parent": "figma-file",
-      "purpose": "A component set per definition, with each family on its own page, bound to the variables. An update checks first and writes nothing, then applies after the agent confirms. Prune previews before it deletes. Labels and inverse backdrops are drawn around each set as canvas furniture.",
+      "purpose": "A component set per definition, with each family on its own page, bound to the variables. An update checks first and writes nothing, then applies after the agent confirms. Prune previews before it deletes. Labels and inverse backdrops are drawn around each set as canvas furniture, and a scrim behind the centered and bottom-sheet Dialog examples.",
       "inputs": [
         "Component plans, through the plugin or the MCP scripts"
       ],
