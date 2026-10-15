@@ -13,10 +13,12 @@ A planned FIXED is never relaxed, because a stretched node left AUTO hugs (#1751
 
 **Why medium and large, not small.** This is inferred, not measured, because the shim models no heights. The host switches a resized axis to FIXED; the executor's `placementWidth` note records this. The title column is the label's line plus a 2px offset, which the def keeps within 1px of the glyph (16/20/24). Where the row comes out taller than the glyph, the stretch resizes the indicator and the host flips it to FIXED. Where it doesn't, nothing resizes and it stays AUTO. To confirm on the real file, read the indicator's height against its glyph's at each size.
 
-**Considered and not taken.** Making the plan say FIXED on a stretched axis, so the executor writes what the host ends at. That moves the plan of every `crossAxisFill` box, so every such member would read "to update" on the next dry run. It also changes what a hugging row means for its stretched child. That is a projection change, not this fix.
+**Owner decision Q357 A (2026-10-15).** The rule lives in the read-back, not the plan: relaxed only on the axis the stretch fills, only while both the plan and the host hold the stretch, and a planned FIXED never.
+
+**Considered and not taken (Q357 B).** Making the plan say FIXED on a stretched axis, so the executor writes what the host ends at. That moves the plan of every `crossAxisFill` box, so every such member would read "to update" on the next dry run. It also changes what a hugging row means for its stretched child. That is a projection change, and it would trade this disagreement for one at small, where the host holds AUTO.
 
 **Test.** A new `stretched mode` section in `test-update-apply.ts`, through the file shim. The test models the host itself: at medium and large, the indicator switches to FIXED when the stretch is written. Three controls hold their value whatever is written:
-- one member's `titleRow` holds FIXED (nothing stretches it);
+- one member's `titleRow` holds FIXED, and the host holds it stretched where the plan does not (a designer's stretch, with no `layoutAlign` comparison to catch it);
 - that member's `header` holds FIXED (stretched on its primary axis, not its counter axis);
 - an open member's `content` holds AUTO (the plan says FIXED on its stretched axis).
 
@@ -31,6 +33,7 @@ Mutations, each failing by name:
 - the parent's plan not threaded → the same four;
 - the axis ignored → the same four;
 - a planned FIXED relaxed too → the same four;
-- the host's stretch not required → `stretch/lost`.
+- the host's stretch not required → `stretch/lost`;
+- the plan's stretch not required → `stretch/verify`, `stretch/dry run`, `stretch/agree`, `stretch/lost`. The independent review found this conjunct untested (it survived with 257 passing); the `titleRow` control's host stretch is what pins it.
 
 No executor file changed, so `EXECUTOR_REVISION` stays. The change note is `engine: patch`, because no artifact or projected surface moves.

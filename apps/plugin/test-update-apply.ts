@@ -2411,7 +2411,9 @@ section('accordion — a set built before the header row (#2594, owner Q276 A) t
 // still fail, with an open member's `content` held AUTO where the plan holds its stretched axis FIXED. The expected
 // lines are literals from the def's anatomy, never the read-back's output. Mutations: the rule dropped, or the parent's
 // plan not threaded to it → `stretch/verify`, `stretch/dry run`, `stretch/agree`, `stretch/lost`; the host's stretch
-// not required → `stretch/lost`; the axis ignored → the same four; a planned FIXED relaxed too → the same four.
+// not required → `stretch/lost`; the axis ignored → the same four; a planned FIXED relaxed too → the same four; the
+// plan's stretch not required (the control's `titleRow` is stretched on the host alone) → `stretch/verify`,
+// `stretch/dry run`, `stretch/agree`, `stretch/lost`.
 section('stretched mode — an axis the parent stretches: the verify and the dry run agree on it, both ways (#2696)');
 {
   const ACC = 'accordion';
@@ -2428,6 +2430,10 @@ section('stretched mode — an axis the parent stretches: the verify and the dry
   }
   const control = members.find((m) => sizeOf(m) === 'medium')!;
   Object.defineProperty(titleRow(control), 'counterAxisSizingMode', { configurable: true, enumerable: true, get: () => 'FIXED', set: () => {} });
+  // The host also holds it STRETCHED where the plan does not stretch it (a designer's stretch). It shares `header`'s
+  // row direction, so the stretch would fill its counter axis: only the plan's half of the rule keeps it named, and
+  // no `layoutAlign` comparison exists for a part the plan does not stretch (`FIELDS.layoutAlign`).
+  Object.defineProperty(titleRow(control), 'layoutAlign', { configurable: true, enumerable: true, get: () => 'STRETCH', set: () => {} });
   // …and its `header`, a row the column root stretches ACROSS, which is the header's primary axis, not its counter one.
   Object.defineProperty(childNamed(control, 'header'), 'counterAxisSizingMode', { configurable: true, enumerable: true, get: () => 'FIXED', set: () => {} });
   // Its record cleared, so the FIXED reads as the host's and not a designer's: the update writes it and records it after.
