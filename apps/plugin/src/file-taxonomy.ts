@@ -115,6 +115,9 @@ export const TAXONOMY: Taxonomy = {
         // Link (#2580) — its own page under Components. The proposal named a navigation section; none exists (Tabs
         // went under Components, Q177.14), so the section is held as an owner item in the PR.
         { page: 'Link', defs: ['link'] },
+        // Dialog (#2609, owner decision Q303.12 A) — its own page under Components, every placement on it. It nests the
+        // Neutral IconButton, the Divider and the Button, which the build places first wherever their pages sort.
+        { page: 'Dialog', defs: ['dialog'] },
         // Counter (#2427, owner decision Q283.14 A) — its own page, alphabetical under Components (between Checkbox and
         // Divider). It nests FlushIconButton.Neutral, whose page is under Subcomponents.
         { page: 'Counter', defs: ['counter'] },

@@ -239,6 +239,26 @@
     },
     "members": 18
   },
+  "dialog": {
+    "axes": {
+      "footer": [
+        "inline",
+        "none",
+        "stacked"
+      ],
+      "placement": [
+        "bottom",
+        "center",
+        "full"
+      ],
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ]
+    },
+    "members": 15
+  },
   "divider": {
     "axes": {
       "inset": [

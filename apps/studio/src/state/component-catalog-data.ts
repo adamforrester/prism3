@@ -1045,6 +1045,22 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     ]
   },
   {
+    "id": "dialog",
+    "name": "Dialog",
+    "category": "overlay",
+    "summary": "A panel over the page for a short task or a decision. Centered, a bottom sheet, or full screen.",
+    "unit": "variants",
+    "spacing": [],
+    "buildable": true,
+    "reason": null,
+    "members": 15,
+    "nests": [
+      "icon-button-neutral",
+      "divider",
+      "button"
+    ]
+  },
+  {
     "id": "counter",
     "name": "Counter",
     "category": "form",

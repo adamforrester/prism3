@@ -10,7 +10,7 @@ Peers come from three groupings, each derived from the definitions:
 
 Generated from the component definitions and the emission by `packages/engine/emit-analysis-reports.ts`; `regen.ts --check` fails when this page is stale. The same data for agents: [component-comparison.json](component-comparison.json). All reports: [index](index.md).
 
-## Findings (45)
+## Findings (46)
 
 ### axis values
 
@@ -19,7 +19,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 - **axis inset** — the inset axis takes 2 value sets — [default, flush] in button, button-destructive, button-neutral; [inset, middle-inset, none] in divider
 - **axis selection** — the selection axis takes 4 value sets — [selected, unselected] in segmented-control-segment, tab, tag; [checked, indeterminate, unchecked] in checkbox-control; [checked, unchecked] in radio-control; [off, on] in switch-control
 - **axis shape** — the shape axis takes 2 value sets — [circular, square] in icon-button, icon-button-destructive, icon-button-neutral; [flush, round] in flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral
-- **axis size** — the size axis takes 3 value sets — [large, medium, small] in _accordion-indicator, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, counter, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, select, tab, tabs, tag, text-field, textarea; [medium, small] in switch-control, switch-row; [large, medium, small, x-small] in spinner
+- **axis size** — the size axis takes 3 value sets — [large, medium, small] in _accordion-indicator, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, select, tab, tabs, tag, text-field, textarea; [medium, small] in switch-control, switch-row; [large, medium, small, x-small] in spinner
 - **axis style** — the style axis takes 2 value sets — [outline] in text-field, textarea; [inline, standalone] in link
 - **axis tone** — the tone axis takes 2 value sets — [brand, danger, info, inherit, primary, secondary, success, tertiary, warning] in icon; [danger, info, neutral, success, warning] in badge
 - **axis type** — the type axis takes 3 value sets — [icon, ordered, unordered] in list, list-item; [count, dot, status] in badge; [dismissible, select] in tag
@@ -47,11 +47,12 @@ Generated from the component definitions and the emission by `packages/engine/em
 
 ### size default
 
-- **field-label** — field-label defaults size to small; 32 of 33 sized components default to medium
+- **field-label** — field-label defaults size to small; 33 of 34 sized components default to medium
 
 ### size order
 
 - **counter** — counter declares its sizes as [medium, small, large], not smallest first
+- **dialog** — dialog declares its sizes as [medium, small, large], not smallest first
 - **select** — select declares its sizes as [medium, small, large], not smallest first
 - **text-field** — text-field declares its sizes as [medium, small, large], not smallest first
 - **textarea** — textarea declares its sizes as [medium, small, large], not smallest first
@@ -107,6 +108,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 | checkbox-group | form | rest | — |
 | checkbox-row | form | rest, hover, pressed, focus-visible, disabled, read-only, error | — |
 | counter | form | rest, focus-visible, disabled | rest, focus-visible, disabled |
+| dialog | overlay | — | — |
 | divider | foundations | — | — |
 | field-label | form | rest, disabled | rest, disabled |
 | field-message | feedback | — | — |
@@ -167,6 +169,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 | emphasis | bold, subtle | badge |
 |  | primary, secondary | field-label |
 | expansion | collapsed, expanded | _accordion-indicator, accordion |
+| footer | inline, none, stacked | dialog |
 | iconPosition | leading, trailing | accordion |
 | indicator | chevron, plus-minus | _accordion-indicator |
 | inset | default, flush | button, button-destructive, button-neutral |
@@ -174,6 +177,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 | intensity | medium, strong, subtle | veil |
 | offset | control, field | focus-ring |
 | orientation | horizontal, vertical | divider |
+| placement | bottom, center, full | dialog |
 | ratio | 16:9, 1:1, 2:3, 3:2, 3:4, 4:3, 4:5 | image-placeholder |
 | selection | selected, unselected | segmented-control-segment, tab, tag |
 |  | checked, indeterminate, unchecked | checkbox-control |
@@ -181,7 +185,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 |  | off, on | switch-control |
 | shape | circular, square | icon-button, icon-button-destructive, icon-button-neutral |
 |  | flush, round | flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral |
-| size | large, medium, small | _accordion-indicator, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, counter, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, select, tab, tabs, tag, text-field, textarea |
+| size | large, medium, small | _accordion-indicator, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, select, tab, tabs, tag, text-field, textarea |
 |  | medium, small | switch-control, switch-row |
 |  | large, medium, small, x-small | spinner |
 | status | default, error, success, warning | field-message, select, text-field, textarea |
@@ -213,6 +217,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 | checkbox-group | small, medium, large | medium |
 | checkbox-row | small, medium, large | medium |
 | counter | medium, small, large | medium |
+| dialog | medium, small, large | medium |
 | field-label | small, medium, large | small |
 | flush-icon-button | small, medium, large | medium |
 | flush-icon-button-destructive | small, medium, large | medium |
@@ -267,6 +272,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | switch-control | — | — |
 |  | switch-row | — | — |
 | children | accordion | — | — |
+|  | dialog | — | — |
 |  | list | — | — |
 |  | list-item | — | — |
 | defaultValue | checkbox-group | — | — |
@@ -276,6 +282,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | tabs | — | — |
 |  | text-field | — | — |
 | description | checkbox-row | — | — |
+|  | dialog | — | — |
 |  | radio-row | — | — |
 |  | switch-row | — | — |
 | disabled | button | false | — |
@@ -439,6 +446,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | checkbox-group | medium | small, medium, large |
 |  | checkbox-row | medium | small, medium, large |
 |  | counter | medium | small, medium, large |
+|  | dialog | medium | small, medium, large |
 |  | field-label | small | small, medium, large |
 |  | flush-icon-button | medium | small, medium, large |
 |  | flush-icon-button-destructive | medium | small, medium, large |
@@ -472,6 +480,8 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | icon-button-destructive | default | default, inverse |
 |  | icon-button-neutral | default | default, inverse |
 |  | link | default | default, inverse |
+| title | accordion | — | — |
+|  | dialog | — | — |
 | tone | badge | neutral | neutral, info, success, warning, danger |
 |  | icon | inherit | 9 values |
 | trailingIcon | link | — | — |

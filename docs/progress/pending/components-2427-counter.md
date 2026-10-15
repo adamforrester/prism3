@@ -57,7 +57,7 @@ The Counter's row itself is INTERACTIVE on `size.{size}.height` (44 at medium on
   - `lint-rung-names` (`MUST_COVER`, and `DEFAULT_FIRST` for medium first, Q283.6 B)
   - `lint-axis-values` (the medium-first size set; a new `appearance` set, `overlapping`)
   - `lint-paint-placement` (`EXPECT_ANATOMY`, `EXPECT_PAINTERS`)
-  - `CANVAS_FURNITURE`, and `test-canvas-furniture.ts` at 38 sets
+  - `CANVAS_FURNITURE`, and `test-canvas-furniture.ts` at 39 sets (on the tree merged with Dialog, #2652)
   - the studio's `used-by.ts` and component catalog
   - both baselines accepted
 - `lint-nesting.ts` gains `nest-coordinate-resolves`: every nested instance a projected member asks for names exactly one member of the nested def's own projected set, matched with the executors' `nestVariantMatch`. It covers the whole corpus (1,410 coordinates), and it is where a `variantWhen` mapping onto a value the child lacks fails, per member. It has no per-def list, so the Counter needed no entry beyond being registered.

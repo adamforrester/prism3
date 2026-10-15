@@ -76,6 +76,7 @@ import { listItem } from './list-item';
 import { list } from './list';
 import { segmentedControlSegment, segmentedControl } from './segmented-control';
 import { link } from './link';
+import { dialog } from './dialog';
 import { counter } from './counter';
 
 /** Named access, kept ALONGSIDE the set rather than replaced by it. Most of `test.ts`'s component
@@ -84,7 +85,7 @@ import { counter } from './counter';
  *  be a worse call site, not a better one — a lookup that can return `undefined` standing in for a
  *  binding that cannot. The set is for iteration; these are for the assertions that are ABOUT one
  *  component. */
-export { button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, textarea, checkboxControl, checkboxRow, checkboxGroup, radioControl, radioRow, radioGroup, switchControl, switchRow, select, veil, imagePlaceholder, spinner, badge, tag, tab, tabs, divider, accordionIndicator, accordion, listItem, list, segmentedControlSegment, segmentedControl, link, counter };
+export { button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, textarea, checkboxControl, checkboxRow, checkboxGroup, radioControl, radioRow, radioGroup, switchControl, switchRow, select, veil, imagePlaceholder, spinner, badge, tag, tab, tabs, divider, accordionIndicator, accordion, listItem, list, segmentedControlSegment, segmentedControl, link, dialog, counter };
 
 /** Every component def the engine defines. The one thing a projection should iterate. */
 export const componentDefs: readonly ComponentDef[] = [
@@ -204,6 +205,9 @@ export const componentDefs: readonly ComponentDef[] = [
   segmentedControl,
   // Link (#2580) — a standalone link plus an inline look. Nests `focus-ring` and swaps in `icon`, both above.
   link,
+  // `dialog` (#2609, owner Q303) — a panel over the page, centered, a bottom sheet or full screen. Nests the neutral
+  // icon button (close), the divider and the button, so it comes after all three.
+  dialog,
   // Counter (#2427) — a quantity between a minus and a plus button. Nests `flush-icon-button-neutral` twice,
   // `field-label`, `field-message` and `focus-ring`, all above.
   counter,
