@@ -167,6 +167,8 @@
  *   - text left out of the fingerprint → "11: a replaced table with one text cell changed by hand is kept…" fails
  *     (the retyped value is the same length, so no size moves with it);
  *   - the position check removed → "11: a moved table is kept" fails;
+ *   - the superseded-table loop not skipping a removed table's subtree (#2704) → "6a: one run deletes two superseded,
+ *     unedited tables…" and "6b: a full rerun deletes both superseded tables, re-flows and reports ok…" fail;
  *   - the stack starts at the topmost table left, ignoring a deleted one above it → "11: the stack closes over the
  *     deleted table…" fails;
  *   - (review round) each fingerprint group dropped — fills/strokes, size, pinned modes, corners, effects, stroke
@@ -535,7 +537,15 @@ class N {
   }
   _removed = false;
   get removed(): boolean { return this._removed; }
-  remove(): void { this.detach(); this._removed = true; }
+  // A REMOVED NODE TAKES ITS SUBTREE WITH IT (#2704): the host invalidates every descendant too, an instance's
+  // sublayers included ("in getPluginData: The node (instance sublayer or table cell) with id "I180:15550;1:689" does
+  // not exist", live on a full rerun at engine 0.237.0). A list of nodes gathered before the remove still holds them.
+  remove(): void {
+    if (this._removed) throw new Error(`in remove: The node (${this.id}) does not exist`);
+    this.detach();
+    const gone = [this, ...this.findAll(() => true)];
+    for (const n of gone) n._removed = true;
+  }
   // THE HOST'S QUIRK (live, 2026-09-28, and measured in the plugin runtime 2026-09-29 on the owner's run of 0.205.0):
   // a width written to ANY layer inside an INSTANCE is silently dropped, no throw: the owner's 29px label stayed 29px
   // under resize(296, h), and every spacing specimen stayed 8px. Its height still moves. A frame that hugs or fills is
@@ -1401,6 +1411,55 @@ const main = async (): Promise<void> => {
     try { rr = await draw(rm.api, contract, { types: ['dimension'] }); } catch (e) { threw = String(e); }
     ok(!threw && JSON.stringify([...(rr?.deleted ?? [])].sort()) === JSON.stringify(['Style guide — Density', 'Style guide — Step']),
       `6a: one run deletes two superseded, unedited tables and names both, reading nothing off either after it is removed (${threw || JSON.stringify(rr?.deleted)})`);
+  }
+
+  console.log('6b. a full rerun deletes every superseded table, never reads one after it is removed, and re-flows (#2704)');
+  {
+    // The host invalidates a removed table's whole subtree, its `_Section-header` instance's sublayers included, and
+    // the shim does the same. A FULL run (no filter) whose two tables are superseded must delete both, re-flow and
+    // report: on the owner's file each run deleted one, then threw reading the next frame the loop had gathered, a
+    // sublayer of the deleted table's header ("in getPluginData: … instance sublayer … does not exist").
+    const overlapsOn = (p: N): string[] => {
+      const b = tablesOn(p).map((n) => ({ n: n.name.replace(/^Style guide — /, ''), x: Number(n.x), y: Number(n.y), w: n.width, h: n.height }));
+      return b.flatMap((a, i) => b.slice(i + 1).filter((c) => a.x < c.x + c.w && c.x < a.x + a.w && a.y < c.y + c.h && c.y < a.y + a.h)
+        .map((c) => `${a.n} × ${c.n}`));
+    };
+    const regroup = (vars: ShimVar[]): void => {
+      for (const v of vars) { if (/^density\//.test(v.name)) v.name = v.name.replace(/^density\//, 'dense/'); if (/^metrics\/step\//.test(v.name)) v.name = v.name.replace('/step/', '/rung/'); }
+    };
+    const OLD = ['Style guide — Density', 'Style guide — Step'];
+    const fr = await phase2File();
+    await draw(fr.api, contract);
+    const olds = OLD.map((n) => [fr.prim, fr.sem].flatMap(tablesOn).find((t) => t.name === n));
+    // The precondition the defect needs: each superseded table opens with a header INSTANCE that holds a frame.
+    const headerFrames = olds.map((t) => t?.children.find((c) => c.pluginData['prism3-style-guide-part'] === 'header'))
+      .map((h) => (h?.type === 'INSTANCE' ? h.findAll((k) => k.type === 'FRAME').length : 0));
+    ok(headerFrames.every((n) => n > 0), `6b: each superseded table's header is an instance with a frame inside it (${headerFrames.join(', ')})`);
+    regroup(fr.vars);
+    let threw = '';
+    let rr: StyleGuideResult | null = null;
+    try { rr = await draw(fr.api, contract); } catch (e) { threw = String(e); }
+    const sum = rr ? styleGuideSummary(rr) : null;
+    ok(!threw && JSON.stringify([...(rr?.deleted ?? [])].sort()) === JSON.stringify(OLD) && olds.every((t) => t?.removed) && !!sum?.ok
+      && overlapsOn(fr.prim).length === 0 && overlapsOn(fr.sem).length === 0,
+      `6b: a full rerun deletes both superseded tables, re-flows and reports ok, reading nothing inside either after it is removed (${threw || `${JSON.stringify(rr?.deleted)}; ${sum?.headline}; ${[...overlapsOn(fr.prim), ...overlapsOn(fr.sem)].join('; ') || 'no overlap'}`})`);
+
+    // AFTER A CRASHED RUN: the run drew every table, new ones at their anchors, then stopped before the re-flow (the
+    // host refuses the delete here, as the read after it did live). The next full run lays the page out over nothing.
+    const cr = await phase2File();
+    await draw(cr.api, contract);
+    regroup(cr.vars);
+    const victim = [cr.prim, cr.sem].flatMap(tablesOn).find((t) => t.name === OLD[0])!;
+    (victim as unknown as { remove: () => void }).remove = (): void => { throw new Error('in remove: refused'); };
+    let crashed = '';
+    try { await draw(cr.api, contract); } catch (e) { crashed = String(e); }
+    const mid = overlapsOn(cr.prim).length + overlapsOn(cr.sem).length;
+    delete (victim as unknown as { remove?: unknown }).remove;
+    let again: StyleGuideResult | null = null;
+    let threw2 = '';
+    try { again = await draw(cr.api, contract); } catch (e) { threw2 = String(e); }
+    ok(!!crashed && !threw2 && !!again && [cr.prim, cr.sem].flatMap(tablesOn).every((t) => !OLD.includes(t.name)) && overlapsOn(cr.prim).length === 0 && overlapsOn(cr.sem).length === 0,
+      `6b: after a run that crashed before its re-flow, the next full run deletes what is superseded and overlaps nothing (${threw2 || `${crashed ? 'crashed' : 'did not crash'}, leaving ${mid} overlap${mid === 1 ? '' : 's'}; now ${[...overlapsOn(cr.prim), ...overlapsOn(cr.sem)].join('; ') || 'no overlap'}`})`);
   }
 
   console.log('6. rerun');
