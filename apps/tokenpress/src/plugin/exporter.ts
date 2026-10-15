@@ -789,6 +789,13 @@ export class TokenExporter {
           return 'dimension';
         }
 
+        // Name-based font weight detection, for a variable with no font scope: a file may leave its
+        // primitives unscoped to keep them out of the pickers (prism3 #2616). Placed before the
+        // breakpoint check, whose bare-number rule would read `font/weight/700` as a dimension.
+        if (variableName && this.typeDetector.isFontWeightVariable(variableName)) {
+          return 'fontWeight';
+        }
+
         // Breakpoint detection - should be dimension with px units for DTCG compliance
         if (variableName && this.typeDetector.isBreakpointVariable(variableName)) {
           return 'dimension';
@@ -851,6 +858,10 @@ export class TokenExporter {
         }
 
         if (scopes.includes('FONT_FAMILY')) {
+          return 'fontFamily';
+        }
+        // Same name-based fallback as FLOAT font weights (prism3 #2616).
+        if (variableName && this.typeDetector.isFontFamilyVariable(variableName)) {
           return 'fontFamily';
         }
         // Figma uses FONT_STYLE scope for font weight variables
