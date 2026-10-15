@@ -17,7 +17,7 @@
      - Progress entry: docs/progress/pending/<branch-with-slashes-as-dashes>.md — one entry,
        `## (YYYY-MM-DD) — <title>`. Do not write at the top of docs/00-progress.md.
      - Engine bump, when owed: packages/engine/changes/<same slug>.md with `engine: patch|minor|major`
-       and the changelog prose. Do not edit ENGINE_VERSION, its changelog, or the out/ stamps; the
+       and the changelog prose. Do not edit ENGINE_VERSION, its changelog (CHANGELOG.md), or the out/ stamps; the
        fold assigns the number. CONTRACT_VERSION is still bumped here, with its --accept. -->
 
 - [ ] Progress fragment: `docs/progress/pending/…md`
