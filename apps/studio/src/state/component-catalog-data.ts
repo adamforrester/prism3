@@ -1128,6 +1128,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "nests": [
       "field-label",
       "flush-icon-button-neutral",
+      "icon",
       "field-message",
       "focus-ring"
     ]

@@ -46,6 +46,10 @@ The Counter's row itself is INTERACTIVE on `size.{size}.height` (44 at medium on
 
 **The glyphs, now that #2683 is on main.** The minus and plus are the nested buttons' icon swap, written as a per-instance override on each part: `overrides: { swaps: { icon: 'minus' } }` and `'plus'`. The first host to swap a glyph on a NEST-EXPOSED child surfaced a gap in `test.ts`'s `#1392` paste-payload harness: it gave nested instances their text properties (#2317) but no swap properties, so both overrides read as misses. The harness now declares each nested def's own swaps (from the nested def, never from the host's `overrides`), and provisions the glyph components the overrides name, as the real build does.
 
+**Two more places that missed a swap override's glyph.** The first verify run after the merge found two more readers that walked `nestTarget` and `swapTarget` but not #2645's override glyphs, which `build-deps.ts`'s `planTargets` already counts:
+- the studio's component catalog (`catalogOf`), whose `nests` for the Counter left out `icon`, so `test-component-catalog` disagreed with the plugin's pre-build. The walk now reads INSTANCE_SWAP overrides too, and the catalog data is regenerated.
+- `test-update-apply.ts`'s `planComps`, so the corpus world held no `icon/minus` and the Counter's re-applied members never read back as current. List carries text overrides only, which is why it had not come up.
+
 **`EXECUTOR_REVISION` 28.** The Counter's page entry in `file-taxonomy.ts` is reachable from the executor, so `lint-executor-revision` counts it as an executor change. Main is at 26 (#2683) and #2744 holds 27, so this takes 28.
 
 **Gates (each mutation-proven by name, see the PR):**
