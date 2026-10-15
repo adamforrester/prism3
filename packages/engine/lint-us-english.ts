@@ -116,6 +116,10 @@
  * recorded is closed and there is nothing left to merely count — a surface that is clean and NOT
  * gated is just a surface waiting to regress quietly.
  *
+ * The on-demand preview page (`out/tokens.html`, Q319.6) is in scope but not committed: the `out/` walk
+ * skips it and the gate scans a copy `renderOnDemand()` (regen.ts) renders into a temp dir, so CI and a
+ * laptop holding a stale copy scan the same bytes. It has its own REQUIRED_SURFACES line.
+ *
  *
  * ── SCOPE IS PER-FILE; TEXT IS NOT (#1117) — WHY A FAILURE HERE MAY NOT BE THIS FILE'S FAULT ────
  *
@@ -152,7 +156,7 @@ import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { join, resolve, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { dirname } from 'node:path';
-import { ENGINE_ARTIFACTS, REPORT_ARTIFACTS, REPORTS_DIR, SCHEMA_ARTIFACTS } from './regen';
+import { ENGINE_ARTIFACTS, ON_DEMAND_OUT, REPORT_ARTIFACTS, REPORTS_DIR, SCHEMA_ARTIFACTS, renderOnDemand } from './regen';
 import { servedToolsList, servedStrings } from './mcp-served';
 
 // ---- the RULE, imported (#1117) --------------------------------------------------------------
@@ -176,6 +180,17 @@ type Hit = { file: string; line: number | string; word: string; context: string 
 // thrown so one run reports all of them; a non-empty list is fatal below.
 const blind: string[] = [];
 
+// The on-demand preview page (`out/tokens.html`, Q319.6) is not committed, so CI has no copy in `out/` and a
+// laptop may hold a stale one. The `out/` walk below skips it and this renders a fresh copy into a temp dir,
+// so both scan the same bytes; findings name it by its `out/` path. A render failure is blindness, not clean.
+const onDemand = new Map<string, string>();
+{
+  const r = renderOnDemand();
+  if ('error' in r) blind.push(`packages/engine/out/${ON_DEMAND_OUT.join(', ')} — the on-demand page did not render (${r.error})`);
+  else r.files.forEach((abs, i) => onDemand.set(abs, `packages/engine/out/${ON_DEMAND_OUT[i]} (rendered on demand)`));
+}
+const shown = (abs: string): string => onDemand.get(abs) ?? relative(repo, abs);
+
 
 
 const scan = (abs: string): Hit[] => {
@@ -184,11 +199,11 @@ const scan = (abs: string): Hit[] => {
   // one and counted toward the "N files scanned" headline — the gate reported a number it had not
   // earned. Same family as trap 2: not looking must never read as looking and finding nothing.
   try { txt = readFileSync(abs, 'utf8'); } catch (e) {
-    blind.push(`${relative(repo, abs)} — could not be read (${(e as Error).message})`);
+    blind.push(`${shown(abs)} — could not be read (${(e as Error).message})`);
     return [];
   }
   return enGb(txt).map(({ word, index }) => ({
-    file: relative(repo, abs),
+    file: shown(abs),
     line: txt.slice(0, index).split('\n').length,
     word,
     context: txt.slice(Math.max(0, index - 55), index + 45).replace(/\s+/g, ' '),
@@ -225,7 +240,10 @@ const walkRequired = (dir: string, why: string): string[] => {
 // Scope is IMPORTED from regen.ts rather than restated, so adding an emitted artifact there brings it
 // under this gate automatically instead of quietly widening the blind spot.
 const gated: string[] = [
-  ...walkRequired(join(repo, 'packages/engine/out'), 'no emitted artifacts found — run `npx tsx packages/engine/regen.ts`'),
+  ...walkRequired(join(repo, 'packages/engine/out'), 'no emitted artifacts found — run `npx tsx packages/engine/regen.ts`')
+    .filter((f) => !ON_DEMAND_OUT.includes(relative(join(repo, 'packages/engine/out'), f))),
+  // The on-demand preview page (Q319.6), rendered fresh above rather than read from `out/`.
+  ...onDemand.keys(),
   ...SCHEMA_ARTIFACTS.map((f) => join(repo, 'packages/engine/schema', f)),
   ...ENGINE_ARTIFACTS.map((f) => join(repo, 'packages/engine', f)),
   // trap 2: what actually ships. REQUIRED — see walkRequired. Note `build`, not `build:site`: the
@@ -386,6 +404,10 @@ const selfFails = SELF_CHECK.filter(({ sample, expect }) => enGb(sample).length 
 const REQUIRED_SURFACES: { label: string; test: (f: string) => boolean }[] = [
   { label: 'the built web bundle (apps/studio/dist/*.js) — trap 2', test: (f) => f.includes('/apps/studio/dist/') && f.endsWith('.js') },
   { label: 'emitted artifacts (packages/engine/out)', test: (f) => f.includes('/packages/engine/out/') },
+  // The on-demand preview page (Q319.6): not committed, so the `out/` walk no longer finds it in CI. Rendered
+  // into a temp dir instead, and matched by that render, so dropping the render fails here rather than
+  // shrinking the scope in silence.
+  { label: 'the on-demand preview page (out/tokens.html, rendered on demand)', test: (f) => onDemand.has(f) },
   { label: 'the schema contract (packages/engine/schema)', test: (f) => f.includes('/packages/engine/schema/') },
   // Skills joined the scope but not this list, which is the same false-pass class the guard exists
   // for: deleting the skills walk dropped 2 files, and the gate still printed a confident `clean`.
@@ -437,7 +459,7 @@ if (missingSurfaces.length) {
 // The converse. An unclaimed file is not a scanning failure — it IS scanned — but it is outside every
 // promise, so nothing above notices when it later leaves. Fail now, while the scope change is in
 // somebody's diff, instead of on the pass that silently drops it.
-const unclaimed = gated.filter((f) => !REQUIRED_SURFACES.some((s) => s.test(f))).map((f) => relative(repo, f));
+const unclaimed = gated.filter((f) => !REQUIRED_SURFACES.some((s) => s.test(f))).map((f) => shown(f));
 if (unclaimed.length) {
   console.error(`\n❌ ${unclaimed.length} gated file(s) are claimed by NO promised surface, so nothing would notice them leaving:\n`);
   for (const f of unclaimed.slice(0, 12)) console.error(`    ${f}`);
@@ -462,7 +484,7 @@ if (selfFails.length) {
 //
 // Exits before any scanning, so it is cheap and cannot be confused with a verdict.
 if (process.argv.includes('--files')) {
-  for (const f of gated) console.log(relative(repo, f));
+  for (const f of gated) console.log(shown(f));
   process.exit(0);
 }
 
