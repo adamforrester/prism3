@@ -759,8 +759,10 @@ const planVariableTables = (catalog: SgCatalog, ix: Index, options: StyleGuideOp
           const prefix = commonPrefix(mine.map((m) => m.v.name.split('/').slice(0, -1)));
           const primitive = mine.every(literal);
           // DRAFT for the owner (#2371): the roles' title when the weights are split, so the two tables' titles differ.
+          // AN ICON-SIZE TABLE IS "Icon size" (#2728, owner decision Q341 A): titled from its collection it read "Icon",
+          // the icon colors' title on the same page. The key is unchanged, so a rerun retitles the table in place.
           const unrooted = type === 'dimension'
-            ? (primitive && prefix.length ? sentence(prefix[prefix.length - 1]) : sentence(col.name))
+            ? (mine.every((m) => m.kind === 'iconSize') ? 'Icon size' : primitive && prefix.length ? sentence(prefix[prefix.length - 1]) : sentence(col.name))
             : split && !primitive ? 'Font weight roles' : TYPE_LABEL[type];
           const title = root ? `${unrooted} — ${root}` : unrooted;
           // A REM COLUMN after each Value column, in a table of lengths (dimension, border width, font size, line height,
