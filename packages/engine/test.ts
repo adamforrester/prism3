@@ -19454,6 +19454,22 @@ arm: {
             },
           });
         }
+        // #2695 — A LITERAL STROKE WEIGHT DETACHES THE WEIGHT BINDINGS (#1266), mirroring `component-shim.ts`: the
+        // write drops the four per-side bindings and sets each side to the value. Without it, a paste executor
+        // whose 1px fallback wrote over the underline field's per-side weights would still read back as bound.
+        {
+          let weight = node.strokeWeight as number | undefined;
+          Object.defineProperty(node, 'strokeWeight', {
+            configurable: true,
+            enumerable: true,
+            get() { return weight; },
+            set(v: number) {
+              weight = v;
+              const bv = node.boundVariables as Record<string, unknown>;
+              for (const side of ['strokeTopWeight', 'strokeRightWeight', 'strokeBottomWeight', 'strokeLeftWeight']) { delete bv[side]; node[side] = v; }
+            },
+          });
+        }
         return node;
       };
       const figmaStub = {
@@ -19917,6 +19933,36 @@ arm: {
     const clean = await runPayload(planToPluginJs(runnable), full);
     ok(clean.misses.length === 0,
       `anatomy: a fully-resolved paste reports NOTHING — misses[] stays empty when every write landed (${JSON.stringify(clean.misses)})`);
+
+    // ---- #2695: the UNDERLINE field's per-side weights survive the PASTE executor ----------------------------
+    // The plugin executor's arm is `test-write-components.ts`'s; this is the paste script's. Every field def under
+    // `underline`, at rest and at focus, pasted with every name resolving: the control's four per-side weights read
+    // back bound (top, end and start to border-width/none, the bottom to hairline, thick at focus) and nothing is
+    // reported discarded. Expected names typed from the decisions (Q333). The stub above detaches the bindings on a
+    // literal weight write, so a fallback guard that checks only the scalar `strokeWeight` fails this line by name.
+    {
+      const bad: string[] = [];
+      let pasted = 0;
+      for (const id of ['text-field', 'password-field', 'select', 'textarea']) {
+        const d = componentDefs.find((x) => x.id === id)!;
+        for (const state of ['rest', 'focus-visible']) {
+          const plan = figmaAnatomyPlan(applyFieldStyle(d, 'underline'), 'medium', { state, status: 'default' } as never);
+          const nested = (n: AnatomyPlan['root']): string[] => [...(n.nestTarget ? [n.nestTarget] : []), ...(n.children ?? []).flatMap(nested)];
+          const page: StubPage = { children: [] };
+          const run = await runPayload(planToPluginJs(plan), { vars: [...planBoundVars(plan.root), ...planPaintVars(plan.root)], styles: planTextStyles(plan.root), comps: nested(plan.root), page });
+          const walk = (n: Record<string, unknown>): Record<string, unknown>[] => [n, ...((n.children as Record<string, unknown>[] | undefined) ?? []).flatMap(walk)];
+          const control = page.children.flatMap((c) => walk(c as Record<string, unknown>)).find((n) => n.name === 'control');
+          const bv = (control?.boundVariables ?? {}) as Record<string, { id?: string } | undefined>;
+          const got = ['strokeTopWeight', 'strokeRightWeight', 'strokeBottomWeight', 'strokeLeftWeight'].map((k) => bv[k]?.id ?? 'UNBOUND').join(' / ');
+          const want = ['V:border-width/none', 'V:border-width/none', state === 'focus-visible' ? 'V:border-width/thick' : 'V:border-width/hairline', 'V:border-width/none'].join(' / ');
+          const strokeMisses = run.misses.filter((m) => /stroke|THREW/i.test(m));
+          pasted++;
+          if (!control || got !== want || strokeMisses.length) bad.push(`${id}@${state}: ${control ? got : 'no control'}${strokeMisses.length ? `; ${strokeMisses[0]}` : ''}`);
+        }
+      }
+      ok(pasted === 8 && bad.length === 0,
+        `#2695 paste: the underline fields' per-side stroke weights read back bound from the paste executor (none / none / hairline, thick at focus / none), nothing discarded (${bad.slice(0, 3).join(' | ') || 'clean'})`);
+    }
 
     // ---- the reserved-rows floor tolerates the host's SINGLE-PRECISION minHeight (live 2026-09-25) --------
     // The stub stores `minHeight` via `Math.fround`, as the host does. At the live metrics (16px at 165%, 3 rows
