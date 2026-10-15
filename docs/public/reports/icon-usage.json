@@ -239,6 +239,12 @@
         "icon"
       ]
     },
+    "password-field": {
+      "glyphs": [],
+      "iconSlots": [
+        "leadingVisual"
+      ]
+    },
     "segmented-control-segment": {
       "glyphs": [],
       "iconSlots": [
