@@ -31,6 +31,7 @@ import { resolvePreview } from './resolve-preview';
 import { exampleBrands, exampleBrandsJson, EXAMPLE_IDS } from './emit-brandinput';
 import { buildFigmaColor, buildFigmaFont, buildFigmaFontFluid, buildFigmaTextStyles, buildFigmaDims, buildFigmaLayout, buildFigmaShadow, buildFigmaGradient, buildFigmaGridStyles, fontStyleName, figName, parseColor, figmaArtifacts, COLOR_MODES, FONT_FLUID_MODES, LAYOUT_MODES } from './emit-figma';
 import type { FigmaCollectionFile } from './emit-figma';
+import { MOTION_FIGMA_COVERAGE, springBounce } from './emit-figma-dims';
 import { buildBase, buildOverlay, overlayModes, buildOverlaySet, leafCount, DTCG_TYPES } from './emit-dtcg-overlay';
 import { callTool as mcpCallTool, unsafeOutDir, EXPORT_SECTIONS } from './mcp';
 import { buildTree, validateBrandInput, readExampleBrand } from './emit-dtcg';
@@ -47,8 +48,8 @@ import {
 import { buildContract, corpus as contractCorpus, pathsOf, MINIMAL_BRAND, MINIMAL_COMPACT_BRAND, readBaseline } from './token-contract';
 import { scoreConsumption, scoreContractCompliance, tokenPaths, normalizeRef, isPrimitiveRef, PRIMITIVE_TIER, PRIMITIVE_GROUPS } from './eval';
 import { runEval, buildPrompt, extractRefs, extractPairs, SAMPLE_TASKS } from './eval-run';
-import { aliasRows, colorAliasesJs, colorAliasesChunks, verifyJs, floatCollections, fontCollections, passJs, passOrder, passPayloads, colorCreateChunks, colorIndivisibleUnit, pruneReport, registerFigmaTree } from './materialise-to-figma';
-import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, gradientTransformFor, buildFontVarPlan, buildTextStylePlan, fontVarPlanFrom, stylesPlanFromFiles, textStylePlanFromFiles } from './write-plan';
+import { aliasRows, colorAliasesJs, colorAliasesChunks, verifyJs, floatCollections, fontCollections, motionCollections, passJs, passOrder, passPayloads, colorCreateChunks, colorIndivisibleUnit, pruneReport, registerFigmaTree } from './materialise-to-figma';
+import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, gradientTransformFor, buildFontVarPlan, buildMotionVarPlan, buildTextStylePlan, fontVarPlanFrom, stylesPlanFromFiles, textStylePlanFromFiles } from './write-plan';
 import { verifyReadback, verifyFloatReadback, verifyTypographyReadback, ReadbackSnapshot } from './read-back';
 import { tailOf } from './figma-names';
 import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION, UnrecognizedPersistedInputError } from './persist-input';
@@ -56,11 +57,15 @@ import { validateComponentDef, VARIANT_AXES, axisKindOf, figmaPropertyErrors, fi
 import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, settleChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, figmaTextStyleName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, applySpacingDensity, applyMinWidthRatio, DEFAULT_BUTTON_LAYOUT, isButtonFamily, resolveWeightIntent, DEFAULT_WEIGHT_AVAILABILITY, isPillable, PILL_RADIUS_DERIVATION, PILL_RADIUS_RUNG, BOXED_RADIUS_RUNG, HAIRLINE_RADIUS_RUNG, CONTROL_SHAPE_RUNG, ROUNDED_RADIUS_RUNG, variantSetErrors, variantNameErrors, glyphLayerOpacities, type AnatomyPlan, type SwapFound } from './anatomy-figma';
 import type { ControlShape } from './scale';
 import { COMPONENT_RENAMES, coordKey, renameCoordinate, isDeclaredDrop, unaccounted as renamesUnaccounted, danglingTargets as renamesDangling, type ComponentRename, type AxesBaseline } from './component-renames';
-// The one import this suite makes ACROSS the engine/plugin boundary, and the parity gate (#487 step 5)
+// One of the two imports this suite makes ACROSS the engine/plugin boundary, and the parity gate (#487 step 5)
 // is why: with two executors for one `AnatomyPlan`, a gate that only ever sees one of them cannot say
 // they agree. `write-components.ts` is pure TypeScript against a declared port — it touches no `figma`
 // global at runtime — so importing it into a Node harness costs nothing and needs no shim of its own.
 import { applyComponentPlan } from '../../apps/plugin/src/write-components';
+// The second, for the same reason in the other direction (#2412): the CLI's `motion-vars` paste payload is EXECUTED
+// against the plugin suites' file model, so the two paste paths are judged by one model of Figma, not two. The shim
+// is a HOST that imports no executor (`file-shim.ts`'s header), so this brings no plugin code under test here.
+import { FileShim } from '../../apps/plugin/file-shim';
 import { readStamps, auditStamps, onlyFilledStamps } from './rename-stamp-audit';
 import { fillStamps, STAMP_FILES } from '../../fold-stamps';
 import type { AnatomyPlan, ButtonLayout } from './anatomy-figma';
@@ -4459,10 +4464,11 @@ arm: {
   // Nine collections, ten axes: #1097 merged `core-palette`/`core-dimension`/`core-font` into ONE `core`
   // collection, so `core/dimension` is a SLICE of a collection rather than a collection of its own. The
   // count moves 10 → 9 for that reason and no other.
-  // `motion` joined in #2394: FLOAT milliseconds, the first float collection with no scope.
-  const EXPECTED = ['core', 'space', 'radius', 'size', 'icon', 'control', 'border-width', 'focus', 'opacity', 'layout', 'motion'];
+  // `motion` joined in #2394 as FLOAT milliseconds and left with #2412: TIMING + EASING, so it is
+  // `buildMotionVarPlan`'s, not a FLOAT axis. Asserted absent here so it cannot be written twice.
+  const EXPECTED = ['core', 'space', 'radius', 'size', 'icon', 'control', 'border-width', 'focus', 'opacity', 'layout'];
   ok(EXPECTED.every((n) => names.includes(n)) && names.length === EXPECTED.length,
-    `float-plan: eleven collections present (${names.join(', ')})`);
+    `float-plan: ten collections present, motion not among them (${names.join(', ')})`);
 
   // Single-mode dims axes vs per-breakpoint layout.
   ok(auroraFloat.find((c) => c.name === 'core')!.modes.join(',') === 'Default',
@@ -13924,6 +13930,11 @@ arm: {
 //   · the paste payloads the CLI prints (`passPayloads` — palette, dims-create, font-vars), decoded from
 //     their compact scope codes, where an empty code is what decodes to `[]` and `*` is ALL_SCOPES;
 //   · the committed `out/figma/<brand>/` trees the paste path reads.
+// ONE EXEMPTION, KEYED BY RESOLVED TYPE (#2412): Figma refuses a `scopes` write on TIMING and EASING ("Cannot set
+// scopes on this variable type", spike #2403), so those rows hold ALL_SCOPES and nothing can change that. They are
+// held to exactly `['ALL_SCOPES']` instead, and must be REPRESENTED on every path that carries a type, so the
+// exemption cannot pass over nothing. Never keyed by name: a `/motion\//` exemption would hide a FLOAT that
+// wandered into `motion`, and that FLOAT is exactly what the no-ALL_SCOPES rule is for.
 // Expected values are LITERALS: the per-group scope sets in `CORE_SCOPES_2602` (and their paste codes, `m`
 // and `e`, in `CORE_CODES_2602`), `true`, `'ALL_SCOPES'`, `'*'`, `'core'` — never `PRIMITIVE_SCOPES` or
 // `CORE_COLLECTION` (docs/34 shape 1). Every `core` group is REPRESENTED per brand, so a renamed group
@@ -13940,8 +13951,9 @@ arm: {
     const std = parseStandardDesignMd(text);
     return brandTheme(isStandardDesignMd(std) ? standardToBrandInput(std).input : parseDesignMd(text).input);
   })])];
-  const coreBad: string[] = [], allScopes: string[] = [], unrepresented: string[] = [];
-  let brandsSwept = 0, coreSwept = 0, varsSwept = 0;
+  const UNSCOPED_2602 = ['TIMING', 'EASING']; // literal, never `UNSCOPED_TYPES` (docs/34 shape 1)
+  const coreBad: string[] = [], allScopes: string[] = [], unrepresented: string[] = [], unscopedBad: string[] = [], unscopedMissing: string[] = [];
+  let brandsSwept = 0, coreSwept = 0, varsSwept = 0, unscopedSwept = 0;
   const checkCore = (where: string, name: string, scopes: unknown, hidden: unknown, seen: Set<string>, paste = false): void => {
     coreSwept++;
     const g = CORE_GROUP.exec(name)?.[1];
@@ -13949,9 +13961,19 @@ arm: {
     const want = paste ? JSON.stringify(g && CORE_CODES_2602[g] ? [CORE_CODES_2602[g]] : []) : (g && CORE_SCOPES_2602[g]) || '[]';
     if (JSON.stringify(scopes) !== want || hidden !== true) coreBad.push(`${where}: ${name} scopes=${JSON.stringify(scopes)} (want ${want}) hidden=${JSON.stringify(hidden)}`);
   };
-  const checkAny = (where: string, name: string, scopes: unknown): void => {
+  const checkAny = (where: string, name: string, scopes: unknown, type?: string, types?: Set<string>): void => {
     varsSwept++;
+    if (type && UNSCOPED_2602.includes(type)) {
+      unscopedSwept++;
+      types?.add(type);
+      if (JSON.stringify(scopes) !== '["ALL_SCOPES"]') unscopedBad.push(`${where}: ${name} is ${type} with scopes=${JSON.stringify(scopes)}`);
+      return;
+    }
     if (Array.isArray(scopes) && scopes.includes('ALL_SCOPES')) allScopes.push(`${where}: ${name}`);
+  };
+  const typesRepresented = (where: string, types: Set<string>): void => {
+    const missing = UNSCOPED_2602.filter((t) => !types.has(t));
+    if (missing.length) unscopedMissing.push(`${where} [${missing.join(', ')}]`);
   };
   const represented = (where: string, seen: Set<string>): void => {
     const missing = GROUPS.filter((g) => !seen.has(g));
@@ -13960,16 +13982,17 @@ arm: {
   for (const [id, th] of loadedRows(brands)) {
     brandsSwept++;
     // the emission
-    const seenEmit = new Set<string>();
+    const seenEmit = new Set<string>(), typesEmit = new Set<string>();
     for (const a of figmaArtifacts(th!).artifacts) {
       const f = JSON.parse(a.content);
       if (!Array.isArray(f?.variables)) continue;
       for (const v of f.variables) {
-        checkAny(`${id} ${a.path}`, v.name, v.scopes);
+        checkAny(`${id} ${a.path}`, v.name, v.scopes, v.resolvedType, typesEmit);
         if (f.$collection === 'core') checkCore(`${id} ${a.path}`, v.name, v.scopes, v.hiddenFromPublishing, seenEmit);
       }
     }
     represented(`${id} emission`, seenEmit);
+    typesRepresented(`${id} emission`, typesEmit);
     // the plugin executor's plans
     const seenPlan = new Set<string>();
     for (const r of buildWritePlan(buildFigmaColor(th!)).palette) checkCore(`${id} plan palette`, r.name, r.scopes, r.hidden, seenPlan);
@@ -13978,24 +14001,28 @@ arm: {
       if (p.name === 'core') checkCore(`${id} plan ${p.name}`, r.name, r.scopes, r.hidden, seenPlan);
     }
     for (const p of buildFontVarPlan(th!)) for (const r of p.rows) {
-      checkAny(`${id} plan ${p.name}`, r.name, r.scopes);
+      checkAny(`${id} plan ${p.name}`, r.name, r.scopes, r.resolvedType);
       if (p.name === 'core') checkCore(`${id} plan ${p.name}`, r.name, r.scopes, r.hidden, seenPlan);
     }
     represented(`${id} plugin plan`, seenPlan);
+    const typesPlan = new Set<string>();
+    for (const p of buildMotionVarPlan(th!)) for (const r of p.rows) checkAny(`${id} plan ${p.name}`, r.name, r.scopes, r.resolvedType, typesPlan);
+    typesRepresented(`${id} plugin motion plan`, typesPlan);
   }
   // the committed trees + the paste payloads built from them
   const treeBrands = readdirSync(resolve(HERE, './out/figma'), { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name).sort();
   for (const b of treeBrands) {
-    const seenTree = new Set<string>();
+    const seenTree = new Set<string>(), typesTree = new Set<string>();
     for (const file of readdirSync(resolve(HERE, `./out/figma/${b}`)).filter((f) => f.endsWith('.json')).sort()) {
       const f = JSON.parse(readFileSync(resolve(HERE, `./out/figma/${b}/${file}`), 'utf8'));
       if (!Array.isArray(f?.variables)) continue;
       for (const v of f.variables) {
-        checkAny(`out/figma/${b}/${file}`, v.name, v.scopes);
+        checkAny(`out/figma/${b}/${file}`, v.name, v.scopes, v.resolvedType, typesTree);
         if (f.$collection === 'core') checkCore(`out/figma/${b}/${file}`, v.name, v.scopes, v.hiddenFromPublishing, seenTree);
       }
     }
     represented(`out/figma/${b}`, seenTree);
+    typesRepresented(`out/figma/${b}`, typesTree);
     // Paste payloads: the row literal each pass embeds. Palette rows are [name, code, desc, value, hidden];
     // dims-create and font-vars group rows per collection as [collection, axis, modes, rows], their rows
     // carrying the code at index 1 (dims) or 2 (font) and `hidden` at 3 (dims) or 4 (font).
@@ -14021,7 +14048,9 @@ arm: {
     `#2602 sweep floor: ${brandsSwept} brand(s) emitted (≥5), ${treeBrands.length} committed tree(s) (≥4), ${coreSwept} core row(s), ${varsSwept} variable row(s)`);
   ok(unrepresented.length === 0, '#2602 every `core` group (palette, dimension, font family/size/weight/weight-role/style) is represented on every path' + (unrepresented.length ? ` — MISSING: ${unrepresented.slice(0, 4).join('; ')}` : ''));
   ok(coreBad.length === 0, `#2602 every \`core\` variable is hidden from publishing and carries no scope, bar FONT_FAMILY on font/family and FONT_WEIGHT on font/weight and font/weight-role (Q292 A), in every brand and on every write path (${coreSwept} rows)` + (coreBad.length ? ` — ${coreBad.length} wrong: ${coreBad.slice(0, 4).join('; ')}` : ''));
-  ok(allScopes.length === 0, `#2602 no emitted variable carries ALL_SCOPES, in every brand and on every write path (${varsSwept} rows)` + (allScopes.length ? ` — ${allScopes.length} wrong: ${allScopes.slice(0, 4).join('; ')}` : ''));
+  ok(allScopes.length === 0, `#2602 no emitted variable carries ALL_SCOPES, in every brand and on every write path, bar TIMING and EASING (${varsSwept - unscopedSwept} rows)` + (allScopes.length ? ` — ${allScopes.length} wrong: ${allScopes.slice(0, 4).join('; ')}` : ''));
+  ok(unscopedMissing.length === 0 && unscopedSwept > 0, `#2412 TIMING and EASING rows are represented on every typed path, so the ALL_SCOPES exemption covers something (${unscopedSwept} rows)` + (unscopedMissing.length ? ` — MISSING: ${unscopedMissing.slice(0, 4).join('; ')}` : ''));
+  ok(unscopedBad.length === 0, `#2412 every TIMING and EASING row holds exactly ['ALL_SCOPES'], the only scope Figma lets it hold, in every brand and on every typed path (${unscopedSwept} rows)` + (unscopedBad.length ? ` — ${unscopedBad.length} wrong: ${unscopedBad.slice(0, 4).join('; ')}` : ''));
 }
 
 // ----------------------------------------- component-definition schema (docs/14 §2, DRAFT v0)
@@ -23878,6 +23907,57 @@ arm: {
   }
 }
 
+// ------------------------------------------- materialise-to-figma: the MOTION paste path (#2412)
+// `motion` left the FLOAT passes when it became TIMING + EASING. Its pass must cover the collection the plugin
+// writes, carry the same rows, and never write `scopes`: Figma refuses one on both types, and a refusal in a
+// pasted script aborts the script.
+{
+  const pluginMotion = buildMotionVarPlan(nbTheme());
+  ok(JSON.stringify(motionCollections('nb')) === JSON.stringify(pluginMotion.map((p) => p.name)) && !floatCollections('nb').includes('motion'),
+    `materialise: the paste path writes motion in its own pass, as the plugin does (${motionCollections('nb')}; float: ${floatCollections('nb').includes('motion') ? 'motion still there' : 'no motion'})`);
+  const mv = passJs('nb', 'motion-vars');
+  const rows = JSON.parse(/const M=(.*);\n/.exec(mv)?.[1] ?? '[]') as [string, string[], [string, string, string, number, unknown[], (string | null)[]][]][];
+  const planRows = pluginMotion.flatMap((p) => p.rows.map((r) => [r.name, r.resolvedType, r.description, r.hidden ? 1 : 0, r.valuesByMode, r.aliasByMode]));
+  ok(rows.length === 1 && JSON.stringify(rows[0][2]) === JSON.stringify(planRows),
+    `materialise: motion-vars carries the plugin's ${planRows.length} motion rows, typed and valued alike`);
+  ok(rows.length === 1 && rows[0][2].some((r) => r[1] === 'TIMING') && rows[0][2].some((r) => r[1] === 'EASING') && rows[0][2].every((r) => r[1] === 'TIMING' || r[1] === 'EASING'),
+    'materialise: motion-vars rows are TIMING and EASING, nothing else');
+  ok(/createVariable\(name,col,ty\)/.test(mv) && !/\.scopes\s*=/.test(mv),
+    'materialise: motion-vars creates each variable with its own type and never writes scopes');
+  ok(passOrder().includes('motion-vars'), 'materialise: motion-vars is in the paste order');
+}
+
+// The motion paste pass EXECUTED against the shared file model (#2412 review finding 1). A 0.235.0 file holds
+// `motion` as FLOAT ms. Before this check existed the pass wrote 0.2 into the FLOAT `duration-ms/200` (read as
+// 0.2ms) and then threw on the first TIMING alias, 37 variables in. Seeded with that one FLOAT, the pass must name
+// the mismatch and write nothing at all: no rename, no mode, no create, the FLOAT's 200 untouched. A clean file is
+// run too, so a pre-check that refused everything would fail here as well.
+{
+  type MotionPasteResult = { collections: { total: number; created: number }[]; bound: number; misses: string[] };
+  const AsyncFunction = Object.getPrototypeOf(async () => {}).constructor as new (...a: string[]) => (f: unknown) => Promise<MotionPasteResult>;
+  const run = (shim: FileShim) => new AsyncFunction('figma', passJs('nb', 'motion-vars'))(shim);
+  const name = 'nbds/motion/duration-ms/200';
+  const planned = buildMotionVarPlan(nbTheme()).flatMap((p) => p.rows);
+  ok(planned.find((r) => r.name === name)?.resolvedType === 'TIMING', `materialise: ${name} is a planned TIMING row (the seed below targets a real row)`);
+
+  const seeded = new FileShim();
+  const col = seeded.createVariableCollection('motion');
+  const legacy = seeded.createVariable(name, col, 'FLOAT');
+  legacy.setValueForMode(col.modes[0].modeId, 200);
+  let res: MotionPasteResult | undefined, threw = '';
+  try { res = await run(seeded); } catch (e) { threw = (e as Error).message; }
+  ok(!threw && !!res && res.misses.includes(`type:${name} is FLOAT, plan writes TIMING`) && res.collections.length === 0 && res.bound === 0,
+    `materialise: motion-vars over a FLOAT ${name} names the type mismatch and writes nothing (${threw ? `threw: ${threw}` : JSON.stringify(res?.misses)})`);
+  ok(seeded.vars.length === 1 && legacy.resolvedType === 'FLOAT' && legacy.valuesByMode[col.modes[0].modeId] === 200 && col.modes.length === 1 && col.modes[0].name === 'Mode 1',
+    `materialise: after the refusal the file is untouched — 1 variable, the FLOAT still 200, the collection's mode unrenamed (${seeded.vars.length} vars, value ${legacy.valuesByMode[col.modes[0].modeId]}, modes ${col.modes.map((m: any) => m.name)})`);
+
+  const clean = new FileShim();
+  let fresh: MotionPasteResult | undefined;
+  try { fresh = await run(clean); } catch (e) { threw = (e as Error).message; }
+  ok(!!fresh && fresh.misses.length === 0 && clean.vars.length === planned.length && fresh.bound > 0,
+    `materialise: motion-vars on a clean file creates all ${planned.length} motion variables with no miss (${fresh ? `${clean.vars.length} created, ${fresh.bound} bound, misses ${JSON.stringify(fresh.misses.slice(0, 3))}` : `threw: ${threw}`})`);
+}
+
 // ------------------------------------------- materialise-to-figma: the FLOAT paste path (#342)
 // The two write paths — the CLI paste string and the live plugin executor — are supposed to be
 // projections of ONE plan. They weren't: the plugin has written floats since #108 while the CLI
@@ -24986,32 +25066,54 @@ arm: {
     'figmaArtifacts: no two artifacts claim the same path (a collision would silently drop a file)');
 }
 
-// ---- motion in Figma (#2394): FLOAT milliseconds, no scope, the DTCG's names ---------------------------
+// ---- motion in Figma (#2394, #2412): TIMING seconds + EASING, the DTCG's names ---------------------------
 // EXPECTED is typed here, row by row, from the DTCG motion ramp of each brief (`out/<brand>.tokens.json`,
-// read once by hand) — never from the emitter. `[name below the root, ms, alias target below the root]`;
-// a primitive has no alias. NB runs the standard tempo; aurora runs snappy, so its ramp is a different
-// set of numbers, including a 30ms stagger and an 80ms primitive NB does not have.
+// read once by hand) — never from the emitter. A duration row is `[name below the root, SECONDS, alias target]`
+// (Figma's TIMING holds seconds, spike #2403, so 200ms is typed 0.2 here, not computed); a primitive has no
+// alias. NB runs the standard tempo; aurora runs snappy, so its ramp is a different set of numbers, including
+// a 30ms stagger and an 80ms primitive NB does not have. The easing rows are the same in both briefs.
 {
   type Row = [string, number, string | null];
-  const prim = (ms: number): Row => [`motion/duration-ms/${ms}`, ms, null];
-  const sem = (name: string, ms: number): Row => [`motion/${name}`, ms, `motion/duration-ms/${ms}`];
+  const prim = (key: number, sec: number): Row => [`motion/duration-ms/${key}`, sec, null];
+  const sem = (name: string, key: number, sec: number): Row => [`motion/${name}`, sec, `motion/duration-ms/${key}`];
   const NB_MOTION: Row[] = [
-    ...[0, 40, 50, 100, 200, 300, 500, 800, 2600].map(prim),
-    sem('duration/instant', 50), sem('duration/fast', 100), sem('duration/normal', 200), sem('duration/moderate', 300),
-    sem('duration/slow', 500), sem('duration/slower', 800), sem('duration/spin', 800),
-    sem('duration-reduced/instant', 50), sem('duration-reduced/fast', 100), sem('duration-reduced/normal', 50),
-    sem('duration-reduced/moderate', 0), sem('duration-reduced/slow', 0), sem('duration-reduced/slower', 0),
-    sem('duration-reduced/spin', 2600),
-    sem('stagger', 40),
+    prim(0, 0), prim(40, 0.04), prim(50, 0.05), prim(100, 0.1), prim(200, 0.2), prim(300, 0.3), prim(500, 0.5), prim(800, 0.8), prim(2600, 2.6),
+    sem('duration/instant', 50, 0.05), sem('duration/fast', 100, 0.1), sem('duration/normal', 200, 0.2), sem('duration/moderate', 300, 0.3),
+    sem('duration/slow', 500, 0.5), sem('duration/slower', 800, 0.8), sem('duration/spin', 800, 0.8),
+    sem('duration-reduced/instant', 50, 0.05), sem('duration-reduced/fast', 100, 0.1), sem('duration-reduced/normal', 50, 0.05),
+    sem('duration-reduced/moderate', 0, 0), sem('duration-reduced/slow', 0, 0), sem('duration-reduced/slower', 0, 0),
+    sem('duration-reduced/spin', 2600, 2.6),
+    sem('stagger', 40, 0.04),
   ];
   const AURORA_MOTION: Row[] = [
-    ...[0, 30, 40, 50, 80, 160, 240, 400, 640, 800, 2600].map(prim),
-    sem('duration/instant', 40), sem('duration/fast', 80), sem('duration/normal', 160), sem('duration/moderate', 240),
-    sem('duration/slow', 400), sem('duration/slower', 640), sem('duration/spin', 800),
-    sem('duration-reduced/instant', 40), sem('duration-reduced/fast', 80), sem('duration-reduced/normal', 50),
-    sem('duration-reduced/moderate', 0), sem('duration-reduced/slow', 0), sem('duration-reduced/slower', 0),
-    sem('duration-reduced/spin', 2600),
-    sem('stagger', 30),
+    prim(0, 0), prim(30, 0.03), prim(40, 0.04), prim(50, 0.05), prim(80, 0.08), prim(160, 0.16), prim(240, 0.24), prim(400, 0.4),
+    prim(640, 0.64), prim(800, 0.8), prim(2600, 2.6),
+    sem('duration/instant', 40, 0.04), sem('duration/fast', 80, 0.08), sem('duration/normal', 160, 0.16), sem('duration/moderate', 240, 0.24),
+    sem('duration/slow', 400, 0.4), sem('duration/slower', 640, 0.64), sem('duration/spin', 800, 0.8),
+    sem('duration-reduced/instant', 40, 0.04), sem('duration-reduced/fast', 80, 0.08), sem('duration-reduced/normal', 50, 0.05),
+    sem('duration-reduced/moderate', 0, 0), sem('duration-reduced/slow', 0, 0), sem('duration-reduced/slower', 0, 0),
+    sem('duration-reduced/spin', 2600, 2.6),
+    sem('stagger', 30, 0.03),
+  ];
+  // EASING: `[name, value, alias, hidden]`. Curves are hidden primitives, roles published aliases of a curve,
+  // springs published, `bounce` only: 1 − the damping ratio (0.9 / 0.8 / 0.6 → 0.1 / 0.2 / 0.4, spike #2403).
+  type ERow = [string, unknown, string | null, boolean];
+  const bez = (x1: number, y1: number, x2: number, y2: number) => ({ type: 'CUSTOM_CUBIC_BEZIER', easingFunctionCubicBezier: { x1, y1, x2, y2 } });
+  const spring = (bounce: number) => ({ type: 'CUSTOM_SPRING', easingFunctionSpring: { bounce } });
+  const EASING: ERow[] = [
+    ['motion/easing/linear', bez(0, 0, 1, 1), null, true],
+    ['motion/easing/standard', bez(0.2, 0, 0, 1), null, true],
+    ['motion/easing/decelerate', bez(0, 0, 0.2, 1), null, true],
+    ['motion/easing/accelerate', bez(0.4, 0, 1, 1), null, true],
+    ['motion/easing/expressive', bez(0.4, 0.14, 0.3, 1), null, true],
+    ['motion/easing/calm', bez(0.4, 0, 0.6, 1), null, true],
+    ['motion/easing-role/default', bez(0.2, 0, 0, 1), 'motion/easing/standard', false],
+    ['motion/easing-role/enter', bez(0, 0, 0.2, 1), 'motion/easing/decelerate', false],
+    ['motion/easing-role/exit', bez(0.4, 0, 1, 1), 'motion/easing/accelerate', false],
+    ['motion/easing-role/emphasized', bez(0.4, 0.14, 0.3, 1), 'motion/easing/expressive', false],
+    ['motion/spring/snappy', spring(0.1), null, false],
+    ['motion/spring/gentle', spring(0.2), null, false],
+    ['motion/spring/bouncy', spring(0.4), null, false],
   ];
 
   /** The emitted `motion.json` of a theme, through the same shell regen writes with. */
@@ -25027,46 +25129,85 @@ arm: {
       `motion (${brand}): one motion.json, collection motion, mode Default (${file ? `${file.$collection}/${file.$mode}` : 'absent'})`);
     if (!file) return;
     const byName = new Map(file.variables.map((v) => [v.name, v]));
-    for (const [tail, ms, alias] of expected) {
+    for (const [tail, sec, alias] of expected) {
       const v = byName.get(`${root}/${tail}`);
       ok(!!v, `motion (${brand}): ${tail} is emitted`);
       if (!v) continue;
-      ok(v.value === ms, `motion (${brand}): ${tail} is ${ms}ms (got ${v.value})`);
+      ok(v.value === sec, `motion (${brand}): ${tail} is ${sec}s (got ${v.value})`);
       ok((v.alias?.name ?? null) === (alias ? `${root}/${alias}` : null),
         `motion (${brand}): ${tail} aliases ${alias ?? 'nothing'} (got ${v.alias?.name ?? 'nothing'})`);
-      ok(v.resolvedType === 'FLOAT' && Array.isArray(v.scopes) && v.scopes.length === 0,
-        `motion (${brand}): ${tail} is a FLOAT with no scope (Figma has no time scope) — got ${v.resolvedType} [${v.scopes}]`);
+      ok(v.resolvedType === 'TIMING' && JSON.stringify(v.scopes) === '["ALL_SCOPES"]',
+        `motion (${brand}): ${tail} is TIMING at ALL_SCOPES (Figma refuses a scopes write on it) — got ${v.resolvedType} [${v.scopes}]`);
       ok(!!v.hiddenFromPublishing === (alias === null),
         `motion (${brand}): ${tail} is ${alias === null ? 'hidden from publishing (a primitive)' : 'published (a semantic)'}`);
     }
-    const extra = file.variables.map((v) => v.name).filter((n) => !expected.some(([t]) => `${root}/${t}` === n));
-    ok(extra.length === 0 && file.variables.length === expected.length,
-      `motion (${brand}): exactly the ${expected.length} expected variables${extra.length ? ` — extra: ${extra.join(', ')}` : ''}`);
+    for (const [tail, value, alias, hidden] of EASING) {
+      const v = byName.get(`${root}/${tail}`);
+      ok(!!v && v.resolvedType === 'EASING' && JSON.stringify(v.scopes) === '["ALL_SCOPES"]',
+        `motion (${brand}): ${tail} is EASING at ALL_SCOPES (got ${v ? `${v.resolvedType} [${v.scopes}]` : 'absent'})`);
+      if (!v) continue;
+      ok(JSON.stringify(v.value) === JSON.stringify(value), `motion (${brand}): ${tail} holds ${JSON.stringify(value)} (got ${JSON.stringify(v.value)})`);
+      ok((v.alias?.name ?? null) === (alias ? `${root}/${alias}` : null), `motion (${brand}): ${tail} aliases ${alias ?? 'nothing'} (got ${v.alias?.name ?? 'nothing'})`);
+      ok(!!v.hiddenFromPublishing === hidden, `motion (${brand}): ${tail} is ${hidden ? 'hidden from publishing' : 'published'}`);
+    }
+    const all = [...expected.map(([t]) => t), ...EASING.map(([t]) => t)];
+    const extra = file.variables.map((v) => v.name).filter((n) => !all.some((t) => `${root}/${t}` === n));
+    ok(extra.length === 0 && file.variables.length === all.length,
+      `motion (${brand}): exactly the ${all.length} expected variables, no transition among them${extra.length ? ` — extra: ${extra.join(', ')}` : ''}`);
   };
   check('nb', nbTheme(), NB_MOTION);
   check('aurora', exampleTheme('aurora', () => brandTheme(exampleBrands()['aurora'] as BrandInput)), AURORA_MOTION);
 
-  // Apply Theme writes it: the float plan carries the collection, same rows.
-  const nbMotionPlan = buildFloatWritePlan(nbTheme()).find((c) => c.name === 'motion');
-  ok(!!nbMotionPlan && nbMotionPlan.modes.join() === 'Default' && nbMotionPlan.create.length === NB_MOTION.length,
-    `motion: the float write plan carries the motion collection, one Default mode, ${NB_MOTION.length} rows (${nbMotionPlan?.create.length})`);
-  ok(!!nbMotionPlan && nbMotionPlan.aliases.find((a) => a.name === `${NB_ROOT}/motion/stagger`)?.targetsByMode[0] === `${NB_ROOT}/motion/duration-ms/40`,
-    'motion: the float plan binds nb stagger to the 40ms primitive');
+  // "Every DTCG motion token has a Figma form or a stated reason" (#2412 done-when): every family under
+  // `<root>.motion` in the DTCG is a key of MOTION_FIGMA_COVERAGE, and the one with no form says why.
+  const nbDtcgMotion = Object.keys(buildTree(nbTheme()).tree[NB_ROOT].motion);
+  const uncovered = nbDtcgMotion.filter((f) => !(f in MOTION_FIGMA_COVERAGE));
+  ok(uncovered.length === 0 && nbDtcgMotion.length === Object.keys(MOTION_FIGMA_COVERAGE).length,
+    `motion: every DTCG motion family has a Figma form or a stated reason (${nbDtcgMotion.join(', ')}${uncovered.length ? ` — UNCOVERED: ${uncovered.join(', ')}` : ''})`);
+  const transitionCover = MOTION_FIGMA_COVERAGE.transition as { none?: string };
+  ok(typeof transitionCover.none === 'string' && /composite/.test(transitionCover.none),
+    `motion: transition has no Figma form, and the reason names the composite (${transitionCover.none})`);
+
+  // A spring with no bounce Figma would take is refused, not clamped.
+  const threw = (fn: () => unknown): boolean => { try { fn(); return false; } catch { return true; } };
+  ok(springBounce(0.9) === 0.1 && springBounce(1) === 0 && threw(() => springBounce(1.2)) && threw(() => springBounce(0)),
+    'motion: springBounce is 1 − ζ on (0, 1] and throws outside it (0.9 → 0.1; 1.2 and 0 refused)');
+
+  // Apply Theme writes it: the motion var plan carries the collection, same rows, typed per row.
+  const nbMotionPlan = buildMotionVarPlan(nbTheme()).find((c) => c.name === 'motion');
+  ok(!!nbMotionPlan && nbMotionPlan.modes.join() === 'Default' && nbMotionPlan.rows.length === NB_MOTION.length + EASING.length,
+    `motion: the motion var plan carries the collection, one Default mode, ${NB_MOTION.length + EASING.length} rows (${nbMotionPlan?.rows.length})`);
+  ok(!!nbMotionPlan && nbMotionPlan.rows.find((r) => r.name === `${NB_ROOT}/motion/stagger`)?.aliasByMode[0] === `${NB_ROOT}/motion/duration-ms/40`,
+    'motion: the plan binds nb stagger to the 40ms primitive');
+  ok(!!nbMotionPlan && nbMotionPlan.rows.filter((r) => r.resolvedType === 'TIMING').length === NB_MOTION.length
+    && nbMotionPlan.rows.filter((r) => r.resolvedType === 'EASING').length === EASING.length,
+    `motion: the plan rows carry TIMING ×${NB_MOTION.length} and EASING ×${EASING.length}`);
 
   // A per-mode tempo (dark runs relaxed, ×1.3) becomes a mode, the radius way: the semantic re-points at the
   // mode's primitive, and the files switch to per-mode names. Relaxed normal is 260ms, stagger 50ms.
   const pm = brandTheme({ id: 'mm', modes: ['light', 'dark'], primary: { l: 0.55, c: 0.18, h: 285 }, neutral: { hue: 285, chroma: 0.01 }, modeLevers: { dark: { tempo: 'relaxed' } } } as unknown as BrandInput);
   const pmPaths = figmaArtifacts(pm).artifacts.map((a) => a.path).filter((p) => /^motion\./.test(p)).sort();
   ok(pmPaths.join() === 'motion.Default.json,motion.dark.json', `motion: a per-mode tempo switches to per-mode files (${pmPaths.join()})`);
-  const pmPlan = buildFloatWritePlan(pm).find((c) => c.name === 'motion');
-  const pmNormal = pmPlan?.create.find((r) => r.name === `${pm.root}/motion/duration/normal`);
-  const pmNormalAlias = pmPlan?.aliases.find((a) => a.name === `${pm.root}/motion/duration/normal`);
-  ok(pmPlan?.modes.join() === 'Default,dark' && pmNormal?.valuesByMode.join() === '200,260'
-    && pmNormalAlias?.targetsByMode.join() === `${pm.root}/motion/duration-ms/200,${pm.root}/motion/duration-ms/260`,
-    `motion: dark re-points duration/normal 200 → 260ms (modes ${pmPlan?.modes.join()}, values ${pmNormal?.valuesByMode.join()})`);
-  ok(pmPlan?.create.find((r) => r.name === `${pm.root}/motion/stagger`)?.valuesByMode.join() === '40,50',
-    'motion: dark re-points stagger 40 → 50ms');
+  const pmPlan = buildMotionVarPlan(pm).find((c) => c.name === 'motion');
+  const pmNormal = pmPlan?.rows.find((r) => r.name === `${pm.root}/motion/duration/normal`);
+  ok(pmPlan?.modes.join() === 'Default,dark' && pmNormal?.valuesByMode.join() === '0.2,0.26'
+    && pmNormal?.aliasByMode.join() === `${pm.root}/motion/duration-ms/200,${pm.root}/motion/duration-ms/260`,
+    `motion: dark re-points duration/normal 0.2 → 0.26s (modes ${pmPlan?.modes.join()}, values ${pmNormal?.valuesByMode.join()})`);
+  ok(pmPlan?.rows.find((r) => r.name === `${pm.root}/motion/stagger`)?.valuesByMode.join() === '0.04,0.05',
+    'motion: dark re-points stagger 0.04 → 0.05s');
   ok(/260ms in dark/.test(pmNormal?.description ?? ''), `motion: the one description names the dark value (${pmNormal?.description})`);
+
+  // A per-mode EASING ROLE (dark draws `emphasized` from `calm`) becomes a mode the same way: the role re-points
+  // at the mode's curve, the curves themselves stay mode-invariant. The mode exists with no tempo lever at all.
+  const er = brandTheme({ id: 'er', modes: ['light', 'dark'], primary: { l: 0.55, c: 0.18, h: 285 }, neutral: { hue: 285, chroma: 0.01 }, modeLevers: { dark: { easings: { emphasized: 'calm' } } } } as unknown as BrandInput);
+  const erPlan = buildMotionVarPlan(er).find((c) => c.name === 'motion');
+  const erRole = erPlan?.rows.find((r) => r.name === `${er.root}/motion/easing-role/emphasized`);
+  const erCurve = erPlan?.rows.find((r) => r.name === `${er.root}/motion/easing/calm`);
+  ok(erPlan?.modes.join() === 'Default,dark' && erRole?.aliasByMode.join() === `${er.root}/motion/easing/expressive,${er.root}/motion/easing/calm`,
+    `motion: a dark easing-role lever re-points easing-role/emphasized expressive → calm (modes ${erPlan?.modes.join()}, aliases ${erRole?.aliasByMode.join()})`);
+  ok(JSON.stringify(erCurve?.valuesByMode) === JSON.stringify([bez(0.4, 0, 0.6, 1), bez(0.4, 0, 0.6, 1)]) && erCurve?.aliasByMode.every((t) => t === null) === true,
+    'motion: the calm curve is the same literal in both modes (curves are mode-invariant)');
+  ok(/calm in dark/.test(erRole?.description ?? ''), `motion: the role's description names the dark curve (${erRole?.description})`);
 }
 
 // ---- export_theme: the manifest is the result, and outDir is model-controlled ------------------

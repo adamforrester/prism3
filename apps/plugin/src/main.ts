@@ -18,7 +18,7 @@
  * Compiled under `tsconfig.main.json` (plugin-typings, `lib` WITHOUT `dom`), so any accidental
  * `document`/`window` reference is a COMPILE error — the two-context split is enforced by types.
  */
-import { applyHeadline, APPLY_FAILED_HEADLINE, conflictHeadline, componentHeadline, staleNote, refsItems, partialWriteHeadline, partialWriteItem, fromClauses } from './apply-summary';
+import { applyHeadline, APPLY_FAILED_HEADLINE, conflictHeadline, componentHeadline, staleNote, refsItems, partialWriteHeadline, partialWriteItem, fromClauses, motionReplacedItem } from './apply-summary';
 import { ENGINE_VERSION } from '@prism3/engine/version';
 import { appendBuildNote, buildNote } from '../../studio/src/build-identity';
 import { onUiMessage, postToUi } from './bridge-main';
@@ -56,7 +56,7 @@ import { chunkLine, summaryLines, measureSettle, verdictBeforeSettle } from './b
 import { readFigmaVariables } from './read-figma';
 import { listFamilyStyleCounts } from './list-fonts';
 import { buildFigmaColor } from '@prism3/engine/emit-figma-color';
-import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, buildGridStylePlan, buildFontVarPlan, buildTextStylePlan } from '@prism3/engine/write-plan';
+import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, buildGridStylePlan, buildFontVarPlan, buildMotionVarPlan, buildTextStylePlan } from '@prism3/engine/write-plan';
 import { verifyReadback } from '@prism3/engine/read-back';
 import { restoreInput } from './persist-figma';
 import { declaredModesOf, failedChecks, seedSummary } from './seed-modes';
@@ -200,14 +200,18 @@ const applyTheme = async (input: BrandInput, sink: ActionSink): Promise<void> =>
     // `apply-theme.ts` since #111, so the MCP paste harness can prove parity against this exact path. The
     // global `figma` is the host; everything below this line (the report) is unchanged.
     const { plans, pf, guarded } = await runApplyTheme(input, figma);
-    const { colorFiles, floatPlan, fontPlan } = plans;
+    const { colorFiles, floatPlan, fontPlan, motionPlan } = plans;
     if (!guarded.ok) {
       sink.data({ conflicts: guarded.conflicts });
       const conflicts = conflictSummary(guarded.conflicts);
       postVerdict({ type: 'apply-result', ok: false, headline: conflictHeadline(guarded.conflicts.length), summary: conflicts, lines: [conflicts] }, sink);
       return;
     }
-    const { mig, r, f, s, gs, tv, ts } = guarded.result;
+    const { mig, r, f, s, gs, tv, ts, mv } = guarded.result;
+    // `motion` (#2412) — TIMING + EASING through the mixed-type executor; its refusals count with the font ones.
+    const motionTotal = mv.collections.reduce((n, c) => n + c.total, 0);
+    const motionCreated = mv.collections.reduce((n, c) => n + c.created, 0);
+    const refused = [...tv.refused, ...mv.refused];
     const floatCreated = f.collections.reduce((n, c) => n + c.created, 0);
     const fontVarCreated = tv.collections.reduce((n, c) => n + c.created, 0);
     const fontVarTotal = tv.collections.reduce((n, c) => n + c.total, 0);
@@ -222,7 +226,7 @@ const applyTheme = async (input: BrandInput, sink: ActionSink): Promise<void> =>
     // was absent kept the literal fallback pass A wrote and silently stopped tracking the brand — the
     // #866 shape. One tier has no pointer that can go dead, so there is nothing left to report.
     const misses =
-      r.misses.length + f.misses.length + tv.misses.length + ts.misses.length + s.misses.length + tv.refused.length;
+      r.misses.length + f.misses.length + tv.misses.length + mv.misses.length + ts.misses.length + s.misses.length + refused.length;
     // Orphan report (#479): variables in a collection the plan owns that the plan does not contain.
     // The write path is create-or-update-by-name, so it cannot see a rename — the new name is created
     // and the old one is never touched again. Reported, never deleted: this cannot distinguish a stale
@@ -240,6 +244,7 @@ const applyTheme = async (input: BrandInput, sink: ActionSink): Promise<void> =>
       ...r.orphans,
       ...f.collections.map((c) => ({ name: c.name, names: c.orphans })),
       ...tv.collections.map((c) => ({ name: c.name, names: c.orphans })),
+      ...mv.collections.map((c) => ({ name: c.name, names: c.orphans })),
     ].filter((o) => o.names.length);
     const orphanCount = allOrphans.reduce((n, o) => n + o.names.length, 0);
     const orphanNote = orphanCount
@@ -259,6 +264,7 @@ const applyTheme = async (input: BrandInput, sink: ActionSink): Promise<void> =>
       ...colorFiles.color.map((c) => c.$collection),
       ...floatPlan.map((p) => p.name),
       ...fontPlan.map((p) => p.name),
+      ...motionPlan.map((p) => p.name),
     ];
     const stranded = strandedCollections(
       (await figma.variables.getLocalVariableCollectionsAsync()).map((c) => c.name),
@@ -302,8 +308,8 @@ const applyTheme = async (input: BrandInput, sink: ActionSink): Promise<void> =>
     const fontNote = pf.unavailable.length
       ? `⚠ ${pf.unavailable.length} typeface${pf.unavailable.length === 1 ? '' : 's'} unavailable (${pf.unavailable.slice(0, 3).map((x) => x.face).join(', ')}${pf.unavailable.length > 3 ? '…' : ''})`
       : '';
-    const refusedNote = tv.refused.length
-      ? `⚠ ${tv.refused.length} variable writes refused by Figma (${tv.refused[0].name}: ${tv.refused[0].reason.slice(0, 60)})`
+    const refusedNote = refused.length
+      ? `⚠ ${refused.length} variable writes refused by Figma (${refused[0].name}: ${refused[0].reason.slice(0, 60)})`
       : '';
     // One item per axis and per note, each joined by `, ` (#2177: one line each in the Activity drawer).
     const { summary, lines } = fromClauses([
@@ -311,7 +317,10 @@ const applyTheme = async (input: BrandInput, sink: ActionSink): Promise<void> =>
       `dims/layout ${f.collections.length} collections (+${floatCreated})`,
       `styles ${s.effects.total} effects (+${s.effects.created}) / ${s.paints.total} gradients (+${s.paints.created}, ${s.paints.bound} stops bound) / ${gs.total} grid styles (+${gs.created})`,
       `type ${pf.loaded} fonts loaded / ${fontVarTotal} font vars (+${fontVarCreated}) / ${ts.total} text styles (+${ts.created})`,
-      `${r.bound + f.bound + tv.bound + ts.bound} bindings`, misses ? `${misses} misses` : '',
+      `motion ${motionTotal} vars (+${motionCreated})`,
+      // #2412 (Q293 A): the one deletion Apply makes, so it is always said (wording: Q302).
+      motionReplacedItem(mv.replaced.length),
+      `${r.bound + f.bound + tv.bound + mv.bound + ts.bound} bindings`, misses ? `${misses} misses` : '',
       ...renameNotes, orphanNote, strandedNote, resolvedNote, skippedNote, gridSkippedNote(gs.skipped), fontNote, refusedNote,
     ].map((x) => [', ', x] as const));
     // Skipped fonts aren't a "failure" (variables still wrote); only true misses flip ok=false. The
@@ -324,7 +333,7 @@ const applyTheme = async (input: BrandInput, sink: ActionSink): Promise<void> =>
     // above caps at three is here whole, keyed by the axis that produced it.
     sink.data({
       apply: {
-        misses: { color: r.misses, float: f.misses, fontVars: tv.misses, textStyles: ts.misses, styles: s.misses, refused: tv.refused },
+        misses: { color: r.misses, float: f.misses, fontVars: tv.misses, motion: mv.misses, textStyles: ts.misses, styles: s.misses, refused },
         counts: {
           palette: { total: r.paletteTotal, created: r.paletteCreated }, color: { total: r.colorTotal, created: r.colorCreated },
           floatCollections: f.collections.length, floatCreated,
@@ -332,7 +341,8 @@ const applyTheme = async (input: BrandInput, sink: ActionSink): Promise<void> =>
           gradients: { total: s.paints.total, created: s.paints.created, stopsBound: s.paints.bound },
           gridStyles: { total: gs.total, created: gs.created, renamed: gs.renamed, skipped: gs.skipped },
           fontsLoaded: pf.loaded, fontVars: { total: fontVarTotal, created: fontVarCreated },
-          textStyles: { total: ts.total, created: ts.created }, bindings: r.bound + f.bound + tv.bound + ts.bound,
+          motion: { total: motionTotal, created: motionCreated, replaced: mv.replaced },
+          textStyles: { total: ts.total, created: ts.created }, bindings: r.bound + f.bound + tv.bound + mv.bound + ts.bound,
         },
         orphans: allOrphans, stranded,
         renames: { migrated, refused: migRefused, mapRefusals: mig.refusals },
@@ -375,12 +385,15 @@ const prune = async (input: BrandInput, confirm: boolean, sink: ActionSink): Pro
     const wp = buildWritePlan(colorFiles);
     const floatPlan = buildFloatWritePlan(theme);
     const fontPlan = buildFontVarPlan(theme);
+    // `motion` (#2412) — out of the FLOAT plan, so it must be named here or Prune reads the collection as stranded.
+    const motionPlan = buildMotionVarPlan(theme);
+    const varPlans = [...fontPlan, ...motionPlan];
     const textPlan = buildTextStylePlan(theme);
     const plannedVariables = [
       ...wp.palette.map((r) => r.name),
       ...wp.color.create.map((r) => r.name),
       ...floatPlan.flatMap((p) => p.create.map((r) => r.name)),
-      ...fontPlan.flatMap((p) => p.rows.map((r) => r.name)),
+      ...varPlans.flatMap((p) => p.rows.map((r) => r.name)),
     ];
     // Spelled with `$collection` / `plan.name` (what Figma holds), not the axis labels the orphan report
     // uses — the same set `applyTheme` assembles for its stranded-collection report.
@@ -388,7 +401,7 @@ const prune = async (input: BrandInput, confirm: boolean, sink: ActionSink): Pro
       colorFiles.palette.$collection,
       ...colorFiles.color.map((c) => c.$collection),
       ...floatPlan.map((p) => p.name),
-      ...fontPlan.map((p) => p.name),
+      ...varPlans.map((p) => p.name),
     ];
     // The three non-text style surfaces (#1570) — the same builders `applyTheme` writes through, so
     // "stale" means the same thing for a grid style as it does for a variable.
@@ -409,7 +422,7 @@ const prune = async (input: BrandInput, confirm: boolean, sink: ActionSink): Pro
     const plannedModes = [
       ...[...new Set(colorFiles.color.map((c) => c.$collection))].map((collection) => ({ collection, modes: wp.color.modes })),
       ...floatPlan.map((p) => ({ collection: p.name, modes: p.modes })),
-      ...fontPlan.map((p) => ({ collection: p.name, modes: p.modes })),
+      ...varPlans.map((p) => ({ collection: p.name, modes: p.modes })),
     ];
     // The brand root every emitted variable carries — read positionally off any planned name (#1097), so
     // no prefix is spelled here. Empty (no planned vars) disables the namespace guard, which prunes nothing.

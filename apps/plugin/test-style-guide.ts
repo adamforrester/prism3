@@ -2352,6 +2352,9 @@ const main = async (): Promise<void> => {
       ['pds/dimension/4', [], 'FLOAT', 'scale'],
       ['pds3/core/dimension/4', ['WIDTH_HEIGHT', 'GAP', 'CORNER_RADIUS', 'STROKE_FLOAT'], 'FLOAT', 'scale'],
     ];
+    // Figma's motion types (#2412) are motion by TYPE, under any name, and so named as a later phase rather than dropped.
+    ok(kindOf('pds3/motion/stagger', ['ALL_SCOPES'], 'TIMING') === 'duration' && kindOf('pds3/motion/spring/snappy', ['ALL_SCOPES'], 'EASING') === 'motion',
+      `21: a TIMING is a duration and an EASING is motion, whatever the name (${kindOf('pds3/motion/stagger', ['ALL_SCOPES'], 'TIMING')}, ${kindOf('pds3/motion/spring/snappy', ['ALL_SCOPES'], 'EASING')})`);
     const wrong = shapes.filter(([n, sc, t, k]) => kindOf(n, sc, t) !== k).map(([n, sc, t, k]) => `${n} → ${kindOf(n, sc, t)}, not ${k}`);
     ok(wrong.length === 0, `21: each reviewed shape takes its own kind: durations, a shadow by scope and by name, gradient stops, a paragraph spacing by scope and by name, camelCase line heights and letter spacing (${wrong.join('; ')})`);
     ok(kindOf('misc/ratio/golden') === 'other' && kindOf('misc/ratio/golden', ['ALL_SCOPES']) === 'other',

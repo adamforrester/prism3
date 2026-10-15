@@ -25,7 +25,7 @@ import { persistInput } from './persist-figma';
 import { fontPreloadApiOf, preflightApiOf, textApiOf } from './theme-ports';
 import type { ThemeHost } from './theme-ports';
 import { buildFigmaColor } from '@prism3/engine/emit-figma-color';
-import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, buildGridStylePlan, buildFontVarPlan, buildTextStylePlan } from '@prism3/engine/write-plan';
+import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, buildGridStylePlan, buildFontVarPlan, buildMotionVarPlan, buildTextStylePlan } from '@prism3/engine/write-plan';
 import { brandTheme } from '@prism3/engine/theme';
 import type { BrandInput } from '@prism3/engine/theme';
 
@@ -44,9 +44,11 @@ export const themePlans = (input: BrandInput) => {
   const colorPlan = buildWritePlan(colorFiles);
   const floatPlan = buildFloatWritePlan(theme);
   const fontPlan = buildFontVarPlan(theme);
+  // `motion` (#2412): TIMING + EASING, so the mixed-type executor's, not the FLOAT one's.
+  const motionPlan = buildMotionVarPlan(theme);
   const stylesPlan = buildStylesPlan(theme);
   const gridPlan = buildGridStylePlan(theme);
-  return { theme, textPlan, colorFiles, colorPlan, floatPlan, fontPlan, stylesPlan, gridPlan };
+  return { theme, textPlan, colorFiles, colorPlan, floatPlan, fontPlan, motionPlan, stylesPlan, gridPlan };
 };
 export type ThemePlans = ReturnType<typeof themePlans>;
 
@@ -56,7 +58,7 @@ export type ThemePlans = ReturnType<typeof themePlans>;
  */
 export const runApplyTheme = async (input: BrandInput, host: ThemeHost) => {
   const plans = themePlans(input);
-  const { textPlan, colorPlan, floatPlan, fontPlan, stylesPlan, gridPlan } = plans;
+  const { textPlan, colorPlan, floatPlan, fontPlan, motionPlan, stylesPlan, gridPlan } = plans;
   // FONTS FIRST (#680), before ANY variable write. Writing a `font/family/*` variable makes Figma
   // re-resolve every text style bound to it, and re-resolution throws `unloaded font` — which used to
   // abort the whole apply from inside a writer that touches no text. The face needed is the CROSS
@@ -69,7 +71,7 @@ export const runApplyTheme = async (input: BrandInput, host: ThemeHost) => {
   // type — write NOTHING and report every conflict. The rename pre-pass is inside the guarded write
   // because it renames collections, so it is a write too. See `preflight.ts`.
   const guarded = await guardApply(
-    preflightPlanOf({ color: colorPlan, float: floatPlan, font: fontPlan, styles: stylesPlan, grid: gridPlan, text: textPlan }),
+    preflightPlanOf({ color: colorPlan, float: floatPlan, font: fontPlan, motion: motionPlan, styles: stylesPlan, grid: gridPlan, text: textPlan }),
     preflightApiOf(host),
     async () => {
       // ONE rename pass across all four variable executors (#1013). Built here rather than inside each
@@ -106,10 +108,13 @@ export const runApplyTheme = async (input: BrandInput, host: ThemeHost) => {
       const tv = await applyVarCollectionPlan(fontPlan, host.variables, mig);
       // The Text Style port needs figma's style/font surface + figma.variables' getter (`theme-ports.ts`).
       const ts = await applyTextStylePlan(textPlan, textApiOf(host));
+      // MOTION (#2412): TIMING durations + EASING curves, roles and springs, through the same mixed-type
+      // executor. Independent of every other axis: nothing aliases into or out of `motion`.
+      const mv = await applyVarCollectionPlan(motionPlan, host.variables, mig);
       // Persist the exact knobs alongside the variables (#131) — so re-opening this file rehydrates
       // the UI to THIS brand, not the default. Only after a real materialisation (inside the try).
       persistInput(host.root, input);
-      return { mig, r, f, s, gs, tv, ts };
+      return { mig, r, f, s, gs, tv, ts, mv };
     },
   );
   return { plans, pf, guarded };

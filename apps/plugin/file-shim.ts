@@ -12,7 +12,7 @@
  */
 import { deadOnRemove } from './removal-shim';
 
-export type VarType = 'COLOR' | 'FLOAT' | 'STRING' | 'BOOLEAN';
+export type VarType = 'COLOR' | 'FLOAT' | 'STRING' | 'BOOLEAN' | 'TIMING' | 'EASING';
 export type FileShimOpts = { refuseSharedData?: boolean };
 
 /**
@@ -25,6 +25,10 @@ export type FileShimOpts = { refuseSharedData?: boolean };
  *   · shared plugin data can be REFUSED (`refuseSharedData`), which is the ledger fallback's whole premise;
  *   · a font-family write re-resolves the text styles bound to it and throws on a face this RUN has not
  *     loaded (#680) — with `runScript` starting every script as a fresh run, which is what `use_figma` is;
+ *   · TIMING and EASING (#2412) hold what the live host held in spike #2403, and refuse what it refused: a
+ *     `scopes` write throws on both ("Cannot set scopes on this variable type"); TIMING takes a number only;
+ *     EASING takes a cubic bezier `{x1,y1,x2,y2}` or a spring with `bounce` and no other key; and an alias
+ *     touching either type must land on the same type (TIMING → FLOAT is refused);
  *   · a REMOVED style, variable or collection is DEAD (#1790, `removal-shim.ts`): any read or write of it
  *     but `id` and `removed` throws the host's error, so a second `remove()` throws too, and removing a
  *     collection kills its variables — including the objects an executor fetched before the removal.
@@ -79,12 +83,36 @@ export class FileShim {
   createVariable(name: string, collection: any, resolvedType: VarType): any {
     if (!this.minted.has(collection)) throw new Error('in createVariable: Expected a VariableCollection node');
     const shim = this;
+    const motion = resolvedType === 'TIMING' || resolvedType === 'EASING';
+    let scopes: string[] = ['ALL_SCOPES'];
     const v: any = deadOnRemove({
-      id: this.id('VariableID'), name, variableCollectionId: collection.id, resolvedType, scopes: ['ALL_SCOPES'], description: '',
+      id: this.id('VariableID'), name, variableCollectionId: collection.id, resolvedType, description: '',
+      get scopes(): string[] { return scopes; },
+      set scopes(next: string[]) {
+        if (motion) throw new Error('in set_scopes: Cannot set scopes on this variable type');
+        scopes = next;
+      },
       hiddenFromPublishing: false, valuesByMode: {} as Record<string, unknown>,
       setValueForMode(modeId: string, value: any) {
         const alias = value && typeof value === 'object' && value.type === 'VARIABLE_ALIAS';
-        const t = typeof value === 'number' ? 'FLOAT' : typeof value === 'string' ? 'STRING' : typeof value === 'boolean' ? 'BOOLEAN' : 'COLOR';
+        if (alias) {
+          const target = shim.vars.find((x) => x.id === value.id);
+          const tt = target?.resolvedType;
+          if ((motion || tt === 'TIMING' || tt === 'EASING') && tt !== this.resolvedType) {
+            throw new Error(`in setValueForMode: Mismatched variable resolved type (${this.resolvedType}) and alias type (${tt})`);
+          }
+        }
+        if (!alias && this.resolvedType === 'EASING') {
+          const keys = (o: unknown): string[] => (o && typeof o === 'object' ? Object.keys(o) : []);
+          const ok = value && typeof value === 'object' && (
+            (value.type === 'CUSTOM_CUBIC_BEZIER' && ['x1', 'y1', 'x2', 'y2'].every((k) => typeof value.easingFunctionCubicBezier?.[k] === 'number'))
+            || (value.type === 'CUSTOM_SPRING' && typeof value.easingFunctionSpring?.bounce === 'number'));
+          const extra = keys(value.easingFunctionSpring).filter((k) => k !== 'bounce');
+          if (!ok || extra.length) throw new Error(`in setValueForMode: Invalid easing value${extra.length ? ` — Unrecognized key(s) in object: ${extra.join(', ')}` : ''}`);
+          this.valuesByMode[modeId] = value;
+          return;
+        }
+        const t = typeof value === 'number' ? (this.resolvedType === 'TIMING' ? 'TIMING' : 'FLOAT') : typeof value === 'string' ? 'STRING' : typeof value === 'boolean' ? 'BOOLEAN' : 'COLOR';
         if (!alias && t !== this.resolvedType) throw new Error(`in setValueForMode: Mismatched variable resolved type (${this.resolvedType}) and value type (${t})`);
         // #680: writing a family a text style is bound to makes the host re-resolve that style, and a face
         // not loaded IN THIS RUN throws. This is why every paste step preloads fonts: a `use_figma` call is
