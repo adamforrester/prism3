@@ -2382,8 +2382,9 @@ section('accordion — a set built before the header row (#2594, owner Q276 A) t
   ok(post.counts.current === 24 && post.handEdits.length === 0, `acc/current: the next dry run reads all 24 current (${JSON.stringify(post.counts)})`);
   // MOVED, NOT REBUILT (#2595): the indicators and the title move into the row the update inserts, so every node in
   // them, their nested glyph instances included, keeps its id, now under the row. A placed instance's override on
-  // them carries over. Read off the shim's nodes by id. Mutation: the executor offering a new frame no children
-  // (`adopt` dropped) → `acc/moved children`, `acc/dry run moves` stays green, `acc/agree` fails.
+  // them carries over. Read off the shim's nodes by id. Mutations: the executor offering a new frame no children
+  // (`offer` empty) → `acc/moved children`, `acc/agree`, `acc/edited agree`; the dry run listing no moves →
+  // `acc/dry run moves`, `acc/edited dry run`.
   const lost: string[] = [];
   for (const [name, b] of before.members) {
     const was = [...b.kids].filter(([path]) => /^header#0\/(titleBox|leadingIndicator|trailingIndicator)#/.test(path));
