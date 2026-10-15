@@ -50,7 +50,7 @@ One phrase or sentence per item, sentence case, every item the same grammatical 
 | `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | The text size, body small, medium or large, with the marker, the marker column and the space between items sized to it. Passed to every item. |
 | `start` | number | `1` | no | Ordered only: the number the first item shows. |
 | `reversed` | boolean | `false` | no | Ordered only: count down instead of up. |
-| `children` | node | — | yes | The items, each a List.Item. |
+| `items` | slot of `list-item`, 1 or more | — | yes | The items, each a List.Item, in order. Three by default; a designer adds, removes and reorders them in place. |
 
 ## States
 

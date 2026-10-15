@@ -1411,6 +1411,9 @@ export const makeShim = (opts: ShimOpts = {}) => {
         const PAGE_OWNER = { name: 'Page 1', type: 'PAGE' };
         const mkRef = (name: string, i: number, main?: Node, owner: { name: string; type: string } = PAGE_OWNER) => ({
           name, id: `73:${37 + i}`, type: 'COMPONENT',
+          // With `identities` a component carries the key its instances' `mainComponent` reads (#2649: a slot's preferred
+          // value names a component by key, so a nested component the slot prefers must have one, as on a real file).
+          ...(opts.identities ? { key: `${opts.keyPrefix ?? 'K'}:${name}` } : {}),
           createInstance: () => {
             const inst = mkNode('INSTANCE'); const vec = mkNode('VECTOR'); inst.findAll = () => [vec]; inst.findOne = () => null;
             // WHICH COMPONENT THIS IS AN INSTANCE OF, in Figma's own shape (`InstanceNode.mainComponent`, whose

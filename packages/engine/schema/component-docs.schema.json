@@ -35,6 +35,9 @@
         "default": { "type": ["string", "boolean", "number"], "description": "The default value. Absent when the prop has none." },
         "required": { "type": "boolean", "description": "Whether a consumer must set it. False when the definition does not say." },
         "values": { "type": "array", "items": { "type": "string" }, "minItems": 1, "description": "The allowed values, for an enum prop." },
+        "anyOf": { "type": "array", "items": { "$ref": "#/$defs/id" }, "minItems": 1, "description": "For a slot prop that holds repeating items: the component ids an item may be. Absent on every other prop." },
+        "minItems": { "type": "integer", "minimum": 0, "description": "For a slot prop that holds repeating items: the least number of items." },
+        "maxItems": { "type": "integer", "minimum": 1, "description": "For a slot prop that holds repeating items: the most items. Absent when there is no ceiling." },
         "deprecated": { "type": "boolean", "description": "Present and true when the prop is deprecated." },
         "description": { "$ref": "#/$defs/text", "description": "What the prop does." }
       }

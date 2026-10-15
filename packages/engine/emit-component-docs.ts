@@ -83,6 +83,9 @@ export const projectDef = (def: ComponentDef) =>
       default: p.default,
       required: p.required ?? false,
       values: p.values,
+      anyOf: p.anyOf,
+      minItems: p.minItems,
+      maxItems: p.maxItems,
       deprecated: p.deprecated,
       description: p.description,
     })),
@@ -203,7 +206,9 @@ export const renderMarkdown = (def: ComponentDef): string => {
       // Values are listed only when the type prose does not already name every one of them.
       const values = p.values && !p.values.every((v) => p.type.includes(v)) ? ` (${p.values.map((v) => code(v)).join(', ')})` : '';
       const name = p.deprecated ? `${code(p.name)} (deprecated)` : code(p.name);
-      out.push(`| ${name} | ${mdEscape(p.type)}${mdEscape(values)} | ${p.default === undefined ? '—' : code(String(p.default))} | ${p.required ? 'yes' : 'no'} | ${mdEscape(p.description)} |`);
+      // A slot prop (#2649): what each item may be and how many.
+      const items = p.anyOf ? ` of ${p.anyOf.map((x) => code(x)).join(' or ')}, ${p.maxItems !== undefined ? `${p.minItems} to ${p.maxItems}` : `${p.minItems} or more`}` : '';
+      out.push(`| ${name} | ${mdEscape(p.type)}${mdEscape(values)}${mdEscape(items)} | ${p.default === undefined ? '—' : code(String(p.default))} | ${p.required ? 'yes' : 'no'} | ${mdEscape(p.description)} |`);
     }
     out.push('');
   }

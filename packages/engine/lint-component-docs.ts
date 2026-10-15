@@ -139,7 +139,7 @@ const SECTION = (path: Path): Place | undefined => {
       if (a === 'commonPartners') return { kind: 'list', heading: '## Choosing it', label: LABEL.commonPartners };
       return { kind: 'text', heading: '## Choosing it' };
     case 'props': {
-      const column = b === 'name' ? 'Name' : b === 'type' || b === 'values' ? 'Type' : b === 'default' ? 'Default'
+      const column = b === 'name' ? 'Name' : b === 'type' || b === 'values' || b === 'anyOf' || b === 'minItems' || b === 'maxItems' ? 'Type' : b === 'default' ? 'Default'
         : b === 'required' ? 'Required' : b === 'description' ? 'Description' : b === 'deprecated' ? 'Name' : undefined;
       if (column === 'Default') return { kind: 'cell', heading: '## Props', row: '', column, tokens: true };
       return column ? { kind: 'cell', heading: '## Props', row: '', column } : undefined; // row filled by the caller
