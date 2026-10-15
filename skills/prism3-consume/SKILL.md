@@ -9,9 +9,10 @@ description: >-
   with or without the MCP surface.
 when_to_use: >-
   When writing component code or token bindings against a Prism3 token system
-  (the `<brand>.tokens.json` DTCG tree + its `<brand>.ai.json` metadata sidecar),
-  whether you reach the tokens through the MCP `theme_brand` tool, a committed
-  catalog, or a design.md brief.
+  (the `<brand>.tokens.json` DTCG tree, or its `<brand>.base.tokens.json` +
+  per-mode overlay projection, with the `<brand>.ai.json` metadata sidecar),
+  whether you reach the tokens through the MCP, a committed catalog, or a
+  design.md brief.
 ---
 
 # prism3-consume — using a Prism3 token system to build compliant UI
@@ -31,23 +32,23 @@ brand.
 
 A Prism3 tree has layers, and you consume them from the top:
 
-1. **Type composites + weight roles** (`type.*`, `font.weight-role.*`) — the typography you apply.
+1. **Type composites + weight roles** (`type.*`, `core.font.weight-role.*`) — the typography you apply.
 2. **Semantic color + geometry roles** (`color.*`, `space.*`, `radius.*`, `size.*`, `border-width.*`, `focus.*`) — **this is your layer.** Everything a component needs has a role here.
 3. **Metadata sidecar** (`<brand>.ai.json`) — one entry per token: `when_to_use` / `avoid_when` / `contrast_with` / `mode_overrides`, plus `sits_on` (the grounds an ink is measured on), `carries` (the inks a ground takes), `tracks` (companion roles — no contrast implied) and `usage_limit` (an ink for large text, icons and non-essential text only). Read it when a name isn't self-evident.
-4. **Primitives** (`palette.*`, `dimension.*`, `font.size/weight.*`) — **private.** The engine marks these `consume: "Private primitive — reference a color.* semantic token that aliases this, not the raw step."` Do not bind to them (see the one exception below).
+4. **Primitives** (`core.palette.*`, `core.dimension.*`, `core.font.size/weight.*`) — **private.** The engine marks these `consume: "Private primitive — reference a color.* semantic token that aliases this, not the raw step."` Do not bind to them (see the one exception below).
 
 ## Rules
 
 **1. Names are the API — never invent a token.**
 Every token you reference must exist in the tree. If you don't know the name, look it up
-(the catalog, the MCP `theme_brand` output, or the `.ai.json`) — do **not** guess a
+(the catalog, the brand's exported files, or the `.ai.json`) — do **not** guess a
 plausible-sounding name. Prism3's naming is deliberate and diverges from generic
 convention in exactly the places guessing fails (e.g. it's `color.foreground.success-subtle`
 for a tinted success surface, not `color.feedback.success.surface`; it's `focus.ring.width`,
 not `focus.ring.size`).
 
 **2. Reach for the semantic role, not the primitive.**
-Use `color.interactive.primary.fill.rest`, not `palette.primary.600`. Use `space.400`, not `dimension.16`.
+Use `color.interactive.primary.fill.rest`, not `core.palette.primary.600`. Use `space.400`, not `core.dimension.16`.
 The semantic token aliases the primitive *and* carries the mode behavior and the contract.
 Binding a raw primitive throws all of that away and is the #1 source of drift.
 *Exception:* `opacity.*`, `motion.*`, and `shadow.*` are consumable directly — their
@@ -87,9 +88,14 @@ the wrong control (WCAG 2.5.8). Beside the label, 22px is always enough at mediu
 12px at small.
 
 **3. Let modes resolve — don't hardcode a mode's value.**
-A color role resolves differently per mode (`light` / `dark` / `hc-light` / `hc-dark`),
-carried in the role's `mode_overrides`. Bind the **role**; the mode drives the value. Never
-copy a resolved hex into your component — that pins one mode and breaks the others.
+A color role resolves differently per mode (`light` / `dark` / `hc-light` / `hc-dark`; a brand
+may ship fewer, or more, such as `wireframe` or its own custom modes). Bind the **role**; the mode drives the value. Never copy a resolved hex into
+your component — that pins one mode and breaks the others. For code, build from
+`<brand>.base.tokens.json` plus one `<brand>.<mode>.overlay.tokens.json` per extra mode: a
+stock DTCG reader (Style Dictionary 4 and later) resolves that pair with no custom code. The
+single `<brand>.tokens.json` keeps its per-mode values under `$extensions`, which a standard
+reader ignores, so on its own it builds one mode. The sidecar's `mode_overrides` describes
+those values; it is not how they reach your build.
 
 **4. Honor `avoid_when` — it is the highest-value field.**
 The sidecar's `avoid_when` encodes the traps the role's *name* can't. The portable ones
@@ -97,14 +103,20 @@ that hold across brands:
 
 - **`border.primary` and `border.secondary` are decorative — not contrast targets.** The engine
   makes both intentionally low-contrast (about 1.4:1 and 2:1 on the page). If you need a border
-  that must read as a UI edge (a 3:1 target), use `border.tertiary`, which clears 3:1 on every
-  `background.*` and `foreground.*` tier, or `border.focus` for focus. A decorative divider is
+  that must read as a UI edge (a 3:1 target), use `border.tertiary`, which clears 3:1 on the
+  `background.primary`/`secondary`/`tertiary` and `foreground.primary`/`secondary`/`tertiary`
+  surfaces, `field.border.rest` for an input, or `border.focus` for focus. A decorative divider is
   *exempt* from the 3:1 contract — don't pair it as one.
 - **`*.on-*` ink goes on its paired fill, nothing else.** `interactive.primary.on-fill` sits on
-  `interactive.primary.fill.rest`; `text.on-danger` on `foreground.danger`. Plain `text.primary` /
-  `text.secondary` go on surfaces (`background.*` / `foreground.*`), never on a solid vivid fill.
-- **Disabled roles are WCAG-exempt.** `disabled.text`, `disabled.fill`, and `disabled.on-fill` are *not* held to 4.5:1 — disabled controls are exempt (WCAG 1.4.3).
-  Treat a disabled label as `ui` (3:1 legibility) at most; do not fail your self-check on it.
+  `interactive.primary.fill.rest`; `text.on-danger` on `foreground.danger`. Plain `text.primary`
+  goes on the page surfaces (`background.primary`/`secondary`/`tertiary`,
+  `foreground.primary`/`secondary`/`tertiary`); `text.secondary` is measured only on
+  `background.primary`, `background.secondary` and `foreground.primary` (its `sits_on`). Neither
+  goes on a solid vivid fill such as `foreground.danger`.
+- **Disabled inks clear 3:1, not 4.5:1.** WCAG 1.4.3 exempts disabled controls, but Prism3 does not
+  use that exemption: `disabled.text` (on `background.secondary`) and `disabled.on-fill` (on
+  `disabled.fill`) each carry a 3:1 contract (4.5:1 in the high-contrast modes). Score a disabled
+  label as `ui` (3:1), not `text`; it passes. `disabled.fill` itself carries no contract.
 - **Tertiary and subtle inks are for large text.** A role with a `usage_limit` (`text.tertiary`,
   `text.*-subtle`, and their icon and inverse twins) clears 3:1, not 4.5:1: use it for large text,
   icons and non-essential text only, and its `body_text_alternative` for body-size text.
@@ -112,7 +124,7 @@ that hold across brands:
   body text on it still needs a real 4.5:1 check (pair the matching `text.*`, not `text.on-*`).
 
 **5. Prefer type composites + weight *roles*.**
-Apply a `type.*` composite for a text style; reference `font.weight-role.emphasis` (the
+Apply a `type.*` composite for a text style; reference `core.font.weight-role.emphasis` (the
 role), not the numeric `700`. A brand can re-map its weights and every consumer reflows —
 but only if you referenced the role.
 
@@ -155,8 +167,8 @@ List every **ink-on-surface color pairing** your component renders, each as
 
 Resolve `fg` and `bg` **per mode** and confirm the ratio clears the floor **in every mode**.
 Only pair colors where a real contrast contract applies — a **decorative** border
-(`border.primary`), a **disabled** label, and pure decoration are exempt; don't score them
-as if they were text or a 3:1 UI edge. If a pair fails, you reached for the wrong role — the
+(`border.primary`) and pure decoration are exempt; don't score them as if they were text or a
+3:1 UI edge. A **disabled** label is not exempt: score it as `ui` (3:1). If a pair fails, you reached for the wrong role — the
 system has a role that passes (that's what the generation-time contracts guarantee).
 
 ## Two worked edges (where the raw name isn't enough)
@@ -169,13 +181,20 @@ sidecar's `avoid_when` closes them:
   if the edge must *read*, use `border.tertiary` / `border.focus`. `border.secondary` is
   decorative too (~2:1).
 - **A disabled button's label.** Tempting: score `disabled.on-fill` on `disabled.fill` as
-  `text` (4.5:1). It's ~3:1 by design and **exempt** — classify it `ui`, don't fail on it.
+  `text` (4.5:1). It's held to 3:1 by design — classify it `ui`, which it passes.
 
 Get those two right and you match the engine's own compliance contract.
 
 ## If you have the MCP surface
 
-Call `list_levers` to learn the knobs and `theme_brand` to get the tree + `.ai.json` for the
-brand, then apply everything above. The skill and the MCP compose: the MCP gives you the
-*data*, this skill is the *discipline* for using it. Without the MCP (a committed catalog,
-a `design.md`), the discipline is identical — you read the tree from the file.
+Call `export_theme` to write the brand's tree (`tokens.json`), its metadata sidecar
+(`ai-metadata.json`) and its Figma files (`figma/`) to a directory (the host must grant file
+access), then apply everything above. It does not write the base + overlay set rule 3 builds
+from, so for a multi-mode code build compile the brand with `packages/engine/cli.ts --out <dir>`
+or download it from the studio's export, which both write it. `theme_brand` returns only the contract results and notes unless you
+ask for the tree with `include`, and the tree is too large to read through a tool result.
+When you finish, `score_consumption` runs the self-check above for you: it flags invented
+names and raw primitives, and scores each `{fg, bg, kind}` pair in every mode. The skill and
+the MCP compose: the MCP gives you the *data*, this skill is the *discipline* for using it.
+Without the MCP (a committed catalog), the discipline is identical — you read the tree from the
+file. From a `design.md` brief, compile it first (`theme_from_brief`, or the CLI).
