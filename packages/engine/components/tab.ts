@@ -41,11 +41,11 @@ export const tab: ComponentDef = {
   props: [
     { name: 'label', type: 'string', required: true, description: 'The tab text: a short noun, one or two words. One line; a tab list that runs out of room scrolls rather than wrapping.' },
     { name: 'value', type: 'string', required: true, description: 'The key that ties this tab to its panel. The tab list selects by key, never by position.' },
-    { name: 'selected', type: 'boolean', default: 'false', required: false, description: 'Whether this tab is the selected one. Set by the tab list from its value; do not set it on a tab inside a list.' },
+    { name: 'selected', type: 'boolean', default: false, required: false, description: 'Whether this tab is the selected one. Set by the tab list from its value; do not set it on a tab inside a list.' },
     { name: 'leadingIcon', type: 'slot', required: false, description: 'An icon before the label. Decorative when a label is present.' },
     { name: 'count', type: 'number', required: false, description: 'A count after the label, drawn as a count badge and read as part of the tab name, such as "Reviews, 12".' },
     { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'Tab height, padding and label type. Medium clears 44px on comfortable and spacious density.' },
-    { name: 'disabled', type: 'boolean', default: 'false', required: false, description: 'Dims the tab and skips it during arrow-key movement.' },
+    { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Dims the tab and skips it during arrow-key movement.' },
   ],
 
   states: ['rest', 'hover', 'pressed', 'focus-visible', 'disabled'],

@@ -1,0 +1,14 @@
+## (2026-10-15) — Boolean and number prop defaults ship as booleans and numbers (#2707)
+
+The component audit (#2706) found six defs that wrote a boolean prop's default as the string `'false'` or `'true'`, and Badge's `max` as `'99'`. `PropDef.default` is typed `string | boolean | number`, so the compiler accepted all of them. Each string reached `out/components/components.ai.json` unchanged. An agent or codegen that read Badge's `showZero` got `"false"`, which is truthy, while every older def ships a real `false`. #1623 fixed the same defect in the first 19 defs. These six came later, so this is a recurrence.
+
+**The fix.** The thirteen defaults are now literals: Tag ×4, Tab ×2, Segmented control option ×2, Segmented control ×1, Link ×2, Badge ×2. `regen` moves exactly two artifacts: `components.ai.json` and `docs/public/reports/component-comparison.json`, 13 values each. The note is `engine: minor`. No token name moves, so `CONTRACT_VERSION` stays where it is.
+
+**The gate.** `validateComponentDef` now refuses a prop whose `type` is `'boolean'` or `'number'` when the default has a different JS type. The type field is free-form, so a union such as Accordion's `headingLevel` (`enum: 2 | 3 | 4 | 5 | 6`, default `'3'`) is prose and out of scope, as the issue says. The registry loop in `test.ts` already runs the validator over every def. A new block adds ten literal cases: five that must be refused and five that must be accepted, on a copy of Badge. That way the rule is pinned even on a day when no committed def breaks it.
+
+A stricter `PropDef` type was considered and set aside. It would catch the author at compile time, but defs also arrive as data (MCP callers, a brand's own component), and no compiler sees those. The validator covers both paths. A type-level check would be a second spelling of the same rule.
+
+**Mutations, each failing by name** (work committed first):
+
+- **A def regressing.** With Tag's `selected` default changed back to `'false'`, `test.ts` exits 1 with `component: Tag def is structurally valid — prop 'selected': type 'boolean' with a string default ("false") — write the default as a boolean, not a string, because it ships as written in components.ai.json (#2707)`. Six other Tag assertions fail on the same message, because they all validate Tag.
+- **The rule removed.** With the validator's condition replaced by `false`, `test.ts` exits 1 with exactly one failure: `component props (#2707): a boolean or number prop refuses a default of another type, and accepts its own (10 literal cases) — WRONG: boolean default "false" accepted; boolean default "true" accepted; boolean default 0 accepted; number default "99" accepted; number default false accepted`. The registry stays green under this mutation, because no committed def breaks the rule anymore. The literal cases are what pin the rule.

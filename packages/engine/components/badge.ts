@@ -103,8 +103,8 @@ export const badge: ComponentDef = {
     { name: 'tone', type: "enum: 'neutral' | 'info' | 'success' | 'warning' | 'danger'", values: ['neutral', 'info', 'success', 'warning', 'danger'], default: 'neutral', required: false, description: 'Which semantic role the badge paints from. The text carries the meaning, so a tone never stands in for it.' },
     { name: 'label', type: 'string', required: false, description: 'The status text, for type status. One or two words, in consistent casing across the product.' },
     { name: 'value', type: 'number', required: false, description: 'The count, for type count. Above max it shows as max followed by a plus sign, formatted for the locale.' },
-    { name: 'max', type: 'number', default: '99', required: false, description: 'The largest count shown in full, for type count. A larger value shows as "99+".' },
-    { name: 'showZero', type: 'boolean', default: 'false', required: false, description: 'Whether a count of zero still shows, for type count. Hidden by default, since zero is usually nothing to act on.' },
+    { name: 'max', type: 'number', default: 99, required: false, description: 'The largest count shown in full, for type count. A larger value shows as "99+".' },
+    { name: 'showZero', type: 'boolean', default: false, required: false, description: 'Whether a count of zero still shows, for type count. Hidden by default, since zero is usually nothing to act on.' },
     { name: 'overlap', type: "enum: 'rectangular' | 'circular'", values: ['rectangular', 'circular'], default: 'rectangular', required: false, description: 'The host shape a count or dot sits over. circular pulls the badge in toward the curve so it stays on the host\'s edge, such as an avatar.' },
   ],
 
