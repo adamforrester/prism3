@@ -23,6 +23,8 @@
  *   4.   COVERAGE check   — a surface the engine grew must appear in the skill that documents it.
  *   5.   IDENTIFIER check — an all-caps name a skill quotes (`MUST_COVER`, `ENGINE_VERSION`) is declared
  *        in the source file the skill places it in, or in some source file when it names none (#1725).
+ *   6.   DISCOVERY check  — every skill under `skills/` has a `.claude/skills/<name>` symlink to it, so a
+ *        Claude Code session in this repo loads it without being told to (#2677, Q320.2).
  *
  * Check 4 is the one that fires on the real defect, and it is deliberately opt-in per skill
  * (`documents: brandInput` in the frontmatter) rather than inferred — the same "declare it, don't
@@ -33,7 +35,7 @@
  * mechanical check reads advice for correctness. This gate keeps the *names* honest; a human or a
  * review keeps the *judgment* honest.
  */
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { existsSync, lstatSync, readdirSync, readFileSync, realpathSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { brandTheme } from './theme';
@@ -232,7 +234,7 @@ type Finding = { file: string; kind: string; detail: string };
 
 /** How many times each scan actually RAN. See the wiring floor at the bottom of this file — the
  *  self-check can prove a scan works without proving anything still calls it. */
-const ran = { text: 0, coverage: 0, placed: 0 };
+const ran = { text: 0, coverage: 0, placed: 0, discovery: 0 };
 
 /**
  * Scan one skill's TEXT. Split out from `scanSkill` so the self-check can drive **this** function
@@ -398,6 +400,57 @@ const scanSkill = (dir: string, findings: Finding[]): void => {
 // pass unnoticed.
 const sampleScan = (body: string): Finding[] => { const f: Finding[] = []; scanText(body, 'self-check', f); return f; };
 
+/**
+ * 6. DISCOVERY (#2677, Q320.2). Claude Code loads a project skill from `.claude/skills/<name>/SKILL.md`, and
+ * nowhere else at the root: `skills/` is invisible to it. So each skill here gets a `.claude/skills/<name>`
+ * entry, and that entry is a SYMLINK to `skills/<name>`, never a copy. Claude Code's docs say a skill entry
+ * may be a symlink to a directory elsewhere and that it reads `SKILL.md` from the target; measured on
+ * Claude Code 2.1.300 with a probe skill linked this way, which a fresh `claude -p` session listed. A copy
+ * would load too, and would drift from `skills/` the first time someone edited one side, which is why the
+ * gate refuses one rather than diffing it: `skills/` stays the only source, and this gate keeps reading it.
+ *
+ * Both directions, by name:
+ *   - every `skills/<name>` has a `.claude/skills/<name>` that is a symlink resolving to `skills/<name>`;
+ *   - every `.claude/skills/` entry that is a dangling link, or resolves into `skills/` under another name,
+ *     fails. An entry that resolves somewhere else entirely (a repo-local skill with its own home) is not
+ *     this gate's business and passes.
+ * The two sides are independent (docs/34): the expected names come from listing `skills/`, the actual ones
+ * from `lstat` and `realpath` on `.claude/skills/`. Neither is derived from the other.
+ *
+ * WHAT IT CANNOT SEE: whether Claude Code still follows a linked skill directory. That is the host's
+ * behavior, measured once above, and a release that stopped following links would leave this gate green.
+ * On a Windows checkout without `core.symlinks` git writes each link as a small text file; the gate reads
+ * that as "not a symlink" and fails, which is the honest answer there.
+ */
+type DiscoveryEntry = { name: string; symlink: boolean; target: string | null };
+export const discoveryFindings = (skills: string[], entries: DiscoveryEntry[], skillsRoot: string): Finding[] => {
+  const out: Finding[] = [];
+  const at = (n: string) => `.claude/skills/${n}`;
+  for (const name of skills) {
+    ran.discovery++;
+    const e = entries.find((x) => x.name === name);
+    const want = join(skillsRoot, name);
+    if (!e) out.push({ file: at(name), kind: 'not discoverable', detail: `\`skills/${name}\` has no \`.claude/skills/${name}\` entry, so a Claude Code session in this repo does not load it. Add it: \`ln -s ../../skills/${name} .claude/skills/${name}\`` });
+    else if (!e.symlink) out.push({ file: at(name), kind: 'copy, not a link', detail: `\`.claude/skills/${name}\` is not a symlink. A copy drifts from \`skills/${name}\`, the single source. Replace it with \`ln -s ../../skills/${name} .claude/skills/${name}\`` });
+    else if (e.target !== want) out.push({ file: at(name), kind: 'wrong target', detail: `\`.claude/skills/${name}\` resolves to ${e.target ?? 'nothing (a dangling link)'}, not \`skills/${name}\`` });
+  }
+  for (const e of entries) {
+    if (skills.includes(e.name)) continue;
+    if (e.symlink && e.target === null) out.push({ file: at(e.name), kind: 'dangling link', detail: `\`.claude/skills/${e.name}\` points at nothing. A skill was renamed or removed under \`skills/\`; remove or re-point the link` });
+    else if (e.target !== null && (e.target + '/').startsWith(skillsRoot + '/')) out.push({ file: at(e.name), kind: 'wrong name', detail: `\`.claude/skills/${e.name}\` resolves into \`skills/\` (${relative(repo, e.target)}) under another name. The entry's name is the skill's name to Claude Code, so it must match` });
+  }
+  return out;
+};
+const readDiscovery = (dir: string): DiscoveryEntry[] => {
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir).map((name) => {
+    const p = join(dir, name);
+    let target: string | null = null;
+    try { target = realpathSync(p); } catch { target = null; }
+    return { name, symlink: lstatSync(p).isSymbolicLink(), target };
+  });
+};
+
 const selfCheck = (): string[] => {
   const bad: string[] = [];
   if (!sampleScan('use `color.text.nonexistent` here').length) bad.push('a dead token path is no longer detected');
@@ -533,6 +586,20 @@ const selfCheck = (): string[] => {
   if (sampleCoverage('---\nname: something\n---\n\nno documents declaration here').length) {
     bad.push('coverage now fires on a skill that never opted in');
   }
+  // DISCOVERY (#2677). Each shape the check claims to see, driven through the real function with fixtures.
+  {
+    const R = '/fx/skills';
+    const link = (name: string, to: string | null): DiscoveryEntry => ({ name, symlink: true, target: to });
+    const kinds = (sk: string[], es: DiscoveryEntry[]) => discoveryFindings(sk, es, R).map((f) => f.kind);
+    if (kinds(['a', 'b'], [link('a', `${R}/a`), link('b', `${R}/b`), { name: 'own', symlink: false, target: '/fx/.claude/skills/own' }]).length)
+      bad.push('discovery flags a clean layout (every skill linked, plus an unrelated repo-local skill)');
+    if (!kinds(['a', 'b'], [link('a', `${R}/a`)]).includes('not discoverable')) bad.push('discovery misses a skill with no `.claude/skills` entry');
+    if (!kinds(['a'], [{ name: 'a', symlink: false, target: '/fx/.claude/skills/a' }]).includes('copy, not a link')) bad.push('discovery accepts a COPY of a skill, which drifts from `skills/`');
+    if (!kinds(['a', 'b'], [link('a', `${R}/b`), link('b', `${R}/b`)]).includes('wrong target')) bad.push('discovery accepts a link to the wrong skill');
+    if (!kinds(['a'], [link('a', `${R}/a`), link('gone', null)]).includes('dangling link')) bad.push('discovery accepts a dangling link');
+    if (!kinds(['a'], [link('a', `${R}/a`), link('alias', `${R}/a`)]).includes('wrong name')) bad.push('discovery accepts a second name for a skill');
+    if (kinds(['a'], [link('a', `${R}/a`), link('ab', '/fx/skills-other/ab')]).length) bad.push('discovery reads a sibling directory sharing the `skills` prefix as inside `skills/`');
+  }
   return bad;
 };
 
@@ -550,6 +617,7 @@ const findings: Finding[] = [];
 const before = { ...ran };
 admittedSeen.clear();
 for (const d of dirs) scanSkill(d, findings);
+findings.push(...discoveryFindings(dirs, readDiscovery(resolve(repo, '.claude/skills')), realpathSync(skillsDir)));
 // NOT_DECLARED, the other direction (#1725): an admission that no longer applies is a memory of something
 // no longer true. Checked after the real skills, never the self-check's samples.
 for (const [w, why] of Object.entries(NOT_DECLARED)) {
@@ -627,6 +695,9 @@ const PLACED_FLOOR = 31;
 if (ran.placed - before.placed < PLACED_FLOOR) {
   wiring.push(`only ${ran.placed - before.placed} quoted identifier(s) in the real skills carry a placement, below the floor of ${PLACED_FLOOR}. A table row or an "\`X\` in \`file\`" sentence stopped reading as one, so its names fell back to the unplaced rule`);
 }
+if (ran.discovery - before.discovery !== dirs.length) {
+  wiring.push(`the discovery check ran ${ran.discovery - before.discovery}× over ${dirs.length} skill(s) — it is no longer called for every skill`);
+}
 if (ran.coverage - before.coverage !== optedIn.length) {
   wiring.push(`the coverage scan engaged ${ran.coverage - before.coverage}× but ${optedIn.length} skill(s) declare \`documents: brandInput\` (${optedIn.join(', ') || 'none'})`);
 }
@@ -642,4 +713,4 @@ if (findings.length) {
   console.error('\n  A skill describing a stale API is worse than no skill — an agent trusts it.');
   process.exit(1);
 }
-console.log('  ✓ clean — every name a skill quotes resolves, and every documented surface is covered.');
+console.log('  ✓ clean — every name a skill quotes resolves, every documented surface is covered, and every skill is linked from `.claude/skills/`.');

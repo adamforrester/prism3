@@ -243,7 +243,7 @@ declaring `engine: patch|minor`. `major` is refused while `ENGINE_VERSION` is be
 1.0 is the owner's call. Check the declared class against the change: `minor` for any behavior
 change (a projected surface growing or shrinking among them), `patch` only when no committed
 artifact and no projected component surface moves. A
-PR that edits `ENGINE_VERSION` or its changelog in `version.ts` is blocking unless it is a
+PR that edits `ENGINE_VERSION` or its changelog (`packages/engine/CHANGELOG.md`) is blocking unless it is a
 fold; `lint-emission-version.ts` fails it by name. `CONTRACT_VERSION` is still bumped per PR.
 
 **Two numbers move in pairs; check both sides and the open PRs.** `EXPECTED_ARTIFACTS` in
@@ -257,7 +257,8 @@ in the review.
 `lint-progress-order.ts`. Reviewing a fold, check: the notes it consumed are exactly the notes
 pending at its base; the highest declared class set the bump; every pending fragment reached the
 log (a fragment merged after the fold's base is missed, and no gate catches that); it edits only
-`version.ts`, the log, the pending directories, `out/` and the rename stamps; and `pending/` and
+`version.ts`, `packages/engine/CHANGELOG.md`, the log, the pending directories, `out/` and
+the rename stamps; and `pending/` and
 `changes/` hold only their `README.md` afterwards. In the log, grep for the new headings and
 confirm they sit at the top, **even when git reported zero conflicts** — diff3 has no
 "most-recent-first" concept. Same for `32-component-build-learnings.md`.
