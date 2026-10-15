@@ -94,6 +94,13 @@ const fullFor = (plans: AnatomyPlan[]): ShimOpts => ({
   styles: [...new Set(plans.flatMap((p) => planTextStyles(p.root)))],
   effects: [...new Set(plans.flatMap((p) => planEffectStyles(p.root)))],
   comps: [...new Set(plans.flatMap((p) => planComps(p.root)))],
+  // #2317 — the TEXT properties each nested component's instances carry, from the NESTED def's own declaration
+  // (its `figmaProperties.texts`, under the Figma name), so a host def's `nestTexts` override is read back against
+  // a property the harness did not learn from that override.
+  compTexts: Object.fromEntries([...new Set(plans.flatMap((p) => planComps(p.root)))].flatMap((id) => {
+    const texts = componentDefs.find((d) => d.id === id)?.figmaProperties?.texts;
+    return texts ? [[id, Object.fromEntries(Object.entries(texts).map(([k, t]) => [t.figmaName ?? k, t.default]))]] : [];
+  })),
 });
 
 /**
@@ -339,6 +346,8 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
     'field-message': { parts: ['text'],  style: () => 'caption/md/default' },
     // #2266: the input type scales with the field's size, one body step above its label.
     'text-field':    { parts: fieldLayer, style: (c) => ({ small: 'body/sm/default', medium: 'body/md/default', large: 'body/lg/default' } as Record<string, string>)[c.size!] },
+    // #2317: the Password field's value and placeholder are TextField's, from the shared field factory.
+    'password-field': { parts: fieldLayer, style: (c) => ({ small: 'body/sm/default', medium: 'body/md/default', large: 'body/lg/default' } as Record<string, string>)[c.size!] },
     textarea:        { parts: fieldLayer, style: (c) => ({ small: 'body/sm/default', medium: 'body/md/default', large: 'body/lg/default' } as Record<string, string>)[c.size!] },
     select:          { parts: fieldLayer, style: (c) => ({ small: 'body/sm/default', medium: 'body/md/default', large: 'body/lg/default' } as Record<string, string>)[c.size!] },
     'checkbox-row':  { parts: ['label'], style: (c) => ({ small: 'body/sm/default', medium: 'body/md/default', large: 'body/lg/default' } as Record<string, string>)[c.size!] },
@@ -463,6 +472,9 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
     // the def where the pairing matters most (two icon slots): the old grouping would show both booleans,
     // then both swaps, detached — reordering `planSetProperties` back to it fails this BY NAME.
     'text-field': { componentProps: ['placeholder', 'value', 'leading icon', '↳ swap leading icon', 'trailing icon', '↳ swap trailing icon', 'message'], switches: [] },
+    // #2317: the Password field drops TextField's trailing slot, so its panel is TextField's without the trailing
+    // icon pair. The nested Button's `label` surfaces through the exposed instance, not as a property of this set.
+    'password-field': { componentProps: ['placeholder', 'value', 'leading icon', '↳ swap leading icon', 'message'], switches: [] },
     'icon-button': { componentProps: ['swap icon'], switches: [] },
   };
   for (const [id, want] of Object.entries(CANON)) {
@@ -1993,6 +2005,45 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
   }
 }
 
+// ── PROTOTYPE REACTIONS READ-BACK (owner decision 2026-10-15) — THE CHAIN, AS THE HOST HOLDS IT ────────────
+//
+// Interactive sets chain rest → hover → pressed: a Rest member's only reaction is While hovering → its Hover sibling,
+// a Hover member's only one While pressing → its Pressed sibling, every other member none. Each def is built with node
+// ids on, and every member's reactions are read back off the shim, each destination id looked up among the set's own
+// members HERE. The expectation is literal per state, authored here and nowhere else, never the reaction map, so a
+// map that plans Rest a press reaction again fails `reactions read-back` by name (docs/34).
+{
+  const WANT: Record<string, string[]> = { rest: ['ON_HOVER→state=hover'], hover: ['ON_PRESS→state=pressed'] };
+  const INTERACTIVE = ['button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral',
+    'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'checkbox-control', 'radio-control', 'switch-control',
+    'tag', 'tab', 'segmented-control-segment', 'link'];
+  const off: string[] = [];
+  let read = 0;
+  for (const id of INTERACTIVE) {
+    const def = componentDefs.find((d) => d.id === id);
+    if (!def) { off.push(`${id}: not registered`); continue; }
+    const plans = figmaAnatomySet(def, { swapTarget: SWAP_TARGET });
+    const page: Page = { children: [] };
+    const shim = makeShim({ ...fullFor(plans), page, identities: true });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
+    await applyComponentPlan(plans, shim as any, {});
+    const members = (page.children.find((n) => n.type === 'COMPONENT_SET')?.children ?? []) as Node[];
+    const byId = new Map(members.map((m) => [String(m.id), String(m.name)] as const));
+    const stateOf = (name: string): string => name.split(', ').find((x) => x.startsWith('state='))?.slice(6) ?? '';
+    for (const m of members) {
+      const name = String(m.name);
+      const rx = (m.reactions ?? []) as { trigger: { type: string }; actions: { destinationId: string }[] }[];
+      const got = rx.flatMap((r) => r.actions.map((a) => {
+        const to = byId.get(a.destinationId);
+        // the destination must differ on state alone
+        const same = to !== undefined && name.split(', ').filter((x) => !x.startsWith('state=')).join(', ') === to.split(', ').filter((x) => !x.startsWith('state=')).join(', ');
+        return `${r.trigger.type}→${to === undefined ? '?' : same ? `state=${stateOf(to)}` : to}`;
+      }));
+      read++;
+      if (JSON.stringify(got) !== JSON.stringify(WANT[stateOf(name)] ?? [])) off.push(`${id}: ${name}: ${got.join('; ') || 'none'}`);
+    }
+  }
+  ok(read > 0 && off.length === 0, `reactions read-back: on ${INTERACTIVE.length} interactive defs (${read} members read off the host) Rest goes to Hover while hovering only, Hover to Pressed while pressing only, nothing else reacts (${off.length} off${off.length ? `: ${off.slice(0, 3).join(' | ')}` : ''})`);
 // ── #2427 — THE COUNTER'S TWO BUTTONS, BUILT AND READ BACK OFF THE HOST ──────────────────────────────────
 //
 // The Counter nests FlushIconButton.Neutral twice (decrement, increment), each `nest-exposed` with `state`, and maps

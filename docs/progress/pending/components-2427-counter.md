@@ -17,14 +17,21 @@
 - Two nests per side, each gated by `presentWhen` on `appearance`. That is four nest parts, and the disabled member (below) would double it to eight.
 - A flat `appearance` → `shape` rename. That contradicts Q283.4 A, which named the axis.
 
-So `variantWhen` maps a host value to a partial child coordinate, merged between the fixed `variant` and `follow`. The same field fixes a second gap: **the disabled Counter starts both nested buttons at `state=disabled` and dims the nested FieldLabel.** Text field cannot do that, and records it as a projection limit ("the nested label reads at its rest configuration regardless"). On a `nest-exposed` part the mapped axis may be an exposed one: the mapping sets the value the instance starts at on that member, and the designer still drives it.
+So `variantWhen` maps a host value to a partial child coordinate, merged between the fixed `variant` and `follow`. The same field fixes a second gap: **the disabled Counter starts both nested buttons at `state=disabled` and dims the nested FieldLabel.** Text field, Select and Password field still record the label's dimming as a projection limit ("the nested label reads at its rest configuration regardless"); with `variantWhen` that limit can now be lifted, filed as #2738 rather than widened into this PR. On a `nest-exposed` part the mapped axis may be an exposed one: the mapping sets the value the instance starts at on that member, and the designer still drives it.
 
-The validator refuses five shapes, each a way to validate and never fire or fire and be overwritten:
+The validator refuses six shapes, each a way to validate and never fire or fire and be overwritten:
 - an unprojected host axis;
 - an undeclared host value;
 - an empty map;
 - a child axis also in `follow` (follow runs after, so the mapping would read as working and never land);
 - one child axis set from two host axes (declaration order would decide).
+- a child axis the fixed `variant` does not name (the moved coordinate must still name every axis of one member; this rule came over from `atState`).
+
+**One field, not two (merge with #2317).** The Password field landed `NestingRelation.atState` while this PR was in review: a host state value → a nested coordinate, applied after `follow`, refusing an axis that is followed or exposed. That is `variantWhen` keyed on `state`, with two rules that disagreed with this PR's. Keeping both would have left one type with two mapping fields and one `nestVariantOf` with two merge orders. `variantWhen` is the general form, so `atState` is gone and the Password field says `variantWhen: { state: { disabled: { state: 'disabled' } } }`. The Password field's projected plan digest is unchanged (`lint-component-surface` accepts only the Counter as moved), and its three refusal cases in `test.ts` now drive `variantWhen` on the Password field.
+- **Order** is moot: the validator keeps a mapped child axis out of `follow`, so the two are disjoint and land the same either way.
+- **Exposed axes** stay allowed, where `atState` refused them. A followed axis is the host's to drive at every member, so a mapping onto it is overwritten. An exposed axis is the consumer's after the instance is placed: the plan only picks the member it is placed at, which `variant` already does for every exposed axis, and the exposed property overrides it from there. Nothing is driven two ways at once.
+
+**Counts on the merged tree.** This PR and #2317 each moved `EXPECTED_ARTIFACTS` 199 → 200 and the canvas-furniture count to 39 from different bases, and git took both lines cleanly. The merged tree emits both `counter.md` and `password-field.md`, so the artifact count is **201** (in `verify.ts` and `ci.yml` together) and the canvas furniture covers **40** sets. Trap: a count both sides bump by one from different bases merges silently to the wrong number.
 
 The projector change is three lines in `nestVariantOf`. No executor reads `variantWhen`: both read the plan's `nestVariant`, as before.
 
@@ -48,7 +55,8 @@ The Counter's row itself is INTERACTIVE on `size.{size}.height` (44 at medium on
   - `/ring`: the ghost ring at the control offset
   - `/label`: hidden by default
   - `/api`: min 0, `tabindex="-1"`, no remove prop
-- `test.ts` `#2427 variantWhen`: each of the five refusals fires on its own case, and the Counter validates clean.
+- `test.ts` `#2427 variantWhen`: each of the six refusals fires on its own case (the follow-overlap fixture states its own `follow`), and the Counter validates clean.
+- `test.ts` `#2427 counter/label-dims`: the nested FieldLabel's coordinate on every member, disabled only on the Counter's disabled members (added in review; it was held only by the roundtrip and the surface digest).
 - `test-roundtrip.ts` `#2427 counter`: built over its really built nested sets with 0 misses. In every member both instances are exposed instances of the decided FlushIconButton.Neutral member. The FieldLabel dims on the 6 disabled members. The spacing is read off the host layout.
 - `lint-hit-target.ts`: `FLUSH_NESTS` and the INTERACTIVE row.
 - `test-file-setup.ts`: the page's alphabetical place.
@@ -57,7 +65,7 @@ The Counter's row itself is INTERACTIVE on `size.{size}.height` (44 at medium on
   - `lint-rung-names` (`MUST_COVER`, and `DEFAULT_FIRST` for medium first, Q283.6 B)
   - `lint-axis-values` (the medium-first size set; a new `appearance` set, `overlapping`)
   - `lint-paint-placement` (`EXPECT_ANATOMY`, `EXPECT_PAINTERS`)
-  - `CANVAS_FURNITURE`, and `test-canvas-furniture.ts` at 39 sets (on the tree merged with Dialog, #2652)
+  - `CANVAS_FURNITURE`, and `test-canvas-furniture.ts` at 40 sets (on the tree merged with Dialog, #2652, and Password field, #2317)
   - the studio's `used-by.ts` and component catalog
   - both baselines accepted
 - `lint-nesting.ts` gains `nest-coordinate-resolves`: every nested instance a projected member asks for names exactly one member of the nested def's own projected set, matched with the executors' `nestVariantMatch`. It covers the whole corpus (1,410 coordinates), and it is where a `variantWhen` mapping onto a value the child lacks fails, per member. It has no per-def list, so the Counter needed no entry beyond being registered.

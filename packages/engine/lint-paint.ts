@@ -312,6 +312,22 @@ const PROVENANCE_EXCEPTIONS: Record<string, string> = {
     'status `error` maps to the `danger` border role — the filled coordinate (owner decision, 2026-09-25), bound so a field holding an invalid value keeps the danger boundary',
   'text-field|error.border.focus-visible-filled':
     'status `error` maps to the `danger` border role — the focused coordinate that holds a value (#2318, owner Q157), bound so an invalid value keeps the danger boundary while the field is focused (the ring carries the focus signal on top)',
+  // `password-field` (#2317) binds text-field's token block exactly, through the shared field factory, so it carries
+  // the same `error` → `danger` mapping at the same seven coordinates, for the same reason.
+  'password-field|error.border.rest':
+    "status `error` maps to the `danger` border role — text-field's rest coordinate, through the shared field factory",
+  'password-field|error.border.hover':
+    "status `error` maps to the `danger` border role — text-field's hover coordinate, through the shared field factory",
+  'password-field|error.border.focus-visible':
+    "status `error` maps to the `danger` border role — text-field's focus-visible coordinate, through the shared field factory",
+  'password-field|error.border.read-only':
+    "status `error` maps to the `danger` border role — text-field's read-only coordinate, through the shared field factory",
+  'password-field|error.border.empty':
+    "status `error` maps to the `danger` border role — text-field's empty coordinate, through the shared field factory",
+  'password-field|error.border.filled':
+    "status `error` maps to the `danger` border role — text-field's filled coordinate, through the shared field factory",
+  'password-field|error.border.focus-visible-filled':
+    "status `error` maps to the `danger` border role — text-field's focused filled coordinate, through the shared field factory",
   // `textarea` took text-field's status axis and its border keys verbatim (#1623 sign-off, C1/TA-4), so it
   // carries the same `error` → `danger` mapping at the same five coordinates, and for the same reason.
   'textarea|error.border.rest':

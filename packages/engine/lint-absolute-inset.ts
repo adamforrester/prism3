@@ -216,6 +216,8 @@ const ZERO_OK: Record<string, string> = {
   'text-field.focusRing': FIELD_RING,
   'select.focusRing': FIELD_RING,
   'textarea.focusRing': FIELD_RING,
+  // #2317: the Password field's box and ring are TextField's, from the shared field factory.
+  'password-field.focusRing': FIELD_RING,
   // #2427: the Counter's OUTLINE members take the field offset for the same reason (their edge is the field's); its
   // GHOST members take the control offset, 2px (owner Q283.10 A), so they never reach this admission at gap 0.
   // `test.ts` holds the ghost offset against a literal, since a ghost member rebound to the field offset would be

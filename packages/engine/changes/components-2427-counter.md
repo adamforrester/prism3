@@ -15,5 +15,6 @@ designer sets one disabled at a limit: flush on outline, round on ghost (Q287 A)
 A nest relation can now map a host value onto a differently named child axis: `variantWhen`, beside `variant` and
 `follow` on `nest-fixed` and `nest-exposed` (`{ appearance: { ghost: { shape: 'round' } } }`). The projector merges
 it between the fixed `variant` and `follow`; the validator refuses an unprojected host axis, an undeclared value, an
-empty map, a child axis also followed, and a child axis set from two host axes. No other def uses it, so no other
-plan moves.
+empty map, a child axis also followed, a child axis set from two host axes, and a child axis the fixed `variant`
+does not name. It replaces `atState` (#2317), which did one case of the same job: the Password field's Show button now
+says `variantWhen: { state: { disabled: { state: 'disabled' } } }`, and its projected plan is unchanged.

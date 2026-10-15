@@ -199,14 +199,25 @@ export type PaddingDef = {
  * member the projector starts from `variant`, merges the entry for the member's value of each listed host axis,
  * then applies `follow`. A host value with no entry keeps `variant`'s coordinate.
  *
+ * It is also how a host STATE moves the nested coordinate where `follow` cannot pass it by name because the two
+ * vocabularies differ: the Password field's seven states are not Button's six, so its Show button is mapped at the
+ * one state that moves it, `{ state: { disabled: { state: 'disabled' } } }` (#2317, which first shipped this as a
+ * separate `atState` field; one mapping field now does both jobs).
+ *
  * On a `nest-exposed` part it may name an EXPOSED child axis: the mapping then sets the value that axis STARTS at
  * on that member, and the consumer still drives it from there. The Counter's disabled member nests its two buttons
- * starting at `state=disabled` this way, while each button's `state` stays the designer's to set at a limit.
+ * starting at `state=disabled` this way, while each button's `state` stays the designer's to set at a limit. That is
+ * safe where a followed axis is not, because the two write at different times: a followed axis is the HOST's to
+ * drive at every member, so a mapping onto it is overwritten (refused below), while an exposed axis is driven by the
+ * CONSUMER after the instance is placed. The plan only picks the member the instance is placed AT — the same thing
+ * `variant` already does for every exposed axis — and the exposed property overrides it from there. Nothing is
+ * driven two ways at once.
  *
  * Refused by `anatomyErrors`: a host axis the def does not project (it would never fire, #1298's shape), a host
  * value the axis does not have, an empty map, a child axis also in `follow` (the follow would overwrite it at
  * every member, so the mapping would read as working and never land), and one child axis set from two host axes
- * (both could apply at one member, and the answer would be declaration order). That each mapped coordinate is a
+ * (both could apply at one member, and the answer would be declaration order), and a child axis `variant` does not
+ * name (the moved coordinate must still name every axis of one member). That each mapped coordinate is a
  * REAL child member is checked against the child's own projected members by `lint-nesting.ts`. */
 export type NestVariantWhen = Readonly<Record<string, Readonly<Record<string, Readonly<Record<string, string>>>>>>;
 
@@ -984,6 +995,13 @@ export type PartDef = {
    *  would be the tempting choice — and it would silently make every nested set fixed-at-its-first-
    *  variant, which is the #656 error this field exists to stop. See `NestingRelation`. */
   nesting?: NestingRelation;
+  /** For a `nest` part: the nested instance's own TEXT property values, by the nested def's `figmaProperties.texts`
+   *  key (#2317). A component set has ONE default per text property, so a host that needs its nested instance to
+   *  say something else (the Password field's Button reading "Show", not "Button") states it here, and both
+   *  executors write it onto the instance as a property override (`setProperties`) once it is created. An
+   *  instance override, not a default: the nested set keeps its own, and a designer can still change it on the
+   *  host. Each key must be a text property the nested def declares (`test.ts`, against the registry). */
+  nestTexts?: Record<string, string>;
   /** For `absolute`: the binding key giving the size of the VISIBLE GAP between this part's inner edge
    *  and its parent's bounds. The focus ring's `focus.ring.offset` — at offset 2 an unbroken 2px sliver
    *  of background separates the ring from the control's own border (WCAG 1.4.11, target 3:1).
@@ -4576,6 +4594,8 @@ const anatomyErrors = (def: ComponentDef): string[] => {
     // the fixed `variant` at every coordinate (#1298). The exposed axes are the CHILD's and are NOT checked
     // here (the host does not project them — that is the whole point); their correctness against the child
     // is a projection/round-trip question (`nestVariantMatch`, `test-roundtrip.ts`), not a schema one.
+    if (p.nestTexts && p.kind !== 'nest')
+      e.push(`anatomy part '${n}' declares 'nestTexts' but is kind '${p.kind}' — only an in-flow nested instance carries text overrides`);
     if ((p.nesting?.kind === 'nest-fixed' || p.nesting?.kind === 'nest-exposed') && p.nesting.follow) {
       const projected = [...(def.figmaProperties?.variantAxes ?? []), ...(def.figmaProperties?.stateAxis ? ['state'] : [])];
       for (const axis of p.nesting.follow)
@@ -4588,6 +4608,7 @@ const anatomyErrors = (def: ComponentDef): string[] => {
       const vw = p.nesting.variantWhen;
       const projected = [...(def.figmaProperties?.variantAxes ?? []), ...(def.figmaProperties?.stateAxis ? ['state'] : [])];
       const follow = p.nesting.follow ?? [];
+      const variant = p.nesting.variant;
       const setBy = new Map<string, string>();
       if (!Object.keys(vw).length)
         e.push(`anatomy part '${n}' declares an EMPTY nesting 'variantWhen' — a mapping on no host axis maps nothing. Drop the field`);
@@ -4606,6 +4627,8 @@ const anatomyErrors = (def: ComponentDef): string[] => {
           if (!childAxes.length)
             e.push(`anatomy part '${n}' declares nesting 'variantWhen.${axis}.${value}' with an empty coordinate — it sets no child axis`);
           for (const c of childAxes) {
+            if (!(c in variant))
+              e.push(`anatomy part '${n}' declares nesting 'variantWhen.${axis}.${value}' setting the child's '${c}', which its 'variant' does not name — a mapping moves an axis the coordinate already accounts for, so the moved coordinate still names every axis of one member`);
             if (follow.includes(c))
               e.push(`anatomy part '${n}' declares nesting 'variantWhen.${axis}.${value}' setting the child's '${c}', which is also in 'follow' — the follow is applied after the mapping and overwrites it at every member, so the mapping would read as working and never land`);
             const prior = setBy.get(c);

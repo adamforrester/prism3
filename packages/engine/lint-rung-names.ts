@@ -340,6 +340,8 @@ const DEFAULT_FIRST: Record<string, string> = {
   select: 'the Figma default and the in-place-update landing value are `medium`, the select before #2266',
   textarea: 'the Figma default and the in-place-update landing value are `medium`, the textarea before #2266',
   dialog: 'the Figma default is the 560px medium panel, the proposal\'s table approved by the owner\'s Q303 (#2609)',
+  // #2317: TextField's size order through the shared field factory (Q301 builds it medium first, the field family's order).
+  'password-field': 'the Figma default is `medium`, the field family\'s order from the shared field factory (#2317)',
   // #2427: owner Q283.6 B, "medium first, joining the field-family exception": Figma's inserted Counter is the code default.
   counter: 'the Figma default is `medium`, the code default, by owner decision Q283.6 B (the field family\'s exception)',
 };
@@ -386,7 +388,7 @@ const MUST_COVER = [
   '_accordion-indicator', 'accordion',
   'list-item', 'list',
   'segmented-control-segment', 'segmented-control', 'link',
-  'dialog',
+  'dialog', 'password-field',
 ];
 
 /** Every token path in a brand's canonical tree, below the root — `icon.size.md`, `size.lg.height`. */

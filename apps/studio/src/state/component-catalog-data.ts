@@ -1061,6 +1061,61 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     ]
   },
   {
+    "id": "password-field",
+    "name": "PasswordField",
+    "category": "form",
+    "summary": "Password field: a text field with a Show button on its label row that reveals the characters.",
+    "unit": "variants",
+    "spacing": [
+      {
+        "key": "size.medium.gap",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.small.gap",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.large.gap",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.medium.pad-x",
+        "ref": "space.200"
+      },
+      {
+        "key": "size.small.pad-x",
+        "ref": "space.200"
+      },
+      {
+        "key": "size.large.pad-x",
+        "ref": "space.300"
+      },
+      {
+        "key": "size.medium.pad-y",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.small.pad-y",
+        "ref": "space.075"
+      },
+      {
+        "key": "size.large.pad-y",
+        "ref": "space.100"
+      }
+    ],
+    "buildable": true,
+    "reason": null,
+    "members": 84,
+    "nests": [
+      "field-label",
+      "button",
+      "icon",
+      "field-message",
+      "focus-ring"
+    ]
+  },
+  {
     "id": "counter",
     "name": "Counter",
     "category": "form",

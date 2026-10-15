@@ -242,6 +242,12 @@ export type FigmaNodePlan = {
    *  of that was measured (≈19–35 B on the indivisible unit, far from any ceiling), which is why naming the
    *  axes is affordable rather than a budget the payload has to fight. */
   nestExpose?: readonly string[];
+  /** For a `NESTED_INSTANCE` whose part declares `nestTexts` (#2317): the nested instance's own TEXT property
+   *  values, by property name (the nested def's `figmaProperties.texts` key, which is the Figma property's name
+   *  before its `#id` suffix). Both executors write each one onto the instance with `setProperties` once it exists,
+   *  so the Password field's nested Button reads "Show" rather than its set's "Button". An instance override, so
+   *  the nested set's own default is untouched. Present only when declared, so every other plan is byte-identical. */
+  nestTexts?: Record<string, string>;
   /** For a `NESTED_INSTANCE`: taken out of the auto-layout flow, sized to its parent's bounds grown by
    *  the `inset` variable's value on every side.
    *
@@ -1183,8 +1189,9 @@ export const figmaAnatomyPlan = (
   // it in there would put `size` into `coord` and retire the "structure-only plan ⇒ empty coord"
   // invariant that `lint-paint` depends on (see `coord`'s own note).
   // `variantWhen` (#2427) is merged between the fixed `variant` and `follow`: the host member's value of each listed
-  // axis picks a partial child coordinate (the Counter's `appearance=ghost` nests `shape=round`). The validator keeps
-  // a mapped child axis out of `follow`, so the order below never lets one overwrite the other.
+  // axis picks a partial child coordinate (the Counter's `appearance=ghost` nests `shape=round`; the Password field's
+  // `state=disabled` nests Button's disabled member, #2317). The validator keeps a mapped child axis out of `follow`,
+  // so the order below never lets one overwrite the other: the two are disjoint, and either order lands the same.
   const nestVariantOf = (nesting: { variant: Record<string, string>; follow?: readonly string[]; variantWhen?: NestVariantWhen }): Record<string, string> => {
     const out: Record<string, string> = { ...nesting.variant };
     for (const [axis, byValue] of Object.entries(nesting.variantWhen ?? {})) {
@@ -2024,6 +2031,7 @@ export const figmaAnatomyPlan = (
       // The exposed child axes (#1330), ONLY for `nest-exposed`, so every fixed-nest plan is byte-identical.
       // These surface as Figma exposed nested-instance properties; the executors mark the instance exposed.
       ...((p.kind === 'absolute' || p.kind === 'nest') && p.nesting?.kind === 'nest-exposed' ? { nestExpose: p.nesting.expose } : {}),
+      ...(p.kind === 'nest' && p.nestTexts ? { nestTexts: p.nestTexts } : {}),
       ...(p.kind === 'absolute' && p.inset ? { absoluteInset: varOf(p.inset) } : {}),
       // The stroke to compensate for (#801), projected only alongside an inset — on its own it has
       // nothing to correct, and the schema rejects that shape before the projection sees it.
@@ -3932,6 +3940,12 @@ const build=async(n)=>{
     // executor's collector, and the twin is the point — this half was never gated (#1377), so the plugin's
     // round-trip caught the identical defect here only by reading.
     if(node&&n.nestExpose&&n.nestExpose.length)__expose.push(node);
+    // THE NESTED INSTANCE'S OWN TEXT (#2317), the plugin executor's twin: \`nestTexts\` names what this instance
+    // says instead of its set's default, written as an instance override by property name before \`#id\`.
+    if(node&&n.nestTexts){const P=node.componentProperties||{},S={};
+      for(const k of Object.keys(n.nestTexts)){const key=Object.keys(P).find(x=>x.split('#')[0]===k&&P[x].type==='TEXT');
+        if(key)S[key]=n.nestTexts[k];else misses.push(n.name+'.nestTexts.'+k+' -> the nested instance has no TEXT property '+JSON.stringify(k)+'; it keeps its set default');}
+      if(Object.keys(S).length){try{node.setProperties(S);}catch(e){misses.push(n.name+'.nestTexts -> REFUSED ('+(e&&e.message?e.message:String(e))+')');}}}
   }
   else if(n.type==='GLYPH'){
     // THE GLYPH (#864). The only node here whose content is GEOMETRY rather than a box, a binding or a
@@ -4600,7 +4614,7 @@ export const CANVAS_FURNITURE: ReadonlySet<string> = new Set([
   'radio-row', 'radio-group', 'switch-control', 'switch-row', 'select', 'veil', 'image-placeholder', 'badge', 'tag', 'tab', 'tabs',
   'divider', '_accordion-indicator', 'accordion', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'list-item',
   'list', 'segmented-control-segment', 'segmented-control', 'link',
-  'dialog', 'counter',
+  'dialog', 'password-field', 'counter',
 ]);
 
 export const planSetLayout = (plans: AnatomyPlan[], fn: string) => {

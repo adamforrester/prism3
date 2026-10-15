@@ -373,6 +373,18 @@
       "members": 15,
       "sha256": "52e5b73053983f2cea897178e46d02f0c32027a37f31f1a72d5b334f8cdb4dad"
     },
+    "password-field": {
+      "members": 84,
+      "sha256": "9430a9c0c84d97fef7bd7a66c2a734a32524dd5d8869b18326f2dcaa2434cfce"
+    },
+    "password-field@outline-solid-tint": {
+      "members": 84,
+      "sha256": "5ca248ba2b9487f87c8fba480d52a652fbe8a4c89ffb4118baa582f91b24a10a"
+    },
+    "password-field@outline-none": {
+      "members": 84,
+      "sha256": "771e3974cfb329db2abcf42bc98f0914a3851b1813a867dba8b83d0fa3c97946"
+    },
     "counter": {
       "members": 18,
       "sha256": "aaad4a1988640c5fc2b431c7b2ab13cf6fe7883183709709b3afb038bc25385d"
