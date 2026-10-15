@@ -114,6 +114,9 @@
  * backward roll as though it were a bump; a moved surface must land at a version GREATER than the base's,
  * so `--accept` and this arm both ask ordering now, via `isForward`.
  *
+ * On main's push run the merge base is HEAD itself, so there the first parent is the base instead
+ * (`comparison-base.ts`, #2556; replayed by `lint-push-base.ts`).
+ *
  * Arm A alone would leave two reachable holes, which is why arm B is not decoration:
  *
  *   1. THE BASELINE IS HAND-EDITED. `--accept` refuses without the bump; a text editor does not. Arm A
@@ -204,6 +207,7 @@ import type { ButtonLayout } from './anatomy-figma';
 import { componentSizes, sizeRefPx, SPACE_BASE } from './scale';
 import type { AnatomyPlan, WeightAvailability } from './anatomy-figma';
 import type { ComponentDef } from './component-schema';
+import { comparisonBase } from './comparison-base';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(here, '../..');
@@ -444,7 +448,10 @@ const resolveBase = (): { base: string; ref: string; via: string } => {
       '  A shallow clone is the usual cause: the histories are disconnected, so git cannot find a common',
       '  ancestor. `fetch-depth: 0` in CI, `git fetch --unshallow` locally.',
     ]);
-  return { base: mb.out.trim(), ref: ref!, via };
+  // On the base branch the merge base is HEAD itself, and the first parent is compared instead (#2556):
+  // `comparison-base.ts` has the reason, and `lint-push-base.ts` replays it against this gate.
+  const cmp = comparisonBase(git, mb.out.trim(), die);
+  return { base: cmp.base, ref: ref!, via: `${via}, ${cmp.label}` };
 };
 
 /** `ENGINE_VERSION` as of `base`. An unreadable base version is a "cannot run", never an "unchanged" —

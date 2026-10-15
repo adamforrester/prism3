@@ -56,6 +56,11 @@
  *
  *   · non-default export settings (key case, file split, and the rest of `export-settings.ts`): their shaping is
  *     `test-export-settings.ts`'s, over the same function both hosts call;
+ *   · group-level `$description` / `$extensions` (#2446): no committed tree carries one, and neither UI can load a
+ *     tree the engine did not emit, so a fixture cannot reach this gate through the person's path. The fixture is
+ *     `test-export-settings.ts` §7c instead: a real emitted tree with group metadata, through `exportDtcg` (the one
+ *     function both downloads call), held to the engine's own `buildBase` of it byte for byte. The day a committed
+ *     tree carries group metadata, it is in this gate's scope with no change here;
  *   · the design.md export;
  *   · TokenPress, which exports a FIGMA FILE rather than a brand, and is gap 2's subject
  *     (`apps/plugin/test-readback-parity.ts`).
