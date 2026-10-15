@@ -111,6 +111,16 @@
  *                    also carries a fragment: a new heading, and an edit to an existing entry too. A
  *                    correction travels as a fragment of its own. (Fold-shaped, not pure: a fold that also
  *                    fixes a semantic conflict still writes the log.)
+ *   LEAVES NOTHING PENDING (#2663) — a diff that deletes a pending fragment or change note is a fold, and on
+ *                    the tree it merges into no fragment or note is still pending, except one the diff adds
+ *                    itself. A fold cut on one commit of `main` and merged on a later one left the later
+ *                    commits' files pending, and every other arm passed it as a pure fold. The merged tree is
+ *                    HEAD on CI's merge ref, HEAD plus what the base ref added since the merge base on a
+ *                    branch, and HEAD over its first parent on a push run, which this arm does NOT skip.
+ *                    MUTATIONS VERIFIED (#2663, each fails LEAVES NOTHING PENDING by name, on a synthetic
+ *                    fold in a throwaway clone): a fold whose base moved by one fragment and one note, read
+ *                    on its merge ref · on its branch · as main's push run. A fold re-cut on the moved base
+ *                    passes all three.
  *   ALREADY IN THE LOG — a pending fragment whose title is already an entry heading fails: a fold wrote
  *                    the entry and left the fragment, which the next fold would write again.
  *   NO PLACEHOLDER — the log never carries a literal `{{`: a folded entry still holding `{{ENGINE_VERSION}}`
@@ -231,7 +241,8 @@ if (disagreements.length === 0) {
 
 // ---- #1807 ---------------------------------------------------------------------------------------
 const PENDING = 'docs/progress/pending';
-/** Read only to recognize a fold that consumed notes; `lint-emission-version.ts` owns everything else about them. */
+/** Read only to recognize a fold that consumed notes, and to find one it left pending (#2663); `lint-emission-version.ts`
+ *  owns everything else about them. */
 const NOTES = 'packages/engine/changes';
 const git = (...args: string[]): { ok: boolean; out: string; err: string } => {
   const r = spawnSync('git', ['-C', repo, ...args], { encoding: 'utf8', maxBuffer: 256 * 1024 * 1024 });
@@ -406,6 +417,59 @@ if (foldFails.length) {
   } else console.log('  ✓ no placeholder — the log carries no literal `{{`');
 }
 
+// LEAVES NOTHING PENDING (#2663) — a fold consumes everything pending on the tree it merges into. The
+// FOLDED ENTRIES arm checks the files the fold deleted; it cannot see a file the fold never had. `main`
+// moves while a fold PR is open, and GitHub does not re-run the PR's CI when it does, so a fold cut at one
+// commit and merged on a later one left the later commits' fragments and notes pending, and every arm
+// passed it as "a pure fold" (#2582's review). The subject is the diff's DELETIONS (they make it a fold);
+// the oracle is the merged tree's listing of both pending directories, read with `ls-tree`. Neither side
+// is derived from the other, and neither reads `fold.ts` (docs/34 shape 2).
+//
+// "The merged tree" is HEAD's, plus, off CI's merge ref, every pending file the base ref ADDED since the
+// merge base: a fold branch has not seen those, and they are exactly what a merge would bring in. In CI
+// HEAD is the merge and the base ref is the merge base, so the second term is empty. On a push run the
+// base is HEAD's first parent, the commit the squash landed on, and HEAD is the merged tree.
+// A file the diff ADDS is not left behind: it is the fold's own fragment (or note) for a fix it carries.
+const pendingAt = (ref: string, dir: string): string[] => {
+  const r = git('ls-tree', '--name-only', ref, '--', `${dir}/`);
+  if (!r.ok) cannotRun(`cannot list ${dir}/ at ${ref}.`, r.err);
+  return r.out.split('\n').map((x) => x.trim()).filter((p) => p && isFragment(p.slice(dir.length + 1)));
+};
+const statusIn = (base: string, dir: string, st: 'A' | 'D'): string[] => {
+  const r = git('diff', '--name-status', '--no-renames', base, 'HEAD', '--', dir);
+  if (!r.ok) cannotRun(`git diff over ${dir} failed.`, r.err);
+  return r.out.split('\n').map((l) => l.split('\t')).filter((x) => x[0] === st && isFragment((x[1] ?? '').slice(dir.length + 1))).map((x) => x[1]);
+};
+const leavesNothingPending = (base: string, tip: string | null, whence: string): void => {
+  const consumed = [PENDING, NOTES].map((dir) => statusIn(base, dir, 'D').length);
+  if (consumed[0] + consumed[1] === 0) {
+    console.log('  ✓ leaves nothing pending: n/a — the diff consumes no pending file, so it is not a fold');
+    return;
+  }
+  const own = new Set([PENDING, NOTES].flatMap((dir) => statusIn(base, dir, 'A')));
+  const left = new Set<string>();
+  for (const dir of [PENDING, NOTES]) {
+    for (const p of pendingAt('HEAD', dir)) left.add(p);
+    if (tip) {
+      const atBase = new Set(pendingAt(base, dir));
+      for (const p of pendingAt(tip, dir)) if (!atBase.has(p)) left.add(p);
+    }
+  }
+  const missed = [...left].filter((p) => !own.has(p)).sort();
+  if (missed.length) {
+    failed = true;
+    console.error(`\n✗ LEAVES NOTHING PENDING — this diff is a fold (it consumes ${consumed[0]} fragment(s) and ${consumed[1]} note(s)), and ${missed.length} file(s) are still pending on the merged tree (#2663):\n`);
+    console.error(`    ${whence}`);
+    for (const p of missed.slice(0, 12)) console.error(`  · ${p}`);
+    if (missed.length > 12) console.error(`  · … and ${missed.length - 12} more`);
+    console.error('\n  main moved after the fold was cut, so the fold has not seen what landed since. Re-cut the fold from');
+    console.error('  current main (CONTRIBUTING.md §2, "How to fold"). Merged as it is, it versions a batch that is not');
+    console.error('  the one on main, and the next fold puts these under a later number.\n');
+  } else {
+    console.log(`  ✓ leaves nothing pending — the fold consumes ${consumed[0]} fragment(s) and ${consumed[1]} note(s), and the merged tree holds no other pending file (${whence})`);
+  }
+};
+
 // CARRIES AN ENTRY — enforced (owner decision, 2026-09-30). Same base-ref ladder as the two version
 // gates, restated rather than shared for the reason `lint-emission-version.ts` gives: GITHUB_BASE_REF is
 // AUTHORITATIVE when set and never falls through, because falling back would judge the wrong diff.
@@ -415,6 +479,10 @@ if (foldFails.length) {
   const baseRef = candidates.find((c) => git('rev-parse', '--verify', '--quiet', `${c}^{commit}`).ok);
   if (process.env.GITHUB_EVENT_NAME === 'push') {
     console.log('  ✓ carries an entry: skipped — a push run (GITHUB_EVENT_NAME=push) has no PR diff; the PR run held it');
+    // Not skipped: the push run is the only run that sees a fold on the main it actually landed on (#2663).
+    const parent = git('rev-parse', '--verify', '--quiet', 'HEAD^1^{commit}');
+    if (!parent.ok || !parent.out.trim()) cannotRun('a push run with no first parent, so LEAVES NOTHING PENDING has no squash to read (#2663).', 'In CI `fetch-depth: 0` provides it; locally, `git fetch --unshallow`.');
+    leavesNothingPending(parent.out.trim(), null, `base ${parent.out.trim().slice(0, 8)} (HEAD's first parent — a push run)`);
   } else {
   if (!baseRef) cannotRun(`no base ref for the CARRIES AN ENTRY arm (tried ${candidates.join(', ')}).`, 'In CI `fetch-depth: 0` provides origin/<base>; locally, `git fetch origin main`.');
   const mb = git('merge-base', 'HEAD', baseRef!);
@@ -429,6 +497,8 @@ if (foldFails.length) {
     console.error('  hold; CI\'s push run on main skips it by GITHUB_EVENT_NAME, and nothing else does.\n');
   } else {
     const base = mb.out.trim();
+    const tip = git('rev-parse', `${baseRef}^{commit}`).out.trim();
+    leavesNothingPending(base, tip, `base ${base.slice(0, 8)} (${baseRef}), and what ${baseRef} added since, at ${tip.slice(0, 8)}`);
     const d = git('diff', '--name-status', '--no-renames', base, 'HEAD', '--', PENDING);
     if (!d.ok) cannotRun(`git diff over ${PENDING} failed.`, d.err);
     const rows = d.out.split('\n').map((l) => l.split('\t')).filter((r) => r.length === 2 && isFragment(r[1].slice(PENDING.length + 1)));

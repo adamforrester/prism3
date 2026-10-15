@@ -105,7 +105,7 @@
  * `lint-us-english.ts`: a new emitted artifact is covered the moment regen writes it, with no second
  * edit here to forget. `out/**` is taken wholesale because that is how regen writes it.
  *
- * ── TWO LIMITS, STATED BECAUSE A READER WILL ASSUME OTHERWISE ───────────────────────────────────
+ * ── THREE LIMITS, STATED BECAUSE A READER WILL ASSUME OTHERWISE ─────────────────────────────────
  *
  * 1. IT COMPARES COMMITS, NOT THE WORKING TREE. An uncommitted artifact change with no bump is
  *    invisible here and becomes visible the moment it is committed. That is deliberate — the question
@@ -118,6 +118,15 @@
  *    moving `ENGINE_VERSION`. The convention this gate enforces is the convention the history already
  *    follows; if a brand-only PR ever wants an exemption, it should be argued then, in the open,
  *    rather than pre-granted here by a carve-out nobody has needed.
+ * 3. A PARTIAL RESTAMP PASSES HERE (#2663). A fold moves `ENGINE_VERSION` forward, so the version route
+ *    passes it whatever `out/` holds: a fold that left one emitted tree at the old stamp is green here.
+ *    Only `regen.ts --check` (verify's `drift` row) fails it, by regenerating every artifact and finding
+ *    the stale one. That is the right home, since a stamp is derived from the constant and nothing in
+ *    this gate's two sides could see it (the section above), but it means `drift` is load-bearing for
+ *    every fold: drop it from the gate list and a half-restamped corpus merges green.
+ *    And this gate checks the class of the notes a fold CONSUMED, not that it consumed every note on the
+ *    tree it merges into. `lint-progress-order.ts`'s LEAVES NOTHING PENDING arm fails a fold that left a
+ *    note or a fragment pending.
  */
 import { spawnSync } from 'node:child_process';
 import { resolve } from 'node:path';
