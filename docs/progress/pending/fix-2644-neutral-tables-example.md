@@ -6,6 +6,8 @@
 
 **Why not an existing gate.** No gate read `docs/public/reference/` for a namespace. `--check` alone would not have caught a return either: a source edit followed by a regen moves both sides together, and the byte comparison goes green. The new check reads the generated text, so it fails before and after the regen.
 
+**The check checks itself (review on `69b6dad6`).** Because `--check` cannot see a source edit plus a regen, the matcher is the only thing that would catch a return, and a review mutation showed a one-character change to it (the `y` flag, so it only matched at index 0) shipped the legacy example green. `legacyNamespaceSelfCheck` now runs before the real scan, the `lint-skills.ts` pattern: every listed name, in lower and upper case and in the `<root>.<sub>` form, must be reported inside a refusal-shaped probe and named by its entry; `pds3`, `prism` and `prism.color` must not be. A broken matcher exits 1 with "the legacy-namespace check is broken" before any reference is read or written.
+
 **Mutations (each committed first, restored with `git reset --hard`).**
 - The example set back to the legacy root at the source → `--check` and the plain write both exit 1 with `legacy namespace '<ns>' in agent-link command style-guide`.
 - The same root in upper case with its sub-namespace → the same failure, naming the upper-case spelling.

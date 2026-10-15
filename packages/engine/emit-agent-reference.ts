@@ -383,6 +383,33 @@ export const legacyNamespaceHits = (ref: unknown, text: string): string[] => {
   return out;
 };
 
+/**
+ * THE MATCHER'S OWN SELF-CHECK, run before the real scan (the `lint-skills.ts` pattern; docs/34). `--check` alone
+ * cannot catch a legacy root that returns through a source edit plus a regen: both sides of its comparison move
+ * together. So `legacyNamespaceHits` is the only thing that would, and a one-character change to its matcher would
+ * go silent. Each probe below is a refusal-shaped string that must hit (every listed name, in lower and upper case,
+ * and as the `<root>.<sub>` form) or must not (`pds3`, a scale name; `prism`, the default root). The probes are built
+ * on a reference-shaped object, so a hit must also come back NAMED by its entry, not only found in the text.
+ */
+export const legacyNamespaceSelfCheck = (): string[] => {
+  const broken: string[] = [];
+  if (!LEGACY_NAMESPACES.length) broken.push('LEGACY_NAMESPACES is empty');
+  const probe = (message: string) => {
+    const ref = { agentLink: { commands: [{ name: 'probe', message }] } };
+    return legacyNamespaceHits(ref, JSON.stringify(ref));
+  };
+  for (const ns of LEGACY_NAMESPACES) {
+    for (const spelled of [ns, ns.toUpperCase(), `${ns}.color`, `${ns.toUpperCase()}.${ns}`]) {
+      const hits = probe(`style-guide: args.tables entries are '<collection> — <root>' titles, e.g. ['Primary — ${spelled}']`);
+      if (!hits.some((h) => h.includes('agent-link command probe') && h.toLowerCase().includes(`'${ns}'`)))
+        broken.push(`'${spelled}' in a refusal is not reported by name (got ${hits.join(' | ') || 'nothing'})`);
+    }
+  }
+  for (const clean of ['pds3', 'prism', 'prism.color', 'Primary — prism'])
+    if (probe(`e.g. ['${clean}']`).length) broken.push(`'${clean}' is reported as a legacy namespace, and must not be`);
+  return broken;
+};
+
 export const diffByName = (committed: unknown, fresh: unknown): string[] => {
   const a = names(committed);
   const b = names(fresh);
@@ -397,6 +424,12 @@ if (isMain) {
   const target = join(repo, REFERENCE);
   let fresh: string;
   try { fresh = serialize(buildReference()); } catch (e) { console.error(`❌ ${(e as Error).message}`); process.exit(1); }
+  const broken = legacyNamespaceSelfCheck();
+  if (broken.length) {
+    console.error(`❌ the legacy-namespace check is broken — it cannot see what it claims to:`);
+    for (const b of broken) console.error(`    ${b}`);
+    process.exit(1);
+  }
   const legacy = legacyNamespaceHits(JSON.parse(fresh), fresh);
   if (legacy.length) {
     console.error(`❌ the agent reference would ship a legacy brand namespace as an example — change it at the source:`);
