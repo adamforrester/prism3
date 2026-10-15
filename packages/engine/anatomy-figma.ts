@@ -1189,6 +1189,9 @@ export const figmaAnatomyPlan = (
   // the prop unset. It reaches binding keys only — paints and the member's coordinate stay structure-only — and only
   // an axis the coordinate does not give at all, so a real member, which gives every axis, never takes it.
   const propDefault = (axis: string): string | undefined => {
+    // A type key naming `{state}` (#2580) resolves a structure-only plan, which has no state, at the def's first
+    // declared state: the resting look, which is what an instance shows before anyone points at it.
+    if (axis === 'state') return statesOf(def)[0];
     const d = def.props?.find((p) => p.name === axis)?.default;
     return typeof d === 'string' && (def.variants as Record<string, readonly string[]> | undefined)?.[axis]?.includes(d) ? d : undefined;
   };
@@ -2492,7 +2495,8 @@ export const applyWeightIntent = (def: ComponentDef, avail: WeightAvailability):
   const axisValues = def.variants?.[wi.axis] ?? [];
   if (!axisValues.length)
     throw new Error(`${def.id}: weightIntent.axis '${wi.axis}' names no values in \`variants\` — the intents to resolve are the axis values`);
-  const roleFor = new Map(axisValues.map((v) => [v, resolveWeightIntent(v, groupAvail)] as const));
+  // `intents` (#2580) names the intent for an axis that keeps its own value names (Link: emphasis → bold).
+  const roleFor = new Map(axisValues.map((v) => [v, resolveWeightIntent(wi.intents ? wi.intents[v] : v, groupAvail)] as const));
 
   // A type token entry keyed under this axis: its ref is a `type.<group>.<variant>.<role>` and the key
   // carries one of the axis values. The repoint replaces the ref's role tail with the brand's role.
@@ -2503,7 +2507,9 @@ export const applyWeightIntent = (def: ComponentDef, avail: WeightAvailability):
     const segs = ref.split('.');
     if (segs[1] !== wi.group)
       throw new Error(`${def.id}: weight-intent type ref '${ref}' is in category '${segs[1]}' but weightIntent.group is '${wi.group}' — one weight axis cannot span two categories' availabilities`);
-    segs[segs.length - 1] = roleFor.get(intent)!;
+    // The underlined twin keeps its `-link` suffix (#2580): `strong-link` → `emphasis-link`, not `emphasis`.
+    const link = segs[segs.length - 1].endsWith('-link') ? '-link' : '';
+    segs[segs.length - 1] = roleFor.get(intent)! + link;
     return segs.join('.');
   };
 
@@ -4537,7 +4543,7 @@ export const CANVAS_FURNITURE: ReadonlySet<string> = new Set([
   'field-label', 'field-message', 'text-field', 'textarea', 'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control',
   'radio-row', 'radio-group', 'switch-control', 'switch-row', 'select', 'veil', 'image-placeholder', 'badge', 'tag', 'tab', 'tabs',
   'divider', '_accordion-indicator', 'accordion', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'list-item',
-  'list', 'segmented-control-segment', 'segmented-control',
+  'list', 'segmented-control-segment', 'segmented-control', 'link',
 ]);
 
 export const planSetLayout = (plans: AnatomyPlan[], fn: string) => {

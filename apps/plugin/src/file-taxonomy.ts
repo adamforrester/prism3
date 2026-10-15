@@ -112,6 +112,9 @@ export const TAXONOMY: Taxonomy = {
         // List (#2319, owner decision Q273.7) — its own page under Components, List.Item beside it. The item builds first,
         // so the list's nested items resolve against it on the same page.
         { page: 'List', defs: ['list-item', 'list'] },
+        // Link (#2580) — its own page under Components. The proposal named a navigation section; none exists (Tabs
+        // went under Components, Q177.14), so the section is held as an owner item in the PR.
+        { page: 'Link', defs: ['link'] },
       ],
     },
     {
