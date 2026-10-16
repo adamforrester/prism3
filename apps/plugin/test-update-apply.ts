@@ -2616,6 +2616,91 @@ section('accordion — a set built before the header row (#2594, owner Q276 A) t
   ok(reRow.length === 0, `acc/row adopted: a later update keeps the row and every node under it, by id, on every member (${reRow.slice(0, 2).join('; ') || 'all 24'})`);
 }
 
+/* ── segmented control (#2724) ───────────────────────────────────────────────────────────────────────── */
+section('segmented control — sets built with the tinted, outlined look (#2418) take the flat pill and the filled track in place (#2724, owner Q336 A, Q342 A)');
+{
+  // THE FILE AS A BUILD AT MAIN BEFORE #2724 LEFT IT: the selected indicator tinted in the overlay slot with a 2px
+  // primary outline stepping per state, a disabled outline, and the control's track a 1px neutral outline with no
+  // fill. Reconstructed from today's defs by putting those facts back, so the subject is the real defs' projection on
+  // both sides (as `image-placeholder` and `accordion` above do). Every expectation below is read off the shim's
+  // nodes by the test. Mutations: the executor's in-place stroke clear skipped → `seg/border removed`,
+  // `seg/track outline removed`.
+  const SEG = 'segmented-control-segment', CTL = 'segmented-control';
+  const segNow = componentDefs.find((x) => x.id === SEG)!;
+  const ctlNow = componentDefs.find((x) => x.id === CTL)!;
+  const { 'selected.fill': _f, 'disabled.fill': _d, ...segKept } = segNow.tokens;
+  void _f; void _d;
+  const seg2418 = {
+    ...segNow,
+    tokens: {
+      ...segKept,
+      'unselected.border-width': 'border-width.none',
+      'selected.border-width': 'border-width.thick',
+      'selected.overlay': 'color.interactive.primary.subtle-fill.selected',
+      'selected.border': 'color.interactive.primary.border.rest',
+      'selected.border.hover': 'color.interactive.primary.border.hover',
+      'selected.border.pressed': 'color.interactive.primary.border.pressed',
+      'disabled.border': 'color.disabled.border',
+    },
+    anatomy: { ...segNow.anatomy, parts: { ...segNow.anatomy.parts, indicator: { ...segNow.anatomy.parts.indicator, paintSlots: ['overlay', 'border'], strokeWidth: '{selection}.border-width' } } },
+  } as typeof segNow;
+  const { fill: _t, ...ctlKept } = ctlNow.tokens;
+  void _t;
+  const ctl2418 = {
+    ...ctlNow,
+    tokens: { ...ctlKept, 'border-width': 'border-width.hairline', border: 'color.interactive.neutral.border.rest' },
+    anatomy: { ...ctlNow.anatomy, parts: { ...ctlNow.anatomy.parts, track: { ...ctlNow.anatomy.parts.track, paintSlots: ['border'], strokeWidth: 'border-width' } } },
+  } as typeof ctlNow;
+  const stroked = (n: Node | undefined): boolean => ((n?.strokes as { visible?: boolean }[] | undefined) ?? []).some((p) => p.visible !== false);
+  const filledWith = async (w: World, n: Node | undefined): Promise<string> => {
+    const id = ((n?.fills as { boundVariables?: { color?: { id: string } } }[] | undefined) ?? [])[0]?.boundVariables?.color?.id;
+    const v = id && (await w.api.variables.getLocalVariablesAsync()).find((x: { id: string }) => x.id === id);
+    return v ? String(v.name).replace(/^[^/]+\//, '') : 'none';
+  };
+
+  // THE OPTION SET.
+  const segOld = figmaAnatomySet(seg2418, { swapTarget: SWAP_TARGET });
+  const segNew = plansOf(SEG);
+  const ws = await world(SEG, segOld, { extraVars: segNew.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]) });
+  const ind = (m: Node): Node => childNamed(m, 'indicator');
+  const selected = (m: Node) => /selection=selected/.test(String(m.name));
+  const wasEdged = membersOf(ws.set()).filter((m) => selected(m) && stroked(ind(m))).length;
+  ok(membersOf(ws.set()).length === 30 && wasEdged === 15, `premise: the file holds 30 options, the 15 selected ones with an outlined indicator (${membersOf(ws.set()).length}, ${wasEdged} outlined)`);
+  const segBefore = identityOf(ws.set());
+  const sres = await confirm(ws, [{ def: SEG, plans: segNew }]);
+  ok(sres.pre.sets[0].counts.update === 30 && applyVerdict(sres.res).ok, `seg/updated: all 30 options read out of date and are updated in place (${JSON.stringify(sres.pre.sets[0].counts)}; ${applyVerdict(sres.res).headline})`);
+  const stillEdged = membersOf(ws.set()).filter((m) => stroked(ind(m))).map((m) => String(m.name));
+  ok(stillEdged.length === 0, `seg/border removed: no option's indicator keeps a stroke (${stillEdged.length} still outlined${stillEdged.length ? `, e.g. ${stillEdged[0]}` : ''})`);
+  // Typed here: the pill is the page surface at every selected state, disabled included.
+  const pills = await Promise.all(membersOf(ws.set()).filter(selected).map(async (m) => [String(m.name), await filledWith(ws, ind(m))] as const));
+  const offPill = pills.filter(([, v]) => v !== 'color/background/primary');
+  ok(pills.length === 15 && offPill.length === 0, `seg/pill: every selected option's indicator is filled with color/background/primary (${offPill.length} off${offPill.length ? `, e.g. ${offPill[0].join(' → ')}` : ''})`);
+  const segAfter = identityOf(ws.set());
+  const segMoved = [...segBefore.members].filter(([name, b]) => segAfter.members.get(name)?.key !== b.key || segAfter.members.get(name)?.kids.get('indicator#0') !== b.kids.get('indicator#0')).map(([n]) => n);
+  ok(segMoved.length === 0, `seg/kept: every option keeps its key and its indicator's node id (${segMoved.slice(0, 2).join(', ') || 'none moved'})`);
+  const segPost = (await previewUpdate(ws.host, [{ def: SEG, plans: segNew }])).sets[0];
+  ok(segPost.counts.current === 30, `seg/current: the next dry run reads all 30 current (${JSON.stringify(segPost.counts)})`);
+
+  // THE CONTROL SET.
+  const ctlOld = figmaAnatomySet(ctl2418, { swapTarget: SWAP_TARGET });
+  const ctlNew = plansOf(CTL);
+  const wc = await world(CTL, ctlOld, { extraVars: ctlNew.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]) });
+  const track = (m: Node): Node => childNamed(m, 'track');
+  ok(membersOf(wc.set()).length === 3 && membersOf(wc.set()).every((m) => stroked(track(m))), `premise: the file holds 3 controls, each track outlined (${membersOf(wc.set()).filter((m) => stroked(track(m))).length} outlined)`);
+  const ctlBefore = identityOf(wc.set());
+  const cres = await confirm(wc, [{ def: CTL, plans: ctlNew }]);
+  ok(cres.pre.sets[0].counts.update === 3 && applyVerdict(cres.res).ok, `seg/control updated: all 3 controls are updated in place (${JSON.stringify(cres.pre.sets[0].counts)}; ${applyVerdict(cres.res).headline})`);
+  const outlined = membersOf(wc.set()).filter((m) => stroked(track(m))).map((m) => String(m.name));
+  ok(outlined.length === 0, `seg/track outline removed: no control's track keeps a stroke (${outlined.length} still outlined${outlined.length ? `, e.g. ${outlined[0]}` : ''})`);
+  const tracks = await Promise.all(membersOf(wc.set()).map((m) => filledWith(wc, track(m))));
+  ok(tracks.every((t) => t === 'color/background/secondary'), `seg/track fill: every track is filled with color/background/secondary (${tracks.join(', ')})`);
+  const ctlAfter = identityOf(wc.set());
+  const ctlMoved = [...ctlBefore.members].filter(([name, b]) => ctlAfter.members.get(name)?.key !== b.key || ctlAfter.members.get(name)?.kids.get('track#1') !== b.kids.get('track#1')).map(([n]) => n);
+  ok(ctlMoved.length === 0, `seg/control kept: every control keeps its key and its track's node id (${ctlMoved.join(', ') || 'none moved'})`);
+  const ctlPost = (await previewUpdate(wc.host, [{ def: CTL, plans: ctlNew }])).sets[0];
+  ok(ctlPost.counts.current === 3, `seg/control current: the next dry run reads all 3 current (${JSON.stringify(ctlPost.counts)})`);
+}
+
 /* ── overrides (#2645) ──────────────────────────────────────────────────────────────────────────────── */
 section('overrides — a nested instance with no override yet gains it in place on Update; a hand edit is kept (#2645)');
 {
