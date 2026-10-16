@@ -1119,12 +1119,12 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "id": "_pagination-item",
     "name": "Pagination.Item",
     "category": "navigation",
-    "summary": "One page number in a pagination row, or the ellipsis between them. The current page is filled.",
+    "summary": "One page number in a pagination row, or the ellipsis between them. The current page is outlined.",
     "unit": "variants",
     "spacing": [],
     "buildable": true,
     "reason": null,
-    "members": 21,
+    "members": 27,
     "nests": [
       "focus-ring"
     ]
@@ -1138,7 +1138,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "spacing": [],
     "buildable": true,
     "reason": null,
-    "members": 9,
+    "members": 12,
     "nests": [
       "icon-button-neutral",
       "icon",
