@@ -2080,15 +2080,16 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
   }
 }
 
-// ── PROTOTYPE REACTIONS READ-BACK (owner decision 2026-10-15) — THE CHAIN, AS THE HOST HOLDS IT ────────────
+// ── PROTOTYPE REACTIONS READ-BACK (owner decision Q344, #2733) — THE PLAN, AS THE HOST HOLDS IT ─────────────────
 //
-// Interactive sets chain rest → hover → pressed: a Rest member's only reaction is While hovering → its Hover sibling,
-// a Hover member's only one While pressing → its Pressed sibling, every other member none. Each def is built with node
-// ids on, and every member's reactions are read back off the shim, each destination id looked up among the set's own
-// members HERE. The expectation is literal per state, authored here and nowhere else, never the reaction map, so a
-// map that plans Rest a press reaction again fails `reactions read-back` by name (docs/34).
+// A Rest member's reactions are While hovering → its Hover sibling AND While pressing → its Pressed sibling (a touch
+// prototype has no hover, so Rest's press is the only route to Pressed); a Hover member's only one is While pressing →
+// its Pressed sibling; every other member none. Each def is built with node ids on, and every member's reactions are
+// read back off the shim, each destination id looked up among the set's own members HERE. The expectation is literal
+// per state, authored here and nowhere else, never the reaction map, so a map that drops Rest's press reaction (#2703's
+// hover-only chain) fails `reactions read-back` by name (docs/34).
 {
-  const WANT: Record<string, string[]> = { rest: ['ON_HOVER→state=hover'], hover: ['ON_PRESS→state=pressed'] };
+  const WANT: Record<string, string[]> = { rest: ['ON_HOVER→state=hover', 'ON_PRESS→state=pressed'], hover: ['ON_PRESS→state=pressed'] };
   const INTERACTIVE = ['button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral',
     'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'checkbox-control', 'radio-control', 'switch-control',
     'tag', 'tab', 'segmented-control-segment', 'link'];
@@ -2118,7 +2119,7 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
       if (JSON.stringify(got) !== JSON.stringify(WANT[stateOf(name)] ?? [])) off.push(`${id}: ${name}: ${got.join('; ') || 'none'}`);
     }
   }
-  ok(read > 0 && off.length === 0, `reactions read-back: on ${INTERACTIVE.length} interactive defs (${read} members read off the host) Rest goes to Hover while hovering only, Hover to Pressed while pressing only, nothing else reacts (${off.length} off${off.length ? `: ${off.slice(0, 3).join(' | ')}` : ''})`);
+  ok(read > 0 && off.length === 0, `reactions read-back: on ${INTERACTIVE.length} interactive defs (${read} members read off the host) Rest goes to Hover while hovering and to Pressed while pressing, Hover to Pressed while pressing only, nothing else reacts (${off.length} off${off.length ? `: ${off.slice(0, 3).join(' | ')}` : ''})`);
 }
 
 console.log(failed ? `\n❌ ${failed} FAILED` : '\n✅ component round-trip: ALL PASS');

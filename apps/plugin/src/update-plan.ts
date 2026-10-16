@@ -51,13 +51,14 @@ import { diffAnatomy, type HostNode, type ReadPorts } from '@prism3/engine/anato
 import { COMPONENT_RENAMES, coordKey, coordPairs, renameCoordinate, type ComponentRename } from '@prism3/engine/component-renames';
 import { ENGINE_VERSION } from '@prism3/engine/version';
 import { EXECUTOR_REVISION } from './executor-revision';
-import { memberStamp, planHalf, revHalf, respaceSets, STAMP_KEY, type RespaceBox } from './write-components';
+import { adoptions, memberStamp, planHalf, revHalf, respaceSets, STAMP_KEY, type RespaceBox } from './write-components';
 import { readTag } from './canvas-furniture';
 import { NS } from './persist-figma';
 import { BASELINE_V, UPDATING_KEY, baselineDiff, baselineOf, builtByPrism3, readBaseline, recordFormat, snapshotMember, writeBaseline, type Baseline, type OwnershipRead, type SnapNode } from './member-baseline';
-import { drawnFaults, type DrawnFault, type DrawVar } from './drawn';
+import { drawnFaults, faultLine, type DrawnFault, type DrawVar } from './drawn';
 import { REACTIONS_PATH, plannedRead, reactionMap, reactionVerdict, reactionsText, type PlannedReaction, type ReadReaction } from './reactions';
 import { pagesOutOfOrder, stripNestPrefix, type PageLike } from './file-setup';
+import { whatChangedLines } from './release-summary';
 
 /** One member of a set as the dry run reads it. */
 export type HostMember = {
@@ -131,7 +132,10 @@ export type SetPreview = {
   handEdits: { member: string; path: string; conflict: boolean; structural: boolean }[];
   /** #2265 PR 2 — every matched member that is not current, with how it reads; what an apply acts on. Current
    *  members are left out, so a set with nothing to do carries an empty list. Never capped: an apply must see all. */
-  states: { member: string; state: Exclude<MemberState, 'current'>; earlierRecord?: true }[];
+  states: { member: string; state: Exclude<MemberState, 'current'>; earlierRecord?: true;
+    /** #2413 — a member edited by hand with a layer added or removed that also draws wrong: its drawn faults, each as
+     *  `faultLine` writes it, so the apply's skip names the damage it leaves. Absent otherwise. */
+    damaged?: string[] }[];
   /** #2188 Q173 — the members an update moves to their place in the grid, by name (`gridMoves`). Absent when none. */
   positions?: string[];
   /** #2542 (owner decision Q245.2 A) — the WHOLE SET moves on its page, to where a fresh build would place it
@@ -179,6 +183,32 @@ const extraChildren = (plan: AnatomyPlan['root'], node: SnapNode, path: string, 
     const cp = planned.get(k.name);
     if (!cp) out.push(p);
     else extraChildren(cp, k, p, out);
+  }
+};
+
+/** The field a move into a new frame is listed under (#2595). DRAFT wording. */
+export const MOVES = 'moves into';
+
+/** #2595 — the file's children an update MOVES into a frame the plan inserts, walked as the executor walks: under
+ *  every node the file holds for a plan node, by the executor's own rule (`adoptions`), with a node a designer edited
+ *  by hand left out as the executor leaves it. Each with its path now, its path after, and the plan node it becomes.
+ *  A moved node of a type the plan cannot configure is not moved: the executor rebuilds it, so it stays a removal. */
+const HOST_TYPE: Record<string, string> = { TEXT: 'TEXT', NESTED_INSTANCE: 'INSTANCE', CONTENT_SLOT: 'SLOT', GLYPH: 'FRAME', FRAME: 'FRAME' };
+const fits = (plan: AnatomyPlan['root'], node: SnapNode): boolean =>
+  plan.type === 'INSTANCE_SWAP' ? node.type === 'INSTANCE' || node.type === 'FRAME' : node.type === HOST_TYPE[plan.type];
+const movesOf = (plan: AnatomyPlan['root'], node: SnapNode, path: string, edited: ReadonlySet<string>, out: { from: string; to: string; plan: AnatomyPlan['root']; host: SnapNode }[]): void => {
+  if (plan.type === 'GLYPH' || node.type === 'INSTANCE') return;
+  const kids = node.children ?? [];
+  const at = (name: string): string => (path === '.' ? name : `${path}/${name}`);
+  const mv = adoptions(plan.children ?? [], kids.map((k) => k.name), edited, path);
+  for (const [g, into] of mv) {
+    const k = kids.find((x) => x.name === g)!;
+    const pc = plan.children!.find((c) => c.name === into)!.children!.find((x) => x.name === g)!;
+    if (fits(pc, k)) out.push({ from: at(g), to: `${at(into)}/${g}`, plan: pc, host: k });
+  }
+  for (const c of plan.children ?? []) {
+    const k = kids.find((x) => x.name === c.name);
+    if (k && fits(c, k)) movesOf(c, k, at(c.name), edited, out);
   }
 };
 
@@ -417,9 +447,13 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
     const rxv = rx ? reactionVerdict(rx.planned, rx.read) : { differs: false, dangling: false };
     if (rxv.dangling && edit) edit = { ...edit, changed: edit.changed.filter((p) => p !== REACTIONS_PATH) };
     const edited = !!edit && (edit.changed.length + edit.added.length + edit.removed.length > 0);
+    // A LAYER ADDED OR REMOVED BY HAND outranks the damage (#2413): the apply skips such a member whatever else it
+    // reads (its paths can no longer be trusted node by node, §5), so the dry run counts it with the members edited by
+    // hand, never "to update", and still lists its damage as differences.
+    const structural = !!edit && edit.added.length + edit.removed.length > 0;
     const planMoved = planHalf(m.stamp) !== planHalf(memberStamp(plan));
     const revField = m.stamp.split('|').length >= 3 ? revHalf(m.stamp) : null;
-    const state: MemberState = damaged.length || rxv.dangling ? 'update'
+    const state: MemberState = (damaged.length && !structural) || rxv.dangling ? 'update'
       : !m.baseline ? 'noBaseline'
       : edited ? 'handEdited'
       : planMoved || (revField !== null && revField !== rev) || rxv.differs ? 'update'
@@ -428,7 +462,8 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
     counts[state]++;
     const earlier = state === 'noBaseline' && !!m.earlierRecord;
     if (earlier) counts.earlierRecord = (counts.earlierRecord ?? 0) + 1;
-    if (state !== 'current') states.push({ member: m.name, state, ...(earlier ? { earlierRecord: true as const } : {}) });
+    const hurt = state === 'handEdited' && structural && damaged.length ? { damaged: damaged.map((f) => faultLine(m.name, f)) } : {};
+    if (state !== 'current') states.push({ member: m.name, state, ...(earlier ? { earlierRecord: true as const } : {}), ...hurt });
     if (state === 'current' || state === 'revisionUnknown') continue;
 
     // The field changes, from the host's snapshot. `member` divergences are the set-level match's own
@@ -436,9 +471,18 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
     const rootName = plan.root.name;
     const rel = (p: string): string => (p === rootName ? '.' : p.startsWith(`${rootName}/`) ? p.slice(rootName.length + 1) : p);
     const touched = new Set<string>();
+    // #2595 — the children the update moves into a frame the plan inserts: each is compared to its plan where it
+    // lands, and listed as a move rather than as removed. `edited` is what the apply passes the executor.
+    const moves: { from: string; to: string; plan: AnatomyPlan['root']; host: SnapNode }[] = [];
+    movesOf(plan.root, m.snap, '.', new Set([...(edit?.changed ?? []), ...(edit?.added ?? []), ...(edit?.removed ?? [])].map((p) => p.replace(/#\d+$/, ''))), moves);
     const divs = diffAnatomy([plan], [m.snap as unknown as HostNode], () => m.name, ports).filter((d) => d.field !== 'member');
-    for (const d of divs) {
-      const part = rel(d.path);
+    const placed = [
+      ...divs.map((d) => ({ d, part: rel(d.path) })),
+      ...moves.flatMap((mv) => diffAnatomy([{ ...plan, root: mv.plan }], [mv.host as unknown as HostNode], () => mv.host.name, ports)
+        .filter((d) => d.field !== 'member')
+        .map((d) => ({ d, part: `${mv.to.slice(0, mv.to.lastIndexOf('/'))}/${d.path}` }))),
+    ];
+    for (const { d, part } of placed) {
       if (d.field === 'type') {
         replacements.push({ member: m.name, path: part, reason: part === '.'
           ? `the member itself would need replacing (${d.actual} → ${d.expected}); the update refuses this member`
@@ -454,9 +498,20 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
       if (c.sample.length < 3) c.sample.push(m.name);
       changes.set(k, c);
     }
+    for (const mv of moves) {
+      touched.add(mv.from.includes('/') ? mv.from.slice(0, mv.from.lastIndexOf('/')) : '.');
+      const into = mv.to.slice(0, mv.to.lastIndexOf('/'));
+      const k = `${mv.from}\u0000${MOVES}\u0000\u0000${into}`;
+      const c = changes.get(k) ?? { part: mv.from, field: MOVES, from: '', to: into, members: 0, sample: [] };
+      c.members++;
+      if (c.sample.length < 3) c.sample.push(m.name);
+      changes.set(k, c);
+    }
+    const movedFrom = new Set(moves.map((mv) => mv.from));
     const extras: string[] = [];
     extraChildren(plan.root, m.snap, '.', extras);
-    for (const part of extras) {
+    for (const mv of moves) extraChildren(mv.plan, mv.host, mv.to, extras);
+    for (const part of extras.filter((x) => !movedFrom.has(x))) {
       const parent = part.includes('/') ? part.slice(0, part.lastIndexOf('/')) : '.';
       touched.add(parent);
       const k = `${part}\u0000children\u0000present\u0000removed`;
@@ -467,6 +522,7 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
     }
     const dropped: { part: string; file: string }[] = [];
     droppedFills(plan.root, m.snap, '.', ports, dropped);
+    for (const mv of moves) droppedFills(mv.plan, mv.host, mv.to, ports, dropped);
     for (const { part, file } of dropped) {
       touched.add(part);
       const k = `${part}\u0000fill\u0000${file}\u0000none`;
@@ -492,7 +548,7 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
       if (c.sample.length < 3) c.sample.push(m.name);
       changes.set(k, c);
     }
-    if (state === 'update' && divs.length === 0 && extras.length === 0 && dropped.length === 0 && !(m.drawn ?? []).length && !rxv.differs) {
+    if (state === 'update' && placed.length === 0 && moves.length === 0 && extras.length === 0 && dropped.length === 0 && !(m.drawn ?? []).length && !rxv.differs) {
       counts.reapplied++;
       const k = '.\u0000stamp\u0000\u0000';
       const c = changes.get(k) ?? { part: '.', field: 'stamp', from: planMoved ? 'an earlier plan' : 'an earlier executor revision', to: 're-applied — no field-level difference visible', members: 0, sample: [] };
@@ -1082,7 +1138,9 @@ export const DIFFERENCE_LINES = 8;
 const partName = (part: string): string => (part === '.' ? 'the member' : part);
 /** One named difference, as a line. DRAFT. */
 export const differenceLine = (where: string, d: { part: string; field: string; plan: string; file: string }, members?: number): string =>
-  `${where} · ${partName(d.part)} · ${d.field}: the plan says ${d.plan}, the file has ${d.file}${members && members > 1 ? ` (${members} members)` : ''}.`;
+  // DRAFT wording for the owner (#2595, the issue's option A): a part the update moves into a new frame, kept.
+  d.field === MOVES ? `${where} · ${partName(d.part)} · ${MOVES} ${d.plan}, kept${members && members > 1 ? ` (${members} members)` : ''}.`
+    : `${where} · ${partName(d.part)} · ${d.field}: the plan says ${d.plan}, the file has ${d.file}${members && members > 1 ? ` (${members} members)` : ''}.`;
 /** A set's named differences, capped, with what was left out counted. */
 const namedLines = (where: string, list: { part: string; field: string; plan: string; file: string; members?: number }[]): string[] => [
   ...list.slice(0, DIFFERENCE_LINES).map((d) => differenceLine(where, d, d.members)),
@@ -1126,7 +1184,7 @@ export const pagesLine = (pages: readonly string[] | undefined): string =>
 
 /** The verdict for a dry run. `ok` is false only where a set could not be checked. `lines` is the Activity drawer's
  *  copy (#2177): one per set, then the closing lines, the same list `summary` is joined from. */
-export const previewVerdict = (r: UpdatePreview): { ok: boolean; headline: string; summary: string; lines: string[] } => {
+export const previewVerdict = (r: UpdatePreview, whatChanged: (sets: string[]) => string[] = whatChangedLines): { ok: boolean; headline: string; summary: string; lines: string[] } => {
   const changing = r.sets.filter((p) => !p.blockers.length && !noChanges(p)).length;
   const earlier = r.sets.filter((p) => !p.blockers.length).reduce((k, p) => k + p.counts.revisionUnknown, 0);
   // A set with members Adopt could claim has no changes but is not up to date (Q191 2B), so the headline is the
@@ -1150,6 +1208,9 @@ export const previewVerdict = (r: UpdatePreview): { ok: boolean; headline: strin
     earlier ? `${earlier} built by an earlier plugin. Update ${earlier === 1 ? 'it to bring it' : 'them to bring them'} current.` : '',
     // Wording approved, Q246 A (#2542, Q245.2 A).
     setsMoving(r) ? `${n(setsMoving(r), 'set')} to move, so the sets on each page sit as a new build spaces them.` : '',
+    // #2650: the version's breaking and new Figma items for the sets this check would change. A set is named by its
+    // def id (`locate`), the key the release notes use.
+    ...whatChanged(r.sets.filter((p) => !p.blockers.length && !noChanges(p)).map((p) => p.set)),
     'This was a check only. Nothing in the file changed.',
   ].filter(Boolean);
   return { ok: blocked === 0, headline, summary: lines.join('\n'), lines };

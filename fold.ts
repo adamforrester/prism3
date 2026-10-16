@@ -40,7 +40,14 @@
  *      `since` in `MATERIALIZATION_RENAMES`, `MATERIALIZATION_DELETIONS` and `COLLECTION_RENAMES`, and
  *      `test.ts`'s literal tables for them, where a PR writes the placeholder as a quoted string
  *      (`fold-stamps.ts`). A pending stamp with no pending note is refused: the version would not move.
- *   8. Deletes what it folded, and runs `regen.ts` when the version moved, so the stamps follow.
+ *   8. When the version moved, writes the RELEASE NOTES for it (#2650): `docs/public/releases/<next>.md` and
+ *      `.json`, and the version's entry in `index.md` and `index.json` there. `packages/engine/release-notes.ts`
+ *      reads the four committed records (the Figma sets, their surface digests, the coded components, the token
+ *      contract) at the commit that set the current version and in this tree, classifies each change as
+ *      breaking, new or fix, and carries this fold's notes verbatim under "In detail". Computed in the plan,
+ *      before anything is written, so a version whose records cannot be read is refused like any other problem.
+ *   9. Deletes what it folded, and runs `regen.ts` when the version moved, so the stamps follow. Then writes the
+ *      release notes again over the regenerated tree, so they describe what the fold commit holds.
  *
  * THE GATES DO NOT CALL THIS FILE, AND MUST NOT (docs/34 shape 2). `lint-emission-version.ts` checks
  * that a fold's version is the exact next one and that every deleted note's prose landed under it;
@@ -57,6 +64,7 @@ import { existsSync, readdirSync, readFileSync, unlinkSync, writeFileSync } from
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { STAMP_FILES, fillStamps } from './fold-stamps';
+import { RELEASES_DIR, buildRelease, foldCommits, writeRelease, type Release } from './packages/engine/release-notes';
 
 const repo = dirname(fileURLToPath(import.meta.url));
 const NOTES_DIR = 'packages/engine/changes';
@@ -252,6 +260,24 @@ if (stamps.length && next === current)
   ]);
 const today = new Date().toISOString().slice(0, 10);
 
+// ---- 5c. the release notes (#2650) -------------------------------------------------------------
+// From the commit that set the current version (the last fold) to this tree, which is HEAD: the fold runs on a
+// clean tree, and nothing it writes moves a record the notes read.
+let release: Release | null = null;
+if (next !== current) {
+  const base = foldCommits().get(current);
+  if (!base)
+    refuse([
+      `no commit on HEAD's first-parent history sets ENGINE_VERSION to ${current}, so the release notes have no start.`,
+      '  The notes for a version read the records at the fold before it. A HEAD on `main` always has that commit.',
+    ]);
+  try {
+    release = await buildRelease({ version: next, from: current, base: base!, head: null, notes: notes.map((n) => ({ slug: n.slug, level: n.level, prose: fill(n.prose) })), date: today });
+  } catch (e) {
+    refuse([`the release notes for ${next} cannot be read: ${(e as Error).message}.`]);
+  }
+}
+
 // ---- 6. the changelog section ------------------------------------------------------------------
 const changelogPath = join(repo, CHANGELOG_FILE);
 const changelogSrc = readFileSync(changelogPath, 'utf8');
@@ -330,6 +356,11 @@ if (stamps.length) {
   console.log(`\n  rename stamps: '{{ENGINE_VERSION}}' → '${next}'`);
   for (const s of stamps) console.log(`    ${s.path}: ${s.count}`);
 }
+if (release) {
+  const c = release.counts;
+  console.log(`\n  release notes: ${RELEASES_DIR}/${next}.md and .json — ${c.breaking} breaking, ${c.new} new, ${c.fix} fix${c.fix === 1 ? '' : 'es'}, ${release.notes.length} change note${release.notes.length === 1 ? '' : 's'}`);
+  for (const i of release.items.filter((x) => x.class === 'breaking')) console.log(`    breaking: ${i.text}`);
+}
 if (fragments.length) {
   console.log(`\n  ${LOG_FILE}: ${fragments.length} entr${fragments.length === 1 ? 'y' : 'ies'} on top, newest merge first`);
   for (const f of fragments) console.log(`    (${landing.get(f.path)!.day}) — ${f.title.length > 90 ? `${f.title.slice(0, 89)}…` : f.title}`);
@@ -340,13 +371,14 @@ if (dryRun) {
   process.exit(0);
 }
 
-// ---- 8. write, delete, regen -------------------------------------------------------------------
+// ---- 9. write, delete, regen -------------------------------------------------------------------
 if (newVersionSrc !== versionSrc) writeFileSync(versionPath, newVersionSrc);
 if (newChangelogSrc !== changelogSrc) writeFileSync(changelogPath, newChangelogSrc);
 if (newLogSrc !== logSrc) writeFileSync(logPath, newLogSrc);
 for (const s of stamps) writeFileSync(join(repo, s.path), s.out);
+const releaseFiles = release ? writeRelease(release) : [];
 for (const p of [...notePaths, ...fragmentPaths]) unlinkSync(join(repo, p));
-console.log(`\n  wrote ${[newVersionSrc !== versionSrc && VERSION_FILE, newChangelogSrc !== changelogSrc && CHANGELOG_FILE, newLogSrc !== logSrc && LOG_FILE, ...stamps.map((s) => s.path)].filter(Boolean).join(', ')}; deleted ${notePaths.length + fragmentPaths.length} pending file(s)`);
+console.log(`\n  wrote ${[newVersionSrc !== versionSrc && VERSION_FILE, newChangelogSrc !== changelogSrc && CHANGELOG_FILE, newLogSrc !== logSrc && LOG_FILE, ...stamps.map((s) => s.path), ...releaseFiles].filter(Boolean).join(', ')}; deleted ${notePaths.length + fragmentPaths.length} pending file(s)`);
 
 if (next !== current) {
   console.log('  running regen.ts so every emitted stamp reads the new version …');
@@ -355,7 +387,15 @@ if (next !== current) {
     console.error('\n✗ regen.ts failed AFTER the fold was written. The fold itself is complete; fix the');
     console.error('  failure and run `npx tsx packages/engine/regen.ts` by hand. Do not rerun the fold:');
     console.error('  nothing is pending any more, so it would report "nothing to fold".');
+    if (release) console.error(`  Then \`npx tsx packages/engine/release-notes.ts --refresh\`, so ${RELEASES_DIR}/${next}.md reads the regenerated tree.`);
     process.exit(1);
+  }
+  // The notes again, over the tree regen just wrote: they name what this fold ships, and a record regen moved
+  // (a committed artifact that disagreed with the code) would otherwise be described as it was before.
+  if (release) {
+    release = await buildRelease({ version: next, from: current, base: release.base, head: null, notes: release.notes, date: today });
+    writeRelease(release);
+    console.log(`  ${RELEASES_DIR}/${next}.md rewritten over the regenerated tree — ${release.counts.breaking} breaking, ${release.counts.new} new, ${release.counts.fix} fix${release.counts.fix === 1 ? '' : 'es'}`);
   }
 }
 

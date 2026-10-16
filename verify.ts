@@ -509,7 +509,7 @@ export const environmentProblems = async (): Promise<string[]> => {
 /** The artifact-count meta-check, taken from the drift gate's ALREADY-CAPTURED output rather than by
  *  running `regen.ts --check` a second time (it is among the slowest gates here). This is what
  *  buffering per gate buys — point 2 paying for itself. Mirrors `ci.yml`'s own step. */
-const EXPECTED_ARTIFACTS = 199;
+const EXPECTED_ARTIFACTS = 200;
 
 /* #775's window closed 2026-08-20 and the smoke suite gates in both CI and this runner, so the
  * date constant and its clock read are GONE rather than left at a passed date. They existed to stop
@@ -638,6 +638,13 @@ export const GATES: Gate[] = [
     id: 'agent-reference',
     ciStep: 'The agent reference matches the code (#2637)',
     cmd: engine('emit-agent-reference.ts', '--check'),
+  },
+  {
+    // #2647 — docs/public/reference/figma-conventions.json against the code it is generated from. Reads the
+    // source files and the default theme only, so it needs no `after`.
+    id: 'figma-conventions',
+    ciStep: 'The Figma conventions file matches the code (#2647)',
+    cmd: engine('emit-figma-conventions.ts', '--check'),
   },
   {
     id: 'typecheck-web',
@@ -1054,6 +1061,13 @@ export const GATES: Gate[] = [
     id: 'lint-ecosystem',
     ciStep: "The ecosystem diagram's data matches the code (#2637)",
     cmd: engine('lint-ecosystem.ts'),
+  },
+  {
+    // #2650 — reads the COMMITTED docs/public/releases/** and git history, so it needs no `after`: the
+    // fold writes the notes, and this re-derives every release's diff from the records at both folds.
+    id: 'lint-release-notes',
+    ciStep: 'Release notes match the diff between folds (#2650)',
+    cmd: engine('lint-release-notes.ts'),
   },
   {
     // The one `tools/` battery wired into CI (#1123), and the reason its NAME is about the DETECTOR

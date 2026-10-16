@@ -243,10 +243,10 @@ export const nestedFirst = (targets: readonly UpdateTarget[]): UpdateTarget[] =>
 const preflight = (p: SetPreview): string | null => (p.blockers.length ? p.blockers.join('; ') : null);
 
 /** Which members this update configures, which it leaves, and why, from the dry run alone. */
-const plan = (p: SetPreview, choice: HandEditChoice, noRecord: NoRecordChoice): { members: Map<string, { keep: Set<string>; accept?: boolean }>; skipped: { member: string; reason: string }[]; kept: { member: string; path: string }[]; unrecorded: string[]; restamp: string[]; earlierRecord: string[] } => {
+const plan = (p: SetPreview, choice: HandEditChoice, noRecord: NoRecordChoice): { members: Map<string, { keep: Set<string>; accept?: boolean; edited?: Set<string> }>; skipped: { member: string; reason: string }[]; kept: { member: string; path: string }[]; unrecorded: string[]; restamp: string[]; earlierRecord: string[] } => {
   const byMember = new Map<string, SetPreview['handEdits']>();
   for (const h of p.handEdits) byMember.set(h.member, [...(byMember.get(h.member) ?? []), h]);
-  const members = new Map<string, { keep: Set<string>; accept?: boolean }>();
+  const members = new Map<string, { keep: Set<string>; accept?: boolean; edited?: Set<string> }>();
   const skipped: { member: string; reason: string }[] = [];
   const kept: { member: string; path: string }[] = [];
   const unrecorded: string[] = [];
@@ -270,12 +270,22 @@ const plan = (p: SetPreview, choice: HandEditChoice, noRecord: NoRecordChoice): 
       members.set(at, { keep: new Set<string>() });
       continue;
     }
-    if (edits.some((e) => e.structural)) { skipped.push({ member: s.member, reason: 'a layer was added or removed by hand' }); continue; }
+    if (edits.some((e) => e.structural)) {
+      // DRAFT wording for the owner (#2413, the issue's option A): a skipped member that also draws wrong says so, in
+      // the verify lines' `faultLine` form, so the reader knows it still draws other than its plan.
+      const d = s.damaged ?? [];
+      skipped.push({ member: s.member, reason: d.length
+        ? `a layer was added or removed by hand, and it draws other than its plan (${d.slice(0, 3).join('; ')}${d.length > 3 ? '; …' : ''})`
+        : 'a layer was added or removed by hand' });
+      continue;
+    }
     if (rootReplaced.has(s.member)) { skipped.push({ member: s.member, reason: 'the member itself would need replacing' }); continue; }
     // `overwrite` writes over every edited node; `keep` and `accept` leave them, and differ only in the record.
-    const keep = choice === 'overwrite' ? new Set<string>() : new Set(edits.map((e) => e.path.replace(/#\d+$/, '')));
+    const edited = new Set(edits.map((e) => e.path.replace(/#\d+$/, '')));
+    const keep = choice === 'overwrite' ? new Set<string>() : edited;
     for (const e of edits) kept.push({ member: at, path: e.path });
-    members.set(at, { keep, ...(choice === 'accept' ? { accept: true } : {}) });
+    // `edited` whatever the choice (#2595): a node a designer edited is never moved into a new frame.
+    members.set(at, { keep, edited, ...(choice === 'accept' ? { accept: true } : {}) });
   }
   // Every member the dry run read as not built by Prism3 is named, the ones off the plan too (a designer's own icon
   // under the def's prefix, #2296): the update never writes them, and the verdict says so rather than leaving them out.
@@ -309,6 +319,24 @@ const restampMembers = async (live: LiveSet, names: readonly string[], plans: Re
 };
 
 /** One set: renames, property changes, deprecations, then the build's own pass in update mode, then verify. */
+/** Does a build miss name `member` as a WHOLE member name (#2477 review)? A substring test is not enough: members are
+ *  named `name=<glyph>`, and the shipped icon set has prefix pairs (`name=check` / `name=check-circle`, `name=eye` /
+ *  `name=eye-off`), so a skipped `name=check` would swallow every miss about `name=check-circle`. A name counts where it
+ *  starts the miss or follows a space, and ends it or meets a space, `.` or `/` — the ways a miss names a member
+ *  (`<member>.asBuilt -> …`, `<member>/<part>.slot -> …`, `footprint -> <member> measures … but <member> measures …`).
+ *  Where a longer name in `known` matches at the same place (a variant value with a dot, `size=1` / `size=1.5`), that
+ *  longer name is the one named. */
+export const namesMember = (miss: string, member: string, known: readonly string[]): boolean => {
+  const bounded = (at: number, name: string): boolean =>
+    (at === 0 || miss[at - 1] === ' ') && (at + name.length === miss.length || /[\s./]/.test(miss[at + name.length]));
+  for (let at = miss.indexOf(member); at >= 0; at = miss.indexOf(member, at + 1)) {
+    if (!bounded(at, member)) continue;
+    if (known.some((k) => k.length > member.length && k.startsWith(member) && miss.startsWith(k, at) && bounded(at, k))) continue;
+    return true;
+  }
+  return false;
+};
+
 const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, p: SetPreview, live: LiveSet, opts: { description?: string; yieldTo?: () => Promise<void>; handEdits: HandEditChoice; noBaseline: NoRecordChoice }): Promise<SetOutcome> => {
   const out: SetOutcome = { def: t.def, set: p.set, updated: [], added: 0, renamed: 0, deprecated: [], skipped: [], kept: [], unrecorded: [], handEdits: opts.handEdits, identity: [], content: [], misses: [] };
   const work = plan(p, opts.handEdits, opts.noBaseline);
@@ -399,8 +427,11 @@ const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, p:
   }
   out.updated = r.updatedInPlace ?? [];
   out.added = r.added;
-  // The build's notes on the members it was told to leave alone are this run's skips, already reported above.
-  out.misses = r.misses.filter((x) => !/^member .* -> (ALREADY PRESENT|STALE) /.test(x));
+  // The build's notes on the members it was told to leave alone are this run's skips, already reported above. So is a
+  // miss that names one (#2477): the build's footprint check comparing a designer's own member, which the update left
+  // as it is, with a sibling is about that member, not about a write the update could not finish.
+  const known = [...before.keys(), ...out.updated, ...out.skipped.map((k) => k.member)];
+  out.misses = r.misses.filter((x) => !/^member .* -> (ALREADY PRESENT|STALE) /.test(x) && !out.skipped.some((k) => namesMember(x, k.member, known)));
 
   // ── VERIFY (a): IDENTITY, OFF THE HOST ─────────────────────────────────────────────────────────────────────
   const now = t.single ? (await liveFor(host, t, p.set)) ?? live
@@ -585,6 +616,21 @@ export const applyUpdate = async (
 
 const n = (k: number, one: string, many = `${one}s`): string => `${k} ${k === 1 ? one : many}`;
 
+const NOT_RECORDED = '.asBuilt -> NOT RECORDED';
+/** The members the build wrote but could not finish: each one's as-built record was refused, so `finishUpdated` left its
+ *  stamp as it was and the next dry run reads it out of date (#2477). Named only when the build also listed it as
+ *  updated in place; any other miss is the set's `others`. */
+const unfinishedOf = (o: SetOutcome): { members: string[]; others: string[] } => {
+  const members: string[] = [];
+  const others: string[] = [];
+  for (const m of o.misses) {
+    const at = m.lastIndexOf(NOT_RECORDED);
+    if (at > 0 && o.updated.includes(m.slice(0, at))) members.push(m.slice(0, at));
+    else others.push(m);
+  }
+  return { members, others };
+};
+
 /** The verdict for an applied update. `lines` is the Activity drawer's copy (#2177). */
 export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; summary: string; lines: string[] } => {
   if (r.refusedAll) {
@@ -592,13 +638,17 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
     return { ok: false, headline: '✗ update refused', summary: lines.join('\n'), lines };
   }
   const stopped = r.outcomes.find((o) => o.stopped);
-  const failed = r.outcomes.filter((o) => o.identity.length || o.content.length);
+  // A miss from the build's own pass is a set not verified, as an identity or content difference is (#2477): the set
+  // holds a write the build could not finish, so no ✓ while it is left (#2364's rule).
+  const failed = r.outcomes.filter((o) => o.identity.length || o.content.length || o.misses.length);
   // A set the apply entered and wrote nothing to, every member it would have written left as it is (`noBaseline:
   // 'skip'`, a layer added by hand, a member that would need replacing), still holds what its dry run listed. It is
   // NOT UPDATED, never "already up to date" (#2364 review; the owner's choice, 2026-10-08: the approved headline).
   const idle = r.outcomes.filter((o) => !o.refused && !o.stopped && o.skipped.length && !o.updated.length && !o.added && !o.renamed && !o.deprecated.length && !o.moved && !o.setMoved).length;
   const refused = r.outcomes.filter((o) => o.refused).length + r.refused.length + idle;
-  const updated = r.outcomes.reduce((k, o) => k + o.updated.length, 0);
+  // A member not finished is not counted as updated: the next dry run reads it out of date (#2477).
+  const done = (o: SetOutcome): number => o.updated.length - unfinishedOf(o).members.length;
+  const updated = r.outcomes.reduce((k, o) => k + done(o), 0);
   const added = r.outcomes.reduce((k, o) => k + o.added, 0);
   const deprecated = r.outcomes.reduce((k, o) => k + o.deprecated.length, 0);
   const renamed = r.outcomes.reduce((k, o) => k + o.renamed, 0);
@@ -613,7 +663,7 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
       continue;
     }
     const parts = [
-      o.updated.length ? `${o.updated.length} updated in place` : '',
+      done(o) ? `${done(o)} updated in place` : '',
       o.added ? `${o.added} added` : '',
       o.renamed ? `${o.renamed} renamed` : '',
       o.deprecated.length ? `${o.deprecated.length} marked deprecated` : '',
@@ -632,6 +682,15 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
     lines.push(parts.length ? `${o.set}: ${parts.join(', ')}.` : o.asPreviewed && !o.asPreviewed.upToDate ? o.asPreviewed.line : `${o.set}: already up to date.`);
     if (o.identity.length) lines.push(`${o.set}: component IDs changed — ${o.identity.slice(0, 3).join('; ')}${o.identity.length > 3 ? '; …' : ''}.`);
     if (o.content.length) lines.push(`${o.set}: ${n(o.content.length, 'field')} still differ from the plan — ${o.content.slice(0, 3).join('; ')}${o.content.length > 3 ? '; …' : ''}.`);
+    // DRAFT wording for the owner (#2477, the issue's option A): a member written but not finished, by name.
+    const { members, others } = unfinishedOf(o);
+    if (members.length) {
+      lines.push(members.length === 1
+        ? `${o.set}: 1 member not finished — ${members[0]} (its as-built record could not be written). It still reads as out of date; run the update again to finish it.`
+        : `${o.set}: ${members.length} members not finished — ${members.join(', ')} (their as-built records could not be written). They still read as out of date; run the update again to finish them.`);
+    }
+    // DRAFT wording for the owner (#2477): any other miss the build's pass reported, with its own reason.
+    if (others.length) lines.push(`${o.set}: ${n(others.length, 'part')} not written as planned — ${others.slice(0, 3).join('; ')}${others.length > 3 ? '; …' : ''}.`);
   }
   for (const x of r.refused) lines.push(`${x.def}: not updated. ${x.reason}.`);
   // Owner-approved wording (#2568, Q264 A), the dry run's "to reorder" as done.
