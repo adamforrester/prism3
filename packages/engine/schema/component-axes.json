@@ -82,7 +82,16 @@
         "full"
       ]
     },
-    "members": 8
+    "members": 8,
+    "properties": {
+      "actions": "BOOLEAN",
+      "body": "SLOT",
+      "dismiss": "BOOLEAN",
+      "icon": "BOOLEAN",
+      "second action": "BOOLEAN",
+      "title": "BOOLEAN",
+      "title text": "TEXT"
+    }
   },
   "button": {
     "axes": {
