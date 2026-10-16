@@ -2166,6 +2166,105 @@
       "sizeDefault": "medium"
     },
     {
+      "id": "progress",
+      "name": "Progress",
+      "category": "feedback",
+      "states": [],
+      "projectedStates": [],
+      "axes": {
+        "shape": [
+          "linear",
+          "circular"
+        ],
+        "type": [
+          "determinate",
+          "indeterminate"
+        ],
+        "status": [
+          "active",
+          "complete",
+          "error"
+        ],
+        "size": [
+          "medium",
+          "small"
+        ]
+      },
+      "props": [
+        {
+          "name": "value"
+        },
+        {
+          "name": "min",
+          "default": 0
+        },
+        {
+          "name": "max",
+          "default": 100
+        },
+        {
+          "name": "label"
+        },
+        {
+          "name": "valueText"
+        },
+        {
+          "name": "shape",
+          "default": "linear",
+          "values": [
+            "linear",
+            "circular"
+          ]
+        },
+        {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "small",
+            "medium"
+          ]
+        },
+        {
+          "name": "status",
+          "default": "active",
+          "values": [
+            "active",
+            "complete",
+            "error"
+          ]
+        },
+        {
+          "name": "message"
+        },
+        {
+          "name": "showValue",
+          "default": true
+        },
+        {
+          "name": "announce",
+          "default": "milestones",
+          "values": [
+            "milestones",
+            "end",
+            "none"
+          ]
+        },
+        {
+          "name": "delay",
+          "default": 400
+        },
+        {
+          "name": "minDisplay",
+          "default": 500
+        }
+      ],
+      "sizes": [
+        "medium",
+        "small"
+      ],
+      "sizeDefault": "medium"
+    },
+    {
       "id": "radio-control",
       "name": "Radio.Control",
       "category": "form",
@@ -3848,6 +3947,15 @@
           "flush-icon-button-destructive",
           "flush-icon-button-neutral"
         ]
+      },
+      {
+        "values": [
+          "circular",
+          "linear"
+        ],
+        "components": [
+          "progress"
+        ]
       }
     ],
     "size": [
@@ -3897,6 +4005,7 @@
           "small"
         ],
         "components": [
+          "progress",
           "switch-control",
           "switch-row"
         ]
@@ -3927,6 +4036,16 @@
           "select",
           "text-field",
           "textarea"
+        ]
+      },
+      {
+        "values": [
+          "active",
+          "complete",
+          "error"
+        ],
+        "components": [
+          "progress"
         ]
       }
     ],
@@ -4023,6 +4142,15 @@
       },
       {
         "values": [
+          "determinate",
+          "indeterminate"
+        ],
+        "components": [
+          "progress"
+        ]
+      },
+      {
+        "values": [
           "dismissible",
           "select"
         ],
@@ -4099,6 +4227,17 @@
         "values": [
           "start",
           "center"
+        ]
+      }
+    ],
+    "announce": [
+      {
+        "id": "progress",
+        "default": "milestones",
+        "values": [
+          "milestones",
+          "end",
+          "none"
         ]
       }
     ],
@@ -4299,6 +4438,12 @@
       },
       {
         "id": "text-field"
+      }
+    ],
+    "delay": [
+      {
+        "id": "progress",
+        "default": 400
       }
     ],
     "description": [
@@ -4771,6 +4916,9 @@
         "id": "password-field"
       },
       {
+        "id": "progress"
+      },
+      {
         "id": "radio-group"
       },
       {
@@ -4850,6 +4998,10 @@
       {
         "id": "badge",
         "default": 99
+      },
+      {
+        "id": "progress",
+        "default": 100
       }
     ],
     "maxLength": [
@@ -4865,6 +5017,21 @@
     "message": [
       {
         "id": "field-message"
+      },
+      {
+        "id": "progress"
+      }
+    ],
+    "min": [
+      {
+        "id": "progress",
+        "default": 0
+      }
+    ],
+    "minDisplay": [
+      {
+        "id": "progress",
+        "default": 500
       }
     ],
     "minRows": [
@@ -5243,6 +5410,14 @@
           "square",
           "circular"
         ]
+      },
+      {
+        "id": "progress",
+        "default": "linear",
+        "values": [
+          "linear",
+          "circular"
+        ]
       }
     ],
     "showCheck": [
@@ -5282,6 +5457,12 @@
       },
       {
         "id": "switch-row",
+        "default": true
+      }
+    ],
+    "showValue": [
+      {
+        "id": "progress",
         "default": true
       }
     ],
@@ -5483,6 +5664,14 @@
         ]
       },
       {
+        "id": "progress",
+        "default": "medium",
+        "values": [
+          "small",
+          "medium"
+        ]
+      },
+      {
         "id": "radio-control",
         "default": "medium",
         "values": [
@@ -5628,6 +5817,15 @@
           "error",
           "warning",
           "success"
+        ]
+      },
+      {
+        "id": "progress",
+        "default": "active",
+        "values": [
+          "active",
+          "complete",
+          "error"
         ]
       }
     ],
@@ -5979,6 +6177,9 @@
         "id": "password-field"
       },
       {
+        "id": "progress"
+      },
+      {
         "id": "radio-group"
       },
       {
@@ -6012,6 +6213,11 @@
           "dark",
           "light"
         ]
+      }
+    ],
+    "valueText": [
+      {
+        "id": "progress"
       }
     ],
     "weight": [
@@ -6241,9 +6447,10 @@
         "flush-icon-button-neutral",
         "icon-button",
         "icon-button-destructive",
-        "icon-button-neutral"
+        "icon-button-neutral",
+        "progress"
       ],
-      "detail": "the shape axis takes 2 value sets — [circular, square] in icon-button, icon-button-destructive, icon-button-neutral; [flush, round] in flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral"
+      "detail": "the shape axis takes 3 value sets — [circular, square] in icon-button, icon-button-destructive, icon-button-neutral; [flush, round] in flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral; [circular, linear] in progress"
     },
     {
       "kind": "axis values",
@@ -6269,6 +6476,7 @@
         "list",
         "list-item",
         "password-field",
+        "progress",
         "radio-control",
         "radio-group",
         "radio-row",
@@ -6284,7 +6492,20 @@
         "text-field",
         "textarea"
       ],
-      "detail": "the size axis takes 3 value sets — [large, medium, small] in _accordion-indicator, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, password-field, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, select, tab, tabs, tag, text-field, textarea; [medium, small] in switch-control, switch-row; [large, medium, small, x-small] in spinner"
+      "detail": "the size axis takes 3 value sets — [large, medium, small] in _accordion-indicator, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, password-field, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, select, tab, tabs, tag, text-field, textarea; [medium, small] in progress, switch-control, switch-row; [large, medium, small, x-small] in spinner"
+    },
+    {
+      "kind": "axis values",
+      "subject": "axis status",
+      "components": [
+        "field-message",
+        "password-field",
+        "progress",
+        "select",
+        "text-field",
+        "textarea"
+      ],
+      "detail": "the status axis takes 2 value sets — [default, error, success, warning] in field-message, password-field, select, text-field, textarea; [active, complete, error] in progress"
     },
     {
       "kind": "axis values",
@@ -6313,9 +6534,10 @@
         "badge",
         "list",
         "list-item",
+        "progress",
         "tag"
       ],
-      "detail": "the type axis takes 3 value sets — [icon, ordered, unordered] in list, list-item; [count, dot, status] in badge; [dismissible, select] in tag"
+      "detail": "the type axis takes 4 value sets — [icon, ordered, unordered] in list, list-item; [count, dot, status] in badge; [determinate, indeterminate] in progress; [dismissible, select] in tag"
     },
     {
       "kind": "axis values",
@@ -6341,6 +6563,14 @@
         "password-field"
       ],
       "detail": "password-field declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "progress",
+      "components": [
+        "progress"
+      ],
+      "detail": "progress declares its sizes as [medium, small], not smallest first"
     },
     {
       "kind": "size order",
@@ -6372,7 +6602,16 @@
       "components": [
         "field-label"
       ],
-      "detail": "field-label defaults size to small; 33 of 34 sized components default to medium"
+      "detail": "field-label defaults size to small; 34 of 35 sized components default to medium"
+    },
+    {
+      "kind": "prop default",
+      "subject": "prop max",
+      "components": [
+        "badge",
+        "progress"
+      ],
+      "detail": "max defaults differ over the same values — 100 in progress; 99 in badge"
     },
     {
       "kind": "axis without prop",
@@ -6421,6 +6660,14 @@
         "password-field"
       ],
       "detail": "password-field has the variant axes style and status and no props of those names"
+    },
+    {
+      "kind": "axis without prop",
+      "subject": "progress",
+      "components": [
+        "progress"
+      ],
+      "detail": "progress has the variant axis type and no prop of that name"
     },
     {
       "kind": "axis without prop",

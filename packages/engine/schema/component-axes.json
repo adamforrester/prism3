@@ -692,6 +692,36 @@
       "↳ swap leading icon": "INSTANCE_SWAP"
     }
   },
+  "progress": {
+    "axes": {
+      "shape": [
+        "circular",
+        "linear"
+      ],
+      "size": [
+        "medium",
+        "small"
+      ],
+      "status": [
+        "active",
+        "complete",
+        "error"
+      ],
+      "type": [
+        "determinate",
+        "indeterminate"
+      ]
+    },
+    "members": 10,
+    "properties": {
+      "complete value text": "TEXT",
+      "label": "BOOLEAN",
+      "label text": "TEXT",
+      "message": "BOOLEAN",
+      "value": "BOOLEAN",
+      "value text": "TEXT"
+    }
+  },
   "radio-control": {
     "axes": {
       "selection": [

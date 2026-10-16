@@ -258,6 +258,18 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   },
   {
     axis: 'type',
+    values: ['determinate', 'indeterminate'],
+    defs: ['progress'],
+    relation: 'disjoint',
+    reason:
+      'Whether the work has a value (#2670, the brief\'s defining fork): a known amount, or a sweep while the amount is '
+      + 'unknown. The field\'s own words and ARIA\'s distinction (`aria-valuenow` present or absent). DISJOINT from '
+      + 'Badge\'s canonical set: a badge type is a content kind and a progress type a value contract, and no value would '
+      + 'mean the same thing on both. `determinate` LEADS because it is the default member; in code the type follows '
+      + 'from whether a value is given.',
+  },
+  {
+    axis: 'type',
     values: ['select', 'dismissible'],
     defs: ['tag'],
     relation: 'disjoint',
@@ -446,6 +458,18 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'three, since `text-field` and `textarea` have declared three rungs since tranche 1.',
   },
   {
+    axis: 'size',
+    values: ['medium', 'small'],
+    defs: ['progress'],
+    relation: 'subset',
+    reason:
+      'The progress RING\'s two sizes (#2670): 40px and 24px on the icon ladder (`icon.size.xl`, `icon.size.md`), a ring '
+      + 'with its value beside it at medium and one inline in a list row at small. The canonical words minus `large`, '
+      + 'and led by `medium` because it is the code default and Figma\'s default member: the approved proposal\'s axis '
+      + 'table lists it first, and owner Q347 puts the code default first on every axis. A linear bar has one thickness '
+      + 'and is built at `medium` only (`excludeCoordinates`). `lint-rung-names.ts` DEFAULT_FIRST admits the order split.',
+  },
+  {
     axis: 'shape',
     values: ['square', 'circular'],
     defs: ['icon-button', 'icon-button-destructive', 'icon-button-neutral'],
@@ -477,6 +501,20 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'so the two sets are not one ladder; the owner kept `round` (Q295.5 A). Shared by the three flush icon-button '
       + 'components BY DESIGN (Q295.2 B, one anatomy through `makeFlushIconButton`), so this one entry records all three. '
       + '`flush` LEADS because it is the code default and the shape built first, so Figma\'s inserted member is flush.',
+  },
+  {
+    axis: 'shape',
+    values: ['linear', 'circular'],
+    defs: ['progress'],
+    relation: 'overlapping',
+    reason:
+      'Progress\'s two drawings (#2670, owner calls 1 and 10 A): a bar that fills its container, or a ring for a small '
+      + 'space. OVERLAPPING with the canonical set on `circular`, and that shared word is the near-overlap this register '
+      + 'exists to flag: on IconButton `circular` is a corner silhouette (a disc at `radius.round`), here it is a whole '
+      + 'drawing, a ring with an arc. The two never meet on one def and no paint key crosses either axis, so the word '
+      + 'reads the same to a designer (round) without the sets being one ladder. `circular` is the brief\'s own word '
+      + '(`variant: linear | circular`), the approved proposal\'s axis table, and MUI\'s `CircularProgress`. `linear` '
+      + 'LEADS because it is the code default and Figma\'s default member (owner Q347).',
   },
   {
     axis: 'style',
@@ -556,7 +594,8 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
     axis: 'status',
     values: ['default', 'error', 'warning', 'success'],
     defs: ['field-message', 'select', 'text-field', 'textarea', 'password-field'],
-    relation: 'sole',
+    // CANONICAL since #2670 added Progress's end-state set (below): it came first and is shared by five defs.
+    relation: 'canonical',
     reason:
       'A form field\'s VALIDATION OUTCOME. RENAMED from `tone` to `status` in #1334 (the owner\'s split of '
       + 'the overloaded `tone`): this set was recorded here as `overlapping` with `icon`\'s ink vocabulary '
@@ -570,6 +609,20 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'entry records them. '
       + '`error` (not `danger`) mirrors the closed `STATES` vocabulary a validation outcome tracks; the '
       + '`error → danger` ink mapping lives in `lint-paint.ts` as a named provenance exception.',
+  },
+  {
+    axis: 'status',
+    values: ['active', 'complete', 'error'],
+    defs: ['progress'],
+    relation: 'overlapping',
+    reason:
+      'Progress\'s END STATE (#2670, owner call 4 A): the work is running, finished, or failed. OVERLAPPING with the '
+      + 'canonical validation set on `error` only, and the shared value means the same thing on both: a failure, '
+      + 'shown with FieldMessage\'s error glyph and caption (Progress nests it at `error`), so an error looks one way '
+      + 'across components (owner Q352/Q354). The other two differ because they name a different thing: `active` is '
+      + 'work in progress, which a field has no word for, and `complete` maps to the nested message\'s `success`, '
+      + 'which a progress bar does not say ("Upload complete" is an outcome, not a validation). `active` LEADS because '
+      + 'it is the code default and Figma\'s default member.',
   },
   {
     axis: 'width',

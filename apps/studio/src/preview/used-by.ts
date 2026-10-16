@@ -6,11 +6,14 @@
  * never imports the definitions themselves (UI redesign S7, T4; the generator's header says why).
  */
 export const USED_BY = {
-  defs: 41,
+  defs: 42,
   radius: {
     rounded: {
       "radius.2xl": [
         "Dialog"
+      ],
+      "radius.capsule": [
+        "Progress"
       ],
       "radius.md": [
         "Button",
@@ -45,7 +48,8 @@ export const USED_BY = {
       ],
       "radius.capsule": [
         "Button",
-        "IconButton"
+        "IconButton",
+        "Progress"
       ],
       "radius.md": [
         "SegmentedControl"
@@ -75,6 +79,9 @@ export const USED_BY = {
     boxed: {
       "radius.2xl": [
         "Dialog"
+      ],
+      "radius.capsule": [
+        "Progress"
       ],
       "radius.md": [
         "SegmentedControl"
@@ -107,6 +114,9 @@ export const USED_BY = {
     hairline: {
       "radius.2xl": [
         "Dialog"
+      ],
+      "radius.capsule": [
+        "Progress"
       ],
       "radius.hairline": [
         "Button",

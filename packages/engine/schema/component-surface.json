@@ -695,6 +695,18 @@
         "placeholder:TEXT",
         "value:TEXT"
       ]
+    },
+    "progress": {
+      "members": 10,
+      "sha256": "27703570a69825616a166d6806281d486f93a2512e280877e584dc87a913658d",
+      "properties": [
+        "complete value text:TEXT",
+        "label text:TEXT",
+        "label:BOOLEAN",
+        "message:BOOLEAN",
+        "value text:TEXT",
+        "value:BOOLEAN"
+      ]
     }
   }
 }

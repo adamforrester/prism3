@@ -121,6 +121,9 @@ export const TAXONOMY: Taxonomy = {
         // Dialog (#2609, owner decision Q303.12 A) — its own page under Components, every placement on it. It nests the
         // Neutral IconButton, the Divider and the Button, which the build places first wherever their pages sort.
         { page: 'Dialog', defs: ['dialog'] },
+        // Progress (#2670, owner call 10 A) — its own page under Components. It nests the Field Message, which the build
+        // places first wherever its page sorts. The Spinner stays under Subcomponents (#1670).
+        { page: 'Progress', defs: ['progress'] },
       ],
     },
     {
