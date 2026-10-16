@@ -63,7 +63,7 @@ Label = noun phrase, sentence case, no trailing colon. Button = "Show" / "Hide",
 | `autoComplete` | enum: 'current-password' \| 'new-password' | — | yes | Required (SC 1.3.5): `current-password` on a sign-in form, `new-password` where the user sets one, so a password manager fills or offers to generate it. Never `off`. |
 | `leadingIcon` | slot | — | no | An optional leading glyph before the value, aria-hidden and never the accessible name. Hidden by default; the file nominates the swap target. |
 | `isPending` | boolean | `false` | no | Async validation in progress; sets aria-busy; does not block typing. |
-| `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | TextField's three tiers: the input type, the nested label and the Show/Hide button scale with it. Every size keeps the input's 44px target; the button's hit area is 44×44 at medium and large and 24×24 at small. |
+| `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | TextField's three tiers: the input type and the nested label scale with it. The Show/Hide button is small at every size, so the label row stays one label line tall. Every size keeps the input's 44px target; the button's hit area is 24×24. |
 | `id` | string | — | no | Wiring + form submission; auto-generated with useId if omitted. The Show/Hide button's aria-controls names it. |
 | `name` | string | — | no | A real \<input name>, so the field works in a native \<form> and a password manager recognizes it. |
 
@@ -89,7 +89,7 @@ Label = noun phrase, sentence case, no trailing colon. Button = "Show" / "Hide",
   - 3.3.8 Accessible Authentication (paste is never blocked, so a password manager can fill the field)
   - 4.1.2 Name, Role, Value (the button's name changes Show password / Hide password)
   - 1.4.11 Non-text Contrast (TextField's field boundary)
-  - 2.5.8 Target Size (the button's hit area: 44×44, or 24×24 at small)
+  - 2.5.8 Target Size (the button's hit area: 24×24 at every size)
   - 2.4.13 Focus Appearance (intent)
 - **Keyboard:** Tab reaches the input, then the Show/Hide button. Enter or Space on the button shows or hides the password, and focus stays on the button. Tab order follows the visual order in left-to-right and right-to-left layouts.
 - **Focus:** The input takes TextField's focus ring. The button takes Button's own focus ring. Pressing the button never moves focus.
