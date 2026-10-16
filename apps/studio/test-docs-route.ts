@@ -53,6 +53,8 @@ try {
   const cases: Array<[string, string, string]> = [
     ['/docs/llms.txt', 'docs/public/llms.txt', 'text/plain'],
     ['/docs/reference/commands.json', 'docs/public/reference/commands.json', 'application/json'],
+    // The studio's Docs item opens this (#2662).
+    ['/docs/guides/index.md', 'docs/public/guides/index.md', 'text/markdown'],
   ];
   for (const [url, file, type] of cases) {
     const r = await get(url);
