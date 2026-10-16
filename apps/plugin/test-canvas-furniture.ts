@@ -44,7 +44,9 @@
  *                 missing template and Set up file, and the update's summary carries it. Mutations: the line dropped →
  *                 `templates/missing build`; one line per set → the same; the summary left out → `templates/update summary`.
  *   placement/…   sets deleted and rebuilt on Buttons and Icon button with the header and the third set kept (#2598): each
- *                 lands under the header in the first free slot from its left edge. Mutations: the old rule → every
+ *                 lands under the header in the first free slot from its left edge, the first with its labels on that
+ *                 edge and its frame where the first build put it (#2735). Mutations: the frame on the header's edge
+ *                 → `placement/header edge`, `placement/header edge slot`, `placement/<page> first`; the old rule → every
  *                 `placement/<page> …` arm; a gap or the set's width dropped → `placement/slot …`; the width dropped at
  *                 `applyComponentPlan`'s call → `placement/narrow gap`, a kept set moved into the rebuilt one's slot.
  *                 These arms read the helper's output; `test-build-completed.ts` `templates/… verdict` reads the line
@@ -834,6 +836,13 @@ section('placement — sets deleted and rebuilt on a page that keeps its header 
   // reach past the furthest node in the row, here a neighbor's label ending at 500: 500 + 160 + 120 = 780.
   ok(at(placeNewSet([hdr, kept], 200, 500, { left: 300, right: 400 })) === '1960,0',
     `placement/reach under a header: a set whose furniture reaches 300 left and 400 right goes past the kept set, its labels 160 clear, frame at 1960,0 (got ${at(placeNewSet([hdr, kept], 200, 500, { left: 300, right: 400 }))})`);
+  // THE FURNITURE EDGE ON THE HEADER'S EDGE (#2735): under a header at x 0, a set whose labels reach 300 left puts its
+  // labels at 0 and its frame at 300. A 400-wide one reaching 100 left still fits before the kept set at 1000
+  // (0 + 100 + 400 + 160 = 660), so its frame goes at 100. With no reach, the frame is the edge, at 0 (above).
+  ok(at(placeNewSet([hdr], 200, 500, { left: 300, right: 0 })) === '300,0',
+    `placement/header edge: under a header at 0, a set whose labels reach 300 left lands with its labels on the header's left edge, frame at 300,0 (got ${at(placeNewSet([hdr], 200, 500, { left: 300, right: 0 }))})`);
+  ok(at(placeNewSet([hdr, kept], 200, 400, { left: 100, right: 0 })) === '100,0',
+    `placement/header edge slot: a 400-wide set reaching 100 left takes the slot before the kept set, labels at 0, frame at 100,0 (got ${at(placeNewSet([hdr, kept], 200, 400, { left: 100, right: 0 }))})`);
   const nbr = { type: 'COMPONENT_SET', x: 0, y: 0, width: 400, height: 200 };
   const nbrLabel = { type: 'INSTANCE', x: 320, y: 20, width: 180, height: 40 };
   ok(at(placeNewSet([nbr, nbrLabel], 200, 300, { left: 120, right: 0 })) === '780,0',
@@ -878,8 +887,10 @@ section('placement — sets deleted and rebuilt on a page that keeps its header 
     for (const id of ids.slice(0, 2)) detach(page.children.find((c) => c.type === 'COMPONENT_SET' && c.name === id)!);
     const hb = box(header);
     const a = box(await buildOne(page, ids[0]));
-    ok(a.x === hb.x && a.y === first[ids[2]].y && a.x + a.w <= hb.x + hb.w,
-      `placement/${name} first: the rebuilt ${ids[0]} lands under the header on its left edge, top-aligned with ${ids[2]}, at ${hb.x},${first[ids[2]].y} (got ${a.x},${a.y}; the header spans ${hb.x}..${hb.x + hb.w})`);
+    // #2735: its furniture edge, not its frame, on the header's left edge, which puts it back where the first build did.
+    const aSeen = seenOf(page, ids[0]);
+    ok(aSeen.left === hb.x && a.x === first[ids[0]].x && a.x > hb.x && a.y === first[ids[2]].y && aSeen.right <= hb.x + hb.w,
+      `placement/${name} first: the rebuilt ${ids[0]} lands under the header with its labels on the header's left edge, its frame where the first build put it (${first[ids[0]].x}), top-aligned with ${ids[2]}, at ${first[ids[0]].x},${first[ids[2]].y} (got frame ${a.x},${a.y}, labels from ${aSeen.left}; the header spans ${hb.x}..${hb.x + hb.w})`);
     const b = box(await buildOne(page, ids[1]));
     const gap = seenOf(page, ids[1]).left - seenOf(page, ids[0]).right;
     ok(gap === 160 && b.y === a.y && b.x + b.w <= hb.x + hb.w,

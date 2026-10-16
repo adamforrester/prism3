@@ -908,9 +908,14 @@ const pageBoxes = (page: CompPageTarget): PageBox[] =>
  * header, and the header is not content to sit beside: measured as content, it put the first rebuilt set
  * `SET_GAP` right of the header, and its siblings beside that. So on a page with a header and no set, the set
  * goes where the first build put it relative to the header: its top `PAGE_HEADER_GAP` below the header's
- * bottom, its frame on the header's left edge. Any other node in that band (a stray note, a frame) pushes it right
- * by the same row rule, but it stays below the header and never takes a stray node's `y`. Its siblings then
- * top-align with it, as on a fresh page.
+ * bottom, its FURNITURE EDGE on the header's left edge (#2735): the outer left edge of its labels, the same edge
+ * `SET_GAP` is measured from, so its frame goes `reach.left` right of the header's edge. A first build lays the
+ * header over the content labels included, so the header's left edge is where the first set's labels start, and a
+ * set rebuilt here lands where the first build put it. With the frame on that edge instead, the labels hung left of
+ * the header by their own width (about 317px on Buttons). A set with no furniture is its frame, so with no reach
+ * (the executor's first placement, the paste payload) the frame goes on the edge. Any other node in that band (a
+ * stray note, a frame) pushes it right by the same row rule, but it stays below the header and never takes a stray
+ * node's `y`. Its siblings then top-align with it, as on a fresh page.
  *
  * ONE RULE UNDER A HEADER, SETS OR NO SETS (#2598). On a page with a header, the set takes the FIRST FREE SLOT in
  * its row, scanning right from the header's left edge. Before, a page that still held a sibling set put the new
@@ -932,7 +937,8 @@ export const placeNewSet = (existing: readonly PageBox[], height: number, width 
   if (h) {
     const y = sets.length ? Math.min(...sets.map((b) => b.y)) : h.y + h.height + PAGE_HEADER_GAP;
     const band = existing.filter((b) => b.y < y + height && b.y + b.height > y);
-    let x = h.x;
+    // The set's furniture edge on the header's left edge (#2735), its frame `reach.left` right of it.
+    let x = h.x + reach.left;
     for (let pushed = true; pushed;) {
       pushed = false;
       for (const b of band)
