@@ -3182,7 +3182,7 @@
           "type": "boolean",
           "default": false,
           "required": false,
-          "description": "Content arriving asynchronously, such as a draft streaming into the field: sets aria-busy; does not block typing unless intended. A code-only state; no Figma member shows it. The same prop as TextField's."
+          "description": "Content arriving asynchronously, such as a draft streaming into the field: sets aria-busy; does not block typing unless intended. The same prop as TextField's."
         },
         {
           "name": "size",
