@@ -23,7 +23,7 @@
  * set into the Breadcrumbs `items` slot, which offers it as its preferred item, and a file using the library cannot
  * insert a set the library does not publish: the projection refuses a `_` id in a slot's `preferred` for that reason
  * (`slotPreferredOf` in `anatomy-figma.ts`). So the item keeps a plain id until the owner rules between the prefix
- * and the slot's preferred item.
+ * and the slot's preferred item (#2783).
  *
  * SIZE ORDER (owner decisions Q347 A and Q359 B on #2752, 2026-10-16): Figma's first member equals the code default
  * on every axis, and every size axis leads with `medium`. The proposal listed small first; the later rule wins, so
@@ -205,7 +205,7 @@ export const breadcrumbItem: ComponentDef = {
 
   notes: {
     contested: [
-      'The ancestor\'s label in Figma: the item\'s own `label` text property drives the current page\'s text only. An ancestor\'s text is the nested Link\'s `label`, set on the exposed Link, so the slot\'s default ancestors read "Link text" rather than "Home" and "Category": a host cannot yet override a text two nesting levels down.',
+      'The ancestor\'s label in Figma: the item\'s own `label` text property drives the current page\'s text only. An ancestor\'s text is the nested Link\'s `label`, set on the exposed Link, so the slot\'s default ancestors read "Link text" rather than "Home" and "Category": a host cannot yet override a text two nesting levels down (#2781).',
     ],
     unverified: [
       'The separator\'s contrast (lowest 3.51:1 on background.primary, 3.16:1 on background.secondary, measured for the proposal) is decorative and held to no floor.',

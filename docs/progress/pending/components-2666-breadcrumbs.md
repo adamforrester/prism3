@@ -18,7 +18,7 @@ and FlushIconButton.Neutral carry their own, exposed (`nest-exposed`, `expose: [
 - **No `_` prefix on the item, held for the owner.** Q349 gives a part used only inside its parent the `_` prefix,
   and the lane's brief expected the item to take it. But the projection refuses a `_` id as a slot's preferred item
   (`slotPreferredOf`): Figma leaves `_` sets out of a published library, so a file using the library could not insert
-  more steps. The item keeps a plain id until the owner rules. The same conflict waits for `_list-item` (the naming
+  more steps. The item keeps a plain id until the owner rules (#2783). The same conflict waits for `_list-item` (the naming
   sweep) against List's items slot (#2660).
 - **Contrast is measured from the committed emission,** not from the theme the engine computes: the arm reads each
   `out/<brand>.tokens.json`, resolves the mode aliases itself, and asserts 20 cells literally. Link ink 4.5:1 on
@@ -35,6 +35,8 @@ and FlushIconButton.Neutral carry their own, exposed (`nest-exposed`, `expose: [
   slot's preferred def a keyed set.
 - **A slot item's label cannot be set two levels down.** The slot's default ancestors read Link's "Link text", not the
   approved "Home" and "Category": a host's #2645 override reaches its own nested instance, not that instance's nested
-  Link. The proposal named this gap. The parent layout's Link is one level down and reads "Parent page".
+  Link. The proposal named this gap; #2781 tracks it. The parent layout's Link is one level down and reads "Parent page".
+- **The collapsed-trail example is not on the canvas.** The proposal's §12 places one beside the set; the canvas
+  furniture cannot place a configured instance yet (#2784).
 - **The wireframe's CSS and the proposal's token table disagree on the separator gap.** The wireframe draws 4px either
   side at both sizes; the table says `space.050` small and `space.100` medium (DRAFT). The build follows the table.
