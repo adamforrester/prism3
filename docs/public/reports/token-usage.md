@@ -2592,7 +2592,7 @@ Type: dimension. Bound by 23 component(s).
 |  |  | counterCell | every member (84 of 84) |
 |  |  | messageCell | every member (84 of 84) |
 |  |  | messageRow | every member (84 of 84) |
-| toast | `gap`, `pad-block`, `pad-end` | container | every member (2 of 2) |
+| toast | `gap`, `pad-end`, `pad-y` | container | every member (2 of 2) |
 
 ### `space.150`
 
@@ -2642,7 +2642,7 @@ Type: dimension. Bound by 15 component(s).
 | tag | `size.large.padding-x`, `size.large.select.padding-end` | content | size: large (15 of 45) |
 | text-field | `size.medium.pad-x`, `size.small.pad-x` | control | size: medium, small (56 of 84) |
 | textarea | `size.medium.pad-x`, `size.small.pad-x` | control | size: medium, small (56 of 84) |
-| toast | `pad-start` | container | every member (2 of 2) |
+| toast | `pad-x` | container | every member (2 of 2) |
 
 ### `space.250`
 

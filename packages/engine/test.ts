@@ -3785,7 +3785,7 @@ for (const b of brands) {
       link: { keys: ['gap'], sizes: ['small', 'medium', 'large'] },
       // Toast (#2668): no size axis, so every key is bare. block / inline start / inline end / message-to-controls gap /
       // glyph-to-message gap. The action-to-close 4px is not listed: it stays at the floor.
-      toast: { keys: [], sizes: [], bare: ['pad-block', 'pad-start', 'pad-end', 'gap', 'glyph-gap'] },
+      toast: { keys: [], sizes: [], bare: ['pad-y', 'pad-x', 'pad-end', 'gap', 'glyph-gap'] },
     };
     const BTN = { compact: 'small 12/8/4/6 · medium 12/8/6/6 · large 20/12/6/8', comfortable: 'small 16/12/6/8 · medium 16/12/8/8 · large 24/16/8/12', spacious: 'small 20/16/8/12 · medium 20/16/12/12 · large 32/20/12/16' };
     const ROWS = { compact: 'small 6 · medium 6 · large 8', comfortable: 'small 8 · medium 8 · large 12', spacious: 'small 12 · medium 12 · large 16' };
@@ -3893,6 +3893,8 @@ for (const b of brands) {
       tab: { prefix: 'sized', lt: [['gap', 'padding-x']] },
       'segmented-control-segment': { prefix: 'sized', lt: [['gap', 'padding-x']] },
       accordion: { prefix: 'sized', lt: [['gap', 'pad-x']] },
+      // Toast (#2668): no size axis, so the keys are bare. Both content gaps sit under the inline-start padding.
+      toast: { prefix: 'bare', lt: [['gap', 'pad-x'], ['glyph-gap', 'pad-x']] },
     };
     const GAP_TAILS = ['gap', 'check-gap'];
     const PAD_TAILS = ['padding-x', 'pad-x'];
@@ -31804,7 +31806,7 @@ arm: {
     for (const d of ['compact', 'comfortable', 'spacious'] as const) {
       const m = applySpacingDensity(td, d);
       const px = (k: string) => SPACE_PX.get(m.tokens[k])!;
-      if (!(px('gap') < px('pad-start') && px('glyph-gap') < px('pad-start') && px('controls-gap') === 4)) bad.push(`${d}: gap ${px('gap')} glyph ${px('glyph-gap')} controls ${px('controls-gap')} start ${px('pad-start')}`);
+      if (!(px('gap') < px('pad-x') && px('glyph-gap') < px('pad-x') && px('controls-gap') === 4)) bad.push(`${d}: gap ${px('gap')} glyph ${px('glyph-gap')} controls ${px('controls-gap')} start ${px('pad-x')}`);
     }
     ok(bad.length === 0, `#2668 toast spacing: the gaps sit under the 16px-class start padding at every density, the action-to-close gap a fixed 4px${bad.length ? ` — ${bad.join('; ')}` : ''}`);
   }

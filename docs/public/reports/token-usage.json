@@ -18209,8 +18209,8 @@
         "toast": {
           "keys": [
             "gap",
-            "pad-block",
-            "pad-end"
+            "pad-end",
+            "pad-y"
           ],
           "parts": {
             "container": {
@@ -18735,7 +18735,7 @@
         },
         "toast": {
           "keys": [
-            "pad-start"
+            "pad-x"
           ],
           "parts": {
             "container": {

@@ -55,6 +55,13 @@ rather than as a Toast text property (a host text property can only drive the ho
   update refused the set ("component the plan swaps to is not in this file: icon/close") and both members stayed
   "to update". A real file holds the icon set; the fixture now holds each def's override swap targets too. The arm
   still re-applies every def.
+- `CANVAS_FURNITURE` (the set labels, #2502) lists Toast, and `test-canvas-furniture.ts` `rollout/switch` counts 40
+  sets; its fixture file holds override swap targets for the same reason as the update corpus.
+- The padding keys use the corpus spelling, `pad-y` and `pad-x`, so the studio's set list shows Toast's padding and gap
+  as it does a field's, and `test.ts`'s spacing-order scope arm finds Toast and holds it to a bare rule (gap and
+  glyph gap under `pad-x`). `pad-end` and `glyph-gap` are classified hidden in the studio's C2 list.
+- `test-chrome.mjs` probed `radius.xl` as the radius no component binds; Toast binds it now, so the probe is
+  `radius.lg`.
 - Generated with the def: the studio's used-by index and component catalog, and the ecosystem data's
   component-defs list (`lint-ecosystem`).
 

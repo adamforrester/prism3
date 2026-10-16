@@ -75,8 +75,8 @@ export const toast: ComponentDef = {
     'glyph-size': 'icon.size.sm',
     // ── SPACE (the proposal's §8, DRAFT, approved by call 13 A): block 8, inline start 16, inline end 8; the glyph to
     // the message 12; the action to the close 4. The message to the controls is this build's, 8 (the wireframe's).
-    'pad-block': 'space.100',
-    'pad-start': 'space.200',
+    'pad-y': 'space.100',
+    'pad-x': 'space.200',
     'pad-end': 'space.100',
     'gap': 'space.100',
     'glyph-gap': 'space.150',
@@ -85,7 +85,7 @@ export const toast: ComponentDef = {
 
   // The paddings and the two content gaps follow density. The 4px between the action and the close does not: it is
   // already the gap floor (`space.050`), and compact would take it to 2.
-  densitySpacing: ['pad-block', 'pad-start', 'pad-end', 'gap', 'glyph-gap'],
+  densitySpacing: ['pad-y', 'pad-x', 'pad-end', 'gap', 'glyph-gap'],
 
   anatomy: {
     root: 'container',
@@ -100,7 +100,7 @@ export const toast: ComponentDef = {
         // Built 360 wide (call 11 A), a small phone's width less nothing: in code it is the viewport less the grid
         // margins below 768px, and 320 to 480px from 768px.
         placementWidth: 360,
-        padding: { block: 'pad-block', inlineLabel: 'pad-start', inlineEnd: 'pad-end' },
+        padding: { block: 'pad-y', inlineLabel: 'pad-x', inlineEnd: 'pad-end' },
         gap: 'gap',
         children: ['content', 'controls'],
         note: 'The toast: the inverse surface, its shadow and its corners. It holds the message on the start side and the action and close button on the end side.',

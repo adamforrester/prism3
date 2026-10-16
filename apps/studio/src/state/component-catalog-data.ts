@@ -1123,11 +1123,11 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "unit": "variants",
     "spacing": [
       {
-        "key": "pad-block",
+        "key": "pad-y",
         "ref": "space.100"
       },
       {
-        "key": "pad-start",
+        "key": "pad-x",
         "ref": "space.200"
       },
       {
