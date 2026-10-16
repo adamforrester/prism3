@@ -98,10 +98,10 @@ export const spinner: ComponentDef = {
         role: 'target',
         size: 'size.{size}',
         layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'fixed', y: 'fixed' } },
-        children: ['ring'],
+        children: ['ringGlyph'],
         note: 'The square on the icon ladder. Paints nothing; it is the box a host resizes to its own slot. `target` only in the schema\'s sense — the spinner is never interactive.',
       },
-      ring: {
+      ringGlyph: {
         kind: 'vector',
         glyph: 'spinner',
         size: 'size.{size}',

@@ -349,7 +349,7 @@ export const textarea: ComponentDef = {
         radius: 'radius',
         strokeWidth: 'border-width',
         padding: { block: 'size.{size}.pad-y', inlineLabel: 'size.{size}.pad-x' },
-        children: ['caret', 'placeholder', 'value', 'grip', 'focusRing'],
+        children: ['caret', 'placeholder', 'value', 'gripGlyph', 'focusRing'],
       },
       // THE FOCUS CARET (owner decision, 2026-09-26) — text-field's part: present only at focus-visible, a
       // childless bar in its own `caret` slot, one hairline wide and one value line tall. The control's row
@@ -392,7 +392,7 @@ export const textarea: ComponentDef = {
       // THE RESIZE GRIP (owner decision (c)) — pinned into the control's bottom-right corner, out of the flow,
       // so it takes no cell: the value text keeps the control's whole width with the grip drawn or not, and
       // the control's box does not move. Inset from the corner by the control's own edge weight.
-      grip: {
+      gripGlyph: {
         kind: 'vector',
         glyph: 'resize-grip',
         size: 'grip-size',
@@ -498,7 +498,7 @@ export const textarea: ComponentDef = {
       // Keyed by `resize`, the code prop that decides whether the browser draws a handle (`vertical`, the
       // default, does). A boolean rather than a variant axis: the grip is pinned out of the flow, so its
       // presence moves nothing and a node-visibility toggle carries it (the icon-property canon).
-      resize: { part: 'grip', figmaName: 'resize handle', default: true },
+      resize: { part: 'gripGlyph', figmaName: 'resize handle', default: true },
       showCount: { part: 'counterCell', figmaName: 'character count', default: false },
     },
   },

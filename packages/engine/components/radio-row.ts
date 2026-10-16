@@ -205,7 +205,7 @@ export const radioRow: ComponentDef = {
 
   // ── ANATOMY — THE LABELED ROW THAT NESTS THE CONTROL (#910, #1348) ─────────────────────────────────
   //
-  // Three parts now, not five: the whole ROW is the hit target, `controlBox` is the #1201 line-box
+  // Three parts now, not five: the whole ROW is the hit target, `controlCell` is the #1201 line-box
   // wrapper, and its CHILD is a `nest` of `radio-control` where the circle, dot and focus ring used to be
   // authored in place. The atom paints itself; the Row paints the label. This is the composition #1226
   // asked for and #1330/#1354 proved twice — a shared control single-sourced, a fix to it propagating here.
@@ -213,7 +213,7 @@ export const radioRow: ComponentDef = {
   // THE ROW MUST NOT CENTER. Option labels wrap by design (the guidance is to wrap rather than truncate,
   // keeping per-option detail in `description`), so `align: center` here would float the disc to the
   // middle of a two-line option, the wrong repair `test.ts` #1009 half-1 forbids. The row stays
-  // top-aligned (`align: start`) and the centring lives one level down, in `controlBox`, which is one
+  // top-aligned (`align: start`) and the centring lives one level down, in `controlCell`, which is one
   // line-box tall — landing the disc on the first line (#1201).
   anatomy: {
     root: 'row',
@@ -237,13 +237,13 @@ export const radioRow: ComponentDef = {
         // at 320 and overflowed it. Both are literal projection defaults, not bound tokens, so CONTRACT holds.
         placementWidth: 320,
         minWidth: 120,
-        children: ['controlBox', 'label'],
+        children: ['controlCell', 'label'],
       },
       // THE ALIGNMENT BOX (#1201, building the fix #1009 filed). One line of the label tall
       // (`size.{size}.control-box` → the baked `body.{rung}` line-box), centring the disc on its cross
       // axis. Draws nothing — it exists only to give the disc a line-tall box to center within, so the
       // top-aligned row holds it on the FIRST line of a wrapping option. Height FIXED; width HUGs the disc.
-      controlBox: {
+      controlCell: {
         kind: 'box',
         role: 'presentation',
         height: 'size.{size}.control-box',

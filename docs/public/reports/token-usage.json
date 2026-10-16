@@ -68,7 +68,7 @@
             "vertical.width"
           ],
           "parts": {
-            "divider": {
+            "container": {
               "members": 5,
               "where": {}
             }
@@ -252,7 +252,7 @@
               "members": 84,
               "where": {}
             },
-            "grip": {
+            "gripGlyph": {
               "members": 84,
               "where": {}
             }
@@ -2101,7 +2101,7 @@
             "disabled.icon"
           ],
           "parts": {
-            "check": {
+            "checkGlyph": {
               "members": 3,
               "where": {
                 "selection": [
@@ -2388,7 +2388,7 @@
             "disabled.label.on-fill"
           ],
           "parts": {
-            "chevron": {
+            "chevronGlyph": {
               "members": 12,
               "where": {
                 "state": [
@@ -2467,7 +2467,7 @@
             "disabled.label.on-fill"
           ],
           "parts": {
-            "grip": {
+            "gripGlyph": {
               "members": 12,
               "where": {
                 "state": [
@@ -2622,7 +2622,7 @@
                 ]
               }
             },
-            "text": {
+            "label": {
               "members": 12,
               "where": {
                 "state": [
@@ -3264,7 +3264,7 @@
             "error.icon"
           ],
           "parts": {
-            "iconError": {
+            "errorGlyph": {
               "members": 1,
               "where": {
                 "status": [
@@ -3461,7 +3461,7 @@
             "icon"
           ],
           "parts": {
-            "chevron": {
+            "chevronGlyph": {
               "members": 72,
               "where": {
                 "state": [
@@ -3494,7 +3494,7 @@
             "icon"
           ],
           "parts": {
-            "ring": {
+            "ringGlyph": {
               "members": 4,
               "where": {}
             }
@@ -3555,7 +3555,7 @@
             "icon"
           ],
           "parts": {
-            "grip": {
+            "gripGlyph": {
               "members": 72,
               "where": {
                 "state": [
@@ -3580,7 +3580,7 @@
             "success.icon"
           ],
           "parts": {
-            "iconSuccess": {
+            "successGlyph": {
               "members": 1,
               "where": {
                 "status": [
@@ -3612,7 +3612,7 @@
             "icon"
           ],
           "parts": {
-            "marker": {
+            "markerGlyph": {
               "members": 7,
               "where": {}
             }
@@ -3628,7 +3628,7 @@
             "warning.icon"
           ],
           "parts": {
-            "iconWarning": {
+            "warningGlyph": {
               "members": 1,
               "where": {
                 "status": [
@@ -5177,7 +5177,7 @@
             "unselected.icon.hover"
           ],
           "parts": {
-            "check": {
+            "checkGlyph": {
               "members": 3,
               "where": {
                 "selection": [
@@ -5345,7 +5345,7 @@
             "unselected.icon.pressed"
           ],
           "parts": {
-            "check": {
+            "checkGlyph": {
               "members": 3,
               "where": {
                 "selection": [
@@ -5393,7 +5393,7 @@
             "icon"
           ],
           "parts": {
-            "chevronDown": {
+            "chevronDownGlyph": {
               "members": 3,
               "where": {
                 "expansion": [
@@ -5404,7 +5404,7 @@
                 ]
               }
             },
-            "chevronUp": {
+            "chevronUpGlyph": {
               "members": 3,
               "where": {
                 "expansion": [
@@ -5415,7 +5415,7 @@
                 ]
               }
             },
-            "minus": {
+            "minusGlyph": {
               "members": 3,
               "where": {
                 "expansion": [
@@ -5426,7 +5426,7 @@
                 ]
               }
             },
-            "plus": {
+            "plusGlyph": {
               "members": 3,
               "where": {
                 "expansion": [
@@ -5601,7 +5601,7 @@
             "unselected.icon"
           ],
           "parts": {
-            "check": {
+            "checkGlyph": {
               "members": 6,
               "where": {
                 "selection": [
@@ -11285,7 +11285,7 @@
                 ]
               }
             },
-            "text": {
+            "label": {
               "members": 1,
               "where": {
                 "emphasis": [
@@ -11311,7 +11311,7 @@
             "danger.status.subtle.label"
           ],
           "parts": {
-            "text": {
+            "label": {
               "members": 1,
               "where": {
                 "emphasis": [
@@ -11332,7 +11332,7 @@
             "error.label"
           ],
           "parts": {
-            "text": {
+            "label": {
               "members": 1,
               "where": {
                 "status": [
@@ -11352,7 +11352,7 @@
             "info.status.subtle.label"
           ],
           "parts": {
-            "text": {
+            "label": {
               "members": 1,
               "where": {
                 "emphasis": [
@@ -11485,7 +11485,7 @@
                 ]
               }
             },
-            "text": {
+            "label": {
               "members": 1,
               "where": {
                 "emphasis": [
@@ -11526,7 +11526,7 @@
                 ]
               }
             },
-            "text": {
+            "label": {
               "members": 1,
               "where": {
                 "emphasis": [
@@ -11567,7 +11567,7 @@
                 ]
               }
             },
-            "text": {
+            "label": {
               "members": 1,
               "where": {
                 "emphasis": [
@@ -11608,7 +11608,7 @@
                 ]
               }
             },
-            "text": {
+            "label": {
               "members": 1,
               "where": {
                 "emphasis": [
@@ -11634,6 +11634,10 @@
             "label"
           ],
           "parts": {
+            "label": {
+              "members": 9,
+              "where": {}
+            },
             "number": {
               "members": 3,
               "where": {
@@ -11641,10 +11645,6 @@
                   "ordered"
                 ]
               }
-            },
-            "text": {
-              "members": 9,
-              "where": {}
             }
           }
         },
@@ -11668,7 +11668,7 @@
             "neutral.status.subtle.label"
           ],
           "parts": {
-            "text": {
+            "label": {
               "members": 1,
               "where": {
                 "emphasis": [
@@ -11728,7 +11728,7 @@
                 ]
               }
             },
-            "text": {
+            "label": {
               "members": 6,
               "where": {
                 "emphasis": [
@@ -11909,7 +11909,7 @@
                 ]
               }
             },
-            "text": {
+            "label": {
               "members": 6,
               "where": {
                 "emphasis": [
@@ -11927,7 +11927,7 @@
             "default.label"
           ],
           "parts": {
-            "text": {
+            "label": {
               "members": 1,
               "where": {
                 "status": [
@@ -12041,7 +12041,7 @@
             "success.status.subtle.label"
           ],
           "parts": {
-            "text": {
+            "label": {
               "members": 1,
               "where": {
                 "emphasis": [
@@ -12062,7 +12062,7 @@
             "success.label"
           ],
           "parts": {
-            "text": {
+            "label": {
               "members": 1,
               "where": {
                 "status": [
@@ -12082,7 +12082,7 @@
             "warning.status.subtle.label"
           ],
           "parts": {
-            "text": {
+            "label": {
               "members": 1,
               "where": {
                 "emphasis": [
@@ -12103,7 +12103,7 @@
             "warning.label"
           ],
           "parts": {
-            "text": {
+            "label": {
               "members": 1,
               "where": {
                 "status": [
@@ -12313,7 +12313,7 @@
             "horizontal.width"
           ],
           "parts": {
-            "divider": {
+            "container": {
               "members": 3,
               "where": {
                 "orientation": [
@@ -12396,6 +12396,17 @@
             "size.large.control"
           ],
           "parts": {
+            "checkGlyph": {
+              "members": 6,
+              "where": {
+                "selection": [
+                  "checked"
+                ],
+                "size": [
+                  "large"
+                ]
+              }
+            },
             "control": {
               "members": 18,
               "where": {
@@ -12404,22 +12415,11 @@
                 ]
               }
             },
-            "dash": {
+            "dashGlyph": {
               "members": 6,
               "where": {
                 "selection": [
                   "indeterminate"
-                ],
-                "size": [
-                  "large"
-                ]
-              }
-            },
-            "mark": {
-              "members": 6,
-              "where": {
-                "selection": [
-                  "checked"
                 ],
                 "size": [
                   "large"
@@ -12498,7 +12498,7 @@
             "size.large.control-box"
           ],
           "parts": {
-            "controlBox": {
+            "controlCell": {
               "members": 1,
               "where": {
                 "size": [
@@ -12542,7 +12542,7 @@
             "size.large.control-box"
           ],
           "parts": {
-            "controlBox": {
+            "controlCell": {
               "members": 1,
               "where": {
                 "size": [
@@ -12670,6 +12670,17 @@
             "size.medium.control"
           ],
           "parts": {
+            "checkGlyph": {
+              "members": 6,
+              "where": {
+                "selection": [
+                  "checked"
+                ],
+                "size": [
+                  "medium"
+                ]
+              }
+            },
             "control": {
               "members": 18,
               "where": {
@@ -12678,22 +12689,11 @@
                 ]
               }
             },
-            "dash": {
+            "dashGlyph": {
               "members": 6,
               "where": {
                 "selection": [
                   "indeterminate"
-                ],
-                "size": [
-                  "medium"
-                ]
-              }
-            },
-            "mark": {
-              "members": 6,
-              "where": {
-                "selection": [
-                  "checked"
                 ],
                 "size": [
                   "medium"
@@ -12792,7 +12792,7 @@
             "size.medium.control-box"
           ],
           "parts": {
-            "controlBox": {
+            "controlCell": {
               "members": 1,
               "where": {
                 "size": [
@@ -12836,7 +12836,7 @@
             "size.medium.control-box"
           ],
           "parts": {
-            "controlBox": {
+            "controlCell": {
               "members": 1,
               "where": {
                 "size": [
@@ -12851,7 +12851,7 @@
             "size.medium.control-box"
           ],
           "parts": {
-            "trackBox": {
+            "controlCell": {
               "members": 1,
               "where": {
                 "size": [
@@ -13094,6 +13094,17 @@
             "size.small.control"
           ],
           "parts": {
+            "checkGlyph": {
+              "members": 6,
+              "where": {
+                "selection": [
+                  "checked"
+                ],
+                "size": [
+                  "small"
+                ]
+              }
+            },
             "control": {
               "members": 18,
               "where": {
@@ -13102,22 +13113,11 @@
                 ]
               }
             },
-            "dash": {
+            "dashGlyph": {
               "members": 6,
               "where": {
                 "selection": [
                   "indeterminate"
-                ],
-                "size": [
-                  "small"
-                ]
-              }
-            },
-            "mark": {
-              "members": 6,
-              "where": {
-                "selection": [
-                  "checked"
                 ],
                 "size": [
                   "small"
@@ -13216,7 +13216,7 @@
             "size.small.control-box"
           ],
           "parts": {
-            "controlBox": {
+            "controlCell": {
               "members": 1,
               "where": {
                 "size": [
@@ -13260,7 +13260,7 @@
             "size.small.control-box"
           ],
           "parts": {
-            "controlBox": {
+            "controlCell": {
               "members": 1,
               "where": {
                 "size": [
@@ -13275,7 +13275,7 @@
             "size.small.control-box"
           ],
           "parts": {
-            "trackBox": {
+            "controlCell": {
               "members": 1,
               "where": {
                 "size": [
@@ -14292,7 +14292,7 @@
                 ]
               }
             },
-            "ring": {
+            "ringGlyph": {
               "members": 1,
               "where": {
                 "size": [
@@ -14307,7 +14307,7 @@
             "size.large.icon"
           ],
           "parts": {
-            "check": {
+            "checkGlyph": {
               "members": 5,
               "where": {
                 "selection": [
@@ -14355,7 +14355,7 @@
             "size.large.icon"
           ],
           "parts": {
-            "chevronDown": {
+            "chevronDownGlyph": {
               "members": 1,
               "where": {
                 "expansion": [
@@ -14369,7 +14369,7 @@
                 ]
               }
             },
-            "chevronUp": {
+            "chevronUpGlyph": {
               "members": 1,
               "where": {
                 "expansion": [
@@ -14391,7 +14391,7 @@
                 ]
               }
             },
-            "minus": {
+            "minusGlyph": {
               "members": 1,
               "where": {
                 "expansion": [
@@ -14405,7 +14405,7 @@
                 ]
               }
             },
-            "plus": {
+            "plusGlyph": {
               "members": 1,
               "where": {
                 "expansion": [
@@ -14809,7 +14809,7 @@
                 ]
               }
             },
-            "ring": {
+            "ringGlyph": {
               "members": 1,
               "where": {
                 "size": [
@@ -14824,7 +14824,7 @@
             "size.medium.icon"
           ],
           "parts": {
-            "check": {
+            "checkGlyph": {
               "members": 5,
               "where": {
                 "selection": [
@@ -14872,7 +14872,7 @@
             "size.medium.icon"
           ],
           "parts": {
-            "chevronDown": {
+            "chevronDownGlyph": {
               "members": 1,
               "where": {
                 "expansion": [
@@ -14886,7 +14886,7 @@
                 ]
               }
             },
-            "chevronUp": {
+            "chevronUpGlyph": {
               "members": 1,
               "where": {
                 "expansion": [
@@ -14908,7 +14908,7 @@
                 ]
               }
             },
-            "minus": {
+            "minusGlyph": {
               "members": 1,
               "where": {
                 "expansion": [
@@ -14922,7 +14922,7 @@
                 ]
               }
             },
-            "plus": {
+            "plusGlyph": {
               "members": 1,
               "where": {
                 "expansion": [
@@ -15359,7 +15359,7 @@
             "icon-size"
           ],
           "parts": {
-            "chevron": {
+            "chevronGlyph": {
               "members": 84,
               "where": {}
             },
@@ -15382,7 +15382,7 @@
                 ]
               }
             },
-            "ring": {
+            "ringGlyph": {
               "members": 1,
               "where": {
                 "size": [
@@ -15397,7 +15397,7 @@
             "size.small.icon"
           ],
           "parts": {
-            "check": {
+            "checkGlyph": {
               "members": 5,
               "where": {
                 "selection": [
@@ -15460,7 +15460,7 @@
             "size.small.icon"
           ],
           "parts": {
-            "chevronDown": {
+            "chevronDownGlyph": {
               "members": 1,
               "where": {
                 "expansion": [
@@ -15474,7 +15474,7 @@
                 ]
               }
             },
-            "chevronUp": {
+            "chevronUpGlyph": {
               "members": 1,
               "where": {
                 "expansion": [
@@ -15496,7 +15496,7 @@
                 ]
               }
             },
-            "minus": {
+            "minusGlyph": {
               "members": 1,
               "where": {
                 "expansion": [
@@ -15510,7 +15510,7 @@
                 ]
               }
             },
-            "plus": {
+            "plusGlyph": {
               "members": 1,
               "where": {
                 "expansion": [
@@ -15672,7 +15672,7 @@
             "glyph-size"
           ],
           "parts": {
-            "iconError": {
+            "errorGlyph": {
               "members": 1,
               "where": {
                 "status": [
@@ -15680,7 +15680,11 @@
                 ]
               }
             },
-            "iconSuccess": {
+            "message": {
+              "members": 4,
+              "where": {}
+            },
+            "successGlyph": {
               "members": 1,
               "where": {
                 "status": [
@@ -15688,17 +15692,13 @@
                 ]
               }
             },
-            "iconWarning": {
+            "warningGlyph": {
               "members": 1,
               "where": {
                 "status": [
                   "warning"
                 ]
               }
-            },
-            "message": {
-              "members": 4,
-              "where": {}
             }
           }
         },
@@ -15741,7 +15741,7 @@
                 ]
               }
             },
-            "ring": {
+            "ringGlyph": {
               "members": 1,
               "where": {
                 "size": [
@@ -15756,7 +15756,7 @@
             "grip-size"
           ],
           "parts": {
-            "grip": {
+            "gripGlyph": {
               "members": 84,
               "where": {}
             }
@@ -16587,7 +16587,7 @@
             "vertical.height"
           ],
           "parts": {
-            "divider": {
+            "container": {
               "members": 2,
               "where": {
                 "inset": [
@@ -17265,7 +17265,7 @@
             "vertical.none.pad-start"
           ],
           "parts": {
-            "divider": {
+            "container": {
               "members": 5,
               "where": {}
             }
@@ -17421,7 +17421,7 @@
             "gap"
           ],
           "parts": {
-            "label": {
+            "container": {
               "members": 24,
               "where": {}
             }
@@ -17845,7 +17845,7 @@
             "vertical.middle-inset.pad-block"
           ],
           "parts": {
-            "divider": {
+            "container": {
               "members": 1,
               "where": {
                 "inset": [
@@ -18469,7 +18469,7 @@
             "horizontal.middle-inset.pad-start"
           ],
           "parts": {
-            "divider": {
+            "container": {
               "members": 2,
               "where": {
                 "inset": [
@@ -18898,6 +18898,14 @@
             "size.large.text"
           ],
           "parts": {
+            "label": {
+              "members": 3,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            },
             "number": {
               "members": 1,
               "where": {
@@ -18906,14 +18914,6 @@
                 ],
                 "type": [
                   "ordered"
-                ]
-              }
-            },
-            "text": {
-              "members": 3,
-              "where": {
-                "size": [
-                  "large"
                 ]
               }
             }
@@ -19224,6 +19224,14 @@
             "size.medium.text"
           ],
           "parts": {
+            "label": {
+              "members": 3,
+              "where": {
+                "size": [
+                  "medium"
+                ]
+              }
+            },
             "number": {
               "members": 1,
               "where": {
@@ -19232,14 +19240,6 @@
                 ],
                 "type": [
                   "ordered"
-                ]
-              }
-            },
-            "text": {
-              "members": 3,
-              "where": {
-                "size": [
-                  "medium"
                 ]
               }
             }
@@ -19310,7 +19310,7 @@
                 ]
               }
             },
-            "text": {
+            "label": {
               "members": 4,
               "where": {
                 "size": [
@@ -19563,7 +19563,7 @@
                 ]
               }
             },
-            "text": {
+            "label": {
               "members": 4,
               "where": {
                 "size": [
@@ -19639,6 +19639,14 @@
             "size.small.text"
           ],
           "parts": {
+            "label": {
+              "members": 3,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            },
             "number": {
               "members": 1,
               "where": {
@@ -19647,14 +19655,6 @@
                 ],
                 "type": [
                   "ordered"
-                ]
-              }
-            },
-            "text": {
-              "members": 3,
-              "where": {
-                "size": [
-                  "small"
                 ]
               }
             }
@@ -19709,7 +19709,7 @@
                 ]
               }
             },
-            "text": {
+            "label": {
               "members": 4,
               "where": {
                 "size": [
@@ -19962,7 +19962,7 @@
                 ]
               }
             },
-            "text": {
+            "label": {
               "members": 4,
               "where": {
                 "size": [
@@ -20049,7 +20049,7 @@
                 ]
               }
             },
-            "text": {
+            "label": {
               "members": 4,
               "where": {
                 "size": [
@@ -20083,7 +20083,7 @@
                 ]
               }
             },
-            "text": {
+            "label": {
               "members": 4,
               "where": {
                 "size": [
@@ -20106,7 +20106,7 @@
             "type"
           ],
           "parts": {
-            "text": {
+            "label": {
               "members": 4,
               "where": {}
             }
@@ -20775,7 +20775,7 @@
                 ]
               }
             },
-            "text": {
+            "label": {
               "members": 10,
               "where": {
                 "type": [

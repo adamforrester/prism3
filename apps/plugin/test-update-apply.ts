@@ -1072,6 +1072,43 @@ section('def rename, nested — a set renamed in the same run counts as present 
   ok(alone.blockers.some((b) => b.startsWith('Not in this file: _tab-item')), `def rename, nested/alone: without Tab item in the run, Tabs is refused, naming it (${JSON.stringify(alone.blockers)})`);
 }
 
+/* ── part rename (#2759) ───────────────────────────────────────────────────────────────────────────────── */
+section('part rename — a layer the ledger renames is renamed in place, keeping its id, not replaced (#2759)');
+{
+  // A Tag built before Q350, by the real executor from the plans as they were: the check layer was `check`.
+  const planned = plansOf(TAG);
+  const old = planned.map((p) => JSON.parse(JSON.stringify(p).split('"checkGlyph"').join('"check"')) as AnatomyPlan);
+  ok(JSON.stringify(planned).includes('"name":"checkGlyph"') && !JSON.stringify(old).includes('checkGlyph'), 'premise: the plans name the layer `checkGlyph`, and the file was built from plans naming it `check`');
+  const w = await world(TAG, old);
+  const selected = (): Node[] => membersOf(w.set()).filter((m) => /selection=selected/.test(String(m.name)) && /type=select/.test(String(m.name)));
+  const findIn = (n: Node, name: string): Node | undefined => {
+    if (n.name === name) return n;
+    if (n.type === 'INSTANCE') return undefined;
+    for (const c of (n.children as Node[] | undefined) ?? []) { const f = findIn(c, name); if (f) return f; }
+    return undefined;
+  };
+  const idsBefore = new Map(selected().map((m) => [String(m.name), String(findIn(m, 'check')?.id ?? '')] as const));
+  ok(idsBefore.size === 15 && [...idsBefore.values()].every(Boolean), `premise: all 15 selected members hold a 'check' layer (${idsBefore.size})`);
+  const before = identityOf(w.set());
+  const unclaimed = (await previewUpdate(w.host, [{ def: TAG, plans: planned }], undefined, [])).sets[0];
+  ok(unclaimed.changes.some((c) => c.field === 'children') && unclaimed.changes.some((c) => c.part.endsWith('/check') && c.to.startsWith('removed')),
+    `premise: with no ledger entry the dry run removes 'check' and adds 'checkGlyph' (${JSON.stringify(unclaimed.changes.filter((c) => c.field === 'children').map((c) => [c.part, c.from, c.to])).slice(0, 240)})`);
+  // The engine's own ledger, so the shipped entry is what is under test.
+  const pre = await previewUpdate(w.host, [{ def: TAG, plans: planned }]);
+  const p0 = pre.sets[0];
+  ok(!p0.changes.some((c) => c.field === 'children' || c.field === 'type') && !p0.replacements.length && !p0.blockers.length && p0.counts.handEdited === 0,
+    `part rename/dry run: no layer is removed, added or replaced, and nothing reads as a hand edit (${JSON.stringify(p0.changes.map((c) => [c.part, c.field])).slice(0, 240)})`);
+  const res = await applyUpdate(w.host, w.api as any, [{ def: TAG, plans: planned }], previewHashOf(pre));
+  ok(applyVerdict(res).ok, `part rename/verdict: ${applyVerdict(res).headline} (${applyVerdict(res).lines.slice(0, 2).join(' | ').slice(0, 240)})`);
+  const off = selected().filter((m) => { const n = findIn(m, 'checkGlyph'); return !n || String(n.id) !== idsBefore.get(String(m.name)) || !!findIn(m, 'check'); }).map((m) => String(m.name));
+  ok(off.length === 0, `part rename/in place: on every selected member the layer is now 'checkGlyph' under the id it had as 'check' (${off.slice(0, 3).join('; ') || 'all 15'})`);
+  const after = identityOf(w.set());
+  ok(after.set.join() === before.set.join() && [...before.members].every(([name, b]) => after.members.get(name)?.id === b.id && after.members.get(name)?.key === b.key),
+    'part rename/members: the set and every member keep their keys and ids');
+  const post = (await previewUpdate(w.host, [{ def: TAG, plans: planned }])).sets[0];
+  ok(post.counts.current === post.counts.members, `part rename/settled: a second dry run reads every member current (${JSON.stringify(post.counts)})`);
+}
+
 /* ── rename ──────────────────────────────────────────────────────────────────────────────────────────── */
 section('rename — a declared value rename, and an added axis, rename members in place');
 {
@@ -2315,11 +2352,11 @@ section('swap — an instance the plan points elsewhere is swapped in place, and
   const before = identityOf(w.set());
   const next = w.plans.map((p) => {
     const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan;
-    (planChild(planChild(q.root, 'controlBox'), 'control') as unknown as Record<string, unknown>).nestTarget = 'radio-control';
+    (planChild(planChild(q.root, 'controlCell'), 'control') as unknown as Record<string, unknown>).nestTarget = 'radio-control';
     return q;
   });
   const { res } = await confirm(w, [{ def: ROW, plans: next }]);
-  const ctrls = membersOf(w.set()).map((m) => childNamed(childNamed(m, 'controlBox'), 'control'));
+  const ctrls = membersOf(w.set()).map((m) => childNamed(childNamed(m, 'controlCell'), 'control'));
   ok(ctrls.every((n) => (n.mainComponent as { name?: string } | undefined)?.name === 'radio-control'), `nest/pointed: every row's control now instances radio-control (${[...new Set(ctrls.map((n) => (n.mainComponent as { name?: string }).name))]}; ${applyVerdict(res).headline})`);
   const after = identityOf(w.set());
   ok([...before.members].every(([name, b]) => [...b.kids].every(([p, id]) => after.members.get(name)?.kids.get(p) === id)), 'nest/ids: every nested instance keeps its id');
@@ -2462,12 +2499,12 @@ section('image-placeholder — the NB master\'s 3-member set reaches 7 ratios, a
   // real def's projection on both sides.
   const IMG = 'image-placeholder';
   const now = componentDefs.find((x) => x.id === IMG)!;
-  const { optional: _o, scaleWithParent: _s, ...oldMarker } = now.anatomy.parts.marker;
+  const { optional: _o, scaleWithParent: _s, ...oldMarker } = now.anatomy.parts.markerGlyph;
   void _o; void _s;
   const before2345 = {
     ...now,
     variants: { ratio: ['1:1', '4:3', '16:9'] },
-    anatomy: { ...now.anatomy, parts: { ...now.anatomy.parts, marker: oldMarker } },
+    anatomy: { ...now.anatomy, parts: { ...now.anatomy.parts, markerGlyph: oldMarker } },
     figmaProperties: { ...now.figmaProperties, booleans: {} },
   } as typeof now;
   const oldPlans = figmaAnatomySet(before2345, { swapTarget: SWAP_TARGET });
@@ -2483,7 +2520,7 @@ section('image-placeholder — the NB master\'s 3-member set reaches 7 ratios, a
     `img/dry run: the three existing members read update, four are added, none dropped or renamed (${JSON.stringify(p.counts)}, ${p.renames.length} renames, ${p.blockers.length} blockers)`);
   // `absoluteScale` by name: the read-back has to see that the file's marker is not SCALE-constrained, or a marker
   // the update failed to constrain would read current.
-  ok(p.changes.some((c) => c.part === 'marker' && c.field === 'absoluteScale' && c.members === 3),
+  ok(p.changes.some((c) => c.part === 'markerGlyph' && c.field === 'absoluteScale' && c.members === 3),
     `img/dry run: the marker's SCALE placement is a named difference on all three (${JSON.stringify(p.changes.map((c) => [c.part, c.field, c.members])).slice(0, 200)})`);
   const v = applyVerdict(res);
   ok(v.ok, `img/verdict: ${v.headline} (${v.lines.slice(0, 2).join(' | ').slice(0, 240)})`);
@@ -2496,13 +2533,13 @@ section('image-placeholder — the NB master\'s 3-member set reaches 7 ratios, a
   const moved = [...before.members].filter(([name, b]) => after.members.get(name)?.key !== b.key || after.members.get(name)?.id !== b.id).map(([n]) => n);
   ok(moved.length === 0, `img/members kept: the three existing members keep their keys and ids (${moved.join(', ') || 'none moved'})`);
   const markerMoved = [...before.members].filter(([name, b]) => {
-    const was = [...b.kids].find(([path]) => path.startsWith('marker#'))?.[1];
+    const was = [...b.kids].find(([path]) => path.startsWith('markerGlyph#'))?.[1];
     return !was || ![...(after.members.get(name)?.kids.values() ?? [])].includes(was);
   }).map(([n]) => n);
   ok(markerMoved.length === 0, `img/marker kept: each existing member's marker keeps its node id (${markerMoved.join(', ') || 'none replaced'})`);
   // Read off the shim's nodes: every member's marker lifted out of the flow and constrained SCALE/SCALE.
   const placement = membersOf(w.set()).map((m) => {
-    const k = childNamed(m, 'marker');
+    const k = childNamed(m, 'markerGlyph');
     const c = k?.constraints as { horizontal?: string; vertical?: string } | null;
     return `${String(m.name)}:${String(k?.layoutPositioning)} ${c?.horizontal}/${c?.vertical}`;
   });
@@ -2512,7 +2549,7 @@ section('image-placeholder — the NB master\'s 3-member set reaches 7 ratios, a
   const markerProp = Object.entries(defs).find(([k]) => k.split('#')[0] === 'marker');
   ok(!!markerProp && markerProp[1].type === 'BOOLEAN' && markerProp[1].defaultValue === true,
     `img/property: the set declares the BOOLEAN 'marker', default on (${JSON.stringify(defs)})`);
-  const unwired = membersOf(w.set()).filter((m) => String(((childNamed(m, 'marker')?.componentPropertyReferences ?? {}) as Record<string, string>).visible ?? '').split('#')[0] !== 'marker').map((m) => String(m.name));
+  const unwired = membersOf(w.set()).filter((m) => String(((childNamed(m, 'markerGlyph')?.componentPropertyReferences ?? {}) as Record<string, string>).visible ?? '').split('#')[0] !== 'marker').map((m) => String(m.name));
   ok(unwired.length === 0, `img/property wired: every member's marker visibility follows 'marker' (${unwired.join(', ') || 'all seven'})`);
   const post = (await previewUpdate(w.host, [{ def: IMG, plans: newPlans }])).sets[0];
   ok(post.counts.current === 7 && post.handEdits.length === 0, `img/current: the next dry run reads all seven current (${JSON.stringify(post.counts)})`);
@@ -2563,12 +2600,12 @@ section('icons — a set built with inline glyphs updates to icon instances, as 
   {
     const plans = plansOf('field-message');
     const w = await world('field-message', legacy(plans), { extraComps: iconsOf(plans) });
-    const err = (): Node | undefined => { const m = membersOf(w.set()).find((x) => String(x.name) === 'status=error'); return m && findPart(m, 'iconError'); };
+    const err = (): Node | undefined => { const m = membersOf(w.set()).find((x) => String(x.name) === 'status=error'); return m && findPart(m, 'errorGlyph'); };
     const before = identityOf(w.set());
     const oldErr = err();
     ok(oldErr?.type === 'FRAME', `premise: the error member's glyph is an inline FRAME before the update (${String(oldErr?.type)})`);
     const { pre, res } = await confirm(w, [{ def: 'field-message', plans }]);
-    const named = pre.sets[0].changes.filter((c) => c.part.endsWith('iconError') && (c.field === 'type' || c.field === 'nestTarget'));
+    const named = pre.sets[0].changes.filter((c) => c.part.endsWith('errorGlyph') && (c.field === 'type' || c.field === 'nestTarget'));
     // The read-back's `nestTarget` predicate is what names it: the file holds a FRAME where the plan wants an instance.
     ok(named.some((c) => c.field === 'nestTarget' && /^FRAME/.test(c.from) && /icon\/warning-triangle/.test(c.to)),
       `icons/dry run: the error glyph's move is NAMED — the file's FRAME against the plan's instance of icon/warning-triangle — not a silent re-apply (${JSON.stringify(named.map((c) => [c.field, c.from, c.to]))})`);
@@ -2590,11 +2627,11 @@ section('icons — a set built with inline glyphs updates to icon instances, as 
     const plans = plansOf('checkbox-control');
     const w = await world('checkbox-control', legacy(plans), { extraComps: iconsOf(plans) });
     const checked = (): Node => membersOf(w.set()).find((x) => /selection=checked/.test(String(x.name)))!;
-    const oldMark = findPart(checked(), 'mark');
+    const oldMark = findPart(checked(), 'checkGlyph');
     ok(oldMark?.type === 'FRAME' && ((oldMark.children as Node[]) ?? []).some((c) => c.type === 'VECTOR'), `premise: the check is an inline glyph frame holding a VECTOR before the update`);
     const { pre, res } = await confirm(w, [{ def: 'checkbox-control', plans }]);
     ok(applyVerdict(res).ok && !pre.sets[0].blockers.length, `icons/apply: ${applyVerdict(res).headline}`);
-    const mark = findPart(checked(), 'mark');
+    const mark = findPart(checked(), 'checkGlyph');
     const glyph = ((mark?.children as Node[] | undefined) ?? []).find((c) => c.name === 'glyph');
     ok(!!mark && mark.id === oldMark?.id, `icons/mark id: the mark frame is kept, so its id stays (${String(oldMark?.id)} → ${String(mark?.id)})`);
     ok(glyph?.type === 'INSTANCE' && mainName(glyph) === 'icon/check' && ((mark?.children as Node[]) ?? []).length === 1,

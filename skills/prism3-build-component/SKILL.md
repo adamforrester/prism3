@@ -358,7 +358,7 @@ Figma, so one job takes one name across every def:
 
 | Job | Name | Examples |
 |---|---|---|
-| Root part | named for its role, from this list: `container`, `row`, `control`, `track`, `label`, `message`, `ring`, `glyph`, `frame`, `wash`, `surface`, `panel`. Never the component's own id | Divider's root is `container`, not `divider` |
+| Root part | named for its role, from this list: `container`, `row`, `control`, `track`, `message`, `ring`, `glyph`, `frame`, `wash`, `surface`, `panel`. Never the component's own id | Divider's root is `container`, not `divider` |
 | Main text | `label` | Button, Tag and the Rows already use it |
 | Glyph layer (a non-root `vector` part) | `<shape>Glyph` | `checkGlyph`, `chevronGlyph`, `dismissGlyph` |
 | A Row's control cell (the box holding a nested `*-control`) | `controlCell` | Checkbox, Radio and Switch rows |

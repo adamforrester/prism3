@@ -300,7 +300,7 @@ export const tag: ComponentDef = {
         // The second gap (decision K): label→check is tighter than icon→label, so the two sit in their own row
         // with their own gap, the owner mockup's nesting. With no check shown it holds the label alone. Its
         // leading inset is 0 on a select tag and a fixed 4px on a dismissible one (decision N).
-        children: ['label', 'check'],
+        children: ['label', 'checkGlyph'],
         layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'hug', y: 'hug' } },
         padding: { block: 'pad-y', inlineLabel: 'size.{size}.{type}.label-inset', inlineEnd: 'label-row.padding-end' },
         gap: 'size.{size}.check-gap',
@@ -318,7 +318,7 @@ export const tag: ComponentDef = {
         type: 'size.{size}.type',
         note: 'The tag text, at the same weight whether or not the tag is selected, so the label keeps its width when the tag is selected; the check mark, when shown, adds a cell after it. In code a long label wraps; Figma holds one line.',
       },
-      check: {
+      checkGlyph: {
         kind: 'vector',
         glyph: 'check',
         size: 'size.{size}.icon',
@@ -395,7 +395,7 @@ export const tag: ComponentDef = {
     booleans: {
       leadingIcon: { part: 'leadingVisual', figmaName: 'leading icon', default: false },
       // Owner, 2026-09-29: `check icon`. It toggles the Select check only; the Dismissible × has no switch.
-      showCheck: { part: 'check', figmaName: 'check icon', default: true },
+      showCheck: { part: 'checkGlyph', figmaName: 'check icon', default: true },
     },
     swaps: { leadingIcon: { part: 'leadingVisual', figmaName: '↳ swap leading icon' } },
   },

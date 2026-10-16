@@ -551,7 +551,7 @@ for (const def of componentDefs) {
 // neither walk reads the other. Every member plan is walked (`figmaAnatomySet`), since a corner-pinned def
 // need not carry a size axis, and both directions of D apply: every declared pin is represented, and no plan
 // node carries a pin its def does not declare.
-const MUST_COVER_CORNER = ['textarea.grip'];
+const MUST_COVER_CORNER = ['textarea.gripGlyph'];
 const cornerCovered = new Set<string>();
 let cornerChecks = 0;
 for (const def of componentDefs) {

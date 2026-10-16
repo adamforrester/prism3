@@ -39,7 +39,12 @@ export type ComponentRename =
    *  `to` the new. The set's name in Figma is the def id, so an update finds the set under its old name and renames it
    *  in place: the set and every member keep their ids, and every placed instance keeps pointing at them. Entries for
    *  the def's axes, values and properties after the rename name the NEW id. */
-  | { readonly def: string; readonly kind: 'def'; readonly to: string; readonly issue: number };
+  | { readonly def: string; readonly kind: 'def'; readonly to: string; readonly issue: number }
+  /** A part renamed, which is a layer renamed in every member (#2759, owner decision Q350). An update renames the
+   *  layer in place instead of removing it and building a new one, so it keeps its id and every override a designer
+   *  made on it in a placed instance. A def's part entries apply together, as one map from old name to new, so two
+   *  parts can swap names in one revision (FieldLabel's root and text). The root part is not a layer: the member is. */
+  | { readonly def: string; readonly kind: 'part'; readonly from: string; readonly to: string; readonly issue: number };
 
 /**
  * THE LEDGER. Names are the Figma panel's, as a set holds them: an axis renamed only for display
@@ -52,6 +57,29 @@ export type ComponentRename =
 export const COMPONENT_RENAMES: readonly ComponentRename[] = [
   { def: 'accordion', kind: 'axis', from: 'position', to: 'icon position', issue: 2592 },
   { def: 'accordion', kind: 'axis', from: 'iconPosition', to: 'icon position', issue: 2592 },
+  // #2759 PR 4 — layers named per the naming table (owner decision Q350): glyph layers `<shape>Glyph`, a Row's control cell
+  // `controlCell`, main text `label`. Roots are not layers (Divider's and FieldLabel's root renames need no entry).
+  { def: 'checkbox-control', kind: 'part', from: 'mark', to: 'checkGlyph', issue: 2759 },
+  { def: 'checkbox-control', kind: 'part', from: 'dash', to: 'dashGlyph', issue: 2759 },
+  { def: 'field-message', kind: 'part', from: 'iconError', to: 'errorGlyph', issue: 2759 },
+  { def: 'field-message', kind: 'part', from: 'iconWarning', to: 'warningGlyph', issue: 2759 },
+  { def: 'field-message', kind: 'part', from: 'iconSuccess', to: 'successGlyph', issue: 2759 },
+  { def: 'field-message', kind: 'part', from: 'text', to: 'label', issue: 2759 },
+  { def: 'textarea', kind: 'part', from: 'grip', to: 'gripGlyph', issue: 2759 },
+  { def: 'select', kind: 'part', from: 'chevron', to: 'chevronGlyph', issue: 2759 },
+  { def: 'image-placeholder', kind: 'part', from: 'marker', to: 'markerGlyph', issue: 2759 },
+  { def: 'spinner', kind: 'part', from: 'ring', to: 'ringGlyph', issue: 2759 },
+  { def: 'tag', kind: 'part', from: 'check', to: 'checkGlyph', issue: 2759 },
+  { def: '_accordion-indicator', kind: 'part', from: 'chevronDown', to: 'chevronDownGlyph', issue: 2759 },
+  { def: '_accordion-indicator', kind: 'part', from: 'chevronUp', to: 'chevronUpGlyph', issue: 2759 },
+  { def: '_accordion-indicator', kind: 'part', from: 'plus', to: 'plusGlyph', issue: 2759 },
+  { def: '_accordion-indicator', kind: 'part', from: 'minus', to: 'minusGlyph', issue: 2759 },
+  { def: 'checkbox-row', kind: 'part', from: 'controlBox', to: 'controlCell', issue: 2759 },
+  { def: 'radio-row', kind: 'part', from: 'controlBox', to: 'controlCell', issue: 2759 },
+  { def: 'switch-row', kind: 'part', from: 'trackBox', to: 'controlCell', issue: 2759 },
+  { def: 'field-label', kind: 'part', from: 'text', to: 'label', issue: 2759 },
+  { def: 'badge', kind: 'part', from: 'text', to: 'label', issue: 2759 },
+  { def: '_list-item', kind: 'part', from: 'text', to: 'label', issue: 2759 },
   // #2759 PR 3 — a part used only inside its parent takes the `_` prefix (owner decisions Q349, Q353, Q355).
   { def: 'segmented-control-segment', kind: 'def', to: '_segmented-control-segment', issue: 2759 },
   { def: 'tab', kind: 'def', to: '_tab-item', issue: 2759 },
@@ -85,6 +113,18 @@ export const formerDefIds = (id: string, ledger: readonly ComponentRename[] = CO
     for (const r of ledger) if (r.kind === 'def' && r.to === to && !out.includes(r.def) && r.def !== id) { out.push(r.def); walk(r.def); }
   };
   walk(id);
+  return out;
+};
+
+/** `def`'s part renames as one map from old layer name to new (see the `part` kind). A name renamed twice is a ledger
+ *  error, refused by throwing: the map would not say which. */
+export const partRenames = (def: string, ledger: readonly ComponentRename[] = COMPONENT_RENAMES): Map<string, string> => {
+  const out = new Map<string, string>();
+  for (const r of ledger) {
+    if (r.kind !== 'part' || r.def !== def) continue;
+    if (out.has(r.from)) throw new Error(`COMPONENT_RENAMES: '${def}' renames the part '${r.from}' twice`);
+    out.set(r.from, r.to);
+  }
   return out;
 };
 
@@ -223,7 +263,7 @@ export const danglingTargets = (after: AxesBaseline, ledger: readonly ComponentR
   const bad: string[] = [];
   for (const r of ledger) {
     if (!Number.isInteger(r.issue) || r.issue <= 0) bad.push(`${r.def}: entry ${JSON.stringify(r)} names no issue`);
-    if (r.kind === 'drop') continue;
+    if (r.kind === 'drop' || r.kind === 'part') continue;
     if (r.kind === 'def') {
       let to = r.to;
       try { to = currentDefId(r.def, ledger); } catch (err) { bad.push(`${r.def}: ${(err as Error).message}`); continue; }
