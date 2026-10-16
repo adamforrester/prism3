@@ -2197,6 +2197,30 @@ for (const theme of ['light', 'dark']) {
   ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   await ctx.close();
 }
+// Inspect's Docs item (#2662, owner Q313.1 A): on the web it opens the designer guides' index in a new tab; the
+// plugin has no `/docs` route, so it draws no Docs item. The target is a literal typed here, never read from
+// `DOCS_HREF`, and the file it names under `docs/public/` (served at `/docs`, #2637) is read from disk.
+{
+  const GUIDES_INDEX = '/docs/guides/index.md';
+  const onDisk = (() => { try { return statSync(join(REPO, 'docs/public', GUIDES_INDEX.slice('/docs/'.length))).isFile(); } catch { return false; } })();
+  ok(onDisk, `the Docs target ${GUIDES_INDEX} names a file on disk (docs/public/guides/index.md)`);
+  for (const host of ['web', 'figma']) {
+    const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900 });
+    await hooks.click(page.locator('[data-p3="inspect-open"]'));
+    await hooks.need(page, '[data-p3="inspect-menu"] [role="menuitem"]');
+    const docs = await page.evaluate(() => [...document.querySelectorAll('[data-p3="inspect-menu"] [data-p3="docs-link"]')].map((a) => ({
+      href: a.getAttribute('href'), target: a.getAttribute('target'), rel: a.getAttribute('rel'), role: a.getAttribute('role'), label: a.textContent,
+    })));
+    if (host === 'web') {
+      ok(docs.length === 1 && docs[0].href === GUIDES_INDEX && docs[0].target === '_blank' && docs[0].rel === 'noopener' && docs[0].role === 'menuitem' && docs[0].label === 'Docs',
+        `web: Inspect's Docs item opens the designer guides' index, ${GUIDES_INDEX}, in a new tab — read ${JSON.stringify(docs)}`);
+    } else {
+      ok(docs.length === 0, `figma: Inspect draws no Docs item (the plugin has no /docs route) — read ${JSON.stringify(docs)}`);
+    }
+    ok(errors.length === 0, `${host}: Inspect's Docs item, 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    await ctx.close();
+  }
+}
 for (const { w, h } of WIDTHS) {
   for (const host of ['web', 'figma']) {
     for (const theme of ['light', 'dark']) {
