@@ -20966,6 +20966,23 @@ arm: {
         const sg2 = figmaAnatomySet(swapDef, { swapTarget: 'FPO-default-icon' });
         ok(JSON.stringify(kid(sg2[0].root, 'item1')?.nestOverrides) === '[{"property":"swap icon","type":"INSTANCE_SWAP","value":"icon/check"}]',
           `#2645 projection: a swap names List.Item's 'swap icon' property and the icon set's component (${JSON.stringify(kid(sg2[0].root, 'item1')?.nestOverrides)})`);
+        // #2609 (owner decision, 2026-10-16): Dialog's close is always the X. Literals, not read off the def (docs/34).
+        // Mutations, each failing by name: the override dropped or its glyph changed → `#2609 dialog: every member's close`;
+        // a `swaps` entry on Dialog → `#2609 dialog: no swap property`; the close made `nest-exposed` (which would surface
+        // the nested button's own `swap icon` on Dialog's panel) → `#2609 dialog: the close is not exposed`.
+        {
+          const dDef = componentDefs.find((d) => d.id === 'dialog')!;
+          const dg = figmaAnatomySet(dDef, { swapTarget: 'FPO-default-icon' });
+          const findPart = (n: { name: string; children?: unknown[] }, name: string): Record<string, unknown> | undefined => {
+            if (n.name === name) return n as Record<string, unknown>;
+            for (const c of (n.children ?? []) as { name: string; children?: unknown[] }[]) { const f = findPart(c, name); if (f) return f; }
+            return undefined;
+          };
+          const bad = dg.filter((pl) => JSON.stringify(findPart(pl.root, 'close')?.nestOverrides) !== '[{"property":"swap icon","type":"INSTANCE_SWAP","value":"icon/close"}]');
+          ok(dg.length === 15 && bad.length === 0, `#2609 dialog: every member's close swaps IconButton.Neutral's 'swap icon' to icon/close (${dg.length} members, ${bad.length} wrong: ${JSON.stringify(bad[0] && findPart(bad[0].root, 'close')?.nestOverrides)})`);
+          ok(Object.keys(dDef.figmaProperties?.swaps ?? {}).length === 0, `#2609 dialog: no swap property on Dialog's Figma surface (${JSON.stringify(dDef.figmaProperties?.swaps)})`);
+          ok(dDef.anatomy!.parts.close?.nesting?.kind === 'nest-fixed', `#2609 dialog: the close is not exposed, so the nested button's swap does not surface on Dialog (${dDef.anatomy!.parts.close?.nesting?.kind})`);
+        }
         // THE PASTE EXECUTOR. Only a payload whose plans override ships the writer (the shell budget, `SET_CHUNK_BYTES`).
         const NUM = 'number#7:2', SWAP = 'swap icon#7:3';
         const lOpts = (props: boolean, comps = ['list-item']) => ({

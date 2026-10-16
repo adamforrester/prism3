@@ -1056,6 +1056,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "members": 15,
     "nests": [
       "icon-button-neutral",
+      "icon",
       "divider",
       "button"
     ]

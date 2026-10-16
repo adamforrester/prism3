@@ -33,7 +33,8 @@
  *
  * ── PARTS ─────────────────────────────────────────────────────────────────────────────────────────────────
  *
- * A header (the title, an optional description, and the close button: IconButton.Neutral, ghost, medium), an optional
+ * A header (the title, an optional description, and the close button: IconButton.Neutral, ghost, medium, always the
+ * `close` glyph with no swap of its own, owner 2026-10-16 on #2609), an optional
  * divider above and below the body (the Divider, nested), the body (a native Figma slot, as the accordion's panel is,
  * #2417), and a footer of nested Buttons. The title row is the accordion's arrangement (Q262 A, #2456): the title beside
  * the close, top-aligned, so a wrapped title keeps the close beside its first line. Mints no new subcomponent.
@@ -183,7 +184,11 @@ export const dialog: ComponentDef = {
         nests: 'icon-button-neutral',
         optional: true,
         nesting: { kind: 'nest-fixed', variant: { appearance: 'ghost', size: 'medium', shape: 'square', surface: 'default', state: 'rest' } },
-        note: 'The close button: an IconButton.Neutral, ghost, medium, labeled "Close". Shown by default; an alertdialog hides it.',
+        // Always the X (owner decision, 2026-10-16, #2609): the nested button's own `swap icon` is set to `close` on every
+        // member (#2645), and Dialog exposes no swap of its own. A product that wants another X changes the icon set's
+        // `close` glyph, or edits the component.
+        overrides: { swaps: { icon: 'close' } },
+        note: 'The close button: an IconButton.Neutral, ghost, medium, labeled "Close", always showing the close icon. Shown by default; an alertdialog hides it.',
       },
       headerDivider: {
         kind: 'nest',
@@ -377,11 +382,12 @@ export const dialog: ComponentDef = {
       'The close button sits at the header\'s top edge, beside the first line of the title, without an offset that centers it on that line: whether the title moves down to center on the 44px button is held for the owner\'s visual QA.',
     ],
     unverified: [
-      'The nested close button shows the file\'s default icon until a designer swaps it to close, and the nested footer buttons read "Button" until a designer types "Cancel" and "Save": a per-instance override on a nested instance is executor work no def can ask for yet (#2645).',
+      'The nested footer buttons read "Button" until a designer types "Cancel" and "Save": the def does not yet set their labels through a per-instance override (#2645).',
       'That the native slot keeps a designer\'s body content across a placement or footer switch in every Figma plan, as it does across the accordion\'s expansion switch.',
     ],
     evolution: [
       'Owner decisions: the proposal on #2609 (one component, the anatomy, the tokens, the accessibility contract), and Q303 (2026-10-14): no side or drawer placement; `placement` center, bottom or full, with no automatic switch; the backdrop `color.scrim.default` as canvas furniture and `::backdrop`; def-level widths; footer inline, stacked or none; Escape, close and backdrop click dismiss a dialog, and an alertdialog only through its buttons or Escape; `role` a code prop that hides close on an alertdialog; close on by default; corners per placement; the names and aliases; the placeholder wording.',
+      'Owner decision (2026-10-16, #2609): the close button is always the X. It shows the close icon on every member, and Dialog has no icon swap property; a product that needs another X changes the close glyph in its icon set or edits the component.',
     ],
   },
 };

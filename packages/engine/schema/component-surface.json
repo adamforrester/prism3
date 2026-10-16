@@ -371,7 +371,7 @@
     },
     "dialog": {
       "members": 15,
-      "sha256": "52e5b73053983f2cea897178e46d02f0c32027a37f31f1a72d5b334f8cdb4dad"
+      "sha256": "0e547748d0b987c4504773224e9cd62b9b7cb5adf27c1a18a8d16edf40a75502"
     },
     "password-field": {
       "members": 84,
