@@ -2274,6 +2274,66 @@
           ]
         },
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/password-field.md"
+      },
+      {
+        "id": "breadcrumb-item",
+        "name": "BreadcrumbItem",
+        "figmaName": "breadcrumb-item",
+        "kind": "component set",
+        "page": null,
+        "section": null,
+        "members": 6,
+        "variantProperties": [
+          {
+            "name": "kind",
+            "values": [
+              "ancestor",
+              "current",
+              "overflow"
+            ]
+          },
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "label",
+            "type": "TEXT"
+          }
+        ],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/breadcrumb-item.md"
+      },
+      {
+        "id": "breadcrumbs",
+        "name": "Breadcrumbs",
+        "figmaName": "breadcrumbs",
+        "kind": "component set",
+        "page": null,
+        "section": null,
+        "members": 4,
+        "variantProperties": [
+          {
+            "name": "layout",
+            "values": [
+              "trail",
+              "parent"
+            ]
+          },
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small"
+            ]
+          }
+        ],
+        "properties": [],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/breadcrumbs.md"
       }
     ]
   },
@@ -2342,6 +2402,17 @@
       {
         "component": "dialog",
         "property": "body"
+      },
+      {
+        "component": "breadcrumbs",
+        "property": "items",
+        "settings": {
+          "minChildren": 2,
+          "allowPreferredValuesOnly": true
+        },
+        "preferred": [
+          "breadcrumb-item"
+        ]
       }
     ]
   },

@@ -227,6 +227,119 @@
       "sizes": []
     },
     {
+      "id": "breadcrumb-item",
+      "name": "BreadcrumbItem",
+      "category": "navigation",
+      "states": [],
+      "projectedStates": [],
+      "axes": {
+        "kind": [
+          "ancestor",
+          "current",
+          "overflow"
+        ],
+        "size": [
+          "medium",
+          "small"
+        ]
+      },
+      "props": [
+        {
+          "name": "kind",
+          "default": "ancestor",
+          "values": [
+            "ancestor",
+            "current",
+            "overflow"
+          ]
+        },
+        {
+          "name": "label"
+        },
+        {
+          "name": "href"
+        },
+        {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "small",
+            "medium"
+          ]
+        }
+      ],
+      "sizes": [
+        "medium",
+        "small"
+      ],
+      "sizeDefault": "medium"
+    },
+    {
+      "id": "breadcrumbs",
+      "name": "Breadcrumbs",
+      "category": "navigation",
+      "states": [],
+      "projectedStates": [],
+      "axes": {
+        "layout": [
+          "trail",
+          "parent"
+        ],
+        "size": [
+          "medium",
+          "small"
+        ]
+      },
+      "props": [
+        {
+          "name": "items"
+        },
+        {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "small",
+            "medium"
+          ]
+        },
+        {
+          "name": "maxItems",
+          "default": 5
+        },
+        {
+          "name": "itemsBeforeCollapse",
+          "default": 1
+        },
+        {
+          "name": "itemsAfterCollapse",
+          "default": 2
+        },
+        {
+          "name": "collapse",
+          "default": "expand",
+          "values": [
+            "expand"
+          ]
+        },
+        {
+          "name": "responsive",
+          "default": true
+        },
+        {
+          "name": "label",
+          "default": "Breadcrumb"
+        },
+        {
+          "name": "renderLink"
+        }
+      ],
+      "sizes": [
+        "medium",
+        "small"
+      ],
+      "sizeDefault": "medium"
+    },
+    {
       "id": "button",
       "name": "Button",
       "category": "form",
@@ -3723,6 +3836,29 @@
         ]
       }
     ],
+    "kind": [
+      {
+        "values": [
+          "ancestor",
+          "current",
+          "overflow"
+        ],
+        "components": [
+          "breadcrumb-item"
+        ]
+      }
+    ],
+    "layout": [
+      {
+        "values": [
+          "parent",
+          "trail"
+        ],
+        "components": [
+          "breadcrumbs"
+        ]
+      }
+    ],
     "offset": [
       {
         "values": [
@@ -3885,6 +4021,8 @@
           "small"
         ],
         "components": [
+          "breadcrumb-item",
+          "breadcrumbs",
           "switch-control",
           "switch-row"
         ]
@@ -4249,6 +4387,15 @@
         "default": false
       }
     ],
+    "collapse": [
+      {
+        "id": "breadcrumbs",
+        "default": "expand",
+        "values": [
+          "expand"
+        ]
+      }
+    ],
     "count": [
       {
         "id": "tab"
@@ -4484,6 +4631,9 @@
     ],
     "href": [
       {
+        "id": "breadcrumb-item"
+      },
+      {
         "id": "button"
       },
       {
@@ -4713,9 +4863,44 @@
         "default": false
       }
     ],
+    "items": [
+      {
+        "id": "breadcrumbs"
+      }
+    ],
+    "itemsAfterCollapse": [
+      {
+        "id": "breadcrumbs",
+        "default": 2
+      }
+    ],
+    "itemsBeforeCollapse": [
+      {
+        "id": "breadcrumbs",
+        "default": 1
+      }
+    ],
+    "kind": [
+      {
+        "id": "breadcrumb-item",
+        "default": "ancestor",
+        "values": [
+          "ancestor",
+          "current",
+          "overflow"
+        ]
+      }
+    ],
     "label": [
       {
         "id": "badge"
+      },
+      {
+        "id": "breadcrumb-item"
+      },
+      {
+        "id": "breadcrumbs",
+        "default": "Breadcrumb"
       },
       {
         "id": "button"
@@ -4824,6 +5009,12 @@
       {
         "id": "badge",
         "default": "99"
+      }
+    ],
+    "maxItems": [
+      {
+        "id": "breadcrumbs",
+        "default": 5
       }
     ],
     "maxLength": [
@@ -5096,6 +5287,11 @@
         "default": false
       }
     ],
+    "renderLink": [
+      {
+        "id": "breadcrumbs"
+      }
+    ],
     "required": [
       {
         "id": "checkbox-group",
@@ -5131,6 +5327,12 @@
           "vertical",
           "auto"
         ]
+      }
+    ],
+    "responsive": [
+      {
+        "id": "breadcrumbs",
+        "default": true
       }
     ],
     "reversed": [
@@ -5282,6 +5484,22 @@
           "small",
           "medium",
           "large"
+        ]
+      },
+      {
+        "id": "breadcrumb-item",
+        "default": "medium",
+        "values": [
+          "small",
+          "medium"
+        ]
+      },
+      {
+        "id": "breadcrumbs",
+        "default": "medium",
+        "values": [
+          "small",
+          "medium"
         ]
       },
       {
@@ -6225,6 +6443,8 @@
       "components": [
         "_accordion-indicator",
         "accordion",
+        "breadcrumb-item",
+        "breadcrumbs",
         "button",
         "button-destructive",
         "button-neutral",
@@ -6258,7 +6478,7 @@
         "text-field",
         "textarea"
       ],
-      "detail": "the size axis takes 3 value sets — [large, medium, small] in _accordion-indicator, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, password-field, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, select, tab, tabs, tag, text-field, textarea; [medium, small] in switch-control, switch-row; [large, medium, small, x-small] in spinner"
+      "detail": "the size axis takes 3 value sets — [large, medium, small] in _accordion-indicator, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, password-field, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, select, tab, tabs, tag, text-field, textarea; [medium, small] in breadcrumb-item, breadcrumbs, switch-control, switch-row; [large, medium, small, x-small] in spinner"
     },
     {
       "kind": "axis values",
@@ -6299,6 +6519,22 @@
         "link"
       ],
       "detail": "the weight axis takes 2 value sets — [bold, regular] in field-label; [default, emphasis] in link"
+    },
+    {
+      "kind": "size order",
+      "subject": "breadcrumb-item",
+      "components": [
+        "breadcrumb-item"
+      ],
+      "detail": "breadcrumb-item declares its sizes as [medium, small], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "breadcrumbs",
+      "components": [
+        "breadcrumbs"
+      ],
+      "detail": "breadcrumbs declares its sizes as [medium, small], not smallest first"
     },
     {
       "kind": "size order",
@@ -6346,7 +6582,16 @@
       "components": [
         "field-label"
       ],
-      "detail": "field-label defaults size to small; 33 of 34 sized components default to medium"
+      "detail": "field-label defaults size to small; 35 of 36 sized components default to medium"
+    },
+    {
+      "kind": "prop default",
+      "subject": "prop label",
+      "components": [
+        "breadcrumbs",
+        "spinner"
+      ],
+      "detail": "label defaults differ over the same values — Breadcrumb in breadcrumbs; Loading in spinner"
     },
     {
       "kind": "axis without prop",
@@ -6355,6 +6600,14 @@
         "accordion"
       ],
       "detail": "accordion has the variant axis expansion and no prop of that name"
+    },
+    {
+      "kind": "axis without prop",
+      "subject": "breadcrumbs",
+      "components": [
+        "breadcrumbs"
+      ],
+      "detail": "breadcrumbs has the variant axis layout and no prop of that name"
     },
     {
       "kind": "axis without prop",

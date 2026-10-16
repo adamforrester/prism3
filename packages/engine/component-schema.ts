@@ -3276,13 +3276,33 @@ export type State = (typeof STATES)[number];
  * part exists and how its children run, which is why the name is the part's own: the axis is the footer's layout, and
  * `none` removes it. Naming it `orientation` would claim a missing footer is a direction. An AUTHORING axis.
  * `lint-axis-values.ts` carries the three values as a `sole` set.
+ *
+ * ── `kind`: THE TWENTY-EIGHTH NAME, FOR THE BREADCRUMB ITEM (owner decision on #2666, 2026-10-16, call 1 A) ──
+ *
+ * `kind` (`ancestor | current | overflow`) is WHICH ROLE a step plays in its parent's sequence: a link to a page above,
+ * the page itself, or the stand-in for collapsed steps. The approved proposal named the axis and its values. It clears
+ * this list's bar as a distinct kind of distinction with the nearest defeated: `type` is a content format that keeps
+ * the element (a badge's count or dot, a list's markers); `selection` is a value the user picks; `state` is a
+ * transient interaction. None says "this step renders a different element (a link, text, a button) because of where
+ * it sits in the trail", and naming it `type` would put a marker style and an element's role under one name, the
+ * #756 failure. An AUTHORING axis: Breadcrumbs sets it from the item's place. `lint-axis-values.ts` carries the three
+ * values as a `sole` set.
+ *
+ * ── `layout`: THE TWENTY-NINTH NAME, FOR BREADCRUMBS (owner decision on #2666, 2026-10-16, calls 1 A and 11 A) ──
+ *
+ * `layout` (`trail | parent`) is WHICH FORM a navigation takes: the full trail of steps, or one link up to the parent
+ * for a small screen. The approved proposal named the axis and its values. It clears the bar with the nearest
+ * defeated: `footer` lays out one part's actions; `orientation` is which way a rule runs; `width` is a control's
+ * extent; `placement` is where a layer attaches. None says "the same navigation drawn as a different set of parts",
+ * and naming it `width` would claim the parent link is a narrower trail when it is a different element. An AUTHORING
+ * axis: a product picks it per breakpoint in code. `lint-axis-values.ts` carries the two values as a `sole` set.
  */
 export const VARIANT_AXES = [
   'size', 'intent', 'appearance', 'tone',
   'width', 'style', 'indicator', 'offset', 'selection',
   'name', 'surface', 'weight', 'value', 'intensity', 'ratio',
   'status', 'emphasis', 'shape', 'type', 'direction', 'inset', 'orientation', 'alignment', 'expansion', 'iconPosition',
-  'placement', 'footer',
+  'placement', 'footer', 'kind', 'layout',
 ] as const;
 
 /** One member of the closed axis-NAME vocabulary. Values are not constrained — see `VARIANT_AXES`. */

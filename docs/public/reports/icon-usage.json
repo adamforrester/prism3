@@ -71,6 +71,39 @@
       ],
       "iconSlots": []
     },
+    "breadcrumb-item": {
+      "glyphs": [
+        {
+          "part": "separator",
+          "glyph": "chevron-right",
+          "source": "icon set",
+          "how": "drawn",
+          "when": {
+            "kind": [
+              "ancestor",
+              "overflow"
+            ]
+          }
+        }
+      ],
+      "iconSlots": []
+    },
+    "breadcrumbs": {
+      "glyphs": [
+        {
+          "part": "backGlyph",
+          "glyph": "chevron-left",
+          "source": "icon set",
+          "how": "drawn",
+          "when": {
+            "layout": [
+              "parent"
+            ]
+          }
+        }
+      ],
+      "iconSlots": []
+    },
     "button": {
       "glyphs": [],
       "iconSlots": [
@@ -380,8 +413,12 @@
       "_accordion-indicator",
       "select"
     ],
-    "chevron-left": [],
-    "chevron-right": [],
+    "chevron-left": [
+      "breadcrumbs"
+    ],
+    "chevron-right": [
+      "breadcrumb-item"
+    ],
     "chevron-up": [
       "_accordion-indicator"
     ],
@@ -445,8 +482,6 @@
     "arrow-up-left",
     "arrow-up-right",
     "check-circle-filled",
-    "chevron-left",
-    "chevron-right",
     "close-filled",
     "error-circle-filled",
     "external-link-filled",

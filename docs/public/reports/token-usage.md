@@ -447,10 +447,11 @@ Type: color. Bound by 1 component(s).
 
 ### `color.icon.link.default`
 
-Type: color. Bound by 1 component(s).
+Type: color. Bound by 2 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| breadcrumbs | `icon` | backGlyph | layout: parent (2 of 4) |
 | link | `icon` | trailingVisual | state: rest · style: standalone · surface: default (6 of 96) |
 
 ### `color.icon.link.focused`
@@ -495,10 +496,11 @@ Type: color. Bound by 6 component(s).
 
 ### `color.icon.secondary`
 
-Type: color. Bound by 3 component(s).
+Type: color. Bound by 4 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| breadcrumb-item | `icon` | separator | kind: ancestor, overflow (4 of 6) |
 | field-message | `default.icon` | (not drawn) | — |
 | icon | `tone.secondary` | (not drawn) | — |
 | textarea | `icon` | grip | state: filled, focus-visible, focus-visible-filled, hover, read-only, rest (72 of 84) |
@@ -1726,12 +1728,13 @@ Type: color. Bound by 1 component(s).
 
 ### `color.text.primary`
 
-Type: color. Bound by 12 component(s).
+Type: color. Bound by 13 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | accordion | `body` | placeholder | expansion: expanded (12 of 24) |
 | badge | `neutral.status.subtle.label` | text | emphasis: subtle · tone: neutral · type: status (1 of 20) |
+| breadcrumb-item | `label` | current | kind: current (2 of 6) |
 | checkbox-row | `label` | label | every member (3 of 3) |
 | dialog | `body`, `label` | placeholder | every member (15 of 15) |
 |  |  | title | every member (15 of 15) |
@@ -2254,7 +2257,7 @@ Type: dimension. Bound by 20 component(s).
 
 ### `icon.size.xs`
 
-Type: dimension. Bound by 9 component(s).
+Type: dimension. Bound by 11 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2263,6 +2266,8 @@ Type: dimension. Bound by 9 component(s).
 |  |  | frame | size: small (4 of 12) |
 |  |  | minus | expansion: expanded · indicator: plus-minus · size: small (1 of 12) |
 |  |  | plus | expansion: collapsed · indicator: plus-minus · size: small (1 of 12) |
+| breadcrumb-item | `size.medium.icon`, `size.small.icon` | separator | kind: ancestor, overflow (4 of 6) |
+| breadcrumbs | `back-icon` | backGlyph | layout: parent (2 of 4) |
 | button | `size.small.icon` | leadingVisual | leading: true · size: small · state: disabled, focus-visible, hover, pressed, rest (80 of 576) |
 |  |  | spinner | size: small · state: pending (32 of 576) |
 |  |  | trailingVisual | size: small · trailing: true (88 of 576) |
@@ -2485,10 +2490,13 @@ Type: dimension. Bound by 3 component(s).
 
 ### `space.050`
 
-Type: dimension. Bound by 4 component(s).
+Type: dimension. Bound by 6 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| breadcrumb-item | `size.small.gap` | container | size: small (3 of 6) |
+| breadcrumbs | `back-gap`, `size.small.gap` | container | every member (4 of 4) |
+|  |  | items | layout: trail · size: small (1 of 4) |
 | field-label | `gap` | label | every member (24 of 24) |
 | link | `size.medium.gap`, `size.small.gap` | container | size: medium, small (64 of 96) |
 | segmented-control-segment | `inset` | container | every member (30 of 30) |
@@ -2517,13 +2525,15 @@ Type: dimension. Bound by 12 component(s).
 
 ### `space.100`
 
-Type: dimension. Bound by 22 component(s).
+Type: dimension. Bound by 24 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | accordion | `size.small.gap`, `size.small.pad-y` | header | size: small (8 of 24) |
 |  |  | titleRow | size: small (8 of 24) |
 | badge | `status.pad-y` | surface | type: status (10 of 20) |
+| breadcrumb-item | `size.medium.gap` | container | size: medium (3 of 6) |
+| breadcrumbs | `size.medium.gap` | items | layout: trail · size: medium (1 of 4) |
 | button | `size.large.padding-y`, `size.medium.gap`, `size.medium.padding-y`, `size.small.gap` | container | every member (576 of 576) |
 | button-destructive | `size.large.padding-y`, `size.medium.gap`, `size.medium.padding-y`, `size.small.gap` | container | every member (576 of 576) |
 | button-neutral | `size.large.padding-y`, `size.medium.gap`, `size.medium.padding-y`, `size.small.gap` | container | every member (576 of 576) |
@@ -2701,11 +2711,12 @@ Type: typography. Bound by 1 component(s).
 
 ### `type.body.md.default`
 
-Type: typography. Bound by 12 component(s).
+Type: typography. Bound by 13 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | accordion | `size.medium.panel-type` | placeholder | expansion: expanded · size: medium (4 of 24) |
+| breadcrumb-item | `size.medium.type` | current | kind: current · size: medium (1 of 6) |
 | checkbox-row | `size.medium.text` | label | size: medium (1 of 3) |
 | dialog | `body-type`, `description-type` | description | every member (15 of 15) |
 |  |  | placeholder | every member (15 of 15) |
@@ -2753,11 +2764,12 @@ Type: typography. Bound by 1 component(s).
 
 ### `type.body.sm.default`
 
-Type: typography. Bound by 11 component(s).
+Type: typography. Bound by 12 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | accordion | `size.small.panel-type` | placeholder | expansion: expanded · size: small (4 of 24) |
+| breadcrumb-item | `size.small.type` | current | kind: current · size: small (1 of 6) |
 | checkbox-row | `size.small.text` | label | size: small (1 of 3) |
 | field-label | `size.medium.regular.text` | indicator | size: medium · weight: regular (4 of 24) |
 |  |  | text | size: medium · weight: regular (4 of 24) |
@@ -2957,6 +2969,18 @@ Every token each component uses. "Declared, not drawn" names tokens the definiti
 35 token(s); 20 design-file member(s).
 
 `border-width.hairline`, `color.border.danger`, `color.border.info`, `color.border.success`, `color.border.tertiary`, `color.border.warning`, `color.foreground.danger`, `color.foreground.danger-subtle`, `color.foreground.info`, `color.foreground.info-subtle`, `color.foreground.secondary`, `color.foreground.success`, `color.foreground.success-subtle`, `color.foreground.warning`, `color.foreground.warning-subtle`, `color.inverse.foreground.tertiary`, `color.inverse.text.primary`, `color.text.danger`, `color.text.info`, `color.text.on-danger`, `color.text.on-info`, `color.text.on-success`, `color.text.on-warning`, `color.text.primary`, `color.text.success`, `color.text.warning`, `control.size.sm.dot`, `radius.round`, `radius.sm`, `space.0`, `space.025`, `space.075`, `space.100`, `space.150`, `type.label.sm.emphasis`
+
+### breadcrumb-item
+
+7 token(s); 6 design-file member(s).
+
+`color.icon.secondary`, `color.text.primary`, `icon.size.xs`, `space.050`, `space.100`, `type.body.md.default`, `type.body.sm.default`
+
+### breadcrumbs
+
+4 token(s); 4 design-file member(s).
+
+`color.icon.link.default`, `icon.size.xs`, `space.050`, `space.100`
 
 ### button
 
