@@ -583,9 +583,9 @@
           {
             "name": "appearance",
             "values": [
+              "ghost",
               "filled",
-              "outline",
-              "ghost"
+              "outline"
             ]
           },
           {
@@ -642,9 +642,9 @@
           {
             "name": "appearance",
             "values": [
+              "ghost",
               "filled",
-              "outline",
-              "ghost"
+              "outline"
             ]
           },
           {
@@ -701,9 +701,9 @@
           {
             "name": "appearance",
             "values": [
+              "ghost",
               "filled",
-              "outline",
-              "ghost"
+              "outline"
             ]
           },
           {
@@ -1507,8 +1507,8 @@
           {
             "name": "intensity",
             "values": [
-              "subtle",
               "medium",
+              "subtle",
               "strong"
             ]
           },
@@ -1538,11 +1538,11 @@
           {
             "name": "ratio",
             "values": [
+              "4:3",
               "2:3",
               "3:4",
               "4:5",
               "1:1",
-              "4:3",
               "3:2",
               "16:9"
             ]

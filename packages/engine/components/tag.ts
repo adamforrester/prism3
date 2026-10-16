@@ -111,14 +111,14 @@ export const tag: ComponentDef = {
   props: [
     { name: 'label', type: 'string', required: true, description: 'The tag text. One word where possible, two or three for a specific entity such as a name or an email address. A long label wraps; it is never cut off.' },
     { name: 'type', type: "enum: 'select' | 'dismissible'", values: ['select', 'dismissible'], default: 'select', required: false, description: 'Which interaction the tag carries. select = toggles on and off, and shows its selected state. dismissible = carries a remove control and has no selected state. This is the component\'s own prop, not the HTML type attribute, and it is never passed to the element.' },
-    { name: 'selected', type: 'boolean', default: 'false', required: false, description: 'Whether a select tag is on. A selected tag takes a tint and a 2px outline, and shows a check mark unless showCheck is off, so the state never rests on color alone. Ignored on a dismissible tag.' },
-    { name: 'showCheck', type: 'boolean', default: 'true', required: false, description: 'Whether a selected select tag shows its check mark after the label. On by default. With it off, the tint and the 2px outline carry the selected state.' },
+    { name: 'selected', type: 'boolean', default: false, required: false, description: 'Whether a select tag is on. A selected tag takes a tint and a 2px outline, and shows a check mark unless showCheck is off, so the state never rests on color alone. Ignored on a dismissible tag.' },
+    { name: 'showCheck', type: 'boolean', default: true, required: false, description: 'Whether a selected select tag shows its check mark after the label. On by default. With it off, the tint and the 2px outline carry the selected state.' },
     { name: 'onClick', type: 'function', required: false, description: 'The toggle a select tag fires. Suppressed while disabled or read-only.' },
     { name: 'onRemove', type: 'function', required: false, description: 'Called when a dismissible tag\'s remove control is pressed, or when Delete or Backspace is pressed on the focused tag.' },
     { name: 'leadingIcon', type: 'slot', required: false, description: 'An icon or avatar before the label, for recognition at a glance. Decorative: the label carries the name.' },
     { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'Tag height, padding and label type. The height is Button\'s: medium clears 44px on comfortable and spacious density, and is 36px at compact. A tag is never narrower than 1.5 times its height, rounded to the nearest 8px (64px for a medium tag on comfortable density).' },
-    { name: 'disabled', type: 'boolean', default: 'false', required: false, description: 'Removes the tag from interaction and dims it. Don\'t disable every tag in a group; hide the group instead.' },
-    { name: 'readOnly', type: 'boolean', default: 'false', required: false, description: 'Keeps full visual weight but accepts no interaction, such as a filter the user cannot change. Distinct from disabled, which dims.' },
+    { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Removes the tag from interaction and dims it. Don\'t disable every tag in a group; hide the group instead.' },
+    { name: 'readOnly', type: 'boolean', default: false, required: false, description: 'Keeps full visual weight but accepts no interaction, such as a filter the user cannot change. Distinct from disabled, which dims.' },
   ],
 
   states: ['rest', 'hover', 'pressed', 'focus-visible', 'disabled', 'read-only'],
@@ -252,12 +252,13 @@ export const tag: ComponentDef = {
     'selected.icon.hover': 'color.interactive.neutral.icon.hover',
     'selected.icon.pressed': 'color.interactive.neutral.icon.pressed',
 
-    // Cross-cutting disabled — Button's outline block: the edge tracks the disabled glyph ink (#1349). No member
+    // Cross-cutting disabled — Button's outline block: the edge binds `color.disabled.border`, since a border
+    // never binds an icon or text role (Q346, #2749; supersedes #1349 here). No member
     // has a fill at rest any more (the selected tint is the overlay slot, which the disabled branch does not
     // carry), so there is no `disabled.fill` and no on-fill ink: a disabled tag is a dimmed outline.
     'disabled.label': 'color.disabled.text',
     'disabled.icon': 'color.disabled.icon',
-    'disabled.border': 'color.disabled.icon',
+    'disabled.border': 'color.disabled.border',
   },
 
   anatomy: {

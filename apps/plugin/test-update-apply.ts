@@ -37,6 +37,9 @@
  *   child/…        a part the plan dropped is removed. Mutation: extra children kept → `child/removed`.
  *   verify/…       the update's own checks fail when the host changes an id or drops a field under it.
  *                  Mutations: the member identity check dropped → `verify/member`.
+ *   edge/…         a file built when the disabled edge bound `color.disabled.icon` (#1349, #1697) is corrected in
+ *                  place to `color.disabled.border` (Q346, #2749): Tag, Button and IconButton, every key and id kept,
+ *                  current after. Mutation: the def's binding reverted → `edge/<def> rebound`.
  *   corpus/…       every def, re-applied in place by an executor revision bump, keeps every key and id, reads
  *                  back as its plan, and reads current after.
  *   choices/…      `overwrite` writes the plan over a hand edit; `accept` keeps it as the new record (§5).
@@ -1139,6 +1142,60 @@ section('grid — a set laid out in another axis order reads its members as move
   const v = applyVerdict(res);
   ok(pre.sets[0].counts.move === undefined && changed > 0 && res.outcomes[0]?.moved === changed && v.lines[0] === `tag: 45 updated in place, ${changed} moved.`,
     `grid/resized: an update that resizes members moves ${changed} the dry run could not list, and the apply counts every one (${previewLine(pre.sets[0])} → ${v.lines[0]})`);
+}
+
+section('default member — Q347\'s three reorders reach an existing set in place: every id, key and placed instance kept (#2752)');
+{
+  // A SET BUILT BEFORE #2752, with the axis in its old order (typed here, the order each def held before), updated to
+  // the def as it is. Figma inserts a set's top-left-most member (`ComponentSetNode.defaultVariant`), so the update has
+  // to MOVE the code default's members to the top-left, and nothing else: no member rebuilt, renamed or dropped, so
+  // every id and key holds and an instance placed from the old set still points at a member of it. The expected
+  // default is the owner's decision, typed here, never read from the def. Mutation: the grid move dropped from the
+  // apply → `default member/<def> inserted`.
+  const OLD: [string, string, string[], string][] = [
+    ['icon-button', 'appearance', ['filled', 'outline', 'ghost'], 'appearance=ghost'],
+    ['veil', 'intensity', ['subtle', 'medium', 'strong'], 'intensity=medium'],
+    ['image-placeholder', 'ratio', ['2:3', '3:4', '4:5', '1:1', '4:3', '3:2', '16:9'], 'ratio=4:3'],
+  ];
+  /** Figma's default variant: the top-left-most member, spatially. Topmost row first, then leftmost in it. */
+  const insertedOf = (set: Node): string => String([...membersOf(set)].sort((a, b) => Number(a.y) - Number(b.y) || Number(a.x) - Number(b.x))[0]?.name);
+  for (const [id, axis, old, want] of OLD) {
+    const d = structuredClone(componentDefs.find((x) => x.id === id)!) as unknown as { variants: Record<string, string[]> };
+    d.variants[axis] = old;
+    const w = await world(id, figmaAnatomySet(d as never, { swapTarget: SWAP_TARGET }));
+    const set = w.set();
+    const was = insertedOf(set);
+    ok(!was.split(', ').includes(want), `premise: ${id} built in the old order inserts ${was}`);
+    // TWO PLACED INSTANCES, on the page beside the set: one of the member the old set inserted, one of the member the
+    // new one will. Each points at the live member node, as a placed instance's main component does.
+    const mainOf = (name: string): Node => membersOf(set).find((m) => String(m.name) === name)!;
+    const newDefault = membersOf(set).find((m) => String(m.name).split(', ').includes(want) && String(m.name) === planComponentName(plansOf(id)[0]))!;
+    const placed = [mainOf(was), newDefault].map((main, i) => {
+      const inst = { type: 'INSTANCE', id: `I:${id}:${i}`, name: String(main.name), x: -500, y: 100 * i, mainComponent: main, children: [] } as unknown as Node;
+      w.page.children.push(inst);
+      return { inst, main, mainId: String(main.id) };
+    });
+    const before = identityOf(set);
+    const plans = plansOf(id);
+    const pre = await previewUpdate(w.host, [{ def: id, plans }]);
+    const c = pre.sets[0].counts;
+    ok((c.move ?? 0) > 0 && c.update + c.add + c.drop + c.rename + c.handEdited + c.noBaseline === 0,
+      `default member/${id} dry run: the reorder reads as moves and nothing else (${previewLine(pre.sets[0])})`);
+    const res = await applyUpdate(w.host, w.api as any, [{ def: id, plans }], previewHashOf(pre));
+    const now = w.set();
+    const after = identityOf(now);
+    const keptIds = now === set && after.set.join() === before.set.join() && after.members.size === before.members.size
+      && [...before.members].every(([k, b]) => after.members.get(k)?.id === b.id && after.members.get(k)?.key === b.key);
+    ok(applyVerdict(res).ok && keptIds, `default member/${id} in place: the set and every member keep their key and id (${applyVerdict(res).headline}; ids ${keptIds ? 'kept' : 'changed'})`);
+    const inserted = insertedOf(now);
+    ok(inserted.split(', ').includes(want) && inserted === planComponentName(plans[0]),
+      `default member/${id} inserted: after the update Figma inserts the ${want} member, the set's first plan (inserts ${inserted})`);
+    const live = placed.every(({ inst, main, mainId }) => w.page.children.includes(inst) && (inst as unknown as { mainComponent: Node }).mainComponent === main
+      && membersOf(now).includes(main) && String(main.id) === mainId && inst.x === -500);
+    ok(live, `default member/${id} instances: both placed instances stay on the page, unmoved, each on a member still in the set with its id`);
+    const next = (await previewUpdate(w.host, [{ def: id, plans }])).sets[0];
+    ok(previewLine(next) === `${String(now.name)}: up to date (${after.members.size} members).`, `default member/${id} current: the next dry run reads up to date (${previewLine(next)})`);
+  }
 }
 
 /* ── re-lay ────────────────────────────────────────────────────────────────────────────────────────────── */
@@ -2276,6 +2333,39 @@ section("verify — the update's own checks fail when the host does not hold wha
 }
 
 /* ── corpus ──────────────────────────────────────────────────────────────────────────────────────────── */
+section('edge — a file built when the disabled edge bound an icon role is corrected in place (Q346, #2749)');
+{
+  // Each def is built from a copy whose `disabled.border` is the retired `color.disabled.icon` (#1349, #1697): the
+  // file an earlier plugin left. The update then runs against the CURRENT def. What the test reads is the shim's
+  // own nodes: which variable each disabled member's stroke is bound to, and every key and id it captured before.
+  for (const id of ['tag', 'button', 'icon-button']) {
+    const def = componentDefs.find((d) => d.id === id)!;
+    const old = { ...def, tokens: { ...def.tokens, 'disabled.border': 'color.disabled.icon' } };
+    // Button and IconButton carry a `surface` axis, so half their disabled edges are the inverse twins.
+    const w = await world(id, figmaAnatomySet(old, { swapTarget: SWAP_TARGET }), { extraVars: ['color/disabled/border', 'color/inverse/disabled/border'] });
+    const vars = new Map<string, string>((await w.api.variables.getLocalVariablesAsync()).map((v: { id: string; name: string }) => [v.id, v.name.slice(v.name.indexOf('/') + 1)] as [string, string]));
+    const strokeVar = (m: Node): string | undefined => {
+      const vid = ((m.strokes as { boundVariables?: { color?: { id: string } } }[] | undefined) ?? [])[0]?.boundVariables?.color?.id;
+      return vid ? (vars.get(vid) ?? vid) : undefined;
+    };
+    const isIcon = (v?: string) => /^color\/(inverse\/)?disabled\/icon$/.test(v ?? '');
+    const isBorder = (v?: string) => /^color\/(inverse\/)?disabled\/border$/.test(v ?? '');
+    const was = membersOf(w.set()).filter((m) => /state=disabled/.test(String(m.name)) && !!strokeVar(m));
+    ok(was.length > 0 && was.every((m) => isIcon(strokeVar(m))), `premise: ${id}'s old build strokes ${was.length} disabled member(s) with the disabled icon role (${[...new Set(was.map(strokeVar))].join(', ')})`);
+    const before = identityOf(w.set());
+    const { pre, res } = await confirm(w, [{ def: id, plans: plansOf(id) }]);
+    ok(pre.sets[0].counts.update >= was.length && applyVerdict(res).ok, `edge/${id} dry run: the ${was.length} disabled edge(s) read to update, and the apply succeeds (${pre.sets[0].counts.update}; ${applyVerdict(res).headline})`);
+    const now = membersOf(w.set()).filter((m) => was.some((x) => x.name === m.name));
+    ok(now.length === was.length && now.every((m) => isBorder(strokeVar(m)) && strokeVar(m)!.includes('inverse') === strokeVar(was.find((x) => x.name === m.name)!)!.includes('inverse')),
+      `edge/${id} rebound: every disabled edge is now bound to the disabled border role, on its own surface (${now.filter((m) => !isBorder(strokeVar(m))).length} still not)`);
+    const after = identityOf(w.set());
+    const moved = [...before.members].filter(([name, b]) => after.members.get(name)?.key !== b.key || after.members.get(name)?.id !== b.id).map(([n]) => n);
+    ok(moved.length === 0 && JSON.stringify(after.set) === JSON.stringify(before.set), `edge/${id} in place: the set and every member keep their key and id (${moved.length} changed)`);
+    const post = (await previewUpdate(w.host, [{ def: id, plans: plansOf(id) }])).sets[0];
+    ok(post.counts.current === before.members.size, `edge/${id} current: the next dry run reads all ${before.members.size} current (${JSON.stringify(post.counts)})`);
+  }
+}
+
 section('corpus — every def, re-applied in place by an executor revision bump, keeps every key and reads back as its plan');
 {
   // A newer executor revision makes every member out of date with nothing else moved, so the update configures

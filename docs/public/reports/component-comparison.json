@@ -209,11 +209,11 @@
         },
         {
           "name": "max",
-          "default": "99"
+          "default": 99
         },
         {
           "name": "showZero",
-          "default": "false"
+          "default": false
         },
         {
           "name": "overlap",
@@ -1478,9 +1478,9 @@
       ],
       "axes": {
         "appearance": [
+          "ghost",
           "filled",
-          "outline",
-          "ghost"
+          "outline"
         ],
         "size": [
           "small",
@@ -1592,9 +1592,9 @@
       ],
       "axes": {
         "appearance": [
+          "ghost",
           "filled",
-          "outline",
-          "ghost"
+          "outline"
         ],
         "size": [
           "small",
@@ -1706,9 +1706,9 @@
       ],
       "axes": {
         "appearance": [
+          "ghost",
           "filled",
-          "outline",
-          "ghost"
+          "outline"
         ],
         "size": [
           "small",
@@ -1805,11 +1805,11 @@
       "projectedStates": [],
       "axes": {
         "ratio": [
+          "4:3",
           "2:3",
           "3:4",
           "4:5",
           "1:1",
-          "4:3",
           "3:2",
           "16:9"
         ]
@@ -1908,11 +1908,11 @@
         },
         {
           "name": "isExternal",
-          "default": "false"
+          "default": false
         },
         {
           "name": "asChild",
-          "default": "false"
+          "default": false
         },
         {
           "name": "trailingIcon"
@@ -2374,7 +2374,7 @@
         },
         {
           "name": "disabled",
-          "default": "false"
+          "default": false
         }
       ],
       "sizes": [
@@ -2422,7 +2422,7 @@
         },
         {
           "name": "selected",
-          "default": "false"
+          "default": false
         },
         {
           "name": "leadingIcon"
@@ -2438,7 +2438,7 @@
         },
         {
           "name": "disabled",
-          "default": "false"
+          "default": false
         }
       ],
       "sizes": [
@@ -2765,7 +2765,7 @@
         },
         {
           "name": "selected",
-          "default": "false"
+          "default": false
         },
         {
           "name": "leadingIcon"
@@ -2784,7 +2784,7 @@
         },
         {
           "name": "disabled",
-          "default": "false"
+          "default": false
         }
       ],
       "sizes": [
@@ -2905,11 +2905,11 @@
         },
         {
           "name": "selected",
-          "default": "false"
+          "default": false
         },
         {
           "name": "showCheck",
-          "default": "true"
+          "default": true
         },
         {
           "name": "onClick"
@@ -2931,11 +2931,11 @@
         },
         {
           "name": "disabled",
-          "default": "false"
+          "default": false
         },
         {
           "name": "readOnly",
-          "default": "false"
+          "default": false
         }
       ],
       "sizes": [
@@ -3229,8 +3229,8 @@
           "light"
         ],
         "intensity": [
-          "subtle",
           "medium",
+          "subtle",
           "strong"
         ],
         "direction": [
@@ -4175,7 +4175,7 @@
     "asChild": [
       {
         "id": "link",
-        "default": "false"
+        "default": false
       }
     ],
     "autoComplete": [
@@ -4366,11 +4366,11 @@
       },
       {
         "id": "segmented-control",
-        "default": "false"
+        "default": false
       },
       {
         "id": "segmented-control-segment",
-        "default": "false"
+        "default": false
       },
       {
         "id": "select",
@@ -4382,11 +4382,11 @@
       },
       {
         "id": "tab",
-        "default": "false"
+        "default": false
       },
       {
         "id": "tag",
-        "default": "false"
+        "default": false
       },
       {
         "id": "text-field",
@@ -4630,7 +4630,7 @@
     "isExternal": [
       {
         "id": "link",
-        "default": "false"
+        "default": false
       }
     ],
     "isInactive": [
@@ -4811,7 +4811,7 @@
     "max": [
       {
         "id": "badge",
-        "default": "99"
+        "default": 99
       }
     ],
     "maxLength": [
@@ -5077,7 +5077,7 @@
       },
       {
         "id": "tag",
-        "default": "false"
+        "default": false
       },
       {
         "id": "text-field",
@@ -5146,15 +5146,15 @@
     "selected": [
       {
         "id": "segmented-control-segment",
-        "default": "false"
+        "default": false
       },
       {
         "id": "tab",
-        "default": "false"
+        "default": false
       },
       {
         "id": "tag",
-        "default": "false"
+        "default": false
       }
     ],
     "shape": [
@@ -5210,7 +5210,7 @@
     "showCheck": [
       {
         "id": "tag",
-        "default": "true"
+        "default": true
       }
     ],
     "showCount": [
@@ -5250,7 +5250,7 @@
     "showZero": [
       {
         "id": "badge",
-        "default": "false"
+        "default": false
       }
     ],
     "size": [
