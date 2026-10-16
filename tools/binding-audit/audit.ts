@@ -45,9 +45,9 @@
  * A tool answers a question and exits 0; a gate asserts an answer and fails. This is the former, and
  * the mis-bind pass is the reason it must be: it is a HEURISTIC. Its map encodes what a slot-kind
  * SHOULD bind from design semantics, and the corpus carries deliberate, already-pinned cross-slot
- * bindings that the heuristic would otherwise flag — the disabled outline edge binding
- * `color.disabled.icon` rather than `color.disabled.border` (#1349, pinned BY NAME in `test.ts`), the
- * switch thumb painting `on-fill`, the switch on/off glyphs tinted with the track's `fill` role.
+ * bindings that the heuristic would otherwise flag — the switch thumb painting `on-fill`, the switch
+ * on/off glyphs tinted with the track's `fill` role. (The disabled outline edge once bound
+ * `color.disabled.icon` under #1349; Q346 retired that, and `lint-paint.ts` arm 5 now refuses it.)
  * Those are design decisions, not defects, so the map admits them with a stated reason (`ALLOWED`),
  * and a run over today's corpus reports ZERO mis-binds. That is what a healthy audit looks like —
  * the instrument's value is that it lights up on a regression (revert #1471 and every button/
@@ -126,8 +126,6 @@ const ALLOWED: Record<SlotKind, Record<string, string>> = {
   },
   border: {
     border: 'an edge role (interactive/field/disabled/focus/danger borders)',
-    icon:
-      "the disabled outline edge binds `color.disabled.icon` rather than `color.disabled.border` so the edge tracks the disabled ink and clears 3:1 on an inverse ground (#1349) — pinned BY NAME in test.ts. `disabled.text`/`disabled.icon` resolve identically; icon is the non-text graphical-object peer.",
   },
   'text-ink': {
     text: 'the ordinary text ink (interactive/disabled text, text.primary/secondary/danger/…)',
@@ -373,7 +371,7 @@ const main = (): void => {
   console.log('\n── Coverage ' + '─'.repeat(67));
   console.log(`  ${misBound.length} mis-bound · ${unbound.length} unbound · ${findings.length} finding(s) total.`);
   console.log(`  mis-bind checked against ALLOWED (slot-kind → role-family). Admitted cross-slot binds (reported`);
-  console.log(`  as clean, by design): switch thumb on-fill, switch glyph fill, disabled outline edge → disabled.icon (#1349).`);
+  console.log(`  as clean, by design): switch thumb on-fill, switch glyph fill.`);
   for (const u of unplannable) console.log(`  not projectable: ${u}`);
   console.log('\n  This is a measurement harness — it reports and exits 0 (tools/CLAUDE.md). A specific mis-binding');
   console.log('  that hardens into a contract is enforced by its own gate, separately.');
