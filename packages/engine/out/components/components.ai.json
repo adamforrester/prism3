@@ -6721,8 +6721,8 @@
       ],
       "category": "form",
       "status": "draft",
-      "summary": "One option of a segmented control. Selected, it shows a tint, a 2px outline and a bold label.",
-      "description": "One option in a segmented control: a cell as tall as a button, holding the option label and an optional leading icon. A selected option takes a tint and a 2px outline inside the cell, and its label is set in the emphasis weight. Every option keeps the width of its bold label, so selecting one never moves the others. At hover, an unselected option shows a light neutral wash. SegmentedControl places the options and owns the selection.",
+      "summary": "One option of a segmented control. Selected, it shows a flat pill and a bold label.",
+      "description": "One option in a segmented control: a cell as tall as a button, holding the option label and an optional leading icon. A selected option shows a flat pill in the page surface color inside the cell, and its label is set in the emphasis weight. Every option keeps the width of its bold label, so selecting one never moves the others. At hover, an unselected option shows a light neutral wash on the track. SegmentedControl places the options and owns the selection.",
       "props": [
         {
           "name": "label",
@@ -6796,8 +6796,9 @@
       "accessibility": {
         "role": "a <button> with aria-current in the view behavior, or a native radio with its label in the form behavior; the control sets which",
         "wcag": [
-          "1.4.1 Use of Color (a 2px outline and the bold label mark the selected option, never the tint alone)",
-          "1.4.11 Non-text Contrast (targets 3:1 for the selected outline against the track)",
+          "1.4.1 Use of Color (the bold label marks the selected option, never the pill alone)",
+          "1.4.3 Contrast (the label clears 4.5:1 on the pill and on the track at rest, hover and press)",
+          "1.4.11 Non-text Contrast (the icon clears 3:1 on the pill and the track; the pill against the track has no floor, because it is not the only cue)",
           "2.4.13 Focus Appearance (the shared focus ring)",
           "2.5.8 Target Size (targets 44px at medium on comfortable and spacious density)"
         ],
@@ -6836,7 +6837,7 @@
         "generationPriority": 9
       },
       "motion": {
-        "enter": "None. On selection the tint and outline move to this option, or cross-fade, over a short duration.",
+        "enter": "None. On selection the pill moves to this option, or cross-fades, over a short duration.",
         "exit": "None.",
         "reduceMotion": "The indicator moves at once; only the color change remains."
       },
@@ -6866,7 +6867,7 @@
       "category": "form",
       "status": "draft",
       "summary": "A row of two to five options in one track, where exactly one is selected and all stay visible.",
-      "description": "A compact row of two to five short options in one outlined track, where exactly one is always selected and every option stays visible. Selecting an option changes a value in place: a parameter of the current view, such as list or grid, or a form value. The options share the track equally. A visible label, or an accessible name, says what is being chosen.",
+      "description": "A compact row of two to five short options in one neutral track, where exactly one is always selected and every option stays visible. Selecting an option changes a value in place: a parameter of the current view, such as list or grid, or a form value. The options share the track equally. A visible label, or an accessible name, says what is being chosen.",
       "props": [
         {
           "name": "label",
@@ -6958,8 +6959,9 @@
         "wcag": [
           "1.3.1 Info and Relationships (the group and its label are exposed together)",
           "4.1.2 Name, Role, Value",
-          "1.4.1 Use of Color (the selected option has a 2px outline and a bold label as well as a tint)",
-          "1.4.11 Non-text Contrast (targets 3:1 for the selected outline and the track edge)",
+          "1.4.1 Use of Color (the selected option has a bold label as well as a pill)",
+          "1.4.3 Contrast (every label clears 4.5:1 on the pill and on the track at rest, hover and press)",
+          "1.4.11 Non-text Contrast (icons clear 3:1 on the pill and the track, and the focus ring 3:1 against the track; the pill and the track against the page have no floor, because the labels identify the options)",
           "2.4.7 Focus Visible",
           "2.4.13 Focus Appearance (the shared focus ring, as intent)",
           "2.5.8 Target Size (every option is a full-height cell)",
@@ -7008,7 +7010,7 @@
         "generationPriority": 4
       },
       "motion": {
-        "enter": "None. On selection the indicator moves to the new option, about 150–200ms, or the tint and outline cross-fade.",
+        "enter": "None. On selection the pill moves to the new option, about 150–200ms, or cross-fades.",
         "exit": "None.",
         "reduceMotion": "The indicator moves at once; only the color change remains."
       },

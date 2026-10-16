@@ -300,6 +300,13 @@ whose actual value comes from the host, not from the plan.
   (text-field and select, owner-directed in #1517). The status-led paint key leads the grammar
   (`{status}.{slot}.{state}` before `{slot}.{state}`), so the status boundary wins over the
   interactive-state progression and persists at rest, hover and focus.
+- **A border never binds an icon or text role** (owner decision Q346). An edge binds a border
+  role: `border.*`, `interactive.<intent>.border.*`, `field.border.*`, or `color.disabled.border`.
+  Every disabled edge binds `color.disabled.border`; a field-specific disabled border is fine only
+  where the token tier already has one. Do not reach for `color.disabled.icon` to make a disabled
+  outline darker: a disabled control is outside SC 1.4.11, and how strong its edge reads is the
+  token tier's to decide, not your component's. `packages/engine/lint-paint.ts` arm 5 refuses a
+  stroke bound to a variable the emitted color collection does not scope for strokes.
 - **Paint-key grammar.** A paint key is templated over the def's own axes with the `{axis}.{axis}`
   syntax — veil's `paintKeys: ['{value}.{intensity}']` fills the full 2×3 grid, each coordinate
   binding the matching semantic role. A `text` part names one ink slot in `paintSlot`; a `box`
@@ -358,17 +365,19 @@ Figma, so one job takes one name across every def:
 
 **The `_` prefix (owner decisions Q349, Q355).** A component that should not be used outside its parent
 takes the `_` prefix on its id, which Figma reads as a building block and leaves out of a published
-library. Its `ai.whenToUse` says so in one of two wordings: "Only as a child of …" or "Never directly
-…". The prefixed set is the segmented-control segment, `_tab-item`, `_list-item` and
-`_accordion-indicator`. The checkbox and radio controls stay unprefixed because they may be used on
-their own.
+library. Its `ai.whenToUse` opens with one of two wordings: "Only as a child of …" or "Never directly
+…". The prefixed set is `_segmented-control-segment`, `_tab-item`, `_list-item` and
+`_accordion-indicator`. The checkbox and radio controls (`checkbox-control`, `radio-control`) stay
+unprefixed because they may be used on their own.
 
 **Figma property names are lowercase (owner decision Q345).** Every name a designer reads in the
 properties panel is lowercase: each `figmaName` (or the key, when there is none), and each variant axis
 under its display name. So `check icon`, `state icon`, `marker`, `label`, never `Check icon`.
 
 `packages/engine/lint-naming.ts` checks all of this except the main-text row, which is a judgment
-(a dialog has a title and a description). Its rules are literals in the gate, never read off a def.
+(a dialog has a title and a description). Its rules are literals in the gate, never read off a def,
+and the gate reads this section's root list, prefixed set and exempt controls back and fails if they
+differ from its literals.
 Until the sweep in #2759 finishes, breaches the gate already knows about are listed as `PENDING` in
 `packages/engine/lint-naming.ts`. Entries leave it as the renames land. Never add one: a new def follows the table.
 
