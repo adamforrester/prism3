@@ -104,7 +104,7 @@ export const PROGRESS_GEOMETRY = {
  *  the two rings share one drawing method; the full ring is the spinner's annulus at full strength. */
 export const progressLayers = (band: number, full: boolean, g: { viewBox: number; value: number } = PROGRESS_GEOMETRY): GlyphLayer[] => {
   const [track, arc] = spinnerLayers({ viewBox: g.viewBox, radius: g.viewBox / 2 - band / 2, stroke: band, arc: g.value, track: 1 });
-  return full ? [{ id: 'arc', d: track.d, fillRule: 'evenodd' }] : [arc];
+  return full ? [{ id: 'track', d: track.d, fillRule: 'evenodd' }] : [arc];
 };
 
 /** The stop dot at the end of a determinate progress bar (#2670): a disc filling the artboard, scaled to 4px. */
