@@ -118,6 +118,11 @@
  *                  every glyph's vectors fit its frame, read by the test off the shim's nodes (#2379). Mutations: the
  *                  paint base left black, or its alpha dropped → `drawn/paints`; the fresh glyph import not scaled to
  *                  its frame → `drawn/glyphs`.
+ *   damage/under a layer …  a member that draws wrong AND has a layer added by hand: the dry run counts it edited by
+ *                  hand, never "to update", its paint still listed; the apply skips it under every choice, named with
+ *                  the layer and the damage, and leaves it exactly (#2413). Mutations: the dry run's damage read before
+ *                  the structural edit → `damage/under a layer dry run`; the skip reason without the damage →
+ *                  `damage/under a layer skip (keep|overwrite|accept)`.
  *   veil/…         every directional veil member's gradient stops store the colors and alphas their variables resolve
  *                  to: built fresh; damaged with black stops, read "to update" by the dry run and repaired by the apply,
  *                  verified, then current; and verify names a stop the host leaves black (#2391). Mutations: the stops
@@ -1580,6 +1585,39 @@ section('damage under a record — a member drawn wrong reads "to update" whatev
   ok(st === 'update' && JSON.stringify(edits) === '["content"]' && left.length === 0
     && (childNamed(m, 'content').boundVariables as Record<string, { id: string }>).itemSpacing?.id === zero && res.outcomes[0]?.kept.some((k) => k.path === 'content'),
     `damage/over edit: the member reads "to update", its hand edit kept and listed, its damage repaired (${st}; edits ${JSON.stringify(edits)}; ${left.length} faults left; ${applyVerdict(res).headline})`);
+}
+
+{
+  // A LAYER ADDED BY HAND OUTRANKS THE DAMAGE (#2413): a member that draws wrong (a paint storing black on its root)
+  // and also has a layer a designer added is skipped by the apply under every choice (§5), so the dry run counts it
+  // "edited by hand", never "to update", and still lists the paint as a difference; the apply's skip names both the
+  // layer and the damage. The member is left exactly. Mutations: the dry run's damage read before the structural
+  // edit → `damage/under a layer dry run`; the skip reason without the damage → `damage/under a layer skip`.
+  const w = await world(TAG);
+  const m = membersOf(w.set())[3];
+  let hit = '';
+  for (const f of ['fills', 'strokes'] as const) {
+    const ps = m[f] as { boundVariables?: { color?: unknown } }[] | undefined;
+    if (!hit && Array.isArray(ps) && ps.some((p) => p?.boundVariables?.color)) { m[f] = ps.map((p) => (p?.boundVariables?.color ? { ...p, color: { r: 0, g: 0, b: 0 }, opacity: 1 } : p)); hit = f; }
+  }
+  const extra = (w.api.createFrame as () => Node)();
+  extra.name = 'designer note';
+  (m.appendChild as (c: Node) => void)(extra);
+  ok(!!hit, `premise: the member's root binds a paint, now storing black, and it holds a layer added by hand (${hit})`);
+  const dumpOf = (n: Node): string => JSON.stringify([n.name, n[hit as 'fills'], [...(n._pluginData as Map<string, string>)], ...(n.findAll as () => Node[])().map((k) => [k.name, k.id, k.boundVariables])]);
+  const before = dumpOf(m);
+  const pre = await previewUpdate(w.host, [{ def: TAG, plans: w.plans }]);
+  const p = pre.sets[0];
+  const st = p.states.find((x) => x.member === String(m.name))?.state;
+  const black = p.changes.find((c) => c.field === hit && /stored #000000/.test(c.from) && c.sample.includes(String(m.name)));
+  ok(st === 'handEdited' && p.counts.update === 0 && p.counts.handEdited === 1 && !!black && previewLine(p) === `${TAG}: 45 members. 1 member edited by hand.`,
+    `damage/under a layer dry run: the member counts as edited by hand, not to update, and its paint is still listed (${st}; ${JSON.stringify(p.counts)}; ${black ? `${black.part}.${black.field}: ${black.from}` : 'no paint line'}; ${previewLine(p)})`);
+  for (const choice of ['keep', 'overwrite', 'accept'] as const) {
+    const res = await applyUpdate(w.host, w.api as any, [{ def: TAG, plans: w.plans }], previewHashOf(await previewUpdate(w.host, [{ def: TAG, plans: w.plans }])), { choices: { handEdits: choice } });
+    const why = res.outcomes[0]?.skipped.find((x) => x.member === String(m.name))?.reason ?? '';
+    ok(why.startsWith('a layer was added or removed by hand, and it draws other than its plan (') && why.includes(String(m.name)) && why.includes(`${hit}: stored #000000`) && dumpOf(m) === before,
+      `damage/under a layer skip (${choice}): the skip names the layer and the damage, and the member is left exactly (${why || 'not skipped'}; ${dumpOf(m) === before ? 'untouched' : 'written'})`);
+  }
 }
 
 {
