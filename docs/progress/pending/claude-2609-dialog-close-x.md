@@ -8,7 +8,17 @@ change, so `EXECUTOR_REVISION` stays.
 - **Owner decision (2026-10-16, on #2609):** the control in the header's top-right corner is always the close X.
   Dialog has no icon swap for it; a team that wants another X changes the `close` glyph in its icon set or edits the
   component.
-- Dialog's `close` part (nests IconButton.Neutral, `nest-fixed`) gains `overrides: { swaps: { icon: 'close' } }`, the
+- **Owner decision Q385 A (2026-10-16, on #2806), settling Q377 A on #2609:** the close nests
+  **FlushIconButton.Neutral** instead of IconButton.Neutral, so a file built without the IconButton sets still builds
+  Dialog, and building Dialog no longer pulls IconButton.Neutral in. The variant is `shape: round, size: medium`, the
+  closest to the earlier ghost medium IconButton: the same 44px box at the default density (so the header keeps its
+  height and the close keeps a visible 44px target), the same neutral glyph ink and hover wash, and the shared focus
+  ring. The one visible difference is round's decorative edge (`color.border.secondary`), which the ghost button did
+  not draw; the flush shape would have dropped the edge but shrunk the box to the 20px glyph. Held for the owner's
+  visual QA. Dialog depends on IconButton.Neutral nowhere now: the part's `nests`, every member's plan, `composesWith`,
+  `commonPartners`, the docs, `.ai.json`, the dependency report and the Studio catalog. `lint-hit-target.ts`'s
+  exclusion reason for Dialog names the new button.
+- Dialog's `close` part (`nest-fixed`) gains `overrides: { swaps: { icon: 'close' } }`, the
   #2645 mechanism, so every one of the 15 members shows the close icon instead of the icon set's default glyph. The
   `close` boolean (show or hide) is unchanged.
 - The "nested close button shows the file's default icon" note is gone; the footer buttons' half of it stays, as the
@@ -35,5 +45,7 @@ instance and use its own `swap icon`, which is Figma's behavior for every nested
 
 ### Verification
 
+`test.ts` `#2609 dialog (Q385 A): the close nests FlushIconButton.Neutral, and Dialog depends on IconButton.Neutral
+nowhere` reads the part, every plan's nest, swap and swap-override targets, and the selection fields against literals.
 `test.ts` `#2609 dialog: …` — every member's close carries the literal swap to `icon/close`; Dialog's Figma surface
 has no swap property; the close stays `nest-fixed`. Surface baseline accepted for Dialog only (15 → 15 members).
