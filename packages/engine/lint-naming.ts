@@ -11,8 +11,9 @@
  * literal, never read off a def:
  *
  *  ── casing ──  (Q345 A) every Figma property name a def projects is lowercase: each `figmaName` (or the
- *     key, when there is none) in `slotAxes`, `swaps`, `texts` and `booleans`, and each variant axis under
- *     its display name (`variantAxisNames`, else the axis key). EXPECTED is `name.toLowerCase()`.
+ *     key, when there is none) in `slotAxes`, `swaps`, `texts` and `booleans`, each variant axis under
+ *     its display name (`variantAxisNames`, else the axis key), and the state axis's `stateAxis.name`.
+ *     EXPECTED is `name.toLowerCase()`.
  *
  *  ── prefix ──  (Q349, Q355) a def that should not be used outside its parent takes the `_` prefix, and
  *     only such a def does. "Should not be used outside its parent" is read off the def's `ai.whenToUse`,
@@ -28,6 +29,12 @@
  *  ── glyph ──  (Q350) every `vector` part that is not the root is named `<shape>Glyph`.
  *
  *  ── control cell ──  (Q350) a box that holds a nested `*-control` is named `controlCell`.
+ *
+ * ── skill ──  the literals and the owner-facing table agree. `ROOT_ROLES`, `DECIDED_PRIVATE` and `STANDALONE`
+ *     are each written twice: here, and in §6 of the skill, which is what the owner reads and decides. The
+ *     arm parses §6's root row, its prefixed set and its exempt controls and asserts each equals its literal
+ *     in both directions, so neither copy can move alone. It does not make the skill the oracle for a def:
+ *     the defs are still checked against the literals.
  *
  * NOT CHECKED, and said so: "main text is `label`". Which text part is a component's main one is a judgment
  * (a dialog has a title and a description), not a field, so it stays with review.
@@ -50,6 +57,7 @@
  * representation floor asserts the walk saw property names, roots, vector parts and a control cell at all,
  * so an empty walk cannot report clean.
  */
+import { readFileSync } from 'node:fs';
 import { componentDefs } from './components/index';
 import type { ComponentDef } from './component-schema';
 
@@ -151,6 +159,8 @@ const propertyNames = (def: ComponentDef): string[] => {
     for (const [key, v] of Object.entries(group ?? {})) out.push((v as { figmaName?: string }).figmaName ?? key);
   const shown = (fp as { variantAxisNames?: Record<string, string> } | undefined)?.variantAxisNames ?? {};
   for (const axis of Object.keys(def.variants ?? {})) out.push(shown[axis] ?? axis);
+  // The state axis is a variant property too (`figmaAxisNames` projects it between the variant and slot axes).
+  if (fp?.stateAxis?.name) out.push(fp.stateAxis.name);
   return out;
 };
 
@@ -232,6 +242,23 @@ for (const id of DECIDED_PRIVATE) {
   if (!isPrivateWording(def.ai?.whenToUse ?? '')) fail.push(`floor: '${def.id}' is in the owner's prefixed set, and its whenToUse does not open with the private-part wording, so the prefix rule cannot see it`);
 }
 
+// The literals equal the skill's §6, both ways (each list read with a floor, so a reworded table that parses
+// to nothing fails rather than agreeing with nothing).
+const SKILL = 'skills/prism3-build-component/SKILL.md';
+const skill = readFileSync(new URL(`../../${SKILL}`, import.meta.url), 'utf8');
+const s6 = skill.slice(skill.indexOf('\n## 6. '), skill.indexOf('\n## 7. '));
+const ticks = (text: string | undefined): string[] => [...(text ?? '').matchAll(/`([^`]+)`/g)].map((m) => m[1]);
+const fromSkill: [string, readonly string[], string[]][] = [
+  ['ROOT_ROLES', ROOT_ROLES, ticks(/^\| Root part \|([^|]*?)Never/m.exec(s6)?.[1])],
+  ['DECIDED_PRIVATE', DECIDED_PRIVATE, ticks(/The prefixed set is ([^.]*)\./.exec(s6)?.[1])],
+  ['STANDALONE', STANDALONE, ticks(/\(([^)]*)\) stay\s+unprefixed/.exec(s6)?.[1])],
+];
+for (const [name, literal, table] of fromSkill) {
+  if (table.length === 0) { fail.push(`skill: ${SKILL} §6 lists no ${name} that the gate can read; the agreement check is reading nothing`); continue; }
+  for (const x of literal) if (!table.includes(x)) fail.push(`skill: ${name} has '${x}', which ${SKILL} §6 does not list`);
+  for (const x of table) if (!literal.includes(x)) fail.push(`skill: ${SKILL} §6 lists '${x}', which ${name} does not have`);
+}
+
 // Every breach is in the ledger; every ledger entry is still a breach.
 const key = (b: { arm: string; def: string; name: string }): string => `${b.arm}|${b.def}|${b.name}`;
 const pendingKeys = new Set(PENDING.map(key));
@@ -245,4 +272,4 @@ if (fail.length) {
   process.exit(1);
 }
 const byPr = [2, 3, 4].map((n) => `PR ${n}: ${PENDING.filter((p) => p.pr === n).length}`).join(', ');
-console.log(`✓ lint-naming: ${componentDefs.length} defs — ${seen.props} property names, ${seen.roots} roots, ${seen.vectors} glyph layers, ${seen.cells} control cells, ${seen.privates} private defs; every breach is pending (${PENDING.length}: ${byPr}), none stale.`);
+console.log(`✓ lint-naming: ${componentDefs.length} defs — ${seen.props} property names, ${seen.roots} roots, ${seen.vectors} glyph layers, ${seen.cells} control cells, ${seen.privates} private defs; every breach is pending (${PENDING.length}: ${byPr}), none stale; the skill's §6 agrees (${ROOT_ROLES.length} roles, ${DECIDED_PRIVATE.length} prefixed, ${STANDALONE.length} exempt).`);
