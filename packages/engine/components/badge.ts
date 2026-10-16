@@ -38,7 +38,7 @@
  * every type, and its padding and its CORNER are keyed on the type (`{type}.pad-x`, `{type}.pad-y`,
  * `{type}.radius`). The status label's corner is `radius.sm` (owner decision, 2026-09-28: a smaller radius
  * that scales per brand, so a status label never reads as Tag's pill); the count and dot keep `radius.round`:
- *   · status — the `text` part, the status label, at `space.150` × `space.100`, as before.
+ *   · status — the `label` part, the status label, at `space.150` × `space.100`, as before.
  *   · count  — the `count` part, a number, at `space.075` × `space.025`. A single digit reads as a circle
  *     and more digits grow it into a pill, because the surface hugs its text under `radius.round`. Figma
  *     has no width-equals-height floor, so one digit is a near-circle whose exact width depends on the
@@ -214,10 +214,10 @@ export const badge: ComponentDef = {
         padding: { block: '{type}.pad-y', inlineLabel: '{type}.pad-x' },
         radius: '{type}.radius',
         strokeWidth: 'border-width',
-        children: ['text', 'count', 'dot'],
+        children: ['label', 'count', 'dot'],
         note: 'The badge body, sized by what it holds: a small-radius label around a status text, a circle around one digit that grows into a pill, or the round dot itself. A subtle status label is the tone\'s tint with a 1px edge in the tone\'s border color, drawn inside the edge so it adds no size. A bold badge is the solid tone fill with no edge. Neither paints an interactive color.',
       },
-      text: {
+      label: {
         kind: 'text',
         type: 'type',
         presentWhen: { type: ['status'] },
@@ -254,7 +254,7 @@ export const badge: ComponentDef = {
     excludeCoordinates: [{ type: ['count', 'dot'], emphasis: ['subtle'] }],
     texts: {
       label: {
-        part: 'text',
+        part: 'label',
         default: 'Status',
       },
       value: {

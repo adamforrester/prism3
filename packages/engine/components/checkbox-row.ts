@@ -240,13 +240,13 @@ export const checkboxRow: ComponentDef = {
 
   // ── ANATOMY — THE LABELED ROW THAT NESTS THE CONTROL (#910, #1226 step 2) ──────────────────────
   //
-  // Three parts now, not seven: the whole ROW is the hit target, the `controlBox` is the #1201 line-box
+  // Three parts now, not seven: the whole ROW is the hit target, the `controlCell` is the #1201 line-box
   // wrapper, and its CHILD is a `nest` of `checkbox-control` where the painted box, the two glyphs and
   // the focus ring used to be authored in place. The atom paints itself; the Row paints the label. This
   // is the composition #1226 asked for — a shared box single-sourced, a fix to it propagating here.
   //
   // WHY THE WRAPPER STAYS A BOX AND ITS CHILD IS THE NEST (owner-decided). The obvious reading — make
-  // `controlBox` itself the nest — would need the nest to carry the LINE-BOX height, and a nested
+  // `controlCell` itself the nest — would need the nest to carry the LINE-BOX height, and a nested
   // instance stretched to the line box is a control floating in a tall cell. Instead the centring box
   // (a real `box`) keeps the line-box height and the `align: center`, and the nest is the inner control
   // at its OWN square: the box handles alignment, the nest handles extent. So the small control reads
@@ -254,7 +254,7 @@ export const checkboxRow: ComponentDef = {
   //
   // THE ROW MUST NOT CENTER. On a wrapping consent label `align: center` floats the control to the
   // middle of the paragraph (the wrong repair `test.ts` #1009 half-1 forbids by name). The row stays
-  // top-aligned and the centring lives one level down, in `controlBox`. `test.ts` #1201 asserts both.
+  // top-aligned and the centring lives one level down, in `controlCell`. `test.ts` #1201 asserts both.
   anatomy: {
     root: 'row',
     parts: {
@@ -267,7 +267,7 @@ export const checkboxRow: ComponentDef = {
         // START on the cross axis, and #1201 is what makes that both correct AND enough. The ROW must NOT
         // center — on a wrapping consent label `align: center` floats the control to the middle of the
         // paragraph (the measured wrong repair `test.ts` #1009 half-1 forbids by name). Centring the
-        // control against its label is done one level down, INSIDE `controlBox`, which is exactly one
+        // control against its label is done one level down, INSIDE `controlCell`, which is exactly one
         // line-box tall; top-aligning that box here lands it on the first line. So a single-line label
         // reads centered and a wrapping one keeps the control on line one.
         layout: { direction: 'row', align: 'start', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
@@ -283,14 +283,14 @@ export const checkboxRow: ComponentDef = {
         // at 320 and overflowed it. Both are literal projection defaults, not bound tokens, so CONTRACT holds.
         placementWidth: 320,
         minWidth: 120,
-        children: ['controlBox', 'label'],
+        children: ['controlCell', 'label'],
       },
       // THE ALIGNMENT BOX (#1201, building the fix #1009 filed). A structural wrapper exactly one line of
       // the label tall (`size.{size}.control-box` → the baked `body.{rung}` line-box), centring the
       // control on its cross axis. No `paintSlots` — it draws nothing; it exists only to give the control
       // a line-tall box to center within, so the top-aligned row lands it on the FIRST line rather than
       // mid-paragraph. Height FIXED to the line-box; width HUGs the control so the row's gap is unchanged.
-      controlBox: {
+      controlCell: {
         kind: 'box',
         role: 'presentation',
         height: 'size.{size}.control-box',
@@ -463,7 +463,7 @@ export const checkboxRow: ComponentDef = {
 
   notes: {
     contested: [
-      '`alignment` (top/baseline vs center) is in brief §15\'s variants block and is NOT an axis here. The brief calls top/baseline "the non-negotiable default, not center", and a non-negotiable default with one admissible value is not an axis — it has no dimension. It is a layout rule for the anatomy block to encode. The alternative is to declare it and accept an axis of one, which `modifiers` already demonstrates the cost of (#845). #1201 REFINED how that rule is encoded without weakening it: the control+label ROW is still top-aligned (never centered — `test.ts` #1009 half-1 enforces it), but the control now sits in a `controlBox` exactly one label line-box tall and centers WITHIN that box, so a single-line label reads centered and a wrapping one keeps the control on the first line. That is the construction #1009 filed and could not build, unblocked by baking the line-box to a fixed px per rung (`control.size.*.line-box`) — the one thing a Figma variable can hold that `fontSize × ratio` is not.',
+      '`alignment` (top/baseline vs center) is in brief §15\'s variants block and is NOT an axis here. The brief calls top/baseline "the non-negotiable default, not center", and a non-negotiable default with one admissible value is not an axis — it has no dimension. It is a layout rule for the anatomy block to encode. The alternative is to declare it and accept an axis of one, which `modifiers` already demonstrates the cost of (#845). #1201 REFINED how that rule is encoded without weakening it: the control+label ROW is still top-aligned (never centered — `test.ts` #1009 half-1 enforces it), but the control now sits in a `controlCell` exactly one label line-box tall and centers WITHIN that box, so a single-line label reads centered and a wrapping one keeps the control on the first line. That is the construction #1009 filed and could not build, unblocked by baking the line-box to a fixed px per rung (`control.size.*.line-box`) — the one thing a Figma variable can hold that `fontSize × ratio` is not.',
       'The group\'s `orientation` and `density` are in brief §15\'s variants block and are not here because they are `CheckboxGroup`\'s axes, not this component\'s. The alternative is folding the group into this def, which is the monolithic decomposition the brief evaluates and rejects (§2).',
       'BORDER AND FILL AT ONE COORDINATE — #1011\'s third finding, and the answer is NEITHER of the two the issue offered. The defect: a selected box named `fill.selected` for its fill and let its border fall through to `border.rest`, so two bindings that must AGREE about the box\'s boundary disagreed. Both resolved, both named tokens this def chose, and the box shipped with a visible seam — #802\'s class again, and the second on this component after #967\'s `role: \'target\'` conflation. The issue asked whether this needs a new EXPRESSION or is PER-DEF CARE. It is a third thing. It needs no new expression: the grammar already says it, because an unbound slot returns `undefined` and paints nothing, so the ABSENCE of `unchecked.fill` IS the binding "this coordinate has no fill" — the fix was deleting seven keys, not adding a field. And per-def care is exactly what had already failed: the radio and switch defs of the time carried the identical pairing because they copied this def verbatim, which is per-def care performed correctly three times over one wrong premise. What was missing was neither vocabulary nor diligence but ENFORCEMENT, so the answer is a gate — `lint-paint.ts` arm 4, which measures whether a fill is self-bounding against the page (>= 3:1, SC 1.4.11) and fails a same-family border drawn beside one. It named all three defs in a single run before any of them was fixed. The measured fact underneath, which is why the rule generalizes rather than describing these three: `interactive.<intent>.fill.*` and `interactive.<intent>.border.*` were byte-identical at every rung they SHARE across the brands measured then (5 brands x 4 modes), and the border ladder has NO `selected` rung at all — so `fill.selected` beside `border.rest` was never two shades of one idea, it was a fill that moved and a border that could not follow. The asymmetry to keep in view: switch\'s OFF track KEEPS its rim, because no brand\'s neutral fill clears 3:1 (1.21-1.58:1 at rest) and the rim is that track\'s only edge — which is precisely why arm 4 asks about the FILL\'s contrast rather than comparing the two bindings to each other.',
     ],

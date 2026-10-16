@@ -143,9 +143,9 @@ export const divider: ComponentDef = {
   },
 
   anatomy: {
-    root: 'divider',
+    root: 'container',
     parts: {
-      divider: {
+      container: {
         kind: 'box',
         role: 'presentation',
         children: ['rule'],

@@ -180,7 +180,7 @@ export const fieldMessage: ComponentDef = {
         // max(glyph, caption line box) in every member and a wrapping message still grows. Bound to the
         // glyph's own key, so the floor is whatever the glyph is in every brand. Code: `min-block-size`.
         minHeight: 'glyph-size',
-        children: ['iconError', 'iconWarning', 'iconSuccess', 'text'],
+        children: ['errorGlyph', 'warningGlyph', 'successGlyph', 'label'],
       },
       // ── THE STATUS GLYPH: THREE VECTOR PARTS, ONE PER VALIDATION TONE (#1010) ─────────────────────
       //
@@ -232,28 +232,28 @@ export const fieldMessage: ComponentDef = {
       // and `check-circle-filled` are two entries. The three statuses still differ in SHAPE — triangle,
       // circled exclamation, circled check — so the SC 1.4.1 contract this def exists for holds on a
       // non-color channel, where before all three members drew one identical placeholder.
-      iconError: {
+      errorGlyph: {
         kind: 'vector',
         glyph: 'warning-triangle',
         size: 'glyph-size',
         presentWhen: { status: ['error'] },
         note: 'The error glyph, aria-hidden — the caption carries the meaning. An exclamation in a triangle, and the only status whose enclosure is not a circle: shape is the channel that survives when the ink cannot be told from `warning`\'s. Its ink is `error.icon`, applied as `descendantFills` (never a fill on the artboard — #864), so the icon+text pairing that satisfies SC 1.4.1 is one token decision rather than two.',
       },
-      iconWarning: {
+      warningGlyph: {
         kind: 'vector',
         glyph: 'error-circle',
         size: 'glyph-size',
         presentWhen: { status: ['warning'] },
         note: 'The warning glyph, aria-hidden. An exclamation in a CIRCLE — the same mark as `error`\'s in a different enclosure, which is what the reference asks for. Its ink is `warning.icon`.',
       },
-      iconSuccess: {
+      successGlyph: {
         kind: 'vector',
         glyph: 'check-circle',
         size: 'glyph-size',
         presentWhen: { status: ['success'] },
         note: 'The success glyph, aria-hidden — a circled check. Its ink is `success.icon`.',
       },
-      text: {
+      label: {
         kind: 'text',
         // The caption scale, and NOT `{size}`-templated — this def has one scale and no size axis, which
         // since #795 means its member names carry no `size=` (see the header). A `{size}` placeholder here would need a size axis
@@ -332,7 +332,7 @@ export const fieldMessage: ComponentDef = {
     texts: {
       // `message` lowercase per #1333 — validated against `props` above, so it renames with the prop.
       message: {
-        part: 'text',
+        part: 'label',
         default: 'This is a status message.',
       },
     },

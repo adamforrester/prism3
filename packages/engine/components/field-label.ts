@@ -248,9 +248,9 @@ export const fieldLabel: ComponentDef = {
   // label names the field; the indicator is the required marker beside it (`*`), in its own ink, shown
   // or hidden by the `required` boolean (#1338).
   anatomy: {
-    root: 'label',
+    root: 'container',
     parts: {
-      label: {
+      container: {
         kind: 'box',
         // `target` in the schema's sense — the node that owns this component's paint and geometry — and
         // NOT the interaction sense, on `icon`'s terms: a label takes no focus. What it DOES own that a
@@ -267,14 +267,14 @@ export const fieldLabel: ComponentDef = {
         // FILLS ITS PLACEMENT, AND IS BUILT AT THE FIELD'S WIDTH (#1757). Every host stretches the instance
         // across its field; a bare instance is built 320 wide (the field floor, `field-message`'s reason). The
         // 320 is ALSO where the name wraps, since #1762: the name hugs and wraps at a max width derived from
-        // this `placementWidth` (see `text`), so the row is as wide as the field and the name and marker sit at
+        // this `placementWidth` (see `label`), so the row is as wide as the field and the name and marker sit at
         // its start. It hugged before #1757, and a long name ran past the field.
         layout: { direction: 'row', align: 'baseline', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
         placementWidth: 320,
         gap: 'gap',
-        children: ['text', 'indicator'],
+        children: ['label', 'indicator'],
       },
-      text: {
+      label: {
         kind: 'text',
         type: 'size.{size}.{weight}.text',
         // No `paintSlot` — the default IS `label`, and stating it would invite the reading that the
@@ -405,7 +405,7 @@ export const fieldLabel: ComponentDef = {
       // specific field name like "Email address" (#1434, owner-directed): the shipped placeholder reads as
       // obviously illustrative for a white-label engine, and still satisfies the label content rule (noun,
       // sentence case, ≤3 words, no trailing colon).
-      label: { part: 'text', default: 'Label' },
+      label: { part: 'label', default: 'Label' },
       // The marker's TEXT (`*`, #1338), keyed on the `required` prop like the boolean below — ONE consumer
       // prop backing TWO Figma properties on ONE node (its `characters` and its `visible`), exactly as
       // select's `leadingIcon` backs a swap AND a boolean. The two Figma FIELDS differ (`characters` vs
