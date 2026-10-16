@@ -965,7 +965,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "id": "segmented-control-segment",
     "name": "SegmentedControl.Segment",
     "category": "form",
-    "summary": "One option of a segmented control. Selected, it takes a tint, a 2px outline and emphasis weight.",
+    "summary": "One option of a segmented control. Selected, it shows a flat pill and an emphasis-weight label.",
     "unit": "variants",
     "spacing": [
       {
