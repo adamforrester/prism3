@@ -46,7 +46,7 @@ Page titles in sentence case, matching each page heading. "Home" for the root.
 
 | Name | Type | Default | Required | Description |
 | --- | --- | --- | --- | --- |
-| `items` | slot | — | yes | The steps, root first, each with a label and an href. The last is rendered as the current page: text with aria-current="page", its href ignored. Three by default in Figma; at least two. |
+| `items` | slot | — | yes | The steps, root first, each with a label and an href. The last is rendered as the current page: text with aria-current="page", its href ignored. At least two. |
 | `size` | enum: 'small' \| 'medium' | `medium` | no | The body type size, 14 or 16px, passed to every item. Medium suits a trail beside 16px body copy; small, a quieter line above a page title. |
 | `maxItems` | number | `5` | no | Above this many items, the middle collapses behind one overflow button. |
 | `itemsBeforeCollapse` | number | `1` | no | How many items stay before the overflow button when the trail collapses. |

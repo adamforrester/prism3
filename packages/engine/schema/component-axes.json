@@ -60,6 +60,33 @@
     },
     "members": 20
   },
+  "breadcrumb-item": {
+    "axes": {
+      "kind": [
+        "ancestor",
+        "current",
+        "overflow"
+      ],
+      "size": [
+        "medium",
+        "small"
+      ]
+    },
+    "members": 6
+  },
+  "breadcrumbs": {
+    "axes": {
+      "layout": [
+        "parent",
+        "trail"
+      ],
+      "size": [
+        "medium",
+        "small"
+      ]
+    },
+    "members": 4
+  },
   "button": {
     "axes": {
       "appearance": [

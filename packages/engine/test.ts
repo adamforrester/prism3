@@ -26867,7 +26867,7 @@ arm: {
   // own constant.
   // `tag` joins (2026-09-27): its check mark is gated on `selection: ['selected']`, the checkbox mark's shape.
   // `link` joins (#2580, owner Q297.2): its trailing icon is gated on `style: ['standalone']`, so an inline link carries none.
-  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'radio-control', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion', 'list-item', 'link', 'dialog', 'password-field'];
+  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'radio-control', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion', 'list-item', 'link', 'dialog', 'password-field', 'breadcrumb-item', 'breadcrumbs'];
   ok(GATED_EXPECTED.every((n) => gatedDefs.some((d) => d.id === n)) && gatedDefs.length === GATED_EXPECTED.length,
     `#910 the presentWhen projection rule below covers exactly [${GATED_EXPECTED.join(', ')}] — a def gaining a variant-gated part must be represented here, and a def losing one is a stale claim (found: ${gatedDefs.map((d) => d.id).join(', ') || 'none'})`);
   for (const def of gatedDefs) {
@@ -28342,6 +28342,10 @@ arm: {
     // link wraps, and the icon is inline with its word rather than centered on the block (link.ts codeOnly).
     'link.container':
       "a link is one text line tall in Figma and its label is one line there, so the trailing icon centers against the only line; in code the icon sits inline with the last word, never centered on a wrapped block (link.ts codeOnly).",
+    // `breadcrumb-item` (#2666): the label never wraps (ancestor labels do not wrap or truncate; the current page
+    // truncates on one line), so the separator centers against the only line, in Figma and in code.
+    'breadcrumb-item.container':
+      "a breadcrumb step is one text line tall and never wraps (breadcrumb-item.ts codeOnly), so the separator centers against the only line.",
     'tag.labelCheck':
       "the tag's height is fixed at one line in Figma and its label is one line there, so the check mark (and, one row out, the leading icon) center against the only line; in code a wrapped label centers them on the label block, which is held for the owner (tag.ts notes.contested).",
   };
@@ -31098,6 +31102,10 @@ arm: {
     dialog: ['medium', 'small', 'large'],
     // #2317: the field family's order, through the shared field factory.
     'password-field': ['medium', 'small', 'large'],
+    // #2666: Breadcrumbs and its item lead with medium, the code default, by owner decisions Q347 A and Q359 B (#2752),
+    // which this list will absorb when every size axis moves to medium-first.
+    breadcrumbs: ['medium', 'small'],
+    'breadcrumb-item': ['medium', 'small'],
   };
   const outOfOrder = (vals: readonly unknown[], ladder: readonly string[]): string | null => {
     const unknown = vals.filter((v) => !ladder.includes(String(v)));

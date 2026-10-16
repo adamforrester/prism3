@@ -492,6 +492,30 @@
         "assignments": 456,
         "sha256": "f4c8a2016d77cece81f97d359ca68dc8eff078bc1f9a52f0f7609105c65946f0"
       }
+    },
+    "breadcrumb-item": {
+      "set": {
+        "members": 6,
+        "assignments": 6,
+        "sha256": "70744fbaeb0ef6cfc00776013e3218919ec7082d48116270907e759366489d33"
+      },
+      "grid": {
+        "members": 6,
+        "assignments": 6,
+        "sha256": "14c6fc63e349554cf3fbb4ab46bb1fb47a180e2de3ce91e797689bd4a8062b9e"
+      }
+    },
+    "breadcrumbs": {
+      "set": {
+        "members": 4,
+        "assignments": 2,
+        "sha256": "6f481d89d941b028f9b24ef48294cf67a3a294e5bb1198a98839f22ca0cebbbf"
+      },
+      "grid": {
+        "members": 4,
+        "assignments": 2,
+        "sha256": "aca3949d73a0fd6f784b5bd34c851c7450cc93af830b73a117f01b2f1dabc773"
+      }
     }
   }
 }

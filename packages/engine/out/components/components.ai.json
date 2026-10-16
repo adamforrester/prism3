@@ -7869,7 +7869,7 @@
           "name": "items",
           "type": "slot",
           "required": true,
-          "description": "The steps, root first, each with a label and an href. The last is rendered as the current page: text with aria-current=\"page\", its href ignored. Three by default in Figma; at least two."
+          "description": "The steps, root first, each with a label and an href. The last is rendered as the current page: text with aria-current=\"page\", its href ignored. At least two."
         },
         {
           "name": "size",

@@ -384,6 +384,14 @@
     "password-field@outline-none": {
       "members": 84,
       "sha256": "771e3974cfb329db2abcf42bc98f0914a3851b1813a867dba8b83d0fa3c97946"
+    },
+    "breadcrumb-item": {
+      "members": 6,
+      "sha256": "382f5fe8d374bd13c5c5f11f492431aab6ee2a85a554cf35205400b27a6a31e5"
+    },
+    "breadcrumbs": {
+      "members": 4,
+      "sha256": "80c7094cd687c9d33858236b2faa66e90fd6cf82cc5adf5c4306b820d92da377"
     }
   }
 }

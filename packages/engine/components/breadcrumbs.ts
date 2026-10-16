@@ -45,7 +45,7 @@ export const breadcrumbs: ComponentDef = {
     'Shows where the current page sits in the site\'s hierarchy: a row of links to the pages above it, root first, ending in the current page as plain text. Each link is underlined and followed by a chevron. A long trail keeps its first step and its last two and collapses the middle behind one button that shows them in place. On a small screen the trail becomes one link up to the parent page. Breadcrumbs follow the site\'s structure, not the pages a person visited, and supplement the main navigation rather than replace it.',
 
   props: [
-    { name: 'items', type: 'slot', required: true, description: 'The steps, root first, each with a label and an href. The last is rendered as the current page: text with aria-current="page", its href ignored. Three by default in Figma; at least two.' },
+    { name: 'items', type: 'slot', required: true, description: 'The steps, root first, each with a label and an href. The last is rendered as the current page: text with aria-current="page", its href ignored. At least two.' },
     { name: 'size', type: "enum: 'small' | 'medium'", values: ['small', 'medium'], default: 'medium', required: false, description: 'The body type size, 14 or 16px, passed to every item. Medium suits a trail beside 16px body copy; small, a quieter line above a page title.' },
     { name: 'maxItems', type: 'number', default: 5, required: false, description: 'Above this many items, the middle collapses behind one overflow button.' },
     { name: 'itemsBeforeCollapse', type: 'number', default: 1, required: false, description: 'How many items stay before the overflow button when the trail collapses.' },

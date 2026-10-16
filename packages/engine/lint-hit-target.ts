@@ -263,6 +263,10 @@ const EXCLUDED: Record<string, string> = {
   'radio-group': 'a group container — its interactive tap targets are the nested radio-rows, which are gated',
   'tabs': 'a tab list container — its interactive tap targets are the nested tabs, which are gated as tab',
   'link': 'one text line tall in Figma by owner decision (Q289.4 A), so its box is the line, not a control height: code expands the hit area to at least 24px (SC 2.5.8, codeOnly), and an inline link in a sentence is exempt under the inline exception',
+  // #2666: neither is a control of its own. The targets are the nested Link (one text line, its code-side 24px area
+  // stated under `link`) and the nested FlushIconButton.Neutral (measured under its own name, 44×44 in code).
+  'breadcrumbs': 'a navigation container — its targets are the nested items\' links and overflow button, and the parent layout\'s Link, each a control of its own',
+  'breadcrumb-item': 'one step of a trail — its targets are the nested Link (one text line, code-side 24px, as `link`) and the nested FlushIconButton.Neutral (code-side 44×44, measured under its own name); the current page is text and not a target',
   'textarea': 'a multi-line field whose height is rows/auto-grow (fluid); it binds no single-line height, so there is no fixed hit-target dimension to measure',
 };
 
