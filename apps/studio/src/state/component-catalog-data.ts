@@ -1114,5 +1114,35 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
       "field-message",
       "focus-ring"
     ]
+  },
+  {
+    "id": "code-input-cell",
+    "name": "CodeInput.Cell",
+    "category": "form",
+    "summary": "One cell of a code input: a box holding one character of the code. Used only inside a code input.",
+    "unit": "variants",
+    "spacing": [],
+    "buildable": true,
+    "reason": null,
+    "members": 28,
+    "nests": [
+      "focus-ring"
+    ]
+  },
+  {
+    "id": "code-input",
+    "name": "CodeInput",
+    "category": "form",
+    "summary": "Field for a one-time code: one input, shown as a row of cells, one per character.",
+    "unit": "variants",
+    "spacing": [],
+    "buildable": true,
+    "reason": null,
+    "members": 48,
+    "nests": [
+      "field-label",
+      "code-input-cell",
+      "field-message"
+    ]
   }
 ];
