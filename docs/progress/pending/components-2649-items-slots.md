@@ -132,3 +132,7 @@ re-gate's mechanical resolution (`train/2660-merge-main`, `e25ab7f9`) and fixed 
   (`component properties not recorded in the baseline`) and `lint-push-base` failed with it. Re-accepted after merging
   `main` at `a6b2dc75` (#2690). A text merge of a baseline only this branch's shape carries needs a re-accept, the
   same lesson as the axes baseline in the Dialog round.
+- **Merged `main` at Segmented control's redesign (#2739, Q336 A, Q342 A).** It conflicted in `segmented-control.ts`
+  and `test.ts`. Both keep the redesign's track (filled with `color/background/secondary`, no outline) holding this
+  PR's `items` slot of three nest-fixed segments, and the control arm asserts both. `component-surface.json` is
+  re-accepted on the merged tree.
