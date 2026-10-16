@@ -16545,6 +16545,20 @@ arm: {
       `#1438 select validates clean as nest-exposed — expose ⊂ field-label's axes, disjoint from follow (${validateComponentDef(select).errors.join('; ')})`);
   }
 
+  // ---- Q348 A: the GROUP labels are nest-exposed like the fields' (owner-decided) ----
+  // Checkbox group, Radio group and Segmented control expose FieldLabel's emphasis and weight, follow size, and start
+  // secondary and bold. EXPECTED typed from the decision, never read off a def: the surface baseline is re-accepted with
+  // any change note, so it does not remember which axes were listed. Mutation: one def's `expose` cut to ['emphasis'],
+  // or its starting `emphasis` moved to primary → this line.
+  for (const id of ['checkbox-group', 'radio-group', 'segmented-control']) {
+    const n = componentDefs.find((d) => d.id === id)?.anatomy?.parts.label?.nesting;
+    const got = n?.kind === 'nest-exposed'
+      ? `expose ${[...n.expose].sort().join(', ')}, follow ${(n.follow ?? []).join(', ')}, emphasis ${n.variant?.emphasis}, weight ${n.variant?.weight}`
+      : `kind ${n?.kind ?? 'MISSING'}`;
+    ok(got === 'expose emphasis, weight, follow size, emphasis secondary, weight bold',
+      `Q348 A ${id}'s label is nest-exposed: exposes [emphasis, weight], follows [size], starts secondary and bold (got ${got})`);
+  }
+
   // #1223 — INTENT IS THE COMPONENT NOW, NOT AN AXIS. The three semantic intents are three components
   // (Button = primary, Destructive Button, Neutral Button), built by one factory. Button carries NO
   // `intent` prop, and hierarchy is still the appearance axis (filled > outline > text).
@@ -22057,6 +22071,7 @@ arm: {
           // builds a placeholder frame it then reports as a miss. select is the first nest-exposed def with a
           // swap slot, so the gate now nominates one.
           const plans = figmaAnatomySet(def, { swapTarget: 'FPO-default-icon' });
+          const slotSets = [...new Set(planSetProperties(plans).flatMap((p) => (p as { preferred?: string[] }).preferred ?? []))];
           const opts: StubOpts = {
             vars: [...new Set(plans.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]))],
             styles: [...new Set(plans.flatMap((p) => planTextStyles(p.root)))],
@@ -22067,7 +22082,12 @@ arm: {
             // drops nodes — and a dropped `field-message` node orphans the `showMessage` visibility boolean
             // (#1426). Provisioning both mirrors the real build (the plugin builds each nested component and
             // the swap target first), where no node is dropped.
-            comps: [...new Set(plans.flatMap((p) => walkPlan(p.root)).flatMap((n) => [n.swapTarget, n.nestTarget]).filter((c): c is string => !!c))],
+            // A native slot's PREFERRED sets (#2646) are provisioned as the real build has them, keyed sets of their
+            // members (`SK:<name>`), never as a keyless plain component of the same name: a keyless one cannot be offered
+            // in the slot and reads as a miss. The groups and Segmented control reach this loop once their FieldLabel is
+            // nest-exposed (Q348 A, #2748), and each carries an `items` slot (#2649).
+            comps: [...new Set(plans.flatMap((p) => walkPlan(p.root)).flatMap((n) => [n.swapTarget, n.nestTarget]).filter((c): c is string => !!c))].filter((c) => !slotSets.includes(c)),
+            fileNodes: slotSets.map((id) => ({ name: id, type: 'COMPONENT_SET' as const, variants: figmaAnatomySet(componentDefs.find((d) => d.id === id)!, { swapTarget: 'FPO-default-icon' }).map(planComponentName) })),
             // #2317 — each nested component's TEXT properties, from the NESTED def's own declaration (never from the
             // host's `nestTexts`, the value under test), so a nested instance has the property a host overrides.
             compTexts: Object.fromEntries(componentDefs.filter((d) => d.figmaProperties?.texts).map((d) =>
