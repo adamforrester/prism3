@@ -177,7 +177,9 @@ type FieldCheck = {
    *  if it is, which default that property carries (`textDefault`) — because a bound node does not hold its
    *  own copy of the text at all (#1567). Threaded rather than folded into the planned value so every other
    *  predicate keeps reading exactly one field and cannot quietly grow a cross-field dependency. */
-  check?: (planned: unknown, node: HostNode, ports: ReadPorts, isRoot?: boolean, plan?: FigmaNodePlan) => string | null;
+  /** `parent` is the PARENT's plan, for the two sizing-mode predicates alone: whether a stretch fills this node's
+   *  counter axis or its primary axis is decided by the parent's direction (#2696, `stretchedMode`). */
+  check?: (planned: unknown, node: HostNode, ports: ReadPorts, isRoot?: boolean, plan?: FigmaNodePlan, parent?: FigmaNodePlan) => string | null;
   /** How the plan's value reads in a failure message. */
   show?: (planned: unknown) => string;
 };
@@ -199,6 +201,26 @@ const slotSettingsNormal = (s: Record<string, unknown>): Record<string, unknown>
   minChildren: s.minChildren ?? null, maxChildren: s.maxChildren ?? null,
   allowPreferredValuesOnly: s.allowPreferredValuesOnly === true, displayEmptyByDefault: s.displayEmptyByDefault === true,
 });
+
+/** #2696 — A HUGGING AXIS THE PARENT STRETCHES IS THE PARENT'S SIZE, so the node's own mode on it is moot, and the host
+ *  may hold FIXED there where the plan says AUTO. Measured on a live file: Accordion's `leadingIndicator`, a row in the
+ *  row `titleRow` with `layoutAlign: STRETCH`, read `counterAxisSizingMode: FIXED` at medium and large and `AUTO` at
+ *  small, `layoutSizingVertical: FILL` and the right size at all three. The executor writes AUTO, and only then does
+ *  the parent's child loop write the stretch. The host switches a resized axis to FIXED (the executor's
+ *  `placementWidth` note), so the size split fits a stretch that grows the indicator to a title row taller than its
+ *  glyph at medium and large, and changes nothing at small. That is inferred, not measured: the shim models no heights.
+ *  The apply's verify read FIXED raw and failed the set, while the dry run read the member current from its stamp and
+ *  record and never compared. Accepted here, in the one predicate both read, so the two agree in both directions.
+ *  Narrow by design (docs/34 shape 9): only a planned AUTO read as FIXED, only on the axis the stretch fills (the
+ *  parent's counter axis, which is the node's counter axis when the two share a direction), and only while the HOST
+ *  still holds the stretch, so a node that lost it is still compared raw. A planned FIXED is never relaxed: a
+ *  stretched node left AUTO hugs (#1751). */
+const stretchedMode = (field: 'primaryAxisSizingMode' | 'counterAxisSizingMode', p: unknown, n: HostNode, plan?: FigmaNodePlan, parent?: FigmaNodePlan): boolean => {
+  if (p !== 'AUTO' || n[field] !== 'FIXED' || plan?.layoutAlign !== 'STRETCH' || n.layoutAlign !== 'STRETCH') return false;
+  if (!plan.layoutMode || !parent?.layoutMode) return false;
+  const counter = plan.layoutMode === parent.layoutMode;
+  return field === (counter ? 'counterAxisSizingMode' : 'primaryAxisSizingMode');
+};
 
 export const FIELDS: Record<string, FieldCheck> = {
   // ── matched, not compared: these two ARE the identity the diff walks by ────────────────────────
@@ -223,8 +245,8 @@ export const FIELDS: Record<string, FieldCheck> = {
   layoutMode: { check: (p, n) => (n.layoutMode === p ? null : str(n.layoutMode)) },
   primaryAxisAlignItems: { check: (p, n) => (n.primaryAxisAlignItems === p ? null : str(n.primaryAxisAlignItems)) },
   counterAxisAlignItems: { check: (p, n) => (n.counterAxisAlignItems === p ? null : str(n.counterAxisAlignItems)) },
-  primaryAxisSizingMode: { check: (p, n) => (n.primaryAxisSizingMode === p ? null : str(n.primaryAxisSizingMode)) },
-  counterAxisSizingMode: { check: (p, n) => (n.counterAxisSizingMode === p ? null : str(n.counterAxisSizingMode)) },
+  primaryAxisSizingMode: { check: (p, n, _ports, _isRoot, plan, parent) => (n.primaryAxisSizingMode === p || stretchedMode('primaryAxisSizingMode', p, n, plan, parent) ? null : str(n.primaryAxisSizingMode)) },
+  counterAxisSizingMode: { check: (p, n, _ports, _isRoot, plan, parent) => (n.counterAxisSizingMode === p || stretchedMode('counterAxisSizingMode', p, n, plan, parent) ? null : str(n.counterAxisSizingMode)) },
   // #1567 — A CHARACTERS-BOUND NODE HOLDS THE SET'S ONE DEFAULT, NOT ITS OWN COPY, so that is what it is
   // compared against. Measured on the host (2026-09-22): `node.characters` on a node whose
   // `componentPropertyReferences.characters` names a set-level TEXT property READS that property's single
@@ -738,13 +760,13 @@ const childrenOf = (n: HostNode): HostNode[] => (Array.isArray(n.children) ? (n.
 
 /** One node, plan against host. Children matched BY NAME — never by index — with extras and absences
  *  reported symmetrically. */
-const diffNode = (plan: FigmaNodePlan, node: HostNode, member: string, path: string, ports: ReadPorts, out: Divergence[], exercised?: Record<string, number>, isRoot?: boolean): void => {
+const diffNode = (plan: FigmaNodePlan, node: HostNode, member: string, path: string, ports: ReadPorts, out: Divergence[], exercised?: Record<string, number>, isRoot?: boolean, parent?: FigmaNodePlan): void => {
   for (const [field, planned] of Object.entries(plan)) {
     if (planned === undefined) continue;
     const f = FIELDS[field];
     if (!f?.check) continue;
     if (exercised) exercised[field] = (exercised[field] ?? 0) + 1;
-    const actual = f.check(planned, node, ports, isRoot, plan);
+    const actual = f.check(planned, node, ports, isRoot, plan, parent);
     if (actual !== null) {
       out.push({ member, path, field, expected: f.show ? f.show(planned) : str(planned), actual });
     }
@@ -760,7 +782,7 @@ const diffNode = (plan: FigmaNodePlan, node: HostNode, member: string, path: str
       out.push({ member, path: `${path}/${cp.name}`, field: 'children', expected: 'present', actual: `ABSENT — the host has [${kids.map((k) => String(k.name)).join(', ') || 'no children'}]` });
       continue;
     }
-    diffNode(cp, found, member, `${path}/${cp.name}`, ports, out, exercised);
+    diffNode(cp, found, member, `${path}/${cp.name}`, ports, out, exercised, false, plan);
   }
 };
 
