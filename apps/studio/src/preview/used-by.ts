@@ -6,7 +6,7 @@
  * never imports the definitions themselves (UI redesign S7, T4; the generator's header says why).
  */
 export const USED_BY = {
-  defs: 41,
+  defs: 42,
   radius: {
     rounded: {
       "radius.2xl": [
@@ -15,11 +15,13 @@ export const USED_BY = {
       "radius.md": [
         "Button",
         "IconButton",
-        "SegmentedControl"
+        "SegmentedControl",
+        "Banner"
       ],
       "radius.none": [
         "FlushIconButton",
-        "Dialog"
+        "Dialog",
+        "Banner"
       ],
       "radius.round": [
         "IconButton",
@@ -48,11 +50,13 @@ export const USED_BY = {
         "IconButton"
       ],
       "radius.md": [
-        "SegmentedControl"
+        "SegmentedControl",
+        "Banner"
       ],
       "radius.none": [
         "FlushIconButton",
-        "Dialog"
+        "Dialog",
+        "Banner"
       ],
       "radius.round": [
         "IconButton",
@@ -77,7 +81,8 @@ export const USED_BY = {
         "Dialog"
       ],
       "radius.md": [
-        "SegmentedControl"
+        "SegmentedControl",
+        "Banner"
       ],
       "radius.none": [
         "Button",
@@ -87,7 +92,8 @@ export const USED_BY = {
         "Textarea",
         "Checkbox.Control",
         "Select",
-        "Dialog"
+        "Dialog",
+        "Banner"
       ],
       "radius.round": [
         "IconButton",
@@ -117,11 +123,13 @@ export const USED_BY = {
         "Select"
       ],
       "radius.md": [
-        "SegmentedControl"
+        "SegmentedControl",
+        "Banner"
       ],
       "radius.none": [
         "FlushIconButton",
-        "Dialog"
+        "Dialog",
+        "Banner"
       ],
       "radius.round": [
         "IconButton",

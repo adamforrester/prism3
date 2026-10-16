@@ -1114,5 +1114,38 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
       "field-message",
       "focus-ring"
     ]
+  },
+  {
+    "id": "banner",
+    "name": "Banner",
+    "category": "feedback",
+    "summary": "A persistent message in the page flow about an important state, with optional actions.",
+    "unit": "variants",
+    "spacing": [
+      {
+        "key": "pad",
+        "ref": "space.200"
+      },
+      {
+        "key": "gap",
+        "ref": "space.150"
+      },
+      {
+        "key": "actions-gap",
+        "ref": "space.150"
+      },
+      {
+        "key": "action-gap",
+        "ref": "space.100"
+      }
+    ],
+    "buildable": true,
+    "reason": null,
+    "members": 8,
+    "nests": [
+      "icon",
+      "button-neutral",
+      "icon-button-neutral"
+    ]
   }
 ];
