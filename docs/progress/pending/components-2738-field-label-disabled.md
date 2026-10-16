@@ -1,0 +1,11 @@
+## (2026-10-16) — Fields: the nested FieldLabel dims on disabled members in Figma (#2738)
+
+**What moved.** Text field, Password field (through the shared field factory), Select and Textarea each nest FieldLabel and used to fix it at `state=rest` on every member, recording the gap in `codeOnly` as a projection limit. Each now carries `atState: { disabled: { state: 'disabled' } }` on its `label` part, so the label nests FieldLabel's disabled member on the field's 12 disabled members (size 3 × status 4) and its rest member everywhere else. Read-only keeps a full-contrast label, as it keeps a full-contrast value. The four `codeOnly` entries are gone, and `SHARED_CODE_ONLY` in `test.ts` drops the subject.
+
+**Why `atState` and not `variantWhen`.** The issue names #2693's `variantWhen`, which is not on main yet. `atState` (#2317) is main's field for exactly this case: a host state that moves one nested axis. #2693 folds `atState` into `variantWhen` and converts the Password field's toggle in the same PR, so whichever lands second converts these three `label` lines too (`variantWhen: { state: { disabled: { state: 'disabled' } } }`). Same plan either way; the tests here read the projected coordinate, not the field name.
+
+**Checked and left alone.** Checkbox group and Radio group have no state axis, so their label has no member to dim on. Segmented control's `disabled` state axis is the option's, not the control's, so its FieldLabel has no disabled control member to follow.
+
+**Existing files.** The stamp hashes the plan, so the 12 disabled members of each field read "update" and the other 72 stay current. The executor's in-place nested branch swaps the label instance to the member the plan now resolves, keeping its id. `test-update-apply.ts` `label/…` builds each field as it was (label at rest everywhere) against a file holding FieldLabel as a set, runs Update, and reads the label's main component off the shim: disabled on the 12, rest on the 72, every key and label id kept, all 84 current after.
+
+**Trap.** The shim's default `world()` puts every nested target in the file as a plain component, and a plain component wins over a set with the same name, so the label would never resolve by member and the swap could not be observed. The new `fileSets` option puts FieldLabel in as a set.

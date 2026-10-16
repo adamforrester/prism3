@@ -391,9 +391,9 @@ export const select: ComponentDef = {
       // marking the instance exposed (`isExposedInstance`) ALSO surfaces field-label's `label` TEXT and
       // `required` BOOLEAN in Figma — the "label text, required, etc." #1438 asks for, which the fixed nest
       // could not reach (select had no text/boolean property for the label, so its text sat at field-label's
-      // default and `required` was unreachable). `state` is deliberately NOT exposed: it stays fixed at
-      // `rest`, and the disabled dim is code-driven from the field's context (a designer sets the whole
-      // field disabled, not the label alone — see codeOnly). NOT `follow`ed either: field-label's vocabulary
+      // default and `required` was unreachable). `state` is deliberately NOT exposed: a designer sets the
+      // whole field disabled, not the label alone, so `atState` moves the label to `disabled` at select's
+      // disabled member and leaves it at `rest` everywhere else (#1339, #2738). NOT `follow`ed either: field-label's vocabulary
       // is a different one from select's, so there is no host axis to pass through — exposure lets the
       // consumer drive the child directly, which is the mechanism `follow` is not.
       //
@@ -405,7 +405,7 @@ export const select: ComponentDef = {
         nests: 'field-label',
         // `size` FOLLOWS the select's (#2266), so the label stays one body step below the value at every size;
         // `emphasis` and `weight` stay the consumer's.
-        nesting: { kind: 'nest-exposed', variant: { size: 'medium', emphasis: 'secondary', weight: 'regular', state: 'rest' }, expose: ['emphasis', 'weight'], follow: ['size'] },
+        nesting: { kind: 'nest-exposed', variant: { size: 'medium', emphasis: 'secondary', weight: 'regular', state: 'rest' }, expose: ['emphasis', 'weight'], follow: ['size'], atState: { disabled: { state: 'disabled' } } },
         // #1503 — FILLS the field's width (`layoutAlign: STRETCH`, with the instance's own FIXED mode since
         // #1751), so the label spans the 320 control rather than hugging narrower above it (Prism 2's inner
         // containers FILL). Field-label's name wraps at its own max width inside it (#1762, owner; it wrapped at
@@ -554,7 +554,6 @@ export const select: ComponentDef = {
       'the OPEN MENU / listbox — the whole option list is the platform\'s (a native `<select>`\'s popup is OS-drawn; a custom one is a separate listbox/popover surface). This def models the CLOSED control only, so there is no `expanded` state and no option-list anatomy. A designer building the open menu reaches for a menu/listbox component, not a variant of this one.',
       'the label / describedby WIRING — the host generates ids (useId), ties the FieldLabel to the control, stitches the FieldMessage into aria-describedby, and sets aria-invalid on error. Figma has no accessibility tree and no node-to-node reference, so the nested label and message sit near the control and are associated by proximity alone (the same ceiling `field-label` and `field-message` each hit). aria-expanded / aria-haspopup describe the popup this def does not model.',
       'empty — a real STATE in code (nothing is chosen, so the control shows the placeholder), NOT a Figma variant (#1344): in Figma the empty control IS the rest, hover and focus-visible members, showing the `placeholder` layer in `text.secondary`, and `filled` is the member showing the `value` layer in `text.primary`. In code emptiness is a content condition that co-occurs with every interaction, so `empty` stays in `states` (`label.empty` and `error.border.empty` keep the "required field left unchosen" coordinate) and is held out of the projected `stateAxis`, leaving size(3) × status(4) × state(7) = 84 members with read-only. In code the prompt and the chosen label are one control\'s content, never two elements.',
-      'the nested LABEL\'s disabled dimming — select fixes the FieldLabel to `state=rest` because field-label\'s state vocabulary (rest / disabled) is not select\'s (rest / hover / filled / focus-visible / disabled / read-only / pending / empty), so it cannot be followed by value. In code a disabled select dims its label; in Figma the nested label reads at its rest configuration regardless. A projection limit, not a design choice.',
       'pending — a real STATE (async options are loading: a spinner replaces the chevron and the control sets aria-busy), deliberately NOT a Figma variant, text-field\'s posture. Its delta is a runtime spinner swap with no distinct static skin a designer picks from a matrix, so it stays in `states` and is held out of the projected `stateAxis`, leaving size(3) × status(4) × state(7) = 84 members.',
       'the NATIVE <select> has no readonly attribute, only disabled (KB select brief §4, §11). The projected read-only member shows the value at full contrast behind the editable field\'s boundary (`field.border.rest`, #1710); in code that member is the custom control with aria-readonly, or a hidden input mirroring the value for form submission.',
       'the KEYBOARD MODEL — typeahead to a matching option, arrow keys to move within the open list, Enter/Space to open and commit, Escape to close. All of it belongs to the interaction the closed control opens INTO, which is not modeled here.',
