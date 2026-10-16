@@ -127,3 +127,8 @@ re-gate's mechanical resolution (`train/2660-merge-main`, `e25ab7f9`) and fixed 
 - **`test-update-apply`'s #2645 section** expected List's eight items as direct children. It now finds the three in
   the `items` slot, at the paths the dry run reports (`items/item2`).
 - **`test-roundtrip`'s read-back predicate** found `item2` under List's root. It now finds it at any depth.
+- **The re-gate's merge dropped this PR's surface baseline.** `component-surface.json` on `train/2660-merge-main` had
+  taken `main`'s side, which records no component properties, so `lint-component-surface` failed on every set
+  (`component properties not recorded in the baseline`) and `lint-push-base` failed with it. Re-accepted after merging
+  `main` at `a6b2dc75` (#2690). A text merge of a baseline only this branch's shape carries needs a re-accept, the
+  same lesson as the axes baseline in the Dialog round.
