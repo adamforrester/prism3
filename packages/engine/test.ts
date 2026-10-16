@@ -31382,6 +31382,10 @@ arm: {
     'tab.selection': { prop: 'selected', map: off('unselected', 'selected'), reason: 'a tab is selected by `selected`' },
     'segmented-control-segment.selection': { prop: 'selected', map: off('unselected', 'selected'), reason: 'a segment is selected by `selected`' },
     'accordion.expansion': { prop: 'defaultExpanded', map: off('collapsed', 'expanded'), reason: 'an accordion opens by `defaultExpanded`' },
+    // #2666 (owner call 11 A): code has no layout prop. `responsive` (default true) swaps the trail for the parent link
+    // below 480px by a container query, and either value renders the trail at every wider width, so the code default
+    // layout is the trail whatever `responsive` holds.
+    'breadcrumbs.layout': { prop: 'responsive', map: { undefined: 'trail', false: 'trail', true: 'trail' }, reason: 'Breadcrumbs renders the trail by default; `responsive` only swaps in the parent link below 480px' },
   };
   // RECORDED EXCEPTIONS: the top-left member differs from the code default on purpose. EXACT: each names its defs, its
   // axis and both values, so any other mismatch fails, and an entry that stops matching fails as stale.
