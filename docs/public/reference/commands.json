@@ -868,6 +868,38 @@
       ]
     },
     {
+      "file": "packages/engine/release-notes.ts",
+      "summary": "Prism3 — RELEASE NOTES (#2650, owner decision Q308.1 A): \"What changed in <version>\", generated, never typed.",
+      "usage": [
+        {
+          "text": "npx tsx packages/engine/release-notes.ts --pending            # print the notes the next fold would write",
+          "source": "packages/engine/release-notes.ts#header"
+        },
+        {
+          "text": "npx tsx packages/engine/release-notes.ts --version 0.236.0    # (re)write one folded version's notes from git",
+          "source": "packages/engine/release-notes.ts#header"
+        },
+        {
+          "text": "npx tsx packages/engine/release-notes.ts --refresh            # a fold PR that merged main: rewrite its notes",
+          "source": "packages/engine/release-notes.ts#header"
+        }
+      ],
+      "flags": [
+        {
+          "flag": "--pending",
+          "source": "packages/engine/release-notes.ts#argv"
+        },
+        {
+          "flag": "--refresh",
+          "source": "packages/engine/release-notes.ts#argv"
+        },
+        {
+          "flag": "--version",
+          "source": "packages/engine/release-notes.ts#header"
+        }
+      ]
+    },
+    {
       "file": "packages/engine/visualize.ts",
       "summary": "Prism3 engine — token visualizer.",
       "usage": [
@@ -1044,6 +1076,26 @@
         {
           "flag": "--check",
           "source": "packages/engine/emit-agent-reference.ts#argv"
+        }
+      ]
+    },
+    {
+      "file": "packages/engine/emit-figma-conventions.ts",
+      "summary": "Prism3 — THE FIGMA CONVENTIONS FILE (#2647, owner Q306.2 A).",
+      "usage": [
+        {
+          "text": "npx tsx packages/engine/emit-figma-conventions.ts            # write the conventions file",
+          "source": "packages/engine/emit-figma-conventions.ts#header"
+        },
+        {
+          "text": "npx tsx packages/engine/emit-figma-conventions.ts --check    # fail (exit 1) if it no longer matches the code",
+          "source": "packages/engine/emit-figma-conventions.ts#header"
+        }
+      ],
+      "flags": [
+        {
+          "flag": "--check",
+          "source": "packages/engine/emit-figma-conventions.ts#argv"
         }
       ]
     }
