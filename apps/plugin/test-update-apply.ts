@@ -37,6 +37,9 @@
  *   child/…        a part the plan dropped is removed. Mutation: extra children kept → `child/removed`.
  *   verify/…       the update's own checks fail when the host changes an id or drops a field under it.
  *                  Mutations: the member identity check dropped → `verify/member`.
+ *   edge/…         a file built when the disabled edge bound `color.disabled.icon` (#1349, #1697) is corrected in
+ *                  place to `color.disabled.border` (Q346, #2749): Tag, Button and IconButton, every key and id kept,
+ *                  current after. Mutation: the def's binding reverted → `edge/<def> rebound`.
  *   corpus/…       every def, re-applied in place by an executor revision bump, keeps every key and id, reads
  *                  back as its plan, and reads current after.
  *   choices/…      `overwrite` writes the plan over a hand edit; `accept` keeps it as the new record (§5).
@@ -2278,6 +2281,39 @@ section("verify — the update's own checks fail when the host does not hold wha
 }
 
 /* ── corpus ──────────────────────────────────────────────────────────────────────────────────────────── */
+section('edge — a file built when the disabled edge bound an icon role is corrected in place (Q346, #2749)');
+{
+  // Each def is built from a copy whose `disabled.border` is the retired `color.disabled.icon` (#1349, #1697): the
+  // file an earlier plugin left. The update then runs against the CURRENT def. What the test reads is the shim's
+  // own nodes: which variable each disabled member's stroke is bound to, and every key and id it captured before.
+  for (const id of ['tag', 'button', 'icon-button']) {
+    const def = componentDefs.find((d) => d.id === id)!;
+    const old = { ...def, tokens: { ...def.tokens, 'disabled.border': 'color.disabled.icon' } };
+    // Button and IconButton carry a `surface` axis, so half their disabled edges are the inverse twins.
+    const w = await world(id, figmaAnatomySet(old, { swapTarget: SWAP_TARGET }), { extraVars: ['color/disabled/border', 'color/inverse/disabled/border'] });
+    const vars = new Map<string, string>((await w.api.variables.getLocalVariablesAsync()).map((v: { id: string; name: string }) => [v.id, v.name.slice(v.name.indexOf('/') + 1)] as [string, string]));
+    const strokeVar = (m: Node): string | undefined => {
+      const vid = ((m.strokes as { boundVariables?: { color?: { id: string } } }[] | undefined) ?? [])[0]?.boundVariables?.color?.id;
+      return vid ? (vars.get(vid) ?? vid) : undefined;
+    };
+    const isIcon = (v?: string) => /^color\/(inverse\/)?disabled\/icon$/.test(v ?? '');
+    const isBorder = (v?: string) => /^color\/(inverse\/)?disabled\/border$/.test(v ?? '');
+    const was = membersOf(w.set()).filter((m) => /state=disabled/.test(String(m.name)) && !!strokeVar(m));
+    ok(was.length > 0 && was.every((m) => isIcon(strokeVar(m))), `premise: ${id}'s old build strokes ${was.length} disabled member(s) with the disabled icon role (${[...new Set(was.map(strokeVar))].join(', ')})`);
+    const before = identityOf(w.set());
+    const { pre, res } = await confirm(w, [{ def: id, plans: plansOf(id) }]);
+    ok(pre.sets[0].counts.update >= was.length && applyVerdict(res).ok, `edge/${id} dry run: the ${was.length} disabled edge(s) read to update, and the apply succeeds (${pre.sets[0].counts.update}; ${applyVerdict(res).headline})`);
+    const now = membersOf(w.set()).filter((m) => was.some((x) => x.name === m.name));
+    ok(now.length === was.length && now.every((m) => isBorder(strokeVar(m)) && strokeVar(m)!.includes('inverse') === strokeVar(was.find((x) => x.name === m.name)!)!.includes('inverse')),
+      `edge/${id} rebound: every disabled edge is now bound to the disabled border role, on its own surface (${now.filter((m) => !isBorder(strokeVar(m))).length} still not)`);
+    const after = identityOf(w.set());
+    const moved = [...before.members].filter(([name, b]) => after.members.get(name)?.key !== b.key || after.members.get(name)?.id !== b.id).map(([n]) => n);
+    ok(moved.length === 0 && JSON.stringify(after.set) === JSON.stringify(before.set), `edge/${id} in place: the set and every member keep their key and id (${moved.length} changed)`);
+    const post = (await previewUpdate(w.host, [{ def: id, plans: plansOf(id) }])).sets[0];
+    ok(post.counts.current === before.members.size, `edge/${id} current: the next dry run reads all ${before.members.size} current (${JSON.stringify(post.counts)})`);
+  }
+}
+
 section('corpus — every def, re-applied in place by an executor revision bump, keeps every key and reads back as its plan');
 {
   // A newer executor revision makes every member out of date with nothing else moved, so the update configures
