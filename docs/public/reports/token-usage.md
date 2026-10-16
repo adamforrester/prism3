@@ -1,6 +1,6 @@
 # Token usage
 
-Where each token is bound: by which component, on which part, and at which variants and states. 251 of 787 emitted tokens are bound by at least one component.
+Where each token is bound: by which component, on which part, and at which variants and states. 246 of 787 emitted tokens are bound by at least one component.
 
 Two sources feed each entry. **Keys** are the binding keys in the component definition. **Parts** are where the design-file projection draws the token; "where" lists the axis values a part is bound at, leaves out any axis bound at every value, and counts the members.
 
@@ -16,7 +16,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 
 ### `border-width.hairline`
 
-Type: dimension. Bound by 19 component(s).
+Type: dimension. Bound by 17 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -24,8 +24,6 @@ Type: dimension. Bound by 19 component(s).
 | button | `border-width` | container | every member (576 of 576) |
 | button-destructive | `border-width` | container | every member (576 of 576) |
 | button-neutral | `border-width` | container | every member (576 of 576) |
-| code-input-cell | `border-width`, `caret-width` | caret | state: focus-visible (4 of 28) |
-|  |  | cell | every member (28 of 28) |
 | divider | `horizontal.height`, `vertical.width` | divider | every member (5 of 5) |
 | flush-icon-button | `border-width` | container | every member (30 of 30) |
 | flush-icon-button-destructive | `border-width` | container | every member (30 of 30) |
@@ -36,7 +34,6 @@ Type: dimension. Bound by 19 component(s).
 | password-field | `border-width`, `caret-width` | caret | state: focus-visible (12 of 84) |
 |  |  | caretEnd | state: focus-visible-filled (12 of 84) |
 |  |  | control | every member (84 of 84) |
-| segmented-control | `border-width` | track | every member (3 of 3) |
 | select | `border-width` | control | every member (84 of 84) |
 | tabs | `baseline-height` | baseline | every member (6 of 6) |
 | tag | `unselected.border-width` | container | selection: unselected (30 of 45) |
@@ -47,34 +44,34 @@ Type: dimension. Bound by 19 component(s).
 |  |  | control | every member (84 of 84) |
 |  |  | grip | every member (84 of 84) |
 
-### `border-width.none`
-
-Type: dimension. Bound by 1 component(s).
-
-| Component | Keys | Part | Where |
-|---|---|---|---|
-| segmented-control-segment | `unselected.border-width` | indicator | selection: unselected (15 of 30) |
-
 ### `border-width.thick`
 
-Type: dimension. Bound by 6 component(s).
+Type: dimension. Bound by 5 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | checkbox-control | `border-width` | control | every member (54 of 54) |
 | radio-control | `border-width` | control | every member (30 of 30) |
-| segmented-control-segment | `selected.border-width` | indicator | selection: selected (15 of 30) |
 | switch-control | `border-width` | track | every member (24 of 24) |
 | tab | `indicator-height` | indicator | every member (30 of 30) |
 | tag | `selected.border-width` | container | selection: selected · type: select (15 of 45) |
 
-### `color.background.secondary`
+### `color.background.primary`
 
 Type: color. Bound by 1 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| segmented-control-segment | `disabled.fill`, `selected.fill` | indicator | selection: selected (15 of 30) |
+
+### `color.background.secondary`
+
+Type: color. Bound by 2 component(s).
+
+| Component | Keys | Part | Where |
+|---|---|---|---|
 | image-placeholder | `fill` | frame | every member (7 of 7) |
+| segmented-control | `fill` | track | every member (3 of 3) |
 
 ### `color.background.tertiary`
 
@@ -87,13 +84,12 @@ Type: color. Bound by 1 component(s).
 
 ### `color.border.danger`
 
-Type: color. Bound by 8 component(s).
+Type: color. Bound by 7 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | badge | `danger.status.subtle.border` | surface | emphasis: subtle · tone: danger · type: status (1 of 20) |
 | checkbox-control | `checked.border.error`, `indeterminate.border.error`, `unchecked.border.error` | control | state: error (9 of 54) |
-| code-input-cell | `border.error` | cell | state: error (4 of 28) |
 | password-field | `error.border.empty`, `error.border.filled`, `error.border.focus-visible`, `error.border.focus-visible-filled`, `error.border.hover`, `error.border.read-only`, `error.border.rest` | control | state: filled, focus-visible, focus-visible-filled, hover, read-only, rest · status: error (18 of 84) |
 | select | `error.border.empty`, `error.border.filled`, `error.border.focus-visible`, `error.border.focus-visible-filled`, `error.border.hover`, `error.border.read-only`, `error.border.rest` | control | state: filled, focus-visible, focus-visible-filled, hover, read-only, rest · status: error (18 of 84) |
 | switch-control | `off.border.error`, `on.border.error` | track | state: error (4 of 24) |
@@ -102,7 +98,7 @@ Type: color. Bound by 8 component(s).
 
 ### `color.border.focus`
 
-Type: color. Bound by 18 component(s).
+Type: color. Bound by 17 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -110,7 +106,6 @@ Type: color. Bound by 18 component(s).
 | button-destructive | `focus-ring` | (not drawn) | — |
 | button-neutral | `focus-ring` | (not drawn) | — |
 | checkbox-control | `focus-ring` | (not drawn) | — |
-| code-input-cell | `border.focus-visible`, `border.focus-visible-filled` | cell | state: focus-visible, focus-visible-filled (8 of 28) |
 | focus-ring | `border` | ring | surface: default (1 of 2) |
 | icon-button | `focus-ring` | (not drawn) | — |
 | icon-button-destructive | `focus-ring` | (not drawn) | — |
@@ -188,18 +183,16 @@ Type: color. Bound by 5 component(s).
 
 ### `color.disabled.border`
 
-Type: color. Bound by 13 component(s).
+Type: color. Bound by 11 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | checkbox-control | `disabled.border` | control | selection: unchecked · state: disabled (3 of 54) |
-| code-input-cell | `disabled.border` | cell | state: disabled (4 of 28) |
 | flush-icon-button | `disabled.border` | container | shape: round · state: disabled (3 of 30) |
 | flush-icon-button-destructive | `disabled.border` | container | shape: round · state: disabled (3 of 30) |
 | flush-icon-button-neutral | `disabled.border` | container | shape: round · state: disabled (3 of 30) |
 | password-field | `disabled.border` | control | state: disabled (12 of 84) |
 | radio-control | `disabled.border` | control | state: disabled (6 of 30) |
-| segmented-control-segment | `disabled.border` | indicator | selection: selected · state: disabled (3 of 30) |
 | select | `disabled.border` | control | state: disabled (12 of 84) |
 | switch-control | `disabled.border`, `disabled.icon.on-fill` | offGlyph | selection: off · state: disabled (2 of 24) |
 |  |  | onGlyph | selection: on · state: disabled (2 of 24) |
@@ -210,7 +203,7 @@ Type: color. Bound by 13 component(s).
 
 ### `color.disabled.fill`
 
-Type: color. Bound by 14 component(s).
+Type: color. Bound by 13 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -218,7 +211,6 @@ Type: color. Bound by 14 component(s).
 | button-destructive | `disabled.fill` | container | appearance: filled · inset: default · state: disabled · surface: default (12 of 576) |
 | button-neutral | `disabled.fill` | container | appearance: filled · inset: default · state: disabled · surface: default (12 of 576) |
 | checkbox-control | `disabled.fill` | control | selection: checked, indeterminate · state: disabled (6 of 54) |
-| code-input-cell | `disabled.fill` | cell | state: disabled (4 of 28) |
 | icon-button | `disabled.fill` | container | appearance: filled · state: disabled · surface: default (6 of 216) |
 | icon-button-destructive | `disabled.fill` | container | appearance: filled · state: disabled · surface: default (6 of 216) |
 | icon-button-neutral | `disabled.fill` | container | appearance: filled · state: disabled · surface: default (6 of 216) |
@@ -311,12 +303,11 @@ Type: color. Bound by 11 component(s).
 
 ### `color.field.border.hover`
 
-Type: color. Bound by 7 component(s).
+Type: color. Bound by 6 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | checkbox-control | `unchecked.border.hover` | control | selection: unchecked · state: hover (3 of 54) |
-| code-input-cell | `border.hover` | cell | state: hover (4 of 28) |
 | password-field | `border.hover` | control | state: hover · status: default (3 of 84) |
 | radio-control | `unchecked.border.hover` | control | selection: unchecked · state: hover (3 of 30) |
 | select | `border.hover` | control | state: hover · status: default (3 of 84) |
@@ -325,12 +316,11 @@ Type: color. Bound by 7 component(s).
 
 ### `color.field.border.rest`
 
-Type: color. Bound by 7 component(s).
+Type: color. Bound by 6 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | checkbox-control | `unchecked.border` | control | selection: unchecked · state: focus-visible, pressed, rest (9 of 54) |
-| code-input-cell | `border` | cell | state: filled, rest (8 of 28) |
 | password-field | `border`, `border.read-only` | control | state: filled, read-only, rest · status: default (9 of 84) |
 | radio-control | `unchecked.border` | control | selection: unchecked · state: focus-visible, pressed, rest (9 of 30) |
 | select | `border`, `border.read-only` | control | state: filled, read-only, rest · status: default (9 of 84) |
@@ -339,11 +329,10 @@ Type: color. Bound by 7 component(s).
 
 ### `color.field.fill`
 
-Type: color. Bound by 5 component(s).
+Type: color. Bound by 4 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| code-input-cell | `fill` | cell | state: error, filled, focus-visible, focus-visible-filled, rest (20 of 28) |
 | password-field | `fill` | control | state: filled, focus-visible, focus-visible-filled, read-only, rest (60 of 84) |
 | select | `fill` | control | state: filled, focus-visible, focus-visible-filled, read-only, rest (60 of 84) |
 | text-field | `fill` | control | state: filled, focus-visible, focus-visible-filled, read-only, rest (60 of 84) |
@@ -709,13 +698,12 @@ Type: color. Bound by 4 component(s).
 
 ### `color.interactive.neutral.border.rest`
 
-Type: color. Bound by 5 component(s).
+Type: color. Bound by 4 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | button-neutral | `outline.border` | container | appearance: outline · inset: default · state: focus-visible, pending, rest · surface: default (36 of 576) |
 | icon-button-neutral | `outline.border` | container | appearance: outline · state: focus-visible, pending, rest · surface: default (18 of 216) |
-| segmented-control | `border` | track | every member (3 of 3) |
 | switch-control | `off.border`, `off.indicator` | thumb | selection: off · state: error, focus-visible, hover, pressed, rest (10 of 24) |
 |  |  | track | selection: off · state: focus-visible, rest (4 of 24) |
 | tag | `unselected.border` | container | selection: unselected · state: focus-visible, rest (12 of 45) |
@@ -757,7 +745,7 @@ Type: color. Bound by 6 component(s).
 |  |  | trailingVisual | appearance: outline, text · state: hover · surface: default · trailing: true (18 of 576) |
 | flush-icon-button-neutral | `flush.icon.hover`, `round.icon.hover` | icon | state: hover (6 of 30) |
 | icon-button-neutral | `ghost.icon.hover`, `outline.icon.hover` | icon | appearance: ghost, outline · state: hover · surface: default (12 of 216) |
-| segmented-control-segment | `selected.icon.hover`, `unselected.icon.hover` | leadingVisual | state: hover (6 of 30) |
+| segmented-control-segment | `unselected.icon.hover` | leadingVisual | selection: unselected · state: hover (3 of 30) |
 | tab | `unselected.icon.hover` | leadingVisual | selection: unselected · state: hover (3 of 30) |
 | tag | `selected.icon.hover`, `unselected.icon.hover` | check | selection: selected · state: hover · type: select (3 of 45) |
 |  |  | dismissGlyph | selection: unselected · state: hover · type: dismissible (3 of 45) |
@@ -773,7 +761,7 @@ Type: color. Bound by 6 component(s).
 |  |  | trailingVisual | appearance: outline, text · state: pressed · surface: default · trailing: true (18 of 576) |
 | flush-icon-button-neutral | `flush.icon.pressed`, `round.icon.pressed` | icon | state: pressed (6 of 30) |
 | icon-button-neutral | `ghost.icon.pressed`, `outline.icon.pressed` | icon | appearance: ghost, outline · state: pressed · surface: default (12 of 216) |
-| segmented-control-segment | `selected.icon.pressed`, `unselected.icon.pressed` | leadingVisual | state: pressed (6 of 30) |
+| segmented-control-segment | `unselected.icon.pressed` | leadingVisual | selection: unselected · state: pressed (3 of 30) |
 | tab | `unselected.icon.pressed` | leadingVisual | selection: unselected · state: pressed (3 of 30) |
 | tag | `selected.icon.pressed`, `unselected.icon.pressed` | check | selection: selected · state: pressed · type: select (3 of 45) |
 |  |  | dismissGlyph | selection: unselected · state: pressed · type: dismissible (3 of 45) |
@@ -795,7 +783,7 @@ Type: color. Bound by 7 component(s).
 | flush-icon-button-neutral | `flush.icon`, `round.icon` | icon | state: focus-visible, rest (12 of 30) |
 | icon-button-neutral | `ghost.icon`, `outline.icon` | icon | appearance: ghost, outline · state: focus-visible, rest · surface: default (24 of 216) |
 |  |  | spinner | appearance: ghost, outline · state: pending · surface: default (12 of 216) |
-| segmented-control-segment | `selected.icon`, `unselected.icon` | leadingVisual | state: focus-visible, rest (12 of 30) |
+| segmented-control-segment | `selected.icon`, `unselected.icon` | leadingVisual | state: focus-visible, hover, pressed, rest (18 of 30) |
 | tab | `unselected.icon` | leadingVisual | selection: unselected · state: focus-visible, rest (6 of 30) |
 | tag | `selected.icon`, `unselected.icon` | check | selection: selected · state: focus-visible, rest · type: select (6 of 45) |
 |  |  | dismissGlyph | selection: unselected · state: focus-visible, rest · type: dismissible (6 of 45) |
@@ -816,12 +804,11 @@ Type: color. Bound by 2 component(s).
 
 ### `color.interactive.neutral.overlay.hover`
 
-Type: color. Bound by 10 component(s).
+Type: color. Bound by 9 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | button-neutral | `outline.overlay.hover` | container | appearance: outline · inset: default · state: hover · surface: default (12 of 576) |
-| code-input-cell | `overlay.hover` | cell | state: hover (4 of 28) |
 | flush-icon-button-neutral | `round.overlay.hover` | container | shape: round · state: hover (3 of 30) |
 | icon-button-neutral | `ghost.overlay.hover`, `outline.overlay.hover` | container | appearance: ghost, outline · state: hover · surface: default (12 of 216) |
 | password-field | `overlay.hover` | control | state: hover (12 of 84) |
@@ -850,8 +837,8 @@ Type: color. Bound by 4 component(s).
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | button-neutral | `outline.label.hover`, `text.label.hover` | label | appearance: outline, text · state: hover · surface: default (36 of 576) |
-| segmented-control-segment | `selected.label.hover`, `unselected.label.hover` | label | state: hover (6 of 30) |
-|  |  | labelReserve | state: hover (6 of 30) |
+| segmented-control-segment | `unselected.label.hover` | label | selection: unselected · state: hover (3 of 30) |
+|  |  | labelReserve | selection: unselected · state: hover (3 of 30) |
 | tab | `unselected.label.hover` | label | selection: unselected · state: hover (3 of 30) |
 |  |  | labelReserve | selection: unselected · state: hover (3 of 30) |
 | tag | `selected.label.hover`, `unselected.label.hover` | label | state: hover (9 of 45) |
@@ -863,8 +850,8 @@ Type: color. Bound by 4 component(s).
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | button-neutral | `outline.label.pressed`, `text.label.pressed` | label | appearance: outline, text · state: pressed · surface: default (36 of 576) |
-| segmented-control-segment | `selected.label.pressed`, `unselected.label.pressed` | label | state: pressed (6 of 30) |
-|  |  | labelReserve | state: pressed (6 of 30) |
+| segmented-control-segment | `unselected.label.pressed` | label | selection: unselected · state: pressed (3 of 30) |
+|  |  | labelReserve | selection: unselected · state: pressed (3 of 30) |
 | tab | `unselected.label.pressed` | label | selection: unselected · state: pressed (3 of 30) |
 |  |  | labelReserve | selection: unselected · state: pressed (3 of 30) |
 | tag | `selected.label.pressed`, `unselected.label.pressed` | label | state: pressed (9 of 45) |
@@ -877,48 +864,45 @@ Type: color. Bound by 5 component(s).
 |---|---|---|---|
 | accordion | `label` | label | every member (24 of 24) |
 | button-neutral | `outline.label`, `text.label` | label | appearance: outline, text · state: focus-visible, pending, rest · surface: default (108 of 576) |
-| segmented-control-segment | `selected.label`, `unselected.label` | label | state: focus-visible, rest (12 of 30) |
-|  |  | labelReserve | state: focus-visible, rest (12 of 30) |
+| segmented-control-segment | `selected.label`, `unselected.label` | label | state: focus-visible, hover, pressed, rest (18 of 30) |
+|  |  | labelReserve | state: focus-visible, hover, pressed, rest (18 of 30) |
 | tab | `unselected.label` | label | selection: unselected · state: focus-visible, rest (6 of 30) |
 |  |  | labelReserve | selection: unselected · state: focus-visible, rest (6 of 30) |
 | tag | `selected.label`, `unselected.label` | label | state: focus-visible, rest (18 of 45) |
 
 ### `color.interactive.primary.border.hover`
 
-Type: color. Bound by 6 component(s).
+Type: color. Bound by 5 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | button | `outline.border.hover` | container | appearance: outline · inset: default · state: hover · surface: default (12 of 576) |
 | icon-button | `outline.border.hover` | container | appearance: outline · state: hover · surface: default (6 of 216) |
 | radio-control | `checked.border.hover` | control | selection: checked · state: hover (3 of 30) |
-| segmented-control-segment | `selected.border.hover` | indicator | selection: selected · state: hover (3 of 30) |
 | tab | `selected.fill.hover` | indicator | selection: selected · state: hover (3 of 30) |
 | tag | `selected.border.hover` | container | selection: selected · state: hover · type: select (3 of 45) |
 
 ### `color.interactive.primary.border.pressed`
 
-Type: color. Bound by 6 component(s).
+Type: color. Bound by 5 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | button | `outline.border.pressed` | container | appearance: outline · inset: default · state: pressed · surface: default (12 of 576) |
 | icon-button | `outline.border.pressed` | container | appearance: outline · state: pressed · surface: default (6 of 216) |
 | radio-control | `checked.border.pressed` | control | selection: checked · state: pressed (3 of 30) |
-| segmented-control-segment | `selected.border.pressed` | indicator | selection: selected · state: pressed (3 of 30) |
 | tab | `selected.fill.pressed` | indicator | selection: selected · state: pressed (3 of 30) |
 | tag | `selected.border.pressed` | container | selection: selected · state: pressed · type: select (3 of 45) |
 
 ### `color.interactive.primary.border.rest`
 
-Type: color. Bound by 6 component(s).
+Type: color. Bound by 5 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | button | `outline.border` | container | appearance: outline · inset: default · state: focus-visible, pending, rest · surface: default (36 of 576) |
 | icon-button | `outline.border` | container | appearance: outline · state: focus-visible, pending, rest · surface: default (18 of 216) |
 | radio-control | `checked.border` | control | selection: checked · state: focus-visible, rest (6 of 30) |
-| segmented-control-segment | `selected.border` | indicator | selection: selected · state: focus-visible, rest (6 of 30) |
 | tab | `selected.fill` | indicator | selection: selected · state: focus-visible, rest (6 of 30) |
 | tag | `selected.border` | container | selection: selected · state: focus-visible, rest · type: select (6 of 45) |
 
@@ -1039,11 +1023,10 @@ Type: color. Bound by 3 component(s).
 
 ### `color.interactive.primary.subtle-fill.selected`
 
-Type: color. Bound by 2 component(s).
+Type: color. Bound by 1 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| segmented-control-segment | `selected.overlay` | indicator | selection: selected · state: focus-visible, hover, pressed, rest (12 of 30) |
 | tag | `selected.overlay` | container | selection: selected · state: focus-visible, hover, pressed, rest · type: select (12 of 45) |
 
 ### `color.interactive.primary.text.hover`
@@ -1736,15 +1719,13 @@ Type: color. Bound by 1 component(s).
 
 ### `color.text.primary`
 
-Type: color. Bound by 13 component(s).
+Type: color. Bound by 12 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | accordion | `body` | placeholder | expansion: expanded (12 of 24) |
 | badge | `neutral.status.subtle.label` | text | emphasis: subtle · tone: neutral · type: status (1 of 20) |
 | checkbox-row | `label` | label | every member (3 of 3) |
-| code-input-cell | `caret`, `label` | caret | state: focus-visible (4 of 28) |
-|  |  | digit | state: error, filled, focus-visible-filled (12 of 28) |
 | dialog | `body`, `label` | placeholder | every member (15 of 15) |
 |  |  | title | every member (15 of 15) |
 | field-label | `primary.indicator`, `primary.label` | indicator | emphasis: primary · state: rest (6 of 24) |
@@ -2105,12 +2086,11 @@ Type: dimension. Bound by 17 component(s).
 
 ### `focus.ring.offset-field`
 
-Type: dimension. Bound by 7 component(s).
+Type: dimension. Bound by 6 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | accordion | `ring-offset` | focusRing | state: focus-visible (12 of 24) |
-| code-input-cell | `ring-offset` | focusRing | state: focus-visible, focus-visible-filled (8 of 28) |
 | focus-ring | `offset.field` | (not drawn) | — |
 | password-field | `ring-offset` | focusRing | state: focus-visible, focus-visible-filled (24 of 84) |
 | select | `ring-offset` | focusRing | state: focus-visible, focus-visible-filled (24 of 84) |
@@ -2127,7 +2107,7 @@ Type: strokeStyle. Bound by 1 component(s).
 
 ### `focus.ring.width`
 
-Type: dimension. Bound by 22 component(s).
+Type: dimension. Bound by 21 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2135,7 +2115,6 @@ Type: dimension. Bound by 22 component(s).
 | button-destructive | `ring-width` | focusRing | state: focus-visible (96 of 576) |
 | button-neutral | `ring-width` | focusRing | state: focus-visible (96 of 576) |
 | checkbox-control | `ring-width` | focusRing | state: focus-visible (9 of 54) |
-| code-input-cell | `ring-width` | focusRing | state: focus-visible, focus-visible-filled (8 of 28) |
 | flush-icon-button | `ring-width` | focusRing | state: focus-visible (6 of 30) |
 | flush-icon-button-destructive | `ring-width` | focusRing | state: focus-visible (6 of 30) |
 | flush-icon-button-neutral | `ring-width` | focusRing | state: focus-visible (6 of 30) |
@@ -2178,7 +2157,7 @@ Type: dimension. Bound by 9 component(s).
 
 ### `icon.size.md`
 
-Type: dimension. Bound by 17 component(s).
+Type: dimension. Bound by 16 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2196,7 +2175,6 @@ Type: dimension. Bound by 17 component(s).
 | button-neutral | `size.large.icon` | leadingVisual | leading: true · size: large · state: disabled, focus-visible, hover, pressed, rest (80 of 576) |
 |  |  | spinner | size: large · state: pending (32 of 576) |
 |  |  | trailingVisual | size: large · trailing: true (88 of 576) |
-| code-input-cell | `size.large.caret-height` | caret | size: large · state: focus-visible (1 of 28) |
 | flush-icon-button | `size.large.flush`, `size.large.icon` | container | shape: flush · size: large (5 of 30) |
 |  |  | icon | size: large (10 of 30) |
 | flush-icon-button-destructive | `size.large.flush`, `size.large.icon` | container | shape: flush · size: large (5 of 30) |
@@ -2221,7 +2199,7 @@ Type: dimension. Bound by 17 component(s).
 
 ### `icon.size.sm`
 
-Type: dimension. Bound by 21 component(s).
+Type: dimension. Bound by 20 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2239,7 +2217,6 @@ Type: dimension. Bound by 21 component(s).
 | button-neutral | `size.medium.icon` | leadingVisual | leading: true · size: medium · state: disabled, focus-visible, hover, pressed, rest (80 of 576) |
 |  |  | spinner | size: medium · state: pending (32 of 576) |
 |  |  | trailingVisual | size: medium · trailing: true (88 of 576) |
-| code-input-cell | `size.medium.caret-height` | caret | size: medium · state: focus-visible (1 of 28) |
 | flush-icon-button | `size.medium.flush`, `size.medium.icon`, `size.small.flush`, `size.small.icon` | container | shape: flush · size: medium, small (10 of 30) |
 |  |  | icon | size: medium, small (20 of 30) |
 | flush-icon-button-destructive | `size.medium.flush`, `size.medium.icon`, `size.small.flush`, `size.small.icon` | container | shape: flush · size: medium, small (10 of 30) |
@@ -2268,17 +2245,9 @@ Type: dimension. Bound by 21 component(s).
 | text-field | `icon-size` | leadingVisual | every member (84 of 84) |
 |  |  | trailingVisual | every member (84 of 84) |
 
-### `icon.size.xl`
-
-Type: dimension. Bound by 1 component(s).
-
-| Component | Keys | Part | Where |
-|---|---|---|---|
-| code-input-cell | `size.xlarge.caret-height` | caret | size: xlarge · state: focus-visible (1 of 28) |
-
 ### `icon.size.xs`
 
-Type: dimension. Bound by 10 component(s).
+Type: dimension. Bound by 9 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2296,7 +2265,6 @@ Type: dimension. Bound by 10 component(s).
 | button-neutral | `size.small.icon` | leadingVisual | leading: true · size: small · state: disabled, focus-visible, hover, pressed, rest (80 of 576) |
 |  |  | spinner | size: small · state: pending (32 of 576) |
 |  |  | trailingVisual | size: small · trailing: true (88 of 576) |
-| code-input-cell | `size.small.caret-height` | caret | size: small · state: focus-visible (1 of 28) |
 | field-message | `glyph-size` | iconError | status: error (1 of 4) |
 |  |  | iconSuccess | status: success (1 of 4) |
 |  |  | iconWarning | status: warning (1 of 4) |
@@ -2314,14 +2282,6 @@ Type: dimension. Bound by 1 component(s).
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | dialog | `placement.bottom.radius-top`, `placement.center.radius-bottom`, `placement.center.radius-top` | panel | placement: bottom, center (12 of 15) |
-
-### `radius.lg`
-
-Type: dimension. Bound by 1 component(s).
-
-| Component | Keys | Part | Where |
-|---|---|---|---|
-| code-input-cell | `size.xlarge.radius` | cell | size: xlarge (7 of 28) |
 
 ### `radius.md`
 
@@ -2370,12 +2330,11 @@ Type: dimension. Bound by 11 component(s).
 
 ### `radius.sm`
 
-Type: dimension. Bound by 7 component(s).
+Type: dimension. Bound by 6 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | badge | `status.radius` | surface | type: status (10 of 20) |
-| code-input-cell | `size.large.radius`, `size.medium.radius`, `size.small.radius` | cell | size: large, medium, small (21 of 28) |
 | password-field | `radius` | control | every member (84 of 84) |
 | segmented-control-segment | `indicator-radius` | indicator | every member (30 of 30) |
 | select | `radius` | control | every member (84 of 84) |
@@ -2477,7 +2436,7 @@ Type: dimension. Bound by 15 component(s).
 
 ### `space.0`
 
-Type: dimension. Bound by 18 component(s).
+Type: dimension. Bound by 17 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2489,7 +2448,6 @@ Type: dimension. Bound by 18 component(s).
 | checkbox-group | `gap`, `pad-x` | container | every member (3 of 3) |
 |  |  | items | every member (3 of 3) |
 | checkbox-row | `pad-x` | row | every member (3 of 3) |
-| code-input-cell | `pad` | content | every member (28 of 28) |
 | dialog | `pad-none` | body | every member (15 of 15) |
 |  |  | footerInline | footer: inline (5 of 15) |
 |  |  | footerStacked | footer: stacked (5 of 15) |
@@ -2555,7 +2513,7 @@ Type: dimension. Bound by 12 component(s).
 
 ### `space.100`
 
-Type: dimension. Bound by 23 component(s).
+Type: dimension. Bound by 22 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2567,8 +2525,6 @@ Type: dimension. Bound by 23 component(s).
 | button-neutral | `size.large.padding-y`, `size.medium.gap`, `size.medium.padding-y`, `size.small.gap` | container | every member (576 of 576) |
 | checkbox-group | `pad-y` | container | every member (3 of 3) |
 | checkbox-row | `size.medium.gap`, `size.small.gap` | row | size: medium, small (2 of 3) |
-| code-input | `cell-gap`, `root-gap` | container | every member (48 of 48) |
-|  |  | items | every member (48 of 48) |
 | dialog | `footer.stacked.gap`, `title-gap` | footerStacked | footer: stacked (5 of 15) |
 |  |  | titleBox | every member (15 of 15) |
 | divider | `vertical.middle-inset.pad-block` | divider | inset: middle-inset · orientation: vertical (1 of 5) |
@@ -2744,13 +2700,12 @@ Type: typography. Bound by 1 component(s).
 
 ### `type.body.md.default`
 
-Type: typography. Bound by 13 component(s).
+Type: typography. Bound by 12 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | accordion | `size.medium.panel-type` | placeholder | expansion: expanded · size: medium (4 of 24) |
 | checkbox-row | `size.medium.text` | label | size: medium (1 of 3) |
-| code-input-cell | `size.small.type` | digit | size: small · state: error, filled, focus-visible-filled (3 of 28) |
 | dialog | `body-type`, `description-type` | description | every member (15 of 15) |
 |  |  | placeholder | every member (15 of 15) |
 | field-label | `size.large.regular.text` | indicator | size: large · weight: regular (4 of 24) |
@@ -2980,30 +2935,6 @@ Type: typography. Bound by 3 component(s).
 | button-destructive | `size.small.text.type` | label | appearance: text · size: small (96 of 576) |
 | button-neutral | `size.small.text.type` | label | appearance: text · size: small (96 of 576) |
 
-### `type.title.2xl.strong`
-
-Type: typography. Bound by 1 component(s).
-
-| Component | Keys | Part | Where |
-|---|---|---|---|
-| code-input-cell | `size.xlarge.type` | digit | size: xlarge · state: error, filled, focus-visible-filled (3 of 28) |
-
-### `type.title.md.strong`
-
-Type: typography. Bound by 1 component(s).
-
-| Component | Keys | Part | Where |
-|---|---|---|---|
-| code-input-cell | `size.large.type` | digit | size: large · state: error, filled, focus-visible-filled (3 of 28) |
-
-### `type.title.sm.strong`
-
-Type: typography. Bound by 1 component(s).
-
-| Component | Keys | Part | Where |
-|---|---|---|---|
-| code-input-cell | `size.medium.type` | digit | size: medium · state: error, filled, focus-visible-filled (3 of 28) |
-
 ## By component
 
 Every token each component uses. "Declared, not drawn" names tokens the definition binds that no design-file part draws; "drawn, not declared" names tokens the projection binds that the definition does not list (a value the projection derives, such as an inverse-surface twin or a corner rung).
@@ -3077,18 +3008,6 @@ Declared, not drawn: `color.border.focus`
 `color.disabled.text`, `color.text.primary`, `control.size.lg.height`, `control.size.lg.line-box`, `control.size.md.height`, `control.size.md.line-box`, `control.size.sm.height`, `control.size.sm.line-box`, `size.lg.height`, `size.md.height`, `size.sm.height`, `space.0`, `space.100`, `space.150`, `type.body.lg.default`, `type.body.md.default`, `type.body.sm.default`
 
 Declared, not drawn: `color.disabled.text`, `size.lg.height`, `size.md.height`, `size.sm.height`
-
-### code-input
-
-1 token(s); 48 design-file member(s).
-
-`space.100`
-
-### code-input-cell
-
-23 token(s); 28 design-file member(s).
-
-`border-width.hairline`, `color.border.danger`, `color.border.focus`, `color.disabled.border`, `color.disabled.fill`, `color.field.border.hover`, `color.field.border.rest`, `color.field.fill`, `color.interactive.neutral.overlay.hover`, `color.text.primary`, `focus.ring.offset-field`, `focus.ring.width`, `icon.size.md`, `icon.size.sm`, `icon.size.xl`, `icon.size.xs`, `radius.lg`, `radius.sm`, `space.0`, `type.body.md.default`, `type.title.2xl.strong`, `type.title.md.strong`, `type.title.sm.strong`
 
 ### dialog
 
@@ -3240,15 +3159,15 @@ Declared, not drawn: `color.disabled.text`, `size.lg.height`, `size.md.height`, 
 
 ### segmented-control
 
-5 token(s); 3 design-file member(s).
+4 token(s); 3 design-file member(s).
 
-`border-width.hairline`, `color.interactive.neutral.border.rest`, `radius.md`, `space.0`, `space.100`
+`color.background.secondary`, `radius.md`, `space.0`, `space.100`
 
 ### segmented-control-segment
 
-40 token(s); 30 design-file member(s).
+34 token(s); 30 design-file member(s).
 
-`border-width.none`, `border-width.thick`, `color.border.focus`, `color.disabled.border`, `color.disabled.icon`, `color.disabled.text`, `color.interactive.neutral.icon.hover`, `color.interactive.neutral.icon.pressed`, `color.interactive.neutral.icon.rest`, `color.interactive.neutral.overlay.hover`, `color.interactive.neutral.overlay.pressed`, `color.interactive.neutral.text.hover`, `color.interactive.neutral.text.pressed`, `color.interactive.neutral.text.rest`, `color.interactive.primary.border.hover`, `color.interactive.primary.border.pressed`, `color.interactive.primary.border.rest`, `color.interactive.primary.subtle-fill.selected`, `focus.ring.offset`, `focus.ring.width`, `icon.size.lg`, `icon.size.md`, `icon.size.sm`, `radius.sm`, `size.lg.height`, `size.md.height`, `size.sm.height`, `space.0`, `space.050`, `space.075`, `space.100`, `space.150`, `space.200`, `space.250`, `type.label.lg.default`, `type.label.lg.emphasis`, `type.label.md.default`, `type.label.md.emphasis`, `type.label.sm.default`, `type.label.sm.emphasis`
+`color.background.primary`, `color.border.focus`, `color.disabled.icon`, `color.disabled.text`, `color.interactive.neutral.icon.hover`, `color.interactive.neutral.icon.pressed`, `color.interactive.neutral.icon.rest`, `color.interactive.neutral.overlay.hover`, `color.interactive.neutral.overlay.pressed`, `color.interactive.neutral.text.hover`, `color.interactive.neutral.text.pressed`, `color.interactive.neutral.text.rest`, `focus.ring.offset`, `focus.ring.width`, `icon.size.lg`, `icon.size.md`, `icon.size.sm`, `radius.sm`, `size.lg.height`, `size.md.height`, `size.sm.height`, `space.0`, `space.050`, `space.075`, `space.100`, `space.150`, `space.200`, `space.250`, `type.label.lg.default`, `type.label.lg.emphasis`, `type.label.md.default`, `type.label.md.emphasis`, `type.label.sm.default`, `type.label.sm.emphasis`
 
 Declared, not drawn: `color.border.focus`
 
@@ -3322,13 +3241,12 @@ Declared, not drawn: `color.border.focus`
 
 ## Tokens no component binds
 
-256 semantic token(s) and 280 primitive(s). Primitives (`core.*`) are listed apart — components bind semantic roles, which alias the primitives, so an unbound primitive is expected.
+261 semantic token(s) and 280 primitive(s). Primitives (`core.*`) are listed apart — components bind semantic roles, which alias the primitives, so an unbound primitive is expected.
 
 ### Semantic
 
-- **border-width** — `border-width.heavy`
+- **border-width** — `border-width.heavy`, `border-width.none`
 - **breakpoint** — `breakpoint.2xl`, `breakpoint.lg`, `breakpoint.md`, `breakpoint.sm`, `breakpoint.xl`
-- **color.background** — `color.background.primary`
 - **color.border** — `color.border.brand`
 - **color.field** — `color.field.placeholder`
 - **color.foreground** — `color.foreground.brand`, `color.foreground.brand-subtle`, `color.foreground.tertiary`
@@ -3341,13 +3259,14 @@ Declared, not drawn: `color.border.focus`
 - **control** — `control.size.lg.inset`, `control.size.lg.thumb`, `control.size.lg.track`, `control.size.lg.width`
 - **gradient** — `gradient.brand`, `gradient.glow`
 - **grid** — `grid.2xl.columns`, `grid.2xl.gutter`, `grid.2xl.margin`, `grid.lg.columns`, `grid.lg.gutter`, `grid.lg.margin`, `grid.md.columns`, `grid.md.gutter`, `grid.md.margin`, `grid.sm.columns`, `grid.sm.gutter`, `grid.sm.margin`, `grid.xl.columns`, `grid.xl.gutter`, `grid.xl.margin`
+- **icon** — `icon.size.xl`
 - **motion** — `motion.duration-ms.0`, `motion.duration-ms.100`, `motion.duration-ms.200`, `motion.duration-ms.2600`, `motion.duration-ms.300`, `motion.duration-ms.40`, `motion.duration-ms.50`, `motion.duration-ms.500`, `motion.duration-ms.800`, `motion.duration-reduced.fast`, `motion.duration-reduced.instant`, `motion.duration-reduced.moderate`, `motion.duration-reduced.normal`, `motion.duration-reduced.slow`, `motion.duration-reduced.slower`, `motion.duration-reduced.spin`, `motion.duration.fast`, `motion.duration.instant`, `motion.duration.moderate`, `motion.duration.normal`, `motion.duration.slow`, `motion.duration.slower`, `motion.duration.spin`, `motion.easing-role.default`, `motion.easing-role.emphasized`, `motion.easing-role.enter`, `motion.easing-role.exit`, `motion.easing.accelerate`, `motion.easing.calm`, `motion.easing.decelerate`, `motion.easing.expressive`, `motion.easing.linear`, `motion.easing.standard`, `motion.spring.bouncy`, `motion.spring.gentle`, `motion.spring.snappy`, `motion.stagger`, `motion.transition.default`, `motion.transition.emphasized`, `motion.transition.enter`, `motion.transition.exit`
 - **opacity** — `opacity.0`, `opacity.10`, `opacity.100`, `opacity.20`, `opacity.30`, `opacity.40`, `opacity.5`, `opacity.50`, `opacity.60`, `opacity.70`, `opacity.80`, `opacity.90`
-- **radius** — `radius.3xl`, `radius.capsule`, `radius.hairline`, `radius.xl`
+- **radius** — `radius.3xl`, `radius.capsule`, `radius.hairline`, `radius.lg`, `radius.xl`
 - **shadow** — `shadow.2xl`, `shadow.inset`, `shadow.lg`, `shadow.md`, `shadow.sm`, `shadow.xs`
 - **size** — `size.xl.height`, `size.xs.height`
 - **space** — `space.1000`, `space.1100`, `space.1200`, `space.600`, `space.700`, `space.800`, `space.900`
-- **type** — `type.body.lg.default-italic`, `type.body.lg.default-italic-link`, `type.body.lg.strong-italic`, `type.body.lg.strong-italic-link`, `type.body.md.default-italic`, `type.body.md.default-italic-link`, `type.body.md.strong-italic`, `type.body.md.strong-italic-link`, `type.body.sm.default-italic`, `type.body.sm.default-italic-link`, `type.body.sm.strong-italic`, `type.body.sm.strong-italic-link`, `type.body.xs.default-italic`, `type.body.xs.default-italic-link`, `type.body.xs.default-link`, `type.body.xs.strong-italic`, `type.body.xs.strong-italic-link`, `type.body.xs.strong-link`, `type.caption.lg.default`, `type.caption.lg.default-link`, `type.caption.lg.strong`, `type.caption.lg.strong-link`, `type.caption.md.default-link`, `type.caption.md.strong`, `type.caption.md.strong-link`, `type.code.inline.default`, `type.display.2xl.emphasis`, `type.display.2xl.strong`, `type.display.3xl.emphasis`, `type.display.3xl.strong`, `type.display.lg.emphasis`, `type.display.lg.strong`, `type.display.md.emphasis`, `type.display.md.strong`, `type.display.sm.emphasis`, `type.display.sm.strong`, `type.display.xl.emphasis`, `type.display.xl.strong`, `type.eyebrow.lg.emphasis`, `type.eyebrow.md.emphasis`, `type.eyebrow.sm.emphasis`, `type.label.lg.default-link`, `type.label.lg.line-box`, `type.label.md.default-link`, `type.label.md.line-box`, `type.label.sm.default-link`, `type.label.sm.line-box`, `type.title.2xl.emphasis`, `type.title.lg.emphasis`, `type.title.lg.strong`, `type.title.md.emphasis`, `type.title.sm.emphasis`, `type.title.xl.emphasis`, `type.title.xl.strong`, `type.title.xs.emphasis`, `type.title.xs.strong`
+- **type** — `type.body.lg.default-italic`, `type.body.lg.default-italic-link`, `type.body.lg.strong-italic`, `type.body.lg.strong-italic-link`, `type.body.md.default-italic`, `type.body.md.default-italic-link`, `type.body.md.strong-italic`, `type.body.md.strong-italic-link`, `type.body.sm.default-italic`, `type.body.sm.default-italic-link`, `type.body.sm.strong-italic`, `type.body.sm.strong-italic-link`, `type.body.xs.default-italic`, `type.body.xs.default-italic-link`, `type.body.xs.default-link`, `type.body.xs.strong-italic`, `type.body.xs.strong-italic-link`, `type.body.xs.strong-link`, `type.caption.lg.default`, `type.caption.lg.default-link`, `type.caption.lg.strong`, `type.caption.lg.strong-link`, `type.caption.md.default-link`, `type.caption.md.strong`, `type.caption.md.strong-link`, `type.code.inline.default`, `type.display.2xl.emphasis`, `type.display.2xl.strong`, `type.display.3xl.emphasis`, `type.display.3xl.strong`, `type.display.lg.emphasis`, `type.display.lg.strong`, `type.display.md.emphasis`, `type.display.md.strong`, `type.display.sm.emphasis`, `type.display.sm.strong`, `type.display.xl.emphasis`, `type.display.xl.strong`, `type.eyebrow.lg.emphasis`, `type.eyebrow.md.emphasis`, `type.eyebrow.sm.emphasis`, `type.label.lg.default-link`, `type.label.lg.line-box`, `type.label.md.default-link`, `type.label.md.line-box`, `type.label.sm.default-link`, `type.label.sm.line-box`, `type.title.2xl.emphasis`, `type.title.2xl.strong`, `type.title.lg.emphasis`, `type.title.lg.strong`, `type.title.md.emphasis`, `type.title.md.strong`, `type.title.sm.emphasis`, `type.title.sm.strong`, `type.title.xl.emphasis`, `type.title.xl.strong`, `type.title.xs.emphasis`, `type.title.xs.strong`
 
 ### Primitive
 
