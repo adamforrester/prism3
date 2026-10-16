@@ -295,6 +295,7 @@ const EXPECT_ANATOMY = [
   'image-placeholder', 'spinner', 'badge', 'tag', 'tab', 'tabs', 'divider', '_accordion-indicator', 'accordion',
   'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'list-item', 'list',
   'segmented-control-segment', 'segmented-control', 'link', 'dialog', 'password-field',
+  'code-input-cell', 'code-input',
 ];
 const EXPECT_PAINTERS = [
   'focus-ring', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive',
@@ -305,6 +306,8 @@ const EXPECT_PAINTERS = [
   'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral',
   // #2317: the Password field paints as TextField does.
   'password-field',
+  // #2428: the Code cell paints Text field's field chrome on its own box.
+  'code-input-cell',
 ];
 const closedSet = (what: string, expected: string[], live: string[], remedy: string): void => {
   for (const id of expected.filter((x) => !live.includes(x))) {

@@ -65,7 +65,7 @@ export const codeInputCell: ComponentDef = {
 
   props: [
     { name: 'digit', type: 'string', required: false, description: 'The character this cell shows: one digit, or one letter in a code that allows letters. Empty until the user reaches it.' },
-    { name: 'size', type: "enum: 'medium' | 'small' | 'large' | 'xlarge'", values: ['medium', 'small', 'large', 'xlarge'], default: 'medium', required: false, description: 'The cell size and its character size. Set by the code input.' },
+    { name: 'size', type: "enum: 'small' | 'medium' | 'large' | 'xlarge'", values: ['small', 'medium', 'large', 'xlarge'], default: 'medium', required: false, description: 'The cell size and its character size. Set by the code input.' },
     { name: 'isActive', type: 'boolean', default: false, required: false, description: 'Whether this is the cell the next character goes into while the input has focus. Set by the code input.' },
     { name: 'isInvalid', type: 'boolean', default: false, required: false, description: 'Whether the code input is in error. Set by the code input.' },
     { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Whether the code input is disabled. Set by the code input.' },
@@ -208,7 +208,7 @@ export const codeInputCell: ComponentDef = {
   },
 
   docs: {
-    usage: 'Use inside CodeInput only, one cell per character of the code. In Figma, add or remove cells in the code input\'s cell slot and set each cell\'s state to match the field: error cells when the field is in error, disabled cells when it is disabled.',
+    usage: 'Use inside CodeInput only, one cell per character of the code. In a design, add or remove cells in the code input\'s cell slot and set each cell\'s state to match the field: error cells when the field is in error, disabled cells when it is disabled. In code, the code input sets every cell.',
     do: ['Set every cell to error when the code input is in error', 'Set every cell to disabled when the code input is disabled'],
     dont: ['Place a cell outside a code input', 'Build a code input from separate inputs, one per cell'],
     contentGuidelines: 'One character per cell.',
@@ -300,7 +300,7 @@ export const codeInput: ComponentDef = {
     { name: 'validation', type: "enum: 'default' | 'error'", values: ['default', 'error'], default: 'default', required: false, description: 'error swaps every cell to the danger border, sets the message to the error status and sets aria-invalid.' },
     { name: 'validationMessage', type: 'string | node', required: false, description: 'The error text: too few characters, a wrong code or an expired code, each said plainly.' },
     { name: 'showMessage', type: 'boolean', default: true, required: false, description: 'Whether the composed FieldMessage is shown. On by default.' },
-    { name: 'size', type: "enum: 'medium' | 'small' | 'large' | 'xlarge'", values: ['medium', 'small', 'large', 'xlarge'], default: 'medium', required: false, description: 'The cell size: small 44×44 with a 16px character, medium 48×56 with 20px, large 56×64 with 24px, xlarge 68×72 with 40px, meant for four-character codes.' },
+    { name: 'size', type: "enum: 'small' | 'medium' | 'large' | 'xlarge'", values: ['small', 'medium', 'large', 'xlarge'], default: 'medium', required: false, description: 'The cell size: small 44×44 with a 16px character, medium 48×56 with 20px, large 56×64 with 24px, xlarge 68×72 with 40px, meant for four-character codes.' },
     { name: 'width', type: "enum: 'auto' | 'full'", values: ['auto', 'full'], default: 'auto', required: false, description: 'auto: each cell at its size. full: the row spans its container and the cells share it, shrinking to 32px wide when they must.' },
     { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Native disabled.' },
     { name: 'isPending', type: 'boolean', default: false, required: false, description: 'The code is being checked; sets aria-busy and keeps the input editable.' },

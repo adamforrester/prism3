@@ -185,7 +185,7 @@ const OUT = join(import.meta.dirname, 'out');
  * tree per brand in arm 1. So the gate authors the one thing the artifact cannot tell it and reads the
  * one thing it can.
  */
-const RUNG_ORDER = ['xs', 'sm', 'md', 'lg', 'xl'];
+const RUNG_ORDER = ['xs', 'sm', 'md', 'lg', 'xl', '2xl'];
 
 /**
  * THE DEFAULT RULE (#756's third bullet): a size axis defaults to the rung reaching the tier's `md`.
@@ -260,10 +260,26 @@ const ICON_OFFSET_TWO_DEFS: Record<string, string> = {
   link: 'icon.size.*',
 };
 
+/**
+ * THE OWNER-PINNED PIXEL LADDER (#2428, owner decision Q330 A, 2026-10-15). Code input's cell takes its sizes from the
+ * owner's table, in px, not from the tier: the medium cell's character is 20px (`title.sm`) and its caret as tall
+ * (`icon.size.sm`), and its corner is the fields' 2px (`radius.sm`). So each named family defaults one rung below `md`,
+ * by decision. Same guarantees as ICON_OFFSET_DEFS: the expectation is the RULE (`md` minus one), so a revert to `md`
+ * and a slip to any other rung both fail BY NAME, every other family on the def still defaults to `md`, and the
+ * admission is checked both directions below.
+ */
+const PINNED_LADDER_DEFS: Record<string, { families: string[]; why: string }> = {
+  'code-input-cell': {
+    families: ['type.title.*.strong', 'icon.size.*', 'radius.*'],
+    why: 'Q330 A sets the medium cell\'s character at 20px, one title step below md, with a caret as tall and the fields\' 2px corner',
+  },
+};
+
 /** The default rung EXPECTED for one (def, tier family): the sanctioned offset where listed, else `md`. */
 const expectedDefaultRung = (defId: string, family: string): string =>
   defId in HOST_DEFAULT_DEFS ? LABEL_DEFAULT_RUNG
     : ICON_OFFSET_DEFS[defId] === family ? OFFSET_DEFAULT_RUNG
+    : (PINNED_LADDER_DEFS[defId]?.families ?? []).includes(family) ? OFFSET_DEFAULT_RUNG
     : ICON_OFFSET_TWO_DEFS[defId] === family ? LABEL_DEFAULT_RUNG
     : DEFAULT_RUNG;
 
@@ -342,12 +358,16 @@ const DEFAULT_FIRST: Record<string, string> = {
   dialog: 'the Figma default is the 560px medium panel, the proposal\'s table approved by the owner\'s Q303 (#2609)',
   // #2317: TextField's size order through the shared field factory (Q301 builds it medium first, the field family's order).
   'password-field': 'the Figma default is `medium`, the field family\'s order from the shared field factory (#2317)',
+  // #2428 (owner decisions Q330 A, Q347, Q359): Code input and its cell lead with medium, the code default.
+  'code-input': 'the Figma default is `medium`, the code default (owner decisions Q330 A, Q347, Q359)',
+  'code-input-cell': 'the Figma default is the medium cell, the code default (owner decisions Q330 A, Q347, Q359)',
 };
 
 const SIZE_BY_FOLLOW_ONLY: Record<string, string> = {
   'checkbox-group': 'its inter-row gap is 0px (`space.0`, the rows self-space — #1623 sign-off), so the size axis binds nothing of its own and reaches the nested field-label and checkbox rows by `follow`',
   'radio-group': 'mirrors checkbox-group — a 0px inter-row gap (`space.0`, #1623 sign-off), so the size axis reaches the nested field-label and radio rows by `follow` only',
   'tabs': 'the tab list binds no size.* key of its own — its gap is 0px (`space.0`, each tab carries its own padding) and the baseline is a fixed 1px hairline — so the size axis reaches the six nested tabs by `follow` only (#2416)',
+  'code-input': 'the field binds no size.* key of its own — its gaps are fixed `space.100` steps — so the size axis reaches the six nested cells by `follow` only; the label keeps one size (#2428)',
   'segmented-control': 'the control binds no size.* key of its own — its label gap is a fixed `space.100`, the track a 1px hairline with no padding, and each option carries its own height and padding — so the size axis reaches the nested label and the five options by `follow` only (#2418)',
 };
 
@@ -387,6 +407,7 @@ const MUST_COVER = [
   'list-item', 'list',
   'segmented-control-segment', 'segmented-control', 'link',
   'dialog', 'password-field',
+  'code-input-cell', 'code-input',
 ];
 
 /** Every token path in a brand's canonical tree, below the root — `icon.size.md`, `size.lg.height`. */
@@ -647,7 +668,10 @@ for (const def of componentDefs) {
       const sanctioned = ICON_OFFSET_DEFS[def.id] === family;
       const hostAligned = def.id in HOST_DEFAULT_DEFS;
       const sanctionedTwo = ICON_OFFSET_TWO_DEFS[def.id] === family;
-      failures.push(sanctionedTwo
+      const pinned = (PINNED_LADDER_DEFS[def.id]?.families ?? []).includes(family);
+      failures.push(pinned
+        ? `${def.id}: size defaults to '${dflt}', whose OWNER-PINNED family '${family}' reaches tier rung(s) ${wrong.map((r) => `'${r}'`).join(', ')} — ${PINNED_LADDER_DEFS[def.id].why}, so it resolves to '${want}'. A revert to '${DEFAULT_RUNG}' or any other rung breaks the pinned ladder.`
+        : sanctionedTwo
         ? `${def.id}: size defaults to '${dflt}', whose OWNER-SANCTIONED icon family '${family}' reaches tier rung(s) ${wrong.map((r) => `'${r}'`).join(', ')} — Q297.2 sets the icon at '${want}', exactly two rungs below '${DEFAULT_RUNG}' (16px with 16px text). A revert to '${DEFAULT_RUNG}' or any other rung breaks it.`
         : hostAligned
         ? `${def.id}: size defaults to '${dflt}', whose family '${family}' reaches tier rung(s) ${wrong.map((r) => `'${r}'`).join(', ')} — the #1699/#2266 default is '${want}', two rungs below '${DEFAULT_RUNG}' (${HOST_DEFAULT_DEFS[def.id]}). A revert to the old 14/16/18 ladder lands on '${OFFSET_DEFAULT_RUNG}' and breaks the one-step pairing with every field's input.`
@@ -683,6 +707,17 @@ for (const id of Object.keys(SIZE_BY_FOLLOW_ONLY))
 for (const id of Object.keys(LADDER_STATED_ONCE))
   if (!componentDefs.some((d) => d.id === id))
     failures.push(`STALE ADMISSION: LADDER_STATED_ONCE names '${id}', which is not a def any more. Remove it — same reason as above.`);
+
+// The Q330 pinned ladder, checked BOTH directions as the offsets below are: a listed def must exist and reach every
+// named family at its default.
+for (const [id, { families }] of Object.entries(PINNED_LADDER_DEFS)) {
+  const def = componentDefs.find((d) => d.id === id);
+  if (!def) { failures.push(`STALE ADMISSION: PINNED_LADDER_DEFS names '${id}', which is not a def any more. Remove it.`); continue; }
+  const seen = defaultFamiliesByDef.get(id);
+  for (const family of families)
+    if (!seen || !seen.has(family))
+      failures.push(`STALE ADMISSION: PINNED_LADDER_DEFS pins '${id}' family '${family}' at its default, but that family is not bound at the default size '${enumOf(def).default}'. Remove the family or restore the binding.`);
+}
 
 // The #1350 offset admission, checked BOTH directions so it cannot go stale (docs/34): a listed def
 // must exist AND must actually reach the named family at its default, or the sanction has nothing to
