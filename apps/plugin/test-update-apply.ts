@@ -1147,6 +1147,60 @@ section('grid — a set laid out in another axis order reads its members as move
     `grid/resized: an update that resizes members moves ${changed} the dry run could not list, and the apply counts every one (${previewLine(pre.sets[0])} → ${v.lines[0]})`);
 }
 
+section('default member — Q347\'s three reorders reach an existing set in place: every id, key and placed instance kept (#2752)');
+{
+  // A SET BUILT BEFORE #2752, with the axis in its old order (typed here, the order each def held before), updated to
+  // the def as it is. Figma inserts a set's top-left-most member (`ComponentSetNode.defaultVariant`), so the update has
+  // to MOVE the code default's members to the top-left, and nothing else: no member rebuilt, renamed or dropped, so
+  // every id and key holds and an instance placed from the old set still points at a member of it. The expected
+  // default is the owner's decision, typed here, never read from the def. Mutation: the grid move dropped from the
+  // apply → `default member/<def> inserted`.
+  const OLD: [string, string, string[], string][] = [
+    ['icon-button', 'appearance', ['filled', 'outline', 'ghost'], 'appearance=ghost'],
+    ['veil', 'intensity', ['subtle', 'medium', 'strong'], 'intensity=medium'],
+    ['image-placeholder', 'ratio', ['2:3', '3:4', '4:5', '1:1', '4:3', '3:2', '16:9'], 'ratio=4:3'],
+  ];
+  /** Figma's default variant: the top-left-most member, spatially. Topmost row first, then leftmost in it. */
+  const insertedOf = (set: Node): string => String([...membersOf(set)].sort((a, b) => Number(a.y) - Number(b.y) || Number(a.x) - Number(b.x))[0]?.name);
+  for (const [id, axis, old, want] of OLD) {
+    const d = structuredClone(componentDefs.find((x) => x.id === id)!) as unknown as { variants: Record<string, string[]> };
+    d.variants[axis] = old;
+    const w = await world(id, figmaAnatomySet(d as never, { swapTarget: SWAP_TARGET }));
+    const set = w.set();
+    const was = insertedOf(set);
+    ok(!was.split(', ').includes(want), `premise: ${id} built in the old order inserts ${was}`);
+    // TWO PLACED INSTANCES, on the page beside the set: one of the member the old set inserted, one of the member the
+    // new one will. Each points at the live member node, as a placed instance's main component does.
+    const mainOf = (name: string): Node => membersOf(set).find((m) => String(m.name) === name)!;
+    const newDefault = membersOf(set).find((m) => String(m.name).split(', ').includes(want) && String(m.name) === planComponentName(plansOf(id)[0]))!;
+    const placed = [mainOf(was), newDefault].map((main, i) => {
+      const inst = { type: 'INSTANCE', id: `I:${id}:${i}`, name: String(main.name), x: -500, y: 100 * i, mainComponent: main, children: [] } as unknown as Node;
+      w.page.children.push(inst);
+      return { inst, main, mainId: String(main.id) };
+    });
+    const before = identityOf(set);
+    const plans = plansOf(id);
+    const pre = await previewUpdate(w.host, [{ def: id, plans }]);
+    const c = pre.sets[0].counts;
+    ok((c.move ?? 0) > 0 && c.update + c.add + c.drop + c.rename + c.handEdited + c.noBaseline === 0,
+      `default member/${id} dry run: the reorder reads as moves and nothing else (${previewLine(pre.sets[0])})`);
+    const res = await applyUpdate(w.host, w.api as any, [{ def: id, plans }], previewHashOf(pre));
+    const now = w.set();
+    const after = identityOf(now);
+    const keptIds = now === set && after.set.join() === before.set.join() && after.members.size === before.members.size
+      && [...before.members].every(([k, b]) => after.members.get(k)?.id === b.id && after.members.get(k)?.key === b.key);
+    ok(applyVerdict(res).ok && keptIds, `default member/${id} in place: the set and every member keep their key and id (${applyVerdict(res).headline}; ids ${keptIds ? 'kept' : 'changed'})`);
+    const inserted = insertedOf(now);
+    ok(inserted.split(', ').includes(want) && inserted === planComponentName(plans[0]),
+      `default member/${id} inserted: after the update Figma inserts the ${want} member, the set's first plan (inserts ${inserted})`);
+    const live = placed.every(({ inst, main, mainId }) => w.page.children.includes(inst) && (inst as unknown as { mainComponent: Node }).mainComponent === main
+      && membersOf(now).includes(main) && String(main.id) === mainId && inst.x === -500);
+    ok(live, `default member/${id} instances: both placed instances stay on the page, unmoved, each on a member still in the set with its id`);
+    const next = (await previewUpdate(w.host, [{ def: id, plans }])).sets[0];
+    ok(previewLine(next) === `${String(now.name)}: up to date (${after.members.size} members).`, `default member/${id} current: the next dry run reads up to date (${previewLine(next)})`);
+  }
+}
+
 /* ── re-lay ────────────────────────────────────────────────────────────────────────────────────────────── */
 section('re-lay — an update over a set leaves a member Prism3 didn\'t build where it is, even on a planned coordinate (#2494)');
 {
