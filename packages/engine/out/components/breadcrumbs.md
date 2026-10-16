@@ -46,7 +46,7 @@ Page titles in sentence case, matching each page heading. "Home" for the root.
 
 | Name | Type | Default | Required | Description |
 | --- | --- | --- | --- | --- |
-| `items` | slot | — | yes | The steps, root first, each with a label and an href. The last is rendered as the current page: text with aria-current="page", its href ignored. At least two. |
+| `items` | slot of `breadcrumb-item`, 2 or more | — | yes | The steps, root first, each with a label and an href. The last is rendered as the current page: text with aria-current="page", its href ignored. At least two. |
 | `size` | enum: 'small' \| 'medium' | `medium` | no | The body type size, 14 or 16px, passed to every item. Medium suits a trail beside 16px body copy; small, a quieter line above a page title. |
 | `separator` | enum: 'chevron' \| 'slash' | `chevron` | no | The mark between steps, the same for every step: a chevron pointing toward the current page, or a slash. |
 | `maxItems` | number | `5` | no | Above this many items, the middle collapses behind one overflow button. |

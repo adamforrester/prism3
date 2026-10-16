@@ -8025,6 +8025,10 @@
           "name": "items",
           "type": "slot",
           "required": true,
+          "anyOf": [
+            "breadcrumb-item"
+          ],
+          "minItems": 2,
           "description": "The steps, root first, each with a label and an href. The last is rendered as the current page: text with aria-current=\"page\", its href ignored. At least two."
         },
         {

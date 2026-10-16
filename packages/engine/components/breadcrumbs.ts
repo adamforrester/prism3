@@ -20,8 +20,8 @@
  * THE ITEMS SLOT (owner decision Q307 A, the pattern of #2649 / PR #2660, not yet merged when this was built): a native
  * Figma slot holding BreadcrumbItem instances, three by default (two ancestors and the current page), at least two,
  * preferred BreadcrumbItem only. A slot child does not follow the container's variant after it is placed: the
- * defaults are inserted at the container's size, and a designer who changes the size changes each item too. When
- * #2660 lands, the `items` prop takes its `anyOf` / `minItems` fields.
+ * defaults are inserted at the container's size, and a designer who changes the size changes each item too. Since
+ * #2660 landed, the `items` prop carries its `anyOf` / `minItems` fields: BreadcrumbItem, at least two.
  *
  * SIZE ORDER (owner decisions Q347 A and Q359 B on #2752): medium first, the code default.
  *
@@ -51,7 +51,7 @@ export const breadcrumbs: ComponentDef = {
     'Shows where the current page sits in the site\'s hierarchy: a row of links to the pages above it, root first, ending in the current page as plain text. Each link is underlined and followed by a chevron or a slash, one mark for the whole trail. A long trail keeps its first step and its last two and collapses the middle behind one button that shows them in place. On a small screen the trail becomes one link up to the parent page. Breadcrumbs follow the site\'s structure, not the pages a person visited, and supplement the main navigation rather than replace it.',
 
   props: [
-    { name: 'items', type: 'slot', required: true, description: 'The steps, root first, each with a label and an href. The last is rendered as the current page: text with aria-current="page", its href ignored. At least two.' },
+    { name: 'items', type: 'slot', anyOf: ['breadcrumb-item'], minItems: 2, required: true, description: 'The steps, root first, each with a label and an href. The last is rendered as the current page: text with aria-current="page", its href ignored. At least two.' },
     { name: 'size', type: "enum: 'small' | 'medium'", values: ['small', 'medium'], default: 'medium', required: false, description: 'The body type size, 14 or 16px, passed to every item. Medium suits a trail beside 16px body copy; small, a quieter line above a page title.' },
     { name: 'separator', type: "enum: 'chevron' | 'slash'", values: ['chevron', 'slash'], default: 'chevron', required: false, description: 'The mark between steps, the same for every step: a chevron pointing toward the current page, or a slash.' },
     { name: 'maxItems', type: 'number', default: 5, required: false, description: 'Above this many items, the middle collapses behind one overflow button.' },

@@ -11,7 +11,8 @@ and FlushIconButton.Neutral carry their own, exposed (`nest-exposed`, `expose: [
 
 - **The items slot follows #2649's pattern, which had not merged.** PR #2660 was still a draft, so the trail uses the
   slot machinery already on main (`contentSlot`, `slotSettings`, `preferred`, from #2417 and #2646) and declares its
-  `items` prop as a plain `slot`. When #2660 lands, the prop takes its `anyOf: ['breadcrumb-item'], minItems: 2`.
+  `items` prop as a plain `slot`. #2660 has since landed, so the prop now carries `anyOf: ['breadcrumb-item'],
+  minItems: 2`.
 - **Size order is medium first.** The proposal listed small first; Q347 A and Q359 B (#2752, decided the same day)
   make every size axis lead with the code default, medium. Both defs join the medium-first lists in `test.ts`'s #2501
   arm, `lint-rung-names.ts` DEFAULT_FIRST and `lint-axis-values.ts`, which the Q359 sweep will absorb.
