@@ -272,7 +272,8 @@ on the row, with `Show bracket` off; every other row label spans its rows. Sets 
 **Interactive components (#2466, owner decision Q238 A).** Every set whose `state` axis holds `rest`, `hover` and
 `pressed` (the button family, icon buttons, tag, tab, and the checkbox, radio and switch controls) gets prototype
 reactions on its members: Rest → Hover on While hovering, and Rest and Hover → Pressed on While pressing, each
-`CHANGE_TO` the sibling matched on every other axis. Every other state has none. `src/reactions.ts` plans them from the
+`CHANGE_TO` the sibling matched on every other axis. Rest keeps its own press reaction for touch prototypes, which have
+no hover (owner decision Q344, #2733, reverting #2703's hover-only chain). Every other state has none. `src/reactions.ts` plans them from the
 member names; the executor writes them from that plan on every build and every in-place update, after every other
 write, because a reaction names its destination by node id and a member an update re-adds comes back under a new one
 (docs/18 §3). They are in the as-built record, so the dry run reads a reaction a designer removed or changed as a hand

@@ -192,10 +192,20 @@ export type PaddingDef = {
  * label ramp, the gap and the row height — not just the control), and only the axes that are purely the
  * control's become the consumer's. A wholesale flag could not draw that line.
  */
+/**
+ * `atState` — A HOST STATE THAT MOVES THE NESTED COORDINATE (#2317). `follow` passes a host axis through BY NAME,
+ * which needs the two vocabularies to agree; a field's seven states and a Button's six do not (`filled`, `read-only`
+ * and `focus-visible-filled` have no Button member). `atState` names, per HOST state value, the nested axis values
+ * that member takes instead: the Password field's `{ disabled: { state: 'disabled' } }` nests Button's disabled
+ * member at the field's disabled member and its `variant` (rest) everywhere else. Applied after `follow`. Each key
+ * must be a value of the host's projected state axis and each axis one `variant` names, and none may be
+ * `follow`ed or exposed (the host would drive one axis two ways). Projector-only: the plan already carries the
+ * resolved coordinate per member, so neither executor reads this field.
+ */
 export type NestingRelation =
   | { kind: 'swap' }
-  | { kind: 'nest-fixed'; variant: Record<string, string>; follow?: readonly string[] }
-  | { kind: 'nest-exposed'; variant: Record<string, string>; expose: readonly string[]; follow?: readonly string[] };
+  | { kind: 'nest-fixed'; variant: Record<string, string>; follow?: readonly string[]; atState?: Record<string, Record<string, string>> }
+  | { kind: 'nest-exposed'; variant: Record<string, string>; expose: readonly string[]; follow?: readonly string[]; atState?: Record<string, Record<string, string>> };
 
 export type PartDef = {
   kind: PartKind;
@@ -586,6 +596,42 @@ export type PartDef = {
    *  non-`box`, on a box with no `layout`, on a root whose `sizing.x` is not `'fill'` (a hugging root sizes
    *  to its content and a fixed one binds its width), and when not a positive number. */
   placementWidth?: number;
+  /** The HEIGHT twin of `placementWidth` (#2609): the literal px height a root that FILLS down (`sizing.y: 'fill'`)
+   *  is BUILT at. Authored only through `builtSize`, which writes it at the coordinates that name a height; refused
+   *  as `placementWidth` is — off the root, on a non-`box`, on a box with no `layout`, on a root whose `sizing.y`
+   *  is not `'fill'`, and when not a positive number. */
+  placementHeight?: number;
+  /** For the ROOT `box` of a def whose member SIZE is a literal per coordinate (#2609, Dialog: owner decisions Q303.5
+   *  and the proposal's widths): at each value of `axis`, the root reads as if it declared `sizing.x: 'fill'` with
+   *  that value's `placementWidth` (#1757), a number or one per `size` value, and where `heights` names the value,
+   *  `sizing.y: 'fill'` with that `placementHeight` and the `grow` part growing down the column so it takes the
+   *  height the rest does not. The member is built at that size, and an instance a designer stretches overrides it.
+   *  Dialog's center panel is 400/560/720 per size, and its bottom and full panels are a phone's width, the full one
+   *  a phone's height too. Literals, not tokens (owner decision Q303.5 A: "def-level widths, no new token"), so
+   *  `CONTRACT_VERSION` does not move. Any other value of the axis, and a structure-only plan, is the root as
+   *  authored.
+   *
+   *  Refused off the root, on a non-`box` or a `column`-less box, on a root that already sizes its width
+   *  (`placementWidth`, a fixed width) or uses `center`, with an `axis` that is not a projected variant axis, with a
+   *  `widths` key that is not a value of it or a per-size map whose keys are not exactly the `size` values, with a
+   *  `heights` key that is not a `widths` key, with a non-positive number, and with a `grow` that is not a child of
+   *  the root. */
+  builtSize?: {
+    axis: string;
+    widths: Record<string, number | Record<string, number>>;
+    heights?: Record<string, number>;
+    grow?: string;
+  };
+  /** For a `box`: the binding key of a SHADOW the part casts, projected as the Figma EFFECT STYLE of that step
+   *  (`shadow.xl` → `shadow/xl`, #2609). Dialog's panel binds `shadow.xl`. Elevation is an effect style and not a
+   *  variable (`FigmaNodePlan.effectStyle`), so a ref outside `shadow.` throws at projection. The light-mode style
+   *  is the one a member carries; in dark, the surface lift carries the elevation. Refused on every kind but `box`. */
+  elevation?: string;
+  /** For a `box`: the corner radius bound to the TOP two corners and the BOTTOM two apart (#2609, owner decision
+   *  Q303.11: a center dialog rounds all four, a bottom sheet its top two, a full-screen dialog none). Binding keys,
+   *  axis-templated like any other, so one part rounds per coordinate. Refused beside `radius` (one radius stated
+   *  twice) and on every kind but `box`. */
+  radiusEdges?: { top: string; bottom: string };
   /** For a `slot`: take the node OUT OF FLOW and PIN it to one inline edge of its parent row (#1667, the
    *  button's "Locked to edges"). Figma: `layoutPositioning: 'ABSOLUTE'`, `x` at `inset` px from that edge,
    *  vertically centered, and `constraints.horizontal` `MIN` (start) or `MAX` (end), so the node stays on its
@@ -930,6 +976,33 @@ export type PartDef = {
    *  would be the tempting choice — and it would silently make every nested set fixed-at-its-first-
    *  variant, which is the #656 error this field exists to stop. See `NestingRelation`. */
   nesting?: NestingRelation;
+  /** PER-INSTANCE OVERRIDES on the nested instance (#2645): values this part sets on the instance it nests, through
+   *  the nested component's OWN component properties. A nested Button reading "Cancel", a List's second item reading
+   *  "2.", a close button showing the `close` glyph. Without it a nested instance shows its component's defaults
+   *  until a designer types over them, in every member.
+   *
+   *  KEYED BY THE NESTED DEF'S PROP KEY, never by a Figma name: `texts` by a key of the nested def's
+   *  `figmaProperties.texts`, `swaps` by a key of its `figmaProperties.swaps`. The projection resolves each to the
+   *  Figma property name the nested set declares (`figmaName`, falling back to the key), so a renamed panel label
+   *  moves both ends at once. A key the nested def does not declare is refused at projection, where the registry is
+   *  known (this module has none to check against).
+   *
+   *  A SWAP NAMES AN ICON GLYPH (`close`), never a component: the projection resolves it to the icon set's
+   *  component (`icon/close`), so the def stays brand-invariant and the executors find the component in the file by
+   *  that name. The glyph must be one the icon set draws.
+   *
+   *  ONE VALUE ON EVERY MEMBER. An override is not per coordinate: the instance shows the same copy whatever the
+   *  host's axes, which is what every case so far needs. On `nest-fixed` and `nest-exposed` only, on an `absolute` or
+   *  `nest` part: those are the kinds that build an instance of a named component. Each executor writes it with
+   *  `setProperties` after the instance is created (or, on Update, in place), and reads it back. */
+  overrides?: { texts?: Record<string, string>; swaps?: Record<string, string> };
+  /** For a `nest` part: the nested instance's own TEXT property values, by the nested def's `figmaProperties.texts`
+   *  key (#2317). A component set has ONE default per text property, so a host that needs its nested instance to
+   *  say something else (the Password field's Button reading "Show", not "Button") states it here, and both
+   *  executors write it onto the instance as a property override (`setProperties`) once it is created. An
+   *  instance override, not a default: the nested set keeps its own, and a designer can still change it on the
+   *  host. Each key must be a text property the nested def declares (`test.ts`, against the registry). */
+  nestTexts?: Record<string, string>;
   /** For `absolute`: the binding key giving the size of the VISIBLE GAP between this part's inner edge
    *  and its parent's bounds. The focus ring's `focus.ring.offset` — at offset 2 an unbroken 2px sliver
    *  of background separates the ring from the control's own border (WCAG 1.4.11, target 3:1).
@@ -1284,8 +1357,13 @@ export type FigmaProperties = {
    *  each past the first behind a toggle. Declaring seven `showOptionN` props to satisfy the rule would put
    *  seven props on the public API that no code consumer should set. So a `figmaOnly` entry names no prop:
    *  its KEY must NOT be a declared prop (it would then be both), and it must carry a `figmaName`, because
-   *  with no prop there is no code name for the panel to fall back to. */
-  booleans?: Record<string, string | { part: string | readonly string[]; default?: boolean; figmaName?: string; figmaOnly?: boolean }>;
+   *  with no prop there is no code name for the panel to fall back to.
+   *
+   *  TOGETHER (`together: true`, #2609, owner decision Q303: Dialog's one `dividers` toggle). A list of parts that
+   *  build in the SAME member and show and hide as one choice: the rule above the body and the rule below it. Lifts
+   *  refusal (2) below (overlap) for that entry alone; every other refusal stands, and one part with the flag is
+   *  refused, since it states nothing. */
+  booleans?: Record<string, string | { part: string | readonly string[]; default?: boolean; figmaName?: string; figmaOnly?: boolean; together?: true }>;
   /** prop name → the `kind: 'text'` part it drives, plus the PLACEHOLDER the component ships with.
    *
    *  THE ODD SHAPE OUT, and deliberately so: `booleans` and `swaps` are bare part names because
@@ -1550,8 +1628,12 @@ export type ComponentDef = {
    *  `type.body.*.strong` for `bold`); the materializer repoints that role per brand and DROPS the axis
    *  when every intent coincides (a single-weight brand). Present only on a def whose weight varies —
    *  `field-label` is the first. `group` is a `TypeGroup`; `axis` must be a declared `variants` axis
-   *  whose values are the intents. Validated in `validateComponentDef`. */
-  weightIntent?: { axis: VariantAxis; group: TypeGroup };
+   *  whose values are the intents. Validated in `validateComponentDef`.
+   *
+   *  `intents` (#2580) maps axis values to intents for a def whose axis keeps its own value names: Link's
+   *  `weight` is `emphasis | default` (owner Q297.3) and binds the body tier (Q297.1), so `emphasis` reads as
+   *  `bold` and `default` as `regular`. Without it, the axis values must themselves be intents. */
+  weightIntent?: { axis: VariantAxis; group: TypeGroup; intents?: Record<string, WeightIntent> };
 
   /** THE SPACING THAT FOLLOWS DENSITY (the spacing model, 2026-09-29: "size is for size, space is for
    *  space"). The `tokens` keys whose `space.*` step is this def's COMFORTABLE padding or gap. Before
@@ -1881,9 +1963,15 @@ export const validateComponentDef = (
     if (!axisValues || !axisValues.length) {
       errors.push(`weightIntent.axis '${axis}' is not a declared \`variants\` axis — the intents to resolve are that axis's values`);
     } else {
-      for (const v of axisValues)
-        if (!(WEIGHT_INTENTS as readonly string[]).includes(v))
-          errors.push(`weightIntent: axis '${axis}' value '${v}' is not a weight intent [${WEIGHT_INTENTS.join(', ')}] — a value the projector has no resolution rule for would resolve to a bogus text style`);
+      const intents = def.weightIntent.intents;
+      for (const v of axisValues) {
+        const intent = intents ? intents[v] : v;
+        if (!(WEIGHT_INTENTS as readonly string[]).includes(intent as string))
+          errors.push(`weightIntent: axis '${axis}' value '${v}' ${intents ? `maps to '${intent}', which` : ''} is not a weight intent [${WEIGHT_INTENTS.join(', ')}] — a value the projector has no resolution rule for would resolve to a bogus text style`);
+      }
+      for (const k of Object.keys(intents ?? {}))
+        if (!axisValues.includes(k))
+          errors.push(`weightIntent.intents names '${k}', which is not a value of axis '${axis}' [${axisValues.join(', ')}]`);
       // Every type token entry keyed under an intent value must name the declared category, and there
       // must be at least one — a weightIntent that binds nothing under its axis is inert.
       const typeUnderAxis = Object.entries(def.tokens ?? {}).filter(
@@ -1967,7 +2055,7 @@ export const swapFigmaName = (prop: string, v: string | { part: string; figmaNam
 /** A `texts` entry's Figma panel name — its `figmaName` decoupling (#1380) or, absent one, the prop KEY. */
 export const textFigmaName = (prop: string, t: { figmaName?: string }): string => t.figmaName ?? prop;
 
-type BooleanEntry = string | { part: string | readonly string[]; default?: boolean; figmaName?: string; figmaOnly?: boolean };
+type BooleanEntry = string | { part: string | readonly string[]; default?: boolean; figmaName?: string; figmaOnly?: boolean; together?: true };
 /** The parts whose `visible` a `booleans` entry drives — bare string, `{ part }`, or `{ part: [...] }`
  *  (#1331; the list form is switch-control's `State icon`, one toggle over two glyphs). Always a list. */
 export const booleanPartsOf = (v: BooleanEntry): readonly string[] =>
@@ -2318,7 +2406,13 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
       Object.entries(parts[part]!.presentWhen ?? {}).every(([a, vs]) => c[a] !== undefined && vs.includes(c[a]));
     const gateText = (part: string): string =>
       parts[part]!.presentWhen ? Object.entries(parts[part]!.presentWhen!).map(([a, vs]) => `${a}=${vs.join('|')}`).join(', ') : 'every member (ungated)';
-    const overlap = kept.find((c) => targeted.filter((part) => builds(part, c)).length > 1);
+    // ONE AFFORDANCE OVER SEVERAL NODES (#2609, `together`): Dialog's `dividers` shows the rule above the body and
+    // the rule below it at once, which is one choice a designer makes, so the parts are declared to build together
+    // and the overlap is the point. Without the flag, overlap is refusal (2).
+    const together = typeof v === 'object' && v.together === true;
+    if (together && targeted.length < 2)
+      e.push(`figmaProperties.booleans.${prop} declares 'together' over ${targeted.length} part — 'together' says several parts show and hide as one; with one part it says nothing`);
+    const overlap = together ? undefined : kept.find((c) => targeted.filter((part) => builds(part, c)).length > 1);
     if (overlap) {
       const both = targeted.filter((part) => builds(part, overlap));
       e.push(`figmaProperties.booleans.${prop} → parts '${both.join("', '")}' both build at ${axes.map((a) => `${a}=${overlap[a]}`).join(', ') || 'every member'} (gated to ${both.map((part) => `${part}: ${gateText(part)}`).join('; ')}) — a boolean drives ONE node per member, so the presence gates of the parts it targets must be disjoint`);
@@ -3160,11 +3254,35 @@ export type State = (typeof STATES)[number];
  * failure. `leading | trailing` follow text direction, so in a right-to-left page the leading indicator sits at the right edge with
  * no mirroring. An AUTHORING axis. `lint-axis-values.ts` carries the two values as a `sole` set.
  */
+/*
+ * ── `placement`: THE TWENTY-SIXTH NAME, FOR THE DIALOG (owner decisions Q303.1 and Q303.12, 2026-10-14, #2609) ──
+ *
+ * `placement` (`center | bottom | full`) is WHERE a layer sits over the page it covers: centered in the viewport, attached
+ * to its bottom edge, or filling it. The owner named the axis and its values (one Dialog with a placement axis, no side).
+ * It clears this list's bar as a distinct kind of distinction with the nearest defeated: `alignment` is where a row of
+ * items sits along the bar that holds it, inside the layout; `direction` is where a veil's wash sits across an image, a
+ * distribution of paint; `orientation` is which way a rule runs; `width` is how much of its container a control takes.
+ * None says which edge of the viewport a layer attaches to, and with it which corners round and how big the panel is.
+ * Naming it `alignment` would put a layer's attachment and a row's alignment under one name, the #756 failure. An
+ * AUTHORING axis: a product picks the placement where it opens the dialog, per breakpoint in code, and nothing switches
+ * it on screen. `lint-axis-values.ts` carries the three values as a `sole` set.
+ *
+ * ── `footer`: THE TWENTY-SEVENTH NAME, FOR THE DIALOG'S ACTIONS (owner decision Q303.6 A, #2609) ──
+ *
+ * `footer` (`inline | stacked | none`) is HOW a panel lays out its closing actions: a row at the end edge, a column of
+ * full-width buttons, or no action row at all. The proposal named the axis and the owner chose its three values. It
+ * clears the bar with the nearest defeated: `orientation` is which way a rule runs, a line and not a group of controls;
+ * `alignment` places a row along its bar and never stacks it; `width` is a control's own extent. None says whether a
+ * part exists and how its children run, which is why the name is the part's own: the axis is the footer's layout, and
+ * `none` removes it. Naming it `orientation` would claim a missing footer is a direction. An AUTHORING axis.
+ * `lint-axis-values.ts` carries the three values as a `sole` set.
+ */
 export const VARIANT_AXES = [
   'size', 'intent', 'appearance', 'tone',
   'width', 'style', 'indicator', 'offset', 'selection',
   'name', 'surface', 'weight', 'value', 'intensity', 'ratio',
   'status', 'emphasis', 'shape', 'type', 'direction', 'inset', 'orientation', 'alignment', 'expansion', 'iconPosition',
+  'placement', 'footer',
 ] as const;
 
 /** One member of the closed axis-NAME vocabulary. Values are not constrained — see `VARIANT_AXES`. */
@@ -3801,9 +3919,15 @@ const anatomyErrors = (def: ComponentDef): string[] => {
   const bindingKeys = (p: PartDef): string[] =>
     [p.gap, p.height, p.minHeight, p.minWidthKey, p.radius, p.strokeWidth, p.size, p.width, p.type, p.inset, p.padding?.block, p.padding?.blockEnd, p.padding?.inlineLabel, p.padding?.inlineVisual, p.padding?.inlineEnd, p.paddingTop, p.flush?.key]
       .filter((k): k is string => typeof k === 'string');
+  // A TYPE KEY MAY ALSO NAME `{state}` (#2580): a standalone Link sets its label in the underlined style at hover,
+  // pressed and focus-visible and the plain one at rest, so its text style moves with the interaction state while
+  // its geometry does not. Type only: a state-keyed height or padding would move a box between one instance's before
+  // and after, which the footprint rule exists to refuse. Expanded over the def's declared states like an axis.
+  const keyAxes = (p: PartDef, key: string): Record<string, readonly string[]> =>
+    key === p.type ? { ...(def.variants ?? {}), state: statesOf(def) } : (def.variants ?? {});
   for (const n of names)
     for (const key of bindingKeys(parts[n]))
-      for (const expanded of expandKey(key, def.variants ?? {}))
+      for (const expanded of expandKey(key, keyAxes(parts[n], key)))
         if (!(expanded in (def.tokens ?? {})))
           e.push(`anatomy part '${n}': binding key '${expanded}'${expanded === key ? '' : ` (from '${key}')`} is not a slot in tokens`);
   // A placeholder naming no declared axis expands to NOTHING and would otherwise reach the loop above
@@ -3813,7 +3937,7 @@ const anatomyErrors = (def: ComponentDef): string[] => {
   for (const n of names)
     for (const key of bindingKeys(parts[n]))
       for (const ph of paintKeyPlaceholders(key))
-        if (!(ph in (def.variants ?? {})))
+        if (!(ph in keyAxes(parts[n], key)))
           e.push(`anatomy part '${n}': binding key '${key}' names placeholder '{${ph}}', which is not an axis in variants — the projector fills a binding key from the member's coordinate, so a placeholder no axis supplies can never be filled`);
   if (sizes.length === 0 && names.some((n) => bindingKeys(parts[n]).some((k) => k.includes('{size}'))))
     e.push("anatomy uses the {size} placeholder but variants.size is empty — nothing to expand over");
@@ -3836,7 +3960,7 @@ const anatomyErrors = (def: ComponentDef): string[] => {
     const q = parts[name];
     if (!q?.layout || depth > names.length) return false;
     if (q.minWidth !== undefined || q.layout.sizing.x === 'fixed') return true;
-    if (name === a.root) return q.placementWidth !== undefined;
+    if (name === a.root) return q.placementWidth !== undefined || q.builtSize !== undefined;
     const up = claimed.get(name);
     const uq = up ? parts[up] : undefined;
     if (!up || !uq?.layout) return false;
@@ -4182,6 +4306,53 @@ const anatomyErrors = (def: ComponentDef): string[] => {
       if (!(typeof p.placementWidth === 'number' && p.placementWidth > 0))
         e.push(`anatomy part '${n}' declares a 'placementWidth' that is not a positive number of px`);
     }
+    // ---- THE ROOT'S BUILD HEIGHT (`placementHeight`, #2609) — `placementWidth`'s rules, down the column ----
+    if (p.placementHeight !== undefined) {
+      if (n !== a.root)
+        e.push(`anatomy part '${n}' declares 'placementHeight' but is not the anatomy ROOT — only the root has no placement inside its own def to take a height from`);
+      if (p.kind !== 'box' || !p.layout)
+        e.push(`anatomy part '${n}' declares 'placementHeight' but is not a 'box' with a 'layout' — the height is written to the root's auto-layout frame, which no other kind has`);
+      else if (p.layout.sizing.y !== 'fill')
+        e.push(`anatomy part '${n}' declares 'placementHeight' but its sizing.y is '${p.layout.sizing.y}' — a build height stands in for a placement the root FILLS; a hugging root sizes to its content and a fixed one binds its height`);
+      if (!(typeof p.placementHeight === 'number' && p.placementHeight > 0))
+        e.push(`anatomy part '${n}' declares a 'placementHeight' that is not a positive number of px`);
+    }
+    // ---- THE MEMBER'S BUILT SIZE PER COORDINATE (`builtSize`, #2609) ----
+    if (p.builtSize !== undefined) {
+      const b = p.builtSize;
+      const axisValues = (variantsOf(def)[b.axis] ?? []).map(String);
+      const sizes = (variantsOf(def).size ?? []).map(String);
+      const positive = (x: unknown): boolean => typeof x === 'number' && x > 0;
+      if (n !== a.root) e.push(`anatomy part '${n}' declares 'builtSize' but is not the anatomy ROOT — the built size is the member's own`);
+      if (p.kind !== 'box' || !p.layout || p.layout.direction !== 'column')
+        e.push(`anatomy part '${n}' declares 'builtSize' but is not a 'box' with a 'column' layout — the size is written to the root's auto-layout frame, and a height grows its part down a column`);
+      else if (p.layout.sizing.x === 'fixed' || p.placementWidth !== undefined || p.center !== undefined)
+        e.push(`anatomy part '${n}' declares 'builtSize' but already sizes its width (sizing.x '${p.layout.sizing.x}'${p.placementWidth !== undefined ? ', a placementWidth' : ''}${p.center !== undefined ? ', center' : ''}) — the field supplies the width at every coordinate it names`);
+      if (!(def.figmaProperties?.variantAxes ?? []).includes(b.axis) || !axisValues.length)
+        e.push(`anatomy part '${n}' declares builtSize over axis '${b.axis}', which is not a projected variant axis — no member carries a value for it, so no member would take the size`);
+      for (const [value, w] of Object.entries(b.widths)) {
+        if (!axisValues.includes(value)) e.push(`anatomy part '${n}' declares a builtSize width for '${b.axis}=${value}', which is not a value of '${b.axis}' (${axisValues.join(', ')})`);
+        if (typeof w === 'number') { if (!positive(w)) e.push(`anatomy part '${n}' declares builtSize width ${String(w)} at '${b.axis}=${value}' — not a positive number of px`); }
+        else if (JSON.stringify(Object.keys(w).sort()) !== JSON.stringify([...sizes].sort()) || !Object.values(w).every(positive))
+          e.push(`anatomy part '${n}' declares builtSize widths per size at '${b.axis}=${value}' over [${Object.keys(w).join(', ')}] — a per-size map names exactly the def's sizes [${sizes.join(', ')}], each a positive number of px`);
+      }
+      for (const v of axisValues) if (!(v in b.widths)) e.push(`anatomy part '${n}' declares builtSize but names no width for '${b.axis}=${v}' — that member would be built at whatever its content measures`);
+      for (const [value, h] of Object.entries(b.heights ?? {})) {
+        if (!(value in b.widths)) e.push(`anatomy part '${n}' declares a builtSize height for '${b.axis}=${value}' with no width beside it`);
+        if (!positive(h)) e.push(`anatomy part '${n}' declares builtSize height ${String(h)} at '${b.axis}=${value}' — not a positive number of px`);
+      }
+      if (b.grow !== undefined && !(p.children ?? []).includes(b.grow))
+        e.push(`anatomy part '${n}' declares builtSize.grow '${b.grow}', which is not a child of the root — only a flow child of the column can take the height the rest does not`);
+      if (b.heights && Object.keys(b.heights).length && b.grow === undefined)
+        e.push(`anatomy part '${n}' declares builtSize heights with no 'grow' part — a member built taller than its content needs one part to take the rest, or the slack sits under the last child`);
+    }
+    // ---- THE SHADOW (`elevation`, #2609) and THE CORNERS APART (`radiusEdges`, #2609) ----
+    if (p.elevation !== undefined && p.kind !== 'box')
+      e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'elevation' — an effect style is read only by the box branch`);
+    if (p.radiusEdges !== undefined) {
+      if (p.kind !== 'box') e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'radiusEdges' — corners are read only by the box branch`);
+      if (p.radius !== undefined) e.push(`anatomy part '${n}' declares both 'radius' and 'radiusEdges' — the corners stated twice, and the projection would keep whichever wrote last`);
+    }
     // ---- THE RESERVED LINES (textarea's `rows`) ----
     // `lines` names a numeric PROP whose default is the line count the text box reserves. A TEXT-only
     // capability (a line is a property of a type style), and the prop must resolve to a positive integer —
@@ -4424,11 +4595,42 @@ const anatomyErrors = (def: ComponentDef): string[] => {
     // the fixed `variant` at every coordinate (#1298). The exposed axes are the CHILD's and are NOT checked
     // here (the host does not project them — that is the whole point); their correctness against the child
     // is a projection/round-trip question (`nestVariantMatch`, `test-roundtrip.ts`), not a schema one.
+    if ((p.nesting?.kind === 'nest-fixed' || p.nesting?.kind === 'nest-exposed') && p.nesting.atState) {
+      const stateValues = def.figmaProperties?.stateAxis?.values ?? [];
+      const nesting = p.nesting;
+      for (const [hostState, coord] of Object.entries(nesting.atState ?? {})) {
+        if (!stateValues.includes(hostState))
+          e.push(`anatomy part '${n}' declares nesting 'atState' for '${hostState}', which is not a value of this def's projected state axis [${stateValues.join(', ') || 'none'}] — no member sits at it, so the mapping would never fire`);
+        for (const axis of Object.keys(coord)) {
+          if (!(axis in nesting.variant))
+            e.push(`anatomy part '${n}' declares nesting 'atState' on '${axis}', which its 'variant' does not name — 'atState' moves an axis the coordinate already accounts for, so the moved coordinate still names every axis of one member`);
+          if (nesting.follow?.includes(axis) || (nesting.kind === 'nest-exposed' && nesting.expose.includes(axis)))
+            e.push(`anatomy part '${n}' declares nesting 'atState' on '${axis}', which it also follows or exposes — one axis is driven one way`);
+        }
+      }
+    }
+    if (p.nestTexts && p.kind !== 'nest')
+      e.push(`anatomy part '${n}' declares 'nestTexts' but is kind '${p.kind}' — only an in-flow nested instance carries text overrides`);
     if ((p.nesting?.kind === 'nest-fixed' || p.nesting?.kind === 'nest-exposed') && p.nesting.follow) {
       const projected = [...(def.figmaProperties?.variantAxes ?? []), ...(def.figmaProperties?.stateAxis ? ['state'] : [])];
       for (const axis of p.nesting.follow)
         if (!projected.includes(axis))
           e.push(`anatomy part '${n}' declares nesting 'follow' on '${axis}', which is not an axis this def PROJECTS — the projected coordinate is [${projected.join(', ') || 'none'}] (figmaProperties.variantAxes, plus 'state' when a stateAxis is declared). A followed axis the host member does not carry never passes a value through: it falls back to the fixed 'variant' at every coordinate, which resolves a real member of the wrong coordinate rather than failing (#1298)`);
+    }
+    // PER-INSTANCE OVERRIDES (#2645) ride an instance of a NAMED component, so only a part that builds one may carry
+    // them: an `absolute` or `nest` that is `nest-fixed` or `nest-exposed`. Each map, when present, names at least one
+    // property, and every value is a non-empty string — an empty override would set the nested text to nothing, or
+    // name no glyph. That each key is the nested def's and each glyph is drawn is checked at projection (registry).
+    if (p.overrides !== undefined) {
+      const builds = (p.kind === 'absolute' || p.kind === 'nest') && (p.nesting?.kind === 'nest-fixed' || p.nesting?.kind === 'nest-exposed');
+      if (!builds)
+        e.push(`anatomy part '${n}' declares 'overrides' but is kind '${p.kind}'${p.nesting ? ` with nesting '${p.nesting.kind}'` : ''} — an override is set on an instance of a named component, so only an 'absolute' or 'nest' part that is 'nest-fixed' or 'nest-exposed' carries one (#2645)`);
+      const entries = [...Object.entries(p.overrides.texts ?? {}), ...Object.entries(p.overrides.swaps ?? {})];
+      if (!entries.length || (p.overrides.texts && !Object.keys(p.overrides.texts).length) || (p.overrides.swaps && !Object.keys(p.overrides.swaps).length))
+        e.push(`anatomy part '${n}' declares 'overrides' with an empty map — name at least one text or swap property, or drop the field (#2645)`);
+      for (const [k, v] of entries)
+        if (typeof v !== 'string' || !v.trim())
+          e.push(`anatomy part '${n}' overrides '${k}' with an empty value — a text override sets the nested text and a swap names a glyph; neither can be empty (#2645)`);
     }
     // An `absolute` part cannot be a `swap`: it materializes as an INSTANCE of the component `nests`
     // names, and a swap is the caller nominating a target per file. The two are different

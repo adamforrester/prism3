@@ -93,7 +93,7 @@ Titles are short, parallel noun phrases or questions, in sentence case, with no 
 
 - **Composes with:** `_accordion-indicator`, `focus-ring`, `divider`
 - **Alternative to:** `tabs`
-- **Planned:** `tree`, `link`
+- **Planned:** `tree`
 - **Replaces:**
   - a show/hide div with no aria-expanded or heading
   - a tablist used for vertical sections that open together

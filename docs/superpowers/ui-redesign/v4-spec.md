@@ -2,7 +2,7 @@
 
 This is the brief for the v4 mockup: Concept C revised with the owner's decisions (`decisions-2026-09-30.md`) and the fixes from `phase1-audit.md`.
 
-- **The deliverable:** `concept-v4.html` (self-contained) and its note `concept-v4.md`.
+- **The deliverable:** `concept-v4.html` (self-contained; built by `build-v4.mjs`, not committed, see `concept-v4.md`) and its note `concept-v4.md`.
 - **What it is:** a design direction for owner review, **not** product code.
 - **Where this spec is silent:** keep Concept C's choices.
 

@@ -312,6 +312,22 @@ const PROVENANCE_EXCEPTIONS: Record<string, string> = {
     'status `error` maps to the `danger` border role — the filled coordinate (owner decision, 2026-09-25), bound so a field holding an invalid value keeps the danger boundary',
   'text-field|error.border.focus-visible-filled':
     'status `error` maps to the `danger` border role — the focused coordinate that holds a value (#2318, owner Q157), bound so an invalid value keeps the danger boundary while the field is focused (the ring carries the focus signal on top)',
+  // `password-field` (#2317) binds text-field's token block exactly, through the shared field factory, so it carries
+  // the same `error` → `danger` mapping at the same seven coordinates, for the same reason.
+  'password-field|error.border.rest':
+    "status `error` maps to the `danger` border role — text-field's rest coordinate, through the shared field factory",
+  'password-field|error.border.hover':
+    "status `error` maps to the `danger` border role — text-field's hover coordinate, through the shared field factory",
+  'password-field|error.border.focus-visible':
+    "status `error` maps to the `danger` border role — text-field's focus-visible coordinate, through the shared field factory",
+  'password-field|error.border.read-only':
+    "status `error` maps to the `danger` border role — text-field's read-only coordinate, through the shared field factory",
+  'password-field|error.border.empty':
+    "status `error` maps to the `danger` border role — text-field's empty coordinate, through the shared field factory",
+  'password-field|error.border.filled':
+    "status `error` maps to the `danger` border role — text-field's filled coordinate, through the shared field factory",
+  'password-field|error.border.focus-visible-filled':
+    "status `error` maps to the `danger` border role — text-field's focused filled coordinate, through the shared field factory",
   // `textarea` took text-field's status axis and its border keys verbatim (#1623 sign-off, C1/TA-4), so it
   // carries the same `error` → `danger` mapping at the same five coordinates, and for the same reason.
   'textarea|error.border.rest':
@@ -447,6 +463,8 @@ const NON_FAMILY_AXES: Record<string, string> = {
     "the tier emits no `color.checked.*` / `color.unchecked.*` and must not: a checked control is not a different colour FAMILY, it is the same interactive family in a different ROLE — `color.interactive.primary.*` for a filled control against `color.field.*` for an empty field. So arm 1's premise (an axis value's paint comes from that value's family) has nothing to be true of here. Admitted by #910 for `checkbox`, and inherited by every selection control after it.",
   appearance:
     "filled, outline and text are render strategies, not color families: all three paint from the ONE interactive family — filled paints it as `.fill`/`.on-fill`, outline as `.border`/`.text`/`.overlay`, text as `.overlay`/`.text`. The appearance is expressed by WHICH slot a key binds, never by an appearance segment in the token, so arm 1's premise (an axis value's paint comes from that value's family) has nothing to be true of here. Newly VISIBLE to arm 1 only since #1223: while `intent` was an axis the paint keys led with `{intent}` and appearance sat in the non-lead position the rule never reads; #1223 made intent the component identity, so `{appearance}` now leads and the same non-family shape as `selection` is exposed. The slot-crossing hole this names is the #916 question, shared with `selection`. CONTINGENT, NOT STRUCTURAL, and this is the difference from `selection` (#1227): `color.checked.*` cannot exist, but `color.text.*` is a live top-level family (`color.text.primary`, bound by ~7 defs), so the value `text` DOES name a family — just not the one appearance=text paints from. What keeps that from being swallowed is the family tripwire in `provenanceFailures`, not this reason.",
+  shape:
+    "flush and round are two geometries of one control, not color families (#2457, owner Q287 A): both paint from the ONE neutral interactive family (`color.interactive.neutral.icon.*` for the glyph, `.overlay.*` for round's wash) plus round's decorative edge, `color.border.secondary`. The shape is expressed by WHICH slots a key binds (flush binds the glyph only; round adds `border` and `overlay`), never by a shape segment in the token, so arm 1's premise has nothing to be true of here, as for `appearance`. STRUCTURAL, like `selection`: the tier emits no `color.flush.*` or `color.round.*`, and the family tripwire still fails any binding that reaches one.",
 };
 
 type Tally = { members: number; assignments: number; sha256: string };

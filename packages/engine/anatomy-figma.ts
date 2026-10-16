@@ -242,6 +242,23 @@ export type FigmaNodePlan = {
    *  of that was measured (≈19–35 B on the indivisible unit, far from any ceiling), which is why naming the
    *  axes is affordable rather than a budget the payload has to fight. */
   nestExpose?: readonly string[];
+  /** For a `NESTED_INSTANCE`: PER-INSTANCE OVERRIDES (#2645), from `PartDef.overrides`, in the def's order (texts,
+   *  then swaps). Present ONLY on a part that declares them, so every other plan is byte-identical.
+   *
+   *  `property` is the Figma property NAME the nested set declares, WITHOUT its `#id` suffix: the suffix is the
+   *  file's, minted by `addComponentProperty`, so the plan cannot know it. Each executor finds the one key on the
+   *  instance's `componentProperties` whose name before `#` is this and whose type is `type`, and writes
+   *  `setProperties({ [key]: value })`. For `INSTANCE_SWAP` the value is a COMPONENT NAME (`icon/close`), resolved to
+   *  the component's node id in the file, which is the value Figma's swap property holds; for `TEXT` it is the text.
+   *
+   *  Names, not ids, for the reason `bound` holds names: the plan is brand-invariant. */
+  nestOverrides?: readonly NestOverride[];
+  /** For a `NESTED_INSTANCE` whose part declares `nestTexts` (#2317): the nested instance's own TEXT property
+   *  values, by property name (the nested def's `figmaProperties.texts` key, which is the Figma property's name
+   *  before its `#id` suffix). Both executors write each one onto the instance with `setProperties` once it exists,
+   *  so the Password field's nested Button reads "Show" rather than its set's "Button". An instance override, so
+   *  the nested set's own default is untouched. Present only when declared, so every other plan is byte-identical. */
+  nestTexts?: Record<string, string>;
   /** For a `NESTED_INSTANCE`: taken out of the auto-layout flow, sized to its parent's bounds grown by
    *  the `inset` variable's value on every side.
    *
@@ -426,6 +443,11 @@ export type FigmaNodePlan = {
    *  overrides the width. Carried ONLY on such a root (`PartDef.placementWidth`), so every other plan is
    *  byte-identical; the paste twin splices its line in only for a payload that carries it. */
   placementWidth?: number;
+  /** For a ROOT `box` built at a literal HEIGHT too (#2609, Dialog's `full` placement, `PartDef.builtSize`): the
+   *  height twin of `placementWidth`. The root's y mode projects FIXED beside it and each executor resizes the
+   *  frame to it in the same write as the width, before the layout is written. Carried ONLY on such a root, so
+   *  every other plan is byte-identical; the paste twin splices its line in only for a payload that carries it. */
+  placementHeight?: number;
   /** For a `box`: inline padding written as LITERAL px, replacing that side's binding (#1667). The side a
    *  PINNED child (below) sits on: the pinned node is out of flow, so the padding reserves its room — edge
    *  inset + icon + gap, a sum Figma cannot bind to one variable. Keyed by Figma's own property names so the
@@ -687,6 +709,14 @@ export const figmaVarName = (ref: string): string => ref.replace(/\./g, '/');
  *  collection. Stating it here is what stops the two mappings being assumed identical. */
 export const figmaTextStyleName = (ref: string): string => ref.replace(/^type\./, '').replace(/\./g, '/');
 
+/** Shadow ref → the emitted Figma EFFECT STYLE name (#2609): `shadow.xl` → `shadow/xl`, the LIGHT-mode style
+ *  `emit-figma-styles.ts` writes for that step. A ref outside `shadow.` has no effect style, so it throws here
+ *  rather than naming a style no file holds. */
+export const figmaEffectStyleName = (ref: string): string => {
+  if (!/^shadow\.[a-z0-9-]+$/.test(ref)) throw new Error(`elevation binds '${ref}', which is not a shadow step — only a 'shadow.<step>' ref has an effect style`);
+  return ref.replace(/\./g, '/');
+};
+
 /**
  * A `vector` part's glyph name → its path data (#864).
  *
@@ -837,6 +867,35 @@ export const iconComponentName = (glyph: string): string => `${ICON_DEF_ID}/${gl
  *  `mark` and `dash` are each a frame holding one instance named this. */
 export const ICON_INSET_CHILD = 'glyph';
 
+/** One per-instance override on a nested instance (#2645) — see `FigmaNodePlan.nestOverrides`. */
+export type NestOverride = { property: string; type: 'TEXT' | 'INSTANCE_SWAP'; value: string };
+
+/**
+ * A PART'S OVERRIDES, RESOLVED against the nested def (#2645): each `texts` key to the Figma name of the nested def's
+ * TEXT property, each `swaps` key to the Figma name of its INSTANCE_SWAP property with the glyph resolved to the icon
+ * set's component. THROWS on a key the nested def does not declare and on a glyph the icon set does not draw, so a
+ * misspelled override fails the projection rather than building an instance that silently keeps its default.
+ */
+export const nestOverridesOf = (defId: string, partName: string, p: PartDef): NestOverride[] | undefined => {
+  if (!p.overrides) return undefined;
+  const nested = componentDefs.find((d) => d.id === p.nests);
+  const fp = nested?.figmaProperties;
+  if (!nested || !fp) throw new Error(`${defId}: anatomy part '${partName}' declares overrides on '${String(p.nests)}', which is no projected def — an override is set through the nested component's own properties (#2645)`);
+  const out: NestOverride[] = [];
+  for (const [key, value] of Object.entries(p.overrides.texts ?? {})) {
+    const t = fp.texts?.[key];
+    if (!t) throw new Error(`${defId}: anatomy part '${partName}' overrides text '${key}', which '${nested.id}' does not declare — its texts are [${Object.keys(fp.texts ?? {}).join(', ') || 'none'}] (#2645)`);
+    out.push({ property: textFigmaName(key, t), type: 'TEXT', value });
+  }
+  for (const [key, glyph] of Object.entries(p.overrides.swaps ?? {})) {
+    const v = fp.swaps?.[key];
+    if (!v) throw new Error(`${defId}: anatomy part '${partName}' overrides swap '${key}', which '${nested.id}' does not declare — its swaps are [${Object.keys(fp.swaps ?? {}).join(', ') || 'none'}] (#2645)`);
+    if (!(ICON_NAMES as readonly string[]).includes(glyph)) throw new Error(`${defId}: anatomy part '${partName}' swaps '${key}' to '${glyph}', which is no glyph the icon set draws (#2645)`);
+    out.push({ property: swapFigmaName(key, v), type: 'INSTANCE_SWAP', value: iconComponentName(glyph) });
+  }
+  return out;
+};
+
 /**
  * The layer opacity each `<path>` of a glyph document declares, in document order — 1 where it declares none.
  * Both executors write it onto the imported VECTORs in the same order (#1670: the spinner's track at 0.2), so
@@ -966,7 +1025,8 @@ export const fillsAxis = (def: ComponentDef, name: string, axis: Axis): boolean 
   // A ROOT BUILT AT ITS PLACEMENT WIDTH (#1757) is bounded across: it is FIXED at that width until a host's
   // stretch overrides it (#2292) — the validator's `boundsX` reads it the same way.
   const bounded = pp.layout.sizing[axis] === 'fixed' || (axis === 'x' && pp.minWidth !== undefined)
-    || (axis === 'x' && parent === a.root && pp.placementWidth !== undefined) || fillsAxis(def, parent!, axis);
+    || (axis === 'x' && parent === a.root && pp.placementWidth !== undefined)
+    || (axis === 'y' && parent === a.root && pp.placementHeight !== undefined) || fillsAxis(def, parent!, axis);
   if (bounded) return true;
   return !onMain && !floored(def, name, axis) && (pp.children ?? []).some((s) => s !== name && floored(def, s, axis));
 };
@@ -1012,12 +1072,37 @@ const centeredAt = (def: ComponentDef, slots: PlanSlots): ComponentDef => {
   };
 };
 
+/** THE MEMBER'S BUILT SIZE (#2609, `PartDef.builtSize`): at the root's `builtSize.axis` value, the root reads as if
+ *  it declared `sizing.x: 'fill'` and the `placementWidth` that value names (a number, or one per `size`), and, where
+ *  the value names a height too, `sizing.y: 'fill'` with that `placementHeight` and its `grow` part growing down the
+ *  column. A coordinate that gives no value for the axis (a structure-only plan) returns the def itself. Applied
+ *  before anything reads the anatomy, as `centeredAt` is, so every path below sees one consistent root. */
+const builtSizeAt = (def: ComponentDef, size: string | undefined, slots: PlanSlots): ComponentDef => {
+  const a = def.anatomy;
+  const root = a?.parts[a.root];
+  const b = root?.kind === 'box' ? root.builtSize : undefined;
+  const value = b ? slots[b.axis] : undefined;
+  if (!a || !root || !b || !root.layout || typeof value !== 'string' || !(value in b.widths)) return def;
+  const w = b.widths[value];
+  const width = typeof w === 'number' ? w : size !== undefined ? w[size] : undefined;
+  const height = b.heights?.[value];
+  const parts = { ...a.parts };
+  parts[a.root] = {
+    ...root,
+    layout: { ...root.layout, sizing: { x: width !== undefined ? 'fill' : root.layout.sizing.x, y: height !== undefined ? 'fill' : root.layout.sizing.y } },
+    ...(width !== undefined ? { placementWidth: width } : {}),
+    ...(height !== undefined ? { placementHeight: height } : {}),
+  };
+  if (height !== undefined && b.grow && parts[b.grow]) parts[b.grow] = { ...parts[b.grow], grow: true };
+  return { ...def, anatomy: { ...a, parts } };
+};
+
 export const figmaAnatomyPlan = (
   authored: ComponentDef,
   size: string | undefined,
   slots: PlanSlots = {},
 ): AnatomyPlan => {
-  const def = centeredAt(authored, slots);
+  const def = builtSizeAt(centeredAt(authored, slots), size, slots);
   const a = def.anatomy;
   if (!a) throw new Error(`${def.id}: no anatomy block to project`);
   // A DEF WITH ONE TYPE SCALE HAS NO SIZE COORDINATE (#795), and `undefined` is how it says so.
@@ -1143,12 +1228,16 @@ export const figmaAnatomyPlan = (
   // `axisValue` is deliberately NOT widened to cover this: `size` is a key of `def.variants`, so folding
   // it in there would put `size` into `coord` and retire the "structure-only plan ⇒ empty coord"
   // invariant that `lint-paint` depends on (see `coord`'s own note).
-  const nestVariantOf = (nesting: { variant: Record<string, string>; follow?: readonly string[] }): Record<string, string> => {
+  const nestVariantOf = (nesting: { variant: Record<string, string>; follow?: readonly string[]; atState?: Record<string, Record<string, string>> }): Record<string, string> => {
     const out: Record<string, string> = { ...nesting.variant };
     for (const axis of nesting.follow ?? []) {
       const v = paintCoord[axis];
       if (v !== undefined) out[axis] = v;
     }
+    // A HOST STATE THAT MOVES THE NESTED COORDINATE (#2317, `NestingRelation.atState`): after `follow`, so the
+    // mapped axes win at the states that name them, and nowhere else.
+    const atState = paintCoord.state !== undefined ? nesting.atState?.[paintCoord.state] : undefined;
+    if (atState) Object.assign(out, atState);
     return out;
   };
 
@@ -1189,6 +1278,9 @@ export const figmaAnatomyPlan = (
   // the prop unset. It reaches binding keys only — paints and the member's coordinate stay structure-only — and only
   // an axis the coordinate does not give at all, so a real member, which gives every axis, never takes it.
   const propDefault = (axis: string): string | undefined => {
+    // A type key naming `{state}` (#2580) resolves a structure-only plan, which has no state, at the def's first
+    // declared state: the resting look, which is what an instance shows before anyone points at it.
+    if (axis === 'state') return statesOf(def)[0];
     const d = def.props?.find((p) => p.name === axis)?.default;
     return typeof d === 'string' && (def.variants as Record<string, readonly string[]> | undefined)?.[axis]?.includes(d) ? d : undefined;
   };
@@ -1552,7 +1644,8 @@ export const figmaAnatomyPlan = (
     const fillAxes = (['x', 'y'] as const).filter((a) => fillsAxis(def, name, a));
     // A ROOT BUILT AT ITS PLACEMENT WIDTH (#1757) is FIXED across as well — see `placementWidth`.
     const ownMode = (ax: Axis): 'AUTO' | 'FIXED' =>
-      (p.layout?.sizing[ax] === 'fixed' || fillAxes.includes(ax) || (ax === 'x' && name === a.root && p.placementWidth !== undefined) ? 'FIXED' : 'AUTO');
+      (p.layout?.sizing[ax] === 'fixed' || fillAxes.includes(ax) || (ax === 'x' && name === a.root && p.placementWidth !== undefined)
+        || (ax === 'y' && name === a.root && p.placementHeight !== undefined) ? 'FIXED' : 'AUTO');
     const bound: Record<string, string> = {};
     const paddingPx: NonNullable<FigmaNodePlan['paddingPx']> = {};
     // THE ASPECT-RATIO LOCK for a box (#1316), as the numeric proportion parsed from THIS member's own
@@ -1602,6 +1695,11 @@ export const figmaAnatomyPlan = (
       // needed here — but the reason it is safe is that call, not the arithmetic.
       if (p.width) bound.width = varOf(p.width);
       if (p.radius) for (const c of ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius']) bound[c] = varOf(p.radius);
+      // THE TOP AND BOTTOM CORNERS APART (#2609, `PartDef.radiusEdges`): a bottom sheet rounds its top two only.
+      if (p.radiusEdges) {
+        for (const c of ['topLeftRadius', 'topRightRadius']) bound[c] = varOf(p.radiusEdges.top);
+        for (const c of ['bottomLeftRadius', 'bottomRightRadius']) bound[c] = varOf(p.radiusEdges.bottom);
+      }
       // THE PART'S OWN STROKE (#1266, #740's field). One property, and the only one Figma offers: a
       // stroke's color is a bound PAINT (`paintSlots`) and its style is a `dashPattern`, so `strokeWeight`
       // is the whole of what a `strokeWidth` key can reach. Both executors' `if (!node.strokeWeight) … = 1`
@@ -1884,6 +1982,10 @@ export const figmaAnatomyPlan = (
       ...(p.kind === 'box' && p.clipsContent ? { clipsContent: true as const } : {}),
       // THE ROOT'S BUILD WIDTH (#1757), carried ONLY on a root that declares it — see `placementWidth`.
       ...(p.kind === 'box' && name === a.root && p.placementWidth !== undefined ? { placementWidth: p.placementWidth } : {}),
+      // ITS HEIGHT TWIN (#2609), carried ONLY on a root built at a height too — see `PartDef.builtSize`.
+      ...(p.kind === 'box' && name === a.root && p.placementHeight !== undefined ? { placementHeight: p.placementHeight } : {}),
+      // THE ELEVATION (#2609), an effect style named for the shadow token the part binds — see `PartDef.elevation`.
+      ...(p.kind === 'box' && p.elevation ? { effectStyle: figmaEffectStyleName(resolveKey(p.elevation, 'elevation')) } : {}),
       // The auto-layout width floor (#1343a, #1345), carried ONLY when the def sets it so every other
       // box's plan is byte-identical — a literal px the def states, not a bound token (`PartDef.minWidth`).
       // A FLUSH box (#2350) has none: it hugs its content, so a floor wider than the label never leaves slack
@@ -1965,6 +2067,9 @@ export const figmaAnatomyPlan = (
       // The exposed child axes (#1330), ONLY for `nest-exposed`, so every fixed-nest plan is byte-identical.
       // These surface as Figma exposed nested-instance properties; the executors mark the instance exposed.
       ...((p.kind === 'absolute' || p.kind === 'nest') && p.nesting?.kind === 'nest-exposed' ? { nestExpose: p.nesting.expose } : {}),
+      // The per-instance overrides (#2645), ONLY on a part that declares them, so every other plan is byte-identical.
+      ...((p.kind === 'absolute' || p.kind === 'nest') && p.overrides ? { nestOverrides: nestOverridesOf(def.id, name, p) } : {}),
+      ...(p.kind === 'nest' && p.nestTexts ? { nestTexts: p.nestTexts } : {}),
       ...(p.kind === 'absolute' && p.inset ? { absoluteInset: varOf(p.inset) } : {}),
       // The stroke to compensate for (#801), projected only alongside an inset — on its own it has
       // nothing to correct, and the schema rejects that shape before the projection sees it.
@@ -2492,7 +2597,8 @@ export const applyWeightIntent = (def: ComponentDef, avail: WeightAvailability):
   const axisValues = def.variants?.[wi.axis] ?? [];
   if (!axisValues.length)
     throw new Error(`${def.id}: weightIntent.axis '${wi.axis}' names no values in \`variants\` — the intents to resolve are the axis values`);
-  const roleFor = new Map(axisValues.map((v) => [v, resolveWeightIntent(v, groupAvail)] as const));
+  // `intents` (#2580) names the intent for an axis that keeps its own value names (Link: emphasis → bold).
+  const roleFor = new Map(axisValues.map((v) => [v, resolveWeightIntent(wi.intents ? wi.intents[v] : v, groupAvail)] as const));
 
   // A type token entry keyed under this axis: its ref is a `type.<group>.<variant>.<role>` and the key
   // carries one of the axis values. The repoint replaces the ref's role tail with the brand's role.
@@ -2503,7 +2609,9 @@ export const applyWeightIntent = (def: ComponentDef, avail: WeightAvailability):
     const segs = ref.split('.');
     if (segs[1] !== wi.group)
       throw new Error(`${def.id}: weight-intent type ref '${ref}' is in category '${segs[1]}' but weightIntent.group is '${wi.group}' — one weight axis cannot span two categories' availabilities`);
-    segs[segs.length - 1] = roleFor.get(intent)!;
+    // The underlined twin keeps its `-link` suffix (#2580): `strong-link` → `emphasis-link`, not `emphasis`.
+    const link = segs[segs.length - 1].endsWith('-link') ? '-link' : '';
+    segs[segs.length - 1] = roleFor.get(intent)! + link;
     return segs.join('.');
   };
 
@@ -3317,6 +3425,66 @@ export const resolveNestMember = <C extends { name?: string; type?: string; crea
 export const resolveNestMemberSrc = (): string => resolveNestMember.toString();
 
 /**
+ * WRITE A NESTED INSTANCE'S OVERRIDES, AND READ EACH ONE BACK (#2645). Both executors call this on the instance
+ * they just created or, on Update, kept in place, so the two cannot drift in what they write or how they say it.
+ *
+ * THE KEY IS THE FILE'S. Figma suffixes a TEXT or INSTANCE_SWAP property with `#` and an id `addComponentProperty`
+ * minted (`number#12:3`), and `setProperties` takes only that full key. So each override finds, on the instance's own
+ * `componentProperties`, the ONE key whose name before `#` is the plan's `property` and whose type is the plan's
+ * `type`. None, or more than one, is a miss and nothing is written: guessing between two same-named properties is
+ * creation order deciding (#656).
+ *
+ * A SWAP'S VALUE IS A NODE ID. The plan names the component (`icon/close`); `idOf` resolves it in the file, and an
+ * unresolvable name is a miss. A value the instance already holds is not written again, so a second run, or an
+ * Update over an instance that already shows it, writes nothing.
+ *
+ * ONE `setProperties` PER OVERRIDE and each read back, for the two reasons this file reads everything back: a refusal
+ * costs one override rather than the member, and a write the host accepts is not proof it kept it.
+ *
+ * Returns the misses WITHOUT the part name, which each caller prefixes. SHIPPED AS SOURCE to the paste payload
+ * (`applyNestOverridesSrc`): it closes over nothing, and uses no template literal, no `?.`, no `??`.
+ */
+export const applyNestOverrides = (
+  inst: { componentProperties?: unknown; setProperties?: (props: Record<string, string>) => void },
+  overrides: readonly NestOverride[],
+  idOf: (component: string) => string | null,
+): string[] => {
+  const out: string[] = [];
+  for (const o of overrides) {
+    // Read inline, never through a named helper: the bundler wraps a named inner function in a `__name` call, which
+    // does not exist where this source is shipped.
+    let props: Record<string, { type?: string; value?: unknown }> = {};
+    try { props = (inst.componentProperties || {}) as Record<string, { type?: string; value?: unknown }>; } catch (e) { props = {}; }
+    const keys = Object.keys(props).filter((k) => k.split('#')[0] === o.property && props[k].type === o.type);
+    const head = '.nestOverrides -> ' + o.property + ' ';
+    if (keys.length !== 1) {
+      out.push(head + '(' + (keys.length ? keys.length + ' ' + o.type + ' properties' : 'no ' + o.type + ' property') + ' of that name on the nested instance; it keeps its default)');
+      continue;
+    }
+    let want = o.value;
+    if (o.type === 'INSTANCE_SWAP') {
+      const id = idOf(o.value);
+      if (!id) { out.push(head + '(' + o.value + ' is not a component in this file; the nested instance keeps its default)'); continue; }
+      want = id;
+    }
+    if (props[keys[0]].value === want) continue;
+    const w: Record<string, string> = {};
+    w[keys[0]] = want;
+    try { (inst.setProperties as (props: Record<string, string>) => void)(w); } catch (e) {
+      out.push(head + 'REFUSED (' + (e && (e as Error).message ? (e as Error).message : String(e)) + ')');
+      continue;
+    }
+    let got: { value?: unknown } | undefined;
+    try { got = ((inst.componentProperties || {}) as Record<string, { value?: unknown }>)[keys[0]]; } catch (e) { got = undefined; }
+    if (!got || got.value !== want) out.push(head + 'DISCARDED (set ' + JSON.stringify(want) + ', reads ' + JSON.stringify(got ? got.value : null) + ')');
+  }
+  return out;
+};
+
+/** `applyNestOverrides` as source, for the paste payload. See `nestVariantMissAdviceSrc` for why. */
+export const applyNestOverridesSrc = (): string => applyNestOverrides.toString();
+
+/**
  * WHAT A MISSING SWAP TARGET ACTUALLY IS, in the message the designer reads (#1212 residue, #1280 PR-C,
  * #1288).
  *
@@ -3591,6 +3759,15 @@ const PAYLOAD_MIN_LINES = `    if(c.minLines){
     }`;
 const hasMinLines = (n: FigmaNodePlan): boolean => n.minLines !== undefined || n.children.some(hasMinLines);
 /**
+ * THE PER-INSTANCE OVERRIDES (#2645), spliced in ONLY for a payload whose plans carry `nestOverrides` — the
+ * `MIN_LINES_SLOT` budget decision again. Two splices: the shared writer's source once at the top of the build, and
+ * its call in the nested-instance branch. Lockstep with the plugin executor, which calls the same function.
+ */
+const NEST_OVERRIDES_DEF_SLOT = '/*__NEST_OVERRIDES_DEF__*/';
+const NEST_OVERRIDES_SLOT = '/*__NEST_OVERRIDES__*/';
+const PAYLOAD_NEST_OVERRIDES = `if(node&&n.nestOverrides)for(const m of applyNestOverrides(node,n.nestOverrides,x=>{const c=compByName.get(x);return c?c.id:null;}))misses.push(n.name+m);`;
+const hasNestOverrides = (n: FigmaNodePlan): boolean => n.nestOverrides !== undefined || n.children.some(hasNestOverrides);
+/**
  * THE PINNED ICONS (#1667, "Locked to edges"), spliced in after the flow pass ONLY for a payload whose plans
  * carry a `pin` — the `MIN_LINES_SLOT` budget decision again: unconditional, these lines would ship in every
  * chunk of every set (the #536 probe grid's one-chunk rule, when this was written; see `SET_CHUNK_BYTES` for
@@ -3667,8 +3844,8 @@ const hasInset = (n: FigmaNodePlan): boolean => n.glyphInset !== undefined || n.
  * here. Lockstep with the plugin executor (`write-components.ts`).
  */
 const PLACEMENT_SLOT = '__PLACEMENT__';
-const PAYLOAD_PLACEMENT = `    if(n.placementWidth){node.resize(n.placementWidth,node.height);if(node.width!==n.placementWidth)misses.push(n.name+'.placementWidth -> DISCARDED');}`;
-const hasPlacement = (n: FigmaNodePlan): boolean => n.placementWidth !== undefined || n.children.some(hasPlacement);
+const PAYLOAD_PLACEMENT = `    if(n.placementWidth||n.placementHeight){node.resize(n.placementWidth||node.width,n.placementHeight||node.height);if(n.placementWidth&&node.width!==n.placementWidth)misses.push(n.name+'.placementWidth -> DISCARDED');if(n.placementHeight&&node.height!==n.placementHeight)misses.push(n.name+'.placementHeight -> DISCARDED');}`;
+const hasPlacement = (n: FigmaNodePlan): boolean => n.placementWidth !== undefined || n.placementHeight !== undefined || n.children.some(hasPlacement);
 /**
  * THE HUGGING WRAP'S MAX WIDTH (#1762, `maxWidth`), spliced into the child loop ONLY for a payload whose plans
  * carry one, and on the reserved-lines slot's own line so a payload without it gains no byte — the
@@ -3746,9 +3923,13 @@ const payloadBuildFor = (roots: FigmaNodePlan[]): string =>
     .replace(PLACEMENT_SLOT, roots.some(hasPlacement) ? PAYLOAD_PLACEMENT : '')
     .replace(MAX_WIDTH_SLOT, roots.some(hasMaxWidth) ? PAYLOAD_MAX_WIDTH : '')
     .replace(GRADIENT_SLOT, roots.some(hasGradient) ? PAYLOAD_GRADIENT : '')
-    .replace(GRADIENT_CLAIM_SLOT, roots.some(hasGradient) ? PAYLOAD_GRADIENT_CLAIM : '');
+    .replace(GRADIENT_CLAIM_SLOT, roots.some(hasGradient) ? PAYLOAD_GRADIENT_CLAIM : '')
+    // A function replacer, so the shipped source is inserted as written: a string replacement reads `$` patterns.
+    .replace(NEST_OVERRIDES_DEF_SLOT, () => (roots.some(hasNestOverrides) ? 'const applyNestOverrides=' + applyNestOverridesSrc() + ';' : ''))
+    .replace(NEST_OVERRIDES_SLOT, () => (roots.some(hasNestOverrides) ? PAYLOAD_NEST_OVERRIDES : ''));
 
 const PAYLOAD_BUILD = `const __expose=[];
+/*__NEST_OVERRIDES_DEF__*/
 // #2417 — NATIVE SLOTS, queued during the build like the exposures and made by \`__slotsNow\` after each conversion.
 const __slots=[];
 // #1378 — DRAIN THE EXPOSURE QUEUE, called immediately after every \`createComponentFromNode\` and nowhere
@@ -3870,6 +4051,14 @@ const build=async(n)=>{
     // executor's collector, and the twin is the point — this half was never gated (#1377), so the plugin's
     // round-trip caught the identical defect here only by reading.
     if(node&&n.nestExpose&&n.nestExpose.length)__expose.push(node);
+    // #2645 — the per-instance overrides, written now: unlike exposure, \`setProperties\` needs no containing component.
+    /*__NEST_OVERRIDES__*/
+    // THE NESTED INSTANCE'S OWN TEXT (#2317), the plugin executor's twin: \`nestTexts\` names what this instance
+    // says instead of its set's default, written as an instance override by property name before \`#id\`.
+    if(node&&n.nestTexts){const P=node.componentProperties||{},S={};
+      for(const k of Object.keys(n.nestTexts)){const key=Object.keys(P).find(x=>x.split('#')[0]===k&&P[x].type==='TEXT');
+        if(key)S[key]=n.nestTexts[k];else misses.push(n.name+'.nestTexts.'+k+' -> the nested instance has no TEXT property '+JSON.stringify(k)+'; it keeps its set default');}
+      if(Object.keys(S).length){try{node.setProperties(S);}catch(e){misses.push(n.name+'.nestTexts -> REFUSED ('+(e&&e.message?e.message:String(e))+')');}}}
   }
   else if(n.type==='GLYPH'){
     // THE GLYPH (#864). The only node here whose content is GEOMETRY rather than a box, a binding or a
@@ -4536,7 +4725,9 @@ export const CANVAS_FURNITURE: ReadonlySet<string> = new Set([
   'focus-ring', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral',
   'field-label', 'field-message', 'text-field', 'textarea', 'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control',
   'radio-row', 'radio-group', 'switch-control', 'switch-row', 'select', 'veil', 'image-placeholder', 'badge', 'tag', 'tab', 'tabs',
-  'divider', '_accordion-indicator', 'accordion', 'list-item', 'list', 'segmented-control-segment', 'segmented-control',
+  'divider', '_accordion-indicator', 'accordion', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'list-item',
+  'list', 'segmented-control-segment', 'segmented-control', 'link',
+  'dialog', 'password-field',
 ]);
 
 export const planSetLayout = (plans: AnatomyPlan[], fn: string) => {

@@ -56,8 +56,11 @@ code comment only; no shipped field names Prism 2 (see *What ships* below).
 **The header cites the brief exactly once**, in the def file's leading `/** … */` block, as
 ``KB brief: `components/<name>.md` ``. `packages/engine/test.ts` reads each header and fails by name
 on a second citation, on a header with neither a citation nor the no-brief line below, and on a
-header with both. It also checks the def's `category` against `KB_BRIEF_CATEGORY`, an authored table of each brief's own `category:` frontmatter: a def citing a brief that has no row
-fails until you add the row, lower-cased from the brief. With no brief, the header says
+header with both. It also checks the def's `category` against `KB_BRIEF_CATEGORY`, which it derives from
+`packages/engine/schema/kb-briefs.json`, a snapshot of every KB brief's `category:` and `aliases:`
+frontmatter. Never edit that file by hand: `npx tsx packages/engine/kb-briefs-refresh.ts <kb checkout>`
+rewrites it (#2488). A def citing a brief the snapshot lacks fails until you refresh it, and a
+`No KB brief` header is checked against the same snapshot, by id and aliases. With no brief, the header says
 `No KB brief` and states the choice beside it (`Category \`foundations\`` and why), as
 `packages/engine/components/veil.ts` does.
 
@@ -244,6 +247,14 @@ the validator refuses `swap` on either. Every absolute in the corpus is a focus 
 shared component every host points at. `lint-nesting` fails by name on a `nests` id no def has, and
 on a cycle.
 
+**Overrides on a nested instance** (#2645). A nested instance shows its component's defaults: a nested
+Button reads "Button". To set its text or its glyph, give the `nest` or `absolute` part `overrides`:
+`texts` keyed by a key of the nested def's `figmaProperties.texts`, `swaps` keyed by a key of its
+`figmaProperties.swaps`, each swap naming an icon glyph (`{ swaps: { icon: 'close' } }`). The same value
+lands on every member. The projection refuses a key the nested def does not declare and a glyph the
+icon set does not draw. List sets its items' numbers this way (`{ texts: { value: '2.' } }`). Use it
+only for copy or a glyph that is already decided; a new string is the owner's.
+
 **Overlays.** An overlay declares the state that shows it (`when`) and what it `replaces` — an
 ordered candidate list, resolved to the first part present at each coordinate, with a required
 candidate allowed only last. `overlaysWhenAbsent` names the fallback part to overlay out of flow, and
@@ -275,7 +286,7 @@ derives the second dimension from the first. Binding two dimensions cannot hold 
 second `setBoundVariable` evicts the first — so the validator refuses `aspectRatio` alongside a
 second bound dimension and requires exactly one of `size`/`width`/`height`.
 `packages/engine/components/image-placeholder.ts` is the worked example: a `ratio` axis of
-`1:1 | 4:3 | 16:9`, `width` bound to the standalone-extent idiom below, and `clipsContent: true`.
+seven proportions (`2:3` through `16:9`), `width` bound to the standalone-extent idiom below, and `clipsContent: true`.
 The read-back gate `test:roundtrip` builds each projected def, reads the built `targetAspectRatio`
 back out of the host shim, and diffs it against the declared proportion — the one component check
 whose actual value comes from the host, not from the plan.
@@ -298,13 +309,18 @@ whose actual value comes from the host, not from the plan.
   names its slots in precedence order in `paintSlots` (a box that names none paints nothing and
   is structure). Order is precedence: `['overlay', 'fill']` reads "the overlay if it resolves,
   otherwise the fill."
-- **Hit target → the 44px floor, with two named exceptions.** An interactive control's hit target
+- **Hit target → the 44px floor, with named exceptions.** An interactive control's hit target
   at its default size clears 44px on comfortable and spacious densities. A field control binds
   `size.md.min-height` (#1437), the emitted `max(size.md.height, 44)`, because the plain
   `size.md.height` rung is 36 on a compact brand; a labeled row binds its own `min-height` rung.
-  `lint-hit-target` measures each control's default size, and its only exceptions are the small
-  Button and compact density — so in shipped prose, SC 2.5.5 is stated as intent, not as a
-  guarantee for every size. See `packages/engine/components/select.ts` and
+  `lint-hit-target` measures each control's default size. Its exceptions are compact density, the
+  small size of the defs in its `SMALL_SIZE` list, the flush text buttons in `FLUSH_MEMBERS`, whose
+  44×44 (24×24 at small) target is extended in code and must be stated in the def's `codeOnly`, and
+  the flush icon buttons in `CODE_SIDE_TARGETS`, whose target is extended in code to 44×44 at every
+  size and must be stated in both `codeOnly` and the shipped docs' do list. A def that is not a
+  control of its own is listed in `EXCLUDED` in `packages/engine/lint-hit-target.ts` with a
+  reason, and a part inside a control that is a target of its own (Tag's ×) in `INNER_TARGETS`.
+  So in shipped prose, SC 2.5.5 is stated as intent, not as a guarantee for every size. See `packages/engine/components/select.ts` and
   `packages/engine/components/text-field.ts`.
 - **Selection → a tint and a 2px outline, at a constant label weight (the system pattern, owner decision
   2026-09-28).** A control the user selects and deselects in place — Tag's select type today; a segmented
@@ -397,9 +413,13 @@ container's geometry?
 So the rule is: **variant axis only when presence drives edge-hugging asymmetric padding; a node-visibility
 boolean otherwise.** Verify which case a new component is in against the actual defs before wiring it.
 
-**Axis value order is a decision.** Figma's default member is the set's first child, which is the first
-value of each axis in declaration order, so "the Figma default matches the code default" is an axis-order
-fact (#1699). Put the code default first.
+**Axis value order is a decision, and it is fixed (#2501, owner decision Q213).** Sizes run small to
+large; states run in ladder order, for example rest, hover, pressed, pending, focus-visible, disabled (the
+full ladder is `STATE_LADDER` in `packages/engine/test.ts`). Text field, textarea and select
+are the one named exception: they keep medium first (Q221 B), so an inserted field stays medium. Figma's
+default member is the one at the top left of the set on the canvas, not the first child, so axis order
+does not by itself pick the Figma default. The `#2501 <def>` test in `packages/engine/test.ts` fails a
+def that breaks the order, and a size or state the order doesn't know fails as unplaced.
 
 **A sparse grid.** A variant set is the full cross product of its axes unless the def says otherwise. When
 one axis value has no meaning at a value of another (Badge's count and dot have no `subtle` emphasis), list
@@ -425,7 +445,7 @@ so a new def fails by name until you add it — or, for a floor list, stays unco
 | `lint-glyph-geometry`, composed or colliding glyphs | a `vector` part whose glyph is not in the icon set (drawn in layers, like the spinner's ring) in `COMPOSED_GLYPH`; a glyph template whose members draw one shape under two names in `DUPLICATE_SHAPES`, with the reason. |
 | `lint-absolute-inset` | a nested focus ring as `<id>.focusRing` in `MUST_COVER` and `MUST_CLEAR_STROKE`. |
 | `lint-paint` admissions | a paint key whose ref legitimately does not carry its axis value in `PROVENANCE_EXCEPTIONS`; an axis whose values are not color families in `NON_FAMILY_AXES`; a bound paint key no projected coordinate reaches in `UNREACHED_EXPLAINED`. Each needs a reason and fails as stale when it stops applying. |
-| `packages/engine/test.ts` | the brief's row in `KB_BRIEF_CATEGORY`, if the brief is new to the corpus. A def with a `presentWhen` part in `GATED_EXPECTED`, and a def binding a `size.<size>.control`, `dot` or `track` key in `CONTROL_DEFS`: both are exact-equality lists. |
+| `packages/engine/test.ts` | nothing for the brief: `KB_BRIEF_CATEGORY` is derived from `schema/kb-briefs.json` (refresh it if the brief is new). A def with a `presentWhen` part in `GATED_EXPECTED`, and a def binding a `size.<size>.control`, `dot` or `track` key in `CONTROL_DEFS`: both are exact-equality lists. |
 | `apps/plugin/src/file-taxonomy.ts` | the def on a page in `TAXONOMY` (§3). |
 
 `lint-component-docs` needs no entry: it reads the registry, so after `packages/engine/regen.ts` a
@@ -434,9 +454,10 @@ the gate fails by name. Its `DEF_FLOOR` is a floor to raise as the catalog grows
 more committed artifact, so the count `packages/engine/regen.ts --check` expects moves too:
 `EXPECTED_ARTIFACTS` in `verify.ts` and the same number in the CI workflow, together.
 
-Two baselines also move with any new or changed projection and are rewritten only by an explicit
-`--accept`: `lint-component-surface` (member count and plan digest per def) and `lint-paint` (the
-paint census). Read the diff each prints before accepting it.
+Three baselines move with a new or changed projection and are rewritten only by an explicit
+`--accept`: `lint-component-surface` (member count and plan digest per def), `lint-paint` (the
+paint census) and `lint-component-renames` (`schema/component-axes.json`, each def's axes and values,
+so it moves only when an axis, a value or a member count does). Read the diff each prints before accepting it.
 
 **Then run `npm run verify`** (`verify.ts`) — it runs every gate in a declared, checked order and
 prints a per-gate PASS/FAIL table. Run the whole list, never a subset chosen because the diff

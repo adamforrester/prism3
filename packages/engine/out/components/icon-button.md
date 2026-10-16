@@ -96,7 +96,7 @@ The accessible name is a verb naming the action ("Close", "More actions"), never
 
 - **Composes with:** `focus-ring`, `spinner`
 - **Alternative to:** `button`
-- **Planned:** `tooltip`, `button-group`, `menu`, `popover`, `link`
+- **Planned:** `tooltip`, `button-group`, `menu`, `popover`
 - **Replaces:**
   - div[role=button] wrapping an icon
   - a \<button> holding only an \<svg> and no accessible name

@@ -47,8 +47,9 @@ import { tailOf } from '@prism3/engine/figma-names';
 import { applyComponentPlan } from './src/write-components';
 import { makeShim, varValue } from './component-shim';
 import { materializeForBrand } from './src/brand-def';
-import { prebuildDependencies } from './src/build-deps';
+import { planTargets, prebuildDependencies } from './src/build-deps';
 import type { ComponentDef } from '@prism3/engine/component-schema';
+import { validateComponentDef } from '@prism3/engine/component-schema';
 import type { Node, Page, ShimOpts } from './component-shim';
 
 const INVENTORY = process.argv.includes('--inventory');
@@ -93,7 +94,35 @@ const fullFor = (plans: AnatomyPlan[]): ShimOpts => ({
   styles: [...new Set(plans.flatMap((p) => planTextStyles(p.root)))],
   effects: [...new Set(plans.flatMap((p) => planEffectStyles(p.root)))],
   comps: [...new Set(plans.flatMap((p) => planComps(p.root)))],
+  // #2317 — the TEXT properties each nested component's instances carry, from the NESTED def's own declaration
+  // (its `figmaProperties.texts`, under the Figma name), so a host def's `nestTexts` override is read back against
+  // a property the harness did not learn from that override.
+  compTexts: Object.fromEntries([...new Set(plans.flatMap((p) => planComps(p.root)))].flatMap((id) => {
+    const texts = componentDefs.find((d) => d.id === id)?.figmaProperties?.texts;
+    return texts ? [[id, Object.fromEntries(Object.entries(texts).map(([k, t]) => [t.figmaName ?? k, t.default]))]] : [];
+  })),
 });
+
+/** Every projected def's plans, once — the catalog a build that pre-builds its nested sets binds from. */
+let allPlans: AnatomyPlan[] | undefined;
+const ALL_PLANS = (): AnatomyPlan[] => (allPlans ??= PROJECTED.flatMap((d) => figmaAnatomySet(d, { swapTarget: SWAP_TARGET })));
+/** Every string an instance under `root` holds as a property value, resolved through the host's `getNodeByIdAsync`:
+ *  the ones that name a component are a swap's value. Read off the host, never off the plan (#2645). */
+const componentNamesOf = async (shim: unknown, root: unknown): Promise<Map<string, string>> => {
+  const out = new Map<string, string>();
+  const lookup = (shim as { getNodeByIdAsync?: (id: string) => Promise<{ name?: string } | null> }).getNodeByIdAsync;
+  const walk = async (n: Node | undefined): Promise<void> => {
+    if (!n) return;
+    for (const v of Object.values((n.componentProperties as Record<string, { value?: unknown }> | undefined) ?? {})) {
+      if (typeof v.value !== 'string' || out.has(v.value) || !lookup) continue;
+      const hit = await lookup(v.value);
+      if (hit?.name) out.set(v.value, hit.name);
+    }
+    for (const c of (n.children as Node[] | undefined) ?? []) await walk(c);
+  };
+  await walk(root as Node | undefined);
+  return out;
+};
 
 /**
  * Build one def and read it back.
@@ -111,7 +140,16 @@ const roundTrip = async (def: (typeof componentDefs)[number], extra: Partial<Shi
   // subject. That misconfiguration produced 2,970 findings on its first run and every one was mine.
   const plans = figmaAnatomySet(def, { swapTarget: SWAP_TARGET });
   const page: Page = { children: [] };
-  const shim = makeShim({ ...fullFor(plans), page, ...extra });
+  // A PLAN THAT OVERRIDES A NESTED INSTANCE (#2645) is built the way the plugin builds it: its nested sets first, into
+  // the same file (`liveRoot`), so each nested instance has the properties its set really declared, `#id` suffixes and
+  // all. Against a catalog name with nothing behind it there is no property to set, and the round-trip would be
+  // measuring the harness.
+  const overrides = plans.some((p) => JSON.stringify(p.root).includes('"nestOverrides"'));
+  // Only the FPO swap target is a catalog name then: a nested def's own name must answer as the set built here, never as
+  // a bare component of that name, which a plain-component lookup would find first.
+  const shim = makeShim({ ...fullFor(overrides ? [...plans, ...ALL_PLANS()] : plans), ...(overrides ? { comps: [SWAP_TARGET], liveRoot: true } : {}), page, ...extra });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
+  if (overrides) await prebuildDependencies(def, { defs: componentDefs, project: (d) => figmaAnatomySet(d, { swapTarget: SWAP_TARGET }), host: shim as any, build: (d) => applyComponentPlan(figmaAnatomySet(d, { swapTarget: SWAP_TARGET }), shim as any, { emitAsComponents: d.figmaProperties?.emitAsComponents }) });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
   await applyComponentPlan(plans, shim as any, {});
 
@@ -124,13 +162,16 @@ const roundTrip = async (def: (typeof componentDefs)[number], extra: Partial<Shi
   const effects = await (shim as unknown as { getLocalEffectStylesAsync: () => Promise<{ id: string; name: string }[]> }).getLocalEffectStylesAsync();
   const varById = new Map(vars.map((v) => [v.id, v.name] as const));
   const styleById = new Map([...texts, ...effects].map((s) => [s.id, s.name] as const));
+  // A component id → its name, through the HOST's own lookup (#2645): a swap override's value is an id.
+  const set = overrides ? page.children.find((c) => c.type === 'COMPONENT_SET' && c.name === plans[0].component) : page.children[0];
+  const nameById = await componentNamesOf(shim, set);
   const ports: ReadPorts = {
     varName: (id) => varById.get(id) ?? null,
     styleName: (id) => styleById.get(id) ?? null,
     componentName: (key) => nameByKey.get(key) ?? null,
+    componentById: (id) => nameById.get(id) ?? null,
   };
 
-  const set = page.children[0];
   const members = (set?.children ?? []) as unknown as HostNode[];
   return { plans, divergences: diffAnatomy(plans, members, planComponentName, ports, EXERCISED), members: members.length };
 };
@@ -178,7 +219,16 @@ const tagDef = PROJECTED.find((d) => d.id === 'tag')!;
 const SLOT_CONSTRAINED = [{ ...tagDef, id: 'tag@slot-constraints', anatomy: { ...tagDef.anatomy!, parts: { ...tagDef.anatomy!.parts,
   dismiss: { ...tagDef.anatomy!.parts.dismiss, contentSlot: true as const, slotSettings: { minChildren: 1, maxChildren: 2, allowPreferredValuesOnly: true }, preferred: ['badge'] } } } }];
 const SLOT_FILE: Partial<ShimOpts> = { fileNodes: [{ name: 'badge', type: 'COMPONENT_SET', variants: ['tone=neutral'] }] };
-for (const def of [...PROJECTED, ...TINTED, ...BUTTON_LAID, ...SLOT_CONSTRAINED]) {
+// …and one SWAP override (#2645). No committed def swaps a nested glyph yet (Dialog's close button is an open PR), so
+// without this row the INSTANCE_SWAP half of `nestOverrides` compares nothing. Test-only: List with its first item's
+// icon swapped to `close` — List.Item's own `swap icon` property, set to the icon set's component, built first. The
+// glyph must NOT be List.Item's `swapDefault` (`check`): the writer skips a value the instance already holds, so a swap
+// to the default writes nothing and the read-back reads the default back as a pass (docs/34). Asserted below.
+const listDef = PROJECTED.find((d) => d.id === 'list')!;
+const SWAP_GLYPH = 'close';
+const SWAP_OVERRIDE = [{ ...listDef, id: 'list@swap-override', anatomy: { ...listDef.anatomy!, parts: { ...listDef.anatomy!.parts,
+  item1: { ...listDef.anatomy!.parts.item1, overrides: { swaps: { icon: SWAP_GLYPH } } } } } }];
+for (const def of [...PROJECTED, ...TINTED, ...BUTTON_LAID, ...SLOT_CONSTRAINED, ...SWAP_OVERRIDE]) {
   try {
     const r = await roundTrip(def, SLOT_CONSTRAINED.includes(def as (typeof SLOT_CONSTRAINED)[number]) ? SLOT_FILE : {});
     inventory.push({ def: def.id, divergences: r.divergences, members: r.members, plans: r.plans.length });
@@ -192,6 +242,39 @@ ok(TINTED.length > 0 && washPaints > 0,
 
 ok(BUTTON_LAID.length === 6 && (EXERCISED.pin ?? 0) > 0 && (EXERCISED.paddingPx ?? 0) > 0 && (EXERCISED.minWidth ?? 0) > 0,
   `#1667 the button-lever materializations round-trip too — ${BUTTON_LAID.length} def(s); ${EXERCISED.pin ?? 0} pinned icons (ABSOLUTE + edge constraint + inset), ${EXERCISED.paddingPx ?? 0} reserved paddings, ${EXERCISED.minWidth ?? 0} floors read back off the host`);
+
+{
+  const swapPlans = SWAP_OVERRIDE.flatMap((d) => figmaAnatomySet(d, { swapTarget: SWAP_TARGET }));
+  const swapNodes = swapPlans.flatMap((p) => JSON.stringify(p.root).match(/"type":"INSTANCE_SWAP","value":"icon\/close"/g) ?? []).length;
+  // THE PREMISE (#2645 review): the swap moves the instance OFF its default, so the write is exercised, not skipped.
+  const itemDefault = (PROJECTED.find((d) => d.id === 'list-item')!.anatomy!.parts.icon as { swapDefault?: string }).swapDefault;
+  ok(typeof itemDefault === 'string' && itemDefault !== SWAP_GLYPH,
+    `#2645 premise: the swap row's glyph (${SWAP_GLYPH}) is not List.Item's swapDefault (${itemDefault}), so the swap is written, not skipped`);
+  const listRows = inventory.filter((i) => i.def === 'list' || i.def === 'list@swap-override');
+  // THE SWAP TARGET IS A DEPENDENCY (#2645), asserted on the list itself: the round-trip cannot see it, because the icon
+  // set is built anyway as a dependency of List.Item. List's own plans reach icon/close through the override alone.
+  const targets = planTargets(swapPlans);
+  ok(JSON.stringify(targets) === '["list-item","icon/close"]', `#2645 build-deps: a swap override's component is a build target of the def that declares it (${JSON.stringify(targets)})`);
+  ok((EXERCISED.nestOverrides ?? 0) > 0 && swapNodes > 0 && listRows.length === 2 && listRows.every((i) => i.members > 0),
+    `#2645 per-instance overrides round-trip: ${EXERCISED.nestOverrides ?? 0} nested instance(s) read their overrides back off their own componentProperties, ${swapNodes} of them a swap to icon/close (rows: ${listRows.map((i) => `${i.def} ${i.members} members, ${i.divergences.length} divergences`).join('; ')})`);
+}
+
+// THE PREDICATE SPEAKS (#2645): an instance holding its nested default where the plan names an override is reported,
+// by field — a TEXT at its default, a swap at another component, and an instance with no properties at all. Host
+// nodes built here by hand, so the predicate is tested against answers known in advance (docs/34).
+{
+  const plan = figmaAnatomySet(PROJECTED.find((d) => d.id === 'list')!, { swapTarget: SWAP_TARGET })[0];
+  const item = (props: unknown): HostNode => ({ name: 'item2', type: 'INSTANCE', children: [], componentProperties: props });
+  const one = (props: unknown): string | null => {
+    const want = (plan.root.children.find((c) => c.name === 'item2') as { nestOverrides?: unknown }).nestOverrides;
+    const d = diffAnatomy([{ ...plan, root: { name: 'item2', type: 'NESTED_INSTANCE', bound: {}, children: [], nestOverrides: want } as never }], [item(props)], () => 'item2', { varName: () => null, styleName: () => null })
+      .find((x) => x.field === 'nestOverrides');
+    return d ? d.actual : null;
+  };
+  ok(one({ 'number#1:1': { type: 'TEXT', value: '1.' } }) === 'number=1.', `#2645 read-back: an item at its default "1." where the plan says "2." fails as nestOverrides (${one({ 'number#1:1': { type: 'TEXT', value: '1.' } })})`);
+  ok(one({ 'number#1:1': { type: 'TEXT', value: '2.' } }) === null, '#2645 read-back: the same item at "2." passes');
+  ok(/holds no component properties/.test(one(undefined) ?? ''), `#2645 read-back: an instance with no properties fails (${one(undefined)})`);
+}
 
 ok((EXERCISED.slotSettings ?? 0) > 0 && (EXERCISED.slotPreferred ?? 0) > 0,
   `#2646 a constrained native slot round-trips: ${EXERCISED.slotSettings ?? 0} slot(s) read their constraints, ${EXERCISED.slotPreferred ?? 0} their preferred sets, back off the set's SLOT property`);
@@ -338,6 +421,8 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
     'field-message': { parts: ['text'],  style: () => 'caption/md/default' },
     // #2266: the input type scales with the field's size, one body step above its label.
     'text-field':    { parts: fieldLayer, style: (c) => ({ small: 'body/sm/default', medium: 'body/md/default', large: 'body/lg/default' } as Record<string, string>)[c.size!] },
+    // #2317: the Password field's value and placeholder are TextField's, from the shared field factory.
+    'password-field': { parts: fieldLayer, style: (c) => ({ small: 'body/sm/default', medium: 'body/md/default', large: 'body/lg/default' } as Record<string, string>)[c.size!] },
     textarea:        { parts: fieldLayer, style: (c) => ({ small: 'body/sm/default', medium: 'body/md/default', large: 'body/lg/default' } as Record<string, string>)[c.size!] },
     select:          { parts: fieldLayer, style: (c) => ({ small: 'body/sm/default', medium: 'body/md/default', large: 'body/lg/default' } as Record<string, string>)[c.size!] },
     'checkbox-row':  { parts: ['label'], style: (c) => ({ small: 'body/sm/default', medium: 'body/md/default', large: 'body/lg/default' } as Record<string, string>)[c.size!] },
@@ -462,6 +547,9 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
     // the def where the pairing matters most (two icon slots): the old grouping would show both booleans,
     // then both swaps, detached — reordering `planSetProperties` back to it fails this BY NAME.
     'text-field': { componentProps: ['placeholder', 'value', 'leading icon', '↳ swap leading icon', 'trailing icon', '↳ swap trailing icon', 'message'], switches: [] },
+    // #2317: the Password field drops TextField's trailing slot, so its panel is TextField's without the trailing
+    // icon pair. The nested Button's `label` surfaces through the exposed instance, not as a property of this set.
+    'password-field': { componentProps: ['placeholder', 'value', 'leading icon', '↳ swap leading icon', 'message'], switches: [] },
     'icon-button': { componentProps: ['swap icon'], switches: [] },
   };
   for (const [id, want] of Object.entries(CANON)) {
@@ -1914,6 +2002,124 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
       && got[0].actual === UNNAMED,
       `#1781 read-back: an INSTANCE with ${label} fails with "${UNNAMED}" — ${got.map((d) => `${d.member} :: ${d.path} — host: ${d.actual}`).join(' | ') || 'NOTHING REPORTED'}`);
   }
+}
+
+// ── #2457 — TWO FLUSH ICON BUTTONS IN ONE HOST, EACH EXPOSING `state` ─────────────────────────────
+//
+// The flush icon button is built to be nested (owner Q283.3 A), and its first host — the Counter (#2427, Q286) —
+// nests two of them, each with its `state` exposed, so a designer sets one side to `disabled` at a limit (Q283.7
+// note). No such host is registered yet, so this block builds the shape with a FIXTURE host, never registered:
+// a row nesting `flush-icon-button-neutral` twice (`decrement`, `increment`), both `nest-exposed` with `expose: ['state']`
+// and `follow: ['size']`. It is built against the flush icon button's own SET (its real member names), and read
+// back off the shim. The Counter nests the NEUTRAL family (Q295.2 B: three families, IconButton's pattern), so the
+// fixture does too.
+//
+// EXPECTED is authored here: both instances exposed in every member, each an instance of the flush icon button
+// set, and the nested set offering the five owner-decided states as literals, `disabled` among them. The open
+// question #2427 recorded — "two nests exposing the same axis is untested" — is answered for the SHIM only: both
+// coexist, each marked exposed, with no miss. On a real host Figma lists each exposed instance's properties under
+// its own layer name; that is not measured here.
+{
+  const FLUSH_STATES = ['rest', 'hover', 'pressed', 'focus-visible', 'disabled'];
+  const child = componentDefs.find((d) => d.id === 'flush-icon-button-neutral');
+  ok(!!child, '#2457 two-nest: the flush-icon-button-neutral def is registered');
+  if (child) {
+    const nestPart = { kind: 'nest', nests: 'flush-icon-button-neutral', nesting: { kind: 'nest-exposed', variant: { shape: 'flush', state: 'rest' }, expose: ['state'], follow: ['size'] } } as const;
+    const host = {
+      id: 'fixture-two-flush', name: 'FixtureTwoFlush', aliases: [], category: 'form', status: 'draft',
+      summary: 'A fixture host nesting two flush icon buttons.', description: 'A fixture host nesting two flush icon buttons, each with its state exposed.',
+      props: [{ name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'Size.' }],
+      states: [], variants: { size: ['small', 'medium', 'large'] }, axisKinds: { size: 'authoring' },
+      tokens: { gap: 'space.100' },
+      anatomy: {
+        root: 'row',
+        parts: {
+          row: { kind: 'box', role: 'target', layout: { direction: 'row', align: 'center', sizing: { x: 'hug', y: 'hug' } }, gap: 'gap', children: ['decrement', 'increment'] },
+          decrement: nestPart,
+          increment: nestPart,
+        },
+        codeOnly: ['fixture — not a component.'],
+      },
+      figmaProperties: { variantAxes: ['size'], booleans: {} },
+      accessibility: { role: 'group' }, docs: { usage: 'Fixture.', do: [], dont: [] },
+      ai: { primaryPurpose: 'Fixture.', whenToUse: 'Never.', avoidWhen: 'Always.' },
+      composition: { composesWith: ['flush-icon-button-neutral'] },
+    } as unknown as ComponentDef;
+    const errs = validateComponentDef(host).errors;
+    ok(errs.length === 0, `#2457 two-nest: a host nesting flush-icon-button-neutral twice with \`state\` exposed validates clean${errs.length ? ` — ${errs.join('; ')}` : ''}`);
+    const childPlans = figmaAnatomySet(child, { swapTarget: SWAP_TARGET });
+    const childStates = [...new Set(childPlans.map((p) => p.coord.state))];
+    ok(JSON.stringify(childStates) === JSON.stringify(FLUSH_STATES),
+      `#2457 two-nest: the nested set offers the owner-decided states [${FLUSH_STATES.join(', ')}] to expose, disabled among them (got [${childStates.join(', ')}])`);
+    const plans = figmaAnatomySet(host, { swapTarget: SWAP_TARGET });
+    const f = fullFor(plans);
+    const page: Page = { children: [] };
+    const fileNodes = [{ name: 'flush-icon-button-neutral', type: 'COMPONENT_SET' as const, variants: childPlans.map(planComponentName) }];
+    const shim = makeShim({ ...f, comps: (f.comps ?? []).filter((c) => c !== 'flush-icon-button-neutral'), fileNodes, page });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
+    const r = await applyComponentPlan(plans, shim as any, {}) as { misses?: string[] };
+    const members = ((page.children[0]?.children ?? []) as unknown as HostNode[]);
+    const kid = (m: HostNode, name: string): HostNode | undefined => ((Array.isArray(m.children) ? m.children : []) as HostNode[]).find((c) => c.name === name);
+    const off: string[] = [];
+    for (const m of members) {
+      for (const side of ['decrement', 'increment']) {
+        const inst = kid(m, side);
+        const main = inst?.mainComponent as { parent?: { name?: string } } | undefined;
+        if (!inst || inst.type !== 'INSTANCE') off.push(`${String(m.name)}/${side}: not built as an instance`);
+        else if (inst.isExposedInstance !== true) off.push(`${String(m.name)}/${side}: not exposed (isExposedInstance=${String(inst.isExposedInstance)})`);
+        else if (main?.parent?.name !== 'flush-icon-button-neutral') off.push(`${String(m.name)}/${side}: an instance of ${main?.parent?.name ?? 'nothing named'}, not flush-icon-button-neutral`);
+      }
+    }
+    const planned = plans.flatMap((p) => p.root.children.filter((c) => c.nestTarget === 'flush-icon-button-neutral').map((c) => (c.nestExpose ?? []).join(',')));
+    const misses = (r.misses ?? []).filter((m) => /nestExpose|decrement|increment/.test(m));
+    ok(members.length === 3 && off.length === 0 && misses.length === 0 && planned.length === 6 && planned.every((e) => e === 'state'),
+      `#2457 two-nest: both flush icon buttons, in all 3 members, are instances of the flush-icon-button-neutral set marked exposed, each exposing [state], with no miss — two nests exposing one axis coexist on the shim (${members.length} members; ${off.length ? off.join('; ') : 'none off'}; plan exposes [${[...new Set(planned)].join(' | ')}] on ${planned.length} nests; misses: ${misses.join(' | ') || 'none'})`);
+    const ports: ReadPorts = { varName: (id) => id.replace(/^V:/, ''), styleName: (id) => id };
+    const div = diffAnatomy(plans, members, planComponentName, ports, {}).filter((d) => d.field === 'nestExpose' || d.field === 'nestTarget');
+    ok(div.length === 0, `#2457 two-nest: the read-back agrees with the plan on every nest and exposure (${div.length} divergent${div.length ? `: ${div[0].member} :: ${div[0].path} — ${div[0].actual}` : ''})`);
+  }
+}
+
+// ── PROTOTYPE REACTIONS READ-BACK (owner decision Q344, #2733) — THE PLAN, AS THE HOST HOLDS IT ─────────────────
+//
+// A Rest member's reactions are While hovering → its Hover sibling AND While pressing → its Pressed sibling (a touch
+// prototype has no hover, so Rest's press is the only route to Pressed); a Hover member's only one is While pressing →
+// its Pressed sibling; every other member none. Each def is built with node ids on, and every member's reactions are
+// read back off the shim, each destination id looked up among the set's own members HERE. The expectation is literal
+// per state, authored here and nowhere else, never the reaction map, so a map that drops Rest's press reaction (#2703's
+// hover-only chain) fails `reactions read-back` by name (docs/34).
+{
+  const WANT: Record<string, string[]> = { rest: ['ON_HOVER→state=hover', 'ON_PRESS→state=pressed'], hover: ['ON_PRESS→state=pressed'] };
+  const INTERACTIVE = ['button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral',
+    'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'checkbox-control', 'radio-control', 'switch-control',
+    'tag', 'tab', 'segmented-control-segment', 'link'];
+  const off: string[] = [];
+  let read = 0;
+  for (const id of INTERACTIVE) {
+    const def = componentDefs.find((d) => d.id === id);
+    if (!def) { off.push(`${id}: not registered`); continue; }
+    const plans = figmaAnatomySet(def, { swapTarget: SWAP_TARGET });
+    const page: Page = { children: [] };
+    const shim = makeShim({ ...fullFor(plans), page, identities: true });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
+    await applyComponentPlan(plans, shim as any, {});
+    const members = (page.children.find((n) => n.type === 'COMPONENT_SET')?.children ?? []) as Node[];
+    const byId = new Map(members.map((m) => [String(m.id), String(m.name)] as const));
+    const stateOf = (name: string): string => name.split(', ').find((x) => x.startsWith('state='))?.slice(6) ?? '';
+    for (const m of members) {
+      const name = String(m.name);
+      const rx = (m.reactions ?? []) as { trigger: { type: string }; actions: { destinationId: string }[] }[];
+      const got = rx.flatMap((r) => r.actions.map((a) => {
+        const to = byId.get(a.destinationId);
+        // the destination must differ on state alone
+        const same = to !== undefined && name.split(', ').filter((x) => !x.startsWith('state=')).join(', ') === to.split(', ').filter((x) => !x.startsWith('state=')).join(', ');
+        return `${r.trigger.type}→${to === undefined ? '?' : same ? `state=${stateOf(to)}` : to}`;
+      }));
+      read++;
+      if (JSON.stringify(got) !== JSON.stringify(WANT[stateOf(name)] ?? [])) off.push(`${id}: ${name}: ${got.join('; ') || 'none'}`);
+    }
+  }
+  ok(read > 0 && off.length === 0, `reactions read-back: on ${INTERACTIVE.length} interactive defs (${read} members read off the host) Rest goes to Hover while hovering and to Pressed while pressing, Hover to Pressed while pressing only, nothing else reacts (${off.length} off${off.length ? `: ${off.slice(0, 3).join(' | ')}` : ''})`);
 }
 
 console.log(failed ? `\n❌ ${failed} FAILED` : '\n✅ component round-trip: ALL PASS');

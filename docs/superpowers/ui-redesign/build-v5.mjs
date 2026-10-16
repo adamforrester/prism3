@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 // Builds concept-v5.html from concept-v5.src.html, the default theme's tokens and the real engine.
+// The output is not committed (Q319.4, #2583); concept-v5.md says which commit it still builds at.
 //
 //   node docs/superpowers/ui-redesign/build-v5.mjs            # writes concept-v5.html
 //   node docs/superpowers/ui-redesign/build-v5.mjs --tokens   # also prints the token table

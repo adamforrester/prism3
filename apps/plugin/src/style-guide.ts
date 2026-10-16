@@ -759,8 +759,10 @@ const planVariableTables = (catalog: SgCatalog, ix: Index, options: StyleGuideOp
           const prefix = commonPrefix(mine.map((m) => m.v.name.split('/').slice(0, -1)));
           const primitive = mine.every(literal);
           // DRAFT for the owner (#2371): the roles' title when the weights are split, so the two tables' titles differ.
+          // AN ICON-SIZE TABLE IS "Icon size" (#2728, owner decision Q341 A): titled from its collection it read "Icon",
+          // the icon colors' title on the same page. The key is unchanged, so a rerun retitles the table in place.
           const unrooted = type === 'dimension'
-            ? (primitive && prefix.length ? sentence(prefix[prefix.length - 1]) : sentence(col.name))
+            ? (mine.every((m) => m.kind === 'iconSize') ? 'Icon size' : primitive && prefix.length ? sentence(prefix[prefix.length - 1]) : sentence(col.name))
             : split && !primitive ? 'Font weight roles' : TYPE_LABEL[type];
           const title = root ? `${unrooted} — ${root}` : unrooted;
           // A REM COLUMN after each Value column, in a table of lengths (dimension, border width, font size, line height,
@@ -2351,7 +2353,14 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
     if (!at || !near(num(f.x), at.x) || !near(num(f.y), at.y)) return 'moved';
     return (await fingerprintOf(f)) === print ? 'unedited' : 'edited';
   };
+  // A REMOVED TABLE'S SUBTREE IS NEVER READ AGAIN (#2704). `framesOn` is gathered before the loop and holds every frame
+  // on the page, the frames inside each table too (its grid, its cells, its header instance's sublayers). The host
+  // invalidates all of them with the table, so the loop skips each one by its id, gathered before the remove: reading
+  // the first after it threw ("in getPluginData: The node (instance sublayer or table cell) … does not exist"), and the
+  // run stopped after one deletion, before the re-flow.
+  const gone = new Set<string>();
   for (const p of api.root.children) for (const f of framesOn(p)) {
+    if (f.id !== undefined && gone.has(String(f.id))) continue;
     // The generator's key is what makes a frame a candidate at all: a frame without it is never touched,
     // whatever it is named. (The type check below would also refuse one, since its type reads ''; this line is
     // the stated rule, and removing it alone turns nothing red.)
@@ -2370,6 +2379,7 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
       // `y` afterwards throws ("in get_name: … does not exist"), the shape of #1791 and #1794.
       const name = String(f.name);
       const at = { x: num(f.x), y: num(f.y) };
+      for (const d of (f.findAll?.(() => true) ?? []) as SgNode[]) if (d.id !== undefined) gone.add(String(d.id));
       f.remove();
       if (!freed.has(p)) freed.set(p, []);
       freed.get(p)!.push(at);

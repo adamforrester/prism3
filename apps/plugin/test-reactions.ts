@@ -27,6 +27,11 @@
  *   converge/…   a set built before reactions existed (no reactions, no reactions in its records, an older executor
  *                revision) is named by the dry run, updated, verified, and then reads up to date. Mutations: the
  *                executor skips in-place members → `converge/written`, `converge/up to date`.
+ *   touch/…      Rest keeps While pressing for touch prototypes (owner decision Q344, #2733, reverting #2703): Rest
+ *                carries While hovering AND While pressing, Hover While pressing, literal per state; a file built under
+ *                #2703's hover-only plan (Rest without its press, recorded so) is named by the dry run, has the press
+ *                put back by the apply, then reads up to date. Mutation: the Rest press dropped from `reactionMap`
+ *                → `touch/rest`, `touch/dry run`, `touch/restored`.
  *   all three/…  reactions to repair, sets to move (#2542) and pages to reorder (#2568) in ONE run: one named version,
  *                all of it done, and a change to any of the three after the check refuses the confirm. Mutations: the
  *                reactions dropped from a set's fingerprint → `all three/hash, reactions`; the set's move dropped from
@@ -41,7 +46,7 @@ import { componentDefs } from '@prism3/engine/components/index';
 import { applyComponentPlan, STAMP_KEY } from './src/write-components';
 import { SWAP_TARGET } from './src/build-deps';
 import { NS } from './src/persist-figma';
-import { BASELINE_KEY } from './src/member-baseline';
+import { BASELINE_KEY, writeBaseline } from './src/member-baseline';
 import { EXECUTOR_REVISION } from './src/executor-revision';
 import { makeShim, type Node, type Page } from './component-shim';
 import { previewUpdate, previewVerdict, type UpdateTarget } from './src/update-plan';
@@ -118,7 +123,10 @@ section('map — the per-def reaction map, literal (owner decision Q238 A, part 
     'button': [576, 192, 288], 'button-destructive': [576, 192, 288], 'button-neutral': [576, 192, 288],
     'icon-button': [216, 72, 108], 'icon-button-destructive': [216, 72, 108], 'icon-button-neutral': [216, 72, 108],
     'checkbox-control': [54, 18, 27], 'radio-control': [30, 12, 18], 'switch-control': [24, 8, 12],
-    'tag': [45, 18, 27], 'tab': [30, 12, 18], 'segmented-control-segment': [30, 12, 18],
+    'tag': [45, 18, 27], 'tab': [30, 12, 18], 'segmented-control-segment': [30, 12, 18], 'link': [96, 48, 72],
+    // #2457: the flush icon button, 2 shapes × 3 sizes (Q287 A) × (rest → hover, rest → pressed, hover → pressed), in
+    // each of its three families (Q295.2 B).
+    'flush-icon-button': [30, 12, 18], 'flush-icon-button-destructive': [30, 12, 18], 'flush-icon-button-neutral': [30, 12, 18],
   };
   const got: Record<string, [number, number, number]> = {};
   for (const d of componentDefs) {
@@ -127,7 +135,7 @@ section('map — the per-def reaction map, literal (owner decision Q238 A, part 
     const lists = [...map.values()];
     got[d.id] = [map.size, lists.filter((l) => l.length).length, lists.reduce((k, l) => k + l.length, 0)];
   }
-  ok(JSON.stringify(Object.keys(got).sort()) === JSON.stringify(Object.keys(want).sort()), `map/scope: exactly the 12 defs with rest, hover and pressed (${Object.keys(got).join(', ')})`);
+  ok(JSON.stringify(Object.keys(got).sort()) === JSON.stringify(Object.keys(want).sort()), `map/scope: exactly the 16 defs with rest, hover and pressed (${Object.keys(got).join(', ')})`);
   ok(Object.entries(want).every(([id, w]) => JSON.stringify(got[id]) === JSON.stringify(w)), `map/counts: members, sources and reactions per def (${JSON.stringify(got)})`);
   const btn = reactionMap(plansOf('button').map(planComponentName));
   const B = (state: string): string => `appearance=filled, surface=default, inset=default, size=medium, state=${state}, leading icon=false, trailing icon=false`;
@@ -285,6 +293,51 @@ section('converge — a set built before reactions existed is updated once, then
   const next = await previewUpdate(w.host, targets(w, TAG));
   ok(previewVerdict(next).headline === '✓ All sets up to date' && next.sets[0].counts.current === 45, `converge/up to date: the next dry run reads ${previewVerdict(next).headline} (${JSON.stringify(next.sets[0].counts)})`);
   ok(membersOf(w).every((m) => typeof JSON.parse((m.getSharedPluginData as (a: string, b: string) => string)(NS, BASELINE_KEY)).reactions === 'string'), 'converge/recorded: every member\'s record now holds its reactions');
+}
+
+/* ── touch ──────────────────────────────────────────────────────────────────────────────────────────────── */
+// REST KEEPS WHILE PRESSING (owner decision Q344, #2733, reverting #2703). A touch prototype has no hover, so Rest's own
+// press reaction is the only route to Pressed. A Rest member carries While hovering → Hover AND While pressing →
+// Pressed; a Hover member While pressing → Pressed. A file built under #2703's hover-only plan has Rest WITHOUT its
+// press, AND a record that agrees (that executor wrote and recorded what it planned). That member is no hand edit: the
+// update names it and puts the press back in place. Expectations are literal, per state, read off the shim.
+// Mutation: the Rest press dropped from `reactionMap` → `touch/rest`, `touch/dry run`, `touch/restored`.
+section('touch — Rest keeps While pressing, and a file built under the hover-only plan gets it back in place');
+{
+  const WANT: Record<string, string[]> = { rest: ['ON_HOVER→hover', 'ON_PRESS→pressed'], hover: ['ON_PRESS→pressed'] };
+  const byState = (w: World): string[] => membersOf(w).flatMap((m) => {
+    const s = axesOf(String(m.name)).get('state')!;
+    const got = named(w, m).map((l) => { const [t, to] = l.split('→'); return `${t}→${to === '?' ? '?' : axesOf(to).get('state')}`; });
+    return JSON.stringify(got) === JSON.stringify(WANT[s] ?? []) ? [] : [`${m.name}: ${got.join('; ') || 'none'}`];
+  });
+  for (const id of ['tag', 'button', 'checkbox-control']) {
+    const w = await world(id);
+    const off = byState(w);
+    ok(off.length === 0, `touch/rest: on a fresh ${id} build every Rest member reads [While hovering → hover, While pressing → pressed], every Hover [While pressing → pressed], every other state none (${off.slice(0, 2).join(' | ')})`);
+  }
+  // As #2703's plugin left a tag set: every Rest member's press removed, recorded so, older revision.
+  const w = await world(TAG);
+  let seeded = 0;
+  for (const m of membersOf(w)) {
+    if (axesOf(String(m.name)).get('state') !== 'rest') continue;
+    await (m.setReactionsAsync as (r: unknown[]) => Promise<void>)(reactionsOf(m).filter((r) => r.trigger.type !== 'ON_PRESS'));
+    await writeBaseline(m);
+    const pd = m.getSharedPluginData as (a: string, b: string) => string;
+    (m.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, STAMP_KEY, pd(NS, STAMP_KEY).replace(/\|\d+$/, `|${EXECUTOR_REVISION - 1}`));
+    seeded++;
+  }
+  const S = (state: string): string => T(state, 'type=select, selection=selected, size=large');
+  ok(seeded === 9 && JSON.stringify(named(w, member(w, S('rest')))) === JSON.stringify([`ON_HOVER→${S('hover')}`]), `premise: 9 Rest members seeded hover-only, ${S('rest')} among them (${named(w, member(w, S('rest'))).join('; ')})`);
+  const { pre, res } = await confirm(w, TAG);
+  const lines = previewVerdict(pre).lines.filter((l) => l.includes('prototype reactions'));
+  ok(lines.length === 1 && lines[0] === 'tag · the member · prototype reactions: the plan says While hovering → state=hover; While pressing → state=pressed, the file has While hovering → state=hover (9 members).',
+    `touch/dry run: the missing press reaction on Rest is named as a reaction difference (${lines.join(' | ')})`);
+  ok(pre.sets[0].handEdits.length === 0 && pre.sets[0].states.filter((x) => x.state === 'update').length === 9, `touch/not hand-edited: the 9 Rest members read to update, none hand-edited (${JSON.stringify(pre.sets[0].counts)}; ${JSON.stringify(pre.sets[0].handEdits.slice(0, 2))})`);
+  ok(applyVerdict(res).ok, `touch/apply: ${applyVerdict(res).headline} (${applyVerdict(res).lines.join(' | ')})`);
+  const off = byState(w);
+  ok(off.length === 0 && JSON.stringify(named(w, member(w, S('rest')))) === JSON.stringify([`ON_HOVER→${S('hover')}`, `ON_PRESS→${S('pressed')}`]), `touch/restored: after the update every Rest member presses to Pressed again, ${S('rest')} included (${off.slice(0, 2).join(' | ')}; ${named(w, member(w, S('rest'))).join('; ')})`);
+  const next = await previewUpdate(w.host, targets(w, TAG));
+  ok(previewVerdict(next).headline === '✓ All sets up to date' && next.sets[0].counts.current === 45, `touch/up to date: the second dry run reads ${previewVerdict(next).headline} (${JSON.stringify(next.sets[0].counts)})`);
 }
 
 /* ── all three ──────────────────────────────────────────────────────────────────────────────────────────── */

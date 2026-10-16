@@ -220,6 +220,26 @@
     },
     "members": 3
   },
+  "dialog": {
+    "axes": {
+      "footer": [
+        "inline",
+        "none",
+        "stacked"
+      ],
+      "placement": [
+        "bottom",
+        "center",
+        "full"
+      ],
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ]
+    },
+    "members": 15
+  },
   "divider": {
     "axes": {
       "inset": [
@@ -266,6 +286,69 @@
       ]
     },
     "members": 4
+  },
+  "flush-icon-button": {
+    "axes": {
+      "shape": [
+        "flush",
+        "round"
+      ],
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ],
+      "state": [
+        "disabled",
+        "focus-visible",
+        "hover",
+        "pressed",
+        "rest"
+      ]
+    },
+    "members": 30
+  },
+  "flush-icon-button-destructive": {
+    "axes": {
+      "shape": [
+        "flush",
+        "round"
+      ],
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ],
+      "state": [
+        "disabled",
+        "focus-visible",
+        "hover",
+        "pressed",
+        "rest"
+      ]
+    },
+    "members": 30
+  },
+  "flush-icon-button-neutral": {
+    "axes": {
+      "shape": [
+        "flush",
+        "round"
+      ],
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ],
+      "state": [
+        "disabled",
+        "focus-visible",
+        "hover",
+        "pressed",
+        "rest"
+      ]
+    },
+    "members": 30
   },
   "focus-ring": {
     "axes": {
@@ -435,6 +518,34 @@
     },
     "members": 7
   },
+  "link": {
+    "axes": {
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ],
+      "state": [
+        "focus-visible",
+        "hover",
+        "pressed",
+        "rest"
+      ],
+      "style": [
+        "inline",
+        "standalone"
+      ],
+      "surface": [
+        "default",
+        "inverse"
+      ],
+      "weight": [
+        "default",
+        "emphasis"
+      ]
+    },
+    "members": 96
+  },
   "list": {
     "axes": {
       "size": [
@@ -464,6 +575,31 @@
       ]
     },
     "members": 9
+  },
+  "password-field": {
+    "axes": {
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ],
+      "state": [
+        "disabled",
+        "filled",
+        "focus-visible",
+        "focus-visible-filled",
+        "hover",
+        "read-only",
+        "rest"
+      ],
+      "status": [
+        "default",
+        "error",
+        "success",
+        "warning"
+      ]
+    },
+    "members": 84
   },
   "radio-control": {
     "axes": {

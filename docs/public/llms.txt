@@ -1,0 +1,31 @@
+# Prism3
+
+> Prism3 is a design-token engine. It turns a small brand input into a full token system: DTCG token files, agent metadata, Figma variables and styles, and Figma components, each checked against per-mode contrast contracts. Agents drive it through an MCP server, through the Figma plugin's agent link, and from the command line.
+
+The engine is dependency-free TypeScript in `packages/engine/`, run with `npx tsx` and no build. The Figma plugin does every write to a Figma file; an agent sends it commands and reads the results. Every path below is relative to this file, or a link into the public repository.
+
+## Reference
+
+- [commands.json](reference/commands.json): every MCP tool (name, description, input schema, output), every agent-link command (args, what it writes, what it refuses) and every command-line entry point (usage, flags), each with its source file and line. Generated from the code and checked in CI, so it matches the code at the commit it was built from.
+- [figma-conventions.json](reference/figma-conventions.json): how a Prism3 Figma file is laid out and named: the page taxonomy and its `↳ ` prefix, each component set's name, variant properties and other properties, the `_` prefix for building blocks, code-only axes and states, the `icon/<glyph>` namespace, native slots and their settings, variable collections and modes, and the canvas furniture a reader skips. Generated from the code and checked in CI.
+
+## Guides
+
+- Task guides for designers will be listed here, under `guides/`: theme a brand, apply it to Figma, build components, update a file with a dry run first, export tokens, and use the agent link.
+
+## Ecosystem
+
+- [Ecosystem map](ecosystem/index.html): every Prism3 surface, its inputs and outputs, and how a token travels from brand input to Figma, code and TokenPress.
+
+## Outputs
+
+- [DTCG token files](https://github.com/adamforrester/prism3/tree/main/packages/engine/out): one set per example brand, such as `prism3.tokens.json` (the full tree), `prism3.base.tokens.json` (the base mode) and one overlay file for each other mode.
+- [Agent metadata](https://github.com/adamforrester/prism3/blob/main/packages/engine/out/prism3.ai.json): `<brand>.ai.json` sits beside each token set and says what each token means, when to use it and when not to. Its shape is [ai-metadata.schema.json](https://github.com/adamforrester/prism3/blob/main/packages/engine/schema/ai-metadata.schema.json).
+- [Brand input schema](https://github.com/adamforrester/prism3/blob/main/packages/engine/schema/theme-schema.json): the BrandInput shape every theming tool and command accepts.
+
+## Skills
+
+- [prism3-theme](https://github.com/adamforrester/prism3/tree/main/skills/prism3-theme): author a brand.
+- [prism3-consume](https://github.com/adamforrester/prism3/tree/main/skills/prism3-consume): build UI from generated tokens.
+- [prism3-rebind](https://github.com/adamforrester/prism3/tree/main/skills/prism3-rebind): move an existing Figma file onto Prism3.
+- [prism3-build-component](https://github.com/adamforrester/prism3/tree/main/skills/prism3-build-component): author a new component definition in the engine.

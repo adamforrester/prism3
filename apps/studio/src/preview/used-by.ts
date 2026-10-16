@@ -6,16 +6,24 @@
  * never imports the definitions themselves (UI redesign S7, T4; the generator's header says why).
  */
 export const USED_BY = {
-  defs: 35,
+  defs: 41,
   radius: {
     rounded: {
+      "radius.2xl": [
+        "Dialog"
+      ],
       "radius.md": [
         "Button",
         "IconButton",
         "SegmentedControl"
       ],
+      "radius.none": [
+        "FlushIconButton",
+        "Dialog"
+      ],
       "radius.round": [
         "IconButton",
+        "FlushIconButton",
         "Radio.Control",
         "Switch.Control",
         "Badge",
@@ -27,10 +35,14 @@ export const USED_BY = {
         "Textarea",
         "Select",
         "Badge",
-        "SegmentedControl"
+        "SegmentedControl",
+        "PasswordField"
       ]
     },
     pill: {
+      "radius.2xl": [
+        "Dialog"
+      ],
       "radius.capsule": [
         "Button",
         "IconButton"
@@ -38,8 +50,13 @@ export const USED_BY = {
       "radius.md": [
         "SegmentedControl"
       ],
+      "radius.none": [
+        "FlushIconButton",
+        "Dialog"
+      ],
       "radius.round": [
         "IconButton",
+        "FlushIconButton",
         "Radio.Control",
         "Switch.Control",
         "Badge",
@@ -51,23 +68,30 @@ export const USED_BY = {
         "Textarea",
         "Select",
         "Badge",
-        "SegmentedControl"
+        "SegmentedControl",
+        "PasswordField"
       ]
     },
     boxed: {
+      "radius.2xl": [
+        "Dialog"
+      ],
       "radius.md": [
         "SegmentedControl"
       ],
       "radius.none": [
         "Button",
         "IconButton",
+        "FlushIconButton",
         "TextField",
         "Textarea",
         "Checkbox.Control",
-        "Select"
+        "Select",
+        "Dialog"
       ],
       "radius.round": [
         "IconButton",
+        "FlushIconButton",
         "Radio.Control",
         "Switch.Control",
         "Badge",
@@ -76,10 +100,14 @@ export const USED_BY = {
       ],
       "radius.sm": [
         "Badge",
-        "SegmentedControl"
+        "SegmentedControl",
+        "PasswordField"
       ]
     },
     hairline: {
+      "radius.2xl": [
+        "Dialog"
+      ],
       "radius.hairline": [
         "Button",
         "IconButton",
@@ -91,8 +119,13 @@ export const USED_BY = {
       "radius.md": [
         "SegmentedControl"
       ],
+      "radius.none": [
+        "FlushIconButton",
+        "Dialog"
+      ],
       "radius.round": [
         "IconButton",
+        "FlushIconButton",
         "Radio.Control",
         "Switch.Control",
         "Badge",
@@ -101,7 +134,8 @@ export const USED_BY = {
       ],
       "radius.sm": [
         "Badge",
-        "SegmentedControl"
+        "SegmentedControl",
+        "PasswordField"
       ]
     }
   },
@@ -109,6 +143,7 @@ export const USED_BY = {
     "size.lg.height": [
       "Button",
       "IconButton",
+      "FlushIconButton",
       "TextField",
       "Checkbox.Row",
       "Radio.Row",
@@ -116,12 +151,14 @@ export const USED_BY = {
       "Tag",
       "Tab",
       "Accordion",
-      "SegmentedControl"
+      "SegmentedControl",
+      "PasswordField"
     ],
     "size.md.height": [
       "FocusRing",
       "Button",
       "IconButton",
+      "FlushIconButton",
       "Checkbox.Row",
       "Radio.Row",
       "Switch.Row",
@@ -133,6 +170,7 @@ export const USED_BY = {
     "size.sm.height": [
       "Button",
       "IconButton",
+      "FlushIconButton",
       "Checkbox.Row",
       "Radio.Row",
       "Switch.Row",

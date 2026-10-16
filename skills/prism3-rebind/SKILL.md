@@ -39,9 +39,11 @@ decision for the owner (section 6), and most become component work.
 - **A layout override that keeps the instance attached is fine, and gets recorded.** For example, setting a
   nested part to FILL so a field stretches to its column. Record it as an override and as a gap: if every
   placement needs it, the component should do it.
-- **Where Prism3 has no component** (a header, a footer, a product card, tabs, a carousel), rebuild with
-  plain frames bound to Prism3 variables. The rule doesn't apply to pieces Prism3 doesn't have. Log the
-  missing component, and use Prism3 atoms inside it (`icon-button`, `button`, text styles) wherever they fit.
+- **Where Prism3 has no component** (a header, a footer, a product card, a carousel), rebuild with
+  plain frames bound to Prism3 variables. Check the file's Prism3 components before deciding one is
+  missing: the set grows, and tabs, accordions, lists, dividers and segmented controls now ship. The rule doesn't apply to pieces Prism3 doesn't have. Log the
+  missing component, and use Prism3 atoms inside it (`icon-button`, `flush-icon-button`, `button`,
+  `link`, text styles) wherever they fit.
 
 ## 2. Before the first write
 
@@ -67,7 +69,7 @@ decision for the owner (section 6), and most become component work.
    at the end.
 5. **Check the settings before calling anything a gap.** Several apparent gaps are brand settings
    (`packages/engine/levers.ts`). Examples: `buttonMinWidthMultiplier` (a narrow action row overflows),
-   `buttonLabelWeight` (label weight), `radiusScale` and `radiusHairline` (corner radius). A setting is a brand
+   `buttonLabelWeight` (label weight), `radiusScale` and `controlShape` (corner radius). A setting is a brand
    change, not component work.
 
 ## 3. Running a screen
@@ -78,8 +80,10 @@ decision for the owner (section 6), and most become component work.
   rerun that screen from a fresh copy. Never patch a half-built one.
 - **Each run starts from a fresh copy, in one call:** delete the previous copy, clone or instance the parked
   original, rebuild. A failed run is then repaired by running it again.
-- **Set breakpoint modes on the frame.** A mobile frame gets the type collection's mobile mode and the
-  layout collection's small mode (`setExplicitVariableModeForCollection`). That's what makes a fluid title
+- **Set breakpoint modes on the frame.** A mobile frame gets the `type-sets` collection's `mobile` mode
+  and the `layout` collection's mode for its width (`setExplicitVariableModeForCollection`). Layout
+  modes are named by the brand's breakpoints, so the smallest is `sm` in most brands and `xs` in a
+  brand that defines one; read the collection's modes rather than assuming. That's what makes a fluid title
   style render at its mobile size. A breakpoint is a mode, not a choice of text style.
 - **Order the placements:** first the components (fields, rows, buttons, icon buttons, veils, tags), then
   detach whatever legacy instances remain, then rebind everything raw. Handle composite controls (a chip with
@@ -104,7 +108,7 @@ decision for the owner (section 6), and most become component work.
 | `swapComponent()` keeps the old instance's overrides | A style or variable the legacy instance had overridden on an inner layer survives the swap. The new Prism3 instance still points at the legacy library inside, and an audit that skips instance internals never sees it | After swapping, check inside the instance for remote styles and variables; `resetOverrides()` where the design didn't rely on them (re-apply the instance's own visibility) |
 | A bound paint keeps its placeholder color | `setBoundVariableForPaint` returns a paint with the placeholder's color, and an export can render it: black text over a correct binding | Build the paint from `resolveForConsumer(node).value` |
 | Mixed-run text keeps stale node-level bindings | After every run is restyled and refilled, the node's own `boundVariables` still lists the legacy fill and font aliases | Set the whole node's fills and text style first, then the runs |
-| A legacy grid style counts as a rogue binding | `gridStyleId` points at the legacy library | Unlink it with `setGridStyleIdAsync('')` and write back identical `layoutGrids` |
+| A legacy grid style counts as a rogue binding | `gridStyleId` points at the legacy library | Apply the Prism3 grid style for the frame's breakpoint (named by the breakpoint: `sm`, `md`, …). Only if the design's grid differs from it, unlink with `setGridStyleIdAsync('')`, write back identical `layoutGrids`, and log the difference as a gap |
 | Already-bound paints slip past a value table | A pass that classifies raw paints by color skips paints that already carry a binding, including ones bound to the **legacy** library | Treat "bound to a remote variable" exactly like raw |
 | An uninstalled font hangs the load | `loadFontAsync` on an unlisted font can take most of the call budget to fail | Never load an unlisted font. A text node that uses one can still take a Prism3 text style: load only the style's font and call `setTextStyleIdAsync`. Only character edits need the missing font |
 | A FILL instance of a hugging component doesn't stretch its parts | Placed to fill a column, the field's label stretches but its input box keeps its minimum width | Override the nested part to FILL on the instance (legal, still attached), and file it |
@@ -162,7 +166,8 @@ A rogue binding is anything that still resolves to the legacy library. Walk ever
 - **inside Prism3 instances too**, for remote styles and variables left by a swap (section 4).
 
 Report "left on purpose" separately, with a reason for each: photo fills, third-party marks, effects with
-no Prism3 equivalent, hidden leftovers the owner deferred. Finish by rechecking every fingerprint.
+no Prism3 equivalent (map effects to Prism3's `shadow/*` and `shadow-dark/*` effect styles and its
+gradient styles first), hidden leftovers the owner deferred. Finish by rechecking every fingerprint.
 
 ## 8. What to hand back
 

@@ -160,7 +160,16 @@ const NOT_EN_GB = new Set([
 // from the loop below and a real `A greyscale mode.` added to the gated engine README, every
 // detection sample still passed and the gate printed `✓ clean` at exit 0. A self-check gates whatever
 // it calls — so it has to call the thing that runs.
-export const enGb = (txt: string): { word: string; index: number }[] => {
+// FILE NAMES spelled en-GB (#2637). A repo path is an identifier, the CLAUDE.md carve-out, and it ships only
+// where shipped text names a file: the agent reference (`docs/public/reference/commands.json`) gives each CLI
+// its file and line. Masked as the WHOLE path, never as the word, so the same word in prose is still caught
+// (SELF_CHECK in `lint-us-english.ts` samples both). Each entry must stay a tracked file; a rename to en-US
+// spelling makes its entry stale, and `lint-us-english.ts` fails on a stale one.
+export const EN_GB_FILE_NAMES = ['packages/engine/materialise-to-figma.ts'];
+const maskFileNames = (txt: string): string =>
+  EN_GB_FILE_NAMES.reduce((t, f) => t.split(f).join(' '.repeat(f.length)), txt);
+export const enGb = (raw: string): { word: string; index: number }[] => {
+  const txt = maskFileNames(raw);
   const found: { word: string; index: number }[] = [];
   for (const re of [PATTERN, STEMS, DOUBLE_L, RE_ENDINGS, EN_GB_WORDS, YSE, SINGLE_L]) {
     for (const m of txt.matchAll(re)) {

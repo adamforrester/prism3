@@ -2,7 +2,7 @@
 
 > Triggers an action in place. For navigation, use a link.
 
-In-flow trigger for an action that happens now, in the current context — submit, save, confirm, open a dialog, fire async work — in the brand's primary action style, the expected look of a button. Not navigation (use link / link-button, even when it looks like a button), not a persistent binary (Switch.Row), not one-of-many selection (segmented-control / toggle-button). For a destructive or a weightless action, use the Button.Destructive / Button.Neutral sibling components.
+In-flow trigger for an action that happens now, in the current context — submit, save, confirm, open a dialog, fire async work — in the brand's primary action style, the expected look of a button. Not navigation (use Link, or give the button an href so it renders an \<a>), not a persistent binary (Switch.Row), not one-of-many selection (segmented-control / toggle-button). For a destructive or a weightless action, use the Button.Destructive / Button.Neutral sibling components.
 
 - **ID:** `button`
 - **Category:** form
@@ -33,7 +33,7 @@ Use for an immediate action in the current context — submit/save/reset a form,
 ### Don't
 
 - Set inset=flush on a filled or outline button — their visible edge needs its padding; flush is for appearance=text
-- Use a button for navigation to a URL — use a link / link-button
+- Use a button with no href for navigation to a URL — use Link, or give the button an href so it renders an \<a>
 - Stack multiple filled buttons competing for attention — differentiate rank by appearance, not by adding fills
 - Use native disabled on a relevant-but-blocked control (dead end for keyboard/SR users)
 - Remove the label to make room for a spinner — the button narrows mid-submit and screen readers lose the name; the spinner takes the leading visual's place, or overlays a label held at zero opacity
@@ -52,7 +52,7 @@ Verb-first, specific, sentence case, no terminal punctuation, ≤3 words to boun
 
 - **Purpose:** Trigger an action in place.
 - **Use when:** The user needs to DO something on this surface — submit, confirm, open, apply, or start async work.
-- **Avoid when:** The target is a different location/URL → use a link (or link-button if it must look like a button). A persistent on/off state → use Switch.Row. One-of-many selection → use Radio.Group (or SegmentedControl). A toggle with pressed state → use a toggle button (not built yet). Icon-only with no visible text → use IconButton (the accessible name is required there at the type level). The action deletes or removes something → use Button.Destructive. The action carries no brand emphasis (a toolbar control, a dense row) → use Button.Neutral.
+- **Avoid when:** The target is a different location/URL → use Link (or give the button an href, which renders an \<a>, if it must look like a button). A persistent on/off state → use Switch.Row. One-of-many selection → use Radio.Group (or SegmentedControl). A toggle with pressed state → use a toggle button (not built yet). Icon-only with no visible text → use IconButton (the accessible name is required there at the type level). The action deletes or removes something → use Button.Destructive. The action carries no brand emphasis (a toolbar control, a dense row) → use Button.Neutral.
 - **Often used with:** `icon`, `spinner`, `focus-ring`
 
 ## Props
@@ -72,7 +72,7 @@ Verb-first, specific, sentence case, no terminal punctuation, ≤3 words to boun
 | `disabled` | boolean | `false` | no | Native disabled. Reserved for controls fundamentally irrelevant to the current view; removes from tab order + a11y tree. Prefer isInactive for anything relevant-but-blocked. |
 | `leadingVisual` | slot | — | no | Icon / avatar / counter / spinner before the label. |
 | `trailingVisual` | slot | — | no | Icon / caret / indicator after the label. |
-| `href` | string | — | no | Discouraged — prefer link-button. If set, the button renders an \<a>, which drops type and disabled semantics. |
+| `href` | string | — | no | A destination, for a navigation that needs a button's weight, such as "Continue to checkout". With an href, the button renders an \<a href> in the same style, Enter follows it, and type and disabled no longer apply. Anything lighter is a Link. |
 | `aria-label` | string | — | no | Extends the visible label with context it does not carry ("Delete invoice 1042" on a "Delete" button). Start it with the visible text, so a voice-control user who speaks the label still activates the control (WCAG 2.5.3 Label in Name). |
 
 ## States
@@ -114,7 +114,7 @@ Verb-first, specific, sentence case, no terminal punctuation, ≤3 words to boun
 
 - **Composes with:** `focus-ring`, `spinner`
 - **Alternative to:** `icon-button`, `switch-row`
-- **Planned:** `tooltip`, `button-group`, `menu`, `popover`, `link`, `link-button`, `toggle-button`, `split-button`
+- **Planned:** `tooltip`, `button-group`, `menu`, `popover`, `toggle-button`, `split-button`
 - **Replaces:**
   - input[type=button\|submit]
   - div[role=button]

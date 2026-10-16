@@ -509,7 +509,7 @@ export const environmentProblems = async (): Promise<string[]> => {
 /** The artifact-count meta-check, taken from the drift gate's ALREADY-CAPTURED output rather than by
  *  running `regen.ts --check` a second time (it is among the slowest gates here). This is what
  *  buffering per gate buys — point 2 paying for itself. Mirrors `ci.yml`'s own step. */
-const EXPECTED_ARTIFACTS = 194;
+const EXPECTED_ARTIFACTS = 200;
 
 /* #775's window closed 2026-08-20 and the smoke suite gates in both CI and this runner, so the
  * date constant and its clock read are GONE rather than left at a passed date. They existed to stop
@@ -631,6 +631,20 @@ export const GATES: Gate[] = [
     id: 'lint-contract-version',
     ciStep: "CONTRACT_VERSION moved by the increment the surface needs, against the base (#2334)",
     cmd: engine('lint-contract-version.ts'),
+  },
+  {
+    // #2637 — docs/public/reference/commands.json against the code it is generated from. Reads the source
+    // files only, so it needs no `after`.
+    id: 'agent-reference',
+    ciStep: 'The agent reference matches the code (#2637)',
+    cmd: engine('emit-agent-reference.ts', '--check'),
+  },
+  {
+    // #2647 — docs/public/reference/figma-conventions.json against the code it is generated from. Reads the
+    // source files and the default theme only, so it needs no `after`.
+    id: 'figma-conventions',
+    ciStep: 'The Figma conventions file matches the code (#2647)',
+    cmd: engine('emit-figma-conventions.ts', '--check'),
   },
   {
     id: 'typecheck-web',
@@ -1041,6 +1055,12 @@ export const GATES: Gate[] = [
     id: 'lint-component-docs',
     ciStep: 'Every component def is documented in both forms (#1701)',
     cmd: engine('lint-component-docs.ts'),
+  },
+  {
+    // #2637 — reads docs/public/ecosystem/{ecosystem.json,index.html} and the code; needs no build and no `after`.
+    id: 'lint-ecosystem',
+    ciStep: "The ecosystem diagram's data matches the code (#2637)",
+    cmd: engine('lint-ecosystem.ts'),
   },
   {
     // The one `tools/` battery wired into CI (#1123), and the reason its NAME is about the DETECTOR

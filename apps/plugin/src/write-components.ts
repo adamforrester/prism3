@@ -54,7 +54,7 @@
  * assertion instead, because with no caller the port could have drifted out of satisfaction with the
  * whole suite green; the trigger retired it rather than leaving two mechanisms for one guarantee.
  */
-import { planSetLayout, nestMissAdvice, nestVariantMatch, nestVariantMissAdvice, resolveNestMember, swapMissAdvice, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, planComponentName, planStamp, glyphLayerOpacities } from '@prism3/engine/anatomy-figma';
+import { planSetLayout, nestMissAdvice, nestVariantMatch, nestVariantMissAdvice, resolveNestMember, applyNestOverrides, swapMissAdvice, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, planComponentName, planStamp, glyphLayerOpacities } from '@prism3/engine/anatomy-figma';
 import type { AnatomyPlan, FigmaNodePlan, SwapFound } from '@prism3/engine/anatomy-figma';
 import { ENGINE_VERSION } from '@prism3/engine/version';
 import { tailOf } from '@prism3/engine/figma-names';
@@ -204,6 +204,11 @@ export interface CompNode {
    *  properties surface at the parent's level. Writeable only on a primary instance inside a
    *  component/set (Figma's own constraint), which is what a member's nested instance is. */
   isExposedInstance?: boolean;
+  /** A nested INSTANCE's own component properties, keyed `name#id` (#2317). Read to find the TEXT property a
+   *  plan's `nestTexts` names, then written through `setProperties`, the one way the host takes an instance's
+   *  property override. */
+  readonly componentProperties?: Record<string, { type?: string; value?: unknown }>;
+  setProperties?(properties: Record<string, string>): void;
   /** THE #865 SURFACE — properties this executor writes only to state Figma's default EXPLICITLY, so
    *  that nothing a built node carries is a default nobody decided. None of these existed on the port
    *  before, and their absence is why the defect was invisible from inside the type: a port that cannot
@@ -1864,6 +1869,30 @@ const writeComponentSet = async (
       // the same reason — per member, since one array shared across the set would carry members' handles into
       // each other's marking pass.
       if (node && n.nestExpose && n.nestExpose.length) expose?.push(node);
+      // THE PER-INSTANCE OVERRIDES (#2645), written NOW and read back — `setProperties` needs no containing component,
+      // unlike the exposure above. On Update the same write lands on the instance kept in place, so a nested instance
+      // that has no override yet gains it without a rebuild; one a designer changed by hand (`kept`) is left as it is.
+      // `applyNestOverrides` is shared with the paste payload, decision and wording.
+      if (node && n.nestOverrides && !kept)
+        for (const m of applyNestOverrides(node as Parameters<typeof applyNestOverrides>[0], n.nestOverrides, (name) => { const c = compByName.get(name); return c?.id ? String(c.id) : null; }))
+          misses.push(`${n.name}${m}`);
+      // THE NESTED INSTANCE'S OWN TEXT (#2317). A set has one default per text property, so the Password field's
+      // nested Button would read its set's "Button"; the plan's `nestTexts` names what this instance says instead,
+      // written as an instance override. The property is found by its name before the `#id` Figma appends, and
+      // only among TEXT properties; one the instance does not have is a miss, and the instance keeps its default.
+      if (node && n.nestTexts) {
+        const props = node.componentProperties ?? {};
+        const set: Record<string, string> = {};
+        for (const [prop, value] of Object.entries(n.nestTexts)) {
+          const key = Object.keys(props).find((k) => k.split('#')[0] === prop && props[k].type === 'TEXT');
+          if (key) set[key] = value;
+          else misses.push(`${n.name}.nestTexts.${prop} -> the nested instance has no TEXT property ${JSON.stringify(prop)}; it keeps its set default`);
+        }
+        if (Object.keys(set).length) {
+          try { node.setProperties?.(set); }
+          catch (err) { misses.push(`${n.name}.nestTexts -> REFUSED (${(err as Error)?.message ?? String(err)})`); }
+        }
+      }
     } else if (n.type === 'GLYPH') {
       // THE GLYPH (#864). The only node here whose content is geometry rather than a box, a binding or a
       // nomination — so it is also the only one that can be built successfully and contain nothing, which
@@ -2044,9 +2073,12 @@ const writeComponentSet = async (
         // in its own def is built at this width, so a wrapping text inside it reflows at it rather than
         // freezing at its default string's. BEFORE the modes below, because Figma switches a resized axis to
         // FIXED — the plan's modes are written after it and stand. Read back. Lockstep with the paste executor.
-        if (n.placementWidth) {
-          node.resize?.(n.placementWidth, node.height as number);
-          if (node.width !== n.placementWidth) misses.push(`${n.name}.placementWidth -> DISCARDED (set ${n.placementWidth}, reads ${String(node.width)})`);
+        // ITS HEIGHT TWIN (#2609, `FigmaNodePlan.placementHeight`), in the same resize: Dialog's full-screen panel is
+        // built at a phone's width AND height. Read back the same way. Lockstep with the paste executor.
+        if (n.placementWidth || n.placementHeight) {
+          node.resize?.(n.placementWidth ?? (node.width as number), n.placementHeight ?? (node.height as number));
+          if (n.placementWidth && node.width !== n.placementWidth) misses.push(`${n.name}.placementWidth -> DISCARDED (set ${n.placementWidth}, reads ${String(node.width)})`);
+          if (n.placementHeight && node.height !== n.placementHeight) misses.push(`${n.name}.placementHeight -> DISCARDED (set ${n.placementHeight}, reads ${String(node.height)})`);
         }
         node.layoutMode = n.layoutMode;
         node.primaryAxisAlignItems = n.primaryAxisAlignItems;

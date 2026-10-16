@@ -9,10 +9,10 @@
   "note": "tokens: every token a definition declares or the design-file projection binds, keyed by path below the root. components.<id>.keys are the definition binding keys that name it; parts.<part>.where lists, per axis, the values the part is bound at — an axis bound at every value is left out, so an empty where means every member. byComponent is the inverse. unused lists emitted tokens nothing binds.",
   "summary": {
     "emitted": 787,
-    "used": 219,
-    "unusedSemantic": 288,
+    "used": 246,
+    "unusedSemantic": 261,
     "unusedPrimitive": 280,
-    "components": 35
+    "components": 41
   },
   "tokens": {
     "border-width.hairline": {
@@ -74,6 +74,39 @@
             }
           }
         },
+        "flush-icon-button": {
+          "keys": [
+            "border-width"
+          ],
+          "parts": {
+            "container": {
+              "members": 30,
+              "where": {}
+            }
+          }
+        },
+        "flush-icon-button-destructive": {
+          "keys": [
+            "border-width"
+          ],
+          "parts": {
+            "container": {
+              "members": 30,
+              "where": {}
+            }
+          }
+        },
+        "flush-icon-button-neutral": {
+          "keys": [
+            "border-width"
+          ],
+          "parts": {
+            "container": {
+              "members": 30,
+              "where": {}
+            }
+          }
+        },
         "icon-button": {
           "keys": [
             "border-width"
@@ -103,6 +136,34 @@
           "parts": {
             "container": {
               "members": 216,
+              "where": {}
+            }
+          }
+        },
+        "password-field": {
+          "keys": [
+            "border-width",
+            "caret-width"
+          ],
+          "parts": {
+            "caret": {
+              "members": 12,
+              "where": {
+                "state": [
+                  "focus-visible"
+                ]
+              }
+            },
+            "caretEnd": {
+              "members": 12,
+              "where": {
+                "state": [
+                  "focus-visible-filled"
+                ]
+              }
+            },
+            "control": {
+              "members": 84,
               "where": {}
             }
           }
@@ -412,6 +473,35 @@
             }
           }
         },
+        "password-field": {
+          "keys": [
+            "error.border.empty",
+            "error.border.filled",
+            "error.border.focus-visible",
+            "error.border.focus-visible-filled",
+            "error.border.hover",
+            "error.border.read-only",
+            "error.border.rest"
+          ],
+          "parts": {
+            "control": {
+              "members": 18,
+              "where": {
+                "state": [
+                  "filled",
+                  "focus-visible",
+                  "focus-visible-filled",
+                  "hover",
+                  "read-only",
+                  "rest"
+                ],
+                "status": [
+                  "error"
+                ]
+              }
+            }
+          }
+        },
         "select": {
           "keys": [
             "error.border.empty",
@@ -577,6 +667,26 @@
           ],
           "parts": {}
         },
+        "password-field": {
+          "keys": [
+            "border.focus-visible",
+            "border.focus-visible-filled"
+          ],
+          "parts": {
+            "control": {
+              "members": 6,
+              "where": {
+                "state": [
+                  "focus-visible",
+                  "focus-visible-filled"
+                ],
+                "status": [
+                  "default"
+                ]
+              }
+            }
+          }
+        },
         "radio-control": {
           "keys": [
             "focus-ring"
@@ -725,6 +835,69 @@
             }
           }
         },
+        "flush-icon-button": {
+          "keys": [
+            "round.border"
+          ],
+          "parts": {
+            "container": {
+              "members": 12,
+              "where": {
+                "shape": [
+                  "round"
+                ],
+                "state": [
+                  "focus-visible",
+                  "hover",
+                  "pressed",
+                  "rest"
+                ]
+              }
+            }
+          }
+        },
+        "flush-icon-button-destructive": {
+          "keys": [
+            "round.border"
+          ],
+          "parts": {
+            "container": {
+              "members": 12,
+              "where": {
+                "shape": [
+                  "round"
+                ],
+                "state": [
+                  "focus-visible",
+                  "hover",
+                  "pressed",
+                  "rest"
+                ]
+              }
+            }
+          }
+        },
+        "flush-icon-button-neutral": {
+          "keys": [
+            "round.border"
+          ],
+          "parts": {
+            "container": {
+              "members": 12,
+              "where": {
+                "shape": [
+                  "round"
+                ],
+                "state": [
+                  "focus-visible",
+                  "hover",
+                  "pressed",
+                  "rest"
+                ]
+              }
+            }
+          }
+        },
         "tab": {
           "keys": [
             "unselected.fill.hover",
@@ -766,6 +939,35 @@
                 ],
                 "type": [
                   "status"
+                ]
+              }
+            }
+          }
+        },
+        "password-field": {
+          "keys": [
+            "success.border.empty",
+            "success.border.filled",
+            "success.border.focus-visible",
+            "success.border.focus-visible-filled",
+            "success.border.hover",
+            "success.border.read-only",
+            "success.border.rest"
+          ],
+          "parts": {
+            "control": {
+              "members": 18,
+              "where": {
+                "state": [
+                  "filled",
+                  "focus-visible",
+                  "focus-visible-filled",
+                  "hover",
+                  "read-only",
+                  "rest"
+                ],
+                "status": [
+                  "success"
                 ]
               }
             }
@@ -916,6 +1118,35 @@
             }
           }
         },
+        "password-field": {
+          "keys": [
+            "warning.border.empty",
+            "warning.border.filled",
+            "warning.border.focus-visible",
+            "warning.border.focus-visible-filled",
+            "warning.border.hover",
+            "warning.border.read-only",
+            "warning.border.rest"
+          ],
+          "parts": {
+            "control": {
+              "members": 18,
+              "where": {
+                "state": [
+                  "filled",
+                  "focus-visible",
+                  "focus-visible-filled",
+                  "hover",
+                  "read-only",
+                  "rest"
+                ],
+                "status": [
+                  "warning"
+                ]
+              }
+            }
+          }
+        },
         "select": {
           "keys": [
             "warning.border.empty",
@@ -1019,6 +1250,75 @@
                 "selection": [
                   "unchecked"
                 ],
+                "state": [
+                  "disabled"
+                ]
+              }
+            }
+          }
+        },
+        "flush-icon-button": {
+          "keys": [
+            "disabled.border"
+          ],
+          "parts": {
+            "container": {
+              "members": 3,
+              "where": {
+                "shape": [
+                  "round"
+                ],
+                "state": [
+                  "disabled"
+                ]
+              }
+            }
+          }
+        },
+        "flush-icon-button-destructive": {
+          "keys": [
+            "disabled.border"
+          ],
+          "parts": {
+            "container": {
+              "members": 3,
+              "where": {
+                "shape": [
+                  "round"
+                ],
+                "state": [
+                  "disabled"
+                ]
+              }
+            }
+          }
+        },
+        "flush-icon-button-neutral": {
+          "keys": [
+            "disabled.border"
+          ],
+          "parts": {
+            "container": {
+              "members": 3,
+              "where": {
+                "shape": [
+                  "round"
+                ],
+                "state": [
+                  "disabled"
+                ]
+              }
+            }
+          }
+        },
+        "password-field": {
+          "keys": [
+            "disabled.border"
+          ],
+          "parts": {
+            "control": {
+              "members": 12,
+              "where": {
                 "state": [
                   "disabled"
                 ]
@@ -1322,6 +1622,21 @@
             }
           }
         },
+        "password-field": {
+          "keys": [
+            "disabled.fill"
+          ],
+          "parts": {
+            "control": {
+              "members": 12,
+              "where": {
+                "state": [
+                  "disabled"
+                ]
+              }
+            }
+          }
+        },
         "radio-control": {
           "keys": [
             "disabled.indicator"
@@ -1583,6 +1898,51 @@
                 ],
                 "trailing": [
                   "true"
+                ]
+              }
+            }
+          }
+        },
+        "flush-icon-button": {
+          "keys": [
+            "disabled.icon"
+          ],
+          "parts": {
+            "icon": {
+              "members": 6,
+              "where": {
+                "state": [
+                  "disabled"
+                ]
+              }
+            }
+          }
+        },
+        "flush-icon-button-destructive": {
+          "keys": [
+            "disabled.icon"
+          ],
+          "parts": {
+            "icon": {
+              "members": 6,
+              "where": {
+                "state": [
+                  "disabled"
+                ]
+              }
+            }
+          }
+        },
+        "flush-icon-button-neutral": {
+          "keys": [
+            "disabled.icon"
+          ],
+          "parts": {
+            "icon": {
+              "members": 6,
+              "where": {
+                "state": [
+                  "disabled"
                 ]
               }
             }
@@ -1988,6 +2348,30 @@
             }
           }
         },
+        "password-field": {
+          "keys": [
+            "disabled.icon.on-fill",
+            "disabled.label.on-fill"
+          ],
+          "parts": {
+            "leadingVisual": {
+              "members": 12,
+              "where": {
+                "state": [
+                  "disabled"
+                ]
+              }
+            },
+            "placeholder": {
+              "members": 12,
+              "where": {
+                "state": [
+                  "disabled"
+                ]
+              }
+            }
+          }
+        },
         "select": {
           "keys": [
             "disabled.icon.on-fill",
@@ -2303,6 +2687,24 @@
             }
           }
         },
+        "password-field": {
+          "keys": [
+            "border.hover"
+          ],
+          "parts": {
+            "control": {
+              "members": 3,
+              "where": {
+                "state": [
+                  "hover"
+                ],
+                "status": [
+                  "default"
+                ]
+              }
+            }
+          }
+        },
         "radio-control": {
           "keys": [
             "unchecked.border.hover"
@@ -2400,6 +2802,27 @@
             }
           }
         },
+        "password-field": {
+          "keys": [
+            "border",
+            "border.read-only"
+          ],
+          "parts": {
+            "control": {
+              "members": 9,
+              "where": {
+                "state": [
+                  "filled",
+                  "read-only",
+                  "rest"
+                ],
+                "status": [
+                  "default"
+                ]
+              }
+            }
+          }
+        },
         "radio-control": {
           "keys": [
             "unchecked.border"
@@ -2488,6 +2911,25 @@
     "color.field.fill": {
       "type": "color",
       "components": {
+        "password-field": {
+          "keys": [
+            "fill"
+          ],
+          "parts": {
+            "control": {
+              "members": 60,
+              "where": {
+                "state": [
+                  "filled",
+                  "focus-visible",
+                  "focus-visible-filled",
+                  "read-only",
+                  "rest"
+                ]
+              }
+            }
+          }
+        },
         "select": {
           "keys": [
             "fill"
@@ -2644,6 +3086,22 @@
                   "status"
                 ]
               }
+            }
+          }
+        }
+      }
+    },
+    "color.foreground.primary": {
+      "type": "color",
+      "components": {
+        "dialog": {
+          "keys": [
+            "fill"
+          ],
+          "parts": {
+            "panel": {
+              "members": 15,
+              "where": {}
             }
           }
         }
@@ -2825,6 +3283,110 @@
         }
       }
     },
+    "color.icon.link.default": {
+      "type": "color",
+      "components": {
+        "link": {
+          "keys": [
+            "icon"
+          ],
+          "parts": {
+            "trailingVisual": {
+              "members": 6,
+              "where": {
+                "state": [
+                  "rest"
+                ],
+                "style": [
+                  "standalone"
+                ],
+                "surface": [
+                  "default"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "color.icon.link.focused": {
+      "type": "color",
+      "components": {
+        "link": {
+          "keys": [
+            "icon.focus-visible"
+          ],
+          "parts": {
+            "trailingVisual": {
+              "members": 6,
+              "where": {
+                "state": [
+                  "focus-visible"
+                ],
+                "style": [
+                  "standalone"
+                ],
+                "surface": [
+                  "default"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "color.icon.link.hover": {
+      "type": "color",
+      "components": {
+        "link": {
+          "keys": [
+            "icon.hover"
+          ],
+          "parts": {
+            "trailingVisual": {
+              "members": 6,
+              "where": {
+                "state": [
+                  "hover"
+                ],
+                "style": [
+                  "standalone"
+                ],
+                "surface": [
+                  "default"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "color.icon.link.pressed": {
+      "type": "color",
+      "components": {
+        "link": {
+          "keys": [
+            "icon.pressed"
+          ],
+          "parts": {
+            "trailingVisual": {
+              "members": 6,
+              "where": {
+                "state": [
+                  "pressed"
+                ],
+                "style": [
+                  "standalone"
+                ],
+                "surface": [
+                  "default"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
     "color.icon.primary": {
       "type": "color",
       "components": {
@@ -2859,6 +3421,26 @@
               "where": {
                 "type": [
                   "icon"
+                ]
+              }
+            }
+          }
+        },
+        "password-field": {
+          "keys": [
+            "icon"
+          ],
+          "parts": {
+            "leadingVisual": {
+              "members": 72,
+              "where": {
+                "state": [
+                  "filled",
+                  "focus-visible",
+                  "focus-visible-filled",
+                  "hover",
+                  "read-only",
+                  "rest"
                 ]
               }
             }
@@ -3409,6 +3991,22 @@
             }
           }
         },
+        "flush-icon-button-destructive": {
+          "keys": [
+            "flush.icon.hover",
+            "round.icon.hover"
+          ],
+          "parts": {
+            "icon": {
+              "members": 6,
+              "where": {
+                "state": [
+                  "hover"
+                ]
+              }
+            }
+          }
+        },
         "icon-button-destructive": {
           "keys": [
             "ghost.icon.hover",
@@ -3476,6 +4074,22 @@
                 ],
                 "trailing": [
                   "true"
+                ]
+              }
+            }
+          }
+        },
+        "flush-icon-button-destructive": {
+          "keys": [
+            "flush.icon.pressed",
+            "round.icon.pressed"
+          ],
+          "parts": {
+            "icon": {
+              "members": 6,
+              "where": {
+                "state": [
+                  "pressed"
                 ]
               }
             }
@@ -3566,6 +4180,23 @@
                 ],
                 "trailing": [
                   "true"
+                ]
+              }
+            }
+          }
+        },
+        "flush-icon-button-destructive": {
+          "keys": [
+            "flush.icon",
+            "round.icon"
+          ],
+          "parts": {
+            "icon": {
+              "members": 12,
+              "where": {
+                "state": [
+                  "focus-visible",
+                  "rest"
                 ]
               }
             }
@@ -3775,6 +4406,24 @@
             }
           }
         },
+        "flush-icon-button-destructive": {
+          "keys": [
+            "round.overlay.hover"
+          ],
+          "parts": {
+            "container": {
+              "members": 3,
+              "where": {
+                "shape": [
+                  "round"
+                ],
+                "state": [
+                  "hover"
+                ]
+              }
+            }
+          }
+        },
         "icon-button-destructive": {
           "keys": [
             "ghost.overlay.hover",
@@ -3822,6 +4471,24 @@
                 ],
                 "surface": [
                   "default"
+                ]
+              }
+            }
+          }
+        },
+        "flush-icon-button-destructive": {
+          "keys": [
+            "round.overlay.pressed"
+          ],
+          "parts": {
+            "container": {
+              "members": 3,
+              "where": {
+                "shape": [
+                  "round"
+                ],
+                "state": [
+                  "pressed"
                 ]
               }
             }
@@ -4430,6 +5097,22 @@
             }
           }
         },
+        "flush-icon-button-neutral": {
+          "keys": [
+            "flush.icon.hover",
+            "round.icon.hover"
+          ],
+          "parts": {
+            "icon": {
+              "members": 6,
+              "where": {
+                "state": [
+                  "hover"
+                ]
+              }
+            }
+          }
+        },
         "icon-button-neutral": {
           "keys": [
             "ghost.icon.hover",
@@ -4575,6 +5258,22 @@
                 ],
                 "trailing": [
                   "true"
+                ]
+              }
+            }
+          }
+        },
+        "flush-icon-button-neutral": {
+          "keys": [
+            "flush.icon.pressed",
+            "round.icon.pressed"
+          ],
+          "parts": {
+            "icon": {
+              "members": 6,
+              "where": {
+                "state": [
+                  "pressed"
                 ]
               }
             }
@@ -4794,6 +5493,23 @@
                 ],
                 "trailing": [
                   "true"
+                ]
+              }
+            }
+          }
+        },
+        "flush-icon-button-neutral": {
+          "keys": [
+            "flush.icon",
+            "round.icon"
+          ],
+          "parts": {
+            "icon": {
+              "members": 12,
+              "where": {
+                "state": [
+                  "focus-visible",
+                  "rest"
                 ]
               }
             }
@@ -5086,6 +5802,24 @@
             }
           }
         },
+        "flush-icon-button-neutral": {
+          "keys": [
+            "round.overlay.hover"
+          ],
+          "parts": {
+            "container": {
+              "members": 3,
+              "where": {
+                "shape": [
+                  "round"
+                ],
+                "state": [
+                  "hover"
+                ]
+              }
+            }
+          }
+        },
         "icon-button-neutral": {
           "keys": [
             "ghost.overlay.hover",
@@ -5104,6 +5838,21 @@
                 ],
                 "surface": [
                   "default"
+                ]
+              }
+            }
+          }
+        },
+        "password-field": {
+          "keys": [
+            "overlay.hover"
+          ],
+          "parts": {
+            "control": {
+              "members": 12,
+              "where": {
+                "state": [
+                  "hover"
                 ]
               }
             }
@@ -5214,6 +5963,24 @@
                 ],
                 "surface": [
                   "default"
+                ]
+              }
+            }
+          }
+        },
+        "flush-icon-button-neutral": {
+          "keys": [
+            "round.overlay.pressed"
+          ],
+          "parts": {
+            "container": {
+              "members": 3,
+              "where": {
+                "shape": [
+                  "round"
+                ],
+                "state": [
+                  "pressed"
                 ]
               }
             }
@@ -6333,6 +7100,22 @@
             }
           }
         },
+        "flush-icon-button": {
+          "keys": [
+            "flush.icon.hover",
+            "round.icon.hover"
+          ],
+          "parts": {
+            "icon": {
+              "members": 6,
+              "where": {
+                "state": [
+                  "hover"
+                ]
+              }
+            }
+          }
+        },
         "icon-button": {
           "keys": [
             "ghost.icon.hover",
@@ -6418,6 +7201,22 @@
                 ],
                 "trailing": [
                   "true"
+                ]
+              }
+            }
+          }
+        },
+        "flush-icon-button": {
+          "keys": [
+            "flush.icon.pressed",
+            "round.icon.pressed"
+          ],
+          "parts": {
+            "icon": {
+              "members": 6,
+              "where": {
+                "state": [
+                  "pressed"
                 ]
               }
             }
@@ -6526,6 +7325,23 @@
                 ],
                 "trailing": [
                   "true"
+                ]
+              }
+            }
+          }
+        },
+        "flush-icon-button": {
+          "keys": [
+            "flush.icon",
+            "round.icon"
+          ],
+          "parts": {
+            "icon": {
+              "members": 12,
+              "where": {
+                "state": [
+                  "focus-visible",
+                  "rest"
                 ]
               }
             }
@@ -6800,6 +7616,24 @@
             }
           }
         },
+        "flush-icon-button": {
+          "keys": [
+            "round.overlay.hover"
+          ],
+          "parts": {
+            "container": {
+              "members": 3,
+              "where": {
+                "shape": [
+                  "round"
+                ],
+                "state": [
+                  "hover"
+                ]
+              }
+            }
+          }
+        },
         "icon-button": {
           "keys": [
             "ghost.overlay.hover",
@@ -6847,6 +7681,24 @@
                 ],
                 "surface": [
                   "default"
+                ]
+              }
+            }
+          }
+        },
+        "flush-icon-button": {
+          "keys": [
+            "round.overlay.pressed"
+          ],
+          "parts": {
+            "container": {
+              "members": 3,
+              "where": {
+                "shape": [
+                  "round"
+                ],
+                "state": [
+                  "pressed"
                 ]
               }
             }
@@ -7791,6 +8643,102 @@
                 ],
                 "tone": [
                   "neutral"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "color.inverse.icon.link.default": {
+      "type": "color",
+      "components": {
+        "link": {
+          "keys": [],
+          "parts": {
+            "trailingVisual": {
+              "members": 6,
+              "where": {
+                "state": [
+                  "rest"
+                ],
+                "style": [
+                  "standalone"
+                ],
+                "surface": [
+                  "inverse"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "color.inverse.icon.link.focused": {
+      "type": "color",
+      "components": {
+        "link": {
+          "keys": [],
+          "parts": {
+            "trailingVisual": {
+              "members": 6,
+              "where": {
+                "state": [
+                  "focus-visible"
+                ],
+                "style": [
+                  "standalone"
+                ],
+                "surface": [
+                  "inverse"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "color.inverse.icon.link.hover": {
+      "type": "color",
+      "components": {
+        "link": {
+          "keys": [],
+          "parts": {
+            "trailingVisual": {
+              "members": 6,
+              "where": {
+                "state": [
+                  "hover"
+                ],
+                "style": [
+                  "standalone"
+                ],
+                "surface": [
+                  "inverse"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "color.inverse.icon.link.pressed": {
+      "type": "color",
+      "components": {
+        "link": {
+          "keys": [],
+          "parts": {
+            "trailingVisual": {
+              "members": 6,
+              "where": {
+                "state": [
+                  "pressed"
+                ],
+                "style": [
+                  "standalone"
+                ],
+                "surface": [
+                  "inverse"
                 ]
               }
             }
@@ -10252,6 +11200,90 @@
         }
       }
     },
+    "color.inverse.text.link.default": {
+      "type": "color",
+      "components": {
+        "link": {
+          "keys": [],
+          "parts": {
+            "label": {
+              "members": 12,
+              "where": {
+                "state": [
+                  "rest"
+                ],
+                "surface": [
+                  "inverse"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "color.inverse.text.link.focused": {
+      "type": "color",
+      "components": {
+        "link": {
+          "keys": [],
+          "parts": {
+            "label": {
+              "members": 12,
+              "where": {
+                "state": [
+                  "focus-visible"
+                ],
+                "surface": [
+                  "inverse"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "color.inverse.text.link.hover": {
+      "type": "color",
+      "components": {
+        "link": {
+          "keys": [],
+          "parts": {
+            "label": {
+              "members": 12,
+              "where": {
+                "state": [
+                  "hover"
+                ],
+                "surface": [
+                  "inverse"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "color.inverse.text.link.pressed": {
+      "type": "color",
+      "components": {
+        "link": {
+          "keys": [],
+          "parts": {
+            "label": {
+              "members": 12,
+              "where": {
+                "state": [
+                  "pressed"
+                ],
+                "surface": [
+                  "inverse"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
     "color.inverse.text.primary": {
       "type": "color",
       "components": {
@@ -10353,6 +11385,98 @@
                 ],
                 "type": [
                   "status"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "color.text.link.default": {
+      "type": "color",
+      "components": {
+        "link": {
+          "keys": [
+            "label"
+          ],
+          "parts": {
+            "label": {
+              "members": 12,
+              "where": {
+                "state": [
+                  "rest"
+                ],
+                "surface": [
+                  "default"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "color.text.link.focused": {
+      "type": "color",
+      "components": {
+        "link": {
+          "keys": [
+            "label.focus-visible"
+          ],
+          "parts": {
+            "label": {
+              "members": 12,
+              "where": {
+                "state": [
+                  "focus-visible"
+                ],
+                "surface": [
+                  "default"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "color.text.link.hover": {
+      "type": "color",
+      "components": {
+        "link": {
+          "keys": [
+            "label.hover"
+          ],
+          "parts": {
+            "label": {
+              "members": 12,
+              "where": {
+                "state": [
+                  "hover"
+                ],
+                "surface": [
+                  "default"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "color.text.link.pressed": {
+      "type": "color",
+      "components": {
+        "link": {
+          "keys": [
+            "label.pressed"
+          ],
+          "parts": {
+            "label": {
+              "members": 12,
+              "where": {
+                "state": [
+                  "pressed"
+                ],
+                "surface": [
+                  "default"
                 ]
               }
             }
@@ -10574,6 +11698,22 @@
             }
           }
         },
+        "dialog": {
+          "keys": [
+            "body",
+            "label"
+          ],
+          "parts": {
+            "placeholder": {
+              "members": 15,
+              "where": {}
+            },
+            "title": {
+              "members": 15,
+              "where": {}
+            }
+          }
+        },
         "field-label": {
           "keys": [
             "primary.indicator",
@@ -10620,6 +11760,41 @@
             "text": {
               "members": 9,
               "where": {}
+            }
+          }
+        },
+        "password-field": {
+          "keys": [
+            "caret",
+            "caret-end",
+            "label"
+          ],
+          "parts": {
+            "caret": {
+              "members": 12,
+              "where": {
+                "state": [
+                  "focus-visible"
+                ]
+              }
+            },
+            "caretEnd": {
+              "members": 12,
+              "where": {
+                "state": [
+                  "focus-visible-filled"
+                ]
+              }
+            },
+            "value": {
+              "members": 36,
+              "where": {
+                "state": [
+                  "filled",
+                  "focus-visible-filled",
+                  "read-only"
+                ]
+              }
             }
           }
         },
@@ -10728,6 +11903,17 @@
     "color.text.secondary": {
       "type": "color",
       "components": {
+        "dialog": {
+          "keys": [
+            "indicator"
+          ],
+          "parts": {
+            "description": {
+              "members": 15,
+              "where": {}
+            }
+          }
+        },
         "field-label": {
           "keys": [
             "secondary.indicator",
@@ -10768,6 +11954,26 @@
               "where": {
                 "status": [
                   "default"
+                ]
+              }
+            }
+          }
+        },
+        "password-field": {
+          "keys": [
+            "label.empty",
+            "label.focus-visible",
+            "label.hover",
+            "label.rest"
+          ],
+          "parts": {
+            "placeholder": {
+              "members": 36,
+              "where": {
+                "state": [
+                  "focus-visible",
+                  "hover",
+                  "rest"
                 ]
               }
             }
@@ -11324,6 +12530,35 @@
             }
           }
         },
+        "password-field": {
+          "keys": [
+            "size.large.caret-height"
+          ],
+          "parts": {
+            "caret": {
+              "members": 4,
+              "where": {
+                "size": [
+                  "large"
+                ],
+                "state": [
+                  "focus-visible"
+                ]
+              }
+            },
+            "caretEnd": {
+              "members": 4,
+              "where": {
+                "size": [
+                  "large"
+                ],
+                "state": [
+                  "focus-visible-filled"
+                ]
+              }
+            }
+          }
+        },
         "radio-row": {
           "keys": [
             "size.large.control-box"
@@ -11584,6 +12819,35 @@
               "where": {
                 "size": [
                   "medium"
+                ]
+              }
+            }
+          }
+        },
+        "password-field": {
+          "keys": [
+            "size.medium.caret-height"
+          ],
+          "parts": {
+            "caret": {
+              "members": 4,
+              "where": {
+                "size": [
+                  "medium"
+                ],
+                "state": [
+                  "focus-visible"
+                ]
+              }
+            },
+            "caretEnd": {
+              "members": 4,
+              "where": {
+                "size": [
+                  "medium"
+                ],
+                "state": [
+                  "focus-visible-filled"
                 ]
               }
             }
@@ -11984,6 +13248,35 @@
             }
           }
         },
+        "password-field": {
+          "keys": [
+            "size.small.caret-height"
+          ],
+          "parts": {
+            "caret": {
+              "members": 4,
+              "where": {
+                "size": [
+                  "small"
+                ],
+                "state": [
+                  "focus-visible"
+                ]
+              }
+            },
+            "caretEnd": {
+              "members": 4,
+              "where": {
+                "size": [
+                  "small"
+                ],
+                "state": [
+                  "focus-visible-filled"
+                ]
+              }
+            }
+          }
+        },
         "radio-row": {
           "keys": [
             "size.small.control-box"
@@ -12243,6 +13536,51 @@
             }
           }
         },
+        "flush-icon-button": {
+          "keys": [
+            "ring-offset"
+          ],
+          "parts": {
+            "focusRing": {
+              "members": 6,
+              "where": {
+                "state": [
+                  "focus-visible"
+                ]
+              }
+            }
+          }
+        },
+        "flush-icon-button-destructive": {
+          "keys": [
+            "ring-offset"
+          ],
+          "parts": {
+            "focusRing": {
+              "members": 6,
+              "where": {
+                "state": [
+                  "focus-visible"
+                ]
+              }
+            }
+          }
+        },
+        "flush-icon-button-neutral": {
+          "keys": [
+            "ring-offset"
+          ],
+          "parts": {
+            "focusRing": {
+              "members": 6,
+              "where": {
+                "state": [
+                  "focus-visible"
+                ]
+              }
+            }
+          }
+        },
         "focus-ring": {
           "keys": [
             "offset.control"
@@ -12286,6 +13624,21 @@
           "parts": {
             "focusRing": {
               "members": 36,
+              "where": {
+                "state": [
+                  "focus-visible"
+                ]
+              }
+            }
+          }
+        },
+        "link": {
+          "keys": [
+            "ring-offset"
+          ],
+          "parts": {
+            "focusRing": {
+              "members": 24,
               "where": {
                 "state": [
                   "focus-visible"
@@ -12394,6 +13747,22 @@
             "offset.field"
           ],
           "parts": {}
+        },
+        "password-field": {
+          "keys": [
+            "ring-offset"
+          ],
+          "parts": {
+            "focusRing": {
+              "members": 24,
+              "where": {
+                "state": [
+                  "focus-visible",
+                  "focus-visible-filled"
+                ]
+              }
+            }
+          }
         },
         "select": {
           "keys": [
@@ -12519,6 +13888,51 @@
             }
           }
         },
+        "flush-icon-button": {
+          "keys": [
+            "ring-width"
+          ],
+          "parts": {
+            "focusRing": {
+              "members": 6,
+              "where": {
+                "state": [
+                  "focus-visible"
+                ]
+              }
+            }
+          }
+        },
+        "flush-icon-button-destructive": {
+          "keys": [
+            "ring-width"
+          ],
+          "parts": {
+            "focusRing": {
+              "members": 6,
+              "where": {
+                "state": [
+                  "focus-visible"
+                ]
+              }
+            }
+          }
+        },
+        "flush-icon-button-neutral": {
+          "keys": [
+            "ring-width"
+          ],
+          "parts": {
+            "focusRing": {
+              "members": 6,
+              "where": {
+                "state": [
+                  "focus-visible"
+                ]
+              }
+            }
+          }
+        },
         "focus-ring": {
           "keys": [
             "width"
@@ -12570,6 +13984,37 @@
               "where": {
                 "state": [
                   "focus-visible"
+                ]
+              }
+            }
+          }
+        },
+        "link": {
+          "keys": [
+            "ring-width"
+          ],
+          "parts": {
+            "focusRing": {
+              "members": 24,
+              "where": {
+                "state": [
+                  "focus-visible"
+                ]
+              }
+            }
+          }
+        },
+        "password-field": {
+          "keys": [
+            "ring-width"
+          ],
+          "parts": {
+            "focusRing": {
+              "members": 24,
+              "where": {
+                "state": [
+                  "focus-visible",
+                  "focus-visible-filled"
                 ]
               }
             }
@@ -13139,6 +14584,87 @@
             }
           }
         },
+        "flush-icon-button": {
+          "keys": [
+            "size.large.flush",
+            "size.large.icon"
+          ],
+          "parts": {
+            "container": {
+              "members": 5,
+              "where": {
+                "shape": [
+                  "flush"
+                ],
+                "size": [
+                  "large"
+                ]
+              }
+            },
+            "icon": {
+              "members": 10,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
+        },
+        "flush-icon-button-destructive": {
+          "keys": [
+            "size.large.flush",
+            "size.large.icon"
+          ],
+          "parts": {
+            "container": {
+              "members": 5,
+              "where": {
+                "shape": [
+                  "flush"
+                ],
+                "size": [
+                  "large"
+                ]
+              }
+            },
+            "icon": {
+              "members": 10,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
+        },
+        "flush-icon-button-neutral": {
+          "keys": [
+            "size.large.flush",
+            "size.large.icon"
+          ],
+          "parts": {
+            "container": {
+              "members": 5,
+              "where": {
+                "shape": [
+                  "flush"
+                ],
+                "size": [
+                  "large"
+                ]
+              }
+            },
+            "icon": {
+              "members": 10,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
+        },
         "icon": {
           "keys": [
             "size.medium"
@@ -13575,6 +15101,99 @@
             }
           }
         },
+        "flush-icon-button": {
+          "keys": [
+            "size.medium.flush",
+            "size.medium.icon",
+            "size.small.flush",
+            "size.small.icon"
+          ],
+          "parts": {
+            "container": {
+              "members": 10,
+              "where": {
+                "shape": [
+                  "flush"
+                ],
+                "size": [
+                  "medium",
+                  "small"
+                ]
+              }
+            },
+            "icon": {
+              "members": 20,
+              "where": {
+                "size": [
+                  "medium",
+                  "small"
+                ]
+              }
+            }
+          }
+        },
+        "flush-icon-button-destructive": {
+          "keys": [
+            "size.medium.flush",
+            "size.medium.icon",
+            "size.small.flush",
+            "size.small.icon"
+          ],
+          "parts": {
+            "container": {
+              "members": 10,
+              "where": {
+                "shape": [
+                  "flush"
+                ],
+                "size": [
+                  "medium",
+                  "small"
+                ]
+              }
+            },
+            "icon": {
+              "members": 20,
+              "where": {
+                "size": [
+                  "medium",
+                  "small"
+                ]
+              }
+            }
+          }
+        },
+        "flush-icon-button-neutral": {
+          "keys": [
+            "size.medium.flush",
+            "size.medium.icon",
+            "size.small.flush",
+            "size.small.icon"
+          ],
+          "parts": {
+            "container": {
+              "members": 10,
+              "where": {
+                "shape": [
+                  "flush"
+                ],
+                "size": [
+                  "medium",
+                  "small"
+                ]
+              }
+            },
+            "icon": {
+              "members": 20,
+              "where": {
+                "size": [
+                  "medium",
+                  "small"
+                ]
+              }
+            }
+          }
+        },
         "icon": {
           "keys": [
             "size.small"
@@ -13680,6 +15299,24 @@
             }
           }
         },
+        "link": {
+          "keys": [
+            "size.large.icon"
+          ],
+          "parts": {
+            "trailingVisual": {
+              "members": 16,
+              "where": {
+                "size": [
+                  "large"
+                ],
+                "style": [
+                  "standalone"
+                ]
+              }
+            }
+          }
+        },
         "list-item": {
           "keys": [
             "size.small.icon"
@@ -13695,6 +15332,17 @@
                   "icon"
                 ]
               }
+            }
+          }
+        },
+        "password-field": {
+          "keys": [
+            "icon-size"
+          ],
+          "parts": {
+            "leadingVisual": {
+              "members": 84,
+              "where": {}
             }
           }
         },
@@ -14082,6 +15730,26 @@
           ],
           "parts": {}
         },
+        "link": {
+          "keys": [
+            "size.medium.icon",
+            "size.small.icon"
+          ],
+          "parts": {
+            "trailingVisual": {
+              "members": 32,
+              "where": {
+                "size": [
+                  "medium",
+                  "small"
+                ],
+                "style": [
+                  "standalone"
+                ]
+              }
+            }
+          }
+        },
         "spinner": {
           "keys": [
             "size.x-small"
@@ -14113,6 +15781,29 @@
             "grip": {
               "members": 84,
               "where": {}
+            }
+          }
+        }
+      }
+    },
+    "radius.2xl": {
+      "type": "dimension",
+      "components": {
+        "dialog": {
+          "keys": [
+            "placement.bottom.radius-top",
+            "placement.center.radius-bottom",
+            "placement.center.radius-top"
+          ],
+          "parts": {
+            "panel": {
+              "members": 12,
+              "where": {
+                "placement": [
+                  "bottom",
+                  "center"
+                ]
+              }
             }
           }
         }
@@ -14212,6 +15903,77 @@
         }
       }
     },
+    "radius.none": {
+      "type": "dimension",
+      "components": {
+        "dialog": {
+          "keys": [
+            "placement.bottom.radius-bottom",
+            "placement.full.radius-bottom",
+            "placement.full.radius-top"
+          ],
+          "parts": {
+            "panel": {
+              "members": 6,
+              "where": {
+                "placement": [
+                  "bottom",
+                  "full"
+                ],
+                "size": [
+                  "medium"
+                ]
+              }
+            }
+          }
+        },
+        "flush-icon-button": {
+          "keys": [
+            "radius.flush"
+          ],
+          "parts": {
+            "container": {
+              "members": 15,
+              "where": {
+                "shape": [
+                  "flush"
+                ]
+              }
+            }
+          }
+        },
+        "flush-icon-button-destructive": {
+          "keys": [
+            "radius.flush"
+          ],
+          "parts": {
+            "container": {
+              "members": 15,
+              "where": {
+                "shape": [
+                  "flush"
+                ]
+              }
+            }
+          }
+        },
+        "flush-icon-button-neutral": {
+          "keys": [
+            "radius.flush"
+          ],
+          "parts": {
+            "container": {
+              "members": 15,
+              "where": {
+                "shape": [
+                  "flush"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
     "radius.round": {
       "type": "dimension",
       "components": {
@@ -14230,6 +15992,51 @@
                 "type": [
                   "count",
                   "dot"
+                ]
+              }
+            }
+          }
+        },
+        "flush-icon-button": {
+          "keys": [
+            "radius.round"
+          ],
+          "parts": {
+            "container": {
+              "members": 15,
+              "where": {
+                "shape": [
+                  "round"
+                ]
+              }
+            }
+          }
+        },
+        "flush-icon-button-destructive": {
+          "keys": [
+            "radius.round"
+          ],
+          "parts": {
+            "container": {
+              "members": 15,
+              "where": {
+                "shape": [
+                  "round"
+                ]
+              }
+            }
+          }
+        },
+        "flush-icon-button-neutral": {
+          "keys": [
+            "radius.round"
+          ],
+          "parts": {
+            "container": {
+              "members": 15,
+              "where": {
+                "shape": [
+                  "round"
                 ]
               }
             }
@@ -14360,6 +16167,17 @@
             }
           }
         },
+        "password-field": {
+          "keys": [
+            "radius"
+          ],
+          "parts": {
+            "control": {
+              "members": 84,
+              "where": {}
+            }
+          }
+        },
         "segmented-control-segment": {
           "keys": [
             "indicator-radius"
@@ -14400,6 +16218,22 @@
           "parts": {
             "control": {
               "members": 84,
+              "where": {}
+            }
+          }
+        }
+      }
+    },
+    "shadow.xl": {
+      "type": "shadow",
+      "components": {
+        "dialog": {
+          "keys": [
+            "shadow"
+          ],
+          "parts": {
+            "panel": {
+              "members": 15,
               "where": {}
             }
           }
@@ -14475,6 +16309,60 @@
           ],
           "parts": {}
         },
+        "flush-icon-button": {
+          "keys": [
+            "size.large.round"
+          ],
+          "parts": {
+            "container": {
+              "members": 5,
+              "where": {
+                "shape": [
+                  "round"
+                ],
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
+        },
+        "flush-icon-button-destructive": {
+          "keys": [
+            "size.large.round"
+          ],
+          "parts": {
+            "container": {
+              "members": 5,
+              "where": {
+                "shape": [
+                  "round"
+                ],
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
+        },
+        "flush-icon-button-neutral": {
+          "keys": [
+            "size.large.round"
+          ],
+          "parts": {
+            "container": {
+              "members": 5,
+              "where": {
+                "shape": [
+                  "round"
+                ],
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
+        },
         "icon-button": {
           "keys": [
             "size.large.side"
@@ -14512,6 +16400,21 @@
           "parts": {
             "container": {
               "members": 72,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
+        },
+        "password-field": {
+          "keys": [
+            "size.large.height"
+          ],
+          "parts": {
+            "control": {
+              "members": 28,
               "where": {
                 "size": [
                   "large"
@@ -14690,6 +16593,60 @@
             }
           }
         },
+        "flush-icon-button": {
+          "keys": [
+            "size.medium.round"
+          ],
+          "parts": {
+            "container": {
+              "members": 5,
+              "where": {
+                "shape": [
+                  "round"
+                ],
+                "size": [
+                  "medium"
+                ]
+              }
+            }
+          }
+        },
+        "flush-icon-button-destructive": {
+          "keys": [
+            "size.medium.round"
+          ],
+          "parts": {
+            "container": {
+              "members": 5,
+              "where": {
+                "shape": [
+                  "round"
+                ],
+                "size": [
+                  "medium"
+                ]
+              }
+            }
+          }
+        },
+        "flush-icon-button-neutral": {
+          "keys": [
+            "size.medium.round"
+          ],
+          "parts": {
+            "container": {
+              "members": 5,
+              "where": {
+                "shape": [
+                  "round"
+                ],
+                "size": [
+                  "medium"
+                ]
+              }
+            }
+          }
+        },
         "focus-ring": {
           "keys": [
             "nominal-side"
@@ -14839,6 +16796,23 @@
             }
           }
         },
+        "password-field": {
+          "keys": [
+            "size.medium.height",
+            "size.small.height"
+          ],
+          "parts": {
+            "control": {
+              "members": 56,
+              "where": {
+                "size": [
+                  "medium",
+                  "small"
+                ]
+              }
+            }
+          }
+        },
         "select": {
           "keys": [
             "size.medium.min-height",
@@ -14928,6 +16902,60 @@
             "size.small.min-height"
           ],
           "parts": {}
+        },
+        "flush-icon-button": {
+          "keys": [
+            "size.small.round"
+          ],
+          "parts": {
+            "container": {
+              "members": 5,
+              "where": {
+                "shape": [
+                  "round"
+                ],
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
+        "flush-icon-button-destructive": {
+          "keys": [
+            "size.small.round"
+          ],
+          "parts": {
+            "container": {
+              "members": 5,
+              "where": {
+                "shape": [
+                  "round"
+                ],
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
+        "flush-icon-button-neutral": {
+          "keys": [
+            "size.small.round"
+          ],
+          "parts": {
+            "container": {
+              "members": 5,
+              "where": {
+                "shape": [
+                  "round"
+                ],
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
         },
         "icon-button": {
           "keys": [
@@ -15163,6 +17191,41 @@
             }
           }
         },
+        "dialog": {
+          "keys": [
+            "pad-none"
+          ],
+          "parts": {
+            "body": {
+              "members": 15,
+              "where": {}
+            },
+            "footerInline": {
+              "members": 5,
+              "where": {
+                "footer": [
+                  "inline"
+                ]
+              }
+            },
+            "footerStacked": {
+              "members": 5,
+              "where": {
+                "footer": [
+                  "stacked"
+                ]
+              }
+            },
+            "header": {
+              "members": 15,
+              "where": {}
+            },
+            "panel": {
+              "members": 15,
+              "where": {}
+            }
+          }
+        },
         "divider": {
           "keys": [
             "horizontal.inset.pad-block",
@@ -15375,6 +17438,23 @@
             }
           }
         },
+        "link": {
+          "keys": [
+            "size.medium.gap",
+            "size.small.gap"
+          ],
+          "parts": {
+            "container": {
+              "members": 64,
+              "where": {
+                "size": [
+                  "medium",
+                  "small"
+                ]
+              }
+            }
+          }
+        },
         "segmented-control-segment": {
           "keys": [
             "inset"
@@ -15493,6 +17573,21 @@
             "message": {
               "members": 4,
               "where": {}
+            }
+          }
+        },
+        "password-field": {
+          "keys": [
+            "size.small.pad-y"
+          ],
+          "parts": {
+            "control": {
+              "members": 28,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
             }
           }
         },
@@ -15713,6 +17808,26 @@
             }
           }
         },
+        "dialog": {
+          "keys": [
+            "footer.stacked.gap",
+            "title-gap"
+          ],
+          "parts": {
+            "footerStacked": {
+              "members": 5,
+              "where": {
+                "footer": [
+                  "stacked"
+                ]
+              }
+            },
+            "titleBox": {
+              "members": 15,
+              "where": {}
+            }
+          }
+        },
         "divider": {
           "keys": [
             "vertical.middle-inset.pad-block"
@@ -15731,6 +17846,21 @@
             }
           }
         },
+        "link": {
+          "keys": [
+            "size.large.gap"
+          ],
+          "parts": {
+            "container": {
+              "members": 32,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
+        },
         "list": {
           "keys": [
             "size.small.gap"
@@ -15743,6 +17873,34 @@
                   "small"
                 ]
               }
+            }
+          }
+        },
+        "password-field": {
+          "keys": [
+            "root-gap",
+            "size.large.gap",
+            "size.large.pad-y",
+            "size.medium.gap",
+            "size.medium.pad-y",
+            "size.small.gap"
+          ],
+          "parts": {
+            "container": {
+              "members": 84,
+              "where": {}
+            },
+            "content": {
+              "members": 84,
+              "where": {}
+            },
+            "control": {
+              "members": 84,
+              "where": {}
+            },
+            "labelRow": {
+              "members": 84,
+              "where": {}
             }
           }
         },
@@ -16052,6 +18210,21 @@
             }
           }
         },
+        "dialog": {
+          "keys": [
+            "footer.inline.gap"
+          ],
+          "parts": {
+            "footerInline": {
+              "members": 5,
+              "where": {
+                "footer": [
+                  "inline"
+                ]
+              }
+            }
+          }
+        },
         "list": {
           "keys": [
             "size.medium.gap"
@@ -16221,6 +18394,66 @@
             }
           }
         },
+        "dialog": {
+          "keys": [
+            "gap",
+            "header-gap",
+            "placement.bottom.pad",
+            "placement.full.pad"
+          ],
+          "parts": {
+            "body": {
+              "members": 6,
+              "where": {
+                "placement": [
+                  "bottom",
+                  "full"
+                ],
+                "size": [
+                  "medium"
+                ]
+              }
+            },
+            "footerInline": {
+              "members": 2,
+              "where": {
+                "footer": [
+                  "inline"
+                ],
+                "placement": [
+                  "bottom",
+                  "full"
+                ],
+                "size": [
+                  "medium"
+                ]
+              }
+            },
+            "footerStacked": {
+              "members": 2,
+              "where": {
+                "footer": [
+                  "stacked"
+                ],
+                "placement": [
+                  "bottom",
+                  "full"
+                ],
+                "size": [
+                  "medium"
+                ]
+              }
+            },
+            "header": {
+              "members": 15,
+              "where": {}
+            },
+            "panel": {
+              "members": 15,
+              "where": {}
+            }
+          }
+        },
         "divider": {
           "keys": [
             "horizontal.inset.pad-start",
@@ -16252,6 +18485,23 @@
               "where": {
                 "size": [
                   "large"
+                ]
+              }
+            }
+          }
+        },
+        "password-field": {
+          "keys": [
+            "size.medium.pad-x",
+            "size.small.pad-x"
+          ],
+          "parts": {
+            "control": {
+              "members": 56,
+              "where": {
+                "size": [
+                  "medium",
+                  "small"
                 ]
               }
             }
@@ -16359,6 +18609,32 @@
     "space.250": {
       "type": "dimension",
       "components": {
+        "accordion": {
+          "keys": [
+            "size.large.pad-x"
+          ],
+          "parts": {
+            "content": {
+              "members": 4,
+              "where": {
+                "expansion": [
+                  "expanded"
+                ],
+                "size": [
+                  "large"
+                ]
+              }
+            },
+            "header": {
+              "members": 8,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
+        },
         "segmented-control-segment": {
           "keys": [
             "size.large.padding-x"
@@ -16396,7 +18672,6 @@
       "components": {
         "accordion": {
           "keys": [
-            "size.large.pad-x",
             "size.large.panel-pad-end"
           ],
           "parts": {
@@ -16406,14 +18681,6 @@
                 "expansion": [
                   "expanded"
                 ],
-                "size": [
-                  "large"
-                ]
-              }
-            },
-            "header": {
-              "members": 8,
-              "where": {
                 "size": [
                   "large"
                 ]
@@ -16475,6 +18742,59 @@
             }
           }
         },
+        "dialog": {
+          "keys": [
+            "placement.center.pad"
+          ],
+          "parts": {
+            "body": {
+              "members": 9,
+              "where": {
+                "placement": [
+                  "center"
+                ]
+              }
+            },
+            "footerInline": {
+              "members": 3,
+              "where": {
+                "footer": [
+                  "inline"
+                ],
+                "placement": [
+                  "center"
+                ]
+              }
+            },
+            "footerStacked": {
+              "members": 3,
+              "where": {
+                "footer": [
+                  "stacked"
+                ],
+                "placement": [
+                  "center"
+                ]
+              }
+            },
+            "header": {
+              "members": 9,
+              "where": {
+                "placement": [
+                  "center"
+                ]
+              }
+            },
+            "panel": {
+              "members": 9,
+              "where": {
+                "placement": [
+                  "center"
+                ]
+              }
+            }
+          }
+        },
         "list-item": {
           "keys": [
             "size.small.marker-column"
@@ -16485,6 +18805,21 @@
               "where": {
                 "size": [
                   "small"
+                ]
+              }
+            }
+          }
+        },
+        "password-field": {
+          "keys": [
+            "size.large.pad-x"
+          ],
+          "parts": {
+            "control": {
+              "members": 28,
+              "where": {
+                "size": [
+                  "large"
                 ]
               }
             }
@@ -16613,6 +18948,30 @@
             }
           }
         },
+        "link": {
+          "keys": [
+            "size.large.type.default.standalone.rest"
+          ],
+          "parts": {
+            "label": {
+              "members": 2,
+              "where": {
+                "size": [
+                  "large"
+                ],
+                "state": [
+                  "rest"
+                ],
+                "style": [
+                  "standalone"
+                ],
+                "weight": [
+                  "default"
+                ]
+              }
+            }
+          }
+        },
         "list-item": {
           "keys": [
             "size.large.text"
@@ -16634,6 +18993,40 @@
               "where": {
                 "size": [
                   "large"
+                ]
+              }
+            }
+          }
+        },
+        "password-field": {
+          "keys": [
+            "size.large.type"
+          ],
+          "parts": {
+            "placeholder": {
+              "members": 16,
+              "where": {
+                "size": [
+                  "large"
+                ],
+                "state": [
+                  "disabled",
+                  "focus-visible",
+                  "hover",
+                  "rest"
+                ]
+              }
+            },
+            "value": {
+              "members": 12,
+              "where": {
+                "size": [
+                  "large"
+                ],
+                "state": [
+                  "filled",
+                  "focus-visible-filled",
+                  "read-only"
                 ]
               }
             }
@@ -16758,6 +19151,93 @@
         }
       }
     },
+    "type.body.lg.default-link": {
+      "type": "typography",
+      "components": {
+        "link": {
+          "keys": [
+            "size.large.type.default.inline.focus-visible",
+            "size.large.type.default.inline.hover",
+            "size.large.type.default.inline.pressed",
+            "size.large.type.default.inline.rest",
+            "size.large.type.default.standalone.focus-visible",
+            "size.large.type.default.standalone.hover",
+            "size.large.type.default.standalone.pressed"
+          ],
+          "parts": {
+            "label": {
+              "members": 14,
+              "where": {
+                "size": [
+                  "large"
+                ],
+                "weight": [
+                  "default"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "type.body.lg.strong": {
+      "type": "typography",
+      "components": {
+        "link": {
+          "keys": [
+            "size.large.type.emphasis.standalone.rest"
+          ],
+          "parts": {
+            "label": {
+              "members": 2,
+              "where": {
+                "size": [
+                  "large"
+                ],
+                "state": [
+                  "rest"
+                ],
+                "style": [
+                  "standalone"
+                ],
+                "weight": [
+                  "emphasis"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "type.body.lg.strong-link": {
+      "type": "typography",
+      "components": {
+        "link": {
+          "keys": [
+            "size.large.type.emphasis.inline.focus-visible",
+            "size.large.type.emphasis.inline.hover",
+            "size.large.type.emphasis.inline.pressed",
+            "size.large.type.emphasis.inline.rest",
+            "size.large.type.emphasis.standalone.focus-visible",
+            "size.large.type.emphasis.standalone.hover",
+            "size.large.type.emphasis.standalone.pressed"
+          ],
+          "parts": {
+            "label": {
+              "members": 14,
+              "where": {
+                "size": [
+                  "large"
+                ],
+                "weight": [
+                  "emphasis"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
     "type.body.md.default": {
       "type": "typography",
       "components": {
@@ -16794,6 +19274,22 @@
             }
           }
         },
+        "dialog": {
+          "keys": [
+            "body-type",
+            "description-type"
+          ],
+          "parts": {
+            "description": {
+              "members": 15,
+              "where": {}
+            },
+            "placeholder": {
+              "members": 15,
+              "where": {}
+            }
+          }
+        },
         "field-label": {
           "keys": [
             "size.large.regular.text"
@@ -16823,6 +19319,30 @@
             }
           }
         },
+        "link": {
+          "keys": [
+            "size.medium.type.default.standalone.rest"
+          ],
+          "parts": {
+            "label": {
+              "members": 2,
+              "where": {
+                "size": [
+                  "medium"
+                ],
+                "state": [
+                  "rest"
+                ],
+                "style": [
+                  "standalone"
+                ],
+                "weight": [
+                  "default"
+                ]
+              }
+            }
+          }
+        },
         "list-item": {
           "keys": [
             "size.medium.text"
@@ -16844,6 +19364,40 @@
               "where": {
                 "size": [
                   "medium"
+                ]
+              }
+            }
+          }
+        },
+        "password-field": {
+          "keys": [
+            "size.medium.type"
+          ],
+          "parts": {
+            "placeholder": {
+              "members": 16,
+              "where": {
+                "size": [
+                  "medium"
+                ],
+                "state": [
+                  "disabled",
+                  "focus-visible",
+                  "hover",
+                  "rest"
+                ]
+              }
+            },
+            "value": {
+              "members": 12,
+              "where": {
+                "size": [
+                  "medium"
+                ],
+                "state": [
+                  "filled",
+                  "focus-visible-filled",
+                  "read-only"
                 ]
               }
             }
@@ -16983,6 +19537,35 @@
         }
       }
     },
+    "type.body.md.default-link": {
+      "type": "typography",
+      "components": {
+        "link": {
+          "keys": [
+            "size.medium.type.default.inline.focus-visible",
+            "size.medium.type.default.inline.hover",
+            "size.medium.type.default.inline.pressed",
+            "size.medium.type.default.inline.rest",
+            "size.medium.type.default.standalone.focus-visible",
+            "size.medium.type.default.standalone.hover",
+            "size.medium.type.default.standalone.pressed"
+          ],
+          "parts": {
+            "label": {
+              "members": 14,
+              "where": {
+                "size": [
+                  "medium"
+                ],
+                "weight": [
+                  "default"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
     "type.body.md.strong": {
       "type": "typography",
       "components": {
@@ -17010,6 +19593,59 @@
                 ],
                 "weight": [
                   "bold"
+                ]
+              }
+            }
+          }
+        },
+        "link": {
+          "keys": [
+            "size.medium.type.emphasis.standalone.rest"
+          ],
+          "parts": {
+            "label": {
+              "members": 2,
+              "where": {
+                "size": [
+                  "medium"
+                ],
+                "state": [
+                  "rest"
+                ],
+                "style": [
+                  "standalone"
+                ],
+                "weight": [
+                  "emphasis"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "type.body.md.strong-link": {
+      "type": "typography",
+      "components": {
+        "link": {
+          "keys": [
+            "size.medium.type.emphasis.inline.focus-visible",
+            "size.medium.type.emphasis.inline.hover",
+            "size.medium.type.emphasis.inline.pressed",
+            "size.medium.type.emphasis.inline.rest",
+            "size.medium.type.emphasis.standalone.focus-visible",
+            "size.medium.type.emphasis.standalone.hover",
+            "size.medium.type.emphasis.standalone.pressed"
+          ],
+          "parts": {
+            "label": {
+              "members": 14,
+              "where": {
+                "size": [
+                  "medium"
+                ],
+                "weight": [
+                  "emphasis"
                 ]
               }
             }
@@ -17082,6 +19718,30 @@
             }
           }
         },
+        "link": {
+          "keys": [
+            "size.small.type.default.standalone.rest"
+          ],
+          "parts": {
+            "label": {
+              "members": 2,
+              "where": {
+                "size": [
+                  "small"
+                ],
+                "state": [
+                  "rest"
+                ],
+                "style": [
+                  "standalone"
+                ],
+                "weight": [
+                  "default"
+                ]
+              }
+            }
+          }
+        },
         "list-item": {
           "keys": [
             "size.small.text"
@@ -17103,6 +19763,40 @@
               "where": {
                 "size": [
                   "small"
+                ]
+              }
+            }
+          }
+        },
+        "password-field": {
+          "keys": [
+            "size.small.type"
+          ],
+          "parts": {
+            "placeholder": {
+              "members": 16,
+              "where": {
+                "size": [
+                  "small"
+                ],
+                "state": [
+                  "disabled",
+                  "focus-visible",
+                  "hover",
+                  "rest"
+                ]
+              }
+            },
+            "value": {
+              "members": 12,
+              "where": {
+                "size": [
+                  "small"
+                ],
+                "state": [
+                  "filled",
+                  "focus-visible-filled",
+                  "read-only"
                 ]
               }
             }
@@ -17242,6 +19936,35 @@
         }
       }
     },
+    "type.body.sm.default-link": {
+      "type": "typography",
+      "components": {
+        "link": {
+          "keys": [
+            "size.small.type.default.inline.focus-visible",
+            "size.small.type.default.inline.hover",
+            "size.small.type.default.inline.pressed",
+            "size.small.type.default.inline.rest",
+            "size.small.type.default.standalone.focus-visible",
+            "size.small.type.default.standalone.hover",
+            "size.small.type.default.standalone.pressed"
+          ],
+          "parts": {
+            "label": {
+              "members": 14,
+              "where": {
+                "size": [
+                  "small"
+                ],
+                "weight": [
+                  "default"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
     "type.body.sm.strong": {
       "type": "typography",
       "components": {
@@ -17269,6 +19992,59 @@
                 ],
                 "weight": [
                   "bold"
+                ]
+              }
+            }
+          }
+        },
+        "link": {
+          "keys": [
+            "size.small.type.emphasis.standalone.rest"
+          ],
+          "parts": {
+            "label": {
+              "members": 2,
+              "where": {
+                "size": [
+                  "small"
+                ],
+                "state": [
+                  "rest"
+                ],
+                "style": [
+                  "standalone"
+                ],
+                "weight": [
+                  "emphasis"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "type.body.sm.strong-link": {
+      "type": "typography",
+      "components": {
+        "link": {
+          "keys": [
+            "size.small.type.emphasis.inline.focus-visible",
+            "size.small.type.emphasis.inline.hover",
+            "size.small.type.emphasis.inline.pressed",
+            "size.small.type.emphasis.inline.rest",
+            "size.small.type.emphasis.standalone.focus-visible",
+            "size.small.type.emphasis.standalone.hover",
+            "size.small.type.emphasis.standalone.pressed"
+          ],
+          "parts": {
+            "label": {
+              "members": 14,
+              "where": {
+                "size": [
+                  "small"
+                ],
+                "weight": [
+                  "emphasis"
                 ]
               }
             }
@@ -17496,6 +20272,17 @@
                   "large"
                 ]
               }
+            }
+          }
+        },
+        "dialog": {
+          "keys": [
+            "title-type"
+          ],
+          "parts": {
+            "title": {
+              "members": 15,
+              "where": {}
             }
           }
         },
@@ -18225,6 +21012,7 @@
         "space.100",
         "space.150",
         "space.200",
+        "space.250",
         "space.300",
         "type.body.lg.default",
         "type.body.md.default",
@@ -18775,6 +21563,43 @@
       ],
       "drawnNotDeclared": []
     },
+    "dialog": {
+      "members": 15,
+      "axes": {
+        "footer": [
+          "inline",
+          "none",
+          "stacked"
+        ],
+        "placement": [
+          "bottom",
+          "center",
+          "full"
+        ],
+        "size": [
+          "large",
+          "medium",
+          "small"
+        ]
+      },
+      "tokens": [
+        "color.foreground.primary",
+        "color.text.primary",
+        "color.text.secondary",
+        "radius.2xl",
+        "radius.none",
+        "shadow.xl",
+        "space.0",
+        "space.100",
+        "space.150",
+        "space.200",
+        "space.300",
+        "type.body.md.default",
+        "type.label.lg.emphasis"
+      ],
+      "declaredNotDrawn": [],
+      "drawnNotDeclared": []
+    },
     "divider": {
       "members": 5,
       "axes": {
@@ -18865,6 +21690,135 @@
       "declaredNotDrawn": [
         "color.icon.secondary"
       ],
+      "drawnNotDeclared": []
+    },
+    "flush-icon-button": {
+      "members": 30,
+      "axes": {
+        "shape": [
+          "flush",
+          "round"
+        ],
+        "size": [
+          "large",
+          "medium",
+          "small"
+        ],
+        "state": [
+          "disabled",
+          "focus-visible",
+          "hover",
+          "pressed",
+          "rest"
+        ]
+      },
+      "tokens": [
+        "border-width.hairline",
+        "color.border.secondary",
+        "color.disabled.border",
+        "color.disabled.icon",
+        "color.interactive.primary.icon.hover",
+        "color.interactive.primary.icon.pressed",
+        "color.interactive.primary.icon.rest",
+        "color.interactive.primary.overlay.hover",
+        "color.interactive.primary.overlay.pressed",
+        "focus.ring.offset",
+        "focus.ring.width",
+        "icon.size.md",
+        "icon.size.sm",
+        "radius.none",
+        "radius.round",
+        "size.lg.height",
+        "size.md.height",
+        "size.sm.height"
+      ],
+      "declaredNotDrawn": [],
+      "drawnNotDeclared": []
+    },
+    "flush-icon-button-destructive": {
+      "members": 30,
+      "axes": {
+        "shape": [
+          "flush",
+          "round"
+        ],
+        "size": [
+          "large",
+          "medium",
+          "small"
+        ],
+        "state": [
+          "disabled",
+          "focus-visible",
+          "hover",
+          "pressed",
+          "rest"
+        ]
+      },
+      "tokens": [
+        "border-width.hairline",
+        "color.border.secondary",
+        "color.disabled.border",
+        "color.disabled.icon",
+        "color.interactive.destructive.icon.hover",
+        "color.interactive.destructive.icon.pressed",
+        "color.interactive.destructive.icon.rest",
+        "color.interactive.destructive.overlay.hover",
+        "color.interactive.destructive.overlay.pressed",
+        "focus.ring.offset",
+        "focus.ring.width",
+        "icon.size.md",
+        "icon.size.sm",
+        "radius.none",
+        "radius.round",
+        "size.lg.height",
+        "size.md.height",
+        "size.sm.height"
+      ],
+      "declaredNotDrawn": [],
+      "drawnNotDeclared": []
+    },
+    "flush-icon-button-neutral": {
+      "members": 30,
+      "axes": {
+        "shape": [
+          "flush",
+          "round"
+        ],
+        "size": [
+          "large",
+          "medium",
+          "small"
+        ],
+        "state": [
+          "disabled",
+          "focus-visible",
+          "hover",
+          "pressed",
+          "rest"
+        ]
+      },
+      "tokens": [
+        "border-width.hairline",
+        "color.border.secondary",
+        "color.disabled.border",
+        "color.disabled.icon",
+        "color.interactive.neutral.icon.hover",
+        "color.interactive.neutral.icon.pressed",
+        "color.interactive.neutral.icon.rest",
+        "color.interactive.neutral.overlay.hover",
+        "color.interactive.neutral.overlay.pressed",
+        "focus.ring.offset",
+        "focus.ring.width",
+        "icon.size.md",
+        "icon.size.sm",
+        "radius.none",
+        "radius.round",
+        "size.lg.height",
+        "size.md.height",
+        "size.sm.height"
+      ],
+      "declaredNotDrawn": [],
       "drawnNotDeclared": []
     },
     "focus-ring": {
@@ -19270,6 +22224,81 @@
       "declaredNotDrawn": [],
       "drawnNotDeclared": []
     },
+    "link": {
+      "members": 96,
+      "axes": {
+        "size": [
+          "large",
+          "medium",
+          "small"
+        ],
+        "state": [
+          "focus-visible",
+          "hover",
+          "pressed",
+          "rest"
+        ],
+        "style": [
+          "inline",
+          "standalone"
+        ],
+        "surface": [
+          "default",
+          "inverse"
+        ],
+        "weight": [
+          "default",
+          "emphasis"
+        ]
+      },
+      "tokens": [
+        "color.icon.link.default",
+        "color.icon.link.focused",
+        "color.icon.link.hover",
+        "color.icon.link.pressed",
+        "color.inverse.icon.link.default",
+        "color.inverse.icon.link.focused",
+        "color.inverse.icon.link.hover",
+        "color.inverse.icon.link.pressed",
+        "color.inverse.text.link.default",
+        "color.inverse.text.link.focused",
+        "color.inverse.text.link.hover",
+        "color.inverse.text.link.pressed",
+        "color.text.link.default",
+        "color.text.link.focused",
+        "color.text.link.hover",
+        "color.text.link.pressed",
+        "focus.ring.offset",
+        "focus.ring.width",
+        "icon.size.sm",
+        "icon.size.xs",
+        "space.050",
+        "space.100",
+        "type.body.lg.default",
+        "type.body.lg.default-link",
+        "type.body.lg.strong",
+        "type.body.lg.strong-link",
+        "type.body.md.default",
+        "type.body.md.default-link",
+        "type.body.md.strong",
+        "type.body.md.strong-link",
+        "type.body.sm.default",
+        "type.body.sm.default-link",
+        "type.body.sm.strong",
+        "type.body.sm.strong-link"
+      ],
+      "declaredNotDrawn": [],
+      "drawnNotDeclared": [
+        "color.inverse.icon.link.default",
+        "color.inverse.icon.link.focused",
+        "color.inverse.icon.link.hover",
+        "color.inverse.icon.link.pressed",
+        "color.inverse.text.link.default",
+        "color.inverse.text.link.focused",
+        "color.inverse.text.link.hover",
+        "color.inverse.text.link.pressed"
+      ]
+    },
     "list": {
       "members": 9,
       "axes": {
@@ -19323,6 +22352,66 @@
         "space.300",
         "space.400",
         "space.500",
+        "type.body.lg.default",
+        "type.body.md.default",
+        "type.body.sm.default"
+      ],
+      "declaredNotDrawn": [],
+      "drawnNotDeclared": []
+    },
+    "password-field": {
+      "members": 84,
+      "axes": {
+        "size": [
+          "large",
+          "medium",
+          "small"
+        ],
+        "state": [
+          "disabled",
+          "filled",
+          "focus-visible",
+          "focus-visible-filled",
+          "hover",
+          "read-only",
+          "rest"
+        ],
+        "status": [
+          "default",
+          "error",
+          "success",
+          "warning"
+        ]
+      },
+      "tokens": [
+        "border-width.hairline",
+        "color.border.danger",
+        "color.border.focus",
+        "color.border.success",
+        "color.border.warning",
+        "color.disabled.border",
+        "color.disabled.fill",
+        "color.disabled.on-fill",
+        "color.field.border.hover",
+        "color.field.border.rest",
+        "color.field.fill",
+        "color.icon.primary",
+        "color.interactive.neutral.overlay.hover",
+        "color.text.primary",
+        "color.text.secondary",
+        "control.size.lg.line-box",
+        "control.size.md.line-box",
+        "control.size.sm.line-box",
+        "focus.ring.offset-field",
+        "focus.ring.width",
+        "icon.size.sm",
+        "radius.sm",
+        "size.lg.height",
+        "size.md.min-height",
+        "space.075",
+        "space.100",
+        "space.200",
+        "space.300",
         "type.body.lg.default",
         "type.body.md.default",
         "type.body.sm.default"
@@ -19998,15 +23087,10 @@
       "color.field.placeholder",
       "color.foreground.brand",
       "color.foreground.brand-subtle",
-      "color.foreground.primary",
       "color.foreground.tertiary",
       "color.icon.brand-subtle",
       "color.icon.danger-subtle",
       "color.icon.info-subtle",
-      "color.icon.link.default",
-      "color.icon.link.focused",
-      "color.icon.link.hover",
-      "color.icon.link.pressed",
       "color.icon.link.visited",
       "color.icon.on-brand",
       "color.icon.on-danger",
@@ -20057,10 +23141,6 @@
       "color.inverse.icon.danger-subtle",
       "color.inverse.icon.info",
       "color.inverse.icon.info-subtle",
-      "color.inverse.icon.link.default",
-      "color.inverse.icon.link.focused",
-      "color.inverse.icon.link.hover",
-      "color.inverse.icon.link.pressed",
       "color.inverse.icon.link.visited",
       "color.inverse.icon.primary",
       "color.inverse.icon.secondary",
@@ -20084,10 +23164,6 @@
       "color.inverse.text.danger-subtle",
       "color.inverse.text.info",
       "color.inverse.text.info-subtle",
-      "color.inverse.text.link.default",
-      "color.inverse.text.link.focused",
-      "color.inverse.text.link.hover",
-      "color.inverse.text.link.pressed",
       "color.inverse.text.link.visited",
       "color.inverse.text.secondary",
       "color.inverse.text.success",
@@ -20100,10 +23176,6 @@
       "color.text.brand-subtle",
       "color.text.danger-subtle",
       "color.text.info-subtle",
-      "color.text.link.default",
-      "color.text.link.focused",
-      "color.text.link.hover",
-      "color.text.link.pressed",
       "color.text.link.visited",
       "color.text.on-brand",
       "color.text.success-subtle",
@@ -20186,19 +23258,16 @@
       "opacity.70",
       "opacity.80",
       "opacity.90",
-      "radius.2xl",
       "radius.3xl",
       "radius.capsule",
       "radius.hairline",
       "radius.lg",
-      "radius.none",
       "radius.xl",
       "shadow.2xl",
       "shadow.inset",
       "shadow.lg",
       "shadow.md",
       "shadow.sm",
-      "shadow.xl",
       "shadow.xs",
       "size.xl.height",
       "size.xs.height",
@@ -20211,23 +23280,16 @@
       "space.900",
       "type.body.lg.default-italic",
       "type.body.lg.default-italic-link",
-      "type.body.lg.default-link",
-      "type.body.lg.strong",
       "type.body.lg.strong-italic",
       "type.body.lg.strong-italic-link",
-      "type.body.lg.strong-link",
       "type.body.md.default-italic",
       "type.body.md.default-italic-link",
-      "type.body.md.default-link",
       "type.body.md.strong-italic",
       "type.body.md.strong-italic-link",
-      "type.body.md.strong-link",
       "type.body.sm.default-italic",
       "type.body.sm.default-italic-link",
-      "type.body.sm.default-link",
       "type.body.sm.strong-italic",
       "type.body.sm.strong-italic-link",
-      "type.body.sm.strong-link",
       "type.body.xs.default-italic",
       "type.body.xs.default-italic-link",
       "type.body.xs.default-link",

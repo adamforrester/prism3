@@ -1,5 +1,5 @@
 /**
- * THE CANVAS-FURNITURE TEMPLATES (#2406 Q171, #2188 Q172) — `_Label` and `_inverse-backdrop`.
+ * THE CANVAS-FURNITURE TEMPLATES (#2406 Q171, #2188 Q172, #2609) — `_Label`, `_inverse-backdrop` and `_scrim-backdrop`.
  *
  * Two more PLUGIN-ONLY TEMPLATE ASSETS beside `_Section-header` and `_Headings` (`file-components.ts`): never
  * engine defs, built by file setup onto `↳ File Components` so a client restyles each one in one place and every
@@ -58,6 +58,15 @@ export const LABEL_INK_INVERSE = '#E0C7FF';
 export const BACKDROP_PLACEHOLDER = '#181717';
 /** The variable the backdrop binds, by the tail every brand's name ends in (`<root>/color/inverse/…`). */
 export const BACKDROP_VARIABLE = 'color/inverse/background/primary';
+/** THE SCRIM BACKDROP (#2609, owner decisions Q303.2 A and Q303.3 A): the modal backdrop a Dialog example sits on,
+ *  drawn as furniture behind each center and bottom member and never inside the component. Its fill binds the brand's
+ *  `color/scrim/default`, the mode-varying modal backdrop; until a theme is applied it holds black at 40%, the scrim's
+ *  light-mode value. Square, because the viewport it stands for has no corners. */
+export const SCRIM_COMPONENT = '_scrim-backdrop';
+export const SCRIM_PLACEHOLDER = '#000000';
+export const SCRIM_PLACEHOLDER_OPACITY = 0.4;
+export const SCRIM_VARIABLE = 'color/scrim/default';
+const SCRIM_SIZE: [number, number] = [320, 320];
 /** HELD FOR THE OWNER: the template's corner radius and its size as built. A placed instance takes the size of
  *  the block it covers; the radius is the template's and a client changes it there. */
 export const BACKDROP_RADIUS = 8;
@@ -159,32 +168,44 @@ const buildLabel = (api: FileComponentsApi, page: TemplatesPage, loaded: Set<str
   return set;
 };
 
-/** The brand's inverse ground, by name tail — or null before a theme is applied. */
-const backdropVariable = async (vars: BackdropVariables | undefined): Promise<{ id: string; name: string } | null> => {
+/** Which variable and placeholder a backdrop template carries: the inverse ground, or the scrim (#2609). */
+export interface BackdropKind { variable: string; placeholder: string; opacity?: number }
+export const INVERSE_BACKDROP: BackdropKind = { variable: BACKDROP_VARIABLE, placeholder: BACKDROP_PLACEHOLDER };
+export const SCRIM_BACKDROP: BackdropKind = { variable: SCRIM_VARIABLE, placeholder: SCRIM_PLACEHOLDER, opacity: SCRIM_PLACEHOLDER_OPACITY };
+
+/** The brand's variable for this backdrop, by name tail — or null before a theme is applied. */
+const backdropVariable = async (vars: BackdropVariables | undefined, kind: BackdropKind): Promise<{ id: string; name: string } | null> => {
   if (!vars) return null;
   const all = await vars.getLocalVariablesAsync();
-  return all.find((v) => v.name === BACKDROP_VARIABLE || v.name.endsWith(`/${BACKDROP_VARIABLE}`)) ?? null;
+  return all.find((v) => v.name === kind.variable || v.name.endsWith(`/${kind.variable}`)) ?? null;
 };
 
+/** The placeholder paint for a backdrop kind: its color, at its opacity when it has one. */
+const placeholderFill = (kind: BackdropKind): unknown[] =>
+  solid(kind.placeholder).map((p) => (kind.opacity === undefined ? p : { ...(p as object), opacity: kind.opacity }));
+
 /** Is `fills` exactly the placeholder this file writes, with no binding? Only then may the build bind it. */
-const isPlaceholderFill = (fills: unknown): boolean => {
+const isPlaceholderFill = (fills: unknown, kind: BackdropKind): boolean => {
   if (!Array.isArray(fills) || fills.length !== 1) return false;
-  const f = fills[0] as { type?: unknown; color?: { r: number; g: number; b: number }; boundVariables?: { color?: unknown } };
-  const want = (solid(BACKDROP_PLACEHOLDER)[0] as { color: { r: number; g: number; b: number } }).color;
+  const f = fills[0] as { type?: unknown; color?: { r: number; g: number; b: number }; opacity?: number; boundVariables?: { color?: unknown } };
+  const want = (solid(kind.placeholder)[0] as { color: { r: number; g: number; b: number } }).color;
   return f.type === 'SOLID' && !f.boundVariables?.color && !!f.color
-    && Math.abs(f.color.r - want.r) < 1e-6 && Math.abs(f.color.g - want.g) < 1e-6 && Math.abs(f.color.b - want.b) < 1e-6;
+    && Math.abs(f.color.r - want.r) < 1e-6 && Math.abs(f.color.g - want.g) < 1e-6 && Math.abs(f.color.b - want.b) < 1e-6
+    && Math.abs((f.opacity ?? 1) - (kind.opacity ?? 1)) < 1e-6;
 };
 
 /**
- * Bind the backdrop's fill to the brand's inverse ground while it is still the placeholder. `'bound'` when it
- * bound now, `'kept'` when the fill is already bound or was restyled, `'no-variable'` before a theme is applied.
+ * Bind the backdrop's fill to the brand's variable while it is still the placeholder. `'bound'` when it bound
+ * now, `'kept'` when the fill is already bound or was restyled, `'no-variable'` before a theme is applied. The
+ * inverse ground by default; the scrim with `SCRIM_BACKDROP` (#2609).
  */
 export const bindBackdrop = async (
   vars: BackdropVariables | undefined,
   backdrop: { fills?: unknown },
+  kind: BackdropKind = INVERSE_BACKDROP,
 ): Promise<'bound' | 'kept' | 'no-variable'> => {
-  if (!isPlaceholderFill(backdrop.fills)) return 'kept';
-  const v = await backdropVariable(vars);
+  if (!isPlaceholderFill(backdrop.fills, kind)) return 'kept';
+  const v = await backdropVariable(vars, kind);
   if (!v || !vars) return 'no-variable';
   const paint = (backdrop.fills as unknown[])[0];
   backdrop.fills = [vars.setBoundVariableForPaint(paint as never, 'color', v as never)];
@@ -203,11 +224,25 @@ const buildBackdrop = async (api: TemplatesApi, page: TemplatesPage): Promise<{ 
   return { component: c, binding };
 };
 
+const buildScrim = async (api: TemplatesApi, page: TemplatesPage): Promise<{ component: FNode; binding: 'bound' | 'kept' | 'no-variable' }> => {
+  const c = api.createComponent() as LNode;
+  c.name = SCRIM_COMPONENT;
+  c.resize?.(...SCRIM_SIZE);
+  c.cornerRadius = 0;
+  c.strokes = [];
+  c.fills = placeholderFill(SCRIM_BACKDROP);
+  const binding = await bindBackdrop(api.variables, c, SCRIM_BACKDROP);
+  page.appendChild(c);
+  return { component: c, binding };
+};
+
 export interface TemplatesResult {
   built: string[];
   present: string[];
   /** The backdrop's binding when this run built it; absent when it was already present. */
   backdropBinding?: 'bound' | 'kept' | 'no-variable';
+  /** The scrim's binding when this run built it (#2609); absent when it was already present. */
+  scrimBinding?: 'bound' | 'kept' | 'no-variable';
   fontMisses: string[];
 }
 
@@ -222,7 +257,7 @@ const placeRight = (page: TemplatesPage, node: FNode): void => {
 };
 
 /**
- * Build whichever of `_Label` and `_inverse-backdrop` the page does not hold yet, each found on its own and in
+ * Build whichever of `_Label`, `_inverse-backdrop` and `_scrim-backdrop` the page does not hold yet, each found on its own and in
  * any case. Never throws for a missing face (reported) or a missing variable (the placeholder fill, reported).
  */
 export const ensureFurnitureTemplates = async (api: TemplatesApi, page: TemplatesPage): Promise<TemplatesResult> => {
@@ -249,6 +284,13 @@ export const ensureFurnitureTemplates = async (api: TemplatesApi, page: Template
     placeRight(page, component);
     out.built.push(BACKDROP_COMPONENT);
     out.backdropBinding = binding;
+  }
+  if (has('COMPONENT', SCRIM_COMPONENT)) out.present.push(SCRIM_COMPONENT);
+  else {
+    const { component, binding } = await buildScrim(api, page);
+    placeRight(page, component);
+    out.built.push(SCRIM_COMPONENT);
+    out.scrimBinding = binding;
   }
   return out;
 };

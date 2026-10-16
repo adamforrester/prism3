@@ -3,7 +3,7 @@
 //   PLAYWRIGHT_MODULE=<repo>/node_modules/playwright/index.mjs \
 //     node docs/superpowers/ui-redesign/audit-v5.mjs [screenshot dir]
 //
-// Renders the BUILT concept-v5.html in Chromium and measures what is on screen, independent of the
+// Renders the BUILT concept-v5.html (run build-v5.mjs first; it is not committed) in Chromium and measures what is on screen, independent of the
 // build's declared pairs. The tile audit (style-tiles/audit-tiles.mjs), extended to v5. Every state
 // runs in light and dark, at 1280 and at 380:
 //   default (studio, Brand), roles (Color › Roles), fail (plugin, Build with errors), inspect

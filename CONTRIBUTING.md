@@ -36,7 +36,8 @@ The PR template's Gates block is the load-bearing part — fill it in with real 
 not ticks.
 
 **A PR writes its own files, never the shared lines (#1807).** Every PR used to write the same
-four places: the top of `docs/00-progress.md`, `ENGINE_VERSION`, the changelog above it, and the
+four places: the top of `docs/00-progress.md`, `ENGINE_VERSION`, the changelog above it (since
+Q319.3, `packages/engine/CHANGELOG.md`), and the
 version stamp in every emitted tree. So every open PR conflicted with every other, and merges ran
 one at a time. Now:
 
@@ -48,7 +49,7 @@ one at a time. Now:
   existing entry; a correction travels as a fragment of its own ("Correction to <date> <title>").
   A **pure** fold is exempt because it
   consumes fragments rather than adding one: it deletes pending files, every entry it consumed reached
-  the log, and it touches nothing but the log, the pending directories, `version.ts`, `out/` and the
+  the log, and it touches nothing but the log, the pending directories, `version.ts`, `CHANGELOG.md`, `out/` and the
   rename stamps it fills (below). A fold PR that also fixes a semantic conflict carries a fragment for
   the fix.
 - **The engine bump**, when one is owed, is a change note, `packages/engine/changes/<slug>.md`:
@@ -57,14 +58,14 @@ one at a time. Now:
   ---
   engine: minor          # patch | minor | major
   ---
-  The changelog prose that used to go into version.ts. Write {{ENGINE_VERSION}} where the number goes.
+  The changelog prose; the fold writes it into CHANGELOG.md. Write {{ENGINE_VERSION}} where the number goes.
   ```
 
   It declares the class and never picks a number. **The class:** `minor` for any behavior change;
   `patch` only when no committed artifact and no projected component surface moves (`regen --check`
   clean before and after, `lint-component-surface.ts` baseline unchanged); `major` is
   refused while `ENGINE_VERSION` is below 1.0, because going to 1.0 is the owner's decision. The fold
-  takes the highest class in the batch. **Do not edit `ENGINE_VERSION`, its changelog, the version
+  takes the highest class in the batch. **Do not edit `ENGINE_VERSION`, its changelog (`packages/engine/CHANGELOG.md`), the version
   stamps in `out/`, or a note another PR merged.** `lint-emission-version.ts` fails a PR that is not a fold for editing
   the constant or its changelog, and both version gates accept the note as the bump. Run `regen.ts`
   as usual; your `out/` diff carries your real changes under the old stamp, and the fold restamps.
@@ -134,8 +135,8 @@ Then push and open the PR. What the fold does, in order:
    order.
 4. It assigns **one version per fold**: the current `ENGINE_VERSION` bumped once, by the highest class
    any note declares. With no notes the version does not move.
-5. It writes the constant and a changelog section under the FOLD MARKER in `version.ts`, newest merge
-   first. Then it puts the fragments at the top of the log, newest merge first, each dated with the UTC
+5. It writes the constant in `version.ts` and a changelog section under the FOLD MARKER in
+   `packages/engine/CHANGELOG.md`, newest merge first. Then it puts the fragments at the top of the log, newest merge first, each dated with the UTC
    day it landed. It fills in `{{ENGINE_VERSION}}` in both, and in every pending rename stamp (#1816).
 6. It deletes the folded files and, when the version moved, runs `regen.ts` to restamp the corpus.
 
@@ -177,8 +178,8 @@ resolving takes `main`'s side of the lines your text is on.
 2. `git merge origin/main`, then resolve:
    - **`docs/00-progress.md`:** keep `main`'s side and drop your old entry from the top. It is in the
      fragment now.
-   - **`version.ts`:** keep `main`'s `ENGINE_VERSION` line and `main`'s changelog, and drop your old
-     entry there. Keep any other edit of yours in the file, such as a `CONTRACT_VERSION` bump, its
+   - **`version.ts`:** keep `main`'s `ENGINE_VERSION` line and `main`'s changelog (in
+     `CHANGELOG.md` since Q319.3), and drop your old entry there. Keep any other edit of yours in the file, such as a `CONTRACT_VERSION` bump, its
      changelog or a `DEPRECATIONS` row. Those are still per-PR.
    - **Version stamps in `out/` and `components.ai.json`:** take either side. The next step rewrites
      them.
@@ -286,6 +287,31 @@ npx tsx packages/engine/lint-contract-version.ts    # CONTRACT_VERSION against t
                                                     # no base ref; first parent on main's push run
                                                     # (`comparison-base.ts`, replayed by
                                                     # `lint-push-base.ts` below)
+npx tsx packages/engine/emit-agent-reference.ts --check
+                                                    # docs/public/reference/commands.json matches the
+                                                    # code (#2637): every MCP tool of both servers, every
+                                                    # agent-link command (args, what it writes, what it
+                                                    # refuses) and every CLI entry point, regenerated in
+                                                    # memory from the code and compared with the
+                                                    # committed file, reported per tool, command and
+                                                    # flag. Not a regen step: the file is served docs,
+                                                    # not emission, and carries no engine version. The
+                                                    # CLI list is checked both ways against every file
+                                                    # that reads process.argv. Regenerate with the same
+                                                    # command without --check, then review the diff.
+npx tsx packages/engine/emit-figma-conventions.ts --check
+                                                    # docs/public/reference/figma-conventions.json
+                                                    # matches the code (#2647): the page taxonomy, each
+                                                    # component set's name and properties, the icon
+                                                    # namespace, native slots, variable collections and
+                                                    # modes, and the canvas furniture, regenerated in
+                                                    # memory and compared, reported per page, component,
+                                                    # glyph, slot, collection and template. A promised
+                                                    # section that comes out empty fails by name. Same
+                                                    # posture as the agent reference: served docs, not
+                                                    # emission. regen.ts also writes it, in its own list
+                                                    # (REFERENCE_ARTIFACTS), so the habitual regenerate
+                                                    # moves it.
 npx tsx packages/engine/lint-skills.ts              # shipped skills still make true claims
 npx tsx packages/engine/lint-doc-gates.ts           # this checklist stays in sync with ci.yml (#613)
                                                     # and names no RETIRED gate: a deleted gate's line
@@ -1189,6 +1215,23 @@ npx tsx packages/engine/lint-component-docs.ts      # every registered component
                                                     # nor `continue-on-error` is not seen, and the run
                                                     # prints the whole census so a count that drops
                                                     # without a deletion in the diff is the tell
+npx tsx packages/engine/lint-ecosystem.ts           # the ecosystem diagram's data matches the code
+                                                    # (#2637, Q304): docs/public/ecosystem/ecosystem.json
+                                                    # is the SUBJECT, the code the ORACLE. Every source
+                                                    # path and docs link is git-tracked; every edge joins
+                                                    # known nodes, is never more built than either end,
+                                                    # and names a known connection; every trace step is
+                                                    # an edge; every check sits on a node. LANES: MCP
+                                                    # tools (toolDefs) only in agent lanes, plugin
+                                                    # messages (UiToMain) only in figma lanes and never
+                                                    # with a web claim; an agent command that is also a
+                                                    # UiToMain type needs the figma lane, one that is not
+                                                    # must not have it; a web-only or figma-only UI
+                                                    # feature cites a PRISM3_HOST branch. The defs, MCP
+                                                    # tools, agent commands, bridge tools and skills it
+                                                    # lists are exactly the code's, both ways, each with
+                                                    # a floor; the page fetches the data and writes no
+                                                    # feature label itself; its text tokens clear 4.5:1.
 ```
 
 CI (`.github/workflows/ci.yml`) also runs the web and plugin gates below **on every PR,

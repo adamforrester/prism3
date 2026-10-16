@@ -216,6 +216,8 @@ const ZERO_OK: Record<string, string> = {
   'text-field.focusRing': FIELD_RING,
   'select.focusRing': FIELD_RING,
   'textarea.focusRing': FIELD_RING,
+  // #2317: the Password field's box and ring are TextField's, from the shared field factory.
+  'password-field.focusRing': FIELD_RING,
 };
 
 /**
@@ -224,7 +226,7 @@ const ZERO_OK: Record<string, string> = {
  * covered — including by being deleted — this file fails rather than reporting clean over a smaller
  * set. A count would read that as a pass.
  */
-const MUST_COVER = ['button.focusRing', 'icon-button.focusRing', 'checkbox-control.focusRing', 'tab.focusRing', 'accordion.focusRing', 'segmented-control-segment.focusRing'];
+const MUST_COVER = ['button.focusRing', 'icon-button.focusRing', 'checkbox-control.focusRing', 'tab.focusRing', 'accordion.focusRing', 'segmented-control-segment.focusRing', 'link.focusRing'];
 
 /**
  * The floor for the COMPENSATION specifically — every part above whose gap must be computed against a
@@ -234,7 +236,7 @@ const MUST_COVER = ['button.focusRing', 'icon-button.focusRing', 'checkbox-contr
  * — the arithmetic degrades to `gap = offset`, every other check here still passes, and the ring goes
  * flush again.
  */
-const MUST_CLEAR_STROKE = ['button.focusRing', 'icon-button.focusRing', 'checkbox-control.focusRing', 'tab.focusRing', 'segmented-control-segment.focusRing'];
+const MUST_CLEAR_STROKE = ['button.focusRing', 'icon-button.focusRing', 'checkbox-control.focusRing', 'tab.focusRing', 'segmented-control-segment.focusRing', 'link.focusRing'];
 
 /**
  * THE PARTS DRAWN INSIDE THEIR HOST'S EDGE (`PartDef.drawnInside`, #2417, owner decision Q257 A). Each declares no

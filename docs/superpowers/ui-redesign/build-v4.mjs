@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-// Builds concept-v4.html from concept-v4.src.html + the real engine.
+// Builds concept-v4.html from concept-v4.src.html + the real engine. The output is not committed
+// (Q319.4, #2583); concept-v4.md says which commit it still builds at.
 //
 //   node docs/superpowers/ui-redesign/build-v4.mjs
 //

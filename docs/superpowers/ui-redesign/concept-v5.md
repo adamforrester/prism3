@@ -4,6 +4,12 @@ Prototype: `concept-v5.html` (self-contained, offline, about 1 MB). It is v4 wit
 `decisions-2026-09-30.md` and `decisions-2026-09-30-v4-review.md` applied, restyled to the accepted
 style tile (A, second pass, T6). It is a design direction for owner review, not product code.
 
+**The built file is no longer committed** (Q319.4, #2583); it is built by `build-v5.mjs`. Build it from
+the commit that shipped it: `git worktree add --detach /tmp/v5 fb79fe8b && node
+/tmp/v5/docs/superpowers/ui-redesign/build-v5.mjs`. At a later commit the build refuses by design,
+because its coverage oracle (`lever-manifest.json`) has gained levers this mockup has no home for.
+The reviewed bytes are in history: `git show fb79fe8b:docs/superpowers/ui-redesign/concept-v5.html`.
+
 Harness bar (outside the product): **Host** Studio / Plugin · **Frame** Fill / 1280×900 / 380×420 ·
 **Device scheme** This device / Light / Dark (studio) or **Figma theme** Light / Dark (plugin) ·
 **Plugin file** · **Scenario** First run, Apply running, Build with errors, Read-back warning, Agent

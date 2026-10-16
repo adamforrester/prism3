@@ -12,17 +12,19 @@ Generated from the component definitions and the emission by `packages/engine/em
 |---|---|---|
 | _accordion-indicator | accordion | accordion |
 | badge | tab | tab, tabs |
+| button | dialog, password-field | dialog, password-field |
 | checkbox-control | checkbox-row | checkbox-group, checkbox-row |
 | checkbox-row | checkbox-group | checkbox-group |
-| divider | accordion | accordion |
-| field-label | checkbox-group, radio-group, segmented-control, select, text-field, textarea | checkbox-group, radio-group, segmented-control, select, text-field, textarea |
-| field-message | select, text-field, textarea | select, text-field, textarea |
-| focus-ring | accordion, button, button-destructive, button-neutral, checkbox-control, icon-button, icon-button-destructive, icon-button-neutral, radio-control, segmented-control-segment, select, switch-control, tab, tag, text-field, textarea | accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, icon-button, icon-button-destructive, icon-button-neutral, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, select, switch-control, switch-row, tab, tabs, tag, text-field, textarea |
+| divider | accordion, dialog | accordion, dialog |
+| field-label | checkbox-group, password-field, radio-group, segmented-control, select, text-field, textarea | checkbox-group, password-field, radio-group, segmented-control, select, text-field, textarea |
+| field-message | password-field, select, text-field, textarea | password-field, select, text-field, textarea |
+| focus-ring | accordion, button, button-destructive, button-neutral, checkbox-control, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, password-field, radio-control, segmented-control-segment, select, switch-control, tab, tag, text-field, textarea | accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, dialog, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, password-field, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, select, switch-control, switch-row, tab, tabs, tag, text-field, textarea |
+| icon-button-neutral | dialog | dialog |
 | list-item | list | list |
 | radio-control | radio-row | radio-group, radio-row |
 | radio-row | radio-group | radio-group |
 | segmented-control-segment | segmented-control | segmented-control |
-| spinner | button, button-destructive, button-neutral, icon-button, icon-button-destructive, icon-button-neutral | button, button-destructive, button-neutral, icon-button, icon-button-destructive, icon-button-neutral |
+| spinner | button, button-destructive, button-neutral, icon-button, icon-button-destructive, icon-button-neutral | button, button-destructive, button-neutral, dialog, icon-button, icon-button-destructive, icon-button-neutral, password-field |
 | switch-control | switch-row | switch-row |
 | tab | tabs | tabs |
 
@@ -41,17 +43,23 @@ A component not in this table is nested by nothing; a change to it reaches only 
 | checkbox-control | 1 | focus-ring | focus-ring |
 | checkbox-group | 3 | checkbox-row, field-label | checkbox-control, checkbox-row, field-label, focus-ring |
 | checkbox-row | 2 | checkbox-control | checkbox-control, focus-ring |
+| dialog | 2 | button, divider, icon-button-neutral | button, divider, focus-ring, icon-button-neutral, spinner |
 | divider | 0 | — | — |
 | field-label | 0 | — | — |
 | field-message | 0 | — | — |
+| flush-icon-button | 1 | focus-ring | focus-ring |
+| flush-icon-button-destructive | 1 | focus-ring | focus-ring |
+| flush-icon-button-neutral | 1 | focus-ring | focus-ring |
 | focus-ring | 0 | — | — |
 | icon | 0 | — | — |
 | icon-button | 1 | focus-ring, spinner | focus-ring, spinner |
 | icon-button-destructive | 1 | focus-ring, spinner | focus-ring, spinner |
 | icon-button-neutral | 1 | focus-ring, spinner | focus-ring, spinner |
 | image-placeholder | 0 | — | — |
+| link | 1 | focus-ring | focus-ring |
 | list | 1 | list-item | list-item |
 | list-item | 0 | — | — |
+| password-field | 2 | button, field-label, field-message, focus-ring | button, field-label, field-message, focus-ring, spinner |
 | radio-control | 1 | focus-ring | focus-ring |
 | radio-group | 3 | field-label, radio-row | field-label, focus-ring, radio-control, radio-row |
 | radio-row | 2 | radio-control | focus-ring, radio-control |
@@ -95,12 +103,23 @@ Depth is 0 for a component that nests nothing, and one more than its deepest chi
 | checkbox-group | row7 | nest | checkbox-row | nest-fixed | size=medium | size | — |
 | checkbox-group | row8 | nest | checkbox-row | nest-fixed | size=medium | size | — |
 | checkbox-row | control | nest | checkbox-control | nest-exposed | selection=unchecked, state=rest | size | selection, state |
+| dialog | cancelInline | nest | button | nest-fixed | appearance=outline, size=medium, surface=default, inset=default, state=rest, leading icon=false, trailing icon=false | — | — |
+| dialog | cancelStacked | nest | button | nest-fixed | appearance=outline, size=medium, surface=default, inset=default, state=rest, leading icon=false, trailing icon=false | — | — |
+| dialog | close | nest | icon-button-neutral | nest-fixed | appearance=ghost, size=medium, shape=square, surface=default, state=rest | — | — |
+| dialog | confirmInline | nest | button | nest-fixed | appearance=filled, size=medium, surface=default, inset=default, state=rest, leading icon=false, trailing icon=false | — | — |
+| dialog | confirmStacked | nest | button | nest-fixed | appearance=filled, size=medium, surface=default, inset=default, state=rest, leading icon=false, trailing icon=false | — | — |
+| dialog | footerDivider | nest | divider | nest-fixed | orientation=horizontal, inset=none | — | — |
+| dialog | headerDivider | nest | divider | nest-fixed | orientation=horizontal, inset=none | — | — |
+| flush-icon-button | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
+| flush-icon-button-destructive | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
+| flush-icon-button-neutral | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
 | icon-button | focusRing | absolute | focus-ring | nest-fixed | surface=default | surface | — |
 | icon-button | spinner | overlay | spinner | swap | — | — | — |
 | icon-button-destructive | focusRing | absolute | focus-ring | nest-fixed | surface=default | surface | — |
 | icon-button-destructive | spinner | overlay | spinner | swap | — | — | — |
 | icon-button-neutral | focusRing | absolute | focus-ring | nest-fixed | surface=default | surface | — |
 | icon-button-neutral | spinner | overlay | spinner | swap | — | — | — |
+| link | focusRing | absolute | focus-ring | nest-fixed | surface=default | surface | — |
 | list | item1 | nest | list-item | nest-fixed | type=unordered, size=medium | type, size | — |
 | list | item2 | nest | list-item | nest-fixed | type=unordered, size=medium | type, size | — |
 | list | item3 | nest | list-item | nest-fixed | type=unordered, size=medium | type, size | — |
@@ -109,6 +128,10 @@ Depth is 0 for a component that nests nothing, and one more than its deepest chi
 | list | item6 | nest | list-item | nest-fixed | type=unordered, size=medium | type, size | — |
 | list | item7 | nest | list-item | nest-fixed | type=unordered, size=medium | type, size | — |
 | list | item8 | nest | list-item | nest-fixed | type=unordered, size=medium | type, size | — |
+| password-field | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
+| password-field | label | nest | field-label | nest-exposed | size=medium, emphasis=secondary, weight=regular, state=rest | size | emphasis, weight |
+| password-field | message | nest | field-message | nest-fixed | status=default | status | — |
+| password-field | toggle | nest | button | nest-exposed | appearance=text, size=medium, surface=default, inset=flush, state=rest, leading icon=false, trailing icon=false | size | label |
 | radio-control | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
 | radio-group | label | nest | field-label | nest-fixed | size=medium, emphasis=secondary, weight=bold, state=rest | size | — |
 | radio-group | row1 | nest | radio-row | nest-fixed | size=medium | size | — |
@@ -153,6 +176,9 @@ Depth is 0 for a component that nests nothing, and one more than its deepest chi
 | Component | Inherits from |
 |---|---|
 | checkbox-row | text-field |
+| flush-icon-button | icon-button |
+| flush-icon-button-destructive | icon-button-destructive |
+| flush-icon-button-neutral | icon-button-neutral |
 | icon-button | button |
 | icon-button-destructive | button-destructive |
 | icon-button-neutral | button-neutral |

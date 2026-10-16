@@ -186,7 +186,7 @@ const makeButton = (id: string, name: string, summary: string, description: stri
     { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Native disabled. Reserved for controls fundamentally irrelevant to the current view; removes from tab order + a11y tree. Prefer isInactive for anything relevant-but-blocked.' },
     { name: 'leadingVisual', type: 'slot', required: false, description: 'Icon / avatar / counter / spinner before the label.' },
     { name: 'trailingVisual', type: 'slot', required: false, description: 'Icon / caret / indicator after the label.' },
-    { name: 'href', type: 'string', required: false, description: 'Discouraged — prefer link-button. If set, the button renders an <a>, which drops type and disabled semantics.' },
+    { name: 'href', type: 'string', required: false, description: 'A destination, for a navigation that needs a button\'s weight, such as "Continue to checkout". With an href, the button renders an <a href> in the same style, Enter follows it, and type and disabled no longer apply. Anything lighter is a Link.' },
     // #1697 — the old description ("only needed when there is no visible label") assumed a case this def
     // cannot reach: `label` is required, so every Button has visible text. What `aria-label` does here is
     // EXTEND that text, and 2.5.3 is the constraint on how.
@@ -709,7 +709,7 @@ const makeButton = (id: string, name: string, summary: string, description: stri
     ],
     dont: [
       'Set inset=flush on a filled or outline button — their visible edge needs its padding; flush is for appearance=text',
-      'Use a button for navigation to a URL — use a link / link-button',
+      'Use a button with no href for navigation to a URL — use Link, or give the button an href so it renders an <a>',
       'Stack multiple filled buttons competing for attention — differentiate rank by appearance, not by adding fills',
       'Use native disabled on a relevant-but-blocked control (dead end for keyboard/SR users)',
       'Remove the label to make room for a spinner — the button narrows mid-submit and screen readers lose the name; the spinner takes the leading visual\'s place, or overlays a label held at zero opacity',
@@ -720,7 +720,7 @@ const makeButton = (id: string, name: string, summary: string, description: stri
   ai: {
     primaryPurpose: 'Trigger an action in place.',
     whenToUse: 'The user needs to DO something on this surface — submit, confirm, open, apply, or start async work.',
-    avoidWhen: `The target is a different location/URL → use a link (or link-button if it must look like a button). A persistent on/off state → use Switch.Row. One-of-many selection → use Radio.Group (or SegmentedControl). A toggle with pressed state → use a toggle button (not built yet). Icon-only with no visible text → use IconButton (the accessible name is required there at the type level). ${sibling.avoidWhen}`,
+    avoidWhen: `The target is a different location/URL → use Link (or give the button an href, which renders an <a>, if it must look like a button). A persistent on/off state → use Switch.Row. One-of-many selection → use Radio.Group (or SegmentedControl). A toggle with pressed state → use a toggle button (not built yet). Icon-only with no visible text → use IconButton (the accessible name is required there at the type level). ${sibling.avoidWhen}`,
     // #1697 — `spinner` (the pending state swaps it in, #1670) and `focus-ring` (every focus-visible member
     // nests it) are the two components this one always builds with, beside the icon in its slots.
     commonPartners: ['icon', 'spinner', 'focus-ring'],
@@ -735,7 +735,7 @@ const makeButton = (id: string, name: string, summary: string, description: stri
     // #1697 — each sibling points at the icon-button of its OWN family, so the destructive button's
     // icon-only alternative is the destructive icon-button rather than the primary one.
     alternativeTo: [family === 'primary' ? 'icon-button' : `icon-button-${family}`, 'switch-row'],
-    planned: ['tooltip', 'button-group', 'menu', 'popover', 'link', 'link-button', 'toggle-button', 'split-button'],
+    planned: ['tooltip', 'button-group', 'menu', 'popover', 'toggle-button', 'split-button'],
     replacesPatterns: ['input[type=button|submit]', 'div[role=button]'],
   },
 
@@ -753,10 +753,10 @@ const makeButton = (id: string, name: string, summary: string, description: stri
       'a low-emphasis destructive ("quiet Delete") is expressed as the Destructive Button at appearance=text rather than a fully orthogonal emphasis×tone split — tone is the component (#1223), emphasis is the appearance axis within it.',
       'outline/text hover uses the interactive overlay wash, which assumes outlineInteraction=overlay-neutral (the default); a solid-tint / none brand rebinds those slots before projection (`applyOutlineInteraction`, #1608: the tinted-wash variable interactive.<color>.subtle-fill, the control\'s own fill at an opacity step (#1614, #1646) / no hover fill), on the inverse band too.',
       // #1697 — brief §15 `notes.contested`, carried with how this def resolves each.
-      'polymorphism (brief §3) — a separate link-button over a generic `as` prop, and where polymorphism is unavoidable, infer `<a>` from `href`. This def keeps `href` as a discouraged escape hatch and lists link-button as planned.',
       'the `modifiers` axis (brief §4, §15) — the brief lists leading-visual / trailing-visual / icon-only / pending as one modifiers axis. This def omits it (#845): the two visuals are slot-presence axes, pending is a state, and icon-only is the separate icon-button.',
     ],
     evolution: [
+      '2026-10-14 (#2580, owner decision Q289.6 A): polymorphism (brief §3) — no separate link-button. Button takes href and renders <a>, and the href prop is no longer discouraged; a lighter navigation is Link.',
       // Moved from `contested` (#1700): resolved here, so it is evolution, not an open question.
       'ghost vs plain (brief §3) — the brief flagged `ghost` (an intent) and `plain` (an appearance) as overlapping at the low-emphasis end. Resolved by retiring `ghost` as a color: the quiet button is Button.Neutral at appearance=text (docs/20). Icon-button reuses the word as its appearance value (#1432), where there is no text to name.',
       'RESOLVED (was the v1 HIGH finding): interaction states existed only on the solid action/danger roles, so the default (neutral) button was hover-less. The interactive color system (docs/20) gives every color — primary/neutral/destructive — the full fill+states/on-fill/border/text/overlay shape, so the matrix is now uniform and the default button has proper hover/pressed. Disabled is the cross-cutting disabled.* family, no longer scattered per-color.',
@@ -795,7 +795,7 @@ export const button: ComponentDef = makeButton(
   'button',
   'Button',
   'Triggers an action in place. For navigation, use a link.',
-  'In-flow trigger for an action that happens now, in the current context — submit, save, confirm, open a dialog, fire async work — in the brand\'s primary action style, the expected look of a button. Not navigation (use link / link-button, even when it looks like a button), not a persistent binary (Switch.Row), not one-of-many selection (segmented-control / toggle-button). For a destructive or a weightless action, use the Button.Destructive / Button.Neutral sibling components.',
+  'In-flow trigger for an action that happens now, in the current context — submit, save, confirm, open a dialog, fire async work — in the brand\'s primary action style, the expected look of a button. Not navigation (use Link, or give the button an href so it renders an <a>), not a persistent binary (Switch.Row), not one-of-many selection (segmented-control / toggle-button). For a destructive or a weightless action, use the Button.Destructive / Button.Neutral sibling components.',
   'primary',
   {
     triggerKeywords: ['button', 'submit', 'cta', 'confirm', 'action', 'primary action', 'save'],

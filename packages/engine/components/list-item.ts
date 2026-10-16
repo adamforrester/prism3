@@ -224,9 +224,7 @@ export const listItem: ComponentDef = {
   },
 
   notes: {
-    contested: [
-      'The ordered numbers in Figma: each nested item in an ordered List shows "1." until a designer types its number. Giving a nested instance its own text needs a per-instance TEXT override that neither executor writes (#2319); code counts itself either way.',
-    ],
+    contested: [],
     unverified: [
       'Whether the number glyph and the text\'s first line share one baseline on a real host: both bind the same type style and the number sits in a box one line tall, so they should; not measured on a built file.',
     ],

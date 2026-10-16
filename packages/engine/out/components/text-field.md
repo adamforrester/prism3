@@ -109,8 +109,8 @@ Label = noun phrase, sentence case, no trailing colon. Placeholder = example onl
 ## Composition
 
 - **Composes with:** `field-label`, `field-message`, `focus-ring`
-- **Alternative to:** `textarea`, `select`, `checkbox-row`, `switch-row`
-- **Planned:** `form`, `tooltip`, `combobox`, `number-field`, `search-field`, `date-picker`, `password-field`
+- **Alternative to:** `textarea`, `select`, `checkbox-row`, `switch-row`, `password-field`
+- **Planned:** `form`, `tooltip`, `combobox`, `number-field`, `search-field`, `date-picker`
 - **Replaces:**
   - bare input without label wiring
   - placeholder-as-label

@@ -70,7 +70,7 @@ import { captureBaselines, previewUpdate, previewLine, previewVerdict, type Upda
 import { applyUpdate, applyVerdict, previewHashOf } from './src/update-apply';
 import { BASELINE_KEY } from './src/member-baseline';
 import { NS } from './src/persist-figma';
-import { planFurniture, drawFurniture, furnitureLayout, furnitureItems, withFurnitureItems, sentenceCase, pruneFurniture, clearFurniture, hasFurniture, type GridMember, type FurnitureApi, type XNode } from './src/canvas-furniture';
+import { planFurniture, drawFurniture, furnitureLayout, furnitureItems, withFurnitureItems, sentenceCase, pruneFurniture, clearFurniture, hasFurniture, SCRIM_BACKDROPS, type GridMember, type FurnitureApi, type XNode } from './src/canvas-furniture';
 import { ensureFurnitureTemplates } from './src/furniture-templates';
 import { allLeaves } from './src/file-taxonomy';
 import type { TemplatesApi } from './src/furniture-templates';
@@ -145,7 +145,7 @@ const backdropInstance = (): FNode => {
   } as unknown as FNode;
   return n;
 };
-const fakeTemplates = (o: { labels?: boolean; backdrop?: boolean; textNames?: readonly string[]; variants?: readonly [string, string] } = {}) => {
+const fakeTemplates = (o: { labels?: boolean; backdrop?: boolean; scrim?: boolean; textNames?: readonly string[]; variants?: readonly [string, string] } = {}) => {
   const [topName, leftName] = o.variants ?? ['Text=Top, surface=default', 'Text=Left, surface=default'];
   const labelSet = {
     type: 'COMPONENT_SET', name: '_Label',
@@ -155,8 +155,10 @@ const fakeTemplates = (o: { labels?: boolean; backdrop?: boolean; textNames?: re
     ],
   };
   const backdrop = { type: 'COMPONENT', name: '_inverse-backdrop', fills: [{ type: 'SOLID', color: { r: 0.5, g: 0.5, b: 0.5 }, boundVariables: { color: { id: 'V:bound' } } }], createInstance: backdropInstance };
+  // The scrim template (#2609), already bound, as a file set up after a theme holds it.
+  const scrim = { type: 'COMPONENT', name: '_scrim-backdrop', fills: [{ type: 'SOLID', color: { r: 0, g: 0, b: 0 }, opacity: 0.4, boundVariables: { color: { id: 'V:scrim' } } }], createInstance: backdropInstance };
   const api: FurnitureApi = {
-    root: { findAllWithCriteria: () => [...(o.labels === false ? [] : [labelSet]), ...(o.backdrop === false ? [] : [backdrop])] },
+    root: { findAllWithCriteria: () => [...(o.labels === false ? [] : [labelSet]), ...(o.backdrop === false ? [] : [backdrop]), ...(o.scrim === false ? [] : [scrim])] },
     loadFontAsync: async () => {},
   };
   return api;
@@ -556,6 +558,9 @@ for (const [id, wantCols, wantRows] of [
     ['Select', 'Dismissible', 'Unselected', 'Selected', 'Small', 'Medium', 'Large', 'Small', 'Medium', 'Large', 'Small', 'Medium', 'Large']],
   ['text-field', ['Rest', 'Hover', 'Filled', 'Focus visible', 'Focus visible filled', 'Disabled', 'Read only'],
     ['Default', 'Error', 'Warning', 'Success', ...Array.from({ length: 4 }, () => ['Medium', 'Small', 'Large']).flat()]],
+  // #2317: the Password field is TextField's grid, from the shared field factory.
+  ['password-field', ['Rest', 'Hover', 'Filled', 'Focus visible', 'Focus visible filled', 'Disabled', 'Read only'],
+    ['Default', 'Error', 'Warning', 'Success', ...Array.from({ length: 4 }, () => ['Medium', 'Small', 'Large']).flat()]],
 ] as const) {
   const { plans, page, set } = await buildOnPage(id);
   const o = await drawFurniture(fakeTemplates(), set, furnitureLayout(plans), id);
@@ -617,6 +622,53 @@ section('thin row — Divider: a 1px row draws its label centered, with no brack
     `thin row/others unchanged: a row as tall as its label keeps its bracket and spans its row (${tall.length}: ${tall.map(textOf).join(', ')})`);
 }
 
+/* ── the scrim behind each Dialog example (#2609, owner decisions Q303.2 A and Q303.3 A) ───────────────────── */
+section('scrim — Dialog: the backdrop is furniture behind each center and bottom member, never in the set');
+{
+  // THE REACH, literal: 12px all round a centered panel, 12px above a bottom sheet and flush on its other three sides,
+  // and no entry for full screen, which has no visible backdrop (Q303.8). Typed here, never read off the engine.
+  ok(JSON.stringify(SCRIM_BACKDROPS) === JSON.stringify({ dialog: { axis: 'placement', reach: { center: [12, 12, 12, 12], bottom: [12, 0, 0, 0] } } }),
+    `scrim/reach: center 12 all round, bottom 12 above only, full none, and Dialog the only def (${JSON.stringify(SCRIM_BACKDROPS)})`);
+  // THE PLANNER on a hand-laid three-member grid at (1000, 500): a 560×200 center panel at (24, 24), a 360×180 bottom
+  // sheet at (24, 248) and a 360×640 full panel at (408, 248). Expected rectangles worked out by hand.
+  const DIALOG_GRID: GridMember[] = [
+    { row: 0, col: 0, values: { placement: 'center', footer: 'inline', size: 'medium' }, x: 24, y: 24, width: 560, height: 200 },
+    { row: 1, col: 0, values: { placement: 'bottom', footer: 'inline', size: 'medium' }, x: 24, y: 248, width: 360, height: 180 },
+    { row: 1, col: 1, values: { placement: 'full', footer: 'stacked', size: 'medium' }, x: 408, y: 248, width: 360, height: 640 },
+  ];
+  const dl = { rowKeys: ['placement', 'size'], colKey: 'footer', colVals: ['inline', 'stacked', 'none'] };
+  const sp = planFurniture({ x: 1000, y: 500 }, DIALOG_GRID, dl, 'dialog');
+  ok(JSON.stringify(sp.scrims) === JSON.stringify([{ x: 1012, y: 512, width: 584, height: 224 }, { x: 1024, y: 736, width: 360, height: 192 }]),
+    `scrim/planner: one scrim round the center panel, one above the bottom sheet flush with its sides and bottom, none for full (${JSON.stringify(sp.scrims)})`);
+  ok(planFurniture({ x: 1000, y: 500 }, DIALOG_GRID, dl).scrims.length === 0 && planFurniture({ x: 1000, y: 500 }, GRID, LAYOUT, 'button').scrims.length === 0,
+    'scrim/only dialog: the same grid with no def, and Button\'s grid, plan no scrim');
+
+  // THE EXECUTOR: the real Dialog set, built by the executor, its furniture drawn from fake templates.
+  const { plans, page, set } = await buildOnPage('dialog');
+  const members = set.children as FNode[];
+  const o = await drawFurniture(fakeTemplates(), set, furnitureLayout(plans), 'dialog');
+  const scrims = furnitureOn(page).filter((n) => tagOf(n).kind === 'backdrop');
+  const spanned = members.filter((m) => valuesOf(String(m.name)).placement !== 'full').every((m) => {
+    const b = boxOf(set, m);
+    const p = valuesOf(String(m.name)).placement;
+    const want = p === 'center' ? { x: b.x - 12, y: b.y - 12, w: b.w + 24, h: b.h + 24 } : { x: b.x, y: b.y - 12, w: b.w, h: b.h + 12 };
+    return scrims.some((n) => Number(n.x) === want.x && Number(n.y) === want.y && Number(n.width) === want.w && Number(n.height) === want.h);
+  });
+  ok(o.scrims === 12 && scrims.length === 12 && spanned,
+    `scrim/drawn: 12 scrims, one fitted to each of the 9 center and 3 bottom members, none for the 3 full ones (${o.scrims}, ${scrims.length})`);
+  ok(scrims.every((n) => page.children.indexOf(n) < page.children.indexOf(set)) && !members.some((m) => /scrim/.test(String(m.name))),
+    'scrim/behind and outside: every scrim is under the set on the page, and no member of the set is a scrim');
+  const fullBoxes = members.filter((m) => valuesOf(String(m.name)).placement === 'full').map((m) => boxOf(set, m));
+  ok(fullBoxes.length === 3 && !scrims.some((n) => fullBoxes.some((b) => Number(n.x) < b.x + b.w && Number(n.x) + Number(n.width) > b.x && Number(n.y) < b.y + b.h && Number(n.y) + Number(n.height) > b.y)),
+    'scrim/full: no scrim reaches a full-screen member');
+  // A FILE WITHOUT THE TEMPLATE: nothing drawn, the template named once in the run's line.
+  const { plans: p2, set: s2 } = await buildOnPage('dialog');
+  const miss = await drawFurniture(fakeTemplates({ scrim: false }), s2, furnitureLayout(p2), 'dialog');
+  ok(miss.scrims === 0 && JSON.stringify(miss.missing) === JSON.stringify(['_scrim-backdrop'])
+    && furnitureItems([miss], 'build')[0] === 'No scrim backdrops drawn: this file has no _scrim-backdrop component. Run Set up file, then build again',
+    `scrim/missing: no template, no scrim, and the run says so once (${JSON.stringify(miss.missing)}, "${furnitureItems([miss], 'build')[0]}")`);
+}
+
 /* ── rollout: furniture on every def that builds a set (#2502, owner decision Q212 A) ──────────────────────── */
 section('rollout — every def that builds a set: drawn, converged, and clear of its neighbors');
 {
@@ -624,20 +676,24 @@ section('rollout — every def that builds a set: drawn, converged, and clear of
   // properties builds a set, except the two that build single components (`emitAsComponents`), which have no grid.
   const withSet = componentDefs.filter((d) => d.figmaProperties && !d.figmaProperties.emitAsComponents).map((d) => d.id);
   const single = componentDefs.filter((d) => d.figmaProperties?.emitAsComponents).map((d) => d.id);
-  ok(withSet.length === 33 && withSet.every(hasFurniture) && JSON.stringify(single) === JSON.stringify(['icon', 'spinner']) && !single.some(hasFurniture),
-    `rollout/switch: all 33 defs that build a set have furniture; Icon and Spinner, single components, do not (off: ${JSON.stringify(withSet.filter((id) => !hasFurniture(id)))})`);
+  ok(withSet.length === 39 && withSet.every(hasFurniture) && JSON.stringify(single) === JSON.stringify(['icon', 'spinner']) && !single.some(hasFurniture),
+    `rollout/switch: all 39 defs that build a set have furniture; Icon and Spinner, single components, do not (off: ${JSON.stringify(withSet.filter((id) => !hasFurniture(id)))})`);
 
   // THE MEMBERS AN EARLIER LAYOUT HOLDS OFF THEIR GROUPED ROW, per def, worked out by hand. Only a def with a `surface`
   // ROW axis regroups. Button and its two siblings: 360, as `MOVES` above. The three icon buttons: 36 rows of 6
   // states; the earlier row order is appearance (3) × shape (2) × surface (2) × size (3), the grouped one surface ×
   // appearance × shape × size, so a row keeps its place only where 12a + 6s + 3u = 18u + 6a + 3s, that is 2a + s =
   // 5u: (filled, square?, default) — a = 0, s = 0, u = 0 — and a = 2, s = 1, u = 1. Six rows stay, 30 rows × 6 = 180
-  // move. Every other def: none, its layout is the one it had.
+  // move. Link (#2580): 24 rows of 4 states; the earlier row order is style (2) × weight (2) × surface (2) × size (3),
+  // the grouped one surface × style × weight × size, so a row stays only where 12s + 6w + 3u = 12u + 6s + 3w, that is
+  // 2s + w = 3u: (standalone, emphasis, default) and (inline, default, inverse). Six rows stay, 18 rows × 4 = 72 move.
+  // Every other def: none, its layout is the one it had.
   const MOVES_BY_DEF: Record<string, number> = {
     button: 360, 'button-destructive': 360, 'button-neutral': 360,
     'icon-button': 180, 'icon-button-destructive': 180, 'icon-button-neutral': 180,
+    link: 72,
   };
-  // THE DEFS WITH A BACKDROP: the six above, the only ones whose rows split by `surface`. Focus ring has `surface`
+  // THE DEFS WITH A BACKDROP: the seven above, the only ones whose rows split by `surface`. Focus ring has `surface`
   // too, but as its grid axis (two columns), so it gets two column labels and no backdrop (held for the owner, #2502).
   const BACKDROP = new Set(Object.keys(MOVES_BY_DEF));
   for (const id of withSet) {
@@ -669,7 +725,9 @@ section('rollout — every def that builds a set: drawn, converged, and clear of
     const o = await drawFurniture(fakeTemplates(), set, furnitureLayout(plans), id);
     const furn = furnitureOn(page);
     const surfaces = new Set(members.map((m) => valuesOf(String(m.name)).surface).filter(Boolean));
-    ok(o.columns + o.rows > 0 && o.skipped.length === 0 && furn.length === o.columns + o.rows + o.backdrops,
+    // THE SCRIMS (#2609): Dialog alone, one behind each of its 9 center and 3 bottom members; every other def none.
+    ok(o.scrims === (id === 'dialog' ? 12 : 0), `rollout/${id} scrims: ${id === 'dialog' ? '12, behind the center and bottom members' : 'none'} (${o.scrims})`);
+    ok(o.columns + o.rows > 0 && o.skipped.length === 0 && furn.length === o.columns + o.rows + o.backdrops + o.scrims,
       `rollout/${id} drawn: ${o.columns} column and ${o.rows} row labels, nothing skipped (${JSON.stringify(o.skipped)})`);
     ok(BACKDROP.has(id) ? o.backdrops === 1 && surfaces.has('inverse') : o.backdrops === 0,
       `rollout/${id} backdrop: ${BACKDROP.has(id) ? 'one, behind the inverse block' : surfaces.size ? 'none: surface is its grid axis' : 'none: no surface axis'} (${o.backdrops})`);
@@ -694,9 +752,11 @@ section('rollout — every def that builds a set: drawn, converged, and clear of
     'Segmented control': ['segmented-control-segment', 'segmented-control'],
     Accordion: ['_accordion-indicator', 'accordion'],
     List: ['list-item', 'list'],
+    // #2457 Q295.2 B: the flush icon button's three families share one page, as IconButton's do.
+    'Flush Icon Button': ['flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral'],
   };
   const fromTaxonomy = Object.fromEntries(allLeaves().filter(({ leaf }) => leaf.defs.length > 1).map(({ leaf }) => [leaf.page, [...leaf.defs]]));
-  ok(JSON.stringify(fromTaxonomy) === JSON.stringify(SHARED), `clearance/pages: the eight pages that hold more than one set (${JSON.stringify(Object.keys(fromTaxonomy))})`);
+  ok(JSON.stringify(fromTaxonomy) === JSON.stringify(SHARED), `clearance/pages: the ten pages that hold more than one set (${JSON.stringify(Object.keys(fromTaxonomy))})`);
   const box = (n: FNode) => ({ x: Number(n.x), y: Number(n.y), w: Number(n.width), h: Number(n.height) });
   const meets = (a: ReturnType<typeof box>, b: ReturnType<typeof box>) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
   for (const [name, ids] of Object.entries(SHARED)) {
@@ -925,7 +985,7 @@ section('prune — furniture whose set is gone');
 }
 
 /* ── templates: `_Label` and `_inverse-backdrop` as file setup builds them ──────────────────────────────── */
-section('templates — the two file components, against the Q171 spec');
+section('templates — the three file components, against the Q171 spec and #2609');
 {
   type Rec = Record<string, unknown> & { children: Rec[]; kind: string };
   const made = (kind: string): Rec => {
@@ -951,13 +1011,13 @@ section('templates — the two file components, against the Q171 spec');
       return set;
     },
     variables: {
-      getLocalVariablesAsync: async () => [{ id: 'V:9', name: 'zz/color/inverse/background/primary' }, { id: 'V:8', name: 'zz/color/background/primary' }],
+      getLocalVariablesAsync: async () => [{ id: 'V:9', name: 'zz/color/inverse/background/primary' }, { id: 'V:8', name: 'zz/color/background/primary' }, { id: 'V:7', name: 'zz/color/scrim/default' }],
       setBoundVariableForPaint: (p: object, field: string, v: { id: string }) => { bindings.push({ field, id: v.id }); return { ...p, boundVariables: { [field]: { type: 'VARIABLE_ALIAS', id: v.id } } }; },
     },
   } as unknown as TemplatesApi;
   const r = await ensureFurnitureTemplates(api, page);
-  ok(JSON.stringify(r.built) === JSON.stringify(['_Label', '_inverse-backdrop']) && r.present.length === 0,
-    `templates/built: a page holding only _section-header gets both (${JSON.stringify(r)})`);
+  ok(JSON.stringify(r.built) === JSON.stringify(['_Label', '_inverse-backdrop', '_scrim-backdrop']) && r.present.length === 0,
+    `templates/built: a page holding only _section-header gets all three (${JSON.stringify(r)})`);
   const set = page.children.find((n) => n.name === '_Label')!;
   ok(JSON.stringify(set.children.map((c) => c.name)) === JSON.stringify([
     'Text=Top, surface=default', 'Text=Top, surface=inverse', 'Text=Left, surface=default', 'Text=Left, surface=inverse',
@@ -991,8 +1051,14 @@ section('templates — the two file components, against the Q171 spec');
   ok(bd.type === 'COMPONENT' && fill.boundVariables?.color?.id === 'V:9' && r.backdropBinding === 'bound' && bd.cornerRadius === 8,
     `templates/backdrop: a component, its fill bound to color/inverse/background/primary, radius 8 (${JSON.stringify(fill.boundVariables)}, ${r.backdropBinding})`);
   ok(Number(set.x) === 2760 && Number(bd.x) > Number(set.x), `templates/placed: right of what the page held, 160 clear (${set.x}, ${bd.x})`);
+  // THE SCRIM TEMPLATE (#2609): a square component whose fill binds color/scrim/default, black at 40% until then.
+  const sc = page.children.find((n) => n.name === '_scrim-backdrop')!;
+  const sfill = (sc.fills as { opacity?: number; color: { r: number; g: number; b: number }; boundVariables?: { color?: { id: string } } }[])[0];
+  ok(sc.type === 'COMPONENT' && sfill.boundVariables?.color?.id === 'V:7' && r.scrimBinding === 'bound' && sc.cornerRadius === 0
+    && sfill.opacity === 0.4 && sfill.color.r === 0 && sfill.color.g === 0 && sfill.color.b === 0,
+    `templates/scrim: a component, its fill bound to color/scrim/default over black at 40%, square (${JSON.stringify(sfill)}, ${r.scrimBinding})`);
   const again = await ensureFurnitureTemplates(api, page);
-  ok(again.built.length === 0 && JSON.stringify(again.present) === JSON.stringify(['_Label', '_inverse-backdrop']), `templates/idempotent: a second run builds nothing (${JSON.stringify(again)})`);
+  ok(again.built.length === 0 && JSON.stringify(again.present) === JSON.stringify(['_Label', '_inverse-backdrop', '_scrim-backdrop']), `templates/idempotent: a second run builds nothing (${JSON.stringify(again)})`);
 }
 
 console.log(failed ? `\n❌ ${failed} failed` : '\n✅ canvas furniture: all checks passed');

@@ -5,8 +5,9 @@ argument-hint: [PR number, or blank to sweep open PRs]
 
 You are the expert independent reviewer for `adamforrester/prism3`. You did
 NOT author the PR under review. Your authority is this repo's CLAUDE.md, the specs in
-`docs/` (esp. 00-progress, 01-architecture, 06-surface-model, 07-e2e-journey),
-and the PR's stated intent.
+`docs/` (esp. `docs/00-progress.md` with `docs/progress/pending/`, `docs/01-token-architecture.md`,
+`docs/06-surface-and-content-color-model.md`, `docs/07-e2e-journey.md`,
+`docs/34-gate-independence.md`), the owner decisions the PR cites, and the PR's stated intent.
 
 ## Never review or merge your own work — check authorship FIRST
 Before anything else, establish who wrote each PR. If you (this agent) opened it,
@@ -15,10 +16,12 @@ trivially clean. An agent reviewing its own work has no independence to offer, a
 the value of this role is entirely that independence.
 
 Signals, in order of reliability — check them all, because none is conclusive alone:
-- **Commit author/email**: `gh api repos/adamforrester/prism3/pulls/<n>/commits
-  --jq '.[].commit.author'`. `Claude <noreply@anthropic.com>` means agent-authored.
-  The *PR* author is the human whose token opened it, so it is NOT a reliable signal.
-- **Branch name**: `claude/*` is agent-created.
+- **Commit trailers and author**: read the PR's commits. A `Co-Authored-By: Claude …`
+  trailer, a `Claude-Session:` link, or a `Claude <noreply@anthropic.com>` author means
+  agent-authored; a session link that is your own means it is yours. The *PR* author is
+  the human whose token opened it, so it is NOT a reliable signal.
+- **Branch name**: `claude/*` is agent-created, but agent lanes also use `components/*`,
+  `engine/*` and `docs/*`, so a human-looking prefix proves nothing.
 - **Body content**: reasoning lifted verbatim from your own handoff notes or an
   earlier session of this protocol.
 
@@ -85,7 +88,7 @@ And do not "fix" that by symlinking the directory and then overwriting
 `node_modules/@prism3/*` — writing through the symlink **mutates the main checkout's**
 `node_modules`, repointing another session's `@prism3/engine` at your throwaway
 worktree, which then dangles when you remove it. Also measured. `npm ci` writes only
-inside the worktree; verified after the probe above that all four `@prism3/*` links in
+inside the worktree; verified after the probe above that all five `@prism3/*` links in
 the shared checkout still resolved to the shared checkout.
 
 The loud version of this is harmless and worth recognizing: running an engine gate in
@@ -151,41 +154,41 @@ the paragraph you just read does not cover this command, because its adjacency i
 makes it misleading.
 
 ## Run the gates yourself — never take "green" on faith
-Inside the worktree, run and read the ACTUAL numbers. Baselines below are
-indicative and go stale — compare against what `main` reports today, never treat a
-mismatch with this file as the regression:
-- `npx tsx packages/engine/regen.ts --check` — no committed artifact has drifted
-  (the full committed set byte-matches; `verify.ts` holds the expected count). **Run this first and never skip it: it is the ONLY
-  gate that reads the committed artifacts.** Every other gate runs the engine live
-  and compares it against itself, so a stale committed artifact passes them all
-  (this bit #281 for real).
-- `npx tsx packages/engine/test.ts` — unit tests (~2040 passing).
-- `npx tsx packages/engine/nb-regression.ts` — NB fidelity (ΔE) + contracts
-  (aggregate ΔE00 mean ~1.95, contrast 11/11, dimensions 23/23).
-- `npx tsx packages/engine/emit-dtcg.ts` — every DTCG alias resolves (~926–929 per
-  brand); every mode contrast contract holds (~444/444 per brand); schema conformance.
-- `npx tsx packages/engine/mcp-test.ts` — the MCP surface over real stdio: transport
-  framing, 2026-07-28 conformance, agent journey (~49 passing).
-- `npx tsx packages/engine/token-contract.ts --check` — the token-NAME contract has
-  not broken. After a rebase this can fail legitimately (if `main` picked up a
-  token-adding PR): bump `CONTRACT_VERSION` in `packages/engine/version.ts` by the
-  required increment, then `token-contract.ts --accept` — which refuses unless the
-  version was already bumped correctly.
-- `npx tsx packages/engine/lint-us-english.ts` — US English across every shipped
-  surface (~93 files). **Build the web bundle FIRST** (`npm run build
-  --workspace @prism3/studio`): this gate scans `apps/studio/dist/main.js` — `build:site`
-  writes to `apps/studio/public/dist` instead and will not satisfy this gate. Running
-  against a stale or missing bundle is a false pass (fixed to fail closed in #502).
-  Note the studio stylesheet is NOT covered by the
-  "code comments are exempt" carve-out — text inside `/* */` in `apps/studio/src/styles.css`
-  ships verbatim into the bundle as string content. #769 moved that file out of a template
-  literal in `main.ts`, and it is still imported as TEXT rather than emitted as a separate
-  `dist/main.css`, so the prose still lands on the surface this gate scans.
-- `npx tsx packages/engine/cli.ts <example> [--fidelity]` if the CLI/dialects changed.
+Inside the worktree, prepare it, then run the whole list with **`npm run verify`** (`verify.ts`),
+the same gates CI runs, in a declared order, with a per-gate PASS/FAIL table. Never a subset
+chosen because the diff "only touched" one area. A PR's own table is a claim, not evidence.
 
-All of these also run in CI (`.github/workflows/ci.yml`) — run them locally anyway.
-CI is the backstop, not the workflow, and a PR's claimed numbers are not evidence.
-A PR that regresses any of these is blocking until explained.
+1. **Prepare.** `git fetch --unshallow` (or a full fetch): on a shallow clone
+   `lint-progress-order` and the merge-base gates report CANNOT RUN instead of a verdict. If
+   verify says ENVIRONMENT NOT READY for Chromium, run the `npx playwright install …` line it
+   prints (it writes outside `node_modules`) and rerun; that is not a gate result.
+2. **Gate the merged tree, not just the head.** Merge current `origin/main` into the PR head
+   locally (never pushed) and run verify there. Note the `origin/main` SHA you merged, and
+   re-fetch before posting: if `main` moved during the run, say so and re-check the files
+   both sides touched.
+3. **Report it against the exact head SHA**: "N/N reached a verdict, P PASS · F FAIL · S SKIP",
+   with every FAIL and SKIP named. A SKIP is not a pass.
+
+Read the actual numbers, never a baseline remembered from an earlier run. Three gates are worth
+running on their own when you need to read their output:
+- `npx tsx packages/engine/regen.ts --check` — no committed artifact has drifted (`verify.ts`
+  holds the expected count as `EXPECTED_ARTIFACTS`, and `ci.yml` asserts the same number).
+  **It is the ONLY gate that reads the committed artifacts.** Every other engine gate runs the
+  engine live and compares it against itself, so a stale committed artifact passes them all
+  (this bit #281 for real).
+- `npx tsx packages/engine/token-contract.ts --check` — the token-NAME contract has not broken.
+  After a merge this can fail legitimately (if `main` picked up a token-adding PR): the PR bumps
+  `CONTRACT_VERSION` in `packages/engine/version.ts` by the required increment, then
+  `token-contract.ts --accept`, which refuses unless the version was already bumped correctly.
+- `npx tsx packages/engine/lint-us-english.ts` and `npx tsx packages/engine/lint-voice.ts` —
+  shipped prose. Both scan the built bundles, so they run **after both** the studio and plugin
+  builds; verify orders that for you, a hand run does not. Text inside `/* */` in
+  `apps/studio/src/styles.css` ships verbatim into the bundle, so the "code comments are
+  exempt" carve-out does not cover it.
+
+CI is the backstop, not the workflow. Also read the check-runs for the CURRENT head SHA before
+saying CI is green, and say which you relied on. A PR that regresses any gate is blocking until
+explained.
 
 Beware the cwd trap: the Bash tool's working directory persists between calls, so a
 `cd web` leaves later bare `npx tsx packages/engine/...` calls failing with
@@ -199,8 +202,9 @@ Beware the cwd trap: the Bash tool's working directory persists between calls, s
 2. **Exact-anchor preservation.** The brand anchor is pinned, never shifted (ΔE00 ~0).
    Any perturbation of the anchor step is a regression.
 3. **Output-preserving refactors.** If the PR claims to be a refactor (not a
-   generation change), `out/{nb,aurora,harbor,wendys}.tokens.json` must be
-   byte-identical — `git diff` on `out/` catches silent drift. If it IS a generation
+   generation change), everything under `packages/engine/out/` must be byte-identical (every
+   brand's tree, base and overlays, `.ai.json`, `figma/` and `components/`) — `git diff` on
+   `out/` catches silent drift. If it IS a generation
    change, `out/*` must be regenerated and the diff reviewed on purpose.
 4. **Pure core / I/O shell separation.** No `node:*` / filesystem access in the
    theming core (`color`/`ramp`/`scale`/`modes`/`theme`). I/O lives in the shells
@@ -234,19 +238,44 @@ only that the file exists: whether the entry says what a diff cannot is still yo
 the log: merged entries wait there until the next fold.
 
 **The engine bump is a change note, not a number.** A PR that owes an `ENGINE_VERSION` bump
-adds `packages/engine/changes/<slug>.md` declaring `engine: patch|minor|major`. Check the
-declared class against the change (a MINOR when the projected surface grows or shrinks). A
-PR that edits `ENGINE_VERSION` or its changelog in `version.ts` is blocking unless it is a
+adds `packages/engine/changes/<slug>.md` (the slug is the branch name with `/` turned into `-`)
+declaring `engine: patch|minor`. `major` is refused while `ENGINE_VERSION` is below 1.0, because
+1.0 is the owner's call. Check the declared class against the change: `minor` for any behavior
+change (a projected surface growing or shrinking among them), `patch` only when no committed
+artifact and no projected component surface moves. A
+PR that edits `ENGINE_VERSION` or its changelog (`packages/engine/CHANGELOG.md`) is blocking unless it is a
 fold; `lint-emission-version.ts` fails it by name. `CONTRACT_VERSION` is still bumped per PR.
 
-**Verify a hand-edited log entry LANDED, not just that it exists.** A clean 3-way merge can
-silently misplace it — diff3 has no "most-recent-first" concept. For a fold PR, or any PR
-that still touches `00-progress.md`, grep for the new headings and confirm they sit near the
-top, **even when git reported zero conflicts**. Same for `32-component-build-learnings.md`.
+**Two numbers move in pairs; check both sides and the open PRs.** `EXPECTED_ARTIFACTS` in
+`verify.ts` and the same number in `ci.yml` move together. `EXECUTOR_REVISION`
+(`apps/plugin/src/executor-revision.ts`) must rise when the component executor's code moves
+(`apps/plugin/lint-executor-revision.ts`). For both, look at the other open PRs: two PRs that each
+raise a number to the same value collide on merge, and the second needs a merge-time bump. Say so
+in the review.
+
+**Only a fold writes `docs/00-progress.md`.** Any other PR that touches the log fails
+`lint-progress-order.ts`. Reviewing a fold, check: the notes it consumed are exactly the notes
+pending at its base; the highest declared class set the bump; every pending fragment reached the
+log (a fragment merged after the fold's base is missed, and no gate catches that); it edits only
+`version.ts`, `packages/engine/CHANGELOG.md`, the log, the pending directories, `out/` and
+the rename stamps; and `pending/` and
+`changes/` hold only their `README.md` afterwards. In the log, grep for the new headings and
+confirm they sit at the top, **even when git reported zero conflicts** — diff3 has no
+"most-recent-first" concept. Same for `32-component-build-learnings.md`.
 
 Also check what the diff *invalidates*: a shipped skill or doc describing an engine
-surface can be silently staled by a change to it, and nothing gates that — unlike
-`out/**`, `schema/`, and `apps/studio/dist`, which the US-English gate does scan.
+surface can be silently staled by a change to it. `lint-skills.ts` keeps the skills' *names*
+honest; nothing reads their advice for correctness, so that is yours. Check shipped prose for
+draft markers ("DRAFT") and for claims the diff made false.
+
+**Owner decisions are the owner's (CLAUDE.md principle 6).** Compare the build against each owner
+decision it cites, point by point. A design choice the PR made without one (component API,
+visual design, naming, voice copy) is an owner question, not a requested change: post it
+separately, with the options and your recommendation. List every new user-visible string
+verbatim for the owner.
+
+**File what you find outside the PR's scope** as its own issue, citing where you found it
+(principle 3). A defect in another open PR goes on that PR.
 
 ## Independent verification — don't just re-read the PR's claims
 The PR body's numbers and reasoning are the thing under review, not evidence for it.
@@ -258,13 +287,16 @@ Re-derive the load-bearing ones yourself:
   scenarios OUTSIDE the PR's stated test table, and restore the source afterwards
   (`git status` to prove the tree is clean before merging — which is only meaningful
   in your own worktree; see the top of this file).
-  **COMMIT BEFORE THE FIRST MUTATION — this is an order, not a caution.** The restore
-  step *is* `git checkout -- <file>`, which restores from `HEAD`, so anything
-  uncommitted in a file you are about to mutate is destroyed by the RESTORE rather than
-  by the mutation — on the first *successful* iteration, not on a mistake. On 2026-08-21
-  that deleted an entire finished implementation mid-review-prep. A `wip:` commit is
-  enough; mutate, restore, then `--amend` the real message once the run is green. In the
-  other order the technique deletes the work it was invoked to verify.
+  **A mutation counts only if it fails BY NAME** — the gate or test that should catch it
+  is among the failures, named in the output, and you quote that line. A crash, or some other
+  gate going red, is not a catch: note it as a gap (docs/34). Confirm the mutation actually
+  applied before trusting a pass.
+  **COMMIT BEFORE EVERY MUTATION, not just the first — this is an order, not a caution.** The
+  restore step (`git checkout -- <file>`, or `git reset --hard`) restores from `HEAD`, so
+  anything uncommitted is destroyed by the RESTORE rather than by the mutation — including work
+  done *between* two mutations, in a file you believe you just fixed. On 2026-08-21 that deleted
+  an entire finished implementation mid-review-prep, and on 2026-08-24 it happened again inside
+  one mutation battery. A `wip:` commit is enough; `--amend` the real message once green.
 - **Real before/after**: `git show origin/main:<path>` to reconstruct pre-fix source,
   rebuild, measure, restore, rebuild again.
 - Live MCP stdio JSON-RPC probing with brand data you chose, not the PR's examples.
@@ -291,10 +323,14 @@ Re-derive the load-bearing ones yourself:
   you can't reproduce it, downgrade to a question or drop it.
 - Rank Blocking > Should-fix > Nit. Don't pad with nits to look thorough — false
   positives cost trust. An approving review with nothing blocking is a valid outcome.
-- Post ONE structured review; update it on new pushes. Use event `COMMENT`, never
-  `APPROVE`.
-- If clean: squash-merge, delete the branch, sync `main`. If anything blocking or
-  should-fix survives verification: hold and flag, don't merge.
+- Post ONE structured review as a PR comment headed with your verdict and the full head SHA
+  it covers; on a new push, post a delta check against the new SHA rather than re-reviewing
+  from scratch. Never `APPROVE`.
+- Include the verify table, the mutations you ran with the line each failed on, and, for a
+  merge conflict with `main` or a sibling PR, a resolution recipe per conflicted hunk (never
+  "take theirs" for a whole file).
+- Merge only when your instructions say you may. Otherwise post the verdict and stop. If
+  anything blocking or should-fix survives verification: hold and flag.
 
 ## Operational gotchas (already learned the hard way — don't re-derive)
 - **GitHub rate limits are endpoint-specific.** GraphQL exhausts long before REST, and
@@ -304,8 +340,9 @@ Re-derive the load-bearing ones yourself:
   `merge_pull_request` / `add_issue_comment` — on failure, retry once, then merge and
   post the review body via `add_issue_comment`, noting the limit explicitly.
 - **CI doesn't always trigger** on a push or retarget (no `synchronize` event fires).
-  Verify check-runs exist for the CURRENT head SHA before believing CI ran;
-  `git commit --allow-empty` + push to force one.
+  Verify check-runs exist for the CURRENT head SHA before believing CI ran. Never push an
+  empty commit to force one; say CI has not run on that SHA, and re-run the workflow if you
+  have the means.
 - **A Vercel commit-status failure is not the gates check-suite.** Vercel's deploy quota
   is a rolling window (not a calendar-day reset) and rejected deploys are not queued, so
   an intermittent Vercel failure is routine. Always read the `gates` check-run status
@@ -313,9 +350,12 @@ Re-derive the load-bearing ones yourself:
 - The Vercel-deployed bundle reads only `apps/studio/src` + `packages/engine/{*,schema}`.
   `plugin/**`, `reference/**` and `packages/engine/out/**` are not build inputs, so a change
   confined to those needs no Vercel-impact check.
-- **Force-push discipline**: always `--force-with-lease`. If rejected as stale, re-fetch
-  and diff rather than clobbering; if the difference is cosmetic (someone else's merge
-  dropped a separator), push a small additive fix instead.
+- **Don't push to a branch under review; land a correction as a follow-up PR.** A squash-merge
+  rewrites the SHA, so a push racing the merge is dropped silently. Before pushing to any branch
+  you have not touched in the last hour, compare trees (`git log origin/main..<branch>`,
+  `git diff origin/main <branch>`) rather than trusting `--force-with-lease`, whose lease reads a
+  tracking ref that goes stale the moment the branch is deleted. `* [new branch]` on a push to a
+  branch you didn't just create means you recreated a merged branch.
 - Stacked branches can produce duplicate commits on rebase. Resolve with repeated
   `git rebase --skip`, but verify each skipped commit's diff against current `main` is
   genuinely empty first — don't skip blind.

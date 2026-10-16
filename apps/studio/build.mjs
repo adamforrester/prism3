@@ -5,7 +5,8 @@
  * `p3:chrome-css`, which `chrome/esbuild-plugin.mjs` generates from the default theme at bundle time.
  *
  *   node build.mjs          → dist/main.js + dist/main.js.map   (`npm run build`)
- *   node build.mjs --dev    → serves this directory on 127.0.0.1:5173, rebuilding per request (`npm run dev`)
+ *   node build.mjs --dev    → serves this directory on 127.0.0.1:5173, rebuilding per request (`npm run dev`),
+ *                             and `docs/public/` at `/docs/` (#2637)
  *
  * The flags are the CLI's, unchanged: same entry and output name, `format: 'esm'`, `.css` as TEXT
  * (#769), the two defines, a sourcemap for `build` only. Every other esbuild entry that bundles
@@ -16,7 +17,9 @@
 import * as esbuild from 'esbuild';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createServer, request } from 'node:http';
 import { chromeCss } from './chrome/esbuild-plugin.mjs';
+import { serveDocs } from './docs-route.mjs';
 
 const root = dirname(fileURLToPath(import.meta.url));
 const dev = process.argv.includes('--dev');
@@ -35,9 +38,20 @@ const options = {
 };
 
 if (dev) {
+  // esbuild serves this directory on an internal port; the front server on 5173 answers `/docs` from
+  // `docs/public/` (#2637, `docs-route.mjs`) and passes every other request through, unchanged.
   const ctx = await esbuild.context(options);
-  const { host, port } = await ctx.serve({ servedir: root, host: '127.0.0.1', port: 5173 });
-  console.log(`studio dev server → http://${host}:${port}/`);
+  const inner = await ctx.serve({ servedir: root, host: '127.0.0.1', port: 0 });
+  const front = createServer((req, res) => {
+    if (serveDocs(req, res)) return;
+    const up = request({ host: inner.host, port: inner.port, path: req.url, method: req.method, headers: req.headers }, (r) => {
+      res.writeHead(r.statusCode ?? 502, r.headers);
+      r.pipe(res);
+    });
+    up.on('error', (e) => { res.writeHead(502, { 'content-type': 'text/plain; charset=utf-8' }); res.end(`dev server: ${e.message}\n`); });
+    req.pipe(up);
+  });
+  front.listen(5173, '127.0.0.1', () => console.log('studio dev server → http://127.0.0.1:5173/ (docs at /docs/llms.txt)'));
 } else {
   await esbuild.build({ ...options, sourcemap: true });
 }

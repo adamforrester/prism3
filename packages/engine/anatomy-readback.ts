@@ -77,7 +77,7 @@
  * offline shim and a real-host harness; only the ports differ.
  */
 
-import type { AnatomyPlan, FigmaNodePlan } from './anatomy-figma.ts';
+import type { AnatomyPlan, FigmaNodePlan, NestOverride } from './anatomy-figma.ts';
 
 /** What the reader needs of a host node. Deliberately structural and open: a host carries far more,
  *  and naming only what is read keeps this file honest about its own scope. */
@@ -95,6 +95,10 @@ export type ReadPorts = {
    *  values. `null` when the file holds nothing under the key. Optional: only a slot that prefers something reads it,
    *  and a reader without it reports that slot as unreadable rather than passing it. */
   componentName?: (key: string) => string | null;
+  /** A component's NODE ID → its name as the file holds it (#2645), for an `INSTANCE_SWAP` override, whose value
+   *  Figma stores as the component's id. `null` when no component carries the id. Optional, like `componentName`:
+   *  only a swap override reads it, and a reader without it reports that override as unreadable rather than passing. */
+  componentById?: (id: string) => string | null;
 };
 
 export type Divergence = {
@@ -334,6 +338,12 @@ export const FIELDS: Record<string, FieldCheck> = {
   placementWidth: {
     show: (p) => `width ${String(p)}`,
     check: (p, n) => (n.width === p ? null : `width ${str(n.width)}`),
+  },
+  // ── its height twin (#2609) ───────────────────────────────────────────────────────────────────
+  // Read off the measured `height` for the same reason: a root that went on hugging measures its content.
+  placementHeight: {
+    show: (p) => `height ${String(p)}`,
+    check: (p, n) => (n.height === p ? null : `height ${str(n.height)}`),
   },
   // ── the hugging wrap's max width (#1762) ──────────────────────────────────────────────────────
   // Echoed verbatim by the host, so compared directly; an executor that never wrote it reads `null`.
@@ -609,6 +619,46 @@ export const FIELDS: Record<string, FieldCheck> = {
   nestExpose: {
     show: (p) => `an EXPOSED nested instance (surfacing [${(p as readonly string[]).join(', ')}])`,
     check: (_p, n) => (n.isExposedInstance === true ? null : `isExposedInstance=${str(n.isExposedInstance)} — the nested instance was not marked exposed, so its properties do not surface on the parent`),
+  },
+  // #2645 — HOST-TRUTH for a per-instance override. Read off the instance's OWN `componentProperties`, the values
+  // Figma holds for it, never off the plan: the one key whose name before `#` is the plan's property and whose type
+  // matches, and its value. A TEXT reads as the text; an INSTANCE_SWAP reads as a component id, named through the
+  // host's own catalog (`componentById`), so an override that was never written reads back the nested default and
+  // fails here by name.
+  nestOverrides: {
+    show: (p) => (p as readonly NestOverride[]).map((o) => `${o.property}=${o.value}`).join(', '),
+    check: (p, n, ports) => {
+      const props = n.componentProperties as Record<string, { type?: unknown; value?: unknown }> | null | undefined;
+      if (!props || typeof props !== 'object') return `componentProperties=${str(props)} — the instance holds no component properties to override`;
+      const bad: string[] = [];
+      for (const o of p as readonly NestOverride[]) {
+        const keys = Object.keys(props).filter((k) => k.split('#')[0] === o.property && props[k].type === o.type);
+        if (keys.length !== 1) { bad.push(`${o.property}: ${keys.length} ${o.type} properties of that name`); continue; }
+        const v = props[keys[0]].value;
+        if (o.type === 'TEXT') { if (v !== o.value) bad.push(`${o.property}=${str(v)}`); continue; }
+        if (!ports.componentById) { bad.push(`${o.property}: unreadable (no component-by-id port)`); continue; }
+        const name = ports.componentById(String(v));
+        if (name !== o.value) bad.push(`${o.property}=${name ?? `id ${str(v)}, which names no component`}`);
+      }
+      return bad.length ? bad.join(', ') : null;
+    },
+  },
+  // #2317 — HOST-TRUTH for a nested instance's own text. The plan's `nestTexts` names what the instance says
+  // instead of its set's default; this reads the instance's `componentProperties` back and compares each named
+  // TEXT property's VALUE, so an executor that never wrote the override (the instance still says "Button") fails
+  // here by name.
+  nestTexts: {
+    show: (p) => `a nested instance whose TEXT properties read ${JSON.stringify(p)}`,
+    check: (p, n) => {
+      const props = (n.componentProperties ?? {}) as Record<string, { type?: unknown; value?: unknown }>;
+      const bad: string[] = [];
+      for (const [prop, want] of Object.entries(p as Record<string, string>)) {
+        const key = Object.keys(props).find((k) => k.split('#')[0] === prop && props[k].type === 'TEXT');
+        if (!key) bad.push(`${prop}→NO TEXT PROPERTY`);
+        else if (props[key].value !== want) bad.push(`${prop}=${str(props[key].value)}`);
+      }
+      return bad.length ? bad.join(', ') : null;
+    },
   },
 
   // ── paints ───────────────────────────────────────────────────────────────────────────────────

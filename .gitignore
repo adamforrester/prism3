@@ -8,3 +8,11 @@ apps/plugin/dist/
 apps/plugin/release/
 apps/tokenpress/dist/
 packages/tokens/build/
+
+# Built on demand, never committed (Q319.6): `npm run tokens-html`. regen.ts ON_DEMAND_OUT.
+packages/engine/out/tokens.html
+
+# UI-redesign mockups v4 and v5: built on demand by their build-v*.mjs, not committed (Q319.4).
+# concept-v6.html stays committed — the studio shell cites it.
+docs/superpowers/ui-redesign/concept-v4.html
+docs/superpowers/ui-redesign/concept-v5.html

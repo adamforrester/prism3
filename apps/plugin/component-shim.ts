@@ -245,6 +245,13 @@ export type ShimOpts = {
    */
   nestedInstanceParts?: string[];
   /**
+   * THE TEXT PROPERTIES AN OPAQUE COMPONENT'S INSTANCES CARRY (#2317), by component or set name: property name →
+   * its default. A component this run builds reports its set's real definitions; one named only in `comps` or
+   * `fileNodes` has none to report, so a harness states them here, from the NESTED def's own
+   * `figmaProperties.texts` — never from the host def's `nestTexts`, which is the value under test.
+   */
+  compTexts?: Record<string, Record<string, string>>;
+  /**
    * MEMBER-LEVEL id-settle AFTER COMBINE (#1473) — the host behavior `detachPartsOnCombine` above stops one
    * level short of. `detachPartsOnCombine` detaches a member's DESCENDANTS while keeping the member's own
    * identity, so a handle snapshotted from `set.children` right after combine still re-finds an attached
@@ -415,6 +422,10 @@ export type ShimOpts = {
    * reference's own `id` (`73:…`) as an INSTANCE_SWAP default, and a node without `identities` has none.
    */
   liveComponents?: boolean;
+  /** #2645 — THE COMPONENT PROPERTIES A CATALOG COMPONENT DECLARES, by its name, for an instance of a `comps` or
+   *  `fileNodes` entry, which is a name with nothing behind it. Keyed as Figma keys them (`label#1:2`). An instance of
+   *  a LIVE member (`liveRoot`) reads its set's real definitions instead, the ones the executor declared. */
+  componentProps?: Record<string, Record<string, { type: string; defaultValue: string | boolean }>>;
   /** #2379 — A FRAME'S `SCALE` CHILDREN SCALE WITH IT, as on the host: a resize, or a bound width or height that
    *  changes the frame's size, scales every child whose constraints are SCALE on both axes by the same ratio.
    *  The fresh build depends on it (a glyph imports at its 24px artboard; its bound size brings it to 16), and an
@@ -464,6 +475,62 @@ export const makeShim = (opts: ShimOpts = {}) => {
   const carryMain = (from: Node, to: Node): void => {
     const m = (from as Record<string, unknown>).mainComponent;
     if (m !== undefined) Object.defineProperty(to, 'mainComponent', { configurable: true, enumerable: false, writable: true, value: m });
+    // #2645 — and its component properties. A twin is the same instance relocated, so it keeps the overrides it was
+    // given; a SWAPPED instance keeps its own, as Figma's `swapComponent` "preserves overrides", read against the
+    // new main's definitions.
+    const defsOf = (from as Record<string, unknown>)._propDefsOf as PropDefsOf | undefined;
+    if (defsOf) installProps(to, defsOf, ((to as Record<string, unknown>)._overrides as Record<string, unknown> | undefined) ?? { ...(((from as Record<string, unknown>)._overrides as Record<string, unknown> | undefined) ?? {}) });
+  };
+  /** #2645 — every component id this host has handed out, and the component's name: what `getNodeByIdAsync` answers,
+   *  and what an INSTANCE_SWAP value must name. One id per component, stable across searches, as on the host. */
+  const componentIds = new Map<string, string>();
+  const idByComponent = new Map<string, string>();
+  const componentIdFor = (ownerName: string, name: string): string => {
+    const k = `${ownerName}\u0000${name}`;
+    let id = idByComponent.get(k);
+    if (!id) { id = `73:${37 + idByComponent.size}`; idByComponent.set(k, id); componentIds.set(id, name); }
+    return id;
+  };
+  /**
+   * #2645 — AN INSTANCE'S OWN COMPONENT PROPERTIES, modelled the way Figma keeps them: the main component's
+   * definitions, each at the value this instance was given or else its default. `componentProperties` reads them;
+   * `setProperties` writes them, and refuses as the host does: a key that is not a definition's FULL key (`#id`
+   * included), a VARIANT or SLOT key (not modelled; Figma takes a variant by its bare name and refuses a slot), a value
+   * of the wrong type, and a swap value that is no component id. A refused call writes nothing. Without this an
+   * instance had no properties at all, so an override could neither be written nor read back.
+   */
+  type PropDefsOf = () => Record<string, { type: string; defaultValue?: unknown }>;
+  const installProps = (inst: Node, defsOf: PropDefsOf, overrides: Record<string, unknown>): void => {
+    Object.defineProperty(inst, '_propDefsOf', { configurable: true, enumerable: false, writable: true, value: defsOf });
+    Object.defineProperty(inst, '_overrides', { configurable: true, enumerable: false, writable: true, value: overrides });
+    const defs = (): Record<string, { type: string; defaultValue?: unknown }> => { try { return defsOf() ?? {}; } catch { return {}; } };
+    Object.defineProperty(inst, 'componentProperties', {
+      configurable: true, enumerable: false,
+      get: () => {
+        const out: Record<string, { type: string; value: unknown }> = {};
+        for (const [k, d] of Object.entries(defs())) {
+          if (d.type === 'VARIANT' || d.type === 'SLOT') continue;
+          out[k] = { type: d.type, value: k in overrides ? overrides[k] : d.defaultValue };
+        }
+        return out;
+      },
+    });
+    Object.defineProperty(inst, 'setProperties', {
+      configurable: true, enumerable: false, writable: true,
+      value: (props: Record<string, unknown>): void => {
+        const all = defs();
+        for (const [k, v] of Object.entries(props)) {
+          const d = all[k];
+          if (!d || d.type === 'VARIANT') throw new Error(`in setProperties: Could not find a component property with name: '${k}'`);
+          if (d.type === 'SLOT') throw new Error('in setProperties: cannotSetSlotProperty');
+          if ((d.type === 'TEXT' && typeof v !== 'string') || (d.type === 'BOOLEAN' && typeof v !== 'boolean'))
+            throw new Error('in setProperties: Property value is incompatible with component property type');
+          if (d.type === 'INSTANCE_SWAP' && (typeof v !== 'string' || !componentIds.has(v)))
+            throw new Error(`in setProperties: Expected a component id, got ${JSON.stringify(v)}`);
+        }
+        Object.assign(overrides, props);
+      },
+    });
   };
   /**
    * FIGMA'S FONT-LOADED STATE — per plugin RUN, and the host behavior no shim modelled (#680).
@@ -1382,6 +1449,9 @@ export const makeShim = (opts: ShimOpts = {}) => {
     },
     // Zero-cost unless a run asks for the burn (`opts.burn.setup`). This is the last of the pre-build-loop
     loadAllPagesAsync: async () => { if (opts.burn?.setup) charge(opts.burn.setup); },
+    // #2645 — the host's node lookup, for the ids this host hands out for components (`componentIdFor`): what a swap
+    // override's value names. A reader resolves the id here, through the host, never through the plan.
+    getNodeByIdAsync: async (id: string) => (componentIds.has(id) ? { id, name: componentIds.get(id)!, type: 'COMPONENT' } : null),
     // #2265 PR 2, §10 Q7 — a named version, saved before an update writes anything. Recorded, so a test can read
     // that one was saved and in what order against the writes; refusable, so the refusal path is reachable.
     _versions: [] as string[],
@@ -1409,10 +1479,30 @@ export const makeShim = (opts: ShimOpts = {}) => {
         // HERE, by the host, at the moment `createInstance` is called on THIS object — never derived from the
         // name the executor asked for, which is the lookup under test.
         const PAGE_OWNER = { name: 'Page 1', type: 'PAGE' };
-        const mkRef = (name: string, i: number, main?: Node, owner: { name: string; type: string } = PAGE_OWNER) => ({
-          name, id: `73:${37 + i}`, type: 'COMPONENT',
+        // `_i` is unused since #2645, kept so every call site reads unchanged: the id is now one per component,
+        // stable across searches (`componentIdFor`), where it was the search's own counter and two components could
+        // share one — which a swap override, whose value IS an id, cannot survive.
+        const mkRef = (name: string, _i: number, main?: Node, owner: { name: string; type: string } = PAGE_OWNER) => ({
+          name, id: componentIdFor(owner.name, name), type: 'COMPONENT',
           createInstance: () => {
             const inst = mkNode('INSTANCE'); const vec = mkNode('VECTOR'); inst.findAll = () => [vec]; inst.findOne = () => null;
+            // #2645 — ITS PROPERTIES: a live member's are its set's (a plain live component's, its own), read when
+            // asked, so a property the executor declares later is there; a catalog name's are `componentProps'`.
+            // #2317 — an opaque component this run did not build, and `componentProps` does not declare, carries
+            // the harness's `compTexts` (by component or set name) as TEXT definitions. One model for both, so
+            // `setProperties` refuses the same way whichever harness named the properties.
+            const ownerName = owner === PAGE_OWNER ? name : owner.name;
+            installProps(inst, () => {
+              const declared = opts.componentProps?.[name];
+              if (declared) return declared;
+              if (main) {
+                const up = main.parent as Node | null | undefined;
+                const holder = up && up.type === 'COMPONENT_SET' ? up : main;
+                const live = (holder.componentPropertyDefinitions as Record<string, { type: string; defaultValue?: unknown }> | undefined) ?? {};
+                if (Object.keys(live).length) return live;
+              }
+              return Object.fromEntries(Object.entries(opts.compTexts?.[ownerName] ?? {}).map(([k, v], i) => [`${k}#7:${i}`, { type: 'TEXT', defaultValue: v }]));
+            }, {});
             // WHICH COMPONENT THIS IS AN INSTANCE OF, in Figma's own shape (`InstanceNode.mainComponent`, whose
             // `parent` is the COMPONENT_SET for a variant). A plain descriptor — no live back-references, so a
             // node tree still serializes — and NON-ENUMERABLE, so spreading or diffing a node's own keys does
@@ -1466,7 +1556,7 @@ export const makeShim = (opts: ShimOpts = {}) => {
         // instantiated would make the fixed executor's success path unreachable, so the shim now answers the
         // question the real host answers: a ComponentSetNode's children ARE ComponentNodes.
         // Its KEY (#2646), which a slot's preferred value names: the live set's own where it has one, else one per name.
-        const mkSet = (name: string, members: ReturnType<typeof mkRef>[], live?: Node) => ({ name, id: `73:${37 + seq++}`, type: 'COMPONENT_SET', children: members, key: String((live as Record<string, unknown> | undefined)?.key ?? `SK:${name}`) });
+        const mkSet = (name: string, members: ReturnType<typeof mkRef>[], live?: Node) => ({ name, id: `74:${37 + seq++}`, type: 'COMPONENT_SET', children: members, key: String((live as Record<string, unknown> | undefined)?.key ?? `SK:${name}`) });
         for (const name of opts.comps ?? []) if (types.includes('COMPONENT')) found.push(mkRef(name, seq++));
         for (const fn of opts.fileNodes ?? []) {
           if (fn.type === 'COMPONENT_SET') {

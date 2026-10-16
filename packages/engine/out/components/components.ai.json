@@ -216,7 +216,8 @@
           "text-field",
           "field-message",
           "select",
-          "tag"
+          "tag",
+          "link"
         ],
         "triggerKeywords": [
           "icon",
@@ -241,7 +242,6 @@
         "supersedes": [],
         "supersededBy": [],
         "planned": [
-          "link",
           "menu",
           "illustration",
           "logo",
@@ -350,7 +350,8 @@
           "select",
           "checkbox-control",
           "radio-control",
-          "switch-control"
+          "switch-control",
+          "link"
         ],
         "triggerKeywords": [
           "focus ring",
@@ -366,9 +367,7 @@
         "alternativeTo": [],
         "supersedes": [],
         "supersededBy": [],
-        "planned": [
-          "link"
-        ],
+        "planned": [],
         "replacesPatterns": [
           "a per-component focus border",
           "a box-shadow focus glow"
@@ -385,7 +384,7 @@
       "category": "form",
       "status": "draft",
       "summary": "Triggers an action in place. For navigation, use a link.",
-      "description": "In-flow trigger for an action that happens now, in the current context — submit, save, confirm, open a dialog, fire async work — in the brand's primary action style, the expected look of a button. Not navigation (use link / link-button, even when it looks like a button), not a persistent binary (Switch.Row), not one-of-many selection (segmented-control / toggle-button). For a destructive or a weightless action, use the Button.Destructive / Button.Neutral sibling components.",
+      "description": "In-flow trigger for an action that happens now, in the current context — submit, save, confirm, open a dialog, fire async work — in the brand's primary action style, the expected look of a button. Not navigation (use Link, or give the button an href so it renders an <a>), not a persistent binary (Switch.Row), not one-of-many selection (segmented-control / toggle-button). For a destructive or a weightless action, use the Button.Destructive / Button.Neutral sibling components.",
       "props": [
         {
           "name": "label",
@@ -501,7 +500,7 @@
           "name": "href",
           "type": "string",
           "required": false,
-          "description": "Discouraged — prefer link-button. If set, the button renders an <a>, which drops type and disabled semantics."
+          "description": "A destination, for a navigation that needs a button's weight, such as \"Continue to checkout\". With an href, the button renders an <a href> in the same style, Enter follows it, and type and disabled no longer apply. Anything lighter is a Link."
         },
         {
           "name": "aria-label",
@@ -598,7 +597,7 @@
         ],
         "dont": [
           "Set inset=flush on a filled or outline button — their visible edge needs its padding; flush is for appearance=text",
-          "Use a button for navigation to a URL — use a link / link-button",
+          "Use a button with no href for navigation to a URL — use Link, or give the button an href so it renders an <a>",
           "Stack multiple filled buttons competing for attention — differentiate rank by appearance, not by adding fills",
           "Use native disabled on a relevant-but-blocked control (dead end for keyboard/SR users)",
           "Remove the label to make room for a spinner — the button narrows mid-submit and screen readers lose the name; the spinner takes the leading visual's place, or overlays a label held at zero opacity"
@@ -608,7 +607,7 @@
       "ai": {
         "primaryPurpose": "Trigger an action in place.",
         "whenToUse": "The user needs to DO something on this surface — submit, confirm, open, apply, or start async work.",
-        "avoidWhen": "The target is a different location/URL → use a link (or link-button if it must look like a button). A persistent on/off state → use Switch.Row. One-of-many selection → use Radio.Group (or SegmentedControl). A toggle with pressed state → use a toggle button (not built yet). Icon-only with no visible text → use IconButton (the accessible name is required there at the type level). The action deletes or removes something → use Button.Destructive. The action carries no brand emphasis (a toolbar control, a dense row) → use Button.Neutral.",
+        "avoidWhen": "The target is a different location/URL → use Link (or give the button an href, which renders an <a>, if it must look like a button). A persistent on/off state → use Switch.Row. One-of-many selection → use Radio.Group (or SegmentedControl). A toggle with pressed state → use a toggle button (not built yet). Icon-only with no visible text → use IconButton (the accessible name is required there at the type level). The action deletes or removes something → use Button.Destructive. The action carries no brand emphasis (a toolbar control, a dense row) → use Button.Neutral.",
         "commonPartners": [
           "icon",
           "spinner",
@@ -646,8 +645,6 @@
           "button-group",
           "menu",
           "popover",
-          "link",
-          "link-button",
           "toggle-button",
           "split-button"
         ],
@@ -783,7 +780,7 @@
           "name": "href",
           "type": "string",
           "required": false,
-          "description": "Discouraged — prefer link-button. If set, the button renders an <a>, which drops type and disabled semantics."
+          "description": "A destination, for a navigation that needs a button's weight, such as \"Continue to checkout\". With an href, the button renders an <a href> in the same style, Enter follows it, and type and disabled no longer apply. Anything lighter is a Link."
         },
         {
           "name": "aria-label",
@@ -881,7 +878,7 @@
         ],
         "dont": [
           "Set inset=flush on a filled or outline button — their visible edge needs its padding; flush is for appearance=text",
-          "Use a button for navigation to a URL — use a link / link-button",
+          "Use a button with no href for navigation to a URL — use Link, or give the button an href so it renders an <a>",
           "Stack multiple filled buttons competing for attention — differentiate rank by appearance, not by adding fills",
           "Use native disabled on a relevant-but-blocked control (dead end for keyboard/SR users)",
           "Remove the label to make room for a spinner — the button narrows mid-submit and screen readers lose the name; the spinner takes the leading visual's place, or overlays a label held at zero opacity"
@@ -891,7 +888,7 @@
       "ai": {
         "primaryPurpose": "Trigger an action in place.",
         "whenToUse": "The user needs to DO something on this surface — submit, confirm, open, apply, or start async work.",
-        "avoidWhen": "The target is a different location/URL → use a link (or link-button if it must look like a button). A persistent on/off state → use Switch.Row. One-of-many selection → use Radio.Group (or SegmentedControl). A toggle with pressed state → use a toggle button (not built yet). Icon-only with no visible text → use IconButton (the accessible name is required there at the type level). The action is not destructive → use Button, or Button.Neutral for one with no brand emphasis. Color is a weak carrier on its own, so a destructive action also names its consequence in the label.",
+        "avoidWhen": "The target is a different location/URL → use Link (or give the button an href, which renders an <a>, if it must look like a button). A persistent on/off state → use Switch.Row. One-of-many selection → use Radio.Group (or SegmentedControl). A toggle with pressed state → use a toggle button (not built yet). Icon-only with no visible text → use IconButton (the accessible name is required there at the type level). The action is not destructive → use Button, or Button.Neutral for one with no brand emphasis. Color is a weak carrier on its own, so a destructive action also names its consequence in the label.",
         "commonPartners": [
           "icon",
           "spinner",
@@ -930,8 +927,6 @@
           "button-group",
           "menu",
           "popover",
-          "link",
-          "link-button",
           "toggle-button",
           "split-button"
         ],
@@ -1067,7 +1062,7 @@
           "name": "href",
           "type": "string",
           "required": false,
-          "description": "Discouraged — prefer link-button. If set, the button renders an <a>, which drops type and disabled semantics."
+          "description": "A destination, for a navigation that needs a button's weight, such as \"Continue to checkout\". With an href, the button renders an <a href> in the same style, Enter follows it, and type and disabled no longer apply. Anything lighter is a Link."
         },
         {
           "name": "aria-label",
@@ -1164,7 +1159,7 @@
         ],
         "dont": [
           "Set inset=flush on a filled or outline button — their visible edge needs its padding; flush is for appearance=text",
-          "Use a button for navigation to a URL — use a link / link-button",
+          "Use a button with no href for navigation to a URL — use Link, or give the button an href so it renders an <a>",
           "Stack multiple filled buttons competing for attention — differentiate rank by appearance, not by adding fills",
           "Use native disabled on a relevant-but-blocked control (dead end for keyboard/SR users)",
           "Remove the label to make room for a spinner — the button narrows mid-submit and screen readers lose the name; the spinner takes the leading visual's place, or overlays a label held at zero opacity"
@@ -1174,7 +1169,7 @@
       "ai": {
         "primaryPurpose": "Trigger an action in place.",
         "whenToUse": "The user needs to DO something on this surface — submit, confirm, open, apply, or start async work.",
-        "avoidWhen": "The target is a different location/URL → use a link (or link-button if it must look like a button). A persistent on/off state → use Switch.Row. One-of-many selection → use Radio.Group (or SegmentedControl). A toggle with pressed state → use a toggle button (not built yet). Icon-only with no visible text → use IconButton (the accessible name is required there at the type level). The action is the view's main one or carries the brand → use Button. It deletes or removes something → use Button.Destructive.",
+        "avoidWhen": "The target is a different location/URL → use Link (or give the button an href, which renders an <a>, if it must look like a button). A persistent on/off state → use Switch.Row. One-of-many selection → use Radio.Group (or SegmentedControl). A toggle with pressed state → use a toggle button (not built yet). Icon-only with no visible text → use IconButton (the accessible name is required there at the type level). The action is the view's main one or carries the brand → use Button. It deletes or removes something → use Button.Destructive.",
         "commonPartners": [
           "icon",
           "spinner",
@@ -1210,8 +1205,6 @@
           "button-group",
           "menu",
           "popover",
-          "link",
-          "link-button",
           "toggle-button",
           "split-button"
         ],
@@ -1442,8 +1435,7 @@
           "tooltip",
           "button-group",
           "menu",
-          "popover",
-          "link"
+          "popover"
         ],
         "replacesPatterns": [
           "div[role=button] wrapping an icon",
@@ -1673,8 +1665,7 @@
           "tooltip",
           "button-group",
           "menu",
-          "popover",
-          "link"
+          "popover"
         ],
         "replacesPatterns": [
           "div[role=button] wrapping an icon",
@@ -1903,12 +1894,521 @@
           "tooltip",
           "button-group",
           "menu",
-          "popover",
-          "link"
+          "popover"
         ],
         "replacesPatterns": [
           "div[role=button] wrapping an icon",
           "a <button> holding only an <svg> and no accessible name"
+        ]
+      }
+    },
+    "flush-icon-button": {
+      "id": "flush-icon-button",
+      "name": "FlushIconButton",
+      "aliases": [
+        "flush-icon-btn",
+        "bare-icon-button"
+      ],
+      "category": "form",
+      "status": "draft",
+      "summary": "Icon-only brand action inside a component: a bare glyph or a light circle. Needs an accessible name.",
+      "description": "An icon-only button in the brand's primary color, made to sit inside another component where the action carries the brand, such as the add on a list row. It has two shapes. Flush has no padding, no fill and no border: the glyph is the whole visible control, so it lines up with the content edge around it, and hover and press change the glyph color only. Round draws a circle around the glyph with a light edge, and hover and press add a soft fill; its diameter matches the height of a counter at the same size. The flush box is the glyph, 20 or 24px, so in code the hit area extends past it to at least 44×44px. Because there is no visible text, an accessible name is required.",
+      "inherits": "icon-button",
+      "props": [
+        {
+          "name": "icon",
+          "type": "slot",
+          "required": true,
+          "description": "The single icon. Rendered aria-hidden: the button owns the name."
+        },
+        {
+          "name": "aria-label",
+          "type": "string",
+          "required": true,
+          "description": "Required accessible name, a verb naming the action (\"Close\", \"Increase quantity\"). Required at the type level, since there is no visible text."
+        },
+        {
+          "name": "onClick",
+          "type": "function",
+          "required": false,
+          "description": "Action handler. Not called while disabled."
+        },
+        {
+          "name": "type",
+          "type": "enum: 'button' | 'submit' | 'reset'",
+          "default": "button",
+          "required": false,
+          "values": [
+            "button",
+            "submit",
+            "reset"
+          ],
+          "description": "Defaults to 'button', as Button does. The platform default is 'submit', so a flush icon button inside a form would submit it."
+        },
+        {
+          "name": "shape",
+          "type": "enum: 'flush' | 'round'",
+          "default": "flush",
+          "required": false,
+          "values": [
+            "flush",
+            "round"
+          ],
+          "description": "flush is the bare glyph, with no padding, fill or border, for a glyph that lines up with the content edge. round is a circle around the glyph with a light edge and a soft fill on hover and press, for a counter whose buttons stand on their own."
+        },
+        {
+          "name": "size",
+          "type": "enum: 'small' | 'medium' | 'large'",
+          "default": "medium",
+          "required": false,
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ],
+          "description": "The glyph size: 20px at small and medium, 24px at large. A flush box is the glyph, with no padding. A round circle is 36, 44 or 56px across. The hit area in code is at least 44×44px at every size."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Native disabled. Inside a component that sets it at a limit (a counter at its minimum), prefer aria-disabled so the button keeps its place in the accessibility tree."
+        }
+      ],
+      "states": [
+        "rest",
+        "hover",
+        "pressed",
+        "focus-visible",
+        "disabled"
+      ],
+      "variants": {
+        "shape": {
+          "values": [
+            "flush",
+            "round"
+          ],
+          "kind": "authoring"
+        },
+        "size": {
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ],
+          "kind": "authoring"
+        }
+      },
+      "accessibility": {
+        "role": "button (native <button>)",
+        "wcag": [
+          "4.1.2 Name/Role/Value (the required accessible name)",
+          "1.4.11 Non-text Contrast (the glyph and the focus ring at 3:1 against the page; the round edge is decorative and is not held to it, since the glyph identifies the control)",
+          "2.4.7 Focus Visible (a :focus-visible ring, offset from the glyph square)",
+          "2.5.8 Target Size (Minimum) (24×24, as intent — through the code-side hit area, since the flush glyph box alone is 20 or 24px)",
+          "2.5.5 Target Size (Enhanced) (44×44, as intent — through the code-side hit area at every size; the flush glyph box alone is 20 or 24px, and the small round circle 36px)"
+        ],
+        "keyboard": "Native <button>: Enter on keydown, Space on keyup. A host may take it out of the tab order (tabindex=\"-1\") where its own keys do the same job, as a counter's arrow keys do.",
+        "focus": "An offset :focus-visible ring around the glyph square, or around the circle on the round shape.",
+        "aria": "aria-label is the accessible name (required), a verb naming the action. Inside a host that disables it at a limit, set aria-disabled=\"true\" so it stays in the accessibility tree. Never nest it inside another interactive element, such as an accordion header or a tab: a button inside a button is invalid HTML and breaks assistive technology. Under RTL, only a directional glyph flips."
+      },
+      "content": {
+        "labelPattern": "The accessible name is a verb naming the action (\"Close\", \"Increase quantity\"), never the glyph's shape (\"X\", \"plus\")."
+      },
+      "docs": {
+        "usage": "Use inside another component where the icon is itself the control: the minus and plus of a counter, or the close on a card. Use flush where the glyph must line up with the content edge, such as inside a counter that draws its own box. Use round where the buttons stand on their own beside a value, such as a counter with no box. For an icon action with its own padded box in a toolbar, use the IconButton of the same color.",
+        "do": [
+          "Always give it an accessible name (a verb)",
+          "Extend its hit area in code to at least 44×44px at every size, with a transparent `::before` inset outward and centered on the glyph, so the target clears 44px while the box stays glyph-sized",
+          "Space two flush icon buttons at least 44px apart, center to center, so their tap areas don't overlap"
+        ],
+        "dont": [
+          "Nest it inside a control whose whole row is already a button, such as an accordion header or a tab",
+          "Add a fill or a wash to the flush shape on hover or press; only the glyph color changes. Use the round shape for a fill",
+          "Use it on its own in a toolbar, where the IconButton of the same color gives the action a visible box"
+        ],
+        "contentGuidelines": "The accessible name is a verb naming the action (\"Close\", \"Increase quantity\"), never the glyph's shape."
+      },
+      "ai": {
+        "primaryPurpose": "Trigger an action inside another component, with a bare glyph that sits flush with the content edge or a glyph in a light circle.",
+        "whenToUse": "The minus and plus of a counter, a card's close, or any icon action inside a component. shape=flush where the glyph must line up with the content edge; shape=round where the buttons stand on their own beside a value.",
+        "avoidWhen": "The action deletes or removes something (use FlushIconButton.Destructive). It carries no brand emphasis, such as the minus and plus of a counter or the close on a card (use FlushIconButton.Neutral). It stands on its own in a toolbar or a header (use IconButton, which has a visible box). It would sit inside an element that is already a button, such as an accordion header or a tab. You cannot supply an accessible name.",
+        "commonPartners": [
+          "icon",
+          "focus-ring"
+        ],
+        "triggerKeywords": [
+          "primary flush icon button",
+          "brand icon action in a component",
+          "inline add button",
+          "round brand icon button"
+        ],
+        "generationPriority": 5
+      },
+      "motion": {
+        "enter": "none (present on mount)",
+        "exit": "none",
+        "reduceMotion": "The glyph color change, and the round shape's fill, are meant to run about 100–150ms through the brand's motion tokens; none is bound yet, so the timing is code-side. Under prefers-reduced-motion the change stays, instantly."
+      },
+      "composition": {
+        "composesWith": [
+          "focus-ring"
+        ],
+        "alternativeTo": [
+          "icon-button"
+        ],
+        "supersedes": [],
+        "supersededBy": [],
+        "planned": [
+          "counter",
+          "number-input",
+          "card"
+        ],
+        "replacesPatterns": [
+          "an <svg> with a click handler and no button",
+          "an IconButton with its padding overridden to zero"
+        ]
+      }
+    },
+    "flush-icon-button-destructive": {
+      "id": "flush-icon-button-destructive",
+      "name": "FlushIconButton.Destructive",
+      "aliases": [
+        "flush-icon-btn",
+        "bare-icon-button"
+      ],
+      "category": "form",
+      "status": "draft",
+      "summary": "Icon-only destructive action in a component: a bare glyph or light circle. Needs an accessible name.",
+      "description": "An icon-only button in the destructive color, made to sit inside another component where the action deletes or removes something, such as the remove on a list row. It has two shapes. Flush has no padding, no fill and no border: the glyph is the whole visible control, so it lines up with the content edge around it, and hover and press change the glyph color only. Round draws a circle around the glyph with a light edge, and hover and press add a soft fill; its diameter matches the height of a counter at the same size. The flush box is the glyph, 20 or 24px, so in code the hit area extends past it to at least 44×44px. Because there is no visible text, an accessible name is required.",
+      "inherits": "icon-button-destructive",
+      "props": [
+        {
+          "name": "icon",
+          "type": "slot",
+          "required": true,
+          "description": "The single icon. Rendered aria-hidden: the button owns the name."
+        },
+        {
+          "name": "aria-label",
+          "type": "string",
+          "required": true,
+          "description": "Required accessible name, a verb naming the action (\"Close\", \"Increase quantity\"). Required at the type level, since there is no visible text."
+        },
+        {
+          "name": "onClick",
+          "type": "function",
+          "required": false,
+          "description": "Action handler. Not called while disabled."
+        },
+        {
+          "name": "type",
+          "type": "enum: 'button' | 'submit' | 'reset'",
+          "default": "button",
+          "required": false,
+          "values": [
+            "button",
+            "submit",
+            "reset"
+          ],
+          "description": "Defaults to 'button', as Button does. The platform default is 'submit', so a flush icon button inside a form would submit it."
+        },
+        {
+          "name": "shape",
+          "type": "enum: 'flush' | 'round'",
+          "default": "flush",
+          "required": false,
+          "values": [
+            "flush",
+            "round"
+          ],
+          "description": "flush is the bare glyph, with no padding, fill or border, for a glyph that lines up with the content edge. round is a circle around the glyph with a light edge and a soft fill on hover and press, for a counter whose buttons stand on their own."
+        },
+        {
+          "name": "size",
+          "type": "enum: 'small' | 'medium' | 'large'",
+          "default": "medium",
+          "required": false,
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ],
+          "description": "The glyph size: 20px at small and medium, 24px at large. A flush box is the glyph, with no padding. A round circle is 36, 44 or 56px across. The hit area in code is at least 44×44px at every size."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Native disabled. Inside a component that sets it at a limit (a counter at its minimum), prefer aria-disabled so the button keeps its place in the accessibility tree."
+        }
+      ],
+      "states": [
+        "rest",
+        "hover",
+        "pressed",
+        "focus-visible",
+        "disabled"
+      ],
+      "variants": {
+        "shape": {
+          "values": [
+            "flush",
+            "round"
+          ],
+          "kind": "authoring"
+        },
+        "size": {
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ],
+          "kind": "authoring"
+        }
+      },
+      "accessibility": {
+        "role": "button (native <button>)",
+        "wcag": [
+          "4.1.2 Name/Role/Value (the required accessible name)",
+          "1.4.11 Non-text Contrast (the glyph and the focus ring at 3:1 against the page; the round edge is decorative and is not held to it, since the glyph identifies the control)",
+          "2.4.7 Focus Visible (a :focus-visible ring, offset from the glyph square)",
+          "2.5.8 Target Size (Minimum) (24×24, as intent — through the code-side hit area, since the flush glyph box alone is 20 or 24px)",
+          "2.5.5 Target Size (Enhanced) (44×44, as intent — through the code-side hit area at every size; the flush glyph box alone is 20 or 24px, and the small round circle 36px)"
+        ],
+        "keyboard": "Native <button>: Enter on keydown, Space on keyup. A host may take it out of the tab order (tabindex=\"-1\") where its own keys do the same job, as a counter's arrow keys do.",
+        "focus": "An offset :focus-visible ring around the glyph square, or around the circle on the round shape.",
+        "aria": "aria-label is the accessible name (required), a verb naming the action. Inside a host that disables it at a limit, set aria-disabled=\"true\" so it stays in the accessibility tree. Never nest it inside another interactive element, such as an accordion header or a tab: a button inside a button is invalid HTML and breaks assistive technology. Under RTL, only a directional glyph flips."
+      },
+      "content": {
+        "labelPattern": "The accessible name is a verb naming the action (\"Close\", \"Increase quantity\"), never the glyph's shape (\"X\", \"plus\")."
+      },
+      "docs": {
+        "usage": "Use inside another component where the icon is itself the control: the minus and plus of a counter, or the close on a card. Use flush where the glyph must line up with the content edge, such as inside a counter that draws its own box. Use round where the buttons stand on their own beside a value, such as a counter with no box. For an icon action with its own padded box in a toolbar, use the IconButton of the same color.",
+        "do": [
+          "Always give it an accessible name (a verb)",
+          "Extend its hit area in code to at least 44×44px at every size, with a transparent `::before` inset outward and centered on the glyph, so the target clears 44px while the box stays glyph-sized",
+          "Space two flush icon buttons at least 44px apart, center to center, so their tap areas don't overlap",
+          "Confirm a destructive action that cannot be undone, and give the confirmation a neutral way out (\"Cancel\" or \"Keep\"), since a lone glyph offers none"
+        ],
+        "dont": [
+          "Nest it inside a control whose whole row is already a button, such as an accordion header or a tab",
+          "Add a fill or a wash to the flush shape on hover or press; only the glyph color changes. Use the round shape for a fill",
+          "Use it on its own in a toolbar, where the IconButton of the same color gives the action a visible box"
+        ],
+        "contentGuidelines": "The accessible name is a verb naming the action (\"Close\", \"Increase quantity\"), never the glyph's shape."
+      },
+      "ai": {
+        "primaryPurpose": "Trigger an action inside another component, with a bare glyph that sits flush with the content edge or a glyph in a light circle.",
+        "whenToUse": "The minus and plus of a counter, a card's close, or any icon action inside a component. shape=flush where the glyph must line up with the content edge; shape=round where the buttons stand on their own beside a value.",
+        "avoidWhen": "The action is not destructive (use FlushIconButton, or FlushIconButton.Neutral for one with no brand emphasis). It stands on its own in a toolbar or a header (use IconButton.Destructive, which has a visible box). It would sit inside an element that is already a button, such as an accordion header or a tab. You cannot supply an accessible name.",
+        "commonPartners": [
+          "icon",
+          "focus-ring"
+        ],
+        "triggerKeywords": [
+          "destructive flush icon button",
+          "danger icon in a component",
+          "inline remove button",
+          "row delete icon"
+        ],
+        "generationPriority": 5
+      },
+      "motion": {
+        "enter": "none (present on mount)",
+        "exit": "none",
+        "reduceMotion": "The glyph color change, and the round shape's fill, are meant to run about 100–150ms through the brand's motion tokens; none is bound yet, so the timing is code-side. Under prefers-reduced-motion the change stays, instantly."
+      },
+      "composition": {
+        "composesWith": [
+          "focus-ring"
+        ],
+        "alternativeTo": [
+          "icon-button-destructive"
+        ],
+        "supersedes": [],
+        "supersededBy": [],
+        "planned": [
+          "counter",
+          "number-input",
+          "card"
+        ],
+        "replacesPatterns": [
+          "an <svg> with a click handler and no button",
+          "an IconButton with its padding overridden to zero"
+        ]
+      }
+    },
+    "flush-icon-button-neutral": {
+      "id": "flush-icon-button-neutral",
+      "name": "FlushIconButton.Neutral",
+      "aliases": [
+        "flush-icon-btn",
+        "bare-icon-button"
+      ],
+      "category": "form",
+      "status": "draft",
+      "summary": "Icon-only action inside another component: a bare glyph or a light circle. Needs an accessible name.",
+      "description": "An icon-only button made to sit inside another component, such as the minus and plus of a counter or the close on a card. It has two shapes. Flush has no padding, no fill and no border: the glyph is the whole visible control, so it lines up with the content edge around it, and hover and press change the glyph color only. Round draws a circle around the glyph with a light edge, and hover and press add a soft fill; its diameter matches the height of a counter at the same size. The flush box is the glyph, 20 or 24px, so in code the hit area extends past it to at least 44×44px. Because there is no visible text, an accessible name is required.",
+      "inherits": "icon-button-neutral",
+      "props": [
+        {
+          "name": "icon",
+          "type": "slot",
+          "required": true,
+          "description": "The single icon. Rendered aria-hidden: the button owns the name."
+        },
+        {
+          "name": "aria-label",
+          "type": "string",
+          "required": true,
+          "description": "Required accessible name, a verb naming the action (\"Close\", \"Increase quantity\"). Required at the type level, since there is no visible text."
+        },
+        {
+          "name": "onClick",
+          "type": "function",
+          "required": false,
+          "description": "Action handler. Not called while disabled."
+        },
+        {
+          "name": "type",
+          "type": "enum: 'button' | 'submit' | 'reset'",
+          "default": "button",
+          "required": false,
+          "values": [
+            "button",
+            "submit",
+            "reset"
+          ],
+          "description": "Defaults to 'button', as Button does. The platform default is 'submit', so a flush icon button inside a form would submit it."
+        },
+        {
+          "name": "shape",
+          "type": "enum: 'flush' | 'round'",
+          "default": "flush",
+          "required": false,
+          "values": [
+            "flush",
+            "round"
+          ],
+          "description": "flush is the bare glyph, with no padding, fill or border, for a glyph that lines up with the content edge. round is a circle around the glyph with a light edge and a soft fill on hover and press, for a counter whose buttons stand on their own."
+        },
+        {
+          "name": "size",
+          "type": "enum: 'small' | 'medium' | 'large'",
+          "default": "medium",
+          "required": false,
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ],
+          "description": "The glyph size: 20px at small and medium, 24px at large. A flush box is the glyph, with no padding. A round circle is 36, 44 or 56px across. The hit area in code is at least 44×44px at every size."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Native disabled. Inside a component that sets it at a limit (a counter at its minimum), prefer aria-disabled so the button keeps its place in the accessibility tree."
+        }
+      ],
+      "states": [
+        "rest",
+        "hover",
+        "pressed",
+        "focus-visible",
+        "disabled"
+      ],
+      "variants": {
+        "shape": {
+          "values": [
+            "flush",
+            "round"
+          ],
+          "kind": "authoring"
+        },
+        "size": {
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ],
+          "kind": "authoring"
+        }
+      },
+      "accessibility": {
+        "role": "button (native <button>)",
+        "wcag": [
+          "4.1.2 Name/Role/Value (the required accessible name)",
+          "1.4.11 Non-text Contrast (the glyph and the focus ring at 3:1 against the page; the round edge is decorative and is not held to it, since the glyph identifies the control)",
+          "2.4.7 Focus Visible (a :focus-visible ring, offset from the glyph square)",
+          "2.5.8 Target Size (Minimum) (24×24, as intent — through the code-side hit area, since the flush glyph box alone is 20 or 24px)",
+          "2.5.5 Target Size (Enhanced) (44×44, as intent — through the code-side hit area at every size; the flush glyph box alone is 20 or 24px, and the small round circle 36px)"
+        ],
+        "keyboard": "Native <button>: Enter on keydown, Space on keyup. A host may take it out of the tab order (tabindex=\"-1\") where its own keys do the same job, as a counter's arrow keys do.",
+        "focus": "An offset :focus-visible ring around the glyph square, or around the circle on the round shape.",
+        "aria": "aria-label is the accessible name (required), a verb naming the action. Inside a host that disables it at a limit, set aria-disabled=\"true\" so it stays in the accessibility tree. Never nest it inside another interactive element, such as an accordion header or a tab: a button inside a button is invalid HTML and breaks assistive technology. Under RTL, only a directional glyph flips."
+      },
+      "content": {
+        "labelPattern": "The accessible name is a verb naming the action (\"Close\", \"Increase quantity\"), never the glyph's shape (\"X\", \"plus\")."
+      },
+      "docs": {
+        "usage": "Use inside another component where the icon is itself the control: the minus and plus of a counter, or the close on a card. Use flush where the glyph must line up with the content edge, such as inside a counter that draws its own box. Use round where the buttons stand on their own beside a value, such as a counter with no box. For an icon action with its own padded box in a toolbar, use the IconButton of the same color.",
+        "do": [
+          "Always give it an accessible name (a verb)",
+          "Extend its hit area in code to at least 44×44px at every size, with a transparent `::before` inset outward and centered on the glyph, so the target clears 44px while the box stays glyph-sized",
+          "Space two flush icon buttons at least 44px apart, center to center, so their tap areas don't overlap"
+        ],
+        "dont": [
+          "Nest it inside a control whose whole row is already a button, such as an accordion header or a tab",
+          "Add a fill or a wash to the flush shape on hover or press; only the glyph color changes. Use the round shape for a fill",
+          "Use it on its own in a toolbar, where the IconButton of the same color gives the action a visible box"
+        ],
+        "contentGuidelines": "The accessible name is a verb naming the action (\"Close\", \"Increase quantity\"), never the glyph's shape."
+      },
+      "ai": {
+        "primaryPurpose": "Trigger an action inside another component, with a bare glyph that sits flush with the content edge or a glyph in a light circle.",
+        "whenToUse": "The minus and plus of a counter, a card's close, or any icon action inside a component. shape=flush where the glyph must line up with the content edge; shape=round where the buttons stand on their own beside a value.",
+        "avoidWhen": "The action carries the brand (use FlushIconButton) or deletes something (use FlushIconButton.Destructive). It stands on its own in a toolbar or a header (use IconButton.Neutral, which has a visible box and a hover wash). It would sit inside an element that is already a button, such as an accordion header or a tab. You cannot supply an accessible name.",
+        "commonPartners": [
+          "icon",
+          "focus-ring"
+        ],
+        "triggerKeywords": [
+          "flush icon button",
+          "bare icon button",
+          "round icon button in a counter",
+          "counter plus minus",
+          "card close icon",
+          "stepper button"
+        ],
+        "generationPriority": 4
+      },
+      "motion": {
+        "enter": "none (present on mount)",
+        "exit": "none",
+        "reduceMotion": "The glyph color change, and the round shape's fill, are meant to run about 100–150ms through the brand's motion tokens; none is bound yet, so the timing is code-side. Under prefers-reduced-motion the change stays, instantly."
+      },
+      "composition": {
+        "composesWith": [
+          "focus-ring"
+        ],
+        "alternativeTo": [
+          "icon-button-neutral"
+        ],
+        "supersedes": [],
+        "supersededBy": [],
+        "planned": [
+          "counter",
+          "number-input",
+          "card"
+        ],
+        "replacesPatterns": [
+          "an <svg> with a click handler and no button",
+          "an IconButton with its padding overridden to zero"
         ]
       }
     },
@@ -2037,6 +2537,7 @@
         "avoidWhen": "As a section heading or standalone text (use a heading) — this is bound to one control via htmlFor. Never omit it in favor of a placeholder.",
         "commonPartners": [
           "text-field",
+          "password-field",
           "textarea",
           "select",
           "checkbox-group",
@@ -2506,7 +3007,8 @@
           "textarea",
           "select",
           "checkbox-row",
-          "switch-row"
+          "switch-row",
+          "password-field"
         ],
         "supersedes": [],
         "supersededBy": [],
@@ -2516,8 +3018,7 @@
           "combobox",
           "number-field",
           "search-field",
-          "date-picker",
-          "password-field"
+          "date-picker"
         ],
         "replacesPatterns": [
           "bare input without label wiring",
@@ -5470,9 +5971,7 @@
         ],
         "supersedes": [],
         "supersededBy": [],
-        "planned": [
-          "link"
-        ],
+        "planned": [],
         "replacesPatterns": [
           "show and hide divs with no tab semantics",
           "role=\"tab\" on links that change the route"
@@ -5919,8 +6418,7 @@
         "supersedes": [],
         "supersededBy": [],
         "planned": [
-          "tree",
-          "link"
+          "tree"
         ],
         "replacesPatterns": [
           "a show/hide div with no aria-expanded or heading",
@@ -6531,6 +7029,692 @@
         "replacesPatterns": [
           "a radio group restyled as a compact switcher for a view that changes at once",
           "a row of buttons with a hand-rolled active state and no group semantics"
+        ]
+      }
+    },
+    "link": {
+      "id": "link",
+      "name": "Link",
+      "aliases": [
+        "text-link",
+        "anchor",
+        "hyperlink"
+      ],
+      "category": "navigation",
+      "status": "draft",
+      "summary": "Text that goes to another page, a place on the page or a file. Underlined in running text.",
+      "description": "Text that goes to another page, a place on the page, a file or another site. A link is always a real anchor with an href; an action in place is a button, however light it looks. The standalone style sits on its own line, below a form, in a footer or beside a control, and shows its underline at hover, pressed and keyboard focus. The inline style is underlined at every state, for a link that sits in body copy, so it is never told apart by color alone. Both come in two weights: emphasis, the starting value, and default, which is lighter. A link inside a paragraph is a text range with that text's own link style rather than this component.",
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "required": true,
+          "description": "The link text. It names the destination and makes sense read on its own, without the sentence around it."
+        },
+        {
+          "name": "href",
+          "type": "string",
+          "required": true,
+          "description": "The destination: a URL, a fragment such as \"#main\", or a file. With no href, render plain text rather than a link."
+        },
+        {
+          "name": "style",
+          "type": "enum: 'standalone' | 'inline'",
+          "default": "standalone",
+          "required": false,
+          "values": [
+            "standalone",
+            "inline"
+          ],
+          "description": "Standalone shows its underline at hover, pressed and focus; inline is underlined at every state, for a link in body copy."
+        },
+        {
+          "name": "weight",
+          "type": "enum: 'emphasis' | 'default'",
+          "default": "emphasis",
+          "required": false,
+          "values": [
+            "emphasis",
+            "default"
+          ],
+          "description": "Emphasis is the starting value; choose Default for a lighter weight link."
+        },
+        {
+          "name": "size",
+          "type": "enum: 'small' | 'medium' | 'large'",
+          "default": "medium",
+          "required": false,
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ],
+          "description": "The body type size: 14, 16 or 18px. The box is one text line tall; the icon (16px at small and medium, 20px at large) sits inside it."
+        },
+        {
+          "name": "surface",
+          "type": "enum: 'default' | 'inverse'",
+          "default": "default",
+          "required": false,
+          "values": [
+            "default",
+            "inverse"
+          ],
+          "description": "The ground the link sits on: the page, or a dark or brand-filled band, which takes the inverse link colors."
+        },
+        {
+          "name": "isExternal",
+          "type": "boolean",
+          "default": "false",
+          "required": false,
+          "description": "Opens in a new tab: adds the trailing external icon, visually hidden \"(opens in new tab)\" text and rel=\"noopener noreferrer\". Keep it for narrow cases."
+        },
+        {
+          "name": "asChild",
+          "type": "boolean",
+          "default": "false",
+          "required": false,
+          "description": "Merges the link's styling and accessibility onto a router's link child, so one anchor renders and the component depends on no router."
+        },
+        {
+          "name": "trailingIcon",
+          "type": "slot",
+          "required": false,
+          "description": "An icon after the label, such as an arrow or the external icon. Not for inline links."
+        }
+      ],
+      "states": [
+        "rest",
+        "hover",
+        "pressed",
+        "focus-visible"
+      ],
+      "variants": {
+        "style": {
+          "values": [
+            "standalone",
+            "inline"
+          ],
+          "kind": "authoring"
+        },
+        "weight": {
+          "values": [
+            "emphasis",
+            "default"
+          ],
+          "kind": "authoring"
+        },
+        "size": {
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ],
+          "kind": "authoring"
+        },
+        "surface": {
+          "values": [
+            "default",
+            "inverse"
+          ],
+          "kind": "authoring"
+        }
+      },
+      "accessibility": {
+        "role": "link (a real <a href>, with the label text inside the anchor)",
+        "wcag": [
+          "1.4.1 Use of Color (an inline link is underlined at every state, never told apart by color alone)",
+          "2.4.4 Link Purpose (the link text names the destination)",
+          "4.1.2 Name, Role, Value (the link role from a real anchor)",
+          "1.4.3 Contrast (targets 4.5:1 for the link text against the page)",
+          "1.4.11 Non-text Contrast (targets 3:1 for an icon against the page)",
+          "2.4.7 Focus Visible and 2.4.13 Focus Appearance (the shared focus ring)",
+          "2.5.8 Target Size (targets 24px through a code-side hit area; an inline link in a sentence is exempt)",
+          "3.2.5 Change on Request (a link that opens a new tab says so)",
+          "2.4.1 Bypass Blocks (the skip link)"
+        ],
+        "keyboard": "Tab moves to the link; Enter follows it. Space does not activate a link: it scrolls the page.",
+        "focus": "The shared focus ring at :focus-visible, so a mouse click leaves no ring behind.",
+        "aria": "Usually none: the anchor and its text carry the role and the name. aria-current=\"page\" marks the current page in a navigation. A link that opens a new tab adds visually hidden \"(opens in new tab)\" text; the icons are aria-hidden. Where space forces generic text such as \"Read more\", an aria-label names the destination. The hidden text and any aria-label are translated; in right-to-left text the trailing icon moves to the leading edge and directional icons mirror."
+      },
+      "content": {
+        "labelPattern": "Names the destination and makes sense on its own: \"Shipping and returns\", \"Annual report (PDF, 2 MB)\". Link the noun phrase, not the whole sentence. Never a bare \"click here\" or \"learn more\", and never a raw URL."
+      },
+      "docs": {
+        "usage": "Use a link to go somewhere: another page, a place on the page, a file or another site. Use standalone on its own line and inline in body copy. For an action in place, such as submit, open a dialog or toggle, use a button. A link inside small print is a text range with that text's own link style.",
+        "do": [
+          "Write link text that names the destination",
+          "State the format and size of a file link",
+          "Keep opening in a new tab for narrow cases, and say so",
+          "Use the inline style for a link in body copy, so it is underlined at rest"
+        ],
+        "dont": [
+          "Use a link for an action that does not change the address; that is a button",
+          "Make a disabled link; render plain text instead",
+          "Add an icon to an inline link",
+          "Tell a link in running text apart by color alone"
+        ],
+        "contentGuidelines": "Descriptive text that stands alone, sentence case. Front-load the words that name the destination. File links state format and size."
+      },
+      "ai": {
+        "primaryPurpose": "Text that navigates to a URL, a fragment or a file, rendered as a real <a href>.",
+        "whenToUse": "The interaction changes the address or the place on the page: a page, an in-page anchor, a document, another site. Standalone for a link on its own line (below a form, in a footer, beside a control); inline for a link that sits in body copy.",
+        "avoidWhen": "The interaction acts in place without changing the address: submit, open a dialog, toggle, show a password (use Button, or Button.Neutral for a light look). A navigation that needs a button's weight, such as \"Continue to checkout\", is a Button given an href, which renders an <a>. Switching panels in place is Tabs.",
+        "commonPartners": [
+          "icon",
+          "button",
+          "text-field"
+        ],
+        "triggerKeywords": [
+          "link",
+          "text link",
+          "hyperlink",
+          "anchor",
+          "inline link",
+          "standalone link",
+          "skip link",
+          "external link"
+        ],
+        "generationPriority": 2
+      },
+      "motion": {
+        "enter": "None. At hover and focus the color changes over about 150ms, and a standalone link shows its underline.",
+        "exit": "None.",
+        "reduceMotion": "The color and underline change at once, with no transition."
+      },
+      "composition": {
+        "composesWith": [
+          "focus-ring"
+        ],
+        "alternativeTo": [
+          "button"
+        ],
+        "supersedes": [],
+        "supersededBy": [],
+        "planned": [
+          "breadcrumbs",
+          "menu"
+        ],
+        "replacesPatterns": [
+          "a click handler on a div or span styled as a link",
+          "an <a> with no href, href=\"#\" or javascript:void(0)",
+          "a[role=button] used for navigation"
+        ]
+      }
+    },
+    "dialog": {
+      "id": "dialog",
+      "name": "Dialog",
+      "aliases": [
+        "modal",
+        "sheet",
+        "bottom-sheet",
+        "full-screen-dialog"
+      ],
+      "category": "overlay",
+      "status": "draft",
+      "summary": "A panel over the page for a short task or a decision. Centered, a bottom sheet, or full screen.",
+      "description": "A modal panel over the page for a short task or a decision the user makes before going on: a confirmation, a short form, or a choice that needs the page behind it for context. The page behind is inert until the dialog closes. Centered by default, at a small, medium or large width; on a small screen a product can open it as a bottom sheet or full screen instead. A header names the task and holds the close button, the body holds the content, and the footer holds the actions. Not a toast or a banner (they do not interrupt), not a popover or a menu (they sit beside a control and do not trap focus), and not a page of its own for a long form.",
+      "props": [
+        {
+          "name": "open",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Whether the dialog is showing. Opening it moves focus into it and makes the page behind it inert."
+        },
+        {
+          "name": "onOpenChange",
+          "type": "function",
+          "required": false,
+          "description": "Called with false on every attempt to close: the close button, Escape, a backdrop click on a standard dialog, or an action that closes it. Keep `open` in step with it."
+        },
+        {
+          "name": "title",
+          "type": "node",
+          "required": true,
+          "description": "The heading that names the task. It is the dialog's accessible name, so make it specific: \"Delete this address?\", not \"Are you sure?\". It wraps rather than truncating."
+        },
+        {
+          "name": "description",
+          "type": "node",
+          "required": false,
+          "description": "One or two sentences under the title that say what the dialog is for or what an action will do. Linked as the dialog's accessible description."
+        },
+        {
+          "name": "children",
+          "type": "node",
+          "required": true,
+          "description": "The body content. The body is the only part that scrolls; the header and footer stay in place."
+        },
+        {
+          "name": "actions",
+          "type": "node",
+          "required": false,
+          "description": "The footer buttons, the main action last in reading order (Cancel, then Save). Name each by what it does."
+        },
+        {
+          "name": "role",
+          "type": "enum: 'dialog' | 'alertdialog'",
+          "default": "dialog",
+          "required": false,
+          "values": [
+            "dialog",
+            "alertdialog"
+          ],
+          "description": "dialog for a task or form. alertdialog for a confirmation that interrupts and needs an answer: it hides the close button, a backdrop click does not close it, and focus starts on the least destructive action."
+        },
+        {
+          "name": "placement",
+          "type": "enum: 'center' | 'bottom' | 'full'",
+          "default": "center",
+          "required": false,
+          "values": [
+            "center",
+            "bottom",
+            "full"
+          ],
+          "description": "Where the panel sits. center on every screen by default; bottom (a bottom sheet) and full (full screen) are for small screens. Set per breakpoint; nothing switches automatically."
+        },
+        {
+          "name": "size",
+          "type": "enum: 'small' | 'medium' | 'large'",
+          "default": "medium",
+          "required": false,
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ],
+          "description": "The width of a centered panel: 400, 560 or 720px. On a small screen a centered panel is as wide as the screen less its margins. Bottom and full panels are full width and ignore it."
+        },
+        {
+          "name": "footer",
+          "type": "enum: 'inline' | 'stacked' | 'none'",
+          "default": "inline",
+          "required": false,
+          "values": [
+            "inline",
+            "stacked",
+            "none"
+          ],
+          "description": "How the actions are laid out. inline is a row at the end edge; stacked is full-width buttons, the main action on top; none is for a dialog whose body holds its own actions."
+        }
+      ],
+      "states": [],
+      "variants": {
+        "placement": {
+          "values": [
+            "center",
+            "bottom",
+            "full"
+          ],
+          "kind": "authoring"
+        },
+        "size": {
+          "values": [
+            "medium",
+            "small",
+            "large"
+          ],
+          "kind": "authoring"
+        },
+        "footer": {
+          "values": [
+            "inline",
+            "stacked",
+            "none"
+          ],
+          "kind": "authoring"
+        }
+      },
+      "accessibility": {
+        "role": "role=\"dialog\" with aria-modal=\"true\", or role=\"alertdialog\" for a confirmation that needs an answer. A native <dialog> opened with showModal() provides the dialog role, the modal state, the top layer and an inert page.",
+        "wcag": [
+          "1.3.1 Info and Relationships (the title is a heading and labels the dialog; the description describes it)",
+          "2.1.1 Keyboard (every action, the close button included, works from the keyboard)",
+          "2.1.2 No Keyboard Trap (focus is held inside on purpose, and Escape and the close button always let the user out)",
+          "2.4.3 Focus Order (focus moves in on open, cycles inside, and returns to the opener on close)",
+          "2.4.6 Headings and Labels (the title names the task)",
+          "2.4.7 Focus Visible (every control inside shows the shared focus ring)",
+          "2.4.11 Focus Not Obscured (only the body scrolls, so the footer never covers a focused field)",
+          "1.4.10 Reflow (a bottom sheet or full-screen dialog keeps a 320px screen usable)",
+          "2.5.8 Target Size (Minimum) (the close button is a medium icon button, 44px at the default density)",
+          "4.1.2 Name, Role, Value (role, aria-modal and the accessible name are set)"
+        ],
+        "keyboard": "Tab and Shift+Tab cycle through the controls inside the dialog. Escape closes it (an alertdialog as Cancel). Enter and Space act on the focused button.",
+        "focus": "Moves into the dialog on open (the first control, the title for long content, or Cancel in an alertdialog), stays inside while it is open, and returns to the control that opened it.",
+        "aria": "aria-modal=\"true\"; aria-labelledby pointing at the title; aria-describedby pointing at the description when there is one. The close button's accessible name is \"Close\". Hide the dividers from assistive technology."
+      },
+      "content": {
+        "labelPattern": "The title names the task or asks the question (\"Delete this address?\"), never \"Warning\" or \"Are you sure?\". The main action echoes the title's verb (\"Delete address\"), not \"OK\" or \"Yes\". Sentence case."
+      },
+      "docs": {
+        "usage": "Use a Dialog when the user must make a decision or finish a short task before going on, and needs the page behind for context: a confirmation, a short form, a choice. Center it on every screen by default; on a small screen, open it as a bottom sheet for a short choice within thumb reach, or full screen for a form that needs the whole screen. Use role alertdialog for a confirmation that interrupts, such as deleting something.",
+        "do": [
+          "Name the task in the title, and the action in the main button",
+          "Keep the close button on a standard dialog",
+          "Put the main action last in the footer (Cancel, then Save)",
+          "Let only the body scroll, and keep the footer in view",
+          "Return focus to the control that opened the dialog"
+        ],
+        "dont": [
+          "Use a dialog for a passing message. Use a toast or a banner.",
+          "Open a dialog from a dialog. Replace the content or close the first.",
+          "Put a long, multi-step form in a dialog. Give it a page.",
+          "Focus a destructive button when the dialog opens",
+          "Build the backdrop into the panel. It is the page's scrim, behind the dialog."
+        ],
+        "contentGuidelines": "Titles are specific and in sentence case. Body text is short and states the consequence of an action, especially one that cannot be undone. Buttons are named by what they do."
+      },
+      "ai": {
+        "primaryPurpose": "Interrupt the page for a short task or a decision the user must make before going on.",
+        "whenToUse": "A confirmation, a short form or a choice that needs the page behind it for context, and that the user must finish or dismiss before going on.",
+        "avoidWhen": "The message is passing and needs no answer (a toast or a banner), the content belongs beside a control (a popover or a menu), the task is long or has many steps (a page of its own), or the content can sit in the page (an accordion).",
+        "commonPartners": [
+          "button",
+          "icon-button-neutral",
+          "divider",
+          "text-field",
+          "select",
+          "checkbox-group",
+          "radio-group"
+        ],
+        "triggerKeywords": [
+          "dialog",
+          "modal",
+          "bottom sheet",
+          "full-screen dialog",
+          "confirmation",
+          "alert dialog",
+          "popup"
+        ],
+        "generationPriority": 2
+      },
+      "motion": {
+        "enter": "A centered panel fades in and scales up a little; a bottom sheet and a full-screen dialog slide up from the bottom edge (motion.duration.moderate, motion.easing-role.enter). The backdrop fades in.",
+        "exit": "The reverse, on motion.easing-role.exit.",
+        "reduceMotion": "Under prefers-reduced-motion every placement fades only, at motion.duration-reduced.moderate, with no movement."
+      },
+      "composition": {
+        "composesWith": [
+          "icon-button-neutral",
+          "divider",
+          "button"
+        ],
+        "alternativeTo": [
+          "accordion"
+        ],
+        "supersedes": [],
+        "supersededBy": [],
+        "planned": [
+          "toast",
+          "popover",
+          "menu"
+        ],
+        "replacesPatterns": [
+          "a div overlay with a z-index and a hand-written focus trap",
+          "a backdrop built from a veil"
+        ]
+      }
+    },
+    "password-field": {
+      "id": "password-field",
+      "name": "PasswordField",
+      "aliases": [
+        "password-input",
+        "password"
+      ],
+      "category": "form",
+      "status": "draft",
+      "summary": "Password field: a text field with a Show button on its label row that reveals the characters.",
+      "description": "A single-line field for a secret the user types — a sign-in password, a new password, a PIN typed as text. TextField's anatomy and contract with one added action: a Show/Hide button at the end of the label row that switches the input between masked and plain text. Not for a one-time code in separate boxes (a code input, not built yet), and not for any other single-line text (TextField).",
+      "props": [
+        {
+          "name": "label",
+          "type": "string | node",
+          "required": true,
+          "description": "The visible, persistent label (rendered as FieldLabel), usually \"Password\" or \"New password\". Required. Never the placeholder."
+        },
+        {
+          "name": "value",
+          "type": "string",
+          "required": false,
+          "description": "Controlled value; pair with onChange."
+        },
+        {
+          "name": "defaultValue",
+          "type": "string",
+          "required": false,
+          "description": "Uncontrolled initial value."
+        },
+        {
+          "name": "onChange",
+          "type": "function",
+          "required": false,
+          "description": "Change handler (also onBlur / onFocus)."
+        },
+        {
+          "name": "placeholder",
+          "type": "string",
+          "required": false,
+          "description": "An example only; vanishes on input. The password rules belong in helper text or a list under the field, never here."
+        },
+        {
+          "name": "helpText",
+          "type": "string | node",
+          "required": false,
+          "description": "Persistent guidance (rendered as FieldMessage, default status), wired via aria-describedby. State the rules for a new password here, before the user types."
+        },
+        {
+          "name": "validation",
+          "type": "enum: 'default' | 'error' | 'warning' | 'success'",
+          "default": "default",
+          "required": false,
+          "values": [
+            "default",
+            "error",
+            "warning",
+            "success"
+          ],
+          "description": "The validation state, as on TextField: each non-default status swaps the input border and sets the nested message to the matching status; `error` also sets aria-invalid. The Show/Hide button never takes the status color."
+        },
+        {
+          "name": "validationMessage",
+          "type": "string | node",
+          "required": false,
+          "description": "The validation text shown at error / warning / success, added to aria-describedby. Say what is wrong and how to fix it (SC 3.3.3)."
+        },
+        {
+          "name": "showMessage",
+          "type": "boolean",
+          "default": true,
+          "required": false,
+          "description": "Whether the composed FieldMessage is shown. ON by default; turning it off hides the message entirely. Never hides a message the field needs."
+        },
+        {
+          "name": "required",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Sets required / aria-required, and turns on the FieldLabel's required marker."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Native disabled. Disables the Show/Hide button with the field."
+        },
+        {
+          "name": "readOnly",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Focusable, copyable and submitted, and passes contrast. The Show/Hide button stays live, so a read-only value can still be shown."
+        },
+        {
+          "name": "autoComplete",
+          "type": "enum: 'current-password' | 'new-password'",
+          "required": true,
+          "values": [
+            "current-password",
+            "new-password"
+          ],
+          "description": "Required (SC 1.3.5): `current-password` on a sign-in form, `new-password` where the user sets one, so a password manager fills or offers to generate it. Never `off`."
+        },
+        {
+          "name": "leadingIcon",
+          "type": "slot",
+          "required": false,
+          "description": "An optional leading glyph before the value, aria-hidden and never the accessible name. Hidden by default; the file nominates the swap target."
+        },
+        {
+          "name": "isPending",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Async validation in progress; sets aria-busy; does not block typing."
+        },
+        {
+          "name": "size",
+          "type": "enum: 'small' | 'medium' | 'large'",
+          "default": "medium",
+          "required": false,
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ],
+          "description": "TextField's three tiers: the input type, the nested label and the Show/Hide button scale with it. Every size keeps the input's 44px target; the button's hit area is 44×44 at medium and large and 24×24 at small."
+        },
+        {
+          "name": "id",
+          "type": "string",
+          "required": false,
+          "description": "Wiring + form submission; auto-generated with useId if omitted. The Show/Hide button's aria-controls names it."
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": false,
+          "description": "A real <input name>, so the field works in a native <form> and a password manager recognizes it."
+        }
+      ],
+      "states": [
+        "rest",
+        "hover",
+        "pending",
+        "filled",
+        "focus-visible",
+        "focus-visible-filled",
+        "disabled",
+        "read-only",
+        "empty"
+      ],
+      "variants": {
+        "size": {
+          "values": [
+            "medium",
+            "small",
+            "large"
+          ],
+          "kind": "authoring"
+        },
+        "style": {
+          "values": [
+            "outline"
+          ],
+          "kind": "authoring"
+        },
+        "status": {
+          "values": [
+            "default",
+            "error",
+            "warning",
+            "success"
+          ],
+          "kind": "runtime"
+        }
+      },
+      "accessibility": {
+        "role": "textbox (native <input type=\"password\">, switched to type=\"text\" while shown), plus a native <button type=\"button\">",
+        "wcag": [
+          "1.3.1 Info and Relationships (label, describedby, and the button's aria-controls)",
+          "1.3.5 Identify Input Purpose (autocomplete current-password or new-password, never off)",
+          "3.3.1 Error Identification / 3.3.2 Labels or Instructions",
+          "3.3.8 Accessible Authentication (paste is never blocked, so a password manager can fill the field)",
+          "4.1.2 Name, Role, Value (the button's name changes Show password / Hide password)",
+          "1.4.11 Non-text Contrast (TextField's field boundary)",
+          "2.5.8 Target Size (the button's hit area: 44×44, or 24×24 at small)",
+          "2.4.13 Focus Appearance (intent)"
+        ],
+        "keyboard": "Tab reaches the input, then the Show/Hide button. Enter or Space on the button shows or hides the password, and focus stays on the button. Tab order follows the visual order in left-to-right and right-to-left layouts.",
+        "focus": "The input takes TextField's focus ring. The button takes Button's own focus ring. Pressing the button never moves focus.",
+        "aria": "The host wires the label, aria-describedby and aria-invalid as TextField does. The button carries aria-controls naming the input and a name that changes (\"Show password\" / \"Hide password\"), not aria-pressed. Each change is announced once through the app's shared polite live region: \"Your password is shown\" / \"Your password is hidden\"."
+      },
+      "content": {
+        "labelPattern": "Noun phrase, sentence case, no trailing colon: \"Password\", \"New password\", \"Current password\".",
+        "errorPattern": "What is wrong and how to fix it, such as \"Enter a password with at least 12 characters\"; never \"Invalid password\".",
+        "emptyPattern": "The label plus an optional placeholder, as on TextField."
+      },
+      "docs": {
+        "usage": "Use for a password, a PIN typed as text, or any other secret a user types. The field nests FieldLabel and a Show/Hide button on the label row, the input box below, and FieldMessage under it. Set `autoComplete` to `current-password` on a sign-in form and `new-password` where the user sets one. Put the rules for a new password in helper text or a list under the field.",
+        "do": [
+          "Set autoComplete to current-password or new-password on every password field",
+          "Let the user paste, so a password manager can fill the field",
+          "Return the field to hidden when its form submits",
+          "State the rules for a new password before the user types"
+        ],
+        "dont": [
+          "Use an eye icon inside the field instead of the Show/Hide button",
+          "Add aria-pressed to the button as well as changing its name",
+          "Use this for a one-time code in separate boxes",
+          "Put the password rules in the placeholder"
+        ],
+        "contentGuidelines": "Label = noun phrase, sentence case, no trailing colon. Button = \"Show\" / \"Hide\", with \" password\" in visually hidden text. Error says what is wrong and how to fix it."
+      },
+      "ai": {
+        "primaryPurpose": "Capture a password or other typed secret, with a button that shows or hides the characters.",
+        "whenToUse": "Sign-in, sign-up, change-password and PIN fields: any single-line secret the user types.",
+        "avoidWhen": "The text is not a secret (TextField), the code is entered in separate boxes (a code input, not built yet), or the value comes from a known set (Select).",
+        "commonPartners": [
+          "field-label",
+          "field-message",
+          "button",
+          "list"
+        ],
+        "triggerKeywords": [
+          "password field",
+          "password input",
+          "show password",
+          "sign in",
+          "PIN"
+        ],
+        "generationPriority": 2
+      },
+      "motion": {
+        "enter": "none (present on mount)",
+        "exit": "none",
+        "reduceMotion": "Showing or hiding the password is an instant swap of the input type and the button's text, with no animation, so it reads the same under prefers-reduced-motion. The field's own state transitions are TextField's."
+      },
+      "composition": {
+        "composesWith": [
+          "field-label",
+          "field-message",
+          "focus-ring",
+          "button"
+        ],
+        "alternativeTo": [
+          "text-field"
+        ],
+        "supersedes": [],
+        "supersededBy": [],
+        "planned": [],
+        "replacesPatterns": [
+          "eye icon inside a password field",
+          "password field with no way to show the characters",
+          "autocomplete=\"off\" on a password"
         ]
       }
     }

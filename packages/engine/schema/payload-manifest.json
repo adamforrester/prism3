@@ -66,11 +66,6 @@
       "why": "A Figma file already exists at eject time — usually where the brand came from — and the plugin regenerates variables live. Shipping these would ship a snapshot that goes stale on first regeneration (#674, #678)."
     },
     {
-      "kind": "preview",
-      "pattern": "out/tokens.html",
-      "why": "A preview surface for inspecting the corpus. Ours, not a client deliverable."
-    },
-    {
       "kind": "fidelity-report",
       "pattern": "out/{brand}-fidelity-report.md",
       "why": "Measures observed-vs-generated gap for a STANDARD-dialect brief. A regression artifact; only brands imported that way have one."

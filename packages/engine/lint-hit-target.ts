@@ -151,6 +151,8 @@ const INTERACTIVE: Record<string, Binding> = {
   'icon-button-neutral': { key: (s) => `size.${s}.side`, why: 'the square icon-button side' },
   // The two single-line fields are sized since #2266; each size binds the floor (`size.md.min-height`) or above.
   'text-field': { key: (s) => `size.${s}.height`, why: 'the field control height — size.md.min-height, the interactive floor, at small and medium (#1437, #2266 Q6)' },
+  // #2317: the Password field is TextField's box, from the same factory, so it binds the same height rung.
+  'password-field': { key: (s) => `size.${s}.height`, why: 'the field control height — TextField\'s, from the shared field factory (#2317)' },
   'select': { key: (s) => `size.${s}.min-height`, why: 'the select control floor — size.md.min-height, the interactive floor, at small and medium (#1437, #2266 Q6)' },
   'switch-row': { key: (s) => `size.${s}.min-height`, why: 'the labelled switch row floor' },
   'checkbox-row': { key: (s) => `size.${s}.min-height`, why: 'the labelled checkbox row floor' },
@@ -173,7 +175,15 @@ const INTERACTIVE: Record<string, Binding> = {
 // marker, fails by name.
 const INNER_TARGETS: Record<string, { key: (size: string) => string; why: string }> = {
   'tag.dismiss': { key: (s) => `size.${s}.height`, why: "the dismissible tag's × slot, a square the tag's height (owner, 2026-09-28) — the target itself or a part of a whole-tag target, the owner's open call; it clears the floor either way" },
+  // #2317: a NESTED control with no side bound in the host. Its key is the NESTED def's (Button's box height), read
+  // through Button's own tokens at the size the host nests it at, so a toggle pointed at a smaller rung fails here.
+  'password-field.toggle': { key: (s) => `size.${s}.height`, why: 'the Show/Hide button, a nested flush text Button at the field\'s size (Q301.3 B): its box height on Button\'s own rung; its width is the code-side flush rule below' },
 };
+
+// ── HOSTS OF A NESTED FLUSH BUTTON (#2317): a host whose nested Button is flush owes the same code-side hit area ────
+// The nested Button's own def states the rule (FLUSH_MEMBERS), but a designer or agent reads the HOST, so the host
+// states it too, with the same phrases. Compared both ways with the defs' nested coordinates.
+const FLUSH_NESTS = new Set(['password-field']);
 
 // ── FLUSH MEMBERS (#2408): the defs whose flush member drops its width floor, so its hit area is code-side ────
 // Authored here and compared both ways with the defs' own `flush` fields, so a new flush def cannot arrive with
@@ -195,6 +205,36 @@ const flushRuleGap = (codeOnly: readonly string[]): string[] => {
   return (best ?? FLUSH_RULE).map((re) => re.source);
 };
 
+// ── CODE-SIDE TARGETS (#2457, owner Q283.3 A): a control whose whole visible box is below the floor by design ──
+// The flush icon button's box IS its glyph (20 or 24px, no padding), so no emitted token is its target: the owner's
+// rule is a hit area of at least 44×44 in CODE at every size, through an invisible extension, and Figma draws the
+// glyph square only. So, as for FLUSH_MEMBERS, this gate requires the def to STATE it, twice: in `codeOnly` (the
+// maintainer record) and in the shipped `docs.do` (the page an implementer reads, which `codeOnly` never reaches).
+// Each listed def is also measured BELOW the floor at every size on comfortable, so a box later grown to 44 makes the
+// entry stale by name rather than leaving a code-side claim on a control that no longer needs one. The phrases are
+// literals here, never read off the def (docs/34): deleting either sentence from the def fails this gate by name.
+// A def whose OTHER shape draws a box of its own lists it in `atFloor` (#2457 Q287 A, the round shape): those sizes
+// are measured the INTERACTIVE way, at or above the floor over the floor densities, so the circle's own box is held
+// to 44 where the owner's sizes put it there (medium 44, large 56). The sizes are literals here, never read off the
+// def; the size below them (small, 36) stays covered by the code-side rule, which the def states "at every size".
+type AtFloor = { key: (size: string) => string; sizes: readonly string[]; why: string };
+// The three flush icon-button families (Q295.2 B) share one box, so each is listed and measured on its own: a family
+// dropped from this list fails as unmeasured, and one whose box drifts fails by its own id.
+const FLUSH_ICON_BUTTON_TARGET = (): { key: (size: string) => string; why: string; atFloor?: AtFloor } => ({
+  key: (s) => `size.${s}.flush`, why: "the flush icon button's glyph square, with no padding",
+  atFloor: { key: (s) => `size.${s}.round`, sizes: ['medium', 'large'], why: "the round flush icon button's circle, the Counter's height" },
+});
+const CODE_SIDE_TARGETS: Record<string, { key: (size: string) => string; why: string; atFloor?: AtFloor }> = {
+  'flush-icon-button': FLUSH_ICON_BUTTON_TARGET(),
+  'flush-icon-button-destructive': FLUSH_ICON_BUTTON_TARGET(),
+  'flush-icon-button-neutral': FLUSH_ICON_BUTTON_TARGET(),
+};
+const CODE_SIDE_RULE = [/at least 44×44px at every size/, /::before`? inset outward/, /centered on the glyph/];
+const CODE_SIDE_DOC = [/hit area in code to at least 44×44px at every size/, /::before`? inset outward/];
+/** The phrases of `rule` that no single entry carries (the best entry's gaps). Pure, so the self-check can drive it. */
+const ruleGap = (entries: readonly string[], rule: readonly RegExp[]): string[] =>
+  (entries.map((e) => rule.filter((re) => !re.test(e))).sort((a, b) => a.length - b.length)[0] ?? [...rule]).map((re) => re.source);
+
 /** The defs carved out as a size-level exception: a small button (owner, #1443) and a small tag (owner,
  *  2026-09-27, "as for Button") sit below the floor on purpose. Kept as data so the walk asserts each is
  *  ACTUALLY below the floor. */
@@ -209,6 +249,7 @@ const EXCLUDED: Record<string, string> = {
   'veil': 'a media wash overlay, not an interactive control',
   'segmented-control': 'a segmented control\'s track and label — its tap targets are the nested options, which are gated as segmented-control-segment',
   'divider': 'a 1px rule between groups of content, never interactive and never focusable',
+  'dialog': 'a modal panel, never itself a pointer target: its close button and footer buttons are an IconButton.Neutral and Buttons, each measured under its own name (#2609)',
   'list': 'a read list of text items, never interactive and never focusable; a link inside an item is its own control (#2319)',
   'list-item': 'one item of a read list, never interactive and never focusable; a link inside it is its own control (#2319)',
   '_accordion-indicator': 'a decorative glyph inside an Accordion header; the tap target is the header row, gated as accordion',
@@ -221,6 +262,7 @@ const EXCLUDED: Record<string, string> = {
   'checkbox-group': 'a group container — its interactive tap targets are the nested checkbox-rows, which are gated',
   'radio-group': 'a group container — its interactive tap targets are the nested radio-rows, which are gated',
   'tabs': 'a tab list container — its interactive tap targets are the nested tabs, which are gated as tab',
+  'link': 'one text line tall in Figma by owner decision (Q289.4 A), so its box is the line, not a control height: code expands the hit area to at least 24px (SC 2.5.8, codeOnly), and an inline link in a sentence is exempt under the inline exception',
   'textarea': 'a multi-line field whose height is rows/auto-grow (fluid); it binds no single-line height, so there is no fixed hit-target dimension to measure',
 };
 
@@ -271,11 +313,13 @@ const defIds = new Set(componentDefs.map((d) => d.id));
 for (const d of componentDefs) {
   const inInteractive = d.id in INTERACTIVE;
   const inExcluded = d.id in EXCLUDED;
-  if (inInteractive && inExcluded) failures.push(`${d.id}: appears in BOTH INTERACTIVE and EXCLUDED — decide which, then state it once.`);
-  if (!inInteractive && !inExcluded) failures.push(`${d.id}: is neither measured nor excluded. A new interactive control must be added to INTERACTIVE with its hit-target binding; a non-control must be added to EXCLUDED with a reason.`);
+  const inCodeSide = d.id in CODE_SIDE_TARGETS;
+  if ([inInteractive, inExcluded, inCodeSide].filter(Boolean).length > 1) failures.push(`${d.id}: appears in more than one of INTERACTIVE, EXCLUDED and CODE_SIDE_TARGETS — decide which, then state it once.`);
+  if (!inInteractive && !inExcluded && !inCodeSide) failures.push(`${d.id}: is neither measured nor excluded. A new interactive control must be added to INTERACTIVE with its hit-target binding; a non-control must be added to EXCLUDED with a reason.`);
 }
 for (const id of Object.keys(INTERACTIVE)) if (!defIds.has(id)) failures.push(`INTERACTIVE names '${id}', which is not a def in componentDefs — a stale entry measures nothing.`);
 for (const id of Object.keys(EXCLUDED)) if (!defIds.has(id)) failures.push(`EXCLUDED names '${id}', which is not a def in componentDefs — a stale exclusion.`);
+for (const id of Object.keys(CODE_SIDE_TARGETS)) if (!defIds.has(id)) failures.push(`CODE_SIDE_TARGETS names '${id}', which is not a def in componentDefs — a stale entry.`);
 for (const id of SMALL_SIZE) if (!(id in INTERACTIVE)) failures.push(`SMALL_SIZE names '${id}', which is not an INTERACTIVE control — a stale exception entry.`);
 
 /** A control's DEFAULT size — the `size` prop's default, or `single` for the no-size-axis control. */
@@ -380,7 +424,9 @@ const markFailures = (defs: readonly ComponentDef[], interactive: ReadonlySet<st
 }
 failures.push(...selfFails.filter((f) => f.startsWith('markFailures')));
 
-failures.push(...markFailures(componentDefs, new Set(Object.keys(INTERACTIVE)), new Set(Object.keys(INNER_TARGETS))));
+// A code-side target (below) is a control too: a host nesting one has a second target inside it, which must be
+// listed, so the nest arm sees CODE_SIDE_TARGETS as well (#2457 — the Counter will nest two).
+failures.push(...markFailures(componentDefs, new Set([...Object.keys(INTERACTIVE), ...Object.keys(CODE_SIDE_TARGETS)]), new Set(Object.keys(INNER_TARGETS))));
 for (const [id, inner] of Object.entries(INNER_TARGETS)) {
   const [defId, partName] = id.split('.');
   const def = componentDefs.find((d) => d.id === defId);
@@ -392,6 +438,23 @@ for (const [id, inner] of Object.entries(INNER_TARGETS)) {
   const size = defaultSizeOf(def);
   if (!size) { failures.push(`${id}: its def has no default size to measure the inner target at.`); continue; }
   const want = inner.key(size);
+  // A NESTED CONTROL WITH NO SIDE OF ITS OWN (#2317): measured through the NESTED def's tokens, at the size the host
+  // nests it at (its followed size, or the size its coordinate names).
+  if (nestsControl && part.size === undefined && part.width === undefined && part.height === undefined) {
+    const nesting = part.nesting as { variant?: Record<string, string>; follow?: readonly string[] } | undefined;
+    const nestedSize = nesting?.follow?.includes('size') ? size : nesting?.variant?.size;
+    const nested = componentDefs.find((d) => d.id === part.nests)!;
+    const key = nestedSize ? inner.key(nestedSize) : undefined;
+    const path = key ? (nested.tokens as Record<string, string>)[key] : undefined;
+    const got = floorBuilds.map((b) => ({ density: b.density, px: path ? resolvePx(b.tree, b.root, path) : undefined }));
+    if (!path || got.some((m) => m.px === undefined)) { failures.push(`${id}/${size}: the nested '${part.nests}' binds nothing at tokens['${key ?? '?'}'] that resolves on every floor density — cannot measure the nested target.`); continue; }
+    const px = Math.min(...got.map((m) => m.px!));
+    floorCount++;
+    const bad = violation(px, 'floor');
+    rows.push(`${id}/${size} → ${part.nests} ${key} → ${path} = ${px}px (min over ${FLOOR_DENSITIES.join('+')}) [floor, nested target]${bad ? '  ✗' : ''}`);
+    if (bad) failures.push(`${id}/${size} (${inner.why}, ${path}) ${bad} on a ${got.find((m) => m.px === px)!.density} brand — a target inside a control must meet the floor too.`);
+    continue;
+  }
   // BOTH SIDES: a square's one `size`, or `width` and `height` each (the schema refuses a marked part with an
   // unbound side). Each must expand to the measured key, so a slot 4 wide and 44 tall cannot clear on its height.
   const sides = part.size !== undefined ? [part.size] : [part.width, part.height];
@@ -428,6 +491,13 @@ for (const [id, inner] of Object.entries(INNER_TARGETS)) {
     failures.push(`FLUSH_SIZES is [${FLUSH_SIZES.join(', ')}], but the 44×44 flush hit area is owed at medium and large only (owner Q170 B).`);
   if (FLUSH_SMALL_SIZES.join() !== 'small')
     failures.push(`FLUSH_SMALL_SIZES is [${FLUSH_SMALL_SIZES.join(', ')}], but the 24×24 flush hit area is owed at small only (owner Q174 B).`);
+  // #2457: the round circle's at-floor scope against a literal too (owner Q287 A: 36 / 44 / 56), so narrowing it
+  // cannot let the medium circle drop below 44 with every gate green.
+  for (const id of ['flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral']) {
+    const roundSizes = CODE_SIDE_TARGETS[id]?.atFloor?.sizes ?? [];
+    if (roundSizes.join() !== 'medium,large')
+      failures.push(`${id} atFloor.sizes is [${roundSizes.join(', ')}], but the round circle is held to the 44px floor at medium and large (owner Q287 A).`);
+  }
 }
 for (const def of componentDefs) {
   if (!(def.id in INTERACTIVE)) continue;
@@ -436,6 +506,21 @@ for (const def of componentDefs) {
     failures.push(`${def.id}: has a flush part, which drops its width floor, and FLUSH_MEMBERS does not list it — its hit target is measured on height alone. Add it, and state the 44×44 code-side hit area in its codeOnly.`);
   if (!flushes && FLUSH_MEMBERS.has(def.id))
     failures.push(`FLUSH_MEMBERS names '${def.id}', which has no flush part — a stale entry.`);
+}
+// The hosts of a nested flush Button, both ways, and each states the code-side rule in its own codeOnly.
+for (const def of componentDefs) {
+  if (!(def.id in INTERACTIVE)) continue;
+  const nestsFlush = Object.values(def.anatomy?.parts ?? {}).some((p) => p.kind === 'nest' && !!p.nests && p.nests in INTERACTIVE
+    && (p.nesting as { variant?: Record<string, string> } | undefined)?.variant?.inset === 'flush');
+  if (nestsFlush && !FLUSH_NESTS.has(def.id))
+    failures.push(`${def.id}: nests a flush Button, whose width floor is code-side, and FLUSH_NESTS does not list it — state the 44×44 code-side hit area in its codeOnly and list it.`);
+  if (!nestsFlush && FLUSH_NESTS.has(def.id))
+    failures.push(`FLUSH_NESTS names '${def.id}', which nests no flush Button — a stale entry.`);
+  if (nestsFlush) {
+    const gap = flushRuleGap(def.anatomy?.codeOnly ?? []);
+    rows.push(`${def.id} → a nested flush Button; hit area ≥ 44×44 in code at ${FLUSH_SIZES.join(' and ')}, ≥ 24×24 at ${FLUSH_SMALL_SIZES.join(', ')} (codeOnly) [code-side rule, #2317]${gap.length ? '  ✗' : ''}`);
+    if (gap.length) failures.push(`${def.id}: nests a flush Button, and no codeOnly entry states its code-side hit area, 44×44 at medium and large and 24×24 at small (missing or over-scoped: ${gap.join(', ')}).`);
+  }
 }
 for (const id of FLUSH_MEMBERS) {
   const def = componentDefs.find((d) => d.id === id);
@@ -449,8 +534,53 @@ for (const id of FLUSH_MEMBERS) {
   if (gap.length) failures.push(`${id}/inset=flush: no codeOnly entry states the code-side hit area, 44×44 at medium and large and 24×24 at small (missing or over-scoped: ${gap.join(', ')}) — a flush member has no width floor, so the height measured above does not cover it. State that its hit area is at least 44×44 at medium and large sizes and at least 24×24 at small in code through a ::before extension (owner Q154 A, Q170 B, Q174 B, #2408).`);
 }
 
-// ── EXCEPTION 1: small size — asserted ACTUALLY below the floor on comfortable (self-justified) ──
 const comfortable = floorBuilds.find((b) => b.density === 'comfortable')!;
+// ── CODE-SIDE TARGETS (#2457): below the floor at every size, and the 44×44 code-side rule stated twice ──
+{
+  const CASES: Array<{ why: string; entries: string[]; rule: RegExp[]; fires: boolean }> = [
+    { why: 'the rule stated in one codeOnly entry', entries: ['the hit area is at least 44×44px at every size in code: a transparent ::before inset outward and centered on the glyph'], rule: CODE_SIDE_RULE, fires: false },
+    { why: 'THE MUTATION: the size scope dropped', entries: ['the hit area is at least 44×44px in code: a transparent ::before inset outward and centered on the glyph'], rule: CODE_SIDE_RULE, fires: true },
+    { why: 'the phrases split across two entries', entries: ['at least 44×44px at every size', 'a ::before inset outward and centered on the glyph'], rule: CODE_SIDE_RULE, fires: true },
+    { why: 'the shipped instruction stated', entries: ['Extend its hit area in code to at least 44×44px at every size, with a transparent `::before` inset outward'], rule: CODE_SIDE_DOC, fires: false },
+    { why: 'THE MUTATION: the shipped instruction deleted', entries: ['Always give it an accessible name (a verb)'], rule: CODE_SIDE_DOC, fires: true },
+    { why: 'an empty list', entries: [], rule: CODE_SIDE_DOC, fires: true },
+  ];
+  for (const c of CASES)
+    if ((ruleGap(c.entries, c.rule).length > 0) !== c.fires) failures.push(`ruleGap, ${c.why}: should ${c.fires ? 'FIRE' : 'pass'}, but did not.`);
+}
+for (const [id, target] of Object.entries(CODE_SIDE_TARGETS)) {
+  const def = componentDefs.find((d) => d.id === id);
+  if (!def) continue;   // reported as stale above
+  const sizes = (def.variants?.size as string[] | undefined) ?? [];
+  if (!sizes.length) { failures.push(`${id}: CODE_SIDE_TARGETS measures each size, and the def declares no size axis.`); continue; }
+  for (const size of sizes) {
+    const path = (def.tokens as Record<string, string> | undefined)?.[target.key(size)];
+    const px = path ? resolvePx(comfortable.tree, comfortable.root, path) : undefined;
+    if (px === undefined) { failures.push(`${id}/${size}: tokens['${target.key(size)}'] does not resolve to a px on the comfortable build (${target.why}) — the box binding moved. Re-point CODE_SIDE_TARGETS['${id}'].key.`); continue; }
+    const bad = violation(px, 'exception');
+    rows.push(`${id}/${size} → ${path} = ${px}px (comfortable) [code-side hit area ≥ 44×44 at every size, #2457, Q283.3 A]${bad ? '  ✗' : ''}`);
+    if (bad) failures.push(`${id}/${size} (${target.why}) ${bad} — a box at the floor is an INTERACTIVE control, measured on its own box; move it there.`);
+  }
+  if (target.atFloor) {
+    const at = target.atFloor;
+    for (const size of at.sizes) {
+      const path = (def.tokens as Record<string, string> | undefined)?.[at.key(size)];
+      const measured = floorBuilds.map((b) => ({ density: b.density, px: path ? resolvePx(b.tree, b.root, path) : undefined }));
+      if (!path || measured.some((m) => m.px === undefined)) { failures.push(`${id}/${size}: tokens['${at.key(size)}'] does not resolve to a px on every floor density (${at.why}) — the box binding moved. Re-point CODE_SIDE_TARGETS['${id}'].atFloor.key.`); continue; }
+      const minPx = Math.min(...measured.map((m) => m.px!));
+      floorCount++;
+      const bad = violation(minPx, 'floor');
+      rows.push(`${id}/${size} → ${path} = ${minPx}px (min over ${FLOOR_DENSITIES.join('+')}) [floor, ${at.why}, #2457 Q287 A]${bad ? '  ✗' : ''}`);
+      if (bad) failures.push(`${id}/${size} (${at.why}, ${path}) ${bad} on a ${measured.find((m) => m.px === minPx)!.density} brand — the round circle at this size is its own target and must meet the floor.`);
+    }
+  }
+  const ruleMiss = ruleGap(def.anatomy?.codeOnly ?? [], CODE_SIDE_RULE);
+  if (ruleMiss.length) failures.push(`${id}: no codeOnly entry states the code-side hit area (missing: ${ruleMiss.join(', ')}) — its box is below the floor by design, so the rule is the only target it has. State that the hit area is at least 44×44px at every size in code, through a ::before inset outward and centered on the glyph (owner Q283.3 A, #2457).`);
+  const docMiss = ruleGap(def.docs?.do ?? [], CODE_SIDE_DOC);
+  if (docMiss.length) failures.push(`${id}: the shipped docs.do does not tell the implementer to extend the hit area (missing: ${docMiss.join(', ')}) — codeOnly never ships, so without this the code docs lose the only 44×44 target the control has. Keep a docs.do entry: "Extend its hit area in code to at least 44×44px at every size, with a transparent ::before inset outward…" (owner Q283.3 A, #2457).`);
+}
+
+// ── EXCEPTION 1: small size — asserted ACTUALLY below the floor on comfortable (self-justified) ──
 for (const id of SMALL_SIZE) {
   const def = componentDefs.find((d) => d.id === id)!;
   const path = (def.tokens as Record<string, string>)['size.small.height'];
@@ -481,7 +611,7 @@ if (floorCount === 0 && !failures.length)
   failures.push(`no interactive control was measured against the floor — the gate asserts nothing.`);
 
 // ── REPORT ────────────────────────────────────────────────────────────────────────────────────────
-console.log(`Hit-target floor — floor ${FLOOR_PX}px (WCAG 2.5.5) at each control's DEFAULT size over the ${FLOOR_DENSITIES.join(' + ')} densities; ${floorCount} control(s) held to the floor, 2 permanent exceptions (small button or tag; compact density), ${Object.keys(EXCLUDED).length} def(s) excluded.`);
+console.log(`Hit-target floor — floor ${FLOOR_PX}px (WCAG 2.5.5) at each control's DEFAULT size over the ${FLOOR_DENSITIES.join(' + ')} densities; ${floorCount} control(s) held to the floor, 2 permanent exceptions (small button or tag; compact density), ${Object.keys(CODE_SIDE_TARGETS).length} code-side target(s), ${Object.keys(EXCLUDED).length} def(s) excluded.`);
 for (const r of rows) console.log(`    ${r}`);
 if (failures.length) {
   console.error(`\n❌ ${failures.length} hit-target failure(s):`);

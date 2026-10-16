@@ -161,6 +161,21 @@ jobs:
       # base's own number when nothing moved. Needs history: the job-level `fetch-depth: 0` above.
       - name: "CONTRACT_VERSION moved by the increment the surface needs, against the base (#2334)"
         run: npx --yes tsx@4 packages/engine/lint-contract-version.ts
+      # #2637 — the agent reference, docs/public/reference/commands.json, still matches the code: every MCP
+      # tool of both servers, every agent-link command and every CLI entry point, regenerated in memory from
+      # the code (toolDefs, TOOLS, AGENT_COMMANDS/AgentArgs/parseCommand, each CLI's usage and argv reads)
+      # and compared with the committed file. Its own gate rather than a regen step: the file is served docs,
+      # not engine emission, and carries no engine version. A tool or command added or renamed in code fails
+      # here by name until the reference is regenerated.
+      - name: The agent reference matches the code (#2637)
+        run: npx --yes tsx@4 packages/engine/emit-agent-reference.ts --check
+      # #2647 — the Figma conventions file, docs/public/reference/figma-conventions.json, still matches the
+      # code: the page taxonomy, every component set's name and properties, the icon namespace, the native
+      # slots, the variable collections and modes, and the canvas furniture, regenerated in memory from the
+      # modules that decide them and compared with the committed file. Its own gate for the reason the agent
+      # reference has one: served docs, no engine version. A convention changed in code fails here by name.
+      - name: The Figma conventions file matches the code (#2647)
+        run: npx --yes tsx@4 packages/engine/emit-figma-conventions.ts --check
 
       # esbuild (and therefore the Vercel build) does not typecheck. These do.
       - name: Typecheck web
@@ -444,8 +459,8 @@ jobs:
           count=$(npx --yes tsx@4 packages/engine/regen.ts --check | grep -oE '[0-9]+ committed artifacts')
           echo "reported: $count"
           case "$count" in
-            "194 committed artifacts") echo "✓ full set covered" ;;
-            *) echo "✗ artifact coverage changed — expected 194. If the set legitimately grew or shrank, update this check in the same PR."; exit 1 ;;
+            "200 committed artifacts") echo "✓ full set covered" ;;
+            *) echo "✗ artifact coverage changed — expected 200. If the set legitimately grew or shrank, update this check in the same PR."; exit 1 ;;
           esac
 
       # The RUNNER's own checks, not a second run of the gates (#789). `verify.ts` is what a contributor
@@ -1019,6 +1034,17 @@ jobs:
       # maintainer record and in neither payload form; no Prism 2 in the payload.
       - name: Every component def is documented in both forms (#1701)
         run: npx --yes tsx@4 packages/engine/lint-component-docs.ts
+
+      # #2637, Q304 — the ecosystem diagram's data (docs/public/ecosystem/ecosystem.json) agrees with the
+      # code. The data is the SUBJECT, the code the ORACLE: every source path and docs link is tracked by
+      # git; every edge joins known nodes and is never more built than either end; every trace step is an
+      # edge; each feature's lane claims match what the code lets each interface reach (MCP tools are
+      # agent-only, plugin messages Figma-only, an agent command with a panel message is shared with
+      # Figma); the component defs, MCP tools, agent link commands, bridge tools and skills listed in the
+      # data are exactly the ones the code ships, both directions, each with a floor; the page reads the
+      # data; and the page's text tokens clear 4.5:1 in light and dark.
+      - name: The ecosystem diagram's data matches the code (#2637)
+        run: npx --yes tsx@4 packages/engine/lint-ecosystem.ts
 
       # #1123 — the mutation battery for the CLAUDE.md-freshness SessionStart report (#1110), the one
       # `tools/` harness wired into CI. It is NAMED FOR THE DETECTOR, never for this tree, because

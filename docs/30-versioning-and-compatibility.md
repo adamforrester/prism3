@@ -39,6 +39,9 @@ numbers to avoid colliding, and `main`'s sequence landed with gaps and out of or
 > `fold.ts` assigns **one version per fold**, at the highest class declared, writes the changelog,
 > deletes the notes and restamps the corpus.
 
+The changelog is `packages/engine/CHANGELOG.md` (Q319.3, 2026-10-15). It was the comment above the
+constant in `version.ts` until then, and moved out verbatim; `version.ts` keeps the two constants.
+
 What this changes about the rule above, stated plainly, because the owner accepted it as a cost:
 
 - **A version names a fold, which may cover several PRs.** It names a state that existed on `main`

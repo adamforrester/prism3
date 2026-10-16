@@ -103,7 +103,8 @@ export const accordion: ComponentDef = {
     'size.medium.panel-pad-end': 'space.200',
     'size.medium.title-offset': 'space.025',
     'size.large.min-height': 'size.lg.height',
-    'size.large.pad-x': 'space.300',
+    // Q338 A (#2726): 20 at large, not the fields' 24, so the inline padding steps 12/16/20. The panel's inline inset is this key too.
+    'size.large.pad-x': 'space.250',
     'size.large.pad-y': 'space.200',
     'size.large.gap': 'space.200',
     'size.large.type': 'type.label.lg.emphasis',
@@ -317,7 +318,7 @@ export const accordion: ComponentDef = {
     alternativeTo: ['tabs'],
     replacesPatterns: ['a show/hide div with no aria-expanded or heading', 'a tablist used for vertical sections that open together'],
     supersededBy: [],
-    planned: ['tree', 'link'],
+    planned: ['tree'],
   },
 
   motion: {
@@ -328,7 +329,7 @@ export const accordion: ComponentDef = {
 
   notes: {
     contested: [
-      'PENDING THE OWNER\'S VISUAL QA (Q241): the padding steps (inline 12/16/24, block 8/12/16, gap 8/12/16) and the panel insets (no top, then 12/16/24 below, with the content aligned to the header edge rather than to the title). Approved in Q241: the inks (`interactive.neutral.text.rest` for the title, `text.primary` for the panel placeholder), the Figma copy ("Section title", and the panel placeholder), the property names, the page placement and the prose.',
+      'PENDING THE OWNER\'S VISUAL QA (Q241): the block padding (8/12/16), the gap (8/12/16) and the panel\'s bottom inset (12/16/24). Decided since: the inline padding steps 12/16/20 at the header and the panel alike (Q338 A, revising 24 at large; the fields keep 24), and the panel keeps its own padding, aligned to the header edge rather than to the title (Q339 A). Approved in Q241: the inks (`interactive.neutral.text.rest` for the title, `text.primary` for the panel placeholder), the Figma copy ("Section title", and the panel placeholder), the property names, the page placement and the prose.',
       'A flush style only: the brief\'s contained (boxed card) variant is not built.',
       'DRAFT (#2646), for the owner: the panel slot (`content`) declares no constraint. No minimum or maximum child count, no preferred components and not preferred-only, and a new instance shows the placeholder. A section holds whatever its content is (text, a list, a form, an image), so any limit here would flag ordinary use.',
     ],
@@ -336,7 +337,7 @@ export const accordion: ComponentDef = {
       'That the native slot behaves the same on a designer\'s instance in every Figma plan: slots were measured in one file; a plan without the feature keeps the panel as a plain frame, and the build says so.',
     ],
     evolution: [
-      'Owner decisions: Q180 (a design proposal), Q182 (one item, no group def; an indicator before or after the title, before the default; no hover; the content a swappable slot; a nested Divider; the expansion axis; the body type; the 44px floor; three sizes; reduced motion through the duration tokens; the two engine fixes), Q183 (the building-block indicator, 24 members, no disabled and no pressed), Q242 (the position values `leading | trailing`, as Button and Switch row name theirs), Q243 (the header\'s focus ring on its edge, `focus.ring.offset-field`), and the owner\'s QA of the live build (2026-10-12): the header centered, the glyphs one rung smaller (16/20/24), Q257 A (the ring drawn inside the header\'s edge), and `position` renamed `iconPosition`; Q262 A and Q266 A (the glyph beside the title\'s first line, the title padded 2px down); Q276 A (the glyph and the title in a `titleRow` the header centers, so a single line is centered under the 44px floor at every size).',
+      'Owner decisions: Q180 (a design proposal), Q182 (one item, no group def; an indicator before or after the title, before the default; no hover; the content a swappable slot; a nested Divider; the expansion axis; the body type; the 44px floor; three sizes; reduced motion through the duration tokens; the two engine fixes), Q183 (the building-block indicator, 24 members, no disabled and no pressed), Q242 (the position values `leading | trailing`, as Button and Switch row name theirs), Q243 (the header\'s focus ring on its edge, `focus.ring.offset-field`), and the owner\'s QA of the live build (2026-10-12): the header centered, the glyphs one rung smaller (16/20/24), Q257 A (the ring drawn inside the header\'s edge), and `position` renamed `iconPosition`; Q262 A and Q266 A (the glyph beside the title\'s first line, the title padded 2px down); Q276 A (the glyph and the title in a `titleRow` the header centers, so a single line is centered under the 44px floor at every size); Q338 A (the large inline padding 24 → 20, `space.250`, so the side padding steps 12/16/20) and Q339 A (no change: the panel keeps its own padding).',
     ],
   },
 };
