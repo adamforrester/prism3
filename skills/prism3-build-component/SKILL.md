@@ -137,7 +137,7 @@ and `lint-voice` catch Prism 2, dangling names, en-GB spellings and banned words
 register` block in `test.ts` refuses code spans, all-caps words outside its acronym list, "brief §N",
 "def" and issue numbers in the consumer fields (summary, description, prop descriptions, accessibility,
 content, docs and ai's three decision fields), and `#2714 child-only whenToUse` holds the two templates.
-Motion and a part's `note` ship too but are not gated yet, so hold them to the same rules by hand.
+Motion and a part's `note` ship too but are not gated yet (#2773), so hold them to the same rules by hand.
 
 ### Identity and relations — the #1700 rules
 

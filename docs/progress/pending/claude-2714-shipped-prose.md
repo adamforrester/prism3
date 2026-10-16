@@ -1,7 +1,7 @@
 ## (2026-10-16) — Component shipped prose in one register, and a gate that holds it (#2714, #1717)
 
 **What.** From the component consistency audit (#2706). The 13 defs built since Tag followed the build-component
-skill's "What ships" rules; the older ones mostly did not. This PR brings 24 older defs to the rules, one commit per def:
+skill's "What ships" rules; the older ones mostly did not. This PR brings 27 def files to the rules, one commit per file:
 code spans out of the consumer fields, all-caps emphasis lowercased, "brief §N", "image.md §6" and "this def" reworded,
 HC, SR and AT spelled out. It fills the content fields the audit found missing (`docs.contentGuidelines` on Icon, Focus
 ring and Field label from the KB briefs' §7; `content.dialogPattern` on Dialog), lengthens Button's and IconButton's
@@ -28,4 +28,4 @@ def's summary, description, docs.usage and whenToUse. `#2714 child-only whenToUs
 each named host against the other defs' anatomy, so a template naming a host that does not nest the part fails.
 
 **Out of scope, filed.** `motion` and a part's `note` also ship (the plugin bundle carries them) and carry 84 more
-strings in the old register; the gate does not read them yet.
+strings in the old register; the gate does not read them yet (#2773).

@@ -14278,7 +14278,7 @@ arm: {
   // no "def" as a reader-facing word, no issue numbers. The older defs broke all five and the newer ones none,
   // so a reader moving between pages met two registers. Scope is the seven consumer fields the audit counted
   // (summary, description, prop descriptions, accessibility, content, docs, and ai's three decision fields).
-  // Motion and part notes ship too and are not in scope yet (filed on #2714's PR).
+  // Motion and part notes ship too and are not in scope yet (#2773).
   //
   // The all-caps arm reads against a HAND-WRITTEN acronym list, each entry a term a reader meets as written,
   // and the list must be live: an acronym no shipped field uses any more fails as stale, so the list cannot
