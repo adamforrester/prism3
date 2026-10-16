@@ -254,7 +254,7 @@ ok(BUTTON_LAID.length === 6 && (EXERCISED.pin ?? 0) > 0 && (EXERCISED.paddingPx 
   // THE SWAP TARGET IS A DEPENDENCY (#2645), asserted on the list itself: the round-trip cannot see it, because the icon
   // set is built anyway as a dependency of List.Item. List's own plans reach icon/close through the override alone.
   const targets = planTargets(swapPlans);
-  ok(JSON.stringify(targets) === '["list-item","icon/close"]', `#2645 build-deps: a swap override's component is a build target of the def that declares it (${JSON.stringify(targets)})`);
+  ok(JSON.stringify(targets) === '["_list-item","icon/close"]', `#2645 build-deps: a swap override's component is a build target of the def that declares it (${JSON.stringify(targets)})`);
   ok((EXERCISED.nestOverrides ?? 0) > 0 && swapNodes > 0 && listRows.length === 2 && listRows.every((i) => i.members > 0),
     `#2645 per-instance overrides round-trip: ${EXERCISED.nestOverrides ?? 0} nested instance(s) read their overrides back off their own componentProperties, ${swapNodes} of them a swap to icon/close (rows: ${listRows.map((i) => `${i.def} ${i.members} members, ${i.divergences.length} divergences`).join('; ')})`);
 }
