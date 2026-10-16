@@ -18130,6 +18130,17 @@
             }
           }
         },
+        "1600": {
+          "$type": "duration",
+          "$value": "1600ms",
+          "$description": "duration primitive — 1600ms (literal; the semantic tier names the use)",
+          "$extensions": {
+            "prism3": {
+              "generated": true,
+              "ms": 1600
+            }
+          }
+        },
         "2600": {
           "$type": "duration",
           "$value": "2600ms",
@@ -18226,6 +18237,18 @@
               "ms": 800
             }
           }
+        },
+        "sweep": {
+          "$type": "duration",
+          "$value": "{wds.motion.duration-ms.1600}",
+          "$description": "motion duration sweep — 1600ms per pass of an indeterminate progress bar's segment across its track, the same at every tempo",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "wds.motion.duration-ms.1600",
+              "ms": 1600
+            }
+          }
         }
       },
       "duration-reduced": {
@@ -18305,6 +18328,18 @@
           "$type": "duration",
           "$value": "{wds.motion.duration-ms.2600}",
           "$description": "reduce-motion spin — 2600ms per full turn: a slow turn, kept rather than removed, because the spinner is how a sighted user sees work continuing",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "wds.motion.duration-ms.2600",
+              "ms": 2600
+            }
+          }
+        },
+        "sweep": {
+          "$type": "duration",
+          "$value": "{wds.motion.duration-ms.2600}",
+          "$description": "reduce-motion sweep — 2600ms per pass: a slow sweep, kept rather than removed, because the moving segment is how a sighted user sees the work continuing",
           "$extensions": {
             "prism3": {
               "role": "semantic",

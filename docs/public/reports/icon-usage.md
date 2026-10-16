@@ -22,6 +22,10 @@ Generated from the component definitions and the emission by `packages/engine/em
 | icon | glyph | `{name}` | any (prop) | drawn | always |
 | image-placeholder | marker | `image` | icon set | drawn | always |
 | list-item | icon | `check` | icon set | swap default | type: icon |
+| progress | arc | `progress-arc-{size}` | component-owned | drawn | shape: circular; status: active, error |
+|  | arcFull | `progress-ring-{size}` | component-owned | drawn | shape: circular; status: complete |
+|  | ringTrack | `progress-ring-{size}` | component-owned | drawn | shape: circular |
+|  | stop | `progress-stop` | component-owned | drawn | shape: linear; type: determinate |
 | select | chevron | `chevron-down` | icon set | drawn | always |
 | spinner | ring | `spinner` | component-owned | drawn | always |
 | switch-control | offGlyph | `close` | icon set | drawn | selection: off |
@@ -70,6 +74,7 @@ Parts that take any icon from the set. The file nominates the default unless the
 | `image` | image-placeholder |
 | `minus` | _accordion-indicator, checkbox-control |
 | `plus` | _accordion-indicator |
+| `progress-stop` | progress |
 | `resize-grip` | textarea |
 | `spinner` | spinner |
 | `warning-triangle` | field-message |

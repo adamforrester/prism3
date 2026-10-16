@@ -278,6 +278,65 @@
         "leadingVisual"
       ]
     },
+    "progress": {
+      "glyphs": [
+        {
+          "part": "arc",
+          "glyph": "progress-arc-{size}",
+          "source": "component-owned",
+          "how": "drawn",
+          "when": {
+            "shape": [
+              "circular"
+            ],
+            "status": [
+              "active",
+              "error"
+            ]
+          }
+        },
+        {
+          "part": "arcFull",
+          "glyph": "progress-ring-{size}",
+          "source": "component-owned",
+          "how": "drawn",
+          "when": {
+            "shape": [
+              "circular"
+            ],
+            "status": [
+              "complete"
+            ]
+          }
+        },
+        {
+          "part": "ringTrack",
+          "glyph": "progress-ring-{size}",
+          "source": "component-owned",
+          "how": "drawn",
+          "when": {
+            "shape": [
+              "circular"
+            ]
+          }
+        },
+        {
+          "part": "stop",
+          "glyph": "progress-stop",
+          "source": "component-owned",
+          "how": "drawn",
+          "when": {
+            "shape": [
+              "linear"
+            ],
+            "type": [
+              "determinate"
+            ]
+          }
+        }
+      ],
+      "iconSlots": []
+    },
     "segmented-control-segment": {
       "glyphs": [],
       "iconSlots": [
@@ -476,6 +535,13 @@
     "plus-circle": [],
     "plus-circle-filled": [],
     "plus-filled": [],
+    "progress-arc-medium": [],
+    "progress-arc-small": [],
+    "progress-ring-medium": [],
+    "progress-ring-small": [],
+    "progress-stop": [
+      "progress"
+    ],
     "resize-grip": [
       "textarea"
     ],

@@ -297,7 +297,7 @@ const EXPECT_ANATOMY = [
   'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'list-item', 'list',
   'segmented-control-segment', 'segmented-control', 'link', 'dialog', 'password-field',
   // #2665: the page cell and the pagination row.
-  '_pagination-item', 'pagination', 'breadcrumb-item', 'breadcrumbs', 'toast', '_slider-thumb', 'slider',
+  '_pagination-item', 'pagination', 'breadcrumb-item', 'breadcrumbs', 'toast', '_slider-thumb', 'slider', 'progress',
 ];
 const EXPECT_PAINTERS = [
   'focus-ring', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive',
@@ -314,6 +314,8 @@ const EXPECT_PAINTERS = [
   'password-field',
   // #2668: the inverse card.
   'toast',
+  // #2670: the track's pale fill, the progress fill, and the ring's track stroke.
+  'progress',
 ];
 const closedSet = (what: string, expected: string[], live: string[], remedy: string): void => {
   for (const id of expected.filter((x) => !live.includes(x))) {

@@ -336,6 +336,12 @@ const buildOnPage = async (id: string) => {
     page: page as unknown as { children: Node[] },
     liveRoot: true,
     identities: true,
+    // A glyph imports at its 24-unit artboard and its bound size scales it, as on the host (#2379). Progress (#2670) is
+    // the first set to draw component-owned glyphs inline; every other set's glyphs are icon instances.
+    scaleConstrained: true,
+    // Progress sets the nested FieldMessage's caption (#2645 overrides), which needs the TEXT property the real
+    // FieldMessage set declares; a catalog stub declares none unless given here.
+    componentProps: { 'field-message': { 'message#1:0': { type: 'TEXT', defaultValue: 'This is a status message.' } } },
   }) as Record<string, unknown>;
   const built = await applyComponentPlan(plans, api as never, { targetPage: page as never });
   const set = page.children.find((c) => c.type === 'COMPONENT_SET') as FNode;
@@ -680,8 +686,8 @@ section('rollout — every def that builds a set: drawn, converged, and clear of
   // properties builds a set, except the two that build single components (`emitAsComponents`), which have no grid.
   const withSet = componentDefs.filter((d) => d.figmaProperties && !d.figmaProperties.emitAsComponents).map((d) => d.id);
   const single = componentDefs.filter((d) => d.figmaProperties?.emitAsComponents).map((d) => d.id);
-  ok(withSet.length === 44 && withSet.every(hasFurniture) && JSON.stringify(single) === JSON.stringify(['icon', 'spinner']) && !single.some(hasFurniture),
-    `rollout/switch: all 44 defs that build a set have furniture; Icon and Spinner, single components, do not (off: ${JSON.stringify(withSet.filter((id) => !hasFurniture(id)))})`);
+  ok(withSet.length === 45 && withSet.every(hasFurniture) && JSON.stringify(single) === JSON.stringify(['icon', 'spinner']) && !single.some(hasFurniture),
+    `rollout/switch: all 45 defs that build a set have furniture; Icon and Spinner, single components, do not (off: ${JSON.stringify(withSet.filter((id) => !hasFurniture(id)))})`);
 
   // THE MEMBERS AN EARLIER LAYOUT HOLDS OFF THEIR GROUPED ROW, per def, worked out by hand. Only a def with a `surface`
   // ROW axis regroups. Button and its two siblings: 360, as `MOVES` above. The three icon buttons: 36 rows of 6

@@ -13,7 +13,7 @@
  *
  *  Stamps its root with the shared-section marker (`data-sg-section="duration-ramp"`, `kit.ts`'s header).
  *  WHAT IT IS HANDED. The resolved motion axis, the mode in view and the blocks' copy. Nothing here reads the session. */
-import { SPIN_ROLE, type Theme } from '@prism3/engine/theme';
+import { SPIN_ROLE, LOOP_ROLES, type Theme } from '@prism3/engine/theme';
 import { el, hook, subHead, tokenPillBadged, tokenPillWrapping } from './kit';
 
 export type DurationsCopy = {
@@ -34,7 +34,8 @@ export const durationRampSection = (mo: Theme['motion'], mode: string, copy: Dur
   wrap.dataset.sgSection = 'duration-ramp';   // the shared-section marker (`kit.ts`'s header)
   wrap.dataset.tempo = byMode?.tempo ?? mo.tempo;
   wrap.append(subHead(copy.title), el('p', 'dm-desc', copy.desc));
-  const steps = Object.keys(dur).filter((n) => n !== SPIN_ROLE);
+  // Every loop period (the spin, and the progress sweep, #2670) stays out of the steps: none is a step of the ramp.
+  const steps = Object.keys(dur).filter((n) => !LOOP_ROLES.includes(n));
   const longest = Math.max(1, ...steps.map((n) => dur[n]));
   const table = el('table', 'ctable mo-ramp');
   const head = el('tr');

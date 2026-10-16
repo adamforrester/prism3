@@ -770,6 +770,28 @@
       "↳ swap leading icon": "INSTANCE_SWAP"
     }
   },
+  "progress": {
+    "axes": {
+      "shape": [
+        "circular",
+        "linear"
+      ],
+      "size": [
+        "medium",
+        "small"
+      ],
+      "status": [
+        "active",
+        "complete",
+        "error"
+      ],
+      "type": [
+        "determinate",
+        "indeterminate"
+      ]
+    },
+    "members": 10
+  },
   "radio-control": {
     "axes": {
       "selection": [
