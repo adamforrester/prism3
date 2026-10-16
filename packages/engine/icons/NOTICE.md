@@ -62,6 +62,10 @@ A few dozen glyphs of Remix Icon's several thousand, one SVG per name in `icon-s
 portions of it"* threshold §5 attaches its licence-inclusion requirement to. The licence is committed
 anyway: it costs nothing, and it removes the judgment call for whoever reads this next.
 
+One file is not Remix's: `slash-line.svg`, the breadcrumb slash (#2666, owner decision Q382 A). Remix has no plain
+slash, so it is drawn for this project: one parallelogram on the same 24px grid, a 2px stroke like the chevrons, with
+no Remix artwork in it. The source of this glyph is held for the owner on #2666.
+
 One glyph is not from Remix Icon: `resize-grip.svg` (the textarea's corner grip, two diagonal bars) was
 drawn for this project, because the source set has no resize-handle glyph. It is covered by this
 repository's own license, not by `LICENSE` beside this file.

@@ -2,8 +2,8 @@
   "note": "AUTHORED BASELINE, never a regen artifact (see lint-component-surface.ts). Rewritten only by an explicit `npx tsx packages/engine/lint-component-surface.ts --accept`, which refuses unless an engine bump is already declared (a change note in packages/engine/changes/, #1807) — a gate allowed to rewrite what it reads has no memory. Per def: the member count of the DEFAULT Figma projection, a sha256 over its sorted `planComponentName|planStamp` rows, and its non-variant component properties as sorted `name:TYPE` (#2649). `null` means the def declares no figmaProperties and projects no set. Mostly brand-independent: figmaAnatomySet takes a def and no theme. The exception is a def with weightIntent (#1602), whose weight axis resolves per brand — for those, extra `<id>@<scenario>` rows record the surface under canonical availability scenarios (body-emphasis = NB's bold→emphasis, body-single = the axis collapse), so a change to the resolution or collapse rule moves a row. Likewise a def binding the interactive overlay wash (#1608) carries `<id>@outline-solid-tint` and `<id>@outline-none` rows — its outline/text hover fill under the other two outlineInteraction methods. The button family (#1667) carries `<id>@button-default`, `<id>@button-edges` and `<id>@button-smaller` rows — its derived minimum width, the Locked to edges layout and the One step smaller medium content, against the default-density heights. It records no engine version of its own on purpose — a pure value change bumps the engine and moves no component surface. A failure here is a CHANGED projection: read the diff, decide whether the change was intended, add a change note declaring the bump, then accept.",
   "defs": {
     "icon": {
-      "members": 45,
-      "sha256": "9c2b2dc35d3b3aa1e08246f83152cc833d1b80409b93e5d19c6ca3a5b4e0d54e",
+      "members": 46,
+      "sha256": "dd647aed9a1894ec84ca981a428bb1db85d4fa0813c53fbf930c2dc0b43de11f",
       "properties": []
     },
     "focus-ring": {
@@ -694,6 +694,25 @@
         "message:BOOLEAN",
         "placeholder:TEXT",
         "value:TEXT"
+      ]
+    },
+    "_breadcrumb-separator": {
+      "members": 2,
+      "sha256": "e45d9766820098366d0b2a42e40fcb042c9c4907585c6de7f85d3f9324feafb8",
+      "properties": []
+    },
+    "breadcrumb-item": {
+      "members": 10,
+      "sha256": "1a739afe5b6fef289c19db72d2d5a46d2b6b27a9881db6e4ad135978cf5f2023",
+      "properties": [
+        "label:TEXT"
+      ]
+    },
+    "breadcrumbs": {
+      "members": 6,
+      "sha256": "209ad62d6bcac7d89eb8ef412c0c0d1e05bf9b56c35fe593682de88925f2e4c4",
+      "properties": [
+        "items:SLOT"
       ]
     }
   }

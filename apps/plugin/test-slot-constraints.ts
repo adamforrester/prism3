@@ -54,6 +54,9 @@ const EXPECTED: Record<string, { slotSettings?: Record<string, unknown>; preferr
   // Open (#2609, as built): the body holds whatever the dialog needs — text or any components — so no limit and no
   // preferred component. The footer's actions are fixed nested Buttons, not a slot (Q311), so they have no row.
   'dialog.body': {},
+  // Constrained (#2666, the approved proposal's properties table): at least two steps, an ancestor and the current page,
+  // and BreadcrumbItem the only component the slot offers.
+  'breadcrumbs.items': { slotSettings: { minChildren: 2, allowPreferredValuesOnly: true }, preferred: ['breadcrumb-item'] },
 };
 console.log('the corpus');
 {

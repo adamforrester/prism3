@@ -313,7 +313,10 @@
           "segmented-control",
           "link",
           "dialog",
-          "password-field"
+          "password-field",
+          "_breadcrumb-separator",
+          "breadcrumb-item",
+          "breadcrumbs"
         ]
       }
     },

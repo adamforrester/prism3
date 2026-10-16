@@ -130,8 +130,8 @@ const spacePx = sizeRefPx(componentSizes('comfortable', 8));
 const last = new Map<string, SetBuild>([['button', 'ok'], ['tag', 'issues'], ['badge', 'failed']]);
 const view = setsView(committed, { density: 'comfortable', spacePx, plugin: true, lastOf: (id) => last.get(id) });
 const v = (id: string) => view.find((x) => x.id === id);
-ok(v('button')?.parts === '576 parts' && v('icon')?.parts === '45 components' && v('spinner')?.parts === '4 components',
-  `parts: Button "${v('button')?.parts}", Icon "${v('icon')?.parts}", Spinner "${v('spinner')?.parts}" (want 576 parts, 45 components, 4 components)`);
+ok(v('button')?.parts === '576 parts' && v('icon')?.parts === '46 components' && v('spinner')?.parts === '4 components',
+  `parts: Button "${v('button')?.parts}", Icon "${v('icon')?.parts}", Spinner "${v('spinner')?.parts}" (want 576 parts, 46 components, 4 components)`);
 ok(v('button')?.contains === 'Contains Icon, Spinner, FocusRing' && v('focus-ring')?.contains === 'Contains no other set',
   `contains: by the nested sets' names ("${v('button')?.contains}", "${v('focus-ring')?.contains}")`);
 ok(JSON.stringify(v('button')?.spacing) === JSON.stringify(['Small: padding-x 16 · padding-y 6 · gap 8', 'Medium: padding-x 16 · padding-y 8 · gap 8', 'Large: padding-x 24 · padding-y 8 · gap 12']),
@@ -162,7 +162,7 @@ console.log('\n7. C2: the set list shows each size\'s padding and gap only, at t
 // shown are typed here as the owner's decision words them (C2 A, "only the padding and gap values"); every leaf name
 // the corpus uses is classified below, so a def adding a new spacing name fails here until it is placed.
 const SHOWN = ['gap', 'pad-x', 'pad-y', 'padding-x', 'padding-y'];
-const HIDDEN = ['check-gap', 'dismissible.visible-gap', 'padding-x-visual', 'panel-pad-end', 'select.gap', 'select.padding-end'];
+const HIDDEN = ['back-gap', 'check-gap', 'dismissible.visible-gap', 'padding-x-visual', 'panel-pad-end', 'select.gap', 'select.padding-end'];
 const leaf = (k: string): [string, string] => { const m = /^size\.([^.]+)\.(.+)$/.exec(k); return m ? [m[1][0].toUpperCase() + m[1].slice(1), m[2]] : ['', k]; };
 const names = new Set(componentDefs.flatMap((d) => densitySpacingKeys(d).map((k) => leaf(k)[1])));
 ok([...names].every((n) => SHOWN.includes(n) || HIDDEN.includes(n)), `C2: every spacing name is classified shown or hidden (unclassified: ${JSON.stringify([...names].filter((n) => !SHOWN.includes(n) && !HIDDEN.includes(n)))})`);
