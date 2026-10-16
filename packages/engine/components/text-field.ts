@@ -377,7 +377,7 @@ export const makeTextField = (spec: FieldSpec): ComponentDef => {
       // weight, the standalone Link's starting weight (Q289.3). Its size follows the field's.
       //
       // ITS STATE IS NOT THE FIELD'S. The field's seven states are not Button's vocabulary (`filled` and
-      // `read-only` have no Button member), so `state` cannot be followed by name. `atState` maps the one field
+      // `read-only` have no Button member), so `state` cannot be followed by name. `variantWhen` maps the one field
       // state that changes the button: at `disabled` it nests Button's disabled member. Everywhere else it is
       // Button at rest, read-only included, because a read-only value can still be shown and copied; its own
       // hover and pressed fire inside a prototype (docs/18 §3). Status never reaches it: the field has no status
@@ -396,7 +396,7 @@ export const makeTextField = (spec: FieldSpec): ComponentDef => {
           variant: { appearance: 'text', size: 'medium', surface: 'default', inset: 'flush', state: 'rest', 'leading icon': 'false', 'trailing icon': 'false' },
           expose: ['label'],
           follow: ['size'],
-          atState: { disabled: { state: 'disabled' } },
+          variantWhen: { state: { disabled: { state: 'disabled' } } },
         },
         nestTexts: { label: 'Show' },
         note: 'The Show/Hide button: a flush text Button in the emphasis weight, at the end of the label row. It reads "Show" on every member; set it to "Hide" for the shown look. Disabled with the field, live when read-only, never colored by status.',

@@ -220,6 +220,25 @@
     },
     "members": 3
   },
+  "counter": {
+    "axes": {
+      "appearance": [
+        "ghost",
+        "outline"
+      ],
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ],
+      "state": [
+        "disabled",
+        "focus-visible",
+        "rest"
+      ]
+    },
+    "members": 18
+  },
   "dialog": {
     "axes": {
       "footer": [

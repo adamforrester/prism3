@@ -165,9 +165,11 @@ const plansOf = (id: string): AnatomyPlan[] => {
   if (!d) throw new Error(`no def ${id}`);
   return figmaAnatomySet(d, { swapTarget: SWAP_TARGET });
 };
-const planComps = (n: { swapTarget?: string; nestTarget?: string; children?: unknown[] }): string[] => [
+const planComps = (n: { swapTarget?: string; nestTarget?: string; nestOverrides?: readonly { type: string; value: string }[]; children?: unknown[] }): string[] => [
   ...(n.swapTarget ? [n.swapTarget] : []),
   ...(n.nestTarget ? [n.nestTarget] : []),
+  // A per-instance swap override's glyph (#2645) is a component the file holds, as the real build places it first.
+  ...(n.nestOverrides ?? []).filter((o) => o.type === 'INSTANCE_SWAP').map((o) => o.value),
   ...((n.children ?? []) as (typeof n)[]).flatMap(planComps),
 ];
 type PlanNode = AnatomyPlan['root'];

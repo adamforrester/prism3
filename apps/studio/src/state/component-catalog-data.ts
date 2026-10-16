@@ -1114,5 +1114,23 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
       "field-message",
       "focus-ring"
     ]
+  },
+  {
+    "id": "counter",
+    "name": "Counter",
+    "category": "form",
+    "summary": "A whole-number quantity between a minus and a plus button, such as an item count in a bag.",
+    "unit": "variants",
+    "spacing": [],
+    "buildable": true,
+    "reason": null,
+    "members": 18,
+    "nests": [
+      "field-label",
+      "flush-icon-button-neutral",
+      "icon",
+      "field-message",
+      "focus-ring"
+    ]
   }
 ];

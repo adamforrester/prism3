@@ -342,6 +342,8 @@ const DEFAULT_FIRST: Record<string, string> = {
   dialog: 'the Figma default is the 560px medium panel, the proposal\'s table approved by the owner\'s Q303 (#2609)',
   // #2317: TextField's size order through the shared field factory (Q301 builds it medium first, the field family's order).
   'password-field': 'the Figma default is `medium`, the field family\'s order from the shared field factory (#2317)',
+  // #2427: owner Q283.6 B, "medium first, joining the field-family exception": Figma's inserted Counter is the code default.
+  counter: 'the Figma default is `medium`, the code default, by owner decision Q283.6 B (the field family\'s exception)',
 };
 
 const SIZE_BY_FOLLOW_ONLY: Record<string, string> = {
@@ -378,7 +380,7 @@ const MUST_COVER = [
   'button', 'button-destructive', 'button-neutral',
   'icon-button', 'icon-button-destructive', 'icon-button-neutral',
   'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral',
-  'field-label', 'text-field', 'textarea', 'select', 'tag',
+  'field-label', 'text-field', 'textarea', 'select', 'tag', 'counter',
   'tab', 'tabs',
   'checkbox-control', 'checkbox-row', 'checkbox-group',
   'radio-control', 'radio-row', 'radio-group',

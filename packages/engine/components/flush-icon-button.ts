@@ -257,7 +257,7 @@ const makeFlushIconButton = (id: string, name: string, summary: string, descript
     primaryPurpose: 'Trigger an action inside another component, with a bare glyph that sits flush with the content edge or a glyph in a light circle.',
     whenToUse: 'The minus and plus of a counter, a card\'s close, or any icon action inside a component. shape=flush where the glyph must line up with the content edge; shape=round where the buttons stand on their own beside a value.',
     avoidWhen: `${sibling.avoidWhen} ${AVOID_WHEN}`,
-    commonPartners: ['icon', 'focus-ring'],
+    commonPartners: ['icon', 'focus-ring', 'counter'],
     triggerKeywords: sibling.triggerKeywords,
     generationPriority: sibling.generationPriority,
   },
@@ -265,7 +265,7 @@ const makeFlushIconButton = (id: string, name: string, summary: string, descript
   composition: {
     composesWith: ['focus-ring'],
     alternativeTo: [sibling.iconButton],
-    planned: ['counter', 'number-input', 'card'],
+    planned: ['number-input', 'card'],
     replacesPatterns: ['an <svg> with a click handler and no button', 'an IconButton with its padding overridden to zero'],
   },
 
