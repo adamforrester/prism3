@@ -4,11 +4,17 @@
  *
  *   scope      every set whose `state` axis holds `rest`, `hover` and `pressed` (the button family, icon buttons,
  *              tag, tab, and the checkbox, radio and switch controls). Derived from the member names, never listed.
- *   reactions  a chain, rest → hover → pressed (owner decision 2026-10-15): Rest → Hover on While hovering
- *              (`ON_HOVER`), and Hover → Pressed on While pressing (`ON_PRESS`). Rest carries no press reaction of
- *              its own: the press is reached through Hover. Each is `CHANGE_TO` the sibling matched on EVERY other
- *              axis. Both revert by themselves, so nothing is written on the destination. A touch prototype has no
- *              hover, so a Rest member there shows no pressed feedback: accepted, filed with the decision.
+ *   reactions  Rest → Hover on While hovering (`ON_HOVER`); Rest and Hover → Pressed on While pressing
+ *              (`ON_PRESS`). Each is `CHANGE_TO` the sibling matched on EVERY other axis. Both revert by
+ *              themselves, so nothing is written on the destination.
+ *
+ * ── WHY REST CARRIES WHILE PRESSING TOO (owner decision Q344, #2733; reverts #2702/#2703) ─────────────────────
+ *
+ * Rest's own press reaction looks redundant, and it is on a desktop: the pointer hovers first, the member has already
+ * changed to Hover, and Hover's press reaction is the one that fires. It is NOT redundant on a touch prototype (Figma
+ * Mirror on a phone, or any touch preview): there is no hover, so Rest's press reaction is the ONLY route to Pressed.
+ * #2703 chained the states (Rest carried While hovering only) and touch prototypes lost pressed feedback; Q344
+ * restored this plan. Do not "simplify" the chain again without a new owner decision that weighs touch prototypes.
  *   excluded   every other state (Disabled, Pending, Read only, Focus visible, Error, …) has none: only Rest and
  *              Hover are sources, and a member of an in-scope set that is not one is planned an empty list.
  *   recorded   the reactions go in the as-built record (`member-baseline.ts`), so a reaction a designer removed or
@@ -69,7 +75,7 @@ export const reactionMap = (names: readonly string[]): Map<string, PlannedReacti
     const sib = byOthers.get(others(key))!;
     const list: PlannedReaction[] = [];
     if (state === REST && sib.has(HOVER)) list.push({ trigger: 'ON_HOVER', to: sib.get(HOVER)! });
-    if (state === HOVER && sib.has(PRESSED)) list.push({ trigger: 'ON_PRESS', to: sib.get(PRESSED)! });
+    if ((state === REST || state === HOVER) && sib.has(PRESSED)) list.push({ trigger: 'ON_PRESS', to: sib.get(PRESSED)! });
     out.set(name, list);
   }
   return out;
