@@ -43,6 +43,9 @@ const STEPS: Array<{ label: string; args: string[] }> = [
   { label: 'emit-icons     (icon-glyphs.ts)', args: ['packages/engine/emit-icons.ts'] },
   // #1701 — the component docs projection. Reads the def registry only, so it has no ordering dependency.
   { label: 'emit-component-docs (out/components/** + component-maintainer)', args: ['packages/engine/emit-component-docs.ts'] },
+  // #2647 — the Figma conventions file. Reads the def registry, the plugin's taxonomy and the Figma emitter in memory, so
+  // it has no ordering dependency either.
+  { label: 'emit-figma-conventions (docs/public/reference/figma-conventions.json)', args: ['packages/engine/emit-figma-conventions.ts'] },
   // #2651 — the analysis reports. Last, because the token report reads `out/prism3.tokens.json`, which emit-dtcg writes.
   { label: 'emit-analysis-reports (docs/public/reports/**)', args: ['packages/engine/emit-analysis-reports.ts'] },
 ];
@@ -122,6 +125,14 @@ export const REPORT_ARTIFACTS = [
   'icon-usage.md', 'icon-usage.json',
 ];
 
+// The FIGMA CONVENTIONS FILE (#2647): served docs beside the agent reference, generated from the code. In regen so
+// the documented path (regen, then commit) moves it when a def, page or property moves, which every component PR
+// does. A list of its own for the reason the reports have one: it carries no engine version, so it must stay out of
+// the lists `lint-emission-version.ts` reads as "owes a bump". `emit-figma-conventions.ts --check` remains the gate
+// that names WHICH convention moved; this list only makes the regenerate part of the habitual command.
+export const REFERENCE_DIR = 'docs/public/reference';
+export const REFERENCE_ARTIFACTS = ['figma-conventions.json'];
+
 // Every file under `out/`, repo-relative, sorted — the comparison universe. Walks rather than
 // globbing so `out/figma/<brand>/*.json` is covered without naming each brand.
 const walk = (dir: string, root = dir): string[] => {
@@ -161,6 +172,8 @@ const check = (): void => {
   const engineSnap = join(tmp, 'engine');
   const reportSnap = join(tmp, 'reports');
   const reportDir = join(repoRoot, REPORTS_DIR);
+  const referenceSnap = join(tmp, 'reference');
+  const referenceDir = join(repoRoot, REFERENCE_DIR);
   try {
     cpSync(outDir, outSnap, { recursive: true, preserveTimestamps: true });
     mkdirSync(schemaSnap, { recursive: true });
@@ -171,6 +184,9 @@ const check = (): void => {
     mkdirSync(reportSnap, { recursive: true });
     const reportsBefore = REPORT_ARTIFACTS.filter((f) => existsSync(join(reportDir, f)));
     for (const f of reportsBefore) cpSync(join(reportDir, f), join(reportSnap, f), { preserveTimestamps: true });
+    mkdirSync(referenceSnap, { recursive: true });
+    const referenceBefore = REFERENCE_ARTIFACTS.filter((f) => existsSync(join(referenceDir, f)));
+    for (const f of referenceBefore) cpSync(join(referenceDir, f), join(referenceSnap, f), { preserveTimestamps: true });
     // An on-demand file's mtime, or null when there is none — compared after regenerate() to catch a step that writes it.
     const onDemandStamp = (f: string): number | null => (existsSync(join(outDir, f)) ? statSync(join(outDir, f)).mtimeMs : null);
     const onDemandBefore = ON_DEMAND_OUT.map(onDemandStamp);
@@ -218,6 +234,11 @@ const check = (): void => {
       if (!reportsBefore.includes(f)) { added.push(`${REPORTS_DIR}/${f}`); continue; }
       if (!readFileSync(join(reportSnap, f)).equals(readFileSync(join(reportDir, f)))) drifted.push(`${REPORTS_DIR}/${f}`);
     }
+    // docs/public/reference — the Figma conventions file (#2647); the agent reference beside it has its own gate.
+    for (const f of REFERENCE_ARTIFACTS) {
+      if (!referenceBefore.includes(f)) { added.push(`${REFERENCE_DIR}/${f}`); continue; }
+      if (!readFileSync(join(referenceSnap, f)).equals(readFileSync(join(referenceDir, f)))) drifted.push(`${REFERENCE_DIR}/${f}`);
+    }
 
     // Restore the committed state either way — the gate reports, it never rewrites. Every copy, the
     // snapshot and the restore, keeps its timestamps (#2067): without that, a clean `--check` left each
@@ -231,8 +252,12 @@ const check = (): void => {
       if (reportsBefore.includes(f)) cpSync(join(reportSnap, f), join(reportDir, f), { preserveTimestamps: true });
       else rmSync(join(reportDir, f), { force: true });
     }
+    for (const f of REFERENCE_ARTIFACTS) {
+      if (referenceBefore.includes(f)) cpSync(join(referenceSnap, f), join(referenceDir, f), { preserveTimestamps: true });
+      else rmSync(join(referenceDir, f), { force: true });
+    }
 
-    const checked = after.size + SCHEMA_ARTIFACTS.length + MAINTAINER_ARTIFACTS.length + ENGINE_ARTIFACTS.length + REPORT_ARTIFACTS.length;
+    const checked = after.size + SCHEMA_ARTIFACTS.length + MAINTAINER_ARTIFACTS.length + ENGINE_ARTIFACTS.length + REPORT_ARTIFACTS.length + REFERENCE_ARTIFACTS.length;
     if (!drifted.length && !added.length && !removed.length && !onDemandWritten.length && !onDemandTracked.length) {
       console.log(`\n✓ in sync — ${checked} committed artifacts byte-match what the engine emits.`);
       return;
