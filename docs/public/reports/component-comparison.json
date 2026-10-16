@@ -864,6 +864,9 @@
           "name": "label"
         },
         {
+          "name": "items"
+        },
+        {
           "name": "value"
         },
         {
@@ -2136,7 +2139,7 @@
           "default": false
         },
         {
-          "name": "children"
+          "name": "items"
         }
       ],
       "sizes": [
@@ -2402,6 +2405,9 @@
           "name": "label"
         },
         {
+          "name": "items"
+        },
+        {
           "name": "value"
         },
         {
@@ -2503,6 +2509,9 @@
       "props": [
         {
           "name": "label"
+        },
+        {
+          "name": "items"
         },
         {
           "name": "value"
@@ -2985,6 +2994,9 @@
       "props": [
         {
           "name": "value"
+        },
+        {
+          "name": "items"
         },
         {
           "name": "defaultValue"
@@ -4446,9 +4458,6 @@
         "id": "dialog"
       },
       {
-        "id": "list"
-      },
-      {
         "id": "list-item"
       }
     ],
@@ -4937,6 +4946,21 @@
     "items": [
       {
         "id": "breadcrumbs"
+      },
+      {
+        "id": "checkbox-group"
+      },
+      {
+        "id": "list"
+      },
+      {
+        "id": "radio-group"
+      },
+      {
+        "id": "segmented-control"
+      },
+      {
+        "id": "tabs"
       }
     ],
     "itemsAfterCollapse": [

@@ -15,7 +15,8 @@
         "small"
       ]
     },
-    "members": 12
+    "members": 12,
+    "properties": {}
   },
   "_breadcrumb-separator": {
     "axes": {
@@ -24,7 +25,8 @@
         "slash"
       ]
     },
-    "members": 2
+    "members": 2,
+    "properties": {}
   },
   "accordion": {
     "axes": {
@@ -46,7 +48,11 @@
         "rest"
       ]
     },
-    "members": 24
+    "members": 24,
+    "properties": {
+      "content": "SLOT",
+      "title": "TEXT"
+    }
   },
   "badge": {
     "axes": {
@@ -67,7 +73,11 @@
         "status"
       ]
     },
-    "members": 20
+    "members": 20,
+    "properties": {
+      "label": "TEXT",
+      "value": "TEXT"
+    }
   },
   "breadcrumb-item": {
     "axes": {
@@ -85,7 +95,10 @@
         "small"
       ]
     },
-    "members": 10
+    "members": 10,
+    "properties": {
+      "label": "TEXT"
+    }
   },
   "breadcrumbs": {
     "axes": {
@@ -102,7 +115,10 @@
         "small"
       ]
     },
-    "members": 6
+    "members": 6,
+    "properties": {
+      "items": "SLOT"
+    }
   },
   "button": {
     "axes": {
@@ -141,7 +157,12 @@
         "true"
       ]
     },
-    "members": 576
+    "members": 576,
+    "properties": {
+      "label": "TEXT",
+      "↳ swap leading icon": "INSTANCE_SWAP",
+      "↳ swap trailing icon": "INSTANCE_SWAP"
+    }
   },
   "button-destructive": {
     "axes": {
@@ -180,7 +201,12 @@
         "true"
       ]
     },
-    "members": 576
+    "members": 576,
+    "properties": {
+      "label": "TEXT",
+      "↳ swap leading icon": "INSTANCE_SWAP",
+      "↳ swap trailing icon": "INSTANCE_SWAP"
+    }
   },
   "button-neutral": {
     "axes": {
@@ -219,7 +245,12 @@
         "true"
       ]
     },
-    "members": 576
+    "members": 576,
+    "properties": {
+      "label": "TEXT",
+      "↳ swap leading icon": "INSTANCE_SWAP",
+      "↳ swap trailing icon": "INSTANCE_SWAP"
+    }
   },
   "checkbox-control": {
     "axes": {
@@ -242,7 +273,8 @@
         "rest"
       ]
     },
-    "members": 54
+    "members": 54,
+    "properties": {}
   },
   "checkbox-group": {
     "axes": {
@@ -252,7 +284,10 @@
         "small"
       ]
     },
-    "members": 3
+    "members": 3,
+    "properties": {
+      "items": "SLOT"
+    }
   },
   "checkbox-row": {
     "axes": {
@@ -262,7 +297,10 @@
         "small"
       ]
     },
-    "members": 3
+    "members": 3,
+    "properties": {
+      "label": "TEXT"
+    }
   },
   "dialog": {
     "axes": {
@@ -282,7 +320,15 @@
         "small"
       ]
     },
-    "members": 15
+    "members": 15,
+    "properties": {
+      "body": "SLOT",
+      "close": "BOOLEAN",
+      "description": "BOOLEAN",
+      "description text": "TEXT",
+      "dividers": "BOOLEAN",
+      "title": "TEXT"
+    }
   },
   "divider": {
     "axes": {
@@ -296,7 +342,8 @@
         "vertical"
       ]
     },
-    "members": 5
+    "members": 5,
+    "properties": {}
   },
   "field-label": {
     "axes": {
@@ -318,7 +365,12 @@
         "regular"
       ]
     },
-    "members": 24
+    "members": 24,
+    "properties": {
+      "label": "TEXT",
+      "required": "BOOLEAN",
+      "required marker": "TEXT"
+    }
   },
   "field-message": {
     "axes": {
@@ -329,7 +381,10 @@
         "warning"
       ]
     },
-    "members": 4
+    "members": 4,
+    "properties": {
+      "message": "TEXT"
+    }
   },
   "flush-icon-button": {
     "axes": {
@@ -350,7 +405,10 @@
         "rest"
       ]
     },
-    "members": 30
+    "members": 30,
+    "properties": {
+      "swap icon": "INSTANCE_SWAP"
+    }
   },
   "flush-icon-button-destructive": {
     "axes": {
@@ -371,7 +429,10 @@
         "rest"
       ]
     },
-    "members": 30
+    "members": 30,
+    "properties": {
+      "swap icon": "INSTANCE_SWAP"
+    }
   },
   "flush-icon-button-neutral": {
     "axes": {
@@ -392,7 +453,10 @@
         "rest"
       ]
     },
-    "members": 30
+    "members": 30,
+    "properties": {
+      "swap icon": "INSTANCE_SWAP"
+    }
   },
   "focus-ring": {
     "axes": {
@@ -401,7 +465,8 @@
         "inverse"
       ]
     },
-    "members": 2
+    "members": 2,
+    "properties": {}
   },
   "icon": {
     "axes": {
@@ -454,7 +519,8 @@
         "warning-triangle-filled"
       ]
     },
-    "members": 46
+    "members": 46,
+    "properties": {}
   },
   "icon-button": {
     "axes": {
@@ -485,7 +551,10 @@
         "inverse"
       ]
     },
-    "members": 216
+    "members": 216,
+    "properties": {
+      "swap icon": "INSTANCE_SWAP"
+    }
   },
   "icon-button-destructive": {
     "axes": {
@@ -516,7 +585,10 @@
         "inverse"
       ]
     },
-    "members": 216
+    "members": 216,
+    "properties": {
+      "swap icon": "INSTANCE_SWAP"
+    }
   },
   "icon-button-neutral": {
     "axes": {
@@ -547,7 +619,10 @@
         "inverse"
       ]
     },
-    "members": 216
+    "members": 216,
+    "properties": {
+      "swap icon": "INSTANCE_SWAP"
+    }
   },
   "image-placeholder": {
     "axes": {
@@ -561,7 +636,10 @@
         "4:5"
       ]
     },
-    "members": 7
+    "members": 7,
+    "properties": {
+      "Marker": "BOOLEAN"
+    }
   },
   "link": {
     "axes": {
@@ -589,7 +667,12 @@
         "emphasis"
       ]
     },
-    "members": 96
+    "members": 96,
+    "properties": {
+      "label": "TEXT",
+      "trailing icon": "BOOLEAN",
+      "↳ swap trailing icon": "INSTANCE_SWAP"
+    }
   },
   "list": {
     "axes": {
@@ -604,7 +687,10 @@
         "unordered"
       ]
     },
-    "members": 9
+    "members": 9,
+    "properties": {
+      "items": "SLOT"
+    }
   },
   "list-item": {
     "axes": {
@@ -619,7 +705,12 @@
         "unordered"
       ]
     },
-    "members": 9
+    "members": 9,
+    "properties": {
+      "number": "TEXT",
+      "swap icon": "INSTANCE_SWAP",
+      "text": "TEXT"
+    }
   },
   "password-field": {
     "axes": {
@@ -644,7 +735,14 @@
         "warning"
       ]
     },
-    "members": 84
+    "members": 84,
+    "properties": {
+      "leading icon": "BOOLEAN",
+      "message": "BOOLEAN",
+      "placeholder": "TEXT",
+      "value": "TEXT",
+      "↳ swap leading icon": "INSTANCE_SWAP"
+    }
   },
   "radio-control": {
     "axes": {
@@ -665,7 +763,8 @@
         "rest"
       ]
     },
-    "members": 30
+    "members": 30,
+    "properties": {}
   },
   "radio-group": {
     "axes": {
@@ -675,7 +774,10 @@
         "small"
       ]
     },
-    "members": 3
+    "members": 3,
+    "properties": {
+      "items": "SLOT"
+    }
   },
   "radio-row": {
     "axes": {
@@ -685,7 +787,10 @@
         "small"
       ]
     },
-    "members": 3
+    "members": 3,
+    "properties": {
+      "label": "TEXT"
+    }
   },
   "segmented-control": {
     "axes": {
@@ -695,7 +800,11 @@
         "small"
       ]
     },
-    "members": 3
+    "members": 3,
+    "properties": {
+      "Label": "BOOLEAN",
+      "items": "SLOT"
+    }
   },
   "segmented-control-segment": {
     "axes": {
@@ -716,7 +825,12 @@
         "rest"
       ]
     },
-    "members": 30
+    "members": 30,
+    "properties": {
+      "label": "TEXT",
+      "leading icon": "BOOLEAN",
+      "↳ swap leading icon": "INSTANCE_SWAP"
+    }
   },
   "select": {
     "axes": {
@@ -741,7 +855,14 @@
         "warning"
       ]
     },
-    "members": 84
+    "members": 84,
+    "properties": {
+      "leading icon": "BOOLEAN",
+      "message": "BOOLEAN",
+      "placeholder": "TEXT",
+      "value": "TEXT",
+      "↳ swap leading icon": "INSTANCE_SWAP"
+    }
   },
   "spinner": {
     "axes": {
@@ -752,7 +873,8 @@
         "x-small"
       ]
     },
-    "members": 4
+    "members": 4,
+    "properties": {}
   },
   "switch-control": {
     "axes": {
@@ -773,7 +895,10 @@
         "rest"
       ]
     },
-    "members": 24
+    "members": 24,
+    "properties": {
+      "State icon": "BOOLEAN"
+    }
   },
   "switch-row": {
     "axes": {
@@ -782,7 +907,10 @@
         "small"
       ]
     },
-    "members": 2
+    "members": 2,
+    "properties": {
+      "label": "TEXT"
+    }
   },
   "tab": {
     "axes": {
@@ -803,7 +931,13 @@
         "rest"
       ]
     },
-    "members": 30
+    "members": 30,
+    "properties": {
+      "count": "BOOLEAN",
+      "label": "TEXT",
+      "leading icon": "BOOLEAN",
+      "↳ swap leading icon": "INSTANCE_SWAP"
+    }
   },
   "tabs": {
     "axes": {
@@ -817,7 +951,10 @@
         "small"
       ]
     },
-    "members": 6
+    "members": 6,
+    "properties": {
+      "items": "SLOT"
+    }
   },
   "tag": {
     "axes": {
@@ -842,7 +979,13 @@
         "select"
       ]
     },
-    "members": 45
+    "members": 45,
+    "properties": {
+      "Check icon": "BOOLEAN",
+      "label": "TEXT",
+      "leading icon": "BOOLEAN",
+      "↳ swap leading icon": "INSTANCE_SWAP"
+    }
   },
   "text-field": {
     "axes": {
@@ -867,7 +1010,16 @@
         "warning"
       ]
     },
-    "members": 84
+    "members": 84,
+    "properties": {
+      "leading icon": "BOOLEAN",
+      "message": "BOOLEAN",
+      "placeholder": "TEXT",
+      "trailing icon": "BOOLEAN",
+      "value": "TEXT",
+      "↳ swap leading icon": "INSTANCE_SWAP",
+      "↳ swap trailing icon": "INSTANCE_SWAP"
+    }
   },
   "textarea": {
     "axes": {
@@ -892,7 +1044,15 @@
         "warning"
       ]
     },
-    "members": 84
+    "members": 84,
+    "properties": {
+      "character count": "BOOLEAN",
+      "count": "TEXT",
+      "message": "BOOLEAN",
+      "placeholder": "TEXT",
+      "resize handle": "BOOLEAN",
+      "value": "TEXT"
+    }
   },
   "veil": {
     "axes": {
@@ -913,6 +1073,7 @@
         "light"
       ]
     },
-    "members": 30
+    "members": 30,
+    "properties": {}
   }
 }
