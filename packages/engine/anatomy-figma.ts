@@ -4732,7 +4732,7 @@ export const CANVAS_FURNITURE: ReadonlySet<string> = new Set([
   'radio-row', 'radio-group', 'switch-control', 'switch-row', 'select', 'veil', 'image-placeholder', 'badge', 'tag', 'tab', 'tabs',
   'divider', '_accordion-indicator', 'accordion', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'list-item',
   'list', 'segmented-control-segment', 'segmented-control', 'link',
-  'dialog', 'password-field', '_pagination-item', 'pagination', 'breadcrumb-item', 'breadcrumbs', 'toast', '_slider-thumb', 'slider', 'progress',
+  'dialog', 'password-field', '_pagination-item', 'pagination', 'breadcrumb-item', 'breadcrumbs', 'toast', '_slider-thumb', 'slider', 'progress', 'banner',
 ]);
 
 export const planSetLayout = (plans: AnatomyPlan[], fn: string) => {

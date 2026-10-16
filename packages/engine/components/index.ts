@@ -78,6 +78,7 @@ import { segmentedControlSegment, segmentedControl } from './segmented-control';
 import { link } from './link';
 import { dialog } from './dialog';
 import { paginationItem, pagination } from './pagination';
+import { banner } from './banner';
 import { passwordField } from './password-field';
 import { breadcrumbItem } from './breadcrumb-item';
 import { breadcrumbs } from './breadcrumbs';
@@ -91,7 +92,7 @@ import { progress } from './progress';
  *  be a worse call site, not a better one — a lookup that can return `undefined` standing in for a
  *  binding that cannot. The set is for iteration; these are for the assertions that are ABOUT one
  *  component. */
-export { button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, textarea, checkboxControl, checkboxRow, checkboxGroup, radioControl, radioRow, radioGroup, switchControl, switchRow, select, veil, imagePlaceholder, spinner, badge, tag, tab, tabs, divider, accordionIndicator, accordion, listItem, list, segmentedControlSegment, segmentedControl, link, dialog, passwordField, paginationItem, pagination, breadcrumbItem, breadcrumbs, toast, sliderThumb, slider, progress };
+export { button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, textarea, checkboxControl, checkboxRow, checkboxGroup, radioControl, radioRow, radioGroup, switchControl, switchRow, select, veil, imagePlaceholder, spinner, badge, tag, tab, tabs, divider, accordionIndicator, accordion, listItem, list, segmentedControlSegment, segmentedControl, link, dialog, passwordField, paginationItem, pagination, breadcrumbItem, breadcrumbs, toast, sliderThumb, slider, progress, banner };
 
 /** Every component def the engine defines. The one thing a projection should iterate. */
 export const componentDefs: readonly ComponentDef[] = [
@@ -233,4 +234,7 @@ export const componentDefs: readonly ComponentDef[] = [
   slider,
   // `progress` (#2670) — the progress bar and ring. Nests `field-message` (its end-state message), above.
   progress,
+  // `banner` (#2579, owner Q327) — a persistent message in the page flow. Nests the neutral Button (actions) and the
+  // neutral IconButton (dismiss), so it comes after both.
+  banner,
 ];

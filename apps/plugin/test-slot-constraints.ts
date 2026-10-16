@@ -60,6 +60,8 @@ const EXPECTED: Record<string, { slotSettings?: Record<string, unknown>; preferr
   // Constrained (#2666, the approved proposal's properties table): at least two steps, an ancestor and the current page,
   // and BreadcrumbItem the only component the slot offers.
   'breadcrumbs.items': { slotSettings: { minChildren: 2, allowPreferredValuesOnly: true }, preferred: ['breadcrumb-item'] },
+  // Open (#2579, as built): the body holds the message, a link or a short list, so no limit and no preferred component.
+  'banner.body': {},
 };
 console.log('the corpus');
 {

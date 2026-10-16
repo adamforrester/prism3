@@ -137,6 +137,9 @@ export const TAXONOMY: Taxonomy = {
         // Progress (#2670, owner call 10 A) — its own page under Components. It nests the Field Message, which the build
         // places first wherever its page sorts. The Spinner stays under Subcomponents (#1670).
         { page: 'Progress', defs: ['progress'] },
+        // Banner (#2579, Q327) — its own page under Components. The proposal named a feedback section; none exists, so the
+        // section is held as an owner item in the PR, as Link's was. It nests Button.Neutral and IconButton.Neutral.
+        { page: 'Banner', defs: ['banner'] },
       ],
     },
     {
