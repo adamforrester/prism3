@@ -851,6 +851,46 @@ section('property — a default the plan changed is edited in place, keeping the
   ok(texts.every((t) => t === 'Label'), `property/shown: every member's label reads Label (${[...new Set(texts)]})`);
 }
 
+/* ── property rename (#2759) ─────────────────────────────────────────────────────────────────────────── */
+section('property rename — the ledger\'s property rename renames the set\'s property in place, and an instance keeps its value (#2759)');
+{
+  // A file built before Q345, by the real executor from the plans as they were: the set's switch was `Check icon`.
+  const planned = plansOf(TAG);
+  const old = planned.map((p) => JSON.parse(JSON.stringify(p).split('"check icon"').join('"Check icon"')) as AnatomyPlan);
+  ok(JSON.stringify(planned).includes('"check icon"') && !JSON.stringify(old).includes('"check icon"'), 'premise: the plans name the switch `check icon`, and the file was built from plans naming it `Check icon`');
+  const w = await world(TAG, old);
+  const defs0 = w.set().componentPropertyDefinitions as Record<string, { type: string; defaultValue?: unknown }>;
+  const oldKey = Object.keys(defs0).find((k) => k.split('#')[0] === 'Check icon')!;
+  ok(!!oldKey, `premise: the set as built declares 'Check icon' (${Object.keys(defs0).filter((k) => !k.includes('=')).join(', ')})`);
+  const id = oldKey.slice(oldKey.lastIndexOf('#'));
+  // A designer's instance of a selected tag, with the check switched off: the value a rename must keep.
+  const comps = w.api.root.findAllWithCriteria({ types: ['COMPONENT'] }) as unknown as { name: string; createInstance: () => Node }[];
+  const ref = comps.find((c) => c.name.includes('selection=selected') && c.name.includes('type=select'));
+  const inst = ref!.createInstance();
+  (inst.setProperties as (p: Record<string, boolean>) => void)({ [oldKey]: false });
+  const valueOf = (): unknown => Object.entries(inst.componentProperties as Record<string, { value: unknown }>).find(([k]) => k.endsWith(id))?.[1].value;
+  ok(valueOf() === false, `premise: the instance's check is off under '${oldKey}' (${String(valueOf())})`);
+  const before = identityOf(w.set());
+  const unclaimed = (await previewUpdate(w.host, [{ def: TAG, plans: planned }], undefined, [])).sets[0].properties;
+  ok(unclaimed.remove.some((x) => x.name === 'Check icon') && unclaimed.add.some((x) => x.name === 'check icon') && !unclaimed.rename.length,
+    `premise: with no ledger entry the dry run removes 'Check icon' and adds 'check icon', which would reset every instance (${JSON.stringify(unclaimed)})`);
+  // The engine's own ledger, so the shipped entry is what is under test.
+  const pre = await previewUpdate(w.host, [{ def: TAG, plans: planned }]);
+  const props = pre.sets[0].properties;
+  ok(props.rename.length === 1 && props.rename[0].from === 'Check icon' && props.rename[0].to === 'check icon' && !props.add.length && !props.remove.length,
+    `property rename/dry run: one rename, nothing added or removed (${JSON.stringify(props)})`);
+  const res = await applyUpdate(w.host, w.api as any, [{ def: TAG, plans: planned }], previewHashOf(pre));
+  ok(applyVerdict(res).ok && pre.sets[0].counts.handEdited === 0, `property rename/verdict: ${applyVerdict(res).headline} (${applyVerdict(res).lines.slice(0, 2).join(' | ').slice(0, 240)})`);
+  const defs1 = w.set().componentPropertyDefinitions as Record<string, { type: string }>;
+  const named = Object.keys(defs1).filter((k) => !k.includes('=') && /^check icon#|^Check icon#/i.test(k));
+  ok(named.length === 1 && named[0] === `check icon${id}`, `property rename/in place: one property, 'check icon' under the same id ${id} (${named.join(', ')})`);
+  ok(valueOf() === false, `property rename/instance kept: the instance's check is still off (${String(valueOf())})`);
+  const after = identityOf(w.set());
+  ok(after.set.join() === before.set.join() && [...before.members].every(([name, b]) => after.members.get(name)?.key === b.key && after.members.get(name)?.id === b.id), 'property rename/keys: the set and every member keep their keys and ids');
+  const post = (await previewUpdate(w.host, [{ def: TAG, plans: planned }])).sets[0];
+  ok(post.counts.current === post.counts.members && !post.properties.rename.length && !post.properties.add.length && !post.properties.remove.length, `property rename/settled: a second dry run lists no property change (${JSON.stringify(post.properties)})`);
+}
+
 /* ── rename ──────────────────────────────────────────────────────────────────────────────────────────── */
 section('rename — a declared value rename, and an added axis, rename members in place');
 {
@@ -2222,11 +2262,11 @@ section('image-placeholder — the NB master\'s 3-member set reaches 7 ratios, a
   ok(placement.every((s) => s.endsWith(':ABSOLUTE SCALE/SCALE')), `img/marker scales: every member's marker is ABSOLUTE, SCALE/SCALE (${placement.filter((s) => !s.endsWith(':ABSOLUTE SCALE/SCALE')).join('; ') || 'all seven'})`);
   // The Marker boolean: declared on the set, default on, and every member's marker wired to it.
   const defs = (w.set().componentPropertyDefinitions ?? {}) as Record<string, { type: string; defaultValue: unknown }>;
-  const markerProp = Object.entries(defs).find(([k]) => k.split('#')[0] === 'Marker');
+  const markerProp = Object.entries(defs).find(([k]) => k.split('#')[0] === 'marker');
   ok(!!markerProp && markerProp[1].type === 'BOOLEAN' && markerProp[1].defaultValue === true,
-    `img/property: the set declares the BOOLEAN 'Marker', default on (${JSON.stringify(defs)})`);
-  const unwired = membersOf(w.set()).filter((m) => String(((childNamed(m, 'marker')?.componentPropertyReferences ?? {}) as Record<string, string>).visible ?? '').split('#')[0] !== 'Marker').map((m) => String(m.name));
-  ok(unwired.length === 0, `img/property wired: every member's marker visibility follows 'Marker' (${unwired.join(', ') || 'all seven'})`);
+    `img/property: the set declares the BOOLEAN 'marker', default on (${JSON.stringify(defs)})`);
+  const unwired = membersOf(w.set()).filter((m) => String(((childNamed(m, 'marker')?.componentPropertyReferences ?? {}) as Record<string, string>).visible ?? '').split('#')[0] !== 'marker').map((m) => String(m.name));
+  ok(unwired.length === 0, `img/property wired: every member's marker visibility follows 'marker' (${unwired.join(', ') || 'all seven'})`);
   const post = (await previewUpdate(w.host, [{ def: IMG, plans: newPlans }])).sets[0];
   ok(post.counts.current === 7 && post.handEdits.length === 0, `img/current: the next dry run reads all seven current (${JSON.stringify(post.counts)})`);
 }
