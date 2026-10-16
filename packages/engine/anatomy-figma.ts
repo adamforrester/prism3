@@ -242,6 +242,17 @@ export type FigmaNodePlan = {
    *  of that was measured (≈19–35 B on the indivisible unit, far from any ceiling), which is why naming the
    *  axes is affordable rather than a budget the payload has to fight. */
   nestExpose?: readonly string[];
+  /** For a `NESTED_INSTANCE`: PER-INSTANCE OVERRIDES (#2645), from `PartDef.overrides`, in the def's order (texts,
+   *  then swaps). Present ONLY on a part that declares them, so every other plan is byte-identical.
+   *
+   *  `property` is the Figma property NAME the nested set declares, WITHOUT its `#id` suffix: the suffix is the
+   *  file's, minted by `addComponentProperty`, so the plan cannot know it. Each executor finds the one key on the
+   *  instance's `componentProperties` whose name before `#` is this and whose type is `type`, and writes
+   *  `setProperties({ [key]: value })`. For `INSTANCE_SWAP` the value is a COMPONENT NAME (`icon/close`), resolved to
+   *  the component's node id in the file, which is the value Figma's swap property holds; for `TEXT` it is the text.
+   *
+   *  Names, not ids, for the reason `bound` holds names: the plan is brand-invariant. */
+  nestOverrides?: readonly NestOverride[];
   /** For a `NESTED_INSTANCE` whose part declares `nestTexts` (#2317): the nested instance's own TEXT property
    *  values, by property name (the nested def's `figmaProperties.texts` key, which is the Figma property's name
    *  before its `#id` suffix). Both executors write each one onto the instance with `setProperties` once it exists,
@@ -855,6 +866,35 @@ export const iconComponentName = (glyph: string): string => `${ICON_DEF_ID}/${gl
 /** The layer name of the icon instance an INSET part wraps (#2380, `FigmaNodePlan.glyphInset`): checkbox's
  *  `mark` and `dash` are each a frame holding one instance named this. */
 export const ICON_INSET_CHILD = 'glyph';
+
+/** One per-instance override on a nested instance (#2645) — see `FigmaNodePlan.nestOverrides`. */
+export type NestOverride = { property: string; type: 'TEXT' | 'INSTANCE_SWAP'; value: string };
+
+/**
+ * A PART'S OVERRIDES, RESOLVED against the nested def (#2645): each `texts` key to the Figma name of the nested def's
+ * TEXT property, each `swaps` key to the Figma name of its INSTANCE_SWAP property with the glyph resolved to the icon
+ * set's component. THROWS on a key the nested def does not declare and on a glyph the icon set does not draw, so a
+ * misspelled override fails the projection rather than building an instance that silently keeps its default.
+ */
+export const nestOverridesOf = (defId: string, partName: string, p: PartDef): NestOverride[] | undefined => {
+  if (!p.overrides) return undefined;
+  const nested = componentDefs.find((d) => d.id === p.nests);
+  const fp = nested?.figmaProperties;
+  if (!nested || !fp) throw new Error(`${defId}: anatomy part '${partName}' declares overrides on '${String(p.nests)}', which is no projected def — an override is set through the nested component's own properties (#2645)`);
+  const out: NestOverride[] = [];
+  for (const [key, value] of Object.entries(p.overrides.texts ?? {})) {
+    const t = fp.texts?.[key];
+    if (!t) throw new Error(`${defId}: anatomy part '${partName}' overrides text '${key}', which '${nested.id}' does not declare — its texts are [${Object.keys(fp.texts ?? {}).join(', ') || 'none'}] (#2645)`);
+    out.push({ property: textFigmaName(key, t), type: 'TEXT', value });
+  }
+  for (const [key, glyph] of Object.entries(p.overrides.swaps ?? {})) {
+    const v = fp.swaps?.[key];
+    if (!v) throw new Error(`${defId}: anatomy part '${partName}' overrides swap '${key}', which '${nested.id}' does not declare — its swaps are [${Object.keys(fp.swaps ?? {}).join(', ') || 'none'}] (#2645)`);
+    if (!(ICON_NAMES as readonly string[]).includes(glyph)) throw new Error(`${defId}: anatomy part '${partName}' swaps '${key}' to '${glyph}', which is no glyph the icon set draws (#2645)`);
+    out.push({ property: swapFigmaName(key, v), type: 'INSTANCE_SWAP', value: iconComponentName(glyph) });
+  }
+  return out;
+};
 
 /**
  * The layer opacity each `<path>` of a glyph document declares, in document order — 1 where it declares none.
@@ -2027,6 +2067,8 @@ export const figmaAnatomyPlan = (
       // The exposed child axes (#1330), ONLY for `nest-exposed`, so every fixed-nest plan is byte-identical.
       // These surface as Figma exposed nested-instance properties; the executors mark the instance exposed.
       ...((p.kind === 'absolute' || p.kind === 'nest') && p.nesting?.kind === 'nest-exposed' ? { nestExpose: p.nesting.expose } : {}),
+      // The per-instance overrides (#2645), ONLY on a part that declares them, so every other plan is byte-identical.
+      ...((p.kind === 'absolute' || p.kind === 'nest') && p.overrides ? { nestOverrides: nestOverridesOf(def.id, name, p) } : {}),
       ...(p.kind === 'nest' && p.nestTexts ? { nestTexts: p.nestTexts } : {}),
       ...(p.kind === 'absolute' && p.inset ? { absoluteInset: varOf(p.inset) } : {}),
       // The stroke to compensate for (#801), projected only alongside an inset — on its own it has
@@ -3383,6 +3425,66 @@ export const resolveNestMember = <C extends { name?: string; type?: string; crea
 export const resolveNestMemberSrc = (): string => resolveNestMember.toString();
 
 /**
+ * WRITE A NESTED INSTANCE'S OVERRIDES, AND READ EACH ONE BACK (#2645). Both executors call this on the instance
+ * they just created or, on Update, kept in place, so the two cannot drift in what they write or how they say it.
+ *
+ * THE KEY IS THE FILE'S. Figma suffixes a TEXT or INSTANCE_SWAP property with `#` and an id `addComponentProperty`
+ * minted (`number#12:3`), and `setProperties` takes only that full key. So each override finds, on the instance's own
+ * `componentProperties`, the ONE key whose name before `#` is the plan's `property` and whose type is the plan's
+ * `type`. None, or more than one, is a miss and nothing is written: guessing between two same-named properties is
+ * creation order deciding (#656).
+ *
+ * A SWAP'S VALUE IS A NODE ID. The plan names the component (`icon/close`); `idOf` resolves it in the file, and an
+ * unresolvable name is a miss. A value the instance already holds is not written again, so a second run, or an
+ * Update over an instance that already shows it, writes nothing.
+ *
+ * ONE `setProperties` PER OVERRIDE and each read back, for the two reasons this file reads everything back: a refusal
+ * costs one override rather than the member, and a write the host accepts is not proof it kept it.
+ *
+ * Returns the misses WITHOUT the part name, which each caller prefixes. SHIPPED AS SOURCE to the paste payload
+ * (`applyNestOverridesSrc`): it closes over nothing, and uses no template literal, no `?.`, no `??`.
+ */
+export const applyNestOverrides = (
+  inst: { componentProperties?: unknown; setProperties?: (props: Record<string, string>) => void },
+  overrides: readonly NestOverride[],
+  idOf: (component: string) => string | null,
+): string[] => {
+  const out: string[] = [];
+  for (const o of overrides) {
+    // Read inline, never through a named helper: the bundler wraps a named inner function in a `__name` call, which
+    // does not exist where this source is shipped.
+    let props: Record<string, { type?: string; value?: unknown }> = {};
+    try { props = (inst.componentProperties || {}) as Record<string, { type?: string; value?: unknown }>; } catch (e) { props = {}; }
+    const keys = Object.keys(props).filter((k) => k.split('#')[0] === o.property && props[k].type === o.type);
+    const head = '.nestOverrides -> ' + o.property + ' ';
+    if (keys.length !== 1) {
+      out.push(head + '(' + (keys.length ? keys.length + ' ' + o.type + ' properties' : 'no ' + o.type + ' property') + ' of that name on the nested instance; it keeps its default)');
+      continue;
+    }
+    let want = o.value;
+    if (o.type === 'INSTANCE_SWAP') {
+      const id = idOf(o.value);
+      if (!id) { out.push(head + '(' + o.value + ' is not a component in this file; the nested instance keeps its default)'); continue; }
+      want = id;
+    }
+    if (props[keys[0]].value === want) continue;
+    const w: Record<string, string> = {};
+    w[keys[0]] = want;
+    try { (inst.setProperties as (props: Record<string, string>) => void)(w); } catch (e) {
+      out.push(head + 'REFUSED (' + (e && (e as Error).message ? (e as Error).message : String(e)) + ')');
+      continue;
+    }
+    let got: { value?: unknown } | undefined;
+    try { got = ((inst.componentProperties || {}) as Record<string, { value?: unknown }>)[keys[0]]; } catch (e) { got = undefined; }
+    if (!got || got.value !== want) out.push(head + 'DISCARDED (set ' + JSON.stringify(want) + ', reads ' + JSON.stringify(got ? got.value : null) + ')');
+  }
+  return out;
+};
+
+/** `applyNestOverrides` as source, for the paste payload. See `nestVariantMissAdviceSrc` for why. */
+export const applyNestOverridesSrc = (): string => applyNestOverrides.toString();
+
+/**
  * WHAT A MISSING SWAP TARGET ACTUALLY IS, in the message the designer reads (#1212 residue, #1280 PR-C,
  * #1288).
  *
@@ -3657,6 +3759,15 @@ const PAYLOAD_MIN_LINES = `    if(c.minLines){
     }`;
 const hasMinLines = (n: FigmaNodePlan): boolean => n.minLines !== undefined || n.children.some(hasMinLines);
 /**
+ * THE PER-INSTANCE OVERRIDES (#2645), spliced in ONLY for a payload whose plans carry `nestOverrides` — the
+ * `MIN_LINES_SLOT` budget decision again. Two splices: the shared writer's source once at the top of the build, and
+ * its call in the nested-instance branch. Lockstep with the plugin executor, which calls the same function.
+ */
+const NEST_OVERRIDES_DEF_SLOT = '/*__NEST_OVERRIDES_DEF__*/';
+const NEST_OVERRIDES_SLOT = '/*__NEST_OVERRIDES__*/';
+const PAYLOAD_NEST_OVERRIDES = `if(node&&n.nestOverrides)for(const m of applyNestOverrides(node,n.nestOverrides,x=>{const c=compByName.get(x);return c?c.id:null;}))misses.push(n.name+m);`;
+const hasNestOverrides = (n: FigmaNodePlan): boolean => n.nestOverrides !== undefined || n.children.some(hasNestOverrides);
+/**
  * THE PINNED ICONS (#1667, "Locked to edges"), spliced in after the flow pass ONLY for a payload whose plans
  * carry a `pin` — the `MIN_LINES_SLOT` budget decision again: unconditional, these lines would ship in every
  * chunk of every set (the #536 probe grid's one-chunk rule, when this was written; see `SET_CHUNK_BYTES` for
@@ -3812,9 +3923,13 @@ const payloadBuildFor = (roots: FigmaNodePlan[]): string =>
     .replace(PLACEMENT_SLOT, roots.some(hasPlacement) ? PAYLOAD_PLACEMENT : '')
     .replace(MAX_WIDTH_SLOT, roots.some(hasMaxWidth) ? PAYLOAD_MAX_WIDTH : '')
     .replace(GRADIENT_SLOT, roots.some(hasGradient) ? PAYLOAD_GRADIENT : '')
-    .replace(GRADIENT_CLAIM_SLOT, roots.some(hasGradient) ? PAYLOAD_GRADIENT_CLAIM : '');
+    .replace(GRADIENT_CLAIM_SLOT, roots.some(hasGradient) ? PAYLOAD_GRADIENT_CLAIM : '')
+    // A function replacer, so the shipped source is inserted as written: a string replacement reads `$` patterns.
+    .replace(NEST_OVERRIDES_DEF_SLOT, () => (roots.some(hasNestOverrides) ? 'const applyNestOverrides=' + applyNestOverridesSrc() + ';' : ''))
+    .replace(NEST_OVERRIDES_SLOT, () => (roots.some(hasNestOverrides) ? PAYLOAD_NEST_OVERRIDES : ''));
 
 const PAYLOAD_BUILD = `const __expose=[];
+/*__NEST_OVERRIDES_DEF__*/
 // #2417 — NATIVE SLOTS, queued during the build like the exposures and made by \`__slotsNow\` after each conversion.
 const __slots=[];
 // #1378 — DRAIN THE EXPOSURE QUEUE, called immediately after every \`createComponentFromNode\` and nowhere
@@ -3936,6 +4051,8 @@ const build=async(n)=>{
     // executor's collector, and the twin is the point — this half was never gated (#1377), so the plugin's
     // round-trip caught the identical defect here only by reading.
     if(node&&n.nestExpose&&n.nestExpose.length)__expose.push(node);
+    // #2645 — the per-instance overrides, written now: unlike exposure, \`setProperties\` needs no containing component.
+    /*__NEST_OVERRIDES__*/
     // THE NESTED INSTANCE'S OWN TEXT (#2317), the plugin executor's twin: \`nestTexts\` names what this instance
     // says instead of its set's default, written as an instance override by property name before \`#id\`.
     if(node&&n.nestTexts){const P=node.componentProperties||{},S={};
