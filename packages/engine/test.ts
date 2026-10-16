@@ -3783,6 +3783,8 @@ for (const b of brands) {
       accordion: { keys: ['pad-x', 'pad-y', 'gap', 'panel-pad-end'], sizes: ['small', 'medium', 'large'] },
       list: { keys: ['gap'], sizes: ['small', 'medium', 'large'] },
       link: { keys: ['gap'], sizes: ['small', 'medium', 'large'] },
+      'breadcrumb-item': { keys: ['gap'], sizes: ['small', 'medium'] },
+      breadcrumbs: { bare: ['back-gap'], keys: ['gap'], sizes: ['small', 'medium'] },
     };
     const BTN = { compact: 'small 12/8/4/6 · medium 12/8/6/6 · large 20/12/6/8', comfortable: 'small 16/12/6/8 · medium 16/12/8/8 · large 24/16/8/12', spacious: 'small 20/16/8/12 · medium 20/16/12/12 · large 32/20/12/16' };
     const ROWS = { compact: 'small 6 · medium 6 · large 8', comfortable: 'small 8 · medium 8 · large 12', spacious: 'small 12 · medium 12 · large 16' };
@@ -3809,6 +3811,11 @@ for (const b of brands) {
       // Link (#2580, DRAFT): the icon-to-label gap. Comfortable is the proposal's space.050 / space.050 / space.100; compact
       // clamps small and medium at space.050, the bottom of the density ladder, as Tab's small gap does.
       link: { compact: 'small 4 · medium 4 · large 6', comfortable: 'small 4 · medium 4 · large 8', spacious: 'small 6 · medium 6 · large 12' },
+      // Breadcrumbs (#2666, DRAFT): the label-to-separator gap, repeated between items, and the parent layout's
+      // chevron-to-link gap (Link's own icon gap). Comfortable is the proposal's space.050 / space.100; compact clamps
+      // the small gap at space.050, as Link's does.
+      'breadcrumb-item': { compact: 'small 4 · medium 6', comfortable: 'small 4 · medium 8', spacious: 'small 6 · medium 12' },
+      breadcrumbs: { compact: 'bare 4 · small 4 · medium 6', comfortable: 'bare 4 · small 4 · medium 8', spacious: 'bare 6 · small 6 · medium 12' },
     };
     const wrong: string[] = [];
     for (const [id, spec] of Object.entries(SPECS)) {
@@ -17617,6 +17624,177 @@ arm: {
     }
   }
 
+  // ---- #2666: BREADCRUMBS, the approved wireframe (every numbered call A, 2026-10-16) — each held against a literal ----
+  // EXPECTED is typed here from the decisions on #2666 (and Q347 A / Q359 B on #2752 for the size order), never read
+  // from `breadcrumbs.ts` or `breadcrumb-item.ts`. ACTUAL is the real projection (`figmaAnatomySet`), node by node, and
+  // the def's shipped fields. Contrast is measured from the COMMITTED emission (`out/<brand>.tokens.json`, every brand
+  // the regen writes, each in its four modes), not from the theme the engine computes, so the measurement is independent
+  // of both the def and the role resolver. Mutations, each failing the arm named:
+  //   size order small-first, or a kind other than ancestor first → `#2666 breadcrumbs/members`;
+  //   the crumb nesting Link standalone, emphasis, or not exposing its state → `#2666 breadcrumbs/crumb` (calls 3 A, 4 A);
+  //   the current page as a link, in text.secondary, or at emphasis → `#2666 breadcrumbs/current` (calls 2 A, 4 A, 5 A);
+  //   the separator a slash, another glyph or size, an icon ink other than icon.secondary, or after the current page →
+  //   `#2666 breadcrumbs/separator` (call 6 A);   the overflow nesting IconButton or another glyph → `#2666 breadcrumbs/overflow`;
+  //   the slot's minimum, preferred item or default kinds → `#2666 breadcrumbs/slot`;
+  //   the parent layout's glyph, link or wording → `#2666 breadcrumbs/parent` (call 11 A);
+  //   a gap off the proposal's space.050 / space.100 → `#2666 breadcrumbs/gaps`;
+  //   the collapse numbers or the nav label → `#2666 breadcrumbs/code-props` (calls 8 A, 9 A, 16 A);
+  //   a binding to a role that drops under its floor in any committed cell → `#2666 breadcrumbs/contrast`.
+  {
+    const itemDef = componentDefs.find((d) => d.id === 'breadcrumb-item');
+    const trailDef = componentDefs.find((d) => d.id === 'breadcrumbs');
+    ok(!!itemDef && !!trailDef, '#2666 breadcrumbs: Breadcrumbs and BreadcrumbItem are registered');
+    if (itemDef && trailDef) {
+      type BN = { name: string; type: string; nestTarget?: string; nestVariant?: Record<string, string>; nestExpose?: string[]; nestOverrides?: { property: string; type: string; value: string }[]; descendantFills?: string; textStyle?: string; characters?: string; paints?: { fills?: string }; bound?: Record<string, string>; slotSettings?: Record<string, unknown>; slotPreferred?: string[]; children: BN[] };
+      const all = (n: BN): BN[] => [n, ...n.children.flatMap(all)];
+      const find = (n: BN, name: string): BN | undefined => all(n).find((x) => x.name === name);
+      const itemPlans = figmaAnatomySet(itemDef, { swapTarget: 'FPO-default-icon' }).map((p) => ({ kind: String((p.coord as Record<string, string>).kind), size: String(p.size), root: p.root as unknown as BN }));
+      const trailPlans = figmaAnatomySet(trailDef, { swapTarget: 'FPO-default-icon' }).map((p) => ({ layout: String((p.coord as Record<string, string>).layout), size: String(p.size), root: p.root as unknown as BN }));
+      const RUNG: Record<string, string> = { small: 'sm', medium: 'md' };
+
+      // MEMBERS (call 1 A, call 7 A; Q347 A and Q359 B): 3 × 2 and 2 × 2, the first member the code default.
+      ok(itemPlans.length === 6 && trailPlans.length === 4
+        && JSON.stringify(itemDef.variants) === '{"kind":["ancestor","current","overflow"],"size":["medium","small"]}'
+        && JSON.stringify(trailDef.variants) === '{"layout":["trail","parent"],"size":["medium","small"]}'
+        && itemPlans[0].kind === 'ancestor' && itemPlans[0].size === 'medium' && trailPlans[0].layout === 'trail' && trailPlans[0].size === 'medium'
+        && itemDef.states.length === 0 && trailDef.states.length === 0 && !itemDef.figmaProperties?.stateAxis && !trailDef.figmaProperties?.stateAxis
+        && [itemDef, trailDef].every((d) => d.props.find((p) => p.name === 'size')?.default === 'medium'),
+        `#2666 breadcrumbs/members: BreadcrumbItem kind [ancestor, current, overflow] × size [medium, small] = 6, Breadcrumbs layout [trail, parent] × size [medium, small] = 4, no state axis, the first member the code default (got ${itemPlans.length} / ${trailPlans.length}, ${JSON.stringify(itemDef.variants)} ${JSON.stringify(trailDef.variants)})`);
+
+      // THE CRUMB (calls 3 A, 4 A): Link, inline (underlined at every state), default weight, default surface, at the
+      // item's size, its state exposed. Only on an ancestor.
+      const crumbOff = itemPlans.filter((p) => {
+        const c = find(p.root, 'crumb');
+        if (p.kind !== 'ancestor') return !!c;
+        return !(c && c.nestTarget === 'link' && JSON.stringify(c.nestVariant) === JSON.stringify({ style: 'inline', weight: 'default', size: p.size, surface: 'default', state: 'rest' })
+          && JSON.stringify(c.nestExpose) === '["state"]');
+      });
+      ok(crumbOff.length === 0, `#2666 breadcrumbs/crumb (calls 3 A, 4 A): an ancestor nests Link inline, default weight, at its own size, state exposed, and nothing else nests it${crumbOff.length ? ` — OFF: ${crumbOff.map((p) => `${p.kind}/${p.size}`).join(', ')}` : ''}`);
+
+      // THE CURRENT PAGE (calls 2 A, 4 A, 5 A): text, not a link, in text.primary at the default body weight. Only on current.
+      const curOff = itemPlans.filter((p) => {
+        const t = find(p.root, 'current');
+        if (p.kind !== 'current') return !!t;
+        return !(t && t.type === 'TEXT' && t.paints?.fills === 'color/text/primary' && t.textStyle === `body/${RUNG[p.size]}/default` && t.characters === 'Current page'
+          && !all(p.root).some((n) => n.nestTarget === 'link'));
+      });
+      ok(curOff.length === 0, `#2666 breadcrumbs/current (calls 2 A, 4 A, 5 A): the current page is "Current page" text in color/text/primary at body/<rung>/default, with no link in its member${curOff.length ? ` — OFF: ${curOff.map((p) => `${p.kind}/${p.size}`).join(', ')}` : ''}`);
+
+      // THE SEPARATOR (call 6 A): chevron-right, 16px (icon.size.xs) at both sizes, icon.secondary, after every step but
+      // the current one, and the last child of its row.
+      const sepOff = itemPlans.filter((p) => {
+        const s = find(p.root, 'separator');
+        if (p.kind === 'current') return !!s;
+        return !(s && s.nestTarget === 'icon/chevron-right' && s.descendantFills === 'color/icon/secondary'
+          && s.bound?.width === 'icon/size/xs' && s.bound?.height === 'icon/size/xs' && p.root.children[p.root.children.length - 1] === s);
+      });
+      ok(sepOff.length === 0, `#2666 breadcrumbs/separator (call 6 A): a 16px chevron-right in color/icon/secondary ends every ancestor and overflow member, and no current member${sepOff.length ? ` — OFF: ${sepOff.map((p) => `${p.kind}/${p.size}`).join(', ')}` : ''}`);
+
+      // THE OVERFLOW STEP (calls 8 A, 14 A): FlushIconButton.Neutral, flush, small at both sizes, three dots, state exposed.
+      const ovOff = itemPlans.filter((p) => {
+        const o = find(p.root, 'overflow');
+        if (p.kind !== 'overflow') return !!o;
+        return !(o && o.nestTarget === 'flush-icon-button-neutral' && JSON.stringify(o.nestVariant) === '{"shape":"flush","size":"small","state":"rest"}'
+          && JSON.stringify(o.nestExpose) === '["state"]' && JSON.stringify(o.nestOverrides) === '[{"property":"swap icon","type":"INSTANCE_SWAP","value":"icon/more-horizontal-filled"}]');
+      });
+      ok(ovOff.length === 0, `#2666 breadcrumbs/overflow (calls 8 A, 14 A): the overflow step nests FlushIconButton.Neutral, flush and small, showing more-horizontal-filled, state exposed${ovOff.length ? ` — OFF: ${ovOff.map((p) => `${p.kind}/${p.size}`).join(', ')}` : ''}`);
+
+      // THE ITEMS SLOT (call 1 A, the proposal's properties table): at least two, BreadcrumbItem only, two ancestors and
+      // the current page by default at the trail's size. Only on the trail.
+      const slotOff = trailPlans.filter((p) => {
+        const s = find(p.root, 'items');
+        if (p.layout !== 'trail') return !!s;
+        return !(s && s.type === 'CONTENT_SLOT' && JSON.stringify(s.slotSettings) === '{"minChildren":2,"allowPreferredValuesOnly":true}'
+          && JSON.stringify(s.slotPreferred) === '["breadcrumb-item"]'
+          && JSON.stringify(s.children.map((c) => [c.nestTarget, c.nestVariant?.kind, c.nestVariant?.size])) === JSON.stringify([['breadcrumb-item', 'ancestor', p.size], ['breadcrumb-item', 'ancestor', p.size], ['breadcrumb-item', 'current', p.size]]));
+      });
+      ok(slotOff.length === 0, `#2666 breadcrumbs/slot: the trail holds a native items slot, at least 2, BreadcrumbItem only, defaulting to ancestor, ancestor, current at its own size${slotOff.length ? ` — OFF: ${slotOff.map((p) => `${p.layout}/${p.size}`).join(', ')}` : ''}`);
+
+      // THE PARENT LAYOUT (call 11 A): a 16px chevron-left in the link icon role, then Link inline, default weight,
+      // reading "Parent page", state exposed. Only on parent.
+      const parOff = trailPlans.filter((p) => {
+        const g = find(p.root, 'backGlyph'), l = find(p.root, 'parentLink');
+        if (p.layout !== 'parent') return !!g || !!l;
+        return !(g && l && p.root.children.indexOf(g) === 0 && p.root.children.indexOf(l) === 1 && g.nestTarget === 'icon/chevron-left' && g.descendantFills === 'color/icon/link/default'
+          && g.bound?.width === 'icon/size/xs' && l.nestTarget === 'link' && JSON.stringify(l.nestVariant) === JSON.stringify({ style: 'inline', weight: 'default', size: p.size, surface: 'default', state: 'rest' })
+          && JSON.stringify(l.nestExpose) === '["state"]' && JSON.stringify(l.nestOverrides) === '[{"property":"label","type":"TEXT","value":"Parent page"}]');
+      });
+      ok(parOff.length === 0, `#2666 breadcrumbs/parent (call 11 A): the parent layout is a 16px chevron-left in color/icon/link/default before an inline Link reading "Parent page"${parOff.length ? ` — OFF: ${parOff.map((p) => `${p.layout}/${p.size}`).join(', ')}` : ''}`);
+
+      // THE GAPS (the proposal's token table, DRAFT): label to separator and item to item space.050 small / space.100
+      // medium; the parent layout's chevron to link space.050, Link's own icon gap.
+      const SPACE: Record<string, string> = { small: 'space/050', medium: 'space/100' };
+      const gapOff = [
+        ...itemPlans.filter((p) => p.root.bound?.itemSpacing !== SPACE[p.size]).map((p) => `item ${p.kind}/${p.size} ${p.root.bound?.itemSpacing}`),
+        ...trailPlans.filter((p) => p.layout === 'trail' && find(p.root, 'items')?.bound?.itemSpacing !== SPACE[p.size]).map((p) => `slot ${p.size}`),
+        ...trailPlans.filter((p) => p.layout === 'parent' && p.root.bound?.itemSpacing !== 'space/050').map((p) => `parent ${p.size} ${p.root.bound?.itemSpacing}`),
+      ];
+      ok(gapOff.length === 0, `#2666 breadcrumbs/gaps: space.050 / space.100 inside each item and between items, space.050 between the back chevron and its link${gapOff.length ? ` — OFF: ${gapOff.join('; ')}` : ''}`);
+
+      // CODE PROPS AND WORDING (calls 8 A, 9 A, 11 A, 15 A, 16 A).
+      const prop = (n: string) => trailDef.props.find((p) => p.name === n);
+      ok(prop('maxItems')?.default === 5 && prop('itemsBeforeCollapse')?.default === 1 && prop('itemsAfterCollapse')?.default === 2
+        && prop('collapse')?.default === 'expand' && prop('responsive')?.default === true && prop('label')?.default === 'Breadcrumb'
+        && trailDef.name === 'Breadcrumbs' && trailDef.category === 'navigation' && itemDef.name === 'BreadcrumbItem' && itemDef.category === 'navigation'
+        && JSON.stringify(trailDef.aliases) === '["breadcrumb","breadcrumb-trail","breadcrumb-list"]'
+        && trailDef.summary === 'The path to the current page as links, with the current page last and not a link.'
+        && itemDef.summary === 'One step in a breadcrumb trail: a link, the current page, or the collapsed steps.'
+        && itemDef.accessibility.aria.includes('"Show full path"') && trailDef.accessibility.aria.includes('aria-label="Breadcrumb"') && trailDef.accessibility.aria.includes('aria-current="page"'),
+        `#2666 breadcrumbs/code-props: collapse above 5 keeping 1 and 2, expand in place, the small-screen switch on, the nav named "Breadcrumb", the overflow "Show full path", and the approved names and summaries (maxItems ${prop('maxItems')?.default}, before ${prop('itemsBeforeCollapse')?.default}, after ${prop('itemsAfterCollapse')?.default})`);
+
+      // CONTRAST over every committed brand × mode (proposal §5): the roles the projection paints, measured from the
+      // committed emission. Link ink is Link's `text.link.*` (the nested instance), held here at 4.5:1 on both page grounds
+      // because a crumb is navigation text the page relies on; the current page 4.5:1 on both; the back chevron 3:1 on
+      // the page (SC 1.4.11). The separator is decorative and held to no floor.
+      const treeFiles = readdirSync(resolve(HERE, 'out')).filter((f) => /^[a-z0-9-]+\.tokens\.json$/.test(f));
+      const MODES = ['light', 'dark', 'hc-light', 'hc-dark'];
+      const colorOf = (tree: Record<string, any>, root: string, path: string, mode: string, depth = 0): string | null => {
+        let n: any = tree[root];
+        for (const k of path.split('.')) n = n?.[k];
+        if (!n || depth > 8) return null;
+        const v = mode === 'light' ? n.$value : (n.$extensions?.prism3?.modes?.[mode]?.$value ?? n.$value);
+        if (typeof v !== 'string') return null;
+        const ref = /^\{([^}]+)\}$/.exec(v);
+        if (ref) { const [r0, ...rest] = ref[1].split('.'); return colorOf(tree, r0, rest.join('.'), mode, depth + 1); }
+        const rgb = /^rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)$/.exec(v);
+        if (rgb) return rgb[4] !== undefined && Number(rgb[4]) < 1 ? null : '#' + [rgb[1], rgb[2], rgb[3]].map((x) => Number(x).toString(16).padStart(2, '0')).join('');
+        return /^#[0-9a-f]{6}$/i.test(v) ? v : null;
+      };
+      const PAIRS: [string, string, number][] = [
+        ['color.text.link.default', 'color.background.primary', 4.5], ['color.text.link.default', 'color.background.secondary', 4.5],
+        ['color.text.link.hover', 'color.background.primary', 4.5], ['color.text.link.pressed', 'color.background.primary', 4.5],
+        ['color.text.link.focused', 'color.background.primary', 4.5],
+        ['color.text.primary', 'color.background.primary', 4.5], ['color.text.primary', 'color.background.secondary', 4.5],
+        ['color.icon.link.default', 'color.background.primary', 3],
+      ];
+      // The roles under test are the ones the projection paints: read back off the plans above, so a rebind moves both.
+      const painted = new Set([
+        ...itemPlans.flatMap((p) => all(p.root)).map((n) => n.paints?.fills).filter(Boolean),
+        ...trailPlans.flatMap((p) => all(p.root)).map((n) => n.descendantFills).filter(Boolean),
+      ].map((v) => String(v).replace(/\//g, '.')));
+      const CELLS = 20;
+      const lows: string[] = [];
+      for (const [fg, bg, floor] of PAIRS) {
+        let measured = 0, lowest = Infinity;
+        for (const f of treeFiles) {
+          const tree = JSON.parse(readFileSync(resolve(HERE, 'out', f), 'utf8'));
+          const root = Object.keys(tree)[0];
+          for (const m of MODES) {
+            const a = colorOf(tree, root, fg, m), b = colorOf(tree, root, bg, m);
+            if (!a || !b) { lows.push(`${f}/${m}: ${!a ? fg : bg} unresolved`); continue; }
+            const r = contrast(hexToRgb(a), hexToRgb(b));
+            measured++; lowest = Math.min(lowest, r);
+            if (r < floor) lows.push(`${fg} on ${bg} ${f}/${m} ${r.toFixed(2)}`);
+          }
+        }
+        if (measured !== CELLS) lows.push(`${fg} on ${bg}: ${measured} of ${CELLS} cells measured`);
+      }
+      const unpainted = ['color.text.primary', 'color.icon.link.default'].filter((r) => !painted.has(r));
+      ok(lows.length === 0 && unpainted.length === 0 && treeFiles.length === 5,
+        `#2666 breadcrumbs/contrast: link ink 4.5:1 on background.primary at every state and on background.secondary at rest, the current page's text.primary 4.5:1 on both, the back chevron's icon.link.default 3:1 on the page, in all ${CELLS} committed brand × mode cells (${treeFiles.length} brands)${unpainted.length ? ` — the projection no longer paints ${unpainted.join(', ')}` : ''}${lows.length ? ` — LOW: ${lows.slice(0, 6).join('; ')}` : ''}`);
+    }
+  }
+
   // ---- #1339: disabled is ONE mechanism (the STATE), not a state axis + a prop ----
   // The label dims when its field is disabled, carried by the `disabled` STATE (a paint change projected as a
   // Figma variant), with NO duplicating `disabled` prop. EXPECTED is the authored contract; ACTUAL is the
@@ -18231,6 +18409,9 @@ arm: {
       // LINK (#2580): the label crosses size, weight, style and, the first type key to do so, the interaction state. The
       // underline is the state half: a standalone link is plain at rest and underlined at hover, pressed and focus.
       { def: componentDefs.find((d) => d.id === 'link')!, part: 'label', axes: { size: 3, weight: 2, style: 2, state: 2 } },
+      // BREADCRUMBS (#2666, call 4 A): the current page binds the two default body rungs. It exists only on a current
+      // member.
+      { def: componentDefs.find((d) => d.id === 'breadcrumb-item')!, part: 'current', axes: { size: 2 }, at: { kind: 'current' } },
     ];
 
     // DIRECTION 1 — the authored table is the corpus. Discovered by walking every def's anatomy for a
@@ -21911,6 +22092,29 @@ arm: {
             // host's `nestTexts`, the value under test), so a nested instance has the property a host overrides.
             compTexts: Object.fromEntries(componentDefs.filter((d) => d.figmaProperties?.texts).map((d) =>
               [d.id, Object.fromEntries(Object.entries(d.figmaProperties!.texts!).map(([k, t]) => [t.figmaName ?? k, t.default]))])),
+            // #2666 — Breadcrumbs is the first nest-exposed def that also sets a nested GLYPH (#2645's swap override, the
+            // item's overflow button) and offers a slot's preferred set (#2646). As the real build: a nested component
+            // that is swapped into carries its own INSTANCE_SWAP and TEXT properties, read from the NESTED def's own
+            // declaration (never from the host's override, the value under test); the icon component the override
+            // names is in the file; and a slot's preferred def is a built set with a key.
+            ...(() => {
+              const nodes = plans.flatMap((p) => walkPlan(p.root)) as (PlanNode & { nestOverrides?: { type: string; value: string }[]; slotPreferred?: string[] })[];
+              const swapped = nodes.filter((n) => n.nestTarget && n.nestOverrides?.some((o) => o.type === 'INSTANCE_SWAP'));
+              const componentProps = Object.fromEntries(swapped.map((n) => {
+                const fp = componentDefs.find((d) => d.id === n.nestTarget)?.figmaProperties;
+                return [n.nestTarget!, Object.fromEntries([
+                  ...Object.entries(fp?.texts ?? {}).map(([k, t], i) => [`${t.figmaName ?? k}#9:${i}`, { type: 'TEXT', defaultValue: t.default }]),
+                  ...Object.entries(fp?.swaps ?? {}).map(([k, w], i) => [`${(typeof w === 'string' ? undefined : w.figmaName) ?? k}#9:${50 + i}`, { type: 'INSTANCE_SWAP', defaultValue: '73:37' }]),
+                ])];
+              }));
+              const glyphs = swapped.flatMap((n) => n.nestOverrides!.filter((o) => o.type === 'INSTANCE_SWAP').map((o) => o.value));
+              const preferred = [...new Set(nodes.flatMap((n) => n.slotPreferred ?? []))];
+              return {
+                ...(swapped.length ? { componentProps } : {}),
+                ...(glyphs.length ? { comps: [...new Set([...plans.flatMap((p) => walkPlan(p.root)).flatMap((n) => [n.swapTarget, n.nestTarget]).filter((c): c is string => !!c), ...glyphs])] } : {}),
+                ...(preferred.length ? { fileNodes: preferred.map((id) => ({ name: id, type: 'COMPONENT_SET' as const, variants: figmaAnatomySet(componentDefs.find((d) => d.id === id)!, { swapTarget: 'FPO-default-icon' }).map(planComponentName) })) } : {}),
+              };
+            })(),
           };
           // The exposure lives on a NODE deep in each member; no `runPayload` summary field carries it, so
           // it is read off the PAGE the payload appended the combined set to. Returns every nested instance

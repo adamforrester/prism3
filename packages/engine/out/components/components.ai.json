@@ -7203,7 +7203,8 @@
         "commonPartners": [
           "icon",
           "button",
-          "text-field"
+          "text-field",
+          "breadcrumbs"
         ],
         "triggerKeywords": [
           "link",
@@ -7232,7 +7233,6 @@
         "supersedes": [],
         "supersededBy": [],
         "planned": [
-          "breadcrumbs",
           "menu"
         ],
         "replacesPatterns": [
