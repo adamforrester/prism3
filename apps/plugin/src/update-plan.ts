@@ -51,7 +51,7 @@ import { diffAnatomy, type HostNode, type ReadPorts } from '@prism3/engine/anato
 import { COMPONENT_RENAMES, coordKey, coordPairs, renameCoordinate, type ComponentRename } from '@prism3/engine/component-renames';
 import { ENGINE_VERSION } from '@prism3/engine/version';
 import { EXECUTOR_REVISION } from './executor-revision';
-import { memberStamp, planHalf, revHalf, respaceSets, STAMP_KEY, type RespaceBox } from './write-components';
+import { memberStamp, planHalf, revHalf, respaceSets, snugSets, STAMP_KEY, type RespaceBox } from './write-components';
 import { readTag } from './canvas-furniture';
 import { labelColumns, readLabelColumn } from './label-columns';
 import { NS } from './persist-figma';
@@ -910,14 +910,39 @@ const setBuiltByPrism3 = (n: { children?: readonly unknown[] }): boolean => {
  * wasn't asked about. Read from the page's top-level nodes as they sit (`respaceSets`), so the dry run lists the moves
  * the file shows now, and the apply, called again after its sets land, moves them by their new sizes.
  */
-export const pageSetMoves = (found: readonly { name: string; set: LiveSet; blocked: boolean }[]): Map<string, { from: { x: number; y: number }; to: { x: number; y: number } }> => {
+export const pageSetMoves = (found: readonly { name: string; set: LiveSet; blocked: boolean }[], snug: ReadonlySet<string> = new Set()): Map<string, { from: { x: number; y: number }; to: { x: number; y: number } }> => {
   const out = new Map<string, { from: { x: number; y: number }; to: { x: number; y: number } }>();
+  for (const { here, kids, boxes } of pageViews(found)) {
+    const ids = new Set(here.filter((f) => snug.has(f.name)).map((f) => String(kids.indexOf(f.set as never))));
+    for (const m of respaceSets(boxes, ids)) {
+      const f = here.find((x) => x.set === (kids[Number(m.id)] as LiveSet));
+      if (f) out.set(f.name, { from: m.from, to: m.to });
+    }
+  }
+  return out;
+};
+
+/** The sets, by name, that sit at exactly `SET_GAP` from their left neighbor on their pages (`snugSets`, #2734), on the
+ *  pages `pageSetMoves` would re-space. Read by the apply just before it redraws the furniture. */
+export const pageSnugSets = (found: readonly { name: string; set: LiveSet; blocked: boolean }[]): Set<string> => {
+  const out = new Set<string>();
+  for (const { here, kids, boxes } of pageViews(found)) {
+    const ids = snugSets(boxes);
+    for (const f of here) if (ids.has(String(kids.indexOf(f.set as never)))) out.add(f.name);
+  }
+  return out;
+};
+
+/** Each page that takes part in the re-spacing, with its top-level nodes read as `respaceSets` reads them. A page takes
+ *  part only when every set Prism3 built on it is one this update reads and none is blocked. */
+const pageViews = (found: readonly { name: string; set: LiveSet; blocked: boolean }[]) => {
   const pages = new Map<unknown, typeof found[number][]>();
   for (const f of found) {
     const page = f.set.parent as { children?: readonly unknown[] } | null | undefined;
     if (!page || !Array.isArray(page.children)) continue;
     pages.set(page, [...(pages.get(page) ?? []), f]);
   }
+  const views: { here: typeof found[number][]; kids: { id?: unknown; type?: unknown; name?: unknown; x?: unknown; y?: unknown; width?: unknown; height?: unknown; children?: readonly unknown[] }[]; boxes: RespaceBox[] }[] = [];
   for (const [page, here] of pages) {
     const kids = (page as { children: readonly unknown[] }).children as { id?: unknown; type?: unknown; name?: unknown; x?: unknown; y?: unknown; width?: unknown; height?: unknown; children?: readonly unknown[] }[];
     const read = new Set(here.map((f) => f.set));
@@ -933,12 +958,9 @@ export const pageSetMoves = (found: readonly { name: string; set: LiveSet; block
       furniture: !!readTag(k as never),
       of: at.get(readTag(k as never)?.set ?? ''),
     }));
-    for (const m of respaceSets(boxes)) {
-      const f = here.find((x) => x.set === (kids[Number(m.id)] as LiveSet));
-      if (f) out.set(f.name, { from: m.from, to: m.to });
-    }
+    views.push({ here, kids, boxes });
   }
-  return out;
+  return views;
 };
 
 /** `update-components` in its dry-run mode: every target's set read and laid against its plans. Writes

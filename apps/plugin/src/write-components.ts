@@ -953,6 +953,40 @@ export const placeNewSet = (existing: readonly PageBox[], height: number, width 
  *  `of` the `id` of the set a furniture node was drawn for, when that set is on the page. */
 export type RespaceBox = PageBox & { id: string; prism3?: boolean; furniture?: boolean; of?: string };
 
+/** The Prism3 sets among a page's nodes, left to right, and each one's visible box: its frame widened by its own
+ *  furniture (`respaceSets`, `snugSets`). */
+const respaceView = (nodes: readonly RespaceBox[]) => {
+  const ours = nodes.filter((b) => b.type === 'COMPONENT_SET' && b.prism3 && !b.header).sort((a, b) => a.x - b.x || a.y - b.y);
+  const reach = new Map(ours.map((b) => [b.id, reachOf(b, nodes.filter((f) => f.furniture && f.of === b.id))] as const));
+  // The visible box of a set with its frame at `x`.
+  const seen = (b: RespaceBox, x = b.x): PageBox => {
+    const r = reach.get(b.id)!;
+    return { x: x - r.left, y: b.y, width: b.width + r.left + r.right, height: b.height };
+  };
+  const sameRow = (a: PageBox, b: PageBox): boolean => a.y < b.y + b.height && a.y + a.height > b.y;
+  return { ours, reach, seen, sameRow };
+};
+
+/**
+ * THE SETS SITTING AT PRISM3'S OWN SPACING (#2734): each Prism3 set whose visible box is exactly `SET_GAP` right of its
+ * left neighbor's (the nearest Prism3 set to its left in its row), as the page stands. Update reads it just before it
+ * redraws the furniture: a redraw can narrow a set's labels, which leaves the set to its right further than `SET_GAP`
+ * away. A spacing of exactly `SET_GAP` is where Prism3 put the set, as `OLD_SET_GAP` was under #2502, so after the
+ * redraw `respaceSets` puts a set named here back at exactly `SET_GAP`, nearer or further. Any other spacing is still
+ * the designer's.
+ */
+export const snugSets = (nodes: readonly RespaceBox[]): Set<string> => {
+  const { ours, seen, sameRow } = respaceView(nodes);
+  const out = new Set<string>();
+  for (const b of ours) {
+    const left = ours.filter((p) => p !== b && sameRow(p, b) && p.x < b.x);
+    if (!left.length) continue;
+    const right = Math.max(...left.map((p) => { const v = seen(p); return v.x + v.width; }));
+    if (Math.abs(seen(b).x - right - SET_GAP) < 0.5) out.add(b.id);
+  }
+  return out;
+};
+
 /**
  * WHERE A PRISM3 SET ON A PAGE MOVES SO THE GAP BETWEEN SETS READS THE SAME (#2542; owner decisions Q245.2 A and
  * Q248 A, "the re-spacing only makes room"; #2723, Q335 A). A set and its furniture are one VISIBLE BOX here: the
@@ -980,17 +1014,10 @@ export type RespaceBox = PageBox & { id: string; prism3?: boolean; furniture?: b
  * redrawn for the set after the update lands, from where the set then sits, so it follows the move. Furniture whose
  * set is not on the page is prune's (`staleFurniture`) and is not read.
  */
-export const respaceSets = (nodes: readonly RespaceBox[]): { id: string; from: { x: number; y: number }; to: { x: number; y: number } }[] => {
-  const ours = nodes.filter((b) => b.type === 'COMPONENT_SET' && b.prism3 && !b.header).sort((a, b) => a.x - b.x || a.y - b.y);
+export const respaceSets = (nodes: readonly RespaceBox[], snug: ReadonlySet<string> = new Set()): { id: string; from: { x: number; y: number }; to: { x: number; y: number } }[] => {
+  const { ours, seen, sameRow, reach } = respaceView(nodes);
   if (ours.length < 2) return [];
   const fixed = nodes.filter((b) => !(b.type === 'COMPONENT_SET' && b.prism3) && !b.furniture);
-  const reach = new Map(ours.map((b) => [b.id, reachOf(b, nodes.filter((f) => f.furniture && f.of === b.id))] as const));
-  // The visible box of a set with its frame at `x`.
-  const seen = (b: RespaceBox, x = b.x): PageBox => {
-    const r = reach.get(b.id)!;
-    return { x: x - r.left, y: b.y, width: b.width + r.left + r.right, height: b.height };
-  };
-  const sameRow = (a: PageBox, b: PageBox): boolean => a.y < b.y + b.height && a.y + a.height > b.y;
   const placed: RespaceBox[] = [];
   const moves: { id: string; from: { x: number; y: number }; to: { x: number; y: number } }[] = [];
   for (const [i, b] of ours.entries()) {
@@ -1000,7 +1027,7 @@ export const respaceSets = (nodes: readonly RespaceBox[]): { id: string; from: {
     const before = Math.max(...ours.filter((o) => left.some((p) => p.id === o.id)).map((o) => o.x + o.width));
     const oldRule = Math.abs(b.x - before - OLD_SET_GAP) < 0.5;
     // Room enough, at a spacing a designer chose: it stays.
-    if (seen(b).x - right >= SET_GAP - 0.5 && !oldRule) { placed.push(b); continue; }
+    if (seen(b).x - right >= SET_GAP - 0.5 && !oldRule && !snug.has(b.id)) { placed.push(b); continue; }
     let x = right + SET_GAP + reach.get(b.id)!.left;
     // Past anything that stays and would overlap the set at this spot; again, until the spot is clear.
     const later = ours.slice(i + 1);

@@ -57,7 +57,7 @@ import { baselineDiff, baselineOf, readBaseline, snapshotMember } from './member
 import { drawnFaults, faultLine, varsById } from './drawn';
 import { reorderPages, stripNestPrefix } from './file-setup';
 import { readTag } from './canvas-furniture';
-import { REACTIONS, hostPorts, pageSetMoves, previewLine, previewUpdate, readSetView, readSingleView, setUpToDate, type SetPreview, type UpdateHost, type UpdatePreview, type UpdateTarget } from './update-plan';
+import { REACTIONS, hostPorts, pageSetMoves, pageSnugSets, previewLine, previewUpdate, readSetView, readSingleView, setUpToDate, type SetPreview, type UpdateHost, type UpdatePreview, type UpdateTarget } from './update-plan';
 import { REACTIONS_PATH, plannedRead, reactionMap, reactionVerdict, reactionsText } from './reactions';
 
 /** The set's record of the members an update kept and marked deprecated (Q2): a JSON list of member names. */
@@ -490,7 +490,7 @@ export type Furnish = (def: string, set: { id?: unknown }) => Promise<void>;
  * its own furniture (tagged with its id, `canvas-furniture.ts`) moves with it by the same amount, so labels already
  * drawn keep their place against the members. Returns the names of the sets it moved.
  */
-const respaceLive = async (host: ApplyHost, targets: readonly UpdateTarget[], preview: UpdatePreview, res: ApplyResult, choices: UpdateChoices | undefined, before?: (names: string[]) => Promise<boolean>): Promise<string[]> => {
+const liveSets = async (host: ApplyHost, targets: readonly UpdateTarget[], preview: UpdatePreview, res: ApplyResult): Promise<{ name: string; set: LiveSet; blocked: boolean }[]> => {
   const live: { name: string; set: LiveSet; blocked: boolean }[] = [];
   for (const t of targets) {
     if (t.single) continue;
@@ -499,7 +499,11 @@ const respaceLive = async (host: ApplyHost, targets: readonly UpdateTarget[], pr
     if (!p || !set) continue;
     live.push({ name: p.set, set, blocked: p.blockers.length > 0 || res.outcomes.some((o) => o.set === p.set && !!o.refused) });
   }
-  const moves = pageSetMoves(live as never);
+  return live;
+};
+const respaceLive = async (host: ApplyHost, targets: readonly UpdateTarget[], preview: UpdatePreview, res: ApplyResult, choices: UpdateChoices | undefined, before?: (names: string[]) => Promise<boolean>, snug?: ReadonlySet<string>): Promise<string[]> => {
+  const live = await liveSets(host, targets, preview, res);
+  const moves = pageSetMoves(live as never, snug);
   if (!moves.size || (before && !await before([...moves.keys()]))) return [];
   const moved: string[] = [];
   for (const { name, set } of live) {
@@ -527,8 +531,12 @@ const respaceLive = async (host: ApplyHost, targets: readonly UpdateTarget[], pr
  * on (`opts.furnish`), and a redraw can widen a set: its labels are measured as drawn, and #2705's columns grow to the
  * widest label. The re-spacing above ran before that, from the old labels, so the set to the right can now sit closer
  * than `SET_GAP`, its labels under the widened set's. So the re-spacing runs once more, from the furniture as now
- * drawn. It only makes room (Q248 A): a set already clear stays. Nothing runs without `opts.furnish`, and nothing
- * after a stop, as above.
+ * drawn. It makes room (Q248 A): a set clear at a spacing a designer chose stays. Nothing runs without
+ * `opts.furnish`, and nothing after a stop, as above.
+ *
+ * A REDRAW CAN NARROW A SET TOO (#2734). Labels that shrink leave the set to the right further than `SET_GAP` away, and
+ * a wider spacing reads as the designer's. So the sets sitting at exactly `SET_GAP` just before the redraw
+ * (`pageSnugSets`) are Prism3's spacing, and the second pass puts them back at exactly `SET_GAP`, nearer or further.
  *
  * A SECOND WRITE NEEDS THE NAMED VERSION TOO (Q7). When the update wrote nothing else, no version was saved yet, so one
  * is saved before the first move; refused or unavailable, the sets stay where they are, and the next dry run lists
@@ -536,6 +544,8 @@ const respaceLive = async (host: ApplyHost, targets: readonly UpdateTarget[], pr
  */
 const settle = async (host: ApplyHost, targets: readonly UpdateTarget[], preview: UpdatePreview, res: ApplyResult, opts: { furnish?: Furnish; choices?: UpdateChoices }): Promise<void> => {
   if (!opts.furnish) return;
+  // #2734: which sets sit at exactly `SET_GAP` now, before a redraw can narrow the labels beside them.
+  const snug = pageSnugSets(await liveSets(host, targets, preview, res) as never);
   for (const o of res.outcomes) {
     const t = targets.find((x) => x.def === o.def);
     if (!t || t.single) continue;
@@ -552,7 +562,7 @@ const settle = async (host: ApplyHost, targets: readonly UpdateTarget[], preview
       res.version = title;
       return true;
     } catch { return false; }
-  });
+  }, snug);
 };
 
 /**

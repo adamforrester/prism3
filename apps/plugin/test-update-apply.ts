@@ -145,7 +145,7 @@
 import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, planComponentName } from '@prism3/engine/anatomy-figma';
 import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
 import { componentDefs } from '@prism3/engine/components/index';
-import { applyComponentPlan, respaceSets, STAMP_KEY } from './src/write-components';
+import { applyComponentPlan, respaceSets, snugSets, STAMP_KEY } from './src/write-components';
 import { SWAP_TARGET } from './src/build-deps';
 import { NS } from './src/persist-figma';
 import { materializeForBrand } from './src/brand-def';
@@ -1453,6 +1453,27 @@ section('respaceSets — a moving set never lands on another Prism3 set (#2548 r
   const moves = respaceSets(nodes);
   ok(moves.length === 0,
     `respace/old rule at 160: a set at the old rule's spot that already sits 160 clear does not move (${JSON.stringify(moves.map((m) => [m.id, m.to.x]))})`);
+}
+{
+  // PRISM3'S OWN SPACING, BEFORE A REDRAW (#2734). A at 0..800 with a backdrop reaching 100 past its right (to 900);
+  // B's frame 160 past that (1060); C 300 past B's frame end (2160), a designer's spacing. Only B is snug. Then A's
+  // backdrop is redrawn 60 narrower (to 840): with B named, B goes back to 160 clear, frame at 1000; unnamed, it stays
+  // at 220 of white space. C, 300 from where B was and 360 from where it goes, is not named, so it stays at 2160.
+  // Mutations: the snug check off by one gap (`SET_GAP` read as anything else) → the first arm; the snug set ignored
+  // in `respaceSets` → the second.
+  const nodes = [
+    { id: 'A', type: 'COMPONENT_SET', prism3: true, x: 0, y: 0, width: 800, height: 400 },
+    { id: 'a-backdrop', type: 'INSTANCE', furniture: true, of: 'A', x: -100, y: 0, width: 1000, height: 400 },
+    { id: 'B', type: 'COMPONENT_SET', prism3: true, x: 1060, y: 0, width: 800, height: 400 },
+    { id: 'C', type: 'COMPONENT_SET', prism3: true, x: 2160, y: 0, width: 800, height: 400 },
+  ];
+  const snug = snugSets(nodes);
+  ok(JSON.stringify([...snug]) === JSON.stringify(['B']), `respace/snug: B, 160 clear of A's backdrop, is at Prism3's spacing; C, 300 clear, is not (${JSON.stringify([...snug])})`);
+  const redrawn = nodes.map((n) => (n.id === 'a-backdrop' ? { ...n, width: 940 } : n));
+  const moves = respaceSets(redrawn, snug);
+  const kept = respaceSets(redrawn);
+  ok(JSON.stringify(moves.map((m) => [m.id, m.to.x])) === JSON.stringify([['B', 1000]]) && kept.length === 0,
+    `respace/snug after a redraw: A's backdrop 60 narrower, B named goes back to 160 clear at 1000 and C stays; unnamed, nothing moves (${JSON.stringify(moves.map((m) => [m.id, m.to.x]))}; ${JSON.stringify(kept.map((m) => [m.id, m.to.x]))})`);
 }
 
 /* ── no change ───────────────────────────────────────────────────────────────────────────────────────── */
