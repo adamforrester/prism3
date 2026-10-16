@@ -710,8 +710,8 @@ section('columns — radio-control: every column label reads in full, the column
     `columns/hand laid: a member off the grid, so no member moves, and every label still reads in full`);
 }
 
-section('columns — the Radio page, built before the fix: Update widens each set in place and keeps the page clear');
-{
+// The Radio page, its three sets built before the fix, side by side: a fresh page for each arm below.
+const radioPage = async () => {
   const IDS = ['radio-control', 'radio-row', 'radio-group'];
   const plansBy = new Map(IDS.map((id) => [id, plansOf(id)] as const));
   const all = [...plansBy.values()].flat();
@@ -753,6 +753,12 @@ section('columns — the Radio page, built before the fix: Update widens each se
     });
     return seen.slice(1).map((v, i) => Math.round((v.left - seen[i].right) * 100) / 100);
   };
+  return { page, api, sets, host, targets, furnish, hitsOf, gaps };
+};
+
+section('columns — the Radio page, built before the fix: Update widens each set in place and keeps the page clear');
+{
+  const { api, sets, host, targets, furnish, hitsOf, gaps } = await radioPage();
   const widthWas = Number(sets[0].width);
   const res = await applyUpdate(host as never, api as never, targets, previewHashOf(await previewUpdate(host, targets)), { furnish });
   const between = hitsOf();
@@ -764,6 +770,54 @@ section('columns — the Radio page, built before the fix: Update widens each se
   ok(Number(sets[0].width) > widthWas && between.length === 0 && JSON.stringify(settled) === JSON.stringify(['radio-row', 'radio-group']) && gaps().every((g) => g >= 160)
     && next.sets.every((p) => !p.setMove) && previewVerdict(next).headline === '✓ All sets up to date',
     `columns/shared page: ONE Update widens radio-control (${widthWas} → ${Number(sets[0].width)}) and moves ${JSON.stringify(settled)} clear in the same apply; no label meets another set or its labels (${between.length}: ${between.slice(0, 3).join('; ')}), the gaps read ${JSON.stringify(gaps())}, and the next dry run moves nothing (${previewVerdict(next).headline})`);
+}
+
+section('columns — the Radio page with a stale member: the update writes it, then settles, under ONE named version');
+{
+  // THE NORMAL CASE once the columns widen (Q358 A with Q7): the update rewrites a set, its redrawn labels widen it,
+  // and the sets to its right settle. The apply saved the named version before its first write, so the settling moves
+  // must not save a second. One radio-control member is stamped by an earlier executor revision, so the update
+  // rewrites it. The shim records each version saved; the wrapper also records, at the save, whether anything had
+  // been written yet: that member's stamp and every set's position.
+  const { api, sets, host, targets, furnish, hitsOf } = await radioPage();
+  const m0 = (sets[0].children as FNode[])[0];
+  const stampOf = () => String((m0.getSharedPluginData as (a: string, b: string) => string)(NS, STAMP_KEY));
+  const stale = `${stampOf().split('|').slice(0, 2).join('|')}|1`;
+  (m0.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, STAMP_KEY, stale);
+  const xs = () => sets.map((s) => Number(s.x)).join(',');
+  const xsWas = xs();
+  const atSave: string[] = [];
+  const save = api.saveVersionHistoryAsync as (t: string) => Promise<unknown>;
+  (host as unknown as { saveVersionHistoryAsync: (t: string) => Promise<unknown> }).saveVersionHistoryAsync = async (t: string) => {
+    atSave.push(`${stampOf() === stale ? 'unwritten' : 'written'} ${xs() === xsWas ? 'unmoved' : 'moved'}`);
+    return save(t);
+  };
+  const res = await applyUpdate(host as never, api as never, targets, previewHashOf(await previewUpdate(host, targets)), { furnish });
+  const settled = res.outcomes.filter((o) => o.setMoved).map((o) => o.set);
+  const versions = api._versions as string[];
+  ok(res.outcomes.find((o) => o.set === 'radio-control')?.updated.length === 1 && JSON.stringify(settled) === JSON.stringify(['radio-row', 'radio-group']) && hitsOf().length === 0,
+    `columns/stale settle: the update rewrites radio-control's stale member, then moves ${JSON.stringify(settled)} clear of its widened labels (${hitsOf().length} overlaps)`);
+  ok(versions.length === 1 && JSON.stringify(atSave) === JSON.stringify(['unwritten unmoved']) && res.version === 'Before Prism3 updated radio-control' && versions[0] === res.version,
+    `columns/stale settle version: ONE named version, saved before the member's rewrite and before any move, the one the result names (${JSON.stringify(versions)}; at each save ${JSON.stringify(atSave)}; ${res.version})`);
+}
+
+section('columns — the Radio page, an update that stops: no set settles after the stop');
+{
+  // A STOP HOLDS THE PAGE STILL (as `respaceLive` does): the stale member's stamp write is refused once, so the run
+  // stops in radio-control. Its furniture is still redrawn, but no set to its right moves; the next Update finishes it.
+  const { api, sets, host, targets, furnish } = await radioPage();
+  const m0 = (sets[0].children as FNode[])[0];
+  const get = m0.getSharedPluginData as (a: string, b: string) => string;
+  const real = m0.setSharedPluginData as (a: string, b: string, c: string) => void;
+  real.call(m0, NS, STAMP_KEY, `${String(get.call(m0, NS, STAMP_KEY)).split('|').slice(0, 2).join('|')}|1`);
+  let armed = true;
+  m0.setSharedPluginData = (a: string, b: string, c: string) => { if (armed && b === STAMP_KEY) { armed = false; throw new Error('in setSharedPluginData: the host stopped'); } real.call(m0, a, b, c); };
+  const xs = () => sets.slice(1).map((s) => Number(s.x));
+  const xsWas = JSON.stringify(xs());
+  const res = await applyUpdate(host as never, api as never, targets, previewHashOf(await previewUpdate(host, targets)), { furnish });
+  ok(!!res.outcomes.find((o) => o.set === 'radio-control')?.stopped, `premise: the run stopped in radio-control (${res.outcomes.map((o) => `${o.set}: ${o.stopped ?? 'ran'}`).join('; ')})`);
+  ok(!res.outcomes.some((o) => o.setMoved) && JSON.stringify(xs()) === xsWas,
+    `columns/stop holds: after a stop no set settles, radio-row and radio-group stay put (${JSON.stringify(res.outcomes.filter((o) => o.setMoved).map((o) => o.set))}; ${xsWas} → ${JSON.stringify(xs())})`);
 }
 
 /* ── the scrim behind each Dialog example (#2609, owner decisions Q303.2 A and Q303.3 A) ───────────────────── */

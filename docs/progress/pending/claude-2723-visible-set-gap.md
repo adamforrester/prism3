@@ -46,3 +46,13 @@ Update. The tests drive the hook with `drawFurniture`, so the loop that used to 
 The review's other points: `EXECUTOR_REVISION` is 29 (main 27, #2717 lands at 28 first), and the `respaceSets` no-op
 guard has a pure arm (`respace/old rule at 160`). A pasted set that is adopted and then updated draws its labels for the
 first time in that Update. The same settle pass covers it, but no test builds that file.
+
+**Delta round on `c1a1a2d1`: settle's two guards get tests.** The Radio arm reaches `settle` only through the "all up
+to date" early return, where no version exists yet, so deleting `if (res.version) return true;` survived every test:
+on a normal Update (a set rewritten, its labels widened, the next set settled) the settle pass would save a second
+named version. A new arm stamps one radio-control member stale, so the main path saves the version and then settles;
+it asserts one version, saved before the member's rewrite and before any move. The version's title names only the
+rewritten set: the settle moves are not known until after the redraw, and the version is saved before any write. A
+second arm stops the run in radio-control (its stamp write refused once) and asserts that no set settles. Each guard,
+deleted, fails its arm by name. The trap: an early-return arm and a main-path arm reach the same helper with different
+state, so one arm over a helper does not cover a guard on state the other path sets.
