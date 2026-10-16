@@ -1429,6 +1429,73 @@ section('page — an update re-spaces the sets Prism3 built on a page as a new b
     `page/not ours by its stamps: a set whose stamps are all malformed, or whose one stamp is a copy, is a designer's set the moving set goes around (malformed → ${malformed}, copied → ${copied}; want 2964 each)`);
 }
 
+/* ── sets beside a wide page header go below it (#2802, owner decision Q379 A) ───────────────────────────── */
+// LIVE (#2802): on a Checkbox page whose `_section-header` (0, -232, 2517 × 125) is wider than its sets, an earlier
+// build had put `checkbox-control` 160 right of the header, at the header's `y`, and the Update re-spaced its siblings
+// beside it: (2677, -232), (3389, -232), (4845, -232). The oracle is a FRESH BUILD of the same three sets on an empty
+// page, by the real executor, with the header placed as `page-header.ts` places one over fresh content: on the content's
+// left edge, its bottom 80 above the content's top (written here, not imported). The Update must leave every set where
+// that build put it relative to the header. Mutation: the header-row case dropped from `respaceSets` (`besideHeader`
+// always false) → `header row/dry run`, `header row/applied`, `header row/one set`.
+section('header row — sets an earlier build put beside a wide page header move below it, as a fresh build places them (#2802)');
+{
+  const IDS = ['checkbox-control', 'checkbox-row', 'checkbox-group'];
+  const plansBy = new Map(IDS.map((id) => [id, plansOf(id)] as const));
+  const all = [...plansBy.values()].flat();
+  const page: Page = { children: [] };
+  const api = makeShim({
+    vars: [...new Set([...all.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]), 'space/0'])],
+    styles: [...new Set(all.flatMap((p) => planTextStyles(p.root)))],
+    effects: [...new Set(all.flatMap((p) => planEffectStyles(p.root)))],
+    comps: [...new Set([SWAP_TARGET, 'focus-ring', ...all.flatMap((p) => planComps(p.root))])],
+    page, liveRoot: true, identities: true, scaleConstrained: true,
+  }) as any;
+  for (const id of IDS) { const r = await applyComponentPlan(plansBy.get(id)!, api); if (r.misses.length) throw new Error(`premise: ${id} built with ${r.misses.length} miss(es): ${r.misses[0]}`); }
+  const sets = page.children.filter((n) => n.type === 'COMPONENT_SET') as Node[];
+  for (const set of sets) (set as { parent?: unknown }).parent = page;
+  // THE FRESH BUILD, relative to its header: the header on the content's left edge, 80 above its top.
+  const top = Math.min(...sets.map((n) => Number(n.y)));
+  const left = Math.min(...sets.map((n) => Number(n.x)));
+  const HEADER_H = 125;
+  const freshRel = sets.map((n) => [Number(n.x) - left, Number(n.y) - (top - 80 - HEADER_H)]);
+  const span = Math.max(...sets.map((n) => Number(n.x) + Number(n.width))) - left;
+  // THE LIVE PAGE: a header wider than the row of sets, and the sets in its row, 160 apart, the first 160 past its right.
+  const header = { type: 'INSTANCE', name: '_section-header', x: 0, y: -232, width: span + 1000, height: HEADER_H, children: [] } as unknown as Node;
+  page.children.push(header);
+  sets[0].x = Number(header.x) + Number(header.width) + 160;
+  for (let k = 1; k < sets.length; k++) sets[k].x = Number(sets[k - 1].x) + Number(sets[k - 1].width) + 160;
+  for (const set of sets) set.y = Number(header.y);
+  const headerAt = JSON.stringify([header.x, header.y]);
+  const rel = (): number[][] => sets.map((n) => [Number(n.x) - Number(header.x), Number(n.y) - Number(header.y)]);
+  const host = { ...api, root: { ...api.root, findAllWithCriteria: (c: { types: string[] }) => (c.types.length === 1 && c.types[0] === 'COMPONENT_SET' ? page.children.filter((n) => n.type === 'COMPONENT_SET') : api.root.findAllWithCriteria(c)) } } as unknown as ApplyHost;
+  const targets = IDS.map((id) => ({ def: id, plans: plansBy.get(id)! }));
+  const ids = (): string => JSON.stringify(sets.map((st) => [st.id, ...membersOf(st).map((m) => m.id)]));
+  const idsWas = ids();
+  const pre = await previewUpdate(host, targets);
+  const to = pre.sets.map((p) => (p.setMove ? [p.setMove.to.x - Number(header.x), p.setMove.to.y - Number(header.y)] : null));
+  ok(JSON.stringify(to) === JSON.stringify(freshRel) && previewLine(pre.sets[0]) === `checkbox-control: ${membersOf(sets[0]).length} members. The set moves to its place on the page.`,
+    `header row/dry run: all three sets, the first included, move to where a fresh build puts them under the header (${JSON.stringify(to)}; fresh ${JSON.stringify(freshRel)}; ${previewLine(pre.sets[0])})`);
+  const res = await applyUpdate(host, api, targets, previewHashOf(pre));
+  const next = await previewUpdate(host, targets);
+  ok(JSON.stringify(rel()) === JSON.stringify(freshRel) && ids() === idsWas && JSON.stringify([header.x, header.y]) === headerAt
+    && applyVerdict(res).headline === '✓ 3 sets moved' && previewVerdict(next).headline === '✓ All sets up to date',
+    `header row/applied: every set lands where a fresh build put it relative to the header, every id kept, the header unmoved, and the next dry run up to date (${JSON.stringify(rel())}; ${applyVerdict(res).headline}; ${previewVerdict(next).headline})`);
+  // ONE SET ALONE in the header's row moves too: the "fewer than two sets" short cut must not skip it. Read as a function.
+  const lone = respaceSets([
+    { id: 'H', type: 'INSTANCE', header: true, x: 0, y: -232, width: 2517, height: 125 },
+    { id: 'A', type: 'COMPONENT_SET', prism3: true, x: 2677, y: -232, width: 312, height: 600 },
+  ]);
+  ok(JSON.stringify(lone.map((m) => [m.id, m.to.x, m.to.y])) === JSON.stringify([['A', 0, -232 + 125 + 80]]),
+    `header row/one set: a single set beside the header goes on its left edge, 80 below it (${JSON.stringify(lone)})`);
+  // A SET BELOW THE HEADER STAYS: the header is not a row member, so a set under it, wider spaced, is the designer's.
+  const under = respaceSets([
+    { id: 'H', type: 'INSTANCE', header: true, x: 0, y: -302, width: 2416, height: 125 },
+    { id: 'A', type: 'COMPONENT_SET', prism3: true, x: 0, y: 0, width: 864, height: 600 },
+    { id: 'B', type: 'COMPONENT_SET', prism3: true, x: 1264, y: 0, width: 864, height: 600 },
+  ]);
+  ok(under.length === 0, `header row/below stays: sets already under a wide header, a fresh build's spacing apart, do not move (${JSON.stringify(under)})`);
+}
+
 /* ── set moves and page order together (#2542 × #2568) ─────────────────────────────────────────────────── */
 // One run whose only work is BOTH: sets squeezed to the old spacing on their page (#2542), and component pages out of
 // alphabetical order (#2568). One named version for all of it, both done, the hash covering both, the verdict naming

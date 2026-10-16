@@ -47,7 +47,7 @@ import { resolveAllModes } from '@prism3/engine/modes';
 import { TAXONOMY } from './file-taxonomy';
 import { ensurePageHeader, pageHeaderCopy, pageHeaderItems } from './page-header';
 import type { PageHeaderOutcome, HeaderPage } from './page-header';
-import { hasFurniture, clearFurniture, drawFurniture, furnitureLayout, furnitureItems, withFurnitureItems, withTemplateWarning, readTag, staleFurniture, pruneFurniture, furniturePruneText, FURNITURE_NS, FURNITURE_KEY } from './canvas-furniture';
+import { hasFurniture, clearFurniture, drawFurniture, furnishUpdate, furnitureLayout, furnitureItems, withFurnitureItems, withTemplateWarning, readTag, staleFurniture, pruneFurniture, furniturePruneText, FURNITURE_NS, FURNITURE_KEY } from './canvas-furniture';
 import type { FurnitureApi, FurnitureOutcome, FurnitureParent, FurnitureTag, XNode } from './canvas-furniture';
 import { ensureFurnitureTemplates } from './furniture-templates';
 import type { TemplatesApi } from './furniture-templates';
@@ -939,15 +939,8 @@ const updateComponents = async (defId: string | undefined, previewHash: string |
     r.refused.push(...refused);
     // THE CANVAS FURNITURE (#2406, #2188), redrawn for every piloted set the apply acted on — from the members as they
     // now sit, so the labels follow the update. Reported in the data, and in the verdict only where a part was skipped.
-    const furniture: FurnitureOutcome[] = [];
-    for (const o of r.outcomes) {
-      const t = targets.find((x) => x.def === o.def);
-      if (!t || !hasFurniture(o.def)) continue;
-      const sets = (figma.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as readonly ComponentSetNode[]).filter((n) => n.name === (t.plans[0]?.component ?? t.def));
-      if (sets.length !== 1) continue;
-      const drawn = await furnishSet(o.def, sets[0].id, t.plans);
-      if (drawn) furniture.push(drawn);
-    }
+    // A set whose only work was its furniture (#2803) is one of them (`furnishUpdate`).
+    const furniture = await furnishUpdate(figma as unknown as FurnitureApi, r, targets);
     sink.data({ update: { mode: 'apply', ...r, furniture } });
     postVerdict({ type: 'component-update-result', ...withTemplateWarning(withFurnitureItems(applyVerdict(r), furnitureItems(furniture, 'update')), furniture) }, sink);
   } catch (e) {
