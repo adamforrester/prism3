@@ -4,7 +4,7 @@
 
 There are two ways to get token files out, and they start from different places:
 
-- **Export in the Prism3 studio**, on the web or in the plugin, writes the brand you set in the studio. <!-- src: apps/studio/src/export-settings.ts:71 --> <!-- src: apps/studio/src/export-settings.ts:173 -->
+- **Export in the Prism3 studio**, on the web or in the plugin, writes the brand you set in the studio. <!-- src: apps/studio/src/export-settings.ts:63-70 --> <!-- src: apps/studio/src/export-settings.ts:81 --> <!-- src: apps/studio/src/export-settings.ts:173 -->
 - **TokenPress**, a separate Figma plugin, writes what a Figma file holds: its variables, text styles and effect styles, whoever made them. <!-- src: apps/tokenpress/README.md:3 --> <!-- src: apps/tokenpress/README.md:107-115 -->
 
 ## Export from the studio
@@ -36,7 +36,7 @@ The modes here are the appearance modes (such as dark and the high-contrast pair
 
 Several files arrive as several downloads, not as one ZIP. <!-- src: apps/studio/src/main.ts:1288-1295 -->
 
-The same brand exports the same files from the web studio and from the plugin; CI compares the two byte for byte. <!-- src: apps/studio/test-export-parity.mjs:28 --> <!-- src: apps/studio/test-export-parity.mjs:100 -->
+The same brand exports the same files from the web studio and from the plugin; CI compares the two byte for byte. <!-- src: apps/studio/test-export-parity.mjs:1-3 --> <!-- src: apps/studio/test-export-parity.mjs:251 -->
 
 To hand over the brand itself rather than its tokens, choose **Brand brief** instead; see [Theme a brand](theme-a-brand.md#import-and-export-a-designmd-brief). <!-- src: apps/studio/src/export-settings.ts:111-115 -->
 
@@ -51,7 +51,7 @@ TokenPress (listed in Figma as "Token Press - DTCG Exporter") exports a file's v
 
 The ZIP holds one file per collection and mode, plus `typography.json` for text styles and `shadows.json` for effect styles. <!-- src: apps/tokenpress/README.md:107-115 -->
 
-When TokenPress exports a file Prism3 themed, CI checks that its output agrees with the engine's own token files for the same brand. <!-- src: tools/exporter-comparison/gate.ts:1-60 -->
+When TokenPress exports a file Prism3 themed, CI checks that it writes the same token paths, with the same types, as the engine's own token files for that brand. Values are compared in a report, not checked, because the two write colors in different forms that are both valid DTCG. <!-- src: apps/plugin/test-readback-parity.ts:1-22 --> <!-- src: tools/exporter-comparison/gate.ts:1-15 --> <!-- src: tools/exporter-comparison/gate.ts:69-78 -->
 
 ## Which one to use
 

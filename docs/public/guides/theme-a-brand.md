@@ -25,20 +25,20 @@ A lever is one brand setting, such as the primary color, the type scale or the c
 
 | Tab | What it holds |
 |---|---|
-| **Brand** | The brand's name and namespace (**Identity**), **Personality** and **Modes**. <!-- src: apps/studio/src/shell/pages.ts:125-129 --> |
+| **Brand** | The brand's name and namespace (**Identity**), **Personality** and **Modes**. <!-- src: apps/studio/src/shell/pages.ts:126-132 --> |
 | **Color › Palettes** | **Primary**, **Brand colors**, **Neutrals** and **Status colors**: the ramps every color role draws from. <!-- src: apps/studio/src/shell/pages.ts:137-147 --> |
-| **Color › Surfaces & fills** | Background and foreground fills, text, borders, icons, fields and gradients. <!-- src: apps/studio/src/shell/pages.ts:161-185 --> |
+| **Color › Surfaces & fills** | Background and foreground fills, text, borders, icons, fields and gradients. <!-- src: apps/studio/src/shell/pages.ts:163-188 --> |
 | **Color › Interactive** | How actions, links and disabled states draw from the palettes. <!-- src: apps/studio/src/shell/pages.ts:191-226 --> |
 | **Type** | A typeface library, a font family for each text type, and the scale. <!-- src: apps/studio/src/shell/pages.ts:236-272 --> |
-| **Shape** | **Density**, **Radius** and the base radius. <!-- src: apps/studio/src/shell/pages.ts:282-286 --> |
-| **Depth & motion** | **Elevation**, **Motion** and the shadow tint. <!-- src: apps/studio/src/shell/pages.ts:297-301 --> |
-| **Layout** | **Breakpoints**, **Grid** and **Containers**. <!-- src: apps/studio/src/shell/pages.ts:309-314 --> |
-| **Components** | **Button** options and the **Component sets** list. <!-- src: apps/studio/src/shell/pages.ts:325-337 --> |
+| **Shape** | **Density**, **Radius** and the base radius. <!-- src: apps/studio/src/shell/pages.ts:284-288 --> |
+| **Depth & motion** | **Elevation**, **Motion** and the shadow tint. <!-- src: apps/studio/src/shell/pages.ts:299-303 --> |
+| **Layout** | **Breakpoints**, **Grid** and **Containers**. <!-- src: apps/studio/src/shell/pages.ts:311-316 --> |
+| **Components** | **Button** options and the **Component sets** list. <!-- src: apps/studio/src/shell/pages.ts:327-339 --> |
 
 Some sections start folded. Choose **Show *N* advanced** to open them. <!-- src: apps/studio/src/domains/color-palettes.ts:299 -->
 
-**Personality** words fill the settings you have not set yet. Settings you set win. <!-- src: apps/studio/src/shell/pages.ts:128 -->
-On **Palettes**, your colors are pinned as anchors on their ramps and never shifted. <!-- src: apps/studio/src/shell/pages.ts:137 -->
+**Personality** words fill the settings you have not set yet. Settings you set win. <!-- src: apps/studio/src/shell/pages.ts:130 -->
+On **Palettes**, your colors are pinned as anchors on their ramps and never shifted. <!-- src: apps/studio/src/shell/pages.ts:139 -->
 
 ## Read the preview
 
@@ -49,18 +49,18 @@ Each tab shows its levers on one side and a preview on the other. <!-- src: apps
 - A derived mode, such as a high-contrast one, is shown but not edited. The studio says "*Mode* is auto-derived and can't be edited here. Switch the preview to Light or Dark to edit." <!-- src: apps/studio/src/shell/frame.ts:114 -->
 - **Inspect** opens three views over any tab: **Contrast** (each pair against its floor), **Tokens**, and the **Decisions log**, which lists what the engine decided for this brand and why. <!-- src: apps/studio/src/shell/pages.ts:99 --> <!-- src: apps/studio/src/shell/preview.ts:227 --> <!-- src: apps/studio/src/shell/preview.ts:294-298 -->
 
-A contrast miss is reported, never blocked. On **Foreground fills**, for example, a pick below its floor is marked, not refused. <!-- src: apps/studio/src/shell/pages.ts:172 -->
+A contrast miss is reported, never blocked. On **Foreground fills**, for example, a pick below its floor is marked, not refused. <!-- src: apps/studio/src/shell/pages.ts:174 -->
 
 ## Where your work is kept
 
 - **On the web**, the studio keeps your working brand in this browser and reopens it next time. <!-- src: apps/studio/src/persist-local.ts:40-79 --> <!-- src: apps/studio/src/entry.ts:61 --> <!-- src: apps/studio/src/entry.ts:82 -->
-- **In the Figma plugin**, the brand is kept in the Figma file each time Apply Theme writes it, and the plugin restores it when the file opens again. <!-- src: apps/plugin/src/apply-theme.ts:111 --> <!-- src: apps/plugin/src/main.ts:1149-1157 -->
+- **In the Figma plugin**, the brand is kept in the Figma file each time Apply Theme writes it, and the plugin restores it when the file opens again. <!-- src: apps/plugin/src/apply-theme.ts:114-116 --> <!-- src: apps/plugin/src/main.ts:1149-1157 -->
 
 If a stored brand can't be opened, the web studio offers it as a `design.md` download instead of discarding it. <!-- src: apps/studio/src/entry.ts:137-166 -->
 
 ## Import and export a design.md brief
 
-A `design.md` is a brand written as a short document: settings at the top, prose below. <!-- src: packages/engine/mcp.ts:167 -->
+A `design.md` is a brand written as a short document: settings at the top, prose below. <!-- src: packages/engine/mcp.ts:323 -->
 The studio reads both the Prism3 form and the standard design.md form, which lists colors as a flat `colors:` map. <!-- src: apps/studio/src/state/start-input.ts:162-184 -->
 
 - **Import:** **↑ Import design.md…** in the brand menu, or the **Import a design.md** card. <!-- src: apps/studio/src/shell/bar.ts:288 --> <!-- src: apps/studio/src/shell/start.ts:206 -->

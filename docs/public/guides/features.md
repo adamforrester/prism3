@@ -4,7 +4,7 @@
 
 What each Prism3 surface can do. The ecosystem diagram (`docs/public/ecosystem/`, #2643) shows how the surfaces connect; this page lists what you can do in each.
 
-- **Web studio**: the studio in a browser. <!-- src: apps/studio/build-site.mjs:27 -->
+- **Web studio**: the studio in a browser. <!-- src: apps/studio/build-site.mjs:1-8 -->
 - **Figma plugin**: the same studio inside Figma, plus the actions that write to the file. <!-- src: apps/plugin/src/ui/entry.ts:10-36 -->
 - **Agent, through the agent link**: an AI agent driving the open plugin. See [Use the agent link](agent-link.md). <!-- src: apps/plugin/src/main.ts:1211-1221 -->
 - **Agent, through the Prism3 MCP server**: an AI agent using the engine directly, with no Figma file. <!-- src: packages/engine/mcp.ts:236-372 -->
@@ -17,13 +17,13 @@ What each Prism3 surface can do. The ecosystem diagram (`docs/public/ecosystem/`
 |---|---|---|---|---|
 | Start from a color, an example or a `design.md` | ✓ | ✓ | – | ✓ from a `design.md` (`theme_from_brief`) |
 | Set levers with a live preview | ✓ | ✓ | – | ✓ list the levers (`list_levers`), no preview |
-| Check contrast in every mode | ✓ Inspect › Contrast | ✓ Inspect › Contrast | – | ✓ `theme_brand`, `validate_brand` |
+| Check contrast in every mode | ✓ Inspect › Contrast | ✓ Inspect › Contrast | – | ✓ `theme_brand`, `theme_from_brief` |
 | Read the engine's decisions for a brand | ✓ Inspect › Decisions log | ✓ Inspect › Decisions log | – | ✓ `theme_brand` |
 | Keep the working brand | ✓ in this browser | ✓ in the Figma file | – | – |
 | Import a `design.md` brief | ✓ | ✓ | – | ✓ `theme_from_brief` |
 | Export a `design.md` brief | ✓ | ✓ | – | – |
 
-<!-- src: apps/studio/src/shell/start.ts:155-206 --> <!-- src: apps/studio/src/shell/pages.ts:99 --> <!-- src: apps/studio/src/persist-local.ts:40-79 --> <!-- src: apps/plugin/src/persist-figma.ts:30-35 --> <!-- src: apps/studio/src/export-settings.ts:111-115 --> <!-- src: packages/engine/mcp.ts:236-382 --> <!-- src: apps/plugin/src/agent-dispatch.ts:85-120 -->
+<!-- src: apps/studio/src/shell/start.ts:155-206 --> <!-- src: apps/studio/src/shell/pages.ts:99 --> <!-- src: apps/studio/src/persist-local.ts:40-79 --> <!-- src: apps/plugin/src/persist-figma.ts:30-35 --> <!-- src: apps/studio/src/export-settings.ts:111-115 --> <!-- src: packages/engine/mcp.ts:236-382 -->
 
 ## Figma file
 
@@ -53,6 +53,6 @@ TokenPress, a separate Figma plugin, exports any Figma file's variables and styl
 
 ## Limits worth knowing
 
-- Writing to Figma needs the plugin open. The MCP server does not touch Figma files. <!-- src: packages/engine/README.md:111 -->
+- Writing to Figma needs the plugin open. The MCP server does not touch Figma files. <!-- src: packages/engine/README.md:113 -->
 - The agent link is off at every launch, and only the panel can turn it on. <!-- src: apps/plugin/src/agent-link.ts:5-8 -->
-- Exports start from the brand you set, not from the file's variables. To export what a file holds, use TokenPress. <!-- src: apps/studio/src/export-settings.ts:173 -->
+- Exports start from the brand you set, not from the file's variables. To export what a file holds, use TokenPress. <!-- src: apps/studio/src/export-settings.ts:63-70 --> <!-- src: apps/studio/src/export-settings.ts:81 -->
