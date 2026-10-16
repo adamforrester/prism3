@@ -14101,6 +14101,22 @@ arm: {
     ok(vnb.warnings.length === 0 && vau.warnings.length === 0, `component: ${name} binds only semantic roles, no primitive-tier leak${[...vnb.warnings, ...vau.warnings].length ? ' — ' + [...vnb.warnings, ...vau.warnings].join('; ') : ''}`);
   }
 
+  // (#2707) A BOOLEAN OR NUMBER PROP'S DEFAULT HAS THAT TYPE. Six defs shipped `'false'` / `'99'` into
+  // `components.ai.json`, a truthy string where every other def ships `false`. EXPECTED is literal here: which
+  // (type, default) pairs the validator must refuse and which it must accept, on a copy of one registered def.
+  {
+    const base = componentDefs.find((d) => d.id === 'badge')!;
+    const withProp = (type: string, dflt: unknown) =>
+      validateComponentDef({ ...base, props: [...base.props, { name: 'probe', type, default: dflt, required: false, description: 'A probe prop.' }] } as ComponentDef).errors
+        .some((e) => e.startsWith(`prop 'probe': type '${type}'`));
+    const CASES: Array<[string, unknown, boolean]> = [
+      ['boolean', 'false', true], ['boolean', 'true', true], ['boolean', 0, true], ['number', '99', true], ['number', false, true],
+      ['boolean', false, false], ['boolean', true, false], ['number', 99, false], ['boolean', undefined, false], ['string', 'false', false],
+    ];
+    const wrong = CASES.filter(([t, d, refused]) => withProp(t, d) !== refused).map(([t, d, refused]) => `${t} default ${JSON.stringify(d)} ${refused ? 'accepted' : 'refused'}`);
+    ok(wrong.length === 0, `component props (#2707): a boolean or number prop refuses a default of another type, and accepts its own (${CASES.length} literal cases)${wrong.length ? ` — WRONG: ${wrong.join('; ')}` : ''}`);
+  }
+
   // (#1623) EVERY COMPONENT A DEF NAMES IS ONE THAT EXISTS, UNDER ITS CURRENT ID. The stale-fact class the
   // #1623 audit found by hand, three ways: `checkbox-group` named `radio-row` as its alternative where the
   // twin is `radio-group`; `radio-row`'s `ai.avoidWhen` told agents the radio group "is not authored yet"

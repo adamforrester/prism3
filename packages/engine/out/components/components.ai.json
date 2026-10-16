@@ -5301,14 +5301,14 @@
         {
           "name": "max",
           "type": "number",
-          "default": "99",
+          "default": 99,
           "required": false,
           "description": "The largest count shown in full, for type count. A larger value shows as \"99+\"."
         },
         {
           "name": "showZero",
           "type": "boolean",
-          "default": "false",
+          "default": false,
           "required": false,
           "description": "Whether a count of zero still shows, for type count. Hidden by default, since zero is usually nothing to act on."
         },
@@ -5473,14 +5473,14 @@
         {
           "name": "selected",
           "type": "boolean",
-          "default": "false",
+          "default": false,
           "required": false,
           "description": "Whether a select tag is on. A selected tag takes a tint and a 2px outline, and shows a check mark unless showCheck is off, so the state never rests on color alone. Ignored on a dismissible tag."
         },
         {
           "name": "showCheck",
           "type": "boolean",
-          "default": "true",
+          "default": true,
           "required": false,
           "description": "Whether a selected select tag shows its check mark after the label. On by default. With it off, the tint and the 2px outline carry the selected state."
         },
@@ -5517,14 +5517,14 @@
         {
           "name": "disabled",
           "type": "boolean",
-          "default": "false",
+          "default": false,
           "required": false,
           "description": "Removes the tag from interaction and dims it. Don't disable every tag in a group; hide the group instead."
         },
         {
           "name": "readOnly",
           "type": "boolean",
-          "default": "false",
+          "default": false,
           "required": false,
           "description": "Keeps full visual weight but accepts no interaction, such as a filter the user cannot change. Distinct from disabled, which dims."
         }
@@ -5687,7 +5687,7 @@
         {
           "name": "selected",
           "type": "boolean",
-          "default": "false",
+          "default": false,
           "required": false,
           "description": "Whether this tab is the selected one. Set by the tab list from its value; do not set it on a tab inside a list."
         },
@@ -5718,7 +5718,7 @@
         {
           "name": "disabled",
           "type": "boolean",
-          "default": "false",
+          "default": false,
           "required": false,
           "description": "Dims the tab and skips it during arrow-key movement."
         }
@@ -6739,7 +6739,7 @@
         {
           "name": "selected",
           "type": "boolean",
-          "default": "false",
+          "default": false,
           "required": false,
           "description": "Whether this option is the selected one. Set by the control from its value; do not set it on an option inside a control."
         },
@@ -6764,7 +6764,7 @@
         {
           "name": "disabled",
           "type": "boolean",
-          "default": "false",
+          "default": false,
           "required": false,
           "description": "Dims this one option and takes it out of interaction, while the rest of the control stays usable."
         }
@@ -6936,7 +6936,7 @@
         {
           "name": "disabled",
           "type": "boolean",
-          "default": "false",
+          "default": false,
           "required": false,
           "description": "Disables every option and takes the control out of the Tab order."
         }
@@ -7107,14 +7107,14 @@
         {
           "name": "isExternal",
           "type": "boolean",
-          "default": "false",
+          "default": false,
           "required": false,
           "description": "Opens in a new tab: adds the trailing external icon, visually hidden \"(opens in new tab)\" text and rel=\"noopener noreferrer\". Keep it for narrow cases."
         },
         {
           "name": "asChild",
           "type": "boolean",
-          "default": "false",
+          "default": false,
           "required": false,
           "description": "Merges the link's styling and accessibility onto a router's link child, so one anchor renders and the component depends on no router."
         },
