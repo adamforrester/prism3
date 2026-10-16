@@ -400,7 +400,7 @@ export const segmentedControl: ComponentDef = {
     // Q269.7 and Q269.8: segments 1 and 2 always show; 3 to 5 behind Figma-only toggles (#2344), 3 on. In code the
     // count is `children`. The label behind its own Figma-only toggle, on.
     booleans: {
-      showLabel: { part: 'label', default: true, figmaName: 'Label', figmaOnly: true },
+      showLabel: { part: 'label', default: true, figmaName: 'label', figmaOnly: true },
       segment3: { part: 'segment3', default: true, figmaName: 'Segment 3', figmaOnly: true },
       segment4: { part: 'segment4', default: false, figmaName: 'Segment 4', figmaOnly: true },
       segment5: { part: 'segment5', default: false, figmaName: 'Segment 5', figmaOnly: true },

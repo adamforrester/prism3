@@ -30,7 +30,11 @@ export type ComponentRename =
   /** A value, an axis or a whole def that is gone with no successor. An update keeps its members, marked
    *  deprecated (owner decision Q85 A, §10 Q2); the entry says the removal was meant. With `axis` and no
    *  `value` the whole axis is gone; with neither, the whole def. */
-  | { readonly def: string; readonly kind: 'drop'; readonly axis?: string; readonly value?: string; readonly issue: number };
+  | { readonly def: string; readonly kind: 'drop'; readonly axis?: string; readonly value?: string; readonly issue: number }
+  /** A component property renamed in the Figma panel, its type kept (#2759, owner decision Q345 A), e.g.
+   *  `State icon` → `state icon`. An update renames the set's property in place, so every instance keeps the
+   *  value a designer gave it. Names are the panel's, without Figma's `#id` suffix. */
+  | { readonly def: string; readonly kind: 'property'; readonly from: string; readonly to: string; readonly issue: number };
 
 /**
  * THE LEDGER. Names are the Figma panel's, as a set holds them: an axis renamed only for display
@@ -43,7 +47,30 @@ export type ComponentRename =
 export const COMPONENT_RENAMES: readonly ComponentRename[] = [
   { def: 'accordion', kind: 'axis', from: 'position', to: 'icon position', issue: 2592 },
   { def: 'accordion', kind: 'axis', from: 'iconPosition', to: 'icon position', issue: 2592 },
+  // #2759 PR 2 — Figma property names are lowercase (owner decision Q345 A).
+  { def: 'switch-control', kind: 'property', from: 'State icon', to: 'state icon', issue: 2759 },
+  { def: 'image-placeholder', kind: 'property', from: 'Marker', to: 'marker', issue: 2759 },
+  { def: 'tag', kind: 'property', from: 'Check icon', to: 'check icon', issue: 2759 },
+  { def: 'segmented-control', kind: 'property', from: 'Label', to: 'label', issue: 2759 },
 ];
+
+/**
+ * Where a property named `name` on `def`'s set lands under the ledger's property renames, chains followed
+ * (`A` → `B` → `c` resolves to `c`). `null` when the ledger does not rename it. A cycle is a ledger error,
+ * refused by throwing, as `renameCoordinate` refuses one.
+ */
+export const renameProperty = (def: string, name: string, ledger: readonly ComponentRename[] = COMPONENT_RENAMES): string | null => {
+  let at = name;
+  const seen = new Set([name]);
+  for (;;) {
+    const next = ledger.find((r): r is Extract<ComponentRename, { kind: 'property' }> => r.def === def && r.kind === 'property' && r.from === at);
+    if (!next) break;
+    if (seen.has(next.to)) throw new Error(`COMPONENT_RENAMES: the property renames for '${def}' loop back to '${next.to}'`);
+    seen.add(next.to);
+    at = next.to;
+  }
+  return at === name ? null : at;
+};
 
 /** A coordinate as its canonical key: the `axis=value` segments, sorted by axis, joined with `, `. Two
  *  names that differ only in segment order share one key (Figma rewrites the order when an axis is renamed
@@ -107,8 +134,9 @@ export const isDeclaredDrop = (def: string, axis: string | null, value: string |
 
 // ---- the accounting `lint-component-renames.ts` runs ---------------------------------------------------
 
-/** `schema/component-axes.json`'s shape: per def, each axis with its sorted values, and the member count. */
-export type AxesBaseline = Record<string, { axes: Record<string, string[]>; members: number }>;
+/** `schema/component-axes.json`'s shape: per def, each axis with its sorted values, the member count, and the
+ *  set's component properties by panel name with their type (#2759; absent in a baseline written before it). */
+export type AxesBaseline = Record<string, { axes: Record<string, string[]>; members: number; properties?: Record<string, string> }>;
 
 /** The differences between `before` and `after` that the ledger must claim, each as a line naming the
  *  missing claim. `lint-component-renames.ts` prints them. */
@@ -139,6 +167,14 @@ export const unaccounted = (before: AxesBaseline, after: AxesBaseline, ledger: r
           bad.push(`${def}: ${axisNow}=${v} is gone — needs { kind: 'value', axis: '${axisNow}', from: '${v}', to } or { kind: 'drop', axis: '${axisNow}', value: '${v}' }`);
       }
     }
+    // A PROPERTY that left the set (#2759). Without an entry, an update deletes it and adds the new one, and every
+    // instance loses the value a designer gave it. Compared only when both baselines carry properties.
+    if (b.properties && a.properties)
+      for (const name of Object.keys(b.properties)) {
+        if (name in a.properties) continue;
+        if (!mine.some((r) => r.kind === 'property' && r.from === name))
+          bad.push(`${def}: property '${name}' is gone — needs { kind: 'property', from: '${name}', to } so instances keep their values`);
+      }
   }
   return bad;
 };
@@ -154,6 +190,15 @@ export const danglingTargets = (after: AxesBaseline, ledger: readonly ComponentR
     if (!a) {
       if (!ledger.some((d) => d.def === r.def && d.kind === 'drop' && d.axis === undefined && d.value === undefined))
         bad.push(`${r.def}: entry ${JSON.stringify(r)} renames into a def that no longer projects`);
+      continue;
+    }
+    if (r.kind === 'property') {
+      // A property entry's successor must be declared on the set.
+      if (!a.properties) continue;
+      let to: string | null = null;
+      try { to = renameProperty(r.def, r.from, ledger); } catch (err) { bad.push(`${r.def}: ${(err as Error).message}`); continue; }
+      if (to === null || !(to in a.properties))
+        bad.push(`${r.def}: property entry '${r.from}' → '${r.to}' ends at '${to ?? r.to}', which the set does not declare`);
       continue;
     }
     if (r.kind === 'axis') {

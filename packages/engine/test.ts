@@ -56,7 +56,7 @@ import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION, Unrecogniz
 import { validateComponentDef, VARIANT_AXES, axisKindOf, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, variantAxisFigmaName, isExcludedCoordinate, fillPaintKey, replacesCandidates, statesOf, PAINT_SLOTS, ComponentDef, AnatomyDef, type PartDef } from './component-schema';
 import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, settleChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, figmaTextStyleName, figmaEffectStyleName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, applySpacingDensity, applyMinWidthRatio, DEFAULT_BUTTON_LAYOUT, isButtonFamily, resolveWeightIntent, DEFAULT_WEIGHT_AVAILABILITY, isPillable, PILL_RADIUS_DERIVATION, PILL_RADIUS_RUNG, BOXED_RADIUS_RUNG, HAIRLINE_RADIUS_RUNG, CONTROL_SHAPE_RUNG, ROUNDED_RADIUS_RUNG, variantSetErrors, variantNameErrors, glyphLayerOpacities, applyNestOverrides, type AnatomyPlan, type SwapFound } from './anatomy-figma';
 import type { ControlShape } from './scale';
-import { COMPONENT_RENAMES, coordKey, renameCoordinate, isDeclaredDrop, unaccounted as renamesUnaccounted, danglingTargets as renamesDangling, type ComponentRename, type AxesBaseline } from './component-renames';
+import { COMPONENT_RENAMES, coordKey, renameCoordinate, renameProperty, isDeclaredDrop, unaccounted as renamesUnaccounted, danglingTargets as renamesDangling, type ComponentRename, type AxesBaseline } from './component-renames';
 // One of the two imports this suite makes ACROSS the engine/plugin boundary, and the parity gate (#487 step 5)
 // is why: with two executors for one `AnatomyPlan`, a gate that only ever sees one of them cannot say
 // they agree. `write-components.ts` is pure TypeScript against a declared port — it touches no `figma`
@@ -6574,7 +6574,7 @@ arm: {
   ok(dismissibles.length === 15 && xWrong.length === 0,
     `tag × slot: on all 15 dismissible members it is the last cell of the pill, after the label row${xWrong.length ? ` — wrong: ${xWrong.slice(0, 4).map((m) => `${m.name} [${((m.plan.root.children ?? []) as any[]).map((c) => c.name).join(', ')}]`).join(' | ')}` : ''} (${dismissibles.length} dismissible members)`);
   // THE CHECK IS TRAILING AND OPTIONAL (owner decision B): on every selected member it is the LAST cell of the
-  // label row, after the label (never beside the leading icon), and it carries the `Check icon` switch (owner,
+  // label row, after the label (never beside the leading icon), and it carries the `check icon` switch (owner,
   // 2026-09-29; it was `check mark`), which
   // defaults ON; no unselected member has it.
   // Since the spacing model the label and check sit in their own row (`labelCheck`), the last cell of the content
@@ -6586,11 +6586,11 @@ arm: {
     const check = findNode(m.plan.root, 'check');
     if (outer[outer.length - 1] !== 'labelCheck') return true;
     if (m.selection === 'unselected') return !!check;
-    return !(order.join(',') === 'label,check' && check?.visibleProp === 'Check icon' && check?.visible !== false);
+    return !(order.join(',') === 'label,check' && check?.visibleProp === 'check icon' && check?.visible !== false);
   });
-  const checkProp = planSetProperties(tagSet as any).find((p) => p.name === 'Check icon');
+  const checkProp = planSetProperties(tagSet as any).find((p) => p.name === 'check icon');
   ok(checkWrong.length === 0 && checkProp?.type === 'BOOLEAN' && checkProp?.default === true,
-    `tag check mark: on every selected member it is the last cell of the label row, after the label, behind a 'Check icon' switch that defaults on; no unselected member has one (property ${JSON.stringify(checkProp)})${checkWrong.length ? ` — wrong: ${checkWrong.slice(0, 4).map((m) => m.name).join(' | ')}` : ''}`);
+    `tag check mark: on every selected member it is the last cell of the label row, after the label, behind a 'check icon' switch that defaults on; no unselected member has one (property ${JSON.stringify(checkProp)})${checkWrong.length ? ` — wrong: ${checkWrong.slice(0, 4).map((m) => m.name).join(' | ')}` : ''}`);
   // THE × SLOT IS SQUARE AT THE TAG'S HEIGHT (owner decision C), per size, as the literal variable names the tier
   // emits. The minimum width is no longer the height (decision L, below): no member binds one to a variable.
   const HEIGHT_VAR: Record<string, string> = { small: 'size/sm/height', medium: 'size/md/height', large: 'size/lg/height' };
@@ -15467,13 +15467,13 @@ arm: {
         `#2345 the scaling marker keeps the 180px literal and binds no dimension (got ${JSON.stringify(markers.map(([r, m]) => [r, m?.glyphPx, m && Object.keys(m.bound)]))})`);
       // THE MARKER BOOLEAN — declared on the set, default on, and wired to the marker on every member.
       const props = planSetProperties(ipSet);
-      ok(JSON.stringify(props) === JSON.stringify([{ name: 'Marker', type: 'BOOLEAN', default: true }]),
-        `#2345 the set declares one property, the BOOLEAN 'Marker', default on (got ${JSON.stringify(props)})`);
-      const unwired = markers.filter(([, m]) => m?.visibleProp !== 'Marker' || m?.visible === false).map(([r]) => r);
-      ok(unwired.length === 0, `#2345 every member's marker is driven by 'Marker' and built visible (unwired or hidden on ${JSON.stringify(unwired)})`);
+      ok(JSON.stringify(props) === JSON.stringify([{ name: 'marker', type: 'BOOLEAN', default: true }]),
+        `#2345 the set declares one property, the BOOLEAN 'marker', default on (got ${JSON.stringify(props)})`);
+      const unwired = markers.filter(([, m]) => m?.visibleProp !== 'marker' || m?.visible === false).map(([r]) => r);
+      ok(unwired.length === 0, `#2345 every member's marker is driven by 'marker' and built visible (unwired or hidden on ${JSON.stringify(unwired)})`);
       // FIGMA-ONLY (owner decision Q163.4b A): no code prop drives it, because in code the marker follows whether an
       // image is supplied. The boolean is declared figmaOnly, and no prop by either name exists.
-      const mb = Object.values(imgPlaceholder.figmaProperties?.booleans ?? {}).find((v) => typeof v !== 'string' && v.figmaName === 'Marker');
+      const mb = Object.values(imgPlaceholder.figmaProperties?.booleans ?? {}).find((v) => typeof v !== 'string' && v.figmaName === 'marker');
       ok(typeof mb === 'object' && mb.figmaOnly === true && !imgPlaceholder.props.some((p) => /^(showMarker|marker)$/i.test(p.name)),
         `#2345/Q163.4b the Marker boolean is Figma-only and no code prop drives it (figmaOnly ${String(typeof mb === 'object' && mb.figmaOnly)}; props ${imgPlaceholder.props.map((p) => p.name).join(', ')})`);
 
@@ -15842,14 +15842,14 @@ arm: {
           if (n?.visibleProp !== wantProp || (n?.visible === false) !== (i >= 3)) bad.push(`${t} visibleProp ${String(n?.visibleProp)}, visible ${String(n?.visible)}`);
         });
         const lab = findIn(m.root, 'label');
-        if (lab?.nestTarget !== 'field-label' || lab?.visibleProp !== 'Label' || lab?.visible === false) bad.push(`label ${String(lab?.nestTarget)} ${String(lab?.visibleProp)}`);
+        if (lab?.nestTarget !== 'field-label' || lab?.visibleProp !== 'label' || lab?.visible === false) bad.push(`label ${String(lab?.nestTarget)} ${String(lab?.visibleProp)}`);
         return bad.length ? [`${planComponentName(m)}: ${bad.join('; ')}`] : [];
       });
       ok(ctlMembers.length === 3 && ctlOff.length === 0,
-        `#2418 Q269.7/Q269.8 control (#2724 Q336 track): 3 members (size), a color/background/secondary track at radius/md with no outline, holding exactly five options following the size, option 1 selected, 1-3 shown and 4-5 hidden behind "Segment 4"-"Segment 5", selection and state exposed, under a nested FieldLabel behind "Label" (${ctlMembers.length} members, ${ctlOff.length} off — ${ctlOff[0] ?? 'none'})`);
+        `#2418 Q269.7/Q269.8 control (#2724 Q336 track): 3 members (size), a color/background/secondary track at radius/md with no outline, holding exactly five options following the size, option 1 selected, 1-3 shown and 4-5 hidden behind "Segment 4"-"Segment 5", selection and state exposed, under a nested FieldLabel behind "label" (${ctlMembers.length} members, ${ctlOff.length} off — ${ctlOff[0] ?? 'none'})`);
       const ctlProps = planSetProperties(ctlMembers).filter((p) => p.type === 'BOOLEAN').map((p) => `${p.name}=${String(p.default)}`);
-      ok(JSON.stringify(ctlProps) === JSON.stringify(['Label=true', 'Segment 3=true', 'Segment 4=false', 'Segment 5=false']),
-        `#2418 Q269.7 control: the set declares exactly four Figma-only toggles, Label and Segment 3 on, Segment 4 and 5 off (${ctlProps.join(', ')})`);
+      ok(JSON.stringify(ctlProps) === JSON.stringify(['label=true', 'Segment 3=true', 'Segment 4=false', 'Segment 5=false']),
+        `#2418 Q269.7 control: the set declares exactly four Figma-only toggles, label and Segment 3 on, Segment 4 and 5 off (${ctlProps.join(', ')})`);
       ok(!(ctlDef.props ?? []).some((p) => /^segment\d$/i.test(p.name) || /^showLabel$/i.test(p.name)),
         '#2418 Q269.7 control: no code prop drives a segment or label toggle (Figma-only; in code the count is children)');
 
@@ -16242,7 +16242,7 @@ arm: {
       '#1331 a boolean on a STATE-gated part is refused BY NAME — a boolean composes with a variant presence gate only');
     //       And a VARIANT gate that lands only on coordinates `excludeCoordinates` removes is refused: Tag's check
     //       mark gated to `type=dismissible, selection=selected`, the one pair the set excludes, would declare a
-    //       `Check icon` switch on the set wired to a node on no member. Tag as shipped validates clean.
+    //       `check icon` switch on the set wired to a node on no member. Tag as shipped validates clean.
     const tagForGate = componentDefs.find((d) => d.id === 'tag')!;
     const tagParts = tagForGate.anatomy!.parts;
     const checkOnExcluded = { ...tagForGate, anatomy: { ...tagForGate.anatomy!, parts: { ...tagParts, check: { ...tagParts.check, presentWhen: { type: ['dismissible'], selection: ['selected'] } } } } };
@@ -28563,13 +28563,13 @@ arm: {
 // below reads it too.
 const NB_MASTER: BrandInput = {"id": "nb-redesign", "root": "nbds", "modes": ["light"], "primary": {"l": 0.5418, "c": 0.2151, "h": 23}, "neutral": {"hue": 325.7, "chroma": 0.0025, "auto": true}, "actionPalette": "brand-neutral", "actionAnchorStep": 950, "neutralEmphasis": "strong", "roleColors": {"danger": "primary"}, "radiusScale": 0.5, "controlShape": "hairline", "typography": {"families": {"display": "ITC Garamond Std", "title": "ITC Garamond Std", "body": "Suisse Int'l", "label": "Suisse Int'l", "caption": "Suisse Int'l", "eyebrow": "Suisse Int'l"}, "weights": {"display": ["subtle"], "title": ["subtle"], "body": ["default", "emphasis"], "caption": ["default", "emphasis"], "label": ["default", "emphasis"]}, "weightRoles": {"emphasis": 500}, "responsive": {"fluid": true, "minViewport": 375, "maxViewport": 1440}, "typefaceLibrary": ["Inter", "Suisse Int'l"], "displayCeiling": "2xl", "faces": {"display": {"subtle": {"family": "ITC Garamond Std", "style": "Light Condensed"}}, "title": {"subtle": {"family": "ITC Garamond Std", "style": "Light Condensed"}}}, "leadingShift": {"title": 1, "body": 1, "display": 1}, "trackingShift": {"display": 1, "body": -1, "label": -1, "caption": -1, "eyebrow": -1}, "lineHeights": {"compact": 1.25, "snug": 1.2}, "sizes": {"title": {"2xl": 56, "xl": 48, "lg": 40, "md": 36, "sm": 32, "xs": 24}, "display": {"sm": 64, "md": 72}}, "sizeOverrides": {"title": {"2xl": {"mobile": 40}, "xl": {"mobile": 36}, "lg": {"mobile": 32}, "md": {"mobile": 28}, "sm": {"mobile": 24}}}}, "overrides": {"light": {"foreground.primary": {"palette": "neutral", "step": "025"}, "foreground.secondary": {"palette": "neutral", "step": "050"}, "foreground.tertiary": {"palette": "neutral", "step": "100"}, "interactive.primary.fill.hover": {"palette": "brand-neutral", "step": "800"}, "interactive.primary.fill.pressed": {"palette": "brand-neutral", "step": "700"}, "inverse.interactive.primary.fill.rest": {"palette": "brand-neutral", "step": "025"}, "interactive.primary.text.rest": {"palette": "brand-neutral", "step": "950"}, "interactive.primary.text.hover": {"palette": "brand-neutral", "step": "800"}, "interactive.primary.text.pressed": {"palette": "brand-neutral", "step": "700"}, "inverse.interactive.primary.text.rest": {"palette": "brand-neutral", "step": "025"}, "inverse.interactive.primary.border.rest": {"palette": "brand-neutral", "step": "025"}, "inverse.interactive.primary.on-fill": {"palette": "neutral", "step": "950"}, "interactive.primary.border.rest": {"palette": "brand-neutral", "step": "350"}}}, "motionPersonality": {"tempo": "relaxed"}, "baseMd": 5, "radiusHairline": true, "brandColors": [{"name": "brand-neutral", "oklch": {"l": 0.578529639963649, "c": 0.014407766653341907, "h": 244.39838400513634}}], "outlineInteraction": "solid-tint", "layout": {"breakpoints": [0, 768], "columns": 24, "columnOverrides": {"sm": 6}, "containerNarrow": 740}, "density": "comfortable", "buttonContentSize": "smaller", "buttonMinWidthMultiplier": 2.75, "buttonIcons": "edges"} as unknown as BrandInput;
 
-// ---- #1354 (owner, 2026-09-28): THE LIGHT OFF TRACK + THE `State icon` BOOLEAN ------------------------
+// ---- #1354 (owner, 2026-09-28): THE LIGHT OFF TRACK + THE `state icon` BOOLEAN ------------------------
 //
 // The owner saw the NB master theme's switch draw its off and on tracks as the same near-black: the off
 // track borrowed the neutral BUTTON fill, which `neutralEmphasis: 'strong'` darkens (#2D2C2C), beside a
 // brand-neutral on track (#34383D). Decided: the off track reads a light surface step the lever does not
 // move, keeps its dark hairline, and its thumb turns dark; and the thumb glyph becomes ONE Figma BOOLEAN,
-// `State icon`, default on, over both glyph parts. Every expectation below is a LITERAL (hexes and ratios
+// `state icon`, default on, over both glyph parts. Every expectation below is a LITERAL (hexes and ratios
 // measured once and written down) or a relation computed from RESOLVED hexes — never read back off the def
 // the check is about, so a rebind fails by name rather than agreeing with itself (docs/34).
 arm: {
@@ -28929,20 +28929,20 @@ arm: {
     }
   }
 
-  // (5) THE FIGMA PLAN: one BOOLEAN `State icon`, default true, on the 24-member set; both glyph nodes
+  // (5) THE FIGMA PLAN: one BOOLEAN `state icon`, default true, on the 24-member set; both glyph nodes
   // carry it. Removing the boolean (or narrowing it to one glyph) fails here by name.
   const set = figmaAnatomySet(sc);
   const props = planSetProperties(set);
-  ok(set.length === 24, `#1354 switch-control still projects 24 members — the State icon boolean does not multiply the set (got ${set.length})`);
-  ok(JSON.stringify(props) === JSON.stringify([{ name: 'State icon', type: 'BOOLEAN', default: true }]),
-    `#1354 switch-control's set declares exactly one property, the BOOLEAN 'State icon' defaulting to true (got ${JSON.stringify(props)})`);
+  ok(set.length === 24, `#1354 switch-control still projects 24 members — the state icon boolean does not multiply the set (got ${set.length})`);
+  ok(JSON.stringify(props) === JSON.stringify([{ name: 'state icon', type: 'BOOLEAN', default: true }]),
+    `#1354 switch-control's set declares exactly one property, the BOOLEAN 'state icon' defaulting to true (got ${JSON.stringify(props)})`);
   type GNode = { name: string; visibleProp?: string; visible?: boolean; children: GNode[] };
   const glyphNodes = (n: GNode): GNode[] => [...(n.name === 'onGlyph' || n.name === 'offGlyph' ? [n] : []), ...n.children.flatMap(glyphNodes)];
   const glyphs = set.flatMap((p) => glyphNodes(p.root as unknown as GNode));
   const byName = (nm: string) => glyphs.filter((g) => g.name === nm);
   ok(byName('onGlyph').length === 12 && byName('offGlyph').length === 12
-    && glyphs.every((g) => g.visibleProp === 'State icon' && (g.visible ?? true) === true),
-    `#1354 both glyph nodes (12 checks, 12 X's — one per member) carry visibleProp 'State icon', built visible (on=${byName('onGlyph').length}, off=${byName('offGlyph').length}, props=[${[...new Set(glyphs.map((g) => `${g.visibleProp}/${g.visible ?? true}`))].join(', ')}])`);
+    && glyphs.every((g) => g.visibleProp === 'state icon' && (g.visible ?? true) === true),
+    `#1354 both glyph nodes (12 checks, 12 X's — one per member) carry visibleProp 'state icon', built visible (on=${byName('onGlyph').length}, off=${byName('offGlyph').length}, props=[${[...new Set(glyphs.map((g) => `${g.visibleProp}/${g.visible ?? true}`))].join(', ')}])`);
 
   // (6) THE CODE DEFAULT matches the Figma default: `showStateLabel` is `true` on the atom AND on the Row
   // that exposes it. A literal `true` — the owner's decision, not the boolean's `default` read back.
@@ -28960,14 +28960,14 @@ arm: {
   const OVERLAP_REFUSAL = /booleans\.showStateLabel → parts '.*' both build at .* the presence gates of the parts it targets must be disjoint/;
   const withBool = (part: string | readonly string[], parts?: Record<string, unknown>): ComponentDef =>
     ({ ...sc, anatomy: { ...sc.anatomy!, parts: { ...sc.anatomy!.parts, ...(parts ?? {}) } },
-      figmaProperties: { ...sc.figmaProperties!, booleans: { showStateLabel: { part, default: true, figmaName: 'State icon' } } } } as ComponentDef);
+      figmaProperties: { ...sc.figmaProperties!, booleans: { showStateLabel: { part, default: true, figmaName: 'state icon' } } } } as ComponentDef);
   ok(!figmaPropertyErrors(sc).some((e) => PRESENCE_REFUSAL.test(e)),
-    `#1354 the authored State icon boolean over the check and the X is NOT refused (errors: ${figmaPropertyErrors(sc).filter((e) => PRESENCE_REFUSAL.test(e)).join('; ') || 'none'})`);
+    `#1354 the authored state icon boolean over the check and the X is NOT refused (errors: ${figmaPropertyErrors(sc).filter((e) => PRESENCE_REFUSAL.test(e)).join('; ') || 'none'})`);
   // An UNCOVERED value is now admitted: a boolean over the check alone leaves `selection=off` with no node, and
   // that member simply has nothing to toggle. Projected: the check at the 12 `on` members, nothing at the 12 `off`.
   const onlyOn = withBool('onGlyph');
   const onlyOnSet = figmaAnatomySet(onlyOn);
-  const onlyOnGlyphs = onlyOnSet.map((p) => ({ sel: p.coord.selection, g: glyphNodes(p.root as unknown as GNode).filter((g) => g.visibleProp === 'State icon') }));
+  const onlyOnGlyphs = onlyOnSet.map((p) => ({ sel: p.coord.selection, g: glyphNodes(p.root as unknown as GNode).filter((g) => g.visibleProp === 'state icon') }));
   ok(!figmaPropertyErrors(onlyOn).some((e) => PRESENCE_REFUSAL.test(e))
     && onlyOnGlyphs.filter((m) => m.sel === 'on').every((m) => m.g.length === 1 && m.g[0].name === 'onGlyph')
     && onlyOnGlyphs.filter((m) => m.sel === 'off').every((m) => m.g.length === 0)
@@ -30829,6 +30829,24 @@ arm: {
   ok(dangling.length === 1 && dangling[0].includes("ends at 'xl'"), '#2265 renames lint: an entry renaming into a value the tree does not project is refused');
   ok(renamesDangling(after, [{ def: 'chip', kind: 'drop', issue: 0 }]).some((b) => b.includes('names no issue')), '#2265 renames lint: an entry without an issue is refused');
   ok(COMPONENT_RENAMES.every((r) => Number.isInteger(r.issue) && r.issue > 0), '#2265 COMPONENT_RENAMES: every entry names its issue');
+  // #2759 — A PROPERTY RENAME. A property that leaves the set must be claimed, or an update deletes it and adds the new
+  // name, and every instance loses its value. The baselines are hand-built; nothing here is read off a def.
+  {
+    const pb: AxesBaseline = { chip: { axes: { size: ['small'] }, members: 1, properties: { 'Check icon': 'BOOLEAN', label: 'TEXT' } } };
+    const pa: AxesBaseline = { chip: { axes: { size: ['small'] }, members: 1, properties: { 'check icon': 'BOOLEAN', label: 'TEXT' } } };
+    const PL: ComponentRename[] = [{ def: 'chip', kind: 'property', from: 'Check icon', to: 'check icon', issue: 2759 }];
+    const missing = renamesUnaccounted(pb, pa, []);
+    ok(missing.length === 1 && missing[0].includes("property 'Check icon' is gone"), `#2759 renames lint: a property that leaves the set unclaimed is named (${missing.join('; ')})`);
+    ok(renamesUnaccounted(pb, pa, PL).length === 0 && renamesDangling(pa, PL).length === 0, `#2759 renames lint: a declared property rename accounts for it, and its target is on the set (${[...renamesUnaccounted(pb, pa, PL), ...renamesDangling(pa, PL)].join('; ')})`);
+    const off = renamesDangling(pa, [{ def: 'chip', kind: 'property', from: 'Check icon', to: 'check-icon', issue: 2759 }]);
+    ok(off.length === 1 && off[0].includes("ends at 'check-icon'"), `#2759 renames lint: a property entry whose target the set does not declare is dangling (${off.join('; ')})`);
+    ok(renamesUnaccounted({ chip: { axes: pb.chip.axes, members: 1 } }, pa, []).length === 0, '#2759 renames lint: a base written before properties were recorded demands nothing of them');
+    ok(renameProperty('chip', 'A', [{ def: 'chip', kind: 'property', from: 'A', to: 'B', issue: 1 }, { def: 'chip', kind: 'property', from: 'B', to: 'c', issue: 2 }]) === 'c' && renameProperty('chip', 'label', PL) === null,
+      '#2759 renameProperty: a chain resolves to its end, and an unrenamed name to null');
+    let threw = false;
+    try { renameProperty('chip', 'A', [{ def: 'chip', kind: 'property', from: 'A', to: 'B', issue: 1 }, { def: 'chip', kind: 'property', from: 'B', to: 'A', issue: 2 }]); } catch { threw = true; }
+    ok(threw, '#2759 renameProperty: a cycle is refused');
+  }
   // #2592: the baseline is keyed by the Figma panel's name, so an axis that gains a display name (`variantAxisNames`) on
   // main is an axis rename to the lint, and it demands the entry. Accordion's never did, because no merge base held it.
   const shown: AxesBaseline = { acc: { axes: { 'icon position': ['leading', 'trailing'] }, members: 2 } };

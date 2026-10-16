@@ -45,7 +45,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import { componentDefs } from './components/index';
-import { figmaAnatomySet, planComponentName } from './anatomy-figma';
+import { figmaAnatomySet, planComponentName, planSetProperties } from './anatomy-figma';
 import { COMPONENT_RENAMES, coordKey, coordPairs, danglingTargets, unaccounted, type AxesBaseline as Baseline } from './component-renames';
 import { comparisonBase } from './comparison-base';
 
@@ -88,9 +88,13 @@ const project = (): Baseline => {
       if (key === null) die([`${def.id}: a planned member name is not a coordinate — ${JSON.stringify(planComponentName(p))}`]);
       for (const [a, v] of coordPairs(key!)) (axes[a] ??= new Set()).add(v);
     }
+    // The set's component properties by panel name (#2759): a name that leaves without a ledger entry is a property
+    // an update would delete and re-add, losing every instance's value. `planSetProperties` is the writer's own list.
+    const props = planSetProperties(plans);
     out[def.id] = {
       axes: Object.fromEntries(Object.keys(axes).sort().map((a) => [a, [...axes[a]].sort()])),
       members: plans.length,
+      properties: Object.fromEntries(props.map((p) => [p.name, p.type] as const).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))),
     };
   }
   return out;

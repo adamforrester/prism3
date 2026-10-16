@@ -91,7 +91,7 @@ type Arm = 'casing' | 'prefix' | 'root' | 'glyph' | 'control cell';
 /** One known breach: `arm`, the def id, and the name that breaches (a property name, a part, or the id). */
 type Pending = { arm: Arm; def: string; name: string; pr: 2 | 3 | 4; to?: string };
 const PENDING: readonly Pending[] = [
-  // PR 2 — Figma property names lowercase (Q345 A). The per-item names go with #2660 if it lands first.
+  // Figma property names lowercase (Q345 A): the per-item booleans #2660 removes. PR 2 renamed the rest.
   { arm: 'casing', def: 'checkbox-group', name: 'Option 2', pr: 2 },
   { arm: 'casing', def: 'checkbox-group', name: 'Option 3', pr: 2 },
   { arm: 'casing', def: 'checkbox-group', name: 'Option 4', pr: 2 },
@@ -106,9 +106,6 @@ const PENDING: readonly Pending[] = [
   { arm: 'casing', def: 'radio-group', name: 'Option 6', pr: 2 },
   { arm: 'casing', def: 'radio-group', name: 'Option 7', pr: 2 },
   { arm: 'casing', def: 'radio-group', name: 'Option 8', pr: 2 },
-  { arm: 'casing', def: 'switch-control', name: 'State icon', pr: 2 },
-  { arm: 'casing', def: 'image-placeholder', name: 'Marker', pr: 2 },
-  { arm: 'casing', def: 'tag', name: 'Check icon', pr: 2 },
   { arm: 'casing', def: 'tabs', name: 'Tab 4', pr: 2 },
   { arm: 'casing', def: 'tabs', name: 'Tab 5', pr: 2 },
   { arm: 'casing', def: 'tabs', name: 'Tab 6', pr: 2 },
@@ -117,7 +114,6 @@ const PENDING: readonly Pending[] = [
   { arm: 'casing', def: 'list', name: 'Item 6', pr: 2 },
   { arm: 'casing', def: 'list', name: 'Item 7', pr: 2 },
   { arm: 'casing', def: 'list', name: 'Item 8', pr: 2 },
-  { arm: 'casing', def: 'segmented-control', name: 'Label', pr: 2 },
   { arm: 'casing', def: 'segmented-control', name: 'Segment 3', pr: 2 },
   { arm: 'casing', def: 'segmented-control', name: 'Segment 4', pr: 2 },
   { arm: 'casing', def: 'segmented-control', name: 'Segment 5', pr: 2 },

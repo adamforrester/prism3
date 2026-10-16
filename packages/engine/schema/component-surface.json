@@ -267,11 +267,11 @@
     },
     "switch-control": {
       "members": 24,
-      "sha256": "c2ec76cdbc29395a4854ca7ac5f9a1d8eaa1e43e2d8496169c3fe97135759ea8"
+      "sha256": "e74af225ed4a5b52b522658fbdf45a856caacf2aab6206438f7b1e07918af7af"
     },
     "switch-row": {
       "members": 2,
-      "sha256": "0e2a1fbbad31e2727ea0a8a55d7fc94e64e78c8a2c71b7e89db367db33212a48"
+      "sha256": "1e7462a422fe9d5cd991e95a7f3cec98c0c9f5f118f27e8668f097155be6634f"
     },
     "select": {
       "members": 84,
@@ -291,7 +291,7 @@
     },
     "image-placeholder": {
       "members": 7,
-      "sha256": "231a95656454741c39c0e4fe8a030fa1e46aa43c2426e2f66d7eb2deb1e8e53c"
+      "sha256": "025989b64032dd8e63e5f4e8b3ae44ac44e1ef2a7a7ce3d3493f527f11deedee"
     },
     "spinner": {
       "members": 4,
@@ -303,15 +303,15 @@
     },
     "tag": {
       "members": 45,
-      "sha256": "8bfdcb753a3f753db68763bff2c25f04c45109033cc4cdc1e015cba0c4db7ec8"
+      "sha256": "87ccc932eb383f0da4006e6b444d0f0571b4a1ed24d126da4797dd66e3bce917"
     },
     "tag@outline-solid-tint": {
       "members": 45,
-      "sha256": "af2a989c45bfba18d8d06ff99f7303f8d685492dc6af5a146f3e133019d991e2"
+      "sha256": "cb472e19c174ba2d932b083913e2717f03dbcc8c47d09a50c05c3ac129f2fcc1"
     },
     "tag@outline-none": {
       "members": 45,
-      "sha256": "cfda490bd76a8f2197b8421833064fa46c12de8987c78239a062b4fd663505a2"
+      "sha256": "9c6c661bc2eaf4a676b8d0079e24828693aa551bbcf9f88471b0254a6a664a66"
     },
     "tab": {
       "members": 30,
@@ -355,7 +355,7 @@
     },
     "segmented-control": {
       "members": 3,
-      "sha256": "db368d3e26e1b000980d145ed947aa15a277bfb1c42b5e36e2a8e8f24fab3b81"
+      "sha256": "705ded18f65b5759f5fc190e444558f928c39db338f4c1468518d6d631362d4b"
     },
     "link": {
       "members": 96,

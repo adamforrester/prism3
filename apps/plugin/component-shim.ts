@@ -504,13 +504,16 @@ export const makeShim = (opts: ShimOpts = {}) => {
     Object.defineProperty(inst, '_propDefsOf', { configurable: true, enumerable: false, writable: true, value: defsOf });
     Object.defineProperty(inst, '_overrides', { configurable: true, enumerable: false, writable: true, value: overrides });
     const defs = (): Record<string, { type: string; defaultValue?: unknown }> => { try { return defsOf() ?? {}; } catch { return {}; } };
+    // #2759 — A VALUE IS HELD BY THE PROPERTY'S ID (the `#…` suffix), as Figma holds it, so renaming the property on the
+    // set leaves every instance's value in place. Keyed by the full key, a rename would silently reset each instance.
+    const idOfKey = (k: string): string => (k.includes('#') ? k.slice(k.lastIndexOf('#')) : k);
     Object.defineProperty(inst, 'componentProperties', {
       configurable: true, enumerable: false,
       get: () => {
         const out: Record<string, { type: string; value: unknown }> = {};
         for (const [k, d] of Object.entries(defs())) {
           if (d.type === 'VARIANT' || d.type === 'SLOT') continue;
-          out[k] = { type: d.type, value: k in overrides ? overrides[k] : d.defaultValue };
+          out[k] = { type: d.type, value: idOfKey(k) in overrides ? overrides[idOfKey(k)] : d.defaultValue };
         }
         return out;
       },
@@ -528,7 +531,7 @@ export const makeShim = (opts: ShimOpts = {}) => {
           if (d.type === 'INSTANCE_SWAP' && (typeof v !== 'string' || !componentIds.has(v)))
             throw new Error(`in setProperties: Expected a component id, got ${JSON.stringify(v)}`);
         }
-        Object.assign(overrides, props);
+        for (const [k, v] of Object.entries(props)) overrides[idOfKey(k)] = v;
       },
     });
   };
@@ -2035,6 +2038,13 @@ export const makeShim = (opts: ShimOpts = {}) => {
         const renamed = `${edit.name}#${key.split('#')[1]}`;
         delete defs[key];
         defs[renamed] = d as (typeof defs)[string];
+        // #2759 — A RENAME KEEPS THE PROPERTY'S ID, so the host moves every reference to the new key, and an instance's
+        // value stays with the id (`installProps` keys a value by it). Unmodelled, a renamed property would read as wired
+        // to nothing, and a rename could not be told from a delete.
+        for (const n of (set.findAll as () => Node[])()) {
+          const refs = n.componentPropertyReferences as Record<string, string> | null;
+          if (refs) for (const [f, id] of Object.entries(refs)) if (id === key) refs[f] = renamed;
+        }
         return renamed;
       };
       set.editComponentProperty = (key: string, edit: { name?: string; defaultValue?: unknown; slotSettings?: unknown; preferredValues?: unknown }) => {

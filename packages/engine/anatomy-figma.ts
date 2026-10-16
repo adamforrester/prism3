@@ -1470,7 +1470,7 @@ export const figmaAnatomyPlan = (
     // A VARIANT gate composes with it, and it is evaluated HERE, before those lines, so an optional or
     // slot-named boolean part is never dropped ahead of its own gate. ONE path for both users (the #1743
     // merge of #1765): Tag's check (one part, present only at `type=select × selection=selected`) and
-    // switch-control's `State icon` (the check at `selection=on`, the X at `selection=off`). AND across axes,
+    // switch-control's `state icon` (the check at `selection=on`, the X at `selection=off`). AND across axes,
     // and an axis the caller did not supply reads as ABSENT — the same rule the variant-gated branch below
     // applies. `figmaPropertyErrors` refuses a boolean on a STATE gate (`when`, or `presentWhen`'s `state`
     // key) and a boolean whose parts could both build at one member, so neither reaches this line.

@@ -28,7 +28,7 @@
  *      argued in the list's header — and the code prop of the same name replaces `interaction`. It is an
  *      AUTHORING axis: a tag's type is chosen when it is placed and never changes on screen.
  *   B. SELECT: an optional leading icon (the `leading icon` boolean), and the selected status as a CHECK MARK
- *      on the TRAILING side. The check is optional — the `Check icon` boolean, on by default — and exists
+ *      on the TRAILING side. The check is optional — the `check icon` boolean, on by default — and exists
  *      only at `selection=selected`. It never sits beside the leading icon. No dismiss on Select at all, which
  *      removes #1743's dual hit target and its 2.09–2.86:1 × on the selected fill.
  *   C. DISMISSIBLE: the ×, and no selection state. `figmaProperties.excludeCoordinates` removes
@@ -49,7 +49,7 @@
  *
  *   G. THE CHECK WIDENS THE TAG. A selected tag with the check shown is one glyph and one gap wider than its
  *      unselected twin (30px at medium since decision K: a 24px glyph and the 6px label→check gap); the width is not reserved. `test.ts` `tag selected width` pins it.
- *   H. THE FIGMA SWITCH IS `Check icon` (it was `check mark`). It toggles only the Select check; the code prop
+ *   H. THE FIGMA SWITCH IS `check icon` (it was `check mark`). It toggles only the Select check; the code prop
  *      stays `showCheck`. The Dismissible × has no switch: it is the tag's action, present on every member.
  *   I. SELECTED HOVER AND PRESSED: the tint holds and the 2px outline steps darker
  *      (`interactive.primary.border.hover` / `.pressed`).
@@ -327,7 +327,7 @@ export const tag: ComponentDef = {
         // gate on `selection` is the whole rule and no second gate on `type` is needed.
         presentWhen: { selection: ['selected'] },
         optional: true,
-        note: 'The selected indicator, a check mark after the label. It exists only on a selected select tag and is on by default; the Check icon switch hides it, leaving the tint and the 2px outline.',
+        note: 'The selected indicator, a check mark after the label. It exists only on a selected select tag and is on by default; the check icon switch hides it, leaving the tint and the 2px outline.',
       },
       dismiss: {
         kind: 'box',
@@ -394,8 +394,8 @@ export const tag: ComponentDef = {
     texts: { label: { part: 'label', default: 'Tag' } },
     booleans: {
       leadingIcon: { part: 'leadingVisual', figmaName: 'leading icon', default: false },
-      // Owner, 2026-09-29: `Check icon`. It toggles the Select check only; the Dismissible × has no switch.
-      showCheck: { part: 'check', figmaName: 'Check icon', default: true },
+      // Owner, 2026-09-29: `check icon`. It toggles the Select check only; the Dismissible × has no switch.
+      showCheck: { part: 'check', figmaName: 'check icon', default: true },
     },
     swaps: { leadingIcon: { part: 'leadingVisual', figmaName: '↳ swap leading icon' } },
   },
@@ -492,7 +492,7 @@ export const tag: ComponentDef = {
       'Owner, 2026-09-29 ("respect none"): the selected tint binds `interactive.primary.subtle-fill.selected`, which every brand whose outline interaction is not none now emits — one leaf on overlay-neutral, the family on solid-tint. It replaced `interactive.primary.overlay.selected`, a 20% neutral wash on the default lever rather than a primary tint. On none there is no tint.',
       'Owner, 2026-09-29: a selected tag with the check shown is one glyph and one gap wider than its unselected twin (30px at medium on comfortable density), and the width is not reserved, so a group reflows on toggle. It was held as a contested item against decision E\'s "nothing reflows".',
       'Owner, 2026-09-29: selected hover and pressed keep the tint and step the 2px outline (`interactive.primary.border.hover` / `.pressed`). It was held as a contested item.',
-      'Owner, 2026-09-29: the Figma switch for the Select check is `Check icon` (it was `check mark`); the code prop stays `showCheck`. The Dismissible × has no switch: it is the tag\'s action and is on every member.',
+      'Owner, 2026-09-29: the Figma switch for the Select check is `check icon` (it was `check mark`); the code prop stays `showCheck`. The Dismissible × has no switch: it is the tag\'s action and is on every member.',
       'Badge\'s hook, answered point by point. (1) Tag binds `color.interactive.*` only (plus disabled and the focus ring). (2) Tag has hover, pressed, focus-visible and disabled members, and selection as an axis. (3) Tag is in `lint-hit-target.ts` INTERACTIVE, 44px at medium. (4) Tag is a pill with an outline at rest, a tint and a 2px primary outline when selected; the status badge has a small radius and a tone fill, and binds no interactive role. (5) Tag no longer nests IconButton.Neutral: the × is a glyph in a square slot. `test.ts` holds (1) and (4) against Badge\'s projected rest paint.',
       'Two types, Select and Dismissible (owner, 2026-09-28), replace the three interactions (clickable | selectable | removable) of 2026-09-27. The plain clickable tag is dropped: an action in place is a Button. `type` is the variant axis name Badge shares (Badge\'s `genre` was renamed to match), and the code prop of the same name replaces `interaction`.',
       'The dual-action tag (select the body, remove with the ×, brief §2) is gone: Select has no dismiss at all (#1743), which also removed the × on the selected fill that measured 2.09–2.86:1.',
