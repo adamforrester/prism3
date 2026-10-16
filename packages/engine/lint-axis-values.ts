@@ -282,6 +282,29 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'on both defs, so none is shared. Shared by List and List.Item because the List passes its type to every item '
       + '(`follow`), so the two must hold one set; one entry records both, and a drift between them fails here.',
   },
+  {
+    axis: 'type',
+    values: ['numbered', 'compact', 'simple'],
+    defs: ['pagination'],
+    relation: 'disjoint',
+    reason:
+      'Which STRUCTURE a pagination row has (owner decision on #2665, calls 1 A and 15 A): page numbers between previous '
+      + 'and next, the "Page 5 of 10" text between them, or a Previous and a Next button alone. Structural kinds, not '
+      + 'looks, which is why the axis is `type` and not Link\'s `style` (call 15). `numbered` LEADS because it is the code '
+      + 'default and Figma\'s default member. DISJOINT from Badge\'s canonical set, the loud kind of divergence: a badge '
+      + 'type is a content kind and a pagination type a layout kind, and no value would mean the same thing on both defs.',
+  },
+  {
+    axis: 'type',
+    values: ['page', 'ellipsis'],
+    defs: ['_pagination-item'],
+    relation: 'disjoint',
+    reason:
+      'Which CELL a pagination item is (#2665, owner calls 3 A and 7 A): a page number the user opens, or the inert mark '
+      + 'that stands for two or more hidden pages. The words of the window algorithm\'s own item model (`page`, '
+      + '`ellipsis`). `page` LEADS because it is the code default and Figma\'s default member. DISJOINT from Badge\'s '
+      + 'canonical set: a pagination item type is a cell kind, and no value would mean the same thing on both defs.',
+  },
   // `indicator` IS GONE FROM THE REGISTER (#1338), and its absence is the point rather than an omission —
   // the same shape the `intent` note below records. field-label carried a three-way
   // `[none/required/optional]` axis whose most important value was ABSENCE, which is exactly why it never
@@ -375,7 +398,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'selection',
     values: ['unselected', 'selected'],
-    defs: ['tag', 'tab', 'segmented-control-segment'],
+    defs: ['tag', 'tab', 'segmented-control-segment', '_pagination-item'],
     relation: 'disjoint',
     reason:
       'A selectable tag\'s two values, in the words the Tag brief uses (§4, §15) — `selected` is what a filter '
@@ -386,7 +409,8 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'once they do not match. `unselected` leads because it is the rest coordinate. The spelling is an '
       + 'axis-value choice held for the owner in the Tag PR (2026-09-27). Tab joins it (#2416, owner Q177.2): a '
       + 'tab\'s state IS aria-selected, so `selected` is its ARIA word too, and one spelling serves both. A segmented '
-      + 'control\'s option joins it (#2418, owner Q269): Tag\'s values, its state riding aria-current or a native radio.',
+      + 'control\'s option joins it (#2418, owner Q269): Tag\'s values, its state riding aria-current or a native radio. '
+      + 'A pagination item joins it (#2665): the current page, its state riding aria-current="page".',
   },
   {
     axis: 'size',
@@ -402,7 +426,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'size',
     values: ['medium', 'small', 'large'],
-    defs: ['text-field', 'select', 'textarea', 'dialog', 'password-field'],
+    defs: ['text-field', 'select', 'textarea', 'dialog', 'password-field', '_pagination-item', 'pagination'],
     relation: 'reordered',
     reason:
       'The canonical ladder, led by `medium` (#2266, the field sizing system). The first value is the set\'s '
@@ -413,7 +437,8 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + '`lint-rung-names.ts` DEFAULT_FIRST admits the split. Decided by the owner: Q221 B (2026-10-10), the named '
       + 'exception to #2501\'s smallest-to-largest, because Figma takes the default from the top-left member. '
       + 'Dialog (#2609) joins on the owner\'s Q303, which approved the proposal\'s axis table listing its sizes '
-      + 'default first: a dialog inserted from the assets panel is the 560px medium panel.',
+      + 'default first: a dialog inserted from the assets panel is the 560px medium panel. Pagination and Pagination.Item '
+      + '(#2665) join on the owner\'s Q347 and Q359: Figma\'s first member is the code default, sizes medium first.',
   },
   {
     axis: 'size',

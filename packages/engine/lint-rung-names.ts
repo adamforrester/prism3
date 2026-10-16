@@ -342,6 +342,9 @@ const DEFAULT_FIRST: Record<string, string> = {
   dialog: 'the Figma default is the 560px medium panel, the proposal\'s table approved by the owner\'s Q303 (#2609)',
   // #2317: TextField's size order through the shared field factory (Q301 builds it medium first, the field family's order).
   'password-field': 'the Figma default is `medium`, the field family\'s order from the shared field factory (#2317)',
+  // #2665: Figma's first member is the code default, sizes medium first (owner decisions Q347, Q359).
+  '_pagination-item': 'the Figma default is the medium page cell, the code default (owner decisions Q347, Q359; #2665)',
+  pagination: 'the Figma default is the medium numbered row, the code default (owner decisions Q347, Q359; #2665)',
 };
 
 const SIZE_BY_FOLLOW_ONLY: Record<string, string> = {
@@ -387,6 +390,7 @@ const MUST_COVER = [
   'list-item', 'list',
   'segmented-control-segment', 'segmented-control', 'link',
   'dialog', 'password-field',
+  '_pagination-item', 'pagination',
 ];
 
 /** Every token path in a brand's canonical tree, below the root — `icon.size.md`, `size.lg.height`. */

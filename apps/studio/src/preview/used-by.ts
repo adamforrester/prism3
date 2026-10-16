@@ -6,7 +6,7 @@
  * never imports the definitions themselves (UI redesign S7, T4; the generator's header says why).
  */
 export const USED_BY = {
-  defs: 41,
+  defs: 43,
   radius: {
     rounded: {
       "radius.2xl": [
@@ -15,7 +15,8 @@ export const USED_BY = {
       "radius.md": [
         "Button",
         "IconButton",
-        "SegmentedControl"
+        "SegmentedControl",
+        "Pagination"
       ],
       "radius.none": [
         "FlushIconButton",
@@ -48,7 +49,8 @@ export const USED_BY = {
         "IconButton"
       ],
       "radius.md": [
-        "SegmentedControl"
+        "SegmentedControl",
+        "Pagination"
       ],
       "radius.none": [
         "FlushIconButton",
@@ -77,7 +79,8 @@ export const USED_BY = {
         "Dialog"
       ],
       "radius.md": [
-        "SegmentedControl"
+        "SegmentedControl",
+        "Pagination"
       ],
       "radius.none": [
         "Button",
@@ -117,7 +120,8 @@ export const USED_BY = {
         "Select"
       ],
       "radius.md": [
-        "SegmentedControl"
+        "SegmentedControl",
+        "Pagination"
       ],
       "radius.none": [
         "FlushIconButton",
@@ -152,7 +156,8 @@ export const USED_BY = {
       "Tab",
       "Accordion",
       "SegmentedControl",
-      "PasswordField"
+      "PasswordField",
+      "Pagination"
     ],
     "size.md.height": [
       "FocusRing",
@@ -165,7 +170,8 @@ export const USED_BY = {
       "Tag",
       "Tab",
       "Divider",
-      "SegmentedControl"
+      "SegmentedControl",
+      "Pagination"
     ],
     "size.sm.height": [
       "Button",
@@ -176,7 +182,8 @@ export const USED_BY = {
       "Switch.Row",
       "Tag",
       "Tab",
-      "SegmentedControl"
+      "SegmentedControl",
+      "Pagination"
     ]
   },
   buttonSizes: {

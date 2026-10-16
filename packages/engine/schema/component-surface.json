@@ -384,6 +384,22 @@
     "password-field@outline-none": {
       "members": 84,
       "sha256": "771e3974cfb329db2abcf42bc98f0914a3851b1813a867dba8b83d0fa3c97946"
+    },
+    "_pagination-item": {
+      "members": 21,
+      "sha256": "6f5e5891365091c2709a9ed741a331f03bf4f4a58b45092aad7621bbd1229c83"
+    },
+    "_pagination-item@outline-solid-tint": {
+      "members": 21,
+      "sha256": "d26cab532323a214b262cbb51897920db75ee61c8f2c0adda93f37b31921e278"
+    },
+    "_pagination-item@outline-none": {
+      "members": 21,
+      "sha256": "b19695ed14c99eea1f0830f646ed0f438b2d91364909e149c7a3b1dd01cd4f6b"
+    },
+    "pagination": {
+      "members": 9,
+      "sha256": "1e703915d3729a2ced5784b418b2fa0fda21b3b72394f857ec994afe90ffe254"
     }
   }
 }

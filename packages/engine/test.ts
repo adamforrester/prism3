@@ -17885,8 +17885,9 @@ arm: {
     // The flush shape binds none.
     // `segmented-control-segment` joins (#2418, Q269.4): an unselected option's hover and pressed are the neutral wash,
     // and its selected tint is the subtle-fill Tag binds, so a solid-tint or no-hover brand reaches it as it reaches a tag.
-    ok(JSON.stringify(binders) === JSON.stringify(['button', 'button-destructive', 'button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'password-field', 'segmented-control-segment', 'select', 'tag', 'text-field', 'textarea']),
-      `#1608 the wash binders the lever reaches: button ×3, flush-icon-button ×3 (round), icon-button ×3, password-field, segmented-control-segment, select, tag, text-field, textarea (${binders.join(', ')})`);
+    // `_pagination-item` joins (#2665): a page cell's hover and pressed are IconButton.Neutral ghost's neutral wash.
+    ok(JSON.stringify(binders) === JSON.stringify(['_pagination-item', 'button', 'button-destructive', 'button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'password-field', 'segmented-control-segment', 'select', 'tag', 'text-field', 'textarea']),
+      `#1608 the wash binders the lever reaches: _pagination-item, button ×3, flush-icon-button ×3 (round), icon-button ×3, password-field, segmented-control-segment, select, tag, text-field, textarea (${binders.join(', ')})`);
 
     // BY-NAME MUTATION, in-suite: the RAW def (no wrap) under solid-tint misses the page wash — the 96-miss
     // shape the owner saw, outline's 48 and text's 48. Since #2324 the text appearance keys no wash by default, so the
@@ -18267,6 +18268,11 @@ arm: {
       // LINK (#2580): the label crosses size, weight, style and, the first type key to do so, the interaction state. The
       // underline is the state half: a standalone link is plain at rest and underlined at hover, pressed and focus.
       { def: componentDefs.find((d) => d.id === 'link')!, part: 'label', axes: { size: 3, weight: 2, style: 2, state: 2 } },
+      // Pagination (#2665): the item's number by selection (the current page's emphasis weight) and size, its bold reserve
+      // by size alone, and the compact text by size.
+      { def: componentDefs.find((d) => d.id === '_pagination-item')!, part: 'label', axes: { selection: 2, size: 3 } },
+      { def: componentDefs.find((d) => d.id === '_pagination-item')!, part: 'labelReserve', axes: { size: 3 } },
+      { def: componentDefs.find((d) => d.id === 'pagination')!, part: 'status', axes: { size: 3 }, at: { type: 'compact' } },
     ];
 
     // DIRECTION 1 — the authored table is the corpus. Discovered by walking every def's anatomy for a
@@ -21900,12 +21906,26 @@ arm: {
             // drops nodes — and a dropped `field-message` node orphans the `showMessage` visibility boolean
             // (#1426). Provisioning both mirrors the real build (the plugin builds each nested component and
             // the swap target first), where no node is dropped.
-            comps: [...new Set(plans.flatMap((p) => walkPlan(p.root)).flatMap((n) => [n.swapTarget, n.nestTarget]).filter((c): c is string => !!c))],
+            // #2665 — and every glyph a host's override swaps a nested instance to (Pagination's chevrons), as the real
+            // build has the icon set in the file.
+            comps: [...new Set(plans.flatMap((p) => walkPlan(p.root)).flatMap((n) => [n.swapTarget, n.nestTarget, ...(n.nestOverrides ?? []).filter((o) => o.type === 'INSTANCE_SWAP').map((o) => String(o.value))]).filter((c): c is string => !!c))],
             // #2317 — each nested component's TEXT properties, from the NESTED def's own declaration (never from the
             // host's `nestTexts`, the value under test), so a nested instance has the property a host overrides.
             compTexts: Object.fromEntries(componentDefs.filter((d) => d.figmaProperties?.texts).map((d) =>
               [d.id, Object.fromEntries(Object.entries(d.figmaProperties!.texts!).map(([k, t]) => [t.figmaName ?? k, t.default]))])),
           };
+          // #2665 — a nested component whose INSTANCE_SWAP a host overrides (Pagination's IconButton and Button) gets its
+          // texts AND swaps as declared properties, from the NESTED def's own `figmaProperties` (never from the host's
+          // overrides, the value under test). Only those: every other nested instance keeps the `compTexts` model.
+          const swapOverridden = new Set(plans.flatMap((p) => walkPlan(p.root)).filter((n) => (n.nestOverrides ?? []).some((o) => o.type === 'INSTANCE_SWAP')).map((n) => n.nestTarget).filter((c): c is string => !!c));
+          if (swapOverridden.size) opts.componentProps = Object.fromEntries([...swapOverridden].map((id) => {
+            const fp = componentDefs.find((d) => d.id === id)!.figmaProperties!;
+            const entries: [string, { type: string; defaultValue: string }][] = [
+              ...Object.entries(fp.texts ?? {}).map(([k, t]) => [t.figmaName ?? k, { type: 'TEXT', defaultValue: t.default }] as [string, { type: string; defaultValue: string }]),
+              ...Object.entries(fp.swaps ?? {}).map(([k, v]) => [typeof v === 'string' ? k : (v.figmaName ?? k), { type: 'INSTANCE_SWAP', defaultValue: '73:37' }] as [string, { type: string; defaultValue: string }]),
+            ];
+            return [id, Object.fromEntries(entries.map(([k, d], i) => [`${k}#7:${i}`, d]))];
+          }));
           // The exposure lives on a NODE deep in each member; no `runPayload` summary field carries it, so
           // it is read off the PAGE the payload appended the combined set to. Returns every nested instance
           // whose name is a nest-exposed part — the built node's `name` IS the part name (anatomy-figma's
@@ -26861,7 +26881,7 @@ arm: {
   // own constant.
   // `tag` joins (2026-09-27): its check mark is gated on `selection: ['selected']`, the checkbox mark's shape.
   // `link` joins (#2580, owner Q297.2): its trailing icon is gated on `style: ['standalone']`, so an inline link carries none.
-  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'radio-control', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion', 'list-item', 'link', 'dialog', 'password-field'];
+  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'radio-control', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion', 'list-item', 'link', 'dialog', 'password-field', 'pagination'];
   ok(GATED_EXPECTED.every((n) => gatedDefs.some((d) => d.id === n)) && gatedDefs.length === GATED_EXPECTED.length,
     `#910 the presentWhen projection rule below covers exactly [${GATED_EXPECTED.join(', ')}] — a def gaining a variant-gated part must be represented here, and a def losing one is a stale claim (found: ${gatedDefs.map((d) => d.id).join(', ') || 'none'})`);
   for (const def of gatedDefs) {
@@ -31092,6 +31112,9 @@ arm: {
     dialog: ['medium', 'small', 'large'],
     // #2317: the field family's order, through the shared field factory.
     'password-field': ['medium', 'small', 'large'],
+    // Pagination (#2665): Figma's first member is the code default, sizes medium first (owner decisions Q347, Q359).
+    '_pagination-item': ['medium', 'small', 'large'],
+    pagination: ['medium', 'small', 'large'],
   };
   const outOfOrder = (vals: readonly unknown[], ladder: readonly string[]): string | null => {
     const unknown = vals.filter((v) => !ladder.includes(String(v)));
@@ -31650,6 +31673,164 @@ arm: {
   let thrown = '';
   try { figmaEffectStyleName('color.scrim.default'); } catch (e) { thrown = (e as Error).message; }
   ok(figmaEffectStyleName('shadow.xl') === 'shadow/xl' && /not a shadow step/.test(thrown), `#2609 elevation names shadow/xl for shadow.xl and refuses a non-shadow ref (${thrown.slice(0, 80)})`);
+}
+
+// ------------------------------------------------------------------- #2665: pagination
+// Each owner call held against a literal (the proposal on #2665, approved with every call A on 2026-10-16), plus the
+// owner rules of #2706 the build follows (Q347/Q359 medium first). EXPECTED is typed here; ACTUAL is the projected
+// plan (the subject) and, for contrast, the resolved roles of every committed brand × mode. Each arm names its call,
+// so a mutation of the def fails the arm it breaks, by name.
+{
+  const findIn = (n: AnatomyPlan['root'], name: string): AnatomyPlan['root'] | undefined => n.name === name ? n : n.children.map((k) => findIn(k, name)).find(Boolean);
+  const itemDef = componentDefs.find((d) => d.id === '_pagination-item')!;
+  const pagDef = componentDefs.find((d) => d.id === 'pagination')!;
+  const items = figmaAnatomySet(itemDef, { swapTarget: 'FPO-default-icon' });
+  const pags = figmaAnatomySet(pagDef, { swapTarget: 'FPO-default-icon' });
+  const RUNG: Record<string, string> = { small: 'sm', medium: 'md', large: 'lg' };
+  const SIZES = ['medium', 'small', 'large'];
+
+  // (1) THE ITEM'S 21 MEMBERS (calls 7 A and 3 A): every page state unselected, rest and focus-visible on the current
+  // page, rest alone on the ellipsis, medium first (Q347, Q359). Typed out, in the set's order.
+  const ITEM_MEMBERS = [
+    ...SIZES.flatMap((s) => ['rest', 'hover', 'pressed', 'focus-visible'].map((st) => `type=page, selection=unselected, size=${s}, state=${st}`)),
+    ...SIZES.flatMap((s) => ['rest', 'focus-visible'].map((st) => `type=page, selection=selected, size=${s}, state=${st}`)),
+    ...SIZES.map((s) => `type=ellipsis, selection=unselected, size=${s}, state=rest`),
+  ];
+  ok(JSON.stringify(items.map(planComponentName)) === JSON.stringify(ITEM_MEMBERS) && figmaVariantCount(itemDef) === 21,
+    `#2665 call 7 pagination item: 21 members — a page at rest, hover, pressed and focus-visible, the current page at rest and focus-visible only, the ellipsis at rest only, medium first (got ${items.length}: ${items.map(planComponentName).filter((n) => !ITEM_MEMBERS.includes(n)).slice(0, 3).join(' | ') || 'order differs'})`);
+  ok(itemDef.id === '_pagination-item' && itemDef.name === 'Pagination.Item' && itemDef.category === 'navigation',
+    `#2665 call 16 / Q349 pagination item: id _pagination-item, named Pagination.Item, category navigation (got ${itemDef.id}, ${itemDef.name}, ${itemDef.category})`);
+
+  // (2) THE CELL AND ITS PAINT (calls 5 A and 8 A), per member: IconButton's height rung, a floor as wide as it is tall,
+  // radius.md, a space.100 inset; the current page filled primary under on-fill; another page the neutral wash at
+  // hover and pressed; the ellipsis in secondary text.
+  const PAINT: Record<string, { fill?: string; ink: string }> = {
+    'page/unselected/rest': { ink: 'color/interactive/neutral/text/rest' },
+    'page/unselected/hover': { fill: 'color/interactive/neutral/overlay/hover', ink: 'color/interactive/neutral/text/hover' },
+    'page/unselected/pressed': { fill: 'color/interactive/neutral/overlay/pressed', ink: 'color/interactive/neutral/text/pressed' },
+    'page/unselected/focus-visible': { ink: 'color/interactive/neutral/text/rest' },
+    'page/selected/rest': { fill: 'color/interactive/primary/fill/selected', ink: 'color/interactive/primary/on-fill' },
+    'page/selected/focus-visible': { fill: 'color/interactive/primary/fill/selected', ink: 'color/interactive/primary/on-fill' },
+    'ellipsis/unselected/rest': { ink: 'color/text/secondary' },
+  };
+  const cellOff: string[] = [];
+  for (const m of items) {
+    const c = m.coord as Record<string, string>;
+    const size = m.size!;
+    const want = PAINT[`${c.type}/${c.selection}/${c.state}`];
+    const label = findIn(m.root, 'label'), reserve = findIn(m.root, 'labelReserve'), ring = findIn(m.root, 'focusRing');
+    const got = { h: m.root.bound?.height, minW: m.root.bound?.minWidth, r: m.root.bound?.topLeftRadius, px: m.root.bound?.paddingLeft, fill: m.root.paints?.fills, ink: label?.paints?.fills,
+      type: label?.textStyle, reserve: reserve?.textStyle, ring: !!ring, chars: label?.characters };
+    const exp = { h: `size/${RUNG[size]}/height`, minW: `size/${RUNG[size]}/height`, r: 'radius/md', px: 'space/100', fill: want?.fill, ink: want?.ink,
+      type: `label/${RUNG[size]}/${c.selection === 'selected' ? 'emphasis' : 'default'}`, reserve: `label/${RUNG[size]}/emphasis`, ring: c.state === 'focus-visible', chars: c.type === 'ellipsis' ? '…' : '1' };
+    if (JSON.stringify(got) !== JSON.stringify(exp)) cellOff.push(`${planComponentName(m)}: ${JSON.stringify(got)} (want ${JSON.stringify(exp)})`);
+  }
+  ok(items.length === 21 && cellOff.length === 0,
+    `#2665 calls 5 and 8 pagination item cell: size/{md,sm,lg}/height tall and as wide, radius/md, space/100 inset; the current page interactive/primary/fill/selected under on-fill in the emphasis weight; a page neutral text with the overlay wash at hover and pressed; the ellipsis text/secondary reading "…"; the bold reserve in emphasis; the ring at focus-visible only (${cellOff.length} off — ${cellOff.slice(0, 2).join('; ') || 'none'})`);
+
+  // (3) CONTRAST over every committed brand × mode (5 brands × 4 modes = 20, a literal), measured from the resolved
+  // roles, never from the def: the current page's number on its fill at 4.5:1 and the fill against the page at 3:1
+  // (SC 1.4.3, 1.4.11; the proposal's lowest 4.56 and 4.05); a page's number at rest on the page and at hover and
+  // pressed on the wash composited over the page at 4.5:1; the ellipsis and the compact text on the page at 4.5:1.
+  // The roles are the ones the plans bind (read off the subject above, then measured independently).
+  {
+    const themes: [string, any][] = loadedRows([
+      ['prism3', exampleTheme('prism3', () => brandTheme(exampleBrands()['prism3'] as BrandInput))],
+      ['nb', nbTheme()],
+      ['aurora', exampleTheme('aurora', () => brandTheme(exampleBrands()['aurora'] as BrandInput))],
+      ['harbor', exampleTheme('harbor', () => brandTheme(exampleBrands()['harbor'] as BrandInput))],
+      ['wendys', exampleTheme('wendys', () => brandTheme(standardToBrandInput(parseStandardDesignMd(readFileSync(resolve(HERE, './examples/wendys.design.md'), 'utf8'))).input))],
+    ]);
+    const CELLS = 20;
+    const role = (v: string | undefined) => (v ?? '(unbound)').replace(/^color\//, '').replace(/\//g, '.');
+    const at = (sel: string, st: string, type = 'page') => items.find((m) => (m.coord as Record<string, string>).type === type && (m.coord as Record<string, string>).selection === sel && m.size === 'medium' && (m.coord as Record<string, string>).state === st)!;
+    const sel = at('selected', 'rest');
+    const FILL = role(sel.root.paints?.fills), ON_FILL = role(findIn(sel.root, 'label')?.paints?.fills);
+    const pairs: { what: string; ink: string; wash?: string; ground?: string; floor: number }[] = [
+      { what: 'current page number on its fill', ink: ON_FILL, ground: FILL, floor: 4.5 },
+      { what: 'current page fill against the page', ink: FILL, floor: 3 },
+      ...['rest', 'hover', 'pressed'].map((st) => ({ what: `page number at ${st}`, ink: role(findIn(at('unselected', st).root, 'label')?.paints?.fills), wash: at('unselected', st).root.paints?.fills ? role(at('unselected', st).root.paints!.fills) : undefined, floor: 4.5 })),
+      { what: 'ellipsis', ink: role(findIn(at('unselected', 'rest', 'ellipsis').root, 'label')?.paints?.fills), floor: 4.5 },
+      { what: 'compact text', ink: role(findIn(pags.find((p) => (p.coord as Record<string, string>).type === 'compact' && p.size === 'medium')!.root, 'status')?.paints?.fills), floor: 4.5 },
+    ];
+    for (const p of pairs) {
+      const low: string[] = [];
+      let measured = 0, min = Infinity;
+      for (const [brand, th] of themes) for (const m of resolveAllModes(th)) {
+        const r = m.roles as Record<string, { hex?: string; alpha?: number }>;
+        const page = r['background.primary'], ink = r[p.ink], ground = p.ground ? r[p.ground] : undefined, wash = p.wash ? r[p.wash] : undefined;
+        if (!page?.hex || !ink?.hex || (p.ground && !ground?.hex) || (p.wash && !wash?.hex)) { low.push(`${brand}/${m.mode}: missing`); continue; }
+        let bg = hexToRgb(page.hex);
+        if (ground?.hex) bg = composite(bg, hexToRgb(ground.hex), ground.alpha ?? 1);
+        if (wash?.hex) bg = composite(bg, hexToRgb(wash.hex), wash.alpha ?? 1);
+        const ratio = contrast(composite(bg, hexToRgb(ink.hex), ink.alpha ?? 1), bg);
+        measured++; min = Math.min(min, ratio);
+        if (ratio < p.floor) low.push(`${brand}/${m.mode} ${ratio.toFixed(2)}`);
+      }
+      ok(measured === CELLS && low.length === 0,
+        `#2665 contrast pagination (${p.what}): ${p.ink}${p.wash ? ` on ${p.wash} over the page` : p.ground ? ` on ${p.ground}` : ' on the page'} clears ${p.floor}:1 in all ${measured} of ${CELLS} brand × mode cells (lowest ${min.toFixed(2)})${low.length ? ` — ${low.join('; ')}` : ''}`);
+    }
+    ok(FILL === 'interactive.primary.fill.selected' && ON_FILL === 'interactive.primary.on-fill',
+      `#2665 call 5 the current page binds interactive.primary.fill.selected under interactive.primary.on-fill, the roles measured above (got ${FILL}, ${ON_FILL})`);
+  }
+
+  // (4) THE PAGINATION'S 9 MEMBERS AND WHAT EACH HOLDS (calls 1, 2, 4, 6, 16), typed out. numbered: an IconButton.Neutral
+  // ghost square with the left chevron, the items slot holding 1 … 4 [5] 6 … 10 (page 5 of 10), and one with the right
+  // chevron; compact: the two buttons around "Page 5 of 10"; simple: two Button.Neutral text, "Previous" with a leading
+  // left chevron and "Next" with a trailing right chevron, built at 428px. Every nested size follows the row's.
+  const PAG_MEMBERS = ['numbered', 'compact', 'simple'].flatMap((t) => SIZES.map((s) => `type=${t}, size=${s}`));
+  ok(JSON.stringify(pags.map(planComponentName)) === JSON.stringify(PAG_MEMBERS),
+    `#2665 call 1 pagination: 9 members, type numbered, compact, simple × size medium, small, large, in that order (got ${pags.map(planComponentName).join(' | ')})`);
+  const WINDOW = [['page', 'unselected', '1'], ['ellipsis', 'unselected', '…'], ['page', 'unselected', '4'], ['page', 'selected', '5'], ['page', 'unselected', '6'], ['ellipsis', 'unselected', '…'], ['page', 'unselected', '10']];
+  const ovText = (n: AnatomyPlan['root'] | undefined) => (n?.nestOverrides ?? []).find((o) => o.type === 'TEXT')?.value;
+  const ovSwap = (n: AnatomyPlan['root'] | undefined) => (n?.nestOverrides ?? []).find((o) => o.type === 'INSTANCE_SWAP')?.value;
+  const pagOff: string[] = [];
+  for (const m of pags) {
+    const t = (m.coord as Record<string, string>).type, size = m.size!;
+    const prev = findIn(m.root, 'previous'), next = findIn(m.root, 'next'), slot = findIn(m.root, 'items'), status = findIn(m.root, 'status');
+    const pb = findIn(m.root, 'previousButton'), nb = findIn(m.root, 'nextButton');
+    const icon = (n: AnatomyPlan['root'] | undefined) => n && { to: n.nestTarget, v: n.nestVariant, swap: ovSwap(n), expose: n.nestExpose };
+    const got = {
+      prev: icon(prev), next: icon(next),
+      slot: slot && { type: slot.type, gap: slot.bound?.itemSpacing, settings: slot.slotSettings, kids: slot.children.map((k) => [k.nestTarget, (k.nestVariant as Record<string, string>)?.type, (k.nestVariant as Record<string, string>)?.selection, (k.nestVariant as Record<string, string>)?.size, ovText(k) ?? ((k.nestVariant as Record<string, string>)?.type === 'ellipsis' ? '…' : '1')]) },
+      status: status && { chars: status.characters, type: status.textStyle, ink: status.paints?.fills },
+      simple: pb && nb && [pb.nestTarget, pb.nestVariant, ovText(pb), ovSwap(pb), nb.nestTarget, nb.nestVariant, ovText(nb), ovSwap(nb)],
+      width: m.root.placementWidth,
+    };
+    const ib = (chev: string) => ({ to: 'icon-button-neutral', v: { appearance: 'ghost', size, shape: 'square', surface: 'default', state: 'rest' }, swap: `icon/${chev}`, expose: ['state'] });
+    const bv = (lead: string, trail: string) => ({ appearance: 'text', size, surface: 'default', inset: 'default', state: 'rest', 'leading icon': lead, 'trailing icon': trail });
+    const exp = {
+      prev: t === 'simple' ? undefined : ib('chevron-left'), next: t === 'simple' ? undefined : ib('chevron-right'),
+      slot: t === 'numbered' ? { type: 'CONTENT_SLOT', gap: 'space/050', settings: { minChildren: 1 }, kids: WINDOW.map(([ty, se, label]) => ['_pagination-item', ty, se, size, label]) } : undefined,
+      status: t === 'compact' ? { chars: 'Page 5 of 10', type: `label/${RUNG[size]}/default`, ink: 'color/text/primary' } : undefined,
+      simple: t === 'simple' ? ['button-neutral', bv('true', 'false'), 'Previous', 'icon/chevron-left', 'button-neutral', bv('false', 'true'), 'Next', 'icon/chevron-right'] : undefined,
+      width: t === 'simple' ? 428 : undefined,
+    };
+    if (JSON.stringify(got) !== JSON.stringify(exp)) pagOff.push(`${planComponentName(m)}: ${JSON.stringify(got).slice(0, 400)} (want ${JSON.stringify(exp).slice(0, 400)})`);
+  }
+  ok(pagOff.length === 0,
+    `#2665 calls 2, 4, 6 and 16 pagination contents: numbered is IconButton.Neutral ghost square chevrons around a native items slot (at least one) of 1 … 4 [5] 6 … 10; compact the same buttons around "Page 5 of 10" in label default and text/primary; simple two Button.Neutral text, "Previous" leading and "Next" trailing chevrons, built at 428px; every nested size follows the row's and prev and next expose their state (${pagOff.length} off — ${pagOff.slice(0, 1).join('; ') || 'none'})`);
+  ok(pagDef.summary === 'Moves between pages of a long list or set of results, and shows which page is open.' && pagDef.category === 'navigation'
+    && JSON.stringify(pagDef.aliases) === JSON.stringify(['pager', 'pagination-nav', 'page-controls']) && pagDef.props.find((p) => p.name === 'label')?.default === 'Pagination',
+    `#2665 call 16 pagination: the approved summary, category navigation, aliases pager, pagination-nav and page-controls, and the nav label "Pagination" (got ${pagDef.category}, ${JSON.stringify(pagDef.aliases)})`);
+  // Call 9 A and call 12 A, in the code contract: an end keeps previous and next in place with aria-disabled, never
+  // native disabled; getHref present renders links, absent buttons, never href="#".
+  ok(pagDef.anatomy!.codeOnly.some((e) => /^At an end — /.test(e) && /aria-disabled="true"/.test(e) && /Native disabled is not used/.test(e))
+    && pagDef.anatomy!.codeOnly.some((e) => /^links or buttons — with getHref/.test(e) && /Never <a href="#">/.test(e))
+    && pagDef.anatomy!.codeOnly.some((e) => /^The window — with siblingCount 1 and boundaryCount 1/.test(e) && /7 slots/.test(e)),
+    '#2665 calls 6, 9 and 12 pagination code contract: seven slots, previous and next aria-disabled at an end (never native disabled), and links from getHref or buttons, never href="#"');
+
+  // (5) excludeCoordinates OVER THE STATE AXIS (#2665, the mechanism call 7 needs). The validator takes the state
+  // axis as one more dimension, refuses a state value the axis does not have and an exclusion that removes the
+  // first member, and `figmaVariantCount` counts the removal by arithmetic (21 here, typed above).
+  const withEx = (ex: Record<string, string[]>[]): ComponentDef => ({ ...itemDef, figmaProperties: { ...itemDef.figmaProperties!, excludeCoordinates: ex } });
+  ok(figmaPropertyErrors(itemDef).length === 0, `#2665 excludeCoordinates on the state axis: Pagination.Item validates clean (${figmaPropertyErrors(itemDef).slice(0, 2).join('; ')})`);
+  ok(figmaPropertyErrors(withEx([{ selection: ['selected'], state: ['dragging'] }])).some((m) => /names 'dragging', which is not a value of 'state'/.test(m)),
+    '#2665 excludeCoordinates: a state value the state axis does not have is refused, naming it');
+  ok(figmaPropertyErrors(withEx([{ type: ['page'], state: ['rest'] }])).some((m) => /removes the set's first member/.test(m)),
+    '#2665 excludeCoordinates: removing rest from the default type removes the first member, and is refused');
+  ok(figmaVariantCount(withEx([])) === 48 && figmaVariantCount(withEx([{ selection: ['selected'], state: ['hover', 'pressed'] }])) === 36,
+    `#2665 figmaVariantCount: the full item grid is 2 × 2 × 3 × 4 = 48, and removing selected at hover and pressed (both types, three sizes: 12) leaves 36 (got ${figmaVariantCount(withEx([]))}, ${figmaVariantCount(withEx([{ selection: ['selected'], state: ['hover', 'pressed'] }]))})`);
 }
 
 // ------------------------------------------------------------------- #2317: the Password field

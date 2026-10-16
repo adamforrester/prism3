@@ -175,9 +175,12 @@ const plansOf = (id: string): AnatomyPlan[] => {
   if (!d) throw new Error(`no def ${id}`);
   return figmaAnatomySet(d, { swapTarget: SWAP_TARGET });
 };
-const planComps = (n: { swapTarget?: string; nestTarget?: string; children?: unknown[] }): string[] => [
+// #2665: and every glyph a nested instance's override swaps to (Pagination's chevrons), which a real file holds in its icon
+// set. An update refuses a plan whose swap targets are not in the file, so a world without them could never update.
+const planComps = (n: { swapTarget?: string; nestTarget?: string; nestOverrides?: readonly { type: string; value: unknown }[]; children?: unknown[] }): string[] => [
   ...(n.swapTarget ? [n.swapTarget] : []),
   ...(n.nestTarget ? [n.nestTarget] : []),
+  ...(n.nestOverrides ?? []).filter((o) => o.type === 'INSTANCE_SWAP').map((o) => String(o.value)),
   ...((n.children ?? []) as (typeof n)[]).flatMap(planComps),
 ];
 type PlanNode = AnatomyPlan['root'];

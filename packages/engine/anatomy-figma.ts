@@ -1155,7 +1155,7 @@ export const figmaAnatomyPlan = (
   // walker that enumerates the declared grid by itself would otherwise plan a member Figma never gets, and
   // report on it as though it existed. Refusing here makes every such walker skip the exclusion or fail
   // by name. Only a coordinate that supplies every axis an entry names can match it.
-  if (isExcludedCoordinate(def, { ...(size === undefined ? {} : { size }), ...Object.fromEntries(Object.keys(def.variants ?? {}).map((a) => [a, axisValue(a)])) }))
+  if (isExcludedCoordinate(def, { ...(size === undefined ? {} : { size }), ...Object.fromEntries(Object.keys(def.variants ?? {}).map((a) => [a, axisValue(a)])), ...(state ? { [def.figmaProperties?.stateAxis?.name ?? 'state']: state } : {}) }))
     throw new Error(`${def.id}: this coordinate is excluded by figmaProperties.excludeCoordinates — the set has no such member, so it has no plan`);
   // WHERE THE PLAN SITS IN THE GRID. Only axes the caller actually supplied, so a structure-only plan
   // has an EMPTY coord — a load-bearing invariant with its own assertion, because it is what lets a
@@ -2785,12 +2785,13 @@ export const figmaAnatomySet = (def: ComponentDef, opts: { swapTarget?: string }
   // still what is enumerated; the exclusion is applied member by member, so the order of what survives is
   // the order it had in the full grid. `figmaVariantCount` counts the same removal by arithmetic, which is
   // what keeps #1355's count check a comparison rather than this filter checked against itself.
-  const excludedAt = (combo: (string | undefined)[], size: string | undefined): boolean =>
-    isExcludedCoordinate(def, { ...(size === undefined ? {} : { size }), ...Object.fromEntries(gridAxes.map((a, i) => [a, combo[i]])) });
+  // The state is part of the coordinate (#2665): an entry may remove a state from some members only.
+  const excludedAt = (combo: (string | undefined)[], size: string | undefined, state: string | undefined): boolean =>
+    isExcludedCoordinate(def, { ...(size === undefined ? {} : { size }), ...Object.fromEntries(gridAxes.map((a, i) => [a, combo[i]])), ...(state ? { [fp.stateAxis?.name ?? 'state']: state } : {}) });
   for (const combo of coords)
     for (const size of sizes)
-      if (!excludedAt(combo, size))
-        for (const state of states)
+      for (const state of states)
+        if (!excludedAt(combo, size, state))
           for (const leading of bools('leading'))
             for (const trailing of bools('trailing'))
               plans.push(figmaAnatomyPlan(def, size, {
@@ -4727,7 +4728,7 @@ export const CANVAS_FURNITURE: ReadonlySet<string> = new Set([
   'radio-row', 'radio-group', 'switch-control', 'switch-row', 'select', 'veil', 'image-placeholder', 'badge', 'tag', 'tab', 'tabs',
   'divider', '_accordion-indicator', 'accordion', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'list-item',
   'list', 'segmented-control-segment', 'segmented-control', 'link',
-  'dialog', 'password-field',
+  'dialog', 'password-field', '_pagination-item', 'pagination',
 ]);
 
 export const planSetLayout = (plans: AnatomyPlan[], fn: string) => {

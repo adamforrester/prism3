@@ -9,6 +9,16 @@
   "note": "edges: every part that nests another component (anatomy part with `nests`), with its nesting relation. components.<id>.affectedByChange lists every component that nests it directly or transitively — the components a change to it reaches. inherits is a reading reference only: the engine copies no fields across it, so it does not appear in affectedByChange.",
   "edges": [
     {
+      "from": "_pagination-item",
+      "to": "focus-ring",
+      "part": "focusRing",
+      "partKind": "absolute",
+      "relation": "nest-fixed",
+      "variant": {
+        "surface": "default"
+      }
+    },
+    {
       "from": "accordion",
       "to": "divider",
       "part": "divider",
@@ -596,6 +606,202 @@
       "follow": [
         "type",
         "size"
+      ]
+    },
+    {
+      "from": "pagination",
+      "to": "_pagination-item",
+      "part": "item1",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "type": "page",
+        "selection": "unselected",
+        "size": "medium",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "pagination",
+      "to": "_pagination-item",
+      "part": "item2",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "type": "ellipsis",
+        "selection": "unselected",
+        "size": "medium",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "pagination",
+      "to": "_pagination-item",
+      "part": "item3",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "type": "page",
+        "selection": "unselected",
+        "size": "medium",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "pagination",
+      "to": "_pagination-item",
+      "part": "item4",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "type": "page",
+        "selection": "selected",
+        "size": "medium",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "pagination",
+      "to": "_pagination-item",
+      "part": "item5",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "type": "page",
+        "selection": "unselected",
+        "size": "medium",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "pagination",
+      "to": "_pagination-item",
+      "part": "item6",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "type": "ellipsis",
+        "selection": "unselected",
+        "size": "medium",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "pagination",
+      "to": "_pagination-item",
+      "part": "item7",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "type": "page",
+        "selection": "unselected",
+        "size": "medium",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "pagination",
+      "to": "icon-button-neutral",
+      "part": "next",
+      "partKind": "nest",
+      "relation": "nest-exposed",
+      "variant": {
+        "appearance": "ghost",
+        "size": "medium",
+        "shape": "square",
+        "surface": "default",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ],
+      "expose": [
+        "state"
+      ]
+    },
+    {
+      "from": "pagination",
+      "to": "button-neutral",
+      "part": "nextButton",
+      "partKind": "nest",
+      "relation": "nest-exposed",
+      "variant": {
+        "appearance": "text",
+        "size": "medium",
+        "surface": "default",
+        "inset": "default",
+        "state": "rest",
+        "leading icon": "false",
+        "trailing icon": "true"
+      },
+      "follow": [
+        "size"
+      ],
+      "expose": [
+        "state"
+      ]
+    },
+    {
+      "from": "pagination",
+      "to": "icon-button-neutral",
+      "part": "previous",
+      "partKind": "nest",
+      "relation": "nest-exposed",
+      "variant": {
+        "appearance": "ghost",
+        "size": "medium",
+        "shape": "square",
+        "surface": "default",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ],
+      "expose": [
+        "state"
+      ]
+    },
+    {
+      "from": "pagination",
+      "to": "button-neutral",
+      "part": "previousButton",
+      "partKind": "nest",
+      "relation": "nest-exposed",
+      "variant": {
+        "appearance": "text",
+        "size": "medium",
+        "surface": "default",
+        "inset": "default",
+        "state": "rest",
+        "leading icon": "true",
+        "trailing icon": "false"
+      },
+      "follow": [
+        "size"
+      ],
+      "expose": [
+        "state"
       ]
     },
     {
@@ -1225,6 +1431,21 @@
       ],
       "inheritedBy": []
     },
+    "_pagination-item": {
+      "nests": [
+        "focus-ring"
+      ],
+      "nestsTransitively": [
+        "focus-ring"
+      ],
+      "nestedBy": [
+        "pagination"
+      ],
+      "affectedByChange": [
+        "pagination"
+      ],
+      "inheritedBy": []
+    },
     "accordion": {
       "nests": [
         "_accordion-indicator",
@@ -1297,8 +1518,12 @@
         "focus-ring",
         "spinner"
       ],
-      "nestedBy": [],
-      "affectedByChange": [],
+      "nestedBy": [
+        "pagination"
+      ],
+      "affectedByChange": [
+        "pagination"
+      ],
       "inheritedBy": [
         "icon-button-neutral"
       ]
@@ -1464,6 +1689,7 @@
       "nests": [],
       "nestsTransitively": [],
       "nestedBy": [
+        "_pagination-item",
         "accordion",
         "button",
         "button-destructive",
@@ -1487,6 +1713,7 @@
         "textarea"
       ],
       "affectedByChange": [
+        "_pagination-item",
         "accordion",
         "button",
         "button-destructive",
@@ -1502,6 +1729,7 @@
         "icon-button-destructive",
         "icon-button-neutral",
         "link",
+        "pagination",
         "password-field",
         "radio-control",
         "radio-group",
@@ -1568,10 +1796,12 @@
         "spinner"
       ],
       "nestedBy": [
-        "dialog"
+        "dialog",
+        "pagination"
       ],
       "affectedByChange": [
-        "dialog"
+        "dialog",
+        "pagination"
       ],
       "inherits": "button-neutral",
       "inheritedBy": [
@@ -1616,6 +1846,23 @@
       "affectedByChange": [
         "list"
       ],
+      "inheritedBy": []
+    },
+    "pagination": {
+      "nests": [
+        "_pagination-item",
+        "button-neutral",
+        "icon-button-neutral"
+      ],
+      "nestsTransitively": [
+        "_pagination-item",
+        "button-neutral",
+        "focus-ring",
+        "icon-button-neutral",
+        "spinner"
+      ],
+      "nestedBy": [],
+      "affectedByChange": [],
       "inheritedBy": []
     },
     "password-field": {
@@ -1747,6 +1994,7 @@
         "icon-button",
         "icon-button-destructive",
         "icon-button-neutral",
+        "pagination",
         "password-field"
       ],
       "inheritedBy": []
@@ -1864,6 +2112,7 @@
   },
   "depth": {
     "_accordion-indicator": 0,
+    "_pagination-item": 1,
     "accordion": 1,
     "badge": 0,
     "button": 1,
@@ -1888,6 +2137,7 @@
     "link": 1,
     "list": 1,
     "list-item": 0,
+    "pagination": 2,
     "password-field": 2,
     "radio-control": 1,
     "radio-group": 3,

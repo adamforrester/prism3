@@ -17,6 +17,30 @@
     },
     "members": 12
   },
+  "_pagination-item": {
+    "axes": {
+      "selection": [
+        "selected",
+        "unselected"
+      ],
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ],
+      "state": [
+        "focus-visible",
+        "hover",
+        "pressed",
+        "rest"
+      ],
+      "type": [
+        "ellipsis",
+        "page"
+      ]
+    },
+    "members": 21
+  },
   "accordion": {
     "axes": {
       "expansion": [
@@ -572,6 +596,21 @@
         "icon",
         "ordered",
         "unordered"
+      ]
+    },
+    "members": 9
+  },
+  "pagination": {
+    "axes": {
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ],
+      "type": [
+        "compact",
+        "numbered",
+        "simple"
       ]
     },
     "members": 9

@@ -98,10 +98,11 @@ Type: color. Bound by 7 component(s).
 
 ### `color.border.focus`
 
-Type: color. Bound by 17 component(s).
+Type: color. Bound by 18 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| _pagination-item | `focus-ring` | (not drawn) | — |
 | button | `focus-ring` | (not drawn) | — |
 | button-destructive | `focus-ring` | (not drawn) | — |
 | button-neutral | `focus-ring` | (not drawn) | — |
@@ -804,10 +805,11 @@ Type: color. Bound by 2 component(s).
 
 ### `color.interactive.neutral.overlay.hover`
 
-Type: color. Bound by 9 component(s).
+Type: color. Bound by 10 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| _pagination-item | `unselected.page.overlay.hover` | container | selection: unselected · state: hover · type: page (3 of 21) |
 | button-neutral | `outline.overlay.hover` | container | appearance: outline · inset: default · state: hover · surface: default (12 of 576) |
 | flush-icon-button-neutral | `round.overlay.hover` | container | shape: round · state: hover (3 of 30) |
 | icon-button-neutral | `ghost.overlay.hover`, `outline.overlay.hover` | container | appearance: ghost, outline · state: hover · surface: default (12 of 216) |
@@ -820,10 +822,11 @@ Type: color. Bound by 9 component(s).
 
 ### `color.interactive.neutral.overlay.pressed`
 
-Type: color. Bound by 5 component(s).
+Type: color. Bound by 6 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| _pagination-item | `unselected.page.overlay.pressed` | container | selection: unselected · state: pressed · type: page (3 of 21) |
 | button-neutral | `outline.overlay.pressed` | container | appearance: outline · inset: default · state: pressed · surface: default (12 of 576) |
 | flush-icon-button-neutral | `round.overlay.pressed` | container | shape: round · state: pressed (3 of 30) |
 | icon-button-neutral | `ghost.overlay.pressed`, `outline.overlay.pressed` | container | appearance: ghost, outline · state: pressed · surface: default (12 of 216) |
@@ -832,10 +835,12 @@ Type: color. Bound by 5 component(s).
 
 ### `color.interactive.neutral.text.hover`
 
-Type: color. Bound by 4 component(s).
+Type: color. Bound by 5 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| _pagination-item | `unselected.page.label.hover` | label | selection: unselected · state: hover · type: page (3 of 21) |
+|  |  | labelReserve | selection: unselected · state: hover · type: page (3 of 21) |
 | button-neutral | `outline.label.hover`, `text.label.hover` | label | appearance: outline, text · state: hover · surface: default (36 of 576) |
 | segmented-control-segment | `unselected.label.hover` | label | selection: unselected · state: hover (3 of 30) |
 |  |  | labelReserve | selection: unselected · state: hover (3 of 30) |
@@ -845,10 +850,12 @@ Type: color. Bound by 4 component(s).
 
 ### `color.interactive.neutral.text.pressed`
 
-Type: color. Bound by 4 component(s).
+Type: color. Bound by 5 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| _pagination-item | `unselected.page.label.pressed` | label | selection: unselected · state: pressed · type: page (3 of 21) |
+|  |  | labelReserve | selection: unselected · state: pressed · type: page (3 of 21) |
 | button-neutral | `outline.label.pressed`, `text.label.pressed` | label | appearance: outline, text · state: pressed · surface: default (36 of 576) |
 | segmented-control-segment | `unselected.label.pressed` | label | selection: unselected · state: pressed (3 of 30) |
 |  |  | labelReserve | selection: unselected · state: pressed (3 of 30) |
@@ -858,10 +865,12 @@ Type: color. Bound by 4 component(s).
 
 ### `color.interactive.neutral.text.rest`
 
-Type: color. Bound by 5 component(s).
+Type: color. Bound by 6 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| _pagination-item | `unselected.page.label` | label | selection: unselected · state: focus-visible, rest · type: page (6 of 21) |
+|  |  | labelReserve | selection: unselected · state: focus-visible, rest · type: page (6 of 21) |
 | accordion | `label` | label | every member (24 of 24) |
 | button-neutral | `outline.label`, `text.label` | label | appearance: outline, text · state: focus-visible, pending, rest · surface: default (108 of 576) |
 | segmented-control-segment | `selected.label`, `unselected.label` | label | state: focus-visible, hover, pressed, rest (18 of 30) |
@@ -939,10 +948,11 @@ Type: color. Bound by 2 component(s).
 
 ### `color.interactive.primary.fill.selected`
 
-Type: color. Bound by 3 component(s).
+Type: color. Bound by 4 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| _pagination-item | `selected.page.fill` | container | selection: selected · state: focus-visible, rest · type: page (6 of 21) |
 | checkbox-control | `checked.fill`, `indeterminate.fill` | control | selection: checked, indeterminate · state: error, focus-visible, rest (18 of 54) |
 | radio-control | `checked.indicator` | dot | selection: checked · state: focus-visible, hover, pressed, rest (12 of 30) |
 | switch-control | `on.fill`, `on.icon` | onGlyph | selection: on · state: error, focus-visible, hover, pressed, rest (10 of 24) |
@@ -988,10 +998,12 @@ Type: color. Bound by 4 component(s).
 
 ### `color.interactive.primary.on-fill`
 
-Type: color. Bound by 4 component(s).
+Type: color. Bound by 5 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| _pagination-item | `selected.page.label` | label | selection: selected · state: focus-visible, rest · type: page (6 of 21) |
+|  |  | labelReserve | selection: selected · state: focus-visible, rest · type: page (6 of 21) |
 | button | `filled.icon`, `filled.label` | label | appearance: filled · inset: default · state: focus-visible, hover, pending, pressed, rest · surface: default (60 of 576) |
 |  |  | leadingVisual | appearance: filled · inset: default · leading: true · state: focus-visible, hover, pressed, rest · surface: default (24 of 576) |
 |  |  | spinner | appearance: filled · inset: default · state: pending · surface: default (12 of 576) |
@@ -1726,7 +1738,7 @@ Type: color. Bound by 1 component(s).
 
 ### `color.text.primary`
 
-Type: color. Bound by 12 component(s).
+Type: color. Bound by 13 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -1739,6 +1751,7 @@ Type: color. Bound by 12 component(s).
 |  |  | text | emphasis: primary · state: rest (6 of 24) |
 | list-item | `label` | number | type: ordered (3 of 9) |
 |  |  | text | every member (9 of 9) |
+| pagination | `label` | status | type: compact (3 of 9) |
 | password-field | `caret`, `caret-end`, `label` | caret | state: focus-visible (12 of 84) |
 |  |  | caretEnd | state: focus-visible-filled (12 of 84) |
 |  |  | value | state: filled, focus-visible-filled, read-only (36 of 84) |
@@ -1753,10 +1766,12 @@ Type: color. Bound by 12 component(s).
 
 ### `color.text.secondary`
 
-Type: color. Bound by 7 component(s).
+Type: color. Bound by 8 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| _pagination-item | `unselected.ellipsis.label` | label | selection: unselected · state: rest · type: ellipsis (3 of 21) |
+|  |  | labelReserve | selection: unselected · state: rest · type: ellipsis (3 of 21) |
 | dialog | `indicator` | description | every member (15 of 15) |
 | field-label | `secondary.indicator`, `secondary.label` | indicator | emphasis: secondary · state: rest (6 of 24) |
 |  |  | text | emphasis: secondary · state: rest (6 of 24) |
@@ -2069,10 +2084,11 @@ Type: dimension. Bound by 1 component(s).
 
 ### `focus.ring.offset`
 
-Type: dimension. Bound by 17 component(s).
+Type: dimension. Bound by 18 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| _pagination-item | `ring-offset` | focusRing | state: focus-visible · type: page (6 of 21) |
 | button | `ring-offset` | focusRing | state: focus-visible (96 of 576) |
 | button-destructive | `ring-offset` | focusRing | state: focus-visible (96 of 576) |
 | button-neutral | `ring-offset` | focusRing | state: focus-visible (96 of 576) |
@@ -2114,10 +2130,11 @@ Type: strokeStyle. Bound by 1 component(s).
 
 ### `focus.ring.width`
 
-Type: dimension. Bound by 21 component(s).
+Type: dimension. Bound by 22 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| _pagination-item | `ring-width` | focusRing | state: focus-visible · type: page (6 of 21) |
 | button | `ring-width` | focusRing | state: focus-visible (96 of 576) |
 | button-destructive | `ring-width` | focusRing | state: focus-visible (96 of 576) |
 | button-neutral | `ring-width` | focusRing | state: focus-visible (96 of 576) |
@@ -2292,10 +2309,11 @@ Type: dimension. Bound by 1 component(s).
 
 ### `radius.md`
 
-Type: dimension. Bound by 7 component(s).
+Type: dimension. Bound by 8 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| _pagination-item | `radius` | container | every member (21 of 21) |
 | button | `radius` | container | every member (576 of 576) |
 | button-destructive | `radius` | container | every member (576 of 576) |
 | button-neutral | `radius` | container | every member (576 of 576) |
@@ -2358,10 +2376,11 @@ Type: shadow. Bound by 1 component(s).
 
 ### `size.lg.height`
 
-Type: dimension. Bound by 18 component(s).
+Type: dimension. Bound by 19 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| _pagination-item | `size.large.height` | container | size: large (7 of 21) |
 | accordion | `size.large.min-height` | header | size: large (8 of 24) |
 | button | `size.large.height` | container | size: large (192 of 576) |
 | button-destructive | `size.large.height` | container | size: large (192 of 576) |
@@ -2384,10 +2403,11 @@ Type: dimension. Bound by 18 component(s).
 
 ### `size.md.height`
 
-Type: dimension. Bound by 17 component(s).
+Type: dimension. Bound by 18 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| _pagination-item | `size.medium.height` | container | size: medium (7 of 21) |
 | button | `size.medium.height` | container | size: medium (192 of 576) |
 | button-destructive | `size.medium.height` | container | size: medium (192 of 576) |
 | button-neutral | `size.medium.height` | container | size: medium (192 of 576) |
@@ -2420,10 +2440,11 @@ Type: dimension. Bound by 4 component(s).
 
 ### `size.sm.height`
 
-Type: dimension. Bound by 15 component(s).
+Type: dimension. Bound by 16 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| _pagination-item | `size.small.height` | container | size: small (7 of 21) |
 | button | `size.small.height` | container | size: small (192 of 576) |
 | button-destructive | `size.small.height` | container | size: small (192 of 576) |
 | button-neutral | `size.small.height` | container | size: small (192 of 576) |
@@ -2443,10 +2464,12 @@ Type: dimension. Bound by 15 component(s).
 
 ### `space.0`
 
-Type: dimension. Bound by 17 component(s).
+Type: dimension. Bound by 18 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| _pagination-item | `pad-y`, `reserve-height` | container | every member (21 of 21) |
+|  |  | reserve | every member (21 of 21) |
 | accordion | `size.large.panel-pad-top`, `size.medium.panel-pad-top`, `size.small.panel-pad-top` | content | expansion: expanded (12 of 24) |
 | badge | `dot.pad-x`, `dot.pad-y` | surface | emphasis: bold · type: dot (5 of 20) |
 | button | `inset.flush` | container | appearance: text · inset: flush (144 of 576) |
@@ -2485,12 +2508,15 @@ Type: dimension. Bound by 3 component(s).
 
 ### `space.050`
 
-Type: dimension. Bound by 4 component(s).
+Type: dimension. Bound by 5 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | field-label | `gap` | label | every member (24 of 24) |
 | link | `size.medium.gap`, `size.small.gap` | container | size: medium, small (64 of 96) |
+| pagination | `gap` | items | type: numbered (3 of 9) |
+|  |  | row | type: compact, numbered (6 of 9) |
+|  |  | simpleRow | type: simple (3 of 9) |
 | segmented-control-segment | `inset` | container | every member (30 of 30) |
 | tag | `size.large.dismissible.gap`, `size.large.dismissible.label-inset`, `size.medium.dismissible.gap`, `size.medium.dismissible.label-inset`, `size.small.check-gap`, `size.small.dismissible.label-inset` | content | selection: unselected · size: large, medium · type: dismissible (10 of 45) |
 |  |  | labelCheck | every member (25 of 45) |
@@ -2517,10 +2543,11 @@ Type: dimension. Bound by 12 component(s).
 
 ### `space.100`
 
-Type: dimension. Bound by 22 component(s).
+Type: dimension. Bound by 23 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| _pagination-item | `padding-x` | container | every member (21 of 21) |
 | accordion | `size.small.gap`, `size.small.pad-y` | header | size: small (8 of 24) |
 |  |  | titleRow | size: small (8 of 24) |
 | badge | `status.pad-y` | surface | type: status (10 of 20) |
@@ -2830,19 +2857,23 @@ Type: typography. Bound by 2 component(s).
 
 ### `type.label.lg.default`
 
-Type: typography. Bound by 2 component(s).
+Type: typography. Bound by 4 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| _pagination-item | `size.large.type.unselected` | label | selection: unselected · size: large (5 of 21) |
+| pagination | `size.large.type` | status | size: large · type: compact (1 of 9) |
 | segmented-control-segment | `size.large.type.unselected` | label | selection: unselected · size: large (5 of 30) |
 | tab | `size.large.type.unselected` | label | selection: unselected · size: large (5 of 30) |
 
 ### `type.label.lg.emphasis`
 
-Type: typography. Bound by 8 component(s).
+Type: typography. Bound by 9 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| _pagination-item | `size.large.type.selected` | label | selection: selected · size: large · state: focus-visible, rest · type: page (2 of 21) |
+|  |  | labelReserve | size: large (7 of 21) |
 | accordion | `size.large.type` | label | size: large (8 of 24) |
 | button | `size.large.filled.type`, `size.large.outline.type` | label | appearance: filled, outline · inset: default · size: large (96 of 576) |
 | button-destructive | `size.large.filled.type`, `size.large.outline.type` | label | appearance: filled, outline · inset: default · size: large (96 of 576) |
@@ -2866,19 +2897,23 @@ Type: typography. Bound by 3 component(s).
 
 ### `type.label.md.default`
 
-Type: typography. Bound by 2 component(s).
+Type: typography. Bound by 4 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| _pagination-item | `size.medium.type.unselected` | label | selection: unselected · size: medium (5 of 21) |
+| pagination | `size.medium.type` | status | size: medium · type: compact (1 of 9) |
 | segmented-control-segment | `size.medium.type.unselected` | label | selection: unselected · size: medium (5 of 30) |
 | tab | `size.medium.type.unselected` | label | selection: unselected · size: medium (5 of 30) |
 
 ### `type.label.md.emphasis`
 
-Type: typography. Bound by 7 component(s).
+Type: typography. Bound by 8 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| _pagination-item | `size.medium.type.selected` | label | selection: selected · size: medium · state: focus-visible, rest · type: page (2 of 21) |
+|  |  | labelReserve | size: medium (7 of 21) |
 | accordion | `size.medium.type` | label | size: medium (8 of 24) |
 | button | `size.medium.filled.type`, `size.medium.outline.type` | label | appearance: filled, outline · inset: default · size: medium (96 of 576) |
 | button-destructive | `size.medium.filled.type`, `size.medium.outline.type` | label | appearance: filled, outline · inset: default · size: medium (96 of 576) |
@@ -2901,19 +2936,23 @@ Type: typography. Bound by 3 component(s).
 
 ### `type.label.sm.default`
 
-Type: typography. Bound by 2 component(s).
+Type: typography. Bound by 4 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| _pagination-item | `size.small.type.unselected` | label | selection: unselected · size: small (5 of 21) |
+| pagination | `size.small.type` | status | size: small · type: compact (1 of 9) |
 | segmented-control-segment | `size.small.type.unselected` | label | selection: unselected · size: small (5 of 30) |
 | tab | `size.small.type.unselected` | label | selection: unselected · size: small (5 of 30) |
 
 ### `type.label.sm.emphasis`
 
-Type: typography. Bound by 8 component(s).
+Type: typography. Bound by 9 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| _pagination-item | `size.small.type.selected` | label | selection: selected · size: small · state: focus-visible, rest · type: page (2 of 21) |
+|  |  | labelReserve | size: small (7 of 21) |
 | accordion | `size.small.type` | label | size: small (8 of 24) |
 | badge | `type` | count | emphasis: bold · type: count (5 of 20) |
 |  |  | text | type: status (10 of 20) |
@@ -2945,6 +2984,14 @@ Every token each component uses. "Declared, not drawn" names tokens the definiti
 4 token(s); 12 design-file member(s).
 
 `color.interactive.neutral.icon.rest`, `icon.size.md`, `icon.size.sm`, `icon.size.xs`
+
+### _pagination-item
+
+23 token(s); 21 design-file member(s).
+
+`color.border.focus`, `color.interactive.neutral.overlay.hover`, `color.interactive.neutral.overlay.pressed`, `color.interactive.neutral.text.hover`, `color.interactive.neutral.text.pressed`, `color.interactive.neutral.text.rest`, `color.interactive.primary.fill.selected`, `color.interactive.primary.on-fill`, `color.text.secondary`, `focus.ring.offset`, `focus.ring.width`, `radius.md`, `size.lg.height`, `size.md.height`, `size.sm.height`, `space.0`, `space.100`, `type.label.lg.default`, `type.label.lg.emphasis`, `type.label.md.default`, `type.label.md.emphasis`, `type.label.sm.default`, `type.label.sm.emphasis`
+
+Declared, not drawn: `color.border.focus`
 
 ### accordion
 
@@ -3129,6 +3176,12 @@ Drawn, not declared: `color.inverse.icon.link.default`, `color.inverse.icon.link
 19 token(s); 9 design-file member(s).
 
 `color.icon.primary`, `color.text.primary`, `control.size.lg.dot`, `control.size.lg.line-box`, `control.size.md.dot`, `control.size.md.line-box`, `control.size.sm.dot`, `control.size.sm.line-box`, `icon.size.lg`, `icon.size.md`, `icon.size.sm`, `radius.round`, `space.0`, `space.300`, `space.400`, `space.500`, `type.body.lg.default`, `type.body.md.default`, `type.body.sm.default`
+
+### pagination
+
+5 token(s); 9 design-file member(s).
+
+`color.text.primary`, `space.050`, `type.label.lg.default`, `type.label.md.default`, `type.label.sm.default`
 
 ### password-field
 
