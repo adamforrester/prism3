@@ -42,6 +42,18 @@
     },
     "members": 21
   },
+  "_slider-thumb": {
+    "axes": {
+      "state": [
+        "disabled",
+        "focus-visible",
+        "hover",
+        "pressed",
+        "rest"
+      ]
+    },
+    "members": 5
+  },
   "accordion": {
     "axes": {
       "expansion": [
@@ -877,6 +889,22 @@
       "value": "TEXT",
       "↳ swap leading icon": "INSTANCE_SWAP"
     }
+  },
+  "slider": {
+    "axes": {
+      "state": [
+        "disabled",
+        "focus-visible",
+        "hover",
+        "pressed",
+        "rest"
+      ],
+      "type": [
+        "range",
+        "single"
+      ]
+    },
+    "members": 10
   },
   "spinner": {
     "axes": {

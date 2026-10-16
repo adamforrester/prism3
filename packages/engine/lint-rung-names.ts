@@ -283,6 +283,9 @@ const NO_SIZE_AXIS: Record<string, string> = {
   'image-placeholder': 'a media frame has no size RUNG — its axis is `ratio` (an aspect PROPORTION, not a scale ladder), its one dimension binding is a NOMINAL width (`container.narrow`) the designer resizes, and its glyph size is a def-local literal (`glyphPx`, #1340), not a rung; there is no size ladder to compare against the tier (#1316)',
   'toast': 'one size: the brief names none and the owner approved one (#2668 call 11 A). It is built 360 wide as a literal (`placementWidth`), its type is one role (`type.body.md.default`), its glyph one rung (`icon.size.sm`), and its nested Button and IconButton.Neutral are fixed at small; there is no size ladder to compare against the tier',
   'divider': 'a rule has no size RUNG — its axis is `orientation`, its thickness is one border-width role (`border-width.hairline`), and its length is a NOMINAL standalone placeholder (`container.narrow` across, `size.md.height` tall) a host stretches; there is no size ladder to compare against the tier (#2455)',
+  // #2669, owner call 3 A: one size. Density moves the rungs it binds, so there is no ladder of its own.
+  'slider': 'one size by owner decision (#2669 call 3 A) — its control height is the one `size.md.min-height` rung, its rail and fill are border-width roles, and density moves those rungs; there is no size ladder to compare against the tier',
+  '_slider-thumb': 'one disc, `control.size.md.thumb`, at the Slider\'s one size (#2669 call 3 A); density moves the rung, and there is no size ladder of its own',
 };
 
 /**

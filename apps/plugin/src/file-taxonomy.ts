@@ -131,6 +131,9 @@ export const TAXONOMY: Taxonomy = {
         // Toast (#2668, owner call 12 A) — its own page under Components, sorted alphabetically (Q260 A). It nests the
         // Button and the Neutral IconButton, which the build places first wherever their pages sort.
         { page: 'Toast', defs: ['toast'] },
+        // Slider (#2669, owner call 9 A) — its own page under Components, sorted alphabetically (Q260 A). Its thumb builds
+        // first, so the slider's two nested thumbs resolve against it on the same page, as Tabs' do.
+        { page: 'Slider', defs: ['_slider-thumb', 'slider'] },
       ],
     },
     {
