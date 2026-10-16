@@ -30,8 +30,8 @@ node whose weight was not written, and a literal write after a binding unbinds i
 the scalar `strokeWeight`, so an underline control would have had its per-side bindings overwritten to a 1px box. Four
 guards (two per executor) now check the scalar and all four sides. The component shim didn't model that unbinding: a
 literal write left the per-side bindings in place, so the bug was invisible offline. The shim now models it, as the
-host does. EXECUTOR_REVISION moves to 28 (main reached 27 while this was in review). The paste script grew by the five-key list, so icon-button packs into 18 chunks
-(re-pinned, every chunk under budget).
+host does. EXECUTOR_REVISION moves to 28 (main reached 27 while this was in review). The paste script grew by the five-key list. Against the old base that
+made icon-button 18 chunks; over main's later, smaller shell it is 17 again, so the pin did not move.
 
 **How the tests stay independent.** Every expected name in the `#2695` arms (`border-width/hairline`, `/thick`,
 `/none`, `space/0`, `radius/none`, `focus/ring/offset`, the border roles, `disabled/text`) is typed from the

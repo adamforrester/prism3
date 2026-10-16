@@ -23378,11 +23378,12 @@ arm: {
       // (`nestTexts`, the Password field's "Show"), compacted, in every chunk's shell. icon-button does not use it.
       // Re-pinned per the same standing instruction; every chunk stays under budget.
       //
-      // NOW 18, AS OF #2695 — a shell-byte move: both 1px stroke-weight fallbacks in the paste script now stand down
-      // for a per-side weight too (`strokeEdges`, the underline field), a five-key list in every chunk's shell.
-      // Re-pinned per the same standing instruction; every chunk stays under budget.
+      // STILL 17 WITH #2695 — both 1px stroke-weight fallbacks in the paste script now stand down for a per-side weight
+      // too (`strokeEdges`, the underline field), a five-key list in every chunk's shell. Against the base it branched
+      // from that made 18; merged over main's later shell (#2747, 2026-10-16) the members pack into 17 again. Every
+      // chunk stays under budget, the property that matters.
       const ibChunks = planSetChunks(ibSet);
-      ok(ibChunks.length === 18, `anatomy/icon-button: the set packs into 18 chunks (${ibChunks.length})`);
+      ok(ibChunks.length === 17, `anatomy/icon-button: the set packs into 17 chunks (${ibChunks.length})`);
       ok(ibChunks.every((c) => c.bytes <= SET_CHUNK_BYTES),
         `anatomy/icon-button: no chunk exceeds the byte budget (${ibChunks.map((c) => c.bytes).join(', ')} vs ${SET_CHUNK_BYTES})`);
       // And the chunks partition the set — no member dropped, none written twice. A packer that lost a
