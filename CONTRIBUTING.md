@@ -138,7 +138,14 @@ Then push and open the PR. What the fold does, in order:
 5. It writes the constant in `version.ts` and a changelog section under the FOLD MARKER in
    `packages/engine/CHANGELOG.md`, newest merge first. Then it puts the fragments at the top of the log, newest merge first, each dated with the UTC
    day it landed. It fills in `{{ENGINE_VERSION}}` in both, and in every pending rename stamp (#1816).
-6. It deletes the folded files and, when the version moved, runs `regen.ts` to restamp the corpus.
+6. When the version moved, it writes the release notes for it (#2650): `docs/public/releases/<new>.md` and
+   `.json`, and the version's entry in `index.md` and `index.json` there. `packages/engine/release-notes.ts`
+   reads the Figma sets, their surface digests, the coded components and the token contract at the commit
+   that set the old version and in the fold's tree, classifies each change as breaking, new or fix, and
+   carries the folded notes verbatim under "In detail". The dry run prints the counts and every breaking
+   item.
+7. It deletes the folded files and, when the version moved, runs `regen.ts` to restamp the corpus, then
+   writes the release notes again over the regenerated tree.
 
 **The fold PR's CI is the semantic-conflict net.** Two PRs can merge cleanly and still leave `main` red:
 both set `EXPECTED_ARTIFACTS` to the same new number, two regens do not add up to the regen of both,
@@ -156,6 +163,10 @@ What to check before you push the fold:
   stamps". The fold refuses a pending stamp when no note is pending, since the version would not move.
   RENAME STAMPS in `lint-emission-version.ts` fails the fold PR if a placeholder is left, is filled with
   another version, or if the fold adds or changes a stamp itself.
+- **The release notes need nothing by hand, unless the fold branch merges `main`.** `lint-release-notes.ts`
+  reads the range from the previous fold to this tree, so `main`'s newer record changes join it. Run
+  `npx tsx packages/engine/release-notes.ts --refresh` after the merge and commit what it writes. Never
+  edit the notes: the gate re-derives every item from git.
 - **A refusal is information.** The fold refuses on a malformed file, a pending file no merge added,
   or landing dates that run backwards. It writes nothing when it refuses. Fix the cause; do not
   hand-write the fold's output, because `lint-emission-version.ts` and `lint-progress-order.ts` check
@@ -1232,6 +1243,16 @@ npx tsx packages/engine/lint-ecosystem.ts           # the ecosystem diagram's da
                                                     # lists are exactly the code's, both ways, each with
                                                     # a floor; the page fetches the data and writes no
                                                     # feature label itself; its text tokens clear 4.5:1.
+npx tsx packages/engine/lint-release-notes.ts       # every release's notes in docs/public/releases/
+                                                    # list exactly the changes git shows between its
+                                                    # fold and the fold before (#2650), classified by
+                                                    # docs/30's rule: a breaking change missing, a
+                                                    # change claimed and not in the diff, a removal
+                                                    # called a fix, a page that drifts from its JSON
+                                                    # and a version from 0.234.0 on with no release
+                                                    # each fail by name. The diff is re-derived from
+                                                    # the committed records with the gate's own code,
+                                                    # never the generator. Needs git history.
 npx tsx packages/engine/lint-naming.ts              # the defs follow the build-component skill's
                                                     # naming table (#2759; Q345, Q349, Q350, Q355):
                                                     # lowercase Figma property names, the `_` prefix
