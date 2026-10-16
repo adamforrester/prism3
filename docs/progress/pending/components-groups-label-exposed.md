@@ -29,4 +29,11 @@ With the stub left in, the executor kept instancing the stub.
 `lint-component-surface` DRIFTED. `radio-group`'s starting weight moved to regular:
 `radio-group/bold kept`.
 
+**The decision has a by-name pin of its own (review round 1).** `isExposedInstance` is all-or-nothing, so the shim
+cannot see WHICH axes were listed, and the surface baseline is re-accepted with any change note, so it does not
+remember them either. `test.ts` now holds each group's label to the decision, as Select's #1438 block does: typed
+`nest-exposed`, `expose` = [emphasis, weight], `follow` = [size], starting weight bold. Mutation: Segmented control's
+`expose` cut to `['emphasis']` → `❌ Q348 A segmented-control's label is nest-exposed: exposes [emphasis, weight],
+follows [size], starts bold (got expose emphasis, follow size, weight bold)`.
+
 **Follow-up.** Counter (#2693) should take the same shape when it lands; it is not edited here.

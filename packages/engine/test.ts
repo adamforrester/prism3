@@ -16421,6 +16421,19 @@ arm: {
       `#1438 select validates clean as nest-exposed — expose ⊂ field-label's axes, disjoint from follow (${validateComponentDef(select).errors.join('; ')})`);
   }
 
+  // ---- Q348 A: the GROUP labels are nest-exposed like the fields' (owner-decided) ----
+  // Checkbox group, Radio group and Segmented control expose FieldLabel's emphasis and weight, follow size, and start
+  // bold. EXPECTED typed from the decision, never read off a def: the surface baseline is re-accepted with any change
+  // note, so it does not remember which axes were listed. Mutation: one def's `expose` cut to ['emphasis'] → this line.
+  for (const id of ['checkbox-group', 'radio-group', 'segmented-control']) {
+    const n = componentDefs.find((d) => d.id === id)?.anatomy?.parts.label?.nesting;
+    const got = n?.kind === 'nest-exposed'
+      ? `expose ${[...n.expose].sort().join(', ')}, follow ${(n.follow ?? []).join(', ')}, weight ${n.variant?.weight}`
+      : `kind ${n?.kind ?? 'MISSING'}`;
+    ok(got === 'expose emphasis, weight, follow size, weight bold',
+      `Q348 A ${id}'s label is nest-exposed: exposes [emphasis, weight], follows [size], starts bold (got ${got})`);
+  }
+
   // #1223 — INTENT IS THE COMPONENT NOW, NOT AN AXIS. The three semantic intents are three components
   // (Button = primary, Destructive Button, Neutral Button), built by one factory. Button carries NO
   // `intent` prop, and hierarchy is still the appearance axis (filled > outline > text).
