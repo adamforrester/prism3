@@ -12213,10 +12213,28 @@
           ],
           "parts": {
             "ringValue": {
-              "members": 6,
+              "members": 4,
               "where": {
                 "shape": [
                   "circular"
+                ],
+                "status": [
+                  "active",
+                  "error"
+                ],
+                "type": [
+                  "determinate"
+                ]
+              }
+            },
+            "ringValueComplete": {
+              "members": 2,
+              "where": {
+                "shape": [
+                  "circular"
+                ],
+                "status": [
+                  "complete"
                 ],
                 "type": [
                   "determinate"
@@ -12224,13 +12242,34 @@
               }
             },
             "value": {
-              "members": 3,
+              "members": 2,
               "where": {
                 "shape": [
                   "linear"
                 ],
                 "size": [
                   "medium"
+                ],
+                "status": [
+                  "active",
+                  "error"
+                ],
+                "type": [
+                  "determinate"
+                ]
+              }
+            },
+            "valueComplete": {
+              "members": 1,
+              "where": {
+                "shape": [
+                  "linear"
+                ],
+                "size": [
+                  "medium"
+                ],
+                "status": [
+                  "complete"
                 ],
                 "type": [
                   "determinate"
@@ -20288,10 +20327,28 @@
           ],
           "parts": {
             "ringValue": {
-              "members": 6,
+              "members": 4,
               "where": {
                 "shape": [
                   "circular"
+                ],
+                "status": [
+                  "active",
+                  "error"
+                ],
+                "type": [
+                  "determinate"
+                ]
+              }
+            },
+            "ringValueComplete": {
+              "members": 2,
+              "where": {
+                "shape": [
+                  "circular"
+                ],
+                "status": [
+                  "complete"
                 ],
                 "type": [
                   "determinate"
@@ -20299,13 +20356,34 @@
               }
             },
             "value": {
-              "members": 3,
+              "members": 2,
               "where": {
                 "shape": [
                   "linear"
                 ],
                 "size": [
                   "medium"
+                ],
+                "status": [
+                  "active",
+                  "error"
+                ],
+                "type": [
+                  "determinate"
+                ]
+              }
+            },
+            "valueComplete": {
+              "members": 1,
+              "where": {
+                "shape": [
+                  "linear"
+                ],
+                "size": [
+                  "medium"
+                ],
+                "status": [
+                  "complete"
                 ],
                 "type": [
                   "determinate"

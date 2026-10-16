@@ -1408,8 +1408,14 @@ export type FigmaProperties = {
    *
    *  `also` (owner decisions Q225 A and Q226 A, 2026-10-10): further TEXT parts the same property drives, so one
    *  property writes the same characters to each. Tabs' selected-weight reserve is the case: an invisible copy of the
-   *  label in the selected weight that holds every tab at its bold width, which only works if it spells the label. */
-  texts?: Record<string, { part: string; default: string; figmaName?: string; byVariant?: Record<string, Record<string, string>>; also?: string[] }>;
+   *  label in the selected weight that holds every tab at its bold width, which only works if it spells the label.
+   *
+   *  `figmaOnly` (#2670): a TEXT property with no code prop, as a Figma-only boolean is (#2344, Q156 A). The case is a
+   *  per-member caption. A set-level TEXT property holds ONE default that every bound member shows (#1567), so a set
+   *  whose members must SAY different things (Progress reads "50%" while running and "100%" at complete) needs a
+   *  second text part and a second property, and code has no second prop for it: the one `valueText` prop renders
+   *  both. So a `figmaOnly` entry names no prop, is refused if its key IS one, and must state its `figmaName`. */
+  texts?: Record<string, { part: string; default: string; figmaName?: string; byVariant?: Record<string, Record<string, string>>; also?: string[]; figmaOnly?: boolean }>;
   /** prop name → `kind: 'slot'` part. INSTANCE_SWAP property — the slot's CONTENT.
    *
    *  The bare-string form is `prop → part`, the byte-identical original. The object form
@@ -2358,10 +2364,17 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
       claimed.set(part, byField);
     }
   };
-  checkMap('texts', Object.fromEntries(Object.entries(fp.texts ?? {}).map(([p, t]) => [p, t.part])), 'characters', 'text');
+  // One call per property, so a Figma-only text (#2670) can skip the prop check as a Figma-only boolean does.
+  for (const [prop, t] of Object.entries(fp.texts ?? {})) {
+    checkMap('texts', { [prop]: t.part }, 'characters', 'text', false, t.figmaOnly === true);
+    if (t.figmaOnly && propNames.has(prop))
+      e.push(`figmaProperties.texts.${prop} is figmaOnly but '${prop}' is also a declared prop — a Figma-only text has no code prop; drop 'figmaOnly' to drive the prop, or rename the key`);
+    if (t.figmaOnly && !t.figmaName)
+      e.push(`figmaProperties.texts.${prop} is figmaOnly but has no figmaName — with no prop there is no code name for the Figma panel to show, so the label must be stated`);
+  }
   // Each `also` part is claimed on the same field, so it is a text part no other property names (Q226 A).
   for (const [prop, t] of Object.entries(fp.texts ?? {}))
-    t.also?.forEach((part, i) => checkMap(`texts.${prop}.also[${i}]`, { [prop]: part }, 'characters', 'text'));
+    t.also?.forEach((part, i) => checkMap(`texts.${prop}.also[${i}]`, { [prop]: part }, 'characters', 'text', false, t.figmaOnly === true));
   // `swaps` may carry the #1380 object form `{ part, figmaName }`; normalized to `prop → part` here so
   // the relational checks (prop is a declared prop, part exists and is a slot, one property per field) are
   // identical for the string and object forms — the display name is a Figma label, checked below.

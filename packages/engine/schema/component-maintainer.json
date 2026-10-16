@@ -1285,7 +1285,8 @@
           "THE GLOBAL ROUTE-CHANGE BAR (brief §4, §11) is out of scope: a product-shell placement whose visual eases while the value stays indeterminate. It can follow as a placement once a shell exists.",
           "NO BUFFER, no segmented bar, no dashboard gauge (brief §4). A buffer fill is a media-player need not on the table; a gauge is a meter.",
           "THE STILL MEMBERS SHOW 50%, not the proposal wireframe's 45% and 62%: Figma has no percentage width, and two growing boxes split the track evenly, so the value text reads 50% to match. A literal width would freeze the fill when an instance is stretched.",
-          "THE CIRCULAR MEMBERS CARRY THE MESSAGE TOO. The proposal's circular anatomy lists the ring and its value only; call 4 (never color alone) needs the glyph and message at complete and error on a ring as well, so the message is built on both shapes. The ring members are as wide as the message where it shows."
+          "THE CIRCULAR MEMBERS CARRY THE MESSAGE TOO. The proposal's circular anatomy lists the ring and its value only; call 4 (never color alone) needs the glyph and message at complete and error on a ring as well, so the message is built on both shapes. The ring members are as wide as the message where it shows.",
+          "HELD FOR THE OWNER (QA on the build, 2026-10-16): \"100%\" at complete is its own text on a Figma-only TEXT property, \"complete value text\", beside \"value text\". One property could not show 50% and 100% (#1567). The alternative is a code prop for the complete text, which code does not need."
         ],
         "unverified": [
           "The external 2026 version numbers, and Material 3's Expressive wavy tracks (brief §14 flags both).",
@@ -1297,7 +1298,8 @@
           "FIELD (brief §13.2): milestone announcements through a polite region replaced binding a screen reader to `aria-valuenow`.",
           "FIELD (brief §13.3): the anti-flash delay and minimum display time became the standard; a 50ms flash reads worse than nothing.",
           "FIELD (brief §13.4): reduced motion reduces the indeterminate animation and never removes it.",
-          "FIELD (brief §13.5): Material 3's stop indicator (December 2023), the 4dp end dot for SC 1.4.11, which this def's stop dot follows."
+          "FIELD (brief §13.5): Material 3's stop indicator (December 2023), the 4dp end dot for SC 1.4.11, which this def's stop dot follows.",
+          "2026-10-16 (owner QA on the build): the complete members read \"100%\" through their own text and a Figma-only \"complete value text\" property, after one property showed \"50%\" on every member."
         ],
         "projection": []
       }

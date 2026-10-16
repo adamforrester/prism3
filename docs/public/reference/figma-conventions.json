@@ -2330,6 +2330,10 @@
             "type": "TEXT"
           },
           {
+            "name": "complete value text",
+            "type": "TEXT"
+          },
+          {
             "name": "label",
             "type": "BOOLEAN"
           },

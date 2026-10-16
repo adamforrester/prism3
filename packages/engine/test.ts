@@ -31216,6 +31216,34 @@ arm: {
     && typeof progress.figmaProperties.booleans.showValue !== 'string' && progress.figmaProperties.booleans.showValue.default === true,
     `#2670 call 3 progress: the ring's value sits beside the ring, after it in the row, and shows by default (row: ${(ringRow?.children ?? []).map((c) => c.name).join(', ')})`);
 
+  // OWNER QA ON THE BUILD (2026-10-16): the complete member reads 100%, and every member reads the right value on the
+  // host. A set-level TEXT property holds one default that every bound member shows (#1567), so the host can only show
+  // what each property's ONE caption says. Typed here per member: the value captions shown, in order, each with the
+  // property behind it; then the host's rule over the whole set, so no property is behind two captions.
+  type RNode = PNode & { propertyRef?: { field: string; prop: string } };
+  const shown = (name: string) => (member(name) as RNode[]).filter((n) => n.propertyRef?.field === 'characters' && n.propertyRef.prop !== 'label text').map((n) => `${n.characters}<${n.propertyRef!.prop}>`);
+  const VALUE: Record<string, string[]> = {
+    [MEMBERS[0]]: ['50%<value text>'], [MEMBERS[1]]: ['100%<complete value text>'], [MEMBERS[2]]: ['50%<value text>'], [MEMBERS[3]]: [],
+    [MEMBERS[4]]: ['50%<value text>'], [MEMBERS[5]]: ['50%<value text>'], [MEMBERS[6]]: ['100%<complete value text>'], [MEMBERS[7]]: ['100%<complete value text>'],
+    [MEMBERS[8]]: ['50%<value text>'], [MEMBERS[9]]: ['50%<value text>'],
+  };
+  const valueOff = MEMBERS.filter((m) => JSON.stringify(shown(m)) !== JSON.stringify(VALUE[m])).map((m) => `${m}: ${JSON.stringify(shown(m))}`);
+  const spread = new Map<string, Set<string>>();
+  for (const m of MEMBERS) for (const n of member(m) as RNode[]) if (n.propertyRef?.field === 'characters') spread.set(n.propertyRef.prop, (spread.get(n.propertyRef.prop) ?? new Set()).add(String(n.characters)));
+  const twoCaptions = [...spread].filter(([, c]) => c.size > 1).map(([pr, c]) => `${pr}: ${[...c].join(' / ')}`);
+  ok(valueOff.length === 0 && twoCaptions.length === 0 && progress.figmaProperties?.texts?.completeValueText?.figmaOnly === true && !progress.props.some((pr) => pr.name === 'completeValueText'),
+    `#2670 owner QA progress: active and error read "50%" (value text), complete reads "100%" through its own Figma-only "complete value text", an indeterminate bar reads none, and no TEXT property is behind two captions, which the host would collapse to one${valueOff.length ? ` — OFF: ${valueOff.join(' | ')}` : ''}${twoCaptions.length ? ` — TWO CAPTIONS: ${twoCaptions.join(' | ')}` : ''}`);
+
+  // #2670: a Figma-only TEXT property is held to the Figma-only boolean's rules (#2344): it names no prop, and states
+  // its panel name.
+  {
+    const withText = (t: Record<string, unknown>) => ({ ...progress, figmaProperties: { ...progress.figmaProperties!, texts: { ...progress.figmaProperties!.texts, ...t } } }) as ComponentDef;
+    ok(figmaPropertyErrors(withText({ label: { part: 'label', default: 'Label', figmaName: 'label text', figmaOnly: true } })).some((e) => /texts\.label is figmaOnly but 'label' is also a declared prop/.test(e))
+      && figmaPropertyErrors(withText({ completeValueText: { part: 'valueComplete', default: '100%', figmaOnly: true } })).some((e) => /texts\.completeValueText is figmaOnly but has no figmaName/.test(e))
+      && figmaPropertyErrors(withText({ completeValueText: { part: 'valueComplete', default: '100%', figmaName: 'complete value text' } })).some((e) => /'completeValueText' is not a declared prop/.test(e)),
+      '#2670 a figmaOnly TEXT property is refused BY NAME when its key is a declared prop or it has no figmaName, and without figmaOnly a key that is no prop is still refused');
+  }
+
   // Call 4: active, complete, error; complete and error carry a glyph and a message (FieldMessage, success and error),
   // never color alone; active carries none.
   const MSG: Record<string, [string, string] | null> = { active: null, complete: ['messageComplete', 'success'], error: ['messageError', 'error'] };

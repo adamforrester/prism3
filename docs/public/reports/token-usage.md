@@ -1783,8 +1783,10 @@ Type: color. Bound by 8 component(s).
 |  |  | text | emphasis: secondary · state: rest (6 of 24) |
 | field-message | `default.label` | text | status: default (1 of 4) |
 | password-field | `label.empty`, `label.focus-visible`, `label.hover`, `label.rest` | placeholder | state: focus-visible, hover, rest (36 of 84) |
-| progress | `body` | ringValue | shape: circular · type: determinate (6 of 10) |
-|  |  | value | shape: linear · size: medium · type: determinate (3 of 10) |
+| progress | `body` | ringValue | shape: circular · status: active, error · type: determinate (4 of 10) |
+|  |  | ringValueComplete | shape: circular · status: complete · type: determinate (2 of 10) |
+|  |  | value | shape: linear · size: medium · status: active, error · type: determinate (2 of 10) |
+|  |  | valueComplete | shape: linear · size: medium · status: complete · type: determinate (1 of 10) |
 | select | `label.empty`, `label.focus-visible`, `label.hover`, `label.rest` | placeholder | state: focus-visible, hover, rest (36 of 84) |
 | text-field | `label.empty`, `label.focus-visible`, `label.hover`, `label.rest` | placeholder | state: focus-visible, hover, rest (36 of 84) |
 | textarea | `indicator`, `label.empty`, `label.focus-visible`, `label.hover`, `label.rest` | counter | state: filled, focus-visible, focus-visible-filled, hover, read-only, rest (72 of 84) |
@@ -2816,8 +2818,10 @@ Type: typography. Bound by 12 component(s).
 |  |  | text | size: small (3 of 9) |
 | password-field | `size.small.type` | placeholder | size: small · state: disabled, focus-visible, hover, rest (16 of 84) |
 |  |  | value | size: small · state: filled, focus-visible-filled, read-only (12 of 84) |
-| progress | `value-type` | ringValue | shape: circular · type: determinate (6 of 10) |
-|  |  | value | shape: linear · size: medium · type: determinate (3 of 10) |
+| progress | `value-type` | ringValue | shape: circular · status: active, error · type: determinate (4 of 10) |
+|  |  | ringValueComplete | shape: circular · status: complete · type: determinate (2 of 10) |
+|  |  | value | shape: linear · size: medium · status: active, error · type: determinate (2 of 10) |
+|  |  | valueComplete | shape: linear · size: medium · status: complete · type: determinate (1 of 10) |
 | radio-row | `size.small.text` | label | size: small (1 of 3) |
 | select | `size.small.type` | placeholder | size: small · state: disabled, focus-visible, hover, rest (16 of 84) |
 |  |  | value | size: small · state: filled, focus-visible-filled, read-only (12 of 84) |

@@ -28,6 +28,13 @@
  * empty lead, the segment and the empty rest, each a third. A designer showing another value sets the fill's
  * width on the instance. The value text reads "50%" to match, and "100%" at complete.
  *
+ * TWO VALUE TEXTS, NOT ONE (owner QA on the build, 2026-10-16). The first build gave `valueText` a per-member default,
+ * "100%" at complete (`byVariant`), on one TEXT property. A set-level TEXT property holds one default that every bound
+ * member shows (#1567), so every member read "50%", the complete one included, and the plugin reported the parts as
+ * COLLAPSED. So "100%" is its own pair of parts, `valueComplete` and `ringValueComplete`, present at complete only, on
+ * a second, Figma-only TEXT property ("complete value text"; code renders both from `valueText`), and "50%" is
+ * present at active and error only.
+ *
  * THE RING is two component-owned glyphs on one square (`component-glyphs.ts`, `progress-*`): the pale track, a full
  * annulus in the track role, in the flow, and the value arc over it (`stackCentered`), the band 2px at the small
  * 24px ring and 4px at the medium 40px one. Both are filled outlines on the 24-unit artboard, so the band scales with
@@ -134,7 +141,7 @@ export const progress: ComponentDef = {
         gap: 'header-gap',
         crossAxisFill: true,
         presentWhen: { shape: ['linear'] },
-        children: ['label', 'value'],
+        children: ['label', 'value', 'valueComplete'],
         note: 'The label at the start and the value at the end, above the track and never inside it.',
       },
       label: {
@@ -148,8 +155,16 @@ export const progress: ComponentDef = {
         type: 'value-type',
         paintSlot: 'body',
         optional: true,
-        presentWhen: { shape: ['linear'], type: ['determinate'] },
+        presentWhen: { shape: ['linear'], type: ['determinate'], status: ['active', 'error'] },
         note: 'The amount, end-aligned: a percentage, or a concrete amount such as "45 MB of 100 MB". The same text a screen reader gets as the value.',
+      },
+      valueComplete: {
+        kind: 'text',
+        type: 'value-type',
+        paintSlot: 'body',
+        optional: true,
+        presentWhen: { shape: ['linear'], type: ['determinate'], status: ['complete'] },
+        note: 'The amount at complete, "100%", end-aligned. Its own text, so it does not share the running bar\'s "50%".',
       },
       track: {
         kind: 'box',
@@ -202,7 +217,7 @@ export const progress: ComponentDef = {
         layout: { direction: 'row', align: 'center', justify: 'start', sizing: { x: 'hug', y: 'hug' } },
         gap: 'ring-gap',
         presentWhen: { shape: ['circular'] },
-        children: ['ring', 'ringValue'],
+        children: ['ring', 'ringValue', 'ringValueComplete'],
         note: 'The ring with its value beside it.',
       },
       ring: {
@@ -241,8 +256,16 @@ export const progress: ComponentDef = {
         type: 'value-type',
         paintSlot: 'body',
         optional: true,
-        presentWhen: { shape: ['circular'] },
+        presentWhen: { shape: ['circular'], status: ['active', 'error'] },
         note: 'The ring\'s value, beside it. On by default: a ring has no end to mark, so the value is how its amount reads.',
+      },
+      ringValueComplete: {
+        kind: 'text',
+        type: 'value-type',
+        paintSlot: 'body',
+        optional: true,
+        presentWhen: { shape: ['circular'], status: ['complete'] },
+        note: 'The ring\'s value at complete, "100%", beside the full ring.',
       },
       messageComplete: {
         kind: 'nest',
@@ -295,12 +318,15 @@ export const progress: ComponentDef = {
     footprintVaries: ['status'],
     texts: {
       label: { part: 'label', default: 'Label', figmaName: 'label text' },
-      valueText: { part: 'value', default: '50%', figmaName: 'value text', byVariant: { status: { complete: '100%' } }, also: ['ringValue'] },
+      valueText: { part: 'value', default: '50%', figmaName: 'value text', also: ['ringValue'] },
+      // "100%" at complete: its own parts and property, because one TEXT property shows one default on every member
+      // (#1567). Figma-only: code renders both from `valueText`.
+      completeValueText: { part: 'valueComplete', default: '100%', figmaName: 'complete value text', also: ['ringValueComplete'], figmaOnly: true },
     },
     swaps: {},
     booleans: {
       showLabel: { part: 'label', default: true, figmaName: 'label', figmaOnly: true },
-      showValue: { part: ['value', 'ringValue'], default: true, figmaName: 'value' },
+      showValue: { part: ['value', 'ringValue', 'valueComplete', 'ringValueComplete'], default: true, figmaName: 'value' },
       message: { part: ['messageComplete', 'messageError'], default: true, figmaName: 'message' },
     },
   },
@@ -377,6 +403,7 @@ export const progress: ComponentDef = {
       'NO BUFFER, no segmented bar, no dashboard gauge (brief §4). A buffer fill is a media-player need not on the table; a gauge is a meter.',
       'THE STILL MEMBERS SHOW 50%, not the proposal wireframe\'s 45% and 62%: Figma has no percentage width, and two growing boxes split the track evenly, so the value text reads 50% to match. A literal width would freeze the fill when an instance is stretched.',
       'THE CIRCULAR MEMBERS CARRY THE MESSAGE TOO. The proposal\'s circular anatomy lists the ring and its value only; call 4 (never color alone) needs the glyph and message at complete and error on a ring as well, so the message is built on both shapes. The ring members are as wide as the message where it shows.',
+      'HELD FOR THE OWNER (QA on the build, 2026-10-16): "100%" at complete is its own text on a Figma-only TEXT property, "complete value text", beside "value text". One property could not show 50% and 100% (#1567). The alternative is a code prop for the complete text, which code does not need.',
     ],
     unverified: [
       'The external 2026 version numbers, and Material 3\'s Expressive wavy tracks (brief §14 flags both).',
@@ -389,6 +416,7 @@ export const progress: ComponentDef = {
       'FIELD (brief §13.3): the anti-flash delay and minimum display time became the standard; a 50ms flash reads worse than nothing.',
       'FIELD (brief §13.4): reduced motion reduces the indeterminate animation and never removes it.',
       'FIELD (brief §13.5): Material 3\'s stop indicator (December 2023), the 4dp end dot for SC 1.4.11, which this def\'s stop dot follows.',
+      '2026-10-16 (owner QA on the build): the complete members read "100%" through their own text and a Figma-only "complete value text" property, after one property showed "50%" on every member.',
     ],
   },
 };
