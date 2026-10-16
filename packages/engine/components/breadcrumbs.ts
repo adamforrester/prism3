@@ -24,13 +24,19 @@
  * #2660 lands, the `items` prop takes its `anyOf` / `minItems` fields.
  *
  * SIZE ORDER (owner decisions Q347 A and Q359 B on #2752): medium first, the code default.
+ *
+ * THE SEPARATOR (owner decision Q382 A, 2026-10-16, after QA): one `separator` setting, chevron or slash, chevron by
+ * default, applied to every step. It is a variant axis here, passed to each default ancestor (`follow`), which shows
+ * the matching look of `_breadcrumb-separator`. The current page has no separator, so it does not follow. The parent
+ * layout has no separator either, so it has no slash member. The overflow item and the parent layout stay as built.
  */
 import { ComponentDef } from '../component-schema';
 
+// An ancestor follows the trail's separator (Q382 A); the current page has no separator member to follow to.
 const item = (kind: 'ancestor' | 'current', note: string) => ({
   kind: 'nest' as const,
   nests: 'breadcrumb-item',
-  nesting: { kind: 'nest-fixed' as const, variant: { kind, size: 'medium' }, follow: ['size'] },
+  nesting: { kind: 'nest-fixed' as const, variant: { kind, separator: 'chevron', size: 'medium' }, follow: kind === 'ancestor' ? ['separator', 'size'] : ['size'] },
   note,
 });
 
@@ -42,11 +48,12 @@ export const breadcrumbs: ComponentDef = {
   status: 'draft',
   summary: 'The path to the current page as links, with the current page last and not a link.',
   description:
-    'Shows where the current page sits in the site\'s hierarchy: a row of links to the pages above it, root first, ending in the current page as plain text. Each link is underlined and followed by a chevron. A long trail keeps its first step and its last two and collapses the middle behind one button that shows them in place. On a small screen the trail becomes one link up to the parent page. Breadcrumbs follow the site\'s structure, not the pages a person visited, and supplement the main navigation rather than replace it.',
+    'Shows where the current page sits in the site\'s hierarchy: a row of links to the pages above it, root first, ending in the current page as plain text. Each link is underlined and followed by a chevron or a slash, one mark for the whole trail. A long trail keeps its first step and its last two and collapses the middle behind one button that shows them in place. On a small screen the trail becomes one link up to the parent page. Breadcrumbs follow the site\'s structure, not the pages a person visited, and supplement the main navigation rather than replace it.',
 
   props: [
     { name: 'items', type: 'slot', required: true, description: 'The steps, root first, each with a label and an href. The last is rendered as the current page: text with aria-current="page", its href ignored. At least two.' },
     { name: 'size', type: "enum: 'small' | 'medium'", values: ['small', 'medium'], default: 'medium', required: false, description: 'The body type size, 14 or 16px, passed to every item. Medium suits a trail beside 16px body copy; small, a quieter line above a page title.' },
+    { name: 'separator', type: "enum: 'chevron' | 'slash'", values: ['chevron', 'slash'], default: 'chevron', required: false, description: 'The mark between steps, the same for every step: a chevron pointing toward the current page, or a slash.' },
     { name: 'maxItems', type: 'number', default: 5, required: false, description: 'Above this many items, the middle collapses behind one overflow button.' },
     { name: 'itemsBeforeCollapse', type: 'number', default: 1, required: false, description: 'How many items stay before the overflow button when the trail collapses.' },
     { name: 'itemsAfterCollapse', type: 'number', default: 2, required: false, description: 'How many items stay after the overflow button: the parent and the current page by default.' },
@@ -60,10 +67,12 @@ export const breadcrumbs: ComponentDef = {
   states: [],
   variants: {
     layout: ['trail', 'parent'],
+    // Q382 A: the mark between steps, one setting for the whole trail. The parent layout has none (excludeCoordinates).
+    separator: ['chevron', 'slash'],
     size: ['medium', 'small'],
   },
-  // A product picks the layout per breakpoint in code; nothing switches it on screen in Figma.
-  axisKinds: { layout: 'authoring', size: 'authoring' },
+  // A product picks the layout per breakpoint in code and the separator once; nothing switches either on screen.
+  axisKinds: { layout: 'authoring', separator: 'authoring', size: 'authoring' },
 
   paintKeys: ['{slot}'],
   densitySpacing: ['size.{size}.gap', 'back-gap'],
@@ -137,12 +146,15 @@ export const breadcrumbs: ComponentDef = {
       'Router integration — renderLink renders each ancestor through the router\'s own link (Link\'s asChild), so one <a href> renders per step.',
       'Structured data — the component emits no JSON-LD BreadcrumbList; the page\'s search layer owns it. A script inside a component duplicates under server rendering and can be indexed from a hidden mobile subtree.',
       'Figma item count — the native items slot holds three items by default and at least two; a designer adds, removes and reorders them, and sets a middle item\'s kind to overflow to show a collapsed trail. Items keep the size they were placed at when Breadcrumbs changes size.',
-      'RTL — the row mirrors: the root sits at the right edge, the separators point left, and the back chevron points right.',
+      'RTL — the row mirrors: the root sits at the right edge, chevron separators point left (a slash does not mirror), and the back chevron points right.',
+      'The separator in code — the separator prop, chevron by default, sets the CSS ::after mark on every <li> but the last; it is never text and never in the accessibility tree.',
     ],
   },
 
   figmaProperties: {
-    variantAxes: ['layout', 'size'],
+    variantAxes: ['layout', 'separator', 'size'],
+    // The parent layout is one link up, with no separator, so it has no slash member.
+    excludeCoordinates: [{ layout: ['parent'], separator: ['slash'] }],
     booleans: {},
   },
 
@@ -216,6 +228,7 @@ export const breadcrumbs: ComponentDef = {
     ],
     evolution: [
       '2026-10-16 (#2666): built from the approved wireframe, every numbered call A, on the items-slot pattern of #2649 (PR #2660, open at the time). Sizes medium-first by the later owner rule Q359 B, which supersedes the proposal\'s small-first order.',
+      '2026-10-16 (Q382 A, after QA): one `separator` setting, chevron or slash, chevron by default, for every step, through `_breadcrumb-separator`. The overflow item and the parent layout are unchanged.',
     ],
   },
 };

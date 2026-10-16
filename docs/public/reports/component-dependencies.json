@@ -103,6 +103,26 @@
       ]
     },
     {
+      "from": "breadcrumb-item",
+      "to": "_breadcrumb-separator",
+      "part": "separator",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "type": "chevron"
+      }
+    },
+    {
+      "from": "breadcrumb-item",
+      "to": "_breadcrumb-separator",
+      "part": "separatorSlash",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "type": "slash"
+      }
+    },
+    {
       "from": "breadcrumbs",
       "to": "breadcrumb-item",
       "part": "item1",
@@ -110,9 +130,11 @@
       "relation": "nest-fixed",
       "variant": {
         "kind": "ancestor",
+        "separator": "chevron",
         "size": "medium"
       },
       "follow": [
+        "separator",
         "size"
       ]
     },
@@ -124,9 +146,11 @@
       "relation": "nest-fixed",
       "variant": {
         "kind": "ancestor",
+        "separator": "chevron",
         "size": "medium"
       },
       "follow": [
+        "separator",
         "size"
       ]
     },
@@ -138,6 +162,7 @@
       "relation": "nest-fixed",
       "variant": {
         "kind": "current",
+        "separator": "chevron",
         "size": "medium"
       },
       "follow": [
@@ -1322,6 +1347,18 @@
       ],
       "inheritedBy": []
     },
+    "_breadcrumb-separator": {
+      "nests": [],
+      "nestsTransitively": [],
+      "nestedBy": [
+        "breadcrumb-item"
+      ],
+      "affectedByChange": [
+        "breadcrumb-item",
+        "breadcrumbs"
+      ],
+      "inheritedBy": []
+    },
     "accordion": {
       "nests": [
         "_accordion-indicator",
@@ -1351,10 +1388,12 @@
     },
     "breadcrumb-item": {
       "nests": [
+        "_breadcrumb-separator",
         "flush-icon-button-neutral",
         "link"
       ],
       "nestsTransitively": [
+        "_breadcrumb-separator",
         "flush-icon-button-neutral",
         "focus-ring",
         "link"
@@ -1373,6 +1412,7 @@
         "link"
       ],
       "nestsTransitively": [
+        "_breadcrumb-separator",
         "breadcrumb-item",
         "flush-icon-button-neutral",
         "focus-ring",
@@ -2007,6 +2047,7 @@
   },
   "depth": {
     "_accordion-indicator": 0,
+    "_breadcrumb-separator": 0,
     "accordion": 1,
     "badge": 0,
     "breadcrumb-item": 2,

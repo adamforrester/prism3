@@ -1,6 +1,6 @@
 # Icon usage
 
-Which glyphs each component draws. The icon set holds 45 glyphs; a component draws a glyph from it at a fixed part, starts an icon slot at one, or draws a glyph it owns (the spinner ring), which is kept out of the icon set.
+Which glyphs each component draws. The icon set holds 46 glyphs; a component draws a glyph from it at a fixed part, starts an icon slot at one, or draws a glyph it owns (the spinner ring), which is kept out of the icon set.
 
 Generated from the component definitions and the emission by `packages/engine/emit-analysis-reports.ts`; `regen.ts --check` fails when this page is stale. The same data for agents: [icon-usage.json](icon-usage.json). All reports: [index](index.md).
 
@@ -12,7 +12,8 @@ Generated from the component definitions and the emission by `packages/engine/em
 |  | chevronUp | `chevron-up` | icon set | drawn | indicator: chevron; expansion: expanded |
 |  | minus | `minus` | icon set | drawn | indicator: plus-minus; expansion: expanded |
 |  | plus | `plus` | icon set | drawn | indicator: plus-minus; expansion: collapsed |
-| breadcrumb-item | separator | `chevron-right` | icon set | drawn | kind: ancestor, overflow |
+| _breadcrumb-separator | chevron | `chevron-right` | icon set | drawn | type: chevron |
+|  | slash | `slash` | icon set | drawn | type: slash |
 | breadcrumbs | backGlyph | `chevron-left` | icon set | drawn | layout: parent |
 | checkbox-control | dash | `minus` | icon set | drawn | selection: indeterminate |
 |  | mark | `check` | icon set | drawn | selection: checked |
@@ -62,7 +63,7 @@ Parts that take any icon from the set. The file nominates the default unless the
 | `check-circle` | field-message |
 | `chevron-down` | _accordion-indicator, select |
 | `chevron-left` | breadcrumbs |
-| `chevron-right` | breadcrumb-item |
+| `chevron-right` | _breadcrumb-separator |
 | `chevron-up` | _accordion-indicator |
 | `close` | switch-control, tag |
 | `error-circle` | field-message |
@@ -70,6 +71,7 @@ Parts that take any icon from the set. The file nominates the default unless the
 | `minus` | _accordion-indicator, checkbox-control |
 | `plus` | _accordion-indicator |
 | `resize-grip` | textarea |
+| `slash` | _breadcrumb-separator |
 | `spinner` | spinner |
 | `warning-triangle` | field-message |
 

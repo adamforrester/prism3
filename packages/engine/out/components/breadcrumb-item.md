@@ -2,7 +2,7 @@
 
 > One step in a breadcrumb trail: a link, the current page, or the collapsed steps.
 
-One step in a Breadcrumbs trail. An ancestor is an underlined link to a page above the current one, followed by a chevron. The current page is plain text in the primary text color, last in the trail and not a link. The overflow step stands for the steps a long trail hides: a small icon-only button that shows them in place when pressed. Items live inside Breadcrumbs and are never placed on their own.
+One step in a Breadcrumbs trail. An ancestor is an underlined link to a page above the current one, followed by a chevron or a slash. The current page is plain text in the primary text color, last in the trail and not a link. The overflow step stands for the steps a long trail hides: a small icon-only button that shows them in place when pressed. Items live inside Breadcrumbs and are never placed on their own.
 
 - **ID:** `breadcrumb-item`
 - **Category:** navigation
@@ -48,6 +48,7 @@ Page titles, sentence case, as each page titles itself.
 | `label` | string | — | yes | The page name, as the page titles itself. On an ancestor it is the link text; on the current page, the text. |
 | `href` | string | — | no | The ancestor page's address. Ignored on the current page, which is not a link. |
 | `size` | enum: 'small' \| 'medium' | `medium` | no | The body type size, 14 or 16px, with the gap to the separator sized to it. Set by the Breadcrumbs it sits in. |
+| `separator` | enum: 'chevron' \| 'slash' | `chevron` | no | The mark after the step: a chevron or a slash. Set by the Breadcrumbs it sits in, the same for every step. Unused on the current page. |
 
 ## States
 
@@ -58,6 +59,7 @@ None — not interactive.
 | Axis | Values | Changes |
 | --- | --- | --- |
 | `kind` | `ancestor`, `current`, `overflow` | once, when authored |
+| `separator` | `chevron`, `slash` | once, when authored |
 | `size` | `medium`, `small` | once, when authored |
 
 ## Accessibility
@@ -83,7 +85,7 @@ None — not interactive.
 
 ## Composition
 
-- **Composes with:** `link`, `flush-icon-button-neutral`
+- **Composes with:** `_breadcrumb-separator`, `link`, `flush-icon-button-neutral`
 - **Replaces:**
   - a separator typed as text between links
   - the current page rendered as a link to itself

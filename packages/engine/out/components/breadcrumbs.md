@@ -2,7 +2,7 @@
 
 > The path to the current page as links, with the current page last and not a link.
 
-Shows where the current page sits in the site's hierarchy: a row of links to the pages above it, root first, ending in the current page as plain text. Each link is underlined and followed by a chevron. A long trail keeps its first step and its last two and collapses the middle behind one button that shows them in place. On a small screen the trail becomes one link up to the parent page. Breadcrumbs follow the site's structure, not the pages a person visited, and supplement the main navigation rather than replace it.
+Shows where the current page sits in the site's hierarchy: a row of links to the pages above it, root first, ending in the current page as plain text. Each link is underlined and followed by a chevron or a slash, one mark for the whole trail. A long trail keeps its first step and its last two and collapses the middle behind one button that shows them in place. On a small screen the trail becomes one link up to the parent page. Breadcrumbs follow the site's structure, not the pages a person visited, and supplement the main navigation rather than replace it.
 
 - **ID:** `breadcrumbs`
 - **Category:** navigation
@@ -48,6 +48,7 @@ Page titles in sentence case, matching each page heading. "Home" for the root.
 | --- | --- | --- | --- | --- |
 | `items` | slot | — | yes | The steps, root first, each with a label and an href. The last is rendered as the current page: text with aria-current="page", its href ignored. At least two. |
 | `size` | enum: 'small' \| 'medium' | `medium` | no | The body type size, 14 or 16px, passed to every item. Medium suits a trail beside 16px body copy; small, a quieter line above a page title. |
+| `separator` | enum: 'chevron' \| 'slash' | `chevron` | no | The mark between steps, the same for every step: a chevron pointing toward the current page, or a slash. |
 | `maxItems` | number | `5` | no | Above this many items, the middle collapses behind one overflow button. |
 | `itemsBeforeCollapse` | number | `1` | no | How many items stay before the overflow button when the trail collapses. |
 | `itemsAfterCollapse` | number | `2` | no | How many items stay after the overflow button: the parent and the current page by default. |
@@ -65,6 +66,7 @@ None — not interactive.
 | Axis | Values | Changes |
 | --- | --- | --- |
 | `layout` | `trail`, `parent` | once, when authored |
+| `separator` | `chevron`, `slash` | once, when authored |
 | `size` | `medium`, `small` | once, when authored |
 
 ## Accessibility

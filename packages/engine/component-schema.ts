@@ -3301,13 +3301,23 @@ export type State = (typeof STATES)[number];
  * extent; `placement` is where a layer attaches. None says "the same navigation drawn as a different set of parts",
  * and naming it `width` would claim the parent link is a narrower trail when it is a different element. An AUTHORING
  * axis: a product picks it per breakpoint in code. `lint-axis-values.ts` carries the two values as a `sole` set.
+ *
+ * ── `separator`: THE THIRTIETH NAME, FOR BREADCRUMBS (owner decision Q382 A, 2026-10-16) ──
+ *
+ * `separator` (`chevron | slash`) is WHICH MARK stands between the steps of a trail. The owner named it: one setting on
+ * Breadcrumbs that applies to every step. Breadcrumbs passes it to each item (`follow` passes an axis by its own name),
+ * and the item picks the matching look of `_breadcrumb-separator`, whose own axis is `type`, as Q382 names it. It
+ * clears the bar with the nearest defeated: `indicator` is a glyph that shows a state (open or closed); `style` is a
+ * line treatment of the control itself; `type` is a content format. None says "the mark drawn between items", and
+ * naming it `style` would put a link's placement and a trail's divider under one name, the #756 failure. An AUTHORING
+ * axis. `lint-axis-values.ts` carries the two values, shared by Breadcrumbs, its item and the separator.
  */
 export const VARIANT_AXES = [
   'size', 'intent', 'appearance', 'tone',
   'width', 'style', 'indicator', 'offset', 'selection',
   'name', 'surface', 'weight', 'value', 'intensity', 'ratio',
   'status', 'emphasis', 'shape', 'type', 'direction', 'inset', 'orientation', 'alignment', 'expansion', 'iconPosition',
-  'placement', 'footer', 'kind', 'layout',
+  'placement', 'footer', 'kind', 'layout', 'separator',
 ] as const;
 
 /** One member of the closed axis-NAME vocabulary. Values are not constrained — see `VARIANT_AXES`. */

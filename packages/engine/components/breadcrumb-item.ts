@@ -13,8 +13,15 @@
  *   - Call 4 A — the default weight throughout: Link's `default` weight, and the current page in the default body
  *     style.
  *   - Call 5 A — the current page in `color.text.primary`.
- *   - Call 6 A — a fixed `chevron-right` separator at 16px (`icon.size.xs`) in `color.icon.secondary`, mirrored in
- *     right-to-left, at the end of every item but the current one.
+ *   - Call 6 A — a `chevron-right` separator at 16px (`icon.size.xs`) in `color.icon.secondary`, mirrored in
+ *     right-to-left, at the end of every item but the current one. Since Q382 A (below) it is a nested part with a
+ *     slash beside the chevron.
+ *
+ * Owner decision Q382 A (2026-10-16, after QA): the separator is its own part, `_breadcrumb-separator`, in two looks,
+ * `type: chevron | slash`, and Breadcrumbs has one `separator` setting for every step, chevron by default, both in the
+ * secondary icon color. The item carries the same `separator` axis (Breadcrumbs passes it down, `follow`) and nests the
+ * separator twice, the chevron look at `separator=chevron` and the slash at `separator=slash`: `follow` passes an axis
+ * by its own name, and the separator's axis is `type`. The current page has no separator, so no slash member.
  *   - Call 7 A — sizes small and medium (14 / 16px body).
  *   - Call 8 A, 14 A — the overflow item nests FlushIconButton.Neutral, flush, small, showing `more-horizontal-filled`.
  *
@@ -34,8 +41,8 @@
  * Dialog precedent: a container whose interactive parts are nested carries no state of its own.
  *
  * THE SEPARATOR BELONGS TO THE ITEM, at its end. Code draws it as CSS `::after` on every `<li>` but the last, so it
- * is never in the accessibility tree; Figma has no `::after`, so each ancestor and overflow member carries the
- * glyph and the current member does not.
+ * is never in the accessibility tree; Figma has no `::after`, so each ancestor and overflow member nests the
+ * separator and the current member does not.
  */
 import { ComponentDef } from '../component-schema';
 
@@ -47,22 +54,25 @@ export const breadcrumbItem: ComponentDef = {
   status: 'draft',
   summary: 'One step in a breadcrumb trail: a link, the current page, or the collapsed steps.',
   description:
-    'One step in a Breadcrumbs trail. An ancestor is an underlined link to a page above the current one, followed by a chevron. The current page is plain text in the primary text color, last in the trail and not a link. The overflow step stands for the steps a long trail hides: a small icon-only button that shows them in place when pressed. Items live inside Breadcrumbs and are never placed on their own.',
+    'One step in a Breadcrumbs trail. An ancestor is an underlined link to a page above the current one, followed by a chevron or a slash. The current page is plain text in the primary text color, last in the trail and not a link. The overflow step stands for the steps a long trail hides: a small icon-only button that shows them in place when pressed. Items live inside Breadcrumbs and are never placed on their own.',
 
   props: [
     { name: 'kind', type: "enum: 'ancestor' | 'current' | 'overflow'", values: ['ancestor', 'current', 'overflow'], default: 'ancestor', required: false, description: 'ancestor: a link to a page above this one. current: the page you are on, as text. overflow: the button that stands for the hidden steps of a long trail. Breadcrumbs sets it from the item\'s place in the trail.' },
     { name: 'label', type: 'string', required: true, description: 'The page name, as the page titles itself. On an ancestor it is the link text; on the current page, the text.' },
     { name: 'href', type: 'string', required: false, description: 'The ancestor page\'s address. Ignored on the current page, which is not a link.' },
     { name: 'size', type: "enum: 'small' | 'medium'", values: ['small', 'medium'], default: 'medium', required: false, description: 'The body type size, 14 or 16px, with the gap to the separator sized to it. Set by the Breadcrumbs it sits in.' },
+    { name: 'separator', type: "enum: 'chevron' | 'slash'", values: ['chevron', 'slash'], default: 'chevron', required: false, description: 'The mark after the step: a chevron or a slash. Set by the Breadcrumbs it sits in, the same for every step. Unused on the current page.' },
   ],
 
   // `[]` — the item is not interactive itself; the nested Link and flush icon button carry their own states.
   states: [],
   variants: {
     kind: ['ancestor', 'current', 'overflow'],
+    // Q382 A: the mark after the step, passed down by Breadcrumbs. The current page has none (excludeCoordinates).
+    separator: ['chevron', 'slash'],
     size: ['medium', 'small'],
   },
-  axisKinds: { kind: 'authoring', size: 'authoring' },
+  axisKinds: { kind: 'authoring', separator: 'authoring', size: 'authoring' },
 
   paintKeys: ['{slot}'],
   densitySpacing: ['size.{size}.gap'],
@@ -74,13 +84,9 @@ export const breadcrumbItem: ComponentDef = {
     // The current page's text: the body style, default weight (call 4 A).
     'size.medium.type': 'type.body.md.default',
     'size.small.type': 'type.body.sm.default',
-    // The separator: 16px at both sizes (call 6 A).
-    'size.medium.icon': 'icon.size.xs',
-    'size.small.icon': 'icon.size.xs',
 
-    // The current page in primary text (call 5 A); the separator in the secondary icon role, a glyph role (#1471).
+    // The current page in primary text (call 5 A). The separator's size and ink are its own (`_breadcrumb-separator`).
     'label': 'color.text.primary',
-    'icon': 'color.icon.secondary',
   },
 
   anatomy: {
@@ -91,7 +97,7 @@ export const breadcrumbItem: ComponentDef = {
         // `target` because the schema requires exactly one — NOT an interaction claim: the targets are the nested
         // Link and flush icon button.
         role: 'target',
-        children: ['crumb', 'current', 'overflow', 'separator'],
+        children: ['crumb', 'current', 'overflow', 'separator', 'separatorSlash'],
         layout: { direction: 'row', align: 'center', justify: 'start', sizing: { x: 'hug', y: 'hug' } },
         gap: 'size.{size}.gap',
         note: 'The item: a row that hugs its link, text or button and the separator after it, with no padding and no fill.',
@@ -119,11 +125,18 @@ export const breadcrumbItem: ComponentDef = {
         note: 'The collapsed steps: a FlushIconButton.Neutral, flush and small, showing three dots. Its state is set on the item.',
       },
       separator: {
-        kind: 'vector',
-        glyph: 'chevron-right',
-        size: 'size.{size}.icon',
-        presentWhen: { kind: ['ancestor', 'overflow'] },
-        note: 'The separator: a 16px chevron pointing toward the current page, in the secondary icon color. Absent after the current page.',
+        kind: 'nest',
+        nests: '_breadcrumb-separator',
+        presentWhen: { kind: ['ancestor', 'overflow'], separator: ['chevron'] },
+        nesting: { kind: 'nest-fixed', variant: { type: 'chevron' } },
+        note: 'The separator, chevron look: a 16px chevron pointing toward the current page, in the secondary icon color. Absent after the current page.',
+      },
+      separatorSlash: {
+        kind: 'nest',
+        nests: '_breadcrumb-separator',
+        presentWhen: { kind: ['ancestor', 'overflow'], separator: ['slash'] },
+        nesting: { kind: 'nest-fixed', variant: { type: 'slash' } },
+        note: 'The separator, slash look: a 16px slash in the secondary icon color. Absent after the current page.',
       },
     },
     codeOnly: [
@@ -133,13 +146,15 @@ export const breadcrumbItem: ComponentDef = {
       'The current page in code — a <span aria-current="page">, never an <a>, and out of the Tab order. Its label stops at a max width with an ellipsis when the trail cannot fit (DRAFT 240px); ancestor labels never truncate.',
       'The overflow button — a <button type="button"> named "Show full path" (DRAFT), its glyph aria-hidden. Pressed, the hidden steps appear in its place as ancestor links, the button is removed, and focus moves to the first revealed link. Its 44×44px hit area is extended in code.',
       'The ancestor\'s hit area — the nested link\'s code-side expansion to 24px applies: a breadcrumb is not a link inside a sentence, so the inline exemption does not.',
-      'RTL — the row mirrors and the chevron-right separator flips to point left, toward the current page.',
+      'RTL — the row mirrors and the chevron separator flips to point left, toward the current page. The slash does not mirror.',
       'text expansion — ancestor labels never wrap or truncate; a long trail collapses whole steps instead.',
     ],
   },
 
   figmaProperties: {
-    variantAxes: ['kind', 'size'],
+    variantAxes: ['kind', 'separator', 'size'],
+    // The current page has no separator, so it has no slash member.
+    excludeCoordinates: [{ kind: ['current'], separator: ['slash'] }],
     // The current page's own text. An ancestor's text is the nested Link's `label`, set on the exposed Link.
     texts: { label: { part: 'current', default: 'Current page' } },
     booleans: {},
@@ -190,7 +205,7 @@ export const breadcrumbItem: ComponentDef = {
   },
 
   composition: {
-    composesWith: ['link', 'flush-icon-button-neutral'],
+    composesWith: ['_breadcrumb-separator', 'link', 'flush-icon-button-neutral'],
     alternativeTo: [],
     replacesPatterns: ['a separator typed as text between links', 'the current page rendered as a link to itself'],
     supersededBy: [],
@@ -207,11 +222,10 @@ export const breadcrumbItem: ComponentDef = {
     contested: [
       'The ancestor\'s label in Figma: the item\'s own `label` text property drives the current page\'s text only. An ancestor\'s text is the nested Link\'s `label`, set on the exposed Link, so the slot\'s default ancestors read "Link text" rather than "Home" and "Category": a host cannot yet override a text two nesting levels down (#2781).',
     ],
-    unverified: [
-      'The separator\'s contrast (lowest 3.51:1 on background.primary, 3.16:1 on background.secondary, measured for the proposal) is decorative and held to no floor.',
-    ],
+    unverified: [],
     evolution: [
       '2026-10-16 (#2666): built from the approved wireframe, every numbered call A. Sizes medium-first by the later owner rule Q359 B, which supersedes the proposal\'s small-first order.',
+      '2026-10-16 (Q382 A, after QA): the separator is its own part, `_breadcrumb-separator`, chevron or slash, chosen once on Breadcrumbs through a `separator` axis the item carries.',
     ],
   },
 };

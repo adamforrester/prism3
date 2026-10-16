@@ -17685,8 +17685,8 @@ arm: {
   //   size order small-first, or a kind other than ancestor first → `#2666 breadcrumbs/members`;
   //   the crumb nesting Link standalone, emphasis, or not exposing its state → `#2666 breadcrumbs/crumb` (calls 3 A, 4 A);
   //   the current page as a link, in text.secondary, or at emphasis → `#2666 breadcrumbs/current` (calls 2 A, 4 A, 5 A);
-  //   the separator a slash, another glyph or size, an icon ink other than icon.secondary, or after the current page →
-  //   `#2666 breadcrumbs/separator` (call 6 A);   the overflow nesting IconButton or another glyph → `#2666 breadcrumbs/overflow`;
+  //   a separator in the wrong look for its member, or after the current page → `#2666 breadcrumbs/separator` (call 6 A,
+  //   Q382 A); the separator's glyph, size or ink, or the slash's shape → `#2666 breadcrumbs/separator-looks`;   the overflow nesting IconButton or another glyph → `#2666 breadcrumbs/overflow`;
   //   the slot's minimum, preferred item or default kinds → `#2666 breadcrumbs/slot`;
   //   the parent layout's glyph, link or wording → `#2666 breadcrumbs/parent` (call 11 A);
   //   a gap off the proposal's space.050 / space.100 → `#2666 breadcrumbs/gaps`;
@@ -17701,18 +17701,23 @@ arm: {
       type BN = { name: string; type: string; nestTarget?: string; nestVariant?: Record<string, string>; nestExpose?: string[]; nestOverrides?: { property: string; type: string; value: string }[]; descendantFills?: string; textStyle?: string; characters?: string; paints?: { fills?: string }; bound?: Record<string, string>; slotSettings?: Record<string, unknown>; slotPreferred?: string[]; children: BN[] };
       const all = (n: BN): BN[] => [n, ...n.children.flatMap(all)];
       const find = (n: BN, name: string): BN | undefined => all(n).find((x) => x.name === name);
-      const itemPlans = figmaAnatomySet(itemDef, { swapTarget: 'FPO-default-icon' }).map((p) => ({ kind: String((p.coord as Record<string, string>).kind), size: String(p.size), root: p.root as unknown as BN }));
-      const trailPlans = figmaAnatomySet(trailDef, { swapTarget: 'FPO-default-icon' }).map((p) => ({ layout: String((p.coord as Record<string, string>).layout), size: String(p.size), root: p.root as unknown as BN }));
+      const itemPlans = figmaAnatomySet(itemDef, { swapTarget: 'FPO-default-icon' }).map((p) => ({ kind: String((p.coord as Record<string, string>).kind), sep: String((p.coord as Record<string, string>).separator), size: String(p.size), root: p.root as unknown as BN }));
+      const trailPlans = figmaAnatomySet(trailDef, { swapTarget: 'FPO-default-icon' }).map((p) => ({ layout: String((p.coord as Record<string, string>).layout), sep: String((p.coord as Record<string, string>).separator), size: String(p.size), root: p.root as unknown as BN }));
       const RUNG: Record<string, string> = { small: 'sm', medium: 'md' };
 
-      // MEMBERS (call 1 A, call 7 A; Q347 A and Q359 B): 3 × 2 and 2 × 2, the first member the code default.
-      ok(itemPlans.length === 6 && trailPlans.length === 4
-        && JSON.stringify(itemDef.variants) === '{"kind":["ancestor","current","overflow"],"size":["medium","small"]}'
-        && JSON.stringify(trailDef.variants) === '{"layout":["trail","parent"],"size":["medium","small"]}'
+      // MEMBERS (call 1 A, call 7 A; Q347 A and Q359 B; Q382 A): the item 3 kinds × 2 separators × 2 sizes less the current
+      // page's slash (10), the trail 2 layouts × 2 separators × 2 sizes less the parent's slash (6), the first member the
+      // code default. Typed out, in the set's order.
+      const ITEM_MEMBERS = ['ancestor/chevron', 'ancestor/slash', 'current/chevron', 'overflow/chevron', 'overflow/slash'].flatMap((ks) => ['medium', 'small'].map((z) => `${ks}/${z}`));
+      const TRAIL_MEMBERS = ['trail/chevron', 'trail/slash', 'parent/chevron'].flatMap((ls) => ['medium', 'small'].map((z) => `${ls}/${z}`));
+      ok(JSON.stringify(itemPlans.map((p) => `${p.kind}/${p.sep}/${p.size}`)) === JSON.stringify(ITEM_MEMBERS) && JSON.stringify(trailPlans.map((p) => `${p.layout}/${p.sep}/${p.size}`)) === JSON.stringify(TRAIL_MEMBERS)
+        && JSON.stringify(itemDef.variants) === '{"kind":["ancestor","current","overflow"],"separator":["chevron","slash"],"size":["medium","small"]}'
+        && JSON.stringify(trailDef.variants) === '{"layout":["trail","parent"],"separator":["chevron","slash"],"size":["medium","small"]}'
+        && [itemDef, trailDef].every((d) => d.props.find((p) => p.name === 'separator')?.default === 'chevron')
         && itemPlans[0].kind === 'ancestor' && itemPlans[0].size === 'medium' && trailPlans[0].layout === 'trail' && trailPlans[0].size === 'medium'
         && itemDef.states.length === 0 && trailDef.states.length === 0 && !itemDef.figmaProperties?.stateAxis && !trailDef.figmaProperties?.stateAxis
         && [itemDef, trailDef].every((d) => d.props.find((p) => p.name === 'size')?.default === 'medium'),
-        `#2666 breadcrumbs/members: BreadcrumbItem kind [ancestor, current, overflow] × size [medium, small] = 6, Breadcrumbs layout [trail, parent] × size [medium, small] = 4, no state axis, the first member the code default (got ${itemPlans.length} / ${trailPlans.length}, ${JSON.stringify(itemDef.variants)} ${JSON.stringify(trailDef.variants)})`);
+        `#2666 breadcrumbs/members (Q382 A): BreadcrumbItem kind [ancestor, current, overflow] × separator [chevron, slash] × size [medium, small] less the current page's slash = 10, Breadcrumbs layout [trail, parent] × separator × size less the parent's slash = 6, chevron by default, no state axis, the first member the code default (got ${itemPlans.length} / ${trailPlans.length}, ${JSON.stringify(itemDef.variants)} ${JSON.stringify(trailDef.variants)})`);
 
       // THE CRUMB (calls 3 A, 4 A): Link, inline (underlined at every state), default weight, default surface, at the
       // item's size, its state exposed. Only on an ancestor.
@@ -17733,15 +17738,28 @@ arm: {
       });
       ok(curOff.length === 0, `#2666 breadcrumbs/current (calls 2 A, 4 A, 5 A): the current page is "Current page" text in color/text/primary at body/<rung>/default, with no link in its member${curOff.length ? ` — OFF: ${curOff.map((p) => `${p.kind}/${p.size}`).join(', ')}` : ''}`);
 
-      // THE SEPARATOR (call 6 A): chevron-right, 16px (icon.size.xs) at both sizes, icon.secondary, after every step but
-      // the current one, and the last child of its row.
+      // THE SEPARATOR (call 6 A, Q382 A): after every step but the current one, the last child of its row, ONE nested
+      // `_breadcrumb-separator` in the member's own separator look; the current page nests none.
       const sepOff = itemPlans.filter((p) => {
-        const s = find(p.root, 'separator');
-        if (p.kind === 'current') return !!s;
-        return !(s && s.nestTarget === 'icon/chevron-right' && s.descendantFills === 'color/icon/secondary'
-          && s.bound?.width === 'icon/size/xs' && s.bound?.height === 'icon/size/xs' && p.root.children[p.root.children.length - 1] === s);
+        const seps = all(p.root).filter((n) => n.nestTarget === '_breadcrumb-separator');
+        if (p.kind === 'current') return seps.length > 0;
+        return !(seps.length === 1 && JSON.stringify(seps[0].nestVariant) === JSON.stringify({ type: p.sep }) && p.root.children[p.root.children.length - 1] === seps[0]);
       });
-      ok(sepOff.length === 0, `#2666 breadcrumbs/separator (call 6 A): a 16px chevron-right in color/icon/secondary ends every ancestor and overflow member, and no current member${sepOff.length ? ` — OFF: ${sepOff.map((p) => `${p.kind}/${p.size}`).join(', ')}` : ''}`);
+      ok(sepOff.length === 0, `#2666 breadcrumbs/separator (call 6 A, Q382 A): one Breadcrumb.Separator in the member's own look (chevron or slash) ends every ancestor and overflow member, and no current member${sepOff.length ? ` — OFF: ${sepOff.map((p) => `${p.kind}/${p.sep}/${p.size}`).join(', ')}` : ''}`);
+
+      // THE SEPARATOR'S TWO LOOKS (Q382 A): a 16px (icon.size.xs) chevron-right or slash in color/icon/secondary, the
+      // chevron first (the default). The slash is the set's own glyph, typed here (a 2px stroke on the 24px grid).
+      const sepDef = componentDefs.find((d) => d.id === '_breadcrumb-separator');
+      const sepPlans = sepDef ? figmaAnatomySet(sepDef, { swapTarget: 'FPO-default-icon' }) : [];
+      const SLASH = 'M14.03 4H16.17L9.97 20H7.83L14.03 4Z';
+      const looks = sepPlans.map((p) => {
+        const g = (p.root as unknown as BN).children;
+        return [String((p.coord as Record<string, string>).type), g.length, g[0]?.nestTarget, g[0]?.descendantFills, g[0]?.bound?.width, g[0]?.bound?.height];
+      });
+      const slashPath = (ICON_PATHS as Record<string, string | undefined>)['slash'];
+      ok(!!sepDef && sepDef.name === 'Breadcrumb.Separator' && JSON.stringify(looks) === JSON.stringify([['chevron', 1, 'icon/chevron-right', 'color/icon/secondary', 'icon/size/xs', 'icon/size/xs'], ['slash', 1, 'icon/slash', 'color/icon/secondary', 'icon/size/xs', 'icon/size/xs']])
+        && slashPath !== undefined && canonicalShape(slashPath) === canonicalShape(SLASH),
+        `#2666 breadcrumbs/separator-looks (Q382 A): _breadcrumb-separator is a 16px chevron-right or slash in color/icon/secondary, chevron first, and the set's slash is the 2px stroke typed here (got ${JSON.stringify(looks)}, slash ${slashPath ?? 'not in the set'})`);
 
       // THE OVERFLOW STEP (calls 8 A, 14 A): FlushIconButton.Neutral, flush, small at both sizes, three dots, state exposed.
       const ovOff = itemPlans.filter((p) => {
@@ -17759,9 +17777,9 @@ arm: {
         if (p.layout !== 'trail') return !!s;
         return !(s && s.type === 'CONTENT_SLOT' && JSON.stringify(s.slotSettings) === '{"minChildren":2,"allowPreferredValuesOnly":true}'
           && JSON.stringify(s.slotPreferred) === '["breadcrumb-item"]'
-          && JSON.stringify(s.children.map((c) => [c.nestTarget, c.nestVariant?.kind, c.nestVariant?.size])) === JSON.stringify([['breadcrumb-item', 'ancestor', p.size], ['breadcrumb-item', 'ancestor', p.size], ['breadcrumb-item', 'current', p.size]]));
+          && JSON.stringify(s.children.map((c) => [c.nestTarget, c.nestVariant?.kind, c.nestVariant?.separator, c.nestVariant?.size])) === JSON.stringify([['breadcrumb-item', 'ancestor', p.sep, p.size], ['breadcrumb-item', 'ancestor', p.sep, p.size], ['breadcrumb-item', 'current', 'chevron', p.size]]));
       });
-      ok(slotOff.length === 0, `#2666 breadcrumbs/slot: the trail holds a native items slot, at least 2, BreadcrumbItem only, defaulting to ancestor, ancestor, current at its own size${slotOff.length ? ` — OFF: ${slotOff.map((p) => `${p.layout}/${p.size}`).join(', ')}` : ''}`);
+      ok(slotOff.length === 0, `#2666 breadcrumbs/slot: the trail holds a native items slot, at least 2, BreadcrumbItem only, defaulting to ancestor, ancestor, current at its own size, the ancestors in the trail's separator (Q382 A)${slotOff.length ? ` — OFF: ${slotOff.map((p) => `${p.layout}/${p.sep}/${p.size}`).join(', ')}` : ''}`);
 
       // THE PARENT LAYOUT (call 11 A): a 16px chevron-left in the link icon role, then Link inline, default weight,
       // reading "Parent page", state exposed. Only on parent.
@@ -26654,10 +26672,10 @@ arm: {
       byShape.set(c, [...(byShape.get(c) ?? []), n].sort());
     }
     // 41 since the textarea's `resize-grip` joined the set (2026-09-25); 42 since the hamburger `menu` did
-    // (Q253 A, 2026-10-12): each a new shape, so both counts move by one and the three collisions below stay the
-    // only ones.
-    ok(byShape.size === 42,
-      `glyph-shape: the vocabulary's ${ICON_NAMES.length} names draw 42 distinct RENDERED shapes (got ${byShape.size}) — 43 distinct path STRINGS, so string comparison is off by one`);
+    // (Q253 A, 2026-10-12); 43 since the breadcrumb `slash` did (Q382 A, 2026-10-16): each a new shape, so both counts
+    // move by one and the three collisions below stay the only ones.
+    ok(byShape.size === 43,
+      `glyph-shape: the vocabulary's ${ICON_NAMES.length} names draw 43 distinct RENDERED shapes (got ${byShape.size}) — 44 distinct path STRINGS, so string comparison is off by one`);
     const groups = [...byShape.values()].filter((g) => g.length > 1).map((g) => g.join('|')).sort();
     ok(groups.join(' , ') === 'close|close-filled , minus|minus-filled , plus|plus-filled',
       `glyph-shape: and they are exactly the three -fill/-line pairs the source set draws identically (got [${groups.join('] [')}]) — a count of three would also pass on three collisions somewhere else`);
@@ -27084,7 +27102,7 @@ arm: {
   // own constant.
   // `tag` joins (2026-09-27): its check mark is gated on `selection: ['selected']`, the checkbox mark's shape.
   // `link` joins (#2580, owner Q297.2): its trailing icon is gated on `style: ['standalone']`, so an inline link carries none.
-  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'radio-control', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion', 'list-item', 'link', 'dialog', 'password-field', 'breadcrumb-item', 'breadcrumbs'];
+  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'radio-control', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion', 'list-item', 'link', 'dialog', 'password-field', '_breadcrumb-separator', 'breadcrumb-item', 'breadcrumbs'];
   ok(GATED_EXPECTED.every((n) => gatedDefs.some((d) => d.id === n)) && gatedDefs.length === GATED_EXPECTED.length,
     `#910 the presentWhen projection rule below covers exactly [${GATED_EXPECTED.join(', ')}] — a def gaining a variant-gated part must be represented here, and a def losing one is a stale claim (found: ${gatedDefs.map((d) => d.id).join(', ') || 'none'})`);
   for (const def of gatedDefs) {

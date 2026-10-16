@@ -449,7 +449,7 @@ Type: color. Bound by 2 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| breadcrumbs | `icon` | backGlyph | layout: parent (2 of 4) |
+| breadcrumbs | `icon` | backGlyph | layout: parent · separator: chevron (2 of 6) |
 | link | `icon` | trailingVisual | state: rest · style: standalone · surface: default (6 of 96) |
 
 ### `color.icon.link.focused`
@@ -482,7 +482,7 @@ Type: color. Bound by 6 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| icon | `icon`, `tone.primary` | glyph | every member (45 of 45) |
+| icon | `icon`, `tone.primary` | glyph | every member (46 of 46) |
 | list-item | `icon`, `indicator` | bullet | type: unordered (3 of 9) |
 |  |  | icon | type: icon (3 of 9) |
 | password-field | `icon` | leadingVisual | state: filled, focus-visible, focus-visible-filled, hover, read-only, rest (72 of 84) |
@@ -498,7 +498,8 @@ Type: color. Bound by 4 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| breadcrumb-item | `icon` | separator | kind: ancestor, overflow (4 of 6) |
+| _breadcrumb-separator | `icon` | chevron | type: chevron (1 of 2) |
+|  |  | slash | type: slash (1 of 2) |
 | field-message | `default.icon` | (not drawn) | — |
 | icon | `tone.secondary` | (not drawn) | — |
 | textarea | `icon` | grip | state: filled, focus-visible, focus-visible-filled, hover, read-only, rest (72 of 84) |
@@ -1734,7 +1735,7 @@ Type: color. Bound by 13 component(s).
 |---|---|---|---|
 | accordion | `body` | placeholder | expansion: expanded (12 of 24) |
 | badge | `neutral.status.subtle.label` | text | emphasis: subtle · tone: neutral · type: status (1 of 20) |
-| breadcrumb-item | `label` | current | kind: current (2 of 6) |
+| breadcrumb-item | `label` | current | kind: current · separator: chevron (2 of 10) |
 | checkbox-row | `label` | label | every member (3 of 3) |
 | dialog | `body`, `label` | placeholder | every member (15 of 15) |
 |  |  | title | every member (15 of 15) |
@@ -2266,8 +2267,10 @@ Type: dimension. Bound by 11 component(s).
 |  |  | frame | size: small (4 of 12) |
 |  |  | minus | expansion: expanded · indicator: plus-minus · size: small (1 of 12) |
 |  |  | plus | expansion: collapsed · indicator: plus-minus · size: small (1 of 12) |
-| breadcrumb-item | `size.medium.icon`, `size.small.icon` | separator | kind: ancestor, overflow (4 of 6) |
-| breadcrumbs | `back-icon` | backGlyph | layout: parent (2 of 4) |
+| _breadcrumb-separator | `glyph-size` | chevron | type: chevron (1 of 2) |
+|  |  | frame | every member (2 of 2) |
+|  |  | slash | type: slash (1 of 2) |
+| breadcrumbs | `back-icon` | backGlyph | layout: parent · separator: chevron (2 of 6) |
 | button | `size.small.icon` | leadingVisual | leading: true · size: small · state: disabled, focus-visible, hover, pressed, rest (80 of 576) |
 |  |  | spinner | size: small · state: pending (32 of 576) |
 |  |  | trailingVisual | size: small · trailing: true (88 of 576) |
@@ -2494,9 +2497,9 @@ Type: dimension. Bound by 6 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| breadcrumb-item | `size.small.gap` | container | size: small (3 of 6) |
-| breadcrumbs | `back-gap`, `size.small.gap` | container | every member (4 of 4) |
-|  |  | items | layout: trail · size: small (1 of 4) |
+| breadcrumb-item | `size.small.gap` | container | size: small (5 of 10) |
+| breadcrumbs | `back-gap`, `size.small.gap` | container | every member (6 of 6) |
+|  |  | items | layout: trail · size: small (2 of 6) |
 | field-label | `gap` | label | every member (24 of 24) |
 | link | `size.medium.gap`, `size.small.gap` | container | size: medium, small (64 of 96) |
 | segmented-control-segment | `inset` | container | every member (30 of 30) |
@@ -2532,8 +2535,8 @@ Type: dimension. Bound by 24 component(s).
 | accordion | `size.small.gap`, `size.small.pad-y` | header | size: small (8 of 24) |
 |  |  | titleRow | size: small (8 of 24) |
 | badge | `status.pad-y` | surface | type: status (10 of 20) |
-| breadcrumb-item | `size.medium.gap` | container | size: medium (3 of 6) |
-| breadcrumbs | `size.medium.gap` | items | layout: trail · size: medium (1 of 4) |
+| breadcrumb-item | `size.medium.gap` | container | size: medium (5 of 10) |
+| breadcrumbs | `size.medium.gap` | items | layout: trail · size: medium (2 of 6) |
 | button | `size.large.padding-y`, `size.medium.gap`, `size.medium.padding-y`, `size.small.gap` | container | every member (576 of 576) |
 | button-destructive | `size.large.padding-y`, `size.medium.gap`, `size.medium.padding-y`, `size.small.gap` | container | every member (576 of 576) |
 | button-neutral | `size.large.padding-y`, `size.medium.gap`, `size.medium.padding-y`, `size.small.gap` | container | every member (576 of 576) |
@@ -2716,7 +2719,7 @@ Type: typography. Bound by 13 component(s).
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | accordion | `size.medium.panel-type` | placeholder | expansion: expanded · size: medium (4 of 24) |
-| breadcrumb-item | `size.medium.type` | current | kind: current · size: medium (1 of 6) |
+| breadcrumb-item | `size.medium.type` | current | kind: current · separator: chevron · size: medium (1 of 10) |
 | checkbox-row | `size.medium.text` | label | size: medium (1 of 3) |
 | dialog | `body-type`, `description-type` | description | every member (15 of 15) |
 |  |  | placeholder | every member (15 of 15) |
@@ -2769,7 +2772,7 @@ Type: typography. Bound by 12 component(s).
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | accordion | `size.small.panel-type` | placeholder | expansion: expanded · size: small (4 of 24) |
-| breadcrumb-item | `size.small.type` | current | kind: current · size: small (1 of 6) |
+| breadcrumb-item | `size.small.type` | current | kind: current · separator: chevron · size: small (1 of 10) |
 | checkbox-row | `size.small.text` | label | size: small (1 of 3) |
 | field-label | `size.medium.regular.text` | indicator | size: medium · weight: regular (4 of 24) |
 |  |  | text | size: medium · weight: regular (4 of 24) |
@@ -2958,6 +2961,12 @@ Every token each component uses. "Declared, not drawn" names tokens the definiti
 
 `color.interactive.neutral.icon.rest`, `icon.size.md`, `icon.size.sm`, `icon.size.xs`
 
+### _breadcrumb-separator
+
+2 token(s); 2 design-file member(s).
+
+`color.icon.secondary`, `icon.size.xs`
+
 ### accordion
 
 18 token(s); 24 design-file member(s).
@@ -2972,13 +2981,13 @@ Every token each component uses. "Declared, not drawn" names tokens the definiti
 
 ### breadcrumb-item
 
-7 token(s); 6 design-file member(s).
+5 token(s); 10 design-file member(s).
 
-`color.icon.secondary`, `color.text.primary`, `icon.size.xs`, `space.050`, `space.100`, `type.body.md.default`, `type.body.sm.default`
+`color.text.primary`, `space.050`, `space.100`, `type.body.md.default`, `type.body.sm.default`
 
 ### breadcrumbs
 
-4 token(s); 4 design-file member(s).
+4 token(s); 6 design-file member(s).
 
 `color.icon.link.default`, `icon.size.xs`, `space.050`, `space.100`
 
@@ -3092,7 +3101,7 @@ Drawn, not declared: `color.inverse.border.focus`
 
 ### icon
 
-12 token(s); 45 design-file member(s).
+12 token(s); 46 design-file member(s).
 
 `color.icon.brand`, `color.icon.danger`, `color.icon.info`, `color.icon.primary`, `color.icon.secondary`, `color.icon.success`, `color.icon.tertiary`, `color.icon.warning`, `icon.size.lg`, `icon.size.md`, `icon.size.sm`, `icon.size.xs`
 

@@ -8,7 +8,7 @@
     "packages/engine/component-glyphs.ts"
   ],
   "note": "components.<id>.glyphs: each part that draws a fixed glyph (how: drawn) or starts its icon slot at one (how: swap default); source is the icon set, a component-owned glyph, or any glyph chosen through a prop. iconSlots: parts that take any icon. glyphs: the inverse, per glyph. notDrawnByAnyComponent: icon-set glyphs no definition names; each one is still reachable through Icon and every icon slot.",
-  "iconSetSize": 45,
+  "iconSetSize": 46,
   "components": {
     "_accordion-indicator": {
       "glyphs": [
@@ -71,17 +71,27 @@
       ],
       "iconSlots": []
     },
-    "breadcrumb-item": {
+    "_breadcrumb-separator": {
       "glyphs": [
         {
-          "part": "separator",
+          "part": "chevron",
           "glyph": "chevron-right",
           "source": "icon set",
           "how": "drawn",
           "when": {
-            "kind": [
-              "ancestor",
-              "overflow"
+            "type": [
+              "chevron"
+            ]
+          }
+        },
+        {
+          "part": "slash",
+          "glyph": "slash",
+          "source": "icon set",
+          "how": "drawn",
+          "when": {
+            "type": [
+              "slash"
             ]
           }
         }
@@ -417,7 +427,7 @@
       "breadcrumbs"
     ],
     "chevron-right": [
-      "breadcrumb-item"
+      "_breadcrumb-separator"
     ],
     "chevron-up": [
       "_accordion-indicator"
@@ -463,6 +473,9 @@
       "textarea"
     ],
     "search": [],
+    "slash": [
+      "_breadcrumb-separator"
+    ],
     "spinner": [
       "spinner"
     ],

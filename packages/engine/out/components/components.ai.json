@@ -65,6 +65,7 @@
             "plus-filled",
             "resize-grip",
             "search",
+            "slash",
             "warning-triangle",
             "warning-triangle-filled"
           ],
@@ -155,6 +156,7 @@
             "plus-filled",
             "resize-grip",
             "search",
+            "slash",
             "warning-triangle",
             "warning-triangle-filled"
           ],
@@ -7720,6 +7722,93 @@
         ]
       }
     },
+    "_breadcrumb-separator": {
+      "id": "_breadcrumb-separator",
+      "name": "Breadcrumb.Separator",
+      "aliases": [
+        "breadcrumb-divider",
+        "crumb-separator"
+      ],
+      "category": "navigation",
+      "status": "draft",
+      "summary": "The mark between two breadcrumb steps: a chevron or a slash, in the secondary icon color.",
+      "description": "The mark between two steps of a Breadcrumbs trail, after every step but the current page. A chevron that points toward the current page, or a slash. Breadcrumbs chooses one for the whole trail. It is 16px at both breadcrumb sizes, in the secondary icon color, and decorative: it is never read aloud or focused.",
+      "props": [
+        {
+          "name": "type",
+          "type": "enum: 'chevron' | 'slash'",
+          "default": "chevron",
+          "required": false,
+          "values": [
+            "chevron",
+            "slash"
+          ],
+          "description": "chevron: a chevron pointing toward the current page. slash: a forward slash. Set by the Breadcrumbs it sits in, for every step at once."
+        }
+      ],
+      "states": [],
+      "variants": {
+        "type": {
+          "values": [
+            "chevron",
+            "slash"
+          ],
+          "kind": "authoring"
+        }
+      },
+      "accessibility": {
+        "role": "none: decorative, drawn by CSS and never in the accessibility tree",
+        "wcag": [
+          "1.3.1 Info and Relationships (the trail's order is the list's, not the separator's)"
+        ],
+        "focus": "None. The mark takes no focus.",
+        "aria": "None. The mark is CSS generated content, never announced."
+      },
+      "content": {
+        "labelPattern": "The mark carries no text."
+      },
+      "docs": {
+        "usage": "Part of a BreadcrumbItem. Choose chevron or slash once, on Breadcrumbs; every step shows the same mark.",
+        "do": [
+          "Choose the look once, on Breadcrumbs"
+        ],
+        "dont": [
+          "Place a separator on its own, or type one as text between links",
+          "Mix chevrons and slashes in one trail"
+        ],
+        "contentGuidelines": "The separator holds no copy."
+      },
+      "ai": {
+        "primaryPurpose": "The mark between two steps of a Breadcrumbs trail, a chevron or a slash.",
+        "whenToUse": "Only as a child of BreadcrumbItem. Generate Breadcrumbs instead.",
+        "avoidWhen": "Always on its own. Use Breadcrumbs; for a plain icon, use an Icon.",
+        "commonPartners": [
+          "breadcrumb-item",
+          "breadcrumbs"
+        ],
+        "triggerKeywords": [
+          "breadcrumb separator",
+          "breadcrumb slash",
+          "breadcrumb chevron"
+        ],
+        "generationPriority": 9
+      },
+      "motion": {
+        "enter": "None.",
+        "exit": "None.",
+        "reduceMotion": "No motion to reduce."
+      },
+      "composition": {
+        "composesWith": [],
+        "alternativeTo": [],
+        "supersedes": [],
+        "supersededBy": [],
+        "planned": [],
+        "replacesPatterns": [
+          "a \"/\" or \">\" typed as text between breadcrumb links"
+        ]
+      }
+    },
     "breadcrumb-item": {
       "id": "breadcrumb-item",
       "name": "BreadcrumbItem",
@@ -7730,7 +7819,7 @@
       "category": "navigation",
       "status": "draft",
       "summary": "One step in a breadcrumb trail: a link, the current page, or the collapsed steps.",
-      "description": "One step in a Breadcrumbs trail. An ancestor is an underlined link to a page above the current one, followed by a chevron. The current page is plain text in the primary text color, last in the trail and not a link. The overflow step stands for the steps a long trail hides: a small icon-only button that shows them in place when pressed. Items live inside Breadcrumbs and are never placed on their own.",
+      "description": "One step in a Breadcrumbs trail. An ancestor is an underlined link to a page above the current one, followed by a chevron or a slash. The current page is plain text in the primary text color, last in the trail and not a link. The overflow step stands for the steps a long trail hides: a small icon-only button that shows them in place when pressed. Items live inside Breadcrumbs and are never placed on their own.",
       "props": [
         {
           "name": "kind",
@@ -7766,6 +7855,17 @@
             "medium"
           ],
           "description": "The body type size, 14 or 16px, with the gap to the separator sized to it. Set by the Breadcrumbs it sits in."
+        },
+        {
+          "name": "separator",
+          "type": "enum: 'chevron' | 'slash'",
+          "default": "chevron",
+          "required": false,
+          "values": [
+            "chevron",
+            "slash"
+          ],
+          "description": "The mark after the step: a chevron or a slash. Set by the Breadcrumbs it sits in, the same for every step. Unused on the current page."
         }
       ],
       "states": [],
@@ -7775,6 +7875,13 @@
             "ancestor",
             "current",
             "overflow"
+          ],
+          "kind": "authoring"
+        },
+        "separator": {
+          "values": [
+            "chevron",
+            "slash"
           ],
           "kind": "authoring"
         },
@@ -7841,6 +7948,7 @@
       },
       "composition": {
         "composesWith": [
+          "_breadcrumb-separator",
           "link",
           "flush-icon-button-neutral"
         ],
@@ -7865,7 +7973,7 @@
       "category": "navigation",
       "status": "draft",
       "summary": "The path to the current page as links, with the current page last and not a link.",
-      "description": "Shows where the current page sits in the site's hierarchy: a row of links to the pages above it, root first, ending in the current page as plain text. Each link is underlined and followed by a chevron. A long trail keeps its first step and its last two and collapses the middle behind one button that shows them in place. On a small screen the trail becomes one link up to the parent page. Breadcrumbs follow the site's structure, not the pages a person visited, and supplement the main navigation rather than replace it.",
+      "description": "Shows where the current page sits in the site's hierarchy: a row of links to the pages above it, root first, ending in the current page as plain text. Each link is underlined and followed by a chevron or a slash, one mark for the whole trail. A long trail keeps its first step and its last two and collapses the middle behind one button that shows them in place. On a small screen the trail becomes one link up to the parent page. Breadcrumbs follow the site's structure, not the pages a person visited, and supplement the main navigation rather than replace it.",
       "props": [
         {
           "name": "items",
@@ -7883,6 +7991,17 @@
             "medium"
           ],
           "description": "The body type size, 14 or 16px, passed to every item. Medium suits a trail beside 16px body copy; small, a quieter line above a page title."
+        },
+        {
+          "name": "separator",
+          "type": "enum: 'chevron' | 'slash'",
+          "default": "chevron",
+          "required": false,
+          "values": [
+            "chevron",
+            "slash"
+          ],
+          "description": "The mark between steps, the same for every step: a chevron pointing toward the current page, or a slash."
         },
         {
           "name": "maxItems",
@@ -7942,6 +8061,13 @@
           "values": [
             "trail",
             "parent"
+          ],
+          "kind": "authoring"
+        },
+        "separator": {
+          "values": [
+            "chevron",
+            "slash"
           ],
           "kind": "authoring"
         },

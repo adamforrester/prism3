@@ -22,7 +22,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 - **axis size** — the size axis takes 3 value sets — [large, medium, small] in _accordion-indicator, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, password-field, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, select, tab, tabs, tag, text-field, textarea; [medium, small] in breadcrumb-item, breadcrumbs, switch-control, switch-row; [large, medium, small, x-small] in spinner
 - **axis style** — the style axis takes 2 value sets — [outline] in password-field, text-field, textarea; [inline, standalone] in link
 - **axis tone** — the tone axis takes 2 value sets — [brand, danger, info, inherit, primary, secondary, success, tertiary, warning] in icon; [danger, info, neutral, success, warning] in badge
-- **axis type** — the type axis takes 3 value sets — [icon, ordered, unordered] in list, list-item; [count, dot, status] in badge; [dismissible, select] in tag
+- **axis type** — the type axis takes 4 value sets — [icon, ordered, unordered] in list, list-item; [chevron, slash] in _breadcrumb-separator; [count, dot, status] in badge; [dismissible, select] in tag
 - **axis weight** — the weight axis takes 2 value sets — [bold, regular] in field-label; [default, emphasis] in link
 
 ### axis without prop
@@ -104,6 +104,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 | Component | Category | States | Drawn in the design file |
 |---|---|---|---|
 | _accordion-indicator | navigation | — | — |
+| _breadcrumb-separator | navigation | — | — |
 | accordion | navigation | rest, focus-visible | rest, focus-visible |
 | badge | foundations | — | — |
 | breadcrumb-item | navigation | — | — |
@@ -191,6 +192,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 |  | checked, indeterminate, unchecked | checkbox-control |
 |  | checked, unchecked | radio-control |
 |  | off, on | switch-control |
+| separator | chevron, slash | breadcrumb-item, breadcrumbs |
 | shape | circular, square | icon-button, icon-button-destructive, icon-button-neutral |
 |  | flush, round | flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral |
 | size | large, medium, small | _accordion-indicator, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, password-field, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, select, tab, tabs, tag, text-field, textarea |
@@ -203,6 +205,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 | tone | brand, danger, info, inherit, primary, secondary, success, tertiary, warning | icon |
 |  | danger, info, neutral, success, warning | badge |
 | type | icon, ordered, unordered | list, list-item |
+|  | chevron, slash | _breadcrumb-separator |
 |  | count, dot, status | badge |
 |  | dismissible, select | tag |
 | value | dark, light | veil |
@@ -399,7 +402,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | button-destructive | — | — |
 |  | button-neutral | — | — |
 | name | checkbox-group | — | — |
-|  | icon | — | 45 values |
+|  | icon | — | 46 values |
 |  | password-field | — | — |
 |  | radio-group | — | — |
 |  | segmented-control | — | — |
@@ -442,6 +445,8 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 | selected | segmented-control-segment | false | — |
 |  | tab | false | — |
 |  | tag | false | — |
+| separator | breadcrumb-item | chevron | chevron, slash |
+|  | breadcrumbs | chevron | chevron, slash |
 | shape | flush-icon-button | flush | flush, round |
 |  | flush-icon-button-destructive | flush | flush, round |
 |  | flush-icon-button-neutral | flush | flush, round |
@@ -508,7 +513,8 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 | trailingVisual | button | — | — |
 |  | button-destructive | — | — |
 |  | button-neutral | — | — |
-| type | badge | status | status, count, dot |
+| type | _breadcrumb-separator | chevron | chevron, slash |
+|  | badge | status | status, count, dot |
 |  | button | button | button, submit, reset |
 |  | button-destructive | button | button, submit, reset |
 |  | button-neutral | button | button, submit, reset |

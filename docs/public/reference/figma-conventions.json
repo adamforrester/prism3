@@ -254,7 +254,7 @@
         "kind": "component set",
         "page": "↳ Icons & assets",
         "section": "Foundations",
-        "members": 45,
+        "members": 46,
         "variantProperties": [
           {
             "name": "name",
@@ -302,6 +302,7 @@
               "plus-filled",
               "resize-grip",
               "search",
+              "slash",
               "warning-triangle",
               "warning-triangle-filled"
             ]
@@ -2288,13 +2289,34 @@
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/password-field.md"
       },
       {
+        "id": "_breadcrumb-separator",
+        "name": "Breadcrumb.Separator",
+        "figmaName": "_breadcrumb-separator",
+        "kind": "component set",
+        "private": true,
+        "page": null,
+        "section": null,
+        "members": 2,
+        "variantProperties": [
+          {
+            "name": "type",
+            "values": [
+              "chevron",
+              "slash"
+            ]
+          }
+        ],
+        "properties": [],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/_breadcrumb-separator.md"
+      },
+      {
         "id": "breadcrumb-item",
         "name": "BreadcrumbItem",
         "figmaName": "breadcrumb-item",
         "kind": "component set",
         "page": "↳ Breadcrumb Item",
         "section": "Subcomponents",
-        "members": 6,
+        "members": 10,
         "variantProperties": [
           {
             "name": "kind",
@@ -2302,6 +2324,13 @@
               "ancestor",
               "current",
               "overflow"
+            ]
+          },
+          {
+            "name": "separator",
+            "values": [
+              "chevron",
+              "slash"
             ]
           },
           {
@@ -2327,13 +2356,20 @@
         "kind": "component set",
         "page": "↳ Breadcrumbs",
         "section": "Components",
-        "members": 4,
+        "members": 6,
         "variantProperties": [
           {
             "name": "layout",
             "values": [
               "trail",
               "parent"
+            ]
+          },
+          {
+            "name": "separator",
+            "values": [
+              "chevron",
+              "slash"
             ]
           },
           {
@@ -2399,6 +2435,7 @@
       "plus-filled",
       "resize-grip",
       "search",
+      "slash",
       "warning-triangle",
       "warning-triangle-filled"
     ]

@@ -64,6 +64,30 @@
       "sizeDefault": "medium"
     },
     {
+      "id": "_breadcrumb-separator",
+      "name": "Breadcrumb.Separator",
+      "category": "navigation",
+      "states": [],
+      "projectedStates": [],
+      "axes": {
+        "type": [
+          "chevron",
+          "slash"
+        ]
+      },
+      "props": [
+        {
+          "name": "type",
+          "default": "chevron",
+          "values": [
+            "chevron",
+            "slash"
+          ]
+        }
+      ],
+      "sizes": []
+    },
+    {
       "id": "accordion",
       "name": "Accordion",
       "category": "navigation",
@@ -238,6 +262,10 @@
           "current",
           "overflow"
         ],
+        "separator": [
+          "chevron",
+          "slash"
+        ],
         "size": [
           "medium",
           "small"
@@ -266,6 +294,14 @@
             "small",
             "medium"
           ]
+        },
+        {
+          "name": "separator",
+          "default": "chevron",
+          "values": [
+            "chevron",
+            "slash"
+          ]
         }
       ],
       "sizes": [
@@ -285,6 +321,10 @@
           "trail",
           "parent"
         ],
+        "separator": [
+          "chevron",
+          "slash"
+        ],
         "size": [
           "medium",
           "small"
@@ -300,6 +340,14 @@
           "values": [
             "small",
             "medium"
+          ]
+        },
+        {
+          "name": "separator",
+          "default": "chevron",
+          "values": [
+            "chevron",
+            "slash"
           ]
         },
         {
@@ -1472,6 +1520,7 @@
           "plus-filled",
           "resize-grip",
           "search",
+          "slash",
           "warning-triangle",
           "warning-triangle-filled"
         ],
@@ -1534,6 +1583,7 @@
             "plus-filled",
             "resize-grip",
             "search",
+            "slash",
             "warning-triangle",
             "warning-triangle-filled"
           ]
@@ -3950,6 +4000,18 @@
         ]
       }
     ],
+    "separator": [
+      {
+        "values": [
+          "chevron",
+          "slash"
+        ],
+        "components": [
+          "breadcrumb-item",
+          "breadcrumbs"
+        ]
+      }
+    ],
     "shape": [
       {
         "values": [
@@ -4135,6 +4197,15 @@
         "components": [
           "list",
           "list-item"
+        ]
+      },
+      {
+        "values": [
+          "chevron",
+          "slash"
+        ],
+        "components": [
+          "_breadcrumb-separator"
         ]
       },
       {
@@ -5087,6 +5158,7 @@
           "plus-filled",
           "resize-grip",
           "search",
+          "slash",
           "warning-triangle",
           "warning-triangle-filled"
         ]
@@ -5369,6 +5441,24 @@
       {
         "id": "tag",
         "default": false
+      }
+    ],
+    "separator": [
+      {
+        "id": "breadcrumb-item",
+        "default": "chevron",
+        "values": [
+          "chevron",
+          "slash"
+        ]
+      },
+      {
+        "id": "breadcrumbs",
+        "default": "chevron",
+        "values": [
+          "chevron",
+          "slash"
+        ]
       }
     ],
     "shape": [
@@ -5967,6 +6057,14 @@
     ],
     "type": [
       {
+        "id": "_breadcrumb-separator",
+        "default": "chevron",
+        "values": [
+          "chevron",
+          "slash"
+        ]
+      },
+      {
         "id": "badge",
         "default": "status",
         "values": [
@@ -6504,12 +6602,13 @@
       "kind": "axis values",
       "subject": "axis type",
       "components": [
+        "_breadcrumb-separator",
         "badge",
         "list",
         "list-item",
         "tag"
       ],
-      "detail": "the type axis takes 3 value sets — [icon, ordered, unordered] in list, list-item; [count, dot, status] in badge; [dismissible, select] in tag"
+      "detail": "the type axis takes 4 value sets — [icon, ordered, unordered] in list, list-item; [chevron, slash] in _breadcrumb-separator; [count, dot, status] in badge; [dismissible, select] in tag"
     },
     {
       "kind": "axis values",

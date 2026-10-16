@@ -12,7 +12,7 @@
     "used": 247,
     "unusedSemantic": 260,
     "unusedPrimitive": 280,
-    "components": 43
+    "components": 44
   },
   "tokens": {
     "border-width.hairline": {
@@ -3306,6 +3306,9 @@
               "where": {
                 "layout": [
                   "parent"
+                ],
+                "separator": [
+                  "chevron"
                 ]
               }
             }
@@ -3422,7 +3425,7 @@
           ],
           "parts": {
             "glyph": {
-              "members": 45,
+              "members": 46,
               "where": {}
             }
           }
@@ -3553,17 +3556,24 @@
     "color.icon.secondary": {
       "type": "color",
       "components": {
-        "breadcrumb-item": {
+        "_breadcrumb-separator": {
           "keys": [
             "icon"
           ],
           "parts": {
-            "separator": {
-              "members": 4,
+            "chevron": {
+              "members": 1,
               "where": {
-                "kind": [
-                  "ancestor",
-                  "overflow"
+                "type": [
+                  "chevron"
+                ]
+              }
+            },
+            "slash": {
+              "members": 1,
+              "where": {
+                "type": [
+                  "slash"
                 ]
               }
             }
@@ -11706,6 +11716,9 @@
               "where": {
                 "kind": [
                   "current"
+                ],
+                "separator": [
+                  "chevron"
                 ]
               }
             }
@@ -15572,18 +15585,28 @@
             }
           }
         },
-        "breadcrumb-item": {
+        "_breadcrumb-separator": {
           "keys": [
-            "size.medium.icon",
-            "size.small.icon"
+            "glyph-size"
           ],
           "parts": {
-            "separator": {
-              "members": 4,
+            "chevron": {
+              "members": 1,
               "where": {
-                "kind": [
-                  "ancestor",
-                  "overflow"
+                "type": [
+                  "chevron"
+                ]
+              }
+            },
+            "frame": {
+              "members": 2,
+              "where": {}
+            },
+            "slash": {
+              "members": 1,
+              "where": {
+                "type": [
+                  "slash"
                 ]
               }
             }
@@ -15599,6 +15622,9 @@
               "where": {
                 "layout": [
                   "parent"
+                ],
+                "separator": [
+                  "chevron"
                 ]
               }
             }
@@ -17489,7 +17515,7 @@
           ],
           "parts": {
             "container": {
-              "members": 3,
+              "members": 5,
               "where": {
                 "size": [
                   "small"
@@ -17505,11 +17531,11 @@
           ],
           "parts": {
             "container": {
-              "members": 4,
+              "members": 6,
               "where": {}
             },
             "items": {
-              "members": 1,
+              "members": 2,
               "where": {
                 "layout": [
                   "trail"
@@ -17838,7 +17864,7 @@
           ],
           "parts": {
             "container": {
-              "members": 3,
+              "members": 5,
               "where": {
                 "size": [
                   "medium"
@@ -17853,7 +17879,7 @@
           ],
           "parts": {
             "items": {
-              "members": 1,
+              "members": 2,
               "where": {
                 "layout": [
                   "trail"
@@ -19397,6 +19423,9 @@
                 "kind": [
                   "current"
                 ],
+                "separator": [
+                  "chevron"
+                ],
                 "size": [
                   "medium"
                 ]
@@ -19829,6 +19858,9 @@
               "where": {
                 "kind": [
                   "current"
+                ],
+                "separator": [
+                  "chevron"
                 ],
                 "size": [
                   "small"
@@ -21143,6 +21175,21 @@
       "declaredNotDrawn": [],
       "drawnNotDeclared": []
     },
+    "_breadcrumb-separator": {
+      "members": 2,
+      "axes": {
+        "type": [
+          "chevron",
+          "slash"
+        ]
+      },
+      "tokens": [
+        "color.icon.secondary",
+        "icon.size.xs"
+      ],
+      "declaredNotDrawn": [],
+      "drawnNotDeclared": []
+    },
     "accordion": {
       "members": 24,
       "axes": {
@@ -21248,12 +21295,16 @@
       "drawnNotDeclared": []
     },
     "breadcrumb-item": {
-      "members": 6,
+      "members": 10,
       "axes": {
         "kind": [
           "ancestor",
           "current",
           "overflow"
+        ],
+        "separator": [
+          "chevron",
+          "slash"
         ],
         "size": [
           "medium",
@@ -21261,9 +21312,7 @@
         ]
       },
       "tokens": [
-        "color.icon.secondary",
         "color.text.primary",
-        "icon.size.xs",
         "space.050",
         "space.100",
         "type.body.md.default",
@@ -21273,11 +21322,15 @@
       "drawnNotDeclared": []
     },
     "breadcrumbs": {
-      "members": 4,
+      "members": 6,
       "axes": {
         "layout": [
           "parent",
           "trail"
+        ],
+        "separator": [
+          "chevron",
+          "slash"
         ],
         "size": [
           "medium",
@@ -22066,7 +22119,7 @@
       ]
     },
     "icon": {
-      "members": 45,
+      "members": 46,
       "axes": {
         "name": [
           "FPO-default-icon",
@@ -22112,6 +22165,7 @@
           "plus-filled",
           "resize-grip",
           "search",
+          "slash",
           "warning-triangle",
           "warning-triangle-filled"
         ]
