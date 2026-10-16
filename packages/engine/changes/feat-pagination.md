@@ -21,5 +21,5 @@ reserve. The ellipsis "…" is its own text part (`mark`) with its own TEXT prop
 holds one default every member displays. Sizes lead with medium in both, Figma's first member being the code default.
 A new `type` value set and a new `style` value set. Engine: `figmaProperties.excludeCoordinates` may name the state axis, so a set can drop a state from some
 members only; the validator, the projector, the member count and the lint walkers read the state as one more dimension
-of the grid. The plugin's slot pass writes a nested instance's overrides once per run (it visited slot items twice, so
-an override inside a slot was applied and reported twice); EXECUTOR_REVISION 29. No new tokens; CONTRACT is unchanged.
+of the grid. No executor code moves: the once-per-run override guard inside a native slot this def needs landed with
+#2660. No new tokens; CONTRACT is unchanged.

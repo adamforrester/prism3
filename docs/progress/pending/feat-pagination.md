@@ -69,9 +69,9 @@ drops a reaction whose destination member is absent, so the current page gets no
 - **Overrides inside a native slot were written twice.** The executor's slot pass (`toSlots`) runs `build` over the new
   SLOT and visits its items a second time, so a per-instance override inside a slot was applied, and its miss reported,
   twice. The corpus re-apply in `test-update-apply.ts` caught it (the update's misses outnumbered the build's).
-  Pagination is the first def on main with overrides inside a slot; the fix is #2660's own (`instanceValuesWritten`),
-  ported as is. Main has since taken 28 for another executor change, so this branch raises it to 29. #2660 will find
-  the fix already there.
+  Pagination is the first def with overrides inside a slot; the fix is #2660's own (`instanceValuesWritten`). This
+  branch carried a port of it until #2660 merged; since that merge the executor matches main and this PR moves no
+  executor code.
 - **Test worlds lacked the override glyphs.** `test-update-apply.ts`'s `world()` and `test-canvas-furniture.ts`'s
   rollout built no `icon/chevron-*` components, so the update refused a plan swapping to them; both now provision every
   glyph a plan's overrides name.

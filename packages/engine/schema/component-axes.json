@@ -44,7 +44,11 @@
         "page"
       ]
     },
-    "members": 27
+    "members": 27,
+    "properties": {
+      "ellipsis": "TEXT",
+      "label": "TEXT"
+    }
   },
   "accordion": {
     "axes": {
@@ -705,7 +709,11 @@
         "simple"
       ]
     },
-    "members": 12
+    "members": 12,
+    "properties": {
+      "items": "SLOT",
+      "status text": "TEXT"
+    }
   },
   "password-field": {
     "axes": {
