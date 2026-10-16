@@ -3849,6 +3849,10 @@ for (const b of brands) {
       'radio-row': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       'switch-row': ['size.small.gap', 'size.medium.gap'],
       list: ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
+      // #2709: the three defs with a density-following gap that joined after this list was written.
+      'password-field': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
+      accordion: ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
+      link: ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       tag: ['small', 'medium', 'large'].flatMap((v) => [
         `size.${v}.select.gap+size.${v}.select.label-inset`, `size.${v}.dismissible.gap+size.${v}.dismissible.label-inset`, `size.${v}.check-gap`]),
     };
@@ -3864,6 +3868,16 @@ for (const b of brands) {
         }
       }
     }
+    // THE CONVERSE (#2709): a def whose `densitySpacing` names a gap is in GAP_KEYS, or excused here with the reason.
+    // Read off the def, with this test's own spelling of "a gap key" (a last segment ending in `gap`), so a def that
+    // joins with a gap fails by name instead of escaping the floor.
+    const GAP_EXEMPT: Record<string, string> = {};
+    const gapUnlisted = componentDefs
+      .filter((d) => (d.densitySpacing ?? []).some((k) => /gap$/.test(k.split('.').pop()!)))
+      .map((d) => d.id)
+      .filter((id) => !(id in GAP_KEYS) && !GAP_EXEMPT[id]);
+    ok(gapUnlisted.length === 0,
+      `spacing model: the gap floor RECORDS every def whose density spacing names a gap (${Object.keys(GAP_KEYS).length} listed)${gapUnlisted.length ? ` — NOT IN GAP_KEYS: ${gapUnlisted.join(', ')}` : ''}`);
     const tagCheck = SPACE_PX.get(applySpacingDensity(componentDefs.find((d) => d.id === 'tag')!, 'compact').tokens['size.small.check-gap']);
     ok(under.length === 0 && tagCheck === 4 && densitySpace('space.050', 'compact') === 'space.025',
       `spacing model: the gap floor — no gap is under 4px at any density in ${Object.keys(GAP_KEYS).length} defs, and compact small Tag's label→check is held at 4 where the bare step gives 2 (got ${tagCheck})${under.length ? ` — UNDER: ${under.join('; ')}` : ''}`);
@@ -16983,7 +16997,13 @@ arm: {
     ]);
     const SH_MODES = ['light', 'dark', 'hc-light', 'hc-dark'];
     const SH_GROUNDS = ['background.primary', 'background.secondary'];
-    const SH_DEFS = ['text-field', 'textarea', 'select'];
+    // #2709: Password field joins: the same field factory as Text field, so the same status borders.
+    const SH_DEFS = ['text-field', 'textarea', 'select', 'password-field'];
+    // Defs with a status axis that are NOT a framed field, with the reason. The converse below reads the axis off
+    // every def, so a new status-bearing def fails by name until it is pinned or excused here.
+    const SH_EXEMPT: Record<string, string> = {
+      'field-message': 'a message line under a field: no state axis and no stroked boundary, so there is no hover border to measure; its status shows in the text and glyph',
+    };
     const SH_STATUSES = ['error', 'warning', 'success'];
     const roleOfVar = (v: string): string => v.replace(/^color\//, '').replace(/\//g, '.');
     type ShPaint = { def: string; status: string; coord: string; stroke: string; fill?: string };
@@ -17004,7 +17024,13 @@ arm: {
     }
     const shMissing = SH_DEFS.flatMap((id) => SH_STATUSES.filter((s) => !shPaints.some((p) => p.def === id && p.status === s)).map((s) => `${id}[status=${s}]`));
     ok(shMissing.length === 0,
-      `a11y(#1782): every pinned field def (text-field, textarea, select) × non-default status (error, warning, success) projects a stroked hover member` + (shMissing.length ? ` — missing: ${shMissing.join(', ')}` : ''));
+      `a11y(#1782): every pinned field def (${SH_DEFS.join(', ')}) × non-default status (error, warning, success) projects a stroked hover member` + (shMissing.length ? ` — missing: ${shMissing.join(', ')}` : ''));
+    const shUnpinned = componentDefs
+      .filter((d) => ((d.variants as Record<string, readonly string[]> | undefined)?.status ?? []).some((v) => SH_STATUSES.includes(v)))
+      .map((d) => d.id)
+      .filter((id) => !SH_DEFS.includes(id) && !SH_EXEMPT[id]);
+    ok(shUnpinned.length === 0,
+      `a11y(#1782, #2709): every def with an error / warning / success status is pinned in SH_DEFS or excused in SH_EXEMPT with the reason` + (shUnpinned.length ? ` — NOT PINNED: ${shUnpinned.join(', ')}` : ''));
 
     const shFails: string[] = [], shHcFails: string[] = [];
     const shModesSeen = new Set<string>();
@@ -17154,8 +17180,8 @@ arm: {
     const RO_MODES = ['light', 'dark', 'hc-light', 'hc-dark'];
     const RO_GROUNDS = ['background.primary', 'background.secondary'];
     // Pinned by name, independent of the discovery below: the three field defs #1710 names (select's
-    // read-only member landed with #1699/#1709).
-    const RO_PINNED = ['text-field', 'textarea', 'select'];
+    // read-only member landed with #1699/#1709), and Password field (#2709), which joined after.
+    const RO_PINNED = ['text-field', 'textarea', 'select', 'password-field'];
     // The STATES swept. `read-only` is #1710's subject; `rest`, `hover` and `filled` are swept too because the
     // three defs' SC 1.4.11 line claims "the rest, hover and read-only borders are gated on
     // `background.secondary`" — and before this sweep nothing gated a def's HOVER binding at all (the review of
@@ -17194,7 +17220,12 @@ arm: {
     }
     const roMissingDefs = RO_PINNED.filter((id) => !roPaints.some((p) => p.def === id && p.state === 'read-only'));
     ok(roMissingDefs.length === 0,
-      `a11y(#1710): the read-only boundary sweep REPRESENTS every pinned field def (text-field, textarea, select) with a stroked read-only member` + (roMissingDefs.length ? ` — missing: ${roMissingDefs.join(', ')}` : ''));
+      `a11y(#1710): the read-only boundary sweep REPRESENTS every pinned field def (${RO_PINNED.join(', ')}) with a stroked read-only member` + (roMissingDefs.length ? ` — missing: ${roMissingDefs.join(', ')}` : ''));
+    // The converse (#2709): discovery sweeps a def the day it gains a read-only member, and only the pin keeps it
+    // swept, so a discovered def that is not pinned fails by name.
+    const roUnpinned = roDefs.map((d) => d.id).filter((id) => !RO_PINNED.includes(id));
+    ok(roUnpinned.length === 0,
+      `a11y(#1710, #2709): every def with a read-only member is pinned in RO_PINNED` + (roUnpinned.length ? ` — NOT PINNED: ${roUnpinned.join(', ')}` : ''));
     ok(roUnframed.length === 0,
       `a11y(#1710): every discovered field member in a swept state (${RO_SWEPT.join(', ')}), every status, draws a stroked boundary — a member with none is unmeasured, not passing` + (roUnframed.length ? ` — ${roUnframed.length} without: ${roUnframed.slice(0, 6).join('; ')}${roUnframed.length > 6 ? '; …' : ''}` : ''));
 
