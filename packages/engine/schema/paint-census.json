@@ -492,6 +492,18 @@
         "assignments": 456,
         "sha256": "f4c8a2016d77cece81f97d359ca68dc8eff078bc1f9a52f0f7609105c65946f0"
       }
+    },
+    "progress": {
+      "set": {
+        "members": 10,
+        "assignments": 36,
+        "sha256": "e2dd583762500013185e8d5126314ed887ad9c6ec491c6b1e38a78ae2a45f90e"
+      },
+      "grid": {
+        "members": 10,
+        "assignments": 36,
+        "sha256": "4fd0d1609c9056f983265b194054294718a264c83de29442ae8645b835da34a2"
+      }
     }
   }
 }

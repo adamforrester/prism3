@@ -601,6 +601,28 @@
     },
     "members": 84
   },
+  "progress": {
+    "axes": {
+      "shape": [
+        "circular",
+        "linear"
+      ],
+      "size": [
+        "medium",
+        "small"
+      ],
+      "status": [
+        "active",
+        "complete",
+        "error"
+      ],
+      "type": [
+        "determinate",
+        "indeterminate"
+      ]
+    },
+    "members": 10
+  },
   "radio-control": {
     "axes": {
       "selection": [

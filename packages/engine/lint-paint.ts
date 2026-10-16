@@ -255,6 +255,20 @@ const PROVENANCE_EXCEPTIONS: Record<string, string> = {
   // the slot it paints.
   'list-item|icon':
     "the key is the `icon` paint slot, not the `type` value `icon`; the two share a spelling. It binds the icon role, `color.icon.primary`, for the icon marker, which only the icon type draws",
+  // Progress (#2670): its end-state axis is `status`, active / complete / error. `complete` is the success role and
+  // `error` the danger role, the mapping FieldMessage records for its own `error`, one vocabulary over.
+  'progress|complete.icon':
+    "status `complete` maps to the `success` ink role — the work finished, and success is the token tier's name for that color",
+  'progress|active.icon':
+    "status `active` maps to the `brand` ink role — running work is shown in the brand color, from the icon tier because Progress is not interactive",
+  'progress|active.indicator':
+    'same mapping as `active.icon`, for the linear fill',
+  'progress|complete.indicator':
+    'same mapping as `complete.icon`, for the linear fill',
+  'progress|error.indicator':
+    'same mapping as `error.icon`, for the linear fill',
+  'progress|error.icon':
+    "status `error` maps to the `danger` ink role, the mapping `field-message|error.icon` records — the axis names the outcome, `danger` is the token tier's name for its color",
   'field-message|default.label':
     "status `default` maps to the MUTED body role, not to a role named 'default' — the token tier has no `text.default`, and `secondary` is what a non-status message's ink is",
   'field-message|default.icon':

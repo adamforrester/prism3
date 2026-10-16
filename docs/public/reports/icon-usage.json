@@ -245,6 +245,54 @@
         "leadingVisual"
       ]
     },
+    "progress": {
+      "glyphs": [
+        {
+          "part": "arc",
+          "glyph": "progress-arc-{size}",
+          "source": "component-owned",
+          "how": "drawn",
+          "when": {
+            "shape": [
+              "circular"
+            ],
+            "status": [
+              "active",
+              "error"
+            ]
+          }
+        },
+        {
+          "part": "arcFull",
+          "glyph": "progress-full-{size}",
+          "source": "component-owned",
+          "how": "drawn",
+          "when": {
+            "shape": [
+              "circular"
+            ],
+            "status": [
+              "complete"
+            ]
+          }
+        },
+        {
+          "part": "stop",
+          "glyph": "progress-stop",
+          "source": "component-owned",
+          "how": "drawn",
+          "when": {
+            "shape": [
+              "linear"
+            ],
+            "type": [
+              "determinate"
+            ]
+          }
+        }
+      ],
+      "iconSlots": []
+    },
     "segmented-control-segment": {
       "glyphs": [],
       "iconSlots": [
@@ -422,6 +470,13 @@
     "plus-circle": [],
     "plus-circle-filled": [],
     "plus-filled": [],
+    "progress-arc-medium": [],
+    "progress-arc-small": [],
+    "progress-full-medium": [],
+    "progress-full-small": [],
+    "progress-stop": [
+      "progress"
+    ],
     "resize-grip": [
       "textarea"
     ],

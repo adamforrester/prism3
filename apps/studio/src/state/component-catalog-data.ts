@@ -1114,5 +1114,19 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
       "field-message",
       "focus-ring"
     ]
+  },
+  {
+    "id": "progress",
+    "name": "Progress",
+    "category": "feedback",
+    "summary": "Shows how far a task has got, or that it is still running. Linear or circular.",
+    "unit": "variants",
+    "spacing": [],
+    "buildable": true,
+    "reason": null,
+    "members": 10,
+    "nests": [
+      "field-message"
+    ]
   }
 ];

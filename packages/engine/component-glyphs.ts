@@ -87,7 +87,39 @@ export const spinnerLayers = (g: { viewBox: number; radius: number; stroke: numb
   ];
 };
 
+/** PROGRESS'S RING (#2670, owner call 5 A): the value arc a determinate ring draws over its track. The track is the
+ *  ring box's own inside stroke, in a different role from the arc, so it is not a layer here (the Spinner's track is
+ *  its own ink at 20%; this one is not). The band lies exactly on that stroke: its outer edge is the artboard's edge
+ *  and it is as wide as the stroke, in artboard units — 2px at the 24px ring (2 units) and 4px at the 40px ring
+ *  (2.4 units). The still member shows half the ring (`value`), from twelve o'clock clockwise with round caps, and the
+ *  full ring at complete. */
+export const PROGRESS_GEOMETRY = {
+  viewBox: 24,
+  /** The band in artboard units, per ring size: the stroke's px × 24 / the ring's px. */
+  band: { small: 2, medium: 2.4 },
+  /** The arc the still member draws, as a fraction of the circle. */
+  value: 0.5,
+} as const;
+
+/** One progress glyph: the arc at `value` of the circle, or the full ring. Built from `spinnerLayers`' geometry, so
+ *  the two rings share one drawing method; the full ring is the spinner's annulus at full strength. */
+export const progressLayers = (band: number, full: boolean, g: { viewBox: number; value: number } = PROGRESS_GEOMETRY): GlyphLayer[] => {
+  const [track, arc] = spinnerLayers({ viewBox: g.viewBox, radius: g.viewBox / 2 - band / 2, stroke: band, arc: g.value, track: 1 });
+  return full ? [{ id: 'arc', d: track.d, fillRule: 'evenodd' }] : [arc];
+};
+
+/** The stop dot at the end of a determinate progress bar (#2670): a disc filling the artboard, scaled to 4px. */
+export const progressStopLayers = (viewBox: number = PROGRESS_GEOMETRY.viewBox): GlyphLayer[] => {
+  const c = viewBox / 2;
+  return [{ id: 'dot', d: `M${r3(viewBox)} ${r3(c)}A${r3(c)} ${r3(c)} 0 1 1 0 ${r3(c)}A${r3(c)} ${r3(c)} 0 1 1 ${r3(viewBox)} ${r3(c)}Z` }];
+};
+
 /** The registry `anatomy-figma.ts` resolves a `vector` part's `glyph` against before the icon set. */
 export const COMPONENT_GLYPHS: Record<string, readonly GlyphLayer[]> = {
   spinner: spinnerLayers(),
+  'progress-arc-small': progressLayers(PROGRESS_GEOMETRY.band.small, false),
+  'progress-arc-medium': progressLayers(PROGRESS_GEOMETRY.band.medium, false),
+  'progress-full-small': progressLayers(PROGRESS_GEOMETRY.band.small, true),
+  'progress-full-medium': progressLayers(PROGRESS_GEOMETRY.band.medium, true),
+  'progress-stop': progressStopLayers(),
 };

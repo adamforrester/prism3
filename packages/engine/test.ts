@@ -75,7 +75,7 @@ import type { AnatomyPlan, ButtonLayout } from './anatomy-figma';
 // ABOUT one component (`button.variants.appearance`, `textField.tokens[...]`), which a find-by-id
 // over the set would only make weaker. Completeness of the set is NOT asserted here — that is
 // `typecheck-components.ts`'s registry arm, whose oracle is git's index.
-import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, checkboxControl, checkboxRow, checkboxGroup, radioGroup, textarea, radioControl, radioRow, switchControl, switchRow, select, spinner, tag, tab, divider } from './components/index';
+import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, checkboxControl, checkboxRow, checkboxGroup, radioGroup, textarea, radioControl, radioRow, switchControl, switchRow, select, spinner, tag, tab, divider, progress } from './components/index';
 // The glyph vocabulary, for #864's geometry assertions. Imported so EXPECTED comes from the set rather
 // than from the projector that read it — the two halves `docs/34` requires.
 import { ICON_NAMES, ICON_PATHS, ICON_FILL_RULES, ICON_VIEWBOX } from './icon-glyphs';
@@ -25407,22 +25407,22 @@ arm: {
   const prim = (key: number, sec: number): Row => [`motion/duration-ms/${key}`, sec, null];
   const sem = (name: string, key: number, sec: number): Row => [`motion/${name}`, sec, `motion/duration-ms/${key}`];
   const NB_MOTION: Row[] = [
-    prim(0, 0), prim(40, 0.04), prim(50, 0.05), prim(100, 0.1), prim(200, 0.2), prim(300, 0.3), prim(500, 0.5), prim(800, 0.8), prim(2600, 2.6),
+    prim(0, 0), prim(40, 0.04), prim(50, 0.05), prim(100, 0.1), prim(200, 0.2), prim(300, 0.3), prim(500, 0.5), prim(800, 0.8), prim(1600, 1.6), prim(2600, 2.6),
     sem('duration/instant', 50, 0.05), sem('duration/fast', 100, 0.1), sem('duration/normal', 200, 0.2), sem('duration/moderate', 300, 0.3),
-    sem('duration/slow', 500, 0.5), sem('duration/slower', 800, 0.8), sem('duration/spin', 800, 0.8),
+    sem('duration/slow', 500, 0.5), sem('duration/slower', 800, 0.8), sem('duration/spin', 800, 0.8), sem('duration/sweep', 1600, 1.6),
     sem('duration-reduced/instant', 50, 0.05), sem('duration-reduced/fast', 100, 0.1), sem('duration-reduced/normal', 50, 0.05),
     sem('duration-reduced/moderate', 0, 0), sem('duration-reduced/slow', 0, 0), sem('duration-reduced/slower', 0, 0),
-    sem('duration-reduced/spin', 2600, 2.6),
+    sem('duration-reduced/spin', 2600, 2.6), sem('duration-reduced/sweep', 2600, 2.6),
     sem('stagger', 40, 0.04),
   ];
   const AURORA_MOTION: Row[] = [
     prim(0, 0), prim(30, 0.03), prim(40, 0.04), prim(50, 0.05), prim(80, 0.08), prim(160, 0.16), prim(240, 0.24), prim(400, 0.4),
-    prim(640, 0.64), prim(800, 0.8), prim(2600, 2.6),
+    prim(640, 0.64), prim(800, 0.8), prim(1600, 1.6), prim(2600, 2.6),
     sem('duration/instant', 40, 0.04), sem('duration/fast', 80, 0.08), sem('duration/normal', 160, 0.16), sem('duration/moderate', 240, 0.24),
-    sem('duration/slow', 400, 0.4), sem('duration/slower', 640, 0.64), sem('duration/spin', 800, 0.8),
+    sem('duration/slow', 400, 0.4), sem('duration/slower', 640, 0.64), sem('duration/spin', 800, 0.8), sem('duration/sweep', 1600, 1.6),
     sem('duration-reduced/instant', 40, 0.04), sem('duration-reduced/fast', 80, 0.08), sem('duration-reduced/normal', 50, 0.05),
     sem('duration-reduced/moderate', 0, 0), sem('duration-reduced/slow', 0, 0), sem('duration-reduced/slower', 0, 0),
-    sem('duration-reduced/spin', 2600, 2.6),
+    sem('duration-reduced/spin', 2600, 2.6), sem('duration-reduced/sweep', 2600, 2.6),
     sem('stagger', 30, 0.03),
   ];
   // EASING: `[name, value, alias, hidden]`. Curves are hidden primitives, roles published aliases of a curve,
@@ -26867,7 +26867,7 @@ arm: {
   // own constant.
   // `tag` joins (2026-09-27): its check mark is gated on `selection: ['selected']`, the checkbox mark's shape.
   // `link` joins (#2580, owner Q297.2): its trailing icon is gated on `style: ['standalone']`, so an inline link carries none.
-  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'radio-control', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion', 'list-item', 'link', 'dialog', 'password-field'];
+  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'radio-control', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion', 'list-item', 'link', 'dialog', 'password-field', 'progress'];
   ok(GATED_EXPECTED.every((n) => gatedDefs.some((d) => d.id === n)) && gatedDefs.length === GATED_EXPECTED.length,
     `#910 the presentWhen projection rule below covers exactly [${GATED_EXPECTED.join(', ')}] — a def gaining a variant-gated part must be represented here, and a def losing one is a stale claim (found: ${gatedDefs.map((d) => d.id).join(', ') || 'none'})`);
   for (const def of gatedDefs) {
@@ -28342,6 +28342,10 @@ arm: {
     // link wraps, and the icon is inline with its word rather than centered on the block (link.ts codeOnly).
     'link.container':
       "a link is one text line tall in Figma and its label is one line there, so the trailing icon centers against the only line; in code the icon sits inline with the last word, never centered on a wrapped block (link.ts codeOnly).",
+    // `progress` (#2670): the ring and its value. The value is one short line ("50%") in a row that hugs it, so it never
+    // wraps, and the approved wireframe centers it on the ring.
+    'progress.ringRow':
+      "the ring's value is one short line in a row that hugs it, so it never wraps; the approved wireframe centers it on the ring.",
     'tag.labelCheck':
       "the tag's height is fixed at one line in Figma and its label is one line there, so the check mark (and, one row out, the leading icon) center against the only line; in code a wrapped label centers them on the label block, which is held for the owner (tag.ts notes.contested).",
   };
@@ -31075,6 +31079,152 @@ arm: {
     `#2408 prism3-consume: the skill tells the agent a medium or large flush text button keeps a 44×44 hit area in code and a small one 24×24, with the ::before technique (missing: ${para ? missing(para).join(', ') || 'none' : 'no paragraph names inset=flush and 44×44'})`);
 }
 
+// ---- Progress (#2670): the approved calls as literals, and its contrast on every committed brand × mode ----
+// The owner approved the proposal on #2670 with every numbered call at A (2026-10-16). Each arm below holds one call
+// against a value TYPED HERE from the proposal, never read from the def, so a def that drifts from what was approved
+// fails under the call's own name.
+{
+  const set = figmaAnatomySet(progress, { swapTarget: 'FPO-default-icon' });
+  const names = set.map((m) => planComponentName(m));
+  type PNode = { name: string; type?: string; characters?: string; nestTarget?: string; nestVariant?: Record<string, string>; paints?: Record<string, string>; bound?: Record<string, string>; glyphSvg?: string; children?: PNode[] };
+  const nodes = (n: PNode, out: PNode[] = []): PNode[] => { out.push(n); for (const c of n.children ?? []) nodes(c, out); return out; };
+  const member = (name: string): PNode[] => { const m = set.find((x) => planComponentName(x) === name); return m ? nodes(m.root as unknown as PNode) : []; };
+  const part = (name: string, p: string): PNode | undefined => member(name).find((n) => n.name === p);
+
+  // Calls 1, 2 and 9: linear determinate, linear indeterminate and circular determinate, one linear thickness, two
+  // ring sizes; no indeterminate ring (that is the Spinner) and no end state on an indeterminate bar. Ten members.
+  const MEMBERS = [
+    'shape=linear, type=determinate, status=active, size=medium',
+    'shape=linear, type=determinate, status=complete, size=medium',
+    'shape=linear, type=determinate, status=error, size=medium',
+    'shape=linear, type=indeterminate, status=active, size=medium',
+    'shape=circular, type=determinate, status=active, size=medium',
+    'shape=circular, type=determinate, status=active, size=small',
+    'shape=circular, type=determinate, status=complete, size=medium',
+    'shape=circular, type=determinate, status=complete, size=small',
+    'shape=circular, type=determinate, status=error, size=medium',
+    'shape=circular, type=determinate, status=error, size=small',
+  ];
+  ok(JSON.stringify(names) === JSON.stringify(MEMBERS),
+    `#2670 call 1/2/9 progress: the set is the ten approved members, default first — linear determinate × 3 statuses, linear indeterminate active, circular determinate × 3 statuses × 2 sizes (got ${names.length}: ${names.filter((n) => !MEMBERS.includes(n)).join(' | ') || names.join(' | ')})`);
+
+  // Call 3: the ring's value text sits beside the ring, on by default.
+  const ringRow = part(MEMBERS[4], 'ringRow');
+  ok(JSON.stringify((ringRow?.children ?? []).map((c) => c.name)) === JSON.stringify(['ring', 'ringValue']) && progress.figmaProperties?.booleans?.showValue !== undefined
+    && typeof progress.figmaProperties.booleans.showValue !== 'string' && progress.figmaProperties.booleans.showValue.default === true,
+    `#2670 call 3 progress: the ring's value sits beside the ring, after it in the row, and shows by default (row: ${(ringRow?.children ?? []).map((c) => c.name).join(', ')})`);
+
+  // Call 4: active, complete, error; complete and error carry a glyph and a message (FieldMessage, success and error),
+  // never color alone; active carries none.
+  const MSG: Record<string, [string, string] | null> = { active: null, complete: ['messageComplete', 'success'], error: ['messageError', 'error'] };
+  const badMsg: string[] = [];
+  for (const name of MEMBERS) {
+    const status = /status=(\w+)/.exec(name)![1];
+    const msgs = member(name).filter((n) => n.nestTarget === 'field-message');
+    const want = MSG[status];
+    if (want === null ? msgs.length !== 0 : msgs.length !== 1 || msgs[0].name !== want[0] || msgs[0].nestVariant?.status !== want[1]) badMsg.push(`${name}: ${msgs.map((m) => `${m.name}@${m.nestVariant?.status}`).join(', ') || 'no message'}`);
+  }
+  ok(JSON.stringify(progress.variants.status) === JSON.stringify(['active', 'complete', 'error']) && badMsg.length === 0,
+    `#2670 call 4 progress: status is active / complete / error, and complete and error each carry a FieldMessage (success, error) with its glyph and caption, active none${badMsg.length ? ` — WRONG: ${badMsg.join(' | ')}` : ''}`);
+
+  // Call 5: a pale track (`background.tertiary`), 4px, with a stop dot at its end in the fill's color, on a
+  // determinate bar; the fill and the ring's arc in the icon role per status.
+  const track = part(MEMBERS[0], 'track');
+  const kids = (track?.children ?? []).map((c) => c.name);
+  const FILL: Record<string, string> = { active: 'color/icon/brand', complete: 'color/icon/success', error: 'color/icon/danger' };
+  const fillWrong = MEMBERS.flatMap((name) => {
+    const status = /status=(\w+)/.exec(name)![1];
+    const f = part(name, 'fill'), arc = part(name, 'arc') ?? part(name, 'arcFull'), stop = part(name, 'stop');
+    const got = [f?.paints?.fills, arc && (arc as unknown as { descendantFills?: string }).descendantFills, stop && (stop as unknown as { descendantFills?: string }).descendantFills].filter(Boolean);
+    return got.length && got.every((g) => g === FILL[status]) ? [] : [`${name}: ${got.join('/') || 'nothing'}`];
+  });
+  ok(track?.paints?.fills === 'color/background/tertiary' && track?.bound?.height === 'border-width/heavy' && kids[kids.length - 1] === 'stop'
+    && part(MEMBERS[4], 'ring')?.paints?.strokes === 'color/background/tertiary' && fillWrong.length === 0,
+    `#2670 call 5 progress: the track is background.tertiary at 4px (border-width.heavy), the ring's track the same role, the stop dot ends the track, and the fill, arc and stop take icon.brand / success / danger by status (track ${track?.paints?.fills} @ ${track?.bound?.height}, children ${kids.join(', ')}${fillWrong.length ? `; WRONG: ${fillWrong.join(' | ')}` : ''})`);
+  ok(!part(MEMBERS[3], 'stop') && part(MEMBERS[3], 'lead') !== undefined && part(MEMBERS[1], 'rest') === undefined,
+    '#2670 call 5 progress: an indeterminate bar has no stop dot and shows its segment between a lead and a rest; a complete bar has no rest, its fill the whole track');
+
+  // Calls 6 and 7: the sweep's own pair, 1600ms and 2600ms under reduced motion (slower, not removed), fixed at every
+  // tempo, in every committed brand.
+  for (const tempo of ['snappy', 'standard', 'relaxed'] as const) {
+    const t = buildTree(brandTheme({ id: 'sweep', primary: { l: 0.55, c: 0.18, h: 285 }, neutral: { hue: 285, chroma: 0.01 }, motionPersonality: { tempo } } as unknown as BrandInput)).tree.prism.motion;
+    ok(t.duration.sweep?.$value === '{prism.motion.duration-ms.1600}' && t['duration-ms']['1600']?.$value === '1600ms'
+      && t['duration-reduced'].sweep?.$value === '{prism.motion.duration-ms.2600}',
+      `#2670 call 6/7 motion (${tempo}): motion.duration.sweep is 1600ms and motion.duration-reduced.sweep 2600ms at every tempo (${t.duration.sweep?.$value} / ${t['duration-reduced'].sweep?.$value})`);
+  }
+  const committedBrands = readdirSync(resolve(HERE, './out')).filter((f) => /^[^.]+\.tokens\.json$/.test(f)).map((f) => f.slice(0, -'.tokens.json'.length)).sort();
+  const sweepMissing = committedBrands.filter((b) => {
+    const tree = JSON.parse(readFileSync(resolve(HERE, `./out/${b}.tokens.json`), 'utf8'));
+    const m = tree[Object.keys(tree).find((k) => !k.startsWith('$'))!].motion;
+    return !(m?.duration?.sweep && m?.['duration-reduced']?.sweep);
+  });
+  ok(committedBrands.length >= 5 && sweepMissing.length === 0,
+    `#2670 call 6 motion: every committed brand emits motion.duration.sweep and motion.duration-reduced.sweep (${committedBrands.length} brands${sweepMissing.length ? `; missing in ${sweepMissing.join(', ')}` : ''})`);
+  const motionProse = `${progress.motion?.reduceMotion ?? ''}\n${progress.anatomy!.codeOnly.join('\n')}`;
+  ok(/motion\.duration-reduced\.sweep/.test(motionProse) && /2600ms/.test(motionProse) && /--motion-duration-sweep/.test(motionProse) && /prefers-reduced-motion: reduce/.test(motionProse) && /never (stopped|removed)/.test(motionProse),
+    '#2670 call 7 progress: the shipped motion and the code rules name the reduced sweep (2600ms), under prefers-reduced-motion, kept and never removed');
+
+  // Call 8: announced at 25, 50 and 75%, and at the end; never from aria-valuenow.
+  const aria = `${progress.accessibility.aria}\n${progress.anatomy!.codeOnly.join('\n')}`;
+  ok(/25, 50 (and|or) 75%/.test(aria) && /polite/.test(aria) && /aria-valuenow` never triggers speech/.test(aria) && progress.props.find((p) => p.name === 'announce')?.default === 'milestones',
+    '#2670 call 8 progress: a polite region speaks at 25, 50 and 75% and at the end, never from aria-valuenow, and milestones is the default');
+
+  // Call 10: named Progress, id `progress`, category feedback, its own page under Components, `loader` left to Spinner.
+  ok(progress.name === 'Progress' && progress.id === 'progress' && progress.category === 'feedback' && !(progress.aliases ?? []).includes('loader') && (spinner.aliases ?? []).includes('loader'),
+    '#2670 call 10 progress: named Progress (id progress, category feedback); the alias `loader` stays with Spinner');
+
+  // Call 11: the drafted wording.
+  ok(progress.summary === 'Shows how far a task has got, or that it is still running. Linear or circular.'
+    && progress.figmaProperties?.texts?.label?.default === 'Label' && part(MEMBERS[1], 'messageComplete') !== undefined
+    && JSON.stringify((set[1].root as unknown as PNode)) .includes('"value":"Message"'),
+    '#2670 call 11 progress: the summary, the "Label" placeholder and the "Message" text are the drafted wording');
+
+  // CONTRAST, measured on the COMMITTED emission of every brand in every mode it ships (`out/<brand>.tokens.json`, the
+  // light value and each `modes.<mode>` override, aliases followed to a hex). The pairs and floors are typed here: the
+  // fill against the track and the stop dot against the page at 3:1 (SC 1.4.11), the label and value against the page
+  // at 4.5:1 (SC 1.4.3). The fill's roles are the def's own bindings, read through its tokens, so a rebind to a role
+  // that misses is caught here.
+  type Leaf = { $value?: unknown; $extensions?: { prism3?: { modes?: Record<string, { $value?: unknown }> } } };
+  const FILLS = [progress.tokens['active.indicator'], progress.tokens['complete.indicator'], progress.tokens['error.indicator']];
+  const PAIRS: [string, string, number, string][] = [
+    ...FILLS.map((f): [string, string, number, string] => [f, 'color.background.tertiary', 3, 'fill vs track']),
+    ...FILLS.map((f): [string, string, number, string] => [f, 'color.background.primary', 3, 'stop dot vs page']),
+    ['color.text.primary', 'color.background.primary', 4.5, 'label vs page'],
+    ['color.text.secondary', 'color.background.primary', 4.5, 'value vs page'],
+  ];
+  ok(progress.tokens.fill === 'color.background.tertiary' && progress.tokens.label === 'color.text.primary' && progress.tokens.body === 'color.text.secondary'
+    && JSON.stringify(FILLS) === JSON.stringify(['color.icon.brand', 'color.icon.success', 'color.icon.danger']),
+    `#2670 progress contrast: the measured roles are the def's bindings — track background.tertiary, label text.primary, value text.secondary, fills ${FILLS.join(' / ')}`);
+  const misses: string[] = [];
+  let cells = 0;
+  for (const b of committedBrands) {
+    const tree = JSON.parse(readFileSync(resolve(HERE, `./out/${b}.tokens.json`), 'utf8'));
+    const root = Object.keys(tree).find((k) => !k.startsWith('$'))!;
+    const leaf = (path: string): Leaf | undefined => path.split('.').reduce<any>((o, k) => o?.[k], tree);
+    const hexOf = (path: string, mode: string, depth = 0): string | undefined => {
+      const l = leaf(path);
+      const v = mode === 'light' ? l?.$value : l?.$extensions?.prism3?.modes?.[mode]?.$value ?? l?.$value;
+      if (typeof v !== 'string' || depth > 8) return undefined;
+      const ref = /^\{(.+)\}$/.exec(v)?.[1];
+      if (ref) return hexOf(ref, mode, depth + 1);
+      // A primitive is a hex or an `rgb(r, g, b)` string, by brand dialect.
+      const rgb = /^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/.exec(v);
+      return rgb ? hex({ r: +rgb[1], g: +rgb[2], b: +rgb[3] }) : /^#[0-9a-f]{6}$/i.test(v) ? v : undefined;
+    };
+    const modes = ['light', ...Object.keys(leaf(`${root}.color.background.primary`)?.$extensions?.prism3?.modes ?? {})];
+    for (const mode of modes)
+      for (const [fg, bg, floor, what] of PAIRS) {
+        const f = hexOf(`${root}.${fg}`, mode), g = hexOf(`${root}.${bg}`, mode);
+        cells++;
+        if (!f || !g) { misses.push(`${b}/${mode} ${what}: unresolved (${fg}=${f}, ${bg}=${g})`); continue; }
+        const r = contrast(hexToRgb(f), hexToRgb(g));
+        if (r < floor) misses.push(`${b}/${mode} ${what} ${fg} on ${bg}: ${r.toFixed(2)}:1 < ${floor}:1`);
+      }
+  }
+  ok(committedBrands.length >= 5 && cells >= committedBrands.length * 4 * PAIRS.length && misses.length === 0,
+    `#2670 progress contrast: the fill clears 3:1 against the track and the stop dot 3:1 against the page, and the label and value 4.5:1, in every committed brand × mode (${cells} pairs over ${committedBrands.join(', ')})${misses.length ? ` — MISSES: ${misses.join(' | ')}` : ''}`);
+}
+
 // ---- one axis value order in every def (#2501, owner decision Q213) ----
 // Sizes smallest to largest, except the named Q221 B exception below; states Rest, Hover, Pressed together, then Focus
 // (focus-visible and its variants), then Disabled. The states the owner did not name are placed by Q220 A: Pending
@@ -31098,6 +31248,9 @@ arm: {
     dialog: ['medium', 'small', 'large'],
     // #2317: the field family's order, through the shared field factory.
     'password-field': ['medium', 'small', 'large'],
+    // Progress (#2670): the proposal's axis table lists the ring's sizes default first, approved with every call at A,
+    // and owner Q347 puts the code default first on every axis.
+    progress: ['medium', 'small'],
   };
   const outOfOrder = (vals: readonly unknown[], ladder: readonly string[]): string | null => {
     const unknown = vals.filter((v) => !ladder.includes(String(v)));

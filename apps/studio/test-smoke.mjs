@@ -2898,7 +2898,8 @@ const readDepthMotion = (page) => page.evaluate((sel) => {
 const sameBez = (a, b) => Array.isArray(a) && Array.isArray(b) && a.length === 4 && b.length === 4 && a.every((x, i) => Math.abs(x - b[i]) < 0.002);
 /** Hold what the preview draws for motion against the oracle, in one mode. */
 const checkDepthMotion = (where, got, o) => {
-  const steps = Object.keys(o.durations).filter((k) => k !== 'spin');
+  // The spinner's turn and the progress sweep (#2670) are loop periods, never steps of the ramp.
+  const steps = Object.keys(o.durations).filter((k) => k !== 'spin' && k !== 'sweep');
   ok(JSON.stringify(got.rows.map((r) => r.step)) === JSON.stringify(steps),
     `${where}: the durations table lists the emission's steps, in order, the spinner's turn not among them — drew ${got.rows.map((r) => r.step).join(', ')}, the emission has ${steps.join(', ')}`);
   const offMs = got.rows.filter((r) => r.pill !== `motion.duration.${r.step}` || r.ms !== o.durations[r.step] || r.reduced !== o.reduced[r.step])
