@@ -135,6 +135,11 @@
  *                  stops dropped from the draw check → `veil/dry run`, `veil/repaired`, `veil/verify`; verify's draw check dropped → `veil/verify`.
  *                  Stops at their color but 100% alpha read "to update" and fail verify; the alpha comparison dropped from
  *                  the draw check's gradient branch → `veil/alpha dry run`, `veil/alpha verify`.
+ *   stepdown/…     Segmented control, Tab and Tag, built while their glyph sat on the 1:1 rung (20 / 24 / 32), update in
+ *                  place to the rung below (16 / 20 / 24, owner Q337 A, #2725): every glyph rebound and resized, every
+ *                  key and id kept, current after. The expected names and px are typed here from the decision.
+ *                  Mutation: the executor's bind loop skipping width and height on an existing node →
+ *                  `stepdown/<id> rebound`, `stepdown/<id> verdict`.
  *   stretch/…      an axis the parent stretches (Accordion's indicator, FIXED on the host at medium and large where the
  *                  plan says AUTO): the verify and the dry run accept it alike, and both name a node nothing stretches
  *                  on that axis, or one whose stretch the host lost (#2696). Mutations in the section's own comment.
@@ -189,7 +194,7 @@ const planChild = (n: PlanNode, name: string): PlanNode => n.children!.find((c) 
 type World = { host: ApplyHost; api: Record<string, any>; page: Page; set: () => Node; plans: AnatomyPlan[] };
 /** A fresh file holding one set, built by the executor, with identities on. `extraVars` are variables the file
  *  holds beyond the plans', for a later plan to bind. */
-const world = async (id: string, plans = plansOf(id), o: { extraVars?: string[]; extraStyles?: string[]; extraComps?: string[]; componentProps?: Record<string, Record<string, { type: string; defaultValue: string | boolean }>>; keyPrefix?: string; styleIdPrefix?: string; unavailableFonts?: { family: string; style: string }[]; refuseVersion?: boolean; allowMisses?: string[] } = {}): Promise<World> => {
+const world = async (id: string, plans = plansOf(id), o: { extraVars?: string[]; extraStyles?: string[]; extraComps?: string[]; varPx?: Record<string, number>; componentProps?: Record<string, Record<string, { type: string; defaultValue: string | boolean }>>; keyPrefix?: string; styleIdPrefix?: string; unavailableFonts?: { family: string; style: string }[]; refuseVersion?: boolean; allowMisses?: string[] } = {}): Promise<World> => {
   const page: Page = { children: [] };
   const api = makeShim({
     vars: [...new Set([...plans.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]), 'space/0', ...(o.extraVars ?? [])])],
@@ -203,6 +208,7 @@ const world = async (id: string, plans = plansOf(id), o: { extraVars?: string[];
     keyPrefix: o.keyPrefix,
     styleIdPrefix: o.styleIdPrefix,
     refuseVersion: o.refuseVersion,
+    varPx: o.varPx,
     componentProps: o.componentProps,
   }) as any;
   const built = await applyComponentPlan(plans, api);
@@ -2791,6 +2797,65 @@ for (const edit of [
   ok(got(adoptions(swapRow, ['s'])) === '[]', `acc/adoptions swap: an INSTANCE_SWAP is never moved, since its host type depends on the file and the dry run cannot read it (${got(adoptions(swapRow, ['s']))})`);
   const slotRow = [{ name: 'row', type: 'CONTENT_SLOT', children: [{ name: 'a', type: 'FRAME' }] }];
   ok(got(adoptions(slotRow, ['a'])) === '[]', `acc/adoptions frame only: only a FRAME the plan inserts is offered children, never another type that carries them (${got(adoptions(slotRow, ['a']))})`);
+}
+
+section('stepdown — Segmented control, Tab and Tag move their glyph one rung down in place (#2725, owner Q337 A)');
+{
+  // THE FILE AS A BUILD BEFORE #2725 LEFT IT: each def's glyph on the 1:1 rung. Reconstructed from today's def by
+  // putting those three bindings back, so the subject is the real def's projection on both sides (as `accordion` does).
+  const OLD_RUNG: Record<string, string> = { 'size.small.icon': 'icon.size.sm', 'size.medium.icon': 'icon.size.md', 'size.large.icon': 'icon.size.lg' };
+  // EXPECTED, typed from the decision: the variable each size binds and the px it carries (the shim's `varPx`).
+  const WANT: Record<string, [string, number]> = { small: ['icon/size/xs', 16], medium: ['icon/size/sm', 20], large: ['icon/size/md', 24] };
+  const PX = { 'icon/size/xs': 16, 'icon/size/sm': 20, 'icon/size/md': 24, 'icon/size/lg': 32 };
+  const CASES: Array<{ id: string; parts: string[]; members: number }> = [
+    { id: 'segmented-control-segment', parts: ['leadingVisual'], members: 30 },
+    { id: 'tab', parts: ['leadingVisual'], members: 30 },
+    { id: 'tag', parts: ['leadingVisual', 'check', 'dismissGlyph'], members: 45 },
+  ];
+  const sizeOf = (m: Node): string => /size=(small|medium|large)/.exec(String(m.name))?.[1] ?? '?';
+  const glyphsOf = (m: Node, parts: string[]): Node[] => {
+    const out: Node[] = [];
+    const walk = (n: Node) => { if (parts.includes(String(n.name))) out.push(n); if (n.type !== 'INSTANCE') for (const c of (n.children as Node[] | undefined) ?? []) walk(c); };
+    walk(m);
+    return out;
+  };
+  for (const { id, parts, members } of CASES) {
+    const now = componentDefs.find((x) => x.id === id)!;
+    const old = { ...now, tokens: { ...now.tokens, ...OLD_RUNG } } as typeof now;
+    const oldPlans = figmaAnatomySet(old, { swapTarget: SWAP_TARGET });
+    const newPlans = plansOf(id);
+    const w = await world(id, oldPlans, { extraVars: ['icon/size/xs'], varPx: PX });
+    const names = new Map(((await w.api.variables.getLocalVariablesAsync()) as { id: string; name: string }[]).map((v) => [v.id, v.name]));
+    const boundName = (n: Node, f: 'width' | 'height'): string => {
+      const vid = (n.boundVariables as Record<string, { id?: string }> | undefined)?.[f]?.id;
+      const full = vid ? names.get(vid) ?? '' : '';
+      return Object.keys(PX).find((k) => full === k || full.endsWith(`/${k}`)) ?? (full || 'unbound');
+    };
+    const wrongGlyph = (want: Record<string, [string, number]>): string[] => membersOf(w.set()).flatMap((m) => {
+      const [wv, wpx] = want[sizeOf(m)] ?? ['?', NaN];
+      return glyphsOf(m, parts).filter((g) => boundName(g, 'width') !== wv || boundName(g, 'height') !== wv || g.width !== wpx || g.height !== wpx)
+        .map((g) => `${String(m.name)} ${String(g.name)} (${boundName(g, 'width')} ${String(g.width)}×${String(g.height)}, want ${wv} ${wpx})`);
+    });
+    const seen = new Set(membersOf(w.set()).flatMap((m) => glyphsOf(m, parts).map((g) => `${String(g.name)}@${sizeOf(m)}`)));
+    const want1to1: Record<string, [string, number]> = { small: ['icon/size/sm', 20], medium: ['icon/size/md', 24], large: ['icon/size/lg', 32] };
+    const pre1 = wrongGlyph(want1to1);
+    ok(membersOf(w.set()).length === members && parts.every((n) => ['small', 'medium', 'large'].every((s) => seen.has(`${n}@${s}`))) && pre1.length === 0,
+      `premise: ${id}'s ${members} members were built on the 1:1 rung, 20 / 24 / 32, every glyph part [${parts.join(', ')}] at every size (${pre1.slice(0, 2).join('; ') || 'all'})`);
+    const before = identityOf(w.set());
+    const { pre, res } = await confirm(w, [{ def: id, plans: newPlans }]);
+    const p = pre.sets[0];
+    ok(p.counts.update > 0 && p.counts.add === 0 && p.counts.drop === 0 && !p.blockers.length,
+      `stepdown/${id} dry run: members read update, none added or dropped, nothing refused (${JSON.stringify(p.counts)}, ${p.blockers.join('; ') || 'no blockers'})`);
+    ok(applyVerdict(res).ok, `stepdown/${id} verdict: ${applyVerdict(res).headline} (${applyVerdict(res).lines.slice(0, 2).join(' | ').slice(0, 200)})`);
+    const wrong = wrongGlyph(WANT);
+    ok(wrong.length === 0, `stepdown/${id} rebound: every glyph binds icon/size/xs / sm / md and is 16 / 20 / 24px at small / medium / large (${wrong.slice(0, 3).join('; ') || 'all'})`);
+    const after = identityOf(w.set());
+    const moved = [...before.members].filter(([name, b]) => after.members.get(name)?.key !== b.key || after.members.get(name)?.id !== b.id).map(([n]) => n);
+    ok(JSON.stringify(after.set) === JSON.stringify(before.set) && moved.length === 0 && after.members.size === members,
+      `stepdown/${id} kept: the set and all ${members} members keep their keys and ids (${moved.slice(0, 2).join('; ') || 'none moved'})`);
+    const post = (await previewUpdate(w.host, [{ def: id, plans: newPlans }])).sets[0];
+    ok(post.counts.current === members && post.handEdits.length === 0, `stepdown/${id} current: the next dry run reads all ${members} current (${JSON.stringify(post.counts)})`);
+  }
 }
 
 /* ── stretched mode (#2696) ──────────────────────────────────────────────────────────────────────────── */
