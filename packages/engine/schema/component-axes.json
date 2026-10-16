@@ -60,6 +60,21 @@
     },
     "members": 20
   },
+  "banner": {
+    "axes": {
+      "tone": [
+        "danger",
+        "info",
+        "success",
+        "warning"
+      ],
+      "width": [
+        "contained",
+        "full"
+      ]
+    },
+    "members": 8
+  },
   "button": {
     "axes": {
       "appearance": [

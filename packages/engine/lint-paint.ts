@@ -379,6 +379,14 @@ const PROVENANCE_EXCEPTIONS: Record<string, string> = {
     'tone `warning` paints its subtle tint `foreground.warning-subtle`, the surface `text.warning` is contracted against',
   'badge|danger.status.subtle.fill':
     'tone `danger` paints its subtle tint `foreground.danger-subtle`, the surface `text.danger` is contracted against',
+  'banner|info.fill':
+    'tone `info` paints its subtle tint `foreground.info-subtle`, the banner surface the token tier names (#2579, Q327.2 A: subtle only)',
+  'banner|success.fill':
+    'tone `success` paints its subtle tint `foreground.success-subtle`, the banner surface the token tier names (#2579, Q327.2 A: subtle only)',
+  'banner|warning.fill':
+    'tone `warning` paints its subtle tint `foreground.warning-subtle`, the banner surface the token tier names (#2579, Q327.2 A: subtle only)',
+  'banner|danger.fill':
+    'tone `danger` paints its subtle tint `foreground.danger-subtle`, the banner surface the token tier names (#2579, Q327.2 A: subtle only)',
   'badge|info.status.bold.label':
     'tone `info` inks its bold status label with `text.on-info`, the ink contracted on the bold `foreground.info` fill',
   'badge|success.status.bold.label':

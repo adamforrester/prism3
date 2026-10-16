@@ -384,6 +384,10 @@
     "password-field@outline-none": {
       "members": 84,
       "sha256": "771e3974cfb329db2abcf42bc98f0914a3851b1813a867dba8b83d0fa3c97946"
+    },
+    "banner": {
+      "members": 8,
+      "sha256": "5fe4463a4071146e4d3d45d4a31e558f2e42d4a78aafe9d772444107a9a61c20"
     }
   }
 }

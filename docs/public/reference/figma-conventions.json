@@ -159,6 +159,12 @@
             "components": [
               "dialog"
             ]
+          },
+          {
+            "name": "↳ Banner",
+            "components": [
+              "banner"
+            ]
           }
         ]
       },
@@ -2280,8 +2286,8 @@
         "name": "Banner",
         "figmaName": "banner",
         "kind": "component set",
-        "page": null,
-        "section": null,
+        "page": "↳ Banner",
+        "section": "Components",
         "members": 8,
         "variantProperties": [
           {
@@ -2556,7 +2562,8 @@
       "segmented-control",
       "link",
       "dialog",
-      "password-field"
+      "password-field",
+      "banner"
     ],
     "templates": [
       {
