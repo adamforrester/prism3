@@ -100,6 +100,10 @@ export interface HostCommit {
    *  result is `file-setup-result`, a distinct verdict kind with its own slot, for the same one-kind-per-fact
    *  reason `component-result` is separate from `apply-result` — see `onHostMessage` below. */
   postFileSetup(): void;
+  /** Ask the host to open the docs in the browser (#2637, owner decision Q384 A; Figma only, no-op on web, where the
+   *  bar's Docs is a link). Carries no address: the main thread holds it (`messages.ts` `open-docs`), so the iframe
+   *  cannot point `figma.openExternal` anywhere else. */
+  openDocs(): void;
   /** Ask the host to draw the style-guide tables (#259; Figma only, no-op on web, which has no canvas). The
    *  options are the panel's Customize fields, every one optional. Its result is `style-guide-result`, its own
    *  kind and slot for the one-kind-per-fact reason above. */
@@ -377,6 +381,9 @@ const figmaCommit = (): HostCommit => ({
   postFileSetup() {
     post({ type: 'file-setup' });
   },
+  openDocs() {
+    post({ type: 'open-docs' });
+  },
   postStyleGuide(options) {
     const msg: Extract<UiToMain, { type: 'style-guide' }> = options ? { type: 'style-guide', options } : { type: 'style-guide' };   // typed local, as above
     post(msg);
@@ -410,6 +417,7 @@ const webCommit = (): HostCommit => ({
   postTheme() {/* web commits via the export bar (download design.md / tokens.json) */},
   postComponents() {/* no canvas on web — the component tier is a Figma-only write */},
   postFileSetup() {/* no canvas on web — file scaffolding is a Figma-only action (#1558) */},
+  openDocs() {/* the web bar's Docs is a link to the site's own /docs/ (#2637 Q384) */},
   postStyleGuide() {/* no canvas on web — the style guide is drawn in Figma (#259) */},
   requestStyleGuideCatalog() {/* no file on web (S11.2) */},
   cancelStyleGuide() {/* no style guide runs on web (S11.2) */},

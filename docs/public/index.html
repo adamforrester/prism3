@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prism3 docs</title>
+<meta name="description" content="Prism3's docs: task guides for designers, a map of how its parts connect, and a reference for AI agents.">
+<!--
+  The /docs landing page (#2637, owner decision Q384 A). The studio serves docs/public/ at /docs (apps/studio/docs-route.mjs).
+  Its colors are the ecosystem page's (docs/public/ecosystem/index.html), whose text pairs lint-ecosystem.ts checks at 4.5:1;
+  this page uses the same values for the same roles and adds no pair of its own. Copy: DRAFT for the owner.
+-->
+<style>
+:root {
+  --bg: #f6f6f3;
+  --surface: #ffffff;
+  --text: #16181d;
+  --text-muted: #545a65;
+  --border: #c9ccd2;
+  --link: #1f4fbf;
+  --focus: #1f4fbf;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f1115;
+    --surface: #171a20;
+    --text: #eceef2;
+    --text-muted: #a8aeb9;
+    --border: #3a404b;
+    --link: #8db4ff;
+    --focus: #8db4ff;
+  }
+}
+:root { color-scheme: light dark; }
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-text-size-adjust: 100%;
+}
+main { max-width: 720px; margin: 0 auto; padding: 48px 16px 64px; }
+h1 { margin: 0 0 8px; font-size: 28px; line-height: 1.2; }
+.lede { margin: 0 0 32px; color: var(--text-muted); }
+ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+a.entry {
+  display: block; padding: 16px 20px; border: 1px solid var(--border); border-radius: 8px;
+  background: var(--surface); color: var(--text); text-decoration: none;
+}
+a.entry:hover { border-color: var(--link); }
+.entry-name { display: block; font-size: 17px; font-weight: 600; color: var(--link); }
+.entry-desc { display: block; margin-top: 2px; color: var(--text-muted); }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+</style>
+</head>
+<body>
+<script>
+  // Served as a folder without its trailing slash (Vercel answers /docs as well as /docs/), the relative links
+  // below would resolve one level up. The ecosystem page does the same (docs/public/ecosystem/index.html).
+  if (!/\/$|\.html$/.test(location.pathname)) location.replace(location.pathname + '/' + location.search + location.hash);
+</script>
+<main>
+  <h1>Prism3 docs</h1>
+  <p class="lede">Task guides for designers, a map of how Prism3's parts connect, and a reference for AI agents.</p>
+  <ul>
+    <li><a class="entry" href="guides/index.md">
+      <span class="entry-name">Guides</span>
+      <span class="entry-desc">Theme a brand, apply it in Figma, build components and export tokens.</span>
+    </a></li>
+    <li><a class="entry" href="ecosystem/">
+      <span class="entry-name">Ecosystem map</span>
+      <span class="entry-desc">How the web studio, the Figma plugin, the engine and agents connect.</span>
+    </a></li>
+    <li><a class="entry" href="llms.txt">
+      <span class="entry-name">Agent reference</span>
+      <span class="entry-desc">The entry point for an AI agent, with the commands and tools it can use.</span>
+    </a></li>
+  </ul>
+</main>
+</body>
+</html>
