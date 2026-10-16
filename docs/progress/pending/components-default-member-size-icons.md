@@ -22,7 +22,8 @@ exceptions, each with its reason: `field-label` (code default small, so small le
 size set is now `medium, small, large` with the field entry folded in, `field-label` is `reordered`, and the switch
 subset is `medium, small`. `lint-rung-names.ts` admits each reordered def in `DEFAULT_FIRST` with one shared reason
 citing Q1 B (the gate still checks that each leads with its prop default and is not already in prop order). The
-studio's committed component catalog is regenerated: its density-following spacing keys list sizes in axis order.
+studio's committed component catalog is regenerated: its density-following spacing keys list sizes in axis order, so the Components page's Button spacing
+readout now reads Medium, Small, Large, as the fields' readout already did (`test-component-catalog.ts` follows).
 
 **Pins that assumed small first (Q213), updated to the decision and citing #2752:** `#1667`'s owner-worked floors
 (now read through a typed small-to-large list, not the def's order), `#2188`'s first inverse row, the six-loop
