@@ -617,6 +617,7 @@
       "variant": {
         "type": "page",
         "selection": "unselected",
+        "style": "border",
         "size": "medium",
         "state": "rest"
       },
@@ -633,6 +634,7 @@
       "variant": {
         "type": "ellipsis",
         "selection": "unselected",
+        "style": "border",
         "size": "medium",
         "state": "rest"
       },
@@ -649,6 +651,7 @@
       "variant": {
         "type": "page",
         "selection": "unselected",
+        "style": "border",
         "size": "medium",
         "state": "rest"
       },
@@ -665,10 +668,12 @@
       "variant": {
         "type": "page",
         "selection": "selected",
+        "style": "border",
         "size": "medium",
         "state": "rest"
       },
       "follow": [
+        "style",
         "size"
       ]
     },
@@ -681,6 +686,7 @@
       "variant": {
         "type": "page",
         "selection": "unselected",
+        "style": "border",
         "size": "medium",
         "state": "rest"
       },
@@ -697,6 +703,7 @@
       "variant": {
         "type": "ellipsis",
         "selection": "unselected",
+        "style": "border",
         "size": "medium",
         "state": "rest"
       },
@@ -713,6 +720,7 @@
       "variant": {
         "type": "page",
         "selection": "unselected",
+        "style": "border",
         "size": "medium",
         "state": "rest"
       },

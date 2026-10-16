@@ -55,6 +55,7 @@ Use Pagination below a long list, a grid of results or a table, to move between 
 | `getHref` | function | — | no | Returns the address of a page. Present, every page is a link the user can bookmark, share or open in a new tab; absent, every page is a button that changes the content in place. Pass it whenever the page has an address. |
 | `renderItem` | slot | — | no | Renders a page as your router's link, keeping its address and aria-current. |
 | `type` | enum: 'numbered' \| 'compact' \| 'simple' | `numbered` | no | numbered: page numbers between previous and next. compact: "Page 5 of 10" between previous and next. simple: Previous and Next buttons only. A numbered row switches to compact when its container is narrower than the row. |
+| `style` | enum: 'border' \| 'underline' | `border` | no | How the current page is marked in a numbered row: a border around it, or a 2px line under its number. |
 | `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | The size of every cell and button, matching the icon button sizes. Medium is 44px on comfortable and spacious density. |
 | `siblingCount` | number | `1` | no | How many pages show on each side of the current page. |
 | `boundaryCount` | number | `1` | no | How many pages show at each end. |
@@ -70,6 +71,7 @@ None — not interactive.
 | Axis | Values | Changes |
 | --- | --- | --- |
 | `type` | `numbered`, `compact`, `simple` | once, when authored |
+| `style` | `border`, `underline` | once, when authored |
 | `size` | `medium`, `small`, `large` | once, when authored |
 
 ## Accessibility
@@ -77,10 +79,10 @@ None — not interactive.
 - **Role:** navigation: a \<nav> landmark named "Pagination", holding a list of links or buttons
 - **WCAG:**
   - 1.3.1 Info and Relationships (a labeled navigation landmark around a list; the current page carries aria-current="page")
-  - 1.4.1 Use of Color (the current page changes weight as well as color)
+  - 1.4.1 Use of Color (the current page has a border or an underline and a heavier weight, and aria-current)
   - 1.4.3 Contrast (Minimum) (every number and the compact text at 4.5:1)
   - 1.4.10 Reflow (a numbered row switches to compact in a narrow container)
-  - 1.4.11 Non-text Contrast (targets 3:1 for the current page's fill)
+  - 1.4.11 Non-text Contrast (the current page's border or underline at 3:1 against the page)
   - 2.1.1 Keyboard (every control is reachable with Tab)
   - 2.4.3 Focus Order (after an in-place page change focus moves to the results, and inactive controls at an end keep focus in place)
   - 2.4.4 Link Purpose (In Context) (previous, next and every page have a full name)

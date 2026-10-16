@@ -34,12 +34,16 @@
         "pressed",
         "rest"
       ],
+      "style": [
+        "border",
+        "underline"
+      ],
       "type": [
         "ellipsis",
         "page"
       ]
     },
-    "members": 21
+    "members": 27
   },
   "accordion": {
     "axes": {
@@ -607,13 +611,17 @@
         "medium",
         "small"
       ],
+      "style": [
+        "border",
+        "underline"
+      ],
       "type": [
         "compact",
         "numbered",
         "simple"
       ]
     },
-    "members": 9
+    "members": 12
   },
   "password-field": {
     "axes": {

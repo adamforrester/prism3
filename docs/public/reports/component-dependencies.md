@@ -133,13 +133,13 @@ Depth is 0 for a component that nests nothing, and one more than its deepest chi
 | list | item6 | nest | list-item | nest-fixed | type=unordered, size=medium | type, size | — |
 | list | item7 | nest | list-item | nest-fixed | type=unordered, size=medium | type, size | — |
 | list | item8 | nest | list-item | nest-fixed | type=unordered, size=medium | type, size | — |
-| pagination | item1 | nest | _pagination-item | nest-fixed | type=page, selection=unselected, size=medium, state=rest | size | — |
-| pagination | item2 | nest | _pagination-item | nest-fixed | type=ellipsis, selection=unselected, size=medium, state=rest | size | — |
-| pagination | item3 | nest | _pagination-item | nest-fixed | type=page, selection=unselected, size=medium, state=rest | size | — |
-| pagination | item4 | nest | _pagination-item | nest-fixed | type=page, selection=selected, size=medium, state=rest | size | — |
-| pagination | item5 | nest | _pagination-item | nest-fixed | type=page, selection=unselected, size=medium, state=rest | size | — |
-| pagination | item6 | nest | _pagination-item | nest-fixed | type=ellipsis, selection=unselected, size=medium, state=rest | size | — |
-| pagination | item7 | nest | _pagination-item | nest-fixed | type=page, selection=unselected, size=medium, state=rest | size | — |
+| pagination | item1 | nest | _pagination-item | nest-fixed | type=page, selection=unselected, style=border, size=medium, state=rest | size | — |
+| pagination | item2 | nest | _pagination-item | nest-fixed | type=ellipsis, selection=unselected, style=border, size=medium, state=rest | size | — |
+| pagination | item3 | nest | _pagination-item | nest-fixed | type=page, selection=unselected, style=border, size=medium, state=rest | size | — |
+| pagination | item4 | nest | _pagination-item | nest-fixed | type=page, selection=selected, style=border, size=medium, state=rest | style, size | — |
+| pagination | item5 | nest | _pagination-item | nest-fixed | type=page, selection=unselected, style=border, size=medium, state=rest | size | — |
+| pagination | item6 | nest | _pagination-item | nest-fixed | type=ellipsis, selection=unselected, style=border, size=medium, state=rest | size | — |
+| pagination | item7 | nest | _pagination-item | nest-fixed | type=page, selection=unselected, style=border, size=medium, state=rest | size | — |
 | pagination | next | nest | icon-button-neutral | nest-exposed | appearance=ghost, size=medium, shape=square, surface=default, state=rest | size | state |
 | pagination | nextButton | nest | button-neutral | nest-exposed | appearance=text, size=medium, surface=default, inset=default, state=rest, leading icon=false, trailing icon=true | size | state |
 | pagination | previous | nest | icon-button-neutral | nest-exposed | appearance=ghost, size=medium, shape=square, surface=default, state=rest | size | state |

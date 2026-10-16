@@ -18,6 +18,17 @@
     "border-width.hairline": {
       "type": "dimension",
       "components": {
+        "_pagination-item": {
+          "keys": [
+            "border-width"
+          ],
+          "parts": {
+            "container": {
+              "members": 27,
+              "where": {}
+            }
+          }
+        },
         "badge": {
           "keys": [
             "border-width"
@@ -263,6 +274,49 @@
     "border-width.thick": {
       "type": "dimension",
       "components": {
+        "_pagination-item": {
+          "keys": [
+            "underline-height"
+          ],
+          "parts": {
+            "balance": {
+              "members": 6,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "state": [
+                  "focus-visible",
+                  "rest"
+                ],
+                "style": [
+                  "underline"
+                ],
+                "type": [
+                  "page"
+                ]
+              }
+            },
+            "underline": {
+              "members": 6,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "state": [
+                  "focus-visible",
+                  "rest"
+                ],
+                "style": [
+                  "underline"
+                ],
+                "type": [
+                  "page"
+                ]
+              }
+            }
+          }
+        },
         "checkbox-control": {
           "keys": [
             "border-width"
@@ -1057,6 +1111,52 @@
     "color.border.tertiary": {
       "type": "color",
       "components": {
+        "_pagination-item": {
+          "keys": [
+            "selected.border.page.border.focus-visible",
+            "selected.border.page.border.rest",
+            "selected.underline.page.fill.focus-visible",
+            "selected.underline.page.fill.rest"
+          ],
+          "parts": {
+            "container": {
+              "members": 6,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "state": [
+                  "focus-visible",
+                  "rest"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "page"
+                ]
+              }
+            },
+            "underline": {
+              "members": 6,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "state": [
+                  "focus-visible",
+                  "rest"
+                ],
+                "style": [
+                  "underline"
+                ],
+                "type": [
+                  "page"
+                ]
+              }
+            }
+          }
+        },
         "badge": {
           "keys": [
             "neutral.status.subtle.border"
@@ -5803,6 +5903,9 @@
                 "state": [
                   "hover"
                 ],
+                "style": [
+                  "border"
+                ],
                 "type": [
                   "page"
                 ]
@@ -5990,6 +6093,9 @@
                 "state": [
                   "pressed"
                 ],
+                "style": [
+                  "border"
+                ],
                 "type": [
                   "page"
                 ]
@@ -6117,6 +6223,9 @@
                 "state": [
                   "hover"
                 ],
+                "style": [
+                  "border"
+                ],
                 "type": [
                   "page"
                 ]
@@ -6130,6 +6239,9 @@
                 ],
                 "state": [
                   "hover"
+                ],
+                "style": [
+                  "border"
                 ],
                 "type": [
                   "page"
@@ -6254,6 +6366,9 @@
                 "state": [
                   "pressed"
                 ],
+                "style": [
+                  "border"
+                ],
                 "type": [
                   "page"
                 ]
@@ -6267,6 +6382,9 @@
                 ],
                 "state": [
                   "pressed"
+                ],
+                "style": [
+                  "border"
                 ],
                 "type": [
                   "page"
@@ -6379,15 +6497,13 @@
       "components": {
         "_pagination-item": {
           "keys": [
+            "selected.page.label",
             "unselected.page.label"
           ],
           "parts": {
             "label": {
-              "members": 6,
+              "members": 18,
               "where": {
-                "selection": [
-                  "unselected"
-                ],
                 "state": [
                   "focus-visible",
                   "rest"
@@ -6398,11 +6514,8 @@
               }
             },
             "labelReserve": {
-              "members": 6,
+              "members": 18,
               "where": {
-                "selection": [
-                  "unselected"
-                ],
                 "state": [
                   "focus-visible",
                   "rest"
@@ -7091,28 +7204,6 @@
     "color.interactive.primary.fill.selected": {
       "type": "color",
       "components": {
-        "_pagination-item": {
-          "keys": [
-            "selected.page.fill"
-          ],
-          "parts": {
-            "container": {
-              "members": 6,
-              "where": {
-                "selection": [
-                  "selected"
-                ],
-                "state": [
-                  "focus-visible",
-                  "rest"
-                ],
-                "type": [
-                  "page"
-                ]
-              }
-            }
-          }
-        },
         "checkbox-control": {
           "keys": [
             "checked.fill",
@@ -7551,43 +7642,6 @@
     "color.interactive.primary.on-fill": {
       "type": "color",
       "components": {
-        "_pagination-item": {
-          "keys": [
-            "selected.page.label"
-          ],
-          "parts": {
-            "label": {
-              "members": 6,
-              "where": {
-                "selection": [
-                  "selected"
-                ],
-                "state": [
-                  "focus-visible",
-                  "rest"
-                ],
-                "type": [
-                  "page"
-                ]
-              }
-            },
-            "labelReserve": {
-              "members": 6,
-              "where": {
-                "selection": [
-                  "selected"
-                ],
-                "state": [
-                  "focus-visible",
-                  "rest"
-                ],
-                "type": [
-                  "page"
-                ]
-              }
-            }
-          }
-        },
         "button": {
           "keys": [
             "filled.icon",
@@ -11963,6 +12017,9 @@
             "status": {
               "members": 3,
               "where": {
+                "style": [
+                  "border"
+                ],
                 "type": [
                   "compact"
                 ]
@@ -12115,7 +12172,7 @@
             "unselected.ellipsis.label"
           ],
           "parts": {
-            "label": {
+            "mark": {
               "members": 3,
               "where": {
                 "selection": [
@@ -12124,19 +12181,8 @@
                 "state": [
                   "rest"
                 ],
-                "type": [
-                  "ellipsis"
-                ]
-              }
-            },
-            "labelReserve": {
-              "members": 3,
-              "where": {
-                "selection": [
-                  "unselected"
-                ],
-                "state": [
-                  "rest"
+                "style": [
+                  "border"
                 ],
                 "type": [
                   "ellipsis"
@@ -13724,7 +13770,7 @@
           ],
           "parts": {
             "focusRing": {
-              "members": 6,
+              "members": 9,
               "where": {
                 "state": [
                   "focus-visible"
@@ -14094,7 +14140,7 @@
           ],
           "parts": {
             "focusRing": {
-              "members": 6,
+              "members": 9,
               "where": {
                 "state": [
                   "focus-visible"
@@ -16096,7 +16142,7 @@
           ],
           "parts": {
             "container": {
-              "members": 21,
+              "members": 27,
               "where": {}
             }
           }
@@ -16538,7 +16584,7 @@
           ],
           "parts": {
             "container": {
-              "members": 7,
+              "members": 9,
               "where": {
                 "size": [
                   "large"
@@ -16833,7 +16879,7 @@
           ],
           "parts": {
             "container": {
-              "members": 7,
+              "members": 9,
               "where": {
                 "size": [
                   "medium"
@@ -17177,7 +17223,7 @@
           ],
           "parts": {
             "container": {
-              "members": 7,
+              "members": 9,
               "where": {
                 "size": [
                   "small"
@@ -17419,12 +17465,16 @@
           ],
           "parts": {
             "container": {
-              "members": 21,
+              "members": 27,
               "where": {}
             },
             "reserve": {
-              "members": 21,
-              "where": {}
+              "members": 24,
+              "where": {
+                "type": [
+                  "page"
+                ]
+              }
             }
           }
         },
@@ -17811,7 +17861,7 @@
           ],
           "parts": {
             "items": {
-              "members": 3,
+              "members": 6,
               "where": {
                 "type": [
                   "numbered"
@@ -17819,7 +17869,7 @@
               }
             },
             "row": {
-              "members": 6,
+              "members": 9,
               "where": {
                 "type": [
                   "compact",
@@ -17830,6 +17880,9 @@
             "simpleRow": {
               "members": 3,
               "where": {
+                "style": [
+                  "border"
+                ],
                 "type": [
                   "simple"
                 ]
@@ -18087,7 +18140,7 @@
           ],
           "parts": {
             "container": {
-              "members": 21,
+              "members": 27,
               "where": {}
             }
           }
@@ -20549,13 +20602,39 @@
           ],
           "parts": {
             "label": {
-              "members": 5,
+              "members": 4,
               "where": {
                 "selection": [
                   "unselected"
                 ],
                 "size": [
                   "large"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "page"
+                ]
+              }
+            },
+            "mark": {
+              "members": 1,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "size": [
+                  "large"
+                ],
+                "state": [
+                  "rest"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "ellipsis"
                 ]
               }
             }
@@ -20571,6 +20650,9 @@
               "where": {
                 "size": [
                   "large"
+                ],
+                "style": [
+                  "border"
                 ],
                 "type": [
                   "compact"
@@ -20626,7 +20708,7 @@
           ],
           "parts": {
             "label": {
-              "members": 2,
+              "members": 4,
               "where": {
                 "selection": [
                   "selected"
@@ -20644,10 +20726,13 @@
               }
             },
             "labelReserve": {
-              "members": 7,
+              "members": 8,
               "where": {
                 "size": [
                   "large"
+                ],
+                "type": [
+                  "page"
                 ]
               }
             }
@@ -20885,13 +20970,39 @@
           ],
           "parts": {
             "label": {
-              "members": 5,
+              "members": 4,
               "where": {
                 "selection": [
                   "unselected"
                 ],
                 "size": [
                   "medium"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "page"
+                ]
+              }
+            },
+            "mark": {
+              "members": 1,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "size": [
+                  "medium"
+                ],
+                "state": [
+                  "rest"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "ellipsis"
                 ]
               }
             }
@@ -20907,6 +21018,9 @@
               "where": {
                 "size": [
                   "medium"
+                ],
+                "style": [
+                  "border"
                 ],
                 "type": [
                   "compact"
@@ -20962,7 +21076,7 @@
           ],
           "parts": {
             "label": {
-              "members": 2,
+              "members": 4,
               "where": {
                 "selection": [
                   "selected"
@@ -20980,10 +21094,13 @@
               }
             },
             "labelReserve": {
-              "members": 7,
+              "members": 8,
               "where": {
                 "size": [
                   "medium"
+                ],
+                "type": [
+                  "page"
                 ]
               }
             }
@@ -21210,13 +21327,39 @@
           ],
           "parts": {
             "label": {
-              "members": 5,
+              "members": 4,
               "where": {
                 "selection": [
                   "unselected"
                 ],
                 "size": [
                   "small"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "page"
+                ]
+              }
+            },
+            "mark": {
+              "members": 1,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "size": [
+                  "small"
+                ],
+                "state": [
+                  "rest"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "ellipsis"
                 ]
               }
             }
@@ -21232,6 +21375,9 @@
               "where": {
                 "size": [
                   "small"
+                ],
+                "style": [
+                  "border"
                 ],
                 "type": [
                   "compact"
@@ -21287,7 +21433,7 @@
           ],
           "parts": {
             "label": {
-              "members": 2,
+              "members": 4,
               "where": {
                 "selection": [
                   "selected"
@@ -21305,10 +21451,13 @@
               }
             },
             "labelReserve": {
-              "members": 7,
+              "members": 8,
               "where": {
                 "size": [
                   "small"
+                ],
+                "type": [
+                  "page"
                 ]
               }
             }
@@ -21581,7 +21730,7 @@
       "drawnNotDeclared": []
     },
     "_pagination-item": {
-      "members": 21,
+      "members": 27,
       "axes": {
         "selection": [
           "selected",
@@ -21598,20 +21747,25 @@
           "pressed",
           "rest"
         ],
+        "style": [
+          "border",
+          "underline"
+        ],
         "type": [
           "ellipsis",
           "page"
         ]
       },
       "tokens": [
+        "border-width.hairline",
+        "border-width.thick",
         "color.border.focus",
+        "color.border.tertiary",
         "color.interactive.neutral.overlay.hover",
         "color.interactive.neutral.overlay.pressed",
         "color.interactive.neutral.text.hover",
         "color.interactive.neutral.text.pressed",
         "color.interactive.neutral.text.rest",
-        "color.interactive.primary.fill.selected",
-        "color.interactive.primary.on-fill",
         "color.text.secondary",
         "focus.ring.offset",
         "focus.ring.width",
@@ -23031,12 +23185,16 @@
       "drawnNotDeclared": []
     },
     "pagination": {
-      "members": 9,
+      "members": 12,
       "axes": {
         "size": [
           "large",
           "medium",
           "small"
+        ],
+        "style": [
+          "border",
+          "underline"
         ],
         "type": [
           "compact",

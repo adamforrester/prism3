@@ -2290,7 +2290,7 @@
         "private": true,
         "page": "↳ Pagination",
         "section": "Components",
-        "members": 21,
+        "members": 27,
         "variantProperties": [
           {
             "name": "type",
@@ -2304,6 +2304,13 @@
             "values": [
               "unselected",
               "selected"
+            ]
+          },
+          {
+            "name": "style",
+            "values": [
+              "border",
+              "underline"
             ]
           },
           {
@@ -2328,6 +2335,10 @@
           {
             "name": "label",
             "type": "TEXT"
+          },
+          {
+            "name": "ellipsis",
+            "type": "TEXT"
           }
         ],
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/_pagination-item.md"
@@ -2339,7 +2350,7 @@
         "kind": "component set",
         "page": "↳ Pagination",
         "section": "Components",
-        "members": 9,
+        "members": 12,
         "variantProperties": [
           {
             "name": "type",
@@ -2347,6 +2358,13 @@
               "numbered",
               "compact",
               "simple"
+            ]
+          },
+          {
+            "name": "style",
+            "values": [
+              "border",
+              "underline"
             ]
           },
           {

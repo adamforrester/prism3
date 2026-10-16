@@ -88,6 +88,10 @@
           "unselected",
           "selected"
         ],
+        "style": [
+          "border",
+          "underline"
+        ],
         "size": [
           "medium",
           "small",
@@ -114,6 +118,18 @@
           "values": [
             "page",
             "ellipsis"
+          ]
+        },
+        {
+          "name": "mark",
+          "default": "…"
+        },
+        {
+          "name": "style",
+          "default": "border",
+          "values": [
+            "border",
+            "underline"
           ]
         },
         {
@@ -2119,6 +2135,10 @@
           "compact",
           "simple"
         ],
+        "style": [
+          "border",
+          "underline"
+        ],
         "size": [
           "medium",
           "small",
@@ -2152,6 +2172,14 @@
             "numbered",
             "compact",
             "simple"
+          ]
+        },
+        {
+          "name": "style",
+          "default": "border",
+          "values": [
+            "border",
+            "underline"
           ]
         },
         {
@@ -4096,6 +4124,16 @@
       },
       {
         "values": [
+          "border",
+          "underline"
+        ],
+        "components": [
+          "_pagination-item",
+          "pagination"
+        ]
+      },
+      {
+        "values": [
           "inline",
           "standalone"
         ],
@@ -5039,6 +5077,12 @@
         "id": "button-neutral"
       }
     ],
+    "mark": [
+      {
+        "id": "_pagination-item",
+        "default": "…"
+      }
+    ],
     "max": [
       {
         "id": "badge",
@@ -5872,11 +5916,27 @@
     ],
     "style": [
       {
+        "id": "_pagination-item",
+        "default": "border",
+        "values": [
+          "border",
+          "underline"
+        ]
+      },
+      {
         "id": "link",
         "default": "standalone",
         "values": [
           "standalone",
           "inline"
+        ]
+      },
+      {
+        "id": "pagination",
+        "default": "border",
+        "values": [
+          "border",
+          "underline"
         ]
       }
     ],
@@ -6558,12 +6618,14 @@
       "kind": "axis values",
       "subject": "axis style",
       "components": [
+        "_pagination-item",
         "link",
+        "pagination",
         "password-field",
         "text-field",
         "textarea"
       ],
-      "detail": "the style axis takes 2 value sets — [outline] in password-field, text-field, textarea; [inline, standalone] in link"
+      "detail": "the style axis takes 3 value sets — [outline] in password-field, text-field, textarea; [border, underline] in _pagination-item, pagination; [inline, standalone] in link"
     },
     {
       "kind": "axis values",

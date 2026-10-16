@@ -528,6 +528,20 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'default member. No `quiet` for now (Q289.2 A).',
   },
   {
+    axis: 'style',
+    values: ['border', 'underline'],
+    defs: ['_pagination-item', 'pagination'],
+    relation: 'disjoint',
+    reason:
+      'How the current page is marked (owner decision Q381, 2 A): a border around the cell, or a 2px line under its '
+      + 'number, both in `color.border.tertiary`. The owner named the values. DISJOINT by spelling from the field\'s '
+      + 'canonical `outline`, and named here because it is a near-overlap: `border` draws what a field calls `outline`, '
+      + 'and the field reserves `underline` for a future treatment of its own, which would then share a word with this '
+      + 'set. Neither def reads the other\'s, so no paint key crosses them. `border` LEADS, the code default and so '
+      + 'Figma\'s default member. Shared by Pagination and Pagination.Item because the row passes it to its current '
+      + 'page (`follow`), so the two must hold one set.',
+  },
+  {
     axis: 'surface',
     values: ['default', 'inverse'],
     defs: ['button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'focus-ring', 'link'],

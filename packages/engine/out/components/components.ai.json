@@ -7729,8 +7729,8 @@
       ],
       "category": "navigation",
       "status": "draft",
-      "summary": "One page number in a pagination row, or the ellipsis between them. The current page is filled.",
-      "description": "One cell in a pagination row: a page number, or the ellipsis that stands for two or more hidden pages. A page cell is as tall as an icon button and at least as wide as it is tall, so a row of pages and the previous and next buttons beside them line up as equal squares; a page number past two digits widens it. The current page is filled with the primary color and its number set in the emphasis weight, and it keeps its width, so the row does not move. At hover and press, another page shows a light neutral wash. The ellipsis does not respond to the pointer and takes no focus. Pagination places the cells and decides which page is current.",
+      "summary": "One page number in a pagination row, or the ellipsis between them. The current page is outlined.",
+      "description": "One cell in a pagination row: a page number, or the ellipsis that stands for two or more hidden pages. A page cell is as tall as an icon button and at least as wide as it is tall, so a row of pages and the previous and next buttons beside them line up as equal squares; a page number past two digits widens it. The current page is marked, not filled: a border, or a 2px underline under its number, in a gray that stands out from the page at 3:1, with its number in the emphasis weight. It keeps its width, so the row does not move. At hover and press, another page shows a light neutral wash. The ellipsis does not respond to the pointer and takes no focus. Pagination places the cells and decides which page is current.",
       "props": [
         {
           "name": "label",
@@ -7769,6 +7769,24 @@
           "description": "page: a page number the user can open. ellipsis: the mark that stands for two or more pages not shown."
         },
         {
+          "name": "mark",
+          "type": "string",
+          "default": "…",
+          "required": false,
+          "description": "The character an ellipsis shows, \"…\". Unused on a page."
+        },
+        {
+          "name": "style",
+          "type": "enum: 'border' | 'underline'",
+          "default": "border",
+          "required": false,
+          "values": [
+            "border",
+            "underline"
+          ],
+          "description": "How the current page is marked: a border around the cell, or a 2px line under the number. Passed down by Pagination."
+        },
+        {
           "name": "size",
           "type": "enum: 'small' | 'medium' | 'large'",
           "default": "medium",
@@ -7802,6 +7820,13 @@
           ],
           "kind": "runtime"
         },
+        "style": {
+          "values": [
+            "border",
+            "underline"
+          ],
+          "kind": "authoring"
+        },
         "size": {
           "values": [
             "medium",
@@ -7815,9 +7840,9 @@
         "role": "a link (<a href>) when the page has an address, or a button for a page changed in place; the ellipsis is hidden from assistive technology",
         "wcag": [
           "1.3.1 Info and Relationships (each cell is a list item; the current page carries aria-current=\"page\")",
-          "1.4.1 Use of Color (the current page changes weight as well as color)",
-          "1.4.3 Contrast (Minimum) (the current page's number on its fill, and every other number on the page, at 4.5:1)",
-          "1.4.11 Non-text Contrast (targets 3:1 for the current page's fill against the page)",
+          "1.4.1 Use of Color (the current page has a border or an underline and a heavier weight, and aria-current)",
+          "1.4.3 Contrast (Minimum) (every number on the page at 4.5:1)",
+          "1.4.11 Non-text Contrast (the current page's border or underline at 3:1 against the page)",
           "2.4.4 Link Purpose (In Context) (each cell is named \"Page N\")",
           "2.4.7 Focus Visible (the shared focus ring)",
           "2.5.8 Target Size (Minimum) (targets 44px at medium and large on comfortable and spacious density)"
@@ -7857,7 +7882,7 @@
         "generationPriority": 9
       },
       "motion": {
-        "enter": "None. The hover wash and the current page's fill change at once or over a short color fade.",
+        "enter": "None. The hover wash and the current page's border change at once or over a short color fade.",
         "exit": "None.",
         "reduceMotion": "The color change happens at once."
       },
@@ -7938,6 +7963,17 @@
           "description": "numbered: page numbers between previous and next. compact: \"Page 5 of 10\" between previous and next. simple: Previous and Next buttons only. A numbered row switches to compact when its container is narrower than the row."
         },
         {
+          "name": "style",
+          "type": "enum: 'border' | 'underline'",
+          "default": "border",
+          "required": false,
+          "values": [
+            "border",
+            "underline"
+          ],
+          "description": "How the current page is marked in a numbered row: a border around it, or a 2px line under its number."
+        },
+        {
           "name": "size",
           "type": "enum: 'small' | 'medium' | 'large'",
           "default": "medium",
@@ -7987,6 +8023,13 @@
           ],
           "kind": "authoring"
         },
+        "style": {
+          "values": [
+            "border",
+            "underline"
+          ],
+          "kind": "authoring"
+        },
         "size": {
           "values": [
             "medium",
@@ -8000,10 +8043,10 @@
         "role": "navigation: a <nav> landmark named \"Pagination\", holding a list of links or buttons",
         "wcag": [
           "1.3.1 Info and Relationships (a labeled navigation landmark around a list; the current page carries aria-current=\"page\")",
-          "1.4.1 Use of Color (the current page changes weight as well as color)",
+          "1.4.1 Use of Color (the current page has a border or an underline and a heavier weight, and aria-current)",
           "1.4.3 Contrast (Minimum) (every number and the compact text at 4.5:1)",
           "1.4.10 Reflow (a numbered row switches to compact in a narrow container)",
-          "1.4.11 Non-text Contrast (targets 3:1 for the current page's fill)",
+          "1.4.11 Non-text Contrast (the current page's border or underline at 3:1 against the page)",
           "2.1.1 Keyboard (every control is reachable with Tab)",
           "2.4.3 Focus Order (after an in-place page change focus moves to the results, and inactive controls at an end keep focus in place)",
           "2.4.4 Link Purpose (In Context) (previous, next and every page have a full name)",
