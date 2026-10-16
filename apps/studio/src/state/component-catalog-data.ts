@@ -1114,5 +1114,36 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
       "field-message",
       "focus-ring"
     ]
+  },
+  {
+    "id": "_pagination-item",
+    "name": "Pagination.Item",
+    "category": "navigation",
+    "summary": "One page number in a pagination row, or the ellipsis between them. The current page is outlined.",
+    "unit": "variants",
+    "spacing": [],
+    "buildable": true,
+    "reason": null,
+    "members": 27,
+    "nests": [
+      "focus-ring"
+    ]
+  },
+  {
+    "id": "pagination",
+    "name": "Pagination",
+    "category": "navigation",
+    "summary": "Moves between pages of a long list or set of results, and shows which page is open.",
+    "unit": "variants",
+    "spacing": [],
+    "buildable": true,
+    "reason": null,
+    "members": 12,
+    "nests": [
+      "icon-button-neutral",
+      "icon",
+      "_pagination-item",
+      "button-neutral"
+    ]
   }
 ];

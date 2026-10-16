@@ -695,6 +695,38 @@
         "placeholder:TEXT",
         "value:TEXT"
       ]
+    },
+    "_pagination-item": {
+      "members": 27,
+      "sha256": "c619d82adaf7e4cb23caae6ad35f434ae379ecd4529d86468ee7ab652f242991",
+      "properties": [
+        "ellipsis:TEXT",
+        "label:TEXT"
+      ]
+    },
+    "_pagination-item@outline-solid-tint": {
+      "members": 27,
+      "sha256": "a9b06c8a8e000c868eff73710fa9b29264b4f19b0f7daf5faee0727510fcfa02",
+      "properties": [
+        "ellipsis:TEXT",
+        "label:TEXT"
+      ]
+    },
+    "_pagination-item@outline-none": {
+      "members": 27,
+      "sha256": "21157b0ab8cdff272cb77a4c7a67e733c39eae0d6810f4797afc99f3d76f01b3",
+      "properties": [
+        "ellipsis:TEXT",
+        "label:TEXT"
+      ]
+    },
+    "pagination": {
+      "members": 12,
+      "sha256": "faf05367912258b3ddbc6ca6f05d812f669461d23194b2cf8af563242fa57f99",
+      "properties": [
+        "items:SLOT",
+        "status text:TEXT"
+      ]
     }
   }
 }

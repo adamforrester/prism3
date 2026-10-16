@@ -1260,6 +1260,64 @@
         ],
         "projection": []
       }
+    },
+    "_pagination-item": {
+      "codeOnly": [
+        "The element — an <a href> when Pagination has getHref, otherwise a <button type=\"button\">. Never an <a href=\"#\"> with a click handler. The current page carries aria-current=\"page\" and stays in the Tab order.",
+        "The ellipsis in code — an <li aria-hidden=\"true\"> holding the mark, with no control in it. It is never focusable and never announced: the list already implies the gap.",
+        "The accessible name — the number, with a visually hidden \"Page \" before it, so each cell reads \"Page 4\"; aria-current adds \"current page\".",
+        "tabular numerals — font-variant-numeric: tabular-nums on the label, so 9, 10 and 100 do not shift the row as the user pages. Figma uses the type style as it is.",
+        "The label weight in code — the current page sets its number in the emphasis weight and every cell reserves that width (a hidden bold copy of the label in a column with it, as Tab does), so the row never moves.",
+        "The hit-target expansion — a small cell is 36px on comfortable density; code extends its hit area to 44×44 without changing the visible box.",
+        "forced-colors — the current page's border or underline takes a system color (CanvasText), so it still reads as current, beside aria-current and the weight.",
+        "RTL — the row mirrors through logical properties; a cell has nothing of its own to mirror.",
+        "Locale digits — the number is formatted with Intl.NumberFormat, so a locale sees its own numerals."
+      ],
+      "notes": {
+        "contested": [
+          "HELD FOR THE OWNER (#2665): the name Pagination.Item and the id `_pagination-item` (the proposal said PaginationItem / pagination-item; Q349 adds the prefix and the skill names a family part Family.Part), the aliases page-item and pagination-page, the label inset past two digits (space.100), and the forced-colors system color on the current page.",
+          "HELD FOR THE OWNER (Q381): the border is 1px (`border-width.hairline`, Button's outline); the underline is the decided 2px. No neutral border role sits near 3:1: `border.secondary` is 2.00 to 2.40 in light and dark, so `border.tertiary` (4.21 to 5.54 there) is the lightest that clears it. A role nearer 3:1 would be a new token. The ellipsis's own TEXT property needs a prop, `mark` (Figma name \"ellipsis\")."
+        ],
+        "unverified": [
+          "The current page's border against color.background.secondary (lowest 3.88 by the same measure) is measured only against color.background.primary in test.ts."
+        ],
+        "evolution": [
+          "2026-10-16 (#2665): owner decision, every numbered call A: a new page cell (3), filled primary current page in the emphasis weight with the width held (5), rest and focus-visible only on the current page (7), small, medium and large on IconButton's rungs (8).",
+          "2026-10-16 (Q381, after QA): the current page loses the primary fill for a border in color.border.tertiary (3:1 against the page) with its number semibold, and a `style: border | underline` axis adds the 2px underline. The ellipsis gets its own text part and property, since one TEXT property read \"1\" on every member."
+        ],
+        "projection": []
+      }
+    },
+    "pagination": {
+      "codeOnly": [
+        "The landmark — <nav aria-label=\"Pagination\"> around a <ul>, each control in its own <li>. The label is required: without it the landmark collides with the main navigation in a screen reader's landmark list. label sets it.",
+        "The window — with siblingCount 1 and boundaryCount 1, every page shows up to 7 pages. Above 7 the row always holds 7 slots: the first page, the last page, the current page and one page each side, with an ellipsis for each gap. An ellipsis stands for two or more pages, never one: a one-page gap shows the number. Near an end the window slides so the slot count stays 7. In general: show all pages when count <= boundaryCount * 2 + siblingCount * 2 + 3.",
+        "links or buttons — with getHref every page, previous and next is an <a href> (bookmarkable, crawlable, opens in a new tab); without it each is a <button type=\"button\"> for content swapped in place. Never <a href=\"#\"> with a click handler. renderItem lets a page be a router link and keeps its address and aria-current.",
+        "At an end — previous on the first page and next on the last page keep their place with aria-disabled=\"true\", stay focusable and do nothing when activated (IconButton's isInactive). Native disabled is not used: it drops focus to the page body when a keyboard user reaches the end.",
+        "focus after a page change — with links the browser loads the new page. With buttons, focus moves to the top of the results region, normally its heading, and a polite live region says the getStatusText string, \"Page 5 of 10\". Focus is never left on the pager under content that changed above it.",
+        "The narrow switch — numbered renders as compact when its container is narrower than the numbered row, measured on the container (a container query or a resize observer), not the viewport. Figma shows both; the designer places the one that fits the frame.",
+        "Not rendered — when count is 1. A row where every control does nothing helps no one.",
+        "Load more — a feed with no useful end uses a Button, not Pagination: focus moves to the first new item and a polite live region says how many loaded. Infinite scroll is not offered.",
+        "The accessible names — previous and next are \"Previous page\" and \"Next page\"; simple's buttons show \"Previous\" and \"Next\". Each page reads \"Page 4\", and aria-current adds \"current page\".",
+        "tabular numerals — font-variant-numeric: tabular-nums on the compact text and every page number, so the row does not shift as the digits change.",
+        "RTL — the row mirrors through logical properties (page 1 at the right) and the chevrons flip.",
+        "text expansion — \"Page 5 of 10\", \"Previous\" and \"Next\" grow in translation; nothing has a fixed text width. getStatusText takes a translated string with its own word order.",
+        "Locale digits — every number goes through Intl.NumberFormat.",
+        "A headless usePagination — returning the item list (page, ellipsis, previous, next, with selected and disabled) — is the brief's shape for the window. code delivery pending: behavior layer (#2454) decides whether it ships beside the component."
+      ],
+      "notes": {
+        "contested": [
+          "HELD FOR THE OWNER (#2665): the simple member built at 428px; the `getStatusText` prop and its Figma name \"status text\", which the compact text needs to be editable; the items slot with no preferred component and no ceiling (a `_` building block cannot be a slot's preferred value, so the slot does not offer Pagination.Item first); no gap between the previous or next button and the compact text beyond the 4px row gap."
+        ],
+        "unverified": [
+          "That a designer can add and reorder Pagination.Item instances in the items slot on a real Figma host, with each instance's own label override kept, as the accordion's slot keeps its content."
+        ],
+        "evolution": [
+          "2026-10-16 (#2665): owner decision, every numbered call A: one component with three types (1), IconButton.Neutral prev and next and text Buttons in simple (2), a native items slot (4), the seven-slot window (6), inactive controls at an end (9), the container-width switch to compact (10), focus to the results after an in-place change (11), links or buttons from getHref (12), no table pager (13), no inverse surface (14), the axis name `type` (15), the names and wording (16), the carousel indicator separate (17).",
+          "2026-10-16 (Q381, after QA): `style: border | underline` per instance, passed to the current page."
+        ],
+        "projection": []
+      }
     }
   }
 }

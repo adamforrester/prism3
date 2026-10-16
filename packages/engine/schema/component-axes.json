@@ -18,6 +18,38 @@
     "members": 12,
     "properties": {}
   },
+  "_pagination-item": {
+    "axes": {
+      "selection": [
+        "selected",
+        "unselected"
+      ],
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ],
+      "state": [
+        "focus-visible",
+        "hover",
+        "pressed",
+        "rest"
+      ],
+      "style": [
+        "border",
+        "underline"
+      ],
+      "type": [
+        "ellipsis",
+        "page"
+      ]
+    },
+    "members": 27,
+    "properties": {
+      "ellipsis": "TEXT",
+      "label": "TEXT"
+    }
+  },
   "accordion": {
     "axes": {
       "expansion": [
@@ -658,6 +690,29 @@
       "number": "TEXT",
       "swap icon": "INSTANCE_SWAP",
       "text": "TEXT"
+    }
+  },
+  "pagination": {
+    "axes": {
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ],
+      "style": [
+        "border",
+        "underline"
+      ],
+      "type": [
+        "compact",
+        "numbered",
+        "simple"
+      ]
+    },
+    "members": 12,
+    "properties": {
+      "items": "SLOT",
+      "status text": "TEXT"
     }
   },
   "password-field": {

@@ -7765,6 +7765,415 @@
           "autocomplete=\"off\" on a password"
         ]
       }
+    },
+    "_pagination-item": {
+      "id": "_pagination-item",
+      "name": "Pagination.Item",
+      "aliases": [
+        "page-item",
+        "pagination-page"
+      ],
+      "category": "navigation",
+      "status": "draft",
+      "summary": "One page number in a pagination row, or the ellipsis between them. The current page is outlined.",
+      "description": "One cell in a pagination row: a page number, or the ellipsis that stands for two or more hidden pages. A page cell is as tall as an icon button and at least as wide as it is tall, so a row of pages and the previous and next buttons beside them line up as equal squares; a page number past two digits widens it. The current page is marked, not filled: a border, or a 2px underline under its number, in a gray that stands out from the page at 3:1, with its number in the emphasis weight. It keeps its width, so the row does not move. At hover and press, another page shows a light neutral wash. The ellipsis does not respond to the pointer and takes no focus. Pagination places the cells and decides which page is current.",
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "required": true,
+          "description": "The page number as shown, such as \"4\". Pagination sets it, through the locale's number format."
+        },
+        {
+          "name": "page",
+          "type": "number",
+          "required": false,
+          "description": "The page this cell opens. Absent on an ellipsis."
+        },
+        {
+          "name": "href",
+          "type": "string",
+          "required": false,
+          "description": "The address of the page. Present, the cell is a link; absent, it is a button that changes the page in place."
+        },
+        {
+          "name": "selected",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Whether this is the current page. Set by Pagination; do not set it on a cell inside a pagination row."
+        },
+        {
+          "name": "type",
+          "type": "enum: 'page' | 'ellipsis'",
+          "default": "page",
+          "required": false,
+          "values": [
+            "page",
+            "ellipsis"
+          ],
+          "description": "page: a page number the user can open. ellipsis: the mark that stands for two or more pages not shown."
+        },
+        {
+          "name": "mark",
+          "type": "string",
+          "default": "…",
+          "required": false,
+          "description": "The character an ellipsis shows, \"…\". Unused on a page."
+        },
+        {
+          "name": "style",
+          "type": "enum: 'border' | 'underline'",
+          "default": "border",
+          "required": false,
+          "values": [
+            "border",
+            "underline"
+          ],
+          "description": "How the current page is marked: a border around the cell, or a 2px line under the number. Passed down by Pagination."
+        },
+        {
+          "name": "size",
+          "type": "enum: 'small' | 'medium' | 'large'",
+          "default": "medium",
+          "required": false,
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ],
+          "description": "The cell height and label type, matching the icon buttons beside it. Passed down by Pagination."
+        }
+      ],
+      "states": [
+        "rest",
+        "hover",
+        "pressed",
+        "focus-visible"
+      ],
+      "variants": {
+        "type": {
+          "values": [
+            "page",
+            "ellipsis"
+          ],
+          "kind": "authoring"
+        },
+        "selection": {
+          "values": [
+            "unselected",
+            "selected"
+          ],
+          "kind": "runtime"
+        },
+        "style": {
+          "values": [
+            "border",
+            "underline"
+          ],
+          "kind": "authoring"
+        },
+        "size": {
+          "values": [
+            "medium",
+            "small",
+            "large"
+          ],
+          "kind": "authoring"
+        }
+      },
+      "accessibility": {
+        "role": "a link (<a href>) when the page has an address, or a button for a page changed in place; the ellipsis is hidden from assistive technology",
+        "wcag": [
+          "1.3.1 Info and Relationships (each cell is a list item; the current page carries aria-current=\"page\")",
+          "1.4.1 Use of Color (the current page has a border or an underline and a heavier weight, and aria-current)",
+          "1.4.3 Contrast (Minimum) (every number on the page at 4.5:1)",
+          "1.4.11 Non-text Contrast (the current page's border or underline at 3:1 against the page)",
+          "2.4.4 Link Purpose (In Context) (each cell is named \"Page N\")",
+          "2.4.7 Focus Visible (the shared focus ring)",
+          "2.5.8 Target Size (Minimum) (targets 44px at medium and large on comfortable and spacious density)"
+        ],
+        "keyboard": "Each page is its own Tab stop; Enter opens it, and Space also does when it is a button. Arrow keys do not move between pages. The ellipsis is skipped.",
+        "focus": "A focus ring around the cell on :focus-visible, the current page included.",
+        "aria": "aria-current=\"page\" on the current page. A visually hidden \"Page \" before each number, so it reads \"Page 4\". aria-hidden=\"true\" on the ellipsis."
+      },
+      "content": {
+        "labelPattern": "The page number, in the locale's numerals. Nothing else is shown in the cell."
+      },
+      "docs": {
+        "usage": "Use inside Pagination only. Pagination works out which pages to show, marks the current one and places the ellipses.",
+        "do": [
+          "Let Pagination set the current page and the ellipses",
+          "Keep every page cell the same size as the previous and next buttons beside it"
+        ],
+        "dont": [
+          "Place a page cell outside a pagination row",
+          "Make the ellipsis a control"
+        ],
+        "contentGuidelines": "Numbers only. The accessible name adds \"Page\"."
+      },
+      "ai": {
+        "primaryPurpose": "One page number, or the ellipsis, inside a pagination row.",
+        "whenToUse": "Only as an item in Pagination's numbered row.",
+        "avoidWhen": "Anywhere outside Pagination: a single action is a Button, and a choice between a few views is a segmented control or tabs.",
+        "commonPartners": [
+          "pagination"
+        ],
+        "triggerKeywords": [
+          "page number",
+          "pagination item",
+          "page cell",
+          "current page"
+        ],
+        "generationPriority": 9
+      },
+      "motion": {
+        "enter": "None. The hover wash and the current page's border change at once or over a short color fade.",
+        "exit": "None.",
+        "reduceMotion": "The color change happens at once."
+      },
+      "composition": {
+        "composesWith": [
+          "focus-ring"
+        ],
+        "alternativeTo": [],
+        "supersedes": [],
+        "supersededBy": [],
+        "planned": [],
+        "replacesPatterns": [
+          "a page number link with href=\"#\" and a click handler",
+          "an ellipsis read aloud as \"dot dot dot\""
+        ]
+      }
+    },
+    "pagination": {
+      "id": "pagination",
+      "name": "Pagination",
+      "aliases": [
+        "pager",
+        "pagination-nav",
+        "page-controls"
+      ],
+      "category": "navigation",
+      "status": "draft",
+      "summary": "Moves between pages of a long list or set of results, and shows which page is open.",
+      "description": "Moves between the pages of a long, ordered list or set of results, and shows which page is open. numbered shows the first and last page, the current page and one page on each side of it, with an ellipsis for each gap, between a previous and a next button; the row always holds seven slots, so it keeps its width as the user pages. compact replaces the numbers with \"Page 5 of 10\", for a narrow container. simple is a Previous and a Next button at opposite ends, for an article or a short sequence where the count adds nothing. At the first and last page, the previous or next button stays in place and does nothing. Not tabs (a few fixed views), not a carousel indicator, and not a load more button.",
+      "props": [
+        {
+          "name": "count",
+          "type": "number",
+          "required": true,
+          "description": "The total number of pages. Pagination is not shown when it is 1."
+        },
+        {
+          "name": "page",
+          "type": "number",
+          "required": false,
+          "description": "The current page, counted from 1. Controlled; pair it with onPageChange."
+        },
+        {
+          "name": "defaultPage",
+          "type": "number",
+          "default": 1,
+          "required": false,
+          "description": "The page shown first, when Pagination manages its own state."
+        },
+        {
+          "name": "onPageChange",
+          "type": "function",
+          "required": false,
+          "description": "Called with the new page number when the user opens a page."
+        },
+        {
+          "name": "getHref",
+          "type": "function",
+          "required": false,
+          "description": "Returns the address of a page. Present, every page is a link the user can bookmark, share or open in a new tab; absent, every page is a button that changes the content in place. Pass it whenever the page has an address."
+        },
+        {
+          "name": "renderItem",
+          "type": "slot",
+          "required": false,
+          "description": "Renders a page as your router's link, keeping its address and aria-current."
+        },
+        {
+          "name": "type",
+          "type": "enum: 'numbered' | 'compact' | 'simple'",
+          "default": "numbered",
+          "required": false,
+          "values": [
+            "numbered",
+            "compact",
+            "simple"
+          ],
+          "description": "numbered: page numbers between previous and next. compact: \"Page 5 of 10\" between previous and next. simple: Previous and Next buttons only. A numbered row switches to compact when its container is narrower than the row."
+        },
+        {
+          "name": "style",
+          "type": "enum: 'border' | 'underline'",
+          "default": "border",
+          "required": false,
+          "values": [
+            "border",
+            "underline"
+          ],
+          "description": "How the current page is marked in a numbered row: a border around it, or a 2px line under its number."
+        },
+        {
+          "name": "size",
+          "type": "enum: 'small' | 'medium' | 'large'",
+          "default": "medium",
+          "required": false,
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ],
+          "description": "The size of every cell and button, matching the icon button sizes. Medium is 44px on comfortable and spacious density."
+        },
+        {
+          "name": "siblingCount",
+          "type": "number",
+          "default": 1,
+          "required": false,
+          "description": "How many pages show on each side of the current page."
+        },
+        {
+          "name": "boundaryCount",
+          "type": "number",
+          "default": 1,
+          "required": false,
+          "description": "How many pages show at each end."
+        },
+        {
+          "name": "label",
+          "type": "string",
+          "default": "Pagination",
+          "required": false,
+          "description": "The accessible name of the navigation landmark. Give two pagination rows on one page the same name, or a name each (\"Pagination, top\")."
+        },
+        {
+          "name": "getStatusText",
+          "type": "function",
+          "required": false,
+          "description": "Returns the compact text and the page-change announcement, \"Page 5 of 10\" by default. Pass a translated string with the page and the count in the order the language needs."
+        }
+      ],
+      "states": [],
+      "variants": {
+        "type": {
+          "values": [
+            "numbered",
+            "compact",
+            "simple"
+          ],
+          "kind": "authoring"
+        },
+        "style": {
+          "values": [
+            "border",
+            "underline"
+          ],
+          "kind": "authoring"
+        },
+        "size": {
+          "values": [
+            "medium",
+            "small",
+            "large"
+          ],
+          "kind": "authoring"
+        }
+      },
+      "accessibility": {
+        "role": "navigation: a <nav> landmark named \"Pagination\", holding a list of links or buttons",
+        "wcag": [
+          "1.3.1 Info and Relationships (a labeled navigation landmark around a list; the current page carries aria-current=\"page\")",
+          "1.4.1 Use of Color (the current page has a border or an underline and a heavier weight, and aria-current)",
+          "1.4.3 Contrast (Minimum) (every number and the compact text at 4.5:1)",
+          "1.4.10 Reflow (a numbered row switches to compact in a narrow container)",
+          "1.4.11 Non-text Contrast (the current page's border or underline at 3:1 against the page)",
+          "2.1.1 Keyboard (every control is reachable with Tab)",
+          "2.4.3 Focus Order (after an in-place page change focus moves to the results, and inactive controls at an end keep focus in place)",
+          "2.4.4 Link Purpose (In Context) (previous, next and every page have a full name)",
+          "2.4.7 Focus Visible (the shared focus ring on every control)",
+          "2.5.3 Label in Name (the visible \"Previous\" and \"Next\" start each accessible name)",
+          "2.5.8 Target Size (Minimum) (targets 44px at medium and large on comfortable and spacious density)",
+          "4.1.2 Name, Role, Value (the landmark, the list and aria-current)",
+          "4.1.3 Status Messages (a polite \"Page 5 of 10\" after an in-place change)"
+        ],
+        "keyboard": "Tab moves through previous, each page and next; every control is its own Tab stop. Enter opens a page, and Space also does when it is a button. Arrow keys do not move between pages.",
+        "focus": "Stays in the normal Tab order. After a page changes in place, focus moves to the top of the results. At an end, the inactive previous or next button keeps focus.",
+        "aria": "aria-label=\"Pagination\" on the <nav>; give two on one page the same name or a name each. aria-current=\"page\" on the current page. aria-hidden=\"true\" on each ellipsis. aria-disabled=\"true\" on previous at the first page and next at the last. Accessible names \"Previous page\", \"Next page\" and \"Page 4\". A polite live region says \"Page 5 of 10\" after an in-place change. Names are translated."
+      },
+      "content": {
+        "labelPattern": "Previous and next are named \"Previous page\" and \"Next page\"; simple shows \"Previous\" and \"Next\", never \"Prev\", \"Back\" or \"Forward\". The compact text is \"Page 5 of 10\". Pages are numbers only."
+      },
+      "docs": {
+        "usage": "Use Pagination below a long list, a grid of results or a table, to move between pages and show which one is open. numbered when the user benefits from seeing the count and jumping to a page; compact in a narrow container, and numbered switches to it there on its own; simple for previous and next through an article or a short sequence. Center it under a list or a grid; end-align it under a table. Give every page an address whenever the page has one.",
+        "do": [
+          "Place it below the content it pages",
+          "Give pages an address, so they can be bookmarked and shared",
+          "Leave previous and next in place at an end",
+          "Move focus to the top of the results after an in-place change",
+          "Leave it out when there is only one page"
+        ],
+        "dont": [
+          "Use it for a feed with no useful end. Use a load more Button.",
+          "Use it to switch between a few views. Use tabs or a segmented control.",
+          "Use it for the slides of a carousel",
+          "Hide previous or next at an end; the row would change width",
+          "Make an ellipsis a control"
+        ],
+        "contentGuidelines": "\"Previous\" and \"Next\", sentence case. \"Page 5 of 10\" for the compact text and the announcement. Numbers in the locale's numerals."
+      },
+      "ai": {
+        "primaryPurpose": "Move between the pages of a long, ordered set of results and show which page is open.",
+        "whenToUse": "Search results, a catalog or a table split into pages, where the user benefits from the count and from jumping to a page; or previous and next through an article.",
+        "avoidWhen": "A feed with no useful end (a load more Button), a few fixed views (tabs or a segmented control), the slides of a carousel, or rows per page and a \"Go to page\" field (the table pager, not yet built).",
+        "commonPartners": [
+          "_pagination-item",
+          "icon-button-neutral",
+          "button-neutral",
+          "list"
+        ],
+        "triggerKeywords": [
+          "pagination",
+          "pager",
+          "page numbers",
+          "previous and next",
+          "page 1 of 10",
+          "next page"
+        ],
+        "generationPriority": 2
+      },
+      "motion": {
+        "enter": "None. The page changes at once.",
+        "exit": "None.",
+        "reduceMotion": "Nothing moves."
+      },
+      "composition": {
+        "composesWith": [
+          "icon-button-neutral",
+          "_pagination-item",
+          "button-neutral"
+        ],
+        "alternativeTo": [
+          "tabs"
+        ],
+        "supersedes": [],
+        "supersededBy": [],
+        "planned": [
+          "table",
+          "carousel",
+          "breadcrumbs"
+        ],
+        "replacesPatterns": [
+          "page links built from <a href=\"#\"> and click handlers",
+          "a disabled next button that drops focus at the last page",
+          "infinite scroll on a page with a footer"
+        ]
+      }
     }
   }
 }

@@ -121,6 +121,10 @@ export const TAXONOMY: Taxonomy = {
         // Dialog (#2609, owner decision Q303.12 A) — its own page under Components, every placement on it. It nests the
         // Neutral IconButton, the Divider and the Button, which the build places first wherever their pages sort.
         { page: 'Dialog', defs: ['dialog'] },
+        // Pagination (#2665, owner call 16 A) — its own page under Components, Pagination.Item beside it. The item builds
+        // first, so the row's slot items resolve against it on the same page; IconButton and Button build wherever their
+        // pages sort, before it.
+        { page: 'Pagination', defs: ['_pagination-item', 'pagination'] },
       ],
     },
     {
