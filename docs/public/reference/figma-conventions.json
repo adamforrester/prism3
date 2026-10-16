@@ -2274,6 +2274,60 @@
           ]
         },
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/password-field.md"
+      },
+      {
+        "id": "banner",
+        "name": "Banner",
+        "figmaName": "banner",
+        "kind": "component set",
+        "page": null,
+        "section": null,
+        "members": 8,
+        "variantProperties": [
+          {
+            "name": "tone",
+            "values": [
+              "info",
+              "success",
+              "warning",
+              "danger"
+            ]
+          },
+          {
+            "name": "width",
+            "values": [
+              "contained",
+              "full"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "title text",
+            "type": "TEXT"
+          },
+          {
+            "name": "icon",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "title",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "actions",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "second action",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "dismiss",
+            "type": "BOOLEAN"
+          }
+        ],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/banner.md"
       }
     ]
   },
@@ -2341,6 +2395,10 @@
       },
       {
         "component": "dialog",
+        "property": "body"
+      },
+      {
+        "component": "banner",
         "property": "body"
       }
     ]
