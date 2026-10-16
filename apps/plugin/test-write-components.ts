@@ -3662,6 +3662,59 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
 }
 
 // =============================================================================================
+// #2808 (Q386) — NO COMPONENT REQUIRES THE NEUTRAL BUTTON FAMILIES
+// =============================================================================================
+// Owner decision Q386: many teams will not build Button.Neutral or IconButton.Neutral, so no other def may need
+// them. A close or dismiss nests FlushIconButton.Neutral (a subcomponent the plugin builds as a dependency), and a
+// neutral action uses Button.Neutral only as a fallback-only preference the def declares in its own field, never
+// as `nests` (Q363.8 on #2661). This fails BY NAME, per def, on either of two readings that do not share a
+// derivation (`docs/34` shape 2):
+//
+//   · DECLARED — `anatomy.parts[*].nests` straight off the def: the component the def says it nests.
+//   · BUILT — `missingDependencies` over the PROJECTED plans in an empty file: the plugin's own transitive list of
+//     what it builds before the def. It reads `nestTarget`, `swapTarget` and swap overrides off the plan, so it
+//     also sees a requirement the anatomy reaches through a nested def (one level down is still required).
+//
+// A fallback-only reference is not `nests` and not `nestTarget`, so neither reading counts it: that is the
+// declaration Q386 asks for. Floors (shapes 9 and 15): both forbidden ids are registered defs, so renaming one does
+// not empty the gate; every projected def is walked on the BUILT reading, with the count printed and held; and the
+// predicate itself fails a fixture def that nests each forbidden id, so a predicate that matched nothing fails.
+{
+  const FORBIDDEN = ['button-neutral', 'icon-button-neutral'] as const;
+  ok(FORBIDDEN.every((id) => componentDefs.some((d) => d.id === id)),
+    `#2808 the Neutral button families the rule forbids are registered defs (${FORBIDDEN.filter((id) => !componentDefs.some((d) => d.id === id)).join(', ') || 'both found'})`);
+  const project = (d: ComponentDef) => figmaAnatomySet(materializeForBrand(d, null), { swapTarget: SWAP });
+  const builtNeeds = (def: ComponentDef, defs: readonly ComponentDef[], proj: (d: ComponentDef) => AnatomyPlan[]): string[] =>
+    missingDependencies(def, { defs, project: proj, present: () => false }).map((x) => x.def.id).filter((id) => (FORBIDDEN as readonly string[]).includes(id));
+  const declaredNeeds = (def: ComponentDef): string[] =>
+    Object.entries(def.anatomy?.parts ?? {}).filter(([, p]) => !!p.nests && (FORBIDDEN as readonly string[]).includes(p.nests)).map(([n, p]) => `${n} → ${p.nests}`);
+
+  // THE PREDICATES CAN FAIL: a fixture host nesting each forbidden id is flagged by both readings.
+  for (const id of FORBIDDEN) {
+    const host = { id: 'fixture-host', anatomy: { root: 'x', parts: { x: { kind: 'nest', nests: id } } }, figmaProperties: {} } as unknown as ComponentDef;
+    const target = componentDefs.find((d) => d.id === id)!;
+    const proj = (d: ComponentDef) => (d === host ? [{ root: { nestTarget: id, children: [] } } as unknown as AnatomyPlan] : project(d));
+    ok(declaredNeeds(host).length === 1 && builtNeeds(host, [...componentDefs, host], proj).includes(target.id),
+      `#2808 the gate's predicates flag a fixture def that nests ${id} (declared [${declaredNeeds(host).join(', ')}], built [${builtNeeds(host, [...componentDefs, host], proj).join(', ')}])`);
+  }
+
+  let walked = 0;
+  const unprojected: string[] = [];
+  for (const def of componentDefs) {
+    if ((FORBIDDEN as readonly string[]).includes(def.id)) continue;
+    const declared = declaredNeeds(def);
+    ok(declared.length === 0, `#2808 ${def.id} declares no required nest of a Neutral button family (Q386)${declared.length ? ` — nests ${declared.join(', ')}; nest FlushIconButton.Neutral for a close, or declare Button.Neutral as a fallback-only preference` : ''}`);
+    if (!def.figmaProperties) continue;
+    let built: string[];
+    try { built = builtNeeds(def, componentDefs, project); walked++; } catch (e) { unprojected.push(`${def.id}: ${(e as Error).message.slice(0, 120)}`); continue; }
+    ok(built.length === 0, `#2808 building ${def.id} into an empty file builds no Neutral button family first (Q386)${built.length ? ` — the plugin would build ${built.join(', ')}` : ''}`);
+  }
+  const projected = componentDefs.filter((d) => d.figmaProperties && !(FORBIDDEN as readonly string[]).includes(d.id)).length;
+  ok(walked === projected && unprojected.length === 0,
+    `#2808 the BUILT reading walked every projected def (${walked} of ${projected})${unprojected.length ? ` — not walked: ${unprojected.join('; ')}` : ''}`);
+}
+
+// =============================================================================================
 // #1623 sign-off — THE DEF'S `summary` IS THE FIGMA DESCRIPTION
 // =============================================================================================
 // The plugin writes one line per built component: the set's description (or each component's, in
