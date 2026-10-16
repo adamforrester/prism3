@@ -56,7 +56,7 @@ One or two words per tab, nouns, sentence case.
 
 ## States
 
-`rest`
+None — not interactive.
 
 ## Variants
 
