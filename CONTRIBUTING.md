@@ -1219,6 +1219,16 @@ npx tsx packages/engine/lint-ecosystem.ts           # the ecosystem diagram's da
                                                     # lists are exactly the code's, both ways, each with
                                                     # a floor; the page fetches the data and writes no
                                                     # feature label itself; its text tokens clear 4.5:1.
+npx tsx packages/engine/lint-naming.ts              # the defs follow the build-component skill's
+                                                    # naming table (#2759; Q345, Q349, Q350, Q355):
+                                                    # lowercase Figma property names, the `_` prefix
+                                                    # exactly where whenToUse says a part is used only
+                                                    # inside its parent, roots from a closed role list
+                                                    # and never the def's id, `<shape>Glyph` glyph
+                                                    # layers, a Row's `controlCell`. The rules are
+                                                    # literals in the gate. Known breaches wait in
+                                                    # PENDING, which fails as stale when one clears.
+                                                    # NOT checked: "main text is `label`" (a judgment).
 ```
 
 CI (`.github/workflows/ci.yml`) also runs the web and plugin gates below **on every PR,
