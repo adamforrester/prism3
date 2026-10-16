@@ -51,7 +51,7 @@ The Counter's row itself is INTERACTIVE on `size.{size}.height` (44 at medium on
 - `test-update-apply.ts`'s `planComps`, so the corpus world held no `icon/minus` and the Counter's re-applied members never read back as current. List carries text overrides only, which is why it had not come up.
 - `test-canvas-furniture.ts`'s `planComps`, the same gap: its `rollout/counter` dry run reported "components the plan swaps to are not in this file: icon/minus, icon/plus".
 
-**`EXECUTOR_REVISION` 28.** The Counter's page entry in `file-taxonomy.ts` is reachable from the executor, so `lint-executor-revision` counts it as an executor change. Main is at 26 (#2683) and #2744 holds 27, so this takes 28.
+**`EXECUTOR_REVISION` 28, raised on the orchestrator's instruction, not because the gate asks for it.** Against main `039a65c3` (27, #2744), `lint-executor-revision` reads "the executor's code is unchanged since the merge base": `variantWhen` is projector-only, and the Counter's `file-taxonomy.ts` page entry is not on the executor's import graph. The failure it printed during the first merge was against the old merge base, before the merge commit existed. The raise costs one dry run that marks members built at 27 as "to update" with no field difference. Dropping it back to 27 is a one-line revert, and the gate would still pass.
 
 **Gates (each mutation-proven by name, see the PR):**
 - `test.ts`, the Counter's decisions against literals:
