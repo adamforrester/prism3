@@ -5,7 +5,7 @@ Built from the proposal on #2579, approved as recommended (Q327), and the KB bri
 tone's subtle surface with a 1px edge in the tone's **border** role (Q346: an edge never binds an icon or text role;
 `color.border.{tone}` exists in every example brand, so no owner question was needed). Title and body in
 `color.text.primary`; the glyph in `color.icon.{tone}`. The body is a native slot. Two nested Button.Neutral actions
-(outline, then text, small) and a FlushIconButton.Neutral dismiss with the close glyph fixed and no swap (Q386, #2808),
+(outline, then text, small) and a round FlushIconButton.Neutral dismiss with the close glyph fixed and no swap (Q386, #2808),
 all off by default.
 
 ### Decisions the diff does not show

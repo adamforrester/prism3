@@ -21,8 +21,8 @@
  *
  * The tone glyph (four `presentWhen` vector parts, FieldMessage's shape and FieldMessage's glyph per status, so a
  * danger banner and an errored field show the same mark), a content column (title, the body as a native slot, the
- * actions row), and a dismiss button (FlushIconButton.Neutral, small, always the `close` glyph with no swap: Q386 on
- * #2808). The actions are up to
+ * actions row), and a dismiss button (FlushIconButton.Neutral, round, small, always the `close` glyph with no swap: Q386 on
+ * #2808; round keeps the 36px box, as Dialog's close keeps its own). The actions are up to
  * two nested Button.Neutral, outline then text, off by default (Q327.6 A). Q363 (#2661) decided a shared Button group
  * container for action sets; it is not built yet, so the actions are nested Buttons here and the move is filed as
  * #2787. Mints nothing.
@@ -210,9 +210,9 @@ export const banner: ComponentDef = {
         kind: 'nest',
         nests: 'flush-icon-button-neutral',
         optional: true,
-        nesting: { kind: 'nest-fixed', variant: { shape: 'flush', size: 'small', state: 'rest' } },
+        nesting: { kind: 'nest-fixed', variant: { shape: 'round', size: 'small', state: 'rest' } },
         overrides: { swaps: { icon: 'close' } },
-        note: 'The dismiss button: a FlushIconButton.Neutral, small, always the close glyph, with no swap (Q386). Off by default.',
+        note: 'The dismiss button: a FlushIconButton.Neutral, round, small (the 36px box the ghost small IconButton had, as Dialog\'s close keeps its box), always the close glyph, with no swap (Q386). Off by default.',
       },
     },
     codeOnly: [
@@ -220,7 +220,7 @@ export const banner: ComponentDef = {
       'the heading level — the title renders as the `<h*>` that `headingLevel` names (default 2), never a hard-coded level. Figma has no heading level.',
       'dismissal — the dismiss button renders only when `dismissible` and `onDismiss` are both set. Its accessible name says what it dismisses ("Dismiss error message"), not a bare "Close". The dismissal is stored against an id and a version, so a dismissed notice does not return on reload. A banner about a condition that still blocks the user is not dismissible, or comes back only while the condition holds.',
       'focus after a dismiss — focus moves to a surviving element that makes sense (the control that caused the banner, or the page heading), never to the page body.',
-      'the dismiss target — the small FlushIconButton is a 20px glyph square; its hit area extends to at least 44×44px in code, as FlushIconButton\'s does.',
+      'the dismiss target — the small round FlushIconButton is a 36px circle; its hit area extends to at least 44×44px in code, as FlushIconButton\'s does.',
       'one banner at a time — show only the most serious banner in a region; route lower-priority messages to a notification list rather than stacking banners.',
       'motion — appears with an opacity fade; a dismiss collapses the height (about 150 to 200ms) and fades, on `motion.transition.exit`, so the content below does not jump. Under `prefers-reduced-motion` both are instant. A banner inserted at the top of a page later reserves its space. Figma shows the banner at rest.',
       'RTL — logical properties throughout: the glyph and the dismiss button swap edges. No glyph mirrors (the four tone glyphs and the close glyph are symmetric).',
@@ -253,7 +253,7 @@ export const banner: ComponentDef = {
       '1.4.3 Contrast (the title and body clear 4.5:1 on every tone\'s fill, measured in every mode of the example brands)',
       '1.4.11 Non-text Contrast (the edge clears 3:1 against the page and the glyph 3:1 against the fill, measured in every mode of the example brands)',
       '2.4.3 Focus Order (the actions are in the tab order, and a dismiss moves focus to a surviving element)',
-      '2.5.8 Target Size (Minimum) (the dismiss button is a 20px glyph square; targets 44×44px through a code-side hit area)',
+      '2.5.8 Target Size (Minimum) (the dismiss button is a 36px circle; targets 44×44px through a code-side hit area)',
       '2.2.1 Timing Adjustable (the reason errors go in a banner, which stays, rather than a toast, which goes away)',
     ],
     keyboard: 'The actions and the dismiss button are ordinary Tab stops in reading order. The banner itself takes no focus.',

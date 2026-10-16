@@ -6369,14 +6369,14 @@ arm: {
       const a1 = find(r, 'action1'), a2 = find(r, 'action2'), d = find(r, 'dismiss');
       if (a1?.nestTarget !== 'button-neutral' || a1?.nestVariant?.appearance !== 'outline' || a1?.nestVariant?.size !== 'small') wrong.push(`${name} action1 ${a1?.nestTarget}/${a1?.nestVariant?.appearance}/${a1?.nestVariant?.size}`);
       if (a2?.nestTarget !== 'button-neutral' || a2?.nestVariant?.appearance !== 'text' || a2?.nestVariant?.size !== 'small') wrong.push(`${name} action2 ${a2?.nestTarget}/${a2?.nestVariant?.appearance}/${a2?.nestVariant?.size}`);
-      // Q386 (#2808): the dismiss is FlushIconButton.Neutral, flush, small, the close glyph fixed.
-      if (d?.nestTarget !== 'flush-icon-button-neutral' || d?.nestVariant?.shape !== 'flush' || d?.nestVariant?.size !== 'small' || d?.nestOverrides?.length !== 1 || d?.nestOverrides?.[0]?.value !== 'icon/close') wrong.push(`${name} dismiss ${d?.nestTarget}/${d?.nestVariant?.shape}/${d?.nestVariant?.size}/${d?.nestOverrides?.map((o: any) => o.value).join('+')}`);
+      // Q386 (#2808): the dismiss is FlushIconButton.Neutral, round, small (Dialog's choice, #2806), the close glyph fixed.
+      if (d?.nestTarget !== 'flush-icon-button-neutral' || d?.nestVariant?.shape !== 'round' || d?.nestVariant?.size !== 'small' || d?.nestOverrides?.length !== 1 || d?.nestOverrides?.[0]?.value !== 'icon/close') wrong.push(`${name} dismiss ${d?.nestTarget}/${d?.nestVariant?.shape}/${d?.nestVariant?.size}/${d?.nestOverrides?.map((o: any) => o.value).join('+')}`);
       // Off by default (Q327.6 A, the proposal's §4): the actions row, the second action and the dismiss are hidden.
       if (find(r, 'actions')?.visible !== false || a2?.visible !== false || d?.visible !== false) wrong.push(`${name} actions/second/dismiss shown by default`);
       if (find(r, 'titleBox')?.visible === false) wrong.push(`${name} title hidden by default`);
     }
     ok(wrong.length === 0,
-      `banner members: each paints foreground.<tone>-subtle with a 1px border.<tone> edge, its tone's glyph in icon.<tone>, text.primary ink, radius md contained and none full, and nests a neutral outline and text action and a flush close dismiss, all off${wrong.length ? ` — ${wrong.join('; ')}` : ''}`);
+      `banner members: each paints foreground.<tone>-subtle with a 1px border.<tone> edge, its tone's glyph in icon.<tone>, text.primary ink, radius md contained and none full, and nests a neutral outline and text action and a round close dismiss, all off${wrong.length ? ` — ${wrong.join('; ')}` : ''}`);
     // Q346: an edge never binds an icon or text role. Read off the TOKENS too, so a border key on any coordinate counts.
     const badEdge = Object.entries(bannerDef.tokens).filter(([k, ref]) => /(^|\.)border$/.test(k) && !String(ref).startsWith('color.border.'));
     ok(badEdge.length === 0, `banner edge: every border key binds a color.border.* role (Q346)${badEdge.length ? ` — ${badEdge.map(([k, r]) => `${k} → ${r}`).join('; ')}` : ''}`);
