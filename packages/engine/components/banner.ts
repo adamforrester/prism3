@@ -1,6 +1,6 @@
 /**
- * Banner — a persistent message in the page flow about an important state, with optional actions (KB brief:
- * `components/banner.md`).
+ * Banner — a persistent message in the page flow about an important state, with optional actions.
+ * KB brief: `components/banner.md`.
  *
  * ── THE OWNER'S SHAPE (the proposal on #2579, approved as recommended by Q327, 2026-10-16) ─────────────────────
  *
@@ -97,8 +97,9 @@ export const banner: ComponentDef = {
     // ── CORNERS (the proposal's §5, DRAFT): contained rounds, full is square.
     'width.contained.radius': 'radius.md',
     'width.full.radius': 'radius.none',
-    // ── SPACE (the proposal's §5, DRAFT), each in `densitySpacing`: the padding, the glyph to the content, the title to
-    // the body, the body to the actions, and the actions to each other.
+    // ── SPACE (the proposal's §5, DRAFT). In `densitySpacing`: the padding, the glyph to the content, the body to the
+    // actions, and the actions to each other. The title to the body is FIXED at 4px: one step down at compact would be
+    // 2px, under the 4px gap floor (owner, 2026-09-29).
     'pad': 'space.200',
     'gap': 'space.150',
     'content-gap': 'space.050',
@@ -108,7 +109,7 @@ export const banner: ComponentDef = {
     // down to center that line on the glyph, as the accordion's title is. Fixed: it tracks the glyph, not density.
     'title-offset': 'space.050',
   },
-  densitySpacing: ['pad', 'gap', 'content-gap', 'actions-gap', 'action-gap'],
+  densitySpacing: ['pad', 'gap', 'actions-gap', 'action-gap'],
 
   anatomy: {
     root: 'container',

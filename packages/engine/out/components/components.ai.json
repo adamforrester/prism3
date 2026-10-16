@@ -5416,14 +5416,14 @@
       "composition": {
         "composesWith": [],
         "alternativeTo": [
-          "tag"
+          "tag",
+          "banner"
         ],
         "supersedes": [],
         "supersededBy": [],
         "planned": [
           "avatar",
-          "toast",
-          "banner"
+          "toast"
         ],
         "replacesPatterns": [
           "a hand-drawn colored pill",
