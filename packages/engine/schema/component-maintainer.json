@@ -193,7 +193,7 @@
           "RESOLVED (#1353, owner-decided 2026-09-10): a `shape` axis (square | circular), geometry only — the two values differ in the corner radius alone, which is why it is an axis and not a component split.",
           "RESOLVED (#1427): a `surface` axis (default | inverse), following Button, and the glyph ink walks state on outline/ghost as Button's label does.",
           "RESOLVED (#1350, owner-decided 2026-09-08): icon-button keeps the 1:1 glyph rung (medium → icon.size.md, 24px), matching a standalone icon, where the text-bearing Button moved one rung smaller.",
-          "RESOLVED (#1697): the disabled edge binds the disabled icon ink (as #1349 did for Button) instead of `color.disabled.border`, which measured 1.48–1.80:1 against the page; the pending member swaps in the real spinner."
+          "RESOLVED (#1697): the pending member swaps in the real spinner. The disabled edge #1697 also rebound to the disabled icon ink was superseded by Q346 (#2749): a border never binds an icon or text role, so it binds `color.disabled.border`."
         ],
         "projection": []
       }
@@ -222,7 +222,7 @@
           "RESOLVED (#1353, owner-decided 2026-09-10): a `shape` axis (square | circular), geometry only — the two values differ in the corner radius alone, which is why it is an axis and not a component split.",
           "RESOLVED (#1427): a `surface` axis (default | inverse), following Button, and the glyph ink walks state on outline/ghost as Button's label does.",
           "RESOLVED (#1350, owner-decided 2026-09-08): icon-button keeps the 1:1 glyph rung (medium → icon.size.md, 24px), matching a standalone icon, where the text-bearing Button moved one rung smaller.",
-          "RESOLVED (#1697): the disabled edge binds the disabled icon ink (as #1349 did for Button) instead of `color.disabled.border`, which measured 1.48–1.80:1 against the page; the pending member swaps in the real spinner."
+          "RESOLVED (#1697): the pending member swaps in the real spinner. The disabled edge #1697 also rebound to the disabled icon ink was superseded by Q346 (#2749): a border never binds an icon or text role, so it binds `color.disabled.border`."
         ],
         "projection": []
       }
@@ -251,7 +251,7 @@
           "RESOLVED (#1353, owner-decided 2026-09-10): a `shape` axis (square | circular), geometry only — the two values differ in the corner radius alone, which is why it is an axis and not a component split.",
           "RESOLVED (#1427): a `surface` axis (default | inverse), following Button, and the glyph ink walks state on outline/ghost as Button's label does.",
           "RESOLVED (#1350, owner-decided 2026-09-08): icon-button keeps the 1:1 glyph rung (medium → icon.size.md, 24px), matching a standalone icon, where the text-bearing Button moved one rung smaller.",
-          "RESOLVED (#1697): the disabled edge binds the disabled icon ink (as #1349 did for Button) instead of `color.disabled.border`, which measured 1.48–1.80:1 against the page; the pending member swaps in the real spinner."
+          "RESOLVED (#1697): the pending member swaps in the real spinner. The disabled edge #1697 also rebound to the disabled icon ink was superseded by Q346 (#2749): a border never binds an icon or text role, so it binds `color.disabled.border`."
         ],
         "projection": []
       }
@@ -1273,7 +1273,7 @@
       "notes": {
         "contested": [],
         "unverified": [
-          "The 2px page-colored ring is drawn inside the 24px disc in Figma (an inside stroke), so the visible disc is 20px; the wireframe drew it outside (a box-shadow). Code may draw either; the 3:1 against the page is the disc's fill, measured the same either way."
+          "The 2px page-colored ring sits inside the 24px thumb in Figma (a page-colored disc padded 2px around the primary disc), so the visible disc is 20px; the wireframe drew it outside (a box-shadow). Code may draw either; the 3:1 against the page is the disc's fill, measured the same either way. A stroke cannot carry it: a stroke binds a border role (Q346), and no border role is the page color."
         ],
         "evolution": [
           "2026-10-16 (#2669): built with the Slider to the approved proposal (all calls A). A nested component, not a part of the Slider, so the minimum thumb of a range can stay at rest while the maximum thumb shows the state (Q349 `_` prefix)."

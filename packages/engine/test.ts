@@ -15751,19 +15751,21 @@ arm: {
       }
       ok(stateOff.length === 0, `#2669 call 2 A the state is on the maximum thumb; the minimum thumb of a range stays at rest except disabled (${stateOff.length} off — ${stateOff.slice(0, 3).join('; ') || 'none'})`);
 
-      // (4) Call 6 A: the thumb, a 24px disc (control/size/md/thumb) in the primary fill stepping rest → hover → pressed,
-      // with a 2px ring in color/background/primary; Q346: the disabled ring binds color/disabled/border.
+      // (4) Call 6 A: the thumb, a 24px thumb (control/size/md/thumb) whose outer disc is the page color, padded 2px
+      // (space/025) around an inner disc in the primary fill stepping rest → hover → pressed. Q346: no stroke at all, since
+      // a stroke binds a border role and no border role is the page color. Disabled: the inner disc color/disabled/fill.
       const FILL: Record<string, string> = { rest: 'color/interactive/primary/fill/rest', hover: 'color/interactive/primary/fill/hover', pressed: 'color/interactive/primary/fill/pressed', 'focus-visible': 'color/interactive/primary/fill/rest', disabled: 'color/disabled/fill' };
       const thumbOff = STATES5.flatMap((s) => {
         const r = tOf(s)?.root;
-        const ring = s === 'disabled' ? 'color/disabled/border' : 'color/background/primary';
-        const ok1 = r?.paints?.fills === FILL[s] && r?.paints?.strokes === ring && r?.bound?.strokeWeight === 'border-width/thick'
-          && r?.bound?.width === 'control/size/md/thumb' && r?.bound?.height === 'control/size/md/thumb' && r?.bound?.topLeftRadius === 'radius/round';
+        const disc = r ? findIn(r, 'disc') : undefined;
+        const ok1 = r?.paints?.fills === 'color/background/primary' && r?.paints?.strokes === undefined && r?.bound?.paddingTop === 'space/025' && r?.bound?.paddingLeft === 'space/025'
+          && r?.bound?.width === 'control/size/md/thumb' && r?.bound?.height === 'control/size/md/thumb' && r?.bound?.topLeftRadius === 'radius/round'
+          && disc?.paints?.fills === FILL[s] && disc?.bound?.topLeftRadius === 'radius/round' && disc?.layoutGrow === 1 && disc?.layoutAlign === 'STRETCH';
         const ringNode = r ? findIn(r, 'focusRing') : undefined;
         const ok2 = s === 'focus-visible' ? ringNode?.nestTarget === 'focus-ring' : !ringNode;
-        return ok1 && ok2 ? [] : [`${s}: ${String(r?.paints?.fills)} / ${String(r?.paints?.strokes)} @ ${String(r?.bound?.strokeWeight)}, ${String(r?.bound?.width)}, ring ${String(ringNode?.nestTarget)}`];
+        return ok1 && ok2 ? [] : [`${s}: ring ${String(r?.paints?.fills)} / stroke ${String(r?.paints?.strokes)} pad ${String(r?.bound?.paddingTop)}, disc ${String(disc?.paints?.fills)}, ${String(r?.bound?.width)}, focus ring ${String(ringNode?.nestTarget)}`];
       });
-      ok(thumbOff.length === 0, `#2669 call 6 A / Q346 the thumb: a control/size/md/thumb disc, the primary fill rest/hover/pressed, a 2px color/background/primary ring (color/disabled/border when disabled), the focus ring at focus-visible only (${thumbOff.join('; ') || 'none'})`);
+      ok(thumbOff.length === 0, `#2669 call 6 A / Q346 the thumb: a control/size/md/thumb thumb whose page-colored outer disc rings the primary-fill inner disc 2px in (space/025), no stroke, rest/hover/pressed on the inner disc, color/disabled/fill when disabled, the focus ring at focus-visible only (${thumbOff.join('; ') || 'none'})`);
 
       // (5) Calls 4 A and 7 A, Q345: the panel. Lowercase names; label and value on, end labels, inputs and helper off.
       const panel = planSetProperties(sMembers).filter((p) => p.type === 'BOOLEAN').map((p) => `${p.name}=${String(p.default)}`).sort();
@@ -15791,9 +15793,9 @@ arm: {
       const PAIRS: [string, string, number][] = [
         ['the rail', role(findIn(rest.root, 'track')?.paints?.fills), 3],
         ['the selected bar', role(findIn(rest.root, 'bar')?.paints?.fills), 3],
-        ['the thumb at rest', role(tOf('rest')!.root.paints?.fills), 3],
-        ['the thumb at hover', role(tOf('hover')!.root.paints?.fills), 3],
-        ['the thumb at press', role(tOf('pressed')!.root.paints?.fills), 3],
+        ['the thumb at rest', role(findIn(tOf('rest')!.root, 'disc')?.paints?.fills), 3],
+        ['the thumb at hover', role(findIn(tOf('hover')!.root, 'disc')?.paints?.fills), 3],
+        ['the thumb at press', role(findIn(tOf('pressed')!.root, 'disc')?.paints?.fills), 3],
         ['the focus ring', ringRole, 3],
         ['the value text', role(findIn(rest.root, 'valueRange')?.paints?.fills), 4.5],
         ['the end labels', role(findIn(rest.root, 'minLabel')?.paints?.fills), 4.5],
@@ -18651,61 +18653,19 @@ arm: {
     ok(disText.ink.fills === figmaVarName(button.tokens['disabled.label']) && disText.icon === figmaVarName(button.tokens['disabled.icon']),
       'anatomy/paint: disabled INK is unconditional — every appearance has ink even when it has no structure');
 
-    // THE DISABLED EDGE TRACKS THE DISABLED INK (#1349), pinned BY NAME independently of the projector.
-    // The paint tests above read `button.tokens['disabled.border']` dynamically, so they follow whatever
-    // the binding is and cannot notice a revert to the old darker `color.disabled.border` role. These
-    // three assertions are the behavior pin (docs/34): on each of the three families the disabled BORDER
-    // role must EQUAL the disabled ICON role (the graphical-object ink) AND must NOT be `color.disabled.border`
-    // (the muted, `min: 0`, fill-matched neutral it used to bind, darker than the ink on an inverse band).
-    // A mutation reverting line ~317 of button.ts to `color.disabled.border` fails the named assertion below,
-    // rather than the border silently going heavy again. `disabled.icon` (not `.text`) is the peer named
-    // because a border is a non-text graphical object, though the two roles resolve identically.
-    for (const def of [button, buttonDestructive, buttonNeutral]) {
-      ok(def.tokens['disabled.border'] === def.tokens['disabled.icon'],
-        `#1349 disabled edge: ${def.id} border role (${def.tokens['disabled.border']}) tracks the disabled icon ink (${def.tokens['disabled.icon']})`);
-      ok(def.tokens['disabled.border'] !== 'color.disabled.border',
-        `#1349 disabled edge: ${def.id} border is rebound off the old darker \`color.disabled.border\` (fill-matched, min:0), not reverted to it`);
+    // A BORDER NEVER BINDS AN ICON OR TEXT ROLE (Q346, #2749), pinned BY NAME independently of the projector.
+    // The paint tests above read `button.tokens['disabled.border']` dynamically, so they follow whatever the
+    // binding is. These pin the seven defs that once bound the disabled edge to `color.disabled.icon` (#1349,
+    // #1697, both superseded by the owner) to the cross-cutting `color.disabled.border`, so a revert fails a
+    // named assertion here as well as `lint-paint.ts` arm 5. The 3:1 sweep that sat here measured the ICON
+    // role against the page; it existed only to justify that binding and went with it. A disabled control is
+    // outside SC 1.4.11, and the disabled edge's strength is the token tier's to set (#2750), not a per-def floor.
+    const edgeDefs = ['button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'tag'];
+    for (const id of edgeDefs) {
+      const def = componentDefs.find((d) => d.id === id);
+      ok(!!def && def.tokens['disabled.border'] === 'color.disabled.border',
+        `Q346 disabled edge: ${id} binds the disabled border role, not an icon or text role (got ${def?.tokens['disabled.border']})`);
     }
-    // …and the rebound edge clears the SC 1.4.11 3:1 graphical-object bar. The `outline` disabled border is
-    // the only appearance that paints it (STRUCTURAL, no fill) and it sits on the page, which is exactly the
-    // ground `disabled.icon` is gated against — so the role's own measured ratio IS the border-vs-page ratio.
-    // Measured live via resolveAllModes (independent of the button def), across the example brands × every mode
-    // (aurora, harbor — the two shipped as brand-input JSON; nb 3.16 / aurora 3.16 / harbor 3.32 in the report).
-    const borderInkRole = button.tokens['disabled.border'].replace(/^color\./, '');
-    let checkedRatios = 0;
-    for (const id of EXAMPLE_IDS) {
-      const th = exampleTheme(id, () => brandTheme(exampleBrands()[id] as BrandInput));
-      if (!th) continue;
-      for (const M of resolveAllModes(th)) {
-        const role = (M.roles as Record<string, { ratio?: number; min?: number } | undefined>)[borderInkRole];
-        ok(!!role && typeof role.ratio === 'number' && role.ratio >= 3,
-          `#1349 disabled edge: ${id}/${M.mode} rebound border (${borderInkRole}) clears 3:1 as a graphical object (ratio ${role?.ratio})`);
-        checkedRatios++;
-      }
-    }
-    ok(checkedRatios >= EXAMPLE_IDS.length, `#1349 disabled edge: the 3:1 sweep actually ran (measured ${checkedRatios} brand×mode ratios, not an empty set)`);
-
-    // #1697 DECISION 1 — THE ICON-BUTTON DISABLED EDGE, rebound as #1349 rebound Button's. The ratio is read
-    // PER SIBLING off that sibling's own `disabled.border` binding and measured by `resolveAllModes`, which
-    // never sees the def — so a revert to `color.disabled.border` (1.48–1.80:1 against the page, gated
-    // `min: 0`) resolves a role under 3 and fails the named assertion below, independently of the equality pin.
-    let ibChecked = 0;
-    for (const def of [iconButton, iconButtonDestructive, iconButtonNeutral]) {
-      ok(def.tokens['disabled.border'] === def.tokens['disabled.icon'],
-        `#1697 disabled edge: ${def.id} border role (${def.tokens['disabled.border']}) tracks the disabled icon ink (${def.tokens['disabled.icon']})`);
-      const edgeRole = def.tokens['disabled.border'].replace(/^color\./, '');
-      for (const id of EXAMPLE_IDS) {
-        const th = exampleTheme(id, () => brandTheme(exampleBrands()[id] as BrandInput));
-        if (!th) continue;
-        for (const M of resolveAllModes(th)) {
-          const role = (M.roles as Record<string, { ratio?: number } | undefined>)[edgeRole];
-          ok(!!role && typeof role.ratio === 'number' && role.ratio >= 3,
-            `#1697 disabled edge: ${def.id} ${id}/${M.mode} border (${edgeRole}) clears 3:1 against the page (ratio ${role?.ratio})`);
-          ibChecked++;
-        }
-      }
-    }
-    ok(ibChecked >= 3 * EXAMPLE_IDS.length, `#1697 disabled edge: the icon-button 3:1 sweep actually ran (${ibChecked} sibling×brand×mode ratios)`);
 
     // Paints resolve against the SAME variable namespace as `bound`, so they must ride
     // `planBoundVars` — anything else silently exempts every paint from the emit cross-check above.

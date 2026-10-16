@@ -35,9 +35,14 @@ bar and thumbs by value (`codeOnly`).
 
 Rail `color.field.border.rest` (slot `fill`), bar `color.interactive.primary.fill.rest` (slot `indicator`), value text
 `color.text.primary` (slot `label`), end labels `color.text.secondary` (slot `body`); none moves with the state. Thumb:
-the primary fill at rest, hover and pressed, the ring `color.background.primary`. Disabled: `color.disabled.fill` on
-rail, bar and thumb, `color.disabled.text` on text, and the ring `color.disabled.border` (Q346: every disabled border
-binds it). Measured in all 20 cells (five brands × four modes), lowest: rail 3.51, bar and thumb at rest 4.05, hover
+an inner disc (slot `indicator`) in the primary fill at rest, hover and pressed, inside an outer disc in
+`color.background.primary` (slot `fill`) padded `space.025`: that padding is the 2px ring. Disabled:
+`color.disabled.fill` on rail, bar and inner disc, `color.disabled.text` on text; the ring keeps the page color.
+
+The ring was first a 2px stroke in `color.background.primary`. The Q346 arm of `lint-paint` (#2749), which landed on
+`main` while this PR was open, refuses it: a stroke must bind a variable scoped `STROKE_COLOR`, and the page color is a
+surface role. No border role is the page color, so the ring became structure: the same 24px thumb and 20px disc, no
+stroke. Measured in all 20 cells (five brands × four modes), lowest: rail 3.51, bar and thumb at rest 4.05, hover
 5.80, pressed 7.95, focus ring 4.56, value text 15.98, end labels 5.00. Each is a literal floor in `test.ts`, measured
 on the role the plan binds. The fill against the rail stays under 3:1 everywhere, as the proposal said; the thickness
 and the thumbs carry it.

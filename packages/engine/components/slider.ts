@@ -39,9 +39,10 @@
  * ── PAINT ────────────────────────────────────────────────────────────────────────────────────────────────
  * Slider: the rails take `fill` (`color.field.border.rest`), the selected bar takes `indicator`
  * (`color.interactive.primary.fill.rest`), the value readout takes `label` (`color.text.primary`) and the end labels
- * take `body` (`color.text.secondary`). None moves with hover or press: the state is on the thumb. Thumb: `fill`
- * steps rest / hover / pressed on the primary fill; `border` is the 2px page-colored ring (`color.background.primary`).
- * Disabled: rails, bar and thumb `color.disabled.fill`, text `color.disabled.text`, the ring `color.disabled.border`.
+ * take `body` (`color.text.secondary`). None moves with hover or press: the state is on the thumb. Thumb: the inner
+ * disc's `indicator` steps rest / hover / pressed on the primary fill; the outer disc's `fill` is the 2px page-colored
+ * ring (`color.background.primary`), padded 2px around the inner one, not a stroke (Q346: a stroke binds a border role).
+ * Disabled: rails, bar and inner disc `color.disabled.fill`, text `color.disabled.text`; the ring keeps the page color.
  */
 import { ComponentDef } from '../component-schema';
 
@@ -69,15 +70,16 @@ export const sliderThumb: ComponentDef = {
     // The disc: `control.size.md.thumb` (24px at the default density), round.
     'size': 'control.size.md.thumb',
     'radius': 'radius.round',
-    // THE RING (call 6 A): a 2px stroke in the page color, drawn inside the disc, so the thumb stays 24px.
-    'border-width': 'border-width.thick',
-    'fill': 'color.interactive.primary.fill.rest',
-    'fill.hover': 'color.interactive.primary.fill.hover',
-    'fill.pressed': 'color.interactive.primary.fill.pressed',
-    'border': 'color.background.primary',
-    // Disabled (contrast-exempt). The ring binds `color.disabled.border` (Q346: every disabled border does).
-    'disabled.fill': 'color.disabled.fill',
-    'disabled.border': 'color.disabled.border',
+    // THE RING (call 6 A): the outer disc in the page color, padded 2px around the inner disc. Structure, not a stroke:
+    // a stroke binds a border role (Q346), and no border role is the page color.
+    'ring-inset': 'space.025',
+    'fill': 'color.background.primary',
+    'indicator': 'color.interactive.primary.fill.rest',
+    'indicator.hover': 'color.interactive.primary.fill.hover',
+    'indicator.pressed': 'color.interactive.primary.fill.pressed',
+    // Disabled (contrast-exempt): the ring keeps the page color, the disc dims.
+    'disabled.fill': 'color.background.primary',
+    'disabled.indicator': 'color.disabled.fill',
     'focus-ring': 'color.border.focus',
     'ring-width': 'focus.ring.width',
     'ring-offset': 'focus.ring.offset',
@@ -89,13 +91,23 @@ export const sliderThumb: ComponentDef = {
       thumb: {
         kind: 'box',
         role: 'target',
-        paintSlots: ['fill', 'border'],
+        paintSlots: ['fill'],
         size: 'size',
         radius: 'radius',
-        strokeWidth: 'border-width',
+        padding: { block: 'ring-inset', inlineLabel: 'ring-inset' },
         layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'fixed', y: 'fixed' } },
-        children: ['focusRing'],
-        note: 'The disc: the primary fill with a 2px ring in the page color, which keeps it apart from the fill bar beside it. The fill darkens at hover and press.',
+        children: ['disc', 'focusRing'],
+        note: 'The thumb: a disc in the page color, the 2px ring that keeps the thumb apart from the fill bar beside it, around the inner disc.',
+      },
+      disc: {
+        kind: 'box',
+        role: 'presentation',
+        paintSlots: ['indicator'],
+        radius: 'radius',
+        layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'hug', y: 'hug' } },
+        grow: true,
+        crossAxisFill: true,
+        note: 'The inner disc in the primary fill. It darkens at hover and press.',
       },
       focusRing: {
         kind: 'absolute',
@@ -173,7 +185,7 @@ export const sliderThumb: ComponentDef = {
   notes: {
     contested: [],
     unverified: [
-      'The 2px page-colored ring is drawn inside the 24px disc in Figma (an inside stroke), so the visible disc is 20px; the wireframe drew it outside (a box-shadow). Code may draw either; the 3:1 against the page is the disc\'s fill, measured the same either way.',
+      'The 2px page-colored ring sits inside the 24px thumb in Figma (a page-colored disc padded 2px around the primary disc), so the visible disc is 20px; the wireframe drew it outside (a box-shadow). Code may draw either; the 3:1 against the page is the disc\'s fill, measured the same either way. A stroke cannot carry it: a stroke binds a border role (Q346), and no border role is the page color.',
     ],
     evolution: [
       '2026-10-16 (#2669): built with the Slider to the approved proposal (all calls A). A nested component, not a part of the Slider, so the minimum thumb of a range can stay at rest while the maximum thumb shows the state (Q349 `_` prefix).',

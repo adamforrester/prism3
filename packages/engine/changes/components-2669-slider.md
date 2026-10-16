@@ -9,7 +9,7 @@ code. One size. A header row holds a nested FieldLabel and the value text (`type
 `color.interactive.primary.fill.rest`) and the thumbs, drawn as growing segments around them. Optional end labels
 (`type.body.xs.default`, `color.text.secondary`), paired number inputs (nested TextFields) and a FieldMessage, all off
 by default; `label` and `value` on. Each thumb nests a new Slider.Thumb (`_slider-thumb`, 5 members, a state-only set):
-a `control.size.md.thumb` disc in the primary fill stepping rest, hover and pressed, a 2px `color.background.primary`
-ring (`color.disabled.border` when disabled) and the shared focus ring. In a range member the state shows on the
+a `control.size.md.thumb` thumb whose outer disc is `color.background.primary`, padded `space.025` around an inner disc
+in the primary fill stepping rest, hover and pressed (`color.disabled.fill` when disabled), and the shared focus ring. In a range member the state shows on the
 maximum thumb; the minimum one stays at rest. The schema now admits a set with no variant axis when the def has no
 variants and a state axis. Its own page under Components. No token moves, so CONTRACT is unchanged.
