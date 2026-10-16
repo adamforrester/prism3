@@ -3062,31 +3062,33 @@ section('overrides — a nested instance with no override yet gains it in place 
     'premise: every List plan carries overrides, and the plans the file was built from carry none');
   const NUM = 'number#7:2';
   const w = await world(LIST, old, { componentProps: { 'list-item': { 'text#7:1': { type: 'TEXT', defaultValue: 'List item' }, [NUM]: { type: 'TEXT', defaultValue: '1.' } } } });
-  const items = (m: Node): Node[] => [1, 2, 3, 4, 5, 6, 7, 8].map((i) => childNamed(m, `item${i}`));
+  // List's items sit in its `items` slot (#2649), three of them, so each is found at any depth under the member.
+  const deep = (n: Node, name: string): Node | undefined => ((n.children as Node[] | undefined) ?? []).map((c) => (c.name === name ? c : deep(c, name))).find(Boolean);
+  const items = (m: Node): Node[] => [1, 2, 3].map((i) => deep(m, `item${i}`)!);
   const numberOf = (n: Node): unknown => (n.componentProperties as Record<string, { value: unknown }>)[NUM]?.value;
   ok(membersOf(w.set()).every((m) => items(m).every((n) => numberOf(n) === '1.')), 'premise: as built, every item of every member reads "1."');
   // A designer's own number on ONE item of ONE member, typed before the update.
   const edited = membersOf(w.set())[0];
-  (childNamed(edited, 'item2').setProperties as (p: Record<string, string>) => void)({ [NUM]: '2)' });
+  (items(edited)[1].setProperties as (p: Record<string, string>) => void)({ [NUM]: '2)' });
   const before = identityOf(w.set());
   const { pre, res } = await confirm(w, [{ def: LIST, plans: planned }]);
   const set0 = pre.sets[0];
   const fields = new Set(set0.changes.map((c) => `${c.part}:${c.field}`));
-  ok([2, 3, 4, 5, 6, 7, 8].every((i) => fields.has(`item${i}:nestOverrides`)) && !fields.has('item1:nestOverrides') && set0.replacements.length === 0,
-    `overrides/dry run: the dry run lists the override on items 2 to 8 as a change, not on item 1, and replaces nothing (${[...fields].filter((f) => f.endsWith('nestOverrides')).join(', ')}; ${set0.replacements.length} replacements)`);
-  ok(set0.handEdits.some((h) => h.member === String(edited.name) && h.path === 'item2'),
+  ok([2, 3].every((i) => fields.has(`items/item${i}:nestOverrides`)) && !fields.has('items/item1:nestOverrides') && set0.replacements.length === 0,
+    `overrides/dry run: the dry run lists the override on items 2 and 3 as a change, not on item 1, and replaces nothing (${[...fields].filter((f) => f.endsWith('nestOverrides')).join(', ')}; ${set0.replacements.length} replacements)`);
+  ok(set0.handEdits.some((h) => h.member === String(edited.name) && h.path === 'items/item2'),
     `overrides/hand edit reported: the typed number reads as a hand edit (${JSON.stringify(set0.handEdits).slice(0, 200)})`);
   ok(applyVerdict(res).ok, `overrides/verdict: ${applyVerdict(res).headline} (${applyVerdict(res).lines.slice(0, 2).join(' | ').slice(0, 240)})`);
   const wrong = membersOf(w.set()).flatMap((m) => items(m).map((n, i) => {
     const want = m === edited && i === 1 ? '2)' : `${i + 1}.`;
     return numberOf(n) === want ? null : `${String(m.name)}/item${i + 1}=${String(numberOf(n))} (want ${want})`;
   })).filter(Boolean);
-  ok(wrong.length === 0, `overrides/written in place: every item now reads its own number, "1." to "8.", and the hand-typed "2)" is kept (${wrong.length} off: ${wrong.slice(0, 3).join('; ')})`);
+  ok(wrong.length === 0, `overrides/written in place: every item now reads its own number, "1." to "3.", and the hand-typed "2)" is kept (${wrong.length} off: ${wrong.slice(0, 3).join('; ')})`);
   const after = identityOf(w.set());
   ok([...before.members].every(([name, b]) => after.members.get(name)?.key === b.key && [...b.kids].every(([p, id]) => after.members.get(name)?.kids.get(p) === id)),
     'overrides/ids: every member and every nested item keeps its key and id: nothing was rebuilt');
   const post = (await previewUpdate(w.host, [{ def: LIST, plans: planned }])).sets[0];
-  ok(post.counts.update === 0 && post.counts.current === 8 && post.handEdits.some((h) => h.member === String(edited.name) && h.path === 'item2'),
+  ok(post.counts.update === 0 && post.counts.current === 8 && post.handEdits.some((h) => h.member === String(edited.name) && h.path === 'items/item2'),
     `overrides/current: the next dry run reads the other 8 members current and still reports the hand edit (${JSON.stringify(post.counts)}; ${JSON.stringify(post.changes).slice(0, 200)})`);
 }
 

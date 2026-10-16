@@ -1,389 +1,700 @@
 {
-  "note": "AUTHORED BASELINE, never a regen artifact (see lint-component-surface.ts). Rewritten only by an explicit `npx tsx packages/engine/lint-component-surface.ts --accept`, which refuses unless an engine bump is already declared (a change note in packages/engine/changes/, #1807) — a gate allowed to rewrite what it reads has no memory. Per def: the member count of the DEFAULT Figma projection and a sha256 over its sorted `planComponentName|planStamp` rows. `null` means the def declares no figmaProperties and projects no set. Mostly brand-independent: figmaAnatomySet takes a def and no theme. The exception is a def with weightIntent (#1602), whose weight axis resolves per brand — for those, extra `<id>@<scenario>` rows record the surface under canonical availability scenarios (body-emphasis = NB's bold→emphasis, body-single = the axis collapse), so a change to the resolution or collapse rule moves a row. Likewise a def binding the interactive overlay wash (#1608) carries `<id>@outline-solid-tint` and `<id>@outline-none` rows — its outline/text hover fill under the other two outlineInteraction methods. The button family (#1667) carries `<id>@button-default`, `<id>@button-edges` and `<id>@button-smaller` rows — its derived minimum width, the Locked to edges layout and the One step smaller medium content, against the default-density heights. It records no engine version of its own on purpose — a pure value change bumps the engine and moves no component surface. A failure here is a CHANGED projection: read the diff, decide whether the change was intended, add a change note declaring the bump, then accept.",
+  "note": "AUTHORED BASELINE, never a regen artifact (see lint-component-surface.ts). Rewritten only by an explicit `npx tsx packages/engine/lint-component-surface.ts --accept`, which refuses unless an engine bump is already declared (a change note in packages/engine/changes/, #1807) — a gate allowed to rewrite what it reads has no memory. Per def: the member count of the DEFAULT Figma projection, a sha256 over its sorted `planComponentName|planStamp` rows, and its non-variant component properties as sorted `name:TYPE` (#2649). `null` means the def declares no figmaProperties and projects no set. Mostly brand-independent: figmaAnatomySet takes a def and no theme. The exception is a def with weightIntent (#1602), whose weight axis resolves per brand — for those, extra `<id>@<scenario>` rows record the surface under canonical availability scenarios (body-emphasis = NB's bold→emphasis, body-single = the axis collapse), so a change to the resolution or collapse rule moves a row. Likewise a def binding the interactive overlay wash (#1608) carries `<id>@outline-solid-tint` and `<id>@outline-none` rows — its outline/text hover fill under the other two outlineInteraction methods. The button family (#1667) carries `<id>@button-default`, `<id>@button-edges` and `<id>@button-smaller` rows — its derived minimum width, the Locked to edges layout and the One step smaller medium content, against the default-density heights. It records no engine version of its own on purpose — a pure value change bumps the engine and moves no component surface. A failure here is a CHANGED projection: read the diff, decide whether the change was intended, add a change note declaring the bump, then accept.",
   "defs": {
     "icon": {
       "members": 45,
-      "sha256": "9c2b2dc35d3b3aa1e08246f83152cc833d1b80409b93e5d19c6ca3a5b4e0d54e"
+      "sha256": "9c2b2dc35d3b3aa1e08246f83152cc833d1b80409b93e5d19c6ca3a5b4e0d54e",
+      "properties": []
     },
     "focus-ring": {
       "members": 2,
-      "sha256": "281d5fff960100ed9d6275fbfa0c38306a6f2578492826b891b36a0cbdac016c"
+      "sha256": "281d5fff960100ed9d6275fbfa0c38306a6f2578492826b891b36a0cbdac016c",
+      "properties": []
     },
     "button": {
       "members": 576,
-      "sha256": "6f38c5854db584a17bf21f2b6124261b3a26468f4de8d6fecfa2a622ba4c4ee7"
+      "sha256": "6f38c5854db584a17bf21f2b6124261b3a26468f4de8d6fecfa2a622ba4c4ee7",
+      "properties": [
+        "label:TEXT"
+      ]
     },
     "button@outline-solid-tint": {
       "members": 576,
-      "sha256": "c82862ce67694cd30820c5ff3f0b7a6c6f81af81b093446fd64ba3a089e77a1c"
+      "sha256": "c82862ce67694cd30820c5ff3f0b7a6c6f81af81b093446fd64ba3a089e77a1c",
+      "properties": [
+        "label:TEXT"
+      ]
     },
     "button@outline-none": {
       "members": 576,
-      "sha256": "cab31cc2928e824afbb4446e1ce21c41ea7cb2b8886bf299fb6a65bfee20b142"
+      "sha256": "cab31cc2928e824afbb4446e1ce21c41ea7cb2b8886bf299fb6a65bfee20b142",
+      "properties": [
+        "label:TEXT"
+      ]
     },
     "button@button-default": {
       "members": 576,
-      "sha256": "5a89cd0b3ff2fb95bba0beb5f226a2e685f6c3414fda6f8b1c417e4fb4801671"
+      "sha256": "5a89cd0b3ff2fb95bba0beb5f226a2e685f6c3414fda6f8b1c417e4fb4801671",
+      "properties": [
+        "label:TEXT"
+      ]
     },
     "button@button-edges": {
       "members": 576,
-      "sha256": "857eff23374c5bdc6ec12346b49298d70a25162ebb07d67c89920626a1b9e405"
+      "sha256": "857eff23374c5bdc6ec12346b49298d70a25162ebb07d67c89920626a1b9e405",
+      "properties": [
+        "label:TEXT"
+      ]
     },
     "button@button-smaller": {
       "members": 576,
-      "sha256": "a9a1b5d0e31d2dc1a9526d3122f028939f01410c6d95bf751cdacf0f363fb650"
+      "sha256": "a9a1b5d0e31d2dc1a9526d3122f028939f01410c6d95bf751cdacf0f363fb650",
+      "properties": [
+        "label:TEXT"
+      ]
     },
     "button@button-label-default": {
       "members": 576,
-      "sha256": "0c6a176bcfa7d75cc566eb02e598ddd340c5cc12426bbe6d4316f0d0c8bf1b3a"
+      "sha256": "0c6a176bcfa7d75cc566eb02e598ddd340c5cc12426bbe6d4316f0d0c8bf1b3a",
+      "properties": [
+        "label:TEXT"
+      ]
     },
     "button@button-smaller-label-default": {
       "members": 576,
-      "sha256": "63036c1ba331fa16ae9ad7c579543e7a4b338d76e2ca88ebaefcaeb245fecfc7"
+      "sha256": "63036c1ba331fa16ae9ad7c579543e7a4b338d76e2ca88ebaefcaeb245fecfc7",
+      "properties": [
+        "label:TEXT"
+      ]
     },
     "button@button-text-fill": {
       "members": 576,
-      "sha256": "87815ab13e28c526c7ae4b13aab307458c85d6e9de3d3b0f2e3adeafc19f9467"
+      "sha256": "87815ab13e28c526c7ae4b13aab307458c85d6e9de3d3b0f2e3adeafc19f9467",
+      "properties": [
+        "label:TEXT"
+      ]
     },
     "button@button-text-fill-label-default": {
       "members": 576,
-      "sha256": "9f4f26ce790d99ab9b72e8491c7aba232859cc126ee1a8d5154f1932cef9e253"
+      "sha256": "9f4f26ce790d99ab9b72e8491c7aba232859cc126ee1a8d5154f1932cef9e253",
+      "properties": [
+        "label:TEXT"
+      ]
     },
     "button-destructive": {
       "members": 576,
-      "sha256": "41cdfdfdd84b52f884fa97cb3fded62f481a84b823c1672c6e2f9f21d87a38d9"
+      "sha256": "41cdfdfdd84b52f884fa97cb3fded62f481a84b823c1672c6e2f9f21d87a38d9",
+      "properties": [
+        "label:TEXT"
+      ]
     },
     "button-destructive@outline-solid-tint": {
       "members": 576,
-      "sha256": "45d82ac56aafd028814089e9065acf1f11c2db776a5178bd9cc190aefe0e1cce"
+      "sha256": "45d82ac56aafd028814089e9065acf1f11c2db776a5178bd9cc190aefe0e1cce",
+      "properties": [
+        "label:TEXT"
+      ]
     },
     "button-destructive@outline-none": {
       "members": 576,
-      "sha256": "0369587e5b2a04faefc81a6a5321253b00ee9e15bda92546a96bc3fb78bdb984"
+      "sha256": "0369587e5b2a04faefc81a6a5321253b00ee9e15bda92546a96bc3fb78bdb984",
+      "properties": [
+        "label:TEXT"
+      ]
     },
     "button-destructive@button-default": {
       "members": 576,
-      "sha256": "5ab0b547e2ed765a22680a80513b65c016f113b4e0dbdce3a1b5064c54dfdf22"
+      "sha256": "5ab0b547e2ed765a22680a80513b65c016f113b4e0dbdce3a1b5064c54dfdf22",
+      "properties": [
+        "label:TEXT"
+      ]
     },
     "button-destructive@button-edges": {
       "members": 576,
-      "sha256": "5850b7f0e5c8c73ab3abd5fb68b73c8c544e38e679575357dbc748d710e194f8"
+      "sha256": "5850b7f0e5c8c73ab3abd5fb68b73c8c544e38e679575357dbc748d710e194f8",
+      "properties": [
+        "label:TEXT"
+      ]
     },
     "button-destructive@button-smaller": {
       "members": 576,
-      "sha256": "62324feeb826d9ec050ca62e85c213a347fb4b31b540dd7d9db28ae03cdab2e4"
+      "sha256": "62324feeb826d9ec050ca62e85c213a347fb4b31b540dd7d9db28ae03cdab2e4",
+      "properties": [
+        "label:TEXT"
+      ]
     },
     "button-destructive@button-label-default": {
       "members": 576,
-      "sha256": "2649b5b2e7705a690bae7b66d199312cf348f25a1db14c4a070693210d9f1b73"
+      "sha256": "2649b5b2e7705a690bae7b66d199312cf348f25a1db14c4a070693210d9f1b73",
+      "properties": [
+        "label:TEXT"
+      ]
     },
     "button-destructive@button-smaller-label-default": {
       "members": 576,
-      "sha256": "b80b0929e3434c154992d7e4ec3f56d7bca1ee7b1d2d4b794897ce772b36b75b"
+      "sha256": "b80b0929e3434c154992d7e4ec3f56d7bca1ee7b1d2d4b794897ce772b36b75b",
+      "properties": [
+        "label:TEXT"
+      ]
     },
     "button-destructive@button-text-fill": {
       "members": 576,
-      "sha256": "b29e4340b01758bf1df878fb4ecbc4090dba7b767d8a76b128d4636e16fc4e59"
+      "sha256": "b29e4340b01758bf1df878fb4ecbc4090dba7b767d8a76b128d4636e16fc4e59",
+      "properties": [
+        "label:TEXT"
+      ]
     },
     "button-destructive@button-text-fill-label-default": {
       "members": 576,
-      "sha256": "fec6df46eaa3e7079bce8506ebc7ccb44d5859e4ed34c2d15db016f775c6067d"
+      "sha256": "fec6df46eaa3e7079bce8506ebc7ccb44d5859e4ed34c2d15db016f775c6067d",
+      "properties": [
+        "label:TEXT"
+      ]
     },
     "button-neutral": {
       "members": 576,
-      "sha256": "c640171959bd7fadcedf520ff471400d78b4bc2e16f4f3cbdebfcd9bf16a55ce"
+      "sha256": "c640171959bd7fadcedf520ff471400d78b4bc2e16f4f3cbdebfcd9bf16a55ce",
+      "properties": [
+        "label:TEXT"
+      ]
     },
     "button-neutral@outline-solid-tint": {
       "members": 576,
-      "sha256": "d40be362bcdd71d7b618c1d07da2af01049bd876be529c5f3c6648f19ab63db0"
+      "sha256": "d40be362bcdd71d7b618c1d07da2af01049bd876be529c5f3c6648f19ab63db0",
+      "properties": [
+        "label:TEXT"
+      ]
     },
     "button-neutral@outline-none": {
       "members": 576,
-      "sha256": "5f566b9550880996b08828abb1aa9687343064e6734f461ff5c9f6b2cb8b413f"
+      "sha256": "5f566b9550880996b08828abb1aa9687343064e6734f461ff5c9f6b2cb8b413f",
+      "properties": [
+        "label:TEXT"
+      ]
     },
     "button-neutral@button-default": {
       "members": 576,
-      "sha256": "039a922664f0f63af049782810c7a0fed78e53fe2b8d20a1c3bbf578390e1a05"
+      "sha256": "039a922664f0f63af049782810c7a0fed78e53fe2b8d20a1c3bbf578390e1a05",
+      "properties": [
+        "label:TEXT"
+      ]
     },
     "button-neutral@button-edges": {
       "members": 576,
-      "sha256": "40349341b19bfaebe0e3d166b0dfc19de585d0eddc2fc9d04a75e9c35517360e"
+      "sha256": "40349341b19bfaebe0e3d166b0dfc19de585d0eddc2fc9d04a75e9c35517360e",
+      "properties": [
+        "label:TEXT"
+      ]
     },
     "button-neutral@button-smaller": {
       "members": 576,
-      "sha256": "f78ed0e206572358792feea6aaa29e515a68bbe0ff68ff9396c80aeb855bf1ab"
+      "sha256": "f78ed0e206572358792feea6aaa29e515a68bbe0ff68ff9396c80aeb855bf1ab",
+      "properties": [
+        "label:TEXT"
+      ]
     },
     "button-neutral@button-label-default": {
       "members": 576,
-      "sha256": "55a9f75d30ceba548f067944a53ac97b01e0f288675d31d66f30ccde38879727"
+      "sha256": "55a9f75d30ceba548f067944a53ac97b01e0f288675d31d66f30ccde38879727",
+      "properties": [
+        "label:TEXT"
+      ]
     },
     "button-neutral@button-smaller-label-default": {
       "members": 576,
-      "sha256": "8a2e249cfe74e07e26b9428ac7f71140f8eac7112270444a139587611d851904"
+      "sha256": "8a2e249cfe74e07e26b9428ac7f71140f8eac7112270444a139587611d851904",
+      "properties": [
+        "label:TEXT"
+      ]
     },
     "button-neutral@button-text-fill": {
       "members": 576,
-      "sha256": "ad864bb61df7b0f8c85e8931a41f4ca207f287fc3251b839545cf08ea72616bc"
+      "sha256": "ad864bb61df7b0f8c85e8931a41f4ca207f287fc3251b839545cf08ea72616bc",
+      "properties": [
+        "label:TEXT"
+      ]
     },
     "button-neutral@button-text-fill-label-default": {
       "members": 576,
-      "sha256": "3a319b6ac0d1231f4d2f7bd9a6abd30af471cc7dfb9f0feffa259dc3af5a10d6"
+      "sha256": "3a319b6ac0d1231f4d2f7bd9a6abd30af471cc7dfb9f0feffa259dc3af5a10d6",
+      "properties": [
+        "label:TEXT"
+      ]
     },
     "icon-button": {
       "members": 216,
-      "sha256": "f2616af1e4313593543fde9d7e6a669dc8fa989454b748768fbbc0b1ccc63148"
+      "sha256": "f2616af1e4313593543fde9d7e6a669dc8fa989454b748768fbbc0b1ccc63148",
+      "properties": []
     },
     "icon-button@outline-solid-tint": {
       "members": 216,
-      "sha256": "e2aac6e672c25084549096df528db6e73e473f15aae8f1129627b916b31693cf"
+      "sha256": "e2aac6e672c25084549096df528db6e73e473f15aae8f1129627b916b31693cf",
+      "properties": []
     },
     "icon-button@outline-none": {
       "members": 216,
-      "sha256": "0548eb33a5696ef5269ac3c0985cf3ee0f540a0d74a38494bb217460de3ff651"
+      "sha256": "0548eb33a5696ef5269ac3c0985cf3ee0f540a0d74a38494bb217460de3ff651",
+      "properties": []
     },
     "icon-button-destructive": {
       "members": 216,
-      "sha256": "ded1f6eb4778ad20b4d2b7be1829c643fcd39bd831f04017e9cdf4bbb1abdcb5"
+      "sha256": "ded1f6eb4778ad20b4d2b7be1829c643fcd39bd831f04017e9cdf4bbb1abdcb5",
+      "properties": []
     },
     "icon-button-destructive@outline-solid-tint": {
       "members": 216,
-      "sha256": "65912efc27c15c4749d13264d80aea5f79e24858950d3f458430cbc3e8721bf0"
+      "sha256": "65912efc27c15c4749d13264d80aea5f79e24858950d3f458430cbc3e8721bf0",
+      "properties": []
     },
     "icon-button-destructive@outline-none": {
       "members": 216,
-      "sha256": "8fbb3ce405792a3c8c25fe758440c9c72391e5d33648382bbb14644d518a76db"
+      "sha256": "8fbb3ce405792a3c8c25fe758440c9c72391e5d33648382bbb14644d518a76db",
+      "properties": []
     },
     "icon-button-neutral": {
       "members": 216,
-      "sha256": "2a4497a03688b96021dfb9ef8866c37c716a4711dedfa6d416fedb8378e2039a"
+      "sha256": "2a4497a03688b96021dfb9ef8866c37c716a4711dedfa6d416fedb8378e2039a",
+      "properties": []
     },
     "icon-button-neutral@outline-solid-tint": {
       "members": 216,
-      "sha256": "e4f637582cc221b32628554cd6f9688d4efbf3e8d4ab5ca92904e2d560fbd8de"
+      "sha256": "e4f637582cc221b32628554cd6f9688d4efbf3e8d4ab5ca92904e2d560fbd8de",
+      "properties": []
     },
     "icon-button-neutral@outline-none": {
       "members": 216,
-      "sha256": "7a27d640dc19ba9c3f426a31f174498f6d46168080261928b5325a536dd74bbf"
+      "sha256": "7a27d640dc19ba9c3f426a31f174498f6d46168080261928b5325a536dd74bbf",
+      "properties": []
     },
     "flush-icon-button": {
       "members": 30,
-      "sha256": "8ffdac13a94096ccdbfeaa6b35909bda906aede43f313b6ceadc5e36f85d6030"
+      "sha256": "8ffdac13a94096ccdbfeaa6b35909bda906aede43f313b6ceadc5e36f85d6030",
+      "properties": []
     },
     "flush-icon-button@outline-solid-tint": {
       "members": 30,
-      "sha256": "ab9b3ad8217d7deac76b3e7fb459cf56b2ac036067e02ed2a5a83adcbdf7e28d"
+      "sha256": "ab9b3ad8217d7deac76b3e7fb459cf56b2ac036067e02ed2a5a83adcbdf7e28d",
+      "properties": []
     },
     "flush-icon-button@outline-none": {
       "members": 30,
-      "sha256": "b8ba1138f342ef803d347358e4801b92b07aabf0858436e901b022b0e8307751"
+      "sha256": "b8ba1138f342ef803d347358e4801b92b07aabf0858436e901b022b0e8307751",
+      "properties": []
     },
     "flush-icon-button-destructive": {
       "members": 30,
-      "sha256": "60b634a284cafa47cf82824c858b666e038a58203aeddf0210f3bc4c4663d3cd"
+      "sha256": "60b634a284cafa47cf82824c858b666e038a58203aeddf0210f3bc4c4663d3cd",
+      "properties": []
     },
     "flush-icon-button-destructive@outline-solid-tint": {
       "members": 30,
-      "sha256": "1c6ec6203ac0fe700dfefba79c297eaca47bffa306bf6cdafa71e4e018dae040"
+      "sha256": "1c6ec6203ac0fe700dfefba79c297eaca47bffa306bf6cdafa71e4e018dae040",
+      "properties": []
     },
     "flush-icon-button-destructive@outline-none": {
       "members": 30,
-      "sha256": "2fdc5dab3ec95d38288e8b45938926f469fde95524ca612f3172a60bc6ef73b2"
+      "sha256": "2fdc5dab3ec95d38288e8b45938926f469fde95524ca612f3172a60bc6ef73b2",
+      "properties": []
     },
     "flush-icon-button-neutral": {
       "members": 30,
-      "sha256": "1c6b3b555e625d6e535f367404212247e1f2872b14f7fe4cf98dfdee1868a718"
+      "sha256": "1c6b3b555e625d6e535f367404212247e1f2872b14f7fe4cf98dfdee1868a718",
+      "properties": []
     },
     "flush-icon-button-neutral@outline-solid-tint": {
       "members": 30,
-      "sha256": "26ea09976f1e0736db1b26298b77ea3473bb2a90e686e826727536051e0af883"
+      "sha256": "26ea09976f1e0736db1b26298b77ea3473bb2a90e686e826727536051e0af883",
+      "properties": []
     },
     "flush-icon-button-neutral@outline-none": {
       "members": 30,
-      "sha256": "6447e5c09aa63c56aeaa0c8bc2652e82a15a5e53e717ece12a0f612a87f04e66"
+      "sha256": "6447e5c09aa63c56aeaa0c8bc2652e82a15a5e53e717ece12a0f612a87f04e66",
+      "properties": []
     },
     "field-label": {
       "members": 24,
-      "sha256": "5f7578aab19f22b43959f2dfcde6e62c5bf9c9d26b96a56e31e544fb897a5bc5"
+      "sha256": "5f7578aab19f22b43959f2dfcde6e62c5bf9c9d26b96a56e31e544fb897a5bc5",
+      "properties": [
+        "label:TEXT",
+        "required marker:TEXT",
+        "required:BOOLEAN"
+      ]
     },
     "field-label@body-emphasis": {
       "members": 24,
-      "sha256": "7c41ea23ffa962383fb65e17f5270b5032d50d72e2db3e473bc4326d75d4e162"
+      "sha256": "7c41ea23ffa962383fb65e17f5270b5032d50d72e2db3e473bc4326d75d4e162",
+      "properties": [
+        "label:TEXT",
+        "required marker:TEXT",
+        "required:BOOLEAN"
+      ]
     },
     "field-label@body-single": {
       "members": 12,
-      "sha256": "f4ee450e5ea139d114ba46cfa79ef5ed0d5d86c05775de40c53dc8e4f487e142"
+      "sha256": "f4ee450e5ea139d114ba46cfa79ef5ed0d5d86c05775de40c53dc8e4f487e142",
+      "properties": [
+        "label:TEXT",
+        "required marker:TEXT",
+        "required:BOOLEAN"
+      ]
     },
     "field-message": {
       "members": 4,
-      "sha256": "75e3bef2962f26079214ea3f6f33668b8256ac566fa1d9aa0264998392a0a417"
+      "sha256": "75e3bef2962f26079214ea3f6f33668b8256ac566fa1d9aa0264998392a0a417",
+      "properties": [
+        "message:TEXT"
+      ]
     },
     "text-field": {
       "members": 84,
-      "sha256": "2e074a4c323ea4389a8c27b7082b08b3340ded4d61561f89928e9bf96b3b55a0"
+      "sha256": "2e074a4c323ea4389a8c27b7082b08b3340ded4d61561f89928e9bf96b3b55a0",
+      "properties": [
+        "leading icon:BOOLEAN",
+        "message:BOOLEAN",
+        "placeholder:TEXT",
+        "trailing icon:BOOLEAN",
+        "value:TEXT"
+      ]
     },
     "text-field@outline-solid-tint": {
       "members": 84,
-      "sha256": "46f8c8f941ef63118550556e66f90af296e5faec5c04f6c95bd5c0efff59f8cc"
+      "sha256": "46f8c8f941ef63118550556e66f90af296e5faec5c04f6c95bd5c0efff59f8cc",
+      "properties": [
+        "leading icon:BOOLEAN",
+        "message:BOOLEAN",
+        "placeholder:TEXT",
+        "trailing icon:BOOLEAN",
+        "value:TEXT"
+      ]
     },
     "text-field@outline-none": {
       "members": 84,
-      "sha256": "c86e5b29d6b8394e49bf67d8dcc99f94654acb2f8c8ea41850eddc91b287fa1b"
+      "sha256": "c86e5b29d6b8394e49bf67d8dcc99f94654acb2f8c8ea41850eddc91b287fa1b",
+      "properties": [
+        "leading icon:BOOLEAN",
+        "message:BOOLEAN",
+        "placeholder:TEXT",
+        "trailing icon:BOOLEAN",
+        "value:TEXT"
+      ]
     },
     "textarea": {
       "members": 84,
-      "sha256": "d2ee41cc6a9bde66ee362d6ded72b94492476361f92143960673fcb9852ab829"
+      "sha256": "d2ee41cc6a9bde66ee362d6ded72b94492476361f92143960673fcb9852ab829",
+      "properties": [
+        "character count:BOOLEAN",
+        "count:TEXT",
+        "message:BOOLEAN",
+        "placeholder:TEXT",
+        "resize handle:BOOLEAN",
+        "value:TEXT"
+      ]
     },
     "textarea@outline-solid-tint": {
       "members": 84,
-      "sha256": "a06dacc11df204d61095240790c0c51dba185eb45af7ff6f066064718c69a330"
+      "sha256": "a06dacc11df204d61095240790c0c51dba185eb45af7ff6f066064718c69a330",
+      "properties": [
+        "character count:BOOLEAN",
+        "count:TEXT",
+        "message:BOOLEAN",
+        "placeholder:TEXT",
+        "resize handle:BOOLEAN",
+        "value:TEXT"
+      ]
     },
     "textarea@outline-none": {
       "members": 84,
-      "sha256": "28cc77dd1041c94fb1105a72ba9bf83e781301ef43c103a80780f0777a253507"
+      "sha256": "28cc77dd1041c94fb1105a72ba9bf83e781301ef43c103a80780f0777a253507",
+      "properties": [
+        "character count:BOOLEAN",
+        "count:TEXT",
+        "message:BOOLEAN",
+        "placeholder:TEXT",
+        "resize handle:BOOLEAN",
+        "value:TEXT"
+      ]
     },
     "checkbox-control": {
       "members": 54,
-      "sha256": "177c270979cdea700f854ea76e89697bf5042808b6472f0255eec51ebf5478ef"
+      "sha256": "177c270979cdea700f854ea76e89697bf5042808b6472f0255eec51ebf5478ef",
+      "properties": []
     },
     "checkbox-row": {
       "members": 3,
-      "sha256": "e87c8f015f8076346244f950db6f3fe8f6af632cdb4813f698868f2f294530d2"
+      "sha256": "e87c8f015f8076346244f950db6f3fe8f6af632cdb4813f698868f2f294530d2",
+      "properties": [
+        "label:TEXT"
+      ]
     },
     "checkbox-group": {
       "members": 3,
-      "sha256": "16d9070db3a10c20011902f4359bb66d408c578b08146702f5f2b4dc7b5d0d10"
+      "sha256": "5401aaed2610df2ba8e592ae7801669082767722817f096147086cecc25ae54b",
+      "properties": [
+        "items:SLOT"
+      ]
     },
     "radio-control": {
       "members": 30,
-      "sha256": "2e9f69cae7da551dc1749719b277fc9e1c8756b1a661e866359a357b90a25aed"
+      "sha256": "2e9f69cae7da551dc1749719b277fc9e1c8756b1a661e866359a357b90a25aed",
+      "properties": []
     },
     "radio-row": {
       "members": 3,
-      "sha256": "8a6c4d2625c02917cf2194bbcf13023311068243d448d9a141b7cdca2620ec88"
+      "sha256": "8a6c4d2625c02917cf2194bbcf13023311068243d448d9a141b7cdca2620ec88",
+      "properties": [
+        "label:TEXT"
+      ]
     },
     "radio-group": {
       "members": 3,
-      "sha256": "fe79e8ef33f864b75e775e9da9faa72421d0e12900a4709c23662e67140df9c6"
+      "sha256": "e211961b8aef0a6886b3a0d6dbdec2dca96a042505c58aadc28d22ba87bf2ea3",
+      "properties": [
+        "items:SLOT"
+      ]
     },
     "switch-control": {
       "members": 24,
-      "sha256": "c2ec76cdbc29395a4854ca7ac5f9a1d8eaa1e43e2d8496169c3fe97135759ea8"
+      "sha256": "c2ec76cdbc29395a4854ca7ac5f9a1d8eaa1e43e2d8496169c3fe97135759ea8",
+      "properties": [
+        "State icon:BOOLEAN"
+      ]
     },
     "switch-row": {
       "members": 2,
-      "sha256": "0e2a1fbbad31e2727ea0a8a55d7fc94e64e78c8a2c71b7e89db367db33212a48"
+      "sha256": "0e2a1fbbad31e2727ea0a8a55d7fc94e64e78c8a2c71b7e89db367db33212a48",
+      "properties": [
+        "label:TEXT"
+      ]
     },
     "select": {
       "members": 84,
-      "sha256": "37098ce7234fe8ad942451c6f29df4bcc127addd62c5d024e53672f9b43821a4"
+      "sha256": "37098ce7234fe8ad942451c6f29df4bcc127addd62c5d024e53672f9b43821a4",
+      "properties": [
+        "leading icon:BOOLEAN",
+        "message:BOOLEAN",
+        "placeholder:TEXT",
+        "value:TEXT"
+      ]
     },
     "select@outline-solid-tint": {
       "members": 84,
-      "sha256": "3395c363e922543b7bdac861196c6899645d2b48a39bc2ba558366d2af0ac2e6"
+      "sha256": "3395c363e922543b7bdac861196c6899645d2b48a39bc2ba558366d2af0ac2e6",
+      "properties": [
+        "leading icon:BOOLEAN",
+        "message:BOOLEAN",
+        "placeholder:TEXT",
+        "value:TEXT"
+      ]
     },
     "select@outline-none": {
       "members": 84,
-      "sha256": "7e1c57862be61ff4a63c366f4bafd7cfee7dcb086c64650ff963d28ae92fdabb"
+      "sha256": "7e1c57862be61ff4a63c366f4bafd7cfee7dcb086c64650ff963d28ae92fdabb",
+      "properties": [
+        "leading icon:BOOLEAN",
+        "message:BOOLEAN",
+        "placeholder:TEXT",
+        "value:TEXT"
+      ]
     },
     "veil": {
       "members": 30,
-      "sha256": "9ec72c8b779ffd29fb811acea3af4005675f3e00a98835125a2061afef57ea5b"
+      "sha256": "9ec72c8b779ffd29fb811acea3af4005675f3e00a98835125a2061afef57ea5b",
+      "properties": []
     },
     "image-placeholder": {
       "members": 7,
-      "sha256": "231a95656454741c39c0e4fe8a030fa1e46aa43c2426e2f66d7eb2deb1e8e53c"
+      "sha256": "231a95656454741c39c0e4fe8a030fa1e46aa43c2426e2f66d7eb2deb1e8e53c",
+      "properties": [
+        "Marker:BOOLEAN"
+      ]
     },
     "spinner": {
       "members": 4,
-      "sha256": "892045fee900bb85e90ebb536bce7385bd882c6b16044edd2ad0017e6ee6bbb9"
+      "sha256": "892045fee900bb85e90ebb536bce7385bd882c6b16044edd2ad0017e6ee6bbb9",
+      "properties": []
     },
     "badge": {
       "members": 20,
-      "sha256": "26af96babc3ac602ca3190b0e539f8baa8769abc3cc5218b746405c81e38f5c0"
+      "sha256": "26af96babc3ac602ca3190b0e539f8baa8769abc3cc5218b746405c81e38f5c0",
+      "properties": [
+        "label:TEXT",
+        "value:TEXT"
+      ]
     },
     "tag": {
       "members": 45,
-      "sha256": "ecd2b752ca9e50e59c5d32e268985c1fe2563ed0940811438984509d3142434a"
+      "sha256": "ecd2b752ca9e50e59c5d32e268985c1fe2563ed0940811438984509d3142434a",
+      "properties": [
+        "Check icon:BOOLEAN",
+        "label:TEXT",
+        "leading icon:BOOLEAN"
+      ]
     },
     "tag@outline-solid-tint": {
       "members": 45,
-      "sha256": "c7408163650e8145f8163be4a41f4b266b00ff2dc63bf8c8a397afbc00bfac4d"
+      "sha256": "c7408163650e8145f8163be4a41f4b266b00ff2dc63bf8c8a397afbc00bfac4d",
+      "properties": [
+        "Check icon:BOOLEAN",
+        "label:TEXT",
+        "leading icon:BOOLEAN"
+      ]
     },
     "tag@outline-none": {
       "members": 45,
-      "sha256": "10347d23a4aa2522643aeaf82e45b0890bf258186f5efebf62cfaba8b1e0b7ef"
+      "sha256": "10347d23a4aa2522643aeaf82e45b0890bf258186f5efebf62cfaba8b1e0b7ef",
+      "properties": [
+        "Check icon:BOOLEAN",
+        "label:TEXT",
+        "leading icon:BOOLEAN"
+      ]
     },
     "tab": {
       "members": 30,
-      "sha256": "e3fe46e92a0272085f0e620eee797a6a12d01cc39e05ff3f8dd51f3088d93674"
+      "sha256": "e3fe46e92a0272085f0e620eee797a6a12d01cc39e05ff3f8dd51f3088d93674",
+      "properties": [
+        "count:BOOLEAN",
+        "label:TEXT",
+        "leading icon:BOOLEAN"
+      ]
     },
     "tabs": {
       "members": 6,
-      "sha256": "da495884793c2c16165d46361b8e447c5eb9070dfb19cf6aa13441097d8f6815"
+      "sha256": "6e749a824887d7fe703ba7a2e86ae4fa1e9bf13991a5b6f45872052fc97322d9",
+      "properties": [
+        "items:SLOT"
+      ]
     },
     "divider": {
       "members": 5,
-      "sha256": "88c69a41126449cab4f3b740af2325ec02d0aa7922a6a225229ba6522b93d6d0"
+      "sha256": "88c69a41126449cab4f3b740af2325ec02d0aa7922a6a225229ba6522b93d6d0",
+      "properties": []
     },
     "_accordion-indicator": {
       "members": 12,
-      "sha256": "6e4179c272cb8e19d1db1975208b18fc1a8e28113424bffa93dae5e48fcae62d"
+      "sha256": "6e4179c272cb8e19d1db1975208b18fc1a8e28113424bffa93dae5e48fcae62d",
+      "properties": []
     },
     "accordion": {
       "members": 24,
-      "sha256": "f7859ffb4db44a0e1b070fdd0e8916c74bd31b7189336a6b977b5ea15d46d13e"
+      "sha256": "f7859ffb4db44a0e1b070fdd0e8916c74bd31b7189336a6b977b5ea15d46d13e",
+      "properties": [
+        "content:SLOT",
+        "title:TEXT"
+      ]
     },
     "list-item": {
       "members": 9,
-      "sha256": "fe7450e9de9e4e51368e45ad3a560934cc76cc7f17c9328bea32977a40563ddf"
+      "sha256": "fe7450e9de9e4e51368e45ad3a560934cc76cc7f17c9328bea32977a40563ddf",
+      "properties": [
+        "number:TEXT",
+        "swap icon:INSTANCE_SWAP",
+        "text:TEXT"
+      ]
     },
     "list": {
       "members": 9,
-      "sha256": "7c20fd5728c1b8371d4cf5f5906e1ad5f944d2d41411080797cef01b35b3675b"
+      "sha256": "84e793e50d06a8c4a9d46a694e6a4897e0182ebc745898bb6390670d7afba10a",
+      "properties": [
+        "items:SLOT"
+      ]
     },
     "segmented-control-segment": {
       "members": 30,
-      "sha256": "25f8d04cd82d2967cd32fc27c03230cfd33939839896389e543e5fba5e3cf846"
+      "sha256": "25f8d04cd82d2967cd32fc27c03230cfd33939839896389e543e5fba5e3cf846",
+      "properties": [
+        "label:TEXT",
+        "leading icon:BOOLEAN"
+      ]
     },
     "segmented-control-segment@outline-solid-tint": {
       "members": 30,
-      "sha256": "faab78240c8f57caae1082729b52dc563f70d8922ed0403d094815c9f8024f12"
+      "sha256": "faab78240c8f57caae1082729b52dc563f70d8922ed0403d094815c9f8024f12",
+      "properties": [
+        "label:TEXT",
+        "leading icon:BOOLEAN"
+      ]
     },
     "segmented-control-segment@outline-none": {
       "members": 30,
-      "sha256": "63b15ae4c3f17e47f1d0a536b993029e42f53e7a427557d957de96880e2c092e"
+      "sha256": "63b15ae4c3f17e47f1d0a536b993029e42f53e7a427557d957de96880e2c092e",
+      "properties": [
+        "label:TEXT",
+        "leading icon:BOOLEAN"
+      ]
     },
     "segmented-control": {
       "members": 3,
-      "sha256": "db368d3e26e1b000980d145ed947aa15a277bfb1c42b5e36e2a8e8f24fab3b81"
+      "sha256": "a980fb10cbdb527b1715534635ddc632a53c61cb6c983cd21f0b0db546ba60bb",
+      "properties": [
+        "Label:BOOLEAN",
+        "items:SLOT"
+      ]
     },
     "link": {
       "members": 96,
-      "sha256": "56c6b59bb5853039c8a7cdb476ee20b147cd45da75f94c3433e6aeb1494c7f60"
+      "sha256": "56c6b59bb5853039c8a7cdb476ee20b147cd45da75f94c3433e6aeb1494c7f60",
+      "properties": [
+        "label:TEXT",
+        "trailing icon:BOOLEAN"
+      ]
     },
     "link@body-emphasis": {
       "members": 96,
-      "sha256": "9d31f1a7113dd53842189b692d570ae53ca05492b62f4d87da2156d68c3609d6"
+      "sha256": "9d31f1a7113dd53842189b692d570ae53ca05492b62f4d87da2156d68c3609d6",
+      "properties": [
+        "label:TEXT",
+        "trailing icon:BOOLEAN"
+      ]
     },
     "link@body-single": {
       "members": 48,
-      "sha256": "d638e0d2252c4c6b6027d540f713c7bc928da7e76bb799af8e0448f8ed877232"
+      "sha256": "d638e0d2252c4c6b6027d540f713c7bc928da7e76bb799af8e0448f8ed877232",
+      "properties": [
+        "label:TEXT",
+        "trailing icon:BOOLEAN"
+      ]
     },
     "dialog": {
       "members": 15,
-      "sha256": "52e5b73053983f2cea897178e46d02f0c32027a37f31f1a72d5b334f8cdb4dad"
+      "sha256": "52e5b73053983f2cea897178e46d02f0c32027a37f31f1a72d5b334f8cdb4dad",
+      "properties": [
+        "body:SLOT",
+        "close:BOOLEAN",
+        "description text:TEXT",
+        "description:BOOLEAN",
+        "dividers:BOOLEAN",
+        "title:TEXT"
+      ]
     },
     "password-field": {
       "members": 84,
-      "sha256": "9430a9c0c84d97fef7bd7a66c2a734a32524dd5d8869b18326f2dcaa2434cfce"
+      "sha256": "9430a9c0c84d97fef7bd7a66c2a734a32524dd5d8869b18326f2dcaa2434cfce",
+      "properties": [
+        "leading icon:BOOLEAN",
+        "message:BOOLEAN",
+        "placeholder:TEXT",
+        "value:TEXT"
+      ]
     },
     "password-field@outline-solid-tint": {
       "members": 84,
-      "sha256": "5ca248ba2b9487f87c8fba480d52a652fbe8a4c89ffb4118baa582f91b24a10a"
+      "sha256": "5ca248ba2b9487f87c8fba480d52a652fbe8a4c89ffb4118baa582f91b24a10a",
+      "properties": [
+        "leading icon:BOOLEAN",
+        "message:BOOLEAN",
+        "placeholder:TEXT",
+        "value:TEXT"
+      ]
     },
     "password-field@outline-none": {
       "members": 84,
-      "sha256": "771e3974cfb329db2abcf42bc98f0914a3851b1813a867dba8b83d0fa3c97946"
+      "sha256": "771e3974cfb329db2abcf42bc98f0914a3851b1813a867dba8b83d0fa3c97946",
+      "properties": [
+        "leading icon:BOOLEAN",
+        "message:BOOLEAN",
+        "placeholder:TEXT",
+        "value:TEXT"
+      ]
     }
   }
 }
