@@ -39,13 +39,13 @@ export const passwordField: ComponentDef = makeTextField({
     { name: 'onChange', type: 'function', required: false, description: 'Change handler (also onBlur / onFocus).' },
     { name: 'placeholder', type: 'string', required: false, description: 'An example only; vanishes on input. The password rules belong in helper text or a list under the field, never here.' },
     { name: 'helpText', type: 'string | node', required: false, description: 'Persistent guidance (rendered as FieldMessage, default status), wired via aria-describedby. State the rules for a new password here, before the user types.' },
-    { name: 'validation', type: "enum: 'default' | 'error' | 'warning' | 'success'", values: ['default', 'error', 'warning', 'success'], default: 'default', required: false, description: 'The validation state, as on TextField: each non-default status swaps the input border and sets the nested message to the matching status; `error` also sets aria-invalid. The Show/Hide button never takes the status color.' },
+    { name: 'validation', type: "enum: 'default' | 'error' | 'warning' | 'success'", values: ['default', 'error', 'warning', 'success'], default: 'default', required: false, description: 'The validation state, as on TextField: each non-default status swaps the input border and sets the nested message to the matching status; error also sets aria-invalid. The Show/Hide button never takes the status color.' },
     { name: 'validationMessage', type: 'string | node', required: false, description: 'The validation text shown at error / warning / success, added to aria-describedby. Say what is wrong and how to fix it (SC 3.3.3).' },
-    { name: 'showMessage', type: 'boolean', default: true, required: false, description: 'Whether the composed FieldMessage is shown. ON by default; turning it off hides the message entirely. Never hides a message the field needs.' },
+    { name: 'showMessage', type: 'boolean', default: true, required: false, description: 'Whether the composed FieldMessage is shown. On by default; turning it off hides the message entirely. Never hides a message the field needs.' },
     { name: 'required', type: 'boolean', default: false, required: false, description: 'Sets required / aria-required, and turns on the FieldLabel\'s required marker.' },
     { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Native disabled. Disables the Show/Hide button with the field.' },
     { name: 'readOnly', type: 'boolean', default: false, required: false, description: 'Focusable, copyable and submitted, and passes contrast. The Show/Hide button stays live, so a read-only value can still be shown.' },
-    { name: 'autoComplete', type: "enum: 'current-password' | 'new-password'", values: ['current-password', 'new-password'], required: true, description: 'Required (SC 1.3.5): `current-password` on a sign-in form, `new-password` where the user sets one, so a password manager fills or offers to generate it. Never `off`.' },
+    { name: 'autoComplete', type: "enum: 'current-password' | 'new-password'", values: ['current-password', 'new-password'], required: true, description: 'Required (SC 1.3.5): current-password on a sign-in form, new-password where the user sets one, so a password manager fills or offers to generate it. Never off.' },
     { name: 'leadingIcon', type: 'slot', required: false, description: 'An optional leading glyph before the value, aria-hidden and never the accessible name. Hidden by default; the file nominates the swap target.' },
     { name: 'isPending', type: 'boolean', default: false, required: false, description: 'Async validation in progress; sets aria-busy; does not block typing.' },
     { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'TextField\'s three tiers: the input type, the nested label and the Show/Hide button scale with it. Every size keeps the input\'s 44px target; the button\'s hit area is 44×44 at medium and large and 24×24 at small.' },
@@ -98,7 +98,7 @@ export const passwordField: ComponentDef = makeTextField({
   },
 
   docs: {
-    usage: 'Use for a password, a PIN typed as text, or any other secret a user types. The field nests FieldLabel and a Show/Hide button on the label row, the input box below, and FieldMessage under it. Set `autoComplete` to `current-password` on a sign-in form and `new-password` where the user sets one. Put the rules for a new password in helper text or a list under the field.',
+    usage: 'Use for a password, a PIN typed as text, or any other secret a user types. The field nests FieldLabel and a Show/Hide button on the label row, the input box below, and FieldMessage under it. Set autoComplete to current-password on a sign-in form and new-password where the user sets one. Put the rules for a new password in helper text or a list under the field.',
     do: [
       'Set autoComplete to current-password or new-password on every password field',
       'Let the user paste, so a password manager can fill the field',
