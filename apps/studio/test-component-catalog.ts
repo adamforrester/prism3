@@ -161,8 +161,8 @@ console.log('\n7. C2: the set list shows each size\'s padding and gap only, at t
 // the schema's expansion and resolved on the space ladder; NOT `densitySpacingStep`, which setsView calls. The keys
 // shown are typed here as the owner's decision words them (C2 A, "only the padding and gap values"); every leaf name
 // the corpus uses is classified below, so a def adding a new spacing name fails here until it is placed.
-const SHOWN = ['gap', 'pad-x', 'pad-y', 'padding-x', 'padding-y'];
-const HIDDEN = ['check-gap', 'dismissible.visible-gap', 'padding-x-visual', 'panel-pad-end', 'select.gap', 'select.padding-end'];
+const SHOWN = ['gap', 'pad-x', 'pad-y', 'padding-x', 'padding-y', 'pad'];
+const HIDDEN = ['check-gap', 'dismissible.visible-gap', 'padding-x-visual', 'panel-pad-end', 'select.gap', 'select.padding-end', 'actions-gap', 'action-gap'];
 const leaf = (k: string): [string, string] => { const m = /^size\.([^.]+)\.(.+)$/.exec(k); return m ? [m[1][0].toUpperCase() + m[1].slice(1), m[2]] : ['', k]; };
 const names = new Set(componentDefs.flatMap((d) => densitySpacingKeys(d).map((k) => leaf(k)[1])));
 ok([...names].every((n) => SHOWN.includes(n) || HIDDEN.includes(n)), `C2: every spacing name is classified shown or hidden (unclassified: ${JSON.stringify([...names].filter((n) => !SHOWN.includes(n) && !HIDDEN.includes(n)))})`);

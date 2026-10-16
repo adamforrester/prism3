@@ -77,6 +77,7 @@ import { list } from './list';
 import { segmentedControlSegment, segmentedControl } from './segmented-control';
 import { link } from './link';
 import { dialog } from './dialog';
+import { banner } from './banner';
 import { passwordField } from './password-field';
 
 /** Named access, kept ALONGSIDE the set rather than replaced by it. Most of `test.ts`'s component
@@ -85,7 +86,7 @@ import { passwordField } from './password-field';
  *  be a worse call site, not a better one — a lookup that can return `undefined` standing in for a
  *  binding that cannot. The set is for iteration; these are for the assertions that are ABOUT one
  *  component. */
-export { button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, textarea, checkboxControl, checkboxRow, checkboxGroup, radioControl, radioRow, radioGroup, switchControl, switchRow, select, veil, imagePlaceholder, spinner, badge, tag, tab, tabs, divider, accordionIndicator, accordion, listItem, list, segmentedControlSegment, segmentedControl, link, dialog, passwordField };
+export { button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, textarea, checkboxControl, checkboxRow, checkboxGroup, radioControl, radioRow, radioGroup, switchControl, switchRow, select, veil, imagePlaceholder, spinner, badge, tag, tab, tabs, divider, accordionIndicator, accordion, listItem, list, segmentedControlSegment, segmentedControl, link, dialog, banner, passwordField };
 
 /** Every component def the engine defines. The one thing a projection should iterate. */
 export const componentDefs: readonly ComponentDef[] = [
@@ -210,4 +211,7 @@ export const componentDefs: readonly ComponentDef[] = [
   dialog,
   // `password-field` (#2317) — TextField's first specialization, from the shared field factory. Nests a Button.
   passwordField,
+  // `banner` (#2579, owner Q327) — a persistent message in the page flow. Nests the neutral Button (actions) and the
+  // neutral IconButton (dismiss), so it comes after both.
+  banner,
 ];

@@ -314,8 +314,8 @@ export const badge: ComponentDef = {
   composition: {
     composesWith: [],
     // `tag` moved here from `planned` when it was built (2026-09-27): the interactive alternative.
-    alternativeTo: ['tag'],
-    planned: ['avatar', 'toast', 'banner'],
+    alternativeTo: ['tag', 'banner'],
+    planned: ['avatar', 'toast'],
     replacesPatterns: ['a hand-drawn colored pill', 'a red circle with a number drawn over an icon'],
   },
 

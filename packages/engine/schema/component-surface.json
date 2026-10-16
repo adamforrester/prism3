@@ -695,6 +695,19 @@
         "placeholder:TEXT",
         "value:TEXT"
       ]
+    },
+    "banner": {
+      "members": 8,
+      "sha256": "242b1f13c699765ab255c7ea016daf8d70d964ba84c632585995021d0b8a9d7a",
+      "properties": [
+        "actions:BOOLEAN",
+        "body:SLOT",
+        "dismiss:BOOLEAN",
+        "icon:BOOLEAN",
+        "second action:BOOLEAN",
+        "title text:TEXT",
+        "title:BOOLEAN"
+      ]
     }
   }
 }

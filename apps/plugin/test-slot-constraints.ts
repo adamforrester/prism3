@@ -54,6 +54,8 @@ const EXPECTED: Record<string, { slotSettings?: Record<string, unknown>; preferr
   // Open (#2609, as built): the body holds whatever the dialog needs — text or any components — so no limit and no
   // preferred component. The footer's actions are fixed nested Buttons, not a slot (Q311), so they have no row.
   'dialog.body': {},
+  // Open (#2579, as built): the body holds the message, a link or a short list, so no limit and no preferred component.
+  'banner.body': {},
 };
 console.log('the corpus');
 {

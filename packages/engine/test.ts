@@ -3783,6 +3783,8 @@ for (const b of brands) {
       accordion: { keys: ['pad-x', 'pad-y', 'gap', 'panel-pad-end'], sizes: ['small', 'medium', 'large'] },
       list: { keys: ['gap'], sizes: ['small', 'medium', 'large'] },
       link: { keys: ['gap'], sizes: ['small', 'medium', 'large'] },
+      // Banner (#2579): no size axis, so its keys are bare.
+      banner: { keys: [], sizes: [], bare: ['pad', 'gap', 'actions-gap', 'action-gap'] },
     };
     const BTN = { compact: 'small 12/8/4/6 · medium 12/8/6/6 · large 20/12/6/8', comfortable: 'small 16/12/6/8 · medium 16/12/8/8 · large 24/16/8/12', spacious: 'small 20/16/8/12 · medium 20/16/12/12 · large 32/20/12/16' };
     const ROWS = { compact: 'small 6 · medium 6 · large 8', comfortable: 'small 8 · medium 8 · large 12', spacious: 'small 12 · medium 12 · large 16' };
@@ -3809,6 +3811,9 @@ for (const b of brands) {
       // Link (#2580, DRAFT): the icon-to-label gap. Comfortable is the proposal's space.050 / space.050 / space.100; compact
       // clamps small and medium at space.050, the bottom of the density ladder, as Tab's small gap does.
       link: { compact: 'small 4 · medium 4 · large 6', comfortable: 'small 4 · medium 4 · large 8', spacious: 'small 6 · medium 6 · large 12' },
+      // Banner (#2579, DRAFT): padding / glyph→content gap / body→actions offset / action→action gap. Comfortable is the
+      // proposal's 16 / 12 / 12, and 8 between the two buttons.
+      banner: { compact: 'bare 12/8/8/6', comfortable: 'bare 16/12/12/8', spacious: 'bare 20/16/16/12' },
     };
     const wrong: string[] = [];
     for (const [id, spec] of Object.entries(SPECS)) {
@@ -3849,6 +3854,8 @@ for (const b of brands) {
       'radio-row': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       'switch-row': ['size.small.gap', 'size.medium.gap'],
       list: ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
+      // Banner (#2579): the glyph→content gap, the action→action gap, and the fixed title→body gap.
+      banner: ['gap', 'action-gap', 'content-gap'],
       // #2709: the three defs with a density-following gap that joined after this list was written.
       'password-field': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       accordion: ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
@@ -3901,9 +3908,12 @@ for (const b of brands) {
       tab: { prefix: 'sized', lt: [['gap', 'padding-x']] },
       'segmented-control-segment': { prefix: 'sized', lt: [['gap', 'padding-x']] },
       accordion: { prefix: 'sized', lt: [['gap', 'pad-x']] },
+      // Banner (#2579): both gaps sit inside the padding.
+      banner: { prefix: 'bare', lt: [['gap', 'pad'], ['action-gap', 'pad']] },
     };
     const GAP_TAILS = ['gap', 'check-gap'];
-    const PAD_TAILS = ['padding-x', 'pad-x'];
+    // `pad` (#2579): Banner's one padding, block and inline alike.
+    const PAD_TAILS = ['padding-x', 'pad-x', 'pad'];
     const stating = componentDefs.filter((d) => {
       const groups = new Map<string, Set<string>>();
       for (const [k, ref] of Object.entries(d.tokens)) {
@@ -6330,6 +6340,104 @@ arm: {
     const { measured, low } = measure(fill, 'background.primary', 3);
     ok(measured === CELLS && low.length === 0,
       `badge bold fill separates from the page (${m}): ${fill} against background.primary clears 3:1 in all ${measured} of ${CELLS} brand × mode cells${low.length ? ` — ${low.join('; ')}` : ''}`);
+  }
+}
+
+// ---- BANNER — the owner's decisions on #2579 (Q327, 2026-10-16), held here with literal expectations ---------------
+// Written from the decisions, not read back from the def: 8 members (tone info | success | warning | danger × width
+// contained | full), subtle only, a full 1px edge in the tone's BORDER role (Q346: never an icon or text role), the
+// title and body in text.primary, FieldMessage's glyph per status, up to two neutral actions (outline, then text) and a
+// dismiss, all off by default, lowercase Figma property names (Q345), and the first member the code default (Q347).
+// Every expectation is a literal; the projected members are read off `figmaAnatomySet`, never off the def's tokens.
+// Contrast: the text at 4.5:1 and the edge and glyph at 3:1, in 5 brands × 4 modes.
+{
+  const bannerDef = componentDefs.find((d) => d.id === 'banner');
+  ok(!!bannerDef, 'banner: the def is registered');
+  if (bannerDef) {
+    const TONES = ['info', 'success', 'warning', 'danger'];
+    const GLYPH: Record<string, string> = { info: 'icon/info-circle', success: 'icon/check-circle', warning: 'icon/error-circle', danger: 'icon/warning-triangle' };
+    const CORNER: Record<string, string> = { contained: 'radius/md', full: 'radius/none' };
+    const set = figmaAnatomySet(bannerDef) as any[];
+    const names = set.map(planComponentName);
+    const EXPECT_NAMES = TONES.flatMap((t) => ['contained', 'full'].map((w) => `tone=${t}, width=${w}`));
+    ok(JSON.stringify(names) === JSON.stringify(EXPECT_NAMES),
+      `banner set: exactly the 8 members tone × width, info and contained first (Q327, Q347) (got ${names.join(' | ')})`);
+    const find = (n: any, name: string): any => n.name === name ? n : (n.children ?? []).map((c: any) => find(c, name)).find(Boolean);
+    const glyphs = (n: any): any[] => [...(/^icon\//.test(n.nestTarget ?? '') ? [n] : []), ...(n.children ?? []).flatMap(glyphs)];
+    const wrong: string[] = [];
+    for (const m of set) {
+      const name = planComponentName(m);
+      const tone = /tone=(\w+)/.exec(name)?.[1] ?? '';
+      const width = /width=(\w+)/.exec(name)?.[1] ?? '';
+      const r = m.root;
+      if (r.paints?.fills !== `color/foreground/${tone}-subtle`) wrong.push(`${name} fill ${r.paints?.fills}`);
+      if (r.paints?.strokes !== `color/border/${tone}`) wrong.push(`${name} edge ${r.paints?.strokes}`);
+      if (r.bound?.strokeWeight !== 'border-width/hairline') wrong.push(`${name} edge weight ${r.bound?.strokeWeight}`);
+      for (const c of ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'])
+        if (r.bound?.[c] !== CORNER[width]) wrong.push(`${name} ${c} ${r.bound?.[c]}`);
+      const g = glyphs(r).filter((n) => n.name !== 'dismiss');
+      if (g.length !== 1 || g[0].nestTarget !== GLYPH[tone] || g[0].descendantFills !== `color/icon/${tone}` || g[0].bound?.width !== 'icon/size/md')
+        wrong.push(`${name} glyph ${g.map((n) => `${n.nestTarget} in ${n.descendantFills}`).join(', ') || 'none'}`);
+      for (const t of ['title', 'placeholder'])
+        if (find(r, t)?.paints?.fills !== 'color/text/primary') wrong.push(`${name} ${t} ink ${find(r, t)?.paints?.fills}`);
+      const a1 = find(r, 'action1'), a2 = find(r, 'action2'), d = find(r, 'dismiss');
+      if (a1?.nestTarget !== 'button-neutral' || a1?.nestVariant?.appearance !== 'outline' || a1?.nestVariant?.size !== 'small') wrong.push(`${name} action1 ${a1?.nestTarget}/${a1?.nestVariant?.appearance}/${a1?.nestVariant?.size}`);
+      if (a2?.nestTarget !== 'button-neutral' || a2?.nestVariant?.appearance !== 'text' || a2?.nestVariant?.size !== 'small') wrong.push(`${name} action2 ${a2?.nestTarget}/${a2?.nestVariant?.appearance}/${a2?.nestVariant?.size}`);
+      // Q386 (#2808): the dismiss is FlushIconButton.Neutral, round, small (Dialog's choice, #2806), the close glyph fixed.
+      if (d?.nestTarget !== 'flush-icon-button-neutral' || d?.nestVariant?.shape !== 'round' || d?.nestVariant?.size !== 'small' || d?.nestOverrides?.length !== 1 || d?.nestOverrides?.[0]?.value !== 'icon/close') wrong.push(`${name} dismiss ${d?.nestTarget}/${d?.nestVariant?.shape}/${d?.nestVariant?.size}/${d?.nestOverrides?.map((o: any) => o.value).join('+')}`);
+      // Off by default (Q327.6 A, the proposal's §4): the actions row, the second action and the dismiss are hidden.
+      if (find(r, 'actions')?.visible !== false || a2?.visible !== false || d?.visible !== false) wrong.push(`${name} actions/second/dismiss shown by default`);
+      if (find(r, 'titleBox')?.visible === false) wrong.push(`${name} title hidden by default`);
+    }
+    ok(wrong.length === 0,
+      `banner members: each paints foreground.<tone>-subtle with a 1px border.<tone> edge, its tone's glyph in icon.<tone>, text.primary ink, radius md contained and none full, and nests a neutral outline and text action and a round close dismiss, all off${wrong.length ? ` — ${wrong.join('; ')}` : ''}`);
+    // Q346: an edge never binds an icon or text role. Read off the TOKENS too, so a border key on any coordinate counts.
+    const badEdge = Object.entries(bannerDef.tokens).filter(([k, ref]) => /(^|\.)border$/.test(k) && !String(ref).startsWith('color.border.'));
+    ok(badEdge.length === 0, `banner edge: every border key binds a color.border.* role (Q346)${badEdge.length ? ` — ${badEdge.map(([k, r]) => `${k} → ${r}`).join('; ')}` : ''}`);
+    // Q345: the Figma property names are lowercase, and the set is the proposal's.
+    const fp = bannerDef.figmaProperties!;
+    const propNames = [
+      ...Object.entries(fp.texts ?? {}).map(([k, t]: [string, any]) => t.figmaName ?? k),
+      ...Object.entries(fp.booleans ?? {}).map(([k, b]: [string, any]) => (typeof b === 'object' && b.figmaName) || k),
+    ];
+    ok(JSON.stringify(propNames) === JSON.stringify(['title text', 'title', 'icon', 'actions', 'second action', 'dismiss']),
+      `banner Figma properties: title text, title, icon, actions, second action, dismiss, all lowercase (Q345) (got ${propNames.join(', ')})`);
+
+    // CONTRAST, as literals over every example brand × mode (20 cells).
+    const themes: [string, any][] = loadedRows([
+      ['prism3', exampleTheme('prism3', () => brandTheme(exampleBrands()['prism3'] as BrandInput))],
+      ['nb', nbTheme()],
+      ['aurora', exampleTheme('aurora', () => brandTheme(exampleBrands()['aurora'] as BrandInput))],
+      ['harbor', exampleTheme('harbor', () => brandTheme(exampleBrands()['harbor'] as BrandInput))],
+      ['wendys', exampleTheme('wendys', () => brandTheme(standardToBrandInput(parseStandardDesignMd(readFileSync(resolve(HERE, './examples/wendys.design.md'), 'utf8'))).input))],
+    ]);
+    const CELLS = 20;
+    const measure = (a: string, b: string, floor: number): { measured: number; low: string[]; min: number } => {
+      const low: string[] = [];
+      let measured = 0, min = Infinity;
+      for (const [brand, th] of themes) for (const m of resolveAllModes(th)) {
+        const x = m.roles[a], y = m.roles[b];
+        if (!x?.hex || !y?.hex) { low.push(`${brand}/${m.mode}: missing ${!x?.hex ? a : b}`); continue; }
+        const r = contrast(hexToRgb(x.hex), hexToRgb(y.hex));
+        measured++; min = Math.min(min, r);
+        if (r < floor) low.push(`${brand}/${m.mode} ${r.toFixed(2)}`);
+      }
+      return { measured, low, min };
+    };
+    const PAIRS: [string, string, number, string][] = TONES.flatMap((t) => [
+      ['text.primary', `foreground.${t}-subtle`, 4.5, `title and body on the ${t} fill`],
+      [`border.${t}`, 'background.primary', 3, `the ${t} edge against the page`],
+      [`icon.${t}`, `foreground.${t}-subtle`, 3, `the ${t} glyph on its fill`],
+      // The nested neutral actions and dismiss paint their rest ink on the banner's fill.
+      ['interactive.neutral.text.rest', `foreground.${t}-subtle`, 4.5, `the action labels on the ${t} fill`],
+      ['interactive.neutral.icon.rest', `foreground.${t}-subtle`, 3, `the dismiss glyph on the ${t} fill`],
+    ] as [string, string, number, string][]);
+    ok(PAIRS.length === 20, `banner contrast covers 20 pairs, 5 per tone (got ${PAIRS.length})`);
+    for (const [a, b, floor, what] of PAIRS) {
+      const { measured, low, min } = measure(a, b, floor);
+      ok(measured === CELLS && low.length === 0,
+        `banner contrast (${what}): ${a} on ${b} clears ${floor}:1 in all ${measured} of ${CELLS} brand × mode cells, lowest ${min.toFixed(2)}${low.length ? ` — ${low.join('; ')}` : ''}`);
+    }
   }
 }
 
@@ -27215,7 +27323,7 @@ arm: {
   // own constant.
   // `tag` joins (2026-09-27): its check mark is gated on `selection: ['selected']`, the checkbox mark's shape.
   // `link` joins (#2580, owner Q297.2): its trailing icon is gated on `style: ['standalone']`, so an inline link carries none.
-  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'radio-control', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion', 'list-item', 'link', 'dialog', 'password-field'];
+  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'radio-control', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion', 'list-item', 'link', 'dialog', 'password-field', 'banner'];
   ok(GATED_EXPECTED.every((n) => gatedDefs.some((d) => d.id === n)) && gatedDefs.length === GATED_EXPECTED.length,
     `#910 the presentWhen projection rule below covers exactly [${GATED_EXPECTED.join(', ')}] — a def gaining a variant-gated part must be represented here, and a def losing one is a stale claim (found: ${gatedDefs.map((d) => d.id).join(', ') || 'none'})`);
   for (const def of gatedDefs) {

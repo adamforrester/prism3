@@ -68,6 +68,50 @@
       ]
     },
     {
+      "from": "banner",
+      "to": "button-neutral",
+      "part": "action1",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "appearance": "outline",
+        "size": "small",
+        "surface": "default",
+        "inset": "default",
+        "state": "rest",
+        "leading icon": "false",
+        "trailing icon": "false"
+      }
+    },
+    {
+      "from": "banner",
+      "to": "button-neutral",
+      "part": "action2",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "appearance": "text",
+        "size": "small",
+        "surface": "default",
+        "inset": "default",
+        "state": "rest",
+        "leading icon": "false",
+        "trailing icon": "false"
+      }
+    },
+    {
+      "from": "banner",
+      "to": "flush-icon-button-neutral",
+      "part": "dismiss",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "shape": "round",
+        "size": "small",
+        "state": "rest"
+      }
+    },
+    {
       "from": "button",
       "to": "focus-ring",
       "part": "focusRing",
@@ -952,6 +996,21 @@
       ],
       "inheritedBy": []
     },
+    "banner": {
+      "nests": [
+        "button-neutral",
+        "flush-icon-button-neutral"
+      ],
+      "nestsTransitively": [
+        "button-neutral",
+        "flush-icon-button-neutral",
+        "focus-ring",
+        "spinner"
+      ],
+      "nestedBy": [],
+      "affectedByChange": [],
+      "inheritedBy": []
+    },
     "button": {
       "nests": [
         "focus-ring",
@@ -997,8 +1056,12 @@
         "focus-ring",
         "spinner"
       ],
-      "nestedBy": [],
-      "affectedByChange": [],
+      "nestedBy": [
+        "banner"
+      ],
+      "affectedByChange": [
+        "banner"
+      ],
       "inheritedBy": [
         "icon-button-neutral"
       ]
@@ -1155,8 +1218,12 @@
       "nestsTransitively": [
         "focus-ring"
       ],
-      "nestedBy": [],
-      "affectedByChange": [],
+      "nestedBy": [
+        "banner"
+      ],
+      "affectedByChange": [
+        "banner"
+      ],
       "inherits": "icon-button-neutral",
       "inheritedBy": []
     },
@@ -1188,6 +1255,7 @@
       ],
       "affectedByChange": [
         "accordion",
+        "banner",
         "button",
         "button-destructive",
         "button-neutral",
@@ -1440,6 +1508,7 @@
         "icon-button-neutral"
       ],
       "affectedByChange": [
+        "banner",
         "button",
         "button-destructive",
         "button-neutral",
@@ -1566,6 +1635,7 @@
     "_accordion-indicator": 0,
     "accordion": 1,
     "badge": 0,
+    "banner": 2,
     "button": 1,
     "button-destructive": 1,
     "button-neutral": 1,

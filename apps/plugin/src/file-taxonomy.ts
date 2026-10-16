@@ -121,6 +121,9 @@ export const TAXONOMY: Taxonomy = {
         // Dialog (#2609, owner decision Q303.12 A) — its own page under Components, every placement on it. It nests the
         // Neutral IconButton, the Divider and the Button, which the build places first wherever their pages sort.
         { page: 'Dialog', defs: ['dialog'] },
+        // Banner (#2579, Q327) — its own page under Components. The proposal named a feedback section; none exists, so the
+        // section is held as an owner item in the PR, as Link's was. It nests Button.Neutral and IconButton.Neutral.
+        { page: 'Banner', defs: ['banner'] },
       ],
     },
     {
