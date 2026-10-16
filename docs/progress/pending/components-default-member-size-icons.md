@@ -7,8 +7,11 @@ comparison report move. CONTRACT unchanged. `EXECUTOR_REVISION` stands: the slot
 
 **What moved.** The 25 sized defs that ran small to large (Q213, #2501) now read `medium, small, large`, the field
 family's order since Q221 B; the two switch defs read `medium, small`. `figmaAnatomySet` enumerates each slot presence
-axis `false` before `true`, so Button's three families insert with no icons. Only Button declares slot axes, so that
-one line moves no other def. The code enums (`props.*.values`) keep their own order, as Q347's PR left them.
+axis `false` before `true`, so Button's three families insert with no icons. Only Button declares slot axes, so this
+moves no other def. **Trap, caught by `test:roundtrip`:** with false first and trailing still the inner loop, the
+first members seen are none, then trailing only, so `planSetProperties` (which lists properties first-seen) put
+`↳ swap trailing icon` above `↳ swap leading icon` and broke the #1380 panel order. The loops now run trailing
+outside leading (none, leading only, trailing only, both), which keeps the panel order without touching the executor. The code enums (`props.*.values`) keep their own order, as Q347's PR left them.
 
 **The gates.** #2754's default-member gate (`#2752 <def>`) loses its two recorded exceptions, and with them the
 exception machinery: no exception remains, and an empty list's per-entry checks would be assertion sites that never
@@ -17,7 +20,9 @@ families. The #2501 order gate's size rule is retyped: medium first, then smalle
 exceptions, each with its reason: `field-label` (code default small, so small leads, Q1's own rule) and `spinner`
 (builds single components, so nothing is inserted as a set). `lint-axis-values.ts`'s register follows: the canonical
 size set is now `medium, small, large` with the field entry folded in, `field-label` is `reordered`, and the switch
-subset is `medium, small`.
+subset is `medium, small`. `lint-rung-names.ts` admits each reordered def in `DEFAULT_FIRST` with one shared reason
+citing Q1 B (the gate still checks that each leads with its prop default and is not already in prop order). The
+studio's committed component catalog is regenerated: its density-following spacing keys list sizes in axis order.
 
 **Pins that assumed small first (Q213), updated to the decision and citing #2752:** `#1667`'s owner-worked floors
 (now read through a typed small-to-large list, not the def's order), `#2188`'s first inverse row, the six-loop
@@ -28,6 +33,6 @@ and in `test-canvas-furniture.ts` the panel's size options and the Tag pilot's r
 Switch are each built the way Q213 left them, two instances are placed, then the dry run and the apply run as
 `main.ts` runs them. The dry run reads moves only (576, 30, 24), every member keeps its id and key, both instances stay
 on the page on live members, the decided default ends up top-left, and the next dry run reads up to date. The old
-Button is the new plan list with each run of four slot members reversed, because slot order is no `variants` list; a
-premise check asserts the runs of four first. Same limit as #2754's proof: a shim instance holds its main component by
+Button is the new plan list with each run of four slot members sorted back into the old order, because slot order is
+no `variants` list; a premise check asserts each run of four holds one of each slot pair. Same limit as #2754's proof: a shim instance holds its main component by
 reference, so this proves no member was rebuilt, not how Figma itself resolves the instance.

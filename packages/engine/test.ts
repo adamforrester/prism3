@@ -23885,11 +23885,12 @@ arm: {
     // declaration order, then size, then state, then the two slot booleans — so `surface` sits between
     // `appearance` and `size`, not at the end (#1134). #1223 dropped the `intent` grid loop with the axis.
     // #2350: `inset` is the third grid axis, and the flush members exist at `appearance=text` only, written out here
-    // rather than read from `excludeCoordinates`. #2752 (Q2 A): each slot boolean runs false first, the empty slot code defaults to.
+    // rather than read from `excludeCoordinates`. #2752 (Q2 A): each slot boolean runs false first, the empty slot code defaults to,
+    // with trailing outside leading so the leading swap is still seen first (#1380 panel order).
     const handRolled: AnatomyPlan[] = [];
     for (const ap of button.variants.appearance!) for (const su of button.variants.surface!) for (const ins of ['default', 'flush']) {
       if (ap !== 'text' && ins !== 'default') continue;
-      for (const sz of button.variants.size) for (const st of fp.stateAxis!.values) for (const ld of [false, true]) for (const tr of [false, true])
+      for (const sz of button.variants.size) for (const st of fp.stateAxis!.values) for (const tr of [false, true]) for (const ld of [false, true])
         handRolled.push(figmaAnatomyPlan(button, sz, { leading: ld, trailing: tr, swapTarget: 'FPO-default-icon', appearance: ap, surface: su, inset: ins, state: st }));
     }
     ok(JSON.stringify(handRolled) === JSON.stringify(fullSet),

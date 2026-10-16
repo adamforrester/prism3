@@ -1085,8 +1085,8 @@ section('default member — #2752\'s Q1 B and Q2 A reorders reach an existing se
   // The same proof as the section above, for the two decisions recorded on #2752 after Q347: every size ladder leads
   // with medium (Q1 B), and Button's icon slots lead with false (Q2 A). The OLD sets are built the way #2501 (Q213)
   // left them: sizes small to large and, on Button, each slot true before false. The slot order is no `variants` list,
-  // so the old Button is the new plan list with each run of four slot members (leading × trailing, innermost in
-  // `figmaAnatomySet`) reversed: false/false, false/true, true/false, true/true becomes true/true … false/false.
+  // so the old Button is the new plan list with each run of four slot members (trailing × leading, innermost in
+  // `figmaAnatomySet`) put back in the old order: leading/trailing true/true, true/false, false/true, false/false.
   // The expected default member is the owner's decision, typed here, never read from the def. Mutation: the grid move
   // dropped from the apply → `default member/<def> inserted`.
   const OLD: [string, string[], boolean, string[]][] = [
@@ -1101,10 +1101,12 @@ section('default member — #2752\'s Q1 B and Q2 A reorders reach an existing se
     d.variants.size = oldSizes;
     let oldPlans = figmaAnatomySet(d as never, { swapTarget: SWAP_TARGET });
     if (slotsTrueFirst) {
-      ok(oldPlans.length % 4 === 0 && planComponentName(oldPlans[0]).includes('leading icon=false, trailing icon=false')
-        && planComponentName(oldPlans[3]).includes('leading icon=true, trailing icon=true'),
-        `premise: ${id}'s slot members come in runs of four, false/false first (${planComponentName(oldPlans[0])})`);
-      oldPlans = oldPlans.flatMap((p, i, all) => (i % 4 === 0 ? all.slice(i, i + 4).reverse() : []));
+      const OLD_SLOTS = ['leading icon=true, trailing icon=true', 'leading icon=true, trailing icon=false',
+        'leading icon=false, trailing icon=true', 'leading icon=false, trailing icon=false'];
+      const slotsOf = (p: (typeof oldPlans)[number]) => OLD_SLOTS.findIndex((k) => planComponentName(p).endsWith(k));
+      ok(oldPlans.length % 4 === 0 && oldPlans.every((p, i) => i % 4 !== 0 || new Set(oldPlans.slice(i, i + 4).map(slotsOf)).size === 4),
+        `premise: ${id}'s slot members come in runs of four, one of each slot pair (${planComponentName(oldPlans[0])})`);
+      oldPlans = oldPlans.flatMap((p, i, all) => (i % 4 === 0 ? [...all.slice(i, i + 4)].sort((a, b) => slotsOf(a) - slotsOf(b)) : []));
     }
     const w = await world(id, oldPlans);
     const set = w.set();

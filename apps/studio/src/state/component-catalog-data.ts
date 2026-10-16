@@ -41,11 +41,11 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "unit": "variants",
     "spacing": [
       {
-        "key": "size.small.padding-x",
+        "key": "size.medium.padding-x",
         "ref": "space.200"
       },
       {
-        "key": "size.medium.padding-x",
+        "key": "size.small.padding-x",
         "ref": "space.200"
       },
       {
@@ -53,11 +53,11 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
         "ref": "space.300"
       },
       {
-        "key": "size.small.padding-x-visual",
+        "key": "size.medium.padding-x-visual",
         "ref": "space.150"
       },
       {
-        "key": "size.medium.padding-x-visual",
+        "key": "size.small.padding-x-visual",
         "ref": "space.150"
       },
       {
@@ -65,23 +65,23 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
         "ref": "space.200"
       },
       {
-        "key": "size.small.padding-y",
-        "ref": "space.075"
-      },
-      {
         "key": "size.medium.padding-y",
         "ref": "space.100"
+      },
+      {
+        "key": "size.small.padding-y",
+        "ref": "space.075"
       },
       {
         "key": "size.large.padding-y",
         "ref": "space.100"
       },
       {
-        "key": "size.small.gap",
+        "key": "size.medium.gap",
         "ref": "space.100"
       },
       {
-        "key": "size.medium.gap",
+        "key": "size.small.gap",
         "ref": "space.100"
       },
       {
@@ -106,11 +106,11 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "unit": "variants",
     "spacing": [
       {
-        "key": "size.small.padding-x",
+        "key": "size.medium.padding-x",
         "ref": "space.200"
       },
       {
-        "key": "size.medium.padding-x",
+        "key": "size.small.padding-x",
         "ref": "space.200"
       },
       {
@@ -118,11 +118,11 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
         "ref": "space.300"
       },
       {
-        "key": "size.small.padding-x-visual",
+        "key": "size.medium.padding-x-visual",
         "ref": "space.150"
       },
       {
-        "key": "size.medium.padding-x-visual",
+        "key": "size.small.padding-x-visual",
         "ref": "space.150"
       },
       {
@@ -130,23 +130,23 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
         "ref": "space.200"
       },
       {
-        "key": "size.small.padding-y",
-        "ref": "space.075"
-      },
-      {
         "key": "size.medium.padding-y",
         "ref": "space.100"
+      },
+      {
+        "key": "size.small.padding-y",
+        "ref": "space.075"
       },
       {
         "key": "size.large.padding-y",
         "ref": "space.100"
       },
       {
-        "key": "size.small.gap",
+        "key": "size.medium.gap",
         "ref": "space.100"
       },
       {
-        "key": "size.medium.gap",
+        "key": "size.small.gap",
         "ref": "space.100"
       },
       {
@@ -171,11 +171,11 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "unit": "variants",
     "spacing": [
       {
-        "key": "size.small.padding-x",
+        "key": "size.medium.padding-x",
         "ref": "space.200"
       },
       {
-        "key": "size.medium.padding-x",
+        "key": "size.small.padding-x",
         "ref": "space.200"
       },
       {
@@ -183,11 +183,11 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
         "ref": "space.300"
       },
       {
-        "key": "size.small.padding-x-visual",
+        "key": "size.medium.padding-x-visual",
         "ref": "space.150"
       },
       {
-        "key": "size.medium.padding-x-visual",
+        "key": "size.small.padding-x-visual",
         "ref": "space.150"
       },
       {
@@ -195,23 +195,23 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
         "ref": "space.200"
       },
       {
-        "key": "size.small.padding-y",
-        "ref": "space.075"
-      },
-      {
         "key": "size.medium.padding-y",
         "ref": "space.100"
+      },
+      {
+        "key": "size.small.padding-y",
+        "ref": "space.075"
       },
       {
         "key": "size.large.padding-y",
         "ref": "space.100"
       },
       {
-        "key": "size.small.gap",
+        "key": "size.medium.gap",
         "ref": "space.100"
       },
       {
-        "key": "size.medium.gap",
+        "key": "size.small.gap",
         "ref": "space.100"
       },
       {
@@ -466,11 +466,11 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "unit": "variants",
     "spacing": [
       {
-        "key": "size.small.gap",
+        "key": "size.medium.gap",
         "ref": "space.100"
       },
       {
-        "key": "size.medium.gap",
+        "key": "size.small.gap",
         "ref": "space.100"
       },
       {
@@ -522,11 +522,11 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "unit": "variants",
     "spacing": [
       {
-        "key": "size.small.gap",
+        "key": "size.medium.gap",
         "ref": "space.100"
       },
       {
-        "key": "size.medium.gap",
+        "key": "size.small.gap",
         "ref": "space.100"
       },
       {
@@ -579,11 +579,11 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "unit": "variants",
     "spacing": [
       {
-        "key": "size.small.gap",
+        "key": "size.medium.gap",
         "ref": "space.100"
       },
       {
-        "key": "size.medium.gap",
+        "key": "size.small.gap",
         "ref": "space.100"
       }
     ],
@@ -706,60 +706,60 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "unit": "variants",
     "spacing": [
       {
-        "key": "size.small.padding-x",
-        "ref": "space.100"
-      },
-      {
         "key": "size.medium.padding-x",
         "ref": "space.150"
+      },
+      {
+        "key": "size.small.padding-x",
+        "ref": "space.100"
       },
       {
         "key": "size.large.padding-x",
         "ref": "space.200"
       },
       {
-        "key": "size.small.select.gap",
-        "ref": "space.075"
-      },
-      {
         "key": "size.medium.select.gap",
         "ref": "space.100"
+      },
+      {
+        "key": "size.small.select.gap",
+        "ref": "space.075"
       },
       {
         "key": "size.large.select.gap",
         "ref": "space.150"
       },
       {
-        "key": "size.small.dismissible.visible-gap",
-        "ref": "space.075"
-      },
-      {
         "key": "size.medium.dismissible.visible-gap",
         "ref": "space.100"
+      },
+      {
+        "key": "size.small.dismissible.visible-gap",
+        "ref": "space.075"
       },
       {
         "key": "size.large.dismissible.visible-gap",
         "ref": "space.100"
       },
       {
-        "key": "size.small.check-gap",
-        "ref": "space.050"
-      },
-      {
         "key": "size.medium.check-gap",
         "ref": "space.075"
+      },
+      {
+        "key": "size.small.check-gap",
+        "ref": "space.050"
       },
       {
         "key": "size.large.check-gap",
         "ref": "space.100"
       },
       {
-        "key": "size.small.select.padding-end",
-        "ref": "space.100"
-      },
-      {
         "key": "size.medium.select.padding-end",
         "ref": "space.150"
+      },
+      {
+        "key": "size.small.select.padding-end",
+        "ref": "space.100"
       },
       {
         "key": "size.large.select.padding-end",
@@ -782,24 +782,24 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "unit": "variants",
     "spacing": [
       {
-        "key": "size.small.padding-x",
-        "ref": "space.150"
-      },
-      {
         "key": "size.medium.padding-x",
         "ref": "space.200"
+      },
+      {
+        "key": "size.small.padding-x",
+        "ref": "space.150"
       },
       {
         "key": "size.large.padding-x",
         "ref": "space.250"
       },
       {
-        "key": "size.small.gap",
-        "ref": "space.075"
-      },
-      {
         "key": "size.medium.gap",
         "ref": "space.100"
+      },
+      {
+        "key": "size.small.gap",
+        "ref": "space.075"
       },
       {
         "key": "size.large.gap",
@@ -863,48 +863,48 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "unit": "variants",
     "spacing": [
       {
-        "key": "size.small.pad-x",
-        "ref": "space.150"
-      },
-      {
         "key": "size.medium.pad-x",
         "ref": "space.200"
+      },
+      {
+        "key": "size.small.pad-x",
+        "ref": "space.150"
       },
       {
         "key": "size.large.pad-x",
         "ref": "space.300"
       },
       {
-        "key": "size.small.pad-y",
-        "ref": "space.100"
-      },
-      {
         "key": "size.medium.pad-y",
         "ref": "space.150"
+      },
+      {
+        "key": "size.small.pad-y",
+        "ref": "space.100"
       },
       {
         "key": "size.large.pad-y",
         "ref": "space.200"
       },
       {
-        "key": "size.small.gap",
-        "ref": "space.100"
-      },
-      {
         "key": "size.medium.gap",
         "ref": "space.150"
+      },
+      {
+        "key": "size.small.gap",
+        "ref": "space.100"
       },
       {
         "key": "size.large.gap",
         "ref": "space.200"
       },
       {
-        "key": "size.small.panel-pad-end",
-        "ref": "space.150"
-      },
-      {
         "key": "size.medium.panel-pad-end",
         "ref": "space.200"
+      },
+      {
+        "key": "size.small.panel-pad-end",
+        "ref": "space.150"
       },
       {
         "key": "size.large.panel-pad-end",
@@ -942,12 +942,12 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "unit": "variants",
     "spacing": [
       {
-        "key": "size.small.gap",
-        "ref": "space.100"
-      },
-      {
         "key": "size.medium.gap",
         "ref": "space.150"
+      },
+      {
+        "key": "size.small.gap",
+        "ref": "space.100"
       },
       {
         "key": "size.large.gap",
@@ -969,24 +969,24 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "unit": "variants",
     "spacing": [
       {
-        "key": "size.small.padding-x",
-        "ref": "space.150"
-      },
-      {
         "key": "size.medium.padding-x",
         "ref": "space.200"
+      },
+      {
+        "key": "size.small.padding-x",
+        "ref": "space.150"
       },
       {
         "key": "size.large.padding-x",
         "ref": "space.250"
       },
       {
-        "key": "size.small.gap",
-        "ref": "space.075"
-      },
-      {
         "key": "size.medium.gap",
         "ref": "space.100"
+      },
+      {
+        "key": "size.small.gap",
+        "ref": "space.075"
       },
       {
         "key": "size.large.gap",
@@ -1024,11 +1024,11 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "unit": "variants",
     "spacing": [
       {
-        "key": "size.small.gap",
+        "key": "size.medium.gap",
         "ref": "space.050"
       },
       {
-        "key": "size.medium.gap",
+        "key": "size.small.gap",
         "ref": "space.050"
       },
       {
