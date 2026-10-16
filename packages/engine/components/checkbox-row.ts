@@ -134,6 +134,9 @@ export const checkboxRow: ComponentDef = {
     { name: 'onChange', type: '(checked: boolean, event) => void', required: false, description: 'Restated rather than inherited: the substrate\'s change yields a string, this one yields the resulting BOOLEAN alongside the event.' },
     { name: 'value', type: 'string', required: false, description: 'The string submitted when checked (the platform default is `"on"`), and the element this row contributes to a Checkbox.Group\'s array. An unchecked box submits nothing at all rather than a false value — the missing-key trap.' },
     { name: 'readOnly', type: 'boolean', default: false, required: false, description: 'Restated only for the caveat: `<input type="checkbox">` has NO working `readonly` — only `disabled` — so a genuinely read-only checkbox needs `aria-readonly` plus a prevented toggle, or is better rendered as static text. Decide which explicitly; the default of doing neither is a control that looks interactive and silently is not.' },
+    // RESTATED from the substrate (owner Q354, #2751): a checkbox takes the fields' `validation` prop over its
+    // first two values only — it has no warning or success look — so the inherited four-value prop is narrowed.
+    { name: 'validation', type: "enum: 'default' | 'error'", values: ['default', 'error'], default: 'default', required: false, description: 'The validation status of a standalone checkbox — a consent line that must be checked. `error` draws the danger border on the box and sets aria-invalid; pair it with an error message the host shows. Inside a Checkbox.Group the group sets this on every row; never set it on one row of a group.' },
     { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'Scales the control square, the label\'s type ramp, the box↔label gap and the row\'s minimum height. The square reads `control.size.<rung>.height` on BOTH axes — square by construction rather than by two tokens agreeing — and not `icon.size.*`, which is 16/20/24 in every brand the engine ships and so would hold a control rigid that should move with brand density.' },
   ],
 
@@ -145,7 +148,9 @@ export const checkboxRow: ComponentDef = {
   // its own recommendation is to render static text rather than to style a locked control, so a paint
   // treatment invented here would be this def making a design decision the brief declines to make.
   // `focus-visible` also binds no per-slot key: the indicator is the nested ring, as on `button`.
-  states: ['rest', 'hover', 'pressed', 'focus-visible', 'disabled', 'read-only', 'error'],
+  //
+  // `error` is NOT a state (owner Q354, #2751): validation is the `status` axis below, as on the fields.
+  states: ['rest', 'hover', 'pressed', 'focus-visible', 'disabled', 'read-only'],
 
   // `size` ONLY since #1330 (the #761 reversal). `selection` LEFT the Row's variant matrix — it is now
   // EXPOSED from the nested `checkbox-control` (the consumer drives it from the parent), not re-enumerated
@@ -154,11 +159,17 @@ export const checkboxRow: ComponentDef = {
   // No tone/emphasis axis (brief §4: "a checkbox is neutral"); no surface/inverse axis (#871). `alignment`
   // and the group's `orientation`/`density` are in brief §15's variants block and are NOT axes here —
   // `notes.contested` carries both, with reasons.
+  //
+  // `status` (owner Q354, #2751) is the fields' validation axis, its first two values only. The Row does not
+  // paint it — its label keeps one ink — it FOLLOWS it into the nested control, which draws the danger
+  // border. It is the Row's own axis rather than exposed from the control so a Checkbox.Group can pass its
+  // status to every row by `follow`, the way a field passes its status to its message.
   variants: {
     size: ['small', 'medium', 'large'],
+    status: ['default', 'error'],
   },
   // WHEN each axis changes (#1611): runtime axes are held to one footprint, authoring axes are not.
-  axisKinds: { size: 'authoring' },
+  axisKinds: { size: 'authoring', status: 'runtime' },
 
   // ONE KEY since #1226 step 2: the painted box moved to `checkbox-control`, so the Row's whole color
   // surface is the label ink (`label`, `disabled.label` — the bare slot). The `{selection}`-led
@@ -322,8 +333,9 @@ export const checkboxRow: ComponentDef = {
         kind: 'nest',
         nests: 'checkbox-control',
         size: 'size.{size}.control',
-        nesting: { kind: 'nest-exposed', variant: { selection: 'unchecked', state: 'rest' }, expose: ['selection', 'state'], follow: ['size'] },
-        note: 'An in-flow instance of `checkbox-control` taking the control cell inside the line-box wrapper. It EXPOSES the control\'s selection and state (the consumer drives them from the Row), follows the Row\'s size, and binds its own square so it is centered within the taller wrapper rather than stretched to fill it.',
+        // `status` FOLLOWS (owner Q354, #2751): the Row's `status` member nests the control at the same status.
+        nesting: { kind: 'nest-exposed', variant: { selection: 'unchecked', state: 'rest', status: 'default' }, expose: ['selection', 'state'], follow: ['size', 'status'] },
+        note: 'An in-flow instance of `checkbox-control` taking the control cell inside the line-box wrapper. It EXPOSES the control\'s selection and state (the consumer drives them from the Row), follows the Row\'s size and status, and binds its own square so it is centered within the taller wrapper rather than stretched to fill it.',
       },
       // No `paintSlot` — the default is `label`, and at `disabled` the projector reaches `disabled.label`
       // (page ink) rather than `disabled.label.on-fill`, because this text sits beside the fill and not
@@ -361,7 +373,11 @@ export const checkboxRow: ComponentDef = {
     // atom. The `control` nest `follow`s `size` (the one axis this def still projects) and exposes the
     // other two; `#1298`'s reachability check confirms `size` is projectable, and the exposed axes are the
     // child's — checked against the atom at projection (`nestVariantMatch`) and round-trip, not here.
-    variantAxes: ['size'],
+    // `status` (owner Q354, #2751) joins it: 3 sizes × 2 statuses = 6 members. The Row had no error members to
+    // move (its error was the exposed control's `state=error`), so an update adds `status=default` to each
+    // existing member in place, and a placed Row whose control showed error keeps it: that control member is
+    // renamed onto `status=error` in place, keeping its id.
+    variantAxes: ['size', 'status'],
     // NO `stateAxis` (#1330). The control's `state` is exposed, not multiplied into the Row's set — the
     // Row's own `states` list (above) still drives the CODE projection (a disabled Row dims its label),
     // and `lint-paint` arm 2 reads `def.states` for reachability so `disabled.label` stays reachable; it
@@ -391,18 +407,18 @@ export const checkboxRow: ComponentDef = {
       '4.1.2 Name Role Value (role, checked AND mixed — `aria-checked="mixed"` must be set explicitly)',
       '1.3.1 Info and Relationships (group structure)',
       '3.3.2 Labels or Instructions (the visible row label)',
-      '3.3.1 Error Identification / 3.3.3 Error Suggestion — the intent, not met today. In a set, the group carries the message and announces it once, and the group error display is not designed yet. An isolated row recolors its own boundary but nests no message part, so the text that names the error is its host\'s.',
+      '3.3.1 Error Identification / 3.3.3 Error Suggestion — in a set, the group sets `status=error` on every row and shows its message under them, announced once. A standalone row draws the danger border at `status=error` but nests no message part, so the text that names the error is its host\'s.',
       '1.4.11 Non-text Contrast / 2.4.13 Focus Appearance (control boundary and focus indicator)',
       '3.3.7 Redundant Entry (repeated consents)',
     ],
     keyboard: 'Each checkbox is its OWN Tab stop and Space toggles — the key cross-control difference from Radio.Group, which is one Tab stop for the group with arrows moving within it. NEVER override Enter: Enter submits the enclosing form, and hijacking it breaks universal web behavior.',
     focus: ':focus-visible ring on the CONTROL, offset, at least 3:1 — keyboard traversal only, not mouse or touch. The visual box stays tight while the interactive footprint is generous: the hit target is expanded by padding on the row WRAPPER (the icon-button parallel), so clicking the label or the surrounding space toggles. The target aims for at least 24x24, scaling to 44 (Apple) / 48 (Material) on touch. The label sits inline-end of the control, not above it.',
-    aria: 'Prefer the styled native input — `appearance: none` plus a pseudo-element or SVG keeps role, checked state and Space-to-toggle for free; a `role="checkbox"` div is a last resort and must reproduce aria-checked (true/false/mixed) exactly. Relying on the visual dash glyph alone to convey indeterminate is an accessibility failure. For a set, `role="group"` plus `aria-labelledby` is the default over `fieldset`/`legend` — both are valid, but fieldset has flexbox and grid quirks that make it hard to style predictably, and role=group on a div keeps the layout freedom while preserving the shared-label announcement. Group error and required associate to the GROUP and announce once; an individual row never owns its own required or error. When the control is nested in a host row, the host provides the accessible name through aria-labelledby — never double-label.',
+    aria: 'Prefer the styled native input — `appearance: none` plus a pseudo-element or SVG keeps role, checked state and Space-to-toggle for free; a `role="checkbox"` div is a last resort and must reproduce aria-checked (true/false/mixed) exactly. Relying on the visual dash glyph alone to convey indeterminate is an accessibility failure. For a set, `role="group"` plus `aria-labelledby` is the default over `fieldset`/`legend` — both are valid, but fieldset has flexbox and grid quirks that make it hard to style predictably, and role=group on a div keeps the layout freedom while preserving the shared-label announcement. Group error and required associate to the GROUP and announce once; a row inside a group never owns its own required or error — the group sets its `status`. A STANDALONE row (a consent line) is the one that sets its own: `status=error` with aria-invalid on the input and the host\'s message in its aria-describedby. When the control is nested in a host row, the host provides the accessible name through aria-labelledby — never double-label.',
   },
 
   content: {
     labelPattern: 'A POSITIVE statement of what becomes true when checked — "Subscribe to newsletter", never "Do not send me emails", which a user has to mentally invert in order to uncheck. Sentence case, no terminal period for a terse single-sentence label; apply punctuation only for multi-sentence or legal labels. Abstract shared words up into the group label, so "Notification preferences" lets its rows read "Email", "SMS", "Push".',
-    errorPattern: 'Group-level for a set — "Select at least one option" — stating what is wrong and how to fix it (SC 3.3.3). An isolated row recolors its own boundary; inside a group the rows stay neutral and the group carries the message.',
+    errorPattern: 'Group-level for a set — "Select at least one option" — stating what is wrong and how to fix it (SC 3.3.3). Inside a group the group sets `status=error` on every row and carries the message. A standalone row sets its own `status=error` ("Accept the terms to continue"), and its host shows the message.',
   },
 
   docs: {

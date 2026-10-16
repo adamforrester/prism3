@@ -37,7 +37,7 @@ The group label names the decision; the rows carry the short options. Group erro
 ### Copy patterns
 
 - **Labels:** The group label NAMES THE DECISION or asks the question ("Shipping method", "How should we contact you?"), abstracting the shared word up so its rows read the short remainder ("Standard", "Express", "Overnight"). Sentence case, no trailing colon — FieldLabel's rules. May be visually hidden when an enclosing labeled section already frames it, but must stay programmatically present.
-- **Errors:** GROUP-LEVEL and specific — "Select a shipping method", stating what is wrong and how to fix it (SC 3.3.3), never "Invalid". The options stay neutral; the group carries the message. The error visual is not designed yet.
+- **Errors:** GROUP-LEVEL and specific — "Select a shipping method", stating what is wrong and how to fix it (SC 3.3.3), never "Invalid". The group sets `status=error` on every option (the danger ring on each) and shows the message once, under the options.
 - **Empty states:** The group starts EMPTY by default, so no option carries a pre-selected state — this forces a deliberate choice. Pre-select only where a genuinely safe recommended default exists. A radio cannot be deselected, so once chosen the group cannot return to empty: an optional group must carry an explicit "None" or "N/A" option, or a stray click permanently pollutes the data. If a "None" option would corrupt the data model, the choice belongs in a clearable Select instead.
 
 ## Choosing it
@@ -58,6 +58,8 @@ The group label names the decision; the rows carry the short options. Group erro
 | `required` | boolean | `false` | no | Whether an option must be chosen. Off by default. Drives the nested FieldLabel's required marker and aria-required on the group. Group-level: an individual row never owns its own required. An optional group must instead carry an explicit "None" option, because a radio cannot be deselected — a stray click is otherwise permanent. |
 | `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | Scales the group — the label's type and every row (control circle, label ramp, gap) together, passed into the nested FieldLabel and rows by `follow`, so the group scales with the rest of the form. |
 | `name` | string | — | yes | The shared control name — LOAD-BEARING here, not a submission convenience: it is what enforces browser-level exclusivity across the set, so every group sets one. An individual option NEVER sets its own, which would break exclusivity outright. |
+| `validation` | enum: 'default' \| 'error' | `default` | no | The group's validation status. `error` passes to every option, which draws the danger ring on each, shows `validationMessage` under the options, and sets aria-invalid on the group. `default` is neutral. A radio is never invalid on its own, so this is the only place to set it. |
+| `validationMessage` | string \| node | — | no | The error text shown under the options at `error`, added to the group's aria-describedby. Say what is wrong and how to fix it (SC 3.3.3): "Select a shipping method", never "Invalid". |
 | `disabled` | boolean | `false` | no | Disables the whole set — every row and the label dim, driven by the group's context (the native disabled is the source of truth). The group has no disabled treatment of its own. |
 
 ## States
@@ -69,6 +71,7 @@ The group label names the decision; the rows carry the short options. Group erro
 | Axis | Values | Changes |
 | --- | --- | --- |
 | `size` | `small`, `medium`, `large` | once, when authored |
+| `status` | `default`, `error` | at runtime |
 
 ## Accessibility
 
@@ -76,13 +79,13 @@ The group label names the decision; the rows carry the short options. Group erro
 - **WCAG:**
   - 1.3.1 Info and Relationships (the group structure — role="radiogroup" + the shared label — is the meaning)
   - 3.3.2 Labels or Instructions (the group label, announced once for the set)
-  - 3.3.1 Error Identification / 3.3.3 Error Suggestion — the intent, at the GROUP level and announced once. The group error display is not designed yet, so this def does not meet either today.
+  - 3.3.1 Error Identification / 3.3.3 Error Suggestion — at the GROUP level, announced once: at `status=error` every option draws the danger ring and the message under the options says what is wrong and how to fix it. The ring is never the only signal.
   - 4.1.2 Name Role Value (the group name via aria-labelledby; each option carries its own checked)
   - 2.4.13 Focus Appearance / 1.4.11 Non-text Contrast (the control boundary and focus indicator, on each option)
   - 2.5.8 Target Size (each row is its own target — the group does not change that)
 - **Keyboard:** The keyboard model is the opposite of Checkbox.Group's. The group is a single tab stop: Tab moves into the group and the next Tab moves out, while arrow keys move between options, wrapping at the ends, with Home/End jumping to first/last. Space selects the focused option, and selection FOLLOWS FOCUS by default (arrowing moves focus and selects — native \<input type="radio"> behavior and the APG default). Implement with ROVING TABINDEX — one radio at tabindex="0" (the checked one, or the first if none), siblings at -1, arrow handling moving focus and calling .focus() — not aria-activedescendant. Making each option its own tab stop is the most common radio accessibility failure. NEVER override Enter (it submits the enclosing form).
 - **Focus:** Focus lands on ONE option at a time (roving), not on every option in turn. On focus restore into the group (a validation error, a legend click), focus the CHECKED radio rather than blindly the first; if none is checked, the first non-disabled option. The group container is not itself focusable. Keep the :focus-visible ring INSTANT (a fade lags rapid arrow navigation) and circular (the control is full-round).
-- **ARIA:** Prefer role="radiogroup" on a div plus aria-labelledby over \<fieldset>/\<legend>: both are valid, but fieldset has flexbox/grid quirks that make it hard to style, and role="radiogroup" keeps the layout freedom while preserving the shared-label announcement. THE GROUP LABEL IS MANDATORY FOR MEANING: without it assistive tech announces an orphaned "radio button, 1 of 3". The GROUP owns required and error — aria-required and aria-invalid associate to the group and announce once; an individual option never owns its own required or error. Native inputs sharing a name give the grouping, the exclusivity and the roving-tabindex keyboard model for free. Do not double-label: the rows carry their short labels, the group carries the decision.
+- **ARIA:** Prefer role="radiogroup" on a div plus aria-labelledby over \<fieldset>/\<legend>: both are valid, but fieldset has flexbox/grid quirks that make it hard to style, and role="radiogroup" keeps the layout freedom while preserving the shared-label announcement. THE GROUP LABEL IS MANDATORY FOR MEANING: without it assistive tech announces an orphaned "radio button, 1 of 3". The GROUP owns required and error — aria-required and aria-invalid associate to the group and announce once, and the group's message joins its aria-describedby; an individual option never owns its own required or error. The group passes its `status` to every option, so the options show the error without each claiming it. Native inputs sharing a name give the grouping, the exclusivity and the roving-tabindex keyboard model for free. Do not double-label: the rows carry their short labels, the group carries the decision.
 
 ## Motion
 
@@ -92,7 +95,7 @@ The group label names the decision; the rows carry the short options. Group erro
 
 ## Composition
 
-- **Composes with:** `radio-row`, `field-label`
+- **Composes with:** `radio-row`, `field-label`, `field-message`
 - **Alternative to:** `checkbox-group`, `select`, `switch-row`, `segmented-control`
 - **Planned:** `form`, `combobox`
 - **Replaces:**
