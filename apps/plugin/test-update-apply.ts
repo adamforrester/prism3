@@ -2695,7 +2695,7 @@ section('segmented control — sets built with the tinted, outlined look (#2418)
   // both sides (as `image-placeholder` and `accordion` above do). Every expectation below is read off the shim's
   // nodes by the test. Mutations: the executor's in-place stroke clear skipped → `seg/border removed`,
   // `seg/track outline removed`.
-  const SEG = 'segmented-control-segment', CTL = 'segmented-control';
+  const SEG = '_segmented-control-segment', CTL = 'segmented-control';
   const segNow = componentDefs.find((x) => x.id === SEG)!;
   const ctlNow = componentDefs.find((x) => x.id === CTL)!;
   const { 'selected.fill': _f, 'disabled.fill': _d, ...segKept } = segNow.tokens;
