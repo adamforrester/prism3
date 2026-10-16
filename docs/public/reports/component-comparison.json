@@ -628,16 +628,14 @@
         "hover",
         "pressed",
         "focus-visible",
-        "disabled",
-        "error"
+        "disabled"
       ],
       "projectedStates": [
         "rest",
         "hover",
         "pressed",
         "focus-visible",
-        "disabled",
-        "error"
+        "disabled"
       ],
       "axes": {
         "size": [
@@ -649,6 +647,10 @@
           "unchecked",
           "checked",
           "indeterminate"
+        ],
+        "status": [
+          "default",
+          "error"
         ]
       },
       "props": [
@@ -671,6 +673,14 @@
         {
           "name": "disabled",
           "default": false
+        },
+        {
+          "name": "validation",
+          "default": "default",
+          "values": [
+            "default",
+            "error"
+          ]
         },
         {
           "name": "aria-label"
@@ -696,6 +706,10 @@
           "small",
           "medium",
           "large"
+        ],
+        "status": [
+          "default",
+          "error"
         ]
       },
       "props": [
@@ -728,6 +742,17 @@
           "name": "name"
         },
         {
+          "name": "validation",
+          "default": "default",
+          "values": [
+            "default",
+            "error"
+          ]
+        },
+        {
+          "name": "validationMessage"
+        },
+        {
           "name": "disabled",
           "default": false
         }
@@ -749,8 +774,7 @@
         "pressed",
         "focus-visible",
         "disabled",
-        "read-only",
-        "error"
+        "read-only"
       ],
       "projectedStates": [],
       "axes": {
@@ -758,6 +782,10 @@
           "small",
           "medium",
           "large"
+        ],
+        "status": [
+          "default",
+          "error"
         ]
       },
       "props": [
@@ -787,6 +815,14 @@
         {
           "name": "readOnly",
           "default": false
+        },
+        {
+          "name": "validation",
+          "default": "default",
+          "values": [
+            "default",
+            "error"
+          ]
         },
         {
           "name": "size",
@@ -2189,6 +2225,10 @@
         "selection": [
           "unchecked",
           "checked"
+        ],
+        "status": [
+          "default",
+          "error"
         ]
       },
       "props": [
@@ -2207,6 +2247,14 @@
         {
           "name": "disabled",
           "default": false
+        },
+        {
+          "name": "validation",
+          "default": "default",
+          "values": [
+            "default",
+            "error"
+          ]
         },
         {
           "name": "aria-label"
@@ -2232,6 +2280,10 @@
           "small",
           "medium",
           "large"
+        ],
+        "status": [
+          "default",
+          "error"
         ]
       },
       "props": [
@@ -2264,6 +2316,17 @@
           "name": "name"
         },
         {
+          "name": "validation",
+          "default": "default",
+          "values": [
+            "default",
+            "error"
+          ]
+        },
+        {
+          "name": "validationMessage"
+        },
+        {
           "name": "disabled",
           "default": false
         }
@@ -2293,6 +2356,10 @@
           "small",
           "medium",
           "large"
+        ],
+        "status": [
+          "default",
+          "error"
         ]
       },
       "props": [
@@ -2304,6 +2371,14 @@
         },
         {
           "name": "description"
+        },
+        {
+          "name": "validation",
+          "default": "default",
+          "values": [
+            "default",
+            "error"
+          ]
         },
         {
           "name": "size",
@@ -2616,16 +2691,14 @@
         "hover",
         "pressed",
         "focus-visible",
-        "disabled",
-        "error"
+        "disabled"
       ],
       "projectedStates": [
         "rest",
         "hover",
         "pressed",
         "focus-visible",
-        "disabled",
-        "error"
+        "disabled"
       ],
       "axes": {
         "size": [
@@ -2635,6 +2708,10 @@
         "selection": [
           "off",
           "on"
+        ],
+        "status": [
+          "default",
+          "error"
         ]
       },
       "props": [
@@ -2658,6 +2735,14 @@
           "default": false
         },
         {
+          "name": "validation",
+          "default": "default",
+          "values": [
+            "default",
+            "error"
+          ]
+        },
+        {
           "name": "aria-label"
         }
       ],
@@ -2678,14 +2763,17 @@
         "pending",
         "focus-visible",
         "disabled",
-        "read-only",
-        "error"
+        "read-only"
       ],
       "projectedStates": [],
       "axes": {
         "size": [
           "small",
           "medium"
+        ],
+        "status": [
+          "default",
+          "error"
         ]
       },
       "props": [
@@ -2717,6 +2805,14 @@
         {
           "name": "showStateLabel",
           "default": true
+        },
+        {
+          "name": "validation",
+          "default": "default",
+          "values": [
+            "default",
+            "error"
+          ]
         },
         {
           "name": "size",
@@ -3417,12 +3513,6 @@
       "text-field",
       "textarea"
     ],
-    "error": [
-      "checkbox-control",
-      "checkbox-row",
-      "switch-control",
-      "switch-row"
-    ],
     "filled": [
       "password-field",
       "select",
@@ -3902,6 +3992,22 @@
       }
     ],
     "status": [
+      {
+        "values": [
+          "default",
+          "error"
+        ],
+        "components": [
+          "checkbox-control",
+          "checkbox-group",
+          "checkbox-row",
+          "radio-control",
+          "radio-group",
+          "radio-row",
+          "switch-control",
+          "switch-row"
+        ]
+      },
       {
         "values": [
           "default",
@@ -5879,6 +5985,30 @@
     ],
     "validation": [
       {
+        "id": "checkbox-control",
+        "default": "default",
+        "values": [
+          "default",
+          "error"
+        ]
+      },
+      {
+        "id": "checkbox-group",
+        "default": "default",
+        "values": [
+          "default",
+          "error"
+        ]
+      },
+      {
+        "id": "checkbox-row",
+        "default": "default",
+        "values": [
+          "default",
+          "error"
+        ]
+      },
+      {
         "id": "password-field",
         "default": "default",
         "values": [
@@ -5889,6 +6019,30 @@
         ]
       },
       {
+        "id": "radio-control",
+        "default": "default",
+        "values": [
+          "default",
+          "error"
+        ]
+      },
+      {
+        "id": "radio-group",
+        "default": "default",
+        "values": [
+          "default",
+          "error"
+        ]
+      },
+      {
+        "id": "radio-row",
+        "default": "default",
+        "values": [
+          "default",
+          "error"
+        ]
+      },
+      {
         "id": "select",
         "default": "default",
         "values": [
@@ -5896,6 +6050,22 @@
           "error",
           "warning",
           "success"
+        ]
+      },
+      {
+        "id": "switch-control",
+        "default": "default",
+        "values": [
+          "default",
+          "error"
+        ]
+      },
+      {
+        "id": "switch-row",
+        "default": "default",
+        "values": [
+          "default",
+          "error"
         ]
       },
       {
@@ -5921,7 +6091,13 @@
     ],
     "validationMessage": [
       {
+        "id": "checkbox-group"
+      },
+      {
         "id": "password-field"
+      },
+      {
+        "id": "radio-group"
       },
       {
         "id": "select"
@@ -6020,21 +6196,11 @@
   "findings": [
     {
       "kind": "state set",
-      "subject": "role peers: *.Control",
-      "components": [
-        "radio-control"
-      ],
-      "detail": "radio-control differs from the group's common set [disabled, error, focus-visible, hover, pressed, rest] — lacks error"
-    },
-    {
-      "kind": "state set",
       "subject": "role peers: *.Row",
       "components": [
-        "checkbox-row",
-        "radio-row",
         "switch-row"
       ],
-      "detail": "no state set is shared by most of the group — checkbox-row [rest, hover, pressed, focus-visible, disabled, read-only, error]; radio-row [rest, hover, pressed, focus-visible, disabled, read-only]; switch-row [rest, hover, pressed, pending, focus-visible, disabled, read-only, error]"
+      "detail": "switch-row differs from the group's common set [disabled, focus-visible, hover, pressed, read-only, rest] — adds pending"
     },
     {
       "kind": "state set",
@@ -6070,7 +6236,7 @@
         "text-field",
         "textarea"
       ],
-      "detail": "no state set is shared by most of the group — checkbox-row [rest, hover, pressed, focus-visible, disabled, read-only, error]; radio-row [rest, hover, pressed, focus-visible, disabled, read-only]; switch-row [rest, hover, pressed, pending, focus-visible, disabled, read-only, error]; text-field [rest, hover, pending, filled, focus-visible, focus-visible-filled, disabled, read-only, empty]; textarea [rest, hover, pending, filled, focus-visible, focus-visible-filled, disabled, read-only, empty]"
+      "detail": "no state set is shared by most of the group — checkbox-row [rest, hover, pressed, focus-visible, disabled, read-only]; radio-row [rest, hover, pressed, focus-visible, disabled, read-only]; switch-row [rest, hover, pressed, pending, focus-visible, disabled, read-only]; text-field [rest, hover, pending, filled, focus-visible, focus-visible-filled, disabled, read-only, empty]; textarea [rest, hover, pending, filled, focus-visible, focus-visible-filled, disabled, read-only, empty]"
     },
     {
       "kind": "state not drawn",
@@ -6262,6 +6428,26 @@
     },
     {
       "kind": "axis values",
+      "subject": "axis status",
+      "components": [
+        "checkbox-control",
+        "checkbox-group",
+        "checkbox-row",
+        "field-message",
+        "password-field",
+        "radio-control",
+        "radio-group",
+        "radio-row",
+        "select",
+        "switch-control",
+        "switch-row",
+        "text-field",
+        "textarea"
+      ],
+      "detail": "the status axis takes 2 value sets — [default, error] in checkbox-control, checkbox-group, checkbox-row, radio-control, radio-group, radio-row, switch-control, switch-row; [default, error, success, warning] in field-message, password-field, select, text-field, textarea"
+    },
+    {
+      "kind": "axis values",
       "subject": "axis style",
       "components": [
         "link",
@@ -6386,7 +6572,23 @@
       "components": [
         "checkbox-control"
       ],
-      "detail": "checkbox-control has the variant axis selection and no prop of that name"
+      "detail": "checkbox-control has the variant axes selection and status and no props of those names"
+    },
+    {
+      "kind": "axis without prop",
+      "subject": "checkbox-group",
+      "components": [
+        "checkbox-group"
+      ],
+      "detail": "checkbox-group has the variant axis status and no prop of that name"
+    },
+    {
+      "kind": "axis without prop",
+      "subject": "checkbox-row",
+      "components": [
+        "checkbox-row"
+      ],
+      "detail": "checkbox-row has the variant axis status and no prop of that name"
     },
     {
       "kind": "axis without prop",
@@ -6402,7 +6604,23 @@
       "components": [
         "radio-control"
       ],
-      "detail": "radio-control has the variant axis selection and no prop of that name"
+      "detail": "radio-control has the variant axes selection and status and no props of those names"
+    },
+    {
+      "kind": "axis without prop",
+      "subject": "radio-group",
+      "components": [
+        "radio-group"
+      ],
+      "detail": "radio-group has the variant axis status and no prop of that name"
+    },
+    {
+      "kind": "axis without prop",
+      "subject": "radio-row",
+      "components": [
+        "radio-row"
+      ],
+      "detail": "radio-row has the variant axis status and no prop of that name"
     },
     {
       "kind": "axis without prop",
@@ -6426,7 +6644,15 @@
       "components": [
         "switch-control"
       ],
-      "detail": "switch-control has the variant axis selection and no prop of that name"
+      "detail": "switch-control has the variant axes selection and status and no props of those names"
+    },
+    {
+      "kind": "axis without prop",
+      "subject": "switch-row",
+      "components": [
+        "switch-row"
+      ],
+      "detail": "switch-row has the variant axis status and no prop of that name"
     },
     {
       "kind": "axis without prop",

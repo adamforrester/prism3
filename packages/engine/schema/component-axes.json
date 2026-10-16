@@ -191,14 +191,17 @@
       ],
       "state": [
         "disabled",
-        "error",
         "focus-visible",
         "hover",
         "pressed",
         "rest"
+      ],
+      "status": [
+        "default",
+        "error"
       ]
     },
-    "members": 54
+    "members": 90
   },
   "checkbox-group": {
     "axes": {
@@ -206,9 +209,13 @@
         "large",
         "medium",
         "small"
+      ],
+      "status": [
+        "default",
+        "error"
       ]
     },
-    "members": 3
+    "members": 6
   },
   "checkbox-row": {
     "axes": {
@@ -216,9 +223,13 @@
         "large",
         "medium",
         "small"
+      ],
+      "status": [
+        "default",
+        "error"
       ]
     },
-    "members": 3
+    "members": 6
   },
   "dialog": {
     "axes": {
@@ -618,9 +629,13 @@
         "hover",
         "pressed",
         "rest"
+      ],
+      "status": [
+        "default",
+        "error"
       ]
     },
-    "members": 30
+    "members": 60
   },
   "radio-group": {
     "axes": {
@@ -628,9 +643,13 @@
         "large",
         "medium",
         "small"
+      ],
+      "status": [
+        "default",
+        "error"
       ]
     },
-    "members": 3
+    "members": 6
   },
   "radio-row": {
     "axes": {
@@ -638,9 +657,13 @@
         "large",
         "medium",
         "small"
+      ],
+      "status": [
+        "default",
+        "error"
       ]
     },
-    "members": 3
+    "members": 6
   },
   "segmented-control": {
     "axes": {
@@ -721,23 +744,30 @@
       ],
       "state": [
         "disabled",
-        "error",
         "focus-visible",
         "hover",
         "pressed",
         "rest"
+      ],
+      "status": [
+        "default",
+        "error"
       ]
     },
-    "members": 24
+    "members": 40
   },
   "switch-row": {
     "axes": {
       "size": [
         "medium",
         "small"
+      ],
+      "status": [
+        "default",
+        "error"
       ]
     },
-    "members": 2
+    "members": 4
   },
   "tab": {
     "axes": {

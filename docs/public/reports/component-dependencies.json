@@ -155,15 +155,30 @@
     },
     {
       "from": "checkbox-group",
+      "to": "field-message",
+      "part": "message",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "status": "error"
+      },
+      "follow": [
+        "status"
+      ]
+    },
+    {
+      "from": "checkbox-group",
       "to": "checkbox-row",
       "part": "row1",
       "partKind": "nest",
       "relation": "nest-fixed",
       "variant": {
-        "size": "medium"
+        "size": "medium",
+        "status": "default"
       },
       "follow": [
-        "size"
+        "size",
+        "status"
       ]
     },
     {
@@ -173,10 +188,12 @@
       "partKind": "nest",
       "relation": "nest-fixed",
       "variant": {
-        "size": "medium"
+        "size": "medium",
+        "status": "default"
       },
       "follow": [
-        "size"
+        "size",
+        "status"
       ]
     },
     {
@@ -186,10 +203,12 @@
       "partKind": "nest",
       "relation": "nest-fixed",
       "variant": {
-        "size": "medium"
+        "size": "medium",
+        "status": "default"
       },
       "follow": [
-        "size"
+        "size",
+        "status"
       ]
     },
     {
@@ -199,10 +218,12 @@
       "partKind": "nest",
       "relation": "nest-fixed",
       "variant": {
-        "size": "medium"
+        "size": "medium",
+        "status": "default"
       },
       "follow": [
-        "size"
+        "size",
+        "status"
       ]
     },
     {
@@ -212,10 +233,12 @@
       "partKind": "nest",
       "relation": "nest-fixed",
       "variant": {
-        "size": "medium"
+        "size": "medium",
+        "status": "default"
       },
       "follow": [
-        "size"
+        "size",
+        "status"
       ]
     },
     {
@@ -225,10 +248,12 @@
       "partKind": "nest",
       "relation": "nest-fixed",
       "variant": {
-        "size": "medium"
+        "size": "medium",
+        "status": "default"
       },
       "follow": [
-        "size"
+        "size",
+        "status"
       ]
     },
     {
@@ -238,10 +263,12 @@
       "partKind": "nest",
       "relation": "nest-fixed",
       "variant": {
-        "size": "medium"
+        "size": "medium",
+        "status": "default"
       },
       "follow": [
-        "size"
+        "size",
+        "status"
       ]
     },
     {
@@ -251,10 +278,12 @@
       "partKind": "nest",
       "relation": "nest-fixed",
       "variant": {
-        "size": "medium"
+        "size": "medium",
+        "status": "default"
       },
       "follow": [
-        "size"
+        "size",
+        "status"
       ]
     },
     {
@@ -265,10 +294,12 @@
       "relation": "nest-exposed",
       "variant": {
         "selection": "unchecked",
-        "state": "rest"
+        "state": "rest",
+        "status": "default"
       },
       "follow": [
-        "size"
+        "size",
+        "status"
       ],
       "expose": [
         "selection",
@@ -691,15 +722,30 @@
     },
     {
       "from": "radio-group",
+      "to": "field-message",
+      "part": "message",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "status": "error"
+      },
+      "follow": [
+        "status"
+      ]
+    },
+    {
+      "from": "radio-group",
       "to": "radio-row",
       "part": "row1",
       "partKind": "nest",
       "relation": "nest-fixed",
       "variant": {
-        "size": "medium"
+        "size": "medium",
+        "status": "default"
       },
       "follow": [
-        "size"
+        "size",
+        "status"
       ]
     },
     {
@@ -709,10 +755,12 @@
       "partKind": "nest",
       "relation": "nest-fixed",
       "variant": {
-        "size": "medium"
+        "size": "medium",
+        "status": "default"
       },
       "follow": [
-        "size"
+        "size",
+        "status"
       ]
     },
     {
@@ -722,10 +770,12 @@
       "partKind": "nest",
       "relation": "nest-fixed",
       "variant": {
-        "size": "medium"
+        "size": "medium",
+        "status": "default"
       },
       "follow": [
-        "size"
+        "size",
+        "status"
       ]
     },
     {
@@ -735,10 +785,12 @@
       "partKind": "nest",
       "relation": "nest-fixed",
       "variant": {
-        "size": "medium"
+        "size": "medium",
+        "status": "default"
       },
       "follow": [
-        "size"
+        "size",
+        "status"
       ]
     },
     {
@@ -748,10 +800,12 @@
       "partKind": "nest",
       "relation": "nest-fixed",
       "variant": {
-        "size": "medium"
+        "size": "medium",
+        "status": "default"
       },
       "follow": [
-        "size"
+        "size",
+        "status"
       ]
     },
     {
@@ -761,10 +815,12 @@
       "partKind": "nest",
       "relation": "nest-fixed",
       "variant": {
-        "size": "medium"
+        "size": "medium",
+        "status": "default"
       },
       "follow": [
-        "size"
+        "size",
+        "status"
       ]
     },
     {
@@ -774,10 +830,12 @@
       "partKind": "nest",
       "relation": "nest-fixed",
       "variant": {
-        "size": "medium"
+        "size": "medium",
+        "status": "default"
       },
       "follow": [
-        "size"
+        "size",
+        "status"
       ]
     },
     {
@@ -787,10 +845,12 @@
       "partKind": "nest",
       "relation": "nest-fixed",
       "variant": {
-        "size": "medium"
+        "size": "medium",
+        "status": "default"
       },
       "follow": [
-        "size"
+        "size",
+        "status"
       ]
     },
     {
@@ -801,10 +861,12 @@
       "relation": "nest-exposed",
       "variant": {
         "selection": "unchecked",
-        "state": "rest"
+        "state": "rest",
+        "status": "default"
       },
       "follow": [
-        "size"
+        "size",
+        "status"
       ],
       "expose": [
         "selection",
@@ -993,10 +1055,12 @@
       "relation": "nest-exposed",
       "variant": {
         "selection": "off",
-        "state": "rest"
+        "state": "rest",
+        "status": "default"
       },
       "follow": [
-        "size"
+        "size",
+        "status"
       ],
       "expose": [
         "selection",
@@ -1322,12 +1386,14 @@
     "checkbox-group": {
       "nests": [
         "checkbox-row",
-        "field-label"
+        "field-label",
+        "field-message"
       ],
       "nestsTransitively": [
         "checkbox-control",
         "checkbox-row",
         "field-label",
+        "field-message",
         "focus-ring"
       ],
       "nestedBy": [],
@@ -1411,13 +1477,17 @@
       "nests": [],
       "nestsTransitively": [],
       "nestedBy": [
+        "checkbox-group",
         "password-field",
+        "radio-group",
         "select",
         "text-field",
         "textarea"
       ],
       "affectedByChange": [
+        "checkbox-group",
         "password-field",
+        "radio-group",
         "select",
         "text-field",
         "textarea"
@@ -1655,10 +1725,12 @@
     "radio-group": {
       "nests": [
         "field-label",
+        "field-message",
         "radio-row"
       ],
       "nestsTransitively": [
         "field-label",
+        "field-message",
         "focus-ring",
         "radio-control",
         "radio-row"

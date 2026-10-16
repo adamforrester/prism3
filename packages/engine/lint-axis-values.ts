@@ -553,7 +553,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
     axis: 'status',
     values: ['default', 'error', 'warning', 'success'],
     defs: ['field-message', 'select', 'text-field', 'textarea', 'password-field'],
-    relation: 'sole',
+    relation: 'canonical',
     reason:
       'A form field\'s VALIDATION OUTCOME. RENAMED from `tone` to `status` in #1334 (the owner\'s split of '
       + 'the overloaded `tone`): this set was recorded here as `overlapping` with `icon`\'s ink vocabulary '
@@ -567,6 +567,18 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'entry records them. '
       + '`error` (not `danger`) mirrors the closed `STATES` vocabulary a validation outcome tracks; the '
       + '`error → danger` ink mapping lives in `lint-paint.ts` as a named provenance exception.',
+  },
+  {
+    axis: 'status',
+    values: ['default', 'error'],
+    defs: ['checkbox-control', 'checkbox-row', 'checkbox-group', 'switch-control', 'switch-row', 'radio-control', 'radio-row', 'radio-group'],
+    relation: 'subset',
+    reason:
+      'The choice controls\' validation outcome (owner Q354, #2751): every control that can be invalid takes the '
+      + 'fields\' `status` axis, and a checkbox, switch or radio has an error look and no warning or success look, '
+      + 'so it carries the canonical set\'s first two values. A shared value means exactly what it means on a '
+      + 'field, which is what lets a group follow its `status` into its rows and its nested `field-message` by '
+      + 'name. The canonical set became `canonical` (from `sole`) when this one joined.',
   },
   {
     axis: 'width',

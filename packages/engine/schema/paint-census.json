@@ -183,98 +183,98 @@
     },
     "checkbox-control": {
       "set": {
-        "members": 54,
-        "assignments": 96,
-        "sha256": "81c2f7634cde9b4023f26d486cadbe60a96fb7ed7d8817ce1ca9cc677bbf075c"
+        "members": 90,
+        "assignments": 174,
+        "sha256": "f72035aabf1331e662f24bc6ba8e41409448cc93d86172619a5cb0f870dd542a"
       },
       "grid": {
-        "members": 54,
-        "assignments": 96,
-        "sha256": "8fb99397e8eb220349767cebcb9ccac0f74f4340fcd5bb08bf69f151e5de4529"
+        "members": 90,
+        "assignments": 168,
+        "sha256": "96d97f6f8cf6dbed5fad280025d74663278c6bbfc434ba035ced7770a7f40fbc"
       }
     },
     "checkbox-row": {
       "set": {
-        "members": 3,
-        "assignments": 3,
-        "sha256": "e2ccaf9c277316221e700c9a025ac415b50f46221e3d7f6945d6947408ee2541"
+        "members": 6,
+        "assignments": 6,
+        "sha256": "19005d90827c20b72b02a6e43dda1796bcbef10cf40b18698968dbcc9a216139"
       },
       "grid": {
-        "members": 21,
-        "assignments": 21,
-        "sha256": "df79a42491e54e3dfc00a6c7e7ed0756a123362ab8c90a8fd626cbeaf46c02d2"
+        "members": 36,
+        "assignments": 36,
+        "sha256": "b66c34f843982956916aaa0dae7529a9f06cb5fa72d4e551c2deb5c9550e33da"
       }
     },
     "checkbox-group": {
       "set": {
-        "members": 3,
+        "members": 6,
         "assignments": 0,
         "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
       },
       "grid": {
-        "members": 3,
+        "members": 6,
         "assignments": 0,
         "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
       }
     },
     "radio-control": {
       "set": {
-        "members": 30,
-        "assignments": 45,
-        "sha256": "f3a795db7908dd18d1a5dbfe48fb1af0b9ee03d865bcc128c77c8bd06447248c"
+        "members": 60,
+        "assignments": 90,
+        "sha256": "758d8fe1932d1e87f2748552b45e94e35e83a66532d733f91ebc3291fef136f9"
       },
       "grid": {
-        "members": 30,
-        "assignments": 45,
-        "sha256": "67d227a6103f044f80d0e9d31c3549994fd0daf27e06859a52ea95cc8667ff41"
+        "members": 60,
+        "assignments": 90,
+        "sha256": "5eb7ae24bc0531d3e6f9d63b46eaf7dfb3f73c7fc447b79bcbdb9c75e73a3680"
       }
     },
     "radio-row": {
       "set": {
-        "members": 3,
-        "assignments": 3,
-        "sha256": "e2ccaf9c277316221e700c9a025ac415b50f46221e3d7f6945d6947408ee2541"
+        "members": 6,
+        "assignments": 6,
+        "sha256": "19005d90827c20b72b02a6e43dda1796bcbef10cf40b18698968dbcc9a216139"
       },
       "grid": {
-        "members": 18,
-        "assignments": 18,
-        "sha256": "a5a1c66e8c365f113de771ca6a6212d3fb407c9bd3e66301e9133e8d826a5a35"
+        "members": 36,
+        "assignments": 36,
+        "sha256": "b66c34f843982956916aaa0dae7529a9f06cb5fa72d4e551c2deb5c9550e33da"
       }
     },
     "radio-group": {
       "set": {
-        "members": 3,
+        "members": 6,
         "assignments": 0,
         "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
       },
       "grid": {
-        "members": 3,
+        "members": 6,
         "assignments": 0,
         "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
       }
     },
     "switch-control": {
       "set": {
-        "members": 24,
-        "assignments": 86,
-        "sha256": "6771f5fb5b05e2bb57de28b4ebb9d789c3d2634bddc371c588c8de9eab1d0626"
+        "members": 40,
+        "assignments": 148,
+        "sha256": "12516b66c3e3e17331897dd4f1ddbd315845fe49d1afc6ef38b3187957b80f5a"
       },
       "grid": {
-        "members": 24,
-        "assignments": 86,
-        "sha256": "cce6ac27d49ca8b32678bde21267e609429e4018cc23a5193eacc58ca9fa1e93"
+        "members": 40,
+        "assignments": 146,
+        "sha256": "cd146da104e8dbc50d4b93fadb060c1691f40f429a8b50c775dfd4b2349551c0"
       }
     },
     "switch-row": {
       "set": {
-        "members": 2,
-        "assignments": 2,
-        "sha256": "f35a25e08771f3c26f975cdf6b046cc7d97a13c8268814f367c039f786f44c74"
+        "members": 4,
+        "assignments": 4,
+        "sha256": "0ddcbb0a9fa0f1d0826c23044d2c38348b47b5e7b5624a403365405b94069ca2"
       },
       "grid": {
-        "members": 16,
-        "assignments": 16,
-        "sha256": "e9897efd57e5669247b66fd9242bd3cbcde3abaa1255e718f5d3ff5c96ba43a7"
+        "members": 28,
+        "assignments": 28,
+        "sha256": "c7cbe7ffc6548a8181ee83c11d2038463249249386163883a4453aeb0e40c819"
       }
     },
     "select": {

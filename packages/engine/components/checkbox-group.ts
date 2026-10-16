@@ -17,11 +17,10 @@
  * reproduces it. Several composition-model choices are NOT settled by Prism 2's spec, and per #1347 they
  * are HELD and surfaced (need_input) rather than invented; each is marked `[HELD]` where it lands:
  *
- *   · GROUP-LEVEL ERROR / VALIDATION DISPLAY. Prism 2 shows the group's `required` (via the label) but no
- *     error state, no group `field-message`, no error skin. The brief (§2, and `checkbox-row`'s own docs)
- *     says the GROUP owns validation and the error message — but gives no Prism 2 visual for it. So the
- *     group carries `required` (settled) and does NOT invent an error treatment; whether it composes a
- *     `field-message` for a group error, and what that looks like, is `[HELD]` (see `notes.unverified`).
+ *   · GROUP-LEVEL ERROR / VALIDATION DISPLAY — RESOLVED (owner Q354, #2751, wireframe approved). Prism 2
+ *     shows no group error; the brief says the GROUP owns validation and the message. The group takes the
+ *     fields' `status` axis [default, error]: it follows it into every row (each row's box draws the danger
+ *     border) and into a nested `field-message` under the options, present only at `error`.
  *   · INTER-ROW LAYOUT GAP — RESOLVED (#1623 sign-off, C2/K-11 + K-23). Prism 2's group gap is 0 because
  *     its rows self-space (12px block padding around the control). Our `checkbox-row` now carries that
  *     same 12px block padding, so it self-spaces too, and the owner chose a 0 group gap: the stack binds
@@ -85,23 +84,33 @@ export const checkboxGroup: ComponentDef = {
     { name: 'required', type: 'boolean', default: false, required: false, description: 'Whether at least one option must be chosen. Off by default. Drives the nested FieldLabel\'s required marker and aria-required on the group. Group-level: an individual row never owns its own required. A form that marks the optional minority instead sets this false.' },
     { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'Scales the group — the label\'s type and every row (control square, label ramp, gap) together, passed into the nested FieldLabel and rows by `follow`, so the group scales with the rest of the form.' },
     { name: 'name', type: 'string', required: false, description: 'A shared control name so the set submits as one field and works uncontrolled in a native form.' },
+    // THE FIELDS' VALIDATION API (owner Q354, #2751), over its first two values: the GROUP owns validation.
+    { name: 'validation', type: "enum: 'default' | 'error'", values: ['default', 'error'], default: 'default', required: false, description: 'The group\'s validation status. `error` passes to every row, which draws the danger border on each box, shows `validationMessage` under the options, and sets aria-invalid on the group. `default` is neutral. Set it here, never on one row.' },
+    { name: 'validationMessage', type: 'string | node', required: false, description: 'The error text shown under the options at `error`, added to the group\'s aria-describedby. Say what is wrong and how to fix it (SC 3.3.3): "Select at least one option", never "Invalid".' },
     { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Disables the whole set — every row and the label dim, driven by the group\'s context (the field\'s native disabled is the source of truth). The group has no disabled treatment of its own.' },
   ],
 
   // No interactive state of the group's OWN — Prism 2's group is a single configuration. The rows and the
-  // label carry their own states (dimming, etc.) through their own defs. `disabled` and group `error` are
-  // HELD (not projected) rather than invented here — see the header and `codeOnly`.
+  // label carry their own states (dimming, etc.) through their own defs. `disabled` is HELD (not projected)
+  // rather than invented here — see the header and `codeOnly`. Group error is the `status` axis below.
   states: ['rest'],
 
   // `size` ONLY — the family-universal axis (see the header `[HELD]` note). No tone/emphasis (a checkbox
   // set is neutral), no surface/inverse axis (#871 — a control set does not ask which ground it stands on),
   // no `orientation` axis (Prism 2 is vertical only; horizontal is HELD, not invented). `size` `follow`s
   // into the nested FieldLabel and rows, so the whole group scales as one.
+  //
+  // `status` (owner Q354, #2751) — the fields' validation axis, its first two values only. The group paints
+  // nothing by it: it FOLLOWS it into every row (each row into its box, which draws the danger border) and
+  // into the nested FieldMessage, which is present only at `error` and shows the group's message under the
+  // options — the field-message pattern the fields use.
   variants: {
     size: ['small', 'medium', 'large'],
+    status: ['default', 'error'],
   },
   // WHEN each axis changes (#1611): runtime axes are held to one footprint, authoring axes are not.
-  axisKinds: { size: 'authoring' },
+  // `status` changes as validation runs; the message it adds is exempt through `footprintVaries`.
+  axisKinds: { size: 'authoring', status: 'runtime' },
 
   // THE GROUP PAINTS NOTHING OF ITS OWN. The label ink is FieldLabel's, every row's ink is
   // checkbox-row's; the container is a transparent stack. So there are no paint slots and no `paintKeys` —
@@ -165,7 +174,7 @@ export const checkboxGroup: ComponentDef = {
         // column down to the fields' 120 floor (Q152.2); the rows still stretch to whatever it is.
         placementWidth: 320,
         minWidth: 120,
-        children: ['label', 'row1', 'row2', 'row3', 'row4', 'row5', 'row6', 'row7', 'row8'],
+        children: ['label', 'row1', 'row2', 'row3', 'row4', 'row5', 'row6', 'row7', 'row8', 'message'],
       },
       // THE NESTED GROUP LABEL (nest-fixed, FOLLOWING size). An in-flow instance of `field-label`,
       // configured to Prism 2's group `formLabel`: emphasis SECONDARY, weight BOLD, and `required` at its own
@@ -187,8 +196,8 @@ export const checkboxGroup: ComponentDef = {
       // the group does not surface per-row selection as its OWN properties (that would re-explode the
       // matrix) — a designer overrides each row instance's exposed `selection`/`state` in place, and a code
       // consumer derives them from the value array. `variant: { size: 'medium' }` is the fallback the
-      // follow overrides per member; checkbox-row projects only `size`, so that one axis is the whole
-      // coordinate. Eight rows, seven behind Figma-only toggles, stand in for the code's `children` (#2344).
+      // follow overrides per member. Since owner Q354 (#2751) each row also follows the group's `status`, so an
+      // errored group nests errored rows; checkbox-row projects `size` and `status`, the whole coordinate. Eight rows, seven behind Figma-only toggles, stand in for the code's `children` (#2344).
       //
       // `crossAxisFill: true` (#1503) — each row STRETCHES to the group's width (`layoutAlign: STRETCH`),
       // reproducing Prism 2's `checkboxRow: layoutSizingHorizontal FILL` so the rows span the 320 group
@@ -199,14 +208,14 @@ export const checkboxGroup: ComponentDef = {
       row1: {
         kind: 'nest',
         nests: 'checkbox-row',
-        nesting: { kind: 'nest-fixed', variant: { size: 'medium' }, follow: ['size'] },
+        nesting: { kind: 'nest-fixed', variant: { size: 'medium', status: 'default' }, follow: ['size', 'status'] },
         crossAxisFill: true,
         note: 'The first Checkbox.Row — always present. Nests the labeled row (which nests the control), following the group\'s size. Fills the group\'s width. Its checked state is derived from the group\'s value array, not wired here.',
       },
       row2: {
         kind: 'nest',
         nests: 'checkbox-row',
-        nesting: { kind: 'nest-fixed', variant: { size: 'medium' }, follow: ['size'] },
+        nesting: { kind: 'nest-fixed', variant: { size: 'medium', status: 'default' }, follow: ['size', 'status'] },
         crossAxisFill: true,
         optional: true,
         note: 'Row 2 of up to eight: a Checkbox.Row, shown by default, behind the Figma-only "Option 2" toggle (#2344). Same nest configuration as the first, including the group-width fill.',
@@ -214,7 +223,7 @@ export const checkboxGroup: ComponentDef = {
       row3: {
         kind: 'nest',
         nests: 'checkbox-row',
-        nesting: { kind: 'nest-fixed', variant: { size: 'medium' }, follow: ['size'] },
+        nesting: { kind: 'nest-fixed', variant: { size: 'medium', status: 'default' }, follow: ['size', 'status'] },
         crossAxisFill: true,
         optional: true,
         note: 'Row 3 of up to eight: a Checkbox.Row, shown by default, behind the Figma-only "Option 3" toggle (#2344). Same nest configuration as the first, including the group-width fill.',
@@ -222,7 +231,7 @@ export const checkboxGroup: ComponentDef = {
       row4: {
         kind: 'nest',
         nests: 'checkbox-row',
-        nesting: { kind: 'nest-fixed', variant: { size: 'medium' }, follow: ['size'] },
+        nesting: { kind: 'nest-fixed', variant: { size: 'medium', status: 'default' }, follow: ['size', 'status'] },
         crossAxisFill: true,
         optional: true,
         note: 'Row 4 of up to eight: a Checkbox.Row, hidden by default, behind the Figma-only "Option 4" toggle (#2344). Same nest configuration as the first, including the group-width fill.',
@@ -230,7 +239,7 @@ export const checkboxGroup: ComponentDef = {
       row5: {
         kind: 'nest',
         nests: 'checkbox-row',
-        nesting: { kind: 'nest-fixed', variant: { size: 'medium' }, follow: ['size'] },
+        nesting: { kind: 'nest-fixed', variant: { size: 'medium', status: 'default' }, follow: ['size', 'status'] },
         crossAxisFill: true,
         optional: true,
         note: 'Row 5 of up to eight: a Checkbox.Row, hidden by default, behind the Figma-only "Option 5" toggle (#2344). Same nest configuration as the first, including the group-width fill.',
@@ -238,7 +247,7 @@ export const checkboxGroup: ComponentDef = {
       row6: {
         kind: 'nest',
         nests: 'checkbox-row',
-        nesting: { kind: 'nest-fixed', variant: { size: 'medium' }, follow: ['size'] },
+        nesting: { kind: 'nest-fixed', variant: { size: 'medium', status: 'default' }, follow: ['size', 'status'] },
         crossAxisFill: true,
         optional: true,
         note: 'Row 6 of up to eight: a Checkbox.Row, hidden by default, behind the Figma-only "Option 6" toggle (#2344). Same nest configuration as the first, including the group-width fill.',
@@ -246,7 +255,7 @@ export const checkboxGroup: ComponentDef = {
       row7: {
         kind: 'nest',
         nests: 'checkbox-row',
-        nesting: { kind: 'nest-fixed', variant: { size: 'medium' }, follow: ['size'] },
+        nesting: { kind: 'nest-fixed', variant: { size: 'medium', status: 'default' }, follow: ['size', 'status'] },
         crossAxisFill: true,
         optional: true,
         note: 'Row 7 of up to eight: a Checkbox.Row, hidden by default, behind the Figma-only "Option 7" toggle (#2344). Same nest configuration as the first, including the group-width fill.',
@@ -254,16 +263,29 @@ export const checkboxGroup: ComponentDef = {
       row8: {
         kind: 'nest',
         nests: 'checkbox-row',
-        nesting: { kind: 'nest-fixed', variant: { size: 'medium' }, follow: ['size'] },
+        nesting: { kind: 'nest-fixed', variant: { size: 'medium', status: 'default' }, follow: ['size', 'status'] },
         crossAxisFill: true,
         optional: true,
         note: 'Row 8 of up to eight: a Checkbox.Row, hidden by default, behind the Figma-only "Option 8" toggle (#2344). Same nest configuration as the first, including the group-width fill.',
+      },
+      // THE GROUP'S MESSAGE (owner Q354, #2751): an in-flow instance of `field-message` under the options, the
+      // part the fields nest, reused rather than redrawn. PRESENT ONLY AT `status=error` (`presentWhen`), so a
+      // valid group looks exactly as it did and an errored one adds its message; its own `status` FOLLOWS the
+      // group's, so the message is the error member (glyph and danger ink). The group-level helper text (a
+      // `description` at `default`) stays deferred (`notes.contested`).
+      message: {
+        kind: 'nest',
+        nests: 'field-message',
+        nesting: { kind: 'nest-fixed', variant: { status: 'error' }, follow: ['status'] },
+        presentWhen: { status: ['error'] },
+        crossAxisFill: true,
+        note: 'The group\'s validation message under the options, a nested FieldMessage present only when the group is at error. Its status follows the group\'s, so it shows the error glyph and ink. Fills the group\'s width, so a long message wraps.',
       },
     },
     codeOnly: [
       // MUST LEAD with the term — `figmaPropertyErrors` matches an admission by its first word (#563).
       'value / onChange — the GROUP owns the checked-value ARRAY and the change callback (`value: string[]`), and each row\'s checked appearance is DERIVED from it (`checked = value.includes(row.value)`), never wired on a row inside the group. Figma has no data model, so the projected rows show a fixed default selection; the array and its wiring are the code projection\'s. This is the contract the brief (§2) puts on the group and a single `checkbox-row` structurally cannot express.',
-      'error / validation — GROUP-LEVEL and [HELD]. The brief says the group owns validation and carries the error message ("Select at least one option", SC 3.3.3), with the individual rows staying neutral. Prism 2\'s spec settles no error visual for the group (no error state, no group field-message), so this def deliberately does NOT invent one: whether the group composes a nested `field-message` for the error, and what an errored group looks like, is held for owner decision. `required` IS carried (via the nested FieldLabel and aria-required); error is not.',
+      'validationMessage — the error text is the code projection\'s; the Figma member at `status=error` shows FieldMessage\'s own placeholder text, which a designer overrides on the instance. aria-invalid on the group and the message\'s place in aria-describedby are DOM wiring the host owns, as on the fields.',
       'select-all — [HELD], and absent by design. A select-all is a parent checkbox in the `indeterminate` state broadcasting partial selection, and it is expressible from the existing parts (a `checkbox-row` at `indeterminate` above the set). Prism 2\'s group has none, so reproducing Prism 2 means not adding one; its absence is confirmed rather than an oversight.',
       'variable row count — in code the count is simply `children: CheckboxRow[]` of any length. Figma has no data model, so the projection carries a fixed stack of eight nested rows, row 1 always shown and rows 2 to 8 each behind a Figma-only "Option N" toggle, three shown by default (#2344, owner decision Q156 A, Prism 2\'s mechanism with eight rows where it had six). The toggles are Figma\'s only: no code prop drives them, and a hidden row is not an option. A group needing more than eight options is built in code.',
       'orientation — [HELD]. The brief\'s §15 names a group `orientation` (vertical / horizontal); Prism 2 is vertical only. Vertical scans better and lets long labels wrap, so it is the built default and horizontal is not invented here — a horizontal axis is held rather than guessed at.',
@@ -278,7 +300,11 @@ export const checkboxGroup: ComponentDef = {
   // has no state of its own — `rest` alone), the seven Figma-only row toggles (#2344, below), no `texts`/`swaps` (the group has no text or swap part of
   // its own; the label text is the nested FieldLabel's).
   figmaProperties: {
-    variantAxes: ['size'],
+    // `status` (owner Q354, #2751) joins `size`: 3 sizes × 2 statuses = 6 members. An update adds `status=default`
+    // to each existing member in place; the error members are new.
+    variantAxes: ['size', 'status'],
+    // The nested message is present only at `status=error`, so the footprint grows along `status` by design.
+    footprintVaries: ['status'],
     // UP TO EIGHT ROWS (#2344, owner decision Q156 A): row 1 always shows; rows 2 to 8 each sit behind a FIGMA-ONLY
     // boolean (no code prop — in code the count is `children`), rows 2 and 3 on by default, so a group reads as the
     // three rows it always did and a designer turns on up to five more. Booleans do not multiply the set.
@@ -298,7 +324,7 @@ export const checkboxGroup: ComponentDef = {
     wcag: [
       '1.3.1 Info and Relationships (the group structure — role="group" + the shared label — is the meaning)',
       '3.3.2 Labels or Instructions (the group label, announced once for the set)',
-      '3.3.1 Error Identification / 3.3.3 Error Suggestion — the intent, at the GROUP level and announced once. The group error display is not designed yet, so this def does not meet either today.',
+      '3.3.1 Error Identification / 3.3.3 Error Suggestion — at the GROUP level, announced once: at `status=error` every row draws the danger border and the message under the options says what is wrong and how to fix it. The border is never the only signal.',
       '4.1.2 Name Role Value (the group name via aria-labelledby; each row carries its own checked / mixed)',
       '2.4.13 Focus Appearance / 1.4.11 Non-text Contrast (the control boundary and focus indicator, on each row)',
       '2.5.8 Target Size (each row is its own target — the group does not change that)',
@@ -306,12 +332,12 @@ export const checkboxGroup: ComponentDef = {
     ],
     keyboard: 'Each checkbox row is its OWN Tab stop and Space toggles it — the same model as a standalone Checkbox.Row, and the key difference from Radio.Group (one Tab stop, arrows within). The group adds no roving tabindex and no arrow navigation; it is a labeled container, not a single composite widget. NEVER override Enter (it submits the enclosing form).',
     focus: 'Focus lands on each row\'s control in turn; the group container is not itself focusable. On a validation error, move focus to the first invalid group (its label / first row) and announce the group-level message.',
-    aria: 'Prefer role="group" on a div plus aria-labelledby over <fieldset>/<legend>: both are valid, but fieldset has flexbox/grid quirks that make it hard to style, and role="group" keeps the layout freedom while preserving the shared-label announcement. The GROUP owns required and error — aria-required and aria-invalid associate to the group and announce once; an individual row never owns its own required or error. Do not double-label: the rows carry their short labels, the group carries the decision.',
+    aria: 'Prefer role="group" on a div plus aria-labelledby over <fieldset>/<legend>: both are valid, but fieldset has flexbox/grid quirks that make it hard to style, and role="group" keeps the layout freedom while preserving the shared-label announcement. The GROUP owns required and error — aria-required and aria-invalid associate to the group and announce once, and the group\'s message joins its aria-describedby; an individual row never owns its own required or error. The group passes its `status` to every row, so the rows show the error without each claiming it. Do not double-label: the rows carry their short labels, the group carries the decision.',
   },
 
   content: {
     labelPattern: 'The group label NAMES THE DECISION or asks the question ("Notification preferences", "Which contact methods?"), abstracting the shared word up so its rows read the short remainder ("Email", "SMS", "Push"). Sentence case, no trailing colon — FieldLabel\'s rules.',
-    errorPattern: 'GROUP-LEVEL and specific — "Select at least one option", stating what is wrong and how to fix it (SC 3.3.3), never "Invalid". The rows stay neutral; the group carries the message. The error visual is not designed yet.',
+    errorPattern: 'GROUP-LEVEL and specific — "Select at least one option", stating what is wrong and how to fix it (SC 3.3.3), never "Invalid". The group sets `status=error` on every row (the danger border on each box) and shows the message once, under the options.',
   },
 
   docs: {
@@ -343,9 +369,9 @@ export const checkboxGroup: ComponentDef = {
   },
 
   composition: {
-    // WHAT THIS DEF NESTS, and only that (#1698, the #1700 rule): the label and the rows. `field-message`
-    // is a partner (the held group-error display), carried in `ai.commonPartners`.
-    composesWith: ['checkbox-row', 'field-label'],
+    // WHAT THIS DEF NESTS, and only that (#1698, the #1700 rule): the label, the rows and, since owner Q354
+    // (#2751), the error message under them.
+    composesWith: ['checkbox-row', 'field-label', 'field-message'],
     alternativeTo: ['radio-group', 'switch-row'],
     replacesPatterns: [
       'a bare set of <input type="checkbox"> with no shared label or group wiring',
@@ -371,10 +397,10 @@ export const checkboxGroup: ComponentDef = {
       'THE `size` AXIS IS A GENERALIZATION OF PRISM 2, NOT A REPRODUCTION — Prism 2\'s group is single-size (a Large label). The family-universal `size` axis is carried so the group is not the one form def frozen at one size, scaling the label and rows together by `follow`. `[HELD]`: the owner may prefer a single-size group; if so, drop the axis and pin the nested label/rows to one rung. Recorded as a fork rather than presented as settled.',
       'THE GROUP PAINTS NOTHING and so declares no `paintKeys` — the first projecting def whose whole color surface is its nested children\'s. The alternative (inventing a group fill or border) is exactly the surface Prism 2\'s transparent container does not have; a stack is structure, and its ink lives one level down in `field-label` and `checkbox-row`.',
       '`orientation` AND `density` ARE OMITTED. Brief §3 and §15 give the group `orientation` (vertical default, horizontal for a few short options) and `density` (comfortable, compact). Prism 2\'s group is vertical and single-density, so neither is an axis here; vertical is the built default and horizontal is held (see `codeOnly`). The alternative is declaring both as axes, which multiplies the set for configurations nobody has designed.',
-      'THE GROUP `description` PROP IS DEFERRED (#1698, decision 3). The brief puts a group-level `description` (helper text, describedby-wired) beside `required` and the error message. It would compose the same part the group error does, and that part is the held field-message decision, so it waits for it rather than inventing a helper slot the error design may reshape.',
+      'THE GROUP `description` PROP IS DEFERRED (#1698, decision 3). The brief puts a group-level `description` (helper text, describedby-wired) beside `required` and the error message. It would compose the same part the group error does. Q354 (#2751) built that part as a nested FieldMessage present only at `status=error`, so a valid group looks as it did; showing the same part at `default` as helper text is the remaining decision, and it is the owner\'s.',
     ],
     unverified: [
-      'GROUP-LEVEL ERROR / VALIDATION DISPLAY IS `[HELD]`. The brief puts validation and the error message on the group; Prism 2 settles no visual for it. This def carries `required` (settled) and no error skin (unsettled). Whether the group nests a `field-message` for the group error, and what an errored group looks like (a recolored label? a message below the stack? a per-row neutral hold?), needs the owner. Building one now would invent the very thing the brief left to design.',
+      'THE GROUP ERROR IS UNVERIFIED ON A REAL HOST (owner Q354, #2751). The group follows `status` two levels down (group → row → control) and gates a nested FieldMessage on it. The shim builds and reads back both; whether a real host keeps a row\'s followed `status` when a designer has also overridden that row\'s exposed selection or state is the open question. The symptom: an errored group with one row showing a neutral box.',
       'THE VARIABLE ROW COUNT IS BUILT; SELECT-ALL IS `[HELD]`. Eight nested rows, row 1 always shown and rows 2 to 8 behind Figma-only booleans, three on by default (#2344, owner decision Q156 A): Prism 2\'s six-rows-with-booleans, at eight. A select-all parent is expressible (a row at `indeterminate` above the set) and deliberately not added, since Prism 2 has none.',
       'THE NESTING IS UNVERIFIED ON A REAL HOST, the same way `checkbox-row`\'s and the other decompositions\' are: the group nests `checkbox-row` (which nests `checkbox-control` `nest-exposed`), the deepest chain in the corpus, and whether a doubly-nested instance\'s inherited sizing and exposed properties cooperate with the group\'s auto-layout is a real-host question the offline shim cannot answer. `test:roundtrip` builds every projected def and reads it back — the host-truth check #1347 named, and #1503 extends it to assert each row reads back `layoutAlign: STRETCH` — but a three-deep nest is new ground; the symptom to look for is a row instance that does NOT fill the group (the STRETCH dropped on a real host), or an exposed selection that does not surface at the group.',
     ],
