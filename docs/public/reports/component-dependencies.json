@@ -101,15 +101,13 @@
     },
     {
       "from": "banner",
-      "to": "icon-button-neutral",
+      "to": "flush-icon-button-neutral",
       "part": "dismiss",
       "partKind": "nest",
       "relation": "nest-fixed",
       "variant": {
-        "appearance": "ghost",
+        "shape": "flush",
         "size": "small",
-        "shape": "square",
-        "surface": "default",
         "state": "rest"
       }
     },
@@ -1301,12 +1299,12 @@
     "banner": {
       "nests": [
         "button-neutral",
-        "icon-button-neutral"
+        "flush-icon-button-neutral"
       ],
       "nestsTransitively": [
         "button-neutral",
+        "flush-icon-button-neutral",
         "focus-ring",
-        "icon-button-neutral",
         "spinner"
       ],
       "nestedBy": [],
@@ -1520,8 +1518,12 @@
       "nestsTransitively": [
         "focus-ring"
       ],
-      "nestedBy": [],
-      "affectedByChange": [],
+      "nestedBy": [
+        "banner"
+      ],
+      "affectedByChange": [
+        "banner"
+      ],
       "inherits": "icon-button-neutral",
       "inheritedBy": []
     },
@@ -1634,11 +1636,9 @@
         "spinner"
       ],
       "nestedBy": [
-        "banner",
         "dialog"
       ],
       "affectedByChange": [
-        "banner",
         "dialog"
       ],
       "inherits": "button-neutral",

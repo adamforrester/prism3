@@ -1267,7 +1267,7 @@
         "the heading level — the title renders as the `<h*>` that `headingLevel` names (default 2), never a hard-coded level. Figma has no heading level.",
         "dismissal — the dismiss button renders only when `dismissible` and `onDismiss` are both set. Its accessible name says what it dismisses (\"Dismiss error message\"), not a bare \"Close\". The dismissal is stored against an id and a version, so a dismissed notice does not return on reload. A banner about a condition that still blocks the user is not dismissible, or comes back only while the condition holds.",
         "focus after a dismiss — focus moves to a surviving element that makes sense (the control that caused the banner, or the page heading), never to the page body.",
-        "the dismiss target — the small IconButton is a 36px square; its hit area extends to 44px in code, as IconButton's does.",
+        "the dismiss target — the small FlushIconButton is a 20px glyph square; its hit area extends to at least 44×44px in code, as FlushIconButton's does.",
         "one banner at a time — show only the most serious banner in a region; route lower-priority messages to a notification list rather than stacking banners.",
         "motion — appears with an opacity fade; a dismiss collapses the height (about 150 to 200ms) and fades, on `motion.transition.exit`, so the content below does not jump. Under `prefers-reduced-motion` both are instant. A banner inserted at the top of a page later reserves its space. Figma shows the banner at rest.",
         "RTL — logical properties throughout: the glyph and the dismiss button swap edges. No glyph mirrors (the four tone glyphs and the close glyph are symmetric).",
@@ -1286,6 +1286,7 @@
           "Whether the nested buttons' Rest, Hover and Pressed prototype reactions fire inside a nested instance (the open nesting item on #2466)."
         ],
         "evolution": [
+          "Q386 (#2808): no component requires the Neutral button families, so the dismiss nests FlushIconButton.Neutral with the close glyph fixed and no swap, as Dialog's close does (Q385).",
           "Owner decisions: the proposal on #2579 and Q327 (2026-10-16): tones info, success, warning and danger; subtle emphasis only; placement on a width axis, contained or full; title and body in text.primary; the body a native content slot; up to two actions, outline then text, off by default; the name Banner with the aliases alert, callout and inline-alert; a full 1px border in the tone color. Q346: the edge binds the border role, never an icon or text role."
         ],
         "projection": []
