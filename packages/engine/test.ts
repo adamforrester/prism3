@@ -6656,17 +6656,18 @@ arm: {
   // independent model of Figma's hugging row over the PLAN — the flow children only (a hidden or absolutely placed
   // node takes no cell), plus the padding, one gap between cells and the root's literal floor; the strokes are
   // drawn inside and take no width — with each variable's px read from the brand's built tree. EXPECTED is
-  // literal, at medium on comfortable density, the owner's arithmetic:
+  // literal, at medium on comfortable density, the owner's arithmetic, with the glyph one rung below the control
+  // since #2725 (owner Q337 A: 16 / 20 / 24, so 20px at medium, where it was 24):
   //   · a 24px label alone: 12+24+12 = 48, under the 64px floor, so 64 (the content centers in it);
-  //   · a 24px label and the check: 12+24+6+24+12 = 78;
-  //   · a 67px label, the leading icon and the check: 12+24+8+67+6+24+12 = 153;
-  //   · the check widens a tag above its floor by one glyph and one gap, 24+6 = 30, and not at all with it off.
+  //   · a 24px label and the 20px check: 12+24+6+20+12 = 74;
+  //   · a 67px label, the 20px leading icon and the check: 12+20+8+67+6+20+12 = 145;
+  //   · the check widens a tag above its floor by one glyph and one gap, 20+6 = 26, and not at all with it off.
   // and the DISMISSIBLE tag at every size (owner, 2026-09-29, decision N): padding-x, then the icon, the content
   // gap and the label row's 4px leading inset, then the label, no inset before the × slot (decision M), and the
   // square slot. The content gap is the icon→label less 4 (2/4/4), so the icon→label reads 6/8/8:
-  //   · small, 20px label: 8+4+20+0+36 = 68; with the 20px icon: 8+20+2+4+20+36 = 90;
-  //   · medium, 24px label: 12+4+24+0+44 = 84; with the 24px icon: 12+24+4+4+24+44 = 112;
-  //   · large, 24px label: 16+4+24+0+56 = 100; with the 32px icon: 16+32+4+4+24+56 = 136.
+  //   · small, 20px label: 8+4+20+0+36 = 68; with the 16px icon: 8+16+2+4+20+36 = 86;
+  //   · medium, 24px label: 12+4+24+0+44 = 84; with the 20px icon: 12+20+4+4+24+44 = 108;
+  //   · large, 24px label: 16+4+24+0+56 = 100; with the 24px icon: 16+24+4+4+24+56 = 128.
   {
     const widthBrands: [string, any][] = loadedRows([['nb', nbTheme()], ...(['aurora', 'harbor', 'prism3'] as const).map((b) => [b, exampleTheme(b, () => brandTheme(exampleBrands()[b] as BrandInput))] as [string, any])]);
     for (const [b, th] of widthBrands) {
@@ -6697,17 +6698,17 @@ arm: {
         widen: widthOf(set(sel, 'leadingVisual', false), 67) - widthOf(set(un, 'leadingVisual', false), 67),
         widenOff: widthOf(set(set(sel, 'leadingVisual', false), 'check', false), 67) - widthOf(set(un, 'leadingVisual', false), 67),
       };
-      const WANT = { alone: 64, check: 78, full: 153, widen: 30, widenOff: 0 };
+      const WANT = { alone: 64, check: 74, full: 145, widen: 26, widenOff: 0 };
       ok(JSON.stringify(got) === JSON.stringify(WANT),
-        `tag rendered width (${b}, medium, comfortable): the owner's worked examples for a select tag — label alone 64 (the floor), label + check 78, icon + 67px label + check 153, and the check widens a tag above its floor by 30 and by 0 when switched off (got ${JSON.stringify(got)})`);
+        `tag rendered width (${b}, medium, comfortable): the owner's worked examples for a select tag — label alone 64 (the floor), label + check 74, icon + 67px label + check 145, and the check widens a tag above its floor by 26 and by 0 when switched off (got ${JSON.stringify(got)})`);
       const DIS_LABEL: Record<string, number> = { small: 20, medium: 24, large: 24 };
       const gotDis = Object.fromEntries(['small', 'medium', 'large'].map((sz) => {
         const dis = rest('dismissible', 'unselected', sz);
         return [sz, `${widthOf(set(dis, 'leadingVisual', false), DIS_LABEL[sz])}/${widthOf(set(dis, 'leadingVisual', true), DIS_LABEL[sz])}`];
       }));
-      const WANT_DIS = { small: '68/90', medium: '84/112', large: '100/136' };
+      const WANT_DIS = { small: '68/86', medium: '84/108', large: '100/128' };
       ok(JSON.stringify(gotDis) === JSON.stringify(WANT_DIS),
-        `tag dismissible rendered width (${b}, comfortable): label alone / with the leading icon — small 68/90 (20px label), medium 84/112, large 100/136 (24px label), the label row inset 4px and the icon→label 6/8/8 (got ${JSON.stringify(gotDis)})`);
+        `tag dismissible rendered width (${b}, comfortable): label alone / with the leading icon — small 68/86 (20px label), medium 84/108, large 100/128 (24px label), the label row inset 4px and the icon→label 6/8/8 (got ${JSON.stringify(gotDis)})`);
     }
   }
   // THE DISMISSIBLE ICON→LABEL, per size and density (owner, 2026-09-29, decision N), read off the PROJECTED
@@ -16754,6 +16755,64 @@ arm: {
     for (const d of flushFamily)
       ok(d.docs.do!.includes('Space two flush icon buttons at least 44px apart, center to center, so their tap areas don\'t overlap'),
         `#2457 ${d.id}'s docs.do states the 44px spacing center to center (Q296 A)`);
+  }
+
+  // ---- #2725: THE TEXT-BEARING CONTROLS STEP THEIR GLYPH DOWN ONE RUNG — owner decision Q337 A (2026-10-15) ----
+  // Segmented control, Tab and Tag follow Button (#1350): small 16, medium 20, large 24 (`icon.size.xs` / `sm` / `md`).
+  // Icon button keeps its 1:1 rung (20 / 24 / 32); Flush icon button its own (20 / 20 / 24, asserted above). EXPECTED is
+  // the decision, transcribed here as literals (the variable name AND the px), never read off a def or the icon ladder
+  // (docs/34). ACTUAL is every projected member's glyph parts, at any depth, with each bound variable's px read from the
+  // brand's built tree, so a def reverted to the 1:1 rung, a rung slipped two down, or a ladder that moved under the name
+  // each fail one named arm. On Tag the one rung sizes the leading icon, the check and the ×, so all three are read.
+  {
+    const STEP_DOWN: Record<string, [string, number]> = { small: ['icon/size/xs', 16], medium: ['icon/size/sm', 20], large: ['icon/size/md', 24] };
+    const ONE_TO_ONE: Record<string, [string, number]> = { small: ['icon/size/sm', 20], medium: ['icon/size/md', 24], large: ['icon/size/lg', 32] };
+    const GLYPH_CASES: Array<{ id: string; parts: string[]; want: Record<string, [string, number]> }> = [
+      { id: 'segmented-control-segment', parts: ['leadingVisual'], want: STEP_DOWN },
+      { id: 'tab', parts: ['leadingVisual'], want: STEP_DOWN },
+      { id: 'tag', parts: ['leadingVisual', 'check', 'dismissGlyph'], want: STEP_DOWN },
+      { id: 'icon-button', parts: ['icon'], want: ONE_TO_ONE },
+      { id: 'icon-button-destructive', parts: ['icon'], want: ONE_TO_ONE },
+      { id: 'icon-button-neutral', parts: ['icon'], want: ONE_TO_ONE },
+    ];
+    const glyphBrands: [string, any][] = loadedRows([['nb', nbTheme()], ...EXAMPLE_IDS.map((b) => [b, exampleTheme(b, () => brandTheme(exampleBrands()[b] as BrandInput))] as [string, any])]);
+    const findAll = (n: any, names: string[], out: any[] = []): any[] => {
+      if (names.includes(n.name)) out.push(n);
+      for (const c of n.children ?? []) findAll(c, names, out);
+      return out;
+    };
+    for (const { id, parts, want } of GLYPH_CASES) {
+      const def = componentDefs.find((d) => d.id === id)!;
+      ok(!!def, `#2725 ${id} is a registered def`);
+      if (!def) continue;
+      const plans = figmaAnatomySet(def, { swapTarget: 'FPO-default-icon' });
+      const seenParts = new Set<string>(), seenSizes = new Set<string>();
+      const wrongName: string[] = [], wrongPx: string[] = [];
+      for (const [b, th] of glyphBrands) {
+        const built = buildTree(th).tree;
+        const root = Object.keys(built)[0];
+        const px = (v: string | undefined): number => {
+          let n: any = built[root];
+          for (const seg of String(v).split('/')) n = n?.[seg];
+          const x = n?.$extensions?.prism3?.px;
+          return typeof x === 'number' ? x : NaN;
+        };
+        for (const p of plans) {
+          const [wantVar, wantPx] = want[String(p.size)] ?? ['?', NaN];
+          for (const g of findAll(p.root, parts)) {
+            seenParts.add(g.name); seenSizes.add(String(p.size));
+            if (g.bound?.width !== wantVar || g.bound?.height !== wantVar) wrongName.push(`${planComponentName(p)} ${g.name} (${g.bound?.width}×${g.bound?.height}, want ${wantVar})`);
+            if (px(g.bound?.width) !== wantPx || px(g.bound?.height) !== wantPx) wrongPx.push(`${b} ${planComponentName(p)} ${g.name} (${px(g.bound?.width)}×${px(g.bound?.height)}px, want ${wantPx})`);
+          }
+        }
+      }
+      const label = Object.keys(want).map((s) => want[s][1]).join(' / ');
+      // SCOPE FLOOR: every glyph part named above is drawn at all three sizes, so a part that stops projecting cannot pass by absence.
+      ok(parts.every((n) => seenParts.has(n)) && ['small', 'medium', 'large'].every((s) => seenSizes.has(s)),
+        `#2725 ${id}: every glyph part [${parts.join(', ')}] projects at small, medium and large (seen parts [${[...seenParts].join(', ')}], sizes [${[...seenSizes].join(', ')}])`);
+      ok(wrongName.length === 0, `#2725 ${id}'s glyph binds ${Object.values(want).map((w) => w[0]).join(' / ')} at small / medium / large (Q337 A)${wrongName.length ? ` — ${wrongName.slice(0, 4).join('; ')}` : ''}`);
+      ok(wrongPx.length === 0, `#2725 ${id}'s glyph is ${label}px at small / medium / large in every brand (Q337 A)${wrongPx.length ? ` — ${wrongPx.slice(0, 4).join('; ')}` : ''}`);
+    }
   }
 
   // #1225 — INTENT IS THE COMPONENT NOW, NOT AN AXIS (the icon-only counterpart of #1223's Button split).
