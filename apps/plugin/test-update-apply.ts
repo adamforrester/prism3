@@ -140,6 +140,9 @@
  *                  key and id kept, current after. The expected names and px are typed here from the decision.
  *                  Mutation: the executor's bind loop skipping width and height on an existing node →
  *                  `stepdown/<id> rebound`, `stepdown/<id> verdict`.
+ *   stretch/…      an axis the parent stretches (Accordion's indicator, FIXED on the host at medium and large where the
+ *                  plan says AUTO): the verify and the dry run accept it alike, and both name a node nothing stretches
+ *                  on that axis, or one whose stretch the host lost (#2696). Mutations in the section's own comment.
  *   overrides/…    a List built before its items carried their numbers (#2645): the dry run lists the override on
  *                  items 2 to 8 as a change and replaces nothing; Update writes each in place, every key and id kept,
  *                  and a number a designer typed is kept as a hand edit. Mutation: the in-place branch skipping the
@@ -1148,6 +1151,60 @@ section('grid — a set laid out in another axis order reads its members as move
   const v = applyVerdict(res);
   ok(pre.sets[0].counts.move === undefined && changed > 0 && res.outcomes[0]?.moved === changed && v.lines[0] === `tag: 45 updated in place, ${changed} moved.`,
     `grid/resized: an update that resizes members moves ${changed} the dry run could not list, and the apply counts every one (${previewLine(pre.sets[0])} → ${v.lines[0]})`);
+}
+
+section('default member — Q347\'s three reorders reach an existing set in place: every id, key and placed instance kept (#2752)');
+{
+  // A SET BUILT BEFORE #2752, with the axis in its old order (typed here, the order each def held before), updated to
+  // the def as it is. Figma inserts a set's top-left-most member (`ComponentSetNode.defaultVariant`), so the update has
+  // to MOVE the code default's members to the top-left, and nothing else: no member rebuilt, renamed or dropped, so
+  // every id and key holds and an instance placed from the old set still points at a member of it. The expected
+  // default is the owner's decision, typed here, never read from the def. Mutation: the grid move dropped from the
+  // apply → `default member/<def> inserted`.
+  const OLD: [string, string, string[], string][] = [
+    ['icon-button', 'appearance', ['filled', 'outline', 'ghost'], 'appearance=ghost'],
+    ['veil', 'intensity', ['subtle', 'medium', 'strong'], 'intensity=medium'],
+    ['image-placeholder', 'ratio', ['2:3', '3:4', '4:5', '1:1', '4:3', '3:2', '16:9'], 'ratio=4:3'],
+  ];
+  /** Figma's default variant: the top-left-most member, spatially. Topmost row first, then leftmost in it. */
+  const insertedOf = (set: Node): string => String([...membersOf(set)].sort((a, b) => Number(a.y) - Number(b.y) || Number(a.x) - Number(b.x))[0]?.name);
+  for (const [id, axis, old, want] of OLD) {
+    const d = structuredClone(componentDefs.find((x) => x.id === id)!) as unknown as { variants: Record<string, string[]> };
+    d.variants[axis] = old;
+    const w = await world(id, figmaAnatomySet(d as never, { swapTarget: SWAP_TARGET }));
+    const set = w.set();
+    const was = insertedOf(set);
+    ok(!was.split(', ').includes(want), `premise: ${id} built in the old order inserts ${was}`);
+    // TWO PLACED INSTANCES, on the page beside the set: one of the member the old set inserted, one of the member the
+    // new one will. Each points at the live member node, as a placed instance's main component does.
+    const mainOf = (name: string): Node => membersOf(set).find((m) => String(m.name) === name)!;
+    const newDefault = membersOf(set).find((m) => String(m.name).split(', ').includes(want) && String(m.name) === planComponentName(plansOf(id)[0]))!;
+    const placed = [mainOf(was), newDefault].map((main, i) => {
+      const inst = { type: 'INSTANCE', id: `I:${id}:${i}`, name: String(main.name), x: -500, y: 100 * i, mainComponent: main, children: [] } as unknown as Node;
+      w.page.children.push(inst);
+      return { inst, main, mainId: String(main.id) };
+    });
+    const before = identityOf(set);
+    const plans = plansOf(id);
+    const pre = await previewUpdate(w.host, [{ def: id, plans }]);
+    const c = pre.sets[0].counts;
+    ok((c.move ?? 0) > 0 && c.update + c.add + c.drop + c.rename + c.handEdited + c.noBaseline === 0,
+      `default member/${id} dry run: the reorder reads as moves and nothing else (${previewLine(pre.sets[0])})`);
+    const res = await applyUpdate(w.host, w.api as any, [{ def: id, plans }], previewHashOf(pre));
+    const now = w.set();
+    const after = identityOf(now);
+    const keptIds = now === set && after.set.join() === before.set.join() && after.members.size === before.members.size
+      && [...before.members].every(([k, b]) => after.members.get(k)?.id === b.id && after.members.get(k)?.key === b.key);
+    ok(applyVerdict(res).ok && keptIds, `default member/${id} in place: the set and every member keep their key and id (${applyVerdict(res).headline}; ids ${keptIds ? 'kept' : 'changed'})`);
+    const inserted = insertedOf(now);
+    ok(inserted.split(', ').includes(want) && inserted === planComponentName(plans[0]),
+      `default member/${id} inserted: after the update Figma inserts the ${want} member, the set's first plan (inserts ${inserted})`);
+    const live = placed.every(({ inst, main, mainId }) => w.page.children.includes(inst) && (inst as unknown as { mainComponent: Node }).mainComponent === main
+      && membersOf(now).includes(main) && String(main.id) === mainId && inst.x === -500);
+    ok(live, `default member/${id} instances: both placed instances stay on the page, unmoved, each on a member still in the set with its id`);
+    const next = (await previewUpdate(w.host, [{ def: id, plans }])).sets[0];
+    ok(previewLine(next) === `${String(now.name)}: up to date (${after.members.size} members).`, `default member/${id} current: the next dry run reads up to date (${previewLine(next)})`);
+  }
 }
 
 /* ── re-lay ────────────────────────────────────────────────────────────────────────────────────────────── */
@@ -2646,6 +2703,87 @@ section('stepdown — Segmented control, Tab and Tag move their glyph one rung d
     const post = (await previewUpdate(w.host, [{ def: id, plans: newPlans }])).sets[0];
     ok(post.counts.current === members && post.handEdits.length === 0, `stepdown/${id} current: the next dry run reads all ${members} current (${JSON.stringify(post.counts)})`);
   }
+}
+
+/* ── stretched mode (#2696) ──────────────────────────────────────────────────────────────────────────── */
+// A HUGGING AXIS THE PARENT STRETCHES IS THE PARENT'S SIZE, so the host may hold FIXED there where the plan says AUTO.
+// The host is modeled by the test: Accordion's indicator (a row in the row `titleRow`, `layoutAlign: STRETCH`) switches
+// its counter axis to FIXED when the stretch is written, at medium and large and not at small, as the live file read.
+// One member's `titleRow`, which nothing stretches, and its `header`, stretched on its other axis, hold FIXED whatever is
+// written (the record cleared, so the update writes them rather than keeping a hand edit): the controls the rule must
+// still fail, with an open member's `content` held AUTO where the plan holds its stretched axis FIXED. The expected
+// lines are literals from the def's anatomy, never the read-back's output. Mutations: the rule dropped, or the parent's
+// plan not threaded to it → `stretch/verify`, `stretch/dry run`, `stretch/agree`, `stretch/lost`; the host's stretch
+// not required → `stretch/lost`; the axis ignored → the same four; a planned FIXED relaxed too → the same four; the
+// plan's stretch not required (the control's `titleRow` is stretched on the host alone) → `stretch/verify`,
+// `stretch/dry run`, `stretch/agree`, `stretch/lost`.
+section('stretched mode — an axis the parent stretches: the verify and the dry run agree on it, both ways (#2696)');
+{
+  const ACC = 'accordion';
+  const w = await world(ACC);
+  const titleRow = (m: Node): Node => childNamed(childNamed(m, 'header'), 'titleRow');
+  const indicator = (m: Node): Node => (titleRow(m).children as Node[]).find((c) => /^(leading|trailing)Indicator$/.test(String(c.name)))!;
+  const sizeOf = (m: Node): string => /size=(\w+)/.exec(String(m.name))?.[1] ?? '';
+  const members = membersOf(w.set());
+  for (const m of members) {
+    if (sizeOf(m) === 'small') continue;
+    const n = indicator(m) as Record<string, unknown>;
+    let la = n.layoutAlign;
+    Object.defineProperty(n, 'layoutAlign', { configurable: true, enumerable: true, get: () => la, set: (v: unknown) => { la = v; if (v === 'STRETCH') n.counterAxisSizingMode = 'FIXED'; } });
+  }
+  const control = members.find((m) => sizeOf(m) === 'medium')!;
+  Object.defineProperty(titleRow(control), 'counterAxisSizingMode', { configurable: true, enumerable: true, get: () => 'FIXED', set: () => {} });
+  // The host also holds it STRETCHED where the plan does not stretch it (a designer's stretch). It shares `header`'s
+  // row direction, so the stretch would fill its counter axis: only the plan's half of the rule keeps it named, and
+  // no `layoutAlign` comparison exists for a part the plan does not stretch (`FIELDS.layoutAlign`).
+  Object.defineProperty(titleRow(control), 'layoutAlign', { configurable: true, enumerable: true, get: () => 'STRETCH', set: () => {} });
+  // …and its `header`, a row the column root stretches ACROSS, which is the header's primary axis, not its counter one.
+  Object.defineProperty(childNamed(control, 'header'), 'counterAxisSizingMode', { configurable: true, enumerable: true, get: () => 'FIXED', set: () => {} });
+  // Its record cleared, so the FIXED reads as the host's and not a designer's: the update writes it and records it after.
+  (control.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, BASELINE_KEY, '');
+  // THE OTHER DIRECTION: a stretched axis the plan holds FIXED is never relaxed (#1751: left AUTO, it hugs). An open
+  // member's `content`, a column the column root stretches across, held AUTO whatever is written, record cleared too.
+  const open = members.find((m) => sizeOf(m) === 'small' && /expansion=expanded/.test(String(m.name)))!;
+  Object.defineProperty(childNamed(open, 'content'), 'counterAxisSizingMode', { configurable: true, enumerable: true, get: () => 'AUTO', set: () => {} });
+  (open.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, BASELINE_KEY, '');
+  const outOfDate = (): void => {
+    for (const m of membersOf(w.set())) {
+      const st = (m.getSharedPluginData as (a: string, b: string) => string)(NS, STAMP_KEY);
+      (m.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, STAMP_KEY, st.replace(/\|[^|]*$/, '|0'));
+    }
+  };
+  const want = [`${control.name}/header.counterAxisSizingMode: FIXED (the plan says AUTO)`, `${control.name}/header/titleRow.counterAxisSizingMode: FIXED (the plan says AUTO)`,
+    `${open.name}/content.counterAxisSizingMode: AUTO (the plan says FIXED)`].sort();
+  outOfDate();
+  const first = await confirm(w, [{ def: ACC, plans: w.plans }]);
+  const modes = members.map((m) => `${sizeOf(m)}:${String(indicator(m).counterAxisSizingMode)}:${String(indicator(m).layoutAlign)}`);
+  ok(members.length === 24 && modes.filter((x) => x === 'small:AUTO:STRETCH').length === 8 && modes.filter((x) => /^(medium|large):FIXED:STRETCH$/.test(x)).length === 16,
+    `premise: after the update the host holds the indicator FIXED at medium and large, AUTO at small, stretched at all three (${[...new Set(modes)].join(', ')})`);
+  ok(JSON.stringify([...first.res.outcomes[0].content].sort()) === JSON.stringify(want),
+    `stretch/verify: the apply's verify names the controls (a header, a titleRow, an open content) and no indicator (${JSON.stringify(first.res.outcomes[0].content.slice(0, 3))})`);
+  const current = (await previewUpdate(w.host, [{ def: ACC, plans: w.plans }])).sets[0];
+  ok(current.counts.current === 24, `stretch/current: the next dry run reads all 24 current (${JSON.stringify(current.counts)})`);
+  // THE DRY RUN COMPARING: every member out of date, so it diffs each one against its plan, by the same predicate.
+  outOfDate();
+  const second = await confirm(w, [{ def: ACC, plans: w.plans }]);
+  const modeLines = second.pre.sets[0].changes.filter((c) => /SizingMode$/.test(c.field)).map((c) => `${c.part}.${c.field}: ${c.from} → ${c.to} × ${c.members}`).sort();
+  ok(JSON.stringify(modeLines) === JSON.stringify(['content.counterAxisSizingMode: AUTO → FIXED × 1', 'header.counterAxisSizingMode: FIXED → AUTO × 1', 'header/titleRow.counterAxisSizingMode: FIXED → AUTO × 1']),
+    `stretch/dry run: the dry run lists the same three controls and no indicator (${JSON.stringify(modeLines)})`);
+  ok(JSON.stringify([...second.res.outcomes[0].content].sort()) === JSON.stringify(want), `stretch/agree: the apply's verify names the same three nodes (${JSON.stringify(second.res.outcomes[0].content.slice(0, 3))})`);
+  // A NODE THAT LOST ITS STRETCH IS COMPARED RAW: the host holds INHERIT where the plan stretches it, and FIXED,
+  // whatever is written (its record cleared, as the control's was).
+  const lost = members.find((m) => sizeOf(m) === 'large')!;
+  const ind = indicator(lost) as Record<string, unknown>;
+  Object.defineProperty(ind, 'layoutAlign', { configurable: true, enumerable: true, get: () => 'INHERIT', set: () => {} });
+  Object.defineProperty(ind, 'counterAxisSizingMode', { configurable: true, enumerable: true, get: () => 'FIXED', set: () => {} });
+  (lost.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, BASELINE_KEY, '');
+  const lostAt = String(ind.name);
+  outOfDate();
+  const third = await confirm(w, [{ def: ACC, plans: w.plans }]);
+  const thirdModes = third.pre.sets[0].changes.filter((c) => /SizingMode$/.test(c.field)).map((c) => `${c.part}.${c.field}: ${c.from} → ${c.to} × ${c.members}`).sort();
+  ok(JSON.stringify(thirdModes) === JSON.stringify(['content.counterAxisSizingMode: AUTO → FIXED × 1', 'header.counterAxisSizingMode: FIXED → AUTO × 1', 'header/titleRow.counterAxisSizingMode: FIXED → AUTO × 1', `header/titleRow/${lostAt}.counterAxisSizingMode: FIXED → AUTO × 1`].sort())
+    && third.res.outcomes[0].content.includes(`${lost.name}/header/titleRow/${lostAt}.counterAxisSizingMode: FIXED (the plan says AUTO)`),
+    `stretch/lost: an indicator the host no longer stretches is listed by the dry run and named by the verify (${JSON.stringify(thirdModes)}; ${JSON.stringify(third.res.outcomes[0].content.slice(0, 4))})`);
 }
 
 /* ── segmented control (#2724) ───────────────────────────────────────────────────────────────────────── */
