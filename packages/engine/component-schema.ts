@@ -1912,6 +1912,11 @@ export const validateComponentDef = (
       if (!Number.isInteger(p.minItems) || (p.minItems as number) < 0) errors.push(`prop '${p.name}' is a slot with no whole 'minItems' — state the least number of items, 0 if it may be empty`);
       if (p.maxItems !== undefined && (!Number.isInteger(p.maxItems) || p.maxItems < Math.max(1, p.minItems ?? 0))) errors.push(`prop '${p.name}': maxItems ${p.maxItems} is not a whole number at least minItems and 1`);
     }
+    // #2707: the default ships as written into `components.ai.json`, so a boolean prop defaulting to the STRING
+    // 'false' reads as truthy to any agent or codegen that consumes it. The type union allows a string, so only
+    // this check refuses it. (A union type such as "'a' | 'b'" is free-form prose and is not checked here.)
+    if (p.default !== undefined && (p.type === 'boolean' || p.type === 'number') && typeof p.default !== p.type)
+      errors.push(`prop '${p.name}': type '${p.type}' with a ${typeof p.default} default (${JSON.stringify(p.default)}) — write the default as a ${p.type}, not a string, because it ships as written in components.ai.json (#2707)`);
   }
 
   // states + variants

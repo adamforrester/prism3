@@ -67,10 +67,10 @@ export const segmentedControlSegment: ComponentDef = {
   props: [
     { name: 'label', type: 'string', required: true, description: 'The option name: a short noun or noun phrase, one line.' },
     { name: 'value', type: 'string', required: true, description: 'The value the control reports when this option is selected.' },
-    { name: 'selected', type: 'boolean', default: 'false', required: false, description: 'Whether this option is the selected one. Set by the control from its value; do not set it on an option inside a control.' },
+    { name: 'selected', type: 'boolean', default: false, required: false, description: 'Whether this option is the selected one. Set by the control from its value; do not set it on an option inside a control.' },
     { name: 'leadingIcon', type: 'slot', required: false, description: 'An icon before the label. Decorative when a label is shown.' },
     { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'Option height, padding and label type. Passed down by the control.' },
-    { name: 'disabled', type: 'boolean', default: 'false', required: false, description: 'Dims this one option and takes it out of interaction, while the rest of the control stays usable.' },
+    { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Dims this one option and takes it out of interaction, while the rest of the control stays usable.' },
   ],
 
   states: ['rest', 'hover', 'pressed', 'focus-visible', 'disabled'],
@@ -330,7 +330,7 @@ export const segmentedControl: ComponentDef = {
     { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'Passed to every option. Medium is a button\'s height, 44px on comfortable and spacious density.' },
     { name: 'width', type: "enum: 'auto' | 'full'", values: ['auto', 'full'], default: 'auto', required: false, description: 'auto: every option as wide as the widest. full: the control fills its column and the options share it equally.' },
     { name: 'name', type: 'string', required: false, description: 'The form field name, in the form behavior.' },
-    { name: 'disabled', type: 'boolean', default: 'false', required: false, description: 'Disables every option and takes the control out of the Tab order.' },
+    { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Disables every option and takes the control out of the Tab order.' },
   ],
 
   states: ['rest'],
