@@ -43,6 +43,8 @@ each fill. The studio's set list shows Banner's `pad` beside `gap` (the owner's 
 swap. Banner is the first def whose nested instance takes an INSTANCE_SWAP **override** (the dismiss button's close
 glyph), and the harness did not add that target, so the update stopped on "the component the plan swaps to is not in this
 file" and no member read current. The harness now adds override swap targets; the executor was right.
+`test-canvas-furniture.ts` builds its pages the same way and took the same fix, and its literal count of defs that
+build a set moves from 39 to 40.
 
 ### Trap
 
