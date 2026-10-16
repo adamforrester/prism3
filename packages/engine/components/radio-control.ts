@@ -352,7 +352,7 @@ export const radioControl: ComponentDef = {
     avoidWhen: 'You want the labeled case (that is Radio.Row), a staged binary opt-in (Checkbox.Row / Checkbox.Control), or an immediate-effect toggle (Switch.Row / Switch.Control). Never place a bare circle as the clickable element — the hit target is the labeled row.',
     commonPartners: ['radio-row', 'focus-ring', 'radio-group'],
     triggerKeywords: ['radio control', 'radio circle', 'radio disc', 'radio dot', 'option control'],
-    generationPriority: 3,
+    generationPriority: 6,
   },
 
   composition: {
