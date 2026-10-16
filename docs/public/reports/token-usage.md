@@ -2608,12 +2608,14 @@ Type: dimension. Bound by 14 component(s).
 
 ### `space.250`
 
-Type: dimension. Bound by 2 component(s).
+Type: dimension. Bound by 3 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | _segmented-control-segment | `size.large.padding-x` | content | size: large (10 of 30) |
 | _tab-item | `size.large.padding-x` | content | size: large (10 of 30) |
+| accordion | `size.large.pad-x` | content | expansion: expanded · size: large (4 of 24) |
+|  |  | header | size: large (8 of 24) |
 
 ### `space.300`
 
@@ -2622,8 +2624,7 @@ Type: dimension. Bound by 10 component(s).
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | _list-item | `size.small.marker-column` | markerBox | size: small (3 of 9) |
-| accordion | `size.large.pad-x`, `size.large.panel-pad-end` | content | expansion: expanded · size: large (4 of 24) |
-|  |  | header | size: large (8 of 24) |
+| accordion | `size.large.panel-pad-end` | content | expansion: expanded · size: large (4 of 24) |
 | button | `size.large.padding-x` | container | inset: default · size: large (108 of 576) |
 | button-destructive | `size.large.padding-x` | container | inset: default · size: large (108 of 576) |
 | button-neutral | `size.large.padding-x` | container | inset: default · size: large (108 of 576) |
@@ -2969,9 +2970,9 @@ Declared, not drawn: `color.border.focus`
 
 ### accordion
 
-17 token(s); 24 design-file member(s).
+18 token(s); 24 design-file member(s).
 
-`color.interactive.neutral.text.rest`, `color.text.primary`, `focus.ring.offset-field`, `size.lg.height`, `size.md.min-height`, `space.0`, `space.025`, `space.100`, `space.150`, `space.200`, `space.300`, `type.body.lg.default`, `type.body.md.default`, `type.body.sm.default`, `type.label.lg.emphasis`, `type.label.md.emphasis`, `type.label.sm.emphasis`
+`color.interactive.neutral.text.rest`, `color.text.primary`, `focus.ring.offset-field`, `size.lg.height`, `size.md.min-height`, `space.0`, `space.025`, `space.100`, `space.150`, `space.200`, `space.250`, `space.300`, `type.body.lg.default`, `type.body.md.default`, `type.body.sm.default`, `type.label.lg.emphasis`, `type.label.md.emphasis`, `type.label.sm.emphasis`
 
 ### badge
 
