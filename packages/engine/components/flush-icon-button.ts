@@ -241,7 +241,7 @@ const makeFlushIconButton = (id: string, name: string, summary: string, descript
     usage: 'Use inside another component where the icon is itself the control: the minus and plus of a counter, or the close on a card. Use flush where the glyph must line up with the content edge, such as inside a counter that draws its own box. Use round where the buttons stand on their own beside a value, such as a counter with no box. For an icon action with its own padded box in a toolbar, use the IconButton of the same color.',
     do: [
       'Always give it an accessible name (a verb)',
-      'Extend its hit area in code to at least 44×44px at every size, with a transparent `::before` inset outward and centered on the glyph, so the target clears 44px while the box stays glyph-sized',
+      'Extend its hit area in code to at least 44×44px at every size, with a transparent ::before inset outward and centered on the glyph, so the target clears 44px while the box stays glyph-sized',
       'Space two flush icon buttons at least 44px apart, center to center, so their tap areas don\'t overlap',
       ...sibling.do,
     ],
