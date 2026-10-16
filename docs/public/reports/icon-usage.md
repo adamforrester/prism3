@@ -21,7 +21,8 @@ Generated from the component definitions and the emission by `packages/engine/em
 | image-placeholder | marker | `image` | icon set | drawn | always |
 | list-item | icon | `check` | icon set | swap default | type: icon |
 | progress | arc | `progress-arc-{size}` | component-owned | drawn | shape: circular; status: active, error |
-|  | arcFull | `progress-full-{size}` | component-owned | drawn | shape: circular; status: complete |
+|  | arcFull | `progress-ring-{size}` | component-owned | drawn | shape: circular; status: complete |
+|  | ringTrack | `progress-ring-{size}` | component-owned | drawn | shape: circular |
 |  | stop | `progress-stop` | component-owned | drawn | shape: linear; type: determinate |
 | select | chevron | `chevron-down` | icon set | drawn | always |
 | spinner | ring | `spinner` | component-owned | drawn | always |

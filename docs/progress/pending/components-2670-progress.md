@@ -18,14 +18,20 @@ track. The indeterminate frame is a lead, the segment and the rest, a third each
 complete) to match. A literal fill width was the alternative and was discarded: it would freeze when an instance is
 stretched, where the grow split keeps its proportion.
 
-### The ring: a stroke and a glyph, not a composed glyph
+### The ring: two glyphs on one square, because a stroke may not carry the track (Q346)
 
 The Spinner draws its track as a layer of its own glyph at 20% of its own ink. Progress's ring track is a different
 role (`color.background.tertiary`, call 5), so it cannot be a layer of the arc's glyph: one glyph takes one ink. The
-ring is a box whose inside stroke is the track (2px at 24px, 4px at 40px), and the arc is a component-owned glyph
-(`progress-arc-{size}`, `progress-full-{size}`) whose band lies exactly on that stroke: outer edge on the artboard's
-edge, width = stroke px × 24 / ring px (2 units small, 2.4 medium). `lint-glyph-geometry.ts` gained a `RING_GLYPH` arm
-that measures this against numbers typed in the gate, including the ring frame's bound stroke.
+first build drew the track as the ring box's inside stroke. Main then landed Q346's gate (a stroke binds only a
+`STROKE_COLOR`-scoped role), and measured, no border role clears 3:1 against the fills (best case 1.01:1), so a
+stroke could keep neither rule. The ring is now two component-owned glyphs on one square: the track, a full annulus in
+the flow (`progress-ring-{size}`, ink `fill`), and the arc over it (`progress-arc-{size}`, or the full annulus again at
+complete). Two small engine additions carry it, with no executor change: a `vector` may name its paint slot
+(`paintSlot`, read as the text branch reads it), and may be drawn centered over its parent's in-flow child
+(`stackCentered`, projected as the overlay's existing `absoluteCenter`). The band's outer edge is the artboard's edge
+and its width is band px × 24 / ring px (2 units small, 2.4 medium). `lint-glyph-geometry.ts` gained a `RING_GLYPH`
+arm that measures this against numbers typed in the gate, including that the arc is lifted over the track and the
+track is not.
 
 ### The stop dot is a glyph because two boxes cannot share a paint slot
 

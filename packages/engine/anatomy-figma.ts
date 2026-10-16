@@ -1855,7 +1855,8 @@ export const figmaAnatomyPlan = (
       // painted square BEHIND the glyph — the exact failure `descendantFills` was invented to avoid, met
       // from the other side. So the ink goes where the ink has always gone: on the VECTOR, found by
       // descendant search. One field, one meaning, whoever is pushing.
-      const ink = paintOf('icon');
+      // A vector may name its slot (#2670, Progress's ring track in `fill`); every other glyph takes `icon`.
+      const ink = paintOf(p.paintSlot ?? 'icon');
       if (ink) descendantFills = ink;
     } else if (p.kind === 'slot' || p.kind === 'overlay') {
       // There is no `color/interactive/{intent}/icon` variable — icon ink routes through `on-fill` /
@@ -2081,6 +2082,9 @@ export const figmaAnatomyPlan = (
       // centered by the overlay's own path, then constrained SCALE/SCALE. Only on such a vector, so every
       // other plan is byte-identical.
       ...(p.kind === 'vector' && p.scaleWithParent ? { absoluteCenter: true, absoluteScale: true } : {}),
+      // A GLYPH DRAWN OVER ITS PARENT'S IN-FLOW CHILD (#2670, `PartDef.stackCentered`): lifted and centered by the same
+      // path, its constraints CENTER/CENTER. Only on such a vector, so every other plan is byte-identical.
+      ...(p.kind === 'vector' && p.stackCentered ? { absoluteCenter: true } : {}),
       // The out-of-flow half of the #612 fix, on the two nodes it concerns: the overlay is centered
       // absolutely, and the part it covers holds its cell at zero opacity. Both are keyed off
       // `overlaidPart`, so when the overlay lands on a real cell (`replaces` present) neither appears

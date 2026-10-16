@@ -193,7 +193,7 @@
           "RESOLVED (#1353, owner-decided 2026-09-10): a `shape` axis (square | circular), geometry only — the two values differ in the corner radius alone, which is why it is an axis and not a component split.",
           "RESOLVED (#1427): a `surface` axis (default | inverse), following Button, and the glyph ink walks state on outline/ghost as Button's label does.",
           "RESOLVED (#1350, owner-decided 2026-09-08): icon-button keeps the 1:1 glyph rung (medium → icon.size.md, 24px), matching a standalone icon, where the text-bearing Button moved one rung smaller.",
-          "RESOLVED (#1697): the disabled edge binds the disabled icon ink (as #1349 did for Button) instead of `color.disabled.border`, which measured 1.48–1.80:1 against the page; the pending member swaps in the real spinner."
+          "RESOLVED (#1697): the pending member swaps in the real spinner. The disabled edge #1697 also rebound to the disabled icon ink was superseded by Q346 (#2749): a border never binds an icon or text role, so it binds `color.disabled.border`."
         ],
         "projection": []
       }
@@ -222,7 +222,7 @@
           "RESOLVED (#1353, owner-decided 2026-09-10): a `shape` axis (square | circular), geometry only — the two values differ in the corner radius alone, which is why it is an axis and not a component split.",
           "RESOLVED (#1427): a `surface` axis (default | inverse), following Button, and the glyph ink walks state on outline/ghost as Button's label does.",
           "RESOLVED (#1350, owner-decided 2026-09-08): icon-button keeps the 1:1 glyph rung (medium → icon.size.md, 24px), matching a standalone icon, where the text-bearing Button moved one rung smaller.",
-          "RESOLVED (#1697): the disabled edge binds the disabled icon ink (as #1349 did for Button) instead of `color.disabled.border`, which measured 1.48–1.80:1 against the page; the pending member swaps in the real spinner."
+          "RESOLVED (#1697): the pending member swaps in the real spinner. The disabled edge #1697 also rebound to the disabled icon ink was superseded by Q346 (#2749): a border never binds an icon or text role, so it binds `color.disabled.border`."
         ],
         "projection": []
       }
@@ -251,7 +251,7 @@
           "RESOLVED (#1353, owner-decided 2026-09-10): a `shape` axis (square | circular), geometry only — the two values differ in the corner radius alone, which is why it is an axis and not a component split.",
           "RESOLVED (#1427): a `surface` axis (default | inverse), following Button, and the glyph ink walks state on outline/ghost as Button's label does.",
           "RESOLVED (#1350, owner-decided 2026-09-08): icon-button keeps the 1:1 glyph rung (medium → icon.size.md, 24px), matching a standalone icon, where the text-bearing Button moved one rung smaller.",
-          "RESOLVED (#1697): the disabled edge binds the disabled icon ink (as #1349 did for Button) instead of `color.disabled.border`, which measured 1.48–1.80:1 against the page; the pending member swaps in the real spinner."
+          "RESOLVED (#1697): the pending member swaps in the real spinner. The disabled edge #1697 also rebound to the disabled icon ink was superseded by Q346 (#2749): a border never binds an icon or text role, so it binds `color.disabled.border`."
         ],
         "projection": []
       }
@@ -1124,7 +1124,7 @@
         "The option in code — a <button> with aria-current in the view behavior, or a native <input type=\"radio\"> with its <label> in the form behavior. The control decides which, never the option.",
         "The label weight in code — the selected option sets its label in the emphasis weight and the others in the default weight, and every option reserves its bold width so selecting never shifts the row: a hidden bold copy of the label (for example ::after { content: attr(data-label); font-weight: <emphasis>; height: 0; visibility: hidden; overflow: hidden }) in a column with the label.",
         "The indicator in code — it may be one sliding node shared by the options (aria-hidden) rather than a box per option; the 4px inset and the paint are the same either way.",
-        "forced-colors — the tint drops out; the 2px outline survives as a system-color border or outline, so the selection still shows.",
+        "forced-colors — the pill fill drops out, so give the selected option a system-color border or outline (for example 1px solid Highlight) and keep the bold label; the selection still shows.",
         "The hit-target expansion — a small option is 36px tall on comfortable density; reaching 44px there is a code-side hit area larger than the visible box.",
         "RTL — logical properties mirror the row: the leading icon moves to the right of the label.",
         "text expansion — a label never wraps or truncates; the control renders a select instead when the longest translated label no longer fits."
@@ -1132,11 +1132,13 @@
       "notes": {
         "contested": [],
         "unverified": [
-          "The outline against the tint inside it measures 3.01:1 at its tightest (one brand, light mode, 2026-10-09). It is not the selection cue on its own (the outline against the track and the bold label are), but it has no margin."
+          "In the high-contrast modes the surface steps are one color, so the track and the pill both read as the page and the bold label is the only selection cue there. Allowed by Q336 (the pill has no floor); not yet seen by the owner on a rendered high-contrast file.",
+          "In the dark modes the page surface is darker than the track, so the pill reads as set into the track rather than raised from it. The same roles in every mode, by design; not yet seen by the owner on a rendered dark file."
         ],
         "evolution": [
           "2026-10-13 (#2418): owner decisions Q269 1–8 A: view behavior by default, a value control not contained tabs, bold when selected with the width held plus tint and 2px outline, the neutral hover wash (provisional), track radius.md and indicator radius.sm (provisional), grow on a nested instance for equal widths, the names and its own page after Tabs, 2–5 segments with 3 shown.",
-          "2026-10-13 (#2418): owner decisions Q278 1–6 A, on the built option: the hover wash kept (Q269.4 no longer provisional); the shape kept as built, track radius.md and indicator radius.sm 4px inside, corners non-concentric with no derived radius token; the default label \"Option\"; a standalone option built at 120 so the indicator has a width to fill, while inside the control it takes its equal share."
+          "2026-10-13 (#2418): owner decisions Q278 1–6 A, on the built option: the hover wash kept (Q269.4 no longer provisional); the shape kept as built, track radius.md and indicator radius.sm 4px inside, corners non-concentric with no derived radius token; the default label \"Option\"; a standalone option built at 120 so the indicator has a width to fill, while inside the control it takes its equal share.",
+          "2026-10-15 (#2724): owner decisions Q336 A and Q342 A supersede Q269.3's tint and 2px outline: the selected option is a flat pill in color.background.primary with no border and no shadow, the emphasis-weight label is the state cue, and the pill holds at hover and press. The hover wash, the shape and the bold reserve are unchanged."
         ],
         "projection": []
       }
@@ -1158,7 +1160,8 @@
         "unverified": [],
         "evolution": [
           "2026-10-13 (#2418): owner decisions Q269 1–8 A. Two defs, Segment (30 members) nested in the control (3); view behavior by default; bold selected label with its width held; neutral hover wash and radius.md / radius.sm, both provisional; grow on a nested instance for equal widths; Segment 3 on, 4 and 5 off.",
-          "2026-10-13 (#2418): owner decisions Q278 1–6 A, on the built control: hover and shape kept; built at 320, which fits three options at every size (with all five shown at large the options can run narrower than their labels until a designer widens the control); no track padding or gap, each option carrying its own 4px inset; the page sorts alphabetically, between Radio and Select."
+          "2026-10-13 (#2418): owner decisions Q278 1–6 A, on the built control: hover and shape kept; built at 320, which fits three options at every size (with all five shown at large the options can run narrower than their labels until a designer widens the control); no track padding or gap, each option carrying its own 4px inset; the page sorts alphabetically, between Radio and Select.",
+          "2026-10-15 (#2724): owner decisions Q336 A and Q342 A: the track is filled with color.background.secondary and loses its 1px outline; the selected option is a flat pill in color.background.primary. They supersede the outlined track Q278 kept and Q269.3's tint and outline."
         ],
         "projection": []
       }
@@ -1264,7 +1267,7 @@
         "the fill's length — in code the fill is the track's inline size times (value − min) / (max − min), clamped, with a warning in development for a value out of range. Figma has no percentage width, so each still member splits the track by layout: half at active and error, the whole track at complete. A designer showing another amount sets the fill's width on the instance.",
         "the sweep — an indeterminate bar moves a segment 30% of the track long from before the start edge to past the end, one pass every `var(--motion-duration-sweep)` (1600ms), on `var(--motion-easing-calm)`, repeating, with the track clipping it. Under `@media (prefers-reduced-motion: reduce)` the same pass runs every `var(--motion-duration-reduced-sweep)` (2600ms): slower, never stopped, because the moving segment is the only sign the work is continuing. Figma holds one still frame of it.",
         "the fill transition — the fill moves to each new value over `var(--motion-duration-moderate)` on `var(--motion-easing-role-default)`, so bursty data reads as steady progress. Under reduced motion it runs `var(--motion-duration-reduced-moderate)`, which is 0ms, so it snaps. At complete and error the color crossfades over `var(--motion-duration-fast)`.",
-        "the ring in code — one `<svg viewBox=\"0 0 24 24\">`: the track circle in the track color and the value arc with `stroke-dasharray` set from the value, `stroke-linecap: round`, rotated -90deg so it starts at twelve o'clock. The stroke width is the band in viewBox units (2 at small, 2.4 at medium), on the circle's inside edge, so it matches the Figma outlines.",
+        "the ring in code — one `<svg viewBox=\"0 0 24 24\">`: the track circle in the track color and the value arc with `stroke-dasharray` set from the value, `stroke-linecap: round`, rotated -90deg so it starts at twelve o'clock. The stroke width is the band in viewBox units (2 at small, 2.4 at medium), its outer edge on the viewBox's edge, so it matches the Figma outlines.",
         "right-to-left — the linear fill grows from the inline-start edge (the right) through logical properties, and the label and value swap sides. The ring runs counterclockwise from twelve o'clock. The sweep moves from right to left.",
         "number formatting — the value text defaults to a percentage through Intl.NumberFormat (\"45%\", \"%45\", \"45 %\"), and a concrete amount (\"45 MB of 100 MB\", \"Step 3 of 5\") is localized with its word order. The value text is never truncated; the label wraps instead.",
         "text expansion — the label wraps rather than truncating, and the value keeps its full text at the end of the header.",

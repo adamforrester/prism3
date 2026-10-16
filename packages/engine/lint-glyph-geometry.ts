@@ -135,7 +135,7 @@ const MUST_COVER = [
   'switch-control.onGlyph', 'switch-control.offGlyph', 'select.chevron', 'image-placeholder.marker',
   '_accordion-indicator.chevronDown', '_accordion-indicator.chevronUp', '_accordion-indicator.plus', '_accordion-indicator.minus',
   // Progress's own glyphs (#2670), measured by the RING_GLYPH arm.
-  'progress.arc', 'progress.arcFull', 'progress.stop',
+  'progress.ringTrack', 'progress.arc', 'progress.arcFull', 'progress.stop',
 ];
 
 /** The component name prefix an icon-set glyph is an instance of (#2380): `icon/<glyph>`, the component the
@@ -177,24 +177,29 @@ const COMPOSED_GLYPH: Record<string, {
  * `component-glyphs.ts`, which is the subject:
  *
  *   · the ring is 24px with a 2px band at `small` and 40px with a 4px band at `medium` (`RING_SIZE_PX`,
- *     `RING_BAND_PX`), and the band lies ON the ring box's inside stroke: its outer edge is the artboard's edge,
- *     and it renders exactly as wide as the stroke the ring frame binds (read through `STROKE_PX`);
+ *     `RING_BAND_PX`): every ring glyph binds the ring frame's own square, and its band's outer edge is the
+ *     artboard's edge;
+ *   · `ringTrack` — the pale track, a closed annulus on that band, IN the flow (it is what the arc covers);
  *   · `arc` — the still member's value arc, half the circle (`RING_ARC`), from twelve o'clock clockwise, with
- *     round caps, at `status` active and error;
- *   · `arcFull` — the full ring at complete, a closed annulus on the same band;
+ *     round caps, at `status` active and error, lifted and centered OVER the track (`stacked`);
+ *   · `arcFull` — the full ring at complete, the annulus again, stacked over the track;
  *   · `stop` — the stop dot, a disc filling its artboard, built 4px square, on determinate linear members.
  *
  * Each record carries its gate (`at`), compared with the def's `presentWhen` by value as `FIXED_GLYPH` does, and
  * the member count is read off the projected set against that gate.
  */
-const RING_GLYPH: Record<string, { glyph: string; shape: 'arc' | 'full' | 'disc'; at: Record<string, readonly string[]>; why: string }> = {
+const RING_GLYPH: Record<string, { glyph: string; shape: 'arc' | 'full' | 'disc'; at: Record<string, readonly string[]>; stacked?: true; why: string }> = {
+  'progress.ringTrack': {
+    glyph: 'progress-ring-{size}', shape: 'full', at: { shape: ['circular'] },
+    why: 'the ring\'s pale track, in the flow under the arc, the linear track\'s role',
+  },
   'progress.arc': {
-    glyph: 'progress-arc-{size}', shape: 'arc', at: { shape: ['circular'], status: ['active', 'error'] },
+    glyph: 'progress-arc-{size}', shape: 'arc', at: { shape: ['circular'], status: ['active', 'error'] }, stacked: true,
     why: 'the value arc of a determinate ring, half the circle in the still member, brand color while active and danger at error',
   },
   'progress.arcFull': {
-    glyph: 'progress-full-{size}', shape: 'full', at: { shape: ['circular'], status: ['complete'] },
-    why: 'the whole ring at complete, in the success color',
+    glyph: 'progress-ring-{size}', shape: 'full', at: { shape: ['circular'], status: ['complete'] }, stacked: true,
+    why: 'the whole ring at complete, in the success color, over the track',
   },
   'progress.stop': {
     glyph: 'progress-stop', shape: 'disc', at: { shape: ['linear'], type: ['determinate'] },
@@ -206,8 +211,8 @@ const RING_ARC = 0.5;
 /** The ring's square and band in px, per size (owner calls 5 and 9). */
 const RING_SIZE_PX: Record<string, number> = { small: 24, medium: 40 };
 const RING_BAND_PX: Record<string, number> = { small: 2, medium: 4 };
-/** The variables the ring's frame and glyph bind, in px, typed from the token tier. */
-const RING_VAR_PX: Record<string, number> = { 'icon/size/md': 24, 'icon/size/xl': 40, 'border-width/thick': 2, 'border-width/heavy': 4 };
+/** The variables the ring's frame and the stop dot bind, in px, typed from the token tier. */
+const RING_VAR_PX: Record<string, number> = { 'icon/size/md': 24, 'icon/size/xl': 40, 'border-width/heavy': 4 };
 /** The stop dot's square in px (owner call 5: a 4px dot). */
 const STOP_PX = 4;
 
@@ -634,12 +639,17 @@ for (const def of componentDefs as ComponentDef[]) {
           glyphChecks++;
           continue;
         }
-        // THE RING: the frame's size and stroke, against the owner's table, and the band on the stroke.
+        // THE RING: the frame's size against the owner's table, the glyph on the frame's own square, and the arc
+        // lifted over the track (the track itself in the flow, or the two would sit side by side).
         const size = plan.size ?? '';
         const ring = findNode(plan.root, 'ring');
-        const ringPx = RING_VAR_PX[ring?.bound?.width ?? ''], strokePx = RING_VAR_PX[ring?.bound?.strokeWeight ?? ''];
-        if (ringPx !== RING_SIZE_PX[size] || strokePx !== RING_BAND_PX[size] || node.bound?.width !== ring?.bound?.width) {
-          failures.push(`${def.id}.${partName} @ ${at}: the ring frame is ${ringPx ?? '?'}px with a ${strokePx ?? '?'}px stroke and the glyph binds ${node.bound?.width ?? '(nothing)'}; the owner's ring at ${size} is ${RING_SIZE_PX[size]}px with a ${RING_BAND_PX[size]}px band, drawn the ring's own size.`);
+        const ringPx = RING_VAR_PX[ring?.bound?.width ?? ''];
+        if (ringPx !== RING_SIZE_PX[size] || node.bound?.width !== ring?.bound?.width || node.bound?.height !== ring?.bound?.height) {
+          failures.push(`${def.id}.${partName} @ ${at}: the ring frame is ${ringPx ?? '?'}px and the glyph binds ${node.bound?.width ?? '(nothing)'}×${node.bound?.height ?? '(nothing)'}; the owner's ring at ${size} is ${RING_SIZE_PX[size]}px, and every ring glyph is drawn on the ring's own square.`);
+          continue;
+        }
+        if (!!node.absoluteCenter !== !!ringRec.stacked) {
+          failures.push(`${def.id}.${partName} @ ${at}: ${ringRec.stacked ? 'is in the flow, so it sits beside the track instead of over it' : 'is lifted out of the flow, so nothing holds the ring\'s cell under the arc'} (absoluteCenter ${String(node.absoluteCenter ?? false)}).`);
           continue;
         }
         const band = RING_BAND_PX[size] * (vb.w / RING_SIZE_PX[size]);
@@ -647,7 +657,7 @@ for (const def of componentDefs as ComponentDef[]) {
         if (ringRec.shape === 'full') {
           const rs = subs.map((sp) => sp[0]?.rx ?? 0).sort((a, b) => a - b);
           if (subs.length !== 2 || !isCircle(subs[0], subs[0][0]?.rx ?? -1) || !isCircle(subs[1], subs[1][0]?.rx ?? -1) || !near(rs[0], ri) || !near(rs[1], ro) || attr(el, 'fill-rule') !== 'evenodd')
-            failures.push(`${def.id}.${partName} @ ${at}: the full ring is not an annulus between radius ${ri} and ${ro} with fill-rule evenodd (read radii ${JSON.stringify(rs)}) — a ${RING_BAND_PX[size]}px band on the ${RING_SIZE_PX[size]}px ring's inside edge.`);
+            failures.push(`${def.id}.${partName} @ ${at}: the full ring is not an annulus between radius ${ri} and ${ro} with fill-rule evenodd (read radii ${JSON.stringify(rs)}) — a ${RING_BAND_PX[size]}px band on the ${RING_SIZE_PX[size]}px ring's outer edge.`);
           glyphChecks++;
           continue;
         }
@@ -655,7 +665,7 @@ for (const def of componentDefs as ComponentDef[]) {
         if (subs.length !== 1 || sp.length !== 4) { failures.push(`${def.id}.${partName} @ ${at}: ${subs.length} subpath(s) of ${sp.length} arc(s), expected one closed outline of 4 (outer edge, cap, inner edge, cap).`); continue; }
         const [outer, capEnd, inner, capStart] = sp;
         if (!near(outer.rx, ro) || !near(inner.rx, ri))
-          failures.push(`${def.id}.${partName} @ ${at}: the arc's edges sit at radius ${outer.rx} and ${inner.rx}, expected ${ro} and ${ri} — the band must lie on the ring's ${RING_BAND_PX[size]}px inside stroke.`);
+          failures.push(`${def.id}.${partName} @ ${at}: the arc's edges sit at radius ${outer.rx} and ${inner.rx}, expected ${ro} and ${ri} — the band must lie on the ring's ${RING_BAND_PX[size]}px track.`);
         if (!near(capEnd.rx, cap) || !near(capStart.rx, cap) || capEnd.sweep !== 1 || capStart.sweep !== 1)
           failures.push(`${def.id}.${partName} @ ${at}: the arc's ends are not outward round caps of radius ${cap} (read ${capEnd.rx}/${capStart.rx}, sweep ${capEnd.sweep}/${capStart.sweep}).`);
         if (!near(ang(outer.from), -90, 0.05))

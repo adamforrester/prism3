@@ -28,11 +28,12 @@
  * empty lead, the segment and the empty rest, each a third. A designer showing another value sets the fill's
  * width on the instance. The value text reads "50%" to match, and "100%" at complete.
  *
- * THE RING is a box whose inside stroke is the pale track (2px at the small 24px ring, 4px at the medium 40px
- * one) with the value arc drawn over it as a component-owned glyph (`component-glyphs.ts`, `progress-*`): filled
- * outlines on the 24-unit artboard, the band lying exactly on the stroke, so the arc scales with the size the
- * way the Spinner's does. The track cannot be a layer of the glyph, as the Spinner's is: the Spinner's track is
- * its own ink at 20%, and this one is a different role (call 5).
+ * THE RING is two component-owned glyphs on one square (`component-glyphs.ts`, `progress-*`): the pale track, a full
+ * annulus in the track role, in the flow, and the value arc over it (`stackCentered`), the band 2px at the small
+ * 24px ring and 4px at the medium 40px one. Both are filled outlines on the 24-unit artboard, so the band scales with
+ * the size the way the Spinner's does. Not a stroke on the ring box: a stroke binds a border role (Q346), and no
+ * border role clears 3:1 against the fill. Not one glyph with two layers, as the Spinner's is: a glyph takes one ink,
+ * and the track is a different role from the arc (call 5).
  *
  * WHY NOT `loader` AS AN ALIAS, though the brief lists it: it is already a Spinner alias, and one alias names one
  * component (call 10).
@@ -86,9 +87,6 @@ export const progress: ComponentDef = {
     // The ring's square, on the icon ladder: small 24px, medium 40px.
     'size.small': 'icon.size.md',
     'size.medium': 'icon.size.xl',
-    // The ring's band, as a stroke: 2px at 24px, 4px at 40px (the linear bar's thickness).
-    'band.small': 'border-width.thick',
-    'band.medium': 'border-width.heavy',
     // The linear track's thickness and the stop dot's square, 4px (call 9).
     'track-height': 'border-width.heavy',
     'stop-size': 'border-width.heavy',
@@ -100,9 +98,8 @@ export const progress: ComponentDef = {
     'header-gap': 'space.100',
     'ring-gap': 'space.100',
 
-    // The track, both shapes: the pale role (call 5). On the ring it is the stroke.
+    // The track, both shapes: the pale role (call 5). The linear track's box fill, and the ring track glyph's ink.
     fill: 'color.background.tertiary',
-    border: 'color.background.tertiary',
     // The fill (a box's `indicator`), and the stop dot and the arc (a glyph's `icon`), per status. An icon role, not an
     // interactive one: Progress is not interactive, and `icon.brand` clears 3:1 against the track where the
     // interactive fill does not in every cell (#2670 §5).
@@ -210,25 +207,32 @@ export const progress: ComponentDef = {
       },
       ring: {
         kind: 'box',
-        paintSlots: ['border'],
         layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'fixed', y: 'fixed' } },
         size: 'size.{size}',
-        radius: 'radius',
-        strokeWidth: 'band.{size}',
-        children: ['arc', 'arcFull'],
-        note: 'The ring\'s pale track, drawn as the circle\'s inside edge: 2px at 24px, 4px at 40px.',
+        children: ['ringTrack', 'arc', 'arcFull'],
+        note: 'The ring\'s square: 24px at small, 40px at medium. It paints nothing; the track and the arc are drawn inside it.',
+      },
+      ringTrack: {
+        kind: 'vector',
+        glyph: 'progress-ring-{size}',
+        size: 'size.{size}',
+        paintSlot: 'fill',
+        presentWhen: { shape: ['circular'] },
+        note: 'The ring\'s pale track, the same color as the linear track: a full circle 2px wide at 24px and 4px wide at 40px.',
       },
       arc: {
         kind: 'vector',
         glyph: 'progress-arc-{size}',
         size: 'size.{size}',
+        stackCentered: true,
         presentWhen: { shape: ['circular'], status: ['active', 'error'] },
         note: 'The value arc over the track, from twelve o\'clock clockwise, with round ends: half the ring in the still member. Brand color while active, danger at error.',
       },
       arcFull: {
         kind: 'vector',
-        glyph: 'progress-full-{size}',
+        glyph: 'progress-ring-{size}',
         size: 'size.{size}',
+        stackCentered: true,
         presentWhen: { shape: ['circular'], status: ['complete'] },
         note: 'The full ring at complete, in the success color.',
       },
@@ -266,7 +270,7 @@ export const progress: ComponentDef = {
       'the fill\'s length — in code the fill is the track\'s inline size times (value − min) / (max − min), clamped, with a warning in development for a value out of range. Figma has no percentage width, so each still member splits the track by layout: half at active and error, the whole track at complete. A designer showing another amount sets the fill\'s width on the instance.',
       'the sweep — an indeterminate bar moves a segment 30% of the track long from before the start edge to past the end, one pass every `var(--motion-duration-sweep)` (1600ms), on `var(--motion-easing-calm)`, repeating, with the track clipping it. Under `@media (prefers-reduced-motion: reduce)` the same pass runs every `var(--motion-duration-reduced-sweep)` (2600ms): slower, never stopped, because the moving segment is the only sign the work is continuing. Figma holds one still frame of it.',
       'the fill transition — the fill moves to each new value over `var(--motion-duration-moderate)` on `var(--motion-easing-role-default)`, so bursty data reads as steady progress. Under reduced motion it runs `var(--motion-duration-reduced-moderate)`, which is 0ms, so it snaps. At complete and error the color crossfades over `var(--motion-duration-fast)`.',
-      'the ring in code — one `<svg viewBox="0 0 24 24">`: the track circle in the track color and the value arc with `stroke-dasharray` set from the value, `stroke-linecap: round`, rotated -90deg so it starts at twelve o\'clock. The stroke width is the band in viewBox units (2 at small, 2.4 at medium), on the circle\'s inside edge, so it matches the Figma outlines.',
+      'the ring in code — one `<svg viewBox="0 0 24 24">`: the track circle in the track color and the value arc with `stroke-dasharray` set from the value, `stroke-linecap: round`, rotated -90deg so it starts at twelve o\'clock. The stroke width is the band in viewBox units (2 at small, 2.4 at medium), its outer edge on the viewBox\'s edge, so it matches the Figma outlines.',
       'right-to-left — the linear fill grows from the inline-start edge (the right) through logical properties, and the label and value swap sides. The ring runs counterclockwise from twelve o\'clock. The sweep moves from right to left.',
       'number formatting — the value text defaults to a percentage through Intl.NumberFormat ("45%", "%45", "45 %"), and a concrete amount ("45 MB of 100 MB", "Step 3 of 5") is localized with its word order. The value text is never truncated; the label wraps instead.',
       'text expansion — the label wraps rather than truncating, and the value keeps its full text at the end of the header.',

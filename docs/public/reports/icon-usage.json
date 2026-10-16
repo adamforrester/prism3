@@ -264,7 +264,7 @@
         },
         {
           "part": "arcFull",
-          "glyph": "progress-full-{size}",
+          "glyph": "progress-ring-{size}",
           "source": "component-owned",
           "how": "drawn",
           "when": {
@@ -273,6 +273,17 @@
             ],
             "status": [
               "complete"
+            ]
+          }
+        },
+        {
+          "part": "ringTrack",
+          "glyph": "progress-ring-{size}",
+          "source": "component-owned",
+          "how": "drawn",
+          "when": {
+            "shape": [
+              "circular"
             ]
           }
         },
@@ -472,8 +483,8 @@
     "plus-filled": [],
     "progress-arc-medium": [],
     "progress-arc-small": [],
-    "progress-full-medium": [],
-    "progress-full-small": [],
+    "progress-ring-medium": [],
+    "progress-ring-small": [],
     "progress-stop": [
       "progress"
     ],

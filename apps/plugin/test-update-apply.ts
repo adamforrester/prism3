@@ -37,6 +37,9 @@
  *   child/…        a part the plan dropped is removed. Mutation: extra children kept → `child/removed`.
  *   verify/…       the update's own checks fail when the host changes an id or drops a field under it.
  *                  Mutations: the member identity check dropped → `verify/member`.
+ *   edge/…         a file built when the disabled edge bound `color.disabled.icon` (#1349, #1697) is corrected in
+ *                  place to `color.disabled.border` (Q346, #2749): Tag, Button and IconButton, every key and id kept,
+ *                  current after. Mutation: the def's binding reverted → `edge/<def> rebound`.
  *   corpus/…       every def, re-applied in place by an executor revision bump, keeps every key and id, reads
  *                  back as its plan, and reads current after.
  *   choices/…      `overwrite` writes the plan over a hand edit; `accept` keeps it as the new record (§5).
@@ -90,7 +93,9 @@
  *   recordfail/…   a member whose as-built record the host refuses after the update (an icon, and a set member) keeps
  *                  the stamp it had and its marker, reads out of date in the next dry run, and is named among the
  *                  outcome's misses (#2373). Mutation: the stamp written before the record → `recordfail/unstamped`,
- *                  `recordfail/out of date`, `recordfail/set member`. The verdict reading no misses is #2477.
+ *                  `recordfail/out of date`, `recordfail/set member`. The verdict reading no misses (#2477) →
+ *                  `recordfail/verdict`, `recordfail/set verdict`, `misses/other`. A skip on a member whose name is a
+ *                  prefix of a refused one's (`name=check` / `name=check-circle`) hiding that refusal → `recordfail/prefix`.
  *   unrecorded single/…  the icons with no as-built record: updated and named by default, recorded after; under
  *                  `noBaseline: 'skip'`, left exactly and named (#2373). Mutations: the default skipping →
  *                  `unrecorded single/updated`; the choice ignored → `unrecorded single/skip`.
@@ -154,7 +159,7 @@ import { makeShim, STYLE_FONT, type Node, type Page } from './component-shim';
 import { adoptMembers, captureBaselines, previewLine, previewUpdate, previewVerdict, type UpdateHost, type UpdateTarget } from './src/update-plan';
 import { drawnFaults, faultLine, varsById } from './src/drawn';
 import { BASELINE_V, baselineOf, resetStyleNames, snapshotMember } from './src/member-baseline';
-import { applyUpdate, applyVerdict, previewHashOf, DEPRECATED_PREFIX, RETAINED_KEY, nestedFirst, type ApplyHost } from './src/update-apply';
+import { applyUpdate, applyVerdict, previewHashOf, namesMember, DEPRECATED_PREFIX, RETAINED_KEY, nestedFirst, type ApplyHost } from './src/update-apply';
 
 let failed = 0;
 let executed = 0;
@@ -704,8 +709,8 @@ const reinked = (plans: AnatomyPlan[]): AnatomyPlan[] => plans.map((p) => { cons
   // (§7), so the icon keeps the stamp it had and its in-progress marker, reads out of date in the next dry run, and the
   // outcome names it among the build's misses. The refusal is the TEST's, installed on the shim's node. Mutation:
   // `finishUpdated` writing the stamp before the record → `recordfail/unstamped`, `recordfail/out of date`.
-  // NOT asserted: that the verdict fails. `applyVerdict` reads no `misses`, so today this run reads "✓ updated 44 in
-  // place" (#2477).
+  // The verdict reads the miss (#2477): no ✓, the set not verified, the icon out of the updated count and named.
+  // Mutation: `applyVerdict` reading no misses again → `recordfail/verdict`.
   const plans = plansOf('icon');
   const w = await singleWorld(plans, ['color/icon/secondary']);
   const t = { def: 'icon', plans: reinked(plans), single: true };
@@ -729,6 +734,10 @@ const reinked = (plans: AnatomyPlan[]): AnatomyPlan[] => plans.map((p) => { cons
   const post = (await previewUpdate(w.host, [t])).sets[0];
   ok(post.counts.current === 44 && post.counts.current + (post.counts.update ?? 0) + (post.counts.noBaseline ?? 0) === 45 && !post.handEdits.some((h) => h.member.endsWith(String(hit.name).split('/').pop()!)),
     `recordfail/out of date: the next dry run reads it out of date, never current, the other 44 current (${JSON.stringify(post.counts)})`);
+  const glyph = String(hit.name).split('/').pop();
+  ok(!v.ok && v.headline === '⚠ 1 set not verified' && v.lines[0] === 'icon: 44 updated in place.'
+    && v.lines.includes(`icon: 1 member not finished — name=${glyph} (its as-built record could not be written). It still reads as out of date; run the update again to finish it.`),
+    `recordfail/verdict: the verdict is not a ✓, counts 44 updated and names the icon not finished (${JSON.stringify(v)})`);
 }
 {
   // THE SAME FAILURE ON A SET MEMBER: `finishUpdated` is the set path's finish too, called from its own loop.
@@ -748,6 +757,68 @@ const reinked = (plans: AnatomyPlan[]): AnatomyPlan[] => plans.map((p) => { cons
   const named = res.outcomes[0]?.misses.filter((x) => x.startsWith(`${String(hit.name)}.asBuilt -> NOT RECORDED`)) ?? [];
   ok(pdOf(hit, STAMP_KEY) === stampWas && post.counts.current === 44 && post.counts.update === 1 && named.length === 1,
     `recordfail/set member: a set member whose record could not be written keeps its stamp, reads out of date and is named (stamp ${pdOf(hit, STAMP_KEY) === stampWas ? 'kept' : 'moved'}; ${JSON.stringify(post.counts)}; ${JSON.stringify(named)})`);
+  const v = applyVerdict(res);
+  ok(!v.ok && v.headline === '⚠ 1 set not verified' && v.lines[0] === `${TAG}: 44 updated in place.`
+    && v.lines.includes(`${TAG}: 1 member not finished — ${String(hit.name)} (its as-built record could not be written). It still reads as out of date; run the update again to finish it.`),
+    `recordfail/set verdict: the set member's verdict is not a ✓, counts 44 updated and names it not finished (${JSON.stringify(v)})`);
+}
+{
+  // A SKIPPED MEMBER WHOSE NAME IS A PREFIX OF AN UPDATED ONE'S (#2477 review). The shipped icons hold such pairs
+  // (`name=check` / `name=check-circle`), and a miss names a member by its whole name, so the skip on `name=check` (a
+  // layer added by hand) must not swallow the record refused on `name=check-circle`. Mutation: the skipped-member
+  // filter matching by substring again → `recordfail/prefix`.
+  const plans = plansOf('icon');
+  const w = await singleWorld(plans, ['color/icon/secondary']);
+  const t = { def: 'icon', plans: reinked(plans), single: true };
+  const glyphOf = (c: Node): string => String(c.name).split('/').pop()!;
+  const skip = w.comps().find((c) => glyphOf(c) === 'check')!;
+  const hit = w.comps().find((c) => glyphOf(c) === 'check-circle')!;
+  const extra = (w.api.createFrame as () => Node)();
+  extra.name = 'designer note';
+  (skip.appendChild as (c: Node) => void)(extra);
+  const pre = await previewUpdate(w.host, [t]);
+  const real = hit.setSharedPluginData as (a: string, b: string, c: string) => void;
+  hit.setSharedPluginData = (ns: string, k: string, v: string): void => {
+    if (ns === NS && k === BASELINE_KEY) throw new Error('the host refused the write');
+    real.call(hit, ns, k, v);
+  };
+  const res = await applyUpdate(w.host, w.api as any, [t], previewHashOf(pre));
+  hit.setSharedPluginData = real;
+  const o = res.outcomes[0];
+  const v = applyVerdict(res);
+  ok(o?.skipped.some((x) => x.member === 'name=check') && o.misses.some((x) => x.startsWith('name=check-circle.asBuilt -> NOT RECORDED'))
+    && !v.ok && v.headline === '⚠ 1 set not verified' && v.lines[0] === 'icon: 43 updated in place, 1 left as they are.'
+    && v.lines.includes('icon: 1 member not finished — name=check-circle (its as-built record could not be written). It still reads as out of date; run the update again to finish it.'),
+    `recordfail/prefix: a skip on name=check leaves the refused record on name=check-circle in the misses and the verdict (skipped ${JSON.stringify(o?.skipped)}; misses ${JSON.stringify(o?.misses)}; ${JSON.stringify(v)})`);
+}
+{
+  // WHICH MEMBER A MISS NAMES, as whole names (#2477 review), on misses written out by hand in the build's own forms.
+  // `known` leaves `name=check-circle` out, as a member this run adds is left out of it, so the prefix rows rest on the
+  // boundary alone. Mutations: no boundary after the name → `misses/whole name` (the prefix rows); the longer-name rule
+  // dropped → the dotted row.
+  const known = ['name=check', 'size=1', 'size=1.5'];
+  const rows: [string, string, boolean][] = [
+    ['name=check.asBuilt -> NOT RECORDED (x)', 'name=check', true],
+    ['name=check-circle.asBuilt -> NOT RECORDED (x)', 'name=check', false],
+    ['name=check/label.slot -> NOT MADE (x)', 'name=check', true],
+    ['footprint -> name=check-circle measures 24x24 but name=check measures 20x20 (same g)', 'name=check', true],
+    ['footprint -> name=check-circle measures 24x24 but name=plus measures 20x20 (same g)', 'name=check', false],
+    ['size=1.5.asBuilt -> NOT RECORDED (x)', 'size=1', false],
+    ['size=1.5.asBuilt -> NOT RECORDED (x)', 'size=1.5', true],
+  ];
+  const wrong = rows.filter(([miss, m, want]) => namesMember(miss, m, known) !== want);
+  ok(!wrong.length, `misses/whole name: a miss names a member by its whole name, never a prefix of a longer one (wrong: ${JSON.stringify(wrong)})`);
+}
+{
+  // ANY OTHER MISS FROM THE BUILD'S PASS (#2477): the set is not verified, the miss is quoted with its own reason, and
+  // the updated count stands (the miss names a part, not a member). An outcome written out by hand, so the expected
+  // lines are the test's, not the build's.
+  const o = { def: 'x', set: 'x', updated: ['a=1', 'a=2'], added: 0, renamed: 0, deprecated: [], skipped: [], kept: [], unrecorded: [], handEdits: 'keep' as const, identity: [], content: [],
+    misses: ['label.characters -> DISCARDED (set "Go", reads "")', 'a=3.asBuilt -> NOT RECORDED (the component is not in the file to read)'] };
+  const v = applyVerdict({ outcomes: [o], refused: [], missing: [] } as any);
+  ok(!v.ok && v.headline === '⚠ 1 set not verified' && v.lines[0] === 'x: 2 updated in place.'
+    && v.lines[1] === 'x: 2 parts not written as planned — label.characters -> DISCARDED (set "Go", reads ""); a=3.asBuilt -> NOT RECORDED (the component is not in the file to read).',
+    `misses/other: any other miss leaves the set not verified, quoted, the updated count as it was (${JSON.stringify(v)})`);
 }
 {
   // A RECORD-LESS SINGLE COMPONENT (#2373): the icons with no as-built record, as the NB master's unrecorded sets were.
@@ -2208,6 +2279,39 @@ section("verify — the update's own checks fail when the host does not hold wha
 }
 
 /* ── corpus ──────────────────────────────────────────────────────────────────────────────────────────── */
+section('edge — a file built when the disabled edge bound an icon role is corrected in place (Q346, #2749)');
+{
+  // Each def is built from a copy whose `disabled.border` is the retired `color.disabled.icon` (#1349, #1697): the
+  // file an earlier plugin left. The update then runs against the CURRENT def. What the test reads is the shim's
+  // own nodes: which variable each disabled member's stroke is bound to, and every key and id it captured before.
+  for (const id of ['tag', 'button', 'icon-button']) {
+    const def = componentDefs.find((d) => d.id === id)!;
+    const old = { ...def, tokens: { ...def.tokens, 'disabled.border': 'color.disabled.icon' } };
+    // Button and IconButton carry a `surface` axis, so half their disabled edges are the inverse twins.
+    const w = await world(id, figmaAnatomySet(old, { swapTarget: SWAP_TARGET }), { extraVars: ['color/disabled/border', 'color/inverse/disabled/border'] });
+    const vars = new Map<string, string>((await w.api.variables.getLocalVariablesAsync()).map((v: { id: string; name: string }) => [v.id, v.name.slice(v.name.indexOf('/') + 1)] as [string, string]));
+    const strokeVar = (m: Node): string | undefined => {
+      const vid = ((m.strokes as { boundVariables?: { color?: { id: string } } }[] | undefined) ?? [])[0]?.boundVariables?.color?.id;
+      return vid ? (vars.get(vid) ?? vid) : undefined;
+    };
+    const isIcon = (v?: string) => /^color\/(inverse\/)?disabled\/icon$/.test(v ?? '');
+    const isBorder = (v?: string) => /^color\/(inverse\/)?disabled\/border$/.test(v ?? '');
+    const was = membersOf(w.set()).filter((m) => /state=disabled/.test(String(m.name)) && !!strokeVar(m));
+    ok(was.length > 0 && was.every((m) => isIcon(strokeVar(m))), `premise: ${id}'s old build strokes ${was.length} disabled member(s) with the disabled icon role (${[...new Set(was.map(strokeVar))].join(', ')})`);
+    const before = identityOf(w.set());
+    const { pre, res } = await confirm(w, [{ def: id, plans: plansOf(id) }]);
+    ok(pre.sets[0].counts.update >= was.length && applyVerdict(res).ok, `edge/${id} dry run: the ${was.length} disabled edge(s) read to update, and the apply succeeds (${pre.sets[0].counts.update}; ${applyVerdict(res).headline})`);
+    const now = membersOf(w.set()).filter((m) => was.some((x) => x.name === m.name));
+    ok(now.length === was.length && now.every((m) => isBorder(strokeVar(m)) && strokeVar(m)!.includes('inverse') === strokeVar(was.find((x) => x.name === m.name)!)!.includes('inverse')),
+      `edge/${id} rebound: every disabled edge is now bound to the disabled border role, on its own surface (${now.filter((m) => !isBorder(strokeVar(m))).length} still not)`);
+    const after = identityOf(w.set());
+    const moved = [...before.members].filter(([name, b]) => after.members.get(name)?.key !== b.key || after.members.get(name)?.id !== b.id).map(([n]) => n);
+    ok(moved.length === 0 && JSON.stringify(after.set) === JSON.stringify(before.set), `edge/${id} in place: the set and every member keep their key and id (${moved.length} changed)`);
+    const post = (await previewUpdate(w.host, [{ def: id, plans: plansOf(id) }])).sets[0];
+    ok(post.counts.current === before.members.size, `edge/${id} current: the next dry run reads all ${before.members.size} current (${JSON.stringify(post.counts)})`);
+  }
+}
+
 section('corpus — every def, re-applied in place by an executor revision bump, keeps every key and reads back as its plan');
 {
   // A newer executor revision makes every member out of date with nothing else moved, so the update configures
@@ -2477,6 +2581,91 @@ section('accordion — a set built before the header row (#2594, owner Q276 A) t
   ok(again.pre.sets[0].counts.update === 24 && applyVerdict(again.res).ok, `acc/again: a revision bump reads all 24 out of date and updates them (${JSON.stringify(again.pre.sets[0].counts)}; ${applyVerdict(again.res).headline})`);
   const reRow = membersOf(w.set()).filter((m) => rowIds(m) !== beforeRow.get(String(m.name))).map((m) => String(m.name));
   ok(reRow.length === 0, `acc/row adopted: a later update keeps the row and every node under it, by id, on every member (${reRow.slice(0, 2).join('; ') || 'all 24'})`);
+}
+
+/* ── segmented control (#2724) ───────────────────────────────────────────────────────────────────────── */
+section('segmented control — sets built with the tinted, outlined look (#2418) take the flat pill and the filled track in place (#2724, owner Q336 A, Q342 A)');
+{
+  // THE FILE AS A BUILD AT MAIN BEFORE #2724 LEFT IT: the selected indicator tinted in the overlay slot with a 2px
+  // primary outline stepping per state, a disabled outline, and the control's track a 1px neutral outline with no
+  // fill. Reconstructed from today's defs by putting those facts back, so the subject is the real defs' projection on
+  // both sides (as `image-placeholder` and `accordion` above do). Every expectation below is read off the shim's
+  // nodes by the test. Mutations: the executor's in-place stroke clear skipped → `seg/border removed`,
+  // `seg/track outline removed`.
+  const SEG = 'segmented-control-segment', CTL = 'segmented-control';
+  const segNow = componentDefs.find((x) => x.id === SEG)!;
+  const ctlNow = componentDefs.find((x) => x.id === CTL)!;
+  const { 'selected.fill': _f, 'disabled.fill': _d, ...segKept } = segNow.tokens;
+  void _f; void _d;
+  const seg2418 = {
+    ...segNow,
+    tokens: {
+      ...segKept,
+      'unselected.border-width': 'border-width.none',
+      'selected.border-width': 'border-width.thick',
+      'selected.overlay': 'color.interactive.primary.subtle-fill.selected',
+      'selected.border': 'color.interactive.primary.border.rest',
+      'selected.border.hover': 'color.interactive.primary.border.hover',
+      'selected.border.pressed': 'color.interactive.primary.border.pressed',
+      'disabled.border': 'color.disabled.border',
+    },
+    anatomy: { ...segNow.anatomy, parts: { ...segNow.anatomy.parts, indicator: { ...segNow.anatomy.parts.indicator, paintSlots: ['overlay', 'border'], strokeWidth: '{selection}.border-width' } } },
+  } as typeof segNow;
+  const { fill: _t, ...ctlKept } = ctlNow.tokens;
+  void _t;
+  const ctl2418 = {
+    ...ctlNow,
+    tokens: { ...ctlKept, 'border-width': 'border-width.hairline', border: 'color.interactive.neutral.border.rest' },
+    anatomy: { ...ctlNow.anatomy, parts: { ...ctlNow.anatomy.parts, track: { ...ctlNow.anatomy.parts.track, paintSlots: ['border'], strokeWidth: 'border-width' } } },
+  } as typeof ctlNow;
+  const stroked = (n: Node | undefined): boolean => ((n?.strokes as { visible?: boolean }[] | undefined) ?? []).some((p) => p.visible !== false);
+  const filledWith = async (w: World, n: Node | undefined): Promise<string> => {
+    const id = ((n?.fills as { boundVariables?: { color?: { id: string } } }[] | undefined) ?? [])[0]?.boundVariables?.color?.id;
+    const v = id && (await w.api.variables.getLocalVariablesAsync()).find((x: { id: string }) => x.id === id);
+    return v ? String(v.name).replace(/^[^/]+\//, '') : 'none';
+  };
+
+  // THE OPTION SET.
+  const segOld = figmaAnatomySet(seg2418, { swapTarget: SWAP_TARGET });
+  const segNew = plansOf(SEG);
+  const ws = await world(SEG, segOld, { extraVars: segNew.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]) });
+  const ind = (m: Node): Node => childNamed(m, 'indicator');
+  const selected = (m: Node) => /selection=selected/.test(String(m.name));
+  const wasEdged = membersOf(ws.set()).filter((m) => selected(m) && stroked(ind(m))).length;
+  ok(membersOf(ws.set()).length === 30 && wasEdged === 15, `premise: the file holds 30 options, the 15 selected ones with an outlined indicator (${membersOf(ws.set()).length}, ${wasEdged} outlined)`);
+  const segBefore = identityOf(ws.set());
+  const sres = await confirm(ws, [{ def: SEG, plans: segNew }]);
+  ok(sres.pre.sets[0].counts.update === 30 && applyVerdict(sres.res).ok, `seg/updated: all 30 options read out of date and are updated in place (${JSON.stringify(sres.pre.sets[0].counts)}; ${applyVerdict(sres.res).headline})`);
+  const stillEdged = membersOf(ws.set()).filter((m) => stroked(ind(m))).map((m) => String(m.name));
+  ok(stillEdged.length === 0, `seg/border removed: no option's indicator keeps a stroke (${stillEdged.length} still outlined${stillEdged.length ? `, e.g. ${stillEdged[0]}` : ''})`);
+  // Typed here: the pill is the page surface at every selected state, disabled included.
+  const pills = await Promise.all(membersOf(ws.set()).filter(selected).map(async (m) => [String(m.name), await filledWith(ws, ind(m))] as const));
+  const offPill = pills.filter(([, v]) => v !== 'color/background/primary');
+  ok(pills.length === 15 && offPill.length === 0, `seg/pill: every selected option's indicator is filled with color/background/primary (${offPill.length} off${offPill.length ? `, e.g. ${offPill[0].join(' → ')}` : ''})`);
+  const segAfter = identityOf(ws.set());
+  const segMoved = [...segBefore.members].filter(([name, b]) => segAfter.members.get(name)?.key !== b.key || segAfter.members.get(name)?.kids.get('indicator#0') !== b.kids.get('indicator#0')).map(([n]) => n);
+  ok(segMoved.length === 0, `seg/kept: every option keeps its key and its indicator's node id (${segMoved.slice(0, 2).join(', ') || 'none moved'})`);
+  const segPost = (await previewUpdate(ws.host, [{ def: SEG, plans: segNew }])).sets[0];
+  ok(segPost.counts.current === 30, `seg/current: the next dry run reads all 30 current (${JSON.stringify(segPost.counts)})`);
+
+  // THE CONTROL SET.
+  const ctlOld = figmaAnatomySet(ctl2418, { swapTarget: SWAP_TARGET });
+  const ctlNew = plansOf(CTL);
+  const wc = await world(CTL, ctlOld, { extraVars: ctlNew.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]) });
+  const track = (m: Node): Node => childNamed(m, 'track');
+  ok(membersOf(wc.set()).length === 3 && membersOf(wc.set()).every((m) => stroked(track(m))), `premise: the file holds 3 controls, each track outlined (${membersOf(wc.set()).filter((m) => stroked(track(m))).length} outlined)`);
+  const ctlBefore = identityOf(wc.set());
+  const cres = await confirm(wc, [{ def: CTL, plans: ctlNew }]);
+  ok(cres.pre.sets[0].counts.update === 3 && applyVerdict(cres.res).ok, `seg/control updated: all 3 controls are updated in place (${JSON.stringify(cres.pre.sets[0].counts)}; ${applyVerdict(cres.res).headline})`);
+  const outlined = membersOf(wc.set()).filter((m) => stroked(track(m))).map((m) => String(m.name));
+  ok(outlined.length === 0, `seg/track outline removed: no control's track keeps a stroke (${outlined.length} still outlined${outlined.length ? `, e.g. ${outlined[0]}` : ''})`);
+  const tracks = await Promise.all(membersOf(wc.set()).map((m) => filledWith(wc, track(m))));
+  ok(tracks.every((t) => t === 'color/background/secondary'), `seg/track fill: every track is filled with color/background/secondary (${tracks.join(', ')})`);
+  const ctlAfter = identityOf(wc.set());
+  const ctlMoved = [...ctlBefore.members].filter(([name, b]) => ctlAfter.members.get(name)?.key !== b.key || ctlAfter.members.get(name)?.kids.get('track#1') !== b.kids.get('track#1')).map(([n]) => n);
+  ok(ctlMoved.length === 0, `seg/control kept: every control keeps its key and its track's node id (${ctlMoved.join(', ') || 'none moved'})`);
+  const ctlPost = (await previewUpdate(wc.host, [{ def: CTL, plans: ctlNew }])).sets[0];
+  ok(ctlPost.counts.current === 3, `seg/control current: the next dry run reads all 3 current (${JSON.stringify(ctlPost.counts)})`);
 }
 
 /* ── overrides (#2645) ──────────────────────────────────────────────────────────────────────────────── */
