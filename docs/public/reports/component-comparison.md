@@ -480,8 +480,8 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | checkbox-control | medium | small, medium, large |
 |  | checkbox-group | medium | small, medium, large |
 |  | checkbox-row | medium | small, medium, large |
-|  | code-input | medium | medium, small, large, xlarge |
-|  | code-input-cell | medium | medium, small, large, xlarge |
+|  | code-input | medium | small, medium, large, xlarge |
+|  | code-input-cell | medium | small, medium, large, xlarge |
 |  | dialog | medium | small, medium, large |
 |  | field-label | small | small, medium, large |
 |  | flush-icon-button | medium | small, medium, large |

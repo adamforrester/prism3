@@ -1084,7 +1084,9 @@ const builtSizeAt = (def: ComponentDef, size: string | undefined, slots: PlanSlo
   const a = def.anatomy;
   const root = a?.parts[a.root];
   const b = root?.kind === 'box' ? root.builtSize : undefined;
-  const value = b ? slots[b.axis] : undefined;
+  // `size` is not among the plan's slots: it travels as its own argument (#795), so a `builtSize` over the size axis
+  // (Code input's cell, #2428) reads it there.
+  const value = b ? (b.axis === 'size' ? size : slots[b.axis]) : undefined;
   if (!a || !root || !b || !root.layout || typeof value !== 'string' || !(value in b.widths)) return def;
   const w = b.widths[value];
   const width = typeof w === 'number' ? w : size !== undefined ? w[size] : undefined;

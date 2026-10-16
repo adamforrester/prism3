@@ -895,8 +895,8 @@
           "name": "size",
           "default": "medium",
           "values": [
-            "medium",
             "small",
+            "medium",
             "large",
             "xlarge"
           ]
@@ -970,8 +970,8 @@
           "name": "size",
           "default": "medium",
           "values": [
-            "medium",
             "small",
+            "medium",
             "large",
             "xlarge"
           ]
@@ -5675,8 +5675,8 @@
         "id": "code-input",
         "default": "medium",
         "values": [
-          "medium",
           "small",
+          "medium",
           "large",
           "xlarge"
         ]
@@ -5685,8 +5685,8 @@
         "id": "code-input-cell",
         "default": "medium",
         "values": [
-          "medium",
           "small",
+          "medium",
           "large",
           "xlarge"
         ]

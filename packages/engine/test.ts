@@ -31242,6 +31242,152 @@ arm: {
   ok(missing.length === 0, `#2501: the axis order rule read every def it was raised on, each with values to order${missing.length ? ` — not read: ${missing.join(', ')}` : ''}`);
 }
 
+// ------------------------------------------------------------------- #2428: Code input and its cell
+// Each owner decision held against a literal typed here from the decision (Q321, Q329, Q330, Q344, Q346, Q347/Q359);
+// ACTUAL is the projected plan, so a def that moves a size, a binding, the slot or a default fails the arm by name.
+{
+  const fieldDef = componentDefs.find((d) => d.id === 'code-input')!;
+  const cellDef = componentDefs.find((d) => d.id === 'code-input-cell')!;
+  const findIn = (n: AnatomyPlan['root'], name: string): AnatomyPlan['root'] | undefined => n.name === name ? n : n.children.map((k) => findIn(k, name)).find(Boolean);
+  const cells = figmaAnatomySet(cellDef, {});
+  const fields = figmaAnatomySet(fieldDef, {});
+  const cellAt = (size: string, state: string) => cells.find((p) => planComponentName(p) === `size=${size}, state=${state}`);
+  const fieldAt = (status: string, size: string, state: string) => fields.find((p) => planComponentName(p) === `status=${status}, size=${size}, state=${state}`);
+  const CELL_STATES = ['rest', 'hover', 'filled', 'focus-visible', 'focus-visible-filled', 'disabled', 'error'];
+  const FIELD_STATES = ['rest', 'hover', 'filled', 'focus-visible', 'focus-visible-filled', 'disabled'];
+  const SIZES = ['medium', 'small', 'large', 'xlarge'];
+
+  // (1) THE SETS: the cell is size × seven states (Q329's cell states; active spelled focus-visible), the field size ×
+  // status [default, error] × six states (Q321.9 A), and medium leads both (Q347, Q359).
+  ok(cells.length === 28 && fields.length === 48,
+    `#2428 code-input: the cell projects 4 sizes × 7 states = 28 members and the field 4 sizes × 2 statuses × 6 states = 48 (${cells.length}, ${fields.length})`);
+  ok(planComponentName(cells[0]) === 'size=medium, state=rest' && planComponentName(fields[0]) === 'status=default, size=medium, state=rest',
+    `#2428 code-input: the first member of each set is the code default, medium at rest (Q347, Q359) (${planComponentName(cells[0])}; ${planComponentName(fields[0])})`);
+  ok(JSON.stringify(cellDef.figmaProperties?.stateAxis?.values) === JSON.stringify(CELL_STATES) && JSON.stringify(fieldDef.figmaProperties?.stateAxis?.values) === JSON.stringify(FIELD_STATES),
+    `#2428 code-input: the cell's states are rest, hover, filled, active, active filled, disabled, error, and the field's are Text field's without read-only`);
+
+  // (2) THE CELL SIZES (Q330 A), literal px, each built at that width and height; every one at least 44 tall, the floor
+  // `lint-hit-target.ts` hands to this arm (EXCLUDED: code-input). And the 32px fill floor.
+  const SIZE_PX: Record<string, [number, number]> = { small: [44, 44], medium: [48, 56], large: [56, 64], xlarge: [68, 72] };
+  const sizeOff = SIZES.filter((s) => {
+    const r = cellAt(s, 'rest')?.root;
+    return !r || r.placementWidth !== SIZE_PX[s][0] || r.placementHeight !== SIZE_PX[s][1] || r.primaryAxisSizingMode !== 'FIXED' || r.counterAxisSizingMode !== 'FIXED' || r.minWidth !== 32;
+  });
+  ok(sizeOff.length === 0 && Object.values(SIZE_PX).every(([, h]) => h >= 44),
+    `#2428 code-input: the row of cells is a target of at least 44px — the cells are built at 44×44, 48×56, 56×64 and 68×72 with a 32px fill floor (off: ${sizeOff.join(', ') || 'none'})`);
+
+  // (3) THE CHARACTER: 16 / 20 / 24 / 40px (Q330 A). The text style per size is typed here, and its font size read from
+  // the committed prism3 emission, the brand Q330's numbers are from. Shown only where the cell holds a character.
+  const STYLE: Record<string, string> = { small: 'body/md/default', medium: 'title/sm/strong', large: 'title/md/strong', xlarge: 'title/2xl/strong' };
+  const PX: Record<string, number> = { small: 16, medium: 20, large: 24, xlarge: 40 };
+  const p3tree = JSON.parse(readFileSync(resolve(HERE, './out/prism3.tokens.json'), 'utf8')) as Record<string, Record<string, unknown>>;
+  // The composite's font size, read off its `{<root>.core.font.size.<px>}` alias in the emitted DTCG tree.
+  const fontPx = (style: string): number | undefined => {
+    let n: unknown = p3tree[Object.keys(p3tree).find((k) => !k.startsWith('$'))!];
+    for (const seg of ['type', ...style.split('/')]) n = (n as Record<string, unknown> | undefined)?.[seg];
+    const fs = ((n as { $value?: { fontSize?: unknown } } | undefined)?.$value?.fontSize);
+    const m = typeof fs === 'string' ? /\.size\.(\d+)\}$/.exec(fs) : null;
+    return m ? Number(m[1]) : undefined;
+  };
+  const typeOff = SIZES.filter((s) => {
+    const d = findIn(cellAt(s, 'filled')!.root, 'digit');
+    return d?.textStyle !== STYLE[s] || fontPx(STYLE[s]) !== PX[s];
+  }).map((s) => `${s}: ${String(findIn(cellAt(s, 'filled')!.root, 'digit')?.textStyle)} at ${String(fontPx(STYLE[s]))}px`);
+  const digitAt = CELL_STATES.filter((st) => !!findIn(cellAt('medium', st)!.root, 'digit'));
+  ok(typeOff.length === 0 && JSON.stringify(digitAt) === JSON.stringify(['filled', 'focus-visible-filled', 'error']),
+    `#2428 code-input: the character is 16 / 20 / 24 / 40px (body md, title sm, md, 2xl) and shows on the filled, active filled and error cells only (${typeOff.join('; ') || 'sizes ok'}; shown at ${digitAt.join(', ')})`);
+  // The title weight resolves per brand (`typeWeight`): a brand shipping only a light title weight gets that weight, not a
+  // missing `strong` style. The rule's own resolver, independent of the def.
+  const lightTitle = applyWeightIntent(cellDef, { ...DEFAULT_WEIGHT_AVAILABILITY, title: ['subtle'] });
+  ok(lightTitle.tokens['size.medium.type'] === 'type.title.sm.subtle' && lightTitle.tokens['size.small.type'] === 'type.body.md.default' && applyWeightIntent(cellDef, DEFAULT_WEIGHT_AVAILABILITY).tokens['size.medium.type'] === 'type.title.sm.strong',
+    `#2428 code-input: the title characters take the brand's bold title weight (strong by default, subtle on a subtle-only brand), the small body character untouched (${lightTitle.tokens['size.medium.type']})`);
+
+  // (4) THE CELL'S PAINT, per state: Text field's field chrome (Q321 A), the danger border in error, the shared disabled
+  // skin with `color.disabled.border` (Q346).
+  const PAINT: Record<string, { fills?: string; strokes: string }> = {
+    rest: { fills: 'color/field/fill', strokes: 'color/field/border/rest' },
+    hover: { fills: 'color/interactive/neutral/overlay/hover', strokes: 'color/field/border/hover' },
+    filled: { fills: 'color/field/fill', strokes: 'color/field/border/rest' },
+    'focus-visible': { fills: 'color/field/fill', strokes: 'color/border/focus' },
+    'focus-visible-filled': { fills: 'color/field/fill', strokes: 'color/border/focus' },
+    disabled: { fills: 'color/disabled/fill', strokes: 'color/disabled/border' },
+    error: { fills: 'color/field/fill', strokes: 'color/border/danger' },
+  };
+  const paintOff = CELL_STATES.filter((st) => { const r = cellAt('medium', st)!.root.paints; return r?.fills !== PAINT[st].fills || r?.strokes !== PAINT[st].strokes; })
+    .map((st) => `${st}: ${JSON.stringify(cellAt('medium', st)!.root.paints)}`);
+  ok(paintOff.length === 0, `#2428 code-input: the cell paints the field chrome per state — wash and field border at hover, the focus border when active, the danger border in error, disabled.fill and disabled.border when disabled (${paintOff.join('; ') || 'ok'})`);
+  // Q346: no border on either def binds a text or icon role.
+  const borderRoles = Object.entries(cellDef.tokens).filter(([k]) => k.split('.').includes('border')).map(([, v]) => v);
+  ok(borderRoles.length >= 5 && borderRoles.every((v) => !/^color\.(text|icon)\./.test(v)),
+    `#2428 code-input: every cell border binds a border role, never a text or icon role (Q346) (${borderRoles.join(', ')})`);
+  // The ring and the caret: the ring on both active states, the caret on the active empty cell only.
+  const ringAt = CELL_STATES.filter((st) => !!findIn(cellAt('medium', st)!.root, 'focusRing'));
+  const caretAt = CELL_STATES.filter((st) => !!findIn(cellAt('medium', st)!.root, 'caret'));
+  ok(JSON.stringify(ringAt) === JSON.stringify(['focus-visible', 'focus-visible-filled']) && JSON.stringify(caretAt) === JSON.stringify(['focus-visible']),
+    `#2428 code-input: the focus ring on the active cells (${ringAt.join(', ')}) and the caret on the active empty cell (${caretAt.join(', ')}) (Q321.6 A)`);
+
+  // (5) THE ITEMS SLOT (Q329 A): a native slot, 6 cells by default, 4 to 8, the cell preferred and the only offer; each
+  // default cell follows the field's size.
+  const slotOff = fields.filter((m) => {
+    const items = findIn(m.root, 'items');
+    const kids = items?.children ?? [];
+    return items?.type !== 'CONTENT_SLOT' || JSON.stringify(items.slotSettings) !== JSON.stringify({ minChildren: 4, maxChildren: 8, allowPreferredValuesOnly: true })
+      || JSON.stringify(items.slotPreferred) !== JSON.stringify(['code-input-cell']) || kids.length !== 6
+      || kids.some((k) => k.nestTarget !== 'code-input-cell' || k.nestVariant?.size !== m.size);
+  }).map(planComponentName);
+  ok(slotOff.length === 0, `#2428 code-input: every member holds a native items slot of six cells at its own size, min 4, max 8, preferring only code-input-cell (off: ${slotOff.slice(0, 3).join('; ') || 'none'})`);
+  // Each member's default cells show its state; the characters are the wireframe's 4 8 1 9 0 2.
+  const STATE_CELLS: Record<string, string[]> = {
+    rest: ['rest', 'rest', 'rest', 'rest', 'rest', 'rest'],
+    hover: ['hover', 'hover', 'hover', 'hover', 'hover', 'hover'],
+    filled: ['filled', 'filled', 'filled', 'filled', 'filled', 'filled'],
+    'focus-visible': ['focus-visible', 'rest', 'rest', 'rest', 'rest', 'rest'],
+    'focus-visible-filled': ['filled', 'filled', 'filled', 'focus-visible', 'rest', 'rest'],
+    disabled: ['disabled', 'disabled', 'disabled', 'disabled', 'disabled', 'disabled'],
+  };
+  const cellsOff = FIELD_STATES.filter((st) => {
+    const kids = findIn(fieldAt('error', 'medium', st)!.root, 'items')!.children;
+    return JSON.stringify(kids.map((k) => k.nestVariant?.state)) !== JSON.stringify(STATE_CELLS[st])
+      || kids.map((k) => k.nestOverrides?.find((o) => o.property === 'digit')?.value).join('') !== '481902';
+  });
+  ok(cellsOff.length === 0, `#2428 code-input: each member's default cells picture its state (the active cell first when empty, fourth after three characters), reading 4 8 1 9 0 2, and status leaves them alone (off: ${cellsOff.join(', ') || 'none'})`);
+  // The label dims with the field; the message follows its status.
+  const label = (m: AnatomyPlan) => findIn(m.root, 'label');
+  const message = (m: AnatomyPlan) => findIn(m.root, 'message');
+  ok(label(fieldAt('default', 'medium', 'disabled')!)?.nestVariant?.state === 'disabled' && label(fieldAt('default', 'medium', 'rest')!)?.nestVariant?.state === 'rest'
+    && message(fieldAt('error', 'medium', 'rest')!)?.nestVariant?.status === 'error' && message(fieldAt('default', 'medium', 'rest')!)?.nestVariant?.status === 'default',
+    `#2428 code-input: the nested label dims at disabled and the nested message takes the field's status`);
+
+  // (6) CONTRAST in every committed brand × mode (the cell adds no new pair; each is held here as Code input's own).
+  // [ink, ground, floor]: the character on the page, the rest, hover, active and error borders against the page.
+  const PAIRS: [string, string, number][] = [
+    ['color/text/primary', 'color/background/primary', 4.5],
+    ['color/text/primary', 'color/background/secondary', 4.5],
+    ['color/field/border/rest', 'color/background/primary', 3],
+    ['color/field/border/hover', 'color/background/primary', 3],
+    ['color/border/focus', 'color/background/primary', 3],
+    ['color/border/danger', 'color/background/primary', 3],
+  ];
+  const toRgb = (c: { r: number; g: number; b: number }): RGB => ({ r: c.r * 255, g: c.g * 255, b: c.b * 255 });
+  const BRANDS = readdirSync(resolve(HERE, './out/figma')).filter((b) => existsSync(resolve(HERE, `./out/figma/${b}/color.light.json`))).sort();
+  const MODES = ['light', 'dark', 'hc-light', 'hc-dark'];
+  const low: string[] = [];
+  let measured = 0, lowest = Infinity;
+  for (const b of BRANDS) for (const mode of MODES) {
+    const f = resolve(HERE, `./out/figma/${b}/color.${mode}.json`);
+    if (!existsSync(f)) { low.push(`${b}/${mode}: no export`); continue; }
+    const vars = new Map((JSON.parse(readFileSync(f, 'utf8')).variables as { name: string; value: { r: number; g: number; b: number; a?: number } }[]).map((v) => [v.name.replace(/^[^/]+\//, ''), v.value]));
+    for (const [ink, ground, floor] of PAIRS) {
+      const i = vars.get(ink), g = vars.get(ground);
+      if (!i || !g || (i.a ?? 1) !== 1) { low.push(`${b}/${mode}: ${ink} ${i ? `alpha ${i.a}` : 'missing'}`); continue; }
+      const r = contrast(toRgb(i), toRgb(g)); measured++; lowest = Math.min(lowest, r);
+      if (r < floor) low.push(`${b}/${mode}: ${ink} on ${ground} ${r.toFixed(2)} < ${floor}`);
+    }
+  }
+  ok(BRANDS.join(',') === 'aurora,nb,prism3,wendys' && measured === 16 * PAIRS.length && low.length === 0,
+    `#2428 code-input contrast: the character clears 4.5:1 on both page grounds and every cell border 3:1 against the page in all 16 brand × mode cells (${measured} pairs measured over ${BRANDS.join(', ')}, lowest ${lowest.toFixed(2)}:1${low.length ? ` — ${low.slice(0, 6).join('; ')}` : ''})`);
+}
+
 // ------------------------------------------------------------------- #2455: the divider, a 1px rule
 // Each recommendation held against a literal: the issue's visible defaults (owner Q190.3 A), the brief's inset
 // (Q190.2 A) and its decorative-by-default semantics (Q190.1 A). EXPECTED is typed here; ACTUAL is the projected

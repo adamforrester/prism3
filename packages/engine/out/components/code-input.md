@@ -58,7 +58,7 @@ Label = noun phrase, sentence case. Helper = the length and where the code went.
 | `validation` | enum: 'default' \| 'error' | `default` | no | error swaps every cell to the danger border, sets the message to the error status and sets aria-invalid. |
 | `validationMessage` | string \| node | — | no | The error text: too few characters, a wrong code or an expired code, each said plainly. |
 | `showMessage` | boolean | `true` | no | Whether the composed FieldMessage is shown. On by default. |
-| `size` | enum: 'medium' \| 'small' \| 'large' \| 'xlarge' | `medium` | no | The cell size: small 44×44 with a 16px character, medium 48×56 with 20px, large 56×64 with 24px, xlarge 68×72 with 40px, meant for four-character codes. |
+| `size` | enum: 'small' \| 'medium' \| 'large' \| 'xlarge' | `medium` | no | The cell size: small 44×44 with a 16px character, medium 48×56 with 20px, large 56×64 with 24px, xlarge 68×72 with 40px, meant for four-character codes. |
 | `width` | enum: 'auto' \| 'full' | `auto` | no | auto: each cell at its size. full: the row spans its container and the cells share it, shrinking to 32px wide when they must. |
 | `disabled` | boolean | `false` | no | Native disabled. |
 | `isPending` | boolean | `false` | no | The code is being checked; sets aria-busy and keeps the input editable. |

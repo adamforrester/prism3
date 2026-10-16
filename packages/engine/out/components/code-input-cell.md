@@ -11,7 +11,7 @@ One cell of a code input: a box that shows one character of the code. It is draw
 
 ## Usage
 
-Use inside CodeInput only, one cell per character of the code. In Figma, add or remove cells in the code input's cell slot and set each cell's state to match the field: error cells when the field is in error, disabled cells when it is disabled.
+Use inside CodeInput only, one cell per character of the code. In a design, add or remove cells in the code input's cell slot and set each cell's state to match the field: error cells when the field is in error, disabled cells when it is disabled. In code, the code input sets every cell.
 
 ### Do
 
@@ -39,7 +39,7 @@ One character per cell.
 | Name | Type | Default | Required | Description |
 | --- | --- | --- | --- | --- |
 | `digit` | string | — | no | The character this cell shows: one digit, or one letter in a code that allows letters. Empty until the user reaches it. |
-| `size` | enum: 'medium' \| 'small' \| 'large' \| 'xlarge' | `medium` | no | The cell size and its character size. Set by the code input. |
+| `size` | enum: 'small' \| 'medium' \| 'large' \| 'xlarge' | `medium` | no | The cell size and its character size. Set by the code input. |
 | `isActive` | boolean | `false` | no | Whether this is the cell the next character goes into while the input has focus. Set by the code input. |
 | `isInvalid` | boolean | `false` | no | Whether the code input is in error. Set by the code input. |
 | `disabled` | boolean | `false` | no | Whether the code input is disabled. Set by the code input. |

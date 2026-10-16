@@ -7785,12 +7785,12 @@
         },
         {
           "name": "size",
-          "type": "enum: 'medium' | 'small' | 'large' | 'xlarge'",
+          "type": "enum: 'small' | 'medium' | 'large' | 'xlarge'",
           "default": "medium",
           "required": false,
           "values": [
-            "medium",
             "small",
+            "medium",
             "large",
             "xlarge"
           ],
@@ -7850,7 +7850,7 @@
         "aria": "aria-hidden=\"true\". A screen reader meets the code input's one input and its whole value, never a cell."
       },
       "docs": {
-        "usage": "Use inside CodeInput only, one cell per character of the code. In Figma, add or remove cells in the code input's cell slot and set each cell's state to match the field: error cells when the field is in error, disabled cells when it is disabled.",
+        "usage": "Use inside CodeInput only, one cell per character of the code. In a design, add or remove cells in the code input's cell slot and set each cell's state to match the field: error cells when the field is in error, disabled cells when it is disabled. In code, the code input sets every cell.",
         "do": [
           "Set every cell to error when the code input is in error",
           "Set every cell to disabled when the code input is disabled"
@@ -7994,12 +7994,12 @@
         },
         {
           "name": "size",
-          "type": "enum: 'medium' | 'small' | 'large' | 'xlarge'",
+          "type": "enum: 'small' | 'medium' | 'large' | 'xlarge'",
           "default": "medium",
           "required": false,
           "values": [
-            "medium",
             "small",
+            "medium",
             "large",
             "xlarge"
           ],
