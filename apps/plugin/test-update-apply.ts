@@ -37,6 +37,9 @@
  *   child/…        a part the plan dropped is removed. Mutation: extra children kept → `child/removed`.
  *   verify/…       the update's own checks fail when the host changes an id or drops a field under it.
  *                  Mutations: the member identity check dropped → `verify/member`.
+ *   edge/…         a file built when the disabled edge bound `color.disabled.icon` (#1349, #1697) is corrected in
+ *                  place to `color.disabled.border` (Q346, #2749): Tag, Button and IconButton, every key and id kept,
+ *                  current after. Mutation: the def's binding reverted → `edge/<def> rebound`.
  *   corpus/…       every def, re-applied in place by an executor revision bump, keeps every key and id, reads
  *                  back as its plan, and reads current after.
  *   choices/…      `overwrite` writes the plan over a hand edit; `accept` keeps it as the new record (§5).
@@ -2284,6 +2287,39 @@ section("verify — the update's own checks fail when the host does not hold wha
 }
 
 /* ── corpus ──────────────────────────────────────────────────────────────────────────────────────────── */
+section('edge — a file built when the disabled edge bound an icon role is corrected in place (Q346, #2749)');
+{
+  // Each def is built from a copy whose `disabled.border` is the retired `color.disabled.icon` (#1349, #1697): the
+  // file an earlier plugin left. The update then runs against the CURRENT def. What the test reads is the shim's
+  // own nodes: which variable each disabled member's stroke is bound to, and every key and id it captured before.
+  for (const id of ['tag', 'button', 'icon-button']) {
+    const def = componentDefs.find((d) => d.id === id)!;
+    const old = { ...def, tokens: { ...def.tokens, 'disabled.border': 'color.disabled.icon' } };
+    // Button and IconButton carry a `surface` axis, so half their disabled edges are the inverse twins.
+    const w = await world(id, figmaAnatomySet(old, { swapTarget: SWAP_TARGET }), { extraVars: ['color/disabled/border', 'color/inverse/disabled/border'] });
+    const vars = new Map<string, string>((await w.api.variables.getLocalVariablesAsync()).map((v: { id: string; name: string }) => [v.id, v.name.slice(v.name.indexOf('/') + 1)] as [string, string]));
+    const strokeVar = (m: Node): string | undefined => {
+      const vid = ((m.strokes as { boundVariables?: { color?: { id: string } } }[] | undefined) ?? [])[0]?.boundVariables?.color?.id;
+      return vid ? (vars.get(vid) ?? vid) : undefined;
+    };
+    const isIcon = (v?: string) => /^color\/(inverse\/)?disabled\/icon$/.test(v ?? '');
+    const isBorder = (v?: string) => /^color\/(inverse\/)?disabled\/border$/.test(v ?? '');
+    const was = membersOf(w.set()).filter((m) => /state=disabled/.test(String(m.name)) && !!strokeVar(m));
+    ok(was.length > 0 && was.every((m) => isIcon(strokeVar(m))), `premise: ${id}'s old build strokes ${was.length} disabled member(s) with the disabled icon role (${[...new Set(was.map(strokeVar))].join(', ')})`);
+    const before = identityOf(w.set());
+    const { pre, res } = await confirm(w, [{ def: id, plans: plansOf(id) }]);
+    ok(pre.sets[0].counts.update >= was.length && applyVerdict(res).ok, `edge/${id} dry run: the ${was.length} disabled edge(s) read to update, and the apply succeeds (${pre.sets[0].counts.update}; ${applyVerdict(res).headline})`);
+    const now = membersOf(w.set()).filter((m) => was.some((x) => x.name === m.name));
+    ok(now.length === was.length && now.every((m) => isBorder(strokeVar(m)) && strokeVar(m)!.includes('inverse') === strokeVar(was.find((x) => x.name === m.name)!)!.includes('inverse')),
+      `edge/${id} rebound: every disabled edge is now bound to the disabled border role, on its own surface (${now.filter((m) => !isBorder(strokeVar(m))).length} still not)`);
+    const after = identityOf(w.set());
+    const moved = [...before.members].filter(([name, b]) => after.members.get(name)?.key !== b.key || after.members.get(name)?.id !== b.id).map(([n]) => n);
+    ok(moved.length === 0 && JSON.stringify(after.set) === JSON.stringify(before.set), `edge/${id} in place: the set and every member keep their key and id (${moved.length} changed)`);
+    const post = (await previewUpdate(w.host, [{ def: id, plans: plansOf(id) }])).sets[0];
+    ok(post.counts.current === before.members.size, `edge/${id} current: the next dry run reads all ${before.members.size} current (${JSON.stringify(post.counts)})`);
+  }
+}
+
 section('corpus — every def, re-applied in place by an executor revision bump, keeps every key and reads back as its plan');
 {
   // A newer executor revision makes every member out of date with nothing else moved, so the update configures
@@ -2593,6 +2629,91 @@ for (const G of ['checkbox-group', 'radio-group', 'segmented-control']) {
     `${G}/bold kept: every label still instances the secondary, bold member at its group's size (${[...new Set(read.map((x) => x.main))].join(' | ')})`);
   const post = (await previewUpdate(w.host, [{ def: G, plans: newPlans }])).sets[0];
   ok(post.counts.current === 3 && post.handEdits.length === 0, `${G}/current: the next dry run reads all 3 current (${JSON.stringify(post.counts)})`);
+}
+
+/* ── segmented control (#2724) ───────────────────────────────────────────────────────────────────────── */
+section('segmented control — sets built with the tinted, outlined look (#2418) take the flat pill and the filled track in place (#2724, owner Q336 A, Q342 A)');
+{
+  // THE FILE AS A BUILD AT MAIN BEFORE #2724 LEFT IT: the selected indicator tinted in the overlay slot with a 2px
+  // primary outline stepping per state, a disabled outline, and the control's track a 1px neutral outline with no
+  // fill. Reconstructed from today's defs by putting those facts back, so the subject is the real defs' projection on
+  // both sides (as `image-placeholder` and `accordion` above do). Every expectation below is read off the shim's
+  // nodes by the test. Mutations: the executor's in-place stroke clear skipped → `seg/border removed`,
+  // `seg/track outline removed`.
+  const SEG = 'segmented-control-segment', CTL = 'segmented-control';
+  const segNow = componentDefs.find((x) => x.id === SEG)!;
+  const ctlNow = componentDefs.find((x) => x.id === CTL)!;
+  const { 'selected.fill': _f, 'disabled.fill': _d, ...segKept } = segNow.tokens;
+  void _f; void _d;
+  const seg2418 = {
+    ...segNow,
+    tokens: {
+      ...segKept,
+      'unselected.border-width': 'border-width.none',
+      'selected.border-width': 'border-width.thick',
+      'selected.overlay': 'color.interactive.primary.subtle-fill.selected',
+      'selected.border': 'color.interactive.primary.border.rest',
+      'selected.border.hover': 'color.interactive.primary.border.hover',
+      'selected.border.pressed': 'color.interactive.primary.border.pressed',
+      'disabled.border': 'color.disabled.border',
+    },
+    anatomy: { ...segNow.anatomy, parts: { ...segNow.anatomy.parts, indicator: { ...segNow.anatomy.parts.indicator, paintSlots: ['overlay', 'border'], strokeWidth: '{selection}.border-width' } } },
+  } as typeof segNow;
+  const { fill: _t, ...ctlKept } = ctlNow.tokens;
+  void _t;
+  const ctl2418 = {
+    ...ctlNow,
+    tokens: { ...ctlKept, 'border-width': 'border-width.hairline', border: 'color.interactive.neutral.border.rest' },
+    anatomy: { ...ctlNow.anatomy, parts: { ...ctlNow.anatomy.parts, track: { ...ctlNow.anatomy.parts.track, paintSlots: ['border'], strokeWidth: 'border-width' } } },
+  } as typeof ctlNow;
+  const stroked = (n: Node | undefined): boolean => ((n?.strokes as { visible?: boolean }[] | undefined) ?? []).some((p) => p.visible !== false);
+  const filledWith = async (w: World, n: Node | undefined): Promise<string> => {
+    const id = ((n?.fills as { boundVariables?: { color?: { id: string } } }[] | undefined) ?? [])[0]?.boundVariables?.color?.id;
+    const v = id && (await w.api.variables.getLocalVariablesAsync()).find((x: { id: string }) => x.id === id);
+    return v ? String(v.name).replace(/^[^/]+\//, '') : 'none';
+  };
+
+  // THE OPTION SET.
+  const segOld = figmaAnatomySet(seg2418, { swapTarget: SWAP_TARGET });
+  const segNew = plansOf(SEG);
+  const ws = await world(SEG, segOld, { extraVars: segNew.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]) });
+  const ind = (m: Node): Node => childNamed(m, 'indicator');
+  const selected = (m: Node) => /selection=selected/.test(String(m.name));
+  const wasEdged = membersOf(ws.set()).filter((m) => selected(m) && stroked(ind(m))).length;
+  ok(membersOf(ws.set()).length === 30 && wasEdged === 15, `premise: the file holds 30 options, the 15 selected ones with an outlined indicator (${membersOf(ws.set()).length}, ${wasEdged} outlined)`);
+  const segBefore = identityOf(ws.set());
+  const sres = await confirm(ws, [{ def: SEG, plans: segNew }]);
+  ok(sres.pre.sets[0].counts.update === 30 && applyVerdict(sres.res).ok, `seg/updated: all 30 options read out of date and are updated in place (${JSON.stringify(sres.pre.sets[0].counts)}; ${applyVerdict(sres.res).headline})`);
+  const stillEdged = membersOf(ws.set()).filter((m) => stroked(ind(m))).map((m) => String(m.name));
+  ok(stillEdged.length === 0, `seg/border removed: no option's indicator keeps a stroke (${stillEdged.length} still outlined${stillEdged.length ? `, e.g. ${stillEdged[0]}` : ''})`);
+  // Typed here: the pill is the page surface at every selected state, disabled included.
+  const pills = await Promise.all(membersOf(ws.set()).filter(selected).map(async (m) => [String(m.name), await filledWith(ws, ind(m))] as const));
+  const offPill = pills.filter(([, v]) => v !== 'color/background/primary');
+  ok(pills.length === 15 && offPill.length === 0, `seg/pill: every selected option's indicator is filled with color/background/primary (${offPill.length} off${offPill.length ? `, e.g. ${offPill[0].join(' → ')}` : ''})`);
+  const segAfter = identityOf(ws.set());
+  const segMoved = [...segBefore.members].filter(([name, b]) => segAfter.members.get(name)?.key !== b.key || segAfter.members.get(name)?.kids.get('indicator#0') !== b.kids.get('indicator#0')).map(([n]) => n);
+  ok(segMoved.length === 0, `seg/kept: every option keeps its key and its indicator's node id (${segMoved.slice(0, 2).join(', ') || 'none moved'})`);
+  const segPost = (await previewUpdate(ws.host, [{ def: SEG, plans: segNew }])).sets[0];
+  ok(segPost.counts.current === 30, `seg/current: the next dry run reads all 30 current (${JSON.stringify(segPost.counts)})`);
+
+  // THE CONTROL SET.
+  const ctlOld = figmaAnatomySet(ctl2418, { swapTarget: SWAP_TARGET });
+  const ctlNew = plansOf(CTL);
+  const wc = await world(CTL, ctlOld, { extraVars: ctlNew.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]) });
+  const track = (m: Node): Node => childNamed(m, 'track');
+  ok(membersOf(wc.set()).length === 3 && membersOf(wc.set()).every((m) => stroked(track(m))), `premise: the file holds 3 controls, each track outlined (${membersOf(wc.set()).filter((m) => stroked(track(m))).length} outlined)`);
+  const ctlBefore = identityOf(wc.set());
+  const cres = await confirm(wc, [{ def: CTL, plans: ctlNew }]);
+  ok(cres.pre.sets[0].counts.update === 3 && applyVerdict(cres.res).ok, `seg/control updated: all 3 controls are updated in place (${JSON.stringify(cres.pre.sets[0].counts)}; ${applyVerdict(cres.res).headline})`);
+  const outlined = membersOf(wc.set()).filter((m) => stroked(track(m))).map((m) => String(m.name));
+  ok(outlined.length === 0, `seg/track outline removed: no control's track keeps a stroke (${outlined.length} still outlined${outlined.length ? `, e.g. ${outlined[0]}` : ''})`);
+  const tracks = await Promise.all(membersOf(wc.set()).map((m) => filledWith(wc, track(m))));
+  ok(tracks.every((t) => t === 'color/background/secondary'), `seg/track fill: every track is filled with color/background/secondary (${tracks.join(', ')})`);
+  const ctlAfter = identityOf(wc.set());
+  const ctlMoved = [...ctlBefore.members].filter(([name, b]) => ctlAfter.members.get(name)?.key !== b.key || ctlAfter.members.get(name)?.kids.get('track#1') !== b.kids.get('track#1')).map(([n]) => n);
+  ok(ctlMoved.length === 0, `seg/control kept: every control keeps its key and its track's node id (${ctlMoved.join(', ') || 'none moved'})`);
+  const ctlPost = (await previewUpdate(wc.host, [{ def: CTL, plans: ctlNew }])).sets[0];
+  ok(ctlPost.counts.current === 3, `seg/control current: the next dry run reads all 3 current (${JSON.stringify(ctlPost.counts)})`);
 }
 
 /* ── overrides (#2645) ──────────────────────────────────────────────────────────────────────────────── */

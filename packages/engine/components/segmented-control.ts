@@ -8,6 +8,7 @@
  *        submitted value. A code prop only: one Figma component serves both.
  *   2 A  A value control, never contained tabs.
  *   3 A  Bold when selected with the width held (Tab's bold reserve, #2528), plus the tint and the 2px outline.
+ *        The tint and the outline are superseded by Q336 A and Q342 A (below); the bold and the reserve stand.
  *   4 A  The hover is the neutral overlay wash (confirmed built, Q278.1 A).
  *   5 A  Track `radius.md`, indicator `radius.sm`, 4px inside. No style axis (confirmed built, Q278.2 A: the corners
  *        stay non-concentric, no derived radius token).
@@ -21,22 +22,32 @@
  * gap, each option carrying its own 4px inset; 6 the page sorts alphabetically (Q260 A, between Radio and Select),
  * no exception.
  *
+ * Owner decisions Q336 A and Q342 A (2026-10-15, #2724), on owner QA of the built control, with the wireframe
+ * approved: the studio's own selected look. A neutral track with no outline, a flat surface pill with no border and
+ * no shadow, the emphasis weight as the state cue, no brand color. They supersede Q269.3's tint and 2px outline and
+ * the 1px track outline Q278.2 kept; the shape, the inset, the hover wash and the bold reserve stand.
+ *
  * ── THE SEGMENT ────────────────────────────────────────────────────────────────────────────────────────
  * `selection` [unselected, selected] × `size` [small, medium, large] × five states = 30 members. The cell is the
  * hit target (Button's height rung); an INDICATOR inset 4px inside it carries the paint. The cell is BUILT at a
  * placement width (120, Q278.4 A) and fills: the indicator grows across it, so when the control grows a segment the
- * selected tint and outline span the whole share, not just the label.
+ * selected pill spans the whole share, not just the label.
  *
- * THE SELECTED LOOK (the system selection pattern, skill §5, with Q269.3's weight): the tint
- * `interactive.primary.subtle-fill.selected` in the `overlay` slot, a 2px `interactive.primary.border.*` outline
- * drawn inside the indicator, and the label in the EMPHASIS weight with a clipped bold reserve, so the label box is
- * as wide in both states. The label and icon keep the NEUTRAL ink when selected: the primary ink misses 4.5:1 on
- * the tint (3.01–4.75:1 over the 16 committed brand × mode cells; the skill quotes 2.70:1). Tab can use the primary
- * ink because it has no tint.
+ * THE SELECTED LOOK (owner decisions Q336 A and Q342 A, 2026-10-15, #2724; they supersede Q269.3's tint and 2px
+ * outline and the track outline Q278 kept): a flat PILL on a neutral track. The selected indicator fills with the
+ * page surface, `color.background.primary`, with no border and no shadow; the track under it (the control's) fills
+ * with `color.background.secondary`, the quiet surface step, with no outline. The label in the EMPHASIS weight is
+ * the state cue, with a clipped bold reserve so the label box is as wide in both states; the pill against the track
+ * has no contrast floor, because it is not the only cue. No brand color anywhere in the control. The label and
+ * icon take the NEUTRAL ink in both selections, and the selected pill does not change at hover or press (selecting
+ * the selected option does nothing). Those two roles were picked because they already exist and clear every floor
+ * in every committed brand × mode cell: the label 4.5:1 and the icon 3:1 on the pill and on the track at every
+ * wash, the focus ring 3:1 against the track and the page (`test.ts`, #2724).
  *
  * ── THE CONTROL ────────────────────────────────────────────────────────────────────────────────────────
- * `size` only = 3 members. An optional nested FieldLabel (emphasis and weight exposed, bold by default; Q348 A) above a 1px outlined TRACK holding five nested segments,
- * `nest-exposed` (`selection`, `state`) and following `size`. Segments 1 and 2 always show; 3 (on), 4 and 5 (off)
+ * `size` only = 3 members. An optional nested FieldLabel (emphasis and weight exposed, bold by default; Q348 A) above a
+ * filled TRACK with no outline, holding five nested segments, `nest-exposed` (`selection`, `state`) and following
+ * `size`. Segments 1 and 2 always show; 3 (on), 4 and 5 (off)
  * sit behind Figma-only booleans (#2344). Segment 1 is selected. Each segment GROWS along the track (Q269.6), and
  * the track stretches across the control, so the segments share its width equally.
  */
@@ -48,9 +59,9 @@ export const segmentedControlSegment: ComponentDef = {
   aliases: ['segment', 'segmented-control-option'],
   category: 'form',
   status: 'draft',
-  summary: 'One option of a segmented control. Selected, it shows a tint, a 2px outline and a bold label.',
+  summary: 'One option of a segmented control. Selected, it shows a flat pill and a bold label.',
   description:
-    'One option in a segmented control: a cell as tall as a button, holding the option label and an optional leading icon. A selected option takes a tint and a 2px outline inside the cell, and its label is set in the emphasis weight. Every option keeps the width of its bold label, so selecting one never moves the others. At hover, an unselected option shows a light neutral wash. SegmentedControl places the options and owns the selection.',
+    'One option in a segmented control: a cell as tall as a button, holding the option label and an optional leading icon. A selected option shows a flat pill in the page surface color inside the cell, and its label is set in the emphasis weight. Every option keeps the width of its bold label, so selecting one never moves the others. At hover, an unselected option shows a light neutral wash on the track. SegmentedControl places the options and owns the selection.',
 
   props: [
     { name: 'label', type: 'string', required: true, description: 'The option name: a short noun or noun phrase, one line.' },
@@ -79,10 +90,6 @@ export const segmentedControlSegment: ComponentDef = {
     // THE BOLD RESERVE (Q269.3, Tab's Q226 A construction): a zero-height, clipping frame holding the label in the
     // selected weight, so the label box is always as wide as the bold label.
     'reserve-height': 'space.0',
-    // THE OUTLINE WEIGHT, per selection: none unselected (the track carries the control's edge), 2px selected,
-    // drawn inside the indicator so it adds no width.
-    'unselected.border-width': 'border-width.none',
-    'selected.border-width': 'border-width.thick',
     'focus-ring': 'color.border.focus',
     'ring-width': 'focus.ring.width',
     'ring-offset': 'focus.ring.offset',
@@ -116,24 +123,18 @@ export const segmentedControlSegment: ComponentDef = {
     'unselected.icon.hover': 'color.interactive.neutral.icon.hover',
     'unselected.icon.pressed': 'color.interactive.neutral.icon.pressed',
 
-    // SELECTED — Tag's selection pattern: the tint holds at hover and pressed, the 2px outline steps. The label and
-    // icon keep the NEUTRAL ink: the primary ink misses 4.5:1 on the tint (3.01:1 at the lowest).
-    'selected.overlay': 'color.interactive.primary.subtle-fill.selected',
-    'selected.border': 'color.interactive.primary.border.rest',
-    'selected.border.hover': 'color.interactive.primary.border.hover',
-    'selected.border.pressed': 'color.interactive.primary.border.pressed',
+    // SELECTED — the flat pill (Q336 A, Q342 A): the page surface, no border, no shadow, unchanged at hover and
+    // pressed, so the state-qualified keys fall through to these. The ink is the neutral rest ink.
+    'selected.fill': 'color.background.primary',
     'selected.label': 'color.interactive.neutral.text.rest',
-    'selected.label.hover': 'color.interactive.neutral.text.hover',
-    'selected.label.pressed': 'color.interactive.neutral.text.pressed',
     'selected.icon': 'color.interactive.neutral.icon.rest',
-    'selected.icon.hover': 'color.interactive.neutral.icon.hover',
-    'selected.icon.pressed': 'color.interactive.neutral.icon.pressed',
 
-    // DISABLED — a disabled selected option keeps a disabled outline (its 2px width holds); the tint is the overlay
-    // slot, which the disabled branch does not carry. An unselected one has a 0px edge, so nothing shows.
+    // DISABLED — a disabled selected option keeps its pill, so a disabled control still shows its value; the
+    // disabled branch applies `disabled.fill` only where the selection has a fill at rest, so an unselected option
+    // stays clear. The ink is the disabled ink, whose own contract is set on the page surface the pill shares.
+    'disabled.fill': 'color.background.primary',
     'disabled.label': 'color.disabled.text',
     'disabled.icon': 'color.disabled.icon',
-    'disabled.border': 'color.disabled.border',
   },
 
   anatomy: {
@@ -154,14 +155,13 @@ export const segmentedControlSegment: ComponentDef = {
       indicator: {
         kind: 'box',
         role: 'presentation',
-        paintSlots: ['overlay', 'border'],
+        paintSlots: ['fill', 'overlay'],
         children: ['content', 'focusRing'],
         layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'hug', y: 'hug' } },
         grow: true,
         crossAxisFill: true,
         radius: 'indicator-radius',
-        strokeWidth: '{selection}.border-width',
-        note: 'The selected indicator, inset 4px inside the cell and as wide as the cell allows. Selected, it takes a tint and a 2px outline drawn inside it, so its box does not grow; unselected, it is clear at rest and takes a light neutral wash at hover and press.',
+        note: 'The indicator, inset 4px inside the cell and as wide as the cell allows. Selected, it is a flat pill in the page surface color, with no border or shadow, and it does not change at hover or press; unselected, it is clear at rest and takes a light neutral wash over the track at hover and press.',
       },
       content: {
         kind: 'box',
@@ -220,7 +220,7 @@ export const segmentedControlSegment: ComponentDef = {
       'The option in code — a <button> with aria-current in the view behavior, or a native <input type="radio"> with its <label> in the form behavior. The control decides which, never the option.',
       'The label weight in code — the selected option sets its label in the emphasis weight and the others in the default weight, and every option reserves its bold width so selecting never shifts the row: a hidden bold copy of the label (for example ::after { content: attr(data-label); font-weight: <emphasis>; height: 0; visibility: hidden; overflow: hidden }) in a column with the label.',
       'The indicator in code — it may be one sliding node shared by the options (aria-hidden) rather than a box per option; the 4px inset and the paint are the same either way.',
-      'forced-colors — the tint drops out; the 2px outline survives as a system-color border or outline, so the selection still shows.',
+      'forced-colors — the pill fill drops out, so give the selected option a system-color border or outline (for example 1px solid Highlight) and keep the bold label; the selection still shows.',
       'The hit-target expansion — a small option is 36px tall on comfortable density; reaching 44px there is a code-side hit area larger than the visible box.',
       'RTL — logical properties mirror the row: the leading icon moves to the right of the label.',
       'text expansion — a label never wraps or truncates; the control renders a select instead when the longest translated label no longer fits.',
@@ -240,8 +240,9 @@ export const segmentedControlSegment: ComponentDef = {
   accessibility: {
     role: 'a <button> with aria-current in the view behavior, or a native radio with its label in the form behavior; the control sets which',
     wcag: [
-      '1.4.1 Use of Color (a 2px outline and the bold label mark the selected option, never the tint alone)',
-      '1.4.11 Non-text Contrast (targets 3:1 for the selected outline against the track)',
+      '1.4.1 Use of Color (the bold label marks the selected option, never the pill alone)',
+      '1.4.3 Contrast (the label clears 4.5:1 on the pill and on the track at rest, hover and press)',
+      '1.4.11 Non-text Contrast (the icon clears 3:1 on the pill and the track; the pill against the track has no floor, because it is not the only cue)',
       '2.4.13 Focus Appearance (the shared focus ring)',
       '2.5.8 Target Size (targets 44px at medium on comfortable and spacious density)',
     ],
@@ -278,7 +279,7 @@ export const segmentedControlSegment: ComponentDef = {
   },
 
   motion: {
-    enter: 'None. On selection the tint and outline move to this option, or cross-fade, over a short duration.',
+    enter: 'None. On selection the pill moves to this option, or cross-fades, over a short duration.',
     exit: 'None.',
     reduceMotion: 'The indicator moves at once; only the color change remains.',
   },
@@ -286,11 +287,13 @@ export const segmentedControlSegment: ComponentDef = {
   notes: {
     contested: [],
     unverified: [
-      'The outline against the tint inside it measures 3.01:1 at its tightest (one brand, light mode, 2026-10-09). It is not the selection cue on its own (the outline against the track and the bold label are), but it has no margin.',
+      'In the high-contrast modes the surface steps are one color, so the track and the pill both read as the page and the bold label is the only selection cue there. Allowed by Q336 (the pill has no floor); not yet seen by the owner on a rendered high-contrast file.',
+      'In the dark modes the page surface is darker than the track, so the pill reads as set into the track rather than raised from it. The same roles in every mode, by design; not yet seen by the owner on a rendered dark file.',
     ],
     evolution: [
       '2026-10-13 (#2418): owner decisions Q269 1–8 A: view behavior by default, a value control not contained tabs, bold when selected with the width held plus tint and 2px outline, the neutral hover wash (provisional), track radius.md and indicator radius.sm (provisional), grow on a nested instance for equal widths, the names and its own page after Tabs, 2–5 segments with 3 shown.',
       '2026-10-13 (#2418): owner decisions Q278 1–6 A, on the built option: the hover wash kept (Q269.4 no longer provisional); the shape kept as built, track radius.md and indicator radius.sm 4px inside, corners non-concentric with no derived radius token; the default label "Option"; a standalone option built at 120 so the indicator has a width to fill, while inside the control it takes its equal share.',
+      '2026-10-15 (#2724): owner decisions Q336 A and Q342 A supersede Q269.3\'s tint and 2px outline: the selected option is a flat pill in color.background.primary with no border and no shadow, the emphasis-weight label is the state cue, and the pill holds at hover and press. The hover wash, the shape and the bold reserve are unchanged.',
     ],
   },
 };
@@ -311,7 +314,7 @@ export const segmentedControl: ComponentDef = {
   status: 'draft',
   summary: 'A row of two to five options in one track, where exactly one is selected and all stay visible.',
   description:
-    'A compact row of two to five short options in one outlined track, where exactly one is always selected and every option stays visible. Selecting an option changes a value in place: a parameter of the current view, such as list or grid, or a form value. The options share the track equally. A visible label, or an accessible name, says what is being chosen.',
+    'A compact row of two to five short options in one neutral track, where exactly one is always selected and every option stays visible. Selecting an option changes a value in place: a parameter of the current view, such as list or grid, or a form value. The options share the track equally. A visible label, or an accessible name, says what is being chosen.',
 
   props: [
     { name: 'label', type: 'string', required: true, description: 'What is being chosen, such as "View". Shown above the track, or given as an accessible name only when the page already shows it.' },
@@ -336,8 +339,8 @@ export const segmentedControl: ComponentDef = {
     'track-pad': 'space.0',
     'track-gap': 'space.0',
     'radius': 'radius.md',
-    'border-width': 'border-width.hairline',
-    'border': 'color.interactive.neutral.border.rest',
+    // THE TRACK (Q336 A): the quiet surface step, with no outline. Every option's 4px inset is its padding.
+    'fill': 'color.background.secondary',
   },
 
   anatomy: {
@@ -365,15 +368,14 @@ export const segmentedControl: ComponentDef = {
       track: {
         kind: 'box',
         role: 'presentation',
-        paintSlots: ['border'],
+        paintSlots: ['fill'],
         children: ['segment1', 'segment2', 'segment3', 'segment4', 'segment5'],
         layout: { direction: 'row', align: 'center', justify: 'start', sizing: { x: 'hug', y: 'hug' } },
         padding: { block: 'track-pad', inlineLabel: 'track-pad' },
         gap: 'track-gap',
         radius: 'radius',
-        strokeWidth: 'border-width',
         crossAxisFill: true,
-        note: 'The track: one 1px outline around every option, the control\'s visible edge, with no fill. Each option fills an equal share of it.',
+        note: 'The track: a neutral fill behind every option, with no outline. Each option fills an equal share of it, and the selected one shows a pill on it.',
       },
       segment1: { ...segmentNest('selected'), note: 'The first option, selected.' },
       segment2: { ...segmentNest('unselected'), note: 'The second option. A segmented control has at least two.' },
@@ -411,8 +413,9 @@ export const segmentedControl: ComponentDef = {
     wcag: [
       '1.3.1 Info and Relationships (the group and its label are exposed together)',
       '4.1.2 Name, Role, Value',
-      '1.4.1 Use of Color (the selected option has a 2px outline and a bold label as well as a tint)',
-      '1.4.11 Non-text Contrast (targets 3:1 for the selected outline and the track edge)',
+      '1.4.1 Use of Color (the selected option has a bold label as well as a pill)',
+      '1.4.3 Contrast (every label clears 4.5:1 on the pill and on the track at rest, hover and press)',
+      '1.4.11 Non-text Contrast (icons clear 3:1 on the pill and the track, and the focus ring 3:1 against the track; the pill and the track against the page have no floor, because the labels identify the options)',
       '2.4.7 Focus Visible',
       '2.4.13 Focus Appearance (the shared focus ring, as intent)',
       '2.5.8 Target Size (every option is a full-height cell)',
@@ -461,7 +464,7 @@ export const segmentedControl: ComponentDef = {
   },
 
   motion: {
-    enter: 'None. On selection the indicator moves to the new option, about 150–200ms, or the tint and outline cross-fade.',
+    enter: 'None. On selection the pill moves to the new option, about 150–200ms, or cross-fades.',
     exit: 'None.',
     reduceMotion: 'The indicator moves at once; only the color change remains.',
   },
@@ -472,6 +475,7 @@ export const segmentedControl: ComponentDef = {
     evolution: [
       '2026-10-13 (#2418): owner decisions Q269 1–8 A. Two defs, Segment (30 members) nested in the control (3); view behavior by default; bold selected label with its width held; neutral hover wash and radius.md / radius.sm, both provisional; grow on a nested instance for equal widths; Segment 3 on, 4 and 5 off.',
       '2026-10-13 (#2418): owner decisions Q278 1–6 A, on the built control: hover and shape kept; built at 320, which fits three options at every size (with all five shown at large the options can run narrower than their labels until a designer widens the control); no track padding or gap, each option carrying its own 4px inset; the page sorts alphabetically, between Radio and Select.',
+      '2026-10-15 (#2724): owner decisions Q336 A and Q342 A: the track is filled with color.background.secondary and loses its 1px outline; the selected option is a flat pill in color.background.primary. They supersede the outlined track Q278 kept and Q269.3\'s tint and outline.',
     ],
   },
 };

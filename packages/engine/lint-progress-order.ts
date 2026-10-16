@@ -101,8 +101,9 @@
  *                    A fold is recognized by CONTENT, never by a branch name. FOLD-SHAPED: the diff deletes
  *                    a pending fragment or change note AND the FOLDED ENTRIES arm passed. PURE: it also
  *                    touches nothing a fold does not write (the log, the pending directories, version.ts,
- *                    CHANGELOG.md, out/, and the three rename-stamp files when their whole diff is the fold filling
- *                    `'{{ENGINE_VERSION}}'` with its version, #1816). Only a pure fold is exempt from carrying a fragment, so a fold PR that fixes a
+ *                    CHANGELOG.md, out/, the release notes under docs/public/releases/ (#2650), and the three
+ *                    rename-stamp files when their whole diff is the fold filling `'{{ENGINE_VERSION}}'` with
+ *                    its version, #1816). Only a pure fold is exempt from carrying a fragment, so a fold PR that fixes a
  *                    semantic conflict carries one for the fix, and a normal PR cannot pass as a fold by
  *                    hand-moving another PR's fragment into the log. Skipped ONLY on a push run
  *                    (`GITHUB_EVENT_NAME=push`); anywhere else, a HEAD equal to its base or an
@@ -518,11 +519,12 @@ const leavesNothingPending = (base: string, tip: string | null, whence: string):
     //   FOLD-SHAPED — it consumes pending files AND everything it consumed reached the log (the FOLDED
     //                 ENTRIES arm above passed). Only a fold-shaped diff may add headings to the log.
     //   PURE        — it touches nothing a fold does not write: the log, the two pending directories,
-    //                 version.ts, CHANGELOG.md and the regenerated stamps in out/. Only a pure fold is exempt from
+    //                 version.ts, CHANGELOG.md, the regenerated stamps in out/ and the release notes the fold
+    //                 writes under docs/public/releases/ (#2650). Only a pure fold is exempt from
     //                 carrying its own fragment. A fold PR that also fixes a semantic conflict is not
     //                 pure, so the fix carries a fragment like any other change, and a normal PR cannot
     //                 dress as a fold by hand-moving someone else's fragment into the log.
-    const FOLD_WRITES = [FILE, `${PENDING}/`, `${NOTES}/`, 'packages/engine/version.ts', 'packages/engine/CHANGELOG.md', 'packages/engine/out/'];
+    const FOLD_WRITES = [FILE, `${PENDING}/`, `${NOTES}/`, 'packages/engine/version.ts', 'packages/engine/CHANGELOG.md', 'packages/engine/out/', 'docs/public/releases/'];
     const all = git('diff', '--name-only', '--no-renames', base, 'HEAD');
     if (!all.ok) cannotRun('git diff --name-only failed.', all.err);
     const touched = all.out.split('\n').map((x) => x.trim()).filter(Boolean);

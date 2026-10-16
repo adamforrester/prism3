@@ -36,4 +36,10 @@ remember them either. `test.ts` now holds each group's label to the decision, as
 `expose` cut to `['emphasis']` → `❌ Q348 A segmented-control's label is nest-exposed: exposes [emphasis, weight],
 follows [size], starts bold (got expose emphasis, follow size, weight bold)`.
 
+**Delta round (merge of #2739).** The pin now holds the whole starting coordinate: a group label's starting
+`emphasis` moved to primary used to pass `test.ts` (only the shim arm caught it), and now fails the same Q348 A line
+by name. The merge with the Segmented control redesign had a trap in `test-update-apply.ts`: git matched the `}` the
+`group labels` and `segmented control` sections share, so the `for` loop lost its closing brace. The brace is put
+back by hand, and the surface baseline is re-accepted after regen.
+
 **Follow-up.** Counter (#2693) should take the same shape when it lands; it is not edited here.
