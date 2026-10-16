@@ -60,7 +60,7 @@ None — not interactive.
 | Axis | Values | Changes |
 | --- | --- | --- |
 | `value` | `dark`, `light` | once, when authored |
-| `intensity` | `subtle`, `medium`, `strong` | once, when authored |
+| `intensity` | `medium`, `subtle`, `strong` | once, when authored |
 | `direction` | `full`, `from-top`, `from-bottom`, `from-left`, `from-right` | once, when authored |
 
 ## Accessibility

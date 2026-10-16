@@ -1480,9 +1480,9 @@
       ],
       "axes": {
         "appearance": [
+          "ghost",
           "filled",
-          "outline",
-          "ghost"
+          "outline"
         ],
         "size": [
           "small",
@@ -1594,9 +1594,9 @@
       ],
       "axes": {
         "appearance": [
+          "ghost",
           "filled",
-          "outline",
-          "ghost"
+          "outline"
         ],
         "size": [
           "small",
@@ -1708,9 +1708,9 @@
       ],
       "axes": {
         "appearance": [
+          "ghost",
           "filled",
-          "outline",
-          "ghost"
+          "outline"
         ],
         "size": [
           "small",
@@ -1807,11 +1807,11 @@
       "projectedStates": [],
       "axes": {
         "ratio": [
+          "4:3",
           "2:3",
           "3:4",
           "4:5",
           "1:1",
-          "4:3",
           "3:2",
           "16:9"
         ]
@@ -3237,8 +3237,8 @@
           "light"
         ],
         "intensity": [
-          "subtle",
           "medium",
+          "subtle",
           "strong"
         ],
         "direction": [

@@ -1336,9 +1336,9 @@
       "variants": {
         "appearance": {
           "values": [
+            "ghost",
             "filled",
-            "outline",
-            "ghost"
+            "outline"
           ],
           "kind": "runtime"
         },
@@ -1565,9 +1565,9 @@
       "variants": {
         "appearance": {
           "values": [
+            "ghost",
             "filled",
-            "outline",
-            "ghost"
+            "outline"
           ],
           "kind": "runtime"
         },
@@ -1795,9 +1795,9 @@
       "variants": {
         "appearance": {
           "values": [
+            "ghost",
             "filled",
-            "outline",
-            "ghost"
+            "outline"
           ],
           "kind": "runtime"
         },
@@ -4902,8 +4902,8 @@
         },
         "intensity": {
           "values": [
-            "subtle",
             "medium",
+            "subtle",
             "strong"
           ],
           "kind": "authoring"
@@ -5023,11 +5023,11 @@
       "variants": {
         "ratio": {
           "values": [
+            "4:3",
             "2:3",
             "3:4",
             "4:5",
             "1:1",
-            "4:3",
             "3:2",
             "16:9"
           ],
