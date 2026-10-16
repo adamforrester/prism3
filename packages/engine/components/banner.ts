@@ -23,8 +23,8 @@
  * danger banner and an errored field show the same mark), a content column (title, the body as a native slot, the
  * actions row), and a dismiss button (IconButton.Neutral, ghost, small, the `close` glyph). The actions are up to
  * two nested Button.Neutral, outline then text, off by default (Q327.6 A). Q363 (#2661) decided a shared Button group
- * container for action sets; it is not built yet, so the actions are nested Buttons here and the move is filed as a
- * follow-up. Mints nothing.
+ * container for action sets; it is not built yet, so the actions are nested Buttons here and the move is filed as
+ * #2787. Mints nothing.
  */
 import { ComponentDef } from '../component-schema';
 
@@ -261,7 +261,7 @@ export const banner: ComponentDef = {
   },
 
   content: {
-    labelPattern: 'Title: names the issue up front, in sentence case and with no period ("Payment failed", not "Error!"). Body: what happened and what to do next, in one or two sentences, never repeating the title. Actions: a verb of one or two words ("Retry", "Update billing").',
+    labelPattern: 'Title: names the issue up front, in sentence case and with no period ("Payment failed", not "Error"). Body: what happened and what to do next, in one or two sentences, never repeating the title. Actions: a verb of one or two words ("Retry", "Update billing").',
     errorPattern: 'Say what went wrong, whether anything was lost, and how to fix it. Use danger only for an error that blocks the user.',
   },
 
@@ -308,8 +308,8 @@ export const banner: ComponentDef = {
 
   notes: {
     contested: [
-      'HELD FOR THE OWNER (#2579): the glyph per tone follows FieldMessage (danger: the exclamation in a triangle; warning: in a circle), where the proposal listed the glyph names in tone order; the full width keeps the edge on all four sides, where the proposal said top and bottom only (a one-sided stroke the anatomy cannot express); the title text property reads "title text" beside the "title" toggle, as Dialog\'s description does; the actions gap (space.100) and the actions row offset (space.150); the page under Components rather than a new feedback section.',
-      'The actions are two fixed nested Buttons, not the shared Button group container Q363 decided (#2661); the move is a follow-up once Button group is built.',
+      'HELD FOR THE OWNER (#2579): the glyph per tone follows FieldMessage (danger: the exclamation in a triangle; warning: in a circle), where the proposal listed the glyph names in tone order; the full width keeps the edge on all four sides, where the proposal said top and bottom only (a one-sided stroke the anatomy cannot express, #2788); the title text property reads "title text" beside the "title" toggle, as Dialog\'s description does; the actions gap (space.100) and the actions row offset (space.150); the page under Components rather than a new feedback section.',
+      'The actions are two fixed nested Buttons, not the shared Button group container Q363 decided (#2661); the move is filed as #2787.',
       'The brief\'s bold (high-contrast) emphasis, a neutral tone and the promotional genre are not built (Q327.1 A, Q327.2 A); each can follow.',
     ],
     unverified: [

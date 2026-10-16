@@ -170,9 +170,11 @@ const plansOf = (id: string): AnatomyPlan[] => {
   if (!d) throw new Error(`no def ${id}`);
   return figmaAnatomySet(d, { swapTarget: SWAP_TARGET });
 };
-const planComps = (n: { swapTarget?: string; nestTarget?: string; children?: unknown[] }): string[] => [
+const planComps = (n: { swapTarget?: string; nestTarget?: string; nestOverrides?: { type: string; value: string }[]; children?: unknown[] }): string[] => [
   ...(n.swapTarget ? [n.swapTarget] : []),
   ...(n.nestTarget ? [n.nestTarget] : []),
+  // #2579 — the component an INSTANCE_SWAP override swaps to (Banner's dismiss → `icon/close`) is in the file too.
+  ...(n.nestOverrides ?? []).filter((x) => x.type === 'INSTANCE_SWAP').map((x) => x.value),
   ...((n.children ?? []) as (typeof n)[]).flatMap(planComps),
 ];
 type PlanNode = AnatomyPlan['root'];

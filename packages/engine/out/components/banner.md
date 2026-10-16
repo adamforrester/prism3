@@ -34,7 +34,7 @@ Titles are short, specific and in sentence case, with no period. The body states
 
 ### Copy patterns
 
-- **Labels:** Title: names the issue up front, in sentence case and with no period ("Payment failed", not "Error!"). Body: what happened and what to do next, in one or two sentences, never repeating the title. Actions: a verb of one or two words ("Retry", "Update billing").
+- **Labels:** Title: names the issue up front, in sentence case and with no period ("Payment failed", not "Error"). Body: what happened and what to do next, in one or two sentences, never repeating the title. Actions: a verb of one or two words ("Retry", "Update billing").
 - **Errors:** Say what went wrong, whether anything was lost, and how to fix it. Use danger only for an error that blocks the user.
 
 ## Choosing it

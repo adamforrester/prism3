@@ -1275,8 +1275,8 @@
       ],
       "notes": {
         "contested": [
-          "HELD FOR THE OWNER (#2579): the glyph per tone follows FieldMessage (danger: the exclamation in a triangle; warning: in a circle), where the proposal listed the glyph names in tone order; the full width keeps the edge on all four sides, where the proposal said top and bottom only (a one-sided stroke the anatomy cannot express); the title text property reads \"title text\" beside the \"title\" toggle, as Dialog's description does; the actions gap (space.100) and the actions row offset (space.150); the page under Components rather than a new feedback section.",
-          "The actions are two fixed nested Buttons, not the shared Button group container Q363 decided (#2661); the move is a follow-up once Button group is built.",
+          "HELD FOR THE OWNER (#2579): the glyph per tone follows FieldMessage (danger: the exclamation in a triangle; warning: in a circle), where the proposal listed the glyph names in tone order; the full width keeps the edge on all four sides, where the proposal said top and bottom only (a one-sided stroke the anatomy cannot express, #2788); the title text property reads \"title text\" beside the \"title\" toggle, as Dialog's description does; the actions gap (space.100) and the actions row offset (space.150); the page under Components rather than a new feedback section.",
+          "The actions are two fixed nested Buttons, not the shared Button group container Q363 decided (#2661); the move is filed as #2787.",
           "The brief's bold (high-contrast) emphasis, a neutral tone and the promotional genre are not built (Q327.1 A, Q327.2 A); each can follow."
         ],
         "unverified": [
