@@ -278,9 +278,12 @@ head carries, `git merge-base <head-sha> origin/main`: on a fold branch that has
 since it was cut, that is the merged-in commit, not the one it was cut from, or the re-run folds
 fewer fragments than the PR legitimately did. In your own worktree at that commit
 (`git worktree add --detach /tmp/p3-fold-check <base-sha>`, then `npm ci`), run `npx tsx fold.ts`, then
-`git diff <head-sha>`: the result should be byte-identical to the PR head. Any difference is a
-fragment merged after the base, a hand edit, or a fold that did not run as committed, and the PR
-must account for it before it merges.
+`git diff <head-sha>`. One difference is expected: `fold.ts` stamps the date of the run, so a
+re-run on a later UTC day changes that date in `packages/engine/CHANGELOG.md`'s "folded <date>" line
+and in the release notes' date (the version's `.md` and `.json`, and its row in the index). Everything
+else should match the PR head byte for byte. Any other difference is a fragment merged after the
+base, a hand edit, or a fold that did not run as committed, and the PR must account for it before
+it merges.
 
 Also check what the diff *invalidates*: a shipped skill or doc describing an engine
 surface can be silently staled by a change to it. `lint-skills.ts` keeps the skills' *names*
