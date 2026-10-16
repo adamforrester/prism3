@@ -698,21 +698,21 @@
     },
     "code-input-cell": {
       "members": 28,
-      "sha256": "5ac969c29cd872797ff87fa5da107287f04401d0e3a41c936a7caf8e0b865638",
+      "sha256": "4ca3f2feaf9220b624bd6f27955fead599b591b27de65a957b9f355de37ecfb7",
       "properties": [
         "digit:TEXT"
       ]
     },
     "code-input-cell@outline-solid-tint": {
       "members": 28,
-      "sha256": "0308231c782d2b853418f91a13cefe99db2254b092ec138b10fa5bed4d072ffc",
+      "sha256": "d99edf50a900697d9fe73686d1844fb1d1792d2e342d3cdf3128d627faa85560",
       "properties": [
         "digit:TEXT"
       ]
     },
     "code-input-cell@outline-none": {
       "members": 28,
-      "sha256": "7a624591c250ced9b661ddb1a833170fd25c53e01c369ce3c6c3e687a697814b",
+      "sha256": "76693a8eef0c1207cb90317eeadf6b75762e6949193f04dfbb685a496b8982db",
       "properties": [
         "digit:TEXT"
       ]
