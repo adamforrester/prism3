@@ -1061,7 +1061,7 @@
       ],
       "notes": {
         "contested": [
-          "PENDING THE OWNER'S VISUAL QA (Q241): the padding steps (inline 12/16/24, block 8/12/16, gap 8/12/16) and the panel insets (no top, then 12/16/24 below, with the content aligned to the header edge rather than to the title). Approved in Q241: the inks (`interactive.neutral.text.rest` for the title, `text.primary` for the panel placeholder), the Figma copy (\"Section title\", and the panel placeholder), the property names, the page placement and the prose.",
+          "PENDING THE OWNER'S VISUAL QA (Q241): the block padding (8/12/16), the gap (8/12/16) and the panel's bottom inset (12/16/24). Decided since: the inline padding steps 12/16/20 at the header and the panel alike (Q338 A, revising 24 at large; the fields keep 24), and the panel keeps its own padding, aligned to the header edge rather than to the title (Q339 A). Approved in Q241: the inks (`interactive.neutral.text.rest` for the title, `text.primary` for the panel placeholder), the Figma copy (\"Section title\", and the panel placeholder), the property names, the page placement and the prose.",
           "A flush style only: the brief's contained (boxed card) variant is not built.",
           "DRAFT (#2646), for the owner: the panel slot (`content`) declares no constraint. No minimum or maximum child count, no preferred components and not preferred-only, and a new instance shows the placeholder. A section holds whatever its content is (text, a list, a form, an image), so any limit here would flag ordinary use."
         ],
@@ -1069,7 +1069,7 @@
           "That the native slot behaves the same on a designer's instance in every Figma plan: slots were measured in one file; a plan without the feature keeps the panel as a plain frame, and the build says so."
         ],
         "evolution": [
-          "Owner decisions: Q180 (a design proposal), Q182 (one item, no group def; an indicator before or after the title, before the default; no hover; the content a swappable slot; a nested Divider; the expansion axis; the body type; the 44px floor; three sizes; reduced motion through the duration tokens; the two engine fixes), Q183 (the building-block indicator, 24 members, no disabled and no pressed), Q242 (the position values `leading | trailing`, as Button and Switch row name theirs), Q243 (the header's focus ring on its edge, `focus.ring.offset-field`), and the owner's QA of the live build (2026-10-12): the header centered, the glyphs one rung smaller (16/20/24), Q257 A (the ring drawn inside the header's edge), and `position` renamed `iconPosition`; Q262 A and Q266 A (the glyph beside the title's first line, the title padded 2px down); Q276 A (the glyph and the title in a `titleRow` the header centers, so a single line is centered under the 44px floor at every size)."
+          "Owner decisions: Q180 (a design proposal), Q182 (one item, no group def; an indicator before or after the title, before the default; no hover; the content a swappable slot; a nested Divider; the expansion axis; the body type; the 44px floor; three sizes; reduced motion through the duration tokens; the two engine fixes), Q183 (the building-block indicator, 24 members, no disabled and no pressed), Q242 (the position values `leading | trailing`, as Button and Switch row name theirs), Q243 (the header's focus ring on its edge, `focus.ring.offset-field`), and the owner's QA of the live build (2026-10-12): the header centered, the glyphs one rung smaller (16/20/24), Q257 A (the ring drawn inside the header's edge), and `position` renamed `iconPosition`; Q262 A and Q266 A (the glyph beside the title's first line, the title padded 2px down); Q276 A (the glyph and the title in a `titleRow` the header centers, so a single line is centered under the 44px floor at every size); Q338 A (the large inline padding 24 → 20, `space.250`, so the side padding steps 12/16/20) and Q339 A (no change: the panel keeps its own padding)."
         ],
         "projection": []
       }
@@ -1123,7 +1123,7 @@
         "The option in code — a <button> with aria-current in the view behavior, or a native <input type=\"radio\"> with its <label> in the form behavior. The control decides which, never the option.",
         "The label weight in code — the selected option sets its label in the emphasis weight and the others in the default weight, and every option reserves its bold width so selecting never shifts the row: a hidden bold copy of the label (for example ::after { content: attr(data-label); font-weight: <emphasis>; height: 0; visibility: hidden; overflow: hidden }) in a column with the label.",
         "The indicator in code — it may be one sliding node shared by the options (aria-hidden) rather than a box per option; the 4px inset and the paint are the same either way.",
-        "forced-colors — the tint drops out; the 2px outline survives as a system-color border or outline, so the selection still shows.",
+        "forced-colors — the pill fill drops out, so give the selected option a system-color border or outline (for example 1px solid Highlight) and keep the bold label; the selection still shows.",
         "The hit-target expansion — a small option is 36px tall on comfortable density; reaching 44px there is a code-side hit area larger than the visible box.",
         "RTL — logical properties mirror the row: the leading icon moves to the right of the label.",
         "text expansion — a label never wraps or truncates; the control renders a select instead when the longest translated label no longer fits."
@@ -1131,11 +1131,13 @@
       "notes": {
         "contested": [],
         "unverified": [
-          "The outline against the tint inside it measures 3.01:1 at its tightest (one brand, light mode, 2026-10-09). It is not the selection cue on its own (the outline against the track and the bold label are), but it has no margin."
+          "In the high-contrast modes the surface steps are one color, so the track and the pill both read as the page and the bold label is the only selection cue there. Allowed by Q336 (the pill has no floor); not yet seen by the owner on a rendered high-contrast file.",
+          "In the dark modes the page surface is darker than the track, so the pill reads as set into the track rather than raised from it. The same roles in every mode, by design; not yet seen by the owner on a rendered dark file."
         ],
         "evolution": [
           "2026-10-13 (#2418): owner decisions Q269 1–8 A: view behavior by default, a value control not contained tabs, bold when selected with the width held plus tint and 2px outline, the neutral hover wash (provisional), track radius.md and indicator radius.sm (provisional), grow on a nested instance for equal widths, the names and its own page after Tabs, 2–5 segments with 3 shown.",
-          "2026-10-13 (#2418): owner decisions Q278 1–6 A, on the built option: the hover wash kept (Q269.4 no longer provisional); the shape kept as built, track radius.md and indicator radius.sm 4px inside, corners non-concentric with no derived radius token; the default label \"Option\"; a standalone option built at 120 so the indicator has a width to fill, while inside the control it takes its equal share."
+          "2026-10-13 (#2418): owner decisions Q278 1–6 A, on the built option: the hover wash kept (Q269.4 no longer provisional); the shape kept as built, track radius.md and indicator radius.sm 4px inside, corners non-concentric with no derived radius token; the default label \"Option\"; a standalone option built at 120 so the indicator has a width to fill, while inside the control it takes its equal share.",
+          "2026-10-15 (#2724): owner decisions Q336 A and Q342 A supersede Q269.3's tint and 2px outline: the selected option is a flat pill in color.background.primary with no border and no shadow, the emphasis-weight label is the state cue, and the pill holds at hover and press. The hover wash, the shape and the bold reserve are unchanged."
         ],
         "projection": []
       }
@@ -1157,7 +1159,8 @@
         "unverified": [],
         "evolution": [
           "2026-10-13 (#2418): owner decisions Q269 1–8 A. Two defs, Segment (30 members) nested in the control (3); view behavior by default; bold selected label with its width held; neutral hover wash and radius.md / radius.sm, both provisional; grow on a nested instance for equal widths; Segment 3 on, 4 and 5 off.",
-          "2026-10-13 (#2418): owner decisions Q278 1–6 A, on the built control: hover and shape kept; built at 320, which fits three options at every size (with all five shown at large the options can run narrower than their labels until a designer widens the control); no track padding or gap, each option carrying its own 4px inset; the page sorts alphabetically, between Radio and Select."
+          "2026-10-13 (#2418): owner decisions Q278 1–6 A, on the built control: hover and shape kept; built at 320, which fits three options at every size (with all five shown at large the options can run narrower than their labels until a designer widens the control); no track padding or gap, each option carrying its own 4px inset; the page sorts alphabetically, between Radio and Select.",
+          "2026-10-15 (#2724): owner decisions Q336 A and Q342 A: the track is filled with color.background.secondary and loses its 1px outline; the selected option is a flat pill in color.background.primary. They supersede the outlined track Q278 kept and Q269.3's tint and outline."
         ],
         "projection": []
       }

@@ -168,17 +168,6 @@
             }
           }
         },
-        "segmented-control": {
-          "keys": [
-            "border-width"
-          ],
-          "parts": {
-            "track": {
-              "members": 3,
-              "where": {}
-            }
-          }
-        },
         "select": {
           "keys": [
             "border-width"
@@ -271,26 +260,6 @@
         }
       }
     },
-    "border-width.none": {
-      "type": "dimension",
-      "components": {
-        "segmented-control-segment": {
-          "keys": [
-            "unselected.border-width"
-          ],
-          "parts": {
-            "indicator": {
-              "members": 15,
-              "where": {
-                "selection": [
-                  "unselected"
-                ]
-              }
-            }
-          }
-        }
-      }
-    },
     "border-width.thick": {
       "type": "dimension",
       "components": {
@@ -313,21 +282,6 @@
             "control": {
               "members": 30,
               "where": {}
-            }
-          }
-        },
-        "segmented-control-segment": {
-          "keys": [
-            "selected.border-width"
-          ],
-          "parts": {
-            "indicator": {
-              "members": 15,
-              "where": {
-                "selection": [
-                  "selected"
-                ]
-              }
             }
           }
         },
@@ -373,6 +327,27 @@
         }
       }
     },
+    "color.background.primary": {
+      "type": "color",
+      "components": {
+        "segmented-control-segment": {
+          "keys": [
+            "disabled.fill",
+            "selected.fill"
+          ],
+          "parts": {
+            "indicator": {
+              "members": 15,
+              "where": {
+                "selection": [
+                  "selected"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
     "color.background.secondary": {
       "type": "color",
       "components": {
@@ -383,6 +358,17 @@
           "parts": {
             "frame": {
               "members": 7,
+              "where": {}
+            }
+          }
+        },
+        "segmented-control": {
+          "keys": [
+            "fill"
+          ],
+          "parts": {
+            "track": {
+              "members": 3,
               "where": {}
             }
           }
@@ -1334,24 +1320,6 @@
             "control": {
               "members": 6,
               "where": {
-                "state": [
-                  "disabled"
-                ]
-              }
-            }
-          }
-        },
-        "segmented-control-segment": {
-          "keys": [
-            "disabled.border"
-          ],
-          "parts": {
-            "indicator": {
-              "members": 3,
-              "where": {
-                "selection": [
-                  "selected"
-                ],
                 "state": [
                   "disabled"
                 ]
@@ -4829,17 +4797,6 @@
             }
           }
         },
-        "segmented-control": {
-          "keys": [
-            "border"
-          ],
-          "parts": {
-            "track": {
-              "members": 3,
-              "where": {}
-            }
-          }
-        },
         "switch-control": {
           "keys": [
             "off.border",
@@ -5138,13 +5095,15 @@
         },
         "segmented-control-segment": {
           "keys": [
-            "selected.icon.hover",
             "unselected.icon.hover"
           ],
           "parts": {
             "leadingVisual": {
-              "members": 6,
+              "members": 3,
               "where": {
+                "selection": [
+                  "unselected"
+                ],
                 "state": [
                   "hover"
                 ]
@@ -5304,13 +5263,15 @@
         },
         "segmented-control-segment": {
           "keys": [
-            "selected.icon.pressed",
             "unselected.icon.pressed"
           ],
           "parts": {
             "leadingVisual": {
-              "members": 6,
+              "members": 3,
               "where": {
+                "selection": [
+                  "unselected"
+                ],
                 "state": [
                   "pressed"
                 ]
@@ -5561,10 +5522,12 @@
           ],
           "parts": {
             "leadingVisual": {
-              "members": 12,
+              "members": 18,
               "where": {
                 "state": [
                   "focus-visible",
+                  "hover",
+                  "pressed",
                   "rest"
                 ]
               }
@@ -6075,21 +6038,26 @@
         },
         "segmented-control-segment": {
           "keys": [
-            "selected.label.hover",
             "unselected.label.hover"
           ],
           "parts": {
             "label": {
-              "members": 6,
+              "members": 3,
               "where": {
+                "selection": [
+                  "unselected"
+                ],
                 "state": [
                   "hover"
                 ]
               }
             },
             "labelReserve": {
-              "members": 6,
+              "members": 3,
               "where": {
+                "selection": [
+                  "unselected"
+                ],
                 "state": [
                   "hover"
                 ]
@@ -6172,21 +6140,26 @@
         },
         "segmented-control-segment": {
           "keys": [
-            "selected.label.pressed",
             "unselected.label.pressed"
           ],
           "parts": {
             "label": {
-              "members": 6,
+              "members": 3,
               "where": {
+                "selection": [
+                  "unselected"
+                ],
                 "state": [
                   "pressed"
                 ]
               }
             },
             "labelReserve": {
-              "members": 6,
+              "members": 3,
               "where": {
+                "selection": [
+                  "unselected"
+                ],
                 "state": [
                   "pressed"
                 ]
@@ -6287,19 +6260,23 @@
           ],
           "parts": {
             "label": {
-              "members": 12,
+              "members": 18,
               "where": {
                 "state": [
                   "focus-visible",
+                  "hover",
+                  "pressed",
                   "rest"
                 ]
               }
             },
             "labelReserve": {
-              "members": 12,
+              "members": 18,
               "where": {
                 "state": [
                   "focus-visible",
+                  "hover",
+                  "pressed",
                   "rest"
                 ]
               }
@@ -6422,24 +6399,6 @@
             }
           }
         },
-        "segmented-control-segment": {
-          "keys": [
-            "selected.border.hover"
-          ],
-          "parts": {
-            "indicator": {
-              "members": 3,
-              "where": {
-                "selection": [
-                  "selected"
-                ],
-                "state": [
-                  "hover"
-                ]
-              }
-            }
-          }
-        },
         "tab": {
           "keys": [
             "selected.fill.hover"
@@ -6539,24 +6498,6 @@
               "where": {
                 "selection": [
                   "checked"
-                ],
-                "state": [
-                  "pressed"
-                ]
-              }
-            }
-          }
-        },
-        "segmented-control-segment": {
-          "keys": [
-            "selected.border.pressed"
-          ],
-          "parts": {
-            "indicator": {
-              "members": 3,
-              "where": {
-                "selection": [
-                  "selected"
                 ],
                 "state": [
                   "pressed"
@@ -6668,25 +6609,6 @@
               "where": {
                 "selection": [
                   "checked"
-                ],
-                "state": [
-                  "focus-visible",
-                  "rest"
-                ]
-              }
-            }
-          }
-        },
-        "segmented-control-segment": {
-          "keys": [
-            "selected.border"
-          ],
-          "parts": {
-            "indicator": {
-              "members": 6,
-              "where": {
-                "selection": [
-                  "selected"
                 ],
                 "state": [
                   "focus-visible",
@@ -7732,27 +7654,6 @@
     "color.interactive.primary.subtle-fill.selected": {
       "type": "color",
       "components": {
-        "segmented-control-segment": {
-          "keys": [
-            "selected.overlay"
-          ],
-          "parts": {
-            "indicator": {
-              "members": 12,
-              "where": {
-                "selection": [
-                  "selected"
-                ],
-                "state": [
-                  "focus-visible",
-                  "hover",
-                  "pressed",
-                  "rest"
-                ]
-              }
-            }
-          }
-        },
         "tag": {
           "keys": [
             "selected.overlay"
@@ -18609,6 +18510,32 @@
     "space.250": {
       "type": "dimension",
       "components": {
+        "accordion": {
+          "keys": [
+            "size.large.pad-x"
+          ],
+          "parts": {
+            "content": {
+              "members": 4,
+              "where": {
+                "expansion": [
+                  "expanded"
+                ],
+                "size": [
+                  "large"
+                ]
+              }
+            },
+            "header": {
+              "members": 8,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
+        },
         "segmented-control-segment": {
           "keys": [
             "size.large.padding-x"
@@ -18646,7 +18573,6 @@
       "components": {
         "accordion": {
           "keys": [
-            "size.large.pad-x",
             "size.large.panel-pad-end"
           ],
           "parts": {
@@ -18656,14 +18582,6 @@
                 "expansion": [
                   "expanded"
                 ],
-                "size": [
-                  "large"
-                ]
-              }
-            },
-            "header": {
-              "members": 8,
-              "where": {
                 "size": [
                   "large"
                 ]
@@ -20995,6 +20913,7 @@
         "space.100",
         "space.150",
         "space.200",
+        "space.250",
         "space.300",
         "type.body.lg.default",
         "type.body.md.default",
@@ -22509,8 +22428,7 @@
         ]
       },
       "tokens": [
-        "border-width.hairline",
-        "color.interactive.neutral.border.rest",
+        "color.background.secondary",
         "radius.md",
         "space.0",
         "space.100"
@@ -22539,10 +22457,8 @@
         ]
       },
       "tokens": [
-        "border-width.none",
-        "border-width.thick",
+        "color.background.primary",
         "color.border.focus",
-        "color.disabled.border",
         "color.disabled.icon",
         "color.disabled.text",
         "color.interactive.neutral.icon.hover",
@@ -22553,10 +22469,6 @@
         "color.interactive.neutral.text.hover",
         "color.interactive.neutral.text.pressed",
         "color.interactive.neutral.text.rest",
-        "color.interactive.primary.border.hover",
-        "color.interactive.primary.border.pressed",
-        "color.interactive.primary.border.rest",
-        "color.interactive.primary.subtle-fill.selected",
         "focus.ring.offset",
         "focus.ring.width",
         "icon.size.md",
@@ -23059,12 +22971,12 @@
   "unused": {
     "semantic": [
       "border-width.heavy",
+      "border-width.none",
       "breakpoint.2xl",
       "breakpoint.lg",
       "breakpoint.md",
       "breakpoint.sm",
       "breakpoint.xl",
-      "color.background.primary",
       "color.border.brand",
       "color.field.placeholder",
       "color.foreground.brand",

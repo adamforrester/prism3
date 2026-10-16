@@ -7,6 +7,7 @@ The engine is dependency-free TypeScript in `packages/engine/`, run with `npx ts
 ## Reference
 
 - [commands.json](reference/commands.json): every MCP tool (name, description, input schema, output), every agent-link command (args, what it writes, what it refuses) and every command-line entry point (usage, flags), each with its source file and line. Generated from the code and checked in CI, so it matches the code at the commit it was built from.
+- [figma-conventions.json](reference/figma-conventions.json): how a Prism3 Figma file is laid out and named: the page taxonomy and its `↳ ` prefix, each component set's name, variant properties and other properties, the `_` prefix for building blocks, code-only axes and states, the `icon/<glyph>` namespace, native slots and their settings, variable collections and modes, and the canvas furniture a reader skips. Generated from the code and checked in CI.
 
 ## Guides
 
