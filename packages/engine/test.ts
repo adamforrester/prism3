@@ -17060,6 +17060,8 @@ arm: {
     // every def, so a new status-bearing def fails by name until it is pinned or excused here.
     const SH_EXEMPT: Record<string, string> = {
       'field-message': 'a message line under a field: no state axis and no stroked boundary, so there is no hover border to measure; its status shows in the text and glyph',
+      // #2670: Progress's `error` status colors a fill, not a border, and its message is a nested FieldMessage.
+      progress: 'a progress bar or ring: no state axis and no stroked boundary; its error status colors the fill and shows in the nested FieldMessage\'s text and glyph, and its contrast is held by the #2670 block',
     };
     const SH_STATUSES = ['error', 'warning', 'success'];
     const roleOfVar = (v: string): string => v.replace(/^color\//, '').replace(/\//g, '.');
