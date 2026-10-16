@@ -219,11 +219,21 @@ for (const id of Object.keys(PREDICATE_CASES))
  * surface is REPRESENTED, never merely counts). Both arms below range over defs that project, so if
  * `figmaAnatomySet` started throwing for all of them this file would report clean over nothing.
  *
- * A def legitimately gaining a projection is a one-line addition here in the same PR; a def LOSING one
- * fails, which is the direction that matters. Deliberately not derived by asking which defs project —
+ * A def gaining a projection is a one-line addition here in the same PR, and it fails by name until it is
+ * (the converse, after the walk, #973); a def LOSING one fails too. Deliberately not derived by asking which defs project —
  * that is the very thing it exists to remember.
  */
-const MUST_PROJECT = ['icon', 'focus-ring', 'button', 'icon-button', 'field-label', 'field-message', 'checkbox-row', 'checkbox-group', 'radio-row', 'radio-group', 'switch-row', 'select', 'veil', 'image-placeholder', 'badge', 'tab', 'tabs', 'divider', '_accordion-indicator', 'accordion', 'list-item', 'list', 'segmented-control-segment', 'segmented-control', 'link', 'password-field', '_pagination-item', 'pagination'];
+const MUST_PROJECT = [
+  'icon', 'focus-ring',
+  'button', 'button-destructive', 'button-neutral',
+  'icon-button', 'icon-button-destructive', 'icon-button-neutral',
+  'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral',
+  'field-label', 'field-message', 'text-field', 'textarea', 'select', 'password-field',
+  'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'switch-control', 'switch-row',
+  'veil', 'image-placeholder', 'spinner', 'badge', 'tag', 'tab', 'tabs', 'divider', '_accordion-indicator', 'accordion',
+  'list-item', 'list', 'segmented-control-segment', 'segmented-control', 'link', 'dialog',
+  '_pagination-item', 'pagination',
+];
 
 /** Whether the def declares the floor. Read here, ONCE, off the def — the EXPECTED half. */
 const declares = (def: ComponentDef): string | undefined => def.figmaProperties?.notStandalone;
@@ -328,6 +338,13 @@ for (const def of componentDefs) {
 for (const id of MUST_PROJECT)
   if (!projected.includes(id))
     failures.push(`SCOPE NOT REPRESENTED: '${id}' projects today and this run measured no plan for it. Both arms above range over defs that project, so a clean run with '${id}' absent means less than it reads. If the def was legitimately removed or lost its projection, drop it from MUST_PROJECT in this file in the same PR.`);
+
+// ---- arm C, the converse (#973, #2709): a def that projects and is not remembered fails by name -----
+// Without it the list only ever goes short in silence: by #2709 it named 26 of the 41 projecting defs. Still not
+// derived — the list is the memory and `projected` is what this run measured; this only refuses the gap between.
+for (const id of projected)
+  if (!MUST_PROJECT.includes(id))
+    failures.push(`SCOPE NOT RECORDED: '${id}' projects today and is not in MUST_PROJECT. Arms A and B measured it this run, but nothing remembers it, so if it stops projecting this file reads clean. Add it to MUST_PROJECT in this file in the same PR.`);
 
 console.log(`Standalone floor — ${projected.length} projecting def(s) of ${componentDefs.length}, ${SIZE_SOURCES.length} extent mechanism(s) each checked against a positive and a near-miss case: ${projected.join(', ')}`);
 for (const n of notes) console.log(`    ${n}`);

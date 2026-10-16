@@ -219,6 +219,11 @@ const ICON_OFFSET_DEFS: Record<string, string> = {
   'flush-icon-button': 'icon.size.*',
   'flush-icon-button-destructive': 'icon.size.*',
   'flush-icon-button-neutral': 'icon.size.*',
+  // The text-bearing controls follow Button (owner Q337 A, #2725): the leading icon is 16/20/24, so the medium
+  // default is `sm`. Icon button and Flush icon button keep their own rung.
+  'segmented-control-segment': 'icon.size.*',
+  tab: 'icon.size.*',
+  tag: 'icon.size.*',
 };
 
 /**
