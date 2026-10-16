@@ -7,6 +7,14 @@
  *   reactions  Rest → Hover on While hovering (`ON_HOVER`); Rest and Hover → Pressed on While pressing
  *              (`ON_PRESS`). Each is `CHANGE_TO` the sibling matched on EVERY other axis. Both revert by
  *              themselves, so nothing is written on the destination.
+ *
+ * ── WHY REST CARRIES WHILE PRESSING TOO (owner decision Q344, #2733; reverts #2702/#2703) ─────────────────────
+ *
+ * Rest's own press reaction looks redundant, and it is on a desktop: the pointer hovers first, the member has already
+ * changed to Hover, and Hover's press reaction is the one that fires. It is NOT redundant on a touch prototype (Figma
+ * Mirror on a phone, or any touch preview): there is no hover, so Rest's press reaction is the ONLY route to Pressed.
+ * #2703 chained the states (Rest carried While hovering only) and touch prototypes lost pressed feedback; Q344
+ * restored this plan. Do not "simplify" the chain again without a new owner decision that weighs touch prototypes.
  *   excluded   every other state (Disabled, Pending, Read only, Focus visible, Error, …) has none: only Rest and
  *              Hover are sources, and a member of an in-scope set that is not one is planned an empty list.
  *   recorded   the reactions go in the as-built record (`member-baseline.ts`), so a reaction a designer removed or

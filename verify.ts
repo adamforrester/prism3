@@ -640,6 +640,13 @@ export const GATES: Gate[] = [
     cmd: engine('emit-agent-reference.ts', '--check'),
   },
   {
+    // #2647 — docs/public/reference/figma-conventions.json against the code it is generated from. Reads the
+    // source files and the default theme only, so it needs no `after`.
+    id: 'figma-conventions',
+    ciStep: 'The Figma conventions file matches the code (#2647)',
+    cmd: engine('emit-figma-conventions.ts', '--check'),
+  },
+  {
     id: 'typecheck-web',
     ciStep: 'Typecheck web',
     cmd: ws('@prism3/studio', 'typecheck'),
@@ -1048,6 +1055,12 @@ export const GATES: Gate[] = [
     id: 'lint-component-docs',
     ciStep: 'Every component def is documented in both forms (#1701)',
     cmd: engine('lint-component-docs.ts'),
+  },
+  {
+    // #2637 — reads docs/public/ecosystem/{ecosystem.json,index.html} and the code; needs no build and no `after`.
+    id: 'lint-ecosystem',
+    ciStep: "The ecosystem diagram's data matches the code (#2637)",
+    cmd: engine('lint-ecosystem.ts'),
   },
   {
     // The one `tools/` battery wired into CI (#1123), and the reason its NAME is about the DETECTOR
