@@ -484,8 +484,9 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
     defs: ['text-field', 'textarea', 'password-field'],
     relation: 'canonical',
     reason:
-      'An axis of ONE, declared rather than dropped: the field substrate has a single treatment today, and '
-      + 'the axis exists so that filled and underline have somewhere to land without a later API break. '
+      'An axis of ONE, declared rather than dropped. Underline is a BRAND choice since #2695 (the Field style '
+      + 'lever, applied to the def before projection), not a value here: a second value would be a per-instance '
+      + 'code coordinate, which Q14 A rules out. The axis keeps filled a place to land without a later API break. '
       + 'The cost of an axis of one is real (`modifiers`, #845) and it is being paid deliberately here. '
       + '`canonical` since Link (#2580) declared a second `style` set against it.',
   },
