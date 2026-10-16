@@ -764,6 +764,33 @@ section('columns — the Radio page, built before the fix: Update widens each se
   ok(Number(sets[0].width) > widthWas && between.length === 0 && JSON.stringify(settled) === JSON.stringify(['radio-row', 'radio-group']) && gaps().every((g) => g >= 160)
     && next.sets.every((p) => !p.setMove) && previewVerdict(next).headline === '✓ All sets up to date',
     `columns/shared page: ONE Update widens radio-control (${widthWas} → ${Number(sets[0].width)}) and moves ${JSON.stringify(settled)} clear in the same apply; no label meets another set or its labels (${between.length}: ${between.slice(0, 3).join('; ')}), the gaps read ${JSON.stringify(gaps())}, and the next dry run moves nothing (${previewVerdict(next).headline})`);
+
+  // LABELS THAT SHRINK IN THE UPDATE (#2734). The page as an older plugin left it: radio-row's leftmost label wider than
+  // it draws now, reaching 50px past the set's left edge, and radio-row and radio-group each 160 clear of the set to their left, measured from those wider
+  // labels. The dry run sees exactly 160 and lists nothing. The Update redraws the labels at their width, which leaves
+  // 210; the two sets sat at Prism3's spacing just before, so the same Update puts them back at exactly 160, where they
+  // stood before the stretch. Mutation: the snug sets not passed to the second pass → 210 here.
+  const settledAt = sets.map((x) => Number(x.x));
+  const shift = (i: number, dx: number) => { sets[i].x = Number(sets[i].x) + dx; for (const f of furnitureOn(page).filter((g) => tagOf(g).def === IDS[i])) f.x = Number(f.x) + dx; };
+  const rowFurn = furnitureOn(page).filter((g) => tagOf(g).def === IDS[1]);
+  const leftmost = rowFurn.reduce((a, b) => (Number(b.x) < Number(a.x) ? b : a));
+  // Stretched left until it hangs 50px past radio-row's visible left edge (its frame, or a label already past it).
+  const edge = Math.min(Number(sets[1].x), Number(leftmost.x)) - 50;
+  const grow = Number(leftmost.x) - edge;
+  (leftmost as Record<string, unknown>).layoutSizingHorizontal = 'FIXED';
+  (leftmost as unknown as { resize: (w: number, h: number) => void }).resize(Number(leftmost.width) + grow, Number(leftmost.height));
+  leftmost.x = edge;
+  shift(1, 50);
+  shift(2, 50);
+  const stretched = gaps();
+  const pre = await previewUpdate(host, targets);
+  const res2 = await applyUpdate(host as never, api as never, targets, previewHashOf(pre), { furnish });
+  const after = await previewUpdate(host, targets);
+  ok(JSON.stringify(stretched) === JSON.stringify([160, 160]) && pre.sets.every((p) => !p.setMove)
+    && JSON.stringify(gaps()) === JSON.stringify([160, 160]) && JSON.stringify(sets.map((x) => Number(x.x))) === JSON.stringify(settledAt)
+    && JSON.stringify(res2.outcomes.filter((o) => o.setMoved).map((o) => o.set)) === JSON.stringify(['radio-row', 'radio-group'])
+    && hitsOf().length === 0 && after.sets.every((p) => !p.setMove) && previewVerdict(after).headline === '✓ All sets up to date',
+    `columns/labels shrink: 160 from a label reaching 50px further than it draws (${JSON.stringify(stretched)}, the dry run lists ${pre.sets.filter((p) => p.setMove).length} moves); ONE Update redraws them and puts radio-row and radio-group back at 160 (${JSON.stringify(gaps())}; at ${JSON.stringify(sets.map((x) => Number(x.x)))}, before the stretch ${JSON.stringify(settledAt)}), and the next dry run moves nothing (${previewVerdict(after).headline})`);
 }
 
 /* ── the scrim behind each Dialog example (#2609, owner decisions Q303.2 A and Q303.3 A) ───────────────────── */
