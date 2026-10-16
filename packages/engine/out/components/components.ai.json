@@ -6436,13 +6436,13 @@
       "category": "data",
       "status": "draft",
       "summary": "One list item: a bullet, number or icon at a fixed indent, then text that wraps under itself.",
-      "description": "One item in a List: a marker in a fixed-width column, then short text that wraps under itself rather than under the marker. The marker is a bullet, a number or an icon, and it sits on the first line of the text however many lines the item runs to. The marker column keeps the same width in every type, so the text of every item starts at one edge. Used inside a List; the List sets the type and size of every item it holds.",
+      "description": "One item in a List: a marker in a fixed-width column, then short text that wraps under itself rather than under the marker. The marker is a bullet, a number or an icon, and it sits on the first line of the text however many lines the item runs to. The marker column has one width for each type, so the text of every item in a list starts at one edge. Used inside a List; the List sets the type and size of every item it holds.",
       "props": [
         {
           "name": "children",
           "type": "node",
           "required": true,
-          "description": "The item text: a short phrase or sentence. It wraps under itself. Inline content such as a link is allowed; a block such as a second list is a nested list, indented by one marker column."
+          "description": "The item text: a short phrase or sentence. It wraps under itself. Inline content such as a link is allowed; a block such as a second list is a nested list, indented by this item's marker column, so it starts at this item's text edge."
         },
         {
           "name": "type",

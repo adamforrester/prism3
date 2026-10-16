@@ -18613,6 +18613,26 @@
             }
           }
         },
+        "list-item": {
+          "keys": [
+            "size.small.ordered.marker-column",
+            "size.small.unordered.marker-column"
+          ],
+          "parts": {
+            "markerBox": {
+              "members": 2,
+              "where": {
+                "size": [
+                  "small"
+                ],
+                "type": [
+                  "ordered",
+                  "unordered"
+                ]
+              }
+            }
+          }
+        },
         "segmented-control-segment": {
           "keys": [
             "size.large.padding-x"
@@ -18775,13 +18795,16 @@
         },
         "list-item": {
           "keys": [
-            "size.small.marker-column"
+            "size.medium.ordered.marker-column",
+            "size.medium.unordered.marker-column",
+            "size.small.icon.marker-column"
           ],
           "parts": {
             "markerBox": {
               "members": 3,
               "where": {
                 "size": [
+                  "medium",
                   "small"
                 ]
               }
@@ -18855,13 +18878,16 @@
       "components": {
         "list-item": {
           "keys": [
-            "size.medium.marker-column"
+            "size.large.ordered.marker-column",
+            "size.large.unordered.marker-column",
+            "size.medium.icon.marker-column"
           ],
           "parts": {
             "markerBox": {
               "members": 3,
               "where": {
                 "size": [
+                  "large",
                   "medium"
                 ]
               }
@@ -18875,14 +18901,17 @@
       "components": {
         "list-item": {
           "keys": [
-            "size.large.marker-column"
+            "size.large.icon.marker-column"
           ],
           "parts": {
             "markerBox": {
-              "members": 3,
+              "members": 1,
               "where": {
                 "size": [
                   "large"
+                ],
+                "type": [
+                  "icon"
                 ]
               }
             }
@@ -22345,6 +22374,7 @@
         "icon.size.sm",
         "radius.round",
         "space.0",
+        "space.250",
         "space.300",
         "space.400",
         "space.500",
