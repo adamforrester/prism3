@@ -77,6 +77,9 @@
  *   display rename/…  an Accordion built while its icon axis was `position`, or `iconPosition`, updates in place to the
  *                  def's `icon position`: every member renamed, every key and id the test captured kept (#2592).
  *                  Mutation: the ledger entries dropped → `display rename/position …`, `display rename/iconPosition …`.
+ *   accordion pad-x/…  an Accordion built at the old large side padding (space/300, 24px) updates in place to the
+ *                  def's 20px (space/250, Q338 A, #2726): the 8 large members updated, the 16 others current, every key
+ *                  and id kept. Mutation: the def back at space.300 → `accordion pad-x/dry run`, `accordion pad-x/written`.
  *   apply/copy     with the original's coordinate dropped, only the original is marked deprecated; a Figma duplicate
  *                  of it and an unstamped member off the plan keep their description, stamp and record exactly
  *                  (#2328 review). Mutation: the deprecations take the unstamped members too → `apply/copy`.
@@ -115,6 +118,11 @@
  *                  every glyph's vectors fit its frame, read by the test off the shim's nodes (#2379). Mutations: the
  *                  paint base left black, or its alpha dropped → `drawn/paints`; the fresh glyph import not scaled to
  *                  its frame → `drawn/glyphs`.
+ *   damage/under a layer …  a member that draws wrong AND has a layer added by hand: the dry run counts it edited by
+ *                  hand, never "to update", its paint still listed; the apply skips it under every choice, named with
+ *                  the layer and the damage, and leaves it exactly (#2413). Mutations: the dry run's damage read before
+ *                  the structural edit → `damage/under a layer dry run`; the skip reason without the damage →
+ *                  `damage/under a layer skip (keep|overwrite|accept)`.
  *   veil/…         every directional veil member's gradient stops store the colors and alphas their variables resolve
  *                  to: built fresh; damaged with black stops, read "to update" by the dry run and repaired by the apply,
  *                  verified, then current; and verify names a stop the host leaves black (#2391). Mutations: the stops
@@ -650,6 +658,45 @@ for (const [def, errOld, errNew, n, add] of [
     `status/${def} properties: the set offers status [default, error] and no state=error (status ${JSON.stringify(defs.status?.variantOptions)}, state ${JSON.stringify(defs.state?.variantOptions)})`);
   const post = (await previewUpdate(w.host, [{ def, plans: w.plans }])).sets[0];
   ok(post?.counts.current === n + add, `status/${def} current: every member reads current after (${JSON.stringify(post?.counts)})`);
+}
+
+section('accordion side padding — a file built at the old large 24px updates in place to 20px (#2726, Q338 A)');
+{
+  // The file as main built it before Q338: the large header and the open panel padded at the sides by space/300 (24px).
+  // The literal is the test's own; the plan it updates to is the engine's current one.
+  const SIDES = ['paddingLeft', 'paddingRight'] as const;
+  const atOld = plansOf('accordion').map((p) => {
+    const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan;
+    if (q.size === 'large') for (const part of ['header', 'content']) {
+      const n = planChild(q.root, part);
+      if (n) for (const k of SIDES) (n.bound as Record<string, string>)[k] = 'space/300';
+    }
+    return q;
+  });
+  const w = await world('accordion', atOld, { extraVars: ['space/250'] });
+  const sidesOf = (m: Node) => ['header', 'content'].flatMap((part) => {
+    const n = (m.children as Node[]).find((c) => c.name === part);
+    return n ? SIDES.map((k) => (n.boundVariables as Record<string, { id: string }>)[k]?.id) : [];
+  });
+  const old = await varIdOf(w, 'space/300'), next = await varIdOf(w, 'space/250');
+  const large = (m: Node) => /(^|, )size=large(,|$)/.test(String(m.name));
+  ok(membersOf(w.set()).filter(large).length === 8 && membersOf(w.set()).filter(large).every((m) => sidesOf(m).every((id) => id === old)),
+    'premise: the 8 large members are padded at the sides by space/300, the old 24px');
+  const before = identityOf(w.set());
+  const plans = plansOf('accordion');
+  const { pre, res } = await confirm(w, [{ def: 'accordion', plans }]);
+  const p = pre.sets[0];
+  ok(!!p && !p.blockers.length && p.counts.update === 8 && p.counts.current === 16 && p.counts.add === 0 && p.counts.drop === 0,
+    `accordion pad-x/dry run: the 8 large members to update, the 16 small and medium current, nothing added or dropped (${JSON.stringify(p?.counts)})`);
+  const after = identityOf(w.set());
+  const moved = [...before.members].filter(([name, b]) => after.members.get(name)?.key !== b.key || after.members.get(name)?.id !== b.id).map(([n]) => n);
+  const kidsMoved = [...before.members].flatMap(([name, b]) => [...b.kids].filter(([path, id]) => after.members.get(name)?.kids.get(path) !== id).map(([path]) => `${name}/${path}`));
+  ok(applyVerdict(res).ok && moved.length === 0 && kidsMoved.length === 0 && after.members.size === 24,
+    `accordion pad-x/in place: every member and child keeps its key and id (${applyVerdict(res).headline}; ${moved.length} members, ${kidsMoved.length} children moved)`);
+  const wrong = membersOf(w.set()).filter((m) => !sidesOf(m).every((id) => (large(m) ? id === next : id !== old && !!id))).map((m) => String(m.name));
+  ok(wrong.length === 0, `accordion pad-x/written: the large header and open panel now bind space/250 (20px) at both sides, and no member still binds space/300 there (${wrong.slice(0, 2).join('; ')})`);
+  const post = (await previewUpdate(w.host, [{ def: 'accordion', plans }])).sets[0];
+  ok(post?.counts.current === 24, `accordion pad-x/current: every member reads current after (${JSON.stringify(post?.counts)})`);
 }
 
 /* ── single ──────────────────────────────────────────────────────────────────────────────────────────── */
@@ -1607,6 +1654,39 @@ section('damage under a record — a member drawn wrong reads "to update" whatev
   ok(st === 'update' && JSON.stringify(edits) === '["content"]' && left.length === 0
     && (childNamed(m, 'content').boundVariables as Record<string, { id: string }>).itemSpacing?.id === zero && res.outcomes[0]?.kept.some((k) => k.path === 'content'),
     `damage/over edit: the member reads "to update", its hand edit kept and listed, its damage repaired (${st}; edits ${JSON.stringify(edits)}; ${left.length} faults left; ${applyVerdict(res).headline})`);
+}
+
+{
+  // A LAYER ADDED BY HAND OUTRANKS THE DAMAGE (#2413): a member that draws wrong (a paint storing black on its root)
+  // and also has a layer a designer added is skipped by the apply under every choice (§5), so the dry run counts it
+  // "edited by hand", never "to update", and still lists the paint as a difference; the apply's skip names both the
+  // layer and the damage. The member is left exactly. Mutations: the dry run's damage read before the structural
+  // edit → `damage/under a layer dry run`; the skip reason without the damage → `damage/under a layer skip`.
+  const w = await world(TAG);
+  const m = membersOf(w.set())[3];
+  let hit = '';
+  for (const f of ['fills', 'strokes'] as const) {
+    const ps = m[f] as { boundVariables?: { color?: unknown } }[] | undefined;
+    if (!hit && Array.isArray(ps) && ps.some((p) => p?.boundVariables?.color)) { m[f] = ps.map((p) => (p?.boundVariables?.color ? { ...p, color: { r: 0, g: 0, b: 0 }, opacity: 1 } : p)); hit = f; }
+  }
+  const extra = (w.api.createFrame as () => Node)();
+  extra.name = 'designer note';
+  (m.appendChild as (c: Node) => void)(extra);
+  ok(!!hit, `premise: the member's root binds a paint, now storing black, and it holds a layer added by hand (${hit})`);
+  const dumpOf = (n: Node): string => JSON.stringify([n.name, n[hit as 'fills'], [...(n._pluginData as Map<string, string>)], ...(n.findAll as () => Node[])().map((k) => [k.name, k.id, k.boundVariables])]);
+  const before = dumpOf(m);
+  const pre = await previewUpdate(w.host, [{ def: TAG, plans: w.plans }]);
+  const p = pre.sets[0];
+  const st = p.states.find((x) => x.member === String(m.name))?.state;
+  const black = p.changes.find((c) => c.field === hit && /stored #000000/.test(c.from) && c.sample.includes(String(m.name)));
+  ok(st === 'handEdited' && p.counts.update === 0 && p.counts.handEdited === 1 && !!black && previewLine(p) === `${TAG}: 45 members. 1 member edited by hand.`,
+    `damage/under a layer dry run: the member counts as edited by hand, not to update, and its paint is still listed (${st}; ${JSON.stringify(p.counts)}; ${black ? `${black.part}.${black.field}: ${black.from}` : 'no paint line'}; ${previewLine(p)})`);
+  for (const choice of ['keep', 'overwrite', 'accept'] as const) {
+    const res = await applyUpdate(w.host, w.api as any, [{ def: TAG, plans: w.plans }], previewHashOf(await previewUpdate(w.host, [{ def: TAG, plans: w.plans }])), { choices: { handEdits: choice } });
+    const why = res.outcomes[0]?.skipped.find((x) => x.member === String(m.name))?.reason ?? '';
+    ok(why.startsWith('a layer was added or removed by hand, and it draws other than its plan (') && why.includes(String(m.name)) && why.includes(`${hit}: stored #000000`) && dumpOf(m) === before,
+      `damage/under a layer skip (${choice}): the skip names the layer and the damage, and the member is left exactly (${why || 'not skipped'}; ${dumpOf(m) === before ? 'untouched' : 'written'})`);
+  }
 }
 
 {

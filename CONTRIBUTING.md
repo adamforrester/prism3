@@ -299,6 +299,19 @@ npx tsx packages/engine/emit-agent-reference.ts --check
                                                     # CLI list is checked both ways against every file
                                                     # that reads process.argv. Regenerate with the same
                                                     # command without --check, then review the diff.
+npx tsx packages/engine/emit-figma-conventions.ts --check
+                                                    # docs/public/reference/figma-conventions.json
+                                                    # matches the code (#2647): the page taxonomy, each
+                                                    # component set's name and properties, the icon
+                                                    # namespace, native slots, variable collections and
+                                                    # modes, and the canvas furniture, regenerated in
+                                                    # memory and compared, reported per page, component,
+                                                    # glyph, slot, collection and template. A promised
+                                                    # section that comes out empty fails by name. Same
+                                                    # posture as the agent reference: served docs, not
+                                                    # emission. regen.ts also writes it, in its own list
+                                                    # (REFERENCE_ARTIFACTS), so the habitual regenerate
+                                                    # moves it.
 npx tsx packages/engine/lint-skills.ts              # shipped skills still make true claims
 npx tsx packages/engine/lint-doc-gates.ts           # this checklist stays in sync with ci.yml (#613)
                                                     # and names no RETIRED gate: a deleted gate's line

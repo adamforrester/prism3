@@ -270,7 +270,15 @@ const plan = (p: SetPreview, choice: HandEditChoice, noRecord: NoRecordChoice): 
       members.set(at, { keep: new Set<string>() });
       continue;
     }
-    if (edits.some((e) => e.structural)) { skipped.push({ member: s.member, reason: 'a layer was added or removed by hand' }); continue; }
+    if (edits.some((e) => e.structural)) {
+      // DRAFT wording for the owner (#2413, the issue's option A): a skipped member that also draws wrong says so, in
+      // the verify lines' `faultLine` form, so the reader knows it still draws other than its plan.
+      const d = s.damaged ?? [];
+      skipped.push({ member: s.member, reason: d.length
+        ? `a layer was added or removed by hand, and it draws other than its plan (${d.slice(0, 3).join('; ')}${d.length > 3 ? '; …' : ''})`
+        : 'a layer was added or removed by hand' });
+      continue;
+    }
     if (rootReplaced.has(s.member)) { skipped.push({ member: s.member, reason: 'the member itself would need replacing' }); continue; }
     // `overwrite` writes over every edited node; `keep` and `accept` leave them, and differ only in the record.
     const keep = choice === 'overwrite' ? new Set<string>() : new Set(edits.map((e) => e.path.replace(/#\d+$/, '')));

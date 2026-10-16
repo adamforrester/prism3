@@ -3803,7 +3803,7 @@ for (const b of brands) {
       'segmented-control-segment': { compact: 'small 8/4 · medium 12/6 · large 16/6', comfortable: 'small 12/6 · medium 16/8 · large 20/8', spacious: 'small 16/8 · medium 20/12 · large 24/12' },
       // Accordion (#2417, DRAFT): header inline / header block / glyph-to-title gap / panel bottom inset. Comfortable is
       // the proposal's 12/8/8 · 16/12/12 · 24/16/16, with the panel's bottom inset matching the inline padding.
-      accordion: { compact: 'small 8/6/6/8 · medium 12/8/8/12 · large 20/12/12/20', comfortable: 'small 12/8/8/12 · medium 16/12/12/16 · large 24/16/16/24', spacious: 'small 16/12/12/16 · medium 20/16/16/20 · large 32/20/20/32' },
+      accordion: { compact: 'small 8/6/6/8 · medium 12/8/8/12 · large 16/12/12/20', comfortable: 'small 12/8/8/12 · medium 16/12/12/16 · large 20/16/16/24', spacious: 'small 16/12/12/16 · medium 20/16/16/20 · large 24/20/20/32' },
       // List (#2319, approved (Q280 A)): the item gap. Comfortable is 8/12/16.
       list: { compact: 'small 6 · medium 8 · large 12', comfortable: 'small 8 · medium 12 · large 16', spacious: 'small 12 · medium 16 · large 20' },
       // Link (#2580, DRAFT): the icon-to-label gap. Comfortable is the proposal's space.050 / space.050 / space.100; compact
@@ -31431,6 +31431,26 @@ arm: {
   const FLOOR: Record<string, string> = { small: 'size/md/min-height', medium: 'size/md/min-height', large: 'size/lg/height' };
   ok(plans.every((p) => find(p.root as PN, 'header')?.bound?.minHeight === FLOOR[coord(p).size]),
     `#2417 accordion header: the 44px floor at every size, size/md/min-height at small and medium and size/lg/height at large (Q182)`);
+  // THE SIDE PADDING (Q338 A, #2726): 12 / 16 / 20px at small / medium / large, on the header and on the open panel
+  // alike, both sides. Large was the fields' 24; the fields keep it, so Text field and Select at large are held at 24
+  // here too, and a shared change to both fails one arm or the other. The px are typed literals; ACTUAL is the
+  // projected plan's binding read through the comfortable space scale.
+  {
+    const PX = new Map(spaceScale(SPACE_BASE).map((sp) => [`space/${sp.key}`, sp.px]));
+    const SIDE: Record<string, number> = { small: 12, medium: 16, large: 20 };
+    const offSide: string[] = [];
+    for (const p of plans) {
+      const c = coord(p);
+      for (const part of c.expansion === 'expanded' ? ['header', 'content'] : ['header']) {
+        const b = find(p.root as PN, part)?.bound ?? {};
+        const l = PX.get(b.paddingLeft), r = PX.get(b.paddingRight);
+        if (l !== SIDE[c.size] || r !== SIDE[c.size]) offSide.push(`${planComponentName(p)} ${part} ${l}/${r}`);
+      }
+    }
+    const fieldLarge = ['text-field', 'select'].map((id) => `${id} ${PX.get(componentDefs.find((d) => d.id === id)!.tokens['size.large.pad-x'].replace('.', '/'))}`);
+    ok(offSide.length === 0 && fieldLarge.join(', ') === 'text-field 24, select 24',
+      `#2726 accordion side padding (Q338 A): 12/16/20px on the header and the open panel at small/medium/large, and the fields keep 24 at large (fields ${fieldLarge.join(', ')}${offSide.length ? `; OFF: ${offSide.slice(0, 6).join('; ')}` : ''})`);
+  }
   // THE RING INSIDE THE HEADER'S EDGE (Q257 A, superseding Q243): offset 0 (the fields' offset) and NO stroke
   // compensation, so the ring's inside stroke sits within the header and never covers the nested Divider (measured
   // live: compensated, it covered it by 2px). The control offset back, or the compensation back, fails here by name.
