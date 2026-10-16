@@ -420,6 +420,35 @@ keeping this artifact out of regen also kept it out of that gate. It is named ex
 `lint-us-english.ts` to close the hole. **Anything else deliberately excluded from regen needs the
 same line** — the exemption and the blind spot arrive together.
 
+## Release notes, one per engine version (#2650, owner decision Q308.1 A)
+
+Each fold writes `docs/public/releases/<version>.md` and `.json`, and the version's entry in `index.md`
+and `index.json` beside them. `packages/engine/release-notes.ts` generates them; nobody types them. The
+diff runs from the commit that set the previous version to the fold's own tree, over four committed
+records: the Figma sets and their variant properties (`schema/component-axes.json`), each set's surface
+digest (`schema/component-surface.json`), the coded components and their props
+(`out/components/components.ai.json`), and the guaranteed token names (`schema/token-contract.json`).
+`COMPONENT_RENAMES` says which disappearance is a rename. The folded change notes follow verbatim, under
+"In detail".
+
+The classification widens the table above from tokens to every name a reader can hold:
+
+| change | class | why |
+|---|---|---|
+| a set, variant property or value; a coded component, prop or prop value; a guaranteed token is **removed**, **renamed** or **retyped** | breaking | a reference to the old name stops resolving |
+| one of those is **added** | new | nothing that already resolves changes |
+| a prop's **default** moves, or a set **builds differently** under names that all stay | fix | the name holds; the value under it moves |
+
+A rename is breaking even where the plugin's Update renames members in place, because a name in code or
+in an agent's notes does not move with it. A deprecated token removal stays breaking, as above, and its
+line names the replacement. `brandDependent` tokens are left out, as the contract leaves them out.
+
+`lint-release-notes.ts` re-derives every release from git with its own code and fails by name on a
+breaking change missing from the notes, a change claimed that the diff does not show, or an item
+classified against this table. Releases start at 0.234.0, the oldest version with all four records on
+both sides of its diff. The plugin's Update check shows the version's breaking and new Figma items for
+the sets it would change, read from `index.json`.
+
 ## What this does *not* cover
 
 - **Values.** By design, per above.

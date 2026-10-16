@@ -57,7 +57,7 @@ None — not interactive.
 
 | Axis | Values | Changes |
 | --- | --- | --- |
-| `ratio` | `2:3`, `3:4`, `4:5`, `1:1`, `4:3`, `3:2`, `16:9` | once, when authored |
+| `ratio` | `4:3`, `2:3`, `3:4`, `4:5`, `1:1`, `3:2`, `16:9` | once, when authored |
 
 ## Accessibility
 
