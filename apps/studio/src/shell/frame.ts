@@ -106,7 +106,10 @@ const NEW_PAGES: Record<NewPageKey, {
   depth: { levers: mountDepthLevers, preview: mountDepthPreview, derivedReadOnly: true },
   shape: { levers: mountShapeLevers, preview: mountShapePreview, derivedReadOnly: true },
   layout: { levers: mountLayoutLevers, preview: mountLayoutPreview, derivedReadOnly: true },
-  components: { levers: mountComponentsLevers, preview: mountComponentsPreview, derivedReadOnly: true },
+  // #2700: not held in a derived mode. Its levers pane is the list of sets and the action bar, which edit no brand
+  // setting, so building stays available there as it always was; the Button options it shapes sit in the preview pane
+  // now, and hold themselves read-only in a derived mode, in this frame's words (`domains/button-options.ts`).
+  components: { levers: mountComponentsLevers, preview: mountComponentsPreview },
 };
 
 /** The levers panel's one line while the preview shows a derived mode (N-3 A, #1984). APPROVED (owner, RO1 A,

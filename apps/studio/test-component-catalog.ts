@@ -33,7 +33,8 @@ import { planTargets, defForTarget, SWAP_TARGET } from '../plugin/src/build-deps
 import { COMPONENT_CATALOG_DATA } from './src/state/component-catalog-data';
 import { catalogOf, buildableSets, unbuildableSets, CATALOG_SWAP_TARGET, type CatalogEntry } from './src/state/component-catalog';
 import { computeCatalog, render } from './gen-component-catalog';
-import { chosenOf, setsView } from './src/preview/sections/component-sets';
+import { setsView } from './src/preview/sections/component-sets';
+import { boxOfSets, toggleSets } from './src/state/component-groups';
 import type { SetBuild } from './src/state/host-session';
 
 let failed = 0;
@@ -152,9 +153,15 @@ ok(pv.length === 3 && pv[0].offered === false && pv[1].offered === false,
 ok(pv[0].reason === "Can't be built yet: it binds no geometry of its own." && pv[1].reason === "Can't be built yet: the Figma build can't read its definition yet",
   `G4: each says why, the definition's own words with the id lead stripped, or the page's (${JSON.stringify(pv[0].reason)}, ${JSON.stringify(pv[1].reason)})`);
 ok(pv[0].parts === null && pv[0].last === null, 'G4: a set that can\'t be built states no part count and no build result');
-ok(chosenOf(pv, 'planted-declared') === 'button' && chosenOf(pv, null) === 'button' && chosenOf(pv.slice(0, 2), 'planted-declared') === null,
-  `G4: the Build button never names a set that can't be built (chose ${chosenOf(pv, 'planted-declared')}, then ${chosenOf(pv.slice(0, 2), 'planted-declared')} with none offered)`);
-ok(chosenOf(view, 'tag') === 'tag', 'the chosen set holds while it is offered');
+// G4 under #2700's multi-select: a box never selects a set that can't be built, whether it is the set's own box or a box
+// over a family or a section holding it; a box over only such sets reads off. The build itself refuses one too
+// (`main.ts`'s `runSets` asks the catalog again).
+const plantedIds = planted.map((e) => e.id);
+const picked = toggleSets(planted, plantedIds, new Set());
+ok([...picked].join() === 'button' && toggleSets(planted, ['planted-declared'], new Set()).size === 0,
+  `G4: a box selects only the sets that can be built (a box over all three picked ${JSON.stringify([...picked])}; the planted one alone picked none)`);
+ok(boxOfSets(planted, ['planted-declared', 'planted-thrower'], new Set()) === 'off' && boxOfSets(planted, plantedIds, picked) === 'on',
+  `G4: a box over sets that can't be built reads off, and over the rest reads on once the buildable one is selected (${boxOfSets(planted, plantedIds, picked)})`);
 
 console.log('\n7. C2: the set list shows each size\'s padding and gap only, at the px the ENGINE builds at each density');
 // Oracle: the engine's own density output, `applySpacingDensity(def, density)` (the def a build projects), read over

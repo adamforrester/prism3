@@ -182,8 +182,11 @@ const post = (page, msg) => page.evaluate((m) => window.postMessage({ pluginMess
 
 /** The Build button's labels and each set's result line, as approved (S8.2; owner decisions G2, G9 and C1, copy approved
  *  2026-10-05). Typed here, never read from the source: they are the words a designer reads. */
-const BUILD_LABEL = 'Build Button';
-const BUSY_LABEL = 'Building…';
+// #2700: the one action bar builds the selection, so with Button selected it reads "Build 1 set" and, while that run is
+// out, "Building 1 of 1…" (the approved wireframe's draft copy, calls 16 and 17 A). Nothing is selected on open (call 13).
+const BUILD_LABEL = 'Build 1 set';
+const BUSY_LABEL = 'Building 1 of 1…';
+const NOTHING_LABEL = 'Build';
 const LAST = { ok: 'Built just now', bad: 'Built with problems', failed: 'Build failed', none: 'Not built in this session' };
 
 /** Everything a designer can read about a build, from the rendered DOM only.
@@ -204,8 +207,13 @@ const readSurfaces = (page, set = 'button') => page.evaluate((id) => {
   return {
     button: label,
     busy,
-    picker: document.querySelector('[data-p3="components-def-option"]:checked')?.value ?? null,
-    setLine: preview?.querySelector(`[data-p3="component-set"][data-set="${id}"] [data-p3="component-set-last"]`)?.textContent ?? null,
+    // #2700: the sets selected, by their boxes (the radio picker is gone), joined in list order.
+    picker: [...document.querySelectorAll('[data-p3="cp-box"][data-key^="set="][aria-checked="true"]')].map((b) => b.dataset.key.slice(4)).join(',') || null,
+    disabled: btn ? btn.disabled : null,
+    // The set's line: in the preview pane when its family is the one shown, else on its own row in the list (#2700: the
+    // list says how a set's last build went once it has one).
+    setLine: preview?.querySelector(`[data-p3="component-set"][data-set="${id}"] [data-p3="component-set-last"]`)?.textContent
+      ?? document.querySelector(`[data-set="${id}"] [data-p3="cp-last"]`)?.textContent ?? null,
     setLines: preview ? preview.querySelectorAll(`[data-p3="component-set"][data-set="${id}"] [data-p3="component-set-last"]`).length : 0,
     pageFraction: /\d+ of \d+/.test(preview?.textContent ?? ''),
     barVerdict: row && row.dataset.state !== 'running' && pill && !pill.hidden ? [pill.textContent] : [],
@@ -259,8 +267,22 @@ const idleAgain = (page) => page.waitForFunction(() => document.querySelector('[
  * crashes on the bug it is for reports less than one that fails on it. So the click is bounded, and a
  * refusal becomes a named failure that the run survives.
  */
+/** Select one set by its box (#2700), opening every family first, since a family's sets are drawn only while it is
+ *  open (call 15 A). Selecting replaces the selection: any other set selected is cleared. */
+const selectOnly = async (page, id) => {
+  for (let i = 0; i < 40; i++) {
+    const closed = page.locator('[data-p3="cp-fold"][aria-expanded="false"]').first();
+    if (!(await closed.count())) break;
+    await hooks.click(closed);
+  }
+  for (const other of await page.evaluate(() => [...document.querySelectorAll('[data-p3="cp-box"][data-key^="set="][aria-checked="true"]')].map((b) => b.dataset.key.slice(4)))) {
+    if (other !== id) await hooks.click(page.locator(`[data-p3="cp-box"][data-key="set=${other}"]`));
+  }
+  const box = page.locator(`[data-p3="cp-box"][data-key="set=${id}"]`);
+  if (await box.getAttribute('aria-checked') !== 'true') await hooks.click(box);
+};
 const startBuild = async (page, def, label = 'build') => {
-  if (def) await hooks.click(page.locator(`[data-p3="components-def-option"][value="${def}"]`));
+  await selectOnly(page, def ?? 'button');
   const clicked = await hooks.click(page.locator('[data-p3="components-build"]').first(), { timeout: 4000 })
     .then(() => true, () => false);
   if (!clicked) {
@@ -385,8 +407,8 @@ console.log(`\nComponent-build verdict suite (#870) — ${CONDITIONS.length} ter
 {
   const { page, errors } = await openPanel();
   const fresh = await readSurfaces(page);
-  ok(fresh.button === BUILD_LABEL && fresh.busy === false, `a freshly opened panel offers "${BUILD_LABEL}", not busy — read "${fresh.button}", busy ${fresh.busy}`);
-  ok(fresh.picker === 'button', `a freshly opened panel has Button chosen — read ${fresh.picker}`);
+  ok(fresh.button === NOTHING_LABEL && fresh.busy === false && fresh.disabled === true, `a freshly opened panel offers "${NOTHING_LABEL}", unavailable until a set is selected, not busy — read "${fresh.button}", disabled ${fresh.disabled}, busy ${fresh.busy}`);
+  ok(fresh.picker === null, `call 13: a freshly opened panel has nothing selected — read ${fresh.picker}`);
   ok(fresh.setLine === LAST.none, `before any build, Button reads "${LAST.none}" — read ${JSON.stringify(fresh.setLine)}`);
   ok(errors.length === 0, `opening the panel logs no console errors (${errors.slice(0, 2).join(' · ')})`);
   await startBuild(page, undefined, 'the fresh panel\'s proving build');
@@ -500,7 +522,8 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
 // on THAT set's line, and the choice holds through the verdict.
 {
   const { page } = await openPanel();
-  const options = await page.locator('[data-p3="components-def-option"]').evaluateAll((ns) => ns.map((n) => n.value));
+  await selectOnly(page, 'button');
+  const options = await page.locator('[data-p3="cp-box"][data-key^="set="]').evaluateAll((ns) => ns.map((n) => n.dataset.key.slice(4)));
   const other = options.find((v) => v === 'tag') ?? options.find((v) => v !== 'button');
   ok(other !== undefined && options.length >= 20, `the set list offers sets other than Button, so this check can mean something (${options.length} offered)`);
   if (other) {
@@ -513,7 +536,7 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
     const button = await readSurfaces(page, 'button');
     ok(after.picker === other, `the picker still holds '${other}' after its verdict — read '${after.picker}' (a full re-render would reset it to 'button')`);
     ok(after.setLine === LAST.ok && button.setLine === LAST.none, `the verdict lands on '${other}', not on Button — ${other} ${JSON.stringify(after.setLine)}, button ${JSON.stringify(button.setLine)}`);
-    ok(after.busy === false && /^Build /.test(after.button ?? '') && after.button !== BUILD_LABEL, `the non-default set's build also reaches a verdict, and the button still names it — read "${after.button}"`);
+    ok(after.busy === false && after.button === BUILD_LABEL, `the non-default set's build also reaches a verdict, and the bar still offers its selection, one set — read "${after.button}"`);
   }
   await page.close();
 }
@@ -977,7 +1000,7 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   const running = () => page.waitForFunction(() => document.querySelector('[data-p3="activity-op"][data-op="components"]')?.dataset.state === 'running', null, { timeout: 5000 }).catch(() => {});
 
   for (const [id, name, sent] of [['button', 'Button', '["button"]'], ['tag', 'Tag', '["button","tag"]']]) {
-    await hooks.click(page.locator(`[data-p3="components-def-option"][value="${id}"]`));
+    await selectOnly(page, id);
     await hooks.click(page.locator('[data-p3="components-build"]').first(), { timeout: 4000 }).catch(() => {});
     await running();
     await page.waitForFunction((n) => window.__builds.length >= n, sent === '["button"]' ? 1 : 2, { timeout: 3000 }).catch(() => {});
@@ -996,6 +1019,91 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
     `#2088 an agent's build reads exactly "Building the set…" before its first boundary — read ${JSON.stringify(agent)}`);
   await post(page, { type: 'agent-finished', id: 'p1', cmd: 'build-components' });
   ok(errors.length === 0, `#2088: no console errors (${errors.slice(0, 2).join(' · ')})`);
+  await page.close();
+}
+
+// ── #2700: a build of several sets, Stop, and Subcomponents' Build all ─────────────────────────────────
+//
+// The plugin builds one set per request and its result names no set, so the panel posts a selection's sets ONE AFTER
+// ANOTHER, each when the last one's result lands (`state/build-queue.ts`). Held here through the real UI, with this
+// suite playing the plugin: what is posted, and when; that Activity reads one running build between the sets and ONE
+// result at the end (idea 13 A), with no Earlier results from the sets in between; Stop (call 16 A) letting the set being
+// built finish and posting nothing after it; and Build all (call 10 A) posting the nine subcomponents in the list's
+// order without touching the selection. EXPECTED is typed here: the ids, the order and the words.
+//
+// MUTATIONS, each failing here by name:
+//   · `runAfterResult` not posting the next set → `#2700 a run of three posts each set after the last one's result`.
+//   · its verdict written for each set (the run's combined verdict dropped) → `#2700 … one Activity result`.
+//   · Stop ending the run at once → `#2700 Stop lets the set being built finish …`.
+{
+  const { page, errors } = await openPanel();
+  const posted = () => builds(page);
+  const waitPosts = (n) => page.waitForFunction((k) => window.__builds.length >= k, n, { timeout: 4000 }).catch(() => {});
+  const opState = () => page.evaluate(() => document.querySelector('[data-p3="activity-op"][data-op="components"]')?.dataset.state ?? null);
+  const history = () => page.evaluate(() => document.querySelectorAll('[data-p3="activity-op"][data-op="components"] [data-p3="op-history-entry"]').length);
+  const verdict = () => page.evaluate(() => document.querySelector('[data-p3="activity-op"][data-op="components"] [data-p3="op-verdict"]')?.textContent ?? null);
+  const result = (id) => post(page, { type: 'component-result', ok: true, completed: true, headline: '✓ built', summary: `set '${id}'`, lines: [] });
+  // Three sets: Badge, Divider, Tag (alphabetical in the list, so the run posts them in that order).
+  await selectOnly(page, 'badge');
+  for (const id of ['divider', 'tag']) await hooks.click(page.locator(`[data-p3="cp-box"][data-key="set=${id}"]`));
+  const bar = await readSurfaces(page);
+  ok(bar.button === 'Build 3 sets' && bar.picker === 'badge,divider,tag', `#2700 the bar offers the selection, "Build 3 sets" — read "${bar.button}", selected ${bar.picker}`);
+  await hooks.click(page.locator('[data-p3="components-build"]').first(), { timeout: 4000 });
+  await waitPosts(1);
+  const first = JSON.stringify(await posted());
+  const busy1 = await readSurfaces(page);
+  await result('badge');
+  await waitPosts(2);
+  const running2 = await opState();
+  await result('divider');
+  await waitPosts(3);
+  const third = JSON.stringify(await posted());
+  const hist2 = await history();
+  await result('tag');
+  await idleAgain(page);
+  ok(first === '["badge"]' && busy1.busy === true && busy1.button === 'Building 1 of 3…',
+    `#2700 a run of three posts its first set alone, and the bar reads "Building 1 of 3…" — posted ${first}, read "${busy1.button}" (busy ${busy1.busy})`);
+  ok(third === '["badge","divider","tag"]' && running2 === 'running',
+    `#2700 a run of three posts each set after the last one's result, in the list's order, and Activity reads it as one running build between them — posted ${third}, Activity ${running2}`);
+  const v = await verdict();
+  const summary = await page.evaluate(() => [...document.querySelectorAll('[data-p3="components-run-summary"] li')].map((n) => n.textContent));
+  ok(v === 'Built 3 sets' && hist2 === 0 && (await history()) === 0,
+    `#2700 the run ends with one Activity result, "Built 3 sets", and no Earlier results from the sets in between — read ${JSON.stringify(v)}, ${await history()} earlier`);
+  ok(JSON.stringify(summary) === JSON.stringify(['Built Badge on ↳ Badge.', 'Built Divider on ↳ Divider.', 'Built Tag on ↳ Tag.'])
+    && !!(await page.locator('[data-p3="components-show-activity"]').count()),
+    `#2700 idea 13: the bar summarizes the run, page by page, with the way to Activity — read ${JSON.stringify(summary)}`);
+
+  // Stop: the set being built finishes, and the run posts nothing after it.
+  const before = (await posted()).length;
+  await hooks.click(page.locator('[data-p3="components-build"]').first(), { timeout: 4000 });
+  await waitPosts(before + 1);
+  await hooks.click(page.locator('[data-p3="components-stop"]'));
+  await result('badge');
+  await idleAgain(page);
+  await page.waitForTimeout(150);
+  const afterStop = (await posted()).slice(before);
+  ok(JSON.stringify(afterStop) === '["badge"]' && (await verdict()) === 'Stopped after 1 of 3 sets',
+    `#2700 Stop lets the set being built finish and posts nothing after it — posted ${JSON.stringify(afterStop)}, Activity ${JSON.stringify(await verdict())}`);
+
+  // Build all: the nine subcomponents in the list's order, the selection left alone.
+  const pre = (await posted()).length;
+  await hooks.click(page.locator('[data-p3="cp-build-all"]'));
+  const SUBS = ['field-label', 'field-message', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'focus-ring', 'icon', 'image-placeholder', 'spinner'];
+  for (let i = 0; i < SUBS.length; i++) { await waitPosts(pre + i + 1); await result(SUBS[i]); }
+  await idleAgain(page);
+  const all = (await posted()).slice(pre);
+  const still = await readSurfaces(page);
+  ok(JSON.stringify(all) === JSON.stringify(SUBS) && still.picker === 'badge,divider,tag',
+    `#2700 call 10: Build all posts the nine subcomponents in the list's order and leaves the selection alone — posted ${JSON.stringify(all)}, selected ${still.picker}`);
+
+  // An agent's build: the bar waits, and says so.
+  await post(page, { type: 'agent-started', id: 'q1', cmd: 'build-components' });
+  await page.waitForFunction(() => document.querySelector('[data-p3="components-build"]')?.getAttribute('aria-busy') === 'true', null, { timeout: 4000 }).catch(() => {});
+  const waiting = await page.evaluate(() => ({ busy: document.querySelector('[data-p3="components-build"]')?.getAttribute('aria-busy'), says: document.querySelector('[data-p3="components-summary"]')?.textContent }));
+  ok(waiting.busy === 'true' && waiting.says === "Waiting for the agent's build to finish.",
+    `#2700 while an agent's build runs, the bar is busy and says it waits — read busy ${waiting.busy}, ${JSON.stringify(waiting.says)}`);
+  await post(page, { type: 'agent-finished', id: 'q1', cmd: 'build-components' });
+  ok(errors.length === 0, `#2700: no console errors (${errors.slice(0, 2).join(' · ')})`);
   await page.close();
 }
 

@@ -1,198 +1,313 @@
 /**
- * Components, the levers panel (UI redesign S8.2; concept v6's Components page, owner decisions G5 and G6 A).
+ * Components, the levers panel (UI redesign S8.2; redesigned by #2700, the owner's approved wireframe, every call A).
  *
- * WHAT IT DRAWS: the intro, with the number of sets counted from the catalog; **Button** (the way to Shape › Density,
- * where heights and spacing are set, then Button icons, Button label & icon and Button label weight as chips, and
- * Button minimum width as a slider); **Component sets** (on the web, the line that building needs the plugin; in the
- * plugin, where the set is chosen). The list of sets and the Build button are the preview's (G2 A).
+ * WHAT IT DRAWS: the list of component sets and the one action bar (call 9 A: the list and the action where the choosing
+ * happens; the focused family's preview and options are the preview pane's, `preview/components.ts`).
+ *   · Two sections, Components and Subcomponents (note 4, call 11 A), each row a family (several sets on one Figma page,
+ *     closed until one of its sets is selected or the row is focused, call 15 A) or a set of its own, alphabetical
+ *     (note 2), labeled by page or by component name (call 14 A), with its members and the page it lands on (idea 12).
+ *   · In the plugin, a box on every set, family and section (note 5, call 8 A: three-state, as Build style guides'), and
+ *     Subcomponents' own "Build all" (call 10 A), which runs at once and leaves the selection alone.
+ *   · The action bar at the foot of the pane (idea 9 A, as Draw is on Build style guides): "Build N sets" (call 17 A)
+ *     and what it costs, the sets a build makes first when the file lacks them (idea 7 A), and, while it runs, its place
+ *     and Stop (call 16 A); after a run of several sets, its summary and the way to Activity (idea 13 A).
+ *   · On the web the list is read-only: no boxes, no bar, and one line saying building needs the plugin.
+ * Nothing is selected when the page opens (call 13 A).
  *
- * WHICH MODE A CONTROL EDITS. None of the four Button options has a per-mode value (no `ModeLevers` field), so each
- * writes the same bytes from any editable mode (Q54); the preview still follows the previewed mode for the heights,
- * the label weight and the corner. A derived mode (HC light, HC dark, wireframe) is read-only, every control on the
- * page (Q59), held by the frame: the whole levers panel is inert and disabled under one line (N-3 A, #1984); the preview is still drawn.
+ * A NAME FOCUSES, A BOX SELECTS: focusing does not select, and the preview pane shows the focused family. At the narrow
+ * tier (one column) the preview pane has nowhere to sit beside the list, so the focused family opens inline under its
+ * row (`familyDetail`), and a row's meta drops to its count.
  *
- * BEHAVIOR-NEUTRAL (the S2 rule). Every write goes through `state/button-input.ts`, which writes what the legacy Size &
- * radius page wrote, byte for byte, its traps included: choosing a chip's default WRITES it rather than unsetting it,
- * and the minimum-width slider writes on every `input` step.
+ * SEARCH (the Studio's search, Q3) filters the rows: a family stays while any of its sets matches (#2700's edge state).
  *
- * HOW IT REPAINTS: by store subscription only (plan §5): `brand` and `mode`. A control writes, notes the edit for the
- * preview's reveal (`noteSectionEdit`, QA-B9), and calls `rebuild()`; the panel is redrawn whole, keeping focus on the
- * element that had it, except while the slider itself is being dragged, which updates in place. It never names a
- * legacy repaint tier and never imports `main.ts` (`test-shell-imports.ts`), and it imports no component definition:
- * the catalog is `state/component-catalog.ts`'s (`check:ignore` fails by name if a definition reaches the web bundle).
+ * A DERIVED MODE holds nothing here: the list and the bar edit no brand setting, so building stays available, as it was
+ * when the build bar sat in the preview pane, and the frame does not hold this page (#2700). The Button options, which do
+ * edit, hold themselves (`domains/button-options.ts`).
+ *
+ * HOW IT REPAINTS: by store subscription only (plan §5): `host` and `host:components` for the bar and the last-build
+ * lines, `search` for the filter, the page state (`state/components-page.ts`) for selection, open and focus, `brand`
+ * and `mode` for the inline block, and the frame's width tier. It never imports `main.ts` (`test-shell-imports.ts`), and
+ * no component definition: the catalog is `state/component-catalog.ts`'s (`check:ignore` fails by name if a definition
+ * reaches the web bundle).
  */
-import type { ButtonContentSize, ButtonIcons, ButtonLabelWeight, ButtonTextHover } from '@prism3/engine/scale';
-import { brandState, currentMode, getPath, lastError, rebuild, searchQuery, setPage, setSearchHits, subscribe } from '../state/store';
-import { isDerived } from '../state/verdict';
-import { setButtonContentSize, setButtonIcons, setButtonLabelWeight, setButtonMinWidth, setButtonTextHover } from '../state/button-input';
-import { brandDensity } from '../state/shape-input';
-import { componentCatalog } from '../state/component-catalog';
-import { noteSectionEdit } from '../preview/follow-edit';
-import { COMPONENTS_INTRO, DOMAINS, pageOfTab, type Host, type PageData, type Section } from '../shell/pages';
-import { glyph, h, hook } from '../shell/dom';
-import { choice, leverBlock, leverOf, slider, sliderReadout, stateLine, subLine, type LeverBlock, keepFocus } from '../ui/lever-kit';
+import { searchQuery, setSearchHits, subscribe } from '../state/store';
+import { componentCatalog, type Catalog } from '../state/component-catalog';
+import { componentsPage, setComponentsPage, watchComponentsPage } from '../state/components-page';
+import {
+  alsoBuilds, boxOfSets, buildableOf, costOf, entryOf, fmt, groupsOf, GROUPS_COPY, rowMatches, toggleSets,
+  type BoxState, type GroupRow, type GroupSection,
+} from '../state/component-groups';
+import { currentOf, positionOf, RUN_COPY } from '../state/build-queue';
+import { glyph, h, hook, pendingLabel, setBusy } from '../shell/dom';
+import { stateLine } from '../ui/lever-kit';
 import { SETS_COPY } from '../preview/sections/component-sets';
+import { familyDetail, focusedRow } from '../preview/components';
 import type { PageLends } from '../preview/brand';
 
-const PAGE = DOMAINS.find((d) => d.id === 'components') as PageData;
-/** The host this bundle was built for (`PRISM3_HOST`, a build-time define). */
-const host = (): Host => (PRISM3_HOST === 'figma' ? 'figma' : 'web');
-
-/** The page's own copy (S8.2). DRAFT, pending the owner (the PR's "Copy for owner approval" block). */
-export const COMPONENTS_COPY = {
-  densityLabel: 'Density',
-  density: 'Density sets component heights and spacing.',
-  densityLink: 'Set it in Shape › Density',
-  /** The plugin's line under Component sets: where the set is chosen. */
-  choose: 'Choose a set in the preview to build it.',
-} as const;
-
-/** The Button option writes, by key, each through `state/button-input.ts` (S8.1's table, moved here from `main.ts`). */
-const BUTTON_OPTION_WRITES: Readonly<Record<string, (v: string) => void>> = {
-  buttonIcons: (v) => setButtonIcons(v as ButtonIcons),
-  buttonContentSize: (v) => setButtonContentSize(v as ButtonContentSize),
-  buttonLabelWeight: (v) => setButtonLabelWeight(v as ButtonLabelWeight),
-  buttonTextHover: (v) => setButtonTextHover(v as ButtonTextHover),
-};
-
-/** Something drawn that search can hide and a refusal can mark. */
-type Item = { el: HTMLElement; said: string; key: string; block?: LeverBlock };
-
-/** Mount the Components levers into `hostEl`. Subscriptions are released through `cleanups`. */
-export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void)[], _lend: PageLends): void => {
-  const root = hook(h('div', 'p3-levers-body p3-clevers'), 'components-levers');
+/** Mount the Components list into `hostEl`. Subscriptions are released through `cleanups`. */
+export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void)[], lend: PageLends): void => {
+  const plugin = PRISM3_HOST === 'figma';
+  const root = hook(h('div', 'p3-levers-body p3-cp'), 'components-levers');
+  const list = hook(h('div', 'p3-cp-list'), 'components-list');
+  const bar = plugin ? hook(h('div', 'p3-cp-bar'), 'components-bar') : null;
+  root.append(list);
+  if (bar) root.append(bar);
   hostEl.replaceChildren(root);
-  let lastEdited: string | null = null;
-  let items: Item[] = [];
-  /** The minimum-width slider and its in-place update (Shape's rule): its own edit updates the readout where it is,
-   *  so a drag survives; any other brand change redraws the panel whole. */
-  let dragging: { sync: () => void } | null = null;
-  let sliding = false;
+  /** The block opened under the focused row at the narrow tier, and the subscriptions its controls hold. */
+  let inlineOwn: (() => void)[] = [];
+  const frame = (): HTMLElement | null => hostEl.closest<HTMLElement>('[data-w]');
+  const narrow = (): boolean => frame()?.dataset.w === 'narrow';
 
-  const edit = (key: string, write: () => void): void => {
-    // A derived mode is read-only (Q59), and that is enforced here, at the write, not only by the controls' DOM
-    // `disabled` flag: a scripted `input` still reaches a disabled slider (#2096). Every write on this page passes here.
-    if (isDerived(currentMode)) return;
-    lastEdited = key;
-    write();
-    noteSectionEdit();   // QA-B9: the edit, and only an edit, reveals its preview section
-    rebuild();
+  /** A checkbox in the chrome's pattern (a button with `role="checkbox"`, mixed included), as Build style guides'. */
+  const box = (key: string, state: BoxState, label: string, onToggle: () => void): HTMLButtonElement => {
+    const b = hook(h('button', 'p3-btn p3-btn-page p3-check p3-cp-check'), 'cp-box');
+    b.type = 'button';
+    b.dataset.key = key;
+    b.setAttribute('role', 'checkbox');
+    b.setAttribute('aria-checked', state === 'on' ? 'true' : state === 'mixed' ? 'mixed' : 'false');
+    b.setAttribute('aria-label', label);
+    const bx = h('span', 'p3-check-box');
+    bx.setAttribute('aria-hidden', 'true');
+    bx.append(glyph(state === 'mixed' ? 'dash' : 'check'));
+    b.append(bx);
+    b.onclick = onToggle;
+    return b;
+  };
+  const select = (ids: readonly string[], open?: string): void => {
+    const s = componentsPage();
+    const sel = toggleSets(componentCatalog(), ids, s.sel);
+    // Call 15 A: a family opens when one of its sets is selected.
+    const nextOpen = open && [...sel].some((id) => ids.includes(id)) ? new Set([...s.open, open]) : s.open;
+    setComponentsPage({ sel, open: nextOpen });
   };
 
-  // ── Button ──────────────────────────────────────────────────────────────────────────────────────
-  /** The way to Shape › Density (v6's `densityLink`): the brand's density, and the link. No lever key. */
-  const densityLink = (): Item => {
-    const box = hook(h('div', 'p3-lever'), 'components-density');
-    const head = h('div', 'p3-lever-head');
-    const d = brandDensity();
-    const label = (leverOf('density')?.options ?? []).find((o) => String(o.value) === d)?.label ?? d;
-    const readout = h('span', 'p3-readout', label);
-    head.append(h('span', 'p3-lever-name', COMPONENTS_COPY.densityLabel), readout);
-    const go = hook(h('button', 'p3-btn p3-btn-ghost p3-deplink'), 'components-density-link');
-    go.type = 'button';
-    go.append(h('span', 'p3-btn-label', COMPONENTS_COPY.densityLink), glyph('chevr'));
-    go.onclick = () => setPage(pageOfTab('shape'));
-    const ctl = h('div', 'p3-lever-ctl');
-    ctl.append(subLine(COMPONENTS_COPY.density), go);
-    box.append(head, ctl);
-    return { el: box, said: `${COMPONENTS_COPY.densityLabel} ${label} ${COMPONENTS_COPY.density} ${COMPONENTS_COPY.densityLink}`.toLowerCase(), key: 'densityLink' };
+  /** One set row inside a family, or a set on its own (`single` is its row). */
+  const setRow = (catalog: Catalog, id: string, row: GroupRow, member: boolean): HTMLElement => {
+    const e = entryOf(catalog, id)!;
+    const r = hook(h('div', member ? 'p3-cp-row p3-cp-member' : 'p3-cp-row'), member ? 'cp-member' : 'cp-row');
+    r.dataset.set = id;
+    if (!member) r.dataset.row = row.key;
+    if (!e.buildable) r.dataset.off = 'true';
+    const label = member ? e.name : row.label;
+    if (plugin && e.buildable) r.append(box(`set=${id}`, componentsPage().sel.has(id) ? 'on' : 'off', GROUPS_COPY.selectSet(label), () => select([id], row.family ? row.key : undefined)));
+    else if (plugin) r.append(h('span', 'p3-cp-nobox'));
+    r.append(h('span', 'p3-cp-fold-space'));
+    r.append(nameButton(row, label, member));
+    const meta = hook(h('span', 'p3-cp-meta'), 'cp-meta');
+    if (!e.buildable) meta.append(hook(h('span', 'p3-cp-reason', SETS_COPY.cannot(e.reason ? e.reason.replace(/^\S+:\s*/, '') : SETS_COPY.noProjection)), 'cp-reason'));
+    else if (e.members !== null) {
+      meta.append(narrow() ? fmt(e.members) : GROUPS_COPY.members(e.members, e.unit));
+      if (!member && row.page && !narrow()) meta.append(' ', hook(h('span', 'p3-cp-where', GROUPS_COPY.page(row.page)), 'cp-page'));
+      const last = plugin ? lend.sets.lastOf(id) : undefined;
+      if (last) meta.append(' ', hook(h('span', 'p3-cp-last', last === 'ok' ? SETS_COPY.built : last === 'issues' ? SETS_COPY.problems : SETS_COPY.failed), 'cp-last'));
+    }
+    r.append(meta);
+    return r;
   };
-  const chips = (key: string): Item => {
-    const L = leverOf(key);
-    const b = leverBlock(key, { group: true });
-    const opts = (L?.options ?? []).map((o) => ({ v: String(o.value), l: o.label }));
-    const role = `${key.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}-choice`;
-    const c = choice(L?.label ?? key, role, opts, (v) => edit(key, () => BUTTON_OPTION_WRITES[key](v)));
-    c.set(String(getPath(brandState, key) ?? L?.default ?? ''));
-    b.ctl.append(c.el);
-    return { el: b.el, said: `${b.said} ${opts.map((o) => o.l).join(' ')}`.toLowerCase(), key, block: b };
-  };
-  const minWidth = (): Item => {
-    const key = 'buttonMinWidthMultiplier';
-    const L = leverOf(key)!;
-    const b = leverBlock(key, { forId: 'p3-button-min-width-multiplier' });
-    const s = slider(key, 'button-min-width-slider', L.label, (v) => {
-      sliding = true;
-      try { edit(key, () => setButtonMinWidth(v)); } finally { sliding = false; }
-    });
-    const sync = (): void => {
-      const v = Number(getPath(brandState, key) ?? L.default);
-      s.set(v);
-      b.setReadout(sliderReadout(L, v));
-      b.setRefused(!!lastError && lastEdited === key);
+  /** The name: a button that focuses the row's family in the preview (focus is not selection). */
+  const nameButton = (row: GroupRow, label: string, member: boolean): HTMLButtonElement => {
+    const b = hook(h('button', 'p3-btn p3-btn-ghost p3-cp-name'), 'cp-name');
+    b.type = 'button';
+    b.dataset.key = `name=${row.key}=${label}`;
+    // The row in focus is marked on its own name; a set inside it focuses the same family but is not the row.
+    if (!member && componentsPage().focus === row.key) b.setAttribute('aria-current', 'true');
+    b.append(h('span', 'p3-btn-label', label));
+    b.onclick = () => {
+      const s = componentsPage();
+      // Call 15 A: a family opens when it is focused.
+      setComponentsPage({ focus: row.key, open: row.family ? new Set([...s.open, row.key]) : s.open });
     };
-    sync();
-    b.ctl.append(s.el);
-    dragging = { sync };
-    return { el: b.el, said: b.said, key, block: b };
+    return b;
   };
 
-  // ── Component sets ──────────────────────────────────────────────────────────────────────────────
-  const sets = (): Item => {
-    const el = hook(h('div', 'p3-lever'), 'components-sets');
-    el.append(host() === 'figma'
-      ? hook(stateLine(COMPONENTS_COPY.choose), 'components-sets-hint')
-      : hook(stateLine(SETS_COPY.web), 'components-sets-web'));
-    return { el, said: `${PAGE.sections[1].title} ${SETS_COPY.web} ${COMPONENTS_COPY.choose}`.toLowerCase(), key: 'sets' };
+  const familyRow = (catalog: Catalog, row: GroupRow): HTMLElement => {
+    const s = componentsPage();
+    const open = s.open.has(row.key);
+    const r = hook(h('div', 'p3-cp-row p3-cp-family'), 'cp-row');
+    r.dataset.row = row.key;
+    if (plugin) r.append(box(`row=${row.key}`, boxOfSets(catalog, row.ids, s.sel), GROUPS_COPY.selectAllOf(row.label), () => select(row.ids, row.key)));
+    const fold = hook(h('button', 'p3-btn p3-btn-ghost p3-btn-icon p3-cp-fold'), 'cp-fold');
+    fold.type = 'button';
+    fold.dataset.key = `fold=${row.key}`;
+    fold.setAttribute('aria-expanded', String(open));
+    fold.setAttribute('aria-label', open ? GROUPS_COPY.close(row.label) : GROUPS_COPY.open(row.label));
+    fold.append(glyph('chevr'));
+    fold.onclick = () => {
+      const o = new Set(componentsPage().open);
+      if (o.has(row.key)) o.delete(row.key); else o.add(row.key);
+      setComponentsPage({ open: o });
+    };
+    r.append(fold, nameButton(row, row.label, false));
+    const c = costOf(catalog, row.ids);
+    const meta = hook(h('span', 'p3-cp-meta'), 'cp-meta');
+    meta.append(narrow() ? GROUPS_COPY.sets(row.ids.length) : `${GROUPS_COPY.sets(row.ids.length)} · ${fmt(c.variants + c.components)}`);
+    if (row.page && !narrow()) meta.append(' ', hook(h('span', 'p3-cp-where', GROUPS_COPY.page(row.page)), 'cp-page'));
+    r.append(meta);
+    return r;
   };
 
-  // ── the sections ────────────────────────────────────────────────────────────────────────────────
-  const sectionShell = (s: Section, i: number): HTMLElement => {
-    const el = hook(h('section', 'p3-lsec'), 'lever-section');
-    el.id = `p3-lsec-components-${i}`;
-    const head = h('div', 'p3-lsec-head');
-    const t = h('h2', 'p3-lsec-title', s.title);
-    t.id = `${el.id}-t`;
-    // No name, so not a landmark: only Inspect and Activity carry landmark names (Q197, #2487).
+  const sectionEl = (catalog: Catalog, sec: GroupSection, rows: readonly GroupRow[]): HTMLElement => {
+    const el = hook(h('section', 'p3-lsec p3-cp-sec'), 'cp-section');
+    el.dataset.kind = sec.kind;
+    const head = hook(h('div', 'p3-cp-sec-head'), 'cp-section-head');
+    const ids = sec.rows.flatMap((r) => r.ids);
+    if (plugin) head.append(box(`sec=${sec.kind}`, boxOfSets(catalog, ids, componentsPage().sel), GROUPS_COPY.selectAll(sec.title), () => select(ids)));
+    // The count sits inside the title (TY2 A): at 380 it wraps under the name inside the heading, so the space after the
+    // section title stays the level's space-300 rather than the gap to a wrapped count.
+    const t = hook(h('h2', 'p3-lsec-title p3-cp-title'), 'cp-section-title');
+    t.dataset.name = sec.title;
+    t.append(sec.title, ' ', hook(h('span', 'p3-cp-count', GROUPS_COPY.sectionCount(sec.kind, sec.rows.length, ids.length)), 'cp-section-count'));
     head.append(t);
-    if (s.desc) head.append(h('p', 'p3-lsec-desc', s.desc));
+    if (plugin && sec.kind === 'subcomponents') {
+      // Call 10 A: Subcomponents' own action, which runs at once and leaves the selection alone.
+      const all = buildableOf(catalog, ids);
+      const b = hook(h('button', 'p3-btn p3-btn-secondary p3-cp-buildall'), 'cp-build-all');
+      b.type = 'button';
+      b.dataset.key = 'run-all';
+      // A build that is out, any build, makes it busy (owner decision #4 on #1956): focusable, aria-busy, its click
+      // refused by the run itself (`runSets`). Its busy label names its place while its own run is out.
+      const r = lend.sets.current();
+      const at = r?.kind === 'subcomponents' ? positionOf(r) : { at: 1, of: all.length };
+      b.append(pendingLabel(GROUPS_COPY.buildAll(all.length), GROUPS_COPY.buildingAll(at.at, at.of)));
+      b.disabled = all.length === 0;
+      setBusy(b, lend.sets.busy());
+      b.onclick = () => { if (!lend.sets.busy()) lend.sets.run('subcomponents', all); };
+      head.append(b);
+    }
     el.append(head);
+    const ul = h('ul', 'p3-cp-rows');
+    const s = componentsPage();
+    for (const row of rows) {
+      const li = hook(h('li', 'p3-cp-li'), 'cp-item');
+      li.append(row.family ? familyRow(catalog, row) : setRow(catalog, row.ids[0], row, false));
+      if (row.family && s.open.has(row.key)) {
+        const sub = h('ul', 'p3-cp-sub');
+        sub.setAttribute('role', 'group');
+        sub.setAttribute('aria-label', row.label);
+        for (const id of row.ids) { const m = h('li'); m.append(setRow(catalog, id, row, true)); sub.append(m); }
+        li.append(sub);
+      }
+      if (narrow() && focusedRow(catalog, s.focus)?.key === row.key && s.focus === row.key) {
+        const inl = h('div', 'p3-cp-inline');
+        inl.append(familyDetail(row, { catalog, inline: true, plugin, lend, cleanups: inlineOwn }));
+        li.append(inl);
+      }
+      ul.append(li);
+    }
+    el.append(ul);
     return el;
   };
-  /** Each row the page data places, drawn by its builder: a lever key's, or a keyless row's control. A key or a
-   *  control with no builder draws nothing, and `test:chrome`'s rendered coverage then fails it by name. */
-  const BUILDERS: Record<string, () => Item> = {
-    densityLink, sets,
-    buttonIcons: () => chips('buttonIcons'), buttonContentSize: () => chips('buttonContentSize'), buttonLabelWeight: () => chips('buttonLabelWeight'),
-    buttonTextHover: () => chips('buttonTextHover'),
-    buttonMinWidthMultiplier: minWidth,
-  };
-  const section = (s: Section, i: number): { el: HTMLElement; items: Item[] } => {
-    const el = sectionShell(s, i);
-    const out: Item[] = [];
-    for (const r of s.rows) for (const k of r.keys ?? [r.ctl]) { const b = BUILDERS[k]; if (!b) continue; const it = b(); el.append(it.el); out.push(it); }
-    return { el, items: out };
-  };
 
-  const render = (): void => {
-    // What had focus, found again after the redraw (`keepFocus`, #2487 B5).
-    const { key: focusKey, again } = keepFocus(root);
+  const paintList = (): void => {
+    const had = document.activeElement as HTMLElement | null;
+    const key = had && root.contains(had) ? had.dataset.key ?? null : null;
     const scrollTop = hostEl.scrollTop;
-    items = [];
-    dragging = null;
-    const parts: HTMLElement[] = [h('p', 'p3-intro', COMPONENTS_INTRO(componentCatalog().length))];
-    PAGE.sections.forEach((s, i) => { const x = section(s, i); parts.push(x.el); items.push(...x.items); });
-    root.replaceChildren(...parts);
-    for (const it of items) it.block?.setRefused(!!lastError && !!lastEdited && it.key === lastEdited);
-    filter();
-    if (focusKey) {
-      again()?.focus({ preventScroll: true });
+    for (const f of inlineOwn) f();
+    inlineOwn = [];
+    const catalog = componentCatalog();
+    const q = searchQuery.trim();
+    const parts: HTMLElement[] = [];
+    if (!catalog.length) {
+      parts.push(hook(h('p', 'p3-sub p3-cp-empty', GROUPS_COPY.noCatalog), 'components-no-catalog'));
+    } else {
+      parts.push(hook(h('p', 'p3-intro', GROUPS_COPY.intro(catalog.length)), 'components-intro'));
+      let hits = 0;
+      for (const sec of groupsOf(catalog)) {
+        const rows = sec.rows.filter((r) => rowMatches(catalog, r, q));
+        hits += rows.length;
+        if (rows.length) parts.push(sectionEl(catalog, sec, rows));
+      }
+      if (q && !hits) parts.push(hook(h('p', 'p3-sub p3-cp-empty', GROUPS_COPY.noMatch), 'components-no-match'));
+      setSearchHits(q ? hits : null);
+      // The web's one line, a hint line as it always was (the Studio's `stateLine`).
+      if (!plugin) parts.push(hook(stateLine(SETS_COPY.web), 'components-web-line'));
     }
+    list.replaceChildren(...parts);
+    if (key) root.querySelector<HTMLElement>(`[data-key="${CSS.escape(key)}"]`)?.focus({ preventScroll: true });
     if (hostEl.scrollTop !== scrollTop) hostEl.scrollTop = scrollTop;
   };
 
-  /** Search (Q3): hide what does not match, report the count. */
-  const filter = (): void => {
-    const q = searchQuery.trim().toLowerCase();
-    for (const it of items) it.el.hidden = !!q && !it.said.includes(q);
-    for (const s of root.querySelectorAll<HTMLElement>('.p3-lsec')) s.hidden = !!q && !s.querySelector('.p3-lever:not([hidden])');
-    for (const n of root.querySelectorAll<HTMLElement>('.p3-intro')) n.hidden = !!q;
-    setSearchHits(q ? items.filter((it) => !it.el.hidden).length : null);
+  /** The action bar (idea 9 A): before, during and after a run. Drawn in place, so a verdict never takes the focus. */
+  const paintBar = (): void => {
+    if (!bar) return;
+    const had = document.activeElement as HTMLElement | null;
+    const key = had && bar.contains(had) ? had.dataset.key ?? null : null;
+    const catalog = componentCatalog();
+    const sel = [...componentsPage().sel].filter((id) => entryOf(catalog, id)?.buildable);
+    const run = lend.sets.current();
+    const last = lend.sets.last();
+    const rowEl = h('div', 'p3-cp-bar-row');
+    const lines: HTMLElement[] = [];
+    const btn = hook(h('button', 'p3-btn p3-btn-primary p3-cp-build'), 'components-build');
+    btn.type = 'button';
+    btn.dataset.key = 'run-sets';
+    // One control in every state (the engine Button's `isPending`, #1957): "Build N sets", and while a run of the
+    // selection is out "Building 2 of 4…" in the same cell, so it keeps its width; busy for any build that is out.
+    const mine = run?.kind === 'selection' ? run : null;
+    const at = mine ? positionOf(mine) : { at: 1, of: sel.length };
+    btn.append(pendingLabel(RUN_COPY.runLabel(mine ? mine.ids.length : sel.length), RUN_COPY.building(at.at, at.of)));
+    btn.disabled = !mine && sel.length === 0;
+    setBusy(btn, lend.sets.busy());
+    btn.onclick = () => { if (!lend.sets.busy() && sel.length) lend.sets.run('selection', sel); };
+    rowEl.append(btn);
+    if (mine) {
+      const stop = hook(h('button', 'p3-btn p3-btn-secondary p3-cp-stop'), 'components-stop');
+      stop.type = 'button';
+      stop.dataset.key = 'stop';
+      stop.append(pendingLabel(RUN_COPY.stop, RUN_COPY.stopping));
+      setBusy(stop, mine.stopping);
+      stop.onclick = () => { if (!mine.stopping) lend.sets.stop(); };
+      rowEl.append(stop);
+      const cur = currentOf(mine);
+      const e = cur ? entryOf(catalog, cur) : undefined;
+      if (e && e.members !== null) lines.push(hook(h('p', 'p3-sub p3-cp-sum', RUN_COPY.current(e.name, GROUPS_COPY.members(e.members, e.unit))), 'components-run-line'));
+    } else {
+      const sum = hook(h('span', 'p3-cp-sum'), 'components-summary');
+      if (lend.sets.agentBusy()) sum.textContent = RUN_COPY.agent;
+      else if (last && last.run.kind === 'selection' && !run) {
+        sum.append(h('b', undefined, last.verdict.headline), ` ${RUN_COPY.justNow}`);
+      } else if (sel.length) {
+        const c = costOf(catalog, sel);
+        sum.append(h('b', undefined, GROUPS_COPY.sets(c.sets)));
+        if (c.variants) sum.append(` · ${GROUPS_COPY.members(c.variants, 'variants')}`);
+        if (c.components) sum.append(` · ${GROUPS_COPY.members(c.components, 'components')}`);
+      } else sum.textContent = RUN_COPY.nothing;
+      rowEl.append(sum);
+      if (last && !run && !lend.sets.agentBusy()) {
+        // Idea 13 A: the run's summary, under the bar, and the way to its one Activity entry.
+        if (last.run.ids.length > 1) {
+          const ul = hook(h('ul', 'p3-cp-lines'), 'components-run-summary');
+          for (const l of last.verdict.lines) ul.append(h('li', 'p3-sub', l));
+          lines.push(ul);
+        }
+        const go = hook(h('button', 'p3-btn p3-btn-ghost p3-cp-show'), 'components-show-activity');
+        go.type = 'button';
+        go.dataset.key = 'show';
+        go.append(h('span', 'p3-btn-label', RUN_COPY.showActivity), glyph('chevr'));
+        go.onclick = () => lend.sets.showResult();
+        lines.push(go);
+      }
+      const also = sel.length ? alsoBuilds(catalog, sel) : [];
+      if (also.length) lines.push(hook(h('p', 'p3-sub', RUN_COPY.also(also)), 'components-also-builds'));
+    }
+    lines.push(hook(h('p', 'p3-sub', RUN_COPY.order), 'components-order-hint'));
+    bar.replaceChildren(rowEl, ...lines);
+    if (key) bar.querySelector<HTMLElement>(`[data-key="${CSS.escape(key)}"]`)?.focus({ preventScroll: true });
   };
 
-  cleanups.push(subscribe('brand', () => { if (sliding && dragging) dragging.sync(); else render(); }));
-  cleanups.push(subscribe('mode', render));
-  cleanups.push(subscribe('search', filter));
-  cleanups.push(() => { if (searchQuery.trim()) setSearchHits(null); });
-  render();
+  const paint = (): void => { paintList(); paintBar(); };
+  // The frame's width tier flips without a remount: the list redraws for the narrow rows and the inline block.
+  let tier = narrow();
+  const mo = new MutationObserver(() => { const n = narrow(); if (n !== tier) { tier = n; paintList(); } });
+  const f = frame();
+  if (f) mo.observe(f, { attributes: true, attributeFilter: ['data-w'] });
+  cleanups.push(
+    () => mo.disconnect(),
+    watchComponentsPage(paint),
+    subscribe('host', paint), subscribe('host:components', paint), subscribe('search', paintList),
+    subscribe('brand', () => { if (narrow()) paintList(); }), subscribe('mode', () => { if (narrow()) paintList(); }),
+    () => { for (const fn of inlineOwn) fn(); },
+    () => { if (searchQuery.trim()) setSearchHits(null); },
+  );
+  paint();
 };
