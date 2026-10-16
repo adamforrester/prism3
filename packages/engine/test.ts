@@ -3860,6 +3860,9 @@ for (const b of brands) {
       'password-field': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       accordion: ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       link: ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
+      // #2666: the label-to-separator gap inside an item, and the same gap between items.
+      'breadcrumb-item': ['size.small.gap', 'size.medium.gap'],
+      breadcrumbs: ['size.small.gap', 'size.medium.gap'],
       tag: ['small', 'medium', 'large'].flatMap((v) => [
         `size.${v}.select.gap+size.${v}.select.label-inset`, `size.${v}.dismissible.gap+size.${v}.dismissible.label-inset`, `size.${v}.check-gap`]),
     };
