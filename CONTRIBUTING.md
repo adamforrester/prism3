@@ -310,6 +310,19 @@ npx tsx packages/engine/emit-agent-reference.ts --check
                                                     # CLI list is checked both ways against every file
                                                     # that reads process.argv. Regenerate with the same
                                                     # command without --check, then review the diff.
+npx tsx packages/engine/emit-figma-conventions.ts --check
+                                                    # docs/public/reference/figma-conventions.json
+                                                    # matches the code (#2647): the page taxonomy, each
+                                                    # component set's name and properties, the icon
+                                                    # namespace, native slots, variable collections and
+                                                    # modes, and the canvas furniture, regenerated in
+                                                    # memory and compared, reported per page, component,
+                                                    # glyph, slot, collection and template. A promised
+                                                    # section that comes out empty fails by name. Same
+                                                    # posture as the agent reference: served docs, not
+                                                    # emission. regen.ts also writes it, in its own list
+                                                    # (REFERENCE_ARTIFACTS), so the habitual regenerate
+                                                    # moves it.
 npx tsx packages/engine/lint-skills.ts              # shipped skills still make true claims
 npx tsx packages/engine/lint-doc-gates.ts           # this checklist stays in sync with ci.yml (#613)
                                                     # and names no RETIRED gate: a deleted gate's line
@@ -1213,6 +1226,23 @@ npx tsx packages/engine/lint-component-docs.ts      # every registered component
                                                     # nor `continue-on-error` is not seen, and the run
                                                     # prints the whole census so a count that drops
                                                     # without a deletion in the diff is the tell
+npx tsx packages/engine/lint-ecosystem.ts           # the ecosystem diagram's data matches the code
+                                                    # (#2637, Q304): docs/public/ecosystem/ecosystem.json
+                                                    # is the SUBJECT, the code the ORACLE. Every source
+                                                    # path and docs link is git-tracked; every edge joins
+                                                    # known nodes, is never more built than either end,
+                                                    # and names a known connection; every trace step is
+                                                    # an edge; every check sits on a node. LANES: MCP
+                                                    # tools (toolDefs) only in agent lanes, plugin
+                                                    # messages (UiToMain) only in figma lanes and never
+                                                    # with a web claim; an agent command that is also a
+                                                    # UiToMain type needs the figma lane, one that is not
+                                                    # must not have it; a web-only or figma-only UI
+                                                    # feature cites a PRISM3_HOST branch. The defs, MCP
+                                                    # tools, agent commands, bridge tools and skills it
+                                                    # lists are exactly the code's, both ways, each with
+                                                    # a floor; the page fetches the data and writes no
+                                                    # feature label itself; its text tokens clear 4.5:1.
 npx tsx packages/engine/lint-release-notes.ts       # every release's notes in docs/public/releases/
                                                     # list exactly the changes git shows between its
                                                     # fold and the fold before (#2650), classified by

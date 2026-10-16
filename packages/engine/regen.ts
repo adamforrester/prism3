@@ -28,25 +28,50 @@ const outDir = resolve(here, 'out');
 const schemaDir = resolve(here, 'schema');
 const repoRoot = resolve(here, '..', '..');
 
-// The eight emitters, in dependency order: `visualize` reads the `*.tokens.json` that `emit-dtcg`
-// (nb/prism3/aurora/harbor) and `cli` (wendys) write, so it has to run last among those. wendys goes
-// through `cli.ts` rather than `emit-dtcg.ts` because it is a STANDARD-dialect brief, not an
-// engine-native one — that split is precisely why it kept getting missed.
+// The emitters, in dependency order. wendys goes through `cli.ts` rather than `emit-dtcg.ts` because it
+// is a STANDARD-dialect brief, not an engine-native one — that split is precisely why it kept getting missed.
+// `visualize.ts` (`out/tokens.html`) is NOT a step: the page is built on demand and never committed (Q319.6,
+// #2583). See `ON_DEMAND_OUT` below.
 const STEPS: Array<{ label: string; args: string[] }> = [
   { label: 'emit-dtcg      (nb · prism3 · aurora · harbor)', args: ['packages/engine/emit-dtcg.ts'] },
   { label: 'nb-regression  (regression report)', args: ['packages/engine/nb-regression.ts'] },
   { label: 'cli            (wendys + fidelity)', args: ['packages/engine/cli.ts', 'packages/engine/examples/wendys.design.md', '--out', 'packages/engine/out', '--fidelity'] },
   { label: 'emit-figma     (out/figma/**)', args: ['packages/engine/emit-figma.ts'] },
-  { label: 'visualize      (tokens.html)', args: ['packages/engine/visualize.ts'] },
   { label: 'emit-levers    (lever-manifest)', args: ['packages/engine/emit-levers.ts'] },
   { label: 'emit-preview   (preview-spec)', args: ['packages/engine/emit-preview.ts'] },
   { label: 'emit-brandinput(example-brands)', args: ['packages/engine/emit-brandinput.ts'] },
   { label: 'emit-icons     (icon-glyphs.ts)', args: ['packages/engine/emit-icons.ts'] },
   // #1701 — the component docs projection. Reads the def registry only, so it has no ordering dependency.
   { label: 'emit-component-docs (out/components/** + component-maintainer)', args: ['packages/engine/emit-component-docs.ts'] },
+  // #2647 — the Figma conventions file. Reads the def registry, the plugin's taxonomy and the Figma emitter in memory, so
+  // it has no ordering dependency either.
+  { label: 'emit-figma-conventions (docs/public/reference/figma-conventions.json)', args: ['packages/engine/emit-figma-conventions.ts'] },
   // #2651 — the analysis reports. Last, because the token report reads `out/prism3.tokens.json`, which emit-dtcg writes.
   { label: 'emit-analysis-reports (docs/public/reports/**)', args: ['packages/engine/emit-analysis-reports.ts'] },
 ];
+
+// Files under `out/` that are BUILT ON DEMAND, never committed and never written by `regen` (Q319.6, #2583).
+// `tokens.html` is a 1.8 MB preview page for inspecting the corpus (`npm run tokens-html`, or
+// `npx tsx packages/engine/visualize.ts`); it is gitignored. A developer's local copy sits in `out/` beside
+// the committed artifacts, so both `out/` walks here — and `lint-payload-manifest.ts`'s — skip these names:
+// otherwise a local build would read as one artifact more than CI's count. Skipping a name hides it from the
+// comparison, so `check()` separately refuses a regen that WRITES one: re-adding `visualize` to `STEPS` fails
+// by name rather than shrinking the universe silently.
+export const ON_DEMAND_OUT = ['tokens.html'];
+
+// The prose gates (`lint-us-english.ts`, `lint-voice.ts`) still scan the on-demand page: skipping it in their
+// `out/` walk keeps a local copy from changing their result, and this renders a fresh one into a temp dir for
+// them instead, so CI (no copy) and a laptop (stale or fresh copy) scan the same bytes. Returns the rendered
+// files, or an error the caller reports as blindness; the temp dir is removed when the process exits.
+export const renderOnDemand = (): { files: string[] } | { error: string } => {
+  const dir = mkdtempSync(join(tmpdir(), 'prism3-on-demand-'));
+  process.on('exit', () => rmSync(dir, { recursive: true, force: true }));
+  const r = spawnSync('npx', ['tsx', join(here, 'visualize.ts'), '--out', dir], { cwd: repoRoot, encoding: 'utf8' });
+  if (r.status !== 0) return { error: `visualize.ts --out exited ${r.status}: ${(r.stderr || r.stdout || '').trim().split('\n').slice(-3).join(' / ')}` };
+  const missing = ON_DEMAND_OUT.filter((f) => !existsSync(join(dir, f)));
+  if (missing.length) return { error: `visualize.ts --out wrote no ${missing.join(', ')}` };
+  return { files: ON_DEMAND_OUT.map((f) => join(dir, f)) };
+};
 
 // Committed generated artifacts that live at the ENGINE ROOT rather than under `out/`. Both were
 // outside the comparison until now: `modes-report.md` was regenerated (emit-dtcg writes it) but never
@@ -100,14 +125,22 @@ export const REPORT_ARTIFACTS = [
   'icon-usage.md', 'icon-usage.json',
 ];
 
+// The FIGMA CONVENTIONS FILE (#2647): served docs beside the agent reference, generated from the code. In regen so
+// the documented path (regen, then commit) moves it when a def, page or property moves, which every component PR
+// does. A list of its own for the reason the reports have one: it carries no engine version, so it must stay out of
+// the lists `lint-emission-version.ts` reads as "owes a bump". `emit-figma-conventions.ts --check` remains the gate
+// that names WHICH convention moved; this list only makes the regenerate part of the habitual command.
+export const REFERENCE_DIR = 'docs/public/reference';
+export const REFERENCE_ARTIFACTS = ['figma-conventions.json'];
+
 // Every file under `out/`, repo-relative, sorted — the comparison universe. Walks rather than
 // globbing so `out/figma/<brand>/*.json` is covered without naming each brand.
-const walk = (dir: string): string[] => {
+const walk = (dir: string, root = dir): string[] => {
   const found: string[] = [];
   for (const name of readdirSync(dir)) {
     const p = join(dir, name);
-    if (statSync(p).isDirectory()) found.push(...walk(p));
-    else found.push(p);
+    if (statSync(p).isDirectory()) found.push(...walk(p, root));
+    else if (!ON_DEMAND_OUT.includes(relative(root, p))) found.push(p);
   }
   return found.sort();
 };
@@ -139,6 +172,8 @@ const check = (): void => {
   const engineSnap = join(tmp, 'engine');
   const reportSnap = join(tmp, 'reports');
   const reportDir = join(repoRoot, REPORTS_DIR);
+  const referenceSnap = join(tmp, 'reference');
+  const referenceDir = join(repoRoot, REFERENCE_DIR);
   try {
     cpSync(outDir, outSnap, { recursive: true, preserveTimestamps: true });
     mkdirSync(schemaSnap, { recursive: true });
@@ -149,6 +184,24 @@ const check = (): void => {
     mkdirSync(reportSnap, { recursive: true });
     const reportsBefore = REPORT_ARTIFACTS.filter((f) => existsSync(join(reportDir, f)));
     for (const f of reportsBefore) cpSync(join(reportDir, f), join(reportSnap, f), { preserveTimestamps: true });
+    mkdirSync(referenceSnap, { recursive: true });
+    const referenceBefore = REFERENCE_ARTIFACTS.filter((f) => existsSync(join(referenceDir, f)));
+    for (const f of referenceBefore) cpSync(join(referenceDir, f), join(referenceSnap, f), { preserveTimestamps: true });
+    // An on-demand file's mtime, or null when there is none — compared after regenerate() to catch a step that writes it.
+    const onDemandStamp = (f: string): number | null => (existsSync(join(outDir, f)) ? statSync(join(outDir, f)).mtimeMs : null);
+    const onDemandBefore = ON_DEMAND_OUT.map(onDemandStamp);
+
+    // An on-demand file must not be tracked by git either (review on #2685). Both walks skip the name, so a copy
+    // committed by `git add -f`, a lost .gitignore line or a conflict resolved toward an older branch would otherwise
+    // go stale unseen. Read from the index, not the disk: a local, ignored copy is expected. A git that cannot answer
+    // fails closed, never passes.
+    const lsFiles = spawnSync('git', ['ls-files', '--', ...ON_DEMAND_OUT.map((f) => `packages/engine/out/${f}`)], { cwd: repoRoot, encoding: 'utf8' });
+    if (lsFiles.status !== 0) {
+      console.error(`\n✗ cannot tell whether an on-demand file is committed — git ls-files exited ${lsFiles.status}: ${(lsFiles.stderr || '').trim()}`);
+      rmSync(tmp, { recursive: true, force: true });
+      process.exit(1);
+    }
+    const onDemandTracked = lsFiles.stdout.split('\n').map((l) => l.trim()).filter(Boolean);
 
     regenerate();
 
@@ -165,6 +218,8 @@ const check = (): void => {
       if (!readFileSync(was).equals(readFileSync(p))) drifted.push(`packages/engine/out/${rel}`);
     }
     for (const rel of before.keys()) if (!after.has(rel)) removed.push(`packages/engine/out/${rel}`);
+    // out/ — the on-demand files: regen must not write them at all (Q319.6).
+    const onDemandWritten = ON_DEMAND_OUT.filter((f, i) => onDemandStamp(f) !== onDemandBefore[i]).map((f) => `packages/engine/out/${f}`);
 
     // schema/ — only the named emitted files; the hand-authored contracts alongside them are not ours.
     for (const f of [...SCHEMA_ARTIFACTS, ...MAINTAINER_ARTIFACTS]) {
@@ -179,6 +234,11 @@ const check = (): void => {
       if (!reportsBefore.includes(f)) { added.push(`${REPORTS_DIR}/${f}`); continue; }
       if (!readFileSync(join(reportSnap, f)).equals(readFileSync(join(reportDir, f)))) drifted.push(`${REPORTS_DIR}/${f}`);
     }
+    // docs/public/reference — the Figma conventions file (#2647); the agent reference beside it has its own gate.
+    for (const f of REFERENCE_ARTIFACTS) {
+      if (!referenceBefore.includes(f)) { added.push(`${REFERENCE_DIR}/${f}`); continue; }
+      if (!readFileSync(join(referenceSnap, f)).equals(readFileSync(join(referenceDir, f)))) drifted.push(`${REFERENCE_DIR}/${f}`);
+    }
 
     // Restore the committed state either way — the gate reports, it never rewrites. Every copy, the
     // snapshot and the restore, keeps its timestamps (#2067): without that, a clean `--check` left each
@@ -192,9 +252,13 @@ const check = (): void => {
       if (reportsBefore.includes(f)) cpSync(join(reportSnap, f), join(reportDir, f), { preserveTimestamps: true });
       else rmSync(join(reportDir, f), { force: true });
     }
+    for (const f of REFERENCE_ARTIFACTS) {
+      if (referenceBefore.includes(f)) cpSync(join(referenceSnap, f), join(referenceDir, f), { preserveTimestamps: true });
+      else rmSync(join(referenceDir, f), { force: true });
+    }
 
-    const checked = after.size + SCHEMA_ARTIFACTS.length + MAINTAINER_ARTIFACTS.length + ENGINE_ARTIFACTS.length + REPORT_ARTIFACTS.length;
-    if (!drifted.length && !added.length && !removed.length) {
+    const checked = after.size + SCHEMA_ARTIFACTS.length + MAINTAINER_ARTIFACTS.length + ENGINE_ARTIFACTS.length + REPORT_ARTIFACTS.length + REFERENCE_ARTIFACTS.length;
+    if (!drifted.length && !added.length && !removed.length && !onDemandWritten.length && !onDemandTracked.length) {
       console.log(`\n✓ in sync — ${checked} committed artifacts byte-match what the engine emits.`);
       return;
     }
@@ -202,7 +266,11 @@ const check = (): void => {
     for (const f of drifted) console.error(`    changed  ${f}`);
     for (const f of added) console.error(`    missing  ${f}  (engine emits it; not committed)`);
     for (const f of removed) console.error(`    stale    ${f}  (committed; engine no longer emits it)`);
-    console.error('\n  Fix: npx tsx packages/engine/regen.ts   then commit the result.');
+    for (const f of onDemandWritten) console.error(`    on-demand ${f}  (regen wrote it; it is built on demand and never committed — ON_DEMAND_OUT, Q319.6)`);
+    for (const f of onDemandTracked) console.error(`    on-demand ${f}  (git tracks it; it is built on demand and never committed — ON_DEMAND_OUT, Q319.6)`);
+    if (drifted.length || added.length || removed.length) console.error('\n  Fix: npx tsx packages/engine/regen.ts   then commit the result.');
+    if (onDemandWritten.length) console.error('\n  Fix: take the step that writes it out of STEPS; an on-demand file is built by its own command, never by regen.');
+    if (onDemandTracked.length) console.error('\n  Fix: git rm --cached <file>, and keep its line in .gitignore.');
     process.exit(1);
   } finally {
     rmSync(tmp, { recursive: true, force: true });

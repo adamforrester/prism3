@@ -93,7 +93,7 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { ENGINE_ARTIFACTS, MAINTAINER_ARTIFACTS, SCHEMA_ARTIFACTS } from './regen';
+import { ENGINE_ARTIFACTS, MAINTAINER_ARTIFACTS, ON_DEMAND_OUT, SCHEMA_ARTIFACTS } from './regen';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const outDir = resolve(here, 'out');
@@ -108,13 +108,14 @@ const note = (m: string): void => { fail.push(m); };
 // ---- ACTUAL: what is on disk -------------------------------------------------------------------
 
 /** Every file under `out/`, engine-relative, sorted. Walks so `figma/<brand>/*` is covered without
- *  naming a brand — the same shape `regen.ts` uses to build its comparison universe. */
+ *  naming a brand — the same shape `regen.ts` uses to build its comparison universe, and it skips the same
+ *  `ON_DEMAND_OUT` names (Q319.6): a locally built `tokens.html` is not a committed artifact, so it has no class. */
 const walk = (dir: string, prefix: string): string[] => {
   const found: string[] = [];
   for (const name of readdirSync(dir)) {
     const p = join(dir, name);
     if (statSync(p).isDirectory()) found.push(...walk(p, `${prefix}${name}/`));
-    else found.push(`${prefix}${name}`);
+    else if (!ON_DEMAND_OUT.includes(`${prefix}${name}`.slice('out/'.length))) found.push(`${prefix}${name}`);
   }
   return found;
 };

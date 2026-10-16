@@ -47,70 +47,46 @@
  * the field renders the validation it is handed; a form library owns timing. No validation engine
  * is baked in.
  */
-import { ComponentDef } from '../component-schema';
+import { ComponentDef, PartDef, PropDef } from '../component-schema';
 
-export const textField: ComponentDef = {
-  id: 'text-field',
-  name: 'TextField',
-  aliases: ['text-input', 'input', 'textbox', 'formfield'],
+/**
+ * THE FIELD FACTORY (#2317, owner decision Q301.8 A) — `makeButton`'s pattern applied to the text field. One
+ * anatomy, one token block, one state model and one projection, authored ONCE here; each single-line field is a
+ * call with its own identity and prose. TextField is the first output and the Password field the second; the
+ * number input (#2606) and the card number field (#2429) are to build on it later. The point is the token block:
+ * a specialization that copied TextField's bindings key for key would drift from it the first time either moved.
+ *
+ * ONE STRUCTURAL SWITCH, `edge`, and only the one the Password field needs (no speculative hooks):
+ *   · `trailing-glyph` — TextField's optional trailing glyph inside the box, beside the value (a clear or reveal
+ *     glyph; its action is code-only).
+ *   · `toggle` — the Password field's Show/Hide button. The box loses its trailing slot, and the label sits in a
+ *     row with a nested Button at its end, outside the box (owner decision Q301.2 B).
+ * Everything else a field says about itself (props, the code-only list, accessibility, docs, the agent fields)
+ * is the caller's, because that is where two fields differ. `test.ts` pins that TextField is byte-identical to
+ * the def it was before the factory, and that the two outputs share the token block exactly.
+ */
+export type FieldSpec = Pick<ComponentDef, 'id' | 'name' | 'summary' | 'description' | 'accessibility' | 'content' | 'docs' | 'ai' | 'composition' | 'motion' | 'notes'> & {
+  aliases: string[];
+  props: PropDef[];
+  /** The field's edge action — see the factory's header. */
+  edge: 'trailing-glyph' | 'toggle';
+  /** The `value` text's Figma default, the copy the filled members show. */
+  valueDefault: string;
+  codeOnly: string[];
+};
+
+export const makeTextField = (spec: FieldSpec): ComponentDef => {
+  const toggle = spec.edge === 'toggle';
+  return {
+  id: spec.id,
+  name: spec.name,
+  aliases: spec.aliases,
   category: 'form',
   status: 'draft',
-  summary: 'Single-line text field: label, input, and helper or validation message.',
-  description:
-    'A single-line control for free-form, non-enumerable text — names, emails, SKUs, short queries. A composed host: label + input + helper/validation message, with the accessibility wiring (id generation, aria-describedby chain, aria-invalid) handled internally. Not multi-line (Textarea), not a known set (Select, or a combobox), not numeric-formatted (a number field), not suggestion-backed (a combobox). The combobox and number field are not built yet.',
+  summary: spec.summary,
+  description: spec.description,
 
-  props: [
-    { name: 'label', type: 'string | node', required: true, description: 'The visible, persistent label (rendered as FieldLabel). Required — a visually-hidden label is the only label-less case, and it still exists in the DOM. Never the placeholder.' },
-    { name: 'value', type: 'string', required: false, description: 'Controlled value; pair with onChange. A controlled value with no onChange is read-only by accident.' },
-    { name: 'defaultValue', type: 'string', required: false, description: 'Uncontrolled initial value — preferred for form-library ergonomics.' },
-    { name: 'onChange', type: 'function', required: false, description: 'Change handler (also onBlur / onFocus).' },
-    { name: 'type', type: "enum: 'text' | 'email' | 'url' | 'tel' | 'search' | 'password'", values: ['text', 'email', 'url', 'tel', 'search', 'password'], default: 'text', required: false, description: 'Attribute-only variants (mobile keyboard + autofill). Not number: numeric input needs a number field (not built yet). search / password are better served by their thin specializations.' },
-    { name: 'placeholder', type: 'string', required: false, description: 'An example only ("name@example.com"); vanishes on input; nothing load-bearing lives here.' },
-    { name: 'helpText', type: 'string | node', required: false, description: 'Persistent guidance (rendered as FieldMessage, default status); wired via aria-describedby. Show the format BEFORE failure.' },
-    // #1623 sign-off (C1/TF-5) — validation is the `validation` + `validationMessage` pair, select's exact
-    // prop names and value set, so one concept has one name across the field family. The Figma `status`
-    // variant axis maps to `validation` value-for-value (the axis keeps field-message's name so the nested
-    // message follows it). Replaces the old `error` message prop. `test.ts` pins the shared contract.
-    { name: 'validation', type: "enum: 'default' | 'error' | 'warning' | 'success'", values: ['default', 'error', 'warning', 'success'], default: 'default', required: false, description: 'The validation state. Each non-default status swaps the input border to its own boundary (border-only — `error` → danger, `warning` → warning, `success` → success) AND sets the nested message to the matching status; `default` is neutral. `error` also sets aria-invalid. The values align with FieldMessage\'s status axis, so this drives the nested message directly.' },
-    { name: 'validationMessage', type: 'string | node', required: false, description: 'The validation text shown at error / warning / success, added to aria-describedby. For error, say what is wrong AND how to fix it (SC 3.3.3), never "Invalid".' },
-    // #1494 — a node-visibility boolean (the #1412 mechanism), mirroring select's `showMessage`. Hides the
-    // composed FieldMessage entirely; default ON (the message is part of the field). Turning it off is for a
-    // field with genuinely nothing to say — an error still sets aria-invalid and the message carries the
-    // reason, so never hides a message the field needs. See `figmaProperties.booleans`.
-    { name: 'showMessage', type: 'boolean', default: true, required: false, description: 'Whether the composed FieldMessage is shown. ON — the default — renders the helper / validation message below the input; turning it off hides the message entirely (a field with no helper or validation text). Never hides a message the field needs.' },
-    { name: 'required', type: 'boolean', default: false, required: false, description: 'Sets required / aria-required, and turns on the FieldLabel\'s required marker.' },
-    { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Native disabled — removed from tab order, not submitted, silent to AT, contrast-exempt. Reserve for fields irrelevant in the current state.' },
-    { name: 'readOnly', type: 'boolean', default: false, required: false, description: 'Distinct from disabled: focusable, selectable and copyable, submitted with the form, and passes contrast. Use for a value the user may read/copy but not edit (a generated key). The component\'s live edge.' },
-    { name: 'autoComplete', type: 'string (WHATWG token)', required: false, description: 'Satisfies SC 1.3.5 Identify Input Purpose — an accessibility obligation, not a convenience.' },
-    { name: 'inputMode', type: "enum: 'text' | 'numeric' | 'decimal' | 'tel' | 'email' | 'url' | 'search'", values: ['text', 'numeric', 'decimal', 'tel', 'email', 'url', 'search'], required: false, description: 'Selects the mobile virtual keyboard.' },
-    // ONE PROP PER SLOT (#1699 decision 3, owner-delegated). `prefix` / `suffix` used to be glyph-or-action
-    // slots that duplicated `leadingIcon` / `trailingIcon`; they are now the TEXT affixes (a currency symbol, a
-    // unit), and the glyphs are the two icon slots below. The alternative (merging them away) is in
-    // `notes.contested`. API only: neither text affix projects to Figma (see `anatomy.codeOnly`).
-    { name: 'prefix', type: 'string', required: false, description: 'A leading TEXT affix inside the field, before the value — a currency symbol or a unit ("$", "€"). Not part of the value and aria-hidden, so the label or helper text carries what it means. Follows the locale\'s placement (a symbol before or after the number). A glyph is `leadingIcon`, not this.' },
-    { name: 'suffix', type: 'string', required: false, description: 'A trailing TEXT affix inside the field, after the value — a unit or a domain ("kg", ".com"). Not part of the value and aria-hidden, so the label or helper text carries what it means. A glyph or a clear / reveal action is `trailingIcon` / `clearable`, not this.' },
-    // #1494 — the Figma-projected presence + swap of the LEADING glyph,
-    // mirroring select's `leadingIcon`. A node-visibility boolean (#1331/#1412) whose glyph the file
-    // nominates: the leadingVisual node is emitted at every member hidden, and the `leading icon` switch flips
-    // it in place, so presence does not multiply the projected set. Signals the field's purpose; validation
-    // never mutates it.
-    { name: 'leadingIcon', type: 'slot', required: false, description: 'An optional leading glyph before the value (a purpose or category mark, such as search), aria-hidden and never the accessible name. Hidden by default; the file nominates the swap target. Signals the field\'s purpose; validation never mutates it.' },
-    // #1494 — the TRAILING affix slot select does not have: the clear-button / password-reveal edge control.
-    // In CODE this is an INTERACTIVE control (its own tab stop + accessible name — see `clearable`
-    // and the a11y block); Figma projects only its GLYPH (a presence boolean + swap on an optional trailing
-    // slot, exactly as `leadingIcon` models the leading glyph). See `anatomy.codeOnly`.
-    { name: 'trailingIcon', type: 'slot', required: false, description: 'An optional trailing glyph at the field\'s trailing edge — a decorative mark (aria-hidden), or the glyph of a clear / reveal action, which in code is a focusable button with its own accessible name. The decorative-vs-interactive split is load-bearing. Hidden by default; the file nominates the swap target.' },
-    { name: 'clearable', type: 'boolean', default: false, required: false, description: 'Adds a labeled Clear button that announces the cleared state and RETURNS FOCUS to the input (the recurring trap is stranding focus).' },
-    // `isPending`, not `loading` — the same concept Button's `isPending` names, spelled the same way
-    // (#843). Button's own prop description already recorded the preference ("Preferred over `loading`")
-    // and this def had not followed it. The PROP rename is free where the STATE rename below is not:
-    // measured, `props` reach no emitted artifact and no Figma property, so nothing downstream carries
-    // this name. Renaming only the state would have left one def spelling one concept two ways.
-    { name: 'isPending', type: 'boolean', default: false, required: false, description: 'Async validation/value — a spinner replaces an adornment without reflow; sets aria-busy; does not block typing unless intended.' },
-    { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'Three tiers that scale the input type with the field (small 14px, medium 16px, large 18px, `type.body.{sm,md,lg}`), the nested label one step below it (12 / 14 / 16), and the padding. Every size keeps the 44px target: small is smaller type and padding, not a smaller target; large is taller. `small` is for fine pointers only: on a coarse pointer (`@media (pointer: coarse)`) the code sets the small input to 16px, because iOS Safari zooms the page when it focuses an input under 16px. A single bordered (outline) style; filled/underline are theming, not API.' },
-    { name: 'id', type: 'string', required: false, description: 'Wiring + form submission; auto-generated with useId if omitted, tying label→input and the aria-describedby chain.' },
-    { name: 'name', type: 'string', required: false, description: 'A real <input name> so the field works uncontrolled, in a native <form>, with useFormStatus / Server Actions, and the Constraint Validation API.' },
-  ],
+  props: spec.props,
 
   // The interactive state set. read-only and disabled are distinct rows — the component's live edge —
   // and both PROJECT (read-only, which select also projects since #1699). `pending`, not `loading`
@@ -353,13 +329,37 @@ export const textField: ComponentDef = {
         // fill its column stretches the bordered box with the label and the message.
         placementWidth: 320,
         gap: 'root-gap',
-        children: ['label', 'control', 'message'],
+        children: toggle ? ['labelRow', 'control', 'message'] : ['label', 'control', 'message'],
       },
       // THE NESTED LABEL (nest-exposed, mirroring select #1438). An in-flow instance of `field-label` whose
       // three author axes (size / emphasis / weight) plus its label text and `required` boolean the consumer
       // drives FROM the text-field; `state` stays fixed at `rest` (the disabled dim is code-driven from the
       // field's context — see codeOnly). The `variant` coordinate accounts for every field-label axis, as
       // `nestVariantMatch` requires.
+      // THE LABEL ROW (`edge: 'toggle'` only; owner decision Q301.2 B). The label and the Show/Hide button share
+      // a row above the box, the button at the row's end, so the row is as tall as the button (owner: "the label
+      // row grows to fit the toggle"). The label's cell grows across the row and the button hugs its text. The
+      // row's gap is the control's own `size.{size}.gap`, so the field adds no spacing key: Password binds
+      // TextField's token block exactly.
+      ...(toggle ? {
+      labelRow: {
+        kind: 'box',
+        role: 'presentation',
+        layout: { direction: 'row', align: 'center', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
+        crossAxisFill: true,
+        gap: 'size.{size}.gap',
+        children: ['labelCell', 'toggle'],
+        note: 'The label and the Show/Hide button on one row, the button at the end. The row is as tall as the button.',
+      },
+      labelCell: {
+        kind: 'box',
+        role: 'presentation',
+        layout: { direction: 'column', align: 'start', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
+        grow: true,
+        children: ['label'],
+        note: 'The label\'s cell. It fills the row up to the button, so a long label wraps before it reaches the button.',
+      },
+      } satisfies Record<string, PartDef> : {}),
       label: {
         kind: 'nest',
         nests: 'field-label',
@@ -369,8 +369,39 @@ export const textField: ComponentDef = {
         // FILLS the field's width (#1757, select's #1503 shape): the label stretches across the column the
         // control holds at 320. The name wraps at field-label's own max width (#1762), not the field's.
         crossAxisFill: true,
-        note: 'The accessible name, composed rather than re-declared. Its size follows the field\'s, one step below the input; its label text, required marker, emphasis and weight surface on the text-field. A fix to FieldLabel still reaches this without a copy. Starts secondary and regular. Fills the field\'s width; a long name wraps at FieldLabel\'s max width.',
+        note: `The accessible name, composed rather than re-declared. Its size follows the field's, one step below the input; its label text, required marker, emphasis and weight surface on the ${toggle ? 'field' : 'text-field'}. A fix to FieldLabel still reaches this without a copy. Starts secondary and regular. Fills the field's width; a long name wraps at FieldLabel's max width.`,
       },
+      // THE SHOW/HIDE BUTTON (`edge: 'toggle'` only; owner decisions Q301.2 B and Q301.3 B). A nested Button, not a
+      // copy of one: the text appearance, flush (#2350, so its label lines up with the field's end edge and its
+      // hit area keeps its height), the primary intent (Button is the primary component, #1223) and the EMPHASIS
+      // weight, the standalone Link's starting weight (Q289.3). Its size follows the field's.
+      //
+      // ITS STATE IS NOT THE FIELD'S. The field's seven states are not Button's vocabulary (`filled` and
+      // `read-only` have no Button member), so `state` cannot be followed by name. `atState` maps the one field
+      // state that changes the button: at `disabled` it nests Button's disabled member. Everywhere else it is
+      // Button at rest, read-only included, because a read-only value can still be shown and copied; its own
+      // hover and pressed fire inside a prototype (docs/18 §3). Status never reaches it: the field has no status
+      // axis to pass, and Button has none to receive.
+      //
+      // NEST-EXPOSED FOR ITS TEXT. Marking the instance exposed surfaces Button's `label` text property on the
+      // field's panel, which is how a designer sets "Hide" for the shown look (Q301.6 A). `expose` names that
+      // text property, the one thing the field gives a designer to drive; the instance's own text is set to
+      // "Show" when the field is built (`nestTexts`).
+      ...(toggle ? {
+      toggle: {
+        kind: 'nest',
+        nests: 'button',
+        nesting: {
+          kind: 'nest-exposed',
+          variant: { appearance: 'text', size: 'medium', surface: 'default', inset: 'flush', state: 'rest', 'leading icon': 'false', 'trailing icon': 'false' },
+          expose: ['label'],
+          follow: ['size'],
+          atState: { disabled: { state: 'disabled' } },
+        },
+        nestTexts: { label: 'Show' },
+        note: 'The Show/Hide button: a flush text Button in the emphasis weight, at the end of the label row. It reads "Show" on every member; set it to "Hide" for the shown look. Disabled with the field, live when read-only, never colored by status.',
+      },
+      } satisfies Record<string, PartDef> : {}),
       // THE CONTROL — the bordered, interactive input box. The single target: it owns the hit area, the focus
       // ring and the stateful border. Paints its fill, border and the hover overlay wash (`paintSlots`,
       // precedence overlay > fill — #1341/#1342); fills the field's width (down to its 120 floor) at a fixed
@@ -399,7 +430,7 @@ export const textField: ComponentDef = {
         // slot-aware asymmetry; both inline sides fall back to the label inset.
         padding: { block: 'size.{size}.pad-y', inlineLabel: 'size.{size}.pad-x' },
         gap: 'size.{size}.gap',
-        children: ['content', 'trailingVisual', 'focusRing'],
+        children: toggle ? ['content', 'focusRing'] : ['content', 'trailingVisual', 'focusRing'],
       },
       // THE VALUE ROW — leading glyph + value text. Grows across the control on both surfaces (#1751): FIXED
       // and `layoutGrow` in Figma, `flex: 1` in code, so the trailing affix sits at the trailing edge.
@@ -480,6 +511,9 @@ export const textField: ComponentDef = {
       // a node-visibility boolean), pinned to the control's trailing edge by the control's `space-between`. In
       // CODE it is an INTERACTIVE control (own tab stop + accessible name); Figma projects only the glyph
       // (see codeOnly).
+      // The Password field has no trailing slot: its action sits outside the box (Q301.2 B), so nothing is left to
+      // sit at the box's trailing edge, and a second reveal glyph has nowhere to go.
+      ...(toggle ? {} : {
       trailingVisual: {
         kind: 'slot',
         optional: true,
@@ -487,6 +521,7 @@ export const textField: ComponentDef = {
         nesting: { kind: 'swap' },
         note: 'An optional trailing affix at the trailing edge (a clear / reveal glyph), aria-hidden as a glyph. Absent by default; the caller nominates the icon. Its interactive behavior is code-only.',
       },
+      } satisfies Record<string, PartDef>),
       // THE FOCUS RING — the shared indicator, nested as an absolute sibling of the control's contents so it
       // rings the CONTROL (not the whole field) and takes no cell. `field` offset (0) because an input's own
       // border already supplies the separation. Fixed to the default surface (the field carries no surface
@@ -517,18 +552,7 @@ export const textField: ComponentDef = {
         note: 'Helper or validation text, composed rather than re-declared. Its status follows the field\'s validation by name, so error / warning / success reach the message without a value mapping. Shown by default; the `showMessage` boolean hides the whole part where the field has nothing to say. Fills the field\'s width, so a long message wraps.',
       },
     },
-    codeOnly: [
-      'the SMALL field on a COARSE POINTER (#2266, owner decision Q7 A) — iOS Safari zooms the page when it focuses an input whose text is under 16px, and the small field\'s input is 14px. So `small` is for fine pointers: under `@media (pointer: coarse)` the code sets the small input\'s font size to 16px, which keeps the page still. The token (`type.body.sm`) and the Figma member stay at 14, because Figma has no focus zoom. On a touch device the small field therefore pairs a 12px label with a 16px input. Never `maximum-scale=1` in the viewport meta: it blocks pinch zoom as well (WCAG 1.4.4).',
-      'style — the outline / filled / underline treatment is theming, not an API axis: `style` carries the single value `outline` and filled/underline are a brand skin over the same anatomy, so there is nothing for a Figma variant to enumerate. Admitted here rather than projected.',
-      'pending — a real STATE (a spinner replaces an adornment while async validation/value resolves, and the field sets aria-busy), deliberately NOT a Figma variant. Its delta is a runtime spinner swap with no distinct static skin a designer picks from a matrix — the pending member would differ from `rest` only by a node Figma cannot animate — so it stays in `states` (the code tier carries it) and is admitted OUT of the projected `stateAxis`.',
-      'empty — a real STATE in code (the field holds no value, so it shows the placeholder), NOT a Figma variant: in Figma the empty field IS the rest, hover and focus-visible members, which show the `placeholder` layer in `text.secondary`, and `filled` is the member showing the `value` layer in `text.primary`. In code emptiness is a content condition that co-occurs with every interaction, so `empty` stays in `states` (`label.empty` and `error.border.empty` keep the "required field left blank" coordinate) and is held out of the projected `stateAxis` with `pending`, leaving size(3) × status(4) × state(7) = 84 members over rest / hover / filled / focus-visible / focus-visible-filled / disabled / read-only. In code the placeholder and the value are one <input>: its `placeholder` attribute and its value, never two elements.',
-      'the FOCUS CARET — Figma draws a static bar before the placeholder on the focus-visible member. Code draws the browser\'s native caret, blinking, at the insertion point, with `caret-color` set from `color.text.primary` (the `caret` binding), so it keeps the value ink over the placeholder\'s muted one.',
-      'the TRAILING AFFIX is an INTERACTIVE control in code — a clear or reveal button that is its own Tab stop with its own accessible name (see the `trailingIcon` / `clearable` props and the a11y block) and RETURNS focus to the input when it acts. Figma has no accessibility tree and no node-to-node reference, so `trailingVisual` projects ONLY the glyph: a member cannot express that the affix is focusable, labeled, or that activating it clears the field. The presence boolean + swap carry which glyph shows and whether it shows; the interaction is the host\'s.',
-      'prefix / suffix — the TEXT affixes (a currency symbol, a unit) are code-API props with no Figma part. The field projects the two glyph slots (`leadingIcon` / `trailingIcon`); a text affix is a string beside the value in the same row, and adding it to the projection is a separate anatomy decision (#1699).',
-      'the label / describedby WIRING — the host generates ids (useId), ties the FieldLabel to the input, stitches the FieldMessage into aria-describedby, and sets aria-invalid on error. Figma has no accessibility tree and no node-to-node reference, so the nested label and message sit near the input and are associated by proximity alone (the same ceiling `field-label` and `field-message` each hit).',
-      'the nested LABEL\'s disabled dimming — the field fixes the FieldLabel to `state=rest` because field-label\'s state vocabulary (rest / disabled) is not the field\'s, so it cannot be followed by value. In code a disabled field dims its label; in Figma the nested label reads at its rest configuration regardless. A projection limit, not a design choice.',
-      'the KEYBOARD MODEL — native text editing, Escape-to-clear when clearable, and IME composition guards (do not validate mid-composition). All of it is runtime interaction the closed static member cannot carry.',
-    ],
+    codeOnly: spec.codeOnly,
   },
 
   // How this projects into Figma (#1494, #2266). `size` and `status` are the variant axes; `state` projects the five
@@ -546,7 +570,7 @@ export const textField: ComponentDef = {
     // "Entered text" is a generic scaffold in the field-message precedent, never a real product's copy.
     texts: {
       placeholder: { part: 'placeholder', default: 'Placeholder' },
-      value: { part: 'value', default: 'Entered text' },
+      value: { part: 'value', default: spec.valueDefault },
     },
     // THREE NODE-VISIBILITY BOOLEANS (#1331/#1412/#1494), none a variant axis — each toggles a part's
     // `visible` in place, so none multiplies the set (still 84 members).
@@ -557,7 +581,7 @@ export const textField: ComponentDef = {
     // Each shares its node with a swap where one exists (`visible` and `mainComponent` are different Figma fields).
     booleans: {
       leadingIcon: { part: 'leadingVisual', figmaName: 'leading icon', default: false },
-      trailingIcon: { part: 'trailingVisual', figmaName: 'trailing icon', default: false },
+      ...(toggle ? {} : { trailingIcon: { part: 'trailingVisual', figmaName: 'trailing icon', default: false } }),
       showMessage: { part: 'message', figmaName: 'message', default: true },
     },
     // The two glyphs' CONTENT — orthogonal to their presence booleans above. `figmaName` gives each the canon
@@ -565,9 +589,94 @@ export const textField: ComponentDef = {
     // Figma properties each: a presence boolean and a content swap).
     swaps: {
       leadingIcon: { part: 'leadingVisual', figmaName: '↳ swap leading icon' },
-      trailingIcon: { part: 'trailingVisual', figmaName: '↳ swap trailing icon' },
+      ...(toggle ? {} : { trailingIcon: { part: 'trailingVisual', figmaName: '↳ swap trailing icon' } }),
     },
   },
+
+  accessibility: spec.accessibility,
+  content: spec.content,
+  docs: spec.docs,
+  ai: spec.ai,
+  composition: spec.composition,
+  motion: spec.motion,
+  notes: spec.notes,
+  };
+};
+
+export const textField: ComponentDef = makeTextField({
+  id: 'text-field',
+  name: 'TextField',
+  aliases: ['text-input', 'input', 'textbox', 'formfield'],
+  summary: 'Single-line text field: label, input, and helper or validation message.',
+  description:
+    'A single-line control for free-form, non-enumerable text — names, emails, SKUs, short queries. A composed host: label + input + helper/validation message, with the accessibility wiring (id generation, aria-describedby chain, aria-invalid) handled internally. Not multi-line (Textarea), not a known set (Select, or a combobox), not numeric-formatted (a number field), not suggestion-backed (a combobox). The combobox and number field are not built yet.',
+
+  props: [
+    { name: 'label', type: 'string | node', required: true, description: 'The visible, persistent label (rendered as FieldLabel). Required — a visually-hidden label is the only label-less case, and it still exists in the DOM. Never the placeholder.' },
+    { name: 'value', type: 'string', required: false, description: 'Controlled value; pair with onChange. A controlled value with no onChange is read-only by accident.' },
+    { name: 'defaultValue', type: 'string', required: false, description: 'Uncontrolled initial value — preferred for form-library ergonomics.' },
+    { name: 'onChange', type: 'function', required: false, description: 'Change handler (also onBlur / onFocus).' },
+    { name: 'type', type: "enum: 'text' | 'email' | 'url' | 'tel' | 'search' | 'password'", values: ['text', 'email', 'url', 'tel', 'search', 'password'], default: 'text', required: false, description: 'Attribute-only variants (mobile keyboard + autofill). Not number: numeric input needs a number field (not built yet). search / password are better served by their thin specializations.' },
+    { name: 'placeholder', type: 'string', required: false, description: 'An example only ("name@example.com"); vanishes on input; nothing load-bearing lives here.' },
+    { name: 'helpText', type: 'string | node', required: false, description: 'Persistent guidance (rendered as FieldMessage, default status); wired via aria-describedby. Show the format BEFORE failure.' },
+    // #1623 sign-off (C1/TF-5) — validation is the `validation` + `validationMessage` pair, select's exact
+    // prop names and value set, so one concept has one name across the field family. The Figma `status`
+    // variant axis maps to `validation` value-for-value (the axis keeps field-message's name so the nested
+    // message follows it). Replaces the old `error` message prop. `test.ts` pins the shared contract.
+    { name: 'validation', type: "enum: 'default' | 'error' | 'warning' | 'success'", values: ['default', 'error', 'warning', 'success'], default: 'default', required: false, description: 'The validation state. Each non-default status swaps the input border to its own boundary (border-only — `error` → danger, `warning` → warning, `success` → success) AND sets the nested message to the matching status; `default` is neutral. `error` also sets aria-invalid. The values align with FieldMessage\'s status axis, so this drives the nested message directly.' },
+    { name: 'validationMessage', type: 'string | node', required: false, description: 'The validation text shown at error / warning / success, added to aria-describedby. For error, say what is wrong AND how to fix it (SC 3.3.3), never "Invalid".' },
+    // #1494 — a node-visibility boolean (the #1412 mechanism), mirroring select's `showMessage`. Hides the
+    // composed FieldMessage entirely; default ON (the message is part of the field). Turning it off is for a
+    // field with genuinely nothing to say — an error still sets aria-invalid and the message carries the
+    // reason, so never hides a message the field needs. See `figmaProperties.booleans`.
+    { name: 'showMessage', type: 'boolean', default: true, required: false, description: 'Whether the composed FieldMessage is shown. ON — the default — renders the helper / validation message below the input; turning it off hides the message entirely (a field with no helper or validation text). Never hides a message the field needs.' },
+    { name: 'required', type: 'boolean', default: false, required: false, description: 'Sets required / aria-required, and turns on the FieldLabel\'s required marker.' },
+    { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Native disabled — removed from tab order, not submitted, silent to AT, contrast-exempt. Reserve for fields irrelevant in the current state.' },
+    { name: 'readOnly', type: 'boolean', default: false, required: false, description: 'Distinct from disabled: focusable, selectable and copyable, submitted with the form, and passes contrast. Use for a value the user may read/copy but not edit (a generated key). The component\'s live edge.' },
+    { name: 'autoComplete', type: 'string (WHATWG token)', required: false, description: 'Satisfies SC 1.3.5 Identify Input Purpose — an accessibility obligation, not a convenience.' },
+    { name: 'inputMode', type: "enum: 'text' | 'numeric' | 'decimal' | 'tel' | 'email' | 'url' | 'search'", values: ['text', 'numeric', 'decimal', 'tel', 'email', 'url', 'search'], required: false, description: 'Selects the mobile virtual keyboard.' },
+    // ONE PROP PER SLOT (#1699 decision 3, owner-delegated). `prefix` / `suffix` used to be glyph-or-action
+    // slots that duplicated `leadingIcon` / `trailingIcon`; they are now the TEXT affixes (a currency symbol, a
+    // unit), and the glyphs are the two icon slots below. The alternative (merging them away) is in
+    // `notes.contested`. API only: neither text affix projects to Figma (see `anatomy.codeOnly`).
+    { name: 'prefix', type: 'string', required: false, description: 'A leading TEXT affix inside the field, before the value — a currency symbol or a unit ("$", "€"). Not part of the value and aria-hidden, so the label or helper text carries what it means. Follows the locale\'s placement (a symbol before or after the number). A glyph is `leadingIcon`, not this.' },
+    { name: 'suffix', type: 'string', required: false, description: 'A trailing TEXT affix inside the field, after the value — a unit or a domain ("kg", ".com"). Not part of the value and aria-hidden, so the label or helper text carries what it means. A glyph or a clear / reveal action is `trailingIcon` / `clearable`, not this.' },
+    // #1494 — the Figma-projected presence + swap of the LEADING glyph,
+    // mirroring select's `leadingIcon`. A node-visibility boolean (#1331/#1412) whose glyph the file
+    // nominates: the leadingVisual node is emitted at every member hidden, and the `leading icon` switch flips
+    // it in place, so presence does not multiply the projected set. Signals the field's purpose; validation
+    // never mutates it.
+    { name: 'leadingIcon', type: 'slot', required: false, description: 'An optional leading glyph before the value (a purpose or category mark, such as search), aria-hidden and never the accessible name. Hidden by default; the file nominates the swap target. Signals the field\'s purpose; validation never mutates it.' },
+    // #1494 — the TRAILING affix slot select does not have: the clear-button / password-reveal edge control.
+    // In CODE this is an INTERACTIVE control (its own tab stop + accessible name — see `clearable`
+    // and the a11y block); Figma projects only its GLYPH (a presence boolean + swap on an optional trailing
+    // slot, exactly as `leadingIcon` models the leading glyph). See `anatomy.codeOnly`.
+    { name: 'trailingIcon', type: 'slot', required: false, description: 'An optional trailing glyph at the field\'s trailing edge — a decorative mark (aria-hidden), or the glyph of a clear / reveal action, which in code is a focusable button with its own accessible name. The decorative-vs-interactive split is load-bearing. Hidden by default; the file nominates the swap target.' },
+    { name: 'clearable', type: 'boolean', default: false, required: false, description: 'Adds a labeled Clear button that announces the cleared state and RETURNS FOCUS to the input (the recurring trap is stranding focus).' },
+    // `isPending`, not `loading` — the same concept Button's `isPending` names, spelled the same way
+    // (#843). Button's own prop description already recorded the preference ("Preferred over `loading`")
+    // and this def had not followed it. The PROP rename is free where the STATE rename below is not:
+    // measured, `props` reach no emitted artifact and no Figma property, so nothing downstream carries
+    // this name. Renaming only the state would have left one def spelling one concept two ways.
+    { name: 'isPending', type: 'boolean', default: false, required: false, description: 'Async validation/value — a spinner replaces an adornment without reflow; sets aria-busy; does not block typing unless intended.' },
+    { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'Three tiers that scale the input type with the field (small 14px, medium 16px, large 18px, `type.body.{sm,md,lg}`), the nested label one step below it (12 / 14 / 16), and the padding. Every size keeps the 44px target: small is smaller type and padding, not a smaller target; large is taller. `small` is for fine pointers only: on a coarse pointer (`@media (pointer: coarse)`) the code sets the small input to 16px, because iOS Safari zooms the page when it focuses an input under 16px. A single bordered (outline) style; filled/underline are theming, not API.' },
+    { name: 'id', type: 'string', required: false, description: 'Wiring + form submission; auto-generated with useId if omitted, tying label→input and the aria-describedby chain.' },
+    { name: 'name', type: 'string', required: false, description: 'A real <input name> so the field works uncontrolled, in a native <form>, with useFormStatus / Server Actions, and the Constraint Validation API.' },
+  ],
+  edge: 'trailing-glyph',
+  valueDefault: 'Entered text',
+  codeOnly: [
+    'the SMALL field on a COARSE POINTER (#2266, owner decision Q7 A) — iOS Safari zooms the page when it focuses an input whose text is under 16px, and the small field\'s input is 14px. So `small` is for fine pointers: under `@media (pointer: coarse)` the code sets the small input\'s font size to 16px, which keeps the page still. The token (`type.body.sm`) and the Figma member stay at 14, because Figma has no focus zoom. On a touch device the small field therefore pairs a 12px label with a 16px input. Never `maximum-scale=1` in the viewport meta: it blocks pinch zoom as well (WCAG 1.4.4).',
+    'style — the outline / filled / underline treatment is theming, not an API axis: `style` carries the single value `outline` and filled/underline are a brand skin over the same anatomy, so there is nothing for a Figma variant to enumerate. Admitted here rather than projected.',
+    'pending — a real STATE (a spinner replaces an adornment while async validation/value resolves, and the field sets aria-busy), deliberately NOT a Figma variant. Its delta is a runtime spinner swap with no distinct static skin a designer picks from a matrix — the pending member would differ from `rest` only by a node Figma cannot animate — so it stays in `states` (the code tier carries it) and is admitted OUT of the projected `stateAxis`.',
+    'empty — a real STATE in code (the field holds no value, so it shows the placeholder), NOT a Figma variant: in Figma the empty field IS the rest, hover and focus-visible members, which show the `placeholder` layer in `text.secondary`, and `filled` is the member showing the `value` layer in `text.primary`. In code emptiness is a content condition that co-occurs with every interaction, so `empty` stays in `states` (`label.empty` and `error.border.empty` keep the "required field left blank" coordinate) and is held out of the projected `stateAxis` with `pending`, leaving size(3) × status(4) × state(7) = 84 members over rest / hover / filled / focus-visible / focus-visible-filled / disabled / read-only. In code the placeholder and the value are one <input>: its `placeholder` attribute and its value, never two elements.',
+    'the FOCUS CARET — Figma draws a static bar before the placeholder on the focus-visible member. Code draws the browser\'s native caret, blinking, at the insertion point, with `caret-color` set from `color.text.primary` (the `caret` binding), so it keeps the value ink over the placeholder\'s muted one.',
+    'the TRAILING AFFIX is an INTERACTIVE control in code — a clear or reveal button that is its own Tab stop with its own accessible name (see the `trailingIcon` / `clearable` props and the a11y block) and RETURNS focus to the input when it acts. Figma has no accessibility tree and no node-to-node reference, so `trailingVisual` projects ONLY the glyph: a member cannot express that the affix is focusable, labeled, or that activating it clears the field. The presence boolean + swap carry which glyph shows and whether it shows; the interaction is the host\'s.',
+    'prefix / suffix — the TEXT affixes (a currency symbol, a unit) are code-API props with no Figma part. The field projects the two glyph slots (`leadingIcon` / `trailingIcon`); a text affix is a string beside the value in the same row, and adding it to the projection is a separate anatomy decision (#1699).',
+    'the label / describedby WIRING — the host generates ids (useId), ties the FieldLabel to the input, stitches the FieldMessage into aria-describedby, and sets aria-invalid on error. Figma has no accessibility tree and no node-to-node reference, so the nested label and message sit near the input and are associated by proximity alone (the same ceiling `field-label` and `field-message` each hit).',
+    'the nested LABEL\'s disabled dimming — the field fixes the FieldLabel to `state=rest` because field-label\'s state vocabulary (rest / disabled) is not the field\'s, so it cannot be followed by value. In code a disabled field dims its label; in Figma the nested label reads at its rest configuration regardless. A projection limit, not a design choice.',
+    'the KEYBOARD MODEL — native text editing, Escape-to-clear when clearable, and IME composition guards (do not validate mid-composition). All of it is runtime interaction the closed static member cannot carry.',
+  ],
 
   accessibility: {
     role: 'textbox (native <input>)',
@@ -621,9 +730,9 @@ export const textField: ComponentDef = {
     // What the anatomy nests (#1700). The glyph, clear button and pending spinner fill slots or swap in at
     // runtime, so they are partners in `ai.commonPartners`, not parts.
     composesWith: ['field-label', 'field-message', 'focus-ring'],
-    alternativeTo: ['textarea', 'select', 'checkbox-row', 'switch-row'],
+    alternativeTo: ['textarea', 'select', 'checkbox-row', 'switch-row', 'password-field'],
     replacesPatterns: ['bare input without label wiring', 'placeholder-as-label', 'type=number for formatted numeric'],
-    planned: ['form', 'tooltip', 'combobox', 'number-field', 'search-field', 'date-picker', 'password-field'],
+    planned: ['form', 'tooltip', 'combobox', 'number-field', 'search-field', 'date-picker'],
   },
 
   // KB text-field brief §8.
@@ -664,4 +773,4 @@ export const textField: ComponentDef = {
       'VALIDATION TIMING CONVERGED on validate-on-blur, re-validate after the first error, focus-first-invalid and an error summary for long forms; autocomplete hardened into an SC 1.3.5 obligation, and WCAG 2.2 raised the bar on login and checkout fields (3.3.7, 3.3.8).',
     ],
   },
-};
+});
