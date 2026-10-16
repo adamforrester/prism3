@@ -1,4 +1,4 @@
-# Breadcrumb.Separator
+# BreadcrumbSeparator
 
 > The mark between two breadcrumb steps: a chevron or a slash, in the secondary icon color.
 

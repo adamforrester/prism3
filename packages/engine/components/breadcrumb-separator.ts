@@ -1,5 +1,5 @@
 /**
- * Breadcrumb.Separator — the mark between two steps of a Breadcrumbs trail: a chevron or a slash (#2666).
+ * BreadcrumbSeparator — the mark between two steps of a Breadcrumbs trail: a chevron or a slash (#2666).
  *
  * KB brief: `components/breadcrumbs.md`
  *
@@ -23,7 +23,7 @@ import { ComponentDef } from '../component-schema';
 
 export const breadcrumbSeparator: ComponentDef = {
   id: '_breadcrumb-separator',
-  name: 'Breadcrumb.Separator',
+  name: 'BreadcrumbSeparator',
   aliases: ['breadcrumb-divider', 'crumb-separator'],
   category: 'navigation',
   status: 'draft',
@@ -129,7 +129,7 @@ export const breadcrumbSeparator: ComponentDef = {
 
   notes: {
     contested: [
-      'HELD FOR THE OWNER (#2666, Q382): the slash glyph is drawn for this project, not taken from Remix, which has no plain slash. The name Breadcrumb.Separator (Family.Part read from the id, as the skill names a `_` part) and the aliases are judgment calls.',
+      'HELD FOR THE OWNER (#2666, Q382): the slash glyph is drawn for this project, not taken from Remix, which has no plain slash. The name BreadcrumbSeparator matches BreadcrumbItem: Family.Part (Breadcrumb.Separator) would force Breadcrumb.Item too, which waits on the naming answer on #2783. The aliases are judgment calls.',
     ],
     unverified: [
       'The separator\'s contrast (lowest 3.51:1 on background.primary, 3.16:1 on background.secondary, measured for the proposal) is decorative and held to no floor.',

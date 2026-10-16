@@ -18,7 +18,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "spacing": [],
     "buildable": true,
     "reason": null,
-    "members": 45,
+    "members": 46,
     "nests": []
   },
   {
@@ -1116,6 +1116,20 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     ]
   },
   {
+    "id": "_breadcrumb-separator",
+    "name": "BreadcrumbSeparator",
+    "category": "navigation",
+    "summary": "The mark between two breadcrumb steps: a chevron or a slash, in the secondary icon color.",
+    "unit": "variants",
+    "spacing": [],
+    "buildable": true,
+    "reason": null,
+    "members": 2,
+    "nests": [
+      "icon"
+    ]
+  },
+  {
     "id": "breadcrumb-item",
     "name": "BreadcrumbItem",
     "category": "navigation",
@@ -1133,10 +1147,10 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     ],
     "buildable": true,
     "reason": null,
-    "members": 6,
+    "members": 10,
     "nests": [
       "link",
-      "icon",
+      "_breadcrumb-separator",
       "flush-icon-button-neutral"
     ]
   },
@@ -1162,7 +1176,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     ],
     "buildable": true,
     "reason": null,
-    "members": 4,
+    "members": 6,
     "nests": [
       "breadcrumb-item",
       "icon",

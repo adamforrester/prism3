@@ -7724,7 +7724,7 @@
     },
     "_breadcrumb-separator": {
       "id": "_breadcrumb-separator",
-      "name": "Breadcrumb.Separator",
+      "name": "BreadcrumbSeparator",
       "aliases": [
         "breadcrumb-divider",
         "crumb-separator"

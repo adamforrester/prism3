@@ -314,6 +314,7 @@
           "link",
           "dialog",
           "password-field",
+          "_breadcrumb-separator",
           "breadcrumb-item",
           "breadcrumbs"
         ]

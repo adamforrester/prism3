@@ -17745,7 +17745,7 @@ arm: {
         if (p.kind === 'current') return seps.length > 0;
         return !(seps.length === 1 && JSON.stringify(seps[0].nestVariant) === JSON.stringify({ type: p.sep }) && p.root.children[p.root.children.length - 1] === seps[0]);
       });
-      ok(sepOff.length === 0, `#2666 breadcrumbs/separator (call 6 A, Q382 A): one Breadcrumb.Separator in the member's own look (chevron or slash) ends every ancestor and overflow member, and no current member${sepOff.length ? ` — OFF: ${sepOff.map((p) => `${p.kind}/${p.sep}/${p.size}`).join(', ')}` : ''}`);
+      ok(sepOff.length === 0, `#2666 breadcrumbs/separator (call 6 A, Q382 A): one BreadcrumbSeparator in the member's own look (chevron or slash) ends every ancestor and overflow member, and no current member${sepOff.length ? ` — OFF: ${sepOff.map((p) => `${p.kind}/${p.sep}/${p.size}`).join(', ')}` : ''}`);
 
       // THE SEPARATOR'S TWO LOOKS (Q382 A): a 16px (icon.size.xs) chevron-right or slash in color/icon/secondary, the
       // chevron first (the default). The slash is the set's own glyph, typed here (a 2px stroke on the 24px grid).
@@ -17757,7 +17757,7 @@ arm: {
         return [String((p.coord as Record<string, string>).type), g.length, g[0]?.nestTarget, g[0]?.descendantFills, g[0]?.bound?.width, g[0]?.bound?.height];
       });
       const slashPath = (ICON_PATHS as Record<string, string | undefined>)['slash'];
-      ok(!!sepDef && sepDef.name === 'Breadcrumb.Separator' && JSON.stringify(looks) === JSON.stringify([['chevron', 1, 'icon/chevron-right', 'color/icon/secondary', 'icon/size/xs', 'icon/size/xs'], ['slash', 1, 'icon/slash', 'color/icon/secondary', 'icon/size/xs', 'icon/size/xs']])
+      ok(!!sepDef && sepDef.name === 'BreadcrumbSeparator' && JSON.stringify(looks) === JSON.stringify([['chevron', 1, 'icon/chevron-right', 'color/icon/secondary', 'icon/size/xs', 'icon/size/xs'], ['slash', 1, 'icon/slash', 'color/icon/secondary', 'icon/size/xs', 'icon/size/xs']])
         && slashPath !== undefined && canonicalShape(slashPath) === canonicalShape(SLASH),
         `#2666 breadcrumbs/separator-looks (Q382 A): _breadcrumb-separator is a 16px chevron-right or slash in color/icon/secondary, chevron first, and the set's slash is the 2px stroke typed here (got ${JSON.stringify(looks)}, slash ${slashPath ?? 'not in the set'})`);
 

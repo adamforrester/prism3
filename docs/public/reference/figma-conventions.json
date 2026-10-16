@@ -213,6 +213,7 @@
           {
             "name": "↳ Breadcrumb Item",
             "components": [
+              "_breadcrumb-separator",
               "breadcrumb-item"
             ]
           }
@@ -2290,12 +2291,12 @@
       },
       {
         "id": "_breadcrumb-separator",
-        "name": "Breadcrumb.Separator",
+        "name": "BreadcrumbSeparator",
         "figmaName": "_breadcrumb-separator",
         "kind": "component set",
         "private": true,
-        "page": null,
-        "section": null,
+        "page": "↳ Breadcrumb Item",
+        "section": "Subcomponents",
         "members": 2,
         "variantProperties": [
           {
@@ -2619,6 +2620,7 @@
       "link",
       "dialog",
       "password-field",
+      "_breadcrumb-separator",
       "breadcrumb-item",
       "breadcrumbs"
     ],

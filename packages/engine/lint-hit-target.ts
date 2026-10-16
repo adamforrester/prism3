@@ -266,6 +266,7 @@ const EXCLUDED: Record<string, string> = {
   // #2666: neither is a control of its own. The targets are the nested Link (one text line, its code-side 24px area
   // stated under `link`) and the nested FlushIconButton.Neutral (measured under its own name, 44×44 in code).
   'breadcrumbs': 'a navigation container — its targets are the nested items\' links and overflow button, and the parent layout\'s Link, each a control of its own',
+  '_breadcrumb-separator': 'a decorative mark between breadcrumb steps (CSS ::after in code, never in the accessibility tree); it takes no pointer and no focus',
   'breadcrumb-item': 'one step of a trail — its targets are the nested Link (one text line, code-side 24px, as `link`) and the nested FlushIconButton.Neutral (code-side 44×44, measured under its own name); the current page is text and not a target',
   'textarea': 'a multi-line field whose height is rows/auto-grow (fluid); it binds no single-line height, so there is no fixed hit-target dimension to measure',
 };

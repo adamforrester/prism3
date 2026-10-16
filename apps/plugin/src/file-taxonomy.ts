@@ -144,8 +144,9 @@ export const TAXONOMY: Taxonomy = {
         // host swaps or nests in (the button's pending state swaps it into its icon slot).
         { page: 'Spinner', defs: ['spinner'] },
         // #2666 (owner call 15 A) — the breadcrumb step, on its own page under Subcomponents: it is placed inside
-        // Breadcrumbs, never on its own. It nests Link and the neutral flush icon button.
-        { page: 'Breadcrumb Item', defs: ['breadcrumb-item'] },
+        // Breadcrumbs, never on its own. It nests Link, the neutral flush icon button and, since Q382 A, the separator,
+        // which shares its page, first, as the Accordion indicator shares the Accordion's.
+        { page: 'Breadcrumb Item', defs: ['_breadcrumb-separator', 'breadcrumb-item'] },
       ],
     },
     {

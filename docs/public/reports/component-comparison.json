@@ -65,7 +65,7 @@
     },
     {
       "id": "_breadcrumb-separator",
-      "name": "Breadcrumb.Separator",
+      "name": "BreadcrumbSeparator",
       "category": "navigation",
       "states": [],
       "projectedStates": [],

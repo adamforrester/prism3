@@ -17,6 +17,15 @@
     },
     "members": 12
   },
+  "_breadcrumb-separator": {
+    "axes": {
+      "type": [
+        "chevron",
+        "slash"
+      ]
+    },
+    "members": 2
+  },
   "accordion": {
     "axes": {
       "expansion": [
@@ -67,12 +76,16 @@
         "current",
         "overflow"
       ],
+      "separator": [
+        "chevron",
+        "slash"
+      ],
       "size": [
         "medium",
         "small"
       ]
     },
-    "members": 6
+    "members": 10
   },
   "breadcrumbs": {
     "axes": {
@@ -80,12 +93,16 @@
         "parent",
         "trail"
       ],
+      "separator": [
+        "chevron",
+        "slash"
+      ],
       "size": [
         "medium",
         "small"
       ]
     },
-    "members": 4
+    "members": 6
   },
   "button": {
     "axes": {
@@ -432,11 +449,12 @@
         "plus-filled",
         "resize-grip",
         "search",
+        "slash",
         "warning-triangle",
         "warning-triangle-filled"
       ]
     },
-    "members": 45
+    "members": 46
   },
   "icon-button": {
     "axes": {

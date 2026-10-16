@@ -258,9 +258,6 @@ const HOST_DEFAULT_DEFS: Record<string, string> = {
  */
 const ICON_OFFSET_TWO_DEFS: Record<string, string> = {
   link: 'icon.size.*',
-  // The breadcrumb separator (#2666, owner call 6 A): a 16px chevron at both sizes, so its medium default is `xs`, as
-  // Link's icon is beside the same 16px text.
-  'breadcrumb-item': 'icon.size.*',
 };
 
 /** The default rung EXPECTED for one (def, tier family): the sanctioned offset where listed, else `md`. */
@@ -281,6 +278,7 @@ const NO_SIZE_AXIS: Record<string, string> = {
   'field-message': 'validation copy takes one type role; its axis is `status`, and size follows the field it belongs to',
   'veil': 'a media wash is full-bleed and has no size RUNG — its axes are `value` × `intensity`, and its only dimension binding is a NOMINAL standalone square (`container.narrow`), overwritten by the designer resizing it over the image; there is no size ladder to compare against the tier',
   'image-placeholder': 'a media frame has no size RUNG — its axis is `ratio` (an aspect PROPORTION, not a scale ladder), its one dimension binding is a NOMINAL width (`container.narrow`) the designer resizes, and its glyph size is a def-local literal (`glyphPx`, #1340), not a rung; there is no size ladder to compare against the tier (#1316)',
+  '_breadcrumb-separator': 'one 16px mark (`icon.size.xs`) at both breadcrumb sizes (#2666, owner call 6 A, kept by Q382 A), bound under a non-`size.*` key; its axis is `type`, chevron or slash, so there is no ladder to compare. The item it sits in carries the size',
   'divider': 'a rule has no size RUNG — its axis is `orientation`, its thickness is one border-width role (`border-width.hairline`), and its length is a NOMINAL standalone placeholder (`container.narrow` across, `size.md.height` tall) a host stretches; there is no size ladder to compare against the tier (#2455)',
 };
 
