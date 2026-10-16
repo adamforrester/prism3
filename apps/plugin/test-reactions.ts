@@ -27,10 +27,11 @@
  *   converge/…   a set built before reactions existed (no reactions, no reactions in its records, an older executor
  *                revision) is named by the dry run, updated, verified, and then reads up to date. Mutations: the
  *                executor skips in-place members → `converge/written`, `converge/up to date`.
- *   chain/…      rest → hover → pressed (owner decision 2026-10-15): Rest carries While hovering only, Hover While
- *                pressing, literal per state; a file whose Rest members also press (recorded so by the earlier
- *                executor) is named by the dry run, corrected by the apply, then up to date. Mutation: the Rest press
- *                reaction put back in `reactionMap` → `chain/rest`, `chain/corrected`.
+ *   touch/…      Rest keeps While pressing for touch prototypes (owner decision Q344, #2733, reverting #2703): Rest
+ *                carries While hovering AND While pressing, Hover While pressing, literal per state; a file built under
+ *                #2703's hover-only plan (Rest without its press, recorded so) is named by the dry run, has the press
+ *                put back by the apply, then reads up to date. Mutation: the Rest press dropped from `reactionMap`
+ *                → `touch/rest`, `touch/dry run`, `touch/restored`.
  *   all three/…  reactions to repair, sets to move (#2542) and pages to reorder (#2568) in ONE run: one named version,
  *                all of it done, and a change to any of the three after the check refuses the confirm. Mutations: the
  *                reactions dropped from a set's fingerprint → `all three/hash, reactions`; the set's move dropped from
@@ -119,14 +120,13 @@ section('map — the per-def reaction map, literal (owner decision Q238 A, part 
 {
   // In scope: every def whose state axis holds rest, hover and pressed. [members, sources, reactions].
   const want: Record<string, [number, number, number]> = {
-    // The chain (owner decision 2026-10-15): every source carries exactly one reaction, Rest its hover and Hover its press.
-    'button': [576, 192, 192], 'button-destructive': [576, 192, 192], 'button-neutral': [576, 192, 192],
-    'icon-button': [216, 72, 72], 'icon-button-destructive': [216, 72, 72], 'icon-button-neutral': [216, 72, 72],
-    'checkbox-control': [54, 18, 18], 'radio-control': [30, 12, 12], 'switch-control': [24, 8, 8],
-    'tag': [45, 18, 18], 'tab': [30, 12, 12], 'segmented-control-segment': [30, 12, 12], 'link': [96, 48, 48],
-    // #2457: the flush icon button, 2 shapes × 3 sizes (Q287 A) × (rest → hover, hover → pressed), in each of its three
-    // families (Q295.2 B).
-    'flush-icon-button': [30, 12, 12], 'flush-icon-button-destructive': [30, 12, 12], 'flush-icon-button-neutral': [30, 12, 12],
+    'button': [576, 192, 288], 'button-destructive': [576, 192, 288], 'button-neutral': [576, 192, 288],
+    'icon-button': [216, 72, 108], 'icon-button-destructive': [216, 72, 108], 'icon-button-neutral': [216, 72, 108],
+    'checkbox-control': [54, 18, 27], 'radio-control': [30, 12, 18], 'switch-control': [24, 8, 12],
+    'tag': [45, 18, 27], 'tab': [30, 12, 18], 'segmented-control-segment': [30, 12, 18], 'link': [96, 48, 72],
+    // #2457: the flush icon button, 2 shapes × 3 sizes (Q287 A) × (rest → hover, rest → pressed, hover → pressed), in
+    // each of its three families (Q295.2 B).
+    'flush-icon-button': [30, 12, 18], 'flush-icon-button-destructive': [30, 12, 18], 'flush-icon-button-neutral': [30, 12, 18],
   };
   const got: Record<string, [number, number, number]> = {};
   for (const d of componentDefs) {
@@ -139,7 +139,7 @@ section('map — the per-def reaction map, literal (owner decision Q238 A, part 
   ok(Object.entries(want).every(([id, w]) => JSON.stringify(got[id]) === JSON.stringify(w)), `map/counts: members, sources and reactions per def (${JSON.stringify(got)})`);
   const btn = reactionMap(plansOf('button').map(planComponentName));
   const B = (state: string): string => `appearance=filled, surface=default, inset=default, size=medium, state=${state}, leading icon=false, trailing icon=false`;
-  ok(JSON.stringify(btn.get(B('rest'))) === JSON.stringify([{ trigger: 'ON_HOVER', to: B('hover') }]), `map/rest: a filled medium Button at rest changes to Hover while hovering, and nothing else (${JSON.stringify(btn.get(B('rest')))})`);
+  ok(JSON.stringify(btn.get(B('rest'))) === JSON.stringify([{ trigger: 'ON_HOVER', to: B('hover') }, { trigger: 'ON_PRESS', to: B('pressed') }]), `map/rest: a filled medium Button at rest changes to Hover while hovering and Pressed while pressing (${JSON.stringify(btn.get(B('rest')))})`);
   ok(JSON.stringify(btn.get(B('hover'))) === JSON.stringify([{ trigger: 'ON_PRESS', to: B('pressed') }]), `map/hover: at hover, to Pressed while pressing only (${JSON.stringify(btn.get(B('hover')))})`);
 }
 
@@ -156,7 +156,7 @@ section('excluded — no reactions on Disabled, Pending, Read only, Focus visibl
   const onHost = membersOf(w).filter((m) => reactionsOf(m).length).map((m) => axesOf(String(m.name)).get('state'));
   ok(onHost.length === 18 && onHost.every((s) => s === 'rest' || s === 'hover'), `excluded/host: after a build, the 18 members carrying reactions are all Rest or Hover (${[...new Set(onHost)].join(', ')}, ${onHost.length})`);
   const total = membersOf(w).reduce((k, m) => k + reactionsOf(m).length, 0);
-  ok(total === 18, `excluded/host: the tag set carries 18 reactions in all, 9 hover and 9 press (${total})`);
+  ok(total === 27, `excluded/host: the tag set carries 27 reactions in all, 9 hover and 18 press (${total})`);
   ok(membersOf(w).every((m) => reactionsOf(m).every((r) => r.actions.length === 1 && r.actions[0].type === 'NODE' && r.actions[0].navigation === 'CHANGE_TO')), 'excluded/shape: each reaction is one NODE action, CHANGE_TO');
 }
 
@@ -181,7 +181,7 @@ section('matched — each destination is the sibling matched on every other axis
     if (to === '?' || [...s.keys()].some((a) => a !== 'state' && s.get(a) !== t.get(a)) || t.get('state') !== (trigger === 'ON_HOVER' ? 'hover' : 'pressed')) wrong.push(`${m.name}: ${line}`);
   }
   ok(wrong.length === 0, `matched/host: on the built set every destination id is a sibling matched on every other axis (${wrong.slice(0, 2).join('; ')})`);
-  ok(JSON.stringify(named(w, member(w, T('rest')))) === JSON.stringify([`ON_HOVER→${T('hover')}`]), `matched/literal: ${T('rest')} reads its one reaction (${named(w, member(w, T('rest'))).join('; ')})`);
+  ok(JSON.stringify(named(w, member(w, T('rest')))) === JSON.stringify([`ON_HOVER→${T('hover')}`, `ON_PRESS→${T('pressed')}`]), `matched/literal: ${T('rest')} reads its two reactions (${named(w, member(w, T('rest'))).join('; ')})`);
 }
 
 /* ── replaced ───────────────────────────────────────────────────────────────────────────────────────────── */
@@ -250,18 +250,19 @@ section('hand — a reaction removed by hand is a hand edit, with the usual choi
 {
   const w = await world(TAG);
   const rest = member(w, T('rest'));
-  await (rest.setReactionsAsync as (r: unknown[]) => Promise<void>)([]);
+  const keepOnly = reactionsOf(rest).filter((r) => r.trigger.type === 'ON_PRESS');
+  await (rest.setReactionsAsync as (r: unknown[]) => Promise<void>)(keepOnly);
   const p = (await previewUpdate(w.host, targets(w, TAG))).sets[0];
   ok(p.states.some((s) => s.member === T('rest') && s.state === 'handEdited') && p.handEdits.some((h) => h.member === T('rest') && h.path === REACTIONS_PATH), `hand/detected: the Rest member reads hand-edited at ${REACTIONS_PATH} (${JSON.stringify(p.handEdits)})`);
   ok(p.counts.handEdited === 1 && p.counts.current === 44, `hand/only it: one member hand-edited, the other 44 current (${JSON.stringify(p.counts)})`);
   // The default keeps it, and the next dry run still reports it.
   const kept = await confirm(w, TAG);
-  ok(JSON.stringify(named(w, member(w, T('rest')))) === JSON.stringify([]), `hand/kept: the update leaves the designer's reactions as they are (${named(w, member(w, T('rest'))).join('; ')}; ${applyVerdict(kept.res).lines[0]})`);
+  ok(JSON.stringify(named(w, member(w, T('rest')))) === JSON.stringify([`ON_PRESS→${T('pressed')}`]), `hand/kept: the update leaves the designer's reactions as they are (${named(w, member(w, T('rest'))).join('; ')}; ${applyVerdict(kept.res).lines[0]})`);
   const again = (await previewUpdate(w.host, targets(w, TAG))).sets[0];
   ok(again.handEdits.some((h) => h.member === T('rest') && h.path === REACTIONS_PATH), `hand/still reported: the next dry run still lists it (${JSON.stringify(again.handEdits)})`);
   // Overwrite writes the plan's over it, and the member is then current.
   await confirm(w, TAG, { handEdits: 'overwrite' });
-  ok(JSON.stringify(named(w, member(w, T('rest')))) === JSON.stringify([`ON_HOVER→${T('hover')}`]), `hand/overwritten: overwrite puts the plan's reactions back (${named(w, member(w, T('rest'))).join('; ')})`);
+  ok(JSON.stringify(named(w, member(w, T('rest')))) === JSON.stringify([`ON_HOVER→${T('hover')}`, `ON_PRESS→${T('pressed')}`]), `hand/overwritten: overwrite puts the plan's reactions back (${named(w, member(w, T('rest'))).join('; ')})`);
   const last = (await previewUpdate(w.host, targets(w, TAG))).sets[0];
   ok(last.counts.current === 45, `hand/current: then all 45 current (${JSON.stringify(last.counts)})`);
 }
@@ -283,26 +284,27 @@ section('converge — a set built before reactions existed is updated once, then
   ok(membersOf(w).every((m) => reactionsOf(m).length === 0), 'premise: no member carries a reaction');
   const { pre, res } = await confirm(w, TAG);
   const lines = previewVerdict(pre).lines.filter((l) => l.includes('prototype reactions'));
-  ok(lines.length === 2 && lines.some((l) => l === `tag · the member · prototype reactions: the plan says While hovering → state=hover, the file has none (9 members).`)
+  ok(lines.length === 2 && lines.some((l) => l === `tag · the member · prototype reactions: the plan says While hovering → state=hover; While pressing → state=pressed, the file has none (9 members).`)
     && lines.some((l) => l === `tag · the member · prototype reactions: the plan says While pressing → state=pressed, the file has none (9 members).`), `converge/dry run: the missing reactions are named, plan against file (${lines.join(' | ')})`);
   ok(pre.sets[0].handEdits.length === 0, `converge/no hand edits: a record from before reactions claims nothing about them (${JSON.stringify(pre.sets[0].handEdits.slice(0, 2))})`);
   ok(applyVerdict(res).ok, `converge/apply: ${applyVerdict(res).headline} (${applyVerdict(res).lines.join(' | ')})`);
   const total = membersOf(w).reduce((k, m) => k + reactionsOf(m).length, 0);
-  ok(total === 18, `converge/written: the update writes all 18 reactions (${total})`);
+  ok(total === 27, `converge/written: the update writes all 27 reactions (${total})`);
   const next = await previewUpdate(w.host, targets(w, TAG));
   ok(previewVerdict(next).headline === '✓ All sets up to date' && next.sets[0].counts.current === 45, `converge/up to date: the next dry run reads ${previewVerdict(next).headline} (${JSON.stringify(next.sets[0].counts)})`);
   ok(membersOf(w).every((m) => typeof JSON.parse((m.getSharedPluginData as (a: string, b: string) => string)(NS, BASELINE_KEY)).reactions === 'string'), 'converge/recorded: every member\'s record now holds its reactions');
 }
 
-/* ── chain ──────────────────────────────────────────────────────────────────────────────────────────────── */
-// THE CHAIN (owner decision 2026-10-15): rest → hover → pressed. A Rest member carries While hovering → Hover and
-// nothing else; a Hover member While pressing → Pressed. A file built before the decision has Rest also carrying
-// While pressing → Pressed, AND a record that holds it (the earlier executor wrote and recorded both). That member is
-// no hand edit: the update names it and corrects it in place. Expectations are literal, per state, read off the shim.
-// Mutation: the Rest press reaction put back in `reactionMap` → `chain/rest`, `chain/corrected`.
-section('chain — rest → hover → pressed: Rest carries hover only, and an earlier file is corrected in place');
+/* ── touch ──────────────────────────────────────────────────────────────────────────────────────────────── */
+// REST KEEPS WHILE PRESSING (owner decision Q344, #2733, reverting #2703). A touch prototype has no hover, so Rest's own
+// press reaction is the only route to Pressed. A Rest member carries While hovering → Hover AND While pressing →
+// Pressed; a Hover member While pressing → Pressed. A file built under #2703's hover-only plan has Rest WITHOUT its
+// press, AND a record that agrees (that executor wrote and recorded what it planned). That member is no hand edit: the
+// update names it and puts the press back in place. Expectations are literal, per state, read off the shim.
+// Mutation: the Rest press dropped from `reactionMap` → `touch/rest`, `touch/dry run`, `touch/restored`.
+section('touch — Rest keeps While pressing, and a file built under the hover-only plan gets it back in place');
 {
-  const WANT: Record<string, string[]> = { rest: ['ON_HOVER→hover'], hover: ['ON_PRESS→pressed'] };
+  const WANT: Record<string, string[]> = { rest: ['ON_HOVER→hover', 'ON_PRESS→pressed'], hover: ['ON_PRESS→pressed'] };
   const byState = (w: World): string[] => membersOf(w).flatMap((m) => {
     const s = axesOf(String(m.name)).get('state')!;
     const got = named(w, m).map((l) => { const [t, to] = l.split('→'); return `${t}→${to === '?' ? '?' : axesOf(to).get('state')}`; });
@@ -311,35 +313,31 @@ section('chain — rest → hover → pressed: Rest carries hover only, and an e
   for (const id of ['tag', 'button', 'checkbox-control']) {
     const w = await world(id);
     const off = byState(w);
-    ok(off.length === 0, `chain/rest: on a fresh ${id} build every Rest member reads [While hovering → hover] only, every Hover [While pressing → pressed], every other state none (${off.slice(0, 2).join(' | ')})`);
+    ok(off.length === 0, `touch/rest: on a fresh ${id} build every Rest member reads [While hovering → hover, While pressing → pressed], every Hover [While pressing → pressed], every other state none (${off.slice(0, 2).join(' | ')})`);
   }
-  // As the earlier plugin left a tag set: every Rest member also pressing to its Pressed sibling, recorded, older revision.
+  // As #2703's plugin left a tag set: every Rest member's press removed, recorded so, older revision.
   const w = await world(TAG);
   let seeded = 0;
   for (const m of membersOf(w)) {
-    const ax = axesOf(String(m.name));
-    if (ax.get('state') !== 'rest') continue;
-    const pressedName = String(m.name).replace('state=rest', 'state=pressed');
-    const pressed = membersOf(w).find((x) => String(x.name) === pressedName)!;
-    await (m.setReactionsAsync as (r: unknown[]) => Promise<void>)([...reactionsOf(m),
-      { trigger: { type: 'ON_PRESS' }, actions: [{ type: 'NODE', destinationId: String(pressed.id), navigation: 'CHANGE_TO', transition: null }] }]);
+    if (axesOf(String(m.name)).get('state') !== 'rest') continue;
+    await (m.setReactionsAsync as (r: unknown[]) => Promise<void>)(reactionsOf(m).filter((r) => r.trigger.type !== 'ON_PRESS'));
     await writeBaseline(m);
     const pd = m.getSharedPluginData as (a: string, b: string) => string;
     (m.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, STAMP_KEY, pd(NS, STAMP_KEY).replace(/\|\d+$/, `|${EXECUTOR_REVISION - 1}`));
     seeded++;
   }
   const S = (state: string): string => T(state, 'type=select, selection=selected, size=large');
-  ok(seeded === 9 && JSON.stringify(named(w, member(w, S('rest')))) === JSON.stringify([`ON_HOVER→${S('hover')}`, `ON_PRESS→${S('pressed')}`]), `premise: 9 Rest members seeded with both reactions, ${S('rest')} among them (${named(w, member(w, S('rest'))).join('; ')})`);
+  ok(seeded === 9 && JSON.stringify(named(w, member(w, S('rest')))) === JSON.stringify([`ON_HOVER→${S('hover')}`]), `premise: 9 Rest members seeded hover-only, ${S('rest')} among them (${named(w, member(w, S('rest'))).join('; ')})`);
   const { pre, res } = await confirm(w, TAG);
   const lines = previewVerdict(pre).lines.filter((l) => l.includes('prototype reactions'));
-  ok(lines.length === 1 && lines[0] === 'tag · the member · prototype reactions: the plan says While hovering → state=hover, the file has While hovering → state=hover; While pressing → state=pressed (9 members).',
-    `chain/dry run: the extra press reaction on Rest is named as a reaction difference (${lines.join(' | ')})`);
-  ok(pre.sets[0].handEdits.length === 0 && pre.sets[0].states.filter((x) => x.state === 'update').length === 9, `chain/not hand-edited: the 9 Rest members read to update, none hand-edited (${JSON.stringify(pre.sets[0].counts)}; ${JSON.stringify(pre.sets[0].handEdits.slice(0, 2))})`);
-  ok(applyVerdict(res).ok, `chain/apply: ${applyVerdict(res).headline} (${applyVerdict(res).lines.join(' | ')})`);
+  ok(lines.length === 1 && lines[0] === 'tag · the member · prototype reactions: the plan says While hovering → state=hover; While pressing → state=pressed, the file has While hovering → state=hover (9 members).',
+    `touch/dry run: the missing press reaction on Rest is named as a reaction difference (${lines.join(' | ')})`);
+  ok(pre.sets[0].handEdits.length === 0 && pre.sets[0].states.filter((x) => x.state === 'update').length === 9, `touch/not hand-edited: the 9 Rest members read to update, none hand-edited (${JSON.stringify(pre.sets[0].counts)}; ${JSON.stringify(pre.sets[0].handEdits.slice(0, 2))})`);
+  ok(applyVerdict(res).ok, `touch/apply: ${applyVerdict(res).headline} (${applyVerdict(res).lines.join(' | ')})`);
   const off = byState(w);
-  ok(off.length === 0 && JSON.stringify(named(w, member(w, S('rest')))) === JSON.stringify([`ON_HOVER→${S('hover')}`]), `chain/corrected: after the update every Rest member reads hover only, ${S('rest')} included (${off.slice(0, 2).join(' | ')}; ${named(w, member(w, S('rest'))).join('; ')})`);
+  ok(off.length === 0 && JSON.stringify(named(w, member(w, S('rest')))) === JSON.stringify([`ON_HOVER→${S('hover')}`, `ON_PRESS→${S('pressed')}`]), `touch/restored: after the update every Rest member presses to Pressed again, ${S('rest')} included (${off.slice(0, 2).join(' | ')}; ${named(w, member(w, S('rest'))).join('; ')})`);
   const next = await previewUpdate(w.host, targets(w, TAG));
-  ok(previewVerdict(next).headline === '✓ All sets up to date' && next.sets[0].counts.current === 45, `chain/up to date: the second dry run reads ${previewVerdict(next).headline} (${JSON.stringify(next.sets[0].counts)})`);
+  ok(previewVerdict(next).headline === '✓ All sets up to date' && next.sets[0].counts.current === 45, `touch/up to date: the second dry run reads ${previewVerdict(next).headline} (${JSON.stringify(next.sets[0].counts)})`);
 }
 
 /* ── all three ──────────────────────────────────────────────────────────────────────────────────────────── */
@@ -419,8 +417,8 @@ section('all three — reactions, set moves and page reorders in one run: one ve
   const tagTotal = kids(tagSet).reduce((k, m) => k + reactionsOf(m).length, 0);
   const tabRest = kids(tabSet).find((m) => axesOf(String(m.name)).get('state') === 'rest' && String(m.name) === String(TAB_REST.name))!;
   const sib = (state: string): string => String(TAB_REST.name).replace('state=rest', `state=${state}`);
-  ok(tagTotal === 18 && JSON.stringify(byName(tabSet, tabRest)) === JSON.stringify([`ON_HOVER→${sib('hover')}`]),
-    `all three/reactions: the 18 tag reactions written and the tab Rest member's hover repaired (${tagTotal}; ${byName(tabSet, tabRest).join('; ')})`);
+  ok(tagTotal === 27 && JSON.stringify(byName(tabSet, tabRest)) === JSON.stringify([`ON_HOVER→${sib('hover')}`, `ON_PRESS→${sib('pressed')}`]),
+    `all three/reactions: the 27 tag reactions written and the tab Rest member's hover repaired (${tagTotal}; ${byName(tabSet, tabRest).join('; ')})`);
   ok(JSON.stringify(sets.map((n) => [Number(n.x), Number(n.y)])) === JSON.stringify(fresh)
     && JSON.stringify(names()) === JSON.stringify(['Cover', '---', 'Components', '↳ Badge', '↳ Divider', '↳ Tabs']),
     `all three/moved: each set where a fresh build put it, and the pages in order (${JSON.stringify(sets.map((n) => Number(n.x)))}; ${JSON.stringify(names())})`);

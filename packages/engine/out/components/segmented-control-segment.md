@@ -1,8 +1,8 @@
 # SegmentedControl.Segment
 
-> One option of a segmented control. Selected, it shows a tint, a 2px outline and a bold label.
+> One option of a segmented control. Selected, it shows a flat pill and a bold label.
 
-One option in a segmented control: a cell as tall as a button, holding the option label and an optional leading icon. A selected option takes a tint and a 2px outline inside the cell, and its label is set in the emphasis weight. Every option keeps the width of its bold label, so selecting one never moves the others. At hover, an unselected option shows a light neutral wash. SegmentedControl places the options and owns the selection.
+One option in a segmented control: a cell as tall as a button, holding the option label and an optional leading icon. A selected option shows a flat pill in the page surface color inside the cell, and its label is set in the emphasis weight. Every option keeps the width of its bold label, so selecting one never moves the others. At hover, an unselected option shows a light neutral wash on the track. SegmentedControl places the options and owns the selection.
 
 - **ID:** `segmented-control-segment`
 - **Category:** form
@@ -64,8 +64,9 @@ One or two words, a noun, sentence case.
 
 - **Role:** a \<button> with aria-current in the view behavior, or a native radio with its label in the form behavior; the control sets which
 - **WCAG:**
-  - 1.4.1 Use of Color (a 2px outline and the bold label mark the selected option, never the tint alone)
-  - 1.4.11 Non-text Contrast (targets 3:1 for the selected outline against the track)
+  - 1.4.1 Use of Color (the bold label marks the selected option, never the pill alone)
+  - 1.4.3 Contrast (the label clears 4.5:1 on the pill and on the track at rest, hover and press)
+  - 1.4.11 Non-text Contrast (the icon clears 3:1 on the pill and the track; the pill against the track has no floor, because it is not the only cue)
   - 2.4.13 Focus Appearance (the shared focus ring)
   - 2.5.8 Target Size (targets 44px at medium on comfortable and spacious density)
 - **Keyboard:** Set by the control: in the view behavior each option is a Tab stop and Enter or Space selects it; in the form behavior arrow keys move between options and select.
@@ -74,7 +75,7 @@ One or two words, a noun, sentence case.
 
 ## Motion
 
-- **Enter:** None. On selection the tint and outline move to this option, or cross-fade, over a short duration.
+- **Enter:** None. On selection the pill moves to this option, or cross-fades, over a short duration.
 - **Exit:** None.
 - **Reduced motion:** The indicator moves at once; only the color change remains.
 

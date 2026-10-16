@@ -95,6 +95,8 @@
  *      percentage with its swatch, the transparency member filling its cell, its layer opacity bound; font style as the
  *      Text styles table's Style column; the later-phase note and the page's catalog without those groups. Phase 2's
  *      file plus the emission's border-width, focus, icon and layout collections; every expected value typed here.
+ *  35e. ICON SIZE (#2728, owner decision Q341 A): the icon collection's dimension table is titled "Icon size", every
+ *      Semantic tokens title is unique beside the color tables, and a rerun retitles an earlier "Icon" table in place.
  *  36. BATCH 2A (#2353): the effect styles and the gradient paint styles, a table each, every local style in the file's order
  *      (one Prism3 did not make included, a solid paint style left out); each layer and each stop printed on a line of its
  *      own; the specimen a type=default card or fill swatch with the style applied by id; the phase boundary; the page's
@@ -3340,7 +3342,7 @@ const main = async (): Promise<void> => {
       `35: no table is keyed to or titled for the focus collection (${plan35.tables.filter((t) => t.collectionId === 'VariableCollectionId:focus').map((t) => t.title).join(', ')})`);
 
     // ICON SIZE: a dimension table of its own collection, drawn as a size is: no type of its own.
-    const icon = byTitle('Icon');
+    const icon = byTitle('Icon size');
     ok(!!icon && icon.type === 'dimension' && icon.key === 'dimension|VariableCollectionId:icon|pds3/icon/size' && icon.page === SEM
       && JSON.stringify(icon.rows.map((r) => `${r.token}=${r.cells[0].value}/${r.cells[0].rem}`)) === JSON.stringify(['xs=16px/1rem', 'sm=20px/1.25rem', 'md=24px/1.5rem', 'lg=32px/2rem', 'xl=40px/2.5rem'])
       && icon.rows.every((r) => r.specimen?.kind === 'spacing'),
@@ -3370,7 +3372,7 @@ const main = async (): Promise<void> => {
     const cat = catalogFor(cat35, contract, true);
     const tableOfItem = (name: string): string => { for (const c of cat.collections) for (const it of c.items) if (it.name === name) return it.table < 0 ? 'none' : cat.tables[it.table].title; return '?'; };
     const listed = ['pds3/border-width/thick', 'pds3/focus/ring/offset', 'pds3/icon/size/md', 'pds3/opacity/40', 'pds3/core/font/style/body/strong', 'pds3/core/font/style/unused/default', 'pds3/breakpoint/md'].map((n) => `${n}→${tableOfItem(n)}`);
-    ok(JSON.stringify(listed) === JSON.stringify(['pds3/border-width/thick→Border width', 'pds3/focus/ring/offset→Border width', 'pds3/icon/size/md→Icon', 'pds3/opacity/40→Opacity',
+    ok(JSON.stringify(listed) === JSON.stringify(['pds3/border-width/thick→Border width', 'pds3/focus/ring/offset→Border width', 'pds3/icon/size/md→Icon size', 'pds3/opacity/40→Opacity',
       'pds3/core/font/style/body/strong→Text styles', 'pds3/core/font/style/unused/default→none', 'pds3/breakpoint/md→none']),
       `35: the page lists each under the table that draws it, and the unbound font style and a breakpoint under none (${listed.join(', ')})`);
     const opItem = cat.collections.find((c) => c.name === 'opacity')?.items.find((it) => it.name === 'pds3/opacity/40');
@@ -3483,7 +3485,7 @@ const main = async (): Promise<void> => {
       `35: opacity 40's swatch is the transparency member filling its cell in black, its layer opacity bound to opacity/40 (${sw?.type}; ${JSON.stringify(sw?.boundVariables)}; ${JSON.stringify(sw?.fills)})`);
     ok(textIn(cellAt(opG, rowOf(opG, 'pds3/opacity/40'), 2)) === '40%' && opCell?.strokeBottomWeight === 1 && (opCell?.fills as { color?: { r: number } }[])?.[0]?.color?.r === 1,
       `35: opacity 40 reads "40%", its swatch in a white cell carrying the row line (${textIn(cellAt(opG, rowOf(opG, 'pds3/opacity/40'), 2))})`);
-    const icG = gridOf(tableFrame(b1.sem, 'Icon'));
+    const icG = gridOf(tableFrame(b1.sem, 'Icon size'));
     const icBar = cellAt(icG, rowOf(icG, 'pds3/icon/size/lg'), 1);
     ok(!!icBar && (icBar.findOne((k) => !!k.boundVariables.paddingLeft) ?? icBar)?.boundVariables.paddingLeft?.id === idOf('pds3/icon/size/lg') && textIn(cellAt(icG, rowOf(icG, 'pds3/icon/size/lg'), 2)).startsWith('32px'),
       `35: icon/size/lg draws the spacing bar bound to it, "32px" (${textIn(cellAt(icG, rowOf(icG, 'pds3/icon/size/lg'), 2))})`);
@@ -3613,6 +3615,47 @@ const main = async (): Promise<void> => {
     const inst = cellAt(g, rowOf(g, 'pds3/focus/ring/width'), 1)?.findOne((k) => k.type === 'INSTANCE') ?? undefined;
     ok(r.unbound === 0 && inst?.explicitVariableModes['VariableCollectionId:focus'] === 'focus:named' && textIn(cellAt(g, rowOf(g, 'pds3/focus/ring/width'), 2)).startsWith('2px'),
       `35c: drawn, the focus ring width's outline is pinned to focus's mode named like the column and reads 2px (${JSON.stringify(inst?.explicitVariableModes)}; "${textIn(cellAt(g, rowOf(g, 'pds3/focus/ring/width'), 2))}")`);
+  }
+
+  console.log('35e. #2728: the icon-size table is titled "Icon size", and a rerun retitles an earlier "Icon" table in place (owner decision Q341 A)');
+  {
+    // THE FILE: phase 2's plus the prism3 emission's icon collection, as §35 adds it.
+    const f = await phase2File();
+    type Em = { name: string; resolvedType: string; description: string; value: unknown; alias: { name: string } | null; scopes?: string[] };
+    f.cols.push({ id: 'VariableCollectionId:icon', name: 'icon', modes: [{ modeId: 'icon:0', name: 'Default' }], defaultModeId: 'icon:0' });
+    (JSON.parse(readFileSync(join(OUT, 'icon.json'), 'utf8')) as { variables: Em[] }).variables.forEach((v, i) => f.vars.push({
+      id: `VariableID:icon:${i}`, name: v.name, variableCollectionId: 'VariableCollectionId:icon', resolvedType: v.resolvedType, description: v.description, scopes: v.scopes,
+      valuesByMode: { 'icon:0': v.alias ? { type: 'VARIABLE_ALIAS', id: f.vars.find((x) => x.name === v.alias!.name)!.id } : v.value },
+    }));
+    const KEY = 'dimension|VariableCollectionId:icon|pds3/icon/size';
+    const iconTable = planStyleGuide({ collections: f.cols, variables: f.vars, textStyles: f.styles }, contract).tables.find((t) => t.key === KEY);
+    ok(iconTable?.title === 'Icon size' && iconTable.page === SEM, `35e: the icon collection's dimension table is titled "Icon size", on Semantic tokens (${iconTable?.title}, ${iconTable?.page})`);
+
+    // WITH THE COLOR TABLES (the collision #2728 names): the prism3 color collections beside it, every title on
+    // Semantic tokens is its own, and the icon colors keep "Icon".
+    // Its `core` palette is moved to a collection of its own, so it is not merged with phase 2's `core`.
+    const colors = prism3Variables();
+    const apart = (id: string): string => id.replace(':core', ':palette');
+    const palCols = colors.cols.map((c) => ({ ...c, id: apart(c.id), name: c.name === 'core' ? 'palette' : c.name }));
+    const palVars = colors.vars.map((v) => ({ ...v, id: apart(v.id), variableCollectionId: apart(v.variableCollectionId),
+      valuesByMode: Object.fromEntries(Object.entries(v.valuesByMode).map(([m, x]) => [m, x && typeof x === 'object' && 'id' in x ? { ...x, id: apart(String(x.id)) } : x])) }));
+    const both = planStyleGuide({ collections: [...palCols, ...f.cols], variables: [...palVars, ...f.vars], textStyles: f.styles }, contract);
+    const semTitles = both.tables.filter((t) => t.page === SEM).map((t) => t.title);
+    const dupes = semTitles.filter((t, i) => semTitles.indexOf(t) !== i);
+    ok(dupes.length === 0 && both.tables.find((t) => t.title === 'Icon')?.type === 'color' && both.tables.find((t) => t.title === 'Icon size')?.key === KEY,
+      `35e: with the color tables, every Semantic tokens title is unique: "Icon" is the icon colors and "Icon size" the icon sizes (repeated: ${dupes.join(', ') || 'none'})`);
+
+    // A RERUN OVER AN EARLIER BUILD: the table as a build before #2728 left it, titled "Icon" in its name, its header
+    // and its record. The rerun retitles that same frame; it is neither deleted nor drawn again.
+    await draw(f.api, contract);
+    const was = tableFrame(f.sem, 'Icon size')!;
+    const wasTitle = was.children.find((c) => c.pluginData['prism3-style-guide-part'] === 'header')!.findOne((k) => k.name === 'Title')!;
+    was.name = 'Style guide — Icon'; wasTitle.characters = 'Icon'; was.pluginData['prism3-style-guide-title'] = 'Icon';
+    const again = await draw(f.api, contract);
+    const now = tablesOn(f.sem).filter((n) => n.pluginData['prism3-style-guide'] === KEY);
+    ok(now.length === 1 && now[0] === was && was.name === 'Style guide — Icon size' && wasTitle.characters === 'Icon size' && was.pluginData['prism3-style-guide-title'] === 'Icon size'
+      && again.tables.find((t) => t.key === KEY)?.status === 'updated' && again.deleted.length === 0 && again.stale.length === 0 && again.replaced.length === 0,
+      `35e: a rerun retitles the earlier "Icon" table in place to "Icon size", same frame, same key, nothing deleted (${now.length} frame(s); "${was.name}"; "${wasTitle.characters}"; deleted ${again.deleted.join(', ') || 'none'})`);
   }
 
   console.log('36. batch 2a (#2353): the effect styles and the gradient paint styles, each a table with its specimen bound to the style');

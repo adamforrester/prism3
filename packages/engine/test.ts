@@ -3803,7 +3803,7 @@ for (const b of brands) {
       'segmented-control-segment': { compact: 'small 8/4 · medium 12/6 · large 16/6', comfortable: 'small 12/6 · medium 16/8 · large 20/8', spacious: 'small 16/8 · medium 20/12 · large 24/12' },
       // Accordion (#2417, DRAFT): header inline / header block / glyph-to-title gap / panel bottom inset. Comfortable is
       // the proposal's 12/8/8 · 16/12/12 · 24/16/16, with the panel's bottom inset matching the inline padding.
-      accordion: { compact: 'small 8/6/6/8 · medium 12/8/8/12 · large 20/12/12/20', comfortable: 'small 12/8/8/12 · medium 16/12/12/16 · large 24/16/16/24', spacious: 'small 16/12/12/16 · medium 20/16/16/20 · large 32/20/20/32' },
+      accordion: { compact: 'small 8/6/6/8 · medium 12/8/8/12 · large 16/12/12/20', comfortable: 'small 12/8/8/12 · medium 16/12/12/16 · large 20/16/16/24', spacious: 'small 16/12/12/16 · medium 20/16/16/20 · large 24/20/20/32' },
       // List (#2319, approved (Q280 A)): the item gap. Comfortable is 8/12/16.
       list: { compact: 'small 6 · medium 8 · large 12', comfortable: 'small 8 · medium 12 · large 16', spacious: 'small 12 · medium 16 · large 20' },
       // Link (#2580, DRAFT): the icon-to-label gap. Comfortable is the proposal's space.050 / space.050 / space.100; compact
@@ -15711,63 +15711,98 @@ arm: {
       const memberOf = (selection: string, size: string, state: string) =>
         segMembers.find((m) => m.coord.selection === selection && (m.size ?? m.coord.size) === size && m.coord.state === state);
 
-      // (1) THE INDICATOR — the tint, the 2px outline and the hover wash, per selection and state (Q269.3 A, Q269.4 A).
-      // The cell paints nothing; the indicator, inset 4px (space/050) inside a cell on Button's height rung, does.
+      // (1) THE INDICATOR — the flat pill and the hover wash, per selection and state (Q336 A and Q342 A, #2724,
+      // superseding Q269.3's tint and outline; Q269.4 A's wash kept). The cell paints nothing; the indicator, inset 4px
+      // (space/050) inside a cell on Button's height rung, does. Selected: a page-surface fill at EVERY state, disabled
+      // included, and no stroke at all. Unselected: clear at rest, the neutral wash at hover and pressed. Mutation: a
+      // border put back on the selected indicator → this arm.
+      const PILL = 'color/background/primary';
       const FILL: Record<string, Record<string, string | undefined>> = {
-        selected: { rest: 'color/interactive/primary/subtle-fill/selected', hover: 'color/interactive/primary/subtle-fill/selected', pressed: 'color/interactive/primary/subtle-fill/selected', 'focus-visible': 'color/interactive/primary/subtle-fill/selected', disabled: undefined },
+        selected: { rest: PILL, hover: PILL, pressed: PILL, 'focus-visible': PILL, disabled: PILL },
         unselected: { rest: undefined, hover: 'color/interactive/neutral/overlay/hover', pressed: 'color/interactive/neutral/overlay/pressed', 'focus-visible': undefined, disabled: undefined },
       };
-      const EDGE: Record<string, Record<string, string | undefined>> = {
-        selected: { rest: 'color/interactive/primary/border/rest', hover: 'color/interactive/primary/border/hover', pressed: 'color/interactive/primary/border/pressed', 'focus-visible': 'color/interactive/primary/border/rest', disabled: 'color/disabled/border' },
-        unselected: { rest: undefined, hover: undefined, pressed: undefined, 'focus-visible': undefined, disabled: undefined },
-      };
-      const WEIGHT: Record<string, string> = { selected: 'border-width/thick', unselected: 'border-width/none' };
       const indOff: string[] = [];
       for (const selection of ['unselected', 'selected']) for (const size of SIZES) for (const state of STATES5) {
         const m = memberOf(selection, size, state);
         const ind = m && findIn(m.root, 'indicator');
-        const got = { cell: m?.root.bound?.height, inset: m?.root.bound?.paddingLeft, cellPaint: Object.keys(m?.root.paints ?? {}).length, fill: ind?.paints?.fills, edge: ind?.paints?.strokes, weight: ind?.bound?.strokeWeight, radius: ind?.bound?.topLeftRadius };
-        const want = { cell: `size/${RUNG[size]}/height`, inset: 'space/050', cellPaint: 0, fill: FILL[selection][state], edge: EDGE[selection][state], weight: WEIGHT[selection], radius: 'radius/sm' };
+        const got = { cell: m?.root.bound?.height, inset: m?.root.bound?.paddingLeft, cellPaint: Object.keys(m?.root.paints ?? {}).length, fill: ind?.paints?.fills, edge: ind?.paints?.strokes, weight: ind?.bound?.strokeWeight, effect: ind?.effectStyle, radius: ind?.bound?.topLeftRadius };
+        const want = { cell: `size/${RUNG[size]}/height`, inset: 'space/050', cellPaint: 0, fill: FILL[selection][state], edge: undefined, weight: undefined, effect: undefined, radius: 'radius/sm' };
         if (JSON.stringify(got) !== JSON.stringify(want)) indOff.push(`${selection}/${size}/${state}: ${JSON.stringify(got)} (want ${JSON.stringify(want)})`);
       }
       ok(segMembers.length === 30 && indOff.length === 0,
-        `#2418 Q269.3/Q269.4 segment indicator: 30 members; the cell on size/{sm,md,lg}/height paints nothing and insets the indicator 4px; the indicator (radius/sm) takes the primary subtle-fill tint and a 2px primary outline stepping with hover and pressed when selected, a disabled 2px outline and no tint when disabled, and only the neutral overlay wash at hover and pressed when unselected (${segMembers.length} members, ${indOff.length} off — ${indOff.slice(0, 2).join('; ') || 'none'})`);
+        `#2724 Q336/Q342 segment indicator: 30 members; the cell on size/{sm,md,lg}/height paints nothing and insets the indicator 4px; the indicator (radius/sm) is a flat ${PILL} pill when selected, at every state, with no stroke and no shadow, and only the neutral overlay wash at hover and pressed when unselected (${segMembers.length} members, ${indOff.length} off — ${indOff.slice(0, 2).join('; ') || 'none'})`);
 
-      // (2) THE SELECTED LABEL'S INK IS NEUTRAL, NOT PRIMARY (Q269 QA note), and clears 4.5:1 on the tint. The inks are
-      // read off the PLAN (the subject) at rest, hover and pressed; the values come from the committed exports; the tint
-      // is composited over color/background/primary by a straight sRGB source-over written here. Four brands × four modes,
-      // stated, so a missing export fails. Mutation: the selected label pointed at the primary ink → this arm fails
-      // (primary measures 3.01–4.75:1 on the tint across the 16 cells, under the floor in most of them).
-      const BRANDS = ['aurora', 'nb', 'prism3', 'wendys'];
+      // (2) THE CONTRAST THE BUILD MUST PROVE (#2724, the owner's approval comment): the label 4.5:1 and the icon 3:1 on
+      // the pill and on the track at rest, hover and pressed, and the focus ring 3:1 against the track and the page.
+      // The pill against the track has NO floor (it is not the only cue), so it is not asserted. Every PAIR is read off
+      // the PLANS (the subject): the pill and the wash off the segment's indicator, the track off the control's track,
+      // the inks off the label and icon at each state, the ring's ink off the focus-ring's own plan. Every VALUE comes
+      // from the committed DTCG trees, resolved per mode here, and every ground is composited by a straight sRGB
+      // source-over written here. Five brands × four modes are STATED, so a missing tree fails. Mutation: the selected
+      // label pointed at a ink that misses the pill (`color.text.tertiary`) → this arm, by name.
+      const BRANDS = ['aurora', 'harbor', 'nb', 'prism3', 'wendys'];
       const MODES = ['light', 'dark', 'hc-light', 'hc-dark'];
-      type V = { r: number; g: number; b: number; a?: number };
-      const over = (fg: V, bg: V): RGB => { const a = fg.a ?? 1; return { r: (fg.r * a + bg.r * (1 - a)) * 255, g: (fg.g * a + bg.g * (1 - a)) * 255, b: (fg.b * a + bg.b * (1 - a)) * 255 }; };
-      const solid = (c: V): RGB => ({ r: c.r * 255, g: c.g * 255, b: c.b * 255 });
-      const inks = [...new Set(['rest', 'hover', 'pressed'].map((st) => findIn(memberOf('selected', 'medium', st)!.root, 'label')?.paints?.fills ?? 'none'))];
-      const TINT = 'color/interactive/primary/subtle-fill/selected';
-      const OUTLINE = 'color/interactive/primary/border/rest';
-      const cells: { cell: string; ratio: number }[] = [], edges: { cell: string; ratio: number }[] = [];
-      const miss: string[] = [];
-      for (const brand of BRANDS) for (const mode of MODES) {
-        const f = resolve(HERE, `./out/figma/${brand}/color.${mode}.json`);
-        if (!existsSync(f)) { miss.push(`${brand}/${mode}: no export`); continue; }
-        const vars = new Map((JSON.parse(readFileSync(f, 'utf8')).variables as { name: string; value: V }[]).map((v) => [v.name.replace(/^[^/]+\//, ''), v.value]));
-        const page = vars.get('color/background/primary'), tint = vars.get(TINT), edge = vars.get(OUTLINE);
-        if (!page || !tint || !edge) { miss.push(`${brand}/${mode}: page ${!!page}, tint ${!!tint}, outline ${!!edge}`); continue; }
-        const ground = over(tint, page);
-        for (const ink of inks) {
-          const fg = vars.get(ink);
-          if (!fg || (fg.a ?? 1) !== 1) { miss.push(`${brand}/${mode}: ${ink} ${fg ? `alpha ${fg.a}` : 'missing'}`); continue; }
-          cells.push({ cell: `${brand}/${mode} ${ink}`, ratio: contrast(solid(fg), ground) });
+      const hex8 = (h: string): { c: RGB; a: number } => {
+        const rgb = /^rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)$/.exec(h);
+        if (rgb) return { c: { r: +rgb[1], g: +rgb[2], b: +rgb[3] }, a: rgb[4] === undefined ? 1 : +rgb[4] };
+        const m = /^#([0-9a-f]{6})([0-9a-f]{2})?$/i.exec(h);
+        if (!m) throw new Error(`#2724: not a hex, rgb() or rgba() color: ${h}`);
+        return { c: hexToRgb(`#${m[1]}`), a: m[2] ? parseInt(m[2], 16) / 255 : 1 };
+      };
+      const over = (fg: { c: RGB; a: number }, bg: RGB): RGB => ({ r: fg.c.r * fg.a + bg.r * (1 - fg.a), g: fg.c.g * fg.a + bg.g * (1 - fg.a), b: fg.c.b * fg.a + bg.b * (1 - fg.a) });
+      const dtcgOf = (brand: string) => { const t = JSON.parse(readFileSync(resolve(HERE, `./out/${brand}.tokens.json`), 'utf8')); const root = Object.keys(t).find((k) => !k.startsWith('$'))!; return t[root] as Record<string, unknown>; };
+      const valueIn = (tree: Record<string, unknown>, path: string, mode: string, depth = 0): string => {
+        if (depth > 8) throw new Error(`#2724: alias loop at ${path}`);
+        const leaf = path.split('.').reduce<any>((n, k) => n?.[k], tree);
+        if (!leaf || leaf.$value === undefined) throw new Error(`#2724: no token ${path}`);
+        const v: string = (mode !== 'light' && leaf.$extensions?.prism3?.modes?.[mode]?.$value) || leaf.$value;
+        const alias = /^\{[^.]+\.(.+)\}$/.exec(v);
+        return alias ? valueIn(tree, alias[1], mode, depth + 1) : v;
+      };
+      const dotted = (figmaName: string | undefined): string => String(figmaName).replace(/\//g, '.');
+      const at = (sel: string, st: string) => memberOf(sel, 'medium', st)!.root;
+      const ctlPlan = figmaAnatomySet(ctlDef, {}).find((m) => (m.size ?? m.coord.size) === 'medium')!;
+      const trackRef = findIn(ctlPlan.root, 'track')?.paints?.fills;
+      const ringPlan = figmaAnatomySet(componentDefs.find((d) => d.id === 'focus-ring')!, {}).find((m) => m.coord.surface === 'default');
+      const ringRef = ringPlan && (findIn(ringPlan.root, 'ring') ?? ringPlan.root).paints?.strokes;
+      const pillRef = findIn(at('selected', 'rest'), 'indicator')?.paints?.fills;
+      // The pairs, each named by what sits on what. Labels and icons on the pill hold the selected member's ink at
+      // each state; on the track, the unselected member's ink over that state's wash (none at rest).
+      type Pair = { what: string; ink: string; ground: string[]; floor: number };
+      const pairs: Pair[] = [];
+      for (const st of ['rest', 'hover', 'pressed']) {
+        const wash = findIn(at('unselected', st), 'indicator')?.paints?.fills;
+        for (const [part, floor] of [['label', 4.5], ['leadingVisual', 3]] as const) {
+          const inkOf = (sel: string) => { const n = findIn(at(sel, st), part); return part === 'label' ? n?.paints?.fills : (n?.descendantFills ?? n?.paints?.fills); };
+          pairs.push({ what: `${part} on the pill at ${st}`, ink: dotted(inkOf('selected')), ground: [dotted(pillRef)], floor });
+          pairs.push({ what: `${part} on the track at ${st}`, ink: dotted(inkOf('unselected')), ground: [dotted(trackRef), ...(wash ? [dotted(wash)] : [])], floor });
         }
-        edges.push({ cell: `${brand}/${mode}`, ratio: contrast(solid(edge), solid(page)) });
       }
-      const low = (xs: { cell: string; ratio: number }[]) => xs.reduce((a, c) => (c.ratio < a.ratio ? c : a), { cell: 'none', ratio: Infinity });
-      const lowInk = low(cells), lowEdge = low(edges);
-      ok(miss.length === 0 && inks.length > 0 && inks.every((i) => /^color\/interactive\/neutral\/text\//.test(i)) && cells.length === 16 * inks.length && lowInk.ratio >= 4.5,
-        `#2418 Q269 the selected label: neutral ink, never primary (${inks.join(', ')}), and it clears 4.5:1 on the tint composited over color/background/primary in all 16 brand × mode cells (${cells.length} measured, lowest ${lowInk.ratio.toFixed(2)}:1 at ${lowInk.cell}${miss.length ? `; ${miss.join('; ')}` : ''})`);
-      ok(edges.length === 16 && lowEdge.ratio >= 3,
-        `#2418 Q269.3 the selected outline (${OUTLINE}) clears 3:1 against color/background/primary, the track ground, in all 16 brand × mode cells (${edges.length} measured, lowest ${lowEdge.ratio.toFixed(2)}:1 at ${lowEdge.cell})`);
+      pairs.push({ what: 'focus ring against the track', ink: dotted(ringRef), ground: [dotted(trackRef)], floor: 3 });
+      pairs.push({ what: 'focus ring against the page', ink: dotted(ringRef), ground: ['color.background.primary'], floor: 3 });
+      const measured: { cell: string; ratio: number; floor: number }[] = [];
+      const cmiss: string[] = [];
+      for (const brand of BRANDS) {
+        const f = resolve(HERE, `./out/${brand}.tokens.json`);
+        if (!existsSync(f)) { cmiss.push(`${brand}: no tree`); continue; }
+        const tree = dtcgOf(brand);
+        for (const mode of MODES) {
+          const page = hex8(valueIn(tree, 'color.background.primary', mode)).c;
+          for (const pr of pairs) {
+            try {
+              // The ground stack: the first layer over the page, each later one over the last.
+              const ground = pr.ground.reduce((bg, ref) => over(hex8(valueIn(tree, ref, mode)), bg), page);
+              const ink = hex8(valueIn(tree, pr.ink, mode));
+              if (ink.a !== 1) { cmiss.push(`${brand}/${mode} ${pr.what}: ink alpha ${ink.a}`); continue; }
+              measured.push({ cell: `${brand}/${mode} ${pr.what}`, ratio: contrast(ink.c, ground), floor: pr.floor });
+            } catch (e) { cmiss.push(`${brand}/${mode} ${pr.what}: ${(e as Error).message}`); }
+          }
+        }
+      }
+      const under = measured.filter((x) => x.ratio < x.floor);
+      const lowest = (floor: number) => measured.filter((x) => x.floor === floor).reduce((a, c) => (c.ratio < a.ratio ? c : a), { cell: 'none', ratio: Infinity, floor });
+      ok(pillRef === PILL && trackRef === 'color/background/secondary' && ringRef === 'color/border/focus' && cmiss.length === 0 && pairs.length === 14 && measured.length === 20 * 14 && under.length === 0,
+        `#2724 contrast over 5 brands × 4 modes: the label 4.5:1 and the icon 3:1 on the pill (${String(pillRef)}) and on the track (${String(trackRef)}) at rest, hover and pressed, and the focus ring (${String(ringRef)}) 3:1 against the track and the page (${measured.length} measured; lowest label ${lowest(4.5).ratio.toFixed(2)}:1 at ${lowest(4.5).cell}, lowest 3:1 pair ${lowest(3).ratio.toFixed(2)}:1 at ${lowest(3).cell}${under.length ? `; UNDER: ${under.slice(0, 3).map((x) => `${x.cell} ${x.ratio.toFixed(2)}:1`).join(' | ')}` : ''}${cmiss.length ? `; ${cmiss.slice(0, 3).join('; ')}` : ''})`);
 
       // (3) BOLD WHEN SELECTED, WIDTH HELD (Q269.3 A, Tab's construction). At every size and state the visible label is
       // label/{rung}/default unselected and label/{rung}/emphasis selected; the bold reserve binds emphasis in both, inside
@@ -15785,7 +15820,8 @@ arm: {
       ok(weightOff.length === 0,
         `#2418 Q269.3 the weight swap: unselected options set the label in label/{sm,md,lg}/default and selected in emphasis, with a clipped bold reserve driven by the same Label property holding the bold width (${weightOff.length} off${weightOff.length ? ` — ${weightOff.slice(0, 3).join(' | ')}` : ''})`);
 
-      // (4) THE CONTROL: a 1px neutral track (radius/md, Q269.5) holding EXACTLY five nested options, option 1 selected,
+      // (4) THE CONTROL: a neutral track filled with color/background/secondary and no outline (Q336 A, #2724), at
+      // radius/md (Q269.5), holding EXACTLY five nested options, option 1 selected,
       // 3 shown, 4 and 5 off behind Figma-only toggles, an optional nested FieldLabel (Q269.7, Q269.8). Mutation: a sixth
       // segment → this arm (a segmented control holds two to five).
       const ctlMembers = figmaAnatomySet(ctlDef, {});
@@ -15796,7 +15832,7 @@ arm: {
         const track = findIn(m.root, 'track');
         const kids = track?.children.map((k) => k.name) ?? [];
         if (JSON.stringify(kids) !== JSON.stringify(SEGS)) bad.push(`track holds ${kids.join(',')}`);
-        if (track?.paints?.strokes !== 'color/interactive/neutral/border/rest' || track?.paints?.fills !== undefined || track?.bound?.strokeWeight !== 'border-width/hairline' || track?.bound?.topLeftRadius !== 'radius/md')
+        if (track?.paints?.fills !== 'color/background/secondary' || track?.paints?.strokes !== undefined || track?.bound?.strokeWeight !== undefined || track?.bound?.topLeftRadius !== 'radius/md')
           bad.push(`track ${JSON.stringify(track?.paints)} ${track?.bound?.strokeWeight} ${track?.bound?.topLeftRadius}`);
         SEGS.forEach((t, i) => {
           const n = findIn(m.root, t);
@@ -15811,7 +15847,7 @@ arm: {
         return bad.length ? [`${planComponentName(m)}: ${bad.join('; ')}`] : [];
       });
       ok(ctlMembers.length === 3 && ctlOff.length === 0,
-        `#2418 Q269.7/Q269.8 control: 3 members (size), a 1px color/interactive/neutral/border/rest track at radius/md with no fill, holding exactly five options following the size, option 1 selected, 1-3 shown and 4-5 hidden behind "Segment 4"-"Segment 5", selection and state exposed, under a nested FieldLabel behind "Label" (${ctlMembers.length} members, ${ctlOff.length} off — ${ctlOff[0] ?? 'none'})`);
+        `#2418 Q269.7/Q269.8 control (#2724 Q336 track): 3 members (size), a color/background/secondary track at radius/md with no outline, holding exactly five options following the size, option 1 selected, 1-3 shown and 4-5 hidden behind "Segment 4"-"Segment 5", selection and state exposed, under a nested FieldLabel behind "Label" (${ctlMembers.length} members, ${ctlOff.length} off — ${ctlOff[0] ?? 'none'})`);
       const ctlProps = planSetProperties(ctlMembers).filter((p) => p.type === 'BOOLEAN').map((p) => `${p.name}=${String(p.default)}`);
       ok(JSON.stringify(ctlProps) === JSON.stringify(['Label=true', 'Segment 3=true', 'Segment 4=false', 'Segment 5=false']),
         `#2418 Q269.7 control: the set declares exactly four Figma-only toggles, Label and Segment 3 on, Segment 4 and 5 off (${ctlProps.join(', ')})`);
@@ -18498,61 +18534,19 @@ arm: {
     ok(disText.ink.fills === figmaVarName(button.tokens['disabled.label']) && disText.icon === figmaVarName(button.tokens['disabled.icon']),
       'anatomy/paint: disabled INK is unconditional — every appearance has ink even when it has no structure');
 
-    // THE DISABLED EDGE TRACKS THE DISABLED INK (#1349), pinned BY NAME independently of the projector.
-    // The paint tests above read `button.tokens['disabled.border']` dynamically, so they follow whatever
-    // the binding is and cannot notice a revert to the old darker `color.disabled.border` role. These
-    // three assertions are the behavior pin (docs/34): on each of the three families the disabled BORDER
-    // role must EQUAL the disabled ICON role (the graphical-object ink) AND must NOT be `color.disabled.border`
-    // (the muted, `min: 0`, fill-matched neutral it used to bind, darker than the ink on an inverse band).
-    // A mutation reverting line ~317 of button.ts to `color.disabled.border` fails the named assertion below,
-    // rather than the border silently going heavy again. `disabled.icon` (not `.text`) is the peer named
-    // because a border is a non-text graphical object, though the two roles resolve identically.
-    for (const def of [button, buttonDestructive, buttonNeutral]) {
-      ok(def.tokens['disabled.border'] === def.tokens['disabled.icon'],
-        `#1349 disabled edge: ${def.id} border role (${def.tokens['disabled.border']}) tracks the disabled icon ink (${def.tokens['disabled.icon']})`);
-      ok(def.tokens['disabled.border'] !== 'color.disabled.border',
-        `#1349 disabled edge: ${def.id} border is rebound off the old darker \`color.disabled.border\` (fill-matched, min:0), not reverted to it`);
+    // A BORDER NEVER BINDS AN ICON OR TEXT ROLE (Q346, #2749), pinned BY NAME independently of the projector.
+    // The paint tests above read `button.tokens['disabled.border']` dynamically, so they follow whatever the
+    // binding is. These pin the seven defs that once bound the disabled edge to `color.disabled.icon` (#1349,
+    // #1697, both superseded by the owner) to the cross-cutting `color.disabled.border`, so a revert fails a
+    // named assertion here as well as `lint-paint.ts` arm 5. The 3:1 sweep that sat here measured the ICON
+    // role against the page; it existed only to justify that binding and went with it. A disabled control is
+    // outside SC 1.4.11, and the disabled edge's strength is the token tier's to set (#2750), not a per-def floor.
+    const edgeDefs = ['button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'tag'];
+    for (const id of edgeDefs) {
+      const def = componentDefs.find((d) => d.id === id);
+      ok(!!def && def.tokens['disabled.border'] === 'color.disabled.border',
+        `Q346 disabled edge: ${id} binds the disabled border role, not an icon or text role (got ${def?.tokens['disabled.border']})`);
     }
-    // …and the rebound edge clears the SC 1.4.11 3:1 graphical-object bar. The `outline` disabled border is
-    // the only appearance that paints it (STRUCTURAL, no fill) and it sits on the page, which is exactly the
-    // ground `disabled.icon` is gated against — so the role's own measured ratio IS the border-vs-page ratio.
-    // Measured live via resolveAllModes (independent of the button def), across the example brands × every mode
-    // (aurora, harbor — the two shipped as brand-input JSON; nb 3.16 / aurora 3.16 / harbor 3.32 in the report).
-    const borderInkRole = button.tokens['disabled.border'].replace(/^color\./, '');
-    let checkedRatios = 0;
-    for (const id of EXAMPLE_IDS) {
-      const th = exampleTheme(id, () => brandTheme(exampleBrands()[id] as BrandInput));
-      if (!th) continue;
-      for (const M of resolveAllModes(th)) {
-        const role = (M.roles as Record<string, { ratio?: number; min?: number } | undefined>)[borderInkRole];
-        ok(!!role && typeof role.ratio === 'number' && role.ratio >= 3,
-          `#1349 disabled edge: ${id}/${M.mode} rebound border (${borderInkRole}) clears 3:1 as a graphical object (ratio ${role?.ratio})`);
-        checkedRatios++;
-      }
-    }
-    ok(checkedRatios >= EXAMPLE_IDS.length, `#1349 disabled edge: the 3:1 sweep actually ran (measured ${checkedRatios} brand×mode ratios, not an empty set)`);
-
-    // #1697 DECISION 1 — THE ICON-BUTTON DISABLED EDGE, rebound as #1349 rebound Button's. The ratio is read
-    // PER SIBLING off that sibling's own `disabled.border` binding and measured by `resolveAllModes`, which
-    // never sees the def — so a revert to `color.disabled.border` (1.48–1.80:1 against the page, gated
-    // `min: 0`) resolves a role under 3 and fails the named assertion below, independently of the equality pin.
-    let ibChecked = 0;
-    for (const def of [iconButton, iconButtonDestructive, iconButtonNeutral]) {
-      ok(def.tokens['disabled.border'] === def.tokens['disabled.icon'],
-        `#1697 disabled edge: ${def.id} border role (${def.tokens['disabled.border']}) tracks the disabled icon ink (${def.tokens['disabled.icon']})`);
-      const edgeRole = def.tokens['disabled.border'].replace(/^color\./, '');
-      for (const id of EXAMPLE_IDS) {
-        const th = exampleTheme(id, () => brandTheme(exampleBrands()[id] as BrandInput));
-        if (!th) continue;
-        for (const M of resolveAllModes(th)) {
-          const role = (M.roles as Record<string, { ratio?: number } | undefined>)[edgeRole];
-          ok(!!role && typeof role.ratio === 'number' && role.ratio >= 3,
-            `#1697 disabled edge: ${def.id} ${id}/${M.mode} border (${edgeRole}) clears 3:1 against the page (ratio ${role?.ratio})`);
-          ibChecked++;
-        }
-      }
-    }
-    ok(ibChecked >= 3 * EXAMPLE_IDS.length, `#1697 disabled edge: the icon-button 3:1 sweep actually ran (${ibChecked} sibling×brand×mode ratios)`);
 
     // Paints resolve against the SAME variable namespace as `bound`, so they must ride
     // `planBoundVars` — anything else silently exempts every paint from the emit cross-check above.
@@ -31414,6 +31408,26 @@ arm: {
   const FLOOR: Record<string, string> = { small: 'size/md/min-height', medium: 'size/md/min-height', large: 'size/lg/height' };
   ok(plans.every((p) => find(p.root as PN, 'header')?.bound?.minHeight === FLOOR[coord(p).size]),
     `#2417 accordion header: the 44px floor at every size, size/md/min-height at small and medium and size/lg/height at large (Q182)`);
+  // THE SIDE PADDING (Q338 A, #2726): 12 / 16 / 20px at small / medium / large, on the header and on the open panel
+  // alike, both sides. Large was the fields' 24; the fields keep it, so Text field and Select at large are held at 24
+  // here too, and a shared change to both fails one arm or the other. The px are typed literals; ACTUAL is the
+  // projected plan's binding read through the comfortable space scale.
+  {
+    const PX = new Map(spaceScale(SPACE_BASE).map((sp) => [`space/${sp.key}`, sp.px]));
+    const SIDE: Record<string, number> = { small: 12, medium: 16, large: 20 };
+    const offSide: string[] = [];
+    for (const p of plans) {
+      const c = coord(p);
+      for (const part of c.expansion === 'expanded' ? ['header', 'content'] : ['header']) {
+        const b = find(p.root as PN, part)?.bound ?? {};
+        const l = PX.get(b.paddingLeft), r = PX.get(b.paddingRight);
+        if (l !== SIDE[c.size] || r !== SIDE[c.size]) offSide.push(`${planComponentName(p)} ${part} ${l}/${r}`);
+      }
+    }
+    const fieldLarge = ['text-field', 'select'].map((id) => `${id} ${PX.get(componentDefs.find((d) => d.id === id)!.tokens['size.large.pad-x'].replace('.', '/'))}`);
+    ok(offSide.length === 0 && fieldLarge.join(', ') === 'text-field 24, select 24',
+      `#2726 accordion side padding (Q338 A): 12/16/20px on the header and the open panel at small/medium/large, and the fields keep 24 at large (fields ${fieldLarge.join(', ')}${offSide.length ? `; OFF: ${offSide.slice(0, 6).join('; ')}` : ''})`);
+  }
   // THE RING INSIDE THE HEADER'S EDGE (Q257 A, superseding Q243): offset 0 (the fields' offset) and NO stroke
   // compensation, so the ring's inside stroke sits within the header and never covers the nested Divider (measured
   // live: compensated, it covered it by 2px). The control offset back, or the compensation back, fails here by name.

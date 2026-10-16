@@ -61,9 +61,6 @@ mis-bind pass is a **heuristic**, and that is the reason it must be a tool. Its 
 slot-kind *should* bind from design semantics, and the corpus carries deliberate, already-pinned
 cross-slot bindings the heuristic would otherwise flag:
 
-- the disabled outline edge binds `color.disabled.icon` rather than `color.disabled.border` so the
-  edge tracks the disabled ink and clears 3:1 on an inverse ground (**#1349**, pinned *by name* in
-  `packages/engine/test.ts`);
 - the switch thumb paints `on-fill` (a filled knob whose color *is* the on-fill ink);
 - the switch on/off glyphs are tinted with the track's own `fill` role so they read as subtle marks.
 
