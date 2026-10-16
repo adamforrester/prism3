@@ -348,7 +348,7 @@ export const radioControl: ComponentDef = {
 
   ai: {
     primaryPurpose: 'Render the atomic radio control — the outlined circle, its inner selection dot and its focus ring — for a host row to nest.',
-    whenToUse: 'Nested by the labeled Radio.Row (the common case), or standalone only for a control with an external label and its own aria wiring.',
+    whenToUse: 'Inside Radio.Row, the common case. On its own only with an external label and its own ARIA wiring.',
     avoidWhen: 'You want the labeled case (that is Radio.Row), a staged binary opt-in (Checkbox.Row / Checkbox.Control), or an immediate-effect toggle (Switch.Row / Switch.Control). Never place a bare circle as the clickable element — the hit target is the labeled row.',
     commonPartners: ['radio-row', 'focus-ring', 'radio-group'],
     triggerKeywords: ['radio control', 'radio circle', 'radio disc', 'radio dot', 'option control'],
