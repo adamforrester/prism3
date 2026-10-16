@@ -11,7 +11,7 @@ A short status message that appears over the page after something the user did, 
 
 ## Usage
 
-Use a Toast to confirm something the user just did, when the page already shows the change: "Added to bag", "Address saved", "Code copied". If missing the message would cost the user something, use a banner. A decision before going on is a dialog; a message about one field is a field message.
+Use a Toast to confirm something the user did, when the page already shows the change: "Added to bag", "Address saved", "Code copied". If missing the message would cost the user something, use a banner. A decision before going on is a dialog; a message about one field is a field message.
 
 ### Do
 

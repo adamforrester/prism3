@@ -313,7 +313,8 @@
           "segmented-control",
           "link",
           "dialog",
-          "password-field"
+          "password-field",
+          "toast"
         ]
       }
     },

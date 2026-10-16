@@ -50,6 +50,14 @@ rather than as a Toast text property (a host text property can only drive the ho
   fails a registered id there).
 - One more committed artifact (`out/components/toast.md`), so `EXPECTED_ARTIFACTS` and the CI check move together.
 
+- `apps/plugin/test-update-apply.ts` corpus arm: Toast is the first def whose nested instance carries a swap
+  override (`icon/close`). The arm's fixture file held only the components a plan nests or swaps to itself, so the
+  update refused the set ("component the plan swaps to is not in this file: icon/close") and both members stayed
+  "to update". A real file holds the icon set; the fixture now holds each def's override swap targets too. The arm
+  still re-applies every def.
+- Generated with the def: the studio's used-by index and component catalog, and the ecosystem data's
+  component-defs list (`lint-ecosystem`).
+
 ### Trap for whoever re-verifies
 
 `lint-axis-values` reads the corpus through `git ls-files`, so an untracked new def file is invisible to it and the

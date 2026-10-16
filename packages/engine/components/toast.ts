@@ -206,7 +206,7 @@ export const toast: ComponentDef = {
   },
 
   docs: {
-    usage: 'Use a Toast to confirm something the user just did, when the page already shows the change: "Added to bag", "Address saved", "Code copied". If missing the message would cost the user something, use a banner. A decision before going on is a dialog; a message about one field is a field message.',
+    usage: 'Use a Toast to confirm something the user did, when the page already shows the change: "Added to bag", "Address saved", "Code copied". If missing the message would cost the user something, use a banner. A decision before going on is a dialog; a message about one field is a field message.',
     do: [
       'Confirm the user\'s own action in a few words',
       'Use success when the action completed, and neutral otherwise',
