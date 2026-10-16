@@ -252,6 +252,7 @@ export const CLI = [
   'tools/figma-mcp/plan.ts',
   'tools/figma-mcp/report.ts',
   'packages/engine/emit-agent-reference.ts',
+  'packages/engine/emit-figma-conventions.ts',
 ];
 
 /** Files that read `process.argv` and are deliberately not listed, each with why. */
