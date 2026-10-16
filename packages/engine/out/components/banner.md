@@ -80,7 +80,7 @@ None — not interactive.
   - 1.4.3 Contrast (the title and body clear 4.5:1 on every tone's fill, measured in every mode of the example brands)
   - 1.4.11 Non-text Contrast (the edge clears 3:1 against the page and the glyph 3:1 against the fill, measured in every mode of the example brands)
   - 2.4.3 Focus Order (the actions are in the tab order, and a dismiss moves focus to a surviving element)
-  - 2.5.8 Target Size (Minimum) (the dismiss button is a 20px glyph square; targets 44×44px through a code-side hit area)
+  - 2.5.8 Target Size (Minimum) (the dismiss button is a 36px circle; targets 44×44px through a code-side hit area)
   - 2.2.1 Timing Adjustable (the reason errors go in a banner, which stays, rather than a toast, which goes away)
 - **Keyboard:** The actions and the dismiss button are ordinary Tab stops in reading order. The banner itself takes no focus.
 - **Focus:** No focus of its own. After a dismiss, focus moves to the control that caused the banner or to the page heading, never to the page body.
