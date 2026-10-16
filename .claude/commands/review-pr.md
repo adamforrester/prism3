@@ -266,8 +266,8 @@ pending at its base; the highest declared class set the bump; every pending frag
 log (a fragment merged after the fold's base is missed: `lint-progress-order.ts` fails that case,
 LEAVES NOTHING PENDING, #2663, on the merged tree, the branch and the push run, so this step is a
 cross-check of that gate); it edits only
-`version.ts`, `packages/engine/CHANGELOG.md`, the log, the pending directories, `out/` and
-the rename stamps; and `pending/` and
+`version.ts`, `packages/engine/CHANGELOG.md`, the log, the pending directories, `out/`, the
+release notes under `docs/public/releases/` (#2650) and the rename stamps; and `pending/` and
 `changes/` hold only their `README.md` afterwards. In the log, grep for the new headings and
 confirm they sit at the top, **even when git reported zero conflicts** — diff3 has no
 "most-recent-first" concept. Same for `32-component-build-learnings.md`.

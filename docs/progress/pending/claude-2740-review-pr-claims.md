@@ -15,6 +15,10 @@
   commit the fold carries, so a fold branch that merged `main` is re-run against what it merged. The approving review of fold #2582 ran it, and it is the one fold check
   independent of the fold PR's own claims.
 
+- **The fold's write list, kept current.** #2650 (merged while this PR was open) made a fold also write release notes
+  under `docs/public/releases/`, and `lint-progress-order.ts`'s PURE arm admits them. The checklist's "it edits only"
+  list now names them, so a reviewer does not flag a correct fold for touching them.
+
 **Trap.** The commit trailer and the PR footer can legitimately name different sessions on the same PR. Neither alone
 proves a PR is not yours. Only your own link in either place proves it is. A missing footer, or one with no link,
 proves nothing either way: some lane PRs carry only the orchestrator's link, and Ready comments carry the bare footer.
