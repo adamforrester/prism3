@@ -65,7 +65,14 @@ const legacy = (id: string, from: string, row: (i: number) => string, n: number,
   const proto = parts[items.children![0]];
   const second = parts[items.children![1]];
   const rows: Record<string, PartDef> = {};
-  for (let i = 1; i <= n; i++) rows[row(i)] = { ...(i === 1 ? proto : second), ...(i >= firstToggle ? { optional: true } : {}) } as PartDef;
+  // A ROW CARRIES NO PER-INSTANCE OVERRIDE (#2645). The sets this migrates were built from the defs before #2645, and
+  // the stand-in rows here declare none of the properties an override names, so carrying today's (List's numbers)
+  // would make the premise build fail on a property the legacy host never had. A row's own property values, an
+  // override's number included, reach the update as the row instance's `componentProperties`, which `props` models.
+  for (let i = 1; i <= n; i++) {
+    const { overrides: _o, ...p } = (i === 1 ? proto : second) as PartDef & { overrides?: unknown };
+    rows[row(i)] = { ...p, ...(i >= firstToggle ? { optional: true } : {}) } as PartDef;
+  }
   delete parts.items;
   for (const c of items.children!) delete parts[c];
   const rowNames = Object.keys(rows);

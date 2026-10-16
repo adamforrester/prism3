@@ -107,3 +107,23 @@ A third merge of `main` (Dialog #2652, the agent reference #2644) conflicted on 
 both sides' rows are kept, and on the component surface baseline and comparison report, which are re-accepted and
 regenerated. One step git does not flag: `component-axes.json` merges cleanly but is stale, because Dialog's entry
 lacks the component properties this branch records, so `lint-component-renames` fails until it is re-accepted.
+
+**Combined re-gate round (RED on `main` `4754d868` + `330e91a5`).** #2683 (#2645, per-instance overrides on nested
+instances) landed on `main` and conflicts with this PR in behavior, though the text merges cleanly. Started from the
+re-gate's mechanical resolution (`train/2660-merge-main`, `e25ab7f9`) and fixed its four failures:
+- **The two executors disagreed on override misses (36 vs 18).** The plugin's `toSlots` runs `build` over each new
+  SLOT to write the slot's own fields from the plan. That pass visits the items the slot holds a second time, so
+  `applyNestOverrides` wrote again and pushed every miss twice. The paste twin `__slotsNow` only moves the items. The
+  fix is a per-run `WeakSet` of the instances whose own values (`nestOverrides`, and `nestTexts` with them, the same
+  per-instance write by the same path) are already written, which lets the second visit skip them. I chose this over
+  narrowing `toSlots`'s `build` to the slot alone: the in-place pairing is what keeps the slot's children, and
+  passing it an empty plan would remove them. `EXECUTOR_REVISION` 27 → 28. Mutation: drop the `firstVisit` guard →
+  `❌ #2645 parity: the plugin executor reports the same override misses as the payload (36 vs 18)`.
+- **`test-slot-migration`'s legacy fixture** now carried today's number overrides onto rows whose stand-in declares
+  no `number` property, so the premise build failed. The fixture strips `overrides` from its rows. That is the shape
+  of the files this migrates: they were built from the defs before #2645, and the fixture's cloning of the second
+  row would give every row "2." anyway, which no real file had. A row's number, typed or overridden, reaches the
+  migration as the row instance's own `componentProperties`, which the placed-instance model already covers.
+- **`test-update-apply`'s #2645 section** expected List's eight items as direct children. It now finds the three in
+  the `items` slot, at the paths the dry run reports (`items/item2`).
+- **`test-roundtrip`'s read-back predicate** found `item2` under List's root. It now finds it at any depth.

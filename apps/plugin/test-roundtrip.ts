@@ -269,7 +269,10 @@ ok(BUTTON_LAID.length === 6 && (EXERCISED.pin ?? 0) > 0 && (EXERCISED.paddingPx 
   const plan = figmaAnatomySet(PROJECTED.find((d) => d.id === 'list')!, { swapTarget: SWAP_TARGET })[0];
   const item = (props: unknown): HostNode => ({ name: 'item2', type: 'INSTANCE', children: [], componentProperties: props });
   const one = (props: unknown): string | null => {
-    const want = (plan.root.children.find((c) => c.name === 'item2') as { nestOverrides?: unknown }).nestOverrides;
+    // List's items sit in its `items` slot (#2649), so item2 is found at any depth.
+    type P = { name: string; children: P[]; nestOverrides?: unknown };
+    const find = (n: P): P | undefined => (n.name === 'item2' ? n : n.children.map(find).find(Boolean));
+    const want = find(plan.root as unknown as P)!.nestOverrides;
     const d = diffAnatomy([{ ...plan, root: { name: 'item2', type: 'NESTED_INSTANCE', bound: {}, children: [], nestOverrides: want } as never }], [item(props)], () => 'item2', { varName: () => null, styleName: () => null })
       .find((x) => x.field === 'nestOverrides');
     return d ? d.actual : null;

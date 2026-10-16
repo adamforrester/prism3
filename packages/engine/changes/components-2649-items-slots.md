@@ -16,3 +16,7 @@ axes baseline records each set's component properties, and the component-surface
 update of a set built the old way carries every placed instance across: its visible rows become slot items in order,
 each with its own variant, label and checked state, a hidden row is left out, and anything that cannot carry over is a
 named line in the dry run.
+With #2645's per-instance overrides, List's three default items read "1." to "3.": the second and third override
+List.Item's number. The plugin executor writes a nested instance's overrides and texts once per instance in a run, as
+the paste payload does. Before, making a native slot rebuilt its items a second time and reported every override miss
+twice.
