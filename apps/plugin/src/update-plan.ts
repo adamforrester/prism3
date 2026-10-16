@@ -53,6 +53,7 @@ import { ENGINE_VERSION } from '@prism3/engine/version';
 import { EXECUTOR_REVISION } from './executor-revision';
 import { memberStamp, planHalf, revHalf, respaceSets, STAMP_KEY, type RespaceBox } from './write-components';
 import { readTag } from './canvas-furniture';
+import { labelColumns, readLabelColumn } from './label-columns';
 import { NS } from './persist-figma';
 import { BASELINE_V, UPDATING_KEY, baselineDiff, baselineOf, builtByPrism3, readBaseline, recordFormat, snapshotMember, writeBaseline, type Baseline, type OwnershipRead, type SnapNode } from './member-baseline';
 import { drawnFaults, faultLine, type DrawnFault, type DrawVar } from './drawn';
@@ -90,6 +91,8 @@ export type HostSetView = {
   /** #2296 — a def built as single components (`emitAsComponents`): no set node, no property definitions, and each
    *  member a top-level component found anywhere in the file. */
   single?: boolean;
+  /** #2705 — the set's recorded label column width (`label-columns.ts`), absent when it has none. */
+  labelColumn?: number;
 };
 
 export type MemberState = 'current' | 'update' | 'handEdited' | 'unstamped' | 'noBaseline' | 'revisionUnknown';
@@ -139,7 +142,7 @@ export type SetPreview = {
   /** #2188 Q173 — the members an update moves to their place in the grid, by name (`gridMoves`). Absent when none. */
   positions?: string[];
   /** #2542 (owner decision Q245.2 A) — the WHOLE SET moves on its page, to where a fresh build would place it
-   *  (`respaceSets`), so sets sit `SET_GAP` apart. Absent when it stays. */
+   *  (`respaceSets`), so the visible gap between sets, furniture included, is `SET_GAP` (#2723). Absent when it stays. */
   setMove?: { from: { x: number; y: number }; to: { x: number; y: number } };
   needsChoice: Choice[];
   /** Of `blockers`, those Adopt clears by claiming the members they name (`setRefusal`), so it is not refused for
@@ -244,7 +247,7 @@ export const ownedView = (host: HostSetView): HostSetView => {
  * update's apply re-lays the grid and keeps every id. A member not built by Prism3 is never one of them (#2325,
  * #2464), adoptable or not; it still counts toward its row's height and its column's width, as the executor counts it.
  */
-export const gridMoves = (plans: AnatomyPlan[], members: readonly HostMember[]): string[] => {
+export const gridMoves = (plans: AnatomyPlan[], members: readonly HostMember[], labelColumn = 0): string[] => {
   if (!plans.length) return [];
   let cells: { name: string; row: number; col: number }[];
   try { cells = planSetLayout(plans, 'gridMoves').cells; } catch { return []; }
@@ -259,12 +262,14 @@ export const gridMoves = (plans: AnatomyPlan[], members: readonly HostMember[]):
     colW[c.col] = Math.max(colW[c.col] ?? 0, m.snap.width as number);
     rowH[c.row] = Math.max(rowH[c.row] ?? 0, m.snap.height as number);
   }
+  // Columns at least the set's recorded label width, members centered in the extra (#2705), as the executor lays them.
+  const cols = labelColumns(colW, labelColumn);
   // Sparse arrays, reduced as the executor reduces them: a row or column with no member adds nothing.
   const at = (arr: number[], n: number): number => PAD + arr.slice(0, n).reduce((a, b) => a + (b || 0) + GAP, 0);
   return placed.filter((m) => {
     if (!m.stamp) return false;
     const c = cellOf.get(m.name)!;
-    return Math.abs((m.snap.x as number) - at(colW, c.col)) > 0.5 || Math.abs((m.snap.y as number) - at(rowH, c.row)) > 0.5;
+    return Math.abs((m.snap.x as number) - at(cols.width, c.col) - (cols.inset[c.col] ?? 0)) > 0.5 || Math.abs((m.snap.y as number) - at(rowH, c.row)) > 0.5;
   }).map((m) => m.name);
 };
 
@@ -562,7 +567,7 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
   const adoptClears = refused?.adoptClears ? [refused.reason] : [];
 
   // A set with members refused or to collapse is refused by the update, so it reports no moves either.
-  const positions = blockers.length || host.single ? [] : gridMoves(plans, host.members);
+  const positions = blockers.length || host.single ? [] : gridMoves(plans, host.members, host.labelColumn);
   if (positions.length) counts.move = positions.length;
 
   const truncated: Record<string, number> = {};
@@ -654,7 +659,8 @@ export const readSetView = async (set: LiveSet, breathe?: () => Promise<void>, d
   try { definitions = (set.componentPropertyDefinitions ?? {}) as HostSetView['definitions']; } catch { definitions = null; }
   let key = '';
   try { key = typeof set.key === 'string' ? set.key : ''; } catch { key = ''; }
-  return { name: String(set.name ?? ''), id: String(set.id ?? ''), key, page: pageOf(set), members, others, definitions };
+  const labelColumn = readLabelColumn(set);
+  return { name: String(set.name ?? ''), id: String(set.id ?? ''), key, page: pageOf(set), members, others, definitions, ...(labelColumn ? { labelColumn } : {}) };
 };
 
 /** The reason a member is left out when its node moved between the read and the write (#2301). DRAFT. */
@@ -919,11 +925,14 @@ export const pageSetMoves = (found: readonly { name: string; set: LiveSet; block
     const ours = kids.filter((k) => k.type === 'COMPONENT_SET' && setBuiltByPrism3(k));
     if (here.some((f) => f.blocked) || !ours.every((k) => read.has(k as LiveSet))) continue;
     // Keyed by the node's place on the page, never by its id: what maps a move back to its set is the node itself.
+    // Furniture names its set by node id (#2723): mapped to that set's place on the page, its `id` here.
+    const at = new Map(kids.map((k, i) => [String(k.id ?? ''), String(i)] as const));
     const boxes: RespaceBox[] = kids.map((k, i) => ({
       id: String(i), type: String(k.type ?? ''), x: Number(k.x ?? 0), y: Number(k.y ?? 0), width: Number(k.width ?? 0), height: Number(k.height ?? 0),
       header: (k.type === 'INSTANCE' || k.type === 'FRAME') && String(k.name ?? '').toLowerCase() === '_section-header',
       prism3: k.type === 'COMPONENT_SET' && setBuiltByPrism3(k),
       furniture: !!readTag(k as never),
+      of: at.get(readTag(k as never)?.set ?? ''),
     }));
     for (const m of respaceSets(boxes)) {
       const f = here.find((x) => x.set === (kids[Number(m.id)] as LiveSet));

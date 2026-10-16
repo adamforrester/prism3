@@ -266,8 +266,11 @@ until then it gets no furniture, so it never carries one backdrop per band. Labe
 enter the set, so the update's hand-edit check and the as-built record never read them. The switch is
 `CANVAS_FURNITURE` (engine), on for every def that builds a set; Icon and Spinner build single components and have
 none. A row thinner than its label (the 1px horizontal Divider, #2568 Q258 A) keeps the label's own height, centered
-on the row, with `Show bracket` off; every other row label spans its rows. Sets side by side sit `SET_GAP` (400) apart, so a later set's row labels fit between them. Gated by
-`test-canvas-furniture.ts`, which draws every def and measures the clearance on every shared page.
+on the row, with `Show bracket` off; every other row label spans its rows. Sets side by side keep `SET_GAP` (160) of white space between them, measured
+from the outer edge of one set's labels and backdrop to the next set's (#2723, Q335 A): a build places a new set again
+once its labels are drawn (`seatNewSet`), and Update moves a set that sits too close, or exactly where the earlier
+400-frame rule put it. Gated by `test-canvas-furniture.ts`, which draws every def and measures the 160 on every
+shared page.
 
 **Interactive components (#2466, owner decision Q238 A).** Every set whose `state` axis holds `rest`, `hover` and
 `pressed` (the button family, icon buttons, tag, tab, and the checkbox, radio and switch controls) gets prototype

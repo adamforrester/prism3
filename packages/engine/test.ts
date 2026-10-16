@@ -21739,28 +21739,28 @@ arm: {
         const box = (n: Record<string, unknown> | undefined) => `${String(n?.width)}x${String(n?.height)}`;
         ok(at(first) === '0,0' && box(first) === '504x348',
           `#1809 the first set on an empty page stays at 0,0; its box is pinned as the input to the arms below (${at(first)}, ${box(first)})`);
-        // (f) A SECOND DEF ON THE SAME PAGE lands 400 right of the first (160 before #2502) (504 + 400 = 904), top-aligned. Chunk 2
+        // (f) A SECOND DEF ON THE SAME PAGE lands 160 right of the first (#2723's visible gap; neither set has labels here) (504 + 160 = 664), top-aligned. Chunk 2
         // onward append into it and do not move it.
         const dRuns = await paste(destructive, placePage);
         const second = setOf(placePage, 'button-destructive');
-        ok(dRuns.length >= 2 && placePage.children.length === 2 && at(second) === '904,0' && at(first) === '0,0',
-          `#1809 a second set pasted onto the page lands beside the first, 400px clear and top-aligned, at 904,0 (${dRuns.length} chunks; button-destructive at ${at(second)}, button at ${at(first)})`);
+        ok(dRuns.length >= 2 && placePage.children.length === 2 && at(second) === '664,0' && at(first) === '0,0',
+          `#1809 a second set pasted onto the page lands beside the first, 160px clear and top-aligned, at 664,0 (${dRuns.length} chunks; button-destructive at ${at(second)}, button at ${at(first)})`);
         // PARITY: the plugin places the same set at the same coordinate on the same page.
         const placePlug: StubPage = { children: [] };
         await plug(btn, placePlug);
         await plug(destructive, placePlug);
-        ok(at(setOf(placePlug, 'button-destructive')) === '904,0' && at(setOf(placePlug, 'button-destructive')) === at(second),
+        ok(at(setOf(placePlug, 'button-destructive')) === '664,0' && at(setOf(placePlug, 'button-destructive')) === at(second),
           `#1809 parity: the plugin places the second set at the same coordinate (plugin ${at(setOf(placePlug, 'button-destructive'))}, paste ${at(second)})`);
         // (g) A REBUILD NEVER MOVES A SET: re-pasting `button` after the designer moved it leaves it there.
         first!.x = 5000;
         first!.y = 7000;
         const again = await paste(btn, placePage);
-        ok(again.every((r) => r.added === 0) && at(first) === '5000,7000' && at(second) === '904,0',
+        ok(again.every((r) => r.added === 0) && at(first) === '5000,7000' && at(second) === '664,0',
           `#1809 a re-paste leaves a set the designer moved where they put it, and its sibling where it was (button at ${at(first)}, button-destructive at ${at(second)})`);
 
         // (h) WHAT SHARES THE ROW PUSHES IT RIGHT; WHAT SITS ABOVE DOES NOT. A header-wide frame above the sets
-        // (bottom edge at -80) and a note inside the row at x 600..1000. Expected x: 1000 + 400 = 1400, not the
-        // header's 5000 + 400.
+        // (bottom edge at -80) and a note inside the row at x 600..1000. Expected x: 1000 + 160 = 1160, not the
+        // header's 5000 + 160.
         const rowPage: StubPage = { children: [] };
         const rowPlug: StubPage = { children: [] };
         for (const pg of [rowPage, rowPlug]) {
@@ -21775,20 +21775,20 @@ arm: {
           const p = rect(a), q = rect(b);
           if (p.x < q.r && q.x < p.r && p.y < q.b && q.y < p.b) overlaps.push(`${String(a.name)} x ${String(b.name)}`);
         }));
-        ok(at(setOf(rowPage, 'button-destructive')) === '1400,0' && rowPage.children.length === 4 && overlaps.length === 0,
-          `#1809 a node in the set's row pushes it right (1000 + 400), a node wholly above it does not, and no two of the page's nodes overlap (at ${at(setOf(rowPage, 'button-destructive'))}; overlaps: ${overlaps.join(', ') || 'none'})`);
-        ok(at(setOf(rowPlug, 'button-destructive')) === '1400,0',
+        ok(at(setOf(rowPage, 'button-destructive')) === '1160,0' && rowPage.children.length === 4 && overlaps.length === 0,
+          `#1809 a node in the set's row pushes it right (1000 + 160), a node wholly above it does not, and no two of the page's nodes overlap (at ${at(setOf(rowPage, 'button-destructive'))}; overlaps: ${overlaps.join(', ') || 'none'})`);
+        ok(at(setOf(rowPlug, 'button-destructive')) === '1160,0',
           `#1809 parity: the plugin places it at the same coordinate on the same page (plugin ${at(setOf(rowPlug, 'button-destructive'))})`);
 
         // (i) CONTENT BUT NO SET YET: top-aligned with the content, right of it. A frame at x 100..600, y 40 →
-        // the set at 1000,40.
+        // the set at 600 + 160 = 760,40.
         const introPage: StubPage = { children: [{ type: 'FRAME', name: 'intro', x: 100, y: 40, width: 500, height: 300 }] };
         await paste(btn, introPage);
-        ok(at(setOf(introPage)) === '1000,40',
-          `#1809 on a page with content and no set, the set lands right of it, top-aligned, at 1000,40 (got ${at(setOf(introPage))})`);
+        ok(at(setOf(introPage)) === '760,40',
+          `#1809 on a page with content and no set, the set lands right of it, top-aligned, at 760,40 (got ${at(setOf(introPage))})`);
 
         // (i') A NODE WHOLLY BELOW THE ROW DOES NOT PUSH THE SET. A note at x 600..1000, y 400..500, under the
-        // `button` set's 348-high row. Expected: 504 + 400 = 904,0, not the note's 1000 + 400, in both executors.
+        // `button` set's 348-high row. Expected: 504 + 160 = 664,0, not the note's 1000 + 160, in both executors.
         const belowPage: StubPage = { children: [] };
         const belowPlug: StubPage = { children: [] };
         for (const pg of [belowPage, belowPlug]) {
@@ -21796,16 +21796,16 @@ arm: {
           pg.children.push({ type: 'FRAME', name: 'below', x: 600, y: 400, width: 400, height: 100 });
           if (pg === belowPage) await paste(destructive, pg); else await plug(destructive, pg);
         }
-        ok(at(setOf(belowPage, 'button-destructive')) === '904,0' && at(setOf(belowPlug, 'button-destructive')) === '904,0',
-          `#1809 a node wholly below the row does not push the set: 904,0 in both executors (paste ${at(setOf(belowPage, 'button-destructive'))}, plugin ${at(setOf(belowPlug, 'button-destructive'))}; destructive set ${String(setOf(belowPage, 'button-destructive')?.height)} high)`);
+        ok(at(setOf(belowPage, 'button-destructive')) === '664,0' && at(setOf(belowPlug, 'button-destructive')) === '664,0',
+          `#1809 a node wholly below the row does not push the set: 664,0 in both executors (paste ${at(setOf(belowPage, 'button-destructive'))}, plugin ${at(setOf(belowPlug, 'button-destructive'))}; destructive set ${String(setOf(belowPage, 'button-destructive')?.height)} high)`);
 
         // (j) THE REMEDY THE MISS STATES IS TRUE, and the new set lands beside the old: rename the refused set
-        // aside and paste again. The renamed set is 504 wide (the same 36 members), so the new one lands at 904,0.
+        // aside and paste again. The renamed set is 504 wide (the same 36 members), so the new one lands at 664,0.
         setOf(renPage)!.name = 'button (earlier axes)';
         const remedy = await paste(btn, renPage);
         ok(remedy.every((r) => !r.misses.length) && renPage.children.length === 2 && kids(setOf(renPage)).length === 36
-          && at(setOf(renPage)) === '904,0' && kids(setOf(renPage, 'button (earlier axes)')).every((m, i) => m === renBefore[i]),
-          `#1809 after renaming the old set aside, the paste makes a fresh 36-member set beside it at 904,0 and leaves the old one as it was (${renPage.children.length} top-level, new set at ${at(setOf(renPage))}, misses ${JSON.stringify(remedy.map((r) => r.misses.length))})`);
+          && at(setOf(renPage)) === '664,0' && kids(setOf(renPage, 'button (earlier axes)')).every((m, i) => m === renBefore[i]),
+          `#1809 after renaming the old set aside, the paste makes a fresh 36-member set beside it at 664,0 and leaves the old one as it was (${renPage.children.length} top-level, new set at ${at(setOf(renPage))}, misses ${JSON.stringify(remedy.map((r) => r.misses.length))})`);
       }
 
       // ---- #1377 / #1392: THE PAYLOAD EXECUTOR'S EXPOSURE WRITE, over EVERY nest-exposed def -------

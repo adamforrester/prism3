@@ -4771,24 +4771,24 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     `#1750 the first set on an empty page stays at 0,0; its box is pinned here as the input to the arms below (${at(first)}, ${box(first)})`);
 
   // (b) TWO DEFS ON ONE PAGE, in the taxonomy's order (`↳ Buttons`: button, then button-destructive): the
-  // second lands 400 right of the first (780 + 400 = 1180), top-aligned. 400 since #2502 (160 before), so the
-  // second set's canvas labels fit between the two.
+  // second lands 160 right of the first (780 + 160 = 940), top-aligned: #2723's visible gap, frame to frame here
+  // because the executor draws no labels (`main.ts` places the set again once they are drawn, `seatNewSet`).
   const rDestructive = await run(destructive, { ...fullFor(destructive), page: pg });
   const second = pg.children[1];
-  ok(rDestructive.set === 'button-destructive' && second.name === 'button-destructive' && at(second) === '1180,0',
-    `#1750 the second set on a page lands beside the first, 400px clear and top-aligned, at 1180,0 (got ${String(second?.name)} at ${second ? at(second) : '—'})`);
+  ok(rDestructive.set === 'button-destructive' && second.name === 'button-destructive' && at(second) === '940,0',
+    `#1750 the second set on a page lands beside the first, 160px clear and top-aligned, at 940,0 (got ${String(second?.name)} at ${second ? at(second) : '—'})`);
 
   // (c) WHAT SHARES THE ROW PUSHES IT RIGHT; WHAT SITS ABOVE DOES NOT. A header-wide frame above the sets
   // (bottom edge at -80, where `page-header.ts` puts it) and a designer's note in the row at 900..1300.
-  // Expected x: the note's right edge, 1300, + 400 = 1700 — not the header's 5000 + 400.
+  // Expected x: the note's right edge, 1300, + 160 = 1460 — not the header's 5000 + 160.
   const pg2: Page = { children: [] };
   await run(grid, { ...full(), page: pg2 });
   pg2.children.push({ type: 'FRAME', name: 'header-like', x: 0, y: -400, width: 5000, height: 320 } as Node);
   pg2.children.push({ type: 'FRAME', name: 'note', x: 900, y: 60, width: 400, height: 100 } as Node);
   await run(destructive, { ...fullFor(destructive), page: pg2 });
   const placed = pg2.children.find((n) => n.name === 'button-destructive')!;
-  ok(at(placed) === '1700,0',
-    `#1750 a node in the set's row pushes it right (1300 + 400), a node wholly above it does not (got ${at(placed)})`);
+  ok(at(placed) === '1460,0',
+    `#1750 a node in the set's row pushes it right (1300 + 160), a node wholly above it does not (got ${at(placed)})`);
   // NO TWO TOP-LEVEL NODES OVERLAP — the property a designer sees, checked over every pair on the page.
   const rect = (n: Node) => ({ x: Number(n.x), y: Number(n.y), r: Number(n.x) + Number(n.width), b: Number(n.y) + Number(n.height) });
   const overlaps: string[] = [];
@@ -4801,27 +4801,27 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
 
   // (c') A NODE THAT STARTS ABOVE THE ROW AND REACHES INTO IT still shares the row. A frame at x 1000..2900,
   // y -500..500: its top edge is above the sets' top (0), its bottom is inside the new set's row. Expected
-  // x: 2900 + 400 = 3300. A check that counted only nodes whose TOP edge falls inside the row would miss it
-  // and land the set at 1180,0, over the frame.
+  // x: 2900 + 160 = 3060. A check that counted only nodes whose TOP edge falls inside the row would miss it
+  // and land the set at 940,0, over the frame.
   const pgTall: Page = { children: [] };
   await run(grid, { ...full(), page: pgTall });
   pgTall.children.push({ type: 'FRAME', name: 'tall', x: 1000, y: -500, width: 1900, height: 1000 } as Node);
   await run(destructive, { ...fullFor(destructive), page: pgTall });
   const pastTall = pgTall.children.find((n) => n.name === 'button-destructive')!;
-  ok(at(pastTall) === '3300,0',
-    `#1750 a node that starts above the row and extends into it still pushes the set right (2900 + 400 = 3300), at 3300,0 (got ${at(pastTall)})`);
+  ok(at(pastTall) === '3060,0',
+    `#1750 a node that starts above the row and extends into it still pushes the set right (2900 + 160 = 3060), at 3060,0 (got ${at(pastTall)})`);
 
-  // (d) CONTENT BUT NO SET YET: top-aligned with the content, right of it. Frame at 100..600, y 40 → 1000,40.
+  // (d) CONTENT BUT NO SET YET: top-aligned with the content, right of it. Frame at 100..600, y 40 → 760,40.
   const pg3: Page = { children: [{ type: 'FRAME', name: 'intro', x: 100, y: 40, width: 500, height: 300 } as Node] };
   await run(grid, { ...full(), page: pg3 });
   const onContent = pg3.children.find((n) => n.name === 'button')!;
-  ok(at(onContent) === '1000,40', `#1750 on a page with content and no set, the set lands right of it, top-aligned, at 1000,40 (got ${at(onContent)})`);
+  ok(at(onContent) === '760,40', `#1750 on a page with content and no set, the set lands right of it, top-aligned, at 760,40 (got ${at(onContent)})`);
 
   // (e) A REBUILD NEVER MOVES A SET: the designer's placement wins, as it does for the page header.
   first.x = 5000;
   first.y = 7000;
   const rAgain = await run(grid, { ...full(), page: pg });
-  ok(rAgain.set === 'button' && rAgain.added === 0 && at(first) === '5000,7000' && at(second) === '1180,0',
+  ok(rAgain.set === 'button' && rAgain.added === 0 && at(first) === '5000,7000' && at(second) === '940,0',
     `#1750 a rebuild leaves a set the designer moved where they put it, and its sibling where it was (button at ${at(first)}, button-destructive at ${at(second)})`);
 
   // (f) #2405 — A PAGE THAT HOLDS ONLY ITS SECTION HEADER. Live: the sets on a component page were deleted and
@@ -4835,14 +4835,14 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   const underHeader = pgH.children.find((n) => n.name === 'button')!;
   ok(at(underHeader) === '100,0',
     `#2405 on a page holding only its section header, a rebuilt set lands under it on its left edge, 80 below, at 100,0, never beside it (got ${at(underHeader)})`);
-  // ...and its sibling then top-aligns with it, beside it, as on a fresh page: 100 + 780 + 400 = 1280.
+  // ...and its sibling then top-aligns with it, beside it, as on a fresh page: 100 + 780 + 160 = 1040.
   await run(destructive, { ...fullFor(destructive), page: pgH });
   const besideRebuilt = pgH.children.find((n) => n.name === 'button-destructive')!;
-  ok(at(besideRebuilt) === '1280,0',
-    `#2405 the rebuilt set's sibling lands beside it under the header at 1280,0 (got ${at(besideRebuilt)})`);
+  ok(at(besideRebuilt) === '1040,0',
+    `#2405 the rebuilt set's sibling lands beside it under the header at 1040,0 (got ${at(besideRebuilt)})`);
 
   // (g) #2405 — A HEADER AND AN EXISTING SET THE DESIGNER PLACED. The existing set stays where it is (300,500),
-  // and the new one top-aligns with it, beside it: 300 + 780 + 400 = 1480, y 500 — not under the header.
+  // and the new one top-aligns with it, beside it: 300 + 780 + 160 = 1240, y 500 — not under the header.
   const pgHS: Page = { children: [header()] };
   await run(grid, { ...full(), page: pgHS });
   const kept = pgHS.children.find((n) => n.name === 'button')!;
@@ -4851,11 +4851,11 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   await run(grid, { ...full(), page: pgHS });
   await run(destructive, { ...fullFor(destructive), page: pgHS });
   const nextToKept = pgHS.children.find((n) => n.name === 'button-destructive')!;
-  ok(at(kept) === '300,500' && at(nextToKept) === '1480,500',
-    `#2405 with a header and an existing set, the existing set stays at 300,500 and the new one lands beside it at 1480,500 (got ${at(kept)} and ${at(nextToKept)})`);
+  ok(at(kept) === '300,500' && at(nextToKept) === '1240,500',
+    `#2405 with a header and an existing set, the existing set stays at 300,500 and the new one lands beside it at 1240,500 (got ${at(kept)} and ${at(nextToKept)})`);
 
   // (h) #2405 — A DETACHED HEADER. A designer who detaches the header instance leaves a FRAME of the same name;
-  // it is still the header, so the set goes under it at 100,0 as in (f), not beside it at 1500,-300 (1100 + 400).
+  // it is still the header, so the set goes under it at 100,0 as in (f), not beside it at 1260,-300 (1100 + 160).
   const pgF: Page = { children: [header('FRAME')] };
   await run(grid, { ...full(), page: pgF });
   const underDetached = pgF.children.find((n) => n.name === 'button')!;
@@ -4864,7 +4864,7 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
 
   // (i) #2405 — A HEADER, A STRAY NODE AND NO SET. A note frame left beside the header at 1300,-300 (200x100)
   // is not a set to top-align with: the set still goes under the header at 100,0. Top-aligned with the stray
-  // it would land at -300, right of both: 1500 + 400 = 1900.
+  // it would land at -300, right of both: 1500 + 160 = 1660.
   const stray = (x: number, y: number): Node => ({ type: 'FRAME', name: 'note', x, y, width: 200, height: 100 } as Node);
   const pgHN: Page = { children: [header(), stray(1300, -300)] };
   await run(grid, { ...full(), page: pgHN });
@@ -4872,12 +4872,12 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   ok(at(underWithStray) === '100,0',
     `#2405 on a page with a section header, a stray non-set node beside it and no set, the set lands under the header at 100,0, never beside it (got ${at(underWithStray)})`);
   // ...and a stray node in the row under the header (100,0, 200x100) pushes the set right, still under the
-  // header: 100 + 200 + 400 = 700, y 0.
+  // header: 100 + 200 + 160 = 460, y 0.
   const pgHB: Page = { children: [header(), stray(100, 0)] };
   await run(grid, { ...full(), page: pgHB });
   const pastStray = pgHB.children.find((n) => n.name === 'button')!;
-  ok(at(pastStray) === '700,0',
-    `#2405 a stray node in the row under the header pushes the set right of it, still under the header, at 700,0 (got ${at(pastStray)})`);
+  ok(at(pastStray) === '460,0',
+    `#2405 a stray node in the row under the header pushes the set right of it, still under the header, at 460,0 (got ${at(pastStray)})`);
 }
 
 // ---- #1750: page headers are placed after ALL of a run's builds, once per page ------------------------

@@ -60,6 +60,7 @@ import { ENGINE_VERSION } from '@prism3/engine/version';
 import { tailOf } from '@prism3/engine/figma-names';
 import { NS } from './persist-figma';
 import { EXECUTOR_REVISION } from './executor-revision';
+import { labelColumns, readLabelColumn } from './label-columns';
 import { BASELINE_KEY, UPDATING_KEY, baselineOf, builtByPrism3, mainOf, readBaseline, snapshotMember, writeBaseline, type OwnershipRead } from './member-baseline';
 import { REACTIONS_PATH, plannedRead, reactionMap, reactionToWrite, reactionVerdict, reactionsText, readReactions } from './reactions';
 // #1318 — the ONE gradient-stop binder, shared with the Paint Style executor rather than written twice.
@@ -428,6 +429,9 @@ export interface CompPageTarget {
 export type ComponentApplyResult = {
   /** #2265 PR 2 — the members this run configured in place, by name. Absent on a build. */
   updatedInPlace?: string[];
+  /** #2723 — this run created the set and placed it on its page (`placeNewSet`), with no furniture yet. The build
+   *  places it again once its labels are drawn (`seatNewSet`). Absent when the set was already there. */
+  placed?: true;
   /** The set's name, or `null` when nothing could be assembled (the one hard failure here). */
   set: string | null;
   id: string;
@@ -826,15 +830,36 @@ const memberAxisLists = (set: CompSet): string[][] => {
 };
 
 /**
- * THE GAP BETWEEN SIBLING SETS ON A PAGE, in px (#1750). 160 at first, the spacing the owner used when laying out
- * the master file by hand (left to right, top-aligned). WIDENED TO 400 when the canvas furniture reached every def
- * (#2502, owner decision Q212 A: the gap is a layout call): a later set's row labels sit in this gap, left of the
- * set, and Button's four bracket columns reach about 320px. 400 leaves them clear of the set to their left with
- * room to read as their own set's (`test-canvas-furniture.ts` `clearance/…` measures it on every shared page). A page
- * position is not a bindable field, so there is no variable to bind it to — the same reason `page-header.ts`'s
- * `HEADER_GAP` is a literal. The paste payload's copy of this rule (`anatomy-figma.ts`) writes the same number.
+ * THE VISIBLE GAP BETWEEN SIBLING SETS ON A PAGE, in px (#1750, #2502, #2723). 160 at first, frame to frame, the spacing
+ * the owner used when laying out the master file by hand (left to right, top-aligned). Widened to 400 frame to frame
+ * when the canvas furniture reached every def (#2502), because a later set's row labels sit left of the set, inside
+ * the gap: Button's four bracket columns filled about 320px of it, and a set with short labels read far from its
+ * neighbor. NOW MEASURED FROM WHAT A DESIGNER SEES (#2723, owner decision Q335 A): 160 from the outer edge of one
+ * set's furniture (labels, brackets, backdrop) to the outer edge of the next set's, on every page, Button included.
+ * A set with no furniture is its frame. A page position is not a bindable field, so there is no variable to bind it
+ * to, the same reason `page-header.ts`'s `HEADER_GAP` is a literal. The paste payload's copy of this rule
+ * (`anatomy-figma.ts`) writes the same number; it draws no furniture, so its new set's edge is its frame.
  */
-export const SET_GAP = 400;
+export const SET_GAP = 160;
+
+/**
+ * THE FRAME-TO-FRAME GAP THE #2502 RULE LEFT, in px. Update re-spaces a set that sits exactly this far from its left
+ * neighbor (`respaceSets`): that spot is where Prism3 put it, not a designer, so it moves to the visible-gap rule.
+ * A literal of a past rule, kept only to recognize pages laid out under it.
+ */
+export const OLD_SET_GAP = 400;
+
+/** How far a set's furniture reaches past its frame, left and right, in px. Zero for a set with none. */
+export type Reach = { left: number; right: number };
+const NO_REACH: Reach = { left: 0, right: 0 };
+
+/** The reach of a set's furniture boxes past its frame: never negative, so a label inside the frame's span is nothing. */
+export const reachOf = (set: PageBox, furniture: readonly PageBox[]): Reach => furniture.length
+  ? {
+    left: Math.max(0, set.x - Math.min(...furniture.map((f) => f.x))),
+    right: Math.max(0, Math.max(...furniture.map((f) => f.x + f.width)) - (set.x + set.width)),
+  }
+  : NO_REACH;
 
 /** A top-level node's box on a page, as `placeNewSet` reads it. `header` marks the page's section header. */
 export type PageBox = { type?: string; x: number; y: number; width: number; height: number; header?: boolean };
@@ -851,11 +876,12 @@ export const PAGE_HEADER_GAP = 80;
 /** The boxes of a page's top-level nodes, VISIBLE OR NOT: a hidden node is still somewhere a set could be
  *  dropped on top of, and showing it again would reveal the overlap. The header is found by name, in any case,
  *  as an instance or a detached frame: an instance of a variant carries its set's name. */
+export const pageBox = (n: { type?: string; name?: string; x?: number; y?: number; width?: number; height?: number }): PageBox => ({
+  type: n.type, x: n.x ?? 0, y: n.y ?? 0, width: n.width ?? 0, height: n.height ?? 0,
+  header: (n.type === 'INSTANCE' || n.type === 'FRAME') && typeof n.name === 'string' && n.name.toLowerCase() === PAGE_HEADER_NAME,
+});
 const pageBoxes = (page: CompPageTarget): PageBox[] =>
-  ((page.children ?? []) as { type?: string; name?: string; x?: number; y?: number; width?: number; height?: number }[]).map((n) => ({
-    type: n.type, x: n.x ?? 0, y: n.y ?? 0, width: n.width ?? 0, height: n.height ?? 0,
-    header: (n.type === 'INSTANCE' || n.type === 'FRAME') && typeof n.name === 'string' && n.name.toLowerCase() === PAGE_HEADER_NAME,
-  }));
+  ((page.children ?? []) as Parameters<typeof pageBox>[0][]).map(pageBox);
 
 /**
  * WHERE A NEW SET GOES ON A PAGE THAT ALREADY HAS CONTENT (#1750) — `null` on an empty page, which leaves the
@@ -869,6 +895,13 @@ const pageBoxes = (page: CompPageTarget): PageBox[] =>
  * read left to right in the order they were built — which is the taxonomy's order (`file-taxonomy.ts`)
  * whenever a family is built as one run (dependencies first) or in the order the page lists them.
  *
+ * CLEAR OF WHAT A DESIGNER SEES (#2723, owner decision Q335 A). Another set's labels and backdrop are page nodes like
+ * any other, so they push the new set as its frame does, and the gap is measured from their outer edge. The new
+ * set's own furniture is `reach`: how far it hangs past the frame, left and right. Its frame goes `reach.left`
+ * further right, so its labels, not its frame, sit `SET_GAP` clear. A build draws the labels after the set lands, so
+ * it places the set with no reach, then again once the labels are drawn and measured (`seatNewSet`,
+ * `canvas-furniture.ts`).
+ *
  * `y` is the top of the existing COMPONENT_SETs; on a page with no set yet, the header's bottom plus
  * `PAGE_HEADER_GAP` when it has a header (below), else the top of all content.
  *
@@ -876,8 +909,8 @@ const pageBoxes = (page: CompPageTarget): PageBox[] =>
  * header, and the header is not content to sit beside: measured as content, it put the first rebuilt set
  * `SET_GAP` right of the header, and its siblings beside that. So on a page with a header and no set, the set
  * goes where the first build put it relative to the header: its top `PAGE_HEADER_GAP` below the header's
- * bottom, on the header's left edge. Any other node in that band (a stray note, a frame) pushes it right by
- * the same row rule, but it stays below the header and never takes a stray node's `y`. Its siblings then
+ * bottom, its frame on the header's left edge. Any other node in that band (a stray note, a frame) pushes it right
+ * by the same row rule, but it stays below the header and never takes a stray node's `y`. Its siblings then
  * top-align with it, as on a fresh page.
  *
  * ONE RULE UNDER A HEADER, SETS OR NO SETS (#2598). On a page with a header, the set takes the FIRST FREE SLOT in
@@ -885,16 +918,15 @@ const pageBoxes = (page: CompPageTarget): PageBox[] =>
  * one right of everything in the row: live, a rebuilt `button` landed right of `button-neutral`, past the
  * header's right edge (the header spans the row the first build laid out), while a set on a page with no
  * sibling went under the header. Now a set deleted and rebuilt goes back into the gap it left, under the
- * header, and the rebuilt sets read left to right in build order again. A slot is free when the set's box,
- * widened `SET_GAP` on each side (its own row labels go on its left, the next set's on its right), meets no
- * node in the row. When no slot fits, the first one past everything in the row is the same place the old rule
- * chose. `y` is unchanged: the top of the sets already
- * there, else the header's bottom plus the gap.
+ * header, and the rebuilt sets read left to right in build order again. A slot is free when the set's box with its
+ * reach, widened `SET_GAP` on each side, meets no node in the row. When no slot fits, the first one past everything
+ * in the row is the same place the old rule chose. `y` is unchanged: the top of the sets already there, else the
+ * header's bottom plus the gap.
  *
  * A SET THAT ALREADY EXISTS IS NEVER PASSED HERE: a rebuild keeps the set a designer may have moved, the
  * "designer's placement wins" rule `page-header.ts` follows for the header.
  */
-export const placeNewSet = (existing: readonly PageBox[], height: number, width = 0): { x: number; y: number } | null => {
+export const placeNewSet = (existing: readonly PageBox[], height: number, width = 0, reach: Reach = NO_REACH): { x: number; y: number } | null => {
   if (existing.length === 0) return null;
   const sets = existing.filter((b) => !b.header && b.type === 'COMPONENT_SET');
   const h = existing.find((b) => b.header);
@@ -905,65 +937,80 @@ export const placeNewSet = (existing: readonly PageBox[], height: number, width 
     for (let pushed = true; pushed;) {
       pushed = false;
       for (const b of band)
-        if (b.x < x + width + SET_GAP && b.x + b.width + SET_GAP > x) { x = b.x + b.width + SET_GAP; pushed = true; }
+        if (b.x < x + width + reach.right + SET_GAP && b.x + b.width + SET_GAP > x - reach.left) { x = b.x + b.width + SET_GAP + reach.left; pushed = true; }
     }
     return { x, y };
   }
   const y = Math.min(...(sets.length ? sets : existing).map((b) => b.y));
   const band = existing.filter((b) => b.y < y + height && b.y + b.height > y);
   // An empty band happens only when every node there has zero height; then everything counts.
-  const x = Math.max(...(band.length ? band : existing).map((b) => b.x + b.width)) + SET_GAP;
+  const x = Math.max(...(band.length ? band : existing).map((b) => b.x + b.width)) + SET_GAP + reach.left;
   return { x, y };
 };
 
 /** A top-level node on a page, as `respaceSets` reads it: `prism3` marks a set Prism3 built (its members carry a
- *  stamp), `furniture` a label, bracket or backdrop the canvas furniture drew for one (`canvas-furniture.ts`). */
-export type RespaceBox = PageBox & { id: string; prism3?: boolean; furniture?: boolean };
+ *  stamp), `furniture` a label, bracket or backdrop the canvas furniture drew for one (`canvas-furniture.ts`), and
+ *  `of` the `id` of the set a furniture node was drawn for, when that set is on the page. */
+export type RespaceBox = PageBox & { id: string; prism3?: boolean; furniture?: boolean; of?: string };
 
 /**
- * WHERE A PRISM3 SET ON A PAGE MOVES SO ITS ROW LABELS HAVE ROOM (#2542; owner decisions Q245.2 A and Q248 A, "the
- * re-spacing only makes room"). #2502 widened the gap between sets to `SET_GAP` (400) so a set's row labels and
- * brackets clear the set to its left, and `placeNewSet` never moves a set that exists. Returns only the sets that move.
+ * WHERE A PRISM3 SET ON A PAGE MOVES SO THE GAP BETWEEN SETS READS THE SAME (#2542; owner decisions Q245.2 A and
+ * Q248 A, "the re-spacing only makes room"; #2723, Q335 A). A set and its furniture are one VISIBLE BOX here: the
+ * frame widened by its own labels, brackets and backdrop. Returns only the sets that move.
  *
- * ONLY WHEN TOO CLOSE, AND ONLY FAR ENOUGH. A set's LEFT NEIGHBOUR is the nearest Prism3 set to its left in the same
- * row (their heights overlap), as already moved. A set moves only when it sits closer to that neighbour than
- * `SET_GAP`, and then to exactly `SET_GAP` clear of it, which is where a fresh build of the page places it. Everything
- * else is the designer's placement, and it wins, as it does in `placeNewSet`:
- *   · a set spaced WIDER stays exactly where it is;
+ * TWO CASES MOVE, AND ONLY TO THE ONE SPOT. A set's LEFT NEIGHBOR is the nearest Prism3 set to its left in the same
+ * row (their heights overlap), as already moved. A set moves when
+ *   · its visible box sits closer to the neighbor's than `SET_GAP` (it needs room), or
+ *   · its frame sits exactly `OLD_SET_GAP` right of the neighbor's frame where the neighbor stood before any move
+ *     (#2723): the spot the #2502 rule built it at, which a designer did not choose,
+ * and then to exactly `SET_GAP` clear of the neighbor's visible box, where a fresh build of the page places it.
+ * Everything else is the designer's placement, and it wins, as it does in `placeNewSet`:
+ *   · a set spaced wider, at any other spacing, stays exactly where it is;
  *   · a set with no Prism3 set to its left in its row (the first of a row, a SECOND ROW below the first) stays, so a
  *     second row is never lifted into the first, and `y` never changes;
  *   · if the spot a moving set needs overlaps something that stays put, it is pushed just past it, `SET_GAP` clear.
  *     "Something" includes the OTHER Prism3 sets (#2548): every set already placed, where it now sits, and a set not
  *     reached yet once the spot is at or past its left edge. Short of that edge, the later set still has this one as
- *     its left neighbour and moves clear of it on its own turn; past it, the later set no longer sees this one, so it
+ *     its left neighbor and moves clear of it on its own turn; past it, the later set no longer sees this one, so it
  *     would stay where it is underneath. A set that moves clears every set placed before it, so no two land on each other.
- * Sets are taken left to right, so a set moved right pushes its own right neighbour only if that one is now too close.
+ * Sets are taken left to right, so a set moved pushes its own right neighbor only if that one now needs it.
  *
  * NEVER MOVES CONTENT PRISM3 DIDN'T BUILD (#2464, #2494): a set with no stamped member, the page header and any other
- * node stay exactly where they are, as obstacles. The canvas furniture is left out: it is drawn for a set after the
- * update lands, from where the set then sits, so it follows the move.
+ * node stay exactly where they are, as obstacles. Furniture is read only as part of its own set's visible box: it is
+ * redrawn for the set after the update lands, from where the set then sits, so it follows the move. Furniture whose
+ * set is not on the page is prune's (`staleFurniture`) and is not read.
  */
 export const respaceSets = (nodes: readonly RespaceBox[]): { id: string; from: { x: number; y: number }; to: { x: number; y: number } }[] => {
   const ours = nodes.filter((b) => b.type === 'COMPONENT_SET' && b.prism3 && !b.header).sort((a, b) => a.x - b.x || a.y - b.y);
   if (ours.length < 2) return [];
   const fixed = nodes.filter((b) => !(b.type === 'COMPONENT_SET' && b.prism3) && !b.furniture);
+  const reach = new Map(ours.map((b) => [b.id, reachOf(b, nodes.filter((f) => f.furniture && f.of === b.id))] as const));
+  // The visible box of a set with its frame at `x`.
+  const seen = (b: RespaceBox, x = b.x): PageBox => {
+    const r = reach.get(b.id)!;
+    return { x: x - r.left, y: b.y, width: b.width + r.left + r.right, height: b.height };
+  };
   const sameRow = (a: PageBox, b: PageBox): boolean => a.y < b.y + b.height && a.y + a.height > b.y;
-  const placed: PageBox[] = [];
+  const placed: RespaceBox[] = [];
   const moves: { id: string; from: { x: number; y: number }; to: { x: number; y: number } }[] = [];
   for (const [i, b] of ours.entries()) {
     const left = placed.filter((p) => sameRow(p, b) && p.x < b.x);
     if (!left.length) { placed.push(b); continue; }
-    const right = Math.max(...left.map((p) => p.x + p.width));
-    // Too close only: a set spaced the fresh gap or wider is the designer's, and stays.
-    if (b.x - right >= SET_GAP - 0.5) { placed.push(b); continue; }
-    let x = right + SET_GAP;
+    const right = Math.max(...left.map((p) => { const v = seen(p); return v.x + v.width; }));
+    const before = Math.max(...ours.filter((o) => left.some((p) => p.id === o.id)).map((o) => o.x + o.width));
+    const oldRule = Math.abs(b.x - before - OLD_SET_GAP) < 0.5;
+    // Room enough, at a spacing a designer chose: it stays.
+    if (seen(b).x - right >= SET_GAP - 0.5 && !oldRule) { placed.push(b); continue; }
+    let x = right + SET_GAP + reach.get(b.id)!.left;
     // Past anything that stays and would overlap the set at this spot; again, until the spot is clear.
     const later = ours.slice(i + 1);
     for (let pushed = true; pushed;) {
       pushed = false;
-      for (const f of [...fixed, ...placed, ...later.filter((u) => x >= u.x)])
-        if (f.y < b.y + b.height && f.y + f.height > b.y && f.x < x + b.width && f.x + f.width > x) { x = f.x + f.width + SET_GAP; pushed = true; }
+      const v = seen(b, x);
+      for (const f of [...fixed, ...placed.map((p) => seen(p)), ...later.filter((u) => x >= u.x).map((u) => seen(u))])
+        if (f.y < v.y + v.height && f.y + f.height > v.y && f.x < v.x + v.width && f.x + f.width > v.x) { x = f.x + f.width + SET_GAP + reach.get(b.id)!.left; pushed = true; break; }
     }
+    if (Math.abs(x - b.x) < 0.5) { placed.push(b); continue; }
     moves.push({ id: b.id, from: { x: b.x, y: b.y }, to: { x, y: b.y } });
     placed.push({ ...b, x });
   }
@@ -2980,6 +3027,9 @@ const writeComponentSet = async (
     colW[cell.col] = Math.max(colW[cell.col] ?? 0, c.width ?? 0);
     rowH[cell.row] = Math.max(rowH[cell.row] ?? 0, c.height ?? 0);
   });
+  // THE LABEL COLUMN (#2705): a set whose column labels are wider than its columns keeps every column at least as wide
+  // as the widest label, its members centered in the extra, as `drawFurniture` recorded it. None recorded: as before.
+  const grid = labelColumns(colW, readLabelColumn(set));
   const at = (arr: number[], n: number): number => arr.slice(0, n).reduce((a, b) => a + (b || 0) + GAP, 0);
   // Read once over the whole set, because a copy is a member whose record names ANOTHER member (#2510).
   const ownership: OwnershipRead[] = members.map((c) => ({ id: c.id, stamp: c.getSharedPluginData?.(NS, STAMP_KEY) ?? '', recordId: readBaseline(c)?.id }));
@@ -3005,7 +3055,7 @@ const writeComponentSet = async (
     const m = wr(c);
     // ONLY WHERE IT MOVES (#2379): an update re-lays the grid over members it leaves alone (a member from an earlier
     // plugin takes only its stamp), and a write that puts back the same number is still a write to the host.
-    const x = PAD + at(colW, cell.col), y = PAD + at(rowH, cell.row);
+    const x = PAD + at(grid.width, cell.col) + (grid.inset[cell.col] ?? 0), y = PAD + at(rowH, cell.row);
     if (m.x !== x) m.x = x;
     if (m.y !== y) m.y = y;
   });
@@ -3030,7 +3080,7 @@ const writeComponentSet = async (
   }
   // RESIZE, because appending does NOT grow the set's frame: a member appended at x=208 to a 184-wide
   // set leaves it 184 wide, with the member outside its own box, and nothing throws.
-  const wantW = Math.max(1, at(colW, colW.length) - GAP + 2 * PAD, retainedW);
+  const wantW = Math.max(1, at(grid.width, grid.width.length) - GAP + 2 * PAD, retainedW);
   const wantH = Math.max(1, at(rowH, rowH.length) - GAP + 2 * PAD + (retainedRow ? retainedRow + GAP : 0));
   if (colW.length && rowH.length) set.resize?.(wantW, wantH);
   // READ BACK THE BOX, because `resize` is the one call here with no other witness. Compared against
@@ -3877,6 +3927,7 @@ const writeComponentSet = async (
 
   return {
     ...(opts.update ? { updatedInPlace: [...updated.keys()] } : {}),
+    ...(createdSet ? { placed: true as const } : {}),
     set: String(set.name ?? component),
     id: String(set.id ?? ''),
     variants: members.length,
