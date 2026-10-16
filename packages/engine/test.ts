@@ -6763,17 +6763,18 @@ arm: {
   // independent model of Figma's hugging row over the PLAN — the flow children only (a hidden or absolutely placed
   // node takes no cell), plus the padding, one gap between cells and the root's literal floor; the strokes are
   // drawn inside and take no width — with each variable's px read from the brand's built tree. EXPECTED is
-  // literal, at medium on comfortable density, the owner's arithmetic:
+  // literal, at medium on comfortable density, the owner's arithmetic, with the glyph one rung below the control
+  // since #2725 (owner Q337 A: 16 / 20 / 24, so 20px at medium, where it was 24):
   //   · a 24px label alone: 12+24+12 = 48, under the 64px floor, so 64 (the content centers in it);
-  //   · a 24px label and the check: 12+24+6+24+12 = 78;
-  //   · a 67px label, the leading icon and the check: 12+24+8+67+6+24+12 = 153;
-  //   · the check widens a tag above its floor by one glyph and one gap, 24+6 = 30, and not at all with it off.
+  //   · a 24px label and the 20px check: 12+24+6+20+12 = 74;
+  //   · a 67px label, the 20px leading icon and the check: 12+20+8+67+6+20+12 = 145;
+  //   · the check widens a tag above its floor by one glyph and one gap, 20+6 = 26, and not at all with it off.
   // and the DISMISSIBLE tag at every size (owner, 2026-09-29, decision N): padding-x, then the icon, the content
   // gap and the label row's 4px leading inset, then the label, no inset before the × slot (decision M), and the
   // square slot. The content gap is the icon→label less 4 (2/4/4), so the icon→label reads 6/8/8:
-  //   · small, 20px label: 8+4+20+0+36 = 68; with the 20px icon: 8+20+2+4+20+36 = 90;
-  //   · medium, 24px label: 12+4+24+0+44 = 84; with the 24px icon: 12+24+4+4+24+44 = 112;
-  //   · large, 24px label: 16+4+24+0+56 = 100; with the 32px icon: 16+32+4+4+24+56 = 136.
+  //   · small, 20px label: 8+4+20+0+36 = 68; with the 16px icon: 8+16+2+4+20+36 = 86;
+  //   · medium, 24px label: 12+4+24+0+44 = 84; with the 20px icon: 12+20+4+4+24+44 = 108;
+  //   · large, 24px label: 16+4+24+0+56 = 100; with the 24px icon: 16+24+4+4+24+56 = 128.
   {
     const widthBrands: [string, any][] = loadedRows([['nb', nbTheme()], ...(['aurora', 'harbor', 'prism3'] as const).map((b) => [b, exampleTheme(b, () => brandTheme(exampleBrands()[b] as BrandInput))] as [string, any])]);
     for (const [b, th] of widthBrands) {
@@ -6804,17 +6805,17 @@ arm: {
         widen: widthOf(set(sel, 'leadingVisual', false), 67) - widthOf(set(un, 'leadingVisual', false), 67),
         widenOff: widthOf(set(set(sel, 'leadingVisual', false), 'check', false), 67) - widthOf(set(un, 'leadingVisual', false), 67),
       };
-      const WANT = { alone: 64, check: 78, full: 153, widen: 30, widenOff: 0 };
+      const WANT = { alone: 64, check: 74, full: 145, widen: 26, widenOff: 0 };
       ok(JSON.stringify(got) === JSON.stringify(WANT),
-        `tag rendered width (${b}, medium, comfortable): the owner's worked examples for a select tag — label alone 64 (the floor), label + check 78, icon + 67px label + check 153, and the check widens a tag above its floor by 30 and by 0 when switched off (got ${JSON.stringify(got)})`);
+        `tag rendered width (${b}, medium, comfortable): the owner's worked examples for a select tag — label alone 64 (the floor), label + check 74, icon + 67px label + check 145, and the check widens a tag above its floor by 26 and by 0 when switched off (got ${JSON.stringify(got)})`);
       const DIS_LABEL: Record<string, number> = { small: 20, medium: 24, large: 24 };
       const gotDis = Object.fromEntries(['small', 'medium', 'large'].map((sz) => {
         const dis = rest('dismissible', 'unselected', sz);
         return [sz, `${widthOf(set(dis, 'leadingVisual', false), DIS_LABEL[sz])}/${widthOf(set(dis, 'leadingVisual', true), DIS_LABEL[sz])}`];
       }));
-      const WANT_DIS = { small: '68/90', medium: '84/112', large: '100/136' };
+      const WANT_DIS = { small: '68/86', medium: '84/108', large: '100/128' };
       ok(JSON.stringify(gotDis) === JSON.stringify(WANT_DIS),
-        `tag dismissible rendered width (${b}, comfortable): label alone / with the leading icon — small 68/90 (20px label), medium 84/112, large 100/136 (24px label), the label row inset 4px and the icon→label 6/8/8 (got ${JSON.stringify(gotDis)})`);
+        `tag dismissible rendered width (${b}, comfortable): label alone / with the leading icon — small 68/86 (20px label), medium 84/108, large 100/128 (24px label), the label row inset 4px and the icon→label 6/8/8 (got ${JSON.stringify(gotDis)})`);
     }
   }
   // THE DISMISSIBLE ICON→LABEL, per size and density (owner, 2026-09-29, decision N), read off the PROJECTED
@@ -14208,6 +14209,22 @@ arm: {
     ok(vnb.warnings.length === 0 && vau.warnings.length === 0, `component: ${name} binds only semantic roles, no primitive-tier leak${[...vnb.warnings, ...vau.warnings].length ? ' — ' + [...vnb.warnings, ...vau.warnings].join('; ') : ''}`);
   }
 
+  // (#2707) A BOOLEAN OR NUMBER PROP'S DEFAULT HAS THAT TYPE. Six defs shipped `'false'` / `'99'` into
+  // `components.ai.json`, a truthy string where every other def ships `false`. EXPECTED is literal here: which
+  // (type, default) pairs the validator must refuse and which it must accept, on a copy of one registered def.
+  {
+    const base = componentDefs.find((d) => d.id === 'badge')!;
+    const withProp = (type: string, dflt: unknown) =>
+      validateComponentDef({ ...base, props: [...base.props, { name: 'probe', type, default: dflt, required: false, description: 'A probe prop.' }] } as ComponentDef).errors
+        .some((e) => e.startsWith(`prop 'probe': type '${type}'`));
+    const CASES: Array<[string, unknown, boolean]> = [
+      ['boolean', 'false', true], ['boolean', 'true', true], ['boolean', 0, true], ['number', '99', true], ['number', false, true],
+      ['boolean', false, false], ['boolean', true, false], ['number', 99, false], ['boolean', undefined, false], ['string', 'false', false],
+    ];
+    const wrong = CASES.filter(([t, d, refused]) => withProp(t, d) !== refused).map(([t, d, refused]) => `${t} default ${JSON.stringify(d)} ${refused ? 'accepted' : 'refused'}`);
+    ok(wrong.length === 0, `component props (#2707): a boolean or number prop refuses a default of another type, and accepts its own (${CASES.length} literal cases)${wrong.length ? ` — WRONG: ${wrong.join('; ')}` : ''}`);
+  }
+
   // (#1623) EVERY COMPONENT A DEF NAMES IS ONE THAT EXISTS, UNDER ITS CURRENT ID. The stale-fact class the
   // #1623 audit found by hand, three ways: `checkbox-group` named `radio-row` as its alternative where the
   // twin is `radio-group`; `radio-row`'s `ai.avoidWhen` told agents the radio group "is not authored yet"
@@ -15537,8 +15554,8 @@ arm: {
       // (`write-components.ts`, exercised by `test-roundtrip.ts`) only ever compares members that share a
       // group and the two QA misses cannot recur. The same assertion shape field-message's #1010 block makes.
       const ipGroups = planSetLayout(figmaAnatomySet(imgPlaceholder, {}), 'test').cells.map((c) => c.group).join(' | ');
-      // #2345: seven ratios, tallest to widest — typed here, not read from the def.
-      ok(ipGroups === 'ratio=2:3 | ratio=3:4 | ratio=4:5 | ratio=1:1 | ratio=4:3 | ratio=3:2 | ratio=16:9',
+      // #2345: seven ratios, tallest to widest, after a leading 4:3 (#2752, Q347 A) — typed here, not read from the def.
+      ok(ipGroups === 'ratio=4:3 | ratio=2:3 | ratio=3:4 | ratio=4:5 | ratio=1:1 | ratio=3:2 | ratio=16:9',
         `#1515 image-placeholder: the declared exemption reaches the engine's cohort key — every ratio is its own cohort, so the footprint read-back no longer compares 720×540 against 720×720 (got '${ipGroups}')`);
       // (c) MUTATION — DROP THE ASPECT LOCK. `ratio` still projects and still carries `footprintVaries`, but
       // with no `aspectRatio` deriving from it and no `presentWhen` gating it, nothing about the box varies,
@@ -16844,6 +16861,64 @@ arm: {
     for (const d of flushFamily)
       ok(d.docs.do!.includes('Space two flush icon buttons at least 44px apart, center to center, so their tap areas don\'t overlap'),
         `#2457 ${d.id}'s docs.do states the 44px spacing center to center (Q296 A)`);
+  }
+
+  // ---- #2725: THE TEXT-BEARING CONTROLS STEP THEIR GLYPH DOWN ONE RUNG — owner decision Q337 A (2026-10-15) ----
+  // Segmented control, Tab and Tag follow Button (#1350): small 16, medium 20, large 24 (`icon.size.xs` / `sm` / `md`).
+  // Icon button keeps its 1:1 rung (20 / 24 / 32); Flush icon button its own (20 / 20 / 24, asserted above). EXPECTED is
+  // the decision, transcribed here as literals (the variable name AND the px), never read off a def or the icon ladder
+  // (docs/34). ACTUAL is every projected member's glyph parts, at any depth, with each bound variable's px read from the
+  // brand's built tree, so a def reverted to the 1:1 rung, a rung slipped two down, or a ladder that moved under the name
+  // each fail one named arm. On Tag the one rung sizes the leading icon, the check and the ×, so all three are read.
+  {
+    const STEP_DOWN: Record<string, [string, number]> = { small: ['icon/size/xs', 16], medium: ['icon/size/sm', 20], large: ['icon/size/md', 24] };
+    const ONE_TO_ONE: Record<string, [string, number]> = { small: ['icon/size/sm', 20], medium: ['icon/size/md', 24], large: ['icon/size/lg', 32] };
+    const GLYPH_CASES: Array<{ id: string; parts: string[]; want: Record<string, [string, number]> }> = [
+      { id: 'segmented-control-segment', parts: ['leadingVisual'], want: STEP_DOWN },
+      { id: 'tab', parts: ['leadingVisual'], want: STEP_DOWN },
+      { id: 'tag', parts: ['leadingVisual', 'check', 'dismissGlyph'], want: STEP_DOWN },
+      { id: 'icon-button', parts: ['icon'], want: ONE_TO_ONE },
+      { id: 'icon-button-destructive', parts: ['icon'], want: ONE_TO_ONE },
+      { id: 'icon-button-neutral', parts: ['icon'], want: ONE_TO_ONE },
+    ];
+    const glyphBrands: [string, any][] = loadedRows([['nb', nbTheme()], ...EXAMPLE_IDS.map((b) => [b, exampleTheme(b, () => brandTheme(exampleBrands()[b] as BrandInput))] as [string, any])]);
+    const findAll = (n: any, names: string[], out: any[] = []): any[] => {
+      if (names.includes(n.name)) out.push(n);
+      for (const c of n.children ?? []) findAll(c, names, out);
+      return out;
+    };
+    for (const { id, parts, want } of GLYPH_CASES) {
+      const def = componentDefs.find((d) => d.id === id)!;
+      ok(!!def, `#2725 ${id} is a registered def`);
+      if (!def) continue;
+      const plans = figmaAnatomySet(def, { swapTarget: 'FPO-default-icon' });
+      const seenParts = new Set<string>(), seenSizes = new Set<string>();
+      const wrongName: string[] = [], wrongPx: string[] = [];
+      for (const [b, th] of glyphBrands) {
+        const built = buildTree(th).tree;
+        const root = Object.keys(built)[0];
+        const px = (v: string | undefined): number => {
+          let n: any = built[root];
+          for (const seg of String(v).split('/')) n = n?.[seg];
+          const x = n?.$extensions?.prism3?.px;
+          return typeof x === 'number' ? x : NaN;
+        };
+        for (const p of plans) {
+          const [wantVar, wantPx] = want[String(p.size)] ?? ['?', NaN];
+          for (const g of findAll(p.root, parts)) {
+            seenParts.add(g.name); seenSizes.add(String(p.size));
+            if (g.bound?.width !== wantVar || g.bound?.height !== wantVar) wrongName.push(`${planComponentName(p)} ${g.name} (${g.bound?.width}×${g.bound?.height}, want ${wantVar})`);
+            if (px(g.bound?.width) !== wantPx || px(g.bound?.height) !== wantPx) wrongPx.push(`${b} ${planComponentName(p)} ${g.name} (${px(g.bound?.width)}×${px(g.bound?.height)}px, want ${wantPx})`);
+          }
+        }
+      }
+      const label = Object.keys(want).map((s) => want[s][1]).join(' / ');
+      // SCOPE FLOOR: every glyph part named above is drawn at all three sizes, so a part that stops projecting cannot pass by absence.
+      ok(parts.every((n) => seenParts.has(n)) && ['small', 'medium', 'large'].every((s) => seenSizes.has(s)),
+        `#2725 ${id}: every glyph part [${parts.join(', ')}] projects at small, medium and large (seen parts [${[...seenParts].join(', ')}], sizes [${[...seenSizes].join(', ')}])`);
+      ok(wrongName.length === 0, `#2725 ${id}'s glyph binds ${Object.values(want).map((w) => w[0]).join(' / ')} at small / medium / large (Q337 A)${wrongName.length ? ` — ${wrongName.slice(0, 4).join('; ')}` : ''}`);
+      ok(wrongPx.length === 0, `#2725 ${id}'s glyph is ${label}px at small / medium / large in every brand (Q337 A)${wrongPx.length ? ` — ${wrongPx.slice(0, 4).join('; ')}` : ''}`);
+    }
   }
 
   // #1225 — INTENT IS THE COMPONENT NOW, NOT AN AXIS (the icon-only counterpart of #1223's Button split).
@@ -24050,7 +24125,9 @@ arm: {
       const { gradient: _g, ...wash } = veilNow.anatomy!.parts.wash;
       const { 'dark.clear': _dc, 'light.clear': _lc, ...tokens } = veilNow.tokens;
       return {
-        ...veilNow, variants, axisKinds, tokens,
+        // The intensity order is the pre-#2752 one, typed: subtle first, so the set's first member (dark, subtle) and
+        // the code default (dark, medium) are two coordinates, and the two exclusion refusals below stay apart.
+        ...veilNow, variants: { ...variants, intensity: ['subtle', 'medium', 'strong'] }, axisKinds, tokens,
         props: veilNow.props.filter((p) => p.name !== 'direction'),
         anatomy: { ...veilNow.anatomy!, parts: { wash } },
         figmaProperties: { ...veilNow.figmaProperties!, variantAxes: ['value', 'intensity'] },
@@ -31232,6 +31309,119 @@ arm: {
   const MUST = ['button', 'icon-button', 'text-field', 'textarea', 'select', 'switch-row', 'tag', 'checkbox-control'];
   const missing = MUST.filter((id) => !(checked.get(id) ?? 0));
   ok(missing.length === 0, `#2501: the axis order rule read every def it was raised on, each with values to order${missing.length ? ` — not read: ${missing.join(', ')}` : ''}`);
+}
+
+// ---- Figma's default member is the code default, on every axis (#2752, owner decision Q347 A) ----
+// Figma inserts a component set's DEFAULT VARIANT, which its plugin API documents as "the top-left-most variant,
+// spatially" (`ComponentSetNode.defaultVariant`; the #2501 lane measured the same on a scratch file, layer order not
+// moving it). So ACTUAL is the member the layout places in row 0, column 0 (`planSetLayout`, which both executors
+// place from), and that member must also be the set's first child, the first plan, so neither reading of "first"
+// can disagree with the other. EXPECTED is read from the def's PROPS ONLY: an enum prop's `default`, through the
+// authored BRIDGE below where the axis's code form is another prop, never from the axis order it checks (docs/34
+// shape 1: an expectation read off `variants` would agree with any reordering). Every def that builds a set and every
+// axis its members carry is read; an axis the props cannot answer fails as UNBRIDGED, so a new axis is placed on
+// purpose. A mismatch passes only as a recorded EXCEPTION with its reason, and an exception nothing hits fails as stale.
+{
+  type Bridge = { prop: string; map: Record<string, string>; reason: string };
+  // The axes whose code form is a prop of another name. Each MAP is typed here from the prop's meaning, never from the
+  // axis: unset and `false` are the same uncontrolled default. Keyed `<def>.<axis>` where the prop differs by def.
+  const off = (no: string, yes: string): Record<string, string> => ({ undefined: no, false: no, true: yes });
+  const BRIDGE: Record<string, Bridge> = {
+    status: { prop: 'validation', map: { default: 'default', error: 'error', warning: 'warning', success: 'success' }, reason: 'the fields name the validation prop `validation`; the Figma axis is `status` (#1334)' },
+    'checkbox-control.selection': { prop: 'checked', map: off('unchecked', 'checked'), reason: 'a checkbox is checked by `checked`' },
+    'radio-control.selection': { prop: 'checked', map: off('unchecked', 'checked'), reason: 'a radio is checked by `checked`' },
+    'switch-control.selection': { prop: 'checked', map: off('off', 'on'), reason: 'a switch is on by `checked` (#930: announced on/off)' },
+    'tag.selection': { prop: 'selected', map: off('unselected', 'selected'), reason: 'a select tag is selected by `selected`' },
+    'tab.selection': { prop: 'selected', map: off('unselected', 'selected'), reason: 'a tab is selected by `selected`' },
+    'segmented-control-segment.selection': { prop: 'selected', map: off('unselected', 'selected'), reason: 'a segment is selected by `selected`' },
+    'accordion.expansion': { prop: 'defaultExpanded', map: off('collapsed', 'expanded'), reason: 'an accordion opens by `defaultExpanded`' },
+  };
+  // RECORDED EXCEPTIONS: the top-left member differs from the code default on purpose. EXACT: each names its defs, its
+  // axis and both values, so any other mismatch fails, and an entry that stops matching fails as stale.
+  type Exception = { defs: string[]; axis: string; figma: string; code: string; reason: string };
+  const SIZED_SMALL_FIRST = [
+    'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral',
+    'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'checkbox-control', 'checkbox-row',
+    'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'switch-control', 'switch-row', 'tag', 'tab', 'tabs',
+    '_accordion-indicator', 'accordion', 'list-item', 'list', 'segmented-control-segment', 'segmented-control', 'link',
+  ];
+  const EXCEPTIONS: Exception[] = [
+    { defs: SIZED_SMALL_FIRST, axis: 'size', figma: 'small', code: 'medium',
+      reason: 'owner decision Q213 (#2501): every size ladder runs small to large on the canvas, so the inserted member is small while code defaults to medium. Only the fields and Dialog lead with medium (Q221 B, Q303). Held on #2752 as an owner question against Q347\'s every-axis rule.' },
+    { defs: ['button', 'button-destructive', 'button-neutral'], axis: 'leading', figma: 'true', code: 'false',
+      reason: 'the leading icon slot axis leads with true, so the inserted Button shows a leading icon while the code slot is empty by default. Held on #2752 as an owner question; not fixed by Q347, which named three components.' },
+    { defs: ['button', 'button-destructive', 'button-neutral'], axis: 'trailing', figma: 'true', code: 'false',
+      reason: 'the trailing icon slot axis leads with true, so the inserted Button shows a trailing icon while the code slot is empty by default. Held on #2752 with the leading one.' },
+  ];
+  // NO SET, NO DEFAULT MEMBER: a def that materializes each value as its own component is never inserted as a set.
+  const NO_SET = ['icon', 'spinner'];
+  const hitBy = new Map<Exception, Set<string>>();
+  const read = new Map<string, Set<string>>();
+  for (const def of componentDefs) {
+    const fp = def.figmaProperties;
+    if (!fp) continue;
+    if (fp.emitAsComponents) {
+      ok(NO_SET.includes(def.id), `#2752 ${def.id}: builds single components, so it has no default member, and is named in NO_SET`);
+      continue;
+    }
+    ok(!NO_SET.includes(def.id), `#2752 ${def.id}: named in NO_SET but builds a set, so its default member must be read`);
+    // The member key Figma shows → the code axis it projects. Read from the declarations that name the panel, never
+    // from a member: `variantAxes` (with any display name), the state axis, the slot axes.
+    const codeAxis = new Map<string, { axis: string; kind: 'variant' | 'state' | 'slot'; part?: string }>([
+      ...(fp.variantAxes ?? []).map((a) => [variantAxisFigmaName(fp, a), { axis: a, kind: 'variant' as const }] as const),
+      ...(fp.stateAxis?.name ? [[fp.stateAxis.name, { axis: 'state', kind: 'state' as const }] as const] : []),
+      ...(fp.slotAxes ?? []).map((s) => [s.figmaName ?? s.name, { axis: s.name, kind: 'slot' as const, part: s.part }] as const),
+    ]);
+    const plans = figmaAnatomySet(def, { swapTarget: 'FPO-default-icon' });
+    const topLeft = planSetLayout(plans, '#2752').cells.find((c) => c.row === 0 && c.col === 0);
+    const first = planComponentName(plans[0]);
+    ok(!!topLeft && topLeft.name === first,
+      `#2752 ${def.id}: the top-left member (Figma's default) is also the set's first member (top-left ${topLeft?.name ?? 'none'}; first ${first})`);
+    if (!topLeft) continue;
+    const props = new Map((def.props ?? []).map((p) => [p.name, p] as const));
+    const bad: string[] = [];
+    for (const kv of topLeft.name.split(', ')) {
+      const [key, figma] = kv.split('=');
+      const ax = codeAxis.get(key);
+      if (!ax) { bad.push(`${key} is no declared axis`); continue; }
+      let code: string | undefined;
+      if (ax.kind === 'state') code = 'rest'; // every state-collapsing prop (disabled, isPending, readOnly…) defaults off
+      else if (ax.kind === 'slot') {
+        // A presence axis: the slot prop its part fills. An optional slot with no default is empty in code.
+        const slot = props.get(ax.part!);
+        code = slot?.type === 'slot' && slot.default === undefined ? 'false' : undefined;
+        if (code === undefined) { bad.push(`${key}: no empty-by-default slot prop for part ${ax.part}`); continue; }
+      } else {
+        // A prop of the axis's own name answers first (Field message's `status`); the BRIDGE only where there is none.
+        const bridge = BRIDGE[`${def.id}.${ax.axis}`] ?? BRIDGE[ax.axis];
+        const own = props.get(ax.axis);
+        if (own && own.default !== undefined) code = String(own.default);
+        else if (bridge && props.has(bridge.prop)) code = bridge.map[String(props.get(bridge.prop)!.default)];
+        if (code === undefined) { bad.push(`${key}: UNBRIDGED, no prop default answers it (add a prop default, or a BRIDGE entry with its reason)`); continue; }
+      }
+      (read.get(def.id) ?? read.set(def.id, new Set()).get(def.id)!).add(ax.axis);
+      if (figma === code) continue;
+      const ex = EXCEPTIONS.find((e) => e.defs.includes(def.id) && e.axis === ax.axis && e.figma === figma && e.code === code);
+      if (ex) { (hitBy.get(ex) ?? hitBy.set(ex, new Set()).get(ex)!).add(def.id); continue; }
+      bad.push(`${key}: Figma inserts ${figma}, code defaults to ${code}`);
+    }
+    ok(bad.length === 0, `#2752 ${def.id}: Figma's default member carries the code default on every axis (Q347 A)${bad.length ? ` — WRONG: ${bad.join(' | ')}` : ''}`);
+  }
+  for (const e of EXCEPTIONS) {
+    ok(e.reason.length >= 60, `#2752 exception ${e.axis} (${e.defs[0]}…) carries a stated reason`);
+    // STALE PER DEF, not per entry: a def named here whose inserted member now carries the code default (or that no
+    // longer has the axis) fails, so the list cannot quietly admit a def it no longer describes.
+    const stale = e.defs.filter((id) => !hitBy.get(e)?.has(id));
+    ok(stale.length === 0, `#2752 exception ${e.axis} ${e.figma}≠${e.code} is still hit by every def it names${stale.length ? ` — STALE on: ${stale.join(', ')}` : ''}`);
+  }
+  for (const [k, b] of Object.entries(BRIDGE)) ok(b.reason.length >= 20, `#2752 BRIDGE ${k} carries a stated reason`);
+  // REPRESENTED, never a count (docs/34): the three axes Q347 decided, read on every def that carries them.
+  const MUST: [string, string][] = [
+    ['icon-button', 'appearance'], ['icon-button-destructive', 'appearance'], ['icon-button-neutral', 'appearance'],
+    ['veil', 'intensity'], ['image-placeholder', 'ratio'],
+  ];
+  const unread = MUST.filter(([id, a]) => !read.get(id)?.has(a)).map(([id, a]) => `${id}.${a}`);
+  ok(unread.length === 0, `#2752: the default-member rule read every axis Q347 decided${unread.length ? ` — not read: ${unread.join(', ')}` : ''}`);
 }
 
 // ------------------------------------------------------------------- #2455: the divider, a 1px rule

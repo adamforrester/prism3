@@ -65,10 +65,10 @@ export const segmentedControlSegment: ComponentDef = {
   props: [
     { name: 'label', type: 'string', required: true, description: 'The option name: a short noun or noun phrase, one line.' },
     { name: 'value', type: 'string', required: true, description: 'The value the control reports when this option is selected.' },
-    { name: 'selected', type: 'boolean', default: 'false', required: false, description: 'Whether this option is the selected one. Set by the control from its value; do not set it on an option inside a control.' },
+    { name: 'selected', type: 'boolean', default: false, required: false, description: 'Whether this option is the selected one. Set by the control from its value; do not set it on an option inside a control.' },
     { name: 'leadingIcon', type: 'slot', required: false, description: 'An icon before the label. Decorative when a label is shown.' },
     { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'Option height, padding and label type. Passed down by the control.' },
-    { name: 'disabled', type: 'boolean', default: 'false', required: false, description: 'Dims this one option and takes it out of interaction, while the rest of the control stays usable.' },
+    { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Dims this one option and takes it out of interaction, while the rest of the control stays usable.' },
   ],
 
   states: ['rest', 'hover', 'pressed', 'focus-visible', 'disabled'],
@@ -93,22 +93,25 @@ export const segmentedControlSegment: ComponentDef = {
     'ring-width': 'focus.ring.width',
     'ring-offset': 'focus.ring.offset',
 
+    // The leading icon sits ONE RUNG BELOW the control rung, as Button's does (#1350): small → icon.size.xs (16),
+    // medium → sm (20), large → md (24). A label already carries the control, so the glyph beside it reads better
+    // smaller (owner Q337 A, #2725). `lint-rung-names.ts` records it in `ICON_OFFSET_DEFS`.
     'size.small.height': 'size.sm.height',
     'size.small.padding-x': 'space.150',
     'size.small.gap': 'space.075',
-    'size.small.icon': 'icon.size.sm',
+    'size.small.icon': 'icon.size.xs',
     'size.small.type.selected': 'type.label.sm.emphasis',
     'size.small.type.unselected': 'type.label.sm.default',
     'size.medium.height': 'size.md.height',
     'size.medium.padding-x': 'space.200',
     'size.medium.gap': 'space.100',
-    'size.medium.icon': 'icon.size.md',
+    'size.medium.icon': 'icon.size.sm',
     'size.medium.type.selected': 'type.label.md.emphasis',
     'size.medium.type.unselected': 'type.label.md.default',
     'size.large.height': 'size.lg.height',
     'size.large.padding-x': 'space.250',
     'size.large.gap': 'space.100',
-    'size.large.icon': 'icon.size.lg',
+    'size.large.icon': 'icon.size.md',
     'size.large.type.selected': 'type.label.lg.emphasis',
     'size.large.type.unselected': 'type.label.lg.default',
 
@@ -324,7 +327,7 @@ export const segmentedControl: ComponentDef = {
     { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'Passed to every option. Medium is a button\'s height, 44px on comfortable and spacious density.' },
     { name: 'width', type: "enum: 'auto' | 'full'", values: ['auto', 'full'], default: 'auto', required: false, description: 'auto: every option as wide as the widest. full: the control fills its column and the options share it equally.' },
     { name: 'name', type: 'string', required: false, description: 'The form field name, in the form behavior.' },
-    { name: 'disabled', type: 'boolean', default: 'false', required: false, description: 'Disables every option and takes the control out of the Tab order.' },
+    { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Disables every option and takes the control out of the Tab order.' },
   ],
 
   states: ['rest'],

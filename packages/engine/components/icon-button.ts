@@ -159,7 +159,10 @@ const makeIconButton = (id: string, name: string, summary: string, description: 
     // #1225 — `intent` is gone as an axis; it is the component identity now. `appearance` carries emphasis,
     // `size` the rung. #1432 — the tertiary value is `ghost`, not `text` (an icon-only control has no text);
     // this is an axis-VALUE rename for the icon-button family only, Button keeps `text` (owner-decided).
-    appearance: ['filled', 'outline', 'ghost'],
+    // #2752 (owner decision Q347 A) — `ghost` LEADS because it is the code default (`props.appearance`), and
+    // Figma inserts a set's top-left member, which is the first value of each axis. The other two keep their
+    // order. The code enum keeps filled, outline, ghost; `test.ts` #2752 holds the first member to the default.
+    appearance: ['ghost', 'filled', 'outline'],
     size: ['small', 'medium', 'large'],
     // #1353 — SHAPE is pure geometry (owner-decided 2026-09-10). `square` (default) is the button's normal
     // radius (`radius.md`); `circular` is full-round (`radius.round`). The two values differ ONLY in the
