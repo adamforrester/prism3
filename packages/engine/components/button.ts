@@ -651,7 +651,7 @@ const makeButton = (id: string, name: string, summary: string, description: stri
   },
 
   accessibility: {
-    role: 'button (native <button>; never div[role=button] — it inherits Space/Enter activation, focus, and HC affordances for free)',
+    role: 'button (native <button>; never div[role=button] — it inherits Space/Enter activation, focus, and high-contrast affordances for free)',
     // #1697 — every entry carries its reason, and 2.5.5 is stated as intent: `lint-hit-target.ts` gates the
     // 44px floor at the default size on comfortable and spacious densities, and names a small button and
     // compact density as the two exceptions, so "meets 44×44" would be a claim the engine does not make.
@@ -711,7 +711,7 @@ const makeButton = (id: string, name: string, summary: string, description: stri
       'Set inset=flush on a filled or outline button — their visible edge needs its padding; flush is for appearance=text',
       'Use a button with no href for navigation to a URL — use Link, or give the button an href so it renders an <a>',
       'Stack multiple filled buttons competing for attention — differentiate rank by appearance, not by adding fills',
-      'Use native disabled on a relevant-but-blocked control (dead end for keyboard/SR users)',
+      'Use native disabled on a relevant-but-blocked control (a dead end for keyboard and screen reader users)',
       'Remove the label to make room for a spinner — the button narrows mid-submit and screen readers lose the name; the spinner takes the leading visual\'s place, or overlays a label held at zero opacity',
     ],
     contentGuidelines: 'Verb-first, specific, sentence case, no terminal punctuation, ≤3 words to bound i18n expansion.',
