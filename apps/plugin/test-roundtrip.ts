@@ -2092,7 +2092,7 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
   const WANT: Record<string, string[]> = { rest: ['ON_HOVER→state=hover', 'ON_PRESS→state=pressed'], hover: ['ON_PRESS→state=pressed'] };
   const INTERACTIVE = ['button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral',
     'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'checkbox-control', 'radio-control', 'switch-control',
-    'tag', 'tab', 'segmented-control-segment', 'link'];
+    'tag', 'tab', 'segmented-control-segment', 'link', '_slider-thumb', 'slider'];
   const off: string[] = [];
   let read = 0;
   for (const id of INTERACTIVE) {

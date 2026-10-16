@@ -270,6 +270,18 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   },
   {
     axis: 'type',
+    values: ['single', 'range'],
+    defs: ['slider'],
+    relation: 'disjoint',
+    reason:
+      'How many values a slider holds (owner decision on #2669, call 2 A): one thumb for a single value, two for a '
+      + 'minimum and a maximum. In code the type is read from the value (a number or a pair), so the axis names the '
+      + 'two looks rather than a setting. `single` LEADS because it is the code default and Figma\'s default member '
+      + '(Q347). DISJOINT from Badge\'s canonical set, the loud kind of divergence: a badge type is a content kind and '
+      + 'a slider type a value count, and no value would mean the same thing on both defs, so none is shared.',
+  },
+  {
+    axis: 'type',
     values: ['unordered', 'ordered', 'icon'],
     defs: ['list-item', 'list'],
     relation: 'disjoint',

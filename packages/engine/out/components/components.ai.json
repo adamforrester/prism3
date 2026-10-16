@@ -2543,6 +2543,7 @@
           "checkbox-group",
           "radio-group",
           "segmented-control",
+          "slider",
           "field-message"
         ],
         "triggerKeywords": [
@@ -7715,6 +7716,364 @@
           "eye icon inside a password field",
           "password field with no way to show the characters",
           "autocomplete=\"off\" on a password"
+        ]
+      }
+    },
+    "_slider-thumb": {
+      "id": "_slider-thumb",
+      "name": "Slider.Thumb",
+      "aliases": [
+        "slider-handle",
+        "slider-knob"
+      ],
+      "category": "form",
+      "status": "draft",
+      "summary": "The thumb a Slider moves: a filled disc with a page-colored ring. Used only inside a Slider.",
+      "description": "The handle a Slider moves along its track: a filled disc in the primary fill with a 2px ring in the page color, which keeps it apart from the fill beside it. It darkens at hover and press, and shows the focus ring while it has keyboard focus. It lives inside a Slider, which places one thumb for a single value and two for a range, and is never placed on its own.",
+      "props": [
+        {
+          "name": "aria-label",
+          "type": "string",
+          "required": false,
+          "description": "The thumb's accessible name. Set by the Slider: the label for a single value, \"Minimum {label}\" and \"Maximum {label}\" for a range."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "The disabled look. Set by the Slider when the whole control is disabled."
+        }
+      ],
+      "states": [
+        "rest",
+        "hover",
+        "pressed",
+        "focus-visible",
+        "disabled"
+      ],
+      "variants": {},
+      "accessibility": {
+        "role": "slider, from a visually hidden native <input type=\"range\">; the Slider wires its name, value and range",
+        "wcag": [
+          "1.4.11 Non-text Contrast (the disc targets 3:1 against the page at rest, hover and press)",
+          "2.4.7 Focus Visible / 2.4.13 Focus Appearance (the shared focus ring, as intent)",
+          "2.5.8 Target Size (targets a 44×44px hit area in code, beyond the visible disc)"
+        ],
+        "keyboard": "Set by the Slider: arrow keys move one step, Page Up and Page Down one large step, Home and End to the ends of the thumb's range.",
+        "focus": "A focus ring around the thumb on :focus-visible, never around the track.",
+        "aria": "aria-valuenow, aria-valuemin and aria-valuemax from the native input; aria-valuetext whenever the value is not a bare number. Set by the Slider."
+      },
+      "content": {
+        "labelPattern": "None of its own. The Slider names each thumb: its label for a single value, \"Minimum {label}\" and \"Maximum {label}\" for a range."
+      },
+      "docs": {
+        "usage": "Part of a Slider. The Slider places one thumb for a single value and two for a range, and sets each thumb's name, value and state.",
+        "do": [
+          "Extend its hit area in code to at least 44×44px at every size, with a transparent `::before` inset outward",
+          "Let the Slider name each thumb, so a range announces \"Minimum\" and \"Maximum\", not \"slider, slider\""
+        ],
+        "dont": [
+          "Place a thumb outside a Slider",
+          "Put the focus ring on the track instead of the thumb"
+        ],
+        "contentGuidelines": "No copy of its own."
+      },
+      "ai": {
+        "primaryPurpose": "The handle a Slider moves, inside a Slider only.",
+        "whenToUse": "Only as part of a Slider.",
+        "avoidWhen": "Anywhere outside a Slider. A switch handle is Switch.Control; a value chosen by dragging is a Slider.",
+        "commonPartners": [
+          "slider",
+          "focus-ring"
+        ],
+        "triggerKeywords": [
+          "slider thumb",
+          "slider handle",
+          "slider knob"
+        ],
+        "generationPriority": 9
+      },
+      "motion": {
+        "enter": "None.",
+        "exit": "None.",
+        "reduceMotion": "While dragging the thumb follows the pointer with no transition. After a track click or a key step it slides on the fast duration; under reduced motion it moves at once."
+      },
+      "composition": {
+        "composesWith": [
+          "focus-ring"
+        ],
+        "alternativeTo": [],
+        "supersedes": [],
+        "supersededBy": [],
+        "planned": [],
+        "replacesPatterns": [
+          "the browser's own range thumb, restyled per engine"
+        ]
+      }
+    },
+    "slider": {
+      "id": "slider",
+      "name": "Slider",
+      "aliases": [
+        "range-slider",
+        "range-input",
+        "range"
+      ],
+      "category": "form",
+      "status": "draft",
+      "summary": "Choose a value, or a range, by moving a thumb along a track. Works with arrow keys too.",
+      "description": "A slider picks an approximate value, or a range between two values, by moving a thumb along a track: a price filter, a text size, a volume. It suits a value where the position within the range matters more than the exact number. One thumb sets a single value; two thumbs set a minimum and a maximum. The current value shows as text above the track. For an exact number, turn on the paired inputs, or use a text field.",
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "required": true,
+          "description": "Names the dimension being set, such as \"Price\" or \"Volume\". Shown above the track, and the accessible name of a single thumb."
+        },
+        {
+          "name": "value",
+          "type": "number | [number, number]",
+          "required": false,
+          "description": "The value. A number sets one thumb; a pair of numbers, such as [40, 120], sets a range with two thumbs. Controlled; pair it with onChange."
+        },
+        {
+          "name": "defaultValue",
+          "type": "number | [number, number]",
+          "required": false,
+          "description": "The starting value when the slider manages its own state. A pair starts a range."
+        },
+        {
+          "name": "onChange",
+          "type": "function",
+          "required": false,
+          "description": "Called on every change while dragging or stepping, for a live preview."
+        },
+        {
+          "name": "onChangeEnd",
+          "type": "function",
+          "required": false,
+          "description": "Called once when the pointer is released or a key step ends. Bind costly work here, such as a network filter, so a drag does not call it for every pixel."
+        },
+        {
+          "name": "min",
+          "type": "number",
+          "default": 0,
+          "required": false,
+          "description": "The lowest value."
+        },
+        {
+          "name": "max",
+          "type": "number",
+          "default": 100,
+          "required": false,
+          "description": "The highest value."
+        },
+        {
+          "name": "step",
+          "type": "number",
+          "default": 1,
+          "required": false,
+          "description": "The amount one arrow key or one snap moves. Every value is rounded to the nearest exact multiple of the step before onChange."
+        },
+        {
+          "name": "largeStep",
+          "type": "number",
+          "required": false,
+          "description": "The amount Page Up and Page Down move. Ten steps when not set."
+        },
+        {
+          "name": "minStepsBetweenThumbs",
+          "type": "number",
+          "default": 0,
+          "required": false,
+          "description": "For a range, how many steps the two thumbs must stay apart. A thumb stops there and never crosses the other."
+        },
+        {
+          "name": "formatOptions",
+          "type": "Intl.NumberFormatOptions",
+          "required": false,
+          "description": "How the value reads: a currency, a percent, a unit. Drives the visible value text and each thumb's aria-valuetext from one formatter, so what is seen and what is heard match."
+        },
+        {
+          "name": "thumbLabels",
+          "type": "[string, string]",
+          "required": false,
+          "description": "For a range, the two thumb names. \"Minimum {label}\" and \"Maximum {label}\" when not set."
+        },
+        {
+          "name": "type",
+          "type": "enum: 'single' | 'range'",
+          "default": "single",
+          "required": false,
+          "values": [
+            "single",
+            "range"
+          ],
+          "description": "Read from value: a number is single, a pair is range. Not set on its own; listed so the two looks have a name."
+        },
+        {
+          "name": "showValue",
+          "type": "boolean",
+          "default": true,
+          "required": false,
+          "description": "Shows the value text above the track. Turn it off only when the paired inputs show the value instead."
+        },
+        {
+          "name": "showEndLabels",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Shows the minimum and maximum under the ends of the track."
+        },
+        {
+          "name": "showInputs",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Shows paired number inputs under the track: one for a single value, \"Minimum\" and \"Maximum\" for a range. Typing moves the thumb; dragging updates the input. With inputs on, turn the value text off."
+        },
+        {
+          "name": "helpText",
+          "type": "string",
+          "required": false,
+          "description": "Guidance under the slider, in a field message."
+        },
+        {
+          "name": "validation",
+          "type": "enum: 'default' | 'error'",
+          "default": "default",
+          "required": false,
+          "values": [
+            "default",
+            "error"
+          ],
+          "description": "error marks the slider invalid: the field message shows the error status and each thumb carries aria-invalid. A slider's own value is always in range, so an error comes from a paired input or from validation elsewhere in the form."
+        },
+        {
+          "name": "validationMessage",
+          "type": "string",
+          "required": false,
+          "description": "The error text, shown in the field message and added to aria-describedby. Say what is wrong and how to fix it."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Takes the slider out of interaction and out of the form payload, and dims it."
+        },
+        {
+          "name": "readOnly",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "The thumbs stay focusable and the value is still submitted, but it cannot change. Looks like rest."
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": false,
+          "description": "The form field name. A range submits two values."
+        }
+      ],
+      "states": [
+        "rest",
+        "hover",
+        "pressed",
+        "focus-visible",
+        "disabled"
+      ],
+      "variants": {
+        "type": {
+          "values": [
+            "single",
+            "range"
+          ],
+          "kind": "authoring"
+        }
+      },
+      "accessibility": {
+        "role": "slider, once per thumb, from a visually hidden native <input type=\"range\">; a range is two sliders in a group named by the label",
+        "wcag": [
+          "4.1.2 Name, Role, Value (each thumb named, with aria-valuetext for a formatted value)",
+          "2.1.1 Keyboard (arrow, Page and Home and End keys on every thumb)",
+          "1.4.11 Non-text Contrast (the rail, the fill and the thumb target 3:1 against the page)",
+          "1.4.1 Use of Color (the fill is thicker than the rail and bounded by the thumbs, not told apart by color alone)",
+          "2.4.7 Focus Visible / 2.4.13 Focus Appearance (the focus ring on the thumb, as intent)",
+          "2.5.7 Dragging Movements (a click on the rail, the keys or the paired inputs move a thumb without dragging)",
+          "2.5.8 Target Size (targets a 44×44px hit area on each thumb in code)",
+          "3.3.2 Labels or Instructions (a visible label names the dimension)"
+        ],
+        "keyboard": "Right and Up raise one step; Left and Down lower one step; Page Up and Page Down move ten steps; Home and End go to the minimum and maximum, or for a range thumb to the other thumb. Tab moves from the minimum thumb to the maximum thumb. In right-to-left text, Right lowers and Left raises.",
+        "focus": "A focus ring around the focused thumb on :focus-visible, never around the track.",
+        "aria": "Each thumb carries aria-valuenow, aria-valuemin, aria-valuemax and, for a formatted value, aria-valuetext from the same formatter as the visible text. A range names its thumbs \"Minimum {label}\" and \"Maximum {label}\", which are translatable. Help and error text join aria-describedby; an error sets aria-invalid on each thumb. The layout mirrors right to left."
+      },
+      "content": {
+        "labelPattern": "Name the dimension, in sentence case: \"Price\", \"Volume\", \"Text size\". The value text carries the unit, currency or percent, formatted for the locale (\"$40 – $120\", \"120%\").",
+        "errorPattern": "Say what is wrong and how to fix it, in the field message: \"Enter a maximum of 200 or less.\""
+      },
+      "docs": {
+        "usage": "Use a slider for an approximate value, or a range, where seeing the position within the bounds helps more than the exact number: a price filter, a text size, a volume. Use two thumbs for a minimum and a maximum. For an exact number the user already knows, use a text field, or turn on the paired inputs. Don't use a slider for a few named options (use a segmented control or a radio group) or for on and off (use a switch).",
+        "do": [
+          "Name the dimension with a visible label",
+          "Format the value with its unit or currency, and use the same text for aria-valuetext",
+          "Turn on the paired inputs when an exact value matters",
+          "Bind costly work, such as a network filter, to onChangeEnd"
+        ],
+        "dont": [
+          "Use a slider for a precise value over a wide range; a 300px track cannot reach every value",
+          "Leave the thumbs of a range unnamed",
+          "Show the value only in a bubble during a drag; it is gone when the drag ends",
+          "Animate the thumb while it is dragged"
+        ],
+        "contentGuidelines": "The label names the dimension. The value text shows the value with its unit; a range shows both ends, \"$40 – $120\"."
+      },
+      "ai": {
+        "primaryPurpose": "Choose an approximate value, or a minimum and maximum, by moving a thumb along a track.",
+        "whenToUse": "An approximate value where the position within the range matters more than the exact number, such as a volume, a text size or a price filter window.",
+        "avoidWhen": "The user knows the exact number (use a text field, or turn on the paired inputs), there are a few named options (use a segmented control or a radio group), it is on or off (use a switch), or the range is too wide for the track to reach each value.",
+        "commonPartners": [
+          "_slider-thumb",
+          "field-label",
+          "field-message",
+          "text-field"
+        ],
+        "triggerKeywords": [
+          "slider",
+          "range slider",
+          "price filter",
+          "volume control",
+          "range input",
+          "min max slider"
+        ],
+        "generationPriority": 4
+      },
+      "motion": {
+        "enter": "None.",
+        "exit": "None.",
+        "reduceMotion": "While dragging, the thumb and the fill follow the pointer with no transition. After a click on the rail or a key step the thumb slides on the fast duration with the default easing; under reduced motion it moves at once."
+      },
+      "composition": {
+        "composesWith": [
+          "field-label",
+          "_slider-thumb",
+          "text-field",
+          "field-message"
+        ],
+        "alternativeTo": [
+          "text-field",
+          "segmented-control",
+          "radio-group",
+          "switch-row"
+        ],
+        "supersedes": [],
+        "supersededBy": [],
+        "planned": [],
+        "replacesPatterns": [
+          "a native <input type=\"range\"> styled per browser engine",
+          "a drag-only custom slider with no keyboard support",
+          "two separate sliders for a minimum and a maximum"
         ]
       }
     }

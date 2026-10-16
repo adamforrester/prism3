@@ -121,6 +121,9 @@ export const TAXONOMY: Taxonomy = {
         // Dialog (#2609, owner decision Q303.12 A) — its own page under Components, every placement on it. It nests the
         // Neutral IconButton, the Divider and the Button, which the build places first wherever their pages sort.
         { page: 'Dialog', defs: ['dialog'] },
+        // Slider (#2669, owner call 9 A) — its own page under Components, sorted alphabetically (Q260 A). Its thumb builds
+        // first, so the slider's two nested thumbs resolve against it on the same page, as Tabs' do.
+        { page: 'Slider', defs: ['_slider-thumb', 'slider'] },
       ],
     },
     {

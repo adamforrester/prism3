@@ -11,14 +11,15 @@ Generated from the component definitions and the emission by `packages/engine/em
 | Component | Nested by (direct) | Affected by a change (direct and transitive) |
 |---|---|---|
 | _accordion-indicator | accordion | accordion |
+| _slider-thumb | slider | slider |
 | badge | tab | tab, tabs |
 | button | dialog, password-field | dialog, password-field |
 | checkbox-control | checkbox-row | checkbox-group, checkbox-row |
 | checkbox-row | checkbox-group | checkbox-group |
 | divider | accordion, dialog | accordion, dialog |
-| field-label | checkbox-group, password-field, radio-group, segmented-control, select, text-field, textarea | checkbox-group, password-field, radio-group, segmented-control, select, text-field, textarea |
-| field-message | password-field, select, text-field, textarea | password-field, select, text-field, textarea |
-| focus-ring | accordion, button, button-destructive, button-neutral, checkbox-control, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, password-field, radio-control, segmented-control-segment, select, switch-control, tab, tag, text-field, textarea | accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, dialog, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, password-field, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, select, switch-control, switch-row, tab, tabs, tag, text-field, textarea |
+| field-label | checkbox-group, password-field, radio-group, segmented-control, select, slider, text-field, textarea | checkbox-group, password-field, radio-group, segmented-control, select, slider, text-field, textarea |
+| field-message | password-field, select, slider, text-field, textarea | password-field, select, slider, text-field, textarea |
+| focus-ring | _slider-thumb, accordion, button, button-destructive, button-neutral, checkbox-control, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, password-field, radio-control, segmented-control-segment, select, switch-control, tab, tag, text-field, textarea | _slider-thumb, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, dialog, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, password-field, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, select, slider, switch-control, switch-row, tab, tabs, tag, text-field, textarea |
 | icon-button-neutral | dialog | dialog |
 | list-item | list | list |
 | radio-control | radio-row | radio-group, radio-row |
@@ -27,6 +28,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 | spinner | button, button-destructive, button-neutral, icon-button, icon-button-destructive, icon-button-neutral | button, button-destructive, button-neutral, dialog, icon-button, icon-button-destructive, icon-button-neutral, password-field |
 | switch-control | switch-row | switch-row |
 | tab | tabs | tabs |
+| text-field | slider | slider |
 
 A component not in this table is nested by nothing; a change to it reaches only itself.
 
@@ -35,6 +37,7 @@ A component not in this table is nested by nothing; a change to it reaches only 
 | Component | Depth | Nests (direct) | Nests (transitive) |
 |---|---|---|---|
 | _accordion-indicator | 0 | — | — |
+| _slider-thumb | 1 | focus-ring | focus-ring |
 | accordion | 1 | _accordion-indicator, divider, focus-ring | _accordion-indicator, divider, focus-ring |
 | badge | 0 | — | — |
 | button | 1 | focus-ring, spinner | focus-ring, spinner |
@@ -66,6 +69,7 @@ A component not in this table is nested by nothing; a change to it reaches only 
 | segmented-control | 2 | field-label, segmented-control-segment | field-label, focus-ring, segmented-control-segment |
 | segmented-control-segment | 1 | focus-ring | focus-ring |
 | select | 1 | field-label, field-message, focus-ring | field-label, field-message, focus-ring |
+| slider | 2 | _slider-thumb, field-label, field-message, text-field | _slider-thumb, field-label, field-message, focus-ring, text-field |
 | spinner | 0 | — | — |
 | switch-control | 1 | focus-ring | focus-ring |
 | switch-row | 2 | switch-control | focus-ring, switch-control |
@@ -82,6 +86,7 @@ Depth is 0 for a component that nests nothing, and one more than its deepest chi
 
 | From | Part | Kind | To | Relation | Fixed variant | Follows | Exposes |
 |---|---|---|---|---|---|---|---|
+| _slider-thumb | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
 | accordion | divider | nest | divider | nest-fixed | orientation=horizontal, inset=none | — | — |
 | accordion | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
 | accordion | leadingGlyph | nest | _accordion-indicator | nest-exposed | indicator=chevron, expansion=collapsed, size=medium | expansion, size | indicator |
@@ -153,6 +158,13 @@ Depth is 0 for a component that nests nothing, and one more than its deepest chi
 | select | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
 | select | label | nest | field-label | nest-exposed | size=medium, emphasis=secondary, weight=regular, state=rest | size | emphasis, weight |
 | select | message | nest | field-message | nest-fixed | status=default | status | — |
+| slider | inputMax | nest | text-field | nest-fixed | size=medium, status=default, state=filled | — | — |
+| slider | inputMin | nest | text-field | nest-fixed | size=medium, status=default, state=filled | — | — |
+| slider | inputSingle | nest | text-field | nest-fixed | size=medium, status=default, state=filled | — | — |
+| slider | label | nest | field-label | nest-fixed | size=medium, emphasis=secondary, weight=bold, state=rest | — | — |
+| slider | message | nest | field-message | nest-fixed | status=default | — | — |
+| slider | thumb | nest | _slider-thumb | nest-fixed | state=rest | — | — |
+| slider | thumbMin | nest | _slider-thumb | nest-fixed | state=rest | — | — |
 | switch-control | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
 | switch-row | control | nest | switch-control | nest-exposed | selection=off, state=rest | size | selection, state, showStateLabel |
 | tab | count | nest | badge | nest-fixed | type=count, emphasis=bold, tone=neutral | — | — |
