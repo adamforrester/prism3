@@ -31,9 +31,10 @@
  *     the existing parts if wanted, but not part of Prism 2's group). `[HELD]` only in the sense of
  *     confirming its absence is intended.
  *   · VARIABLE ROW COUNT. Prism 2 fakes it with six fixed rows + five visibility booleans — a Figma
- *     authoring convenience for a count that, in code, is just `children: CheckboxRow[]`. This def
+ *     authoring convenience for a count that, in code, is just `items: CheckboxRow[]`. This def
  *     represented the stack with THREE fixed row nests until #2344 (owner decision Q156 A) ported the
- *     mechanism at eight: row 1 always shown, rows 2-8 behind Figma-only booleans, three on by default.
+ *     mechanism at eight; #2649 (owner decision Q307 A) replaced it with a native `items` slot holding
+ *     three rows by default, which a designer fills on an instance.
  *   · A `size` AXIS. Prism 2's group is single-size. This def carries the family-universal `size` axis
  *     (every sibling — `field-label`, `checkbox-row`, `checkbox-control` — has it), scaling the label and
  *     the rows together via `follow`, so the group is not the one form def frozen at one size. That is a
@@ -79,6 +80,7 @@ export const checkboxGroup: ComponentDef = {
   // per-row `checked` is DERIVED from `value`, never held on a row inside a group.
   props: [
     { name: 'label', type: 'string | node', required: true, description: 'The group heading, rendered as the nested FieldLabel and the group\'s accessible name (role="group" + aria-labelledby). Names the decision the set answers ("Notification preferences"), letting its rows read the abstracted-up short labels ("Email", "SMS", "Push").' },
+    { name: 'items', type: 'slot', anyOf: ['checkbox-row'], minItems: 1, required: true, description: 'The options, each a Checkbox.Row, in order. Three by default; a designer adds, removes and reorders them in place.' },
     { name: 'value', type: 'string[]', required: false, description: 'The controlled array of checked option values. The GROUP owns it; each row\'s checked appearance is DERIVED (`checked = value.includes(row.value)`), never wired on the row. Pair with `onChange`; use `defaultValue` for the uncontrolled form.' },
     { name: 'defaultValue', type: 'string[]', required: false, description: 'Uncontrolled initial selection. Never pre-check a consent option — a dark pattern, and for marketing consent often unlawful.' },
     { name: 'onChange', type: '(value: string[], event) => void', required: false, description: 'Fires with the NEW value array when any row toggles. The group dispatches it; a row never owns its own onChange inside a group.' },
@@ -129,10 +131,10 @@ export const checkboxGroup: ComponentDef = {
 
   // ── ANATOMY — a column: the nested FieldLabel above a stack of nested Checkbox rows ─────────────────
   //
-  // container (column) → nested `field-label` · row1 … row8. The label and rows are all in-flow `nest`s (the
-  // select precedent, #1226). The label `follow`s the group's size and pins Prism 2's Secondary/Bold styling;
-  // each row `follow`s the size too. EIGHT rows, seven behind Figma-only toggles, stand in for the code's
-  // `children: CheckboxRow[]` (#2344, see `figmaProperties.booleans`).
+  // container (column) → nested `field-label` · the `items` slot holding the rows. The label and rows are in-flow `nest`s
+  // (the select precedent, #1226). The label `follow`s the group's size and pins Prism 2's Secondary/Bold styling;
+  // each row `follow`s the size too. The slot stands in for the code's `items: CheckboxRow[]` (#2649, owner decision Q307 A;
+  // until then eight rows behind Figma-only booleans, #2344).
   anatomy: {
     root: 'container',
     parts: {
@@ -165,7 +167,7 @@ export const checkboxGroup: ComponentDef = {
         // column down to the fields' 120 floor (Q152.2); the rows still stretch to whatever it is.
         placementWidth: 320,
         minWidth: 120,
-        children: ['label', 'row1', 'row2', 'row3', 'row4', 'row5', 'row6', 'row7', 'row8'],
+        children: ['label', 'items'],
       },
       // THE NESTED GROUP LABEL (nest-fixed, FOLLOWING size). An in-flow instance of `field-label`,
       // configured to Prism 2's group `formLabel`: emphasis SECONDARY, weight BOLD, and `required` at its own
@@ -188,7 +190,7 @@ export const checkboxGroup: ComponentDef = {
       // matrix) — a designer overrides each row instance's exposed `selection`/`state` in place, and a code
       // consumer derives them from the value array. `variant: { size: 'medium' }` is the fallback the
       // follow overrides per member; checkbox-row projects only `size`, so that one axis is the whole
-      // coordinate. Eight rows, seven behind Figma-only toggles, stand in for the code's `children` (#2344).
+      // coordinate. Three rows by default in the `items` slot stand in for the code's `items` (#2649).
       //
       // `crossAxisFill: true` (#1503) — each row STRETCHES to the group's width (`layoutAlign: STRETCH`),
       // reproducing Prism 2's `checkboxRow: layoutSizingHorizontal FILL` so the rows span the 320 group
@@ -196,6 +198,23 @@ export const checkboxGroup: ComponentDef = {
       // container, so it keeps its natural width above the filled rows. The rows are nested INSTANCES, which
       // is exactly why the executor applies `layoutAlign` from the PARENT (a placement property, not a design
       // override) — see `PartDef.crossAxisFill`.
+      // THE ITEMS SLOT (#2649, owner decision Q307 A). A native Figma slot (#2417) holding the rows: three by
+      // default, and a designer adds, removes and reorders rows on an instance in place, where the group used to
+      // carry eight fixed rows behind Figma-only booleans (#2344, the "hidden nested instances" pattern). In code it
+      // is `items`, a children array of the row type. Stretches across the group, so its rows do too.
+      items: {
+        kind: 'box',
+        role: 'presentation',
+        contentSlot: true,
+        // Owner decision Q307 A: at least one item, and only a checkbox-row (#2646's slot constraints).
+        slotSettings: { minChildren: 1, allowPreferredValuesOnly: true },
+        preferred: ['checkbox-row'],
+        layout: { direction: 'column', align: 'start', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
+        gap: 'gap',
+        crossAxisFill: true,
+        children: ['row1', 'row2', 'row3'],
+        note: 'The items: a native slot holding the Checkbox.Row instances, three by default. A designer adds, removes and reorders rows in place.',
+      },
       row1: {
         kind: 'nest',
         nests: 'checkbox-row',
@@ -208,56 +227,14 @@ export const checkboxGroup: ComponentDef = {
         nests: 'checkbox-row',
         nesting: { kind: 'nest-fixed', variant: { size: 'medium' }, follow: ['size'] },
         crossAxisFill: true,
-        optional: true,
-        note: 'Row 2 of up to eight: a Checkbox.Row, shown by default, behind the Figma-only "Option 2" toggle (#2344). Same nest configuration as the first, including the group-width fill.',
+        note: 'The second default item: a Checkbox.Row, the same nest configuration as the first, including the group-width fill.',
       },
       row3: {
         kind: 'nest',
         nests: 'checkbox-row',
         nesting: { kind: 'nest-fixed', variant: { size: 'medium' }, follow: ['size'] },
         crossAxisFill: true,
-        optional: true,
-        note: 'Row 3 of up to eight: a Checkbox.Row, shown by default, behind the Figma-only "Option 3" toggle (#2344). Same nest configuration as the first, including the group-width fill.',
-      },
-      row4: {
-        kind: 'nest',
-        nests: 'checkbox-row',
-        nesting: { kind: 'nest-fixed', variant: { size: 'medium' }, follow: ['size'] },
-        crossAxisFill: true,
-        optional: true,
-        note: 'Row 4 of up to eight: a Checkbox.Row, hidden by default, behind the Figma-only "Option 4" toggle (#2344). Same nest configuration as the first, including the group-width fill.',
-      },
-      row5: {
-        kind: 'nest',
-        nests: 'checkbox-row',
-        nesting: { kind: 'nest-fixed', variant: { size: 'medium' }, follow: ['size'] },
-        crossAxisFill: true,
-        optional: true,
-        note: 'Row 5 of up to eight: a Checkbox.Row, hidden by default, behind the Figma-only "Option 5" toggle (#2344). Same nest configuration as the first, including the group-width fill.',
-      },
-      row6: {
-        kind: 'nest',
-        nests: 'checkbox-row',
-        nesting: { kind: 'nest-fixed', variant: { size: 'medium' }, follow: ['size'] },
-        crossAxisFill: true,
-        optional: true,
-        note: 'Row 6 of up to eight: a Checkbox.Row, hidden by default, behind the Figma-only "Option 6" toggle (#2344). Same nest configuration as the first, including the group-width fill.',
-      },
-      row7: {
-        kind: 'nest',
-        nests: 'checkbox-row',
-        nesting: { kind: 'nest-fixed', variant: { size: 'medium' }, follow: ['size'] },
-        crossAxisFill: true,
-        optional: true,
-        note: 'Row 7 of up to eight: a Checkbox.Row, hidden by default, behind the Figma-only "Option 7" toggle (#2344). Same nest configuration as the first, including the group-width fill.',
-      },
-      row8: {
-        kind: 'nest',
-        nests: 'checkbox-row',
-        nesting: { kind: 'nest-fixed', variant: { size: 'medium' }, follow: ['size'] },
-        crossAxisFill: true,
-        optional: true,
-        note: 'Row 8 of up to eight: a Checkbox.Row, hidden by default, behind the Figma-only "Option 8" toggle (#2344). Same nest configuration as the first, including the group-width fill.',
+        note: 'The third default item: a Checkbox.Row, the same nest configuration as the first, including the group-width fill.',
       },
     },
     codeOnly: [
@@ -265,7 +242,7 @@ export const checkboxGroup: ComponentDef = {
       'value / onChange — the GROUP owns the checked-value ARRAY and the change callback (`value: string[]`), and each row\'s checked appearance is DERIVED from it (`checked = value.includes(row.value)`), never wired on a row inside the group. Figma has no data model, so the projected rows show a fixed default selection; the array and its wiring are the code projection\'s. This is the contract the brief (§2) puts on the group and a single `checkbox-row` structurally cannot express.',
       'error / validation — GROUP-LEVEL and [HELD]. The brief says the group owns validation and carries the error message ("Select at least one option", SC 3.3.3), with the individual rows staying neutral. Prism 2\'s spec settles no error visual for the group (no error state, no group field-message), so this def deliberately does NOT invent one: whether the group composes a nested `field-message` for the error, and what an errored group looks like, is held for owner decision. `required` IS carried (via the nested FieldLabel and aria-required); error is not.',
       'select-all — [HELD], and absent by design. A select-all is a parent checkbox in the `indeterminate` state broadcasting partial selection, and it is expressible from the existing parts (a `checkbox-row` at `indeterminate` above the set). Prism 2\'s group has none, so reproducing Prism 2 means not adding one; its absence is confirmed rather than an oversight.',
-      'variable row count — in code the count is simply `children: CheckboxRow[]` of any length. Figma has no data model, so the projection carries a fixed stack of eight nested rows, row 1 always shown and rows 2 to 8 each behind a Figma-only "Option N" toggle, three shown by default (#2344, owner decision Q156 A, Prism 2\'s mechanism with eight rows where it had six). The toggles are Figma\'s only: no code prop drives them, and a hidden row is not an option. A group needing more than eight options is built in code.',
+      'variable row count — in code the rows are `items: CheckboxRow[]`, any number from one up. Figma holds them in the native `items` slot (#2649, owner decision Q307 A), three by default: a designer adds, removes and reorders rows on an instance in place, and only a checkbox-row belongs there. Until #2649 the group carried eight fixed rows behind Figma-only booleans (#2344).',
       'orientation — [HELD]. The brief\'s §15 names a group `orientation` (vertical / horizontal); Prism 2 is vertical only. Vertical scans better and lets long labels wrap, so it is the built default and horizontal is not invented here — a horizontal axis is held rather than guessed at.',
       'the disabled dim — a disabled GROUP dims every row and the label, driven by the group\'s context (the CSS cascade / a data-attribute), not by a prop on each row. It is [HELD] out of the Figma projection (Prism 2 shows no group disabled treatment), so a designer sees the rest configuration and a code consumer gets the dim from the group.',
       'the id / describedby WIRING and role="group" — the host generates ids, ties the FieldLabel to the group via aria-labelledby, and stitches any group message into aria-describedby. Figma has no accessibility tree and no node-to-node reference, so the nested label sits above the rows and is associated by proximity alone (the ceiling field-label already hits).',
@@ -275,22 +252,10 @@ export const checkboxGroup: ComponentDef = {
   },
 
   // How this projects into Figma. `size` is the one variant axis (3 members); no `stateAxis` (the group
-  // has no state of its own — `rest` alone), the seven Figma-only row toggles (#2344, below), no `texts`/`swaps` (the group has no text or swap part of
+  // has no state of its own — `rest` alone), the rows in the native `items` slot (#2649, no row booleans), no `texts`/`swaps` (the group has no text or swap part of
   // its own; the label text is the nested FieldLabel's).
   figmaProperties: {
     variantAxes: ['size'],
-    // UP TO EIGHT ROWS (#2344, owner decision Q156 A): row 1 always shows; rows 2 to 8 each sit behind a FIGMA-ONLY
-    // boolean (no code prop — in code the count is `children`), rows 2 and 3 on by default, so a group reads as the
-    // three rows it always did and a designer turns on up to five more. Booleans do not multiply the set.
-    booleans: {
-      option2: { part: 'row2', default: true, figmaName: 'Option 2', figmaOnly: true },
-      option3: { part: 'row3', default: true, figmaName: 'Option 3', figmaOnly: true },
-      option4: { part: 'row4', default: false, figmaName: 'Option 4', figmaOnly: true },
-      option5: { part: 'row5', default: false, figmaName: 'Option 5', figmaOnly: true },
-      option6: { part: 'row6', default: false, figmaName: 'Option 6', figmaOnly: true },
-      option7: { part: 'row7', default: false, figmaName: 'Option 7', figmaOnly: true },
-      option8: { part: 'row8', default: false, figmaName: 'Option 8', figmaOnly: true },
-    },
   },
 
   accessibility: {
@@ -315,7 +280,7 @@ export const checkboxGroup: ComponentDef = {
   },
 
   docs: {
-    usage: 'Use to select any number — zero to many — from a bounded set, where the change is committed on save rather than applied instantly. Give the group a label that names the decision; let it own the value array, required and validation, and derive each row\'s checked state from the value array rather than wiring it on the row. Compose the rows as `children`. Past roughly 7-10 options, a filtering multi-select combobox (not built yet) scans better; for exactly-one selection use Radio.Group, and for a single independent opt-in a lone Checkbox.Row.',
+    usage: 'Use to select any number — zero to many — from a bounded set, where the change is committed on save rather than applied instantly. Give the group a label that names the decision; let it own the value array, required and validation, and derive each row\'s checked state from the value array rather than wiring it on the row. Compose the rows as `items`. Past roughly 7-10 options, a filtering multi-select combobox (not built yet) scans better; for exactly-one selection use Radio.Group, and for a single independent opt-in a lone Checkbox.Row.',
     do: [
       'Give the group a label that names the decision, so its rows can read the short abstracted-up remainder',
       'Let the GROUP own the value array, required and validation — a row inside a group never manages its own',
@@ -375,7 +340,7 @@ export const checkboxGroup: ComponentDef = {
     ],
     unverified: [
       'GROUP-LEVEL ERROR / VALIDATION DISPLAY IS `[HELD]`. The brief puts validation and the error message on the group; Prism 2 settles no visual for it. This def carries `required` (settled) and no error skin (unsettled). Whether the group nests a `field-message` for the group error, and what an errored group looks like (a recolored label? a message below the stack? a per-row neutral hold?), needs the owner. Building one now would invent the very thing the brief left to design.',
-      'THE VARIABLE ROW COUNT IS BUILT; SELECT-ALL IS `[HELD]`. Eight nested rows, row 1 always shown and rows 2 to 8 behind Figma-only booleans, three on by default (#2344, owner decision Q156 A): Prism 2\'s six-rows-with-booleans, at eight. A select-all parent is expressible (a row at `indeterminate` above the set) and deliberately not added, since Prism 2 has none.',
+      'THE VARIABLE ROW COUNT IS A NATIVE SLOT; SELECT-ALL IS `[HELD]`. The rows sit in the `items` slot, three by default (#2649, owner decision Q307 A), replacing #2344\'s eight rows behind Figma-only booleans (Prism 2\'s six-rows-with-booleans, at eight). A select-all parent is expressible (a row at `indeterminate` above the set) and deliberately not added, since Prism 2 has none.',
       'THE NESTING IS UNVERIFIED ON A REAL HOST, the same way `checkbox-row`\'s and the other decompositions\' are: the group nests `checkbox-row` (which nests `checkbox-control` `nest-exposed`), the deepest chain in the corpus, and whether a doubly-nested instance\'s inherited sizing and exposed properties cooperate with the group\'s auto-layout is a real-host question the offline shim cannot answer. `test:roundtrip` builds every projected def and reads it back — the host-truth check #1347 named, and #1503 extends it to assert each row reads back `layoutAlign: STRETCH` — but a three-deep nest is new ground; the symptom to look for is a row instance that does NOT fill the group (the STRETCH dropped on a real host), or an exposed selection that does not surface at the group.',
     ],
     evolution: [
