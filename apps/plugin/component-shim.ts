@@ -1507,6 +1507,9 @@ export const makeShim = (opts: ShimOpts = {}) => {
         // share one — which a swap override, whose value IS an id, cannot survive.
         const mkRef = (name: string, _i: number, main?: Node, owner: { name: string; type: string } = PAGE_OWNER) => ({
           name, id: componentIdFor(owner.name, name), type: 'COMPONENT',
+          // With `identities` a component carries the key its instances' `mainComponent` reads (#2649: a slot's preferred
+          // value names a component by key, so a nested component the slot prefers must have one, as on a real file).
+          ...(opts.identities ? { key: `${opts.keyPrefix ?? 'K'}:${name}` } : {}),
           createInstance: () => {
             const inst = mkNode('INSTANCE'); const vec = mkNode('VECTOR'); inst.findAll = () => [vec]; inst.findOne = () => null;
             // #2645 — ITS PROPERTIES: a live member's are its set's (a plain live component's, its own), read when

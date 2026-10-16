@@ -5,7 +5,8 @@
  *
  * One module for both, so the dev server and the deploy cannot disagree about which files `/docs` holds:
  * `docsFiles()` is the list the site build copies and checks, and `serveDocs` is what the dev server answers.
- * `REQUIRED_DOCS` names the two files an agent is pointed at; the site build fails without either.
+ * `REQUIRED_DOCS` names the two files an agent is pointed at and the guides' index the studio's Docs item opens
+ * (#2662); the site build fails without any of them.
  */
 import { createReadStream, readdirSync, statSync } from 'node:fs';
 import { dirname, extname, join, normalize, relative, resolve, sep } from 'node:path';
@@ -14,7 +15,7 @@ import { fileURLToPath } from 'node:url';
 const root = dirname(fileURLToPath(import.meta.url));
 export const DOCS_DIR = resolve(root, '../../docs/public');
 export const DOCS_ROUTE = '/docs/';
-export const REQUIRED_DOCS = ['llms.txt', 'reference/commands.json'];
+export const REQUIRED_DOCS = ['llms.txt', 'reference/commands.json', 'guides/index.md'];
 
 const TYPES = {
   '.txt': 'text/plain; charset=utf-8',

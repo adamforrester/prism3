@@ -1729,6 +1729,11 @@ const writeComponentSet = async (
    * BEFORE the combine: Figma merges every member's slot of one name into one SLOT property there, measured.
    * A host without `createSlot` keeps the frame, and the miss says what that costs a designer.
    */
+  /** THE INSTANCES WHOSE OWN VALUES THIS RUN HAS WRITTEN (#2649 × #2645). `toSlots` runs `build` over a new SLOT to
+   *  write the slot's own fields, and that pass visits the items it holds a second time. The per-instance writes
+   *  (`nestOverrides`, `nestTexts`) land once per instance per run, so each miss is reported once, as the paste
+   *  twin `__slotsNow` does: it only moves the items. */
+  const instanceValuesWritten = new WeakSet<object>();
   const slotPlans = (n: FigmaNodePlan): FigmaNodePlan[] => [...(n.type === 'CONTENT_SLOT' ? [n] : []), ...n.children.flatMap(slotPlans)];
   const toSlots = async (comp: Wr, plan: FigmaNodePlan, parts: Map<string, Wr>, expose: Wr[], member: string): Promise<void> => {
     for (const sp of slotPlans(plan)) {
@@ -1904,14 +1909,16 @@ const writeComponentSet = async (
       // unlike the exposure above. On Update the same write lands on the instance kept in place, so a nested instance
       // that has no override yet gains it without a rebuild; one a designer changed by hand (`kept`) is left as it is.
       // `applyNestOverrides` is shared with the paste payload, decision and wording.
-      if (node && n.nestOverrides && !kept)
+      const firstVisit = !!node && !instanceValuesWritten.has(node);
+      if (node) instanceValuesWritten.add(node);
+      if (node && firstVisit && n.nestOverrides && !kept)
         for (const m of applyNestOverrides(node as Parameters<typeof applyNestOverrides>[0], n.nestOverrides, (name) => { const c = compByName.get(name); return c?.id ? String(c.id) : null; }))
           misses.push(`${n.name}${m}`);
       // THE NESTED INSTANCE'S OWN TEXT (#2317). A set has one default per text property, so the Password field's
       // nested Button would read its set's "Button"; the plan's `nestTexts` names what this instance says instead,
       // written as an instance override. The property is found by its name before the `#id` Figma appends, and
       // only among TEXT properties; one the instance does not have is a miss, and the instance keeps its default.
-      if (node && n.nestTexts) {
+      if (node && firstVisit && n.nestTexts) {
         const props = node.componentProperties ?? {};
         const set: Record<string, string> = {};
         for (const [prop, value] of Object.entries(n.nestTexts)) {

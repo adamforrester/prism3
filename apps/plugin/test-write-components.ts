@@ -2591,7 +2591,8 @@ ok(fmRun.properties.filter((p) => p.indexOf('TEXT') >= 0).length === 1,
 // inline import builds a FRAME wrapping a VECTOR where each row wants an INSTANCE, and fails by name.
 //
 // `size` names the variable both axes bind, with `{size}` standing for the member's own size rung token
-// (`sm`/`md`/`lg`); `px` is a literal glyph size; `inset` is checkbox's 0.8 of its box (#1346), where the
+// (`sm`/`md`/`lg`) and `{size-1}` for the rung one below it (`xs`/`sm`/`md`, Tag's glyph since #2725, owner Q337 A);
+// `px` is a literal glyph size; `inset` is checkbox's 0.8 of its box (#1346), where the
 // part is a frame bound to the box and the instance its one child, named `glyph`.
 {
   type IconRow = { def: string; part: string; icon: string; size?: string; px?: number; inset?: number };
@@ -2603,13 +2604,14 @@ ok(fmRun.properties.filter((p) => p.indexOf('TEXT') >= 0).length === 1,
     { def: 'checkbox-control', part: 'dash', icon: 'icon/minus', size: 'control/size/{size}/height', inset: 0.8 },
     { def: 'switch-control', part: 'onGlyph', icon: 'icon/check', size: 'control/size/{size}/thumb' },
     { def: 'switch-control', part: 'offGlyph', icon: 'icon/close', size: 'control/size/{size}/thumb' },
-    { def: 'tag', part: 'check', icon: 'icon/check', size: 'icon/size/{size}' },
-    { def: 'tag', part: 'dismissGlyph', icon: 'icon/close', size: 'icon/size/{size}' },
+    { def: 'tag', part: 'check', icon: 'icon/check', size: 'icon/size/{size-1}' },
+    { def: 'tag', part: 'dismissGlyph', icon: 'icon/close', size: 'icon/size/{size-1}' },
     { def: 'select', part: 'chevron', icon: 'icon/chevron-down', size: 'icon/size/sm' },
     { def: 'textarea', part: 'grip', icon: 'icon/resize-grip', size: 'icon/size/xs' },
     { def: 'image-placeholder', part: 'marker', icon: 'icon/image', px: 180 },
   ];
   const RUNG: Record<string, string> = { small: 'sm', medium: 'md', large: 'lg' };
+  const RUNG_BELOW: Record<string, string> = { small: 'xs', medium: 'sm', large: 'md' };
   const mainName = (n: Node | undefined): string => String((n as { mainComponent?: { name?: string } } | undefined)?.mainComponent?.name ?? '(not an instance)');
   const boundId = (n: Node, k: string): string => String(((n.boundVariables ?? {}) as Record<string, { id?: string }>)[k]?.id ?? '(unbound)').replace(/^V:/, '');
   const findPart = (n: Node, name: string): Node | undefined => {
@@ -2636,7 +2638,7 @@ ok(fmRun.properties.filter((p) => p.indexOf('TEXT') >= 0).length === 1,
       if (!node) return;
       seen++;
       const size = (plans[i]?.size && RUNG[plans[i].size!]) ?? '';
-      const want = row.size?.replace('{size}', size);
+      const want = row.size?.replace('{size-1}', (plans[i]?.size && RUNG_BELOW[plans[i].size!]) ?? '').replace('{size}', size);
       const inst = row.inset !== undefined ? ((node.children as Node[] | undefined) ?? []).find((c) => c.name === 'glyph') : node;
       if (row.inset !== undefined && node.type !== 'FRAME') bad.push(`${m.name}: the part is a ${node.type}, not the frame that holds the inset icon`);
       if (!inst || inst.type !== 'INSTANCE' || mainName(inst) !== row.icon) {
@@ -5052,7 +5054,8 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   const wrongStart: string[] = [];
   let centered = 0, started = 0;
   for (const m of members) {
-    const list = child(m, 'list'); const base = child(m, 'baseline');
+    // The row of tabs is the `items` slot since #2649.
+    const list = child(m, 'items'); const base = child(m, 'baseline');
     const at = String(m.name);
     if (!list || !base) { (at.includes('alignment=center') ? wrongCenter : wrongStart).push(`${at}: no list or baseline`); continue; }
     const W = Number(m.width), lw = Number(list.width), lx = Number(list.x), bw = Number(base.width);
@@ -5123,19 +5126,24 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   const child = (m: Node, name: string) => ((m.children as Node[]) ?? []).find((c) => c.name === name);
   const wrong: string[] = [];
   for (const m of members) {
+    // Since #2649 the options sit in the `items` slot, which grows along the track: the slot fills the track less the
+    // track's padding, and the options share the slot less its gaps.
     const track = child(m, 'track');
-    const shown = ((track?.children as Node[]) ?? []).filter((c) => c.visible !== false);
+    const items = track ? child(track, 'items') : undefined;
+    const shown = ((items?.children as Node[]) ?? []).filter((c) => c.visible !== false);
     const widths = shown.map((c) => Number(c.width));
-    const tw = Number(track?.width);
-    // The track's own padding and gaps as the HOST holds them (the shim's placeholder variables, not the def's tokens).
-    const bv = (track?.boundVariables ?? {}) as Record<string, { value?: number }>;
-    const frame = (bv.paddingLeft?.value ?? 0) + (bv.paddingRight?.value ?? 0) + Math.max(0, shown.length - 1) * (bv.itemSpacing?.value ?? 0);
+    const tw = Number(track?.width), iw = Number(items?.width);
+    // The padding and gaps as the HOST holds them (the shim's placeholder variables, not the def's tokens).
+    const tbv = (track?.boundVariables ?? {}) as Record<string, { value?: number }>;
+    const ibv = (items?.boundVariables ?? {}) as Record<string, { value?: number }>;
+    const pad = (tbv.paddingLeft?.value ?? 0) + (tbv.paddingRight?.value ?? 0);
+    const gaps = Math.max(0, shown.length - 1) * (ibv.itemSpacing?.value ?? 0);
     const sum = widths.reduce((a, b) => a + b, 0);
-    if (!track || shown.length !== 3 || new Set(widths).size !== 1 || Math.abs(sum + frame - tw) > 0.5 || shown.some((c) => c.layoutGrow !== 1))
-      wrong.push(`${String(m.name)}: track ${tw} (padding and gaps ${frame}), ${shown.length} shown at ${widths.join('/')} (sum ${sum}), layoutGrow ${shown.map((c) => String(c.layoutGrow)).join('/')}`);
+    if (!track || items?.type !== 'SLOT' || items.layoutGrow !== 1 || Math.abs(iw + pad - tw) > 0.5 || shown.length !== 3 || new Set(widths).size !== 1 || Math.abs(sum + gaps - iw) > 0.5 || shown.some((c) => c.layoutGrow !== 1))
+      wrong.push(`${String(m.name)}: track ${tw} (padding ${pad}), items ${String(items?.type)} ${iw} grow ${String(items?.layoutGrow)}, ${shown.length} shown at ${widths.join('/')} (sum ${sum}, gaps ${gaps}), layoutGrow ${shown.map((c) => String(c.layoutGrow)).join('/')}`);
   }
   ok(members.length === 3 && wrong.length === 0,
-    `segmented control equal widths (Q269.6): at every size the three shown options grow along the track (layoutGrow 1 on the host) and measure the same width, their shares filling the track (${members.length} members${wrong.length ? ` — WRONG: ${wrong.join(' | ')}` : ''})`);
+    `segmented control equal widths (Q269.6): at every size the items slot grows along the track and its three options grow along it (layoutGrow 1 on the host) and measure the same width, their shares filling the track (${members.length} members${wrong.length ? ` — WRONG: ${wrong.join(' | ')}` : ''})`);
 }
 
 if (failed) process.exit(1);

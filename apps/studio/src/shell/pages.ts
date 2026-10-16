@@ -97,8 +97,9 @@ export const VIEWS = [
 ] as const;
 /** The views behind Inspect (F1). They open over any page's preview and are never a page's home. */
 export const INSPECT = [['contrast', 'Contrast'], ['tokens', 'Tokens'], ['log', 'Decisions log']] as const;
-/** Where the web host's Docs item points (#2637): the site serves the repo's `docs/public/` at `/docs`. */
-export const DOCS_HREF = '/docs/llms.txt';
+/** Where the web host's Docs item points: the designer guides' index (#2662, owner Q313.1 A). The site serves the
+ *  repo's `docs/public/` at `/docs` (#2637), so this is `docs/public/guides/index.md`; the site build requires it. */
+export const DOCS_HREF = '/docs/guides/index.md';
 
 export type ViewId = (typeof VIEWS)[number][0];
 export type InspectId = (typeof INSPECT)[number][0];
