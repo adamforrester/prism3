@@ -18,6 +18,20 @@ track. The indeterminate frame is a lead, the segment and the rest, a third each
 complete) to match. A literal fill width was the alternative and was discarded: it would freeze when an instance is
 stretched, where the grow split keeps its proportion.
 
+### After the first host build: every member read "50%"
+
+The owner's QA asked for the complete example to read 100%, and the first plugin build reported the reason it did
+not: one `valueText` TEXT property drove every member's value, with "100%" at complete as a per-member default
+(`byVariant`). A set-level TEXT property holds one default that every member bound to it shows (#1567), so every
+member read "50%" and the plugin reported the bound parts as COLLAPSED. "100%" now has its own text parts,
+`valueComplete` and `ringValueComplete`, present at complete only and bound to a second TEXT property, `complete value
+text`. "50%" is present at active and error only. The `value` boolean hides all four.
+
+The second property has no code prop, because code renders both values from `valueText`. So the engine now accepts a
+`figmaOnly` TEXT property, held to the Figma-only boolean's rules (#2344): it must not be a declared prop, and it must
+state its `figmaName`. The alternative, a code prop for the complete text that code does not need, is held for the
+owner on the PR. `test.ts` now types each member's caption and checks that no TEXT property in the set is behind two.
+
 ### The ring: two glyphs on one square, because a stroke may not carry the track (Q346)
 
 The Spinner draws its track as a layer of its own glyph at 20% of its own ink. Progress's ring track is a different
