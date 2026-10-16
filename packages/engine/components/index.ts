@@ -81,6 +81,7 @@ import { paginationItem, pagination } from './pagination';
 import { passwordField } from './password-field';
 import { breadcrumbItem } from './breadcrumb-item';
 import { breadcrumbs } from './breadcrumbs';
+import { toast } from './toast';
 
 /** Named access, kept ALONGSIDE the set rather than replaced by it. Most of `test.ts`'s component
  *  assertions are about one def's specific fields (`button.variants.appearance`,
@@ -88,7 +89,7 @@ import { breadcrumbs } from './breadcrumbs';
  *  be a worse call site, not a better one — a lookup that can return `undefined` standing in for a
  *  binding that cannot. The set is for iteration; these are for the assertions that are ABOUT one
  *  component. */
-export { button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, textarea, checkboxControl, checkboxRow, checkboxGroup, radioControl, radioRow, radioGroup, switchControl, switchRow, select, veil, imagePlaceholder, spinner, badge, tag, tab, tabs, divider, accordionIndicator, accordion, listItem, list, segmentedControlSegment, segmentedControl, link, dialog, passwordField, paginationItem, pagination, breadcrumbItem, breadcrumbs };
+export { button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, textarea, checkboxControl, checkboxRow, checkboxGroup, radioControl, radioRow, radioGroup, switchControl, switchRow, select, veil, imagePlaceholder, spinner, badge, tag, tab, tabs, divider, accordionIndicator, accordion, listItem, list, segmentedControlSegment, segmentedControl, link, dialog, passwordField, paginationItem, pagination, breadcrumbItem, breadcrumbs, toast };
 
 /** Every component def the engine defines. The one thing a projection should iterate. */
 export const componentDefs: readonly ComponentDef[] = [
@@ -221,4 +222,7 @@ export const componentDefs: readonly ComponentDef[] = [
   // neutral flush icon button, both above; Breadcrumbs nests the item in its items slot, so the item comes first.
   breadcrumbItem,
   breadcrumbs,
+  // `toast` (#2668, every numbered call A) — a short status over the page after the user's own action, on the inverse
+  // surface. Nests a Button (the action) and the neutral IconButton (the close), both at `surface: inverse`.
+  toast,
 ];

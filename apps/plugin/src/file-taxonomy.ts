@@ -128,6 +128,9 @@ export const TAXONOMY: Taxonomy = {
         // Breadcrumbs (#2666, owner call 15 A) — its own page under Components. It nests BreadcrumbItem in its items slot
         // and Link, which the build places first wherever their pages sort.
         { page: 'Breadcrumbs', defs: ['breadcrumbs'] },
+        // Toast (#2668, owner call 12 A) — its own page under Components, sorted alphabetically (Q260 A). It nests the
+        // Button and the Neutral IconButton, which the build places first wherever their pages sort.
+        { page: 'Toast', defs: ['toast'] },
       ],
     },
     {

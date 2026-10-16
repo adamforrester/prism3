@@ -99,7 +99,7 @@ None — not interactive.
 
 - **Composes with:** `icon-button-neutral`, `divider`, `button`
 - **Alternative to:** `accordion`
-- **Planned:** `toast`, `popover`, `menu`
+- **Planned:** `popover`, `menu`
 - **Replaces:**
   - a div overlay with a z-index and a hand-written focus trap
   - a backdrop built from a veil

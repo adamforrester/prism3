@@ -29,6 +29,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 | tag | check | `check` | icon set | drawn | selection: selected |
 |  | dismissGlyph | `close` | icon set | drawn | type: dismissible |
 | textarea | grip | `resize-grip` | icon set | drawn | always |
+| toast | icon | `check-circle` | icon set | drawn | intent: success |
 
 ### Icon slots
 
@@ -59,7 +60,7 @@ Parts that take any icon from the set. The file nominates the default unless the
 | Glyph | Drawn by |
 |---|---|
 | `check` | checkbox-control, list-item, switch-control, tag |
-| `check-circle` | field-message |
+| `check-circle` | field-message, toast |
 | `chevron-down` | _accordion-indicator, select |
 | `chevron-left` | breadcrumbs |
 | `chevron-right` | breadcrumb-item |
