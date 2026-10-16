@@ -67,6 +67,13 @@ The furniture rollout test builds with the shim's `scaleConstrained` on (Progres
 glyphs; the host scales them on resize) and declares FieldMessage's `message` text property for the stub, which the
 #2645 override needs.
 
+### Held for the owner: the default `type` against Q347
+
+Q347's gate (merged during this build) wants the set's first member to carry the code default on every axis. In code a
+bar's type follows from `value`, and no value means indeterminate; the approved set leads with the determinate bar.
+The approved order is kept and recorded as a named exception in the #2752 arm, with the alternative (lead with the
+indeterminate bar) put to the owner on the PR.
+
 ### Trap
 
 Gate every part on the shape it belongs to, even when its parent is gated. `#910`'s presence test reads a single-axis

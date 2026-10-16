@@ -31323,6 +31323,8 @@ arm: {
     'tab.selection': { prop: 'selected', map: off('unselected', 'selected'), reason: 'a tab is selected by `selected`' },
     'segmented-control-segment.selection': { prop: 'selected', map: off('unselected', 'selected'), reason: 'a segment is selected by `selected`' },
     'accordion.expansion': { prop: 'defaultExpanded', map: off('collapsed', 'expanded'), reason: 'an accordion opens by `defaultExpanded`' },
+    // Progress (#2670): the type follows from `value`. Unset (or null) is indeterminate; any number is determinate.
+    'progress.type': { prop: 'value', map: { undefined: 'indeterminate', null: 'indeterminate' }, reason: 'a progress bar with no `value` is indeterminate; a number makes it determinate' },
   };
   // RECORDED EXCEPTIONS: the top-left member differs from the code default on purpose. EXACT: each names its defs, its
   // axis and both values, so any other mismatch fails, and an entry that stops matching fails as stale.
@@ -31340,6 +31342,8 @@ arm: {
       reason: 'the leading icon slot axis leads with true, so the inserted Button shows a leading icon while the code slot is empty by default. Held on #2752 as an owner question; not fixed by Q347, which named three components.' },
     { defs: ['button', 'button-destructive', 'button-neutral'], axis: 'trailing', figma: 'true', code: 'false',
       reason: 'the trailing icon slot axis leads with true, so the inserted Button shows a trailing icon while the code slot is empty by default. Held on #2752 with the leading one.' },
+    { defs: ['progress'], axis: 'type', figma: 'determinate', code: 'indeterminate',
+      reason: 'the approved Progress set (#2670, every call A) leads with the determinate bar, the one a designer places to show an amount, while in code a bar with no `value` is indeterminate. Held on #2791 as an owner item against Q347\'s every-axis rule.' },
   ];
   // NO SET, NO DEFAULT MEMBER: a def that materializes each value as its own component is never inserted as a set.
   const NO_SET = ['icon', 'spinner'];
