@@ -149,6 +149,7 @@ Individual tokens may include `$extensions.figma` metadata when "Include Figma E
 - **COLOR** → `color` (RGBA string by default; HSL via Color Space option)
 - **FLOAT** → `dimension` (DTCG object form `{ value, unit }` by default; string form `"16px"` via SD preset) or `number` (unitless — grid columns, opacity)
 - **STRING** → `fontFamily` or `string`
+- Font variables with no font scope (unscoped, or on Figma's default All scopes) are typed by path: a `font/family/…` variable is `fontFamily`, and a `font/weight/…` or `font/weight-role/…` variable is `fontWeight`. A variable scoped to a font property is typed by that scope
 - **BOOLEAN** → `number` (0/1)
 
 ### Default DTCG-Spec Output (1.7.0+)

@@ -872,7 +872,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
       },
       {
         "key": "size.large.pad-x",
-        "ref": "space.300"
+        "ref": "space.250"
       },
       {
         "key": "size.small.pad-y",
