@@ -40,3 +40,6 @@ The mutation that counts has to make the plan depend on the props themselves.
 **Not done here (optional in #2708).** A general `test.ts` arm asserting that every prop-backed state
 has its prop unless the def admits otherwise. FieldLabel would be its first admission. Filed as
 #2757.
+
+**Merged `main` at `b56a0137` (cloud lane, landing train 3).** Only the generated `component-comparison` report
+conflicted; `regen` rewrote it on the merged tree.

@@ -872,7 +872,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
       },
       {
         "key": "size.large.pad-x",
-        "ref": "space.300"
+        "ref": "space.250"
       },
       {
         "key": "size.small.pad-y",
@@ -965,7 +965,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "id": "segmented-control-segment",
     "name": "SegmentedControl.Segment",
     "category": "form",
-    "summary": "One option of a segmented control. Selected, it shows a tint, a 2px outline and a bold label.",
+    "summary": "One option of a segmented control. Selected, it shows a flat pill and a bold label.",
     "unit": "variants",
     "spacing": [
       {

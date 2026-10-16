@@ -245,6 +245,7 @@ export const CLI = [
   'packages/engine/token-contract.ts',
   'packages/engine/materialise-to-figma.ts',
   'fold.ts',
+  'packages/engine/release-notes.ts',
   'packages/engine/visualize.ts',
   'verify.ts',
   'tools/figma-bridge/server.ts',
@@ -252,6 +253,7 @@ export const CLI = [
   'tools/figma-mcp/plan.ts',
   'tools/figma-mcp/report.ts',
   'packages/engine/emit-agent-reference.ts',
+  'packages/engine/emit-figma-conventions.ts',
 ];
 
 /** Files that read `process.argv` and are deliberately not listed, each with why. */
