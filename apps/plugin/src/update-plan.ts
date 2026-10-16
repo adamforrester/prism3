@@ -56,7 +56,7 @@ import { memberStamp, planHalf, revHalf, respaceSets, STAMP_KEY, type RespaceBox
 import { readTag } from './canvas-furniture';
 import { NS } from './persist-figma';
 import { BASELINE_V, UPDATING_KEY, baselineDiff, baselineOf, builtByPrism3, readBaseline, recordFormat, snapshotMember, writeBaseline, type Baseline, type OwnershipRead, type SnapNode } from './member-baseline';
-import { drawnFaults, type DrawnFault, type DrawVar } from './drawn';
+import { drawnFaults, faultLine, type DrawnFault, type DrawVar } from './drawn';
 import { REACTIONS_PATH, plannedRead, reactionMap, reactionVerdict, reactionsText, type PlannedReaction, type ReadReaction } from './reactions';
 import { pagesOutOfOrder, stripNestPrefix, type PageLike } from './file-setup';
 
@@ -132,7 +132,10 @@ export type SetPreview = {
   handEdits: { member: string; path: string; conflict: boolean; structural: boolean }[];
   /** #2265 PR 2 — every matched member that is not current, with how it reads; what an apply acts on. Current
    *  members are left out, so a set with nothing to do carries an empty list. Never capped: an apply must see all. */
-  states: { member: string; state: Exclude<MemberState, 'current'>; earlierRecord?: true }[];
+  states: { member: string; state: Exclude<MemberState, 'current'>; earlierRecord?: true;
+    /** #2413 — a member edited by hand with a layer added or removed that also draws wrong: its drawn faults, each as
+     *  `faultLine` writes it, so the apply's skip names the damage it leaves. Absent otherwise. */
+    damaged?: string[] }[];
   /** #2188 Q173 — the members an update moves to their place in the grid, by name (`gridMoves`). Absent when none. */
   positions?: string[];
   /** #2542 (owner decision Q245.2 A) — the WHOLE SET moves on its page, to where a fresh build would place it
@@ -423,9 +426,13 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
     const rxv = rx ? reactionVerdict(rx.planned, rx.read) : { differs: false, dangling: false };
     if (rxv.dangling && edit) edit = { ...edit, changed: edit.changed.filter((p) => p !== REACTIONS_PATH) };
     const edited = !!edit && (edit.changed.length + edit.added.length + edit.removed.length > 0);
+    // A LAYER ADDED OR REMOVED BY HAND outranks the damage (#2413): the apply skips such a member whatever else it
+    // reads (its paths can no longer be trusted node by node, §5), so the dry run counts it with the members edited by
+    // hand, never "to update", and still lists its damage as differences.
+    const structural = !!edit && edit.added.length + edit.removed.length > 0;
     const planMoved = planHalf(m.stamp) !== planHalf(memberStamp(plan));
     const revField = m.stamp.split('|').length >= 3 ? revHalf(m.stamp) : null;
-    const state: MemberState = damaged.length || rxv.dangling ? 'update'
+    const state: MemberState = (damaged.length && !structural) || rxv.dangling ? 'update'
       : !m.baseline ? 'noBaseline'
       : edited ? 'handEdited'
       : planMoved || (revField !== null && revField !== rev) || rxv.differs ? 'update'
@@ -434,7 +441,8 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
     counts[state]++;
     const earlier = state === 'noBaseline' && !!m.earlierRecord;
     if (earlier) counts.earlierRecord = (counts.earlierRecord ?? 0) + 1;
-    if (state !== 'current') states.push({ member: m.name, state, ...(earlier ? { earlierRecord: true as const } : {}) });
+    const hurt = state === 'handEdited' && structural && damaged.length ? { damaged: damaged.map((f) => faultLine(m.name, f)) } : {};
+    if (state !== 'current') states.push({ member: m.name, state, ...(earlier ? { earlierRecord: true as const } : {}), ...hurt });
     if (state === 'current' || state === 'revisionUnknown') continue;
 
     // The field changes, from the host's snapshot. `member` divergences are the set-level match's own
