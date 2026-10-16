@@ -492,6 +492,18 @@
         "assignments": 456,
         "sha256": "f4c8a2016d77cece81f97d359ca68dc8eff078bc1f9a52f0f7609105c65946f0"
       }
+    },
+    "toast": {
+      "set": {
+        "members": 2,
+        "assignments": 5,
+        "sha256": "1dcb134216924e27689abb041cb0f50a9869e49c9cdc2931cc1b21f2082d3a76"
+      },
+      "grid": {
+        "members": 2,
+        "assignments": 5,
+        "sha256": "cf65a8c29728fe65b054719f590274f19f612316107a93d6df43545b580a1a59"
+      }
     }
   }
 }

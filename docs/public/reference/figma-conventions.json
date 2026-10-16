@@ -159,6 +159,12 @@
             "components": [
               "dialog"
             ]
+          },
+          {
+            "name": "↳ Toast",
+            "components": [
+              "toast"
+            ]
           }
         ]
       },
@@ -2274,6 +2280,39 @@
           ]
         },
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/password-field.md"
+      },
+      {
+        "id": "toast",
+        "name": "Toast",
+        "figmaName": "toast",
+        "kind": "component set",
+        "page": "↳ Toast",
+        "section": "Components",
+        "members": 2,
+        "variantProperties": [
+          {
+            "name": "intent",
+            "values": [
+              "neutral",
+              "success"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "message",
+            "type": "TEXT"
+          },
+          {
+            "name": "action",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "close",
+            "type": "BOOLEAN"
+          }
+        ],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/toast.md"
       }
     ]
   },
@@ -2498,7 +2537,8 @@
       "segmented-control",
       "link",
       "dialog",
-      "password-field"
+      "password-field",
+      "toast"
     ],
     "templates": [
       {

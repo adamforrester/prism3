@@ -700,6 +700,18 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'relation with. Distinct from `alignment` and `direction`, argued in `VARIANT_AXES`.',
   },
   {
+    axis: 'intent',
+    values: ['neutral', 'success'],
+    defs: ['toast'],
+    relation: 'sole',
+    reason:
+      'What a toast confirms (#2668, owner call 2 A): a plain confirmation, or a completed action with a circled check. '
+      + 'No danger, warning or info: a message the user must see goes to a banner (call 1 A). `neutral` LEADS because it '
+      + 'is the code default and Figma\'s default member. The axis returns here as a variant axis after #1225 retired it '
+      + 'from the button families (where intent became the component): a toast\'s two intents differ in one glyph and its '
+      + 'ink, not in a family of interactive colors, so they are members of one set. One def carries it.',
+  },
+  {
     axis: 'footer',
     values: ['inline', 'stacked', 'none'],
     defs: ['dialog'],

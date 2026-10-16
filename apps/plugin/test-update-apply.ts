@@ -2324,7 +2324,15 @@ section('corpus — every def, re-applied in place by an executor revision bump,
     // A def this shim cannot build clean (its layout model reports footprint misses on a build) still has to update
     // without ADDING any: the update's misses must be exactly the build's.
     const builtMisses: string[] = [];
-    const w = await world(d.id, plansOf(d.id), { allowMisses: builtMisses });
+    // A file holds the icon set, so a nested instance's swap OVERRIDE (Toast's close, #2668) has its glyph component
+    // to point at; the world otherwise holds only what the plan nests or swaps to itself.
+    type OvNode = { nestOverrides?: { type: string; value: string }[]; children?: OvNode[] };
+    const overrideTargets = (n: OvNode): string[] => [
+      ...(n.nestOverrides ?? []).filter((x) => x.type === 'INSTANCE_SWAP').map((x) => x.value),
+      ...(n.children ?? []).flatMap(overrideTargets),
+    ];
+    const extraComps = [...new Set(plansOf(d.id).flatMap((p) => overrideTargets(p.root as unknown as OvNode)))];
+    const w = await world(d.id, plansOf(d.id), { allowMisses: builtMisses, extraComps });
     for (const m of membersOf(w.set())) {
       const st = (m.getSharedPluginData as (a: string, b: string) => string)(NS, STAMP_KEY);
       (m.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, STAMP_KEY, st.replace(/\|[^|]*$/, '|0'));

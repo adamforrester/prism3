@@ -294,7 +294,7 @@ const EXPECT_ANATOMY = [
   'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'switch-control', 'switch-row', 'select', 'veil',
   'image-placeholder', 'spinner', 'badge', 'tag', 'tab', 'tabs', 'divider', '_accordion-indicator', 'accordion',
   'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'list-item', 'list',
-  'segmented-control-segment', 'segmented-control', 'link', 'dialog', 'password-field',
+  'segmented-control-segment', 'segmented-control', 'link', 'dialog', 'password-field', 'toast',
 ];
 const EXPECT_PAINTERS = [
   'focus-ring', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive',
@@ -305,6 +305,8 @@ const EXPECT_PAINTERS = [
   'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral',
   // #2317: the Password field paints as TextField does.
   'password-field',
+  // #2668: the inverse card.
+  'toast',
 ];
 const closedSet = (what: string, expected: string[], live: string[], remedy: string): void => {
   for (const id of expected.filter((x) => !live.includes(x))) {

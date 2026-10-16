@@ -1211,6 +1211,36 @@
       "follow": [
         "status"
       ]
+    },
+    {
+      "from": "toast",
+      "to": "button",
+      "part": "action",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "appearance": "text",
+        "size": "small",
+        "surface": "inverse",
+        "inset": "default",
+        "state": "rest",
+        "leading icon": "false",
+        "trailing icon": "false"
+      }
+    },
+    {
+      "from": "toast",
+      "to": "icon-button-neutral",
+      "part": "close",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "appearance": "ghost",
+        "size": "small",
+        "shape": "square",
+        "surface": "inverse",
+        "state": "rest"
+      }
     }
   ],
   "components": {
@@ -1263,11 +1293,13 @@
       ],
       "nestedBy": [
         "dialog",
-        "password-field"
+        "password-field",
+        "toast"
       ],
       "affectedByChange": [
         "dialog",
-        "password-field"
+        "password-field",
+        "toast"
       ],
       "inheritedBy": [
         "icon-button"
@@ -1515,7 +1547,8 @@
         "tabs",
         "tag",
         "text-field",
-        "textarea"
+        "textarea",
+        "toast"
       ],
       "inheritedBy": []
     },
@@ -1568,10 +1601,12 @@
         "spinner"
       ],
       "nestedBy": [
-        "dialog"
+        "dialog",
+        "toast"
       ],
       "affectedByChange": [
-        "dialog"
+        "dialog",
+        "toast"
       ],
       "inherits": "button-neutral",
       "inheritedBy": [
@@ -1747,7 +1782,8 @@
         "icon-button",
         "icon-button-destructive",
         "icon-button-neutral",
-        "password-field"
+        "password-field",
+        "toast"
       ],
       "inheritedBy": []
     },
@@ -1854,6 +1890,21 @@
       "inherits": "text-field",
       "inheritedBy": []
     },
+    "toast": {
+      "nests": [
+        "button",
+        "icon-button-neutral"
+      ],
+      "nestsTransitively": [
+        "button",
+        "focus-ring",
+        "icon-button-neutral",
+        "spinner"
+      ],
+      "nestedBy": [],
+      "affectedByChange": [],
+      "inheritedBy": []
+    },
     "veil": {
       "nests": [],
       "nestsTransitively": [],
@@ -1903,6 +1954,7 @@
     "tag": 1,
     "text-field": 1,
     "textarea": 1,
+    "toast": 2,
     "veil": 0
   }
 }
