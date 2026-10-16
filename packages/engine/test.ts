@@ -28480,6 +28480,51 @@ arm: {
   ok(nestsOf(byId('checkbox-control')).includes('focus-ring'), '#1347: checkbox-control nests focus-ring (chain link 1) — the group→row→control→ring chain is the corpus\'s deepest');
 }
 
+// #2715: RADIO GROUP, checkbox-group's twin (#1475), carries the same kinds of test the checkbox group does: what it
+// nests, how many members it projects, and the nest chain under it. Every expected value is typed here from the def's
+// brief and owner decisions (Q156 A: eight rows, rows 2 and 3 on by default; the group label secondary and bold), never
+// read off the def or the projector (docs/34 shape 1). Read per projected member, so a row repointed at the control
+// atom, a row made exposed, a lost follow, or a new group axis fails the named arm.
+{
+  const g = componentDefs.find((d) => d.id === 'radio-group');
+  ok(!!g, '#2715 radio-group: registered in componentDefs');
+  type PN = { name: string; children: PN[]; nestTarget?: string; nestVariant?: Record<string, string>; visible?: boolean; visibleProp?: string };
+  const members = figmaAnatomySet(g!, { swapTarget: 'FPO-default-icon' });
+  const NAMES = ['size=medium', 'size=small', 'size=large'];
+  ok(JSON.stringify(members.map(planComponentName).sort()) === JSON.stringify([...NAMES].sort()),
+    `#2715 radio-group set size: exactly three members, one per size (${NAMES.join(', ')}); the rows' selection is not re-enumerated into the group's own matrix (got ${JSON.stringify(members.map(planComponentName))})`);
+  const ROWS = ['row1', 'row2', 'row3', 'row4', 'row5', 'row6', 'row7', 'row8'];
+  const sorted = (r: Record<string, string> | undefined) => JSON.stringify(Object.entries(r ?? {}).sort());
+  const off = members.flatMap((m) => {
+    const size = (m.size ?? (m.coord as Record<string, string>).size) as string;
+    const root = m.root as PN;
+    const bad: string[] = [];
+    if (JSON.stringify(root.children.map((c) => c.name)) !== JSON.stringify(['label', ...ROWS])) bad.push(`children ${root.children.map((c) => c.name).join(',')}`);
+    const label = root.children.find((c) => c.name === 'label');
+    if (label?.nestTarget !== 'field-label' || sorted(label.nestVariant) !== sorted({ size, emphasis: 'secondary', weight: 'bold', state: 'rest' }))
+      bad.push(`label ${String(label?.nestTarget)} ${JSON.stringify(label?.nestVariant)}`);
+    ROWS.forEach((r, i) => {
+      const n = root.children.find((c) => c.name === r);
+      if (n?.nestTarget !== 'radio-row' || sorted(n.nestVariant) !== sorted({ size })) bad.push(`${r} ${String(n?.nestTarget)} ${JSON.stringify(n?.nestVariant)}`);
+      const wantProp = i === 0 ? undefined : `Option ${i + 1}`;
+      const wantHidden = i >= 3;
+      if (n?.visibleProp !== wantProp || (n?.visible === false) !== wantHidden) bad.push(`${r} visibleProp ${String(n?.visibleProp)}, visible ${String(n?.visible)}`);
+    });
+    return bad.length ? [`${planComponentName(m)}: ${bad.join('; ')}`] : [];
+  });
+  ok(off.length === 0,
+    `#2715 radio-group nesting: on every member, one FieldLabel (secondary, bold, rest) then eight Radio.Rows, each following the group's size; row 1 always shown, rows 2-8 behind "Option 2"-"Option 8", rows 2 and 3 on (${off.length} off — ${off[0] ?? 'none'})`);
+  const parts = Object.values(g!.anatomy!.parts);
+  ok(parts.filter((p) => p.kind === 'nest' && p.nests === 'radio-row').every((p) => p.nesting?.kind === 'nest-fixed')
+    && !parts.some((p) => p.nests === 'radio-control'),
+    '#2715 radio-group: every row nest is nest-fixed, and the group never nests radio-control directly — it composes the collapsed Row');
+  const byId = (id: string) => componentDefs.find((d) => d.id === id)!;
+  const nestsOf = (d: ComponentDef): string[] =>
+    Object.values(d.anatomy?.parts ?? {}).filter((p) => p.kind === 'nest' || p.kind === 'absolute').map((p) => p.nests ?? '').filter(Boolean);
+  ok(nestsOf(byId('radio-row')).includes('radio-control') && nestsOf(byId('radio-control')).includes('focus-ring'),
+    '#2715 radio-group chain: radio-row nests radio-control, which nests focus-ring — group → row → control → ring, checkbox-group\'s four-deep chain');
+}
+
 // ---- #1354: THE SWITCH DECOMPOSITION — four invariants, each pinned independently of the producer ----
 //
 // The switch split into `switch-control` (the painted track/thumb/glyph, carrying selection+size+state) +
@@ -31899,6 +31944,99 @@ arm: {
     && validateComponentDef(withAtState({ disabled: { tone: 'quiet' } })).errors.some((m) => /atState.*'tone'/.test(m))
     && validateComponentDef(withAtState({ disabled: { size: 'small' } })).errors.some((m) => /atState.*'size'.*follows/.test(m)),
     `#2317 atState: the Password field validates clean; a host state off the state axis, an axis the variant does not name, and a followed axis are each refused by name`);
+}
+
+// ------------------------------------------------------------------- #2715: link and tabs paint
+// Link and Tabs carry the paint and contrast kinds their siblings carry (tag and tab, segmented control). Every
+// expected value is typed here from the defs' briefs and owner decisions; the defs and their projected plans are the
+// SUBJECT (docs/34 shape 1). Contrast values come from the committed Figma color exports, four brands × four modes,
+// stated, so a missing export fails rather than shrinking the check.
+{
+  type PN = { name: string; children: PN[]; paints?: Record<string, string>; bound?: Record<string, string>; nestTarget?: string; nestVariant?: Record<string, string> };
+  const findIn = (n: PN, name: string): PN | undefined => n.name === name ? n : n.children.map((k) => findIn(k, name)).find(Boolean);
+  const walk = (n: PN, f: (x: PN) => void): void => { f(n); n.children.forEach((k) => walk(k, f)); };
+  type V = { r: number; g: number; b: number; a?: number };
+  const solid = (c: V): RGB => ({ r: c.r * 255, g: c.g * 255, b: c.b * 255 });
+  const BRANDS = ['aurora', 'nb', 'prism3', 'wendys'];
+  const MODES = ['light', 'dark', 'hc-light', 'hc-dark'];
+  const exportsOf = (): { cell: string; vars: Map<string, V> | null }[] => BRANDS.flatMap((brand) => MODES.map((mode) => {
+    const f = resolve(HERE, `./out/figma/${brand}/color.${mode}.json`);
+    return { cell: `${brand}/${mode}`, vars: existsSync(f) ? new Map((JSON.parse(readFileSync(f, 'utf8')).variables as { name: string; value: V }[]).map((v) => [v.name.replace(/^[^/]+\//, ''), v.value])) : null };
+  }));
+
+  // LINK (#2580, owner decisions Q297). (1) The label ink steps with state on its surface's link ramp: `focused` is
+  // the focus-visible rung, and an inverse link takes the inverse ramp. The link box paints nothing.
+  const link = componentDefs.find((d) => d.id === 'link')!;
+  const linkMembers = figmaAnatomySet(link, { swapTarget: 'FPO-default-icon' });
+  const RUNG: Record<string, string> = { rest: 'default', hover: 'hover', pressed: 'pressed', 'focus-visible': 'focused' };
+  const INK = (surface: string, state: string) => `color/${surface === 'inverse' ? 'inverse/' : ''}text/link/${RUNG[state]}`;
+  const inkOff: string[] = [], boxOff: string[] = [], ringOff: string[] = [];
+  for (const m of linkMembers) {
+    const c = m.coord as Record<string, string>;
+    const root = m.root as PN;
+    const ink = findIn(root, 'label')?.paints?.fills;
+    if (ink !== INK(c.surface, c.state)) inkOff.push(`${planComponentName(m)}: ${String(ink)} (want ${INK(c.surface, c.state)})`);
+    if (Object.keys(root.paints ?? {}).length) boxOff.push(`${planComponentName(m)}: ${JSON.stringify(root.paints)}`);
+    // (2) THE FOCUS RING: nested only at focus-visible, following the surface so an inverse link's ring reads on the band.
+    const ring = findIn(root, 'focusRing');
+    const want = c.state === 'focus-visible';
+    if (want !== !!ring || (ring && (ring.nestTarget !== 'focus-ring' || JSON.stringify(ring.nestVariant) !== JSON.stringify({ surface: c.surface }))))
+      ringOff.push(`${planComponentName(m)}: ${ring ? `${String(ring.nestTarget)} ${JSON.stringify(ring.nestVariant)}` : 'no ring'} (want ${want ? `focus-ring {"surface":"${c.surface}"}` : 'no ring'})`);
+  }
+  ok(linkMembers.length === 96 && inkOff.length === 0 && boxOff.length === 0,
+    `#2715 link paint: 96 members; the label takes color/text/link/{default,hover,pressed,focused} on the page and color/inverse/text/link/… on an inverse band, by state, and the link box paints nothing (${linkMembers.length} members, ${inkOff.length} ink off, ${boxOff.length} painted box(es) — ${[...inkOff, ...boxOff].slice(0, 2).join('; ') || 'none'})`);
+  ok(ringOff.filter(Boolean).length === 0 && linkMembers.filter((m) => (m.coord as Record<string, string>).state === 'focus-visible').length === 24,
+    `#2715 link focus ring: a nested focus-ring on the 24 focus-visible members only, following the member's surface (${ringOff.length} off — ${ringOff.slice(0, 2).join('; ') || 'none'})`);
+  // (3) MEASURED: every link ink the plan binds clears 4.5:1 (SC 1.4.3, body-size text) on its own ground, the page
+  // for a default link and the inverse band for an inverse one, in all 16 brand × mode cells.
+  const linkInks = new Map<string, string>();
+  for (const m of linkMembers) {
+    const c = m.coord as Record<string, string>;
+    const ink = findIn(m.root as PN, 'label')?.paints?.fills;
+    if (ink) linkInks.set(ink, c.surface === 'inverse' ? 'color/inverse/background/primary' : 'color/background/primary');
+  }
+  const linkCells: { cell: string; ratio: number }[] = [];
+  const linkMiss: string[] = [];
+  for (const { cell, vars } of exportsOf()) {
+    if (!vars) { linkMiss.push(`${cell}: no export`); continue; }
+    for (const [ink, ground] of linkInks) {
+      const fg = vars.get(ink), bg = vars.get(ground);
+      if (!fg || !bg || (fg.a ?? 1) !== 1 || (bg.a ?? 1) !== 1) { linkMiss.push(`${cell}: ${ink} on ${ground}`); continue; }
+      linkCells.push({ cell: `${cell} ${ink}`, ratio: contrast(solid(fg), solid(bg)) });
+    }
+  }
+  const linkLow = linkCells.filter((x) => !(x.ratio >= 4.5)).map((x) => `${x.cell} ${x.ratio.toFixed(2)}`);
+  ok(linkInks.size === 8 && linkCells.length === 16 * 8 && linkMiss.length === 0 && linkLow.length === 0,
+    `#2715 link contrast: the 8 link inks (4 states × 2 surfaces) each clear 4.5:1 on their ground in all 16 brand × mode cells (${linkCells.length} measured, ${linkLow.length} under — ${linkLow.slice(0, 3).join('; ') || 'none'}${linkMiss.length ? `; missing ${linkMiss.slice(0, 2).join(', ')}` : ''})`);
+
+  // TABS (#2416, owner decisions Q177, Q178, Q226). (4) The list paints one thing, the baseline: a fill of the
+  // decorative hairline border (color/border/primary), no stroke. The container, the row of tabs and every other
+  // Tabs-owned node paint nothing; the tabs nested in it paint themselves.
+  const tabs = componentDefs.find((d) => d.id === 'tabs')!;
+  const tabsMembers = figmaAnatomySet(tabs, {});
+  const tabsOff: string[] = [];
+  for (const m of tabsMembers) {
+    const painted: string[] = [];
+    walk(m.root as PN, (n) => { if (!n.nestTarget && Object.keys(n.paints ?? {}).length) painted.push(`${n.name} ${JSON.stringify(n.paints)}`); });
+    if (JSON.stringify(painted) !== JSON.stringify(['baseline {"fills":"color/border/primary"}'])) tabsOff.push(`${planComponentName(m)}: ${painted.join(', ') || 'nothing'}`);
+  }
+  ok(tabsMembers.length === 6 && tabsOff.length === 0,
+    `#2715 tabs paint: on all 6 members the only node Tabs paints is the baseline, filled color/border/primary with no stroke (${tabsMembers.length} members, ${tabsOff.length} off — ${tabsOff[0] ?? 'none'})`);
+  // (5) MEASURED: the baseline is the faint line and the selected bar reads above it. Against the page, the selected
+  // bar (color/interactive/primary/border/rest, Q226 A) measures higher contrast than the baseline in every cell, so
+  // the underline is never lost in the line it sits on. The baseline's variable is read off the plan, the bar's typed.
+  const baseVar = findIn(tabsMembers[0].root as PN, 'baseline')?.paints?.fills;
+  const BAR = 'color/interactive/primary/border/rest';
+  const tabsCells: { cell: string; base: number; bar: number }[] = [];
+  const tabsMiss: string[] = [];
+  for (const { cell, vars } of exportsOf()) {
+    const base = vars && baseVar ? vars.get(baseVar) : undefined, bar = vars?.get(BAR), page = vars?.get('color/background/primary');
+    if (!base || !bar || !page || (base.a ?? 1) !== 1 || (bar.a ?? 1) !== 1) { tabsMiss.push(`${cell}: ${String(baseVar)} ${!!base}, bar ${!!bar}, page ${!!page}`); continue; }
+    tabsCells.push({ cell, base: contrast(solid(base), solid(page)), bar: contrast(solid(bar), solid(page)) });
+  }
+  const tabsLow = tabsCells.filter((x) => !(x.bar > x.base)).map((x) => `${x.cell} bar ${x.bar.toFixed(2)} ≤ baseline ${x.base.toFixed(2)}`);
+  ok(tabsCells.length === 16 && tabsMiss.length === 0 && tabsLow.length === 0,
+    `#2715 tabs contrast: the selected bar measures above the baseline against the page in all 16 brand × mode cells (${tabsCells.length} measured, ${tabsLow.length} not above — ${tabsLow.slice(0, 2).join('; ') || 'none'}${tabsMiss.length ? `; missing ${tabsMiss.slice(0, 2).join(', ')}` : ''})`);
 }
 
 // ------------------------------------------------------------------- report
