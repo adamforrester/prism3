@@ -1046,6 +1046,26 @@
           "source": "packages/engine/emit-agent-reference.ts#argv"
         }
       ]
+    },
+    {
+      "file": "packages/engine/emit-figma-conventions.ts",
+      "summary": "Prism3 — THE FIGMA CONVENTIONS FILE (#2647, owner Q306.2 A).",
+      "usage": [
+        {
+          "text": "npx tsx packages/engine/emit-figma-conventions.ts            # write the conventions file",
+          "source": "packages/engine/emit-figma-conventions.ts#header"
+        },
+        {
+          "text": "npx tsx packages/engine/emit-figma-conventions.ts --check    # fail (exit 1) if it no longer matches the code",
+          "source": "packages/engine/emit-figma-conventions.ts#header"
+        }
+      ],
+      "flags": [
+        {
+          "flag": "--check",
+          "source": "packages/engine/emit-figma-conventions.ts#argv"
+        }
+      ]
     }
   ]
 }

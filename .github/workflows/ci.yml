@@ -169,6 +169,13 @@ jobs:
       # here by name until the reference is regenerated.
       - name: The agent reference matches the code (#2637)
         run: npx --yes tsx@4 packages/engine/emit-agent-reference.ts --check
+      # #2647 — the Figma conventions file, docs/public/reference/figma-conventions.json, still matches the
+      # code: the page taxonomy, every component set's name and properties, the icon namespace, the native
+      # slots, the variable collections and modes, and the canvas furniture, regenerated in memory from the
+      # modules that decide them and compared with the committed file. Its own gate for the reason the agent
+      # reference has one: served docs, no engine version. A convention changed in code fails here by name.
+      - name: The Figma conventions file matches the code (#2647)
+        run: npx --yes tsx@4 packages/engine/emit-figma-conventions.ts --check
 
       # esbuild (and therefore the Vercel build) does not typecheck. These do.
       - name: Typecheck web
@@ -452,8 +459,8 @@ jobs:
           count=$(npx --yes tsx@4 packages/engine/regen.ts --check | grep -oE '[0-9]+ committed artifacts')
           echo "reported: $count"
           case "$count" in
-            "199 committed artifacts") echo "✓ full set covered" ;;
-            *) echo "✗ artifact coverage changed — expected 199. If the set legitimately grew or shrank, update this check in the same PR."; exit 1 ;;
+            "200 committed artifacts") echo "✓ full set covered" ;;
+            *) echo "✗ artifact coverage changed — expected 200. If the set legitimately grew or shrank, update this check in the same PR."; exit 1 ;;
           esac
 
       # The RUNNER's own checks, not a second run of the gates (#789). `verify.ts` is what a contributor
