@@ -349,7 +349,7 @@
         "sha256": "ffa6940642324f84d002f1debfc434e1ecc6184dad16a27629e22d7b9b15c036"
       }
     },
-    "tab": {
+    "_tab-item": {
       "set": {
         "members": 30,
         "assignments": 111,
@@ -409,7 +409,7 @@
         "sha256": "88cf8aa7fe0701bac67a5b532f21e05c004048e63d2eab9d163288cc68743b9b"
       }
     },
-    "list-item": {
+    "_list-item": {
       "set": {
         "members": 9,
         "assignments": 18,
@@ -433,7 +433,7 @@
         "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
       }
     },
-    "segmented-control-segment": {
+    "_segmented-control-segment": {
       "set": {
         "members": 30,
         "assignments": 123,

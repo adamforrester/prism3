@@ -379,13 +379,13 @@ const MUST_COVER = [
   'icon-button', 'icon-button-destructive', 'icon-button-neutral',
   'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral',
   'field-label', 'text-field', 'textarea', 'select', 'tag',
-  'tab', 'tabs',
+  '_tab-item', 'tabs',
   'checkbox-control', 'checkbox-row', 'checkbox-group',
   'radio-control', 'radio-row', 'radio-group',
   'switch-control', 'switch-row',
   '_accordion-indicator', 'accordion',
-  'list-item', 'list',
-  'segmented-control-segment', 'segmented-control', 'link',
+  '_list-item', 'list',
+  '_segmented-control-segment', 'segmented-control', 'link',
   'dialog', 'password-field',
 ];
 

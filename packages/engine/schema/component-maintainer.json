@@ -959,7 +959,7 @@
         "projection": []
       }
     },
-    "tab": {
+    "_tab-item": {
       "codeOnly": [
         "code delivery pending: behavior layer (#2454). The owner built the Figma components first (Q178.3); the entries below are a framework-neutral behavior contract for whichever layer the project's developers choose.",
         "The tab in code — a <button role=\"tab\"> with aria-selected (true or false, on every tab) and aria-controls naming its panel. The tab list owns roving tabindex: the selected tab is tabindex=\"0\", the rest -1.",
@@ -1075,7 +1075,7 @@
         "projection": []
       }
     },
-    "list-item": {
+    "_list-item": {
       "codeOnly": [
         "The element — an <li> inside the List's <ul> or <ol>. The marker is drawn by CSS (::marker, or a ::before pseudo-element in a fixed-width box), so it is not text and is not read twice; an icon marker is an aria-hidden <svg>.",
         "The hanging indent — the item is a two-column grid (or flex row) with the marker column at a fixed inline size; the text column wraps under itself. Never padding-left plus a negative text-indent on the text: that breaks when the marker is wider than the indent.",
@@ -1118,7 +1118,7 @@
         "projection": []
       }
     },
-    "segmented-control-segment": {
+    "_segmented-control-segment": {
       "codeOnly": [
         "code delivery pending: behavior layer (#2454), as for Tabs. The entries below are a framework-neutral behavior contract.",
         "The option in code — a <button> with aria-current in the view behavior, or a native <input type=\"radio\"> with its <label> in the form behavior. The control decides which, never the option.",

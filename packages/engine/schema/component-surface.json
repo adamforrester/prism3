@@ -313,13 +313,13 @@
       "members": 45,
       "sha256": "b2fa3845f28d809114b46c484237e7ece4d31eac8d14262e717315af02633c49"
     },
-    "tab": {
+    "_tab-item": {
       "members": 30,
-      "sha256": "6e3c70bad4b6edb3b0953a1a0b4d861268842b4954a8a83c3dde7b400025ceb6"
+      "sha256": "9cc314aefe68241ee10970c442e9c58d19eeeb1eec899dab159a61c17ce19046"
     },
     "tabs": {
       "members": 6,
-      "sha256": "da495884793c2c16165d46361b8e447c5eb9070dfb19cf6aa13441097d8f6815"
+      "sha256": "e3b7ef5373f42f5ba7895bc39a4bc20d3fe6aa90bc33560fd8b975dd74d84e80"
     },
     "divider": {
       "members": 5,
@@ -333,29 +333,29 @@
       "members": 24,
       "sha256": "bf90e1abfe92bdb827247b68db8cdd370e38578c50fe4fe4d3ebdf08ac98698c"
     },
-    "list-item": {
+    "_list-item": {
       "members": 9,
-      "sha256": "fe7450e9de9e4e51368e45ad3a560934cc76cc7f17c9328bea32977a40563ddf"
+      "sha256": "2afc25e3b816ac01a3ba7eb54bea48a7aa2a6b99b1e51a609b76bdd95fa93ed5"
     },
     "list": {
       "members": 9,
-      "sha256": "7c20fd5728c1b8371d4cf5f5906e1ad5f944d2d41411080797cef01b35b3675b"
+      "sha256": "9cf3231b29b2b8d164f1d6ec71f853d58c58e8b055081f249c3b7a59d1db7103"
     },
-    "segmented-control-segment": {
+    "_segmented-control-segment": {
       "members": 30,
-      "sha256": "10f22809def568e3da0d63b2c18be5f53d58c2a75e673980ea62c39b0d71c3cf"
+      "sha256": "436b876fefe0e283c4cc7249c9945b344ad27d1c69c32d7e0517ae80ffa1b15f"
     },
-    "segmented-control-segment@outline-solid-tint": {
+    "_segmented-control-segment@outline-solid-tint": {
       "members": 30,
-      "sha256": "150623f874c9f28ad2faefa7a6859fca2f4598e2ad21cf6627ac97aeda05058f"
+      "sha256": "60018bd42ba3b389c01a0072ec4ff8080a9adcfafe45431cd7608a52cf72c1e0"
     },
-    "segmented-control-segment@outline-none": {
+    "_segmented-control-segment@outline-none": {
       "members": 30,
-      "sha256": "122854b8539ea1778d366b5c6f704ab6e606d5742e880becc0fe8d2a12278db4"
+      "sha256": "090c61c1bac33e2eca6608571a978baf6dd4d6b27cc78c446d7fa5b9df50db02"
     },
     "segmented-control": {
       "members": 3,
-      "sha256": "6caf8fd7d8761a1de375e52610fbfaa943572e279d968be6171738db7f1bc2cf"
+      "sha256": "f86bea804de05665d15d6b6d80e81efaebf2d96b9302c3da993b119d9cb8a659"
     },
     "link": {
       "members": 96,

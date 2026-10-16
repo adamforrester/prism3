@@ -4,7 +4,7 @@
 
 One item in a List: a marker in a fixed-width column, then short text that wraps under itself rather than under the marker. The marker is a bullet, a number or an icon, and it sits on the first line of the text however many lines the item runs to. The marker column keeps the same width in every type, so the text of every item starts at one edge. Used inside a List; the List sets the type and size of every item it holds.
 
-- **ID:** `list-item`
+- **ID:** `_list-item`
 - **Category:** data
 - **Status:** draft
 - **Also known as:** list-row, bullet-item
@@ -84,4 +84,4 @@ None — not interactive.
 
 ---
 
-Generated from the `list-item` component definition.
+Generated from the `_list-item` component definition.

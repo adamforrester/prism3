@@ -271,7 +271,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'type',
     values: ['unordered', 'ordered', 'icon'],
-    defs: ['list-item', 'list'],
+    defs: ['_list-item', 'list'],
     relation: 'disjoint',
     reason:
       'Which MARKER a list shows (owner decisions Q273.1 and Q273.3, #2319): bullets for a list whose order carries no '
@@ -375,7 +375,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'selection',
     values: ['unselected', 'selected'],
-    defs: ['tag', 'tab', 'segmented-control-segment'],
+    defs: ['tag', '_tab-item', '_segmented-control-segment'],
     relation: 'disjoint',
     reason:
       'A selectable tag\'s two values, in the words the Tag brief uses (§4, §15) — `selected` is what a filter '
@@ -391,7 +391,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'size',
     values: ['small', 'medium', 'large'],
-    defs: ['_accordion-indicator', 'accordion', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'field-label', 'tag', 'tab', 'tabs', 'list-item', 'list', 'segmented-control-segment', 'segmented-control', 'link'],
+    defs: ['_accordion-indicator', 'accordion', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'field-label', 'tag', '_tab-item', 'tabs', '_list-item', 'list', '_segmented-control-segment', 'segmented-control', 'link'],
     relation: 'canonical',
     reason:
       'The three-rung ladder, and canonical on weight of use — every def with a size axis except the two switch defs below, the '

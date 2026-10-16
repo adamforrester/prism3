@@ -22,7 +22,7 @@ import { ComponentDef } from '../component-schema';
 // member; the number shows only where the item's type is ordered.
 const item = (n: number, optional: boolean, note: string) => ({
   kind: 'nest' as const,
-  nests: 'list-item',
+  nests: '_list-item',
   nesting: { kind: 'nest-fixed' as const, variant: { type: 'unordered', size: 'medium' }, follow: ['type', 'size'] },
   crossAxisFill: true,
   ...(optional ? { optional: true } : {}),
@@ -148,13 +148,13 @@ export const list: ComponentDef = {
     primaryPurpose: 'A short run of text items, each after a bullet, a number or an icon, laid out with bound spacing and markers.',
     whenToUse: 'A short set of points a designer lays out in UI: password rules, feature lists, icon checklists, steps. Ordered when the order means something.',
     avoidWhen: 'Running text, such as an article body, terms or long help text. The test: if a writer could edit it as normal copy, use the native list; if a designer controls its spacing, markers or icons, use the component. Also avoid it for a choice the user makes (Select, or a listbox), a command menu, navigation links, or values compared across columns (a table).',
-    commonPartners: ['list-item', 'icon', 'text-field'],
+    commonPartners: ['_list-item', 'icon', 'text-field'],
     triggerKeywords: ['list', 'bulleted list', 'numbered list', 'ordered list', 'unordered list', 'checklist', 'feature list', 'password rules'],
     generationPriority: 2,
   },
 
   composition: {
-    composesWith: ['list-item'],
+    composesWith: ['_list-item'],
     alternativeTo: [],
     replacesPatterns: ['a <ul> with list-style: none and no role="list"', 'a column of text boxes with typed bullet characters'],
     supersededBy: [],

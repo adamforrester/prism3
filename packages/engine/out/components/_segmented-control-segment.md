@@ -4,7 +4,7 @@
 
 One option in a segmented control: a cell as tall as a button, holding the option label and an optional leading icon. A selected option takes a tint and a 2px outline inside the cell, and its label is set in the emphasis weight. Every option keeps the width of its bold label, so selecting one never moves the others. At hover, an unselected option shows a light neutral wash. SegmentedControl places the options and owns the selection.
 
-- **ID:** `segmented-control-segment`
+- **ID:** `_segmented-control-segment`
 - **Category:** form
 - **Status:** draft
 - **Also known as:** segment, segmented-control-option
@@ -86,4 +86,4 @@ One or two words, a noun, sentence case.
 
 ---
 
-Generated from the `segmented-control-segment` component definition.
+Generated from the `_segmented-control-segment` component definition.
