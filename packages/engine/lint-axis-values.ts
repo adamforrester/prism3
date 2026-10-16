@@ -192,7 +192,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   },
   {
     axis: 'appearance',
-    values: ['filled', 'outline', 'ghost'],
+    values: ['ghost', 'filled', 'outline'],
     defs: ['icon-button', 'icon-button-destructive', 'icon-button-neutral'],
     relation: 'overlapping',
     reason:
@@ -205,7 +205,9 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'is no text), so the VALUE is renamed while the mechanical mapping to button\'s `text` ink role is '
       + 'unchanged (icon-button.ts binds `ghost.*` paint keys to `color.interactive.<family>.text.*`). The '
       + 'owner accepted that Button and IconButton diverge on this one appearance-value name; shared by the '
-      + 'three `makeIconButton` siblings, so one entry records all three.',
+      + 'three `makeIconButton` siblings, so one entry records all three. ORDERED ghost first (#2752, owner '
+      + 'decision Q347 A): the first value is the set\'s top-left member, which Figma inserts, and the code '
+      + 'default is `ghost`. The code enum keeps filled, outline, ghost.',
   },
   {
     axis: 'emphasis',
@@ -627,7 +629,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   },
   {
     axis: 'intensity',
-    values: ['subtle', 'medium', 'strong'],
+    values: ['medium', 'subtle', 'strong'],
     defs: ['veil'],
     relation: 'sole',
     reason:
@@ -636,7 +638,9 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'rung named for a floor it clears (`body`/`enhanced`) claimed a per-image contrast guarantee the '
       + 'engine cannot keep, so the rungs name the magnitude instead. THREE values, matching the three '
       + 'alpha steps each polarity emits. Distinct from `weight` (type heaviness) and `appearance` (a '
-      + 'control\'s emphasis/render strategy) — this is the strength of an overlay, argued in `VARIANT_AXES`.',
+      + 'control\'s emphasis/render strategy) — this is the strength of an overlay, argued in `VARIANT_AXES`. '
+      + 'ORDERED medium, subtle, strong (#2752, owner decision Q347 A): the first value is the member Figma '
+      + 'inserts, and the code default is `medium`.',
   },
   {
     axis: 'direction',
@@ -722,7 +726,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   },
   {
     axis: 'ratio',
-    values: ['2:3', '3:4', '4:5', '1:1', '4:3', '3:2', '16:9'],
+    values: ['4:3', '2:3', '3:4', '4:5', '1:1', '3:2', '16:9'],
     defs: ['image-placeholder'],
     relation: 'sole',
     reason:
@@ -733,7 +737,9 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'Distinct from `size` (a scale rung on a named ladder) and `width` (a single main-axis length) — '
       + 'this is a width-to-height proportion that holds while the actual dimensions flex, argued in '
       + '`VARIANT_AXES`. SEVEN values: the three the owner settled on in #1316, plus the portrait 2:3, 3:4 '
-      + 'and 4:5 and the landscape 3:2 a measured commerce file needed (#2345), ordered tallest to widest.',
+      + 'and 4:5 and the landscape 3:2 a measured commerce file needed (#2345), ordered tallest to widest '
+      + 'after a leading 4:3 (#2752, owner decision Q347 A): the first value is the member Figma inserts, and '
+      + 'the code default is 4:3.',
   },
   {
     axis: 'alignment',

@@ -1883,6 +1883,11 @@ export const validateComponentDef = (
     req(!!p.name && !!p.type && !!p.description, `prop '${p?.name ?? '?'}' needs name + type + description`);
     if (p.values && p.default !== undefined && typeof p.default === 'string' && !p.values.includes(p.default))
       errors.push(`prop '${p.name}': default '${p.default}' is not one of its values [${p.values.join(', ')}]`);
+    // #2707: the default ships as written into `components.ai.json`, so a boolean prop defaulting to the STRING
+    // 'false' reads as truthy to any agent or codegen that consumes it. The type union allows a string, so only
+    // this check refuses it. (A union type such as "'a' | 'b'" is free-form prose and is not checked here.)
+    if (p.default !== undefined && (p.type === 'boolean' || p.type === 'number') && typeof p.default !== p.type)
+      errors.push(`prop '${p.name}': type '${p.type}' with a ${typeof p.default} default (${JSON.stringify(p.default)}) — write the default as a ${p.type}, not a string, because it ships as written in components.ai.json (#2707)`);
   }
 
   // states + variants

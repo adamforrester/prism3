@@ -14103,6 +14103,22 @@ arm: {
     ok(vnb.warnings.length === 0 && vau.warnings.length === 0, `component: ${name} binds only semantic roles, no primitive-tier leak${[...vnb.warnings, ...vau.warnings].length ? ' — ' + [...vnb.warnings, ...vau.warnings].join('; ') : ''}`);
   }
 
+  // (#2707) A BOOLEAN OR NUMBER PROP'S DEFAULT HAS THAT TYPE. Six defs shipped `'false'` / `'99'` into
+  // `components.ai.json`, a truthy string where every other def ships `false`. EXPECTED is literal here: which
+  // (type, default) pairs the validator must refuse and which it must accept, on a copy of one registered def.
+  {
+    const base = componentDefs.find((d) => d.id === 'badge')!;
+    const withProp = (type: string, dflt: unknown) =>
+      validateComponentDef({ ...base, props: [...base.props, { name: 'probe', type, default: dflt, required: false, description: 'A probe prop.' }] } as ComponentDef).errors
+        .some((e) => e.startsWith(`prop 'probe': type '${type}'`));
+    const CASES: Array<[string, unknown, boolean]> = [
+      ['boolean', 'false', true], ['boolean', 'true', true], ['boolean', 0, true], ['number', '99', true], ['number', false, true],
+      ['boolean', false, false], ['boolean', true, false], ['number', 99, false], ['boolean', undefined, false], ['string', 'false', false],
+    ];
+    const wrong = CASES.filter(([t, d, refused]) => withProp(t, d) !== refused).map(([t, d, refused]) => `${t} default ${JSON.stringify(d)} ${refused ? 'accepted' : 'refused'}`);
+    ok(wrong.length === 0, `component props (#2707): a boolean or number prop refuses a default of another type, and accepts its own (${CASES.length} literal cases)${wrong.length ? ` — WRONG: ${wrong.join('; ')}` : ''}`);
+  }
+
   // (#1623) EVERY COMPONENT A DEF NAMES IS ONE THAT EXISTS, UNDER ITS CURRENT ID. The stale-fact class the
   // #1623 audit found by hand, three ways: `checkbox-group` named `radio-row` as its alternative where the
   // twin is `radio-group`; `radio-row`'s `ai.avoidWhen` told agents the radio group "is not authored yet"
@@ -15558,8 +15574,8 @@ arm: {
       // (`write-components.ts`, exercised by `test-roundtrip.ts`) only ever compares members that share a
       // group and the two QA misses cannot recur. The same assertion shape field-message's #1010 block makes.
       const ipGroups = planSetLayout(figmaAnatomySet(imgPlaceholder, {}), 'test').cells.map((c) => c.group).join(' | ');
-      // #2345: seven ratios, tallest to widest — typed here, not read from the def.
-      ok(ipGroups === 'ratio=2:3 | ratio=3:4 | ratio=4:5 | ratio=1:1 | ratio=4:3 | ratio=3:2 | ratio=16:9',
+      // #2345: seven ratios, tallest to widest, after a leading 4:3 (#2752, Q347 A) — typed here, not read from the def.
+      ok(ipGroups === 'ratio=4:3 | ratio=2:3 | ratio=3:4 | ratio=4:5 | ratio=1:1 | ratio=3:2 | ratio=16:9',
         `#1515 image-placeholder: the declared exemption reaches the engine's cohort key — every ratio is its own cohort, so the footprint read-back no longer compares 720×540 against 720×720 (got '${ipGroups}')`);
       // (c) MUTATION — DROP THE ASPECT LOCK. `ratio` still projects and still carries `footprintVaries`, but
       // with no `aspectRatio` deriving from it and no `presentWhen` gating it, nothing about the box varies,
@@ -24121,7 +24137,9 @@ arm: {
       const { gradient: _g, ...wash } = veilNow.anatomy!.parts.wash;
       const { 'dark.clear': _dc, 'light.clear': _lc, ...tokens } = veilNow.tokens;
       return {
-        ...veilNow, variants, axisKinds, tokens,
+        // The intensity order is the pre-#2752 one, typed: subtle first, so the set's first member (dark, subtle) and
+        // the code default (dark, medium) are two coordinates, and the two exclusion refusals below stay apart.
+        ...veilNow, variants: { ...variants, intensity: ['subtle', 'medium', 'strong'] }, axisKinds, tokens,
         props: veilNow.props.filter((p) => p.name !== 'direction'),
         anatomy: { ...veilNow.anatomy!, parts: { wash } },
         figmaProperties: { ...veilNow.figmaProperties!, variantAxes: ['value', 'intensity'] },
@@ -31306,6 +31324,119 @@ arm: {
   const MUST = ['button', 'icon-button', 'text-field', 'textarea', 'select', 'switch-row', 'tag', 'checkbox-control'];
   const missing = MUST.filter((id) => !(checked.get(id) ?? 0));
   ok(missing.length === 0, `#2501: the axis order rule read every def it was raised on, each with values to order${missing.length ? ` — not read: ${missing.join(', ')}` : ''}`);
+}
+
+// ---- Figma's default member is the code default, on every axis (#2752, owner decision Q347 A) ----
+// Figma inserts a component set's DEFAULT VARIANT, which its plugin API documents as "the top-left-most variant,
+// spatially" (`ComponentSetNode.defaultVariant`; the #2501 lane measured the same on a scratch file, layer order not
+// moving it). So ACTUAL is the member the layout places in row 0, column 0 (`planSetLayout`, which both executors
+// place from), and that member must also be the set's first child, the first plan, so neither reading of "first"
+// can disagree with the other. EXPECTED is read from the def's PROPS ONLY: an enum prop's `default`, through the
+// authored BRIDGE below where the axis's code form is another prop, never from the axis order it checks (docs/34
+// shape 1: an expectation read off `variants` would agree with any reordering). Every def that builds a set and every
+// axis its members carry is read; an axis the props cannot answer fails as UNBRIDGED, so a new axis is placed on
+// purpose. A mismatch passes only as a recorded EXCEPTION with its reason, and an exception nothing hits fails as stale.
+{
+  type Bridge = { prop: string; map: Record<string, string>; reason: string };
+  // The axes whose code form is a prop of another name. Each MAP is typed here from the prop's meaning, never from the
+  // axis: unset and `false` are the same uncontrolled default. Keyed `<def>.<axis>` where the prop differs by def.
+  const off = (no: string, yes: string): Record<string, string> => ({ undefined: no, false: no, true: yes });
+  const BRIDGE: Record<string, Bridge> = {
+    status: { prop: 'validation', map: { default: 'default', error: 'error', warning: 'warning', success: 'success' }, reason: 'the fields name the validation prop `validation`; the Figma axis is `status` (#1334)' },
+    'checkbox-control.selection': { prop: 'checked', map: off('unchecked', 'checked'), reason: 'a checkbox is checked by `checked`' },
+    'radio-control.selection': { prop: 'checked', map: off('unchecked', 'checked'), reason: 'a radio is checked by `checked`' },
+    'switch-control.selection': { prop: 'checked', map: off('off', 'on'), reason: 'a switch is on by `checked` (#930: announced on/off)' },
+    'tag.selection': { prop: 'selected', map: off('unselected', 'selected'), reason: 'a select tag is selected by `selected`' },
+    'tab.selection': { prop: 'selected', map: off('unselected', 'selected'), reason: 'a tab is selected by `selected`' },
+    'segmented-control-segment.selection': { prop: 'selected', map: off('unselected', 'selected'), reason: 'a segment is selected by `selected`' },
+    'accordion.expansion': { prop: 'defaultExpanded', map: off('collapsed', 'expanded'), reason: 'an accordion opens by `defaultExpanded`' },
+  };
+  // RECORDED EXCEPTIONS: the top-left member differs from the code default on purpose. EXACT: each names its defs, its
+  // axis and both values, so any other mismatch fails, and an entry that stops matching fails as stale.
+  type Exception = { defs: string[]; axis: string; figma: string; code: string; reason: string };
+  const SIZED_SMALL_FIRST = [
+    'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral',
+    'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'checkbox-control', 'checkbox-row',
+    'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'switch-control', 'switch-row', 'tag', 'tab', 'tabs',
+    '_accordion-indicator', 'accordion', 'list-item', 'list', 'segmented-control-segment', 'segmented-control', 'link',
+  ];
+  const EXCEPTIONS: Exception[] = [
+    { defs: SIZED_SMALL_FIRST, axis: 'size', figma: 'small', code: 'medium',
+      reason: 'owner decision Q213 (#2501): every size ladder runs small to large on the canvas, so the inserted member is small while code defaults to medium. Only the fields and Dialog lead with medium (Q221 B, Q303). Held on #2752 as an owner question against Q347\'s every-axis rule.' },
+    { defs: ['button', 'button-destructive', 'button-neutral'], axis: 'leading', figma: 'true', code: 'false',
+      reason: 'the leading icon slot axis leads with true, so the inserted Button shows a leading icon while the code slot is empty by default. Held on #2752 as an owner question; not fixed by Q347, which named three components.' },
+    { defs: ['button', 'button-destructive', 'button-neutral'], axis: 'trailing', figma: 'true', code: 'false',
+      reason: 'the trailing icon slot axis leads with true, so the inserted Button shows a trailing icon while the code slot is empty by default. Held on #2752 with the leading one.' },
+  ];
+  // NO SET, NO DEFAULT MEMBER: a def that materializes each value as its own component is never inserted as a set.
+  const NO_SET = ['icon', 'spinner'];
+  const hitBy = new Map<Exception, Set<string>>();
+  const read = new Map<string, Set<string>>();
+  for (const def of componentDefs) {
+    const fp = def.figmaProperties;
+    if (!fp) continue;
+    if (fp.emitAsComponents) {
+      ok(NO_SET.includes(def.id), `#2752 ${def.id}: builds single components, so it has no default member, and is named in NO_SET`);
+      continue;
+    }
+    ok(!NO_SET.includes(def.id), `#2752 ${def.id}: named in NO_SET but builds a set, so its default member must be read`);
+    // The member key Figma shows → the code axis it projects. Read from the declarations that name the panel, never
+    // from a member: `variantAxes` (with any display name), the state axis, the slot axes.
+    const codeAxis = new Map<string, { axis: string; kind: 'variant' | 'state' | 'slot'; part?: string }>([
+      ...(fp.variantAxes ?? []).map((a) => [variantAxisFigmaName(fp, a), { axis: a, kind: 'variant' as const }] as const),
+      ...(fp.stateAxis?.name ? [[fp.stateAxis.name, { axis: 'state', kind: 'state' as const }] as const] : []),
+      ...(fp.slotAxes ?? []).map((s) => [s.figmaName ?? s.name, { axis: s.name, kind: 'slot' as const, part: s.part }] as const),
+    ]);
+    const plans = figmaAnatomySet(def, { swapTarget: 'FPO-default-icon' });
+    const topLeft = planSetLayout(plans, '#2752').cells.find((c) => c.row === 0 && c.col === 0);
+    const first = planComponentName(plans[0]);
+    ok(!!topLeft && topLeft.name === first,
+      `#2752 ${def.id}: the top-left member (Figma's default) is also the set's first member (top-left ${topLeft?.name ?? 'none'}; first ${first})`);
+    if (!topLeft) continue;
+    const props = new Map((def.props ?? []).map((p) => [p.name, p] as const));
+    const bad: string[] = [];
+    for (const kv of topLeft.name.split(', ')) {
+      const [key, figma] = kv.split('=');
+      const ax = codeAxis.get(key);
+      if (!ax) { bad.push(`${key} is no declared axis`); continue; }
+      let code: string | undefined;
+      if (ax.kind === 'state') code = 'rest'; // every state-collapsing prop (disabled, isPending, readOnly…) defaults off
+      else if (ax.kind === 'slot') {
+        // A presence axis: the slot prop its part fills. An optional slot with no default is empty in code.
+        const slot = props.get(ax.part!);
+        code = slot?.type === 'slot' && slot.default === undefined ? 'false' : undefined;
+        if (code === undefined) { bad.push(`${key}: no empty-by-default slot prop for part ${ax.part}`); continue; }
+      } else {
+        // A prop of the axis's own name answers first (Field message's `status`); the BRIDGE only where there is none.
+        const bridge = BRIDGE[`${def.id}.${ax.axis}`] ?? BRIDGE[ax.axis];
+        const own = props.get(ax.axis);
+        if (own && own.default !== undefined) code = String(own.default);
+        else if (bridge && props.has(bridge.prop)) code = bridge.map[String(props.get(bridge.prop)!.default)];
+        if (code === undefined) { bad.push(`${key}: UNBRIDGED, no prop default answers it (add a prop default, or a BRIDGE entry with its reason)`); continue; }
+      }
+      (read.get(def.id) ?? read.set(def.id, new Set()).get(def.id)!).add(ax.axis);
+      if (figma === code) continue;
+      const ex = EXCEPTIONS.find((e) => e.defs.includes(def.id) && e.axis === ax.axis && e.figma === figma && e.code === code);
+      if (ex) { (hitBy.get(ex) ?? hitBy.set(ex, new Set()).get(ex)!).add(def.id); continue; }
+      bad.push(`${key}: Figma inserts ${figma}, code defaults to ${code}`);
+    }
+    ok(bad.length === 0, `#2752 ${def.id}: Figma's default member carries the code default on every axis (Q347 A)${bad.length ? ` — WRONG: ${bad.join(' | ')}` : ''}`);
+  }
+  for (const e of EXCEPTIONS) {
+    ok(e.reason.length >= 60, `#2752 exception ${e.axis} (${e.defs[0]}…) carries a stated reason`);
+    // STALE PER DEF, not per entry: a def named here whose inserted member now carries the code default (or that no
+    // longer has the axis) fails, so the list cannot quietly admit a def it no longer describes.
+    const stale = e.defs.filter((id) => !hitBy.get(e)?.has(id));
+    ok(stale.length === 0, `#2752 exception ${e.axis} ${e.figma}≠${e.code} is still hit by every def it names${stale.length ? ` — STALE on: ${stale.join(', ')}` : ''}`);
+  }
+  for (const [k, b] of Object.entries(BRIDGE)) ok(b.reason.length >= 20, `#2752 BRIDGE ${k} carries a stated reason`);
+  // REPRESENTED, never a count (docs/34): the three axes Q347 decided, read on every def that carries them.
+  const MUST: [string, string][] = [
+    ['icon-button', 'appearance'], ['icon-button-destructive', 'appearance'], ['icon-button-neutral', 'appearance'],
+    ['veil', 'intensity'], ['image-placeholder', 'ratio'],
+  ];
+  const unread = MUST.filter(([id, a]) => !read.get(id)?.has(a)).map(([id, a]) => `${id}.${a}`);
+  ok(unread.length === 0, `#2752: the default-member rule read every axis Q347 decided${unread.length ? ` — not read: ${unread.join(', ')}` : ''}`);
 }
 
 // ------------------------------------------------------------------- #2455: the divider, a 1px rule
