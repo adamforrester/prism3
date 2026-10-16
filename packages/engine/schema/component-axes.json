@@ -18,6 +18,30 @@
     "members": 12,
     "properties": {}
   },
+  "_pagination-item": {
+    "axes": {
+      "selection": [
+        "selected",
+        "unselected"
+      ],
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ],
+      "state": [
+        "focus-visible",
+        "hover",
+        "pressed",
+        "rest"
+      ],
+      "type": [
+        "ellipsis",
+        "page"
+      ]
+    },
+    "members": 21
+  },
   "accordion": {
     "axes": {
       "expansion": [
@@ -659,6 +683,21 @@
       "swap icon": "INSTANCE_SWAP",
       "text": "TEXT"
     }
+  },
+  "pagination": {
+    "axes": {
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ],
+      "type": [
+        "compact",
+        "numbered",
+        "simple"
+      ]
+    },
+    "members": 9
   },
   "password-field": {
     "axes": {

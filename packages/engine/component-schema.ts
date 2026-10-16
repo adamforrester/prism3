@@ -2137,9 +2137,13 @@ export const gridColumnAxis = (
 export const figmaVariantCount = (def: ComponentDef): number => {
   const fp = def.figmaProperties;
   if (!fp) return 0;
-  const axes = fp.variantAxes ?? [];
-  const declared = (a: string): string[] => (variantsOf(def)[a] ?? []).map(String);
-  const variants = axes.reduce((n, a) => n * ((variantsOf(def)[a]?.length) ?? 1), 1);
+  // THE STATE AXIS IS ONE MORE DIMENSION OF THE GRID (#2665): an entry may name it (Pagination.Item's current page has
+  // no hover or press), so the box product runs over it too. With no entry naming it, its factor multiplies out of
+  // every term and the count is the old (variants - excluded) × states.
+  const stateName = fp.stateAxis?.name;
+  const axes = [...(fp.variantAxes ?? []), ...(stateName ? [stateName] : [])];
+  const declared = (a: string): string[] => (a === stateName ? fp.stateAxis!.values : (variantsOf(def)[a] ?? []).map(String));
+  const variants = axes.reduce((n, a) => n * (a === stateName ? fp.stateAxis!.values.length : ((variantsOf(def)[a]?.length) ?? 1)), 1);
   const entries = fp.excludeCoordinates ?? [];
   // The size of the box where every entry in `subset` holds at once.
   const boxSize = (subset: Record<string, string[]>[]): number =>
@@ -2153,7 +2157,7 @@ export const figmaVariantCount = (def: ComponentDef): number => {
     const subset = entries.filter((_, i) => mask & (1 << i));
     excluded += (subset.length % 2 ? 1 : -1) * boxSize(subset);
   }
-  return (variants - excluded) * (fp.stateAxis?.values.length ?? 1) * 2 ** ((fp.slotAxes ?? []).length);
+  return (variants - excluded) * 2 ** ((fp.slotAxes ?? []).length);
 };
 
 /** Is this variant coordinate one the def's `excludeCoordinates` removes? The PROJECTOR's predicate —
@@ -2298,14 +2302,16 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
   // member that does not exist. The grid is enumerated here from the declaration, with its own matcher,
   // rather than through `isExcludedCoordinate`.
   if (fp.excludeCoordinates !== undefined) {
-    const axes = fp.variantAxes ?? [];
-    const values = (a: string): string[] => (variantsOf(def)[a] ?? []).map(String);
+    // The state axis is a dimension an entry may name (#2665), with its values from `stateAxis`.
+    const stateName = fp.stateAxis?.name;
+    const axes = [...(fp.variantAxes ?? []), ...(stateName ? [stateName] : [])];
+    const values = (a: string): string[] => (a === stateName ? [...fp.stateAxis!.values] : (variantsOf(def)[a] ?? []).map(String));
     let wellFormed = true;
     fp.excludeCoordinates.forEach((entry, i) => {
       const at = `figmaProperties.excludeCoordinates[${i}]`;
       if (!Object.keys(entry).length) { e.push(`${at} names no axis — an empty coordinate matches every member, so it would exclude the whole set`); wellFormed = false; }
       for (const [axis, vs] of Object.entries(entry)) {
-        if (!axes.includes(axis)) { e.push(`${at} names axis '${axis}', which is not a projected variant axis [${axes.join(', ')}] — an exclusion can only remove a coordinate the set enumerates (the state and slot axes have their own presence mechanisms)`); wellFormed = false; continue; }
+        if (!axes.includes(axis)) { e.push(`${at} names axis '${axis}', which is not a projected variant axis or the state axis [${axes.join(', ')}] — an exclusion can only remove a coordinate the set enumerates (the slot axes have their own presence mechanism)`); wellFormed = false; continue; }
         if (!Array.isArray(vs) || !vs.length) { e.push(`${at}.${axis} lists no values — an entry that matches nothing reads as a decision and removes no member`); wellFormed = false; continue; }
         for (const v of vs) if (!values(axis).includes(v)) { e.push(`${at}.${axis} names '${v}', which is not a value of '${axis}' [${values(axis).join(', ')}] — it matches no member, so the exclusion would remove nothing`); wellFormed = false; }
       }

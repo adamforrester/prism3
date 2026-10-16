@@ -12,7 +12,7 @@
     "used": 247,
     "unusedSemantic": 260,
     "unusedPrimitive": 280,
-    "components": 41
+    "components": 43
   },
   "tokens": {
     "border-width.hairline": {
@@ -596,6 +596,12 @@
     "color.border.focus": {
       "type": "color",
       "components": {
+        "_pagination-item": {
+          "keys": [
+            "focus-ring"
+          ],
+          "parts": {}
+        },
         "button": {
           "keys": [
             "focus-ring"
@@ -5783,6 +5789,27 @@
     "color.interactive.neutral.overlay.hover": {
       "type": "color",
       "components": {
+        "_pagination-item": {
+          "keys": [
+            "unselected.page.overlay.hover"
+          ],
+          "parts": {
+            "container": {
+              "members": 3,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "hover"
+                ],
+                "type": [
+                  "page"
+                ]
+              }
+            }
+          }
+        },
         "button-neutral": {
           "keys": [
             "outline.overlay.hover"
@@ -5949,6 +5976,27 @@
     "color.interactive.neutral.overlay.pressed": {
       "type": "color",
       "components": {
+        "_pagination-item": {
+          "keys": [
+            "unselected.page.overlay.pressed"
+          ],
+          "parts": {
+            "container": {
+              "members": 3,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "pressed"
+                ],
+                "type": [
+                  "page"
+                ]
+              }
+            }
+          }
+        },
         "button-neutral": {
           "keys": [
             "outline.overlay.pressed"
@@ -6055,6 +6103,41 @@
     "color.interactive.neutral.text.hover": {
       "type": "color",
       "components": {
+        "_pagination-item": {
+          "keys": [
+            "unselected.page.label.hover"
+          ],
+          "parts": {
+            "label": {
+              "members": 3,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "hover"
+                ],
+                "type": [
+                  "page"
+                ]
+              }
+            },
+            "labelReserve": {
+              "members": 3,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "hover"
+                ],
+                "type": [
+                  "page"
+                ]
+              }
+            }
+          }
+        },
         "button-neutral": {
           "keys": [
             "outline.label.hover",
@@ -6157,6 +6240,41 @@
     "color.interactive.neutral.text.pressed": {
       "type": "color",
       "components": {
+        "_pagination-item": {
+          "keys": [
+            "unselected.page.label.pressed"
+          ],
+          "parts": {
+            "label": {
+              "members": 3,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "pressed"
+                ],
+                "type": [
+                  "page"
+                ]
+              }
+            },
+            "labelReserve": {
+              "members": 3,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "pressed"
+                ],
+                "type": [
+                  "page"
+                ]
+              }
+            }
+          }
+        },
         "button-neutral": {
           "keys": [
             "outline.label.pressed",
@@ -6259,6 +6377,43 @@
     "color.interactive.neutral.text.rest": {
       "type": "color",
       "components": {
+        "_pagination-item": {
+          "keys": [
+            "unselected.page.label"
+          ],
+          "parts": {
+            "label": {
+              "members": 6,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "focus-visible",
+                  "rest"
+                ],
+                "type": [
+                  "page"
+                ]
+              }
+            },
+            "labelReserve": {
+              "members": 6,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "focus-visible",
+                  "rest"
+                ],
+                "type": [
+                  "page"
+                ]
+              }
+            }
+          }
+        },
         "accordion": {
           "keys": [
             "label"
@@ -6936,6 +7091,28 @@
     "color.interactive.primary.fill.selected": {
       "type": "color",
       "components": {
+        "_pagination-item": {
+          "keys": [
+            "selected.page.fill"
+          ],
+          "parts": {
+            "container": {
+              "members": 6,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "state": [
+                  "focus-visible",
+                  "rest"
+                ],
+                "type": [
+                  "page"
+                ]
+              }
+            }
+          }
+        },
         "checkbox-control": {
           "keys": [
             "checked.fill",
@@ -7374,6 +7551,43 @@
     "color.interactive.primary.on-fill": {
       "type": "color",
       "components": {
+        "_pagination-item": {
+          "keys": [
+            "selected.page.label"
+          ],
+          "parts": {
+            "label": {
+              "members": 6,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "state": [
+                  "focus-visible",
+                  "rest"
+                ],
+                "type": [
+                  "page"
+                ]
+              }
+            },
+            "labelReserve": {
+              "members": 6,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "state": [
+                  "focus-visible",
+                  "rest"
+                ],
+                "type": [
+                  "page"
+                ]
+              }
+            }
+          }
+        },
         "button": {
           "keys": [
             "filled.icon",
@@ -11741,6 +11955,21 @@
             }
           }
         },
+        "pagination": {
+          "keys": [
+            "label"
+          ],
+          "parts": {
+            "status": {
+              "members": 3,
+              "where": {
+                "type": [
+                  "compact"
+                ]
+              }
+            }
+          }
+        },
         "password-field": {
           "keys": [
             "caret",
@@ -11881,6 +12110,41 @@
     "color.text.secondary": {
       "type": "color",
       "components": {
+        "_pagination-item": {
+          "keys": [
+            "unselected.ellipsis.label"
+          ],
+          "parts": {
+            "label": {
+              "members": 3,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "rest"
+                ],
+                "type": [
+                  "ellipsis"
+                ]
+              }
+            },
+            "labelReserve": {
+              "members": 3,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "rest"
+                ],
+                "type": [
+                  "ellipsis"
+                ]
+              }
+            }
+          }
+        },
         "dialog": {
           "keys": [
             "indicator"
@@ -13454,6 +13718,24 @@
     "focus.ring.offset": {
       "type": "dimension",
       "components": {
+        "_pagination-item": {
+          "keys": [
+            "ring-offset"
+          ],
+          "parts": {
+            "focusRing": {
+              "members": 6,
+              "where": {
+                "state": [
+                  "focus-visible"
+                ],
+                "type": [
+                  "page"
+                ]
+              }
+            }
+          }
+        },
         "button": {
           "keys": [
             "ring-offset"
@@ -13806,6 +14088,24 @@
     "focus.ring.width": {
       "type": "dimension",
       "components": {
+        "_pagination-item": {
+          "keys": [
+            "ring-width"
+          ],
+          "parts": {
+            "focusRing": {
+              "members": 6,
+              "where": {
+                "state": [
+                  "focus-visible"
+                ],
+                "type": [
+                  "page"
+                ]
+              }
+            }
+          }
+        },
         "button": {
           "keys": [
             "ring-width"
@@ -15790,6 +16090,17 @@
     "radius.md": {
       "type": "dimension",
       "components": {
+        "_pagination-item": {
+          "keys": [
+            "radius"
+          ],
+          "parts": {
+            "container": {
+              "members": 21,
+              "where": {}
+            }
+          }
+        },
         "button": {
           "keys": [
             "radius"
@@ -16221,6 +16532,21 @@
     "size.lg.height": {
       "type": "dimension",
       "components": {
+        "_pagination-item": {
+          "keys": [
+            "size.large.height"
+          ],
+          "parts": {
+            "container": {
+              "members": 7,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
+        },
         "accordion": {
           "keys": [
             "size.large.min-height"
@@ -16501,6 +16827,21 @@
     "size.md.height": {
       "type": "dimension",
       "components": {
+        "_pagination-item": {
+          "keys": [
+            "size.medium.height"
+          ],
+          "parts": {
+            "container": {
+              "members": 7,
+              "where": {
+                "size": [
+                  "medium"
+                ]
+              }
+            }
+          }
+        },
         "button": {
           "keys": [
             "size.medium.height"
@@ -16830,6 +17171,21 @@
     "size.sm.height": {
       "type": "dimension",
       "components": {
+        "_pagination-item": {
+          "keys": [
+            "size.small.height"
+          ],
+          "parts": {
+            "container": {
+              "members": 7,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
         "button": {
           "keys": [
             "size.small.height"
@@ -17056,6 +17412,22 @@
     "space.0": {
       "type": "dimension",
       "components": {
+        "_pagination-item": {
+          "keys": [
+            "pad-y",
+            "reserve-height"
+          ],
+          "parts": {
+            "container": {
+              "members": 21,
+              "where": {}
+            },
+            "reserve": {
+              "members": 21,
+              "where": {}
+            }
+          }
+        },
         "accordion": {
           "keys": [
             "size.large.panel-pad-top",
@@ -17445,6 +17817,38 @@
             }
           }
         },
+        "pagination": {
+          "keys": [
+            "gap"
+          ],
+          "parts": {
+            "items": {
+              "members": 3,
+              "where": {
+                "type": [
+                  "numbered"
+                ]
+              }
+            },
+            "row": {
+              "members": 6,
+              "where": {
+                "type": [
+                  "compact",
+                  "numbered"
+                ]
+              }
+            },
+            "simpleRow": {
+              "members": 3,
+              "where": {
+                "type": [
+                  "simple"
+                ]
+              }
+            }
+          }
+        },
         "segmented-control-segment": {
           "keys": [
             "inset"
@@ -17689,6 +18093,17 @@
     "space.100": {
       "type": "dimension",
       "components": {
+        "_pagination-item": {
+          "keys": [
+            "padding-x"
+          ],
+          "parts": {
+            "container": {
+              "members": 21,
+              "where": {}
+            }
+          }
+        },
         "accordion": {
           "keys": [
             "size.small.gap",
@@ -20164,6 +20579,42 @@
     "type.label.lg.default": {
       "type": "typography",
       "components": {
+        "_pagination-item": {
+          "keys": [
+            "size.large.type.unselected"
+          ],
+          "parts": {
+            "label": {
+              "members": 5,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
+        },
+        "pagination": {
+          "keys": [
+            "size.large.type"
+          ],
+          "parts": {
+            "status": {
+              "members": 1,
+              "where": {
+                "size": [
+                  "large"
+                ],
+                "type": [
+                  "compact"
+                ]
+              }
+            }
+          }
+        },
         "segmented-control-segment": {
           "keys": [
             "size.large.type.unselected"
@@ -20205,6 +20656,39 @@
     "type.label.lg.emphasis": {
       "type": "typography",
       "components": {
+        "_pagination-item": {
+          "keys": [
+            "size.large.type.selected"
+          ],
+          "parts": {
+            "label": {
+              "members": 2,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "size": [
+                  "large"
+                ],
+                "state": [
+                  "focus-visible",
+                  "rest"
+                ],
+                "type": [
+                  "page"
+                ]
+              }
+            },
+            "labelReserve": {
+              "members": 7,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
+        },
         "accordion": {
           "keys": [
             "size.large.type"
@@ -20431,6 +20915,42 @@
     "type.label.md.default": {
       "type": "typography",
       "components": {
+        "_pagination-item": {
+          "keys": [
+            "size.medium.type.unselected"
+          ],
+          "parts": {
+            "label": {
+              "members": 5,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "size": [
+                  "medium"
+                ]
+              }
+            }
+          }
+        },
+        "pagination": {
+          "keys": [
+            "size.medium.type"
+          ],
+          "parts": {
+            "status": {
+              "members": 1,
+              "where": {
+                "size": [
+                  "medium"
+                ],
+                "type": [
+                  "compact"
+                ]
+              }
+            }
+          }
+        },
         "segmented-control-segment": {
           "keys": [
             "size.medium.type.unselected"
@@ -20472,6 +20992,39 @@
     "type.label.md.emphasis": {
       "type": "typography",
       "components": {
+        "_pagination-item": {
+          "keys": [
+            "size.medium.type.selected"
+          ],
+          "parts": {
+            "label": {
+              "members": 2,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "size": [
+                  "medium"
+                ],
+                "state": [
+                  "focus-visible",
+                  "rest"
+                ],
+                "type": [
+                  "page"
+                ]
+              }
+            },
+            "labelReserve": {
+              "members": 7,
+              "where": {
+                "size": [
+                  "medium"
+                ]
+              }
+            }
+          }
+        },
         "accordion": {
           "keys": [
             "size.medium.type"
@@ -20687,6 +21240,42 @@
     "type.label.sm.default": {
       "type": "typography",
       "components": {
+        "_pagination-item": {
+          "keys": [
+            "size.small.type.unselected"
+          ],
+          "parts": {
+            "label": {
+              "members": 5,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
+        "pagination": {
+          "keys": [
+            "size.small.type"
+          ],
+          "parts": {
+            "status": {
+              "members": 1,
+              "where": {
+                "size": [
+                  "small"
+                ],
+                "type": [
+                  "compact"
+                ]
+              }
+            }
+          }
+        },
         "segmented-control-segment": {
           "keys": [
             "size.small.type.unselected"
@@ -20728,6 +21317,39 @@
     "type.label.sm.emphasis": {
       "type": "typography",
       "components": {
+        "_pagination-item": {
+          "keys": [
+            "size.small.type.selected"
+          ],
+          "parts": {
+            "label": {
+              "members": 2,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "size": [
+                  "small"
+                ],
+                "state": [
+                  "focus-visible",
+                  "rest"
+                ],
+                "type": [
+                  "page"
+                ]
+              }
+            },
+            "labelReserve": {
+              "members": 7,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
         "accordion": {
           "keys": [
             "size.small.type"
@@ -20992,6 +21614,59 @@
         "icon.size.xs"
       ],
       "declaredNotDrawn": [],
+      "drawnNotDeclared": []
+    },
+    "_pagination-item": {
+      "members": 21,
+      "axes": {
+        "selection": [
+          "selected",
+          "unselected"
+        ],
+        "size": [
+          "large",
+          "medium",
+          "small"
+        ],
+        "state": [
+          "focus-visible",
+          "hover",
+          "pressed",
+          "rest"
+        ],
+        "type": [
+          "ellipsis",
+          "page"
+        ]
+      },
+      "tokens": [
+        "color.border.focus",
+        "color.interactive.neutral.overlay.hover",
+        "color.interactive.neutral.overlay.pressed",
+        "color.interactive.neutral.text.hover",
+        "color.interactive.neutral.text.pressed",
+        "color.interactive.neutral.text.rest",
+        "color.interactive.primary.fill.selected",
+        "color.interactive.primary.on-fill",
+        "color.text.secondary",
+        "focus.ring.offset",
+        "focus.ring.width",
+        "radius.md",
+        "size.lg.height",
+        "size.md.height",
+        "size.sm.height",
+        "space.0",
+        "space.100",
+        "type.label.lg.default",
+        "type.label.lg.emphasis",
+        "type.label.md.default",
+        "type.label.md.emphasis",
+        "type.label.sm.default",
+        "type.label.sm.emphasis"
+      ],
+      "declaredNotDrawn": [
+        "color.border.focus"
+      ],
       "drawnNotDeclared": []
     },
     "accordion": {
@@ -22387,6 +23062,30 @@
         "type.body.lg.default",
         "type.body.md.default",
         "type.body.sm.default"
+      ],
+      "declaredNotDrawn": [],
+      "drawnNotDeclared": []
+    },
+    "pagination": {
+      "members": 9,
+      "axes": {
+        "size": [
+          "large",
+          "medium",
+          "small"
+        ],
+        "type": [
+          "compact",
+          "numbered",
+          "simple"
+        ]
+      },
+      "tokens": [
+        "color.text.primary",
+        "space.050",
+        "type.label.lg.default",
+        "type.label.md.default",
+        "type.label.sm.default"
       ],
       "declaredNotDrawn": [],
       "drawnNotDeclared": []

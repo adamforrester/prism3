@@ -127,6 +127,9 @@ section('map — the per-def reaction map, literal (owner decision Q238 A, part 
     // #2457: the flush icon button, 2 shapes × 3 sizes (Q287 A) × (rest → hover, rest → pressed, hover → pressed), in
     // each of its three families (Q295.2 B).
     'flush-icon-button': [30, 12, 18], 'flush-icon-button-destructive': [30, 12, 18], 'flush-icon-button-neutral': [30, 12, 18],
+    // #2665: a page cell at three sizes, rest → hover, rest → pressed, hover → pressed (Q344). The current page (rest and
+    // focus-visible only, owner call 7) and the ellipsis (rest only) have no sibling to change to, so they carry none.
+    '_pagination-item': [21, 6, 9],
   };
   const got: Record<string, [number, number, number]> = {};
   for (const d of componentDefs) {
@@ -135,7 +138,7 @@ section('map — the per-def reaction map, literal (owner decision Q238 A, part 
     const lists = [...map.values()];
     got[d.id] = [map.size, lists.filter((l) => l.length).length, lists.reduce((k, l) => k + l.length, 0)];
   }
-  ok(JSON.stringify(Object.keys(got).sort()) === JSON.stringify(Object.keys(want).sort()), `map/scope: exactly the 16 defs with rest, hover and pressed (${Object.keys(got).join(', ')})`);
+  ok(JSON.stringify(Object.keys(got).sort()) === JSON.stringify(Object.keys(want).sort()), `map/scope: exactly the 17 defs with rest, hover and pressed (${Object.keys(got).join(', ')})`);
   ok(Object.entries(want).every(([id, w]) => JSON.stringify(got[id]) === JSON.stringify(w)), `map/counts: members, sources and reactions per def (${JSON.stringify(got)})`);
   const btn = reactionMap(plansOf('button').map(planComponentName));
   const B = (state: string): string => `appearance=filled, surface=default, inset=default, size=medium, state=${state}, leading icon=false, trailing icon=false`;

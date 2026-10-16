@@ -159,6 +159,13 @@
             "components": [
               "dialog"
             ]
+          },
+          {
+            "name": "↳ Pagination",
+            "components": [
+              "_pagination-item",
+              "pagination"
+            ]
           }
         ]
       },
@@ -2170,6 +2177,90 @@
           ]
         },
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/password-field.md"
+      },
+      {
+        "id": "_pagination-item",
+        "name": "Pagination.Item",
+        "figmaName": "_pagination-item",
+        "kind": "component set",
+        "private": true,
+        "page": "↳ Pagination",
+        "section": "Components",
+        "members": 21,
+        "variantProperties": [
+          {
+            "name": "type",
+            "values": [
+              "page",
+              "ellipsis"
+            ]
+          },
+          {
+            "name": "selection",
+            "values": [
+              "unselected",
+              "selected"
+            ]
+          },
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small",
+              "large"
+            ]
+          },
+          {
+            "name": "state",
+            "values": [
+              "rest",
+              "hover",
+              "pressed",
+              "focus-visible"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "label",
+            "type": "TEXT"
+          }
+        ],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/_pagination-item.md"
+      },
+      {
+        "id": "pagination",
+        "name": "Pagination",
+        "figmaName": "pagination",
+        "kind": "component set",
+        "page": "↳ Pagination",
+        "section": "Components",
+        "members": 9,
+        "variantProperties": [
+          {
+            "name": "type",
+            "values": [
+              "numbered",
+              "compact",
+              "simple"
+            ]
+          },
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small",
+              "large"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "status text",
+            "type": "TEXT"
+          }
+        ],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/pagination.md"
       }
     ]
   },
@@ -2295,6 +2386,13 @@
       {
         "component": "dialog",
         "property": "body"
+      },
+      {
+        "component": "pagination",
+        "property": "items",
+        "settings": {
+          "minChildren": 1
+        }
       }
     ]
   },
@@ -2451,7 +2549,9 @@
       "segmented-control",
       "link",
       "dialog",
-      "password-field"
+      "password-field",
+      "_pagination-item",
+      "pagination"
     ],
     "templates": [
       {

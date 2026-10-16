@@ -54,6 +54,9 @@ const EXPECTED: Record<string, { slotSettings?: Record<string, unknown>; preferr
   // Open (#2609, as built): the body holds whatever the dialog needs — text or any components — so no limit and no
   // preferred component. The footer's actions are fixed nested Buttons, not a slot (Q311), so they have no row.
   'dialog.body': {},
+  // At least one item (#2665, owner call 4 A). No preferred component: the item is a `_` building block (Q349), which a
+  // published library leaves out, so the projection refuses it as a preferred value (held for the owner on #2665).
+  'pagination.items': { slotSettings: { minChildren: 1 } },
 };
 console.log('the corpus');
 {

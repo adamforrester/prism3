@@ -318,8 +318,12 @@ section('label text — the text layer a value goes into, whatever the file\'s _
 
 /* ── the pilot defs, built by the real executor ─────────────────────────────────────────────────────────── */
 const plansOf = (id: string): AnatomyPlan[] => figmaAnatomySet(componentDefs.find((d) => d.id === id)!, { swapTarget: SWAP_TARGET });
-const planComps = (n: { swapTarget?: string; nestTarget?: string; children?: unknown[] }): string[] => [
-  ...(n.swapTarget ? [n.swapTarget] : []), ...(n.nestTarget ? [n.nestTarget] : []), ...((n.children ?? []) as (typeof n)[]).flatMap(planComps),
+// #2665: and every glyph a nested instance's override swaps to (Pagination's chevrons), which a real file holds in its
+// icon set; an update refuses a plan whose swap targets are not in the file.
+const planComps = (n: { swapTarget?: string; nestTarget?: string; nestOverrides?: readonly { type: string; value: unknown }[]; children?: unknown[] }): string[] => [
+  ...(n.swapTarget ? [n.swapTarget] : []), ...(n.nestTarget ? [n.nestTarget] : []),
+  ...(n.nestOverrides ?? []).filter((o) => o.type === 'INSTANCE_SWAP').map((o) => String(o.value)),
+  ...((n.children ?? []) as (typeof n)[]).flatMap(planComps),
 ];
 const buildOnPage = async (id: string) => {
   const plans = plansOf(id);
@@ -676,8 +680,8 @@ section('rollout — every def that builds a set: drawn, converged, and clear of
   // properties builds a set, except the two that build single components (`emitAsComponents`), which have no grid.
   const withSet = componentDefs.filter((d) => d.figmaProperties && !d.figmaProperties.emitAsComponents).map((d) => d.id);
   const single = componentDefs.filter((d) => d.figmaProperties?.emitAsComponents).map((d) => d.id);
-  ok(withSet.length === 39 && withSet.every(hasFurniture) && JSON.stringify(single) === JSON.stringify(['icon', 'spinner']) && !single.some(hasFurniture),
-    `rollout/switch: all 39 defs that build a set have furniture; Icon and Spinner, single components, do not (off: ${JSON.stringify(withSet.filter((id) => !hasFurniture(id)))})`);
+  ok(withSet.length === 41 && withSet.every(hasFurniture) && JSON.stringify(single) === JSON.stringify(['icon', 'spinner']) && !single.some(hasFurniture),
+    `rollout/switch: all 41 defs that build a set have furniture; Icon and Spinner, single components, do not (off: ${JSON.stringify(withSet.filter((id) => !hasFurniture(id)))})`);
 
   // THE MEMBERS AN EARLIER LAYOUT HOLDS OFF THEIR GROUPED ROW, per def, worked out by hand. Only a def with a `surface`
   // ROW axis regroups. Button and its two siblings: 360, as `MOVES` above. The three icon buttons: 36 rows of 6
@@ -752,11 +756,13 @@ section('rollout — every def that builds a set: drawn, converged, and clear of
     'Segmented control': ['segmented-control-segment', 'segmented-control'],
     Accordion: ['_accordion-indicator', 'accordion'],
     List: ['list-item', 'list'],
+    // #2665: Pagination.Item and the row.
+    Pagination: ['_pagination-item', 'pagination'],
     // #2457 Q295.2 B: the flush icon button's three families share one page, as IconButton's do.
     'Flush Icon Button': ['flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral'],
   };
   const fromTaxonomy = Object.fromEntries(allLeaves().filter(({ leaf }) => leaf.defs.length > 1).map(({ leaf }) => [leaf.page, [...leaf.defs]]));
-  ok(JSON.stringify(fromTaxonomy) === JSON.stringify(SHARED), `clearance/pages: the ten pages that hold more than one set (${JSON.stringify(Object.keys(fromTaxonomy))})`);
+  ok(JSON.stringify(fromTaxonomy) === JSON.stringify(SHARED), `clearance/pages: the eleven pages that hold more than one set (${JSON.stringify(Object.keys(fromTaxonomy))})`);
   const box = (n: FNode) => ({ x: Number(n.x), y: Number(n.y), w: Number(n.width), h: Number(n.height) });
   const meets = (a: ReturnType<typeof box>, b: ReturnType<typeof box>) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
   for (const [name, ids] of Object.entries(SHARED)) {
