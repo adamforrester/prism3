@@ -135,6 +135,9 @@
  *                  stops dropped from the draw check → `veil/dry run`, `veil/repaired`, `veil/verify`; verify's draw check dropped → `veil/verify`.
  *                  Stops at their color but 100% alpha read "to update" and fail verify; the alpha comparison dropped from
  *                  the draw check's gradient branch → `veil/alpha dry run`, `veil/alpha verify`.
+ *   stretch/…      an axis the parent stretches (Accordion's indicator, FIXED on the host at medium and large where the
+ *                  plan says AUTO): the verify and the dry run accept it alike, and both name a node nothing stretches
+ *                  on that axis, or one whose stretch the host lost (#2696). Mutations in the section's own comment.
  *   overrides/…    a List built before its items carried their numbers (#2645): the dry run lists the override on
  *                  items 2 to 8 as a change and replaces nothing; Update writes each in place, every key and id kept,
  *                  and a number a designer typed is kept as a hand edit. Mutation: the in-place branch skipping the
@@ -150,7 +153,7 @@
 import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, planComponentName } from '@prism3/engine/anatomy-figma';
 import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
 import { componentDefs } from '@prism3/engine/components/index';
-import { applyComponentPlan, respaceSets, STAMP_KEY } from './src/write-components';
+import { adoptions, applyComponentPlan, respaceSets, STAMP_KEY } from './src/write-components';
 import { SWAP_TARGET } from './src/build-deps';
 import { NS } from './src/persist-figma';
 import { materializeForBrand } from './src/brand-def';
@@ -2636,6 +2639,16 @@ section('accordion — a set built before the header row (#2594, owner Q276 A) t
     `acc/dry run: all 24 members read update, none added, dropped, renamed or replaced, and nothing refused (${JSON.stringify(p.counts)}, ${p.blockers.join('; ') || 'no blockers'}, ${p.replacements.length} replacements)`);
   ok(p.changes.some((c) => c.part === 'header' && c.field === 'counterAxisAlignItems' && c.from === 'MIN' && c.to === 'CENTER' && c.members === 24) && p.changes.some((c) => c.part === 'header/titleRow' && c.field === 'children' && c.to === 'present'),
     `acc/dry run: the header's centering and the added row are named differences (${JSON.stringify(p.changes.map((c) => [c.part, c.field, c.members])).slice(0, 240)})`);
+  // THE MOVES, as the dry run lists them (#2595): the indicators and the title move into the row and are kept, never
+  // listed as removed. Typed here from the def's anatomy (the leading or trailing indicator on half the members each,
+  // the title on all 24) and the issue's option A wording.
+  const lines = previewVerdict(pre).lines;
+  const moveLines = ['header/leadingIndicator', 'header/titleBox', 'header/trailingIndicator'].map((part) => p.changes.find((c) => c.part === part));
+  ok(JSON.stringify(moveLines.map((c) => [c?.field, c?.to, c?.members])) === JSON.stringify([['moves into', 'header/titleRow', 12], ['moves into', 'header/titleRow', 24], ['moves into', 'header/titleRow', 12]])
+    && lines.includes('accordion · header/titleBox · moves into header/titleRow, kept (24 members).')
+    && lines.includes('accordion · header/leadingIndicator · moves into header/titleRow, kept (12 members).')
+    && !p.changes.some((c) => /removed/.test(c.to)),
+    `acc/dry run moves: the indicators and the title are listed as moving into the row, kept, and nothing as removed (${JSON.stringify(p.changes.map((c) => [c.part, c.field, c.to, c.members]))})`);
   const v = applyVerdict(res);
   ok(v.ok, `acc/verdict: ${v.headline} (${v.lines.slice(0, 2).join(' | ').slice(0, 240)})`);
   const after = identityOf(w.set());
@@ -2655,16 +2668,23 @@ section('accordion — a set built before the header row (#2594, owner Q276 A) t
   ok(shape.every((x) => x.ok), `acc/structure: every header is centered and holds the row, which holds the indicator and the title top-aligned (${shape.filter((x) => !x.ok).slice(0, 2).map((x) => `${x.m}: ${x.got}`).join('; ') || 'all 24'})`);
   const post = (await previewUpdate(w.host, [{ def: ACC, plans: newPlans }])).sets[0];
   ok(post.counts.current === 24 && post.handEdits.length === 0, `acc/current: the next dry run reads all 24 current (${JSON.stringify(post.counts)})`);
-  // THE COST, stated rather than hidden: the indicators and the title move into a frame the file did not have, and
-  // the in-place update pairs a node's children by name under the SAME parent, so they are built fresh inside the row
-  // and the old ones removed. Their ids change; a placed instance's own choice on the nested indicator does not carry
-  // over (the title is a text property, so its text does). Typed here so a change to that pairing is seen.
-  const rebuilt = [...before.members].every(([name, b]) => {
-    const now2 = new Set(after.members.get(name)?.kids.values() ?? []);
-    const was = [...b.kids].filter(([path]) => /^header#0\/(titleBox|leadingIndicator|trailingIndicator)#/.test(path)).map(([, id]) => id);
-    return was.length > 0 && was.every((id) => !now2.has(id));
-  });
-  ok(rebuilt, 'acc/moved children: the indicator and the title are built fresh inside the row, so their ids change');
+  // MOVED, NOT REBUILT (#2595): the indicators and the title move into the row the update inserts, so every node in
+  // them, their nested glyph instances included, keeps its id, now under the row. A placed instance's override on
+  // them carries over. Read off the shim's nodes by id. Mutations: the executor offering a new frame no children
+  // (`offer` empty) → `acc/moved children`, `acc/agree`, `acc/edited agree`; the dry run listing no moves →
+  // `acc/dry run moves`, `acc/edited dry run`.
+  const lost: string[] = [];
+  for (const [name, b] of before.members) {
+    const was = [...b.kids].filter(([path]) => /^header#0\/(titleBox|leadingIndicator|trailingIndicator)#/.test(path));
+    const underRow = new Set([...(after.members.get(name)?.kids ?? [])].filter(([path]) => /^header#0\/titleRow#\d+\//.test(path)).map(([, id]) => id));
+    if (!was.length || !was.every(([, id]) => underRow.has(id))) lost.push(`${name}: ${was.filter(([, id]) => !underRow.has(id)).map(([path]) => path).slice(0, 2).join(', ') || 'nothing to move'}`);
+  }
+  ok(lost.length === 0, `acc/moved children: the indicator and the title, and every node in them, keep their ids under the row (${lost.slice(0, 2).join('; ') || 'all 24'})`);
+  // THE DRY RUN SAID SO: no node under a part the dry run listed as moving was removed. Counted off the shim's own
+  // removals, by id.
+  const movedIds = new Set([...before.members.values()].flatMap((b) => [...b.kids].filter(([path]) => /^header#0\/(titleBox|leadingIndicator|trailingIndicator)#/.test(path)).map(([, id]) => id)));
+  const gone = (w.api._removed as Node[]).filter((x) => movedIds.has(String(x.id)));
+  ok(movedIds.size > 0 && gone.length === 0, `acc/agree: the apply removed none of the ${movedIds.size} nodes the dry run listed as moving (${gone.slice(0, 3).map((x) => `${String(x.name)} ${String(x.id)}`).join(', ') || 'none removed'})`);
   // ADOPTED, NOT RE-CREATED, ONCE THERE: a later update (here an executor revision bump, every member out of date
   // with nothing else moved) pairs the row the first update added, and every node under it keeps its id.
   for (const m of membersOf(w.set())) {
@@ -2677,6 +2697,156 @@ section('accordion — a set built before the header row (#2594, owner Q276 A) t
   ok(again.pre.sets[0].counts.update === 24 && applyVerdict(again.res).ok, `acc/again: a revision bump reads all 24 out of date and updates them (${JSON.stringify(again.pre.sets[0].counts)}; ${applyVerdict(again.res).headline})`);
   const reRow = membersOf(w.set()).filter((m) => rowIds(m) !== beforeRow.get(String(m.name))).map((m) => String(m.name));
   ok(reRow.length === 0, `acc/row adopted: a later update keeps the row and every node under it, by id, on every member (${reRow.slice(0, 2).join('; ') || 'all 24'})`);
+}
+// A NODE A DESIGNER EDITED IS NOT MOVED (#2595): the move is decided before the hand-edit choice is made, so a node
+// with a hand edit at or under it is left out of the moves whatever the choice. The dry run lists it as removed on that
+// member and moved on the rest, and the apply rebuilds it there, as before #2595, and moves it on the rest. (Its hand
+// edit is not carried into the rebuilt node, as before #2595: #2673.) Twice: an edit ON the moved node, and one UNDER
+// it (its label), which must block the move as surely (#2595 review). Mutations: the executor ignoring `edited` →
+// `acc/edited agree`; `adoptions` dropping its under-a-node arm → `acc/edited under agree`, `acc/edited under dry run`.
+const ACC_BEFORE_ROW = (patch: (parts: Record<string, any>) => Record<string, any> = (x) => x) => {
+  const now = componentDefs.find((x) => x.id === 'accordion')!;
+  const { titleRow, ...restParts } = now.anatomy.parts;
+  return {
+    ...now,
+    anatomy: { ...now.anatomy, parts: patch({ ...restParts, header: { ...now.anatomy.parts.header, layout: { ...now.anatomy.parts.header.layout!, align: 'start' }, gap: titleRow.gap, children: [...titleRow.children!, 'focusRing'] } }) },
+  } as typeof now;
+};
+for (const edit of [
+  { tag: 'edited', path: 'header/titleBox', on: (m: Node) => childNamed(childNamed(m, 'header'), 'titleBox'), apply: async (w: any, n: Node) => (n.setBoundVariable as (f: string, v: { id: string }) => void)('itemSpacing', { id: await varIdOf(w, 'space/0') }) },
+  { tag: 'edited under', path: 'header/titleBox/label', on: (m: Node) => childNamed(childNamed(childNamed(m, 'header'), 'titleBox'), 'label'), apply: async (_w: any, n: Node) => { (n as unknown as { opacity: number }).opacity = 0.5; } },
+]) {
+  const ACC = 'accordion';
+  const w = await world(ACC, figmaAnatomySet(ACC_BEFORE_ROW(), { swapTarget: SWAP_TARGET }));
+  const m = membersOf(w.set())[0];
+  await edit.apply(w, edit.on(m));
+  const boxId = String(childNamed(childNamed(m, 'header'), 'titleBox').id);
+  const others = membersOf(w.set()).slice(1).map((x) => String(childNamed(childNamed(x, 'header'), 'titleBox').id));
+  // Under the default choice (keep). The dry run is made before any choice, so it is the same under every one.
+  const pre = await previewUpdate(w.host, [{ def: ACC, plans: plansOf(ACC) }]);
+  const p = pre.sets[0];
+  const edits = p.handEdits.filter((h) => h.member === String(m.name)).map((h) => h.path);
+  const move = p.changes.find((c) => c.part === 'header/titleBox' && c.field === 'moves into');
+  const removed = p.changes.find((c) => c.part === 'header/titleBox' && /removed/.test(c.to));
+  ok(JSON.stringify(edits) === JSON.stringify([edit.path]) && move?.members === 23 && removed?.members === 1 && removed.sample[0] === String(m.name),
+    `acc/${edit.tag} dry run: with ${edit.path} edited, the title is listed as removed on its member, moved on the other 23 (${JSON.stringify(edits)}; moves ${move?.members}; removed ${removed?.members} on ${removed?.sample.join(', ')})`);
+  const res = await applyUpdate(w.host, w.api as any, [{ def: ACC, plans: plansOf(ACC) }], previewHashOf(pre), { choices: { handEdits: 'keep' } });
+  void res;
+  const row = (x: Node): Node | undefined => childNamed(childNamed(x, 'header'), 'titleRow');
+  const nowBox = String(childNamed(row(m)!, 'titleBox')?.id);
+  const kept = membersOf(w.set()).slice(1).map((x) => String(childNamed(row(x)!, 'titleBox')?.id));
+  ok(nowBox !== boxId && (w.api._removed as Node[]).some((x) => String(x.id) === boxId) && JSON.stringify(kept) === JSON.stringify(others),
+    `acc/${edit.tag} agree: with ${edit.path} edited, the title is rebuilt in the row on its member, as the dry run listed it, and moved, by id, on the other 23 (${boxId} → ${nowBox}; ${kept.filter((id, i) => id !== others[i]).length} others changed)`);
+}
+{
+  // A MOVED NODE IS STILL COMPARED TO ITS PLAN (#2595 review): the dry run diffs each moved subtree at its new path,
+  // so a field the apply changes on a moved node is listed beside the move line, never hidden by it. Here the file's
+  // title column has no top padding where the plan pads it, so `paddingTop` is a named difference at the title's NEW
+  // path on every member. Mutation: the moved subtrees not diffed → `acc/moved diffed`.
+  const ACC = 'accordion';
+  const w = await world(ACC, figmaAnatomySet(ACC_BEFORE_ROW((parts) => ({ ...parts, titleBox: { ...parts.titleBox, paddingTop: undefined } })), { swapTarget: SWAP_TARGET }));
+  const p = (await previewUpdate(w.host, [{ def: ACC, plans: plansOf(ACC) }])).sets[0];
+  const field = p.changes.filter((c) => c.part === 'header/titleRow/titleBox' && /paddingTop/.test(`${c.field} ${c.from} ${c.to}`));
+  const move = p.changes.find((c) => c.part === 'header/titleBox' && c.field === 'moves into');
+  ok(field.length > 0 && field.reduce((a, c) => a + c.members, 0) === 24 && move?.members === 24,
+    `acc/moved diffed: the title's missing top padding is listed at its new path on all 24 members, beside its move (${JSON.stringify(field.map((c) => [c.field, c.from, c.to, c.members]))}; moves ${move?.members})`);
+}
+{
+  // THE MOVE RULE ITSELF (#2595 review), on hand-built inputs whose answers are known in advance (docs/34). Each case
+  // is one guard of `adoptions`; dropping that guard fails its line by name.
+  const row = [{ name: 'row', type: 'FRAME', children: [{ name: 'a', type: 'FRAME' }, { name: 'b', type: 'TEXT' }] }];
+  const got = (m: Map<string, string>) => JSON.stringify([...m]);
+  ok(got(adoptions(row, ['a', 'b'])) === '[["a","row"],["b","row"]]', `acc/adoptions: both children the new row names move into it (${got(adoptions(row, ['a', 'b']))})`);
+  ok(got(adoptions(row, ['a', 'a', 'b'])) === '[["b","row"]]', `acc/adoptions once: a name the file holds twice moves neither, since picking one would be order deciding (${got(adoptions(row, ['a', 'a', 'b']))})`);
+  ok(got(adoptions(row, ['a', 'b', 'row'])) === '[]', `acc/adoptions present: a row the file already holds takes nothing (${got(adoptions(row, ['a', 'b', 'row']))})`);
+  ok(got(adoptions([...row, { name: 'a', type: 'TEXT' }], ['a', 'b'])) === '[["b","row"]]', `acc/adoptions claimed: a name another plan child claims stays (${got(adoptions([...row, { name: 'a', type: 'TEXT' }], ['a', 'b']))})`);
+  ok(got(adoptions(row, ['a', 'b'], new Set(['header/a/inner']), 'header')) === '[["b","row"]]', `acc/adoptions edited under: an edit under a child keeps it out (${got(adoptions(row, ['a', 'b'], new Set(['header/a/inner']), 'header'))})`);
+  ok(got(adoptions(row, ['a', 'b'], new Set(['header/ab']), 'header')) === '[["a","row"],["b","row"]]', `acc/adoptions edited prefix: an edit on a sibling whose name merely starts the same blocks nothing (${got(adoptions(row, ['a', 'b'], new Set(['header/ab']), 'header'))})`);
+  const swapRow = [{ name: 'row', type: 'FRAME', children: [{ name: 's', type: 'INSTANCE_SWAP' }] }];
+  ok(got(adoptions(swapRow, ['s'])) === '[]', `acc/adoptions swap: an INSTANCE_SWAP is never moved, since its host type depends on the file and the dry run cannot read it (${got(adoptions(swapRow, ['s']))})`);
+  const slotRow = [{ name: 'row', type: 'CONTENT_SLOT', children: [{ name: 'a', type: 'FRAME' }] }];
+  ok(got(adoptions(slotRow, ['a'])) === '[]', `acc/adoptions frame only: only a FRAME the plan inserts is offered children, never another type that carries them (${got(adoptions(slotRow, ['a']))})`);
+}
+
+/* ── stretched mode (#2696) ──────────────────────────────────────────────────────────────────────────── */
+// A HUGGING AXIS THE PARENT STRETCHES IS THE PARENT'S SIZE, so the host may hold FIXED there where the plan says AUTO.
+// The host is modeled by the test: Accordion's indicator (a row in the row `titleRow`, `layoutAlign: STRETCH`) switches
+// its counter axis to FIXED when the stretch is written, at medium and large and not at small, as the live file read.
+// One member's `titleRow`, which nothing stretches, and its `header`, stretched on its other axis, hold FIXED whatever is
+// written (the record cleared, so the update writes them rather than keeping a hand edit): the controls the rule must
+// still fail, with an open member's `content` held AUTO where the plan holds its stretched axis FIXED. The expected
+// lines are literals from the def's anatomy, never the read-back's output. Mutations: the rule dropped, or the parent's
+// plan not threaded to it → `stretch/verify`, `stretch/dry run`, `stretch/agree`, `stretch/lost`; the host's stretch
+// not required → `stretch/lost`; the axis ignored → the same four; a planned FIXED relaxed too → the same four; the
+// plan's stretch not required (the control's `titleRow` is stretched on the host alone) → `stretch/verify`,
+// `stretch/dry run`, `stretch/agree`, `stretch/lost`.
+section('stretched mode — an axis the parent stretches: the verify and the dry run agree on it, both ways (#2696)');
+{
+  const ACC = 'accordion';
+  const w = await world(ACC);
+  const titleRow = (m: Node): Node => childNamed(childNamed(m, 'header'), 'titleRow');
+  const indicator = (m: Node): Node => (titleRow(m).children as Node[]).find((c) => /^(leading|trailing)Indicator$/.test(String(c.name)))!;
+  const sizeOf = (m: Node): string => /size=(\w+)/.exec(String(m.name))?.[1] ?? '';
+  const members = membersOf(w.set());
+  for (const m of members) {
+    if (sizeOf(m) === 'small') continue;
+    const n = indicator(m) as Record<string, unknown>;
+    let la = n.layoutAlign;
+    Object.defineProperty(n, 'layoutAlign', { configurable: true, enumerable: true, get: () => la, set: (v: unknown) => { la = v; if (v === 'STRETCH') n.counterAxisSizingMode = 'FIXED'; } });
+  }
+  const control = members.find((m) => sizeOf(m) === 'medium')!;
+  Object.defineProperty(titleRow(control), 'counterAxisSizingMode', { configurable: true, enumerable: true, get: () => 'FIXED', set: () => {} });
+  // The host also holds it STRETCHED where the plan does not stretch it (a designer's stretch). It shares `header`'s
+  // row direction, so the stretch would fill its counter axis: only the plan's half of the rule keeps it named, and
+  // no `layoutAlign` comparison exists for a part the plan does not stretch (`FIELDS.layoutAlign`).
+  Object.defineProperty(titleRow(control), 'layoutAlign', { configurable: true, enumerable: true, get: () => 'STRETCH', set: () => {} });
+  // …and its `header`, a row the column root stretches ACROSS, which is the header's primary axis, not its counter one.
+  Object.defineProperty(childNamed(control, 'header'), 'counterAxisSizingMode', { configurable: true, enumerable: true, get: () => 'FIXED', set: () => {} });
+  // Its record cleared, so the FIXED reads as the host's and not a designer's: the update writes it and records it after.
+  (control.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, BASELINE_KEY, '');
+  // THE OTHER DIRECTION: a stretched axis the plan holds FIXED is never relaxed (#1751: left AUTO, it hugs). An open
+  // member's `content`, a column the column root stretches across, held AUTO whatever is written, record cleared too.
+  const open = members.find((m) => sizeOf(m) === 'small' && /expansion=expanded/.test(String(m.name)))!;
+  Object.defineProperty(childNamed(open, 'content'), 'counterAxisSizingMode', { configurable: true, enumerable: true, get: () => 'AUTO', set: () => {} });
+  (open.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, BASELINE_KEY, '');
+  const outOfDate = (): void => {
+    for (const m of membersOf(w.set())) {
+      const st = (m.getSharedPluginData as (a: string, b: string) => string)(NS, STAMP_KEY);
+      (m.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, STAMP_KEY, st.replace(/\|[^|]*$/, '|0'));
+    }
+  };
+  const want = [`${control.name}/header.counterAxisSizingMode: FIXED (the plan says AUTO)`, `${control.name}/header/titleRow.counterAxisSizingMode: FIXED (the plan says AUTO)`,
+    `${open.name}/content.counterAxisSizingMode: AUTO (the plan says FIXED)`].sort();
+  outOfDate();
+  const first = await confirm(w, [{ def: ACC, plans: w.plans }]);
+  const modes = members.map((m) => `${sizeOf(m)}:${String(indicator(m).counterAxisSizingMode)}:${String(indicator(m).layoutAlign)}`);
+  ok(members.length === 24 && modes.filter((x) => x === 'small:AUTO:STRETCH').length === 8 && modes.filter((x) => /^(medium|large):FIXED:STRETCH$/.test(x)).length === 16,
+    `premise: after the update the host holds the indicator FIXED at medium and large, AUTO at small, stretched at all three (${[...new Set(modes)].join(', ')})`);
+  ok(JSON.stringify([...first.res.outcomes[0].content].sort()) === JSON.stringify(want),
+    `stretch/verify: the apply's verify names the controls (a header, a titleRow, an open content) and no indicator (${JSON.stringify(first.res.outcomes[0].content.slice(0, 3))})`);
+  const current = (await previewUpdate(w.host, [{ def: ACC, plans: w.plans }])).sets[0];
+  ok(current.counts.current === 24, `stretch/current: the next dry run reads all 24 current (${JSON.stringify(current.counts)})`);
+  // THE DRY RUN COMPARING: every member out of date, so it diffs each one against its plan, by the same predicate.
+  outOfDate();
+  const second = await confirm(w, [{ def: ACC, plans: w.plans }]);
+  const modeLines = second.pre.sets[0].changes.filter((c) => /SizingMode$/.test(c.field)).map((c) => `${c.part}.${c.field}: ${c.from} → ${c.to} × ${c.members}`).sort();
+  ok(JSON.stringify(modeLines) === JSON.stringify(['content.counterAxisSizingMode: AUTO → FIXED × 1', 'header.counterAxisSizingMode: FIXED → AUTO × 1', 'header/titleRow.counterAxisSizingMode: FIXED → AUTO × 1']),
+    `stretch/dry run: the dry run lists the same three controls and no indicator (${JSON.stringify(modeLines)})`);
+  ok(JSON.stringify([...second.res.outcomes[0].content].sort()) === JSON.stringify(want), `stretch/agree: the apply's verify names the same three nodes (${JSON.stringify(second.res.outcomes[0].content.slice(0, 3))})`);
+  // A NODE THAT LOST ITS STRETCH IS COMPARED RAW: the host holds INHERIT where the plan stretches it, and FIXED,
+  // whatever is written (its record cleared, as the control's was).
+  const lost = members.find((m) => sizeOf(m) === 'large')!;
+  const ind = indicator(lost) as Record<string, unknown>;
+  Object.defineProperty(ind, 'layoutAlign', { configurable: true, enumerable: true, get: () => 'INHERIT', set: () => {} });
+  Object.defineProperty(ind, 'counterAxisSizingMode', { configurable: true, enumerable: true, get: () => 'FIXED', set: () => {} });
+  (lost.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, BASELINE_KEY, '');
+  const lostAt = String(ind.name);
+  outOfDate();
+  const third = await confirm(w, [{ def: ACC, plans: w.plans }]);
+  const thirdModes = third.pre.sets[0].changes.filter((c) => /SizingMode$/.test(c.field)).map((c) => `${c.part}.${c.field}: ${c.from} → ${c.to} × ${c.members}`).sort();
+  ok(JSON.stringify(thirdModes) === JSON.stringify(['content.counterAxisSizingMode: AUTO → FIXED × 1', 'header.counterAxisSizingMode: FIXED → AUTO × 1', 'header/titleRow.counterAxisSizingMode: FIXED → AUTO × 1', `header/titleRow/${lostAt}.counterAxisSizingMode: FIXED → AUTO × 1`].sort())
+    && third.res.outcomes[0].content.includes(`${lost.name}/header/titleRow/${lostAt}.counterAxisSizingMode: FIXED (the plan says AUTO)`),
+    `stretch/lost: an indicator the host no longer stretches is listed by the dry run and named by the verify (${JSON.stringify(thirdModes)}; ${JSON.stringify(third.res.outcomes[0].content.slice(0, 4))})`);
 }
 
 /* ── segmented control (#2724) ───────────────────────────────────────────────────────────────────────── */
