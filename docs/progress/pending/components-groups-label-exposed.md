@@ -43,3 +43,12 @@ by name. The merge with the Segmented control redesign had a trap in `test-updat
 back by hand, and the surface baseline is re-accepted after regen.
 
 **Follow-up.** Counter (#2693) should take the same shape when it lands; it is not edited here.
+
+**Merge with #2660 (items slots).** Three conflicts were comment-only in the three defs (main's slot wording,
+with the Q348 A clause put back), plus the `test-update-apply.ts` header and `world()` options (both kept), and the
+generated report and surface baseline (main's, then regen and `--accept`). One real interaction showed up only in
+`test.ts`. Once the groups' label is `nest-exposed`, the three defs join the `#1392 … runs CLEAN through the paste
+payload` loop for the first time. That loop provisioned every nested target as a keyless plain component, so each
+group's new `items` slot could not offer its preferred set and reported two misses. On main neither side alone
+reached it. The loop now provisions a slot's preferred sets as keyed sets of their real members, as the real build
+has them.

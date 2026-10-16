@@ -48,7 +48,7 @@
  * ── THE OWNER'S DECISIONS (2026-09-29) ─────────────────────────────────────────────────────────────────
  *
  *   G. THE CHECK WIDENS THE TAG. A selected tag with the check shown is one glyph and one gap wider than its
- *      unselected twin (30px at medium since decision K: a 24px glyph and the 6px label→check gap); the width is not reserved. `test.ts` `tag selected width` pins it.
+ *      unselected twin (26px at medium since #2725: a 20px glyph and the 6px label→check gap; 30px with the 24px glyph before it); the width is not reserved. `test.ts` `tag selected width` pins it.
  *   H. THE FIGMA SWITCH IS `Check icon` (it was `check mark`). It toggles only the Select check; the code prop
  *      stays `showCheck`. The Dismissible × has no switch: it is the tag's action, present on every member.
  *   I. SELECTED HOVER AND PRESSED: the tint holds and the 2px outline steps darker
@@ -111,14 +111,14 @@ export const tag: ComponentDef = {
   props: [
     { name: 'label', type: 'string', required: true, description: 'The tag text. One word where possible, two or three for a specific entity such as a name or an email address. A long label wraps; it is never cut off.' },
     { name: 'type', type: "enum: 'select' | 'dismissible'", values: ['select', 'dismissible'], default: 'select', required: false, description: 'Which interaction the tag carries. select = toggles on and off, and shows its selected state. dismissible = carries a remove control and has no selected state. This is the component\'s own prop, not the HTML type attribute, and it is never passed to the element.' },
-    { name: 'selected', type: 'boolean', default: 'false', required: false, description: 'Whether a select tag is on. A selected tag takes a tint and a 2px outline, and shows a check mark unless showCheck is off, so the state never rests on color alone. Ignored on a dismissible tag.' },
-    { name: 'showCheck', type: 'boolean', default: 'true', required: false, description: 'Whether a selected select tag shows its check mark after the label. On by default. With it off, the tint and the 2px outline carry the selected state.' },
+    { name: 'selected', type: 'boolean', default: false, required: false, description: 'Whether a select tag is on. A selected tag takes a tint and a 2px outline, and shows a check mark unless showCheck is off, so the state never rests on color alone. Ignored on a dismissible tag.' },
+    { name: 'showCheck', type: 'boolean', default: true, required: false, description: 'Whether a selected select tag shows its check mark after the label. On by default. With it off, the tint and the 2px outline carry the selected state.' },
     { name: 'onClick', type: 'function', required: false, description: 'The toggle a select tag fires. Suppressed while disabled or read-only.' },
     { name: 'onRemove', type: 'function', required: false, description: 'Called when a dismissible tag\'s remove control is pressed, or when Delete or Backspace is pressed on the focused tag.' },
     { name: 'leadingIcon', type: 'slot', required: false, description: 'An icon or avatar before the label, for recognition at a glance. Decorative: the label carries the name.' },
     { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'Tag height, padding and label type. The height is Button\'s: medium clears 44px on comfortable and spacious density, and is 36px at compact. A tag is never narrower than 1.5 times its height, rounded to the nearest 8px (64px for a medium tag on comfortable density).' },
-    { name: 'disabled', type: 'boolean', default: 'false', required: false, description: 'Removes the tag from interaction and dims it. Don\'t disable every tag in a group; hide the group instead.' },
-    { name: 'readOnly', type: 'boolean', default: 'false', required: false, description: 'Keeps full visual weight but accepts no interaction, such as a filter the user cannot change. Distinct from disabled, which dims.' },
+    { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Removes the tag from interaction and dims it. Don\'t disable every tag in a group; hide the group instead.' },
+    { name: 'readOnly', type: 'boolean', default: false, required: false, description: 'Keeps full visual weight but accepts no interaction, such as a filter the user cannot change. Distinct from disabled, which dims.' },
   ],
 
   states: ['rest', 'hover', 'pressed', 'focus-visible', 'disabled', 'read-only'],
@@ -178,9 +178,10 @@ export const tag: ComponentDef = {
     // side (owner decision C) and the base of the minimum width (decision L); then this spec's own spacing as
     // `space.*` steps (decision K): the inline padding, the icon→label gap, the label→check gap, and the
     // label row's trailing inset per type (decision M: the select tag's padding, 0 against the × slot). Then
-    // the glyph and the label type. The glyph rung is 1:1 with the control rung (small → icon.size.sm), the
-    // corpus default; Button's one-rung-smaller glyph is an owner exception (`lint-rung-names.ts`
-    // `ICON_OFFSET_DEFS`) and is held for the owner here rather than taken.
+    // the glyph and the label type. The glyph rung sits ONE RUNG BELOW the control rung, as Button's does
+    // (#1350): small → icon.size.xs (16), medium → sm (20), large → md (24) (owner Q337 A, #2725). It sizes the
+    // leading icon, the check and the ×, so the three stay one size (owner Q356 A). `lint-rung-names.ts` records it in
+    // `ICON_OFFSET_DEFS`.
     'size.small.height': 'size.sm.height',
     'size.small.padding-x': 'space.100',
     'size.small.select.gap': 'space.075',
@@ -191,7 +192,7 @@ export const tag: ComponentDef = {
     'size.small.dismissible.padding-end': 'space.0',
     'size.small.select.label-inset': 'space.0',
     'size.small.dismissible.label-inset': 'space.050',
-    'size.small.icon': 'icon.size.sm',
+    'size.small.icon': 'icon.size.xs',
     'size.small.type': 'type.label.sm.emphasis',
     'size.medium.height': 'size.md.height',
     'size.medium.padding-x': 'space.150',
@@ -203,7 +204,7 @@ export const tag: ComponentDef = {
     'size.medium.dismissible.padding-end': 'space.0',
     'size.medium.select.label-inset': 'space.0',
     'size.medium.dismissible.label-inset': 'space.050',
-    'size.medium.icon': 'icon.size.md',
+    'size.medium.icon': 'icon.size.sm',
     'size.medium.type': 'type.label.md.emphasis',
     'size.large.height': 'size.lg.height',
     'size.large.padding-x': 'space.200',
@@ -215,7 +216,7 @@ export const tag: ComponentDef = {
     'size.large.dismissible.padding-end': 'space.0',
     'size.large.select.label-inset': 'space.0',
     'size.large.dismissible.label-inset': 'space.050',
-    'size.large.icon': 'icon.size.lg',
+    'size.large.icon': 'icon.size.md',
     'size.large.type': 'type.label.lg.emphasis',
 
     // UNSELECTED — outlined. The edge is the at-rest affordance Badge never has; hover and pressed are the
@@ -470,7 +471,6 @@ export const tag: ComponentDef = {
     contested: [
       'The selected label and check ink stay the unselected neutral ink. The owner fixed the tint and the outline, not the ink; the primary ink fails 4.5:1 on the tint in 13 of 20 cells (lowest 3.02:1, aurora/light). Held for the owner.',
       'The dismissible hit target: the whole tag, or only the × slot. Open by owner decision C; `codeOnly` states both. The Figma structure is the same, and the × slot is 44px at medium on comfortable density either way.',
-      'The × glyph size in its slot binds the tag\'s own icon rung (`size.{size}.icon`, 24px at medium), the same rung the check and the leading icon use. Held for the owner, with the slot\'s inner padding it implies.',
       'A long label wraps in code, and the row centers the leading icon, the check mark and the × slot on the label block (`align: center`, as in Figma, where the label is one line). Whether they should sit on the first line instead is held for the owner.',
       'A dismissible tag keeps the optional leading icon (the `leading icon` switch is on every member). The owner named it for Select; nothing says Dismissible drops it. Held for the owner.',
       'The selection axis values `[unselected, selected]` (brief §4 and §15 words) against checkbox\'s `[unchecked, checked]`. A filter tag\'s ARIA state is aria-pressed, aria-checked or aria-selected depending on the group\'s role, so no one ARIA word fits; recorded as `disjoint` in `lint-axis-values.ts` and held for the owner.',
@@ -500,7 +500,7 @@ export const tag: ComponentDef = {
       'Selected is a tint and a 2px outline, no longer the primary fill with on-fill ink, and the label weight is the same both ways (owner, 2026-09-28). The check mark moved from before the label to after it and became switchable.',
       'The label wraps rather than truncating (#1758): the earlier guidance, an ellipsis paired with a title or tooltip, left the full text unreachable by keyboard, touch and screen reader.',
       'The brief\'s `Token` alias is not carried as a bare alias: in this repo "token" means a design token, and an agent asked for one would land here. "recipient token" is kept as a trigger phrase.',
-      'A leading icon rung one smaller than the control rung (Button\'s #1350 offset) would suit a text-bearing tag; it is an owner exception in `lint-rung-names.ts`, so the 1:1 rung ships and the offset is held.',
+      'The glyph rung moved one below the control rung, as Button\'s did (#1350): 16 / 20 / 24px, where the 1:1 rung was 20 / 24 / 32px (owner Q337 A, #2725). The one rung sizes the leading icon, the check and the ×, so all three step down together; the × keeps its 44px slot at medium (owner Q356 A).',
     ],
   },
 };

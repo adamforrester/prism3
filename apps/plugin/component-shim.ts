@@ -1067,7 +1067,9 @@ export const makeShim = (opts: ShimOpts = {}) => {
         Object.defineProperty(node, 'height', { configurable: true, get: () => (bv.height ? bv.height.value ?? 0 : h), set: (v: number) => { h = v; } });
         }
       },
-      appendChild(c: Node) { c.parent = node; (node.children as Node[]).push(c); },
+      // A MOVE, as Figma's `appendChild` is for a node that already has a parent (#2595): it leaves its old parent and
+      // keeps its id. A fresh node's only parent is the page, which it leaves as it does in Figma.
+      appendChild(c: Node) { detach(c); c.parent = node; (node.children as Node[]).push(c); },
       // #2265 PR 2 — REORDER WITHOUT REPLACING: Figma's `insertChild` moves a node that already has a parent, and
       // the node keeps its id. Modelled as a move for that reason, so an update that reorders keeps identity.
       insertChild(i: number, c: Node) {
@@ -1484,6 +1486,9 @@ export const makeShim = (opts: ShimOpts = {}) => {
         // share one — which a swap override, whose value IS an id, cannot survive.
         const mkRef = (name: string, _i: number, main?: Node, owner: { name: string; type: string } = PAGE_OWNER) => ({
           name, id: componentIdFor(owner.name, name), type: 'COMPONENT',
+          // With `identities` a component carries the key its instances' `mainComponent` reads (#2649: a slot's preferred
+          // value names a component by key, so a nested component the slot prefers must have one, as on a real file).
+          ...(opts.identities ? { key: `${opts.keyPrefix ?? 'K'}:${name}` } : {}),
           createInstance: () => {
             const inst = mkNode('INSTANCE'); const vec = mkNode('VECTOR'); inst.findAll = () => [vec]; inst.findOne = () => null;
             // #2645 — ITS PROPERTIES: a live member's are its set's (a plain live component's, its own), read when

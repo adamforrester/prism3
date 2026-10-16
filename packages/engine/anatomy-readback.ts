@@ -95,6 +95,10 @@ export type ReadPorts = {
    *  values. `null` when the file holds nothing under the key. Optional: only a slot that prefers something reads it,
    *  and a reader without it reports that slot as unreadable rather than passing it. */
   componentName?: (key: string) => string | null;
+  /** A SLOT property's definition by its key, off the set the member belongs to (#2649), for a reader that holds a
+   *  member apart from its set: the update's dry run and verify read a member as a snapshot, which has no parent to
+   *  walk up. Read only where no set sits above the slot node; absent, such a slot reads as unreadable. */
+  slotProperty?: (key: string) => Record<string, unknown> | null;
   /** A component's NODE ID → its name as the file holds it (#2645), for an `INSTANCE_SWAP` override, whose value
    *  Figma stores as the component's id. `null` when no component carries the id. Optional, like `componentName`:
    *  only a swap override reads it, and a reader without it reports that override as unreadable rather than passing. */
@@ -177,17 +181,21 @@ type FieldCheck = {
    *  if it is, which default that property carries (`textDefault`) — because a bound node does not hold its
    *  own copy of the text at all (#1567). Threaded rather than folded into the planned value so every other
    *  predicate keeps reading exactly one field and cannot quietly grow a cross-field dependency. */
-  check?: (planned: unknown, node: HostNode, ports: ReadPorts, isRoot?: boolean, plan?: FigmaNodePlan) => string | null;
+  /** `parent` is the PARENT's plan, for the two sizing-mode predicates alone: whether a stretch fills this node's
+   *  counter axis or its primary axis is decided by the parent's direction (#2696, `stretchedMode`). */
+  check?: (planned: unknown, node: HostNode, ports: ReadPorts, isRoot?: boolean, plan?: FigmaNodePlan, parent?: FigmaNodePlan) => string | null;
   /** How the plan's value reads in a failure message. */
   show?: (planned: unknown) => string;
 };
 
 /** The SLOT property a slot node references (#2646), read off the set it sits in; a string says why there is none. */
-const slotPropertyOf = (n: HostNode): Record<string, unknown> | string => {
+const slotPropertyOf = (n: HostNode, ports: ReadPorts): Record<string, unknown> | string => {
   const key = (n.componentPropertyReferences as Record<string, unknown> | null | undefined)?.slotContentId;
   if (key === undefined || key === null) return 'no slot property referenced (slotContentId unset)';
   let up = n.parent as HostNode | null | undefined;
   while (up && up.type !== 'COMPONENT_SET') up = up.parent as HostNode | null | undefined;
+  // A member read apart from its set (a snapshot) reads the property through the port its reader gives (#2649).
+  if (!up && ports.slotProperty) return ports.slotProperty(String(key)) ?? `the set holds no property ${String(key)}`;
   if (!up) return `no component set above the slot to read ${String(key)} from`;
   let defs: Record<string, Record<string, unknown>>;
   try { defs = (up.componentPropertyDefinitions ?? {}) as Record<string, Record<string, unknown>>; }
@@ -199,6 +207,26 @@ const slotSettingsNormal = (s: Record<string, unknown>): Record<string, unknown>
   minChildren: s.minChildren ?? null, maxChildren: s.maxChildren ?? null,
   allowPreferredValuesOnly: s.allowPreferredValuesOnly === true, displayEmptyByDefault: s.displayEmptyByDefault === true,
 });
+
+/** #2696 — A HUGGING AXIS THE PARENT STRETCHES IS THE PARENT'S SIZE, so the node's own mode on it is moot, and the host
+ *  may hold FIXED there where the plan says AUTO. Measured on a live file: Accordion's `leadingIndicator`, a row in the
+ *  row `titleRow` with `layoutAlign: STRETCH`, read `counterAxisSizingMode: FIXED` at medium and large and `AUTO` at
+ *  small, `layoutSizingVertical: FILL` and the right size at all three. The executor writes AUTO, and only then does
+ *  the parent's child loop write the stretch. The host switches a resized axis to FIXED (the executor's
+ *  `placementWidth` note), so the size split fits a stretch that grows the indicator to a title row taller than its
+ *  glyph at medium and large, and changes nothing at small. That is inferred, not measured: the shim models no heights.
+ *  The apply's verify read FIXED raw and failed the set, while the dry run read the member current from its stamp and
+ *  record and never compared. Accepted here, in the one predicate both read, so the two agree in both directions.
+ *  Narrow by design (docs/34 shape 9): only a planned AUTO read as FIXED, only on the axis the stretch fills (the
+ *  parent's counter axis, which is the node's counter axis when the two share a direction), and only while the HOST
+ *  still holds the stretch, so a node that lost it is still compared raw. A planned FIXED is never relaxed: a
+ *  stretched node left AUTO hugs (#1751). */
+const stretchedMode = (field: 'primaryAxisSizingMode' | 'counterAxisSizingMode', p: unknown, n: HostNode, plan?: FigmaNodePlan, parent?: FigmaNodePlan): boolean => {
+  if (p !== 'AUTO' || n[field] !== 'FIXED' || plan?.layoutAlign !== 'STRETCH' || n.layoutAlign !== 'STRETCH') return false;
+  if (!plan.layoutMode || !parent?.layoutMode) return false;
+  const counter = plan.layoutMode === parent.layoutMode;
+  return field === (counter ? 'counterAxisSizingMode' : 'primaryAxisSizingMode');
+};
 
 export const FIELDS: Record<string, FieldCheck> = {
   // ── matched, not compared: these two ARE the identity the diff walks by ────────────────────────
@@ -223,8 +251,8 @@ export const FIELDS: Record<string, FieldCheck> = {
   layoutMode: { check: (p, n) => (n.layoutMode === p ? null : str(n.layoutMode)) },
   primaryAxisAlignItems: { check: (p, n) => (n.primaryAxisAlignItems === p ? null : str(n.primaryAxisAlignItems)) },
   counterAxisAlignItems: { check: (p, n) => (n.counterAxisAlignItems === p ? null : str(n.counterAxisAlignItems)) },
-  primaryAxisSizingMode: { check: (p, n) => (n.primaryAxisSizingMode === p ? null : str(n.primaryAxisSizingMode)) },
-  counterAxisSizingMode: { check: (p, n) => (n.counterAxisSizingMode === p ? null : str(n.counterAxisSizingMode)) },
+  primaryAxisSizingMode: { check: (p, n, _ports, _isRoot, plan, parent) => (n.primaryAxisSizingMode === p || stretchedMode('primaryAxisSizingMode', p, n, plan, parent) ? null : str(n.primaryAxisSizingMode)) },
+  counterAxisSizingMode: { check: (p, n, _ports, _isRoot, plan, parent) => (n.counterAxisSizingMode === p || stretchedMode('counterAxisSizingMode', p, n, plan, parent) ? null : str(n.counterAxisSizingMode)) },
   // #1567 — A CHARACTERS-BOUND NODE HOLDS THE SET'S ONE DEFAULT, NOT ITS OWN COPY, so that is what it is
   // compared against. Measured on the host (2026-09-22): `node.characters` on a node whose
   // `componentPropertyReferences.characters` names a set-level TEXT property READS that property's single
@@ -535,8 +563,8 @@ export const FIELDS: Record<string, FieldCheck> = {
   // catalog (`componentName`), never through the plan.
   slotSettings: {
     show: (p) => JSON.stringify(p),
-    check: (p, n) => {
-      const d = slotPropertyOf(n);
+    check: (p, n, ports) => {
+      const d = slotPropertyOf(n, ports);
       if (typeof d === 'string') return d;
       const want = slotSettingsNormal(p as Record<string, unknown>), got = slotSettingsNormal((d.slotSettings ?? {}) as Record<string, unknown>);
       return JSON.stringify(want) === JSON.stringify(got) ? null : JSON.stringify(got);
@@ -545,7 +573,7 @@ export const FIELDS: Record<string, FieldCheck> = {
   slotPreferred: {
     show: (p) => JSON.stringify(p),
     check: (p, n, ports) => {
-      const d = slotPropertyOf(n);
+      const d = slotPropertyOf(n, ports);
       if (typeof d === 'string') return d;
       const keys = ((d.preferredValues ?? []) as { key?: unknown }[]).map((v) => String(v.key));
       if (!ports.componentName) return `UNREADABLE (no port names a component key; host holds ${keys.length} key(s))`;
@@ -738,13 +766,13 @@ const childrenOf = (n: HostNode): HostNode[] => (Array.isArray(n.children) ? (n.
 
 /** One node, plan against host. Children matched BY NAME — never by index — with extras and absences
  *  reported symmetrically. */
-const diffNode = (plan: FigmaNodePlan, node: HostNode, member: string, path: string, ports: ReadPorts, out: Divergence[], exercised?: Record<string, number>, isRoot?: boolean): void => {
+const diffNode = (plan: FigmaNodePlan, node: HostNode, member: string, path: string, ports: ReadPorts, out: Divergence[], exercised?: Record<string, number>, isRoot?: boolean, parent?: FigmaNodePlan): void => {
   for (const [field, planned] of Object.entries(plan)) {
     if (planned === undefined) continue;
     const f = FIELDS[field];
     if (!f?.check) continue;
     if (exercised) exercised[field] = (exercised[field] ?? 0) + 1;
-    const actual = f.check(planned, node, ports, isRoot, plan);
+    const actual = f.check(planned, node, ports, isRoot, plan, parent);
     if (actual !== null) {
       out.push({ member, path, field, expected: f.show ? f.show(planned) : str(planned), actual });
     }
@@ -760,7 +788,7 @@ const diffNode = (plan: FigmaNodePlan, node: HostNode, member: string, path: str
       out.push({ member, path: `${path}/${cp.name}`, field: 'children', expected: 'present', actual: `ABSENT — the host has [${kids.map((k) => String(k.name)).join(', ') || 'no children'}]` });
       continue;
     }
-    diffNode(cp, found, member, `${path}/${cp.name}`, ports, out, exercised);
+    diffNode(cp, found, member, `${path}/${cp.name}`, ports, out, exercised, false, plan);
   }
 };
 

@@ -53,8 +53,9 @@ const run = spawnSync(process.execPath, [join(HERE, 'build-site.mjs')], { cwd: H
 ok(run.status === 0, `build-site.mjs exits 0`, `exit ${run.status}\n${(run.stderr || run.stdout || '').slice(-800)}`);
 const out = join(HERE, 'public/dist/main.js');
 ok(existsSync(out), `build-site.mjs wrote public/dist/main.js`);
-// #2637: the deploy serves `docs/public/` at `/docs`; the two files an agent is pointed at land byte for byte.
-for (const f of ['llms.txt', 'reference/commands.json']) {
+// #2637: the deploy serves `docs/public/` at `/docs`; the two files an agent is pointed at land byte for byte, and
+// so does the guides' index the studio's Docs item opens (#2662).
+for (const f of ['llms.txt', 'reference/commands.json', 'guides/index.md']) {
   const copy = join(HERE, 'public/docs', f);
   ok(existsSync(copy) && readFileSync(copy).equals(readFileSync(join(HERE, '../../docs/public', f))), `build-site.mjs wrote public/docs/${f}, byte for byte (served at /docs/${f})`);
 }
@@ -79,7 +80,7 @@ ok(bundle.length > 100_000, `the deployed bundle is a real bundle (${bundle.leng
     all.length ? `${all.length} occurrence(s); first …${bundle.slice(Math.max(0, all[0] - 120), all[0] + 40).replace(/\s+/g, ' ')}…` : '');
 }
 
-const EXPECTED = MARKERS.length + 5 + 2; // + the two /docs files (#2637)
+const EXPECTED = MARKERS.length + 5 + 3; // + the three /docs files (#2637, #2662)
 if (executed !== EXPECTED) { failed++; console.error(`  ✗ ran ${executed} checks, expected ${EXPECTED}`); }
 console.log(failed ? `\n${failed} of ${executed} failed` : `\nprod bundle: ${executed}/${executed} pass`);
 process.exit(failed ? 1 : 0);
