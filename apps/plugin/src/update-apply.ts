@@ -56,7 +56,9 @@ import { NS } from './persist-figma';
 import { baselineDiff, baselineOf, readBaseline, snapshotMember } from './member-baseline';
 import { drawnFaults, faultLine, varsById } from './drawn';
 import { reorderPages, stripNestPrefix } from './file-setup';
-import { REACTIONS, hostPorts, pageSetMoves, previewLine, previewUpdate, readSetView, readSingleView, setUpToDate, type SetPreview, type UpdateHost, type UpdatePreview, type UpdateTarget } from './update-plan';
+import { REACTIONS, withSetSlots, hostPorts, pageSetMoves, previewLine, previewUpdate, readSetView, readSingleView, setUpToDate, slotMigrationFor, type SetPreview, type UpdateHost, type UpdatePreview, type UpdateTarget } from './update-plan';
+import { fillSlots, type FillOutcome, type MigNode } from './slot-migration';
+import { slotMigrationOf } from '@prism3/engine/component-renames';
 import { REACTIONS_PATH, plannedRead, reactionMap, reactionVerdict, reactionsText } from './reactions';
 
 /** The set's record of the members an update kept and marked deprecated (Q2): a JSON list of member names. */
@@ -141,6 +143,8 @@ export type SetOutcome = {
   moved?: number;
   /** #2542 (owner decision Q245.2 A) — the whole set moved on its page, to where a fresh build would place it. */
   setMoved?: true;
+  /** #2649 — the placed instances whose rows were carried into the set's new slot. A miss is also in `content`. */
+  carried?: FillOutcome;
 };
 
 export type ApplyResult = {
@@ -460,7 +464,10 @@ const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, p:
   }
 
   // ── VERIFY (b): CONTENT, every updated member against its plan, apart from the hand edits kept ──────────────
-  const ports = await hostPorts(host);
+  // The set's own SLOT properties, read off it now, for the snapshots' slots (#2649).
+  let setDefs: Record<string, unknown> | null = null;
+  try { setDefs = t.single ? null : ((now as { componentPropertyDefinitions?: unknown }).componentPropertyDefinitions ?? null) as Record<string, unknown> | null; } catch { setDefs = null; }
+  const ports = withSetSlots(await hostPorts(host), setDefs);
   const varById = await varsById(api as unknown as Parameters<typeof varsById>[0]);
   const plannedRx = reactionMap(t.plans.map((x) => planComponentName(x)));
   for (const name of out.updated) {
@@ -578,7 +585,15 @@ export const applyUpdate = async (
       res.outcomes.push(o);
       continue;
     }
+    // REPEATING ROWS INTO A SLOT (#2649): the placed instances are read BEFORE the set changes under them, the same read
+    // the dry run listed (its hash checked above), and filled after.
+    const mig = p.slotMigration ? await slotMigrationFor(t, fresh as unknown as MigNode, opts.ledger, opts.breathe) : null;
     const o = await applySet(host, api, t, p, fresh, { description: opts.descriptionOf?.(t.def), yieldTo: opts.yieldTo, handEdits: choiceFor(opts.choices, p.set), noBaseline: noRecordFor(opts.choices, p.set) });
+    const entry = slotMigrationOf(t.def, opts.ledger);
+    if (mig && entry && !o.stopped && !o.refused) {
+      o.carried = await fillSlots(p.set, entry, mig.live, mig.migration, opts.breathe);
+      o.content.push(...o.carried.misses);
+    }
     res.outcomes.push(o);
     if (o.stopped) break;
   }
@@ -680,6 +695,8 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
     // A set the apply entered with nothing to write reads as its dry run read it (Q205 A): never "already up to date"
     // for a set the dry run doesn't call up to date (one Adopt could claim a member of, #2495).
     lines.push(parts.length ? `${o.set}: ${parts.join(', ')}.` : o.asPreviewed && !o.asPreviewed.upToDate ? o.asPreviewed.line : `${o.set}: already up to date.`);
+    // DRAFT wording for the owner (#2649): the placed instances whose rows became slot items.
+    if (o.carried) lines.push(`${o.set}: ${n(o.carried.instances, 'instance')} carried into the slot, ${n(o.carried.items, 'item')} in all.${o.carried.limits.length ? ` Outside the slot's limits: ${o.carried.limits.join('; ')}.` : ''}`);
     if (o.identity.length) lines.push(`${o.set}: component IDs changed — ${o.identity.slice(0, 3).join('; ')}${o.identity.length > 3 ? '; …' : ''}.`);
     if (o.content.length) lines.push(`${o.set}: ${n(o.content.length, 'field')} still differ from the plan — ${o.content.slice(0, 3).join('; ')}${o.content.length > 3 ? '; …' : ''}.`);
     // DRAFT wording for the owner (#2477, the issue's option A): a member written but not finished, by name.
