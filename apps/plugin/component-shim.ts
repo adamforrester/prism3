@@ -1067,7 +1067,9 @@ export const makeShim = (opts: ShimOpts = {}) => {
         Object.defineProperty(node, 'height', { configurable: true, get: () => (bv.height ? bv.height.value ?? 0 : h), set: (v: number) => { h = v; } });
         }
       },
-      appendChild(c: Node) { c.parent = node; (node.children as Node[]).push(c); },
+      // A MOVE, as Figma's `appendChild` is for a node that already has a parent (#2595): it leaves its old parent and
+      // keeps its id. A fresh node's only parent is the page, which it leaves as it does in Figma.
+      appendChild(c: Node) { detach(c); c.parent = node; (node.children as Node[]).push(c); },
       // #2265 PR 2 — REORDER WITHOUT REPLACING: Figma's `insertChild` moves a node that already has a parent, and
       // the node keeps its id. Modelled as a move for that reason, so an update that reorders keeps identity.
       insertChild(i: number, c: Node) {
