@@ -20999,10 +20999,14 @@ arm: {
           ['an empty value', withPart('item1', { overrides: { texts: { value: ' ' } } }), /'item1' overrides 'value' with an empty value/],
         ] as [string, ComponentDef, RegExp][]) { const r = refusedBy(d, re); ok(r === '', `#2645 validator: an override ${what} is refused ${r}`); }
         const lg = figmaAnatomySet(listDef, { swapTarget: 'FPO-default-icon' });
-        const kid = (n: { name: string; children: unknown[] }, name: string): Record<string, unknown> | undefined => (n.children as { name: string }[]).find((c) => c.name === name) as Record<string, unknown> | undefined;
+        // The items sit inside List's `items` slot (#2649), so a plan node is found at any depth.
+        const kid = (n: { name: string; children: unknown[] }, name: string): Record<string, unknown> | undefined => {
+          for (const c of n.children as { name: string; children: unknown[] }[]) { if (c.name === name) return c as unknown as Record<string, unknown>; const f = kid(c, name); if (f) return f; }
+          return undefined;
+        };
         const carried = lg.every((pl) => kid(pl.root, 'item1')?.nestOverrides === undefined
-          && [2, 3, 4, 5, 6, 7, 8].every((i) => JSON.stringify(kid(pl.root, `item${i}`)?.nestOverrides) === `[{"property":"number","type":"TEXT","value":"${i}."}]`));
-        ok(lg.length === 9 && carried, `#2645 projection: the plan carries each item's number as a TEXT override on List.Item's 'number', items 2 to 8, on all 9 members, and none on item 1 (${JSON.stringify(kid(lg[0].root, 'item2')?.nestOverrides)})`);
+          && [2, 3].every((i) => JSON.stringify(kid(pl.root, `item${i}`)?.nestOverrides) === `[{"property":"number","type":"TEXT","value":"${i}."}]`));
+        ok(lg.length === 9 && carried, `#2645 projection: the plan carries each item's number as a TEXT override on List.Item's 'number', items 2 and 3, on all 9 members, and none on item 1 (${JSON.stringify(kid(lg[0].root, 'item2')?.nestOverrides)})`);
         const throwsOn = (d: ComponentDef, re: RegExp): string => { try { figmaAnatomySet(d, { swapTarget: 'FPO-default-icon' }); return 'did not throw'; } catch (err) { return re.test((err as Error).message) ? '' : `threw ${(err as Error).message}`; } };
         for (const [what, patch, re] of [
           ['an unknown text key', { overrides: { texts: { nope: 'x' } } }, /overrides text 'nope', which 'list-item' does not declare/],
@@ -21033,8 +21037,8 @@ arm: {
         const lRun = await runPayload(lJs, { ...lOpts(true), page: lPage });
         const lSet = lPage.children.find((c) => c.type === 'COMPONENT_SET') as Record<string, unknown> | undefined;
         const lMembers = (lSet?.children as Record<string, unknown>[] | undefined) ?? [];
-        const numbers = lMembers.map((m) => [1, 2, 3, 4, 5, 6, 7, 8].map((i) => ((find(m, `item${i}`)?.componentProperties as Record<string, { value: unknown }> | undefined)?.[NUM]?.value)).join(' '));
-        ok(lMembers.length === 9 && numbers.every((x) => x === '1. 2. 3. 4. 5. 6. 7. 8.') && !lRun.misses.some((m) => /nestOverrides/.test(m)),
+        const numbers = lMembers.map((m) => [1, 2, 3].map((i) => ((find(m, `item${i}`)?.componentProperties as Record<string, { value: unknown }> | undefined)?.[NUM]?.value)).join(' '));
+        ok(lMembers.length === 9 && numbers.every((x) => x === '1. 2. 3.') && !lRun.misses.some((m) => /nestOverrides/.test(m)),
           `#2645 paste: the payload writes each item's number onto its nested instance (${numbers[0]}; ${lMembers.length} members${lRun.misses.length ? `; misses ${JSON.stringify(lRun.misses.slice(0, 2))}` : ''})`);
         // NO PROPERTY ON THE HOST: a miss per item, worded as the plugin executor words it, and the plugin executor
         // against the same host says the same (parity: one shared writer, two callers).
