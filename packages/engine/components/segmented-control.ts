@@ -53,7 +53,7 @@
 import { ComponentDef } from '../component-schema';
 
 export const segmentedControlSegment: ComponentDef = {
-  id: 'segmented-control-segment',
+  id: '_segmented-control-segment',
   name: 'SegmentedControl.Segment',
   aliases: ['segment', 'segmented-control-option'],
   category: 'form',
@@ -299,7 +299,7 @@ export const segmentedControlSegment: ComponentDef = {
 
 const segmentNest = (selection: 'selected' | 'unselected') => ({
   kind: 'nest' as const,
-  nests: 'segmented-control-segment',
+  nests: '_segmented-control-segment',
   nesting: { kind: 'nest-exposed' as const, variant: { selection, size: 'medium', state: 'rest' }, follow: ['size'], expose: ['selection', 'state'] },
   // Q269.6 A: every segment grows along the track, so the segments share its width equally.
   grow: true,
@@ -450,13 +450,13 @@ export const segmentedControl: ComponentDef = {
     primaryPurpose: 'Choose exactly one of two to five short, always-visible options that change a value in place.',
     whenToUse: 'A short single choice the user changes often or that changes the current view at once, such as list or grid, a time range or a delivery method.',
     avoidWhen: 'The options switch panels of content (use tabs), there are more than five or the labels are long (use a select or a radio group), options need descriptions (use a radio group), it is one on/off setting (use a switch), or selecting goes to another page (a navigation of links).',
-    commonPartners: ['segmented-control-segment', 'field-label', 'icon'],
+    commonPartners: ['_segmented-control-segment', 'field-label', 'icon'],
     triggerKeywords: ['segmented control', 'segmented button', 'view switcher', 'content switcher', 'toggle group', 'list grid toggle'],
     generationPriority: 4,
   },
 
   composition: {
-    composesWith: ['field-label', 'segmented-control-segment'],
+    composesWith: ['field-label', '_segmented-control-segment'],
     alternativeTo: ['tabs', 'radio-group', 'select', 'switch-row'],
     replacesPatterns: ['a radio group restyled as a compact switcher for a view that changes at once', 'a row of buttons with a hand-rolled active state and no group semantics'],
     supersededBy: [],

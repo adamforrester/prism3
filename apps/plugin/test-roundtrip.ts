@@ -247,14 +247,14 @@ ok(BUTTON_LAID.length === 6 && (EXERCISED.pin ?? 0) > 0 && (EXERCISED.paddingPx 
   const swapPlans = SWAP_OVERRIDE.flatMap((d) => figmaAnatomySet(d, { swapTarget: SWAP_TARGET }));
   const swapNodes = swapPlans.flatMap((p) => JSON.stringify(p.root).match(/"type":"INSTANCE_SWAP","value":"icon\/close"/g) ?? []).length;
   // THE PREMISE (#2645 review): the swap moves the instance OFF its default, so the write is exercised, not skipped.
-  const itemDefault = (PROJECTED.find((d) => d.id === 'list-item')!.anatomy!.parts.icon as { swapDefault?: string }).swapDefault;
+  const itemDefault = (PROJECTED.find((d) => d.id === '_list-item')!.anatomy!.parts.icon as { swapDefault?: string }).swapDefault;
   ok(typeof itemDefault === 'string' && itemDefault !== SWAP_GLYPH,
     `#2645 premise: the swap row's glyph (${SWAP_GLYPH}) is not List.Item's swapDefault (${itemDefault}), so the swap is written, not skipped`);
   const listRows = inventory.filter((i) => i.def === 'list' || i.def === 'list@swap-override');
   // THE SWAP TARGET IS A DEPENDENCY (#2645), asserted on the list itself: the round-trip cannot see it, because the icon
   // set is built anyway as a dependency of List.Item. List's own plans reach icon/close through the override alone.
   const targets = planTargets(swapPlans);
-  ok(JSON.stringify(targets) === '["list-item","icon/close"]', `#2645 build-deps: a swap override's component is a build target of the def that declares it (${JSON.stringify(targets)})`);
+  ok(JSON.stringify(targets) === '["_list-item","icon/close"]', `#2645 build-deps: a swap override's component is a build target of the def that declares it (${JSON.stringify(targets)})`);
   ok((EXERCISED.nestOverrides ?? 0) > 0 && swapNodes > 0 && listRows.length === 2 && listRows.every((i) => i.members > 0),
     `#2645 per-instance overrides round-trip: ${EXERCISED.nestOverrides ?? 0} nested instance(s) read their overrides back off their own componentProperties, ${swapNodes} of them a swap to icon/close (rows: ${listRows.map((i) => `${i.def} ${i.members} members, ${i.divergences.length} divergences`).join('; ')})`);
 }
@@ -2092,7 +2092,7 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
   const WANT: Record<string, string[]> = { rest: ['ON_HOVER→state=hover', 'ON_PRESS→state=pressed'], hover: ['ON_PRESS→state=pressed'] };
   const INTERACTIVE = ['button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral',
     'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'checkbox-control', 'radio-control', 'switch-control',
-    'tag', 'tab', 'segmented-control-segment', 'link'];
+    'tag', '_tab-item', '_segmented-control-segment', 'link'];
   const off: string[] = [];
   let read = 0;
   for (const id of INTERACTIVE) {

@@ -775,8 +775,8 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     ]
   },
   {
-    "id": "tab",
-    "name": "Tab",
+    "id": "_tab-item",
+    "name": "Tab.Item",
     "category": "navigation",
     "summary": "One trigger in a tab list. Selected, it shows an underline and switches the panel below.",
     "unit": "variants",
@@ -826,7 +826,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "reason": null,
     "members": 6,
     "nests": [
-      "tab"
+      "_tab-item"
     ]
   },
   {
@@ -921,7 +921,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     ]
   },
   {
-    "id": "list-item",
+    "id": "_list-item",
     "name": "List.Item",
     "category": "data",
     "summary": "One list item: a bullet, number or icon at a fixed indent, then text that wraps under itself.",
@@ -958,11 +958,11 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "reason": null,
     "members": 9,
     "nests": [
-      "list-item"
+      "_list-item"
     ]
   },
   {
-    "id": "segmented-control-segment",
+    "id": "_segmented-control-segment",
     "name": "SegmentedControl.Segment",
     "category": "form",
     "summary": "One option of a segmented control. Selected, it shows a flat pill and a bold label.",
@@ -1013,7 +1013,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "members": 3,
     "nests": [
       "field-label",
-      "segmented-control-segment"
+      "_segmented-control-segment"
     ]
   },
   {

@@ -56,7 +56,7 @@ import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION, Unrecogniz
 import { validateComponentDef, VARIANT_AXES, axisKindOf, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, variantAxisFigmaName, isExcludedCoordinate, fillPaintKey, replacesCandidates, statesOf, PAINT_SLOTS, ComponentDef, AnatomyDef, type PartDef } from './component-schema';
 import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, settleChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, figmaTextStyleName, figmaEffectStyleName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, applySpacingDensity, applyMinWidthRatio, DEFAULT_BUTTON_LAYOUT, isButtonFamily, resolveWeightIntent, DEFAULT_WEIGHT_AVAILABILITY, isPillable, PILL_RADIUS_DERIVATION, PILL_RADIUS_RUNG, BOXED_RADIUS_RUNG, HAIRLINE_RADIUS_RUNG, CONTROL_SHAPE_RUNG, ROUNDED_RADIUS_RUNG, variantSetErrors, variantNameErrors, glyphLayerOpacities, applyNestOverrides, type AnatomyPlan, type SwapFound } from './anatomy-figma';
 import type { ControlShape } from './scale';
-import { COMPONENT_RENAMES, coordKey, renameCoordinate, renameProperty, isDeclaredDrop, unaccounted as renamesUnaccounted, danglingTargets as renamesDangling, type ComponentRename, type AxesBaseline } from './component-renames';
+import { COMPONENT_RENAMES, coordKey, currentDefId, formerDefIds, renameCoordinate, renameProperty, isDeclaredDrop, unaccounted as renamesUnaccounted, danglingTargets as renamesDangling, type ComponentRename, type AxesBaseline } from './component-renames';
 // One of the two imports this suite makes ACROSS the engine/plugin boundary, and the parity gate (#487 step 5)
 // is why: with two executors for one `AnatomyPlan`, a gate that only ever sees one of them cannot say
 // they agree. `write-components.ts` is pure TypeScript against a declared port — it touches no `figma`
@@ -3463,7 +3463,7 @@ for (const b of brands) {
     // #1348 split `radio` the same way: `radio-control` (the circle/dot, binding control+dot) and the
     // `radio` Row (which KEEPS a `size.*.control` binding, the nest pinning the nested control's square).
     // `list-item` (#2319) binds `size.*.dot` for its bullet, the radio dot's diameter, so it reads the varying family too.
-    const CONTROL_DEFS = ['checkbox-control', 'checkbox-row', 'radio-control', 'radio-row', 'switch-control', 'switch-row', 'list-item'];
+    const CONTROL_DEFS = ['checkbox-control', 'checkbox-row', 'radio-control', 'radio-row', 'switch-control', 'switch-row', '_list-item'];
     const withControl = componentDefs.filter((d) =>
       Object.keys(d.tokens ?? {}).some((k) => /^size\.[^.]+\.(control|dot|track)$/.test(k)));
     ok(CONTROL_DEFS.every((n) => withControl.some((d) => d.id === n)) && withControl.length === CONTROL_DEFS.length,
@@ -3778,8 +3778,8 @@ for (const b of brands) {
       'radio-row': { keys: ['gap'], sizes: ['small', 'medium', 'large'] },
       'switch-row': { keys: ['gap'], sizes: ['small', 'medium'] },
       tag: { keys: ['padding-x', 'select.gap', 'dismissible.visible-gap', 'check-gap', 'select.padding-end', 'dismissible.padding-end'], sizes: ['small', 'medium', 'large'] },
-      tab: { keys: ['padding-x', 'gap'], sizes: ['small', 'medium', 'large'] },
-      'segmented-control-segment': { keys: ['padding-x', 'gap'], sizes: ['small', 'medium', 'large'] },
+      '_tab-item': { keys: ['padding-x', 'gap'], sizes: ['small', 'medium', 'large'] },
+      '_segmented-control-segment': { keys: ['padding-x', 'gap'], sizes: ['small', 'medium', 'large'] },
       accordion: { keys: ['pad-x', 'pad-y', 'gap', 'panel-pad-end'], sizes: ['small', 'medium', 'large'] },
       list: { keys: ['gap'], sizes: ['small', 'medium', 'large'] },
       link: { keys: ['gap'], sizes: ['small', 'medium', 'large'] },
@@ -3798,9 +3798,9 @@ for (const b of brands) {
       // label→check / select trailing inset / dismissible trailing inset. Compact small's visible 6 steps to 4.
       tag: { compact: 'small 6/4/4/4/6/0 · medium 8/6/6/4/8/0 · large 12/8/6/6/12/0', comfortable: 'small 8/6/6/4/8/0 · medium 12/8/8/6/12/0 · large 16/12/8/8/16/0', spacious: 'small 12/8/8/6/12/0 · medium 16/12/12/8/16/0 · large 20/16/12/12/20/0' },
       // Tab (#2416): padding-x / icon→label→count gap. Comfortable is the proposal's 12/6 · 16/8 · 20/8.
-      tab: { compact: 'small 8/4 · medium 12/6 · large 16/6', comfortable: 'small 12/6 · medium 16/8 · large 20/8', spacious: 'small 16/8 · medium 20/12 · large 24/12' },
+      '_tab-item': { compact: 'small 8/4 · medium 12/6 · large 16/6', comfortable: 'small 12/6 · medium 16/8 · large 20/8', spacious: 'small 16/8 · medium 20/12 · large 24/12' },
       // Segmented control option (#2418): padding-x / icon→label gap, Tab's numbers (the refreshed proposal §6).
-      'segmented-control-segment': { compact: 'small 8/4 · medium 12/6 · large 16/6', comfortable: 'small 12/6 · medium 16/8 · large 20/8', spacious: 'small 16/8 · medium 20/12 · large 24/12' },
+      '_segmented-control-segment': { compact: 'small 8/4 · medium 12/6 · large 16/6', comfortable: 'small 12/6 · medium 16/8 · large 20/8', spacious: 'small 16/8 · medium 20/12 · large 24/12' },
       // Accordion (#2417, DRAFT): header inline / header block / glyph-to-title gap / panel bottom inset. Comfortable is
       // the proposal's 12/8/8 · 16/12/12 · 24/16/16, with the panel's bottom inset matching the inline padding.
       accordion: { compact: 'small 8/6/6/8 · medium 12/8/8/12 · large 16/12/12/20', comfortable: 'small 12/8/8/12 · medium 16/12/12/16 · large 20/16/16/24', spacious: 'small 16/12/12/16 · medium 20/16/16/20 · large 24/20/20/32' },
@@ -3844,8 +3844,8 @@ for (const b of brands) {
       'text-field': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       select: ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       'checkbox-row': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
-      tab: ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
-      'segmented-control-segment': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
+      '_tab-item': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
+      '_segmented-control-segment': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       'radio-row': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       'switch-row': ['size.small.gap', 'size.medium.gap'],
       list: ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
@@ -3884,8 +3884,8 @@ for (const b of brands) {
       // Tag's icon→label is VISIBLE, the content gap plus the label row's leading inset (owner, 2026-09-29), per
       // type: the sum is what must stay under the padding. A `+` key is summed.
       tag: { prefix: 'sized', lt: [['select.gap+select.label-inset', 'padding-x'], ['dismissible.gap+dismissible.label-inset', 'padding-x'], ['check-gap', 'padding-x']] },
-      tab: { prefix: 'sized', lt: [['gap', 'padding-x']] },
-      'segmented-control-segment': { prefix: 'sized', lt: [['gap', 'padding-x']] },
+      '_tab-item': { prefix: 'sized', lt: [['gap', 'padding-x']] },
+      '_segmented-control-segment': { prefix: 'sized', lt: [['gap', 'padding-x']] },
       accordion: { prefix: 'sized', lt: [['gap', 'pad-x']] },
     };
     const GAP_TAILS = ['gap', 'check-gap'];
@@ -15551,7 +15551,7 @@ arm: {
     {
       const findIn = (n: AnatomyPlan['root'], name: string): AnatomyPlan['root'] | undefined => n.name === name ? n : n.children.map((k) => findIn(k, name)).find(Boolean);
       const walk = (n: AnatomyPlan['root'], f: (x: AnatomyPlan['root']) => void): void => { f(n); n.children.forEach((k) => walk(k, f)); };
-      const tabDef = componentDefs.find((d) => d.id === 'tab')!;
+      const tabDef = componentDefs.find((d) => d.id === '_tab-item')!;
       const tabsDef = componentDefs.find((d) => d.id === 'tabs')!;
       const tabMembers = figmaAnatomySet(tabDef, { swapTarget: 'FPO-default-icon' });
       const SIZES = ['small', 'medium', 'large'];
@@ -15677,7 +15677,7 @@ arm: {
           const wantProp = i < 3 ? undefined : `Tab ${i + 1}`;
           const wantHidden = i >= 3;
           const v = n?.nestVariant ?? {};
-          if (n?.nestTarget !== 'tab' || v.selection !== (i === 0 ? 'selected' : 'unselected') || v.size !== size || v.state !== 'rest')
+          if (n?.nestTarget !== '_tab-item' || v.selection !== (i === 0 ? 'selected' : 'unselected') || v.size !== size || v.state !== 'rest')
             bad.push(`${t} nests ${String(n?.nestTarget)} ${JSON.stringify(v)}`);
           if (n?.visibleProp !== wantProp || (n?.visible === false) !== wantHidden) bad.push(`${t} visibleProp ${String(n?.visibleProp)}, visible ${String(n?.visible)}`);
         });
@@ -15701,7 +15701,7 @@ arm: {
     // so a mutation of the def fails the arm it breaks, by name.
     {
       const findIn = (n: AnatomyPlan['root'], name: string): AnatomyPlan['root'] | undefined => n.name === name ? n : n.children.map((k) => findIn(k, name)).find(Boolean);
-      const segDef = componentDefs.find((d) => d.id === 'segmented-control-segment')!;
+      const segDef = componentDefs.find((d) => d.id === '_segmented-control-segment')!;
       const ctlDef = componentDefs.find((d) => d.id === 'segmented-control')!;
       const segMembers = figmaAnatomySet(segDef, { swapTarget: 'FPO-default-icon' });
       const SIZES = ['small', 'medium', 'large'];
@@ -15836,7 +15836,7 @@ arm: {
         SEGS.forEach((t, i) => {
           const n = findIn(m.root, t);
           const v = n?.nestVariant ?? {};
-          if (n?.nestTarget !== 'segmented-control-segment' || v.selection !== (i === 0 ? 'selected' : 'unselected') || v.size !== size || v.state !== 'rest' || JSON.stringify(n?.nestExpose) !== JSON.stringify(['selection', 'state']))
+          if (n?.nestTarget !== '_segmented-control-segment' || v.selection !== (i === 0 ? 'selected' : 'unselected') || v.size !== size || v.state !== 'rest' || JSON.stringify(n?.nestExpose) !== JSON.stringify(['selection', 'state']))
             bad.push(`${t} nests ${String(n?.nestTarget)} ${JSON.stringify(v)} exposing ${JSON.stringify(n?.nestExpose)}`);
           const wantProp = i < 2 ? undefined : `Segment ${i + 1}`;
           if (n?.visibleProp !== wantProp || (n?.visible === false) !== (i >= 3)) bad.push(`${t} visibleProp ${String(n?.visibleProp)}, visible ${String(n?.visible)}`);
@@ -15877,7 +15877,7 @@ arm: {
         `#2418 Q269.1 behavior: view and form, view the default, and no Figma property (got ${JSON.stringify(beh?.values)} default ${String(beh?.default)})`);
 
       // (7) TABS POINTS AT IT: Tab's avoidWhen and Tabs' usage and avoidWhen name the segmented control, not "not built yet".
-      const tabDef = componentDefs.find((d) => d.id === 'tab')!, tabsDef = componentDefs.find((d) => d.id === 'tabs')!;
+      const tabDef = componentDefs.find((d) => d.id === '_tab-item')!, tabsDef = componentDefs.find((d) => d.id === 'tabs')!;
       const texts = [tabDef.ai.avoidWhen, tabsDef.docs.usage, tabsDef.ai.avoidWhen];
       ok(texts.every((t) => /segmented control|SegmentedControl/i.test(t) && !/segmented control, not built yet/i.test(t)) && tabsDef.composition?.alternativeTo?.includes('segmented-control') && !(tabDef.composition?.planned ?? []).includes('segmented-control') && !(tabsDef.composition?.planned ?? []).includes('segmented-control'),
         '#2418 Tab and Tabs name the registered segmented control: no "not built yet", and it is no longer planned');
@@ -17885,8 +17885,8 @@ arm: {
     // The flush shape binds none.
     // `segmented-control-segment` joins (#2418, Q269.4): an unselected option's hover and pressed are the neutral wash,
     // and its selected tint is the subtle-fill Tag binds, so a solid-tint or no-hover brand reaches it as it reaches a tag.
-    ok(JSON.stringify(binders) === JSON.stringify(['button', 'button-destructive', 'button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'password-field', 'segmented-control-segment', 'select', 'tag', 'text-field', 'textarea']),
-      `#1608 the wash binders the lever reaches: button ×3, flush-icon-button ×3 (round), icon-button ×3, password-field, segmented-control-segment, select, tag, text-field, textarea (${binders.join(', ')})`);
+    ok(JSON.stringify(binders) === JSON.stringify(['_segmented-control-segment', 'button', 'button-destructive', 'button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'password-field', 'select', 'tag', 'text-field', 'textarea']),
+      `#1608 the wash binders the lever reaches: button ×3, flush-icon-button ×3 (round), icon-button ×3, password-field, _segmented-control-segment, select, tag, text-field, textarea (${binders.join(', ')})`);
 
     // BY-NAME MUTATION, in-suite: the RAW def (no wrap) under solid-tint misses the page wash — the 96-miss
     // shape the owner saw, outline's 48 and text's 48. Since #2324 the text appearance keys no wash by default, so the
@@ -18239,8 +18239,8 @@ arm: {
       { def: tab, part: 'label', axes: { selection: 2, size: 3 } },
       { def: tab, part: 'labelReserve', axes: { size: 3 } },
       // The segmented control's option (#2418, Q269.3 A): Tab's construction, the label's weight following `selection`.
-      { def: componentDefs.find((d) => d.id === 'segmented-control-segment')!, part: 'label', axes: { selection: 2, size: 3 } },
-      { def: componentDefs.find((d) => d.id === 'segmented-control-segment')!, part: 'labelReserve', axes: { size: 3 } },
+      { def: componentDefs.find((d) => d.id === '_segmented-control-segment')!, part: 'label', axes: { selection: 2, size: 3 } },
+      { def: componentDefs.find((d) => d.id === '_segmented-control-segment')!, part: 'labelReserve', axes: { size: 3 } },
       // The two text nodes of `field-label`, the only bindings in the corpus that cross two axes.
       { def: fieldLabel, part: 'text', axes: { size: 3, weight: 2 } },
       { def: fieldLabel, part: 'indicator', axes: { size: 3, weight: 2 } },
@@ -18262,8 +18262,8 @@ arm: {
       { def: componentDefs.find((d) => d.id === 'accordion')!, part: 'placeholder', axes: { size: 3 }, at: { expansion: 'expanded' } },
       // LIST (#2319, Q273.4): the item text and the number bind the three body rungs. The number exists only on an
       // ordered member.
-      { def: componentDefs.find((d) => d.id === 'list-item')!, part: 'text', axes: { size: 3 } },
-      { def: componentDefs.find((d) => d.id === 'list-item')!, part: 'number', axes: { size: 3 }, at: { type: 'ordered' } },
+      { def: componentDefs.find((d) => d.id === '_list-item')!, part: 'text', axes: { size: 3 } },
+      { def: componentDefs.find((d) => d.id === '_list-item')!, part: 'number', axes: { size: 3 }, at: { type: 'ordered' } },
       // LINK (#2580): the label crosses size, weight, style and, the first type key to do so, the interaction state. The
       // underline is the state half: a standalone link is plain at rest and underlined at hover, pressed and focus.
       { def: componentDefs.find((d) => d.id === 'link')!, part: 'label', axes: { size: 3, weight: 2, style: 2, state: 2 } },
@@ -20942,8 +20942,8 @@ arm: {
         ok(lg.length === 9 && carried, `#2645 projection: the plan carries each item's number as a TEXT override on List.Item's 'number', items 2 to 8, on all 9 members, and none on item 1 (${JSON.stringify(kid(lg[0].root, 'item2')?.nestOverrides)})`);
         const throwsOn = (d: ComponentDef, re: RegExp): string => { try { figmaAnatomySet(d, { swapTarget: 'FPO-default-icon' }); return 'did not throw'; } catch (err) { return re.test((err as Error).message) ? '' : `threw ${(err as Error).message}`; } };
         for (const [what, patch, re] of [
-          ['an unknown text key', { overrides: { texts: { nope: 'x' } } }, /overrides text 'nope', which 'list-item' does not declare/],
-          ['an unknown swap key', { overrides: { swaps: { nope: 'check' } } }, /overrides swap 'nope', which 'list-item' does not declare/],
+          ['an unknown text key', { overrides: { texts: { nope: 'x' } } }, /overrides text 'nope', which '_list-item' does not declare/],
+          ['an unknown swap key', { overrides: { swaps: { nope: 'check' } } }, /overrides swap 'nope', which '_list-item' does not declare/],
           ['a glyph the icon set does not draw', { overrides: { swaps: { icon: 'no-such-glyph' } } }, /swaps 'icon' to 'no-such-glyph', which is no glyph the icon set draws/],
         ] as [string, Record<string, unknown>, RegExp][]) { const r = throwsOn(withPart('item1', patch), re); ok(r === '', `#2645 projection: ${what} is refused, naming it ${r}`); }
         const swapDef = withPart('item1', { overrides: { swaps: { icon: 'check' } } });
@@ -20952,9 +20952,9 @@ arm: {
           `#2645 projection: a swap names List.Item's 'swap icon' property and the icon set's component (${JSON.stringify(kid(sg2[0].root, 'item1')?.nestOverrides)})`);
         // THE PASTE EXECUTOR. Only a payload whose plans override ships the writer (the shell budget, `SET_CHUNK_BYTES`).
         const NUM = 'number#7:2', SWAP = 'swap icon#7:3';
-        const lOpts = (props: boolean, comps = ['list-item']) => ({
+        const lOpts = (props: boolean, comps = ['_list-item']) => ({
           vars: lg.flatMap((pl) => [...planBoundVars(pl.root), ...planPaintVars(pl.root)]), styles: lg.flatMap((pl) => planTextStyles(pl.root)), comps,
-          ...(props ? { componentProps: { 'list-item': { 'text#7:1': { type: 'TEXT', defaultValue: 'List item' }, [NUM]: { type: 'TEXT', defaultValue: '1.' }, [SWAP]: { type: 'INSTANCE_SWAP', defaultValue: '73:37' } } } } : {}),
+          ...(props ? { componentProps: { '_list-item': { 'text#7:1': { type: 'TEXT', defaultValue: 'List item' }, [NUM]: { type: 'TEXT', defaultValue: '1.' }, [SWAP]: { type: 'INSTANCE_SWAP', defaultValue: '73:37' } } } } : {}),
         });
         const lJs = planSetToPluginJs(lg);
         const tagJs = planSetToPluginJs(figmaAnatomySet(componentDefs.find((d) => d.id === 'tag')!, { swapTarget: 'FPO-default-icon' }));
@@ -20985,7 +20985,7 @@ arm: {
           `#2645 parity: the plugin executor reports the same override misses as the payload (${bPlug.misses.filter((m) => /nestOverrides/.test(m)).length} vs ${bRun.misses.filter((m) => /nestOverrides/.test(m)).length})`);
         // A SWAP: the payload resolves the component name to the id the host gave it.
         const sPage = { children: [] as Record<string, unknown>[] };
-        const sRun = await runPayload(planSetToPluginJs(sg2), { ...lOpts(true, ['list-item', 'icon/check']), page: sPage });
+        const sRun = await runPayload(planSetToPluginJs(sg2), { ...lOpts(true, ['_list-item', 'icon/check']), page: sPage });
         const sMembers = ((sPage.children.find((c) => c.type === 'COMPONENT_SET') as Record<string, unknown> | undefined)?.children as Record<string, unknown>[] | undefined) ?? [];
         const swaps = sMembers.map((m) => (find(m, 'item1')?.componentProperties as Record<string, { value: unknown }> | undefined)?.[SWAP]?.value);
         ok(sMembers.length === 9 && swaps.every((v) => v === '73:38') && !sRun.misses.some((m) => /nestOverrides/.test(m)),
@@ -26861,7 +26861,7 @@ arm: {
   // own constant.
   // `tag` joins (2026-09-27): its check mark is gated on `selection: ['selected']`, the checkbox mark's shape.
   // `link` joins (#2580, owner Q297.2): its trailing icon is gated on `style: ['standalone']`, so an inline link carries none.
-  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'radio-control', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion', 'list-item', 'link', 'dialog', 'password-field'];
+  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'radio-control', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion', '_list-item', 'link', 'dialog', 'password-field'];
   ok(GATED_EXPECTED.every((n) => gatedDefs.some((d) => d.id === n)) && gatedDefs.length === GATED_EXPECTED.length,
     `#910 the presentWhen projection rule below covers exactly [${GATED_EXPECTED.join(', ')}] — a def gaining a variant-gated part must be represented here, and a def losing one is a stale claim (found: ${gatedDefs.map((d) => d.id).join(', ') || 'none'})`);
   for (const def of gatedDefs) {
@@ -26991,7 +26991,7 @@ arm: {
   // both axes per orientation: a hairline thickness and a nominal length, two different variables.
   // List.Item's marker column (#2319) binds its width (the column) and its height (one body line), two different
   // variables: a fixed column one line tall.
-  const WIDTH_EXPECTED = ['text-field', 'textarea', 'switch-control', 'divider', 'list-item', 'password-field'];
+  const WIDTH_EXPECTED = ['text-field', 'textarea', 'switch-control', 'divider', '_list-item', 'password-field'];
   ok(WIDTH_EXPECTED.every((n) => widthDefs.some((d) => d.id === n)) && widthDefs.length === WIDTH_EXPECTED.length,
     `#990 the width projection rule below covers exactly [${WIDTH_EXPECTED.join(', ')}] — a def gaining a deliberately non-square box must be represented here, and a def losing one is a stale claim (found: ${widthDefs.map((d) => d.id).join(', ') || 'none'})`);
   for (const def of widthDefs) {
@@ -28324,12 +28324,12 @@ arm: {
     // `tab` (#2416): the label row pairs the optional leading icon and count badge with the label. A tab's label
     // is one line by contract — a horizontal tab list scrolls rather than wrapping (tab.ts codeOnly, text
     // expansion) — and the tab's height is fixed, so the first line IS the block.
-    'tab.content':
+    '_tab-item.content':
       "a tab's label is one line by contract (a horizontal tab list scrolls rather than wrapping) and the tab's height is fixed, so the leading icon and the count center against the only line.",
     // `list-item` (#2319): the marker column pairs the bullet with the number, but `presentWhen` on `type` puts at most
     // one of them in any member, and the column is exactly one body line tall with the ROW top-aligned (the #1201
     // construction), so centring inside it lands the marker on the first line of a wrapping item, never mid-paragraph.
-    'list-item.markerBox':
+    '_list-item.markerBox':
       "the marker column is one body line tall and its row is top-aligned, so centring the marker inside it puts the marker on the item's first line however far the text wraps; the bullet and the number are gated on type and never present together.",
     // `link` (#2580): the row pairs the optional trailing icon with the label (Q297.2). In Figma a link is one text line
     // tall (owner Q289.4 A) and its label is one line of placeholder text, so the icon centers against the only line. In code a
@@ -30847,6 +30847,26 @@ arm: {
     try { renameProperty('chip', 'A', [{ def: 'chip', kind: 'property', from: 'A', to: 'B', issue: 1 }, { def: 'chip', kind: 'property', from: 'B', to: 'A', issue: 2 }]); } catch { threw = true; }
     ok(threw, '#2759 renameProperty: a cycle is refused');
   }
+  // #2759 — A DEF RENAME. The set's name is the def id, so a def that leaves the projection under a `def` entry is compared
+  // under its new id, and the entry's target must project. Hand-built baselines; nothing is read off a def.
+  {
+    const db: AxesBaseline = { tab: { axes: { size: ['small', 'medium'] }, members: 2 } };
+    const da: AxesBaseline = { '_tab-item': { axes: { size: ['small', 'medium'] }, members: 2 } };
+    const DL: ComponentRename[] = [{ def: 'tab', kind: 'def', to: '_tab-item', issue: 2759 }];
+    const gone = renamesUnaccounted(db, da, []);
+    ok(gone.length === 1 && gone[0].startsWith('tab: the def no longer projects'), `#2759 renames lint: a def that leaves unclaimed is named (${gone.join('; ')})`);
+    ok(renamesUnaccounted(db, da, DL).length === 0 && renamesDangling(da, DL).length === 0, `#2759 renames lint: a def entry claims it, and its target projects (${[...renamesUnaccounted(db, da, DL), ...renamesDangling(da, DL)].join('; ')})`);
+    const lost = renamesUnaccounted(db, { '_tab-item': { axes: { size: ['medium'] }, members: 1 } }, DL);
+    ok(lost.length === 1 && lost[0].startsWith('_tab-item: size=small is gone'), `#2759 renames lint: a value lost across a def rename is still named, under the new id (${lost.join('; ')})`);
+    const off = renamesDangling(da, [{ def: 'tab', kind: 'def', to: 'tab-item', issue: 2759 }]);
+    ok(off.length === 1 && off[0].includes("ends at 'tab-item'"), `#2759 renames lint: a def entry whose target projects nothing is dangling (${off.join('; ')})`);
+    const chain: ComponentRename[] = [{ def: 'a', kind: 'def', to: 'b', issue: 1 }, { def: 'b', kind: 'def', to: 'c', issue: 2 }];
+    ok(currentDefId('a', chain) === 'c' && currentDefId('z', chain) === 'z' && JSON.stringify(formerDefIds('c', chain)) === '["b","a"]',
+      `#2759 currentDefId / formerDefIds: a chain resolves both ways, nearest first (${currentDefId('a', chain)}; ${JSON.stringify(formerDefIds('c', chain))})`);
+    let loop = false;
+    try { currentDefId('a', [{ def: 'a', kind: 'def', to: 'b', issue: 1 }, { def: 'b', kind: 'def', to: 'a', issue: 2 }]); } catch { loop = true; }
+    ok(loop, '#2759 currentDefId: a cycle is refused');
+  }
   // #2592: the baseline is keyed by the Figma panel's name, so an axis that gains a display name (`variantAxisNames`) on
   // main is an axis rename to the lint, and it demands the entry. Accordion's never did, because no merge base held it.
   const shown: AxesBaseline = { acc: { axes: { 'icon position': ['leading', 'trailing'] }, members: 2 } };
@@ -31468,7 +31488,7 @@ arm: {
 // rule in the decision's words. EXPECTED is typed here; ACTUAL is the projected plan, so a def that moved fails the arm
 // by name.
 {
-  const li = componentDefs.find((d) => d.id === 'list-item')!;
+  const li = componentDefs.find((d) => d.id === '_list-item')!;
   const ls = componentDefs.find((d) => d.id === 'list')!;
   const liPlans = figmaAnatomySet(li, { swapTarget: 'FPO-default-icon' });
   const lsPlans = figmaAnatomySet(ls, { swapTarget: 'FPO-default-icon' });
@@ -31531,7 +31551,7 @@ arm: {
   const listBad = lsPlans.filter((p) => {
     const c = coord(p), r = p.root as PN;
     const items = r.children;
-    return !(r.bound?.itemSpacing === GAP[c.size] && items.length === 8 && items.every((it, i) => it.name === `item${i + 1}` && it.type === 'NESTED_INSTANCE' && it.nestTarget === 'list-item' && it.nestVariant?.type === c.type && it.nestVariant?.size === c.size && it.layoutAlign === 'STRETCH' && (i < 3 ? it.visible !== false : it.visible === false)));
+    return !(r.bound?.itemSpacing === GAP[c.size] && items.length === 8 && items.every((it, i) => it.name === `item${i + 1}` && it.type === 'NESTED_INSTANCE' && it.nestTarget === '_list-item' && it.nestVariant?.type === c.type && it.nestVariant?.size === c.size && it.layoutAlign === 'STRETCH' && (i < 3 ? it.visible !== false : it.visible === false)));
   });
   ok(listBad.length === 0,
     `#2319 list: eight nested List.Items stretched across the list, following its type and size, items 1–3 shown and 4–8 hidden, the item gap space/100, 150, 200 (${listBad.length ? `WRONG: ${listBad.map(planComponentName).slice(0, 2).join('; ')}` : 'all 9'})`);

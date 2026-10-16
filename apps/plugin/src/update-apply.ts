@@ -56,7 +56,7 @@ import { NS } from './persist-figma';
 import { baselineDiff, baselineOf, readBaseline, snapshotMember } from './member-baseline';
 import { drawnFaults, faultLine, varsById } from './drawn';
 import { reorderPages, stripNestPrefix } from './file-setup';
-import { REACTIONS, hostPorts, pageSetMoves, previewLine, previewUpdate, readSetView, readSingleView, setUpToDate, type SetPreview, type UpdateHost, type UpdatePreview, type UpdateTarget } from './update-plan';
+import { REACTIONS, hostPorts, locateSets, pageSetMoves, previewLine, previewUpdate, readSetView, readSingleView, setUpToDate, type SetPreview, type UpdateHost, type UpdatePreview, type UpdateTarget } from './update-plan';
 import { REACTIONS_PATH, plannedRead, reactionMap, reactionVerdict, reactionsText } from './reactions';
 
 /** The set's record of the members an update kept and marked deprecated (Q2): a JSON list of member names. */
@@ -185,9 +185,12 @@ const namesFor = (t: UpdateTarget): { coordOf: (host: string) => string; hostOf:
 };
 /** The file's live "set" for a target: the set node, or for a single-component def (#2296) a stand-in whose
  *  children are its components, found anywhere in the file. */
-const liveFor = async (host: ApplyHost, t: UpdateTarget, name: string): Promise<LiveSet | undefined> =>
-  t.single ? (await readSingleView(host, t)).set as LiveSet
-    : (host.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as LiveSet[]).find((s) => String(s.name ?? '') === name);
+const liveFor = async (host: ApplyHost, t: UpdateTarget, name: string, ledger?: readonly ComponentRename[]): Promise<LiveSet | undefined> => {
+  if (t.single) return (await readSingleView(host, t)).set as LiveSet;
+  const now = (host.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as LiveSet[]).find((s) => String(s.name ?? '') === name);
+  // #2759 — before its rename, the set is under an earlier def id (the dry run's `setRename`).
+  return now ?? (locateSets(host, t, ledger).found[0] as unknown as LiveSet | undefined);
+};
 /** The page a target's components sit on, for the build's placement: the set's, or the first single component's. */
 const pageFor = (t: UpdateTarget, live: LiveSet): CompPageTarget | undefined => pageOf(t.single ? kidsOf(live)[0] : live);
 
@@ -364,6 +367,10 @@ const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, p:
   const posOf = (c: unknown): string => { const q = c as { x?: unknown; y?: unknown }; return `${Number(q.x)},${Number(q.y)}`; };
   const wasAt = new Map([...before].map(([name, b]) => [name, posOf(b.ref)] as const));
 
+  // ── THE SET'S OWN NAME (#2759): a set under an earlier def id takes the current one, in place, so the set and every
+  // member keep their ids and every placed instance keeps pointing at them.
+  if (p.setRename && String(live.name ?? '') === p.setRename.from) live.name = p.set;
+
   // ── RENAMES, ONE SYNCHRONOUS BLOCK (#1780): no `await` between the first and the last ─────────────────────
   const byName = new Map(kidsOf(live).map((c) => [coordOf(String(c.name ?? '')), c] as const));
   for (const m of p.moves) {
@@ -531,7 +538,7 @@ export const applyUpdate = async (
   const ready: { t: UpdateTarget; p: SetPreview; live: LiveSet; stampOnly?: boolean }[] = [];
   for (const t of ordered) {
     const p = preview.sets.find((s) => s.set === (t.plans[0]?.component ?? t.def));
-    const live = p ? await liveFor(host, t, p.set) : undefined;
+    const live = p ? await liveFor(host, t, p.set, opts.ledger) : undefined;
     if (!p || !live) continue;
     const why = preflight(p);
     if (why) { res.outcomes.push({ def: t.def, set: p.set, refused: why, updated: [], added: 0, renamed: 0, deprecated: [], skipped: [], kept: [], unrecorded: [], handEdits: choiceFor(opts.choices, p.set), identity: [], content: [], misses: [] }); continue; }
@@ -540,7 +547,7 @@ export const applyUpdate = async (
     // it takes only the current stamp, so a set of nothing else is stamped and never built over.
     // Members to move into the grid (#2188 Q173) are work: the build's pass re-lays the grid and rewrites no member.
     const nothing = p.counts.update + p.counts.handEdited + p.counts.noBaseline + p.counts.add + p.counts.drop + p.counts.rename + (p.counts.move ?? 0) === 0
-      && Object.values(p.properties).every((l) => l.length === 0);
+      && Object.values(p.properties).every((l) => l.length === 0) && !p.setRename;
     if (nothing && p.counts.revisionUnknown) { ready.push({ t, p, live, stampOnly: true }); continue; }
     if (nothing) {
       // A set left alone must not leave a difference the dry run named: each is a failure of this set, by name,
@@ -575,7 +582,7 @@ export const applyUpdate = async (
   }
   for (const { t, p, live, stampOnly } of ready) {
     // Re-read: a nested set updated just before this one changed what this one's instances point at.
-    const fresh = (await liveFor(host, t, p.set)) ?? live;
+    const fresh = (await liveFor(host, t, p.set, opts.ledger)) ?? live;
     if (stampOnly) {
       const o: SetOutcome = { def: t.def, set: p.set, updated: [], added: 0, renamed: 0, deprecated: [], skipped: [], kept: [], unrecorded: [], handEdits: choiceFor(opts.choices, p.set), identity: [], content: [], misses: [] };
       const w = plan(p, choiceFor(opts.choices, p.set), noRecordFor(opts.choices, p.set));
@@ -596,7 +603,7 @@ export const applyUpdate = async (
     for (const t of targets) {
       if (t.single) continue;
       const p = preview.sets.find((s) => s.set === (t.plans[0]?.component ?? t.def));
-      const set = p ? await liveFor(host, t, p.set) : undefined;
+      const set = p ? await liveFor(host, t, p.set, opts.ledger) : undefined;
       if (!p || !set) continue;
       live.push({ name: p.set, set, blocked: p.blockers.length > 0 || res.outcomes.some((o) => o.set === p.set && !!o.refused) });
     }

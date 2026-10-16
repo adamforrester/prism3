@@ -40,7 +40,7 @@ One or two words per tab, nouns, sentence case.
 - **Purpose:** Switch between peer panels of related content in place, one at a time.
 - **Use when:** Two to about six peer sections of one subject, viewed one at a time, where switching is quick and the address need not change.
 - **Avoid when:** The selection changes the page or the address (a navigation of links), filters or re-sorts the current view (SegmentedControl, or Select), is a required sequence (a stepper, not built yet), or has many independent sections (Accordion).
-- **Often used with:** `tab`, `badge`, `icon`
+- **Often used with:** `_tab-item`, `badge`, `icon`
 
 ## Props
 
@@ -87,7 +87,7 @@ One or two words per tab, nouns, sentence case.
 
 ## Composition
 
-- **Composes with:** `tab`
+- **Composes with:** `_tab-item`
 - **Alternative to:** `select`, `accordion`, `segmented-control`
 - **Replaces:**
   - show and hide divs with no tab semantics

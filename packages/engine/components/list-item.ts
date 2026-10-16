@@ -24,7 +24,7 @@
 import { ComponentDef } from '../component-schema';
 
 export const listItem: ComponentDef = {
-  id: 'list-item',
+  id: '_list-item',
   name: 'List.Item',
   aliases: ['list-row', 'bullet-item'],
   // `data` (#1700) — the brief's own category.

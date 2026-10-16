@@ -1017,6 +1017,61 @@ for (const [def, from, to] of PROPERTY_RENAMES_Q345) {
   ok(post.counts.current === post.counts.members && !post.properties.rename.length && !post.properties.add.length && !post.properties.remove.length, `property rename/settled: ${def}: a second dry run lists no property change (${JSON.stringify(post.properties)})`);
 }
 
+/* ── def rename (#2759) ────────────────────────────────────────────────────────────────────────────────── */
+section('def rename — a set built under a def\'s earlier id is found and renamed in place, every id kept (#2759)');
+{
+  // A file built before Q353, by the real executor from the plans as they were: the set is named `tab`.
+  const NEW = '_tab-item';
+  const planned = plansOf(NEW);
+  const old = planned.map((p) => ({ ...JSON.parse(JSON.stringify(p)), component: 'tab' }) as AnatomyPlan);
+  ok(planned.every((p) => p.component === NEW) && old.every((p) => p.component === 'tab'), 'premise: the plans name the set `_tab-item`, and the file was built from plans naming it `tab`');
+  const w = await world(NEW, old);
+  ok(String(w.set().name) === 'tab', `premise: the file holds the set as 'tab' (${String(w.set().name)})`);
+  const before = identityOf(w.set());
+  const unclaimed = await previewUpdate(w.host, [{ def: NEW, plans: planned }], undefined, []);
+  ok(unclaimed.missing.includes(NEW) && unclaimed.sets.length === 0, `premise: with no ledger entry the set is not found, so an update would build a second one (${JSON.stringify(unclaimed.missing)})`);
+  // The engine's own ledger, so the shipped entry is what is under test.
+  const pre = await previewUpdate(w.host, [{ def: NEW, plans: planned }]);
+  const p0 = pre.sets[0];
+  ok(!!p0 && p0.set === NEW && p0.setRename?.from === 'tab' && p0.setRename.to === NEW && !p0.blockers.length && !p0.counts.add && !p0.counts.drop,
+    `def rename/dry run: the set is read under 'tab', to be renamed '${NEW}', with nothing added or dropped (${JSON.stringify(p0 ? { set: p0.set, setRename: p0.setRename, counts: p0.counts, blockers: p0.blockers } : null)})`);
+  ok(previewLine(p0).endsWith('Renamed from tab.'), `def rename/line: the dry run's line says so (${previewLine(p0)})`);
+  const res = await applyUpdate(w.host, w.api as any, [{ def: NEW, plans: planned }], previewHashOf(pre));
+  ok(applyVerdict(res).ok, `def rename/verdict: ${applyVerdict(res).headline} (${applyVerdict(res).lines.slice(0, 2).join(' | ').slice(0, 240)})`);
+  ok(String(w.set().name) === NEW && w.page.children.filter((n) => n.type === 'COMPONENT_SET').length === 1, `def rename/in place: one set, now named '${NEW}' (${w.page.children.filter((n) => n.type === 'COMPONENT_SET').map((n) => String(n.name)).join(', ')})`);
+  const after = identityOf(w.set());
+  ok(after.set.join() === before.set.join() && after.members.size === before.members.size && [...before.members].every(([name, b]) => after.members.get(name)?.key === b.key && after.members.get(name)?.id === b.id),
+    'def rename/ids: the set and every member keep their keys and ids, so a placed instance still points at them');
+  const post = (await previewUpdate(w.host, [{ def: NEW, plans: planned }])).sets[0];
+  ok(!!post && !post.setRename && post.counts.current === post.counts.members, `def rename/settled: a second dry run finds the set under '${NEW}' and reads every member current (${JSON.stringify(post?.counts)})`);
+}
+
+section('def rename, nested — a set renamed in the same run counts as present for the set that nests it (#2759)');
+{
+  // Tab item and Tabs as a file built before Q353 holds them: the set `tab`, and Tabs' items nesting `tab`.
+  const swapId = <T,>(plans: T[]): T[] => plans.map((p) => JSON.parse(JSON.stringify(p).split('"_tab-item"').join('"tab"')) as T);
+  const oldItem = swapId(plansOf('_tab-item')), oldTabs = swapId(plansOf('tabs'));
+  ok(JSON.stringify(oldTabs).includes('"nestTarget":"tab"') && !JSON.stringify(oldTabs).includes('_tab-item'), 'premise: the old Tabs plans nest `tab`');
+  const all = [...oldItem, ...oldTabs];
+  const page: Page = { children: [] };
+  const api = makeShim({
+    vars: [...new Set([...all.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]), 'space/0'])],
+    styles: [...new Set(all.flatMap((p) => planTextStyles(p.root)))],
+    effects: [...new Set(all.flatMap((p) => planEffectStyles(p.root)))],
+    comps: [...new Set([SWAP_TARGET, 'focus-ring', ...all.flatMap((p) => planComps(p.root)).filter((c) => c !== 'tab')])],
+    page, liveRoot: true, identities: true, scaleConstrained: true,
+  }) as any;
+  for (const plans of [oldItem, oldTabs]) { const r = await applyComponentPlan(plans, api); if (r.misses.length) throw new Error(`premise: built with ${r.misses.length} miss(es): ${r.misses[0]}`); }
+  const host = { ...api, root: { ...api.root, findAllWithCriteria: (c: { types: string[] }) => (c.types.length === 1 && c.types[0] === 'COMPONENT_SET' ? page.children.filter((n) => n.type === 'COMPONENT_SET') : api.root.findAllWithCriteria(c)) } } as unknown as ApplyHost;
+  ok(JSON.stringify(page.children.filter((n) => n.type === 'COMPONENT_SET').map((n) => String(n.name))) === '["tab","tabs"]', 'premise: the file holds the sets `tab` and `tabs`');
+  const both = await previewUpdate(host, [{ def: '_tab-item', plans: plansOf('_tab-item') }, { def: 'tabs', plans: plansOf('tabs') }]);
+  const tabsP = both.sets.find((x) => x.set === 'tabs');
+  ok(both.sets.find((x) => x.set === '_tab-item')?.setRename?.from === 'tab' && !!tabsP && !tabsP.blockers.some((b) => b.includes('_tab-item')),
+    `def rename, nested/together: Tab item is renamed in the run, so Tabs is not refused for lacking it (${JSON.stringify(tabsP?.blockers)})`);
+  const alone = (await previewUpdate(host, [{ def: 'tabs', plans: plansOf('tabs') }])).sets[0];
+  ok(alone.blockers.some((b) => b.startsWith('Not in this file: _tab-item')), `def rename, nested/alone: without Tab item in the run, Tabs is refused, naming it (${JSON.stringify(alone.blockers)})`);
+}
+
 /* ── rename ──────────────────────────────────────────────────────────────────────────────────────────── */
 section('rename — a declared value rename, and an added axis, rename members in place');
 {
@@ -2640,7 +2695,7 @@ section('segmented control — sets built with the tinted, outlined look (#2418)
   // both sides (as `image-placeholder` and `accordion` above do). Every expectation below is read off the shim's
   // nodes by the test. Mutations: the executor's in-place stroke clear skipped → `seg/border removed`,
   // `seg/track outline removed`.
-  const SEG = 'segmented-control-segment', CTL = 'segmented-control';
+  const SEG = '_segmented-control-segment', CTL = 'segmented-control';
   const segNow = componentDefs.find((x) => x.id === SEG)!;
   const ctlNow = componentDefs.find((x) => x.id === CTL)!;
   const { 'selected.fill': _f, 'disabled.fill': _d, ...segKept } = segNow.tokens;
@@ -2732,7 +2787,7 @@ section('overrides — a nested instance with no override yet gains it in place 
   ok(planned.every((p) => JSON.stringify(p).includes('"nestOverrides"')) && old.every((p) => !JSON.stringify(p).includes('nestOverrides')),
     'premise: every List plan carries overrides, and the plans the file was built from carry none');
   const NUM = 'number#7:2';
-  const w = await world(LIST, old, { componentProps: { 'list-item': { 'text#7:1': { type: 'TEXT', defaultValue: 'List item' }, [NUM]: { type: 'TEXT', defaultValue: '1.' } } } });
+  const w = await world(LIST, old, { componentProps: { '_list-item': { 'text#7:1': { type: 'TEXT', defaultValue: 'List item' }, [NUM]: { type: 'TEXT', defaultValue: '1.' } } } });
   const items = (m: Node): Node[] => [1, 2, 3, 4, 5, 6, 7, 8].map((i) => childNamed(m, `item${i}`));
   const numberOf = (n: Node): unknown => (n.componentProperties as Record<string, { value: unknown }>)[NUM]?.value;
   ok(membersOf(w.set()).every((m) => items(m).every((n) => numberOf(n) === '1.')), 'premise: as built, every item of every member reads "1."');

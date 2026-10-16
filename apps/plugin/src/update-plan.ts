@@ -48,7 +48,7 @@ import { tailOf } from '@prism3/engine/figma-names';
 import { planTargets } from './build-deps';
 import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
 import { diffAnatomy, type HostNode, type ReadPorts } from '@prism3/engine/anatomy-readback';
-import { COMPONENT_RENAMES, coordKey, coordPairs, renameCoordinate, renameProperty, type ComponentRename } from '@prism3/engine/component-renames';
+import { COMPONENT_RENAMES, coordKey, coordPairs, formerDefIds, renameCoordinate, renameProperty, type ComponentRename } from '@prism3/engine/component-renames';
 import { ENGINE_VERSION } from '@prism3/engine/version';
 import { EXECUTOR_REVISION } from './executor-revision';
 import { memberStamp, planHalf, revHalf, respaceSets, STAMP_KEY, type RespaceBox } from './write-components';
@@ -108,6 +108,8 @@ export type SetPreview = {
     earlierRecord?: number;
     /** Members not where the plan's grid puts them (`gridMoves`): moved, never rewritten. Absent when none. */
     move?: number };
+  /** #2759 — the set is in the file under an earlier def id, which the apply renames to the current one in place. */
+  setRename?: { from: string; to: string };
   blockers: string[];
   axes: { from: string[]; to: string[]; renames: { from: string; to: string }[] };
   properties: { add: Prop[]; edit: Prop[]; rename: Prop[]; retype: Prop[]; remove: Prop[] };
@@ -825,11 +827,20 @@ export const hostPorts = async (host: UpdateHost): Promise<UpdatePorts> => {
   return { varName: (id) => v.get(id) ?? null, styleName: (id) => st.get(id) ?? null, componentById, drawVars };
 };
 
-type Located = { found: LiveSet[]; name: string };
-const locate = (host: UpdateHost, t: UpdateTarget): Located => {
+type Located = { found: LiveSet[]; name: string; from?: string };
+/** A target's set, by the def's id. A file built before a def rename (#2759) holds the set under an earlier id: when
+ *  no set has the current one, each id the ledger renames into it is tried, nearest first, and `from` names the one
+ *  found. The apply renames that set in place. */
+export const locateSets = (host: { root: { findAllWithCriteria(c: { types: string[] }): readonly unknown[] } }, t: UpdateTarget, ledger: readonly ComponentRename[] = COMPONENT_RENAMES): Located => {
   const name = t.plans[0]?.component ?? t.def;
-  const found = host.root.findAllWithCriteria({ types: ['COMPONENT_SET'] })
-    .filter((n) => (n as { name?: unknown }).name === name) as LiveSet[];
+  const sets = host.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as LiveSet[];
+  const named = (n: string): LiveSet[] => sets.filter((s) => (s as { name?: unknown }).name === n);
+  const found = named(name);
+  if (found.length) return { found, name };
+  for (const from of formerDefIds(name, ledger)) {
+    const old = named(from);
+    if (old.length) return { found: old, name, from };
+  }
   return { found, name };
 };
 
@@ -877,16 +888,16 @@ export const readSingleView = async (host: UpdateHost, t: UpdateTarget, breathe?
 };
 
 /** A target's view, set or single, or why there is none to read. */
-type Viewed = { kind: 'missing' } | { kind: 'refused'; reason: string } | { kind: 'found'; name: string; set: LiveSet; view: HostSetView };
-const locateView = async (host: UpdateHost, t: UpdateTarget, breathe?: () => Promise<void>, drawVars?: ReadonlyMap<string, DrawVar>): Promise<Viewed> => {
+type Viewed = { kind: 'missing' } | { kind: 'refused'; reason: string } | { kind: 'found'; name: string; set: LiveSet; view: HostSetView; from?: string };
+const locateView = async (host: UpdateHost, t: UpdateTarget, breathe?: () => Promise<void>, drawVars?: ReadonlyMap<string, DrawVar>, ledger: readonly ComponentRename[] = COMPONENT_RENAMES): Promise<Viewed> => {
   if (t.single) {
     const { view, set } = await readSingleView(host, t, breathe, drawVars);
     return view.members.length + view.others.length ? { kind: 'found', name: view.name, set, view } : { kind: 'missing' };
   }
-  const { found, name } = locate(host, t);
+  const { found, name, from } = locateSets(host, t, ledger);
   if (found.length === 0) return { kind: 'missing' };
-  if (found.length > 1) return { kind: 'refused', reason: `${found.length} sets are named ${name}` };
-  return { kind: 'found', name, set: found[0], view: await readSetView(found[0], breathe, drawVars) };
+  if (found.length > 1) return { kind: 'refused', reason: `${found.length} sets are named ${from ?? name}` };
+  return { kind: 'found', name, set: found[0], view: await readSetView(found[0], breathe, drawVars), ...(from ? { from } : {}) };
 };
 
 export type UpdatePreview = {
@@ -950,18 +961,23 @@ export const previewUpdate = async (host: UpdateHost, targets: readonly UpdateTa
   const ports = await hostPorts(host);
   const out: UpdatePreview = { sets: [], missing: [], refused: [] };
   const found: { preview: SetPreview; set: LiveSet }[] = [];
-  for (const t of targets) {
-    const v = await locateView(host, t, breathe, ports.drawVars);
+  // Every set first, so a set this update renames (#2759) counts as present for the sets that nest it.
+  const viewed: { t: UpdateTarget; v: Viewed }[] = [];
+  for (const t of targets) viewed.push({ t, v: await locateView(host, t, breathe, ports.drawVars, ledger) });
+  const renamedInto = new Set(viewed.flatMap(({ v }) => (v.kind === 'found' && v.from ? [v.name] : [])));
+  for (const { t, v } of viewed) {
     if (v.kind === 'missing') { out.missing.push(t.def); continue; }
     if (v.kind === 'refused') { out.refused.push({ def: t.def, reason: v.reason }); continue; }
     const preview = dryRunSet(t.def, t.plans, v.view, ports, ledger);
+    // The set is named for the current id from here on: the apply finds its preview by that name, and renames the node.
+    if (v.from) { preview.setRename = { from: v.from, to: v.name }; preview.set = v.name; }
     // WHAT THE FILE LACKS (#2601), the apply's checks made here, so the confirm lists every set the apply refuses.
     // A NESTED COMPONENT THE FILE DOES NOT HAVE (#2380) is one: since every icon-set glyph is an instance of
     // `icon/<glyph>`, an update can need a component the file was built without — an older field-message
     // drew its glyphs inline. The executor would report a miss for each and leave the old glyph where it
     // was, so the set is refused here instead, naming what to build first. The build path pre-builds these
     // (`prebuildDependencies`); an update does not build other components.
-    preview.blockers.push(...await fileBlockers(host, t.plans, v.set));
+    preview.blockers.push(...await fileBlockers(host, t.plans, v.set, renamedInto));
     out.sets.push(preview);
     if (!t.single) found.push({ preview, set: v.set });
   }
@@ -994,9 +1010,9 @@ const absentNests = (have: ReadonlySet<string>, plans: readonly AnatomyPlan[]): 
  * the rest and report each as a miss; an update would leave a published set half-changed, which is worse (§7).
  * A host with no `loadFontAsync` checks no font: the plugin's host is `figma`, which always has it.
  */
-const fileBlockers = async (host: UpdateHost, plans: readonly AnatomyPlan[], set: LiveSet): Promise<string[]> => {
+const fileBlockers = async (host: UpdateHost, plans: readonly AnatomyPlan[], set: LiveSet, renamedInto: ReadonlySet<string> = new Set()): Promise<string[]> => {
   const out: string[] = [];
-  const have = new Set(host.root.findAllWithCriteria({ types: ['COMPONENT', 'COMPONENT_SET'] }).map((n) => String((n as { name?: unknown }).name ?? '')));
+  const have = new Set([...host.root.findAllWithCriteria({ types: ['COMPONENT', 'COMPONENT_SET'] }).map((n) => String((n as { name?: unknown }).name ?? '')), ...renamedInto]);
   const absent = absentNests(have, plans);
   if (absent.length) out.push(`Not in this file: ${absent.join(', ')}. Build ${[...new Set(absent.map((a) => a.split('/')[0]))].join(', ')} first, then run the update again`);
   const roots = plans.map((x) => x.root);
@@ -1065,7 +1081,8 @@ export const adoptMembers = async (host: UpdateHost, targets: readonly UpdateTar
   const out: AdoptResult = { sets: [], missing: [], refused: [] };
   for (const t of targets) {
     if (t.single) { (out.notOffered ??= []).push(t.def); continue; }
-    const { found, name } = locate(host, t);
+    // By the current id only: Adopt claims members, and a set under an earlier id (#2759) is the update's to rename.
+    const { found, name } = locateSets(host, t, []);
     if (found.length === 0) { out.missing.push(t.def); continue; }
     if (found.length > 1) { out.refused.push({ def: t.def, reason: `${found.length} sets are named ${name}` }); continue; }
     const r = await adoptSet(t.def, found[0], t.plans, ports, breathe, ledger);
@@ -1088,7 +1105,7 @@ const propChanges = (p: SetPreview): number => Object.values(p.properties).reduc
  *  (the owner's own icons, #2325), so a set whose only other members are those reads as having no changes, and the
  *  set's line still counts them. Counted as a change, a file holding them could never read up to date. A member to
  *  rename is a change (#2592): it reads current, and the apply renames it, so a set of renames is never up to date. */
-const noChanges = (p: SetPreview): boolean => p.counts.current + p.counts.revisionUnknown + p.counts.unstamped === p.counts.members && !p.counts.add && !p.counts.rename && !p.counts.move && !p.setMove && !propChanges(p);
+const noChanges = (p: SetPreview): boolean => p.counts.current + p.counts.revisionUnknown + p.counts.unstamped === p.counts.members && !p.counts.add && !p.counts.rename && !p.counts.move && !p.setMove && !p.setRename && !propChanges(p);
 /** No changes, and every member current. A member not built by Prism3 that sits on a PLANNED coordinate is one Adopt
  *  could claim (`adoptable`, #2283), so a set holding one reads "no changes", never up to date (owner decision Q191
  *  2B). Off the plan (the owner's own icons, #2464), it doesn't stop a set reading up to date. */
@@ -1135,7 +1152,9 @@ export const previewLine = (p: SetPreview): string => {
   if (noChanges(p)) return `${p.set}: no changes (${n(c.members, 'member')}).${own}${adopt}`;
   // Wording approved, Q246 A (#2542, Q245.2 A): the whole set moves on its page.
   const setMove = p.setMove ? ' The set moves to its place on the page.' : '';
-  return parts.length ? `${p.set}: ${n(c.members, 'member')}. ${parts.join(', ')}.${setMove}` : `${p.set}: ${n(c.members, 'member')}.${setMove}`;
+  // DRAFT wording for the owner (#2759): the set is renamed in place from its earlier name.
+  const setRename = p.setRename ? ` Renamed from ${p.setRename.from}.` : '';
+  return parts.length ? `${p.set}: ${n(c.members, 'member')}. ${parts.join(', ')}.${setMove}${setRename}` : `${p.set}: ${n(c.members, 'member')}.${setMove}${setRename}`;
 };
 
 /** Owner-approved wording (#2568, the Q211/Q246 family; Q264 A): the component pages out of alphabetical order, named

@@ -5391,7 +5391,7 @@
         "commonPartners": [
           "icon-button",
           "button",
-          "tab"
+          "_tab-item"
         ],
         "triggerKeywords": [
           "badge",
@@ -5660,9 +5660,9 @@
         ]
       }
     },
-    "tab": {
-      "id": "tab",
-      "name": "Tab",
+    "_tab-item": {
+      "id": "_tab-item",
+      "name": "Tab.Item",
       "aliases": [
         "tab-trigger",
         "tab-item"
@@ -5941,7 +5941,7 @@
         "whenToUse": "Two to about six peer sections of one subject, viewed one at a time, where switching is quick and the address need not change.",
         "avoidWhen": "The selection changes the page or the address (a navigation of links), filters or re-sorts the current view (SegmentedControl, or Select), is a required sequence (a stepper, not built yet), or has many independent sections (Accordion).",
         "commonPartners": [
-          "tab",
+          "_tab-item",
           "badge",
           "icon"
         ],
@@ -5962,7 +5962,7 @@
       },
       "composition": {
         "composesWith": [
-          "tab"
+          "_tab-item"
         ],
         "alternativeTo": [
           "select",
@@ -6426,8 +6426,8 @@
         ]
       }
     },
-    "list-item": {
-      "id": "list-item",
+    "_list-item": {
+      "id": "_list-item",
       "name": "List.Item",
       "aliases": [
         "list-row",
@@ -6671,7 +6671,7 @@
         "whenToUse": "A short set of points a designer lays out in UI: password rules, feature lists, icon checklists, steps. Ordered when the order means something.",
         "avoidWhen": "Running text, such as an article body, terms or long help text. The test: if a writer could edit it as normal copy, use the native list; if a designer controls its spacing, markers or icons, use the component. Also avoid it for a choice the user makes (Select, or a listbox), a command menu, navigation links, or values compared across columns (a table).",
         "commonPartners": [
-          "list-item",
+          "_list-item",
           "icon",
           "text-field"
         ],
@@ -6694,7 +6694,7 @@
       },
       "composition": {
         "composesWith": [
-          "list-item"
+          "_list-item"
         ],
         "alternativeTo": [],
         "supersedes": [],
@@ -6712,8 +6712,8 @@
         ]
       }
     },
-    "segmented-control-segment": {
-      "id": "segmented-control-segment",
+    "_segmented-control-segment": {
+      "id": "_segmented-control-segment",
       "name": "SegmentedControl.Segment",
       "aliases": [
         "segment",
@@ -6995,7 +6995,7 @@
         "whenToUse": "A short single choice the user changes often or that changes the current view at once, such as list or grid, a time range or a delivery method.",
         "avoidWhen": "The options switch panels of content (use tabs), there are more than five or the labels are long (use a select or a radio group), options need descriptions (use a radio group), it is one on/off setting (use a switch), or selecting goes to another page (a navigation of links).",
         "commonPartners": [
-          "segmented-control-segment",
+          "_segmented-control-segment",
           "field-label",
           "icon"
         ],
@@ -7017,7 +7017,7 @@
       "composition": {
         "composesWith": [
           "field-label",
-          "segmented-control-segment"
+          "_segmented-control-segment"
         ],
         "alternativeTo": [
           "tabs",

@@ -40,7 +40,7 @@ One or two words per option, nouns, sentence case: "List", not "Show list".
 - **Purpose:** Choose exactly one of two to five short, always-visible options that change a value in place.
 - **Use when:** A short single choice the user changes often or that changes the current view at once, such as list or grid, a time range or a delivery method.
 - **Avoid when:** The options switch panels of content (use tabs), there are more than five or the labels are long (use a select or a radio group), options need descriptions (use a radio group), it is one on/off setting (use a switch), or selecting goes to another page (a navigation of links).
-- **Often used with:** `segmented-control-segment`, `field-label`, `icon`
+- **Often used with:** `_segmented-control-segment`, `field-label`, `icon`
 
 ## Props
 
@@ -91,7 +91,7 @@ One or two words per option, nouns, sentence case: "List", not "Show list".
 
 ## Composition
 
-- **Composes with:** `field-label`, `segmented-control-segment`
+- **Composes with:** `field-label`, `_segmented-control-segment`
 - **Alternative to:** `tabs`, `radio-group`, `select`, `switch-row`
 - **Replaces:**
   - a radio group restyled as a compact switcher for a view that changes at once

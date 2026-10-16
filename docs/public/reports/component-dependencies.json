@@ -9,6 +9,38 @@
   "note": "edges: every part that nests another component (anatomy part with `nests`), with its nesting relation. components.<id>.affectedByChange lists every component that nests it directly or transitively — the components a change to it reaches. inherits is a reading reference only: the engine copies no fields across it, so it does not appear in affectedByChange.",
   "edges": [
     {
+      "from": "_segmented-control-segment",
+      "to": "focus-ring",
+      "part": "focusRing",
+      "partKind": "absolute",
+      "relation": "nest-fixed",
+      "variant": {
+        "surface": "default"
+      }
+    },
+    {
+      "from": "_tab-item",
+      "to": "badge",
+      "part": "count",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "type": "count",
+        "emphasis": "bold",
+        "tone": "neutral"
+      }
+    },
+    {
+      "from": "_tab-item",
+      "to": "focus-ring",
+      "part": "focusRing",
+      "partKind": "absolute",
+      "relation": "nest-fixed",
+      "variant": {
+        "surface": "default"
+      }
+    },
+    {
       "from": "accordion",
       "to": "divider",
       "part": "divider",
@@ -480,7 +512,7 @@
     },
     {
       "from": "list",
-      "to": "list-item",
+      "to": "_list-item",
       "part": "item1",
       "partKind": "nest",
       "relation": "nest-fixed",
@@ -495,7 +527,7 @@
     },
     {
       "from": "list",
-      "to": "list-item",
+      "to": "_list-item",
       "part": "item2",
       "partKind": "nest",
       "relation": "nest-fixed",
@@ -510,7 +542,7 @@
     },
     {
       "from": "list",
-      "to": "list-item",
+      "to": "_list-item",
       "part": "item3",
       "partKind": "nest",
       "relation": "nest-fixed",
@@ -525,7 +557,7 @@
     },
     {
       "from": "list",
-      "to": "list-item",
+      "to": "_list-item",
       "part": "item4",
       "partKind": "nest",
       "relation": "nest-fixed",
@@ -540,7 +572,7 @@
     },
     {
       "from": "list",
-      "to": "list-item",
+      "to": "_list-item",
       "part": "item5",
       "partKind": "nest",
       "relation": "nest-fixed",
@@ -555,7 +587,7 @@
     },
     {
       "from": "list",
-      "to": "list-item",
+      "to": "_list-item",
       "part": "item6",
       "partKind": "nest",
       "relation": "nest-fixed",
@@ -570,7 +602,7 @@
     },
     {
       "from": "list",
-      "to": "list-item",
+      "to": "_list-item",
       "part": "item7",
       "partKind": "nest",
       "relation": "nest-fixed",
@@ -585,7 +617,7 @@
     },
     {
       "from": "list",
-      "to": "list-item",
+      "to": "_list-item",
       "part": "item8",
       "partKind": "nest",
       "relation": "nest-fixed",
@@ -829,7 +861,7 @@
     },
     {
       "from": "segmented-control",
-      "to": "segmented-control-segment",
+      "to": "_segmented-control-segment",
       "part": "segment1",
       "partKind": "nest",
       "relation": "nest-exposed",
@@ -848,7 +880,7 @@
     },
     {
       "from": "segmented-control",
-      "to": "segmented-control-segment",
+      "to": "_segmented-control-segment",
       "part": "segment2",
       "partKind": "nest",
       "relation": "nest-exposed",
@@ -867,7 +899,7 @@
     },
     {
       "from": "segmented-control",
-      "to": "segmented-control-segment",
+      "to": "_segmented-control-segment",
       "part": "segment3",
       "partKind": "nest",
       "relation": "nest-exposed",
@@ -886,7 +918,7 @@
     },
     {
       "from": "segmented-control",
-      "to": "segmented-control-segment",
+      "to": "_segmented-control-segment",
       "part": "segment4",
       "partKind": "nest",
       "relation": "nest-exposed",
@@ -905,7 +937,7 @@
     },
     {
       "from": "segmented-control",
-      "to": "segmented-control-segment",
+      "to": "_segmented-control-segment",
       "part": "segment5",
       "partKind": "nest",
       "relation": "nest-exposed",
@@ -921,16 +953,6 @@
         "selection",
         "state"
       ]
-    },
-    {
-      "from": "segmented-control-segment",
-      "to": "focus-ring",
-      "part": "focusRing",
-      "partKind": "absolute",
-      "relation": "nest-fixed",
-      "variant": {
-        "surface": "default"
-      }
     },
     {
       "from": "select",
@@ -1005,30 +1027,8 @@
       ]
     },
     {
-      "from": "tab",
-      "to": "badge",
-      "part": "count",
-      "partKind": "nest",
-      "relation": "nest-fixed",
-      "variant": {
-        "type": "count",
-        "emphasis": "bold",
-        "tone": "neutral"
-      }
-    },
-    {
-      "from": "tab",
-      "to": "focus-ring",
-      "part": "focusRing",
-      "partKind": "absolute",
-      "relation": "nest-fixed",
-      "variant": {
-        "surface": "default"
-      }
-    },
-    {
       "from": "tabs",
-      "to": "tab",
+      "to": "_tab-item",
       "part": "tab1",
       "partKind": "nest",
       "relation": "nest-fixed",
@@ -1043,7 +1043,7 @@
     },
     {
       "from": "tabs",
-      "to": "tab",
+      "to": "_tab-item",
       "part": "tab2",
       "partKind": "nest",
       "relation": "nest-fixed",
@@ -1058,7 +1058,7 @@
     },
     {
       "from": "tabs",
-      "to": "tab",
+      "to": "_tab-item",
       "part": "tab3",
       "partKind": "nest",
       "relation": "nest-fixed",
@@ -1073,7 +1073,7 @@
     },
     {
       "from": "tabs",
-      "to": "tab",
+      "to": "_tab-item",
       "part": "tab4",
       "partKind": "nest",
       "relation": "nest-fixed",
@@ -1088,7 +1088,7 @@
     },
     {
       "from": "tabs",
-      "to": "tab",
+      "to": "_tab-item",
       "part": "tab5",
       "partKind": "nest",
       "relation": "nest-fixed",
@@ -1103,7 +1103,7 @@
     },
     {
       "from": "tabs",
-      "to": "tab",
+      "to": "_tab-item",
       "part": "tab6",
       "partKind": "nest",
       "relation": "nest-fixed",
@@ -1225,6 +1225,49 @@
       ],
       "inheritedBy": []
     },
+    "_list-item": {
+      "nests": [],
+      "nestsTransitively": [],
+      "nestedBy": [
+        "list"
+      ],
+      "affectedByChange": [
+        "list"
+      ],
+      "inheritedBy": []
+    },
+    "_segmented-control-segment": {
+      "nests": [
+        "focus-ring"
+      ],
+      "nestsTransitively": [
+        "focus-ring"
+      ],
+      "nestedBy": [
+        "segmented-control"
+      ],
+      "affectedByChange": [
+        "segmented-control"
+      ],
+      "inheritedBy": []
+    },
+    "_tab-item": {
+      "nests": [
+        "badge",
+        "focus-ring"
+      ],
+      "nestsTransitively": [
+        "badge",
+        "focus-ring"
+      ],
+      "nestedBy": [
+        "tabs"
+      ],
+      "affectedByChange": [
+        "tabs"
+      ],
+      "inheritedBy": []
+    },
     "accordion": {
       "nests": [
         "_accordion-indicator",
@@ -1244,10 +1287,10 @@
       "nests": [],
       "nestsTransitively": [],
       "nestedBy": [
-        "tab"
+        "_tab-item"
       ],
       "affectedByChange": [
-        "tab",
+        "_tab-item",
         "tabs"
       ],
       "inheritedBy": []
@@ -1464,6 +1507,8 @@
       "nests": [],
       "nestsTransitively": [],
       "nestedBy": [
+        "_segmented-control-segment",
+        "_tab-item",
         "accordion",
         "button",
         "button-destructive",
@@ -1478,15 +1523,15 @@
         "link",
         "password-field",
         "radio-control",
-        "segmented-control-segment",
         "select",
         "switch-control",
-        "tab",
         "tag",
         "text-field",
         "textarea"
       ],
       "affectedByChange": [
+        "_segmented-control-segment",
+        "_tab-item",
         "accordion",
         "button",
         "button-destructive",
@@ -1507,11 +1552,9 @@
         "radio-group",
         "radio-row",
         "segmented-control",
-        "segmented-control-segment",
         "select",
         "switch-control",
         "switch-row",
-        "tab",
         "tabs",
         "tag",
         "text-field",
@@ -1598,24 +1641,13 @@
     },
     "list": {
       "nests": [
-        "list-item"
+        "_list-item"
       ],
       "nestsTransitively": [
-        "list-item"
+        "_list-item"
       ],
       "nestedBy": [],
       "affectedByChange": [],
-      "inheritedBy": []
-    },
-    "list-item": {
-      "nests": [],
-      "nestsTransitively": [],
-      "nestedBy": [
-        "list"
-      ],
-      "affectedByChange": [
-        "list"
-      ],
       "inheritedBy": []
     },
     "password-field": {
@@ -1686,31 +1718,16 @@
     },
     "segmented-control": {
       "nests": [
-        "field-label",
-        "segmented-control-segment"
+        "_segmented-control-segment",
+        "field-label"
       ],
       "nestsTransitively": [
+        "_segmented-control-segment",
         "field-label",
-        "focus-ring",
-        "segmented-control-segment"
+        "focus-ring"
       ],
       "nestedBy": [],
       "affectedByChange": [],
-      "inheritedBy": []
-    },
-    "segmented-control-segment": {
-      "nests": [
-        "focus-ring"
-      ],
-      "nestsTransitively": [
-        "focus-ring"
-      ],
-      "nestedBy": [
-        "segmented-control"
-      ],
-      "affectedByChange": [
-        "segmented-control"
-      ],
       "inheritedBy": []
     },
     "select": {
@@ -1779,31 +1796,14 @@
       "inherits": "checkbox-row",
       "inheritedBy": []
     },
-    "tab": {
-      "nests": [
-        "badge",
-        "focus-ring"
-      ],
-      "nestsTransitively": [
-        "badge",
-        "focus-ring"
-      ],
-      "nestedBy": [
-        "tabs"
-      ],
-      "affectedByChange": [
-        "tabs"
-      ],
-      "inheritedBy": []
-    },
     "tabs": {
       "nests": [
-        "tab"
+        "_tab-item"
       ],
       "nestsTransitively": [
+        "_tab-item",
         "badge",
-        "focus-ring",
-        "tab"
+        "focus-ring"
       ],
       "nestedBy": [],
       "affectedByChange": [],
@@ -1864,6 +1864,9 @@
   },
   "depth": {
     "_accordion-indicator": 0,
+    "_list-item": 0,
+    "_segmented-control-segment": 1,
+    "_tab-item": 1,
     "accordion": 1,
     "badge": 0,
     "button": 1,
@@ -1887,18 +1890,15 @@
     "image-placeholder": 0,
     "link": 1,
     "list": 1,
-    "list-item": 0,
     "password-field": 2,
     "radio-control": 1,
     "radio-group": 3,
     "radio-row": 2,
     "segmented-control": 2,
-    "segmented-control-segment": 1,
     "select": 1,
     "spinner": 0,
     "switch-control": 1,
     "switch-row": 2,
-    "tab": 1,
     "tabs": 2,
     "tag": 1,
     "text-field": 1,

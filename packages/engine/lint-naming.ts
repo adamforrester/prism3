@@ -117,10 +117,6 @@ const PENDING: readonly Pending[] = [
   { arm: 'casing', def: 'segmented-control', name: 'Segment 3', pr: 2 },
   { arm: 'casing', def: 'segmented-control', name: 'Segment 4', pr: 2 },
   { arm: 'casing', def: 'segmented-control', name: 'Segment 5', pr: 2 },
-  // PR 3 — component renames (Q349, Q353, Q355).
-  { arm: 'prefix', def: 'segmented-control-segment', name: 'segmented-control-segment', pr: 3, to: '_segmented-control-segment' },
-  { arm: 'prefix', def: 'tab', name: 'tab', pr: 3, to: '_tab-item' },
-  { arm: 'prefix', def: 'list-item', name: 'list-item', pr: 3, to: '_list-item' },
   // PR 4 — layer and part renames (Q350).
   { arm: 'root', def: 'divider', name: 'divider', pr: 4 },
   { arm: 'glyph', def: 'checkbox-control', name: 'mark', pr: 4 },

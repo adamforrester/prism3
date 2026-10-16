@@ -40,7 +40,7 @@ One phrase or sentence per item, sentence case, every item the same grammatical 
 - **Purpose:** A short run of text items, each after a bullet, a number or an icon, laid out with bound spacing and markers.
 - **Use when:** A short set of points a designer lays out in UI: password rules, feature lists, icon checklists, steps. Ordered when the order means something.
 - **Avoid when:** Running text, such as an article body, terms or long help text. The test: if a writer could edit it as normal copy, use the native list; if a designer controls its spacing, markers or icons, use the component. Also avoid it for a choice the user makes (Select, or a listbox), a command menu, navigation links, or values compared across columns (a table).
-- **Often used with:** `list-item`, `icon`, `text-field`
+- **Often used with:** `_list-item`, `icon`, `text-field`
 
 ## Props
 
@@ -81,7 +81,7 @@ None — not interactive.
 
 ## Composition
 
-- **Composes with:** `list-item`
+- **Composes with:** `_list-item`
 - **Planned:** `data-list`, `checklist`, `table`, `menu`, `navigation`
 - **Replaces:**
   - a \<ul> with list-style: none and no role="list"

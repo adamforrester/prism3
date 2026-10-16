@@ -29,8 +29,8 @@
 import { ComponentDef } from '../component-schema';
 
 export const tab: ComponentDef = {
-  id: 'tab',
-  name: 'Tab',
+  id: '_tab-item',
+  name: 'Tab.Item',
   aliases: ['tab-trigger', 'tab-item'],
   category: 'navigation',
   status: 'draft',

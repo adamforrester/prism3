@@ -263,6 +263,17 @@
     "border-width.thick": {
       "type": "dimension",
       "components": {
+        "_tab-item": {
+          "keys": [
+            "indicator-height"
+          ],
+          "parts": {
+            "indicator": {
+              "members": 30,
+              "where": {}
+            }
+          }
+        },
         "checkbox-control": {
           "keys": [
             "border-width"
@@ -296,17 +307,6 @@
             }
           }
         },
-        "tab": {
-          "keys": [
-            "indicator-height"
-          ],
-          "parts": {
-            "indicator": {
-              "members": 30,
-              "where": {}
-            }
-          }
-        },
         "tag": {
           "keys": [
             "selected.border-width"
@@ -330,7 +330,7 @@
     "color.background.primary": {
       "type": "color",
       "components": {
-        "segmented-control-segment": {
+        "_segmented-control-segment": {
           "keys": [
             "disabled.fill",
             "selected.fill"
@@ -596,6 +596,18 @@
     "color.border.focus": {
       "type": "color",
       "components": {
+        "_segmented-control-segment": {
+          "keys": [
+            "focus-ring"
+          ],
+          "parts": {}
+        },
+        "_tab-item": {
+          "keys": [
+            "focus-ring"
+          ],
+          "parts": {}
+        },
         "button": {
           "keys": [
             "focus-ring"
@@ -679,12 +691,6 @@
           ],
           "parts": {}
         },
-        "segmented-control-segment": {
-          "keys": [
-            "focus-ring"
-          ],
-          "parts": {}
-        },
         "select": {
           "keys": [
             "border.focus-visible",
@@ -706,12 +712,6 @@
           }
         },
         "switch-control": {
-          "keys": [
-            "focus-ring"
-          ],
-          "parts": {}
-        },
-        "tab": {
           "keys": [
             "focus-ring"
           ],
@@ -810,6 +810,26 @@
     "color.border.secondary": {
       "type": "color",
       "components": {
+        "_tab-item": {
+          "keys": [
+            "unselected.fill.hover",
+            "unselected.fill.pressed"
+          ],
+          "parts": {
+            "indicator": {
+              "members": 6,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "hover",
+                  "pressed"
+                ]
+              }
+            }
+          }
+        },
         "divider": {
           "keys": [
             "fill"
@@ -879,26 +899,6 @@
                   "hover",
                   "pressed",
                   "rest"
-                ]
-              }
-            }
-          }
-        },
-        "tab": {
-          "keys": [
-            "unselected.fill.hover",
-            "unselected.fill.pressed"
-          ],
-          "parts": {
-            "indicator": {
-              "members": 6,
-              "where": {
-                "selection": [
-                  "unselected"
-                ],
-                "state": [
-                  "hover",
-                  "pressed"
                 ]
               }
             }
@@ -1225,6 +1225,24 @@
     "color.disabled.border": {
       "type": "color",
       "components": {
+        "_tab-item": {
+          "keys": [
+            "disabled.fill"
+          ],
+          "parts": {
+            "indicator": {
+              "members": 3,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "state": [
+                  "disabled"
+                ]
+              }
+            }
+          }
+        },
         "button": {
           "keys": [
             "disabled.border"
@@ -1510,24 +1528,6 @@
               "where": {
                 "selection": [
                   "off"
-                ],
-                "state": [
-                  "disabled"
-                ]
-              }
-            }
-          }
-        },
-        "tab": {
-          "keys": [
-            "disabled.fill"
-          ],
-          "parts": {
-            "indicator": {
-              "members": 3,
-              "where": {
-                "selection": [
-                  "selected"
                 ],
                 "state": [
                   "disabled"
@@ -1838,6 +1838,36 @@
     "color.disabled.icon": {
       "type": "color",
       "components": {
+        "_segmented-control-segment": {
+          "keys": [
+            "disabled.icon"
+          ],
+          "parts": {
+            "leadingVisual": {
+              "members": 6,
+              "where": {
+                "state": [
+                  "disabled"
+                ]
+              }
+            }
+          }
+        },
+        "_tab-item": {
+          "keys": [
+            "disabled.icon"
+          ],
+          "parts": {
+            "leadingVisual": {
+              "members": 6,
+              "where": {
+                "state": [
+                  "disabled"
+                ]
+              }
+            }
+          }
+        },
         "button": {
           "keys": [
             "disabled.icon"
@@ -2061,36 +2091,6 @@
                 ],
                 "surface": [
                   "default"
-                ]
-              }
-            }
-          }
-        },
-        "segmented-control-segment": {
-          "keys": [
-            "disabled.icon"
-          ],
-          "parts": {
-            "leadingVisual": {
-              "members": 6,
-              "where": {
-                "state": [
-                  "disabled"
-                ]
-              }
-            }
-          }
-        },
-        "tab": {
-          "keys": [
-            "disabled.icon"
-          ],
-          "parts": {
-            "leadingVisual": {
-              "members": 6,
-              "where": {
-                "state": [
-                  "disabled"
                 ]
               }
             }
@@ -2490,6 +2490,52 @@
     "color.disabled.text": {
       "type": "color",
       "components": {
+        "_segmented-control-segment": {
+          "keys": [
+            "disabled.label"
+          ],
+          "parts": {
+            "label": {
+              "members": 6,
+              "where": {
+                "state": [
+                  "disabled"
+                ]
+              }
+            },
+            "labelReserve": {
+              "members": 6,
+              "where": {
+                "state": [
+                  "disabled"
+                ]
+              }
+            }
+          }
+        },
+        "_tab-item": {
+          "keys": [
+            "disabled.label"
+          ],
+          "parts": {
+            "label": {
+              "members": 6,
+              "where": {
+                "state": [
+                  "disabled"
+                ]
+              }
+            },
+            "labelReserve": {
+              "members": 6,
+              "where": {
+                "state": [
+                  "disabled"
+                ]
+              }
+            }
+          }
+        },
         "button": {
           "keys": [
             "disabled.label"
@@ -2592,57 +2638,11 @@
           ],
           "parts": {}
         },
-        "segmented-control-segment": {
-          "keys": [
-            "disabled.label"
-          ],
-          "parts": {
-            "label": {
-              "members": 6,
-              "where": {
-                "state": [
-                  "disabled"
-                ]
-              }
-            },
-            "labelReserve": {
-              "members": 6,
-              "where": {
-                "state": [
-                  "disabled"
-                ]
-              }
-            }
-          }
-        },
         "switch-row": {
           "keys": [
             "disabled.label"
           ],
           "parts": {}
-        },
-        "tab": {
-          "keys": [
-            "disabled.label"
-          ],
-          "parts": {
-            "label": {
-              "members": 6,
-              "where": {
-                "state": [
-                  "disabled"
-                ]
-              }
-            },
-            "labelReserve": {
-              "members": 6,
-              "where": {
-                "state": [
-                  "disabled"
-                ]
-              }
-            }
-          }
         },
         "tag": {
           "keys": [
@@ -3400,19 +3400,7 @@
     "color.icon.primary": {
       "type": "color",
       "components": {
-        "icon": {
-          "keys": [
-            "icon",
-            "tone.primary"
-          ],
-          "parts": {
-            "glyph": {
-              "members": 45,
-              "where": {}
-            }
-          }
-        },
-        "list-item": {
+        "_list-item": {
           "keys": [
             "icon",
             "indicator"
@@ -3433,6 +3421,18 @@
                   "icon"
                 ]
               }
+            }
+          }
+        },
+        "icon": {
+          "keys": [
+            "icon",
+            "tone.primary"
+          ],
+          "parts": {
+            "glyph": {
+              "members": 45,
+              "where": {}
             }
           }
         },
@@ -5052,6 +5052,42 @@
     "color.interactive.neutral.icon.hover": {
       "type": "color",
       "components": {
+        "_segmented-control-segment": {
+          "keys": [
+            "unselected.icon.hover"
+          ],
+          "parts": {
+            "leadingVisual": {
+              "members": 3,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "hover"
+                ]
+              }
+            }
+          }
+        },
+        "_tab-item": {
+          "keys": [
+            "unselected.icon.hover"
+          ],
+          "parts": {
+            "leadingVisual": {
+              "members": 3,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "hover"
+                ]
+              }
+            }
+          }
+        },
         "button-neutral": {
           "keys": [
             "outline.icon.hover",
@@ -5135,42 +5171,6 @@
             }
           }
         },
-        "segmented-control-segment": {
-          "keys": [
-            "unselected.icon.hover"
-          ],
-          "parts": {
-            "leadingVisual": {
-              "members": 3,
-              "where": {
-                "selection": [
-                  "unselected"
-                ],
-                "state": [
-                  "hover"
-                ]
-              }
-            }
-          }
-        },
-        "tab": {
-          "keys": [
-            "unselected.icon.hover"
-          ],
-          "parts": {
-            "leadingVisual": {
-              "members": 3,
-              "where": {
-                "selection": [
-                  "unselected"
-                ],
-                "state": [
-                  "hover"
-                ]
-              }
-            }
-          }
-        },
         "tag": {
           "keys": [
             "selected.icon.hover",
@@ -5220,6 +5220,42 @@
     "color.interactive.neutral.icon.pressed": {
       "type": "color",
       "components": {
+        "_segmented-control-segment": {
+          "keys": [
+            "unselected.icon.pressed"
+          ],
+          "parts": {
+            "leadingVisual": {
+              "members": 3,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "pressed"
+                ]
+              }
+            }
+          }
+        },
+        "_tab-item": {
+          "keys": [
+            "unselected.icon.pressed"
+          ],
+          "parts": {
+            "leadingVisual": {
+              "members": 3,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "pressed"
+                ]
+              }
+            }
+          }
+        },
         "button-neutral": {
           "keys": [
             "outline.icon.pressed",
@@ -5298,42 +5334,6 @@
                 ],
                 "surface": [
                   "default"
-                ]
-              }
-            }
-          }
-        },
-        "segmented-control-segment": {
-          "keys": [
-            "unselected.icon.pressed"
-          ],
-          "parts": {
-            "leadingVisual": {
-              "members": 3,
-              "where": {
-                "selection": [
-                  "unselected"
-                ],
-                "state": [
-                  "pressed"
-                ]
-              }
-            }
-          }
-        },
-        "tab": {
-          "keys": [
-            "unselected.icon.pressed"
-          ],
-          "parts": {
-            "leadingVisual": {
-              "members": 3,
-              "where": {
-                "selection": [
-                  "unselected"
-                ],
-                "state": [
-                  "pressed"
                 ]
               }
             }
@@ -5434,6 +5434,44 @@
                 ],
                 "indicator": [
                   "plus-minus"
+                ]
+              }
+            }
+          }
+        },
+        "_segmented-control-segment": {
+          "keys": [
+            "selected.icon",
+            "unselected.icon"
+          ],
+          "parts": {
+            "leadingVisual": {
+              "members": 18,
+              "where": {
+                "state": [
+                  "focus-visible",
+                  "hover",
+                  "pressed",
+                  "rest"
+                ]
+              }
+            }
+          }
+        },
+        "_tab-item": {
+          "keys": [
+            "unselected.icon"
+          ],
+          "parts": {
+            "leadingVisual": {
+              "members": 6,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "focus-visible",
+                  "rest"
                 ]
               }
             }
@@ -5552,44 +5590,6 @@
                 ],
                 "surface": [
                   "default"
-                ]
-              }
-            }
-          }
-        },
-        "segmented-control-segment": {
-          "keys": [
-            "selected.icon",
-            "unselected.icon"
-          ],
-          "parts": {
-            "leadingVisual": {
-              "members": 18,
-              "where": {
-                "state": [
-                  "focus-visible",
-                  "hover",
-                  "pressed",
-                  "rest"
-                ]
-              }
-            }
-          }
-        },
-        "tab": {
-          "keys": [
-            "unselected.icon"
-          ],
-          "parts": {
-            "leadingVisual": {
-              "members": 6,
-              "where": {
-                "selection": [
-                  "unselected"
-                ],
-                "state": [
-                  "focus-visible",
-                  "rest"
                 ]
               }
             }
@@ -5783,6 +5783,24 @@
     "color.interactive.neutral.overlay.hover": {
       "type": "color",
       "components": {
+        "_segmented-control-segment": {
+          "keys": [
+            "unselected.overlay.hover"
+          ],
+          "parts": {
+            "indicator": {
+              "members": 3,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "hover"
+                ]
+              }
+            }
+          }
+        },
         "button-neutral": {
           "keys": [
             "outline.overlay.hover"
@@ -5863,24 +5881,6 @@
             }
           }
         },
-        "segmented-control-segment": {
-          "keys": [
-            "unselected.overlay.hover"
-          ],
-          "parts": {
-            "indicator": {
-              "members": 3,
-              "where": {
-                "selection": [
-                  "unselected"
-                ],
-                "state": [
-                  "hover"
-                ]
-              }
-            }
-          }
-        },
         "select": {
           "keys": [
             "overlay.hover"
@@ -5949,6 +5949,24 @@
     "color.interactive.neutral.overlay.pressed": {
       "type": "color",
       "components": {
+        "_segmented-control-segment": {
+          "keys": [
+            "unselected.overlay.pressed"
+          ],
+          "parts": {
+            "indicator": {
+              "members": 3,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "pressed"
+                ]
+              }
+            }
+          }
+        },
         "button-neutral": {
           "keys": [
             "outline.overlay.pressed"
@@ -6014,24 +6032,6 @@
             }
           }
         },
-        "segmented-control-segment": {
-          "keys": [
-            "unselected.overlay.pressed"
-          ],
-          "parts": {
-            "indicator": {
-              "members": 3,
-              "where": {
-                "selection": [
-                  "unselected"
-                ],
-                "state": [
-                  "pressed"
-                ]
-              }
-            }
-          }
-        },
         "tag": {
           "keys": [
             "unselected.overlay.pressed"
@@ -6055,6 +6055,64 @@
     "color.interactive.neutral.text.hover": {
       "type": "color",
       "components": {
+        "_segmented-control-segment": {
+          "keys": [
+            "unselected.label.hover"
+          ],
+          "parts": {
+            "label": {
+              "members": 3,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "hover"
+                ]
+              }
+            },
+            "labelReserve": {
+              "members": 3,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "hover"
+                ]
+              }
+            }
+          }
+        },
+        "_tab-item": {
+          "keys": [
+            "unselected.label.hover"
+          ],
+          "parts": {
+            "label": {
+              "members": 3,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "hover"
+                ]
+              }
+            },
+            "labelReserve": {
+              "members": 3,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "hover"
+                ]
+              }
+            }
+          }
+        },
         "button-neutral": {
           "keys": [
             "outline.label.hover",
@@ -6073,64 +6131,6 @@
                 ],
                 "surface": [
                   "default"
-                ]
-              }
-            }
-          }
-        },
-        "segmented-control-segment": {
-          "keys": [
-            "unselected.label.hover"
-          ],
-          "parts": {
-            "label": {
-              "members": 3,
-              "where": {
-                "selection": [
-                  "unselected"
-                ],
-                "state": [
-                  "hover"
-                ]
-              }
-            },
-            "labelReserve": {
-              "members": 3,
-              "where": {
-                "selection": [
-                  "unselected"
-                ],
-                "state": [
-                  "hover"
-                ]
-              }
-            }
-          }
-        },
-        "tab": {
-          "keys": [
-            "unselected.label.hover"
-          ],
-          "parts": {
-            "label": {
-              "members": 3,
-              "where": {
-                "selection": [
-                  "unselected"
-                ],
-                "state": [
-                  "hover"
-                ]
-              }
-            },
-            "labelReserve": {
-              "members": 3,
-              "where": {
-                "selection": [
-                  "unselected"
-                ],
-                "state": [
-                  "hover"
                 ]
               }
             }
@@ -6157,6 +6157,64 @@
     "color.interactive.neutral.text.pressed": {
       "type": "color",
       "components": {
+        "_segmented-control-segment": {
+          "keys": [
+            "unselected.label.pressed"
+          ],
+          "parts": {
+            "label": {
+              "members": 3,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "pressed"
+                ]
+              }
+            },
+            "labelReserve": {
+              "members": 3,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "pressed"
+                ]
+              }
+            }
+          }
+        },
+        "_tab-item": {
+          "keys": [
+            "unselected.label.pressed"
+          ],
+          "parts": {
+            "label": {
+              "members": 3,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "pressed"
+                ]
+              }
+            },
+            "labelReserve": {
+              "members": 3,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "pressed"
+                ]
+              }
+            }
+          }
+        },
         "button-neutral": {
           "keys": [
             "outline.label.pressed",
@@ -6175,64 +6233,6 @@
                 ],
                 "surface": [
                   "default"
-                ]
-              }
-            }
-          }
-        },
-        "segmented-control-segment": {
-          "keys": [
-            "unselected.label.pressed"
-          ],
-          "parts": {
-            "label": {
-              "members": 3,
-              "where": {
-                "selection": [
-                  "unselected"
-                ],
-                "state": [
-                  "pressed"
-                ]
-              }
-            },
-            "labelReserve": {
-              "members": 3,
-              "where": {
-                "selection": [
-                  "unselected"
-                ],
-                "state": [
-                  "pressed"
-                ]
-              }
-            }
-          }
-        },
-        "tab": {
-          "keys": [
-            "unselected.label.pressed"
-          ],
-          "parts": {
-            "label": {
-              "members": 3,
-              "where": {
-                "selection": [
-                  "unselected"
-                ],
-                "state": [
-                  "pressed"
-                ]
-              }
-            },
-            "labelReserve": {
-              "members": 3,
-              "where": {
-                "selection": [
-                  "unselected"
-                ],
-                "state": [
-                  "pressed"
                 ]
               }
             }
@@ -6259,6 +6259,67 @@
     "color.interactive.neutral.text.rest": {
       "type": "color",
       "components": {
+        "_segmented-control-segment": {
+          "keys": [
+            "selected.label",
+            "unselected.label"
+          ],
+          "parts": {
+            "label": {
+              "members": 18,
+              "where": {
+                "state": [
+                  "focus-visible",
+                  "hover",
+                  "pressed",
+                  "rest"
+                ]
+              }
+            },
+            "labelReserve": {
+              "members": 18,
+              "where": {
+                "state": [
+                  "focus-visible",
+                  "hover",
+                  "pressed",
+                  "rest"
+                ]
+              }
+            }
+          }
+        },
+        "_tab-item": {
+          "keys": [
+            "unselected.label"
+          ],
+          "parts": {
+            "label": {
+              "members": 6,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "focus-visible",
+                  "rest"
+                ]
+              }
+            },
+            "labelReserve": {
+              "members": 6,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "focus-visible",
+                  "rest"
+                ]
+              }
+            }
+          }
+        },
         "accordion": {
           "keys": [
             "label"
@@ -6295,67 +6356,6 @@
             }
           }
         },
-        "segmented-control-segment": {
-          "keys": [
-            "selected.label",
-            "unselected.label"
-          ],
-          "parts": {
-            "label": {
-              "members": 18,
-              "where": {
-                "state": [
-                  "focus-visible",
-                  "hover",
-                  "pressed",
-                  "rest"
-                ]
-              }
-            },
-            "labelReserve": {
-              "members": 18,
-              "where": {
-                "state": [
-                  "focus-visible",
-                  "hover",
-                  "pressed",
-                  "rest"
-                ]
-              }
-            }
-          }
-        },
-        "tab": {
-          "keys": [
-            "unselected.label"
-          ],
-          "parts": {
-            "label": {
-              "members": 6,
-              "where": {
-                "selection": [
-                  "unselected"
-                ],
-                "state": [
-                  "focus-visible",
-                  "rest"
-                ]
-              }
-            },
-            "labelReserve": {
-              "members": 6,
-              "where": {
-                "selection": [
-                  "unselected"
-                ],
-                "state": [
-                  "focus-visible",
-                  "rest"
-                ]
-              }
-            }
-          }
-        },
         "tag": {
           "keys": [
             "selected.label",
@@ -6378,6 +6378,24 @@
     "color.interactive.primary.border.hover": {
       "type": "color",
       "components": {
+        "_tab-item": {
+          "keys": [
+            "selected.fill.hover"
+          ],
+          "parts": {
+            "indicator": {
+              "members": 3,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "state": [
+                  "hover"
+                ]
+              }
+            }
+          }
+        },
         "button": {
           "keys": [
             "outline.border.hover"
@@ -6441,24 +6459,6 @@
             }
           }
         },
-        "tab": {
-          "keys": [
-            "selected.fill.hover"
-          ],
-          "parts": {
-            "indicator": {
-              "members": 3,
-              "where": {
-                "selection": [
-                  "selected"
-                ],
-                "state": [
-                  "hover"
-                ]
-              }
-            }
-          }
-        },
         "tag": {
           "keys": [
             "selected.border.hover"
@@ -6485,6 +6485,24 @@
     "color.interactive.primary.border.pressed": {
       "type": "color",
       "components": {
+        "_tab-item": {
+          "keys": [
+            "selected.fill.pressed"
+          ],
+          "parts": {
+            "indicator": {
+              "members": 3,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "state": [
+                  "pressed"
+                ]
+              }
+            }
+          }
+        },
         "button": {
           "keys": [
             "outline.border.pressed"
@@ -6548,24 +6566,6 @@
             }
           }
         },
-        "tab": {
-          "keys": [
-            "selected.fill.pressed"
-          ],
-          "parts": {
-            "indicator": {
-              "members": 3,
-              "where": {
-                "selection": [
-                  "selected"
-                ],
-                "state": [
-                  "pressed"
-                ]
-              }
-            }
-          }
-        },
         "tag": {
           "keys": [
             "selected.border.pressed"
@@ -6592,6 +6592,25 @@
     "color.interactive.primary.border.rest": {
       "type": "color",
       "components": {
+        "_tab-item": {
+          "keys": [
+            "selected.fill"
+          ],
+          "parts": {
+            "indicator": {
+              "members": 6,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "state": [
+                  "focus-visible",
+                  "rest"
+                ]
+              }
+            }
+          }
+        },
         "button": {
           "keys": [
             "outline.border"
@@ -6651,25 +6670,6 @@
               "where": {
                 "selection": [
                   "checked"
-                ],
-                "state": [
-                  "focus-visible",
-                  "rest"
-                ]
-              }
-            }
-          }
-        },
-        "tab": {
-          "keys": [
-            "selected.fill"
-          ],
-          "parts": {
-            "indicator": {
-              "members": 6,
-              "where": {
-                "selection": [
-                  "selected"
                 ],
                 "state": [
                   "focus-visible",
@@ -7020,6 +7020,24 @@
     "color.interactive.primary.icon.hover": {
       "type": "color",
       "components": {
+        "_tab-item": {
+          "keys": [
+            "selected.icon.hover"
+          ],
+          "parts": {
+            "leadingVisual": {
+              "members": 3,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "state": [
+                  "hover"
+                ]
+              }
+            }
+          }
+        },
         "button": {
           "keys": [
             "outline.icon.hover",
@@ -7102,10 +7120,15 @@
               }
             }
           }
-        },
-        "tab": {
+        }
+      }
+    },
+    "color.interactive.primary.icon.pressed": {
+      "type": "color",
+      "components": {
+        "_tab-item": {
           "keys": [
-            "selected.icon.hover"
+            "selected.icon.pressed"
           ],
           "parts": {
             "leadingVisual": {
@@ -7115,17 +7138,12 @@
                   "selected"
                 ],
                 "state": [
-                  "hover"
+                  "pressed"
                 ]
               }
             }
           }
-        }
-      }
-    },
-    "color.interactive.primary.icon.pressed": {
-      "type": "color",
-      "components": {
+        },
         "button": {
           "keys": [
             "outline.icon.pressed",
@@ -7208,30 +7226,31 @@
               }
             }
           }
-        },
-        "tab": {
-          "keys": [
-            "selected.icon.pressed"
-          ],
-          "parts": {
-            "leadingVisual": {
-              "members": 3,
-              "where": {
-                "selection": [
-                  "selected"
-                ],
-                "state": [
-                  "pressed"
-                ]
-              }
-            }
-          }
         }
       }
     },
     "color.interactive.primary.icon.rest": {
       "type": "color",
       "components": {
+        "_tab-item": {
+          "keys": [
+            "selected.icon"
+          ],
+          "parts": {
+            "leadingVisual": {
+              "members": 6,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "state": [
+                  "focus-visible",
+                  "rest"
+                ]
+              }
+            }
+          }
+        },
         "button": {
           "keys": [
             "outline.icon",
@@ -7345,25 +7364,6 @@
                 ],
                 "surface": [
                   "default"
-                ]
-              }
-            }
-          }
-        },
-        "tab": {
-          "keys": [
-            "selected.icon"
-          ],
-          "parts": {
-            "leadingVisual": {
-              "members": 6,
-              "where": {
-                "selection": [
-                  "selected"
-                ],
-                "state": [
-                  "focus-visible",
-                  "rest"
                 ]
               }
             }
@@ -7725,30 +7725,7 @@
     "color.interactive.primary.text.hover": {
       "type": "color",
       "components": {
-        "button": {
-          "keys": [
-            "outline.label.hover",
-            "text.label.hover"
-          ],
-          "parts": {
-            "label": {
-              "members": 36,
-              "where": {
-                "appearance": [
-                  "outline",
-                  "text"
-                ],
-                "state": [
-                  "hover"
-                ],
-                "surface": [
-                  "default"
-                ]
-              }
-            }
-          }
-        },
-        "tab": {
+        "_tab-item": {
           "keys": [
             "selected.label.hover"
           ],
@@ -7776,16 +7753,11 @@
               }
             }
           }
-        }
-      }
-    },
-    "color.interactive.primary.text.pressed": {
-      "type": "color",
-      "components": {
+        },
         "button": {
           "keys": [
-            "outline.label.pressed",
-            "text.label.pressed"
+            "outline.label.hover",
+            "text.label.hover"
           ],
           "parts": {
             "label": {
@@ -7796,7 +7768,7 @@
                   "text"
                 ],
                 "state": [
-                  "pressed"
+                  "hover"
                 ],
                 "surface": [
                   "default"
@@ -7804,8 +7776,13 @@
               }
             }
           }
-        },
-        "tab": {
+        }
+      }
+    },
+    "color.interactive.primary.text.pressed": {
+      "type": "color",
+      "components": {
+        "_tab-item": {
           "keys": [
             "selected.label.pressed"
           ],
@@ -7833,29 +7810,22 @@
               }
             }
           }
-        }
-      }
-    },
-    "color.interactive.primary.text.rest": {
-      "type": "color",
-      "components": {
+        },
         "button": {
           "keys": [
-            "outline.label",
-            "text.label"
+            "outline.label.pressed",
+            "text.label.pressed"
           ],
           "parts": {
             "label": {
-              "members": 108,
+              "members": 36,
               "where": {
                 "appearance": [
                   "outline",
                   "text"
                 ],
                 "state": [
-                  "focus-visible",
-                  "pending",
-                  "rest"
+                  "pressed"
                 ],
                 "surface": [
                   "default"
@@ -7863,8 +7833,13 @@
               }
             }
           }
-        },
-        "tab": {
+        }
+      }
+    },
+    "color.interactive.primary.text.rest": {
+      "type": "color",
+      "components": {
+        "_tab-item": {
           "keys": [
             "selected.label"
           ],
@@ -7890,6 +7865,31 @@
                 "state": [
                   "focus-visible",
                   "rest"
+                ]
+              }
+            }
+          }
+        },
+        "button": {
+          "keys": [
+            "outline.label",
+            "text.label"
+          ],
+          "parts": {
+            "label": {
+              "members": 108,
+              "where": {
+                "appearance": [
+                  "outline",
+                  "text"
+                ],
+                "state": [
+                  "focus-visible",
+                  "pending",
+                  "rest"
+                ],
+                "surface": [
+                  "default"
                 ]
               }
             }
@@ -11629,6 +11629,25 @@
     "color.text.primary": {
       "type": "color",
       "components": {
+        "_list-item": {
+          "keys": [
+            "label"
+          ],
+          "parts": {
+            "number": {
+              "members": 3,
+              "where": {
+                "type": [
+                  "ordered"
+                ]
+              }
+            },
+            "text": {
+              "members": 9,
+              "where": {}
+            }
+          }
+        },
         "accordion": {
           "keys": [
             "body"
@@ -11719,25 +11738,6 @@
                   "rest"
                 ]
               }
-            }
-          }
-        },
-        "list-item": {
-          "keys": [
-            "label"
-          ],
-          "parts": {
-            "number": {
-              "members": 3,
-              "where": {
-                "type": [
-                  "ordered"
-                ]
-              }
-            },
-            "text": {
-              "members": 9,
-              "where": {}
             }
           }
         },
@@ -12350,7 +12350,7 @@
     "control.size.lg.dot": {
       "type": "dimension",
       "components": {
-        "list-item": {
+        "_list-item": {
           "keys": [
             "size.large.dot"
           ],
@@ -12478,13 +12478,13 @@
     "control.size.lg.line-box": {
       "type": "dimension",
       "components": {
-        "checkbox-row": {
+        "_list-item": {
           "keys": [
-            "size.large.control-box"
+            "size.large.line-box"
           ],
           "parts": {
-            "controlBox": {
-              "members": 1,
+            "markerBox": {
+              "members": 3,
               "where": {
                 "size": [
                   "large"
@@ -12493,13 +12493,13 @@
             }
           }
         },
-        "list-item": {
+        "checkbox-row": {
           "keys": [
-            "size.large.line-box"
+            "size.large.control-box"
           ],
           "parts": {
-            "markerBox": {
-              "members": 3,
+            "controlBox": {
+              "members": 1,
               "where": {
                 "size": [
                   "large"
@@ -12624,7 +12624,7 @@
     "control.size.md.dot": {
       "type": "dimension",
       "components": {
-        "list-item": {
+        "_list-item": {
           "keys": [
             "size.medium.dot"
           ],
@@ -12772,13 +12772,13 @@
     "control.size.md.line-box": {
       "type": "dimension",
       "components": {
-        "checkbox-row": {
+        "_list-item": {
           "keys": [
-            "size.medium.control-box"
+            "size.medium.line-box"
           ],
           "parts": {
-            "controlBox": {
-              "members": 1,
+            "markerBox": {
+              "members": 3,
               "where": {
                 "size": [
                   "medium"
@@ -12787,13 +12787,13 @@
             }
           }
         },
-        "list-item": {
+        "checkbox-row": {
           "keys": [
-            "size.medium.line-box"
+            "size.medium.control-box"
           ],
           "parts": {
-            "markerBox": {
-              "members": 3,
+            "controlBox": {
+              "members": 1,
               "where": {
                 "size": [
                   "medium"
@@ -13030,6 +13030,24 @@
     "control.size.sm.dot": {
       "type": "dimension",
       "components": {
+        "_list-item": {
+          "keys": [
+            "size.small.dot"
+          ],
+          "parts": {
+            "bullet": {
+              "members": 1,
+              "where": {
+                "size": [
+                  "small"
+                ],
+                "type": [
+                  "unordered"
+                ]
+              }
+            }
+          }
+        },
         "badge": {
           "keys": [
             "dot-size"
@@ -13043,24 +13061,6 @@
                 ],
                 "type": [
                   "dot"
-                ]
-              }
-            }
-          }
-        },
-        "list-item": {
-          "keys": [
-            "size.small.dot"
-          ],
-          "parts": {
-            "bullet": {
-              "members": 1,
-              "where": {
-                "size": [
-                  "small"
-                ],
-                "type": [
-                  "unordered"
                 ]
               }
             }
@@ -13196,13 +13196,13 @@
     "control.size.sm.line-box": {
       "type": "dimension",
       "components": {
-        "checkbox-row": {
+        "_list-item": {
           "keys": [
-            "size.small.control-box"
+            "size.small.line-box"
           ],
           "parts": {
-            "controlBox": {
-              "members": 1,
+            "markerBox": {
+              "members": 3,
               "where": {
                 "size": [
                   "small"
@@ -13211,13 +13211,13 @@
             }
           }
         },
-        "list-item": {
+        "checkbox-row": {
           "keys": [
-            "size.small.line-box"
+            "size.small.control-box"
           ],
           "parts": {
-            "markerBox": {
-              "members": 3,
+            "controlBox": {
+              "members": 1,
               "where": {
                 "size": [
                   "small"
@@ -13454,6 +13454,36 @@
     "focus.ring.offset": {
       "type": "dimension",
       "components": {
+        "_segmented-control-segment": {
+          "keys": [
+            "ring-offset"
+          ],
+          "parts": {
+            "focusRing": {
+              "members": 6,
+              "where": {
+                "state": [
+                  "focus-visible"
+                ]
+              }
+            }
+          }
+        },
+        "_tab-item": {
+          "keys": [
+            "ring-offset"
+          ],
+          "parts": {
+            "focusRing": {
+              "members": 6,
+              "where": {
+                "state": [
+                  "focus-visible"
+                ]
+              }
+            }
+          }
+        },
         "button": {
           "keys": [
             "ring-offset"
@@ -13640,21 +13670,6 @@
             }
           }
         },
-        "segmented-control-segment": {
-          "keys": [
-            "ring-offset"
-          ],
-          "parts": {
-            "focusRing": {
-              "members": 6,
-              "where": {
-                "state": [
-                  "focus-visible"
-                ]
-              }
-            }
-          }
-        },
         "switch-control": {
           "keys": [
             "ring-offset"
@@ -13662,21 +13677,6 @@
           "parts": {
             "focusRing": {
               "members": 4,
-              "where": {
-                "state": [
-                  "focus-visible"
-                ]
-              }
-            }
-          }
-        },
-        "tab": {
-          "keys": [
-            "ring-offset"
-          ],
-          "parts": {
-            "focusRing": {
-              "members": 6,
               "where": {
                 "state": [
                   "focus-visible"
@@ -13806,6 +13806,36 @@
     "focus.ring.width": {
       "type": "dimension",
       "components": {
+        "_segmented-control-segment": {
+          "keys": [
+            "ring-width"
+          ],
+          "parts": {
+            "focusRing": {
+              "members": 6,
+              "where": {
+                "state": [
+                  "focus-visible"
+                ]
+              }
+            }
+          }
+        },
+        "_tab-item": {
+          "keys": [
+            "ring-width"
+          ],
+          "parts": {
+            "focusRing": {
+              "members": 6,
+              "where": {
+                "state": [
+                  "focus-visible"
+                ]
+              }
+            }
+          }
+        },
         "button": {
           "keys": [
             "ring-width"
@@ -14013,21 +14043,6 @@
             }
           }
         },
-        "segmented-control-segment": {
-          "keys": [
-            "ring-width"
-          ],
-          "parts": {
-            "focusRing": {
-              "members": 6,
-              "where": {
-                "state": [
-                  "focus-visible"
-                ]
-              }
-            }
-          }
-        },
         "select": {
           "keys": [
             "ring-width"
@@ -14051,21 +14066,6 @@
           "parts": {
             "focusRing": {
               "members": 4,
-              "where": {
-                "state": [
-                  "focus-visible"
-                ]
-              }
-            }
-          }
-        },
-        "tab": {
-          "keys": [
-            "ring-width"
-          ],
-          "parts": {
-            "focusRing": {
-              "members": 6,
               "where": {
                 "state": [
                   "focus-visible"
@@ -14126,6 +14126,54 @@
     "icon.size.lg": {
       "type": "dimension",
       "components": {
+        "_list-item": {
+          "keys": [
+            "size.large.icon"
+          ],
+          "parts": {
+            "icon": {
+              "members": 1,
+              "where": {
+                "size": [
+                  "large"
+                ],
+                "type": [
+                  "icon"
+                ]
+              }
+            }
+          }
+        },
+        "_segmented-control-segment": {
+          "keys": [
+            "size.large.icon"
+          ],
+          "parts": {
+            "leadingVisual": {
+              "members": 10,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
+        },
+        "_tab-item": {
+          "keys": [
+            "size.large.icon"
+          ],
+          "parts": {
+            "leadingVisual": {
+              "members": 10,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
+        },
         "icon": {
           "keys": [
             "size.large"
@@ -14231,39 +14279,6 @@
             }
           }
         },
-        "list-item": {
-          "keys": [
-            "size.large.icon"
-          ],
-          "parts": {
-            "icon": {
-              "members": 1,
-              "where": {
-                "size": [
-                  "large"
-                ],
-                "type": [
-                  "icon"
-                ]
-              }
-            }
-          }
-        },
-        "segmented-control-segment": {
-          "keys": [
-            "size.large.icon"
-          ],
-          "parts": {
-            "leadingVisual": {
-              "members": 10,
-              "where": {
-                "size": [
-                  "large"
-                ]
-              }
-            }
-          }
-        },
         "spinner": {
           "keys": [
             "size.large"
@@ -14279,21 +14294,6 @@
             },
             "ring": {
               "members": 1,
-              "where": {
-                "size": [
-                  "large"
-                ]
-              }
-            }
-          }
-        },
-        "tab": {
-          "keys": [
-            "size.large.icon"
-          ],
-          "parts": {
-            "leadingVisual": {
-              "members": 10,
               "where": {
                 "size": [
                   "large"
@@ -14416,6 +14416,54 @@
                 ],
                 "size": [
                   "large"
+                ]
+              }
+            }
+          }
+        },
+        "_list-item": {
+          "keys": [
+            "size.medium.icon"
+          ],
+          "parts": {
+            "icon": {
+              "members": 1,
+              "where": {
+                "size": [
+                  "medium"
+                ],
+                "type": [
+                  "icon"
+                ]
+              }
+            }
+          }
+        },
+        "_segmented-control-segment": {
+          "keys": [
+            "size.medium.icon"
+          ],
+          "parts": {
+            "leadingVisual": {
+              "members": 10,
+              "where": {
+                "size": [
+                  "medium"
+                ]
+              }
+            }
+          }
+        },
+        "_tab-item": {
+          "keys": [
+            "size.medium.icon"
+          ],
+          "parts": {
+            "leadingVisual": {
+              "members": 10,
+              "where": {
+                "size": [
+                  "medium"
                 ]
               }
             }
@@ -14748,39 +14796,6 @@
             }
           }
         },
-        "list-item": {
-          "keys": [
-            "size.medium.icon"
-          ],
-          "parts": {
-            "icon": {
-              "members": 1,
-              "where": {
-                "size": [
-                  "medium"
-                ],
-                "type": [
-                  "icon"
-                ]
-              }
-            }
-          }
-        },
-        "segmented-control-segment": {
-          "keys": [
-            "size.medium.icon"
-          ],
-          "parts": {
-            "leadingVisual": {
-              "members": 10,
-              "where": {
-                "size": [
-                  "medium"
-                ]
-              }
-            }
-          }
-        },
         "spinner": {
           "keys": [
             "size.medium"
@@ -14796,21 +14811,6 @@
             },
             "ring": {
               "members": 1,
-              "where": {
-                "size": [
-                  "medium"
-                ]
-              }
-            }
-          }
-        },
-        "tab": {
-          "keys": [
-            "size.medium.icon"
-          ],
-          "parts": {
-            "leadingVisual": {
-              "members": 10,
               "where": {
                 "size": [
                   "medium"
@@ -14933,6 +14933,54 @@
                 ],
                 "size": [
                   "medium"
+                ]
+              }
+            }
+          }
+        },
+        "_list-item": {
+          "keys": [
+            "size.small.icon"
+          ],
+          "parts": {
+            "icon": {
+              "members": 1,
+              "where": {
+                "size": [
+                  "small"
+                ],
+                "type": [
+                  "icon"
+                ]
+              }
+            }
+          }
+        },
+        "_segmented-control-segment": {
+          "keys": [
+            "size.small.icon"
+          ],
+          "parts": {
+            "leadingVisual": {
+              "members": 10,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
+        "_tab-item": {
+          "keys": [
+            "size.small.icon"
+          ],
+          "parts": {
+            "leadingVisual": {
+              "members": 10,
+              "where": {
+                "size": [
+                  "small"
                 ]
               }
             }
@@ -15295,24 +15343,6 @@
             }
           }
         },
-        "list-item": {
-          "keys": [
-            "size.small.icon"
-          ],
-          "parts": {
-            "icon": {
-              "members": 1,
-              "where": {
-                "size": [
-                  "small"
-                ],
-                "type": [
-                  "icon"
-                ]
-              }
-            }
-          }
-        },
         "password-field": {
           "keys": [
             "icon-size"
@@ -15321,21 +15351,6 @@
             "leadingVisual": {
               "members": 84,
               "where": {}
-            }
-          }
-        },
-        "segmented-control-segment": {
-          "keys": [
-            "size.small.icon"
-          ],
-          "parts": {
-            "leadingVisual": {
-              "members": 10,
-              "where": {
-                "size": [
-                  "small"
-                ]
-              }
             }
           }
         },
@@ -15369,21 +15384,6 @@
             },
             "ring": {
               "members": 1,
-              "where": {
-                "size": [
-                  "small"
-                ]
-              }
-            }
-          }
-        },
-        "tab": {
-          "keys": [
-            "size.small.icon"
-          ],
-          "parts": {
-            "leadingVisual": {
-              "members": 10,
               "where": {
                 "size": [
                   "small"
@@ -15955,6 +15955,21 @@
     "radius.round": {
       "type": "dimension",
       "components": {
+        "_list-item": {
+          "keys": [
+            "radius"
+          ],
+          "parts": {
+            "bullet": {
+              "members": 3,
+              "where": {
+                "type": [
+                  "unordered"
+                ]
+              }
+            }
+          }
+        },
         "badge": {
           "keys": [
             "count.radius",
@@ -16065,21 +16080,6 @@
             }
           }
         },
-        "list-item": {
-          "keys": [
-            "radius"
-          ],
-          "parts": {
-            "bullet": {
-              "members": 3,
-              "where": {
-                "type": [
-                  "unordered"
-                ]
-              }
-            }
-          }
-        },
         "radio-control": {
           "keys": [
             "radius"
@@ -16130,6 +16130,17 @@
     "radius.sm": {
       "type": "dimension",
       "components": {
+        "_segmented-control-segment": {
+          "keys": [
+            "indicator-radius"
+          ],
+          "parts": {
+            "indicator": {
+              "members": 30,
+              "where": {}
+            }
+          }
+        },
         "badge": {
           "keys": [
             "status.radius"
@@ -16152,17 +16163,6 @@
           "parts": {
             "control": {
               "members": 84,
-              "where": {}
-            }
-          }
-        },
-        "segmented-control-segment": {
-          "keys": [
-            "indicator-radius"
-          ],
-          "parts": {
-            "indicator": {
-              "members": 30,
               "where": {}
             }
           }
@@ -16221,6 +16221,36 @@
     "size.lg.height": {
       "type": "dimension",
       "components": {
+        "_segmented-control-segment": {
+          "keys": [
+            "size.large.height"
+          ],
+          "parts": {
+            "container": {
+              "members": 10,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
+        },
+        "_tab-item": {
+          "keys": [
+            "size.large.height"
+          ],
+          "parts": {
+            "container": {
+              "members": 10,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
+        },
         "accordion": {
           "keys": [
             "size.large.min-height"
@@ -16407,21 +16437,6 @@
           ],
           "parts": {}
         },
-        "segmented-control-segment": {
-          "keys": [
-            "size.large.height"
-          ],
-          "parts": {
-            "container": {
-              "members": 10,
-              "where": {
-                "size": [
-                  "large"
-                ]
-              }
-            }
-          }
-        },
         "select": {
           "keys": [
             "size.large.min-height"
@@ -16429,21 +16444,6 @@
           "parts": {
             "control": {
               "members": 28,
-              "where": {
-                "size": [
-                  "large"
-                ]
-              }
-            }
-          }
-        },
-        "tab": {
-          "keys": [
-            "size.large.height"
-          ],
-          "parts": {
-            "container": {
-              "members": 10,
               "where": {
                 "size": [
                   "large"
@@ -16501,6 +16501,36 @@
     "size.md.height": {
       "type": "dimension",
       "components": {
+        "_segmented-control-segment": {
+          "keys": [
+            "size.medium.height"
+          ],
+          "parts": {
+            "container": {
+              "members": 10,
+              "where": {
+                "size": [
+                  "medium"
+                ]
+              }
+            }
+          }
+        },
+        "_tab-item": {
+          "keys": [
+            "size.medium.height"
+          ],
+          "parts": {
+            "container": {
+              "members": 10,
+              "where": {
+                "size": [
+                  "medium"
+                ]
+              }
+            }
+          }
+        },
         "button": {
           "keys": [
             "size.medium.height"
@@ -16687,41 +16717,11 @@
           ],
           "parts": {}
         },
-        "segmented-control-segment": {
-          "keys": [
-            "size.medium.height"
-          ],
-          "parts": {
-            "container": {
-              "members": 10,
-              "where": {
-                "size": [
-                  "medium"
-                ]
-              }
-            }
-          }
-        },
         "switch-row": {
           "keys": [
             "size.medium.min-height"
           ],
           "parts": {}
-        },
-        "tab": {
-          "keys": [
-            "size.medium.height"
-          ],
-          "parts": {
-            "container": {
-              "members": 10,
-              "where": {
-                "size": [
-                  "medium"
-                ]
-              }
-            }
-          }
         },
         "tag": {
           "keys": [
@@ -16830,6 +16830,36 @@
     "size.sm.height": {
       "type": "dimension",
       "components": {
+        "_segmented-control-segment": {
+          "keys": [
+            "size.small.height"
+          ],
+          "parts": {
+            "container": {
+              "members": 10,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
+        "_tab-item": {
+          "keys": [
+            "size.small.height"
+          ],
+          "parts": {
+            "container": {
+              "members": 10,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
         "button": {
           "keys": [
             "size.small.height"
@@ -16986,41 +17016,11 @@
           ],
           "parts": {}
         },
-        "segmented-control-segment": {
-          "keys": [
-            "size.small.height"
-          ],
-          "parts": {
-            "container": {
-              "members": 10,
-              "where": {
-                "size": [
-                  "small"
-                ]
-              }
-            }
-          }
-        },
         "switch-row": {
           "keys": [
             "size.small.min-height"
           ],
           "parts": {}
-        },
-        "tab": {
-          "keys": [
-            "size.small.height"
-          ],
-          "parts": {
-            "container": {
-              "members": 10,
-              "where": {
-                "size": [
-                  "small"
-                ]
-              }
-            }
-          }
         },
         "tag": {
           "keys": [
@@ -17056,6 +17056,49 @@
     "space.0": {
       "type": "dimension",
       "components": {
+        "_list-item": {
+          "keys": [
+            "gap"
+          ],
+          "parts": {
+            "row": {
+              "members": 9,
+              "where": {}
+            }
+          }
+        },
+        "_segmented-control-segment": {
+          "keys": [
+            "pad-y",
+            "reserve-height"
+          ],
+          "parts": {
+            "content": {
+              "members": 30,
+              "where": {}
+            },
+            "reserve": {
+              "members": 30,
+              "where": {}
+            }
+          }
+        },
+        "_tab-item": {
+          "keys": [
+            "pad-y",
+            "reserve-height"
+          ],
+          "parts": {
+            "content": {
+              "members": 30,
+              "where": {}
+            },
+            "reserve": {
+              "members": 30,
+              "where": {}
+            }
+          }
+        },
         "accordion": {
           "keys": [
             "size.large.panel-pad-top",
@@ -17228,17 +17271,6 @@
             }
           }
         },
-        "list-item": {
-          "keys": [
-            "gap"
-          ],
-          "parts": {
-            "row": {
-              "members": 9,
-              "where": {}
-            }
-          }
-        },
         "radio-group": {
           "keys": [
             "gap",
@@ -17270,38 +17302,6 @@
           "parts": {
             "track": {
               "members": 3,
-              "where": {}
-            }
-          }
-        },
-        "segmented-control-segment": {
-          "keys": [
-            "pad-y",
-            "reserve-height"
-          ],
-          "parts": {
-            "content": {
-              "members": 30,
-              "where": {}
-            },
-            "reserve": {
-              "members": 30,
-              "where": {}
-            }
-          }
-        },
-        "tab": {
-          "keys": [
-            "pad-y",
-            "reserve-height"
-          ],
-          "parts": {
-            "content": {
-              "members": 30,
-              "where": {}
-            },
-            "reserve": {
-              "members": 30,
               "where": {}
             }
           }
@@ -17405,6 +17405,17 @@
     "space.050": {
       "type": "dimension",
       "components": {
+        "_segmented-control-segment": {
+          "keys": [
+            "inset"
+          ],
+          "parts": {
+            "container": {
+              "members": 30,
+              "where": {}
+            }
+          }
+        },
         "field-label": {
           "keys": [
             "gap"
@@ -17430,17 +17441,6 @@
                   "small"
                 ]
               }
-            }
-          }
-        },
-        "segmented-control-segment": {
-          "keys": [
-            "inset"
-          ],
-          "parts": {
-            "container": {
-              "members": 30,
-              "where": {}
             }
           }
         },
@@ -17480,6 +17480,36 @@
     "space.075": {
       "type": "dimension",
       "components": {
+        "_segmented-control-segment": {
+          "keys": [
+            "size.small.gap"
+          ],
+          "parts": {
+            "content": {
+              "members": 10,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
+        "_tab-item": {
+          "keys": [
+            "size.small.gap"
+          ],
+          "parts": {
+            "content": {
+              "members": 10,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
         "badge": {
           "keys": [
             "count.pad-x"
@@ -17569,21 +17599,6 @@
             }
           }
         },
-        "segmented-control-segment": {
-          "keys": [
-            "size.small.gap"
-          ],
-          "parts": {
-            "content": {
-              "members": 10,
-              "where": {
-                "size": [
-                  "small"
-                ]
-              }
-            }
-          }
-        },
         "select": {
           "keys": [
             "size.small.pad-y"
@@ -17591,21 +17606,6 @@
           "parts": {
             "control": {
               "members": 28,
-              "where": {
-                "size": [
-                  "small"
-                ]
-              }
-            }
-          }
-        },
-        "tab": {
-          "keys": [
-            "size.small.gap"
-          ],
-          "parts": {
-            "content": {
-              "members": 10,
               "where": {
                 "size": [
                   "small"
@@ -17677,6 +17677,40 @@
     "space.100": {
       "type": "dimension",
       "components": {
+        "_segmented-control-segment": {
+          "keys": [
+            "size.large.gap",
+            "size.medium.gap"
+          ],
+          "parts": {
+            "content": {
+              "members": 20,
+              "where": {
+                "size": [
+                  "large",
+                  "medium"
+                ]
+              }
+            }
+          }
+        },
+        "_tab-item": {
+          "keys": [
+            "size.large.gap",
+            "size.medium.gap"
+          ],
+          "parts": {
+            "content": {
+              "members": 20,
+              "where": {
+                "size": [
+                  "large",
+                  "medium"
+                ]
+              }
+            }
+          }
+        },
         "accordion": {
           "keys": [
             "size.small.gap",
@@ -17921,23 +17955,6 @@
             }
           }
         },
-        "segmented-control-segment": {
-          "keys": [
-            "size.large.gap",
-            "size.medium.gap"
-          ],
-          "parts": {
-            "content": {
-              "members": 20,
-              "where": {
-                "size": [
-                  "large",
-                  "medium"
-                ]
-              }
-            }
-          }
-        },
         "select": {
           "keys": [
             "root-gap",
@@ -17971,23 +17988,6 @@
             "row": {
               "members": 2,
               "where": {}
-            }
-          }
-        },
-        "tab": {
-          "keys": [
-            "size.large.gap",
-            "size.medium.gap"
-          ],
-          "parts": {
-            "content": {
-              "members": 20,
-              "where": {
-                "size": [
-                  "large",
-                  "medium"
-                ]
-              }
             }
           }
         },
@@ -18084,6 +18084,36 @@
     "space.150": {
       "type": "dimension",
       "components": {
+        "_segmented-control-segment": {
+          "keys": [
+            "size.small.padding-x"
+          ],
+          "parts": {
+            "content": {
+              "members": 10,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
+        "_tab-item": {
+          "keys": [
+            "size.small.padding-x"
+          ],
+          "parts": {
+            "content": {
+              "members": 10,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
         "accordion": {
           "keys": [
             "size.medium.gap",
@@ -18230,36 +18260,6 @@
             }
           }
         },
-        "segmented-control-segment": {
-          "keys": [
-            "size.small.padding-x"
-          ],
-          "parts": {
-            "content": {
-              "members": 10,
-              "where": {
-                "size": [
-                  "small"
-                ]
-              }
-            }
-          }
-        },
-        "tab": {
-          "keys": [
-            "size.small.padding-x"
-          ],
-          "parts": {
-            "content": {
-              "members": 10,
-              "where": {
-                "size": [
-                  "small"
-                ]
-              }
-            }
-          }
-        },
         "tag": {
           "keys": [
             "size.large.select.gap",
@@ -18283,6 +18283,36 @@
     "space.200": {
       "type": "dimension",
       "components": {
+        "_segmented-control-segment": {
+          "keys": [
+            "size.medium.padding-x"
+          ],
+          "parts": {
+            "content": {
+              "members": 10,
+              "where": {
+                "size": [
+                  "medium"
+                ]
+              }
+            }
+          }
+        },
+        "_tab-item": {
+          "keys": [
+            "size.medium.padding-x"
+          ],
+          "parts": {
+            "content": {
+              "members": 10,
+              "where": {
+                "size": [
+                  "medium"
+                ]
+              }
+            }
+          }
+        },
         "accordion": {
           "keys": [
             "size.large.gap",
@@ -18485,21 +18515,6 @@
             }
           }
         },
-        "segmented-control-segment": {
-          "keys": [
-            "size.medium.padding-x"
-          ],
-          "parts": {
-            "content": {
-              "members": 10,
-              "where": {
-                "size": [
-                  "medium"
-                ]
-              }
-            }
-          }
-        },
         "select": {
           "keys": [
             "size.medium.pad-x",
@@ -18512,21 +18527,6 @@
                 "size": [
                   "medium",
                   "small"
-                ]
-              }
-            }
-          }
-        },
-        "tab": {
-          "keys": [
-            "size.medium.padding-x"
-          ],
-          "parts": {
-            "content": {
-              "members": 10,
-              "where": {
-                "size": [
-                  "medium"
                 ]
               }
             }
@@ -18587,6 +18587,36 @@
     "space.250": {
       "type": "dimension",
       "components": {
+        "_segmented-control-segment": {
+          "keys": [
+            "size.large.padding-x"
+          ],
+          "parts": {
+            "content": {
+              "members": 10,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
+        },
+        "_tab-item": {
+          "keys": [
+            "size.large.padding-x"
+          ],
+          "parts": {
+            "content": {
+              "members": 10,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
+        },
         "accordion": {
           "keys": [
             "size.large.pad-x"
@@ -18612,42 +18642,27 @@
               }
             }
           }
-        },
-        "segmented-control-segment": {
-          "keys": [
-            "size.large.padding-x"
-          ],
-          "parts": {
-            "content": {
-              "members": 10,
-              "where": {
-                "size": [
-                  "large"
-                ]
-              }
-            }
-          }
-        },
-        "tab": {
-          "keys": [
-            "size.large.padding-x"
-          ],
-          "parts": {
-            "content": {
-              "members": 10,
-              "where": {
-                "size": [
-                  "large"
-                ]
-              }
-            }
-          }
         }
       }
     },
     "space.300": {
       "type": "dimension",
       "components": {
+        "_list-item": {
+          "keys": [
+            "size.small.marker-column"
+          ],
+          "parts": {
+            "markerBox": {
+              "members": 3,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
         "accordion": {
           "keys": [
             "size.large.panel-pad-end"
@@ -18773,21 +18788,6 @@
             }
           }
         },
-        "list-item": {
-          "keys": [
-            "size.small.marker-column"
-          ],
-          "parts": {
-            "markerBox": {
-              "members": 3,
-              "where": {
-                "size": [
-                  "small"
-                ]
-              }
-            }
-          }
-        },
         "password-field": {
           "keys": [
             "size.large.pad-x"
@@ -18853,7 +18853,7 @@
     "space.400": {
       "type": "dimension",
       "components": {
-        "list-item": {
+        "_list-item": {
           "keys": [
             "size.medium.marker-column"
           ],
@@ -18873,7 +18873,7 @@
     "space.500": {
       "type": "dimension",
       "components": {
-        "list-item": {
+        "_list-item": {
           "keys": [
             "size.large.marker-column"
           ],
@@ -18893,6 +18893,32 @@
     "type.body.lg.default": {
       "type": "typography",
       "components": {
+        "_list-item": {
+          "keys": [
+            "size.large.text"
+          ],
+          "parts": {
+            "number": {
+              "members": 1,
+              "where": {
+                "size": [
+                  "large"
+                ],
+                "type": [
+                  "ordered"
+                ]
+              }
+            },
+            "text": {
+              "members": 3,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
+        },
         "accordion": {
           "keys": [
             "size.large.panel-type"
@@ -18945,32 +18971,6 @@
                 ],
                 "weight": [
                   "default"
-                ]
-              }
-            }
-          }
-        },
-        "list-item": {
-          "keys": [
-            "size.large.text"
-          ],
-          "parts": {
-            "number": {
-              "members": 1,
-              "where": {
-                "size": [
-                  "large"
-                ],
-                "type": [
-                  "ordered"
-                ]
-              }
-            },
-            "text": {
-              "members": 3,
-              "where": {
-                "size": [
-                  "large"
                 ]
               }
             }
@@ -19219,6 +19219,32 @@
     "type.body.md.default": {
       "type": "typography",
       "components": {
+        "_list-item": {
+          "keys": [
+            "size.medium.text"
+          ],
+          "parts": {
+            "number": {
+              "members": 1,
+              "where": {
+                "size": [
+                  "medium"
+                ],
+                "type": [
+                  "ordered"
+                ]
+              }
+            },
+            "text": {
+              "members": 3,
+              "where": {
+                "size": [
+                  "medium"
+                ]
+              }
+            }
+          }
+        },
         "accordion": {
           "keys": [
             "size.medium.panel-type"
@@ -19316,32 +19342,6 @@
                 ],
                 "weight": [
                   "default"
-                ]
-              }
-            }
-          }
-        },
-        "list-item": {
-          "keys": [
-            "size.medium.text"
-          ],
-          "parts": {
-            "number": {
-              "members": 1,
-              "where": {
-                "size": [
-                  "medium"
-                ],
-                "type": [
-                  "ordered"
-                ]
-              }
-            },
-            "text": {
-              "members": 3,
-              "where": {
-                "size": [
-                  "medium"
                 ]
               }
             }
@@ -19634,6 +19634,32 @@
     "type.body.sm.default": {
       "type": "typography",
       "components": {
+        "_list-item": {
+          "keys": [
+            "size.small.text"
+          ],
+          "parts": {
+            "number": {
+              "members": 1,
+              "where": {
+                "size": [
+                  "small"
+                ],
+                "type": [
+                  "ordered"
+                ]
+              }
+            },
+            "text": {
+              "members": 3,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
         "accordion": {
           "keys": [
             "size.small.panel-type"
@@ -19715,32 +19741,6 @@
                 ],
                 "weight": [
                   "default"
-                ]
-              }
-            }
-          }
-        },
-        "list-item": {
-          "keys": [
-            "size.small.text"
-          ],
-          "parts": {
-            "number": {
-              "members": 1,
-              "where": {
-                "size": [
-                  "small"
-                ],
-                "type": [
-                  "ordered"
-                ]
-              }
-            },
-            "text": {
-              "members": 3,
-              "where": {
-                "size": [
-                  "small"
                 ]
               }
             }
@@ -20128,7 +20128,7 @@
     "type.label.lg.default": {
       "type": "typography",
       "components": {
-        "segmented-control-segment": {
+        "_segmented-control-segment": {
           "keys": [
             "size.large.type.unselected"
           ],
@@ -20146,7 +20146,7 @@
             }
           }
         },
-        "tab": {
+        "_tab-item": {
           "keys": [
             "size.large.type.unselected"
           ],
@@ -20169,6 +20169,58 @@
     "type.label.lg.emphasis": {
       "type": "typography",
       "components": {
+        "_segmented-control-segment": {
+          "keys": [
+            "size.large.type.selected"
+          ],
+          "parts": {
+            "label": {
+              "members": 5,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "size": [
+                  "large"
+                ]
+              }
+            },
+            "labelReserve": {
+              "members": 10,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
+        },
+        "_tab-item": {
+          "keys": [
+            "size.large.type.selected"
+          ],
+          "parts": {
+            "label": {
+              "members": 5,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "size": [
+                  "large"
+                ]
+              }
+            },
+            "labelReserve": {
+              "members": 10,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
+        },
         "accordion": {
           "keys": [
             "size.large.type"
@@ -20264,58 +20316,6 @@
             }
           }
         },
-        "segmented-control-segment": {
-          "keys": [
-            "size.large.type.selected"
-          ],
-          "parts": {
-            "label": {
-              "members": 5,
-              "where": {
-                "selection": [
-                  "selected"
-                ],
-                "size": [
-                  "large"
-                ]
-              }
-            },
-            "labelReserve": {
-              "members": 10,
-              "where": {
-                "size": [
-                  "large"
-                ]
-              }
-            }
-          }
-        },
-        "tab": {
-          "keys": [
-            "size.large.type.selected"
-          ],
-          "parts": {
-            "label": {
-              "members": 5,
-              "where": {
-                "selection": [
-                  "selected"
-                ],
-                "size": [
-                  "large"
-                ]
-              }
-            },
-            "labelReserve": {
-              "members": 10,
-              "where": {
-                "size": [
-                  "large"
-                ]
-              }
-            }
-          }
-        },
         "tag": {
           "keys": [
             "size.large.type"
@@ -20395,7 +20395,7 @@
     "type.label.md.default": {
       "type": "typography",
       "components": {
-        "segmented-control-segment": {
+        "_segmented-control-segment": {
           "keys": [
             "size.medium.type.unselected"
           ],
@@ -20413,7 +20413,7 @@
             }
           }
         },
-        "tab": {
+        "_tab-item": {
           "keys": [
             "size.medium.type.unselected"
           ],
@@ -20436,6 +20436,58 @@
     "type.label.md.emphasis": {
       "type": "typography",
       "components": {
+        "_segmented-control-segment": {
+          "keys": [
+            "size.medium.type.selected"
+          ],
+          "parts": {
+            "label": {
+              "members": 5,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "size": [
+                  "medium"
+                ]
+              }
+            },
+            "labelReserve": {
+              "members": 10,
+              "where": {
+                "size": [
+                  "medium"
+                ]
+              }
+            }
+          }
+        },
+        "_tab-item": {
+          "keys": [
+            "size.medium.type.selected"
+          ],
+          "parts": {
+            "label": {
+              "members": 5,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "size": [
+                  "medium"
+                ]
+              }
+            },
+            "labelReserve": {
+              "members": 10,
+              "where": {
+                "size": [
+                  "medium"
+                ]
+              }
+            }
+          }
+        },
         "accordion": {
           "keys": [
             "size.medium.type"
@@ -20513,58 +20565,6 @@
                 "inset": [
                   "default"
                 ],
-                "size": [
-                  "medium"
-                ]
-              }
-            }
-          }
-        },
-        "segmented-control-segment": {
-          "keys": [
-            "size.medium.type.selected"
-          ],
-          "parts": {
-            "label": {
-              "members": 5,
-              "where": {
-                "selection": [
-                  "selected"
-                ],
-                "size": [
-                  "medium"
-                ]
-              }
-            },
-            "labelReserve": {
-              "members": 10,
-              "where": {
-                "size": [
-                  "medium"
-                ]
-              }
-            }
-          }
-        },
-        "tab": {
-          "keys": [
-            "size.medium.type.selected"
-          ],
-          "parts": {
-            "label": {
-              "members": 5,
-              "where": {
-                "selection": [
-                  "selected"
-                ],
-                "size": [
-                  "medium"
-                ]
-              }
-            },
-            "labelReserve": {
-              "members": 10,
-              "where": {
                 "size": [
                   "medium"
                 ]
@@ -20651,7 +20651,7 @@
     "type.label.sm.default": {
       "type": "typography",
       "components": {
-        "segmented-control-segment": {
+        "_segmented-control-segment": {
           "keys": [
             "size.small.type.unselected"
           ],
@@ -20669,7 +20669,7 @@
             }
           }
         },
-        "tab": {
+        "_tab-item": {
           "keys": [
             "size.small.type.unselected"
           ],
@@ -20692,6 +20692,58 @@
     "type.label.sm.emphasis": {
       "type": "typography",
       "components": {
+        "_segmented-control-segment": {
+          "keys": [
+            "size.small.type.selected"
+          ],
+          "parts": {
+            "label": {
+              "members": 5,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "size": [
+                  "small"
+                ]
+              }
+            },
+            "labelReserve": {
+              "members": 10,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
+        "_tab-item": {
+          "keys": [
+            "size.small.type.selected"
+          ],
+          "parts": {
+            "label": {
+              "members": 5,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "size": [
+                  "small"
+                ]
+              }
+            },
+            "labelReserve": {
+              "members": 10,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
         "accordion": {
           "keys": [
             "size.small.type"
@@ -20802,58 +20854,6 @@
             }
           }
         },
-        "segmented-control-segment": {
-          "keys": [
-            "size.small.type.selected"
-          ],
-          "parts": {
-            "label": {
-              "members": 5,
-              "where": {
-                "selection": [
-                  "selected"
-                ],
-                "size": [
-                  "small"
-                ]
-              }
-            },
-            "labelReserve": {
-              "members": 10,
-              "where": {
-                "size": [
-                  "small"
-                ]
-              }
-            }
-          }
-        },
-        "tab": {
-          "keys": [
-            "size.small.type.selected"
-          ],
-          "parts": {
-            "label": {
-              "members": 5,
-              "where": {
-                "selection": [
-                  "selected"
-                ],
-                "size": [
-                  "small"
-                ]
-              }
-            },
-            "labelReserve": {
-              "members": 10,
-              "where": {
-                "size": [
-                  "small"
-                ]
-              }
-            }
-          }
-        },
         "tag": {
           "keys": [
             "size.small.type"
@@ -20956,6 +20956,173 @@
         "icon.size.xs"
       ],
       "declaredNotDrawn": [],
+      "drawnNotDeclared": []
+    },
+    "_list-item": {
+      "members": 9,
+      "axes": {
+        "size": [
+          "large",
+          "medium",
+          "small"
+        ],
+        "type": [
+          "icon",
+          "ordered",
+          "unordered"
+        ]
+      },
+      "tokens": [
+        "color.icon.primary",
+        "color.text.primary",
+        "control.size.lg.dot",
+        "control.size.lg.line-box",
+        "control.size.md.dot",
+        "control.size.md.line-box",
+        "control.size.sm.dot",
+        "control.size.sm.line-box",
+        "icon.size.lg",
+        "icon.size.md",
+        "icon.size.sm",
+        "radius.round",
+        "space.0",
+        "space.300",
+        "space.400",
+        "space.500",
+        "type.body.lg.default",
+        "type.body.md.default",
+        "type.body.sm.default"
+      ],
+      "declaredNotDrawn": [],
+      "drawnNotDeclared": []
+    },
+    "_segmented-control-segment": {
+      "members": 30,
+      "axes": {
+        "selection": [
+          "selected",
+          "unselected"
+        ],
+        "size": [
+          "large",
+          "medium",
+          "small"
+        ],
+        "state": [
+          "disabled",
+          "focus-visible",
+          "hover",
+          "pressed",
+          "rest"
+        ]
+      },
+      "tokens": [
+        "color.background.primary",
+        "color.border.focus",
+        "color.disabled.icon",
+        "color.disabled.text",
+        "color.interactive.neutral.icon.hover",
+        "color.interactive.neutral.icon.pressed",
+        "color.interactive.neutral.icon.rest",
+        "color.interactive.neutral.overlay.hover",
+        "color.interactive.neutral.overlay.pressed",
+        "color.interactive.neutral.text.hover",
+        "color.interactive.neutral.text.pressed",
+        "color.interactive.neutral.text.rest",
+        "focus.ring.offset",
+        "focus.ring.width",
+        "icon.size.lg",
+        "icon.size.md",
+        "icon.size.sm",
+        "radius.sm",
+        "size.lg.height",
+        "size.md.height",
+        "size.sm.height",
+        "space.0",
+        "space.050",
+        "space.075",
+        "space.100",
+        "space.150",
+        "space.200",
+        "space.250",
+        "type.label.lg.default",
+        "type.label.lg.emphasis",
+        "type.label.md.default",
+        "type.label.md.emphasis",
+        "type.label.sm.default",
+        "type.label.sm.emphasis"
+      ],
+      "declaredNotDrawn": [
+        "color.border.focus"
+      ],
+      "drawnNotDeclared": []
+    },
+    "_tab-item": {
+      "members": 30,
+      "axes": {
+        "selection": [
+          "selected",
+          "unselected"
+        ],
+        "size": [
+          "large",
+          "medium",
+          "small"
+        ],
+        "state": [
+          "disabled",
+          "focus-visible",
+          "hover",
+          "pressed",
+          "rest"
+        ]
+      },
+      "tokens": [
+        "border-width.thick",
+        "color.border.focus",
+        "color.border.secondary",
+        "color.disabled.border",
+        "color.disabled.icon",
+        "color.disabled.text",
+        "color.interactive.neutral.icon.hover",
+        "color.interactive.neutral.icon.pressed",
+        "color.interactive.neutral.icon.rest",
+        "color.interactive.neutral.text.hover",
+        "color.interactive.neutral.text.pressed",
+        "color.interactive.neutral.text.rest",
+        "color.interactive.primary.border.hover",
+        "color.interactive.primary.border.pressed",
+        "color.interactive.primary.border.rest",
+        "color.interactive.primary.icon.hover",
+        "color.interactive.primary.icon.pressed",
+        "color.interactive.primary.icon.rest",
+        "color.interactive.primary.text.hover",
+        "color.interactive.primary.text.pressed",
+        "color.interactive.primary.text.rest",
+        "focus.ring.offset",
+        "focus.ring.width",
+        "icon.size.lg",
+        "icon.size.md",
+        "icon.size.sm",
+        "size.lg.height",
+        "size.md.height",
+        "size.sm.height",
+        "space.0",
+        "space.075",
+        "space.100",
+        "space.150",
+        "space.200",
+        "space.250",
+        "type.label.lg.default",
+        "type.label.lg.emphasis",
+        "type.label.md.default",
+        "type.label.md.emphasis",
+        "type.label.sm.default",
+        "type.label.sm.emphasis"
+      ],
+      "declaredNotDrawn": [
+        "color.border.focus"
+      ],
       "drawnNotDeclared": []
     },
     "accordion": {
@@ -22317,44 +22484,6 @@
       "declaredNotDrawn": [],
       "drawnNotDeclared": []
     },
-    "list-item": {
-      "members": 9,
-      "axes": {
-        "size": [
-          "large",
-          "medium",
-          "small"
-        ],
-        "type": [
-          "icon",
-          "ordered",
-          "unordered"
-        ]
-      },
-      "tokens": [
-        "color.icon.primary",
-        "color.text.primary",
-        "control.size.lg.dot",
-        "control.size.lg.line-box",
-        "control.size.md.dot",
-        "control.size.md.line-box",
-        "control.size.sm.dot",
-        "control.size.sm.line-box",
-        "icon.size.lg",
-        "icon.size.md",
-        "icon.size.sm",
-        "radius.round",
-        "space.0",
-        "space.300",
-        "space.400",
-        "space.500",
-        "type.body.lg.default",
-        "type.body.md.default",
-        "type.body.sm.default"
-      ],
-      "declaredNotDrawn": [],
-      "drawnNotDeclared": []
-    },
     "password-field": {
       "members": 84,
       "axes": {
@@ -22531,67 +22660,6 @@
       "declaredNotDrawn": [],
       "drawnNotDeclared": []
     },
-    "segmented-control-segment": {
-      "members": 30,
-      "axes": {
-        "selection": [
-          "selected",
-          "unselected"
-        ],
-        "size": [
-          "large",
-          "medium",
-          "small"
-        ],
-        "state": [
-          "disabled",
-          "focus-visible",
-          "hover",
-          "pressed",
-          "rest"
-        ]
-      },
-      "tokens": [
-        "color.background.primary",
-        "color.border.focus",
-        "color.disabled.icon",
-        "color.disabled.text",
-        "color.interactive.neutral.icon.hover",
-        "color.interactive.neutral.icon.pressed",
-        "color.interactive.neutral.icon.rest",
-        "color.interactive.neutral.overlay.hover",
-        "color.interactive.neutral.overlay.pressed",
-        "color.interactive.neutral.text.hover",
-        "color.interactive.neutral.text.pressed",
-        "color.interactive.neutral.text.rest",
-        "focus.ring.offset",
-        "focus.ring.width",
-        "icon.size.lg",
-        "icon.size.md",
-        "icon.size.sm",
-        "radius.sm",
-        "size.lg.height",
-        "size.md.height",
-        "size.sm.height",
-        "space.0",
-        "space.050",
-        "space.075",
-        "space.100",
-        "space.150",
-        "space.200",
-        "space.250",
-        "type.label.lg.default",
-        "type.label.lg.emphasis",
-        "type.label.md.default",
-        "type.label.md.emphasis",
-        "type.label.sm.default",
-        "type.label.sm.emphasis"
-      ],
-      "declaredNotDrawn": [
-        "color.border.focus"
-      ],
-      "drawnNotDeclared": []
-    },
     "select": {
       "members": 84,
       "axes": {
@@ -22746,74 +22814,6 @@
         "color.disabled.text",
         "size.md.height",
         "size.sm.height"
-      ],
-      "drawnNotDeclared": []
-    },
-    "tab": {
-      "members": 30,
-      "axes": {
-        "selection": [
-          "selected",
-          "unselected"
-        ],
-        "size": [
-          "large",
-          "medium",
-          "small"
-        ],
-        "state": [
-          "disabled",
-          "focus-visible",
-          "hover",
-          "pressed",
-          "rest"
-        ]
-      },
-      "tokens": [
-        "border-width.thick",
-        "color.border.focus",
-        "color.border.secondary",
-        "color.disabled.border",
-        "color.disabled.icon",
-        "color.disabled.text",
-        "color.interactive.neutral.icon.hover",
-        "color.interactive.neutral.icon.pressed",
-        "color.interactive.neutral.icon.rest",
-        "color.interactive.neutral.text.hover",
-        "color.interactive.neutral.text.pressed",
-        "color.interactive.neutral.text.rest",
-        "color.interactive.primary.border.hover",
-        "color.interactive.primary.border.pressed",
-        "color.interactive.primary.border.rest",
-        "color.interactive.primary.icon.hover",
-        "color.interactive.primary.icon.pressed",
-        "color.interactive.primary.icon.rest",
-        "color.interactive.primary.text.hover",
-        "color.interactive.primary.text.pressed",
-        "color.interactive.primary.text.rest",
-        "focus.ring.offset",
-        "focus.ring.width",
-        "icon.size.lg",
-        "icon.size.md",
-        "icon.size.sm",
-        "size.lg.height",
-        "size.md.height",
-        "size.sm.height",
-        "space.0",
-        "space.075",
-        "space.100",
-        "space.150",
-        "space.200",
-        "space.250",
-        "type.label.lg.default",
-        "type.label.lg.emphasis",
-        "type.label.md.default",
-        "type.label.md.emphasis",
-        "type.label.sm.default",
-        "type.label.sm.emphasis"
-      ],
-      "declaredNotDrawn": [
-        "color.border.focus"
       ],
       "drawnNotDeclared": []
     },

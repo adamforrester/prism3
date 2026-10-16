@@ -282,7 +282,7 @@ const PROVENANCE_EXCEPTIONS: Record<string, string> = {
   // List.Item (#2319): the key is the `icon` PAINT SLOT (the icon marker's ink), whose spelling matches the `type` value
   // `icon`. It is the slot that leads, not the axis value: the key binds at every type, and only the icon member draws
   // the slot it paints.
-  'list-item|icon':
+  '_list-item|icon':
     "the key is the `icon` paint slot, not the `type` value `icon`; the two share a spelling. It binds the icon role, `color.icon.primary`, for the icon marker, which only the icon type draws",
   'field-message|default.label':
     "status `default` maps to the MUTED body role, not to a role named 'default' — the token tier has no `text.default`, and `secondary` is what a non-status message's ink is",
@@ -787,10 +787,10 @@ const UNREACHED_EXPLAINED: Record<string, string> = {
     'the fifth instance, and since #1354 it is on the ATOMIC control rather than the row — the switch split, and the ring moved with the painted track into `switch-control`, which nests it inside its own `track` box (exactly as #1226 moved checkbox\'s ring into `checkbox-control`). Still a nomination: it names the colour the nested `focus-ring` draws, and no node of this def can carry a ring stroke (#740). The shape is now confirmed rather than suspected — five defs, one reason, one open issue (#740). The reason this stays a per-def entry rather than becoming a rule keyed off `nests`: the rule would then be derived from the same field the projection reads, so a def that nested a ring and legitimately DID paint one would be exempted by the mechanism instead of caught by it.',
   'tag|focus-ring':
     'the sixth ring nomination, and the same shape as `button|focus-ring`: it names the colour the nested `focus-ring` draws around the tag at focus-visible, and no node of this def can carry a ring stroke (#740). A nomination, not a paint.',
-  'tab|focus-ring':
+  '_tab-item|focus-ring':
     'the seventh ring nomination, the same shape as `tag|focus-ring`: it names the colour the nested `focus-ring` draws around the tab at focus-visible, and no node of this def can carry a ring stroke (#740). A nomination, not a paint.',
-  'segmented-control-segment|focus-ring':
-    'the eighth ring nomination, the same shape as `tab|focus-ring`: it names the colour the nested `focus-ring` draws around a segmented control option\'s indicator at focus-visible, and no node of this def can carry a ring stroke (#740). A nomination, not a paint.',
+  '_segmented-control-segment|focus-ring':
+    'the eighth ring nomination, the same shape as `_tab-item|focus-ring`: it names the colour the nested `focus-ring` draws around a segmented control option\'s indicator at focus-visible, and no node of this def can carry a ring stroke (#740). A nomination, not a paint.',
   'field-message|default.icon':
     'CATEGORY (b), and the first entry here that is not a ring nomination — see the header for why the two are kept apart. This key paints the status glyph on the DEFAULT status, and that status deliberately projects no glyph: the Prism2 reference row its grey ink matches is `standard` (no icon), so the three validation statuses carry gated `vector` parts and the default member is caption-only (#1010). Unreachable for a reason the five above do not share: nothing is missing from the projector. Every node the default member has IS asked for its paint, and the node this colour is for does not exist there — `props.icon` may supply one in code, per instance, which is a distinction Figma has no member for (see the def\'s `anatomy.codeOnly`). So there is no engine field to add and no issue to close, and the fix if this entry ever goes red is to DELETE it, not to widen anything: it goes red exactly when the default status gains a glyph, which is a def decision. The three validation-status glyph inks are reached normally and are not listed.',
   'divider|separator.fill':

@@ -748,10 +748,10 @@ section('rollout — every def that builds a set: drawn, converged, and clear of
     Checkbox: ['checkbox-control', 'checkbox-row', 'checkbox-group'],
     Radio: ['radio-control', 'radio-row', 'radio-group'],
     Switch: ['switch-control', 'switch-row'],
-    Tabs: ['tab', 'tabs'],
-    'Segmented control': ['segmented-control-segment', 'segmented-control'],
+    Tabs: ['_tab-item', 'tabs'],
+    'Segmented control': ['_segmented-control-segment', 'segmented-control'],
     Accordion: ['_accordion-indicator', 'accordion'],
-    List: ['list-item', 'list'],
+    List: ['_list-item', 'list'],
     // #2457 Q295.2 B: the flush icon button's three families share one page, as IconButton's do.
     'Flush Icon Button': ['flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral'],
   };

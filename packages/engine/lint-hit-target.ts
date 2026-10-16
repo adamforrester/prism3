@@ -160,11 +160,11 @@ const INTERACTIVE: Record<string, Binding> = {
   // Owner decision 4 (2026-09-27): a tag's default (medium) target clears 44, on Button's own height rung.
   'tag': { key: (s) => `size.${s}.height`, why: 'the tag box height' },
   // #2416: a tab's medium target is Button's own height rung, 44 on comfortable and spacious.
-  'tab': { key: (s) => `size.${s}.height`, why: 'the tab box height' },
+  '_tab-item': { key: (s) => `size.${s}.height`, why: 'the tab box height' },
   // #2417: the whole header row is the target; its floor is 44px at every size (owner Q182).
   'accordion': { key: (s) => `size.${s}.min-height`, why: 'the header row\'s min-height floor' },
   // #2418: each option\'s full-height cell is its target, on Button\'s own height rung (the visible pill is inset 4px).
-  'segmented-control-segment': { key: (s) => `size.${s}.height`, why: 'the option cell height' },
+  '_segmented-control-segment': { key: (s) => `size.${s}.height`, why: 'the option cell height' },
 };
 
 // ── TARGETS INSIDE A CONTROL (#1741): `<def>.<part>` → the tokens KEY of the part's side at a size ─────────
@@ -238,7 +238,7 @@ const ruleGap = (entries: readonly string[], rule: readonly RegExp[]): string[] 
 /** The defs carved out as a size-level exception: a small button (owner, #1443) and a small tag (owner,
  *  2026-09-27, "as for Button") sit below the floor on purpose. Kept as data so the walk asserts each is
  *  ACTUALLY below the floor. */
-const SMALL_SIZE = new Set(['button', 'button-destructive', 'button-neutral', 'tag', 'tab', 'segmented-control-segment']);
+const SMALL_SIZE = new Set(['button', 'button-destructive', 'button-neutral', 'tag', '_tab-item', '_segmented-control-segment']);
 
 // ── EXCLUDED: represented, with a stated reason (docs/34 — a hand-enumerated legitimate exclusion) ──
 const EXCLUDED: Record<string, string> = {
@@ -251,7 +251,7 @@ const EXCLUDED: Record<string, string> = {
   'divider': 'a 1px rule between groups of content, never interactive and never focusable',
   'dialog': 'a modal panel, never itself a pointer target: its close button and footer buttons are an IconButton.Neutral and Buttons, each measured under its own name (#2609)',
   'list': 'a read list of text items, never interactive and never focusable; a link inside an item is its own control (#2319)',
-  'list-item': 'one item of a read list, never interactive and never focusable; a link inside it is its own control (#2319)',
+  '_list-item': 'one item of a read list, never interactive and never focusable; a link inside it is its own control (#2319)',
   '_accordion-indicator': 'a decorative glyph inside an Accordion header; the tap target is the header row, gated as accordion',
   'image-placeholder': 'an empty-state media frame, not an interactive control',
   'spinner': 'a decorative loading indicator on the icon ladder, never interactive — the tap target is the host control it sits in (a pending button), which is gated',

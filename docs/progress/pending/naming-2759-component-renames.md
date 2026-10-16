@@ -1,0 +1,17 @@
+## (2026-10-16) — Naming sweep PR 3: three building blocks take the `_` prefix, renamed in place by Update (#2759, owner decisions Q349, Q353, Q355)
+
+**What moved.** `segmented-control-segment` is `_segmented-control-segment`, `tab` is `_tab-item`, and `list-item` is `_list-item`. Tabs, Segmented control and List nest the new ids. `_tab-item`'s display name is `Tabs.Item`. Q353 says "Tab item, following List item", and List item's name is `List.Item`, so the Parent.Child form is the recommendation, raised on #2759 as Q-N2. The Figma set name is the def id, so Figma now reads each as a building block and leaves it out of a published library. `_accordion-indicator` already had the prefix. `lint-naming.ts` drops the three `PENDING` prefix entries, and its floor (each id in the owner's set is registered and detected by its whenToUse) now reads the new ids directly.
+
+**File and export names are unchanged** (`tab.ts` exports `tab`). This follows `_accordion-indicator`, whose file is `accordion-indicator.ts`: the id carries the prefix, the file does not. Renaming the exports too would have touched hundreds of test lines for no reader-visible change.
+
+**The mechanism.** `COMPONENT_RENAMES` gains a `def` kind (`{ def: <old id>, kind: 'def', to: <new id> }`), with `currentDefId` and `formerDefIds` (both follow chains, and the first refuses a cycle). Update's `locateSets` finds a set by the current id. When there is none, it tries each earlier id the ledger renames into it, nearest first. The dry run marks a set found that way with `setRename`, which counts as a change, and its line ends "Renamed from <old id>." (draft wording, an owner item). The apply renames the set node first thing in `applySet`, so the set and every member keep their ids and every placed instance keeps pointing at them. A set this update renames counts as present for `fileBlockers`, so a Tabs updated in the same run as its Tab item is not refused for lacking `_tab-item`. Outside the renamed set, the rest is unchanged: nested sets are still updated first.
+
+**The lint does check these renames.** Unlike PR 2's properties, the merge base's baseline already holds `tab`, `list-item` and `segmented-control-segment`, so `unaccounted` compares each against its new id under the `def` entry. Without the entries, arm B fails naming each def. The id-keyed lists in other gates moved with the ids: `lint-absolute-inset`, `lint-axis-values`, `lint-hit-target`, `lint-paint` (two ring nominations and one provenance exception, keyed `<id>|…`), `lint-paint-placement`, `lint-rung-names`, `lint-standalone-floor`, `anatomy-figma`'s projected list, the plugin's `file-taxonomy`, the ecosystem data and the studio catalog (regenerated). The paint census changed only its keys.
+
+**Proof through the shim** (`test-update-apply.ts`, "def rename"). A Tab item set is built by the real executor from plans naming it `tab`. With no ledger entry, the dry run cannot find it: the update would build a second set. With the shipped ledger:
+- The dry run reads it under `tab`, marks it for renaming, and adds or drops nothing.
+- After the apply, there is one set, named `_tab-item`.
+- The set and every member keep their keys and ids.
+- A second dry run finds the set under the new id and reads every member current.
+
+**Not checked here, said so.** The shim's instance records its main component by name at creation and does not follow a rename, so "a placed instance still points at its main" is argued from the ids being kept (Figma resolves an instance's main by id), not observed.

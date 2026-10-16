@@ -18,6 +18,79 @@
     "members": 12,
     "properties": {}
   },
+  "_list-item": {
+    "axes": {
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ],
+      "type": [
+        "icon",
+        "ordered",
+        "unordered"
+      ]
+    },
+    "members": 9,
+    "properties": {
+      "number": "TEXT",
+      "swap icon": "INSTANCE_SWAP",
+      "text": "TEXT"
+    }
+  },
+  "_segmented-control-segment": {
+    "axes": {
+      "selection": [
+        "selected",
+        "unselected"
+      ],
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ],
+      "state": [
+        "disabled",
+        "focus-visible",
+        "hover",
+        "pressed",
+        "rest"
+      ]
+    },
+    "members": 30,
+    "properties": {
+      "label": "TEXT",
+      "leading icon": "BOOLEAN",
+      "↳ swap leading icon": "INSTANCE_SWAP"
+    }
+  },
+  "_tab-item": {
+    "axes": {
+      "selection": [
+        "selected",
+        "unselected"
+      ],
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ],
+      "state": [
+        "disabled",
+        "focus-visible",
+        "hover",
+        "pressed",
+        "rest"
+      ]
+    },
+    "members": 30,
+    "properties": {
+      "count": "BOOLEAN",
+      "label": "TEXT",
+      "leading icon": "BOOLEAN",
+      "↳ swap leading icon": "INSTANCE_SWAP"
+    }
+  },
   "accordion": {
     "axes": {
       "expansion": [
@@ -650,26 +723,6 @@
       "Item 8": "BOOLEAN"
     }
   },
-  "list-item": {
-    "axes": {
-      "size": [
-        "large",
-        "medium",
-        "small"
-      ],
-      "type": [
-        "icon",
-        "ordered",
-        "unordered"
-      ]
-    },
-    "members": 9,
-    "properties": {
-      "number": "TEXT",
-      "swap icon": "INSTANCE_SWAP",
-      "text": "TEXT"
-    }
-  },
   "password-field": {
     "axes": {
       "size": [
@@ -772,32 +825,6 @@
       "label": "BOOLEAN"
     }
   },
-  "segmented-control-segment": {
-    "axes": {
-      "selection": [
-        "selected",
-        "unselected"
-      ],
-      "size": [
-        "large",
-        "medium",
-        "small"
-      ],
-      "state": [
-        "disabled",
-        "focus-visible",
-        "hover",
-        "pressed",
-        "rest"
-      ]
-    },
-    "members": 30,
-    "properties": {
-      "label": "TEXT",
-      "leading icon": "BOOLEAN",
-      "↳ swap leading icon": "INSTANCE_SWAP"
-    }
-  },
   "select": {
     "axes": {
       "size": [
@@ -876,33 +903,6 @@
     "members": 2,
     "properties": {
       "label": "TEXT"
-    }
-  },
-  "tab": {
-    "axes": {
-      "selection": [
-        "selected",
-        "unselected"
-      ],
-      "size": [
-        "large",
-        "medium",
-        "small"
-      ],
-      "state": [
-        "disabled",
-        "focus-visible",
-        "hover",
-        "pressed",
-        "rest"
-      ]
-    },
-    "members": 30,
-    "properties": {
-      "count": "BOOLEAN",
-      "label": "TEXT",
-      "leading icon": "BOOLEAN",
-      "↳ swap leading icon": "INSTANCE_SWAP"
     }
   },
   "tabs": {

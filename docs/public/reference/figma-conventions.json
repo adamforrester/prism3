@@ -117,14 +117,14 @@
           {
             "name": "↳ Tabs",
             "components": [
-              "tab",
+              "_tab-item",
               "tabs"
             ]
           },
           {
             "name": "↳ Segmented control",
             "components": [
-              "segmented-control-segment",
+              "_segmented-control-segment",
               "segmented-control"
             ]
           },
@@ -144,7 +144,7 @@
           {
             "name": "↳ List",
             "components": [
-              "list-item",
+              "_list-item",
               "list"
             ]
           },
@@ -1699,10 +1699,11 @@
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/tag.md"
       },
       {
-        "id": "tab",
-        "name": "Tab",
-        "figmaName": "tab",
+        "id": "_tab-item",
+        "name": "Tab.Item",
+        "figmaName": "_tab-item",
         "kind": "component set",
+        "private": true,
         "page": "↳ Tabs",
         "section": "Components",
         "members": 30,
@@ -1747,7 +1748,7 @@
             "type": "BOOLEAN"
           }
         ],
-        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/tab.md"
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/_tab-item.md"
       },
       {
         "id": "tabs",
@@ -1907,10 +1908,11 @@
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/accordion.md"
       },
       {
-        "id": "list-item",
+        "id": "_list-item",
         "name": "List.Item",
-        "figmaName": "list-item",
+        "figmaName": "_list-item",
         "kind": "component set",
+        "private": true,
         "page": "↳ List",
         "section": "Components",
         "members": 9,
@@ -1947,7 +1949,7 @@
             "swapTarget": "icon/check"
           }
         ],
-        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/list-item.md"
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/_list-item.md"
       },
       {
         "id": "list",
@@ -2000,10 +2002,11 @@
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/list.md"
       },
       {
-        "id": "segmented-control-segment",
+        "id": "_segmented-control-segment",
         "name": "SegmentedControl.Segment",
-        "figmaName": "segmented-control-segment",
+        "figmaName": "_segmented-control-segment",
         "kind": "component set",
+        "private": true,
         "page": "↳ Segmented control",
         "section": "Components",
         "members": 30,
@@ -2044,7 +2047,7 @@
             "type": "BOOLEAN"
           }
         ],
-        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/segmented-control-segment.md"
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/_segmented-control-segment.md"
       },
       {
         "id": "segmented-control",
@@ -2484,7 +2487,7 @@
       "image-placeholder",
       "badge",
       "tag",
-      "tab",
+      "_tab-item",
       "tabs",
       "divider",
       "_accordion-indicator",
@@ -2492,9 +2495,9 @@
       "flush-icon-button",
       "flush-icon-button-destructive",
       "flush-icon-button-neutral",
-      "list-item",
+      "_list-item",
       "list",
-      "segmented-control-segment",
+      "_segmented-control-segment",
       "segmented-control",
       "link",
       "dialog",
