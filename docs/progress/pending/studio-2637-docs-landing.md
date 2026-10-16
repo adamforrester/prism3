@@ -1,7 +1,8 @@
 ## (2026-10-16) — Docs: a /docs landing page, linked from the studio header and the plugin (#2637, owner decision Q384 A)
 
 **Status:** Studio, plugin and `docs/public/`. No engine change, no artifact moves, no ENGINE change note, CONTRACT
-unchanged, the executor untouched. The page's copy is a DRAFT for the owner.
+unchanged, the executor untouched. The owner approved both link placements and the page, copy included, from
+screenshots before the push (2026-10-16).
 
 ### What changed
 
@@ -19,7 +20,6 @@ unchanged, the executor untouched. The page's copy is a DRAFT for the owner.
 - **Why the address is only in the main thread.** `open-docs` carries no URL, so the iframe cannot point
   `openExternal` anywhere else. `openExternal` needs no network permission, so the release build opens it too. The
   release manifest still allows no domains, and `release/main.js` carries the call.
-
 - **`lint-ecosystem.ts` lists `open-docs` as plumbing.** The gate failed the first full verify: every `UiToMain`
   message must sit in a feature's figma lane or on its `PLUMBING` list. Docs is panel chrome, like `set-theme-pref`.
   It can't be a shared feature either: a feature that sends a plugin message cannot claim the web, by the gate's own
