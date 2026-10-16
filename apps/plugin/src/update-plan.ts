@@ -806,7 +806,14 @@ export const hostPorts = async (host: UpdateHost): Promise<UpdatePorts> => {
   const comps = new Map<string, string>();
   for (const c of host.root.findAllWithCriteria({ types: ['COMPONENT_SET', 'COMPONENT'] }) as readonly { key?: unknown; name?: unknown }[])
     if (typeof c.key === 'string' && c.key) comps.set(c.key, String(c.name ?? ''));
-  return { varName: (id) => v.get(id) ?? null, styleName: (id) => st.get(id) ?? null, componentName: (k) => comps.get(k) ?? null, drawVars };
+  // A component's id → its name (#2645), for a swap override's value. Searched on first use, once: only a plan with a
+  // swap override reads it, and the search is document-wide.
+  let compsById: Map<string, string> | undefined;
+  const componentById = (id: string): string | null => {
+    compsById ??= new Map((host.root.findAllWithCriteria({ types: ['COMPONENT'] }) as readonly { id?: unknown; name?: unknown }[]).map((c) => [String(c.id ?? ''), String(c.name ?? '')] as const));
+    return compsById.get(id) ?? null;
+  };
+  return { varName: (id) => v.get(id) ?? null, styleName: (id) => st.get(id) ?? null, componentName: (k) => comps.get(k) ?? null, componentById, drawVars };
 };
 
 /** The ports with the set's own SLOT properties (#2649): a member read as a snapshot has no set above its slots. */

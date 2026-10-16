@@ -77,6 +77,9 @@
  *   display rename/…  an Accordion built while its icon axis was `position`, or `iconPosition`, updates in place to the
  *                  def's `icon position`: every member renamed, every key and id the test captured kept (#2592).
  *                  Mutation: the ledger entries dropped → `display rename/position …`, `display rename/iconPosition …`.
+ *   accordion pad-x/…  an Accordion built at the old large side padding (space/300, 24px) updates in place to the
+ *                  def's 20px (space/250, Q338 A, #2726): the 8 large members updated, the 16 others current, every key
+ *                  and id kept. Mutation: the def back at space.300 → `accordion pad-x/dry run`, `accordion pad-x/written`.
  *   apply/copy     with the original's coordinate dropped, only the original is marked deprecated; a Figma duplicate
  *                  of it and an unstamped member off the plan keep their description, stamp and record exactly
  *                  (#2328 review). Mutation: the deprecations take the unstamped members too → `apply/copy`.
@@ -122,6 +125,10 @@
  *                  stops dropped from the draw check → `veil/dry run`, `veil/repaired`, `veil/verify`; verify's draw check dropped → `veil/verify`.
  *                  Stops at their color but 100% alpha read "to update" and fail verify; the alpha comparison dropped from
  *                  the draw check's gradient branch → `veil/alpha dry run`, `veil/alpha verify`.
+ *   overrides/…    a List built before its items carried their numbers (#2645): the dry run lists the override on
+ *                  items 2 to 8 as a change and replaces nothing; Update writes each in place, every key and id kept,
+ *                  and a number a designer typed is kept as a hand edit. Mutation: the in-place branch skipping the
+ *                  override write → `overrides/written in place`.
  *   noop/…         a set already current: no version, no write.
  *   order/…        nested sets are updated first.
  *
@@ -169,7 +176,7 @@ const planChild = (n: PlanNode, name: string): PlanNode => n.children!.find((c) 
 type World = { host: ApplyHost; api: Record<string, any>; page: Page; set: () => Node; plans: AnatomyPlan[] };
 /** A fresh file holding one set, built by the executor, with identities on. `extraVars` are variables the file
  *  holds beyond the plans', for a later plan to bind. */
-const world = async (id: string, plans = plansOf(id), o: { extraVars?: string[]; extraStyles?: string[]; extraComps?: string[]; keyPrefix?: string; styleIdPrefix?: string; unavailableFonts?: { family: string; style: string }[]; refuseVersion?: boolean; allowMisses?: string[] } = {}): Promise<World> => {
+const world = async (id: string, plans = plansOf(id), o: { extraVars?: string[]; extraStyles?: string[]; extraComps?: string[]; componentProps?: Record<string, Record<string, { type: string; defaultValue: string | boolean }>>; keyPrefix?: string; styleIdPrefix?: string; unavailableFonts?: { family: string; style: string }[]; refuseVersion?: boolean; allowMisses?: string[] } = {}): Promise<World> => {
   const page: Page = { children: [] };
   const api = makeShim({
     vars: [...new Set([...plans.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]), 'space/0', ...(o.extraVars ?? [])])],
@@ -183,6 +190,7 @@ const world = async (id: string, plans = plansOf(id), o: { extraVars?: string[];
     keyPrefix: o.keyPrefix,
     styleIdPrefix: o.styleIdPrefix,
     refuseVersion: o.refuseVersion,
+    componentProps: o.componentProps,
   }) as any;
   const built = await applyComponentPlan(plans, api);
   if (o.allowMisses) o.allowMisses.push(...built.misses);
@@ -576,6 +584,45 @@ for (const old of ['position', 'iconPosition']) {
     `display rename/${old} in place: every member renamed onto icon position, its key and id kept (${res.outcomes[0]?.renamed}; ${after.members.size}; ${applyVerdict(res).headline}; ${res.outcomes[0]?.refused ?? ''})`);
   const post = (await previewUpdate(w.host, [{ def: 'accordion', plans: w.plans }])).sets[0];
   ok(post?.counts.current === n, `display rename/${old} current: every member reads current after (${JSON.stringify(post?.counts)})`);
+}
+
+section('accordion side padding — a file built at the old large 24px updates in place to 20px (#2726, Q338 A)');
+{
+  // The file as main built it before Q338: the large header and the open panel padded at the sides by space/300 (24px).
+  // The literal is the test's own; the plan it updates to is the engine's current one.
+  const SIDES = ['paddingLeft', 'paddingRight'] as const;
+  const atOld = plansOf('accordion').map((p) => {
+    const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan;
+    if (q.size === 'large') for (const part of ['header', 'content']) {
+      const n = planChild(q.root, part);
+      if (n) for (const k of SIDES) (n.bound as Record<string, string>)[k] = 'space/300';
+    }
+    return q;
+  });
+  const w = await world('accordion', atOld, { extraVars: ['space/250'] });
+  const sidesOf = (m: Node) => ['header', 'content'].flatMap((part) => {
+    const n = (m.children as Node[]).find((c) => c.name === part);
+    return n ? SIDES.map((k) => (n.boundVariables as Record<string, { id: string }>)[k]?.id) : [];
+  });
+  const old = await varIdOf(w, 'space/300'), next = await varIdOf(w, 'space/250');
+  const large = (m: Node) => /(^|, )size=large(,|$)/.test(String(m.name));
+  ok(membersOf(w.set()).filter(large).length === 8 && membersOf(w.set()).filter(large).every((m) => sidesOf(m).every((id) => id === old)),
+    'premise: the 8 large members are padded at the sides by space/300, the old 24px');
+  const before = identityOf(w.set());
+  const plans = plansOf('accordion');
+  const { pre, res } = await confirm(w, [{ def: 'accordion', plans }]);
+  const p = pre.sets[0];
+  ok(!!p && !p.blockers.length && p.counts.update === 8 && p.counts.current === 16 && p.counts.add === 0 && p.counts.drop === 0,
+    `accordion pad-x/dry run: the 8 large members to update, the 16 small and medium current, nothing added or dropped (${JSON.stringify(p?.counts)})`);
+  const after = identityOf(w.set());
+  const moved = [...before.members].filter(([name, b]) => after.members.get(name)?.key !== b.key || after.members.get(name)?.id !== b.id).map(([n]) => n);
+  const kidsMoved = [...before.members].flatMap(([name, b]) => [...b.kids].filter(([path, id]) => after.members.get(name)?.kids.get(path) !== id).map(([path]) => `${name}/${path}`));
+  ok(applyVerdict(res).ok && moved.length === 0 && kidsMoved.length === 0 && after.members.size === 24,
+    `accordion pad-x/in place: every member and child keeps its key and id (${applyVerdict(res).headline}; ${moved.length} members, ${kidsMoved.length} children moved)`);
+  const wrong = membersOf(w.set()).filter((m) => !sidesOf(m).every((id) => (large(m) ? id === next : id !== old && !!id))).map((m) => String(m.name));
+  ok(wrong.length === 0, `accordion pad-x/written: the large header and open panel now bind space/250 (20px) at both sides, and no member still binds space/300 there (${wrong.slice(0, 2).join('; ')})`);
+  const post = (await previewUpdate(w.host, [{ def: 'accordion', plans }])).sets[0];
+  ok(post?.counts.current === 24, `accordion pad-x/current: every member reads current after (${JSON.stringify(post?.counts)})`);
 }
 
 /* ── single ──────────────────────────────────────────────────────────────────────────────────────────── */
@@ -2392,6 +2439,51 @@ section('accordion — a set built before the header row (#2594, owner Q276 A) t
   ok(again.pre.sets[0].counts.update === 24 && applyVerdict(again.res).ok, `acc/again: a revision bump reads all 24 out of date and updates them (${JSON.stringify(again.pre.sets[0].counts)}; ${applyVerdict(again.res).headline})`);
   const reRow = membersOf(w.set()).filter((m) => rowIds(m) !== beforeRow.get(String(m.name))).map((m) => String(m.name));
   ok(reRow.length === 0, `acc/row adopted: a later update keeps the row and every node under it, by id, on every member (${reRow.slice(0, 2).join('; ') || 'all 24'})`);
+}
+
+/* ── overrides (#2645) ──────────────────────────────────────────────────────────────────────────────── */
+section('overrides — a nested instance with no override yet gains it in place on Update; a hand edit is kept (#2645)');
+{
+  // A List built BEFORE its items carried their numbers: the same plans with every `nestOverrides` taken out, built by
+  // the real executor. List.Item's two TEXT properties are declared on the host with ids the plan cannot know.
+  const LIST = 'list';
+  const planned = plansOf(LIST);
+  const strip = (n: PlanNode): PlanNode => {
+    const { nestOverrides: _drop, ...rest } = n as PlanNode & { nestOverrides?: unknown };
+    void _drop;
+    return { ...rest, children: (n.children ?? []).map(strip) } as PlanNode;
+  };
+  const old = planned.map((p) => ({ ...p, root: strip(p.root) }));
+  ok(planned.every((p) => JSON.stringify(p).includes('"nestOverrides"')) && old.every((p) => !JSON.stringify(p).includes('nestOverrides')),
+    'premise: every List plan carries overrides, and the plans the file was built from carry none');
+  const NUM = 'number#7:2';
+  const w = await world(LIST, old, { componentProps: { 'list-item': { 'text#7:1': { type: 'TEXT', defaultValue: 'List item' }, [NUM]: { type: 'TEXT', defaultValue: '1.' } } } });
+  const items = (m: Node): Node[] => [1, 2, 3, 4, 5, 6, 7, 8].map((i) => childNamed(m, `item${i}`));
+  const numberOf = (n: Node): unknown => (n.componentProperties as Record<string, { value: unknown }>)[NUM]?.value;
+  ok(membersOf(w.set()).every((m) => items(m).every((n) => numberOf(n) === '1.')), 'premise: as built, every item of every member reads "1."');
+  // A designer's own number on ONE item of ONE member, typed before the update.
+  const edited = membersOf(w.set())[0];
+  (childNamed(edited, 'item2').setProperties as (p: Record<string, string>) => void)({ [NUM]: '2)' });
+  const before = identityOf(w.set());
+  const { pre, res } = await confirm(w, [{ def: LIST, plans: planned }]);
+  const set0 = pre.sets[0];
+  const fields = new Set(set0.changes.map((c) => `${c.part}:${c.field}`));
+  ok([2, 3, 4, 5, 6, 7, 8].every((i) => fields.has(`item${i}:nestOverrides`)) && !fields.has('item1:nestOverrides') && set0.replacements.length === 0,
+    `overrides/dry run: the dry run lists the override on items 2 to 8 as a change, not on item 1, and replaces nothing (${[...fields].filter((f) => f.endsWith('nestOverrides')).join(', ')}; ${set0.replacements.length} replacements)`);
+  ok(set0.handEdits.some((h) => h.member === String(edited.name) && h.path === 'item2'),
+    `overrides/hand edit reported: the typed number reads as a hand edit (${JSON.stringify(set0.handEdits).slice(0, 200)})`);
+  ok(applyVerdict(res).ok, `overrides/verdict: ${applyVerdict(res).headline} (${applyVerdict(res).lines.slice(0, 2).join(' | ').slice(0, 240)})`);
+  const wrong = membersOf(w.set()).flatMap((m) => items(m).map((n, i) => {
+    const want = m === edited && i === 1 ? '2)' : `${i + 1}.`;
+    return numberOf(n) === want ? null : `${String(m.name)}/item${i + 1}=${String(numberOf(n))} (want ${want})`;
+  })).filter(Boolean);
+  ok(wrong.length === 0, `overrides/written in place: every item now reads its own number, "1." to "8.", and the hand-typed "2)" is kept (${wrong.length} off: ${wrong.slice(0, 3).join('; ')})`);
+  const after = identityOf(w.set());
+  ok([...before.members].every(([name, b]) => after.members.get(name)?.key === b.key && [...b.kids].every(([p, id]) => after.members.get(name)?.kids.get(p) === id)),
+    'overrides/ids: every member and every nested item keeps its key and id: nothing was rebuilt');
+  const post = (await previewUpdate(w.host, [{ def: LIST, plans: planned }])).sets[0];
+  ok(post.counts.update === 0 && post.counts.current === 8 && post.handEdits.some((h) => h.member === String(edited.name) && h.path === 'item2'),
+    `overrides/current: the next dry run reads the other 8 members current and still reports the hand edit (${JSON.stringify(post.counts)}; ${JSON.stringify(post.changes).slice(0, 200)})`);
 }
 
 void STYLE_FONT; void BASELINE_KEY;

@@ -245,12 +245,14 @@ export const CLI = [
   'packages/engine/token-contract.ts',
   'packages/engine/materialise-to-figma.ts',
   'fold.ts',
+  'packages/engine/visualize.ts',
   'verify.ts',
   'tools/figma-bridge/server.ts',
   'tools/figma-mcp/agent-link.ts',
   'tools/figma-mcp/plan.ts',
   'tools/figma-mcp/report.ts',
   'packages/engine/emit-agent-reference.ts',
+  'packages/engine/emit-figma-conventions.ts',
 ];
 
 /** Files that read `process.argv` and are deliberately not listed, each with why. */
@@ -362,6 +364,54 @@ const names = (ref: any): Map<string, string> => {
   return m;
 };
 
+/**
+ * NO LEGACY NAMESPACE IN AN EXAMPLE (owner Q313.2 A, #2644). A refusal quoted from the plugin once taught an agent
+ * to name a table `Primary — <legacy root>`: a client's namespace from before the engine generated one, served to
+ * every agent as if it were the way to spell a Prism3 table. The default brand's root is `prism`; a reference that
+ * reaches for another brand's root to illustrate a generic argument is wrong for every reader but one.
+ *
+ * The list is typed here, not read from the engine's brands: a list derived from what the engine emits today would
+ * shrink the moment a brand input was retired, and stop catching the very name it exists to catch (docs/34).
+ * Matched as a whole word in any case, so `pds3` (a scale name) and `prism` do not hit.
+ */
+export const LEGACY_NAMESPACES = ['nbds', 'pds'] as const;
+const LEGACY_RE = new RegExp(`(?<![\\w-])(${LEGACY_NAMESPACES.join('|')})(?![\\w-])`, 'i');
+
+/** Each named entry (or the whole text, when no entry holds it) that spells a legacy namespace, by name. */
+export const legacyNamespaceHits = (ref: unknown, text: string): string[] => {
+  const out: string[] = [];
+  for (const [k, v] of names(ref)) { const m = LEGACY_RE.exec(v); if (m) out.push(`legacy namespace '${m[1]}' in ${k}`); }
+  if (!out.length) { const m = LEGACY_RE.exec(text); if (m) out.push(`legacy namespace '${m[1]}' outside any named entry`); }
+  return out;
+};
+
+/**
+ * THE MATCHER'S OWN SELF-CHECK, run before the real scan (the `lint-skills.ts` pattern; docs/34). `--check` alone
+ * cannot catch a legacy root that returns through a source edit plus a regen: both sides of its comparison move
+ * together. So `legacyNamespaceHits` is the only thing that would, and a one-character change to its matcher would
+ * go silent. Each probe below is a refusal-shaped string that must hit (every listed name, in lower and upper case,
+ * and as the `<root>.<sub>` form) or must not (`pds3`, a scale name; `prism`, the default root). The probes are built
+ * on a reference-shaped object, so a hit must also come back NAMED by its entry, not only found in the text.
+ */
+export const legacyNamespaceSelfCheck = (): string[] => {
+  const broken: string[] = [];
+  if (!LEGACY_NAMESPACES.length) broken.push('LEGACY_NAMESPACES is empty');
+  const probe = (message: string) => {
+    const ref = { agentLink: { commands: [{ name: 'probe', message }] } };
+    return legacyNamespaceHits(ref, JSON.stringify(ref));
+  };
+  for (const ns of LEGACY_NAMESPACES) {
+    for (const spelled of [ns, ns.toUpperCase(), `${ns}.color`, `${ns.toUpperCase()}.${ns}`]) {
+      const hits = probe(`style-guide: args.tables entries are '<collection> — <root>' titles, e.g. ['Primary — ${spelled}']`);
+      if (!hits.some((h) => h.includes('agent-link command probe') && h.toLowerCase().includes(`'${ns}'`)))
+        broken.push(`'${spelled}' in a refusal is not reported by name (got ${hits.join(' | ') || 'nothing'})`);
+    }
+  }
+  for (const clean of ['pds3', 'prism', 'prism.color', 'Primary — prism'])
+    if (probe(`e.g. ['${clean}']`).length) broken.push(`'${clean}' is reported as a legacy namespace, and must not be`);
+  return broken;
+};
+
 export const diffByName = (committed: unknown, fresh: unknown): string[] => {
   const a = names(committed);
   const b = names(fresh);
@@ -376,6 +426,18 @@ if (isMain) {
   const target = join(repo, REFERENCE);
   let fresh: string;
   try { fresh = serialize(buildReference()); } catch (e) { console.error(`❌ ${(e as Error).message}`); process.exit(1); }
+  const broken = legacyNamespaceSelfCheck();
+  if (broken.length) {
+    console.error(`❌ the legacy-namespace check is broken — it cannot see what it claims to:`);
+    for (const b of broken) console.error(`    ${b}`);
+    process.exit(1);
+  }
+  const legacy = legacyNamespaceHits(JSON.parse(fresh), fresh);
+  if (legacy.length) {
+    console.error(`❌ the agent reference would ship a legacy brand namespace as an example — change it at the source:`);
+    for (const h of legacy) console.error(`    ${h}`);
+    process.exit(1);
+  }
   if (process.argv.includes('--check')) {
     const committed = existsSync(target) ? readFileSync(target, 'utf8') : '';
     if (committed === fresh) {
