@@ -92,6 +92,7 @@ export const radioGroup: ComponentDef = {
   // exclusivity meaning.
   props: [
     { name: 'label', type: 'string | node', required: true, description: 'The group heading, rendered as the nested FieldLabel and the group\'s accessible name (role="radiogroup" + aria-labelledby). Names the decision the set answers ("Shipping method", "How should we contact you?"), letting its rows read the abstracted-up short labels ("Standard", "Express", "Overnight"). Mandatory for meaning: without it assistive tech announces an orphaned "radio button, 1 of 3" with no indication of what is being chosen.' },
+    { name: 'items', type: 'slot', anyOf: ['radio-row'], minItems: 1, required: true, description: 'The options, each a Radio.Row, in order. Three by default; a designer adds, removes and reorders them in place.' },
     { name: 'value', type: 'string', required: false, description: 'The controlled scalar selected option value — exactly one, where Checkbox.Group owns an array. The group owns it; each row\'s checked appearance is derived (checked = (value === row.value)), never wired on the row. Pair with onChange; use defaultValue for the uncontrolled form.' },
     { name: 'defaultValue', type: 'string', required: false, description: 'Uncontrolled initial selection — a single option value. Start empty (unset) to force a deliberate choice; pre-select only where a genuinely safe recommended default exists, and never pre-select a consent-shaped option.' },
     { name: 'onChange', type: '(value: string, event) => void', required: false, description: 'Fires with the new scalar value when a different row is selected. The group dispatches it; a row never owns its own onChange inside a group. Keep it cheap — selection follows focus by default, so a screen-reader user arrowing through fires it at every step.' },
@@ -145,11 +146,10 @@ export const radioGroup: ComponentDef = {
 
   // ── ANATOMY — a column: the nested FieldLabel above a stack of nested Radio rows ───────────────────────
   //
-  // container (column) → nested `field-label` · row1 … row8. The label and rows are all in-flow `nest`s (the
-  // select precedent, #1226). The label `follow`s the group's size and pins Prism 2's Secondary/Bold styling;
-  // each row `follow`s the size too. EIGHT rows, seven behind Figma-only toggles, stand in for the code's
-  // `children: RadioRow[]`, as on `checkbox-group` (#2344, owner decision Q156 A). Prism 2's group showed two
-  // rows by default; the owner set three for both groups, so the two match.
+  // container (column) → nested `field-label` · the `items` slot holding the rows. The label and rows are in-flow `nest`s
+  // (the select precedent, #1226). The label `follow`s the group's size and pins Prism 2's Secondary/Bold styling;
+  // each row `follow`s the size too. The slot stands in for the code's `items: RadioRow[]` (#2649, owner decision Q307 A;
+  // until then eight rows behind Figma-only booleans, #2344).
   anatomy: {
     root: 'container',
     parts: {
@@ -181,7 +181,7 @@ export const radioGroup: ComponentDef = {
         // column down to the fields' 120 floor (Q152.2); the rows still stretch to whatever it is.
         placementWidth: 320,
         minWidth: 120,
-        children: ['label', 'row1', 'row2', 'row3', 'row4', 'row5', 'row6', 'row7', 'row8'],
+        children: ['label', 'items'],
       },
       // THE NESTED GROUP LABEL (nest-fixed, FOLLOWING size). An in-flow instance of `field-label`, configured
       // to Prism 2's group `formLabel`: emphasis SECONDARY, weight BOLD, and `required` at its own default (off since #1699).
@@ -205,11 +205,28 @@ export const radioGroup: ComponentDef = {
       // per-row axis can express) — a designer overrides each row instance's exposed `selection`/`state` in
       // place, and a code consumer derives them from the single scalar value. `variant: { size: 'medium' }` is
       // the fallback the follow overrides per member; `radio-row` projects only `size`, so that one axis is
-      // the whole coordinate. Eight rows, seven behind Figma-only toggles, stand in for the code's `children` (#2344).
+      // the whole coordinate. Three rows by default in the `items` slot stand in for the code's `items` (#2649).
       //
       // `crossAxisFill: true` (#1503) — each row STRETCHES to the group's width (`layoutAlign: STRETCH`),
       // reproducing Prism 2's `radioButtonRow: FILL`, mirroring `checkbox-group` exactly (the two match by
       // sharing this resolution). The LABEL is NOT stretched (Prism 2's label hugs above the filled rows).
+      // THE ITEMS SLOT (#2649, owner decision Q307 A). A native Figma slot (#2417) holding the rows: three by
+      // default, and a designer adds, removes and reorders rows on an instance in place, where the group used to
+      // carry eight fixed rows behind Figma-only booleans (#2344, the "hidden nested instances" pattern). In code it
+      // is `items`, a children array of the row type. Stretches across the group, so its rows do too.
+      items: {
+        kind: 'box',
+        role: 'presentation',
+        contentSlot: true,
+        // Owner decision Q307 A: at least one item, and only a radio-row (#2646's slot constraints).
+        slotSettings: { minChildren: 1, allowPreferredValuesOnly: true },
+        preferred: ['radio-row'],
+        layout: { direction: 'column', align: 'start', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
+        gap: 'gap',
+        crossAxisFill: true,
+        children: ['row1', 'row2', 'row3'],
+        note: 'The items: a native slot holding the Radio.Row instances, three by default. A designer adds, removes and reorders rows in place.',
+      },
       row1: {
         kind: 'nest',
         nests: 'radio-row',
@@ -222,56 +239,14 @@ export const radioGroup: ComponentDef = {
         nests: 'radio-row',
         nesting: { kind: 'nest-fixed', variant: { size: 'medium' }, follow: ['size'] },
         crossAxisFill: true,
-        optional: true,
-        note: 'Row 2 of up to eight: a Radio.Row, shown by default, behind the Figma-only "Option 2" toggle (#2344). Same nest configuration as the first, including the group-width fill.',
+        note: 'The second default item: a Radio.Row, the same nest configuration as the first, including the group-width fill.',
       },
       row3: {
         kind: 'nest',
         nests: 'radio-row',
         nesting: { kind: 'nest-fixed', variant: { size: 'medium' }, follow: ['size'] },
         crossAxisFill: true,
-        optional: true,
-        note: 'Row 3 of up to eight: a Radio.Row, shown by default, behind the Figma-only "Option 3" toggle (#2344). Same nest configuration as the first, including the group-width fill.',
-      },
-      row4: {
-        kind: 'nest',
-        nests: 'radio-row',
-        nesting: { kind: 'nest-fixed', variant: { size: 'medium' }, follow: ['size'] },
-        crossAxisFill: true,
-        optional: true,
-        note: 'Row 4 of up to eight: a Radio.Row, hidden by default, behind the Figma-only "Option 4" toggle (#2344). Same nest configuration as the first, including the group-width fill.',
-      },
-      row5: {
-        kind: 'nest',
-        nests: 'radio-row',
-        nesting: { kind: 'nest-fixed', variant: { size: 'medium' }, follow: ['size'] },
-        crossAxisFill: true,
-        optional: true,
-        note: 'Row 5 of up to eight: a Radio.Row, hidden by default, behind the Figma-only "Option 5" toggle (#2344). Same nest configuration as the first, including the group-width fill.',
-      },
-      row6: {
-        kind: 'nest',
-        nests: 'radio-row',
-        nesting: { kind: 'nest-fixed', variant: { size: 'medium' }, follow: ['size'] },
-        crossAxisFill: true,
-        optional: true,
-        note: 'Row 6 of up to eight: a Radio.Row, hidden by default, behind the Figma-only "Option 6" toggle (#2344). Same nest configuration as the first, including the group-width fill.',
-      },
-      row7: {
-        kind: 'nest',
-        nests: 'radio-row',
-        nesting: { kind: 'nest-fixed', variant: { size: 'medium' }, follow: ['size'] },
-        crossAxisFill: true,
-        optional: true,
-        note: 'Row 7 of up to eight: a Radio.Row, hidden by default, behind the Figma-only "Option 7" toggle (#2344). Same nest configuration as the first, including the group-width fill.',
-      },
-      row8: {
-        kind: 'nest',
-        nests: 'radio-row',
-        nesting: { kind: 'nest-fixed', variant: { size: 'medium' }, follow: ['size'] },
-        crossAxisFill: true,
-        optional: true,
-        note: 'Row 8 of up to eight: a Radio.Row, hidden by default, behind the Figma-only "Option 8" toggle (#2344). Same nest configuration as the first, including the group-width fill.',
+        note: 'The third default item: a Radio.Row, the same nest configuration as the first, including the group-width fill.',
       },
     },
     codeOnly: [
@@ -280,7 +255,7 @@ export const radioGroup: ComponentDef = {
       'name — the SHARED control name that enforces browser-level EXCLUSIVITY, owned by the group and load-bearing rather than a submission convenience. An individual option setting its own name breaks exclusivity outright. Figma has no DOM naming, so the shared name is the code projection\'s; the projected rows cannot show the exclusivity that makes them radios rather than toggles.',
       'roving tabindex / single tab stop — THE OPPOSITE OF CHECKBOX-GROUP, and radio\'s headline keyboard difference. The whole group is ONE tab stop: Tab moves into it and the next Tab moves out, while arrow keys move between options (wrapping, Home/End to first/last) and Space/selection-follows-focus selects. Implement with roving tabindex (the checked option at tabindex="0", siblings at -1). Making each option its own tab stop is the most common radio a11y failure. Figma has no accessibility tree and no keyboard model, so none of this is projectable — it lives in `accessibility.keyboard` and here.',
       'error / validation — GROUP-LEVEL and [HELD]. The brief says the group owns validation and carries the error message ("Select a shipping method", SC 3.3.3), with the individual rows staying neutral. Prism 2\'s spec settles no error visual for the group (no error state, no group field-message), so this def deliberately does NOT invent one: whether the group composes a nested `field-message` for the error, and what an errored group looks like, is held for owner decision. `required` IS carried (via the nested FieldLabel and aria-required); error is not. Same [HELD] as `checkbox-group`.',
-      'variable row count — in code the count is simply `children: RadioRow[]` of any length. Figma has no data model, so the projection carries a fixed stack of eight nested rows, row 1 always shown and rows 2 to 8 each behind a Figma-only "Option N" toggle, three shown by default (#2344, owner decision Q156 A, Prism 2\'s mechanism with eight rows where it had six). The toggles are Figma\'s only: no code prop drives them, and a hidden row is not an option. A group needing more than eight options is built in code.',
+      'variable row count — in code the rows are `items: RadioRow[]`, any number from one up. Figma holds them in the native `items` slot (#2649, owner decision Q307 A), three by default: a designer adds, removes and reorders rows on an instance in place, and only a radio-row belongs there. Until #2649 the group carried eight fixed rows behind Figma-only booleans (#2344).',
       'orientation — [HELD]. The group `orientation` (vertical / horizontal) is `RadioGroup`\'s own axis (`radio-row` records it there); Prism 2 is vertical only. Vertical scans better and lets long option labels wrap, so it is the built default and horizontal is not invented here — a horizontal axis is held rather than guessed at, the same as `checkbox-group`.',
       'the disabled dim — a disabled GROUP dims every row and the label, driven by the group\'s context (the CSS cascade / a data-attribute), not by a prop on each row. It is [HELD] out of the Figma projection (Prism 2 shows no group disabled treatment), so a designer sees the rest configuration and a code consumer gets the dim from the group.',
       'the id / describedby WIRING and role="radiogroup" — the host generates ids, ties the FieldLabel to the group via aria-labelledby, and stitches any group message into aria-describedby. Figma has no accessibility tree and no node-to-node reference, so the nested label sits above the rows and is associated by proximity alone (the ceiling field-label already hits).',
@@ -290,22 +265,10 @@ export const radioGroup: ComponentDef = {
   },
 
   // How this projects into Figma. `size` is the one variant axis (3 members); no `stateAxis` (the group has
-  // no state of its own — `rest` alone), the seven Figma-only row toggles (#2344, below), no `texts`/`swaps` (the group has no text or swap part of its own;
+  // no state of its own — `rest` alone), the rows in the native `items` slot (#2649, no row booleans), no `texts`/`swaps` (the group has no text or swap part of its own;
   // the label text is the nested FieldLabel's). Identical projection shape to `checkbox-group`.
   figmaProperties: {
     variantAxes: ['size'],
-    // UP TO EIGHT ROWS (#2344, owner decision Q156 A): row 1 always shows; rows 2 to 8 each sit behind a FIGMA-ONLY
-    // boolean (no code prop — in code the count is `children`), rows 2 and 3 on by default, so a group reads as the
-    // three rows it always did and a designer turns on up to five more. Booleans do not multiply the set.
-    booleans: {
-      option2: { part: 'row2', default: true, figmaName: 'Option 2', figmaOnly: true },
-      option3: { part: 'row3', default: true, figmaName: 'Option 3', figmaOnly: true },
-      option4: { part: 'row4', default: false, figmaName: 'Option 4', figmaOnly: true },
-      option5: { part: 'row5', default: false, figmaName: 'Option 5', figmaOnly: true },
-      option6: { part: 'row6', default: false, figmaName: 'Option 6', figmaOnly: true },
-      option7: { part: 'row7', default: false, figmaName: 'Option 7', figmaOnly: true },
-      option8: { part: 'row8', default: false, figmaName: 'Option 8', figmaOnly: true },
-    },
   },
 
   accessibility: {
@@ -330,7 +293,7 @@ export const radioGroup: ComponentDef = {
   },
 
   docs: {
-    usage: 'Use to choose exactly one of 2 to about 7 mutually exclusive, all-visible options where seeing them all aids the decision — a shipping method, a plan tier. Give the group a label that names the decision; let it own the shared name, the single scalar value, required and validation, and derive each row\'s checked state from the value rather than wiring it on the row. Compose the rows as children. Prefer vertical orientation, which scans better and lets long labels wrap safely. Past about 7 options a Select or a filtering combobox (not built yet) scans better; for any-number selection use Checkbox.Group, and for an immediate-effect setting Switch.Row.',
+    usage: 'Use to choose exactly one of 2 to about 7 mutually exclusive, all-visible options where seeing them all aids the decision — a shipping method, a plan tier. Give the group a label that names the decision; let it own the shared name, the single scalar value, required and validation, and derive each row\'s checked state from the value rather than wiring it on the row. Compose the rows as items. Prefer vertical orientation, which scans better and lets long labels wrap safely. Past about 7 options a Select or a filtering combobox (not built yet) scans better; for any-number selection use Checkbox.Group, and for an immediate-effect setting Switch.Row.',
     do: [
       'Give the group a label that names the decision, so its rows can read the short abstracted-up remainder',
       'Let the group own the shared name, the single scalar value, required and validation — an option never manages its own',
@@ -394,7 +357,7 @@ export const radioGroup: ComponentDef = {
     ],
     unverified: [
       'GROUP-LEVEL ERROR / VALIDATION DISPLAY IS `[HELD]`. The brief puts validation and the error message on the group; Prism 2 settles no visual for it. This def carries `required` (settled) and no error skin (unsettled). Whether the group nests a `field-message` for the group error, and what an errored group looks like, needs the owner — the same open question `checkbox-group` holds.',
-      'THE VARIABLE ROW COUNT IS BUILT, matching `checkbox-group` (#2344, owner decision Q156 A). Eight nested rows, row 1 always shown and rows 2 to 8 behind Figma-only booleans, three on by default. Prism 2\'s radio group had six rows with two on by default; the owner set three for both groups, so the two match.',
+      'THE VARIABLE ROW COUNT IS A NATIVE SLOT, matching `checkbox-group` (#2649, owner decision Q307 A). The rows sit in the `items` slot, three by default, replacing #2344\'s eight rows behind Figma-only booleans, three on by default. Prism 2\'s radio group had six rows with two on by default; the owner set three for both groups, so the two match.',
       'THE NESTING IS UNVERIFIED ON A REAL HOST, the same way `checkbox-group`\'s is: the group nests `radio-row` (which nests `radio-control` `nest-exposed`), the deepest chain in the corpus, and whether a doubly-nested instance\'s inherited sizing and exposed properties cooperate with the group\'s auto-layout is a real-host question the offline shim cannot answer. `test:roundtrip` builds every projected def and reads it back; the symptom to look for is a row instance stretched or an exposed selection that does not surface at the group.',
     ],
     evolution: [

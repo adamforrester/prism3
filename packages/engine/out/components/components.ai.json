@@ -3639,6 +3639,16 @@
           "description": "The group heading, rendered as the nested FieldLabel and the group's accessible name (role=\"group\" + aria-labelledby). Names the decision the set answers (\"Notification preferences\"), letting its rows read the abstracted-up short labels (\"Email\", \"SMS\", \"Push\")."
         },
         {
+          "name": "items",
+          "type": "slot",
+          "required": true,
+          "anyOf": [
+            "checkbox-row"
+          ],
+          "minItems": 1,
+          "description": "The options, each a Checkbox.Row, in order. Three by default; a designer adds, removes and reorders them in place."
+        },
+        {
           "name": "value",
           "type": "string[]",
           "required": false,
@@ -3722,7 +3732,7 @@
         "errorPattern": "Group-level and specific — \"Select at least one option\", stating what is wrong and how to fix it (SC 3.3.3), never \"Invalid\". The rows stay neutral; the group carries the message. The error visual is not designed yet."
       },
       "docs": {
-        "usage": "Use to select any number — zero to many — from a bounded set, where the change is committed on save rather than applied instantly. Give the group a label that names the decision; let it own the value array, required and validation, and derive each row's checked state from the value array rather than wiring it on the row. Compose the rows as children. Past roughly 7-10 options, a filtering multi-select combobox (not built yet) scans better; for exactly-one selection use Radio.Group, and for a single independent opt-in a lone Checkbox.Row.",
+        "usage": "Use to select any number — zero to many — from a bounded set, where the change is committed on save rather than applied instantly. Give the group a label that names the decision; let it own the value array, required and validation, and derive each row's checked state from the value array rather than wiring it on the row. Compose the rows as items. Past roughly 7-10 options, a filtering multi-select combobox (not built yet) scans better; for exactly-one selection use Radio.Group, and for a single independent opt-in a lone Checkbox.Row.",
         "do": [
           "Give the group a label that names the decision, so its rows can read the short abstracted-up remainder",
           "Let the group own the value array, required and validation — a row inside a group never manages its own",
@@ -4105,6 +4115,16 @@
           "description": "The group heading, rendered as the nested FieldLabel and the group's accessible name (role=\"radiogroup\" + aria-labelledby). Names the decision the set answers (\"Shipping method\", \"How should we contact you?\"), letting its rows read the abstracted-up short labels (\"Standard\", \"Express\", \"Overnight\"). Mandatory for meaning: without it assistive tech announces an orphaned \"radio button, 1 of 3\" with no indication of what is being chosen."
         },
         {
+          "name": "items",
+          "type": "slot",
+          "required": true,
+          "anyOf": [
+            "radio-row"
+          ],
+          "minItems": 1,
+          "description": "The options, each a Radio.Row, in order. Three by default; a designer adds, removes and reorders them in place."
+        },
+        {
           "name": "value",
           "type": "string",
           "required": false,
@@ -4188,7 +4208,7 @@
         "emptyPattern": "The group starts empty by default, so no option carries a pre-selected state — this forces a deliberate choice. Pre-select only where a genuinely safe recommended default exists. A radio cannot be deselected, so once chosen the group cannot return to empty: an optional group must carry an explicit \"None\" or \"N/A\" option, or a stray click permanently pollutes the data. If a \"None\" option would corrupt the data model, the choice belongs in a clearable Select instead."
       },
       "docs": {
-        "usage": "Use to choose exactly one of 2 to about 7 mutually exclusive, all-visible options where seeing them all aids the decision — a shipping method, a plan tier. Give the group a label that names the decision; let it own the shared name, the single scalar value, required and validation, and derive each row's checked state from the value rather than wiring it on the row. Compose the rows as children. Prefer vertical orientation, which scans better and lets long labels wrap safely. Past about 7 options a Select or a filtering combobox (not built yet) scans better; for any-number selection use Checkbox.Group, and for an immediate-effect setting Switch.Row.",
+        "usage": "Use to choose exactly one of 2 to about 7 mutually exclusive, all-visible options where seeing them all aids the decision — a shipping method, a plan tier. Give the group a label that names the decision; let it own the shared name, the single scalar value, required and validation, and derive each row's checked state from the value rather than wiring it on the row. Compose the rows as items. Prefer vertical orientation, which scans better and lets long labels wrap safely. Past about 7 options a Select or a filtering combobox (not built yet) scans better; for any-number selection use Checkbox.Group, and for an immediate-effect setting Switch.Row.",
         "do": [
           "Give the group a label that names the decision, so its rows can read the short abstracted-up remainder",
           "Let the group own the shared name, the single scalar value, required and validation — an option never manages its own",
@@ -5836,6 +5856,17 @@
           "description": "The key of the selected tab. Controlled; pair it with onChange."
         },
         {
+          "name": "items",
+          "type": "slot",
+          "required": true,
+          "anyOf": [
+            "tab"
+          ],
+          "minItems": 1,
+          "maxItems": 6,
+          "description": "The tabs, each a Tab, in order, one per panel. Three by default with the first selected, six at most."
+        },
+        {
           "name": "defaultValue",
           "type": "string",
           "required": false,
@@ -6619,10 +6650,14 @@
           "description": "Ordered only: count down instead of up."
         },
         {
-          "name": "children",
-          "type": "node",
+          "name": "items",
+          "type": "slot",
           "required": true,
-          "description": "The items, each a List.Item."
+          "anyOf": [
+            "list-item"
+          ],
+          "minItems": 1,
+          "description": "The items, each a List.Item, in order. Three by default; a designer adds, removes and reorders them in place."
         }
       ],
       "states": [],
@@ -6883,6 +6918,17 @@
           "type": "string",
           "required": true,
           "description": "What is being chosen, such as \"View\". Shown above the track, or given as an accessible name only when the page already shows it."
+        },
+        {
+          "name": "items",
+          "type": "slot",
+          "required": true,
+          "anyOf": [
+            "segmented-control-segment"
+          ],
+          "minItems": 1,
+          "maxItems": 5,
+          "description": "The options, each a SegmentedControl.Segment, in order. Three by default with the first selected, five at most."
         },
         {
           "name": "value",
