@@ -81,6 +81,9 @@
  *   display rename/…  an Accordion built while its icon axis was `position`, or `iconPosition`, updates in place to the
  *                  def's `icon position`: every member renamed, every key and id the test captured kept (#2592).
  *                  Mutation: the ledger entries dropped → `display rename/position …`, `display rename/iconPosition …`.
+ *   accordion pad-x/…  an Accordion built at the old large side padding (space/300, 24px) updates in place to the
+ *                  def's 20px (space/250, Q338 A, #2726): the 8 large members updated, the 16 others current, every key
+ *                  and id kept. Mutation: the def back at space.300 → `accordion pad-x/dry run`, `accordion pad-x/written`.
  *   apply/copy     with the original's coordinate dropped, only the original is marked deprecated; a Figma duplicate
  *                  of it and an unstamped member off the plan keep their description, stamp and record exactly
  *                  (#2328 review). Mutation: the deprecations take the unstamped members too → `apply/copy`.
@@ -643,6 +646,45 @@ section('list marker column — a file built at the old 24/32/40 column updates 
   const lpost = (await previewUpdate(lw.host, [{ def: 'list', plans: lplans }])).sets[0];
   ok(!l.pre.sets[0].blockers.length && l.pre.sets[0].counts.add === 0 && l.pre.sets[0].counts.drop === 0 && applyVerdict(l.res).ok && lmoved === 0 && lafter.members.size === 9 && lpost?.counts.current === 9,
     `list column/List: the List set updates in place to the new note, nothing added or dropped, every member's key and id kept, all 9 current after (${JSON.stringify(l.pre.sets[0].counts)}; ${applyVerdict(l.res).headline}; ${lmoved} moved)`);
+}
+
+section('accordion side padding — a file built at the old large 24px updates in place to 20px (#2726, Q338 A)');
+{
+  // The file as main built it before Q338: the large header and the open panel padded at the sides by space/300 (24px).
+  // The literal is the test's own; the plan it updates to is the engine's current one.
+  const SIDES = ['paddingLeft', 'paddingRight'] as const;
+  const atOld = plansOf('accordion').map((p) => {
+    const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan;
+    if (q.size === 'large') for (const part of ['header', 'content']) {
+      const n = planChild(q.root, part);
+      if (n) for (const k of SIDES) (n.bound as Record<string, string>)[k] = 'space/300';
+    }
+    return q;
+  });
+  const w = await world('accordion', atOld, { extraVars: ['space/250'] });
+  const sidesOf = (m: Node) => ['header', 'content'].flatMap((part) => {
+    const n = (m.children as Node[]).find((c) => c.name === part);
+    return n ? SIDES.map((k) => (n.boundVariables as Record<string, { id: string }>)[k]?.id) : [];
+  });
+  const old = await varIdOf(w, 'space/300'), next = await varIdOf(w, 'space/250');
+  const large = (m: Node) => /(^|, )size=large(,|$)/.test(String(m.name));
+  ok(membersOf(w.set()).filter(large).length === 8 && membersOf(w.set()).filter(large).every((m) => sidesOf(m).every((id) => id === old)),
+    'premise: the 8 large members are padded at the sides by space/300, the old 24px');
+  const before = identityOf(w.set());
+  const plans = plansOf('accordion');
+  const { pre, res } = await confirm(w, [{ def: 'accordion', plans }]);
+  const p = pre.sets[0];
+  ok(!!p && !p.blockers.length && p.counts.update === 8 && p.counts.current === 16 && p.counts.add === 0 && p.counts.drop === 0,
+    `accordion pad-x/dry run: the 8 large members to update, the 16 small and medium current, nothing added or dropped (${JSON.stringify(p?.counts)})`);
+  const after = identityOf(w.set());
+  const moved = [...before.members].filter(([name, b]) => after.members.get(name)?.key !== b.key || after.members.get(name)?.id !== b.id).map(([n]) => n);
+  const kidsMoved = [...before.members].flatMap(([name, b]) => [...b.kids].filter(([path, id]) => after.members.get(name)?.kids.get(path) !== id).map(([path]) => `${name}/${path}`));
+  ok(applyVerdict(res).ok && moved.length === 0 && kidsMoved.length === 0 && after.members.size === 24,
+    `accordion pad-x/in place: every member and child keeps its key and id (${applyVerdict(res).headline}; ${moved.length} members, ${kidsMoved.length} children moved)`);
+  const wrong = membersOf(w.set()).filter((m) => !sidesOf(m).every((id) => (large(m) ? id === next : id !== old && !!id))).map((m) => String(m.name));
+  ok(wrong.length === 0, `accordion pad-x/written: the large header and open panel now bind space/250 (20px) at both sides, and no member still binds space/300 there (${wrong.slice(0, 2).join('; ')})`);
+  const post = (await previewUpdate(w.host, [{ def: 'accordion', plans }])).sets[0];
+  ok(post?.counts.current === 24, `accordion pad-x/current: every member reads current after (${JSON.stringify(post?.counts)})`);
 }
 
 /* ── single ──────────────────────────────────────────────────────────────────────────────────────────── */
