@@ -384,6 +384,14 @@
     "password-field@outline-none": {
       "members": 84,
       "sha256": "771e3974cfb329db2abcf42bc98f0914a3851b1813a867dba8b83d0fa3c97946"
+    },
+    "_slider-thumb": {
+      "members": 5,
+      "sha256": "dd71eb9ff387eff51be57fcc7190ffd25de883e1a6aebfa88b089adb5c4ab2b1"
+    },
+    "slider": {
+      "members": 10,
+      "sha256": "41be9f4798734ab826a936fcafd7d617b6fa623dee688eff9ad67b53747c2c4a"
     }
   }
 }

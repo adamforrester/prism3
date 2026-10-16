@@ -159,6 +159,13 @@
             "components": [
               "dialog"
             ]
+          },
+          {
+            "name": "↳ Slider",
+            "components": [
+              "_slider-thumb",
+              "slider"
+            ]
           }
         ]
       },
@@ -2274,6 +2281,97 @@
           ]
         },
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/password-field.md"
+      },
+      {
+        "id": "_slider-thumb",
+        "name": "Slider.Thumb",
+        "figmaName": "_slider-thumb",
+        "kind": "component set",
+        "private": true,
+        "page": "↳ Slider",
+        "section": "Components",
+        "members": 5,
+        "variantProperties": [
+          {
+            "name": "state",
+            "values": [
+              "rest",
+              "hover",
+              "pressed",
+              "focus-visible",
+              "disabled"
+            ]
+          }
+        ],
+        "properties": [],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/_slider-thumb.md"
+      },
+      {
+        "id": "slider",
+        "name": "Slider",
+        "figmaName": "slider",
+        "kind": "component set",
+        "page": "↳ Slider",
+        "section": "Components",
+        "members": 10,
+        "variantProperties": [
+          {
+            "name": "type",
+            "values": [
+              "single",
+              "range"
+            ]
+          },
+          {
+            "name": "state",
+            "values": [
+              "rest",
+              "hover",
+              "pressed",
+              "focus-visible",
+              "disabled"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "value text",
+            "type": "TEXT"
+          },
+          {
+            "name": "min label",
+            "type": "TEXT"
+          },
+          {
+            "name": "max label",
+            "type": "TEXT"
+          },
+          {
+            "name": "range text",
+            "type": "TEXT"
+          },
+          {
+            "name": "label",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "value",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "end labels",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "inputs",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "helper",
+            "type": "BOOLEAN"
+          }
+        ],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/slider.md"
       }
     ]
   },
@@ -2498,7 +2596,9 @@
       "segmented-control",
       "link",
       "dialog",
-      "password-field"
+      "password-field",
+      "_slider-thumb",
+      "slider"
     ],
     "templates": [
       {

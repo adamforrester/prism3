@@ -10,7 +10,7 @@ Peers come from three groupings, each derived from the definitions:
 
 Generated from the component definitions and the emission by `packages/engine/emit-analysis-reports.ts`; `regen.ts --check` fails when this page is stale. The same data for agents: [component-comparison.json](component-comparison.json). All reports: [index](index.md).
 
-## Findings (47)
+## Findings (49)
 
 ### axis values
 
@@ -22,7 +22,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 - **axis size** — the size axis takes 3 value sets — [large, medium, small] in _accordion-indicator, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, password-field, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, select, tab, tabs, tag, text-field, textarea; [medium, small] in switch-control, switch-row; [large, medium, small, x-small] in spinner
 - **axis style** — the style axis takes 2 value sets — [outline] in password-field, text-field, textarea; [inline, standalone] in link
 - **axis tone** — the tone axis takes 2 value sets — [brand, danger, info, inherit, primary, secondary, success, tertiary, warning] in icon; [danger, info, neutral, success, warning] in badge
-- **axis type** — the type axis takes 3 value sets — [icon, ordered, unordered] in list, list-item; [count, dot, status] in badge; [dismissible, select] in tag
+- **axis type** — the type axis takes 4 value sets — [icon, ordered, unordered] in list, list-item; [count, dot, status] in badge; [dismissible, select] in tag; [range, single] in slider
 - **axis weight** — the weight axis takes 2 value sets — [bold, regular] in field-label; [default, emphasis] in link
 
 ### axis without prop
@@ -41,6 +41,10 @@ Generated from the component definitions and the emission by `packages/engine/em
 - **tag** — tag has the variant axis selection and no prop of that name
 - **text-field** — text-field has the variant axes style and status and no props of those names
 - **textarea** — textarea has the variant axes style and status and no props of those names
+
+### prop default
+
+- **prop max** — max defaults differ over the same values — 100 in slider; 99 in badge
 
 ### size default
 
@@ -77,6 +81,10 @@ Generated from the component definitions and the emission by `packages/engine/em
 - **substrate: button-neutral** — flush-icon-button-neutral differs from the group's common set [disabled, focus-visible, hover, inactive, pending, pressed, rest] — lacks inactive, pending
 - **substrate: text-field** — no state set is shared by most of the group — checkbox-row [rest, hover, pressed, focus-visible, disabled, read-only, error]; radio-row [rest, hover, pressed, focus-visible, disabled, read-only]; switch-row [rest, hover, pressed, pending, focus-visible, disabled, read-only, error]; text-field [rest, hover, pending, filled, focus-visible, focus-visible-filled, disabled, read-only, empty]; textarea [rest, hover, pending, filled, focus-visible, focus-visible-filled, disabled, read-only, empty]
 
+### variant axes
+
+- **variant family: Slider** — _slider-thumb's variant axes differ from the family's common set
+
 ## Peer groups
 
 | Grouping | Name | Members |
@@ -84,6 +92,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 | variant family | Button | button, button-destructive, button-neutral |
 | variant family | FlushIconButton | flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral |
 | variant family | IconButton | icon-button, icon-button-destructive, icon-button-neutral |
+| variant family | Slider | _slider-thumb, slider |
 | role peers | *.Control | checkbox-control, radio-control, switch-control |
 | role peers | *.Row | checkbox-row, radio-row, switch-row |
 | role peers | *.Group | checkbox-group, radio-group |
@@ -97,6 +106,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 | Component | Category | States | Drawn in the design file |
 |---|---|---|---|
 | _accordion-indicator | navigation | — | — |
+| _slider-thumb | form | rest, hover, pressed, focus-visible, disabled | rest, hover, pressed, focus-visible, disabled |
 | accordion | navigation | rest, focus-visible | rest, focus-visible |
 | badge | foundations | — | — |
 | button | form | rest, hover, pressed, pending, focus-visible, disabled, inactive | rest, hover, pressed, pending, focus-visible, disabled |
@@ -128,6 +138,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 | segmented-control | form | rest | — |
 | segmented-control-segment | form | rest, hover, pressed, focus-visible, disabled | rest, hover, pressed, focus-visible, disabled |
 | select | form | rest, hover, pending, filled, focus-visible, focus-visible-filled, disabled, read-only, empty | rest, hover, filled, focus-visible, focus-visible-filled, disabled, read-only |
+| slider | form | rest, hover, pressed, focus-visible, disabled | rest, hover, pressed, focus-visible, disabled |
 | spinner | foundations | — | — |
 | switch-control | form | rest, hover, pressed, focus-visible, disabled, error | rest, hover, pressed, focus-visible, disabled, error |
 | switch-row | form | rest, hover, pressed, pending, focus-visible, disabled, read-only, error | — |
@@ -142,18 +153,18 @@ Generated from the component definitions and the emission by `packages/engine/em
 
 | State | Components |
 |---|---|
-| disabled | button, button-destructive, button-neutral, checkbox-control, checkbox-row, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, password-field, radio-control, radio-row, segmented-control-segment, select, switch-control, switch-row, tab, tag, text-field, textarea |
+| disabled | _slider-thumb, button, button-destructive, button-neutral, checkbox-control, checkbox-row, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, password-field, radio-control, radio-row, segmented-control-segment, select, slider, switch-control, switch-row, tab, tag, text-field, textarea |
 | empty | password-field, select, text-field, textarea |
 | error | checkbox-control, checkbox-row, switch-control, switch-row |
 | filled | password-field, select, text-field, textarea |
-| focus-visible | accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-row, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, password-field, radio-control, radio-row, segmented-control-segment, select, switch-control, switch-row, tab, tag, text-field, textarea |
+| focus-visible | _slider-thumb, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-row, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, password-field, radio-control, radio-row, segmented-control-segment, select, slider, switch-control, switch-row, tab, tag, text-field, textarea |
 | focus-visible-filled | password-field, select, text-field, textarea |
-| hover | button, button-destructive, button-neutral, checkbox-control, checkbox-row, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, password-field, radio-control, radio-row, segmented-control-segment, select, switch-control, switch-row, tab, tag, text-field, textarea |
+| hover | _slider-thumb, button, button-destructive, button-neutral, checkbox-control, checkbox-row, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, password-field, radio-control, radio-row, segmented-control-segment, select, slider, switch-control, switch-row, tab, tag, text-field, textarea |
 | inactive | button, button-destructive, button-neutral, icon-button, icon-button-destructive, icon-button-neutral |
 | pending | button, button-destructive, button-neutral, icon-button, icon-button-destructive, icon-button-neutral, password-field, select, switch-row, text-field, textarea |
-| pressed | button, button-destructive, button-neutral, checkbox-control, checkbox-row, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, radio-control, radio-row, segmented-control-segment, switch-control, switch-row, tab, tag |
+| pressed | _slider-thumb, button, button-destructive, button-neutral, checkbox-control, checkbox-row, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, radio-control, radio-row, segmented-control-segment, slider, switch-control, switch-row, tab, tag |
 | read-only | checkbox-row, password-field, radio-row, select, switch-row, tag, text-field, textarea |
-| rest | accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, password-field, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, select, switch-control, switch-row, tab, tabs, tag, text-field, textarea |
+| rest | _slider-thumb, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, password-field, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, select, slider, switch-control, switch-row, tab, tabs, tag, text-field, textarea |
 
 ## Variant axes
 
@@ -194,6 +205,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 | type | icon, ordered, unordered | list, list-item |
 |  | count, dot, status | badge |
 |  | dismissible, select | tag |
+|  | range, single | slider |
 | value | dark, light | veil |
 | weight | bold, regular | field-label |
 |  | default, emphasis | link |
@@ -250,7 +262,8 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | icon-button | ghost | filled, outline, ghost |
 |  | icon-button-destructive | ghost | filled, outline, ghost |
 |  | icon-button-neutral | ghost | filled, outline, ghost |
-| aria-label | button | — | — |
+| aria-label | _slider-thumb | — | — |
+|  | button | — | — |
 |  | button-destructive | — | — |
 |  | button-neutral | — | — |
 |  | checkbox-control | — | — |
@@ -277,13 +290,15 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | password-field | — | — |
 |  | radio-group | — | — |
 |  | segmented-control | — | — |
+|  | slider | — | — |
 |  | tabs | — | — |
 |  | text-field | — | — |
 | description | checkbox-row | — | — |
 |  | dialog | — | — |
 |  | radio-row | — | — |
 |  | switch-row | — | — |
-| disabled | button | false | — |
+| disabled | _slider-thumb | false | — |
+|  | button | false | — |
 |  | button-destructive | false | — |
 |  | button-neutral | false | — |
 |  | checkbox-control | false | — |
@@ -300,6 +315,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | segmented-control | false | — |
 |  | segmented-control-segment | false | — |
 |  | select | false | — |
+|  | slider | false | — |
 |  | switch-control | false | — |
 |  | tab | false | — |
 |  | tag | false | — |
@@ -311,6 +327,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | button-neutral | false | — |
 | helpText | password-field | — | — |
 |  | select | — | — |
+|  | slider | — | — |
 |  | text-field | — | — |
 | href | button | — | — |
 |  | button-destructive | — | — |
@@ -367,6 +384,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | segmented-control | — | — |
 |  | segmented-control-segment | — | — |
 |  | select | — | — |
+|  | slider | — | — |
 |  | spinner | Loading | — |
 |  | switch-row | — | — |
 |  | tab | — | — |
@@ -382,12 +400,15 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 | leadingVisual | button | — | — |
 |  | button-destructive | — | — |
 |  | button-neutral | — | — |
+| max | badge | 99 | — |
+|  | slider | 100 | — |
 | name | checkbox-group | — | — |
 |  | icon | — | 45 values |
 |  | password-field | — | — |
 |  | radio-group | — | — |
 |  | segmented-control | — | — |
 |  | select | — | — |
+|  | slider | — | — |
 |  | text-field | — | — |
 | onChange | checkbox-group | — | — |
 |  | checkbox-row | — | — |
@@ -395,6 +416,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | radio-group | — | — |
 |  | segmented-control | — | — |
 |  | select | — | — |
+|  | slider | — | — |
 |  | tabs | — | — |
 |  | text-field | — | — |
 | onClick | button | — | — |
@@ -414,6 +436,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 | readOnly | checkbox-row | false | — |
 |  | password-field | false | — |
 |  | select | false | — |
+|  | slider | false | — |
 |  | switch-row | false | — |
 |  | tag | false | — |
 |  | text-field | false | — |
@@ -502,14 +525,17 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | icon-button-neutral | button | button, submit, reset |
 |  | list | unordered | unordered, ordered, icon |
 |  | list-item | unordered | unordered, ordered, icon |
+|  | slider | single | single, range |
 |  | tag | select | select, dismissible |
 |  | text-field | text | text, email, url, tel, search, password |
 | validation | password-field | default | default, error, warning, success |
 |  | select | default | default, error, warning, success |
+|  | slider | default | default, error |
 |  | text-field | default | default, error, warning, success |
 |  | textarea | default | default, error, warning, success |
 | validationMessage | password-field | — | — |
 |  | select | — | — |
+|  | slider | — | — |
 |  | text-field | — | — |
 |  | textarea | — | — |
 | value | accordion | — | — |
@@ -523,6 +549,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | segmented-control | — | — |
 |  | segmented-control-segment | — | — |
 |  | select | — | — |
+|  | slider | — | — |
 |  | tab | — | — |
 |  | tabs | — | — |
 |  | text-field | — | — |

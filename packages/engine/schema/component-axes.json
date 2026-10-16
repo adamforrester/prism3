@@ -17,6 +17,18 @@
     },
     "members": 12
   },
+  "_slider-thumb": {
+    "axes": {
+      "state": [
+        "disabled",
+        "focus-visible",
+        "hover",
+        "pressed",
+        "rest"
+      ]
+    },
+    "members": 5
+  },
   "accordion": {
     "axes": {
       "expansion": [
@@ -697,6 +709,22 @@
       ]
     },
     "members": 84
+  },
+  "slider": {
+    "axes": {
+      "state": [
+        "disabled",
+        "focus-visible",
+        "hover",
+        "pressed",
+        "rest"
+      ],
+      "type": [
+        "range",
+        "single"
+      ]
+    },
+    "members": 10
   },
   "spinner": {
     "axes": {

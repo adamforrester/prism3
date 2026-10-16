@@ -226,7 +226,7 @@ const ZERO_OK: Record<string, string> = {
  * covered — including by being deleted — this file fails rather than reporting clean over a smaller
  * set. A count would read that as a pass.
  */
-const MUST_COVER = ['button.focusRing', 'icon-button.focusRing', 'checkbox-control.focusRing', 'tab.focusRing', 'accordion.focusRing', 'segmented-control-segment.focusRing', 'link.focusRing'];
+const MUST_COVER = ['button.focusRing', 'icon-button.focusRing', 'checkbox-control.focusRing', 'tab.focusRing', 'accordion.focusRing', 'segmented-control-segment.focusRing', 'link.focusRing', '_slider-thumb.focusRing'];
 
 /**
  * The floor for the COMPENSATION specifically — every part above whose gap must be computed against a
@@ -236,7 +236,7 @@ const MUST_COVER = ['button.focusRing', 'icon-button.focusRing', 'checkbox-contr
  * — the arithmetic degrades to `gap = offset`, every other check here still passes, and the ring goes
  * flush again.
  */
-const MUST_CLEAR_STROKE = ['button.focusRing', 'icon-button.focusRing', 'checkbox-control.focusRing', 'tab.focusRing', 'segmented-control-segment.focusRing', 'link.focusRing'];
+const MUST_CLEAR_STROKE = ['button.focusRing', 'icon-button.focusRing', 'checkbox-control.focusRing', 'tab.focusRing', 'segmented-control-segment.focusRing', 'link.focusRing', '_slider-thumb.focusRing'];
 
 /**
  * THE PARTS DRAWN INSIDE THEIR HOST'S EDGE (`PartDef.drawnInside`, #2417, owner decision Q257 A). Each declares no
@@ -377,8 +377,10 @@ const vars = new Map(bs.map((b) => [b, floatVars(b)] as const));
 for (const def of componentDefs) {
   if (!def.anatomy) continue;
   const declared = declaredInsets(def);
-  const sizes = def.variants?.size ?? [];
-  if (declared.length === 0 || sizes.length === 0) continue;
+  // A def with no size axis (#2669, Slider.Thumb) projects at one coordinate per state, `size` undefined; it used
+  // to be skipped here, so its ring was measured by nothing.
+  const sizes: (string | undefined)[] = def.variants?.size ?? [undefined];
+  if (declared.length === 0) continue;
 
   const byPart = new Map(declared.map((d) => [d.part, d] as const));
   const reached = new Set<string>();
@@ -396,7 +398,7 @@ for (const def of componentDefs) {
         continue;   // a coordinate this def does not project; other gates own that
       }
       coords++;
-      const at = `${def.id}/${size}/state=${state ?? 'none'}`;
+      const at = `${def.id}/${size ?? 'one size'}/state=${state ?? 'none'}`;
 
       for (const { node, parent } of sited(plan.root)) {
         const d = byPart.get(node.name);
@@ -424,7 +426,7 @@ for (const def of componentDefs) {
         }
 
         // ---- A: the name on the plan is the one the DEF's own key resolves to -------------------
-        const refOf = (key: string): string | undefined => def.tokens[key.includes('{size}') ? key.replace('{size}', size) : key];
+        const refOf = (key: string): string | undefined => def.tokens[key.includes('{size}') && size ? key.replace('{size}', size) : key];
         const ref = refOf(d.insetKey);
         if (!ref) {
           failures.push(`${at}: '${node.name}' declares inset key '${d.insetKey}' and def.tokens binds no such key — the plan carries '${node.absoluteInset}' from somewhere this gate cannot corroborate`);

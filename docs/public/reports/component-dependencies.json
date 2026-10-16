@@ -9,6 +9,16 @@
   "note": "edges: every part that nests another component (anatomy part with `nests`), with its nesting relation. components.<id>.affectedByChange lists every component that nests it directly or transitively — the components a change to it reaches. inherits is a reading reference only: the engine copies no fields across it, so it does not appear in affectedByChange.",
   "edges": [
     {
+      "from": "_slider-thumb",
+      "to": "focus-ring",
+      "part": "focusRing",
+      "partKind": "absolute",
+      "relation": "nest-fixed",
+      "variant": {
+        "surface": "default"
+      }
+    },
+    {
       "from": "accordion",
       "to": "divider",
       "part": "divider",
@@ -976,6 +986,85 @@
       ]
     },
     {
+      "from": "slider",
+      "to": "text-field",
+      "part": "inputMax",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "size": "medium",
+        "status": "default",
+        "state": "filled"
+      }
+    },
+    {
+      "from": "slider",
+      "to": "text-field",
+      "part": "inputMin",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "size": "medium",
+        "status": "default",
+        "state": "filled"
+      }
+    },
+    {
+      "from": "slider",
+      "to": "text-field",
+      "part": "inputSingle",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "size": "medium",
+        "status": "default",
+        "state": "filled"
+      }
+    },
+    {
+      "from": "slider",
+      "to": "field-label",
+      "part": "label",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "size": "medium",
+        "emphasis": "secondary",
+        "weight": "bold",
+        "state": "rest"
+      }
+    },
+    {
+      "from": "slider",
+      "to": "field-message",
+      "part": "message",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "status": "default"
+      }
+    },
+    {
+      "from": "slider",
+      "to": "_slider-thumb",
+      "part": "thumb",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "state": "rest"
+      }
+    },
+    {
+      "from": "slider",
+      "to": "_slider-thumb",
+      "part": "thumbMin",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "state": "rest"
+      }
+    },
+    {
       "from": "switch-control",
       "to": "focus-ring",
       "part": "focusRing",
@@ -1225,6 +1314,21 @@
       ],
       "inheritedBy": []
     },
+    "_slider-thumb": {
+      "nests": [
+        "focus-ring"
+      ],
+      "nestsTransitively": [
+        "focus-ring"
+      ],
+      "nestedBy": [
+        "slider"
+      ],
+      "affectedByChange": [
+        "slider"
+      ],
+      "inheritedBy": []
+    },
     "accordion": {
       "nests": [
         "_accordion-indicator",
@@ -1393,6 +1497,7 @@
         "radio-group",
         "segmented-control",
         "select",
+        "slider",
         "text-field",
         "textarea"
       ],
@@ -1402,6 +1507,7 @@
         "radio-group",
         "segmented-control",
         "select",
+        "slider",
         "text-field",
         "textarea"
       ],
@@ -1413,12 +1519,14 @@
       "nestedBy": [
         "password-field",
         "select",
+        "slider",
         "text-field",
         "textarea"
       ],
       "affectedByChange": [
         "password-field",
         "select",
+        "slider",
         "text-field",
         "textarea"
       ],
@@ -1464,6 +1572,7 @@
       "nests": [],
       "nestsTransitively": [],
       "nestedBy": [
+        "_slider-thumb",
         "accordion",
         "button",
         "button-destructive",
@@ -1487,6 +1596,7 @@
         "textarea"
       ],
       "affectedByChange": [
+        "_slider-thumb",
         "accordion",
         "button",
         "button-destructive",
@@ -1509,6 +1619,7 @@
         "segmented-control",
         "segmented-control-segment",
         "select",
+        "slider",
         "switch-control",
         "switch-row",
         "tab",
@@ -1728,6 +1839,24 @@
       "affectedByChange": [],
       "inheritedBy": []
     },
+    "slider": {
+      "nests": [
+        "_slider-thumb",
+        "field-label",
+        "field-message",
+        "text-field"
+      ],
+      "nestsTransitively": [
+        "_slider-thumb",
+        "field-label",
+        "field-message",
+        "focus-ring",
+        "text-field"
+      ],
+      "nestedBy": [],
+      "affectedByChange": [],
+      "inheritedBy": []
+    },
     "spinner": {
       "nests": [],
       "nestsTransitively": [],
@@ -1831,8 +1960,12 @@
         "field-message",
         "focus-ring"
       ],
-      "nestedBy": [],
-      "affectedByChange": [],
+      "nestedBy": [
+        "slider"
+      ],
+      "affectedByChange": [
+        "slider"
+      ],
       "inheritedBy": [
         "checkbox-row",
         "textarea"
@@ -1864,6 +1997,7 @@
   },
   "depth": {
     "_accordion-indicator": 0,
+    "_slider-thumb": 1,
     "accordion": 1,
     "badge": 0,
     "button": 1,
@@ -1895,6 +2029,7 @@
     "segmented-control": 2,
     "segmented-control-segment": 1,
     "select": 1,
+    "slider": 2,
     "spinner": 0,
     "switch-control": 1,
     "switch-row": 2,
