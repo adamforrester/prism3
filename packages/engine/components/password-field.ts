@@ -70,7 +70,6 @@ export const passwordField: ComponentDef = makeTextField({
     'the BUTTON\'S HIT AREA — Figma draws the flush button at its label\'s width. In code the flush button\'s hit area is at least 44×44 at medium and large sizes and at least 24×24 at small, through a transparent `::before` inset outward (Button\'s flush rule, #2408), so the label row does not move.',
     'RIGHT TO LEFT — the label row mirrors, so the button sits at the row\'s left end; the masked value follows the input\'s direction.',
     'the label / describedby WIRING — the host generates ids (useId), ties the FieldLabel to the input, stitches the FieldMessage into aria-describedby, and sets aria-invalid on error. Figma has no accessibility tree and no node-to-node reference, so the nested label and message sit near the input and are associated by proximity alone (the same ceiling `field-label` and `field-message` each hit).',
-    'the nested LABEL\'s disabled dimming — the field fixes the FieldLabel to `state=rest` because field-label\'s state vocabulary (rest / disabled) is not the field\'s, so it cannot be followed by value. In code a disabled field dims its label; in Figma the nested label reads at its rest configuration regardless. A projection limit, not a design choice.',
     'the KEYBOARD MODEL — native text editing and IME composition guards (do not validate mid-composition). All of it is runtime interaction the closed static member cannot carry.',
   ],
 
