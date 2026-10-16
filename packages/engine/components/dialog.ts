@@ -58,7 +58,7 @@ export const dialog: ComponentDef = {
 
   props: [
     { name: 'open', type: 'boolean', default: false, required: false, description: 'Whether the dialog is showing. Opening it moves focus into it and makes the page behind it inert.' },
-    { name: 'onOpenChange', type: 'function', required: false, description: 'Called with false on every attempt to close: the close button, Escape, a backdrop click on a standard dialog, or an action that closes it. Keep `open` in step with it.' },
+    { name: 'onOpenChange', type: 'function', required: false, description: 'Called with false on every attempt to close: the close button, Escape, a backdrop click on a standard dialog, or an action that closes it. Keep open in step with it.' },
     { name: 'title', type: 'node', required: true, description: 'The heading that names the task. It is the dialog\'s accessible name, so make it specific: "Delete this address?", not "Are you sure?". It wraps rather than truncating.' },
     { name: 'description', type: 'node', required: false, description: 'One or two sentences under the title that say what the dialog is for or what an action will do. Linked as the dialog\'s accessible description.' },
     { name: 'children', type: 'node', required: true, description: 'The body content. The body is the only part that scrolls; the header and footer stay in place.' },
