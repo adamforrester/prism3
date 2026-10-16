@@ -14249,21 +14249,6 @@
             }
           }
         },
-        "segmented-control-segment": {
-          "keys": [
-            "size.large.icon"
-          ],
-          "parts": {
-            "leadingVisual": {
-              "members": 10,
-              "where": {
-                "size": [
-                  "large"
-                ]
-              }
-            }
-          }
-        },
         "spinner": {
           "keys": [
             "size.large"
@@ -14279,64 +14264,6 @@
             },
             "ring": {
               "members": 1,
-              "where": {
-                "size": [
-                  "large"
-                ]
-              }
-            }
-          }
-        },
-        "tab": {
-          "keys": [
-            "size.large.icon"
-          ],
-          "parts": {
-            "leadingVisual": {
-              "members": 10,
-              "where": {
-                "size": [
-                  "large"
-                ]
-              }
-            }
-          }
-        },
-        "tag": {
-          "keys": [
-            "size.large.icon"
-          ],
-          "parts": {
-            "check": {
-              "members": 5,
-              "where": {
-                "selection": [
-                  "selected"
-                ],
-                "size": [
-                  "large"
-                ],
-                "type": [
-                  "select"
-                ]
-              }
-            },
-            "dismissGlyph": {
-              "members": 5,
-              "where": {
-                "selection": [
-                  "unselected"
-                ],
-                "size": [
-                  "large"
-                ],
-                "type": [
-                  "dismissible"
-                ]
-              }
-            },
-            "leadingVisual": {
-              "members": 15,
               "where": {
                 "size": [
                   "large"
@@ -14768,14 +14695,14 @@
         },
         "segmented-control-segment": {
           "keys": [
-            "size.medium.icon"
+            "size.large.icon"
           ],
           "parts": {
             "leadingVisual": {
               "members": 10,
               "where": {
                 "size": [
-                  "medium"
+                  "large"
                 ]
               }
             }
@@ -14806,14 +14733,14 @@
         },
         "tab": {
           "keys": [
-            "size.medium.icon"
+            "size.large.icon"
           ],
           "parts": {
             "leadingVisual": {
               "members": 10,
               "where": {
                 "size": [
-                  "medium"
+                  "large"
                 ]
               }
             }
@@ -14821,7 +14748,7 @@
         },
         "tag": {
           "keys": [
-            "size.medium.icon"
+            "size.large.icon"
           ],
           "parts": {
             "check": {
@@ -14831,7 +14758,7 @@
                   "selected"
                 ],
                 "size": [
-                  "medium"
+                  "large"
                 ],
                 "type": [
                   "select"
@@ -14845,7 +14772,7 @@
                   "unselected"
                 ],
                 "size": [
-                  "medium"
+                  "large"
                 ],
                 "type": [
                   "dismissible"
@@ -14856,7 +14783,7 @@
               "members": 15,
               "where": {
                 "size": [
-                  "medium"
+                  "large"
                 ]
               }
             }
@@ -15326,14 +15253,14 @@
         },
         "segmented-control-segment": {
           "keys": [
-            "size.small.icon"
+            "size.medium.icon"
           ],
           "parts": {
             "leadingVisual": {
               "members": 10,
               "where": {
                 "size": [
-                  "small"
+                  "medium"
                 ]
               }
             }
@@ -15379,14 +15306,14 @@
         },
         "tab": {
           "keys": [
-            "size.small.icon"
+            "size.medium.icon"
           ],
           "parts": {
             "leadingVisual": {
               "members": 10,
               "where": {
                 "size": [
-                  "small"
+                  "medium"
                 ]
               }
             }
@@ -15394,7 +15321,7 @@
         },
         "tag": {
           "keys": [
-            "size.small.icon"
+            "size.medium.icon"
           ],
           "parts": {
             "check": {
@@ -15404,7 +15331,7 @@
                   "selected"
                 ],
                 "size": [
-                  "small"
+                  "medium"
                 ],
                 "type": [
                   "select"
@@ -15418,7 +15345,7 @@
                   "unselected"
                 ],
                 "size": [
-                  "small"
+                  "medium"
                 ],
                 "type": [
                   "dismissible"
@@ -15429,7 +15356,7 @@
               "members": 15,
               "where": {
                 "size": [
-                  "small"
+                  "medium"
                 ]
               }
             }
@@ -15728,6 +15655,21 @@
             }
           }
         },
+        "segmented-control-segment": {
+          "keys": [
+            "size.small.icon"
+          ],
+          "parts": {
+            "leadingVisual": {
+              "members": 10,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
         "spinner": {
           "keys": [
             "size.x-small"
@@ -15746,6 +15688,64 @@
               "where": {
                 "size": [
                   "x-small"
+                ]
+              }
+            }
+          }
+        },
+        "tab": {
+          "keys": [
+            "size.small.icon"
+          ],
+          "parts": {
+            "leadingVisual": {
+              "members": 10,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
+        "tag": {
+          "keys": [
+            "size.small.icon"
+          ],
+          "parts": {
+            "check": {
+              "members": 5,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "size": [
+                  "small"
+                ],
+                "type": [
+                  "select"
+                ]
+              }
+            },
+            "dismissGlyph": {
+              "members": 5,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "size": [
+                  "small"
+                ],
+                "type": [
+                  "dismissible"
+                ]
+              }
+            },
+            "leadingVisual": {
+              "members": 15,
+              "where": {
+                "size": [
+                  "small"
                 ]
               }
             }
@@ -22602,9 +22602,9 @@
         "color.interactive.neutral.text.rest",
         "focus.ring.offset",
         "focus.ring.width",
-        "icon.size.lg",
         "icon.size.md",
         "icon.size.sm",
+        "icon.size.xs",
         "radius.sm",
         "size.lg.height",
         "size.md.height",
@@ -22829,9 +22829,9 @@
         "color.interactive.primary.text.rest",
         "focus.ring.offset",
         "focus.ring.width",
-        "icon.size.lg",
         "icon.size.md",
         "icon.size.sm",
+        "icon.size.xs",
         "size.lg.height",
         "size.md.height",
         "size.sm.height",
@@ -22922,9 +22922,9 @@
         "color.interactive.primary.subtle-fill.selected",
         "focus.ring.offset",
         "focus.ring.width",
-        "icon.size.lg",
         "icon.size.md",
         "icon.size.sm",
+        "icon.size.xs",
         "radius.round",
         "size.lg.height",
         "size.md.height",
