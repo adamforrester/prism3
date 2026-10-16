@@ -139,6 +139,48 @@ export class TokenTypeDetector {
   }
 
   /**
+   * Determines if a variable is a font family, by its path. Matches a `font` segment followed by
+   * `family` (`font/family/body`), or a single `font-family` / `fontFamily` / `font_family` segment.
+   * Lets an unscoped variable type as `fontFamily` the way a FONT_FAMILY-scoped one does (prism3 #2616).
+   *
+   * @param variableName Name of the variable to check
+   * @returns True if the path names a font family
+   */
+  isFontFamilyVariable(variableName: string): boolean {
+    return this.hasFontSegment(variableName, 'family');
+  }
+
+  /**
+   * Determines if a variable is a font weight, by its path. Matches a `font` segment followed by
+   * `weight` or a `weight-` / `weight_` compound (`font/weight/700`, `font/weight-role/strong`), or a
+   * single `font-weight` / `fontWeight` / `font_weight` segment. Lets an unscoped variable type as
+   * `fontWeight` the way a FONT_WEIGHT-scoped one does (prism3 #2616).
+   *
+   * @param variableName Name of the variable to check
+   * @returns True if the path names a font weight
+   */
+  isFontWeightVariable(variableName: string): boolean {
+    return this.hasFontSegment(variableName, 'weight');
+  }
+
+  // A `font` segment followed by `<word>` (or `<word>-…` / `<word>_…`), or one `font<sep><word>` segment.
+  // Whole segments only, so `fontweightless` or `iconfont/weight` do not match.
+  private hasFontSegment(variableName: string, word: string): boolean {
+    const segments = variableName.toLowerCase().split('/');
+    const compound = new RegExp('^font[-_]?' + word + '$');
+    const follower = new RegExp('^' + word + '([-_].*)?$');
+    for (let i = 0; i < segments.length; i++) {
+      if (compound.test(segments[i])) {
+        return true;
+      }
+      if (segments[i] === 'font' && i + 1 < segments.length && follower.test(segments[i + 1])) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
    * Determines if a font weight token name represents an italic variant.
    * These should be excluded from font weight alias resolution since fontStyle:"italic"
    * is handled separately in composite tokens.
