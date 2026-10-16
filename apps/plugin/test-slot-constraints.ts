@@ -45,6 +45,12 @@ console.log('native slot constraints (#2646) — against the in-memory shim\n');
 const EXPECTED: Record<string, { slotSettings?: Record<string, unknown>; preferred?: string[] }> = {
   // Open: a section holds whatever its content is, so no limit, no preferred component, the placeholder shown.
   'accordion.content': {},
+  // Repeating items (#2649, owner decision Q307 A): at least one, the ceiling where one means something, only the item.
+  'checkbox-group.items': { slotSettings: { minChildren: 1, allowPreferredValuesOnly: true }, preferred: ['checkbox-row'] },
+  'radio-group.items': { slotSettings: { minChildren: 1, allowPreferredValuesOnly: true }, preferred: ['radio-row'] },
+  'tabs.items': { slotSettings: { minChildren: 1, maxChildren: 6, allowPreferredValuesOnly: true }, preferred: ['tab'] },
+  'list.items': { slotSettings: { minChildren: 1, allowPreferredValuesOnly: true }, preferred: ['list-item'] },
+  'segmented-control.items': { slotSettings: { minChildren: 1, maxChildren: 5, allowPreferredValuesOnly: true }, preferred: ['segmented-control-segment'] },
   // Open (#2609, as built): the body holds whatever the dialog needs — text or any components — so no limit and no
   // preferred component. The footer's actions are fixed nested Buttons, not a slot (Q311), so they have no row.
   'dialog.body': {},

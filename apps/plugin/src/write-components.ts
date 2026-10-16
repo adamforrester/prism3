@@ -1726,9 +1726,10 @@ const writeComponentSet = async (
    * BEFORE the combine: Figma merges every member's slot of one name into one SLOT property there, measured.
    * A host without `createSlot` keeps the frame, and the miss says what that costs a designer.
    */
-  /** THE INSTANCES WHOSE OWN VALUES THIS RUN HAS WRITTEN (#2649 × #2645, ported for #2665). `toSlots` runs `build` over a
-   *  new SLOT to write the slot's own fields, and that pass visits the items it holds a second time. The per-instance
-   *  writes (`nestOverrides`, `nestTexts`) land once per instance per run, so each miss is reported once. */
+  /** THE INSTANCES WHOSE OWN VALUES THIS RUN HAS WRITTEN (#2649 × #2645). `toSlots` runs `build` over a new SLOT to
+   *  write the slot's own fields, and that pass visits the items it holds a second time. The per-instance writes
+   *  (`nestOverrides`, `nestTexts`) land once per instance per run, so each miss is reported once, as the paste
+   *  twin `__slotsNow` does: it only moves the items. */
   const instanceValuesWritten = new WeakSet<object>();
   const slotPlans = (n: FigmaNodePlan): FigmaNodePlan[] => [...(n.type === 'CONTENT_SLOT' ? [n] : []), ...n.children.flatMap(slotPlans)];
   const toSlots = async (comp: Wr, plan: FigmaNodePlan, parts: Map<string, Wr>, expose: Wr[], member: string): Promise<void> => {

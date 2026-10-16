@@ -287,7 +287,6 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | switch-row | — | — |
 | children | accordion | — | — |
 |  | dialog | — | — |
-|  | list | — | — |
 |  | list-item | — | — |
 | count | pagination | — | — |
 |  | tab | — | — |
@@ -371,6 +370,11 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | select | false | — |
 |  | switch-row | false | — |
 |  | text-field | false | — |
+| items | checkbox-group | — | — |
+|  | list | — | — |
+|  | radio-group | — | — |
+|  | segmented-control | — | — |
+|  | tabs | — | — |
 | label | _pagination-item | — | — |
 |  | badge | — | — |
 |  | button | — | — |
