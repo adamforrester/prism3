@@ -11,7 +11,7 @@ A labeled set for choosing EXACTLY ONE from a small set of mutually exclusive, a
 
 ## Usage
 
-Use to choose exactly one of 2 to about 7 mutually exclusive, all-visible options where seeing them all aids the decision — a shipping method, a plan tier. Give the group a label that names the decision; let it own the shared name, the single scalar value, required and validation, and derive each row's checked state from the value rather than wiring it on the row. Compose the rows as `children`. Prefer vertical orientation, which scans better and lets long labels wrap safely. Past about 7 options a Select or a filtering combobox (not built yet) scans better; for any-number selection use Checkbox.Group, and for an immediate-effect setting Switch.Row.
+Use to choose exactly one of 2 to about 7 mutually exclusive, all-visible options where seeing them all aids the decision — a shipping method, a plan tier. Give the group a label that names the decision; let it own the shared name, the single scalar value, required and validation, and derive each row's checked state from the value rather than wiring it on the row. Compose the rows as `items`. Prefer vertical orientation, which scans better and lets long labels wrap safely. Past about 7 options a Select or a filtering combobox (not built yet) scans better; for any-number selection use Checkbox.Group, and for an immediate-effect setting Switch.Row.
 
 ### Do
 
@@ -52,6 +52,7 @@ The group label names the decision; the rows carry the short options. Group erro
 | Name | Type | Default | Required | Description |
 | --- | --- | --- | --- | --- |
 | `label` | string \| node | — | yes | The group heading, rendered as the nested FieldLabel and the group's accessible name (role="radiogroup" + aria-labelledby). Names the decision the set answers ("Shipping method", "How should we contact you?"), letting its rows read the abstracted-up short labels ("Standard", "Express", "Overnight"). MANDATORY for meaning: without it assistive tech announces an orphaned "radio button, 1 of 3" with no indication of what is being chosen. |
+| `items` | slot of `radio-row`, 1 or more | — | yes | The options, each a Radio.Row, in order. Three by default; a designer adds, removes and reorders them in place. |
 | `value` | string | — | no | The controlled SCALAR selected option value — exactly one, where Checkbox.Group owns an array. The GROUP owns it; each row's checked appearance is DERIVED (`checked = (value === row.value)`), never wired on the row. Pair with `onChange`; use `defaultValue` for the uncontrolled form. |
 | `defaultValue` | string | — | no | Uncontrolled initial selection — a single option value. Start EMPTY (unset) to force a deliberate choice; pre-select only where a genuinely safe recommended default exists, and never pre-select a consent-shaped option. |
 | `onChange` | (value: string, event) => void | — | no | Fires with the NEW scalar value when a different row is selected. The group dispatches it; a row never owns its own onChange inside a group. Keep it CHEAP — selection follows focus by default, so a screen-reader user arrowing through fires it at every step. |
