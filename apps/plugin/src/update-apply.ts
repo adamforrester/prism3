@@ -658,7 +658,8 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
   // A set the apply entered and wrote nothing to, every member it would have written left as it is (`noBaseline:
   // 'skip'`, a layer added by hand, a member that would need replacing), still holds what its dry run listed. It is
   // NOT UPDATED, never "already up to date" (#2364 review; the owner's choice, 2026-10-08: the approved headline).
-  const idle = r.outcomes.filter((o) => !o.refused && !o.stopped && o.skipped.length && !o.updated.length && !o.added && !o.renamed && !o.deprecated.length && !o.moved && !o.setMoved && !furnitureDueCount(o.furniture)).length;
+  // Furniture drawn for it does not change that (#2803 review): its members still hold what the dry run listed.
+  const idle = r.outcomes.filter((o) => !o.refused && !o.stopped && o.skipped.length && !o.updated.length && !o.added && !o.renamed && !o.deprecated.length && !o.moved && !o.setMoved).length;
   const refused = r.outcomes.filter((o) => o.refused).length + r.refused.length + idle;
   // A member not finished is not counted as updated: the next dry run reads it out of date (#2477).
   const done = (o: SetOutcome): number => o.updated.length - unfinishedOf(o).members.length;

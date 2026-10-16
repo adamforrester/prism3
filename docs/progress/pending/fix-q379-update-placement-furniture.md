@@ -38,3 +38,7 @@ refused confirm drawing nothing. `rollout/<def> due` holds that nothing is due r
 Mutations: `besideHeader` always false → `header row/dry run`, `header row/applied`, `header row/one set` (the
 mutant reproduces the live layout); the check dropped from `previewUpdate` → `due/dry run lists`, `due/apply draws`,
 `due/stale`, `due/stale converges`, `due/refused`.
+Review fixes: a set the apply entered and wrote no member to stays "not updated" when furniture was drawn for it
+(#2364's rule), pinned by `idle/furniture` (mutation: the idle count skipping a set with furniture due); and a set
+lifted from beside the header joins a row already under it at that row's top, pinned by `header row/joins below`
+(mutation: `underY` ignoring the sets below the header).

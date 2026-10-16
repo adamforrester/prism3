@@ -830,6 +830,17 @@ const reinked = (plans: AnatomyPlan[]): AnatomyPlan[] => plans.map((p) => { cons
     `misses/other: any other miss leaves the set not verified, quoted, the updated count as it was (${JSON.stringify(v)})`);
 }
 {
+  // FURNITURE DRAWN FOR A SET WHOSE MEMBERS WERE ALL LEFT (#2803 review): every member skipped (`noBaseline: 'skip'`
+  // here) while the dry run also listed furniture. The furniture is drawn and named, but the members still hold what
+  // the dry run listed, so the set is NOT UPDATED (#2364's rule), never a ✓. An outcome written out by hand, so the
+  // expected lines are the test's. Mutation: the idle count skipping a set with furniture due → `idle/furniture`.
+  const o = { def: 'button', set: 'button', updated: [], added: 0, renamed: 0, deprecated: [], skipped: [{ member: 'size=md', reason: 'no as-built record' }], kept: [], unrecorded: [], handEdits: 'keep' as const,
+    identity: [], content: [], misses: [], furniture: { labels: 3, backdrops: 0, clear: 0 } };
+  const v = applyVerdict({ outcomes: [o], refused: [], missing: [] } as any);
+  ok(!v.ok && v.headline === '✗ 1 set not updated' && v.lines[0] === 'button: 3 canvas labels drawn, 1 left as they are.',
+    `idle/furniture: a set whose members were all left is not updated, though its furniture was drawn (${JSON.stringify(v)})`);
+}
+{
   // A RECORD-LESS SINGLE COMPONENT (#2373): the icons with no as-built record, as the NB master's unrecorded sets were.
   // By default each is updated and named as updated without one, and is recorded after; under `noBaseline: 'skip'` it
   // is left exactly as it is, and named. Mutations: the default skipping → `unrecorded single/updated`; the skip
@@ -1500,6 +1511,16 @@ section('header row — sets an earlier build put beside a wide page header move
     { id: 'B', type: 'COMPONENT_SET', prism3: true, x: 1264, y: 0, width: 864, height: 600 },
   ]);
   ok(under.length === 0, `header row/below stays: sets already under a wide header, a fresh build's spacing apart, do not move (${JSON.stringify(under)})`);
+  // A LIFTED SET JOINS THE ROW ALREADY UNDER THE HEADER, at that row's top, not at the header's bottom plus the gap
+  // (here the row sits 177 below the header, not 80), and after its sets. Mutation: `underY` ignoring the sets below
+  // the header → `header row/joins below`.
+  const joins = respaceSets([
+    { id: 'H', type: 'INSTANCE', header: true, x: 0, y: -302, width: 4000, height: 125 },
+    { id: 'B', type: 'COMPONENT_SET', prism3: true, x: 0, y: 0, width: 864, height: 600 },
+    { id: 'A', type: 'COMPONENT_SET', prism3: true, x: 4160, y: -302, width: 312, height: 600 },
+  ]);
+  ok(JSON.stringify(joins.map((m) => [m.id, m.to.x, m.to.y])) === JSON.stringify([['A', 864 + 400, 0]]),
+    `header row/joins below: a set beside the header joins the row under it, at that row's top, after its sets (${JSON.stringify(joins)})`);
 }
 
 /* ── set moves and page order together (#2542 × #2568) ─────────────────────────────────────────────────── */
