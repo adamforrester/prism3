@@ -320,6 +320,13 @@ whose actual value comes from the host, not from the plan.
   A row or group paints nothing by `status` itself: it follows the axis to the part that draws it.
   Moving an existing `error` state onto the axis is a `move` entry in `COMPONENT_RENAMES`, so an
   update renames the error member in place and a placed error instance keeps showing it.
+- **A border never binds an icon or text role** (owner decision Q346). An edge binds a border
+  role: `border.*`, `interactive.<intent>.border.*`, `field.border.*`, or `color.disabled.border`.
+  Every disabled edge binds `color.disabled.border`; a field-specific disabled border is fine only
+  where the token tier already has one. Do not reach for `color.disabled.icon` to make a disabled
+  outline darker: a disabled control is outside SC 1.4.11, and how strong its edge reads is the
+  token tier's to decide, not your component's. `packages/engine/lint-paint.ts` arm 5 refuses a
+  stroke bound to a variable the emitted color collection does not scope for strokes.
 - **Paint-key grammar.** A paint key is templated over the def's own axes with the `{axis}.{axis}`
   syntax — veil's `paintKeys: ['{value}.{intensity}']` fills the full 2×3 grid, each coordinate
   binding the matching semantic role. A `text` part names one ink slot in `paintSlot`; a `box`
