@@ -7,4 +7,5 @@ included. It replaces the 400px frame-to-frame gap of #2502. The plugin places a
 drawn, so the gap is measured from them; Update moves a set whose labels sit closer than 160 to its neighbor's, or
 whose frame sits exactly 400 from its neighbor's, where the earlier rule put it, and leaves any other spacing a designer
 chose. The paste payload's copy of the rule writes 160 (it draws no labels, so its new set's edge is its frame).
-EXECUTOR_REVISION 26. No token or emitted artifact moves; CONTRACT is unchanged.
+When an Update redraws a set's labels wider, the same Update then moves the sets to its right clear (Q358 A), so one
+Update settles the page and no labels overlap in between. EXECUTOR_REVISION 29. No token or emitted artifact moves; CONTRACT is unchanged.

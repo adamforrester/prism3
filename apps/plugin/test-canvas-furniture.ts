@@ -732,10 +732,8 @@ section('columns — the Radio page, built before the fix: Update widens each se
     root: { ...(api.root as object), findAllWithCriteria: (c: { types: string[] }) => (c.types.length === 1 && c.types[0] === 'COMPONENT_SET' ? page.children.filter((n) => n.type === 'COMPONENT_SET') : (api.root as { findAllWithCriteria: (c: unknown) => unknown[] }).findAllWithCriteria(c)) },
   } as unknown as UpdateHost;
   const targets = IDS.map((id) => ({ def: id, plans: plansBy.get(id)! }));
-  const update = async () => {
-    await applyUpdate(host as never, api as never, targets, previewHashOf(await previewUpdate(host, targets)));
-    for (const [i, id] of IDS.entries()) await drawFurniture(fakeTemplates(), sets[i], furnitureLayout(plansBy.get(id)!), id);
-  };
+  // ONE UPDATE, as `main.ts` runs it: the apply redraws each set's furniture (`furnish`) and re-spaces from it (Q358 A).
+  const furnish = async (def: string, set: { id?: unknown }) => { await drawFurniture(fakeTemplates(), sets.find((x) => x.id === set.id)!, furnitureLayout(plansBy.get(def)!), def); };
   const box = (n: FNode) => ({ x: Number(n.x), y: Number(n.y), w: Number(n.width), h: Number(n.height) });
   const meets = (a: ReturnType<typeof box>, b: ReturnType<typeof box>) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
   const hitsOf = (): string[] => {
@@ -747,15 +745,25 @@ section('columns — the Radio page, built before the fix: Update widens each se
     }
     return out;
   };
-  await update();
+  // The visible gap between each set (with its furniture) and the next, left to right.
+  const gaps = (): number[] => {
+    const seen = IDS.map((id, i) => {
+      const all2 = [sets[i], ...furnitureOn(page).filter((f) => tagOf(f).def === id)];
+      return { left: Math.min(...all2.map((n) => Number(n.x))), right: Math.max(...all2.map((n) => Number(n.x) + Number(n.width))) };
+    });
+    return seen.slice(1).map((v, i) => Math.round((v.left - seen[i].right) * 100) / 100);
+  };
+  const widthWas = Number(sets[0].width);
+  const res = await applyUpdate(host as never, api as never, targets, previewHashOf(await previewUpdate(host, targets)), { furnish });
   const between = hitsOf();
-  const first = await previewUpdate(host, targets);
-  const moving = first.sets.filter((p) => p.setMove).map((p) => p.set);
-  await update();
-  const hits = hitsOf();
-  const last = await previewUpdate(host, targets);
-  ok(JSON.stringify(moving) === JSON.stringify(['radio-row', 'radio-group']) && hits.length === 0 && previewVerdict(last).headline === '✓ All sets up to date',
-    `columns/shared page: after the widening Update (${between.length} label overlaps), the next dry run moves ${JSON.stringify(moving)} clear; after that Update no label meets another set or its labels, and the page reads up to date (${hits.slice(0, 3).join('; ')}; ${previewVerdict(last).headline})`);
+  const settled = res.outcomes.filter((o) => o.setMoved).map((o) => o.set);
+  const next = await previewUpdate(host, targets);
+  // Every set read up to date, so nothing else wrote: the moves save the named version themselves (Q7).
+  ok(res.version === 'Before Prism3 updated radio-row, radio-group',
+    `columns/shared page version: the settling moves are the update's first write, so they save the named version first, naming the sets that move (${res.version})`);
+  ok(Number(sets[0].width) > widthWas && between.length === 0 && JSON.stringify(settled) === JSON.stringify(['radio-row', 'radio-group']) && gaps().every((g) => g >= 160)
+    && next.sets.every((p) => !p.setMove) && previewVerdict(next).headline === '✓ All sets up to date',
+    `columns/shared page: ONE Update widens radio-control (${widthWas} → ${Number(sets[0].width)}) and moves ${JSON.stringify(settled)} clear in the same apply; no label meets another set or its labels (${between.length}: ${between.slice(0, 3).join('; ')}), the gaps read ${JSON.stringify(gaps())}, and the next dry run moves nothing (${previewVerdict(next).headline})`);
 }
 
 /* ── the scrim behind each Dialog example (#2609, owner decisions Q303.2 A and Q303.3 A) ───────────────────── */

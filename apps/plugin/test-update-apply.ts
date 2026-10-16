@@ -1392,6 +1392,21 @@ section('respaceSets — a moving set never lands on another Prism3 set (#2548 r
   ok(JSON.stringify(moves.map((m) => [m.id, m.to.x])) === JSON.stringify([['B', 1110], ['C', 2070]]),
     `respace/old rule: sets 400 apart frame to frame close to 160 of white space, and a designer's 600 stays (${JSON.stringify(moves.map((m) => [m.id, m.to.x]))})`);
 }
+{
+  // THE OLD RULE'S SPOT, ALREADY 160 CLEAR (#2737 review). A at 0..800, its backdrop reaching 120 past its right edge
+  // (to 920); B's frame exactly 400 past A's (1200), its label reaching 120 left (to 1080): 160 of white space. The spot
+  // is the #2502 rule's, and the rule's place for B is where it stands, so nothing moves, and the next dry run reads
+  // the same. Mutation: the zero-length move kept (no guard) → this, with B listed to move to 1200.
+  const nodes = [
+    { id: 'A', type: 'COMPONENT_SET', prism3: true, x: 0, y: 0, width: 800, height: 400 },
+    { id: 'a-backdrop', type: 'INSTANCE', furniture: true, of: 'A', x: -120, y: 0, width: 1040, height: 400 },
+    { id: 'B', type: 'COMPONENT_SET', prism3: true, x: 1200, y: 0, width: 800, height: 400 },
+    { id: 'b-label', type: 'INSTANCE', furniture: true, of: 'B', x: 1080, y: 0, width: 100, height: 200 },
+  ];
+  const moves = respaceSets(nodes);
+  ok(moves.length === 0,
+    `respace/old rule at 160: a set at the old rule's spot that already sits 160 clear does not move (${JSON.stringify(moves.map((m) => [m.id, m.to.x]))})`);
+}
 
 /* ── no change ───────────────────────────────────────────────────────────────────────────────────────── */
 section('no change — a member the dry run calls "no changes" is written nothing but its stamp and record (#2379)');

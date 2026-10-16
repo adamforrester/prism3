@@ -29,5 +29,20 @@ the furniture reach and the old-rule recognition; its re-spacing literals are re
 
 **Traps for whoever re-verifies.** Each def's shim numbers node ids from 1, so in tests two sets on one page can share an
 id; `seatNewSet` matches furniture by set id *and* def, the pair `drawFurniture` tags with. A set whose labels change
-width under an Update (#2705 changes label widths) is moved by the old labels' reach and redrawn after; labels that grow
-are caught as "too close" by the next Update, labels that shrink leave a gap wider than 160 that Update keeps (#2734). A set rebuilt under a header still puts its frame, not its labels, on the header's left edge (#2735, unchanged here).
+width under an Update (#2705 changes label widths) is moved by the old labels' reach and redrawn after. Labels that
+shrink leave a gap wider than 160 that Update keeps (#2734). A set rebuilt under a header still puts its frame, not its labels, on the header's left edge (#2735, unchanged here).
+
+**One Update settles the page (owner decision Q358 A, after review).** Stacked on #2717, the first Update on the Radio
+page widened radio-control by ~300px and left 2 label overlaps until a second Update re-spaced. Under the old 400 frame
+gap that growth fit; under 160 it does not. Now `applyUpdate` (`update-apply.ts`) takes the furniture redraw as a hook
+(`opts.furnish`, `main.ts`'s `furnishSet`) and, after it, runs the re-spacing once more from the labels as drawn
+(`settle`). A set moves with its own tagged furniture by the same `dx`, so nothing is redrawn twice. It only makes
+room (Q248 A). When nothing else in the Update wrote, as on Radio, where every set read up to date, the settling moves
+are the first write, so they save the named version first (Q7); refused, they don't move, and the next dry run lists
+them. `columns/shared page` asserts 0 overlaps, 160 between each set, and a clean next dry run after a **single**
+Update. The tests drive the hook with `drawFurniture`, so the loop that used to live in `main.ts` is now under test;
+`main.ts` keeps only the `hasFurniture` filter and the outcome list.
+
+The review's other points: `EXECUTOR_REVISION` is 29 (main 27, #2717 lands at 28 first), and the `respaceSets` no-op
+guard has a pure arm (`respace/old rule at 160`). A pasted set that is adopted and then updated draws its labels for the
+first time in that Update. The same settle pass covers it, but no test builds that file.

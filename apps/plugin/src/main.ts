@@ -945,19 +945,18 @@ const updateComponents = async (defId: string | undefined, previewHash: string |
     // THE APPLY (#2265 PR 2): the same plans the check laid against the file, applied over it only while it still
     // hashes as the check did. `figma` is both the file the check reads and the executor's port.
     const descriptionOf = (def: string): string | undefined => componentDefs.find((d) => d.id === def)?.summary;
-    const r = await applyUpdate(figma as unknown as ApplyHost, figma as unknown as ComponentsApi, targets, previewHash, { descriptionOf, breathe, ...(choices ? { choices } : {}) });
-    r.refused.push(...refused);
     // THE CANVAS FURNITURE (#2406, #2188), redrawn for every piloted set the apply acted on — from the members as they
-    // now sit, so the labels follow the update. Reported in the data, and in the verdict only where a part was skipped.
+    // now sit, so the labels follow the update — and the page re-spaced from it in the same apply (Q358 A). Reported in
+    // the data, and in the verdict only where a part was skipped.
     const furniture: FurnitureOutcome[] = [];
-    for (const o of r.outcomes) {
-      const t = targets.find((x) => x.def === o.def);
-      if (!t || !hasFurniture(o.def)) continue;
-      const sets = (figma.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as readonly ComponentSetNode[]).filter((n) => n.name === (t.plans[0]?.component ?? t.def));
-      if (sets.length !== 1) continue;
-      const drawn = await furnishSet(o.def, sets[0].id, t.plans);
+    const furnish = async (def: string, set: { id?: unknown }): Promise<void> => {
+      const t = targets.find((x) => x.def === def);
+      if (!t || !hasFurniture(def)) return;
+      const drawn = await furnishSet(def, String(set.id ?? ''), t.plans);
       if (drawn) furniture.push(drawn);
-    }
+    };
+    const r = await applyUpdate(figma as unknown as ApplyHost, figma as unknown as ComponentsApi, targets, previewHash, { descriptionOf, breathe, furnish, ...(choices ? { choices } : {}) });
+    r.refused.push(...refused);
     sink.data({ update: { mode: 'apply', ...r, furniture } });
     postVerdict({ type: 'component-update-result', ...withTemplateWarning(withFurnitureItems(applyVerdict(r), furnitureItems(furniture, 'update')), furniture) }, sink);
   } catch (e) {
