@@ -401,7 +401,7 @@ export const switchControl: ComponentDef = {
 
   ai: {
     primaryPurpose: 'Render the atomic switch control — the painted pill, its traveling thumb, the X/checkmark state glyph and the focus ring — for a host row to nest.',
-    whenToUse: 'Nested by the labeled Switch.Row (the common case), or standalone only for a control with an external label and its own aria wiring.',
+    whenToUse: 'Inside Switch.Row, the common case. On its own only with an external label and its own ARIA wiring.',
     avoidWhen: 'You want the labeled case (that is Switch.Row), a staged binary submitted with a form (Checkbox.Row / Checkbox.Control), or a mutually-exclusive one-of-many (Radio.Control). Never place a bare track as the clickable element — the hit target is the labeled row.',
     commonPartners: ['switch-row', 'focus-ring'],
     triggerKeywords: ['switch control', 'switch track', 'toggle control', 'switch thumb', 'toggle handle'],
