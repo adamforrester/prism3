@@ -1063,6 +1063,13 @@ export const GATES: Gate[] = [
     cmd: engine('lint-ecosystem.ts'),
   },
   {
+    // #2650 — reads the COMMITTED docs/public/releases/** and git history, so it needs no `after`: the
+    // fold writes the notes, and this re-derives every release's diff from the records at both folds.
+    id: 'lint-release-notes',
+    ciStep: 'Release notes match the diff between folds (#2650)',
+    cmd: engine('lint-release-notes.ts'),
+  },
+  {
     // #2759 — reads the def registry only; needs no build and no `after`.
     id: 'lint-naming',
     ciStep: 'Component names follow the naming table (#2759)',
