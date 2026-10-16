@@ -59,6 +59,7 @@ import { BASELINE_V, UPDATING_KEY, baselineDiff, baselineOf, builtByPrism3, read
 import { drawnFaults, faultLine, type DrawnFault, type DrawVar } from './drawn';
 import { REACTIONS_PATH, plannedRead, reactionMap, reactionVerdict, reactionsText, type PlannedReaction, type ReadReaction } from './reactions';
 import { pagesOutOfOrder, stripNestPrefix, type PageLike } from './file-setup';
+import { whatChangedLines } from './release-summary';
 
 /** One member of a set as the dry run reads it. */
 export type HostMember = {
@@ -1175,7 +1176,7 @@ export const pagesLine = (pages: readonly string[] | undefined): string =>
 
 /** The verdict for a dry run. `ok` is false only where a set could not be checked. `lines` is the Activity drawer's
  *  copy (#2177): one per set, then the closing lines, the same list `summary` is joined from. */
-export const previewVerdict = (r: UpdatePreview): { ok: boolean; headline: string; summary: string; lines: string[] } => {
+export const previewVerdict = (r: UpdatePreview, whatChanged: (sets: string[]) => string[] = whatChangedLines): { ok: boolean; headline: string; summary: string; lines: string[] } => {
   const changing = r.sets.filter((p) => !p.blockers.length && !noChanges(p)).length;
   const earlier = r.sets.filter((p) => !p.blockers.length).reduce((k, p) => k + p.counts.revisionUnknown, 0);
   // A set with members Adopt could claim has no changes but is not up to date (Q191 2B), so the headline is the
@@ -1201,6 +1202,9 @@ export const previewVerdict = (r: UpdatePreview): { ok: boolean; headline: strin
     earlier ? `${earlier} built by an earlier plugin. Update ${earlier === 1 ? 'it to bring it' : 'them to bring them'} current.` : '',
     // Wording approved, Q246 A (#2542, Q245.2 A).
     setsMoving(r) ? `${n(setsMoving(r), 'set')} to move, so the sets on each page sit as a new build spaces them.` : '',
+    // #2650: the version's breaking and new Figma items for the sets this check would change. A set is named by its
+    // def id (`locate`), the key the release notes use.
+    ...whatChanged(r.sets.filter((p) => !p.blockers.length && !noChanges(p)).map((p) => p.set)),
     'This was a check only. Nothing in the file changed.',
   ].filter(Boolean);
   return { ok: blocked === 0, headline, summary: lines.join('\n'), lines };
