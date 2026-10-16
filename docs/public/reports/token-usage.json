@@ -18908,6 +18908,32 @@
     "space.250": {
       "type": "dimension",
       "components": {
+        "accordion": {
+          "keys": [
+            "size.large.pad-x"
+          ],
+          "parts": {
+            "content": {
+              "members": 4,
+              "where": {
+                "expansion": [
+                  "expanded"
+                ],
+                "size": [
+                  "large"
+                ]
+              }
+            },
+            "header": {
+              "members": 8,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
+        },
         "segmented-control-segment": {
           "keys": [
             "size.large.padding-x"
@@ -18945,7 +18971,6 @@
       "components": {
         "accordion": {
           "keys": [
-            "size.large.pad-x",
             "size.large.panel-pad-end"
           ],
           "parts": {
@@ -18955,14 +18980,6 @@
                 "expansion": [
                   "expanded"
                 ],
-                "size": [
-                  "large"
-                ]
-              }
-            },
-            "header": {
-              "members": 8,
-              "where": {
                 "size": [
                   "large"
                 ]
@@ -21339,6 +21356,7 @@
         "space.100",
         "space.150",
         "space.200",
+        "space.250",
         "space.300",
         "type.body.lg.default",
         "type.body.md.default",

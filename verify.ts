@@ -640,6 +640,13 @@ export const GATES: Gate[] = [
     cmd: engine('emit-agent-reference.ts', '--check'),
   },
   {
+    // #2647 — docs/public/reference/figma-conventions.json against the code it is generated from. Reads the
+    // source files and the default theme only, so it needs no `after`.
+    id: 'figma-conventions',
+    ciStep: 'The Figma conventions file matches the code (#2647)',
+    cmd: engine('emit-figma-conventions.ts', '--check'),
+  },
+  {
     id: 'typecheck-web',
     ciStep: 'Typecheck web',
     cmd: ws('@prism3/studio', 'typecheck'),
