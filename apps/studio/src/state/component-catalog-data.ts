@@ -1114,5 +1114,59 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
       "field-message",
       "focus-ring"
     ]
+  },
+  {
+    "id": "breadcrumb-item",
+    "name": "BreadcrumbItem",
+    "category": "navigation",
+    "summary": "One step in a breadcrumb trail: a link, the current page, or the collapsed steps.",
+    "unit": "variants",
+    "spacing": [
+      {
+        "key": "size.medium.gap",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.small.gap",
+        "ref": "space.050"
+      }
+    ],
+    "buildable": true,
+    "reason": null,
+    "members": 6,
+    "nests": [
+      "link",
+      "icon",
+      "flush-icon-button-neutral"
+    ]
+  },
+  {
+    "id": "breadcrumbs",
+    "name": "Breadcrumbs",
+    "category": "navigation",
+    "summary": "The path to the current page as links, with the current page last and not a link.",
+    "unit": "variants",
+    "spacing": [
+      {
+        "key": "size.medium.gap",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.small.gap",
+        "ref": "space.050"
+      },
+      {
+        "key": "back-gap",
+        "ref": "space.050"
+      }
+    ],
+    "buildable": true,
+    "reason": null,
+    "members": 4,
+    "nests": [
+      "breadcrumb-item",
+      "icon",
+      "link"
+    ]
   }
 ];
