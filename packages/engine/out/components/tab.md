@@ -16,12 +16,14 @@ Use inside Tabs only. A tab names one panel of related content; selecting it sho
 ### Do
 
 - Keep labels short, parallel nouns
+- Use nouns, not verbs ("Activity", not "View activity")
 - Let the tab list set selected from its value
 
 ### Don't
 
 - Use a tab to go to another page; that is a link in a navigation
 - Set selected on a tab inside a list by hand
+- Wrap a label onto a second line; shorten it, or reconsider how many tabs the list needs
 
 ### Content guidelines
 
@@ -34,7 +36,7 @@ One or two words, a noun, sentence case.
 ## Choosing it
 
 - **Purpose:** One trigger inside Tabs that shows its panel in place when selected.
-- **Use when:** Only as a child of Tabs.
+- **Use when:** Only inside Tabs. Generate Tabs, which places one tab per panel and sets which one is selected.
 - **Avoid when:** Changing the page or the address (a navigation of links), or switching a value within the current view (SegmentedControl).
 - **Often used with:** `tabs`, `icon`, `badge`
 

@@ -16,7 +16,7 @@ Do not place this on its own as a form control. It is the box Checkbox.Row nests
 ### Do
 
 - Nest this from Checkbox.Row rather than redrawing the box per host
-- Let the host row expose `selection` and `state` and `follow` its size, so the nested control tracks the row
+- Let the host row expose selection and state and follow its size, so the nested control tracks the row
 - Supply an external aria-label only when using the control genuinely alone, with no labeled row to name it
 - Nest it in a table cell, card or list row when the label is decoupled — the host row supplies the name and the collection owns the selection
 
@@ -34,13 +34,13 @@ The atom has no copy of its own; all label, description and error text belongs t
 
 ### Copy patterns
 
-- **Labels:** None — the atom carries no label. The consent line and its rules live on Checkbox.Row (`checkbox-row`).
-- **Errors:** None of its own — an error boundary is a color treatment the host coordinate selects; the message is Checkbox.Group's (`checkbox-group`).
+- **Labels:** None — the atom carries no label. The consent line and its rules live on Checkbox.Row (checkbox-row).
+- **Errors:** None of its own — an error boundary is a color treatment the host coordinate selects; the message is Checkbox.Group's (checkbox-group).
 
 ## Choosing it
 
 - **Purpose:** Render the atomic checkbox control — the painted square with its check or dash glyph and focus ring — for a host row to nest.
-- **Use when:** Nested by the labeled Checkbox.Row (the common case), or by a host whose label is decoupled — a table select-all, a card-select, a selectable list row — where the host names the control and the collection owns the selection. Standalone only with an external label and its own aria wiring.
+- **Use when:** Inside Checkbox.Row, the common case. On its own only when a host with a separate label names it and the collection owns the selection, such as a table select-all, a selectable card or a selectable list row, with its own ARIA wiring.
 - **Avoid when:** You want the labeled case (that is Checkbox.Row), a mutually-exclusive one-of-many (Radio.Control), or an immediate-effect toggle (Switch.Control). Never place a bare control square as the clickable element — the hit target is the labeled row.
 - **Often used with:** `checkbox-row`, `focus-ring`, `checkbox-group`
 
@@ -49,10 +49,10 @@ The atom has no copy of its own; all label, description and error text belongs t
 | Name | Type | Default | Required | Description |
 | --- | --- | --- | --- | --- |
 | `checked` | boolean | — | no | The filled/checked appearance. Driven by the host row from the group's value array — a bare Checkbox.Control is styled by the coordinate, not wired to state here. |
-| `indeterminate` | boolean | `false` | no | The mixed appearance — the dash glyph. PRESENTATIONAL, for parent/child select-all hierarchy, never a third value a user clicks to; the host carries `aria-checked="mixed"`. |
-| `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | Scales the control square (both axes from one key, square by construction), its corner and its glyph. The host row passes its own size through by `follow`, so the nested control tracks the row. |
+| `indeterminate` | boolean | `false` | no | The mixed appearance — the dash glyph. Presentational, for parent/child select-all hierarchy, never a third value a user clicks to; the host carries aria-checked="mixed". |
+| `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | Scales the control square (both axes from one key, square by construction), its corner and its glyph. The host row passes its own size through by follow, so the nested control tracks the row. |
 | `disabled` | boolean | `false` | no | The disabled skin — a contrast-exempt fill/border/glyph treatment. Set on the host, followed here. |
-| `aria-label` | string | — | no | Required only for a genuinely standalone control with no host row to name it — the Row provides the accessible name through the label, so a nested control must NOT double-label. |
+| `aria-label` | string | — | no | Required only for a genuinely standalone control with no host row to name it — the Row provides the accessible name through the label, so a nested control must not double-label. |
 
 ## States
 
@@ -72,9 +72,9 @@ The atom has no copy of its own; all label, description and error text belongs t
   - 1.4.11 Non-text Contrast (the control boundary — border on the empty box, self-bounding fill on the filled one)
   - 2.4.13 Focus Appearance (the nested focus ring, offset, at least 3:1 against the adjacent surface and the control edge)
   - 4.1.2 Name Role Value (carried by the host; this atom is presentational when nested)
-- **Keyboard:** None of its own — the atom is not a tab stop. Focus, Space-to-toggle and the tab order belong to the host input; the ring here renders the host's `:focus-visible` state.
-- **Focus:** The nested focus ring surrounds the square on `:focus-visible`, offset so an unbroken sliver of background separates the ring from the control's own border (WCAG 1.4.11). Keyboard traversal only, never mouse or touch.
-- **ARIA:** When nested in a host row, the host provides the accessible name through `aria-labelledby` — never double-label. Relying on the visual dash glyph alone to convey indeterminate is a failure; `aria-checked="mixed"` carries it, and the host sets it.
+- **Keyboard:** None of its own — the atom is not a tab stop. Focus, Space-to-toggle and the tab order belong to the host input; the ring here renders the host's :focus-visible state.
+- **Focus:** The nested focus ring surrounds the square on :focus-visible, offset so an unbroken sliver of background separates the ring from the control's own border (WCAG 1.4.11). Keyboard traversal only, never mouse or touch.
+- **ARIA:** When nested in a host row, the host provides the accessible name through aria-labelledby — never double-label. Relying on the visual dash glyph alone to convey indeterminate is a failure; aria-checked="mixed" carries it, and the host sets it.
 
 ## Motion
 
