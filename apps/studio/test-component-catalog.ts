@@ -130,8 +130,8 @@ const spacePx = sizeRefPx(componentSizes('comfortable', 8));
 const last = new Map<string, SetBuild>([['button', 'ok'], ['tag', 'issues'], ['badge', 'failed']]);
 const view = setsView(committed, { density: 'comfortable', spacePx, plugin: true, lastOf: (id) => last.get(id) });
 const v = (id: string) => view.find((x) => x.id === id);
-ok(v('button')?.parts === '576 parts' && v('icon')?.parts === '45 components' && v('spinner')?.parts === '4 components',
-  `parts: Button "${v('button')?.parts}", Icon "${v('icon')?.parts}", Spinner "${v('spinner')?.parts}" (want 576 parts, 45 components, 4 components)`);
+ok(v('button')?.parts === '576 parts' && v('icon')?.parts === '46 components' && v('spinner')?.parts === '4 components',
+  `parts: Button "${v('button')?.parts}", Icon "${v('icon')?.parts}", Spinner "${v('spinner')?.parts}" (want 576 parts, 46 components, 4 components)`);
 ok(v('button')?.contains === 'Contains Icon, Spinner, FocusRing' && v('focus-ring')?.contains === 'Contains no other set',
   `contains: by the nested sets' names ("${v('button')?.contains}", "${v('focus-ring')?.contains}")`);
 ok(JSON.stringify(v('button')?.spacing) === JSON.stringify(['Small: padding-x 16 · padding-y 6 · gap 8', 'Medium: padding-x 16 · padding-y 8 · gap 8', 'Large: padding-x 24 · padding-y 8 · gap 12']),

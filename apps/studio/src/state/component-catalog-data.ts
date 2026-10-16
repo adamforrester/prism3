@@ -1151,7 +1151,8 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "nests": [
       "link",
       "_breadcrumb-separator",
-      "flush-icon-button-neutral"
+      "flush-icon-button-neutral",
+      "icon"
     ]
   },
   {

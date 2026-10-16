@@ -1,8 +1,10 @@
-## (2026-10-16) — Breadcrumbs and BreadcrumbItem, from the approved wireframe (#2666)
+## (2026-10-16) — Breadcrumbs, BreadcrumbItem and BreadcrumbSeparator, from the approved wireframe (#2666)
 
 Built from the proposal on #2666, which the owner approved on 2026-10-16 with every numbered call at its
-recommendation (A). Two defs: `breadcrumbs` (`layout` trail | parent × `size` medium | small, 4 members) and
-`breadcrumb-item` (`kind` ancestor | current | overflow × `size`, 6 members). No state axis on either: the nested Link
+recommendation (A), then given a choice of separator by owner decision Q382 A (below). Three defs: `breadcrumbs`
+(`layout` trail | parent × `separator` chevron | slash × `size` medium | small, 6 members), `breadcrumb-item` (`kind`
+ancestor | current | overflow × `separator` × `size`, 10 members) and `_breadcrumb-separator` (`type` chevron | slash,
+2 members). No state axis on either: the nested Link
 and FlushIconButton.Neutral carry their own, exposed (`nest-exposed`, `expose: ['state']`), the Dialog precedent.
 
 ### What the build settled
@@ -24,6 +26,31 @@ and FlushIconButton.Neutral carry their own, exposed (`nest-exposed`, `expose: [
   `out/<brand>.tokens.json`, resolves the mode aliases itself, and asserts 20 cells literally. Link ink 4.5:1 on
   `background.primary` at every state and on `background.secondary` at rest; `text.primary` on both; the back
   chevron's `icon.link.default` 3:1. The separator is decorative and held to no floor.
+
+### After QA: a choice of separator (Q382 A)
+
+The owner's QA on the first build asked for a choice of separator, as Prism 2 had, and decided Q382 A: a separate part,
+`_breadcrumb-separator`, in two looks, `type: chevron | slash`, and one `separator` setting on Breadcrumbs for every
+step, chevron by default, both in `color.icon.secondary`. The overflow item and the `parent` layout stay as built.
+
+- **How the setting reaches each step.** `follow` passes an axis by its own name, and Q382 names the part's axis
+  `type` and the trail's setting `separator`. So Breadcrumbs and BreadcrumbItem both carry a `separator` axis, the
+  trail's default ancestors follow it, and the item nests the separator twice, the chevron look at `separator=chevron`
+  and the slash at `separator=slash` (`presentWhen`). No engine change. The current page and the parent layout have no
+  separator, so neither has a slash member: the item is 10 members, the trail 6, the separator 2. `separator` is the
+  thirtieth axis name, argued in `VARIANT_AXES`' header.
+- **The slash glyph is the set's first that is not Remix's.** Remix 4.9.1 has no plain slash (`code-s-slash`,
+  `slash-commands` and `divide` are the nearest). So `icons/slash-line.svg` is drawn for this project: one
+  parallelogram on the 24px grid, a 2px stroke like `chevron-right`'s (1.995px measured across the stroke), and
+  `icons/NOTICE.md` records it. Held for the owner on the PR.
+- **Naming.** The id is the owner's, `_breadcrumb-separator`. The display name is BreadcrumbSeparator: the
+  `component-names` family rule would make `Breadcrumb.Separator` force `Breadcrumb.Item` too, and the item's name
+  waits on #2783. It shares the Breadcrumb Item page, first, as the Accordion indicator shares the Accordion's.
+- **The icon set grew to 46,** so the icon-count pins in `test-update-apply.ts`, `test-update-components.ts` and the
+  studio catalog moved by one, as they did for `menu`.
+- **The studio catalog missed override swaps as nests.** The item's chevron used to be an icon instance, which hid the
+  gap: the overflow's dots come from a #2645 swap override, which the catalog did not walk. Pagination (#2796) fixed
+  the same line; the fix is ported as is.
 
 ### Traps for whoever re-verifies this
 
