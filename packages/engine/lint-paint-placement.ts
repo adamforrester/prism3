@@ -297,7 +297,7 @@ const EXPECT_ANATOMY = [
   'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'list-item', 'list',
   'segmented-control-segment', 'segmented-control', 'link', 'dialog', 'password-field',
   // #2665: the page cell and the pagination row.
-  '_pagination-item', 'pagination',
+  '_pagination-item', 'pagination', 'breadcrumb-item', 'breadcrumbs',
 ];
 const EXPECT_PAINTERS = [
   'focus-ring', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive',

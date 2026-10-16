@@ -3302,6 +3302,21 @@
     "color.icon.link.default": {
       "type": "color",
       "components": {
+        "breadcrumbs": {
+          "keys": [
+            "icon"
+          ],
+          "parts": {
+            "backGlyph": {
+              "members": 2,
+              "where": {
+                "layout": [
+                  "parent"
+                ]
+              }
+            }
+          }
+        },
         "link": {
           "keys": [
             "icon"
@@ -3544,6 +3559,22 @@
     "color.icon.secondary": {
       "type": "color",
       "components": {
+        "breadcrumb-item": {
+          "keys": [
+            "icon"
+          ],
+          "parts": {
+            "separator": {
+              "members": 4,
+              "where": {
+                "kind": [
+                  "ancestor",
+                  "overflow"
+                ]
+              }
+            }
+          }
+        },
         "field-message": {
           "keys": [
             "default.icon"
@@ -11879,6 +11910,21 @@
             }
           }
         },
+        "breadcrumb-item": {
+          "keys": [
+            "label"
+          ],
+          "parts": {
+            "current": {
+              "members": 2,
+              "where": {
+                "kind": [
+                  "current"
+                ]
+              }
+            }
+          }
+        },
         "checkbox-row": {
           "keys": [
             "label"
@@ -15826,6 +15872,38 @@
             }
           }
         },
+        "breadcrumb-item": {
+          "keys": [
+            "size.medium.icon",
+            "size.small.icon"
+          ],
+          "parts": {
+            "separator": {
+              "members": 4,
+              "where": {
+                "kind": [
+                  "ancestor",
+                  "overflow"
+                ]
+              }
+            }
+          }
+        },
+        "breadcrumbs": {
+          "keys": [
+            "back-icon"
+          ],
+          "parts": {
+            "backGlyph": {
+              "members": 2,
+              "where": {
+                "layout": [
+                  "parent"
+                ]
+              }
+            }
+          }
+        },
         "button": {
           "keys": [
             "size.small.icon"
@@ -17789,6 +17867,44 @@
     "space.050": {
       "type": "dimension",
       "components": {
+        "breadcrumb-item": {
+          "keys": [
+            "size.small.gap"
+          ],
+          "parts": {
+            "container": {
+              "members": 3,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
+        "breadcrumbs": {
+          "keys": [
+            "back-gap",
+            "size.small.gap"
+          ],
+          "parts": {
+            "container": {
+              "members": 4,
+              "where": {}
+            },
+            "items": {
+              "members": 1,
+              "where": {
+                "layout": [
+                  "trail"
+                ],
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
         "field-label": {
           "keys": [
             "gap"
@@ -18138,6 +18254,39 @@
               "where": {
                 "type": [
                   "status"
+                ]
+              }
+            }
+          }
+        },
+        "breadcrumb-item": {
+          "keys": [
+            "size.medium.gap"
+          ],
+          "parts": {
+            "container": {
+              "members": 3,
+              "where": {
+                "size": [
+                  "medium"
+                ]
+              }
+            }
+          }
+        },
+        "breadcrumbs": {
+          "keys": [
+            "size.medium.gap"
+          ],
+          "parts": {
+            "items": {
+              "members": 1,
+              "where": {
+                "layout": [
+                  "trail"
+                ],
+                "size": [
+                  "medium"
                 ]
               }
             }
@@ -19688,6 +19837,24 @@
             }
           }
         },
+        "breadcrumb-item": {
+          "keys": [
+            "size.medium.type"
+          ],
+          "parts": {
+            "current": {
+              "members": 1,
+              "where": {
+                "kind": [
+                  "current"
+                ],
+                "size": [
+                  "medium"
+                ]
+              }
+            }
+          }
+        },
         "checkbox-row": {
           "keys": [
             "size.medium.text"
@@ -20095,6 +20262,24 @@
               "where": {
                 "expansion": [
                   "expanded"
+                ],
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
+        "breadcrumb-item": {
+          "keys": [
+            "size.small.type"
+          ],
+          "parts": {
+            "current": {
+              "members": 1,
+              "where": {
+                "kind": [
+                  "current"
                 ],
                 "size": [
                   "small"
@@ -21769,6 +21954,52 @@
         "space.100",
         "space.150",
         "type.label.sm.emphasis"
+      ],
+      "declaredNotDrawn": [],
+      "drawnNotDeclared": []
+    },
+    "breadcrumb-item": {
+      "members": 6,
+      "axes": {
+        "kind": [
+          "ancestor",
+          "current",
+          "overflow"
+        ],
+        "size": [
+          "medium",
+          "small"
+        ]
+      },
+      "tokens": [
+        "color.icon.secondary",
+        "color.text.primary",
+        "icon.size.xs",
+        "space.050",
+        "space.100",
+        "type.body.md.default",
+        "type.body.sm.default"
+      ],
+      "declaredNotDrawn": [],
+      "drawnNotDeclared": []
+    },
+    "breadcrumbs": {
+      "members": 4,
+      "axes": {
+        "layout": [
+          "parent",
+          "trail"
+        ],
+        "size": [
+          "medium",
+          "small"
+        ]
+      },
+      "tokens": [
+        "color.icon.link.default",
+        "icon.size.xs",
+        "space.050",
+        "space.100"
       ],
       "declaredNotDrawn": [],
       "drawnNotDeclared": []

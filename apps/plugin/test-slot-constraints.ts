@@ -57,6 +57,9 @@ const EXPECTED: Record<string, { slotSettings?: Record<string, unknown>; preferr
   // At least one item (#2665, owner call 4 A). No preferred component: the item is a `_` building block (Q349), which a
   // published library leaves out, so the projection refuses it as a preferred value (held for the owner on #2665).
   'pagination.items': { slotSettings: { minChildren: 1 } },
+  // Constrained (#2666, the approved proposal's properties table): at least two steps, an ancestor and the current page,
+  // and BreadcrumbItem the only component the slot offers.
+  'breadcrumbs.items': { slotSettings: { minChildren: 2, allowPreferredValuesOnly: true }, preferred: ['breadcrumb-item'] },
 };
 console.log('the corpus');
 {

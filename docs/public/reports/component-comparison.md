@@ -10,7 +10,7 @@ Peers come from three groupings, each derived from the definitions:
 
 Generated from the component definitions and the emission by `packages/engine/emit-analysis-reports.ts`; `regen.ts --check` fails when this page is stale. The same data for agents: [component-comparison.json](component-comparison.json). All reports: [index](index.md).
 
-## Findings (47)
+## Findings (51)
 
 ### axis values
 
@@ -19,7 +19,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 - **axis inset** — the inset axis takes 2 value sets — [default, flush] in button, button-destructive, button-neutral; [inset, middle-inset, none] in divider
 - **axis selection** — the selection axis takes 4 value sets — [selected, unselected] in segmented-control-segment, tab, tag; [checked, indeterminate, unchecked] in checkbox-control; [checked, unchecked] in radio-control; [off, on] in switch-control
 - **axis shape** — the shape axis takes 2 value sets — [circular, square] in icon-button, icon-button-destructive, icon-button-neutral; [flush, round] in flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral
-- **axis size** — the size axis takes 3 value sets — [large, medium, small] in _accordion-indicator, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, password-field, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, select, tab, tabs, tag, text-field, textarea; [medium, small] in switch-control, switch-row; [large, medium, small, x-small] in spinner
+- **axis size** — the size axis takes 3 value sets — [large, medium, small] in _accordion-indicator, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, password-field, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, select, tab, tabs, tag, text-field, textarea; [medium, small] in breadcrumb-item, breadcrumbs, switch-control, switch-row; [large, medium, small, x-small] in spinner
 - **axis style** — the style axis takes 2 value sets — [outline] in password-field, text-field, textarea; [inline, standalone] in link
 - **axis tone** — the tone axis takes 2 value sets — [brand, danger, info, inherit, primary, secondary, success, tertiary, warning] in icon; [danger, info, neutral, success, warning] in badge
 - **axis type** — the type axis takes 3 value sets — [icon, ordered, unordered] in list, list-item; [count, dot, status] in badge; [dismissible, select] in tag
@@ -28,6 +28,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 ### axis without prop
 
 - **accordion** — accordion has the variant axis expansion and no prop of that name
+- **breadcrumbs** — breadcrumbs has the variant axis layout and no prop of that name
 - **button** — button has the variant axis width and no prop of that name
 - **button-destructive** — button-destructive has the variant axis width and no prop of that name
 - **button-neutral** — button-neutral has the variant axis width and no prop of that name
@@ -42,12 +43,18 @@ Generated from the component definitions and the emission by `packages/engine/em
 - **text-field** — text-field has the variant axes style and status and no props of those names
 - **textarea** — textarea has the variant axes style and status and no props of those names
 
+### prop default
+
+- **prop label** — label defaults differ over the same values — Breadcrumb in breadcrumbs; Loading in spinner
+
 ### size default
 
-- **field-label** — field-label defaults size to small; 33 of 34 sized components default to medium
+- **field-label** — field-label defaults size to small; 35 of 36 sized components default to medium
 
 ### size order
 
+- **breadcrumb-item** — breadcrumb-item declares its sizes as [medium, small], not smallest first
+- **breadcrumbs** — breadcrumbs declares its sizes as [medium, small], not smallest first
 - **dialog** — dialog declares its sizes as [medium, small, large], not smallest first
 - **password-field** — password-field declares its sizes as [medium, small, large], not smallest first
 - **select** — select declares its sizes as [medium, small, large], not smallest first
@@ -99,6 +106,8 @@ Generated from the component definitions and the emission by `packages/engine/em
 | _accordion-indicator | navigation | — | — |
 | accordion | navigation | rest, focus-visible | rest, focus-visible |
 | badge | foundations | — | — |
+| breadcrumb-item | navigation | — | — |
+| breadcrumbs | navigation | — | — |
 | button | form | rest, hover, pressed, pending, focus-visible, disabled, inactive | rest, hover, pressed, pending, focus-visible, disabled |
 | button-destructive | form | rest, hover, pressed, pending, focus-visible, disabled, inactive | rest, hover, pressed, pending, focus-visible, disabled |
 | button-neutral | form | rest, hover, pressed, pending, focus-visible, disabled, inactive | rest, hover, pressed, pending, focus-visible, disabled |
@@ -172,6 +181,8 @@ Generated from the component definitions and the emission by `packages/engine/em
 | inset | default, flush | button, button-destructive, button-neutral |
 |  | inset, middle-inset, none | divider |
 | intensity | medium, strong, subtle | veil |
+| kind | ancestor, current, overflow | breadcrumb-item |
+| layout | parent, trail | breadcrumbs |
 | offset | control, field | focus-ring |
 | orientation | horizontal, vertical | divider |
 | placement | bottom, center, full | dialog |
@@ -183,7 +194,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 | shape | circular, square | icon-button, icon-button-destructive, icon-button-neutral |
 |  | flush, round | flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral |
 | size | large, medium, small | _accordion-indicator, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, password-field, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, select, tab, tabs, tag, text-field, textarea |
-|  | medium, small | switch-control, switch-row |
+|  | medium, small | breadcrumb-item, breadcrumbs, switch-control, switch-row |
 |  | large, medium, small, x-small | spinner |
 | status | default, error, success, warning | field-message, password-field, select, text-field, textarea |
 | style | outline | password-field, text-field, textarea |
@@ -207,6 +218,8 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |---|---|---|
 | _accordion-indicator | small, medium, large | medium |
 | accordion | small, medium, large | medium |
+| breadcrumb-item | medium, small | medium |
+| breadcrumbs | medium, small | medium |
 | button | small, medium, large | medium |
 | button-destructive | small, medium, large | medium |
 | button-neutral | small, medium, large | medium |
@@ -311,7 +324,8 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 | helpText | password-field | — | — |
 |  | select | — | — |
 |  | text-field | — | — |
-| href | button | — | — |
+| href | breadcrumb-item | — | — |
+|  | button | — | — |
 |  | button-destructive | — | — |
 |  | button-neutral | — | — |
 |  | link | — | — |
@@ -357,6 +371,8 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | segmented-control | — | — |
 |  | tabs | — | — |
 | label | badge | — | — |
+|  | breadcrumb-item | — | — |
+|  | breadcrumbs | Breadcrumb | — |
 |  | button | — | — |
 |  | button-destructive | — | — |
 |  | button-neutral | — | — |
@@ -444,6 +460,8 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | switch-row | true | — |
 | size | _accordion-indicator | medium | small, medium, large |
 |  | accordion | medium | small, medium, large |
+|  | breadcrumb-item | medium | small, medium |
+|  | breadcrumbs | medium | small, medium |
 |  | button | medium | small, medium, large |
 |  | button-destructive | medium | small, medium, large |
 |  | button-neutral | medium | small, medium, large |

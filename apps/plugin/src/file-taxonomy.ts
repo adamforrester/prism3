@@ -125,6 +125,9 @@ export const TAXONOMY: Taxonomy = {
         // first, so the row's slot items resolve against it on the same page; IconButton and Button build wherever their
         // pages sort, before it.
         { page: 'Pagination', defs: ['_pagination-item', 'pagination'] },
+        // Breadcrumbs (#2666, owner call 15 A) — its own page under Components. It nests BreadcrumbItem in its items slot
+        // and Link, which the build places first wherever their pages sort.
+        { page: 'Breadcrumbs', defs: ['breadcrumbs'] },
       ],
     },
     {
@@ -144,6 +147,9 @@ export const TAXONOMY: Taxonomy = {
         // #1670 — owner-decided 2026-09-26: the spinner sits under Subcomponents, beside the other parts a
         // host swaps or nests in (the button's pending state swaps it into its icon slot).
         { page: 'Spinner', defs: ['spinner'] },
+        // #2666 (owner call 15 A) — the breadcrumb step, on its own page under Subcomponents: it is placed inside
+        // Breadcrumbs, never on its own. It nests Link and the neutral flush icon button.
+        { page: 'Breadcrumb Item', defs: ['breadcrumb-item'] },
       ],
     },
     {

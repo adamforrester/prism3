@@ -258,6 +258,9 @@ const HOST_DEFAULT_DEFS: Record<string, string> = {
  */
 const ICON_OFFSET_TWO_DEFS: Record<string, string> = {
   link: 'icon.size.*',
+  // The breadcrumb separator (#2666, owner call 6 A): a 16px chevron at both sizes, so its medium default is `xs`, as
+  // Link's icon is beside the same 16px text.
+  'breadcrumb-item': 'icon.size.*',
 };
 
 /** The default rung EXPECTED for one (def, tier family): the sanctioned offset where listed, else `md`. */
@@ -324,6 +327,9 @@ const SPACING_ONLY_LADDER: Record<string, string> = {
   // #2319: List's own size binding is its item gap, a space step per size; its type and marker scale through the
   // nested List.Item, which this gate checks on its own rungs.
   list: 'its only size-keyed binding is the item gap (`space.100` / `150` / `200`); the text and markers are sized by the nested List.Item, checked under its own name',
+  // #2666: as List — the trail's gap between items is its own size binding; the text, links and separators are sized by
+  // the nested BreadcrumbItem and Link, each checked under its own name.
+  breadcrumbs: 'its only size-keyed binding is the gap between items (`space.050` / `100`); the steps are sized by the nested BreadcrumbItem and Link, checked under their own names',
 };
 
 /**
@@ -345,6 +351,9 @@ const DEFAULT_FIRST: Record<string, string> = {
   // #2665: Figma's first member is the code default, sizes medium first (owner decisions Q347, Q359).
   '_pagination-item': 'the Figma default is the medium page cell, the code default (owner decisions Q347, Q359; #2665)',
   pagination: 'the Figma default is the medium numbered row, the code default (owner decisions Q347, Q359; #2665)',
+  // #2666: Figma's first member equals the code default, every size axis medium-first (owner Q347 A, Q359 B on #2752).
+  breadcrumbs: 'the Figma default is `medium`, the code default, by owner decisions Q347 A and Q359 B (#2752)',
+  'breadcrumb-item': 'the Figma default is `medium`, the code default, by owner decisions Q347 A and Q359 B (#2752)',
 };
 
 const SIZE_BY_FOLLOW_ONLY: Record<string, string> = {
@@ -391,6 +400,7 @@ const MUST_COVER = [
   'segmented-control-segment', 'segmented-control', 'link',
   'dialog', 'password-field',
   '_pagination-item', 'pagination',
+  'breadcrumb-item', 'breadcrumbs',
 ];
 
 /** Every token path in a brand's canonical tree, below the root — `icon.size.md`, `size.lg.height`. */

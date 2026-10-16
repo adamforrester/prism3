@@ -729,6 +729,38 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'relation with. Distinct from `alignment` and `direction`, argued in `VARIANT_AXES`.',
   },
   {
+    axis: 'size',
+    values: ['medium', 'small'],
+    defs: ['breadcrumbs', 'breadcrumb-item'],
+    relation: 'subset',
+    reason:
+      'The ladder minus its top rung, led by `medium` (#2666). A breadcrumb trail is one line of 14 or 16px body text, '
+      + 'and an 18px trail stops reading as secondary wayfinding (owner call 7 A on #2666). `medium` LEADS because '
+      + 'Figma\'s first member equals the code default on every axis, every size axis medium-first (owner Q347 A and '
+      + 'Q359 B, #2752). `small` and `medium` mean the same text sizes they mean in canonical. The code enum keeps the '
+      + 'ladder\'s own order; `lint-rung-names.ts` DEFAULT_FIRST admits the split.',
+  },
+  {
+    axis: 'kind',
+    values: ['ancestor', 'current', 'overflow'],
+    defs: ['breadcrumb-item'],
+    relation: 'sole',
+    reason:
+      'Which role a step plays in its trail (#2666, owner call 1 A): a link to a page above, the current page as text, '
+      + 'or the button standing for collapsed steps. `ancestor` LEADS because it is the code default and Figma\'s '
+      + 'default member, the commonest step. One def carries it. Distinct from `type`, argued in `VARIANT_AXES`.',
+  },
+  {
+    axis: 'layout',
+    values: ['trail', 'parent'],
+    defs: ['breadcrumbs'],
+    relation: 'sole',
+    reason:
+      'Which form the navigation takes (#2666, owner calls 1 A and 11 A): the full trail, or one link up to the parent '
+      + 'for a small screen. `trail` LEADS because it is the code default and Figma\'s default member. One def carries '
+      + 'it. Distinct from `width` and `footer`, argued in `VARIANT_AXES`.',
+  },
+  {
     axis: 'footer',
     values: ['inline', 'stacked', 'none'],
     defs: ['dialog'],
