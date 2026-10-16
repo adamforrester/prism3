@@ -451,6 +451,18 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   },
   {
     axis: 'size',
+    values: ['medium', 'small', 'large', 'xlarge'],
+    defs: ['code-input', 'code-input-cell'],
+    relation: 'superset',
+    reason:
+      'Code input\'s four cell sizes (#2428, owner decision Q330 A): the field ladder plus `xlarge`, the 68×72 display '
+      + 'cell with a 40px character meant for four-character codes. Led by `medium`, the code default and so the set\'s '
+      + 'first member (owner decisions Q347 and Q359), as the fields\' reordered set is; the code enum keeps the '
+      + 'ladder\'s own order (`lint-rung-names.ts` DEFAULT_FIRST). The cell carries the same values, so it follows the '
+      + 'field\'s size by name.',
+  },
+  {
+    axis: 'size',
     values: ['medium', 'small', 'large'],
     defs: ['text-field', 'select', 'textarea', 'dialog', 'password-field', '_pagination-item', 'pagination'],
     relation: 'reordered',
@@ -670,6 +682,16 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'work in progress, which a field has no word for, and `complete` maps to the nested message\'s `success`, '
       + 'which a progress bar does not say ("Upload complete" is an outcome, not a validation). `active` LEADS because '
       + 'it is the code default and Figma\'s default member.',
+  },
+  {
+    axis: 'status',
+    values: ['default', 'error'],
+    defs: ['code-input'],
+    relation: 'subset',
+    reason:
+      'Code input\'s validation outcome (#2428, owner decision Q321.9 A): default or error. A one-time code is right or '
+      + 'wrong, and a right code moves the user on, so success is the page\'s to announce and warning has no case. The '
+      + 'values are the canonical set\'s own, in its order, so the nested `field-message` follows `status` by name.',
   },
   {
     axis: 'width',

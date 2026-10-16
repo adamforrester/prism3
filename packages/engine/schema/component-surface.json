@@ -695,6 +695,35 @@
         "placeholder:TEXT",
         "value:TEXT"
       ]
+    },
+    "code-input-cell": {
+      "members": 28,
+      "sha256": "4ca3f2feaf9220b624bd6f27955fead599b591b27de65a957b9f355de37ecfb7",
+      "properties": [
+        "digit:TEXT"
+      ]
+    },
+    "code-input-cell@outline-solid-tint": {
+      "members": 28,
+      "sha256": "d99edf50a900697d9fe73686d1844fb1d1792d2e342d3cdf3128d627faa85560",
+      "properties": [
+        "digit:TEXT"
+      ]
+    },
+    "code-input-cell@outline-none": {
+      "members": 28,
+      "sha256": "76693a8eef0c1207cb90317eeadf6b75762e6949193f04dfbb685a496b8982db",
+      "properties": [
+        "digit:TEXT"
+      ]
+    },
+    "code-input": {
+      "members": 48,
+      "sha256": "5936447fdb8bb8d66606bfc9649f84c0c712a96cbd6ecdfc993b375da59ba94e",
+      "properties": [
+        "items:SLOT",
+        "message:BOOLEAN"
+      ]
     }
   }
 }

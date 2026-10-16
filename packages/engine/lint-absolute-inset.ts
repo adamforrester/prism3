@@ -218,6 +218,8 @@ const ZERO_OK: Record<string, string> = {
   'textarea.focusRing': FIELD_RING,
   // #2317: the Password field's box and ring are TextField's, from the shared field factory.
   'password-field.focusRing': FIELD_RING,
+  // #2428: the Code cell is a field box too, ringed at the field offset as TextField is.
+  'code-input-cell.focusRing': FIELD_RING,
 };
 
 /**
