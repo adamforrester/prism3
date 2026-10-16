@@ -90,7 +90,9 @@
  *   recordfail/…   a member whose as-built record the host refuses after the update (an icon, and a set member) keeps
  *                  the stamp it had and its marker, reads out of date in the next dry run, and is named among the
  *                  outcome's misses (#2373). Mutation: the stamp written before the record → `recordfail/unstamped`,
- *                  `recordfail/out of date`, `recordfail/set member`. The verdict reading no misses is #2477.
+ *                  `recordfail/out of date`, `recordfail/set member`. The verdict reading no misses (#2477) →
+ *                  `recordfail/verdict`, `recordfail/set verdict`, `misses/other`. A skip on a member whose name is a
+ *                  prefix of a refused one's (`name=check` / `name=check-circle`) hiding that refusal → `recordfail/prefix`.
  *   unrecorded single/…  the icons with no as-built record: updated and named by default, recorded after; under
  *                  `noBaseline: 'skip'`, left exactly and named (#2373). Mutations: the default skipping →
  *                  `unrecorded single/updated`; the choice ignored → `unrecorded single/skip`.
@@ -118,6 +120,11 @@
  *                  every glyph's vectors fit its frame, read by the test off the shim's nodes (#2379). Mutations: the
  *                  paint base left black, or its alpha dropped → `drawn/paints`; the fresh glyph import not scaled to
  *                  its frame → `drawn/glyphs`.
+ *   damage/under a layer …  a member that draws wrong AND has a layer added by hand: the dry run counts it edited by
+ *                  hand, never "to update", its paint still listed; the apply skips it under every choice, named with
+ *                  the layer and the damage, and leaves it exactly (#2413). Mutations: the dry run's damage read before
+ *                  the structural edit → `damage/under a layer dry run`; the skip reason without the damage →
+ *                  `damage/under a layer skip (keep|overwrite|accept)`.
  *   veil/…         every directional veil member's gradient stops store the colors and alphas their variables resolve
  *                  to: built fresh; damaged with black stops, read "to update" by the dry run and repaired by the apply,
  *                  verified, then current; and verify names a stop the host leaves black (#2391). Mutations: the stops
@@ -155,7 +162,7 @@ import { makeShim, STYLE_FONT, type Node, type Page } from './component-shim';
 import { adoptMembers, captureBaselines, previewLine, previewUpdate, previewVerdict, type UpdateHost, type UpdateTarget } from './src/update-plan';
 import { drawnFaults, faultLine, varsById } from './src/drawn';
 import { BASELINE_V, baselineOf, resetStyleNames, snapshotMember } from './src/member-baseline';
-import { applyUpdate, applyVerdict, previewHashOf, DEPRECATED_PREFIX, RETAINED_KEY, nestedFirst, type ApplyHost } from './src/update-apply';
+import { applyUpdate, applyVerdict, previewHashOf, namesMember, DEPRECATED_PREFIX, RETAINED_KEY, nestedFirst, type ApplyHost } from './src/update-apply';
 
 let failed = 0;
 let executed = 0;
@@ -707,8 +714,8 @@ const reinked = (plans: AnatomyPlan[]): AnatomyPlan[] => plans.map((p) => { cons
   // (§7), so the icon keeps the stamp it had and its in-progress marker, reads out of date in the next dry run, and the
   // outcome names it among the build's misses. The refusal is the TEST's, installed on the shim's node. Mutation:
   // `finishUpdated` writing the stamp before the record → `recordfail/unstamped`, `recordfail/out of date`.
-  // NOT asserted: that the verdict fails. `applyVerdict` reads no `misses`, so today this run reads "✓ updated 44 in
-  // place" (#2477).
+  // The verdict reads the miss (#2477): no ✓, the set not verified, the icon out of the updated count and named.
+  // Mutation: `applyVerdict` reading no misses again → `recordfail/verdict`.
   const plans = plansOf('icon');
   const w = await singleWorld(plans, ['color/icon/secondary']);
   const t = { def: 'icon', plans: reinked(plans), single: true };
@@ -732,6 +739,10 @@ const reinked = (plans: AnatomyPlan[]): AnatomyPlan[] => plans.map((p) => { cons
   const post = (await previewUpdate(w.host, [t])).sets[0];
   ok(post.counts.current === 44 && post.counts.current + (post.counts.update ?? 0) + (post.counts.noBaseline ?? 0) === 45 && !post.handEdits.some((h) => h.member.endsWith(String(hit.name).split('/').pop()!)),
     `recordfail/out of date: the next dry run reads it out of date, never current, the other 44 current (${JSON.stringify(post.counts)})`);
+  const glyph = String(hit.name).split('/').pop();
+  ok(!v.ok && v.headline === '⚠ 1 set not verified' && v.lines[0] === 'icon: 44 updated in place.'
+    && v.lines.includes(`icon: 1 member not finished — name=${glyph} (its as-built record could not be written). It still reads as out of date; run the update again to finish it.`),
+    `recordfail/verdict: the verdict is not a ✓, counts 44 updated and names the icon not finished (${JSON.stringify(v)})`);
 }
 {
   // THE SAME FAILURE ON A SET MEMBER: `finishUpdated` is the set path's finish too, called from its own loop.
@@ -751,6 +762,68 @@ const reinked = (plans: AnatomyPlan[]): AnatomyPlan[] => plans.map((p) => { cons
   const named = res.outcomes[0]?.misses.filter((x) => x.startsWith(`${String(hit.name)}.asBuilt -> NOT RECORDED`)) ?? [];
   ok(pdOf(hit, STAMP_KEY) === stampWas && post.counts.current === 44 && post.counts.update === 1 && named.length === 1,
     `recordfail/set member: a set member whose record could not be written keeps its stamp, reads out of date and is named (stamp ${pdOf(hit, STAMP_KEY) === stampWas ? 'kept' : 'moved'}; ${JSON.stringify(post.counts)}; ${JSON.stringify(named)})`);
+  const v = applyVerdict(res);
+  ok(!v.ok && v.headline === '⚠ 1 set not verified' && v.lines[0] === `${TAG}: 44 updated in place.`
+    && v.lines.includes(`${TAG}: 1 member not finished — ${String(hit.name)} (its as-built record could not be written). It still reads as out of date; run the update again to finish it.`),
+    `recordfail/set verdict: the set member's verdict is not a ✓, counts 44 updated and names it not finished (${JSON.stringify(v)})`);
+}
+{
+  // A SKIPPED MEMBER WHOSE NAME IS A PREFIX OF AN UPDATED ONE'S (#2477 review). The shipped icons hold such pairs
+  // (`name=check` / `name=check-circle`), and a miss names a member by its whole name, so the skip on `name=check` (a
+  // layer added by hand) must not swallow the record refused on `name=check-circle`. Mutation: the skipped-member
+  // filter matching by substring again → `recordfail/prefix`.
+  const plans = plansOf('icon');
+  const w = await singleWorld(plans, ['color/icon/secondary']);
+  const t = { def: 'icon', plans: reinked(plans), single: true };
+  const glyphOf = (c: Node): string => String(c.name).split('/').pop()!;
+  const skip = w.comps().find((c) => glyphOf(c) === 'check')!;
+  const hit = w.comps().find((c) => glyphOf(c) === 'check-circle')!;
+  const extra = (w.api.createFrame as () => Node)();
+  extra.name = 'designer note';
+  (skip.appendChild as (c: Node) => void)(extra);
+  const pre = await previewUpdate(w.host, [t]);
+  const real = hit.setSharedPluginData as (a: string, b: string, c: string) => void;
+  hit.setSharedPluginData = (ns: string, k: string, v: string): void => {
+    if (ns === NS && k === BASELINE_KEY) throw new Error('the host refused the write');
+    real.call(hit, ns, k, v);
+  };
+  const res = await applyUpdate(w.host, w.api as any, [t], previewHashOf(pre));
+  hit.setSharedPluginData = real;
+  const o = res.outcomes[0];
+  const v = applyVerdict(res);
+  ok(o?.skipped.some((x) => x.member === 'name=check') && o.misses.some((x) => x.startsWith('name=check-circle.asBuilt -> NOT RECORDED'))
+    && !v.ok && v.headline === '⚠ 1 set not verified' && v.lines[0] === 'icon: 43 updated in place, 1 left as they are.'
+    && v.lines.includes('icon: 1 member not finished — name=check-circle (its as-built record could not be written). It still reads as out of date; run the update again to finish it.'),
+    `recordfail/prefix: a skip on name=check leaves the refused record on name=check-circle in the misses and the verdict (skipped ${JSON.stringify(o?.skipped)}; misses ${JSON.stringify(o?.misses)}; ${JSON.stringify(v)})`);
+}
+{
+  // WHICH MEMBER A MISS NAMES, as whole names (#2477 review), on misses written out by hand in the build's own forms.
+  // `known` leaves `name=check-circle` out, as a member this run adds is left out of it, so the prefix rows rest on the
+  // boundary alone. Mutations: no boundary after the name → `misses/whole name` (the prefix rows); the longer-name rule
+  // dropped → the dotted row.
+  const known = ['name=check', 'size=1', 'size=1.5'];
+  const rows: [string, string, boolean][] = [
+    ['name=check.asBuilt -> NOT RECORDED (x)', 'name=check', true],
+    ['name=check-circle.asBuilt -> NOT RECORDED (x)', 'name=check', false],
+    ['name=check/label.slot -> NOT MADE (x)', 'name=check', true],
+    ['footprint -> name=check-circle measures 24x24 but name=check measures 20x20 (same g)', 'name=check', true],
+    ['footprint -> name=check-circle measures 24x24 but name=plus measures 20x20 (same g)', 'name=check', false],
+    ['size=1.5.asBuilt -> NOT RECORDED (x)', 'size=1', false],
+    ['size=1.5.asBuilt -> NOT RECORDED (x)', 'size=1.5', true],
+  ];
+  const wrong = rows.filter(([miss, m, want]) => namesMember(miss, m, known) !== want);
+  ok(!wrong.length, `misses/whole name: a miss names a member by its whole name, never a prefix of a longer one (wrong: ${JSON.stringify(wrong)})`);
+}
+{
+  // ANY OTHER MISS FROM THE BUILD'S PASS (#2477): the set is not verified, the miss is quoted with its own reason, and
+  // the updated count stands (the miss names a part, not a member). An outcome written out by hand, so the expected
+  // lines are the test's, not the build's.
+  const o = { def: 'x', set: 'x', updated: ['a=1', 'a=2'], added: 0, renamed: 0, deprecated: [], skipped: [], kept: [], unrecorded: [], handEdits: 'keep' as const, identity: [], content: [],
+    misses: ['label.characters -> DISCARDED (set "Go", reads "")', 'a=3.asBuilt -> NOT RECORDED (the component is not in the file to read)'] };
+  const v = applyVerdict({ outcomes: [o], refused: [], missing: [] } as any);
+  ok(!v.ok && v.headline === '⚠ 1 set not verified' && v.lines[0] === 'x: 2 updated in place.'
+    && v.lines[1] === 'x: 2 parts not written as planned — label.characters -> DISCARDED (set "Go", reads ""); a=3.asBuilt -> NOT RECORDED (the component is not in the file to read).',
+    `misses/other: any other miss leaves the set not verified, quoted, the updated count as it was (${JSON.stringify(v)})`);
 }
 {
   // A RECORD-LESS SINGLE COMPONENT (#2373): the icons with no as-built record, as the NB master's unrecorded sets were.
@@ -1588,6 +1661,39 @@ section('damage under a record — a member drawn wrong reads "to update" whatev
   ok(st === 'update' && JSON.stringify(edits) === '["content"]' && left.length === 0
     && (childNamed(m, 'content').boundVariables as Record<string, { id: string }>).itemSpacing?.id === zero && res.outcomes[0]?.kept.some((k) => k.path === 'content'),
     `damage/over edit: the member reads "to update", its hand edit kept and listed, its damage repaired (${st}; edits ${JSON.stringify(edits)}; ${left.length} faults left; ${applyVerdict(res).headline})`);
+}
+
+{
+  // A LAYER ADDED BY HAND OUTRANKS THE DAMAGE (#2413): a member that draws wrong (a paint storing black on its root)
+  // and also has a layer a designer added is skipped by the apply under every choice (§5), so the dry run counts it
+  // "edited by hand", never "to update", and still lists the paint as a difference; the apply's skip names both the
+  // layer and the damage. The member is left exactly. Mutations: the dry run's damage read before the structural
+  // edit → `damage/under a layer dry run`; the skip reason without the damage → `damage/under a layer skip`.
+  const w = await world(TAG);
+  const m = membersOf(w.set())[3];
+  let hit = '';
+  for (const f of ['fills', 'strokes'] as const) {
+    const ps = m[f] as { boundVariables?: { color?: unknown } }[] | undefined;
+    if (!hit && Array.isArray(ps) && ps.some((p) => p?.boundVariables?.color)) { m[f] = ps.map((p) => (p?.boundVariables?.color ? { ...p, color: { r: 0, g: 0, b: 0 }, opacity: 1 } : p)); hit = f; }
+  }
+  const extra = (w.api.createFrame as () => Node)();
+  extra.name = 'designer note';
+  (m.appendChild as (c: Node) => void)(extra);
+  ok(!!hit, `premise: the member's root binds a paint, now storing black, and it holds a layer added by hand (${hit})`);
+  const dumpOf = (n: Node): string => JSON.stringify([n.name, n[hit as 'fills'], [...(n._pluginData as Map<string, string>)], ...(n.findAll as () => Node[])().map((k) => [k.name, k.id, k.boundVariables])]);
+  const before = dumpOf(m);
+  const pre = await previewUpdate(w.host, [{ def: TAG, plans: w.plans }]);
+  const p = pre.sets[0];
+  const st = p.states.find((x) => x.member === String(m.name))?.state;
+  const black = p.changes.find((c) => c.field === hit && /stored #000000/.test(c.from) && c.sample.includes(String(m.name)));
+  ok(st === 'handEdited' && p.counts.update === 0 && p.counts.handEdited === 1 && !!black && previewLine(p) === `${TAG}: 45 members. 1 member edited by hand.`,
+    `damage/under a layer dry run: the member counts as edited by hand, not to update, and its paint is still listed (${st}; ${JSON.stringify(p.counts)}; ${black ? `${black.part}.${black.field}: ${black.from}` : 'no paint line'}; ${previewLine(p)})`);
+  for (const choice of ['keep', 'overwrite', 'accept'] as const) {
+    const res = await applyUpdate(w.host, w.api as any, [{ def: TAG, plans: w.plans }], previewHashOf(await previewUpdate(w.host, [{ def: TAG, plans: w.plans }])), { choices: { handEdits: choice } });
+    const why = res.outcomes[0]?.skipped.find((x) => x.member === String(m.name))?.reason ?? '';
+    ok(why.startsWith('a layer was added or removed by hand, and it draws other than its plan (') && why.includes(String(m.name)) && why.includes(`${hit}: stored #000000`) && dumpOf(m) === before,
+      `damage/under a layer skip (${choice}): the skip names the layer and the damage, and the member is left exactly (${why || 'not skipped'}; ${dumpOf(m) === before ? 'untouched' : 'written'})`);
+  }
 }
 
 {
