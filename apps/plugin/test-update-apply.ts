@@ -2379,6 +2379,48 @@ section('edge — a file built when the disabled edge bound an icon role is corr
   }
 }
 
+section('field style — a field set built in one Field style is redrawn in place in the other, both ways, in one Update (#2695 Q16 A, #2774)');
+{
+  // Each field is built from `materializeForBrand` under one style, then updated with the plans of the other: the
+  // brand switching its Field style on a file that already holds the sets. Q16 A promises Update redraws them in
+  // place. Underline → Outline is the direction #2774 found: an underline hover paints the opaque `field.fill`, an
+  // outline hover the translucent wash, and the host resets a bound paint's opacity on the first assignment that
+  // changes its variable. Everything below is read off the shim's nodes, never off the plans' own claims, except
+  // which members carry a wash, which is what the plan asks for.
+  const findPart = (n: Node, name: string): Node | undefined => n.name === name ? n : (n.type === 'INSTANCE' ? undefined : ((n.children as Node[] | undefined) ?? []).map((c) => findPart(c, name)).find(Boolean));
+  for (const id of ['text-field', 'password-field', 'select', 'textarea']) {
+    const def = componentDefs.find((d) => d.id === id)!;
+    const outline = figmaAnatomySet(materializeForBrand(def, { fieldStyle: 'outline' } as never), { swapTarget: SWAP_TARGET });
+    const underline = figmaAnatomySet(materializeForBrand(def, { fieldStyle: 'underline' } as never), { swapTarget: SWAP_TARGET });
+    // Password field's Show button is Button's instance: its TEXT property is the one Button's own def declares.
+    const buttonTexts = Object.fromEntries(Object.entries(componentDefs.find((d) => d.id === 'button')!.figmaProperties?.texts ?? {}).map(([k, t], i) => [`${k}#7:${i}`, { type: 'TEXT', defaultValue: t.default }]));
+    const extra = (ps: AnatomyPlan[]) => ({ extraVars: ps.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]), extraStyles: ps.flatMap((p) => planTextStyles(p.root)), extraComps: ps.flatMap((p) => planComps(p.root)), componentProps: { button: buttonTexts } });
+    for (const [from, to, fromName, toName] of [[underline, outline, 'underline', 'outline'], [outline, underline, 'outline', 'underline']] as const) {
+      const tag = `${id} ${fromName}→${toName}`;
+      const w = await world(id, [...from], extra([...to]));
+      const n = membersOf(w.set()).length;
+      const before = identityOf(w.set());
+      const { pre, res } = await confirm(w, [{ def: id, plans: [...to] }]);
+      const v = applyVerdict(res);
+      ok(pre.sets[0].counts.update === n && v.ok, `field style/${tag}: all ${n} members read to update, and one apply succeeds (${JSON.stringify(pre.sets[0].counts)}; ${v.headline}${v.ok ? '' : ` — ${v.lines.slice(0, 2).join(' | ').slice(0, 240)}`})`);
+      const after = identityOf(w.set());
+      const lost = [...before.members].filter(([name, b]) => after.members.get(name)?.key !== b.key || [...b.kids].some(([path, kid]) => after.members.get(name)?.kids.get(path) !== kid)).map(([x]) => x);
+      ok(lost.length === 0 && JSON.stringify(after.set) === JSON.stringify(before.set), `field style/${tag} in place: the set, every member and every node under it keep their keys and ids (${lost.slice(0, 2).join('; ') || 'all kept'})`);
+      // THE WASH (#2774): every control the plan washes draws it translucent, read off the stored paint.
+      const washed = to.filter((p) => /\/overlay\//.test(String(findPart(p.root as unknown as Node, 'control')?.paints?.fills ?? ''))).map((p) => planComponentName(p));
+      const solid = membersOf(w.set()).filter((m) => washed.includes(String(m.name))).map((m) => ({ m: String(m.name), o: ((findPart(m, 'control')?.fills as { opacity?: number }[] | undefined) ?? [])[0]?.opacity ?? 1 })).filter((x) => !(x.o < 1));
+      ok(toName === 'underline' ? washed.length === 0 : washed.length > 0 && solid.length === 0,
+        `field style/${tag} wash: ${toName === 'underline' ? 'no member asks for the wash' : `all ${washed.length} washed controls draw it translucent`} (${solid.slice(0, 2).map((x) => `${x.m}: opacity ${x.o}`).join('; ') || 'ok'})`);
+      // Q346 on the line: a disabled member's edge binds the disabled BORDER role, never an icon or text role.
+      const vars = new Map<string, string>((await w.api.variables.getLocalVariablesAsync()).map((x: { id: string; name: string }) => [x.id, x.name.slice(x.name.indexOf('/') + 1)] as [string, string]));
+      const edges = membersOf(w.set()).filter((m) => /state=disabled/.test(String(m.name))).map((m) => vars.get(String(((findPart(m, 'control')?.strokes as { boundVariables?: { color?: { id: string } } }[] | undefined) ?? [])[0]?.boundVariables?.color?.id)));
+      ok(edges.length > 0 && edges.every((e) => e === 'color/disabled/border'), `field style/${tag} Q346: every disabled edge binds color/disabled/border (${[...new Set(edges)].join(', ')})`);
+      const post = (await previewUpdate(w.host, [{ def: id, plans: [...to] }])).sets[0];
+      ok(post.counts.current === n, `field style/${tag} converges: the next dry run reads all ${n} current (${JSON.stringify(post.counts)})`);
+    }
+  }
+}
+
 section('corpus — every def, re-applied in place by an executor revision bump, keeps every key and reads back as its plan');
 {
   // A newer executor revision makes every member out of date with nothing else moved, so the update configures

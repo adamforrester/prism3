@@ -2883,7 +2883,7 @@
             "medium",
             "large"
           ],
-          "description": "Three tiers that scale the input type with the field (small 14px, medium 16px, large 18px, `type.body.{sm,md,lg}`), the nested label one step below it (12 / 14 / 16), and the padding. Every size keeps the 44px target: small is smaller type and padding, not a smaller target; large is taller. `small` is for fine pointers only: on a coarse pointer (`@media (pointer: coarse)`) the code sets the small input to 16px, because iOS Safari zooms the page when it focuses an input under 16px. A single bordered (outline) style; filled/underline are theming, not API."
+          "description": "Three tiers that scale the input type with the field (small 14px, medium 16px, large 18px, `type.body.{sm,md,lg}`), the nested label one step below it (12 / 14 / 16), and the padding. Every size keeps the 44px target: small is smaller type and padding, not a smaller target; large is taller. `small` is for fine pointers only: on a coarse pointer (`@media (pointer: coarse)`) the code sets the small input to 16px, because iOS Safari zooms the page when it focuses an input under 16px. The field's edge, outline or underline, is the brand's Field style setting, not a prop."
         },
         {
           "name": "id",
