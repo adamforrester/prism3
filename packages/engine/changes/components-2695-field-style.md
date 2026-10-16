@@ -12,3 +12,5 @@ keeps its 84 members, and every Outline plan is byte-identical. Engine: `PartDef
 sides apart (`strokeTopWeight` … `strokeLeftWeight`), and a `strokeEdges` key may name `{state}`. Both executors' 1px
 weight fallback now stands down for a per-side weight too (EXECUTOR_REVISION 28). The fields' codeOnly `style` entry
 names both values as brand-set; `variants.style` stays `outline` alone, so no per-instance coordinate is added. No token is added or renamed, so CONTRACT is unchanged.
+The plugin executor assigns a translucent bound paint twice, so an in-place Update that moves a fill from an opaque
+variable to a wash (Field style Underline → Outline at hover) keeps the wash translucent in one Update (#2774).

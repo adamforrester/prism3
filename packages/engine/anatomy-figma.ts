@@ -2326,8 +2326,8 @@ export const applyControlShape = (def: ComponentDef, shape: ControlShape): Compo
 
 /**
  * The field family, each def named with the part that draws its frame (the bordered control). Keyed by def id,
- * `FIELD_CORNER_REFS`'s way, and held complete by `test.ts`: every def that binds the field's rest border
- * (`color.field.border.rest`) is listed here, so a new field def cannot miss the lever by being left out.
+ * `FIELD_CORNER_REFS`'s way, and held complete by `test.ts`: every def that binds the field chrome
+ * (`color.field.fill`) is listed here, so a new field def cannot miss the lever by being left out.
  */
 export const FIELD_FRAME_PARTS: Readonly<Record<string, string>> = {
   'text-field': 'control',

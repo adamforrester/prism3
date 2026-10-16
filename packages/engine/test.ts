@@ -14545,9 +14545,14 @@ arm: {
           if (all(p.root).some((n) => Object.values(n.paints ?? {}).some((v) => /\/overlay\//.test(String(v))))) bad.wash.push(at);
           if (st === 'disabled') {
             if (c?.paints?.fills !== undefined) bad.plate.push(`${at}: ${c.paints.fills}`);
-            const inks = all(c).flatMap((n) => [n.type === 'TEXT' ? n.paints?.fills : undefined, n.descendantFills]).filter(Boolean);
-            const off = inks.filter((v) => v !== 'color/disabled/text' && v !== 'color/disabled/icon');
-            if (!inks.length || off.length) bad.ink.push(`${at}: ${inks.join(', ') || 'no ink'}`);
+            // PER SLOT, typed (Q8 A, and owner item 2 on #2721): the value and placeholder TEXT take `disabled.text`; a
+            // glyph's ink (Select's chevron and check, Textarea's grip) takes `disabled.icon`, the plain-ground glyph role.
+            const inks = all(c).flatMap((n) => [
+              ...(n.type === 'TEXT' && n.paints?.fills ? [{ slot: `${n.name} text`, got: n.paints.fills, want: 'color/disabled/text' }] : []),
+              ...(n.descendantFills ? [{ slot: `${n.name} glyph`, got: n.descendantFills, want: 'color/disabled/icon' }] : []),
+            ]);
+            const off = inks.filter((x) => x.got !== x.want);
+            if (!inks.length || off.length) bad.ink.push(`${at}: ${off.map((x) => `${x.slot} ${x.got} (want ${x.want})`).join(', ') || 'no ink'}`);
           }
           if (FOCUS.includes(st) && find(p.root, 'focusRing')?.absoluteInset !== 'focus/ring/offset') bad.ring.push(`${at}: ${find(p.root, 'focusRing')?.absoluteInset}`);
         }
@@ -14560,7 +14565,7 @@ arm: {
       ok(bad.color.length === 0, `#2695 Q7/Q9: the line takes the rest, hover, focus, status, read-only and disabled border roles (${bad.color.slice(0, 3).join('; ') || 'ok'})`);
       ok(bad.wash.length === 0, `#2695 Q4: no member paints the overlay wash (${bad.wash.slice(0, 3).join('; ') || 'ok'})`);
       ok(bad.plate.length === 0, `#2695 Q8: the disabled control paints no fill (${bad.plate.slice(0, 3).join('; ') || 'ok'})`);
-      ok(bad.ink.length === 0, `#2695 Q8: the disabled ink is the plain-ground disabled.text / disabled.icon, not the on-fill form (${bad.ink.slice(0, 3).join('; ') || 'ok'})`);
+      ok(bad.ink.length === 0, `#2695 Q8: the disabled ink is the plain-ground form per slot, disabled.text on the value and placeholder, disabled.icon on a glyph (${bad.ink.slice(0, 3).join('; ') || 'ok'})`);
       ok(bad.ring.length === 0, `#2695 Q3: the focus ring sits at focus/ring/offset (2px) (${bad.ring.slice(0, 3).join('; ') || 'ok'})`);
       // The rest of the brand's materialization: the corner stays square under every Control shape (Q6), and the
       // padding stays 0 under every density (Q5), whichever way the plugin composes them.

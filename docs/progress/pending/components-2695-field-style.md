@@ -50,3 +50,16 @@ brand's Field style setting. The register's reason now says why underline lives 
 **Deferred, filed.** Password field's corner ignores Control shape's Boxed and Hairline on Outline brands (#2718,
 pre-existing from #2648). Number input and Code input join the lever when they are built (#2719). The studio's Shape
 preview has no field, so the lever has no preview effect there (#2720, an owner question).
+
+**Review round (#2774 fixed here).** The independent review drove Update both ways through the shim. Outline →
+Underline converged; Underline → Outline left the 12 hover members of each field set at 100% opacity, reported 12
+content failures, and needed a second Update. The cause was on main (#2774): the host resets a bound paint's opacity to
+1 on the first assignment that changes the paint's variable, and an in-place rewrite from the opaque `field.fill` to the
+translucent wash is exactly that. The plugin executor now assigns a translucent bound paint twice, the rule the shim
+already models from the host measurement (the second assignment finds the binding in place and keeps the opacity). The
+paste executor is untouched: it only builds fresh, and the combine's re-resolve rescues a fresh build. Q16 A is now held
+both ways in `test-update-apply.ts`, on all four fields: one Update, every key and id kept, every washed control
+translucent, every disabled edge on `color.disabled.border` (Q346, which landed on main while this was open), and a
+clean next dry run. Q8's disabled ink is now pinned per slot (value and placeholder `disabled.text`, glyphs
+`disabled.icon`), so swapping the two fails by name. #2563 (members an Update ADDS) hits the same host rule and may be
+helped by this fix, but its verify gap is separate and it stays open.
