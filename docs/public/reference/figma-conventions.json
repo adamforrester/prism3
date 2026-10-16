@@ -1193,36 +1193,7 @@
             ]
           }
         ],
-        "properties": [
-          {
-            "name": "Option 2",
-            "type": "BOOLEAN"
-          },
-          {
-            "name": "Option 3",
-            "type": "BOOLEAN"
-          },
-          {
-            "name": "Option 4",
-            "type": "BOOLEAN"
-          },
-          {
-            "name": "Option 5",
-            "type": "BOOLEAN"
-          },
-          {
-            "name": "Option 6",
-            "type": "BOOLEAN"
-          },
-          {
-            "name": "Option 7",
-            "type": "BOOLEAN"
-          },
-          {
-            "name": "Option 8",
-            "type": "BOOLEAN"
-          }
-        ],
+        "properties": [],
         "codeOnly": {
           "states": [
             "rest"
@@ -1322,36 +1293,7 @@
             ]
           }
         ],
-        "properties": [
-          {
-            "name": "Option 2",
-            "type": "BOOLEAN"
-          },
-          {
-            "name": "Option 3",
-            "type": "BOOLEAN"
-          },
-          {
-            "name": "Option 4",
-            "type": "BOOLEAN"
-          },
-          {
-            "name": "Option 5",
-            "type": "BOOLEAN"
-          },
-          {
-            "name": "Option 6",
-            "type": "BOOLEAN"
-          },
-          {
-            "name": "Option 7",
-            "type": "BOOLEAN"
-          },
-          {
-            "name": "Option 8",
-            "type": "BOOLEAN"
-          }
-        ],
+        "properties": [],
         "codeOnly": {
           "states": [
             "rest"
@@ -1780,20 +1722,7 @@
             ]
           }
         ],
-        "properties": [
-          {
-            "name": "Tab 4",
-            "type": "BOOLEAN"
-          },
-          {
-            "name": "Tab 5",
-            "type": "BOOLEAN"
-          },
-          {
-            "name": "Tab 6",
-            "type": "BOOLEAN"
-          }
-        ],
+        "properties": [],
         "codeOnly": {
           "states": [
             "rest"
@@ -1981,28 +1910,7 @@
             ]
           }
         ],
-        "properties": [
-          {
-            "name": "Item 4",
-            "type": "BOOLEAN"
-          },
-          {
-            "name": "Item 5",
-            "type": "BOOLEAN"
-          },
-          {
-            "name": "Item 6",
-            "type": "BOOLEAN"
-          },
-          {
-            "name": "Item 7",
-            "type": "BOOLEAN"
-          },
-          {
-            "name": "Item 8",
-            "type": "BOOLEAN"
-          }
-        ],
+        "properties": [],
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/list.md"
       },
       {
@@ -2073,18 +1981,6 @@
         "properties": [
           {
             "name": "Label",
-            "type": "BOOLEAN"
-          },
-          {
-            "name": "Segment 3",
-            "type": "BOOLEAN"
-          },
-          {
-            "name": "Segment 4",
-            "type": "BOOLEAN"
-          },
-          {
-            "name": "Segment 5",
             "type": "BOOLEAN"
           }
         ],
@@ -2405,8 +2301,65 @@
     "source": "packages/engine/component-schema.ts#contentSlot?: true",
     "slots": [
       {
+        "component": "checkbox-group",
+        "property": "items",
+        "settings": {
+          "minChildren": 1,
+          "allowPreferredValuesOnly": true
+        },
+        "preferred": [
+          "checkbox-row"
+        ]
+      },
+      {
+        "component": "radio-group",
+        "property": "items",
+        "settings": {
+          "minChildren": 1,
+          "allowPreferredValuesOnly": true
+        },
+        "preferred": [
+          "radio-row"
+        ]
+      },
+      {
+        "component": "tabs",
+        "property": "items",
+        "settings": {
+          "minChildren": 1,
+          "maxChildren": 6,
+          "allowPreferredValuesOnly": true
+        },
+        "preferred": [
+          "tab"
+        ]
+      },
+      {
         "component": "accordion",
         "property": "content"
+      },
+      {
+        "component": "list",
+        "property": "items",
+        "settings": {
+          "minChildren": 1,
+          "allowPreferredValuesOnly": true
+        },
+        "preferred": [
+          "list-item"
+        ]
+      },
+      {
+        "component": "segmented-control",
+        "property": "items",
+        "settings": {
+          "minChildren": 1,
+          "maxChildren": 5,
+          "allowPreferredValuesOnly": true
+        },
+        "preferred": [
+          "segmented-control-segment"
+        ]
       },
       {
         "component": "dialog",

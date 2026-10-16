@@ -17616,6 +17616,10 @@
             "container": {
               "members": 3,
               "where": {}
+            },
+            "items": {
+              "members": 3,
+              "where": {}
             }
           }
         },
@@ -17709,6 +17713,10 @@
             "container": {
               "members": 3,
               "where": {}
+            },
+            "items": {
+              "members": 3,
+              "where": {}
             }
           }
         },
@@ -17729,6 +17737,10 @@
             "track-pad"
           ],
           "parts": {
+            "items": {
+              "members": 3,
+              "where": {}
+            },
             "track": {
               "members": 3,
               "where": {}
@@ -17776,7 +17788,7 @@
               "members": 6,
               "where": {}
             },
-            "list": {
+            "items": {
               "members": 6,
               "where": {}
             }
@@ -18323,6 +18335,14 @@
                   "small"
                 ]
               }
+            },
+            "items": {
+              "members": 3,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
             }
           }
         },
@@ -18717,6 +18737,14 @@
                   "medium"
                 ]
               }
+            },
+            "items": {
+              "members": 3,
+              "where": {
+                "size": [
+                  "medium"
+                ]
+              }
             }
           }
         },
@@ -18961,6 +18989,14 @@
           ],
           "parts": {
             "container": {
+              "members": 3,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            },
+            "items": {
               "members": 3,
               "where": {
                 "size": [
