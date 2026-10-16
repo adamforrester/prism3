@@ -3815,7 +3815,7 @@ const writeComponentSet = async (
   // not written (a write costs ~12.5ms on the host, measured), nor is one whose reactions an update keeps as a
   // hand edit. Read back, as everything here is. Yields on the chunk boundary, as the loops above do.
   const reactionMiss: string[] = [];
-  const plannedReactions = reactionMap(plans.map((p) => planComponentName(p)));
+  const plannedReactions = reactionMap(plans.map((p) => planComponentName(p)), plans[0]?.pressState);
   if (plannedReactions.size) {
     const kids = (liveSet().children ?? []) as CompNode[];
     const byMember = new Map(kids.map((c) => [String(c.name), c] as const));

@@ -650,6 +650,9 @@ export type AnatomyPlan = {
    *  and a layout decision the def made has to travel with the artifact it describes. Absent when the
    *  def declares no preference, which `planSetLayout` resolves by cardinality. */
   gridAxis?: string;
+  /** Where While pressing goes on a set with no `pressed` look (#2428, `figmaProperties.pressState`), on the plan for
+   *  `gridAxis`'s reason: the reactions are planned from plans, never the def. OMITTED where the def declares none. */
+  pressState?: string;
   /** Axes on which this def's box legitimately moves (#1010) — `figmaProperties.footprintVaries`, on the
    *  plan for `gridAxis`'s reason and read by `planSetLayout` when it builds the footprint cohort key.
    *  Always an array, empty for the defs that make no such claim, because the cohort key concatenates it
@@ -2168,6 +2171,7 @@ export const figmaAnatomyPlan = (
     codeOnly: [...a.codeOnly],
     derived: { ...(a.derived ?? {}) },
     ...(def.figmaProperties?.gridAxis ? { gridAxis: def.figmaProperties.gridAxis } : {}),
+    ...(def.figmaProperties?.pressState ? { pressState: def.figmaProperties.pressState } : {}),
     footprintVaries: [...(def.figmaProperties?.footprintVaries ?? [])],
     axisKinds: Object.fromEntries(
       [...(def.figmaProperties?.variantAxes ?? []), ...(def.figmaProperties?.stateAxis ? [def.figmaProperties.stateAxis.name] : [])]
@@ -2563,6 +2567,24 @@ export const resolveWeightIntent = (intent: string, avail: readonly WeightRoleNa
   throw new Error(`unknown weight intent '${intent}' — the declared intents are [${WEIGHT_INTENTS.join(', ')}]`);
 };
 
+/** THE FIXED WEIGHT INTENT (#2428, `ComponentDef.typeWeight`): every `type.<group>.*` ref's role tail repointed to the
+ *  brand's resolution of the def's one intent. Identity for a def without it, and for a brand whose resolution is the
+ *  authored role. */
+const applyTypeWeight = (def: ComponentDef, avail: WeightAvailability): ComponentDef => {
+  const tw = def.typeWeight;
+  if (!tw) return def;
+  const groupAvail = avail[tw.group];
+  if (!groupAvail || !groupAvail.length)
+    throw new Error(`${def.id}: typeWeight.group '${tw.group}' has no emitted weight roles for this brand — a weight intent cannot resolve against a category the brand does not ship`);
+  const role = resolveWeightIntent(tw.intent, groupAvail);
+  const tokens: Record<string, string> = {};
+  for (const [k, ref] of Object.entries(def.tokens)) {
+    const segs = ref.split('.');
+    if (segs[0] === 'type' && segs[1] === tw.group) { segs[segs.length - 1] = role; tokens[k] = segs.join('.'); } else tokens[k] = ref;
+  }
+  return { ...def, tokens };
+};
+
 /**
  * Materialize a def for a brand's weight availability (#1602), BEFORE projection — the same mechanism
  * `applyControlShape` uses for a corner, and for the same reason: the projector stays a pure function of
@@ -2588,7 +2610,8 @@ export const resolveWeightIntent = (intent: string, avail: readonly WeightRoleNa
  * (`type.<group>.…`) and checked against `weightIntent.group`, so a def that mixed categories under one
  * weight axis fails loudly rather than resolving against the wrong availability.
  */
-export const applyWeightIntent = (def: ComponentDef, avail: WeightAvailability): ComponentDef => {
+export const applyWeightIntent = (authored: ComponentDef, avail: WeightAvailability): ComponentDef => {
+  const def = applyTypeWeight(authored, avail);
   const wi = def.weightIntent;
   if (!wi) return def;
   const groupAvail = avail[wi.group];

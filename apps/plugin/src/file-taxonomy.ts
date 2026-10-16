@@ -93,6 +93,8 @@ export const TAXONOMY: Taxonomy = {
         // Password field (#2317, owner decision Q301.9 B) — its own page under Components, as Counter's is. It nests
         // Button, whose page is earlier in this list, so the nest resolves when the file is built in order.
         { page: 'Password field', defs: ['password-field'] },
+        // Code input (#2428, owner decision Q321.14 A) — its own page under Components, as Password field's is.
+        { page: 'Code input', defs: ['code-input'] },
         { page: 'Textarea', defs: ['textarea'] },
         { page: 'Veil', defs: ['veil'] },
         // Badge — under Components, owner-decided 2026-10-04 (S8 scope, O1).
@@ -140,6 +142,9 @@ export const TAXONOMY: Taxonomy = {
         // #1670 — owner-decided 2026-09-26: the spinner sits under Subcomponents, beside the other parts a
         // host swaps or nests in (the button's pending state swaps it into its icon slot).
         { page: 'Spinner', defs: ['spinner'] },
+        // #2428 (owner decision Q329 A) — the Code cell on its own Subcomponents page: a part used only inside Code input,
+        // nested in the field's `items` slot.
+        { page: 'Code Cell', defs: ['code-input-cell'] },
       ],
     },
     {
