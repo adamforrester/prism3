@@ -7,6 +7,13 @@
 # session on a clone **63 commits and 6 days behind** quoted "105 artifacts" out of its own `CLAUDE.md`
 # into a lane brief. `main` said 114. The brief was faithful to the file it read.
 #
+# The fix in `CLAUDE.md` itself was to stop stating the number. The count is asserted in `verify.ts`
+# (`EXPECTED_ARTIFACTS`) and in `ci.yml`, and each one's remedy names only the other — `verify.ts` says
+# "update `EXPECTED_ARTIFACTS` here AND the same number in `ci.yml`", `ci.yml` says "update this
+# check" — so a numeral in `CLAUDE.md` was a third site that no remedy reached. It drifted silently and
+# then stated a stale count with confidence. Named rather than counted, that sentence is true at every
+# ref; this hook covers the rest of the file.
+#
 # ── THE NEGATIVE RESULT, WHICH DISQUALIFIES THE OBVIOUS IMPLEMENTATION ─────────────────────────────
 #
 # The tempting version of this check compares the count sites to each other. It cannot work, and #1110

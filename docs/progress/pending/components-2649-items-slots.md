@@ -136,3 +136,6 @@ re-gate's mechanical resolution (`train/2660-merge-main`, `e25ab7f9`) and fixed 
   and `test.ts`. Both keep the redesign's track (filled with `color/background/secondary`, no outline) holding this
   PR's `items` slot of three nest-fixed segments, and the control arm asserts both. `component-surface.json` is
   re-accepted on the merged tree.
+- **Merged `main` at `bf76f201` (cloud lane, landing train 3).** `component-schema.ts` conflicted: this PR's slot-prop
+  checks (`anyOf`, `minItems`, `maxItems`) and #2747's typed-default check (#2707) are independent arms in the same
+  loop, so both are kept. `main` had raised `EXECUTOR_REVISION` to 28 on its own (#2691), so this PR now takes 29.
