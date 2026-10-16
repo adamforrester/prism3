@@ -88,7 +88,7 @@ None — not interactive.
 
 ## Composition
 
-- **Alternative to:** `tag`
+- **Alternative to:** `tag`, `banner`
 - **Planned:** `avatar`, `banner`
 - **Replaces:**
   - a hand-drawn colored pill

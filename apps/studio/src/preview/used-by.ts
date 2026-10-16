@@ -6,7 +6,7 @@
  * never imports the definitions themselves (UI redesign S7, T4; the generator's header says why).
  */
 export const USED_BY = {
-  defs: 47,
+  defs: 52,
   radius: {
     rounded: {
       "radius.2xl": [
@@ -15,15 +15,20 @@ export const USED_BY = {
       "radius.capsule": [
         "Progress"
       ],
+      "radius.lg": [
+        "CodeInput"
+      ],
       "radius.md": [
         "Button",
         "IconButton",
         "SegmentedControl",
-        "Pagination"
+        "Pagination",
+        "Banner"
       ],
       "radius.none": [
         "FlushIconButton",
-        "Dialog"
+        "Dialog",
+        "Banner"
       ],
       "radius.round": [
         "IconButton",
@@ -41,7 +46,8 @@ export const USED_BY = {
         "Select",
         "Badge",
         "SegmentedControl",
-        "PasswordField"
+        "PasswordField",
+        "CodeInput"
       ],
       "radius.xl": [
         "Toast"
@@ -56,13 +62,18 @@ export const USED_BY = {
         "IconButton",
         "Progress"
       ],
+      "radius.lg": [
+        "CodeInput"
+      ],
       "radius.md": [
         "SegmentedControl",
-        "Pagination"
+        "Pagination",
+        "Banner"
       ],
       "radius.none": [
         "FlushIconButton",
-        "Dialog"
+        "Dialog",
+        "Banner"
       ],
       "radius.round": [
         "IconButton",
@@ -80,7 +91,8 @@ export const USED_BY = {
         "Select",
         "Badge",
         "SegmentedControl",
-        "PasswordField"
+        "PasswordField",
+        "CodeInput"
       ],
       "radius.xl": [
         "Toast"
@@ -93,9 +105,13 @@ export const USED_BY = {
       "radius.capsule": [
         "Progress"
       ],
+      "radius.lg": [
+        "CodeInput"
+      ],
       "radius.md": [
         "SegmentedControl",
-        "Pagination"
+        "Pagination",
+        "Banner"
       ],
       "radius.none": [
         "Button",
@@ -105,7 +121,8 @@ export const USED_BY = {
         "Textarea",
         "Checkbox.Control",
         "Select",
-        "Dialog"
+        "Dialog",
+        "Banner"
       ],
       "radius.round": [
         "IconButton",
@@ -120,7 +137,8 @@ export const USED_BY = {
       "radius.sm": [
         "Badge",
         "SegmentedControl",
-        "PasswordField"
+        "PasswordField",
+        "CodeInput"
       ],
       "radius.xl": [
         "Toast"
@@ -141,13 +159,18 @@ export const USED_BY = {
         "Checkbox.Control",
         "Select"
       ],
+      "radius.lg": [
+        "CodeInput"
+      ],
       "radius.md": [
         "SegmentedControl",
-        "Pagination"
+        "Pagination",
+        "Banner"
       ],
       "radius.none": [
         "FlushIconButton",
-        "Dialog"
+        "Dialog",
+        "Banner"
       ],
       "radius.round": [
         "IconButton",
@@ -162,7 +185,8 @@ export const USED_BY = {
       "radius.sm": [
         "Badge",
         "SegmentedControl",
-        "PasswordField"
+        "PasswordField",
+        "CodeInput"
       ],
       "radius.xl": [
         "Toast"

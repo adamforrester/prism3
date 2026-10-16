@@ -9,6 +9,16 @@
   "note": "edges: every part that nests another component (anatomy part with `nests`), with its nesting relation. components.<id>.affectedByChange lists every component that nests it directly or transitively — the components a change to it reaches. inherits is a reading reference only: the engine copies no fields across it, so it does not appear in affectedByChange.",
   "edges": [
     {
+      "from": "_pagination-item",
+      "to": "focus-ring",
+      "part": "focusRing",
+      "partKind": "absolute",
+      "relation": "nest-fixed",
+      "variant": {
+        "surface": "default"
+      }
+    },
+    {
       "from": "_slider-thumb",
       "to": "focus-ring",
       "part": "focusRing",
@@ -76,6 +86,52 @@
       "expose": [
         "indicator"
       ]
+    },
+    {
+      "from": "banner",
+      "to": "button-neutral",
+      "part": "action1",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "appearance": "outline",
+        "size": "small",
+        "surface": "default",
+        "inset": "default",
+        "state": "rest",
+        "leading icon": "false",
+        "trailing icon": "false"
+      }
+    },
+    {
+      "from": "banner",
+      "to": "button-neutral",
+      "part": "action2",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "appearance": "text",
+        "size": "small",
+        "surface": "default",
+        "inset": "default",
+        "state": "rest",
+        "leading icon": "false",
+        "trailing icon": "false"
+      }
+    },
+    {
+      "from": "banner",
+      "to": "icon-button-neutral",
+      "part": "dismiss",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "appearance": "ghost",
+        "size": "small",
+        "shape": "square",
+        "surface": "default",
+        "state": "rest"
+      }
     },
     {
       "from": "breadcrumb-item",
@@ -690,6 +746,202 @@
       ]
     },
     {
+      "from": "pagination",
+      "to": "_pagination-item",
+      "part": "item1",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "type": "page",
+        "selection": "unselected",
+        "size": "medium",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "pagination",
+      "to": "_pagination-item",
+      "part": "item2",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "type": "ellipsis",
+        "selection": "unselected",
+        "size": "medium",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "pagination",
+      "to": "_pagination-item",
+      "part": "item3",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "type": "page",
+        "selection": "unselected",
+        "size": "medium",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "pagination",
+      "to": "_pagination-item",
+      "part": "item4",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "type": "page",
+        "selection": "selected",
+        "size": "medium",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "pagination",
+      "to": "_pagination-item",
+      "part": "item5",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "type": "page",
+        "selection": "unselected",
+        "size": "medium",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "pagination",
+      "to": "_pagination-item",
+      "part": "item6",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "type": "ellipsis",
+        "selection": "unselected",
+        "size": "medium",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "pagination",
+      "to": "_pagination-item",
+      "part": "item7",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "type": "page",
+        "selection": "unselected",
+        "size": "medium",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "pagination",
+      "to": "icon-button-neutral",
+      "part": "next",
+      "partKind": "nest",
+      "relation": "nest-exposed",
+      "variant": {
+        "appearance": "ghost",
+        "size": "medium",
+        "shape": "square",
+        "surface": "default",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ],
+      "expose": [
+        "state"
+      ]
+    },
+    {
+      "from": "pagination",
+      "to": "button-neutral",
+      "part": "nextButton",
+      "partKind": "nest",
+      "relation": "nest-exposed",
+      "variant": {
+        "appearance": "text",
+        "size": "medium",
+        "surface": "default",
+        "inset": "default",
+        "state": "rest",
+        "leading icon": "false",
+        "trailing icon": "true"
+      },
+      "follow": [
+        "size"
+      ],
+      "expose": [
+        "state"
+      ]
+    },
+    {
+      "from": "pagination",
+      "to": "icon-button-neutral",
+      "part": "previous",
+      "partKind": "nest",
+      "relation": "nest-exposed",
+      "variant": {
+        "appearance": "ghost",
+        "size": "medium",
+        "shape": "square",
+        "surface": "default",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ],
+      "expose": [
+        "state"
+      ]
+    },
+    {
+      "from": "pagination",
+      "to": "button-neutral",
+      "part": "previousButton",
+      "partKind": "nest",
+      "relation": "nest-exposed",
+      "variant": {
+        "appearance": "text",
+        "size": "medium",
+        "surface": "default",
+        "inset": "default",
+        "state": "rest",
+        "leading icon": "true",
+        "trailing icon": "false"
+      },
+      "follow": [
+        "size"
+      ],
+      "expose": [
+        "state"
+      ]
+    },
+    {
       "from": "password-field",
       "to": "focus-ring",
       "part": "focusRing",
@@ -1285,6 +1537,21 @@
       ],
       "inheritedBy": []
     },
+    "_pagination-item": {
+      "nests": [
+        "focus-ring"
+      ],
+      "nestsTransitively": [
+        "focus-ring"
+      ],
+      "nestedBy": [
+        "pagination"
+      ],
+      "affectedByChange": [
+        "pagination"
+      ],
+      "inheritedBy": []
+    },
     "_slider-thumb": {
       "nests": [
         "focus-ring"
@@ -1325,6 +1592,21 @@
         "tab",
         "tabs"
       ],
+      "inheritedBy": []
+    },
+    "banner": {
+      "nests": [
+        "button-neutral",
+        "icon-button-neutral"
+      ],
+      "nestsTransitively": [
+        "button-neutral",
+        "focus-ring",
+        "icon-button-neutral",
+        "spinner"
+      ],
+      "nestedBy": [],
+      "affectedByChange": [],
       "inheritedBy": []
     },
     "breadcrumb-item": {
@@ -1407,8 +1689,14 @@
         "focus-ring",
         "spinner"
       ],
-      "nestedBy": [],
-      "affectedByChange": [],
+      "nestedBy": [
+        "banner",
+        "pagination"
+      ],
+      "affectedByChange": [
+        "banner",
+        "pagination"
+      ],
       "inheritedBy": [
         "icon-button-neutral"
       ]
@@ -1620,6 +1908,7 @@
       "nests": [],
       "nestsTransitively": [],
       "nestedBy": [
+        "_pagination-item",
         "_slider-thumb",
         "accordion",
         "button",
@@ -1645,8 +1934,10 @@
         "textarea"
       ],
       "affectedByChange": [
+        "_pagination-item",
         "_slider-thumb",
         "accordion",
+        "banner",
         "breadcrumb-item",
         "breadcrumbs",
         "button",
@@ -1665,6 +1956,7 @@
         "icon-button-destructive",
         "icon-button-neutral",
         "link",
+        "pagination",
         "password-field",
         "radio-control",
         "radio-group",
@@ -1733,11 +2025,15 @@
         "spinner"
       ],
       "nestedBy": [
+        "banner",
         "dialog",
+        "pagination",
         "toast"
       ],
       "affectedByChange": [
+        "banner",
         "dialog",
+        "pagination",
         "toast"
       ],
       "inherits": "button-neutral",
@@ -1789,6 +2085,23 @@
       "affectedByChange": [
         "list"
       ],
+      "inheritedBy": []
+    },
+    "pagination": {
+      "nests": [
+        "_pagination-item",
+        "button-neutral",
+        "icon-button-neutral"
+      ],
+      "nestsTransitively": [
+        "_pagination-item",
+        "button-neutral",
+        "focus-ring",
+        "icon-button-neutral",
+        "spinner"
+      ],
+      "nestedBy": [],
+      "affectedByChange": [],
       "inheritedBy": []
     },
     "password-field": {
@@ -1942,6 +2255,7 @@
         "icon-button-neutral"
       ],
       "affectedByChange": [
+        "banner",
         "button",
         "button-destructive",
         "button-neutral",
@@ -1949,6 +2263,7 @@
         "icon-button",
         "icon-button-destructive",
         "icon-button-neutral",
+        "pagination",
         "password-field",
         "toast"
       ],
@@ -2086,9 +2401,11 @@
   },
   "depth": {
     "_accordion-indicator": 0,
+    "_pagination-item": 1,
     "_slider-thumb": 1,
     "accordion": 1,
     "badge": 0,
+    "banner": 2,
     "breadcrumb-item": 2,
     "breadcrumbs": 3,
     "button": 1,
@@ -2115,6 +2432,7 @@
     "link": 1,
     "list": 1,
     "list-item": 0,
+    "pagination": 2,
     "password-field": 2,
     "progress": 1,
     "radio-control": 1,

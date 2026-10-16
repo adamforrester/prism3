@@ -91,6 +91,12 @@
             ]
           },
           {
+            "name": "↳ Code input",
+            "components": [
+              "code-input"
+            ]
+          },
+          {
             "name": "↳ Textarea",
             "components": [
               "textarea"
@@ -166,6 +172,37 @@
               "_pagination-item",
               "pagination"
             ]
+          },
+          {
+            "name": "↳ Breadcrumbs",
+            "components": [
+              "breadcrumbs"
+            ]
+          },
+          {
+            "name": "↳ Toast",
+            "components": [
+              "toast"
+            ]
+          },
+          {
+            "name": "↳ Slider",
+            "components": [
+              "_slider-thumb",
+              "slider"
+            ]
+          },
+          {
+            "name": "↳ Progress",
+            "components": [
+              "progress"
+            ]
+          },
+          {
+            "name": "↳ Banner",
+            "components": [
+              "banner"
+            ]
           }
         ]
       },
@@ -209,6 +246,18 @@
             "name": "↳ Spinner",
             "components": [
               "spinner"
+            ]
+          },
+          {
+            "name": "↳ Breadcrumb Item",
+            "components": [
+              "breadcrumb-item"
+            ]
+          },
+          {
+            "name": "↳ Code Cell",
+            "components": [
+              "code-input-cell"
             ]
           }
         ]
@@ -2261,6 +2310,396 @@
           }
         ],
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/pagination.md"
+      },
+      {
+        "id": "breadcrumb-item",
+        "name": "BreadcrumbItem",
+        "figmaName": "breadcrumb-item",
+        "kind": "component set",
+        "page": "↳ Breadcrumb Item",
+        "section": "Subcomponents",
+        "members": 6,
+        "variantProperties": [
+          {
+            "name": "kind",
+            "values": [
+              "ancestor",
+              "current",
+              "overflow"
+            ]
+          },
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "label",
+            "type": "TEXT"
+          }
+        ],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/breadcrumb-item.md"
+      },
+      {
+        "id": "breadcrumbs",
+        "name": "Breadcrumbs",
+        "figmaName": "breadcrumbs",
+        "kind": "component set",
+        "page": "↳ Breadcrumbs",
+        "section": "Components",
+        "members": 4,
+        "variantProperties": [
+          {
+            "name": "layout",
+            "values": [
+              "trail",
+              "parent"
+            ]
+          },
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small"
+            ]
+          }
+        ],
+        "properties": [],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/breadcrumbs.md"
+      },
+      {
+        "id": "toast",
+        "name": "Toast",
+        "figmaName": "toast",
+        "kind": "component set",
+        "page": "↳ Toast",
+        "section": "Components",
+        "members": 2,
+        "variantProperties": [
+          {
+            "name": "intent",
+            "values": [
+              "neutral",
+              "success"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "message",
+            "type": "TEXT"
+          },
+          {
+            "name": "action",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "close",
+            "type": "BOOLEAN"
+          }
+        ],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/toast.md"
+      },
+      {
+        "id": "_slider-thumb",
+        "name": "Slider.Thumb",
+        "figmaName": "_slider-thumb",
+        "kind": "component set",
+        "private": true,
+        "page": "↳ Slider",
+        "section": "Components",
+        "members": 5,
+        "variantProperties": [
+          {
+            "name": "state",
+            "values": [
+              "rest",
+              "hover",
+              "pressed",
+              "focus-visible",
+              "disabled"
+            ]
+          }
+        ],
+        "properties": [],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/_slider-thumb.md"
+      },
+      {
+        "id": "slider",
+        "name": "Slider",
+        "figmaName": "slider",
+        "kind": "component set",
+        "page": "↳ Slider",
+        "section": "Components",
+        "members": 10,
+        "variantProperties": [
+          {
+            "name": "type",
+            "values": [
+              "single",
+              "range"
+            ]
+          },
+          {
+            "name": "state",
+            "values": [
+              "rest",
+              "hover",
+              "pressed",
+              "focus-visible",
+              "disabled"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "value text",
+            "type": "TEXT"
+          },
+          {
+            "name": "min label",
+            "type": "TEXT"
+          },
+          {
+            "name": "max label",
+            "type": "TEXT"
+          },
+          {
+            "name": "range text",
+            "type": "TEXT"
+          },
+          {
+            "name": "label",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "value",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "end labels",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "inputs",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "helper",
+            "type": "BOOLEAN"
+          }
+        ],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/slider.md"
+      },
+      {
+        "id": "progress",
+        "name": "Progress",
+        "figmaName": "progress",
+        "kind": "component set",
+        "page": "↳ Progress",
+        "section": "Components",
+        "members": 10,
+        "variantProperties": [
+          {
+            "name": "shape",
+            "values": [
+              "linear",
+              "circular"
+            ]
+          },
+          {
+            "name": "type",
+            "values": [
+              "determinate",
+              "indeterminate"
+            ]
+          },
+          {
+            "name": "status",
+            "values": [
+              "active",
+              "complete",
+              "error"
+            ]
+          },
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "label text",
+            "type": "TEXT"
+          },
+          {
+            "name": "value text",
+            "type": "TEXT"
+          },
+          {
+            "name": "label",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "value",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "message",
+            "type": "BOOLEAN"
+          }
+        ],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/progress.md"
+      },
+      {
+        "id": "banner",
+        "name": "Banner",
+        "figmaName": "banner",
+        "kind": "component set",
+        "page": "↳ Banner",
+        "section": "Components",
+        "members": 8,
+        "variantProperties": [
+          {
+            "name": "tone",
+            "values": [
+              "info",
+              "success",
+              "warning",
+              "danger"
+            ]
+          },
+          {
+            "name": "width",
+            "values": [
+              "contained",
+              "full"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "title text",
+            "type": "TEXT"
+          },
+          {
+            "name": "icon",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "title",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "actions",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "second action",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "dismiss",
+            "type": "BOOLEAN"
+          }
+        ],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/banner.md"
+      },
+      {
+        "id": "code-input-cell",
+        "name": "CodeInput.Cell",
+        "figmaName": "code-input-cell",
+        "kind": "component set",
+        "page": "↳ Code Cell",
+        "section": "Subcomponents",
+        "members": 28,
+        "variantProperties": [
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small",
+              "large",
+              "xlarge"
+            ]
+          },
+          {
+            "name": "state",
+            "values": [
+              "rest",
+              "hover",
+              "filled",
+              "focus-visible",
+              "focus-visible-filled",
+              "disabled",
+              "error"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "digit",
+            "type": "TEXT"
+          }
+        ],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/code-input-cell.md"
+      },
+      {
+        "id": "code-input",
+        "name": "CodeInput",
+        "figmaName": "code-input",
+        "kind": "component set",
+        "page": "↳ Code input",
+        "section": "Components",
+        "members": 48,
+        "variantProperties": [
+          {
+            "name": "status",
+            "values": [
+              "default",
+              "error"
+            ]
+          },
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small",
+              "large",
+              "xlarge"
+            ]
+          },
+          {
+            "name": "state",
+            "values": [
+              "rest",
+              "hover",
+              "filled",
+              "focus-visible",
+              "focus-visible-filled",
+              "disabled"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "message",
+            "type": "BOOLEAN"
+          }
+        ],
+        "codeOnly": {
+          "states": [
+            "pending"
+          ]
+        },
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/code-input.md"
       }
     ]
   },
@@ -2393,6 +2832,33 @@
         "settings": {
           "minChildren": 1
         }
+      },
+      {
+        "component": "breadcrumbs",
+        "property": "items",
+        "settings": {
+          "minChildren": 2,
+          "allowPreferredValuesOnly": true
+        },
+        "preferred": [
+          "breadcrumb-item"
+        ]
+      },
+      {
+        "component": "banner",
+        "property": "body"
+      },
+      {
+        "component": "code-input",
+        "property": "items",
+        "settings": {
+          "minChildren": 4,
+          "maxChildren": 8,
+          "allowPreferredValuesOnly": true
+        },
+        "preferred": [
+          "code-input-cell"
+        ]
       }
     ]
   },
@@ -2551,7 +3017,16 @@
       "dialog",
       "password-field",
       "_pagination-item",
-      "pagination"
+      "pagination",
+      "breadcrumb-item",
+      "breadcrumbs",
+      "toast",
+      "_slider-thumb",
+      "slider",
+      "progress",
+      "banner",
+      "code-input-cell",
+      "code-input"
     ],
     "templates": [
       {

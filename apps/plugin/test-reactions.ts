@@ -150,7 +150,7 @@ section('map — the per-def reaction map, literal (owner decision Q238 A, part 
     const lists = [...map.values()];
     got[d.id] = [map.size, lists.filter((l) => l.length).length, lists.reduce((k, l) => k + l.length, 0)];
   }
-  ok(JSON.stringify(Object.keys(got).sort()) === JSON.stringify(Object.keys(want).sort()), `map/scope: exactly the 19 defs with rest, hover and pressed (${Object.keys(got).join(', ')})`, hover and pressed, and the one naming its press state (${Object.keys(got).join(');
+  ok(JSON.stringify(Object.keys(got).sort()) === JSON.stringify(Object.keys(want).sort()), `map/scope: exactly the 19 defs with rest, hover and pressed, and the one naming its press state (${Object.keys(got).join(', ')})`);
   ok(Object.entries(want).every(([id, w]) => JSON.stringify(got[id]) === JSON.stringify(w)), `map/counts: members, sources and reactions per def (${JSON.stringify(got)})`);
   const btn = reactionMap(plansOf('button').map(planComponentName));
   const B = (state: string): string => `appearance=filled, surface=default, inset=default, size=medium, state=${state}, leading icon=false, trailing icon=false`;

@@ -12,6 +12,10 @@ Generated from the component definitions and the emission by `packages/engine/em
 |  | chevronUp | `chevron-up` | icon set | drawn | indicator: chevron; expansion: expanded |
 |  | minus | `minus` | icon set | drawn | indicator: plus-minus; expansion: expanded |
 |  | plus | `plus` | icon set | drawn | indicator: plus-minus; expansion: collapsed |
+| banner | iconDanger | `warning-triangle` | icon set | drawn | tone: danger |
+|  | iconInfo | `info-circle` | icon set | drawn | tone: info |
+|  | iconSuccess | `check-circle` | icon set | drawn | tone: success |
+|  | iconWarning | `error-circle` | icon set | drawn | tone: warning |
 | breadcrumb-item | separator | `chevron-right` | icon set | drawn | kind: ancestor, overflow |
 | breadcrumbs | backGlyph | `chevron-left` | icon set | drawn | layout: parent |
 | checkbox-control | dash | `minus` | icon set | drawn | selection: indeterminate |
@@ -64,23 +68,24 @@ Parts that take any icon from the set. The file nominates the default unless the
 | Glyph | Drawn by |
 |---|---|
 | `check` | checkbox-control, list-item, switch-control, tag |
-| `check-circle` | field-message, toast |
+| `check-circle` | banner, field-message, toast |
 | `chevron-down` | _accordion-indicator, select |
 | `chevron-left` | breadcrumbs |
 | `chevron-right` | breadcrumb-item |
 | `chevron-up` | _accordion-indicator |
 | `close` | switch-control, tag |
-| `error-circle` | field-message |
+| `error-circle` | banner, field-message |
 | `image` | image-placeholder |
+| `info-circle` | banner |
 | `minus` | _accordion-indicator, checkbox-control |
 | `plus` | _accordion-indicator |
 | `progress-stop` | progress |
 | `resize-grip` | textarea |
 | `spinner` | spinner |
-| `warning-triangle` | field-message |
+| `warning-triangle` | banner, field-message |
 
-## Glyphs no component names (32)
+## Glyphs no component names (31)
 
 Each is still reachable through Icon and through every icon slot.
 
-`FPO-default-icon`, `arrow-down`, `arrow-down-left`, `arrow-down-right`, `arrow-left`, `arrow-right`, `arrow-up`, `arrow-up-left`, `arrow-up-right`, `check-circle-filled`, `close-filled`, `error-circle-filled`, `external-link-filled`, `eye`, `eye-filled`, `eye-off`, `eye-off-filled`, `home`, `info-circle`, `info-circle-filled`, `link`, `menu`, `minus-filled`, `more-horizontal-filled`, `more-vertical-filled`, `pause-circle`, `play-circle`, `plus-circle`, `plus-circle-filled`, `plus-filled`, `search`, `warning-triangle-filled`
+`FPO-default-icon`, `arrow-down`, `arrow-down-left`, `arrow-down-right`, `arrow-left`, `arrow-right`, `arrow-up`, `arrow-up-left`, `arrow-up-right`, `check-circle-filled`, `close-filled`, `error-circle-filled`, `external-link-filled`, `eye`, `eye-filled`, `eye-off`, `eye-off-filled`, `home`, `info-circle-filled`, `link`, `menu`, `minus-filled`, `more-horizontal-filled`, `more-vertical-filled`, `pause-circle`, `play-circle`, `plus-circle`, `plus-circle-filled`, `plus-filled`, `search`, `warning-triangle-filled`

@@ -43,7 +43,7 @@ Label: specific and in sentence case — "Loading results", "Updating profile" �
 
 - **Purpose:** Show that work is in progress with no known end, inside the control or region that is waiting.
 - **Use when:** A short indeterminate wait of about 200ms to 5s (Material 3's bands) inside a host: a pending Button, a field validating its value, a region reloading. Size it to the host's icon slot.
-- **Avoid when:** The wait is under 200ms (show nothing — a spinner shown that briefly only flashes), runs past about 5s or has a known length (determinate progress, not built yet — including a circular progress with a value), the page is loading its layout (a skeleton, not built yet), or you want a static icon — the spinner is behavior, not a glyph.
+- **Avoid when:** The wait is under 200ms (show nothing — a spinner shown that briefly only flashes), runs past about 5s or has a known length (a Progress bar, or a Progress ring when it has a value), the page is loading its layout (a skeleton, not built yet), or you want a static icon — the spinner is behavior, not a glyph.
 - **Often used with:** `button`, `icon-button`, `text-field`, `select`
 
 ## Props
@@ -81,6 +81,7 @@ None — not interactive.
 
 ## Composition
 
+- **Alternative to:** `progress`
 - **Planned:** `progress`, `skeleton`
 - **Replaces:**
   - an animated loading GIF

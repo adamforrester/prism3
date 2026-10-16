@@ -1145,5 +1145,204 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
       "_pagination-item",
       "button-neutral"
     ]
+  },
+  {
+    "id": "breadcrumb-item",
+    "name": "BreadcrumbItem",
+    "category": "navigation",
+    "summary": "One step in a breadcrumb trail: a link, the current page, or the collapsed steps.",
+    "unit": "variants",
+    "spacing": [
+      {
+        "key": "size.medium.gap",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.small.gap",
+        "ref": "space.050"
+      }
+    ],
+    "buildable": true,
+    "reason": null,
+    "members": 6,
+    "nests": [
+      "link",
+      "icon",
+      "flush-icon-button-neutral"
+    ]
+  },
+  {
+    "id": "breadcrumbs",
+    "name": "Breadcrumbs",
+    "category": "navigation",
+    "summary": "The path to the current page as links, with the current page last and not a link.",
+    "unit": "variants",
+    "spacing": [
+      {
+        "key": "size.medium.gap",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.small.gap",
+        "ref": "space.050"
+      },
+      {
+        "key": "back-gap",
+        "ref": "space.050"
+      }
+    ],
+    "buildable": true,
+    "reason": null,
+    "members": 4,
+    "nests": [
+      "breadcrumb-item",
+      "icon",
+      "link"
+    ]
+  },
+  {
+    "id": "toast",
+    "name": "Toast",
+    "category": "feedback",
+    "summary": "A short status message over the page after an action. Announced politely; it never takes focus.",
+    "unit": "variants",
+    "spacing": [
+      {
+        "key": "pad-y",
+        "ref": "space.100"
+      },
+      {
+        "key": "pad-x",
+        "ref": "space.200"
+      },
+      {
+        "key": "pad-end",
+        "ref": "space.100"
+      },
+      {
+        "key": "gap",
+        "ref": "space.100"
+      },
+      {
+        "key": "glyph-gap",
+        "ref": "space.150"
+      }
+    ],
+    "buildable": true,
+    "reason": null,
+    "members": 2,
+    "nests": [
+      "button",
+      "icon-button-neutral",
+      "icon"
+    ]
+  },
+  {
+    "id": "_slider-thumb",
+    "name": "Slider.Thumb",
+    "category": "form",
+    "summary": "The thumb a Slider moves: a filled disc with a page-colored ring. Used only inside a Slider.",
+    "unit": "variants",
+    "spacing": [],
+    "buildable": true,
+    "reason": null,
+    "members": 5,
+    "nests": [
+      "focus-ring"
+    ]
+  },
+  {
+    "id": "slider",
+    "name": "Slider",
+    "category": "form",
+    "summary": "Choose a value, or a range, by moving a thumb along a track. Works with arrow keys too.",
+    "unit": "variants",
+    "spacing": [],
+    "buildable": true,
+    "reason": null,
+    "members": 10,
+    "nests": [
+      "field-label",
+      "_slider-thumb",
+      "text-field",
+      "field-message"
+    ]
+  },
+  {
+    "id": "progress",
+    "name": "Progress",
+    "category": "feedback",
+    "summary": "Shows how far a task has got, or that it is still running. Linear or circular.",
+    "unit": "variants",
+    "spacing": [],
+    "buildable": true,
+    "reason": null,
+    "members": 10,
+    "nests": [
+      "field-message"
+    ]
+  },
+  {
+    "id": "banner",
+    "name": "Banner",
+    "category": "feedback",
+    "summary": "A persistent message in the page flow about an important state, with optional actions.",
+    "unit": "variants",
+    "spacing": [
+      {
+        "key": "pad",
+        "ref": "space.200"
+      },
+      {
+        "key": "gap",
+        "ref": "space.150"
+      },
+      {
+        "key": "actions-gap",
+        "ref": "space.150"
+      },
+      {
+        "key": "action-gap",
+        "ref": "space.100"
+      }
+    ],
+    "buildable": true,
+    "reason": null,
+    "members": 8,
+    "nests": [
+      "icon",
+      "button-neutral",
+      "icon-button-neutral"
+    ]
+  },
+  {
+    "id": "code-input-cell",
+    "name": "CodeInput.Cell",
+    "category": "form",
+    "summary": "One cell of a code input: a box holding one character of the code. Used only inside a code input.",
+    "unit": "variants",
+    "spacing": [],
+    "buildable": true,
+    "reason": null,
+    "members": 28,
+    "nests": [
+      "focus-ring"
+    ]
+  },
+  {
+    "id": "code-input",
+    "name": "CodeInput",
+    "category": "form",
+    "summary": "Field for a one-time code: one input, shown as a row of cells, one per character.",
+    "unit": "variants",
+    "spacing": [],
+    "buildable": true,
+    "reason": null,
+    "members": 48,
+    "nests": [
+      "field-label",
+      "code-input-cell",
+      "field-message"
+    ]
   }
 ];
