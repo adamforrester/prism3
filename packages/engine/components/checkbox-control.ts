@@ -308,7 +308,7 @@ export const checkboxControl: ComponentDef = {
 
   ai: {
     primaryPurpose: 'Render the atomic checkbox control — the painted square with its check or dash glyph and focus ring — for a host row to nest.',
-    whenToUse: 'Nested by the labeled Checkbox.Row (the common case), or by a host whose label is decoupled — a table select-all, a card-select, a selectable list row — where the host names the control and the collection owns the selection. Standalone only with an external label and its own aria wiring.',
+    whenToUse: 'Inside Checkbox.Row, the common case. On its own only when a host with a separate label names it and the collection owns the selection, such as a table select-all, a selectable card or a selectable list row, with its own ARIA wiring.',
     avoidWhen: 'You want the labeled case (that is Checkbox.Row), a mutually-exclusive one-of-many (Radio.Control), or an immediate-effect toggle (Switch.Control). Never place a bare control square as the clickable element — the hit target is the labeled row.',
     commonPartners: ['checkbox-row', 'focus-ring', 'checkbox-group'],
     triggerKeywords: ['checkbox control', 'checkbox box', 'check box atom', 'checkbox square'],
