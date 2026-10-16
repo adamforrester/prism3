@@ -652,10 +652,38 @@ export type ComponentApplyOptions = {
 export type ComponentUpdate = {
   /** Existing members to configure in place, by coordinate (after the update's renames), each with the paths of
    *  the nodes a designer edited by hand: those are left as they are (owner decision Q1, keep and report). */
-  members: ReadonlyMap<string, { keep: ReadonlySet<string>; accept?: boolean }>;
+  members: ReadonlyMap<string, { keep: ReadonlySet<string>; accept?: boolean;
+    /** #2595 — every path the dry run read as edited by hand, whatever the choice: a node at or above one is never
+     *  moved into a new frame (`adoptions`), so the dry run, which runs before the choice, says what the apply does. */
+    edited?: ReadonlySet<string> }>;
   /** Members the plan no longer has, kept in the set and marked deprecated (Q2). The layout pass leaves them
    *  where they are, as it leaves any child it has no cell for, and does not report them as strays. */
   retained?: ReadonlySet<string>;
+};
+
+/** #2595 — the children an in-place update MOVES into a frame the plan inserts, rather than rebuilding them. Under a
+ *  node the file already holds (at `path`, `.` for the member), a plan child FRAME with no child of its name in the
+ *  file is built fresh; each child of that FRAME in the plan that the file holds directly under the node, under that
+ *  name exactly once, and that no other plan child of the node claims by name, is moved into it and configured in
+ *  place there, so it keeps its id. Two children stay out and are rebuilt, as before:
+ *  - one a designer edited by hand, at it or anywhere under it (`edited`, the dry run's hand-edit paths);
+ *  - an INSTANCE_SWAP, whose host type depends on whether its target is in the file, which the dry run cannot read.
+ *  Returns the file child's name → the new frame's name. ONE function, edit rule included, read by the executor and by
+ *  the dry run, so the dry run lists exactly the moves the apply makes. */
+export const adoptions = (planKids: readonly { name: string; type: string; children?: readonly { name: string; type: string }[] }[], fileKids: readonly string[], edited: ReadonlySet<string> = new Set(), path = '.'): Map<string, string> => {
+  const claimed = new Set(planKids.map((c) => c.name));
+  const once = (name: string): boolean => fileKids.filter((k) => k === name).length === 1;
+  const at = (name: string): string => (path === '.' ? name : `${path}/${name}`);
+  const blocked = (name: string): boolean => [...edited].some((e) => e === at(name) || e.startsWith(`${at(name)}/`));
+  const out = new Map<string, string>();
+  for (const c of planKids) {
+    if (c.type !== 'FRAME' || fileKids.includes(c.name)) continue;
+    for (const g of c.children ?? []) {
+      if (g.type === 'INSTANCE_SWAP' || claimed.has(g.name) || out.has(g.name) || !once(g.name) || blocked(g.name)) continue;
+      out.set(g.name, c.name);
+    }
+  }
+  return out;
 };
 
 /** The value of a single-axis member coordinate — `name=search` → `search` (#1012). The
@@ -1784,7 +1812,7 @@ const writeComponentSet = async (
    *  `keep` holds the paths (`.` for the member, then child names joined by `/`) of the nodes a designer edited
    *  by hand (owner decision Q1): such a node keeps every field of its own, and only its children are visited.
    *  A build passes none of `ex`, `keep` or `path`, and runs exactly as it always has. */
-  const build = async (n: FigmaNodePlan, parts?: Map<string, Wr>, expose?: Wr[], ex?: Wr, keep?: ReadonlySet<string>, path = '.'): Promise<Wr | null> => {
+  const build = async (n: FigmaNodePlan, parts?: Map<string, Wr>, expose?: Wr[], ex?: Wr, keep?: ReadonlySet<string>, path = '.', edited?: ReadonlySet<string>, adopt?: { from: Wr[]; take: (k: Wr) => void }): Promise<Wr | null> => {
     let node: Wr;
     const kept = !!ex && !!keep?.has(path);
     if (n.type === 'TEXT') node = ex ?? wr(api.createText());
@@ -2278,15 +2306,23 @@ const writeComponentSet = async (
     const byPart = new Map<string, Wr>();
     // IN PLACE (#2265 PR 2): the node's existing children, each paired at most once with the plan child of its name.
     // A GLYPH's are the fresh import's, never the plan's, so they are not paired; an INSTANCE's are its main's.
-    const pool = ex && n.type !== 'GLYPH' && node.type !== 'INSTANCE' ? [...((node.children ?? []) as Wr[])] : [];
+    // A FRESH FRAME THE PLAN INSERTS under an in-place node (#2595) is offered that node's children it is to hold
+    // (`adoptions`): they are paired here as an in-place node's own are, and each one that fits is moved in.
+    const pool = ex && n.type !== 'GLYPH' && node.type !== 'INSTANCE' ? [...((node.children ?? []) as Wr[])] : adopt?.from ?? [];
     const paired = new Set<Wr>();
+    const at$ = (name: string): string => (path === '.' ? name : `${path}/${name}`);
+    const moves = ex && pool.length ? adoptions(n.children, pool.map((k) => String(k.name ?? '')), edited, path) : new Map<string, string>();
     let at = 0;
     for (const c of n.children) {
       const cand = pool.find((k) => !paired.has(k) && k.name === c.name);
       if (cand) paired.add(cand);
       const fits = !!cand && fitsHost(c, cand);
-      const kid = await build(c, parts, expose, fits ? cand : undefined, keep, path === '.' ? c.name : `${path}/${c.name}`);
+      const offer = !cand && ex ? pool.filter((k) => !paired.has(k) && moves.get(String(k.name ?? '')) === c.name) : [];
+      const kid = await build(c, parts, expose, fits ? cand : undefined, keep, at$(c.name), edited,
+        offer.length ? { from: offer, take: (k) => paired.add(k) } : undefined);
       if (!kid) continue;   // a missing shared component — one precise miss, the rest still builds
+      // Moved in: its in-place parent no longer removes it.
+      if (adopt && cand && fits) adopt.take(cand);
       if (ex) {
         // A TYPE CHANGE IS A REPLACEMENT, the one way an update changes a child's id; the dry run lists each one.
         if (cand && !fits) wr(cand).remove?.();
@@ -2368,7 +2404,8 @@ const writeComponentSet = async (
     }
     // IN PLACE, a child the plan no longer has is removed: the member then holds what the plan says, and the
     // dry run listed it ("removed — not in the plan").
-    for (const k of pool) if (!paired.has(k)) k.remove?.();
+    // A fresh frame's offered children stay its in-place parent's to remove: one that did not fit is removed there.
+    if (ex) for (const k of pool) if (!paired.has(k)) k.remove?.();
     // A CENTERED absolute child (#612's pending spinner with no visual cell to take). NOT resized:
     // unlike the ring it keeps its own square size, and its `size` binding is already on it — `resize`
     // would clear that binding.
@@ -2730,7 +2767,7 @@ const writeComponentSet = async (
       wr(existing).setSharedPluginData?.(NS, UPDATING_KEY, JSON.stringify([...inPlace.keep]));
       const parts = new Map<string, Wr>();
       const expose: Wr[] = [];
-      await build(spec.root, parts, expose, wr(existing), inPlace.keep, '.');
+      await build(spec.root, parts, expose, wr(existing), inPlace.keep, '.', inPlace.edited);
       // A slot the plan GAINED, or one a type change rebuilt, came back a frame: the member is a component already,
       // so it becomes a native slot here as on a fresh build (#2417). A slot the member already held is left alone.
       await toSlots(wr(existing), spec.root, parts, expose, spec.name);
