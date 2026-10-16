@@ -327,6 +327,7 @@ export const dialog: ComponentDef = {
 
   content: {
     labelPattern: 'The title names the task or asks the question ("Delete this address?"), never "Warning" or "Are you sure?". The main action echoes the title\'s verb ("Delete address"), not "OK" or "Yes". Sentence case.',
+    dialogPattern: 'A confirmation asks about the action in its title ("Delete this address?"). The body states what is lost and whether it can be undone. The destructive button repeats the verb ("Delete address") beside Cancel or a named way out ("Keep address"), and focus starts on that way out. Leave the close button off an alertdialog, so the user answers it.',
   },
 
   docs: {
