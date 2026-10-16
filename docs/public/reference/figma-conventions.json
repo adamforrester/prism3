@@ -159,6 +159,12 @@
             "components": [
               "dialog"
             ]
+          },
+          {
+            "name": "↳ Breadcrumbs",
+            "components": [
+              "breadcrumbs"
+            ]
           }
         ]
       },
@@ -202,6 +208,12 @@
             "name": "↳ Spinner",
             "components": [
               "spinner"
+            ]
+          },
+          {
+            "name": "↳ Breadcrumb Item",
+            "components": [
+              "breadcrumb-item"
             ]
           }
         ]
@@ -2280,8 +2292,8 @@
         "name": "BreadcrumbItem",
         "figmaName": "breadcrumb-item",
         "kind": "component set",
-        "page": null,
-        "section": null,
+        "page": "↳ Breadcrumb Item",
+        "section": "Subcomponents",
         "members": 6,
         "variantProperties": [
           {
@@ -2313,8 +2325,8 @@
         "name": "Breadcrumbs",
         "figmaName": "breadcrumbs",
         "kind": "component set",
-        "page": null,
-        "section": null,
+        "page": "↳ Breadcrumbs",
+        "section": "Components",
         "members": 4,
         "variantProperties": [
           {
@@ -2569,7 +2581,9 @@
       "segmented-control",
       "link",
       "dialog",
-      "password-field"
+      "password-field",
+      "breadcrumb-item",
+      "breadcrumbs"
     ],
     "templates": [
       {
