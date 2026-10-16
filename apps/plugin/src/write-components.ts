@@ -60,6 +60,7 @@ import { ENGINE_VERSION } from '@prism3/engine/version';
 import { tailOf } from '@prism3/engine/figma-names';
 import { NS } from './persist-figma';
 import { EXECUTOR_REVISION } from './executor-revision';
+import { labelColumns, readLabelColumn } from './label-columns';
 import { BASELINE_KEY, UPDATING_KEY, baselineOf, builtByPrism3, mainOf, readBaseline, snapshotMember, writeBaseline, type OwnershipRead } from './member-baseline';
 import { REACTIONS_PATH, plannedRead, reactionMap, reactionToWrite, reactionVerdict, reactionsText, readReactions } from './reactions';
 // #1318 — the ONE gradient-stop binder, shared with the Paint Style executor rather than written twice.
@@ -3026,6 +3027,9 @@ const writeComponentSet = async (
     colW[cell.col] = Math.max(colW[cell.col] ?? 0, c.width ?? 0);
     rowH[cell.row] = Math.max(rowH[cell.row] ?? 0, c.height ?? 0);
   });
+  // THE LABEL COLUMN (#2705): a set whose column labels are wider than its columns keeps every column at least as wide
+  // as the widest label, its members centered in the extra, as `drawFurniture` recorded it. None recorded: as before.
+  const grid = labelColumns(colW, readLabelColumn(set));
   const at = (arr: number[], n: number): number => arr.slice(0, n).reduce((a, b) => a + (b || 0) + GAP, 0);
   // Read once over the whole set, because a copy is a member whose record names ANOTHER member (#2510).
   const ownership: OwnershipRead[] = members.map((c) => ({ id: c.id, stamp: c.getSharedPluginData?.(NS, STAMP_KEY) ?? '', recordId: readBaseline(c)?.id }));
@@ -3051,7 +3055,7 @@ const writeComponentSet = async (
     const m = wr(c);
     // ONLY WHERE IT MOVES (#2379): an update re-lays the grid over members it leaves alone (a member from an earlier
     // plugin takes only its stamp), and a write that puts back the same number is still a write to the host.
-    const x = PAD + at(colW, cell.col), y = PAD + at(rowH, cell.row);
+    const x = PAD + at(grid.width, cell.col) + (grid.inset[cell.col] ?? 0), y = PAD + at(rowH, cell.row);
     if (m.x !== x) m.x = x;
     if (m.y !== y) m.y = y;
   });
@@ -3076,7 +3080,7 @@ const writeComponentSet = async (
   }
   // RESIZE, because appending does NOT grow the set's frame: a member appended at x=208 to a 184-wide
   // set leaves it 184 wide, with the member outside its own box, and nothing throws.
-  const wantW = Math.max(1, at(colW, colW.length) - GAP + 2 * PAD, retainedW);
+  const wantW = Math.max(1, at(grid.width, grid.width.length) - GAP + 2 * PAD, retainedW);
   const wantH = Math.max(1, at(rowH, rowH.length) - GAP + 2 * PAD + (retainedRow ? retainedRow + GAP : 0));
   if (colW.length && rowH.length) set.resize?.(wantW, wantH);
   // READ BACK THE BOX, because `resize` is the one call here with no other witness. Compared against
