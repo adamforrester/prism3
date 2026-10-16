@@ -243,10 +243,10 @@ export const nestedFirst = (targets: readonly UpdateTarget[]): UpdateTarget[] =>
 const preflight = (p: SetPreview): string | null => (p.blockers.length ? p.blockers.join('; ') : null);
 
 /** Which members this update configures, which it leaves, and why, from the dry run alone. */
-const plan = (p: SetPreview, choice: HandEditChoice, noRecord: NoRecordChoice): { members: Map<string, { keep: Set<string>; accept?: boolean }>; skipped: { member: string; reason: string }[]; kept: { member: string; path: string }[]; unrecorded: string[]; restamp: string[]; earlierRecord: string[] } => {
+const plan = (p: SetPreview, choice: HandEditChoice, noRecord: NoRecordChoice): { members: Map<string, { keep: Set<string>; accept?: boolean; edited?: Set<string> }>; skipped: { member: string; reason: string }[]; kept: { member: string; path: string }[]; unrecorded: string[]; restamp: string[]; earlierRecord: string[] } => {
   const byMember = new Map<string, SetPreview['handEdits']>();
   for (const h of p.handEdits) byMember.set(h.member, [...(byMember.get(h.member) ?? []), h]);
-  const members = new Map<string, { keep: Set<string>; accept?: boolean }>();
+  const members = new Map<string, { keep: Set<string>; accept?: boolean; edited?: Set<string> }>();
   const skipped: { member: string; reason: string }[] = [];
   const kept: { member: string; path: string }[] = [];
   const unrecorded: string[] = [];
@@ -281,9 +281,11 @@ const plan = (p: SetPreview, choice: HandEditChoice, noRecord: NoRecordChoice): 
     }
     if (rootReplaced.has(s.member)) { skipped.push({ member: s.member, reason: 'the member itself would need replacing' }); continue; }
     // `overwrite` writes over every edited node; `keep` and `accept` leave them, and differ only in the record.
-    const keep = choice === 'overwrite' ? new Set<string>() : new Set(edits.map((e) => e.path.replace(/#\d+$/, '')));
+    const edited = new Set(edits.map((e) => e.path.replace(/#\d+$/, '')));
+    const keep = choice === 'overwrite' ? new Set<string>() : edited;
     for (const e of edits) kept.push({ member: at, path: e.path });
-    members.set(at, { keep, ...(choice === 'accept' ? { accept: true } : {}) });
+    // `edited` whatever the choice (#2595): a node a designer edited is never moved into a new frame.
+    members.set(at, { keep, edited, ...(choice === 'accept' ? { accept: true } : {}) });
   }
   // Every member the dry run read as not built by Prism3 is named, the ones off the plan too (a designer's own icon
   // under the def's prefix, #2296): the update never writes them, and the verdict says so rather than leaving them out.
