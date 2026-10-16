@@ -970,43 +970,51 @@ section('property — a default the plan changed is edited in place, keeping the
 }
 
 /* ── property rename (#2759) ─────────────────────────────────────────────────────────────────────────── */
-section('property rename — the ledger\'s property rename renames the set\'s property in place, and an instance keeps its value (#2759)');
-{
-  // A file built before Q345, by the real executor from the plans as they were: the set's switch was `Check icon`.
-  const planned = plansOf(TAG);
-  const old = planned.map((p) => JSON.parse(JSON.stringify(p).split('"check icon"').join('"Check icon"')) as AnatomyPlan);
-  ok(JSON.stringify(planned).includes('"check icon"') && !JSON.stringify(old).includes('"check icon"'), 'premise: the plans name the switch `check icon`, and the file was built from plans naming it `Check icon`');
-  const w = await world(TAG, old);
+section('property rename — each of the ledger\'s property renames renames the set\'s property in place, and an instance keeps its value (#2759)');
+// The four renames owner decision Q345 A made, typed here rather than read off COMPONENT_RENAMES: the ledger is
+// the subject, so deleting any shipped entry fails this section by its def's name (`docs/34` shape 1).
+const PROPERTY_RENAMES_Q345: readonly (readonly [def: string, from: string, to: string])[] = [
+  ['tag', 'Check icon', 'check icon'],
+  ['switch-control', 'State icon', 'state icon'],
+  ['image-placeholder', 'Marker', 'marker'],
+  ['segmented-control', 'Label', 'label'],
+];
+for (const [def, from, to] of PROPERTY_RENAMES_Q345) {
+  // A file built before Q345, by the real executor from the plans as they were: the set's switch was `from`.
+  const planned = plansOf(def);
+  const old = planned.map((p) => JSON.parse(JSON.stringify(p).split(`"visibleProp":${JSON.stringify(to)}`).join(`"visibleProp":${JSON.stringify(from)}`)) as AnatomyPlan);
+  ok(JSON.stringify(planned).includes(`"visibleProp":${JSON.stringify(to)}`) && !JSON.stringify(old).includes(`"visibleProp":${JSON.stringify(to)}`),
+    `premise: ${def}: the plans name the switch '${to}', and the file was built from plans naming it '${from}'`);
+  const w = await world(def, old);
   const defs0 = w.set().componentPropertyDefinitions as Record<string, { type: string; defaultValue?: unknown }>;
-  const oldKey = Object.keys(defs0).find((k) => k.split('#')[0] === 'Check icon')!;
-  ok(!!oldKey, `premise: the set as built declares 'Check icon' (${Object.keys(defs0).filter((k) => !k.includes('=')).join(', ')})`);
+  const oldKey = Object.keys(defs0).find((k) => k.split('#')[0] === from)!;
+  ok(!!oldKey && defs0[oldKey].defaultValue === true, `premise: ${def}: the set as built declares '${from}', on by default (${Object.keys(defs0).filter((k) => !k.includes('=')).join(', ')})`);
   const id = oldKey.slice(oldKey.lastIndexOf('#'));
-  // A designer's instance of a selected tag, with the check switched off: the value a rename must keep.
+  // A designer's instance with the switch off: the value a rename must keep.
   const comps = w.api.root.findAllWithCriteria({ types: ['COMPONENT'] }) as unknown as { name: string; createInstance: () => Node }[];
-  const ref = comps.find((c) => c.name.includes('selection=selected') && c.name.includes('type=select'));
-  const inst = ref!.createInstance();
+  const inst = comps.find((c) => c.name === String(membersOf(w.set())[0].name))!.createInstance();
   (inst.setProperties as (p: Record<string, boolean>) => void)({ [oldKey]: false });
   const valueOf = (): unknown => Object.entries(inst.componentProperties as Record<string, { value: unknown }>).find(([k]) => k.endsWith(id))?.[1].value;
-  ok(valueOf() === false, `premise: the instance's check is off under '${oldKey}' (${String(valueOf())})`);
+  ok(valueOf() === false, `premise: ${def}: the instance's switch is off under '${oldKey}' (${String(valueOf())})`);
   const before = identityOf(w.set());
-  const unclaimed = (await previewUpdate(w.host, [{ def: TAG, plans: planned }], undefined, [])).sets[0].properties;
-  ok(unclaimed.remove.some((x) => x.name === 'Check icon') && unclaimed.add.some((x) => x.name === 'check icon') && !unclaimed.rename.length,
-    `premise: with no ledger entry the dry run removes 'Check icon' and adds 'check icon', which would reset every instance (${JSON.stringify(unclaimed)})`);
+  const unclaimed = (await previewUpdate(w.host, [{ def, plans: planned }], undefined, [])).sets[0].properties;
+  ok(unclaimed.remove.some((x) => x.name === from) && unclaimed.add.some((x) => x.name === to) && !unclaimed.rename.length,
+    `premise: ${def}: with no ledger entry the dry run removes '${from}' and adds '${to}', which would reset every instance (${JSON.stringify(unclaimed)})`);
   // The engine's own ledger, so the shipped entry is what is under test.
-  const pre = await previewUpdate(w.host, [{ def: TAG, plans: planned }]);
+  const pre = await previewUpdate(w.host, [{ def, plans: planned }]);
   const props = pre.sets[0].properties;
-  ok(props.rename.length === 1 && props.rename[0].from === 'Check icon' && props.rename[0].to === 'check icon' && !props.add.length && !props.remove.length,
-    `property rename/dry run: one rename, nothing added or removed (${JSON.stringify(props)})`);
-  const res = await applyUpdate(w.host, w.api as any, [{ def: TAG, plans: planned }], previewHashOf(pre));
-  ok(applyVerdict(res).ok && pre.sets[0].counts.handEdited === 0, `property rename/verdict: ${applyVerdict(res).headline} (${applyVerdict(res).lines.slice(0, 2).join(' | ').slice(0, 240)})`);
+  ok(props.rename.length === 1 && props.rename[0].from === from && props.rename[0].to === to && !props.add.length && !props.remove.length,
+    `property rename/dry run: ${def}: one rename, '${from}' → '${to}', nothing added or removed (${JSON.stringify(props)})`);
+  const res = await applyUpdate(w.host, w.api as any, [{ def, plans: planned }], previewHashOf(pre));
+  ok(applyVerdict(res).ok && pre.sets[0].counts.handEdited === 0, `property rename/verdict: ${def}: ${applyVerdict(res).headline} (${applyVerdict(res).lines.slice(0, 2).join(' | ').slice(0, 240)})`);
   const defs1 = w.set().componentPropertyDefinitions as Record<string, { type: string }>;
-  const named = Object.keys(defs1).filter((k) => !k.includes('=') && /^check icon#|^Check icon#/i.test(k));
-  ok(named.length === 1 && named[0] === `check icon${id}`, `property rename/in place: one property, 'check icon' under the same id ${id} (${named.join(', ')})`);
-  ok(valueOf() === false, `property rename/instance kept: the instance's check is still off (${String(valueOf())})`);
+  const named = Object.keys(defs1).filter((k) => !k.includes('=') && k.split('#')[0].toLowerCase() === to);
+  ok(named.length === 1 && named[0] === `${to}${id}`, `property rename/in place: ${def}: one property, '${to}' under the same id ${id} (${named.join(', ')})`);
+  ok(valueOf() === false, `property rename/instance kept: ${def}: the instance's switch is still off (${String(valueOf())})`);
   const after = identityOf(w.set());
-  ok(after.set.join() === before.set.join() && [...before.members].every(([name, b]) => after.members.get(name)?.key === b.key && after.members.get(name)?.id === b.id), 'property rename/keys: the set and every member keep their keys and ids');
-  const post = (await previewUpdate(w.host, [{ def: TAG, plans: planned }])).sets[0];
-  ok(post.counts.current === post.counts.members && !post.properties.rename.length && !post.properties.add.length && !post.properties.remove.length, `property rename/settled: a second dry run lists no property change (${JSON.stringify(post.properties)})`);
+  ok(after.set.join() === before.set.join() && [...before.members].every(([name, b]) => after.members.get(name)?.key === b.key && after.members.get(name)?.id === b.id), `property rename/keys: ${def}: the set and every member keep their keys and ids`);
+  const post = (await previewUpdate(w.host, [{ def, plans: planned }])).sets[0];
+  ok(post.counts.current === post.counts.members && !post.properties.rename.length && !post.properties.add.length && !post.properties.remove.length, `property rename/settled: ${def}: a second dry run lists no property change (${JSON.stringify(post.properties)})`);
 }
 
 /* ── rename ──────────────────────────────────────────────────────────────────────────────────────────── */
