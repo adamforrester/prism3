@@ -250,6 +250,9 @@ const CENSUS_PATH = join(repo, 'packages/engine/schema/paint-census.json');
  * asserting something untrue about the def it names.
  */
 const PROVENANCE_EXCEPTIONS: Record<string, string> = {
+  // Toast (#2668, call 9 A): the inverse tier puts `inverse` before the family, so the intent sits one segment later.
+  'toast|success.icon':
+    'the inverse tier inserts `inverse` before the family: `color.inverse.icon.success` is the success glyph ink on the inverse surface, and `success` is its fourth segment, not its third',
   // List.Item (#2319): the key is the `icon` PAINT SLOT (the icon marker's ink), whose spelling matches the `type` value
   // `icon`. It is the slot that leads, not the axis value: the key binds at every type, and only the icon member draws
   // the slot it paints.

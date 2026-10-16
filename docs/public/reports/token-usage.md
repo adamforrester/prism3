@@ -1,6 +1,6 @@
 # Token usage
 
-Where each token is bound: by which component, on which part, and at which variants and states. 246 of 787 emitted tokens are bound by at least one component.
+Where each token is bound: by which component, on which part, and at which variants and states. 250 of 787 emitted tokens are bound by at least one component.
 
 Two sources feed each entry. **Keys** are the binding keys in the component definition. **Parts** are where the design-file projection draws the token; "where" lists the axis values a part is bound at, leaves out any axis bound at every value, and counts the members.
 
@@ -1066,6 +1066,14 @@ Type: color. Bound by 2 component(s).
 | tab | `selected.label` | label | selection: selected · state: focus-visible, rest (6 of 30) |
 |  |  | labelReserve | selection: selected · state: focus-visible, rest (6 of 30) |
 
+### `color.inverse.background.primary`
+
+Type: color. Bound by 1 component(s).
+
+| Component | Keys | Part | Where |
+|---|---|---|---|
+| toast | `fill` | container | every member (2 of 2) |
+
 ### `color.inverse.border.focus`
 
 Type: color. Bound by 1 component(s).
@@ -1174,6 +1182,14 @@ Type: color. Bound by 1 component(s).
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | link | (projection only) | trailingVisual | state: pressed · style: standalone · surface: inverse (6 of 96) |
+
+### `color.inverse.icon.success`
+
+Type: color. Bound by 1 component(s).
+
+| Component | Keys | Part | Where |
+|---|---|---|---|
+| toast | `success.icon` | icon | intent: success (1 of 2) |
 
 ### `color.inverse.interactive.destructive.border.hover`
 
@@ -1632,12 +1648,13 @@ Type: color. Bound by 1 component(s).
 
 ### `color.inverse.text.primary`
 
-Type: color. Bound by 1 component(s).
+Type: color. Bound by 2 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | badge | `neutral.count.bold.label`, `neutral.status.bold.label` | count | emphasis: bold · tone: neutral · type: count (1 of 20) |
 |  |  | text | emphasis: bold · tone: neutral · type: status (1 of 20) |
+| toast | `label` | message | every member (2 of 2) |
 
 ### `color.text.danger`
 
@@ -2206,7 +2223,7 @@ Type: dimension. Bound by 16 component(s).
 
 ### `icon.size.sm`
 
-Type: dimension. Bound by 20 component(s).
+Type: dimension. Bound by 21 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2251,6 +2268,7 @@ Type: dimension. Bound by 20 component(s).
 |  |  | leadingVisual | size: small (15 of 45) |
 | text-field | `icon-size` | leadingVisual | every member (84 of 84) |
 |  |  | trailingVisual | every member (84 of 84) |
+| toast | `glyph-size` | icon | intent: success (1 of 2) |
 
 ### `icon.size.xs`
 
@@ -2347,6 +2365,22 @@ Type: dimension. Bound by 6 component(s).
 | select | `radius` | control | every member (84 of 84) |
 | text-field | `radius` | control | every member (84 of 84) |
 | textarea | `radius` | control | every member (84 of 84) |
+
+### `radius.xl`
+
+Type: dimension. Bound by 1 component(s).
+
+| Component | Keys | Part | Where |
+|---|---|---|---|
+| toast | `radius` | container | every member (2 of 2) |
+
+### `shadow.lg`
+
+Type: shadow. Bound by 1 component(s).
+
+| Component | Keys | Part | Where |
+|---|---|---|---|
+| toast | `shadow` | container | every member (2 of 2) |
 
 ### `shadow.xl`
 
@@ -2485,7 +2519,7 @@ Type: dimension. Bound by 3 component(s).
 
 ### `space.050`
 
-Type: dimension. Bound by 4 component(s).
+Type: dimension. Bound by 5 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2494,6 +2528,7 @@ Type: dimension. Bound by 4 component(s).
 | segmented-control-segment | `inset` | container | every member (30 of 30) |
 | tag | `size.large.dismissible.gap`, `size.large.dismissible.label-inset`, `size.medium.dismissible.gap`, `size.medium.dismissible.label-inset`, `size.small.check-gap`, `size.small.dismissible.label-inset` | content | selection: unselected · size: large, medium · type: dismissible (10 of 45) |
 |  |  | labelCheck | every member (25 of 45) |
+| toast | `controls-gap` | controls | every member (2 of 2) |
 
 ### `space.075`
 
@@ -2517,7 +2552,7 @@ Type: dimension. Bound by 12 component(s).
 
 ### `space.100`
 
-Type: dimension. Bound by 22 component(s).
+Type: dimension. Bound by 23 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2557,10 +2592,11 @@ Type: dimension. Bound by 22 component(s).
 |  |  | counterCell | every member (84 of 84) |
 |  |  | messageCell | every member (84 of 84) |
 |  |  | messageRow | every member (84 of 84) |
+| toast | `gap`, `pad-block`, `pad-end` | container | every member (2 of 2) |
 
 ### `space.150`
 
-Type: dimension. Bound by 12 component(s).
+Type: dimension. Bound by 13 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2578,10 +2614,11 @@ Type: dimension. Bound by 12 component(s).
 | segmented-control-segment | `size.small.padding-x` | content | size: small (10 of 30) |
 | tab | `size.small.padding-x` | content | size: small (10 of 30) |
 | tag | `size.large.select.gap`, `size.medium.padding-x`, `size.medium.select.padding-end` | content | size: large, medium (25 of 45) |
+| toast | `glyph-gap` | content | every member (2 of 2) |
 
 ### `space.200`
 
-Type: dimension. Bound by 14 component(s).
+Type: dimension. Bound by 15 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2605,6 +2642,7 @@ Type: dimension. Bound by 14 component(s).
 | tag | `size.large.padding-x`, `size.large.select.padding-end` | content | size: large (15 of 45) |
 | text-field | `size.medium.pad-x`, `size.small.pad-x` | control | size: medium, small (56 of 84) |
 | textarea | `size.medium.pad-x`, `size.small.pad-x` | control | size: medium, small (56 of 84) |
+| toast | `pad-start` | container | every member (2 of 2) |
 
 ### `space.250`
 
@@ -2701,7 +2739,7 @@ Type: typography. Bound by 1 component(s).
 
 ### `type.body.md.default`
 
-Type: typography. Bound by 12 component(s).
+Type: typography. Bound by 13 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2724,6 +2762,7 @@ Type: typography. Bound by 12 component(s).
 |  |  | value | size: medium · state: filled, focus-visible-filled, read-only (12 of 84) |
 | textarea | `size.medium.type` | placeholder | size: medium · state: disabled, focus-visible, hover, rest (16 of 84) |
 |  |  | value | size: medium · state: filled, focus-visible-filled, read-only (12 of 84) |
+| toast | `type` | message | every member (2 of 2) |
 
 ### `type.body.md.default-link`
 
@@ -3234,6 +3273,12 @@ Declared, not drawn: `color.border.focus`
 
 `border-width.hairline`, `color.border.danger`, `color.border.focus`, `color.border.success`, `color.border.warning`, `color.disabled.border`, `color.disabled.fill`, `color.disabled.on-fill`, `color.disabled.text`, `color.field.border.hover`, `color.field.border.rest`, `color.field.fill`, `color.icon.secondary`, `color.interactive.neutral.overlay.hover`, `color.text.primary`, `color.text.secondary`, `control.size.lg.line-box`, `control.size.md.line-box`, `control.size.sm.line-box`, `focus.ring.offset-field`, `focus.ring.width`, `icon.size.xs`, `radius.sm`, `space.075`, `space.100`, `space.200`, `space.300`, `type.body.lg.default`, `type.body.md.default`, `type.body.sm.default`, `type.caption.md.default`
 
+### toast
+
+11 token(s); 2 design-file member(s).
+
+`color.inverse.background.primary`, `color.inverse.icon.success`, `color.inverse.text.primary`, `icon.size.sm`, `radius.xl`, `shadow.lg`, `space.050`, `space.100`, `space.150`, `space.200`, `type.body.md.default`
+
 ### veil
 
 9 token(s); 30 design-file member(s).
@@ -3242,7 +3287,7 @@ Declared, not drawn: `color.border.focus`
 
 ## Tokens no component binds
 
-261 semantic token(s) and 280 primitive(s). Primitives (`core.*`) are listed apart — components bind semantic roles, which alias the primitives, so an unbound primitive is expected.
+257 semantic token(s) and 280 primitive(s). Primitives (`core.*`) are listed apart — components bind semantic roles, which alias the primitives, so an unbound primitive is expected.
 
 ### Semantic
 
@@ -3254,7 +3299,7 @@ Declared, not drawn: `color.border.focus`
 - **color.foreground** — `color.foreground.brand`, `color.foreground.brand-subtle`, `color.foreground.tertiary`
 - **color.icon** — `color.icon.brand-subtle`, `color.icon.danger-subtle`, `color.icon.info-subtle`, `color.icon.link.visited`, `color.icon.on-brand`, `color.icon.on-danger`, `color.icon.on-info`, `color.icon.on-success`, `color.icon.on-warning`, `color.icon.success-subtle`, `color.icon.warning-subtle`
 - **color.interactive** — `color.interactive.destructive.fill.focused`, `color.interactive.destructive.fill.selected`, `color.interactive.destructive.overlay.selected`, `color.interactive.neutral.fill.focused`, `color.interactive.neutral.fill.selected`, `color.interactive.neutral.overlay.selected`, `color.interactive.primary.fill.focused`, `color.interactive.primary.overlay.selected`
-- **color.inverse** — `color.inverse.background.primary`, `color.inverse.background.secondary`, `color.inverse.background.tertiary`, `color.inverse.border.brand`, `color.inverse.border.danger`, `color.inverse.border.info`, `color.inverse.border.primary`, `color.inverse.border.secondary`, `color.inverse.border.success`, `color.inverse.border.tertiary`, `color.inverse.border.warning`, `color.inverse.disabled.border`, `color.inverse.field.border.hover`, `color.inverse.field.border.rest`, `color.inverse.field.fill`, `color.inverse.field.placeholder`, `color.inverse.foreground.brand`, `color.inverse.foreground.brand-subtle`, `color.inverse.foreground.danger`, `color.inverse.foreground.danger-subtle`, `color.inverse.foreground.info`, `color.inverse.foreground.info-subtle`, `color.inverse.foreground.primary`, `color.inverse.foreground.secondary`, `color.inverse.foreground.success`, `color.inverse.foreground.success-subtle`, `color.inverse.foreground.warning`, `color.inverse.foreground.warning-subtle`, `color.inverse.icon.brand`, `color.inverse.icon.brand-subtle`, `color.inverse.icon.danger`, `color.inverse.icon.danger-subtle`, `color.inverse.icon.info`, `color.inverse.icon.info-subtle`, `color.inverse.icon.link.visited`, `color.inverse.icon.primary`, `color.inverse.icon.secondary`, `color.inverse.icon.success`, `color.inverse.icon.success-subtle`, `color.inverse.icon.tertiary`, `color.inverse.icon.warning`, `color.inverse.icon.warning-subtle`, `color.inverse.interactive.destructive.fill.focused`, `color.inverse.interactive.destructive.fill.selected`, `color.inverse.interactive.destructive.overlay.selected`, `color.inverse.interactive.neutral.fill.focused`, `color.inverse.interactive.neutral.fill.selected`, `color.inverse.interactive.neutral.overlay.selected`, `color.inverse.interactive.primary.fill.focused`, `color.inverse.interactive.primary.fill.selected`, `color.inverse.interactive.primary.overlay.selected`, `color.inverse.text.brand`, `color.inverse.text.brand-subtle`, `color.inverse.text.danger`, `color.inverse.text.danger-subtle`, `color.inverse.text.info`, `color.inverse.text.info-subtle`, `color.inverse.text.link.visited`, `color.inverse.text.secondary`, `color.inverse.text.success`, `color.inverse.text.success-subtle`, `color.inverse.text.tertiary`, `color.inverse.text.warning`, `color.inverse.text.warning-subtle`
+- **color.inverse** — `color.inverse.background.secondary`, `color.inverse.background.tertiary`, `color.inverse.border.brand`, `color.inverse.border.danger`, `color.inverse.border.info`, `color.inverse.border.primary`, `color.inverse.border.secondary`, `color.inverse.border.success`, `color.inverse.border.tertiary`, `color.inverse.border.warning`, `color.inverse.disabled.border`, `color.inverse.field.border.hover`, `color.inverse.field.border.rest`, `color.inverse.field.fill`, `color.inverse.field.placeholder`, `color.inverse.foreground.brand`, `color.inverse.foreground.brand-subtle`, `color.inverse.foreground.danger`, `color.inverse.foreground.danger-subtle`, `color.inverse.foreground.info`, `color.inverse.foreground.info-subtle`, `color.inverse.foreground.primary`, `color.inverse.foreground.secondary`, `color.inverse.foreground.success`, `color.inverse.foreground.success-subtle`, `color.inverse.foreground.warning`, `color.inverse.foreground.warning-subtle`, `color.inverse.icon.brand`, `color.inverse.icon.brand-subtle`, `color.inverse.icon.danger`, `color.inverse.icon.danger-subtle`, `color.inverse.icon.info`, `color.inverse.icon.info-subtle`, `color.inverse.icon.link.visited`, `color.inverse.icon.primary`, `color.inverse.icon.secondary`, `color.inverse.icon.success-subtle`, `color.inverse.icon.tertiary`, `color.inverse.icon.warning`, `color.inverse.icon.warning-subtle`, `color.inverse.interactive.destructive.fill.focused`, `color.inverse.interactive.destructive.fill.selected`, `color.inverse.interactive.destructive.overlay.selected`, `color.inverse.interactive.neutral.fill.focused`, `color.inverse.interactive.neutral.fill.selected`, `color.inverse.interactive.neutral.overlay.selected`, `color.inverse.interactive.primary.fill.focused`, `color.inverse.interactive.primary.fill.selected`, `color.inverse.interactive.primary.overlay.selected`, `color.inverse.text.brand`, `color.inverse.text.brand-subtle`, `color.inverse.text.danger`, `color.inverse.text.danger-subtle`, `color.inverse.text.info`, `color.inverse.text.info-subtle`, `color.inverse.text.link.visited`, `color.inverse.text.secondary`, `color.inverse.text.success`, `color.inverse.text.success-subtle`, `color.inverse.text.tertiary`, `color.inverse.text.warning`, `color.inverse.text.warning-subtle`
 - **color.scrim** — `color.scrim.default`
 - **color.text** — `color.text.brand`, `color.text.brand-subtle`, `color.text.danger-subtle`, `color.text.info-subtle`, `color.text.link.visited`, `color.text.on-brand`, `color.text.success-subtle`, `color.text.tertiary`, `color.text.warning-subtle`
 - **container** — `container.fluid`, `container.max`
@@ -3264,8 +3309,8 @@ Declared, not drawn: `color.border.focus`
 - **icon** — `icon.size.xl`
 - **motion** — `motion.duration-ms.0`, `motion.duration-ms.100`, `motion.duration-ms.200`, `motion.duration-ms.2600`, `motion.duration-ms.300`, `motion.duration-ms.40`, `motion.duration-ms.50`, `motion.duration-ms.500`, `motion.duration-ms.800`, `motion.duration-reduced.fast`, `motion.duration-reduced.instant`, `motion.duration-reduced.moderate`, `motion.duration-reduced.normal`, `motion.duration-reduced.slow`, `motion.duration-reduced.slower`, `motion.duration-reduced.spin`, `motion.duration.fast`, `motion.duration.instant`, `motion.duration.moderate`, `motion.duration.normal`, `motion.duration.slow`, `motion.duration.slower`, `motion.duration.spin`, `motion.easing-role.default`, `motion.easing-role.emphasized`, `motion.easing-role.enter`, `motion.easing-role.exit`, `motion.easing.accelerate`, `motion.easing.calm`, `motion.easing.decelerate`, `motion.easing.expressive`, `motion.easing.linear`, `motion.easing.standard`, `motion.spring.bouncy`, `motion.spring.gentle`, `motion.spring.snappy`, `motion.stagger`, `motion.transition.default`, `motion.transition.emphasized`, `motion.transition.enter`, `motion.transition.exit`
 - **opacity** — `opacity.0`, `opacity.10`, `opacity.100`, `opacity.20`, `opacity.30`, `opacity.40`, `opacity.5`, `opacity.50`, `opacity.60`, `opacity.70`, `opacity.80`, `opacity.90`
-- **radius** — `radius.3xl`, `radius.capsule`, `radius.hairline`, `radius.lg`, `radius.xl`
-- **shadow** — `shadow.2xl`, `shadow.inset`, `shadow.lg`, `shadow.md`, `shadow.sm`, `shadow.xs`
+- **radius** — `radius.3xl`, `radius.capsule`, `radius.hairline`, `radius.lg`
+- **shadow** — `shadow.2xl`, `shadow.inset`, `shadow.md`, `shadow.sm`, `shadow.xs`
 - **size** — `size.xl.height`, `size.xs.height`
 - **space** — `space.1000`, `space.1100`, `space.1200`, `space.600`, `space.700`, `space.800`, `space.900`
 - **type** — `type.body.lg.default-italic`, `type.body.lg.default-italic-link`, `type.body.lg.strong-italic`, `type.body.lg.strong-italic-link`, `type.body.md.default-italic`, `type.body.md.default-italic-link`, `type.body.md.strong-italic`, `type.body.md.strong-italic-link`, `type.body.sm.default-italic`, `type.body.sm.default-italic-link`, `type.body.sm.strong-italic`, `type.body.sm.strong-italic-link`, `type.body.xs.default-italic`, `type.body.xs.default-italic-link`, `type.body.xs.default-link`, `type.body.xs.strong-italic`, `type.body.xs.strong-italic-link`, `type.body.xs.strong-link`, `type.caption.lg.default`, `type.caption.lg.default-link`, `type.caption.lg.strong`, `type.caption.lg.strong-link`, `type.caption.md.default-link`, `type.caption.md.strong`, `type.caption.md.strong-link`, `type.code.inline.default`, `type.display.2xl.emphasis`, `type.display.2xl.strong`, `type.display.3xl.emphasis`, `type.display.3xl.strong`, `type.display.lg.emphasis`, `type.display.lg.strong`, `type.display.md.emphasis`, `type.display.md.strong`, `type.display.sm.emphasis`, `type.display.sm.strong`, `type.display.xl.emphasis`, `type.display.xl.strong`, `type.eyebrow.lg.emphasis`, `type.eyebrow.md.emphasis`, `type.eyebrow.sm.emphasis`, `type.label.lg.default-link`, `type.label.lg.line-box`, `type.label.md.default-link`, `type.label.md.line-box`, `type.label.sm.default-link`, `type.label.sm.line-box`, `type.title.2xl.emphasis`, `type.title.2xl.strong`, `type.title.lg.emphasis`, `type.title.lg.strong`, `type.title.md.emphasis`, `type.title.md.strong`, `type.title.sm.emphasis`, `type.title.sm.strong`, `type.title.xl.emphasis`, `type.title.xl.strong`, `type.title.xs.emphasis`, `type.title.xs.strong`

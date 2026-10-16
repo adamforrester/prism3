@@ -384,6 +384,10 @@
     "password-field@outline-none": {
       "members": 84,
       "sha256": "771e3974cfb329db2abcf42bc98f0914a3851b1813a867dba8b83d0fa3c97946"
+    },
+    "toast": {
+      "members": 2,
+      "sha256": "9bc8f4bf0e9e3cb741e9e629935af7a3ab203f203f4eed03072b1f29f80e26c4"
     }
   }
 }

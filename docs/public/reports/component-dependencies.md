@@ -12,19 +12,19 @@ Generated from the component definitions and the emission by `packages/engine/em
 |---|---|---|
 | _accordion-indicator | accordion | accordion |
 | badge | tab | tab, tabs |
-| button | dialog, password-field | dialog, password-field |
+| button | dialog, password-field, toast | dialog, password-field, toast |
 | checkbox-control | checkbox-row | checkbox-group, checkbox-row |
 | checkbox-row | checkbox-group | checkbox-group |
 | divider | accordion, dialog | accordion, dialog |
 | field-label | checkbox-group, password-field, radio-group, segmented-control, select, text-field, textarea | checkbox-group, password-field, radio-group, segmented-control, select, text-field, textarea |
 | field-message | password-field, select, text-field, textarea | password-field, select, text-field, textarea |
-| focus-ring | accordion, button, button-destructive, button-neutral, checkbox-control, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, password-field, radio-control, segmented-control-segment, select, switch-control, tab, tag, text-field, textarea | accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, dialog, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, password-field, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, select, switch-control, switch-row, tab, tabs, tag, text-field, textarea |
-| icon-button-neutral | dialog | dialog |
+| focus-ring | accordion, button, button-destructive, button-neutral, checkbox-control, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, password-field, radio-control, segmented-control-segment, select, switch-control, tab, tag, text-field, textarea | accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, dialog, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, password-field, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, select, switch-control, switch-row, tab, tabs, tag, text-field, textarea, toast |
+| icon-button-neutral | dialog, toast | dialog, toast |
 | list-item | list | list |
 | radio-control | radio-row | radio-group, radio-row |
 | radio-row | radio-group | radio-group |
 | segmented-control-segment | segmented-control | segmented-control |
-| spinner | button, button-destructive, button-neutral, icon-button, icon-button-destructive, icon-button-neutral | button, button-destructive, button-neutral, dialog, icon-button, icon-button-destructive, icon-button-neutral, password-field |
+| spinner | button, button-destructive, button-neutral, icon-button, icon-button-destructive, icon-button-neutral | button, button-destructive, button-neutral, dialog, icon-button, icon-button-destructive, icon-button-neutral, password-field, toast |
 | switch-control | switch-row | switch-row |
 | tab | tabs | tabs |
 
@@ -74,6 +74,7 @@ A component not in this table is nested by nothing; a change to it reaches only 
 | tag | 1 | focus-ring | focus-ring |
 | text-field | 1 | field-label, field-message, focus-ring | field-label, field-message, focus-ring |
 | textarea | 1 | field-label, field-message, focus-ring | field-label, field-message, focus-ring |
+| toast | 2 | button, icon-button-neutral | button, focus-ring, icon-button-neutral, spinner |
 | veil | 0 | — | — |
 
 Depth is 0 for a component that nests nothing, and one more than its deepest child otherwise.
@@ -170,6 +171,8 @@ Depth is 0 for a component that nests nothing, and one more than its deepest chi
 | textarea | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
 | textarea | label | nest | field-label | nest-exposed | size=medium, emphasis=secondary, weight=regular, state=rest | size | emphasis, weight |
 | textarea | message | nest | field-message | nest-fixed | status=default | status | — |
+| toast | action | nest | button | nest-fixed | appearance=text, size=small, surface=inverse, inset=default, state=rest, leading icon=false, trailing icon=false | — | — |
+| toast | close | nest | icon-button-neutral | nest-fixed | appearance=ghost, size=small, shape=square, surface=inverse, state=rest | — | — |
 
 ## Inherits
 

@@ -3226,6 +3226,47 @@
       "sizeDefault": "medium"
     },
     {
+      "id": "toast",
+      "name": "Toast",
+      "category": "feedback",
+      "states": [],
+      "projectedStates": [],
+      "axes": {
+        "intent": [
+          "neutral",
+          "success"
+        ]
+      },
+      "props": [
+        {
+          "name": "message"
+        },
+        {
+          "name": "intent",
+          "default": "neutral",
+          "values": [
+            "neutral",
+            "success"
+          ]
+        },
+        {
+          "name": "action"
+        },
+        {
+          "name": "duration",
+          "default": 6000
+        },
+        {
+          "name": "dismissible",
+          "default": true
+        },
+        {
+          "name": "onDismiss"
+        }
+      ],
+      "sizes": []
+    },
+    {
       "id": "veil",
       "name": "Veil",
       "category": "foundations",
@@ -3723,6 +3764,17 @@
         ]
       }
     ],
+    "intent": [
+      {
+        "values": [
+          "neutral",
+          "success"
+        ],
+        "components": [
+          "toast"
+        ]
+      }
+    ],
     "offset": [
       {
         "values": [
@@ -4065,6 +4117,11 @@
     ]
   },
   "propVocabulary": {
+    "action": [
+      {
+        "id": "toast"
+      }
+    ],
     "actions": [
       {
         "id": "dialog"
@@ -4405,6 +4462,18 @@
         "default": false
       }
     ],
+    "dismissible": [
+      {
+        "id": "toast",
+        "default": true
+      }
+    ],
+    "duration": [
+      {
+        "id": "toast",
+        "default": 6000
+      }
+    ],
     "emphasis": [
       {
         "id": "badge",
@@ -4639,6 +4708,16 @@
         ]
       }
     ],
+    "intent": [
+      {
+        "id": "toast",
+        "default": "neutral",
+        "values": [
+          "neutral",
+          "success"
+        ]
+      }
+    ],
     "isExternal": [
       {
         "id": "link",
@@ -4839,6 +4918,9 @@
     "message": [
       {
         "id": "field-message"
+      },
+      {
+        "id": "toast"
       }
     ],
     "minRows": [
@@ -4982,6 +5064,11 @@
       },
       {
         "id": "tag"
+      }
+    ],
+    "onDismiss": [
+      {
+        "id": "toast"
       }
     ],
     "onOpenChange": [

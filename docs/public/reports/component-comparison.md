@@ -136,6 +136,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 | tag | foundations | rest, hover, pressed, focus-visible, disabled, read-only | rest, hover, pressed, focus-visible, disabled |
 | text-field | form | rest, hover, pending, filled, focus-visible, focus-visible-filled, disabled, read-only, empty | rest, hover, filled, focus-visible, focus-visible-filled, disabled, read-only |
 | textarea | form | rest, hover, pending, filled, focus-visible, focus-visible-filled, disabled, read-only, empty | rest, hover, filled, focus-visible, focus-visible-filled, disabled, read-only |
+| toast | feedback | — | — |
 | veil | foundations | — | — |
 
 ### State vocabulary
@@ -172,6 +173,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 | inset | default, flush | button, button-destructive, button-neutral |
 |  | inset, middle-inset, none | divider |
 | intensity | medium, strong, subtle | veil |
+| intent | neutral, success | toast |
 | offset | control, field | focus-ring |
 | orientation | horizontal, vertical | divider |
 | placement | bottom, center, full | dialog |
@@ -382,6 +384,8 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 | leadingVisual | button | — | — |
 |  | button-destructive | — | — |
 |  | button-neutral | — | — |
+| message | field-message | — | — |
+|  | toast | — | — |
 | name | checkbox-group | — | — |
 |  | icon | — | 45 values |
 |  | password-field | — | — |

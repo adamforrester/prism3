@@ -250,6 +250,7 @@ const EXCLUDED: Record<string, string> = {
   'segmented-control': 'a segmented control\'s track and label — its tap targets are the nested options, which are gated as segmented-control-segment',
   'divider': 'a 1px rule between groups of content, never interactive and never focusable',
   'dialog': 'a modal panel, never itself a pointer target: its close button and footer buttons are an IconButton.Neutral and Buttons, each measured under its own name (#2609)',
+  'toast': 'a status message over the page, never itself a pointer target: its action and close button are a Button and an IconButton.Neutral, each measured under its own name; the small close button\'s 44×44 hit area is extended in code, as IconButton records (#2668)',
   'list': 'a read list of text items, never interactive and never focusable; a link inside an item is its own control (#2319)',
   'list-item': 'one item of a read list, never interactive and never focusable; a link inside it is its own control (#2319)',
   '_accordion-indicator': 'a decorative glyph inside an Accordion header; the tap target is the header row, gated as accordion',

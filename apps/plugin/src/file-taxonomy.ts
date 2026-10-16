@@ -121,6 +121,9 @@ export const TAXONOMY: Taxonomy = {
         // Dialog (#2609, owner decision Q303.12 A) — its own page under Components, every placement on it. It nests the
         // Neutral IconButton, the Divider and the Button, which the build places first wherever their pages sort.
         { page: 'Dialog', defs: ['dialog'] },
+        // Toast (#2668, owner call 12 A) — its own page under Components, sorted alphabetically (Q260 A). It nests the
+        // Button and the Neutral IconButton, which the build places first wherever their pages sort.
+        { page: 'Toast', defs: ['toast'] },
       ],
     },
     {
