@@ -14607,10 +14607,11 @@ arm: {
         ok(got === want, `#1667 min width: ${bid} ${def.id}@${size} ×${m} floors at ${want}px — height ${h} × ${m} = ${+(h * m).toFixed(2)}, rounded up to the 8px grid (got ${got})`);
       }
     }
-    // The owner's worked numbers, pinned literally: nb 36/44/56 → 88/104/128 at 2.25, 96/112/144 at 2.5.
+    // The owner's worked numbers, pinned literally: nb 36/44/56 → 88/104/128 at 2.25, 96/112/144 at 2.5. Read small to
+    // large by a typed list, not the def's axis order, which leads with medium since #2752 (Q1 B).
     {
       const nb = BL_BRANDS[0][1];
-      const floors = (m: number) => button.variants.size.map((sz) => planOf(applyButtonLayout(button, { ...DEFAULT_BUTTON_LAYOUT, minWidthMultiplier: m }, heightOf(nb)), sz).root.minWidth).join('/');
+      const floors = (m: number) => ['small', 'medium', 'large'].map((sz) => planOf(applyButtonLayout(button, { ...DEFAULT_BUTTON_LAYOUT, minWidthMultiplier: m }, heightOf(nb)), sz).root.minWidth).join('/');
       ok(floors(2.25) === '88/104/128', `#1667 min width: nb at 2.25 is 88/104/128 (got ${floors(2.25)})`);
       ok(floors(2.5) === '96/112/144', `#1667 min width: nb at 2.5 is 96/112/144 — New Balance's 142 rounded to the grid (got ${floors(2.5)})`);
     }
@@ -22863,8 +22864,8 @@ arm: {
           `#656: the rows combine every varying axis EXCEPT the column one, surface first — the two slot axes carry their Figma names (#1380) — got ${JSON.stringify(fullLayout.rowKeys)}`);
         // #2188 Q173 A: rows 0–47 are surface=default and 48–95 surface=inverse, each a contiguous band. Literals: 96
         // rows halve into 48 per surface, and the first inverse row is the first row of the default block's shape.
-        ok(fullLayout.rowLabels.slice(0, 48).every((r) => r.startsWith('default ')) && fullLayout.rowLabels.slice(48).every((r) => r.startsWith('inverse ')) && fullLayout.rowLabels[48] === 'inverse filled default small true true',
-          `#2188: Button's inverse rows are one contiguous block, rows 48–95, opening on 'inverse filled default small true true' — got rows ${fullLayout.rowLabels.map((r, i) => (r.startsWith('inverse ') ? i : -1)).filter((i) => i >= 0).slice(0, 3).join(',')}… opening on '${fullLayout.rowLabels[48]}'`);
+        ok(fullLayout.rowLabels.slice(0, 48).every((r) => r.startsWith('default ')) && fullLayout.rowLabels.slice(48).every((r) => r.startsWith('inverse ')) && fullLayout.rowLabels[48] === 'inverse filled default medium false false',
+          `#2188: Button's inverse rows are one contiguous block, rows 48–95, opening on 'inverse filled default medium false false' (#2752: medium and no icons lead) — got rows ${fullLayout.rowLabels.map((r, i) => (r.startsWith('inverse ') ? i : -1)).filter((i) => i >= 0).slice(0, 3).join(',')}… opening on '${fullLayout.rowLabels[48]}'`);
 
         // ON CANVAS, because a cell index is not a coordinate. Run table 1's set through the real
         // payload and read the geometry off the page: members the hand table puts in one row must share
@@ -23884,11 +23885,11 @@ arm: {
     // declaration order, then size, then state, then the two slot booleans — so `surface` sits between
     // `appearance` and `size`, not at the end (#1134). #1223 dropped the `intent` grid loop with the axis.
     // #2350: `inset` is the third grid axis, and the flush members exist at `appearance=text` only, written out here
-    // rather than read from `excludeCoordinates`.
+    // rather than read from `excludeCoordinates`. #2752 (Q2 A): each slot boolean runs false first, the empty slot code defaults to.
     const handRolled: AnatomyPlan[] = [];
     for (const ap of button.variants.appearance!) for (const su of button.variants.surface!) for (const ins of ['default', 'flush']) {
       if (ap !== 'text' && ins !== 'default') continue;
-      for (const sz of button.variants.size) for (const st of fp.stateAxis!.values) for (const ld of [true, false]) for (const tr of [true, false])
+      for (const sz of button.variants.size) for (const st of fp.stateAxis!.values) for (const ld of [false, true]) for (const tr of [false, true])
         handRolled.push(figmaAnatomyPlan(button, sz, { leading: ld, trailing: tr, swapTarget: 'FPO-default-icon', appearance: ap, surface: su, inset: ins, state: st }));
     }
     ok(JSON.stringify(handRolled) === JSON.stringify(fullSet),
@@ -26769,7 +26770,7 @@ arm: {
   // paste one member where the def enumerates 648. Asserted by MESSAGE, so a throw for an unrelated
   // reason cannot satisfy them.
   const planThrow = (f: () => unknown): string => { try { f(); return ''; } catch (e) { return (e as Error).message; } };
-  ok(/declares sizes \[small, medium, large\]/.test(planThrow(() => figmaAnatomyPlan(button, undefined, { intent: 'primary', appearance: 'filled', state: 'rest' }))),
+  ok(/declares sizes \[medium, small, large\]/.test(planThrow(() => figmaAnatomyPlan(button, undefined, { intent: 'primary', appearance: 'filled', state: 'rest' }))),
     `field: a def that DECLARES sizes refuses a sizeless plan, naming them — the sizeless path is for defs with no size axis, not a way to skip one (got '${planThrow(() => figmaAnatomyPlan(button, undefined, { intent: 'primary', appearance: 'filled', state: 'rest' })).slice(0, 90)}')`);
   ok(/'nope' is not a declared size/.test(planThrow(() => figmaAnatomyPlan(button, 'nope', { intent: 'primary', appearance: 'filled', state: 'rest' }))),
     'field: an undeclared size is still refused — the relaxation is "no size", not "any size"');
@@ -27186,7 +27187,7 @@ arm: {
   // is the failure, and the surface segment is the one the #1611 hold legitimately adds.
   ok(ringLayout.cells.map((c) => c.group).join(' | ') === 'surface=default | surface=inverse',
     `focus-ring: the engine's cohort key carries NO size and NO slot segment — this def has neither — only its held authoring axis (#1611). Not 'size=undefined, leading=false, trailing=false' (got '${ringLayout.cells.map((c) => c.group).join(' | ')}')`);
-  ok(planSetLayout(figmaAnatomySet(button, { swapTarget: 'FPO-default-icon' }), 'test').cells[0].group === 'size=small, leading icon=true, trailing icon=true, surface=default, inset=default',
+  ok(planSetLayout(figmaAnatomySet(button, { swapTarget: 'FPO-default-icon' }), 'test').cells[0].group === 'size=medium, leading icon=false, trailing icon=false, surface=default, inset=default',
     `field: a def that DOES declare all three still writes all three — the omission rule must not have emptied the key for the def the cohort was designed for; the slot segments carry the Figma names (#1380) (got '${planSetLayout(figmaAnatomySet(button, { swapTarget: 'FPO-default-icon' }), 'test').cells[0].group}')`);
   // The payload side, evaluated rather than grepped. `cellOf` is a string inside the generated JS, so it
   // is extracted and run — a regex over the payload text would assert that the ternary is spelled a
@@ -31078,7 +31079,8 @@ arm: {
 }
 
 // ---- one axis value order in every def (#2501, owner decision Q213) ----
-// Sizes smallest to largest, except the named Q221 B exception below; states Rest, Hover, Pressed together, then Focus
+// Sizes medium first, then smallest to largest (#2752 Q1 B; Q213 first ran them smallest to largest), except the named
+// exceptions below; states Rest, Hover, Pressed together, then Focus
 // (focus-visible and its variants), then Disabled. The states the owner did not name are placed by Q220 A: Pending
 // right after Pressed, Filled after the press group, Inactive and Read only after Disabled, Error and Empty last. Both ladders are TYPED HERE from the decision, never read from a def or the schema's `STATES`, so a def
 // reordered against them fails under its own name; a value neither ladder knows fails too, so a new state or size
@@ -31089,17 +31091,16 @@ arm: {
 {
   const STATE_LADDER = ['rest', 'hover', 'pressed', 'pending', 'filled', 'focus-visible', 'focus-visible-filled', 'disabled', 'inactive', 'read-only', 'error', 'empty'];
   const SIZE_LADDER = ['x-small', 'small', 'medium', 'large'];
-  // THE NAMED EXCEPTION (owner decision Q221 B, 2026-10-10): these three keep Medium first, because Figma takes a set's
-  // default variant from its top-left member, and Medium is the field a designer must get on insert. An EXACT list:
-  // a def not named here breaking small to large fails, and so does one named here leaving this order.
-  const SIZE_EXCEPTIONS: Record<string, string[]> = {
-    'text-field': ['medium', 'small', 'large'],
-    textarea: ['medium', 'small', 'large'],
-    select: ['medium', 'small', 'large'],
-    // Dialog (#2609): the proposal's axis table lists its sizes default first, approved by the owner's Q303.
-    dialog: ['medium', 'small', 'large'],
-    // #2317: the field family's order, through the shared field factory.
-    'password-field': ['medium', 'small', 'large'],
+  // MEDIUM LEADS (#2752, owner decision Q1 B, 2026-10-16, superseding Q213's small-first ladder and widening Q221 B's
+  // field order to every set): Figma inserts a set's top-left member, so a size axis leads with medium, the code
+  // default, and the rest run smallest to largest. Typed here, not read from any def's prop default. EXACT exceptions,
+  // each with its reason: a def not named here that leaves this order fails, and so does a named one leaving its own.
+  const MEDIUM_FIRST = 'medium';
+  const SIZE_EXCEPTIONS: Record<string, { order: string[]; reason: string }> = {
+    // The label is one body step below its field, so its code default is small, and small leads (Q1's own rule).
+    'field-label': { order: ['small', 'medium', 'large'], reason: 'code default is small: the 12px label' },
+    // Builds one component per size, never a set, so nothing is inserted as a default member.
+    spinner: { order: ['x-small', 'small', 'medium', 'large'], reason: 'builds single components (emitAsComponents)' },
   };
   const outOfOrder = (vals: readonly unknown[], ladder: readonly string[]): string | null => {
     const unknown = vals.filter((v) => !ladder.includes(String(v)));
@@ -31122,15 +31123,19 @@ arm: {
     const exception = SIZE_EXCEPTIONS[def.id];
     const bad = lists.map(([where, vals, ladder]) => {
       if (exception && ladder === SIZE_LADDER)
-        return JSON.stringify(vals) === JSON.stringify(exception) ? null : `${where} [${vals.join(', ')}], not the named exception's [${exception.join(', ')}] (Q221 B)`;
+        return JSON.stringify(vals) === JSON.stringify(exception.order) ? null : `${where} [${vals.join(', ')}], not the named exception's [${exception.order.join(', ')}] (${exception.reason})`;
+      if (ladder === SIZE_LADDER && vals.length) {
+        if (vals[0] !== MEDIUM_FIRST) return `${where} [${vals.join(', ')}] does not lead with ${MEDIUM_FIRST} (#2752 Q1 B)`;
+        const o = outOfOrder(vals.slice(1), ladder); return o ? `${where} after ${MEDIUM_FIRST}: ${o}` : null;
+      }
       const o = outOfOrder(vals, ladder); return o ? `${where} ${o}` : null;
     }).filter(Boolean);
     checked.set(def.id, lists.reduce((n, [, vals]) => n + vals.length, 0));
-    ok(bad.length === 0, `#2501 ${def.id}: sizes smallest to largest (or the named Q221 B order), states Rest, Hover, Pressed, then Focus, then Disabled (Q213), in the def and in the projected set${bad.length ? ` — WRONG: ${bad.join(' | ')}` : ''}`);
+    ok(bad.length === 0, `#2501 ${def.id}: sizes medium first, then smallest to largest (#2752 Q1 B, or a named exception), states Rest, Hover, Pressed, then Focus, then Disabled (Q213), in the def and in the projected set${bad.length ? ` — WRONG: ${bad.join(' | ')}` : ''}`);
   }
   // REPRESENTED, never a count of files (docs/34): the defs Q213 was raised on, and each one that moved here, must
   // be among those read, each with values to order.
-  const MUST = ['button', 'icon-button', 'text-field', 'textarea', 'select', 'switch-row', 'tag', 'checkbox-control'];
+  const MUST = ['button', 'icon-button', 'text-field', 'textarea', 'select', 'switch-row', 'tag', 'checkbox-control', 'field-label', 'spinner'];
   const missing = MUST.filter((id) => !(checked.get(id) ?? 0));
   ok(missing.length === 0, `#2501: the axis order rule read every def it was raised on, each with values to order${missing.length ? ` — not read: ${missing.join(', ')}` : ''}`);
 }
@@ -31144,7 +31149,7 @@ arm: {
 // authored BRIDGE below where the axis's code form is another prop, never from the axis order it checks (docs/34
 // shape 1: an expectation read off `variants` would agree with any reordering). Every def that builds a set and every
 // axis its members carry is read; an axis the props cannot answer fails as UNBRIDGED, so a new axis is placed on
-// purpose. A mismatch passes only as a recorded EXCEPTION with its reason, and an exception nothing hits fails as stale.
+// purpose. A mismatch fails: the size and slot exceptions #2754 first recorded were removed by #2752's Q1 B and Q2 A.
 {
   type Bridge = { prop: string; map: Record<string, string>; reason: string };
   // The axes whose code form is a prop of another name. Each MAP is typed here from the prop's meaning, never from the
@@ -31160,26 +31165,17 @@ arm: {
     'segmented-control-segment.selection': { prop: 'selected', map: off('unselected', 'selected'), reason: 'a segment is selected by `selected`' },
     'accordion.expansion': { prop: 'defaultExpanded', map: off('collapsed', 'expanded'), reason: 'an accordion opens by `defaultExpanded`' },
   };
-  // RECORDED EXCEPTIONS: the top-left member differs from the code default on purpose. EXACT: each names its defs, its
-  // axis and both values, so any other mismatch fails, and an entry that stops matching fails as stale.
-  type Exception = { defs: string[]; axis: string; figma: string; code: string; reason: string };
-  const SIZED_SMALL_FIRST = [
+  // NO RECORDED EXCEPTIONS (#2752, owner decisions Q1 B and Q2 A, 2026-10-16): every size ladder leads with medium and
+  // Button's icon slots lead with false, so any mismatch fails. The size ladder is named only for MUST below.
+  const SIZED = [
     'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral',
     'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'checkbox-control', 'checkbox-row',
     'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'switch-control', 'switch-row', 'tag', 'tab', 'tabs',
     '_accordion-indicator', 'accordion', 'list-item', 'list', 'segmented-control-segment', 'segmented-control', 'link',
-  ];
-  const EXCEPTIONS: Exception[] = [
-    { defs: SIZED_SMALL_FIRST, axis: 'size', figma: 'small', code: 'medium',
-      reason: 'owner decision Q213 (#2501): every size ladder runs small to large on the canvas, so the inserted member is small while code defaults to medium. Only the fields and Dialog lead with medium (Q221 B, Q303). Held on #2752 as an owner question against Q347\'s every-axis rule.' },
-    { defs: ['button', 'button-destructive', 'button-neutral'], axis: 'leading', figma: 'true', code: 'false',
-      reason: 'the leading icon slot axis leads with true, so the inserted Button shows a leading icon while the code slot is empty by default. Held on #2752 as an owner question; not fixed by Q347, which named three components.' },
-    { defs: ['button', 'button-destructive', 'button-neutral'], axis: 'trailing', figma: 'true', code: 'false',
-      reason: 'the trailing icon slot axis leads with true, so the inserted Button shows a trailing icon while the code slot is empty by default. Held on #2752 with the leading one.' },
+    'text-field', 'textarea', 'select', 'password-field', 'dialog',
   ];
   // NO SET, NO DEFAULT MEMBER: a def that materializes each value as its own component is never inserted as a set.
   const NO_SET = ['icon', 'spinner'];
-  const hitBy = new Map<Exception, Set<string>>();
   const read = new Map<string, Set<string>>();
   for (const def of componentDefs) {
     const fp = def.figmaProperties;
@@ -31225,27 +31221,21 @@ arm: {
       }
       (read.get(def.id) ?? read.set(def.id, new Set()).get(def.id)!).add(ax.axis);
       if (figma === code) continue;
-      const ex = EXCEPTIONS.find((e) => e.defs.includes(def.id) && e.axis === ax.axis && e.figma === figma && e.code === code);
-      if (ex) { (hitBy.get(ex) ?? hitBy.set(ex, new Set()).get(ex)!).add(def.id); continue; }
       bad.push(`${key}: Figma inserts ${figma}, code defaults to ${code}`);
     }
     ok(bad.length === 0, `#2752 ${def.id}: Figma's default member carries the code default on every axis (Q347 A)${bad.length ? ` — WRONG: ${bad.join(' | ')}` : ''}`);
   }
-  for (const e of EXCEPTIONS) {
-    ok(e.reason.length >= 60, `#2752 exception ${e.axis} (${e.defs[0]}…) carries a stated reason`);
-    // STALE PER DEF, not per entry: a def named here whose inserted member now carries the code default (or that no
-    // longer has the axis) fails, so the list cannot quietly admit a def it no longer describes.
-    const stale = e.defs.filter((id) => !hitBy.get(e)?.has(id));
-    ok(stale.length === 0, `#2752 exception ${e.axis} ${e.figma}≠${e.code} is still hit by every def it names${stale.length ? ` — STALE on: ${stale.join(', ')}` : ''}`);
-  }
   for (const [k, b] of Object.entries(BRIDGE)) ok(b.reason.length >= 20, `#2752 BRIDGE ${k} carries a stated reason`);
-  // REPRESENTED, never a count (docs/34): the three axes Q347 decided, read on every def that carries them.
+  // REPRESENTED, never a count (docs/34): the three axes Q347 decided, the size ladder (Q1 B) and Button's two icon
+  // slots (Q2 A), read on every def that carries them.
   const MUST: [string, string][] = [
     ['icon-button', 'appearance'], ['icon-button-destructive', 'appearance'], ['icon-button-neutral', 'appearance'],
     ['veil', 'intensity'], ['image-placeholder', 'ratio'],
+    ...SIZED.map((id) => [id, 'size'] as [string, string]),
+    ...['button', 'button-destructive', 'button-neutral'].flatMap((id) => [[id, 'leading'], [id, 'trailing']] as [string, string][]),
   ];
   const unread = MUST.filter(([id, a]) => !read.get(id)?.has(a)).map(([id, a]) => `${id}.${a}`);
-  ok(unread.length === 0, `#2752: the default-member rule read every axis Q347 decided${unread.length ? ` — not read: ${unread.join(', ')}` : ''}`);
+  ok(unread.length === 0, `#2752: the default-member rule read every axis Q347 and #2752's Q1/Q2 decided${unread.length ? ` — not read: ${unread.join(', ')}` : ''}`);
 }
 
 // ------------------------------------------------------------------- #2455: the divider, a 1px rule
@@ -31382,8 +31372,8 @@ arm: {
   const find = (n: PN, name: string): PN | undefined => (n.name === name ? n : n.children.map((c) => find(c, name)).find(Boolean));
   // The plan's own CODE coordinate (member names carry Figma display names, #2571: `icon position=leading`).
   const coord = (p: AnatomyPlan): Record<string, string> => ({ ...(p.coord as Record<string, string>), ...(p.size ? { size: p.size } : {}) });
-  ok(plans.length === 24 && JSON.stringify(acc.variants) === JSON.stringify({ expansion: ['collapsed', 'expanded'], iconPosition: ['leading', 'trailing'], size: ['small', 'medium', 'large'] }),
-    `#2417 accordion: 24 members, expansion × iconPosition × size × state (Q183) (got ${plans.length}, ${JSON.stringify(acc.variants)})`);
+  ok(plans.length === 24 && JSON.stringify(acc.variants) === JSON.stringify({ expansion: ['collapsed', 'expanded'], iconPosition: ['leading', 'trailing'], size: ['medium', 'small', 'large'] }),
+    `#2417 accordion: 24 members, expansion × iconPosition × size [medium first, #2752 Q1 B] × state (Q183) (got ${plans.length}, ${JSON.stringify(acc.variants)})`);
   ok(JSON.stringify(acc.states) === JSON.stringify(['rest', 'focus-visible']) && JSON.stringify(acc.figmaProperties?.stateAxis?.values) === JSON.stringify(['rest', 'focus-visible']),
     `#2417 accordion: the states are rest and focus-visible only, with no hover (Q182), pressed or disabled (Q183) (got ${JSON.stringify(acc.states)})`);
   const pos = acc.props.find((p) => p.name === 'iconPosition');
@@ -31564,8 +31554,8 @@ arm: {
 
   // THE SHAPE (Q273.2, Q273.3, Q273.4). Exactly three types and three sizes on both defs; a fourth type value fails here.
   for (const [d, plans] of [[li, liPlans], [ls, lsPlans]] as const)
-    ok(plans.length === 9 && JSON.stringify(d.variants) === JSON.stringify({ type: TYPES, size: SIZES }) && JSON.stringify(d.figmaProperties?.variantAxes) === JSON.stringify(['type', 'size']),
-      `#2319 ${d.id}: 9 members, type [unordered, ordered, icon] × size [small, medium, large] (Q273.2–4) (got ${plans.length}, ${JSON.stringify(d.variants)})`);
+    ok(plans.length === 9 && JSON.stringify(d.variants) === JSON.stringify({ type: TYPES, size: ['medium', 'small', 'large'] }) && JSON.stringify(d.figmaProperties?.variantAxes) === JSON.stringify(['type', 'size']),
+      `#2319 ${d.id}: 9 members, type [unordered, ordered, icon] × size [medium, small, large] (Q273.2–4; medium first, #2752 Q1 B) (got ${plans.length}, ${JSON.stringify(d.variants)})`);
   ok(li.states.length === 0 && ls.states.length === 0 && !li.figmaProperties?.stateAxis && !ls.figmaProperties?.stateAxis,
     `#2319 list: no states and no state axis on either set — a read list is not interactive (Q273) (got ${JSON.stringify(li.states)}, ${JSON.stringify(ls.states)})`);
   ok(li.category === 'data' && ls.category === 'data' && li.name === 'List.Item' && ls.name === 'List' && JSON.stringify(ls.aliases) === JSON.stringify(['unordered-list', 'ordered-list', 'bullet-list']),

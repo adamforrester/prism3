@@ -64,7 +64,7 @@ export const segmentedControlSegment: ComponentDef = {
   states: ['rest', 'hover', 'pressed', 'focus-visible', 'disabled'],
   variants: {
     selection: ['unselected', 'selected'],
-    size: ['small', 'medium', 'large'],
+    size: ['medium', 'small', 'large'],
   },
   axisKinds: { selection: 'runtime', size: 'authoring' },
 
@@ -326,7 +326,7 @@ export const segmentedControl: ComponentDef = {
   ],
 
   states: ['rest'],
-  variants: { size: ['small', 'medium', 'large'] },
+  variants: { size: ['medium', 'small', 'large'] },
   axisKinds: { size: 'authoring' },
 
   paintKeys: ['{slot}'],

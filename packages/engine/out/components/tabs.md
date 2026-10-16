@@ -62,7 +62,7 @@ One or two words per tab, nouns, sentence case.
 
 | Axis | Values | Changes |
 | --- | --- | --- |
-| `size` | `small`, `medium`, `large` | once, when authored |
+| `size` | `medium`, `small`, `large` | once, when authored |
 | `alignment` | `start`, `center` | once, when authored |
 
 ## Accessibility

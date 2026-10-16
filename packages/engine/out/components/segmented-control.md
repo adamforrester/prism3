@@ -64,7 +64,7 @@ One or two words per option, nouns, sentence case: "List", not "Show list".
 
 | Axis | Values | Changes |
 | --- | --- | --- |
-| `size` | `small`, `medium`, `large` | once, when authored |
+| `size` | `medium`, `small`, `large` | once, when authored |
 
 ## Accessibility
 

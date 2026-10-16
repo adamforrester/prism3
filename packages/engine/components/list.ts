@@ -54,7 +54,7 @@ export const list: ComponentDef = {
 
   variants: {
     type: ['unordered', 'ordered', 'icon'],
-    size: ['small', 'medium', 'large'],
+    size: ['medium', 'small', 'large'],
   },
   axisKinds: { type: 'authoring', size: 'authoring' },
 

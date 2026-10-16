@@ -66,7 +66,7 @@ Descriptive text that stands alone, sentence case. Front-load the words that nam
 | --- | --- | --- |
 | `style` | `standalone`, `inline` | once, when authored |
 | `weight` | `emphasis`, `default` | once, when authored |
-| `size` | `small`, `medium`, `large` | once, when authored |
+| `size` | `medium`, `small`, `large` | once, when authored |
 | `surface` | `default`, `inverse` | once, when authored |
 
 ## Accessibility

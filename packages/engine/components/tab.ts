@@ -51,7 +51,7 @@ export const tab: ComponentDef = {
   states: ['rest', 'hover', 'pressed', 'focus-visible', 'disabled'],
   variants: {
     selection: ['unselected', 'selected'],
-    size: ['small', 'medium', 'large'],
+    size: ['medium', 'small', 'large'],
   },
   axisKinds: { selection: 'runtime', size: 'authoring' },
 

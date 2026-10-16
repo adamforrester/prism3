@@ -113,7 +113,7 @@ export const radioGroup: ComponentDef = {
   // `orientation` axis (Prism 2 is vertical only; horizontal is HELD, not invented). `size` `follow`s into
   // the nested FieldLabel and rows, so the whole group scales as one.
   variants: {
-    size: ['small', 'medium', 'large'],
+    size: ['medium', 'small', 'large'],
   },
   // WHEN each axis changes (#1611): runtime axes are held to one footprint, authoring axes are not.
   axisKinds: { size: 'authoring' },

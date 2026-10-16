@@ -1080,6 +1080,67 @@ section('default member — Q347\'s three reorders reach an existing set in plac
   }
 }
 
+section('default member — #2752\'s Q1 B and Q2 A reorders reach an existing set in place: every id, key and placed instance kept');
+{
+  // The same proof as the section above, for the two decisions recorded on #2752 after Q347: every size ladder leads
+  // with medium (Q1 B), and Button's icon slots lead with false (Q2 A). The OLD sets are built the way #2501 (Q213)
+  // left them: sizes small to large and, on Button, each slot true before false. The slot order is no `variants` list,
+  // so the old Button is the new plan list with each run of four slot members (leading × trailing, innermost in
+  // `figmaAnatomySet`) reversed: false/false, false/true, true/false, true/true becomes true/true … false/false.
+  // The expected default member is the owner's decision, typed here, never read from the def. Mutation: the grid move
+  // dropped from the apply → `default member/<def> inserted`.
+  const OLD: [string, string[], boolean, string[]][] = [
+    ['button', ['small', 'medium', 'large'], true, ['size=medium', 'leading icon=false', 'trailing icon=false']],
+    ['tag', ['small', 'medium', 'large'], false, ['size=medium']],
+    ['switch-control', ['small', 'medium'], false, ['size=medium']],
+  ];
+  const insertedOf = (set: Node): string => String([...membersOf(set)].sort((a, b) => Number(a.y) - Number(b.y) || Number(a.x) - Number(b.x))[0]?.name);
+  const carries = (name: string, want: string[]): boolean => want.every((seg) => name.split(', ').includes(seg));
+  for (const [id, oldSizes, slotsTrueFirst, want] of OLD) {
+    const d = structuredClone(componentDefs.find((x) => x.id === id)!) as unknown as { variants: Record<string, string[]> };
+    d.variants.size = oldSizes;
+    let oldPlans = figmaAnatomySet(d as never, { swapTarget: SWAP_TARGET });
+    if (slotsTrueFirst) {
+      ok(oldPlans.length % 4 === 0 && planComponentName(oldPlans[0]).includes('leading icon=false, trailing icon=false')
+        && planComponentName(oldPlans[3]).includes('leading icon=true, trailing icon=true'),
+        `premise: ${id}'s slot members come in runs of four, false/false first (${planComponentName(oldPlans[0])})`);
+      oldPlans = oldPlans.flatMap((p, i, all) => (i % 4 === 0 ? all.slice(i, i + 4).reverse() : []));
+    }
+    const w = await world(id, oldPlans);
+    const set = w.set();
+    const was = insertedOf(set);
+    ok(!carries(was, want), `premise: ${id} built in the old order inserts ${was}`);
+    const mainOf = (name: string): Node => membersOf(set).find((m) => String(m.name) === name)!;
+    const newDefault = membersOf(set).find((m) => carries(String(m.name), want) && String(m.name) === planComponentName(plansOf(id)[0]))!;
+    ok(!!newDefault, `premise: ${id}'s old set already holds the member the update will put top-left`);
+    const placed = [mainOf(was), newDefault].map((main, i) => {
+      const inst = { type: 'INSTANCE', id: `I:${id}:q1q2:${i}`, name: String(main.name), x: -500, y: 100 * i, mainComponent: main, children: [] } as unknown as Node;
+      w.page.children.push(inst);
+      return { inst, main, mainId: String(main.id) };
+    });
+    const before = identityOf(set);
+    const plans = plansOf(id);
+    const pre = await previewUpdate(w.host, [{ def: id, plans }]);
+    const c = pre.sets[0].counts;
+    ok((c.move ?? 0) > 0 && c.update + c.add + c.drop + c.rename + c.handEdited + c.noBaseline === 0,
+      `default member/${id} dry run: the Q1/Q2 reorder reads as moves and nothing else (${previewLine(pre.sets[0])})`);
+    const res = await applyUpdate(w.host, w.api as any, [{ def: id, plans }], previewHashOf(pre));
+    const now = w.set();
+    const after = identityOf(now);
+    const keptIds = now === set && after.set.join() === before.set.join() && after.members.size === before.members.size
+      && [...before.members].every(([k, b]) => after.members.get(k)?.id === b.id && after.members.get(k)?.key === b.key);
+    ok(applyVerdict(res).ok && keptIds, `default member/${id} in place (Q1/Q2): the set and every member keep their key and id (${applyVerdict(res).headline}; ids ${keptIds ? 'kept' : 'changed'})`);
+    const inserted = insertedOf(now);
+    ok(carries(inserted, want) && inserted === planComponentName(plans[0]),
+      `default member/${id} inserted (Q1/Q2): after the update Figma inserts ${want.join(', ')}, the set's first plan (inserts ${inserted})`);
+    const live = placed.every(({ inst, main, mainId }) => w.page.children.includes(inst) && (inst as unknown as { mainComponent: Node }).mainComponent === main
+      && membersOf(now).includes(main) && String(main.id) === mainId && inst.x === -500);
+    ok(live, `default member/${id} instances (Q1/Q2): both placed instances stay on the page, unmoved, each on a member still in the set with its id`);
+    const next = (await previewUpdate(w.host, [{ def: id, plans }])).sets[0];
+    ok(previewLine(next) === `${String(now.name)}: up to date (${after.members.size} members).`, `default member/${id} current (Q1/Q2): the next dry run reads up to date (${previewLine(next)})`);
+  }
+}
+
 /* ── re-lay ────────────────────────────────────────────────────────────────────────────────────────────── */
 section('re-lay — an update over a set leaves a member Prism3 didn\'t build where it is, even on a planned coordinate (#2494)');
 {
