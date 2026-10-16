@@ -17639,7 +17639,8 @@ arm: {
   //   the parent layout's glyph, link or wording → `#2666 breadcrumbs/parent` (call 11 A);
   //   a gap off the proposal's space.050 / space.100 → `#2666 breadcrumbs/gaps`;
   //   the collapse numbers or the nav label → `#2666 breadcrumbs/code-props` (calls 8 A, 9 A, 16 A);
-  //   a binding to a role that drops under its floor in any committed cell → `#2666 breadcrumbs/contrast`.
+  //   the current page or the back chevron rebound off the measured role, or a measured role under its floor in any
+  //   committed cell → `#2666 breadcrumbs/contrast`.
   {
     const itemDef = componentDefs.find((d) => d.id === 'breadcrumb-item');
     const trailDef = componentDefs.find((d) => d.id === 'breadcrumbs');
