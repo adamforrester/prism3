@@ -126,7 +126,7 @@ maintainer channels, a part's `note` included, is also in the plugin bundle a de
 - no code spans: write a prop, a value, an attribute or a token path as plain text (inverse,
   color.text.primary);
 - implementation steps a developer must follow (a hit-area expansion, a brand setting's construction)
-  stay in `docs.do` only where a gate requires them there, because `codeOnly` never ships.
+  stay in the docs do list only where a gate requires them there, because `codeOnly` never ships.
 
 A part that is never generated on its own words `ai.whenToUse` as "Only inside Tabs. Generate Tabs, which
 places one tab per panel …"; a part a host nests that may stand alone words it as "Inside Checkbox.Row,
@@ -134,7 +134,7 @@ the common case. On its own only when …". The host named is a registered compo
 
 `packages/engine/test.ts` (`component-refs`, `component-names`, `component-prose`), `lint-us-english`
 and `lint-voice` catch Prism 2, dangling names, en-GB spellings and banned words. The `#2714 component
-register` block in `test.ts` refuses code spans, all-caps words outside its acronym list, "brief §N",
+register` block in `packages/engine/test.ts` refuses code spans, all-caps words outside its acronym list, "brief §N",
 "def" and issue numbers in the consumer fields (summary, description, prop descriptions, accessibility,
 content, docs and ai's three decision fields), and `#2714 child-only whenToUse` holds the two templates.
 Motion and a part's `note` ship too but are not gated yet (#2773), so hold them to the same rules by hand.
