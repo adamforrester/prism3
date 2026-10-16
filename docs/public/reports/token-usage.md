@@ -2453,6 +2453,7 @@ Type: dimension. Bound by 17 component(s).
 | button-destructive | `inset.flush` | container | appearance: text · inset: flush (144 of 576) |
 | button-neutral | `inset.flush` | container | appearance: text · inset: flush (144 of 576) |
 | checkbox-group | `gap`, `pad-x` | container | every member (3 of 3) |
+|  |  | items | every member (3 of 3) |
 | checkbox-row | `pad-x` | row | every member (3 of 3) |
 | dialog | `pad-none` | body | every member (15 of 15) |
 |  |  | footerInline | footer: inline (5 of 15) |
@@ -2462,14 +2463,16 @@ Type: dimension. Bound by 17 component(s).
 | divider | `horizontal.inset.pad-block`, `horizontal.inset.pad-end`, `horizontal.middle-inset.pad-block`, `horizontal.none.pad-block`, `horizontal.none.pad-end`, `horizontal.none.pad-start`, `vertical.inset.pad-block`, `vertical.inset.pad-end`, `vertical.inset.pad-start`, `vertical.middle-inset.pad-end`, `vertical.middle-inset.pad-start`, `vertical.none.pad-block`, `vertical.none.pad-end`, `vertical.none.pad-start` | divider | every member (5 of 5) |
 | list-item | `gap` | row | every member (9 of 9) |
 | radio-group | `gap`, `pad-x` | container | every member (3 of 3) |
+|  |  | items | every member (3 of 3) |
 | radio-row | `pad-x` | row | every member (3 of 3) |
-| segmented-control | `track-gap`, `track-pad` | track | every member (3 of 3) |
+| segmented-control | `track-gap`, `track-pad` | items | every member (3 of 3) |
+|  |  | track | every member (3 of 3) |
 | segmented-control-segment | `pad-y`, `reserve-height` | content | every member (30 of 30) |
 |  |  | reserve | every member (30 of 30) |
 | tab | `pad-y`, `reserve-height` | content | every member (30 of 30) |
 |  |  | reserve | every member (30 of 30) |
 | tabs | `gap` | container | every member (6 of 6) |
-|  |  | list | every member (6 of 6) |
+|  |  | items | every member (6 of 6) |
 | tag | `label-row.padding-end`, `pad-y`, `size.large.dismissible.padding-end`, `size.large.select.label-inset`, `size.medium.dismissible.padding-end`, `size.medium.select.label-inset`, `size.small.dismissible.padding-end`, `size.small.select.label-inset` | content | every member (45 of 45) |
 |  |  | labelCheck | every member (45 of 45) |
 
@@ -2534,6 +2537,7 @@ Type: dimension. Bound by 22 component(s).
 | divider | `vertical.middle-inset.pad-block` | divider | inset: middle-inset · orientation: vertical (1 of 5) |
 | link | `size.large.gap` | container | size: large (32 of 96) |
 | list | `size.small.gap` | container | size: small (3 of 9) |
+|  |  | items | size: small (3 of 9) |
 | password-field | `root-gap`, `size.large.gap`, `size.large.pad-y`, `size.medium.gap`, `size.medium.pad-y`, `size.small.gap` | container | every member (84 of 84) |
 |  |  | content | every member (84 of 84) |
 |  |  | control | every member (84 of 84) |
@@ -2574,6 +2578,7 @@ Type: dimension. Bound by 12 component(s).
 | checkbox-row | `pad-y`, `size.large.gap` | row | every member (3 of 3) |
 | dialog | `footer.inline.gap` | footerInline | footer: inline (5 of 15) |
 | list | `size.medium.gap` | container | size: medium (3 of 9) |
+|  |  | items | size: medium (3 of 9) |
 | radio-row | `pad-y`, `size.large.gap` | row | every member (3 of 3) |
 | segmented-control-segment | `size.small.padding-x` | content | size: small (10 of 30) |
 | tab | `size.small.padding-x` | content | size: small (10 of 30) |
@@ -2598,6 +2603,7 @@ Type: dimension. Bound by 14 component(s).
 |  |  | panel | every member (15 of 15) |
 | divider | `horizontal.inset.pad-start`, `horizontal.middle-inset.pad-end`, `horizontal.middle-inset.pad-start` | divider | inset: inset, middle-inset · orientation: horizontal (2 of 5) |
 | list | `size.large.gap` | container | size: large (3 of 9) |
+|  |  | items | size: large (3 of 9) |
 | password-field | `size.medium.pad-x`, `size.small.pad-x` | control | size: medium, small (56 of 84) |
 | segmented-control-segment | `size.medium.padding-x` | content | size: medium (10 of 30) |
 | select | `size.medium.pad-x`, `size.small.pad-x` | control | size: medium, small (56 of 84) |

@@ -47,6 +47,14 @@ export type PropDef = {
   values?: string[];
   deprecated?: boolean;
   description: string;
+  /** For `type: 'slot'` (#2649, owner decision Q307 A): a children array of repeating items, in Nathan Curtis's spec
+   *  shape (`type: slot, anyOf: <item>, minItems: 1`). `anyOf` names the def ids an item may be, `minItems` and
+   *  `maxItems` bound the count (`maxItems` absent means no ceiling). Code-only data: the Figma side is the def's
+   *  native slot part, and its own settings. Refused on any other type. A slot prop that declares any of the three
+   *  must declare `anyOf` and `minItems`; one that declares none is a single swapped item (Button's `leadingVisual`). */
+  anyOf?: string[];
+  minItems?: number;
+  maxItems?: number;
 };
 
 // ---------------------------------------------------------------------------------------
@@ -1881,6 +1889,16 @@ export const validateComponentDef = (
     // this check refuses it. (A union type such as "'a' | 'b'" is free-form prose and is not checked here.)
     if (p.default !== undefined && (p.type === 'boolean' || p.type === 'number') && typeof p.default !== p.type)
       errors.push(`prop '${p.name}': type '${p.type}' with a ${typeof p.default} default (${JSON.stringify(p.default)}) — write the default as a ${p.type}, not a string, because it ships as written in components.ai.json (#2707)`);
+    // A SLOT PROP (#2649): its item types and count, or nothing of the kind on any other type.
+    const slotFields = (['anyOf', 'minItems', 'maxItems'] as const).filter((f) => p[f] !== undefined);
+    if (p.type !== 'slot' && slotFields.length) errors.push(`prop '${p.name}' is type '${p.type}' but declares ${slotFields.join(', ')} — only a 'slot' prop takes them`);
+    // A slot prop that declares any of them is a children array, and states both its item types and its least count. A
+    // slot prop with none (Button's `leadingVisual`, an instance swap) is one item and needs neither.
+    if (p.type === 'slot' && slotFields.length) {
+      if (!Array.isArray(p.anyOf) || !p.anyOf.length || p.anyOf.some((x) => typeof x !== 'string' || !x)) errors.push(`prop '${p.name}' is a slot with no 'anyOf' — name the def ids an item may be`);
+      if (!Number.isInteger(p.minItems) || (p.minItems as number) < 0) errors.push(`prop '${p.name}' is a slot with no whole 'minItems' — state the least number of items, 0 if it may be empty`);
+      if (p.maxItems !== undefined && (!Number.isInteger(p.maxItems) || p.maxItems < Math.max(1, p.minItems ?? 0))) errors.push(`prop '${p.name}': maxItems ${p.maxItems} is not a whole number at least minItems and 1`);
+    }
   }
 
   // states + variants
