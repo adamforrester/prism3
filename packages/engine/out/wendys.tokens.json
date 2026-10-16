@@ -4242,7 +4242,6 @@
                 "figma": {
                   "kind": "variable",
                   "field": "fontSize",
-                  "scope": "FONT_SIZE",
                   "unit": "px",
                   "value": 10
                 }
@@ -4261,7 +4260,6 @@
                 "figma": {
                   "kind": "variable",
                   "field": "fontSize",
-                  "scope": "FONT_SIZE",
                   "unit": "px",
                   "value": 11
                 }
@@ -4280,7 +4278,6 @@
                 "figma": {
                   "kind": "variable",
                   "field": "fontSize",
-                  "scope": "FONT_SIZE",
                   "unit": "px",
                   "value": 12
                 }
@@ -4299,7 +4296,6 @@
                 "figma": {
                   "kind": "variable",
                   "field": "fontSize",
-                  "scope": "FONT_SIZE",
                   "unit": "px",
                   "value": 14
                 }
@@ -4318,7 +4314,6 @@
                 "figma": {
                   "kind": "variable",
                   "field": "fontSize",
-                  "scope": "FONT_SIZE",
                   "unit": "px",
                   "value": 16
                 }
@@ -4337,7 +4332,6 @@
                 "figma": {
                   "kind": "variable",
                   "field": "fontSize",
-                  "scope": "FONT_SIZE",
                   "unit": "px",
                   "value": 18
                 }
@@ -4356,7 +4350,6 @@
                 "figma": {
                   "kind": "variable",
                   "field": "fontSize",
-                  "scope": "FONT_SIZE",
                   "unit": "px",
                   "value": 20
                 }
@@ -4375,7 +4368,6 @@
                 "figma": {
                   "kind": "variable",
                   "field": "fontSize",
-                  "scope": "FONT_SIZE",
                   "unit": "px",
                   "value": 24
                 }
@@ -4394,7 +4386,6 @@
                 "figma": {
                   "kind": "variable",
                   "field": "fontSize",
-                  "scope": "FONT_SIZE",
                   "unit": "px",
                   "value": 28
                 }
@@ -4413,7 +4404,6 @@
                 "figma": {
                   "kind": "variable",
                   "field": "fontSize",
-                  "scope": "FONT_SIZE",
                   "unit": "px",
                   "value": 32
                 }
@@ -4432,7 +4422,6 @@
                 "figma": {
                   "kind": "variable",
                   "field": "fontSize",
-                  "scope": "FONT_SIZE",
                   "unit": "px",
                   "value": 36
                 }
@@ -4451,7 +4440,6 @@
                 "figma": {
                   "kind": "variable",
                   "field": "fontSize",
-                  "scope": "FONT_SIZE",
                   "unit": "px",
                   "value": 40
                 }
@@ -4470,7 +4458,6 @@
                 "figma": {
                   "kind": "variable",
                   "field": "fontSize",
-                  "scope": "FONT_SIZE",
                   "unit": "px",
                   "value": 48
                 }
@@ -4489,7 +4476,6 @@
                 "figma": {
                   "kind": "variable",
                   "field": "fontSize",
-                  "scope": "FONT_SIZE",
                   "unit": "px",
                   "value": 56
                 }
@@ -4508,7 +4494,6 @@
                 "figma": {
                   "kind": "variable",
                   "field": "fontSize",
-                  "scope": "FONT_SIZE",
                   "unit": "px",
                   "value": 64
                 }
@@ -4527,7 +4512,6 @@
                 "figma": {
                   "kind": "variable",
                   "field": "fontSize",
-                  "scope": "FONT_SIZE",
                   "unit": "px",
                   "value": 72
                 }
@@ -4546,7 +4530,6 @@
                 "figma": {
                   "kind": "variable",
                   "field": "fontSize",
-                  "scope": "FONT_SIZE",
                   "unit": "px",
                   "value": 80
                 }
@@ -4565,7 +4548,6 @@
                 "figma": {
                   "kind": "variable",
                   "field": "fontSize",
-                  "scope": "FONT_SIZE",
                   "unit": "px",
                   "value": 96
                 }
@@ -4584,7 +4566,6 @@
                 "figma": {
                   "kind": "variable",
                   "field": "fontSize",
-                  "scope": "FONT_SIZE",
                   "unit": "px",
                   "value": 112
                 }
@@ -4603,7 +4584,6 @@
                 "figma": {
                   "kind": "variable",
                   "field": "fontSize",
-                  "scope": "FONT_SIZE",
                   "unit": "px",
                   "value": 128
                 }
@@ -4622,7 +4602,6 @@
                 "figma": {
                   "kind": "variable",
                   "field": "fontSize",
-                  "scope": "FONT_SIZE",
                   "unit": "px",
                   "value": 144
                 }
@@ -4641,7 +4620,6 @@
                 "figma": {
                   "kind": "variable",
                   "field": "fontSize",
-                  "scope": "FONT_SIZE",
                   "unit": "px",
                   "value": 160
                 }
@@ -4659,8 +4637,7 @@
                 "generated": true,
                 "figma": {
                   "kind": "variable",
-                  "field": "fontWeight",
-                  "scope": "FONT_WEIGHT"
+                  "field": "fontWeight"
                 }
               }
             }
@@ -4674,8 +4651,7 @@
                 "generated": true,
                 "figma": {
                   "kind": "variable",
-                  "field": "fontWeight",
-                  "scope": "FONT_WEIGHT"
+                  "field": "fontWeight"
                 }
               }
             }
@@ -4689,8 +4665,7 @@
                 "generated": true,
                 "figma": {
                   "kind": "variable",
-                  "field": "fontWeight",
-                  "scope": "FONT_WEIGHT"
+                  "field": "fontWeight"
                 }
               }
             }
@@ -4704,8 +4679,7 @@
                 "generated": true,
                 "figma": {
                   "kind": "variable",
-                  "field": "fontWeight",
-                  "scope": "FONT_WEIGHT"
+                  "field": "fontWeight"
                 }
               }
             }
@@ -4719,8 +4693,7 @@
                 "generated": true,
                 "figma": {
                   "kind": "variable",
-                  "field": "fontWeight",
-                  "scope": "FONT_WEIGHT"
+                  "field": "fontWeight"
                 }
               }
             }
