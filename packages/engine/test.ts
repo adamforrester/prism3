@@ -21292,6 +21292,44 @@ arm: {
         const sg2 = figmaAnatomySet(swapDef, { swapTarget: 'FPO-default-icon' });
         ok(JSON.stringify(kid(sg2[0].root, 'item1')?.nestOverrides) === '[{"property":"swap icon","type":"INSTANCE_SWAP","value":"icon/check"}]',
           `#2645 projection: a swap names List.Item's 'swap icon' property and the icon set's component (${JSON.stringify(kid(sg2[0].root, 'item1')?.nestOverrides)})`);
+        // #2609 (owner decision, 2026-10-16): Dialog's close is always the X. Literals, not read off the def (docs/34).
+        // Mutations, each failing by name: the override dropped or its glyph changed → `#2609 dialog: every member's close`;
+        // a `swaps` entry on Dialog → `#2609 dialog: no swap property`; the close made `nest-exposed` (which would surface
+        // the nested button's own `swap icon` on Dialog's panel) → `#2609 dialog: the close is not exposed`.
+        {
+          const dDef = componentDefs.find((d) => d.id === 'dialog')!;
+          const dg = figmaAnatomySet(dDef, { swapTarget: 'FPO-default-icon' });
+          const findPart = (n: { name: string; children?: unknown[] }, name: string): Record<string, unknown> | undefined => {
+            if (n.name === name) return n as Record<string, unknown>;
+            for (const c of (n.children ?? []) as { name: string; children?: unknown[] }[]) { const f = findPart(c, name); if (f) return f; }
+            return undefined;
+          };
+          const bad = dg.filter((pl) => JSON.stringify(findPart(pl.root, 'close')?.nestOverrides) !== '[{"property":"swap icon","type":"INSTANCE_SWAP","value":"icon/close"}]');
+          ok(dg.length === 15 && bad.length === 0, `#2609 dialog: every member's close swaps FlushIconButton.Neutral's 'swap icon' to icon/close (${dg.length} members, ${bad.length} wrong: ${JSON.stringify(bad[0] && findPart(bad[0].root, 'close')?.nestOverrides)})`);
+          ok(Object.keys(dDef.figmaProperties?.swaps ?? {}).length === 0, `#2609 dialog: no swap property on Dialog's Figma surface (${JSON.stringify(dDef.figmaProperties?.swaps)})`);
+          ok(dDef.anatomy!.parts.close?.nesting?.kind === 'nest-fixed', `#2609 dialog: the close is not exposed, so the nested button's swap does not surface on Dialog (${dDef.anatomy!.parts.close?.nesting?.kind})`);
+          // Q385 A (settling Q377 A): Dialog nests FlushIconButton.Neutral and depends on IconButton.Neutral nowhere, so a
+          // file without the IconButton sets builds it. Read from every surface a dependency reaches: the part's `nests`,
+          // each member's projected plan (the plugin's pre-build walks `nestTarget`, `swapTarget` and swap overrides,
+          // `build-deps.ts`), and the selection fields an agent and the docs read. Literals, not read off the def (docs/34).
+          // Mutation: `nests: 'icon-button-neutral'` back on the close, or the id back in `composesWith` → fails by name.
+          {
+            const planDeps = (n: { nestTarget?: string; swapTarget?: string; nestOverrides?: { type: string; value: string }[]; children?: unknown[] }): string[] => [
+              ...(n.nestTarget ? [n.nestTarget] : []), ...(n.swapTarget ? [n.swapTarget] : []),
+              ...(n.nestOverrides ?? []).filter((o) => o.type === 'INSTANCE_SWAP').map((o) => o.value),
+              ...((n.children ?? []) as (typeof n)[]).flatMap(planDeps),
+            ];
+            const onIb = (x: string) => x === 'icon-button-neutral' || x.startsWith('icon-button-neutral/');
+            const inPlans = dg.flatMap((pl) => planDeps(pl.root as never)).filter(onIb);
+            const inDef = [
+              ...Object.entries(dDef.anatomy!.parts).filter(([, p]) => (p as { nests?: string }).nests === 'icon-button-neutral').map(([k]) => `anatomy.${k}`),
+              ...(dDef.composition?.composesWith ?? []).filter(onIb).map(() => 'composition.composesWith'),
+              ...(dDef.ai?.commonPartners ?? []).filter(onIb).map(() => 'ai.commonPartners'),
+            ];
+            ok(findPart(dg[0].root, 'close')?.nestTarget === 'flush-icon-button-neutral' && inPlans.length === 0 && inDef.length === 0,
+              `#2609 dialog (Q385 A): the close nests FlushIconButton.Neutral, and Dialog depends on IconButton.Neutral nowhere (close nests ${findPart(dg[0].root, 'close')?.nestTarget}; ${inPlans.length} plan reference(s); def: ${inDef.join(', ') || 'none'})`);
+          }
+        }
         // THE PASTE EXECUTOR. Only a payload whose plans override ships the writer (the shell budget, `SET_CHUNK_BYTES`).
         const NUM = 'number#7:2', SWAP = 'swap icon#7:3';
         const lOpts = (props: boolean, comps = ['list-item']) => ({
@@ -32095,13 +32133,13 @@ arm: {
   ok(scrimIn.length === 0 && plans.every((p) => (p.root as DN).paints?.fills === 'color/foreground/primary' && (p.root as DN).effectStyle === 'shadow/xl'),
     `#2609 dialog panel: foreground.primary with the shadow.xl effect style on every member, and no scrim, veil or backdrop node anywhere in the set${scrimIn.length ? ` — FOUND: ${scrimIn.slice(0, 3).join('; ')}` : ''}`);
 
-  // THE HEADER: the title, the description (off), and the close (on): IconButton.Neutral, ghost, medium.
+  // THE HEADER: the title, the description (off), and the close (on): FlushIconButton.Neutral, round, medium (Q385 A).
   const hdrBad = plans.filter((p) => {
     const r = p.root as DN, close = find(r, 'close'), desc = find(r, 'description'), title = find(r, 'title');
-    return !(close?.nestTarget === 'icon-button-neutral' && JSON.stringify(close.nestVariant) === JSON.stringify({ appearance: 'ghost', size: 'medium', shape: 'square', surface: 'default', state: 'rest' })
+    return !(close?.nestTarget === 'flush-icon-button-neutral' && JSON.stringify(close.nestVariant) === JSON.stringify({ shape: 'round', size: 'medium', state: 'rest' })
       && close.visibleProp === 'close' && close.visible !== false && desc?.visible === false && desc.paints?.fills === 'color/text/secondary' && title?.paints?.fills === 'color/text/primary');
   });
-  ok(hdrBad.length === 0, `#2609 dialog header: the close is IconButton.Neutral ghost medium and shown, the description hidden in secondary text, the title in primary text (${hdrBad.length ? `WRONG: ${hdrBad.map(planComponentName).slice(0, 2).join('; ')}` : 'all 15'})`);
+  ok(hdrBad.length === 0, `#2609 dialog header: the close is FlushIconButton.Neutral round medium and shown, the description hidden in secondary text, the title in primary text (${hdrBad.length ? `WRONG: ${hdrBad.map(planComponentName).slice(0, 2).join('; ')}` : 'all 15'})`);
 
   // THE FOOTERS (Q303.6 A): inline Cancel (outline) then Save (filled), 12px apart; stacked Save over Cancel, 8px apart;
   // none has no footer and no rule above it.
