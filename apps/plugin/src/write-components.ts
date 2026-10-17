@@ -108,6 +108,8 @@ export interface CompMemberRef { name?: string; type?: string; createInstance?()
 
 /** The four PER-SIDE stroke-weight keys the real host binds a `strokeWeight` variable onto (#1332). */
 const STROKE_WEIGHT_SIDES = ['strokeTopWeight', 'strokeRightWeight', 'strokeBottomWeight', 'strokeLeftWeight'];
+/** Every key a stroke weight can be bound on: the scalar and its four sides (#2695, `PartDef.strokeEdges`). */
+const STROKE_WEIGHT_KEYS = ['strokeWeight', ...STROKE_WEIGHT_SIDES];
 
 /**
  * Does the host hold a binding for `field`? (#1332)
@@ -959,7 +961,7 @@ export type RespaceBox = PageBox & { id: string; prism3?: boolean; furniture?: b
  * else is the designer's placement, and it wins, as it does in `placeNewSet`:
  *   · a set spaced WIDER stays exactly where it is;
  *   · a set with no Prism3 set to its left in its row (the first of a row, a SECOND ROW below the first) stays, so a
- *     second row is never lifted into the first, and `y` never changes;
+ *     second row is never lifted into the first, and `y` never changes, save in the header's row (below);
  *   · if the spot a moving set needs overlaps something that stays put, it is pushed just past it, `SET_GAP` clear.
  *     "Something" includes the OTHER Prism3 sets (#2548): every set already placed, where it now sits, and a set not
  *     reached yet once the spot is at or past its left edge. Short of that edge, the later set still has this one as
@@ -970,20 +972,38 @@ export type RespaceBox = PageBox & { id: string; prism3?: boolean; furniture?: b
  * NEVER MOVES CONTENT PRISM3 DIDN'T BUILD (#2464, #2494): a set with no stamped member, the page header and any other
  * node stay exactly where they are, as obstacles. The canvas furniture is left out: it is drawn for a set after the
  * update lands, from where the set then sits, so it follows the move.
+ *
+ * A SET IN THE PAGE HEADER'S ROW GOES BELOW IT (#2802, owner decision Q379 A). A page built before #2405 put its first
+ * set `SET_GAP` right of a header wider than the sets, at the header's own `y`, and its siblings beside that. The rule
+ * above kept that row where it was, since its first set has no set to its left, so an update re-spaced the siblings
+ * and left the whole row beside the header. Such a set is the one case where the move changes `y`: it is placed as
+ * `placeNewSet` places a new set under a header. Its top is the top of the sets already below the header, else the
+ * header's bottom plus `PAGE_HEADER_GAP`; the first of them goes on the header's left edge, each later one `SET_GAP`
+ * right of the set before it, always, since its old spacing was measured in a row it is leaving; and it is pushed
+ * past anything that would overlap it there, as any moving set is. So an update and a fresh build lay the page out
+ * the same, relative to the header. A set wholly above or below the header's band is not in its row, and stays.
  */
 export const respaceSets = (nodes: readonly RespaceBox[]): { id: string; from: { x: number; y: number }; to: { x: number; y: number } }[] => {
   const ours = nodes.filter((b) => b.type === 'COMPONENT_SET' && b.prism3 && !b.header).sort((a, b) => a.x - b.x || a.y - b.y);
-  if (ours.length < 2) return [];
+  const h = nodes.find((b) => b.header);
+  const besideHeader = (b: PageBox): boolean => !!h && b.y < h.y + h.height && b.y + b.height > h.y;
+  if (ours.length < 2 && !ours.some(besideHeader)) return [];
   const fixed = nodes.filter((b) => !(b.type === 'COMPONENT_SET' && b.prism3) && !b.furniture);
   const sameRow = (a: PageBox, b: PageBox): boolean => a.y < b.y + b.height && a.y + a.height > b.y;
+  // The row under the header, at `placeNewSet`'s `y`: the top of the sets already below the header, else its bottom plus the gap.
+  const below = h ? nodes.filter((b) => b.type === 'COMPONENT_SET' && !b.header && b.y >= h.y + h.height) : [];
+  const underY = !h ? 0 : below.length ? Math.min(...below.map((b) => b.y)) : h.y + h.height + PAGE_HEADER_GAP;
   const placed: PageBox[] = [];
   const moves: { id: string; from: { x: number; y: number }; to: { x: number; y: number } }[] = [];
-  for (const [i, b] of ours.entries()) {
-    const left = placed.filter((p) => sameRow(p, b) && p.x < b.x);
-    if (!left.length) { placed.push(b); continue; }
-    const right = Math.max(...left.map((p) => p.x + p.width));
+  for (const [i, was] of ours.entries()) {
+    const lifted = besideHeader(was);
+    const b = lifted ? { ...was, y: underY } : was;
+    // A lifted set's left neighbours are every set already placed in the row it joins, wherever it sat before.
+    const left = placed.filter((p) => sameRow(p, b) && (lifted || p.x < b.x));
+    if (!left.length && !lifted) { placed.push(b); continue; }
+    const right = left.length ? Math.max(...left.map((p) => p.x + p.width)) : h!.x - SET_GAP;
     // Too close only: a set spaced the fresh gap or wider is the designer's, and stays.
-    if (b.x - right >= SET_GAP - 0.5) { placed.push(b); continue; }
+    if (!lifted && b.x - right >= SET_GAP - 0.5) { placed.push(b); continue; }
     let x = right + SET_GAP;
     // Past anything that stays and would overlap the set at this spot; again, until the spot is clear.
     const later = ours.slice(i + 1);
@@ -992,7 +1012,7 @@ export const respaceSets = (nodes: readonly RespaceBox[]): { id: string; from: {
       for (const f of [...fixed, ...placed, ...later.filter((u) => x >= u.x)])
         if (f.y < b.y + b.height && f.y + f.height > b.y && f.x < x + b.width && f.x + f.width > x) { x = f.x + f.width + SET_GAP; pushed = true; }
     }
-    moves.push({ id: b.id, from: { x: b.x, y: b.y }, to: { x, y: b.y } });
+    moves.push({ id: b.id, from: { x: was.x, y: was.y }, to: { x, y: b.y } });
     placed.push({ ...b, x });
   }
   return moves;
@@ -1330,7 +1350,8 @@ const claimDefaults = (node: Wr, n: FigmaNodePlan | null, misses: string[], mode
         // three selection controls do: checkbox at `checked`/`indeterminate` and switch at `on` bind a
         // thickness and paint no border. `strokeAlign` needs no gate — no def can bind it, and INSIDE here
         // agrees with the two sites that write it beside a stroke.
-        if (!('strokeWeight' in (n?.bound ?? {}))) set('strokeWeight', 1);
+        // A per-side weight (#2695, `strokeEdges`) is a binding this would unbind too.
+        if (!STROKE_WEIGHT_KEYS.some((k) => k in (n?.bound ?? {}))) set('strokeWeight', 1);
         set('strokeAlign', 'INSIDE');
       }
       set('dashPattern', []);
@@ -1726,6 +1747,11 @@ const writeComponentSet = async (
    * BEFORE the combine: Figma merges every member's slot of one name into one SLOT property there, measured.
    * A host without `createSlot` keeps the frame, and the miss says what that costs a designer.
    */
+  /** THE INSTANCES WHOSE OWN VALUES THIS RUN HAS WRITTEN (#2649 × #2645). `toSlots` runs `build` over a new SLOT to
+   *  write the slot's own fields, and that pass visits the items it holds a second time. The per-instance writes
+   *  (`nestOverrides`, `nestTexts`) land once per instance per run, so each miss is reported once, as the paste
+   *  twin `__slotsNow` does: it only moves the items. */
+  const instanceValuesWritten = new WeakSet<object>();
   const slotPlans = (n: FigmaNodePlan): FigmaNodePlan[] => [...(n.type === 'CONTENT_SLOT' ? [n] : []), ...n.children.flatMap(slotPlans)];
   const toSlots = async (comp: Wr, plan: FigmaNodePlan, parts: Map<string, Wr>, expose: Wr[], member: string): Promise<void> => {
     for (const sp of slotPlans(plan)) {
@@ -1901,14 +1927,16 @@ const writeComponentSet = async (
       // unlike the exposure above. On Update the same write lands on the instance kept in place, so a nested instance
       // that has no override yet gains it without a rebuild; one a designer changed by hand (`kept`) is left as it is.
       // `applyNestOverrides` is shared with the paste payload, decision and wording.
-      if (node && n.nestOverrides && !kept)
+      const firstVisit = !!node && !instanceValuesWritten.has(node);
+      if (node) instanceValuesWritten.add(node);
+      if (node && firstVisit && n.nestOverrides && !kept)
         for (const m of applyNestOverrides(node as Parameters<typeof applyNestOverrides>[0], n.nestOverrides, (name) => { const c = compByName.get(name); return c?.id ? String(c.id) : null; }))
           misses.push(`${n.name}${m}`);
       // THE NESTED INSTANCE'S OWN TEXT (#2317). A set has one default per text property, so the Password field's
       // nested Button would read its set's "Button"; the plan's `nestTexts` names what this instance says instead,
       // written as an instance override. The property is found by its name before the `#id` Figma appends, and
       // only among TEXT properties; one the instance does not have is a miss, and the instance keeps its default.
-      if (node && n.nestTexts) {
+      if (node && firstVisit && n.nestTexts) {
         const props = node.componentProperties ?? {};
         const set: Record<string, string> = {};
         for (const [prop, value] of Object.entries(n.nestTexts)) {
@@ -2177,6 +2205,16 @@ const writeComponentSet = async (
         } catch { /* unresolvable here: the black base, as before */ }
         return api.variables.setBoundVariableForPaint({ type: 'SOLID', color: base, ...(alpha < 1 ? { opacity: alpha } : {}) }, 'color', v);
       };
+      // A TRANSLUCENT BOUND PAINT IS ASSIGNED TWICE (#2774). The host resets a bound paint's opacity to 1 on the first
+      // assignment that lands where the node does not already hold a paint bound to that same variable; assigning again
+      // once the binding is in place keeps it (the shim's host-measured model). A fresh build is rescued by the combine's
+      // re-resolve, and an in-place rewrite of the same wash by the binding already there, but an in-place rewrite from
+      // an opaque variable to a wash (Field style Underline → Outline at hover, #2695) kept the wash at 100%, and only a
+      // second Update converged it.
+      const assignPaint = (key: 'fills' | 'strokes', p: unknown): void => {
+        node[key] = [p];
+        if (((p as { opacity?: number }).opacity ?? 1) < 1) node[key] = [p];
+      };
       // Same reason as `wrote`: only a paint that was actually assigned can have been discarded.
       let paintedFills = false;
       let paintedStrokes = false;
@@ -2185,7 +2223,7 @@ const writeComponentSet = async (
       // so a tint carried on the paint lasted only until the next re-apply. Lockstep with the paste executor.
       if (n.paints?.fills) {
         const p = paint(n.paints.fills, 'fills');
-        if (p) { node.fills = [p]; paintedFills = true; }
+        if (p) { assignPaint('fills', p); paintedFills = true; }
         // DECLARED BUT UNRESOLVABLE → transparent, NEVER Figma's opaque white default (#1387). The
         // component set is brand-agnostic — it binds `interactive.<family>.overlay.{hover,pressed}` on
         // outline/text hover/pressed unconditionally — while that wash is EMITTED only under
@@ -2236,7 +2274,7 @@ const writeComponentSet = async (
       if (n.paints?.strokes) {
         const p = paint(n.paints.strokes, 'strokes');
         if (p) {
-          node.strokes = [p];
+          assignPaint('strokes', p);
           paintedStrokes = true;
           // A stroke variable with no weight binds correctly and paints nothing visible.
           //
@@ -2245,7 +2283,8 @@ const writeComponentSet = async (
           // right paint at a hardcoded 1px, re-theming on color and frozen on width. That is what the focus
           // ring shipped as. `wrote` rather than `n.bound`, so a name that failed to resolve still gets the
           // fallback and paints something.
-          if (!node.strokeWeight && !wrote.includes('strokeWeight')) node.strokeWeight = 1;
+          // A per-side weight (#2695, `strokeEdges`) counts as written: the literal would overwrite all four sides.
+          if (!node.strokeWeight && !STROKE_WEIGHT_KEYS.some((k) => wrote.includes(k))) node.strokeWeight = 1;
           node.strokeAlign = 'INSIDE';
           // BORDER-BOX, and Figma defaults the other way: left alone, the stroke is ADDED to the
           // auto-layout size, so an outline button measured 62 where its filled sibling measured 60 —

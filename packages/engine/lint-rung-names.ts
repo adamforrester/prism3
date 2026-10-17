@@ -219,6 +219,11 @@ const ICON_OFFSET_DEFS: Record<string, string> = {
   'flush-icon-button': 'icon.size.*',
   'flush-icon-button-destructive': 'icon.size.*',
   'flush-icon-button-neutral': 'icon.size.*',
+  // The text-bearing controls follow Button (owner Q337 A, #2725): the leading icon is 16/20/24, so the medium
+  // default is `sm`. Icon button and Flush icon button keep their own rung.
+  'segmented-control-segment': 'icon.size.*',
+  tab: 'icon.size.*',
+  tag: 'icon.size.*',
 };
 
 /**
@@ -335,6 +340,7 @@ const SPACING_ONLY_LADDER: Record<string, string> = {
  * hold the SAME values, and the variants must lead with the prop's default; any other reordering still fails.
  * Both directions: an admitted def whose two orders already agree is a stale admission.
  */
+const Q1B = 'the Figma default is `medium`, the code default, by owner decision Q1 B on #2752 (every size ladder leads with medium)';
 const DEFAULT_FIRST: Record<string, string> = {
   'text-field': 'the Figma default and the in-place-update landing value are `medium`, the field before #2266',
   select: 'the Figma default and the in-place-update landing value are `medium`, the select before #2266',
@@ -342,6 +348,34 @@ const DEFAULT_FIRST: Record<string, string> = {
   dialog: 'the Figma default is the 560px medium panel, the proposal\'s table approved by the owner\'s Q303 (#2609)',
   // #2317: TextField's size order through the shared field factory (Q301 builds it medium first, the field family's order).
   'password-field': 'the Figma default is `medium`, the field family\'s order from the shared field factory (#2317)',
+  // #2752 (owner decision Q1 B, 2026-10-16): every size ladder leads with medium, so Figma inserts the code default.
+  button: Q1B,
+  'button-destructive': Q1B,
+  'button-neutral': Q1B,
+  'icon-button': Q1B,
+  'icon-button-destructive': Q1B,
+  'icon-button-neutral': Q1B,
+  'flush-icon-button': Q1B,
+  'flush-icon-button-destructive': Q1B,
+  'flush-icon-button-neutral': Q1B,
+  'checkbox-control': Q1B,
+  'checkbox-row': Q1B,
+  'checkbox-group': Q1B,
+  'radio-control': Q1B,
+  'radio-row': Q1B,
+  'radio-group': Q1B,
+  'switch-control': Q1B,
+  'switch-row': Q1B,
+  tag: Q1B,
+  tab: Q1B,
+  tabs: Q1B,
+  '_accordion-indicator': Q1B,
+  accordion: Q1B,
+  'list-item': Q1B,
+  list: Q1B,
+  'segmented-control-segment': Q1B,
+  'segmented-control': Q1B,
+  link: Q1B,
 };
 
 const SIZE_BY_FOLLOW_ONLY: Record<string, string> = {

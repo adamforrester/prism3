@@ -48,11 +48,12 @@ import { tailOf } from '@prism3/engine/figma-names';
 import { planTargets } from './build-deps';
 import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
 import { diffAnatomy, type HostNode, type ReadPorts } from '@prism3/engine/anatomy-readback';
-import { COMPONENT_RENAMES, coordKey, coordPairs, renameCoordinate, type ComponentRename } from '@prism3/engine/component-renames';
+import { COMPONENT_RENAMES, coordKey, coordPairs, renameCoordinate, slotMigrationOf, type ComponentRename } from '@prism3/engine/component-renames';
+import { captureSlotMigration, migrationLines, type MigNode, type SlotMigration } from './slot-migration';
 import { ENGINE_VERSION } from '@prism3/engine/version';
 import { EXECUTOR_REVISION } from './executor-revision';
 import { adoptions, memberStamp, planHalf, revHalf, respaceSets, STAMP_KEY, type RespaceBox } from './write-components';
-import { readTag } from './canvas-furniture';
+import { furnitureDue, furnitureDueCount, furnitureLayout, hasFurniture, readTag, type FurnitureApi, type FurnitureDue, type XNode } from './canvas-furniture';
 import { NS } from './persist-figma';
 import { BASELINE_V, UPDATING_KEY, baselineDiff, baselineOf, builtByPrism3, readBaseline, recordFormat, snapshotMember, writeBaseline, type Baseline, type OwnershipRead, type SnapNode } from './member-baseline';
 import { drawnFaults, faultLine, type DrawnFault, type DrawVar } from './drawn';
@@ -141,12 +142,19 @@ export type SetPreview = {
   /** #2542 (owner decision Q245.2 A) — the WHOLE SET moves on its page, to where a fresh build would place it
    *  (`respaceSets`), so sets sit `SET_GAP` apart. Absent when it stays. */
   setMove?: { from: { x: number; y: number }; to: { x: number; y: number } };
+  /** #2803 (owner decision Q379 A) — the set's canvas furniture the page lacks or holds out of place (`furnitureDue`),
+   *  which the apply draws, touching no member. Absent when the furniture is current, or the def has none. */
+  furniture?: FurnitureDue;
   needsChoice: Choice[];
   /** Of `blockers`, those Adopt clears by claiming the members they name (`setRefusal`), so it is not refused for
    *  them. Absent when none. */
   adoptClears?: string[];
   /** Entries left out of a list past `LIST_CAP`, per list. Absent when nothing was. */
   truncated?: Record<string, number>;
+  /** #2649 — the set still holds its rows behind booleans, and the plan holds them in a native slot: every placed
+   *  instance's visible rows, in order, as they move into the slot, and what can't carry over (`slot-migration.ts`).
+   *  In the set's `previewHash`, so an instance changed after the check refuses the confirm. Absent otherwise. */
+  slotMigration?: SlotMigration;
 };
 
 /** The field a reaction difference is named under (#2466). DRAFT wording. */
@@ -321,7 +329,8 @@ export const setRefusal = (p: Pick<SetPreview, 'needsChoice' | 'unstamped' | 'mo
  * The dry run of one set, pure: the plan for `defId` against the set as `host` holds it.
  * `ports` resolve the host's variable and style ids to names, from the host's own catalogues.
  */
-export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView, ports: ReadPorts, ledger: readonly ComponentRename[] = COMPONENT_RENAMES): SetPreview => {
+export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView, setlessPorts: ReadPorts, ledger: readonly ComponentRename[] = COMPONENT_RENAMES): SetPreview => {
+  const ports = withSetSlots(setlessPorts, read.definitions);
   // Copies and malformed stamps read as not built by Prism3 (#2300). The hash below still reads the file as it is.
   const host = ownedView(read);
   const blockers: string[] = [];
@@ -762,7 +771,7 @@ export const captureSet = async (set: LiveSet, plans: AnatomyPlan[], ports: Read
   const plannedRx = reactionMap(plans.map((p) => planComponentName(p)));
   for (const m of view.members) {
     const plan = planned.get(coordKey(m.name));
-    const v = captureVerdict(plan, m, ports, plan ? memberReactions(plannedRx, plan, m) : null);
+    const v = captureVerdict(plan, m, withSetSlots(ports, view.definitions), plan ? memberReactions(plannedRx, plan, m) : null);
     if (!v.record) { skipped.push({ member: m.name, reason: v.reason, ...(v.differences ? { differences: v.differences } : {}) }); continue; }
     // BY THE NODE ID IT WAS READ FROM (#2301), so a set reordered while it was read cannot put the record on another
     // member. A node that is gone, or no longer carries the name it was read under, is left out.
@@ -852,15 +861,23 @@ export const hostPorts = async (host: UpdateHost): Promise<UpdatePorts> => {
   const v = new Map(vars.map((x) => [x.id, x.name] as const));
   const st = new Map(styles.map((x) => [x.id, x.name] as const));
   const drawVars = new Map(vars.filter((x) => typeof (x as { resolveForConsumer?: unknown }).resolveForConsumer === 'function').map((x) => [x.id, x as unknown as DrawVar] as const));
+  // A component key → its name (#2646), off the file's own components, for a native slot's preferred values.
+  const comps = new Map<string, string>();
+  for (const c of host.root.findAllWithCriteria({ types: ['COMPONENT_SET', 'COMPONENT'] }) as readonly { key?: unknown; name?: unknown }[])
+    if (typeof c.key === 'string' && c.key) comps.set(c.key, String(c.name ?? ''));
   // A component's id → its name (#2645), for a swap override's value. Searched on first use, once: only a plan with a
   // swap override reads it, and the search is document-wide.
-  let comps: Map<string, string> | undefined;
+  let compsById: Map<string, string> | undefined;
   const componentById = (id: string): string | null => {
-    comps ??= new Map((host.root.findAllWithCriteria({ types: ['COMPONENT'] }) as readonly { id?: unknown; name?: unknown }[]).map((c) => [String(c.id ?? ''), String(c.name ?? '')] as const));
-    return comps.get(id) ?? null;
+    compsById ??= new Map((host.root.findAllWithCriteria({ types: ['COMPONENT'] }) as readonly { id?: unknown; name?: unknown }[]).map((c) => [String(c.id ?? ''), String(c.name ?? '')] as const));
+    return compsById.get(id) ?? null;
   };
-  return { varName: (id) => v.get(id) ?? null, styleName: (id) => st.get(id) ?? null, componentById, drawVars };
+  return { varName: (id) => v.get(id) ?? null, styleName: (id) => st.get(id) ?? null, componentName: (k) => comps.get(k) ?? null, componentById, drawVars };
 };
+
+/** The ports with the set's own SLOT properties (#2649): a member read as a snapshot has no set above its slots. */
+export const withSetSlots = <P extends ReadPorts>(ports: P, definitions: Record<string, unknown> | null | undefined): P =>
+  ({ ...ports, slotProperty: (k: string) => ((definitions ?? {}) as Record<string, Record<string, unknown>>)[k] ?? null });
 
 type Located = { found: LiveSet[]; name: string };
 const locate = (host: UpdateHost, t: UpdateTarget): Located => {
@@ -999,6 +1016,17 @@ export const previewUpdate = async (host: UpdateHost, targets: readonly UpdateTa
     // was, so the set is refused here instead, naming what to build first. The build path pre-builds these
     // (`prebuildDependencies`); an update does not build other components.
     preview.blockers.push(...await fileBlockers(host, t.plans, v.set));
+    // THE CANVAS FURNITURE (#2803): what the page lacks of the set's labels and backdrops is a change, so "update again"
+    // after Set up file adds a template draws it, and "No changes found" means the furniture is current too.
+    if (!t.single && !preview.blockers.length && hasFurniture(t.def)) {
+      const due = furnitureDue(host as unknown as Pick<FurnitureApi, 'root'>, v.set as unknown as XNode, furnitureLayout(t.plans), t.def);
+      if (furnitureDueCount(due)) preview.furniture = due;
+    }
+    // REPEATING ROWS INTO A SLOT (#2649): a set still holding them the old way lists every placed instance it carries.
+    if (!t.single) {
+      const mig = await slotMigrationFor(t, v.set as MigNode, ledger, breathe);
+      if (mig) { preview.slotMigration = mig.migration; preview.previewHash = fnv(JSON.stringify([preview.previewHash, mig.migration])); }
+    }
     out.sets.push(preview);
     if (!t.single) found.push({ preview, set: v.set });
   }
@@ -1009,6 +1037,28 @@ export const previewUpdate = async (host: UpdateHost, targets: readonly UpdateTa
   const pages = host.root.children ? pagesOutOfOrder(host.root.children) : [];
   if (pages.length) out.pages = pages;
   return out;
+};
+
+/**
+ * #2649 — the placed instances a set's update carries into its slot, read with `captureSlotMigration`, or `null` when
+ * the def has no slot entry in the ledger or the set already holds its rows in the slot (no member has the old rows).
+ * Shared by the dry run and the apply, so both read the instances the one way.
+ */
+export const slotMigrationFor = async (t: UpdateTarget, set: MigNode, ledger: readonly ComponentRename[] = COMPONENT_RENAMES, breathe?: () => Promise<void>): Promise<Awaited<ReturnType<typeof captureSlotMigration>> | null> => {
+  const entry = slotMigrationOf(t.def, ledger);
+  const plan = t.plans[0];
+  if (!entry || !plan) return null;
+  const rootPart = plan.root.name;
+  const has = (n: MigNode, name: string): MigNode | undefined => (n.name === name ? n : (n.children ?? []).map((k) => has(k, name)).find(Boolean));
+  const oldShape = (set.children ?? []).some((m) => {
+    const from = entry.from === rootPart ? m : has(m, entry.from);
+    return !!from && (from.children ?? []).some((c) => entry.rows.includes(String(c.name)));
+  });
+  if (!oldShape) return null;
+  const parts = new Set<string>();
+  const walk = (n: AnatomyPlan['root']): void => { parts.add(n.name); n.children.forEach(walk); };
+  walk(plan.root);
+  return captureSlotMigration(set, entry, rootPart, parts, breathe);
 };
 
 /** The components the plans nest that no COMPONENT or COMPONENT_SET in the file is named (#2380). */
@@ -1125,7 +1175,7 @@ const propChanges = (p: SetPreview): number => Object.values(p.properties).reduc
  *  (the owner's own icons, #2325), so a set whose only other members are those reads as having no changes, and the
  *  set's line still counts them. Counted as a change, a file holding them could never read up to date. A member to
  *  rename is a change (#2592): it reads current, and the apply renames it, so a set of renames is never up to date. */
-const noChanges = (p: SetPreview): boolean => p.counts.current + p.counts.revisionUnknown + p.counts.unstamped === p.counts.members && !p.counts.add && !p.counts.rename && !p.counts.move && !p.setMove && !propChanges(p);
+const noChanges = (p: SetPreview): boolean => p.counts.current + p.counts.revisionUnknown + p.counts.unstamped === p.counts.members && !p.counts.add && !p.counts.rename && !p.counts.move && !p.setMove && !furnitureDueCount(p.furniture) && !propChanges(p);
 /** No changes, and every member current. A member not built by Prism3 that sits on a PLANNED coordinate is one Adopt
  *  could claim (`adoptable`, #2283), so a set holding one reads "no changes", never up to date (owner decision Q191
  *  2B). Off the plan (the owner's own icons, #2464), it doesn't stop a set reading up to date. */
@@ -1147,6 +1197,14 @@ const namedLines = (where: string, list: { part: string; field: string; plan: st
   ...(list.length > DIFFERENCE_LINES ? [`${where}: ${list.length - DIFFERENCE_LINES} more differences not listed.`] : []),
 ];
 
+/** DRAFT wording for the owner (#2803, Q379 A): the furniture an update draws, in the line's "N to …" form, and as done.
+ *  What is left over to clear is named only when nothing is drawn: a redraw clears the old instances anyway. */
+export const furnitureParts = (d: FurnitureDue | undefined, draw: string, clear: string): string[] => {
+  if (!d) return [];
+  const parts = [d.labels ? `${n(d.labels, 'canvas label')} ${draw}` : '', d.backdrops ? `${n(d.backdrops, 'backdrop')} ${draw}` : ''].filter(Boolean);
+  return parts.length ? parts : d.clear ? [`${n(d.clear, 'canvas label or backdrop', 'canvas labels or backdrops')} ${clear}`] : [];
+};
+
 /** One set's dry run, as one line. */
 export const previewLine = (p: SetPreview): string => {
   if (p.blockers.length) return `${p.set}: can't be checked. ${p.blockers.join('; ')}.`;
@@ -1165,6 +1223,7 @@ export const previewLine = (p: SetPreview): string => {
     c.unstamped ? `${c.unstamped} not built by Prism3` : '',
   ].filter(Boolean);
   if (propChanges(p)) parts.push(n(propChanges(p), 'property change'));
+  parts.push(...furnitureParts(p.furniture, 'to draw', 'to clear'));
   // DRAFT (#2464): the members not built by Prism3 stay counted on a set that reads up to date, as on any other.
   const own = c.unstamped ? ` ${c.unstamped} not built by Prism3, left as they are.` : '';
   // DRAFT (#2476, owner decision Q191 2B): on a set with no changes, the members Adopt could claim are named as such.
@@ -1201,7 +1260,9 @@ export const previewVerdict = (r: UpdatePreview, whatChanged: (sets: string[]) =
     // Each set's line, then each field it differs from its plan in, NAMED (#2295): where, what, the plan's value and
     // the file's. `changes` is grouped by part, field and both values, so one engine change over 432 members is one
     // line. A bare re-apply (no field moved) is not a difference and is left to the set's own line.
-    ...r.sets.flatMap((p) => [previewLine(p), ...namedLines(p.set, p.changes.filter((c) => c.field !== 'stamp').map((c) => ({ part: c.part, field: c.field, plan: c.to, file: c.from, members: c.members })))]),
+    ...r.sets.flatMap((p) => [previewLine(p), ...namedLines(p.set, p.changes.filter((c) => c.field !== 'stamp').map((c) => ({ part: c.part, field: c.field, plan: c.to, file: c.from, members: c.members }))),
+      // #2649: the rows moving into the slot, every placed instance named with what moves and what can't carry over.
+      ...(p.slotMigration && !p.blockers.length ? migrationLines(p.set, p.slotMigration) : [])]),
     ...r.refused.map((x) => `${x.def}: can't be checked. ${x.reason}.`),
     pagesLine(r.pages),
     r.missing.length ? `Not in this file: ${r.missing.join(', ')}.` : '',

@@ -36,6 +36,7 @@
     "./resolve-preview": "./resolve-preview.ts",
     "./scale": "./scale.ts",
     "./standard-design-md": "./standard-design-md.ts",
+    "./style-guide-groups": "./style-guide-groups.ts",
     "./theme": "./theme.ts",
     "./tree": "./tree.ts",
     "./version": "./version.ts",

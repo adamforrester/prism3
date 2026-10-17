@@ -53,7 +53,7 @@
  */
 import { currentMode, page, rp, searchHits, searchQuery, setCurrentMode, setPage, setSearch, subscribe } from '../state/store';
 import { isDerived } from '../state/verdict';
-import { DOCS_HREF, INSPECT, TABS, homeOf, isMenuPage, newPageOf, placeId, placeOfPage, placeOfTab, viewLabel, type Host, type InspectId, type NewPageKey, type Place, type TabId } from './pages';
+import { INSPECT, TABS, homeOf, isMenuPage, newPageOf, placeId, placeOfPage, placeOfTab, viewLabel, type Host, type InspectId, type NewPageKey, type Place, type TabId } from './pages';
 import { glyph, h, hook, menuButton, tile } from './dom';
 import { inspectMenu, modeControl, modeLabel, paintInspectView, stepKey, verdictButton, type InspectLegacy } from './preview';
 import { mountActivity, type ActivityLend } from './activity';
@@ -198,6 +198,8 @@ export const mountFrame = (app: HTMLElement, opts: {
   readonly figma: FigmaSource | null;
   /** The bar's Apply Theme (#2178: no longer a Figma menu item), or null where there is no Figma file. */
   readonly applyTheme: (() => FigmaAction) | null;
+  /** The plugin's Docs (#2637 Q384): the main thread opens the docs in the browser. Null on the web, a link there. */
+  readonly openDocs: (() => void) | null;
   /** The legacy renderers lent to the moved pages (S3: the Style guide, to Brand's preview), and the host's font
    *  list (S6.2, Type). */
   readonly lend: PageLends;
@@ -374,7 +376,7 @@ export const mountFrame = (app: HTMLElement, opts: {
   const previewTitle = hook(h('h2', 'p3-preview-title'), 'preview-title');
   previewTitle.id = 'p3-preview-title';
   const modes = modeControl(cleanups);
-  previewHead.append(previewTitle, modes.el, inspectMenu((v, opener) => openInspect(v, opener), cleanups, host === 'web' ? DOCS_HREF : null));
+  previewHead.append(previewTitle, modes.el, inspectMenu((v, opener) => openInspect(v, opener), cleanups));
   // V1: the body shows the page's one home view, named by `data-view`. It changes on a tab or sub-page
   // change and on nothing else. Each domain slice draws its view here (S2 first).
   const previewBody = hook(h('div', 'p3-preview-body'), 'preview-body');
@@ -442,7 +444,7 @@ export const mountFrame = (app: HTMLElement, opts: {
 
   // The verdict, on the bar, after the brand switcher; then the bar's controls (S13.1), which place the shell's nodes.
   const verdict = verdictButton((opener) => openInspect('contrast', opener), cleanups);
-  const barMain = mountBar(opts.bar, { mark, verdict, activity: activity.button, agent, figma, theme, applyTheme: host === 'figma' ? opts.applyTheme : null }, cleanups);
+  const barMain = mountBar(opts.bar, { mark, verdict, activity: activity.button, agent, figma, theme, applyTheme: host === 'figma' ? opts.applyTheme : null, openDocs: host === 'figma' ? opts.openDocs : null }, cleanups);
   barSlot.append(barMain);
 
   // ── Inspect state ───────────────────────────────────────────────────────────────────────────────

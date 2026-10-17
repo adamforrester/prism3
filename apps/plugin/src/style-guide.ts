@@ -38,6 +38,7 @@
  * numerically.
  */
 import { contrast, composite } from '@prism3/engine/color';
+import { STYLE_GUIDE_GROUPS, styleGuideGroup, styleGuideGroupOf } from '@prism3/engine/style-guide-groups';
 import type { RGB } from '@prism3/engine/color';
 import { SECTION_HEADER_SET, isTemplateSet } from './file-components';
 import { HEADER_VARIANT } from './page-header';
@@ -225,6 +226,9 @@ export interface SgTable {
   modes: readonly SgMode[];
   columns: string[];
   rows: SgRow[];
+  /** The group a fresh file draws it in (#2801), from the engine's table (`style-guide-groups.ts`), or null for a type
+   *  with no group: it stands alone. Set by `planStyleGuide` once every table is planned. */
+  group?: string | null;
 }
 
 export interface SgPlan {
@@ -425,11 +429,17 @@ export const planStyleGuide = (catalog: SgCatalog, contract: SgContract | null, 
 
     // Group: by parent path for a primitive scale, by family for semantic roles, within each root. A variable
     // at the prefix itself has no group segment and lands in the base group. Keyed by the group's full path.
+    // INVERSE SPLITS PER FAMILY (#2801, the owner's change of 2026-10-16): `inverse/text/primary` is in the Inverse
+    // text table, not one Inverse table, so each inverse family can sit under the family it re-states. A role directly
+    // under `inverse` keeps the Inverse table.
     const groups = new Map<string, { root: string; prefix: string[]; g: string; members: SgVariable[] }>();
     for (const v of vars) {
       const segs = v.name.split('/');
       const prefix = prefixOf(v.name);
-      const g = primitive ? segs.slice(prefix.length, -1).join('/') : segs.length - prefix.length > 1 ? segs[prefix.length] : '';
+      const depth = segs.length - prefix.length;
+      const g = primitive ? segs.slice(prefix.length, -1).join('/')
+        : depth > 2 && segs[prefix.length] === 'inverse' ? segs.slice(prefix.length, prefix.length + 2).join('/')
+        : depth > 1 ? segs[prefix.length] : '';
       const path = [...prefix, ...(g ? g.split('/') : [])].join('/');
       if (!groups.has(path)) groups.set(path, { root: segs[0], prefix, g, members: [] });
       groups.get(path)!.members.push(v);
@@ -440,13 +450,15 @@ export const planStyleGuide = (catalog: SgCatalog, contract: SgContract | null, 
       // title already names the palette and root), a role relative to its family ("primary" in Text).
       const display = (v: SgVariable): string => {
         const segs = v.name.split('/');
-        return primitive ? segs[segs.length - 1] : segs.slice(prefix.length + (g ? 1 : 0)).join('/');
+        return primitive ? segs[segs.length - 1] : segs.slice(prefix.length + (g ? g.split('/').length : 0)).join('/');
       };
       // RAMP ORDER for a scale (the owner's plugin sorted 10, 11, 112, 12); file order for roles.
       if (primitive) members.sort((a, b) => stepCompare(display(a), display(b)));
       // A collection holding more than one root names the root in every title ("Text — nbds", "Core — nbds base"),
       // since both roots draw the same families onto the same page.
-      const title = g !== '' ? `${sentence(g.split('/').pop()!)}${multiRoot ? ` — ${root}` : ''}`
+      // An inverse family is "Inverse text": its own title, apart from "Text" (the tables filter matches a title).
+      const family = !primitive && g.includes('/') ? g.split('/').join(' ') : g.split('/').pop()!;
+      const title = g !== '' ? `${sentence(family)}${multiRoot ? ` — ${root}` : ''}`
         : groupsInRoot(root) === 1 ? `${sentence(col.name)}${multiRoot ? ` — ${root}` : ''}`
         : `${sentence(col.name)} — ${multiRoot ? `${root} base` : 'base'}`;
 
@@ -514,7 +526,7 @@ export const planStyleGuide = (catalog: SgCatalog, contract: SgContract | null, 
       const k = primitive ? members.filter((v) => referenced.has(v.id)).length : rows.filter((r) => r.cells.some((c) => c.contrast)).length;
       const description = primitive
         ? `${n} primitive color${n === 1 ? '' : 's'} in ${col.name}${k === 0 ? '' : k === n ? ', each referenced by a semantic role' : `, ${k} referenced by a semantic role`}`
-        : `${n} ${g || col.name} role${n === 1 ? '' : 's'} in ${col.name}, per mode${k === 0 ? '' : k === n ? ', each measured against the ground it is contracted for' : `, ${k} measured against the ground they are contracted for`}`;
+        : `${n} ${(g && family) || col.name} role${n === 1 ? '' : 's'} in ${col.name}, per mode${k === 0 ? '' : k === n ? ', each measured against the ground it is contracted for' : `, ${k} measured against the ground they are contracted for`}`;
 
       const perMode = col.modes.flatMap((m) => (primitive ? [m.name, 'Value'] : [m.name, 'Value', 'Contrast']));
       tables.push({
@@ -553,6 +565,9 @@ export const planStyleGuide = (catalog: SgCatalog, contract: SgContract | null, 
   }
   // THE TITLE CELL (owner decision 15, 2026-09-29): a leading Name column on every table type, when asked for.
   if (options.titleCell) for (const t of tables) t.columns.unshift('Name');
+  // THE GROUP A FRESH FILE DRAWS IT IN (#2801, Q378 decision 1): by type and tier, never by family name. A semantic
+  // dimension table whose every row is a radius is Borders' (the kind is read from scopes and names, `varKind`).
+  for (const t of tables) t.group = styleGuideGroupOf({ type: t.type, tier: t.kind, allRadius: t.rows.length > 0 && t.rows.every((r) => r.specimen?.kind === 'radius') });
   return narrow(tables, notes, options.tables);
 };
 
@@ -1304,6 +1319,8 @@ export interface StyleGuideResult {
   /** The `tables` filter's names that match no table (#1778). Not a pass: the designer asked for a table
    *  this run could not find. */
   unmatched: string[];
+  /** The groups (#2801): drawn this run, hand-made ones adopted this run (by title), and empty ones removed. */
+  groups?: { drawn: string[]; adopted: string[]; removed: string[] };
   /** Set when `StyleGuideRun.stop` ended the run early (S11.2, owner decision P7): `done` of `total` tables were
    *  reached. A stopped run judges no superseded table and re-flows nothing it did not draw, as a filtered one. */
   stopped?: { done: number; total: number };
@@ -1382,6 +1399,32 @@ const WHITE = [{ type: 'SOLID', visible: true, opacity: 1, blendMode: 'NORMAL', 
 /** The gap between tables in a page's row (owner decision 16, 2026-09-29: tables flow left to right). 160px, the gap
  *  the owner approved between component sets on a shared page (proposed, owner to confirm, for tables). */
 const TABLE_GAP = 160;
+/**
+ * THE GROUPS (#2801, Q378; the owner approved the wireframe and its eight recommendations). Each group Prism3 draws is a
+ * top-level frame, `Style guides — <title>`: a VERTICAL auto layout, transparent, padded 88 on top (the middle of the
+ * measured 80–96) and 160 on the sides and bottom, with a `_Section-header` Size=Large holding the title only, then
+ * 80 below it a GRID of guides, 160 between them. Semantic colors' grid has a second row: each inverse guide under the
+ * default-surface guide it re-states. Groups stack down the page in the engine table's order, 320 apart, left-aligned;
+ * ungrouped guides (effect styles) go below the last group.
+ */
+const GROUP_PAD_TOP = 88;
+const GROUP_PAD = 160;
+const GROUP_HEAD_GAP = 80;
+const GUIDE_GAP = 160;
+const GROUP_GAP = 320;
+const GROUP_HEADER_VARIANT = 'Size=Large';
+/** On a group frame Prism3 drew: the engine table's group id. */
+const GROUP_KEY = 'prism3-style-guide-group';
+/** On a group frame Prism3 drew: the title it wrote, so a designer's retitle is never overwritten. */
+const GROUP_TITLE_KEY = 'prism3-style-guide-group-title';
+/** On a group frame Prism3 drew: `<page id>|<frame id>`, which tells the frame from a designer's copy of it. */
+const GROUP_MARK_KEY = 'prism3-style-guide-group-mark';
+/** On a group frame Prism3 drew: where it last put it, `x,y`. A group no longer there was moved by a designer. */
+const GROUP_AT_KEY = 'prism3-style-guide-group-at';
+/** On a guide: the id of the group frame it was last found in or put in. A guide with this record that sits loose on
+ *  the page was dragged out of its group by a designer, and stays loose (Q5 A). A loose guide without it was drawn
+ *  before groups existed, and joins its group. */
+const IN_GROUP_KEY = 'prism3-style-guide-in-group';
 /** A palette swatch's floor inside its FILL cell (owner decisions, 2026-09-29: decision 13 as restated, and the floor
  *  itself, 80px, "close to the 83px in their file and not much smaller"). The swatch still FILLs its cell both ways;
  *  80 is only the minimum, so a HUG track cannot shrink it below that. */
@@ -1884,6 +1927,191 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
     return rowEndOf.get(k)!;
   };
 
+  // ── GROUPS (#2801) ─────────────────────────────────────────────────────────────────────────────────
+  // MEMBERSHIP IS READ FROM THE CANVAS ON EVERY RUN (Q378 decision 3), never from stored defaults: a guide inside a
+  // group stays in it, wherever a designer put it. The engine table decides only where a guide goes that is in no
+  // group yet: a new one, or one an earlier build drew loose on the page.
+  //   • HOME of a group id on a page, in order: the group Prism3 drew for it; else the hand-made frame holding the most
+  //     guides of that id (ADOPTION, matched by the guides it contains, its title, position and layout kept, Q4 A);
+  //     else a new group, drawn below the page's content.
+  //   • A NEW guide joins its home at the end; an inverse guide in Semantic colors goes under its default-surface
+  //     counterpart when that cell is free. A hand-made group's guides are appended as its layout allows.
+  const fullPlan = options.tables ? planStyleGuide(catalog, contract, { ...options, tables: undefined }) : plan;
+  const groupByKey = new Map(fullPlan.tables.map((t) => [t.key, t.group ?? null]));
+  const onPage = (n: SgNode, p: SgPage): boolean => { const par = n.parent as { id?: unknown } | null | undefined; return !!par && (par === p || (p.id !== undefined && par.id === p.id)); };
+  /** The page-level frame `n` sits in (itself when it is on the page), or null when it is on no page. */
+  const topOf = (n: SgNode, p: SgPage): SgNode | null => {
+    let cur: SgNode = n;
+    for (let i = 0; i < 256; i++) {
+      if (onPage(cur, p)) return cur;
+      const par = cur.parent as SgNode | null | undefined;
+      if (!par) return null;
+      cur = par;
+    }
+    return null;
+  };
+  /** A group Prism3 drew, and not a designer's copy of it. */
+  const isOurGroup = (n: SgNode): boolean => {
+    if (n.type !== 'FRAME' || !n.getPluginData?.(GROUP_KEY)) return false;
+    const mark = n.getPluginData?.(GROUP_MARK_KEY) || '';
+    return mark.slice(mark.lastIndexOf('|') + 1) === String(n.id);
+  };
+  const groupAt = (n: SgNode): boolean => {
+    const [x, y] = (n.getPluginData?.(GROUP_AT_KEY) || '').split(',').map(Number);
+    return Number.isFinite(x) && Number.isFinite(y) && !!n.getPluginData?.(GROUP_AT_KEY) && near(num(n.x), x) && near(num(n.y), y);
+  };
+  const guidesGridOf = (g: SgNode): SgNode | null => (((g.children ?? []) as SgNode[]).find((c) => c.getPluginData?.(PART_KEY) === 'guides') ?? null);
+  const gridRowOf = (n: SgNode): number => num(read(n, 'gridRowAnchorIndex'));
+  const gridColOf = (n: SgNode): number => num(read(n, 'gridColumnAnchorIndex'));
+  /** Track counts set, every track HUG: assigned, as the table grid's are, and re-assigned whenever a count moves. */
+  const setTracks = (grid: SgNode, rows: number, cols: number): void => {
+    if (num(grid.gridRowCount) !== rows) grid.gridRowCount = rows;
+    if (num(grid.gridColumnCount) !== cols) grid.gridColumnCount = cols;
+    for (const [key, n] of [['gridRowSizes', rows], ['gridColumnSizes', cols]] as const) {
+      try { grid[key] = Array.from({ length: n }, () => ({ type: 'HUG' })); }
+      catch { for (const sz of grid[key] ?? []) sz.type = 'HUG'; }
+    }
+  };
+  /** A color table's inverse family: an `inverse` segment in its path. Its counterpart is the same path without it. */
+  const pathSegs = (key: string): string[] => key.split('|').slice(2).join('|').split('/');
+  const isInverseKey = (key: string): boolean => key.startsWith('color|') && pathSegs(key).includes('inverse');
+  const counterpartKey = (key: string): string | null => {
+    if (!key.startsWith('color|')) return null;
+    const [type, col] = key.split('|');
+    const segs = pathSegs(key);
+    const i = segs.indexOf('inverse');
+    const mate = i >= 0 ? [...segs.slice(0, i), ...segs.slice(i + 1)] : segs.length > 1 ? [...segs.slice(0, -1), 'inverse', segs[segs.length - 1]] : null;
+    return mate && mate.length ? `${type}|${col}|${mate.join('/')}` : null;
+  };
+  // Where the page's groups stack from (Q2 A), read BEFORE anything is drawn: the groups Prism3 left in place, else
+  // the guides an earlier build drew loose (its category rows), so a file drawn before groups is grouped where its
+  // tables were. A page with neither stacks from where its first new group lands.
+  const origins = new Map<SgPage, { x: number; y: number }>();
+  /** Each group Prism3 drew, as it stood before this run: where and how tall (a partial run's push-down reads it). */
+  const groupsBefore = new Map<SgNode, { y: number; h: number }>();
+  for (const p of pages.values()) {
+    const kids = (p.children as readonly SgNode[]).filter((n) => n.type === 'FRAME' && n.visible !== false);
+    const ours = kids.filter((n) => isOurGroup(n));
+    for (const g of ours) groupsBefore.set(g, { y: num(g.y), h: num(g.height) });
+    const placed = ours.filter(groupAt);
+    const loose = kids.filter((n) => !!n.getPluginData?.(TABLE_KEY) && !n.getPluginData?.(IN_GROUP_KEY));
+    const from = placed.length ? placed : loose;
+    if (from.length) origins.set(p, { x: Math.min(...from.map((n) => num(n.x))), y: Math.min(...from.map((n) => num(n.y))) });
+  }
+  const groupHeaderVariant = (headerSet?.children?.find((c) => c.name === GROUP_HEADER_VARIANT) as SgNode | undefined) ?? headerVariant;
+  const groupsDrawn: string[] = [];
+  /** The groups this run drew: placed against the page as it stood then, so a partial run's push-down leaves them. */
+  const newGroups = new Set<SgNode>();
+  const groupsAdopted: string[] = [];
+  interface Home { id: string; frame: SgNode; container: SgNode; ours: boolean }
+  const homes = new Map<string, Home>();
+  /** A new group, drawn below the page's content (measured before the frame exists, #2269); a full run re-stacks it. */
+  const drawGroup = async (p: SgPage, id: string): Promise<Home> => {
+    const g = styleGuideGroup(id)!;
+    const shown = (p.children as readonly SgNode[]).filter((n) => n.visible !== false);
+    const at = shown.length ? { x: Math.min(...shown.map((n) => num(n.x))), y: Math.max(...shown.map((n) => num(n.y) + num(n.height))) + GROUP_GAP } : { x: 0, y: 0 };
+    const f = api.createFrame();
+    f.name = `Style guides — ${g.title}`;
+    f.layoutMode = 'VERTICAL';
+    f.primaryAxisSizingMode = 'AUTO';
+    f.counterAxisSizingMode = 'AUTO';
+    f.paddingTop = GROUP_PAD_TOP; f.paddingBottom = GROUP_PAD; f.paddingLeft = GROUP_PAD; f.paddingRight = GROUP_PAD;
+    f.itemSpacing = GROUP_HEAD_GAP;
+    // Transparent (Q7 A): the group sits on the canvas; the guides inside it carry their own white.
+    f.fills = [];
+    f.setPluginData?.(GROUP_KEY, id);
+    p.appendChild(f);
+    f.x = at.x;
+    f.y = at.y;
+    f.setPluginData?.(GROUP_AT_KEY, `${at.x},${at.y}`);
+    f.setPluginData?.(GROUP_MARK_KEY, `${String(p.id)}|${String(f.id)}`);
+    let header: SgNode | null = null;
+    if (groupHeaderVariant?.createInstance) {
+      if (groupHeaderVariant === headerVariant && headerSet) {
+        const note = `${String(headerSet.name)} has no ${GROUP_HEADER_VARIANT} variant, so group titles use ${HEADER_VARIANT}`;
+        if (!misses.includes(note)) misses.push(note);
+      }
+      header = groupHeaderVariant.createInstance() as SgNode;
+      // Title only (decision 2): the Description is switched off.
+      const descKey = Object.keys(header.componentProperties ?? {}).find((k) => k === 'Description' || k.startsWith('Description#'));
+      if (descKey) header.setProperties?.({ [descKey]: false });
+      await writeText(byName(header, 'Title'), g.title);
+      if (byName(header, 'Title')?.characters === g.title) f.setPluginData?.(GROUP_TITLE_KEY, g.title);
+      header.setPluginData?.(PART_KEY, 'group-header');
+      f.appendChild?.(header);
+    }
+    const grid = api.createFrame();
+    grid.name = 'Guides';
+    grid.fills = [];
+    grid.setPluginData?.(PART_KEY, 'guides');
+    grid.layoutMode = 'GRID';
+    setTracks(grid, 1, 1);
+    grid.gridRowGap = GUIDE_GAP;
+    grid.gridColumnGap = GUIDE_GAP;
+    f.appendChild?.(grid);
+    sizing(grid, 'HUG');
+    try { grid.layoutSizingVertical = 'HUG'; } catch { /* a host that refuses it leaves the grid as created */ }
+    // The header spans the group, as a table's spans its table: FILL, FIXED at the grid's width where FILL is refused.
+    if (header && !sizing(header, 'FILL')) setWidth(header, num(grid.width));
+    groupsDrawn.push(g.title);
+    newGroups.add(f);
+    return { id, frame: f, container: grid, ours: true };
+  };
+  const homeOf = async (p: SgPage, id: string): Promise<Home> => {
+    const k = `${p.name}\u241f${id}`;
+    const had = homes.get(k);
+    if (had) return had;
+    let home: Home | null = null;
+    const own = (p.children as readonly SgNode[]).find((n) => isOurGroup(n) && n.getPluginData?.(GROUP_KEY) === id);
+    if (own) home = { id, frame: own, container: guidesGridOf(own) ?? own, ours: true };
+    else {
+      // ADOPTION: the page-level frame holding the most guides whose group is this one, the first on a tie.
+      const tally = new Map<SgNode, { n: number; container: SgNode }>();
+      for (const f of framesOn(p)) {
+        const key = f.getPluginData?.(TABLE_KEY);
+        if (!key || groupByKey.get(key) !== id) continue;
+        const top = topOf(f, p);
+        if (!top || top === f) continue;
+        const was = tally.get(top);
+        tally.set(top, { n: (was?.n ?? 0) + 1, container: was?.container ?? (f.parent as SgNode) });
+      }
+      const best = [...tally].sort((a, b) => b[1].n - a[1].n)[0];
+      if (best) {
+        home = { id, frame: best[0], container: best[1].container, ours: isOurGroup(best[0]) };
+        if (!home.ours && !groupsAdopted.includes(String(best[0].name))) groupsAdopted.push(String(best[0].name));
+      }
+    }
+    home ??= await drawGroup(p, id);
+    homes.set(k, home);
+    return home;
+  };
+  /** Put a guide that is in no group into its home: at the end, or under its counterpart in Semantic colors' inverse
+   *  row. A hand-made group that is no grid takes it as its layout allows: appended to an auto layout, or placed
+   *  GUIDE_GAP right of its rightmost guide. */
+  const placeGuide = (wrap: SgNode, key: string, home: Home): void => {
+    const c = home.container;
+    const kids = ((c.children ?? []) as SgNode[]).filter((k) => k !== wrap);
+    if (c.layoutMode === 'GRID') {
+      const row = home.ours && styleGuideGroup(home.id)?.inverseRow && isInverseKey(key) ? 1 : 0;
+      const mateKey = counterpartKey(key);
+      const mate = mateKey ? kids.find((k) => k.getPluginData?.(TABLE_KEY) === mateKey) : undefined;
+      const taken = (r: number, col: number): boolean => kids.some((k) => gridRowOf(k) === r && gridColOf(k) === col);
+      const col = mate && !taken(row, gridColOf(mate)) ? gridColOf(mate) : kids.length ? Math.max(...kids.map(gridColOf)) + 1 : 0;
+      setTracks(c, Math.max(num(c.gridRowCount), row + 1), Math.max(num(c.gridColumnCount), col + 1));
+      c.appendChildAt?.(wrap, row, col);
+    } else if (AUTO_LAYOUT.has(String(c.layoutMode))) c.appendChild?.(wrap);
+    else {
+      const guides = kids.filter((k) => !!k.getPluginData?.(TABLE_KEY));
+      c.appendChild?.(wrap);
+      wrap.x = guides.length ? Math.max(...guides.map((k) => num(k.x) + num(k.width))) + GUIDE_GAP : 0;
+      wrap.y = guides.length ? Math.min(...guides.map((k) => num(k.y))) : 0;
+    }
+    // A guide keeps hugging its table wherever it lands.
+    sizing(wrap, 'HUG');
+    try { wrap.layoutSizingVertical = 'HUG'; } catch { /* outside auto layout it hugs by its own sizing modes */ }
+    wrap.setPluginData?.(IN_GROUP_KEY, String(home.frame.id));
+  };
+
   const headerColor = options.header === 'light' ? 'white' : 'dark';
   const drawnOn = new Set<SgPage>();
   /** Every table this run drew, and how much wider it is than before (0 for a new one). */
@@ -1911,11 +2139,19 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
       // stays unmatched and is never overwritten.
       if (titleNode?.characters === t.title) wrap.setPluginData?.(TITLE_KEY, t.title);
       if (descNode?.characters === t.description) wrap.setPluginData?.(DESC_KEY, t.description);
+      // WHERE IT IS DECIDES ITS GROUP (#2801, decision 3). In a group: it stays, and the run records which. Loose with
+      // that record: a designer dragged it out, and it stays loose (Q5 A). Loose without it: an earlier build drew it
+      // before groups, and it joins its group now.
+      const top = topOf(wrap, page);
+      if (top && top !== wrap) wrap.setPluginData?.(IN_GROUP_KEY, String(top.id));
+      else if (top && t.group && !wrap.getPluginData?.(IN_GROUP_KEY)) placeGuide(wrap, t.key, await homeOf(page, t.group));
     } else {
       // Measured BEFORE the frame exists (#2269): the host adds a new frame to the CURRENT page at once, 100 × 100 at
       // 0, 0, so on the page being drawn (where a designer usually is) a measurement taken after `createFrame` counted
-      // the table itself, and every new category's row anchored on it, at the same place.
-      const at = anchor(page, categoryOfKey(t.key));
+      // the table itself, and every new category's row anchored on it, at the same place. A grouped guide's home is
+      // found (or drawn) first, for the same reason.
+      const home = t.group ? await homeOf(page, t.group) : null;
+      const at = home ? null : anchor(page, categoryOfKey(t.key));
       wrap = api.createFrame();
       wrap.name = `Style guide — ${t.title}`;
       wrap.layoutMode = 'VERTICAL';
@@ -1923,10 +2159,13 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
       wrap.counterAxisSizingMode = 'AUTO';
       wrap.itemSpacing = 40;
       wrap.setPluginData?.(TABLE_KEY, t.key);
-      page.appendChild(wrap);
-      wrap.x = at.x;
-      wrap.y = at.y;
-      wrap.setPluginData?.(AT_KEY, `${at.x},${at.y}`);
+      if (home) placeGuide(wrap, t.key, home);
+      else if (at) {
+        page.appendChild(wrap);
+        wrap.x = at.x;
+        wrap.y = at.y;
+        wrap.setPluginData?.(AT_KEY, `${at.x},${at.y}`);
+      }
       if (headerVariant?.createInstance) {
         const h = headerVariant.createInstance() as SgNode;
         const descKey = Object.keys(h.componentProperties ?? {}).find((k) => k === 'Description' || k.startsWith('Description#'));
@@ -2275,7 +2514,7 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
     out.push(created
       ? { key: t.key, title: t.title, page: t.page, status: 'created', rows: t.rows.length }
       : { key: t.key, title: t.title, page: t.page, status: 'updated', rows: t.rows.length, diff: diffRows(was, after) });
-    if (created) anchor(page, categoryOfKey(t.key)).x += num(wrap.width) + TABLE_GAP;
+    if (created && onPage(wrap, page)) anchor(page, categoryOfKey(t.key)).x += num(wrap.width) + TABLE_GAP;
     drawnOn.add(page);
     drawn.push({ frame: wrap, page, created, delta: created ? 0 : num(wrap.width) - before, height0: created ? 0 : height0 });
   };
@@ -2346,6 +2585,15 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
     const mark = f.getPluginData?.(MARK_KEY) || '';
     const bar = mark.lastIndexOf('|');
     if (mark.slice(bar + 1) !== String(f.id)) return 'copied';
+    // A GUIDE IN A GROUP (#2801) is where the generator left it while it is still in the group it was last found in,
+    // on its page: the group's layout places it, so its x and y are not a record. Moved to another group, or dragged
+    // out, it was moved by a designer.
+    const inGroup = f.getPluginData?.(IN_GROUP_KEY) || '';
+    if (inGroup) {
+      const top = topOf(f, p);
+      if (!top || top === f || String(top.id) !== inGroup || bar < 0 || mark.slice(0, bar) !== String(p.id)) return 'moved';
+      return (await fingerprintOf(f)) === print ? 'unedited' : 'edited';
+    }
     const parent = f.parent as { id?: unknown } | null | undefined;
     if (!parent || (parent !== p && (p.id === undefined || parent.id !== p.id))) return 'moved';
     if (bar < 0 || mark.slice(0, bar) !== String(p.id)) return 'moved';
@@ -2379,10 +2627,14 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
       // `y` afterwards throws ("in get_name: … does not exist"), the shape of #1791 and #1794.
       const name = String(f.name);
       const at = { x: num(f.x), y: num(f.y) };
+      const loose = onPage(f, p);
       for (const d of (f.findAll?.(() => true) ?? []) as SgNode[]) if (d.id !== undefined) gone.add(String(d.id));
       f.remove();
-      if (!freed.has(p)) freed.set(p, []);
-      freed.get(p)!.push(at);
+      // Only a loose table's place counts toward where the rows start; a guide's group closes over it (below).
+      if (loose) {
+        if (!freed.has(p)) freed.set(p, []);
+        freed.get(p)!.push(at);
+      }
       deleted.push(name);
     } else kept.push({ name: String(f.name), reason: v === 'unedited' ? 'not-removable' : v });
   }
@@ -2393,12 +2645,93 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
   const notes = [...plan.notes];
   if (options.tables) {
     const newCols = new Set(out.filter((o) => o.status === 'created').map((o) => plan.tables.find((t) => t.key === o.key)?.collectionId));
-    const everyKey = new Set(planStyleGuide(catalog, contract, { ...options, tables: undefined }).tables.map((t) => t.key));
+    const everyKey = new Set(fullPlan.tables.map((t) => t.key));
     const left = api.root.children.flatMap((p) => framesOn(p)).filter((f) => {
       const k = f.getPluginData?.(TABLE_KEY) || '';
       return !!k && !everyKey.has(k) && newCols.has(k.split('|')[1]);
     }).map((f) => String(f.name));
     if (left.length) notes.push(`${left.join(', ')} ${left.length === 1 ? 'stays' : 'stay'} in place: the generator no longer draws ${left.length === 1 ? 'it' : 'them'}, and a run filtered to named tables deletes nothing. The next run without a Tables filter decides whether to delete ${left.length === 1 ? 'it' : 'them'}`);
+  }
+
+  // GROUPS AFTER A FULL RUN (#2801). A partial run (filtered or stopped) removes no group and closes no gap.
+  //   • AN EMPTY GROUP IS REMOVED: one Prism3 drew that holds no guide and nothing a designer added, only its own title
+  //     and an empty grid. A hand-made group is never removed: Prism3 did not draw it (Q378, an owner question on the PR).
+  //   • A GRID CLOSES OVER A REMOVED GUIDE: an empty column (and an empty inverse row) is dropped, the guides keeping
+  //     their order, so a group narrows when a guide leaves it.
+  //   • THE GROUPS RE-STACK (Q2 A, Q1 A): Prism3's groups still where it left them, in the engine table's order, down
+  //     one column from where the page's groups started, GROUP_GAP apart. A group a designer moved, and a hand-made
+  //     one, stay where they are.
+  const groupsRemoved: string[] = [];
+  const looseFrom = new Map<SgPage, { x: number; y: number }>();
+  const pagesWithGroups = new Set<SgPage>([...drawnOn, ...[...groupsBefore.keys()].map((g) => [...pages.values()].find((p) => onPage(g, p))).filter((p): p is SgPage => !!p)]);
+  // A GROUP'S TITLE IS REFRESHED ONLY WHILE IT READS WHAT PRISM3 WROTE (the rule guides follow, `TITLE_KEY`): a group a
+  // designer retitled keeps its title, its frame name likewise. Every run, partial or not.
+  for (const p of pagesWithGroups) for (const g of (p.children as readonly SgNode[]).filter((n) => isOurGroup(n))) {
+    const def = styleGuideGroup(g.getPluginData?.(GROUP_KEY) || '');
+    if (!def) continue;
+    const wrote = g.getPluginData?.(GROUP_TITLE_KEY) || '';
+    const head = ((g.children ?? []) as SgNode[]).find((c) => c.getPluginData?.(PART_KEY) === 'group-header');
+    const title = head ? byName(head, 'Title') : null;
+    if (wrote && g.name === `Style guides — ${wrote}`) g.name = `Style guides — ${def.title}`;
+    if (title && wrote && title.characters === wrote) await writeText(title, def.title);
+    if (title?.characters === def.title) g.setPluginData?.(GROUP_TITLE_KEY, def.title);
+  }
+  if (!partial) for (const p of pagesWithGroups) {
+    const freedGroups: { x: number; y: number }[] = [];
+    for (const g of (p.children as readonly SgNode[]).filter((n) => isOurGroup(n))) {
+      const grid = guidesGridOf(g);
+      const hasGuide = !!g.findOne?.((n) => !!(n as SgNode).getPluginData?.(TABLE_KEY));
+      const own = (n: SgNode): boolean => n.getPluginData?.(PART_KEY) === 'group-header' || (n === grid && !(grid.children ?? []).length);
+      if (!hasGuide && ((g.children ?? []) as SgNode[]).every(own)) {
+        const name = String(g.name);
+        if (groupAt(g)) freedGroups.push({ x: num(g.x), y: num(g.y) });
+        g.remove?.();
+        groupsBefore.delete(g);
+        groupsRemoved.push(name);
+        continue;
+      }
+      if (grid?.layoutMode === 'GRID') {
+        const kids = (grid.children ?? []) as SgNode[];
+        if (!kids.length) continue;
+        const cols = [...new Set(kids.map(gridColOf))].sort((a, b) => a - b);
+        // Ascending, so each guide moves into a cell already left by the one before it.
+        for (const k of [...kids].sort((a, b) => gridColOf(a) - gridColOf(b))) {
+          const to = cols.indexOf(gridColOf(k));
+          if (to !== gridColOf(k)) (k as SgNode & { setGridChildPosition?(r: number, c: number): void }).setGridChildPosition?.(gridRowOf(k), to);
+        }
+        setTracks(grid, Math.max(...kids.map(gridRowOf)) + 1, cols.length);
+      }
+    }
+    const rank = (g: SgNode): number => STYLE_GUIDE_GROUPS.findIndex((x) => x.id === g.getPluginData?.(GROUP_KEY));
+    const stack = (p.children as readonly SgNode[]).filter((n) => isOurGroup(n) && groupAt(n)).sort((a, b) => rank(a) - rank(b));
+    if (!stack.length) continue;
+    const o = origins.get(p) ?? { x: Math.min(...stack.map((g) => num(g.x))), y: Math.min(...stack.map((g) => num(g.y))) };
+    const x = Math.min(o.x, ...freedGroups.map((f) => f.x));
+    let y = Math.min(o.y, ...freedGroups.map((f) => f.y));
+    for (const g of stack) {
+      g.x = x;
+      g.y = y;
+      g.setPluginData?.(GROUP_AT_KEY, `${x},${y}`);
+      y += num(g.height) + GROUP_GAP;
+    }
+    looseFrom.set(p, { x, y });
+  }
+  // A PARTIAL RUN KEEPS GROUPS FROM OVERLAPPING, as it does rows (#1778): a group that grew or shrank moves what sits
+  // below it, where the generator left it, by exactly its change in height. Nothing else moves.
+  // A group removed this run is never read again (#2704): `groupsBefore` drops it as it goes.
+  if (partial) for (const [g, b] of groupsBefore) {
+    const p = [...pages.values()].find((q) => onPage(g, q));
+    const dh = num(g.height) - b.h;
+    if (!p || near(dh, 0)) continue;
+    for (const n of p.children as readonly SgNode[]) {
+      if (n === g || !(num(n.y) > b.y)) continue;
+      const ours = isOurGroup(n) && groupAt(n) && !newGroups.has(n);
+      const table = !!n.getPluginData?.(TABLE_KEY) && !n.getPluginData?.(IN_GROUP_KEY) && !!recordOf(n) && near(num(n.x), recordOf(n)!.x) && near(num(n.y), recordOf(n)!.y);
+      if (!ours && !table) continue;
+      n.y = num(n.y) + dh;
+      if (ours) n.setPluginData?.(GROUP_AT_KEY, `${num(n.x)},${num(n.y)}`);
+      else n.setPluginData?.(AT_KEY, `${num(n.x)},${num(n.y)}`);
+    }
   }
 
   // ROWS BY CATEGORY (owner decision 16, 2026-09-29: "horizontal … a new category of tokens … ideally starts on a
@@ -2421,12 +2754,14 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
   const byRow = (a: SgNode, b: SgNode): number => num(a.x) - num(b.x) || num(a.y) - num(b.y);
   const leftAt = (n: SgNode): boolean => { const a = recordOf(n); return !!a && near(num(n.x), a.x) && near(num(n.y), a.y); };
   const catOf = (n: SgNode): string => categoryOfKey(n.getPluginData?.(TABLE_KEY) || '');
+  // A guide a designer dragged out of its group is theirs to place (#2801, Q5 A): never re-flowed.
+  const rowTable = (n: SgNode): boolean => n.type === 'FRAME' && !!n.getPluginData?.(TABLE_KEY) && !n.getPluginData?.(IN_GROUP_KEY);
   if (partial) for (const p of drawnOn) {
     // Every table the run drew here, a NEW one included (review of f3bb76cd): a first-time table lands at the end of
     // its row, and when it is taller than the row it must push the rows below down, or it runs over them.
     const mine = drawn.filter((d) => d.page === p);
     if (!mine.length) continue;
-    const ours = (p.children as readonly SgNode[]).filter((n) => n.type === 'FRAME' && !!n.getPluginData?.(TABLE_KEY));
+    const ours = (p.children as readonly SgNode[]).filter(rowTable);
     const x0 = new Map(ours.map((n) => [n, num(n.x)]));
     const y0 = new Map(ours.map((n) => [n, num(n.y)]));
     const inRowOf = (d: SgNode, n: SgNode): boolean => catOf(n) === catOf(d) && near(y0.get(n) ?? 0, y0.get(d) ?? 0);
@@ -2450,7 +2785,7 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
     }
   }
   else for (const p of drawnOn) {
-    const ours = (p.children as readonly SgNode[]).filter((n) => n.type === 'FRAME' && !!n.getPluginData?.(TABLE_KEY));
+    const ours = (p.children as readonly SgNode[]).filter(rowTable);
     const left = ours.filter(leftAt);
     const unrecorded = ours.filter((n) => !recordOf(n));
     if (!left.length && !unrecorded.length) continue;
@@ -2465,6 +2800,9 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
     let x0 = Math.min(...taken.map((n) => num(n.x)));
     let y = Math.min(...taken.map((n) => num(n.y)));
     for (const d of freed.get(p) ?? []) { x0 = Math.min(x0, d.x); y = Math.min(y, d.y); }
+    // UNGROUPED GUIDES GO BELOW THE LAST GROUP, left-aligned with the groups (Q8 A).
+    const below = looseFrom.get(p);
+    if (below) { x0 = below.x; y = below.y; }
     const cats = [...new Set(taken.map(catOf))].sort((a, b) => categoryRank(a) - categoryRank(b) || a.localeCompare(b));
     for (const cat of cats) {
       const row = taken.filter((n) => catOf(n) === cat).sort(byRow);
@@ -2499,7 +2837,8 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
   }
   for (const [what, ws] of noSet) { const n = ws.length; misses.push(`${n} ${what} spacing specimen${plural(n, ' is', 's are')} not drawn: this file has no ${SPACING_CELL_SET} set, which Set up file adds (${placesOf(ws)})`); }
   for (const [what, ws] of noLayer) { const n = ws.length; misses.push(`${n} ${what} specimen${plural(n, ' is', 's are')} not bound: the member has no layer this build can size or bind (a Bar, a first frame, or a layer named *-example), so ${plural(n, 'it shows', 'they show')} the cell component's own value (${placesOf(ws)})`); }
-  return { tables: out, stale, replaced, deleted, kept, unbound, notes, misses, unmatched: plan.unmatched, ...(stopped ? { stopped } : {}) };
+  return { tables: out, stale, replaced, deleted, kept, unbound, notes, misses, unmatched: plan.unmatched,
+    groups: { drawn: groupsDrawn, adopted: groupsAdopted, removed: groupsRemoved }, ...(stopped ? { stopped } : {}) };
 };
 
 /**
@@ -2554,6 +2893,11 @@ export const styleGuideSummary = (r: StyleGuideResult): { ok: boolean; headline:
   const list = (xs: readonly string[]): string => (xs.length > 3 ? `${xs.slice(0, 3).join(', ')} and ${xs.length - 3} more` : xs.join(', '));
   const noLonger = (n: number): string => `${n} table${n === 1 ? '' : 's'} the generator no longer draws ${n === 1 ? 'was' : 'were'}`;
   if (r.deleted.length) parts.push(`${noLonger(r.deleted.length)} deleted, unedited: ${list(r.deleted)}`);
+  // The groups (#2801): what this run drew, took over and removed, by title.
+  const groupsOf = (n: number): string => `${n} group${n === 1 ? '' : 's'}`;
+  if (r.groups?.drawn.length) parts.push(`${groupsOf(r.groups.drawn.length)} drawn: ${list(r.groups.drawn)}`);
+  if (r.groups?.adopted.length) parts.push(`${groupsOf(r.groups.adopted.length)} you made ${r.groups.adopted.length === 1 ? 'is' : 'are'} kept as drawn, with new guides added: ${list(r.groups.adopted)}`);
+  if (r.groups?.removed.length) parts.push(`${groupsOf(r.groups.removed.length)} removed, empty: ${list(r.groups.removed)}`);
   const REASON: Record<Exclude<KeepReason, 'unrecorded'>, string> = {
     edited: 'edited', moved: 'moved', copied: 'a copy', 'no-collection': 'its collection is not in this file',
     'nothing-drawn': 'nothing was drawn this run', 'not-removable': 'could not be deleted',
