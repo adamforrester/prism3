@@ -340,8 +340,9 @@ export const makeTextField = (spec: FieldSpec): ComponentDef => {
       // field's context — see codeOnly). The `variant` coordinate accounts for every field-label axis, as
       // `nestVariantMatch` requires.
       // THE LABEL ROW (`edge: 'toggle'` only; owner decision Q301.2 B). The label and the Show/Hide button share
-      // a row above the box, the button at the row's end, so the row is as tall as the button (owner: "the label
-      // row grows to fit the toggle"). The label's cell grows across the row and the button hugs its text. The
+      // a row above the box, the button at the row's end. The row is as tall as the label's line, not the button
+      // (#2804, Q380 A, which replaced Q301's "the label row grows to fit the toggle"): the button stretches to the
+      // row. The label's cell grows across the row and the button hugs its text. The
       // row's gap is the control's own `size.{size}.gap`, so the field adds no spacing key: Password binds
       // TextField's token block exactly.
       ...(toggle ? {
@@ -352,7 +353,7 @@ export const makeTextField = (spec: FieldSpec): ComponentDef => {
         crossAxisFill: true,
         gap: 'size.{size}.gap',
         children: ['labelCell', 'toggle'],
-        note: 'The label and the Show/Hide button on one row, the button at the end. The row is as tall as the button.',
+        note: 'The label and the Show/Hide button on one row, the button at the end. The row is as tall as the label\'s line; the button stretches to it.',
       },
       labelCell: {
         kind: 'box',
@@ -377,7 +378,15 @@ export const makeTextField = (spec: FieldSpec): ComponentDef => {
       // THE SHOW/HIDE BUTTON (`edge: 'toggle'` only; owner decisions Q301.2 B and Q301.3 B). A nested Button, not a
       // copy of one: the text appearance, flush (#2350, so its label lines up with the field's end edge and its
       // hit area keeps its height), the primary intent (Button is the primary component, #1223) and the EMPHASIS
-      // weight, the standalone Link's starting weight (Q289.3). Its size follows the field's.
+      // weight, the standalone Link's starting weight (Q289.3).
+      //
+      // SMALL AT EVERY FIELD SIZE (#2804, owner decision Q380 A). It no longer follows the field's size: a medium or
+      // large Button is 44 or 56 tall and held the row at that height, well above the label's line. And it
+      // STRETCHES TO THE ROW (`crossAxisFill`, Figma's `STRETCH`): a hugging row is as tall as its tallest child that
+      // does not stretch, which is the label, so the row is one label line tall (18 / 21 / 24 at small / medium /
+      // large) and the button takes that height. Its "Show" is one `label.sm` line (14), which fits inside every
+      // row, centered on it. Before #2804 the row was 36 / 44 / 56, and the label sat 9 / 11.5 / 16 px off the box
+      // beyond the root gap; now it sits at the root gap alone, where TextField's label sits.
       //
       // ITS STATE IS NOT THE FIELD'S. The field's seven states are not Button's vocabulary (`filled` and
       // `read-only` have no Button member), so `state` cannot be followed by name. `atState` maps the one field
@@ -396,13 +405,13 @@ export const makeTextField = (spec: FieldSpec): ComponentDef => {
         nests: 'button',
         nesting: {
           kind: 'nest-exposed',
-          variant: { appearance: 'text', size: 'medium', surface: 'default', inset: 'flush', state: 'rest', 'leading icon': 'false', 'trailing icon': 'false' },
+          variant: { appearance: 'text', size: 'small', surface: 'default', inset: 'flush', state: 'rest', 'leading icon': 'false', 'trailing icon': 'false' },
           expose: ['label'],
-          follow: ['size'],
           atState: { disabled: { state: 'disabled' } },
         },
+        crossAxisFill: true,
         nestTexts: { label: 'Show' },
-        note: 'The Show/Hide button: a flush text Button in the emphasis weight, at the end of the label row. It reads "Show" on every member; set it to "Hide" for the shown look. Disabled with the field, live when read-only, never colored by status.',
+        note: 'The Show/Hide button: a small flush text Button in the emphasis weight, at the end of the label row, at every field size. It reads "Show" on every member; set it to "Hide" for the shown look. Disabled with the field, live when read-only, never colored by status. It stretches to the row, so the row is as tall as the label.',
       },
       } satisfies Record<string, PartDef> : {}),
       // THE CONTROL — the bordered, interactive input box. The single target: it owns the hit area, the focus
