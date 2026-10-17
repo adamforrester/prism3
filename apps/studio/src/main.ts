@@ -1826,8 +1826,8 @@ const figmaActions = (): FigmaAction[] => [
   { id: 'prune', label: 'Prune stale', busy: host.pruneBusy === 'preview' ? 'Checking…' : host.pruneBusy === 'delete' ? 'Removing…' : pruneBusy() ? 'Prune stale' : null,
     disabled: pruneBlocked() || !!restoreFailure, hint: restoreFailure ? RESTORE_OFF_HINT : PRUNE_HINT, run: runPrune },
   { id: 'file-setup', label: FILE_SETUP_LABEL, busy: fileSetupBusy() ? 'Setting up…' : null, disabled: false, run: runFileSetup },
-  // S8.2 (owner decision G2 A): Build set… opens the Components tab, where the set is chosen and built.
-  { id: 'build', label: 'Build set…', busy: null, disabled: false, run: () => setPage(pageOfTab('components')) },
+  // S8.2 (owner decision G2 A): Build sets… (#2700, renamed for multi-select) opens the Components tab, where the sets are chosen and built.
+  { id: 'build', label: 'Build sets…', busy: null, disabled: false, run: () => setPage(pageOfTab('components')) },
   // S11.2 (owner decision H10, H11): "Build style guides…" opens the new page, the only way in since H12 (PG1 A).
   { id: 'style-guide', label: 'Build style guides…', busy: null, disabled: false, run: openStyleGuides },
 ];

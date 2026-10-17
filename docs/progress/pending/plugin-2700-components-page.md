@@ -27,6 +27,19 @@ Built to the owner's approved wireframe on #2700, with every numbered call (1–
   - TY2 A's L1 rule wants `space-300` after a section title, and a count wrapping under it broke that at 380, so the count sits inside the heading.
 - **Removed:** the set radios, `chosenOf`, `componentSetsSection` and the `.p3-buildbar` CSS. Q23's heading pairs on Components ended with the move.
 
+### The fix round on #2812
+
+The owner's decisions on #2812 (all eight questions as recommended, then Q390, Q391 A, Q392 A) and the independent review's findings:
+- **The Figma menu's item reads "Build sets…"**, to match multi-select (question 6).
+- **A search opens the families its matches sit in** (question 7), so a match is shown, not folded away. The families stay open once the search is cleared, as one opened by hand would.
+- **Under a search, a section's box acts on the rows shown** and reads checked, mixed or unchecked over them (Q391 A). Before this, a search for "badge" put all 32 Components sets one click away. It shows two rows, Badge and Tag, whose summary says "A static label is a badge."
+- **A run builds in the list's order**, whatever order the boxes were ticked in (review N1). The bar passed the selection in insertion order.
+- **"Also builds" names sets as the list does** (Q392 A): "Focus ring, Icon button Neutral", not component ids. A part set reads as its base in words and its part, and a set alone on its row as the row.
+- **The counts keep one line** (question 5): at 380 the line moves under the button whole.
+- **Two gates the review found missing:**
+  - `test:verdict` now reads `aria-checked` on the rendered boxes: one set cleared from a selected family draws the family and the section as mixed (S1).
+  - `test:smoke` measures the Button options' text in Light, Dark and HC dark, at 1280 in the preview pane and at 380 inline (S2). Moving the options back onto the specimen ground fails it by name.
+
 ### Tests
 
 - New: `test-component-groups.ts`, with 29 arms. Its rows, labels, order and family members are typed from the wireframe. Six mutations each fail by name: Icon's section, the row sort, the member sort, a box selecting an unbuildable set, search on labels only, and Stop ending the run at once.

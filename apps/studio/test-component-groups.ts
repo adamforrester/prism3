@@ -16,10 +16,13 @@
  *   · a box selecting a set that can't be built (`buildableOf` bypassed) → `G4 under call 8…`.
  *   · search keeping a family only on its own label → `search: a family stays while any of its sets matches`.
  *   · Stop ending the run at once (before the current set's result) → `call 16: Stop waits for the set being built…`.
+ *   · "Also builds" by component name again (`displayNameOf` bypassed) → `idea 7: the sets a build makes first…`.
+ *   · the selection run in click order (`inListOrder` returning its input) → `review N1 on #2812: a selection runs in the list's order…`.
+ *   · a search opening every family (`familiesToOpen` dropping its match) → `call 7 on #2812: a search opens the families…`.
  */
 import { COMPONENT_CATALOG_DATA as catalog } from './src/state/component-catalog-data';
 import type { Catalog, CatalogEntry } from './src/state/component-catalog';
-import { alsoBuilds, boxOfSets, costOf, groupsOf, rowMatches, sentenceCase, toggleSets, GROUPS_COPY } from './src/state/component-groups';
+import { alsoBuilds, boxOfSets, costOf, displayNameOf, familiesToOpen, groupsOf, inListOrder, rowMatches, sentenceCase, toggleSets, GROUPS_COPY } from './src/state/component-groups';
 import { currentOf, positionOf, record, runVerdict, startRun, stopRun, RUN_COPY } from './src/state/build-queue';
 
 let failed = 0;
@@ -85,6 +88,8 @@ const checkbox = groups.flatMap((g) => g.rows).find((r) => r.label === 'Checkbox
 ok(rowMatches(catalog, checkbox, 'row') && rowMatches(catalog, checkbox, 'CHECKBOX') && !rowMatches(catalog, checkbox, 'slider'),
   'search: a family stays while any of its sets matches ("row" finds Checkbox by Checkbox.Row), case-insensitively, and goes when none does');
 ok(rowMatches(catalog, checkbox, '   '), 'an empty search keeps every row');
+ok(JSON.stringify(familiesToOpen(catalog, 'neutral')) === JSON.stringify(['components|Buttons', 'components|Icon button', 'subcomponents|Flush Icon Button']) && familiesToOpen(catalog, ' ').length === 0,
+  `call 7 on #2812: a search opens the families one of whose sets matches, and an empty search opens none (${JSON.stringify(familiesToOpen(catalog, 'neutral'))})`);
 
 console.log('\n4. What a selection costs, and what it builds first (calls 17, idea 7)');
 const four = ['button', 'button-destructive', 'dialog', 'text-field'];
@@ -92,8 +97,12 @@ const c4 = costOf(catalog, four);
 ok(c4.sets === 4 && c4.variants === 576 + 576 + 15 + 84 && c4.components === 0, `four sets cost ${c4.variants} variants (the wireframe's 1,251)`);
 const ci = costOf(catalog, ['icon', 'badge']);
 ok(ci.variants === 20 && ci.components === 45, `a set built as separate components counts as components, not variants (Icon: ${ci.components})`);
-ok(JSON.stringify(alsoBuilds(catalog, four)) === JSON.stringify(['Icon', 'Spinner', 'FocusRing', 'IconButton.Neutral', 'Divider', 'FieldLabel', 'FieldMessage']),
-  `idea 7: the sets a build makes first, transitively, minus the selection (${alsoBuilds(catalog, four).join(', ')})`);
+ok(JSON.stringify(alsoBuilds(catalog, four)) === JSON.stringify(['Icon', 'Spinner', 'Focus ring', 'Icon button Neutral', 'Divider', 'Field label', 'Field message']),
+  `idea 7: the sets a build makes first, transitively, minus the selection, named as the list names them (Q392 on #2812) (${alsoBuilds(catalog, four).join(', ')})`);
+ok(displayNameOf(catalog, 'button-destructive') === 'Button Destructive' && displayNameOf(catalog, 'tab') === 'Tab' && displayNameOf(catalog, 'image-placeholder') === 'Image placeholder',
+  `a part set reads as its base and its part, a set alone on its row as the row (${displayNameOf(catalog, 'button-destructive')}, ${displayNameOf(catalog, 'tab')}, ${displayNameOf(catalog, 'image-placeholder')})`);
+ok(JSON.stringify(inListOrder(catalog, ['tag', 'badge', 'spinner', 'button-neutral', 'button'])) === JSON.stringify(['badge', 'button', 'button-neutral', 'tag', 'spinner']),
+  `review N1 on #2812: a selection runs in the list's order, not the order it was ticked in (${JSON.stringify(inListOrder(catalog, ['tag', 'badge', 'spinner', 'button-neutral', 'button']))})`);
 ok(alsoBuilds(catalog, ['focus-ring']).length === 0, 'a set that nests nothing builds nothing first');
 ok(RUN_COPY.runLabel(4) === 'Build 4 sets' && RUN_COPY.runLabel(1) === 'Build 1 set' && RUN_COPY.runLabel(0) === 'Build',
   `call 17: the action counts sets ("${RUN_COPY.runLabel(4)}", "${RUN_COPY.runLabel(1)}", "${RUN_COPY.runLabel(0)}")`);

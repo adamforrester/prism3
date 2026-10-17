@@ -932,7 +932,8 @@ fieldset.p3-lever > legend.p3-lever-head { padding-block-end: var(--p3-space-150
 .p3-cp-bar-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--p3-space-100) var(--p3-space-200); }
 .p3-cp-bar .p3-sub, .p3-cp-lines { margin: 0; }
 .p3-cp-lines { display: grid; gap: var(--p3-space-025); padding: 0; list-style: none; }
-.p3-cp-sum { min-width: 0; color: var(--p3-text-2); }
+/* The counts keep one line (owner, on #2812): at 380 the line moves under the button whole rather than wrapping. */
+.p3-cp-sum { min-width: 0; color: var(--p3-text-2); white-space: nowrap; }
 .p3-cp-sum > b { color: var(--p3-text); font-weight: var(--p3-fw-emphasis); }
 .p3-cp-show { justify-self: start; }
 .p3-cp-dhead { display: grid; gap: var(--p3-space-025); padding: 0 var(--p3-space-050) var(--p3-space-200); }

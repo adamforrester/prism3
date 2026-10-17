@@ -121,13 +121,43 @@ export const toggleSets = (catalog: Catalog, ids: readonly string[], sel: Readon
   return next;
 };
 
+/** Whether a set's own name or summary holds a search, case-insensitively. An empty search matches nothing here. */
+export const setMatches = (catalog: Catalog, id: string, q: string): boolean => {
+  const t = q.trim().toLowerCase();
+  const e = entryOf(catalog, id);
+  return !!t && !!e && [e.name, e.summary].some((x) => x.toLowerCase().includes(t));
+};
+
 /** Whether a row stays under a search (#2700's edge state: "a family stays when any of its sets matches"): its label,
  *  its page, or any of its sets' names or summaries holds the query, case-insensitively. */
 export const rowMatches = (catalog: Catalog, row: GroupRow, q: string): boolean => {
   const t = q.trim().toLowerCase();
   if (!t) return true;
-  const said = [row.label, row.page ?? '', ...row.ids.flatMap((id) => { const e = entryOf(catalog, id); return e ? [e.name, e.summary] : []; })];
-  return said.some((x) => x.toLowerCase().includes(t));
+  return [row.label, row.page ?? ''].some((x) => x.toLowerCase().includes(t)) || row.ids.some((id) => setMatches(catalog, id, t));
+};
+
+/** The families a search opens (owner decision on #2812, call 7): each family one of whose sets matches, so the match is
+ *  shown rather than folded away. */
+export const familiesToOpen = (catalog: Catalog, q: string): string[] =>
+  groupsOf(catalog).flatMap((sec) => sec.rows).filter((r) => r.family && r.ids.some((id) => setMatches(catalog, id, q))).map((r) => r.key);
+
+/** Sets in the list's order, whatever order they were selected in (review N1 on #2812): a run builds them as the list
+ *  reads, top to bottom. An id the list doesn't hold goes last. */
+export const inListOrder = (catalog: Catalog, ids: Iterable<string>): string[] => {
+  const order = groupsOf(catalog).flatMap((sec) => sec.rows.flatMap((r) => r.ids));
+  const at = (id: string): number => { const i = order.indexOf(id); return i < 0 ? order.length : i; };
+  return [...ids].sort((a, b) => at(a) - at(b));
+};
+
+/** A set named as people read it (owner decision Q392 on #2812): a set alone on its row by the row's label ("Focus
+ *  ring"), a part set by its base in words and its part ("Icon button Neutral"), any other set by its name in words. */
+export const displayNameOf = (catalog: Catalog, id: string): string => {
+  const e = entryOf(catalog, id);
+  if (!e) return id;
+  const row = groupsOf(catalog).flatMap((sec) => sec.rows).find((r) => r.ids.includes(id));
+  if (row && !row.family) return row.label;
+  const dot = e.name.indexOf('.');
+  return dot < 0 ? words(e.name) : `${words(e.name.slice(0, dot))} ${e.name.slice(dot + 1)}`;
 };
 
 /** What a selection costs, per unit: the variants of the sets built as one component set, and the components of the
@@ -144,7 +174,7 @@ export const costOf = (catalog: Catalog, ids: Iterable<string>): { sets: number;
 };
 
 /** The sets a build makes first when the file lacks them (idea 7, #1633): what the selection nests, transitively, that
- *  it does not hold itself, in first-seen order, by component name. */
+ *  it does not hold itself, in first-seen order, named as the list names them (`displayNameOf`). */
 export const alsoBuilds = (catalog: Catalog, sel: Iterable<string>): string[] => {
   const chosen = new Set(sel);
   const out: string[] = [];
@@ -156,5 +186,5 @@ export const alsoBuilds = (catalog: Catalog, sel: Iterable<string>): string[] =>
     }
   };
   for (const id of chosen) walk(id);
-  return out.map((id) => entryOf(catalog, id)?.name ?? id);
+  return out.map((id) => displayNameOf(catalog, id));
 };

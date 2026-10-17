@@ -34,7 +34,7 @@ import { searchQuery, setSearchHits, subscribe } from '../state/store';
 import { componentCatalog, type Catalog } from '../state/component-catalog';
 import { componentsPage, setComponentsPage, watchComponentsPage } from '../state/components-page';
 import {
-  alsoBuilds, boxOfSets, buildableOf, costOf, entryOf, fmt, groupsOf, GROUPS_COPY, rowMatches, toggleSets,
+  alsoBuilds, boxOfSets, buildableOf, costOf, entryOf, familiesToOpen, fmt, groupsOf, GROUPS_COPY, inListOrder, rowMatches, toggleSets,
   type BoxState, type GroupRow, type GroupSection,
 } from '../state/component-groups';
 import { currentOf, positionOf, RUN_COPY } from '../state/build-queue';
@@ -151,7 +151,9 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
     el.dataset.kind = sec.kind;
     const head = hook(h('div', 'p3-cp-sec-head'), 'cp-section-head');
     const ids = sec.rows.flatMap((r) => r.ids);
-    if (plugin) head.append(box(`sec=${sec.kind}`, boxOfSets(catalog, ids, componentsPage().sel), GROUPS_COPY.selectAll(sec.title), () => select(ids)));
+    // Q391 A on #2812: under a search the section's box acts on the rows shown, and reads over them.
+    const shown = rows.flatMap((r) => r.ids);
+    if (plugin) head.append(box(`sec=${sec.kind}`, boxOfSets(catalog, shown, componentsPage().sel), GROUPS_COPY.selectAll(sec.title), () => select(shown)));
     // The count sits inside the title (TY2 A): at 380 it wraps under the name inside the heading, so the space after the
     // section title stays the level's space-300 rather than the gap to a wrapped count.
     const t = hook(h('h2', 'p3-lsec-title p3-cp-title'), 'cp-section-title');
@@ -233,7 +235,8 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
     const had = document.activeElement as HTMLElement | null;
     const key = had && bar.contains(had) ? had.dataset.key ?? null : null;
     const catalog = componentCatalog();
-    const sel = [...componentsPage().sel].filter((id) => entryOf(catalog, id)?.buildable);
+    // Review N1 on #2812: the run builds in the list's order, not the order the boxes were ticked in.
+    const sel = inListOrder(catalog, componentsPage().sel).filter((id) => entryOf(catalog, id)?.buildable);
     const run = lend.sets.current();
     const last = lend.sets.last();
     const rowEl = h('div', 'p3-cp-bar-row');
@@ -296,6 +299,13 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
   };
 
   const paint = (): void => { paintList(); paintBar(); };
+  // Call 7 on #2812: a search opens each family one of whose sets matches, so the match is shown. The families stay open
+  // once the search is cleared, as one opened by hand would.
+  const onSearch = (): void => {
+    const add = familiesToOpen(componentCatalog(), searchQuery).filter((k) => !componentsPage().open.has(k));
+    if (add.length) setComponentsPage({ open: new Set([...componentsPage().open, ...add]) });
+    else paintList();
+  };
   // The frame's width tier flips without a remount: the list redraws for the narrow rows and the inline block.
   let tier = narrow();
   const mo = new MutationObserver(() => { const n = narrow(); if (n !== tier) { tier = n; paintList(); } });
@@ -304,7 +314,7 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
   cleanups.push(
     () => mo.disconnect(),
     watchComponentsPage(paint),
-    subscribe('host', paint), subscribe('host:components', paint), subscribe('search', paintList),
+    subscribe('host', paint), subscribe('host:components', paint), subscribe('search', onSearch),
     subscribe('brand', () => { if (narrow()) paintList(); }), subscribe('mode', () => { if (narrow()) paintList(); }),
     () => { for (const fn of inlineOwn) fn(); },
     () => { if (searchQuery.trim()) setSearchHits(null); },

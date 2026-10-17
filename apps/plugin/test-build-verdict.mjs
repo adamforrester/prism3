@@ -1107,6 +1107,86 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   await page.close();
 }
 
+// ── #2812's fix round: the boxes as rendered, the run's order, search, the counts' line, "Also builds" ─────────────
+//
+// The review on #2812 found the model's tri-state held (`test-component-groups.ts`) but nothing reading `aria-checked`
+// on the rendered boxes, and a run that went in click order. The owner's decisions on #2812 add: a search opens the
+// family a match sits in (call 7), a section box under a search acts on the rows shown (Q391 A), the counts keep one
+// line at 380 (5), and "Also builds" names sets as the list does (Q392 A). EXPECTED is typed here.
+//
+// MUTATIONS, each failing here by name:
+//   · a mixed box drawn as unchecked (`aria-checked` "mixed" → "false") → `#2812 S1 one set cleared from a selected family…`.
+//   · the run in click order (`inListOrder` dropped from `paintBar`) → `#2812 N1 Tag ticked before Badge…`.
+//   · the section box over every row again (`shown` → `ids`) → `#2812 Q391 under a search for "badge"…`.
+//   · the search not opening families (`onSearch` → `paintList`) → `#2812 call 7 a search for "neutral"…`.
+//   · the bar's row kept from wrapping (`flex-wrap: wrap` → `nowrap` on `.p3-cp-bar-row`), so the counts squeeze in
+//     beside the button at 380 → `#2812 (5) at 380 the bar keeps both counts on one line, inside the panel`.
+{
+  const { page, errors } = await openPanel();
+  const aria = (key) => page.locator(`[data-p3="cp-box"][data-key="${key}"]`).getAttribute('aria-checked');
+  // S1: a family box, then one of its sets cleared.
+  await hooks.click(page.locator('[data-p3="cp-box"][data-key="row=components|Buttons"]'));
+  const allOn = [await aria('row=components|Buttons'), await aria('sec=components')];
+  await hooks.click(page.locator('[data-p3="cp-box"][data-key="set=button-neutral"]'));
+  const mixed = [await aria('row=components|Buttons'), await aria('set=button-neutral'), await aria('sec=components')];
+  ok(allOn[0] === 'true' && allOn[1] === 'mixed' && JSON.stringify(mixed) === '["mixed","false","mixed"]',
+    `#2812 S1 one set cleared from a selected family draws the family's and the section's boxes as mixed — read family ${allOn[0]}, section ${allOn[1]}, then family/set/section ${JSON.stringify(mixed)}`);
+  // Q392 A, and the counts' line (5): Icon with the two Buttons left, at 380.
+  await hooks.click(page.locator('[data-p3="cp-box"][data-key="set=icon"]'));
+  await page.setViewportSize({ width: 380, height: 640 });
+  await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.w === 'narrow', null, { timeout: 5000 }).catch(() => {});
+  const line = await page.evaluate(() => {
+    const s = document.querySelector('[data-p3="components-summary"]');
+    return { text: s?.textContent ?? null, lines: s ? Math.round(s.getBoundingClientRect().height / parseFloat(getComputedStyle(s).lineHeight)) : 0,
+      fits: s ? s.getBoundingClientRect().right <= document.documentElement.clientWidth : false,
+      also: document.querySelector('[data-p3="components-also-builds"]')?.textContent ?? null };
+  });
+  ok(line.text === '3 sets · 1,152 variants · 45 components' && line.lines === 1 && line.fits,
+    `#2812 (5) at 380 the bar keeps both counts on one line, inside the panel — read ${JSON.stringify(line.text)}, ${line.lines} line(s), fits ${line.fits}`);
+  ok(line.also === 'Also builds, when the file lacks them: Spinner, Focus ring.',
+    `#2812 Q392 "Also builds" names the sets as the list does — read ${JSON.stringify(line.also)}`);
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.w === 'wide', null, { timeout: 5000 }).catch(() => {});
+  // N1: clear, then Tag ticked before Badge; the run posts Badge first.
+  for (const k of ['row=components|Buttons', 'set=icon']) while ((await aria(k)) !== 'false') await hooks.click(page.locator(`[data-p3="cp-box"][data-key="${k}"]`));
+  for (const id of ['tag', 'badge']) await hooks.click(page.locator(`[data-p3="cp-box"][data-key="set=${id}"]`));
+  await hooks.click(page.locator('[data-p3="components-build"]').first(), { timeout: 4000 });
+  await page.waitForFunction(() => window.__builds.length >= 1, null, { timeout: 4000 }).catch(() => {});
+  const firstPost = JSON.stringify(await builds(page));
+  for (const id of ['badge', 'tag']) {
+    await post(page, { type: 'component-result', ok: true, completed: true, headline: '✓ built', summary: `set '${id}'`, lines: [] });
+    await page.waitForTimeout(50);
+  }
+  await idleAgain(page);
+  ok(firstPost === '["badge"]' && JSON.stringify(await builds(page)) === '["badge","tag"]',
+    `#2812 N1 Tag ticked before Badge still runs in the list's order, Badge first — posted ${firstPost}, then ${JSON.stringify(await builds(page))}`);
+  for (const id of ['tag', 'badge']) await hooks.click(page.locator(`[data-p3="cp-box"][data-key="set=${id}"]`));
+  // Q391 A: under a search, the section's box acts on the rows shown. "badge" shows two: Badge, and Tag, whose summary
+  // says "A static label is a badge."; the section holds 32 sets.
+  await hooks.click(page.locator('[data-p3="search-open"]'));
+  await page.locator('[data-p3="search-input"]').fill('badge');
+  await page.waitForFunction(() => document.querySelectorAll('[data-p3="cp-section"][data-kind="components"] [data-p3="cp-row"]').length === 2, null, { timeout: 4000 }).catch(() => {});
+  await hooks.click(page.locator('[data-p3="cp-box"][data-key="sec=components"]'));
+  const scoped = await readSurfaces(page);
+  ok(scoped.picker === 'badge,tag' && scoped.button === 'Build 2 sets' && (await aria('sec=components')) === 'true',
+    `#2812 Q391 under a search for "badge" the Components box selects the two rows shown, not the section's 32 sets, and reads checked over it — selected ${scoped.picker}, read "${scoped.button}", box ${await aria('sec=components')}`);
+  await hooks.click(page.locator('[data-p3="cp-box"][data-key="sec=components"]'));
+  // Call 7: a search opens the families a match sits in. A fresh page, so every family starts closed.
+  await page.close();
+  const fresh = await openPanel();
+  await hooks.click(fresh.page.locator('[data-p3="search-open"]'));
+  await fresh.page.locator('[data-p3="search-input"]').fill('neutral');
+  await fresh.page.waitForFunction(() => !!document.querySelector('[data-p3="cp-box"][data-key="set=button-neutral"]'), null, { timeout: 4000 }).catch(() => {});
+  const opened = await fresh.page.evaluate(() => ({
+    folds: [...document.querySelectorAll('[data-p3="cp-fold"]')].map((f) => `${f.dataset.key.slice(5)}:${f.getAttribute('aria-expanded')}`),
+    shown: ['button-neutral', 'icon-button-neutral', 'flush-icon-button-neutral'].filter((id) => !!document.querySelector(`[data-p3="cp-member"][data-set="${id}"]`)),
+  }));
+  ok(JSON.stringify(opened.folds) === JSON.stringify(['components|Buttons:true', 'components|Icon button:true', 'subcomponents|Flush Icon Button:true']) && opened.shown.length === 3,
+    `#2812 call 7 a search for "neutral" opens the three families its matches sit in, and shows each match — read ${JSON.stringify(opened)}`);
+  ok(errors.length === 0 && fresh.errors.length === 0, `#2812: no console errors (${[...errors, ...fresh.errors].slice(0, 2).join(' · ')})`);
+  await fresh.page.close();
+}
+
 // ── #1957: a declined second write ─────────────────────────────────────────────────────────────────
 //
 // The plugin's main thread refuses a second write of an operation while one is running, and tells the panel
@@ -1626,8 +1706,8 @@ for (const how of ['pointer', 'focus']) {
   hooks.absent(ok, { seen: off.menuItems.some(([hk]) => hk === 'figma-option-prune'), state: 'the Figma menu open with Prune stale listed' },
     !off.menuItems.some(([hk, l]) => /apply/i.test(`${hk} ${l}`)),
     `#2178 the Figma menu lists no Apply Theme — items ${JSON.stringify(off.menuItems)}`);
-  ok(JSON.stringify(off.menuItems.map(([, l]) => l)) === JSON.stringify(['Prune stale', 'Set up file', 'Build set…', 'Build style guides…']),
-    `#2178 the Figma menu's items read Prune stale, Set up file, Build set…, Build style guides… — read ${JSON.stringify(off.menuItems.map(([, l]) => l))}`);
+  ok(JSON.stringify(off.menuItems.map(([, l]) => l)) === JSON.stringify(['Prune stale', 'Set up file', 'Build sets…', 'Build style guides…']),
+    `#2178 the Figma menu's items read Prune stale, Set up file, Build sets…, Build style guides… — read ${JSON.stringify(off.menuItems.map(([, l]) => l))}`);
 
   // Every way a designer reaches the two writes, forced past the disabled state, so the guard behind it is measured too.
   await hooks.click(page.locator('[data-p3="figma-option-prune"]'), { force: true, timeout: 4000 }).catch(() => {});

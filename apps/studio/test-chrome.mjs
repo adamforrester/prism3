@@ -2265,7 +2265,7 @@ const COLLAPSE_MS = 4000;
 /** The Figma menu's items, by hook suffix and label: today's labels (the old Prune stale control, the file-setup
  *  button) and concept v6's two option-first items. No Apply Theme (#2178, owner decision 2026-10-05): the bar's
  *  filled button is its one control. Literal. */
-const FIGMA_ITEMS = [['prune', 'Prune stale'], ['file-setup', 'Set up file'], ['build', 'Build set…'], ['style-guide', 'Build style guides…']];
+const FIGMA_ITEMS = [['prune', 'Prune stale'], ['file-setup', 'Set up file'], ['build', 'Build sets…'], ['style-guide', 'Build style guides…']];
 /** Each item's hook, spelled out so the hook guard reads every one. */
 const FIGMA_OPTION = { prune: '[data-p3="figma-option-prune"]', 'file-setup': '[data-p3="figma-option-file-setup"]',
   build: '[data-p3="figma-option-build"]', 'style-guide': '[data-p3="figma-option-style-guide"]' };
