@@ -158,7 +158,7 @@ export const checkboxRow: ComponentDef = {
   // and the group's `orientation`/`density` are in brief §15's variants block and are NOT axes here —
   // `notes.contested` carries both, with reasons.
   variants: {
-    size: ['small', 'medium', 'large'],
+    size: ['medium', 'small', 'large'],
   },
   // WHEN each axis changes (#1611): runtime axes are held to one footprint, authoring axes are not.
   axisKinds: { size: 'authoring' },

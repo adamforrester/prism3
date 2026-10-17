@@ -110,7 +110,7 @@ export const switchRow: ComponentDef = {
   // Row's own axis: it scales the label's type ramp, the gap and the row's min-height — things the nested
   // control does not touch — so it is not merely the control's axis. No surface/inverse axis (#871).
   variants: {
-    size: ['small', 'medium'],
+    size: ['medium', 'small'],
   },
   // WHEN each axis changes (#1611): runtime axes are held to one footprint, authoring axes are not.
   axisKinds: { size: 'authoring' },

@@ -74,7 +74,7 @@ The label names the setting and never changes. The description says what turning
 
 | Axis | Values | Changes |
 | --- | --- | --- |
-| `size` | `small`, `medium` | once, when authored |
+| `size` | `medium`, `small` | once, when authored |
 
 ## Accessibility
 

@@ -55,7 +55,7 @@ None — not interactive.
 | --- | --- | --- |
 | `indicator` | `chevron`, `plus-minus` | once, when authored |
 | `expansion` | `collapsed`, `expanded` | at runtime |
-| `size` | `small`, `medium`, `large` | once, when authored |
+| `size` | `medium`, `small`, `large` | once, when authored |
 
 ## Accessibility
 
