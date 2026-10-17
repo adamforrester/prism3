@@ -130,7 +130,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 | button-destructive | form | rest, hover, pressed, pending, focus-visible, disabled, inactive | rest, hover, pressed, pending, focus-visible, disabled |
 | button-neutral | form | rest, hover, pressed, pending, focus-visible, disabled, inactive | rest, hover, pressed, pending, focus-visible, disabled |
 | checkbox-control | form | rest, hover, pressed, focus-visible, disabled, error | rest, hover, pressed, focus-visible, disabled, error |
-| checkbox-group | form | rest | — |
+| checkbox-group | form | — | — |
 | checkbox-row | form | rest, hover, pressed, focus-visible, disabled, read-only, error | — |
 | dialog | overlay | — | — |
 | divider | foundations | — | — |
@@ -150,16 +150,16 @@ Generated from the component definitions and the emission by `packages/engine/em
 | list-item | data | — | — |
 | password-field | form | rest, hover, pending, filled, focus-visible, focus-visible-filled, disabled, read-only, empty | rest, hover, filled, focus-visible, focus-visible-filled, disabled, read-only |
 | radio-control | form | rest, hover, pressed, focus-visible, disabled | rest, hover, pressed, focus-visible, disabled |
-| radio-group | form | rest | — |
+| radio-group | form | — | — |
 | radio-row | form | rest, hover, pressed, focus-visible, disabled, read-only | — |
-| segmented-control | form | rest | — |
+| segmented-control | form | — | — |
 | segmented-control-segment | form | rest, hover, pressed, focus-visible, disabled | rest, hover, pressed, focus-visible, disabled |
 | select | form | rest, hover, pending, filled, focus-visible, focus-visible-filled, disabled, read-only, empty | rest, hover, filled, focus-visible, focus-visible-filled, disabled, read-only |
 | spinner | foundations | — | — |
 | switch-control | form | rest, hover, pressed, focus-visible, disabled, error | rest, hover, pressed, focus-visible, disabled, error |
 | switch-row | form | rest, hover, pressed, pending, focus-visible, disabled, read-only, error | — |
 | tab | navigation | rest, hover, pressed, focus-visible, disabled | rest, hover, pressed, focus-visible, disabled |
-| tabs | navigation | rest | — |
+| tabs | navigation | — | — |
 | tag | foundations | rest, hover, pressed, focus-visible, disabled, read-only | rest, hover, pressed, focus-visible, disabled |
 | text-field | form | rest, hover, pending, filled, focus-visible, focus-visible-filled, disabled, read-only, empty | rest, hover, filled, focus-visible, focus-visible-filled, disabled, read-only |
 | textarea | form | rest, hover, pending, filled, focus-visible, focus-visible-filled, disabled, read-only, empty | rest, hover, filled, focus-visible, focus-visible-filled, disabled, read-only |
@@ -180,7 +180,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 | pending | button, button-destructive, button-neutral, icon-button, icon-button-destructive, icon-button-neutral, password-field, select, switch-row, text-field, textarea |
 | pressed | button, button-destructive, button-neutral, checkbox-control, checkbox-row, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, radio-control, radio-row, segmented-control-segment, switch-control, switch-row, tab, tag |
 | read-only | checkbox-row, password-field, radio-row, select, switch-row, tag, text-field, textarea |
-| rest | accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, password-field, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, select, switch-control, switch-row, tab, tabs, tag, text-field, textarea |
+| rest | accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-row, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, password-field, radio-control, radio-row, segmented-control-segment, select, switch-control, switch-row, tab, tag, text-field, textarea |
 
 ## Variant axes
 

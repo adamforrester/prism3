@@ -93,7 +93,7 @@ export const checkboxGroup: ComponentDef = {
   // No interactive state of the group's OWN — Prism 2's group is a single configuration. The rows and the
   // label carry their own states (dimming, etc.) through their own defs. `disabled` and group `error` are
   // HELD (not projected) rather than invented here — see the header and `codeOnly`.
-  states: ['rest'],
+  states: [],
 
   // `size` ONLY — the family-universal axis (see the header `[HELD]` note). No tone/emphasis (a checkbox
   // set is neutral), no surface/inverse axis (#871 — a control set does not ask which ground it stands on),

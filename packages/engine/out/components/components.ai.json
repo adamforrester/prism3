@@ -3696,9 +3696,7 @@
           "description": "Disables the whole set — every row and the label dim, driven by the group's context (the field's native disabled is the source of truth). The group has no disabled treatment of its own."
         }
       ],
-      "states": [
-        "rest"
-      ],
+      "states": [],
       "variants": {
         "size": {
           "values": [
@@ -4172,9 +4170,7 @@
           "description": "Disables the whole set — every row and the label dim, driven by the group's context (the native disabled is the source of truth). The group has no disabled treatment of its own."
         }
       ],
-      "states": [
-        "rest"
-      ],
+      "states": [],
       "variants": {
         "size": {
           "values": [
@@ -5914,9 +5910,7 @@
           "description": "start: the tabs sit at the start of the bar. center: the tabs sit centered in the bar, which spans its container; the baseline spans the full width either way."
         }
       ],
-      "states": [
-        "rest"
-      ],
+      "states": [],
       "variants": {
         "size": {
           "values": [
@@ -6987,9 +6981,7 @@
           "description": "Disables every option and takes the control out of the Tab order."
         }
       ],
-      "states": [
-        "rest"
-      ],
+      "states": [],
       "variants": {
         "size": {
           "values": [

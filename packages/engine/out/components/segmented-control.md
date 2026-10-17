@@ -59,7 +59,7 @@ One or two words per option, nouns, sentence case: "List", not "Show list".
 
 ## States
 
-`rest`
+None — not interactive.
 
 ## Variants
 

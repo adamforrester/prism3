@@ -687,9 +687,7 @@
       "id": "checkbox-group",
       "name": "Checkbox.Group",
       "category": "form",
-      "states": [
-        "rest"
-      ],
+      "states": [],
       "projectedStates": [],
       "axes": {
         "size": [
@@ -2226,9 +2224,7 @@
       "id": "radio-group",
       "name": "Radio.Group",
       "category": "form",
-      "states": [
-        "rest"
-      ],
+      "states": [],
       "projectedStates": [],
       "axes": {
         "size": [
@@ -2332,9 +2328,7 @@
       "id": "segmented-control",
       "name": "SegmentedControl",
       "category": "form",
-      "states": [
-        "rest"
-      ],
+      "states": [],
       "projectedStates": [],
       "axes": {
         "size": [
@@ -2813,9 +2807,7 @@
       "id": "tabs",
       "name": "Tabs",
       "category": "navigation",
-      "states": [
-        "rest"
-      ],
+      "states": [],
       "projectedStates": [],
       "axes": {
         "size": [
@@ -3556,7 +3548,6 @@
       "button-destructive",
       "button-neutral",
       "checkbox-control",
-      "checkbox-group",
       "checkbox-row",
       "field-label",
       "flush-icon-button",
@@ -3568,15 +3559,12 @@
       "link",
       "password-field",
       "radio-control",
-      "radio-group",
       "radio-row",
-      "segmented-control",
       "segmented-control-segment",
       "select",
       "switch-control",
       "switch-row",
       "tab",
-      "tabs",
       "tag",
       "text-field",
       "textarea"
