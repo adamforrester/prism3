@@ -244,15 +244,13 @@
     },
     {
       "from": "dialog",
-      "to": "icon-button-neutral",
+      "to": "flush-icon-button-neutral",
       "part": "close",
       "partKind": "nest",
       "relation": "nest-fixed",
       "variant": {
-        "appearance": "ghost",
+        "shape": "round",
         "size": "medium",
-        "shape": "square",
-        "surface": "default",
         "state": "rest"
       }
     },
@@ -509,16 +507,13 @@
       "relation": "nest-exposed",
       "variant": {
         "appearance": "text",
-        "size": "medium",
+        "size": "small",
         "surface": "default",
         "inset": "flush",
         "state": "rest",
         "leading icon": "false",
         "trailing icon": "false"
       },
-      "follow": [
-        "size"
-      ],
       "expose": [
         "label"
       ]
@@ -1058,13 +1053,13 @@
       "nests": [
         "button",
         "divider",
-        "icon-button-neutral"
+        "flush-icon-button-neutral"
       ],
       "nestsTransitively": [
         "button",
         "divider",
+        "flush-icon-button-neutral",
         "focus-ring",
-        "icon-button-neutral",
         "spinner"
       ],
       "nestedBy": [],
@@ -1155,8 +1150,12 @@
       "nestsTransitively": [
         "focus-ring"
       ],
-      "nestedBy": [],
-      "affectedByChange": [],
+      "nestedBy": [
+        "dialog"
+      ],
+      "affectedByChange": [
+        "dialog"
+      ],
       "inherits": "icon-button-neutral",
       "inheritedBy": []
     },
@@ -1267,12 +1266,8 @@
         "focus-ring",
         "spinner"
       ],
-      "nestedBy": [
-        "dialog"
-      ],
-      "affectedByChange": [
-        "dialog"
-      ],
+      "nestedBy": [],
+      "affectedByChange": [],
       "inherits": "button-neutral",
       "inheritedBy": [
         "flush-icon-button-neutral"

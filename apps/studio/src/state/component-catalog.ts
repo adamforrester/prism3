@@ -15,9 +15,10 @@
  *   · The member count is the projection's length, the only honest per-set cost (a run is about 162 ms a member,
  *     #700, and the sets span 2 to 432).
  *
- * NESTED SETS are read off the PROJECTED PLANS, the same two fields the plugin's dependency pre-build reads
- * (`apps/plugin/src/build-deps.ts`): a node's `nestTarget` (a definition id) and its `swapTarget` (a component name
- * whose `<id>/` prefix names a definition built as separate components). A name no definition produces is the file's
+ * NESTED SETS are read off the PROJECTED PLANS, the same fields the plugin's dependency pre-build reads
+ * (`apps/plugin/src/build-deps.ts`): a node's `nestTarget` (a definition id), its `swapTarget` (a component name
+ * whose `<id>/` prefix names a definition built as separate components), and each `INSTANCE_SWAP` value in its
+ * `nestOverrides` (#2645; Dialog's close swaps to `icon/close`, #2609). A name no definition produces is the file's
  * to supply and is left out; a set never nests itself. Direct nests only, in first-seen order.
  *
  * WHY THE DEFINITIONS ARE HANDED IN. One reference to `componentDefs` in the web bundle carries every definition's
@@ -67,7 +68,7 @@ export type CatalogEntry = {
 };
 export type Catalog = readonly CatalogEntry[];
 
-type PlanNode = { nestTarget?: string; swapTarget?: string; children?: readonly unknown[] };
+type PlanNode = { nestTarget?: string; swapTarget?: string; nestOverrides?: readonly { type: string; value: string }[]; children?: readonly unknown[] };
 
 /** The catalog of `defs`, in their order. `project` is the projector (`figmaAnatomySet` with
  *  `CATALOG_SWAP_TARGET`); it throws for a definition it cannot build. */
@@ -99,7 +100,11 @@ export const catalogOf = (defs: readonly ComponentDef[], project: (def: Componen
       const dep = defs.find((x) => x.id === name || (!!x.figmaProperties?.emitAsComponents && name.startsWith(`${x.id}/`)));
       if (dep && dep.id !== d.id && !nests.includes(dep.id)) nests.push(dep.id);
     };
-    const walk = (n: PlanNode): void => { add(n.nestTarget); add(n.swapTarget); for (const c of (n.children ?? []) as PlanNode[]) walk(c); };
+    const walk = (n: PlanNode): void => {
+      add(n.nestTarget); add(n.swapTarget);
+      for (const o of n.nestOverrides ?? []) if (o.type === 'INSTANCE_SWAP') add(o.value);
+      for (const c of (n.children ?? []) as PlanNode[]) walk(c);
+    };
     for (const p of plans) walk(p.root as unknown as PlanNode);
     return { ...base, buildable: true, reason: null, members: plans.length, nests };
   });

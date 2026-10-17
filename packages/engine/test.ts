@@ -21292,6 +21292,44 @@ arm: {
         const sg2 = figmaAnatomySet(swapDef, { swapTarget: 'FPO-default-icon' });
         ok(JSON.stringify(kid(sg2[0].root, 'item1')?.nestOverrides) === '[{"property":"swap icon","type":"INSTANCE_SWAP","value":"icon/check"}]',
           `#2645 projection: a swap names List.Item's 'swap icon' property and the icon set's component (${JSON.stringify(kid(sg2[0].root, 'item1')?.nestOverrides)})`);
+        // #2609 (owner decision, 2026-10-16): Dialog's close is always the X. Literals, not read off the def (docs/34).
+        // Mutations, each failing by name: the override dropped or its glyph changed → `#2609 dialog: every member's close`;
+        // a `swaps` entry on Dialog → `#2609 dialog: no swap property`; the close made `nest-exposed` (which would surface
+        // the nested button's own `swap icon` on Dialog's panel) → `#2609 dialog: the close is not exposed`.
+        {
+          const dDef = componentDefs.find((d) => d.id === 'dialog')!;
+          const dg = figmaAnatomySet(dDef, { swapTarget: 'FPO-default-icon' });
+          const findPart = (n: { name: string; children?: unknown[] }, name: string): Record<string, unknown> | undefined => {
+            if (n.name === name) return n as Record<string, unknown>;
+            for (const c of (n.children ?? []) as { name: string; children?: unknown[] }[]) { const f = findPart(c, name); if (f) return f; }
+            return undefined;
+          };
+          const bad = dg.filter((pl) => JSON.stringify(findPart(pl.root, 'close')?.nestOverrides) !== '[{"property":"swap icon","type":"INSTANCE_SWAP","value":"icon/close"}]');
+          ok(dg.length === 15 && bad.length === 0, `#2609 dialog: every member's close swaps FlushIconButton.Neutral's 'swap icon' to icon/close (${dg.length} members, ${bad.length} wrong: ${JSON.stringify(bad[0] && findPart(bad[0].root, 'close')?.nestOverrides)})`);
+          ok(Object.keys(dDef.figmaProperties?.swaps ?? {}).length === 0, `#2609 dialog: no swap property on Dialog's Figma surface (${JSON.stringify(dDef.figmaProperties?.swaps)})`);
+          ok(dDef.anatomy!.parts.close?.nesting?.kind === 'nest-fixed', `#2609 dialog: the close is not exposed, so the nested button's swap does not surface on Dialog (${dDef.anatomy!.parts.close?.nesting?.kind})`);
+          // Q385 A (settling Q377 A): Dialog nests FlushIconButton.Neutral and depends on IconButton.Neutral nowhere, so a
+          // file without the IconButton sets builds it. Read from every surface a dependency reaches: the part's `nests`,
+          // each member's projected plan (the plugin's pre-build walks `nestTarget`, `swapTarget` and swap overrides,
+          // `build-deps.ts`), and the selection fields an agent and the docs read. Literals, not read off the def (docs/34).
+          // Mutation: `nests: 'icon-button-neutral'` back on the close, or the id back in `composesWith` → fails by name.
+          {
+            const planDeps = (n: { nestTarget?: string; swapTarget?: string; nestOverrides?: { type: string; value: string }[]; children?: unknown[] }): string[] => [
+              ...(n.nestTarget ? [n.nestTarget] : []), ...(n.swapTarget ? [n.swapTarget] : []),
+              ...(n.nestOverrides ?? []).filter((o) => o.type === 'INSTANCE_SWAP').map((o) => o.value),
+              ...((n.children ?? []) as (typeof n)[]).flatMap(planDeps),
+            ];
+            const onIb = (x: string) => x === 'icon-button-neutral' || x.startsWith('icon-button-neutral/');
+            const inPlans = dg.flatMap((pl) => planDeps(pl.root as never)).filter(onIb);
+            const inDef = [
+              ...Object.entries(dDef.anatomy!.parts).filter(([, p]) => (p as { nests?: string }).nests === 'icon-button-neutral').map(([k]) => `anatomy.${k}`),
+              ...(dDef.composition?.composesWith ?? []).filter(onIb).map(() => 'composition.composesWith'),
+              ...(dDef.ai?.commonPartners ?? []).filter(onIb).map(() => 'ai.commonPartners'),
+            ];
+            ok(findPart(dg[0].root, 'close')?.nestTarget === 'flush-icon-button-neutral' && inPlans.length === 0 && inDef.length === 0,
+              `#2609 dialog (Q385 A): the close nests FlushIconButton.Neutral, and Dialog depends on IconButton.Neutral nowhere (close nests ${findPart(dg[0].root, 'close')?.nestTarget}; ${inPlans.length} plan reference(s); def: ${inDef.join(', ') || 'none'})`);
+          }
+        }
         // THE PASTE EXECUTOR. Only a payload whose plans override ships the writer (the shell budget, `SET_CHUNK_BYTES`).
         const NUM = 'number#7:2', SWAP = 'swap icon#7:3';
         const lOpts = (props: boolean, comps = ['list-item']) => ({
@@ -32095,13 +32133,13 @@ arm: {
   ok(scrimIn.length === 0 && plans.every((p) => (p.root as DN).paints?.fills === 'color/foreground/primary' && (p.root as DN).effectStyle === 'shadow/xl'),
     `#2609 dialog panel: foreground.primary with the shadow.xl effect style on every member, and no scrim, veil or backdrop node anywhere in the set${scrimIn.length ? ` — FOUND: ${scrimIn.slice(0, 3).join('; ')}` : ''}`);
 
-  // THE HEADER: the title, the description (off), and the close (on): IconButton.Neutral, ghost, medium.
+  // THE HEADER: the title, the description (off), and the close (on): FlushIconButton.Neutral, round, medium (Q385 A).
   const hdrBad = plans.filter((p) => {
     const r = p.root as DN, close = find(r, 'close'), desc = find(r, 'description'), title = find(r, 'title');
-    return !(close?.nestTarget === 'icon-button-neutral' && JSON.stringify(close.nestVariant) === JSON.stringify({ appearance: 'ghost', size: 'medium', shape: 'square', surface: 'default', state: 'rest' })
+    return !(close?.nestTarget === 'flush-icon-button-neutral' && JSON.stringify(close.nestVariant) === JSON.stringify({ shape: 'round', size: 'medium', state: 'rest' })
       && close.visibleProp === 'close' && close.visible !== false && desc?.visible === false && desc.paints?.fills === 'color/text/secondary' && title?.paints?.fills === 'color/text/primary');
   });
-  ok(hdrBad.length === 0, `#2609 dialog header: the close is IconButton.Neutral ghost medium and shown, the description hidden in secondary text, the title in primary text (${hdrBad.length ? `WRONG: ${hdrBad.map(planComponentName).slice(0, 2).join('; ')}` : 'all 15'})`);
+  ok(hdrBad.length === 0, `#2609 dialog header: the close is FlushIconButton.Neutral round medium and shown, the description hidden in secondary text, the title in primary text (${hdrBad.length ? `WRONG: ${hdrBad.map(planComponentName).slice(0, 2).join('; ')}` : 'all 15'})`);
 
   // THE FOOTERS (Q303.6 A): inline Cancel (outline) then Save (filled), 12px apart; stacked Save over Cancel, 8px apart;
   // none has no footer and no rule above it.
@@ -32188,24 +32226,65 @@ arm: {
 
   // THE TOGGLE'S LOOK AND STATE (Q301.3 B, Q301 item 2 of the brief): the nested Button member per field coordinate,
   // typed here. Status never reaches it; disabled is the only field state that moves it.
-  const BTN_RUNG: Record<string, string> = { small: 'sm', medium: 'md', large: 'lg' };
   const btnPlans = figmaAnatomySet(button, { swapTarget: 'FPO-default-icon' });
   const btnNames = btnPlans.map(planComponentName);
   const toggleBad: string[] = [];
   for (const p of pwPlans) {
     const t = find(p.root as PN, 'toggle');
     const state = (p.coord as Record<string, string>).state;
-    const want = { appearance: 'text', size: p.size!, surface: 'default', inset: 'flush', state: state === 'disabled' ? 'disabled' : 'rest', 'leading icon': 'false', 'trailing icon': 'false' };
+    const want = { appearance: 'text', size: 'small', surface: 'default', inset: 'flush', state: state === 'disabled' ? 'disabled' : 'rest', 'leading icon': 'false', 'trailing icon': 'false' };
     const member = t?.nestVariant ? nestVariantMatch(t.nestVariant, btnNames) : null;
     const label = member ? find(btnPlans[btnNames.indexOf(member)].root as PN, 'label') : undefined;
     const sorted = (r: Record<string, string> | undefined) => JSON.stringify(Object.entries(r ?? {}).sort());
     if (!t || t.nestTarget !== 'button' || sorted(t.nestVariant) !== sorted(want) || !member
       || JSON.stringify(t.nestExpose) !== JSON.stringify(['label']) || JSON.stringify(t.nestTexts) !== JSON.stringify({ label: 'Show' })
-      || label?.textStyle !== `label/${BTN_RUNG[p.size!]}/emphasis-link`)
+      || label?.textStyle !== 'label/sm/emphasis-link')
       toggleBad.push(`${planComponentName(p)}: ${JSON.stringify({ target: t?.nestTarget, variant: t?.nestVariant, member, expose: t?.nestExpose, texts: t?.nestTexts, labelStyle: label?.textStyle })}`);
   }
   ok(toggleBad.length === 0,
-    `#2317 password-field toggle: on every member a nested Button (the primary component), text appearance, flush, default surface, no icons, size following the field, "Show", exposed for its label, its label in the emphasis weight (label/sm|md|lg/emphasis-link, Q301.3 B); disabled at the field's disabled member and rest at every other state, read-only included, whatever the status${toggleBad.length ? ` — WRONG on ${toggleBad.length}: ${toggleBad.slice(0, 2).join(' | ')}` : ''}`);
+    `#2317 password-field toggle: on every member a nested Button (the primary component), text appearance, flush, default surface, no icons, SMALL at every field size (#2804, Q380 A), "Show", exposed for its label, its label in the emphasis weight (label/sm/emphasis-link, Q301.3 B); disabled at the field's disabled member and rest at every other state, read-only included, whatever the status${toggleBad.length ? ` — WRONG on ${toggleBad.length}: ${toggleBad.slice(0, 2).join(' | ')}` : ''}`);
+
+  // THE LABEL ROW'S HEIGHT (#2804, owner decision Q380 A): the row is no taller than the label alone needs. Measured
+  // per member the way a hugging auto-layout row is sized: the tallest in-flow child that does not stretch. The
+  // label's height is one line of its FieldLabel member's type (font size × line height, read off the committed
+  // emission); the toggle's is its Button member's bound height unless it stretches to the row. EXPECTED is typed
+  // here: one body line at 12 / 14 / 16px × 1.5. Before #2804 the row measured 36 / 44 / 56 (the button's height),
+  // so a toggle that stops stretching, or one that follows the field's size again, fails here by name.
+  {
+    const emitted = JSON.parse(readFileSync(resolve(HERE, './out/prism3.tokens.json'), 'utf8'));
+    const eRoot = emitted[Object.keys(emitted).find((k) => !k.startsWith('$'))!];
+    const deref = (v: unknown): any => { let g = 0; while (typeof v === 'string' && v.startsWith('{') && g++ < 10) v = v.slice(1, -1).split('.').reduce((n: any, k) => n?.[k], emitted)?.$value; return v; };
+    const num = (v: unknown): number => { const x = String(deref(v)); return x.endsWith('rem') ? parseFloat(x) * 16 : parseFloat(x); };
+    const lineBox = (style: string): number => { const t = deref(style.split('/').reduce((n: any, k) => n?.[k], eRoot.type)?.$value); return num(t?.fontSize) * num(t?.lineHeight); };
+    const varPx = (name: string): number => num(name.split('/').reduce((n: any, k) => n?.[k], eRoot)?.$value);
+    const flPlans = figmaAnatomySet(fieldLabel, { swapTarget: 'FPO-default-icon' });
+    const flNames = flPlans.map(planComponentName);
+    type MN = PN & { layoutAlign?: string; bound?: Record<string, string> };
+    const textOf = (n: PN): PN | undefined => (n.type === 'TEXT' ? n : n.children.map(textOf).find(Boolean));
+    const ROW: Record<string, number> = { small: 18, medium: 21, large: 24 };
+    const SHOW_LINE = 12 * 1.15; // one label.sm line, the button's "Show"
+    const rowBad: string[] = [];
+    const measured: Record<string, number> = {};
+    for (const p of pwPlans) {
+      const row = find(p.root as PN, 'labelRow') as MN | undefined;
+      const heights = (row?.children ?? []).filter((c) => (c as MN).layoutAlign !== 'STRETCH').map((c): number => {
+        if (c.name === 'labelCell') {
+          const l = find(c, 'label');
+          const m = l?.nestVariant ? nestVariantMatch(l.nestVariant, flNames) : null;
+          const t = m ? textOf(flPlans[flNames.indexOf(m)].root as PN) : undefined;
+          return t?.textStyle ? lineBox(t.textStyle) : NaN;
+        }
+        const m = c.nestVariant ? nestVariantMatch(c.nestVariant, btnNames) : null;
+        const h = m ? (btnPlans[btnNames.indexOf(m)].root as MN).bound?.height : undefined;
+        return h ? varPx(h) : NaN;
+      });
+      const h = Math.max(...heights);
+      measured[p.size!] = h;
+      if (!(Math.abs(h - ROW[p.size!]) < 0.01) || SHOW_LINE > h) rowBad.push(`${planComponentName(p)}: row ${h}px (want ${ROW[p.size!]})`);
+    }
+    ok(rowBad.length === 0,
+      `#2804 password-field label row: one label line tall at every size, small 18 / medium 21 / large 24px, never the button's 36 / 44 / 56, with the toggle's "Show" line inside it (Q380 A)${rowBad.length ? ` — WRONG on ${rowBad.length}: ${rowBad.slice(0, 3).join(' | ')}` : ` (measured ${JSON.stringify(measured)})`}`);
+  }
 
   // THE HIDDEN DEFAULT MEMBER (Q301.6 A): the masked value and "Show" (DRAFT wording, Q301.5).
   ok(pw.figmaProperties?.texts?.value?.default === '••••••••' && pw.figmaProperties?.texts?.placeholder?.default === 'Placeholder'
@@ -32253,14 +32332,15 @@ arm: {
 
   // `atState` IS VALIDATED ON ITS OWN TERMS: a host state the def does not project, and an axis the variant does not name,
   // are refused by name.
-  const withAtState = (atState: Record<string, Record<string, string>>): ComponentDef => {
+  // The toggle follows no axis since #2804 (small at every size), so the followed-axis case adds `follow: ['size']` itself.
+  const withAtState = (atState: Record<string, Record<string, string>>, follow?: string[]): ComponentDef => {
     const t = pw.anatomy!.parts.toggle;
-    return { ...pw, anatomy: { ...pw.anatomy!, parts: { ...pw.anatomy!.parts, toggle: { ...t, nesting: { ...(t.nesting as object), atState } as typeof t.nesting } } } };
+    return { ...pw, anatomy: { ...pw.anatomy!, parts: { ...pw.anatomy!.parts, toggle: { ...t, nesting: { ...(t.nesting as object), atState, ...(follow ? { follow } : {}) } as typeof t.nesting } } } };
   };
   ok(validateComponentDef(pw).errors.length === 0
     && validateComponentDef(withAtState({ pressed: { state: 'disabled' } })).errors.some((m) => /atState.*'pressed'/.test(m))
     && validateComponentDef(withAtState({ disabled: { tone: 'quiet' } })).errors.some((m) => /atState.*'tone'/.test(m))
-    && validateComponentDef(withAtState({ disabled: { size: 'small' } })).errors.some((m) => /atState.*'size'.*follows/.test(m)),
+    && validateComponentDef(withAtState({ disabled: { size: 'small' } }, ['size'])).errors.some((m) => /atState.*'size'.*follows/.test(m)),
     `#2317 atState: the Password field validates clean; a host state off the state axis, an axis the variant does not name, and a followed axis are each refused by name`);
 }
 
