@@ -147,6 +147,10 @@
  *                  items 2 to 8 as a change and replaces nothing; Update writes each in place, every key and id kept,
  *                  and a number a designer typed is kept as a hand edit. Mutation: the in-place branch skipping the
  *                  override write → `overrides/written in place`.
+ *   <row>/…, textarea/…  Checkbox.Row, Radio.Row, Switch.Row and Textarea built from their defs before #2708 (the state
+ *                  props taken back out) read current under today's plans, and the apply writes nothing: the props are
+ *                  code API and move no Figma member (owner Q351 A). Mutation: `figmaAnatomySet` projecting a
+ *                  `disabled` prop as a Figma boolean on the label → `<row>/dry run`, `<row>/nothing written`.
  *   noop/…         a set already current: no version, no write.
  *   order/…        nested sets are updated first.
  *
@@ -3110,6 +3114,25 @@ section('overrides — a nested instance with no override yet gains it in place 
   const post = (await previewUpdate(w.host, [{ def: LIST, plans: planned }])).sets[0];
   ok(post.counts.update === 0 && post.counts.current === 8 && post.handEdits.some((h) => h.member === String(edited.name) && h.path === 'items/item2'),
     `overrides/current: the next dry run reads the other 8 members current and still reports the hand edit (${JSON.stringify(post.counts)}; ${JSON.stringify(post.changes).slice(0, 200)})`);
+}
+
+section('state props — the Rows and Textarea gaining their state props (#2708, owner Q351 A) leave a built file current');
+for (const [D, gained] of [['checkbox-row', ['disabled']], ['radio-row', ['disabled', 'readOnly']], ['switch-row', ['disabled']], ['textarea', ['label', 'onChange', 'helpText', 'required', 'disabled', 'readOnly', 'isPending', 'id', 'name']]] as const) {
+  // THE FILE AS A BUILD AT MAIN BEFORE #2708 LEFT IT: today's def with the gained props taken back out. The props
+  // are code API, so the Figma projection must not move: Update over that file has nothing to correct, and must
+  // say so rather than rewrite every member.
+  const now = componentDefs.find((x) => x.id === D)!;
+  const before2708 = { ...now, props: now.props.filter((p) => !(gained as readonly string[]).includes(p.name)) } as typeof now;
+  ok(before2708.props.length === now.props.length - gained.length, `${D}/premise: the def at main lacked ${gained.join(', ')}`);
+  const w = await world(D, figmaAnatomySet(before2708, { swapTarget: SWAP_TARGET }));
+  const dump = (): string => JSON.stringify(membersOf(w.set()).map((m) => [m.name, m.id, m.key, [...(m._pluginData as Map<string, string>)]]));
+  const was = dump();
+  const { pre, res } = await confirm(w, [{ def: D, plans: plansOf(D) }]);
+  const p = pre.sets[0];
+  ok(p.counts.update === 0 && p.counts.add === 0 && p.counts.drop === 0 && p.counts.current === p.counts.members && p.counts.members > 0,
+    `${D}/dry run: every member reads current (${JSON.stringify(p.counts)})`);
+  ok(applyVerdict(res).headline === '✓ already up to date' && w.api._versions.length === 0 && dump() === was,
+    `${D}/nothing written: no version, every member's id, key, stamp and record as built (${applyVerdict(res).headline})`);
 }
 
 void STYLE_FONT; void BASELINE_KEY;

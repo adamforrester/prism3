@@ -32302,6 +32302,38 @@ arm: {
     `#2317 atState: the Password field validates clean; a host state off the state axis, an axis the variant does not name, and a followed axis are each refused by name`);
 }
 
+// ---- #2708 / Q351 A: the Rows' and Textarea's state props ---------------------------------------------
+// Textarea declared `disabled`, `read-only` and `pending` states with no prop to reach them, and no label;
+// the three Rows declared `disabled` with no prop (Radio.Row also lacked `readOnly`). The owner chose A on
+// #2706 (O7): each restates the prop. EXPECTED is a hand-written literal, never derived from Text field's
+// props or the defs' own states (docs/34 shape 1), so dropping a prop or spelling its default as the string
+// "false" fails here by name.
+{
+  const propsOf = (id: string) => componentDefs.find((d) => d.id === id)!.props;
+  const shapeOf = (id: string, name: string) => {
+    const p = propsOf(id).find((x) => x.name === name);
+    return p ? JSON.stringify({ type: p.type, default: p.default, required: p.required }) : 'absent';
+  };
+  const BOOL_OFF = JSON.stringify({ type: 'boolean', default: false, required: false });
+  const TEXTAREA_PROPS = ['label', 'value', 'onChange', 'placeholder', 'helpText', 'showMessage', 'rows', 'resize', 'minRows', 'maxRows', 'maxLength', 'showCount', 'spellCheck', 'submitOnEnter', 'validation', 'validationMessage', 'required', 'disabled', 'readOnly', 'isPending', 'size', 'id', 'name'];
+  const ta = propsOf('textarea').map((p) => p.name);
+  ok(JSON.stringify(ta) === JSON.stringify(TEXTAREA_PROPS),
+    `#2708 textarea props: the list is the pinned literal, the field props restated (got [${ta.join(', ')}])`);
+  const TA_SHAPES: Record<string, string> = {
+    label: JSON.stringify({ type: 'string | node', required: true }),
+    onChange: JSON.stringify({ type: 'function', required: false }),
+    helpText: JSON.stringify({ type: 'string | node', required: false }),
+    required: BOOL_OFF, disabled: BOOL_OFF, readOnly: BOOL_OFF, isPending: BOOL_OFF,
+    id: JSON.stringify({ type: 'string', required: false }),
+    name: JSON.stringify({ type: 'string', required: false }),
+  };
+  const taBad = Object.entries(TA_SHAPES).filter(([n, want]) => shapeOf('textarea', n) !== want).map(([n]) => `${n}: ${shapeOf('textarea', n)}`);
+  ok(taBad.length === 0, `#2708 textarea prop shapes: each restated prop has Text field's type, default and required, booleans real booleans (${taBad.join('; ') || 'all 9'})`);
+  const ROW_PROPS: [string, string][] = [['checkbox-row', 'disabled'], ['radio-row', 'disabled'], ['radio-row', 'readOnly'], ['switch-row', 'disabled']];
+  const rowBad = ROW_PROPS.filter(([id, n]) => shapeOf(id, n) !== BOOL_OFF).map(([id, n]) => `${id}.${n}: ${shapeOf(id, n)}`);
+  ok(rowBad.length === 0, `Q351 A row props: Checkbox.Row, Radio.Row and Switch.Row each carry disabled, and Radio.Row readOnly, as a real boolean defaulting false (${rowBad.join('; ') || 'all 4'})`);
+}
+
 // ------------------------------------------------------------------- report
 console.log(`\nPrism3 engine tests: ${pass} passed, ${fails.length} failed`);
 
