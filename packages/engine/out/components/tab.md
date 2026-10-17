@@ -61,7 +61,7 @@ One or two words, a noun, sentence case.
 | Axis | Values | Changes |
 | --- | --- | --- |
 | `selection` | `unselected`, `selected` | at runtime |
-| `size` | `small`, `medium`, `large` | once, when authored |
+| `size` | `medium`, `small`, `large` | once, when authored |
 
 ## Accessibility
 

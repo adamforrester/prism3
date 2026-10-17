@@ -85,7 +85,7 @@ Verb-first, specific, sentence case, no terminal punctuation, ≤3 words to boun
 | Axis | Values | Changes |
 | --- | --- | --- |
 | `appearance` | `filled`, `outline`, `text` | at runtime |
-| `size` | `small`, `medium`, `large` | once, when authored |
+| `size` | `medium`, `small`, `large` | once, when authored |
 | `width` | `auto`, `full` | once, when authored |
 | `surface` | `default`, `inverse` | once, when authored |
 | `inset` | `default`, `flush` | once, when authored |

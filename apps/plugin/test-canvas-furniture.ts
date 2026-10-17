@@ -361,7 +361,8 @@ section('group / panel / backdrop — Button, built by the real executor');
   const defs = (set as unknown as { componentPropertyDefinitions: Record<string, { variantOptions?: string[] }> }).componentPropertyDefinitions;
   ok(JSON.stringify(defs.surface?.variantOptions) === JSON.stringify(['default', 'inverse'])
     && JSON.stringify(defs.appearance?.variantOptions) === JSON.stringify(['filled', 'outline', 'text'])
-    && JSON.stringify(defs.size?.variantOptions) === JSON.stringify(['small', 'medium', 'large'])
+    // #2752 (owner decision Q1 B): medium leads, so the inserted Button is medium; Q213 had small first.
+    && JSON.stringify(defs.size?.variantOptions) === JSON.stringify(['medium', 'small', 'large'])
     // #2501 (owner decision Q213): Pressed, with Pending after it, before Focus visible.
     && JSON.stringify(defs.state?.variantOptions) === JSON.stringify(['rest', 'hover', 'pressed', 'pending', 'focus-visible', 'disabled']),
     `panel/values: the properties panel reads surface, appearance, size and state in the def's order (#2386) (${JSON.stringify([defs.surface?.variantOptions, defs.appearance?.variantOptions, defs.size?.variantOptions])})`);
@@ -555,7 +556,8 @@ section('group / panel / backdrop — Button, built by the real executor');
 section('pilot — Tag and Text field: label texts and column positions');
 for (const [id, wantCols, wantRows] of [
   ['tag', ['Rest', 'Hover', 'Pressed', 'Focus visible', 'Disabled'],
-    ['Select', 'Dismissible', 'Unselected', 'Selected', 'Small', 'Medium', 'Large', 'Small', 'Medium', 'Large', 'Small', 'Medium', 'Large']],
+    // #2752 (owner decision Q1 B): each size ladder reads medium, small, large, the field family's order.
+    ['Select', 'Dismissible', 'Unselected', 'Selected', 'Medium', 'Small', 'Large', 'Medium', 'Small', 'Large', 'Medium', 'Small', 'Large']],
   ['text-field', ['Rest', 'Hover', 'Filled', 'Focus visible', 'Focus visible filled', 'Disabled', 'Read only'],
     ['Default', 'Error', 'Warning', 'Success', ...Array.from({ length: 4 }, () => ['Medium', 'Small', 'Large']).flat()]],
   // #2317: the Password field is TextField's grid, from the shared field factory.

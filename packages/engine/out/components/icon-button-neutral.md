@@ -66,7 +66,7 @@ The accessible name is a verb naming the action ("Close", "More actions"), never
 | Axis | Values | Changes |
 | --- | --- | --- |
 | `appearance` | `ghost`, `filled`, `outline` | at runtime |
-| `size` | `small`, `medium`, `large` | once, when authored |
+| `size` | `medium`, `small`, `large` | once, when authored |
 | `shape` | `square`, `circular` | once, when authored |
 | `surface` | `default`, `inverse` | once, when authored |
 

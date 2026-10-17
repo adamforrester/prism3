@@ -139,7 +139,7 @@ export const radioControl: ComponentDef = {
   // vocabulary minus `indeterminate` (a mutually-exclusive choice has no partial state). No tone/emphasis,
   // no surface/inverse axis (#871).
   variants: {
-    size: ['small', 'medium', 'large'],
+    size: ['medium', 'small', 'large'],
     selection: ['unchecked', 'checked'],
   },
   // WHEN each axis changes (#1611): runtime axes are held to one footprint, authoring axes are not.

@@ -44,7 +44,7 @@ export const accordionIndicator: ComponentDef = {
   variants: {
     indicator: ['chevron', 'plus-minus'],
     expansion: ['collapsed', 'expanded'],
-    size: ['small', 'medium', 'large'],
+    size: ['medium', 'small', 'large'],
   },
   // The pair is chosen where the Accordion is placed; the glyph turns when the section opens and closes.
   axisKinds: { indicator: 'authoring', expansion: 'runtime', size: 'authoring' },
