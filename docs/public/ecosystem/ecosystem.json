@@ -313,7 +313,9 @@
           "segmented-control",
           "link",
           "dialog",
-          "password-field"
+          "password-field",
+          "code-input-cell",
+          "code-input"
         ]
       }
     },

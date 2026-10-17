@@ -91,6 +91,12 @@
             ]
           },
           {
+            "name": "↳ Code input",
+            "components": [
+              "code-input"
+            ]
+          },
+          {
             "name": "↳ Textarea",
             "components": [
               "textarea"
@@ -202,6 +208,12 @@
             "name": "↳ Spinner",
             "components": [
               "spinner"
+            ]
+          },
+          {
+            "name": "↳ Code Cell",
+            "components": [
+              "code-input-cell"
             ]
           }
         ]
@@ -2170,6 +2182,95 @@
           ]
         },
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/password-field.md"
+      },
+      {
+        "id": "code-input-cell",
+        "name": "CodeInput.Cell",
+        "figmaName": "code-input-cell",
+        "kind": "component set",
+        "page": "↳ Code Cell",
+        "section": "Subcomponents",
+        "members": 28,
+        "variantProperties": [
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small",
+              "large",
+              "xlarge"
+            ]
+          },
+          {
+            "name": "state",
+            "values": [
+              "rest",
+              "hover",
+              "filled",
+              "focus-visible",
+              "focus-visible-filled",
+              "disabled",
+              "error"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "digit",
+            "type": "TEXT"
+          }
+        ],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/code-input-cell.md"
+      },
+      {
+        "id": "code-input",
+        "name": "CodeInput",
+        "figmaName": "code-input",
+        "kind": "component set",
+        "page": "↳ Code input",
+        "section": "Components",
+        "members": 48,
+        "variantProperties": [
+          {
+            "name": "status",
+            "values": [
+              "default",
+              "error"
+            ]
+          },
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small",
+              "large",
+              "xlarge"
+            ]
+          },
+          {
+            "name": "state",
+            "values": [
+              "rest",
+              "hover",
+              "filled",
+              "focus-visible",
+              "focus-visible-filled",
+              "disabled"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "message",
+            "type": "BOOLEAN"
+          }
+        ],
+        "codeOnly": {
+          "states": [
+            "pending"
+          ]
+        },
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/code-input.md"
       }
     ]
   },
@@ -2295,6 +2396,18 @@
       {
         "component": "dialog",
         "property": "body"
+      },
+      {
+        "component": "code-input",
+        "property": "items",
+        "settings": {
+          "minChildren": 4,
+          "maxChildren": 8,
+          "allowPreferredValuesOnly": true
+        },
+        "preferred": [
+          "code-input-cell"
+        ]
       }
     ]
   },
@@ -2451,7 +2564,9 @@
       "segmented-control",
       "link",
       "dialog",
-      "password-field"
+      "password-field",
+      "code-input-cell",
+      "code-input"
     ],
     "templates": [
       {

@@ -218,6 +218,8 @@ const ZERO_OK: Record<string, string> = {
   'textarea.focusRing': FIELD_RING,
   // #2317: the Password field's box and ring are TextField's, from the shared field factory.
   'password-field.focusRing': FIELD_RING,
+  // #2428: the Code cell is a field box too, ringed at the field offset as TextField is.
+  'code-input-cell.focusRing': FIELD_RING,
 };
 
 /**
@@ -233,6 +235,7 @@ const MUST_COVER = [
   'text-field.focusRing', 'textarea.focusRing', 'select.focusRing', 'password-field.focusRing',
   'checkbox-control.focusRing', 'radio-control.focusRing', 'switch-control.focusRing',
   'tag.focusRing', 'tab.focusRing', 'accordion.focusRing', 'segmented-control-segment.focusRing', 'link.focusRing',
+  'code-input-cell.focusRing',
 ];
 
 /**
@@ -250,6 +253,7 @@ const MUST_CLEAR_STROKE = [
   'text-field.focusRing', 'textarea.focusRing', 'select.focusRing', 'password-field.focusRing',
   'checkbox-control.focusRing', 'radio-control.focusRing', 'switch-control.focusRing',
   'tag.focusRing', 'tab.focusRing', 'segmented-control-segment.focusRing', 'link.focusRing',
+  'code-input-cell.focusRing',
 ];
 
 /**

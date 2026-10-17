@@ -6,11 +6,14 @@
  * never imports the definitions themselves (UI redesign S7, T4; the generator's header says why).
  */
 export const USED_BY = {
-  defs: 41,
+  defs: 43,
   radius: {
     rounded: {
       "radius.2xl": [
         "Dialog"
+      ],
+      "radius.lg": [
+        "CodeInput"
       ],
       "radius.md": [
         "Button",
@@ -36,7 +39,8 @@ export const USED_BY = {
         "Select",
         "Badge",
         "SegmentedControl",
-        "PasswordField"
+        "PasswordField",
+        "CodeInput"
       ]
     },
     pill: {
@@ -47,6 +51,9 @@ export const USED_BY = {
         "Button",
         "IconButton"
       ],
+      "radius.lg": [
+        "CodeInput"
+      ],
       "radius.md": [
         "SegmentedControl"
       ],
@@ -69,12 +76,16 @@ export const USED_BY = {
         "Select",
         "Badge",
         "SegmentedControl",
-        "PasswordField"
+        "PasswordField",
+        "CodeInput"
       ]
     },
     boxed: {
       "radius.2xl": [
         "Dialog"
+      ],
+      "radius.lg": [
+        "CodeInput"
       ],
       "radius.md": [
         "SegmentedControl"
@@ -101,7 +112,8 @@ export const USED_BY = {
       "radius.sm": [
         "Badge",
         "SegmentedControl",
-        "PasswordField"
+        "PasswordField",
+        "CodeInput"
       ]
     },
     hairline: {
@@ -116,6 +128,9 @@ export const USED_BY = {
         "Checkbox.Control",
         "Select"
       ],
+      "radius.lg": [
+        "CodeInput"
+      ],
       "radius.md": [
         "SegmentedControl"
       ],
@@ -135,7 +150,8 @@ export const USED_BY = {
       "radius.sm": [
         "Badge",
         "SegmentedControl",
-        "PasswordField"
+        "PasswordField",
+        "CodeInput"
       ]
     }
   },
