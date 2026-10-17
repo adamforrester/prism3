@@ -33,6 +33,7 @@ import { isRefusal } from '@prism3/engine/rename-map';
 import { rootOf } from '@prism3/engine/figma-names';
 import { conflictSummary } from './preflight';
 import { runApplyTheme } from './apply-theme';
+import { fieldStyleNote } from './field-style-note';
 import { gridSkippedNote } from './write-grid-styles';
 import { applyComponentPlan, partialWriteOf } from './write-components';
 import type { ComponentProgress, CompPageTarget, CompNode, ComponentsApi } from './write-components';
@@ -97,6 +98,10 @@ const sendThemePref = async (): Promise<void> => {
 };
 /** The open Activity drawer's height, as the person dragged it (#2176, the owner's AD1): kept like the Theme choice. */
 const ACTIVITY_HEIGHT_KEY = 'prism3:activity-height';
+/** Where the bar's Docs opens (#2637, owner decision Q384 A): the docs landing page on the studio's web address, which
+ *  serves the repo's `docs/public/` at `/docs` (`apps/studio/docs-route.mjs`). Opened in the browser by
+ *  `figma.openExternal`, which needs no network permission, so the release build opens it too. */
+const DOCS_URL = 'https://prism3-ds.vercel.app/docs/';
 const isHeight = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v) && v > 0;
 /** Send the kept height, if there is one; nothing kept (or storage unavailable) leaves the drawer at its own height. */
 const sendActivityHeight = async (): Promise<void> => {
@@ -199,7 +204,7 @@ const applyTheme = async (input: BrandInput, sink: ActionSink): Promise<void> =>
     // The write sequence — fonts first, pre-flight, then the guarded executor calls — lives in
     // `apply-theme.ts` since #111, so the MCP paste harness can prove parity against this exact path. The
     // global `figma` is the host; everything below this line (the report) is unchanged.
-    const { plans, pf, guarded } = await runApplyTheme(input, figma);
+    const { plans, pf, guarded, before } = await runApplyTheme(input, figma);
     const { colorFiles, floatPlan, fontPlan, motionPlan } = plans;
     if (!guarded.ok) {
       sink.data({ conflicts: guarded.conflicts });
@@ -322,6 +327,8 @@ const applyTheme = async (input: BrandInput, sink: ActionSink): Promise<void> =>
       motionReplacedItem(mv.replaced.length),
       `${r.bound + f.bound + tv.bound + mv.bound + ts.bound} bindings`, misses ? `${misses} misses` : '',
       ...renameNotes, orphanNote, strandedNote, resolvedNote, skippedNote, gridSkippedNote(gs.skipped), fontNote, refusedNote,
+      // #2695 (Q16 A): a field style switch reaches the field sets through Update, so Apply says so.
+      fieldStyleNote(before, input),
     ].map((x) => [', ', x] as const));
     // Skipped fonts aren't a "failure" (variables still wrote); only true misses flip ok=false. The
     // pill's headline is derived from the COUNTS (see `apply-summary.ts`), never from `summary` — the
@@ -1313,6 +1320,10 @@ onUiMessage((msg: UiToMain) => {
     case 'prune':
       // #1521 — `confirm` decides preview vs delete; both recompute from a fresh read inside `prune`.
       void ACTIONS.prune(msg.input, msg.confirm, uiSink);
+      return;
+    case 'open-docs':
+      // #2637 Q384 — the bar's Docs. A read of nothing and a write to nothing in the file: never guarded.
+      figma.openExternal(DOCS_URL);
       return;
     case 'file-setup':
       // #1554 — scaffold the page skeleton + build the two template assets. Its own action.

@@ -108,6 +108,8 @@ export interface CompMemberRef { name?: string; type?: string; createInstance?()
 
 /** The four PER-SIDE stroke-weight keys the real host binds a `strokeWeight` variable onto (#1332). */
 const STROKE_WEIGHT_SIDES = ['strokeTopWeight', 'strokeRightWeight', 'strokeBottomWeight', 'strokeLeftWeight'];
+/** Every key a stroke weight can be bound on: the scalar and its four sides (#2695, `PartDef.strokeEdges`). */
+const STROKE_WEIGHT_KEYS = ['strokeWeight', ...STROKE_WEIGHT_SIDES];
 
 /**
  * Does the host hold a binding for `field`? (#1332)
@@ -1348,7 +1350,8 @@ const claimDefaults = (node: Wr, n: FigmaNodePlan | null, misses: string[], mode
         // three selection controls do: checkbox at `checked`/`indeterminate` and switch at `on` bind a
         // thickness and paint no border. `strokeAlign` needs no gate — no def can bind it, and INSIDE here
         // agrees with the two sites that write it beside a stroke.
-        if (!('strokeWeight' in (n?.bound ?? {}))) set('strokeWeight', 1);
+        // A per-side weight (#2695, `strokeEdges`) is a binding this would unbind too.
+        if (!STROKE_WEIGHT_KEYS.some((k) => k in (n?.bound ?? {}))) set('strokeWeight', 1);
         set('strokeAlign', 'INSIDE');
       }
       set('dashPattern', []);
@@ -2202,6 +2205,16 @@ const writeComponentSet = async (
         } catch { /* unresolvable here: the black base, as before */ }
         return api.variables.setBoundVariableForPaint({ type: 'SOLID', color: base, ...(alpha < 1 ? { opacity: alpha } : {}) }, 'color', v);
       };
+      // A TRANSLUCENT BOUND PAINT IS ASSIGNED TWICE (#2774). The host resets a bound paint's opacity to 1 on the first
+      // assignment that lands where the node does not already hold a paint bound to that same variable; assigning again
+      // once the binding is in place keeps it (the shim's host-measured model). A fresh build is rescued by the combine's
+      // re-resolve, and an in-place rewrite of the same wash by the binding already there, but an in-place rewrite from
+      // an opaque variable to a wash (Field style Underline → Outline at hover, #2695) kept the wash at 100%, and only a
+      // second Update converged it.
+      const assignPaint = (key: 'fills' | 'strokes', p: unknown): void => {
+        node[key] = [p];
+        if (((p as { opacity?: number }).opacity ?? 1) < 1) node[key] = [p];
+      };
       // Same reason as `wrote`: only a paint that was actually assigned can have been discarded.
       let paintedFills = false;
       let paintedStrokes = false;
@@ -2210,7 +2223,7 @@ const writeComponentSet = async (
       // so a tint carried on the paint lasted only until the next re-apply. Lockstep with the paste executor.
       if (n.paints?.fills) {
         const p = paint(n.paints.fills, 'fills');
-        if (p) { node.fills = [p]; paintedFills = true; }
+        if (p) { assignPaint('fills', p); paintedFills = true; }
         // DECLARED BUT UNRESOLVABLE → transparent, NEVER Figma's opaque white default (#1387). The
         // component set is brand-agnostic — it binds `interactive.<family>.overlay.{hover,pressed}` on
         // outline/text hover/pressed unconditionally — while that wash is EMITTED only under
@@ -2261,7 +2274,7 @@ const writeComponentSet = async (
       if (n.paints?.strokes) {
         const p = paint(n.paints.strokes, 'strokes');
         if (p) {
-          node.strokes = [p];
+          assignPaint('strokes', p);
           paintedStrokes = true;
           // A stroke variable with no weight binds correctly and paints nothing visible.
           //
@@ -2270,7 +2283,8 @@ const writeComponentSet = async (
           // right paint at a hardcoded 1px, re-theming on color and frozen on width. That is what the focus
           // ring shipped as. `wrote` rather than `n.bound`, so a name that failed to resolve still gets the
           // fallback and paints something.
-          if (!node.strokeWeight && !wrote.includes('strokeWeight')) node.strokeWeight = 1;
+          // A per-side weight (#2695, `strokeEdges`) counts as written: the literal would overwrite all four sides.
+          if (!node.strokeWeight && !STROKE_WEIGHT_KEYS.some((k) => wrote.includes(k))) node.strokeWeight = 1;
           node.strokeAlign = 'INSIDE';
           // BORDER-BOX, and Figma defaults the other way: left alone, the stroke is ADDED to the
           // auto-layout size, so an outline button measured 62 where its filled sibling measured 60 —

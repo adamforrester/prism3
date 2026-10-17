@@ -198,7 +198,7 @@ const makeButton = (id: string, name: string, summary: string, description: stri
     // #1223 — `intent` is gone as an axis; it is the component identity now. `appearance` carries
     // emphasis, `surface` the ground, `size` the rung, `width` a drag (not projected).
     appearance: ['filled', 'outline', 'text'],
-    size: ['small', 'medium', 'large'],
+    size: ['medium', 'small', 'large'],
     width: ['auto', 'full'],
     // THE INVERSE GROUND (#1134), and the bindings for it are NOT in `tokens` below — that is the whole
     // mechanism, not an omission. An inverse control binds every role's inverse counterpart, which

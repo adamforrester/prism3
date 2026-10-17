@@ -57,7 +57,7 @@ None — not interactive.
 | Axis | Values | Changes |
 | --- | --- | --- |
 | `type` | `unordered`, `ordered`, `icon` | once, when authored |
-| `size` | `small`, `medium`, `large` | once, when authored |
+| `size` | `medium`, `small`, `large` | once, when authored |
 
 ## Accessibility
 
