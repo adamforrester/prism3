@@ -117,7 +117,7 @@ export const accordionIndicator: ComponentDef = {
 
   ai: {
     primaryPurpose: 'Show whether an Accordion section is open, with a chevron or a plus and minus inside its header.',
-    whenToUse: 'Never directly: it is part of an Accordion. Generate an Accordion instead.',
+    whenToUse: 'Only inside an Accordion. Generate an Accordion, which places the indicator in each header.',
     avoidWhen: 'Always on its own. Use an Accordion; for a plain icon, use an Icon.',
     commonPartners: ['accordion', 'icon'],
     triggerKeywords: ['accordion indicator', 'accordion chevron', 'expand collapse glyph'],

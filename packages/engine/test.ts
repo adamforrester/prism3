@@ -6972,7 +6972,7 @@ arm: {
   ok(labelProp?.default === 'Loading' && /role="status"/.test(labelProp.description) && /aria-hidden="true"/.test(labelProp.description),
     `spinner 2026-09-27: the label defaults to "Loading" on the role="status" wrapper, and a host opts out with aria-hidden="true" (${JSON.stringify(labelProp?.default)})`);
   const aria = spinner.accessibility.aria ?? '';
-  ok(/aria-live="polite"/.test(aria) && /Never `aria-valuenow` and never `role="progressbar"`/.test(aria) && /aria-hidden="true"/.test(aria),
+  ok(/aria-live="polite"/.test(aria) && /Never aria-valuenow and never role="progressbar"/.test(aria) && /aria-hidden="true"/.test(aria),
     'spinner 2026-09-27: accessibility.aria states the polite status, the host opt-out, and the no-value contract (never aria-valuenow, never role=progressbar)');
   ok(/aria-hidden="true"/.test(codeOnly) && /role="status"/.test(codeOnly) && /"Loading" by default/.test(codeOnly),
     'spinner 2026-09-27: the code rule is a role="status" wrapper named "Loading" by default, hidden by an announcing host with aria-hidden="true"');
@@ -14304,6 +14304,70 @@ arm: {
       }
     }
     ok(fieldsRead > 1000 && families.size >= 4, `component-prose: the scan is live (${fieldsRead} shipped strings, ${families.size} dotted families) — a walk that read nothing would pass every arm above`);
+  }
+
+  // COMPONENT REGISTER (#2714, #1717). The build-component skill's "What ships" rules, which were held by hand
+  // until here: in the fields a reader acts on, no code spans, no all-caps emphasis, no "brief §N" or "§N",
+  // no "def" as a reader-facing word, no issue numbers. The older defs broke all five and the newer ones none,
+  // so a reader moving between pages met two registers. Scope is the seven consumer fields the audit counted
+  // (summary, description, prop descriptions, accessibility, content, docs, and ai's three decision fields).
+  // Motion and part notes ship too and are not in scope yet (#2773).
+  //
+  // The all-caps arm reads against a HAND-WRITTEN acronym list, each entry a term a reader meets as written,
+  // and the list must be live: an acronym no shipped field uses any more fails as stale, so the list cannot
+  // grow into a hole. The child-only arm holds the two whenToUse templates and resolves the host each names
+  // against the anatomy of the OTHER defs, so a template naming a host that does not nest the part fails.
+  {
+    const ACRONYMS = new Set(['AA', 'AAA', 'AI', 'APG', 'API', 'ARIA', 'CSS', 'DOM', 'FAQ', 'FAQs', 'HIG', 'HTML', 'IME', 'JSX', 'KB', 'MB', 'OK', 'OS', 'PDF', 'PIN', 'RTL', 'SC', 'SKUs', 'SMS', 'SVG', 'UI', 'URL', 'USWDS', 'UTF', 'W3C', 'WCAG', 'ZWJ']);
+    const consumerStrings = (d: ComponentDef): [string, string][] => {
+      const out: [string, string][] = [];
+      const walk = (path: string, v: unknown): void => {
+        if (typeof v === 'string') out.push([path, v]);
+        else if (Array.isArray(v)) v.forEach((x, i) => walk(`${path}[${i}]`, x));
+        else if (v && typeof v === 'object') for (const [k, x] of Object.entries(v)) walk(`${path}.${k}`, x);
+      };
+      walk('summary', d.summary); walk('description', d.description);
+      for (const p of d.props ?? []) walk(`props.${p.name}`, p.description);
+      walk('accessibility', d.accessibility); walk('content', d.content); walk('docs', d.docs);
+      walk('ai.primaryPurpose', d.ai.primaryPurpose); walk('ai.whenToUse', d.ai.whenToUse); walk('ai.avoidWhen', d.ai.avoidWhen);
+      return out;
+    };
+    const bad: string[] = []; const used = new Set<string>(); let read = 0;
+    for (const d of componentDefs) {
+      const strs = consumerStrings(d);
+      for (const [path, text] of strs) {
+        read++;
+        if (/`/.test(text)) bad.push(`${d.id} ${path}: a code span`);
+        for (const w of text.match(/\b[A-Z][A-Z0-9]*[A-Z]s?\b/g) ?? []) { if (ACRONYMS.has(w)) used.add(w); else bad.push(`${d.id} ${path}: all-caps "${w}"`); }
+        if (/brief §|§\s?\d/.test(text)) bad.push(`${d.id} ${path}: a brief section reference`);
+        if (/\bdefs?\b/i.test(text)) bad.push(`${d.id} ${path}: "def" as a reader-facing word`);
+        if (/#\d{3,}/.test(text)) bad.push(`${d.id} ${path}: an issue number`);
+      }
+      if (!['summary', 'description', 'docs.usage', 'ai.whenToUse'].every((f) => strs.some(([p]) => p === f))) bad.push(`${d.id}: the walk missed a required field`);
+    }
+    ok(bad.length === 0, `#2714 component register: no code spans, all-caps emphasis, brief references, "def" or issue numbers in a component's consumer fields${bad.length ? ` — ${bad.length}: ${bad.slice(0, 12).join(' | ')}` : ''}`);
+    const stale = [...ACRONYMS].filter((a) => !used.has(a));
+    ok(stale.length === 0, `#2714 component register: every allowed acronym is still used by a shipped field (stale: ${stale.join(', ') || 'none'})`);
+    ok(read > 1000, `#2714 component register: the scan is live (${read} consumer strings)`);
+
+    const nests = (host: ComponentDef, id: string) => Object.values(host.anatomy?.parts ?? {}).some((p) => (p as { nests?: string }).nests === id);
+    const byName = (n: string) => componentDefs.find((h) => h.name === n);
+    const childBad: string[] = []; let templated = 0;
+    for (const d of componentDefs) {
+      const w = d.ai.whenToUse;
+      const only = /^Only inside (?:an? |the )?([A-Z][A-Za-z.]*)\. Generate (?:an? |the )?([A-Z][A-Za-z.]*), which \S/.exec(w);
+      const inside = /^Inside ([A-Z][A-Za-z.]*), the common case\. On its own only \S/.exec(w);
+      if (only) {
+        templated++;
+        const host = byName(only[1]);
+        if (only[1] !== only[2] || !host || !nests(host, d.id)) childBad.push(`${d.id}: "Only inside ${only[1]}" names no registered host that nests it`);
+      } else if (inside) {
+        templated++;
+        const host = byName(inside[1]);
+        if (!host || !nests(host, d.id)) childBad.push(`${d.id}: "Inside ${inside[1]}" names no registered host that nests it`);
+      } else if (/^(Only|Never|Nested by|Inside)\b/.test(w)) childBad.push(`${d.id}: a child-only whenToUse off the two templates: "${w.slice(0, 60)}"`);
+    }
+    ok(childBad.length === 0 && templated >= 7, `#2714 child-only whenToUse: "Only inside <Host>. Generate <Host>, which …" or "Inside <Host>, the common case. On its own only …", naming a host that nests the part (${templated} templated)${childBad.length ? ` — ${childBad.join(' | ')}` : ''}`);
   }
 
   // (#1134) THE BOUNDED INVERSE SET BINDS ONLY COVERED ROLES — the enforceable half of the gap rule, one

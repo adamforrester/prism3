@@ -16,12 +16,14 @@ Use inside a List only. Each item is one short phrase or sentence after its mark
 ### Do
 
 - Keep items short and parallel
+- Put the words a reader scans for at the start of each item
 - Let the List set every item's type and size
 
 ### Don't
 
 - Mix types within one list
 - Put the meaning of an item in its icon alone
+- Make an item a link or a button; a list of links is a navigation, and a list of commands is a menu
 
 ### Content guidelines
 
@@ -34,7 +36,7 @@ One phrase or sentence per item, sentence case, parallel with the items around i
 ## Choosing it
 
 - **Purpose:** One item inside a List: a marker in a fixed column, then text that wraps under itself.
-- **Use when:** Only as a child of List.
+- **Use when:** Only inside a List. Generate a List, which places its items and sets their marker type and size.
 - **Avoid when:** Content a writer edits as normal copy (use a native text list in the text itself), a choice the user makes (a listbox), a command (a menu), or a navigation link (a navigation, not built yet).
 - **Often used with:** `list`, `icon`
 

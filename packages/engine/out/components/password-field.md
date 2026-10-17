@@ -11,7 +11,7 @@ A single-line field for a secret the user types — a sign-in password, a new pa
 
 ## Usage
 
-Use for a password, a PIN typed as text, or any other secret a user types. The field nests FieldLabel and a Show/Hide button on the label row, the input box below, and FieldMessage under it. Set `autoComplete` to `current-password` on a sign-in form and `new-password` where the user sets one. Put the rules for a new password in helper text or a list under the field.
+Use for a password, a PIN typed as text, or any other secret a user types. The field nests FieldLabel and a Show/Hide button on the label row, the input box below, and FieldMessage under it. Set autoComplete to current-password on a sign-in form and new-password where the user sets one. Put the rules for a new password in helper text or a list under the field.
 
 ### Do
 
@@ -54,13 +54,13 @@ Label = noun phrase, sentence case, no trailing colon. Button = "Show" / "Hide",
 | `onChange` | function | — | no | Change handler (also onBlur / onFocus). |
 | `placeholder` | string | — | no | An example only; vanishes on input. The password rules belong in helper text or a list under the field, never here. |
 | `helpText` | string \| node | — | no | Persistent guidance (rendered as FieldMessage, default status), wired via aria-describedby. State the rules for a new password here, before the user types. |
-| `validation` | enum: 'default' \| 'error' \| 'warning' \| 'success' | `default` | no | The validation state, as on TextField: each non-default status swaps the input border and sets the nested message to the matching status; `error` also sets aria-invalid. The Show/Hide button never takes the status color. |
+| `validation` | enum: 'default' \| 'error' \| 'warning' \| 'success' | `default` | no | The validation state, as on TextField: each non-default status swaps the input border and sets the nested message to the matching status; error also sets aria-invalid. The Show/Hide button never takes the status color. |
 | `validationMessage` | string \| node | — | no | The validation text shown at error / warning / success, added to aria-describedby. Say what is wrong and how to fix it (SC 3.3.3). |
-| `showMessage` | boolean | `true` | no | Whether the composed FieldMessage is shown. ON by default; turning it off hides the message entirely. Never hides a message the field needs. |
+| `showMessage` | boolean | `true` | no | Whether the composed FieldMessage is shown. On by default; turning it off hides the message entirely. Never hides a message the field needs. |
 | `required` | boolean | `false` | no | Sets required / aria-required, and turns on the FieldLabel's required marker. |
 | `disabled` | boolean | `false` | no | Native disabled. Disables the Show/Hide button with the field. |
 | `readOnly` | boolean | `false` | no | Focusable, copyable and submitted, and passes contrast. The Show/Hide button stays live, so a read-only value can still be shown. |
-| `autoComplete` | enum: 'current-password' \| 'new-password' | — | yes | Required (SC 1.3.5): `current-password` on a sign-in form, `new-password` where the user sets one, so a password manager fills or offers to generate it. Never `off`. |
+| `autoComplete` | enum: 'current-password' \| 'new-password' | — | yes | Required (SC 1.3.5): current-password on a sign-in form, new-password where the user sets one, so a password manager fills or offers to generate it. Never off. |
 | `leadingIcon` | slot | — | no | An optional leading glyph before the value, aria-hidden and never the accessible name. Hidden by default; the file nominates the swap target. |
 | `isPending` | boolean | `false` | no | Async validation in progress; sets aria-busy; does not block typing. |
 | `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | TextField's three tiers: the input type, the nested label and the Show/Hide button scale with it. Every size keeps the input's 44px target; the button's hit area is 44×44 at medium and large and 24×24 at small. |
