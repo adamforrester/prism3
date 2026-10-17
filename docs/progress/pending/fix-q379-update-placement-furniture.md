@@ -15,7 +15,7 @@ and the furniture was drawn only for sets the apply acted on, so missing furnitu
 **The fixes.** `respaceSets` now places a set in the header's row as `placeNewSet` places a new set under a header:
 the top of the sets already below the header, else the header's bottom plus `PAGE_HEADER_GAP`; the first on the
 header's left edge, each later one `SET_GAP` right of the one before. It is the one move that changes `y`. A set
-wholly above or below the header's band stays as before. `EXECUTOR_REVISION` 29 → 30.
+wholly above or below the header's band stays as before. `EXECUTOR_REVISION` 30 → 31 (main took 30 in #2721).
 `furnitureDue` (`canvas-furniture.ts`) reads what a set's furniture lacks the way `drawFurniture` would draw it:
 the same members, planner, template lookup and guards. A backdrop or scrim matches by its box, a column label by
 its left edge, width and bottom, and a row label by its center and its column's right edge, column by column. The dry
