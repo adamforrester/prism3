@@ -1220,11 +1220,13 @@
           "The close button sits at the header's top edge, beside the first line of the title, without an offset that centers it on that line: whether the title moves down to center on the 44px button is held for the owner's visual QA."
         ],
         "unverified": [
-          "The nested close button shows the file's default icon until a designer swaps it to close, and the nested footer buttons read \"Button\" until a designer types \"Cancel\" and \"Save\": a per-instance override on a nested instance is executor work no def can ask for yet (#2645).",
+          "The nested footer buttons read \"Button\" until a designer types \"Cancel\" and \"Save\": the def does not yet set their labels through a per-instance override (#2645).",
           "That the native slot keeps a designer's body content across a placement or footer switch in every Figma plan, as it does across the accordion's expansion switch."
         ],
         "evolution": [
-          "Owner decisions: the proposal on #2609 (one component, the anatomy, the tokens, the accessibility contract), and Q303 (2026-10-14): no side or drawer placement; `placement` center, bottom or full, with no automatic switch; the backdrop `color.scrim.default` as canvas furniture and `::backdrop`; def-level widths; footer inline, stacked or none; Escape, close and backdrop click dismiss a dialog, and an alertdialog only through its buttons or Escape; `role` a code prop that hides close on an alertdialog; close on by default; corners per placement; the names and aliases; the placeholder wording."
+          "Owner decisions: the proposal on #2609 (one component, the anatomy, the tokens, the accessibility contract), and Q303 (2026-10-14): no side or drawer placement; `placement` center, bottom or full, with no automatic switch; the backdrop `color.scrim.default` as canvas furniture and `::backdrop`; def-level widths; footer inline, stacked or none; Escape, close and backdrop click dismiss a dialog, and an alertdialog only through its buttons or Escape; `role` a code prop that hides close on an alertdialog; close on by default; corners per placement; the names and aliases; the placeholder wording.",
+          "Owner decision (2026-10-16, #2609): the close button is always the X. It shows the close icon on every member, and Dialog has no icon swap property; a product that needs another X changes the close glyph in its icon set or edits the component.",
+          "Owner decision Q385 A (2026-10-16, #2806), settling Q377 A on #2609: the close button is a FlushIconButton.Neutral, not an IconButton.Neutral, so a file without the IconButton sets still builds Dialog. It is round at medium, the closest match to the earlier ghost medium IconButton."
         ],
         "projection": []
       }

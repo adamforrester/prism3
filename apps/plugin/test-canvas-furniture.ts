@@ -318,8 +318,10 @@ section('label text — the text layer a value goes into, whatever the file\'s _
 
 /* ── the pilot defs, built by the real executor ─────────────────────────────────────────────────────────── */
 const plansOf = (id: string): AnatomyPlan[] => figmaAnatomySet(componentDefs.find((d) => d.id === id)!, { swapTarget: SWAP_TARGET });
-const planComps = (n: { swapTarget?: string; nestTarget?: string; children?: unknown[] }): string[] => [
-  ...(n.swapTarget ? [n.swapTarget] : []), ...(n.nestTarget ? [n.nestTarget] : []), ...((n.children ?? []) as (typeof n)[]).flatMap(planComps),
+// A swap override's component (#2645) is in the file too: the build pre-builds it, so Dialog's `icon/close` (#2609) is listed.
+const planComps = (n: { swapTarget?: string; nestTarget?: string; nestOverrides?: { type: string; value: string }[]; children?: unknown[] }): string[] => [
+  ...(n.swapTarget ? [n.swapTarget] : []), ...(n.nestTarget ? [n.nestTarget] : []),
+  ...(n.nestOverrides ?? []).filter((o) => o.type === 'INSTANCE_SWAP').map((o) => o.value), ...((n.children ?? []) as (typeof n)[]).flatMap(planComps),
 ];
 const buildOnPage = async (id: string) => {
   const plans = plansOf(id);
