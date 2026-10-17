@@ -135,11 +135,12 @@ ok(v('button')?.parts === '576 parts' && v('icon')?.parts === '45 components' &&
   `parts: Button "${v('button')?.parts}", Icon "${v('icon')?.parts}", Spinner "${v('spinner')?.parts}" (want 576 parts, 45 components, 4 components)`);
 ok(v('button')?.contains === 'Contains Icon, Spinner, FocusRing' && v('focus-ring')?.contains === 'Contains no other set',
   `contains: by the nested sets' names ("${v('button')?.contains}", "${v('focus-ring')?.contains}")`);
-ok(JSON.stringify(v('button')?.spacing) === JSON.stringify(['Small: padding-x 16 · padding-y 6 · gap 8', 'Medium: padding-x 16 · padding-y 8 · gap 8', 'Large: padding-x 24 · padding-y 8 · gap 12']),
+// In the size axis's order, medium first since #2752 (owner decision Q1 B), as the fields' readout already was.
+ok(JSON.stringify(v('button')?.spacing) === JSON.stringify(['Medium: padding-x 16 · padding-y 8 · gap 8', 'Small: padding-x 16 · padding-y 6 · gap 8', 'Large: padding-x 24 · padding-y 8 · gap 12']),
   `spacing at comfortable: Button's three sizes in px (${JSON.stringify(v('button')?.spacing)})`);
 const compact = setsView(committed, { density: 'compact', spacePx, plugin: true, lastOf: () => undefined }).find((x) => x.id === 'button');
-ok(compact?.spacing[1] === 'Medium: padding-x 12 · padding-y 6 · gap 6',
-  `spacing at compact: one step down the ladder, gaps floored at 4 (${JSON.stringify(compact?.spacing[1])})`);
+ok(compact?.spacing[0] === 'Medium: padding-x 12 · padding-y 6 · gap 6',
+  `spacing at compact: one step down the ladder, gaps floored at 4 (${JSON.stringify(compact?.spacing[0])})`);
 ok(JSON.stringify(v('focus-ring')?.spacing) === '[]', 'a set whose spacing follows no density states none');
 ok(v('button')?.last === 'Built just now' && v('tag')?.last === 'Built with problems' && v('badge')?.last === 'Build failed' && v('select')?.last === 'Not built in this session',
   `G9, C1: this session's result per set — Button "${v('button')?.last}", Tag "${v('tag')?.last}", Badge "${v('badge')?.last}", Select "${v('select')?.last}"`);

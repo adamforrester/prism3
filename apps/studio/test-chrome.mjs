@@ -745,7 +745,7 @@ const TYPE_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="face-add-inpu
 /** Shape in the two panes (S7): the controls its levers must render, by hook (Density's chips and the way to
  *  Components, Radius' slider and Control shape chips, Show advanced, the way on to Depth & motion). */
 const SHAPE_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="density-choice-comfortable"]', '[data-p3="shape-see-components"]',
-  '[data-p3="radius-scale-slider"]', '[data-p3="control-shape-choice-rounded"]', '[data-p3="shape-advanced"]', '[data-p3="shape-continue"]'];
+  '[data-p3="radius-scale-slider"]', '[data-p3="control-shape-choice-rounded"]', '[data-p3="field-style-choice-outline"]', '[data-p3="shape-advanced"]', '[data-p3="shape-continue"]'];
 /** Depth & motion in the two panes (S9.2), previewing Light: the softness slider, Elevation's Show advanced, the tempo
  *  chips, an easing picker button per role, the way on to Layout. The rest is section 23's. */
 const DEPTH_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="shadow-softness"]', '[data-p3="depth-tint-advanced"]',
@@ -2197,27 +2197,48 @@ for (const theme of ['light', 'dark']) {
   ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   await ctx.close();
 }
-// Inspect's Docs item (#2662, owner Q313.1 A): on the web it opens the designer guides' index in a new tab; the
-// plugin has no `/docs` route, so it draws no Docs item. The target is a literal typed here, never read from
-// `DOCS_HREF`, and the file it names under `docs/public/` (served at `/docs`, #2637) is read from disk.
+// The bar's Docs (#2637, owner decision Q384 A): a tile just before Export on both hosts, which replaced Inspect's Docs
+// item (#2662). On the web a link to the docs landing page, `/docs/`, in a new tab; in the plugin a button that posts
+// `open-docs`, and the main thread opens the page in the browser (`test-open-docs.ts` in the plugin). The target and the
+// message are literals typed here, never read from `DOCS_HREF` or `messages.ts`, and the file `/docs/` serves
+// (`docs/public/index.html`, #2637) is read from disk.
 {
-  const GUIDES_INDEX = '/docs/guides/index.md';
-  const onDisk = (() => { try { return statSync(join(REPO, 'docs/public', GUIDES_INDEX.slice('/docs/'.length))).isFile(); } catch { return false; } })();
-  ok(onDisk, `the Docs target ${GUIDES_INDEX} names a file on disk (docs/public/guides/index.md)`);
+  const LANDING = '/docs/';
+  const onDisk = (() => { try { return statSync(join(REPO, 'docs/public/index.html')).isFile(); } catch { return false; } })();
+  ok(onDisk, `the Docs target ${LANDING} names a file on disk (docs/public/index.html)`);
   for (const host of ['web', 'figma']) {
     const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900 });
+    if (host === 'figma') await page.evaluate(() => { window.__docsPosts = []; window.addEventListener('message', (e) => { const m = e.data?.pluginMessage; if (m && m.type !== 'ui-ready') window.__docsPosts.push(m); }); });
+    const tileOf = await page.evaluate(() => {
+      const t = document.querySelector('[data-p3="bar-main"] [data-p3="docs-open"]');
+      const next = t?.nextElementSibling;
+      return t ? { tag: t.tagName.toLowerCase(), href: t.getAttribute('href'), target: t.getAttribute('target'), rel: t.getAttribute('rel'), name: t.getAttribute('aria-label'),
+        beforeExport: !!next?.querySelector(':scope > [data-p3="export-open"]'), shown: t.getClientRects().length > 0 } : null;
+    });
+    if (host === 'web') {
+      ok(tileOf?.tag === 'a' && tileOf.href === LANDING && tileOf.target === '_blank' && tileOf.rel === 'noopener' && tileOf.name === 'Docs' && tileOf.beforeExport && tileOf.shown,
+        `web: the bar's Docs is a link to ${LANDING} in a new tab, just before Export — read ${JSON.stringify(tileOf)}`);
+      const before = page.url();
+      const [tab] = await Promise.all([ctx.waitForEvent('page'), hooks.click(page.locator('[data-p3="docs-open"]'))]);
+      ok(new URL(tab.url()).pathname === LANDING && page.url() === before,
+        `web: Docs opens ${LANDING} in a new tab and leaves the studio where it was (opened ${tab.url()}; studio ${page.url() === before ? 'unchanged' : page.url()})`);
+    } else {
+      ok(tileOf?.tag === 'button' && tileOf.href === null && tileOf.name === 'Docs' && tileOf.beforeExport && tileOf.shown,
+        `figma: the bar's Docs is a button, just before Export — read ${JSON.stringify(tileOf)}`);
+      const before = page.url();
+      const opened = [];
+      ctx.on('page', (pg) => opened.push(pg.url()));
+      await hooks.click(page.locator('[data-p3="docs-open"]'));
+      const posts = await page.evaluate(() => new Promise((r) => setTimeout(() => r(window.__docsPosts.slice()), 50)));
+      ok(JSON.stringify(posts) === JSON.stringify([{ type: 'open-docs' }]) && opened.length === 0 && page.url() === before,
+        `figma: Docs posts {"type":"open-docs"} to the main thread and opens nothing in the panel (posted ${JSON.stringify(posts)}; opened ${JSON.stringify(opened)})`);
+    }
+    // Inspect no longer lists Docs, on either host.
     await hooks.click(page.locator('[data-p3="inspect-open"]'));
     await hooks.need(page, '[data-p3="inspect-menu"] [role="menuitem"]');
-    const docs = await page.evaluate(() => [...document.querySelectorAll('[data-p3="inspect-menu"] [data-p3="docs-link"]')].map((a) => ({
-      href: a.getAttribute('href'), target: a.getAttribute('target'), rel: a.getAttribute('rel'), role: a.getAttribute('role'), label: a.textContent,
-    })));
-    if (host === 'web') {
-      ok(docs.length === 1 && docs[0].href === GUIDES_INDEX && docs[0].target === '_blank' && docs[0].rel === 'noopener' && docs[0].role === 'menuitem' && docs[0].label === 'Docs',
-        `web: Inspect's Docs item opens the designer guides' index, ${GUIDES_INDEX}, in a new tab — read ${JSON.stringify(docs)}`);
-    } else {
-      ok(docs.length === 0, `figma: Inspect draws no Docs item (the plugin has no /docs route) — read ${JSON.stringify(docs)}`);
-    }
-    ok(errors.length === 0, `${host}: Inspect's Docs item, 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    const inspectDocs = await page.evaluate(() => [...document.querySelectorAll('[data-p3="inspect-menu"] [role="menuitem"]')].map((n) => n.textContent.trim()).filter((t) => /docs/i.test(t)));
+    ok(inspectDocs.length === 0, `${host}: Inspect lists no Docs item (Docs is on the bar) — read ${JSON.stringify(inspectDocs)}`);
+    ok(errors.length === 0, `${host}: the bar's Docs, 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
     await ctx.close();
   }
 }
@@ -7556,7 +7577,8 @@ for (const host of ['web', 'figma']) {
 // =============================================================================================
 console.log(`\nShape (S7)\n${'='.repeat(78)}`);
 /** The lever keys the owner's D1 A places on Shape, by hook (represented, not counted). `radiusHairline` is retired. */
-const SHAPE_LEVERS = ['lever-density', 'lever-radius-scale', 'lever-control-shape', 'lever-base-md'];
+// #2695: Field style, right after Control shape (owner Q333, the Form group's order).
+const SHAPE_LEVERS = ['lever-density', 'lever-radius-scale', 'lever-control-shape', 'lever-field-style', 'lever-base-md'];
 /** The preview's sections, in order (D1 A). Literal. */
 const EXPECT_SHAPE_SPECIMENS = ['Density', 'Radius', 'Spacing', 'Building blocks'];
 /** Q23: each lever section, in order, and the preview section it pairs with (Base radius with Radius, D1 A). */
@@ -7762,6 +7784,11 @@ for (const host of ['web', 'figma']) {
     const pShape = await persisted(page);
     ok(pShape?.controlShape === 'pill', `shape: Pill writes controlShape: pill (${pShape?.controlShape})`);
     await chip('control-shape-choice-rounded');
+    // #2695: Field style is brand-wide chips, as Control shape is.
+    await chip('field-style-choice-underline');
+    const pField = await persisted(page);
+    ok(pField?.fieldStyle === 'underline', `shape: Underline writes fieldStyle: underline (${pField?.fieldStyle})`);
+    await chip('field-style-choice-outline');
     await hooks.click(page.locator('[data-p3="base-radius-pick"]'));
     await hooks.click(page.locator('[data-p3="value-picker"] [data-p3="value-picker-value"][data-value="6"]'));
     await page.waitForFunction(() => document.querySelector('[data-p3="base-radius-pick"] .p3-btn-label')?.textContent === '6px', null, { timeout: 5000 }).catch(() => {});
@@ -7792,6 +7819,10 @@ for (const host of ['web', 'figma']) {
     await chip('control-shape-choice-pill');
     ok((await persisted(page))?.controlShape === 'pill' && JSON.stringify((await persisted(page))?.modeLevers) === JSON.stringify(p2?.modeLevers), 'Q54: previewing Dark, Pill writes controlShape: pill and no per-mode value');
     await chip('control-shape-choice-rounded');
+    // #2695: Field style too, brand-wide from Dark.
+    await chip('field-style-choice-underline');
+    ok((await persisted(page))?.fieldStyle === 'underline' && JSON.stringify((await persisted(page))?.modeLevers) === JSON.stringify(p2?.modeLevers), '#2695: previewing Dark, Underline writes fieldStyle: underline and no per-mode value');
+    await chip('field-style-choice-outline');
     await hooks.click(page.locator('[data-p3="density-reset"]'));
     await hooks.click(page.locator('[data-p3="radius-scale-reset"]'));
     await page.waitForFunction(() => !!document.querySelector('[data-p3="radius-scale-auto"]'), null, { timeout: 5000 }).catch(() => {});
@@ -7839,7 +7870,7 @@ for (const host of ['web', 'figma']) {
       });
       ok(d.line === `${label} is auto-derived and can't be edited here. Switch the preview to Light or Dark to edit.`, `Q59: previewing ${label}, the panel's derived line shows (N-3 A) on Shape ("${d.line}")`);
       ok(d.n >= 9 && d.enabled.length === 0, `Q59: previewing ${label}, every control on Shape is disabled, Base radius included (${d.n - d.enabled.length}/${d.n})${d.enabled.length ? ` — enabled ${[...new Set(d.enabled)].join(', ')}` : ''}`);
-      for (const hk of ['density-choice-compact', 'radius-scale-slider', 'control-shape-choice-pill', 'base-radius-pick']) ok(d.hooks.includes(hk), `Q59: previewing ${label}, the ${hk} control on Shape is among those held disabled`);
+      for (const hk of ['density-choice-compact', 'radius-scale-slider', 'control-shape-choice-pill', 'field-style-choice-underline', 'base-radius-pick']) ok(d.hooks.includes(hk), `Q59: previewing ${label}, the ${hk} control on Shape is among those held disabled`);
       ok(JSON.stringify(d.preview) === JSON.stringify(EXPECT_SHAPE_SPECIMENS), `Q59: previewing ${label}, the Shape preview is still drawn (${d.preview.join(', ')})`);
       // Every size is drawn at 0px, as the emission draws wireframe; the two pill sizes still read "Pill" (#2078: the
       // label is which size it is, not its px).

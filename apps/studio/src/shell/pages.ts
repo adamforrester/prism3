@@ -94,9 +94,11 @@ export const VIEWS = [
 ] as const;
 /** The views behind Inspect (F1). They open over any page's preview and are never a page's home. */
 export const INSPECT = [['contrast', 'Contrast'], ['tokens', 'Tokens'], ['log', 'Decisions log']] as const;
-/** Where the web host's Docs item points: the designer guides' index (#2662, owner Q313.1 A). The site serves the
- *  repo's `docs/public/` at `/docs` (#2637), so this is `docs/public/guides/index.md`; the site build requires it. */
-export const DOCS_HREF = '/docs/guides/index.md';
+/** Where the web bar's Docs link points: the docs landing page (#2637, owner decision Q384 A), which replaced Inspect's
+ *  Docs item and its target, the guides' index (#2662). The site serves the repo's `docs/public/` at `/docs`, so this is
+ *  `docs/public/index.html`; the site build requires it. The trailing slash keeps the page's relative links inside
+ *  `/docs/`. */
+export const DOCS_HREF = '/docs/';
 
 export type ViewId = (typeof VIEWS)[number][0];
 export type InspectId = (typeof INSPECT)[number][0];
@@ -278,11 +280,12 @@ export const DOMAINS = [
     // S7: the owner's names (E2, 2026-10-04: "Radius" in names and headings, overriding D16's swap to "corner"); the
     // intro, Density's and Radius' descriptions are APPROVED, Base radius' is DRAFT. `radiusHairline` has no row: the
     // engine retired it (#2053, `Lever.deprecated` in the manifest), and `test-pages.ts` holds that a deprecated
-    // lever has no home rather than reading a hand list.
+    // lever has no home rather than reading a hand list. Field style (#2695) sits right after Control shape, in the
+    // Radius section, as the owner placed it in the Form group (Q333).
     id: 'shape', label: 'Shape', home: 'shape', intro: 'Control heights and corners. Padding is set per component.',
     sections: [
       { title: 'Density', desc: DENSITY_DESC, rows: [{ ctl: 'chips', keys: ['density'], drive: 'size' }] },
-      { title: 'Radius', desc: RADIUS_DESC, rows: [{ ctl: 'slider', keys: ['radiusScale'], drive: 'radius' }, { ctl: 'chips', keys: ['controlShape'], drive: 'shape' }] },
+      { title: 'Radius', desc: RADIUS_DESC, rows: [{ ctl: 'slider', keys: ['radiusScale'], drive: 'radius' }, { ctl: 'chips', keys: ['controlShape'], drive: 'shape' }, { ctl: 'chips', keys: ['fieldStyle'], drive: 'shape' }] },
       { title: 'Base radius', desc: BASE_RADIUS_DESC, advanced: true, rows: [{ ctl: 'valuePicker', keys: ['baseMd'], drive: 'radius' }] },
     ],
     // S7: moved. Its levers are `domains/shape.ts`, its preview `preview/shape.ts`.

@@ -1207,6 +1207,69 @@ section('default member — Q347\'s three reorders reach an existing set in plac
   }
 }
 
+section('default member — #2752\'s Q1 B and Q2 A reorders reach an existing set in place: every id, key and placed instance kept');
+{
+  // The same proof as the section above, for the two decisions recorded on #2752 after Q347: every size ladder leads
+  // with medium (Q1 B), and Button's icon slots lead with false (Q2 A). The OLD sets are built the way #2501 (Q213)
+  // left them: sizes small to large and, on Button, each slot true before false. The slot order is no `variants` list,
+  // so the old Button is the new plan list with each run of four slot members (trailing × leading, innermost in
+  // `figmaAnatomySet`) put back in the old order: leading/trailing true/true, true/false, false/true, false/false.
+  // The expected default member is the owner's decision, typed here, never read from the def. Mutation: the grid move
+  // dropped from the apply → `default member/<def> inserted`.
+  const OLD: [string, string[], boolean, string[]][] = [
+    ['button', ['small', 'medium', 'large'], true, ['size=medium', 'leading icon=false', 'trailing icon=false']],
+    ['tag', ['small', 'medium', 'large'], false, ['size=medium']],
+    ['switch-control', ['small', 'medium'], false, ['size=medium']],
+  ];
+  const insertedOf = (set: Node): string => String([...membersOf(set)].sort((a, b) => Number(a.y) - Number(b.y) || Number(a.x) - Number(b.x))[0]?.name);
+  const carries = (name: string, want: string[]): boolean => want.every((seg) => name.split(', ').includes(seg));
+  for (const [id, oldSizes, slotsTrueFirst, want] of OLD) {
+    const d = structuredClone(componentDefs.find((x) => x.id === id)!) as unknown as { variants: Record<string, string[]> };
+    d.variants.size = oldSizes;
+    let oldPlans = figmaAnatomySet(d as never, { swapTarget: SWAP_TARGET });
+    if (slotsTrueFirst) {
+      const OLD_SLOTS = ['leading icon=true, trailing icon=true', 'leading icon=true, trailing icon=false',
+        'leading icon=false, trailing icon=true', 'leading icon=false, trailing icon=false'];
+      const slotsOf = (p: (typeof oldPlans)[number]) => OLD_SLOTS.findIndex((k) => planComponentName(p).endsWith(k));
+      ok(oldPlans.length % 4 === 0 && oldPlans.every((p, i) => i % 4 !== 0 || new Set(oldPlans.slice(i, i + 4).map(slotsOf)).size === 4),
+        `premise: ${id}'s slot members come in runs of four, one of each slot pair (${planComponentName(oldPlans[0])})`);
+      oldPlans = oldPlans.flatMap((p, i, all) => (i % 4 === 0 ? [...all.slice(i, i + 4)].sort((a, b) => slotsOf(a) - slotsOf(b)) : []));
+    }
+    const w = await world(id, oldPlans);
+    const set = w.set();
+    const was = insertedOf(set);
+    ok(!carries(was, want), `premise: ${id} built in the old order inserts ${was}`);
+    const mainOf = (name: string): Node => membersOf(set).find((m) => String(m.name) === name)!;
+    const newDefault = membersOf(set).find((m) => carries(String(m.name), want) && String(m.name) === planComponentName(plansOf(id)[0]))!;
+    ok(!!newDefault, `premise: ${id}'s old set already holds the member the update will put top-left`);
+    const placed = [mainOf(was), newDefault].map((main, i) => {
+      const inst = { type: 'INSTANCE', id: `I:${id}:q1q2:${i}`, name: String(main.name), x: -500, y: 100 * i, mainComponent: main, children: [] } as unknown as Node;
+      w.page.children.push(inst);
+      return { inst, main, mainId: String(main.id) };
+    });
+    const before = identityOf(set);
+    const plans = plansOf(id);
+    const pre = await previewUpdate(w.host, [{ def: id, plans }]);
+    const c = pre.sets[0].counts;
+    ok((c.move ?? 0) > 0 && c.update + c.add + c.drop + c.rename + c.handEdited + c.noBaseline === 0,
+      `default member/${id} dry run: the Q1/Q2 reorder reads as moves and nothing else (${previewLine(pre.sets[0])})`);
+    const res = await applyUpdate(w.host, w.api as any, [{ def: id, plans }], previewHashOf(pre));
+    const now = w.set();
+    const after = identityOf(now);
+    const keptIds = now === set && after.set.join() === before.set.join() && after.members.size === before.members.size
+      && [...before.members].every(([k, b]) => after.members.get(k)?.id === b.id && after.members.get(k)?.key === b.key);
+    ok(applyVerdict(res).ok && keptIds, `default member/${id} in place (Q1/Q2): the set and every member keep their key and id (${applyVerdict(res).headline}; ids ${keptIds ? 'kept' : 'changed'})`);
+    const inserted = insertedOf(now);
+    ok(carries(inserted, want) && inserted === planComponentName(plans[0]),
+      `default member/${id} inserted (Q1/Q2): after the update Figma inserts ${want.join(', ')}, the set's first plan (inserts ${inserted})`);
+    const live = placed.every(({ inst, main, mainId }) => w.page.children.includes(inst) && (inst as unknown as { mainComponent: Node }).mainComponent === main
+      && membersOf(now).includes(main) && String(main.id) === mainId && inst.x === -500);
+    ok(live, `default member/${id} instances (Q1/Q2): both placed instances stay on the page, unmoved, each on a member still in the set with its id`);
+    const next = (await previewUpdate(w.host, [{ def: id, plans }])).sets[0];
+    ok(previewLine(next) === `${String(now.name)}: up to date (${after.members.size} members).`, `default member/${id} current (Q1/Q2): the next dry run reads up to date (${previewLine(next)})`);
+  }
+}
+
 /* ── re-lay ────────────────────────────────────────────────────────────────────────────────────────────── */
 section('re-lay — an update over a set leaves a member Prism3 didn\'t build where it is, even on a planned coordinate (#2494)');
 {
@@ -2372,6 +2435,48 @@ section('edge — a file built when the disabled edge bound an icon role is corr
     ok(moved.length === 0 && JSON.stringify(after.set) === JSON.stringify(before.set), `edge/${id} in place: the set and every member keep their key and id (${moved.length} changed)`);
     const post = (await previewUpdate(w.host, [{ def: id, plans: plansOf(id) }])).sets[0];
     ok(post.counts.current === before.members.size, `edge/${id} current: the next dry run reads all ${before.members.size} current (${JSON.stringify(post.counts)})`);
+  }
+}
+
+section('field style — a field set built in one Field style is redrawn in place in the other, both ways, in one Update (#2695 Q16 A, #2774)');
+{
+  // Each field is built from `materializeForBrand` under one style, then updated with the plans of the other: the
+  // brand switching its Field style on a file that already holds the sets. Q16 A promises Update redraws them in
+  // place. Underline → Outline is the direction #2774 found: an underline hover paints the opaque `field.fill`, an
+  // outline hover the translucent wash, and the host resets a bound paint's opacity on the first assignment that
+  // changes its variable. Everything below is read off the shim's nodes, never off the plans' own claims, except
+  // which members carry a wash, which is what the plan asks for.
+  const findPart = (n: Node, name: string): Node | undefined => n.name === name ? n : (n.type === 'INSTANCE' ? undefined : ((n.children as Node[] | undefined) ?? []).map((c) => findPart(c, name)).find(Boolean));
+  for (const id of ['text-field', 'password-field', 'select', 'textarea']) {
+    const def = componentDefs.find((d) => d.id === id)!;
+    const outline = figmaAnatomySet(materializeForBrand(def, { fieldStyle: 'outline' } as never), { swapTarget: SWAP_TARGET });
+    const underline = figmaAnatomySet(materializeForBrand(def, { fieldStyle: 'underline' } as never), { swapTarget: SWAP_TARGET });
+    // Password field's Show button is Button's instance: its TEXT property is the one Button's own def declares.
+    const buttonTexts = Object.fromEntries(Object.entries(componentDefs.find((d) => d.id === 'button')!.figmaProperties?.texts ?? {}).map(([k, t], i) => [`${k}#7:${i}`, { type: 'TEXT', defaultValue: t.default }]));
+    const extra = (ps: AnatomyPlan[]) => ({ extraVars: ps.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]), extraStyles: ps.flatMap((p) => planTextStyles(p.root)), extraComps: ps.flatMap((p) => planComps(p.root)), componentProps: { button: buttonTexts } });
+    for (const [from, to, fromName, toName] of [[underline, outline, 'underline', 'outline'], [outline, underline, 'outline', 'underline']] as const) {
+      const tag = `${id} ${fromName}→${toName}`;
+      const w = await world(id, [...from], extra([...to]));
+      const n = membersOf(w.set()).length;
+      const before = identityOf(w.set());
+      const { pre, res } = await confirm(w, [{ def: id, plans: [...to] }]);
+      const v = applyVerdict(res);
+      ok(pre.sets[0].counts.update === n && v.ok, `field style/${tag}: all ${n} members read to update, and one apply succeeds (${JSON.stringify(pre.sets[0].counts)}; ${v.headline}${v.ok ? '' : ` — ${v.lines.slice(0, 2).join(' | ').slice(0, 240)}`})`);
+      const after = identityOf(w.set());
+      const lost = [...before.members].filter(([name, b]) => after.members.get(name)?.key !== b.key || [...b.kids].some(([path, kid]) => after.members.get(name)?.kids.get(path) !== kid)).map(([x]) => x);
+      ok(lost.length === 0 && JSON.stringify(after.set) === JSON.stringify(before.set), `field style/${tag} in place: the set, every member and every node under it keep their keys and ids (${lost.slice(0, 2).join('; ') || 'all kept'})`);
+      // THE WASH (#2774): every control the plan washes draws it translucent, read off the stored paint.
+      const washed = to.filter((p) => /\/overlay\//.test(String(findPart(p.root as unknown as Node, 'control')?.paints?.fills ?? ''))).map((p) => planComponentName(p));
+      const solid = membersOf(w.set()).filter((m) => washed.includes(String(m.name))).map((m) => ({ m: String(m.name), o: ((findPart(m, 'control')?.fills as { opacity?: number }[] | undefined) ?? [])[0]?.opacity ?? 1 })).filter((x) => !(x.o < 1));
+      ok(toName === 'underline' ? washed.length === 0 : washed.length > 0 && solid.length === 0,
+        `field style/${tag} wash: ${toName === 'underline' ? 'no member asks for the wash' : `all ${washed.length} washed controls draw it translucent`} (${solid.slice(0, 2).map((x) => `${x.m}: opacity ${x.o}`).join('; ') || 'ok'})`);
+      // Q346 on the line: a disabled member's edge binds the disabled BORDER role, never an icon or text role.
+      const vars = new Map<string, string>((await w.api.variables.getLocalVariablesAsync()).map((x: { id: string; name: string }) => [x.id, x.name.slice(x.name.indexOf('/') + 1)] as [string, string]));
+      const edges = membersOf(w.set()).filter((m) => /state=disabled/.test(String(m.name))).map((m) => vars.get(String(((findPart(m, 'control')?.strokes as { boundVariables?: { color?: { id: string } } }[] | undefined) ?? [])[0]?.boundVariables?.color?.id)));
+      ok(edges.length > 0 && edges.every((e) => e === 'color/disabled/border'), `field style/${tag} Q346: every disabled edge binds color/disabled/border (${[...new Set(edges)].join(', ')})`);
+      const post = (await previewUpdate(w.host, [{ def: id, plans: [...to] }])).sets[0];
+      ok(post.counts.current === n, `field style/${tag} converges: the next dry run reads all ${n} current (${JSON.stringify(post.counts)})`);
+    }
   }
 }
 

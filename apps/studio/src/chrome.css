@@ -132,6 +132,8 @@
 .p3-btn.p3-tile {
   position: relative; flex-direction: column; gap: var(--p3-space-025); min-height: var(--p3-ctl-h); padding: 0 var(--p3-space-100);
   border-color: transparent; background-color: transparent;
+  /* A tile can be a link (#2637 Q384, the web's Docs): no underline, so it reads as the other tiles do. */
+  text-decoration: none;
 }
 .p3-btn.p3-tile:where(:not(:disabled, [aria-disabled="true"])):hover { border-color: transparent; }
 .p3-tile-mark { position: relative; display: inline-flex; align-items: center; gap: var(--p3-space-050); }
