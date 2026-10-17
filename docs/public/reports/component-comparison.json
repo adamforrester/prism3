@@ -24,8 +24,8 @@
           "expanded"
         ],
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ]
       },
@@ -57,8 +57,8 @@
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -85,8 +85,8 @@
           "trailing"
         ],
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ]
       },
@@ -142,8 +142,8 @@
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -254,8 +254,8 @@
           "text"
         ],
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ],
         "width": [
@@ -351,8 +351,8 @@
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -385,8 +385,8 @@
           "text"
         ],
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ],
         "width": [
@@ -482,8 +482,8 @@
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -516,8 +516,8 @@
           "text"
         ],
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ],
         "width": [
@@ -613,8 +613,8 @@
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -641,8 +641,8 @@
       ],
       "axes": {
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ],
         "selection": [
@@ -677,8 +677,8 @@
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -691,8 +691,8 @@
       "projectedStates": [],
       "axes": {
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ]
       },
@@ -734,8 +734,8 @@
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -756,8 +756,8 @@
       "projectedStates": [],
       "axes": {
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ]
       },
@@ -800,8 +800,8 @@
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -1066,8 +1066,8 @@
           "round"
         ],
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ]
       },
@@ -1113,8 +1113,8 @@
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -1143,8 +1143,8 @@
           "round"
         ],
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ]
       },
@@ -1190,8 +1190,8 @@
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -1220,8 +1220,8 @@
           "round"
         ],
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ]
       },
@@ -1267,8 +1267,8 @@
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -1486,8 +1486,8 @@
           "outline"
         ],
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ],
         "shape": [
@@ -1566,8 +1566,8 @@
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -1600,8 +1600,8 @@
           "outline"
         ],
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ],
         "shape": [
@@ -1680,8 +1680,8 @@
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -1714,8 +1714,8 @@
           "outline"
         ],
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ],
         "shape": [
@@ -1794,8 +1794,8 @@
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -1860,8 +1860,8 @@
           "default"
         ],
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ],
         "surface": [
@@ -1922,8 +1922,8 @@
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -1941,8 +1941,8 @@
           "icon"
         ],
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ]
       },
@@ -1978,8 +1978,8 @@
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -1997,8 +1997,8 @@
           "icon"
         ],
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ]
       },
@@ -2032,8 +2032,8 @@
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -2183,8 +2183,8 @@
       ],
       "axes": {
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ],
         "selection": [
@@ -2214,8 +2214,8 @@
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -2228,8 +2228,8 @@
       "projectedStates": [],
       "axes": {
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ]
       },
@@ -2271,8 +2271,8 @@
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -2292,8 +2292,8 @@
       "projectedStates": [],
       "axes": {
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ]
       },
@@ -2318,8 +2318,8 @@
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -2332,8 +2332,8 @@
       "projectedStates": [],
       "axes": {
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ]
       },
@@ -2387,8 +2387,8 @@
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -2417,8 +2417,8 @@
           "selected"
         ],
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ]
       },
@@ -2451,8 +2451,8 @@
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -2632,8 +2632,8 @@
       ],
       "axes": {
         "size": [
-          "small",
-          "medium"
+          "medium",
+          "small"
         ],
         "selection": [
           "off",
@@ -2665,8 +2665,8 @@
         }
       ],
       "sizes": [
-        "small",
-        "medium"
+        "medium",
+        "small"
       ],
       "sizeDefault": "medium"
     },
@@ -2687,8 +2687,8 @@
       "projectedStates": [],
       "axes": {
         "size": [
-          "small",
-          "medium"
+          "medium",
+          "small"
         ]
       },
       "props": [
@@ -2731,8 +2731,8 @@
         }
       ],
       "sizes": [
-        "small",
-        "medium"
+        "medium",
+        "small"
       ],
       "sizeDefault": "medium"
     },
@@ -2760,8 +2760,8 @@
           "selected"
         ],
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ]
       },
@@ -2797,8 +2797,8 @@
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -2811,8 +2811,8 @@
       "projectedStates": [],
       "axes": {
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ],
         "alignment": [
@@ -2863,8 +2863,8 @@
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -2898,8 +2898,8 @@
           "selected"
         ],
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ]
       },
@@ -2951,8 +2951,8 @@
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -6316,11 +6316,147 @@
     },
     {
       "kind": "size order",
+      "subject": "_accordion-indicator",
+      "components": [
+        "_accordion-indicator"
+      ],
+      "detail": "_accordion-indicator declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "accordion",
+      "components": [
+        "accordion"
+      ],
+      "detail": "accordion declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "button",
+      "components": [
+        "button"
+      ],
+      "detail": "button declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "button-destructive",
+      "components": [
+        "button-destructive"
+      ],
+      "detail": "button-destructive declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "button-neutral",
+      "components": [
+        "button-neutral"
+      ],
+      "detail": "button-neutral declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "checkbox-control",
+      "components": [
+        "checkbox-control"
+      ],
+      "detail": "checkbox-control declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "checkbox-group",
+      "components": [
+        "checkbox-group"
+      ],
+      "detail": "checkbox-group declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "checkbox-row",
+      "components": [
+        "checkbox-row"
+      ],
+      "detail": "checkbox-row declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
       "subject": "dialog",
       "components": [
         "dialog"
       ],
       "detail": "dialog declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "flush-icon-button",
+      "components": [
+        "flush-icon-button"
+      ],
+      "detail": "flush-icon-button declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "flush-icon-button-destructive",
+      "components": [
+        "flush-icon-button-destructive"
+      ],
+      "detail": "flush-icon-button-destructive declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "flush-icon-button-neutral",
+      "components": [
+        "flush-icon-button-neutral"
+      ],
+      "detail": "flush-icon-button-neutral declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "icon-button",
+      "components": [
+        "icon-button"
+      ],
+      "detail": "icon-button declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "icon-button-destructive",
+      "components": [
+        "icon-button-destructive"
+      ],
+      "detail": "icon-button-destructive declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "icon-button-neutral",
+      "components": [
+        "icon-button-neutral"
+      ],
+      "detail": "icon-button-neutral declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "link",
+      "components": [
+        "link"
+      ],
+      "detail": "link declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "list",
+      "components": [
+        "list"
+      ],
+      "detail": "list declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "list-item",
+      "components": [
+        "list-item"
+      ],
+      "detail": "list-item declares its sizes as [medium, small, large], not smallest first"
     },
     {
       "kind": "size order",
@@ -6332,11 +6468,91 @@
     },
     {
       "kind": "size order",
+      "subject": "radio-control",
+      "components": [
+        "radio-control"
+      ],
+      "detail": "radio-control declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "radio-group",
+      "components": [
+        "radio-group"
+      ],
+      "detail": "radio-group declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "radio-row",
+      "components": [
+        "radio-row"
+      ],
+      "detail": "radio-row declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "segmented-control",
+      "components": [
+        "segmented-control"
+      ],
+      "detail": "segmented-control declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "segmented-control-segment",
+      "components": [
+        "segmented-control-segment"
+      ],
+      "detail": "segmented-control-segment declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
       "subject": "select",
       "components": [
         "select"
       ],
       "detail": "select declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "switch-control",
+      "components": [
+        "switch-control"
+      ],
+      "detail": "switch-control declares its sizes as [medium, small], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "switch-row",
+      "components": [
+        "switch-row"
+      ],
+      "detail": "switch-row declares its sizes as [medium, small], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "tab",
+      "components": [
+        "tab"
+      ],
+      "detail": "tab declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "tabs",
+      "components": [
+        "tabs"
+      ],
+      "detail": "tabs declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "tag",
+      "components": [
+        "tag"
+      ],
+      "detail": "tag declares its sizes as [medium, small, large], not smallest first"
     },
     {
       "kind": "size order",

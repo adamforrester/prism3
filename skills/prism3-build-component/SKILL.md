@@ -421,13 +421,15 @@ container's geometry?
 So the rule is: **variant axis only when presence drives edge-hugging asymmetric padding; a node-visibility
 boolean otherwise.** Verify which case a new component is in against the actual defs before wiring it.
 
-**Axis value order is a decision, and it is fixed (#2501, owner decision Q213).** Sizes run small to
-large; states run in ladder order, for example rest, hover, pressed, pending, focus-visible, disabled (the
-full ladder is `STATE_LADDER` in `packages/engine/test.ts`). Text field, textarea and select
-are the one named exception: they keep medium first (Q221 B), so an inserted field stays medium. Figma's
-default member is the one at the top left of the set on the canvas, not the first child, so axis order
-does not by itself pick the Figma default. The `#2501 <def>` test in `packages/engine/test.ts` fails a
-def that breaks the order, and a size or state the order doesn't know fails as unplaced.
+**Axis value order is a decision, and it is fixed (#2501, owner decision Q213; sizes and slots by #2752,
+Q1 B and Q2 A).** A size axis leads with medium, the code default, and the rest run small to large, so an
+inserted control is medium. Field label, whose code default is small, is the one named exception. A slot
+presence axis leads with `false`, so the inserted member's slots are empty, as in code. States run in ladder
+order, for example rest, hover, pressed, pending, focus-visible, disabled (the full ladder is `STATE_LADDER`
+in `packages/engine/test.ts`). Figma's default member is the one at the top left of the set on the canvas,
+not the first child, so axis order does not by itself pick the Figma default. The `#2501 <def>` test in
+`packages/engine/test.ts` fails a def that breaks the order, and a size or state the order doesn't know
+fails as unplaced. The `#2752 <def>` test fails a def whose inserted member does not carry the code default.
 
 **A sparse grid.** A variant set is the full cross product of its axes unless the def says otherwise. When
 one axis value has no meaning at a value of another (Badge's count and dot have no `subtle` emphasis), list

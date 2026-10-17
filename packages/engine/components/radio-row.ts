@@ -134,7 +134,7 @@ export const radioRow: ComponentDef = {
   // control does not touch — so it is not merely the control's axis. No tone/emphasis. No surface/inverse
   // axis (#871). The group's `orientation`/`density` are the GROUP's and are not here.
   variants: {
-    size: ['small', 'medium', 'large'],
+    size: ['medium', 'small', 'large'],
   },
   // WHEN each axis changes (#1611): runtime axes are held to one footprint, authoring axes are not.
   axisKinds: { size: 'authoring' },

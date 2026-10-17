@@ -44,7 +44,7 @@ export const tabs: ComponentDef = {
   // `alignment` (#2518, owner decision Q222 A): `start` is the approved tab list (#2416); `center` sits the same tabs
   // centered in a bar that spans its placement, the baseline full width. `start` leads: the code default and
   // Figma's default member.
-  variants: { size: ['small', 'medium', 'large'], alignment: ['start', 'center'] },
+  variants: { size: ['medium', 'small', 'large'], alignment: ['start', 'center'] },
   axisKinds: { size: 'authoring', alignment: 'authoring' },
 
   paintKeys: ['{slot}'],

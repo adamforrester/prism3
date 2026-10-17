@@ -128,7 +128,7 @@ export const tag: ComponentDef = {
     // `unselected` LEADS: it is the rest coordinate and the Figma default member, and the code default of
     // `selected` is false. A dismissible tag is always unselected (`excludeCoordinates`).
     selection: ['unselected', 'selected'],
-    size: ['small', 'medium', 'large'],
+    size: ['medium', 'small', 'large'],
   },
   // WHEN each axis changes (#1611): selection moves live (a filter toggled), so it is runtime; the type and size
   // are picked once. The selected member is WIDER than the unselected one when the check shows — the check takes
