@@ -1100,6 +1100,8 @@ const mountView = (view: RootView): void => {
         figma: commit.isFigma ? figmaActions : null,
         // #2178: the bar's Apply Theme, lent apart from the Figma menu, which no longer lists it.
         applyTheme: commit.isFigma ? applyAction : null,
+        // #2637 Q384: the bar's Docs. In the plugin the main thread opens the docs in the browser; on the web it is a link.
+        openDocs: commit.isFigma ? () => commit.openDocs() : null,
         // S3: Brand's preview is the Style guide, lent the same way until a slice replaces it.
         // S6.2 lent Type's levers the legacy Text styles controls; S6.3 replaced them, so only the fonts are lent.
         // S8.2: the Components page's set builds, lent so that page never imports this file.
