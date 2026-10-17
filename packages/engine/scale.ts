@@ -72,6 +72,10 @@ export type Density = 'comfortable' | 'compact' | 'spacious';
  *  of the softness dial); `hairline` binds `radius.hairline` (the fixed 1px sentinel #1362). A
  *  brand-level choice, not a per-instance variant — see `applyControlShape`. */
 export type ControlShape = 'rounded' | 'pill' | 'boxed' | 'hairline';
+/** The `fieldStyle` FORM lever (#2695, owner Q332 A and Q333): the edge every field component draws. `outline` is the
+ *  box; `underline` is one line under the value, with no inline padding and square corners. A brand-level choice
+ *  applied to a def before projection, like `controlShape`, never a per-instance variant — see `applyFieldStyle`. */
+export type FieldStyle = 'outline' | 'underline';
 /** The button-family FORM levers (#1667, owner-decided 2026-09-25). Brand-level choices applied to a def
  *  before projection — see `applyButtonLayout`. `buttonIcons`: `attached` keeps the icons next to the label
  *  (the default); `edges` pins them to the button's edges, and the label centers in the space between them

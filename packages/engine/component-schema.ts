@@ -47,6 +47,14 @@ export type PropDef = {
   values?: string[];
   deprecated?: boolean;
   description: string;
+  /** For `type: 'slot'` (#2649, owner decision Q307 A): a children array of repeating items, in Nathan Curtis's spec
+   *  shape (`type: slot, anyOf: <item>, minItems: 1`). `anyOf` names the def ids an item may be, `minItems` and
+   *  `maxItems` bound the count (`maxItems` absent means no ceiling). Code-only data: the Figma side is the def's
+   *  native slot part, and its own settings. Refused on any other type. A slot prop that declares any of the three
+   *  must declare `anyOf` and `minItems`; one that declares none is a single swapped item (Button's `leadingVisual`). */
+  anyOf?: string[];
+  minItems?: number;
+  maxItems?: number;
 };
 
 // ---------------------------------------------------------------------------------------
@@ -278,6 +286,13 @@ export type PartDef = {
    *  mirror-image field: the width of a stroke ANOTHER component draws, which a host adds to its own
    *  `inset` to keep the gap it asked for. */
   strokeWidth?: string;
+  /** THE STROKE'S FOUR SIDES APART (#2695, the underline field style): one binding key per side, each bound to its
+   *  own per-side weight (`strokeTopWeight` … `strokeLeftWeight`). `strokeWidth` binds one weight for all four, which
+   *  Figma splits onto the four sides anyway (#1332); this states them separately, so a side can be `border-width.none`
+   *  while the bottom carries the line. A key may name `{state}`, so the line can thicken at focus. Read by the `box`
+   *  branch, refused beside `strokeWidth` (the weight stated twice) and on every other kind. `applyFieldStyle` writes
+   *  it; no def authors it today. */
+  strokeEdges?: { top: string; right: string; bottom: string; left: string };
   /** ONE binding key driving BOTH axes — a square. A slot's glyph artboard, and a `box` that is square
    *  by declaration rather than by two bindings that happen to agree.
    *
@@ -1876,6 +1891,16 @@ export const validateComponentDef = (
     req(!!p.name && !!p.type && !!p.description, `prop '${p?.name ?? '?'}' needs name + type + description`);
     if (p.values && p.default !== undefined && typeof p.default === 'string' && !p.values.includes(p.default))
       errors.push(`prop '${p.name}': default '${p.default}' is not one of its values [${p.values.join(', ')}]`);
+    // A SLOT PROP (#2649): its item types and count, or nothing of the kind on any other type.
+    const slotFields = (['anyOf', 'minItems', 'maxItems'] as const).filter((f) => p[f] !== undefined);
+    if (p.type !== 'slot' && slotFields.length) errors.push(`prop '${p.name}' is type '${p.type}' but declares ${slotFields.join(', ')} — only a 'slot' prop takes them`);
+    // A slot prop that declares any of them is a children array, and states both its item types and its least count. A
+    // slot prop with none (Button's `leadingVisual`, an instance swap) is one item and needs neither.
+    if (p.type === 'slot' && slotFields.length) {
+      if (!Array.isArray(p.anyOf) || !p.anyOf.length || p.anyOf.some((x) => typeof x !== 'string' || !x)) errors.push(`prop '${p.name}' is a slot with no 'anyOf' — name the def ids an item may be`);
+      if (!Number.isInteger(p.minItems) || (p.minItems as number) < 0) errors.push(`prop '${p.name}' is a slot with no whole 'minItems' — state the least number of items, 0 if it may be empty`);
+      if (p.maxItems !== undefined && (!Number.isInteger(p.maxItems) || p.maxItems < Math.max(1, p.minItems ?? 0))) errors.push(`prop '${p.name}': maxItems ${p.maxItems} is not a whole number at least minItems and 1`);
+    }
     // #2707: the default ships as written into `components.ai.json`, so a boolean prop defaulting to the STRING
     // 'false' reads as truthy to any agent or codegen that consumes it. The type union allows a string, so only
     // this check refuses it. (A union type such as "'a' | 'b'" is free-form prose and is not checked here.)
@@ -3922,14 +3947,17 @@ const anatomyErrors = (def: ComponentDef): string[] => {
   // half-filled strings, none of which any def binds, and the failure read as "not a slot in tokens"
   // — a true statement about a key nobody wrote, pointing away from the actual gap (the expansion).
   const bindingKeys = (p: PartDef): string[] =>
-    [p.gap, p.height, p.minHeight, p.minWidthKey, p.radius, p.strokeWidth, p.size, p.width, p.type, p.inset, p.padding?.block, p.padding?.blockEnd, p.padding?.inlineLabel, p.padding?.inlineVisual, p.padding?.inlineEnd, p.paddingTop, p.flush?.key]
+    [p.gap, p.height, p.minHeight, p.minWidthKey, p.radius, p.strokeWidth, p.strokeEdges?.top, p.strokeEdges?.right, p.strokeEdges?.bottom, p.strokeEdges?.left, p.size, p.width, p.type, p.inset, p.padding?.block, p.padding?.blockEnd, p.padding?.inlineLabel, p.padding?.inlineVisual, p.padding?.inlineEnd, p.paddingTop, p.flush?.key]
       .filter((k): k is string => typeof k === 'string');
   // A TYPE KEY MAY ALSO NAME `{state}` (#2580): a standalone Link sets its label in the underlined style at hover,
   // pressed and focus-visible and the plain one at rest, so its text style moves with the interaction state while
   // its geometry does not. Type only: a state-keyed height or padding would move a box between one instance's before
   // and after, which the footprint rule exists to refuse. Expanded over the def's declared states like an axis.
+  // AND A `strokeEdges` KEY (#2695): the underline field's line thickens at focus. Both executors draw a stroke INSIDE
+  // the node and leave it out of the auto-layout size (`strokesIncludedInLayout: false`), so a state-keyed weight
+  // moves no box, which is the footprint rule's whole concern.
   const keyAxes = (p: PartDef, key: string): Record<string, readonly string[]> =>
-    key === p.type ? { ...(def.variants ?? {}), state: statesOf(def) } : (def.variants ?? {});
+    key === p.type || (p.strokeEdges && Object.values(p.strokeEdges).includes(key)) ? { ...(def.variants ?? {}), state: statesOf(def) } : (def.variants ?? {});
   for (const n of names)
     for (const key of bindingKeys(parts[n]))
       for (const expanded of expandKey(key, keyAxes(parts[n], key)))
@@ -4492,6 +4520,11 @@ const anatomyErrors = (def: ComponentDef): string[] => {
       e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'drawnInside' — only an 'absolute' part is sited against its host's edge, so only it can be drawn inside it`);
     if (p.drawnInside && p.strokeInset !== undefined)
       e.push(`anatomy part '${n}' declares both 'drawnInside' and 'strokeInset' — drawn inside the host's edge means the stroke is NOT compensated outward, and 'strokeInset' compensates it; declare one`);
+    // `strokeEdges` (#2695): the four sides apart, read by the box branch only, and never beside `strokeWidth`.
+    if (p.strokeEdges !== undefined) {
+      if (p.kind !== 'box') e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'strokeEdges' — only a 'box' projects a bound stroke weight`);
+      if (p.strokeWidth !== undefined) e.push(`anatomy part '${n}' declares both 'strokeWidth' and 'strokeEdges' — the stroke weight stated twice, and the projection would keep whichever wrote last`);
+    }
     // `strokeWidth` is the other half (#1266) and gets the same rule for a different reason: only the
     // `box` branch of the projector reads it, so on any other kind it is a binding that projects to
     // nothing — the ring's own defect one layer up, where a declared stroke and no bound weight read as

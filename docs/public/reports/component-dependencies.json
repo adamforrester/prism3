@@ -193,71 +193,6 @@
       ]
     },
     {
-      "from": "checkbox-group",
-      "to": "checkbox-row",
-      "part": "row4",
-      "partKind": "nest",
-      "relation": "nest-fixed",
-      "variant": {
-        "size": "medium"
-      },
-      "follow": [
-        "size"
-      ]
-    },
-    {
-      "from": "checkbox-group",
-      "to": "checkbox-row",
-      "part": "row5",
-      "partKind": "nest",
-      "relation": "nest-fixed",
-      "variant": {
-        "size": "medium"
-      },
-      "follow": [
-        "size"
-      ]
-    },
-    {
-      "from": "checkbox-group",
-      "to": "checkbox-row",
-      "part": "row6",
-      "partKind": "nest",
-      "relation": "nest-fixed",
-      "variant": {
-        "size": "medium"
-      },
-      "follow": [
-        "size"
-      ]
-    },
-    {
-      "from": "checkbox-group",
-      "to": "checkbox-row",
-      "part": "row7",
-      "partKind": "nest",
-      "relation": "nest-fixed",
-      "variant": {
-        "size": "medium"
-      },
-      "follow": [
-        "size"
-      ]
-    },
-    {
-      "from": "checkbox-group",
-      "to": "checkbox-row",
-      "part": "row8",
-      "partKind": "nest",
-      "relation": "nest-fixed",
-      "variant": {
-        "size": "medium"
-      },
-      "follow": [
-        "size"
-      ]
-    },
-    {
       "from": "checkbox-row",
       "to": "checkbox-control",
       "part": "control",
@@ -522,81 +457,6 @@
       ]
     },
     {
-      "from": "list",
-      "to": "list-item",
-      "part": "item4",
-      "partKind": "nest",
-      "relation": "nest-fixed",
-      "variant": {
-        "type": "unordered",
-        "size": "medium"
-      },
-      "follow": [
-        "type",
-        "size"
-      ]
-    },
-    {
-      "from": "list",
-      "to": "list-item",
-      "part": "item5",
-      "partKind": "nest",
-      "relation": "nest-fixed",
-      "variant": {
-        "type": "unordered",
-        "size": "medium"
-      },
-      "follow": [
-        "type",
-        "size"
-      ]
-    },
-    {
-      "from": "list",
-      "to": "list-item",
-      "part": "item6",
-      "partKind": "nest",
-      "relation": "nest-fixed",
-      "variant": {
-        "type": "unordered",
-        "size": "medium"
-      },
-      "follow": [
-        "type",
-        "size"
-      ]
-    },
-    {
-      "from": "list",
-      "to": "list-item",
-      "part": "item7",
-      "partKind": "nest",
-      "relation": "nest-fixed",
-      "variant": {
-        "type": "unordered",
-        "size": "medium"
-      },
-      "follow": [
-        "type",
-        "size"
-      ]
-    },
-    {
-      "from": "list",
-      "to": "list-item",
-      "part": "item8",
-      "partKind": "nest",
-      "relation": "nest-fixed",
-      "variant": {
-        "type": "unordered",
-        "size": "medium"
-      },
-      "follow": [
-        "type",
-        "size"
-      ]
-    },
-    {
       "from": "password-field",
       "to": "focus-ring",
       "part": "focusRing",
@@ -727,71 +587,6 @@
       ]
     },
     {
-      "from": "radio-group",
-      "to": "radio-row",
-      "part": "row4",
-      "partKind": "nest",
-      "relation": "nest-fixed",
-      "variant": {
-        "size": "medium"
-      },
-      "follow": [
-        "size"
-      ]
-    },
-    {
-      "from": "radio-group",
-      "to": "radio-row",
-      "part": "row5",
-      "partKind": "nest",
-      "relation": "nest-fixed",
-      "variant": {
-        "size": "medium"
-      },
-      "follow": [
-        "size"
-      ]
-    },
-    {
-      "from": "radio-group",
-      "to": "radio-row",
-      "part": "row6",
-      "partKind": "nest",
-      "relation": "nest-fixed",
-      "variant": {
-        "size": "medium"
-      },
-      "follow": [
-        "size"
-      ]
-    },
-    {
-      "from": "radio-group",
-      "to": "radio-row",
-      "part": "row7",
-      "partKind": "nest",
-      "relation": "nest-fixed",
-      "variant": {
-        "size": "medium"
-      },
-      "follow": [
-        "size"
-      ]
-    },
-    {
-      "from": "radio-group",
-      "to": "radio-row",
-      "part": "row8",
-      "partKind": "nest",
-      "relation": "nest-fixed",
-      "variant": {
-        "size": "medium"
-      },
-      "follow": [
-        "size"
-      ]
-    },
-    {
       "from": "radio-row",
       "to": "radio-control",
       "part": "control",
@@ -830,7 +625,7 @@
       "to": "segmented-control-segment",
       "part": "segment1",
       "partKind": "nest",
-      "relation": "nest-exposed",
+      "relation": "nest-fixed",
       "variant": {
         "selection": "selected",
         "size": "medium",
@@ -838,10 +633,6 @@
       },
       "follow": [
         "size"
-      ],
-      "expose": [
-        "selection",
-        "state"
       ]
     },
     {
@@ -849,7 +640,7 @@
       "to": "segmented-control-segment",
       "part": "segment2",
       "partKind": "nest",
-      "relation": "nest-exposed",
+      "relation": "nest-fixed",
       "variant": {
         "selection": "unselected",
         "size": "medium",
@@ -857,10 +648,6 @@
       },
       "follow": [
         "size"
-      ],
-      "expose": [
-        "selection",
-        "state"
       ]
     },
     {
@@ -868,7 +655,7 @@
       "to": "segmented-control-segment",
       "part": "segment3",
       "partKind": "nest",
-      "relation": "nest-exposed",
+      "relation": "nest-fixed",
       "variant": {
         "selection": "unselected",
         "size": "medium",
@@ -876,48 +663,6 @@
       },
       "follow": [
         "size"
-      ],
-      "expose": [
-        "selection",
-        "state"
-      ]
-    },
-    {
-      "from": "segmented-control",
-      "to": "segmented-control-segment",
-      "part": "segment4",
-      "partKind": "nest",
-      "relation": "nest-exposed",
-      "variant": {
-        "selection": "unselected",
-        "size": "medium",
-        "state": "rest"
-      },
-      "follow": [
-        "size"
-      ],
-      "expose": [
-        "selection",
-        "state"
-      ]
-    },
-    {
-      "from": "segmented-control",
-      "to": "segmented-control-segment",
-      "part": "segment5",
-      "partKind": "nest",
-      "relation": "nest-exposed",
-      "variant": {
-        "selection": "unselected",
-        "size": "medium",
-        "state": "rest"
-      },
-      "follow": [
-        "size"
-      ],
-      "expose": [
-        "selection",
-        "state"
       ]
     },
     {
@@ -1058,51 +803,6 @@
       "from": "tabs",
       "to": "tab",
       "part": "tab3",
-      "partKind": "nest",
-      "relation": "nest-fixed",
-      "variant": {
-        "selection": "unselected",
-        "size": "medium",
-        "state": "rest"
-      },
-      "follow": [
-        "size"
-      ]
-    },
-    {
-      "from": "tabs",
-      "to": "tab",
-      "part": "tab4",
-      "partKind": "nest",
-      "relation": "nest-fixed",
-      "variant": {
-        "selection": "unselected",
-        "size": "medium",
-        "state": "rest"
-      },
-      "follow": [
-        "size"
-      ]
-    },
-    {
-      "from": "tabs",
-      "to": "tab",
-      "part": "tab5",
-      "partKind": "nest",
-      "relation": "nest-fixed",
-      "variant": {
-        "selection": "unselected",
-        "size": "medium",
-        "state": "rest"
-      },
-      "follow": [
-        "size"
-      ]
-    },
-    {
-      "from": "tabs",
-      "to": "tab",
-      "part": "tab6",
       "partKind": "nest",
       "relation": "nest-fixed",
       "variant": {

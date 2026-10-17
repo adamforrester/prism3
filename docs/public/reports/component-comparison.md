@@ -10,7 +10,7 @@ Peers come from three groupings, each derived from the definitions:
 
 Generated from the component definitions and the emission by `packages/engine/emit-analysis-reports.ts`; `regen.ts --check` fails when this page is stale. The same data for agents: [component-comparison.json](component-comparison.json). All reports: [index](index.md).
 
-## Findings (47)
+## Findings (74)
 
 ### axis values
 
@@ -48,9 +48,36 @@ Generated from the component definitions and the emission by `packages/engine/em
 
 ### size order
 
+- **_accordion-indicator** — _accordion-indicator declares its sizes as [medium, small, large], not smallest first
+- **accordion** — accordion declares its sizes as [medium, small, large], not smallest first
+- **button** — button declares its sizes as [medium, small, large], not smallest first
+- **button-destructive** — button-destructive declares its sizes as [medium, small, large], not smallest first
+- **button-neutral** — button-neutral declares its sizes as [medium, small, large], not smallest first
+- **checkbox-control** — checkbox-control declares its sizes as [medium, small, large], not smallest first
+- **checkbox-group** — checkbox-group declares its sizes as [medium, small, large], not smallest first
+- **checkbox-row** — checkbox-row declares its sizes as [medium, small, large], not smallest first
 - **dialog** — dialog declares its sizes as [medium, small, large], not smallest first
+- **flush-icon-button** — flush-icon-button declares its sizes as [medium, small, large], not smallest first
+- **flush-icon-button-destructive** — flush-icon-button-destructive declares its sizes as [medium, small, large], not smallest first
+- **flush-icon-button-neutral** — flush-icon-button-neutral declares its sizes as [medium, small, large], not smallest first
+- **icon-button** — icon-button declares its sizes as [medium, small, large], not smallest first
+- **icon-button-destructive** — icon-button-destructive declares its sizes as [medium, small, large], not smallest first
+- **icon-button-neutral** — icon-button-neutral declares its sizes as [medium, small, large], not smallest first
+- **link** — link declares its sizes as [medium, small, large], not smallest first
+- **list** — list declares its sizes as [medium, small, large], not smallest first
+- **list-item** — list-item declares its sizes as [medium, small, large], not smallest first
 - **password-field** — password-field declares its sizes as [medium, small, large], not smallest first
+- **radio-control** — radio-control declares its sizes as [medium, small, large], not smallest first
+- **radio-group** — radio-group declares its sizes as [medium, small, large], not smallest first
+- **radio-row** — radio-row declares its sizes as [medium, small, large], not smallest first
+- **segmented-control** — segmented-control declares its sizes as [medium, small, large], not smallest first
+- **segmented-control-segment** — segmented-control-segment declares its sizes as [medium, small, large], not smallest first
 - **select** — select declares its sizes as [medium, small, large], not smallest first
+- **switch-control** — switch-control declares its sizes as [medium, small], not smallest first
+- **switch-row** — switch-row declares its sizes as [medium, small], not smallest first
+- **tab** — tab declares its sizes as [medium, small, large], not smallest first
+- **tabs** — tabs declares its sizes as [medium, small, large], not smallest first
+- **tag** — tag declares its sizes as [medium, small, large], not smallest first
 - **text-field** — text-field declares its sizes as [medium, small, large], not smallest first
 - **textarea** — textarea declares its sizes as [medium, small, large], not smallest first
 
@@ -205,38 +232,38 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 
 | Component | Sizes, as declared | Default |
 |---|---|---|
-| _accordion-indicator | small, medium, large | medium |
-| accordion | small, medium, large | medium |
-| button | small, medium, large | medium |
-| button-destructive | small, medium, large | medium |
-| button-neutral | small, medium, large | medium |
-| checkbox-control | small, medium, large | medium |
-| checkbox-group | small, medium, large | medium |
-| checkbox-row | small, medium, large | medium |
+| _accordion-indicator | medium, small, large | medium |
+| accordion | medium, small, large | medium |
+| button | medium, small, large | medium |
+| button-destructive | medium, small, large | medium |
+| button-neutral | medium, small, large | medium |
+| checkbox-control | medium, small, large | medium |
+| checkbox-group | medium, small, large | medium |
+| checkbox-row | medium, small, large | medium |
 | dialog | medium, small, large | medium |
 | field-label | small, medium, large | small |
-| flush-icon-button | small, medium, large | medium |
-| flush-icon-button-destructive | small, medium, large | medium |
-| flush-icon-button-neutral | small, medium, large | medium |
-| icon-button | small, medium, large | medium |
-| icon-button-destructive | small, medium, large | medium |
-| icon-button-neutral | small, medium, large | medium |
-| link | small, medium, large | medium |
-| list | small, medium, large | medium |
-| list-item | small, medium, large | medium |
+| flush-icon-button | medium, small, large | medium |
+| flush-icon-button-destructive | medium, small, large | medium |
+| flush-icon-button-neutral | medium, small, large | medium |
+| icon-button | medium, small, large | medium |
+| icon-button-destructive | medium, small, large | medium |
+| icon-button-neutral | medium, small, large | medium |
+| link | medium, small, large | medium |
+| list | medium, small, large | medium |
+| list-item | medium, small, large | medium |
 | password-field | medium, small, large | medium |
-| radio-control | small, medium, large | medium |
-| radio-group | small, medium, large | medium |
-| radio-row | small, medium, large | medium |
-| segmented-control | small, medium, large | medium |
-| segmented-control-segment | small, medium, large | medium |
+| radio-control | medium, small, large | medium |
+| radio-group | medium, small, large | medium |
+| radio-row | medium, small, large | medium |
+| segmented-control | medium, small, large | medium |
+| segmented-control-segment | medium, small, large | medium |
 | select | medium, small, large | medium |
 | spinner | x-small, small, medium, large | medium |
-| switch-control | small, medium | medium |
-| switch-row | small, medium | medium |
-| tab | small, medium, large | medium |
-| tabs | small, medium, large | medium |
-| tag | small, medium, large | medium |
+| switch-control | medium, small | medium |
+| switch-row | medium, small | medium |
+| tab | medium, small, large | medium |
+| tabs | medium, small, large | medium |
+| tag | medium, small, large | medium |
 | text-field | medium, small, large | medium |
 | textarea | medium, small, large | medium |
 
@@ -271,7 +298,6 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | switch-row | — | — |
 | children | accordion | — | — |
 |  | dialog | — | — |
-|  | list | — | — |
 |  | list-item | — | — |
 | defaultValue | checkbox-group | — | — |
 |  | password-field | — | — |
@@ -352,6 +378,11 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | select | false | — |
 |  | switch-row | false | — |
 |  | text-field | false | — |
+| items | checkbox-group | — | — |
+|  | list | — | — |
+|  | radio-group | — | — |
+|  | segmented-control | — | — |
+|  | tabs | — | — |
 | label | badge | — | — |
 |  | button | — | — |
 |  | button-destructive | — | — |
