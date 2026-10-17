@@ -656,7 +656,7 @@
     },
     "dialog": {
       "members": 15,
-      "sha256": "79ea111e2dd33739d2e7f4e507c25739b4bd897d957cfc19afdb468330624682",
+      "sha256": "43ef9046f4b43742b04cf9c759e495335ec10abcf6b8fb21af5b80940cea1162",
       "properties": [
         "body:SLOT",
         "close:BOOLEAN",
