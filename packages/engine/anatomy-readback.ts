@@ -302,8 +302,12 @@ export const FIELDS: Record<string, FieldCheck> = {
     },
   },
   textStyle: {
-    check: (p, n, ports) => {
+    check: (p, n, ports, _isRoot, plan) => {
       const id = n.textStyleId;
+      // A TRIMMED node (#2428, `leadingTrim`) holds no style BY DESIGN: Figma keeps vertical trim inside the style, so
+      // the trim detached it and the executor does not re-apply it. Its trim is the `leadingTrim` predicate's to hold;
+      // a style found on it here would mean a re-apply erased the trim, so that is a divergence.
+      if (plan?.leadingTrim) return typeof id === 'string' && id ? `${ports.styleName(id) ?? id} re-applied over the trim` : null;
       if (typeof id !== 'string' || !id) return 'NO TEXT STYLE APPLIED';
       const got = ports.styleName(id);
       return got === p ? null : `${got ?? `id ${id} resolves to no style`}`;
@@ -403,6 +407,11 @@ export const FIELDS: Record<string, FieldCheck> = {
   textAutoResize: {
     show: (p) => `textAutoResize ${String(p)}`,
     check: (p, n) => (n.textAutoResize === p ? null : str(n.textAutoResize)),
+  },
+  // #2428 — a text part's vertical trim, carried only where declared.
+  leadingTrim: {
+    show: (p) => `leadingTrim ${String(p)}`,
+    check: (p, n) => (n.leadingTrim === p ? null : str(n.leadingTrim)),
   },
 
   // ── reserved lines (textarea's `rows`) ────────────────────────────────────────────────────────────

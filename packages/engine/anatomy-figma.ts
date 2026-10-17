@@ -112,6 +112,10 @@ export type FigmaNodePlan = {
    *  carries trace to a plan entry, and a field absent from the plan whenever it agrees with the
    *  default is a field that gate cannot distinguish from a silence. */
   textAlignVertical?: 'TOP' | 'CENTER' | 'BOTTOM';
+  /** A text part's vertical trim (`PartDef.verticalTrim`, #2428). Carried ONLY where declared, so every other plan
+   *  stays byte-identical; `claimDefaults` writes `NONE` where it is absent (#865). It detaches the node's text style
+   *  on the host, so the executors do not re-apply the style over it (#1567). */
+  leadingTrim?: 'CAP_HEIGHT';
   /** Elevation is a Figma EFFECT STYLE (`setEffectStyleIdAsync`), a THIRD namespace — not a
    *  variable and not a text style. It gets its own field for exactly the reason `textStyle` does:
    *  `setBoundVariable('effects', …)` is not an API, so an effect squeezed into `bound` would
@@ -2115,6 +2119,7 @@ export const figmaAnatomyPlan = (
       // ON EVERY TEXT NODE, not only the overriding ones — see the field's own note. The default lives
       // here and nowhere else, so this line IS the rule #1009 asked to be located.
       ...(p.kind === 'text' ? { textAlignVertical: VERTICAL_ALIGN[p.verticalAlign ?? 'center'] } : {}),
+      ...(p.kind === 'text' && p.verticalTrim === 'cap-height' ? { leadingTrim: 'CAP_HEIGHT' as const } : {}),
       ...(ownTarget ? { swapTarget: ownTarget } : slotDefault ? { swapTarget: slotDefault } : (p.kind === 'slot' || p.kind === 'overlay') && slots.swapTarget ? { swapTarget: slots.swapTarget } : {}),
       ...(Object.keys(paints).length ? { paints } : {}),
       ...(gradientFill ? { gradientFill } : {}),
@@ -4110,7 +4115,7 @@ const claimDefaults=(node,n,mode,layerOp)=>{
     if(m.layoutMode){for(const k of ['itemSpacing','paddingLeft','paddingRight','paddingTop','paddingBottom'])if(!(k in B||k in(m.paddingPx||B)))set(k,0);set('strokesIncludedInLayout',false);}
   }
   // The last two DETACH an applied text style on the host (#1567) — \`build\` re-applies it right after.
-  if(t==='TEXT'){if(!m.textAlignVertical)set('textAlignVertical','TOP');set('textAlignHorizontal','LEFT');set('textAutoResize',m.textAutoResize||'WIDTH_AND_HEIGHT');set('textTruncation','DISABLED');set('paragraphSpacing',0);set('leadingTrim','NONE');}
+  if(t==='TEXT'){if(!m.textAlignVertical)set('textAlignVertical','TOP');set('textAlignHorizontal','LEFT');set('textAutoResize',m.textAutoResize||'WIDTH_AND_HEIGHT');set('textTruncation','DISABLED');set('paragraphSpacing',0);set('leadingTrim',m.leadingTrim||'NONE');}
 };
 const build=async(n)=>{
   let node;
@@ -4496,7 +4501,8 @@ ${PIN_SLOT}${INSET_SLOT}
   // RE-APPLY THE TEXT STYLE, because \`claimDefaults\`' \`paragraphSpacing\`/\`leadingTrim\` just detached it
   // (#1567, host-measured). No \`loadFontAsync\`: the style's font was loaded above, in this same run.
   // One miss either way — a refused re-apply and a silently dropped one leave the same unstyled node.
-  if(sty){let e='';try{await node.setTextStyleIdAsync(sty.id);}catch(err){e=' ('+err.message+')';}if(node.textStyleId!==sty.id)misses.push(n.name+'.textStyle -> '+sty.name+' DISCARDED after the #865 defaults, reads '+(node.textStyleId||'no style')+e);}
+  if(n.leadingTrim&&node.leadingTrim!==n.leadingTrim)misses.push(n.name+'.leadingTrim -> DISCARDED');
+  if(sty&&!n.leadingTrim){let e='';try{await node.setTextStyleIdAsync(sty.id);}catch(err){e=' ('+err.message+')';}if(node.textStyleId!==sty.id)misses.push(n.name+'.textStyle -> '+sty.name+' DISCARDED after the #865 defaults, reads '+(node.textStyleId||'no style')+e);}
   // The IMPORTED subtree: \`createNodeFromSvg\` bypasses \`createFrame()\`, so its inner nodes are claimed too,
   // in 'imported' mode (fills, strokes and constraints there are the glyph's own).
   if(n.type==='GLYPH'&&node.findAll){const ops=(n.glyphSvg||'').match(/<path\\b[^>]*>/g)||[];let vi=0;for(const d of node.findAll(()=>true)){let op;if(d.type==='VECTOR'){const e=ops[vi++];const mm=e&&/\\sopacity="([0-9.]+)"/.exec(e);op=mm?Number(mm[1]):1;}claimDefaults(d,n,'imported',op);}}

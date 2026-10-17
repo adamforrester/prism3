@@ -22,7 +22,7 @@ Stacked on #2660 (the items-slot pattern, not yet merged), with current `main` m
   the caret, `radius`) and `2xl` on its rung order.
 - **Reactions on a set with no pressed look.** `reactions.ts` planned While pressing only to `pressed`. The cell's def
   names `pressState: 'focus-visible'` (pressing a cell focuses the code input), carried on the plan only where declared,
-  so every other plan's `planStamp` is unchanged. `EXECUTOR_REVISION` 28 → 29 (`write-components.ts` passes it).
+  so every other plan's `planStamp` is unchanged. `EXECUTOR_REVISION` is 32, one above main's 31 (`write-components.ts` passes it, and writes the trim).
 - **Default cells per member.** Each member's six cells show its state (`atState`): a fresh insert's picture of that
   state. A placed field's cells stay the designer's (Q329's accepted trade-off). Status has no nested mechanism, so an
   error member's default cells are not in error.
@@ -34,4 +34,22 @@ Stacked on #2660 (the items-slot pattern, not yet merged), with current `main` m
 - The #1392 paste check builds nest-exposed defs with a stub that keys no component, so a slot's preferred value read
   as a miss. Code input is the first nest-exposed def with a slot; the check now provides each preferred id as a built,
   keyed set, as the real build does.
-- Field style (#2695): the lever is still open in #2721; Code input joins it in #2719, already filed.
+- Field style (#2695) merged in #2721; Code input joins it in #2719, already filed. Until then `test.ts`'s field-chrome
+  reach names the cell as binding the field fill without the lever (`FIELD_FILL_PENDING`).
+
+### The digit's vertical position (owner QA 2026-10-16; option A on #2789)
+
+- **Measured cause.** The layout was already centered: the line box sits dead center in every cell, so the line height
+  cancels (the leading splits evenly). What is left is the font. A centered line box puts a figure off center by
+  ((descender − (ascender − figure height)) ÷ 2) × size. Inter is 0.0px at every size, by design. Playfair Display (prism3's
+  title) sits 1.2 / 1.5 / 2.5px low at medium / large / xlarge with lining figures. The owner's test brand's display font
+  sits high: its metrics are not in the repo.
+- **The fix.** `verticalTrim: 'cap-height'` on the cell's character trims the box to the cap height and the baseline,
+  measured 0.0px off center (±0.7 at the worst digit) in every font measured, at every size.
+- **Host trap.** Figma stores vertical trim in the text style, and writing it on a styled layer detaches the style
+  (#1567). So `claimDefaults` writes the plan's trim and the #1567 re-apply stands down for a trimmed node, in both
+  executors. Both shims now model a style apply writing the style's own `NONE`, so a re-apply over the trim fails
+  `#2428 code-input-cell` (plugin), `#2428 paste` (paste) and the round-trip's new `leadingTrim` predicate.
+- **Paste chunks.** `icon-button` packs into 18 chunks, up from 17: the tightest chunk had 15 bytes of slack.
+- **Found and filed, not fixed here:** prism3's title font sets old-style figures by default, so several digits drop
+  below the baseline (#2814).

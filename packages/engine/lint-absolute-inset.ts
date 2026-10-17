@@ -235,6 +235,7 @@ const MUST_COVER = [
   'text-field.focusRing', 'textarea.focusRing', 'select.focusRing', 'password-field.focusRing',
   'checkbox-control.focusRing', 'radio-control.focusRing', 'switch-control.focusRing',
   'tag.focusRing', 'tab.focusRing', 'accordion.focusRing', 'segmented-control-segment.focusRing', 'link.focusRing',
+  'code-input-cell.focusRing',
 ];
 
 /**
@@ -252,6 +253,7 @@ const MUST_CLEAR_STROKE = [
   'text-field.focusRing', 'textarea.focusRing', 'select.focusRing', 'password-field.focusRing',
   'checkbox-control.focusRing', 'radio-control.focusRing', 'switch-control.focusRing',
   'tag.focusRing', 'tab.focusRing', 'segmented-control-segment.focusRing', 'link.focusRing',
+  'code-input-cell.focusRing',
 ];
 
 /**

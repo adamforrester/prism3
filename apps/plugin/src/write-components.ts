@@ -1420,7 +1420,8 @@ const claimDefaults = (node: Wr, n: FigmaNodePlan | null, misses: string[], mode
     set('textAutoResize', n?.textAutoResize ?? 'WIDTH_AND_HEIGHT');
     set('textTruncation', 'DISABLED');
     set('paragraphSpacing', 0);
-    set('leadingTrim', 'NONE');
+    // The plan's trim where it declares one (#2428, `PartDef.verticalTrim`), `NONE` everywhere else.
+    set('leadingTrim', n?.leadingTrim ?? 'NONE');
   }
 };
 
@@ -2641,7 +2642,12 @@ const writeComponentSet = async (
     //
     // No `loadFontAsync` here: the style's font was loaded a few lines above, in this same call, and Figma's
     // loaded-font state is per RUN.
-    if (appliedStyle) {
+    // #2428 — A TRIMMED node keeps its trim and is NOT re-applied: Figma stores vertical trim in the style, so the
+    // trim written by `claimDefaults` detached the style on purpose (the style's variable binds stay on the node), and
+    // re-applying it writes the style's own `NONE` back over the trim.
+    if (n.leadingTrim && node.leadingTrim !== n.leadingTrim)
+      misses.push(`${n.name}.leadingTrim -> DISCARDED (set ${n.leadingTrim}, reads ${String(node.leadingTrim)})`);
+    if (appliedStyle && !n.leadingTrim) {
       try { await node.setTextStyleIdAsync?.(appliedStyle.id); }
       catch (err) { misses.push(`${n.name}.textStyle -> ${appliedStyle.name} could not be re-applied after the #865 defaults (${(err as Error).message})`); }
       if (node.textStyleId !== appliedStyle.id)

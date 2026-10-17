@@ -14522,9 +14522,12 @@ arm: {
       const all = (n: any): any[] => [n, ...(n.children ?? []).flatMap(all)];
       // The field family on main (Q332: Text field, Textarea, Select, Password field; Number and Code input are not built).
       const FIELDS = ['password-field', 'select', 'text-field', 'textarea'];
+      // Code input's cell (#2428) paints Text field's chrome, so it binds the field fill, but it joins the field style
+      // lever in #2719, filed and not built: underline leaves it as it is (the identity arm below holds that).
+      const FIELD_FILL_PENDING = ['code-input-cell'];
       // The field chrome's fill is the field family's own role (the checkbox and radio share the rest border, not this).
       const bindsFieldFill = componentDefs.filter((d) => Object.values(d.tokens).includes('color.field.fill')).map((d) => d.id).sort();
-      ok(JSON.stringify(bindsFieldFill) === JSON.stringify(FIELDS),
+      ok(JSON.stringify(bindsFieldFill) === JSON.stringify([...FIELDS, ...FIELD_FILL_PENDING].sort()),
         `#2695 reach: the defs that bind the field chrome (color.field.fill) are exactly the field family ${FIELDS.join(', ')} (got ${bindsFieldFill.join(', ')})`);
       const notIdentity = componentDefs.filter((d) => applyFieldStyle(d, 'outline') !== d || (!FIELDS.includes(d.id) && applyFieldStyle(d, 'underline') !== d)).map((d) => d.id);
       ok(notIdentity.length === 0, `#2695 identity: outline returns every def unchanged, and underline every non-field def (moved: ${notIdentity.join(', ') || 'none'})`);
@@ -17189,6 +17192,8 @@ arm: {
     // every def, so a new status-bearing def fails by name until it is pinned or excused here.
     const SH_EXEMPT: Record<string, string> = {
       'field-message': 'a message line under a field: no state axis and no stroked boundary, so there is no hover border to measure; its status shows in the text and glyph',
+      // #2428: the field's border is its cells', and status does not reach a nested cell (Q329), so no status member strokes.
+      'code-input': 'the field draws no border of its own: its boxes are nested cells, which the designer sets per cell because status does not reach a slot child (Q329); the cell\'s danger border is held to 3:1 against the page by the #2428 contrast arm',
     };
     const SH_STATUSES = ['error', 'warning', 'success'];
     const roleOfVar = (v: string): string => v.replace(/^color\//, '').replace(/\//g, '.');
@@ -19435,7 +19440,9 @@ arm: {
           },
           // …and the style's SIZE and LINE HEIGHT, as the host resolves them (the reserved-lines floor reads
           // both). The plugin shim's `DEFAULT_STYLE_METRICS`, restated: a plausible host value, not an oracle.
-          setTextStyleIdAsync: async (id: string) => { node.textStyleId = id; node.fontSize = opts.textMetrics?.fontSize ?? 16; node.lineHeight = opts.textMetrics?.lineHeight ?? { unit: 'PERCENT', value: 150 }; },
+          // #2428: a style carries its own vertical trim (every emitted style's is NONE) and applying it writes that trim,
+          // through the backing field so the apply does not detach itself. Mirrors `component-shim.ts`.
+          setTextStyleIdAsync: async (id: string) => { node.textStyleId = id; node.fontSize = opts.textMetrics?.fontSize ?? 16; node.lineHeight = opts.textMetrics?.lineHeight ?? { unit: 'PERCENT', value: 150 }; (node as Record<string, unknown>)._leadingTrim = 'NONE'; },
           // #1007 — STORED UNDER FIGMA'S OWN NAME, `effectStyleId`, as the plugin shim does. This was
           // `async () => {}`: the write was accepted and kept nowhere, so deleting the payload's effect-style
           // apply was invisible here. A stub that discards a write it accepted is the permissive model the
@@ -20167,6 +20174,27 @@ arm: {
       }
       ok(pasted === 8 && bad.length === 0,
         `#2695 paste: the underline fields' per-side stroke weights read back bound from the paste executor (none / none / hairline, thick at focus / none), nothing discarded (${bad.slice(0, 3).join(' | ') || 'clean'})`);
+    }
+
+    // ---- #2428: Code input's character keeps its cap-height trim through the PASTE executor, as through the plugin's ----
+    // `claimDefaults` writes the plan's CAP_HEIGHT (detaching the style, as the host does) and the #1567 re-apply stands
+    // down for a trimmed node, or the style's own NONE would erase the trim. The plugin leg is in test-write-components.
+    {
+      const cellDef = componentDefs.find((x) => x.id === 'code-input-cell')!;
+      const bad: string[] = [];
+      let pasted = 0;
+      for (const size of ['small', 'medium', 'large', 'xlarge']) {
+        const plan = figmaAnatomyPlan(cellDef, size, { state: 'filled' } as never);
+        const page: StubPage = { children: [] };
+        const run = await runPayload(planToPluginJs(plan), { vars: [...planBoundVars(plan.root), ...planPaintVars(plan.root)], styles: planTextStyles(plan.root), comps: [], page });
+        const walk = (n: Record<string, unknown>): Record<string, unknown>[] => [n, ...((n.children as Record<string, unknown>[] | undefined) ?? []).flatMap(walk)];
+        const digit = page.children.flatMap((c) => walk(c as Record<string, unknown>)).find((n) => n.name === 'digit');
+        const trimMisses = run.misses.filter((m) => /digit\.(leadingTrim|textStyle)|THREW/.test(m));
+        pasted++;
+        if (!digit || digit.leadingTrim !== 'CAP_HEIGHT' || trimMisses.length) bad.push(`${size}: ${digit ? String(digit.leadingTrim) : 'no digit'}${trimMisses.length ? `; ${trimMisses[0]}` : ''}`);
+      }
+      ok(pasted === 4 && bad.length === 0,
+        `#2428 paste: Code input's character reads leadingTrim CAP_HEIGHT from the paste executor at every size, nothing discarded (${bad.join(' | ') || 'clean'})`);
     }
 
     // ---- the reserved-rows floor tolerates the host's SINGLE-PRECISION minHeight (live 2026-09-25) --------
@@ -23582,8 +23610,13 @@ arm: {
       // default (owner decision Q347 A), and members in the new order pack one chunk tighter, as #2501's did.
       // Measured on the merge: the old order packs into 18, the new into 17. Re-pinned per the same standing
       // instruction; every chunk stays under budget.
+      //
+      // NOW 18 AGAIN, AS OF #2428 — a shell-byte move: the paste script's `claimDefaults` writes the plan's vertical
+      // trim (Code input's character) and the #1567 re-apply stands down for a trimmed node, with a read-back, in
+      // every chunk's shell. icon-button does not use it. 17 chunks had 15 bytes of slack in the tightest one, so any
+      // shell byte costs a chunk. Re-pinned per the same standing instruction; every chunk stays under budget.
       const ibChunks = planSetChunks(ibSet);
-      ok(ibChunks.length === 17, `anatomy/icon-button: the set packs into 17 chunks (${ibChunks.length})`);
+      ok(ibChunks.length === 18, `anatomy/icon-button: the set packs into 18 chunks (${ibChunks.length})`);
       ok(ibChunks.every((c) => c.bytes <= SET_CHUNK_BYTES),
         `anatomy/icon-button: no chunk exceeds the byte budget (${ibChunks.map((c) => c.bytes).join(', ')} vs ${SET_CHUNK_BYTES})`);
       // And the chunks partition the set — no member dropped, none written twice. A packer that lost a
@@ -31624,6 +31657,24 @@ arm: {
   const digitAt = CELL_STATES.filter((st) => !!findIn(cellAt('medium', st)!.root, 'digit'));
   ok(typeOff.length === 0 && JSON.stringify(digitAt) === JSON.stringify(['filled', 'focus-visible-filled', 'error']),
     `#2428 code-input: the character is 16 / 20 / 24 / 40px (body md, title sm, md, 2xl) and shows on the filled, active filled and error cells only (${typeOff.join('; ') || 'sizes ok'}; shown at ${digitAt.join(', ')})`);
+  // (3b) OPTICAL CENTERING (owner QA on #2428, 2026-10-16; option A on #2789): every character's text box is trimmed to the
+  // cap height and the baseline, centered on both axes in a `content` frame with no padding that fills the cell. A centered
+  // LINE box is not enough: it leaves the figure off center by the font's own metrics. And no other def's text is trimmed,
+  // so the trim (which detaches a Figma text style) stays where it was decided.
+  const trimOff = SIZES.flatMap((s) => CELL_STATES.map((st) => {
+    const root = cellAt(s, st)!.root;
+    const d = findIn(root, 'digit');
+    if (!d) return null;
+    const c = findIn(root, 'content');
+    const pad = ['paddingTop', 'paddingBottom'].map((k) => c?.bound?.[k]);
+    return d.leadingTrim === 'CAP_HEIGHT' && d.textAlignVertical === 'CENTER' && c?.counterAxisAlignItems === 'CENTER'
+      && c?.layoutGrow === 1 && root.primaryAxisAlignItems === 'CENTER' && pad.every((v: unknown) => v === 'space/0')
+      ? null : `${s}/${st}: trim ${String(d.leadingTrim)}, content ${String(c?.counterAxisAlignItems)} grow ${String(c?.layoutGrow)} pad ${pad.join('/')}`;
+  })).filter(Boolean);
+  const trimmedElsewhere = componentDefs.filter((d) => d.id !== 'code-input-cell'
+    && Object.values(d.anatomy?.parts ?? {}).some((p) => (p as { verticalTrim?: unknown }).verticalTrim !== undefined)).map((d) => d.id);
+  ok(trimOff.length === 0 && trimmedElsewhere.length === 0,
+    `#2428 code-input: the character is trimmed to its cap height and baseline and centered in the cell at every size and state, and no other def trims a text (off: ${[...trimOff, ...trimmedElsewhere].join('; ') || 'none'})`);
   // The title weight resolves per brand (`typeWeight`): a brand shipping only a light title weight gets that weight, not a
   // missing `strong` style. The rule's own resolver, independent of the def.
   const lightTitle = applyWeightIntent(cellDef, { ...DEFAULT_WEIGHT_AVAILABILITY, title: ['subtle'] });

@@ -162,8 +162,14 @@ export const codeInputCell: ComponentDef = {
       digit: {
         kind: 'text',
         type: 'size.{size}.type',
+        // OPTICALLY CENTERED (owner QA on #2428, 2026-10-16; option A on #2789): the text box is trimmed to the cap
+        // height and the baseline, so the centered box is the figure itself. A centered LINE box left the figure off
+        // center by the font's own metrics, high in a display font whose descender is deeper than the room above its
+        // figures, and no line height changes that (the leading splits evenly). Figma keeps the trim in the text
+        // style, so the trim detaches the character's style; its variable binds stay (see `verticalTrim`).
+        verticalTrim: 'cap-height',
         presentWhen: { state: ['filled', 'focus-visible-filled', 'error'] },
-        note: 'The character, centered, with tabular figures in code so every digit is one width.',
+        note: 'The character, centered on its figure: its box is trimmed to the cap height and the baseline. Tabular figures in code, so every digit is one width.',
       },
       focusRing: {
         kind: 'absolute',
@@ -180,6 +186,8 @@ export const codeInputCell: ComponentDef = {
       'the active cell — the cell at the input\'s caret, or the last cell once the code is complete, carries the ring while the input has focus from any pointer or the keyboard (an input matches :focus-visible on a mouse focus too). It is the code input\'s caret position, never a DOM focus move.',
       'the caret — Figma draws a static bar; code draws a blinking bar on the active empty cell, or hides the native caret and draws none, and stops blinking under prefers-reduced-motion.',
       'tabular figures — the character sets `font-variant-numeric: tabular-nums`, so every digit is one width and the code does not shimmer as it fills.',
+      'the character\'s optical centering — its box is trimmed to the cap height and the baseline (`text-box: trim-both cap alphabetic`, Figma\'s vertical trim), so the cell centers the figure itself, whatever the brand font\'s ascender and descender. Where `text-box` is unsupported, the box falls back to the line box, centered.',
+      'the character\'s text style in Figma — vertical trim lives inside a Figma text style, so the trimmed character carries the style\'s font family, style and size as variable binds and shows no style name. Code reads the same type role.',
       'fill width — Figma keeps each cell at its size until a designer sets it to fill; code\'s `width="full"` makes every cell `flex: 1 1 0` with `min-inline-size: 32px`, and the height stays the size\'s.',
       'forced-colors — the borders become system-color borders and the active cell\'s ring a system-color outline, so the active cell still shows.',
     ],
@@ -243,9 +251,11 @@ export const codeInputCell: ComponentDef = {
     ],
     unverified: [
       'An empty cell in error: the approved states draw error with a character only. A field in error with a short code shows its empty cells at rest in Figma; code draws the danger border on every cell.',
+      'The character\'s vertical trim on a real host: that a layer trimmed after its style is applied keeps the style\'s variable binds (measured for the #1567 detach, not for this layer), and that the trimmed box centers the figure in the brand\'s own display font, are modeled offline only until the owner\'s QA build.',
     ],
     evolution: [
       '2026-10-15 (#2428): owner decision Q329 A, the cell as a part in the code input\'s native items slot, its character edited on the cell; Q330 A, the four sizes.',
+      '2026-10-17 (#2789): the character is trimmed to its cap height and baseline, so the cell centers the figure (owner QA 2026-10-16: the digit sat too high at medium and large; option A of the owner question on #2789).',
     ],
   },
 };

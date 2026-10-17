@@ -376,6 +376,18 @@ export type PartDef = {
    *  PARENT's `layout.align`, and no value of this field reaches it — see `checkbox.ts`'s `row`. The two
    *  were filed as one observation and are two properties on two different nodes. */
   verticalAlign?: 'top' | 'center' | 'bottom';
+  /** For `text` parts: VERTICAL TRIM (#2428, owner QA 2026-10-16, option A on #2789) — the text box is trimmed to
+   *  the cap height above and the baseline below, so the box IS the figure and a parent that centers it centers
+   *  the glyph whatever the font's ascender and descender. Without it a centered LINE box puts a figure off
+   *  center by ((descender − (ascender − cap height)) ÷ 2) × font size, which no line height changes. Figma's
+   *  `leadingTrim: CAP_HEIGHT`; code's `text-box: trim-both cap alphabetic`.
+   *
+   *  IT DETACHES THE TEXT STYLE ON THE HOST. Figma keeps vertical trim inside a text style, and writing it on a
+   *  styled layer drops `textStyleId` (#1567, host-measured), keeping the style's variable binds on the node. So
+   *  a trimmed part is applied its style first (the values and binds) and is NOT re-applied after the #865
+   *  defaults, or the style would write its own `NONE` back. A single-line part only: trim also removes the
+   *  space a second line would need. */
+  verticalTrim?: 'cap-height';
   /** For a `text` part: FILL the parent row's main axis and WRAP to multiple lines, rather than hug the
    *  glyphs and OVERFLOW (#1424). A long option/consent label is the case: today it grows the row
    *  horizontally off the edge; Prism 2 wraps it to a second line with the control top-anchored
@@ -4742,6 +4754,10 @@ const anatomyErrors = (def: ComponentDef): string[] => {
       e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'verticalAlign' — only a 'text' part positions glyphs inside its own box. Figma's 'textAlignVertical' is a TextNode property and writing it to a frame throws at paste time; a row that wants its children aligned says so in its own 'layout.align'`);
     if (p.kind === 'text' && p.verticalAlign !== undefined && !(['top', 'center', 'bottom'] as readonly string[]).includes(p.verticalAlign))
       e.push(`anatomy part '${n}': verticalAlign '${p.verticalAlign}' is not one of [top, center, bottom] — those are the three values Figma's 'textAlignVertical' has, and a fourth word would project a value the executor writes and Figma discards`);
+    if (p.kind !== 'text' && p.verticalTrim !== undefined)
+      e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'verticalTrim' — only a 'text' part has a text box to trim; Figma's 'leadingTrim' is a TextNode property`);
+    if (p.kind === 'text' && p.verticalTrim !== undefined && p.verticalTrim !== 'cap-height')
+      e.push(`anatomy part '${n}': verticalTrim '${p.verticalTrim}' is not 'cap-height' — Figma's 'leadingTrim' has CAP_HEIGHT and NONE, and NONE is the default`);
     // `paintSlot` is the TEXT kind's field (#796) — the only branch that reads it. On any other kind it
     // would validate clean and be silently ignored, which is this whole pass's defect class: a field an
     // author reasonably believes took effect.
