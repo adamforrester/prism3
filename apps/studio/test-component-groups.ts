@@ -97,7 +97,7 @@ const c4 = costOf(catalog, four);
 ok(c4.sets === 4 && c4.variants === 576 + 576 + 15 + 84 && c4.components === 0, `four sets cost ${c4.variants} variants (the wireframe's 1,251)`);
 const ci = costOf(catalog, ['icon', 'badge']);
 ok(ci.variants === 20 && ci.components === 45, `a set built as separate components counts as components, not variants (Icon: ${ci.components})`);
-ok(JSON.stringify(alsoBuilds(catalog, four)) === JSON.stringify(['Icon', 'Spinner', 'Focus ring', 'Icon button Neutral', 'Divider', 'Field label', 'Field message']),
+ok(JSON.stringify(alsoBuilds(catalog, four)) === JSON.stringify(['Icon', 'Spinner', 'Focus ring', 'Flush icon button Neutral', 'Divider', 'Field label', 'Field message']),
   `idea 7: the sets a build makes first, transitively, minus the selection, named as the list names them (Q392 on #2812) (${alsoBuilds(catalog, four).join(', ')})`);
 ok(displayNameOf(catalog, 'button-destructive') === 'Button Destructive' && displayNameOf(catalog, 'tab') === 'Tab' && displayNameOf(catalog, 'image-placeholder') === 'Image placeholder',
   `a part set reads as its base and its part, a set alone on its row as the row (${displayNameOf(catalog, 'button-destructive')}, ${displayNameOf(catalog, 'tab')}, ${displayNameOf(catalog, 'image-placeholder')})`);
