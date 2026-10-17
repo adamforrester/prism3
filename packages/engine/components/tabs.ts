@@ -3,12 +3,12 @@
  *
  * KB brief: `components/tabs.md`
  *
- * A row of nested `tab` instances above a 1px baseline. Tab 1 is selected; tabs 4 to 6 sit behind Figma-only
- * booleans (the radio-group precedent for a variable child count, #2344), so the set is `size` only: 3
- * members. The panel is not drawn: it is the page content below, and its role and wiring are code-only.
+ * A row of nested `tab` instances above a 1px baseline, held in a native `items` slot (#2649, owner decision Q307 A):
+ * three by default, tab 1 selected, six at most. Until #2649 tabs 4 to 6 sat behind Figma-only booleans (#2344). The
+ * set is `size` × `alignment`: 6 members. The panel is not drawn: it is the page content below, and its role and wiring are code-only.
  * Owner decisions on #2416: the nested shape (Q177.2), line tabs only (Q177.4), its own `↳ Tabs` page with
  * no navigation grouping (Q177.14), a 1px `color.border.primary` baseline under the 2px bar (Q179 A), six
- * tabs at most in Figma, three shown (Q179 A), Tab 1 selected. `alignment` (Q222 A, #2518): start or center, the
+ * tabs at most in Figma, three shown (Q179 A, now the slot's default and ceiling), Tab 1 selected. `alignment` (Q222 A, #2518): start or center, the
  * centered list in a full-width bar.
  */
 import { ComponentDef } from '../component-schema';
@@ -31,6 +31,7 @@ export const tabs: ComponentDef = {
 
   props: [
     { name: 'value', type: 'string', required: false, description: 'The key of the selected tab. Controlled; pair it with onChange.' },
+    { name: 'items', type: 'slot', anyOf: ['tab'], minItems: 1, maxItems: 6, required: true, description: 'The tabs, each a Tab, in order, one per panel. Three by default with the first selected, six at most.' },
     { name: 'defaultValue', type: 'string', required: false, description: 'The key of the tab selected first, when the list manages its own state.' },
     { name: 'onChange', type: 'function', required: false, description: 'Called with the new key when the selected tab changes.' },
     { name: 'activation', type: "enum: 'automatic' | 'manual'", values: ['automatic', 'manual'], default: 'automatic', required: false, description: 'automatic: moving focus with the arrow keys selects the tab. manual: arrows move focus only, and Enter or Space selects. Use manual when showing a panel is slow.' },
@@ -43,7 +44,7 @@ export const tabs: ComponentDef = {
   // `alignment` (#2518, owner decision Q222 A): `start` is the approved tab list (#2416); `center` sits the same tabs
   // centered in a bar that spans its placement, the baseline full width. `start` leads: the code default and
   // Figma's default member.
-  variants: { size: ['small', 'medium', 'large'], alignment: ['start', 'center'] },
+  variants: { size: ['medium', 'small', 'large'], alignment: ['start', 'center'] },
   axisKinds: { size: 'authoring', alignment: 'authoring' },
 
   paintKeys: ['{slot}'],
@@ -60,7 +61,7 @@ export const tabs: ComponentDef = {
       container: {
         kind: 'box',
         role: 'target',
-        children: ['list', 'baseline'],
+        children: ['items', 'baseline'],
         layout: { direction: 'column', align: 'start', justify: 'start', sizing: { x: 'hug', y: 'hug' } },
         gap: 'gap',
         // CENTERED (#2518): at `alignment=center` the list fills its placement and centers the row of tabs; the Figma
@@ -68,20 +69,23 @@ export const tabs: ComponentDef = {
         center: { axis: 'alignment', value: 'center', placementWidth: 480 },
         note: 'The tab list: the row of tabs above the baseline.',
       },
-      list: {
+      // THE ITEMS SLOT (#2649, owner decision Q307 A): a native Figma slot (#2417) holding the tabs, three by default
+      // with the first selected. A designer adds, removes and reorders tabs on an instance in place, up to six (Q179).
+      items: {
         kind: 'box',
         role: 'presentation',
-        children: ['tab1', 'tab2', 'tab3', 'tab4', 'tab5', 'tab6'],
+        contentSlot: true,
+        // Owner decision Q307 A: at least one item, at most 6, and only a tab (#2646's slot constraints).
+        slotSettings: { minChildren: 1, maxChildren: 6, allowPreferredValuesOnly: true },
+        preferred: ['tab'],
+        children: ['tab1', 'tab2', 'tab3'],
         layout: { direction: 'row', align: 'end', justify: 'start', sizing: { x: 'hug', y: 'hug' } },
         gap: 'gap',
-        note: 'The tabs, side by side with no gap; each tab carries its own padding.',
+        note: 'The tabs: a native slot holding Tab instances side by side with no gap, three by default, the first selected. Each tab carries its own padding.',
       },
       tab1: { ...tabNest('selected'), note: 'The first tab, selected.' },
       tab2: { ...tabNest('unselected'), note: 'A second tab.' },
       tab3: { ...tabNest('unselected'), note: 'A third tab.' },
-      tab4: { ...tabNest('unselected'), optional: true, note: 'A fourth tab, off by default.' },
-      tab5: { ...tabNest('unselected'), optional: true, note: 'A fifth tab, off by default.' },
-      tab6: { ...tabNest('unselected'), optional: true, note: 'A sixth tab, off by default.' },
       baseline: {
         kind: 'box',
         role: 'presentation',
@@ -108,11 +112,7 @@ export const tabs: ComponentDef = {
 
   figmaProperties: {
     variantAxes: ['size', 'alignment'],
-    booleans: {
-      tab4: { part: 'tab4', default: false, figmaName: 'Tab 4', figmaOnly: true },
-      tab5: { part: 'tab5', default: false, figmaName: 'Tab 5', figmaOnly: true },
-      tab6: { part: 'tab6', default: false, figmaName: 'Tab 6', figmaOnly: true },
-    },
+    booleans: {},
   },
 
   accessibility: {

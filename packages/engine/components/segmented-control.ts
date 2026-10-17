@@ -13,8 +13,8 @@
  *   5 A  Track `radius.md`, indicator `radius.sm`, 4px inside. No style axis (confirmed built, Q278.2 A: the corners
  *        stay non-concentric, no derived radius token).
  *   6 A  `grow` on a nested instance, so the segments are equal width in Figma as in code.
- *   7 A  `SegmentedControl` / `SegmentedControl.Segment`, category `form`, toggles `Segment 3`–`Segment 5`, its own
- *        page after Tabs.
+ *   7 A  `SegmentedControl` / `SegmentedControl.Segment`, category `form`, toggles `Segment 3`–`Segment 5` (replaced by
+ *        the `items` slot, #2649), its own page after Tabs.
  *   8 A  2–5 segments, 3 shown.
  *
  * Owner decisions Q278 (2026-10-13), on the built PR, all A: 1 the hover wash kept; 2 the shape kept as built;
@@ -45,10 +45,12 @@
  * wash, the focus ring 3:1 against the track and the page (`test.ts`, #2724).
  *
  * ── THE CONTROL ────────────────────────────────────────────────────────────────────────────────────────
- * `size` only = 3 members. An optional nested FieldLabel above a filled TRACK with no outline, holding five nested
- * segments, `nest-exposed` (`selection`, `state`) and following `size`. Segments 1 and 2 always show; 3 (on), 4 and 5 (off)
- * sit behind Figma-only booleans (#2344). Segment 1 is selected. Each segment GROWS along the track (Q269.6), and
- * the track stretches across the control, so the segments share its width equally.
+ * `size` only = 3 members. An optional nested FieldLabel above a filled TRACK with no outline, holding a native `items`
+ * slot (#2649, owner decision Q307 A) of nested segments following `size`: three by default, five at most, segment 1
+ * selected. Until #2649 the track held five segments, `nest-exposed` (`selection`, `state`), 3 to 5 behind Figma-only
+ * booleans (#2344); in the slot they are `nest-fixed`, and a designer sets each one's selection on the segment itself.
+ * The slot GROWS along the track and each segment along the slot (Q269.6), and the track stretches across the
+ * control, so the segments share its width equally.
  */
 import { ComponentDef } from '../component-schema';
 
@@ -74,7 +76,7 @@ export const segmentedControlSegment: ComponentDef = {
   states: ['rest', 'hover', 'pressed', 'focus-visible', 'disabled'],
   variants: {
     selection: ['unselected', 'selected'],
-    size: ['small', 'medium', 'large'],
+    size: ['medium', 'small', 'large'],
   },
   axisKinds: { selection: 'runtime', size: 'authoring' },
 
@@ -303,7 +305,10 @@ export const segmentedControlSegment: ComponentDef = {
 const segmentNest = (selection: 'selected' | 'unselected') => ({
   kind: 'nest' as const,
   nests: 'segmented-control-segment',
-  nesting: { kind: 'nest-exposed' as const, variant: { selection, size: 'medium', state: 'rest' }, follow: ['size'], expose: ['selection', 'state'] },
+  // `nest-fixed` inside the `items` slot (#2649): a designer selects an option in the slot and sets its own `selection`
+  // and `state` there, so the control exposes no nested properties of its own (Figma refuses a property reference on a
+  // slot sublayer, measured for text in #2417).
+  nesting: { kind: 'nest-fixed' as const, variant: { selection, size: 'medium', state: 'rest' }, follow: ['size'] },
   // Q269.6 A: every segment grows along the track, so the segments share its width equally.
   grow: true,
 });
@@ -320,6 +325,7 @@ export const segmentedControl: ComponentDef = {
 
   props: [
     { name: 'label', type: 'string', required: true, description: 'What is being chosen, such as "View". Shown above the track, or given as an accessible name only when the page already shows it.' },
+    { name: 'items', type: 'slot', anyOf: ['segmented-control-segment'], minItems: 1, maxItems: 5, required: true, description: 'The options, each a SegmentedControl.Segment, in order. Three by default with the first selected, five at most.' },
     { name: 'value', type: 'string', required: false, description: 'The selected option\'s value. Controlled; pair it with onChange.' },
     { name: 'defaultValue', type: 'string', required: false, description: 'The option selected first, when the control manages its own state. A segmented control always has one option selected.' },
     { name: 'onChange', type: 'function', required: false, description: 'Called with the new value when the selection changes. Never called with an empty value.' },
@@ -331,7 +337,7 @@ export const segmentedControl: ComponentDef = {
   ],
 
   states: ['rest'],
-  variants: { size: ['small', 'medium', 'large'] },
+  variants: { size: ['medium', 'small', 'large'] },
   axisKinds: { size: 'authoring' },
 
   paintKeys: ['{slot}'],
@@ -371,7 +377,7 @@ export const segmentedControl: ComponentDef = {
         kind: 'box',
         role: 'presentation',
         paintSlots: ['fill'],
-        children: ['segment1', 'segment2', 'segment3', 'segment4', 'segment5'],
+        children: ['items'],
         layout: { direction: 'row', align: 'center', justify: 'start', sizing: { x: 'hug', y: 'hug' } },
         padding: { block: 'track-pad', inlineLabel: 'track-pad' },
         gap: 'track-gap',
@@ -379,11 +385,25 @@ export const segmentedControl: ComponentDef = {
         crossAxisFill: true,
         note: 'The track: a neutral fill behind every option, with no outline. Each option fills an equal share of it, and the selected one shows a pill on it.',
       },
+      // THE ITEMS SLOT (#2649, owner decision Q307 A): a native Figma slot (#2417) inside the track, holding the
+      // options, three by default with the first selected. It grows across the track, so the options inside it
+      // still share the track's width equally (Q269.6). A designer adds, removes and reorders options in place.
+      items: {
+        kind: 'box',
+        role: 'presentation',
+        contentSlot: true,
+        // Owner decision Q307 A: at least one item, at most 5, and only a segmented-control-segment (#2646's slot constraints).
+        slotSettings: { minChildren: 1, maxChildren: 5, allowPreferredValuesOnly: true },
+        preferred: ['segmented-control-segment'],
+        children: ['segment1', 'segment2', 'segment3'],
+        layout: { direction: 'row', align: 'center', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
+        gap: 'track-gap',
+        grow: true,
+        note: 'The options: a native slot holding Segment instances, three by default, the first selected. Each option fills an equal share of the track.',
+      },
       segment1: { ...segmentNest('selected'), note: 'The first option, selected.' },
-      segment2: { ...segmentNest('unselected'), note: 'The second option. A segmented control has at least two.' },
-      segment3: { ...segmentNest('unselected'), optional: true, note: 'A third option, shown by default.' },
-      segment4: { ...segmentNest('unselected'), optional: true, note: 'A fourth option, off by default.' },
-      segment5: { ...segmentNest('unselected'), optional: true, note: 'A fifth option, off by default. Past five, use a select.' },
+      segment2: { ...segmentNest('unselected'), note: 'The second option.' },
+      segment3: { ...segmentNest('unselected'), note: 'The third option.' },
     },
     codeOnly: [
       'code delivery pending: behavior layer (#2454), as for Tabs. The entries below are a framework-neutral behavior contract for whichever layer the project\'s developers choose.',
@@ -400,13 +420,9 @@ export const segmentedControl: ComponentDef = {
 
   figmaProperties: {
     variantAxes: ['size'],
-    // Q269.7 and Q269.8: segments 1 and 2 always show; 3 to 5 behind Figma-only toggles (#2344), 3 on. In code the
-    // count is `children`. The label behind its own Figma-only toggle, on.
+    // The options are the `items` slot (#2649); the label stays outside it, behind its own Figma-only toggle, on.
     booleans: {
       showLabel: { part: 'label', default: true, figmaName: 'Label', figmaOnly: true },
-      segment3: { part: 'segment3', default: true, figmaName: 'Segment 3', figmaOnly: true },
-      segment4: { part: 'segment4', default: false, figmaName: 'Segment 4', figmaOnly: true },
-      segment5: { part: 'segment5', default: false, figmaName: 'Segment 5', figmaOnly: true },
     },
   },
 

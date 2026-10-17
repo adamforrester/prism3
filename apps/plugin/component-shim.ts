@@ -1168,6 +1168,27 @@ export const makeShim = (opts: ShimOpts = {}) => {
         },
       });
     }
+    // #2695 — A LITERAL STROKE WEIGHT DETACHES THE WEIGHT BINDINGS, as a literal write after a binding does on the
+    // host (#1266, the rule both executors' 1px fallback is gated on). A bound weight lives on the four per-side keys
+    // (#1332), so the write drops all four and sets each side to the value. Modelled so the underline field's per-side
+    // binding (`strokeEdges`) is witnessed surviving the build: an executor that wrote the 1px fallback over it would
+    // read back here with no weight bound, as it would on the host.
+    {
+      let weight = node.strokeWeight as number | undefined;
+      Object.defineProperty(node, 'strokeWeight', {
+        configurable: true,
+        enumerable: true,
+        get() { return weight; },
+        set(v: number) {
+          weight = v;
+          const bv = node.boundVariables as Record<string, unknown> | undefined;
+          for (const side of ['strokeTopWeight', 'strokeRightWeight', 'strokeBottomWeight', 'strokeLeftWeight']) {
+            if (bv) delete bv[side];
+            (node as Record<string, unknown>)[side] = v;
+          }
+        },
+      });
+    }
     // A FIXED-WIDTH TEXT NODE KEEPS THE WIDTH IT WAS SET AT (#1757, `layoutModel` only). Switching a text from
     // auto width to `HEIGHT` (or `NONE`) freezes its width where its content left it, and nothing but a resize
     // or a parent that FILLS it moves that width again — new characters reflow inside it. The executors write
@@ -1486,6 +1507,9 @@ export const makeShim = (opts: ShimOpts = {}) => {
         // share one — which a swap override, whose value IS an id, cannot survive.
         const mkRef = (name: string, _i: number, main?: Node, owner: { name: string; type: string } = PAGE_OWNER) => ({
           name, id: componentIdFor(owner.name, name), type: 'COMPONENT',
+          // With `identities` a component carries the key its instances' `mainComponent` reads (#2649: a slot's preferred
+          // value names a component by key, so a nested component the slot prefers must have one, as on a real file).
+          ...(opts.identities ? { key: `${opts.keyPrefix ?? 'K'}:${name}` } : {}),
           createInstance: () => {
             const inst = mkNode('INSTANCE'); const vec = mkNode('VECTOR'); inst.findAll = () => [vec]; inst.findOne = () => null;
             // #2645 — ITS PROPERTIES: a live member's are its set's (a plain live component's, its own), read when

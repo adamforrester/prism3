@@ -4952,6 +4952,8 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     ['buttonMinWidthMultiplier', 1], ['buttonMinWidthMultiplier', 4],
     ['buttonTextHover', 'fill'],
     ['controlShape', 'boxed'], ['controlShape', 'hairline'], ['controlShape', 'pill'],
+    // #2695: Field style moves only the field defs' geometry and paints, never the tree.
+    ['fieldStyle', 'underline'],
   ];
   const getIn = (o: any, key: string): unknown => key.split('.').reduce((a, p) => a?.[p], o);
   const setIn = (o: any, key: string, v: unknown): any => {
@@ -4985,6 +4987,47 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
 }
 
 // =============================================================================================
+// #2695 — THE UNDERLINE FIELD, built through `materializeForBrand` and read back from the host shim
+// =============================================================================================
+// A brand on "Field style: Underline" builds every field set with the four stroke sides bound apart: top, end and start
+// to `border-width/none`, the bottom to `border-width/hairline` (and `border-width/thick` at focus), read back off the
+// host's own per-side keys. The shim models a literal `strokeWeight` write detaching those bindings (#1266), so an
+// executor whose 1px fallback wrote over them reads back here with no weight bound. Expected names typed from the
+// decisions (Q333). Mutation: drop the per-side keys from either fallback guard in `write-components.ts`.
+{
+  const input = { ...parseDesignMd(readFileSync(new URL('../../packages/engine/examples/nb-redesign.design.md', import.meta.url), 'utf8')).input, fieldStyle: 'underline' } as BrandInput;
+  const project = (d: ComponentDef) => figmaAnatomySet(materializeForBrand(d, input), { swapTarget: SWAP });
+  const all = componentDefs.flatMap((d) => { try { return project(d); } catch { return []; } });
+  const f = fullFor(all);
+  const id = (v: unknown): string | null => (v as { id?: string } | undefined)?.id?.replace(/^V:/, '') ?? null;
+  const wrong: string[] = [];
+  const misses: string[] = [];
+  let read = 0;
+  for (const fid of ['text-field', 'password-field', 'select', 'textarea']) {
+    const def = componentDefs.find((d) => d.id === fid)!;
+    const page: Page = { children: [] };
+    const shim = makeShim({ vars: f.vars, styles: f.styles, effects: f.effects, comps: [], liveRoot: true, page });
+    const build = (d: ComponentDef) => applyComponentPlan(project(d), shim as any, { emitAsComponents: d.figmaProperties?.emitAsComponents });
+    await prebuildDependencies(def, { defs: componentDefs, project, host: shim as any, build });
+    const run = await build(def);
+    misses.push(...run.misses.filter((m) => /stroke/i.test(m)).map((m) => `${fid}: ${m}`));
+    const set = page.children.find((c) => c.type === 'COMPONENT_SET' && c.name === project(def)[0].component) as Node | undefined;
+    for (const m of (set?.children ?? []) as Node[]) {
+      const control = ((m.children as Node[]) ?? []).flatMap(function walk(n: Node): Node[] { return [n, ...((n.children as Node[]) ?? []).flatMap(walk)]; }).find((n) => n.name === 'control');
+      const bv = (control?.boundVariables ?? {}) as Record<string, unknown>;
+      const focus = /state=focus-visible/.test(String(m.name));
+      read++;
+      const got = [id(bv.strokeTopWeight), id(bv.strokeRightWeight), id(bv.strokeBottomWeight), id(bv.strokeLeftWeight)];
+      const want = ['border-width/none', 'border-width/none', focus ? 'border-width/thick' : 'border-width/hairline', 'border-width/none'];
+      if (JSON.stringify(got) !== JSON.stringify(want)) wrong.push(`${fid} ${m.name}: ${got.join(' / ')}`);
+    }
+  }
+  ok(read === 4 * 84 && wrong.length === 0,
+    `#2695 underline fields read back with their per-side weights bound: none / none / hairline (thick at focus) / none, on all ${read} of 336 members (${wrong.slice(0, 3).join('; ') || 'ok'})`);
+  ok(misses.length === 0, `#2695 underline fields: no stroke binding is reported discarded (${misses.slice(0, 3).join('; ') || 'none'})`);
+}
+
+// =============================================================================================
 // #2518 — CENTERED TABS (owner decision Q222 A), read off the built set
 // =============================================================================================
 // At `alignment=center` the tab list sits centered in a bar that spans its placement: the member is BUILT 480 wide
@@ -5011,7 +5054,8 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   const wrongStart: string[] = [];
   let centered = 0, started = 0;
   for (const m of members) {
-    const list = child(m, 'list'); const base = child(m, 'baseline');
+    // The row of tabs is the `items` slot since #2649.
+    const list = child(m, 'items'); const base = child(m, 'baseline');
     const at = String(m.name);
     if (!list || !base) { (at.includes('alignment=center') ? wrongCenter : wrongStart).push(`${at}: no list or baseline`); continue; }
     const W = Number(m.width), lw = Number(list.width), lx = Number(list.x), bw = Number(base.width);
@@ -5082,19 +5126,24 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   const child = (m: Node, name: string) => ((m.children as Node[]) ?? []).find((c) => c.name === name);
   const wrong: string[] = [];
   for (const m of members) {
+    // Since #2649 the options sit in the `items` slot, which grows along the track: the slot fills the track less the
+    // track's padding, and the options share the slot less its gaps.
     const track = child(m, 'track');
-    const shown = ((track?.children as Node[]) ?? []).filter((c) => c.visible !== false);
+    const items = track ? child(track, 'items') : undefined;
+    const shown = ((items?.children as Node[]) ?? []).filter((c) => c.visible !== false);
     const widths = shown.map((c) => Number(c.width));
-    const tw = Number(track?.width);
-    // The track's own padding and gaps as the HOST holds them (the shim's placeholder variables, not the def's tokens).
-    const bv = (track?.boundVariables ?? {}) as Record<string, { value?: number }>;
-    const frame = (bv.paddingLeft?.value ?? 0) + (bv.paddingRight?.value ?? 0) + Math.max(0, shown.length - 1) * (bv.itemSpacing?.value ?? 0);
+    const tw = Number(track?.width), iw = Number(items?.width);
+    // The padding and gaps as the HOST holds them (the shim's placeholder variables, not the def's tokens).
+    const tbv = (track?.boundVariables ?? {}) as Record<string, { value?: number }>;
+    const ibv = (items?.boundVariables ?? {}) as Record<string, { value?: number }>;
+    const pad = (tbv.paddingLeft?.value ?? 0) + (tbv.paddingRight?.value ?? 0);
+    const gaps = Math.max(0, shown.length - 1) * (ibv.itemSpacing?.value ?? 0);
     const sum = widths.reduce((a, b) => a + b, 0);
-    if (!track || shown.length !== 3 || new Set(widths).size !== 1 || Math.abs(sum + frame - tw) > 0.5 || shown.some((c) => c.layoutGrow !== 1))
-      wrong.push(`${String(m.name)}: track ${tw} (padding and gaps ${frame}), ${shown.length} shown at ${widths.join('/')} (sum ${sum}), layoutGrow ${shown.map((c) => String(c.layoutGrow)).join('/')}`);
+    if (!track || items?.type !== 'SLOT' || items.layoutGrow !== 1 || Math.abs(iw + pad - tw) > 0.5 || shown.length !== 3 || new Set(widths).size !== 1 || Math.abs(sum + gaps - iw) > 0.5 || shown.some((c) => c.layoutGrow !== 1))
+      wrong.push(`${String(m.name)}: track ${tw} (padding ${pad}), items ${String(items?.type)} ${iw} grow ${String(items?.layoutGrow)}, ${shown.length} shown at ${widths.join('/')} (sum ${sum}, gaps ${gaps}), layoutGrow ${shown.map((c) => String(c.layoutGrow)).join('/')}`);
   }
   ok(members.length === 3 && wrong.length === 0,
-    `segmented control equal widths (Q269.6): at every size the three shown options grow along the track (layoutGrow 1 on the host) and measure the same width, their shares filling the track (${members.length} members${wrong.length ? ` — WRONG: ${wrong.join(' | ')}` : ''})`);
+    `segmented control equal widths (Q269.6): at every size the items slot grows along the track and its three options grow along it (layoutGrow 1 on the host) and measure the same width, their shares filling the track (${members.length} members${wrong.length ? ` — WRONG: ${wrong.join(' | ')}` : ''})`);
 }
 
 if (failed) process.exit(1);

@@ -104,15 +104,15 @@ export const makeTextField = (spec: FieldSpec): ComponentDef => {
   // is the PROJECTED member that holds a value. rest / hover / focus-visible show the placeholder.
   states: ['rest', 'hover', 'pending', 'filled', 'focus-visible', 'focus-visible-filled', 'disabled', 'read-only', 'empty'],
   // `status` is field-message's status axis by name and value — the alignment that lets the nested message
-  // follow it (see the header). `style` stays as a code-API axis (one value, not projected — admitted in
-  // `anatomy.codeOnly`).
+  // follow it (see the header). `style` is brand-set (the Field style lever, #2695): not projected, not a prop —
+  // admitted in `anatomy.codeOnly`.
   //
   // SIZE IS A PROJECTED AXIS (#2266, owner decisions Q84 A and Q101 A: one field sizing system). Until then
   // Figma carried the single `md` rung and `size` was a code-only prop. Now each size scales the input type
   // (`body.sm/md/lg`), the nested label (one step below, by `follow`), the padding and the height.
   //
-  // `medium` FIRST, deliberately, and the order is load-bearing rather than cosmetic: the named exception to
-  // smallest-to-largest (#2501; owner decision Q221 B, 2026-10-10, after Q213). Figma takes a set's default variant
+  // `medium` FIRST, deliberately, and the order is load-bearing rather than cosmetic: first the named exception to
+  // smallest-to-largest (#2501; owner decision Q221 B, 2026-10-10, after Q213), and since #2752 (Q1 B) the order of every size axis. Figma takes a set's default variant
   // from the member at the TOP-LEFT of the canvas (checked on a scratch file: layer order does not move it), and
   // the projector's first member is the top-left one, so medium first keeps Medium the field a designer inserts.
   // It is also where an in-place update (#2265) lands every member of a set that GAINS this axis: `dryRunSet`
@@ -122,7 +122,10 @@ export const makeTextField = (spec: FieldSpec): ComponentDef => {
   // large; the variant picker lists the values in the order they were first combined.
   variants: {
     size: ['medium', 'small', 'large'],
-    style: ['outline'], // default; filled/underline are theming, not an API axis (not projected)
+    // ONE value, though the brand may set `underline` (#2695, Field style; `applyFieldStyle` rewrites the def before
+    // projection). A second value here would be a code coordinate: the paint census and the axis register read
+    // `variants` as the code surface, and Q14 A rules out a per-instance prop. The codeOnly `style` entry names both.
+    style: ['outline'],
     status: ['default', 'error', 'warning', 'success'],
   },
   // WHEN each axis changes (#1611): runtime axes are held to one footprint, authoring axes are not.
@@ -659,7 +662,7 @@ export const textField: ComponentDef = makeTextField({
     // measured, `props` reach no emitted artifact and no Figma property, so nothing downstream carries
     // this name. Renaming only the state would have left one def spelling one concept two ways.
     { name: 'isPending', type: 'boolean', default: false, required: false, description: 'Async validation/value — a spinner replaces an adornment without reflow; sets aria-busy; does not block typing unless intended.' },
-    { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'Three tiers that scale the input type with the field (small 14px, medium 16px, large 18px, `type.body.{sm,md,lg}`), the nested label one step below it (12 / 14 / 16), and the padding. Every size keeps the 44px target: small is smaller type and padding, not a smaller target; large is taller. `small` is for fine pointers only: on a coarse pointer (`@media (pointer: coarse)`) the code sets the small input to 16px, because iOS Safari zooms the page when it focuses an input under 16px. A single bordered (outline) style; filled/underline are theming, not API.' },
+    { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'Three tiers that scale the input type with the field (small 14px, medium 16px, large 18px, `type.body.{sm,md,lg}`), the nested label one step below it (12 / 14 / 16), and the padding. Every size keeps the 44px target: small is smaller type and padding, not a smaller target; large is taller. `small` is for fine pointers only: on a coarse pointer (`@media (pointer: coarse)`) the code sets the small input to 16px, because iOS Safari zooms the page when it focuses an input under 16px. The field\'s edge, outline or underline, is the brand\'s Field style setting, not a prop.' },
     { name: 'id', type: 'string', required: false, description: 'Wiring + form submission; auto-generated with useId if omitted, tying label→input and the aria-describedby chain.' },
     { name: 'name', type: 'string', required: false, description: 'A real <input name> so the field works uncontrolled, in a native <form>, with useFormStatus / Server Actions, and the Constraint Validation API.' },
   ],
@@ -667,7 +670,7 @@ export const textField: ComponentDef = makeTextField({
   valueDefault: 'Entered text',
   codeOnly: [
     'the SMALL field on a COARSE POINTER (#2266, owner decision Q7 A) — iOS Safari zooms the page when it focuses an input whose text is under 16px, and the small field\'s input is 14px. So `small` is for fine pointers: under `@media (pointer: coarse)` the code sets the small input\'s font size to 16px, which keeps the page still. The token (`type.body.sm`) and the Figma member stay at 14, because Figma has no focus zoom. On a touch device the small field therefore pairs a 12px label with a 16px input. Never `maximum-scale=1` in the viewport meta: it blocks pinch zoom as well (WCAG 1.4.4).',
-    'style — the outline / filled / underline treatment is theming, not an API axis: `style` carries the single value `outline` and filled/underline are a brand skin over the same anatomy, so there is nothing for a Figma variant to enumerate. Admitted here rather than projected.',
+    'style — the field\'s edge is the brand\'s Field style setting, not a prop or a Figma variant: `outline` draws a box, `underline` one line under the value. The brand sets it once, every field takes it, and the field sets are built in that style (#2695).',
     'pending — a real STATE (a spinner replaces an adornment while async validation/value resolves, and the field sets aria-busy), deliberately NOT a Figma variant. Its delta is a runtime spinner swap with no distinct static skin a designer picks from a matrix — the pending member would differ from `rest` only by a node Figma cannot animate — so it stays in `states` (the code tier carries it) and is admitted OUT of the projected `stateAxis`.',
     'empty — a real STATE in code (the field holds no value, so it shows the placeholder), NOT a Figma variant: in Figma the empty field IS the rest, hover and focus-visible members, which show the `placeholder` layer in `text.secondary`, and `filled` is the member showing the `value` layer in `text.primary`. In code emptiness is a content condition that co-occurs with every interaction, so `empty` stays in `states` (`label.empty` and `error.border.empty` keep the "required field left blank" coordinate) and is held out of the projected `stateAxis` with `pending`, leaving size(3) × status(4) × state(7) = 84 members over rest / hover / filled / focus-visible / focus-visible-filled / disabled / read-only. In code the placeholder and the value are one <input>: its `placeholder` attribute and its value, never two elements.',
     'the FOCUS CARET — Figma draws a static bar before the placeholder on the focus-visible member. Code draws the browser\'s native caret, blinking, at the insertion point, with `caret-color` set from `color.text.primary` (the `caret` binding), so it keeps the value ink over the placeholder\'s muted one.',

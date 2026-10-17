@@ -127,7 +127,7 @@ const makeFlushIconButton = (id: string, name: string, summary: string, descript
   variants: {
     // Q287 A: flush first, the shape built first and the code default, so Figma's inserted member is flush.
     shape: ['flush', 'round'],
-    size: ['small', 'medium', 'large'],
+    size: ['medium', 'small', 'large'],
   },
   axisKinds: { shape: 'authoring', size: 'authoring' },
 

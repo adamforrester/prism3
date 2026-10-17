@@ -95,6 +95,10 @@ export type ReadPorts = {
    *  values. `null` when the file holds nothing under the key. Optional: only a slot that prefers something reads it,
    *  and a reader without it reports that slot as unreadable rather than passing it. */
   componentName?: (key: string) => string | null;
+  /** A SLOT property's definition by its key, off the set the member belongs to (#2649), for a reader that holds a
+   *  member apart from its set: the update's dry run and verify read a member as a snapshot, which has no parent to
+   *  walk up. Read only where no set sits above the slot node; absent, such a slot reads as unreadable. */
+  slotProperty?: (key: string) => Record<string, unknown> | null;
   /** A component's NODE ID → its name as the file holds it (#2645), for an `INSTANCE_SWAP` override, whose value
    *  Figma stores as the component's id. `null` when no component carries the id. Optional, like `componentName`:
    *  only a swap override reads it, and a reader without it reports that override as unreadable rather than passing. */
@@ -185,11 +189,13 @@ type FieldCheck = {
 };
 
 /** The SLOT property a slot node references (#2646), read off the set it sits in; a string says why there is none. */
-const slotPropertyOf = (n: HostNode): Record<string, unknown> | string => {
+const slotPropertyOf = (n: HostNode, ports: ReadPorts): Record<string, unknown> | string => {
   const key = (n.componentPropertyReferences as Record<string, unknown> | null | undefined)?.slotContentId;
   if (key === undefined || key === null) return 'no slot property referenced (slotContentId unset)';
   let up = n.parent as HostNode | null | undefined;
   while (up && up.type !== 'COMPONENT_SET') up = up.parent as HostNode | null | undefined;
+  // A member read apart from its set (a snapshot) reads the property through the port its reader gives (#2649).
+  if (!up && ports.slotProperty) return ports.slotProperty(String(key)) ?? `the set holds no property ${String(key)}`;
   if (!up) return `no component set above the slot to read ${String(key)} from`;
   let defs: Record<string, Record<string, unknown>>;
   try { defs = (up.componentPropertyDefinitions ?? {}) as Record<string, Record<string, unknown>>; }
@@ -557,8 +563,8 @@ export const FIELDS: Record<string, FieldCheck> = {
   // catalog (`componentName`), never through the plan.
   slotSettings: {
     show: (p) => JSON.stringify(p),
-    check: (p, n) => {
-      const d = slotPropertyOf(n);
+    check: (p, n, ports) => {
+      const d = slotPropertyOf(n, ports);
       if (typeof d === 'string') return d;
       const want = slotSettingsNormal(p as Record<string, unknown>), got = slotSettingsNormal((d.slotSettings ?? {}) as Record<string, unknown>);
       return JSON.stringify(want) === JSON.stringify(got) ? null : JSON.stringify(got);
@@ -567,7 +573,7 @@ export const FIELDS: Record<string, FieldCheck> = {
   slotPreferred: {
     show: (p) => JSON.stringify(p),
     check: (p, n, ports) => {
-      const d = slotPropertyOf(n);
+      const d = slotPropertyOf(n, ports);
       if (typeof d === 'string') return d;
       const keys = ((d.preferredValues ?? []) as { key?: unknown }[]).map((v) => String(v.key));
       if (!ports.componentName) return `UNREADABLE (no port names a component key; host holds ${keys.length} key(s))`;
