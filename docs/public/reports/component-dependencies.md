@@ -133,7 +133,7 @@ Depth is 0 for a component that nests nothing, and one more than its deepest chi
 | password-field | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
 | password-field | label | nest | field-label | nest-exposed | size=medium, emphasis=secondary, weight=regular, state=rest | size | emphasis, weight |
 | password-field | message | nest | field-message | nest-fixed | status=default | status | — |
-| password-field | toggle | nest | button | nest-exposed | appearance=text, size=medium, surface=default, inset=flush, state=rest, leading icon=false, trailing icon=false | size | label |
+| password-field | toggle | nest | button | nest-exposed | appearance=text, size=small, surface=default, inset=flush, state=rest, leading icon=false, trailing icon=false | — | label |
 | radio-control | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
 | radio-group | label | nest | field-label | nest-fixed | size=medium, emphasis=secondary, weight=bold, state=rest | size | — |
 | radio-group | row1 | nest | radio-row | nest-fixed | size=medium | size | — |

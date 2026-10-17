@@ -631,16 +631,13 @@
       "relation": "nest-exposed",
       "variant": {
         "appearance": "text",
-        "size": "medium",
+        "size": "small",
         "surface": "default",
         "inset": "flush",
         "state": "rest",
         "leading icon": "false",
         "trailing icon": "false"
       },
-      "follow": [
-        "size"
-      ],
       "expose": [
         "label"
       ]

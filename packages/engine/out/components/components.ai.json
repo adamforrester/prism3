@@ -7635,7 +7635,7 @@
             "medium",
             "large"
           ],
-          "description": "TextField's three tiers: the input type, the nested label and the Show/Hide button scale with it. Every size keeps the input's 44px target; the button's hit area is 44×44 at medium and large and 24×24 at small."
+          "description": "TextField's three tiers: the input type and the nested label scale with it. The Show/Hide button is small at every size, so the label row stays one label line tall. Every size keeps the input's 44px target; the button's hit area is 44×44 at medium and large and 24×24 at small, in code."
         },
         {
           "name": "id",
