@@ -111,8 +111,8 @@ export const makeTextField = (spec: FieldSpec): ComponentDef => {
   // Figma carried the single `md` rung and `size` was a code-only prop. Now each size scales the input type
   // (`body.sm/md/lg`), the nested label (one step below, by `follow`), the padding and the height.
   //
-  // `medium` FIRST, deliberately, and the order is load-bearing rather than cosmetic: the named exception to
-  // smallest-to-largest (#2501; owner decision Q221 B, 2026-10-10, after Q213). Figma takes a set's default variant
+  // `medium` FIRST, deliberately, and the order is load-bearing rather than cosmetic: first the named exception to
+  // smallest-to-largest (#2501; owner decision Q221 B, 2026-10-10, after Q213), and since #2752 (Q1 B) the order of every size axis. Figma takes a set's default variant
   // from the member at the TOP-LEFT of the canvas (checked on a scratch file: layer order does not move it), and
   // the projector's first member is the top-left one, so medium first keeps Medium the field a designer inserts.
   // It is also where an in-place update (#2265) lands every member of a set that GAINS this axis: `dryRunSet`

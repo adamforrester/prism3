@@ -2857,7 +2857,8 @@ export const figmaAnatomySet = (def: ComponentDef, opts: { swapTarget?: string }
   // booleans from `anatomy.parts` rather than strings from `variants`.
   const gridAxes = declared.filter((a) => a !== 'size');
   const gridValues = gridAxes.map((a) => one(variantsOf(def)[a], true));
-  const bools = (name: string): boolean[] => (slotAxes.includes(name) ? [true, false] : [false]);
+  // `false` FIRST (#2752, owner decision Q2 A): the empty slot is the code default, so the member Figma inserts has none.
+  const bools = (name: string): boolean[] => (slotAxes.includes(name) ? [false, true] : [false]);
 
   // The cartesian product of the declared axes, in DECLARATION order — `variantAxes` is the order Figma
   // shows the properties in, and `planSetLayout` derives its grid from the resulting names, so the two
@@ -2879,8 +2880,11 @@ export const figmaAnatomySet = (def: ComponentDef, opts: { swapTarget?: string }
     for (const size of sizes)
       if (!excludedAt(combo, size))
         for (const state of states)
-          for (const leading of bools('leading'))
-            for (const trailing of bools('trailing'))
+          // Trailing OUTER, leading inner (#2752): with `false` first, this order reaches a leading-only member before
+          // a trailing-only one, so `planSetProperties`, which lists properties first-seen, keeps the panel's
+          // `↳ swap leading icon` above `↳ swap trailing icon` (#1380).
+          for (const trailing of bools('trailing'))
+            for (const leading of bools('leading'))
               plans.push(figmaAnatomyPlan(def, size, {
                 leading,
                 trailing,

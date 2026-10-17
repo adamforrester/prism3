@@ -62,7 +62,7 @@ The accessible name is a verb naming the action ("Close", "Increase quantity"), 
 | Axis | Values | Changes |
 | --- | --- | --- |
 | `shape` | `flush`, `round` | once, when authored |
-| `size` | `small`, `medium`, `large` | once, when authored |
+| `size` | `medium`, `small`, `large` | once, when authored |
 
 ## Accessibility
 
