@@ -18,14 +18,25 @@ fixed row height bound to the label's line box was the alternative, but there is
 field's 12px label, and the stretch keeps the row hugging a wrapped label too.
 
 **After.** The row is 18 / 21 / 24px and the label sits 8px above the box at every size, where TextField's sits. In
-code the button in the row sets `block-size: auto` and `padding-block: 0`; its hit area is Button's small flush rule,
-24×24, which reaches at most 3px past the row and stays inside the 8px gap above the input.
+code the button in the row sets `block-size: auto` and `padding-block: 0`.
+
+**The hit area (owner question on #2809, option A built).** The small Button's own flush rule is 24×24 (Q174 B), but a
+nested flush Button owes 44×44 at medium and large (#1741, Q170 B), and `lint-hit-target` held both, so CI was red on
+the first head. A 44 centered on the 21 / 24px row reaches 3.5 / 2px into the input box. So the code-side hit area
+stays 44×44 at medium and large and 24×24 at small, and at medium and large it is anchored: its bottom edge sits on the
+row's bottom edge, so it reaches up and sideways, never down into the box. `lint-hit-target` gains `CODE_SIDE_NESTED`:
+a nested flush Button below the floor by decision is held to the code-side rule AND its anchor, both stated in one
+`codeOnly` entry, and the entry goes stale by name if the box ever meets the floor.
 
 **Pinned.** `test.ts` measures the row per member, as a hugging row is sized, from the committed emission (the label's
 FieldLabel member's line box and the Button member's bound height), against typed 18 / 21 / 24. The toggle test now
 expects `size=small` and `label/sm/emphasis-link` on all 84 members. Mutations: following the field's size again fails
 "#2317 password-field toggle" by name; dropping the stretch fails "#2804 password-field label row" by name on all 84
 members (row 36px).
+
+Mutations on the gate: deleting the anchor sentence fails `password-field.toggle/medium … no codeOnly entry states the
+code-side 44×44 together with its anchor`; deleting the `CODE_SIDE_NESTED` entry fails `password-field.toggle/medium …
+is 36px, below the 44px floor`.
 
 **Trap for a re-verifier.** Whether a live host lets the row hug the label while a stretched instance whose own height
 is bound to 36px sizes to the row, with its label centered and unclipped, is modeled offline only; it is in the def's

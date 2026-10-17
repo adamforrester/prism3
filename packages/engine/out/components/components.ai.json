@@ -7634,7 +7634,7 @@
             "medium",
             "large"
           ],
-          "description": "TextField's three tiers: the input type and the nested label scale with it. The Show/Hide button is small at every size, so the label row stays one label line tall. Every size keeps the input's 44px target; the button's hit area is 24×24."
+          "description": "TextField's three tiers: the input type and the nested label scale with it. The Show/Hide button is small at every size, so the label row stays one label line tall. Every size keeps the input's 44px target; the button's hit area is 44×44 at medium and large and 24×24 at small, in code."
         },
         {
           "name": "id",
@@ -7694,7 +7694,7 @@
           "3.3.8 Accessible Authentication (paste is never blocked, so a password manager can fill the field)",
           "4.1.2 Name, Role, Value (the button's name changes Show password / Hide password)",
           "1.4.11 Non-text Contrast (TextField's field boundary)",
-          "2.5.8 Target Size (the button's hit area: 24×24 at every size)",
+          "2.5.8 Target Size (the button's hit area: 44×44, or 24×24 at small)",
           "2.4.13 Focus Appearance (intent)"
         ],
         "keyboard": "Tab reaches the input, then the Show/Hide button. Enter or Space on the button shows or hides the password, and focus stays on the button. Tab order follows the visual order in left-to-right and right-to-left layouts.",
