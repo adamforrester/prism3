@@ -412,6 +412,92 @@ export const labelMember = (labels: XNode, placement: 'Top' | 'Left'): XNode | u
   return members.find((c) => c.name === want) ?? members.find((c) => variantProps(c.name) === variantProps(want));
 };
 
+/** The file's furniture templates by type and name: exact case first, then any case — the `page-header.ts` rule, so a
+ *  plugin-built `_Label` wins over a user's copy. One lookup, read by the draw and by the dry run's check alike. */
+const templatePicker = (api: Pick<FurnitureApi, 'root'>): ((type: string, name: string) => XNode | undefined) => {
+  const templates = api.root.findAllWithCriteria({ types: ['COMPONENT_SET', 'COMPONENT'] }) as readonly XNode[];
+  return (type, name) => templates.find((n) => n.type === type && n.name === name) ?? templates.find((n) => n.type === type && isTemplateSet(n.name, name));
+};
+
+/** What a set's furniture lacks, as the dry run lists it (#2803). Each count is a part the draw would place and the page
+ *  does not hold where the draw would place it; `clear` counts the def's furniture on the set's parent that no wanted
+ *  part matched, which the draw clears. All zero when the furniture is current. */
+export interface FurnitureDue { labels: number; backdrops: number; clear: number }
+export const furnitureDueCount = (d: FurnitureDue | undefined): number => (d ? d.labels + d.backdrops + d.clear : 0);
+
+/**
+ * THE DRY RUN'S FURNITURE CHECK (#2803, owner decision Q379 A). The update compared a set's members only, so furniture
+ * that was missing or stale was never a change: an update on a file without `_inverse-backdrop` said "Run Set up file,
+ * then update again", and once Set up file added it the next dry run read "No changes found", with nothing to apply.
+ *
+ * READ AS THE DRAW WOULD DRAW IT, never as a second rule: the same members (`gridMembers`), the same planner
+ * (`planFurniture`), the same template lookup (`templatePicker`) and the same guards as `drawFurniture`. A part whose
+ * template the file lacks, or whose variant cannot be instanced, is not due: the apply could not draw it, and the
+ * run's Set up file line (`templatesLine`) already says so. A set whose inverse rows are not one block draws none, so
+ * it is due none; its regroup is the members' change, and the apply redraws after it.
+ *
+ * WHAT COUNTS AS DRAWN is the def's tagged furniture on the set's parent, the instances the draw clears first, matched in place: a backdrop or scrim by its box,
+ * a column label by its left edge, width and bottom, a row label by its vertical center (a thin row's label is centered
+ * on it) and its right edge, which the draw sets column by column. Each drawn instance answers one wanted part. Text and a
+ * label's own width are the template's and are not compared, so a label whose text the designer edited is not due.
+ * Positions match within half a pixel.
+ */
+export const furnitureDue = (api: Pick<FurnitureApi, 'root'>, set: XNode, layout: FurnitureLayout, defId: string): FurnitureDue => {
+  const none: FurnitureDue = { labels: 0, backdrops: 0, clear: 0 };
+  const parent = set.parent as FurnitureParent | null | undefined;
+  if (!parent || typeof parent.insertChild !== 'function') return none;
+  const members = gridMembers(set, layout.cells);
+  if (!members.length) return none;
+  if (layout.rowKeys.includes('surface') && !inverseContiguous(members)) return none;
+  const plan = planFurniture({ x: set.x ?? 0, y: set.y ?? 0 }, members, layout, defId);
+  const pick = templatePicker(api);
+  const labels = pick('COMPONENT_SET', LABEL_SET);
+  const top = labels && labelMember(labels, 'Top');
+  const left = labels && labelMember(labels, 'Left');
+  const columns = top?.createInstance ? plan.columns : [];
+  const rows = left?.createInstance ? plan.rows : [];
+  const boxes = [
+    ...(plan.backdrops.length && pick('COMPONENT', BACKDROP_COMPONENT)?.createInstance ? plan.backdrops : []),
+    ...(plan.scrims.length && pick('COMPONENT', SCRIM_COMPONENT)?.createInstance ? plan.scrims : []),
+  ];
+  // Every instance of this def's furniture on the parent: what the draw clears first (`clearFurniture`).
+  const drawn = (parent.children as readonly XNode[]).filter((c) => !c.removed && readTag(c)?.def === defId);
+  const near = (a: number | undefined, b: number): boolean => Math.abs((a ?? 0) - b) <= 0.5;
+  const take = (pool: XNode[], fits: (n: XNode) => boolean): boolean => {
+    const i = pool.findIndex(fits);
+    if (i < 0) return false;
+    pool.splice(i, 1);
+    return true;
+  };
+  const drawnLabels = drawn.filter((c) => readTag(c)?.kind === 'label');
+  const drawnBoxes = drawn.filter((c) => readTag(c)?.kind === 'backdrop');
+  const h = (n: XNode): number => n.height ?? 0;
+  const w = (n: XNode): number => n.width ?? 0;
+  let due = 0;
+  for (const c of columns)
+    if (!take(drawnLabels, (n) => near(n.x, c.x) && near(w(n), c.width) && near((n.y ?? 0) + h(n), c.bottom))) due++;
+  // Column by column, innermost first, as the draw places them: each column's right edge is `LEVEL_GAP` left of the
+  // widest label in the one before it, read off the labels matched there. A column with a part missing has no edge to
+  // read, so every label in the columns outside it is due: the draw places them from that edge.
+  let right: number | null = plan.rowsRight;
+  for (const level of [...new Set(rows.map((r) => r.level))].sort((a, b) => a - b)) {
+    const edge: number | null = right;
+    const here = rows.filter((x) => x.level === level);
+    if (edge === null) { due += here.length; continue; }
+    const matched: XNode[] = [];
+    for (const r of here) {
+      const i = drawnLabels.findIndex((n) => near((n.y ?? 0) + h(n) / 2, r.y + r.height / 2) && near((n.x ?? 0) + w(n), edge));
+      if (i < 0) { due++; continue; }
+      matched.push(...drawnLabels.splice(i, 1));
+    }
+    right = matched.length === here.length ? Math.min(edge, ...matched.map((n) => n.x ?? 0)) - LEVEL_GAP : null;
+  }
+  let dueBoxes = 0;
+  for (const b of boxes)
+    if (!take(drawnBoxes, (n) => near(n.x, b.x) && near(n.y, b.y) && near(w(n), b.width) && near(h(n), b.height))) dueBoxes++;
+  return { labels: due, backdrops: dueBoxes, clear: drawnLabels.length + drawnBoxes.length };
+};
+
 /**
  * Clear `defId`'s furniture on the set's parent and draw it fresh from the set's members. `layout` is the set's
  * `planSetLayout` (`furnitureLayout`): it says which cell each member is in.
@@ -440,11 +526,7 @@ export const drawFurniture = async (
   const plan = planFurniture({ x: set.x ?? 0, y: set.y ?? 0 }, members, layout, defId);
   const setTag = { v: 1 as const, def: defId, set: String(set.id ?? '') };
 
-  const templates = api.root.findAllWithCriteria({ types: ['COMPONENT_SET', 'COMPONENT'] }) as readonly XNode[];
-  // Exact case first, then any case — the `page-header.ts` rule, so a plugin-built `_Label` wins over a user's copy.
-  const pick = (type: string, name: string): XNode | undefined =>
-    templates.find((n) => n.type === type && n.name === name) ?? templates.find((n) => n.type === type && isTemplateSet(n.name, name));
-
+  const pick = templatePicker(api);
   const labels = pick('COMPONENT_SET', LABEL_SET);
   if (!labels) out.missing = [...(out.missing ?? []), LABEL_SET];
   else {
@@ -534,6 +616,32 @@ export const drawFurniture = async (
         out.scrims++;
       }
     }
+  }
+  return out;
+};
+
+/**
+ * THE UPDATE'S FURNITURE (#2406, #2188; #2803), redrawn for every piloted set the apply acted on — from the members as
+ * they now sit, so the labels follow the update — including a set whose only work was its furniture. A set is found
+ * by its component name and drawn only when exactly one set has it. Nothing is drawn when the apply refused the
+ * confirm: the named version was not saved, so nothing may be written. A refusal of a write is CAUGHT per set and
+ * reported as a skip, never rethrown: the update is already written, and furniture is labeling.
+ */
+export const furnishUpdate = async (
+  api: FurnitureApi,
+  r: { outcomes: readonly { def: string }[]; refusedAll?: string },
+  targets: readonly { def: string; plans: AnatomyPlan[] }[],
+): Promise<FurnitureOutcome[]> => {
+  const out: FurnitureOutcome[] = [];
+  if (r.refusedAll) return out;
+  for (const o of r.outcomes) {
+    const t = targets.find((x) => x.def === o.def);
+    if (!t || !hasFurniture(o.def)) continue;
+    const name = t.plans[0]?.component ?? t.def;
+    const sets = (api.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as readonly XNode[]).filter((n) => n.type === 'COMPONENT_SET' && n.name === name);
+    if (sets.length !== 1) continue;
+    try { out.push(await drawFurniture(api, sets[0], furnitureLayout(t.plans), o.def)); }
+    catch (e) { out.push({ def: o.def, parent: '', columns: 0, rows: 0, backdrops: 0, scrims: 0, cleared: 0, skipped: [`No canvas labels for ${o.def}: Figma refused the write (${(e as Error)?.message ?? String(e)})`], fontMisses: [] }); }
   }
   return out;
 };
