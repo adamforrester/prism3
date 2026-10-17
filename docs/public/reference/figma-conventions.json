@@ -362,8 +362,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -381,15 +381,15 @@
           {
             "name": "leading icon",
             "values": [
-              "true",
-              "false"
+              "false",
+              "true"
             ]
           },
           {
             "name": "trailing icon",
             "values": [
-              "true",
-              "false"
+              "false",
+              "true"
             ]
           }
         ],
@@ -443,8 +443,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -462,15 +462,15 @@
           {
             "name": "leading icon",
             "values": [
-              "true",
-              "false"
+              "false",
+              "true"
             ]
           },
           {
             "name": "trailing icon",
             "values": [
-              "true",
-              "false"
+              "false",
+              "true"
             ]
           }
         ],
@@ -524,8 +524,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -543,15 +543,15 @@
           {
             "name": "leading icon",
             "values": [
-              "true",
-              "false"
+              "false",
+              "true"
             ]
           },
           {
             "name": "trailing icon",
             "values": [
-              "true",
-              "false"
+              "false",
+              "true"
             ]
           }
         ],
@@ -605,8 +605,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -664,8 +664,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -723,8 +723,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -767,8 +767,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -805,8 +805,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -843,8 +843,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -1112,8 +1112,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -1144,8 +1144,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           }
@@ -1181,8 +1181,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           }
@@ -1214,8 +1214,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -1245,8 +1245,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           }
@@ -1281,8 +1281,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           }
@@ -1314,8 +1314,8 @@
           {
             "name": "size",
             "values": [
-              "small",
-              "medium"
+              "medium",
+              "small"
             ]
           },
           {
@@ -1350,8 +1350,8 @@
           {
             "name": "size",
             "values": [
-              "small",
-              "medium"
+              "medium",
+              "small"
             ]
           }
         ],
@@ -1603,8 +1603,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -1659,8 +1659,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -1710,8 +1710,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           }
@@ -1779,8 +1779,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           }
@@ -1814,8 +1814,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -1855,8 +1855,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           }
@@ -1898,8 +1898,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           }
@@ -1926,8 +1926,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -1966,8 +1966,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           }
@@ -2018,8 +2018,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
