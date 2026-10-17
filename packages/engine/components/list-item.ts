@@ -206,7 +206,7 @@ export const listItem: ComponentDef = {
     avoidWhen: 'Content a writer edits as normal copy (use a native text list in the text itself), a choice the user makes (a listbox), a command (a menu), or a navigation link (a navigation, not built yet).',
     commonPartners: ['list', 'icon'],
     triggerKeywords: ['list item', 'bullet point', 'list entry'],
-    generationPriority: 3,
+    generationPriority: 9,
   },
 
   composition: {
