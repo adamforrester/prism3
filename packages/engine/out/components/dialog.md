@@ -42,7 +42,7 @@ Titles are specific and in sentence case. Body text is short and states the cons
 - **Purpose:** Interrupt the page for a short task or a decision the user must make before going on.
 - **Use when:** A confirmation, a short form or a choice that needs the page behind it for context, and that the user must finish or dismiss before going on.
 - **Avoid when:** The message is passing and needs no answer (a toast or a banner), the content belongs beside a control (a popover or a menu), the task is long or has many steps (a page of its own), or the content can sit in the page (an accordion).
-- **Often used with:** `button`, `icon-button-neutral`, `divider`, `text-field`, `select`, `checkbox-group`, `radio-group`
+- **Often used with:** `button`, `flush-icon-button-neutral`, `divider`, `text-field`, `select`, `checkbox-group`, `radio-group`
 
 ## Props
 
@@ -83,7 +83,7 @@ None — not interactive.
   - 2.4.7 Focus Visible (every control inside shows the shared focus ring)
   - 2.4.11 Focus Not Obscured (only the body scrolls, so the footer never covers a focused field)
   - 1.4.10 Reflow (a bottom sheet or full-screen dialog keeps a 320px screen usable)
-  - 2.5.8 Target Size (Minimum) (the close button is a medium icon button, 44px at the default density)
+  - 2.5.8 Target Size (Minimum) (the close button is a medium round icon button, 44px across at the default density)
   - 4.1.2 Name, Role, Value (role, aria-modal and the accessible name are set)
 - **Keyboard:** Tab and Shift+Tab cycle through the controls inside the dialog. Escape closes it (an alertdialog as Cancel). Enter and Space act on the focused button.
 - **Focus:** Moves into the dialog on open (the first control, the title for long content, or Cancel in an alertdialog), stays inside while it is open, and returns to the control that opened it.
@@ -97,7 +97,7 @@ None — not interactive.
 
 ## Composition
 
-- **Composes with:** `icon-button-neutral`, `divider`, `button`
+- **Composes with:** `flush-icon-button-neutral`, `divider`, `button`
 - **Alternative to:** `accordion`
 - **Planned:** `toast`, `popover`, `menu`
 - **Replaces:**

@@ -53,7 +53,7 @@ import { captureSlotMigration, migrationLines, type MigNode, type SlotMigration 
 import { ENGINE_VERSION } from '@prism3/engine/version';
 import { EXECUTOR_REVISION } from './executor-revision';
 import { adoptions, memberStamp, planHalf, revHalf, respaceSets, STAMP_KEY, type RespaceBox } from './write-components';
-import { readTag } from './canvas-furniture';
+import { furnitureDue, furnitureDueCount, furnitureLayout, hasFurniture, readTag, type FurnitureApi, type FurnitureDue, type XNode } from './canvas-furniture';
 import { NS } from './persist-figma';
 import { BASELINE_V, UPDATING_KEY, baselineDiff, baselineOf, builtByPrism3, readBaseline, recordFormat, snapshotMember, writeBaseline, type Baseline, type OwnershipRead, type SnapNode } from './member-baseline';
 import { drawnFaults, faultLine, type DrawnFault, type DrawVar } from './drawn';
@@ -142,6 +142,9 @@ export type SetPreview = {
   /** #2542 (owner decision Q245.2 A) — the WHOLE SET moves on its page, to where a fresh build would place it
    *  (`respaceSets`), so sets sit `SET_GAP` apart. Absent when it stays. */
   setMove?: { from: { x: number; y: number }; to: { x: number; y: number } };
+  /** #2803 (owner decision Q379 A) — the set's canvas furniture the page lacks or holds out of place (`furnitureDue`),
+   *  which the apply draws, touching no member. Absent when the furniture is current, or the def has none. */
+  furniture?: FurnitureDue;
   needsChoice: Choice[];
   /** Of `blockers`, those Adopt clears by claiming the members they name (`setRefusal`), so it is not refused for
    *  them. Absent when none. */
@@ -1013,6 +1016,12 @@ export const previewUpdate = async (host: UpdateHost, targets: readonly UpdateTa
     // was, so the set is refused here instead, naming what to build first. The build path pre-builds these
     // (`prebuildDependencies`); an update does not build other components.
     preview.blockers.push(...await fileBlockers(host, t.plans, v.set));
+    // THE CANVAS FURNITURE (#2803): what the page lacks of the set's labels and backdrops is a change, so "update again"
+    // after Set up file adds a template draws it, and "No changes found" means the furniture is current too.
+    if (!t.single && !preview.blockers.length && hasFurniture(t.def)) {
+      const due = furnitureDue(host as unknown as Pick<FurnitureApi, 'root'>, v.set as unknown as XNode, furnitureLayout(t.plans), t.def);
+      if (furnitureDueCount(due)) preview.furniture = due;
+    }
     // REPEATING ROWS INTO A SLOT (#2649): a set still holding them the old way lists every placed instance it carries.
     if (!t.single) {
       const mig = await slotMigrationFor(t, v.set as MigNode, ledger, breathe);
@@ -1166,7 +1175,7 @@ const propChanges = (p: SetPreview): number => Object.values(p.properties).reduc
  *  (the owner's own icons, #2325), so a set whose only other members are those reads as having no changes, and the
  *  set's line still counts them. Counted as a change, a file holding them could never read up to date. A member to
  *  rename is a change (#2592): it reads current, and the apply renames it, so a set of renames is never up to date. */
-const noChanges = (p: SetPreview): boolean => p.counts.current + p.counts.revisionUnknown + p.counts.unstamped === p.counts.members && !p.counts.add && !p.counts.rename && !p.counts.move && !p.setMove && !propChanges(p);
+const noChanges = (p: SetPreview): boolean => p.counts.current + p.counts.revisionUnknown + p.counts.unstamped === p.counts.members && !p.counts.add && !p.counts.rename && !p.counts.move && !p.setMove && !furnitureDueCount(p.furniture) && !propChanges(p);
 /** No changes, and every member current. A member not built by Prism3 that sits on a PLANNED coordinate is one Adopt
  *  could claim (`adoptable`, #2283), so a set holding one reads "no changes", never up to date (owner decision Q191
  *  2B). Off the plan (the owner's own icons, #2464), it doesn't stop a set reading up to date. */
@@ -1188,6 +1197,14 @@ const namedLines = (where: string, list: { part: string; field: string; plan: st
   ...(list.length > DIFFERENCE_LINES ? [`${where}: ${list.length - DIFFERENCE_LINES} more differences not listed.`] : []),
 ];
 
+/** DRAFT wording for the owner (#2803, Q379 A): the furniture an update draws, in the line's "N to …" form, and as done.
+ *  What is left over to clear is named only when nothing is drawn: a redraw clears the old instances anyway. */
+export const furnitureParts = (d: FurnitureDue | undefined, draw: string, clear: string): string[] => {
+  if (!d) return [];
+  const parts = [d.labels ? `${n(d.labels, 'canvas label')} ${draw}` : '', d.backdrops ? `${n(d.backdrops, 'backdrop')} ${draw}` : ''].filter(Boolean);
+  return parts.length ? parts : d.clear ? [`${n(d.clear, 'canvas label or backdrop', 'canvas labels or backdrops')} ${clear}`] : [];
+};
+
 /** One set's dry run, as one line. */
 export const previewLine = (p: SetPreview): string => {
   if (p.blockers.length) return `${p.set}: can't be checked. ${p.blockers.join('; ')}.`;
@@ -1206,6 +1223,7 @@ export const previewLine = (p: SetPreview): string => {
     c.unstamped ? `${c.unstamped} not built by Prism3` : '',
   ].filter(Boolean);
   if (propChanges(p)) parts.push(n(propChanges(p), 'property change'));
+  parts.push(...furnitureParts(p.furniture, 'to draw', 'to clear'));
   // DRAFT (#2464): the members not built by Prism3 stay counted on a set that reads up to date, as on any other.
   const own = c.unstamped ? ` ${c.unstamped} not built by Prism3, left as they are.` : '';
   // DRAFT (#2476, owner decision Q191 2B): on a set with no changes, the members Adopt could claim are named as such.

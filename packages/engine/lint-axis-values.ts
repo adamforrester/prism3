@@ -392,13 +392,17 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   },
   {
     axis: 'size',
-    values: ['small', 'medium', 'large'],
-    defs: ['_accordion-indicator', 'accordion', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'field-label', 'tag', 'tab', 'tabs', 'list-item', 'list', 'segmented-control-segment', 'segmented-control', 'link'],
+    values: ['medium', 'small', 'large'],
+    defs: ['_accordion-indicator', 'accordion', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'tag', 'tab', 'tabs', 'list-item', 'list', 'segmented-control-segment', 'segmented-control', 'link', 'text-field', 'select', 'textarea', 'dialog', 'password-field'],
     relation: 'canonical',
     reason:
-      'The three-rung ladder, and canonical on weight of use — every def with a size axis except the two switch defs below, the '
-      + 'button and icon-button siblings among them by way of their shared factories (#1223, #1225). '
-      + 'Rungs are named rather than numbered so a brand can re-derive the dimensions behind them without '
+      'The three-rung ladder, led by `medium` (#2752, owner decision Q1 B, 2026-10-16). Canonical on weight of use: '
+      + 'every def with a size axis except field-label and the two switch defs below, the button and icon-button '
+      + 'siblings among them by way of their shared factories (#1223, #1225). The first value is the set\'s first '
+      + 'member, which is Figma\'s default variant, so medium first makes the inserted control the code default. '
+      + 'The fields (#2266, Q221 B) and Dialog (#2609, Q303) led with medium first; Q1 B gave every ladder their '
+      + 'order, superseding #2501\'s smallest-to-largest (Q213). The code enum (`props.size`) keeps the ladder\'s own '
+      + 'order. Rungs are named rather than numbered so a brand can re-derive the dimensions behind them without '
       + 'the names going stale.',
   },
   {
@@ -409,25 +413,20 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
     reason:
       'Code input\'s four cell sizes (#2428, owner decision Q330 A): the field ladder plus `xlarge`, the 68×72 display '
       + 'cell with a 40px character meant for four-character codes. Led by `medium`, the code default and so the set\'s '
-      + 'first member (owner decisions Q347 and Q359), as the fields\' reordered set is; the code enum keeps the '
+      + 'first member (owner decisions Q347 and Q359), as every size ladder is (#2752, Q1 B); the code enum keeps the '
       + 'ladder\'s own order (`lint-rung-names.ts` DEFAULT_FIRST). The cell carries the same values, so it follows the '
       + 'field\'s size by name.',
   },
   {
     axis: 'size',
-    values: ['medium', 'small', 'large'],
-    defs: ['text-field', 'select', 'textarea', 'dialog', 'password-field'],
+    values: ['small', 'medium', 'large'],
+    defs: ['field-label'],
     relation: 'reordered',
     reason:
-      'The canonical ladder, led by `medium` (#2266, the field sizing system). The first value is the set\'s '
-      + 'first member, which is Figma\'s default variant AND the value an in-place update (#2265) gives every '
-      + 'existing member of a set that gains this axis. Every field built before #2266 is the medium field, so '
-      + 'medium first keeps those members\' look as well as their keys; `small` first would rewrite them as '
-      + 'the small field in place. The code enum (`props.size`) keeps the ladder\'s own order; '
-      + '`lint-rung-names.ts` DEFAULT_FIRST admits the split. Decided by the owner: Q221 B (2026-10-10), the named '
-      + 'exception to #2501\'s smallest-to-largest, because Figma takes the default from the top-left member. '
-      + 'Dialog (#2609) joins on the owner\'s Q303, which approved the proposal\'s axis table listing its sizes '
-      + 'default first: a dialog inserted from the assets panel is the 560px medium panel.',
+      'The canonical ladder, led by `small` because the label\'s code default is small: the 12px label, one body step '
+      + 'below the medium field it labels. Leading with the code default is Q1 B\'s own rule (#2752), so the member '
+      + 'Figma inserts is the label code renders by default. Every field host passes its own size through by `follow`, '
+      + 'so the nested label takes the field\'s size whatever this set\'s first member is.',
   },
   {
     axis: 'size',
@@ -444,13 +443,13 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   },
   {
     axis: 'size',
-    values: ['small', 'medium'],
+    values: ['medium', 'small'],
     // The `switch-row` ROW keeps `size` (it scales the label ramp, gap and row height) and passes it through
     // to the nested `switch-control` by `follow`; the atom declares the same two-rung ladder (#1354).
     defs: ['switch-row', 'switch-control'],
     relation: 'subset',
     reason:
-      'The ladder minus its top rung, for a def with no large form: a switch above medium stops reading '
+      'The ladder minus its top rung, for a def with no large form, led by medium as canonical is (#2752 Q1 B): a switch above medium stops reading '
       + 'as a control. Same vocabulary, shorter — `small` and `medium` mean the same dimensions they mean '
       + 'in canonical, which is what makes this weighable instead of a second ladder. `field-label` shared '
       + 'this entry until #872 and now takes the full three: the reason given for its shortness ("a label '
@@ -496,8 +495,9 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
     defs: ['text-field', 'textarea', 'password-field'],
     relation: 'canonical',
     reason:
-      'An axis of ONE, declared rather than dropped: the field substrate has a single treatment today, and '
-      + 'the axis exists so that filled and underline have somewhere to land without a later API break. '
+      'An axis of ONE, declared rather than dropped. Underline is a BRAND choice since #2695 (the Field style '
+      + 'lever, applied to the def before projection), not a value here: a second value would be a per-instance '
+      + 'code coordinate, which Q14 A rules out. The axis keeps filled a place to land without a later API break. '
       + 'The cost of an axis of one is real (`modifiers`, #845) and it is being paid deliberately here. '
       + '`canonical` since Link (#2580) declared a second `style` set against it.',
   },

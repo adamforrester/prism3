@@ -368,15 +368,13 @@
     },
     {
       "from": "dialog",
-      "to": "icon-button-neutral",
+      "to": "flush-icon-button-neutral",
       "part": "close",
       "partKind": "nest",
       "relation": "nest-fixed",
       "variant": {
-        "appearance": "ghost",
+        "shape": "round",
         "size": "medium",
-        "shape": "square",
-        "surface": "default",
         "state": "rest"
       }
     },
@@ -1213,13 +1211,13 @@
       "nests": [
         "button",
         "divider",
-        "icon-button-neutral"
+        "flush-icon-button-neutral"
       ],
       "nestsTransitively": [
         "button",
         "divider",
+        "flush-icon-button-neutral",
         "focus-ring",
-        "icon-button-neutral",
         "spinner"
       ],
       "nestedBy": [],
@@ -1314,8 +1312,12 @@
       "nestsTransitively": [
         "focus-ring"
       ],
-      "nestedBy": [],
-      "affectedByChange": [],
+      "nestedBy": [
+        "dialog"
+      ],
+      "affectedByChange": [
+        "dialog"
+      ],
       "inherits": "icon-button-neutral",
       "inheritedBy": []
     },
@@ -1429,12 +1431,8 @@
         "focus-ring",
         "spinner"
       ],
-      "nestedBy": [
-        "dialog"
-      ],
-      "affectedByChange": [
-        "dialog"
-      ],
+      "nestedBy": [],
+      "affectedByChange": [],
       "inherits": "button-neutral",
       "inheritedBy": [
         "flush-icon-button-neutral"

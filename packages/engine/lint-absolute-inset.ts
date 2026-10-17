@@ -228,7 +228,14 @@ const ZERO_OK: Record<string, string> = {
  * covered — including by being deleted — this file fails rather than reporting clean over a smaller
  * set. A count would read that as a pass.
  */
-const MUST_COVER = ['button.focusRing', 'icon-button.focusRing', 'checkbox-control.focusRing', 'tab.focusRing', 'accordion.focusRing', 'segmented-control-segment.focusRing', 'link.focusRing'];
+const MUST_COVER = [
+  'button.focusRing', 'button-destructive.focusRing', 'button-neutral.focusRing',
+  'icon-button.focusRing', 'icon-button-destructive.focusRing', 'icon-button-neutral.focusRing',
+  'flush-icon-button.focusRing', 'flush-icon-button-destructive.focusRing', 'flush-icon-button-neutral.focusRing',
+  'text-field.focusRing', 'textarea.focusRing', 'select.focusRing', 'password-field.focusRing',
+  'checkbox-control.focusRing', 'radio-control.focusRing', 'switch-control.focusRing',
+  'tag.focusRing', 'tab.focusRing', 'accordion.focusRing', 'segmented-control-segment.focusRing', 'link.focusRing',
+];
 
 /**
  * The floor for the COMPENSATION specifically — every part above whose gap must be computed against a
@@ -238,7 +245,26 @@ const MUST_COVER = ['button.focusRing', 'icon-button.focusRing', 'checkbox-contr
  * — the arithmetic degrades to `gap = offset`, every other check here still passes, and the ring goes
  * flush again.
  */
-const MUST_CLEAR_STROKE = ['button.focusRing', 'icon-button.focusRing', 'checkbox-control.focusRing', 'tab.focusRing', 'segmented-control-segment.focusRing', 'link.focusRing'];
+const MUST_CLEAR_STROKE = [
+  'button.focusRing', 'button-destructive.focusRing', 'button-neutral.focusRing',
+  'icon-button.focusRing', 'icon-button-destructive.focusRing', 'icon-button-neutral.focusRing',
+  'flush-icon-button.focusRing', 'flush-icon-button-destructive.focusRing', 'flush-icon-button-neutral.focusRing',
+  'text-field.focusRing', 'textarea.focusRing', 'select.focusRing', 'password-field.focusRing',
+  'checkbox-control.focusRing', 'radio-control.focusRing', 'switch-control.focusRing',
+  'tag.focusRing', 'tab.focusRing', 'segmented-control-segment.focusRing', 'link.focusRing',
+];
+
+/**
+ * THE CONVERSE OF BOTH FLOORS (#2709, #973's shape generalized). The two lists above are the gate's memory, and
+ * memory only ever goes short: by #2709 `MUST_COVER` named 7 of the 21 inset parts the registry declared, so 14
+ * could stop projecting their inset and this file would still print clean. So every `<def>.<part>` that DECLARES
+ * an absolute inset (read off the def by `declaredInsets`, not off the plan, and with no size-axis filter) must be
+ * in `MUST_COVER` or in `NOT_COVERED` below with a reason; and every one that declares a `strokeInset` must be in
+ * `MUST_CLEAR_STROKE` or in `NOT_STROKE_CLEARED`. The lists stay authored and the registry is the subject, never
+ * the oracle: deriving the lists from the defs would make both floors agree with whatever the defs say today.
+ */
+const NOT_COVERED: Record<string, string> = {};
+const NOT_STROKE_CLEARED: Record<string, string> = {};
 
 /**
  * THE PARTS DRAWN INSIDE THEIR HOST'S EDGE (`PartDef.drawnInside`, #2417, owner decision Q257 A). Each declares no
@@ -611,6 +637,18 @@ for (const m of MUST_COVER_CORNER)
   if (!cornerCovered.has(m))
     failures.push(`SCOPE NOT REPRESENTED: '${m}' is a known corner-pinned part and this run checked no plan carrying it. If it was legitimately removed, drop it from MUST_COVER_CORNER in this file in the same PR.`);
 notes.push(`corner pins: ${cornerChecks} (member × brand) edge check(s) over ${[...cornerCovered].join(', ') || 'NONE'}`);
+
+// ---- THE CONVERSE: every declared inset part is on a floor, or excused by name ---------------------
+for (const def of componentDefs)
+  for (const d of declaredInsets(def)) {
+    const key = `${def.id}.${d.part}`;
+    if (!MUST_COVER.includes(key) && !(key in NOT_COVERED))
+      failures.push(`SCOPE NOT RECORDED: '${key}' declares an absolute inset and is not in MUST_COVER. It is checked today, but nothing remembers it, so if it stops projecting its inset this run reads clean. Add it to MUST_COVER in this file, or to NOT_COVERED with the reason (#2709).`);
+    if (d.strokeKey !== undefined && !MUST_CLEAR_STROKE.includes(key) && !(key in NOT_STROKE_CLEARED))
+      failures.push(`COMPENSATION NOT RECORDED: '${key}' declares strokeInset '${d.strokeKey}' and is not in MUST_CLEAR_STROKE, so a plan that stops carrying absoluteStrokeInset for it measures (gap = offset), #801's arithmetic, and nothing fails. Add it to MUST_CLEAR_STROKE in this file, or to NOT_STROKE_CLEARED with the reason (#2709).`);
+  }
+for (const [m, why] of [...Object.entries(NOT_COVERED), ...Object.entries(NOT_STROKE_CLEARED)])
+  if (!why.trim()) failures.push(`'${m}' is excused from a floor with no reason — an exemption must say why (#2709).`);
 
 for (const m of MUST_COVER)
   if (!covered.has(m))

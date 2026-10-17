@@ -529,8 +529,8 @@
         },
         "size": {
           "values": [
-            "small",
             "medium",
+            "small",
             "large"
           ],
           "kind": "authoring"
@@ -809,8 +809,8 @@
         },
         "size": {
           "values": [
-            "small",
             "medium",
+            "small",
             "large"
           ],
           "kind": "authoring"
@@ -1091,8 +1091,8 @@
         },
         "size": {
           "values": [
-            "small",
             "medium",
+            "small",
             "large"
           ],
           "kind": "authoring"
@@ -1344,8 +1344,8 @@
         },
         "size": {
           "values": [
-            "small",
             "medium",
+            "small",
             "large"
           ],
           "kind": "authoring"
@@ -1573,8 +1573,8 @@
         },
         "size": {
           "values": [
-            "small",
             "medium",
+            "small",
             "large"
           ],
           "kind": "authoring"
@@ -1803,8 +1803,8 @@
         },
         "size": {
           "values": [
-            "small",
             "medium",
+            "small",
             "large"
           ],
           "kind": "authoring"
@@ -1993,8 +1993,8 @@
         },
         "size": {
           "values": [
-            "small",
             "medium",
+            "small",
             "large"
           ],
           "kind": "authoring"
@@ -2162,8 +2162,8 @@
         },
         "size": {
           "values": [
-            "small",
             "medium",
+            "small",
             "large"
           ],
           "kind": "authoring"
@@ -2332,8 +2332,8 @@
         },
         "size": {
           "values": [
-            "small",
             "medium",
+            "small",
             "large"
           ],
           "kind": "authoring"
@@ -2884,7 +2884,7 @@
             "medium",
             "large"
           ],
-          "description": "Three tiers that scale the input type with the field (small 14px, medium 16px, large 18px, `type.body.{sm,md,lg}`), the nested label one step below it (12 / 14 / 16), and the padding. Every size keeps the 44px target: small is smaller type and padding, not a smaller target; large is taller. `small` is for fine pointers only: on a coarse pointer (`@media (pointer: coarse)`) the code sets the small input to 16px, because iOS Safari zooms the page when it focuses an input under 16px. A single bordered (outline) style; filled/underline are theming, not API."
+          "description": "Three tiers that scale the input type with the field (small 14px, medium 16px, large 18px, `type.body.{sm,md,lg}`), the nested label one step below it (12 / 14 / 16), and the padding. Every size keeps the 44px target: small is smaller type and padding, not a smaller target; large is taller. `small` is for fine pointers only: on a coarse pointer (`@media (pointer: coarse)`) the code sets the small input to 16px, because iOS Safari zooms the page when it focuses an input under 16px. The field's edge, outline or underline, is the brand's Field style setting, not a prop."
         },
         {
           "name": "id",
@@ -3342,8 +3342,8 @@
       "variants": {
         "size": {
           "values": [
-            "small",
             "medium",
+            "small",
             "large"
           ],
           "kind": "authoring"
@@ -3518,8 +3518,8 @@
       "variants": {
         "size": {
           "values": [
-            "small",
             "medium",
+            "small",
             "large"
           ],
           "kind": "authoring"
@@ -3703,8 +3703,8 @@
       "variants": {
         "size": {
           "values": [
-            "small",
             "medium",
+            "small",
             "large"
           ],
           "kind": "authoring"
@@ -3851,8 +3851,8 @@
       "variants": {
         "size": {
           "values": [
-            "small",
             "medium",
+            "small",
             "large"
           ],
           "kind": "authoring"
@@ -3992,8 +3992,8 @@
       "variants": {
         "size": {
           "values": [
-            "small",
             "medium",
+            "small",
             "large"
           ],
           "kind": "authoring"
@@ -4179,8 +4179,8 @@
       "variants": {
         "size": {
           "values": [
-            "small",
             "medium",
+            "small",
             "large"
           ],
           "kind": "authoring"
@@ -4340,8 +4340,8 @@
       "variants": {
         "size": {
           "values": [
-            "small",
-            "medium"
+            "medium",
+            "small"
           ],
           "kind": "authoring"
         },
@@ -4513,8 +4513,8 @@
       "variants": {
         "size": {
           "values": [
-            "small",
-            "medium"
+            "medium",
+            "small"
           ],
           "kind": "authoring"
         }
@@ -5575,8 +5575,8 @@
         },
         "size": {
           "values": [
-            "small",
             "medium",
+            "small",
             "large"
           ],
           "kind": "authoring"
@@ -5761,8 +5761,8 @@
         },
         "size": {
           "values": [
-            "small",
             "medium",
+            "small",
             "large"
           ],
           "kind": "authoring"
@@ -5921,8 +5921,8 @@
       "variants": {
         "size": {
           "values": [
-            "small",
             "medium",
+            "small",
             "large"
           ],
           "kind": "authoring"
@@ -6201,8 +6201,8 @@
         },
         "size": {
           "values": [
-            "small",
             "medium",
+            "small",
             "large"
           ],
           "kind": "authoring"
@@ -6368,8 +6368,8 @@
         },
         "size": {
           "values": [
-            "small",
             "medium",
+            "small",
             "large"
           ],
           "kind": "authoring"
@@ -6525,8 +6525,8 @@
         },
         "size": {
           "values": [
-            "small",
             "medium",
+            "small",
             "large"
           ],
           "kind": "authoring"
@@ -6666,8 +6666,8 @@
         },
         "size": {
           "values": [
-            "small",
             "medium",
+            "small",
             "large"
           ],
           "kind": "authoring"
@@ -6822,8 +6822,8 @@
         },
         "size": {
           "values": [
-            "small",
             "medium",
+            "small",
             "large"
           ],
           "kind": "authoring"
@@ -6994,8 +6994,8 @@
       "variants": {
         "size": {
           "values": [
-            "small",
             "medium",
+            "small",
             "large"
           ],
           "kind": "authoring"
@@ -7195,8 +7195,8 @@
         },
         "size": {
           "values": [
-            "small",
             "medium",
+            "small",
             "large"
           ],
           "kind": "authoring"
@@ -7428,7 +7428,7 @@
           "2.4.7 Focus Visible (every control inside shows the shared focus ring)",
           "2.4.11 Focus Not Obscured (only the body scrolls, so the footer never covers a focused field)",
           "1.4.10 Reflow (a bottom sheet or full-screen dialog keeps a 320px screen usable)",
-          "2.5.8 Target Size (Minimum) (the close button is a medium icon button, 44px at the default density)",
+          "2.5.8 Target Size (Minimum) (the close button is a medium round icon button, 44px across at the default density)",
           "4.1.2 Name, Role, Value (role, aria-modal and the accessible name are set)"
         ],
         "keyboard": "Tab and Shift+Tab cycle through the controls inside the dialog. Escape closes it (an alertdialog as Cancel). Enter and Space act on the focused button.",
@@ -7462,7 +7462,7 @@
         "avoidWhen": "The message is passing and needs no answer (a toast or a banner), the content belongs beside a control (a popover or a menu), the task is long or has many steps (a page of its own), or the content can sit in the page (an accordion).",
         "commonPartners": [
           "button",
-          "icon-button-neutral",
+          "flush-icon-button-neutral",
           "divider",
           "text-field",
           "select",
@@ -7487,7 +7487,7 @@
       },
       "composition": {
         "composesWith": [
-          "icon-button-neutral",
+          "flush-icon-button-neutral",
           "divider",
           "button"
         ],
