@@ -72,6 +72,10 @@ export type UiToMain =
    *  Carries no payload: the taxonomy is a config compiled into the main bundle (`file-taxonomy.ts`), not
    *  something the UI supplies, so there is nothing for the UI to send. */
   | { type: 'file-setup' }
+  /** Open the docs in the browser (#2637, owner decision Q384 A): the bar's Docs. The iframe cannot open a page, so the
+   *  main thread calls `figma.openExternal` on `DOCS_URL`, the studio's web `/docs/`. Carries no address, so the UI
+   *  cannot point it anywhere else. Needs no network permission: `openExternal` hands the address to the browser. */
+  | { type: 'open-docs' }
   /** Draw the style-guide tables (#259, phase 1: color) — one table per palette on `↳ Primitive tokens` and one
    *  per role family on `↳ Semantic tokens`, from the file's own variables. Its own action for the #652 reason.
    *  Updates tables already drawn in place; never creates a page or moves a cell set. */

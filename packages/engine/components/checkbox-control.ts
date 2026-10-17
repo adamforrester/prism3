@@ -107,7 +107,7 @@ export const checkboxControl: ComponentDef = {
   // `size` and `selection` — the two the box actually varies by. No tone/emphasis (a checkbox is
   // neutral), no surface/inverse axis (a control does not ask which ground it stands on, #871).
   variants: {
-    size: ['small', 'medium', 'large'],
+    size: ['medium', 'small', 'large'],
     selection: ['unchecked', 'checked', 'indeterminate'],
   },
   // WHEN each axis changes (#1611): runtime axes are held to one footprint, authoring axes are not.

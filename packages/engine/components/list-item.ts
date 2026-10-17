@@ -46,11 +46,11 @@ export const listItem: ComponentDef = {
   // own component with its own states.
   states: [],
 
-  // `unordered` LEADS: the code default (`<ul>`) and Figma's default member. Sizes run smallest to largest (#2501), as
-  // every sized def's do. The `type` value set is declared in `lint-axis-values.ts`.
+  // `unordered` LEADS: the code default (`<ul>`) and Figma's default member. Sizes lead with medium, the code default,
+  // then run smallest to largest (#2752, owner decision Q1 B), as every sized def's do. The `type` value set is declared in `lint-axis-values.ts`.
   variants: {
     type: ['unordered', 'ordered', 'icon'],
-    size: ['small', 'medium', 'large'],
+    size: ['medium', 'small', 'large'],
   },
   axisKinds: { type: 'authoring', size: 'authoring' },
 
