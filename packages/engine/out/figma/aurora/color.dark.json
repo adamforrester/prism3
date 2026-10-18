@@ -638,14 +638,14 @@
       ],
       "description": "Link text, default — 4.5:1 on background/secondary",
       "value": {
-        "r": 0.2078431397676468,
-        "g": 0.5843137502670288,
-        "b": 0.7764706015586853,
+        "r": 0.33725491166114807,
+        "g": 0.6313725709915161,
+        "b": 0.7960784435272217,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/accent/400"
+        "name": "ads/core/palette/accent/350"
       }
     },
     {
@@ -656,14 +656,14 @@
       ],
       "description": "Link text, hover — 4.5:1 on background/secondary",
       "value": {
-        "r": 0.4431372582912445,
-        "g": 0.6784313917160034,
-        "b": 0.8156862854957581,
+        "r": 0.5372549295425415,
+        "g": 0.7254902124404907,
+        "b": 0.8392156958580017,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/accent/300"
+        "name": "ads/core/palette/accent/250"
       }
     },
     {
@@ -674,14 +674,14 @@
       ],
       "description": "Link text, visited — 4.5:1 on background/secondary",
       "value": {
-        "r": 0.800000011920929,
-        "g": 0.8705882430076599,
-        "b": 0.9137254953384399,
+        "r": 0.8784313797950745,
+        "g": 0.9215686321258545,
+        "b": 0.9450980424880981,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/accent/100"
+        "name": "ads/core/palette/accent/050"
       }
     },
     {
@@ -692,14 +692,14 @@
       ],
       "description": "Link text, focused — 4.5:1 on background/secondary",
       "value": {
-        "r": 0.2078431397676468,
-        "g": 0.5843137502670288,
-        "b": 0.7764706015586853,
+        "r": 0.33725491166114807,
+        "g": 0.6313725709915161,
+        "b": 0.7960784435272217,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/accent/400"
+        "name": "ads/core/palette/accent/350"
       }
     },
     {
@@ -710,14 +710,14 @@
       ],
       "description": "Link text, pressed — 4.5:1 on background/secondary",
       "value": {
-        "r": 0.6274510025978088,
-        "g": 0.772549033164978,
-        "b": 0.8627451062202454,
+        "r": 0.7137255072593689,
+        "g": 0.8235294222831726,
+        "b": 0.886274516582489,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/accent/200"
+        "name": "ads/core/palette/accent/150"
       }
     },
     {
@@ -1280,24 +1280,6 @@
       ],
       "description": "Primary label, rest — 4.5:1 on background/primary (outline, text)",
       "value": {
-        "r": 0,
-        "g": 0.5333333611488342,
-        "b": 0.7450980544090271,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/accent/450"
-      }
-    },
-    {
-      "name": "ads/color/interactive/primary/text/hover",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "TEXT_FILL"
-      ],
-      "description": "Primary label, hover — 4.5:1 on background/primary (outline, text)",
-      "value": {
         "r": 0.33725491166114807,
         "g": 0.6313725709915161,
         "b": 0.7960784435272217,
@@ -1309,12 +1291,12 @@
       }
     },
     {
-      "name": "ads/color/interactive/primary/text/pressed",
+      "name": "ads/color/interactive/primary/text/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "Primary label, pressed — 4.5:1 on background/primary (outline, text)",
+      "description": "Primary label, hover — 4.5:1 on background/primary (outline, text)",
       "value": {
         "r": 0.5372549295425415,
         "g": 0.7254902124404907,
@@ -1324,6 +1306,24 @@
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "ads/core/palette/accent/250"
+      }
+    },
+    {
+      "name": "ads/color/interactive/primary/text/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Primary label, pressed — 4.5:1 on background/primary (outline, text)",
+      "value": {
+        "r": 0.7137255072593689,
+        "g": 0.8235294222831726,
+        "b": 0.886274516582489,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/accent/150"
       }
     },
     {
@@ -1335,14 +1335,14 @@
       ],
       "description": "Primary icon, rest — 4.5:1 on background/primary (outline, ghost, text)",
       "value": {
-        "r": 0,
-        "g": 0.5333333611488342,
-        "b": 0.7450980544090271,
+        "r": 0.33725491166114807,
+        "g": 0.6313725709915161,
+        "b": 0.7960784435272217,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/accent/450"
+        "name": "ads/core/palette/accent/350"
       }
     },
     {
@@ -1354,14 +1354,14 @@
       ],
       "description": "Primary icon, hover — 4.5:1 on background/primary (outline, ghost, text)",
       "value": {
-        "r": 0.33725491166114807,
-        "g": 0.6313725709915161,
-        "b": 0.7960784435272217,
+        "r": 0.5372549295425415,
+        "g": 0.7254902124404907,
+        "b": 0.8392156958580017,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/accent/350"
+        "name": "ads/core/palette/accent/250"
       }
     },
     {
@@ -1373,14 +1373,14 @@
       ],
       "description": "Primary icon, pressed — 4.5:1 on background/primary (outline, ghost, text)",
       "value": {
-        "r": 0.5372549295425415,
-        "g": 0.7254902124404907,
-        "b": 0.8392156958580017,
+        "r": 0.7137255072593689,
+        "g": 0.8235294222831726,
+        "b": 0.886274516582489,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/accent/250"
+        "name": "ads/core/palette/accent/150"
       }
     },
     {
@@ -1390,24 +1390,6 @@
         "STROKE_COLOR"
       ],
       "description": "Primary outline edge, rest — 3:1 on background/primary, follows the label",
-      "value": {
-        "r": 0,
-        "g": 0.5333333611488342,
-        "b": 0.7450980544090271,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/accent/450"
-      }
-    },
-    {
-      "name": "ads/color/interactive/primary/border/hover",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "STROKE_COLOR"
-      ],
-      "description": "Primary outline edge, hover — 3:1 on background/primary, follows the label",
       "value": {
         "r": 0.33725491166114807,
         "g": 0.6313725709915161,
@@ -1420,12 +1402,12 @@
       }
     },
     {
-      "name": "ads/color/interactive/primary/border/pressed",
+      "name": "ads/color/interactive/primary/border/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
       ],
-      "description": "Primary outline edge, pressed — 3:1 on background/primary, follows the label",
+      "description": "Primary outline edge, hover — 3:1 on background/primary, follows the label",
       "value": {
         "r": 0.5372549295425415,
         "g": 0.7254902124404907,
@@ -1435,6 +1417,24 @@
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "ads/core/palette/accent/250"
+      }
+    },
+    {
+      "name": "ads/color/interactive/primary/border/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Primary outline edge, pressed — 3:1 on background/primary, follows the label",
+      "value": {
+        "r": 0.7137255072593689,
+        "g": 0.8235294222831726,
+        "b": 0.886274516582489,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/accent/150"
       }
     },
     {

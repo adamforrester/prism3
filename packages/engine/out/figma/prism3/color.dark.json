@@ -638,14 +638,14 @@
       ],
       "description": "Link text, default — 4.5:1 on background/secondary",
       "value": {
-        "r": 0.30980393290519714,
-        "g": 0.4745098054409027,
-        "b": 0.9803921580314636,
+        "r": 0.45098039507865906,
+        "g": 0.5960784554481506,
+        "b": 0.9725490212440491,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/primary/450"
+        "name": "pds3/core/palette/primary/350"
       }
     },
     {
@@ -655,6 +655,42 @@
         "TEXT_FILL"
       ],
       "description": "Link text, hover — 4.5:1 on background/secondary",
+      "value": {
+        "r": 0.6000000238418579,
+        "g": 0.7058823704719543,
+        "b": 0.9686274528503418,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/250"
+      }
+    },
+    {
+      "name": "pds3/color/text/link/visited",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Link text, visited — 4.5:1 on background/secondary",
+      "value": {
+        "r": 0.886274516582489,
+        "g": 0.9176470637321472,
+        "b": 0.9843137264251709,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/050"
+      }
+    },
+    {
+      "name": "pds3/color/text/link/focused",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Link text, focused — 4.5:1 on background/secondary",
       "value": {
         "r": 0.45098039507865906,
         "g": 0.5960784554481506,
@@ -667,12 +703,12 @@
       }
     },
     {
-      "name": "pds3/color/text/link/visited",
+      "name": "pds3/color/text/link/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "Link text, visited — 4.5:1 on background/secondary",
+      "description": "Link text, pressed — 4.5:1 on background/secondary",
       "value": {
         "r": 0.7450980544090271,
         "g": 0.8117647171020508,
@@ -682,42 +718,6 @@
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "pds3/core/palette/primary/150"
-      }
-    },
-    {
-      "name": "pds3/color/text/link/focused",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "TEXT_FILL"
-      ],
-      "description": "Link text, focused — 4.5:1 on background/secondary",
-      "value": {
-        "r": 0.30980393290519714,
-        "g": 0.4745098054409027,
-        "b": 0.9803921580314636,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/primary/450"
-      }
-    },
-    {
-      "name": "pds3/color/text/link/pressed",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "TEXT_FILL"
-      ],
-      "description": "Link text, pressed — 4.5:1 on background/secondary",
-      "value": {
-        "r": 0.6000000238418579,
-        "g": 0.7058823704719543,
-        "b": 0.9686274528503418,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/primary/250"
       }
     },
     {
@@ -1071,14 +1071,14 @@
       ],
       "description": "Link icon, default — 4.5:1 on background/secondary",
       "value": {
-        "r": 0.30980393290519714,
-        "g": 0.4745098054409027,
-        "b": 0.9803921580314636,
+        "r": 0.45098039507865906,
+        "g": 0.5960784554481506,
+        "b": 0.9725490212440491,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/primary/450"
+        "name": "pds3/core/palette/primary/350"
       }
     },
     {
@@ -1089,6 +1089,44 @@
         "SHAPE_FILL"
       ],
       "description": "Link icon, hover — 4.5:1 on background/secondary",
+      "value": {
+        "r": 0.6000000238418579,
+        "g": 0.7058823704719543,
+        "b": 0.9686274528503418,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/250"
+      }
+    },
+    {
+      "name": "pds3/color/icon/link/visited",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Link icon, visited — 4.5:1 on background/secondary",
+      "value": {
+        "r": 0.886274516582489,
+        "g": 0.9176470637321472,
+        "b": 0.9843137264251709,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/050"
+      }
+    },
+    {
+      "name": "pds3/color/icon/link/focused",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Link icon, focused — 4.5:1 on background/secondary",
       "value": {
         "r": 0.45098039507865906,
         "g": 0.5960784554481506,
@@ -1101,13 +1139,13 @@
       }
     },
     {
-      "name": "pds3/color/icon/link/visited",
+      "name": "pds3/color/icon/link/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "Link icon, visited — 4.5:1 on background/secondary",
+      "description": "Link icon, pressed — 4.5:1 on background/secondary",
       "value": {
         "r": 0.7450980544090271,
         "g": 0.8117647171020508,
@@ -1117,44 +1155,6 @@
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "pds3/core/palette/primary/150"
-      }
-    },
-    {
-      "name": "pds3/color/icon/link/focused",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Link icon, focused — 4.5:1 on background/secondary",
-      "value": {
-        "r": 0.30980393290519714,
-        "g": 0.4745098054409027,
-        "b": 0.9803921580314636,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/primary/450"
-      }
-    },
-    {
-      "name": "pds3/color/icon/link/pressed",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Link icon, pressed — 4.5:1 on background/secondary",
-      "value": {
-        "r": 0.6000000238418579,
-        "g": 0.7058823704719543,
-        "b": 0.9686274528503418,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/primary/250"
       }
     },
     {
@@ -1280,24 +1280,6 @@
       ],
       "description": "Primary label, rest — 4.5:1 on background/primary (outline, text)",
       "value": {
-        "r": 0.30980393290519714,
-        "g": 0.4745098054409027,
-        "b": 0.9803921580314636,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/primary/450"
-      }
-    },
-    {
-      "name": "pds3/color/interactive/primary/text/hover",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "TEXT_FILL"
-      ],
-      "description": "Primary label, hover — 4.5:1 on background/primary (outline, text)",
-      "value": {
         "r": 0.45098039507865906,
         "g": 0.5960784554481506,
         "b": 0.9725490212440491,
@@ -1309,12 +1291,12 @@
       }
     },
     {
-      "name": "pds3/color/interactive/primary/text/pressed",
+      "name": "pds3/color/interactive/primary/text/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "Primary label, pressed — 4.5:1 on background/primary (outline, text)",
+      "description": "Primary label, hover — 4.5:1 on background/primary (outline, text)",
       "value": {
         "r": 0.6000000238418579,
         "g": 0.7058823704719543,
@@ -1324,6 +1306,24 @@
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "pds3/core/palette/primary/250"
+      }
+    },
+    {
+      "name": "pds3/color/interactive/primary/text/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Primary label, pressed — 4.5:1 on background/primary (outline, text)",
+      "value": {
+        "r": 0.7450980544090271,
+        "g": 0.8117647171020508,
+        "b": 0.9686274528503418,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/150"
       }
     },
     {
@@ -1335,14 +1335,14 @@
       ],
       "description": "Primary icon, rest — 4.5:1 on background/primary (outline, ghost, text)",
       "value": {
-        "r": 0.30980393290519714,
-        "g": 0.4745098054409027,
-        "b": 0.9803921580314636,
+        "r": 0.45098039507865906,
+        "g": 0.5960784554481506,
+        "b": 0.9725490212440491,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/primary/450"
+        "name": "pds3/core/palette/primary/350"
       }
     },
     {
@@ -1354,14 +1354,14 @@
       ],
       "description": "Primary icon, hover — 4.5:1 on background/primary (outline, ghost, text)",
       "value": {
-        "r": 0.45098039507865906,
-        "g": 0.5960784554481506,
-        "b": 0.9725490212440491,
+        "r": 0.6000000238418579,
+        "g": 0.7058823704719543,
+        "b": 0.9686274528503418,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/primary/350"
+        "name": "pds3/core/palette/primary/250"
       }
     },
     {
@@ -1373,14 +1373,14 @@
       ],
       "description": "Primary icon, pressed — 4.5:1 on background/primary (outline, ghost, text)",
       "value": {
-        "r": 0.6000000238418579,
-        "g": 0.7058823704719543,
+        "r": 0.7450980544090271,
+        "g": 0.8117647171020508,
         "b": 0.9686274528503418,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/primary/250"
+        "name": "pds3/core/palette/primary/150"
       }
     },
     {
@@ -1390,24 +1390,6 @@
         "STROKE_COLOR"
       ],
       "description": "Primary outline edge, rest — 3:1 on background/primary, follows the label",
-      "value": {
-        "r": 0.30980393290519714,
-        "g": 0.4745098054409027,
-        "b": 0.9803921580314636,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/primary/450"
-      }
-    },
-    {
-      "name": "pds3/color/interactive/primary/border/hover",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "STROKE_COLOR"
-      ],
-      "description": "Primary outline edge, hover — 3:1 on background/primary, follows the label",
       "value": {
         "r": 0.45098039507865906,
         "g": 0.5960784554481506,
@@ -1420,12 +1402,12 @@
       }
     },
     {
-      "name": "pds3/color/interactive/primary/border/pressed",
+      "name": "pds3/color/interactive/primary/border/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
       ],
-      "description": "Primary outline edge, pressed — 3:1 on background/primary, follows the label",
+      "description": "Primary outline edge, hover — 3:1 on background/primary, follows the label",
       "value": {
         "r": 0.6000000238418579,
         "g": 0.7058823704719543,
@@ -1435,6 +1417,24 @@
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "pds3/core/palette/primary/250"
+      }
+    },
+    {
+      "name": "pds3/color/interactive/primary/border/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Primary outline edge, pressed — 3:1 on background/primary, follows the label",
+      "value": {
+        "r": 0.7450980544090271,
+        "g": 0.8117647171020508,
+        "b": 0.9686274528503418,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/150"
       }
     },
     {

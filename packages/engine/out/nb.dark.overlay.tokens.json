@@ -149,27 +149,27 @@
         "link": {
           "default": {
             "$type": "color",
-            "$value": "{nbds.core.palette.red.450}",
+            "$value": "{nbds.core.palette.red.350}",
             "$description": "Link text — default, 4.5:1 on background.secondary"
           },
           "hover": {
             "$type": "color",
-            "$value": "{nbds.core.palette.red.350}",
+            "$value": "{nbds.core.palette.red.250}",
             "$description": "Link text — hover, 4.5:1 on background.secondary"
           },
           "visited": {
             "$type": "color",
-            "$value": "{nbds.core.palette.red.150}",
+            "$value": "{nbds.core.palette.red.050}",
             "$description": "Link text — visited, 4.5:1 on background.secondary"
           },
           "focused": {
             "$type": "color",
-            "$value": "{nbds.core.palette.red.450}",
+            "$value": "{nbds.core.palette.red.350}",
             "$description": "Link text — focused, 4.5:1 on background.secondary"
           },
           "pressed": {
             "$type": "color",
-            "$value": "{nbds.core.palette.red.250}",
+            "$value": "{nbds.core.palette.red.150}",
             "$description": "Link text — pressed, 4.5:1 on background.secondary"
           }
         }
@@ -263,27 +263,27 @@
         "link": {
           "default": {
             "$type": "color",
-            "$value": "{nbds.core.palette.red.450}",
+            "$value": "{nbds.core.palette.red.350}",
             "$description": "Link icon — default, 4.5:1 on background.secondary"
           },
           "hover": {
             "$type": "color",
-            "$value": "{nbds.core.palette.red.350}",
+            "$value": "{nbds.core.palette.red.250}",
             "$description": "Link icon — hover, 4.5:1 on background.secondary"
           },
           "visited": {
             "$type": "color",
-            "$value": "{nbds.core.palette.red.150}",
+            "$value": "{nbds.core.palette.red.050}",
             "$description": "Link icon — visited, 4.5:1 on background.secondary"
           },
           "focused": {
             "$type": "color",
-            "$value": "{nbds.core.palette.red.450}",
+            "$value": "{nbds.core.palette.red.350}",
             "$description": "Link icon — focused, 4.5:1 on background.secondary"
           },
           "pressed": {
             "$type": "color",
-            "$value": "{nbds.core.palette.red.250}",
+            "$value": "{nbds.core.palette.red.150}",
             "$description": "Link icon — pressed, 4.5:1 on background.secondary"
           }
         }
@@ -320,51 +320,51 @@
           "text": {
             "rest": {
               "$type": "color",
-              "$value": "{nbds.core.palette.red.450}",
+              "$value": "{nbds.core.palette.red.350}",
               "$description": "primary interactive ink — rest (outline / text appearance)"
             },
             "hover": {
               "$type": "color",
-              "$value": "{nbds.core.palette.red.350}",
+              "$value": "{nbds.core.palette.red.250}",
               "$description": "primary interactive ink — hover (outline / text appearance)"
             },
             "pressed": {
               "$type": "color",
-              "$value": "{nbds.core.palette.red.250}",
+              "$value": "{nbds.core.palette.red.150}",
               "$description": "primary interactive ink — pressed (outline / text appearance)"
             }
           },
           "icon": {
             "rest": {
               "$type": "color",
-              "$value": "{nbds.core.palette.red.450}",
+              "$value": "{nbds.core.palette.red.350}",
               "$description": "primary interactive icon ink — rest (the glyph in an outline / ghost / text control)"
             },
             "hover": {
               "$type": "color",
-              "$value": "{nbds.core.palette.red.350}",
+              "$value": "{nbds.core.palette.red.250}",
               "$description": "primary interactive icon ink — hover (the glyph in an outline / ghost / text control)"
             },
             "pressed": {
               "$type": "color",
-              "$value": "{nbds.core.palette.red.250}",
+              "$value": "{nbds.core.palette.red.150}",
               "$description": "primary interactive icon ink — pressed (the glyph in an outline / ghost / text control)"
             }
           },
           "border": {
             "rest": {
               "$type": "color",
-              "$value": "{nbds.core.palette.red.450}",
+              "$value": "{nbds.core.palette.red.350}",
               "$description": "primary interactive border — rest (the outline edge; follows the ink)"
             },
             "hover": {
               "$type": "color",
-              "$value": "{nbds.core.palette.red.350}",
+              "$value": "{nbds.core.palette.red.250}",
               "$description": "primary interactive border — hover (the outline edge; follows the ink)"
             },
             "pressed": {
               "$type": "color",
-              "$value": "{nbds.core.palette.red.250}",
+              "$value": "{nbds.core.palette.red.150}",
               "$description": "primary interactive border — pressed (the outline edge; follows the ink)"
             }
           },

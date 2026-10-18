@@ -120,12 +120,16 @@ const pickClosest = (cands: Cand[], surface: RGB, target: number, min = 0, alsoC
  * is not avoided — at least one ramp step away. `exact` still wins (an authored pin is applied verbatim),
  * and with no eligible step the anchor falls back as before, where the contrast sweep names the miss.
  * Empty by default, so every other role is unaffected.
+ *
+ * `alsoMin` (#2817) is the bar the `alsoClear` grounds are held to, when it differs from the role's own
+ * `min` on `surface`: the primary and link inks keep their mode's own bar on the page (7:1 in HC) and
+ * clear the 4.5:1 body floor on every other surface they are placed on. Defaults to `min`.
  */
-const pickBrand = (steps: Step[], ns: string, palette: string, anchorNum: number, surface: RGB, min: number, exact = false, alsoClear: RGB[] = [], avoid: RGB[] = []): RatedNum => {
+const pickBrand = (steps: Step[], ns: string, palette: string, anchorNum: number, surface: RGB, min: number, exact = false, alsoClear: RGB[] = [], avoid: RGB[] = [], alsoMin = min): RatedNum => {
   const cands = steps.map((s) => ({ path: `${ns}.${palette}.${s.key}`, rgb: s.rgb, num: s.num }));
   const anchor = cands.find((c) => c.num === anchorNum) ?? cands.find((c) => c.num === 500)!;
   const avoidHex = new Set(avoid.map(hex));
-  const clearsExtra = (rgb: RGB) => alsoClear.every((g) => contrast(rgb, g) >= min) && !avoidHex.has(hex(rgb));
+  const clearsExtra = (rgb: RGB) => alsoClear.every((g) => contrast(rgb, g) >= alsoMin) && !avoidHex.has(hex(rgb));
   // `exact` = the anchor was AUTHORED (a pinned step, not the engine's derived default), so it is
   // applied verbatim even when it misses the floor — the app's apply-but-warn policy (#331). The
   // substitution below is a DERIVATION aid for an unpinned role, not an override guard: silently
@@ -838,10 +842,10 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   const wf = cfg.kind === 'wireframe';                       // B — behaviour by kind, not name
   const neutralPal = r2p.neutral;
   const palOf = (palette: string): string => (wf && palette !== neutralPal ? neutralPal : palette);
-  const chromatic = (palette: string, anchorNum: number, surf: RGB, min: number, exact = false, alsoClear: RGB[] = [], avoid: RGB[] = []): RatedNum => {
-    const pick = pickBrand(ramps.get(palette)!, ns, palette, anchorNum, surf, min, exact, alsoClear, avoid);
+  const chromatic = (palette: string, anchorNum: number, surf: RGB, min: number, exact = false, alsoClear: RGB[] = [], avoid: RGB[] = [], alsoMin = min): RatedNum => {
+    const pick = pickBrand(ramps.get(palette)!, ns, palette, anchorNum, surf, min, exact, alsoClear, avoid, alsoMin);
     return wf && palette !== neutralPal
-      ? pickBrand(ramps.get(neutralPal)!, ns, neutralPal, pick.num, surf, min, exact, alsoClear, avoid) // same position, greyscaled
+      ? pickBrand(ramps.get(neutralPal)!, ns, neutralPal, pick.num, surf, min, exact, alsoClear, avoid, alsoMin) // same position, greyscaled
       : pick;
   };
   const paletteRole = (r: Role, surf: RGB, min: number): RatedNum =>
@@ -1436,9 +1440,32 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
         `${name} interactive border${where} — ${stKey} (the outline edge; follows the ink)`, against, cfg.nonTextMin);
   };
 
+  // THE PRIMARY AND LINK INKS CLEAR EVERY SURFACE A COMPONENT PLACES THEM ON (#2817, owner Q415 A). An outline or
+  // text primary Button and a link are drawn on more than the page: on the page tiers, on a raised panel
+  // (`foreground.*`, Dialog's footer) and on a status tint (`foreground.<status>-subtle`, Banner's actions).
+  // Gated on the page alone, the action ink measured 2.90:1 on `foreground.tertiary` and 3.30:1 on a tint in a
+  // light mode, and the link 3.62:1 and 4.02:1 — 130 cells under the body floor across the corpus' light and
+  // dark modes. So both picks take every one of these grounds as `alsoClear` (the semantic-ink and
+  // `border.tertiary` mechanism): the anchor stays where it clears them all, otherwise the nearest step on the
+  // SAME ramp that does — darker in a light mode, lighter in a dark one, so the hue holds and only the depth
+  // moves. The page keeps the mode's own bar (7:1 in HC); every other surface is held to the 4.5:1 body floor
+  // (`BODY_TEXT_FLOOR`, the owner's bar; HC's flat grounds already clear it). Only the page sets: the inverse
+  // band's twins are not placed on these grounds. Names do not move; values do.
+  //
+  // `test.ts` (#2817 block) measures every ink × surface cell from the emitted hexes against grounds written
+  // there as literals, never from this list, so dropping a ground here fails it by name.
+  const INK_SURFACES = [
+    'background.primary', 'background.secondary', 'background.tertiary',
+    'foreground.primary', 'foreground.secondary', 'foreground.tertiary',
+    ...SEMANTICS.map((r) => `foreground.${r}-subtle`),
+  ];
+  const inkSurfaceRgbs = (): RGB[] => INK_SURFACES.map((k) => asGround(k, rgbByRole.get(k)!));
+  const inkSurfaceMin = (min: number): number => Math.min(min, BODY_TEXT_FLOOR);
+
   // primary — the action palette, contrast-verified.
   iFill('primary', actionRest, r2p.action, fillFloorMin);
-  iBorder('primary', iText('primary', paletteRole('action', baseRgb, cfg.secondaryMin), r2p.action, true), baseRgb, '', 'background.primary');
+  const primaryInk = chromatic(r2p.action, theme.roleAnchorStep.action, baseRgb, cfg.secondaryMin, false, inkSurfaceRgbs(), [], inkSurfaceMin(cfg.secondaryMin));
+  iBorder('primary', iText('primary', primaryInk, r2p.action, true), baseRgb, '', 'background.primary');
 
   // destructive — the danger palette (its own interactive column, no scavenging).
   // `destructiveAnchorStep` overrides the resolved anchor (docs/20 §3); unset keeps today's pick.
@@ -2033,7 +2060,10 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     const linkPal = theme.linkPalette;
     const linkFollowsAction = linkPal === r2p.action;
     const linkAnchor = linkFollowsAction ? (paAnchor ?? theme.roleAnchorStep.action) : theme.linkAnchorStep;
-    const linkBase = chromatic(linkPal, linkAnchor, g.floor, p.semanticMin);
+    // The page link also clears every surface it is placed on (#2817, `INK_SURFACES` above).
+    const linkBase = g.page
+      ? chromatic(linkPal, linkAnchor, g.floor, p.semanticMin, false, inkSurfaceRgbs(), [], inkSurfaceMin(p.semanticMin))
+      : chromatic(linkPal, linkAnchor, g.floor, p.semanticMin);
     // Guarded (#557) at the profile's OWN semanticMin — so `icon.link.*` under iconContrast '3:1'
     // is verified at 3, and `text.link.*` at the text bar, each against the floor `put` uses.
     const linkGuard = guardFrom(contrast(linkBase.rgb, g.floor), g.floor, p.semanticMin);

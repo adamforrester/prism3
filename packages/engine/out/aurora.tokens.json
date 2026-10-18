@@ -6407,20 +6407,20 @@
         "link": {
           "default": {
             "$type": "color",
-            "$value": "{ads.core.palette.accent.550}",
+            "$value": "{ads.core.palette.accent.650}",
             "$description": "Link text — default, 4.5:1 on background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "ads.core.palette.accent.550",
-                "contrast": 4.69,
+                "aliasOf": "ads.core.palette.accent.650",
+                "contrast": 6.84,
                 "against": "neutral.050",
                 "min": 4.5,
                 "modes": {
                   "dark": {
-                    "$value": "{ads.core.palette.accent.400}",
-                    "aliasOf": "ads.core.palette.accent.400",
-                    "contrast": 5.34,
+                    "$value": "{ads.core.palette.accent.350}",
+                    "aliasOf": "ads.core.palette.accent.350",
+                    "contrast": 6.27,
                     "against": "neutral.900",
                     "min": 4.5
                   },
@@ -6455,20 +6455,20 @@
           },
           "hover": {
             "$type": "color",
-            "$value": "{ads.core.palette.accent.650}",
+            "$value": "{ads.core.palette.accent.750}",
             "$description": "Link text — hover, 4.5:1 on background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "ads.core.palette.accent.650",
-                "contrast": 6.84,
+                "aliasOf": "ads.core.palette.accent.750",
+                "contrast": 9.85,
                 "against": "neutral.050",
                 "min": 4.5,
                 "modes": {
                   "dark": {
-                    "$value": "{ads.core.palette.accent.300}",
-                    "aliasOf": "ads.core.palette.accent.300",
-                    "contrast": 7.32,
+                    "$value": "{ads.core.palette.accent.250}",
+                    "aliasOf": "ads.core.palette.accent.250",
+                    "contrast": 8.5,
                     "against": "neutral.900",
                     "min": 4.5
                   },
@@ -6503,20 +6503,20 @@
           },
           "visited": {
             "$type": "color",
-            "$value": "{ads.core.palette.accent.850}",
+            "$value": "{ads.core.palette.accent.950}",
             "$description": "Link text — visited, 4.5:1 on background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "ads.core.palette.accent.850",
-                "contrast": 13.26,
+                "aliasOf": "ads.core.palette.accent.950",
+                "contrast": 15.98,
                 "against": "neutral.050",
                 "min": 4.5,
                 "modes": {
                   "dark": {
-                    "$value": "{ads.core.palette.accent.100}",
-                    "aliasOf": "ads.core.palette.accent.100",
-                    "contrast": 12.95,
+                    "$value": "{ads.core.palette.accent.050}",
+                    "aliasOf": "ads.core.palette.accent.050",
+                    "contrast": 14.77,
                     "against": "neutral.900",
                     "min": 4.5
                   },
@@ -6551,20 +6551,20 @@
           },
           "focused": {
             "$type": "color",
-            "$value": "{ads.core.palette.accent.550}",
+            "$value": "{ads.core.palette.accent.650}",
             "$description": "Link text — focused, 4.5:1 on background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "ads.core.palette.accent.550",
-                "contrast": 4.69,
+                "aliasOf": "ads.core.palette.accent.650",
+                "contrast": 6.84,
                 "against": "neutral.050",
                 "min": 4.5,
                 "modes": {
                   "dark": {
-                    "$value": "{ads.core.palette.accent.400}",
-                    "aliasOf": "ads.core.palette.accent.400",
-                    "contrast": 5.34,
+                    "$value": "{ads.core.palette.accent.350}",
+                    "aliasOf": "ads.core.palette.accent.350",
+                    "contrast": 6.27,
                     "against": "neutral.900",
                     "min": 4.5
                   },
@@ -6599,20 +6599,20 @@
           },
           "pressed": {
             "$type": "color",
-            "$value": "{ads.core.palette.accent.750}",
+            "$value": "{ads.core.palette.accent.850}",
             "$description": "Link text — pressed, 4.5:1 on background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "ads.core.palette.accent.750",
-                "contrast": 9.85,
+                "aliasOf": "ads.core.palette.accent.850",
+                "contrast": 13.26,
                 "against": "neutral.050",
                 "min": 4.5,
                 "modes": {
                   "dark": {
-                    "$value": "{ads.core.palette.accent.200}",
-                    "aliasOf": "ads.core.palette.accent.200",
-                    "contrast": 9.82,
+                    "$value": "{ads.core.palette.accent.150}",
+                    "aliasOf": "ads.core.palette.accent.150",
+                    "contrast": 11.34,
                     "against": "neutral.900",
                     "min": 4.5
                   },
@@ -7503,13 +7503,13 @@
         "link": {
           "default": {
             "$type": "color",
-            "$value": "{ads.core.palette.accent.500}",
+            "$value": "{ads.core.palette.accent.550}",
             "$description": "Link icon — default, 3:1 on background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "ads.core.palette.accent.500",
-                "contrast": 3.76,
+                "aliasOf": "ads.core.palette.accent.550",
+                "contrast": 4.69,
                 "against": "neutral.050",
                 "min": 3,
                 "modes": {
@@ -7521,9 +7521,9 @@
                     "min": 3
                   },
                   "hc-light": {
-                    "$value": "{ads.core.palette.accent.550}",
-                    "aliasOf": "ads.core.palette.accent.550",
-                    "contrast": 4.69,
+                    "$value": "{ads.core.palette.accent.600}",
+                    "aliasOf": "ads.core.palette.accent.600",
+                    "contrast": 5.65,
                     "against": "neutral.050",
                     "min": 4.5,
                     "description": "Link icon — default, 4.5:1 on background.secondary"
@@ -7551,13 +7551,13 @@
           },
           "hover": {
             "$type": "color",
-            "$value": "{ads.core.palette.accent.600}",
+            "$value": "{ads.core.palette.accent.650}",
             "$description": "Link icon — hover, 3:1 on background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "ads.core.palette.accent.600",
-                "contrast": 5.65,
+                "aliasOf": "ads.core.palette.accent.650",
+                "contrast": 6.84,
                 "against": "neutral.050",
                 "min": 3,
                 "modes": {
@@ -7569,9 +7569,9 @@
                     "min": 3
                   },
                   "hc-light": {
-                    "$value": "{ads.core.palette.accent.650}",
-                    "aliasOf": "ads.core.palette.accent.650",
-                    "contrast": 6.84,
+                    "$value": "{ads.core.palette.accent.700}",
+                    "aliasOf": "ads.core.palette.accent.700",
+                    "contrast": 8.27,
                     "against": "neutral.050",
                     "min": 4.5,
                     "description": "Link icon — hover, 4.5:1 on background.secondary"
@@ -7599,13 +7599,13 @@
           },
           "visited": {
             "$type": "color",
-            "$value": "{ads.core.palette.accent.800}",
+            "$value": "{ads.core.palette.accent.850}",
             "$description": "Link icon — visited, 3:1 on background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "ads.core.palette.accent.800",
-                "contrast": 11.47,
+                "aliasOf": "ads.core.palette.accent.850",
+                "contrast": 13.26,
                 "against": "neutral.050",
                 "min": 3,
                 "modes": {
@@ -7617,9 +7617,9 @@
                     "min": 3
                   },
                   "hc-light": {
-                    "$value": "{ads.core.palette.accent.850}",
-                    "aliasOf": "ads.core.palette.accent.850",
-                    "contrast": 13.26,
+                    "$value": "{ads.core.palette.accent.900}",
+                    "aliasOf": "ads.core.palette.accent.900",
+                    "contrast": 14.8,
                     "against": "neutral.050",
                     "min": 4.5,
                     "description": "Link icon — visited, 4.5:1 on background.secondary"
@@ -7647,13 +7647,13 @@
           },
           "focused": {
             "$type": "color",
-            "$value": "{ads.core.palette.accent.500}",
+            "$value": "{ads.core.palette.accent.550}",
             "$description": "Link icon — focused, 3:1 on background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "ads.core.palette.accent.500",
-                "contrast": 3.76,
+                "aliasOf": "ads.core.palette.accent.550",
+                "contrast": 4.69,
                 "against": "neutral.050",
                 "min": 3,
                 "modes": {
@@ -7665,9 +7665,9 @@
                     "min": 3
                   },
                   "hc-light": {
-                    "$value": "{ads.core.palette.accent.550}",
-                    "aliasOf": "ads.core.palette.accent.550",
-                    "contrast": 4.69,
+                    "$value": "{ads.core.palette.accent.600}",
+                    "aliasOf": "ads.core.palette.accent.600",
+                    "contrast": 5.65,
                     "against": "neutral.050",
                     "min": 4.5,
                     "description": "Link icon — focused, 4.5:1 on background.secondary"
@@ -7695,13 +7695,13 @@
           },
           "pressed": {
             "$type": "color",
-            "$value": "{ads.core.palette.accent.700}",
+            "$value": "{ads.core.palette.accent.750}",
             "$description": "Link icon — pressed, 3:1 on background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "ads.core.palette.accent.700",
-                "contrast": 8.27,
+                "aliasOf": "ads.core.palette.accent.750",
+                "contrast": 9.85,
                 "against": "neutral.050",
                 "min": 3,
                 "modes": {
@@ -7713,9 +7713,9 @@
                     "min": 3
                   },
                   "hc-light": {
-                    "$value": "{ads.core.palette.accent.750}",
-                    "aliasOf": "ads.core.palette.accent.750",
-                    "contrast": 9.85,
+                    "$value": "{ads.core.palette.accent.800}",
+                    "aliasOf": "ads.core.palette.accent.800",
+                    "contrast": 11.47,
                     "against": "neutral.050",
                     "min": 4.5,
                     "description": "Link icon — pressed, 4.5:1 on background.secondary"
@@ -8036,20 +8036,20 @@
           "text": {
             "rest": {
               "$type": "color",
-              "$value": "{ads.core.palette.accent.500}",
+              "$value": "{ads.core.palette.accent.650}",
               "$description": "primary interactive ink — rest (outline / text appearance)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "ads.core.palette.accent.500",
-                  "contrast": 4.56,
+                  "aliasOf": "ads.core.palette.accent.650",
+                  "contrast": 8.3,
                   "against": "background.primary",
                   "min": 4.5,
                   "modes": {
                     "dark": {
-                      "$value": "{ads.core.palette.accent.450}",
-                      "aliasOf": "ads.core.palette.accent.450",
-                      "contrast": 4.87,
+                      "$value": "{ads.core.palette.accent.350}",
+                      "aliasOf": "ads.core.palette.accent.350",
+                      "contrast": 6.8,
                       "against": "background.primary",
                       "min": 4.5
                     },
@@ -8082,20 +8082,20 @@
             },
             "hover": {
               "$type": "color",
-              "$value": "{ads.core.palette.accent.600}",
+              "$value": "{ads.core.palette.accent.750}",
               "$description": "primary interactive ink — hover (outline / text appearance)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "ads.core.palette.accent.600",
-                  "contrast": 6.85,
+                  "aliasOf": "ads.core.palette.accent.750",
+                  "contrast": 11.95,
                   "against": "background.primary",
                   "min": 4.5,
                   "modes": {
                     "dark": {
-                      "$value": "{ads.core.palette.accent.350}",
-                      "aliasOf": "ads.core.palette.accent.350",
-                      "contrast": 6.8,
+                      "$value": "{ads.core.palette.accent.250}",
+                      "aliasOf": "ads.core.palette.accent.250",
+                      "contrast": 9.23,
                       "against": "background.primary",
                       "min": 4.5
                     },
@@ -8128,20 +8128,20 @@
             },
             "pressed": {
               "$type": "color",
-              "$value": "{ads.core.palette.accent.700}",
+              "$value": "{ads.core.palette.accent.850}",
               "$description": "primary interactive ink — pressed (outline / text appearance)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "ads.core.palette.accent.700",
-                  "contrast": 10.03,
+                  "aliasOf": "ads.core.palette.accent.850",
+                  "contrast": 16.08,
                   "against": "background.primary",
                   "min": 4.5,
                   "modes": {
                     "dark": {
-                      "$value": "{ads.core.palette.accent.250}",
-                      "aliasOf": "ads.core.palette.accent.250",
-                      "contrast": 9.23,
+                      "$value": "{ads.core.palette.accent.150}",
+                      "aliasOf": "ads.core.palette.accent.150",
+                      "contrast": 12.31,
                       "against": "background.primary",
                       "min": 4.5
                     },
@@ -8176,20 +8176,20 @@
           "icon": {
             "rest": {
               "$type": "color",
-              "$value": "{ads.core.palette.accent.500}",
+              "$value": "{ads.core.palette.accent.650}",
               "$description": "primary interactive icon ink — rest (the glyph in an outline / ghost / text control)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "ads.core.palette.accent.500",
-                  "contrast": 4.56,
+                  "aliasOf": "ads.core.palette.accent.650",
+                  "contrast": 8.3,
                   "against": "background.primary",
                   "min": 4.5,
                   "modes": {
                     "dark": {
-                      "$value": "{ads.core.palette.accent.450}",
-                      "aliasOf": "ads.core.palette.accent.450",
-                      "contrast": 4.87,
+                      "$value": "{ads.core.palette.accent.350}",
+                      "aliasOf": "ads.core.palette.accent.350",
+                      "contrast": 6.8,
                       "against": "background.primary",
                       "min": 4.5
                     },
@@ -8222,20 +8222,20 @@
             },
             "hover": {
               "$type": "color",
-              "$value": "{ads.core.palette.accent.600}",
+              "$value": "{ads.core.palette.accent.750}",
               "$description": "primary interactive icon ink — hover (the glyph in an outline / ghost / text control)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "ads.core.palette.accent.600",
-                  "contrast": 6.85,
+                  "aliasOf": "ads.core.palette.accent.750",
+                  "contrast": 11.95,
                   "against": "background.primary",
                   "min": 4.5,
                   "modes": {
                     "dark": {
-                      "$value": "{ads.core.palette.accent.350}",
-                      "aliasOf": "ads.core.palette.accent.350",
-                      "contrast": 6.8,
+                      "$value": "{ads.core.palette.accent.250}",
+                      "aliasOf": "ads.core.palette.accent.250",
+                      "contrast": 9.23,
                       "against": "background.primary",
                       "min": 4.5
                     },
@@ -8268,20 +8268,20 @@
             },
             "pressed": {
               "$type": "color",
-              "$value": "{ads.core.palette.accent.700}",
+              "$value": "{ads.core.palette.accent.850}",
               "$description": "primary interactive icon ink — pressed (the glyph in an outline / ghost / text control)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "ads.core.palette.accent.700",
-                  "contrast": 10.03,
+                  "aliasOf": "ads.core.palette.accent.850",
+                  "contrast": 16.08,
                   "against": "background.primary",
                   "min": 4.5,
                   "modes": {
                     "dark": {
-                      "$value": "{ads.core.palette.accent.250}",
-                      "aliasOf": "ads.core.palette.accent.250",
-                      "contrast": 9.23,
+                      "$value": "{ads.core.palette.accent.150}",
+                      "aliasOf": "ads.core.palette.accent.150",
+                      "contrast": 12.31,
                       "against": "background.primary",
                       "min": 4.5
                     },
@@ -8316,20 +8316,20 @@
           "border": {
             "rest": {
               "$type": "color",
-              "$value": "{ads.core.palette.accent.500}",
+              "$value": "{ads.core.palette.accent.650}",
               "$description": "primary interactive border — rest (the outline edge; follows the ink)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "ads.core.palette.accent.500",
-                  "contrast": 4.56,
+                  "aliasOf": "ads.core.palette.accent.650",
+                  "contrast": 8.3,
                   "against": "background.primary",
                   "min": 3,
                   "modes": {
                     "dark": {
-                      "$value": "{ads.core.palette.accent.450}",
-                      "aliasOf": "ads.core.palette.accent.450",
-                      "contrast": 4.87,
+                      "$value": "{ads.core.palette.accent.350}",
+                      "aliasOf": "ads.core.palette.accent.350",
+                      "contrast": 6.8,
                       "against": "background.primary",
                       "min": 3
                     },
@@ -8362,20 +8362,20 @@
             },
             "hover": {
               "$type": "color",
-              "$value": "{ads.core.palette.accent.600}",
+              "$value": "{ads.core.palette.accent.750}",
               "$description": "primary interactive border — hover (the outline edge; follows the ink)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "ads.core.palette.accent.600",
-                  "contrast": 6.85,
+                  "aliasOf": "ads.core.palette.accent.750",
+                  "contrast": 11.95,
                   "against": "background.primary",
                   "min": 3,
                   "modes": {
                     "dark": {
-                      "$value": "{ads.core.palette.accent.350}",
-                      "aliasOf": "ads.core.palette.accent.350",
-                      "contrast": 6.8,
+                      "$value": "{ads.core.palette.accent.250}",
+                      "aliasOf": "ads.core.palette.accent.250",
+                      "contrast": 9.23,
                       "against": "background.primary",
                       "min": 3
                     },
@@ -8408,20 +8408,20 @@
             },
             "pressed": {
               "$type": "color",
-              "$value": "{ads.core.palette.accent.700}",
+              "$value": "{ads.core.palette.accent.850}",
               "$description": "primary interactive border — pressed (the outline edge; follows the ink)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "ads.core.palette.accent.700",
-                  "contrast": 10.03,
+                  "aliasOf": "ads.core.palette.accent.850",
+                  "contrast": 16.08,
                   "against": "background.primary",
                   "min": 3,
                   "modes": {
                     "dark": {
-                      "$value": "{ads.core.palette.accent.250}",
-                      "aliasOf": "ads.core.palette.accent.250",
-                      "contrast": 9.23,
+                      "$value": "{ads.core.palette.accent.150}",
+                      "aliasOf": "ads.core.palette.accent.150",
+                      "contrast": 12.31,
                       "against": "background.primary",
                       "min": 3
                     },
@@ -8629,7 +8629,7 @@
                     "color": "{ads.color.interactive.primary.fill.rest}",
                     "opacity": "{ads.opacity.30}"
                   },
-                  "contrast": 6.64,
+                  "contrast": 10.64,
                   "against": "background.primary",
                   "contrastModel": "ink-on-composite",
                   "legibleFor": "interactive.primary.text.pressed",
@@ -8640,7 +8640,7 @@
                         "color": "{ads.color.interactive.primary.fill.rest}",
                         "opacity": "{ads.opacity.30}"
                       },
-                      "contrast": 6.71,
+                      "contrast": 8.96,
                       "against": "background.primary",
                       "contrastModel": "ink-on-composite",
                       "legibleFor": "interactive.primary.text.pressed"

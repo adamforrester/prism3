@@ -909,18 +909,21 @@
     "interactive.primary.text.rest": {
       "$description": "primary interactive ink — rest (outline / text appearance)",
       "meaning": "Interactivity / actions",
-      "when_to_use": "The ink for outline and text primary interactive elements (no fill behind it). Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
+      "when_to_use": "The ink for outline and text primary interactive elements (no fill behind it). Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
       "avoid_when": "Do not use on a filled primary control (use `interactive.primary.on-fill`).",
       "mode_overrides": {
         "light": "{pds3.core.palette.primary.600}",
-        "dark": "{pds3.core.palette.primary.450}",
+        "dark": "{pds3.core.palette.primary.350}",
         "hc-light": "{pds3.core.palette.primary.600}",
         "hc-dark": "{pds3.core.palette.primary.350}"
       },
       "sits_on": [
         "background.primary",
         "background.secondary",
-        "foreground.primary"
+        "background.tertiary",
+        "foreground.primary",
+        "foreground.secondary",
+        "foreground.tertiary"
       ],
       "contrast_with": [
         {
@@ -934,18 +937,21 @@
     "interactive.primary.icon.rest": {
       "$description": "primary interactive icon ink — rest (the glyph in an outline / ghost / text control)",
       "meaning": "Interactivity / actions",
-      "when_to_use": "The icon for outline and text primary interactive elements (no fill behind it). Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
+      "when_to_use": "The icon for outline and text primary interactive elements (no fill behind it). Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
       "avoid_when": "Do not use on a filled primary control (use `interactive.primary.on-fill`).",
       "mode_overrides": {
         "light": "{pds3.core.palette.primary.600}",
-        "dark": "{pds3.core.palette.primary.450}",
+        "dark": "{pds3.core.palette.primary.350}",
         "hc-light": "{pds3.core.palette.primary.600}",
         "hc-dark": "{pds3.core.palette.primary.350}"
       },
       "sits_on": [
         "background.primary",
         "background.secondary",
-        "foreground.primary"
+        "background.tertiary",
+        "foreground.primary",
+        "foreground.secondary",
+        "foreground.tertiary"
       ],
       "contrast_with": [
         {
@@ -963,7 +969,7 @@
       "avoid_when": "Do not use on a filled primary control (use `interactive.primary.on-fill`).",
       "mode_overrides": {
         "light": "{pds3.core.palette.primary.700}",
-        "dark": "{pds3.core.palette.primary.350}",
+        "dark": "{pds3.core.palette.primary.250}",
         "hc-light": "{pds3.core.palette.primary.700}",
         "hc-dark": "{pds3.core.palette.primary.250}"
       },
@@ -991,7 +997,7 @@
       "avoid_when": "Do not use on a filled primary control (use `interactive.primary.on-fill`).",
       "mode_overrides": {
         "light": "{pds3.core.palette.primary.700}",
-        "dark": "{pds3.core.palette.primary.350}",
+        "dark": "{pds3.core.palette.primary.250}",
         "hc-light": "{pds3.core.palette.primary.700}",
         "hc-dark": "{pds3.core.palette.primary.250}"
       },
@@ -1019,7 +1025,7 @@
       "avoid_when": "Do not use on a filled primary control (use `interactive.primary.on-fill`).",
       "mode_overrides": {
         "light": "{pds3.core.palette.primary.800}",
-        "dark": "{pds3.core.palette.primary.250}",
+        "dark": "{pds3.core.palette.primary.150}",
         "hc-light": "{pds3.core.palette.primary.800}",
         "hc-dark": "{pds3.core.palette.primary.150}"
       },
@@ -1047,7 +1053,7 @@
       "avoid_when": "Do not use on a filled primary control (use `interactive.primary.on-fill`).",
       "mode_overrides": {
         "light": "{pds3.core.palette.primary.800}",
-        "dark": "{pds3.core.palette.primary.250}",
+        "dark": "{pds3.core.palette.primary.150}",
         "hc-light": "{pds3.core.palette.primary.800}",
         "hc-dark": "{pds3.core.palette.primary.150}"
       },
@@ -1075,7 +1081,7 @@
       "avoid_when": "Do not use as ink (use `interactive.primary.text.*`) or as a page divider (use `border.primary`).",
       "mode_overrides": {
         "light": "{pds3.core.palette.primary.600}",
-        "dark": "{pds3.core.palette.primary.450}",
+        "dark": "{pds3.core.palette.primary.350}",
         "hc-light": "{pds3.core.palette.primary.600}",
         "hc-dark": "{pds3.core.palette.primary.350}"
       },
@@ -1101,7 +1107,7 @@
       "avoid_when": "Do not use as ink (use `interactive.primary.text.*`) or as a page divider (use `border.primary`).",
       "mode_overrides": {
         "light": "{pds3.core.palette.primary.700}",
-        "dark": "{pds3.core.palette.primary.350}",
+        "dark": "{pds3.core.palette.primary.250}",
         "hc-light": "{pds3.core.palette.primary.700}",
         "hc-dark": "{pds3.core.palette.primary.250}"
       },
@@ -1127,7 +1133,7 @@
       "avoid_when": "Do not use as ink (use `interactive.primary.text.*`) or as a page divider (use `border.primary`).",
       "mode_overrides": {
         "light": "{pds3.core.palette.primary.800}",
-        "dark": "{pds3.core.palette.primary.250}",
+        "dark": "{pds3.core.palette.primary.150}",
         "hc-light": "{pds3.core.palette.primary.800}",
         "hc-dark": "{pds3.core.palette.primary.150}"
       },
@@ -4312,18 +4318,21 @@
     "text.link.default": {
       "$description": "Link text — default, 4.5:1 on background.secondary",
       "meaning": "Interactivity / navigation",
-      "when_to_use": "Hyperlinks and interactive text. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
+      "when_to_use": "Hyperlinks and interactive text. Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
       "avoid_when": "Do not use for non-interactive text (use `text.primary`).",
       "mode_overrides": {
         "light": "{pds3.core.palette.primary.600}",
-        "dark": "{pds3.core.palette.primary.450}",
+        "dark": "{pds3.core.palette.primary.350}",
         "hc-light": "{pds3.core.palette.primary.650}",
         "hc-dark": "{pds3.core.palette.primary.300}"
       },
       "sits_on": [
         "background.primary",
         "background.secondary",
-        "foreground.primary"
+        "background.tertiary",
+        "foreground.primary",
+        "foreground.secondary",
+        "foreground.tertiary"
       ],
       "contrast_with": [
         {
@@ -4341,7 +4350,7 @@
       "avoid_when": "Do not use for non-interactive text (use `text.primary`).",
       "mode_overrides": {
         "light": "{pds3.core.palette.primary.700}",
-        "dark": "{pds3.core.palette.primary.350}",
+        "dark": "{pds3.core.palette.primary.250}",
         "hc-light": "{pds3.core.palette.primary.750}",
         "hc-dark": "{pds3.core.palette.primary.200}"
       },
@@ -4369,7 +4378,7 @@
       "avoid_when": "Do not use for non-interactive text (use `text.primary`).",
       "mode_overrides": {
         "light": "{pds3.core.palette.primary.900}",
-        "dark": "{pds3.core.palette.primary.150}",
+        "dark": "{pds3.core.palette.primary.050}",
         "hc-light": "{pds3.core.palette.primary.950}",
         "hc-dark": "{pds3.core.palette.primary.025}"
       },
@@ -4393,18 +4402,21 @@
     "text.link.focused": {
       "$description": "Link text — focused, 4.5:1 on background.secondary",
       "meaning": "Interactivity / navigation",
-      "when_to_use": "Hyperlinks and interactive text when keyboard-focused. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
+      "when_to_use": "Hyperlinks and interactive text when keyboard-focused. Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
       "avoid_when": "Do not use for non-interactive text (use `text.primary`).",
       "mode_overrides": {
         "light": "{pds3.core.palette.primary.600}",
-        "dark": "{pds3.core.palette.primary.450}",
+        "dark": "{pds3.core.palette.primary.350}",
         "hc-light": "{pds3.core.palette.primary.650}",
         "hc-dark": "{pds3.core.palette.primary.300}"
       },
       "sits_on": [
         "background.primary",
         "background.secondary",
-        "foreground.primary"
+        "background.tertiary",
+        "foreground.primary",
+        "foreground.secondary",
+        "foreground.tertiary"
       ],
       "contrast_with": [
         {
@@ -4422,7 +4434,7 @@
       "avoid_when": "Do not use for non-interactive text (use `text.primary`).",
       "mode_overrides": {
         "light": "{pds3.core.palette.primary.800}",
-        "dark": "{pds3.core.palette.primary.250}",
+        "dark": "{pds3.core.palette.primary.150}",
         "hc-light": "{pds3.core.palette.primary.850}",
         "hc-dark": "{pds3.core.palette.primary.100}"
       },
@@ -4973,18 +4985,21 @@
     "icon.link.default": {
       "$description": "Link icon — default, 4.5:1 on background.secondary",
       "meaning": "Interactivity / navigation",
-      "when_to_use": "Hyperlinks and interactive icon. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
+      "when_to_use": "Hyperlinks and interactive icon. Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
       "avoid_when": "Do not use for non-interactive icon (use `icon.primary`).",
       "mode_overrides": {
         "light": "{pds3.core.palette.primary.600}",
-        "dark": "{pds3.core.palette.primary.450}",
+        "dark": "{pds3.core.palette.primary.350}",
         "hc-light": "{pds3.core.palette.primary.650}",
         "hc-dark": "{pds3.core.palette.primary.300}"
       },
       "sits_on": [
         "background.primary",
         "background.secondary",
-        "foreground.primary"
+        "background.tertiary",
+        "foreground.primary",
+        "foreground.secondary",
+        "foreground.tertiary"
       ],
       "contrast_with": [
         {
@@ -5002,7 +5017,7 @@
       "avoid_when": "Do not use for non-interactive icon (use `icon.primary`).",
       "mode_overrides": {
         "light": "{pds3.core.palette.primary.700}",
-        "dark": "{pds3.core.palette.primary.350}",
+        "dark": "{pds3.core.palette.primary.250}",
         "hc-light": "{pds3.core.palette.primary.750}",
         "hc-dark": "{pds3.core.palette.primary.200}"
       },
@@ -5030,7 +5045,7 @@
       "avoid_when": "Do not use for non-interactive icon (use `icon.primary`).",
       "mode_overrides": {
         "light": "{pds3.core.palette.primary.900}",
-        "dark": "{pds3.core.palette.primary.150}",
+        "dark": "{pds3.core.palette.primary.050}",
         "hc-light": "{pds3.core.palette.primary.950}",
         "hc-dark": "{pds3.core.palette.primary.025}"
       },
@@ -5054,18 +5069,21 @@
     "icon.link.focused": {
       "$description": "Link icon — focused, 4.5:1 on background.secondary",
       "meaning": "Interactivity / navigation",
-      "when_to_use": "Hyperlinks and interactive icon when keyboard-focused. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
+      "when_to_use": "Hyperlinks and interactive icon when keyboard-focused. Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
       "avoid_when": "Do not use for non-interactive icon (use `icon.primary`).",
       "mode_overrides": {
         "light": "{pds3.core.palette.primary.600}",
-        "dark": "{pds3.core.palette.primary.450}",
+        "dark": "{pds3.core.palette.primary.350}",
         "hc-light": "{pds3.core.palette.primary.650}",
         "hc-dark": "{pds3.core.palette.primary.300}"
       },
       "sits_on": [
         "background.primary",
         "background.secondary",
-        "foreground.primary"
+        "background.tertiary",
+        "foreground.primary",
+        "foreground.secondary",
+        "foreground.tertiary"
       ],
       "contrast_with": [
         {
@@ -5083,7 +5101,7 @@
       "avoid_when": "Do not use for non-interactive icon (use `icon.primary`).",
       "mode_overrides": {
         "light": "{pds3.core.palette.primary.800}",
-        "dark": "{pds3.core.palette.primary.250}",
+        "dark": "{pds3.core.palette.primary.150}",
         "hc-light": "{pds3.core.palette.primary.850}",
         "hc-dark": "{pds3.core.palette.primary.100}"
       },
@@ -8949,7 +8967,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
-        "color.icon.link.visited",
+        "color.icon.link.pressed",
         "color.interactive.primary.border.pressed",
         "color.interactive.primary.icon.pressed",
         "color.interactive.primary.text.pressed",
@@ -8960,7 +8978,7 @@
         "color.inverse.interactive.primary.text.pressed",
         "color.inverse.text.link.pressed",
         "color.inverse.text.link.visited",
-        "color.text.link.visited"
+        "color.text.link.pressed"
       ]
     },
     "core.palette.primary.200": {
@@ -8982,13 +9000,10 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
-        "color.icon.link.pressed",
+        "color.icon.link.hover",
         "color.interactive.primary.border.hover",
-        "color.interactive.primary.border.pressed",
         "color.interactive.primary.icon.hover",
-        "color.interactive.primary.icon.pressed",
         "color.interactive.primary.text.hover",
-        "color.interactive.primary.text.pressed",
         "color.inverse.icon.link.hover",
         "color.inverse.icon.link.pressed",
         "color.inverse.interactive.primary.border.hover",
@@ -8999,7 +9014,7 @@
         "color.inverse.interactive.primary.text.pressed",
         "color.inverse.text.link.hover",
         "color.inverse.text.link.pressed",
-        "color.text.link.pressed"
+        "color.text.link.hover"
       ]
     },
     "core.palette.primary.300": {
@@ -9033,12 +9048,10 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.icon.brand-subtle",
-        "color.icon.link.hover",
-        "color.interactive.primary.border.hover",
+        "color.icon.link.default",
+        "color.icon.link.focused",
         "color.interactive.primary.border.rest",
-        "color.interactive.primary.icon.hover",
         "color.interactive.primary.icon.rest",
-        "color.interactive.primary.text.hover",
         "color.interactive.primary.text.rest",
         "color.inverse.border.focus",
         "color.inverse.foreground.brand",
@@ -9056,7 +9069,8 @@
         "color.inverse.text.link.focused",
         "color.inverse.text.link.hover",
         "color.text.brand-subtle",
-        "color.text.link.hover"
+        "color.text.link.default",
+        "color.text.link.focused"
       ]
     },
     "core.palette.primary.400": {
@@ -9079,11 +9093,6 @@
         "color.border.focus",
         "color.icon.brand",
         "color.icon.brand-subtle",
-        "color.icon.link.default",
-        "color.icon.link.focused",
-        "color.interactive.primary.border.rest",
-        "color.interactive.primary.icon.rest",
-        "color.interactive.primary.text.rest",
         "color.inverse.border.focus",
         "color.inverse.icon.brand",
         "color.inverse.icon.link.default",
@@ -9095,9 +9104,7 @@
         "color.inverse.text.link.default",
         "color.inverse.text.link.focused",
         "color.text.brand",
-        "color.text.brand-subtle",
-        "color.text.link.default",
-        "color.text.link.focused"
+        "color.text.brand-subtle"
       ]
     },
     "core.palette.primary.500": {
@@ -9300,8 +9307,10 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.icon.link.visited",
         "color.inverse.icon.link.visited",
-        "color.inverse.text.link.visited"
+        "color.inverse.text.link.visited",
+        "color.text.link.visited"
       ]
     },
     "core.palette.neutral.100": {

@@ -1025,6 +1025,7 @@ for (const b of brands) {
     ['wendys', exampleTheme('wendys', () => brandTheme(standardToBrandInput(parseStandardDesignMd(readFileSync(resolve(HERE, './examples/wendys.design.md'), 'utf8'))).input))],
   ]) as Array<[string, Theme]>);
 
+  const SHIPPING_LINK = new Set(['nb', 'aurora', 'harbor', 'wendys']);
   let checkedBase = 0, checkedAll = 0;
   const percBreaks: string[] = [], floorBreaks: string[] = [], distinctBreaks: string[] = [];
   for (const [id, theme] of LINK_THEMES) {
@@ -1043,7 +1044,11 @@ for (const b of brands) {
       // pins `linkBase` near the extreme under a 7:1 floor, so the ramp physically cannot supply three
       // ΔE-6 steps there — the walk degrades to maximal-available separation (still distinct + floor,
       // asserted above), and the strong promise is kept where the ramp affords it. Stated, not skipped.
-      if (m.mode === 'light' || m.mode === 'dark') {
+      // SHIPPING BRANDS only since #2817: the link base now also clears every surface it is placed on, which
+      // pins the stress fixtures' base one or two rungs nearer the ramp end (t-red's neutral ramp: 650, where
+      // 900 → 950 is ΔE 2.6), so there they hold the distinct + floor promise above — the one `modes.ts`
+      // states for a stress fixture. The shipping brands, real ramps, keep the strong one, counted below.
+      if ((m.mode === 'light' || m.mode === 'dark') && SHIPPING_LINK.has(id)) {
         checkedBase++;
         for (let i = 1; i < rgbs.length; i++) {
           const dE = deltaE2000(rgbs[i - 1], rgbs[i]);
@@ -1053,8 +1058,9 @@ for (const b of brands) {
     }
   }
   // NON-VACUITY (docs/34 shape 9): the sweep must have SEEN link ladders, or "no breaks" is a true
-  // statement about an empty set. 4 shipping brands + 6 stress fixtures × 2 base modes ⇒ ≥ 16.
-  ok(checkedBase >= 16, `L-04: the perceptibility sweep read base-mode link ladders (${checkedBase} base modes, ${checkedAll} total)`);
+  // statement about an empty set. 4 shipping brands × 2 base modes ⇒ ≥ 8 (the stress fixtures, #2817, are
+  // counted in `checkedAll` and held to distinct + floor).
+  ok(checkedBase >= 8 && checkedAll >= 16, `L-04: the perceptibility sweep read base-mode link ladders (${checkedBase} base modes, ${checkedAll} total)`);
   ok(distinctBreaks.length === 0, `L-04: every mode's link ladder is DISTINCT (default/hover/pressed/visited)` + (distinctBreaks.length ? ` — FAILED: ${distinctBreaks.join(', ')}` : ''));
   ok(floorBreaks.length === 0, `L-04: every link state clears its OWN contrast floor` + (floorBreaks.length ? ` — FAILED: ${floorBreaks.join(', ')}` : ''));
   ok(percBreaks.length === 0, `L-04: base-mode link states are ≥ ${LINK_PERCEPT_FLOOR} ΔE apart (perceptibly distinct, the #1486 promise)` + (percBreaks.length ? ` — FAILED: ${percBreaks.join(', ')}` : ''));
@@ -1727,14 +1733,16 @@ for (const b of brands) {
   // `roleColors.action` rebase anchors at primary's step): fixing #1896 moves the fill and these together.
   // BY-NAME MUTATION: `const linkAnchor = theme.linkAnchorStep;` in modes.ts → deep lands on 850 in light
   // and hc-light, pale on 050 in dark and hc-dark, and both asserts below fail.
+  // #2817: from that anchor the link then steps as far as it must to clear every surface it is placed on, so
+  // light deep (550 → 650) and dark pale (450 → 350) sit one notch deeper than the anchor; HC already cleared.
   const stepsOf = (t: ReturnType<typeof brandTheme>): Record<string, string | undefined> =>
     Object.fromEntries(linkByMode(t).map((r) => [r.mode, r.link?.path.split('.').slice(-2).join('.')]));
   const deep = stepsOf(build({ brandColors: [{ name: 'deep', oklch: { l: 0.25, c: 0.08, h: 30 } }], roleColors: { action: 'deep' } }));
-  ok(deep.light === 'deep.550' && deep['hc-light'] === 'deep.700',
-    `#1895: a dark rebased action color (deep, l 0.25) anchors the link where the action fill anchors — light deep.550, hc-light deep.700 (got ${JSON.stringify(deep)})`);
+  ok(deep.light === 'deep.650' && deep['hc-light'] === 'deep.700',
+    `#1895: a dark rebased action color (deep, l 0.25) anchors the link where the action fill anchors — light deep.650 (anchor 550, #2817), hc-light deep.700 (got ${JSON.stringify(deep)})`);
   const pale = stepsOf(build({ brandColors: [{ name: 'pale', oklch: { l: 0.92, c: 0.06, h: 95 } }], roleColors: { action: 'pale' } }));
-  ok(pale.dark === 'pale.450' && pale['hc-dark'] === 'pale.300',
-    `#1895: a pale rebased action color (pale, l 0.92) anchors the link where the action fill anchors — dark pale.450, hc-dark pale.300 (got ${JSON.stringify(pale)})`);
+  ok(pale.dark === 'pale.350' && pale['hc-dark'] === 'pale.300',
+    `#1895: a pale rebased action color (pale, l 0.92) anchors the link where the action fill anchors — dark pale.350 (anchor 450, #2817), hc-dark pale.300 (got ${JSON.stringify(pale)})`);
 
   // The two link notes compare against the RESOLVED action palette and say "the action color" (owner
   // decision 2026-10-01). Literal note text, never a join of theme.ts's template (docs/34 shape 2). BY-NAME
@@ -2795,7 +2803,9 @@ for (const b of brands) {
       const aur = auroraRow && light(auroraRow[1]);
       const HAND: Array<[string, any, string, string, number, string]> = loadedRows([
         // brand, roles, prefix, ground, step, composite
-        ['nb-redesign', nbr, '', 'background.primary', 10, '#e8e8e8'],
+        // 20 since #2817: the primary hover ink deepened to clear every surface, so it clears opacity.20 and
+        // the down-step no longer engages on this page (the two rows below still exercise it).
+        ['nb-redesign', nbr, '', 'background.primary', 20, '#d0d0d0'],
         ['nb-redesign', nbr, 'inverse.', 'inverse.background.primary', 10, '#252525'],
         ['aurora', aur, '', 'background.primary', 20, '#cce5f1'],
         ['aurora', aur, 'inverse.', 'inverse.background.primary', 10, '#252526'],
@@ -2809,7 +2819,8 @@ for (const b of brands) {
 
       // THE DOWN-STEP GUARD ENGAGES where 20 fails the label, asserted with its PRECONDITION measured here
       // (if 20 stops failing, the arm is no longer testing the guard) and recorded in the description.
-      for (const [id, R, prefix, groundKey] of loadedRows([['nb-redesign', nbr, '', 'background.primary'], ['nb-redesign', nbr, 'inverse.', 'inverse.background.primary'], ['aurora', aur, 'inverse.', 'inverse.background.primary']] as any[][])) {
+      // (the example's page row left in #2817: its deeper hover ink clears opacity.20, as the HAND row above says.)
+      for (const [id, R, prefix, groundKey] of loadedRows([['nb-redesign', nbr, 'inverse.', 'inverse.background.primary'], ['aurora', aur, 'inverse.', 'inverse.background.primary']] as any[][])) {
         const ink = R[`${prefix}interactive.primary.text.hover`];
         const fillHex = R[`${prefix}interactive.primary.fill.rest`].hex;
         const at20 = contrast(hexToRgb(ink.hex), hexToRgb(mixHex(fillHex, R[groundKey].hex, 0.2)));
@@ -2905,7 +2916,9 @@ for (const b of brands) {
       // the owner makes it, every mode must carry the same value.
       {
         const STANDARD = { 'interactive.primary.hover': 20, 'interactive.primary.pressed': 30, 'interactive.primary.selected': 30, 'interactive.neutral.hover': 50, 'interactive.neutral.pressed': 60, 'interactive.neutral.selected': 60, 'interactive.destructive.hover': 20, 'interactive.destructive.pressed': 30, 'interactive.destructive.selected': 30, 'inverse.interactive.primary.hover': 10, 'inverse.interactive.primary.pressed': 30, 'inverse.interactive.primary.selected': 30, 'inverse.interactive.neutral.hover': 20, 'inverse.interactive.neutral.pressed': 30, 'inverse.interactive.neutral.selected': 30, 'inverse.interactive.destructive.hover': 10, 'inverse.interactive.destructive.pressed': 30, 'inverse.interactive.destructive.selected': 30 } as Record<string, number>;
-        const NB_REDESIGN = { ...STANDARD, 'interactive.primary.hover': 10, 'interactive.neutral.hover': 20, 'interactive.neutral.pressed': 30, 'interactive.neutral.selected': 30, 'inverse.interactive.destructive.hover': 20 } as Record<string, number>;
+        // `interactive.primary.hover` was 10 until #2817 deepened the primary hover ink, which then clears the
+        // standard 20 (the only wash that moved, and the step rule's own answer, not an emitter change).
+        const NB_REDESIGN = { ...STANDARD, 'interactive.neutral.hover': 20, 'interactive.neutral.pressed': 30, 'interactive.neutral.selected': 30, 'inverse.interactive.destructive.hover': 20 } as Record<string, number>;
         const examples: Array<[string, any, Record<string, number>]> = loadedRows([
           ['nb', nbTheme(), STANDARD],
           ['aurora', exampleTheme('aurora', () => brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/aurora.design.md'), 'utf8')).input)), STANDARD],
@@ -5500,8 +5513,11 @@ arm: {
     const au = linkRoles(auroraLinks);
     ok(stepOf(au['icon.link.default']) < stepOf(au['text.link.default']),
       `#352: aurora's icon link genuinely LIGHTENS vs its text link (${au['icon.link.default'].path.split('.').pop()} < ${au['text.link.default'].path.split('.').pop()}) — the lever moves the COLOUR, not just the reported min`);
-    ok(au['icon.link.default'].ratio < 4.5 && au['icon.link.default'].ratio >= au['icon.link.default'].min,
-      `#352: ...landing genuinely below the text bar while clearing its own (${au['icon.link.default'].ratio.toFixed(2)}, min ${au['icon.link.default'].min})`);
+    // Measured on `foreground.tertiary`, the surface that binds the link since #2817 (on its own floor the
+    // icon link now clears 4.5 too, because it holds 3:1 on every surface).
+    const auWorst = contrast(hexToRgb(au['icon.link.default'].hex), hexToRgb(au['foreground.tertiary'].hex));
+    ok(auWorst < 4.5 && auWorst >= au['icon.link.default'].min,
+      `#352: ...landing genuinely below the text bar while clearing its own, on the surface that binds it (${auWorst.toFixed(2)} on foreground.tertiary, min ${au['icon.link.default'].min})`);
   }
 
   // (c) The invariant that must survive relaxing the FILLS: every link state clears its own floor,
@@ -11108,6 +11124,80 @@ arm: {
     `#2569 Q270.6 border.secondary's HC description drops "decorative" (and light and dark keep it), in the emitted DTCG of every brand (${descCells} cells, floor 20)${wrongDesc.length ? ` — ${wrongDesc.join('; ')}` : ''}`);
 }
 
+// (10g-iv) #2817 — THE PRIMARY AND LINK INKS CLEAR 4.5:1 ON EVERY SURFACE A COMPONENT PLACES THEM ON (owner Q415 A).
+//
+// An outline or text primary Button and a link are drawn on the page tiers, on a raised panel (`foreground.*`,
+// Dialog's footer) and on a status tint (`foreground.<status>-subtle`, Banner's actions). Three claims, each
+// measured from the RESOLVED hexes and never from a role's own `ratio`, `min`, `against` or `modes.ts`'s
+// `INK_SURFACES` list, which is the subject (`docs/34`): the inks and the eleven grounds are written here as
+// literals, so dropping a ground from the picker's list cannot shrink this proof.
+//   1. Every ink × surface cell clears 4.5:1, in every mode of every brand — one `ok` per cell, so a miss names
+//      its brand, mode, ink and surface.
+//   2. The ink stays in its hue: the primary ink is on the same ramp as the primary fill, the link on the
+//      brand's link palette. Only the depth moves.
+//   3. "Just enough": in light and dark, where the primary rest ink left its anchor step, the ramp step one
+//      notch back toward the anchor misses 4.5:1 on at least one of the grounds. A pick that overshoots fails.
+{
+  const BAR_2817 = 4.5;
+  const INKS_2817 = [
+    'interactive.primary.text.rest', 'interactive.primary.text.hover', 'interactive.primary.text.pressed',
+    'text.link.default', 'text.link.hover', 'text.link.pressed', 'text.link.visited', 'text.link.focused',
+  ];
+  const GROUNDS_2817 = [
+    'background.primary', 'background.secondary', 'background.tertiary',
+    'foreground.primary', 'foreground.secondary', 'foreground.tertiary',
+    'foreground.brand-subtle', 'foreground.success-subtle', 'foreground.warning-subtle', 'foreground.danger-subtle', 'foreground.info-subtle',
+  ];
+  const rows2817: { id: string; theme: any }[] = [
+    ...corpus(),
+    ...loadedRows([['prism3 (example)', exampleTheme('prism3', () => brandTheme(exampleBrands()['prism3'] as BrandInput))]]).map(([id, theme]) => ({ id: id as string, theme })),
+  ];
+  let cells2817 = 0, modes2817 = 0;
+  const offHue: string[] = [], overshoot: string[] = [];
+  let hueCells = 0, minimalCells = 0;
+  const paletteOf = (path: string | undefined) => path?.split('.').slice(-2)[0];
+  for (const { id, theme } of rows2817) for (const m of resolveAllModes(theme)) {
+    modes2817++;
+    const hexOf = (k: string) => m.roles[k]?.hex;
+    for (const ink of INKS_2817) for (const g of GROUNDS_2817) {
+      const ih = hexOf(ink), gh = hexOf(g);
+      if (!ih || !gh) { ok(false, `#2817 ${id}/${m.mode}: ${!ih ? ink : g} absent, so ${ink} on ${g} cannot be measured`); continue; }
+      cells2817++;
+      const r = contrast(hexToRgb(ih), hexToRgb(gh));
+      ok(r >= BAR_2817, `#2817 ${id}/${m.mode} ${ink} (${ih}) on ${g} (${gh}): ${r.toFixed(2)}:1, under the ${BAR_2817}:1 body floor`);
+    }
+    // 2. Same ramp as before: the primary ink beside the primary fill, the link on the theme's link palette
+    //    (wireframe greys every chromatic role, so there the link is on the neutral ramp).
+    hueCells++;
+    const inkPal = paletteOf(m.roles['interactive.primary.text.rest']?.path), fillPal = paletteOf(m.roles['interactive.primary.fill.rest']?.path);
+    if (!inkPal || inkPal !== fillPal) offHue.push(`${id}/${m.mode}: interactive.primary.text.rest on '${inkPal}', the primary fill on '${fillPal}'`);
+    const linkWant = m.mode === 'wireframe' ? theme.roleToPalette.neutral : theme.linkPalette;
+    for (const st of ['default', 'hover', 'pressed', 'visited', 'focused']) {
+      const lp = paletteOf(m.roles[`text.link.${st}`]?.path);
+      if (lp !== linkWant) offHue.push(`${id}/${m.mode}: text.link.${st} on '${lp}', the link palette is '${linkWant}'`);
+    }
+    // 3. Just enough, in the standard modes (HC's page bar is 7:1, so its pick is held by the page, not here).
+    if (m.mode !== 'light' && m.mode !== 'dark') continue;
+    const role = m.roles['interactive.primary.text.rest'];
+    const segs = role?.path.split('.') ?? [];
+    const steps = [...(theme.palettes.find((p: any) => p.palette === segs[segs.length - 2])?.steps ?? [])].sort((a: any, b: any) => a.num - b.num);
+    const at = steps.findIndex((s: any) => s.key === segs[segs.length - 1]);
+    const anchorAt = steps.findIndex((s: any) => s.num === theme.roleAnchorStep.action);
+    if (!role || at < 0 || anchorAt < 0 || steps[at].hex.toLowerCase() !== role.hex.toLowerCase()) { overshoot.push(`${id}/${m.mode}: interactive.primary.text.rest ${role?.path ?? 'absent'} or its anchor not found on its ramp`); continue; }
+    minimalCells++;
+    if (at === anchorAt) continue;
+    const back = steps[at + Math.sign(anchorAt - at)];
+    const clearsAll = GROUNDS_2817.every((g) => m.roles[g] && contrast(hexToRgb(back.hex), hexToRgb(m.roles[g].hex)) >= BAR_2817);
+    if (clearsAll) overshoot.push(`${id}/${m.mode}: the ink sits at ${segs[segs.length - 1]}, but ${back.key} (one notch back toward the anchor ${steps[anchorAt].key}) already clears ${BAR_2817}:1 on every ground`);
+  }
+  ok(cells2817 === modes2817 * INKS_2817.length * GROUNDS_2817.length && modes2817 >= 20,
+    `#2817 every primary and link ink was measured on all ${GROUNDS_2817.length} grounds in every mode of every brand (${cells2817} cells over ${modes2817} modes, floor 20 modes)`);
+  ok(offHue.length === 0 && hueCells >= 20,
+    `#2817 the primary and link inks stay on their own ramp (the hue holds, only the depth moves) in every mode (${hueCells} modes, floor 20)${offHue.length ? ` — ${offHue.join('; ')}` : ''}`);
+  ok(overshoot.length === 0 && minimalCells >= 10,
+    `#2817 the primary ink moves only as far as the worst surface needs: one notch back toward its anchor misses ${BAR_2817}:1 somewhere, in every light and dark mode it moved in (${minimalCells} modes, floor 10)${overshoot.length ? ` — ${overshoot.join('; ')}` : ''}`);
+}
+
 // (10h) #575 — the OUTLINE-METHOD contract: for every `outlineInteraction` value, the role
 // `outlineFillFamily` names is the role the engine actually emits, and the family it does NOT name
 // is absent.
@@ -11354,14 +11444,28 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // `text` and `icon` link families move together (NB's `iconContrast` is 'text', so icon == text). The
   // NEW `link/pressed` leaf is an engine addition NB's export predates — it is not a divergence of an
   // existing var, so it lives in `ENGINE_ADDED_VARS` below, not here.
-  { mode: 'light', name: 'color/text/link/hover', nb: 'palette/red/600', engine: 'palette/red/650' },
-  { mode: 'light', name: 'color/text/link/visited', nb: 'palette/red/650', engine: 'palette/red/850' },
-  { mode: 'light', name: 'color/icon/link/hover', nb: 'palette/red/600', engine: 'palette/red/650' },
-  { mode: 'light', name: 'color/icon/link/visited', nb: 'palette/red/650', engine: 'palette/red/850' },
-  { mode: 'dark', name: 'color/text/link/hover', nb: 'palette/red/400', engine: 'palette/red/350' },
-  { mode: 'dark', name: 'color/text/link/visited', nb: 'palette/red/350', engine: 'palette/red/150' },
-  { mode: 'dark', name: 'color/icon/link/hover', nb: 'palette/red/400', engine: 'palette/red/350' },
-  { mode: 'dark', name: 'color/icon/link/visited', nb: 'palette/red/350', engine: 'palette/red/150' },
+  //
+  // #2817 (owner Q415 A) moved the light and dark rows below one rung further, and added the BASE (`default`,
+  // with `focused`, its colour twin): the link now clears 4.5:1 on every surface it is placed on, and the fixture's
+  // authored base measured 3.56:1 (light) and 3.60:1 (dark) on `foreground.tertiary`, 4.02:1 on the success
+  // tint. The base steps 550 → 650 in light and 450 → 350 in dark, and the engaged states walk from it. HC
+  // rows are unchanged: the authored base already cleared there.
+  { mode: 'light', name: 'color/text/link/default', nb: 'palette/red/550', engine: 'palette/red/650' },
+  { mode: 'light', name: 'color/text/link/focused', nb: 'palette/red/550', engine: 'palette/red/650' },
+  { mode: 'light', name: 'color/text/link/hover', nb: 'palette/red/600', engine: 'palette/red/750' },
+  { mode: 'light', name: 'color/text/link/visited', nb: 'palette/red/650', engine: 'palette/red/950' },
+  { mode: 'light', name: 'color/icon/link/default', nb: 'palette/red/550', engine: 'palette/red/650' },
+  { mode: 'light', name: 'color/icon/link/focused', nb: 'palette/red/550', engine: 'palette/red/650' },
+  { mode: 'light', name: 'color/icon/link/hover', nb: 'palette/red/600', engine: 'palette/red/750' },
+  { mode: 'light', name: 'color/icon/link/visited', nb: 'palette/red/650', engine: 'palette/red/950' },
+  { mode: 'dark', name: 'color/text/link/default', nb: 'palette/red/450', engine: 'palette/red/350' },
+  { mode: 'dark', name: 'color/text/link/focused', nb: 'palette/red/450', engine: 'palette/red/350' },
+  { mode: 'dark', name: 'color/text/link/hover', nb: 'palette/red/400', engine: 'palette/red/250' },
+  { mode: 'dark', name: 'color/text/link/visited', nb: 'palette/red/350', engine: 'palette/red/050' },
+  { mode: 'dark', name: 'color/icon/link/default', nb: 'palette/red/450', engine: 'palette/red/350' },
+  { mode: 'dark', name: 'color/icon/link/focused', nb: 'palette/red/450', engine: 'palette/red/350' },
+  { mode: 'dark', name: 'color/icon/link/hover', nb: 'palette/red/400', engine: 'palette/red/250' },
+  { mode: 'dark', name: 'color/icon/link/visited', nb: 'palette/red/350', engine: 'palette/red/050' },
   { mode: 'hc-light', name: 'color/text/link/hover', nb: 'palette/red/750', engine: 'palette/red/800' },
   { mode: 'hc-light', name: 'color/text/link/visited', nb: 'palette/red/800', engine: 'palette/red/950' },
   { mode: 'hc-light', name: 'color/icon/link/hover', nb: 'palette/red/750', engine: 'palette/red/800' },

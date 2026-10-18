@@ -909,22 +909,27 @@
     "interactive.primary.text.rest": {
       "$description": "primary interactive ink — rest (outline / text appearance)",
       "meaning": "Interactivity / actions",
-      "when_to_use": "The ink for outline and text primary interactive elements (no fill behind it). Clears 4.5:1 in every mode on `background.primary`. Below 4.5:1 on `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
+      "when_to_use": "The ink for outline and text primary interactive elements (no fill behind it). Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
       "avoid_when": "Do not use on a filled primary control (use `interactive.primary.on-fill`).",
       "mode_overrides": {
-        "light": "{ads.core.palette.accent.500}",
-        "dark": "{ads.core.palette.accent.450}",
+        "light": "{ads.core.palette.accent.650}",
+        "dark": "{ads.core.palette.accent.350}",
         "hc-light": "{ads.core.palette.accent.650}",
         "hc-dark": "{ads.core.palette.accent.350}"
       },
       "sits_on": [
-        "background.primary"
+        "background.primary",
+        "background.secondary",
+        "background.tertiary",
+        "foreground.primary",
+        "foreground.secondary",
+        "foreground.tertiary"
       ],
       "contrast_with": [
         {
           "token": "background.primary",
           "min": "4.5:1",
-          "ratio": 4.56,
+          "ratio": 8.3,
           "requirement": "MUST clear 4.5:1 against `background.primary` in every mode."
         }
       ]
@@ -932,22 +937,27 @@
     "interactive.primary.icon.rest": {
       "$description": "primary interactive icon ink — rest (the glyph in an outline / ghost / text control)",
       "meaning": "Interactivity / actions",
-      "when_to_use": "The icon for outline and text primary interactive elements (no fill behind it). Clears 4.5:1 in every mode on `background.primary`. Below 4.5:1 on `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
+      "when_to_use": "The icon for outline and text primary interactive elements (no fill behind it). Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
       "avoid_when": "Do not use on a filled primary control (use `interactive.primary.on-fill`).",
       "mode_overrides": {
-        "light": "{ads.core.palette.accent.500}",
-        "dark": "{ads.core.palette.accent.450}",
+        "light": "{ads.core.palette.accent.650}",
+        "dark": "{ads.core.palette.accent.350}",
         "hc-light": "{ads.core.palette.accent.650}",
         "hc-dark": "{ads.core.palette.accent.350}"
       },
       "sits_on": [
-        "background.primary"
+        "background.primary",
+        "background.secondary",
+        "background.tertiary",
+        "foreground.primary",
+        "foreground.secondary",
+        "foreground.tertiary"
       ],
       "contrast_with": [
         {
           "token": "background.primary",
           "min": "4.5:1",
-          "ratio": 4.56,
+          "ratio": 8.3,
           "requirement": "MUST clear 4.5:1 against `background.primary` in every mode."
         }
       ]
@@ -955,11 +965,11 @@
     "interactive.primary.text.hover": {
       "$description": "primary interactive ink — hover (outline / text appearance)",
       "meaning": "Interactivity / actions",
-      "when_to_use": "The ink for outline and text primary interactive elements (no fill behind it) on pointer hover. Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary` and `foreground.secondary`. Below 4.5:1 on `foreground.tertiary` in at least one mode.",
+      "when_to_use": "The ink for outline and text primary interactive elements (no fill behind it) on pointer hover. Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
       "avoid_when": "Do not use on a filled primary control (use `interactive.primary.on-fill`).",
       "mode_overrides": {
-        "light": "{ads.core.palette.accent.600}",
-        "dark": "{ads.core.palette.accent.350}",
+        "light": "{ads.core.palette.accent.750}",
+        "dark": "{ads.core.palette.accent.250}",
         "hc-light": "{ads.core.palette.accent.750}",
         "hc-dark": "{ads.core.palette.accent.250}"
       },
@@ -968,13 +978,14 @@
         "background.secondary",
         "background.tertiary",
         "foreground.primary",
-        "foreground.secondary"
+        "foreground.secondary",
+        "foreground.tertiary"
       ],
       "contrast_with": [
         {
           "token": "background.primary",
           "min": "4.5:1",
-          "ratio": 6.85,
+          "ratio": 11.95,
           "requirement": "MUST clear 4.5:1 against `background.primary` in every mode."
         }
       ]
@@ -982,11 +993,11 @@
     "interactive.primary.icon.hover": {
       "$description": "primary interactive icon ink — hover (the glyph in an outline / ghost / text control)",
       "meaning": "Interactivity / actions",
-      "when_to_use": "The icon for outline and text primary interactive elements (no fill behind it) on pointer hover. Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary` and `foreground.secondary`. Below 4.5:1 on `foreground.tertiary` in at least one mode.",
+      "when_to_use": "The icon for outline and text primary interactive elements (no fill behind it) on pointer hover. Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
       "avoid_when": "Do not use on a filled primary control (use `interactive.primary.on-fill`).",
       "mode_overrides": {
-        "light": "{ads.core.palette.accent.600}",
-        "dark": "{ads.core.palette.accent.350}",
+        "light": "{ads.core.palette.accent.750}",
+        "dark": "{ads.core.palette.accent.250}",
         "hc-light": "{ads.core.palette.accent.750}",
         "hc-dark": "{ads.core.palette.accent.250}"
       },
@@ -995,13 +1006,14 @@
         "background.secondary",
         "background.tertiary",
         "foreground.primary",
-        "foreground.secondary"
+        "foreground.secondary",
+        "foreground.tertiary"
       ],
       "contrast_with": [
         {
           "token": "background.primary",
           "min": "4.5:1",
-          "ratio": 6.85,
+          "ratio": 11.95,
           "requirement": "MUST clear 4.5:1 against `background.primary` in every mode."
         }
       ]
@@ -1012,8 +1024,8 @@
       "when_to_use": "The ink for outline and text primary interactive elements (no fill behind it) while pressed. Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
       "avoid_when": "Do not use on a filled primary control (use `interactive.primary.on-fill`).",
       "mode_overrides": {
-        "light": "{ads.core.palette.accent.700}",
-        "dark": "{ads.core.palette.accent.250}",
+        "light": "{ads.core.palette.accent.850}",
+        "dark": "{ads.core.palette.accent.150}",
         "hc-light": "{ads.core.palette.accent.850}",
         "hc-dark": "{ads.core.palette.accent.150}"
       },
@@ -1029,7 +1041,7 @@
         {
           "token": "background.primary",
           "min": "4.5:1",
-          "ratio": 10.03,
+          "ratio": 16.08,
           "requirement": "MUST clear 4.5:1 against `background.primary` in every mode."
         }
       ]
@@ -1040,8 +1052,8 @@
       "when_to_use": "The icon for outline and text primary interactive elements (no fill behind it) while pressed. Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
       "avoid_when": "Do not use on a filled primary control (use `interactive.primary.on-fill`).",
       "mode_overrides": {
-        "light": "{ads.core.palette.accent.700}",
-        "dark": "{ads.core.palette.accent.250}",
+        "light": "{ads.core.palette.accent.850}",
+        "dark": "{ads.core.palette.accent.150}",
         "hc-light": "{ads.core.palette.accent.850}",
         "hc-dark": "{ads.core.palette.accent.150}"
       },
@@ -1057,7 +1069,7 @@
         {
           "token": "background.primary",
           "min": "4.5:1",
-          "ratio": 10.03,
+          "ratio": 16.08,
           "requirement": "MUST clear 4.5:1 against `background.primary` in every mode."
         }
       ]
@@ -1068,8 +1080,8 @@
       "when_to_use": "The border of an outline primary interactive element.",
       "avoid_when": "Do not use as ink (use `interactive.primary.text.*`) or as a page divider (use `border.primary`).",
       "mode_overrides": {
-        "light": "{ads.core.palette.accent.500}",
-        "dark": "{ads.core.palette.accent.450}",
+        "light": "{ads.core.palette.accent.650}",
+        "dark": "{ads.core.palette.accent.350}",
         "hc-light": "{ads.core.palette.accent.650}",
         "hc-dark": "{ads.core.palette.accent.350}"
       },
@@ -1083,7 +1095,7 @@
         {
           "token": "background.primary",
           "min": "3:1",
-          "ratio": 4.56,
+          "ratio": 8.3,
           "requirement": "MUST clear 3:1 against `background.primary` in every mode."
         }
       ]
@@ -1094,8 +1106,8 @@
       "when_to_use": "The border of an outline primary interactive element on pointer hover.",
       "avoid_when": "Do not use as ink (use `interactive.primary.text.*`) or as a page divider (use `border.primary`).",
       "mode_overrides": {
-        "light": "{ads.core.palette.accent.600}",
-        "dark": "{ads.core.palette.accent.350}",
+        "light": "{ads.core.palette.accent.750}",
+        "dark": "{ads.core.palette.accent.250}",
         "hc-light": "{ads.core.palette.accent.750}",
         "hc-dark": "{ads.core.palette.accent.250}"
       },
@@ -1109,7 +1121,7 @@
         {
           "token": "background.primary",
           "min": "3:1",
-          "ratio": 6.85,
+          "ratio": 11.95,
           "requirement": "MUST clear 3:1 against `background.primary` in every mode."
         }
       ]
@@ -1120,8 +1132,8 @@
       "when_to_use": "The border of an outline primary interactive element while pressed.",
       "avoid_when": "Do not use as ink (use `interactive.primary.text.*`) or as a page divider (use `border.primary`).",
       "mode_overrides": {
-        "light": "{ads.core.palette.accent.700}",
-        "dark": "{ads.core.palette.accent.250}",
+        "light": "{ads.core.palette.accent.850}",
+        "dark": "{ads.core.palette.accent.150}",
         "hc-light": "{ads.core.palette.accent.850}",
         "hc-dark": "{ads.core.palette.accent.150}"
       },
@@ -1135,7 +1147,7 @@
         {
           "token": "background.primary",
           "min": "3:1",
-          "ratio": 10.03,
+          "ratio": 16.08,
           "requirement": "MUST clear 3:1 against `background.primary` in every mode."
         }
       ]
@@ -4302,38 +4314,13 @@
     "text.link.default": {
       "$description": "Link text — default, 4.5:1 on background.secondary",
       "meaning": "Interactivity / navigation",
-      "when_to_use": "Hyperlinks and interactive text. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
-      "avoid_when": "Do not use for non-interactive text (use `text.primary`).",
-      "mode_overrides": {
-        "light": "{ads.core.palette.accent.550}",
-        "dark": "{ads.core.palette.accent.400}",
-        "hc-light": "{ads.core.palette.accent.700}",
-        "hc-dark": "{ads.core.palette.accent.300}"
-      },
-      "sits_on": [
-        "background.primary",
-        "background.secondary",
-        "foreground.primary"
-      ],
-      "contrast_with": [
-        {
-          "token": "background.secondary",
-          "min": "4.5:1",
-          "ratio": 4.69,
-          "requirement": "MUST clear 4.5:1 against `background.secondary` in every mode."
-        }
-      ]
-    },
-    "text.link.hover": {
-      "$description": "Link text — hover, 4.5:1 on background.secondary",
-      "meaning": "Interactivity / navigation",
-      "when_to_use": "Hyperlinks and interactive text on pointer hover. Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
+      "when_to_use": "Hyperlinks and interactive text. Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
       "avoid_when": "Do not use for non-interactive text (use `text.primary`).",
       "mode_overrides": {
         "light": "{ads.core.palette.accent.650}",
-        "dark": "{ads.core.palette.accent.300}",
-        "hc-light": "{ads.core.palette.accent.800}",
-        "hc-dark": "{ads.core.palette.accent.200}"
+        "dark": "{ads.core.palette.accent.350}",
+        "hc-light": "{ads.core.palette.accent.700}",
+        "hc-dark": "{ads.core.palette.accent.300}"
       },
       "sits_on": [
         "background.primary",
@@ -4352,14 +4339,42 @@
         }
       ]
     },
+    "text.link.hover": {
+      "$description": "Link text — hover, 4.5:1 on background.secondary",
+      "meaning": "Interactivity / navigation",
+      "when_to_use": "Hyperlinks and interactive text on pointer hover. Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
+      "avoid_when": "Do not use for non-interactive text (use `text.primary`).",
+      "mode_overrides": {
+        "light": "{ads.core.palette.accent.750}",
+        "dark": "{ads.core.palette.accent.250}",
+        "hc-light": "{ads.core.palette.accent.800}",
+        "hc-dark": "{ads.core.palette.accent.200}"
+      },
+      "sits_on": [
+        "background.primary",
+        "background.secondary",
+        "background.tertiary",
+        "foreground.primary",
+        "foreground.secondary",
+        "foreground.tertiary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.secondary",
+          "min": "4.5:1",
+          "ratio": 9.85,
+          "requirement": "MUST clear 4.5:1 against `background.secondary` in every mode."
+        }
+      ]
+    },
     "text.link.visited": {
       "$description": "Link text — visited, 4.5:1 on background.secondary",
       "meaning": "Interactivity / navigation",
       "when_to_use": "Hyperlinks and interactive text after it has been visited. Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
       "avoid_when": "Do not use for non-interactive text (use `text.primary`).",
       "mode_overrides": {
-        "light": "{ads.core.palette.accent.850}",
-        "dark": "{ads.core.palette.accent.100}",
+        "light": "{ads.core.palette.accent.950}",
+        "dark": "{ads.core.palette.accent.050}",
         "hc-light": "{ads.core.palette.accent.950}",
         "hc-dark": "{ads.core.palette.accent.025}"
       },
@@ -4375,7 +4390,7 @@
         {
           "token": "background.secondary",
           "min": "4.5:1",
-          "ratio": 13.26,
+          "ratio": 15.98,
           "requirement": "MUST clear 4.5:1 against `background.secondary` in every mode."
         }
       ]
@@ -4383,24 +4398,27 @@
     "text.link.focused": {
       "$description": "Link text — focused, 4.5:1 on background.secondary",
       "meaning": "Interactivity / navigation",
-      "when_to_use": "Hyperlinks and interactive text when keyboard-focused. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
+      "when_to_use": "Hyperlinks and interactive text when keyboard-focused. Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
       "avoid_when": "Do not use for non-interactive text (use `text.primary`).",
       "mode_overrides": {
-        "light": "{ads.core.palette.accent.550}",
-        "dark": "{ads.core.palette.accent.400}",
+        "light": "{ads.core.palette.accent.650}",
+        "dark": "{ads.core.palette.accent.350}",
         "hc-light": "{ads.core.palette.accent.700}",
         "hc-dark": "{ads.core.palette.accent.300}"
       },
       "sits_on": [
         "background.primary",
         "background.secondary",
-        "foreground.primary"
+        "background.tertiary",
+        "foreground.primary",
+        "foreground.secondary",
+        "foreground.tertiary"
       ],
       "contrast_with": [
         {
           "token": "background.secondary",
           "min": "4.5:1",
-          "ratio": 4.69,
+          "ratio": 6.84,
           "requirement": "MUST clear 4.5:1 against `background.secondary` in every mode."
         }
       ]
@@ -4411,8 +4429,8 @@
       "when_to_use": "Hyperlinks and interactive text while pressed. Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
       "avoid_when": "Do not use for non-interactive text (use `text.primary`).",
       "mode_overrides": {
-        "light": "{ads.core.palette.accent.750}",
-        "dark": "{ads.core.palette.accent.200}",
+        "light": "{ads.core.palette.accent.850}",
+        "dark": "{ads.core.palette.accent.150}",
         "hc-light": "{ads.core.palette.accent.900}",
         "hc-dark": "{ads.core.palette.accent.100}"
       },
@@ -4428,7 +4446,7 @@
         {
           "token": "background.secondary",
           "min": "4.5:1",
-          "ratio": 9.85,
+          "ratio": 13.26,
           "requirement": "MUST clear 4.5:1 against `background.secondary` in every mode."
         }
       ]
@@ -4974,12 +4992,12 @@
     "icon.link.default": {
       "$description": "Link icon — default, 3:1 on background.secondary",
       "meaning": "Interactivity / navigation",
-      "when_to_use": "Hyperlinks and interactive icon. Clears 3:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary` and `foreground.secondary`. Below 3:1 on `foreground.tertiary` in at least one mode.",
+      "when_to_use": "Hyperlinks and interactive icon. Clears 3:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
       "avoid_when": "Do not use for non-interactive icon (use `icon.primary`).",
       "mode_overrides": {
-        "light": "{ads.core.palette.accent.500}",
+        "light": "{ads.core.palette.accent.550}",
         "dark": "{ads.core.palette.accent.500}",
-        "hc-light": "{ads.core.palette.accent.550}",
+        "hc-light": "{ads.core.palette.accent.600}",
         "hc-dark": "{ads.core.palette.accent.400}"
       },
       "sits_on": [
@@ -4987,13 +5005,14 @@
         "background.secondary",
         "background.tertiary",
         "foreground.primary",
-        "foreground.secondary"
+        "foreground.secondary",
+        "foreground.tertiary"
       ],
       "contrast_with": [
         {
           "token": "background.secondary",
           "min": "3:1",
-          "ratio": 3.76,
+          "ratio": 4.69,
           "requirement": "MUST clear 3:1 against `background.secondary` in every mode."
         }
       ]
@@ -5004,9 +5023,9 @@
       "when_to_use": "Hyperlinks and interactive icon on pointer hover. Clears 3:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
       "avoid_when": "Do not use for non-interactive icon (use `icon.primary`).",
       "mode_overrides": {
-        "light": "{ads.core.palette.accent.600}",
+        "light": "{ads.core.palette.accent.650}",
         "dark": "{ads.core.palette.accent.400}",
-        "hc-light": "{ads.core.palette.accent.650}",
+        "hc-light": "{ads.core.palette.accent.700}",
         "hc-dark": "{ads.core.palette.accent.300}"
       },
       "sits_on": [
@@ -5021,7 +5040,7 @@
         {
           "token": "background.secondary",
           "min": "3:1",
-          "ratio": 5.65,
+          "ratio": 6.84,
           "requirement": "MUST clear 3:1 against `background.secondary` in every mode."
         }
       ]
@@ -5032,9 +5051,9 @@
       "when_to_use": "Hyperlinks and interactive icon after it has been visited. Clears 3:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
       "avoid_when": "Do not use for non-interactive icon (use `icon.primary`).",
       "mode_overrides": {
-        "light": "{ads.core.palette.accent.800}",
+        "light": "{ads.core.palette.accent.850}",
         "dark": "{ads.core.palette.accent.200}",
-        "hc-light": "{ads.core.palette.accent.850}",
+        "hc-light": "{ads.core.palette.accent.900}",
         "hc-dark": "{ads.core.palette.accent.100}"
       },
       "sits_on": [
@@ -5049,7 +5068,7 @@
         {
           "token": "background.secondary",
           "min": "3:1",
-          "ratio": 11.47,
+          "ratio": 13.26,
           "requirement": "MUST clear 3:1 against `background.secondary` in every mode."
         }
       ]
@@ -5057,12 +5076,12 @@
     "icon.link.focused": {
       "$description": "Link icon — focused, 3:1 on background.secondary",
       "meaning": "Interactivity / navigation",
-      "when_to_use": "Hyperlinks and interactive icon when keyboard-focused. Clears 3:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary` and `foreground.secondary`. Below 3:1 on `foreground.tertiary` in at least one mode.",
+      "when_to_use": "Hyperlinks and interactive icon when keyboard-focused. Clears 3:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
       "avoid_when": "Do not use for non-interactive icon (use `icon.primary`).",
       "mode_overrides": {
-        "light": "{ads.core.palette.accent.500}",
+        "light": "{ads.core.palette.accent.550}",
         "dark": "{ads.core.palette.accent.500}",
-        "hc-light": "{ads.core.palette.accent.550}",
+        "hc-light": "{ads.core.palette.accent.600}",
         "hc-dark": "{ads.core.palette.accent.400}"
       },
       "sits_on": [
@@ -5070,13 +5089,14 @@
         "background.secondary",
         "background.tertiary",
         "foreground.primary",
-        "foreground.secondary"
+        "foreground.secondary",
+        "foreground.tertiary"
       ],
       "contrast_with": [
         {
           "token": "background.secondary",
           "min": "3:1",
-          "ratio": 3.76,
+          "ratio": 4.69,
           "requirement": "MUST clear 3:1 against `background.secondary` in every mode."
         }
       ]
@@ -5087,9 +5107,9 @@
       "when_to_use": "Hyperlinks and interactive icon while pressed. Clears 3:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
       "avoid_when": "Do not use for non-interactive icon (use `icon.primary`).",
       "mode_overrides": {
-        "light": "{ads.core.palette.accent.700}",
+        "light": "{ads.core.palette.accent.750}",
         "dark": "{ads.core.palette.accent.300}",
-        "hc-light": "{ads.core.palette.accent.750}",
+        "hc-light": "{ads.core.palette.accent.800}",
         "hc-dark": "{ads.core.palette.accent.200}"
       },
       "sits_on": [
@@ -5104,7 +5124,7 @@
         {
           "token": "background.secondary",
           "min": "3:1",
-          "ratio": 8.27,
+          "ratio": 9.85,
           "requirement": "MUST clear 3:1 against `background.secondary` in every mode."
         }
       ]
@@ -9047,8 +9067,7 @@
         "color.icon.link.visited",
         "color.interactive.primary.fill.pressed",
         "color.inverse.text.link.visited",
-        "color.text.link.pressed",
-        "color.text.link.visited"
+        "color.text.link.pressed"
       ]
     },
     "core.palette.accent.150": {
@@ -9064,7 +9083,8 @@
         "color.inverse.interactive.primary.border.pressed",
         "color.inverse.interactive.primary.icon.pressed",
         "color.inverse.interactive.primary.text.pressed",
-        "color.inverse.text.link.pressed"
+        "color.inverse.text.link.pressed",
+        "color.text.link.pressed"
       ]
     },
     "core.palette.accent.200": {
@@ -9079,8 +9099,7 @@
         "color.interactive.primary.fill.hover",
         "color.inverse.icon.link.visited",
         "color.inverse.text.link.pressed",
-        "color.text.link.hover",
-        "color.text.link.pressed"
+        "color.text.link.hover"
       ]
     },
     "core.palette.accent.250": {
@@ -9091,18 +9110,16 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.interactive.primary.border.hover",
-        "color.interactive.primary.border.pressed",
         "color.interactive.primary.icon.hover",
-        "color.interactive.primary.icon.pressed",
         "color.interactive.primary.text.hover",
-        "color.interactive.primary.text.pressed",
         "color.inverse.interactive.primary.border.hover",
         "color.inverse.interactive.primary.border.pressed",
         "color.inverse.interactive.primary.icon.hover",
         "color.inverse.interactive.primary.icon.pressed",
         "color.inverse.interactive.primary.text.hover",
         "color.inverse.interactive.primary.text.pressed",
-        "color.inverse.text.link.hover"
+        "color.inverse.text.link.hover",
+        "color.text.link.hover"
       ]
     },
     "core.palette.accent.300": {
@@ -9122,8 +9139,7 @@
         "color.inverse.icon.link.pressed",
         "color.inverse.text.link.hover",
         "color.text.link.default",
-        "color.text.link.focused",
-        "color.text.link.hover"
+        "color.text.link.focused"
       ]
     },
     "core.palette.accent.350": {
@@ -9133,11 +9149,8 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
-        "color.interactive.primary.border.hover",
         "color.interactive.primary.border.rest",
-        "color.interactive.primary.icon.hover",
         "color.interactive.primary.icon.rest",
-        "color.interactive.primary.text.hover",
         "color.interactive.primary.text.rest",
         "color.inverse.border.focus",
         "color.inverse.interactive.primary.border.hover",
@@ -9148,7 +9161,9 @@
         "color.inverse.interactive.primary.text.hover",
         "color.inverse.interactive.primary.text.rest",
         "color.inverse.text.link.default",
-        "color.inverse.text.link.focused"
+        "color.inverse.text.link.focused",
+        "color.text.link.default",
+        "color.text.link.focused"
       ]
     },
     "core.palette.accent.400": {
@@ -9165,8 +9180,6 @@
         "color.inverse.icon.link.hover",
         "color.inverse.text.link.default",
         "color.inverse.text.link.focused",
-        "color.text.link.default",
-        "color.text.link.focused",
         "gradient.glow"
       ]
     },
@@ -9178,9 +9191,6 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.border.focus",
-        "color.interactive.primary.border.rest",
-        "color.interactive.primary.icon.rest",
-        "color.interactive.primary.text.rest",
         "color.inverse.border.focus",
         "color.inverse.interactive.primary.border.rest",
         "color.inverse.interactive.primary.icon.rest",
@@ -9197,12 +9207,9 @@
         "color.border.focus",
         "color.icon.link.default",
         "color.icon.link.focused",
-        "color.interactive.primary.border.rest",
         "color.interactive.primary.fill.focused",
         "color.interactive.primary.fill.rest",
         "color.interactive.primary.fill.selected",
-        "color.interactive.primary.icon.rest",
-        "color.interactive.primary.text.rest",
         "color.inverse.icon.link.default",
         "color.inverse.icon.link.focused",
         "gradient.brand"
@@ -9222,9 +9229,7 @@
         "color.inverse.interactive.primary.icon.rest",
         "color.inverse.interactive.primary.text.rest",
         "color.inverse.text.link.default",
-        "color.inverse.text.link.focused",
-        "color.text.link.default",
-        "color.text.link.focused"
+        "color.inverse.text.link.focused"
       ]
     },
     "core.palette.accent.600": {
@@ -9234,11 +9239,9 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
-        "color.icon.link.hover",
-        "color.interactive.primary.border.hover",
+        "color.icon.link.default",
+        "color.icon.link.focused",
         "color.interactive.primary.fill.hover",
-        "color.interactive.primary.icon.hover",
-        "color.interactive.primary.text.hover",
         "color.inverse.icon.link.hover"
       ]
     },
@@ -9264,7 +9267,8 @@
         "color.inverse.text.link.default",
         "color.inverse.text.link.focused",
         "color.inverse.text.link.hover",
-        "color.text.link.hover"
+        "color.text.link.default",
+        "color.text.link.focused"
       ]
     },
     "core.palette.accent.700": {
@@ -9275,14 +9279,11 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.border.focus",
-        "color.icon.link.pressed",
-        "color.interactive.primary.border.pressed",
+        "color.icon.link.hover",
         "color.interactive.primary.fill.focused",
         "color.interactive.primary.fill.pressed",
         "color.interactive.primary.fill.rest",
         "color.interactive.primary.fill.selected",
-        "color.interactive.primary.icon.pressed",
-        "color.interactive.primary.text.pressed",
         "color.inverse.icon.link.pressed",
         "color.text.link.default",
         "color.text.link.focused",
@@ -9308,7 +9309,7 @@
         "color.inverse.interactive.primary.text.pressed",
         "color.inverse.text.link.hover",
         "color.inverse.text.link.pressed",
-        "color.text.link.pressed"
+        "color.text.link.hover"
       ]
     },
     "core.palette.accent.800": {
@@ -9318,7 +9319,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
-        "color.icon.link.visited",
+        "color.icon.link.pressed",
         "color.interactive.primary.fill.hover",
         "color.inverse.icon.link.visited",
         "color.text.link.hover"
@@ -9340,7 +9341,7 @@
         "color.inverse.interactive.primary.text.pressed",
         "color.inverse.text.link.pressed",
         "color.inverse.text.link.visited",
-        "color.text.link.visited"
+        "color.text.link.pressed"
       ]
     },
     "core.palette.accent.900": {
@@ -9350,6 +9351,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.icon.link.visited",
         "color.interactive.primary.fill.pressed",
         "color.text.link.pressed"
       ]
@@ -9382,7 +9384,8 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
-        "color.inverse.text.link.visited"
+        "color.inverse.text.link.visited",
+        "color.text.link.visited"
       ]
     },
     "core.palette.success.100": {

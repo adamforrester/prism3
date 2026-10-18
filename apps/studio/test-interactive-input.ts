@@ -110,7 +110,7 @@ reset();
 // The derived walk, from the ENGINE: what the expected pins below are worked out from.
 const walk = (prefix: string, mode: string): string => ['default', 'hover', 'pressed', 'visited', 'focused'].map((s) => resolvedStep(`${prefix}.link.${s}`, mode)).join(' ');
 ok(walk('text', 'light') === '600 700 800 900 600', `prism3's Light text link walks 600 700 800 900, focused 600 (${walk('text', 'light')})`);
-ok(walk('text', 'dark') === '450 350 250 150 450', `prism3's Dark text link walks 450 350 250 150, focused 450 (${walk('text', 'dark')})`);
+ok(walk('text', 'dark') === '350 250 150 050 350', `prism3's Dark text link walks 350 250 150 050, focused 350 (#2817: 450 missed 4.5:1 on foreground.tertiary) (${walk('text', 'dark')})`);
 const pins = (prefix: string, mode: string): string =>
   ['default', 'hover', 'pressed', 'visited', 'focused'].map((s) => { const o = store.brandState.overrides?.[mode]?.[`${prefix}.link.${s}`]; return o ? `${o.palette} ${o.step}` : '-'; }).join(', ');
 I.setLinkFamilyOverride('light', 'text', '500');
