@@ -307,7 +307,7 @@ import { dirname, join } from 'node:path';
 import { ensureStyleGuideCells } from './src/style-guide-cells';
 import type { CellsApi } from './src/style-guide-cells';
 import { STYLE_GUIDE_GROUPS, styleGuideGroupOf } from '@prism3/engine/style-guide-groups';
-import { planStyleGuide, runStyleGuide, styleGuideSummary, contrastText, humanizeName, varKind, sizeByPadding, catalogFor, isSetUp } from './src/style-guide';
+import { planStyleGuide, runStyleGuide, removeRetiredTables, styleGuideSummary, contrastText, humanizeName, varKind, sizeByPadding, catalogFor, isSetUp } from './src/style-guide';
 import { createRunGuard, busyMessage } from './src/run-guard';
 import type { StyleGuideApi, SgCatalog, SgTable, TableOutcome, StyleGuideResult, StyleGuideRun, StyleGuideOptions, StyleGuideProgress } from './src/style-guide';
 import { parseDesignMd } from '@prism3/engine/design-md';
@@ -553,6 +553,13 @@ class N {
     c.detach();
     c.parent = this;
     this.children.push(c);
+    epoch++;
+  }
+  /** As the host's: at `i` among the children (an auto layout's order), taken from wherever it was (Q412 A). */
+  insertChild(i: number, c: N): void {
+    c.detach();
+    c.parent = this;
+    this.children.splice(Math.max(0, Math.min(i, this.children.length)), 0, c);
     epoch++;
   }
   appendChildAt(c: N, r: number, col: number): void {
@@ -4067,6 +4074,134 @@ const main = async (): Promise<void> => {
     const rmh = await draw(mh.api, contract, { collections: ['legacy'] });
     ok(groupFrame(mp, 'Palettes')?.children[0]?.mainComponent?.name === 'Size=Medium' && rmh.misses.includes('_section-header has no Size=Large variant, so group titles use Size=Medium'),
       `37: with no Size=Large header, a group's title uses Size=Medium, and the run says so (${rmh.misses.filter((m) => m.includes('Size=')).join(' / ')})`);
+  }
+
+  console.log('38. a group you made takes the inverse row (Q412 A, #2816); a table the generator no longer draws is offered, removed only on confirm');
+  {
+    const KEY = 'prism3-style-guide';
+    const keyOf = (k: N): string => k.pluginData[KEY] ?? '';
+    const isInv = (k: N): boolean => /\/inverse(\/|$)/.test(keyOf(k));
+    const guideName = (k: N | undefined): string => (k?.name ?? 'none').replace('Style guide — ', '');
+    /** A file whose designer made Semantic colors by hand, after an earlier build drew its guides loose: their own frame,
+     *  ONE horizontal auto-layout row with their own title and spacing, the default guides in an order of their own. */
+    const handMade = async (inverseInRow: boolean): Promise<{ f: Awaited<ReturnType<typeof fullFile>>; row: N; title: N; note: N; defaults: N[]; inverses: N[]; y: number }> => {
+      const f = await fullFile();
+      await draw(f.api, contract);
+      for (const g of tablesOn(f.sem)) { f.sem.appendChild(g); delete g.pluginData['prism3-style-guide-in-group']; }
+      for (const g of pageFrames(f.sem).filter((n) => !n.pluginData[KEY])) g.remove();
+      const colors = tablesOn(f.sem).filter((k) => keyOf(k).startsWith('color|'));
+      // The designer's order, not the plan's.
+      const defaults = colors.filter((k) => !isInv(k)).reverse();
+      const inverses = colors.filter(isInv);
+      const row = new N('FRAME'); row.name = 'Semantic colors'; row.layoutMode = 'HORIZONTAL'; row.primaryAxisSizingMode = 'AUTO'; row.counterAxisSizingMode = 'AUTO'; row.itemSpacing = 96; row.paddingTop = 24; row.x = -7000; row.y = -30000;
+      f.sem.appendChild(row);
+      const title = new N('TEXT'); title.name = 'Title'; title.characters = 'Semantic colors'; row.appendChild(title);
+      for (const g of defaults) row.appendChild(g);
+      // As #2810's first run left the owner's file: every inverse guide appended at the end of the row.
+      if (inverseInRow) for (const g of inverses) row.appendChild(g);
+      // A note of theirs after the guides: their content, which keeps its place after the new grid.
+      const note = new N('FRAME'); note.name = 'sticky note'; note.w = 300; note.h = 200; row.appendChild(note);
+      row.y = -30000;
+      // A group Prism3 drew 320 below the row, where it left it (a designer's note keeps it from being empty): the page's
+      // groups stack from it, so a row that grows taller runs into it unless it moves down with the row.
+      const below = new N('FRAME'); below.name = 'Style guides — Borders'; below.layoutMode = 'VERTICAL'; below.primaryAxisSizingMode = 'AUTO'; below.counterAxisSizingMode = 'AUTO';
+      f.sem.appendChild(below);
+      below.pluginData['prism3-style-guide-group'] = 'borders'; below.pluginData['prism3-style-guide-group-mark'] = `${String(f.sem.id)}|${String(below.id)}`;
+      const memo = new N('FRAME'); memo.name = 'sticky note'; memo.w = 300; memo.h = 200; below.appendChild(memo);
+      below.x = -7000; below.y = row.y + row.height + 320; below.pluginData['prism3-style-guide-group-at'] = `${below.x},${below.y}`;
+      return { f, row, title, note, defaults, inverses, y: row.y };
+    };
+    const gridIn = (row: N): N | undefined => row.children.find((c) => c.pluginData['prism3-style-guide-part'] === 'guides');
+    /** Each inverse guide's cell against its default's: `Inverse text 1,3 under Text 0,3`. */
+    const pairing = (defaults: N[], inverses: N[]): string[] => inverses.map((v) => {
+      const mate = defaults.find((d) => keyOf(d) === keyOf(v).replace('/inverse', ''));
+      return `${guideName(v)} ${cellOf(v)} ${mate ? `under ${guideName(mate)} ${cellOf(mate)}` : 'with no default'}`;
+    });
+    const paired = (defaults: N[], inverses: N[], grid: N | undefined): boolean => inverses.every((v) => {
+      const mate = defaults.find((d) => keyOf(d) === keyOf(v).replace('/inverse', ''));
+      return v.parent === grid && v.gridRow === 1 && (mate ? v.gridCol === mate.gridCol : v.gridCol! >= defaults.length);
+    });
+
+    // (1) THE MEASURED RESULT: the inverse guides at the end of the row. One of them a designer dragged out of the row
+    // before this run: it carries the record of the group it was in.
+    const a = await handMade(true);
+    const out = a.inverses[a.inverses.length - 1];
+    a.f.sem.appendChild(out); out.pluginData['prism3-style-guide-in-group'] = String(a.row.id); out.x = -7000; out.y = -90000;
+    const inRow = a.inverses.filter((v) => v !== out);
+    ok(a.defaults.length > 1 && inRow.length > 1 && a.row.width > 15000, `38: the precondition: one row, ${a.defaults.length} defaults then ${inRow.length} inverse guides, ${a.row.width}px wide`);
+    const r1 = await draw(a.f.api, contract);
+    const grid = gridIn(a.row);
+    ok(a.row.parent === a.f.sem && !a.row.removed && a.row.x === -7000 && a.row.y === a.y && a.row.name === 'Semantic colors' && a.row.layoutMode === 'HORIZONTAL'
+      && a.row.itemSpacing === 96 && a.row.paddingTop === 24 && a.row.children[0] === a.title && a.title.characters === 'Semantic colors' && a.row.children[1] === grid
+      && a.row.children[2] === a.note && a.row.children.length === 3,
+      `38: a group you made keeps its frame, title, place and layout; its guides go into one grid where the first guide was (${a.row.children.map((c) => c.name).join(', ')}; ${a.row.x},${a.row.y})`);
+    ok(grid?.layoutMode === 'GRID' && grid.gridRowCount === 2 && grid.gridColumnGap === 96 && grid.gridRowGap === 96 && a.defaults.every((d, i) => d.parent === grid && d.gridRow === 0 && d.gridCol === i),
+      `38: the defaults are the top row, in the designer's order, their own spacing kept (${a.defaults.map((d) => `${guideName(d)} ${cellOf(d)}`).join(', ')})`);
+    ok(paired(a.defaults, inRow, grid), `38: each inverse guide is under its default counterpart, one with no default past the last column (${pairing(a.defaults, inRow).join('; ')})`);
+    ok(out.parent === a.f.sem && out.x === -7000 && out.y === -90000, `38: a guide dragged out of the group by hand stays where it was put (${out.parent?.name})`);
+    const below = groupFrame(a.f.sem, 'Borders');
+    ok(!!below && pageOverlaps(a.f.sem).every((o) => !o.includes('Semantic colors')) && below.y === a.row.y + a.row.height + 320,
+      `38: the group grew taller, and the group below it moved down with it, 320 below (Borders at ${below?.y}, the row ends at ${a.row.y + a.row.height}; ${pageOverlaps(a.f.sem).filter((o) => o.includes('Semantic colors')).join('; ') || 'no overlap'})`);
+    ok(JSON.stringify(r1.groups?.rearranged) === JSON.stringify(['Semantic colors'])
+      && styleGuideSummary(r1).summary.includes('1 group you made now has each inverse guide under its default, its title and place kept: Semantic colors')
+      && !/kept as drawn, with new guides added: [^.]*Semantic colors/.test(styleGuideSummary(r1).summary),
+      `38: the summary says the group was rearranged, once (${JSON.stringify(r1.groups?.rearranged)})`);
+
+    // (2) A RERUN LEAVES THE DESIGNER'S ARRANGEMENT ALONE: the rule is applied once; a guide moved by hand to another cell
+    // stays there, and no second grid is made.
+    const moved = a.defaults[0];
+    grid!.gridColumnCount = grid!.gridColumnCount + 1; grid!.gridColumnSizes = Array.from({ length: grid!.gridColumnCount }, () => ({ type: 'HUG' }));
+    moved.setGridChildPosition(0, grid!.gridColumnCount - 1);
+    const at = cellOf(moved);
+    const r2 = await draw(a.f.api, contract);
+    ok(gridIn(a.row) === grid && a.row.children.length === 3 && cellOf(moved) === at && moved.parent === grid && !r2.groups?.rearranged.length,
+      `38: a rerun keeps a guide moved by hand where it was put, and rearranges nothing (${guideName(moved)} ${cellOf(moved)}, was ${at})`);
+
+    // (3) A NEW PAIR LATER joins the adopted grid as it would one Prism3 drew: the default on top, its inverse under it.
+    const four = { 'color:0': { r: 0, g: 0, b: 1, a: 1 }, 'color:1': { r: 0, g: 0, b: 1, a: 1 }, 'color:2': { r: 0, g: 0, b: 1, a: 1 }, 'color:3': { r: 0, g: 0, b: 1, a: 1 } };
+    a.f.vars.push({ id: 'VariableID:color:glow', name: 'pds3/color/glow/primary', variableCollectionId: 'VariableCollectionId:color', resolvedType: 'COLOR', description: '', valuesByMode: four });
+    a.f.vars.push({ id: 'VariableID:color:invglow', name: 'pds3/color/inverse/glow/primary', variableCollectionId: 'VariableCollectionId:color', resolvedType: 'COLOR', description: '', valuesByMode: four });
+    await draw(a.f.api, contract);
+    const glow = tableFrame(a.f.sem, 'Glow'), invGlow = tableFrame(a.f.sem, 'Inverse glow');
+    ok(glow?.parent === grid && invGlow?.parent === grid && glow.gridRow === 0 && invGlow.gridRow === 1 && invGlow.gridCol === glow.gridCol,
+      `38: a new pair joins a group you made, the inverse under its default (Glow ${cellOf(glow)} in ${glow?.parent?.parent?.name}, Inverse glow ${cellOf(invGlow)})`);
+
+    // (4) ADOPTED THIS RUN: the row holds the defaults only, and the inverse guides are loose, drawn before groups. They
+    // join it and the row becomes the two rows in the same run.
+    const b = await handMade(false);
+    const rb = await draw(b.f.api, contract);
+    const gb = gridIn(b.row);
+    ok(!!gb && b.defaults.every((d, i) => d.parent === gb && cellOf(d) === `0,${i}`) && paired(b.defaults, b.inverses, gb) && b.row.children[0] === b.title
+      && JSON.stringify(rb.groups?.rearranged) === JSON.stringify(['Semantic colors']),
+      `38: inverse guides that join a group you made this run go under their defaults too (${pairing(b.defaults, b.inverses).slice(0, 3).join('; ')}…)`);
+
+    // (5) THE CLEANUP OFFER: the owner's old single Inverse table, in their own "Inverse" frame, a copy of a table the
+    // generator no longer draws (it now draws one per family). The run leaves it, says so, and lists it; it is removed
+    // only when the designer confirms it, and only it.
+    const c = await fullFile();
+    await draw(c.api, contract);
+    const invText = tableFrame(c.sem, 'Inverse text')!;
+    const oldKey = keyOf(invText).replace(/\/text$/, '');
+    const box = new N('FRAME'); box.name = 'Inverse'; box.x = -9000; box.y = -9000; c.sem.appendChild(box);
+    const old = new N('FRAME'); old.name = 'Style guide — Inverse';
+    old.pluginData[KEY] = oldKey; old.pluginData['prism3-style-guide-print'] = 'x'; old.pluginData['prism3-style-guide-mark'] = `${String(c.sem.id)}|not-this-frame`;
+    box.appendChild(old);
+    ok(oldKey.endsWith('/inverse') && !oldKey.endsWith('/inverse/text'), `38: the precondition: a table keyed as the old single Inverse table (${oldKey})`);
+    const rc = await draw(c.api, contract);
+    ok(!old.removed && old.parent === box && JSON.stringify(rc.retired) === JSON.stringify([{ id: String(old.id), name: 'Style guide — Inverse' }])
+      && rc.kept.some((k) => k.name === 'Style guide — Inverse' && k.reason === 'copied'),
+      `38: a run never removes a table the generator no longer draws by itself; it lists it as an offer (${JSON.stringify(rc.retired)})`);
+    ok(styleGuideSummary(rc).summary.includes('1 table the generator no longer draws can be removed on the Style guides page, once you confirm'),
+      '38: the run\'s result offers the cleanup');
+    // Not confirmed: nothing. Confirmed with a table that is still drawn: that one is left, by id.
+    const none = await removeRetiredTables(c.api, contract, []);
+    ok(!old.removed && none.removed.length === 0, '38: with nothing confirmed, nothing is removed');
+    const still = await removeRetiredTables(c.api, contract, [String(invText.id)]);
+    ok(!invText.removed && still.removed.length === 0 && JSON.stringify(still.left) === JSON.stringify([String(invText.id)]),
+      `38: a table the generator still draws is never removed, even when named (${JSON.stringify(still)})`);
+    const done = await removeRetiredTables(c.api, contract, [String(old.id)]);
+    ok(old.removed && JSON.stringify(done.removed) === JSON.stringify(['Style guide — Inverse']) && !box.removed && !invText.removed,
+      `38: confirmed, the offered table is removed, and nothing else (${JSON.stringify(done)})`);
   }
 
   if (failures) { console.error(`\n${failures} style-guide check(s) failed`); process.exit(1); }

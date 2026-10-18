@@ -1797,6 +1797,8 @@ const styleGuidesLend: StyleGuidesLend = {
     progress: host.styleGuideState === 'pending' ? host.styleGuideProgress : null,
     setupBusy: fileSetupBusy(),
     writes: [host.applyState, host.fileSetupState],
+    retired: host.styleGuideRetired,
+    cleanup: host.styleGuideCleanup,
   }),
   request: () => commit.requestStyleGuideCatalog(),
   draw: (o) => {
@@ -1806,6 +1808,11 @@ const styleGuidesLend: StyleGuidesLend = {
     commit.postStyleGuide(o);
   },
   cancel: () => commit.cancelStyleGuide(),
+  cleanUp: (ids) => {
+    setHost({ styleGuideCleanup: 'pending' });
+    hostChanged();
+    commit.cleanUpStyleGuide(ids);
+  },
   setUp: () => runFileSetup(),
   close: () => setPage(styleGuidesBack ?? pageOfTab('brand')),
   showResult: () => { setHost({ openDetail: 'styleguide' }); hostChanged(); },
