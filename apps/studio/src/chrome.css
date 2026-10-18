@@ -1407,6 +1407,10 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
 .p3-sg-sum > b { color: var(--p3-text); font-weight: var(--p3-fw-emphasis); }
 .p3-sg-draw { min-height: var(--p3-ctl-h); }
 .p3-sg-prog { display: grid; gap: var(--p3-space-150); min-width: 0; }
+/* The cleanup offer (Q412 A, #2816): the run's list of tables the generator no longer draws, then Remove. */
+.p3-sg-cleanup { display: grid; gap: var(--p3-space-150); min-width: 0; }
+.p3-sg-cleanup-list { margin: 0; padding-left: var(--p3-space-300); color: var(--p3-text); font-size: var(--p3-fs-12); line-height: var(--p3-lh-cozy); overflow-wrap: anywhere; }
+.p3-sg-cleanup-foot { display: flex; justify-content: flex-end; gap: var(--p3-space-150); }
 .p3-sg-runhead { display: flex; align-items: center; gap: var(--p3-space-150); }
 .p3-sg-runline { flex: 1 1 auto; min-width: 0; font-weight: var(--p3-fw-emphasis); }
 .p3-sg-summary { margin: 0; overflow-wrap: anywhere; }

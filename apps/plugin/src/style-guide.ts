@@ -1227,6 +1227,9 @@ export interface SgNode extends CellNode {
   gridRowSizes?: { type: string; value?: number }[];
   readonly componentProperties?: Record<string, { type?: string; value?: unknown }>;
   appendChildAt?(node: unknown, row: number, column: number): void;
+  /** Put a child at an index among the children, as an auto layout orders them (Q412 A: a group's new grid takes the
+   *  place its first guide held). */
+  insertChild?(index: number, child: unknown): void;
   setPluginData?(key: string, value: string): void;
   getPluginData?(key: string): string;
   setExplicitVariableModeForCollection?(collection: unknown, modeId: string): void;
@@ -1287,6 +1290,9 @@ export interface StyleGuideApi {
  *  or onto another page; `no-collection` and `nothing-drawn` are the run's own guards (its variables may have
  *  moved to a library); `not-removable` is an unedited table the host would not let the generator remove. */
 export type KeepReason = 'edited' | 'moved' | 'copied' | 'unrecorded' | 'no-collection' | 'nothing-drawn' | 'not-removable';
+/** The kept reasons a run offers for removal (Q412 A, #2816): the designer's own call to make. The run's guards and a
+ *  host refusal are not offered: a guard says this run cannot tell, and a refusal would be refused again. */
+const OFFERED: ReadonlySet<KeepReason> = new Set<KeepReason>(['edited', 'moved', 'copied', 'unrecorded']);
 
 /** One table's outcome. */
 export type TableOutcome =
@@ -1319,8 +1325,15 @@ export interface StyleGuideResult {
   /** The `tables` filter's names that match no table (#1778). Not a pass: the designer asked for a table
    *  this run could not find. */
   unmatched: string[];
-  /** The groups (#2801): drawn this run, hand-made ones adopted this run (by title), and empty ones removed. */
-  groups?: { drawn: string[]; adopted: string[]; removed: string[] };
+  /** The groups (#2801): drawn this run, hand-made ones adopted this run (by title), and empty ones removed.
+   *  `rearranged` (Q412 A, #2816): the hand-made groups whose guides this run put into a default row and an inverse
+   *  row, by name. */
+  groups?: { drawn: string[]; adopted: string[]; removed: string[]; rearranged: string[] };
+  /** THE CLEANUP OFFER (Q412 A, #2816): the superseded tables this run left in place that the designer may remove,
+   *  each by node id and name. Never removed by the run: the panel lists them and `removeRetiredTables` removes the
+   *  ones the designer confirms. Only `edited`, `moved`, `copied` and `unrecorded` are offered; a table kept by the
+   *  run's own guards (`no-collection`, `nothing-drawn`) or one the host refused to remove is not. */
+  retired?: { id: string; name: string }[];
   /** Set when `StyleGuideRun.stop` ended the run early (S11.2, owner decision P7): `done` of `total` tables were
    *  reached. A stopped run judges no superseded table and re-flows nothing it did not draw, as a filtered one. */
   stopped?: { done: number; total: number };
@@ -1647,6 +1660,11 @@ const setWidth = (n: SgNode, w: number): void => {
   n.resize?.(w, n.height ?? 0);
   try { n.layoutSizingVertical = 'HUG'; } catch { /* a root outside auto layout keeps its height */ }
 };
+
+/** The collections a table key can name that this file still holds: its variable collections, and the text, effect and
+ *  gradient styles' pseudo-collections while it has any. A table whose collection is gone is never removed. */
+const collectionIdsOf = (catalog: SgCatalog): Set<string> => new Set([...catalog.collections.map((c) => c.id), ...(catalog.textStyles?.length ? [TEXT_STYLES_ID] : []),
+  ...(catalog.effectStyles?.length ? [EFFECT_STYLES_ID] : []), ...(catalog.paintStyles?.some((st) => st.paints.some(isGradient)) ? [GRADIENT_STYLES_ID] : [])]);
 
 /** Run the plan into the file. Never throws for a missing optional piece; the host throwing is the caller's.
  *  Yields to the host after every table and every `CELLS_PER_YIELD` cells within one (#1778): a full run held
@@ -2092,7 +2110,8 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
     const c = home.container;
     const kids = ((c.children ?? []) as SgNode[]).filter((k) => k !== wrap);
     if (c.layoutMode === 'GRID') {
-      const row = home.ours && styleGuideGroup(home.id)?.inverseRow && isInverseKey(key) ? 1 : 0;
+      // The inverse row holds in a hand-made grid too (Q412 A, #2816), not only in a group Prism3 drew.
+      const row = styleGuideGroup(home.id)?.inverseRow && isInverseKey(key) ? 1 : 0;
       const mateKey = counterpartKey(key);
       const mate = mateKey ? kids.find((k) => k.getPluginData?.(TABLE_KEY) === mateKey) : undefined;
       const taken = (r: number, col: number): boolean => kids.some((k) => gridRowOf(k) === r && gridColOf(k) === col);
@@ -2568,6 +2587,7 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
   const replaced: string[] = [];
   const deleted: string[] = [];
   const kept: { name: string; reason: KeepReason }[] = [];
+  const retired: { id: string; name: string }[] = [];
   const freed = new Map<SgPage, { x: number; y: number }[]>();
   // Deleted only when every check passes, in this order. The run's own guards first: the table's collection is
   // still in this file, and this run drew something — a file whose variables moved to a library reads an empty
@@ -2575,8 +2595,7 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
   // recorded is never deleted — owner decision, 2026-09-28); this is the frame the generator wrote, not a duplicate
   // that carries its plugin data; it sits directly on the page the generator wrote it to, where the generator put
   // it; and it still holds what was written.
-  const collectionIds = new Set([...catalog.collections.map((c) => c.id), ...(catalog.textStyles?.length ? [TEXT_STYLES_ID] : []),
-    ...(catalog.effectStyles?.length ? [EFFECT_STYLES_ID] : []), ...(catalog.paintStyles?.some((st) => st.paints.some(isGradient)) ? [GRADIENT_STYLES_ID] : [])]);
+  const collectionIds = collectionIdsOf(catalog);
   const verdictOf = async (f: SgNode, p: SgPage, colId: string): Promise<KeepReason | 'unedited'> => {
     if (!collectionIds.has(colId)) return 'no-collection';
     if (!plan.tables.length) return 'nothing-drawn';
@@ -2636,7 +2655,11 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
         freed.get(p)!.push(at);
       }
       deleted.push(name);
-    } else kept.push({ name: String(f.name), reason: v === 'unedited' ? 'not-removable' : v });
+    } else {
+      const reason: KeepReason = v === 'unedited' ? 'not-removable' : v;
+      kept.push({ name: String(f.name), reason });
+      if (OFFERED.has(reason) && f.id !== undefined) retired.push({ id: String(f.id), name: String(f.name) });
+    }
   }
 
   // A FILTERED run that draws a table for the first time, where the same collection still holds a table the
@@ -2651,6 +2674,81 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
       return !!k && !everyKey.has(k) && newCols.has(k.split('|')[1]);
     }).map((f) => String(f.name));
     if (left.length) notes.push(`${left.join(', ')} ${left.length === 1 ? 'stays' : 'stay'} in place: the generator no longer draws ${left.length === 1 ? 'it' : 'them'}, and a run filtered to named tables deletes nothing. The next run without a Tables filter decides whether to delete ${left.length === 1 ? 'it' : 'them'}`);
+  }
+
+  // AN ADOPTED GROUP TAKES THE INVERSE ROW TOO (Q412 A, #2816). A hand-made group that holds default and inverse guides
+  // of a group with an inverse row (Semantic colors) in one row, or loose, has them put into two column-aligned rows:
+  // its defaults on top, in the order the designer left them, and each inverse guide under its default counterpart; an
+  // inverse family with no default goes past the last column, and a default with no inverse leaves its cell below
+  // empty, as in a group Prism3 drew (#2801). The rows are a new HUG grid that takes the place the first guide held, the
+  // designer's own spacing between them. The group frame, its title, its other content and its place are kept. Done
+  // ONCE: a group whose guides already sit in a grid is the designer's to arrange, so a guide moved by hand stays where
+  // they put it, and a guide dragged out of the group is not in it. A stopped run writes nothing after the stop.
+  // What sits below the group, where the generator left it, moves down by exactly the group's change in height.
+  const groupsRearranged: string[] = [];
+  if (!stopped) for (const p of drawnOn) {
+    const containers = new Map<SgNode, SgNode>();
+    for (const f of framesOn(p)) {
+      if (!f.getPluginData?.(TABLE_KEY)) continue;
+      const top = topOf(f, p);
+      const c = f.parent as SgNode | null | undefined;
+      if (!top || top === f || isOurGroup(top) || !c || c.layoutMode === 'GRID' || containers.has(c)) continue;
+      containers.set(c, top);
+    }
+    for (const [c, top] of containers) {
+      const keyOf = (k: SgNode): string => k.getPluginData?.(TABLE_KEY) || '';
+      const guides = ((c.children ?? []) as SgNode[]).filter((k) => !!keyOf(k));
+      const inverse = guides.filter((k) => isInverseKey(keyOf(k)));
+      const defaults = guides.filter((k) => !isInverseKey(keyOf(k)));
+      if (!inverse.length || !defaults.some((k) => styleGuideGroup(groupByKey.get(keyOf(k)) ?? '')?.inverseRow)) continue;
+      const auto = AUTO_LAYOUT.has(String(c.layoutMode));
+      // In an auto layout the children's order is the row's; on a free frame, left to right.
+      if (!auto) defaults.sort((a, b) => num(a.x) - num(b.x) || num(a.y) - num(b.y));
+      const colOf = new Map<SgNode, number>(defaults.map((k, i) => [k, i]));
+      let past = defaults.length;
+      for (const k of inverse) {
+        const mate = defaults.find((d) => keyOf(d) === counterpartKey(keyOf(k)));
+        colOf.set(k, mate ? colOf.get(mate)! : past++);
+      }
+      const y0 = num(top.y);
+      const h0 = num(top.height);
+      const at = { x: Math.min(...guides.map((k) => num(k.x))), y: Math.min(...guides.map((k) => num(k.y))) };
+      const index = ((c.children ?? []) as SgNode[]).indexOf(guides[0]);
+      const gap = auto && num(c.itemSpacing) > 0 ? num(c.itemSpacing) : GUIDE_GAP;
+      const grid = api.createFrame();
+      grid.name = 'Guides';
+      grid.fills = [];
+      grid.setPluginData?.(PART_KEY, 'guides');
+      grid.layoutMode = 'GRID';
+      setTracks(grid, 2, past);
+      grid.gridRowGap = gap;
+      grid.gridColumnGap = gap;
+      if (auto && c.insertChild) c.insertChild(index, grid);
+      else { c.appendChild?.(grid); grid.x = at.x; grid.y = at.y; }
+      for (const k of guides) {
+        grid.appendChildAt?.(k, inverse.includes(k) ? 1 : 0, colOf.get(k)!);
+        sizing(k, 'HUG');
+        try { k.layoutSizingVertical = 'HUG'; } catch { /* outside auto layout it hugs by its own sizing modes */ }
+        k.setPluginData?.(IN_GROUP_KEY, String(top.id));
+      }
+      sizing(grid, 'HUG');
+      try { grid.layoutSizingVertical = 'HUG'; } catch { /* a host that refuses it leaves the grid as created */ }
+      if (!groupsRearranged.includes(String(top.name))) groupsRearranged.push(String(top.name));
+      const dh = num(top.height) - h0;
+      if (near(dh, 0)) continue;
+      for (const n of p.children as readonly SgNode[]) {
+        if (n === top || !(num(n.y) > y0)) continue;
+        const ours = isOurGroup(n) && groupAt(n);
+        const table = !!n.getPluginData?.(TABLE_KEY) && !n.getPluginData?.(IN_GROUP_KEY) && !!recordOf(n) && near(num(n.x), recordOf(n)!.x) && near(num(n.y), recordOf(n)!.y);
+        if (!ours && !table) continue;
+        n.y = num(n.y) + dh;
+        if (ours) n.setPluginData?.(GROUP_AT_KEY, `${num(n.x)},${num(n.y)}`);
+        else n.setPluginData?.(AT_KEY, `${num(n.x)},${num(n.y)}`);
+      }
+      // The groups below re-stack from where they now start.
+      const o = origins.get(p);
+      if (o && o.y > y0) origins.set(p, { x: o.x, y: o.y + dh });
+    }
   }
 
   // GROUPS AFTER A FULL RUN (#2801). A partial run (filtered or stopped) removes no group and closes no gap.
@@ -2838,7 +2936,44 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
   for (const [what, ws] of noSet) { const n = ws.length; misses.push(`${n} ${what} spacing specimen${plural(n, ' is', 's are')} not drawn: this file has no ${SPACING_CELL_SET} set, which Set up file adds (${placesOf(ws)})`); }
   for (const [what, ws] of noLayer) { const n = ws.length; misses.push(`${n} ${what} specimen${plural(n, ' is', 's are')} not bound: the member has no layer this build can size or bind (a Bar, a first frame, or a layer named *-example), so ${plural(n, 'it shows', 'they show')} the cell component's own value (${placesOf(ws)})`); }
   return { tables: out, stale, replaced, deleted, kept, unbound, notes, misses, unmatched: plan.unmatched,
-    groups: { drawn: groupsDrawn, adopted: groupsAdopted, removed: groupsRemoved }, ...(stopped ? { stopped } : {}) };
+    groups: { drawn: groupsDrawn, adopted: groupsAdopted, removed: groupsRemoved, rearranged: groupsRearranged }, retired, ...(stopped ? { stopped } : {}) };
+};
+
+/**
+ * THE CLEANUP, CONFIRMED (Q412 A, #2816): remove the tables the designer confirmed from a run's offer (`retired`), the
+ * Prune stale pattern: the run's result is the dry list, and this acts only on a fresh read. A table is removed only
+ * when it is one of `ids`, still carries the generator's key, the generator still does not draw it (an unfiltered plan
+ * of the file as it is now), the file still holds its collection, and the plan draws something (a file whose variables
+ * moved to a library reads an empty catalog). Anything else is left, and its id comes back in `left`.
+ */
+export const removeRetiredTables = async (api: StyleGuideApi, contract: SgContract | null, ids: readonly string[]): Promise<{ removed: string[]; left: string[] }> => {
+  await api.loadAllPagesAsync();
+  const { catalog } = await readCatalog(api.variables, api.getLocalTextStylesAsync ? () => api.getLocalTextStylesAsync!() : undefined, {
+    effect: api.getLocalEffectStylesAsync ? () => api.getLocalEffectStylesAsync!() : undefined,
+    paint: api.getLocalPaintStylesAsync ? () => api.getLocalPaintStylesAsync!() : undefined,
+  });
+  const plan = planStyleGuide(catalog, contract, {});
+  const planned = new Set(plan.tables.map((t) => t.key));
+  const collectionIds = collectionIdsOf(catalog);
+  const want = new Set(ids);
+  const removed: string[] = [];
+  // A removed table's subtree is never read again (#2704).
+  const gone = new Set<string>();
+  for (const p of api.root.children) {
+    const frames = ((p.findAllWithCriteria ? p.findAllWithCriteria({ types: ['FRAME'] }) : p.children) as readonly SgNode[]).filter((n) => n.type === 'FRAME');
+    for (const f of frames) {
+      const id = f.id === undefined ? '' : String(f.id);
+      if (gone.has(id) || !want.has(id)) continue;
+      const k = f.getPluginData?.(TABLE_KEY) || '';
+      if (!k || planned.has(k) || !plan.tables.length || !collectionIds.has(k.split('|')[1]) || !f.remove) continue;
+      const name = String(f.name);
+      for (const d of (f.findAll?.(() => true) ?? []) as SgNode[]) if (d.id !== undefined) gone.add(String(d.id));
+      f.remove();
+      want.delete(id);
+      removed.push(name);
+    }
+  }
+  return { removed, left: [...want] };
 };
 
 /**
@@ -2896,7 +3031,11 @@ export const styleGuideSummary = (r: StyleGuideResult): { ok: boolean; headline:
   // The groups (#2801): what this run drew, took over and removed, by title.
   const groupsOf = (n: number): string => `${n} group${n === 1 ? '' : 's'}`;
   if (r.groups?.drawn.length) parts.push(`${groupsOf(r.groups.drawn.length)} drawn: ${list(r.groups.drawn)}`);
-  if (r.groups?.adopted.length) parts.push(`${groupsOf(r.groups.adopted.length)} you made ${r.groups.adopted.length === 1 ? 'is' : 'are'} kept as drawn, with new guides added: ${list(r.groups.adopted)}`);
+  // A hand-made group this run rearranged (Q412 A) is said once, as rearranged, not also as kept as drawn.
+  const rearranged = r.groups?.rearranged ?? [];
+  const adopted = (r.groups?.adopted ?? []).filter((g) => !rearranged.includes(g));
+  if (adopted.length) parts.push(`${groupsOf(adopted.length)} you made ${adopted.length === 1 ? 'is' : 'are'} kept as drawn, with new guides added: ${list(adopted)}`);
+  if (rearranged.length) parts.push(`${groupsOf(rearranged.length)} you made now ${rearranged.length === 1 ? 'has' : 'have'} each inverse guide under its default, ${rearranged.length === 1 ? 'its' : 'their'} title and place kept: ${list(rearranged)}`);
   if (r.groups?.removed.length) parts.push(`${groupsOf(r.groups.removed.length)} removed, empty: ${list(r.groups.removed)}`);
   const REASON: Record<Exclude<KeepReason, 'unrecorded'>, string> = {
     edited: 'edited', moved: 'moved', copied: 'a copy', 'no-collection': 'its collection is not in this file',
@@ -2912,6 +3051,9 @@ export const styleGuideSummary = (r: StyleGuideResult): { ok: boolean; headline:
     const one = unrecorded.length === 1;
     parts.push(`${noLonger(unrecorded.length)} left in place — drawn before edits were tracked, so the generator never deletes ${one ? 'it' : 'them'}; delete ${one ? 'it' : 'them'} by hand if no longer needed: ${list(unrecorded)}`);
   }
+  // THE CLEANUP OFFER (Q412 A): said in the run's result; the page asks before it removes anything.
+  const offered = r.retired?.length ?? 0;
+  if (offered) parts.push(`${tables(offered)} the generator no longer draws can be removed on the Style guides page, once you confirm`);
   parts.push(...r.notes, ...r.misses);
   const drawn = made.length + upd.length;
   // A partial run is not a pass: a skipped table is a page the designer expected and does not have, and an

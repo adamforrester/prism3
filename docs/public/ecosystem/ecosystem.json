@@ -1545,7 +1545,8 @@
             "apps/plugin/src/style-guide.ts"
           ],
           "messages": [
-            "style-guide"
+            "style-guide",
+            "style-guide-cleanup"
           ]
         },
         "agent": {
