@@ -2185,13 +2185,15 @@
         "kind": "component set",
         "page": "↳ Pagination",
         "section": "Components",
-        "members": 27,
+        "members": 87,
         "variantProperties": [
           {
             "name": "type",
             "values": [
               "page",
-              "ellipsis"
+              "ellipsis",
+              "previous",
+              "next"
             ]
           },
           {
@@ -2209,6 +2211,13 @@
             ]
           },
           {
+            "name": "labeled",
+            "values": [
+              "false",
+              "true"
+            ]
+          },
+          {
             "name": "size",
             "values": [
               "medium",
@@ -2222,13 +2231,22 @@
               "rest",
               "hover",
               "pressed",
-              "focus-visible"
+              "focus-visible",
+              "disabled"
             ]
           }
         ],
         "properties": [
           {
             "name": "label",
+            "type": "TEXT"
+          },
+          {
+            "name": "previous label",
+            "type": "TEXT"
+          },
+          {
+            "name": "next label",
             "type": "TEXT"
           }
         ],

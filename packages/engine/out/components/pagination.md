@@ -2,7 +2,7 @@
 
 > Moves between pages of a long list or set of results, and shows which page is open.
 
-Moves between the pages of a long, ordered list or set of results, and shows which page is open. numbered shows the first and last page, the current page and one page on each side of it, with an ellipsis for each gap, between a previous and a next button; the row always holds seven slots, so it keeps its width as the user pages. compact replaces the numbers with "Page 5 of 10", for a narrow container. simple is a Previous and a Next button at opposite ends, for an article or a short sequence where the count adds nothing. At the first and last page, the previous or next button stays in place and does nothing. Not tabs (a few fixed views), not a carousel indicator, and not a load more button.
+Moves between the pages of a long, ordered list or set of results, and shows which page is open. numbered shows the first and last page, the current page and one page on each side of it, with an ellipsis for each gap, between a previous and a next cell; the row always holds seven slots, so it keeps its width as the user pages. compact replaces the numbers with "Page 5 of 10", for a narrow container. simple is a Previous and a Next cell at opposite ends, for an article or a short sequence where the count adds nothing. At the first and last page, the previous or next cell stays in place and does nothing. Not tabs (a few fixed views), not a carousel indicator, and not a load more button.
 
 - **ID:** `pagination`
 - **Category:** navigation
@@ -42,7 +42,7 @@ Use Pagination below a long list, a grid of results or a table, to move between 
 - **Purpose:** Move between the pages of a long, ordered set of results and show which page is open.
 - **Use when:** Search results, a catalog or a table split into pages, where the user benefits from the count and from jumping to a page; or previous and next through an article.
 - **Avoid when:** A feed with no useful end (a load more Button), a few fixed views (tabs or a segmented control), the slides of a carousel, or rows per page and a "Go to page" field (the table pager, not yet built).
-- **Often used with:** `pagination-item`, `icon-button-neutral`, `button-neutral`, `list`
+- **Often used with:** `pagination-item`, `list`
 
 ## Props
 
@@ -54,7 +54,7 @@ Use Pagination below a long list, a grid of results or a table, to move between 
 | `onPageChange` | function | — | no | Called with the new page number when the user opens a page. |
 | `getHref` | function | — | no | Returns the address of a page. Present, every page is a link the user can bookmark, share or open in a new tab; absent, every page is a button that changes the content in place. Pass it whenever the page has an address. |
 | `renderItem` | slot | — | no | Renders a page as your router's link, keeping its address and aria-current. |
-| `type` | enum: 'numbered' \| 'compact' \| 'simple' | `numbered` | no | numbered: page numbers between previous and next. compact: "Page 5 of 10" between previous and next. simple: Previous and Next buttons only. A numbered row switches to compact when its container is narrower than the row. |
+| `type` | enum: 'numbered' \| 'compact' \| 'simple' | `numbered` | no | numbered: page numbers between previous and next. compact: "Page 5 of 10" between previous and next. simple: Previous and Next only. A numbered row switches to compact when its container is narrower than the row. |
 | `style` | enum: 'border' \| 'underline' | `border` | no | How the current page is marked in a numbered row: a border around it, or a 2px line under its number. |
 | `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | The size of every cell and button, matching the icon button sizes. Medium is 44px on comfortable and spacious density. |
 | `siblingCount` | number | `1` | no | How many pages show on each side of the current page. |
@@ -92,7 +92,7 @@ None — not interactive.
   - 4.1.2 Name, Role, Value (the landmark, the list and aria-current)
   - 4.1.3 Status Messages (a polite "Page 5 of 10" after an in-place change)
 - **Keyboard:** Tab moves through previous, each page and next; every control is its own Tab stop. Enter opens a page, and Space also does when it is a button. Arrow keys do not move between pages.
-- **Focus:** Stays in the normal Tab order. After a page changes in place, focus moves to the top of the results. At an end, the inactive previous or next button keeps focus.
+- **Focus:** Stays in the normal Tab order. After a page changes in place, focus moves to the top of the results. At an end, the inactive previous or next cell keeps focus.
 - **ARIA:** aria-label="Pagination" on the \<nav>; give two on one page the same name or a name each. aria-current="page" on the current page. aria-hidden="true" on each ellipsis. aria-disabled="true" on previous at the first page and next at the last. Accessible names "Previous page", "Next page" and "Page 4". A polite live region says "Page 5 of 10" after an in-place change. Names are translated.
 
 ## Motion
@@ -103,7 +103,7 @@ None — not interactive.
 
 ## Composition
 
-- **Composes with:** `icon-button-neutral`, `pagination-item`, `button-neutral`
+- **Composes with:** `pagination-item`
 - **Alternative to:** `tabs`
 - **Planned:** `table`, `carousel`, `breadcrumbs`
 - **Replaces:**

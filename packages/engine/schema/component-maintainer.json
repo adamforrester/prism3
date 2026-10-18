@@ -1270,6 +1270,8 @@
       "codeOnly": [
         "The element — an <a href> when Pagination has getHref, otherwise a <button type=\"button\">. Never an <a href=\"#\"> with a click handler. The current page carries aria-current=\"page\" and stays in the Tab order.",
         "The ellipsis in code — an <li aria-hidden=\"true\"> holding the more-horizontal icon, with no control and no text in it. It is never focusable and never announced: the list already implies the gap.",
+        "previous and next in code — an <a href> or a <button type=\"button\">, as a page is, named \"Previous page\" and \"Next page\" (aria-label; a labeled cell's visible word starts the name, 2.5.3). The chevron is aria-hidden=\"true\". At an end the cell keeps its place and its Tab stop with aria-disabled=\"true\" and does nothing when activated (isInactive; call 9 A). Native disabled is not used. Figma draws that as the disabled state.",
+        "The chevrons in RTL — previous and next swap ends with the row, and each chevron mirrors, so it points the way the row reads.",
         "The accessible name — the number, with a visually hidden \"Page \" before it, so each cell reads \"Page 4\"; aria-current adds \"current page\".",
         "tabular numerals — font-variant-numeric: tabular-nums on the label, so 9, 10 and 100 do not shift the row as the user pages. Figma uses the type style as it is.",
         "The label weight in code — the current page sets its number in the emphasis weight and every cell reserves that width (a hidden bold copy of the label in a column with it, as Tab does), so the row never moves.",
@@ -1281,6 +1283,7 @@
       "notes": {
         "contested": [
           "HELD FOR THE OWNER (#2665): the name Pagination.Item (the proposal said PaginationItem; the skill names a family part Family.Part; the id is `pagination-item` by Q394 A), the aliases page-item and pagination-page, the label inset past two digits (space.100), and the forced-colors system color on the current page.",
+          "HELD FOR THE OWNER (Q414 A built): the `labeled` axis name and its false/true values (the word beside the chevron in simple), the two TEXT properties \"previous label\" and \"next label\" with their props previousLabel and nextLabel (one caption per property, #1567), the 4px (space.050) gap between chevron and word, the chevrons at the gap icon's glyph rung in the neutral icon ink, and the disabled inks at an end.",
           "HELD FOR THE OWNER: the gap icon's size and ink, IconButton's glyph rungs (icon.size.sm, md, lg, the chevrons' size) in color.icon.secondary, the icon role beside the secondary text the mark used before (Q404 A named the glyph, not these)."
         ],
         "unverified": [
@@ -1289,6 +1292,7 @@
         "evolution": [
           "2026-10-16 (#2665): owner decision, every numbered call A: a new page cell (3), filled primary current page in the emphasis weight with the width held (5), rest and focus-visible only on the current page (7), small, medium and large on IconButton's rungs (8).",
           "2026-10-16 (Q381, after QA): the current page loses the primary fill for a border in color.border.tertiary (3:1 against the page) with its number semibold, and a `style: border | underline` axis adds the 2px underline. The ellipsis gets its own text part and property, since one TEXT property read \"1\" on every member.",
+          "2026-10-18 (Q414 A): `type` gains previous and next, the square cell with a chevron in the neutral ink and wash, with a disabled state for an end; `labeled` adds the word for simple.",
           "2026-10-17 (Q394 A, Q395 A, Q404 A): the id loses the `_` prefix and the item becomes the items slot's preferred item, preferred-only; border.tertiary at 1px kept; the ellipsis becomes the decorative more-horizontal icon, so its text part, its TEXT property and the `mark` prop go."
         ],
         "projection": []
@@ -1299,7 +1303,7 @@
         "The landmark — <nav aria-label=\"Pagination\"> around a <ul>, each control in its own <li>. The label is required: without it the landmark collides with the main navigation in a screen reader's landmark list. label sets it.",
         "The window — with siblingCount 1 and boundaryCount 1, every page shows up to 7 pages. Above 7 the row always holds 7 slots: the first page, the last page, the current page and one page each side, with an ellipsis for each gap. An ellipsis stands for two or more pages, never one: a one-page gap shows the number. Near an end the window slides so the slot count stays 7. In general: show all pages when count <= boundaryCount * 2 + siblingCount * 2 + 3.",
         "links or buttons — with getHref every page, previous and next is an <a href> (bookmarkable, crawlable, opens in a new tab); without it each is a <button type=\"button\"> for content swapped in place. Never <a href=\"#\"> with a click handler. renderItem lets a page be a router link and keeps its address and aria-current.",
-        "At an end — previous on the first page and next on the last page keep their place with aria-disabled=\"true\", stay focusable and do nothing when activated (IconButton's isInactive). Native disabled is not used: it drops focus to the page body when a keyboard user reaches the end.",
+        "At an end — previous on the first page and next on the last page keep their place with aria-disabled=\"true\", stay focusable and do nothing when activated (the item's isInactive; Figma's disabled state). Native disabled is not used: it drops focus to the page body when a keyboard user reaches the end.",
         "focus after a page change — with links the browser loads the new page. With buttons, focus moves to the top of the results region, normally its heading, and a polite live region says the getStatusText string, \"Page 5 of 10\". Focus is never left on the pager under content that changed above it.",
         "The narrow switch — numbered renders as compact when its container is narrower than the numbered row, measured on the container (a container query or a resize observer), not the viewport. Figma shows both; the designer places the one that fits the frame.",
         "Not rendered — when count is 1. A row where every control does nothing helps no one.",
@@ -1321,7 +1325,8 @@
         "evolution": [
           "2026-10-16 (#2665): owner decision, every numbered call A: one component with three types (1), IconButton.Neutral prev and next and text Buttons in simple (2), a native items slot (4), the seven-slot window (6), inactive controls at an end (9), the container-width switch to compact (10), focus to the results after an in-place change (11), links or buttons from getHref (12), no table pager (13), no inverse surface (14), the axis name `type` (15), the names and wording (16), the carousel indicator separate (17).",
           "2026-10-16 (Q381, after QA): `style: border | underline` per instance, passed to the current page.",
-          "2026-10-17 (Q394 A): the items slot names Pagination.Item as its preferred item, preferred-only."
+          "2026-10-17 (Q394 A): the items slot names Pagination.Item as its preferred item, preferred-only.",
+          "2026-10-18 (Q414 A): previous and next are Pagination.Item cells (type previous and next), labeled in simple, so Pagination requires no Neutral button family (Q386)."
         ],
         "projection": []
       }

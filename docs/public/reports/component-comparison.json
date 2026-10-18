@@ -2139,18 +2139,22 @@
         "rest",
         "hover",
         "pressed",
-        "focus-visible"
+        "focus-visible",
+        "disabled"
       ],
       "projectedStates": [
         "rest",
         "hover",
         "pressed",
-        "focus-visible"
+        "focus-visible",
+        "disabled"
       ],
       "axes": {
         "type": [
           "page",
-          "ellipsis"
+          "ellipsis",
+          "previous",
+          "next"
         ],
         "selection": [
           "unselected",
@@ -2159,6 +2163,10 @@
         "style": [
           "border",
           "underline"
+        ],
+        "labeled": [
+          "false",
+          "true"
         ],
         "size": [
           "medium",
@@ -2185,8 +2193,26 @@
           "default": "page",
           "values": [
             "page",
-            "ellipsis"
+            "ellipsis",
+            "previous",
+            "next"
           ]
+        },
+        {
+          "name": "labeled",
+          "default": false
+        },
+        {
+          "name": "previousLabel",
+          "default": "Previous"
+        },
+        {
+          "name": "nextLabel",
+          "default": "Next"
+        },
+        {
+          "name": "isInactive",
+          "default": false
         },
         {
           "name": "style",
@@ -3593,6 +3619,7 @@
       "icon-button",
       "icon-button-destructive",
       "icon-button-neutral",
+      "pagination-item",
       "password-field",
       "radio-control",
       "radio-row",
@@ -3921,6 +3948,17 @@
         ]
       }
     ],
+    "labeled": [
+      {
+        "values": [
+          "false",
+          "true"
+        ],
+        "components": [
+          "pagination-item"
+        ]
+      }
+    ],
     "offset": [
       {
         "values": [
@@ -4242,7 +4280,9 @@
       {
         "values": [
           "ellipsis",
-          "page"
+          "next",
+          "page",
+          "previous"
         ],
         "components": [
           "pagination-item"
@@ -4924,6 +4964,10 @@
       {
         "id": "icon-button-neutral",
         "default": false
+      },
+      {
+        "id": "pagination-item",
+        "default": false
       }
     ],
     "isPending": [
@@ -5068,6 +5112,12 @@
         ]
       }
     ],
+    "labeled": [
+      {
+        "id": "pagination-item",
+        "default": false
+      }
+    ],
     "leadingIcon": [
       {
         "id": "password-field"
@@ -5193,6 +5243,12 @@
       },
       {
         "id": "text-field"
+      }
+    ],
+    "nextLabel": [
+      {
+        "id": "pagination-item",
+        "default": "Next"
       }
     ],
     "offset": [
@@ -5345,6 +5401,12 @@
     "prefix": [
       {
         "id": "text-field"
+      }
+    ],
+    "previousLabel": [
+      {
+        "id": "pagination-item",
+        "default": "Previous"
       }
     ],
     "ratio": [
@@ -6211,7 +6273,9 @@
         "default": "page",
         "values": [
           "page",
-          "ellipsis"
+          "ellipsis",
+          "previous",
+          "next"
         ]
       },
       {
@@ -6401,7 +6465,7 @@
         "list-item",
         "pagination-item"
       ],
-      "detail": "no state set is shared by most of the group — list-item []; pagination-item [rest, hover, pressed, focus-visible]"
+      "detail": "no state set is shared by most of the group — list-item []; pagination-item [rest, hover, pressed, focus-visible, disabled]"
     },
     {
       "kind": "state set",
@@ -6663,7 +6727,7 @@
         "pagination-item",
         "tag"
       ],
-      "detail": "the type axis takes 5 value sets — [icon, ordered, unordered] in list, list-item; [compact, numbered, simple] in pagination; [count, dot, status] in badge; [dismissible, select] in tag; [ellipsis, page] in pagination-item"
+      "detail": "the type axis takes 5 value sets — [icon, ordered, unordered] in list, list-item; [compact, numbered, simple] in pagination; [count, dot, status] in badge; [dismissible, select] in tag; [ellipsis, next, page, previous] in pagination-item"
     },
     {
       "kind": "axis values",

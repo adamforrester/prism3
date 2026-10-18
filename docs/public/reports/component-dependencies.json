@@ -466,6 +466,7 @@
         "type": "page",
         "selection": "unselected",
         "style": "border",
+        "labeled": "false",
         "size": "medium",
         "state": "rest"
       },
@@ -483,6 +484,7 @@
         "type": "ellipsis",
         "selection": "unselected",
         "style": "border",
+        "labeled": "false",
         "size": "medium",
         "state": "rest"
       },
@@ -500,6 +502,7 @@
         "type": "page",
         "selection": "unselected",
         "style": "border",
+        "labeled": "false",
         "size": "medium",
         "state": "rest"
       },
@@ -517,6 +520,7 @@
         "type": "page",
         "selection": "selected",
         "style": "border",
+        "labeled": "false",
         "size": "medium",
         "state": "rest"
       },
@@ -535,6 +539,7 @@
         "type": "page",
         "selection": "unselected",
         "style": "border",
+        "labeled": "false",
         "size": "medium",
         "state": "rest"
       },
@@ -552,6 +557,7 @@
         "type": "ellipsis",
         "selection": "unselected",
         "style": "border",
+        "labeled": "false",
         "size": "medium",
         "state": "rest"
       },
@@ -569,6 +575,7 @@
         "type": "page",
         "selection": "unselected",
         "style": "border",
+        "labeled": "false",
         "size": "medium",
         "state": "rest"
       },
@@ -578,15 +585,16 @@
     },
     {
       "from": "pagination",
-      "to": "icon-button-neutral",
+      "to": "pagination-item",
       "part": "next",
       "partKind": "nest",
       "relation": "nest-exposed",
       "variant": {
-        "appearance": "ghost",
+        "type": "next",
+        "selection": "unselected",
+        "style": "border",
+        "labeled": "false",
         "size": "medium",
-        "shape": "square",
-        "surface": "default",
         "state": "rest"
       },
       "follow": [
@@ -598,37 +606,16 @@
     },
     {
       "from": "pagination",
-      "to": "button-neutral",
+      "to": "pagination-item",
       "part": "nextButton",
       "partKind": "nest",
       "relation": "nest-exposed",
       "variant": {
-        "appearance": "text",
+        "type": "next",
+        "selection": "unselected",
+        "style": "border",
+        "labeled": "true",
         "size": "medium",
-        "surface": "default",
-        "inset": "default",
-        "state": "rest",
-        "leading icon": "false",
-        "trailing icon": "true"
-      },
-      "follow": [
-        "size"
-      ],
-      "expose": [
-        "state"
-      ]
-    },
-    {
-      "from": "pagination",
-      "to": "icon-button-neutral",
-      "part": "previous",
-      "partKind": "nest",
-      "relation": "nest-exposed",
-      "variant": {
-        "appearance": "ghost",
-        "size": "medium",
-        "shape": "square",
-        "surface": "default",
         "state": "rest"
       },
       "follow": [
@@ -640,18 +627,38 @@
     },
     {
       "from": "pagination",
-      "to": "button-neutral",
+      "to": "pagination-item",
+      "part": "previous",
+      "partKind": "nest",
+      "relation": "nest-exposed",
+      "variant": {
+        "type": "previous",
+        "selection": "unselected",
+        "style": "border",
+        "labeled": "false",
+        "size": "medium",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ],
+      "expose": [
+        "state"
+      ]
+    },
+    {
+      "from": "pagination",
+      "to": "pagination-item",
       "part": "previousButton",
       "partKind": "nest",
       "relation": "nest-exposed",
       "variant": {
-        "appearance": "text",
+        "type": "previous",
+        "selection": "unselected",
+        "style": "border",
+        "labeled": "true",
         "size": "medium",
-        "surface": "default",
-        "inset": "default",
-        "state": "rest",
-        "leading icon": "true",
-        "trailing icon": "false"
+        "state": "rest"
       },
       "follow": [
         "size"
@@ -1206,12 +1213,8 @@
         "focus-ring",
         "spinner"
       ],
-      "nestedBy": [
-        "pagination"
-      ],
-      "affectedByChange": [
-        "pagination"
-      ],
+      "nestedBy": [],
+      "affectedByChange": [],
       "inheritedBy": [
         "icon-button-neutral"
       ]
@@ -1487,12 +1490,8 @@
         "focus-ring",
         "spinner"
       ],
-      "nestedBy": [
-        "pagination"
-      ],
-      "affectedByChange": [
-        "pagination"
-      ],
+      "nestedBy": [],
+      "affectedByChange": [],
       "inherits": "button-neutral",
       "inheritedBy": [
         "flush-icon-button-neutral"
@@ -1540,16 +1539,11 @@
     },
     "pagination": {
       "nests": [
-        "button-neutral",
-        "icon-button-neutral",
         "pagination-item"
       ],
       "nestsTransitively": [
-        "button-neutral",
         "focus-ring",
-        "icon-button-neutral",
-        "pagination-item",
-        "spinner"
+        "pagination-item"
       ],
       "nestedBy": [],
       "affectedByChange": [],
@@ -1699,7 +1693,6 @@
         "icon-button",
         "icon-button-destructive",
         "icon-button-neutral",
-        "pagination",
         "password-field"
       ],
       "inheritedBy": []

@@ -239,6 +239,9 @@ const FIXED_GLYPH: Record<string, { glyph: string; at: Record<string, readonly s
   // #2665 (owner Q404 A) — Pagination's gap marker: the more-horizontal icon on the ellipsis members only. `type` changes
   // what the cell IS (a page number or the gap), not which glyph a gap draws, so it is fixed rather than '{type}'.
   'pagination-item.gapIcon': { glyph: 'more-horizontal-filled', at: { type: ['ellipsis'] }, why: 'the decorative gap marker, three dots for two or more hidden pages' },
+  // #2665 (owner Q414 A) — Pagination draws its own previous and next: each cell's chevron, on its own type only.
+  'pagination-item.previousIcon': { glyph: 'chevron-left', at: { type: ['previous'] }, why: 'the previous cell\'s chevron, pointing back' },
+  'pagination-item.nextIcon': { glyph: 'chevron-right', at: { type: ['next'] }, why: 'the next cell\'s chevron, pointing forward' },
   'image-placeholder.marker': {
     glyph: 'image',
     // `at: {}` — present at EVERY coordinate, not gated by a variant. The marker is the "no image"

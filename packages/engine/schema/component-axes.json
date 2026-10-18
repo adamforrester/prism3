@@ -685,6 +685,10 @@
   },
   "pagination-item": {
     "axes": {
+      "labeled": [
+        "false",
+        "true"
+      ],
       "selection": [
         "selected",
         "unselected"
@@ -695,6 +699,7 @@
         "small"
       ],
       "state": [
+        "disabled",
         "focus-visible",
         "hover",
         "pressed",
@@ -706,12 +711,16 @@
       ],
       "type": [
         "ellipsis",
-        "page"
+        "next",
+        "page",
+        "previous"
       ]
     },
-    "members": 27,
+    "members": 87,
     "properties": {
-      "label": "TEXT"
+      "label": "TEXT",
+      "next label": "TEXT",
+      "previous label": "TEXT"
     }
   },
   "password-field": {

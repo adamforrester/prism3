@@ -129,8 +129,10 @@ section('map — the per-def reaction map, literal (owner decision Q238 A, part 
     'flush-icon-button': [30, 12, 18], 'flush-icon-button-destructive': [30, 12, 18], 'flush-icon-button-neutral': [30, 12, 18],
     // #2665: a page cell at three sizes, rest → hover, rest → pressed, hover → pressed (Q344). The current page (rest and
     // focus-visible only, owner call 7, in both of Q381's styles) and the ellipsis (rest only) have no sibling to change
-    // to, so they carry none: the style adds six members and no reaction.
-    'pagination-item': [27, 6, 9],
+    // to, so they carry none: the style adds six members and no reaction. Q414 A adds previous and next, unlabeled and
+    // labeled, at three sizes: 12 more rows with the same three reactions each (24 sources, 36 reactions); their
+    // disabled member (the inactive end) carries none.
+    'pagination-item': [87, 30, 45],
   };
   const got: Record<string, [number, number, number]> = {};
   for (const d of componentDefs) {

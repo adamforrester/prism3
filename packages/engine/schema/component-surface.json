@@ -697,29 +697,35 @@
       ]
     },
     "pagination-item": {
-      "members": 27,
-      "sha256": "b57bc17f326e3be178677ea7ecfa4d5a2671789f538e750be51640aa3e51a574",
+      "members": 87,
+      "sha256": "4cc3b4429d3d3edf08bdfa96a5b516c59c9510bca2c94ecc85d009d24f1a5143",
       "properties": [
-        "label:TEXT"
+        "label:TEXT",
+        "next label:TEXT",
+        "previous label:TEXT"
       ]
     },
     "pagination-item@outline-solid-tint": {
-      "members": 27,
-      "sha256": "abaead9764cdb784af3465ff85376c1386e1a5f8bb0fa11da19a1d4bdb0280a9",
+      "members": 87,
+      "sha256": "69d406207c924957923fa37ffa061545996200437e58e12d2698bbd9a8ecb7af",
       "properties": [
-        "label:TEXT"
+        "label:TEXT",
+        "next label:TEXT",
+        "previous label:TEXT"
       ]
     },
     "pagination-item@outline-none": {
-      "members": 27,
-      "sha256": "a6c3aaf3f576a659c6f176a060efccc39c2f25bebaaed72e569695ad4063ddb9",
+      "members": 87,
+      "sha256": "75640126637b9fd7c6cc6617fcd59da284f6c01d88b1faeb97f708657876594f",
       "properties": [
-        "label:TEXT"
+        "label:TEXT",
+        "next label:TEXT",
+        "previous label:TEXT"
       ]
     },
     "pagination": {
       "members": 12,
-      "sha256": "c030f44a34d92abc63989d88710cb0e91f2759688774b20c5de9cb2720b8e065",
+      "sha256": "6730d0bd4b611e074b9aa2f911f9ec41cb26e918768c45d3eea4cf318a0989c2",
       "properties": [
         "items:SLOT",
         "status text:TEXT"

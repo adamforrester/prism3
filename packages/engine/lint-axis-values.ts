@@ -298,13 +298,13 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   },
   {
     axis: 'type',
-    values: ['page', 'ellipsis'],
+    values: ['page', 'ellipsis', 'previous', 'next'],
     defs: ['pagination-item'],
     relation: 'disjoint',
     reason:
-      'Which CELL a pagination item is (#2665, owner calls 3 A and 7 A): a page number the user opens, or the inert mark '
-      + 'that stands for two or more hidden pages. The words of the window algorithm\'s own item model (`page`, '
-      + '`ellipsis`). `page` LEADS because it is the code default and Figma\'s default member. DISJOINT from Badge\'s '
+      'Which CELL a pagination item is (#2665, owner calls 3 A and 7 A, Q414 A): a page number the user opens, the inert '
+      + 'mark that stands for two or more hidden pages, or the cell that opens the page before or after the current one. '
+      + 'The words of the window algorithm\'s own item model (`page`, `ellipsis`, `previous`, `next`). `page` LEADS because it is the code default and Figma\'s default member. DISJOINT from Badge\'s '
       + 'canonical set: a pagination item type is a cell kind, and no value would mean the same thing on both defs.',
   },
   // `indicator` IS GONE FROM THE REGISTER (#1338), and its absence is the point rather than an omission —
@@ -342,6 +342,16 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'set, so `icon.ts` cannot spell one wrong and the synonym failure mode this whole register guards '
       + 'has no way in. Declared here anyway, at full width, because the register\'s claim is that every '
       + 'set is accounted for — an axis exempted for being safe is an axis nobody is watching.',
+  },
+  {
+    axis: 'labeled',
+    values: ['false', 'true'],
+    defs: ['pagination-item'],
+    relation: 'sole',
+    reason:
+      'Whether Pagination.Item\'s previous or next cell shows its word, "Previous" or "Next", beside the chevron (owner '
+      + 'decision Q414 A: simple\'s two controls are the same cells with a label plus chevron). `false | true` so Figma '
+      + 'draws it as a switch. `false` LEADS, the code default and so Figma\'s default member.',
   },
   {
     axis: 'offset',

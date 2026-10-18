@@ -3313,12 +3313,26 @@ export type State = (typeof STATES)[number];
  * `none` removes it. Naming it `orientation` would claim a missing footer is a direction. An AUTHORING axis.
  * `lint-axis-values.ts` carries the three values as a `sole` set.
  */
+/*
+ * ── `labeled`: THE TWENTY-EIGHTH NAME, FOR PAGINATION'S PREVIOUS AND NEXT (owner decision Q414 A, 2026-10-18, #2665) ──
+ *
+ * `labeled` (`false | true`) is WHETHER a control shows its word beside its icon: Pagination.Item's previous and next
+ * cells are a chevron alone in the numbered and compact rows, and a chevron with "Previous" or "Next" in the simple
+ * row. The owner decided the shape (the same cell, with a label plus chevron, in simple); the axis name and its values
+ * are held as an owner item on #2796. It clears the bar with the nearest defeated: `type` is which cell it is (page,
+ * ellipsis, previous, next), and a labeled previous is still a previous; `width` is how much of its container a
+ * control takes, while a labeled cell hugs its word; `iconPosition` is which side a part sits on, not whether a word is
+ * there; `footer` names a part's layout. None says "the word is shown or not". A Figma BOOLEAN would say it, but a nest
+ * sets only variant values on the instance it places, so the simple row could not turn the word on; a variant axis
+ * is what the row's `nesting.variant` can set. `false | true` so Figma draws it as a switch. An AUTHORING axis: the
+ * row type decides it and nothing switches it on screen. `lint-axis-values.ts` carries the two values as a `sole` set.
+ */
 export const VARIANT_AXES = [
   'size', 'intent', 'appearance', 'tone',
   'width', 'style', 'indicator', 'offset', 'selection',
   'name', 'surface', 'weight', 'value', 'intensity', 'ratio',
   'status', 'emphasis', 'shape', 'type', 'direction', 'inset', 'orientation', 'alignment', 'expansion', 'iconPosition',
-  'placement', 'footer',
+  'placement', 'footer', 'labeled',
 ] as const;
 
 /** One member of the closed axis-NAME vocabulary. Values are not constrained — see `VARIANT_AXES`. */

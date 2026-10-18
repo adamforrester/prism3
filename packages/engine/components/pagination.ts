@@ -7,8 +7,8 @@
  * (A). The calls this file carries, by number:
  *   1 A  One Pagination with three types: numbered, compact ("Page 5 of 10") and simple (Previous and Next). Load more
  *        is a documented Button pattern, not a type.
- *   2 A  Previous and next are a nested IconButton.Neutral, ghost, square, with the chevrons, in numbered and compact;
- *        nested text Buttons.Neutral "Previous" and "Next" in simple only.
+ *   2 A  SUPERSEDED by Q414 A (below): previous and next were a nested IconButton.Neutral and, in simple, text
+ *        Button.Neutral.
  *   3 A  A new page cell, Pagination.Item, as SegmentedControl mints its segment.
  *   4 A  The items are a native `items` slot of Pagination.Item, seven by default, at least one (#2646's constraints,
  *        landed in #2657).
@@ -46,23 +46,32 @@
  * no text and no TEXT property, and the item has no `mark` prop. That also ends the build-time caption collapse: the
  * one `label` property is bound on page members only, behind the one caption "1" (#1567).
  *
+ * Owner decision Q414 A (2026-10-18, answering Q-2796-1 under Q386): Pagination draws its own previous and next, so it
+ * requires no Neutral button family. Pagination.Item gains `type: previous | next`: the same square cell with a chevron
+ * (chevron-left, chevron-right), in the page cells' neutral ink and wash, with their states; simple's two text controls
+ * are the same cells with a word beside the chevron (`labeled`). Inactive at an end is the `disabled` state in Figma
+ * and aria-disabled in code (calls 9 A, 12 A); the accessible names are "Previous page" and "Next page".
+ *
  * The owner rules of 2026-10-15/16 (#2706) this file follows: Figma's first member is the code default, sizes medium
  * first (Q347, Q359); Figma property names lowercase (Q345); a part used only inside its parent takes the `_` prefix
  * (Q349), which Q394 A rules does not reach a slot item, so the item is `pagination-item`; no border binds an icon or text role (Q346: the current page's border binds
  * `color.border.tertiary`, a border role);
- * nested parts reuse IconButton, Button and the focus ring. Rest carries While hovering and While pressing, Hover
+ * nested parts reuse the focus ring. Rest carries While hovering and While pressing, Hover
  * carries While pressing (Q344): the plugin derives that chain from the item's rest/hover/pressed states.
  *
  * ── THE ITEM ──────────────────────────────────────────────────────────────────────────────────────────
- * `type` [page, ellipsis] × `selection` [unselected, selected] × `style` [border, underline] × `size` [medium, small,
- * large] × state [rest, hover, pressed, focus-visible], cut to 27 members by `excludeCoordinates` (call 7: the current
- * page has no hover or press; the ellipsis is one inert member per size; `style` only changes the current page). A
+ * `type` [page, ellipsis, previous, next] × `selection` [unselected, selected] × `style` [border, underline] × `labeled`
+ * [false, true] × `size` [medium, small, large] × state [rest, hover, pressed, focus-visible, disabled], cut to 87
+ * members by `excludeCoordinates` (call 7: the current page has no hover or press; the ellipsis is one inert member per
+ * size; `style` only changes the current page; previous and next are never current, alone take a word and alone take
+ * disabled, Q414 A: 2 × 2 × 5 × 3 = 60 of them). A
  * cell on IconButton's height rung, at least as wide as it is tall (`minWidthKey`, Tag's floor), that hugs past two
  * digits. It paints the current page's border or underline, or the neutral hover wash.
  *
  * ── THE PAGINATION ────────────────────────────────────────────────────────────────────────────────────
  * `type` × `style` × `size` = 12 members (`style` on numbered only). numbered: prev, the `items` slot, next. compact: prev, "Page 5 of 10", next. simple:
- * the two text Buttons at opposite ends of a row built at the numbered row's medium width (428px, `center`).
+ * the two labeled cells at opposite ends of a row built at the numbered row's medium width (428px, `center`). Previous
+ * and next are Pagination.Item cells in every type (Q414 A).
  */
 import { ComponentDef } from '../component-schema';
 
@@ -72,30 +81,37 @@ export const paginationItem: ComponentDef = {
   aliases: ['page-item', 'pagination-page'],
   category: 'navigation',
   status: 'draft',
-  summary: 'One page number in a pagination row, or the gap marker between them. The current page is outlined.',
+  summary: 'A pagination cell: a page, the gap marker, previous or next. The current page is outlined.',
   description:
-    'One cell in a pagination row: a page number, or the gap marker, three dots, that stands for two or more hidden pages. A page cell is as tall as an icon button and at least as wide as it is tall, so a row of pages and the previous and next buttons beside them line up as equal squares; a page number past two digits widens it. The current page is marked, not filled: a border, or a 2px underline under its number, in a gray that stands out from the page at 3:1, with its number in the emphasis weight. It keeps its width, so the row does not move. At hover and press, another page shows a light neutral wash. The gap marker is decorative: it does not respond to the pointer, takes no focus and is hidden from assistive technology. Pagination places the cells and decides which page is current.',
+    'One cell in a pagination row: a page number, the gap marker, three dots, that stands for two or more hidden pages, or the previous or next cell, a chevron that opens the page before or after. A cell is as tall as an icon button and at least as wide as it is tall, so a row of pages between previous and next lines up as equal squares; a page number past two digits, or the word "Previous" or "Next" beside a chevron, widens it. The current page is marked, not filled: a border, or a 2px underline under its number, in a gray that stands out from the page at 3:1, with its number in the emphasis weight. It keeps its width, so the row does not move. At hover and press, another page, previous and next show a light neutral wash. At the first or last page, previous or next stays in place and does nothing, drawn in the disabled ink. The gap marker is decorative: it does not respond to the pointer, takes no focus and is hidden from assistive technology. Pagination places the cells and decides which page is current.',
 
   props: [
     { name: 'label', type: 'string', required: true, description: 'The page number as shown, such as "4". Pagination sets it, through the locale\'s number format.' },
     { name: 'page', type: 'number', required: false, description: 'The page this cell opens. Absent on an ellipsis.' },
     { name: 'href', type: 'string', required: false, description: 'The address of the page. Present, the cell is a link; absent, it is a button that changes the page in place.' },
     { name: 'selected', type: 'boolean', default: false, required: false, description: 'Whether this is the current page. Set by Pagination; do not set it on a cell inside a pagination row.' },
-    { name: 'type', type: "enum: 'page' | 'ellipsis'", values: ['page', 'ellipsis'], default: 'page', required: false, description: 'page: a page number the user can open. ellipsis: the three-dot icon that stands for two or more pages not shown.' },
+    { name: 'type', type: "enum: 'page' | 'ellipsis' | 'previous' | 'next'", values: ['page', 'ellipsis', 'previous', 'next'], default: 'page', required: false, description: 'page: a page number the user can open. ellipsis: the three-dot icon that stands for two or more pages not shown. previous and next: the cell with a left or right chevron that opens the page before or after the current one.' },
+    { name: 'labeled', type: 'boolean', default: false, required: false, description: 'On previous and next only: true shows the word beside the chevron, as Pagination\'s simple type does. Passed down by Pagination.' },
+    { name: 'previousLabel', type: 'string', default: 'Previous', required: false, description: 'The word a labeled previous cell shows, "Previous" by default. Pass the translated word.' },
+    { name: 'nextLabel', type: 'string', default: 'Next', required: false, description: 'The word a labeled next cell shows, "Next" by default. Pass the translated word.' },
+    { name: 'isInactive', type: 'boolean', default: false, required: false, description: 'On previous and next only: true at the first or last page. The cell stays in place and in the Tab order with aria-disabled="true", and does nothing when activated. Set by Pagination.' },
     { name: 'style', type: "enum: 'border' | 'underline'", values: ['border', 'underline'], default: 'border', required: false, description: 'How the current page is marked: a border around the cell, or a 2px line under the number. Passed down by Pagination.' },
     { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'The cell height and label type, matching the icon buttons beside it. Passed down by Pagination.' },
   ],
 
-  states: ['rest', 'hover', 'pressed', 'focus-visible'],
+  states: ['rest', 'hover', 'pressed', 'focus-visible', 'disabled'],
   variants: {
-    type: ['page', 'ellipsis'],
+    // Q414 A: Pagination draws its own previous and next, as cells of this set.
+    type: ['page', 'ellipsis', 'previous', 'next'],
     selection: ['unselected', 'selected'],
     // Q381 2 A: how the current page is marked. Only the current page differs (excludeCoordinates below).
     style: ['border', 'underline'],
+    // Q414 A: simple's previous and next show a word beside the chevron; numbered's and compact's do not.
+    labeled: ['false', 'true'],
     // Medium first (Q347, Q359): Figma's first member is the code default.
     size: ['medium', 'small', 'large'],
   },
-  axisKinds: { type: 'authoring', selection: 'runtime', style: 'authoring', size: 'authoring' },
+  axisKinds: { type: 'authoring', selection: 'runtime', style: 'authoring', labeled: 'authoring', size: 'authoring' },
 
   // Selection leads, as Tab's and the segment's keys do: the current page is the paint's main split. The cell kind
   // follows; it is not a color family, so it may not lead (lint-paint arm 1). The style-led template comes first and
@@ -104,7 +120,7 @@ export const paginationItem: ComponentDef = {
   paintKeys: ['{selection}.{style}.{type}.{slot}.{state}', '{selection}.{type}.{slot}.{state}', '{selection}.{type}.{slot}'],
 
   tokens: {
-    // Corner: IconButton square's rung, so a brand's shape lever moves the cells and the buttons together.
+    // Corner: IconButton square's rung, so the cells match the icon buttons a page places beside them.
     'radius': 'radius.md',
     'pad-y': 'space.0',
     // Past two digits the cell hugs its label with this inset (DRAFT in the proposal). Not on the density list: a one
@@ -116,6 +132,8 @@ export const paginationItem: ComponentDef = {
     // Q381: the current page's border, drawn inside the cell so it does not grow, and the underline's 2px.
     'border-width': 'border-width.hairline',
     'underline-height': 'border-width.thick',
+    // Q414 A: between a labeled previous or next cell's chevron and its word (Link's medium icon gap).
+    'gap': 'space.050',
     'focus-ring': 'color.border.focus',
     'ring-width': 'focus.ring.width',
     'ring-offset': 'focus.ring.offset',
@@ -152,6 +170,27 @@ export const paginationItem: ComponentDef = {
     // THE ELLIPSIS — the more-horizontal icon (Q404 A) in the secondary icon ink, the icon role beside the secondary
     // text the mark used before; no fill, no state.
     'unselected.ellipsis.icon': 'color.icon.secondary',
+    // PREVIOUS AND NEXT (Q414 A) — a page cell's neutral ink and wash: the chevron in the neutral icon ink (IconButton.Neutral
+    // ghost's glyph roles), the word in the neutral text ink, the wash at hover and pressed. Inactive at an end (call 9 A):
+    // the cross-cutting disabled inks, no wash.
+    'unselected.previous.icon': 'color.interactive.neutral.icon.rest',
+    'unselected.previous.icon.hover': 'color.interactive.neutral.icon.hover',
+    'unselected.previous.icon.pressed': 'color.interactive.neutral.icon.pressed',
+    'unselected.previous.label': 'color.interactive.neutral.text.rest',
+    'unselected.previous.label.hover': 'color.interactive.neutral.text.hover',
+    'unselected.previous.label.pressed': 'color.interactive.neutral.text.pressed',
+    'unselected.previous.overlay.hover': 'color.interactive.neutral.overlay.hover',
+    'unselected.previous.overlay.pressed': 'color.interactive.neutral.overlay.pressed',
+    'unselected.next.icon': 'color.interactive.neutral.icon.rest',
+    'unselected.next.icon.hover': 'color.interactive.neutral.icon.hover',
+    'unselected.next.icon.pressed': 'color.interactive.neutral.icon.pressed',
+    'unselected.next.label': 'color.interactive.neutral.text.rest',
+    'unselected.next.label.hover': 'color.interactive.neutral.text.hover',
+    'unselected.next.label.pressed': 'color.interactive.neutral.text.pressed',
+    'unselected.next.overlay.hover': 'color.interactive.neutral.overlay.hover',
+    'unselected.next.overlay.pressed': 'color.interactive.neutral.overlay.pressed',
+    'disabled.icon': 'color.disabled.icon',
+    'disabled.label': 'color.disabled.text',
   },
 
   anatomy: {
@@ -161,14 +200,28 @@ export const paginationItem: ComponentDef = {
         kind: 'box',
         role: 'target',
         paintSlots: ['overlay', 'border'],
-        children: ['labelBox', 'gapIcon', 'focusRing'],
+        children: ['previousIcon', 'previousText', 'labelBox', 'gapIcon', 'nextText', 'nextIcon', 'focusRing'],
         layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'hug', y: 'fixed' } },
+        gap: 'gap',
         height: 'size.{size}.height',
         minWidthKey: 'size.{size}.height',
         padding: { block: 'pad-y', inlineLabel: 'padding-x' },
         radius: 'radius',
         strokeWidth: 'border-width',
-        note: 'The cell: as tall as an icon button and at least as wide as it is tall, and the whole pointer target. The current page has a gray border in the border style; another page takes a light neutral wash at hover and press.',
+        note: 'The cell: as tall as an icon button and at least as wide as it is tall, and the whole pointer target. The current page has a gray border in the border style; another page, previous and next take a light neutral wash at hover and press.',
+      },
+      previousIcon: {
+        kind: 'vector',
+        glyph: 'chevron-left',
+        size: 'size.{size}.icon',
+        presentWhen: { type: ['previous'] },
+        note: 'The previous cell\'s left chevron (Q414 A), at the gap icon\'s size.',
+      },
+      previousText: {
+        kind: 'text',
+        type: 'size.{size}.type.unselected',
+        presentWhen: { type: ['previous'], labeled: ['true'] },
+        note: 'The word "Previous" after the chevron, on a labeled cell only (Pagination\'s simple type).',
       },
       labelBox: {
         kind: 'box',
@@ -222,6 +275,19 @@ export const paginationItem: ComponentDef = {
         presentWhen: { type: ['ellipsis'] },
         note: 'The gap marker: the more-horizontal icon, three dots, decorative and hidden from assistive technology (Q404 A). It is not a control.',
       },
+      nextText: {
+        kind: 'text',
+        type: 'size.{size}.type.unselected',
+        presentWhen: { type: ['next'], labeled: ['true'] },
+        note: 'The word "Next" before the chevron, on a labeled cell only (Pagination\'s simple type).',
+      },
+      nextIcon: {
+        kind: 'vector',
+        glyph: 'chevron-right',
+        size: 'size.{size}.icon',
+        presentWhen: { type: ['next'] },
+        note: 'The next cell\'s right chevron (Q414 A).',
+      },
       focusRing: {
         kind: 'absolute',
         when: 'focus-visible',
@@ -235,6 +301,8 @@ export const paginationItem: ComponentDef = {
     codeOnly: [
       'The element — an <a href> when Pagination has getHref, otherwise a <button type="button">. Never an <a href="#"> with a click handler. The current page carries aria-current="page" and stays in the Tab order.',
       'The ellipsis in code — an <li aria-hidden="true"> holding the more-horizontal icon, with no control and no text in it. It is never focusable and never announced: the list already implies the gap.',
+      'previous and next in code — an <a href> or a <button type="button">, as a page is, named "Previous page" and "Next page" (aria-label; a labeled cell\'s visible word starts the name, 2.5.3). The chevron is aria-hidden="true". At an end the cell keeps its place and its Tab stop with aria-disabled="true" and does nothing when activated (isInactive; call 9 A). Native disabled is not used. Figma draws that as the disabled state.',
+      'The chevrons in RTL — previous and next swap ends with the row, and each chevron mirrors, so it points the way the row reads.',
       'The accessible name — the number, with a visually hidden "Page " before it, so each cell reads "Page 4"; aria-current adds "current page".',
       'tabular numerals — font-variant-numeric: tabular-nums on the label, so 9, 10 and 100 do not shift the row as the user pages. Figma uses the type style as it is.',
       'The label weight in code — the current page sets its number in the emphasis weight and every cell reserves that width (a hidden bold copy of the label in a column with it, as Tab does), so the row never moves.',
@@ -246,8 +314,8 @@ export const paginationItem: ComponentDef = {
   },
 
   figmaProperties: {
-    variantAxes: ['type', 'selection', 'style', 'size'],
-    stateAxis: { name: 'state', values: ['rest', 'hover', 'pressed', 'focus-visible'] },
+    variantAxes: ['type', 'selection', 'style', 'labeled', 'size'],
+    stateAxis: { name: 'state', values: ['rest', 'hover', 'pressed', 'focus-visible', 'disabled'] },
     gridAxis: 'state',
     // Call 7 A: the current page has rest and focus-visible only. The ellipsis is one inert member per size.
     excludeCoordinates: [
@@ -256,48 +324,56 @@ export const paginationItem: ComponentDef = {
       { type: ['ellipsis'], state: ['hover', 'pressed', 'focus-visible'] },
       // Q381 2 A: the style marks the current page only.
       { selection: ['unselected'], style: ['underline'] },
+      // Q414 A: previous and next are never the current page; only they take a word and the inactive (disabled) state.
+      { type: ['previous', 'next'], selection: ['selected'] },
+      { type: ['page', 'ellipsis'], labeled: ['true'] },
+      { type: ['page', 'ellipsis'], state: ['disabled'] },
     ],
     // "1" (call 16 A) on a page. The ellipsis is an icon (Q404 A), so this is the set's one TEXT property and its one
     // caption: a set-level TEXT property holds one default that every bound member shows (#1567).
+    // Q414 A: a labeled previous and next each have their own part and property, one caption each (#1567).
     texts: {
       label: { part: 'label', default: '1', also: ['labelReserve'] },
+      previousLabel: { part: 'previousText', default: 'Previous', figmaName: 'previous label' },
+      nextLabel: { part: 'nextText', default: 'Next', figmaName: 'next label' },
     },
     booleans: {},
   },
 
   accessibility: {
-    role: 'a link (<a href>) when the page has an address, or a button for a page changed in place; the ellipsis is a decorative icon hidden from assistive technology',
+    role: 'a link (<a href>) when the page has an address, or a button for a page changed in place, for a page, previous and next; the ellipsis is a decorative icon hidden from assistive technology',
     wcag: [
       '1.3.1 Info and Relationships (each cell is a list item; the current page carries aria-current="page")',
       '1.4.1 Use of Color (the current page has a border or an underline and a heavier weight, and aria-current)',
       '1.4.3 Contrast (Minimum) (every number on the page at 4.5:1)',
       '1.4.11 Non-text Contrast (the current page\'s border or underline at 3:1 against the page; the decorative gap icon is exempt)',
-      '2.4.4 Link Purpose (In Context) (each cell is named "Page N")',
+      '2.4.4 Link Purpose (In Context) (each page is named "Page N"; previous and next "Previous page" and "Next page")',
+      '2.5.3 Label in Name (a labeled cell\'s visible "Previous" or "Next" starts its accessible name)',
       '2.4.7 Focus Visible (the shared focus ring)',
       '2.5.8 Target Size (Minimum) (targets 44px at medium and large on comfortable and spacious density)',
     ],
-    keyboard: 'Each page is its own Tab stop; Enter opens it, and Space also does when it is a button. Arrow keys do not move between pages. The ellipsis is skipped.',
+    keyboard: 'Each page, previous and next is its own Tab stop; Enter opens it, and Space also does when it is a button. An inactive previous or next keeps its Tab stop and does nothing. Arrow keys do not move between pages. The ellipsis is skipped.',
     focus: 'A focus ring around the cell on :focus-visible, the current page included.',
-    aria: 'aria-current="page" on the current page. A visually hidden "Page " before each number, so it reads "Page 4". aria-hidden="true" on the ellipsis icon.',
+    aria: 'aria-current="page" on the current page. A visually hidden "Page " before each number, so it reads "Page 4". aria-hidden="true" on the ellipsis icon and on the chevrons. Previous and next named "Previous page" and "Next page", and aria-disabled="true" at an end.',
   },
 
   content: {
-    labelPattern: 'The page number, in the locale\'s numerals. Nothing else is shown in the cell; the ellipsis shows the three-dot icon and no text.',
+    labelPattern: 'The page number, in the locale\'s numerals. Nothing else is shown in a page cell; the ellipsis shows the three-dot icon and no text. A labeled previous or next shows "Previous" or "Next", never "Prev", "Back" or "Forward".',
   },
 
   docs: {
-    usage: 'Use inside Pagination only. Pagination works out which pages to show, marks the current one and places the ellipses.',
-    do: ['Let Pagination set the current page and the ellipses', 'Keep every page cell the same size as the previous and next buttons beside it'],
+    usage: 'Use inside Pagination only. Pagination works out which pages to show, marks the current one, places the ellipses, and sets previous and next inactive at an end.',
+    do: ['Let Pagination set the current page and the ellipses', 'Keep every page cell the same size as the previous and next cells beside it'],
     dont: ['Place a page cell outside a pagination row', 'Make the ellipsis a control'],
-    contentGuidelines: 'Numbers only. The accessible name adds "Page".',
+    contentGuidelines: 'Numbers only on a page. The accessible name adds "Page". Previous and next read "Previous" and "Next", sentence case.',
   },
 
   ai: {
-    primaryPurpose: 'One page number, or the ellipsis, inside a pagination row.',
-    whenToUse: 'Only as an item in Pagination\'s numbered row.',
+    primaryPurpose: 'One page number, the ellipsis, or previous or next, inside a pagination row.',
+    whenToUse: 'Only as an item in Pagination: a page or the ellipsis in the numbered row, previous and next in every type.',
     avoidWhen: 'Anywhere outside Pagination: a single action is a Button, and a choice between a few views is a segmented control or tabs.',
     commonPartners: ['pagination'],
-    triggerKeywords: ['page number', 'pagination item', 'page cell', 'current page'],
+    triggerKeywords: ['page number', 'pagination item', 'page cell', 'current page', 'previous page', 'next page'],
     generationPriority: 9,
   },
 
@@ -317,6 +393,7 @@ export const paginationItem: ComponentDef = {
   notes: {
     contested: [
       'HELD FOR THE OWNER (#2665): the name Pagination.Item (the proposal said PaginationItem; the skill names a family part Family.Part; the id is `pagination-item` by Q394 A), the aliases page-item and pagination-page, the label inset past two digits (space.100), and the forced-colors system color on the current page.',
+      'HELD FOR THE OWNER (Q414 A built): the `labeled` axis name and its false/true values (the word beside the chevron in simple), the two TEXT properties "previous label" and "next label" with their props previousLabel and nextLabel (one caption per property, #1567), the 4px (space.050) gap between chevron and word, the chevrons at the gap icon\'s glyph rung in the neutral icon ink, and the disabled inks at an end.',
       'HELD FOR THE OWNER: the gap icon\'s size and ink, IconButton\'s glyph rungs (icon.size.sm, md, lg, the chevrons\' size) in color.icon.secondary, the icon role beside the secondary text the mark used before (Q404 A named the glyph, not these).',
     ],
     unverified: [
@@ -325,6 +402,7 @@ export const paginationItem: ComponentDef = {
     evolution: [
       '2026-10-16 (#2665): owner decision, every numbered call A: a new page cell (3), filled primary current page in the emphasis weight with the width held (5), rest and focus-visible only on the current page (7), small, medium and large on IconButton\'s rungs (8).',
       '2026-10-16 (Q381, after QA): the current page loses the primary fill for a border in color.border.tertiary (3:1 against the page) with its number semibold, and a `style: border | underline` axis adds the 2px underline. The ellipsis gets its own text part and property, since one TEXT property read "1" on every member.',
+      '2026-10-18 (Q414 A): `type` gains previous and next, the square cell with a chevron in the neutral ink and wash, with a disabled state for an end; `labeled` adds the word for simple.',
       '2026-10-17 (Q394 A, Q395 A, Q404 A): the id loses the `_` prefix and the item becomes the items slot\'s preferred item, preferred-only; border.tertiary at 1px kept; the ellipsis becomes the decorative more-horizontal icon, so its text part, its TEXT property and the `mark` prop go.',
     ],
   },
@@ -335,8 +413,17 @@ export const paginationItem: ComponentDef = {
 const item = (type: 'page' | 'ellipsis', selection: 'unselected' | 'selected', label: string | null, note: string) => ({
   kind: 'nest' as const,
   nests: 'pagination-item',
-  nesting: { kind: 'nest-fixed' as const, variant: { type, selection, style: 'border', size: 'medium', state: 'rest' }, follow: selection === 'selected' ? ['style', 'size'] : ['size'] },
+  nesting: { kind: 'nest-fixed' as const, variant: { type, selection, style: 'border', labeled: 'false', size: 'medium', state: 'rest' }, follow: selection === 'selected' ? ['style', 'size'] : ['size'] },
   ...(label ? { overrides: { texts: { label } } } : {}),
+  note,
+});
+
+// Previous and next (Q414 A): the item's own cell with a chevron, unlabeled in numbered and compact, labeled in simple.
+// Its size follows the row's; its state is exposed, so a designer sets it to disabled at an end (call 9 A).
+const step = (type: 'previous' | 'next', labeled: 'false' | 'true', note: string) => ({
+  kind: 'nest' as const,
+  nests: 'pagination-item',
+  nesting: { kind: 'nest-exposed' as const, variant: { type, selection: 'unselected', style: 'border', labeled, size: 'medium', state: 'rest' }, follow: ['size'], expose: ['state'] },
   note,
 });
 
@@ -349,7 +436,7 @@ export const pagination: ComponentDef = {
   // Call 16 A.
   summary: 'Moves between pages of a long list or set of results, and shows which page is open.',
   description:
-    'Moves between the pages of a long, ordered list or set of results, and shows which page is open. numbered shows the first and last page, the current page and one page on each side of it, with an ellipsis for each gap, between a previous and a next button; the row always holds seven slots, so it keeps its width as the user pages. compact replaces the numbers with "Page 5 of 10", for a narrow container. simple is a Previous and a Next button at opposite ends, for an article or a short sequence where the count adds nothing. At the first and last page, the previous or next button stays in place and does nothing. Not tabs (a few fixed views), not a carousel indicator, and not a load more button.',
+    'Moves between the pages of a long, ordered list or set of results, and shows which page is open. numbered shows the first and last page, the current page and one page on each side of it, with an ellipsis for each gap, between a previous and a next cell; the row always holds seven slots, so it keeps its width as the user pages. compact replaces the numbers with "Page 5 of 10", for a narrow container. simple is a Previous and a Next cell at opposite ends, for an article or a short sequence where the count adds nothing. At the first and last page, the previous or next cell stays in place and does nothing. Not tabs (a few fixed views), not a carousel indicator, and not a load more button.',
 
   props: [
     { name: 'count', type: 'number', required: true, description: 'The total number of pages. Pagination is not shown when it is 1.' },
@@ -358,7 +445,7 @@ export const pagination: ComponentDef = {
     { name: 'onPageChange', type: 'function', required: false, description: 'Called with the new page number when the user opens a page.' },
     { name: 'getHref', type: 'function', required: false, description: 'Returns the address of a page. Present, every page is a link the user can bookmark, share or open in a new tab; absent, every page is a button that changes the content in place. Pass it whenever the page has an address.' },
     { name: 'renderItem', type: 'slot', required: false, description: 'Renders a page as your router\'s link, keeping its address and aria-current.' },
-    { name: 'type', type: "enum: 'numbered' | 'compact' | 'simple'", values: ['numbered', 'compact', 'simple'], default: 'numbered', required: false, description: 'numbered: page numbers between previous and next. compact: "Page 5 of 10" between previous and next. simple: Previous and Next buttons only. A numbered row switches to compact when its container is narrower than the row.' },
+    { name: 'type', type: "enum: 'numbered' | 'compact' | 'simple'", values: ['numbered', 'compact', 'simple'], default: 'numbered', required: false, description: 'numbered: page numbers between previous and next. compact: "Page 5 of 10" between previous and next. simple: Previous and Next only. A numbered row switches to compact when its container is narrower than the row.' },
     { name: 'style', type: "enum: 'border' | 'underline'", values: ['border', 'underline'], default: 'border', required: false, description: 'How the current page is marked in a numbered row: a border around it, or a 2px line under its number.' },
     { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'The size of every cell and button, matching the icon button sizes. Medium is 44px on comfortable and spacious density.' },
     { name: 'siblingCount', type: 'number', default: 1, required: false, description: 'How many pages show on each side of the current page.' },
@@ -397,10 +484,10 @@ export const pagination: ComponentDef = {
         role: 'target',
         children: ['row', 'simpleRow'],
         layout: { direction: 'column', align: 'start', justify: 'start', sizing: { x: 'hug', y: 'hug' } },
-        // THE SIMPLE MEMBER'S WIDTH: built at the numbered row's medium width, so its two buttons sit at opposite ends
+        // THE SIMPLE MEMBER'S WIDTH: built at the numbered row's medium width, so its two cells sit at opposite ends
         // the way they do under a list (held for the owner on #2665).
         center: { axis: 'type', value: 'simple', placementWidth: 428 },
-        note: 'The navigation landmark: one row of controls. It hugs its row; a simple pagination is built wider so its two buttons sit at opposite ends.',
+        note: 'The navigation landmark: one row of controls. It hugs its row; a simple pagination is built wider so its two cells sit at opposite ends.',
       },
       row: {
         kind: 'box',
@@ -409,15 +496,9 @@ export const pagination: ComponentDef = {
         children: ['previous', 'items', 'status', 'next'],
         layout: { direction: 'row', align: 'center', justify: 'start', sizing: { x: 'hug', y: 'hug' } },
         gap: 'gap',
-        note: 'The previous button, the pages or the "Page 5 of 10" text, and the next button, 4px apart.',
+        note: 'The previous cell, the pages or the "Page 5 of 10" text, and the next cell, 4px apart.',
       },
-      previous: {
-        kind: 'nest',
-        nests: 'icon-button-neutral',
-        nesting: { kind: 'nest-exposed', variant: { appearance: 'ghost', size: 'medium', shape: 'square', surface: 'default', state: 'rest' }, follow: ['size'], expose: ['state'] },
-        overrides: { swaps: { icon: 'chevron-left' } },
-        note: 'The previous button: an IconButton.Neutral, ghost, square, with a left chevron, the same size as the page cells. On the first page it stays in place and does nothing.',
-      },
+      previous: step('previous', 'false', 'The previous cell: a Pagination.Item with a left chevron, the same square as the page cells (Q414 A). On the first page it stays in place and does nothing.'),
       items: {
         kind: 'box',
         role: 'presentation',
@@ -445,13 +526,7 @@ export const pagination: ComponentDef = {
         type: 'size.{size}.type',
         note: 'The position, "Page 5 of 10", between the previous and next buttons.',
       },
-      next: {
-        kind: 'nest',
-        nests: 'icon-button-neutral',
-        nesting: { kind: 'nest-exposed', variant: { appearance: 'ghost', size: 'medium', shape: 'square', surface: 'default', state: 'rest' }, follow: ['size'], expose: ['state'] },
-        overrides: { swaps: { icon: 'chevron-right' } },
-        note: 'The next button: an IconButton.Neutral, ghost, square, with a right chevron. On the last page it stays in place and does nothing.',
-      },
+      next: step('next', 'false', 'The next cell: a Pagination.Item with a right chevron (Q414 A). On the last page it stays in place and does nothing.'),
       simpleRow: {
         kind: 'box',
         role: 'presentation',
@@ -462,26 +537,14 @@ export const pagination: ComponentDef = {
         gap: 'gap',
         note: 'The simple row: Previous at the start and Next at the end.',
       },
-      previousButton: {
-        kind: 'nest',
-        nests: 'button-neutral',
-        nesting: { kind: 'nest-exposed', variant: { appearance: 'text', size: 'medium', surface: 'default', inset: 'default', state: 'rest', 'leading icon': 'true', 'trailing icon': 'false' }, follow: ['size'], expose: ['state'] },
-        overrides: { texts: { label: 'Previous' }, swaps: { leadingVisual: 'chevron-left' } },
-        note: 'Previous: a Button.Neutral, text, with a left chevron before the label.',
-      },
-      nextButton: {
-        kind: 'nest',
-        nests: 'button-neutral',
-        nesting: { kind: 'nest-exposed', variant: { appearance: 'text', size: 'medium', surface: 'default', inset: 'default', state: 'rest', 'leading icon': 'false', 'trailing icon': 'true' }, follow: ['size'], expose: ['state'] },
-        overrides: { texts: { label: 'Next' }, swaps: { trailingVisual: 'chevron-right' } },
-        note: 'Next: a Button.Neutral, text, with a right chevron after the label.',
-      },
+      previousButton: step('previous', 'true', 'Previous: a Pagination.Item, a left chevron and the word "Previous" (Q414 A).'),
+      nextButton: step('next', 'true', 'Next: a Pagination.Item, the word "Next" and a right chevron (Q414 A).'),
     },
     codeOnly: [
       'The landmark — <nav aria-label="Pagination"> around a <ul>, each control in its own <li>. The label is required: without it the landmark collides with the main navigation in a screen reader\'s landmark list. label sets it.',
       'The window — with siblingCount 1 and boundaryCount 1, every page shows up to 7 pages. Above 7 the row always holds 7 slots: the first page, the last page, the current page and one page each side, with an ellipsis for each gap. An ellipsis stands for two or more pages, never one: a one-page gap shows the number. Near an end the window slides so the slot count stays 7. In general: show all pages when count <= boundaryCount * 2 + siblingCount * 2 + 3.',
       'links or buttons — with getHref every page, previous and next is an <a href> (bookmarkable, crawlable, opens in a new tab); without it each is a <button type="button"> for content swapped in place. Never <a href="#"> with a click handler. renderItem lets a page be a router link and keeps its address and aria-current.',
-      'At an end — previous on the first page and next on the last page keep their place with aria-disabled="true", stay focusable and do nothing when activated (IconButton\'s isInactive). Native disabled is not used: it drops focus to the page body when a keyboard user reaches the end.',
+      'At an end — previous on the first page and next on the last page keep their place with aria-disabled="true", stay focusable and do nothing when activated (the item\'s isInactive; Figma\'s disabled state). Native disabled is not used: it drops focus to the page body when a keyboard user reaches the end.',
       'focus after a page change — with links the browser loads the new page. With buttons, focus moves to the top of the results region, normally its heading, and a polite live region says the getStatusText string, "Page 5 of 10". Focus is never left on the pager under content that changed above it.',
       'The narrow switch — numbered renders as compact when its container is narrower than the numbered row, measured on the container (a container query or a resize observer), not the viewport. Figma shows both; the designer places the one that fits the frame.',
       'Not rendered — when count is 1. A row where every control does nothing helps no one.',
@@ -522,7 +585,7 @@ export const pagination: ComponentDef = {
       '4.1.3 Status Messages (a polite "Page 5 of 10" after an in-place change)',
     ],
     keyboard: 'Tab moves through previous, each page and next; every control is its own Tab stop. Enter opens a page, and Space also does when it is a button. Arrow keys do not move between pages.',
-    focus: 'Stays in the normal Tab order. After a page changes in place, focus moves to the top of the results. At an end, the inactive previous or next button keeps focus.',
+    focus: 'Stays in the normal Tab order. After a page changes in place, focus moves to the top of the results. At an end, the inactive previous or next cell keeps focus.',
     aria: 'aria-label="Pagination" on the <nav>; give two on one page the same name or a name each. aria-current="page" on the current page. aria-hidden="true" on each ellipsis. aria-disabled="true" on previous at the first page and next at the last. Accessible names "Previous page", "Next page" and "Page 4". A polite live region says "Page 5 of 10" after an in-place change. Names are translated.',
   },
 
@@ -553,13 +616,13 @@ export const pagination: ComponentDef = {
     primaryPurpose: 'Move between the pages of a long, ordered set of results and show which page is open.',
     whenToUse: 'Search results, a catalog or a table split into pages, where the user benefits from the count and from jumping to a page; or previous and next through an article.',
     avoidWhen: 'A feed with no useful end (a load more Button), a few fixed views (tabs or a segmented control), the slides of a carousel, or rows per page and a "Go to page" field (the table pager, not yet built).',
-    commonPartners: ['pagination-item', 'icon-button-neutral', 'button-neutral', 'list'],
+    commonPartners: ['pagination-item', 'list'],
     triggerKeywords: ['pagination', 'pager', 'page numbers', 'previous and next', 'page 1 of 10', 'next page'],
     generationPriority: 2,
   },
 
   composition: {
-    composesWith: ['icon-button-neutral', 'pagination-item', 'button-neutral'],
+    composesWith: ['pagination-item'],
     alternativeTo: ['tabs'],
     replacesPatterns: ['page links built from <a href="#"> and click handlers', 'a disabled next button that drops focus at the last page', 'infinite scroll on a page with a footer'],
     supersededBy: [],
@@ -583,6 +646,7 @@ export const pagination: ComponentDef = {
       '2026-10-16 (#2665): owner decision, every numbered call A: one component with three types (1), IconButton.Neutral prev and next and text Buttons in simple (2), a native items slot (4), the seven-slot window (6), inactive controls at an end (9), the container-width switch to compact (10), focus to the results after an in-place change (11), links or buttons from getHref (12), no table pager (13), no inverse surface (14), the axis name `type` (15), the names and wording (16), the carousel indicator separate (17).',
       '2026-10-16 (Q381, after QA): `style: border | underline` per instance, passed to the current page.',
       '2026-10-17 (Q394 A): the items slot names Pagination.Item as its preferred item, preferred-only.',
+      '2026-10-18 (Q414 A): previous and next are Pagination.Item cells (type previous and next), labeled in simple, so Pagination requires no Neutral button family (Q386).',
     ],
   },
 };

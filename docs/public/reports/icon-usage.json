@@ -251,6 +251,28 @@
               "ellipsis"
             ]
           }
+        },
+        {
+          "part": "nextIcon",
+          "glyph": "chevron-right",
+          "source": "icon set",
+          "how": "drawn",
+          "when": {
+            "type": [
+              "next"
+            ]
+          }
+        },
+        {
+          "part": "previousIcon",
+          "glyph": "chevron-left",
+          "source": "icon set",
+          "how": "drawn",
+          "when": {
+            "type": [
+              "previous"
+            ]
+          }
         }
       ],
       "iconSlots": []
@@ -396,8 +418,12 @@
       "_accordion-indicator",
       "select"
     ],
-    "chevron-left": [],
-    "chevron-right": [],
+    "chevron-left": [
+      "pagination-item"
+    ],
+    "chevron-right": [
+      "pagination-item"
+    ],
     "chevron-up": [
       "_accordion-indicator"
     ],
@@ -463,8 +489,6 @@
     "arrow-up-left",
     "arrow-up-right",
     "check-circle-filled",
-    "chevron-left",
-    "chevron-right",
     "close-filled",
     "error-circle-filled",
     "external-link-filled",

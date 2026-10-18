@@ -1202,14 +1202,14 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "id": "pagination-item",
     "name": "Pagination.Item",
     "category": "navigation",
-    "summary": "One page number in a pagination row, or the gap marker between them. The current page is outlined.",
+    "summary": "A pagination cell: a page, the gap marker, previous or next. The current page is outlined.",
     "unit": "variants",
     "spacing": [],
     "page": "Pagination",
     "section": "Components",
     "buildable": true,
     "reason": null,
-    "members": 27,
+    "members": 87,
     "nests": [
       "focus-ring",
       "icon"
@@ -1228,10 +1228,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "reason": null,
     "members": 12,
     "nests": [
-      "icon-button-neutral",
-      "icon",
-      "pagination-item",
-      "button-neutral"
+      "pagination-item"
     ]
   }
 ];

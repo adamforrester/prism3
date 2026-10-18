@@ -146,7 +146,7 @@
           ],
           "parts": {
             "container": {
-              "members": 27,
+              "members": 87,
               "where": {}
             }
           }
@@ -293,6 +293,9 @@
             "balance": {
               "members": 6,
               "where": {
+                "labeled": [
+                  "false"
+                ],
                 "selection": [
                   "selected"
                 ],
@@ -311,6 +314,9 @@
             "underline": {
               "members": 6,
               "where": {
+                "labeled": [
+                  "false"
+                ],
                 "selection": [
                   "selected"
                 ],
@@ -1149,6 +1155,9 @@
             "container": {
               "members": 6,
               "where": {
+                "labeled": [
+                  "false"
+                ],
                 "selection": [
                   "selected"
                 ],
@@ -1167,6 +1176,9 @@
             "underline": {
               "members": 6,
               "where": {
+                "labeled": [
+                  "false"
+                ],
                 "selection": [
                   "selected"
                 ],
@@ -2172,6 +2184,47 @@
             }
           }
         },
+        "pagination-item": {
+          "keys": [
+            "disabled.icon"
+          ],
+          "parts": {
+            "nextIcon": {
+              "members": 6,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "disabled"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "next"
+                ]
+              }
+            },
+            "previousIcon": {
+              "members": 6,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "disabled"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "previous"
+                ]
+              }
+            }
+          }
+        },
         "segmented-control-segment": {
           "keys": [
             "disabled.icon"
@@ -2687,6 +2740,53 @@
               "where": {
                 "state": [
                   "disabled"
+                ]
+              }
+            }
+          }
+        },
+        "pagination-item": {
+          "keys": [
+            "disabled.label"
+          ],
+          "parts": {
+            "nextText": {
+              "members": 3,
+              "where": {
+                "labeled": [
+                  "true"
+                ],
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "disabled"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "next"
+                ]
+              }
+            },
+            "previousText": {
+              "members": 3,
+              "where": {
+                "labeled": [
+                  "true"
+                ],
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "disabled"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "previous"
                 ]
               }
             }
@@ -3664,6 +3764,9 @@
             "gapIcon": {
               "members": 3,
               "where": {
+                "labeled": [
+                  "false"
+                ],
                 "selection": [
                   "unselected"
                 ],
@@ -5265,6 +5368,48 @@
             }
           }
         },
+        "pagination-item": {
+          "keys": [
+            "unselected.next.icon.hover",
+            "unselected.previous.icon.hover"
+          ],
+          "parts": {
+            "nextIcon": {
+              "members": 6,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "hover"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "next"
+                ]
+              }
+            },
+            "previousIcon": {
+              "members": 6,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "hover"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "previous"
+                ]
+              }
+            }
+          }
+        },
         "segmented-control-segment": {
           "keys": [
             "unselected.icon.hover"
@@ -5428,6 +5573,48 @@
                 ],
                 "surface": [
                   "default"
+                ]
+              }
+            }
+          }
+        },
+        "pagination-item": {
+          "keys": [
+            "unselected.next.icon.pressed",
+            "unselected.previous.icon.pressed"
+          ],
+          "parts": {
+            "nextIcon": {
+              "members": 6,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "pressed"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "next"
+                ]
+              }
+            },
+            "previousIcon": {
+              "members": 6,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "pressed"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "previous"
                 ]
               }
             }
@@ -5682,6 +5869,50 @@
                 ],
                 "surface": [
                   "default"
+                ]
+              }
+            }
+          }
+        },
+        "pagination-item": {
+          "keys": [
+            "unselected.next.icon",
+            "unselected.previous.icon"
+          ],
+          "parts": {
+            "nextIcon": {
+              "members": 12,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "focus-visible",
+                  "rest"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "next"
+                ]
+              }
+            },
+            "previousIcon": {
+              "members": 12,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "focus-visible",
+                  "rest"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "previous"
                 ]
               }
             }
@@ -5980,11 +6211,13 @@
         },
         "pagination-item": {
           "keys": [
-            "unselected.page.overlay.hover"
+            "unselected.next.overlay.hover",
+            "unselected.page.overlay.hover",
+            "unselected.previous.overlay.hover"
           ],
           "parts": {
             "container": {
-              "members": 3,
+              "members": 15,
               "where": {
                 "selection": [
                   "unselected"
@@ -5996,7 +6229,9 @@
                   "border"
                 ],
                 "type": [
-                  "page"
+                  "next",
+                  "page",
+                  "previous"
                 ]
               }
             }
@@ -6170,11 +6405,13 @@
         },
         "pagination-item": {
           "keys": [
-            "unselected.page.overlay.pressed"
+            "unselected.next.overlay.pressed",
+            "unselected.page.overlay.pressed",
+            "unselected.previous.overlay.pressed"
           ],
           "parts": {
             "container": {
-              "members": 3,
+              "members": 15,
               "where": {
                 "selection": [
                   "unselected"
@@ -6186,7 +6423,9 @@
                   "border"
                 ],
                 "type": [
-                  "page"
+                  "next",
+                  "page",
+                  "previous"
                 ]
               }
             }
@@ -6258,12 +6497,17 @@
         },
         "pagination-item": {
           "keys": [
-            "unselected.page.label.hover"
+            "unselected.next.label.hover",
+            "unselected.page.label.hover",
+            "unselected.previous.label.hover"
           ],
           "parts": {
             "label": {
               "members": 3,
               "where": {
+                "labeled": [
+                  "false"
+                ],
                 "selection": [
                   "unselected"
                 ],
@@ -6281,6 +6525,9 @@
             "labelReserve": {
               "members": 3,
               "where": {
+                "labeled": [
+                  "false"
+                ],
                 "selection": [
                   "unselected"
                 ],
@@ -6292,6 +6539,46 @@
                 ],
                 "type": [
                   "page"
+                ]
+              }
+            },
+            "nextText": {
+              "members": 3,
+              "where": {
+                "labeled": [
+                  "true"
+                ],
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "hover"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "next"
+                ]
+              }
+            },
+            "previousText": {
+              "members": 3,
+              "where": {
+                "labeled": [
+                  "true"
+                ],
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "hover"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "previous"
                 ]
               }
             }
@@ -6401,12 +6688,17 @@
         },
         "pagination-item": {
           "keys": [
-            "unselected.page.label.pressed"
+            "unselected.next.label.pressed",
+            "unselected.page.label.pressed",
+            "unselected.previous.label.pressed"
           ],
           "parts": {
             "label": {
               "members": 3,
               "where": {
+                "labeled": [
+                  "false"
+                ],
                 "selection": [
                   "unselected"
                 ],
@@ -6424,6 +6716,9 @@
             "labelReserve": {
               "members": 3,
               "where": {
+                "labeled": [
+                  "false"
+                ],
                 "selection": [
                   "unselected"
                 ],
@@ -6435,6 +6730,46 @@
                 ],
                 "type": [
                   "page"
+                ]
+              }
+            },
+            "nextText": {
+              "members": 3,
+              "where": {
+                "labeled": [
+                  "true"
+                ],
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "pressed"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "next"
+                ]
+              }
+            },
+            "previousText": {
+              "members": 3,
+              "where": {
+                "labeled": [
+                  "true"
+                ],
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "pressed"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "previous"
                 ]
               }
             }
@@ -6558,12 +6893,17 @@
         "pagination-item": {
           "keys": [
             "selected.page.label",
-            "unselected.page.label"
+            "unselected.next.label",
+            "unselected.page.label",
+            "unselected.previous.label"
           ],
           "parts": {
             "label": {
               "members": 18,
               "where": {
+                "labeled": [
+                  "false"
+                ],
                 "state": [
                   "focus-visible",
                   "rest"
@@ -6576,12 +6916,57 @@
             "labelReserve": {
               "members": 18,
               "where": {
+                "labeled": [
+                  "false"
+                ],
                 "state": [
                   "focus-visible",
                   "rest"
                 ],
                 "type": [
                   "page"
+                ]
+              }
+            },
+            "nextText": {
+              "members": 6,
+              "where": {
+                "labeled": [
+                  "true"
+                ],
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "focus-visible",
+                  "rest"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "next"
+                ]
+              }
+            },
+            "previousText": {
+              "members": 6,
+              "where": {
+                "labeled": [
+                  "true"
+                ],
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "focus-visible",
+                  "rest"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "previous"
                 ]
               }
             }
@@ -13941,13 +14326,15 @@
           ],
           "parts": {
             "focusRing": {
-              "members": 9,
+              "members": 21,
               "where": {
                 "state": [
                   "focus-visible"
                 ],
                 "type": [
-                  "page"
+                  "next",
+                  "page",
+                  "previous"
                 ]
               }
             }
@@ -14316,13 +14703,15 @@
           ],
           "parts": {
             "focusRing": {
-              "members": 9,
+              "members": 21,
               "where": {
                 "state": [
                   "focus-visible"
                 ],
                 "type": [
-                  "page"
+                  "next",
+                  "page",
+                  "previous"
                 ]
               }
             }
@@ -14603,6 +14992,9 @@
             "gapIcon": {
               "members": 1,
               "where": {
+                "labeled": [
+                  "false"
+                ],
                 "selection": [
                   "unselected"
                 ],
@@ -14617,6 +15009,40 @@
                 ],
                 "type": [
                   "ellipsis"
+                ]
+              }
+            },
+            "nextIcon": {
+              "members": 10,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "size": [
+                  "large"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "next"
+                ]
+              }
+            },
+            "previousIcon": {
+              "members": 10,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "size": [
+                  "large"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "previous"
                 ]
               }
             }
@@ -15074,6 +15500,9 @@
             "gapIcon": {
               "members": 1,
               "where": {
+                "labeled": [
+                  "false"
+                ],
                 "selection": [
                   "unselected"
                 ],
@@ -15088,6 +15517,40 @@
                 ],
                 "type": [
                   "ellipsis"
+                ]
+              }
+            },
+            "nextIcon": {
+              "members": 10,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "size": [
+                  "medium"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "next"
+                ]
+              }
+            },
+            "previousIcon": {
+              "members": 10,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "size": [
+                  "medium"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "previous"
                 ]
               }
             }
@@ -15648,6 +16111,9 @@
             "gapIcon": {
               "members": 1,
               "where": {
+                "labeled": [
+                  "false"
+                ],
                 "selection": [
                   "unselected"
                 ],
@@ -15662,6 +16128,40 @@
                 ],
                 "type": [
                   "ellipsis"
+                ]
+              }
+            },
+            "nextIcon": {
+              "members": 10,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "size": [
+                  "small"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "next"
+                ]
+              }
+            },
+            "previousIcon": {
+              "members": 10,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "size": [
+                  "small"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "previous"
                 ]
               }
             }
@@ -16301,7 +16801,7 @@
           ],
           "parts": {
             "container": {
-              "members": 27,
+              "members": 87,
               "where": {}
             }
           }
@@ -16830,7 +17330,7 @@
           ],
           "parts": {
             "container": {
-              "members": 9,
+              "members": 29,
               "where": {
                 "size": [
                   "large"
@@ -17140,7 +17640,7 @@
           ],
           "parts": {
             "container": {
-              "members": 9,
+              "members": 29,
               "where": {
                 "size": [
                   "medium"
@@ -17454,7 +17954,7 @@
           ],
           "parts": {
             "container": {
-              "members": 9,
+              "members": 29,
               "where": {
                 "size": [
                   "small"
@@ -17733,12 +18233,21 @@
           ],
           "parts": {
             "container": {
-              "members": 27,
+              "members": 87,
               "where": {}
             },
             "reserve": {
               "members": 24,
               "where": {
+                "labeled": [
+                  "false"
+                ],
+                "state": [
+                  "focus-visible",
+                  "hover",
+                  "pressed",
+                  "rest"
+                ],
                 "type": [
                   "page"
                 ]
@@ -17980,6 +18489,17 @@
                   "simple"
                 ]
               }
+            }
+          }
+        },
+        "pagination-item": {
+          "keys": [
+            "gap"
+          ],
+          "parts": {
+            "container": {
+              "members": 87,
+              "where": {}
             }
           }
         },
@@ -18418,7 +18938,7 @@
           ],
           "parts": {
             "container": {
-              "members": 27,
+              "members": 87,
               "where": {}
             }
           }
@@ -20742,6 +21262,35 @@
             "label": {
               "members": 4,
               "where": {
+                "labeled": [
+                  "false"
+                ],
+                "selection": [
+                  "unselected"
+                ],
+                "size": [
+                  "large"
+                ],
+                "state": [
+                  "focus-visible",
+                  "hover",
+                  "pressed",
+                  "rest"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "page"
+                ]
+              }
+            },
+            "nextText": {
+              "members": 5,
+              "where": {
+                "labeled": [
+                  "true"
+                ],
                 "selection": [
                   "unselected"
                 ],
@@ -20752,7 +21301,27 @@
                   "border"
                 ],
                 "type": [
-                  "page"
+                  "next"
+                ]
+              }
+            },
+            "previousText": {
+              "members": 5,
+              "where": {
+                "labeled": [
+                  "true"
+                ],
+                "selection": [
+                  "unselected"
+                ],
+                "size": [
+                  "large"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "previous"
                 ]
               }
             }
@@ -20902,6 +21471,9 @@
             "label": {
               "members": 4,
               "where": {
+                "labeled": [
+                  "false"
+                ],
                 "selection": [
                   "selected"
                 ],
@@ -20920,8 +21492,17 @@
             "labelReserve": {
               "members": 8,
               "where": {
+                "labeled": [
+                  "false"
+                ],
                 "size": [
                   "large"
+                ],
+                "state": [
+                  "focus-visible",
+                  "hover",
+                  "pressed",
+                  "rest"
                 ],
                 "type": [
                   "page"
@@ -21090,6 +21671,35 @@
             "label": {
               "members": 4,
               "where": {
+                "labeled": [
+                  "false"
+                ],
+                "selection": [
+                  "unselected"
+                ],
+                "size": [
+                  "medium"
+                ],
+                "state": [
+                  "focus-visible",
+                  "hover",
+                  "pressed",
+                  "rest"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "page"
+                ]
+              }
+            },
+            "nextText": {
+              "members": 5,
+              "where": {
+                "labeled": [
+                  "true"
+                ],
                 "selection": [
                   "unselected"
                 ],
@@ -21100,7 +21710,27 @@
                   "border"
                 ],
                 "type": [
-                  "page"
+                  "next"
+                ]
+              }
+            },
+            "previousText": {
+              "members": 5,
+              "where": {
+                "labeled": [
+                  "true"
+                ],
+                "selection": [
+                  "unselected"
+                ],
+                "size": [
+                  "medium"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "previous"
                 ]
               }
             }
@@ -21239,6 +21869,9 @@
             "label": {
               "members": 4,
               "where": {
+                "labeled": [
+                  "false"
+                ],
                 "selection": [
                   "selected"
                 ],
@@ -21257,8 +21890,17 @@
             "labelReserve": {
               "members": 8,
               "where": {
+                "labeled": [
+                  "false"
+                ],
                 "size": [
                   "medium"
+                ],
+                "state": [
+                  "focus-visible",
+                  "hover",
+                  "pressed",
+                  "rest"
                 ],
                 "type": [
                   "page"
@@ -21427,6 +22069,35 @@
             "label": {
               "members": 4,
               "where": {
+                "labeled": [
+                  "false"
+                ],
+                "selection": [
+                  "unselected"
+                ],
+                "size": [
+                  "small"
+                ],
+                "state": [
+                  "focus-visible",
+                  "hover",
+                  "pressed",
+                  "rest"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "page"
+                ]
+              }
+            },
+            "nextText": {
+              "members": 5,
+              "where": {
+                "labeled": [
+                  "true"
+                ],
                 "selection": [
                   "unselected"
                 ],
@@ -21437,7 +22108,27 @@
                   "border"
                 ],
                 "type": [
-                  "page"
+                  "next"
+                ]
+              }
+            },
+            "previousText": {
+              "members": 5,
+              "where": {
+                "labeled": [
+                  "true"
+                ],
+                "selection": [
+                  "unselected"
+                ],
+                "size": [
+                  "small"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "previous"
                 ]
               }
             }
@@ -21602,6 +22293,9 @@
             "label": {
               "members": 4,
               "where": {
+                "labeled": [
+                  "false"
+                ],
                 "selection": [
                   "selected"
                 ],
@@ -21620,8 +22314,17 @@
             "labelReserve": {
               "members": 8,
               "where": {
+                "labeled": [
+                  "false"
+                ],
                 "size": [
                   "small"
+                ],
+                "state": [
+                  "focus-visible",
+                  "hover",
+                  "pressed",
+                  "rest"
                 ],
                 "type": [
                   "page"
@@ -23212,8 +23915,12 @@
       "drawnNotDeclared": []
     },
     "pagination-item": {
-      "members": 27,
+      "members": 87,
       "axes": {
+        "labeled": [
+          "false",
+          "true"
+        ],
         "selection": [
           "selected",
           "unselected"
@@ -23224,6 +23931,7 @@
           "small"
         ],
         "state": [
+          "disabled",
           "focus-visible",
           "hover",
           "pressed",
@@ -23235,7 +23943,9 @@
         ],
         "type": [
           "ellipsis",
-          "page"
+          "next",
+          "page",
+          "previous"
         ]
       },
       "tokens": [
@@ -23243,7 +23953,12 @@
         "border-width.thick",
         "color.border.focus",
         "color.border.tertiary",
+        "color.disabled.icon",
+        "color.disabled.text",
         "color.icon.secondary",
+        "color.interactive.neutral.icon.hover",
+        "color.interactive.neutral.icon.pressed",
+        "color.interactive.neutral.icon.rest",
         "color.interactive.neutral.overlay.hover",
         "color.interactive.neutral.overlay.pressed",
         "color.interactive.neutral.text.hover",
@@ -23259,6 +23974,7 @@
         "size.md.height",
         "size.sm.height",
         "space.0",
+        "space.050",
         "space.100",
         "type.label.lg.default",
         "type.label.lg.emphasis",

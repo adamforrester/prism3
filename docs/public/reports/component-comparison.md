@@ -22,7 +22,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 - **axis size** — the size axis takes 3 value sets — [large, medium, small] in _accordion-indicator, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, pagination, pagination-item, password-field, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, select, tab, tabs, tag, text-field, textarea; [medium, small] in switch-control, switch-row; [large, medium, small, x-small] in spinner
 - **axis style** — the style axis takes 3 value sets — [outline] in password-field, text-field, textarea; [border, underline] in pagination, pagination-item; [inline, standalone] in link
 - **axis tone** — the tone axis takes 2 value sets — [brand, danger, info, inherit, primary, secondary, success, tertiary, warning] in icon; [danger, info, neutral, success, warning] in badge
-- **axis type** — the type axis takes 5 value sets — [icon, ordered, unordered] in list, list-item; [compact, numbered, simple] in pagination; [count, dot, status] in badge; [dismissible, select] in tag; [ellipsis, page] in pagination-item
+- **axis type** — the type axis takes 5 value sets — [icon, ordered, unordered] in list, list-item; [compact, numbered, simple] in pagination; [count, dot, status] in badge; [dismissible, select] in tag; [ellipsis, next, page, previous] in pagination-item
 - **axis weight** — the weight axis takes 2 value sets — [bold, regular] in field-label; [default, emphasis] in link
 
 ### axis without prop
@@ -106,7 +106,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 
 - **role peers: *.Control** — radio-control differs from the group's common set [disabled, error, focus-visible, hover, pressed, rest] — lacks error
 - **role peers: *.Row** — no state set is shared by most of the group — checkbox-row [rest, hover, pressed, focus-visible, disabled, read-only, error]; radio-row [rest, hover, pressed, focus-visible, disabled, read-only]; switch-row [rest, hover, pressed, pending, focus-visible, disabled, read-only, error]
-- **role peers: *.Item** — no state set is shared by most of the group — list-item []; pagination-item [rest, hover, pressed, focus-visible]
+- **role peers: *.Item** — no state set is shared by most of the group — list-item []; pagination-item [rest, hover, pressed, focus-visible, disabled]
 - **substrate: button** — flush-icon-button differs from the group's common set [disabled, focus-visible, hover, inactive, pending, pressed, rest] — lacks inactive, pending
 - **substrate: button-destructive** — flush-icon-button-destructive differs from the group's common set [disabled, focus-visible, hover, inactive, pending, pressed, rest] — lacks inactive, pending
 - **substrate: button-neutral** — flush-icon-button-neutral differs from the group's common set [disabled, focus-visible, hover, inactive, pending, pressed, rest] — lacks inactive, pending
@@ -158,7 +158,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 | list | data | — | — |
 | list-item | data | — | — |
 | pagination | navigation | — | — |
-| pagination-item | navigation | rest, hover, pressed, focus-visible | rest, hover, pressed, focus-visible |
+| pagination-item | navigation | rest, hover, pressed, focus-visible, disabled | rest, hover, pressed, focus-visible, disabled |
 | password-field | form | rest, hover, pending, filled, focus-visible, focus-visible-filled, disabled, read-only, empty | rest, hover, filled, focus-visible, focus-visible-filled, disabled, read-only |
 | radio-control | form | rest, hover, pressed, focus-visible, disabled | rest, hover, pressed, focus-visible, disabled |
 | radio-group | form | rest | — |
@@ -180,7 +180,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 
 | State | Components |
 |---|---|
-| disabled | button, button-destructive, button-neutral, checkbox-control, checkbox-row, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, password-field, radio-control, radio-row, segmented-control-segment, select, switch-control, switch-row, tab, tag, text-field, textarea |
+| disabled | button, button-destructive, button-neutral, checkbox-control, checkbox-row, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, pagination-item, password-field, radio-control, radio-row, segmented-control-segment, select, switch-control, switch-row, tab, tag, text-field, textarea |
 | empty | password-field, select, text-field, textarea |
 | error | checkbox-control, checkbox-row, switch-control, switch-row |
 | filled | password-field, select, text-field, textarea |
@@ -210,6 +210,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 | inset | default, flush | button, button-destructive, button-neutral |
 |  | inset, middle-inset, none | divider |
 | intensity | medium, strong, subtle | veil |
+| labeled | false, true | pagination-item |
 | offset | control, field | focus-ring |
 | orientation | horizontal, vertical | divider |
 | placement | bottom, center, full | dialog |
@@ -234,7 +235,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 |  | compact, numbered, simple | pagination |
 |  | count, dot, status | badge |
 |  | dismissible, select | tag |
-|  | ellipsis, page | pagination-item |
+|  | ellipsis, next, page, previous | pagination-item |
 | value | dark, light | veil |
 | weight | bold, regular | field-label |
 |  | default, emphasis | link |
@@ -387,6 +388,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | icon-button | false | — |
 |  | icon-button-destructive | false | — |
 |  | icon-button-neutral | false | — |
+|  | pagination-item | false | — |
 | isPending | button | false | — |
 |  | button-destructive | false | — |
 |  | button-neutral | false | — |
@@ -563,7 +565,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | list | unordered | unordered, ordered, icon |
 |  | list-item | unordered | unordered, ordered, icon |
 |  | pagination | numbered | numbered, compact, simple |
-|  | pagination-item | page | page, ellipsis |
+|  | pagination-item | page | page, ellipsis, previous, next |
 |  | tag | select | select, dismissible |
 |  | text-field | text | text, email, url, tel, search, password |
 | validation | password-field | default | default, error, warning, success |

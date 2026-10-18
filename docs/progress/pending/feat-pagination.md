@@ -5,10 +5,10 @@ Built to the proposal and wireframe on #2665, which the owner approved with ever
 a new `↳ Pagination` page under Components:
 
 - **Pagination** (`pagination`), 12 members: `type` [numbered, compact, simple] × `style` [border, underline] × `size`
-  [medium, small, large], the style on numbered only. numbered
-  is a nested IconButton.Neutral (ghost, square, a left chevron through #2645's swap override), a native `items` slot of
+  [medium, small, large], the style on numbered only. As first built (superseded by Q414 A, below), numbered
+  was a nested IconButton.Neutral (ghost, square, a left chevron through #2645's swap override), a native `items` slot of
   seven Pagination.Item instances showing page 5 of 10 (1 … 4 [5] 6 … 10), and a second IconButton.Neutral with a right
-  chevron, 4px apart. compact puts "Page 5 of 10" between the two buttons. simple is two nested Button.Neutral, text,
+  chevron, 4px apart. compact put "Page 5 of 10" between the two buttons. simple was two nested Button.Neutral, text,
   "Previous" and "Next" with their chevrons, at opposite ends of a row built at 428px. Previous and next are
   `nest-exposed` on `state`, so a designer sets them to disabled at an end.
 - **Pagination.Item** (`pagination-item`, unprefixed per Q394 A, the `items` slot's preferred item), 27 members: `type` [page, ellipsis] ×
@@ -100,7 +100,24 @@ drops a reaction whose destination member is absent, so the current page gets no
   prop in the approved table, so `getStatusText` (the translatable status string, which the brief's §9 asks for and
   the live region reuses) carries it. Held for the owner.
 
+### Owner decision Q414 A (2026-10-18): Pagination draws its own previous and next
+
+#2808 (Q386, merged in #2813) made it a gate that no component requires a Neutral button family, which approved call
+2 A (IconButton.Neutral and Button.Neutral for previous and next) broke. The owner chose A on Q-2796-1: previous and
+next are Pagination.Item cells. `type` gains `previous` and `next`: the same square cell with `chevron-left` or
+`chevron-right`, in the neutral icon ink and the neutral wash, with the page cells' states plus `disabled`, which is how
+Figma draws the inactive end (calls 9 A and 12 A: `aria-disabled`, still focusable, never native disabled; named
+"Previous page" and "Next page"). simple's two text controls are the same cells with the word beside the chevron,
+through a new variant axis, `labeled: false | true` (a nest sets only variant values, so a Figma boolean could not turn
+the word on from the row). Each word has its own TEXT property ("previous label", "next label"), one caption each
+(#1567). The item grows from 27 to 87 members; Pagination keeps 12, and the #2808 arms now pass for both defs.
+`labeled` is the 28th axis name in `VARIANT_AXES`, registered as a `sole` set in `lint-axis-values.ts`.
+
 ### Held for the owner (also in the PR)
+
+The `labeled` axis name and its false/true values; the two words' TEXT properties and their props `previousLabel`
+and `nextLabel`; the 4px gap between chevron and word; the chevrons at the gap icon's glyph rung in the neutral icon
+ink; and the disabled inks at an end (all Q414 A follow-through).
 
 The name Pagination.Item (the proposal said PaginationItem; the skill's Family.Part canon decides); the `getStatusText` prop and its Figma name "status text"; the
 simple member's 428px build width; the item's label inset past two digits (`space.100`); the item aliases `page-item`
