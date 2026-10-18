@@ -35,7 +35,11 @@ export type HostMessage =
   // so it needs its own verdict slot and cannot overwrite theirs.
   | { kind: 'file-setup-result'; ok: boolean; headline: string; summary: string }
   // #259 — the outcome of a `style-guide` run, its own slot.
-  | { kind: 'style-guide-result'; ok: boolean; headline: string; summary: string; stopped?: { done: number; total: number }; lines: readonly string[] | null }
+  | { kind: 'style-guide-result'; ok: boolean; headline: string; summary: string; stopped?: { done: number; total: number }; lines: readonly string[] | null;
+    /** The cleanup offer (Q412 A, #2816): the tables the generator no longer draws that the run left, empty when none. */
+    retired: readonly { id: string; name: string }[] }
+  // Q412 A — the confirmed cleanup's outcome: the tables removed, by node id.
+  | { kind: 'style-guide-cleanup-result'; ok: boolean; removed: readonly string[]; summary: string }
   // UI redesign S11.2 — the Build style guides page: what the file holds and which tables a run would draw (`error`
   // set when the host could not read it), a panel run's table list, and each table's move.
   | { kind: 'style-guide-catalog'; catalog: StyleGuideCatalog; error: string | null }
@@ -113,6 +117,9 @@ export interface HostCommit {
   requestStyleGuideCatalog(): void;
   /** Ask the host to stop the running style guide after its current table (S11.2, owner decision P7; Figma only). */
   cancelStyleGuide(): void;
+  /** Remove the tables the designer confirmed from a style-guide run's offer (Q412 A, #2816; Figma only, no-op on web),
+   *  by node id. Answered with `style-guide-cleanup-result`. */
+  cleanUpStyleGuide(ids: readonly string[]): void;
   /** Ask the host to PRUNE the styles/variables/collections the current config no longer emits (#1521;
    *  Figma only, no-op on web — the web host writes CSS custom properties, which have no stale-item
    *  problem). `confirm: false` asks for a preview (a `prune-result` with `applied: false`); `confirm:
@@ -250,8 +257,17 @@ const INBOUND: { readonly [K in MainToUi['type']]: Validator<K> | null } = {
   'style-guide-result': (m) => {   // #259
     // S11.2: a cancelled run says how far it got; a malformed `stopped` is left off rather than guessed.
     const st = m.stopped && typeof m.stopped === 'object' ? tableReading(m.stopped as { done?: unknown; total?: unknown }) : null;
-    return { ...verdict('style-guide-result', m, '✓ style guide written', '✗ style guide failed'), ...(st ? { stopped: st } : {}), lines: linesOf(m.lines) };
+    // Q412 A: an offer entry that is not an id and a name is dropped; a malformed list offers nothing.
+    const retired = Array.isArray(m.retired) ? (m.retired as unknown[]).flatMap((x) => {
+      const t = (x ?? {}) as Record<string, unknown>;
+      return str(t.id) && str(t.name) && t.id ? [{ id: t.id, name: t.name }] : [];
+    }) : [];
+    return { ...verdict('style-guide-result', m, '✓ style guide written', '✗ style guide failed'), ...(st ? { stopped: st } : {}), lines: linesOf(m.lines), retired };
   },
+  'style-guide-cleanup-result': (m) => ({   // Q412 A
+    kind: 'style-guide-cleanup-result', ok: !!m.ok, summary: String(m.summary ?? ''),
+    removed: Array.isArray(m.removed) ? (m.removed as unknown[]).filter((x): x is string => typeof x === 'string') : [],
+  }),
   // S11.2. A catalog that is not one is dropped: the page keeps asking rather than drawing a tree from nothing.
   'style-guide-catalog': (m) => {
     const catalog = catalogOf(m.catalog);
@@ -394,6 +410,9 @@ const figmaCommit = (): HostCommit => ({
   cancelStyleGuide() {
     post({ type: 'style-guide-cancel' });
   },
+  cleanUpStyleGuide(ids) {
+    post({ type: 'style-guide-cleanup', ids: [...ids] });
+  },
   postPrune(input, confirm) {
     post({ type: 'prune', input: input as ApplyTheme['input'], confirm });
   },
@@ -421,6 +440,7 @@ const webCommit = (): HostCommit => ({
   postStyleGuide() {/* no canvas on web — the style guide is drawn in Figma (#259) */},
   requestStyleGuideCatalog() {/* no file on web (S11.2) */},
   cancelStyleGuide() {/* no style guide runs on web (S11.2) */},
+  cleanUpStyleGuide() {/* no style guide runs on web (Q412 A) */},
   postPrune() {/* no figma.variables on web — CSS custom properties have no stale-item problem (#1521) */},
   onHostMessage() {/* no host messages on web */},
   requestResize() {/* the browser window is the user's to size on web */},
