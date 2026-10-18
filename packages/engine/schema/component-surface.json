@@ -698,31 +698,28 @@
     },
     "pagination-item": {
       "members": 27,
-      "sha256": "c619d82adaf7e4cb23caae6ad35f434ae379ecd4529d86468ee7ab652f242991",
+      "sha256": "b57bc17f326e3be178677ea7ecfa4d5a2671789f538e750be51640aa3e51a574",
       "properties": [
-        "ellipsis:TEXT",
         "label:TEXT"
       ]
     },
     "pagination-item@outline-solid-tint": {
       "members": 27,
-      "sha256": "a9b06c8a8e000c868eff73710fa9b29264b4f19b0f7daf5faee0727510fcfa02",
+      "sha256": "abaead9764cdb784af3465ff85376c1386e1a5f8bb0fa11da19a1d4bdb0280a9",
       "properties": [
-        "ellipsis:TEXT",
         "label:TEXT"
       ]
     },
     "pagination-item@outline-none": {
       "members": 27,
-      "sha256": "21157b0ab8cdff272cb77a4c7a67e733c39eae0d6810f4797afc99f3d76f01b3",
+      "sha256": "a6c3aaf3f576a659c6f176a060efccc39c2f25bebaaed72e569695ad4063ddb9",
       "properties": [
-        "ellipsis:TEXT",
         "label:TEXT"
       ]
     },
     "pagination": {
       "members": 12,
-      "sha256": "faf05367912258b3ddbc6ca6f05d812f669461d23194b2cf8af563242fa57f99",
+      "sha256": "c030f44a34d92abc63989d88710cb0e91f2759688774b20c5de9cb2720b8e065",
       "properties": [
         "items:SLOT",
         "status text:TEXT"
