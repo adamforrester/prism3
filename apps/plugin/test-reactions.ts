@@ -130,7 +130,7 @@ section('map — the per-def reaction map, literal (owner decision Q238 A, part 
     // #2665: a page cell at three sizes, rest → hover, rest → pressed, hover → pressed (Q344). The current page (rest and
     // focus-visible only, owner call 7, in both of Q381's styles) and the ellipsis (rest only) have no sibling to change
     // to, so they carry none: the style adds six members and no reaction.
-    '_pagination-item': [27, 6, 9],
+    'pagination-item': [27, 6, 9],
   };
   const got: Record<string, [number, number, number]> = {};
   for (const d of componentDefs) {

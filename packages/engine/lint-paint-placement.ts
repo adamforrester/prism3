@@ -297,14 +297,14 @@ const EXPECT_ANATOMY = [
   'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'list-item', 'list',
   'segmented-control-segment', 'segmented-control', 'link', 'dialog', 'password-field',
   // #2665: the page cell and the pagination row.
-  '_pagination-item', 'pagination',
+  'pagination-item', 'pagination',
 ];
 const EXPECT_PAINTERS = [
   'focus-ring', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive',
   'icon-button-neutral', 'text-field', 'textarea', 'checkbox-control', 'radio-control', 'switch-control', 'select', 'veil',
   'image-placeholder', 'badge', 'tag', 'tab', 'tabs', 'divider', 'list-item', 'segmented-control-segment', 'segmented-control', 'dialog',
   // #2665: the page cell's current-page fill and hover wash.
-  '_pagination-item',
+  'pagination-item',
   // #2457 Q287 A: the round shape's edge and wash. The flush shape's box resolves none of them.
   // Q295.2 B: three families, as IconButton's three.
   'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral',

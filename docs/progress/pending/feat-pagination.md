@@ -11,7 +11,7 @@ a new `↳ Pagination` page under Components:
   chevron, 4px apart. compact puts "Page 5 of 10" between the two buttons. simple is two nested Button.Neutral, text,
   "Previous" and "Next" with their chevrons, at opposite ends of a row built at 428px. Previous and next are
   `nest-exposed` on `state`, so a designer sets them to disabled at an end.
-- **Pagination.Item** (`_pagination-item`, a `_` building block per Q349), 27 members: `type` [page, ellipsis] ×
+- **Pagination.Item** (`pagination-item`, unprefixed per Q394 A, the `items` slot's preferred item), 27 members: `type` [page, ellipsis] ×
   `selection` × `style` × `size` × state [rest, hover, pressed, focus-visible], the current page at rest and
   focus-visible only (call 7) in each style, and the ellipsis at rest only. A cell on IconButton's height rung with
   Tag's `minWidthKey` floor (as wide as it is tall, hugging past two digits). The current page has a border or an
@@ -42,8 +42,21 @@ member displays (#1567), so every member, the ellipsis included, read "1". The e
 A new corpus arm in `test.ts` holds the host's rule for every def: no TEXT property is behind two different captions
 across its set.
 
-Sizes lead with medium in both (Q347, Q359), so both join the medium-first exceptions in `#2501`, `lint-rung-names`
-DEFAULT_FIRST and the register's `reordered` size set.
+### Owner decisions Q394 A, Q395 A and Q404 A (2026-10-17)
+
+- **Q394 A** (on #2783): a slot item is not a part "used only inside its parent" in Q349's sense. So the item is
+  `pagination-item`, unprefixed, and the `items` slot names it as its preferred item with preferred-only
+  (`allowPreferredValuesOnly`), the Breadcrumbs shape. The #1392 paste harness now provisions a slot's preferred
+  component as a keyed set in the file, its members from that def's own projection, as the real build makes it first.
+- **Q395 A:** the current page keeps `border.tertiary` at 1px, as built.
+- **Q404 A** (superseding Q396): the gap marker is the existing `more-horizontal` icon (`more-horizontal-filled`, the
+  glyph Breadcrumbs' overflow uses), decorative, `aria-hidden` and not interactive. The ellipsis's text part, its TEXT
+  property and the `mark` prop are gone. The item's one TEXT property, `label`, is bound on page members only, behind
+  the one caption "1", so the build's caption collapse cannot recur. The icon is at IconButton's glyph rungs
+  (`icon.size.sm`, `md`, `lg`, the chevrons' size) in `color.icon.secondary`; both are held for the owner.
+
+Sizes lead with medium in both (Q347, Q359), which #2752 (Q1 B) has since made every ladder's order, so both join the
+canonical size set, `lint-rung-names` DEFAULT_FIRST and the #2752 default-member rule's sized list.
 
 ### The one engine change: a state can be excluded from some members
 
@@ -63,9 +76,8 @@ drops a reaction whose destination member is absent, so the current page gets no
 ### Traps met
 
 - **A `_` building block cannot be a slot's `preferred` component.** Figma leaves an underscore component out of a
-  published library, and the projection refuses it by name. So the items slot carries `minChildren: 1` only, and the
-  conflict between Q349 (prefix) and call 4 (a slot that offers the item) is held for the owner. Worth checking when
-  #2660 (slots preferring `tab` and the segment) and #2769 (the prefix sweep on those two) meet.
+  published library, and the projection refuses it by name. The first build carried `minChildren: 1` only; the owner's
+  Q394 A resolved it by dropping the prefix on slot items.
 - **Overrides inside a native slot were written twice.** The executor's slot pass (`toSlots`) runs `build` over the new
   SLOT and visits its items a second time, so a per-instance override inside a slot was applied, and its miss reported,
   twice. The corpus re-apply in `test-update-apply.ts` caught it (the update's misses outnumbered the build's).
@@ -90,8 +102,6 @@ drops a reaction whose destination member is absent, so the current page gets no
 
 ### Held for the owner (also in the PR)
 
-The name Pagination.Item and id `_pagination-item` (the proposal said PaginationItem; Q349 and the skill's Family.Part
-canon decide); the slot with no preferred component; the `getStatusText` prop and its Figma name "status text"; the
+The name Pagination.Item (the proposal said PaginationItem; the skill's Family.Part canon decides); the `getStatusText` prop and its Figma name "status text"; the
 simple member's 428px build width; the item's label inset past two digits (`space.100`); the item aliases `page-item`
-and `pagination-page`; the forced-colors system color on the current page; the border's 1px width; and the `mark` prop
-the ellipsis's TEXT property needs.
+and `pagination-page`; the forced-colors system color on the current page; and the gap icon's size and ink.

@@ -36,13 +36,19 @@
  *        `test.ts` measures it.
  *   2 A  A per-instance `style: border | underline`. Underline is a 2px bar under the number in the same role.
  *
- * The ellipsis has its own text part, `mark`, and its own TEXT property. A set-level TEXT property holds one default
- * that every bound member displays (#1567), so one `label` property could not read "1" on a page and "…" on the
- * ellipsis: the plugin reported the collapse on both bound parts at build, and the ellipsis read "1".
+ * Owner decision Q394 A (2026-10-17, on #2783): a slot item is not a part "used only inside its parent" in Q349's sense,
+ * so the item is unprefixed, `pagination-item`, and it is the `items` slot's preferred item with preferred-only, the
+ * Breadcrumbs shape. Q395 A: the current page keeps `border.tertiary` at 1px, as built.
+ *
+ * Owner decision Q404 A (2026-10-17, superseding Q396): the gap marker is the existing `more-horizontal` icon
+ * (`more-horizontal-filled`, the one form the set has), the glyph Breadcrumbs' overflow uses. It is decorative,
+ * aria-hidden and not interactive: pages are reached through the numbers and Previous and Next. So the ellipsis has
+ * no text and no TEXT property, and the item has no `mark` prop. That also ends the build-time caption collapse: the
+ * one `label` property is bound on page members only, behind the one caption "1" (#1567).
  *
  * The owner rules of 2026-10-15/16 (#2706) this file follows: Figma's first member is the code default, sizes medium
  * first (Q347, Q359); Figma property names lowercase (Q345); a part used only inside its parent takes the `_` prefix
- * (Q349), so the item is `_pagination-item`; no border binds an icon or text role (Q346: the current page's border binds
+ * (Q349), which Q394 A rules does not reach a slot item, so the item is `pagination-item`; no border binds an icon or text role (Q346: the current page's border binds
  * `color.border.tertiary`, a border role);
  * nested parts reuse IconButton, Button and the focus ring. Rest carries While hovering and While pressing, Hover
  * carries While pressing (Q344): the plugin derives that chain from the item's rest/hover/pressed states.
@@ -61,22 +67,21 @@
 import { ComponentDef } from '../component-schema';
 
 export const paginationItem: ComponentDef = {
-  id: '_pagination-item',
+  id: 'pagination-item',
   name: 'Pagination.Item',
   aliases: ['page-item', 'pagination-page'],
   category: 'navigation',
   status: 'draft',
-  summary: 'One page number in a pagination row, or the ellipsis between them. The current page is outlined.',
+  summary: 'One page number in a pagination row, or the gap marker between them. The current page is outlined.',
   description:
-    'One cell in a pagination row: a page number, or the ellipsis that stands for two or more hidden pages. A page cell is as tall as an icon button and at least as wide as it is tall, so a row of pages and the previous and next buttons beside them line up as equal squares; a page number past two digits widens it. The current page is marked, not filled: a border, or a 2px underline under its number, in a gray that stands out from the page at 3:1, with its number in the emphasis weight. It keeps its width, so the row does not move. At hover and press, another page shows a light neutral wash. The ellipsis does not respond to the pointer and takes no focus. Pagination places the cells and decides which page is current.',
+    'One cell in a pagination row: a page number, or the gap marker, three dots, that stands for two or more hidden pages. A page cell is as tall as an icon button and at least as wide as it is tall, so a row of pages and the previous and next buttons beside them line up as equal squares; a page number past two digits widens it. The current page is marked, not filled: a border, or a 2px underline under its number, in a gray that stands out from the page at 3:1, with its number in the emphasis weight. It keeps its width, so the row does not move. At hover and press, another page shows a light neutral wash. The gap marker is decorative: it does not respond to the pointer, takes no focus and is hidden from assistive technology. Pagination places the cells and decides which page is current.',
 
   props: [
     { name: 'label', type: 'string', required: true, description: 'The page number as shown, such as "4". Pagination sets it, through the locale\'s number format.' },
     { name: 'page', type: 'number', required: false, description: 'The page this cell opens. Absent on an ellipsis.' },
     { name: 'href', type: 'string', required: false, description: 'The address of the page. Present, the cell is a link; absent, it is a button that changes the page in place.' },
     { name: 'selected', type: 'boolean', default: false, required: false, description: 'Whether this is the current page. Set by Pagination; do not set it on a cell inside a pagination row.' },
-    { name: 'type', type: "enum: 'page' | 'ellipsis'", values: ['page', 'ellipsis'], default: 'page', required: false, description: 'page: a page number the user can open. ellipsis: the mark that stands for two or more pages not shown.' },
-    { name: 'mark', type: 'string', default: '…', required: false, description: 'The character an ellipsis shows, "…". Unused on a page.' },
+    { name: 'type', type: "enum: 'page' | 'ellipsis'", values: ['page', 'ellipsis'], default: 'page', required: false, description: 'page: a page number the user can open. ellipsis: the three-dot icon that stands for two or more pages not shown.' },
     { name: 'style', type: "enum: 'border' | 'underline'", values: ['border', 'underline'], default: 'border', required: false, description: 'How the current page is marked: a border around the cell, or a 2px line under the number. Passed down by Pagination.' },
     { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'The cell height and label type, matching the icon buttons beside it. Passed down by Pagination.' },
   ],
@@ -125,6 +130,10 @@ export const paginationItem: ComponentDef = {
     'size.medium.type.selected': 'type.label.md.emphasis',
     'size.large.type.unselected': 'type.label.lg.default',
     'size.large.type.selected': 'type.label.lg.emphasis',
+    // Q404 A: the gap marker's glyph on IconButton's glyph rungs, so it is the size of the chevrons beside it.
+    'size.small.icon': 'icon.size.sm',
+    'size.medium.icon': 'icon.size.md',
+    'size.large.icon': 'icon.size.lg',
 
     // A PAGE — no fill at rest; the neutral wash at hover and pressed, as IconButton.Neutral ghost.
     'unselected.page.label': 'color.interactive.neutral.text.rest',
@@ -140,8 +149,9 @@ export const paginationItem: ComponentDef = {
     'selected.underline.page.fill.rest': 'color.border.tertiary',
     'selected.underline.page.fill.focus-visible': 'color.border.tertiary',
     'selected.page.label': 'color.interactive.neutral.text.rest',
-    // THE ELLIPSIS — secondary text, no fill, no state.
-    'unselected.ellipsis.label': 'color.text.secondary',
+    // THE ELLIPSIS — the more-horizontal icon (Q404 A) in the secondary icon ink, the icon role beside the secondary
+    // text the mark used before; no fill, no state.
+    'unselected.ellipsis.icon': 'color.icon.secondary',
   },
 
   anatomy: {
@@ -151,7 +161,7 @@ export const paginationItem: ComponentDef = {
         kind: 'box',
         role: 'target',
         paintSlots: ['overlay', 'border'],
-        children: ['labelBox', 'mark', 'focusRing'],
+        children: ['labelBox', 'gapIcon', 'focusRing'],
         layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'hug', y: 'fixed' } },
         height: 'size.{size}.height',
         minWidthKey: 'size.{size}.height',
@@ -205,11 +215,12 @@ export const paginationItem: ComponentDef = {
         layout: { direction: 'row', align: 'center', justify: 'start', sizing: { x: 'fill', y: 'fixed' } },
         note: 'The 2px line under the current page\'s number, in the underline style, in the same gray as the border.',
       },
-      mark: {
-        kind: 'text',
+      gapIcon: {
+        kind: 'vector',
+        glyph: 'more-horizontal-filled',
+        size: 'size.{size}.icon',
         presentWhen: { type: ['ellipsis'] },
-        type: 'size.{size}.type.unselected',
-        note: 'The ellipsis, "…", its own text so it never reads as a page number.',
+        note: 'The gap marker: the more-horizontal icon, three dots, decorative and hidden from assistive technology (Q404 A). It is not a control.',
       },
       focusRing: {
         kind: 'absolute',
@@ -223,7 +234,7 @@ export const paginationItem: ComponentDef = {
     },
     codeOnly: [
       'The element — an <a href> when Pagination has getHref, otherwise a <button type="button">. Never an <a href="#"> with a click handler. The current page carries aria-current="page" and stays in the Tab order.',
-      'The ellipsis in code — an <li aria-hidden="true"> holding the mark, with no control in it. It is never focusable and never announced: the list already implies the gap.',
+      'The ellipsis in code — an <li aria-hidden="true"> holding the more-horizontal icon, with no control and no text in it. It is never focusable and never announced: the list already implies the gap.',
       'The accessible name — the number, with a visually hidden "Page " before it, so each cell reads "Page 4"; aria-current adds "current page".',
       'tabular numerals — font-variant-numeric: tabular-nums on the label, so 9, 10 and 100 do not shift the row as the user pages. Figma uses the type style as it is.',
       'The label weight in code — the current page sets its number in the emphasis weight and every cell reserves that width (a hidden bold copy of the label in a column with it, as Tab does), so the row never moves.',
@@ -246,33 +257,32 @@ export const paginationItem: ComponentDef = {
       // Q381 2 A: the style marks the current page only.
       { selection: ['unselected'], style: ['underline'] },
     ],
-    // "1" (call 16 A) on a page; the ellipsis reads "…" through its own part and property. One property cannot do
-    // both: a set-level TEXT property holds one default that every bound member shows (#1567).
+    // "1" (call 16 A) on a page. The ellipsis is an icon (Q404 A), so this is the set's one TEXT property and its one
+    // caption: a set-level TEXT property holds one default that every bound member shows (#1567).
     texts: {
       label: { part: 'label', default: '1', also: ['labelReserve'] },
-      mark: { part: 'mark', default: '…', figmaName: 'ellipsis' },
     },
     booleans: {},
   },
 
   accessibility: {
-    role: 'a link (<a href>) when the page has an address, or a button for a page changed in place; the ellipsis is hidden from assistive technology',
+    role: 'a link (<a href>) when the page has an address, or a button for a page changed in place; the ellipsis is a decorative icon hidden from assistive technology',
     wcag: [
       '1.3.1 Info and Relationships (each cell is a list item; the current page carries aria-current="page")',
       '1.4.1 Use of Color (the current page has a border or an underline and a heavier weight, and aria-current)',
       '1.4.3 Contrast (Minimum) (every number on the page at 4.5:1)',
-      '1.4.11 Non-text Contrast (the current page\'s border or underline at 3:1 against the page)',
+      '1.4.11 Non-text Contrast (the current page\'s border or underline at 3:1 against the page; the decorative gap icon is exempt)',
       '2.4.4 Link Purpose (In Context) (each cell is named "Page N")',
       '2.4.7 Focus Visible (the shared focus ring)',
       '2.5.8 Target Size (Minimum) (targets 44px at medium and large on comfortable and spacious density)',
     ],
     keyboard: 'Each page is its own Tab stop; Enter opens it, and Space also does when it is a button. Arrow keys do not move between pages. The ellipsis is skipped.',
     focus: 'A focus ring around the cell on :focus-visible, the current page included.',
-    aria: 'aria-current="page" on the current page. A visually hidden "Page " before each number, so it reads "Page 4". aria-hidden="true" on the ellipsis.',
+    aria: 'aria-current="page" on the current page. A visually hidden "Page " before each number, so it reads "Page 4". aria-hidden="true" on the ellipsis icon.',
   },
 
   content: {
-    labelPattern: 'The page number, in the locale\'s numerals. Nothing else is shown in the cell.',
+    labelPattern: 'The page number, in the locale\'s numerals. Nothing else is shown in the cell; the ellipsis shows the three-dot icon and no text.',
   },
 
   docs: {
@@ -306,8 +316,8 @@ export const paginationItem: ComponentDef = {
 
   notes: {
     contested: [
-      'HELD FOR THE OWNER (#2665): the name Pagination.Item and the id `_pagination-item` (the proposal said PaginationItem / pagination-item; Q349 adds the prefix and the skill names a family part Family.Part), the aliases page-item and pagination-page, the label inset past two digits (space.100), and the forced-colors system color on the current page.',
-      'HELD FOR THE OWNER (Q381): the border is 1px (`border-width.hairline`, Button\'s outline); the underline is the decided 2px. No neutral border role sits near 3:1: `border.secondary` is 2.00 to 2.40 in light and dark, so `border.tertiary` (4.21 to 5.54 there) is the lightest that clears it. A role nearer 3:1 would be a new token. The ellipsis\'s own TEXT property needs a prop, `mark` (Figma name "ellipsis").',
+      'HELD FOR THE OWNER (#2665): the name Pagination.Item (the proposal said PaginationItem; the skill names a family part Family.Part; the id is `pagination-item` by Q394 A), the aliases page-item and pagination-page, the label inset past two digits (space.100), and the forced-colors system color on the current page.',
+      'HELD FOR THE OWNER: the gap icon\'s size and ink, IconButton\'s glyph rungs (icon.size.sm, md, lg, the chevrons\' size) in color.icon.secondary, the icon role beside the secondary text the mark used before (Q404 A named the glyph, not these).',
     ],
     unverified: [
       'The current page\'s border against color.background.secondary (lowest 3.88 by the same measure) is measured only against color.background.primary in test.ts.',
@@ -315,6 +325,7 @@ export const paginationItem: ComponentDef = {
     evolution: [
       '2026-10-16 (#2665): owner decision, every numbered call A: a new page cell (3), filled primary current page in the emphasis weight with the width held (5), rest and focus-visible only on the current page (7), small, medium and large on IconButton\'s rungs (8).',
       '2026-10-16 (Q381, after QA): the current page loses the primary fill for a border in color.border.tertiary (3:1 against the page) with its number semibold, and a `style: border | underline` axis adds the 2px underline. The ellipsis gets its own text part and property, since one TEXT property read "1" on every member.',
+      '2026-10-17 (Q394 A, Q395 A, Q404 A): the id loses the `_` prefix and the item becomes the items slot\'s preferred item, preferred-only; border.tertiary at 1px kept; the ellipsis becomes the decorative more-horizontal icon, so its text part, its TEXT property and the `mark` prop go.',
     ],
   },
 };
@@ -323,7 +334,7 @@ export const paginationItem: ComponentDef = {
 // The current page also follows the row's `style` (Q381 2 A); the other cells have only the border style.
 const item = (type: 'page' | 'ellipsis', selection: 'unselected' | 'selected', label: string | null, note: string) => ({
   kind: 'nest' as const,
-  nests: '_pagination-item',
+  nests: 'pagination-item',
   nesting: { kind: 'nest-fixed' as const, variant: { type, selection, style: 'border', size: 'medium', state: 'rest' }, follow: selection === 'selected' ? ['style', 'size'] : ['size'] },
   ...(label ? { overrides: { texts: { label } } } : {}),
   note,
@@ -411,11 +422,11 @@ export const pagination: ComponentDef = {
         kind: 'box',
         role: 'presentation',
         presentWhen: { type: ['numbered'] },
-        // Call 4 A: a native slot of Pagination.Item, seven by default, at least one (#2646's constraints). It names no
-        // `preferred` component: the item is a `_` building block (Q349), which Figma leaves out of a published
-        // library, so the projection refuses it as a preferred value. Held for the owner on #2665.
+        // Call 4 A: a native slot of Pagination.Item, seven by default, at least one (#2646's constraints). Q394 A: the
+        // item is unprefixed and is the slot's preferred item, preferred-only, the Breadcrumbs shape.
         contentSlot: true,
-        slotSettings: { minChildren: 1 },
+        slotSettings: { minChildren: 1, allowPreferredValuesOnly: true },
+        preferred: ['pagination-item'],
         children: ['item1', 'item2', 'item3', 'item4', 'item5', 'item6', 'item7'],
         layout: { direction: 'row', align: 'center', justify: 'start', sizing: { x: 'hug', y: 'hug' } },
         gap: 'gap',
@@ -542,13 +553,13 @@ export const pagination: ComponentDef = {
     primaryPurpose: 'Move between the pages of a long, ordered set of results and show which page is open.',
     whenToUse: 'Search results, a catalog or a table split into pages, where the user benefits from the count and from jumping to a page; or previous and next through an article.',
     avoidWhen: 'A feed with no useful end (a load more Button), a few fixed views (tabs or a segmented control), the slides of a carousel, or rows per page and a "Go to page" field (the table pager, not yet built).',
-    commonPartners: ['_pagination-item', 'icon-button-neutral', 'button-neutral', 'list'],
+    commonPartners: ['pagination-item', 'icon-button-neutral', 'button-neutral', 'list'],
     triggerKeywords: ['pagination', 'pager', 'page numbers', 'previous and next', 'page 1 of 10', 'next page'],
     generationPriority: 2,
   },
 
   composition: {
-    composesWith: ['icon-button-neutral', '_pagination-item', 'button-neutral'],
+    composesWith: ['icon-button-neutral', 'pagination-item', 'button-neutral'],
     alternativeTo: ['tabs'],
     replacesPatterns: ['page links built from <a href="#"> and click handlers', 'a disabled next button that drops focus at the last page', 'infinite scroll on a page with a footer'],
     supersededBy: [],
@@ -563,7 +574,7 @@ export const pagination: ComponentDef = {
 
   notes: {
     contested: [
-      'HELD FOR THE OWNER (#2665): the simple member built at 428px; the `getStatusText` prop and its Figma name "status text", which the compact text needs to be editable; the items slot with no preferred component and no ceiling (a `_` building block cannot be a slot\'s preferred value, so the slot does not offer Pagination.Item first); no gap between the previous or next button and the compact text beyond the 4px row gap.',
+      'HELD FOR THE OWNER (#2665): the simple member built at 428px; the `getStatusText` prop and its Figma name "status text", which the compact text needs to be editable; the items slot with no ceiling; no gap between the previous or next button and the compact text beyond the 4px row gap.',
     ],
     unverified: [
       'That a designer can add and reorder Pagination.Item instances in the items slot on a real Figma host, with each instance\'s own label override kept, as the accordion\'s slot keeps its content.',
@@ -571,6 +582,7 @@ export const pagination: ComponentDef = {
     evolution: [
       '2026-10-16 (#2665): owner decision, every numbered call A: one component with three types (1), IconButton.Neutral prev and next and text Buttons in simple (2), a native items slot (4), the seven-slot window (6), inactive controls at an end (9), the container-width switch to compact (10), focus to the results after an in-place change (11), links or buttons from getHref (12), no table pager (13), no inverse surface (14), the axis name `type` (15), the names and wording (16), the carousel indicator separate (17).',
       '2026-10-16 (Q381, after QA): `style: border | underline` per instance, passed to the current page.',
+      '2026-10-17 (Q394 A): the items slot names Pagination.Item as its preferred item, preferred-only.',
     ],
   },
 };

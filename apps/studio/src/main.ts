@@ -54,6 +54,7 @@ import {
 // The component catalog, which the set build asks whether a set can be built (UI redesign S8.2: the Components page
 // itself lists it, from `preview/components.ts`; the Button options moved to `domains/components.ts`).
 import { componentCatalog } from './state/component-catalog';
+import { currentOf, positionOf, record, runVerdict, startRun, stopRun, type BuildRun, type RunKind } from './state/build-queue';
 // The brand's Control shape, for the Style guide's radius sample (UI redesign S7, owner decision D18 B).
 import { brandControlShape } from './state/shape-input';
 // The Elevation and Motion writes moved to `state/depth-motion-input.ts` (UI redesign S9.1), and every Elevation and
@@ -358,6 +359,8 @@ const setHost = (patch: Partial<HostSession>): void => { host = { ...host, ...pa
 export const handleHostMessage: Parameters<HostCommit['onHostMessage']>[0] = (m) => {
   const prev = host;
   host = reduce(prev, m);
+  // #2700: a set's result while a multi-set run is out posts the next set, before this message's topics fire.
+  if (m.kind === 'component-result' && prev.componentState === 'pending') runAfterResult(m, prev.componentDef);
   const effect = brandEffectFor(m, prev, host);
   // Origin `file`: this brand IS what the Figma file holds, so it is what a reset returns to and what
   // dirtiness is measured against (#722).
@@ -1100,10 +1103,16 @@ const mountView = (view: RootView): void => {
         figma: commit.isFigma ? figmaActions : null,
         // #2178: the bar's Apply Theme, lent apart from the Figma menu, which no longer lists it.
         applyTheme: commit.isFigma ? applyAction : null,
+        // #2637 Q384: the bar's Docs. In the plugin the main thread opens the docs in the browser; on the web it is a link.
+        openDocs: commit.isFigma ? () => commit.openDocs() : null,
         // S3: Brand's preview is the Style guide, lent the same way until a slice replaces it.
         // S6.2 lent Type's levers the legacy Text styles controls; S6.3 replaced them, so only the fonts are lent.
         // S8.2: the Components page's set builds, lent so that page never imports this file.
-        lend: { styleGuide: renderPreviewStyleGuide, fonts: () => host, sets: { busy: componentBusy, lastOf: (id) => host.setBuilds.get(id), run: runBuild } },
+        lend: { styleGuide: renderPreviewStyleGuide, fonts: () => host, sets: {
+          busy: componentBusy, agentBusy: () => agentRunning('components'), lastOf: (id) => host.setBuilds.get(id),
+          run: runSets, stop: stopSets, current: () => run, last: () => lastRun,
+          showResult: () => { setHost({ openDetail: 'components' }); hostChanged(); },
+        } },
         // The product mark's logo, `styles.css`'s fixed gradient, lent like the views above.
         logo: () => el('span', 'logo'),
         // S13.1: the top bar's brand menu, Export and the plugin's dialogs, drawn by the shell over this file's state.
@@ -1613,7 +1622,13 @@ const activityReading = (): ActivityReading => {
         host.componentLatest === 'update' ? verdictOf(host.componentUpdate) : verdictOf(host.componentState),
         () => {
           const check = host.componentState === 'pending' ? undefined : CHECK_TEXT[host.agentRun?.cmd ?? ''];
-          return check ? { phase: check, progress: null } : componentPhase(host.componentState === 'pending' ? host.componentProgress : agentBuildReading());
+          if (check) return { phase: check, progress: null };
+          const r = componentPhase(host.componentState === 'pending' ? host.componentProgress : agentBuildReading());
+          // #2700: a run of several sets names the set and its place: "Button.Destructive (2 of 4) · Building members…".
+          if (!run || run.ids.length < 2 || !r.phase) return r;
+          const { at, of } = positionOf(run);
+          const name = componentCatalog().find((e) => e.id === currentOf(run!))?.name ?? '';
+          return { ...r, phase: `${name} (${at} of ${of}) · ${r.phase}` };
         }),
       filesetup: opReading('filesetup', host.fileSetupState === 'pending', verdictOf(host.fileSetupState), fixed(PENDING_TEXT.filesetup)),
       // The tables that failed, as data, so a run where one failed draws Activity's red dot (D-RED A, decision (a)). The
@@ -1722,12 +1737,44 @@ const runFileSetup = (): void => {
  *  it posted (`componentDef`), so the verdict that answers it is recorded against that set (G9). `componentProgress`
  *  clears as well as on the result (#684): a build that throws before the executor returns posts a failed result, and
  *  one that never answers posts nothing, so a fraction from an abandoned run must not lead the next one. */
-const runBuild = (id: string): void => {
-  if (componentBusy()) return;
-  if (!componentCatalog().some((e) => e.id === id && e.buildable)) return;
+/** THE RUN OUT NOW (#2700), or null: the sets a build posts one after another (`state/build-queue.ts`), and the last
+ *  run that ended, with its verdict, for the action bar's after-state. */
+let run: BuildRun | null = null;
+let lastRun: { run: BuildRun; verdict: { ok: boolean; headline: string; lines: string[] } } | null = null;
+/** Post the run's current set, as one build always has (#1633: it builds any set it nests first). */
+const postCurrent = (): void => {
+  const id = run ? currentOf(run) : null;
+  if (!id) return;
   setHost({ componentState: 'pending', componentProgress: null, openDetail: null, componentDef: id });
-  hostChanged();
   commit.postComponents(id);
+};
+/** Build these sets (#2700: the action bar's selection, or Subcomponents' "Build all"), one after another. Refuses
+ *  while a build runs, the panel's or an agent's (the one re-fire guard, #1956 decision 4), and drops a set the catalog
+ *  does not offer (G4 A: a set that can't be built is never posted, whatever asked). */
+const runSets = (kind: RunKind, ids: readonly string[]): void => {
+  if (componentBusy()) return;
+  const ok = ids.filter((id) => componentCatalog().some((e) => e.id === id && e.buildable));
+  if (!ok.length) return;
+  run = startRun(kind, ok);
+  lastRun = null;
+  postCurrent();
+  hostChanged();
+  invalidate('host:components');
+};
+/** Stop after the set being built (call 16 A). */
+const stopSets = (): void => { if (!run) return; run = stopRun(run); invalidate('host:components'); };
+/** A set's result while a run is out (#2700): record it against the set posted, then post the next, or end the run.
+ *  Called by `handleHostMessage` after the reduce and BEFORE its topics fire, so between two sets Activity reads the
+ *  build as still running, and sees one result when the run ends. A run of one set keeps the plugin's own verdict. */
+const runAfterResult = (m: Extract<Parameters<typeof reduce>[1], { kind: 'component-result' }>, posted: string | null): void => {
+  if (!run || posted === null || currentOf(run) !== posted) return;
+  run = record(run, { id: posted, result: host.setBuilds.get(posted) ?? (m.ok ? 'ok' : m.completed ? 'issues' : 'failed'), headline: m.headline });
+  if (!run.done) { postCurrent(); return; }
+  const ended = run;
+  run = null;
+  const verdict = ended.ids.length > 1 ? runVerdict(ended, componentCatalog()) : { ok: m.ok, headline: m.headline, lines: [...(m.lines ?? [])] };
+  lastRun = { run: ended, verdict };
+  if (ended.ids.length > 1) setHost({ componentState: { ok: verdict.ok, headline: verdict.headline, summary: verdict.lines.join(' '), lines: verdict.lines }, openDetail: verdict.ok ? null : 'components' });
 };
 /** Prune is unavailable while a prune runs AND while a theme apply runs, panel or agent: a prune reads the
  *  same variables an apply writes, so overlapping the two would race a delete against a create. */
@@ -1779,8 +1826,8 @@ const figmaActions = (): FigmaAction[] => [
   { id: 'prune', label: 'Prune stale', busy: host.pruneBusy === 'preview' ? 'Checking…' : host.pruneBusy === 'delete' ? 'Removing…' : pruneBusy() ? 'Prune stale' : null,
     disabled: pruneBlocked() || !!restoreFailure, hint: restoreFailure ? RESTORE_OFF_HINT : PRUNE_HINT, run: runPrune },
   { id: 'file-setup', label: FILE_SETUP_LABEL, busy: fileSetupBusy() ? 'Setting up…' : null, disabled: false, run: runFileSetup },
-  // S8.2 (owner decision G2 A): Build set… opens the Components tab, where the set is chosen and built.
-  { id: 'build', label: 'Build set…', busy: null, disabled: false, run: () => setPage(pageOfTab('components')) },
+  // S8.2 (owner decision G2 A): Build sets… (#2700, renamed for multi-select) opens the Components tab, where the sets are chosen and built.
+  { id: 'build', label: 'Build sets…', busy: null, disabled: false, run: () => setPage(pageOfTab('components')) },
   // S11.2 (owner decision H10, H11): "Build style guides…" opens the new page, the only way in since H12 (PG1 A).
   { id: 'style-guide', label: 'Build style guides…', busy: null, disabled: false, run: openStyleGuides },
 ];

@@ -239,6 +239,22 @@
         "icon"
       ]
     },
+    "pagination-item": {
+      "glyphs": [
+        {
+          "part": "gapIcon",
+          "glyph": "more-horizontal-filled",
+          "source": "icon set",
+          "how": "drawn",
+          "when": {
+            "type": [
+              "ellipsis"
+            ]
+          }
+        }
+      ],
+      "iconSlots": []
+    },
     "password-field": {
       "glyphs": [],
       "iconSlots": [
@@ -412,7 +428,9 @@
       "checkbox-control"
     ],
     "minus-filled": [],
-    "more-horizontal-filled": [],
+    "more-horizontal-filled": [
+      "pagination-item"
+    ],
     "more-vertical-filled": [],
     "pause-circle": [],
     "play-circle": [],
@@ -460,7 +478,6 @@
     "link",
     "menu",
     "minus-filled",
-    "more-horizontal-filled",
     "more-vertical-filled",
     "pause-circle",
     "play-circle",

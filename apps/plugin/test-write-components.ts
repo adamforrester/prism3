@@ -3664,6 +3664,59 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
 }
 
 // =============================================================================================
+// #2808 (Q386) — NO COMPONENT REQUIRES THE NEUTRAL BUTTON FAMILIES
+// =============================================================================================
+// Owner decision Q386: many teams will not build Button.Neutral or IconButton.Neutral, so no other def may need
+// them. A close or dismiss nests FlushIconButton.Neutral (a subcomponent the plugin builds as a dependency), and a
+// neutral action uses Button.Neutral only as a fallback-only preference the def declares in its own field, never
+// as `nests` (Q363.8 on #2661). This fails BY NAME, per def, on either of two readings that do not share a
+// derivation (`docs/34` shape 2):
+//
+//   · DECLARED — `anatomy.parts[*].nests` straight off the def: the component the def says it nests.
+//   · BUILT — `missingDependencies` over the PROJECTED plans in an empty file: the plugin's own transitive list of
+//     what it builds before the def. It reads `nestTarget`, `swapTarget` and swap overrides off the plan, so it
+//     also sees a requirement the anatomy reaches through a nested def (one level down is still required).
+//
+// A fallback-only reference is not `nests` and not `nestTarget`, so neither reading counts it: that is the
+// declaration Q386 asks for. Floors (shapes 9 and 15): both forbidden ids are registered defs, so renaming one does
+// not empty the gate; every projected def is walked on the BUILT reading, with the count printed and held; and the
+// predicate itself fails a fixture def that nests each forbidden id, so a predicate that matched nothing fails.
+{
+  const FORBIDDEN = ['button-neutral', 'icon-button-neutral'] as const;
+  ok(FORBIDDEN.every((id) => componentDefs.some((d) => d.id === id)),
+    `#2808 the Neutral button families the rule forbids are registered defs (${FORBIDDEN.filter((id) => !componentDefs.some((d) => d.id === id)).join(', ') || 'both found'})`);
+  const project = (d: ComponentDef) => figmaAnatomySet(materializeForBrand(d, null), { swapTarget: SWAP });
+  const builtNeeds = (def: ComponentDef, defs: readonly ComponentDef[], proj: (d: ComponentDef) => AnatomyPlan[]): string[] =>
+    missingDependencies(def, { defs, project: proj, present: () => false }).map((x) => x.def.id).filter((id) => (FORBIDDEN as readonly string[]).includes(id));
+  const declaredNeeds = (def: ComponentDef): string[] =>
+    Object.entries(def.anatomy?.parts ?? {}).filter(([, p]) => !!p.nests && (FORBIDDEN as readonly string[]).includes(p.nests)).map(([n, p]) => `${n} → ${p.nests}`);
+
+  // THE PREDICATES CAN FAIL: a fixture host nesting each forbidden id is flagged by both readings.
+  for (const id of FORBIDDEN) {
+    const host = { id: 'fixture-host', anatomy: { root: 'x', parts: { x: { kind: 'nest', nests: id } } }, figmaProperties: {} } as unknown as ComponentDef;
+    const target = componentDefs.find((d) => d.id === id)!;
+    const proj = (d: ComponentDef) => (d === host ? [{ root: { nestTarget: id, children: [] } } as unknown as AnatomyPlan] : project(d));
+    ok(declaredNeeds(host).length === 1 && builtNeeds(host, [...componentDefs, host], proj).includes(target.id),
+      `#2808 the gate's predicates flag a fixture def that nests ${id} (declared [${declaredNeeds(host).join(', ')}], built [${builtNeeds(host, [...componentDefs, host], proj).join(', ')}])`);
+  }
+
+  let walked = 0;
+  const unprojected: string[] = [];
+  for (const def of componentDefs) {
+    if ((FORBIDDEN as readonly string[]).includes(def.id)) continue;
+    const declared = declaredNeeds(def);
+    ok(declared.length === 0, `#2808 ${def.id} declares no required nest of a Neutral button family (Q386)${declared.length ? ` — nests ${declared.join(', ')}; nest FlushIconButton.Neutral for a close, or declare Button.Neutral as a fallback-only preference` : ''}`);
+    if (!def.figmaProperties) continue;
+    let built: string[];
+    try { built = builtNeeds(def, componentDefs, project); walked++; } catch (e) { unprojected.push(`${def.id}: ${(e as Error).message.slice(0, 120)}`); continue; }
+    ok(built.length === 0, `#2808 building ${def.id} into an empty file builds no Neutral button family first (Q386)${built.length ? ` — the plugin would build ${built.join(', ')}` : ''}`);
+  }
+  const projected = componentDefs.filter((d) => d.figmaProperties && !(FORBIDDEN as readonly string[]).includes(d.id)).length;
+  ok(walked === projected && unprojected.length === 0,
+    `#2808 the BUILT reading walked every projected def (${walked} of ${projected})${unprojected.length ? ` — not walked: ${unprojected.join('; ')}` : ''}`);
+}
+
+// =============================================================================================
 // #1623 sign-off — THE DEF'S `summary` IS THE FIGMA DESCRIPTION
 // =============================================================================================
 // The plugin writes one line per built component: the set's description (or each component's, in
@@ -4952,6 +5005,8 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     ['buttonMinWidthMultiplier', 1], ['buttonMinWidthMultiplier', 4],
     ['buttonTextHover', 'fill'],
     ['controlShape', 'boxed'], ['controlShape', 'hairline'], ['controlShape', 'pill'],
+    // #2695: Field style moves only the field defs' geometry and paints, never the tree.
+    ['fieldStyle', 'underline'],
   ];
   const getIn = (o: any, key: string): unknown => key.split('.').reduce((a, p) => a?.[p], o);
   const setIn = (o: any, key: string, v: unknown): any => {
@@ -4982,6 +5037,47 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   const blindUnmoved = TREE_BLIND_PAIRS.filter(([key, v]) => materialized(setIn(minimal, key, v)) === baseOut.get('minimal'))
     .map(([key, v]) => `${key}=${JSON.stringify(v)}`);
   ok(blindUnmoved.length === 0, `#1812 each tree-blind (lever, value) pair moves the materialized defs${blindUnmoved.length ? ` — UNMOVED: ${blindUnmoved.join(', ')}` : ''}`);
+}
+
+// =============================================================================================
+// #2695 — THE UNDERLINE FIELD, built through `materializeForBrand` and read back from the host shim
+// =============================================================================================
+// A brand on "Field style: Underline" builds every field set with the four stroke sides bound apart: top, end and start
+// to `border-width/none`, the bottom to `border-width/hairline` (and `border-width/thick` at focus), read back off the
+// host's own per-side keys. The shim models a literal `strokeWeight` write detaching those bindings (#1266), so an
+// executor whose 1px fallback wrote over them reads back here with no weight bound. Expected names typed from the
+// decisions (Q333). Mutation: drop the per-side keys from either fallback guard in `write-components.ts`.
+{
+  const input = { ...parseDesignMd(readFileSync(new URL('../../packages/engine/examples/nb-redesign.design.md', import.meta.url), 'utf8')).input, fieldStyle: 'underline' } as BrandInput;
+  const project = (d: ComponentDef) => figmaAnatomySet(materializeForBrand(d, input), { swapTarget: SWAP });
+  const all = componentDefs.flatMap((d) => { try { return project(d); } catch { return []; } });
+  const f = fullFor(all);
+  const id = (v: unknown): string | null => (v as { id?: string } | undefined)?.id?.replace(/^V:/, '') ?? null;
+  const wrong: string[] = [];
+  const misses: string[] = [];
+  let read = 0;
+  for (const fid of ['text-field', 'password-field', 'select', 'textarea']) {
+    const def = componentDefs.find((d) => d.id === fid)!;
+    const page: Page = { children: [] };
+    const shim = makeShim({ vars: f.vars, styles: f.styles, effects: f.effects, comps: [], liveRoot: true, page });
+    const build = (d: ComponentDef) => applyComponentPlan(project(d), shim as any, { emitAsComponents: d.figmaProperties?.emitAsComponents });
+    await prebuildDependencies(def, { defs: componentDefs, project, host: shim as any, build });
+    const run = await build(def);
+    misses.push(...run.misses.filter((m) => /stroke/i.test(m)).map((m) => `${fid}: ${m}`));
+    const set = page.children.find((c) => c.type === 'COMPONENT_SET' && c.name === project(def)[0].component) as Node | undefined;
+    for (const m of (set?.children ?? []) as Node[]) {
+      const control = ((m.children as Node[]) ?? []).flatMap(function walk(n: Node): Node[] { return [n, ...((n.children as Node[]) ?? []).flatMap(walk)]; }).find((n) => n.name === 'control');
+      const bv = (control?.boundVariables ?? {}) as Record<string, unknown>;
+      const focus = /state=focus-visible/.test(String(m.name));
+      read++;
+      const got = [id(bv.strokeTopWeight), id(bv.strokeRightWeight), id(bv.strokeBottomWeight), id(bv.strokeLeftWeight)];
+      const want = ['border-width/none', 'border-width/none', focus ? 'border-width/thick' : 'border-width/hairline', 'border-width/none'];
+      if (JSON.stringify(got) !== JSON.stringify(want)) wrong.push(`${fid} ${m.name}: ${got.join(' / ')}`);
+    }
+  }
+  ok(read === 4 * 84 && wrong.length === 0,
+    `#2695 underline fields read back with their per-side weights bound: none / none / hairline (thick at focus) / none, on all ${read} of 336 members (${wrong.slice(0, 3).join('; ') || 'ok'})`);
+  ok(misses.length === 0, `#2695 underline fields: no stroke binding is reported discarded (${misses.slice(0, 3).join('; ') || 'none'})`);
 }
 
 // =============================================================================================

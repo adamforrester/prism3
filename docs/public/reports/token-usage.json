@@ -18,17 +18,6 @@
     "border-width.hairline": {
       "type": "dimension",
       "components": {
-        "_pagination-item": {
-          "keys": [
-            "border-width"
-          ],
-          "parts": {
-            "container": {
-              "members": 27,
-              "where": {}
-            }
-          }
-        },
         "badge": {
           "keys": [
             "border-width"
@@ -147,6 +136,17 @@
           "parts": {
             "container": {
               "members": 216,
+              "where": {}
+            }
+          }
+        },
+        "pagination-item": {
+          "keys": [
+            "border-width"
+          ],
+          "parts": {
+            "container": {
+              "members": 27,
               "where": {}
             }
           }
@@ -274,7 +274,18 @@
     "border-width.thick": {
       "type": "dimension",
       "components": {
-        "_pagination-item": {
+        "checkbox-control": {
+          "keys": [
+            "border-width"
+          ],
+          "parts": {
+            "control": {
+              "members": 54,
+              "where": {}
+            }
+          }
+        },
+        "pagination-item": {
           "keys": [
             "underline-height"
           ],
@@ -314,17 +325,6 @@
                   "page"
                 ]
               }
-            }
-          }
-        },
-        "checkbox-control": {
-          "keys": [
-            "border-width"
-          ],
-          "parts": {
-            "control": {
-              "members": 54,
-              "where": {}
             }
           }
         },
@@ -650,12 +650,6 @@
     "color.border.focus": {
       "type": "color",
       "components": {
-        "_pagination-item": {
-          "keys": [
-            "focus-ring"
-          ],
-          "parts": {}
-        },
         "button": {
           "keys": [
             "focus-ring"
@@ -708,6 +702,12 @@
           "parts": {}
         },
         "icon-button-neutral": {
+          "keys": [
+            "focus-ring"
+          ],
+          "parts": {}
+        },
+        "pagination-item": {
           "keys": [
             "focus-ring"
           ],
@@ -1111,7 +1111,34 @@
     "color.border.tertiary": {
       "type": "color",
       "components": {
-        "_pagination-item": {
+        "badge": {
+          "keys": [
+            "neutral.status.subtle.border"
+          ],
+          "parts": {
+            "surface": {
+              "members": 1,
+              "where": {
+                "emphasis": [
+                  "subtle"
+                ],
+                "tone": [
+                  "neutral"
+                ],
+                "type": [
+                  "status"
+                ]
+              }
+            }
+          }
+        },
+        "divider": {
+          "keys": [
+            "separator.fill"
+          ],
+          "parts": {}
+        },
+        "pagination-item": {
           "keys": [
             "selected.border.page.border.focus-visible",
             "selected.border.page.border.rest",
@@ -1156,33 +1183,6 @@
               }
             }
           }
-        },
-        "badge": {
-          "keys": [
-            "neutral.status.subtle.border"
-          ],
-          "parts": {
-            "surface": {
-              "members": 1,
-              "where": {
-                "emphasis": [
-                  "subtle"
-                ],
-                "tone": [
-                  "neutral"
-                ],
-                "type": [
-                  "status"
-                ]
-              }
-            }
-          }
-        },
-        "divider": {
-          "keys": [
-            "separator.fill"
-          ],
-          "parts": {}
         }
       }
     },
@@ -3656,6 +3656,30 @@
           ],
           "parts": {}
         },
+        "pagination-item": {
+          "keys": [
+            "unselected.ellipsis.icon"
+          ],
+          "parts": {
+            "gapIcon": {
+              "members": 3,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "rest"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "ellipsis"
+                ]
+              }
+            }
+          }
+        },
         "textarea": {
           "keys": [
             "icon"
@@ -5889,30 +5913,6 @@
     "color.interactive.neutral.overlay.hover": {
       "type": "color",
       "components": {
-        "_pagination-item": {
-          "keys": [
-            "unselected.page.overlay.hover"
-          ],
-          "parts": {
-            "container": {
-              "members": 3,
-              "where": {
-                "selection": [
-                  "unselected"
-                ],
-                "state": [
-                  "hover"
-                ],
-                "style": [
-                  "border"
-                ],
-                "type": [
-                  "page"
-                ]
-              }
-            }
-          }
-        },
         "button-neutral": {
           "keys": [
             "outline.overlay.hover"
@@ -5973,6 +5973,30 @@
                 ],
                 "surface": [
                   "default"
+                ]
+              }
+            }
+          }
+        },
+        "pagination-item": {
+          "keys": [
+            "unselected.page.overlay.hover"
+          ],
+          "parts": {
+            "container": {
+              "members": 3,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "hover"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "page"
                 ]
               }
             }
@@ -6079,30 +6103,6 @@
     "color.interactive.neutral.overlay.pressed": {
       "type": "color",
       "components": {
-        "_pagination-item": {
-          "keys": [
-            "unselected.page.overlay.pressed"
-          ],
-          "parts": {
-            "container": {
-              "members": 3,
-              "where": {
-                "selection": [
-                  "unselected"
-                ],
-                "state": [
-                  "pressed"
-                ],
-                "style": [
-                  "border"
-                ],
-                "type": [
-                  "page"
-                ]
-              }
-            }
-          }
-        },
         "button-neutral": {
           "keys": [
             "outline.overlay.pressed"
@@ -6168,6 +6168,30 @@
             }
           }
         },
+        "pagination-item": {
+          "keys": [
+            "unselected.page.overlay.pressed"
+          ],
+          "parts": {
+            "container": {
+              "members": 3,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "pressed"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "page"
+                ]
+              }
+            }
+          }
+        },
         "segmented-control-segment": {
           "keys": [
             "unselected.overlay.pressed"
@@ -6209,7 +6233,30 @@
     "color.interactive.neutral.text.hover": {
       "type": "color",
       "components": {
-        "_pagination-item": {
+        "button-neutral": {
+          "keys": [
+            "outline.label.hover",
+            "text.label.hover"
+          ],
+          "parts": {
+            "label": {
+              "members": 36,
+              "where": {
+                "appearance": [
+                  "outline",
+                  "text"
+                ],
+                "state": [
+                  "hover"
+                ],
+                "surface": [
+                  "default"
+                ]
+              }
+            }
+          }
+        },
+        "pagination-item": {
           "keys": [
             "unselected.page.label.hover"
           ],
@@ -6245,29 +6292,6 @@
                 ],
                 "type": [
                   "page"
-                ]
-              }
-            }
-          }
-        },
-        "button-neutral": {
-          "keys": [
-            "outline.label.hover",
-            "text.label.hover"
-          ],
-          "parts": {
-            "label": {
-              "members": 36,
-              "where": {
-                "appearance": [
-                  "outline",
-                  "text"
-                ],
-                "state": [
-                  "hover"
-                ],
-                "surface": [
-                  "default"
                 ]
               }
             }
@@ -6352,7 +6376,30 @@
     "color.interactive.neutral.text.pressed": {
       "type": "color",
       "components": {
-        "_pagination-item": {
+        "button-neutral": {
+          "keys": [
+            "outline.label.pressed",
+            "text.label.pressed"
+          ],
+          "parts": {
+            "label": {
+              "members": 36,
+              "where": {
+                "appearance": [
+                  "outline",
+                  "text"
+                ],
+                "state": [
+                  "pressed"
+                ],
+                "surface": [
+                  "default"
+                ]
+              }
+            }
+          }
+        },
+        "pagination-item": {
           "keys": [
             "unselected.page.label.pressed"
           ],
@@ -6388,29 +6435,6 @@
                 ],
                 "type": [
                   "page"
-                ]
-              }
-            }
-          }
-        },
-        "button-neutral": {
-          "keys": [
-            "outline.label.pressed",
-            "text.label.pressed"
-          ],
-          "parts": {
-            "label": {
-              "members": 36,
-              "where": {
-                "appearance": [
-                  "outline",
-                  "text"
-                ],
-                "state": [
-                  "pressed"
-                ],
-                "surface": [
-                  "default"
                 ]
               }
             }
@@ -6495,38 +6519,6 @@
     "color.interactive.neutral.text.rest": {
       "type": "color",
       "components": {
-        "_pagination-item": {
-          "keys": [
-            "selected.page.label",
-            "unselected.page.label"
-          ],
-          "parts": {
-            "label": {
-              "members": 18,
-              "where": {
-                "state": [
-                  "focus-visible",
-                  "rest"
-                ],
-                "type": [
-                  "page"
-                ]
-              }
-            },
-            "labelReserve": {
-              "members": 18,
-              "where": {
-                "state": [
-                  "focus-visible",
-                  "rest"
-                ],
-                "type": [
-                  "page"
-                ]
-              }
-            }
-          }
-        },
         "accordion": {
           "keys": [
             "label"
@@ -6558,6 +6550,38 @@
                 ],
                 "surface": [
                   "default"
+                ]
+              }
+            }
+          }
+        },
+        "pagination-item": {
+          "keys": [
+            "selected.page.label",
+            "unselected.page.label"
+          ],
+          "parts": {
+            "label": {
+              "members": 18,
+              "where": {
+                "state": [
+                  "focus-visible",
+                  "rest"
+                ],
+                "type": [
+                  "page"
+                ]
+              }
+            },
+            "labelReserve": {
+              "members": 18,
+              "where": {
+                "state": [
+                  "focus-visible",
+                  "rest"
+                ],
+                "type": [
+                  "page"
                 ]
               }
             }
@@ -12167,30 +12191,6 @@
     "color.text.secondary": {
       "type": "color",
       "components": {
-        "_pagination-item": {
-          "keys": [
-            "unselected.ellipsis.label"
-          ],
-          "parts": {
-            "mark": {
-              "members": 3,
-              "where": {
-                "selection": [
-                  "unselected"
-                ],
-                "state": [
-                  "rest"
-                ],
-                "style": [
-                  "border"
-                ],
-                "type": [
-                  "ellipsis"
-                ]
-              }
-            }
-          }
-        },
         "dialog": {
           "keys": [
             "indicator"
@@ -13764,24 +13764,6 @@
     "focus.ring.offset": {
       "type": "dimension",
       "components": {
-        "_pagination-item": {
-          "keys": [
-            "ring-offset"
-          ],
-          "parts": {
-            "focusRing": {
-              "members": 9,
-              "where": {
-                "state": [
-                  "focus-visible"
-                ],
-                "type": [
-                  "page"
-                ]
-              }
-            }
-          }
-        },
         "button": {
           "keys": [
             "ring-offset"
@@ -13948,6 +13930,24 @@
               "where": {
                 "state": [
                   "focus-visible"
+                ]
+              }
+            }
+          }
+        },
+        "pagination-item": {
+          "keys": [
+            "ring-offset"
+          ],
+          "parts": {
+            "focusRing": {
+              "members": 9,
+              "where": {
+                "state": [
+                  "focus-visible"
+                ],
+                "type": [
+                  "page"
                 ]
               }
             }
@@ -14134,24 +14134,6 @@
     "focus.ring.width": {
       "type": "dimension",
       "components": {
-        "_pagination-item": {
-          "keys": [
-            "ring-width"
-          ],
-          "parts": {
-            "focusRing": {
-              "members": 9,
-              "where": {
-                "state": [
-                  "focus-visible"
-                ],
-                "type": [
-                  "page"
-                ]
-              }
-            }
-          }
-        },
         "button": {
           "keys": [
             "ring-width"
@@ -14323,6 +14305,24 @@
               "where": {
                 "state": [
                   "focus-visible"
+                ]
+              }
+            }
+          }
+        },
+        "pagination-item": {
+          "keys": [
+            "ring-width"
+          ],
+          "parts": {
+            "focusRing": {
+              "members": 9,
+              "where": {
+                "state": [
+                  "focus-visible"
+                ],
+                "type": [
+                  "page"
                 ]
               }
             }
@@ -14590,6 +14590,33 @@
                 ],
                 "type": [
                   "icon"
+                ]
+              }
+            }
+          }
+        },
+        "pagination-item": {
+          "keys": [
+            "size.large.icon"
+          ],
+          "parts": {
+            "gapIcon": {
+              "members": 1,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "size": [
+                  "large"
+                ],
+                "state": [
+                  "rest"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "ellipsis"
                 ]
               }
             }
@@ -15034,6 +15061,33 @@
                 ],
                 "type": [
                   "icon"
+                ]
+              }
+            }
+          }
+        },
+        "pagination-item": {
+          "keys": [
+            "size.medium.icon"
+          ],
+          "parts": {
+            "gapIcon": {
+              "members": 1,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "size": [
+                  "medium"
+                ],
+                "state": [
+                  "rest"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "ellipsis"
                 ]
               }
             }
@@ -15581,6 +15635,33 @@
                 ],
                 "type": [
                   "icon"
+                ]
+              }
+            }
+          }
+        },
+        "pagination-item": {
+          "keys": [
+            "size.small.icon"
+          ],
+          "parts": {
+            "gapIcon": {
+              "members": 1,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "size": [
+                  "small"
+                ],
+                "state": [
+                  "rest"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "ellipsis"
                 ]
               }
             }
@@ -16136,17 +16217,6 @@
     "radius.md": {
       "type": "dimension",
       "components": {
-        "_pagination-item": {
-          "keys": [
-            "radius"
-          ],
-          "parts": {
-            "container": {
-              "members": 27,
-              "where": {}
-            }
-          }
-        },
         "button": {
           "keys": [
             "radius"
@@ -16222,6 +16292,17 @@
                   "square"
                 ]
               }
+            }
+          }
+        },
+        "pagination-item": {
+          "keys": [
+            "radius"
+          ],
+          "parts": {
+            "container": {
+              "members": 27,
+              "where": {}
             }
           }
         },
@@ -16578,21 +16659,6 @@
     "size.lg.height": {
       "type": "dimension",
       "components": {
-        "_pagination-item": {
-          "keys": [
-            "size.large.height"
-          ],
-          "parts": {
-            "container": {
-              "members": 9,
-              "where": {
-                "size": [
-                  "large"
-                ]
-              }
-            }
-          }
-        },
         "accordion": {
           "keys": [
             "size.large.min-height"
@@ -16758,6 +16824,21 @@
             }
           }
         },
+        "pagination-item": {
+          "keys": [
+            "size.large.height"
+          ],
+          "parts": {
+            "container": {
+              "members": 9,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
+        },
         "password-field": {
           "keys": [
             "size.large.height"
@@ -16873,21 +16954,6 @@
     "size.md.height": {
       "type": "dimension",
       "components": {
-        "_pagination-item": {
-          "keys": [
-            "size.medium.height"
-          ],
-          "parts": {
-            "container": {
-              "members": 9,
-              "where": {
-                "size": [
-                  "medium"
-                ]
-              }
-            }
-          }
-        },
         "button": {
           "keys": [
             "size.medium.height"
@@ -17068,6 +17134,21 @@
             }
           }
         },
+        "pagination-item": {
+          "keys": [
+            "size.medium.height"
+          ],
+          "parts": {
+            "container": {
+              "members": 9,
+              "where": {
+                "size": [
+                  "medium"
+                ]
+              }
+            }
+          }
+        },
         "radio-row": {
           "keys": [
             "size.medium.min-height"
@@ -17217,21 +17298,6 @@
     "size.sm.height": {
       "type": "dimension",
       "components": {
-        "_pagination-item": {
-          "keys": [
-            "size.small.height"
-          ],
-          "parts": {
-            "container": {
-              "members": 9,
-              "where": {
-                "size": [
-                  "small"
-                ]
-              }
-            }
-          }
-        },
         "button": {
           "keys": [
             "size.small.height"
@@ -17382,6 +17448,21 @@
             }
           }
         },
+        "pagination-item": {
+          "keys": [
+            "size.small.height"
+          ],
+          "parts": {
+            "container": {
+              "members": 9,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
         "radio-row": {
           "keys": [
             "size.small.min-height"
@@ -17458,26 +17539,6 @@
     "space.0": {
       "type": "dimension",
       "components": {
-        "_pagination-item": {
-          "keys": [
-            "pad-y",
-            "reserve-height"
-          ],
-          "parts": {
-            "container": {
-              "members": 27,
-              "where": {}
-            },
-            "reserve": {
-              "members": 24,
-              "where": {
-                "type": [
-                  "page"
-                ]
-              }
-            }
-          }
-        },
         "accordion": {
           "keys": [
             "size.large.panel-pad-top",
@@ -17662,6 +17723,26 @@
             "row": {
               "members": 9,
               "where": {}
+            }
+          }
+        },
+        "pagination-item": {
+          "keys": [
+            "pad-y",
+            "reserve-height"
+          ],
+          "parts": {
+            "container": {
+              "members": 27,
+              "where": {}
+            },
+            "reserve": {
+              "members": 24,
+              "where": {
+                "type": [
+                  "page"
+                ]
+              }
             }
           }
         },
@@ -18146,17 +18227,6 @@
     "space.100": {
       "type": "dimension",
       "components": {
-        "_pagination-item": {
-          "keys": [
-            "padding-x"
-          ],
-          "parts": {
-            "container": {
-              "members": 27,
-              "where": {}
-            }
-          }
-        },
         "accordion": {
           "keys": [
             "size.small.gap",
@@ -18339,6 +18409,17 @@
                   "small"
                 ]
               }
+            }
+          }
+        },
+        "pagination-item": {
+          "keys": [
+            "padding-x"
+          ],
+          "parts": {
+            "container": {
+              "members": 27,
+              "where": {}
             }
           }
         },
@@ -20632,7 +20713,28 @@
     "type.label.lg.default": {
       "type": "typography",
       "components": {
-        "_pagination-item": {
+        "pagination": {
+          "keys": [
+            "size.large.type"
+          ],
+          "parts": {
+            "status": {
+              "members": 1,
+              "where": {
+                "size": [
+                  "large"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "compact"
+                ]
+              }
+            }
+          }
+        },
+        "pagination-item": {
           "keys": [
             "size.large.type.unselected"
           ],
@@ -20651,47 +20753,6 @@
                 ],
                 "type": [
                   "page"
-                ]
-              }
-            },
-            "mark": {
-              "members": 1,
-              "where": {
-                "selection": [
-                  "unselected"
-                ],
-                "size": [
-                  "large"
-                ],
-                "state": [
-                  "rest"
-                ],
-                "style": [
-                  "border"
-                ],
-                "type": [
-                  "ellipsis"
-                ]
-              }
-            }
-          }
-        },
-        "pagination": {
-          "keys": [
-            "size.large.type"
-          ],
-          "parts": {
-            "status": {
-              "members": 1,
-              "where": {
-                "size": [
-                  "large"
-                ],
-                "style": [
-                  "border"
-                ],
-                "type": [
-                  "compact"
                 ]
               }
             }
@@ -20738,42 +20799,6 @@
     "type.label.lg.emphasis": {
       "type": "typography",
       "components": {
-        "_pagination-item": {
-          "keys": [
-            "size.large.type.selected"
-          ],
-          "parts": {
-            "label": {
-              "members": 4,
-              "where": {
-                "selection": [
-                  "selected"
-                ],
-                "size": [
-                  "large"
-                ],
-                "state": [
-                  "focus-visible",
-                  "rest"
-                ],
-                "type": [
-                  "page"
-                ]
-              }
-            },
-            "labelReserve": {
-              "members": 8,
-              "where": {
-                "size": [
-                  "large"
-                ],
-                "type": [
-                  "page"
-                ]
-              }
-            }
-          }
-        },
         "accordion": {
           "keys": [
             "size.large.type"
@@ -20866,6 +20891,42 @@
             "title": {
               "members": 15,
               "where": {}
+            }
+          }
+        },
+        "pagination-item": {
+          "keys": [
+            "size.large.type.selected"
+          ],
+          "parts": {
+            "label": {
+              "members": 4,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "size": [
+                  "large"
+                ],
+                "state": [
+                  "focus-visible",
+                  "rest"
+                ],
+                "type": [
+                  "page"
+                ]
+              }
+            },
+            "labelReserve": {
+              "members": 8,
+              "where": {
+                "size": [
+                  "large"
+                ],
+                "type": [
+                  "page"
+                ]
+              }
             }
           }
         },
@@ -21000,7 +21061,28 @@
     "type.label.md.default": {
       "type": "typography",
       "components": {
-        "_pagination-item": {
+        "pagination": {
+          "keys": [
+            "size.medium.type"
+          ],
+          "parts": {
+            "status": {
+              "members": 1,
+              "where": {
+                "size": [
+                  "medium"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "compact"
+                ]
+              }
+            }
+          }
+        },
+        "pagination-item": {
           "keys": [
             "size.medium.type.unselected"
           ],
@@ -21019,47 +21101,6 @@
                 ],
                 "type": [
                   "page"
-                ]
-              }
-            },
-            "mark": {
-              "members": 1,
-              "where": {
-                "selection": [
-                  "unselected"
-                ],
-                "size": [
-                  "medium"
-                ],
-                "state": [
-                  "rest"
-                ],
-                "style": [
-                  "border"
-                ],
-                "type": [
-                  "ellipsis"
-                ]
-              }
-            }
-          }
-        },
-        "pagination": {
-          "keys": [
-            "size.medium.type"
-          ],
-          "parts": {
-            "status": {
-              "members": 1,
-              "where": {
-                "size": [
-                  "medium"
-                ],
-                "style": [
-                  "border"
-                ],
-                "type": [
-                  "compact"
                 ]
               }
             }
@@ -21106,42 +21147,6 @@
     "type.label.md.emphasis": {
       "type": "typography",
       "components": {
-        "_pagination-item": {
-          "keys": [
-            "size.medium.type.selected"
-          ],
-          "parts": {
-            "label": {
-              "members": 4,
-              "where": {
-                "selection": [
-                  "selected"
-                ],
-                "size": [
-                  "medium"
-                ],
-                "state": [
-                  "focus-visible",
-                  "rest"
-                ],
-                "type": [
-                  "page"
-                ]
-              }
-            },
-            "labelReserve": {
-              "members": 8,
-              "where": {
-                "size": [
-                  "medium"
-                ],
-                "type": [
-                  "page"
-                ]
-              }
-            }
-          }
-        },
         "accordion": {
           "keys": [
             "size.medium.type"
@@ -21221,6 +21226,42 @@
                 ],
                 "size": [
                   "medium"
+                ]
+              }
+            }
+          }
+        },
+        "pagination-item": {
+          "keys": [
+            "size.medium.type.selected"
+          ],
+          "parts": {
+            "label": {
+              "members": 4,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "size": [
+                  "medium"
+                ],
+                "state": [
+                  "focus-visible",
+                  "rest"
+                ],
+                "type": [
+                  "page"
+                ]
+              }
+            },
+            "labelReserve": {
+              "members": 8,
+              "where": {
+                "size": [
+                  "medium"
+                ],
+                "type": [
+                  "page"
                 ]
               }
             }
@@ -21357,7 +21398,28 @@
     "type.label.sm.default": {
       "type": "typography",
       "components": {
-        "_pagination-item": {
+        "pagination": {
+          "keys": [
+            "size.small.type"
+          ],
+          "parts": {
+            "status": {
+              "members": 1,
+              "where": {
+                "size": [
+                  "small"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "compact"
+                ]
+              }
+            }
+          }
+        },
+        "pagination-item": {
           "keys": [
             "size.small.type.unselected"
           ],
@@ -21376,47 +21438,6 @@
                 ],
                 "type": [
                   "page"
-                ]
-              }
-            },
-            "mark": {
-              "members": 1,
-              "where": {
-                "selection": [
-                  "unselected"
-                ],
-                "size": [
-                  "small"
-                ],
-                "state": [
-                  "rest"
-                ],
-                "style": [
-                  "border"
-                ],
-                "type": [
-                  "ellipsis"
-                ]
-              }
-            }
-          }
-        },
-        "pagination": {
-          "keys": [
-            "size.small.type"
-          ],
-          "parts": {
-            "status": {
-              "members": 1,
-              "where": {
-                "size": [
-                  "small"
-                ],
-                "style": [
-                  "border"
-                ],
-                "type": [
-                  "compact"
                 ]
               }
             }
@@ -21463,42 +21484,6 @@
     "type.label.sm.emphasis": {
       "type": "typography",
       "components": {
-        "_pagination-item": {
-          "keys": [
-            "size.small.type.selected"
-          ],
-          "parts": {
-            "label": {
-              "members": 4,
-              "where": {
-                "selection": [
-                  "selected"
-                ],
-                "size": [
-                  "small"
-                ],
-                "state": [
-                  "focus-visible",
-                  "rest"
-                ],
-                "type": [
-                  "page"
-                ]
-              }
-            },
-            "labelReserve": {
-              "members": 8,
-              "where": {
-                "size": [
-                  "small"
-                ],
-                "type": [
-                  "page"
-                ]
-              }
-            }
-          }
-        },
         "accordion": {
           "keys": [
             "size.small.type"
@@ -21604,6 +21589,42 @@
                 ],
                 "size": [
                   "small"
+                ]
+              }
+            }
+          }
+        },
+        "pagination-item": {
+          "keys": [
+            "size.small.type.selected"
+          ],
+          "parts": {
+            "label": {
+              "members": 4,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "size": [
+                  "small"
+                ],
+                "state": [
+                  "focus-visible",
+                  "rest"
+                ],
+                "type": [
+                  "page"
+                ]
+              }
+            },
+            "labelReserve": {
+              "members": 8,
+              "where": {
+                "size": [
+                  "small"
+                ],
+                "type": [
+                  "page"
                 ]
               }
             }
@@ -21763,64 +21784,6 @@
         "icon.size.xs"
       ],
       "declaredNotDrawn": [],
-      "drawnNotDeclared": []
-    },
-    "_pagination-item": {
-      "members": 27,
-      "axes": {
-        "selection": [
-          "selected",
-          "unselected"
-        ],
-        "size": [
-          "large",
-          "medium",
-          "small"
-        ],
-        "state": [
-          "focus-visible",
-          "hover",
-          "pressed",
-          "rest"
-        ],
-        "style": [
-          "border",
-          "underline"
-        ],
-        "type": [
-          "ellipsis",
-          "page"
-        ]
-      },
-      "tokens": [
-        "border-width.hairline",
-        "border-width.thick",
-        "color.border.focus",
-        "color.border.tertiary",
-        "color.interactive.neutral.overlay.hover",
-        "color.interactive.neutral.overlay.pressed",
-        "color.interactive.neutral.text.hover",
-        "color.interactive.neutral.text.pressed",
-        "color.interactive.neutral.text.rest",
-        "color.text.secondary",
-        "focus.ring.offset",
-        "focus.ring.width",
-        "radius.md",
-        "size.lg.height",
-        "size.md.height",
-        "size.sm.height",
-        "space.0",
-        "space.100",
-        "type.label.lg.default",
-        "type.label.lg.emphasis",
-        "type.label.md.default",
-        "type.label.md.emphasis",
-        "type.label.sm.default",
-        "type.label.sm.emphasis"
-      ],
-      "declaredNotDrawn": [
-        "color.border.focus"
-      ],
       "drawnNotDeclared": []
     },
     "accordion": {
@@ -23246,6 +23209,67 @@
         "type.label.sm.default"
       ],
       "declaredNotDrawn": [],
+      "drawnNotDeclared": []
+    },
+    "pagination-item": {
+      "members": 27,
+      "axes": {
+        "selection": [
+          "selected",
+          "unselected"
+        ],
+        "size": [
+          "large",
+          "medium",
+          "small"
+        ],
+        "state": [
+          "focus-visible",
+          "hover",
+          "pressed",
+          "rest"
+        ],
+        "style": [
+          "border",
+          "underline"
+        ],
+        "type": [
+          "ellipsis",
+          "page"
+        ]
+      },
+      "tokens": [
+        "border-width.hairline",
+        "border-width.thick",
+        "color.border.focus",
+        "color.border.tertiary",
+        "color.icon.secondary",
+        "color.interactive.neutral.overlay.hover",
+        "color.interactive.neutral.overlay.pressed",
+        "color.interactive.neutral.text.hover",
+        "color.interactive.neutral.text.pressed",
+        "color.interactive.neutral.text.rest",
+        "focus.ring.offset",
+        "focus.ring.width",
+        "icon.size.lg",
+        "icon.size.md",
+        "icon.size.sm",
+        "radius.md",
+        "size.lg.height",
+        "size.md.height",
+        "size.sm.height",
+        "space.0",
+        "space.100",
+        "type.label.lg.default",
+        "type.label.lg.emphasis",
+        "type.label.md.default",
+        "type.label.md.emphasis",
+        "type.label.sm.default",
+        "type.label.sm.emphasis"
+      ],
+      "declaredNotDrawn": [
+        "color.border.focus"
+      ],
       "drawnNotDeclared": []
     },
     "password-field": {

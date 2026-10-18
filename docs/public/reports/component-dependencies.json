@@ -9,16 +9,6 @@
   "note": "edges: every part that nests another component (anatomy part with `nests`), with its nesting relation. components.<id>.affectedByChange lists every component that nests it directly or transitively — the components a change to it reaches. inherits is a reading reference only: the engine copies no fields across it, so it does not appear in affectedByChange.",
   "edges": [
     {
-      "from": "_pagination-item",
-      "to": "focus-ring",
-      "part": "focusRing",
-      "partKind": "absolute",
-      "relation": "nest-fixed",
-      "variant": {
-        "surface": "default"
-      }
-    },
-    {
       "from": "accordion",
       "to": "divider",
       "part": "divider",
@@ -254,15 +244,13 @@
     },
     {
       "from": "dialog",
-      "to": "icon-button-neutral",
+      "to": "flush-icon-button-neutral",
       "part": "close",
       "partKind": "nest",
       "relation": "nest-fixed",
       "variant": {
-        "appearance": "ghost",
+        "shape": "round",
         "size": "medium",
-        "shape": "square",
-        "surface": "default",
         "state": "rest"
       }
     },
@@ -470,7 +458,7 @@
     },
     {
       "from": "pagination",
-      "to": "_pagination-item",
+      "to": "pagination-item",
       "part": "item1",
       "partKind": "nest",
       "relation": "nest-fixed",
@@ -487,7 +475,7 @@
     },
     {
       "from": "pagination",
-      "to": "_pagination-item",
+      "to": "pagination-item",
       "part": "item2",
       "partKind": "nest",
       "relation": "nest-fixed",
@@ -504,7 +492,7 @@
     },
     {
       "from": "pagination",
-      "to": "_pagination-item",
+      "to": "pagination-item",
       "part": "item3",
       "partKind": "nest",
       "relation": "nest-fixed",
@@ -521,7 +509,7 @@
     },
     {
       "from": "pagination",
-      "to": "_pagination-item",
+      "to": "pagination-item",
       "part": "item4",
       "partKind": "nest",
       "relation": "nest-fixed",
@@ -539,7 +527,7 @@
     },
     {
       "from": "pagination",
-      "to": "_pagination-item",
+      "to": "pagination-item",
       "part": "item5",
       "partKind": "nest",
       "relation": "nest-fixed",
@@ -556,7 +544,7 @@
     },
     {
       "from": "pagination",
-      "to": "_pagination-item",
+      "to": "pagination-item",
       "part": "item6",
       "partKind": "nest",
       "relation": "nest-fixed",
@@ -573,7 +561,7 @@
     },
     {
       "from": "pagination",
-      "to": "_pagination-item",
+      "to": "pagination-item",
       "part": "item7",
       "partKind": "nest",
       "relation": "nest-fixed",
@@ -673,6 +661,16 @@
       ]
     },
     {
+      "from": "pagination-item",
+      "to": "focus-ring",
+      "part": "focusRing",
+      "partKind": "absolute",
+      "relation": "nest-fixed",
+      "variant": {
+        "surface": "default"
+      }
+    },
+    {
       "from": "password-field",
       "to": "focus-ring",
       "part": "focusRing",
@@ -723,16 +721,13 @@
       "relation": "nest-exposed",
       "variant": {
         "appearance": "text",
-        "size": "medium",
+        "size": "small",
         "surface": "default",
         "inset": "flush",
         "state": "rest",
         "leading icon": "false",
         "trailing icon": "false"
       },
-      "follow": [
-        "size"
-      ],
       "expose": [
         "label"
       ]
@@ -1139,21 +1134,6 @@
       ],
       "inheritedBy": []
     },
-    "_pagination-item": {
-      "nests": [
-        "focus-ring"
-      ],
-      "nestsTransitively": [
-        "focus-ring"
-      ],
-      "nestedBy": [
-        "pagination"
-      ],
-      "affectedByChange": [
-        "pagination"
-      ],
-      "inheritedBy": []
-    },
     "accordion": {
       "nests": [
         "_accordion-indicator",
@@ -1291,13 +1271,13 @@
       "nests": [
         "button",
         "divider",
-        "icon-button-neutral"
+        "flush-icon-button-neutral"
       ],
       "nestsTransitively": [
         "button",
         "divider",
+        "flush-icon-button-neutral",
         "focus-ring",
-        "icon-button-neutral",
         "spinner"
       ],
       "nestedBy": [],
@@ -1388,8 +1368,12 @@
       "nestsTransitively": [
         "focus-ring"
       ],
-      "nestedBy": [],
-      "affectedByChange": [],
+      "nestedBy": [
+        "dialog"
+      ],
+      "affectedByChange": [
+        "dialog"
+      ],
       "inherits": "icon-button-neutral",
       "inheritedBy": []
     },
@@ -1397,7 +1381,6 @@
       "nests": [],
       "nestsTransitively": [],
       "nestedBy": [
-        "_pagination-item",
         "accordion",
         "button",
         "button-destructive",
@@ -1410,6 +1393,7 @@
         "icon-button-destructive",
         "icon-button-neutral",
         "link",
+        "pagination-item",
         "password-field",
         "radio-control",
         "segmented-control-segment",
@@ -1421,7 +1405,6 @@
         "textarea"
       ],
       "affectedByChange": [
-        "_pagination-item",
         "accordion",
         "button",
         "button-destructive",
@@ -1438,6 +1421,7 @@
         "icon-button-neutral",
         "link",
         "pagination",
+        "pagination-item",
         "password-field",
         "radio-control",
         "radio-group",
@@ -1504,11 +1488,9 @@
         "spinner"
       ],
       "nestedBy": [
-        "dialog",
         "pagination"
       ],
       "affectedByChange": [
-        "dialog",
         "pagination"
       ],
       "inherits": "button-neutral",
@@ -1558,19 +1540,34 @@
     },
     "pagination": {
       "nests": [
-        "_pagination-item",
         "button-neutral",
-        "icon-button-neutral"
+        "icon-button-neutral",
+        "pagination-item"
       ],
       "nestsTransitively": [
-        "_pagination-item",
         "button-neutral",
         "focus-ring",
         "icon-button-neutral",
+        "pagination-item",
         "spinner"
       ],
       "nestedBy": [],
       "affectedByChange": [],
+      "inheritedBy": []
+    },
+    "pagination-item": {
+      "nests": [
+        "focus-ring"
+      ],
+      "nestsTransitively": [
+        "focus-ring"
+      ],
+      "nestedBy": [
+        "pagination"
+      ],
+      "affectedByChange": [
+        "pagination"
+      ],
       "inheritedBy": []
     },
     "password-field": {
@@ -1820,7 +1817,6 @@
   },
   "depth": {
     "_accordion-indicator": 0,
-    "_pagination-item": 1,
     "accordion": 1,
     "badge": 0,
     "button": 1,
@@ -1846,6 +1842,7 @@
     "list": 1,
     "list-item": 0,
     "pagination": 2,
+    "pagination-item": 1,
     "password-field": 2,
     "radio-control": 1,
     "radio-group": 3,

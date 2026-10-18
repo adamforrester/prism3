@@ -314,7 +314,7 @@
           "link",
           "dialog",
           "password-field",
-          "_pagination-item",
+          "pagination-item",
           "pagination"
         ]
       }

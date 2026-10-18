@@ -211,7 +211,7 @@ export const componentDefs: readonly ComponentDef[] = [
   dialog,
   // `password-field` (#2317) — TextField's first specialization, from the shared field factory. Nests a Button.
   passwordField,
-  // `_pagination-item` and `pagination` (#2665) — one page cell and the row. The row nests the cell in its items
+  // `pagination-item` and `pagination` (#2665) — one page cell and the row. The row nests the cell in its items
   // slot, the neutral icon button (previous and next) and the neutral button (simple), so it comes after all three.
   paginationItem,
   pagination,

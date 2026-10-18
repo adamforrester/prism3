@@ -24,7 +24,7 @@
  */
 import type { AxisKind, ComponentDef, PartDef } from './component-schema';
 import { axisKindOf, densitySizeValues, densitySpacingKeys, visibleGapKeys, fillKey, gridColumnAxis, fillPaintKey, paintKeyPlaceholders, parseRatio, PRIMARY_PAINT_SLOTS, replacesCandidates, STATE_GATE, statesOf, whenStates, variantsOf, slotAxisFigmaName, variantAxisFigmaName, swapPart, swapFigmaName, textFigmaName, booleanPartsOf, booleanFigmaName, booleanDefault, figmaVariantCount, figmaAxisNames, isExcludedCoordinate, WEIGHT_INTENTS } from './component-schema';
-import type { ControlShape, ButtonIcons, ButtonContentSize, ButtonLabelWeight, ButtonTextHover, Density } from './scale';
+import type { ControlShape, FieldStyle, ButtonIcons, ButtonContentSize, ButtonLabelWeight, ButtonTextHover, Density } from './scale';
 import { buttonMinWidth, DEFAULT_MIN_WIDTH_MULTIPLIER, densitySpacingStep, ratioMinWidth, spacePx, visibleGapStep } from './scale';
 // #1602 — the weight-role ladder and the default per-category weights, for resolving a component's
 // weight INTENT against a brand's available roles. Value + type imports from `theme.ts`, which imports
@@ -1706,6 +1706,15 @@ export const figmaAnatomyPlan = (
       // fallback now stands down when this binding wrote — unconditional it would UNBIND what Figma just
       // accepted, which is the same last-write-wins silence the aspect-ratio unlock exists for.
       if (p.strokeWidth) bound.strokeWeight = varOf(p.strokeWidth);
+      // THE FOUR SIDES APART (#2695, `PartDef.strokeEdges`): the underline field binds each side's weight on its own
+      // per-side key, the keys a scalar `strokeWeight` binding lands on anyway (#1332). Both executors' 1px fallback
+      // stands down when any of them wrote, for the reason it stands down for `strokeWeight`.
+      if (p.strokeEdges) {
+        bound.strokeTopWeight = varOf(p.strokeEdges.top);
+        bound.strokeRightWeight = varOf(p.strokeEdges.right);
+        bound.strokeBottomWeight = varOf(p.strokeEdges.bottom);
+        bound.strokeLeftWeight = varOf(p.strokeEdges.left);
+      }
       // TOP-ONLY padding: the space above a part a boolean hides, so the space hides with it (textarea's
       // message and counter cells). The validator refuses it alongside `padding`, so the two never both write.
       if (p.paddingTop) bound.paddingTop = varOf(p.paddingTop);
@@ -2307,6 +2316,85 @@ export const applyControlShape = (def: ComponentDef, shape: ControlShape): Compo
   return { ...def, tokens };
 };
 
+// ── FIELD STYLE (#2695) ─────────────────────────────────────────────────────────────────────────
+//
+// The brand's field edge (owner Q332 A; the sixteen calls of Q333, each option A): `outline` draws the box,
+// `underline` one line under the value. Materialized into the def BEFORE projection, for `applyControlShape`'s
+// reason: the projector stays a pure function of its def, so every field keeps its member count and coordinates
+// (Q14 A), and a brand switch reaches an existing file through Update (Q16 A). No token is added (Q15 A): every
+// binding below is a rung or role the engine already emits for every brand.
+
+/**
+ * The field family, each def named with the part that draws its frame (the bordered control). Keyed by def id,
+ * `FIELD_CORNER_REFS`'s way, and held complete by `test.ts`: every def that binds the field chrome
+ * (`color.field.fill`) is listed here, so a new field def cannot miss the lever by being left out.
+ */
+export const FIELD_FRAME_PARTS: Readonly<Record<string, string>> = {
+  'text-field': 'control',
+  'password-field': 'control',
+  select: 'control',
+  textarea: 'control',
+};
+
+/**
+ * Materialize a def for the brand's `fieldStyle` lever (#2695). The IDENTITY under `outline` and for any def not in
+ * `FIELD_FRAME_PARTS`: it returns the same object, so every outline plan is byte-identical to before.
+ *
+ * Under `underline`, on the frame part and the keys it names:
+ *   · THE LINE (Q2, Q3, Q7): the four sides bind apart (`strokeEdges`). Top, end and start take `border-width.none`;
+ *     the bottom takes `border-width.hairline`, and `border-width.thick` at every focus-visible state. Drawn inside
+ *     the node, so the thicker line moves no box. The color is the def's own border paint, unchanged: rest, hover,
+ *     focus, the status swaps and read-only all keep their roles (Q9).
+ *   · THE RING (Q3): the nested focus ring's inset takes `focus.ring.offset` (2px), since no side edge now separates
+ *     it from the value.
+ *   · THE EDGES (Q5, Q6, Q10): the inline padding binds `space.0`, so the label, value, message and line share one
+ *     start edge and a trailing glyph (Select's chevron) sits flush with the line's end; the corner binds
+ *     `radius.none`, whatever Control shape chose, so this runs after `applyControlShape`.
+ *   · HOVER (Q4): the overlay wash keys go, so hover changes the line's color only.
+ *   · DISABLED (Q8): the disabled plate goes. With no `disabled.fill`, the projector's disabled ink asks for the
+ *     plain-ground form (`disabled.<slot>`), so each `disabled.<slot>.on-fill` is replaced by it: `disabled.text`
+ *     for the value, `disabled.icon` for a glyph.
+ *   · A CHILD PINNED INTO THE FRAME'S CORNER (Textarea's grip, Q11), or any other absolute child but the ring, takes
+ *     `border-width.thick` as its inset, so it sits above the line even at the 2px focus line.
+ */
+export const applyFieldStyle = (def: ComponentDef, style: FieldStyle): ComponentDef => {
+  if (style === 'outline') return def;
+  const frameName = FIELD_FRAME_PARTS[def.id];
+  const a = def.anatomy;
+  const frame = frameName ? a?.parts[frameName] : undefined;
+  if (!a || !frame) return def;
+  const tokens: Record<string, string> = {};
+  for (const [k, ref] of Object.entries(def.tokens)) {
+    if (k.split('.')[0] === 'overlay' || k === 'disabled.fill') continue;
+    const onFill = /^disabled\.([a-z-]+)\.on-fill$/.exec(k);
+    if (onFill) { tokens[`disabled.${onFill[1]}`] = onFill[1] === 'icon' ? 'color.disabled.icon' : 'color.disabled.text'; continue; }
+    tokens[k] = ref;
+  }
+  if (frame.radius) tokens[frame.radius] = 'radius.none';
+  tokens['underline.pad-x'] = 'space.0';
+  tokens['underline.side'] = 'border-width.none';
+  for (const st of statesOf(def)) tokens[`underline.line.${st}`] = st.startsWith('focus-visible') ? 'border-width.thick' : 'border-width.hairline';
+  const parts: Record<string, PartDef> = { ...a.parts };
+  for (const c of frame.children ?? []) {
+    const child = a.parts[c];
+    if (!child?.inset) continue;
+    if (child.kind === 'absolute' && child.nests === 'focus-ring') tokens[child.inset] = 'focus.ring.offset';
+    else if (child.kind === 'absolute' || child.corner) tokens[child.inset] = 'border-width.thick';
+  }
+  const { strokeWidth: _outline, ...rest } = frame;
+  parts[frameName] = {
+    ...rest,
+    strokeEdges: { top: 'underline.side', right: 'underline.side', bottom: 'underline.line.{state}', left: 'underline.side' },
+    ...(frame.padding ? { padding: {
+      ...frame.padding,
+      inlineLabel: 'underline.pad-x',
+      ...(frame.padding.inlineVisual ? { inlineVisual: 'underline.pad-x' } : {}),
+      ...(frame.padding.inlineEnd ? { inlineEnd: 'underline.pad-x' } : {}),
+    } } : {}),
+  };
+  return { ...def, tokens, anatomy: { ...a, parts } };
+};
+
 // ── BUTTON LAYOUT (#1667) ───────────────────────────────────────────────────────────────────────
 //
 // Three brand choices for the text-bearing button family, owner-decided 2026-09-25 (issue #1667). All
@@ -2769,7 +2857,8 @@ export const figmaAnatomySet = (def: ComponentDef, opts: { swapTarget?: string }
   // booleans from `anatomy.parts` rather than strings from `variants`.
   const gridAxes = declared.filter((a) => a !== 'size');
   const gridValues = gridAxes.map((a) => one(variantsOf(def)[a], true));
-  const bools = (name: string): boolean[] => (slotAxes.includes(name) ? [true, false] : [false]);
+  // `false` FIRST (#2752, owner decision Q2 A): the empty slot is the code default, so the member Figma inserts has none.
+  const bools = (name: string): boolean[] => (slotAxes.includes(name) ? [false, true] : [false]);
 
   // The cartesian product of the declared axes, in DECLARATION order — `variantAxes` is the order Figma
   // shows the properties in, and `planSetLayout` derives its grid from the resulting names, so the two
@@ -2792,8 +2881,11 @@ export const figmaAnatomySet = (def: ComponentDef, opts: { swapTarget?: string }
     for (const size of sizes)
       for (const state of states)
         if (!excludedAt(combo, size, state))
-          for (const leading of bools('leading'))
-            for (const trailing of bools('trailing'))
+          // Trailing OUTER, leading inner (#2752): with `false` first, this order reaches a leading-only member before
+          // a trailing-only one, so `planSetProperties`, which lists properties first-seen, keeps the panel's
+          // `↳ swap leading icon` above `↳ swap trailing icon` (#1380).
+          for (const trailing of bools('trailing'))
+            for (const leading of bools('leading'))
               plans.push(figmaAnatomyPlan(def, size, {
                 leading,
                 trailing,
@@ -3982,7 +4074,7 @@ const claimDefaults=(node,n,mode,layerOp)=>{
       // A TEXT fill has no neutral value — \`[]\` is invisible text — so an unpainted label is REPORTED.
       if(!P.fills${GRADIENT_CLAIM_SLOT}){if(t==='TEXT')misses.push(where+'.fills -> UNCLAIMED on a TEXT node (reported, not neutralized: [] is invisible text; the def must declare a text paint) — #865');else set('fills',[]);}
       // The weight is gated on the plan's binding (#1228): a literal write after the bind loop UNBINDS it.
-      if(!P.strokes){set('strokes',[]);if(!('strokeWeight' in B))set('strokeWeight',1);set('strokeAlign','INSIDE');}
+      if(!P.strokes){set('strokes',[]);if(!['strokeWeight','strokeTopWeight','strokeRightWeight','strokeBottomWeight','strokeLeftWeight'].some(k=>k in B))set('strokeWeight',1);set('strokeAlign','INSIDE');}
       set('dashPattern',[]);
     }
   }
@@ -4195,6 +4287,7 @@ ${GRADIENT_SLOT}
     const p=paint(n.paints.strokes,'strokes');
     // A stroke variable with no strokeWeight paints nothing visible, so the border appearance would
     // bind correctly and render as no border at all.
+    // A PER-SIDE weight (#2695, \`strokeEdges\`) counts as written too: the literal would overwrite all four sides.
     // GATED ON \`wrote\` (#1266). A part that declares \`strokeWidth\` has \`strokeWeight\` BOUND a few lines
     // up, and a literal assignment after a binding unbinds it — the border would then be the right paint
     // at a hardcoded 1px, re-theming on color and frozen on width. \`wrote\` rather than \`n.bound\`, because
@@ -4211,7 +4304,7 @@ ${GRADIENT_SLOT}
     // The border-box motive is moot on an absolute node anyway: with no auto-layout there is no footprint
     // for the stroke to grow. \`&&node.layoutMode\` so an undefined layoutMode (a non-auto-layout frame) is
     // skipped, not compared true against \`'NONE'\`.
-    if(p){node.strokes=[p];painted.strokes=1;if(!node.strokeWeight&&wrote.indexOf('strokeWeight')<0)node.strokeWeight=1;node.strokeAlign='INSIDE';if('strokesIncludedInLayout' in node&&node.layoutMode&&node.layoutMode!=='NONE')node.strokesIncludedInLayout=false;}
+    if(p){node.strokes=[p];painted.strokes=1;if(!node.strokeWeight&&!['strokeWeight','strokeTopWeight','strokeRightWeight','strokeBottomWeight','strokeLeftWeight'].some(k=>wrote.indexOf(k)>=0))node.strokeWeight=1;node.strokeAlign='INSIDE';if('strokesIncludedInLayout' in node&&node.layoutMode&&node.layoutMode!=='NONE')node.strokesIncludedInLayout=false;}
   }
   if(n.descendantFills){
     // The ink lives on the VECTORs INSIDE the node, never on the node itself — a fill on the wrapper is a
@@ -4728,7 +4821,7 @@ export const CANVAS_FURNITURE: ReadonlySet<string> = new Set([
   'radio-row', 'radio-group', 'switch-control', 'switch-row', 'select', 'veil', 'image-placeholder', 'badge', 'tag', 'tab', 'tabs',
   'divider', '_accordion-indicator', 'accordion', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'list-item',
   'list', 'segmented-control-segment', 'segmented-control', 'link',
-  'dialog', 'password-field', '_pagination-item', 'pagination',
+  'dialog', 'password-field', 'pagination-item', 'pagination',
 ]);
 
 export const planSetLayout = (plans: AnatomyPlan[], fn: string) => {

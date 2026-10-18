@@ -493,7 +493,7 @@
         "sha256": "f4c8a2016d77cece81f97d359ca68dc8eff078bc1f9a52f0f7609105c65946f0"
       }
     },
-    "_pagination-item": {
+    "pagination-item": {
       "set": {
         "members": 27,
         "assignments": 69,

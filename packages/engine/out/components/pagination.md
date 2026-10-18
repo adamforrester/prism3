@@ -42,7 +42,7 @@ Use Pagination below a long list, a grid of results or a table, to move between 
 - **Purpose:** Move between the pages of a long, ordered set of results and show which page is open.
 - **Use when:** Search results, a catalog or a table split into pages, where the user benefits from the count and from jumping to a page; or previous and next through an article.
 - **Avoid when:** A feed with no useful end (a load more Button), a few fixed views (tabs or a segmented control), the slides of a carousel, or rows per page and a "Go to page" field (the table pager, not yet built).
-- **Often used with:** `_pagination-item`, `icon-button-neutral`, `button-neutral`, `list`
+- **Often used with:** `pagination-item`, `icon-button-neutral`, `button-neutral`, `list`
 
 ## Props
 
@@ -103,7 +103,7 @@ None — not interactive.
 
 ## Composition
 
-- **Composes with:** `icon-button-neutral`, `_pagination-item`, `button-neutral`
+- **Composes with:** `icon-button-neutral`, `pagination-item`, `button-neutral`
 - **Alternative to:** `tabs`
 - **Planned:** `table`, `carousel`, `breadcrumbs`
 - **Replaces:**

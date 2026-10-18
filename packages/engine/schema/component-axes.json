@@ -18,7 +18,7 @@
     "members": 12,
     "properties": {}
   },
-  "_pagination-item": {
+  "pagination-item": {
     "axes": {
       "selection": [
         "selected",
