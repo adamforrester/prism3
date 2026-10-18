@@ -714,6 +714,17 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'carries it. Distinct from `orientation` and `alignment`, argued in `VARIANT_AXES`.',
   },
   {
+    axis: 'layout',
+    values: ['inline', 'stacked', 'fill'],
+    defs: ['button-group'],
+    relation: 'sole',
+    reason:
+      'How a group of buttons shares its space (#2661, owner decisions Q363 and Q363.9 B): a row at the end edge, a column '
+      + 'of full-width buttons, or a row whose buttons share the width. `inline` LEADS because it is the code default and '
+      + 'Figma\'s default member. One def carries it. Not Dialog\'s `footer`, whose `none` removes the part; the group is '
+      + 'always there. Distinct from `orientation` and `alignment`, argued in `VARIANT_AXES`.',
+  },
+  {
     axis: 'indicator',
     values: ['chevron', 'plus-minus'],
     defs: ['_accordion-indicator'],

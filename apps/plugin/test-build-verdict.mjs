@@ -1131,7 +1131,7 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   const mixed = [await aria('row=components|Buttons'), await aria('set=button-neutral'), await aria('sec=components')];
   ok(allOn[0] === 'true' && allOn[1] === 'mixed' && JSON.stringify(mixed) === '["mixed","false","mixed"]',
     `#2812 S1 one set cleared from a selected family draws the family's and the section's boxes as mixed — read family ${allOn[0]}, section ${allOn[1]}, then family/set/section ${JSON.stringify(mixed)}`);
-  // Q392 A, and the counts' line (5): Icon with the two Buttons left, at 380.
+  // Q392 A, and the counts' line (5): Icon with the three Button family sets left (Button.Group joined it, #2661), at 380.
   await hooks.click(page.locator('[data-p3="cp-box"][data-key="set=icon"]'));
   await page.setViewportSize({ width: 380, height: 640 });
   await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.w === 'narrow', null, { timeout: 5000 }).catch(() => {});
@@ -1141,7 +1141,7 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
       fits: s ? s.getBoundingClientRect().right <= document.documentElement.clientWidth : false,
       also: document.querySelector('[data-p3="components-also-builds"]')?.textContent ?? null };
   });
-  ok(line.text === '3 sets · 1,152 variants · 45 components' && line.lines === 1 && line.fits,
+  ok(line.text === '4 sets · 1,155 variants · 45 components' && line.lines === 1 && line.fits,
     `#2812 (5) at 380 the bar keeps both counts on one line, inside the panel — read ${JSON.stringify(line.text)}, ${line.lines} line(s), fits ${line.fits}`);
   ok(line.also === 'Also builds, when the file lacks them: Spinner, Focus ring.',
     `#2812 Q392 "Also builds" names the sets as the list does — read ${JSON.stringify(line.also)}`);
@@ -1162,14 +1162,14 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
     `#2812 N1 Tag ticked before Badge still runs in the list's order, Badge first — posted ${firstPost}, then ${JSON.stringify(await builds(page))}`);
   for (const id of ['tag', 'badge']) await hooks.click(page.locator(`[data-p3="cp-box"][data-key="set=${id}"]`));
   // Q391 A: under a search, the section's box acts on the rows shown. "badge" shows two: Badge, and Tag, whose summary
-  // says "A static label is a badge."; the section holds 32 sets.
+  // says "A static label is a badge."; the section holds 33 sets.
   await hooks.click(page.locator('[data-p3="search-open"]'));
   await page.locator('[data-p3="search-input"]').fill('badge');
   await page.waitForFunction(() => document.querySelectorAll('[data-p3="cp-section"][data-kind="components"] [data-p3="cp-row"]').length === 2, null, { timeout: 4000 }).catch(() => {});
   await hooks.click(page.locator('[data-p3="cp-box"][data-key="sec=components"]'));
   const scoped = await readSurfaces(page);
   ok(scoped.picker === 'badge,tag' && scoped.button === 'Build 2 sets' && (await aria('sec=components')) === 'true',
-    `#2812 Q391 under a search for "badge" the Components box selects the two rows shown, not the section's 32 sets, and reads checked over it — selected ${scoped.picker}, read "${scoped.button}", box ${await aria('sec=components')}`);
+    `#2812 Q391 under a search for "badge" the Components box selects the two rows shown, not the section's 33 sets, and reads checked over it — selected ${scoped.picker}, read "${scoped.button}", box ${await aria('sec=components')}`);
   await hooks.click(page.locator('[data-p3="cp-box"][data-key="sec=components"]'));
   // Call 7: a search opens the families a match sits in. A fresh page, so every family starts closed.
   await page.close();

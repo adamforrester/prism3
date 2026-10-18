@@ -489,6 +489,35 @@
       "sizeDefault": "medium"
     },
     {
+      "id": "button-group",
+      "name": "Button.Group",
+      "category": "form",
+      "states": [],
+      "projectedStates": [],
+      "axes": {
+        "layout": [
+          "inline",
+          "stacked",
+          "fill"
+        ]
+      },
+      "props": [
+        {
+          "name": "items"
+        },
+        {
+          "name": "layout",
+          "default": "inline",
+          "values": [
+            "inline",
+            "stacked",
+            "fill"
+          ]
+        }
+      ],
+      "sizes": []
+    },
+    {
       "id": "button-neutral",
       "name": "Button.Neutral",
       "category": "form",
@@ -3396,6 +3425,7 @@
       "kind": "role peers",
       "name": "*.Group",
       "members": [
+        "button-group",
         "checkbox-group",
         "radio-group"
       ],
@@ -3779,6 +3809,18 @@
         ],
         "components": [
           "veil"
+        ]
+      }
+    ],
+    "layout": [
+      {
+        "values": [
+          "fill",
+          "inline",
+          "stacked"
+        ],
+        "components": [
+          "button-group"
         ]
       }
     ],
@@ -4797,6 +4839,9 @@
     ],
     "items": [
       {
+        "id": "button-group"
+      },
+      {
         "id": "checkbox-group"
       },
       {
@@ -4888,6 +4933,17 @@
         "values": [
           "leading",
           "trailing"
+        ]
+      }
+    ],
+    "layout": [
+      {
+        "id": "button-group",
+        "default": "inline",
+        "values": [
+          "inline",
+          "stacked",
+          "fill"
         ]
       }
     ],
@@ -6155,6 +6211,14 @@
         "switch-row"
       ],
       "detail": "no state set is shared by most of the group — checkbox-row [rest, hover, pressed, focus-visible, disabled, read-only, error]; radio-row [rest, hover, pressed, focus-visible, disabled, read-only]; switch-row [rest, hover, pressed, pending, focus-visible, disabled, read-only, error]"
+    },
+    {
+      "kind": "state set",
+      "subject": "role peers: *.Group",
+      "components": [
+        "button-group"
+      ],
+      "detail": "button-group differs from the group's common set [rest] — lacks rest"
     },
     {
       "kind": "state set",

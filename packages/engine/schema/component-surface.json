@@ -654,9 +654,16 @@
         "trailing icon:BOOLEAN"
       ]
     },
+    "button-group": {
+      "members": 3,
+      "sha256": "c74587caf9edee460be6ad103657fe8388bc74f1e46d314fd1fd637b2d5e5b21",
+      "properties": [
+        "items:SLOT"
+      ]
+    },
     "dialog": {
       "members": 15,
-      "sha256": "1fb8655392a39802ce21a98a39f8fc29321cc35f34d7e954f079f21c87627bfe",
+      "sha256": "6284e15233d3c43b9563932e6b716fa6e2271029be1b783344529bbb902daba4",
       "properties": [
         "body:SLOT",
         "close:BOOLEAN",

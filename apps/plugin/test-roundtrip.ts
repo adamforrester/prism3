@@ -970,7 +970,8 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
   const washTail = /(^|\/)interactive\/[a-z-]+\/overlay\/(hover|pressed)$/;
   // The families the QA named — button + its two intent siblings, icon-button + its two — read off `componentDefs`
   // rather than listed, so a new intent sibling is covered without editing this gate.
-  const FAMILIES = componentDefs.filter((d) => /^(button|icon-button)(-|$)/.test(d.id)).map((d) => d.id);
+  // The button and icon-button FAMILIES (Button.Group, #2661, is a layout of Buttons and paints no wash of its own).
+  const FAMILIES = componentDefs.filter((d) => /^(button|icon-button)(-(destructive|neutral))?$/.test(d.id)).map((d) => d.id);
 
   let washBindings = 0;                       // container members whose fills bind a hover/pressed wash
   const washNames = new Set<string>();        // the distinct wash tails the containers bind

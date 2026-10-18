@@ -1123,6 +1123,22 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     ]
   },
   {
+    "id": "button-group",
+    "name": "Button.Group",
+    "category": "form",
+    "summary": "One to three buttons laid out together: in a row at the end, stacked, or sharing the width.",
+    "unit": "variants",
+    "spacing": [],
+    "page": "Buttons",
+    "section": "Components",
+    "buildable": true,
+    "reason": null,
+    "members": 3,
+    "nests": [
+      "button"
+    ]
+  },
+  {
     "id": "dialog",
     "name": "Dialog",
     "category": "overlay",
@@ -1138,7 +1154,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
       "flush-icon-button-neutral",
       "icon",
       "divider",
-      "button"
+      "button-group"
     ]
   },
   {
