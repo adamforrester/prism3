@@ -1857,7 +1857,13 @@ const writeComponentSet = async (
       // is the unambiguous one — it needs no coordinate to identify a member, so a def carrying a
       // `nestVariant` against a file that has flattened its ring to a component still resolves rather
       // than reporting a coordinate the file no longer has axes for.
-      const nested = n.nestTarget ? compByName.get(n.nestTarget) : undefined;
+      // #2661 — A FALLBACK-ONLY PREFERENCE first (`nestPrefer`, owner decisions Q363.8 as amended and Q386): the sibling
+      // set's member at the same coordinate when the file has that set, else `nestTarget` below, with no miss — the part
+      // needs `nestTarget` and only prefers this one. A set of that name that cannot yield the member is named once the
+      // instance is made (below), and it falls back the same way. Worded byte-identically to the paste payload's twin.
+      const pre = n.nestPrefer && n.nestVariant ? resolveNestMember(compSets, n.nestPrefer, n.nestVariant, nestVariantMatch, nestVariantMissAdvice) : null;
+      const preMember = pre && pre.miss === undefined ? pre.member : undefined;
+      const nested = !preMember && n.nestTarget ? compByName.get(n.nestTarget) : undefined;
       // THE SET AND ITS MEMBER, resolved together and only together (#1781) — see `resolveNestMember`, which
       // this executor and the paste payload share, decision AND wording. The member comes out of the named
       // set's own `children`. It used to be re-looked-up by NAME in `compByName`, where `size=small` is every
@@ -1871,7 +1877,7 @@ const writeComponentSet = async (
       // `nestTarget` — the FILE is the problem), the FIFTH MISS (the def's coordinate matches no member, or
       // more than one — `nestVariantMatch` refuses both, #656), and a matched child that is not a COMPONENT.
       // Nothing is nested in any of them: a valid wrong member looks like a success.
-      const res = !nested && n.nestTarget && n.nestVariant ? resolveNestMember(compSets, n.nestTarget, n.nestVariant, nestVariantMatch, nestVariantMissAdvice) : null;
+      const res = preMember ? { member: preMember } : !nested && n.nestTarget && n.nestVariant ? resolveNestMember(compSets, n.nestTarget, n.nestVariant, nestVariantMatch, nestVariantMissAdvice) : null;
       if (res && res.miss !== undefined) {
         misses.push(`${n.name}${res.miss}`);
         return null;
@@ -1929,6 +1935,8 @@ const writeComponentSet = async (
       // `applyNestOverrides` is shared with the paste payload, decision and wording.
       const firstVisit = !!node && !instanceValuesWritten.has(node);
       if (node) instanceValuesWritten.add(node);
+      // The preference that did not resolve (#2661), named once per instance: `toSlots` visits a slot's items twice.
+      if (node && firstVisit && pre && pre.miss !== undefined) misses.push(`${n.name}.nestPrefer -> ${n.nestPrefer} (in this file, but it did not resolve: ${pre.miss.slice(1)}; made from ${n.nestTarget} instead)`);
       if (node && firstVisit && n.nestOverrides && !kept)
         for (const m of applyNestOverrides(node as Parameters<typeof applyNestOverrides>[0], n.nestOverrides, (name) => { const c = compByName.get(name); return c?.id ? String(c.id) : null; }))
           misses.push(`${n.name}${m}`);
@@ -3292,16 +3300,21 @@ const writeComponentSet = async (
     const had = (defs[key] ?? {}) as { slotSettings?: Record<string, unknown>; preferredValues?: readonly unknown[] };
     const hs = had.slotSettings ?? {};
     const hostHas = hs.minChildren != null || hs.maxChildren != null || hs.allowPreferredValuesOnly === true || hs.displayEmptyByDefault === true || (had.preferredValues ?? []).length > 0;
-    if (!p.slotSettings && !p.preferred && !hostHas) continue;
+    if (!p.slotSettings && !p.preferred && !p.preferredWhenBuilt && !hostHas) continue;
     const preferredValues: SlotPreferredValue[] = [];
-    if (p.preferred?.length) {
+    // #2661 — `preferredWhenBuilt` is offered after `preferred` when the file has it, and left out WITHOUT a miss when
+    // it does not: the slot does not need it (Q386). A stale copy or a keyless host is still named, as for `preferred`.
+    const optional = p.preferredWhenBuilt ?? [];
+    const ids = [...(p.preferred ?? []), ...optional];
+    if (ids.length) {
       // A def with variants builds a set under its id; a single-component def (#2296) builds one component under it.
       const sets = api.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as readonly CompSetRef[];
       const singles = api.root.findAllWithCriteria({ types: ['COMPONENT'] }) as readonly CompRef[];
-      for (const id of p.preferred) {
+      for (const id of ids) {
         const asSet = sets.filter((x) => x.name === id);
         const named: { key?: string }[] = asSet.length ? asSet : singles.filter((x) => x.name === id);
         if (named.length === 1 && named[0].key) { preferredValues.push({ type: asSet.length ? 'COMPONENT_SET' : 'COMPONENT', key: named[0].key }); continue; }
+        if (!named.length && optional.includes(id)) continue;
         misses.push(named.length > 1
           ? `property ${p.name}.preferred -> ${id} (found ${named.length} components named ${id}; not offered in the slot. Rename or remove the stale copy, then rebuild)`
           : named.length === 1

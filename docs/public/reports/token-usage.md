@@ -2456,8 +2456,7 @@ Type: dimension. Bound by 17 component(s).
 |  |  | items | every member (3 of 3) |
 | checkbox-row | `pad-x` | row | every member (3 of 3) |
 | dialog | `pad-none` | body | every member (15 of 15) |
-|  |  | footerInline | footer: inline (5 of 15) |
-|  |  | footerStacked | footer: stacked (5 of 15) |
+|  |  | footer | footer: inline, stacked (10 of 15) |
 |  |  | header | every member (15 of 15) |
 |  |  | panel | every member (15 of 15) |
 | divider | `horizontal.inset.pad-block`, `horizontal.inset.pad-end`, `horizontal.middle-inset.pad-block`, `horizontal.none.pad-block`, `horizontal.none.pad-end`, `horizontal.none.pad-start`, `vertical.inset.pad-block`, `vertical.inset.pad-end`, `vertical.inset.pad-start`, `vertical.middle-inset.pad-end`, `vertical.middle-inset.pad-start`, `vertical.none.pad-block`, `vertical.none.pad-end`, `vertical.none.pad-start` | divider | every member (5 of 5) |
@@ -2520,7 +2519,7 @@ Type: dimension. Bound by 12 component(s).
 
 ### `space.100`
 
-Type: dimension. Bound by 22 component(s).
+Type: dimension. Bound by 23 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2529,11 +2528,11 @@ Type: dimension. Bound by 22 component(s).
 | badge | `status.pad-y` | surface | type: status (10 of 20) |
 | button | `size.large.padding-y`, `size.medium.gap`, `size.medium.padding-y`, `size.small.gap` | container | every member (576 of 576) |
 | button-destructive | `size.large.padding-y`, `size.medium.gap`, `size.medium.padding-y`, `size.small.gap` | container | every member (576 of 576) |
+| button-group | `layout.stacked.gap` | items | layout: stacked (1 of 3) |
 | button-neutral | `size.large.padding-y`, `size.medium.gap`, `size.medium.padding-y`, `size.small.gap` | container | every member (576 of 576) |
 | checkbox-group | `pad-y` | container | every member (3 of 3) |
 | checkbox-row | `size.medium.gap`, `size.small.gap` | row | size: medium, small (2 of 3) |
-| dialog | `footer.stacked.gap`, `title-gap` | footerStacked | footer: stacked (5 of 15) |
-|  |  | titleBox | every member (15 of 15) |
+| dialog | `title-gap` | titleBox | every member (15 of 15) |
 | divider | `vertical.middle-inset.pad-block` | divider | inset: middle-inset · orientation: vertical (1 of 5) |
 | link | `size.large.gap` | container | size: large (32 of 96) |
 | list | `size.small.gap` | container | size: small (3 of 9) |
@@ -2574,9 +2573,9 @@ Type: dimension. Bound by 12 component(s).
 | badge | `status.pad-x` | surface | type: status (10 of 20) |
 | button | `size.large.gap`, `size.medium.padding-x-visual`, `size.small.padding-x-visual` | container | every member (408 of 576) |
 | button-destructive | `size.large.gap`, `size.medium.padding-x-visual`, `size.small.padding-x-visual` | container | every member (408 of 576) |
+| button-group | `layout.fill.gap`, `layout.inline.gap` | items | layout: fill, inline (2 of 3) |
 | button-neutral | `size.large.gap`, `size.medium.padding-x-visual`, `size.small.padding-x-visual` | container | every member (408 of 576) |
 | checkbox-row | `pad-y`, `size.large.gap` | row | every member (3 of 3) |
-| dialog | `footer.inline.gap` | footerInline | footer: inline (5 of 15) |
 | list | `size.medium.gap` | container | size: medium (3 of 9) |
 |  |  | items | size: medium (3 of 9) |
 | radio-row | `pad-y`, `size.large.gap` | row | every member (3 of 3) |
@@ -2597,8 +2596,7 @@ Type: dimension. Bound by 14 component(s).
 | button-destructive | `size.large.padding-x-visual`, `size.medium.padding-x`, `size.small.padding-x` | container | inset: default (324 of 576) |
 | button-neutral | `size.large.padding-x-visual`, `size.medium.padding-x`, `size.small.padding-x` | container | inset: default (324 of 576) |
 | dialog | `gap`, `header-gap`, `placement.bottom.pad`, `placement.full.pad` | body | placement: bottom, full · size: medium (6 of 15) |
-|  |  | footerInline | footer: inline · placement: bottom, full · size: medium (2 of 15) |
-|  |  | footerStacked | footer: stacked · placement: bottom, full · size: medium (2 of 15) |
+|  |  | footer | footer: inline, stacked · placement: bottom, full · size: medium (4 of 15) |
 |  |  | header | every member (15 of 15) |
 |  |  | panel | every member (15 of 15) |
 | divider | `horizontal.inset.pad-start`, `horizontal.middle-inset.pad-end`, `horizontal.middle-inset.pad-start` | divider | inset: inset, middle-inset · orientation: horizontal (2 of 5) |
@@ -2634,8 +2632,7 @@ Type: dimension. Bound by 10 component(s).
 | button-destructive | `size.large.padding-x` | container | inset: default · size: large (108 of 576) |
 | button-neutral | `size.large.padding-x` | container | inset: default · size: large (108 of 576) |
 | dialog | `placement.center.pad` | body | placement: center (9 of 15) |
-|  |  | footerInline | footer: inline · placement: center (3 of 15) |
-|  |  | footerStacked | footer: stacked · placement: center (3 of 15) |
+|  |  | footer | footer: inline, stacked · placement: center (6 of 15) |
 |  |  | header | placement: center (9 of 15) |
 |  |  | panel | placement: center (9 of 15) |
 | list-item | `size.small.marker-column` | markerBox | size: small (3 of 9) |
@@ -2984,6 +2981,12 @@ Declared, not drawn: `color.border.focus`
 
 Drawn, not declared: `color.inverse.disabled.border`, `color.inverse.disabled.fill`, `color.inverse.disabled.icon`, `color.inverse.disabled.on-fill`, `color.inverse.disabled.text`, `color.inverse.interactive.destructive.border.hover`, `color.inverse.interactive.destructive.border.pressed`, `color.inverse.interactive.destructive.border.rest`, `color.inverse.interactive.destructive.fill.hover`, `color.inverse.interactive.destructive.fill.pressed`, `color.inverse.interactive.destructive.fill.rest`, `color.inverse.interactive.destructive.icon.hover`, `color.inverse.interactive.destructive.icon.pressed`, `color.inverse.interactive.destructive.icon.rest`, `color.inverse.interactive.destructive.on-fill`, `color.inverse.interactive.destructive.overlay.hover`, `color.inverse.interactive.destructive.overlay.pressed`, `color.inverse.interactive.destructive.text.hover`, `color.inverse.interactive.destructive.text.pressed`, `color.inverse.interactive.destructive.text.rest`
 
+### button-group
+
+2 token(s); 3 design-file member(s).
+
+`space.100`, `space.150`
+
 ### button-neutral
 
 63 token(s); 576 design-file member(s).
@@ -3018,9 +3021,9 @@ Declared, not drawn: `color.disabled.text`, `size.lg.height`, `size.md.height`, 
 
 ### dialog
 
-13 token(s); 15 design-file member(s).
+12 token(s); 15 design-file member(s).
 
-`color.foreground.primary`, `color.text.primary`, `color.text.secondary`, `radius.2xl`, `radius.none`, `shadow.xl`, `space.0`, `space.100`, `space.150`, `space.200`, `space.300`, `type.body.md.default`, `type.label.lg.emphasis`
+`color.foreground.primary`, `color.text.primary`, `color.text.secondary`, `radius.2xl`, `radius.none`, `shadow.xl`, `space.0`, `space.100`, `space.200`, `space.300`, `type.body.md.default`, `type.label.lg.emphasis`
 
 ### divider
 

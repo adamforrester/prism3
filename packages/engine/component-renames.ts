@@ -35,7 +35,12 @@ export type ComponentRename =
    *  Q307 A). `booleans` are the removed properties' panel names; `rows` are the old row layers, in their order in the
    *  member, as direct children of the layer that held them (`from`). An update moves each placed instance's VISIBLE
    *  rows into the slot as items, in this order, and lists what it moves (`apps/plugin/src/slot-migration.ts`). */
-  | { readonly def: string; readonly kind: 'slot'; readonly slot: string; readonly from: string; readonly rows: readonly string[]; readonly booleans: readonly string[]; readonly issue: number }
+  | { readonly def: string; readonly kind: 'slot'; readonly slot: string; readonly from: string | readonly string[]; readonly rows: readonly string[]; readonly booleans: readonly string[]; readonly issue: number;
+      /** #2661 — the def whose NESTED instance holds the slot, when the slot is not the set's own. Dialog's footer buttons
+       *  moved into a nested Button.Group's `items` slot, which holds its own default buttons; so the update keeps those
+       *  defaults and writes each placed instance's CHANGED values (a label typed over "Button") onto them, in order,
+       *  replacing nothing. `from` may then name one layer per member shape (`footerInline`, `footerStacked`). */
+      readonly within?: string }
   /** A non-variant component property (BOOLEAN, TEXT, INSTANCE_SWAP or SLOT) gone with no successor, by its panel name. */
   | { readonly def: string; readonly kind: 'property'; readonly property: string; readonly issue: number };
 
@@ -57,6 +62,10 @@ export const COMPONENT_RENAMES: readonly ComponentRename[] = [
   { def: 'tabs', kind: 'slot', slot: 'items', from: 'list', rows: ['tab1', 'tab2', 'tab3', 'tab4', 'tab5', 'tab6'], booleans: ['Tab 4', 'Tab 5', 'Tab 6'], issue: 2649 },
   { def: 'list', kind: 'slot', slot: 'items', from: 'container', rows: ['item1', 'item2', 'item3', 'item4', 'item5', 'item6', 'item7', 'item8'], booleans: ['Item 4', 'Item 5', 'Item 6', 'Item 7', 'Item 8'], issue: 2649 },
   { def: 'segmented-control', kind: 'slot', slot: 'items', from: 'track', rows: ['segment1', 'segment2', 'segment3', 'segment4', 'segment5'], booleans: ['Segment 3', 'Segment 4', 'Segment 5'], issue: 2649 },
+  // Dialog's footer buttons moved into a nested Button.Group's `items` slot (#2661, owner decision Q363). The two footer
+  // layers each held two fixed Buttons; the group's slot holds the same two by default, so a placed Dialog keeps its
+  // changed labels on them, in order. No property left the set, so there are no booleans.
+  { def: 'dialog', kind: 'slot', slot: 'items', within: 'button-group', from: ['footerInline', 'footerStacked'], rows: ['cancelInline', 'confirmInline', 'confirmStacked', 'cancelStacked'], booleans: [], issue: 2661 },
 ];
 
 /** The ledger's slot entry for `def`, if its rows moved into a native slot (#2649). */
@@ -185,7 +194,10 @@ export const danglingTargets = (after: AxesBaseline, ledger: readonly ComponentR
       continue;
     }
     if (r.kind === 'slot') {
-      if (a.properties && a.properties[r.slot] !== 'SLOT') bad.push(`${r.def}: slot entry names the slot '${r.slot}', which the def does not project as a SLOT property`);
+      // #2661 — a slot reached through a nested instance is that def's SLOT property.
+      const owner = r.within ? after[r.within] : a;
+      if (r.within && !owner) bad.push(`${r.def}: slot entry reaches the slot through '${r.within}', which does not project`);
+      else if (owner.properties && owner.properties[r.slot] !== 'SLOT') bad.push(`${r.def}: slot entry names the slot '${r.slot}', which ${r.within ? `'${r.within}'` : 'the def'} does not project as a SLOT property`);
       for (const b of r.booleans) if (a.properties?.[b] === 'BOOLEAN') bad.push(`${r.def}: slot entry claims '${b}' is gone, and the def still projects it`);
     } else if (r.kind === 'axis') {
       let to = r.to; const seen = new Set([r.from]);

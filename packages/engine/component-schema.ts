@@ -498,6 +498,12 @@ export type PartDef = {
    *  id must be a registered def that builds one component or one set on its own; `figmaAnatomyPlan` refuses any
    *  other, naming it (the schema has no registry to check against). Refused on anything but a `contentSlot` box. */
   preferred?: readonly string[];
+  /** For a `contentSlot` box (#2661, owner decisions Q363.4 and Q386): components the slot offers WHEN THE FILE HAS
+   *  THEM, by DEF ID. Written with `preferred` on the slot's SLOT property; a def not built in this file is left out
+   *  WITHOUT a miss, because the slot does not need it. This is how a slot offers Button.Neutral beside the primary
+   *  Button without requiring a family many teams never build (Q386). Each id is checked against the registry as
+   *  `preferred` is; refused on anything but a `contentSlot` box, and on an id `preferred` also names. */
+  preferredWhenBuilt?: readonly string[];
   /** For `text` parts INSIDE a `contentSlot` box (#2417): the placeholder copy, written as it is. A text node in a
    *  native slot's default content can carry no component-property reference (measured: Figma refuses one on a slot
    *  sublayer), so a slot's placeholder is literal text, which a designer edits or replaces on the instance. Refused
@@ -631,6 +637,15 @@ export type PartDef = {
    *  `widths` key that is not a value of it or a per-size map whose keys are not exactly the `size` values, with a
    *  `heights` key that is not a `widths` key, with a non-positive number, and with a `grow` that is not a child of
    *  the root. */
+  /** For a `box` with `layout`: its DIRECTION PER MEMBER (#2661, owner decision Q363.9). At the value of `axis` the
+   *  member holds, the box reads as if its `layout.direction` were the one named; at any other coordinate, and in a
+   *  structure-only plan, it is the box as authored. Button group's `items` slot is a row inline and at fill and a
+   *  column stacked, and must stay ONE part: a native slot is one SLOT property per part name, so a designer's
+   *  buttons survive a layout switch only when every member's slot is the same part. Resolved at projection, before
+   *  anything reads the anatomy (`directionAt` in `anatomy-figma.ts`), so each member's plan is an ordinary
+   *  `layoutMode` and neither executor changes. Refused off a `box` with `layout`, with an `axis` that is not a
+   *  projected variant axis, and with a key that is not one of its values or a value missing. */
+  directionWhen?: { axis: string; values: Record<string, 'row' | 'column'> };
   builtSize?: {
     axis: string;
     widths: Record<string, number | Record<string, number>>;
@@ -991,6 +1006,19 @@ export type PartDef = {
    *  would be the tempting choice — and it would silently make every nested set fixed-at-its-first-
    *  variant, which is the #656 error this field exists to stop. See `NestingRelation`. */
   nesting?: NestingRelation;
+  /** For a `nest` part: a FALLBACK-ONLY PREFERENCE (#2661, owner decisions Q363.8 as amended and Q386). The def id of
+   *  a sibling component the instance is made from WHEN THE FILE HAS IT, at the same coordinate; otherwise it is made
+   *  from `nests`, without a miss. Dialog's Cancel is Button.Neutral in a file that built the Neutral families and
+   *  the primary Button in one that did not, so no team has to build Button.Neutral to build a Dialog.
+   *
+   *  NEVER A REQUIREMENT, and that is the field's whole point. It is not `nests` and does not project as
+   *  `nestTarget`, so the plugin never builds it first (`build-deps.ts` reads `nestTarget` only) and the Q386 gate
+   *  (`test-write-components.ts`, #2808) does not count it. `nests` stays the one component the part needs.
+   *
+   *  The two components must take the same coordinate: the projection refuses an id whose set does not have exactly
+   *  `nests`'s variant axes and values, and one missing a text or swap property `overrides` sets. Refused off a
+   *  `nest` part with `nests` that is `nest-fixed` or `nest-exposed`, and when it names `nests` itself. */
+  prefersWhenBuilt?: string;
   /** PER-INSTANCE OVERRIDES on the nested instance (#2645): values this part sets on the instance it nests, through
    *  the nested component's OWN component properties. A nested Button reading "Cancel", a List's second item reading
    *  "2.", a close button showing the `close` glyph. Without it a nested instance shows its component's defaults
@@ -3306,13 +3334,26 @@ export type State = (typeof STATES)[number];
  * part exists and how its children run, which is why the name is the part's own: the axis is the footer's layout, and
  * `none` removes it. Naming it `orientation` would claim a missing footer is a direction. An AUTHORING axis.
  * `lint-axis-values.ts` carries the three values as a `sole` set.
+ *
+ * ── `layout`: THE TWENTY-EIGHTH NAME, FOR THE BUTTON GROUP (owner decisions Q363.9 B and Q363 "all A", #2661) ──
+ *
+ * `layout` (`inline | stacked | fill`) is HOW a group of buttons sits in the space it is given: a row at the end edge,
+ * a column of full-width buttons with the main action on top, or a row whose buttons share the width. The approved
+ * wireframe names the three ("layouts on the container"), and the owner added fill (Q363.9 B). It clears the bar
+ * with the nearest defeated: `footer` is the Dialog's own axis and includes `none`, a part that is not there, while a
+ * Button group is always there and is not always a footer (Banner and Card nest it too); `orientation` is which way
+ * a rule runs and has no fill; `width` is one control's own extent, not how a group shares its row; `alignment`
+ * places a row along its bar and never stacks it. None says "how these buttons share the space", and naming it
+ * `footer` would tell a Banner its actions are a footer. An AUTHORING axis: a product picks the layout where it
+ * places the group. Read by the slot's `directionWhen` (`PartDef.directionWhen`), so the one `items` slot runs as a
+ * row or a column per member. `lint-axis-values.ts` carries the three values as a `sole` set.
  */
 export const VARIANT_AXES = [
   'size', 'intent', 'appearance', 'tone',
   'width', 'style', 'indicator', 'offset', 'selection',
   'name', 'surface', 'weight', 'value', 'intensity', 'ratio',
   'status', 'emphasis', 'shape', 'type', 'direction', 'inset', 'orientation', 'alignment', 'expansion', 'iconPosition',
-  'placement', 'footer',
+  'placement', 'footer', 'layout',
 ] as const;
 
 /** One member of the closed axis-NAME vocabulary. Values are not constrained — see `VARIANT_AXES`. */
@@ -4464,6 +4505,17 @@ const anatomyErrors = (def: ComponentDef): string[] => {
       if (ss.allowPreferredValuesOnly && !(p.preferred ?? []).length)
         e.push(`anatomy part '${n}' slotSettings.allowPreferredValuesOnly is true with no 'preferred' — the slot would flag every component a designer puts in it`);
     }
+    if (p.preferredWhenBuilt !== undefined) {
+      if (!p.contentSlot) e.push(`anatomy part '${n}' declares 'preferredWhenBuilt' but is not a native slot — only a \`contentSlot\` box has a SLOT property to carry it`);
+      if (!p.preferredWhenBuilt.length) e.push(`anatomy part '${n}' declares an empty 'preferredWhenBuilt' — leave it out for a slot that offers nothing optional`);
+      const seen = new Set<string>();
+      for (const id of p.preferredWhenBuilt) {
+        if (seen.has(id)) e.push(`anatomy part '${n}' names '${id}' twice in 'preferredWhenBuilt'`);
+        seen.add(id);
+        if (!/^[a-z][a-z0-9-]*$/.test(id)) e.push(`anatomy part '${n}' preferredWhenBuilt '${id}' is not a def id`);
+        if ((p.preferred ?? []).includes(id)) e.push(`anatomy part '${n}' names '${id}' in both 'preferred' and 'preferredWhenBuilt' — a slot either needs a component or offers it when the file has it`);
+      }
+    }
     if (p.preferred !== undefined) {
       if (!p.preferred.length) e.push(`anatomy part '${n}' declares an empty 'preferred' — leave it out for a slot that prefers nothing`);
       const seen = new Set<string>();
@@ -4646,6 +4698,31 @@ const anatomyErrors = (def: ComponentDef): string[] => {
             e.push(`anatomy part '${n}' declares nesting 'atState' on '${axis}', which it also follows or exposes — one axis is driven one way`);
         }
       }
+    }
+    // A FALLBACK-ONLY PREFERENCE (#2661, Q386) is an in-flow nest of a named component that may come from a sibling set
+    // instead; that the sibling takes the same coordinate is checked at projection, where the registry is known.
+    if (p.prefersWhenBuilt !== undefined) {
+      if (p.kind !== 'nest' || !p.nests || (p.nesting?.kind !== 'nest-fixed' && p.nesting?.kind !== 'nest-exposed'))
+        e.push(`anatomy part '${n}' declares 'prefersWhenBuilt' but is not a 'nest' part with 'nests' and a 'nest-fixed' or 'nest-exposed' relation — the preference replaces the component an in-flow instance is made from`);
+      if (p.prefersWhenBuilt === p.nests)
+        e.push(`anatomy part '${n}' prefers '${p.prefersWhenBuilt}', which is the component it nests — name the sibling it uses when the file has it`);
+      if (!/^[a-z][a-z0-9-]*$/.test(p.prefersWhenBuilt))
+        e.push(`anatomy part '${n}' prefersWhenBuilt '${p.prefersWhenBuilt}' is not a def id`);
+    }
+    // PER-MEMBER DIRECTION (#2661): a projected axis, every value given, on a box that lays out.
+    if (p.directionWhen !== undefined) {
+      const dw = p.directionWhen;
+      const projected = def.figmaProperties?.variantAxes ?? [];
+      const values = (def.variants as Record<string, readonly string[] | undefined> | undefined)?.[dw.axis] ?? [];
+      if (p.kind !== 'box' || !p.layout)
+        e.push(`anatomy part '${n}' declares 'directionWhen' but is not a 'box' with 'layout' — only an auto-layout frame has a direction`);
+      if (!projected.includes(dw.axis))
+        e.push(`anatomy part '${n}' directionWhen.axis '${dw.axis}' is not an axis this def projects [${projected.join(', ') || 'none'}]`);
+      for (const k of Object.keys(dw.values)) {
+        if (!values.includes(k)) e.push(`anatomy part '${n}' directionWhen gives '${k}', which is not a value of '${dw.axis}' [${values.join(', ')}]`);
+        if (dw.values[k] !== 'row' && dw.values[k] !== 'column') e.push(`anatomy part '${n}' directionWhen.${k} is '${String(dw.values[k])}' — a direction is 'row' or 'column'`);
+      }
+      for (const v of values) if (!(v in dw.values)) e.push(`anatomy part '${n}' directionWhen gives no direction for '${dw.axis}=${v}' — name every value, so no member falls back to the authored direction by omission`);
     }
     if (p.nestTexts && p.kind !== 'nest')
       e.push(`anatomy part '${n}' declares 'nestTexts' but is kind '${p.kind}' — only an in-flow nested instance carries text overrides`);

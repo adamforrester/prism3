@@ -12,7 +12,7 @@
     "used": 247,
     "unusedSemantic": 260,
     "unusedPrimitive": 280,
-    "components": 41
+    "components": 42
   },
   "tokens": {
     "border-width.hairline": {
@@ -17182,18 +17182,11 @@
               "members": 15,
               "where": {}
             },
-            "footerInline": {
-              "members": 5,
+            "footer": {
+              "members": 10,
               "where": {
                 "footer": [
-                  "inline"
-                ]
-              }
-            },
-            "footerStacked": {
-              "members": 5,
-              "where": {
-                "footer": [
+                  "inline",
                   "stacked"
                 ]
               }
@@ -17756,6 +17749,21 @@
             }
           }
         },
+        "button-group": {
+          "keys": [
+            "layout.stacked.gap"
+          ],
+          "parts": {
+            "items": {
+              "members": 1,
+              "where": {
+                "layout": [
+                  "stacked"
+                ]
+              }
+            }
+          }
+        },
         "button-neutral": {
           "keys": [
             "size.large.padding-y",
@@ -17800,18 +17808,9 @@
         },
         "dialog": {
           "keys": [
-            "footer.stacked.gap",
             "title-gap"
           ],
           "parts": {
-            "footerStacked": {
-              "members": 5,
-              "where": {
-                "footer": [
-                  "stacked"
-                ]
-              }
-            },
             "titleBox": {
               "members": 15,
               "where": {}
@@ -18183,6 +18182,23 @@
             }
           }
         },
+        "button-group": {
+          "keys": [
+            "layout.fill.gap",
+            "layout.inline.gap"
+          ],
+          "parts": {
+            "items": {
+              "members": 2,
+              "where": {
+                "layout": [
+                  "fill",
+                  "inline"
+                ]
+              }
+            }
+          }
+        },
         "button-neutral": {
           "keys": [
             "size.large.gap",
@@ -18205,21 +18221,6 @@
             "row": {
               "members": 3,
               "where": {}
-            }
-          }
-        },
-        "dialog": {
-          "keys": [
-            "footer.inline.gap"
-          ],
-          "parts": {
-            "footerInline": {
-              "members": 5,
-              "where": {
-                "footer": [
-                  "inline"
-                ]
-              }
             }
           }
         },
@@ -18420,25 +18421,11 @@
                 ]
               }
             },
-            "footerInline": {
-              "members": 2,
+            "footer": {
+              "members": 4,
               "where": {
                 "footer": [
-                  "inline"
-                ],
-                "placement": [
-                  "bottom",
-                  "full"
-                ],
-                "size": [
-                  "medium"
-                ]
-              }
-            },
-            "footerStacked": {
-              "members": 2,
-              "where": {
-                "footer": [
+                  "inline",
                   "stacked"
                 ],
                 "placement": [
@@ -18769,21 +18756,11 @@
                 ]
               }
             },
-            "footerInline": {
-              "members": 3,
+            "footer": {
+              "members": 6,
               "where": {
                 "footer": [
-                  "inline"
-                ],
-                "placement": [
-                  "center"
-                ]
-              }
-            },
-            "footerStacked": {
-              "members": 3,
-              "where": {
-                "footer": [
+                  "inline",
                   "stacked"
                 ],
                 "placement": [
@@ -21356,6 +21333,22 @@
         "color.inverse.interactive.destructive.text.rest"
       ]
     },
+    "button-group": {
+      "members": 3,
+      "axes": {
+        "layout": [
+          "fill",
+          "inline",
+          "stacked"
+        ]
+      },
+      "tokens": [
+        "space.100",
+        "space.150"
+      ],
+      "declaredNotDrawn": [],
+      "drawnNotDeclared": []
+    },
     "button-neutral": {
       "members": 576,
       "axes": {
@@ -21614,7 +21607,6 @@
         "shadow.xl",
         "space.0",
         "space.100",
-        "space.150",
         "space.200",
         "space.300",
         "type.body.md.default",

@@ -3714,6 +3714,76 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   const projected = componentDefs.filter((d) => d.figmaProperties && !(FORBIDDEN as readonly string[]).includes(d.id)).length;
   ok(walked === projected && unprojected.length === 0,
     `#2808 the BUILT reading walked every projected def (${walked} of ${projected})${unprojected.length ? ` — not walked: ${unprojected.join('; ')}` : ''}`);
+
+  // #2661 — THE DECLARED FALLBACK-ONLY REFERENCES. A nest's `prefersWhenBuilt` and a slot's `preferredWhenBuilt` are
+  // how a def names a Neutral family without requiring it. Neither reading above counts them, and a native slot's
+  // `preferred` list (which names a missing def as a miss) must not name a forbidden family at all: it goes in
+  // `preferredWhenBuilt`. The fixture proves each predicate tells the two apart: `prefersWhenBuilt` alone is not a
+  // requirement, and the same id in `nests` is.
+  const slotNeeds = (def: ComponentDef): string[] =>
+    Object.entries(def.anatomy?.parts ?? {}).flatMap(([n, p]) => (p.preferred ?? []).filter((id) => (FORBIDDEN as readonly string[]).includes(id)).map((id) => `${n}.preferred → ${id}`));
+  for (const def of componentDefs) {
+    if ((FORBIDDEN as readonly string[]).includes(def.id)) continue;
+    const needs = slotNeeds(def);
+    ok(needs.length === 0, `#2808 ${def.id}'s native slots require no Neutral button family (Q386)${needs.length ? ` — ${needs.join(', ')}; move it to preferredWhenBuilt` : ''}`);
+  }
+  const prefHost = { id: 'fixture-pref', anatomy: { root: 'x', parts: { x: { kind: 'nest', nests: 'button', prefersWhenBuilt: 'button-neutral', nesting: { kind: 'nest-fixed', variant: {} } }, s: { kind: 'box', contentSlot: true, preferred: ['button'], preferredWhenBuilt: ['button-neutral'] } } }, figmaProperties: {} } as unknown as ComponentDef;
+  const prefProj = (d: ComponentDef) => (d === prefHost ? [{ root: { nestTarget: 'button', nestPrefer: 'button-neutral', children: [] } } as unknown as AnatomyPlan] : project(d));
+  const slotHost = { ...prefHost, anatomy: { root: 's', parts: { s: { kind: 'box', contentSlot: true, preferred: ['button-neutral'] } } } } as unknown as ComponentDef;
+  ok(declaredNeeds(prefHost).length === 0 && !builtNeeds(prefHost, [...componentDefs, prefHost], prefProj).length && slotNeeds(prefHost).length === 0 && slotNeeds(slotHost).length === 1,
+    `#2808 #2661 a fallback-only preference is not a requirement on either reading, and the same family in a slot's preferred list is (declared [${declaredNeeds(prefHost).join(', ')}], built [${builtNeeds(prefHost, [...componentDefs, prefHost], prefProj).join(', ')}], slot [${slotNeeds(slotHost).join(', ')}])`);
+  // REPRESENTED (shape 15): the corpus declares at least one Neutral fallback, so the arm above reads a real case.
+  const fallbacks = componentDefs.flatMap((d) => Object.entries(d.anatomy?.parts ?? {}).filter(([, p]) => p.prefersWhenBuilt === 'button-neutral').map(([n]) => `${d.id}.${n}`));
+  ok(fallbacks.length > 0, `#2808 #2661 the corpus declares Button.Neutral as a fallback-only preference somewhere (${fallbacks.join(', ') || 'nowhere'})`);
+}
+
+// =============================================================================================
+// #2661 (Q363.8 as amended, Q386) — DIALOG BUILDS WITH A PRIMARY CANCEL WHEN THE FILE HAS NO BUTTON.NEUTRAL
+// =============================================================================================
+// Two themed files, each built the way `main.ts` builds: the def's missing nests first (`prebuildDependencies`), then
+// the def. In the file WITHOUT the Neutral families, building Dialog builds Button.Group and Button but never
+// Button.Neutral, and every Cancel in the group is an outline primary Button, with no nest miss and no slot miss for the
+// families it only prefers. In the file where Button.Neutral was built FIRST, every Cancel is an outline Button.Neutral
+// and the slot offers it. Expected owners and lists are LITERALS (docs/34). Mutations: drop `nestPrefer` from the plugin
+// executor → `with Button.Neutral` fails; make `prefersWhenBuilt` project as `nestTarget` → `without` fails (the plugin
+// builds button-neutral first).
+{
+  const project = (d: ComponentDef) => figmaAnatomySet(materializeForBrand(d, null), { swapTarget: SWAP });
+  const all = componentDefs.flatMap((d) => { try { return project(d); } catch { return []; } });
+  const f = fullFor(all);
+  const byDef = (id: string) => componentDefs.find((d) => d.id === id)!;
+  const flat = (n: Node): Node[] => [n, ...((n.children as Node[] | undefined) ?? []).flatMap(flat)];
+  const CANCEL = ['cancel', 'cancelStacked', 'cancelFill'];
+  for (const withNeutral of [false, true]) {
+    const label = withNeutral ? 'with Button.Neutral built first' : 'without Button.Neutral';
+    const page: Page = { children: [] };
+    const shim = makeShim({ vars: f.vars, styles: f.styles, effects: f.effects, comps: [], liveRoot: true, page, identities: true });
+    const order: string[] = [];
+    const misses: string[] = [];
+    const build = async (d: ComponentDef) => { order.push(d.id); const r = await applyComponentPlan(project(d), shim as any, { emitAsComponents: d.figmaProperties?.emitAsComponents }); misses.push(...r.misses.map((m) => `${d.id}: ${m}`)); return r; };
+    if (withNeutral) { await prebuildDependencies(byDef('button-neutral'), { defs: componentDefs, project, host: shim as any, build }); await build(byDef('button-neutral')); }
+    const neutralBuilds = order.filter((id) => id === 'button-neutral').length;
+    await prebuildDependencies(byDef('dialog'), { defs: componentDefs, project, host: shim as any, build });
+    await build(byDef('dialog'));
+    ok(order.includes('button-group') && order.includes('button') && order.filter((id) => id === 'button-neutral').length === neutralBuilds && order.indexOf('button-group') < order.indexOf('dialog'),
+      `#2661 ${label}: building Dialog builds Button.Group and Button first, and never Button.Neutral (${order.join(', ')})`);
+    const group = page.children.find((c) => c.name === 'button-group' && c.type === 'COMPONENT_SET') as Node | undefined;
+    const cancels = ((group?.children as Node[] | undefined) ?? []).flatMap(flat).filter((n) => n.type === 'INSTANCE' && CANCEL.includes(String(n.name)));
+    const wantSet = withNeutral ? 'button-neutral' : 'button';
+    const wrong = cancels.map((n) => { const m = n.mainComponent as Node | undefined; return { name: n.name, set: String((m?.parent as Node | undefined)?.name ?? ''), member: String(m?.name ?? '') }; })
+      .filter((x) => x.set !== wantSet || !/appearance=outline/.test(x.member));
+    ok(cancels.length === 3 && wrong.length === 0,
+      `#2661 ${label}: every Cancel in Button.Group (inline, stacked, fill) is an outline ${wantSet} (${cancels.length} found${wrong.length ? `; WRONG: ${wrong.map((w) => `${w.name} → ${w.set}/${w.member}`).join(' | ')}` : ''})`);
+    const nestMisses = misses.filter((m) => /\.nest(Target|Variant|Prefer) ->|\.preferred -> button-(neutral|destructive)/.test(m));
+    ok(nestMisses.length === 0, `#2661 ${label}: Button.Group and Dialog build with no nest miss and no slot miss for the families they only prefer (${nestMisses.slice(0, 2).join(' | ') || 'none'})`);
+    // THE SLOT OFFERS what the file has: the primary Button always, Button.Neutral only once it is built.
+    const defs = (group?.componentPropertyDefinitions ?? {}) as Record<string, { type?: string; preferredValues?: { key?: string }[] }>;
+    const slot = Object.entries(defs).find(([k, v]) => k.split('#')[0] === 'items' && v.type === 'SLOT')?.[1];
+    const keyName = (k: string): string => String(page.children.find((x) => (x.type === 'COMPONENT_SET' || x.type === 'COMPONENT') && x.key === k)?.name ?? `(${k})`);
+    const offered = (slot?.preferredValues ?? []).map((v) => keyName(String(v.key)));
+    const wantOffered = withNeutral ? ['button', 'button-neutral'] : ['button'];
+    ok(JSON.stringify(offered) === JSON.stringify(wantOffered), `#2661 ${label}: the items slot offers ${wantOffered.join(' and ')} (got ${JSON.stringify(offered)})`);
+  }
 }
 
 // =============================================================================================

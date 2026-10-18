@@ -611,7 +611,8 @@
         "commonPartners": [
           "icon",
           "spinner",
-          "focus-ring"
+          "focus-ring",
+          "button-group"
         ],
         "triggerKeywords": [
           "button",
@@ -642,7 +643,6 @@
         "supersededBy": [],
         "planned": [
           "tooltip",
-          "button-group",
           "menu",
           "popover",
           "toggle-button",
@@ -892,7 +892,8 @@
         "commonPartners": [
           "icon",
           "spinner",
-          "focus-ring"
+          "focus-ring",
+          "button-group"
         ],
         "triggerKeywords": [
           "destructive button",
@@ -924,7 +925,6 @@
         "supersededBy": [],
         "planned": [
           "tooltip",
-          "button-group",
           "menu",
           "popover",
           "toggle-button",
@@ -1173,7 +1173,8 @@
         "commonPartners": [
           "icon",
           "spinner",
-          "focus-ring"
+          "focus-ring",
+          "button-group"
         ],
         "triggerKeywords": [
           "neutral button",
@@ -1202,7 +1203,6 @@
         "supersededBy": [],
         "planned": [
           "tooltip",
-          "button-group",
           "menu",
           "popover",
           "toggle-button",
@@ -1433,7 +1433,6 @@
         "supersededBy": [],
         "planned": [
           "tooltip",
-          "button-group",
           "menu",
           "popover"
         ],
@@ -1663,7 +1662,6 @@
         "supersededBy": [],
         "planned": [
           "tooltip",
-          "button-group",
           "menu",
           "popover"
         ],
@@ -1892,7 +1890,6 @@
         "supersededBy": [],
         "planned": [
           "tooltip",
-          "button-group",
           "menu",
           "popover"
         ],
@@ -7290,6 +7287,132 @@
         ]
       }
     },
+    "button-group": {
+      "id": "button-group",
+      "name": "Button.Group",
+      "aliases": [
+        "button-set",
+        "action-group",
+        "actions"
+      ],
+      "category": "form",
+      "status": "draft",
+      "summary": "One to three buttons laid out together: in a row at the end, stacked, or sharing the width.",
+      "description": "A set of one to three buttons for the actions that close a task: Cancel and Save at the foot of a dialog, the actions of a banner, the buttons under a form. Inline puts them in a row at the end edge with the main action last; stacked puts them in a column of full-width buttons with the main action on top; fill puts them in a row whose buttons share the width. The buttons are Button, Button.Destructive and Button.Neutral, each its own action and spaced apart. Not a segmented control, whose buttons join edge to edge as one choice, and not a toolbar.",
+      "props": [
+        {
+          "name": "items",
+          "type": "slot",
+          "required": true,
+          "anyOf": [
+            "button",
+            "button-destructive",
+            "button-neutral"
+          ],
+          "minItems": 1,
+          "maxItems": 3,
+          "description": "The buttons, each a Button, Button.Destructive or Button.Neutral, in order. Two by default, three at most. Inline and fill, the main action last; stacked, the main action first."
+        },
+        {
+          "name": "layout",
+          "type": "enum: 'inline' | 'stacked' | 'fill'",
+          "default": "inline",
+          "required": false,
+          "values": [
+            "inline",
+            "stacked",
+            "fill"
+          ],
+          "description": "inline is a row at the end edge; stacked is a column of full-width buttons, the main action on top; fill is a row whose buttons share the width. A row too wide for its space wraps; nothing switches layout by itself."
+        }
+      ],
+      "states": [],
+      "variants": {
+        "layout": {
+          "values": [
+            "inline",
+            "stacked",
+            "fill"
+          ],
+          "kind": "authoring"
+        }
+      },
+      "accessibility": {
+        "role": "None of its own. Each button is a native <button> with its own name; add role=\"group\" with an aria-label only when the buttons need a shared name.",
+        "wcag": [
+          "1.3.2 Meaningful Sequence (the reading and focus order match the visual order in every layout)",
+          "2.4.3 Focus Order (focus moves through the buttons in the order they are given)",
+          "2.5.8 Target Size (Minimum) (each medium button meets the target size at the default density)"
+        ],
+        "keyboard": "Tab moves through the buttons in order. Enter and Space act on the focused one.",
+        "focus": "Each button takes focus in turn and shows the shared focus ring.",
+        "aria": "Nothing on the group by default. Name each button by what it does; translated labels make a row longer, and a row that no longer fits wraps."
+      },
+      "content": {
+        "labelPattern": "Name each button by what it does, in sentence case: \"Save address\", \"Delete\", \"Cancel\". The main action echoes the task; never \"OK\" or \"Yes\"."
+      },
+      "docs": {
+        "usage": "Use a Button.Group for the actions that close a task: the foot of a dialog, the actions of a banner or a card, the buttons under a form. Inline for a row at the end edge on a wide surface; stacked for full-width buttons on a phone or a bottom sheet; fill for a row whose buttons share the width. Put the main action last inline and at fill, and first when stacked.",
+        "do": [
+          "Keep to one main action, the filled Button",
+          "Put the main action last in a row and on top when stacked",
+          "Use Button.Destructive for an action that deletes or removes, with Cancel beside it",
+          "Keep the group to three buttons or fewer"
+        ],
+        "dont": [
+          "Join the buttons edge to edge. Use a segmented control for one choice among options.",
+          "Reverse the order with styling only. Pass the buttons in the order they read.",
+          "Put links or icon buttons in the group",
+          "Use a group for a toolbar of tools"
+        ],
+        "contentGuidelines": "Button labels are short verbs or verb phrases in sentence case, each naming its own action."
+      },
+      "ai": {
+        "primaryPurpose": "Lay out the one to three buttons that close a task, as a row at the end edge, a full-width stack or a row that shares the width.",
+        "whenToUse": "The actions at the foot of a dialog, banner, card or form: a main action with a Cancel beside it, or up to three related actions.",
+        "avoidWhen": "One choice among joined options (segmented-control), a toolbar of tools, navigation (links), or a single action on its own (a Button by itself).",
+        "commonPartners": [
+          "dialog",
+          "button",
+          "button-destructive",
+          "button-neutral"
+        ],
+        "triggerKeywords": [
+          "button group",
+          "button set",
+          "actions",
+          "action buttons",
+          "dialog footer",
+          "form actions",
+          "cancel and save"
+        ],
+        "generationPriority": 2
+      },
+      "motion": {
+        "enter": "None of its own.",
+        "exit": "None of its own.",
+        "reduceMotion": "Nothing moves."
+      },
+      "composition": {
+        "composesWith": [
+          "button"
+        ],
+        "alternativeTo": [
+          "segmented-control"
+        ],
+        "supersedes": [],
+        "supersededBy": [],
+        "planned": [
+          "banner",
+          "card",
+          "toolbar"
+        ],
+        "replacesPatterns": [
+          "a footer of fixed nested buttons copied into each component",
+          "a button-set component with a variant per count and layout"
+        ]
+      }
+    },
     "dialog": {
       "id": "dialog",
       "name": "Dialog",
@@ -7337,9 +7460,16 @@
         },
         {
           "name": "actions",
-          "type": "node",
+          "type": "slot",
           "required": false,
-          "description": "The footer buttons, the main action last in reading order (Cancel, then Save). Name each by what it does."
+          "anyOf": [
+            "button",
+            "button-destructive",
+            "button-neutral"
+          ],
+          "minItems": 1,
+          "maxItems": 3,
+          "description": "The footer buttons, one to three Button elements, laid out by a Button group. Inline, the main action last (Cancel, then Save); stacked, the main action first. Name each by what it does."
         },
         {
           "name": "role",
@@ -7442,7 +7572,7 @@
         "do": [
           "Name the task in the title, and the action in the main button",
           "Keep the close button on a standard dialog",
-          "Put the main action last in the footer (Cancel, then Save)",
+          "Put the main action last in an inline footer (Cancel, then Save), and on top when stacked",
           "Let only the body scroll, and keep the footer in view",
           "Return focus to the control that opened the dialog"
         ],
@@ -7461,6 +7591,8 @@
         "avoidWhen": "The message is passing and needs no answer (a toast or a banner), the content belongs beside a control (a popover or a menu), the task is long or has many steps (a page of its own), or the content can sit in the page (an accordion).",
         "commonPartners": [
           "button",
+          "button-neutral",
+          "button-destructive",
           "flush-icon-button-neutral",
           "divider",
           "text-field",
@@ -7488,7 +7620,7 @@
         "composesWith": [
           "flush-icon-button-neutral",
           "divider",
-          "button"
+          "button-group"
         ],
         "alternativeTo": [
           "accordion"

@@ -20618,6 +20618,60 @@ arm: {
         for (const c of gonePage.children) walkOld(c);
         ok(goneMiss.length > 0 && goneMiss.every((m) => m.includes('not in this file')) && fromOld.length === 0,
           `#1781 paste path: with checkbox-row missing, __old__checkbox-row is not used in its place and the miss names the target (${goneMiss.length} misses, ${fromOld.length} rows from __old__; ${goneMiss[0] ?? JSON.stringify(gone.misses.slice(0, 2))})`);
+
+      // ---- #2661 (Q363.8 as amended, Q386): CANCEL FALLS BACK TO THE PRIMARY BUTTON, on BOTH executors ---------------
+      // Button group's Cancel nests `button` and prefers `button-neutral` when the file has it. Each Button group member
+      // is built three ways against ONE stub per file, by the paste payload and by the plugin executor, and the set each
+      // nested Cancel and Save came from is read off the built page. The expected owners are LITERALS typed here, never
+      // read off the plan (docs/34): without Button.Neutral every Cancel is a primary Button with no miss; with it every
+      // Cancel is a Button.Neutral; with two Button.Neutral sets the preference is named and Cancel falls back. Save is a
+      // primary Button in all three. Mutation: drop the payload's `nestPrefer` lookup → `with Button.Neutral` fails.
+      {
+        const bg = componentDefs.find((d) => d.id === 'button-group')!;
+        const bgPlans = figmaAnatomySet(bg, { swapTarget: 'FPO-default-icon' });
+        const btnFile = (n: number): StubFileNode[] => [
+          { name: 'button', type: 'COMPONENT_SET', variants: membersOf(button) },
+          ...Array.from({ length: n }, () => ({ name: 'button-neutral', type: 'COMPONENT_SET' as const, variants: membersOf(buttonNeutral) })),
+        ];
+        const CANCEL = ['cancel', 'cancelStacked', 'cancelFill'];
+        const SAVE = ['save', 'saveStacked', 'saveFill'];
+        const ownersOf = (page: StubPage): Record<string, string> => {
+          const out: Record<string, string> = {};
+          const walk = (n: Record<string, unknown>): void => {
+            const main = (n as { mainComponent?: { name: string; parent?: { name: string; type: string } } }).mainComponent;
+            if (n.type === 'INSTANCE' && main && [...CANCEL, ...SAVE].includes(String(n.name)))
+              out[String(n.name)] = `${main.parent?.name}/${/appearance=([a-z]+)/.exec(main.name)?.[1] ?? '?'}`;
+            for (const c of (n.children as Record<string, unknown>[] | undefined) ?? []) walk(c);
+          };
+          for (const c of page.children) walk(c);
+          return out;
+        };
+        const cases: { label: string; neutrals: number; cancel: string; preferMiss: boolean }[] = [
+          { label: 'without Button.Neutral', neutrals: 0, cancel: 'button/outline', preferMiss: false },
+          { label: 'with Button.Neutral', neutrals: 1, cancel: 'button-neutral/outline', preferMiss: false },
+          { label: 'with two Button.Neutral sets', neutrals: 2, cancel: 'button/outline', preferMiss: true },
+        ];
+        for (const c of cases) {
+          for (const leg of ['paste', 'plugin'] as const) {
+            const owners: Record<string, string> = {};
+            const nestMisses: string[] = [];
+            for (const plan of bgPlans) {
+              const opts = { vars: [...planBoundVars(plan.root), ...planPaintVars(plan.root)], styles: planTextStyles(plan.root), comps: ['FPO-default-icon'], fileNodes: btnFile(c.neutrals) };
+              const page: StubPage = { children: [] };
+              const r = leg === 'paste'
+                ? await runPayload(planToPluginJs(plan), { ...opts, page })
+                : await applyComponentPlan([plan], makeFigmaStub({ ...opts, page }) as any);
+              nestMisses.push(...r.misses.filter((m) => /\.nest(Target|Variant|Prefer) ->|THREW/.test(m)));
+              Object.assign(owners, ownersOf(page));
+            }
+            const wrong = [...CANCEL.filter((n) => owners[n] !== c.cancel).map((n) => `${n} -> ${owners[n] ?? 'NOT BUILT'}`), ...SAVE.filter((n) => owners[n] !== 'button/filled').map((n) => `${n} -> ${owners[n] ?? 'NOT BUILT'}`)];
+            const preferMisses = nestMisses.filter((m) => m.includes('.nestPrefer -> button-neutral (in this file, but it did not resolve: nestTarget -> button-neutral (found 2 COMPONENT_SETs') && m.includes('; made from button instead)'));
+            const other = nestMisses.filter((m) => !preferMisses.includes(m));
+            ok(wrong.length === 0 && other.length === 0 && (c.preferMiss ? preferMisses.length === CANCEL.length : preferMisses.length === 0),
+              `#2661 ${leg} path, ${c.label}: every Cancel is ${c.cancel} and every Save is button/filled${c.preferMiss ? ', and each Cancel names the unresolved preference' : ', with no nest miss'} (${wrong.length ? `WRONG: ${wrong.join(' | ')}` : 'all as typed'}; ${other.length ? `misses: ${other.slice(0, 2).join(' | ')}` : `${preferMisses.length} preference misses`})`);
+          }
+        }
+      }
       }
 
       // ---- #682: the payload's unlock is exercised, not just grepped ----------------------------
@@ -23575,8 +23629,12 @@ arm: {
       // default (owner decision Q347 A), and members in the new order pack one chunk tighter, as #2501's did.
       // Measured on the merge: the old order packs into 18, the new into 17. Re-pinned per the same standing
       // instruction; every chunk stays under budget.
+      //
+      // NOW 18, AS OF #2661 — a shell-byte move: the paste script gained the fallback-only nest preference (`nestPrefer`,
+      // Cancel's Button.Neutral when the file has it) and the slot's preferred-when-built ids, in every chunk's shell.
+      // icon-button uses neither. Re-pinned per the same standing instruction; every chunk stays under budget.
       const ibChunks = planSetChunks(ibSet);
-      ok(ibChunks.length === 17, `anatomy/icon-button: the set packs into 17 chunks (${ibChunks.length})`);
+      ok(ibChunks.length === 18, `anatomy/icon-button: the set packs into 18 chunks (${ibChunks.length})`);
       ok(ibChunks.every((c) => c.bytes <= SET_CHUNK_BYTES),
         `anatomy/icon-button: no chunk exceeds the byte budget (${ibChunks.map((c) => c.bytes).join(', ')} vs ${SET_CHUNK_BYTES})`);
       // And the chunks partition the set — no member dropped, none written twice. A packer that lost a
@@ -27255,7 +27313,7 @@ arm: {
   // own constant.
   // `tag` joins (2026-09-27): its check mark is gated on `selection: ['selected']`, the checkbox mark's shape.
   // `link` joins (#2580, owner Q297.2): its trailing icon is gated on `style: ['standalone']`, so an inline link carries none.
-  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'radio-control', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion', 'list-item', 'link', 'dialog', 'password-field'];
+  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'radio-control', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion', 'list-item', 'link', 'button-group', 'dialog', 'password-field'];
   ok(GATED_EXPECTED.every((n) => gatedDefs.some((d) => d.id === n)) && gatedDefs.length === GATED_EXPECTED.length,
     `#910 the presentWhen projection rule below covers exactly [${GATED_EXPECTED.join(', ')}] — a def gaining a variant-gated part must be represented here, and a def losing one is a stale claim (found: ${gatedDefs.map((d) => d.id).join(', ') || 'none'})`);
   for (const def of gatedDefs) {
@@ -31261,7 +31319,16 @@ arm: {
     const contiguous = (xs: readonly string[]) => xs.every((x, i) => i === 0 || Number(x.replace(/^\D+/, '')) === Number(xs[i - 1].replace(/^\D+/, '')) + 1);
     return !r || r.slot !== 'items' || r.from !== w.from || range(r.rows) !== w.rows || range(r.booleans) !== w.booleans || !contiguous(r.rows) || !contiguous(r.booleans) || r.issue !== 2649;
   }).map(([def]) => def);
-  ok(slotRows.length === 5 && slotBad.length === 0, `#2649 COMPONENT_RENAMES: one slot entry per migrated def, slot "items", its old rows and removed booleans in order (${slotRows.length} entries${slotBad.length ? `, WRONG: ${slotBad.join(', ')}` : ''})`);
+  ok(slotRows.length === 6 && slotBad.length === 0, `#2649 COMPONENT_RENAMES: one slot entry per migrated def, slot "items", its old rows and removed booleans in order (${slotRows.length} entries${slotBad.length ? `, WRONG: ${slotBad.join(', ')}` : ''})`);
+  // #2661 — Dialog's footer buttons, into the nested Button.Group's slot, typed from the old def's part names.
+  const dlg = slotRows.find((x) => x.def === 'dialog');
+  ok(!!dlg && dlg.within === 'button-group' && dlg.slot === 'items' && JSON.stringify(dlg.from) === JSON.stringify(['footerInline', 'footerStacked'])
+    && JSON.stringify(dlg.rows) === JSON.stringify(['cancelInline', 'confirmInline', 'confirmStacked', 'cancelStacked']) && dlg.booleans.length === 0 && dlg.issue === 2661,
+    `#2661 COMPONENT_RENAMES: Dialog's slot entry reaches the items slot within button-group from both old footer layers (${JSON.stringify(dlg)})`);
+  const within: ComponentRename = { def: 'grp', kind: 'slot', slot: 'items', within: 'inner', from: 'container', rows: ['row1'], booleans: [], issue: 2661 };
+  ok(renamesDangling({ grp: { axes: {}, members: 1, properties: {} }, inner: { axes: {}, members: 1, properties: { items: 'SLOT' } } }, [within]).length === 0
+    && renamesDangling({ grp: { axes: {}, members: 1, properties: {} }, inner: { axes: {}, members: 1, properties: {} } }, [within]).some((b) => b.includes("which 'inner' does not project as a SLOT property")),
+    '#2661 renames lint: a slot entry reached within a nested def must name a SLOT property that def projects');
 }
 
 // ------------------------------------------------------------------- #2324: the text-button underline
@@ -32141,16 +32208,24 @@ arm: {
   });
   ok(hdrBad.length === 0, `#2609 dialog header: the close is FlushIconButton.Neutral round medium and shown, the description hidden in secondary text, the title in primary text (${hdrBad.length ? `WRONG: ${hdrBad.map(planComponentName).slice(0, 2).join('; ')}` : 'all 15'})`);
 
-  // THE FOOTERS (Q303.6 A): inline Cancel (outline) then Save (filled), 12px apart; stacked Save over Cancel, 8px apart;
-  // none has no footer and no rule above it.
-  const btn = (n: DN | undefined) => (n?.nestTarget === 'button' ? n.nestVariant?.appearance : undefined);
+  // THE FOOTERS (Q303.6 A; Q363, #2661): inline and stacked each nest ONE Button group, at its own layout, stretched
+  // across a footer inset like the header; none has no footer and no rule above it. What the group holds is its own
+  // arm below (#2661 button group).
   const footBad = plans.filter((p) => {
-    const c = coord(p), r = p.root as DN, inl = find(r, 'footerInline'), st = find(r, 'footerStacked'), rule = find(r, 'footerDivider');
-    if (c.footer === 'inline') return !(inl && !st && rule && inl.bound?.itemSpacing === 'space/150' && JSON.stringify(inl.children.map(btn)) === JSON.stringify(['outline', 'filled']));
-    if (c.footer === 'stacked') return !(st && !inl && rule && st.bound?.itemSpacing === 'space/100' && JSON.stringify(st.children.map(btn)) === JSON.stringify(['filled', 'outline']));
-    return !!(inl || st || rule);
+    const c = coord(p), r = p.root as DN, foot = find(r, 'footer'), inl = find(r, 'actionsInline'), st = find(r, 'actionsStacked'), rule = find(r, 'footerDivider');
+    const pad = c.placement === 'center' ? 'space/300' : 'space/200';
+    const group = (n: DN | undefined, layout: string) => n?.type === 'NESTED_INSTANCE' && n.nestTarget === 'button-group' && JSON.stringify(n.nestVariant) === JSON.stringify({ layout }) && (n as { layoutAlign?: string }).layoutAlign === 'STRETCH';
+    const footOk = !!foot && !!rule && foot.bound?.paddingLeft === pad && foot.bound?.paddingRight === pad && (foot as { layoutAlign?: string }).layoutAlign === 'STRETCH';
+    if (c.footer === 'inline') return !(footOk && group(inl, 'inline') && !st && foot!.children.length === 1);
+    if (c.footer === 'stacked') return !(footOk && group(st, 'stacked') && !inl && foot!.children.length === 1);
+    return !!(foot || inl || st || rule);
   });
-  ok(footBad.length === 0, `#2609 dialog footers: inline is outline then filled 12px apart, stacked is filled over outline 8px apart, none has no footer and no rule (${footBad.length ? `WRONG: ${footBad.map(planComponentName).slice(0, 3).join('; ')}` : 'all 15'})`);
+  ok(footBad.length === 0, `#2609 #2661 dialog footers: inline nests a Button group at layout=inline and stacked one at layout=stacked, each stretched across a footer padded like the header; none has no footer and no rule (${footBad.length ? `WRONG: ${footBad.map(planComponentName).slice(0, 3).join('; ')}` : 'all 15'})`);
+  ok(!plans.some((p) => all(p.root as DN).some((n) => n.nestTarget === 'button' || n.nestTarget === 'button-neutral')),
+    '#2661 dialog: no member nests a Button directly any more; the footer buttons live in the Button group (Q363)');
+  const actions = dg.props.find((x) => x.name === 'actions');
+  ok(actions?.type === 'slot' && JSON.stringify(actions.anyOf) === JSON.stringify(['button', 'button-destructive', 'button-neutral']) && actions.minItems === 1 && actions.maxItems === 3,
+    `#2661 dialog: the actions prop is a slot of one to three Button elements, Button, Button.Destructive or Button.Neutral (Q363.10 A) (got ${JSON.stringify(actions)})`);
 
   // THE PROPERTIES: two texts and three toggles, `dividers` driving both rules together, off.
   ok(JSON.stringify(planSetProperties(plans).filter((x) => x.type !== 'SLOT')) === JSON.stringify([
@@ -32182,6 +32257,105 @@ arm: {
   let thrown = '';
   try { figmaEffectStyleName('color.scrim.default'); } catch (e) { thrown = (e as Error).message; }
   ok(figmaEffectStyleName('shadow.xl') === 'shadow/xl' && /not a shadow step/.test(thrown), `#2609 elevation names shadow/xl for shadow.xl and refuses a non-shadow ref (${thrown.slice(0, 80)})`);
+}
+
+// ------------------------------------------------------------------- #2661: the Button group
+// Each owner decision held against a literal (the wireframe on #2661, Q363 "all A" except 8 → C and 9 → B, and the
+// 2026-10-16 amendment of call 8): three members, inline, stacked and fill; one `items` slot per member, a row inline
+// and at fill and a column stacked, 12 / 8 / 12px; Cancel then Save inline and at fill, Save then Cancel stacked
+// (Q363.5 A); Cancel an outline Button that prefers Button.Neutral when built, Save a filled Button; the buttons hug
+// inline, stretch stacked and share the width at fill; one to three buttons, preferred-only, the primary Button
+// required and the Destructive and Neutral families offered when built (Q363.4 A, Q363.6 A, Q386). EXPECTED is typed
+// here; ACTUAL is the projected plan, so a def that moved fails by name. The contrast arm measures every Cancel and
+// Save ink on the Dialog's panel in every example brand × mode.
+{
+  const bg = componentDefs.find((d) => d.id === 'button-group')!;
+  const plans = figmaAnatomySet(bg, { swapTarget: 'FPO-default-icon' });
+  type BN = { name: string; type: string; children: BN[]; bound?: Record<string, string>; layoutMode?: string; primaryAxisAlignItems?: string; layoutAlign?: string; layoutGrow?: number; nestTarget?: string; nestPrefer?: string; nestVariant?: Record<string, string>; nestOverrides?: { property: string; type: string; value: string }[]; slotSettings?: Record<string, unknown>; slotPreferred?: string[]; slotPreferredWhenBuilt?: string[] };
+  ok(JSON.stringify(plans.map(planComponentName)) === JSON.stringify(['layout=inline', 'layout=stacked', 'layout=fill']) && bg.name === 'Button.Group' && bg.id === 'button-group' && validateComponentDef(bg).errors.length === 0,
+    `#2661 button group: Button.Group (button-group), three members in the order inline, stacked, fill (Q363.3 A, Q363.9 B), validating clean (got ${plans.map(planComponentName).join(', ')}; ${validateComponentDef(bg).errors.slice(0, 2).join('; ')})`);
+  const LAYOUT: Record<string, { mode: string; gap: string; kids: [string, string, string][]; fit: 'hug' | 'stretch' | 'grow' }> = {
+    inline: { mode: 'HORIZONTAL', gap: 'space/150', kids: [['cancel', 'outline', 'Cancel'], ['save', 'filled', 'Save']], fit: 'hug' },
+    stacked: { mode: 'VERTICAL', gap: 'space/100', kids: [['saveStacked', 'filled', 'Save'], ['cancelStacked', 'outline', 'Cancel']], fit: 'stretch' },
+    fill: { mode: 'HORIZONTAL', gap: 'space/150', kids: [['cancelFill', 'outline', 'Cancel'], ['saveFill', 'filled', 'Save']], fit: 'grow' },
+  };
+  const bad: string[] = [];
+  for (const p of plans) {
+    const layout = (p.coord as Record<string, string>).layout, want = LAYOUT[layout], r = p.root as BN;
+    const slot = r.children.length === 1 ? r.children[0] : undefined;
+    if (!want || !slot) { bad.push(`${planComponentName(p)}: ${want ? 'no single slot' : 'a layout the decision does not name'}`); continue; }
+    const slotOk = slot.name === 'items' && slot.type === 'CONTENT_SLOT' && slot.layoutMode === want.mode && slot.bound?.itemSpacing === want.gap && slot.layoutAlign === 'STRETCH'
+      && (layout === 'stacked' || slot.primaryAxisAlignItems === 'MAX')
+      && JSON.stringify(slot.slotSettings) === JSON.stringify({ minChildren: 1, maxChildren: 3, allowPreferredValuesOnly: true })
+      && JSON.stringify(slot.slotPreferred) === JSON.stringify(['button']) && JSON.stringify(slot.slotPreferredWhenBuilt) === JSON.stringify(['button-destructive', 'button-neutral']);
+    if (!slotOk) bad.push(`${planComponentName(p)} slot: ${JSON.stringify({ name: slot.name, mode: slot.layoutMode, gap: slot.bound?.itemSpacing, align: slot.layoutAlign, justify: slot.primaryAxisAlignItems, ss: slot.slotSettings, pref: slot.slotPreferred, opt: slot.slotPreferredWhenBuilt })}`);
+    const kids = slot.children;
+    const kidsOk = kids.length === want.kids.length && want.kids.every(([name, appearance, label], i) => {
+      const k = kids[i];
+      const fit = want.fit === 'hug' ? k.layoutAlign === undefined && k.layoutGrow === undefined : want.fit === 'stretch' ? k.layoutAlign === 'STRETCH' && k.layoutGrow === undefined : k.layoutGrow === 1;
+      return k.name === name && k.type === 'NESTED_INSTANCE' && k.nestTarget === 'button' && k.nestPrefer === (label === 'Cancel' ? 'button-neutral' : undefined)
+        && JSON.stringify(k.nestVariant) === JSON.stringify({ appearance, size: 'medium', surface: 'default', inset: 'default', state: 'rest', 'leading icon': 'false', 'trailing icon': 'false' })
+        && JSON.stringify(k.nestOverrides) === JSON.stringify([{ property: 'label', type: 'TEXT', value: label }]) && fit;
+    });
+    if (!kidsOk) bad.push(`${planComponentName(p)} buttons: ${kids.map((k) => `${k.name}:${k.nestTarget}/${k.nestPrefer ?? '-'}/${k.nestVariant?.appearance}/${k.layoutAlign ?? ''}${k.layoutGrow ?? ''}`).join(' ')}`);
+  }
+  ok(bad.length === 0,
+    `#2661 button group layouts: inline a row at the end edge 12px apart, Cancel (outline, prefers Button.Neutral) then Save (filled), hugging; stacked a column 8px apart, Save over Cancel, full width; fill a row 12px apart, Cancel then Save, sharing the width; every slot 1 to 3, preferred-only, the primary Button required and the Destructive and Neutral families when built (Q363.4–9, Q386)${bad.length ? ` — WRONG: ${bad.slice(0, 3).join(' | ')}` : ''}`);
+  ok(JSON.stringify(planSetProperties(plans)) === JSON.stringify([{ name: 'items', type: 'SLOT', slotSettings: { minChildren: 1, maxChildren: 3, allowPreferredValuesOnly: true }, preferred: ['button'], preferredWhenBuilt: ['button-destructive', 'button-neutral'] }]),
+    `#2661 button group: the set declares one property, the "items" slot, and nothing else (got ${JSON.stringify(planSetProperties(plans))})`);
+  const items = bg.props.find((x) => x.name === 'items');
+  ok(items?.type === 'slot' && JSON.stringify(items.anyOf) === JSON.stringify(['button', 'button-destructive', 'button-neutral']) && items.minItems === 1 && items.maxItems === 3 && items.required === true
+    && bg.props.find((x) => x.name === 'layout')?.default === 'inline',
+    `#2661 button group props: items is a slot of one to three Button elements (Q363.10 A), and layout defaults to inline (got ${JSON.stringify(items)})`);
+
+  // THE NEW SCHEMA FIELDS ARE REFUSED WHERE THEY CANNOT MEAN ANYTHING.
+  const withPart = (part: string, patch: Record<string, unknown>): ComponentDef => ({ ...bg, anatomy: { ...bg.anatomy!, parts: { ...bg.anatomy!.parts, [part]: { ...bg.anatomy!.parts[part], ...patch } as PartDef } } });
+  const errs = (d: ComponentDef) => validateComponentDef(d).errors;
+  ok(errs(withPart('save', { prefersWhenBuilt: 'button' })).some((m) => /prefers 'button', which is the component it nests/.test(m)), '#2661 prefersWhenBuilt naming the nested component itself is refused');
+  ok(errs(withPart('items', { prefersWhenBuilt: 'button-neutral' })).some((m) => /declares 'prefersWhenBuilt' but is not a 'nest' part/.test(m)), '#2661 prefersWhenBuilt off a nest part is refused');
+  ok(errs(withPart('container', { preferredWhenBuilt: ['button-neutral'] })).some((m) => /declares 'preferredWhenBuilt' but is not a native slot/.test(m)), '#2661 preferredWhenBuilt off a native slot is refused');
+  ok(errs(withPart('items', { preferredWhenBuilt: ['button', 'button-neutral'] })).some((m) => /names 'button' in both 'preferred' and 'preferredWhenBuilt'/.test(m)), '#2661 an id both preferred and preferred-when-built is refused');
+  ok(errs(withPart('items', { directionWhen: { axis: 'layout', values: { inline: 'row', stacked: 'column' } } })).some((m) => /gives no direction for 'layout=fill'/.test(m)), '#2661 directionWhen missing a value is refused');
+  ok(errs(withPart('items', { directionWhen: { axis: 'size', values: {} } })).some((m) => /directionWhen.axis 'size' is not an axis this def projects/.test(m)), '#2661 directionWhen on an axis the def does not project is refused');
+  let threw = '';
+  try { figmaAnatomySet(withPart('cancel', { prefersWhenBuilt: 'icon-button-neutral' }), { swapTarget: 'FPO-default-icon' }); } catch (e) { threw = (e as Error).message; }
+  ok(/prefers 'icon-button-neutral' when built, which does not take the coordinates 'button' takes/.test(threw), `#2661 a preference whose set takes other coordinates throws at projection, naming it (got ${threw.slice(0, 140) || 'no throw'})`);
+
+  // CONTRAST ON THE DIALOG'S PANEL (color.foreground.primary), every example brand × mode, measured on the resolved
+  // roles (never on the def): the outline Cancel's label (4.5:1) and edge (3:1) in BOTH families, since which one the
+  // file has is the file's fact; and the filled Save's label on its fill (4.5:1).
+  const PAIRS: [string, string, number][] = [
+    ['interactive.neutral.text.rest', 'foreground.primary', 4.5], ['interactive.primary.text.rest', 'foreground.primary', 4.5],
+    ['interactive.neutral.border.rest', 'foreground.primary', 3], ['interactive.primary.border.rest', 'foreground.primary', 3],
+    ['interactive.primary.on-fill', 'interactive.primary.fill.rest', 4.5],
+  ];
+  const low: Record<string, number> = {};
+  const below: string[] = [];
+  let measured = 0;
+  for (const ex of EXAMPLE_IDS) {
+    const th = exampleTheme(ex, () => brandTheme(exampleBrands()[ex] as BrandInput));
+    if (!th) continue;
+    for (const M of resolveAllModes(th)) {
+      const roles = M.roles as Record<string, { hex?: string } | undefined>;
+      for (const [ink, ground, floor] of PAIRS) {
+        const a = roles[ink]?.hex, b = roles[ground]?.hex;
+        if (!a || !b) { below.push(`${ex}/${M.mode} ${ink} on ${ground}: UNRESOLVED`); continue; }
+        const ratio = contrast(hexToRgb(a), hexToRgb(b));
+        measured++;
+        const key = `${ink} on ${ground}`;
+        low[key] = Math.min(low[key] ?? Infinity, ratio);
+        if (ratio < floor) below.push(`${ex}/${M.mode} ${key} ${ratio.toFixed(2)} < ${floor}`);
+      }
+    }
+  }
+  // A KNOWN GAP, PINNED (#2817): the outline primary label, which is Cancel only in a file without the Neutral families,
+  // misses 4.5:1 on the panel in aurora's light and dark modes. It is the engine's contract, measured on the page only,
+  // not this component's. Typed here; when the contract lands these two cells pass and this arm fails, naming them, so
+  // the pin is flipped then. Every other pair, the Neutral Cancel included, must clear its floor.
+  const KNOWN_BELOW = ['aurora/light interactive.primary.text.rest on foreground.primary', 'aurora/dark interactive.primary.text.rest on foreground.primary'];
+  const belowKeys = below.map((b) => b.replace(/ [0-9.]+ < [0-9.]+$/, ''));
+  ok(measured >= PAIRS.length * EXAMPLE_IDS.length && JSON.stringify(belowKeys) === JSON.stringify(KNOWN_BELOW),
+    `#2661 button group contrast on the Dialog panel: the Neutral Cancel and Save clear their floors in every example brand × mode, and the primary fallback misses only the two cells #2817 pins (${measured} ratios; lowest ${Object.entries(low).map(([k, v]) => `${k} ${v.toFixed(2)}`).join(', ')}; below: ${below.join('; ') || 'none — #2817 is fixed, flip this pin'})`);
 }
 
 // ------------------------------------------------------------------- #2317: the Password field
