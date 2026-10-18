@@ -1424,6 +1424,23 @@ const claimDefaults = (node: Wr, n: FigmaNodePlan | null, misses: string[], mode
   }
 };
 
+// ── A HOST REFUSAL IS A MISS OR A STOP, BY WHAT WAS REFUSED (#982) ─────────────────────────────
+//
+// THE RULE, decided once so that no call site decides it again:
+//
+//   • A refused PROPERTY — one write onto a node that exists (a variable binding, a text or effect style,
+//     a font load, `characters`, a component-property definition or reference) — is a MISS. Record it,
+//     name the node and the field, and keep building that member. What is left is usable and labelled:
+//     one wrong colour, or a set that is not switchable.
+//   • A refused STRUCTURE — creating or parenting a node, `createComponentFromNode`, `combineAsVariants` —
+//     STOPS the member or set. Continuing would produce something worse than nothing (a member with no
+//     paint, a set that is not a set), and the throw reaches the guard in `applyComponentPlan`, which
+//     marks what was left behind (#913) and rethrows.
+//
+// The classifier is the question "does the node I am writing to still exist, whole, after this fails?"
+// A property refusal leaves the node as it was; a structure refusal leaves a half-made one.
+// `test-write-components.ts` pins both halves against a host that refuses, by name (#982).
+
 // ── A PARTIAL WRITE, MARKED (#913) ─────────────────────────────────────────────────────────────
 //
 // A mid-run throw is reachable and it is not exotic: the ORDINARY client case reaches it. A brand whose
@@ -2079,8 +2096,10 @@ const writeComponentSet = async (
             try { await api.loadFontAsync(st.fontName); }
             catch (err) { misses.push(`${n.name}.font -> ${st.fontName.family} ${st.fontName.style} (${(err as Error).message})`); }
           }
-          await node.setTextStyleIdAsync?.(st.id);
-          appliedStyle = st;
+          // A PROPERTY write (#982): refused, it is a miss and the member keeps building. `appliedStyle` stays
+          // unset, so the #1567 re-apply below does not try the style a second time.
+          try { await node.setTextStyleIdAsync?.(st.id); appliedStyle = st; }
+          catch (err) { misses.push(`${n.name}.textStyle -> ${n.textStyle} REFUSED (${(err as Error).message})`); }
         }
       }
       // The PLACEHOLDER copy, after the style so it is written on a node already carrying the right font.
@@ -2136,7 +2155,10 @@ const writeComponentSet = async (
       if (n.effectStyle) {
         const ef = effectByName.get(n.effectStyle);
         if (!ef) misses.push(`${n.name}.effectStyle -> ${n.effectStyle}`);
-        else await node.setEffectStyleIdAsync?.(ef.id);
+        else {
+          try { await node.setEffectStyleIdAsync?.(ef.id); }
+          catch (err) { misses.push(`${n.name}.effectStyle -> ${n.effectStyle} REFUSED (${(err as Error).message})`); }
+        }
       }
       if (n.layoutMode) {
         // THE ROOT'S BUILD WIDTH (#1757, `FigmaNodePlan.placementWidth`): a root whose `fill` has no placement
@@ -2185,8 +2207,10 @@ const writeComponentSet = async (
       for (const [prop, varName] of Object.entries(n.bound)) {
         const v = byName.get(varName);
         if (!v) { misses.push(`${n.name}.${prop} -> ${varName}`); continue; }
-        node.setBoundVariable?.(prop, v);
-        wrote.push(prop);
+        // A PROPERTY write (#982): a refused binding is one miss, not the end of a 648-member build. It is not
+        // pushed to `wrote`, so the read-back does not also report a write that never landed.
+        try { node.setBoundVariable?.(prop, v); wrote.push(prop); }
+        catch (err) { misses.push(`${n.name}.${prop} -> ${varName} REFUSED (${(err as Error).message})`); }
       }
       // IN PLACE, a binding the plan no longer declares is removed. Paints are bound in their arrays, below, and a
       // bound `strokeWeight` reads back on its four sides (#1332), so neither is a stray here. An INSTANCE's

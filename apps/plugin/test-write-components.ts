@@ -1817,7 +1817,8 @@ ok(loadedRun.misses.length === 0 && loadedRun.variants === 21,
 ok(!loadedRun.misses.some((m) => m.indexOf('.font ->') >= 0), '#680 ...and nothing was reported as unloadable when every font is available');
 
 // The OTHER failure mode: a font that is not INSTALLED. Figma fails that at the load call, and this lane
-// catches it and reports a miss — then applies the style anyway, which throws, and nothing catches THAT.
+// catches it and reports a miss — then applies the style anyway, which throws. Since #982 the style apply is
+// a PROPERTY write, so that throw is a miss too and the build degrades instead of ending (the inverted #680 pin).
 const missingFont: FontName = { family: 'Clash Display', style: 'Semi Bold' };
 let unavailThrew = '';
 let unavailMisses: string[] = [];
@@ -1825,13 +1826,9 @@ try {
   const r = await run(grid, { ...full(), page: { children: [] }, styleFont: missingFont, unavailableFonts: [missingFont] });
   unavailMisses = r.misses;
 } catch (e) { unavailThrew = (e as Error).message; }
-// The load failure IS reported — the `catch` at write-components.ts:296 works, and is now exercised.
-// (Only reachable when the run survives to return; pinned below is the case where it does not.)
-pinned(unavailThrew.indexOf('unloaded font') >= 0, '#680',
-  `a brand whose typeface is not installed loses the WHOLE component build rather than degrading — the load miss is reported, then the style is applied anyway and the throw escapes (${unavailThrew.slice(0, 80)}…)`);
-ok(unavailMisses.length === 0, '#680 (bookkeeping) the unavailable-font run returned nothing, because it threw — see the pin above');
-// #680's stated posture is `write-text-styles`': report what was skipped, write everything else. That is
-// what the fix must give this lane too, and this is the assertion that will invert.
+ok(unavailThrew === '', `#680 a brand whose typeface is not installed no longer loses the whole component build (${unavailThrew.slice(0, 80)})`);
+ok(unavailMisses.some((m) => m.indexOf('.font ->') >= 0) && unavailMisses.some((m) => m.indexOf('.textStyle ->') >= 0 && m.indexOf('REFUSED') >= 0),
+  `#680 ...the font load AND the refused style apply are both reported (${unavailMisses.length} misses)`);
 
 // =============================================================================================
 // #682 — THE DEPRECATED PROPORTION LOCK, MIGRATED TO `unlockAspectRatio()`
@@ -2688,17 +2685,17 @@ ok(fmRun.properties.filter((p) => p.indexOf('TEXT') >= 0).length === 1,
 // re-parenting is read off `node.parent`, which the shim does model, rather than off the page.
 
 // ---- REGIME 1: the small one, and the ORDINARY client failure -------------------------------
-// A brand whose typeface is not installed (#680, pinned above as unfixed). The throw lands inside the
-// FIRST member's build, before anything reaches the page at all — which is exactly why the count is small
+// A host that refuses a STRUCTURE call (`createText`; since #982 the missing-typeface case is a property miss
+// and no longer reaches this). The throw lands inside the FIRST member's build, before anything reaches the page at all — which is exactly why the count is small
 // and why it is the one that gets overlooked and then re-run on top of. Two nodes is not a dramatic
 // number; it is the number a designer meets most often.
 const smallPage: Page = { children: [] };
 let smallErr: unknown = null;
 try {
-  await run(grid, { ...full(), page: smallPage, styleFont: missingFont, unavailableFonts: [missingFont] });
+  await run(grid, { ...full(), page: smallPage, refuse: { createText: true } });
 } catch (e) { smallErr = e; }
 const smallFacts = partialWriteOf(smallErr);
-ok(smallErr !== null && (smallErr as Error).message.indexOf('unloaded font') >= 0,
+ok(smallErr !== null && (smallErr as Error).message.indexOf('The document is not editable') >= 0,
   `#913 the HOST'S OWN ERROR still escapes, unwrapped and unreplaced — the throw is what the designer needs to see (${(smallErr as Error)?.message?.slice(0, 52)}…)`);
 ok(smallFacts !== null, '#913 ...and it carries the facts about what was left behind, attached rather than substituted');
 // The FRAME, read off the page — the independent half. `findOne` is the shim's, so this is the same
@@ -5288,5 +5285,35 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   ok(members.length === 3 && wrong.length === 0,
     `segmented control equal widths (Q269.6): at every size the items slot grows along the track and its three options grow along it (layoutGrow 1 on the host) and measure the same width, their shares filling the track (${members.length} members${wrong.length ? ` — WRONG: ${wrong.join(' | ')}` : ''})`);
 }
+
+// =============================================================================================
+// #982 — A REFUSED PROPERTY IS A MISS, A REFUSED STRUCTURE IS A STOP
+// =============================================================================================
+// The rule is recorded above `applyComponentPlan` in write-components.ts. Each arm drives a host that refuses
+// exactly one call and reads the verdict: flipping a site's class (guarding a structure call, or letting a
+// property call escape) fails the arm named for it. The control arm proves the host accepts everything
+// otherwise, so a miss below can only come from the refusal.
+const rControl = await run(grid, { ...full(), page: { children: [] } });
+const boundField = Object.keys(grid[0].root.bound)[0];
+ok(!!boundField && rControl.misses.every((m) => m.indexOf('REFUSED') < 0),
+  `#982 control: the unrefusing host reports no REFUSED miss, and the plan binds a field to refuse (${boundField})`);
+
+const refusedProperty = async (label: string, refuse: NonNullable<ShimOpts['refuse']>, token: RegExp) => {
+  let err = '';
+  let res: Awaited<ReturnType<typeof run>> | null = null;
+  try { res = await run(grid, { ...full(), page: { children: [] }, refuse }); } catch (e) { err = (e as Error).message; }
+  ok(err === '' && res !== null && res.misses.some((m) => token.test(m)),
+    `#982 PROPERTY ${label}: refused, it is a MISS and the build finishes (${err ? 'THREW: ' + err.slice(0, 60) : (res?.misses.find((m) => token.test(m)) ?? 'no miss').slice(0, 90)})`);
+};
+await refusedProperty('setBoundVariable', { setBoundVariable: boundField }, new RegExp(`\\.${boundField} -> .*REFUSED`));
+await refusedProperty('setTextStyleIdAsync', { setTextStyleId: true }, /\.textStyle -> .*REFUSED/);
+
+const refusedStructure = async (label: string, refuse: NonNullable<ShimOpts['refuse']>) => {
+  let threw = false;
+  try { await run(grid, { ...full(), page: { children: [] }, refuse }); } catch { threw = true; }
+  ok(threw, `#982 STRUCTURE ${label}: refused, it STOPS the build rather than becoming a miss`);
+};
+await refusedStructure('createText', { createText: true });
+await refusedStructure('combineAsVariants', { combine: true });
 
 if (failed) process.exit(1);
