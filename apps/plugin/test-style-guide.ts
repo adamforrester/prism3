@@ -4202,6 +4202,51 @@ const main = async (): Promise<void> => {
     const done = await removeRetiredTables(c.api, contract, [String(old.id)]);
     ok(old.removed && JSON.stringify(done.removed) === JSON.stringify(['Style guide — Inverse']) && !box.removed && !invText.removed,
       `38: confirmed, the offered table is removed, and nothing else (${JSON.stringify(done)})`);
+
+    // (6) THE CLEANUP'S GUARDS. The run offers only what the designer can decide (edited, moved, a copy, unrecorded): a
+    // table kept by the run's own guards, or one the host refused to remove, is not offered. And the confirm re-reads
+    // the file: a table whose collection has left the file, or a plan that draws nothing, removes nothing.
+    const withOld = async (): Promise<{ c: Awaited<ReturnType<typeof fullFile>>; old: N; box: N }> => {
+      const w = await fullFile();
+      await draw(w.api, contract);
+      const key = keyOf(tableFrame(w.sem, 'Inverse text')!).replace(/\/text$/, '');
+      const bx = new N('FRAME'); bx.name = 'Inverse'; bx.x = -9000; bx.y = -9000; w.sem.appendChild(bx);
+      const o = new N('FRAME'); o.name = 'Style guide — Inverse';
+      o.pluginData[KEY] = key; o.pluginData['prism3-style-guide-print'] = 'x'; o.pluginData['prism3-style-guide-mark'] = `${String(w.sem.id)}|not-this-frame`;
+      bx.appendChild(o);
+      return { c: w, old: o, box: bx };
+    };
+    // The run side: a guard or a refusal is a kept table, never an offer.
+    const gNone = await fullFile();
+    await draw(gNone.api, contract);
+    gNone.vars.splice(0);
+    const rNone = await draw(gNone.api, contract);
+    ok(rNone.kept.length > 0 && rNone.kept.every((k) => k.reason === 'nothing-drawn') && (rNone.retired ?? []).length === 0,
+      `38: a table kept because nothing was drawn is never offered for removal (${rNone.kept.length} kept, ${JSON.stringify(rNone.retired)})`);
+    const gLib = await fullFile();
+    await draw(gLib.api, contract);
+    gLib.cols.splice(0); gLib.vars.splice(0);
+    const rLib = await draw(gLib.api, contract);
+    ok(rLib.kept.length > 0 && rLib.kept.every((k) => k.reason === 'no-collection') && (rLib.retired ?? []).length === 0,
+      `38: a table kept because its collection is not in this file is never offered for removal (${rLib.kept.length} kept, ${JSON.stringify(rLib.retired)})`);
+    const gRef = await fullFile();
+    await draw(gRef.api, contract, { collections: ['legacy'] });
+    (tableFrame(gRef.prim, 'Legacy') as unknown as { remove: undefined }).remove = undefined;
+    for (let i = gRef.vars.length - 1; i >= 0; i--) if (gRef.vars[i].name.startsWith('legacy/')) gRef.vars.splice(i, 1);
+    const rRef = await draw(gRef.api, contract, { collections: ['core', 'legacy'] });
+    ok(rRef.kept.length === 1 && rRef.kept[0].reason === 'not-removable' && (rRef.retired ?? []).length === 0,
+      `38: a table the host refused to remove is never offered for removal (${JSON.stringify(rRef.kept)}, ${JSON.stringify(rRef.retired)})`);
+    // The confirm side: the same id, re-read after the file changed.
+    const lost = await withOld();
+    lost.c.cols.splice(lost.c.cols.findIndex((k) => k.id === keyOf(lost.old).split('|')[1]), 1);
+    const rLost = await removeRetiredTables(lost.c.api, contract, [String(lost.old.id)]);
+    ok(!lost.old.removed && rLost.removed.length === 0 && JSON.stringify(rLost.left) === JSON.stringify([String(lost.old.id)]),
+      `38: a confirmed table whose collection has left the file is left in place, by id (${JSON.stringify(rLost)})`);
+    const empty = await withOld();
+    empty.c.vars.splice(0);
+    const rEmpty = await removeRetiredTables(empty.c.api, contract, [String(empty.old.id)]);
+    ok(!empty.old.removed && rEmpty.removed.length === 0 && JSON.stringify(rEmpty.left) === JSON.stringify([String(empty.old.id)]),
+      `38: a confirmed table is left in place when the plan draws nothing, by id (${JSON.stringify(rEmpty)})`);
   }
 
   if (failures) { console.error(`\n${failures} style-guide check(s) failed`); process.exit(1); }
