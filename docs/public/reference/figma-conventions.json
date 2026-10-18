@@ -38,7 +38,8 @@
             "components": [
               "button",
               "button-destructive",
-              "button-neutral"
+              "button-neutral",
+              "button-group"
             ]
           },
           {
@@ -2046,6 +2047,27 @@
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/link.md"
       },
       {
+        "id": "button-group",
+        "name": "Button.Group",
+        "figmaName": "button-group",
+        "kind": "component set",
+        "page": "↳ Buttons",
+        "section": "Components",
+        "members": 3,
+        "variantProperties": [
+          {
+            "name": "layout",
+            "values": [
+              "inline",
+              "stacked",
+              "fill"
+            ]
+          }
+        ],
+        "properties": [],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/button-group.md"
+      },
+      {
         "id": "dialog",
         "name": "Dialog",
         "figmaName": "dialog",
@@ -2293,6 +2315,18 @@
         ]
       },
       {
+        "component": "button-group",
+        "property": "items",
+        "settings": {
+          "minChildren": 1,
+          "maxChildren": 3,
+          "allowPreferredValuesOnly": true
+        },
+        "preferred": [
+          "button"
+        ]
+      },
+      {
         "component": "dialog",
         "property": "body"
       }
@@ -2450,6 +2484,7 @@
       "segmented-control-segment",
       "segmented-control",
       "link",
+      "button-group",
       "dialog",
       "password-field"
     ],
