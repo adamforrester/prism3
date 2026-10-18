@@ -1201,7 +1201,7 @@
         "order — the DOM order is the order the buttons are given, which is also the focus order. Inline and fill take the main action last (Cancel, then Save); stacked takes it first (Save, then Cancel), so the visual order and the focus order match in every layout. Never reverse the order with CSS alone: focus would then move against what the eye reads.",
         "the inline row — `display: flex; justify-content: flex-end; flex-wrap: wrap` with the row gap, so a row too wide for its container wraps instead of overflowing; nothing switches to stacked by itself. Fill gives each button `flex: 1 1 0` so the buttons share the width; stacked is a column with each button at full width.",
         "button count — Figma holds the buttons in the native `items` slot, two by default and three at most; code takes `items` of one to three Button elements.",
-        "Cancel in a file without the Neutral families — in Figma the default Cancel is an outline Button.Neutral when the file has that set and an outline Button otherwise. In code, pass whichever the product uses.",
+        "Cancel — in Figma the group's own default Cancel is an outline Button; a host that nests the group (Dialog) may prefer another, such as Button.Neutral when the file has that set. In code, pass whichever the product uses.",
         "right-to-left — the row mirrors through logical properties: the end edge is the left, and the main action sits leftmost."
       ],
       "notes": {
@@ -1210,12 +1210,14 @@
           "HELD FOR THE OWNER (#2661): no size axis. The buttons are medium, which Dialog's footer needs; Banner's small actions (#2787) would add one, medium first (Q347)."
         ],
         "unverified": [
-          "A Button group built before Button.Neutral keeps its primary Cancel: the preference is read when the group is built, so a file that builds the Neutral families later rebuilds the group to pick them up.",
+          "A host built before Button.Neutral keeps the group's primary Cancel: the host's preference is read when the host is built, so a file that builds the Neutral families later rebuilds the host to pick them up.",
+          "That Figma keeps the \"Cancel\" label when the host swaps the group's Cancel instance to Button.Neutral (`swapComponent` preserves overrides by property name; the shim models it, a real file has not been read).",
           "That a designer's buttons in the slot survive a layout switch on a real host, as the accordion's panel content survives its expansion switch (one SLOT property per part name)."
         ],
         "evolution": [
           "Owner decision Q363 (2026-10-16, #2661): the wireframe approved, all calls A except 8 (Cancel is Button.Neutral) and 9 (a fill layout too); a shared public Button group that Dialog nests now and Banner and Card later; the Button family preferred, preferred-only; stacked with the main action first; one to three buttons, two by default; three inline all at the end edge.",
-          "Owner decision (2026-10-16, #2661, amending Q363.8) and Q386 (#2808): Cancel uses Button.Neutral when the file has it and the primary Button otherwise; no component requires the Neutral families."
+          "Owner decision (2026-10-16, #2661, amending Q363.8) and Q386 (#2808): Cancel uses Button.Neutral when the file has it and the primary Button otherwise; no component requires the Neutral families.",
+          "Owner decision Q418 (2026-10-18, #2661): the component that nests the group decides its buttons' defaults. Button.Group on its own defaults the secondary to the primary outline Button, with no Neutral preference; Dialog's nest prefers Button.Neutral, falling back to the primary Button; designers can still swap any button in the slot."
         ],
         "projection": []
       }
@@ -1251,7 +1253,7 @@
           "Owner decisions: the proposal on #2609 (one component, the anatomy, the tokens, the accessibility contract), and Q303 (2026-10-14): no side or drawer placement; `placement` center, bottom or full, with no automatic switch; the backdrop `color.scrim.default` as canvas furniture and `::backdrop`; def-level widths; footer inline, stacked or none; Escape, close and backdrop click dismiss a dialog, and an alertdialog only through its buttons or Escape; `role` a code prop that hides close on an alertdialog; close on by default; corners per placement; the names and aliases; the placeholder wording.",
           "Owner decision (2026-10-16, #2609): the close button is always the X. It shows the close icon on every member, and Dialog has no icon swap property; a product that needs another X changes the close glyph in its icon set or edits the component.",
           "Owner decision Q385 A (2026-10-16, #2806), settling Q377 A on #2609: the close button is a FlushIconButton.Neutral, not an IconButton.Neutral, so a file without the IconButton sets still builds Dialog. It is round at medium, the closest match to the earlier ghost medium IconButton.",
-          "Owner decision Q363 (2026-10-16, #2661): the footer is a nested Button group whose native slot holds the buttons, replacing two fixed nested Buttons per layout. Cancel reads \"Cancel\" and Save \"Save\"; Cancel is Button.Neutral when the file has it and the primary Button otherwise (Q363.8 as amended, Q386); the `actions` prop is a slot of one to three Button elements (Q363.10 A)."
+          "Owner decision Q363 (2026-10-16, #2661): the footer is a nested Button group whose native slot holds the buttons, replacing two fixed nested Buttons per layout. Cancel reads \"Cancel\" and Save \"Save\"; Cancel is Button.Neutral when the file has it and the primary Button otherwise (Q363.8 as amended, Q386), and since Q418 that is the Dialog's own preference on its nest of the group, which on its own keeps the primary outline Button; the `actions` prop is a slot of one to three Button elements (Q363.10 A)."
         ],
         "projection": []
       }

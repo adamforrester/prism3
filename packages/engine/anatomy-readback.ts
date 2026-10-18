@@ -654,6 +654,7 @@ export const FIELDS: Record<string, FieldCheck> = {
     },
   },
   nestPrefer: { reason: 'read with `nestTarget`, which accepts an instance of this set or of `nestTarget`: which one the file had is the file\'s fact, not the plan\'s (#2661)' },
+  nestItemPrefer: { reason: 'which of the two sets a default item of the nested instance came from is the file\'s fact, not the plan\'s, and the item is a sublayer of another component\'s instance that this reader does not descend into; the executors\' tests read the swapped item off the built page (#2661, Q418)' },
   nestVariant: { reason: 'which VARIANT the nested instance resolved to is an id on the host; the executor resolves it by name at write time and reports a miss, and this reader has no independent name for it' },
   // #1330 — HOST-TRUTH for exposure. The plan's `nestExpose` names the child axes the consumer drives;
   // Figma exposes them by marking the nested instance `isExposedInstance`. This reads that marking back off

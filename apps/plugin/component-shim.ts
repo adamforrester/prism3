@@ -245,6 +245,14 @@ export type ShimOpts = {
    */
   nestedInstanceParts?: string[];
   /**
+   * A NESTED INSTANCE'S DEFAULT ITEMS (#2661, owner decision Q418). With this set, an instance of a component this run
+   * built carries its main's own nested instances as real INSTANCE children, each pointing at the component it came from
+   * and holding its overrides, and `swapComponent` on one re-points it as the host does. A Dialog's instance of
+   * Button.Group then has a Cancel to swap to Button.Neutral, and the swap is read off the built page. Opt-in, so every
+   * other case keeps its opaque nested instances.
+   */
+  nestedItems?: boolean;
+  /**
    * THE TEXT PROPERTIES AN OPAQUE COMPONENT'S INSTANCES CARRY (#2317), by component or set name: property name →
    * its default. A component this run builds reports its set's real definitions; one named only in `comps` or
    * `fileNodes` has none to report, so a harness states them here, from the NESTED def's own
@@ -1559,6 +1567,22 @@ export const makeShim = (opts: ShimOpts = {}) => {
               (kid as Record<string, unknown>)._inNestedInstance = true;
               kid.parent = inst;   // #1428 — so `insideNestedInstance`'s ancestry walk sees the INSTANCE
               (inst.children as Node[]).push(kid);
+            }
+            // #2661 (Q418) — A NESTED INSTANCE'S DEFAULT ITEMS (`nestedItems`): the main's own nested instances, as
+            // children of this one, found by the layer name a host's item preference names.
+            if (opts.nestedItems && main) {
+              const items: Node[] = [];
+              const take = (n: Node): void => {
+                for (const c of (n.children as Node[] | undefined) ?? []) {
+                  if (c.type === 'INSTANCE') {
+                    const kid = mkNode('INSTANCE'); kid.name = c.name; kid.parent = inst;
+                    carryMain(c, kid);
+                    (inst.children as Node[]).push(kid); items.push(kid);
+                  } else take(c);
+                }
+              };
+              take(main);
+              if (items.length) inst.findAll = (pred?: (n: unknown) => boolean) => [vec, ...items].filter((k) => !pred || pred(k));
             }
             // AN INSTANCE INHERITS ITS MAIN COMPONENT'S ROOT BINDINGS (#1388, #1290) — the focus-ring
             // component binds width/height to its `nominal-side`, so a nested ring carries those bindings

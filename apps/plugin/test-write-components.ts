@@ -3732,21 +3732,31 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   const slotHost = { ...prefHost, anatomy: { root: 's', parts: { s: { kind: 'box', contentSlot: true, preferred: ['button-neutral'] } } } } as unknown as ComponentDef;
   ok(declaredNeeds(prefHost).length === 0 && !builtNeeds(prefHost, [...componentDefs, prefHost], prefProj).length && slotNeeds(prefHost).length === 0 && slotNeeds(slotHost).length === 1,
     `#2808 #2661 a fallback-only preference is not a requirement on either reading, and the same family in a slot's preferred list is (declared [${declaredNeeds(prefHost).join(', ')}], built [${builtNeeds(prefHost, [...componentDefs, prefHost], prefProj).join(', ')}], slot [${slotNeeds(slotHost).join(', ')}])`);
+  // Q418 — and a HOST's preference for a nested component's default item (`nestItemPrefers`) is the same kind of
+  // reference: the plan field it projects to is not `nestTarget` either reading reads. The fixture nests the group and
+  // prefers Button.Neutral for its Cancel; neither reading counts it, and the same id in `nests` is still counted.
+  const itemHost = { id: 'fixture-item', anatomy: { root: 'x', parts: { x: { kind: 'nest', nests: 'button-group', nestItemPrefers: { cancel: 'button-neutral' }, nesting: { kind: 'nest-fixed', variant: {} } } } }, figmaProperties: {} } as unknown as ComponentDef;
+  const itemProj = (d: ComponentDef) => (d === itemHost ? [{ root: { nestTarget: 'button-group', nestItemPrefer: [{ item: 'cancel', prefer: 'button-neutral', variant: {} }], children: [] } } as unknown as AnatomyPlan] : project(d));
+  ok(declaredNeeds(itemHost).length === 0 && !builtNeeds(itemHost, [...componentDefs, itemHost], itemProj).length,
+    `#2808 #2661 Q418 a host's item preference for Button.Neutral is not a requirement on either reading (declared [${declaredNeeds(itemHost).join(', ')}], built [${builtNeeds(itemHost, [...componentDefs, itemHost], itemProj).join(', ')}])`);
   // REPRESENTED (shape 15): the corpus declares at least one Neutral fallback, so the arm above reads a real case.
-  const fallbacks = componentDefs.flatMap((d) => Object.entries(d.anatomy?.parts ?? {}).filter(([, p]) => p.prefersWhenBuilt === 'button-neutral').map(([n]) => `${d.id}.${n}`));
+  const fallbacks = componentDefs.flatMap((d) => Object.entries(d.anatomy?.parts ?? {})
+    .filter(([, p]) => p.prefersWhenBuilt === 'button-neutral' || Object.values(p.nestItemPrefers ?? {}).includes('button-neutral')).map(([n]) => `${d.id}.${n}`));
   ok(fallbacks.length > 0, `#2808 #2661 the corpus declares Button.Neutral as a fallback-only preference somewhere (${fallbacks.join(', ') || 'nowhere'})`);
 }
 
 // =============================================================================================
-// #2661 (Q363.8 as amended, Q386) — DIALOG BUILDS WITH A PRIMARY CANCEL WHEN THE FILE HAS NO BUTTON.NEUTRAL
+// #2661 (Q363.8 as amended, Q386, Q418) — THE HOST DECIDES THE SECONDARY: DIALOG'S CANCEL IS BUTTON.NEUTRAL ONLY WHEN THE FILE HAS IT
 // =============================================================================================
 // Two themed files, each built the way `main.ts` builds: the def's missing nests first (`prebuildDependencies`), then
-// the def. In the file WITHOUT the Neutral families, building Dialog builds Button.Group and Button but never
-// Button.Neutral, and every Cancel in the group is an outline primary Button, with no nest miss and no slot miss for the
-// families it only prefers. In the file where Button.Neutral was built FIRST, every Cancel is an outline Button.Neutral
-// and the slot offers it. Expected owners and lists are LITERALS (docs/34). Mutations: drop `nestPrefer` from the plugin
-// executor → `with Button.Neutral` fails; make `prefersWhenBuilt` project as `nestTarget` → `without` fails (the plugin
-// builds button-neutral first).
+// the def. Button.Group on its own prefers nothing (Q418): in either file every Cancel in the group is an outline
+// primary Button. A Dialog's instance of the group prefers Button.Neutral for its Cancel (`nestItemPrefers`): in the file
+// WITHOUT the Neutral families, building Dialog builds Button.Group and Button but never Button.Neutral, and the footer's
+// Cancel is an outline primary Button, with no nest miss and no slot miss for the families it only prefers; in the file
+// where Button.Neutral was built FIRST, it is an outline Button.Neutral and the slot offers it. Expected owners and lists
+// are LITERALS (docs/34). Mutations: drop the `nestItemPrefer` call from the plugin executor → the Dialog `with
+// Button.Neutral` arm fails; make the group's Cancel prefer Button.Neutral again → the standalone `with Button.Neutral`
+// arm fails; make `nestItemPrefers` project as `nestTarget` → `without` fails (the plugin builds button-neutral first).
 {
   const project = (d: ComponentDef) => figmaAnatomySet(materializeForBrand(d, null), { swapTarget: SWAP });
   const all = componentDefs.flatMap((d) => { try { return project(d); } catch { return []; } });
@@ -3757,7 +3767,7 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   for (const withNeutral of [false, true]) {
     const label = withNeutral ? 'with Button.Neutral built first' : 'without Button.Neutral';
     const page: Page = { children: [] };
-    const shim = makeShim({ vars: f.vars, styles: f.styles, effects: f.effects, comps: [], liveRoot: true, page, identities: true });
+    const shim = makeShim({ vars: f.vars, styles: f.styles, effects: f.effects, comps: [], liveRoot: true, page, identities: true, nestedItems: true });
     const order: string[] = [];
     const misses: string[] = [];
     const build = async (d: ComponentDef) => { order.push(d.id); const r = await applyComponentPlan(project(d), shim as any, { emitAsComponents: d.figmaProperties?.emitAsComponents }); misses.push(...r.misses.map((m) => `${d.id}: ${m}`)); return r; };
@@ -3769,12 +3779,22 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
       `#2661 ${label}: building Dialog builds Button.Group and Button first, and never Button.Neutral (${order.join(', ')})`);
     const group = page.children.find((c) => c.name === 'button-group' && c.type === 'COMPONENT_SET') as Node | undefined;
     const cancels = ((group?.children as Node[] | undefined) ?? []).flatMap(flat).filter((n) => n.type === 'INSTANCE' && CANCEL.includes(String(n.name)));
-    const wantSet = withNeutral ? 'button-neutral' : 'button';
-    const wrong = cancels.map((n) => { const m = n.mainComponent as Node | undefined; return { name: n.name, set: String((m?.parent as Node | undefined)?.name ?? ''), member: String(m?.name ?? '') }; })
-      .filter((x) => x.set !== wantSet || !/appearance=outline/.test(x.member));
+    const readOwner = (n: Node) => { const m = n.mainComponent as Node | undefined; return { name: n.name, set: String((m?.parent as Node | undefined)?.name ?? ''), member: String(m?.name ?? '') }; };
+    // THE GROUP ON ITS OWN prefers nothing (Q418): its Cancel is the outline primary Button in either file.
+    const wrong = cancels.map(readOwner).filter((x) => x.set !== 'button' || !/appearance=outline/.test(x.member));
     ok(cancels.length === 3 && wrong.length === 0,
-      `#2661 ${label}: every Cancel in Button.Group (inline, stacked, fill) is an outline ${wantSet} (${cancels.length} found${wrong.length ? `; WRONG: ${wrong.map((w) => `${w.name} → ${w.set}/${w.member}`).join(' | ')}` : ''})`);
-    const nestMisses = misses.filter((m) => /\.nest(Target|Variant|Prefer) ->|\.preferred -> button-(neutral|destructive)/.test(m));
+      `#2661 Q418 ${label}: every Cancel in Button.Group on its own (inline, stacked, fill) is an outline button, whatever the file holds (${cancels.length} found${wrong.length ? `; WRONG: ${wrong.map((w) => `${w.name} → ${w.set}/${w.member}`).join(' | ')}` : ''})`);
+    // DIALOG'S FOOTER: the group instance's Cancel is the host's preference. Read off the built Dialog set, through each
+    // footer's instance of the group.
+    const wantSet = withNeutral ? 'button-neutral' : 'button';
+    const dialogSet = page.children.find((c) => c.name === 'dialog' && c.type === 'COMPONENT_SET') as Node | undefined;
+    const footers = ((dialogSet?.children as Node[] | undefined) ?? []).flatMap(flat).filter((n) => n.type === 'INSTANCE' && ['actionsInline', 'actionsStacked'].includes(String(n.name)));
+    const dlgCancels = footers.flatMap((fi) => ((fi.findAll as (p: (n: Node) => boolean) => Node[])((n) => CANCEL.includes(String(n.name)) && n.type === 'INSTANCE')));
+    const dlgWrong = dlgCancels.map(readOwner).filter((x) => x.set !== wantSet || !/appearance=outline/.test(x.member));
+    const dlgSaves = footers.flatMap((fi) => ((fi.findAll as (p: (n: Node) => boolean) => Node[])((n) => ['save', 'saveStacked'].includes(String(n.name)) && n.type === 'INSTANCE'))).map(readOwner);
+    ok(footers.length >= 2 && dlgCancels.length === footers.length && dlgWrong.length === 0 && dlgSaves.length === footers.length && dlgSaves.every((x) => x.set === 'button' && /appearance=filled/.test(x.member)),
+      `#2661 Q418 ${label}: every Dialog footer's Cancel (${footers.length} footers, ${dlgCancels.length} Cancels) is an outline ${wantSet}, and every Save a filled button${dlgWrong.length ? `; WRONG: ${dlgWrong.map((w) => `${w.name} → ${w.set}/${w.member}`).join(' | ')}` : ''}`);
+    const nestMisses = misses.filter((m) => /\.nest(Target|Variant|Prefer|ItemPrefer) ->|\.preferred -> button-(neutral|destructive)/.test(m));
     ok(nestMisses.length === 0, `#2661 ${label}: Button.Group and Dialog build with no nest miss and no slot miss for the families they only prefer (${nestMisses.slice(0, 2).join(' | ') || 'none'})`);
     // THE SLOT OFFERS what the file has: the primary Button always, Button.Neutral only once it is built.
     const defs = (group?.componentPropertyDefinitions ?? {}) as Record<string, { type?: string; preferredValues?: { key?: string }[] }>;

@@ -240,7 +240,8 @@ export const dialog: ComponentDef = {
       },
       // THE ACTIONS ARE A BUTTON GROUP (owner decision Q363, #2661): one nested Button group whose native `items` slot
       // holds the buttons, Cancel then Save inline and Save then Cancel stacked, with Cancel a Button.Neutral when the
-      // file has it and the primary Button otherwise. Two parts, one per footer layout, because a nested instance takes
+      // file has it and the primary Button otherwise (the DIALOG's preference, `nestItemPrefers`, owner decision Q418: the
+      // group on its own keeps the primary outline Button). Two parts, one per footer layout, because a nested instance takes
       // one coordinate and Dialog's `footer` axis is not the group's `layout` axis.
       actionsInline: {
         kind: 'nest',
@@ -248,6 +249,7 @@ export const dialog: ComponentDef = {
         presentWhen: { footer: ['inline'] },
         crossAxisFill: true,
         nesting: { kind: 'nest-fixed', variant: { layout: 'inline' } },
+        nestItemPrefers: { cancel: 'button-neutral' },
         note: 'The inline footer: a Button group, inline, at the end edge: Cancel, then Save.',
       },
       actionsStacked: {
@@ -256,6 +258,7 @@ export const dialog: ComponentDef = {
         presentWhen: { footer: ['stacked'] },
         crossAxisFill: true,
         nesting: { kind: 'nest-fixed', variant: { layout: 'stacked' } },
+        nestItemPrefers: { cancelStacked: 'button-neutral' },
         note: 'The stacked footer: a Button group, stacked: Save on top, Cancel under it, both full width.',
       },
     },
@@ -372,7 +375,7 @@ export const dialog: ComponentDef = {
       'Owner decisions: the proposal on #2609 (one component, the anatomy, the tokens, the accessibility contract), and Q303 (2026-10-14): no side or drawer placement; `placement` center, bottom or full, with no automatic switch; the backdrop `color.scrim.default` as canvas furniture and `::backdrop`; def-level widths; footer inline, stacked or none; Escape, close and backdrop click dismiss a dialog, and an alertdialog only through its buttons or Escape; `role` a code prop that hides close on an alertdialog; close on by default; corners per placement; the names and aliases; the placeholder wording.',
       'Owner decision (2026-10-16, #2609): the close button is always the X. It shows the close icon on every member, and Dialog has no icon swap property; a product that needs another X changes the close glyph in its icon set or edits the component.',
       'Owner decision Q385 A (2026-10-16, #2806), settling Q377 A on #2609: the close button is a FlushIconButton.Neutral, not an IconButton.Neutral, so a file without the IconButton sets still builds Dialog. It is round at medium, the closest match to the earlier ghost medium IconButton.',
-      'Owner decision Q363 (2026-10-16, #2661): the footer is a nested Button group whose native slot holds the buttons, replacing two fixed nested Buttons per layout. Cancel reads "Cancel" and Save "Save"; Cancel is Button.Neutral when the file has it and the primary Button otherwise (Q363.8 as amended, Q386); the `actions` prop is a slot of one to three Button elements (Q363.10 A).',
+      'Owner decision Q363 (2026-10-16, #2661): the footer is a nested Button group whose native slot holds the buttons, replacing two fixed nested Buttons per layout. Cancel reads "Cancel" and Save "Save"; Cancel is Button.Neutral when the file has it and the primary Button otherwise (Q363.8 as amended, Q386), and since Q418 that is the Dialog\'s own preference on its nest of the group, which on its own keeps the primary outline Button; the `actions` prop is a slot of one to three Button elements (Q363.10 A).',
     ],
   },
 };

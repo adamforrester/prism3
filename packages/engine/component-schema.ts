@@ -1019,6 +1019,19 @@ export type PartDef = {
    *  `nests`'s variant axes and values, and one missing a text or swap property `overrides` sets. Refused off a
    *  `nest` part with `nests` that is `nest-fixed` or `nest-exposed`, and when it names `nests` itself. */
   prefersWhenBuilt?: string;
+  /** For a `nest` part (#2661, owner decision Q418): THE HOST'S PREFERENCE FOR A DEFAULT ITEM OF THE COMPONENT IT
+   *  NESTS. Keyed by the NESTED def's anatomy part name, valued by the sibling def id the instance of that item is made
+   *  from WHEN THE FILE HAS IT, at the item's own coordinate; otherwise the item stays what the nested def made it, with
+   *  no miss. Dialog's footer nests Button.Group and prefers Button.Neutral for the group's Cancel
+   *  (`{ cancel: 'button-neutral' }`), while the group on its own keeps the primary outline Button, and Banner or Card
+   *  nest the same group and choose their own.
+   *
+   *  It is `prefersWhenBuilt` one level down, for the same reason and with the same rule: NEVER A REQUIREMENT. It is not
+   *  `nests`, does not project as `nestTarget`, and `build-deps.ts` never reads it, so a team that skips the family
+   *  still builds the host. The nested part must be a `nest-fixed` nest of a component (the item's current owner), and
+   *  the sibling must take its coordinate (checked at projection, as `prefersWhenBuilt` is). Refused off a `nest` part
+   *  with `nests`, and (at projection) for an id that is the item's own component. */
+  nestItemPrefers?: Record<string, string>;
   /** PER-INSTANCE OVERRIDES on the nested instance (#2645): values this part sets on the instance it nests, through
    *  the nested component's OWN component properties. A nested Button reading "Cancel", a List's second item reading
    *  "2.", a close button showing the `close` glyph. Without it a nested instance shows its component's defaults
@@ -4708,6 +4721,15 @@ const anatomyErrors = (def: ComponentDef): string[] => {
         e.push(`anatomy part '${n}' prefers '${p.prefersWhenBuilt}', which is the component it nests — name the sibling it uses when the file has it`);
       if (!/^[a-z][a-z0-9-]*$/.test(p.prefersWhenBuilt))
         e.push(`anatomy part '${n}' prefersWhenBuilt '${p.prefersWhenBuilt}' is not a def id`);
+    }
+    // A HOST'S ITEM PREFERENCES (#2661, Q418): an in-flow nest whose default items may come from a sibling set. The item
+    // parts and their coordinates are checked at projection, where the registry is known.
+    if (p.nestItemPrefers !== undefined) {
+      if (p.kind !== 'nest' || !p.nests)
+        e.push(`anatomy part '${n}' declares 'nestItemPrefers' but is not a 'nest' part with 'nests' — the preference is for a default item of the component it nests`);
+      for (const [item, id] of Object.entries(p.nestItemPrefers)) {
+        if (!/^[a-z][a-z0-9-]*$/.test(id)) e.push(`anatomy part '${n}' nestItemPrefers '${item}' names '${id}', which is not a def id`);
+      }
     }
     // PER-MEMBER DIRECTION (#2661): a projected axis, every value given, on a box that lays out.
     if (p.directionWhen !== undefined) {

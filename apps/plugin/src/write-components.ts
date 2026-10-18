@@ -54,7 +54,7 @@
  * assertion instead, because with no caller the port could have drifted out of satisfaction with the
  * whole suite green; the trigger retired it rather than leaving two mechanisms for one guarantee.
  */
-import { planSetLayout, nestMissAdvice, nestVariantMatch, nestVariantMissAdvice, resolveNestMember, applyNestOverrides, swapMissAdvice, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, planComponentName, planStamp, glyphLayerOpacities } from '@prism3/engine/anatomy-figma';
+import { planSetLayout, nestMissAdvice, nestVariantMatch, nestVariantMissAdvice, resolveNestMember, applyNestOverrides, applyNestItemPrefers, swapMissAdvice, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, planComponentName, planStamp, glyphLayerOpacities } from '@prism3/engine/anatomy-figma';
 import type { AnatomyPlan, FigmaNodePlan, SwapFound } from '@prism3/engine/anatomy-figma';
 import { ENGINE_VERSION } from '@prism3/engine/version';
 import { tailOf } from '@prism3/engine/figma-names';
@@ -1939,6 +1939,12 @@ const writeComponentSet = async (
       if (node && firstVisit && pre && pre.miss !== undefined) misses.push(`${n.name}.nestPrefer -> ${n.nestPrefer} (in this file, but it did not resolve: ${pre.miss.slice(1)}; made from ${n.nestTarget} instead)`);
       if (node && firstVisit && n.nestOverrides && !kept)
         for (const m of applyNestOverrides(node as Parameters<typeof applyNestOverrides>[0], n.nestOverrides, (name) => { const c = compByName.get(name); return c?.id ? String(c.id) : null; }))
+          misses.push(`${n.name}${m}`);
+      // THE HOST'S PREFERENCE FOR THE NESTED COMPONENT'S DEFAULT ITEMS (#2661, owner decision Q418): Dialog's group has its
+      // Cancel swapped to Button.Neutral when the file has it. Once per instance like the overrides, and not onto an
+      // instance a designer changed by hand (`kept`). `applyNestItemPrefers` is shared with the paste payload, decision and wording.
+      if (node && firstVisit && n.nestItemPrefer && !kept)
+        for (const m of applyNestItemPrefers(node as Parameters<typeof applyNestItemPrefers>[0], n.nestItemPrefer, (set, variant) => resolveNestMember(compSets, set, variant, nestVariantMatch, nestVariantMissAdvice)))
           misses.push(`${n.name}${m}`);
       // THE NESTED INSTANCE'S OWN TEXT (#2317). A set has one default per text property, so the Password field's
       // nested Button would read its set's "Button"; the plan's `nestTexts` names what this instance says instead,

@@ -16,8 +16,23 @@ amendment of call 8 and Q386 (#2808): no component requires the Neutral button f
 
 ### The mechanisms, and why each is its own field
 
-- **`prefersWhenBuilt` on a nest (→ `nestPrefer` on the plan).** Cancel nests `button` and prefers `button-neutral`.
-  Both executors resolve the preferred set's member at the same coordinate first and fall back to `nestTarget` with
+- **The host decides the secondary (Q418).** Button.Group on its own makes Cancel the outline primary Button and prefers
+  nothing. Dialog's nests of the group prefer Button.Neutral for the group's Cancel through `nestItemPrefers` (below),
+  falling back to the primary Button; Banner, Card and later hosts declare their own. The first cut put
+  `prefersWhenBuilt` on the group's Cancel; Q418 moved it to the host.
+- **`nestItemPrefers` on a nest (→ `nestItemPrefer` on the plan).** The smallest mechanism that carries a preference
+  through a nest of a nest. The group's default buttons are instances inside the group, so a host cannot reach them
+  with `prefersWhenBuilt`, which replaces the component an in-flow instance is made from. `nestItemPrefers: { cancel:
+  'button-neutral' }` names a `nest-fixed` anatomy part of the nested def and a sibling set that takes its coordinate
+  (the projection checks it with the same `nestPreferOf` as `prefersWhenBuilt`, and refuses a part the nested def lacks,
+  one that is not such a nest, and the item's own component). Once the nested instance exists, both executors resolve the
+  sibling's member at the item's coordinate (`resolveNestMember`, shared) and `swapComponent` the one instance of that
+  layer name inside it, through one shared writer, `applyNestItemPrefers`. No set in the file: the item stays the primary
+  Button, no miss. Two sets, or no member: named once per instance, and the item stays. It is not `nests` or `nestTarget`,
+  so `build-deps.ts` and the #2808 gate's readings never count it. The paste payload splices the writer in only for a
+  payload whose plans carry it, so no other set's chunk count moves.
+- **`prefersWhenBuilt` on a nest (→ `nestPrefer` on the plan)** stays in the schema for a part that nests a component
+  directly, but no def uses it now. Both executors resolve the preferred set's member at the same coordinate first and fall back to `nestTarget` with
   no miss when the file has no such set; a set of that name that cannot yield the member (two copies) is named once
   per instance and still falls back. It is not `nestTarget`, so `build-deps.ts` never builds it first and the #2808
   gate's two readings never count it; the projection refuses a preferred set whose coordinates differ from the nested
@@ -48,6 +63,12 @@ instance's slot items on a real host is not measured.
   Cancel after this PR; the Neutral Cancel clears 14.05. Pinned in `test.ts` until the owner answers there.
 
 ### Traps
+
+- `swapComponent` is said to keep an instance's overrides by property name, and the shim models it, so the swapped
+  Cancel keeps "Cancel"; a real file has not been read. Update sees no plan difference when only the file changed, so a
+  Dialog built before Button.Neutral keeps the primary Cancel until rebuilt (Q416 call 4, its own follow-up).
+- The plugin shim and the paste stub gained `nestedItems`, which makes an instance of a built group carry its default
+  buttons as real children; without it a Dialog's instance of the group has no Cancel to swap.
 
 - The plugin executor visits a slot's items twice (`toSlots`), so the preference miss is pushed at the first-visit
   guard, after the instance is made. The paste payload pushes it at the same point, so the two agree.

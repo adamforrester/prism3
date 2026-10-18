@@ -19112,7 +19112,7 @@ arm: {
      *  Both exist because they answer different questions: `insetValue` is how the not-a-number case is
      *  reached (one bad value, whichever name asks), and `varOverrides` is how the two halves of the ring's
      *  coordinate are given DIFFERENT values, which is the only way to tell a sum from a doubling (#801). */
-    type StubOpts = { vars?: string[]; styles?: string[]; comps?: string[]; page?: StubPage; insetValue?: unknown; varOverrides?: Record<string, unknown>; varValues?: Record<string, number>; fileNodes?: StubFileNode[]; nestedInstanceParts?: string[]; compTexts?: Record<string, Record<string, string>>; effectStyles?: string[]; gradientDiscard?: 'paint' | 'bindings'; textMetrics?: { fontSize: number; lineHeight: { unit: string; value: number } }; setStrokes?: Record<string, unknown>[]; noSlots?: boolean; colors?: Record<string, { r: number; g: number; b: number; a: number }>; componentProps?: Record<string, Record<string, { type: string; defaultValue: string | boolean }>> };
+    type StubOpts = { vars?: string[]; styles?: string[]; comps?: string[]; page?: StubPage; insetValue?: unknown; varOverrides?: Record<string, unknown>; varValues?: Record<string, number>; fileNodes?: StubFileNode[]; nestedInstanceParts?: string[]; nestedItems?: Record<string, { name: string; set: string; member: string }[]>; compTexts?: Record<string, Record<string, string>>; effectStyles?: string[]; gradientDiscard?: 'paint' | 'bindings'; textMetrics?: { fontSize: number; lineHeight: { unit: string; value: number } }; setStrokes?: Record<string, unknown>[]; noSlots?: boolean; colors?: Record<string, { r: number; g: number; b: number; a: number }>; componentProps?: Record<string, Record<string, { type: string; defaultValue: string | boolean }>> };
     /** The two halves of a focus ring's coordinate, the real NB values (`focus.ring.offset` /
      *  `focus.ring.width` — both 2 in every emitted brand). NAMED, and named HERE, because they are the
      *  stub's INPUT and the geometry assertions' EXPECTED at once, and #801 is what that costs when the
@@ -19750,6 +19750,21 @@ arm: {
                   kid.parent = inst;   // #1428 — so `inInst`'s ancestry walk sees the INSTANCE
                   (inst.children as Record<string, unknown>[]).push(kid);
                 }
+                // #2661 (Q418) — A NESTED INSTANCE'S DEFAULT ITEMS (`nestedItems`, by the member's name): real INSTANCE
+                // children, each of a named set's member, that `swapComponent` re-points as the host does. Button.Group's
+                // members carry their Cancel and Save, so a Dialog's instance of the group has a Cancel to swap. Mirrors
+                // `apps/plugin/component-shim.ts`'s `nestedItems`.
+                const itemKids = (opts.nestedItems?.[name] ?? []).map((it) => {
+                  const kid = mkNode('INSTANCE'); kid.name = it.name; kid.parent = inst;
+                  Object.defineProperty(kid, 'mainComponent', { configurable: true, enumerable: false, writable: true, value: { name: it.member, type: 'COMPONENT', parent: { name: it.set, type: 'COMPONENT_SET' } } });
+                  kid.swapComponent = (c: { createInstance: () => Record<string, unknown> }) => {
+                    const t = c.createInstance();
+                    Object.defineProperty(kid, 'mainComponent', { configurable: true, enumerable: false, writable: true, value: t.mainComponent });
+                  };
+                  (inst.children as Record<string, unknown>[]).push(kid);
+                  return kid;
+                });
+                if (itemKids.length) inst.findAll = (pred?: (n: unknown) => boolean) => [vec, ...itemKids].filter((k) => !pred || pred(k));
                 // AN INSTANCE INHERITS ITS MAIN COMPONENT'S ROOT BINDINGS (#1388, #1290). The focus-ring
                 // main component binds width AND height to its `nominal-side` (`size.md.height`, the
                 // buildable-alone square), so a nested ring instance carries those bindings until the host
@@ -20619,20 +20634,32 @@ arm: {
         ok(goneMiss.length > 0 && goneMiss.every((m) => m.includes('not in this file')) && fromOld.length === 0,
           `#1781 paste path: with checkbox-row missing, __old__checkbox-row is not used in its place and the miss names the target (${goneMiss.length} misses, ${fromOld.length} rows from __old__; ${goneMiss[0] ?? JSON.stringify(gone.misses.slice(0, 2))})`);
 
-      // ---- #2661 (Q363.8 as amended, Q386): CANCEL FALLS BACK TO THE PRIMARY BUTTON, on BOTH executors ---------------
-      // Button group's Cancel nests `button` and prefers `button-neutral` when the file has it. Each Button group member
-      // is built three ways against ONE stub per file, by the paste payload and by the plugin executor, and the set each
-      // nested Cancel and Save came from is read off the built page. The expected owners are LITERALS typed here, never
-      // read off the plan (docs/34): without Button.Neutral every Cancel is a primary Button with no miss; with it every
-      // Cancel is a Button.Neutral; with two Button.Neutral sets the preference is named and Cancel falls back. Save is a
-      // primary Button in all three. Mutation: drop the payload's `nestPrefer` lookup → `with Button.Neutral` fails.
+      // ---- #2661 (Q363.8 as amended, Q386, Q418): THE HOST DECIDES THE SECONDARY, on BOTH executors -------------------
+      // Button group's Cancel nests `button` and prefers nothing: on its own it is the primary outline Button, whatever the
+      // file holds (Q418). Dialog nests the group and prefers Button.Neutral for the group's Cancel (`nestItemPrefers`), so
+      // its footer's Cancel is a Button.Neutral when the file has that set and the primary Button when it does not. Each is
+      // built against ONE stub per file by the paste payload and by the plugin executor, and the set each Cancel and Save
+      // came from is read off the built page. The expected owners are LITERALS typed here, never read off the plan
+      // (docs/34): with two Button.Neutral sets the preference is named and Cancel stays the primary Button. Save is a
+      // primary Button throughout. Mutations: drop the payload's `nestItemPrefer` call → the Dialog `with Button.Neutral`
+      // case fails; make Button.Group's Cancel prefer Button.Neutral again → the standalone `with Button.Neutral` case fails.
       {
         const bg = componentDefs.find((d) => d.id === 'button-group')!;
+        const dlg = componentDefs.find((d) => d.id === 'dialog')!;
         const bgPlans = figmaAnatomySet(bg, { swapTarget: 'FPO-default-icon' });
+        const dlgPlans = ['inline', 'stacked'].map((f) => figmaAnatomySet(dlg, { swapTarget: 'FPO-default-icon' }).find((p) => (p.coord as Record<string, string>).footer === f)!);
+        const OUTLINE = 'appearance=outline, size=medium, surface=default, inset=default, state=rest, leading icon=false, trailing icon=false';
+        const FILLED = OUTLINE.replace('outline', 'filled');
         const btnFile = (n: number): StubFileNode[] => [
           { name: 'button', type: 'COMPONENT_SET', variants: membersOf(button) },
           ...Array.from({ length: n }, () => ({ name: 'button-neutral', type: 'COMPONENT_SET' as const, variants: membersOf(buttonNeutral) })),
         ];
+        const dlgFile = (n: number): StubFileNode[] => [...btnFile(n), { name: 'button-group', type: 'COMPONENT_SET', variants: membersOf(bg) }];
+        // The group's members as a Dialog's instance of them holds the default buttons: Cancel then Save inline, Save then Cancel stacked.
+        const nestedItems = {
+          'layout=inline': [{ name: 'cancel', set: 'button', member: OUTLINE }, { name: 'save', set: 'button', member: FILLED }],
+          'layout=stacked': [{ name: 'saveStacked', set: 'button', member: FILLED }, { name: 'cancelStacked', set: 'button', member: OUTLINE }],
+        };
         const CANCEL = ['cancel', 'cancelStacked', 'cancelFill'];
         const SAVE = ['save', 'saveStacked', 'saveFill'];
         const ownersOf = (page: StubPage): Record<string, string> => {
@@ -20646,29 +20673,46 @@ arm: {
           for (const c of page.children) walk(c);
           return out;
         };
-        const cases: { label: string; neutrals: number; cancel: string; preferMiss: boolean }[] = [
-          { label: 'without Button.Neutral', neutrals: 0, cancel: 'button/outline', preferMiss: false },
-          { label: 'with Button.Neutral', neutrals: 1, cancel: 'button-neutral/outline', preferMiss: false },
-          { label: 'with two Button.Neutral sets', neutrals: 2, cancel: 'button/outline', preferMiss: true },
+        const footers = (page: StubPage): number => {
+          let n = 0;
+          const walk = (x: Record<string, unknown>): void => { if (x.type === 'INSTANCE' && ['actionsInline', 'actionsStacked'].includes(String(x.name))) n++; for (const c of (x.children as Record<string, unknown>[] | undefined) ?? []) walk(c); };
+          for (const c of page.children) walk(c);
+          return n;
+        };
+        const cases: { label: string; neutrals: number; dialogCancel: string; preferMiss: boolean }[] = [
+          { label: 'without Button.Neutral', neutrals: 0, dialogCancel: 'button/outline', preferMiss: false },
+          { label: 'with Button.Neutral', neutrals: 1, dialogCancel: 'button-neutral/outline', preferMiss: false },
+          { label: 'with two Button.Neutral sets', neutrals: 2, dialogCancel: 'button/outline', preferMiss: true },
         ];
         for (const c of cases) {
           for (const leg of ['paste', 'plugin'] as const) {
-            const owners: Record<string, string> = {};
-            const nestMisses: string[] = [];
-            for (const plan of bgPlans) {
-              const opts = { vars: [...planBoundVars(plan.root), ...planPaintVars(plan.root)], styles: planTextStyles(plan.root), comps: ['FPO-default-icon'], fileNodes: btnFile(c.neutrals) };
-              const page: StubPage = { children: [] };
-              const r = leg === 'paste'
-                ? await runPayload(planToPluginJs(plan), { ...opts, page })
-                : await applyComponentPlan([plan], makeFigmaStub({ ...opts, page }) as any);
-              nestMisses.push(...r.misses.filter((m) => /\.nest(Target|Variant|Prefer) ->|THREW/.test(m)));
-              Object.assign(owners, ownersOf(page));
+            // STANDALONE GROUP — the primary outline Cancel in every file, with no miss (Q418).
+            // DIALOG — its Cancel is the host's preference.
+            for (const host of ['button-group', 'dialog'] as const) {
+              const plans = host === 'dialog' ? dlgPlans : bgPlans;
+              const wantCancel = host === 'dialog' ? c.dialogCancel : 'button/outline';
+              const wantPreferMiss = host === 'dialog' && c.preferMiss;
+              const owners: Record<string, string> = {};
+              const nestMisses: string[] = [];
+              let built = 0;
+              for (const plan of plans) {
+                const opts = { vars: [...planBoundVars(plan.root), ...planPaintVars(plan.root)], styles: planTextStyles(plan.root), comps: ['FPO-default-icon'], fileNodes: host === 'dialog' ? dlgFile(c.neutrals) : btnFile(c.neutrals), nestedItems };
+                const page: StubPage = { children: [] };
+                const r = leg === 'paste'
+                  ? await runPayload(planToPluginJs(plan), { ...opts, page })
+                  : await applyComponentPlan([plan], makeFigmaStub({ ...opts, page }) as any);
+                nestMisses.push(...r.misses.filter((m) => /\.nest(Target|Variant|ItemPrefer) -> (button(-group|-neutral)?\b|\w+ prefers)|THREW/.test(m)));
+                Object.assign(owners, ownersOf(page));
+                built += footers(page);
+              }
+              const cancels = host === 'dialog' ? ['cancel', 'cancelStacked'] : CANCEL;
+              const saves = host === 'dialog' ? ['save', 'saveStacked'] : SAVE;
+              const wrong = [...cancels.filter((n) => owners[n] !== wantCancel).map((n) => `${n} -> ${owners[n] ?? 'NOT BUILT'}`), ...saves.filter((n) => owners[n] !== 'button/filled').map((n) => `${n} -> ${owners[n] ?? 'NOT BUILT'}`)];
+              const preferMisses = nestMisses.filter((m) => m.includes('.nestItemPrefer -> ') && m.includes(' prefers button-neutral (in this file, but it did not resolve: nestTarget -> button-neutral (found 2 COMPONENT_SETs') && m.includes('; it keeps its default)'));
+              const other = nestMisses.filter((m) => !preferMisses.includes(m));
+              ok(wrong.length === 0 && other.length === 0 && (host === 'dialog' ? built === 2 : true) && (wantPreferMiss ? preferMisses.length === built : preferMisses.length === 0),
+                `#2661 ${leg} path, ${host === 'dialog' ? 'a Dialog footer' : 'the standalone Button group'} ${c.label}: every Cancel is ${wantCancel} and every Save is button/filled${wantPreferMiss ? ', and each Cancel names the unresolved preference' : ', with no nest miss'} (${wrong.length ? `WRONG: ${wrong.join(' | ')}` : 'all as typed'}; ${other.length ? `misses: ${other.slice(0, 2).join(' | ')}` : `${preferMisses.length} preference misses`})`);
             }
-            const wrong = [...CANCEL.filter((n) => owners[n] !== c.cancel).map((n) => `${n} -> ${owners[n] ?? 'NOT BUILT'}`), ...SAVE.filter((n) => owners[n] !== 'button/filled').map((n) => `${n} -> ${owners[n] ?? 'NOT BUILT'}`)];
-            const preferMisses = nestMisses.filter((m) => m.includes('.nestPrefer -> button-neutral (in this file, but it did not resolve: nestTarget -> button-neutral (found 2 COMPONENT_SETs') && m.includes('; made from button instead)'));
-            const other = nestMisses.filter((m) => !preferMisses.includes(m));
-            ok(wrong.length === 0 && other.length === 0 && (c.preferMiss ? preferMisses.length === CANCEL.length : preferMisses.length === 0),
-              `#2661 ${leg} path, ${c.label}: every Cancel is ${c.cancel} and every Save is button/filled${c.preferMiss ? ', and each Cancel names the unresolved preference' : ', with no nest miss'} (${wrong.length ? `WRONG: ${wrong.join(' | ')}` : 'all as typed'}; ${other.length ? `misses: ${other.slice(0, 2).join(' | ')}` : `${preferMisses.length} preference misses`})`);
           }
         }
       }
@@ -32271,7 +32315,7 @@ arm: {
 {
   const bg = componentDefs.find((d) => d.id === 'button-group')!;
   const plans = figmaAnatomySet(bg, { swapTarget: 'FPO-default-icon' });
-  type BN = { name: string; type: string; children: BN[]; bound?: Record<string, string>; layoutMode?: string; primaryAxisAlignItems?: string; layoutAlign?: string; layoutGrow?: number; nestTarget?: string; nestPrefer?: string; nestVariant?: Record<string, string>; nestOverrides?: { property: string; type: string; value: string }[]; slotSettings?: Record<string, unknown>; slotPreferred?: string[]; slotPreferredWhenBuilt?: string[] };
+  type BN = { name: string; type: string; children: BN[]; bound?: Record<string, string>; layoutMode?: string; primaryAxisAlignItems?: string; layoutAlign?: string; layoutGrow?: number; nestTarget?: string; nestPrefer?: string; nestItemPrefer?: unknown; nestVariant?: Record<string, string>; nestOverrides?: { property: string; type: string; value: string }[]; slotSettings?: Record<string, unknown>; slotPreferred?: string[]; slotPreferredWhenBuilt?: string[] };
   ok(JSON.stringify(plans.map(planComponentName)) === JSON.stringify(['layout=inline', 'layout=stacked', 'layout=fill']) && bg.name === 'Button.Group' && bg.id === 'button-group' && validateComponentDef(bg).errors.length === 0,
     `#2661 button group: Button.Group (button-group), three members in the order inline, stacked, fill (Q363.3 A, Q363.9 B), validating clean (got ${plans.map(planComponentName).join(', ')}; ${validateComponentDef(bg).errors.slice(0, 2).join('; ')})`);
   const LAYOUT: Record<string, { mode: string; gap: string; kids: [string, string, string][]; fit: 'hug' | 'stretch' | 'grow' }> = {
@@ -32293,14 +32337,14 @@ arm: {
     const kidsOk = kids.length === want.kids.length && want.kids.every(([name, appearance, label], i) => {
       const k = kids[i];
       const fit = want.fit === 'hug' ? k.layoutAlign === undefined && k.layoutGrow === undefined : want.fit === 'stretch' ? k.layoutAlign === 'STRETCH' && k.layoutGrow === undefined : k.layoutGrow === 1;
-      return k.name === name && k.type === 'NESTED_INSTANCE' && k.nestTarget === 'button' && k.nestPrefer === (label === 'Cancel' ? 'button-neutral' : undefined)
+      return k.name === name && k.type === 'NESTED_INSTANCE' && k.nestTarget === 'button' && k.nestPrefer === undefined && k.nestItemPrefer === undefined
         && JSON.stringify(k.nestVariant) === JSON.stringify({ appearance, size: 'medium', surface: 'default', inset: 'default', state: 'rest', 'leading icon': 'false', 'trailing icon': 'false' })
         && JSON.stringify(k.nestOverrides) === JSON.stringify([{ property: 'label', type: 'TEXT', value: label }]) && fit;
     });
     if (!kidsOk) bad.push(`${planComponentName(p)} buttons: ${kids.map((k) => `${k.name}:${k.nestTarget}/${k.nestPrefer ?? '-'}/${k.nestVariant?.appearance}/${k.layoutAlign ?? ''}${k.layoutGrow ?? ''}`).join(' ')}`);
   }
   ok(bad.length === 0,
-    `#2661 button group layouts: inline a row at the end edge 12px apart, Cancel (outline, prefers Button.Neutral) then Save (filled), hugging; stacked a column 8px apart, Save over Cancel, full width; fill a row 12px apart, Cancel then Save, sharing the width; every slot 1 to 3, preferred-only, the primary Button required and the Destructive and Neutral families when built (Q363.4–9, Q386)${bad.length ? ` — WRONG: ${bad.slice(0, 3).join(' | ')}` : ''}`);
+    `#2661 button group layouts: inline a row at the end edge 12px apart, Cancel (outline, no Neutral preference of its own, Q418) then Save (filled), hugging; stacked a column 8px apart, Save over Cancel, full width; fill a row 12px apart, Cancel then Save, sharing the width; every slot 1 to 3, preferred-only, the primary Button required and the Destructive and Neutral families when built (Q363.4–9, Q386)${bad.length ? ` — WRONG: ${bad.slice(0, 3).join(' | ')}` : ''}`);
   ok(JSON.stringify(planSetProperties(plans)) === JSON.stringify([{ name: 'items', type: 'SLOT', slotSettings: { minChildren: 1, maxChildren: 3, allowPreferredValuesOnly: true }, preferred: ['button'], preferredWhenBuilt: ['button-destructive', 'button-neutral'] }]),
     `#2661 button group: the set declares one property, the "items" slot, and nothing else (got ${JSON.stringify(planSetProperties(plans))})`);
   const items = bg.props.find((x) => x.name === 'items');
@@ -32320,6 +32364,35 @@ arm: {
   let threw = '';
   try { figmaAnatomySet(withPart('cancel', { prefersWhenBuilt: 'icon-button-neutral' }), { swapTarget: 'FPO-default-icon' }); } catch (e) { threw = (e as Error).message; }
   ok(/prefers 'icon-button-neutral' when built, which does not take the coordinates 'button' takes/.test(threw), `#2661 a preference whose set takes other coordinates throws at projection, naming it (got ${threw.slice(0, 140) || 'no throw'})`);
+
+  // Q418 — THE HOST DECIDES THE SECONDARY. The group alone prefers nothing for Cancel; Dialog's nests of it prefer
+  // Button.Neutral, each naming the group's Cancel of its layout. EXPECTED is typed; ACTUAL is the projected plan.
+  ok(bg.anatomy!.parts && Object.values(bg.anatomy!.parts).every((p) => p.prefersWhenBuilt === undefined && p.nestItemPrefers === undefined),
+    "#2661 Q418 Button.Group's own parts prefer nothing: its Cancel is the primary outline Button on its own");
+  {
+    const dlgDef = componentDefs.find((d) => d.id === 'dialog')!;
+    const COORD = { appearance: 'outline', size: 'medium', surface: 'default', inset: 'default', state: 'rest', 'leading icon': 'false', 'trailing icon': 'false' };
+    const dlgPlans = figmaAnatomySet(dlgDef, { swapTarget: 'FPO-default-icon' });
+    const find = (n: BN, name: string): BN | undefined => (n.name === name ? n : n.children.map((c) => find(c, name)).find((x) => x));
+    const WANT: [string, string][] = [['actionsInline', 'cancel'], ['actionsStacked', 'cancelStacked']];
+    const wrong: string[] = [];
+    let seen = 0;
+    for (const p of dlgPlans) for (const [part, item] of WANT) {
+      const n = find(p.root as unknown as BN, part);
+      if (!n) continue;
+      seen++;
+      if (JSON.stringify(n.nestItemPrefer) !== JSON.stringify([{ item, prefer: 'button-neutral', variant: COORD }]) || n.nestPrefer !== undefined || n.nestTarget !== 'button-group')
+        wrong.push(`${planComponentName(p)} ${part}: ${JSON.stringify(n.nestItemPrefer)} target ${n.nestTarget}`);
+    }
+    ok(seen >= 2 && wrong.length === 0, `#2661 Q418 Dialog's nests of the group prefer Button.Neutral for the group's Cancel of their layout (${seen} nests checked${wrong.length ? `; WRONG: ${wrong.slice(0, 2).join(' | ')}` : ''})`);
+    const dwith = (part: string, patch: Record<string, unknown>): ComponentDef => ({ ...dlgDef, anatomy: { ...dlgDef.anatomy!, parts: { ...dlgDef.anatomy!.parts, [part]: { ...dlgDef.anatomy!.parts[part], ...patch } as PartDef } } });
+    const project = (d: ComponentDef): string => { try { figmaAnatomySet(d, { swapTarget: 'FPO-default-icon' }); return 'no throw'; } catch (e) { return (e as Error).message; } };
+    ok(errs(dwith('title', { nestItemPrefers: { cancel: 'button-neutral' } })).some((m) => /declares 'nestItemPrefers' but is not a 'nest' part/.test(m)), '#2661 Q418 nestItemPrefers off a nest part is refused');
+    ok(/has no anatomy part of that name/.test(project(dwith('actionsInline', { nestItemPrefers: { nope: 'button-neutral' } }))), '#2661 Q418 an item the nested def lacks throws at projection');
+    ok(/which is not a plain 'nest-fixed' nest of a component/.test(project(dwith('actionsInline', { nestItemPrefers: { items: 'button-neutral' } }))), '#2661 Q418 an item that is not a nest of a component throws at projection');
+    ok(/which is the component the item already is/.test(project(dwith('actionsInline', { nestItemPrefers: { cancel: 'button' } }))), '#2661 Q418 a preference for the item\'s own component throws at projection');
+    ok(/does not take the coordinates 'button' takes/.test(project(dwith('actionsInline', { nestItemPrefers: { cancel: 'icon-button-neutral' } }))), '#2661 Q418 a preferred set that takes other coordinates throws at projection');
+  }
 
   // CONTRAST ON THE DIALOG'S PANEL (color.foreground.primary), every example brand × mode, measured on the resolved
   // roles (never on the def): the outline Cancel's label (4.5:1) and edge (3:1) in BOTH families, since which one the

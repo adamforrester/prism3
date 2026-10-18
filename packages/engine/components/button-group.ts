@@ -22,25 +22,25 @@
  * switch; the default buttons are one pair per layout, each gated to its members (`presentWhen`), because a default
  * child's sizing (hug, stretch or grow) is its own.
  *
- * ── CANCEL IS BUTTON.NEUTRAL WHEN THE FILE HAS IT (Q363.8 C, amended 2026-10-16; Q386 on #2808) ──────────────────
+ * ── THE HOST DECIDES THE SECONDARY (Q363.8 C as amended 2026-10-16, Q386 on #2808, Q418) ─────────────────────────
  *
- * Cancel is the outline Button.Neutral in a file that built the Neutral families, and the outline primary Button in
- * one that did not. It NESTS the primary Button and PREFERS Button.Neutral when built (`prefersWhenBuilt`): the
- * preference is never a build dependency, so a team that skips the Neutral families still builds this group, and a
- * Dialog with it, with no miss. Likewise the slot offers Button.Neutral, and Button.Destructive, only when the file
- * has them (`preferredWhenBuilt`). Save is the filled primary Button. A destructive confirm swaps Save to
- * Button.Destructive, filled, in the slot.
+ * On its own the group's Cancel is the outline primary Button, with no Neutral preference. The component that NESTS the
+ * group decides its buttons' defaults (`nestItemPrefers` on its nest): Dialog prefers Button.Neutral for the Cancel
+ * when the file has it, and Banner, Card and later hosts choose their own, primary outline, primary text or Neutral. A
+ * preference is never a build dependency, so a team that skips the Neutral families still builds the group and every
+ * host of it with no miss. Likewise the slot offers Button.Neutral, and Button.Destructive, only when the file has them
+ * (`preferredWhenBuilt`). Save is the filled primary Button. A destructive confirm swaps Save to Button.Destructive,
+ * filled, in the slot, and a designer can swap any button in the slot.
  */
 import { ComponentDef, PartDef } from '../component-schema';
 
 const COORD = (appearance: 'filled' | 'outline') =>
   ({ appearance, size: 'medium', surface: 'default', inset: 'default', state: 'rest', 'leading icon': 'false', 'trailing icon': 'false' });
 
-/** One default button in the slot. Cancel nests the primary Button and prefers Button.Neutral when the file has it. */
+/** One default button in the slot. Cancel nests the primary Button; a host that wants another Cancel says so on its nest of the group (Q418). */
 const action = (role: 'cancel' | 'save', layout: 'inline' | 'stacked' | 'fill', note: string): PartDef => ({
   kind: 'nest',
   nests: 'button',
-  ...(role === 'cancel' ? { prefersWhenBuilt: 'button-neutral' } : {}),
   presentWhen: { layout: [layout] },
   nesting: { kind: 'nest-fixed', variant: COORD(role === 'cancel' ? 'outline' : 'filled') },
   ...(layout === 'stacked' ? { crossAxisFill: true as const } : {}),
@@ -111,11 +111,11 @@ export const buttonGroup: ComponentDef = {
         children: ['cancel', 'save', 'saveStacked', 'cancelStacked', 'cancelFill', 'saveFill'],
         note: 'The buttons: a native slot holding one to three Buttons, two by default. A row at the end edge inline, a column stacked, a row whose buttons share the width at fill.',
       },
-      cancel: action('cancel', 'inline', 'Cancel, inline: an outline Button.Neutral when the file has it, otherwise an outline Button.'),
+      cancel: action('cancel', 'inline', 'Cancel, inline: an an outline Button; a host may prefer another.'),
       save: action('save', 'inline', 'Save, inline: a filled Button, the main action, last.'),
       saveStacked: action('save', 'stacked', 'Save, stacked: a filled Button, full width, on top.'),
-      cancelStacked: action('cancel', 'stacked', 'Cancel, stacked: full width, under Save; an outline Button.Neutral when the file has it, otherwise an outline Button.'),
-      cancelFill: action('cancel', 'fill', 'Cancel, fill: sharing the width; an outline Button.Neutral when the file has it, otherwise an outline Button.'),
+      cancelStacked: action('cancel', 'stacked', 'Cancel, stacked: full width, under Save; an an outline Button; a host may prefer another.'),
+      cancelFill: action('cancel', 'fill', 'Cancel, fill: sharing the width; an an outline Button; a host may prefer another.'),
       saveFill: action('save', 'fill', 'Save, fill: a filled Button sharing the width, last.'),
     },
     codeOnly: [
@@ -123,7 +123,7 @@ export const buttonGroup: ComponentDef = {
       'order — the DOM order is the order the buttons are given, which is also the focus order. Inline and fill take the main action last (Cancel, then Save); stacked takes it first (Save, then Cancel), so the visual order and the focus order match in every layout. Never reverse the order with CSS alone: focus would then move against what the eye reads.',
       'the inline row — `display: flex; justify-content: flex-end; flex-wrap: wrap` with the row gap, so a row too wide for its container wraps instead of overflowing; nothing switches to stacked by itself. Fill gives each button `flex: 1 1 0` so the buttons share the width; stacked is a column with each button at full width.',
       'button count — Figma holds the buttons in the native `items` slot, two by default and three at most; code takes `items` of one to three Button elements.',
-      'Cancel in a file without the Neutral families — in Figma the default Cancel is an outline Button.Neutral when the file has that set and an outline Button otherwise. In code, pass whichever the product uses.',
+      'Cancel — in Figma the group\'s own default Cancel is an outline Button; a host that nests the group (Dialog) may prefer another, such as Button.Neutral when the file has that set. In code, pass whichever the product uses.',
       'right-to-left — the row mirrors through logical properties: the end edge is the left, and the main action sits leftmost.',
     ],
   },
@@ -195,12 +195,14 @@ export const buttonGroup: ComponentDef = {
       'HELD FOR THE OWNER (#2661): no size axis. The buttons are medium, which Dialog\'s footer needs; Banner\'s small actions (#2787) would add one, medium first (Q347).',
     ],
     unverified: [
-      'A Button group built before Button.Neutral keeps its primary Cancel: the preference is read when the group is built, so a file that builds the Neutral families later rebuilds the group to pick them up.',
+      'A host built before Button.Neutral keeps the group\'s primary Cancel: the host\'s preference is read when the host is built, so a file that builds the Neutral families later rebuilds the host to pick them up.',
+      'That Figma keeps the "Cancel" label when the host swaps the group\'s Cancel instance to Button.Neutral (`swapComponent` preserves overrides by property name; the shim models it, a real file has not been read).',
       'That a designer\'s buttons in the slot survive a layout switch on a real host, as the accordion\'s panel content survives its expansion switch (one SLOT property per part name).',
     ],
     evolution: [
       'Owner decision Q363 (2026-10-16, #2661): the wireframe approved, all calls A except 8 (Cancel is Button.Neutral) and 9 (a fill layout too); a shared public Button group that Dialog nests now and Banner and Card later; the Button family preferred, preferred-only; stacked with the main action first; one to three buttons, two by default; three inline all at the end edge.',
       'Owner decision (2026-10-16, #2661, amending Q363.8) and Q386 (#2808): Cancel uses Button.Neutral when the file has it and the primary Button otherwise; no component requires the Neutral families.',
+      'Owner decision Q418 (2026-10-18, #2661): the component that nests the group decides its buttons\' defaults. Button.Group on its own defaults the secondary to the primary outline Button, with no Neutral preference; Dialog\'s nest prefers Button.Neutral, falling back to the primary Button; designers can still swap any button in the slot.',
     ],
   },
 };

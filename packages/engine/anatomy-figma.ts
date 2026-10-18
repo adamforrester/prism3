@@ -210,6 +210,13 @@ export type FigmaNodePlan = {
    *  so a preference spelled as a target would make every team build it, which is what Q386 forbids. The read-back
    *  (`anatomy-readback.ts`, `nestTarget`) accepts an instance of either set. */
   nestPrefer?: string;
+  /** For a `NESTED_INSTANCE` whose part declares `nestItemPrefers` (#2661, owner decision Q418): the HOST'S PREFERENCE
+   *  for default items of the component it nests, one entry per item. `item` is the layer name of the item's instance
+   *  inside the nested instance, `prefer` the sibling set's def id, and
+   *  `variant` the item's own coordinate, which `prefer` takes too. Each executor resolves `prefer`'s member at that
+   *  coordinate once the nested instance exists and swaps the item to it; a file without the set leaves the item
+   *  as it is, with no miss. Present ONLY when declared, so every other plan is byte-identical. */
+  nestItemPrefer?: readonly NestItemPrefer[];
   /** For a `NESTED_INSTANCE`: WHICH VARIANT of `nestTarget` to nest, when `nestTarget` names a component
    *  SET rather than a plain component (#681). Figma's `InstanceNode.setProperties` shape exactly —
    *  `{ axis: value }` — which is why `PartDef.nesting`'s `variant` is a `Record` and not a string.
@@ -880,6 +887,9 @@ export const iconComponentName = (glyph: string): string => `${ICON_DEF_ID}/${gl
  *  `mark` and `dash` are each a frame holding one instance named this. */
 export const ICON_INSET_CHILD = 'glyph';
 
+/** One host preference for a default item of a nested component (#2661, Q418) — see `FigmaNodePlan.nestItemPrefer`. */
+export type NestItemPrefer = { item: string; prefer: string; variant: Record<string, string> };
+
 /** One per-instance override on a nested instance (#2645) — see `FigmaNodePlan.nestOverrides`. */
 export type NestOverride = { property: string; type: 'TEXT' | 'INSTANCE_SWAP'; value: string };
 
@@ -989,6 +999,27 @@ const nestPreferOf = (defId: string, part: string, p: PartDef): string => {
   for (const k of Object.keys(p.overrides?.texts ?? {})) if (!d.figmaProperties.texts?.[k]) return fail(`has no text property '${k}' to override`);
   for (const k of Object.keys(p.overrides?.swaps ?? {})) if (!d.figmaProperties.swaps?.[k]) return fail(`has no swap property '${k}' to override`);
   return id;
+};
+
+/**
+ * A HOST'S ITEM PREFERENCES (#2661, owner decision Q418, `PartDef.nestItemPrefers`), resolved against the nested def. Each
+ * key names an anatomy part of the nested def: a `nest-fixed` nest of a component, whose instance the host swaps to the
+ * sibling set when the file has it. The sibling is checked by `nestPreferOf` exactly as a part's own `prefersWhenBuilt`
+ * is (same axes, same text and swap properties), so a host's preference and a def's own cannot disagree about what a
+ * sibling must be. THROWS on a part the nested def lacks, on one that is not such a nest, and on the item's own component.
+ */
+const nestItemPrefersOf = (defId: string, part: string, p: PartDef): NestItemPrefer[] => {
+  const nested = componentDefs.find((x) => x.id === p.nests);
+  return Object.entries(p.nestItemPrefers!).map(([item, id]) => {
+    const where = `${defId}: anatomy part '${part}' prefers '${id}' for '${p.nests}' item '${item}'`;
+    const ip = nested?.anatomy?.parts[item];
+    if (!ip) throw new Error(`${where}, which '${p.nests}' has no anatomy part of that name`);
+    if (ip.kind !== 'nest' || !ip.nests || ip.nesting?.kind !== 'nest-fixed' || ip.nesting.follow?.length || ip.nesting.atState)
+      throw new Error(`${where}, which is not a plain 'nest-fixed' nest of a component (no 'follow', no 'atState') — the item's coordinate is the one the preferred set must take`);
+    if (id === ip.nests) throw new Error(`${where}, which is the component the item already is`);
+    nestPreferOf(defId, `${part}.${item}`, { ...ip, prefersWhenBuilt: id });
+    return { item, prefer: id, variant: { ...ip.nesting.variant } };
+  });
 };
 
 const ALIGN: Record<string, 'MIN' | 'CENTER' | 'MAX' | 'BASELINE'> = {
@@ -2128,6 +2159,7 @@ export const figmaAnatomyPlan = (
       ...(p.kind === 'vector' && p.glyphPx !== undefined ? { glyphPx: p.glyphPx } : {}),
       ...((p.kind === 'absolute' || p.kind === 'nest') && p.nests ? { nestTarget: p.nests } : {}),
       ...(p.kind === 'nest' && p.nests && p.prefersWhenBuilt ? { nestPrefer: nestPreferOf(def.id, name, p) } : {}),
+      ...(p.kind === 'nest' && p.nests && p.nestItemPrefers ? { nestItemPrefer: nestItemPrefersOf(def.id, name, p) } : {}),
       // The def's chosen coordinate — the member the instance starts at. Projected for BOTH `nest-fixed`
       // (the def's final choice) and `nest-exposed` (the DEFAULT, from which the consumer drives the
       // exposed axes — #1330). `swap` has no variants at all and writes no coordinate here. An exposed
@@ -3637,6 +3669,44 @@ export const applyNestOverrides = (
 export const applyNestOverridesSrc = (): string => applyNestOverrides.toString();
 
 /**
+ * WRITE A HOST'S ITEM PREFERENCES onto the nested instance it just made (#2661, owner decision Q418). Both executors call
+ * this, so the plugin and the paste payload cannot drift in what they swap or how they say it.
+ *
+ * `resolve(prefer, variant)` is each executor's own `resolveNestMember` over its component sets: `null` when the file has
+ * no set of that name (the item keeps its owner, SILENTLY: the preference is never a requirement), `{ member }` to swap
+ * to, or `{ miss }` for a set that exists and cannot yield the member (two sets, or no member at the coordinate), which is
+ * named once and leaves the item as it is.
+ *
+ * The item is found by its layer NAME among the instance's descendants and must be exactly one INSTANCE: none, or more
+ * than one, is a miss and nothing is swapped (guessing between two is creation order deciding, #656). `swapComponent`
+ * keeps the item's own overrides where the new main has the same properties, which `nestPreferOf` guarantees for the
+ * text and swap properties a def sets.
+ *
+ * Returns the misses WITHOUT the part name, which each caller prefixes. SHIPPED AS SOURCE to the paste payload
+ * (`applyNestItemPrefersSrc`): it closes over nothing, and uses no template literal, no `?.`, no `??`.
+ */
+export const applyNestItemPrefers = (
+  inst: { findAll: (pred: (n: { name?: string; type?: string }) => boolean) => { swapComponent: (c: unknown) => void }[] },
+  prefs: readonly NestItemPrefer[],
+  resolve: (prefer: string, variant: Record<string, string>) => { member?: unknown; miss?: string } | null,
+): string[] => {
+  const out: string[] = [];
+  for (const o of prefs) {
+    const r = resolve(o.prefer, o.variant);
+    if (!r) continue;
+    const h = '.nestItemPrefer -> ' + o.item + ' prefers ' + o.prefer + ' (';
+    if (r.miss !== undefined) { out.push(h + 'in this file, but it did not resolve: ' + r.miss.slice(1) + '; it keeps its default)'); continue; }
+    const it = inst.findAll((x) => x.name === o.item && x.type === 'INSTANCE');
+    if (it.length !== 1) { out.push(h + it.length + ' instances of that name in the nested instance; it keeps its default)'); continue; }
+    try { it[0].swapComponent(r.member); } catch (e) { out.push(h + 'REFUSED: ' + (e as Error).message + ')'); }
+  }
+  return out;
+};
+
+/** `applyNestItemPrefers` as source, for the paste payload. See `nestVariantMissAdviceSrc` for why. */
+export const applyNestItemPrefersSrc = (): string => applyNestItemPrefers.toString();
+
+/**
  * WHAT A MISSING SWAP TARGET ACTUALLY IS, in the message the designer reads (#1212 residue, #1280 PR-C,
  * #1288).
  *
@@ -3920,6 +3990,15 @@ const NEST_OVERRIDES_SLOT = '/*__NEST_OVERRIDES__*/';
 const PAYLOAD_NEST_OVERRIDES = `if(node&&n.nestOverrides)for(const m of applyNestOverrides(node,n.nestOverrides,x=>{const c=compByName.get(x);return c?c.id:null;}))misses.push(n.name+m);`;
 const hasNestOverrides = (n: FigmaNodePlan): boolean => n.nestOverrides !== undefined || n.children.some(hasNestOverrides);
 /**
+ * A HOST'S ITEM PREFERENCES (#2661, Q418), spliced in ONLY for a payload whose plans carry `nestItemPrefer`: the shared
+ * writer's source once at the top, and its call in the nested-instance branch, resolving each preferred set through the
+ * payload's own `resolveNestMember`. The same budget reason as the overrides above. Lockstep with the plugin executor.
+ */
+const NEST_ITEM_PREFER_DEF_SLOT = '/*__NEST_ITEM_PREFER_DEF__*/';
+const NEST_ITEM_PREFER_SLOT = '/*__NEST_ITEM_PREFER__*/';
+const PAYLOAD_NEST_ITEM_PREFER = `if(node&&n.nestItemPrefer)for(const m of applyNestItemPrefers(node,n.nestItemPrefer,(s,v)=>resolveNestMember(compSets,s,v,nestVariantMatch,nestVariantMissAdvice)))misses.push(n.name+m);`;
+const hasNestItemPrefer = (n: FigmaNodePlan): boolean => n.nestItemPrefer !== undefined || n.children.some(hasNestItemPrefer);
+/**
  * THE PINNED ICONS (#1667, "Locked to edges"), spliced in after the flow pass ONLY for a payload whose plans
  * carry a `pin` — the `MIN_LINES_SLOT` budget decision again: unconditional, these lines would ship in every
  * chunk of every set (the #536 probe grid's one-chunk rule, when this was written; see `SET_CHUNK_BYTES` for
@@ -4078,10 +4157,13 @@ const payloadBuildFor = (roots: FigmaNodePlan[]): string =>
     .replace(GRADIENT_CLAIM_SLOT, roots.some(hasGradient) ? PAYLOAD_GRADIENT_CLAIM : '')
     // A function replacer, so the shipped source is inserted as written: a string replacement reads `$` patterns.
     .replace(NEST_OVERRIDES_DEF_SLOT, () => (roots.some(hasNestOverrides) ? 'const applyNestOverrides=' + applyNestOverridesSrc() + ';' : ''))
-    .replace(NEST_OVERRIDES_SLOT, () => (roots.some(hasNestOverrides) ? PAYLOAD_NEST_OVERRIDES : ''));
+    .replace(NEST_OVERRIDES_SLOT, () => (roots.some(hasNestOverrides) ? PAYLOAD_NEST_OVERRIDES : ''))
+    .replace(NEST_ITEM_PREFER_DEF_SLOT, () => (roots.some(hasNestItemPrefer) ? 'const applyNestItemPrefers=' + applyNestItemPrefersSrc() + ';' : ''))
+    .replace(NEST_ITEM_PREFER_SLOT, () => (roots.some(hasNestItemPrefer) ? PAYLOAD_NEST_ITEM_PREFER : ''));
 
 const PAYLOAD_BUILD = `const __expose=[];
 /*__NEST_OVERRIDES_DEF__*/
+/*__NEST_ITEM_PREFER_DEF__*/
 // #2417 — NATIVE SLOTS, queued during the build like the exposures and made by \`__slotsNow\` after each conversion.
 const __slots=[];
 // #1378 — DRAIN THE EXPOSURE QUEUE, called immediately after every \`createComponentFromNode\` and nowhere
@@ -4211,6 +4293,7 @@ const build=async(n)=>{
     if(node&&n.nestExpose&&n.nestExpose.length)__expose.push(node);
     // #2645 — the per-instance overrides, written now: unlike exposure, \`setProperties\` needs no containing component.
     /*__NEST_OVERRIDES__*/
+    /*__NEST_ITEM_PREFER__*/
     // THE NESTED INSTANCE'S OWN TEXT (#2317), the plugin executor's twin: \`nestTexts\` names what this instance
     // says instead of its set's default, written as an instance override by property name before \`#id\`.
     if(node&&n.nestTexts){const P=node.componentProperties||{},S={};
