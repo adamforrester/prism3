@@ -1221,6 +1221,8 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "summary": "A whole-number quantity between a minus and a plus button, such as an item count in a bag.",
     "unit": "variants",
     "spacing": [],
+    "page": "Counter",
+    "section": "Components",
     "buildable": true,
     "reason": null,
     "members": 18,
