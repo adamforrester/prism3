@@ -3085,7 +3085,7 @@ section('stepdown — Segmented control, Tab and Tag move their glyph one rung d
   const CASES: Array<{ id: string; parts: string[]; members: number }> = [
     { id: 'segmented-control-segment', parts: ['leadingVisual'], members: 30 },
     { id: 'tab-item', parts: ['leadingVisual'], members: 30 },
-    { id: 'tag', parts: ['leadingVisual', 'check', 'dismissGlyph'], members: 45 },
+    { id: 'tag', parts: ['leadingVisual', 'checkGlyph', 'dismissGlyph'], members: 45 },
   ];
   const sizeOf = (m: Node): string => /size=(small|medium|large)/.exec(String(m.name))?.[1] ?? '?';
   const glyphsOf = (m: Node, parts: string[]): Node[] => {

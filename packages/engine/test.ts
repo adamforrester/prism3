@@ -14610,7 +14610,7 @@ arm: {
       }
       ok(shapeCorner.length === 0, `#2695 Q5/Q6: square and unpadded under every Control shape and density (${shapeCorner.slice(0, 3).join('; ') || 'ok'})`);
       // Q11: Textarea's grip sits above the line, inset by the 2px focus line's weight; outline keeps the 1px edge.
-      const grip = (d: ComponentDef) => find(figmaAnatomyPlan(d, 'medium', { state: 'focus-visible', status: 'default' } as never).root, 'grip')?.cornerInset;
+      const grip = (d: ComponentDef) => find(figmaAnatomyPlan(d, 'medium', { state: 'focus-visible', status: 'default' } as never).root, 'gripGlyph')?.cornerInset;
       ok(grip(applyFieldStyle(def('textarea'), 'underline')) === 'border-width/thick' && grip(def('textarea')) === 'border-width/hairline',
         `#2695 Q11: Textarea's grip is inset border-width/thick under underline (${grip(applyFieldStyle(def('textarea'), 'underline'))}), border-width/hairline under outline`);
 
@@ -17068,7 +17068,7 @@ arm: {
     const GLYPH_CASES: Array<{ id: string; parts: string[]; want: Record<string, [string, number]> }> = [
       { id: 'segmented-control-segment', parts: ['leadingVisual'], want: STEP_DOWN },
       { id: 'tab-item', parts: ['leadingVisual'], want: STEP_DOWN },
-      { id: 'tag', parts: ['leadingVisual', 'check', 'dismissGlyph'], want: STEP_DOWN },
+      { id: 'tag', parts: ['leadingVisual', 'checkGlyph', 'dismissGlyph'], want: STEP_DOWN },
       { id: 'icon-button', parts: ['icon'], want: ONE_TO_ONE },
       { id: 'icon-button-destructive', parts: ['icon'], want: ONE_TO_ONE },
       { id: 'icon-button-neutral', parts: ['icon'], want: ONE_TO_ONE },
