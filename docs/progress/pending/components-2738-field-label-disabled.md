@@ -9,3 +9,6 @@
 **Existing files.** The stamp hashes the plan, so the 12 disabled members of each field read "update" and the other 72 stay current. The executor's in-place nested branch swaps the label instance to the member the plan now resolves, keeping its id. `test-update-apply.ts` `label/…` builds each field as it was (label at rest everywhere) against a file holding FieldLabel as a set, runs Update, and reads the label's main component off the shim: disabled on the 12, rest on the 72, every key and label id kept, all 84 current after.
 
 **Trap.** The shim's default `world()` puts every nested target in the file as a plain component, and a plain component wins over a set with the same name, so the label would never resolve by member and the swap could not be observed. The new `fileSets` option puts FieldLabel in as a set.
+
+**Merged `main` at `9be4d89e` (cloud lane, landing train 3).** #2758's Rows-and-Textarea section conflicted with this
+PR's label section in `test-update-apply.ts` and `test.ts`; both are independent additions and are kept side by side.
