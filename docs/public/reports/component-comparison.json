@@ -838,6 +838,195 @@
       "sizeDefault": "medium"
     },
     {
+      "id": "code-input",
+      "name": "CodeInput",
+      "category": "form",
+      "states": [
+        "rest",
+        "hover",
+        "pending",
+        "filled",
+        "focus-visible",
+        "focus-visible-filled",
+        "disabled"
+      ],
+      "projectedStates": [
+        "rest",
+        "hover",
+        "filled",
+        "focus-visible",
+        "focus-visible-filled",
+        "disabled"
+      ],
+      "axes": {
+        "size": [
+          "medium",
+          "small",
+          "large",
+          "xlarge"
+        ],
+        "status": [
+          "default",
+          "error"
+        ]
+      },
+      "props": [
+        {
+          "name": "label"
+        },
+        {
+          "name": "length",
+          "default": 6
+        },
+        {
+          "name": "value"
+        },
+        {
+          "name": "defaultValue"
+        },
+        {
+          "name": "onChange"
+        },
+        {
+          "name": "onComplete"
+        },
+        {
+          "name": "inputMode",
+          "default": "numeric",
+          "values": [
+            "numeric",
+            "text"
+          ]
+        },
+        {
+          "name": "autoComplete",
+          "default": "one-time-code"
+        },
+        {
+          "name": "helpText"
+        },
+        {
+          "name": "validation",
+          "default": "default",
+          "values": [
+            "default",
+            "error"
+          ]
+        },
+        {
+          "name": "validationMessage"
+        },
+        {
+          "name": "showMessage",
+          "default": true
+        },
+        {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "small",
+            "medium",
+            "large",
+            "xlarge"
+          ]
+        },
+        {
+          "name": "width",
+          "default": "auto",
+          "values": [
+            "auto",
+            "full"
+          ]
+        },
+        {
+          "name": "disabled",
+          "default": false
+        },
+        {
+          "name": "isPending",
+          "default": false
+        },
+        {
+          "name": "name"
+        },
+        {
+          "name": "id"
+        }
+      ],
+      "sizes": [
+        "medium",
+        "small",
+        "large",
+        "xlarge"
+      ],
+      "sizeDefault": "medium"
+    },
+    {
+      "id": "code-input-cell",
+      "name": "CodeInput.Cell",
+      "category": "form",
+      "states": [
+        "rest",
+        "hover",
+        "filled",
+        "focus-visible",
+        "focus-visible-filled",
+        "disabled",
+        "error"
+      ],
+      "projectedStates": [
+        "rest",
+        "hover",
+        "filled",
+        "focus-visible",
+        "focus-visible-filled",
+        "disabled",
+        "error"
+      ],
+      "axes": {
+        "size": [
+          "medium",
+          "small",
+          "large",
+          "xlarge"
+        ]
+      },
+      "props": [
+        {
+          "name": "digit"
+        },
+        {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "small",
+            "medium",
+            "large",
+            "xlarge"
+          ]
+        },
+        {
+          "name": "isActive",
+          "default": false
+        },
+        {
+          "name": "isInvalid",
+          "default": false
+        },
+        {
+          "name": "disabled",
+          "default": false
+        }
+      ],
+      "sizes": [
+        "medium",
+        "small",
+        "large",
+        "xlarge"
+      ],
+      "sizeDefault": "medium"
+    },
+    {
       "id": "counter",
       "name": "Counter",
       "category": "form",
@@ -3434,6 +3623,15 @@
     },
     {
       "kind": "variant family",
+      "name": "CodeInput",
+      "members": [
+        "code-input",
+        "code-input-cell"
+      ],
+      "basis": "components named CodeInput or CodeInput.<variant>, where the suffix is not a role"
+    },
+    {
+      "kind": "variant family",
       "name": "FlushIconButton",
       "members": [
         "flush-icon-button",
@@ -3532,6 +3730,8 @@
       "button-neutral",
       "checkbox-control",
       "checkbox-row",
+      "code-input",
+      "code-input-cell",
       "counter",
       "field-label",
       "flush-icon-button",
@@ -3561,10 +3761,13 @@
     "error": [
       "checkbox-control",
       "checkbox-row",
+      "code-input-cell",
       "switch-control",
       "switch-row"
     ],
     "filled": [
+      "code-input",
+      "code-input-cell",
       "password-field",
       "select",
       "text-field",
@@ -3577,6 +3780,8 @@
       "button-neutral",
       "checkbox-control",
       "checkbox-row",
+      "code-input",
+      "code-input-cell",
       "counter",
       "flush-icon-button",
       "flush-icon-button-destructive",
@@ -3598,6 +3803,8 @@
       "textarea"
     ],
     "focus-visible-filled": [
+      "code-input",
+      "code-input-cell",
       "password-field",
       "select",
       "text-field",
@@ -3609,6 +3816,8 @@
       "button-neutral",
       "checkbox-control",
       "checkbox-row",
+      "code-input",
+      "code-input-cell",
       "flush-icon-button",
       "flush-icon-button-destructive",
       "flush-icon-button-neutral",
@@ -3640,6 +3849,7 @@
       "button",
       "button-destructive",
       "button-neutral",
+      "code-input",
       "icon-button",
       "icon-button-destructive",
       "icon-button-neutral",
@@ -3688,6 +3898,8 @@
       "checkbox-control",
       "checkbox-group",
       "checkbox-row",
+      "code-input",
+      "code-input-cell",
       "counter",
       "field-label",
       "flush-icon-button",
@@ -4046,6 +4258,18 @@
       },
       {
         "values": [
+          "large",
+          "medium",
+          "small",
+          "xlarge"
+        ],
+        "components": [
+          "code-input",
+          "code-input-cell"
+        ]
+      },
+      {
+        "values": [
           "medium",
           "small"
         ],
@@ -4080,6 +4304,15 @@
           "select",
           "text-field",
           "textarea"
+        ]
+      },
+      {
+        "values": [
+          "default",
+          "error"
+        ],
+        "components": [
+          "code-input"
         ]
       }
     ],
@@ -4365,6 +4598,10 @@
     ],
     "autoComplete": [
       {
+        "id": "code-input",
+        "default": "one-time-code"
+      },
+      {
         "id": "password-field",
         "values": [
           "current-password",
@@ -4452,6 +4689,9 @@
         "id": "checkbox-group"
       },
       {
+        "id": "code-input"
+      },
+      {
         "id": "counter"
       },
       {
@@ -4482,6 +4722,11 @@
       },
       {
         "id": "switch-row"
+      }
+    ],
+    "digit": [
+      {
+        "id": "code-input-cell"
       }
     ],
     "direction": [
@@ -4516,6 +4761,14 @@
       },
       {
         "id": "checkbox-group",
+        "default": false
+      },
+      {
+        "id": "code-input",
+        "default": false
+      },
+      {
+        "id": "code-input-cell",
         "default": false
       },
       {
@@ -4655,6 +4908,9 @@
     ],
     "helpText": [
       {
+        "id": "code-input"
+      },
+      {
         "id": "password-field"
       },
       {
@@ -4721,6 +4977,9 @@
     ],
     "id": [
       {
+        "id": "code-input"
+      },
+      {
         "id": "field-message"
       },
       {
@@ -4767,6 +5026,14 @@
       }
     ],
     "inputMode": [
+      {
+        "id": "code-input",
+        "default": "numeric",
+        "values": [
+          "numeric",
+          "text"
+        ]
+      },
       {
         "id": "text-field",
         "values": [
@@ -4826,6 +5093,12 @@
         ]
       }
     ],
+    "isActive": [
+      {
+        "id": "code-input-cell",
+        "default": false
+      }
+    ],
     "isExternal": [
       {
         "id": "link",
@@ -4858,6 +5131,12 @@
         "default": false
       }
     ],
+    "isInvalid": [
+      {
+        "id": "code-input-cell",
+        "default": false
+      }
+    ],
     "isPending": [
       {
         "id": "button",
@@ -4869,6 +5148,10 @@
       },
       {
         "id": "button-neutral",
+        "default": false
+      },
+      {
+        "id": "code-input",
         "default": false
       },
       {
@@ -4938,6 +5221,9 @@
       },
       {
         "id": "checkbox-row"
+      },
+      {
+        "id": "code-input"
       },
       {
         "id": "counter"
@@ -5041,6 +5327,12 @@
         "id": "button-neutral"
       }
     ],
+    "length": [
+      {
+        "id": "code-input",
+        "default": 6
+      }
+    ],
     "max": [
       {
         "id": "badge",
@@ -5082,6 +5374,9 @@
     "name": [
       {
         "id": "checkbox-group"
+      },
+      {
+        "id": "code-input"
       },
       {
         "id": "counter"
@@ -5170,6 +5465,9 @@
         "id": "checkbox-row"
       },
       {
+        "id": "code-input"
+      },
+      {
         "id": "counter"
       },
       {
@@ -5221,6 +5519,11 @@
       },
       {
         "id": "tag"
+      }
+    ],
+    "onComplete": [
+      {
+        "id": "code-input"
       }
     ],
     "onOpenChange": [
@@ -5478,6 +5781,10 @@
     ],
     "showMessage": [
       {
+        "id": "code-input",
+        "default": true
+      },
+      {
         "id": "counter",
         "default": false
       },
@@ -5585,6 +5892,26 @@
           "small",
           "medium",
           "large"
+        ]
+      },
+      {
+        "id": "code-input",
+        "default": "medium",
+        "values": [
+          "small",
+          "medium",
+          "large",
+          "xlarge"
+        ]
+      },
+      {
+        "id": "code-input-cell",
+        "default": "medium",
+        "values": [
+          "small",
+          "medium",
+          "large",
+          "xlarge"
         ]
       },
       {
@@ -6143,6 +6470,14 @@
     ],
     "validation": [
       {
+        "id": "code-input",
+        "default": "default",
+        "values": [
+          "default",
+          "error"
+        ]
+      },
+      {
         "id": "password-field",
         "default": "default",
         "values": [
@@ -6185,6 +6520,9 @@
     ],
     "validationMessage": [
       {
+        "id": "code-input"
+      },
+      {
         "id": "password-field"
       },
       {
@@ -6209,6 +6547,9 @@
       },
       {
         "id": "checkbox-row"
+      },
+      {
+        "id": "code-input"
       },
       {
         "id": "counter"
@@ -6275,6 +6616,14 @@
     ],
     "width": [
       {
+        "id": "code-input",
+        "default": "auto",
+        "values": [
+          "auto",
+          "full"
+        ]
+      },
+      {
         "id": "segmented-control",
         "default": "auto",
         "values": [
@@ -6285,6 +6634,23 @@
     ]
   },
   "findings": [
+    {
+      "kind": "state set",
+      "subject": "variant family: CodeInput",
+      "components": [
+        "code-input",
+        "code-input-cell"
+      ],
+      "detail": "no state set is shared by most of the group — code-input [rest, hover, pending, filled, focus-visible, focus-visible-filled, disabled]; code-input-cell [rest, hover, filled, focus-visible, focus-visible-filled, disabled, error]"
+    },
+    {
+      "kind": "variant axes",
+      "subject": "variant family: CodeInput",
+      "components": [
+        "code-input-cell"
+      ],
+      "detail": "code-input-cell's variant axes differ from the family's common set"
+    },
     {
       "kind": "state set",
       "subject": "role peers: *.Control",
@@ -6370,6 +6736,14 @@
         "button-neutral"
       ],
       "detail": "button-neutral declares the state inactive, which the design-file state axis does not draw"
+    },
+    {
+      "kind": "state not drawn",
+      "subject": "code-input",
+      "components": [
+        "code-input"
+      ],
+      "detail": "code-input declares the state pending, which the design-file state axis does not draw"
     },
     {
       "kind": "state not drawn",
@@ -6507,6 +6881,8 @@
         "checkbox-control",
         "checkbox-group",
         "checkbox-row",
+        "code-input",
+        "code-input-cell",
         "counter",
         "dialog",
         "field-label",
@@ -6535,7 +6911,20 @@
         "text-field",
         "textarea"
       ],
-      "detail": "the size axis takes 3 value sets — [large, medium, small] in _accordion-indicator, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, password-field, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, select, tab, tabs, tag, text-field, textarea; [medium, small] in switch-control, switch-row; [large, medium, small, x-small] in spinner"
+      "detail": "the size axis takes 4 value sets — [large, medium, small] in _accordion-indicator, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, password-field, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, select, tab, tabs, tag, text-field, textarea; [large, medium, small, xlarge] in code-input, code-input-cell; [medium, small] in switch-control, switch-row; [large, medium, small, x-small] in spinner"
+    },
+    {
+      "kind": "axis values",
+      "subject": "axis status",
+      "components": [
+        "code-input",
+        "field-message",
+        "password-field",
+        "select",
+        "text-field",
+        "textarea"
+      ],
+      "detail": "the status axis takes 2 value sets — [default, error, success, warning] in field-message, password-field, select, text-field, textarea; [default, error] in code-input"
     },
     {
       "kind": "axis values",
@@ -6640,6 +7029,22 @@
         "checkbox-row"
       ],
       "detail": "checkbox-row declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "code-input",
+      "components": [
+        "code-input"
+      ],
+      "detail": "code-input declares its sizes as [medium, small, large, xlarge], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "code-input-cell",
+      "components": [
+        "code-input-cell"
+      ],
+      "detail": "code-input-cell declares its sizes as [medium, small, large, xlarge], not smallest first"
     },
     {
       "kind": "size order",
@@ -6847,19 +7252,20 @@
       "components": [
         "field-label"
       ],
-      "detail": "field-label defaults size to small; 34 of 35 sized components default to medium"
+      "detail": "field-label defaults size to small; 36 of 37 sized components default to medium"
     },
     {
       "kind": "prop default",
       "subject": "prop showMessage",
       "components": [
+        "code-input",
         "counter",
         "password-field",
         "select",
         "text-field",
         "textarea"
       ],
-      "detail": "showMessage defaults differ over the same values — false in counter; true in password-field, select, text-field, textarea"
+      "detail": "showMessage defaults differ over the same values — false in counter; true in code-input, password-field, select, text-field, textarea"
     },
     {
       "kind": "axis without prop",
@@ -6900,6 +7306,14 @@
         "checkbox-control"
       ],
       "detail": "checkbox-control has the variant axis selection and no prop of that name"
+    },
+    {
+      "kind": "axis without prop",
+      "subject": "code-input",
+      "components": [
+        "code-input"
+      ],
+      "detail": "code-input has the variant axis status and no prop of that name"
     },
     {
       "kind": "axis without prop",

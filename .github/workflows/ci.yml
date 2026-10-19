@@ -459,7 +459,7 @@ jobs:
           count=$(npx --yes tsx@4 packages/engine/regen.ts --check | grep -oE '[0-9]+ committed artifacts')
           echo "reported: $count"
           case "$count" in
-            "202 committed artifacts") echo "✓ full set covered" ;;
+            "204 committed artifacts") echo "✓ full set covered" ;;
             *) echo "✗ artifact coverage changed — expected 202. If the set legitimately grew or shrank, update this check in the same PR."; exit 1 ;;
           esac
 

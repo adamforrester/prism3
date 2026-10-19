@@ -315,7 +315,9 @@
           "button-group",
           "dialog",
           "password-field",
-          "counter"
+          "counter",
+          "code-input-cell",
+          "code-input"
         ]
       }
     },
